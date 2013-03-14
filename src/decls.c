@@ -1650,6 +1650,27 @@ system headers are downgraded to warnings.)
 }  /* pos_adjusted_severity */
 
 
+static a_boolean is_template_dependent_noexcept_specification(
+                                          an_exception_specification_ptr  esp)
+/*
+Return TRUE if esp (which may be NULL) points to an exception specification
+entry for a noexcept-specification whose argument is template-dependent.
+(The caller is responsible for ensuring that the argument has been parsed;
+i.e., esp->arg_cached cannot be TRUE).
+*/
+{
+  a_boolean  result = FALSE;
+
+  if (esp != NULL && esp->is_noexcept) {
+    check_assertion(!esp->arg_cached);
+    result = esp->variant.noexcept_arg != NULL &&
+             esp->variant.noexcept_arg->kind ==
+                                      (a_constant_repr_kind)ck_template_param;
+  }  /* if */
+  return result;
+}  /* is_template_dependent_noexcept_specification */
+
+
 void check_exception_specification(a_type_ptr         new_rout_type,
                                    a_symbol_ptr       prev_decl,
                                    a_source_position  *throw_pos,
@@ -1741,8 +1762,8 @@ consistent with that of the previous declaration.
       error_code = ec_incompatible_exception_specification;
     } else {
       /* Not a redeclaration -- probably a template specialization.
-         In diagnostics refer to template rather than a previous declaration
-         of this instance. */
+         In diagnostics refer to the template rather than a previous
+         declaration of this instance. */
       error_code = ec_bad_exception_specification_for_specialization;
       /* Distinguish between (member) function specializations and static
          data member specializations: */
@@ -1767,6 +1788,20 @@ consistent with that of the previous declaration.
       }  /* if */
     } else if (new_esp != NULL && new_esp->arg_cached) {
       /* Compatibility cannot be checked in some template cases. */
+    } else if (rp != NULL && rp->is_prototype_instantiation &&
+               (is_template_dependent_noexcept_specification(old_esp) ||
+                is_template_dependent_noexcept_specification(new_esp))) {
+      /* If template-dependent noexcept specifiers are involved, the argument
+         constants must be equivalent. */
+      if (old_esp == NULL || !old_esp->is_noexcept ||
+          old_esp->variant.noexcept_arg == NULL ||
+          new_esp == NULL || !new_esp->is_noexcept ||
+          new_esp->variant.noexcept_arg == NULL ||
+          !eq_constants(old_esp->variant.noexcept_arg,
+                        new_esp->variant.noexcept_arg)) {
+        pos_stsy_diagnostic(pos_adjusted_severity(severity, prev_decl),
+                            error_code, throw_pos, "", prev_decl);
+      }  /* if */
     } else if (old_esp == NULL || old_esp->throw_any) {
       /* Previous specification asserted that any exception may be thrown
          ("throw (...)", "noexcept(<false-constant>)", or no specification at
@@ -8938,6 +8973,7 @@ definition of a member function of a class template.
           update_routine_type_exception_specification_if_needed(
                                    tssp->variant.function.routine, &type_ptr);
         }  /* if */
+        proto_instantiate_exception_spec_redecl(decl_state, sym);
         check_exception_specification(type_ptr, sym,
                                       &func_info->throw_position,
                                       /*is_redecl=*/TRUE);
@@ -9185,6 +9221,7 @@ definition of a member function of a class template.
       /* Be sure the current throw specification is consistent with the one
          on the previous declaration.  This must be done prior to adjusting
          the member function's type. */
+      proto_instantiate_exception_spec_redecl(decl_state, sym);
       check_exception_specification(type_ptr, sym,
                                     &func_info->throw_position,
                                     /*is_redecl=*/TRUE);

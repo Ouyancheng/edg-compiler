@@ -13667,7 +13667,6 @@ decl_member_function, which handles in-class member function declarations.)
                              /*suppress_redecl_error=*/FALSE);
   } else {
     a_boolean  is_ctor = decl_info->is_constructor;
-
     /* Enter this symbol as an instance of overloading. */
     sym = enter_overloaded_symbol((a_symbol_kind)sk_function_template,
                                   locator, is_ctor, sym, &overload_sym);
@@ -13702,6 +13701,23 @@ decl_member_function, which handles in-class member function declarations.)
   prototype_sym->variant.routine.instance_ptr->prototype_scope_symbols =
                                             func_info->prototype_scope_symbols;
   func_info->keep_param_id_list = TRUE;
+  if (dps->type->kind == (a_type_kind)tk_routine) {
+    /* If necessary, register the prototype routine to have its exception
+       specification instantiated when the class is completed. */
+    a_routine_type_supplement_ptr
+             rtsp = dps->type->variant.routine.extra_info;
+    if (rtsp->exception_specification != NULL &&
+        rtsp->exception_specification->arg_cached) {
+      /* The member function was declared with an exception specification
+         whose arguments were cached for later instantiation.  Record the
+         an entry to perform a prototype instantiation when the complete
+         definition of the enclosing class has been seen. */
+      a_symbol_list_entry_ptr		slep = alloc_symbol_list_entry();
+      slep->symbol = prototype_sym;
+      slep->next = class_state->members_requiring_exception_spec_instantiation;
+      class_state->members_requiring_exception_spec_instantiation = slep;
+    }  /* if */
+  }  /* if */
   cssp = symbol_supplement_for_class(class_type);
   if ((dps->dso_flags & DSO_CONSTEXPR) != 0) {
     rtn->is_declared_constexpr = TRUE;

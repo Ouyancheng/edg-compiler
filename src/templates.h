@@ -704,6 +704,10 @@ extern a_boolean equiv_templates_given_supplement(
 
 extern void instantiate_exception_spec_if_needed(a_symbol_ptr  sym);
 
+extern
+void proto_instantiate_exception_spec_redecl(a_tmpl_decl_state_ptr  decl_state,
+                                             a_symbol_ptr           sym);
+
 extern void instantiate_field_initializer_if_needed(a_field_ptr  field);
 
 extern void prescan_function_template_default_arg_expr(

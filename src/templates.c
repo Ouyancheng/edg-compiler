@@ -11181,8 +11181,7 @@ accordingly.
     }  /* if */
     tssp = template_supplement_for_symbol(template_sym);
     check_assertion(tssp != NULL);
-    if (prototype_instantiation_should_be_done_for_function(template_sym) &&
-        !tssp->variant.function.exception_spec_prototype_instantiation_done) {
+    if (!tssp->variant.function.exception_spec_prototype_instantiation_done) {
       a_routine_ptr	proto_rout = tssp->variant.function.routine;
       a_symbol_ptr	proto_sym = symbol_for(proto_rout);
       /* If the prototype instantiation of this exception specification has
@@ -11275,6 +11274,59 @@ accordingly.
     }  /* if */
   }  /* if */
 }  /* instantiate_exception_spec_if_needed */
+
+
+void proto_instantiate_exception_spec_redecl(a_tmpl_decl_state_ptr  decl_state,
+                                             a_symbol_ptr           sym)
+/*
+A function template or a member function of a class template (represented by
+sym) is being re-declared (e.g., defined outside a class) by a template
+declaration described by decl_state.  If applicable, do the prototype
+instantiation of an exception specification cached in the new template
+declaration.
+*/
+{
+  a_template_symbol_supplement_ptr tssp = template_supplement_for_symbol(sym);
+  a_decl_parse_state               *dps = &decl_state->decl_parse;
+  a_routine_type_supplement_ptr    rtsp;
+
+  check_assertion(is_function_or_template_symbol(sym));
+  if (dps->type->kind == (a_type_kind)tk_routine) {
+    rtsp = dps->type->variant.routine.extra_info;
+  } else {
+    rtsp = NULL;
+    expect_error();
+  }  /* if */
+  if (rtsp != NULL && rtsp->exception_specification != NULL) {
+    /* Instantiation of exception specifications works from a complete
+       function description; not just from a function type.  Therefore, we
+       temporarily swap the information associated with the new type and its
+       exception specification into the existing symbol information (sym and
+       its associated template symbol supplement). */
+    a_routine_ptr      proto_rp = tssp->variant.function.routine;
+    a_type_ptr         saved_type = proto_rp->type;
+    a_template_cache   saved_template_cache;
+    a_boolean          saved_flag;
+    saved_template_cache = tssp->variant.function.exception_spec_arg_cache;
+    saved_flag = 
+           tssp->variant.function.exception_spec_prototype_instantiation_done;
+    /* Set the type and exception specification cache information for the
+       template to that of the new declaration (temporarily). */
+    set_template_cache_info(
+                        &tssp->variant.function.exception_spec_arg_cache,
+                        rtsp->exception_specification->variant.token_cache,
+                        decl_state->decl_info);
+    tssp->variant.function.exception_spec_prototype_instantiation_done = FALSE;
+    proto_rp->type = dps->type;
+    /* Perform the instantiation. */
+    instantiate_exception_spec_if_needed(symbol_for(proto_rp));
+    /* Restore the original information. */
+    proto_rp->type = saved_type;
+    tssp->variant.function.exception_spec_prototype_instantiation_done =
+                                                                   saved_flag;
+    tssp->variant.function.exception_spec_arg_cache = saved_template_cache;
+  }  /* if */
+}  /* proto_instantiate_exception_spec_redecl */
 
 
 static void instantiate_field_initializer(a_field_ptr	field)
