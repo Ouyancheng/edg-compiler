@@ -24080,9 +24080,9 @@ passed via template_decl.
       }  /* if */
       if (!func_info.is_definition ||
           (prototype_instantiations_in_il &&
-           !prototype_instantiation_should_be_done_for_function(rout_sym) &&
            class_type
-                   ->variant.class_struct_union.is_prototype_instantiation)) {
+                   ->variant.class_struct_union.is_prototype_instantiation &&
+           !prototype_instantiation_should_be_done_for_function(rout_sym))) {
         /* Update xref info on param ids.  Note that if we are in a prototype
            instantiation and nonclass templates are not parsed in their generic
            form, the function should be considered undefined (since it won't
