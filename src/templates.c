@@ -11286,9 +11286,8 @@ instantiation of an exception specification cached in the new template
 declaration.
 */
 {
-  a_template_symbol_supplement_ptr tssp = template_supplement_for_symbol(sym);
-  a_decl_parse_state               *dps = &decl_state->decl_parse;
-  a_routine_type_supplement_ptr    rtsp;
+  a_decl_parse_state             *dps = &decl_state->decl_parse;
+  a_routine_type_supplement_ptr  rtsp;
 
   check_assertion(is_function_or_template_symbol(sym));
   if (dps->type->kind == (a_type_kind)tk_routine) {
@@ -11303,10 +11302,16 @@ declaration.
        temporarily swap the information associated with the new type and its
        exception specification into the existing symbol information (sym and
        its associated template symbol supplement). */
-    a_routine_ptr      proto_rp = tssp->variant.function.routine;
-    a_type_ptr         saved_type = proto_rp->type;
+    a_routine_ptr      proto_rp;
+    a_type_ptr         saved_type;
     a_template_cache   saved_template_cache;
     a_boolean          saved_flag;
+    a_template_symbol_supplement_ptr
+                       tssp;
+    sym = prototype_template_of(sym);
+    tssp = template_supplement_for_symbol(sym);
+    proto_rp = tssp->variant.function.routine;
+    saved_type = proto_rp->type;
     saved_template_cache = tssp->variant.function.exception_spec_arg_cache;
     saved_flag = 
            tssp->variant.function.exception_spec_prototype_instantiation_done;
