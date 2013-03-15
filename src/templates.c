@@ -11342,27 +11342,33 @@ instantiation of a class template or member of class template.
 
   check_assertion(field_sym != NULL);
   fssp = field_sym->variant.field.extra_info;
-  check_assertion(fssp->token_cache != NULL);
+  check_assertion_or_expect_error(fssp->token_cache != NULL);
   prototype_fssp = fssp->prototype_field;
-  check_assertion(prototype_fssp != NULL);
-  if (fssp->being_instantiated) {
+  check_assertion_or_expect_error(prototype_fssp != NULL);
+  if (prototype_fssp == NULL) {
+    /* An error occurred earlier that prevented matching a declaration in
+       instantiation with the original declaration in the prototype
+       instantiation. */
+    instantiate = FALSE;
+  } else if (fssp->being_instantiated) {
     /* This default argument (for this instance) is already being instantiated.
        Don't attempt another instantiation. */
     pos_sy_error(ec_recursive_initializer_instantiation, &error_position,
                  field_sym);
     /* The field is expected to have an initializer upon return from this
-       routine.  Create an error constant initializer. */
-    field->initializer = make_error_constant_dynamic_init();
+       routine. */
     instantiate = FALSE;
   } else if (prototype_fssp->pending_instantiations ==
                                                   max_pending_instantiations) {
     /* There are two many instantiations of fields based on the same
-       template.  Issue an error and create an error constant initializer. */
+       template. */
     sym_error(ec_runaway_recursive_instantiation, field_sym);
-    field->initializer = make_error_constant_dynamic_init();
     instantiate = FALSE;
   }  /* if */
-  if (instantiate) {
+  if (!instantiate) {
+    /* An error occurred.  Create an error constant initializer. */
+    field->initializer = make_error_constant_dynamic_init();
+  } else {
     a_boolean			trans_unit_pushed;
     a_boolean			class_reactivated = FALSE;
     a_memory_region_number	region_to_switch_back_to;
