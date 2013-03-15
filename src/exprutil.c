@@ -16110,7 +16110,18 @@ explicit "&" operator in the source and *operator_position gives its position.
           expr = make_node_from_operand(operand);
           test_expr = skip_parens(expr);
           if (curr_expr_kind_is_const()) {
-            if (is_possible_nonstatic_selection_masquerading_as_static(expr)) {
+            if (is_operation_node(test_expr) &&
+                node_operator_is(test_expr, eok_points_to_field) &&
+                is_constant_node(test_expr->variant.operation.operands) &&
+                test_expr->variant.operation.operands->variant.constant->kind==
+                                     (a_constant_repr_kind)ck_template_param) {
+              /* A template-dependent field selection whose first operand
+                 is a dependent address.  This comes up in offsetof.
+                 Create a tpck_expression constant for "&" applied to
+                 the field selection. */
+              template_constant = TRUE;
+            } else if (is_possible_nonstatic_selection_masquerading_as_static(
+                                                                       expr)) {
               /* This may be a template-dependent nonstatic selection
                  represented as a static selection because we don't know the
                  member for sure.  Create a tpck_expression constant for

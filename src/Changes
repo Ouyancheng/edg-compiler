@@ -1,5 +1,23 @@
 Version 4.6
 
+3/15/13  [EDGcpfe/13758]
+Folding of address of dependent field selection to a constant
+
+The front end now folds a "->" field selection whose first operand is
+a dependent constant address to a tpck_expression constant.  That allows
+cases like the following (implementing offsetof) to work in
+templates, in modes that do prototype instantiations (e.g., g++ mode
+with recent gnu_version numbers):
+
+  template <int N> struct A { 
+    int m; 
+    A() { 
+      int j = __INTADDR__( &(((A*)0)->m) ); 
+    } 
+  }; 
+  A<1> a;
+
+
 3/14/13  [EDGcpfe/13754]
 Lambda in operand of non-polymorphic typeid should get an error
 

@@ -5593,24 +5593,23 @@ and set *ovflo to TRUE if an overflow occurred.
 }  /* accum_field_offset */
 
 
-static void fold_field_selection(a_constant            *constant_1,
-                                 a_field_ptr           field,
-                                 a_type_ptr            result_type,
-                                 a_constant            *result,
-                                 a_boolean             *template_constant)
+static a_boolean fold_field_selection(a_constant  *constant_1,
+                                      a_field_ptr field,
+                                      a_type_ptr  result_type,
+                                      a_constant  *result)
 /*
 Fold a constant field selection operation.  constant_1 is the pointer to the
 struct/union; field is the selected field.  The result type (pointer to the
 field type) is given by result_type.  The result is put in *result.
-If constant_1 is a template parameter constant, return *template_constant
-TRUE and do not fold the operation.  This folding operation is not done
+Return TRUE if the selection can be folded, FALSE if not (the latter is
+returned for template-dependent cases).  This folding operation is not done
 through the usual interface because a field cannot be passed as a constant.
 */
 {
-  a_constant       offset;
-  a_boolean        err;
+  a_boolean  is_constant = TRUE;
+  a_constant offset;
+  a_boolean  err;
 
-  *template_constant = FALSE;
   copy_constant(constant_1, result);
   if (is_error_constant(constant_1)) {
     /* An error constant stays the same. */
@@ -5618,7 +5617,7 @@ through the usual interface because a field cannot be passed as a constant.
     /* A template parameter constant.  This shows up in cases like
          ((T *)0)->x
        which can come up as part of the expansion of offsetof. */
-    *template_constant = TRUE;
+    is_constant = FALSE;
   } else {
     /* Take the pointer offset, ... */
     get_pointer_offset(constant_1, &offset);
@@ -5633,10 +5632,15 @@ through the usual interface because a field cannot be passed as a constant.
 #if DEBUG
   if (debug_level >= 5) {
     fprintf(f_debug, "fold_field_selection: offset = ");
-    db_constant(&offset);
+    if (is_constant) {
+      db_constant(&offset);
+    } else {
+      fprintf(f_debug, "<nonconstant>");
+    }  /* if */
     fprintf(f_debug, "\n");
   }  /* if */
 #endif /* CHECKING */
+  return is_constant;
 }  /* fold_field_selection */
 
 
@@ -5876,11 +5880,11 @@ handle_field_selection:
               } else {
                 /* Not a bit field, or a bit field whose address can be taken
                    because it falls on byte boundaries. */
-                is_constant_addr = TRUE;
-                fold_field_selection(&conaddr1, field,
-                                     make_pointer_type(expr->type),
-                                     con, template_constant);
-                if (*template_constant) is_constant_addr = FALSE;
+                if (fold_field_selection(&conaddr1, field,
+                                         make_pointer_type(expr->type),
+                                         con)) {
+                  is_constant_addr = TRUE;
+                }  /* if */
               }  /* if */
             }
             break;
@@ -5893,12 +5897,12 @@ handle_pm_field_selection:
                                       (a_constant_repr_kind)ck_ptr_to_member &&
                                 !pm_constant.variant.ptr_to_member.
                                                               is_function_ptr);
-                fold_field_selection(
+                if (fold_field_selection(
                                &conaddr1,
                                pm_constant.variant.ptr_to_member.variant.field,
-                               make_pointer_type(expr->type), con,
-                               template_constant);
-                is_constant_addr = !*template_constant;
+                               make_pointer_type(expr->type), con)) {
+                  is_constant_addr = TRUE;
+                }  /* if */
               }  /* if */
             }  /* if */
             break;
