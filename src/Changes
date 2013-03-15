@@ -1,5 +1,28 @@
 Version 4.6
 
+3/15/13  [EDGcpfe/13760]
+Redundant source sequence entries for Microsoft in-class specializations
+
+Version 4.5 introduced a change that caused certain nonreal classes
+used as base classes to be have actual instantiations done on them
+in Microsoft mode.  If such a class contained a Microsoft in-class
+specialization that contained a class template, source sequence entries
+were generated for the prototype instantiation of the class template
+inside the in-class specialization, but should have been suppressed.
+Now fixed.
+
+
+  template <class T, class U> struct A {
+    template <int V> struct B;
+    template <> struct B<1> {
+      template <class V> struct C {
+        void f(V){}
+      };
+    };
+  };
+  template <class T, class U> class D : public A<T, U> { };
+
+
 3/15/13  [EDGcpfe/13758]
 Folding of address of dependent field selection to a constant
 

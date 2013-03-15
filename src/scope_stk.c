@@ -2124,7 +2124,8 @@ proto_type will be NULL.  Return TRUE if proto_type is non-NULL and the
 prototype instantiation is the result of the real instantiation of a class
 template.  Otherwise, return FALSE.  For example, if X<T>::N describes a
 template, X<int>::N<U> is a prototype instantiation of the nested template
-X<T>::N inside the real instantiation X<int>.
+X<T>::N inside the real instantiation X<int>.  For purposes of this test,
+Microsoft instantiated nonreal classes are considered to be real classes.
 */
 {
   a_boolean  result = FALSE;
@@ -2150,7 +2151,9 @@ X<T>::N inside the real instantiation X<int>.
              parent_scope->kind == (a_scope_kind)sck_class_struct_union) {
         a_type_ptr  class_type = parent_scope->variant.assoc_type;
         if (class_type->variant.class_struct_union.is_template_class &&
-            !class_type->variant.class_struct_union.is_nonreal_class &&
+            (!class_type->variant.class_struct_union.is_nonreal_class ||
+             class_type->
+                variant.class_struct_union.is_ms_instantiated_nonreal_class) &&
 #if MICROSOFT_EXTENSIONS_ALLOWED
             !class_type->variant.class_struct_union.is_generic_definition &&
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
