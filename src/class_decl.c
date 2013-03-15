@@ -25373,13 +25373,13 @@ cached for later "prototype instantiation".  Perform these instantiations now
 (when the class has been completed), as appropriate.
 */
 {
-  if (!defer_function_prototype_instantiations) {
+  if (!defer_function_prototype_instantiations &&
+      !class_state->class_type->variant.class_struct_union.
+                                           is_ms_instantiated_nonreal_class) {
     a_symbol_list_entry_ptr  slep;
     slep = class_state->members_requiring_exception_spec_instantiation;
     for (; slep != NULL; slep = slep->next) {
-      if (prototype_instantiation_should_be_done_for_function(slep->symbol)) {
-        instantiate_exception_spec_if_needed(slep->symbol);
-      }  /* if */
+      instantiate_exception_spec_if_needed(slep->symbol);
     }  /* for */
   }  /* if */
   free_list_of_symbol_list_entries(
