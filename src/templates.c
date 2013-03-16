@@ -11308,7 +11308,7 @@ declaration.
     a_boolean          saved_flag;
     a_template_symbol_supplement_ptr
                        tssp;
-    sym = prototype_template_of(sym);
+    if (is_template_symbol(sym)) sym = prototype_template_of(sym);
     tssp = template_supplement_for_symbol(sym);
     proto_rp = tssp->variant.function.routine;
     saved_type = proto_rp->type;
