@@ -6729,14 +6729,14 @@ though neither constructors nor initialization is involved here.)
   cip_list = NULL;
   class_type = parent_class_of(dtor_rout);
   check_assertion(class_type != NULL);
+  ctsp = class_type_supp(class_type);
+  source_pos = dtor_rout->source_corresp.decl_position;
   if (class_type->kind == (a_type_kind)tk_union) {
     /* Subobjects of variant members are not automatically destroyed.  So
        nothing must be done for unions.  (Anonymous union members are handled
        below. */
     goto past_subobject_destructions;
   }  /* if */
-  ctsp = class_type_supp(class_type);
-  source_pos = dtor_rout->source_corresp.decl_position;
   /* The order of destructor calls is exactly the reverse of the order of
      constructor calls.  In other words, destructors for virtual base classes
      are last, preceded by destructors for nonvirtual direct base classes,
