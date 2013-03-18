@@ -19126,6 +19126,7 @@ The routine body is not generated until it is known to be needed.
     }  /* if */
     if (cssp->variant_member_with_nontrivial_copy_ctor) {
       gsfd.suppress_copy_ctor = TRUE;
+      gsfd.suppress_move_ctor = TRUE;
     }  /* if */
     if (cssp->variant_member_with_nontrivial_dtor) {
       gsfd.suppress_dtor = TRUE;
