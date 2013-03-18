@@ -1965,6 +1965,9 @@ must not have been lowered (lowering can modify the parameters or return type).
 }  /* mangled_encoding_for_function_type */
 
 
+#ifdef IA64_ABI
+/*ARGSUSED*/ /* is_class_member is not used in this case. */
+#endif /* IA64_ABI */
 static void mangled_encoding_for_function_qualifiers(
                                       a_type_ptr               type,
                                       a_boolean                is_class_member,
