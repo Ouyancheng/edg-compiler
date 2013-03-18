@@ -1,5 +1,29 @@
 Version 4.6
 
+3/18/13  [EDGcpfe/11469,EDGcpfe/13728,EDGcpfe/13039]
+Mangling of cv-qualifiers on function types
+
+Previously, cv-qualifiers had only been mangled on non-static member
+function types; a change has been made to also mangle cv-qualifiers
+on non-member function types as well.  The previous behavior can be restored
+by setting ABI_COMPATIBILITY_VERSION to 405 or less.  In this example,
+identical mangled names had been generated for the two overloads of
+function "f" which had resulted in linker errors:
+
+  template <class T> struct A { };
+  typedef void cfn(int) const;
+  typedef void fn(int);
+  int f(A<fn>) { return 3; }
+  int f(A<cfn>) { return -3; }
+  int main() {
+    int i;
+    A<fn> a1;
+    A<cfn> a2;
+    i = f(a1) + f(a2);
+    return i;
+  }
+
+
 3/18/13  [EDGcpfe/13765]
 Wrong ABI_COMPATIBILITY_VERSION
 

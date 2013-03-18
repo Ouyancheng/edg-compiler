@@ -1966,30 +1966,42 @@ must not have been lowered (lowering can modify the parameters or return type).
 
 
 static void mangled_encoding_for_function_qualifiers(
-                                                a_type_ptr               type,
-                                                a_mangling_control_block *mctl)
+                                      a_type_ptr               type,
+                                      a_boolean                is_class_member,
+                                      a_mangling_control_block *mctl)
 /*
 Add to the mangled name the encoding for the type qualifiers (if any)
-on the member function type "type".
+on the function or member function type "type".  is_class_member is used to
+differentiate the two cases (i.e., is_class_member is TRUE for a member
+function type and FALSE otherwise).
 */
 {
   a_routine_type_supplement_ptr rtsp =
                               skip_typerefs(type)->variant.routine.extra_info;
+  a_type_qualifier_set          qualifiers = rtsp->qualifiers;
 
-  if (rtsp->this_class != NULL) {
-    /* The function is a nonstatic member function. */
-    /* Add any qualifiers on the "this" parameter type (actually, the type
-       pointed to by the "this" parameter). */
-    a_type_qualifier_set  qualifiers = rtsp->qualifiers;
-
-    if (qualifiers != TQ_NONE) {
-      mangled_encoding_for_type_qualifiers(qualifiers, mctl);
-    }  /* if */
+#if ABI_COMPATIBILITY_VERSION >= 406
+  if (qualifiers != TQ_NONE) {
+    /* In later versions of the ABI, cv-qualifiers are mangled on
+       functions as well as member functions (static member functions don't
+       have cv-qualifiers). */
+    mangled_encoding_for_type_qualifiers(qualifiers, mctl);
+  } else
+#endif /* ABI_COMPATIBILITY_VERSION >= 406 */
+  /* Do not insert code here. */
+  {
+    /* In earlier versions of the ABI, cv-qualifiers are mangled only on
+       member functions. */
+    if (rtsp->this_class != NULL) {
+      if (qualifiers != TQ_NONE) {
+        mangled_encoding_for_type_qualifiers(qualifiers, mctl);
+      }  /* if */
 #if !IA64_ABI
-  } else {
-    /* Static member function. */
-    add_to_mangled_name('S', mctl);
+    } else if (is_class_member) {
+      /* Static member function. */
+      add_to_mangled_name('S', mctl);
 #endif /* !IA64_ABI */
+    }  /* if */
   }  /* if */
 }  /* mangled_encoding_for_function_qualifiers */
 
@@ -8284,11 +8296,13 @@ determination is made by the callee.
     /* Mark the start of the nested name. */
     add_to_mangled_name('N', mctl);
     *need_nested_name_close = TRUE;
-    if (kind == iek_routine && scp->is_class_member) {
-      /* Class member function.  Put out the qualifiers on the member function
+    if (kind == iek_routine) {
+      /* Some type of function.  Put out the qualifiers on the function
          type. */
       a_routine_ptr routine = (a_routine_ptr)scp;
-      mangled_encoding_for_function_qualifiers(routine->type, mctl);
+      mangled_encoding_for_function_qualifiers(routine->type,
+                                               scp->is_class_member,
+                                               mctl);
     }  /* if */
     /* Put out the components of the nested name except for the final one.
        The caller will put out the final name and then close the nested
@@ -9146,12 +9160,10 @@ top_of_loop:
         /* More of this below -- int[10] is put out as A10_i (Cfront-style). */
         break;
       case tk_routine:
-#if IA64_ABI
-        /* There's no way to distinguish static member function types from
-           ordinary function types -- but fortunately that doesn't matter in
-           the IA64 ABI so the following function call is safe. */
-        mangled_encoding_for_function_qualifiers(type, mctl);
-#endif /* IA64_ABI */
+        /* Emit function qualifiers if necessary. */
+        mangled_encoding_for_function_qualifiers(type,
+                                                 /*is_class_member=*/FALSE,
+                                                 mctl);
         /* Function.  Put out "F" and the argument types. */
         mangled_encoding_for_function_type(type,
                                            /*do_return_type=*/TRUE,
@@ -9318,13 +9330,6 @@ top_of_loop:
                                                        class_of_which_a_member,
                                   mctl);
         pm_base_type = type->variant.ptr_to_member.type;
-#if !IA64_ABI
-        if (is_function_type(pm_base_type)) {
-          /* This is a pointer to member function.  Put out the type qualifiers
-             (if any) on the member function type. */
-          mangled_encoding_for_function_qualifiers(pm_base_type, mctl);
-        }  /* if */
-#endif /* !IA64_ABI */
         /* Put out the type pointed to. */
         mangled_encoding_for_type(pm_base_type, mctl);
         break;
@@ -10305,11 +10310,11 @@ mangle_template:
   if (!suppress_param_encoding) {
     a_boolean do_return_type;
 #if !IA64_ABI
-    if (routine->source_corresp.is_class_member) {
-      /* Class member function.  Put out the qualifiers on the member function
-         type. */
-      mangled_encoding_for_function_qualifiers(routine_type, mctl);
-    }  /* if */
+    /* Put out the qualifiers on the function type (if applicable).  Only
+       applicable to the Cfront ABI. */
+    mangled_encoding_for_function_qualifiers(routine_type,
+                                       routine->source_corresp.is_class_member,
+                                       mctl);
 #endif /* !IA64_ABI */
     /* Templates have their return types included. */
     do_return_type = mangle_as_template;
