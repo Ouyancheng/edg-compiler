@@ -6175,7 +6175,7 @@ initialized.  These are addressed in the course of the processing.
            is short-circuited in various ways). */
         if (variant_complete) {
           /* We saw the last field of a variant in the previous iteration.
-             Reset the variant tracking variables for any other anonymous
+             Then reset the variant tracking variables for any other anonymous
              union that might follow. */
           in_variant = FALSE;
           variant_complete = FALSE;
@@ -6384,9 +6384,9 @@ initialized.  These are addressed in the course of the processing.
           prev_cip = cip;
         }  /* if */
         continue;
-      } else if (in_variant || is_union) {
-        /* An entry for an uninitialized union member: Remove it (we only keep
-           the entries for fields with initializers). */
+      } else if (in_variant) {
+        /* An entry for an uninitialized anonymous union member: Remove it
+           (we only keep the entry for the initialized variant fields). */
         check_assertion(cip->kind == (a_constructor_init_kind)cik_field);
         if (prev_cip == NULL) {
           cib.cip_list = cip->next;
@@ -6723,20 +6723,12 @@ though neither constructors nor initialization is involved here.)
   a_dynamic_init_ptr            dip;
   a_class_type_supplement_ptr   ctsp;
   a_source_position             source_pos;
-  a_boolean                     in_variant = FALSE, variant_complete = FALSE;
 
   db_enter(3, "dtor_initializer");
-  cip_list = NULL;
+  source_pos = dtor_rout->source_corresp.decl_position;
   class_type = parent_class_of(dtor_rout);
   check_assertion(class_type != NULL);
-  if (class_type->kind == (a_type_kind)tk_union) {
-    /* Subobjects of variant members are not automatically destroyed.  So
-       nothing must be done for unions.  (Anonymous union members are handled
-       below. */
-    goto done;
-  }  /* if */
   ctsp = class_type_supp(class_type);
-  source_pos = dtor_rout->source_corresp.decl_position;
   /* The order of destructor calls is exactly the reverse of the order of
      constructor calls.  In other words, destructors for virtual base classes
      are last, preceded by destructors for nonvirtual direct base classes,
@@ -6746,6 +6738,7 @@ though neither constructors nor initialization is involved here.)
      and nonvirtual direct base classes. */
   /* First loop through the base classes looking for virtual base classes. */
   is_virtual_pass = TRUE;
+  cip_list = NULL;
   for (;;) {
     for (bcp = ctsp->base_classes; bcp != NULL; bcp = bcp->next) {
       /* On the first pass select out virtual base classes; on the second
@@ -6804,23 +6797,6 @@ though neither constructors nor initialization is involved here.)
       if (microsoft_mode && field_is_property_or_event(field)) {
         /* Property and event fields are not really data members and should
            not be destroyed. */
-        continue;
-      }  /* if */
-      if (variant_complete) {
-        /* We saw the last field of a variant in the previous iteration.
-           Reset the variant tracking variables for any other anonymous
-           union that might follow. */
-        in_variant = FALSE;
-        variant_complete = FALSE;
-      }  /* if */
-      if (sym->variant.field.extra_info->is_first_variant_member) {
-        in_variant = TRUE;
-      }  /* if */
-      if (sym->variant.field.extra_info->is_last_variant_member) {
-        variant_complete = TRUE;
-      }  /* if */
-      if (in_variant) {
-        /* Variant subobjects are not automatically destroyed. */
         continue;
       }  /* if */
       tp = skip_typerefs(field->type);
@@ -6939,7 +6915,6 @@ though neither constructors nor initialization is involved here.)
     }  /* for */
   }  /* if */
 #endif /* DEBUG */
-done:
   db_exit();
   return cip_list;
 }  /* dtor_initializer */
