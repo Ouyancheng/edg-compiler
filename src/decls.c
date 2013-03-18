@@ -6333,6 +6333,7 @@ for use in generating cross-reference output describing this declaration.
     variable_ptr = NULL;
     dps->prev_type = NULL;
     redeclaration = FALSE;
+    suppress_ext_sym_lookup = TRUE;
   }  /* if */
   if (sym == NULL) {
     a_boolean  in_microsoft_for_init = FALSE;
