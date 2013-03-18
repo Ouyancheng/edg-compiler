@@ -8681,6 +8681,7 @@ evaluation (e.g., parameter values).
   a_constant_ptr result_con = NULL;
   a_constant     char_con;
   a_boolean      type_mismatch = FALSE;
+  a_boolean      err = FALSE;
 
   if (is_error_constant(addr_con)) {
     /* There was an error upstream.  Return an error constant. */
@@ -8768,7 +8769,7 @@ evaluation (e.g., parameter values).
       a_boolean        found_value = FALSE;
       a_targ_ptrdiff_t cum_offset = 0;
 
-      while (!found_value && result_con != NULL) {
+      while (!err && !found_value && result_con != NULL) {
         if (cum_offset == offset &&
             identical_types(target_type, curr_type)) {
           /* result_con is the value we're looking for. */
@@ -8786,6 +8787,9 @@ evaluation (e.g., parameter values).
           /* result_con is a string and offset designates a character within
              that string. */
           found_value = TRUE;
+        } else if (is_error_type(curr_type)) {
+          /* There was an error upstream. */
+          err = TRUE;
         } else {
           /* curr_type is either an array or a class type, and offset
              represents one of its subobjects.  Step into curr_type and
@@ -8898,7 +8902,7 @@ evaluation (e.g., parameter values).
           }  /* if */
         }  /* if */
       }  /* while */
-      if (result_con != NULL && !type_mismatch &&
+      if (!err && result_con != NULL && !type_mismatch &&
           !identical_types(target_type, curr_type)) {
         /* The requested offset designates a character within a string. */
         a_type_ptr elem_type;
@@ -8929,7 +8933,10 @@ evaluation (e.g., parameter values).
           result_con = &char_con;
         }  /* if */
       }  /* if */
-      if (type_mismatch) {
+      if (err) {
+        /* There was an error of some sort and we cannot fold. */
+        result_con = NULL;
+      } else if (type_mismatch) {
         /* Cannot fold -- type punning is not allowed in constant
            expressions. */
         result_con = NULL;
