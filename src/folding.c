@@ -9695,7 +9695,7 @@ See if the indicated constexpr routine has a definition, forcing one
 
   check_assertion(sym != NULL);
   set_instance_required(sym, TRUE, SIR_CONSTANT_CONTEXT);
-  return routine->assoc_scope != NULL_region_number;
+  return routine->assoc_scope != NULL_region_number && routine->is_constexpr;
 }  /* constexpr_routine_has_definition */
 
 
