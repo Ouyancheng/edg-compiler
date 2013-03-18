@@ -6733,7 +6733,7 @@ though neither constructors nor initialization is involved here.)
     /* Subobjects of variant members are not automatically destroyed.  So
        nothing must be done for unions.  (Anonymous union members are handled
        below. */
-    goto done;
+    goto past_subobject_destructions;
   }  /* if */
   ctsp = class_type_supp(class_type);
   source_pos = dtor_rout->source_corresp.decl_position;
@@ -6862,6 +6862,7 @@ though neither constructors nor initialization is involved here.)
       }  /* if */
     }  /* if */
   }  /* for */
+past_subobject_destructions:
   /* If the destructor is virtual, the class must have a visible
      default operator delete() (core issue 252). */
   if (dtor_rout->is_virtual) {
@@ -6939,7 +6940,6 @@ though neither constructors nor initialization is involved here.)
     }  /* for */
   }  /* if */
 #endif /* DEBUG */
-done:
   db_exit();
   return cip_list;
 }  /* dtor_initializer */
