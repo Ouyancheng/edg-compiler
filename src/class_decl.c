@@ -14746,10 +14746,10 @@ specific information about the member declaration, respectively.
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     } else if ((is_const_qualified_type(member_type) &&
                 (is_integral_or_enum_type(member_type) ||
-                 (var->is_constexpr && is_literal_type(member_type)) ||
                  (gpp_mode &&
                   (is_floating_type(member_type) ||
                    (gnu_version < 30300 && is_pointer_type(member_type)))))) ||
+               (var->is_constexpr && is_literal_type(member_type)) ||
 #if MICROSOFT_EXTENSIONS_ALLOWED
                var->is_initonly ||
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
