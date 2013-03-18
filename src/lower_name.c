@@ -5029,10 +5029,10 @@ expression.
 {
   an_expr_node_ptr selector, selection, operand;
   a_boolean        use_unresolved_name_mangling = TRUE;
-#if !IA64_ABI && ABI_COMPATIBILITY_VERSION < 440
+#if !IA64_ABI && ABI_COMPATIBILITY_VERSION < 404
   a_constant       dummy_constant;
   an_expr_node     dummy_expr;
-#endif /* !IA64_ABI && ABI_COMPATIBILITY_VERSION < 440 */
+#endif /* !IA64_ABI && ABI_COMPATIBILITY_VERSION < 404 */
 
   check_assertion(is_operation_node(expr));
   operand = expr->variant.operation.operands;
@@ -5086,12 +5086,12 @@ expression.
           selector = NULL;
         } else {
           /* No qualifier in the selection. */
-#if ABI_COMPATIBILITY_VERSION >= 440
+#if ABI_COMPATIBILITY_VERSION >= 404
           /* Produce a mangling that contains "this" by leaving the expression
              as is.  This can lead to ambiguous mangled names (i.e., explicit
              and implicit uses of "this" are mangled the same), but the front
              end won't allow those to be overloaded, so it should be okay. */
-#else /* ABI_COMPATIBILITY_VERSION < 440 */
+#else /* ABI_COMPATIBILITY_VERSION < 404 */
           /* Originally, an enk_param_ref wasn't used in the internal
              representation for implicit "this", so recreate the mangling for
              the old internal representation (i.e., "((A *)0)->"). */
@@ -5100,7 +5100,7 @@ expression.
           dummy_expr.variant.constant = &dummy_constant;
           dummy_expr.type = dummy_constant.type;
           selector = &dummy_expr;
-#endif /* ABI_COMPATIBILITY_VERSION >= 440 */
+#endif /* ABI_COMPATIBILITY_VERSION >= 404 */
         }  /* if */
 #endif /* IA64_ABI */
       }  /* if */
