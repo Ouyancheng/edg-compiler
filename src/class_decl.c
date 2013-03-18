@@ -24269,7 +24269,7 @@ passed via template_decl.
       } else {
         decl_nonstd_member_constant(&locator, class_state, &decl_info);
       }  /* if */
-    } else {
+    } else if (!is_member_template_rescan) {
       /* A static or nonstatic data member. */
       if (mutable_specified && is_const_qualified_type(decl_state->type)) {
         /* "mutable" and top-level "const" are not allowed together. */
@@ -24321,6 +24321,8 @@ passed via template_decl.
           syntax_error(ec_bad_data_member_initialization);
         }  /* if */
       }  /* if */
+    } else {
+      expect_error();
     }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
     if (decl_state->ms_attributes != NULL) {
