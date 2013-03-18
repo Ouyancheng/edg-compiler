@@ -8840,16 +8840,18 @@ evaluation (e.g., parameter values).
                    in the constant; indirect base classes are in nested
                    elements of the aggregate. */
                 a_type_ptr    base_class = bp->type;
+                a_type_ptr    base_class_for_size = base_class;
                 a_targ_size_t base_class_size;
 #if DO_IL_LOWERING
                 if (class_type_supp(base_class)->type_as_subobject != NULL) {
                   /* The size of a base class subobject can be different
                      from that of a standalone object with that type, so
                      use the subobject type for size calculations. */
-                  base_class = class_type_supp(base_class)->type_as_subobject;
+                  base_class_for_size =
+                                class_type_supp(base_class)->type_as_subobject;
                 }  /* if */
 #endif /* DO_IL_LOWERING */
-                base_class_size = class_type_supp(base_class)->
+                base_class_size = class_type_supp(base_class_for_size)->
                                              size_without_virtual_base_classes;
                 /* The order in which base class subobjects appear in the
                    derived class object can be different from the order in
