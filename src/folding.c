@@ -8862,9 +8862,12 @@ evaluation (e.g., parameter values).
                     (offset > (a_targ_ptrdiff_t)(cum_offset + bp->offset) &&
                      offset < (a_targ_ptrdiff_t)(cum_offset + bp->offset +
                                                  base_class_size))) {
-                  /* The address designates or lies within this base class
-                     subobject. */
-                  break;
+                  if (base_class_size > 0 ||
+                      identical_types(base_class, target_type)) {
+                    /* The address designates or lies within this base
+                       class subobject. */
+                    break;
+                  }  /* if */
                 }  /* if */
                 /* The address is not in this base class subobject; step to
                    the next base class and subobject in the value. */
