@@ -26809,8 +26809,12 @@ update_instantiation_required_flag to do the appropriate processing.
   /* The processing of this list may result in additional deferred
      instantiations that will get added to the end of the list.  A
      flag is used to make sure that the list is not processed during
-     potential recursive calls of this routine. */
-  if (!deferred_instantiations_in_process) {
+     potential recursive calls of this routine.  Also, don't do the
+     instantiations if there are pending class instantiations or namespace
+     scope class definitions. */
+  if (!deferred_instantiations_in_process &&
+      curr_class_fixup_header(/*for_instantiation=*/TRUE)->
+                                              pending_class_definitions == 0) {
     deferred_instantiations_in_process = TRUE;
     for (slep = deferred_instantiations; slep != NULL; slep = slep->next) {
       a_template_instance_ptr	tip;
