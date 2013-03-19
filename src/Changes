@@ -1,5 +1,23 @@
 Version 4.6
 
+3/18/13  [EDGcpfe/13769]
+GNU C++ compatibility: unnamed class types as template arguments
+
+g++ allows unnamed types that are class members to be used as template
+arguments starting with version 4.5.  We now emulate this in g++ mode
+when gnu_version >= 40500.
+
+  template<class T> void f(const T &);
+  struct A {
+    enum { e };
+    static struct {} b;
+  };
+  int main() {
+    f(A::e);
+    f(A::b);
+  }
+
+
 3/18/13  [EDGcpfe/11469,EDGcpfe/13728,EDGcpfe/13039]
 Mangling of cv-qualifiers on function types
 

@@ -1951,10 +1951,15 @@ during wrapup processing by compare_function_templates.
           a_boolean   is_class = is_immediate_class_type(tp);
           is_lambda_closure_class =
                       is_class && class_type_supp(tp)->is_lambda_closure_class;
-          if (((is_class && !is_lambda_closure_class) ||
-               is_immediate_enum_type(tp)) &&
-               !has_name(tp)) {
-            match = FALSE;
+          if (!has_name(tp)) {
+            if (gnu_version >= 40500 && tp->source_corresp.is_class_member) {
+              /* g++ treats unnamed class members as named starting with
+                 version 4.5. */
+              match = TRUE;
+            } else if ((is_class && !is_lambda_closure_class) ||
+                       is_immediate_enum_type(tp)) {
+              match = FALSE;
+            }  /* if */
           }  /* if */
           if (match && gnu_version >= 40100) {
             /* g++, starting with version 4.1, treats a local type as a

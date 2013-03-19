@@ -11054,6 +11054,7 @@ This is a service function designed to be called from traverse_type_tree
    is_invalid_template_arg_type. */
 static a_boolean is_unnamed_type;
 static a_boolean is_local_type;
+static a_boolean treat_class_members_as_named;
 
 
 static a_boolean ttt_is_type_with_no_name_linkage(
@@ -11070,17 +11071,28 @@ linkage is encountered).
 */
 {
   a_boolean  result = FALSE;
+  a_boolean  is_gpp_unnamed_case = FALSE;
 
   if (((is_class_struct_union(type_ptr) &&
         !type_ptr->variant.class_struct_union.is_nonreal_class) ||
        is_enum(type_ptr)) &&
       type_ptr->source_corresp.name_linkage == (a_name_linkage_kind)nlk_none) {
-    *force_end_of_traversal = result = TRUE;
+    /* treat_class_members_as_named is TRUE in certain cases in g++ mode. */
+    if (type_ptr->source_corresp.name == NULL &&
+        treat_class_members_as_named &&
+        type_ptr->source_corresp.is_class_member) {
+      /* treat_class_members_as_named is TRUE in certain cases in g++ mode. */
+      is_gpp_unnamed_case = TRUE;
+    } else {
+      *force_end_of_traversal = result = TRUE;
+    }  /* if */
     if (type_ptr->source_corresp.is_local_to_function) {
       check_assertion(type_ptr->kind != (a_type_kind)tk_typeref);
       is_local_type = TRUE;
     }  /* if */
-    if (type_ptr->source_corresp.name == NULL) {
+    /* If we decided to treat this as named above, don't set the unnamed
+.      flag here. */
+    if (!is_gpp_unnamed_case) {
       is_unnamed_type = TRUE;
     }  /* if */
   }  /* if */
@@ -12093,6 +12105,7 @@ This function considers nonreal class and enum types to have linkage.
      from ttt_is_type_with_no_name_linkage. */
   is_local_type = FALSE;
   is_unnamed_type = FALSE;
+  treat_class_members_as_named = FALSE;
   result = (traverse_type_tree(type_ptr, ttt_is_type_with_no_name_linkage,
                                ttt_flags));
   return result;
@@ -12117,6 +12130,7 @@ unnamed type, or type defined in an unnamed namespace.
      ttt_is_trans_unit_specific_type. */
   is_local_type = FALSE;
   is_unnamed_type = FALSE;
+  treat_class_members_as_named = FALSE;
   result = (traverse_type_tree(type_ptr, ttt_is_trans_unit_specific_type,
                                ttt_flags));
   return result;
@@ -12247,6 +12261,8 @@ sets the value of local_type_used_as_template_type_argument when needed.
   *is_local = is_local_type = FALSE;
   *is_unnamed = is_unnamed_type = FALSE;
   *is_generic = FALSE;
+  /* g++ treats unnamed class members as named starting with version 4.5. */
+  treat_class_members_as_named = gpp_mode && gnu_version >= 40500;
   if (local_type_check_needed) {
     a_type_tree_traversal_flag_set  ttt_flags = (TTT_RETURN_TYPE |
                                                  TTT_THIS_PARAM_TYPE |
