@@ -9469,7 +9469,9 @@ ceblock gives context information for the evaluation.
        returned. */
     a_dynamic_init_ptr dip = expr->variant.init.dynamic_init;
     if ((is_const_qualified_type(expr->type) ||
-         dip->is_top_temporary_for_constexpr_reference_param) &&
+         dip->is_top_temporary_for_constexpr_reference_param ||
+         dip->has_temporary_lifetime) &&
+        !is_volatile_qualified_type(expr->type) &&
         fold_dynamic_init(dip,
                           expr->type,
                           ceblock,

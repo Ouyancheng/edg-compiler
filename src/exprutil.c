@@ -17742,6 +17742,7 @@ it might produce an error).
                             rvalue_node_type, /*is_lvalue=*/FALSE, op1);
           processed = TRUE;
           break;
+        case eok_ref_cast:
         case eok_lvalue_adjust:
           /* If the operand of an lvalue adjust can be converted to a
              constant, the result is the type-adjusted constant.
