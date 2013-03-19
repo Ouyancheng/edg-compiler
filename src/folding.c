@@ -5890,13 +5890,12 @@ handle_field_selection:
             break;
 handle_pm_field_selection:
             { a_constant  pm_constant;
-              if (fold_expr(op2, ceblock, &pm_constant)) {
+              if (fold_expr(op2, ceblock, &pm_constant) &&
+                  pm_constant.kind == (a_constant_repr_kind)ck_ptr_to_member &&
+                  !pm_constant.variant.ptr_to_member.is_function_ptr &&
+                  pm_constant.variant.ptr_to_member.variant.field != NULL) {
                 /* The second operand is a constant, so we can fold the
                    access. */
-                check_assertion(pm_constant.kind ==
-                                      (a_constant_repr_kind)ck_ptr_to_member &&
-                                !pm_constant.variant.ptr_to_member.
-                                                              is_function_ptr);
                 if (fold_field_selection(
                                &conaddr1,
                                pm_constant.variant.ptr_to_member.variant.field,
@@ -9190,13 +9189,12 @@ field_selection:
 pm_field_selection:
         if (op1_folded) {
           a_constant pm_constant;
-          if (fold_expr(op2, ceblock, &pm_constant)) {
+          if (fold_expr(op2, ceblock, &pm_constant) &&
+              pm_constant.kind == (a_constant_repr_kind)ck_ptr_to_member &&
+              !pm_constant.variant.ptr_to_member.is_function_ptr &&
+              pm_constant.variant.ptr_to_member.variant.field != NULL) {
             a_boolean points_to =
                          (op == (an_expr_operator_kind)eok_pm_points_to_field);
-            check_assertion(pm_constant.kind ==
-                                      (a_constant_repr_kind)ck_ptr_to_member &&
-                            !pm_constant.variant.ptr_to_member.
-                                                              is_function_ptr);
             if (fold_constant_field_selection(
                                &op1_constant, points_to,
                                pm_constant.variant.ptr_to_member.variant.field,
