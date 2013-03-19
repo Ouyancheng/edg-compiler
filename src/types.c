@@ -9286,8 +9286,9 @@ if there is an error, otherwise to ec_no_error.
       if (conversion->nontrivial_conversion) {
         allowed = FALSE;
         if (dest_type != NULL) {
-          if (is_template_param_type(source_type) ||
-              is_template_param_type(dest_type)) {
+          if (is_template_dependent_context() &&
+              (is_template_dependent_type(source_type) ||
+               is_template_dependent_type(dest_type))) {
             /* Conversions between template parameter types are allowed. */
             allowed = TRUE;
           } else if (is_error_type(source_type) ||
