@@ -6734,7 +6734,7 @@ though neither constructors nor initialization is involved here.)
   if (class_type->kind == (a_type_kind)tk_union) {
     /* Subobjects of variant members are not automatically destroyed.  So
        nothing must be done for unions.  (Anonymous union members are handled
-       below. */
+       below.) */
     goto past_subobject_destructions;
   }  /* if */
   /* The order of destructor calls is exactly the reverse of the order of
