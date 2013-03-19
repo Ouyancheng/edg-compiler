@@ -15415,6 +15415,7 @@ expression, and return the result in *result (or an error indication in
       }  /* if */
     } else if (list_init_enabled && curr_token == tok_lbrace) {
       /* A C++11-style list initializer, e.g., new A{x, y}. */
+      init_position = pos_curr_token;
       if (new_type_involves_auto) {
         /* A braced initializer cannot be used with "auto". */
         expr_pos_error(ec_auto_new_with_braced_init, &type_position);
