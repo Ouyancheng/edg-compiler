@@ -11078,11 +11078,12 @@ linkage is encountered).
         !type_ptr->variant.class_struct_union.is_nonreal_class) ||
        is_enum(type_ptr)) &&
       type_ptr->source_corresp.name_linkage == (a_name_linkage_kind)nlk_none) {
-    /* treat_class_members_as_named is TRUE in certain cases in g++ mode. */
+    /* treat_class_members_as_named is TRUE in certain cases in g++ mode
+       where unnamed class members should be considered named.  For more
+       details on when it is set see is_invalid_template_arg_type. */
     if (type_ptr->source_corresp.name == NULL &&
         treat_class_members_as_named &&
         type_ptr->source_corresp.is_class_member) {
-      /* treat_class_members_as_named is TRUE in certain cases in g++ mode. */
       is_gpp_unnamed_case = TRUE;
     } else {
       *force_end_of_traversal = result = TRUE;
@@ -11092,7 +11093,7 @@ linkage is encountered).
       is_local_type = TRUE;
     }  /* if */
     /* If we decided to treat this as named above, don't set the unnamed
-.      flag here. */
+       flag here. */
     if (!is_gpp_unnamed_case) {
       is_unnamed_type = TRUE;
     }  /* if */
