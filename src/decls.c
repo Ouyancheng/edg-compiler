@@ -3559,6 +3559,14 @@ indicating that error recovery should proceed as if no error had occurred
       /* The old and new types are compatible.  Form the composite of
          those types, and save that as the type of the external symbol. */
       esdp->type = composite_type(old_type, type_ptr);
+      if (is_error_type(old_type) || is_error_type(type_ptr)) {
+        /* An error type is treated as "compatible" with any type in this
+           context, we but we don't want to link two declarations if their
+           types don't match.  (It could e.g. result in inconsistent
+           initializer types.) */
+        expect_error();
+        okay = FALSE;
+      }  /* if */
     } else {
       /* The old and new types are incompatible.  Issue a warning instead of
          an error for certain cases (e.g., SVR4 mode). */
@@ -6104,6 +6112,51 @@ variable.
   }  /* if */
 }  /* check_constant_valued_variable */
 
+#if CHECKING
+
+static void check_consistent_init_type(a_variable_ptr  var)
+/*
+If the given variable it initialized by a constant or an expression, check
+that the type of the initializer is consistent with the type of the variable.
+*/
+{
+  if (var->init_kind != (an_init_kind)initk_none) {
+    /* Verify that the type of an initializer matches that of the variable
+       (only some common initializer kinds are checked). */
+    a_type_ptr  init_type = NULL;
+    if (var->init_kind == (an_init_kind)initk_static) {
+      init_type = var->initializer.constant->type;
+    } else if (var->init_kind == (an_init_kind)initk_dynamic) {
+      a_dynamic_init_ptr  dip = var->initializer.dynamic;
+      switch (dip->kind) {
+        case dik_constant:
+        case dik_nonconstant_aggregate:
+          init_type = dip->variant.constant->type;
+          break;
+        case dik_expression:
+          init_type = dip->variant.expression->type;
+          break;
+        default:
+          /* Other initialization types are not checked. */
+          break;
+      }  /* switch */
+    }  /* if */
+    if (init_type != NULL) {
+      a_type_ptr  var_type = var->type;
+      if (is_reference_type(var_type) && is_reference_type(init_type)) {
+        var_type = type_pointed_to(var_type);
+        init_type = type_pointed_to(init_type);
+      }  /* if */
+      check_assertion(f_types_are_compatible(
+                                    var_type, init_type,
+                                    TCF_REDECLARATION |
+                                    TCF_IGNORE_TYPE_QUALIFIERS |
+                                    TCF_ERROR_TYPE_COMPATIBLE_WITH_ANYTHING));
+
+    }  /* if */
+  }  /* if */
+}  /* check_consistent_init_type */
+#endif /* CHECKING */
 
 #if !EXTRA_SOURCE_POSITIONS_IN_IL && !NAMED_REGISTERS_ALLOWED && \
     !GENERATE_SOURCE_SEQUENCE_LISTS
@@ -6731,6 +6784,9 @@ for use in generating cross-reference output describing this declaration.
      scope stack is restored, since processing depends on the pending_pragmas
      pointer in the scope stack entry. */
   process_curr_construct_pragmas(sym, (a_statement_ptr)NULL);
+#if CHECKING
+  check_consistent_init_type(variable_ptr);
+#endif /* CHECKING */
   /* Return linkage kind. */
   *linkage_ptr = linkage;
   dps->storage_class = storage_class;
