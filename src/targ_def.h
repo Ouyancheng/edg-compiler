@@ -2817,7 +2817,7 @@ Flag that is TRUE if the runtime library has a routine that can be used to
 throw a std::bad_array_new_length exception to diagnose cases like
 "auto a = new int[n] {1,2,3,4};" where n is less than four.  When this
 flag is FALSE, no run-time check is inserted into the code (which may
-result in undefined behavior in generated code.
+result in undefined behavior in generated code).
 */
 #ifndef RUNTIME_SUPPORTS_ARRAY_LENGTH_CHECK
 #define RUNTIME_SUPPORTS_ARRAY_LENGTH_CHECK TRUE
