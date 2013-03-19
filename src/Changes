@@ -1,5 +1,27 @@
 Version 4.6
 
+3/19/13  [EDGcpfe/13588]
+Assertion failure during mangling of unnamed namespace
+
+In some configurations (MANGLE_ALL_NAMES, PROTOTYPE_INSTANTIATIONS_IN_IL, and
+IA64_ABI all TRUE), the mangling of an entity in an unnamed namespace had
+resulted in an assertion failure (in mangled_simple_id).  This is now fixed.
+For example:
+
+  template <bool B> struct A {
+    typedef int type;
+  };
+  namespace {
+    template <class T> struct B {
+      static const bool value = false;
+    };
+  }
+  template <class T> typename A<B<T>::value>::type f();
+  void g() {
+    f<int>();
+  }
+
+
 3/18/13  [EDGcpfe/13769]
 GNU C++ compatibility: unnamed class types as template arguments
 

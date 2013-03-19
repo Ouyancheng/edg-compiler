@@ -623,6 +623,8 @@ static void mangled_dynamic_init(a_dynamic_init_ptr       dip,
                                  a_boolean                is_static_cast,
                                  a_mangling_control_block *mctl);
 static a_boolean type_is_lambda_in_initializer(a_type_ptr type);
+static char *give_unnamed_namespace_a_name(a_namespace_ptr          nsp,
+                                           a_mangling_control_block *mctl);
 
 /*
 Interface to mangled_type_name_full for the usual case, where the
@@ -3205,6 +3207,10 @@ qualifiers seen so far (and is typically set to one by the initial caller).
                                             (an_anonymous_union_kind)auk_none);
           template_arg_list = ctsp->template_arg_list;
         }  /* if */
+      } else if (kind == iek_namespace &&
+                 unmangled_or_fabricated_name_of(scp) == NULL) {
+        /* Ensure that an unnamed namespace is given a name. */
+        (void)give_unnamed_namespace_a_name((a_namespace_ptr)scp, mctl);
       }  /* if */
       mangled_simple_id(scp, template_arg_list, (a_name_reference_ptr)NULL,
                         /*include_length=*/TRUE, mctl);
