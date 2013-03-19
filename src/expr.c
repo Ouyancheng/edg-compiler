@@ -24099,6 +24099,12 @@ number.
     if (!C_mode()) {
       change_assignment_result_to_lvalue(result, operand_1, orig_result_type);
     }  /* if */
+    if (operator_not_allowed_in_cpp11_constant_expr(operator_position)) {
+      /* Assignment not allowed in C++11 constant expressions.  Note this is
+         checked after we've looked for the possibility of the operator
+         being overloaded. */
+      conv_to_error_operand(result);
+    }  /* if */
   }  /* if */
   set_operand_position(result, &operand_1->position, &operand_2->end_position,
                        operator_position);
@@ -24151,9 +24157,6 @@ that case.  If the second operand of the assignment was a braced-init-list
   if (curr_expr_kind_is_traditional_const()) {
     /* Assignment not allowed in constant expressions. */
     expr_pos_error(ec_bad_constant_operator, &operator_position);
-    err = TRUE;
-  } else if (operator_not_allowed_in_cpp11_constant_expr(&operator_position)) {
-    /* Assignment not allowed in C++11 constant expressions. */
     err = TRUE;
   }  /* if */
 
