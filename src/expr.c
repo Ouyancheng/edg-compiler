@@ -7992,10 +7992,6 @@ case.
     expr_pos_error(ec_bad_constant_operator, &operator_position);
     make_error_operand(result);
     operand_will_not_be_used_because_of_error(operand);
-  } else if (operator_not_allowed_in_cpp11_constant_expr(&operator_position)) {
-    /* Postfix ++/-- not allowed in C++11 constant expressions. */
-    make_error_operand(result);
-    operand_will_not_be_used_because_of_error(operand);
   } else {
 #if MICROSOFT_EXTENSIONS_ALLOWED
     property_ref_case = is_property_ref_operand(operand);
@@ -8085,7 +8081,13 @@ case.
         }  /* if */
       }  /* if */
     }  /* if */
-    if (!processed) {
+    if (!processed &&
+        operator_not_allowed_in_cpp11_constant_expr(&operator_position)) {
+      /* Postfix ++/-- not allowed in C++11 constant expressions.  Note this
+         is checked after we've looked for the possibility of the operator
+         being overloaded. */
+      make_error_operand(result);
+    } else if (!processed) {
       /* Non-operator-function cases. */
       do_operand_transformations(operand,
                                  TOPT_SUPPRESS_LVALUE_TO_RVALUE_CONVERSION);
@@ -8311,9 +8313,6 @@ and return the result in *result (or an error indication in *rcblock).
     /* Prefix ++ and -- are not allowed in constant expressions. */
     expr_pos_error(ec_bad_constant_operator, &operator_position);
     err = TRUE;
-  } else if (operator_not_allowed_in_cpp11_constant_expr(&operator_position)) {
-    /* Prefix ++/-- not allowed in C++11 constant expressions. */
-    err = TRUE;
   }  /* if */
 
   if (rcblock == NULL) {
@@ -8361,7 +8360,13 @@ and return the result in *result (or an error indication in *rcblock).
                                      (a_source_position *)NULL,
                                      result, &processed);
     }  /* if */
-    if (!processed) {
+    if (!processed &&
+        operator_not_allowed_in_cpp11_constant_expr(&operator_position)) {
+      /* Prefix ++/-- not allowed in C++11 constant expressions.  Note this
+         is checked after we've looked for the possibility of the operator
+         being overloaded. */
+      make_error_operand(result);
+    } else if (!processed) {
       /* Non-operator-function cases. */
       do_operand_transformations(&operand,
                                  TOPT_SUPPRESS_LVALUE_TO_RVALUE_CONVERSION);
@@ -24041,7 +24046,13 @@ number.
                                    (a_source_position *)NULL,
                                    result, &processed);
   }  /* if */
-  if (!processed) {
+  if (!processed &&
+      operator_not_allowed_in_cpp11_constant_expr(operator_position)) {
+    /* Assignment not allowed in C++11 constant expressions.  Note this is
+       checked after we've looked for the possibility of the operator
+       being overloaded. */
+    make_error_operand(result);
+  } else if (!processed) {
     /* Non-operator-function cases, including all C cases. */
     an_expr_operator_kind op;
     a_type_ptr            orig_result_type, result_type;
@@ -24098,12 +24109,6 @@ number.
     /* In C++, assignment operators return lvalues. */
     if (!C_mode()) {
       change_assignment_result_to_lvalue(result, operand_1, orig_result_type);
-    }  /* if */
-    if (operator_not_allowed_in_cpp11_constant_expr(operator_position)) {
-      /* Assignment not allowed in C++11 constant expressions.  Note this is
-         checked after we've looked for the possibility of the operator
-         being overloaded. */
-      conv_to_error_operand(result);
     }  /* if */
   }  /* if */
   set_operand_position(result, &operand_1->position, &operand_2->end_position,
@@ -24252,9 +24257,6 @@ assignment was a braced-init-list (allowed in C++11 mode),
     /* Assignment not allowed in constant expressions. */
     expr_pos_error(ec_bad_constant_operator, &operator_position);
     err = TRUE;
-  } else if (operator_not_allowed_in_cpp11_constant_expr(&operator_position)) {
-    /* Assignment not allowed in C++11 constant expressions. */
-    err = TRUE;
   }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
   property_ref_case = is_property_ref_operand(operand_1);
@@ -24358,7 +24360,13 @@ assignment was a braced-init-list (allowed in C++11 mode),
                                      (a_source_position *)NULL,
                                      result, &processed);
     }  /* if */
-    if (!processed) {
+    if (!processed &&
+        operator_not_allowed_in_cpp11_constant_expr(&operator_position)) {
+      /* Assignment not allowed in C++11 constant expressions.  Note this is
+         checked after we've looked for the possibility of the operator
+         being overloaded. */
+      make_error_operand(result);
+    } else if (!processed) {
       /* Non-operator-function cases. */
       if (!property_ref_case) { /*lint !e774*/
         do_operand_transformations(operand_1,
