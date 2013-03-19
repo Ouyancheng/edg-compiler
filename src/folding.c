@@ -9043,7 +9043,8 @@ ceblock gives context information for the evaluation.
   } else if (is_constant_node(expr)) {
     /* The expression is a constant. */
     folded = TRUE;
-    copy_constant(expr->variant.constant, result_con);
+    (void)copy_constant_full(expr->variant.constant, result_con,
+                             CE_DEST_CONSTANT_IS_NOT_ALLOC_IN_IL);
   } else if (!do_not_call_back &&
              is_pointer_type(expr->type) &&
              (ceblock->do_not_call_back = TRUE,
