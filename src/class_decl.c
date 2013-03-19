@@ -13709,9 +13709,9 @@ decl_member_function, which handles in-class member function declarations.)
     if (rtsp->exception_specification != NULL &&
         rtsp->exception_specification->arg_cached) {
       /* The member function was declared with an exception specification
-         whose arguments were cached for later instantiation.  Record the
-         an entry to perform a prototype instantiation when the complete
-         definition of the enclosing class has been seen. */
+         whose arguments were cached for later instantiation.  Record an entry
+         to perform a prototype instantiation when the complete definition of
+         the enclosing class has been seen. */
       a_symbol_list_entry_ptr		slep = alloc_symbol_list_entry();
       slep->symbol = prototype_sym;
       slep->next = class_state->members_requiring_exception_spec_instantiation;
