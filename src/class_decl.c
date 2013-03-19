@@ -19239,7 +19239,8 @@ The routine body is not generated until it is known to be needed.
                          ->variant.class_struct_union.is_generic_constraint &&
                         cssp->static_constructor == NULL;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-  declare_dtor = (class_state->member_destruction_required ||
+  declare_dtor = (gsfd.suppress_dtor ||
+                  class_state->member_destruction_required ||
                   class_state->base_destruction_required) &&
                  cssp->destructor == NULL;
   if ((generate_move_operations || microsoft_mode) &&
