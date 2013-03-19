@@ -9103,7 +9103,7 @@ virtual table table pointer that should be passed to the destructor
   error_position = saved_error_position;
 }  /* lower_destructor_dynamic_init */
 
-#if ABI_COMPATIBILITY_VERSION >= 406
+#if RUNTIME_SUPPORTS_ARRAY_LENGTH_CHECK && ABI_COMPATIBILITY_VERSION >= 406
 
 static a_routine_ptr
                 throw_bad_array_new_length_routine;
@@ -9257,7 +9257,7 @@ the position to insert the necessary code.
   insert_expr(call_node, &then_insert_location);
 }  /* insert_runtime_array_length_check */
 
-#endif /* ABI_COMPATIBILITY_VERSION >= 406 */
+#endif /* RUNTIME_SUPPORTS_ARRAY_LENGTH_CHECK && ABI_COMPATIBILITY_VERSION...*/
 
 static an_expr_node_ptr size_arg_for_new(
                                    a_new_delete_supplement_ptr ndsp,
@@ -9315,7 +9315,7 @@ and its initialization put in insert_location).
                                            number_of_elements->type,
                                            number_of_elements);
     }  /* if */
-#if ABI_COMPATIBILITY_VERSION >= 406
+#if RUNTIME_SUPPORTS_ARRAY_LENGTH_CHECK && ABI_COMPATIBILITY_VERSION >= 406
     if (exceptions_enabled) {
       /* Insert code to check, at run-time, that the number of elements
          has a valid value; throw std::bad_array_new_length otherwise. */
@@ -9325,7 +9325,7 @@ and its initialization put in insert_location).
                                         &number_of_elements,
                                         insert_location);
     }  /* if */
-#endif /* ABI_COMPATIBILITY_VERSION >= 406 */
+#endif /* RUNTIME_SUPPORTS_ARRAY_LENGTH_CHECK && ABI_COMPATIBILITY_VERSION...*/
     /* Add a cast to size_t. */
     number_of_elements = add_cast_if_necessary(number_of_elements,
                                                integer_type(
@@ -16175,9 +16175,9 @@ Do one-time initialization of static variables declared in lower_init.c.
       pch_saved_var_array_elem(new_routine_ptr_type),
       pch_saved_var_array_elem(delete_routine_ptr_type),
       pch_saved_var_array_terminating_elem(),
-#if ABI_COMPATIBILITY_VERSION >= 406
+#if RUNTIME_SUPPORTS_ARRAY_LENGTH_CHECK && ABI_COMPATIBILITY_VERSION >= 406
       pch_saved_var_array_elem(throw_bad_array_new_length_routine)
-#endif /* ABI_COMPATIBILITY_VERSION >= 406 */
+#endif /* RUNTIME_SUPPORTS_ARRAY_LENGTH_CHECK && ABI_COMPATIBILITY_VERSION...*/
     };
     register_pch_saved_variables(saved_vars);
   }  /* if */
@@ -16235,9 +16235,9 @@ Do one-time initialization of static variables declared in lower_init.c.
   register_trans_unit_variable(cctor_ptr_type);
   register_trans_unit_variable(new_routine_ptr_type);
   register_trans_unit_variable(delete_routine_ptr_type);
-#if ABI_COMPATIBILITY_VERSION >= 406
+#if RUNTIME_SUPPORTS_ARRAY_LENGTH_CHECK && ABI_COMPATIBILITY_VERSION >= 406
   register_trans_unit_variable(throw_bad_array_new_length_routine);
-#endif /* ABI_COMPATIBILITY_VERSION >= 406 */
+#endif /* RUNTIME_SUPPORTS_ARRAY_LENGTH_CHECK && ABI_COMPATIBILITY_VERSION...*/
 }  /* init_lower_one_time_init */
 
 
@@ -16298,9 +16298,9 @@ for each translation unit.
   dtor_ptr_type = NULL;
   cctor_ptr_type = NULL;
   new_routine_ptr_type = NULL;
-#if ABI_COMPATIBILITY_VERSION >= 406
+#if RUNTIME_SUPPORTS_ARRAY_LENGTH_CHECK && ABI_COMPATIBILITY_VERSION >= 406
   throw_bad_array_new_length_routine = NULL;
-#endif /* ABI_COMPATIBILITY_VERSION >= 406 */
+#endif /* RUNTIME_SUPPORTS_ARRAY_LENGTH_CHECK && ABI_COMPATIBILITY_VERSION...*/
   delete_routine_ptr_type = NULL;
 }  /* init_lower_trans_unit_init */
 

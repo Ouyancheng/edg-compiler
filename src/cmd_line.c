@@ -6577,6 +6577,11 @@ file.
 #else /* !defined(RTTI_ENABLING_POSSIBLE) */
   comment_undefined_macro_name(RTTI_ENABLING_POSSIBLE);
 #endif /* defined(RTTI_ENABLING_POSSIBLE) */
+#if defined(RUNTIME_SUPPORTS_ARRAY_LENGTH_CHECK)
+  define_numeric_valued_macro(RUNTIME_SUPPORTS_ARRAY_LENGTH_CHECK);
+#else /* !defined(RUNTIME_SUPPORTS_ARRAY_LENGTH_CHECK) */
+  comment_undefined_macro_name(RUNTIME_SUPPORTS_ARRAY_LENGTH_CHECK);
+#endif /* defined(RUNTIME_SUPPORTS_ARRAY_LENGTH_CHECK) */
 #if defined(RUNTIME_USES_NAMESPACES)
   define_numeric_valued_macro(RUNTIME_USES_NAMESPACES);
 #else /* !defined(RUNTIME_USES_NAMESPACES) */
