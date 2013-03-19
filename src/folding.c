@@ -5665,6 +5665,8 @@ constexpr expansion, and the block provides context information.
   an_expr_node_ptr ptr_op = expr->variant.operation.operands;
   an_expr_node_ptr int_op = ptr_op->next;
   a_constant       ptr_con;
+  a_constant       int_con;
+  a_constant_ptr   int_con_ptr = NULL;
 
   *template_constant = FALSE;
   if (expr->variant.operation.pointer_operand_is_second) {
@@ -5672,21 +5674,28 @@ constexpr expansion, and the block provides context information.
     int_op = expr->variant.operation.operands;
     ptr_op = int_op->next;
   }  /* if */
-  if (is_constant_node(int_op) &&
+  /* See if we have or can get a constant for the integer operand. */
+  if (ceblock != NULL) {
+    if (fold_expr(int_op, ceblock, &int_con)) {
+      int_con_ptr = &int_con;
+    }  /* if */
+  } else if (is_constant_node(int_op)) {
+    int_con_ptr = int_op->variant.constant;
+  }  /* if */
+  if (int_con_ptr != NULL &&
       constant_rvalue_pointer_full(ptr_op, ceblock, &ptr_con,
                                    address_escapes, options,
                                    template_constant)) {
     /* Both operands are constant; fold to a constant address. */
-    a_constant_ptr    int_con = int_op->variant.constant;
     an_error_code     err_code;
     an_error_severity err_severity;
     a_boolean         did_not_fold;
-    if (int_con->kind == (a_constant_repr_kind)ck_template_param ||
+    if (int_con_ptr->kind == (a_constant_repr_kind)ck_template_param ||
         ptr_con.kind  == (a_constant_repr_kind)ck_template_param) {
       /* At least one constant is a template parameter, so we're not going
          to fold this to a constant address. */
     } else {
-      do_padd(&ptr_con, expr->variant.operation.kind, int_con, con,
+      do_padd(&ptr_con, expr->variant.operation.kind, int_con_ptr, con,
               &did_not_fold, &err_code, &err_severity);
       if (!did_not_fold &&
           (err_code == ec_no_error || err_severity == es_warning)) {
@@ -5907,7 +5916,6 @@ handle_pm_field_selection:
             break;
           case eok_subscript:
             /* Subscript operation. */
-            if (ceblock != NULL) ceblock->do_not_call_back = do_not_call_back;
             if (constant_padd_or_subscript(expr, ceblock, con, address_escapes,
                                            options, template_constant)) {
               is_constant_addr = TRUE;
@@ -6223,7 +6231,6 @@ context information.
           case eok_psubtract:
             /* p + i or i + p, or p - i.  These are constant if i is constant
                and p is or can be made constant. */
-            if (ceblock != NULL) ceblock->do_not_call_back = do_not_call_back;
             if (constant_padd_or_subscript(expr, ceblock, con, address_escapes,
                                            options, template_constant)) {
               is_constant_ptr = TRUE;
