@@ -8818,7 +8818,7 @@ evaluation (e.g., parameter values).
           /* result_con is a string and offset designates a character within
              that string. */
           found_value = TRUE;
-        } else if (is_error_type(curr_type)) {
+        } else if (is_error_type(curr_type) || is_error_constant(result_con)) {
           /* There was an error upstream. */
           err = TRUE;
         } else {
