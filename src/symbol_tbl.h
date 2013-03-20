@@ -5533,15 +5533,21 @@ Macro wrapper for f_symbol_is_pack to avoid calls in most contexts.
    A tag symbol is one defined as a class, struct, union, or enum (but
    not as a typedef of one of those).  In C++ a tag lookup does find type
    symbols even though they are not tags (and will usually result in an
-   error when found). */
-#define is_tag_or_cplusplus_type_symbol(sym)                          \
+   error when found).  is_friend is TRUE if the test is being done in the
+   context of a friend declaration.  g++ ignores certain typedefs in
+   friend declarations (but does find an injected class symbol). */
+#define is_tag_or_cplusplus_type_symbol(sym, is_friend)               \
   (is_tag_symbol_kind((sym)->kind) ||                                 \
-   (elab_type_lookup_finds_typedefs && (sym)->kind == (a_symbol_kind)sk_type))
+   (gpp_mode && gnu_version >= 40500 && is_injected_class_symbol(sym)) || \
+   (!(is_friend && gpp_mode && gnu_version >= 40500) &&			\
+    (elab_type_lookup_finds_typedefs &&					\
+     (sym)->kind == (a_symbol_kind)sk_type)))
 
 /* Return TRUE if a symbol is a tag symbol, a class template symbol,
-   or a type template parameter. */
-#define is_tag_or_tag_proxy_symbol(sym)                               \
-  (is_tag_or_cplusplus_type_symbol(sym) ||		              \
+   or a type template parameter.  is_friend is TRUE if the test is being
+   done in the context of a friend declaration.  */
+#define is_tag_or_tag_proxy_symbol(sym, is_friend)                    \
+  (is_tag_or_cplusplus_type_symbol((sym), (is_friend)) ||	      \
    (sym)->kind == (a_symbol_kind)sk_class_template ||		      \
    ((sym)->kind == (a_symbol_kind)sk_type && (sym)->is_template_param))
 

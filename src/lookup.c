@@ -2061,8 +2061,9 @@ Macro that initializes a lookup state variable.
     (lookup_state).is_friend_lookup) &&					\
    (!(lookup_state).must_be_class_or_namespace ||			\
     symbol_may_precede_qualifier(fund_sym)) &&                          \
-   (!(lookup_state).must_be_tag   ||				        \
-    is_tag_or_tag_proxy_symbol(fund_sym)) &&				\
+   (!(lookup_state).must_be_tag ||				        \
+    is_tag_or_tag_proxy_symbol(						\
+       fund_sym, ((lookup_state).is_friend_lookup))) &&			\
    (!(lookup_state).must_be_class ||					\
     is_class_or_class_proxy_symbol(fund_sym)) && 			\
    (!(lookup_state).must_be_namespace ||				\
@@ -2088,7 +2089,8 @@ are needed to use is_acceptable_symbol.
   result = ((!((options & IDL_MUST_BE_CLASS_OR_NAMESPACE) != 0) ||
              symbol_may_precede_qualifier(fund_sym)) &&
             (!((options & IDL_MUST_BE_TAG) != 0) ||
-             is_tag_or_tag_proxy_symbol(fund_sym)) &&
+             is_tag_or_tag_proxy_symbol(fund_sym,
+                                        (options & IDL_FRIEND_LOOKUP) != 0)) &&
             (!((options & IDL_MUST_BE_NAMESPACE) != 0) ||
              is_namespace_symbol(fund_sym)) &&
             (!((options & IDL_MUST_BE_CLASS) != 0) ||
@@ -4200,7 +4202,9 @@ symbol pointer is returned.  This routine is used in both C and C++ mode.
     symbol_may_precede_qualifier(fund_sym)) &&	     		      \
    (!must_be_class ||						      \
     is_class_or_class_proxy_symbol(fund_sym)) &&     		      \
-   (!must_be_tag || is_tag_or_tag_proxy_symbol(fund_sym) ||           \
+   (!must_be_tag ||						       \
+    is_tag_or_tag_proxy_symbol(fund_sym,			      \
+                               (options & IDL_FRIEND_LOOKUP) != 0) || \
     (microsoft_bugs && fund_sym->kind == (a_symbol_kind)sk_type)) &&  \
    /* Ignore invisible symbols except for invisible projection symbols. */ \
    (!(sym)->is_invisible || (sym)->kind == (a_symbol_kind)sk_projection))
@@ -5167,7 +5171,9 @@ inline namespaces.
     symbol_may_precede_qualifier(fund_sym)) &&     		      \
    (!must_be_class ||				     		      \
     is_class_or_class_proxy_symbol(fund_sym)) &&      		      \
-   (!must_be_tag || is_tag_or_tag_proxy_symbol(fund_sym)) &&	      \
+   (!must_be_tag ||						      \
+    is_tag_or_tag_proxy_symbol(fund_sym,			      \
+                               (options & IDL_FRIEND_LOOKUP) != 0)) && \
    (!check_decl_seq ||						      \
     (decl_seq_number == NO_DECL_SEQUENCE_NUMBER ||	              \
      decl_seq_number >= (sym)->decl_seq)))
@@ -5404,7 +5410,9 @@ file scope.
     symbol_may_precede_qualifier(fund_sym)) && 			      \
    (!must_be_class ||				      		      \
     is_class_or_class_proxy_symbol(fund_sym)) &&      		      \
-   (!must_be_tag || is_tag_or_cplusplus_type_symbol(fund_sym)) &&     \
+   (!must_be_tag ||						      \
+    is_tag_or_cplusplus_type_symbol(fund_sym,			      \
+                                    (options & IDL_FRIEND_LOOKUP) != 0)) && \
    (!check_decl_seq ||						      \
     (decl_seq_number == NO_DECL_SEQUENCE_NUMBER ||	              \
      decl_seq_number >= (sym)->decl_seq)))
