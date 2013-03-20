@@ -11094,7 +11094,7 @@ linkage is encountered).
     }  /* if */
     /* If we decided to treat this as named above, don't set the unnamed
        flag here. */
-    if (!is_gpp_unnamed_case) {
+    if (type_ptr->source_corresp.name == NULL && !is_gpp_unnamed_case) {
       is_unnamed_type = TRUE;
     }  /* if */
   }  /* if */
