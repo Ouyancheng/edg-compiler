@@ -8895,7 +8895,8 @@ evaluation (e.g., parameter values).
                     (offset > (a_targ_ptrdiff_t)(cum_offset + bp->offset) &&
                      offset < (a_targ_ptrdiff_t)(cum_offset + bp->offset +
                                                  base_class_size))) {
-                  if (base_class_size > 0 ||
+                  if (base_class->variant.class_struct_union.field_list !=
+                                                                        NULL ||
                       identical_types(base_class, target_type)) {
                     /* The address designates or lies within this base
                        class subobject. */
