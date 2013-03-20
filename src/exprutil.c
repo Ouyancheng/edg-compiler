@@ -17743,7 +17743,19 @@ it might produce an error).
           processed = TRUE;
           break;
         case eok_ref_cast:
+          /* eok_ref_cast is handled the same as eok_adjust_lvalue, but
+             only allow the conversion to a constant if the underlying
+             entity is a temporary.  See core issue 1480.  Normally,
+             the underlying entity has an address that we must preserve
+             (e.g., in an rvalue reference object). */
+          if (constexpr_enabled &&
+              op1->kind == (an_expr_node_kind)enk_temp_init &&
+              op1->variant.init.dynamic_init->has_temporary_lifetime) {
+            goto lvalue_adjust;
+          }  /* if */
+          break;
         case eok_lvalue_adjust:
+lvalue_adjust:
           /* If the operand of an lvalue adjust can be converted to a
              constant, the result is the type-adjusted constant.
              Otherwise, it's rvalueable so we go to the general case. */
