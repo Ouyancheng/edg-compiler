@@ -16811,6 +16811,20 @@ declaration of a partial specialization declared outside of its class.
         }  /* if */
         if (sym != NULL) decl_state->is_partial_specialization = TRUE;
       }  /* if */
+      if (sym != NULL && gpp_mode && gnu_version >= 30400 &&
+          symbol_is(sym, sk_type)) {
+        /* In g++ mode, if the symbol is a typedef to a prototype
+           instantiation, use the underlying template symbol. */
+        a_type_ptr	tp = sym->variant.type.ptr;
+        a_symbol_ptr	new_sym;
+        tp = skip_typerefs(tp);
+        new_sym = symbol_for(tp);
+        if (new_sym != NULL && is_prototype_instantiation_symbol(new_sym)) {
+          a_class_symbol_supplement_ptr	cssp;
+          cssp = class_symbol_supp(new_sym);
+          sym = cssp->class_template;
+        }  /* if */
+      }  /* if */
       /* If the symbol found is an injected template symbol, replace it with
          the template that it represents. */
       if (sym != NULL && is_injected_template_symbol(sym)) {

@@ -1,5 +1,21 @@
 Version 4.6
 
+3/20/13  [EDGcpfe/13774]
+GNU C++ compatibility: friend template that refers to typedef
+
+g++ allows a friend template declaration that names a typedef that refers
+to the prototype instantiation of a class template.  This is treated as
+if it were a friend template declaration that referred to the template
+itself.  We now accept this in g++ mode when gnu_version >= 30400.
+
+  template <class T> struct A {
+    typedef A<T> my_type;
+  };
+  class B : public A< B > {
+    template <class T> friend class A<T>::my_type;
+  };
+
+
 3/19/13  [EDGcpfe/13588]
 Assertion failure during mangling of unnamed namespace
 
