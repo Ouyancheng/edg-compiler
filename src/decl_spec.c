@@ -8290,6 +8290,11 @@ the constexpr specifier.  Issue an error if the specifier is not applicable.
     /* An error has presumably already been reported for this declaration.
        An additional error is unlikely to be helpful. */
     expect_error();
+    if (is_simple_function_symbol(sym)) {
+      /* Ensure the is_constexpr flag is FALSE to avoid confusing later
+         processing. */
+      sym->variant.routine.ptr->is_constexpr = FALSE;
+    }  /* if */
   } else if (symbol_is(sym, sk_member_function)) {
     a_routine_ptr  rp = sym->variant.routine.ptr;
     if (special_kind_is(rp, sfk_destructor)) {
