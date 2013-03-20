@@ -5539,7 +5539,7 @@ Macro wrapper for f_symbol_is_pack to avoid calls in most contexts.
 #define is_tag_or_cplusplus_type_symbol(sym, is_friend)               \
   (is_tag_symbol_kind((sym)->kind) ||                                 \
    (gpp_mode && gnu_version >= 40500 && is_injected_class_symbol(sym)) || \
-   (!(is_friend && gpp_mode && gnu_version >= 40500) &&			\
+   (!((is_friend) && gpp_mode && gnu_version >= 40500) &&		\
     (elab_type_lookup_finds_typedefs &&					\
      (sym)->kind == (a_symbol_kind)sk_type)))
 
