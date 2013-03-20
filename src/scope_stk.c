@@ -7454,6 +7454,27 @@ a safe return (but may cause excess memory usage).
 
 #endif /* MODULE_ID_NEEDED && !STANDALONE_UTILITY_PROGRAM */
 
+static a_boolean ctor_needs_unprocessed_field_initializer(a_routine_ptr  ctor)
+/*
+Return TRUE if the given constructor depends on a field initializer that
+hasn't been fully processed yet.
+*/
+{
+  a_constructor_init_ptr  ctor_init;
+  a_boolean               result = FALSE;
+
+  check_assertion(special_kind_is(ctor, sfk_constructor));
+  ctor_init = scope_for_routine(ctor)->variant.routine.constructor_inits;
+  for (; ctor_init != NULL; ctor_init = ctor_init->next) {
+    if (ctor_init->use_field_initializer && ctor_init->initializer == NULL) {
+      result = TRUE;
+      break;
+    }  /* if */
+  }  /* for */
+  return result;
+}  /* ctor_needs_unprocessed_field_initializer */
+
+
 a_boolean should_delay_lowering_on_function(a_routine_ptr routine,
                                             a_boolean     at_initial_scope_pop)
 /*
@@ -7482,6 +7503,16 @@ be lowered as soon as a module id becomes available (and TRUE is returned).
     /* A member function of a class that is currently being defined.  This
        should only occur for constexpr functions. */
     check_assertion_or_expect_error(routine->is_constexpr);
+    delay_lowering = TRUE;
+  } else if (special_kind_is(routine, sfk_constructor) &&
+             class_symbol_supp(symbol_for(parent_class_of(routine)))
+                                               ->scanning_field_initializer &&
+             ctor_needs_unprocessed_field_initializer(routine)) {
+    /* Sometimes a constructor instantiation is triggered while scanning a
+       field initializer but the constructor might depend on that field
+       initializer (or another field initializer that hasn't been parsed yet.
+       Lowering cannot proceed until all needed field initializers have been
+       parsed. */
     delay_lowering = TRUE;
   } else if (at_initial_scope_pop && routine->is_lambda_body) {
     /* Lambda bodies are scanned while the parent closure class is still
