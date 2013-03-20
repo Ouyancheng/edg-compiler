@@ -5898,16 +5898,27 @@ handle_field_selection:
             }
             break;
 handle_pm_field_selection:
-            { a_constant  pm_constant;
-              if (fold_expr(op2, ceblock, &pm_constant) &&
-                  pm_constant.kind == (a_constant_repr_kind)ck_ptr_to_member &&
-                  !pm_constant.variant.ptr_to_member.is_function_ptr &&
-                  pm_constant.variant.ptr_to_member.variant.field != NULL) {
+            { a_constant     pm_constant;
+              a_constant_ptr op2_con = NULL;
+              if (ceblock != NULL && fold_expr(op2, ceblock, &pm_constant)) {
+                /* We're in a constexpr function and the operand can be
+                   folded to a constant. */
+                op2_con = &pm_constant;
+              } else if (is_constant_node(op2)) {
+                /* We're not in a constexpr function, so we can't call
+                   fold_expr, but we can fold this expression if the
+                   operand is already a constant. */
+                op2_con = op2->variant.constant;
+              }  /* if */
+              if (op2_con != NULL &&
+                  op2_con->kind == (a_constant_repr_kind)ck_ptr_to_member &&
+                  !op2_con->variant.ptr_to_member.is_function_ptr &&
+                  op2_con->variant.ptr_to_member.variant.field != NULL) {
                 /* The second operand is a constant, so we can fold the
                    access. */
                 if (fold_field_selection(
                                &conaddr1,
-                               pm_constant.variant.ptr_to_member.variant.field,
+                               op2_con->variant.ptr_to_member.variant.field,
                                make_pointer_type(expr->type), con)) {
                   is_constant_addr = TRUE;
                 }  /* if */
