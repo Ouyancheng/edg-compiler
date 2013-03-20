@@ -16841,6 +16841,9 @@ be called to start a copy.
 
   /* Copy the top node. */
   expr_copy = copy_node(expr);
+  if (options & CE_COPYING_FOR_CONSTEXPR_FOLDING) {
+    expr_copy->rescan_info = expr->rescan_info;
+  }  /* if */
   switch (expr->kind) {
     case enk_error:
     case enk_variable:

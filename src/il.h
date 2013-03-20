@@ -1308,6 +1308,9 @@ typedef int an_expr_copy_options_set;
 			   version is changed by lowering.  Therefore, copy
 			   all constants in the source, even in cases where
 			   we ordinarily wouldn't. */
+#define CE_COPYING_FOR_CONSTEXPR_FOLDING 0x1000
+			/* When TRUE, the copy is being done as part of
+			   constexpr evaluation folding. */
 
 a_constant_ptr copy_constant_full(a_constant_ptr           old_constant,
                                   a_constant_ptr           new_constant,

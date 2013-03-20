@@ -8429,6 +8429,20 @@ cannot tell whether the object is fully initialized or not).
 }  /* aggregate_is_literal_type_constant */
 
 
+static void copy_constant_for_constexpr_evaluation(a_constant *con,
+                                                   a_constant *result_con)
+/*
+Do a deep copy of a constant entry for the purposes of constexpr
+evaluation.  The result_con is not allocated in the IL (it's probably
+in the stack).
+*/
+{
+  (void)copy_constant_full(con, result_con,
+                           (CE_DEST_CONSTANT_IS_NOT_ALLOC_IN_IL |
+                            CE_COPYING_FOR_CONSTEXPR_FOLDING));
+}  /* copy_constant_for_constexpr_evaluation */
+
+
 static a_boolean i_fold_constexpr_ctor(
                                      a_dynamic_init_ptr           ctor_dip,
                                      a_constexpr_evaluation_block *ceblock,
@@ -8455,8 +8469,8 @@ evaluation.
   if (dip->destructor != NULL) goto end_of_routine;
   switch(dip->kind) {
     case dik_constant:
-      (void)copy_constant_full(dip->variant.constant, result_con,
-                               CE_DEST_CONSTANT_IS_NOT_ALLOC_IN_IL);
+      copy_constant_for_constexpr_evaluation(dip->variant.constant,
+                                             result_con);
       folded = TRUE;
       break;
     case dik_expression:
@@ -8954,8 +8968,7 @@ evaluation (e.g., parameter values).
       } else if (result_con != NULL) {
         /* result_con points to the requested value. */
         if (target_con != NULL) {
-          (void)copy_constant_full(result_con, target_con,
-                                   CE_DEST_CONSTANT_IS_NOT_ALLOC_IN_IL);
+          copy_constant_for_constexpr_evaluation(result_con, target_con);
           result_con = target_con;
         } else {
           result_con = copy_unshared_constant(result_con);
@@ -9043,8 +9056,7 @@ ceblock gives context information for the evaluation.
   } else if (is_constant_node(expr)) {
     /* The expression is a constant. */
     folded = TRUE;
-    (void)copy_constant_full(expr->variant.constant, result_con,
-                             CE_DEST_CONSTANT_IS_NOT_ALLOC_IN_IL);
+    copy_constant_for_constexpr_evaluation(expr->variant.constant, result_con);
   } else if (!do_not_call_back &&
              is_pointer_type(expr->type) &&
              (ceblock->do_not_call_back = TRUE,
