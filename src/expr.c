@@ -36082,14 +36082,28 @@ selector type.
       scan_expr(&operand, PREC_LOWEST, EOPT_DISALLOW_COMMA_OPERATOR);
     }  /* if */
     /* Convert the expression to the switch type. */
-    process_converted_constant_expression(&operand,
-                                          is_error_type(switch_type) ?
-                                            NULL :
-                                            switch_type,
-                                          (a_builtin_type_kind_set)
+    if (gpp_mode &&
+        is_unscoped_enum_type(operand.type) &&
+        is_unscoped_enum_type(switch_type) &&
+        !identical_types_ignoring_qualifiers(operand.type, switch_type)) {
+      /* g++ allows mixed enum types in a switch/case. */
+      if (expr_diagnostic_should_be_issued(es_warning,
+                                           ec_unconvertible_con_expr)) {
+        pos_ty2_warning(ec_unconvertible_con_expr, &operand.position,
+                        operand.type, switch_type);
+      }  /* if */
+      cast_operand(switch_type, &operand, /*is_implicit_cast=*/TRUE);
+      extract_constant_from_operand(&operand, &constant);
+    } else {
+      process_converted_constant_expression(&operand,
+                                            is_error_type(switch_type) ?
+                                              NULL :
+                                              switch_type,
+                                            (a_builtin_type_kind_set)
                                                      (BTK_INTEGRAL | BTK_ENUM),
-                                          /*is_array_bound=*/FALSE,
-                                          &constant);
+                                            /*is_array_bound=*/FALSE,
+                                            &constant);
+    }  /* if */
   }  /* if */
   if (is_error_constant(&constant)) {
     /* Error; constant_ptr is left NULL. */
