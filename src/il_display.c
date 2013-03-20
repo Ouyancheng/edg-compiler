@@ -1638,6 +1638,11 @@ Display the indicated integer type supplement.
 */
 {
   if (ptr->enumerator_list_seen) disp_boolean("enumerator_list_seen", TRUE);
+#if GNU_EXTENSIONS_ALLOWED
+  if (ptr->underlying_type_should_use_unsigned) {
+    disp_boolean("underlying_type_should_use_unsigned", TRUE);
+  }  /* if */
+#endif /* GNU_EXTENSIONS_ALLOWED */
 #if MICROSOFT_EXTENSIONS_ALLOWED
   disp_assembly_visibility("declared_assembly_visibility",
                            ptr->declared_assembly_visibility);

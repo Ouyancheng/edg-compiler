@@ -1215,6 +1215,9 @@ a pointer to it.
   num_integer_type_supplements_allocated++;
 #endif /* DEBUG */
   itsp->enumerator_list_seen = FALSE;
+#if GNU_EXTENSIONS_ALLOWED
+  itsp->underlying_type_should_use_unsigned = FALSE;
+#endif /* GNU_EXTENSIONS_ALLOWED */
 #if MICROSOFT_EXTENSIONS_ALLOWED
   itsp->declared_assembly_visibility = (an_assembly_visibility)av_none;
   itsp->assembly_visibility = (an_assembly_visibility)av_none;

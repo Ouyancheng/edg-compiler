@@ -7493,6 +7493,12 @@ typedef struct an_integer_type_supplement {
   a_bit_field	enumerator_list_seen:1;
 			/* TRUE for enumerator types whose enumerator list has
 			   been seen. */
+#if GNU_EXTENSIONS_ALLOWED
+  a_bit_field	underlying_type_should_use_unsigned:1;
+			/* TRUE in GNU C++ mode if the type trait helper
+			   __underlying_type should produce the unsigned
+			   counterpart of the actual underlying type. */
+#endif /* GNU_EXTENSIONS_ALLOWED */
 #if MICROSOFT_EXTENSIONS_ALLOWED
   a_bit_field   declared_assembly_visibility:2;
                         /* Visibility of this type at the assembly level as

@@ -5862,23 +5862,36 @@ dsi_flags is the set of input flags passed to decl_specifiers.
                             explicit_base_kind, &pos_explicit_base,
                             min_max_set, &min_value, &max_value);
 #if GNU_EXTENSIONS_ALLOWED
-    if (gcc_mode) {
+    if (gnu_mode && explicit_base_kind == (an_integer_kind)ik_none) {
       an_integer_kind  int_kind = enum_type->variant.integer.int_kind;
-      /* Create the appropriate type for the enumerator constants. */
-      enum_con_type = alloc_type((a_type_kind)tk_integer);
-      enum_con_type->variant.integer.int_kind = int_kind;
-      enum_con_type->variant.integer.enum_type = FALSE;
-      enum_con_type->variant.integer.enum_info.affiliated_type = enum_type;
-      set_type_size(enum_con_type);
-      /* Apply this type to every enumerator constant. */
-      change_enum_constants_type(constant_list, enum_con_type);
-      if (min_max_set &&
+      if (gcc_mode) {
+        /* Unlike standard C, GNU C bases an underlying type on the enumerator
+           values that were encountered. */
+        /* Create the appropriate type for the enumerator constants. */
+        enum_con_type = alloc_type((a_type_kind)tk_integer);
+        enum_con_type->variant.integer.int_kind = int_kind;
+        enum_con_type->variant.integer.enum_type = FALSE;
+        enum_con_type->variant.integer.enum_info.affiliated_type = enum_type;
+        set_type_size(enum_con_type);
+        /* Apply this type to every enumerator constant. */
+        change_enum_constants_type(constant_list, enum_con_type);
+      }  /* if */
+      if (min_max_set && unsigned_int_kind_of[int_kind] != int_kind &&
           in_range_for_integer_kind(
                     &min_value, &max_value, unsigned_int_kind_of[int_kind])) {
         /* GNU C prefers an unsigned underlying type if none of the
            enumerator constants were negative.  Note that this does not affect
-           the type of the enumerator constants themselves. */
-        enum_type->variant.integer.int_kind = unsigned_int_kind_of[int_kind];
+           the type of the enumerator constants themselves.  GNU C++ also
+           produces the unsigned type when tested with __underlying_type, but
+           does not use that unsigned type for promotion purposes (we cannot
+           change the underlying type in the IL representation since that is
+           what we use for promotion purposes). */
+        if (gcc_mode) {
+          enum_type->variant.integer.int_kind = unsigned_int_kind_of[int_kind];
+        } else {
+          integer_type_supp(enum_type)
+                                  ->underlying_type_should_use_unsigned = TRUE;
+        }  /* if */
       }  /* if */
     }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
