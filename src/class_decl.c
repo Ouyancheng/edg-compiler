@@ -27080,6 +27080,12 @@ whether this is a lambda.  Return TRUE if it is.
     /* Cache the identifier. */
     cache_curr_token(&cache);
     (void)get_token();
+    if (variadic_templates_enabled && curr_token == tok_ellipsis) {
+      /* Allow the identifier to be followed by ... when variadic templates
+         are enabled. */
+      cache_curr_token(&cache);
+      (void)get_token();
+    }  /* if */
     /* Skip past a comma-separated list of identifiers. */
     while (curr_token == tok_comma) {
       cache_curr_token(&cache);
@@ -27087,6 +27093,12 @@ whether this is a lambda.  Return TRUE if it is.
       if (curr_token != tok_identifier && curr_token != tok_this) break;
       cache_curr_token(&cache);
       (void)get_token();
+      if (variadic_templates_enabled && curr_token == tok_ellipsis) {
+        /* Allow the identifier to be followed by ... when variadic templates
+           are enabled. */
+        cache_curr_token(&cache);
+        (void)get_token();
+      }  /* if */
     }  /* while */
     /* Note that next_token() is not called until we've looked at the current
        token.  This is done to avoid caching an unquoted uuid. */

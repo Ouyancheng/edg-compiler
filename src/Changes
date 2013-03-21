@@ -1,5 +1,18 @@
 Version 4.6
 
+3/21/13  [EDGcpfe/13777]
+Microsoft compatibility: disambiguation of lambdas vs. attributes
+
+In Microsoft mode when lambdas are enabled, it is necessary to determine
+whether a "[" begins a lambda or a Microsoft attribute.  This processing
+did not handle pack expansions in a lambda capture list properly, resulting
+in some lambdas incorrectly being treated as attributes.  Now fixed.
+
+  template < typename T, typename... Args > void f(Args... __args) {
+    [__args...](T* t) -> void { t(__args...); }(nullptr);
+  }
+
+
 3/20/13  [EDGcpfe/12502]
 GNU C++ compatibility: Signedness of __underlying_type
 
