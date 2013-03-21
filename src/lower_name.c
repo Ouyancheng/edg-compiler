@@ -10205,7 +10205,11 @@ determination is made by the callee.
 #if IA64_ABI && DO_IL_LOWERING
   if (routine->special_kind == (a_special_function_kind)sfk_constructor ||
       routine->special_kind == (a_special_function_kind)sfk_destructor) {
-    set_primary_ctor_or_dtor_kind(routine);
+    if (routine->primary_ctor_or_dtor == NULL &&
+        routine->ctor_dtor_kind == (a_ctor_or_dtor_kind)cdk_none) {
+      /* Set the kind if it hasn't been set yet. */
+      set_primary_ctor_or_dtor_kind(routine);
+    }  /* if */
     ctor_dtor_kind = routine->ctor_dtor_kind;
     if (force_primary_name) {
       /* Use the "C1" or "D1" primary entry point for a constructor or

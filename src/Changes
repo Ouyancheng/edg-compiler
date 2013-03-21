@@ -1,5 +1,31 @@
 Version 4.6
 
+3/21/13  [EDGcpfe/13784]
+Un-lowered constants are marked as lowered
+
+Allocated IL entities have their il_lowering_flag flag set to the value of
+initial_value_for_il_lowering_flag, which is TRUE during the lowering phase.
+In cases where lowering is copying various IL entities, it is desirable to
+maintain the value of the il_lowering_flag rather that having it always set to
+TRUE; that's largely the case already, but in some cases performing a copy of
+a constant had the undesired effect of setting the il_lowering_flag to TRUE in
+the copy, thereby exposing the back end to potentially unlowered constants.
+A change has been made to fix this issue.  Prior to this change, the "foo"
+constant in the following example hadn't been lowered and, in IA-64 ABI
+configurations where HANDLE_VIRTUAL_BASES_IN_COMPLETE_CTOR_DTORS is TRUE,
+no associated variable for the string was created.  After the change, the
+associated variable is created, but that led to an issue with mangling of the
+promoted static variable in the newly created constructor; that issue has also
+been fixed:
+
+  struct A {
+    A(const char *);
+  };
+  struct B : virtual A {
+    B() : A("foo") { while(0); }
+  };
+
+
 3/21/13  [EDGcpfe/13764]
 IA64-ABI: substitutions involving template parameters in dependent types
 
