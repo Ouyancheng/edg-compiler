@@ -1487,6 +1487,9 @@ whether a substitution is available; do not put it out.
                 f_identical_types((a_type_ptr)entity,
                                   sp->variant.type_sub.type,
                                   ITF_EXACT_DECLTYPE_EXPR_MATCH_REQUIRED
+#if ABI_COMPATIBILITY_VERSION >= 406
+                                  | ITF_EXACT_TEMPLATE_PARAM_TYPE_REQUIRED
+#endif /* ABI_COMPATIBILITY_VERSION >= 406 */
 #if ABI_COMPATIBILITY_VERSION >= 405 && GNU_EXTENSIONS_ALLOWED
                                   | ITF_EXACT_DOES_NOT_RETURN_MATCH_REQUIRED
 #endif /* ABI_COMPATIBILITY_VERSION >= 405 && GNU_EXTENSIONS_ALLOWED */

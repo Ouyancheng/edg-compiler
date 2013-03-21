@@ -1,5 +1,26 @@
 Version 4.6
 
+3/21/13  [EDGcpfe/13764]
+IA64-ABI: substitutions involving template parameters in dependent types
+
+During the IA-64 ABI mangling process, a check is performed for each type
+to see if the type has already been mangled and if so, a substitution is
+used for that instance of the type.  That check had neglected to verify that
+any template parameters were also identical, resulting in an assertion failure
+("alloc_substitution: missed mangling substitution") in configurations with
+EXPENSIVE_CHECKING and/or mangled names whose substitutions may have been
+incorrect.  The previous behavior can be restored by setting
+ABI_COMPATIBILITY_VERSION to 405 or lower.  For example:
+
+  template <class T> struct B {};
+  template <class T> using A = B<decltype(T())>;
+  template <class T> decltype(A<A<T>>(), A<A<T>>()) f(T x);
+  int main() {
+    f(37);  // was: _Z1fIiEDTcmcv1BIDTcvS0_IDTcvT__EEE_EEE_EcvS3__EES1_
+            // now: _Z1fIiEDTcmcv1BIDTcvS0_IDTcvT__EEE_EEE_EcvS5__EES1_
+  }
+
+
 3/21/13  [EDGcpfe/13777]
 Microsoft compatibility: disambiguation of lambdas vs. attributes
 
