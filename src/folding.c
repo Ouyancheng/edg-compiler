@@ -8639,20 +8639,61 @@ Otherwise, return NULL.
 }  /* constant_remap_entry_for_variable */
 
 
+a_boolean variable_is_reference_bound_to_constant_temporary(
+                                                       a_variable_ptr     var,
+                                                       a_dynamic_init_ptr *dip)
+/*
+Return TRUE if var is a reference-typed variable whose initializer binds
+it to a const non-volatile temporary.  In such cases, C++11 allows use
+of the reference variable in a constant expression if the value of
+the temporary is a constant (that part is not checked by this routine).
+Return a pointer to the dynamic init entry for the temporary in *dip.
+*/
+{
+  a_boolean result = FALSE;
+
+  *dip = NULL;
+  if (constexpr_enabled && is_reference_type(var->type)) {
+    a_type_ptr under_type = type_pointed_to(var->type);
+    if (is_const_qualified_type(under_type) &&
+        !is_volatile_qualified_type(under_type)) {
+      if (var->init_kind == (an_init_kind)initk_dynamic) {
+        a_dynamic_init_ptr tdip = var->initializer.dynamic;
+        if (tdip->kind == (a_dynamic_init_kind)dik_expression) {
+          an_expr_node_ptr expr = tdip->variant.expression;
+          if (is_operation_node(expr) &&
+              node_operator_is(expr, eok_reference_to)) {
+            expr = expr->variant.operation.operands;
+            if (expr->kind == (an_expr_node_kind)enk_temp_init) {
+              result = TRUE;
+              *dip = expr->variant.init.dynamic_init;
+            }  /* if */
+          }  /* if */
+        }  /* if */
+      }  /* if */
+    }  /* if */
+  }  /* if */
+  return result;
+}  /* variable_is_reference_bound_to_constant_temporary */
+
+
 static a_boolean fold_variable_reference(
                                       an_expr_node_ptr             expr,
                                       a_constexpr_evaluation_block *ceblock,
+                                      a_boolean                    want_addr,
                                       a_constant                   *result_con)
 /*
 expr is an enk_variable node.  See if the variable appears on the
 constexpr remap list provided as ceblock->remap_list, and if so set
-*result_con to the variable's value and return TRUE; otherwise, return FALSE.
+*result_con to the variable's value (or, if want_addr is TRUE, a pointer
+to the variable's value) and return TRUE; otherwise, return FALSE.
 Also replace constexpr variables by their values.  The expression node can
 be an lvalue or rvalue; it doesn't matter.
 */
 {
-  a_boolean      folded = FALSE;
-  a_variable_ptr var = expr->variant.variable;
+  a_boolean          folded = FALSE;
+  a_variable_ptr     var = expr->variant.variable;
+  a_dynamic_init_ptr dip;
 
   if (var->is_parameter) {
     a_constexpr_remap_ptr crp =
@@ -8673,6 +8714,20 @@ be an lvalue or rvalue; it doesn't matter.
       folded = TRUE;
       copy_constant(valcon, result_con);
     }  /* if */
+  } else if (!want_addr &&
+             variable_is_reference_bound_to_constant_temporary(var, &dip)) {
+    /* The variable is a reference bound to a temporary.  If the temporary
+       has a constant value, we can return a pointer to the constant. */
+    if (fold_dynamic_init(dip, var->type, ceblock, result_con)) {
+      folded = TRUE;
+      set_temporary_address_constant(alloc_shareable_constant(result_con),
+                                     result_con);
+      result_con->type = var->type;
+    } /* if */
+  }  /* if */
+  if (folded && want_addr) {
+    set_temporary_address_constant(alloc_shareable_constant(result_con),
+                                   result_con);
   }  /* if */
   return folded;
 }  /* fold_variable_reference */
@@ -9081,7 +9136,8 @@ ceblock gives context information for the evaluation.
   } else if (is_variable_node(expr)) {
     /* An rvalue variable node for a parameter can be replaced by its
        value, if constant. */
-    if (fold_variable_reference(expr, ceblock, result_con)) {
+    if (fold_variable_reference(expr, ceblock, /*want_addr=*/FALSE,
+                                result_con)) {
       folded = TRUE;
     }  /* if */
   } else if (is_operation_node(expr)) {
@@ -9455,12 +9511,11 @@ ceblock gives context information for the evaluation.
       folded = TRUE;
       set_variable_address_constant(var, result_con,
                                     /*set_address_taken_flag=*/FALSE);
-    } else if (fold_variable_reference(expr, ceblock, &local_constant)) {
+    } else if (fold_variable_reference(expr, ceblock, /*want_addr=*/TRUE,
+                                       result_con)) {
       /* An lvalue variable node for a parameter can be replaced by the
          address of a temporary containing the constant argument value. */
       folded = TRUE;
-      set_temporary_address_constant(alloc_shareable_constant(&local_constant),
-                                     result_con);
     }  /* if */
   } else if (is_operation_node(expr)) {
     an_expr_operator_kind op = expr->variant.operation.kind;
@@ -9557,7 +9612,8 @@ member function call.
     } else if (!want_addr && is_variable_node(expr)) {
       /* An lvalue variable node for a parameter or constexpr variable
          can be replaced by the value of the variable. */
-      folded = fold_variable_reference(expr, ceblock, result_con);
+      folded = fold_variable_reference(expr, ceblock, /*want_addr=*/FALSE,
+                                       result_con);
     } else if (expr->kind == (an_expr_node_kind)enk_temp_init) {
       /* A dynamic initialization.  Try folding it to a constant.  This
          comes up when passing class values via copy constructor. */

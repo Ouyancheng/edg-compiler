@@ -258,6 +258,10 @@ extern a_boolean fold_gnu_builtin_function_call_if_possible(
                                                   an_error_code    *err_code);
 #endif /* GNU_EXTENSIONS_ALLOWED */
 
+extern a_boolean variable_is_reference_bound_to_constant_temporary(
+                                                      a_variable_ptr     var,
+                                                      a_dynamic_init_ptr *dip);
+
 extern a_boolean fold_constexpr_expr(an_expr_node_ptr  expr,
                                      a_boolean         treat_as_object,
                                      a_source_position *pos,

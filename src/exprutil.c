@@ -13422,18 +13422,25 @@ on output it will be an lvalue.
     } else {
       node = make_node_from_operand(result);
       if (is_an_lvalue(result)) {
-        a_boolean  constant_addr;
+        a_dynamic_init_ptr dip;
+        a_boolean          constant_addr;
         /* Convert from an lvalue for the reference to an rvalue for the value
            of the reference (in effect, loading the reference pointer value
            from the location that contains it). */
         node = conv_lvalue_expr_to_rvalue(node, &constant_addr,
                                           (a_constant_ptr *)NULL,
                                           &result->position);
-        if (!in_potential_constant_constexpr_context() && !constant_addr &&
+        if (!in_potential_constant_constexpr_context() &&
+            !constant_addr &&
+            !(is_variable_node(node) &&
+              variable_is_reference_bound_to_constant_temporary(
+                                                        node->variant.variable,
+                                                        &dip)) &&
             construct_not_allowed_in_cpp11_constant_expr(ec_expr_not_constant,
                                                          &result->position)) {
           /* Reference indirection is not allowed in C++11 constant
-             expressions unless the address is constant. */
+             expressions unless the address is constant or the reference
+             is bound to a temporary that is constant. */
           err = TRUE;
         } else {
           /* Change the references to "use". */
