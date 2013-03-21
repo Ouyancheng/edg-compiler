@@ -2822,7 +2822,8 @@ enum an_address_base_kind_tag {
 			   operation. */
   abk_typeid,		/* Pointer to a std::type_info structure.  Used in
 			   Microsoft mode when typeid appears in a template
-			   argument list. */
+			   argument list and for C++11 address constants
+			   designating type_info objects. */
   abk_label,            /* Pointer to a label.  This is used for the
 			   GNU address-of-label extension. */
   abk_last

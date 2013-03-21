@@ -12045,6 +12045,20 @@ of a subscript operation).
                               &did_not_fold, &template_constant,
                               operator_position);
       }  /* if */
+    } else if (constexpr_enabled &&
+               op == (an_expr_operator_kind)eok_comma &&
+               curr_expr_kind_is_evaluated_const() &&
+               is_constant_operand(operand_2) &&
+               is_expression_operand(operand_1) &&
+               !node_has_side_effects(operand_1->variant.expression,
+                                      (a_boolean *)NULL)) {
+      /* In C++11 constant expressions, the first operand of a comma operator
+         is a discarded-value expression, so we can fold even if it's not
+         constant (e.g.,
+           constexpr int j = (i, 2);
+         where "i" is a normal variable). */
+      copy_operand(operand_2, result);
+      did_not_fold = FALSE;
 #if GNU_EXTENSIONS_ALLOWED
     } else if (gcc_mode &&
                op == (an_expr_operator_kind)eok_pdiff &&

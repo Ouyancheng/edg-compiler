@@ -5836,6 +5836,14 @@ a constexpr expansion, and the block provides context information.
         }  /* if */
       }
       break;
+    case enk_typeid:
+      if (expr->variant.typeid_info.expr == NULL) {
+        /* The type is known at compile time, so the address of the
+           std::type_info object is a compile-time constant. */
+        is_constant_addr = TRUE;
+        make_typeid_constant(expr->variant.typeid_info.type, con);
+      }  /* if */
+      break;
     case enk_operation:
       { an_expr_node_ptr      op1 = expr->variant.operation.operands;
         an_expr_node_ptr      op2 = op1->next;
@@ -9184,6 +9192,11 @@ ceblock gives context information for the evaluation.
           }  /* if */
         }  /* if */
         break;
+      case eok_comma:
+        if (!node_has_side_effects(op1, (a_boolean *)NULL)) {
+          folded = fold_expr(op2, ceblock, result_con);
+        }  /* if */
+        break;
       case eok_land:
       case eok_lor:
         /* && or || operator. */
@@ -9538,6 +9551,11 @@ ceblock gives context information for the evaluation.
             check_assertion(returns_reference);
           }  /* if */
         }
+        break;
+      case eok_comma:
+        if (!node_has_side_effects(op1, (a_boolean *)NULL)) {
+          folded = fold_lvalue_expr(op1->next, ceblock, result_con);
+        }  /* if */
         break;
       default:
         break;
