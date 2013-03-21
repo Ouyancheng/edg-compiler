@@ -14285,6 +14285,9 @@ Microsoft, Sun) allow extended forms of integer constants.
       set_error_constant(constant);
     }  /* if */
   }  /* if */
+  if (top_level) {
+    wrap_up_constant_full_expression(constant, &operand->position);
+  }  /* if */
   pop_expr_stack();
   if (top_level) {
     restore_expr_stack(saved_expr_stack);
@@ -29529,7 +29532,8 @@ is an array bound.
 void scan_bool_constant_expression(a_constant *constant)
 /*
 Scan a constant-expression that is "contextually converted to bool"
-(C++11 [conv]p4).  Return the result in *constant.
+(C++11 [conv]p4).  Return the result in *constant.  The expression
+is considered a full-expression.
 */
 {
   an_operand          result;
@@ -29548,6 +29552,7 @@ Scan a constant-expression that is "contextually converted to bool"
   /* Convert to bool. */
   process_boolean_controlling_expression(&result);
   extract_constant_from_operand(&result, constant);
+  wrap_up_constant_full_expression(constant, &result.position);
   pop_expr_stack();
   restore_expr_stack(saved_expr_stack);
 #if EXTRA_SOURCE_POSITIONS_IN_IL
@@ -30321,14 +30326,16 @@ dynamic init entry if one is created to represent this initializer
     dip = is->init_dip;
   }  /* if */
   if (!is->check_validity_only) {
-    /* If this conversion was treated as full expression, wrap up the
-       object lifetime. */
+    /* If this conversion was treated as a full expression, do wrapup. */
     if (is_full_expr) {
       if (dip != NULL) {
         wrap_up_dynamic_init_full_expression(dip);
       } else if (is->init_error ||
                  (is->init_con != NULL && is_error_constant(is->init_con))) {
         discard_curr_expr_object_lifetime();
+      } else if (is->init_con != NULL) {
+        wrap_up_constant_full_expression(is->init_con,
+                                         init_component_pos(icp));
       }  /* if */
     }  /* if */
   }  /* if */
@@ -33621,6 +33628,7 @@ Scan a pre-processor expression.  See sections 3.4 and 3.8.1 in the standard.
   scan_expr(&result, PREC_LOWEST, EOPT_DISALLOW_COMMA_OPERATOR);
   do_operand_transformations(&result, TOPT_NO_OPTIONS);
   extract_constant_from_operand(&result, constant);
+  wrap_up_constant_full_expression(constant, &result.position);
   pop_expr_stack();
   restore_expr_stack(saved_expr_stack);
 #if EXTRA_SOURCE_POSITIONS_IN_IL
@@ -33699,6 +33707,7 @@ The value of the constant is returned in *constant.
         }  /* if */
       }  /* if */
     }  /* if */
+    wrap_up_constant_full_expression(constant, &result.position);
     pop_expr_stack();
     restore_expr_stack(saved_expr_stack);
   }  /* if */
@@ -33909,6 +33918,9 @@ expression context.  Return either *is_constant TRUE and a constant value in
       unexpected_condition_str(
                "scan_nonconstant_dimension_expression: bad operand kind");
   }  /* switch */
+  if (*is_constant) {
+    wrap_up_constant_full_expression(constant, &result.position);
+  }  /* if */
   pop_expr_stack();
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   curr_construct_end_position = result.end_position;
@@ -34103,6 +34115,7 @@ memory region).  If param_type is NULL, the parameter type is not known.
   }  /* if */
   check_assertion(constant->expr == NULL ||
                   curr_expr_kind_is_one_in_which_const_exprs_are_recorded());
+  wrap_up_constant_full_expression(constant, &result.position);
   pop_expr_stack();
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   curr_construct_end_position = result.end_position;
@@ -34261,6 +34274,7 @@ This is callable from outside of the expression processing routines.
     prep_nontype_template_argument_initializer(&operand,
                                                param_type, constant);
   }  /* if */
+  wrap_up_constant_full_expression(constant, &arg_operand->operand.position);
   pop_expr_stack();
   switch_back_to_original_region(region_to_switch_back_to);
 
@@ -35508,6 +35522,7 @@ constants; assumes copy-initialization ("="-form).
       set_error_constant(constant);
     }  /* if */
   }  /* if */
+  wrap_up_constant_full_expression(constant, &result.position);
   pop_expr_stack_for_initializer(saved_expr_stack,
                                  /*is_full_expr=*/TRUE,
                                  dps, (an_init_state *)NULL);
@@ -35671,12 +35686,14 @@ If an error is detected, use err_pos as the error position.
 }  /* prep_generated_arg_expr */
 
 
-static void wrap_up_init_state_initialization(an_init_state *is)
+static void wrap_up_init_state_initialization(an_init_state     *is,
+                                              a_source_position *pos)
 /*
 Wrap up processing of an initialization whose interface to
 decl_inits.c is an init_state block (given by "is"), and whose processing
 so far has requested a dynamic-init form initialization.  Convert now to
-a constant initialization if possible.
+a constant initialization if possible.  pos is the source position of
+the initializer.
 */
 {
   a_dynamic_init_ptr dip = is->init_dip;
@@ -35697,6 +35714,7 @@ a constant initialization if possible.
         }  /* if */
       }  /* if */
       if (cp != NULL) {
+        wrap_up_constant_full_expression(cp, pos);
         if (dip->is_partially_initialized || cp->is_partially_initialized) {
           is->partial_initializer = TRUE;
         }  /* if */
@@ -35751,7 +35769,7 @@ As indicated, this is initialization with the "=" semantics
                                    ec_bad_initializer_type,
                                    /*elision_done=*/(a_boolean *)NULL,
                                    &dps->init_state.init_dip);
-  wrap_up_init_state_initialization(&dps->init_state);
+  wrap_up_init_state_initialization(&dps->init_state, &result.position);
   pop_expr_stack_for_initializer(saved_expr_stack,
                                  /*is_full_expr=*/TRUE,
                                  dps, (an_init_state *)NULL);
@@ -35960,7 +35978,7 @@ source position to be used in overall errors.
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   end_position = curr_construct_end_position;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
-  wrap_up_init_state_initialization(is);
+  wrap_up_init_state_initialization(is, source_pos);
   pop_expr_stack_for_initializer(saved_expr_stack,
                                  /*is_full_expr=*/TRUE,
                                  is->decl_parse_state, is);
@@ -36119,6 +36137,7 @@ selector type.
                                             &constant);
     }  /* if */
   }  /* if */
+  wrap_up_constant_full_expression(&constant, &label_position);
   if (is_error_constant(&constant)) {
     /* Error; constant_ptr is left NULL. */
   } else {

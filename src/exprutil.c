@@ -2747,6 +2747,19 @@ a previous error.
 }  /* wrap_up_dynamic_init_full_expression */
 
 
+/*ARGSUSED*/
+void wrap_up_constant_full_expression(a_constant        *constant,
+                                      a_source_position *pos)
+/*
+Called at the end of scanning of a constant full-expression to do any final
+checking on the constant.  pos is the source position of the constant.
+The expression stack entry for the constant expression has not yet been
+popped.
+*/
+{
+}  /* wrap_up_constant_full_expression */
+
+
 void discard_curr_expr_object_lifetime(void)
 /*
 If the current expression stack entry has an associated object lifetime,

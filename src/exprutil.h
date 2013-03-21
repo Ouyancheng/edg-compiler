@@ -1429,6 +1429,9 @@ extern void discard_constant_expr_object_lifetime(void);
 
 extern void wrap_up_dynamic_init_full_expression(a_dynamic_init_ptr dip);
 
+extern void wrap_up_constant_full_expression(a_constant        *constant,
+                                             a_source_position *pos);
+
 extern
 a_constant_ptr var_constant_value_full(a_variable_ptr var,
                                        a_boolean      copy_for_reuse,
