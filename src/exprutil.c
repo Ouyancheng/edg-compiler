@@ -1660,6 +1660,7 @@ is pushed regardless of any of the other factors.
   new_entry->next_stack_push_considered_same_expression = FALSE;
   new_entry->constant_expr_ruled_out = FALSE;
   new_entry->traditional_const_expr_required = FALSE;
+  new_entry->in_noexcept_operand_expression = FALSE;
   new_entry->dynamic_init_dtor_fixup_list = NULL;
   new_entry->nested_construct_depth = 0;
   new_entry->lifetime = NULL;
@@ -5450,7 +5451,9 @@ of the call.
 {
   a_boolean folded = FALSE;
 
-  if (constexpr_enabled && curr_expr_is_evaluated()) {
+  if (constexpr_enabled &&
+      (curr_expr_is_evaluated() ||
+       expr_stack->in_noexcept_operand_expression)) {
     an_error_code failure_warning;
     a_constant    result_con;
     a_boolean     returns_reference;

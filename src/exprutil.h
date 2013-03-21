@@ -847,6 +847,10 @@ typedef struct an_expr_stack_entry {
 			   subexpressions; (2) each operation/conversion must
 			   immediately fold to a constant result, except when
 			   unevaluated (e.g., 1 || 1/0 is okay). */
+  a_byte_boolean
+		in_noexcept_operand_expression;
+			/* TRUE if we're in the operand of a noexcept
+			   operator. */
   a_dynamic_init_dtor_fixup_ptr
 		dynamic_init_dtor_fixup_list;
 			/* List of dynamic init entries for which destructor

@@ -12710,6 +12710,7 @@ previously-scanned noexcept expression, and return the result in
                                /*force_object_lifetime=*/FALSE,
                                /*suppress_object_lifetime=*/FALSE,
                                rcblock);
+  expr_stack->in_noexcept_operand_expression = TRUE;
   expr_stack->unevaluated_expr_will_be_kept_in_il = TRUE;
   if (rcblock == NULL) {
     /* Check for and pass over the left parenthesis. */
