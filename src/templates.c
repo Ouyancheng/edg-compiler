@@ -17727,19 +17727,19 @@ nesting depth to be used.
           decl_state->globally_qualified_friend_class = TRUE;
           decl_state->friend_depth = 1;
           break;
-      }  /* if */
-      /* Microsoft and g++ accept usage such as:
-           template <class T> struct C {
-             template <bool b> class Foo;
-             template <bool b> friend class Foo;
-           };
-       Even though the friend declaration should be:
-         template <class X> template <bool b> friend class C<X>::Foo;
-       Look for the token sequence "friend class X", where X is a
-       simple identifier.  Look up the identifier and if it is a template,
-       use its nesting depth as the nesting depth for this declaration. */
-      if (!microsoft_mode && !gpp_mode) break;
-      if (curr_token == tok_identifier) {
+        }  /* if */
+        /* Microsoft and g++ accept usage such as:
+             template <class T> struct C {
+               template <bool b> class Foo;
+               template <bool b> friend class Foo;
+             };
+         Even though the friend declaration should be:
+           template <class X> template <bool b> friend class C<X>::Foo;
+         Look for the token sequence "friend class X", where X is a
+         simple identifier.  Look up the identifier and if it is a template,
+         use its nesting depth as the nesting depth for this declaration. */
+        if (!microsoft_mode && !gpp_mode) break;
+        if (curr_token == tok_identifier) {
           a_symbol_locator	locator = locator_for_curr_id;
           (void)get_token();
           if (curr_token == tok_end_of_source) {
