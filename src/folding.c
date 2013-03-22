@@ -8470,37 +8470,42 @@ in the stack).
                            (CE_DEST_CONSTANT_IS_NOT_ALLOC_IN_IL |
                             CE_COPYING_FOR_CONSTEXPR_FOLDING));
 }  /* copy_constant_for_constexpr_evaluation */
+
+
+static void record_call_number_in_dynamic_init(
+                                         a_dynamic_init_ptr           dip,
+                                         a_constexpr_evaluation_block *ceblock)
+/*
+Record a call number in the given dynamic init entry, to associate
+a lifetime with it for purposes of checking for dangling pointers during
+constexpr evaluation.
+*/
+{
+  if (dip->is_top_temporary_for_constexpr_reference_param) {
+    /* We consider temporaries generated for reference parameters of
+       constexpr calls not to expire. */
+    dip->constexpr_call_number = 0;
+  } else if (ceblock->active_calls != NULL) {
+    dip->constexpr_call_number = ceblock->active_calls->call_number;
+  } else {
+    /* -1 is used for the full expression surrounding the outermost call. */
+    dip->constexpr_call_number = -1;
+  }  /* if */
+}  /* record_call_number_in_dynamic_init */
   
   
 static void set_expiring_temporary_address_constant(
-                              a_constant_ptr               pointed_to_constant,
-                              a_dynamic_init_ptr           dip,
-                              a_constexpr_evaluation_block *ceblock,
-                              a_constant                   *result_con)
+                                        a_constant_ptr     pointed_to_constant,
+                                        a_dynamic_init_ptr dip,
+                                        a_constant         *result_con)
 /*
 Create an address-of-temporary constant in result_con, pointing to
-pointed_to_constant.  Use the information in dip and ceblock to record
-information about the point at which the pointer becomes dangling.
+pointed_to_constant.  Use the information in dip to record information
+about the point at which the pointer becomes dangling.
 */
 {
-#if CHECKING
-  int32_t old_call_number = dip->constexpr_call_number;
-#endif /* CHECKING */
-
   set_temporary_address_constant(pointed_to_constant, result_con);
   result_con->variant.address.assoc_dyn_init = dip;
-  /* Record the call number associated with the dynamic init.
-    -1 is used for the full expression surrounding the outermost call. */
-  if (dip->is_top_temporary_for_constexpr_reference_param) {
-    /* We consider parameters of constexpr calls not to expire. */
-    dip->constexpr_call_number = 0;
-  } else {
-    dip->constexpr_call_number = ceblock->active_calls != NULL ?
-                                           ceblock->active_calls->call_number :
-                                           -1;
-  }  /* if */
-  check_assertion(old_call_number == 0 ||
-                  old_call_number == dip->constexpr_call_number);
 }  /* set_expiring_temporary_address_constant */
 
 
@@ -8527,6 +8532,7 @@ evaluation.
   a_boolean folded = FALSE;
   a_boolean ref_case = is_reference_type(dest_type);
 
+  record_call_number_in_dynamic_init(dip, ceblock);
   if (dip->destructor != NULL) goto end_of_routine;
   switch(dip->kind) {
     case dik_constant:
@@ -8542,7 +8548,7 @@ evaluation.
       if (ref_case && folded) {
         set_expiring_temporary_address_constant(
                                        alloc_shareable_constant(result_con),
-                                       dip, ceblock, result_con);
+                                       dip, result_con);
         result_con->type = dest_type;
       }  /* if */
       break;
@@ -8617,8 +8623,7 @@ evaluation.
              case. */
           set_expiring_temporary_address_constant(
                                          alloc_shareable_constant(new_aggr),
-                                         dip, ceblock, 
-                                         result_con);
+                                         dip, result_con);
           result_con->type = dest_type;
         }  /* if */
       }
@@ -9574,8 +9579,7 @@ ceblock gives context information for the evaluation.
       folded = TRUE;
       set_expiring_temporary_address_constant(
                                      alloc_shareable_constant(&local_constant),
-                                     dip, ceblock,
-                                     result_con);
+                                     dip, result_con);
     }  /* if */
   }  /* if */
   return folded;
@@ -9644,8 +9648,7 @@ member function call.
         if (want_addr) {
           /* Return the address of a temporary containing that constant. */
           a_constant_ptr con = alloc_shareable_constant(result_con);
-          set_expiring_temporary_address_constant(con, dip, ceblock,
-                                                  result_con);
+          set_expiring_temporary_address_constant(con, dip, result_con);
         }  /* if */
       }  /* if */
     }  /* if */

@@ -3437,11 +3437,9 @@ typedef struct a_dynamic_init {
 			   the constexpr evaluation call number in which
 			   the temporary was created. -1 represents the full
 			   expression surrounding the outermost call.
-			   Front end only, and set when the first abk_temporary
-			   pointing to the dynamic init is created.
-			   Note that one must consult other fields like
-			   static_temp in order to determine the lifetime
-			   of the temporary. */
+			   Front end only.  Note that one must consult
+			   other fields like static_temp in order to
+			   determine the lifetime of the temporary. */
 } a_dynamic_init;
 
 
