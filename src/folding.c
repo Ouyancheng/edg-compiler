@@ -9204,7 +9204,11 @@ ceblock gives context information for the evaluation.
         }  /* if */
         break;
       case eok_comma:
-        if (!node_has_side_effects(op1, (a_boolean *)NULL)) {
+        /* The value of the first operand is discarded, but it still has to
+           fold to a constant. */
+        if (op1->is_lvalue ?
+              fold_lvalue_expr(op1, ceblock, &op1_constant) :
+              fold_expr(op1, ceblock, &op1_constant)) {
           folded = fold_expr(op2, ceblock, result_con);
         }  /* if */
         break;
@@ -9544,6 +9548,8 @@ ceblock gives context information for the evaluation.
   } else if (is_operation_node(expr)) {
     an_expr_operator_kind op = expr->variant.operation.kind;
     an_expr_node_ptr      op1 = expr->variant.operation.operands;
+    an_expr_node_ptr      op2 = (op1 != NULL) ? op1->next : NULL;
+    a_constant            op1_constant;
     switch (op) {
       case eok_call:
       case eok_dot_member_call:
@@ -9564,8 +9570,12 @@ ceblock gives context information for the evaluation.
         }
         break;
       case eok_comma:
-        if (!node_has_side_effects(op1, (a_boolean *)NULL)) {
-          folded = fold_lvalue_expr(op1->next, ceblock, result_con);
+        /* The value of the first operand is discarded, but it still has to
+           fold to a constant. */
+        if (op1->is_lvalue ?
+              fold_lvalue_expr(op1, ceblock, &op1_constant) :
+              fold_expr(op1, ceblock, &op1_constant)) {
+          folded = fold_lvalue_expr(op2, ceblock, result_con);
         }  /* if */
         break;
       default:
