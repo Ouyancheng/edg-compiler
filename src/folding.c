@@ -5513,6 +5513,7 @@ the argument expression arg_expr, and return a pointer to it.
   crp->param_var = param_var;
   crp->arg_expr = arg_expr;
   crp->is_constant = FALSE;
+  crp->alloc_constant_value = NULL;
   crp->next = NULL;
   return crp;
 }  /* alloc_constexpr_remap */
@@ -8720,7 +8721,16 @@ be an lvalue or rvalue; it doesn't matter.
                                                           ceblock->remap_list);
     if (crp != NULL) {
       folded = TRUE;
-      copy_constant(&crp->constant_value, result_con);
+      if (want_addr) {
+        a_constant_ptr alloc_con = crp->alloc_constant_value;
+        if (alloc_con == NULL) {
+          alloc_con = alloc_shareable_constant(&crp->constant_value);
+          crp->alloc_constant_value = alloc_con;
+        }  /* if */
+        set_temporary_address_constant(alloc_con, result_con);
+      } else {
+        copy_constant(&crp->constant_value, result_con);
+      }  /* if */
     }  /* if */
   } else if (var->is_constexpr) {
     a_constant_ptr valcon = var_constant_value_full(
@@ -8731,12 +8741,12 @@ be an lvalue or rvalue; it doesn't matter.
     /* valcon can be NULL in error cases. */
     if (valcon != NULL) {
       folded = TRUE;
-      copy_constant(valcon, result_con);
+      if (want_addr) {
+        set_temporary_address_constant(valcon, result_con);
+      } else {
+        copy_constant(valcon, result_con);
+      }  /* if */
     }  /* if */
-  }  /* if */
-  if (folded && want_addr) {
-    set_temporary_address_constant(alloc_shareable_constant(result_con),
-                                   result_con);
   }  /* if */
   return folded;
 }  /* fold_variable_reference */

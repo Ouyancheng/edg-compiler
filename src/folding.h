@@ -152,6 +152,10 @@ typedef struct a_constexpr_remap {
   a_constant	constant_value;
 			/* The constant value of the argument, if is_constant
 			   is TRUE. */
+  a_constant_ptr
+		alloc_constant_value;
+			/* An allocated copy of the constant value, once
+			   there is one.  NULL until then. */
 } a_constexpr_remap;
 
 
