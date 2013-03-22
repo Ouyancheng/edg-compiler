@@ -279,9 +279,6 @@ extern a_boolean fold_gnu_builtin_function_call_if_possible(
                                                   an_error_code    *err_code);
 #endif /* GNU_EXTENSIONS_ALLOWED */
 
-extern a_boolean variable_is_reference_bound_to_constant_temporary(
-                                                      a_variable_ptr     var,
-                                                      a_dynamic_init_ptr *dip);
 extern
 a_boolean contains_dangling_pointer(a_constant_ptr   con,
                                     a_constexpr_call *active_calls,
