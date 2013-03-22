@@ -154,6 +154,23 @@ typedef struct a_constexpr_remap {
 			   is TRUE. */
 } a_constexpr_remap;
 
+
+/*
+Entry placed on the stack for each nested call in a constexpr evaluation,
+so that at a given moment the list of them attached to the active_calls
+field of the constexpr evaluation block gives all the calls we're still
+inside of.
+*/
+typedef struct a_constexpr_call *a_constexpr_call_ptr;
+typedef struct a_constexpr_call {
+  a_constexpr_call_ptr
+		next;
+			/* The call enclosing this one, or NULL if this is
+			   the outermost. */
+  uint32_t	call_number;
+			/* The call number assigned to this call. */
+} a_constexpr_call;
+
 /*
 Context information to be carried around within a constexpr evaluation.
 */
@@ -181,11 +198,15 @@ typedef struct a_constexpr_evaluation_block {
   unsigned long
 		call_count;
 			/* Count of constexpr calls, used to check for
-			   recursion overflow. */
+			   recursion overflow and to number calls. */
   an_error_code
 		failure_warning;
 			/* If not ec_no_error, gives the reason for a folding
 			   failure.  The error code must have no fill-ins. */
+  a_constexpr_call_ptr
+		active_calls;
+			/* List of stack-based entries identifying the
+			   calls we're currently inside of evaluating. */
 } a_constexpr_evaluation_block;
 
 /*
@@ -261,6 +282,10 @@ extern a_boolean fold_gnu_builtin_function_call_if_possible(
 extern a_boolean variable_is_reference_bound_to_constant_temporary(
                                                       a_variable_ptr     var,
                                                       a_dynamic_init_ptr *dip);
+extern
+a_boolean contains_dangling_pointer(a_constant_ptr   con,
+                                    a_constexpr_call *active_calls,
+                                    a_boolean        end_of_full_expr);
 
 extern a_boolean fold_constexpr_expr(an_expr_node_ptr  expr,
                                      a_boolean         treat_as_object,

@@ -3304,6 +3304,9 @@ typedef struct a_dynamic_init {
 			   an initializer list object from an array of
 			   values of type X, provided in a temporary passed
 			   as the first argument of the constructor call. */
+  a_bit_field	is_array_for_initializer_list_object:1;
+			/* TRUE if this is the creation of the array under
+			   an std::initializer_list object. */
   a_bit_field	is_top_temporary_for_constexpr_reference_param:1;
 			/* Set for the top temporary in an expression passed
 			   as the argument for a reference parameter of a
@@ -3427,6 +3430,18 @@ typedef struct a_dynamic_init {
 			   be rescanned later to redo semantic analysis,
 			   points to extra front-end-only information that
 			   is needed for the rescan.  NULL otherwise. */
+  int32_t	constexpr_call_number;
+			/* Used for constexpr evaluation, to catch dangling
+			   pointers to temporaries.  Indicates the context
+			   in which the temporary was created, by way of
+			   the constexpr evaluation call number in which
+			   the temporary was created. -1 represents the full
+			   expression surrounding the outermost call.
+			   Front end only, and set when the first abk_temporary
+			   pointing to the dynamic init is created.
+			   Note that one must consult other fields like
+			   static_temp in order to determine the lifetime
+			   of the temporary. */
 } a_dynamic_init;
 
 
@@ -3972,6 +3987,14 @@ typedef struct a_constant {
       a_targ_ptrdiff_t
                 offset;
                         /* Byte offset from the base address. */
+      a_dynamic_init_ptr
+		assoc_dyn_init;
+			/* Used for constexpr evaluation.  For an abk_temporary
+			   constant, if non-NULL points to the dynamic init
+			   entry that defines the temporary, used to check
+			   for the pointer becoming dangling because the
+			   lifetime of the dynamic init has ended.
+			   Front end only. */
     } address;
     /* When kind == ck_ptr_to_member: */
     struct {

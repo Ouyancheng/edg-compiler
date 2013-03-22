@@ -2490,6 +2490,7 @@ ec_unbounded_constexpr_ctor_init_recursion;;"this constructor uses the initializ
 ec_cannot_default_initialize_anon_union;;"anonymous union defined %p cannot be default-initialized because it has a deleted default constructor or destructor"
 ec_block_extern_initializer_not_allowed;;"an initializer is not allowed on a local declaration of an extern variable"
 ec_local_named_register_initializer_not_allowed;;"an initializer is not allowed on a local declaration of a named register variable"
+ec_constexpr_dangling_pointer;;"expression is not constant due to a dangling pointer (points to a temporary whose lifetime has ended)"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

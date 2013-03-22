@@ -4830,6 +4830,7 @@ a unique temporary containing the value of the indicated constant.
   con->variant.address.variant.constant = constant;
   con->type = make_pointer_type(constant->type);
   check_assertion(!is_incomplete_type(constant->type));
+  con->variant.address.assoc_dyn_init = NULL;
 }  /* set_temporary_address_constant */
 
 

@@ -20932,6 +20932,7 @@ errors should be suppressed (i.e., SFINAE mode).
     dip->is_braced_initializer = TRUE;
     dip->destructor = dtor;
     dip->is_partially_initialized = is_partially_initialized;
+    dip->is_array_for_initializer_list_object = TRUE;
     expr = alloc_temp_init_node(array_type, dip,
                                 /*is_lvalue=*/TRUE,
                                 /*is_explicit_cast=*/FALSE);

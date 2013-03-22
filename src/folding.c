@@ -27,6 +27,7 @@ folding.c -- Folding routines.
 #include "folding.h"
 #include "layout.h"
 #include "exprutil.h"
+#include "il_walk.h"
 #if DO_IL_LOWERING
 #include "lower_il.h"
 #endif /* DO_IL_LOWERING */
@@ -5550,6 +5551,7 @@ pos gives a default source position.
   ceblock->call_depth = 0;
   ceblock->call_count = 0;
   ceblock->failure_warning = ec_no_error;
+  ceblock->active_calls = NULL;
 }  /* clear_constexpr_evaluation_block */
 
 
@@ -8378,15 +8380,19 @@ used to create a ck_template_param result for a dependent case.
 #endif /* GNU_EXTENSIONS_ALLOWED */
 
 static a_boolean incr_constexpr_call_depth(
-                                        a_constexpr_evaluation_block *ceblock)
+                                      a_constexpr_evaluation_block *ceblock,
+                                      a_constexpr_call             *call_block)
 /*
-Increment the call depth in the given constexpr evaluation block.
-Return TRUE if the depth is too large, which may indicate infinite
-recursion.
+Increment the call depth and call count in the given constexpr
+evaluation block.  Add call_block to the active-calls stack.  Return
+TRUE if the depth or call count is too large, which may indicate
+infinite recursion.
 */
 {
   a_boolean ovflo = FALSE;
 
+  call_block->next = ceblock->active_calls;
+  ceblock->active_calls = call_block;
   ceblock->call_depth++;
   if (ceblock->call_depth > max_constexpr_call_depth) {
     ovflo = TRUE;
@@ -8397,16 +8403,20 @@ recursion.
   } else {
     ceblock->call_count++;
   }  /* if */
+  call_block->call_number = ceblock->call_count;
   return ovflo;
 }  /* incr_constexpr_call_depth */
 
 
 static void decr_constexpr_call_depth(a_constexpr_evaluation_block *ceblock)
 /*
-Decrement the call depth in the given constexpr evaluation block.
+Decrement the call depth in the given constexpr evaluation block.  Also
+pop the active_calls stack.
 */
 {
   ceblock->call_depth--;
+  check_assertion(ceblock->active_calls != NULL);
+  ceblock->active_calls = ceblock->active_calls->next;
 }  /* decr_constexpr_call_depth */
 
 
@@ -8460,6 +8470,27 @@ in the stack).
                            (CE_DEST_CONSTANT_IS_NOT_ALLOC_IN_IL |
                             CE_COPYING_FOR_CONSTEXPR_FOLDING));
 }  /* copy_constant_for_constexpr_evaluation */
+  
+  
+static void set_expiring_temporary_address_constant(
+                              a_constant_ptr               pointed_to_constant,
+                              a_dynamic_init_ptr           dip,
+                              a_constexpr_evaluation_block *ceblock,
+                              a_constant                   *result_con)
+/*
+Create an address-of-temporary constant in result_con, pointing to
+pointed_to_constant.  Use the information in dip and ceblock to record
+information about the point at which the pointer becomes dangling.
+*/
+{
+  set_temporary_address_constant(pointed_to_constant, result_con);
+  result_con->variant.address.assoc_dyn_init = dip;
+  /* Record the call number associated with the dynamic init.
+    -1 is used for the full expression surrounding the outermost call. */
+  dip->constexpr_call_number = ceblock->active_calls != NULL ?
+                                           ceblock->active_calls->call_number :
+                                           -1;
+}  /* set_expiring_temporary_address_constant */
 
 
 static a_boolean i_fold_constexpr_ctor(
@@ -8498,8 +8529,9 @@ evaluation.
     case dik_constructor:
       folded = i_fold_constexpr_ctor(dip, ceblock, result_con);
       if (ref_case && folded) {
-        set_temporary_address_constant(alloc_shareable_constant(result_con),
-                                       result_con);
+        set_expiring_temporary_address_constant(
+                                       alloc_shareable_constant(result_con),
+                                       dip, ceblock, result_con);
         result_con->type = dest_type;
       }  /* if */
       break;
@@ -8572,7 +8604,9 @@ evaluation.
         if (ref_case) {
           /* Return the address of the aggregate constant for the reference
              case. */
-          set_temporary_address_constant(alloc_shareable_constant(new_aggr),
+          set_expiring_temporary_address_constant(
+                                         alloc_shareable_constant(new_aggr),
+                                         dip, ceblock, 
                                          result_con);
           result_con->type = dest_type;
         }  /* if */
@@ -9567,6 +9601,8 @@ ceblock gives context information for the evaluation.
     a_dynamic_init_ptr dip = expr->variant.init.dynamic_init;
     if ((is_const_qualified_type(expr->type) ||
          dip->is_top_temporary_for_constexpr_reference_param ||
+         /* We allow short-lifetime temps so that something like "(int &&)37"
+            in the middle of an expression can be evaluated to a constant. */
          dip->has_temporary_lifetime) &&
         !is_volatile_qualified_type(expr->type) &&
         fold_dynamic_init(dip,
@@ -9574,7 +9610,9 @@ ceblock gives context information for the evaluation.
                           ceblock,
                           &local_constant)) {
       folded = TRUE;
-      set_temporary_address_constant(alloc_shareable_constant(&local_constant),
+      set_expiring_temporary_address_constant(
+                                     alloc_shareable_constant(&local_constant),
+                                     dip, ceblock,
                                      result_con);
     }  /* if */
   }  /* if */
@@ -9635,7 +9673,8 @@ member function call.
     } else if (expr->kind == (an_expr_node_kind)enk_temp_init) {
       /* A dynamic initialization.  Try folding it to a constant.  This
          comes up when passing class values via copy constructor. */
-      if (fold_dynamic_init(expr->variant.init.dynamic_init,
+      a_dynamic_init_ptr dip = expr->variant.init.dynamic_init;
+      if (fold_dynamic_init(dip,
                             expr->type,
                             ceblock,
                             result_con)) {
@@ -9643,13 +9682,89 @@ member function call.
         if (want_addr) {
           /* Return the address of a temporary containing that constant. */
           a_constant_ptr con = alloc_shareable_constant(result_con);
-          set_temporary_address_constant(con, result_con);
+          set_expiring_temporary_address_constant(con, dip, ceblock,
+                                                  result_con);
         }  /* if */
       }  /* if */
     }  /* if */
   }  /* if */
   return folded;
 }  /* fold_object_expr */
+
+
+static void examine_constant_for_dangling_pointer(
+                                    a_constant_ptr                      con,
+                                    an_expr_or_stmt_traversal_block_ptr tblock)
+/*
+Examine the indicated constant for a dangling pointer; called by the expression
+traversal routines.  Set tblock->result to TRUE if the constant has a
+dangling address constant.
+*/
+{
+  if (con->kind == (a_constant_repr_kind)ck_address &&
+      con->variant.address.kind == (an_address_base_kind)abk_temporary) {
+    a_dynamic_init_ptr dip = con->variant.address.assoc_dyn_init;
+    if (dip != NULL) {
+      /* Check whether the dynamic initialization's lifetime has ended. */
+      int32_t call_number = dip->constexpr_call_number;
+      if (call_number == 0) {
+        /* No call number recorded, so we don't know about the lifetime. */
+      } else if (dip->static_temp) {
+        /* A static-lifetime temporary never expires. */
+      } else if (dip->is_array_for_initializer_list_object) {
+         /* Consider the arrays underlying initializer_list objects to have
+            longer lifetimes than they would otherwise appear to, because
+            they may yet get adjusted by copy elision at the top level. */
+      } else if (call_number == -1) {
+        /* A temporary alive in the full expression lifetime surrounding
+           the outermost call is still alive unless we are now doing the
+           the check at the end of that full expression and the temporary
+           has full-expression lifetime. */
+        if (tblock->end_of_full_expr && dip->has_temporary_lifetime) {
+          tblock->result = TRUE;
+          tblock->terminate = TRUE;
+        }  /* if */
+      } else {
+        /* For temporaries with lifetime associated with a specific call,
+           see if the call associated with the temporary is still on the call
+           stack.  The full-expression and block lifetimes are identical,
+           since the only thing in the function is the return expression.
+           FIXME: constexpr constructor ctor-inits. */
+        a_constexpr_call *cblock;
+        for (cblock = tblock->active_calls;
+             cblock != NULL;
+             cblock = cblock->next) {
+          if (cblock->call_number == call_number) break;
+        }  /* for */
+        if (cblock == NULL) {
+          tblock->result = TRUE;
+          tblock->terminate = TRUE;
+        }  /* if */
+      }  /* if */
+    }  /* if */
+  }  /* if */
+}  /* examine_constant_for_dangling_pointer */
+
+
+a_boolean contains_dangling_pointer(a_constant_ptr   con,
+                                    a_constexpr_call *active_calls,
+                                    a_boolean        end_of_full_expr)
+/*
+Return TRUE if the constant "con" contains an address constant that is
+dangling, i.e., it points to a temporary whose lifetime has ended.
+active_calls provides the list of calls still active.  end_of_full_expr
+is TRUE for the check at the end of a full expression.
+*/
+{
+  an_expr_or_stmt_traversal_block tblock;
+
+  clear_expr_or_stmt_traversal_block(&tblock);
+  tblock.process_constant = examine_constant_for_dangling_pointer;
+  tblock.active_calls = active_calls;
+  tblock.end_of_full_expr = end_of_full_expr;
+  traverse_constant(con, &tblock);
+  return tblock.result;
+}  /* contains_dangling_pointer */
 
 
 a_boolean fold_constexpr_expr(an_expr_node_ptr  expr,
@@ -9833,6 +9948,7 @@ called instead.
   a_routine_ptr         routine;
   an_expr_node_ptr      args;
   a_boolean             this_arg_is_pointer;
+  a_constexpr_call      call_block;
 
   if (returns_reference != NULL) *returns_reference = FALSE;
   check_assertion(is_call_node(call_expr));
@@ -9856,7 +9972,7 @@ called instead.
     }  /* if */
   }  /* if */
   args = args->next;
-  if (incr_constexpr_call_depth(ceblock)) {
+  if (incr_constexpr_call_depth(ceblock, &call_block)) {
     /* Calls too deep -- possible infinite recursion. */
   } else if (routine == NULL) {
     /* Don't know the called routine, so can't fold. */
@@ -9929,6 +10045,14 @@ gnu_builtin_fail:;
         /* Substitute values for parameters and attempt to fold the call to
            a constant. */
         folded = fold_expr(expr, ceblock, result_con);
+        if (folded &&
+            contains_dangling_pointer(result_con, ceblock->active_calls,
+                                      /*end_of_full_expr=*/FALSE)) {
+          /* The constant returned has a dangling pointer, so it's not
+             considered constant. */
+          folded = FALSE;
+          ceblock->failure_warning = ec_constexpr_dangling_pointer;
+        }  /* if */
         if (folded) {
           result_con->null_pointer_constant_ruled_out = TRUE;
           if (is_reference_type(il_return_type)) {
@@ -10035,12 +10159,13 @@ fold_constexpr_ctor should usually be called instead.
   a_boolean        folded = FALSE;
   a_routine_ptr    ctor_routine;
   an_expr_node_ptr args;
+  a_constexpr_call call_block;
 
   check_assertion(ctor_dip != NULL &&
                   ctor_dip->kind == (a_dynamic_init_kind)dik_constructor);
   ctor_routine = ctor_dip->variant.constructor.ptr;
   args = ctor_dip->variant.constructor.args;
-  if (incr_constexpr_call_depth(ceblock)) {
+  if (incr_constexpr_call_depth(ceblock, &call_block)) {
     /* Calls too deep -- possible infinite recursion. */
   } else if (ctor_routine == NULL) {
     /* Don't know the called constructor (e.g., a dependent case), so can't
@@ -10205,9 +10330,18 @@ fold_constexpr_ctor should usually be called instead.
             }  /* if */
           }  /* if */
         }  /* for */
-        folded = TRUE;
-        copy_constant(&aggr_con, result_con);
-        result_con->is_result_of_constexpr_call = TRUE;
+        if (folded &&
+            contains_dangling_pointer(result_con, ceblock->active_calls,
+                                      /*end_of_full_expr=*/FALSE)) {
+          /* The constant returned has a dangling pointer, so it's not
+             considered constant. */
+          folded = FALSE;
+          ceblock->failure_warning = ec_constexpr_dangling_pointer;
+        } else {
+          folded = TRUE;
+          copy_constant(&aggr_con, result_con);
+          result_con->is_result_of_constexpr_call = TRUE;
+        }  /* if */
 fail:;
       }  /* if */
       free_constexpr_remap_list(ceblock->remap_list);

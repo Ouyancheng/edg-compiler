@@ -2626,6 +2626,8 @@ default values.
   tblock->is_static_initonly_field = FALSE;
 #endif  /* MICROSOFT_EXTENSIONS_ALLOWED */
   tblock->seq_pt_var_list = NULL;
+  tblock->active_calls = NULL;
+  tblock->end_of_full_expr = FALSE;
 }  /* clear_expr_or_stmt_traversal_block */
 
 

@@ -372,6 +372,13 @@ typedef struct an_expr_or_stmt_traversal_block {
 			/* A list of variables referenced in the expression
 			   and the sequence point information associated
 			   with each variable. */
+  /* Fields used by contains_dangling_pointer: */
+  struct a_constexpr_call
+		*active_calls;
+			/* The current active-calls list for constexpr
+			   evaluation. */
+  a_boolean	end_of_full_expr;
+			/* The check is at the end of the full expression. */
 } an_expr_or_stmt_traversal_block;
 
 extern void clear_expr_or_stmt_traversal_block(

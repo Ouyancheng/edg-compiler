@@ -775,6 +775,7 @@ fields to default values.
       cp->variant.address.kind = (an_address_base_kind)abk_variable;
       cp->variant.address.variant.variable = NULL;
       cp->variant.address.offset = 0;
+      cp->variant.address.assoc_dyn_init = NULL;
       break;
     case ck_ptr_to_member:
       cp->variant.ptr_to_member.casting_base_class = NULL;
@@ -2050,6 +2051,7 @@ Initialize a dynamic_init entry of the kind specified.
 #endif /* GENERATE_EH_TABLES */
 #endif /* DO_IL_LOWERING */
   dip->is_creation_of_initializer_list_object = FALSE;
+  dip->is_array_for_initializer_list_object = FALSE;
   dip->is_top_temporary_for_constexpr_reference_param = FALSE;
 #if CENTERLINE_CHECKING
   dip->avoid_codecenter_warnings = 0;
@@ -2063,6 +2065,7 @@ Initialize a dynamic_init entry of the kind specified.
   dip->lifetime_of_overlapping_temps = NULL;
   dip->master_entry                  = NULL;
   dip->rescan_info                   = NULL;
+  dip->constexpr_call_number         = 0;
 }  /* clear_dynamic_init */
 
 

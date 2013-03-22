@@ -2747,7 +2747,6 @@ a previous error.
 }  /* wrap_up_dynamic_init_full_expression */
 
 
-/*ARGSUSED*/
 void wrap_up_constant_full_expression(a_constant        *constant,
                                       a_source_position *pos)
 /*
@@ -2757,6 +2756,10 @@ The expression stack entry for the constant expression has not yet been
 popped.
 */
 {
+  if (contains_dangling_pointer(constant, (a_constexpr_call *)NULL,
+                                /*end_of_full_expr=*/TRUE)) {
+    expr_pos_error(ec_constexpr_dangling_pointer, pos);
+  }  /* if */
 }  /* wrap_up_constant_full_expression */
 
 
