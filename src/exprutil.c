@@ -19769,14 +19769,16 @@ user-defined conversions.
   orig_operand = *operand;
   /* Remember whether or not the expression is a constant pointer or
      pointer-to-member, before any (other) changes are made. */
-  if (is_an_rvalue(operand) &&
+  /* When constexpr is enabled, constants can come from all kinds of
+     things, e.g., calls, so turn off the warning. */
+  if (!constexpr_enabled &&
+      is_an_rvalue(operand) &&
       is_constant_operand(operand) &&
       (is_pointer_type(operand->type) ||
        is_ptr_to_member_type(operand->type))) {
     constant_pointer_case = TRUE;
-    { a_constant_ptr con = &operand->variant.constant;
-      if (con->is_result_of_constexpr_call) constant_pointer_case = FALSE;
 #if GNU_EXTENSIONS_ALLOWED
+    { a_constant_ptr con = &operand->variant.constant;
       if (con->kind == (a_constant_repr_kind)ck_address &&
           ((con->variant.address.kind == (an_address_base_kind)abk_routine &&
             con->variant.address.variant.routine->is_weak) ||
@@ -19785,8 +19787,8 @@ user-defined conversions.
         /* No warning for GNU weak externals. */
         constant_pointer_case = FALSE;
       }  /* if */
-#endif /* GNU_EXTENSIONS_ALLOWED */
     }
+#endif /* GNU_EXTENSIONS_ALLOWED */
   }  /* if */
   if (bool_is_keyword) {
     /* bool is enabled.  The expression must have bool type or be convertible
