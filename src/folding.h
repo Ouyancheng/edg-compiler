@@ -167,7 +167,7 @@ typedef struct a_constexpr_call {
 		next;
 			/* The call enclosing this one, or NULL if this is
 			   the outermost. */
-  uint32_t	call_number;
+  int32_t	call_number;
 			/* The call number assigned to this call. */
 } a_constexpr_call;
 
