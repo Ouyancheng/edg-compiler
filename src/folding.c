@@ -8483,13 +8483,24 @@ pointed_to_constant.  Use the information in dip and ceblock to record
 information about the point at which the pointer becomes dangling.
 */
 {
+#if CHECKING
+  int32_t old_call_number = dip->constexpr_call_number;
+#endif /* CHECKING */
+
   set_temporary_address_constant(pointed_to_constant, result_con);
   result_con->variant.address.assoc_dyn_init = dip;
   /* Record the call number associated with the dynamic init.
     -1 is used for the full expression surrounding the outermost call. */
-  dip->constexpr_call_number = ceblock->active_calls != NULL ?
+  if (dip->is_top_temporary_for_constexpr_reference_param) {
+    /* We consider parameters of constexpr calls not to expire. */
+    dip->constexpr_call_number = 0;
+  } else {
+    dip->constexpr_call_number = ceblock->active_calls != NULL ?
                                            ceblock->active_calls->call_number :
                                            -1;
+  }  /* if */
+  check_assertion(old_call_number == 0 ||
+                  old_call_number == dip->constexpr_call_number);
 }  /* set_expiring_temporary_address_constant */
 
 
