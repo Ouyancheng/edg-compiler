@@ -505,6 +505,7 @@ Initialize a template declaration state block.
   tdsp->is_generic = FALSE;
   tdsp->is_delegate = FALSE;
   tdsp->generic_constraints_pending = FALSE;
+  tdsp->globally_qualified_friend_class = FALSE;
   tdsp->export_position = null_source_position;
   tdsp->starting_token_sequence_number = NO_TOKEN_SEQUENCE_NUMBER;
   tdsp->last_token_sequence_number_of_params = NO_TOKEN_SEQUENCE_NUMBER;
@@ -17710,53 +17711,62 @@ nesting depth to be used.
   while (curr_token != tok_end_of_source) {
     if (curr_token == tok_friend) {
       is_template_friend = TRUE;
-      if (microsoft_mode || gpp_mode) {
-        /* Microsoft and g++ accept usage such as:
-             template <class T> struct C {
-               template <bool b> class Foo;
-               template <bool b> friend class Foo;
-             };
-           Even though the friend declaration should be:
-             template <class X> template <bool b> friend class C<X>::Foo;
-           Look for the token sequence "friend class X", where X is a
-           simple identifier.  Look up the identifier and if it is a template,
-           use its nesting depth as the nesting depth for this declaration. */
+      /* Go through the cache to find the name being declared in a class
+         template declaration to see if it includes a global qualifier. */
+      (void)get_token();
+      /* If the friend declaration is of the form "friend class X", where
+         X is an unqualified name, look up X and use the nesting depth
+         of the declaration that is found as the nesting depth of this
+         declaration. */
+      if (curr_token == tok_class || curr_token == tok_struct) {
         (void)get_token();
-        /* If the friend declaration is of the form "friend class X", where
-           X is an unqualified name, look up X and use the nesting depth
-           of the declaration that is found as the nesting depth of this
-           declaration. */
-        if (curr_token == tok_class || curr_token == tok_struct) {
+        if (curr_token == tok_colon_colon) {
+          /* If we have "friend class ::X" remember that there was a
+             global qualifier so that we can take that into account in the
+             depth computation. */
+          decl_state->globally_qualified_friend_class = TRUE;
+          decl_state->friend_depth = 1;
+          break;
+      }  /* if */
+      /* Microsoft and g++ accept usage such as:
+           template <class T> struct C {
+             template <bool b> class Foo;
+             template <bool b> friend class Foo;
+           };
+       Even though the friend declaration should be:
+         template <class X> template <bool b> friend class C<X>::Foo;
+       Look for the token sequence "friend class X", where X is a
+       simple identifier.  Look up the identifier and if it is a template,
+       use its nesting depth as the nesting depth for this declaration. */
+      if (!microsoft_mode && !gpp_mode) break;
+      if (curr_token == tok_identifier) {
+          a_symbol_locator	locator = locator_for_curr_id;
           (void)get_token();
-          if (curr_token == tok_identifier) {
-            a_symbol_locator	locator = locator_for_curr_id;
-            (void)get_token();
-            if (curr_token == tok_end_of_source) {
-              a_symbol_ptr	sym;
-              sym = normal_id_lookup(&locator, IDL_FRIEND_LOOKUP);
-              if (sym != NULL && is_injected_template_symbol(sym)) {
-                sym = class_template_for_injected_template_symbol(sym);
-              }  /* if */
-              if (sym != NULL &&
-                  sym->kind == (a_symbol_kind)sk_class_template) {
-                a_template_symbol_supplement_ptr	tssp;
-                a_template_param_ptr			tpp;
-                a_template_nesting_depth		depth;
-                tssp = sym->variant.template_info;
-                tpp = tssp->cache.decl_info->parameters;
-                depth = nesting_depth_of_template_param(tpp);
-                decl_state->friend_depth = depth - 1;
-              }  /* if */
-              break;
+          if (curr_token == tok_end_of_source) {
+            a_symbol_ptr	sym;
+            sym = normal_id_lookup(&locator, IDL_FRIEND_LOOKUP);
+            if (sym != NULL && is_injected_template_symbol(sym)) {
+              sym = class_template_for_injected_template_symbol(sym);
             }  /* if */
+            if (sym != NULL &&
+                sym->kind == (a_symbol_kind)sk_class_template) {
+              a_template_symbol_supplement_ptr	tssp;
+              a_template_param_ptr		tpp;
+              a_template_nesting_depth		depth;
+              tssp = sym->variant.template_info;
+              tpp = tssp->cache.decl_info->parameters;
+              depth = nesting_depth_of_template_param(tpp);
+              decl_state->friend_depth = depth - 1;
+            }  /* if */
+            break;
           }  /* if */
         }  /* if */
       }  /* if */
     }  /* if */
     if (curr_token != tok_end_of_source) (void)get_token();
   }  /* while */
-  /* Skip past the tok_end_of_source. */
-  (void)get_token();
+  /* Find and skip past the tok_end_of_source. */
+  flush_past_token_cache_terminator();
   decl_state->is_template_friend = is_template_friend;
 }  /* prescan_template_declaration */
 
@@ -24148,10 +24158,16 @@ instantiations of any template default arguments now.
   mark_template_params_as_invisible(decl_state->decl_info);
   /* If this is a friend declaration the nesting depths of the parameter
      may need to be updated. */
-  if (decl_state->is_template_friend &&
-      !decl_state->in_prototype_instantiation) {
-    decl_state->nesting_depth = decl_state->friend_depth;
-    update_nesting_depths = TRUE;
+  if (decl_state->is_template_friend) {
+    if (decl_state->globally_qualified_friend_class) {
+      /* We previously saw "friend class ::X".  Reset the depth to zero
+         so that it will be recomputed properly below. */
+      decl_state->nesting_depth = 0;
+      update_nesting_depths = TRUE;
+    } else if (!decl_state->in_prototype_instantiation) {
+      decl_state->nesting_depth = decl_state->friend_depth;
+      update_nesting_depths = TRUE;
+    }  /* if */
   }  /* if */
   /* Update the nesting depths of the parameters, do any prototype
      instantiations of default template arguments that are needed,
