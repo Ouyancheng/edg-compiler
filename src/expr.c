@@ -4852,7 +4852,7 @@ are expected to be NULL in that case.
         routine_type = pm_member_type(operand->type);
       } else if (!C_mode() &&
                  is_template_dependent_context() &&
-                 is_pointer_type(operand->type) &&
+                 is_pointer_or_handle_type(operand->type) &&
                  is_template_param_type(type_pointed_to(operand->type))) {
         /* A pointer to a template parameter type, which might be a function
            type. */

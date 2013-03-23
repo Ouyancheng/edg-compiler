@@ -1,5 +1,17 @@
 Version 4.6
 
+3/23/13  [EDGcpfe/13776]
+C++/CLI mode: Consider dependent handle-to-function value as callable
+
+The front end did not accept a dependent handle-to-function as a functor
+value in C++/CLI mode.  Now fixed.
+
+  template < typename __TLambda, typename... __TArgs >
+  void f(__TArgs... __args) {
+    auto x = [__args...](__TLambda^ __lambda) -> void { __lambda(__args...);
+  };
+
+
 3/23/13  [EDGcpfe/13795]
 Failure to find default constructor for base when generating derived class
 constructor

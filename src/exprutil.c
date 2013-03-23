@@ -15352,7 +15352,7 @@ error cases.
     if (is_ptr_to_member_type(function_node_type)) {
       /* Call using a pointer-to-member-function. */
       function_type = pm_member_type(function_node_type);
-    } else if (is_pointer_type(function_node_type)) {
+    } else if (is_pointer_or_handle_type(function_node_type)) {
       /* Normal call using a pointer to function. */
       function_type = type_pointed_to(function_node_type);
     } else {
