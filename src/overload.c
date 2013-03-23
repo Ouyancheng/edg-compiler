@@ -5383,7 +5383,8 @@ conv_context describes the context of the conversion.
        constructor is not used in the match).  Also don't do this for
        cases written in operator form -- they can't be rewritten by
        preceding them with "this->", so a selector should not be invented. */
-    if (!ctor_conversion_case && !is_overloaded_operator && !have_selector) {
+    if (!ctor_conversion_case && !is_overloaded_operator && !have_selector &&
+        !is_special_function_symbol(proj_function_symbol, sfk_constructor)) {
       a_type_ptr routine_type;
       a_boolean  some_function_needs_selector = FALSE;
       /* Check the first or only function to see whether or not it requires
