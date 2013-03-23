@@ -16179,21 +16179,31 @@ explicit "&" operator in the source and *operator_position gives its position.
                                                                     &conaddr) :
                      constant_lvalue_address(test_expr, &conaddr,
                                              /*address_escapes=*/TRUE)) {
-            did_not_fold = FALSE;
-            if (reference_case) {
-              if (is_pointer_type(conaddr.type)) {
-                /* For the reference case, change the address constant
-                   type to a reference. */
-                a_type_ptr new_type = type_pointed_to(conaddr.type);
-                if (rvalue_reference_case) {
-                  new_type = make_rvalue_reference_type(new_type);
-                } else {
-                  new_type = make_reference_type(new_type);
+            if (conaddr.kind == (a_constant_repr_kind)ck_template_param &&
+                conaddr.variant.template_param.kind ==
+                                (a_template_param_constant_kind)tpck_address &&
+                !is_implicit) {
+              /* The address of a member is better represented as a
+                 tpck_expression constant, so we can have a "&" in
+                 the IL tree so it can be rescanned. */
+              template_constant = TRUE;
+            } else {
+              did_not_fold = FALSE;
+              if (reference_case) {
+                if (is_pointer_type(conaddr.type)) {
+                  /* For the reference case, change the address constant
+                     type to a reference. */
+                  a_type_ptr new_type = type_pointed_to(conaddr.type);
+                  if (rvalue_reference_case) {
+                    new_type = make_rvalue_reference_type(new_type);
+                  } else {
+                    new_type = make_reference_type(new_type);
+                  }  /* if */
+                  conaddr.type = new_type;
                 }  /* if */
-                conaddr.type = new_type;
               }  /* if */
+              make_constant_operand(&conaddr, operand);
             }  /* if */
-            make_constant_operand(&conaddr, operand);
           }  /* if */
         }  /* if */
       }  /* if */
