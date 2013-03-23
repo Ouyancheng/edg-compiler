@@ -3491,6 +3491,9 @@ GN_PARENS_IF_GLOBAL_QUALIFIER is not set.
         assoc_template = tp->variant.typeref.extra_info->assoc_template;
       }  /* if */
       if ((options & GN_FRIEND_DECL) != 0 && !scp->is_class_member &&
+          !(assoc_template != NULL &&
+            assoc_template->kind ==
+                            (a_template_kind)templk_template_template_param) &&
           scp_parent_namespace_or_null(scp) !=
                                              innermost_enclosing_namespace()) {
           /* A friend declaration of a class that is not in the innermost
