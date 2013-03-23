@@ -16179,7 +16179,8 @@ explicit "&" operator in the source and *operator_position gives its position.
                                                                     &conaddr) :
                      constant_lvalue_address(test_expr, &conaddr,
                                              /*address_escapes=*/TRUE)) {
-            if (conaddr.kind == (a_constant_repr_kind)ck_template_param &&
+            if (cpp11_sfinae_enabled &&
+                conaddr.kind == (a_constant_repr_kind)ck_template_param &&
                 conaddr.variant.template_param.kind ==
                                 (a_template_param_constant_kind)tpck_address &&
                 !is_implicit) {
@@ -16250,17 +16251,23 @@ explicit "&" operator in the source and *operator_position gives its position.
             } else
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
             /* Do not insert code here. */
-            if (is_implicit) {
+            if (is_implicit && !template_constant) {
               /* An implicit "&" operator. */
               expr = add_address_of_to_node(expr);
             } else {
               /* An explicit "&" operator. */
-              a_type_ptr addr_type = type_of_address_of(expr);
+              a_type_ptr addr_type = (template_constant ?
+                                        type_of_unknown_templ_param_nontype :
+                                        type_of_address_of(expr));
               expr = make_operator_node((an_expr_operator_kind)eok_address_of,
                                         addr_type, expr);
+              if (is_implicit)  {
+                expr->variant.operation.compiler_generated = TRUE;
+              } else {
 #if EXTRA_SOURCE_POSITIONS_IN_IL
-              expr->operator_position = *operator_position;
+                expr->operator_position = *operator_position;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+              }  /* if */
             }  /* if */
           }  /* if */
         }  /* if */
