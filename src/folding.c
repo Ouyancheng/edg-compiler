@@ -9714,7 +9714,9 @@ dangling address constant.
            see if the call associated with the temporary is still on the call
            stack.  The full-expression and block lifetimes are identical,
            since the only thing in the function is the return expression.
-           FIXME: constexpr constructor ctor-inits. */
+           For constexpr constructors that's not quite right, but if the
+           dangling pointers escape from the constructor call they will
+           be caught, so it's good enough. */
         a_constexpr_call *cblock;
         for (cblock = tblock->active_calls;
              cblock != NULL;
