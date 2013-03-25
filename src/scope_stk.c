@@ -2324,6 +2324,8 @@ only exists in C++.
 #define is_scope_kind_that_affects_access_control(kind, options)       \
    ((kind) == (a_scope_kind)sck_class_struct_union ||                 \
     (kind) == (a_scope_kind)sck_class_reactivation ||                 \
+    ((kind) == (a_scope_kind)sck_instantiation_context &&             \
+     ((options) & PS_NEW_INSTANTIATION_CONTEXT) != 0) ||	      \
     ((kind) == (a_scope_kind)sck_template_instantiation &&	      \
      ((options) & PS_IS_RESCAN) == 0) ||			      \
     (kind) == (a_scope_kind)sck_function ||			      \
@@ -2799,6 +2801,11 @@ the scope being pushed.
     /* When an instantiation context is pushed, the previous scope is the
        file scope. */
     ssep->previous_scope = DEPTH_OF_FILE_SCOPE;
+    if ((options & PS_NEW_INSTANTIATION_CONTEXT) != 0) {
+      depth_innermost_instantiation_scope = NO_SCOPE_DEPTH;
+      depth_template_declaration_scope = NO_SCOPE_DEPTH;
+      curr_deferred_access_scope = NO_SCOPE_DEPTH;
+    }  /* if */
   } else if (depth_scope_stack != DEPTH_OF_FILE_SCOPE) {
     /* By default, the previous scope is the one that precedes this one
        on the scope stack.  This may be adjusted for instantiation scopes. */
@@ -4811,6 +4818,49 @@ push_instantiation_scope_for_rescan.
      freed. */
   if (tdip != NULL && tdip->parameters == NULL) free_template_decl_info(tdip);
 }  /* pop_instantiation_scope_for_rescan */
+
+
+void set_template_decl_info_for_class_definition(
+				a_template_decl_info_ptr	tdip,
+				a_type_ptr			class_type)
+/*
+Set the fields of tdip to values suitable to process the definition of
+class_type by get_definition_of_class.
+*/
+{
+  if (class_type != NULL) {
+    tdip->enclosing_scope = class_type->source_corresp.parent_scope;
+    tdip->name_linkage = class_type->source_corresp.name_linkage;
+  }  /* if */
+}  /* set_template_decl_info_for_class_definition */
+
+
+static void push_definition_context_for_class(a_type_ptr	class_type)
+/*
+This routine is used when we need to reactivate a class, but we are no
+longer in the context of the class (i.e., we are not in the class scope
+or a class reactivation scope).  This routine pushes a dummy instantiation
+context.  This routine is not used for template classes, which will have
+their own actual instantiation scopes pushed.
+*/
+{
+  a_symbol_ptr			class_sym;
+  a_template_decl_info_ptr	tdip;
+
+  tdip = alloc_template_decl_info();
+  set_template_decl_info_for_class_definition(tdip, class_type);
+  class_sym = symbol_for(class_type);
+  (void)push_template_instantiation_scope(
+                              tdip, class_type, (a_routine_ptr)NULL,
+                              class_sym, class_sym,
+                              (a_template_arg_ptr)NULL,
+                              /*push_lex_state=*/FALSE,
+                              PS_CLASS_DEFINITION_CONTEXT |
+                                PS_NEW_INSTANTIATION_CONTEXT);
+  /* Don't include this scope in any diagnostic output that may be produced. */
+  scope_stack[depth_innermost_instantiation_scope].
+                                            exclude_from_context_output = TRUE;
+}  /* push_definition_context_for_class */
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
 
@@ -8657,15 +8707,17 @@ This routine is called only in C++.
 static a_scope_depth reactivate_class_scope(
                                       a_type_ptr class_type,
                                       a_boolean  extend_namespace,
-                                      a_boolean  force_new_entry_for_namespace)
+                                      a_boolean  force_new_context,
+                                      a_boolean  suppress_namespace)
 /*
 Push one or more scopes that will reactivate the indicated class type.
 Return the scope depth prior to the reactivation of the first class
 reactivation scope that is pushed.  If the class is a member of a namespace,
 a namespace reactivation or extension scope is pushed (depending on the
-value of extend_namespace); however, if force_new_entry_for_namespace is FALSE
-and that namespace is the current scope, no additional namespace scopes will
-be pushed.
+value of extend_namespace); however, if force_new_context is FALSE the
+enclosing namespace will be not be pushed if it is the current scope.
+suppress_namespace is TRUE if the caller pushed the namespace context (if
+needed), so that should not be done here (even if force_new_context is TRUE).
 */
 {
   a_symbol_ptr			class_sym;
@@ -8680,22 +8732,21 @@ be pushed.
     /* Nested class.  Push the containing class(es) first. */
     orig_depth = reactivate_class_scope(sym_parent_class(class_sym),
                                         extend_namespace,
-                                        force_new_entry_for_namespace);
+                                        force_new_context,
+                                        suppress_namespace);
     /* Propagate the namespace pushed flag up to the innermost class
        reactivation scope. */
     namespace_pushed = scope_stack[depth_scope_stack].namespace_pushed;
-  } else if (sym_is_namespace_member(class_sym)) {
+  } else if (!suppress_namespace && sym_is_namespace_member(class_sym)) {
     /* The class is nested in a namespace -- push enclosing namespace(s). */
     a_namespace_ptr		parent_nsp;
     parent_nsp = sym_parent_namespace(class_sym);
     /* The namespace is either extended or reactivated depending on the
        value of extend_namespace. */
     if (extend_namespace) {
-      f_push_namespace_extension_scope(parent_nsp,
-                                       force_new_entry_for_namespace);
+      f_push_namespace_extension_scope(parent_nsp, force_new_context);
     } else {
-      f_push_namespace_reactivation_scope(parent_nsp,
-                                          force_new_entry_for_namespace);
+      f_push_namespace_reactivation_scope(parent_nsp, force_new_context);
     }  /* if */
     namespace_pushed = TRUE;
   }  /* if */
@@ -8824,7 +8875,7 @@ void push_class_and_template_reactivation_scope_full(
                                  a_type_ptr	class_type,
                                  a_boolean      reactivate_template_params,
 				 a_boolean	extend_namespace,
-                                 a_boolean      force_new_entry_for_namespace)
+                                 a_boolean      force_new_context)
 /*
 Push the scopes needed to reactivate the context of the specified class.
 If the class is a template class, or a class defined within a template class,
@@ -8833,9 +8884,11 @@ If reactivate_template_params is FALSE, the template instantiation scopes
 are not reactivated.  This is FALSE when called for normal class
 reactivations.  If the class is a member of a namespace, a namespace
 reactivation or extension scope is pushed (depending on the value of
-extend_namespace); however, if force_new_entry_for_namespace is FALSE and
-that namespace is the current scope, no additional namespace scopes will be
-pushed.
+extend_namespace); however, if force_new_context is FALSE the enclosing
+namespace will be not be pushed if it is the current scope. When
+force_new_context is TRUE, an instantiation context will be pushed even
+for non-template classes to guarantee that the enclosing context will
+not influence subsequent processing.
 */
 {
   a_boolean	is_template = FALSE;
@@ -8848,6 +8901,11 @@ pushed.
 
   saved_innermost_scope_that_affects_access =
                          depth_of_innermost_scope_that_affects_access_control;
+  if (class_type->source_corresp.is_local_to_function) {
+    /* Don't force namespace scopes (and instantiation contexts) to be
+       pushed for local classes. */
+    force_new_context = FALSE;
+  }  /* if */
   /* Get the symbol associated with the class. */
   class_sym = (a_symbol_ptr)(class_type->source_corresp.assoc_info);
   check_assertion_str2(class_sym != NULL,
@@ -8904,12 +8962,23 @@ pushed.
     ssep->instantiation_scope_pushed = TRUE;
     ssep->microsoft_specialization_scope_pushed = TRUE;
   } else {
-    /* A nontemplate class.  Just do a normal class reactivation.  The
-       original depth returned is used instead of the one saved above
-       because the original depth should not include any namespace
+    a_scope_depth	new_orig_depth = NO_SCOPE_DEPTH;
+    a_boolean		use_new_orig_depth = TRUE;
+    if (depth_innermost_instantiation_scope != NO_SCOPE_DEPTH &&
+        force_new_context) {
+      /* A normal class but in a context where some other instantiation is
+         underway.  Push the definition context for desired class. */
+      push_definition_context_for_class(class_type);
+      use_new_orig_depth = FALSE;
+    }  /* if */
+    /* Push the reactivation for the class.  Unless a definition context
+       was pushed, the original depth returned is used instead of the one
+       saved above because the original depth should not include any namespace
        reactivation scopes that may have been pushed. */
-    orig_depth = reactivate_class_scope(class_type, extend_namespace,
-                                        force_new_entry_for_namespace);
+    new_orig_depth = reactivate_class_scope(class_type, extend_namespace,
+                                 force_new_context,
+                                 /*suppress_namespace=*/!use_new_orig_depth);
+    if (use_new_orig_depth) orig_depth = new_orig_depth;
   }  /* if */
   {
     /* Record the scope depth prior to the reactivation so that the scopes
@@ -8942,7 +9011,7 @@ extend_namespace) unless that namespace is already the current scope.
 {
   push_class_and_template_reactivation_scope_full(
                       class_type, reactivate_template_params, extend_namespace,
-                      /*force_new_entry_for_namespace=*/FALSE);
+                      /*force_new_context=*/FALSE);
 }  /* push_class_and_template_reactivation_scope */
 
 void push_class_reactivation_scope(a_type_ptr class_type,
@@ -8960,7 +9029,7 @@ current scope.
   push_class_and_template_reactivation_scope_full
                            (class_type, /*reactivate_template_params=*/FALSE,
                             extend_namespace,
-                            /*force_new_entry_for_namespace=*/FALSE);
+                            /*force_new_context=*/FALSE);
 }  /* push_class_reactivation_scope */
 
 

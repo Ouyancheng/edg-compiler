@@ -2973,10 +2973,12 @@ type must be complete.
     push_lexical_state_stack();
     if (!(scope_is(&scope_stack_top(), sck_class_struct_union) &&
           same_entities(scope_stack_top().assoc_type, parent_type))) {
-      /* Reactivate the class scope and parse the initializer. */
-      push_class_and_template_reactivation_scope(parent_type,
-                                                 is_template_based,
-                                                 /*extend_namespace=*/TRUE);
+      /* Reactivate the class scope and parse the initializer.
+         force_new_context is used because initializers can be instantiated
+         on-demand when the enclosing context may not be correct. */
+      push_class_and_template_reactivation_scope_full(
+                     parent_type, is_template_based, /*extend_namespace=*/TRUE,
+                     /*force_new_context=*/TRUE);
       class_reactivated = TRUE;
     }  /* if */
     /* Class reactivation doesn't automatically switch the current memory

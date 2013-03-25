@@ -98,6 +98,12 @@ typedef int a_push_scope_options_set;
 #define PS_NEW_ACCESS_CONTEXT		0x40000
 			/* TRUE for a class reactivation scope if the scope
 			   should be considered a new access context. */
+#define PS_NEW_INSTANTIATION_CONTEXT	0x80000
+			/* TRUE if any enclosing template instantiation
+			   contexts should be ignored (i.e., as if the
+			   enclosing scope was the file scope).  This means
+			   that depth_innermost_instantiation_scope will be
+			   NO_SCOPE_DEPTH, for example. */
 #define SIZE_FUNCTION_SHAREABLE_CONSTANTS_TABLE 31
 			/* Size of the shareable constants hash table for
 			   a function. */
@@ -1868,6 +1874,10 @@ extern a_scope_ptr push_namespace_scope(a_scope_kind    kind,
 extern void make_class_definition_context_visible(void);
 
 extern void pop_namespace_scope(void);
+
+extern void set_template_decl_info_for_class_definition(
+				a_template_decl_info_ptr	tdip,
+				a_type_ptr			class_type);
 
 extern a_boolean push_template_instantiation_scope(
                             a_template_decl_info_ptr	decl_info,

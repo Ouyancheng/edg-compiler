@@ -19023,21 +19023,6 @@ the source form (e.g., digraphs are returned as ordinary tokens).
 
 #if GET_DEFINITION_OF_CLASS_NEEDED
 
-static void set_template_decl_info_for_class_definition(
-				a_template_decl_info_ptr	tdip,
-				a_type_ptr			class_type)
-/*
-Set the fields of tdip to values suitable to process the definition of
-class_type by get_definition_of_class.
-*/
-{
-  if (class_type != NULL) {
-    tdip->enclosing_scope = class_type->source_corresp.parent_scope;
-    tdip->name_linkage = class_type->source_corresp.name_linkage;
-  }  /* if */
-}  /* set_template_decl_info_for_class_definition */
-
-
 void get_definition_of_class(a_type_ptr	class_type)
 /*
 This routine is used to allow an incomplete class declaration to be created
