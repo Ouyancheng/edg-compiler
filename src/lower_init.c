@@ -1502,7 +1502,7 @@ in the case where an array is being initialized by a repeated constant
 initialization (when ipdp->array_element_sequence is TRUE).
 */
 {
-  an_expr_node_ptr      init_val_node, assign_node;
+  an_expr_node_ptr      init_val_node, assign_node, num_elem_node = NULL;
   a_statement_ptr       assign_stmt;
   an_expr_operator_kind op;
   a_boolean             array_assignment = FALSE, needs_cast = FALSE;
@@ -1574,11 +1574,14 @@ initialization (when ipdp->array_element_sequence is TRUE).
                         assoc_var_for_constant(con,
                                                is_const_qualified_type(
                                                                  con->type))));
+    if (ipdp->array_element_count == 0) {
+      num_elem_node = num_elem_node_if_array(ipdp);
+    }  /* if */
     /* Create a helper routine to do the initialization and call it. */
     insert_call_to_initialize_entity(type_from_init_pos_descr(ipdp),
                                      have_complete_object,
                                      add_address_of_to_node(entity_node),
-                                     num_elem_node_if_array(ipdp),
+                                     num_elem_node,
                                      ipdp->array_element_count,
                                      init_val_node,
                                      insert_location);
@@ -7273,7 +7276,8 @@ from entity_type itself.  Insert the code for the call at *insert_location.
   a_type_ptr element_type, orig_element_type = entity_type;
 
   check_assertion(!entity_node->is_lvalue &&
-                  is_pointer_type(entity_node->type));
+                  is_pointer_type(entity_node->type) &&
+                  (num_elem_node == NULL || array_element_count == 0));
   if (array_element_count == 0) array_element_count = 1;
   if (is_array_type(entity_type)) {
     orig_element_type = underlying_array_element_type(entity_type);
