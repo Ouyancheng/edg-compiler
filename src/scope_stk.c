@@ -4858,9 +4858,6 @@ their own actual instantiation scopes pushed.
                               /*push_lex_state=*/FALSE,
                               PS_CLASS_DEFINITION_CONTEXT |
                                 PS_NEW_INSTANTIATION_CONTEXT);
-  /* Don't include this scope in any diagnostic output that may be produced. */
-  scope_stack[depth_innermost_instantiation_scope].
-                                            exclude_from_context_output = TRUE;
 }  /* push_definition_context_for_class */
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
