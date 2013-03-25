@@ -1,5 +1,21 @@
 Version 4.6
 
+3/25/13  [EDGcpfe/13657]
+Internal error in definition of default special member function
+
+An internal error could occur in the generation of an implicitly defined
+special member function when the generation was caused by a reference
+in default argument of another member of the class.  Now fixed.
+
+  struct X { X(); };
+  struct A {
+    X x;
+    A() = default;
+    template <class T> A(const A&&, A&& = A(), char* = 0) {}
+  };
+  A a;
+
+
 3/23/13  [EDGcpfe/13776]
 C++/CLI mode: Consider dependent handle-to-function value as callable
 
