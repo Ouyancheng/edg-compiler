@@ -1,5 +1,27 @@
 Version 4.6
 
+3/25/13  [EDGcpfe/13799]
+Microsoft compatibility: regression on template friend function declarations
+
+Version 4.5 introduced a change that caused certain nonreal classes
+used as base classes to be have actual instantiations done on them
+in Microsoft mode.  This could result in spurious "has already been
+defined" errors in Microsoft mode when a class instantiated in that
+way contained a friend function template declaration.  Now fixed.
+
+  template<class T, int I> struct A {
+    template<class T> friend void operator<<(int os, A& s) {}
+    typedef int type;
+  };
+  template<class T, int I> struct B: public A<T, I> {
+    typedef A<T, I> A_type;
+    typedef typename A_type::type type;
+  };
+  int main() {
+    B<int, 1> b;
+  }
+
+
 3/25/13  [EDGcpfe/13657]
 Internal error in definition of default special member function
 

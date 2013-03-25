@@ -2349,7 +2349,8 @@ the same as depth_scope_stack).
       depth--;
       kind = scope_stack[depth].kind;
       if (kind == (a_scope_kind)sck_template_instantiation) {
-        if (scope_stack[depth].in_prototype_instantiation) {
+        if (scope_stack[depth].in_prototype_instantiation ||
+            scope_stack[depth].in_nonreal_instantiation) {
           /* During prototype instantiation, use the instantiation scope
              as the effective declaration scope. */
         } else {
@@ -8924,6 +8925,7 @@ definition of a member function of a class template.
   set_linkage_environment(&idlb, orig_decl_level);
   in_prototype_instantiation =
           scope_stack[idlb.effective_decl_level].in_prototype_instantiation ||
+          scope_stack[idlb.effective_decl_level].in_nonreal_instantiation ||
           scope_stack[idlb.effective_decl_level].in_generic_definition;
   if (idlb.is_friend_decl && !friend_function_injection_enabled &&
       (!gpp_mode || locator->is_operator_name)) {
