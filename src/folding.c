@@ -10536,6 +10536,15 @@ otherwise, return FALSE.
           field_type = type_pointed_to(field_type);
           reference_case = TRUE;
         }  /* if */
+        if (is_array_type(field_type) && is_array_type(con_type) &&
+            !field_type->variant.array.is_variable_size_array &&
+            !field_type->variant.array.is_template_dependent_size_array &&
+            field_type->variant.array.variant.number_of_elements == 0) {
+          /* A member may have an unknown bound, completed by the
+             initializer.  In this case, the element types must match. */
+          field_type = field_type->variant.array.element_type;
+          con_type = con_type->variant.array.element_type;
+        }  /* if */
         check_assertion(identical_types_ignoring_qualifiers(con_type,
                                                             field_type));
         if (reference_case &&
