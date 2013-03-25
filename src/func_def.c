@@ -1007,7 +1007,7 @@ of lambda expressions.
         push_class_and_template_reactivation_scope_full(
                                class_type, reactivate_template_params,
                                /*extend_namespace=*/TRUE,
-                               /*force_new_entry_for_namespace=*/FALSE);
+                               /*force_new_context=*/TRUE);
         use_microsoft_specialization_scope =
                                      saved_use_microsoft_specialization_scope;
       }  /* if */
@@ -2810,10 +2810,11 @@ empty statement block.
     depth_of_innermost_scope_that_affects_access_control = NO_SCOPE_DEPTH;
     /* Push a class symbol reactivation scope, to make class member names
        visible for processing the function definition. */
-    push_class_and_template_reactivation_scope(
+    push_class_and_template_reactivation_scope_full(
                                            class_type,
                                            /*reactivate_template_params=*/TRUE,
-                                           /*extend_namespace=*/TRUE);
+                                           /*extend_namespace=*/TRUE,
+                                           /*force_new_context=*/TRUE);
     /* Push the scope for the new function itself. */
     scope = push_scope((a_scope_kind)sck_function, NO_SCOPE_NUMBER,
                        (a_type_ptr)NULL, rout_ptr);
