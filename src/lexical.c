@@ -14643,7 +14643,8 @@ a routine to lookup the appropriate instance (or generate one if needed).
        is done if GID_IS_BASE_CLASS is set and if this is not the qualifier
        of a qualified name. */
     if (microsoft_mode && (options & GID_IS_BASE_CLASS) != 0) {
-      instantiate_nonreal = next_token() != tok_colon_colon;
+      instantiate_nonreal = !no_ms_nonreal_base_classes &&
+                            next_token() != tok_colon_colon;
     }  /* if */
     new_sym = find_template_class(template_sym, &arg_list, prototype_allowed,
                                   current_instantiation_sym,
