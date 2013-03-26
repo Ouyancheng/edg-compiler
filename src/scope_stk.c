@@ -741,8 +741,14 @@ discriminator field in the symbol supplement.
   if (local_scope) {
     a_symbol_list_entry_ptr  *p_sep, sep;
     p_sep = get_name_collision_list(sym, scope_depth);
-    /* The last symbol put on the list should be sym. */
-    check_assertion(p_sep != NULL && (*p_sep)->symbol == sym);
+    /* The given symbol must be on the list, but new (named) symbols may
+       already have been added. */
+    check_assertion(p_sep != NULL);
+    while ((*p_sep)->symbol != sym) {
+      check_assertion(!is_unnamed_tag_symbol((*p_sep)->symbol));
+      p_sep = &(*p_sep)->next;
+      check_assertion(p_sep != NULL);
+    }  /* while */
     /* Remove and dispose of the list entry. */
     sep = *p_sep;
     *p_sep = sep->next;
