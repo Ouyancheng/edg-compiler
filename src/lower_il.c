@@ -2841,10 +2841,9 @@ not to contain any top level base class casts.
                                            is_const_qualified_type(expr->type),
                                            &temp)) {
       /* ck_aggregate constants can appear in cases where a constexpr
-         constructor or function returns a class value.  Return the
-         temporary that has been created for this constant. */
-      check_assertion(expr->variant.constant->is_result_of_constexpr_call ||
-                      expr->variant.constant->is_compound_literal);
+         constructor or function returns a class value, as well as other
+         cases.  Return the temporary that has been created for this
+         constant.  */
       check_assertion(is_or_was_ptr_to_member_function_type(
                                                expr->variant.constant->type) ||
                       !expr->variant.constant->implicit_cast);
