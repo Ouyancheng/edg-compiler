@@ -14591,14 +14591,23 @@ specific information about the member declaration, respectively.
     /* Unions are not allowed to have static data members in traditional C++,
        but C++11 permits it. */
     pos_error(ec_static_data_member_not_allowed, start_pos);
-  } else if (!any_cfront_mode() && !microsoft_mode && !gpp_mode &&
+  } else if (!((any_cfront_mode() || microsoft_mode || gpp_mode) &&
+               (!unrestricted_unions_enabled ||
+                class_type->kind != (a_type_kind)tk_union)) &&
              is_or_is_nested_within_unnamed_class(class_type)) {
-    /* Except for cfront, Microsoft, and GNU compatibility, static data members
-       may not be declared in an unnamed class or a class contained within an
-       unnamed class (9.4.2 [class.static.data]). However, permit this with a
-       warning if anachronisms are enabled. */
-    pos_diagnostic(anachronism_error_severity,
-                   ec_static_data_member_not_allowed, start_pos);
+    /* Static data members are not permitted in unnamed classes or in classes
+       contained within an unnamed class.  For cfront, Microsoft, and GNU
+       compatibility, we do accept this case silently, unless we are in an
+       unnamed union and unrestricted unions are enabled (otherwise, this
+       complicates error recovery with malformed anonymous unions; GCC has
+       the same restriction).  We also permit this with a warning when
+       anachronisms are enabled. */
+    an_error_severity  sev = anachronism_error_severity;
+    if (class_type->kind == (a_type_kind)tk_union &&
+        unrestricted_unions_enabled) {
+      sev = es_error;
+    }  /* if */
+    pos_diagnostic(sev, ec_static_data_member_not_allowed, start_pos);
   }  /* if */
   if ((decl_state->dso_flags & DSO_CONSTEXPR) != 0 &&
       !is_const_qualified_type(member_type)) {
