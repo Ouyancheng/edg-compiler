@@ -506,9 +506,6 @@ static void mangled_member_variable_name(a_variable_ptr           variable,
 static char *mangled_expr_operator_name(an_expr_node_ptr expr,
                                         a_boolean        *bad_operator,
                                         a_boolean        *is_cast);
-static void get_expr_or_constant_list_from_dip(a_dynamic_init_ptr dip,
-                                               an_expr_node_ptr   *expr_list,
-                                               a_constant_ptr     *con_list);
 
 /*
 Macro for the typical invocation of mangled_encoding_for_expression_full
@@ -4331,20 +4328,18 @@ call that has no arguments).
       dip = skip_compiler_generated_initialization(dip);
       if (is_generated_dynamic_init(dip)) {
         /* Remove implicit operations. */
-        an_expr_node_ptr  expr_list;
-        a_constant_ptr    con_list;
-        get_expr_or_constant_list_from_dip(dip, &expr_list, &con_list);
-        if (con_list != NULL) {
+        if (dip->kind == (a_dynamic_init_kind)dik_constant ||
+            dip->kind == (a_dynamic_init_kind)dik_nonconstant_aggregate) {
           /* Allocate an expression node to hold the constant that needs
              mangling (no substitutions are used for constants, so this should
              be okay). */
           expr = alloc_expr_node((an_expr_node_kind)enk_constant);
-          expr->variant.constant = con_list;
-          expr->type = con_list->type;
+          expr->variant.constant = dip->variant.constant;
+          expr->type = expr->variant.constant->type;
         } else {
           /* Note that expr may be set to NULL here in some cases (e.g.,
              dik_constructor where the constructor has no arguments). */
-          expr = expr_list;
+          expr = arg_list_from_dyn_init(dip);
         }  /* if */
       }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED && CHECKING
