@@ -171,11 +171,15 @@ enumeration type.  Ordinarily, that underlying type corresponds to the type
 the enumeration type might be promoted to, but GCC prefers unsigned types as
 the underlying type if no enumerator constant has a negative value, even when
 the type promoted to is signed.  The front end now reflects this behavior in
-the result of __underlying_type in GNU C++ mode.  For example:
+the result of __underlying_type in GNU C++ mode.  However, the integer kind
+recorded for the enumeration type  (variant field "int_kind" in a_type) still
+corresponds to the integer type used for promotion purposes.  For example:
 
   enum E { e, f };
   __underlying_type(E) x;  // x now has an unsigned type in GNU C++ mode
                            // (in other C++ modes it is still a signed type).
+                           // The "integer kind" of E remains signed in all
+                           // modes.
 
 
 3/20/13  [EDGcpfe/13775]
