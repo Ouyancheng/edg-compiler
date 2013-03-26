@@ -4476,7 +4476,9 @@ IL entry for that field.
     } else {
       field->has_direct_braced_initializer = is->direct_init;
       field->initializer = is->init_dip;
-      field->has_nonconstant_initializer = is->constant_expr_ruled_out;
+      field->has_nonconstant_initializer =
+                    is->init_dip->kind != (a_dynamic_init_kind)dik_constant ||
+                    is->constant_expr_ruled_out;
     }  /* if */
   } else {
     expect_error();
