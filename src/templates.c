@@ -11378,7 +11378,7 @@ instantiation of a class template or member of class template.
     instantiate = FALSE;
   } else if (prototype_fssp->pending_instantiations ==
                                                   max_pending_instantiations) {
-    /* There are two many instantiations of fields based on the same
+    /* There are too many instantiations of fields based on the same
        template. */
     sym_error(ec_runaway_recursive_instantiation, field_sym);
     instantiate = FALSE;

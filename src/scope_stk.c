@@ -7558,7 +7558,7 @@ be lowered as soon as a module id becomes available (and TRUE is returned).
              ctor_needs_unprocessed_field_initializer(routine)) {
     /* Sometimes a constructor instantiation is triggered while scanning a
        field initializer but the constructor might depend on that field
-       initializer (or another field initializer that hasn't been parsed yet.
+       initializer (or another field initializer that hasn't been parsed yet).
        Lowering cannot proceed until all needed field initializers have been
        parsed. */
     delay_lowering = TRUE;
