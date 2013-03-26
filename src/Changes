@@ -1,5 +1,14 @@
 Version 4.6
 
+3/26/13  [EDGcpfe/13805]
+C++11 "final" class modifier not recognized in some configurations
+
+Version 4.5 added support for the C++11 "final" class modifiers (see the entry
+of 3/12/12 for EDGcpfe/12619 and EDGcpfe/12741).  However, an oversight caused
+that support to be disabled when the value of the configuration macro
+MICROSOFT_EXTENSIONS_ALLOWED was FALSE.  This is now fixed.
+
+
 3/26/13  [EDGcpfe/13786]
 Abort on variadic argument list split across two template parameters
 

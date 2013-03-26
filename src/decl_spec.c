@@ -1079,7 +1079,6 @@ caution when modifying this routine.
       (void)next_two_tokens(tok_removed_template_body, &token_after_next);
       if (token_after_next == tok_semicolon) next_tok = tok_semicolon;
     }  /* if */
-#if MICROSOFT_EXTENSIONS_ALLOWED
     if (class_modifiers_allowed() && next_tok == tok_identifier &&
         tag_kind != (a_symbol_kind)sk_enum_tag && !is_ref_within_new_expr) {
       /* The next token is an identifier: It could be a declarator-id, or it
@@ -1088,7 +1087,6 @@ caution when modifying this routine.
       check_for_class_modifiers(
                               &next_tok, tok_lbrace, /*tag_name_first=*/TRUE);
     }  /* if */
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     is_tag_definition = tag_definition_next(next_tok, tag_kind,
                                             is_ref_within_new_expr,
                                             no_definition_allowed);
