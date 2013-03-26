@@ -15513,14 +15513,14 @@ expression, and return the result in *result (or an error indication in
     } else if (is_incomplete_type(new_type)) {
       /* A case like "new int[]" -- an incomplete array type. */
       expr_pos_error(incomplete_type_err_code(new_type), &type_position);
-      err = TRUE;
+      type_err = err = TRUE;
     }  /* if */
   }  /* if */
   /* Check that the type to be allocated is valid.  It must be an object
      type. */
-  if (err) {
-    /* Error already issued (operator not valid in this kind of expression
-       or invalid array type). */
+  if (type_err) {
+    /* A type error has already been issued (invalid array type). */
+    expect_error();
   } else if (!is_complete_object_type(base_new_type)) {
     /* Invalid type.  Note that base_new_type is tested instead of
        new_type, so the first-level element type of arrays is tested. */
