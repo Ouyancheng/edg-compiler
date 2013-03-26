@@ -16012,7 +16012,9 @@ expression, and return the result in *result (or an error indication in
       /* A non-POD class (or array thereof), with no new-initializer. */
       a_boolean is_generated_ctor = FALSE, do_const_test = FALSE;
       /* Look for a default constructor. */
-      if (ctor_sym != NULL) {
+      if (template_case) {
+        /* Don't look for a default constructor in a dependent type. */
+      } else if (ctor_sym != NULL) {
         a_boolean     def_ctor_err;
         a_routine_ptr ctor_routine;
         /* The class has one or more constructors.  Look for a default
