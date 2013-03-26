@@ -1,5 +1,23 @@
 Version 4.6
 
+3/26/13  [EDGcpfe/13786]
+Abort on variadic argument list split across two template parameters
+
+An abort could occur (in update_template_param_symbols) when an explicitly
+specified variadic function template argument list was used in the function
+type of the function template as the argument list for a class template in
+which part of the argument list was associated with a non-pack and the
+latter part was associated with a parameter pack.  Now fixed.
+
+  template <typename T, typename... Args> struct A {
+    typedef T type;
+  };
+  template <typename... T> typename A<T...>::type f();
+  int main() {
+    f<int, int>();
+  }
+
+
 3/25/13  [EDGcpfe/13799]
 Microsoft compatibility: regression on template friend function declarations
 

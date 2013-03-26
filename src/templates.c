@@ -9591,6 +9591,13 @@ associated parameter.
        ; tap = tap->next) {
     a_pack_expansion_stack_entry_ptr	pesep = NULL;
     a_boolean				any_more = TRUE;
+    /* Exit the loop if we hit a start of pack expansion with no following
+       arguments and we are already processing a pack. */
+    if ((options & CTWS_PRESERVE_DEDUCED_PACKS) == 0 && added_placeholder &&
+        tap != NULL && is_start_of_pack_expansion_templ_arg(tap) &&
+        tpp != NULL && tpp->is_pack && tap->next == NULL) {
+      break;
+    }  /* if */
     if (tap != NULL && tap->pack_expansion_descr != NULL) {
       a_boolean	err;
       any_more = begin_rescan_pack_expansion_context(tap->pack_expansion_descr,
