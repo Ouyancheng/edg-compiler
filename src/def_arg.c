@@ -181,6 +181,11 @@ when either is_function_template or is_template_param are FALSE.
   if (is_template_param) {
     copy_tokens_from_cache(curr_lexical_state_cache(), first_tsn, last_tsn,
                            /*include_last_token=*/FALSE, token_cache);
+    /* Normally tokens are cached directly into a reusable cache or are
+       moved from one reusable cache to another.  In this case, however,
+       the tokens are being copied from one reusable cache to another.
+       Update the token handles to refer to the copy of the cached token. */
+    adjust_token_handles(token_cache);
   }  /* if */
   ssep = &scope_stack[depth_scope_stack];
   if (!is_template_param &&

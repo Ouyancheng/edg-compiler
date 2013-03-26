@@ -1,5 +1,25 @@
 Version 4.6
 
+3/26/13  [EDGcpfe/13435]
+Regression on pack expansion in template default argument
+
+A change in version 4.5 could result in spurious errors evaluating a
+pack expansion in a default template argument.  Now fixed.
+
+  template <int i> struct x {};
+  template <class T> struct A;
+  template <class T, class... Args> struct A<T(Args...)> {
+    template <class = x< sizeof...(Args)> > A();
+  };
+  template <class T, class... Args> struct B {
+    typedef A<T(Args...)> type;
+  };
+  template <class T, class... Args> typename B<T, Args...>::type f(T, Args...);
+  int main() {
+    f(0, 0, 0);
+  }
+
+
 3/26/13  [EDGcpfe/13806]
 Abort on local anonymous union introducing a new type name
 

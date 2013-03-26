@@ -1937,6 +1937,9 @@ extern void cache_curr_token(a_token_cache *cache);
 /* Save a token stream in a token cache. */
 extern void cache_token_stream(a_token_cache      *cache,
                                a_token_set_array  stop_tokens);
+
+extern void adjust_token_handles(a_token_cache *cache);
+
 extern
 void cache_token_stream_coalesce_identifiers(a_token_cache_ptr  cache,
                                              a_token_set_array  stop_tokens);

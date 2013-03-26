@@ -1314,6 +1314,20 @@ memory.
 }  /* make_copy_of_pp_token */
 
 
+void adjust_token_handles(a_token_cache *cache)
+/*
+Update the token cache specified by cache so that the cached token
+handles point to the tokens in the cache.
+*/
+{
+  a_cached_token_ptr	ctp;
+
+  for (ctp = cache->first_token; ctp != NULL; ctp = ctp->next) {
+    ctp->token_handle = ctp;
+  }  /* for */
+}  /* adjust_token_handles */
+
+
 void cache_curr_token(a_token_cache *cache)
 /*
 Save the current token on the end of the list of tokens saved in *cache.
