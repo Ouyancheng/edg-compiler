@@ -17559,6 +17559,13 @@ See also coalesce_and_lookup_generalized_identifier.
         if ((options & GID_IS_FRIEND_DECL) != 0) {
           idl_options |= IDL_FRIEND_LOOKUP;
         }  /* if */
+        if (qualifier_type != NULL &&
+            ((idl_options & IDL_IS_DECLARATOR) != 0)) {
+          /* If this is a template parameter that represents a nested class of
+             a class template, use the original nested type in its place. */
+          qualifier_type =
+                       orig_nested_type_if_nonreal_nested_type(qualifier_type);
+        }  /* if */
         /* No errors were diagnosed. */
         if (locator_for_curr_id.is_file_scope_qualified_name) {
           /* Look up the id in the file scope. */
