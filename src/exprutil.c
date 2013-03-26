@@ -17367,6 +17367,29 @@ constant if k is a constant.
 }  /* current_mode_allows_dot_static_folding */
 
 
+a_boolean are_reference_related(a_type_ptr type_1,
+                                a_type_ptr type_2)
+/*
+Return TRUE if type_1 and type_2 are "reference-related" according to the
+definition in [dcl.init.ref] of the C++ standard.  That means the unqualified
+versions of type_1 and type_2 are the same type, or the unqualified version
+of type_1 is a base class of the unqualified version of type_2.
+*/
+{
+  a_boolean ref_related = FALSE;
+
+  type_1 = skip_typerefs(type_1);
+  type_2 = skip_typerefs(type_2);
+  if (identical_types(type_1, type_2) ||
+      (is_immediate_class_type(type_1) &&
+       is_immediate_class_type(type_2) &&
+       find_base_class_of(type_2, type_1) != NULL)) {
+    ref_related = TRUE;
+  }  /* if */
+  return ref_related;
+}  /* are_reference_related */
+
+
 a_constant_ptr fold_constant_base_class_cast(an_expr_node_ptr expr,
                                              a_constant_ptr   alloc_con)
 /*
@@ -17810,7 +17833,8 @@ lvalue_adjust:
           /* If the operand of an lvalue adjust can be converted to a
              constant, the result is the type-adjusted constant.
              Otherwise, it's rvalueable so we go to the general case. */
-          if (allow_folding != NULL && op1->is_lvalue) {
+          if (allow_folding != NULL && op1->is_lvalue &&
+              are_reference_related(node->type, op1->type)) {
             con_expr_value = constant_value_addressed_by_node(op1, err_pos);
             if (con_expr_value != NULL) {
               a_boolean did_not_fold;

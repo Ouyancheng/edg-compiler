@@ -1489,6 +1489,9 @@ extern a_constant_ptr value_of_constant_var_lvalue_operand(
 extern
 a_boolean current_mode_allows_dot_static_folding(an_expr_node_ptr lhs_expr);
 
+extern a_boolean are_reference_related(a_type_ptr type_1,
+                                       a_type_ptr type_2);
+
 extern
 a_constant_ptr fold_constant_base_class_cast(an_expr_node_ptr expr,
                                              a_constant_ptr   alloc_con);

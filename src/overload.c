@@ -2434,29 +2434,6 @@ constructor.
   return copy_can_be_done;
 }  /* arg_copy_can_be_done_via_constructor */
 
-
-static a_boolean are_reference_related(a_type_ptr type_1,
-                                       a_type_ptr type_2)
-/*
-Return TRUE if type_1 and type_2 are "reference-related" according to the
-definition in [dcl.init.ref] of the C++ standard.  That means the unqualified
-versions of type_1 and type_2 are the same type, or the unqualified version
-of type_1 is a base class of the unqualified version of type_2.
-*/
-{
-  a_boolean ref_related = FALSE;
-
-  type_1 = skip_typerefs(type_1);
-  type_2 = skip_typerefs(type_2);
-  if (identical_types(type_1, type_2) ||
-      (is_immediate_class_type(type_1) &&
-       is_immediate_class_type(type_2) &&
-       find_base_class_of(type_2, type_1) != NULL)) {
-    ref_related = TRUE;
-  }  /* if */
-  return ref_related;
-}  /* are_reference_related */
-
 #if DEBUG
 
 static void db_display_overload_level(void)
