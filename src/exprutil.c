@@ -14301,8 +14301,7 @@ entry is returned).
       folded = TRUE;
       if (dest_type != NULL) folded_con.type = dest_type;
       dip = alloc_expr_dynamic_init((a_dynamic_init_kind)dik_constant);
-      dip->variant.constant = alloc_unshared_constant(&folded_con);
-      dip->is_partially_initialized = folded_con.is_partially_initialized;
+      set_dynamic_init_constant(dip, alloc_unshared_constant(&folded_con));
     }  /* if */
   }  /* if */
   if (constexpr_enabled && ctor_routine != NULL && !folded) {
@@ -14314,7 +14313,7 @@ entry is returned).
                                       (an_operand *)NULL,
                                       pos)) {
       set_dynamic_init_kind(dip, (a_dynamic_init_kind)dik_constant);
-      dip->variant.constant = alloc_error_constant();
+      set_dynamic_init_constant(dip, alloc_error_constant());
     }  /* if */
   }  /* if */
   return dip;

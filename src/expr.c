@@ -27910,7 +27910,7 @@ fields of the closure object.  Return a pointer to the dynamic init entry.
   } else {
     aggr_dip = alloc_dynamic_init(
                                (a_dynamic_init_kind)dik_nonconstant_aggregate);
-    aggr_dip->variant.constant = aggr_con;
+    set_dynamic_init_constant(aggr_dip, aggr_con);
   }  /* if */
   /* Add a destruction for the closure object if appropriate (i.e., if any
      of the captured variable fields require destruction). */

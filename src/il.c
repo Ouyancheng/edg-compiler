@@ -12193,6 +12193,22 @@ options for the copy.
 }  /* copy_ctor_init */
 
 
+void set_dynamic_init_constant(a_dynamic_init_ptr dip,
+                               a_constant         *constant)
+/*
+Set the constant variant of the indicated dynamic init entry to point to
+"constant".  The dynamic init kind is already set.  This exists so that
+the partially-initialized flag can be copied into the dynamic init.
+*/
+{
+  check_assertion(dip != NULL &&
+                  (dip->kind==(a_dynamic_init_kind)dik_constant ||
+                   dip->kind==(a_dynamic_init_kind)dik_nonconstant_aggregate));
+  dip->variant.constant = constant;
+  dip->is_partially_initialized = constant->is_partially_initialized;
+}  /* set_dynamic_init_constant */
+
+
 void add_to_dynamic_inits_list(a_dynamic_init_ptr dip)
 /*
 Add the given dynamic initialization entry to the file-scope dynamic_inits

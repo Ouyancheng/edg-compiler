@@ -17602,7 +17602,7 @@ is_explicit_cast is TRUE if this node represents an explicit cast.
   } else {
     a_constant con;
     extract_constant_from_operand(operand, &con);
-    dip->variant.constant = alloc_unshared_constant(&con);
+    set_dynamic_init_constant(dip, alloc_unshared_constant(&con));
   }  /* if */
   /* Make an operand for the overall expression. */
   make_lvalue_or_rvalue_expression_operand(temp_init_node, operand);
@@ -18501,8 +18501,9 @@ happen only in C++ mode.
                                           class_type,
                                           &source_operand->position);
     if (kind == (a_dynamic_init_kind)dik_constant) {
-      dip->variant.constant =
-                   alloc_shareable_constant(&source_operand->variant.constant);
+      set_dynamic_init_constant(
+                   dip,
+                   alloc_unshared_constant(&source_operand->variant.constant));
     } else {
       dip->variant.expression = make_node_from_operand(source_operand);
     }  /* if */
@@ -18534,8 +18535,9 @@ happen only in C++ mode.
                                            fill_in_dtor,
                                            class_type,
                                            &source_operand->position);
-        dip->variant.constant =
-                      alloc_unshared_constant(arg_expr_list->variant.constant);
+        set_dynamic_init_constant(
+                     dip,
+                     alloc_unshared_constant(arg_expr_list->variant.constant));
       } else {
         /* Use a dik_expression entry to do a bitwise copy. */
         dip = alloc_dynamic_init_possibly_with_dtor(
@@ -20865,7 +20867,7 @@ errors should be suppressed (i.e., SFINAE mode).
            initialization. */
         if (will_need_partial_aggregate_destructor) {
           dip = alloc_expr_dynamic_init((a_dynamic_init_kind)dik_constant);
-          dip->variant.constant = con;
+          set_dynamic_init_constant(dip, con);
           con = NULL;
         }  /* if */
       }  /* if */
@@ -20906,7 +20908,7 @@ errors should be suppressed (i.e., SFINAE mode).
                         any_nonconstant ?
                                (a_dynamic_init_kind)dik_nonconstant_aggregate :
                                (a_dynamic_init_kind)dik_constant);
-    dip->variant.constant = aggr_constant;
+    set_dynamic_init_constant(dip, aggr_constant);
     dip->is_braced_initializer = TRUE;
     dip->destructor = dtor;
     dip->is_partially_initialized = is_partially_initialized;
@@ -21988,9 +21990,10 @@ will be an lvalue instead of the usual rvalue.
             curr_expr_kind_is_one_in_which_const_exprs_are_recorded()) {
           /* Save the dynamic init as a backing expression for the
              constant.  We have to make a second copy of the constant. */
-          dip->variant.constant = copy_constant_full(constant,
-                                                     (a_constant *)NULL,
-                                                     CE_NO_OPTIONS);
+          set_dynamic_init_constant(dip,
+                                    copy_constant_full(constant,
+                                                       (a_constant *)NULL,
+                                                       CE_NO_OPTIONS));
           add_temp_init_backing_expression(constant, dip);
           dip_to_mark = dip;
         }  /* if */
@@ -22044,7 +22047,7 @@ will be an lvalue instead of the usual rvalue.
       } else {
         /* Create a dynamic init. */
         dip = alloc_expr_dynamic_init((a_dynamic_init_kind)dik_constant);
-        dip->variant.constant = constant;
+        set_dynamic_init_constant(dip, constant);
         dip->is_partially_initialized = partial_initializer;
       }  /* if */
       constant = NULL;

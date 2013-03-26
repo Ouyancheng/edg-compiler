@@ -1433,6 +1433,9 @@ extern
 a_constructor_init_ptr copy_ctor_init(a_constructor_init_ptr   ctor_init,
                                       an_expr_copy_options_set options);
 
+extern void set_dynamic_init_constant(a_dynamic_init_ptr dip,
+                                      a_constant         *constant);
+
 extern void add_to_dynamic_inits_list(a_dynamic_init_ptr dip);
 
 extern a_local_static_variable_init_ptr make_local_static_variable_init(
