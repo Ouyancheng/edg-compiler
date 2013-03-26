@@ -1227,8 +1227,11 @@ is->no_diagnostics is TRUE.
         des_con->variant.designator.field = fp;
         add_constant_to_aggregate(des_con, result);
       }  /* if */
-      if (fold_constexpr_dynamic_init(dip, fp->type, diag_pos,
-                                      &folded_value)) {
+      if (dip == NULL) {
+        /* This can happen in error cases: Don't attempt operations on *dip. */
+        check_assertion(is->init_error);
+      } else if (fold_constexpr_dynamic_init(dip, fp->type, diag_pos,
+                                             &folded_value)) {
         /* Append a copy of the constant. */
         if (!is->check_validity_only) {
           elem_con = alloc_unshared_constant(&folded_value);
