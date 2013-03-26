@@ -5120,7 +5120,7 @@ are expected to be NULL in that case.
                            &call_position, result, &function_call_node);
     result_operand_is_call = TRUE;
     if (!is_error_operand(result) && function_call_node != NULL) {
-      if (constexpr_enabled && routine != NULL && routine->is_constexpr &&
+      if (constexpr_enabled && (routine == NULL || routine->is_constexpr) &&
           expr_fold_constexpr_call(function_call_node, &call_position,
                                    result)) {
         /* The call is to a constexpr function and it has been folded to
