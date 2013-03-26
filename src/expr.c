@@ -17962,24 +17962,24 @@ called only in C++ mode.
             restore_operand_details(operand, &orig_operand);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
           } else {
-            if (determined_conversion != NULL) {
-              determined_conversion->is_explicit_cast = TRUE;
-            }  /* if */
             prep_reference_initializer_operand(
                                        operand,
                                        type_cast_to,
                                        determined_conversion,
                                        /*leave_as_object=*/TRUE,
-                                       conv_context,
+                                       conv_context_temp,
                                        ec_bad_cast /* arbitrary */);
             /* Class rvalues get placed in a temporary, which is then treated
                as an lvalue, so we don't expect any rvalues here. */
             check_assertion(is_an_lvalue(operand) ||
                             is_a_function_designator(operand) ||
                             is_error_operand(operand));
-            if (cast_to_rvalue_reference) {
-              conv_rvalue_reference_result_to_rvalue(operand);
-            }  /* if */
+            cast_operand_for_reference_cast(operand,
+                                            type_cast_to,
+                                            type_position,
+                                            /*check_cast_access=*/TRUE,
+                                            /*is_implicit_cast=*/FALSE,
+                                            /*reinterpret_semantics=*/FALSE);
           }  /* if */
           *processed = TRUE;
         }  /* if */

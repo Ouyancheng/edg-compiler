@@ -8956,6 +8956,87 @@ obscure Microsoft bug).
 }  /* gen_initializer_expr */
 
 
+static an_expr_node_ptr skip_implicit_steps(an_expr_node_ptr node)
+/*
+Scan down through nodes that will not appear in the generated code to
+get to the expression that will appear, and return that.
+*/
+{
+  a_boolean        node_changed;
+  an_expr_node_ptr expr_from_const;
+
+  do {
+    node = skip_parens(node);
+    node_changed = FALSE;
+    if (is_operation_node(node) &&
+        (node_operator_is(node, eok_reference_to) ||
+         node_operator_is(node, eok_ref_indirect) ||
+         (node->variant.operation.compiler_generated &&
+          (node_operator_is(node, eok_address_of) ||
+           node_operator_is(node, eok_indirect) ||
+           node_operator_is(node, eok_class_rvalue_adjust) ||
+           node_operator_is(node, eok_unbox_lvalue) ||
+           (is_cast_operation_node(node) &&
+            !node->variant.operation.keep_cast_for_cp_gen_be &&
+            !is_const_string_literal_cast(node)))))) {
+      node = node->variant.operation.operands;
+      node_changed = TRUE;
+    } else if ((expr_from_const = assoc_expr_if_constant(node)) != node) {
+      node = expr_from_const;
+      node_changed = TRUE;
+    } else if (node->kind == (an_expr_node_kind)enk_temp_init) {
+      a_dynamic_init_ptr dip = node->variant.init.dynamic_init;
+      while (dip->is_creation_of_initializer_list_object) {
+        dip = effective_dynamic_init_for_initializer_list_object(
+                                                              dip,
+                                                              (a_type **)NULL);
+      }  /* while */
+      if (!is_generated_dynamic_init(dip)) {
+        /* Not implicit, e.g., an explicit cast. */
+      } else if (dip->kind == (a_dynamic_init_kind)dik_expression ||
+                 dip->kind ==
+                     (a_dynamic_init_kind)dik_call_returning_class_via_cctor) {
+        node = dip->variant.expression;
+        node_changed = TRUE;
+      } else if (dip->kind == (a_dynamic_init_kind)dik_constructor) {
+        node = dip->variant.constructor.args;
+        node_changed = TRUE;
+      }  /* if */
+    }  /* if */
+  } while (node_changed);
+  return node;
+}  /* skip_implicit_steps */
+
+
+static a_boolean expr_is_braced_init_list(an_expr_node_ptr expr)
+/*
+Return TRUE if the given expression will be put out as a braced-init-list.
+*/
+{
+  a_boolean is_braced_init = FALSE;
+
+  expr = skip_implicit_steps(expr);
+  if (expr->kind == (an_expr_node_kind)enk_braced_init_list) {
+    is_braced_init = TRUE;
+  } else if (expr->kind == (an_expr_node_kind)enk_temp_init) {
+    a_dynamic_init_ptr dip = expr->variant.init.dynamic_init;
+    dip = skip_constexpr_ctor_eval(dip);
+    if (!dip->is_explicit_cast && !dip->is_compound_literal &&
+        (dip->is_braced_initializer ||
+         dip->is_creation_of_initializer_list_object)) {
+      is_braced_init = TRUE;
+    }  /* if */
+  } else if (is_constant_node(expr)) {
+    a_constant_ptr con = expr->variant.constant;
+    if (constant_should_be_put_out_as_expr(con) &&
+        expr_is_braced_init_list(con->expr)) {
+      is_braced_init = TRUE;
+    }  /* if */
+  }  /* if */
+  return is_braced_init;
+}  /* expr_is_braced_init_list */
+
+
 static void gen_cast(a_type_ptr type)
 /*
 Generate an old-style cast to the indicated type.  No operand is put out.
@@ -9019,13 +9100,26 @@ is_reinterpret_cast indicate it.
     write_tok_str(">(");
     gen_expression(operand_1);
     write_tok_ch(')');
-  } else if (operand_1->is_pack_expansion) {
+  } else if (operand_1->is_pack_expansion ||
+             expr_is_braced_init_list(operand_1)) {
     /* This is something like "int(x...)", which cannot be generated as an
        old-style cast.  Use a function-style cast instead. */
-    gen_type(dest_type);
-    write_tok_ch('(');
-    gen_expression(operand_1);
-    write_tok_ch(')');
+    if (operand_1->kind == (an_expr_node_kind)enk_temp_init &&
+        is_generated_dynamic_init(operand_1->variant.init.dynamic_init)) {
+      /* When possible, use gen_dynamic_init to put out the cast, because it
+         has a lot of tricks for dealing with hard-to-name types. */
+      a_dynamic_init_ptr dip = operand_1->variant.init.dynamic_init;
+      dip->is_explicit_cast = TRUE;
+      gen_dynamic_init(dip, dest_type, operand_1,
+                       /*avoid_top_level_comma=*/FALSE,
+                       /*obj_expr_of_nfunc_operator=*/FALSE);
+      dip->is_explicit_cast = FALSE;
+    } else {
+      gen_type(dest_type);
+      write_tok_ch('(');
+      gen_expression(operand_1);
+      write_tok_ch(')');
+    }  /* if */
   } else {
     /* Use an old-style cast. */
     gen_cast(dest_type);
@@ -10814,46 +10908,9 @@ only if it can be easily determined that there will be no precedence
 problems.
 */
 {
-  a_boolean        parens_needed = TRUE;
-  a_boolean        operand_changed;
-  an_expr_node_ptr expr_from_const;
+  a_boolean parens_needed = TRUE;
 
-  do {
-    /* Scan down through nodes that will not appear in the generated code to
-       get to the expression that will appear. */
-    operand_changed = FALSE;
-    if (is_operation_node(operand) &&
-        (node_operator_is(operand, eok_reference_to) ||
-         node_operator_is(operand, eok_ref_indirect) ||
-         (operand->variant.operation.compiler_generated &&
-          (node_operator_is(operand, eok_address_of) ||
-           node_operator_is(operand, eok_indirect) ||
-           node_operator_is(operand, eok_class_rvalue_adjust) ||
-           node_operator_is(operand, eok_unbox_lvalue) ||
-           (is_cast_operation_node(operand) &&
-            !operand->variant.operation.keep_cast_for_cp_gen_be &&
-            !is_const_string_literal_cast(operand)))))) {
-      operand = operand->variant.operation.operands;
-      operand_changed = TRUE;
-    } else if ((expr_from_const = assoc_expr_if_constant(operand)) !=
-                                                                     operand) {
-      operand = expr_from_const;
-      operand_changed = TRUE;
-    } else if (operand->kind == (an_expr_node_kind)enk_temp_init) {
-      a_dynamic_init_ptr dip = operand->variant.init.dynamic_init;
-      if (!is_generated_dynamic_init(dip)) {
-        /* Not implicit, e.g., an explicit cast. */
-      } else if (dip->kind == (a_dynamic_init_kind)dik_expression ||
-                 dip->kind ==
-                     (a_dynamic_init_kind)dik_call_returning_class_via_cctor) {
-        operand = dip->variant.expression;
-        operand_changed = TRUE;
-      } else if (dip->kind == (a_dynamic_init_kind)dik_constructor) {
-        operand = dip->variant.constructor.args;
-        operand_changed = TRUE;
-      }  /* if */
-    }  /* if */
-  } while (operand_changed);
+  operand = skip_implicit_steps(operand);
   if (operand->kind == (an_expr_node_kind)enk_variable ||
       operand->kind == (an_expr_node_kind)enk_param_ref ||
       operand->kind == (an_expr_node_kind)enk_braced_init_list ||
@@ -14226,35 +14283,6 @@ to add extra parentheses to disambiguate.
 }  /* expr_may_look_like_type */
 
 
-static a_boolean expr_is_braced_init_list(an_expr_node_ptr expr)
-/*
-Return TRUE if the given expression will be put out as a braced-init-list.
-*/
-{
-  a_boolean is_braced_init = FALSE;
-
-  expr = skip_parens(expr);
-  if (expr->kind == (an_expr_node_kind)enk_braced_init_list) {
-    is_braced_init = TRUE;
-  } else if (expr->kind == (an_expr_node_kind)enk_temp_init) {
-    a_dynamic_init_ptr dip = expr->variant.init.dynamic_init;
-    dip = skip_constexpr_ctor_eval(dip);
-    if (!dip->is_explicit_cast && !dip->is_compound_literal &&
-        (dip->is_braced_initializer ||
-         dip->is_creation_of_initializer_list_object)) {
-      is_braced_init = TRUE;
-    }  /* if */
-  } else if (is_constant_node(expr)) {
-    a_constant_ptr con = expr->variant.constant;
-    if (constant_should_be_put_out_as_expr(con) &&
-        expr_is_braced_init_list(con->expr)) {
-      is_braced_init = TRUE;
-    }  /* if */
-  }  /* if */
-  return is_braced_init;
-}  /* expr_is_braced_init_list */
-
-
 static void gen_dynamic_init(a_dynamic_init_ptr dip,
                              a_type_ptr         init_entity_type,
                              an_expr_node_ptr   assoc_expr,
@@ -14510,10 +14538,20 @@ output_functional_notation_cast_arguments:
              ((T)(a, b, c))
            which will probably get a compilation error. */
         a_type_ptr unqual_type = skip_typerefs(init_entity_type);
+        a_type_ptr under_type;
         if (has_name_before_mangling(unqual_type)) {
           /* Put a functional-notation cast to the named cv-unqualified type
              inside the old-style cast, e.g., ((cv X)X(a, b, c)). */
           init_entity_type = unqual_type;
+          goto output_functional_notation_cast;
+        } else if (is_any_reference_type(unqual_type) &&
+                   (under_type = f_skip_typerefs(type_pointed_to(unqual_type)),
+                    has_name_before_mangling(under_type))) {
+          /* Put a functional-notation cast to the named cv-unqualified type
+             under a reference inside the old-style cast, e.g.,
+               ((cv X&)X(a, b, c)).
+          */
+          init_entity_type = under_type;
           goto output_functional_notation_cast;
         } else if (dip->kind == (a_dynamic_init_kind)dik_zero) {
           /* Cast a zero to the unnamed type, e.g., ((T)0). */
