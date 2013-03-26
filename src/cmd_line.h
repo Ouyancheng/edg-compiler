@@ -1214,13 +1214,6 @@ EXTERN a_boolean
 			   availability of the feature as a source feature. */
 
 EXTERN a_boolean
-		no_ms_nonreal_base_classes;
-			/* TRUE if, in Microsoft mode, the standard
-			   mechanism of opaque dependent base classes
-			   should be used in place of the Microsoft mode
-			   emulation that instantiates nonreal base classes. */
-
-EXTERN a_boolean
 		disable_access_checking_in_microsoft_enum_bases;
 			/* TRUE if in Microsoft mode, the front end should
 			   emulate the Microsoft behavior of not performing
@@ -1235,6 +1228,13 @@ EXTERN a_boolean
 			   while processing code generated from metadata, but
 			   is enabled more widely for internal testing. */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+
+EXTERN a_boolean
+		no_ms_nonreal_base_classes;
+			/* TRUE if, in Microsoft mode, the standard
+			   mechanism of opaque dependent base classes
+			   should be used in place of the Microsoft mode
+			   emulation that instantiates nonreal base classes. */
 
 #if ALLOW_NONSTANDARD_ANONYMOUS_UNIONS
 EXTERN a_boolean

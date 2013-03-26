@@ -10115,7 +10115,6 @@ variables declared in cmd_line.h.
   generic_arity_overload_allowed = DEFAULT_GENERIC_ARITY_OVERLOAD_ALLOWED;
   disable_access_checking_in_microsoft_enum_bases =
                       DEFAULT_DISABLE_ACCESS_CHECKING_IN_MICROSOFT_ENUM_BASES;
-  no_ms_nonreal_base_classes = FALSE;
   pending_generic_constraint_specifier_enabled = FALSE;
 #if WRITE_CPPCLI_PORTABLE_ASSEMBLIES
   generate_portable_assemblies = FALSE;
@@ -10128,6 +10127,7 @@ variables declared in cmd_line.h.
   scanning_generated_code_from_metadata = FALSE;
 #endif /* ifdef _lint */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+  no_ms_nonreal_base_classes = FALSE;
   use_cppcli_fill_ins = TRUE;
   microsoft_version = DEFAULT_MICROSOFT_VERSION;
   c99_mode = DEFAULT_C99_MODE;
