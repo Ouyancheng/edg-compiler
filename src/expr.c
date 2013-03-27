@@ -16022,7 +16022,7 @@ expression, and return the result in *result (or an error indication in
       /* A non-POD class (or array thereof), with no new-initializer. */
       a_boolean is_generated_ctor = FALSE, do_const_test = FALSE;
       /* Look for a default constructor. */
-      if (template_case) {
+      if (unqual_base_new_type->variant.class_struct_union.is_nonreal_class) {
         /* Don't look for a default constructor in a dependent type. */
       } else if (ctor_sym != NULL) {
         a_boolean     def_ctor_err;
@@ -16068,10 +16068,6 @@ expression, and return the result in *result (or an error indication in
         /* The class has an assumed trivial default constructor. */
         do_const_test = TRUE;
         is_generated_ctor = TRUE;
-      } else if (is_template_dependent_context() &&
-                 unqual_base_new_type->variant.class_struct_union.
-                                                            is_nonreal_class) {
-        /* A proxy class in a prototype instantiation. */
 #if MICROSOFT_EXTENSIONS_ALLOWED
       } else if (cli_array_new) {
         /* The new-init is not required for a C++/CLI array type so long as an
