@@ -853,11 +853,11 @@ extensions.)
   a_type_ptr  unsigned_long_type =
                               integer_type((an_integer_kind)ik_unsigned_long);
   a_type_ptr  long_long_type = integer_type((an_integer_kind)ik_long_long);
-  a_type_ptr  long_long_star_type = make_pointer_type(long_long_star_type);
+  a_type_ptr  long_long_star_type = make_pointer_type(long_long_type);
   a_type_ptr  unsigned_long_long_type =
                          integer_type((an_integer_kind)ik_unsigned_long_long);
   a_type_ptr  unsigned_long_long_star_type =
-                              make_pointer_type(unsigned_long_long_star_type);
+                                   make_pointer_type(unsigned_long_long_type);
   /* The QI mode in GCC is "signed char".  However, the types designated with
      "qi" in the GCC vector function documentation appear to be plain
      "char". */
