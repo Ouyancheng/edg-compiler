@@ -15210,7 +15210,12 @@ expression, and return the result in *result (or an error indication in
         {
           init_dip = rescan_ndsp->dynamic_init;
           check_assertion(init_dip != NULL);
-          arg_expr_list = arg_list_from_dyn_init(init_dip);
+          if (init_dip->kind == (a_dynamic_init_kind)dik_constant) {
+            arg_expr_list =
+                 alloc_node_for_allocated_constant(init_dip->variant.constant);
+          } else {
+            arg_expr_list = arg_list_from_dyn_init(init_dip);
+          }  /* if */
         }  /* if */
         rcblock->argument_list = arg_expr_list;
         if (arg_expr_list != NULL &&
