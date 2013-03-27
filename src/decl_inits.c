@@ -6390,7 +6390,8 @@ initialized.  These are addressed in the course of the processing.
       } else if (in_variant || is_union) {
         /* An entry for an uninitialized union member: Remove it (we only keep
            the entries for fields with initializers). */
-        check_assertion(cip->kind == (a_constructor_init_kind)cik_field);
+        check_assertion_or_expect_error(
+                             cip->kind == (a_constructor_init_kind)cik_field);
         if (prev_cip == NULL) {
           cib.cip_list = cip->next;
         } else {
