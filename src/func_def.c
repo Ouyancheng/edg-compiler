@@ -866,6 +866,7 @@ constructor.
       scope->is_constexpr_routine = TRUE;
       /* Make a copy of the constructor inits list so that if IL lowering is
          being done we preserve unlowered copies. */
+      scope->variant.routine.variant.constexpr_constructor_inits = NULL;
       next_ptr_ptr =
                    &scope->variant.routine.variant.constexpr_constructor_inits;
       for (ctor_init = scope->variant.routine.constructor_inits;
