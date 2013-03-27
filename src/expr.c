@@ -237,24 +237,29 @@ constant and expr_kind is not already a constant expression kind.
       check_assertion(!is->evaluated);
     }  /* if */
   }  /* if */
-  if (dps != NULL && dps->sym != NULL &&
-      (symbol_is(dps->sym, sk_static_data_member) ||
-       symbol_is(dps->sym, sk_field))) {
-    /* Record entities defined in the initializer expression for a
-       static data member (needed for correspondence checking and name
-       mangling when the static data member is a template instance).
-       In the case of aggregate initializers, this routine may be called
-       multiple times for the same initializer: Ensure that additional
-       entries are appended to any existing entries. */
-    an_il_entity_list_entry_ptr *ep;
-    if (symbol_is(dps->sym, sk_static_data_member)) {
-      a_variable_ptr sdm_var = dps->sym->variant.static_data_member.variable;
-      ep = &sdm_var->entities_defined_in_initializer;
-    } else {
-      ep = &dps->sym->variant.field.ptr->entities_defined_in_initializer;
+  if (dps != NULL && dps->sym != NULL) {
+    if (symbol_is(dps->sym, sk_static_data_member) ||
+        symbol_is(dps->sym, sk_field)) {
+      /* Record entities defined in the initializer expression for a
+         static data member (needed for correspondence checking and name
+         mangling when the static data member is a template instance).
+         In the case of aggregate initializers, this routine may be called
+         multiple times for the same initializer: Ensure that additional
+         entries are appended to any existing entries. */
+      an_il_entity_list_entry_ptr *ep;
+      if (symbol_is(dps->sym, sk_static_data_member)) {
+        a_variable_ptr sdm_var = dps->sym->variant.static_data_member.variable;
+        ep = &sdm_var->entities_defined_in_initializer;
+      } else {
+        ep = &dps->sym->variant.field.ptr->entities_defined_in_initializer;
+      }  /* if */
+      while (*ep != NULL) ep = &(*ep)->next;
+      expr_stack_entry->p_end_of_entities_defined_in_expression = ep;
     }  /* if */
-    while (*ep != NULL) ep = &(*ep)->next;
-    expr_stack_entry->p_end_of_entities_defined_in_expression = ep;
+    if (symbol_is(dps->sym, sk_field)) {
+      /* For a field initializer, try to get a constant result if possible. */
+      expr_stack->favor_constant_result = TRUE;
+    }  /* if */
   }  /* if */
   if (dps != NULL) set_up_initializer_rescan(dps);
 }  /* push_expr_stack_for_initializer */

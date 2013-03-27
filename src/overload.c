@@ -22016,6 +22016,10 @@ will be an lvalue instead of the usual rvalue.
       constant = alloc_error_constant();
     }  /* if */
     force_temp = FALSE;
+  } else if (expr_stack->favor_constant_result && generate_il) {
+    if (dip == NULL && constant == NULL) {
+      force_operand_to_constant_if_possible(&operand);
+    }  /* if */
   }  /* if */
   if (generate_il &&
       dip_to_mark == NULL &&
@@ -22140,14 +22144,19 @@ will be an lvalue instead of the usual rvalue.
           dip = dip_to_reuse;
         } else {
           /* Make a dynamic init for the expression. */
-          an_expr_node_ptr expr;
           if (constant != NULL) {
-            expr = alloc_node_for_allocated_constant(constant);
+            dip = alloc_expr_dynamic_init((a_dynamic_init_kind)dik_expression);
+            dip->variant.expression =
+                                   alloc_node_for_allocated_constant(constant);
+          } else if (is_constant_operand(&operand)) {
+            dip = alloc_expr_dynamic_init((a_dynamic_init_kind)dik_constant);
+            set_dynamic_init_constant(
+                           dip,
+                           alloc_unshared_constant(&operand.variant.constant));
           } else {
-            expr = make_node_from_operand(&operand);
+            dip = alloc_expr_dynamic_init((a_dynamic_init_kind)dik_expression);
+            dip->variant.expression = make_node_from_operand(&operand);
           }  /* if */
-          dip = alloc_expr_dynamic_init((a_dynamic_init_kind)dik_expression);
-          dip->variant.expression = expr;
         }  /* if */
       }  /* if */
       is->init_dip = dip;

@@ -2192,6 +2192,8 @@ Dump a dynamic initializer entry for debug purposes.
 {
   int a;
 
+  /* Avoid problems on call with missing second argument from debugger: */
+  if (level > 80 || level < 0) level = 0;
   if (dip->variable != NULL) {
     fputs("variable: \"", f_debug);
     db_name_full(&dip->variable->source_corresp, iek_variable);
