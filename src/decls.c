@@ -15361,6 +15361,7 @@ that the type of the initializer is consistent with the type of the variable.
                in various modes.  So we don't check those here. */
             break;
           }  /* if */
+          /*FALLTHROUGH*/
         case dik_nonconstant_aggregate:
           init_type = dip->variant.constant->type;
           break;
