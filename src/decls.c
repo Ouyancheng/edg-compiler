@@ -15346,11 +15346,21 @@ that the type of the initializer is consistent with the type of the variable.
        (only some common initializer kinds are checked). */
     a_type_ptr  init_type = NULL;
     if (var->init_kind == (an_init_kind)initk_static) {
-      init_type = var->initializer.constant->type;
+      if (var->initializer.constant->kind == (a_constant_repr_kind)ck_string) {
+        /* String literal initializations allow for all kinds of mismatches
+           in various modes.  So we don't check those here. */
+      } else {
+        init_type = var->initializer.constant->type;
+      }  /* if */
     } else if (var->init_kind == (an_init_kind)initk_dynamic) {
       a_dynamic_init_ptr  dip = var->initializer.dynamic;
       switch (dip->kind) {
         case dik_constant:
+          if (dip->variant.constant->kind == (a_constant_repr_kind)ck_string) {
+            /* String literal initializations allow for all kinds of mismatches
+               in various modes.  So we don't check those here. */
+            break;
+          }  /* if */
         case dik_nonconstant_aggregate:
           init_type = dip->variant.constant->type;
           break;
@@ -15364,15 +15374,15 @@ that the type of the initializer is consistent with the type of the variable.
     }  /* if */
     if (init_type != NULL) {
       a_type_ptr  var_type = var->type;
-      if (is_reference_type(init_type) && is_reference_type(var_type)) {
-        /* Reference type kinds (lvalue vs. rvalue) don't always have to
-           match. */
+      if (is_any_reference_type(init_type) &&
+          is_any_reference_type(var_type)) {
+        /* Reference type kinds (lvalue vs. rvalue; tracking vs. standard)
+           don't always have to match. */
         init_type = type_pointed_to(init_type);
         var_type = type_pointed_to(var_type);
       }  /* if */
       if (is_array_type(init_type) && is_array_type(var_type)) {
-        /* Array initializers (e.g., string literals) can have mismatched
-           lengths. */
+        /* Array initializers can have mismatched lengths. */
         init_type = array_element_type(init_type);
         var_type = array_element_type(var_type);
       }  /* if */
