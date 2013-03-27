@@ -2756,9 +2756,11 @@ The expression stack entry for the constant expression has not yet been
 popped.
 */
 {
-  if (contains_dangling_pointer(constant, (a_constexpr_call *)NULL,
+  if (constexpr_enabled &&
+      contains_dangling_pointer(constant, (a_constexpr_call *)NULL,
                                 /*end_of_full_expr=*/TRUE)) {
     expr_pos_error(ec_constexpr_dangling_pointer, pos);
+    expr_stack->constant_expr_ruled_out = TRUE;
   }  /* if */
 }  /* wrap_up_constant_full_expression */
 
