@@ -15340,7 +15340,8 @@ If the given variable it initialized by a constant or an expression, check
 that the type of the initializer is consistent with the type of the variable.
 */
 {
-  if (var != NULL && var->init_kind != (an_init_kind)initk_none) {
+  if (var != NULL && var->init_kind != (an_init_kind)initk_none &&
+      !is_template_dependent_context()) {
     /* Verify that the type of an initializer matches that of the variable
        (only some common initializer kinds are checked). */
     a_type_ptr  init_type = NULL;
@@ -15363,9 +15364,17 @@ that the type of the initializer is consistent with the type of the variable.
     }  /* if */
     if (init_type != NULL) {
       a_type_ptr  var_type = var->type;
-      if (is_reference_type(var_type) && is_reference_type(init_type)) {
-        var_type = type_pointed_to(var_type);
+      if (is_reference_type(init_type) && is_reference_type(var_type)) {
+        /* Reference type kinds (lvalue vs. rvalue) don't always have to
+           match. */
         init_type = type_pointed_to(init_type);
+        var_type = type_pointed_to(var_type);
+      }  /* if */
+      if (is_array_type(init_type) && is_array_type(var_type)) {
+        /* Array initializers (e.g., string literals) can have mismatched
+           lengths. */
+        init_type = array_element_type(init_type);
+        var_type = array_element_type(var_type);
       }  /* if */
       check_assertion(f_types_are_compatible(
                                     var_type, init_type,
