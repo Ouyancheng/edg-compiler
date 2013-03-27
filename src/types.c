@@ -4000,8 +4000,8 @@ for source and destination type).
 #endif /* C99_IL_EXTENSIONS_SUPPORTED */
     } else if (is_floating_type(dest_type)) {
       /* We ruled out complex and imaginary cases above. */
-      check_assertion(source_type->kind == (a_type_kind)tk_float &&
-                      dest_type->kind   == (a_type_kind)tk_float);
+      check_assertion(is_floating(source_type) &&
+                      source_type->kind == dest_type->kind);
       if ((int)source_type->variant.float_kind >
                                           (int)dest_type->variant.float_kind) {
         /* Floating-point to smaller floating_point.  Okay if the value is
