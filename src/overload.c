@@ -21981,7 +21981,7 @@ will be an lvalue instead of the usual rvalue.
      If constant != NULL, the result is that constant.
      Otherwise, the result is in "operand".  If the required result is
      in a different format, convert to that. */
-  if (curr_expr_kind_is_const() && generate_il) {
+  if (generate_il && curr_expr_kind_is_const()) {
     /* The result is required to be constant.  Check that it is. */
     if (dip != NULL) {
       if (dip->kind == (a_dynamic_init_kind)dik_constant) {
@@ -22016,7 +22016,7 @@ will be an lvalue instead of the usual rvalue.
       constant = alloc_error_constant();
     }  /* if */
     force_temp = FALSE;
-  } else if (expr_stack->favor_constant_result && generate_il) {
+  } else if (generate_il && in_potential_constant_constexpr_context()) {
     if (dip == NULL && constant == NULL) {
       force_operand_to_constant_if_possible(&operand);
     }  /* if */

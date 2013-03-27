@@ -5235,7 +5235,9 @@ constant expressions, fold to a constant result.
   a_constant con;
   an_operand orig_operand;
 
-  if (constexpr_enabled && curr_expr_kind_is_const() &&
+  if (constexpr_enabled &&
+      (curr_expr_kind_is_const() ||
+       in_potential_constant_constexpr_context()) &&
       is_expression_operand(operand) && is_an_rvalue(operand) &&
       fold_constexpr_expr(operand->variant.expression,
                           /*treat_as_object=*/FALSE,
