@@ -490,7 +490,6 @@ static void lower_scope(a_scope_ptr scope);
 static a_boolean any_cleanup_actions(an_object_lifetime_ptr outer_lifetime);
 static a_boolean check_for_troublesome_aggregate_constant(
                                                      a_constant_ptr constant,
-                                                     a_boolean      const_okay,
                                                      a_variable_ptr *temp_var);
 static void promote_class_members(a_type_ptr  class_type,
                                   a_scope_ptr promotion_scope,
@@ -2043,7 +2042,6 @@ type, an lvalue is returned instead.
      variable initialized with the ck_aggregate, and use the value of the
      variable. */
   if (check_for_troublesome_aggregate_constant(constant,
-                                               /*const_okay=*/TRUE,
                                                &temp_var)) {
     check_assertion(is_or_was_ptr_to_member_function_type(constant->type) ||
                     !constant->implicit_cast);
@@ -2838,12 +2836,11 @@ not to contain any top level base class casts.
     expr = strip_rvalue_base_class_casts(expr, &top_cast, &bottom_cast);
     if (is_constant_node(expr) &&
         check_for_troublesome_aggregate_constant(expr->variant.constant,
-                                           is_const_qualified_type(expr->type),
                                            &temp)) {
       /* ck_aggregate constants can appear in cases where a constexpr
          constructor or function returns a class value, as well as other
          cases.  Return the temporary that has been created for this
-         constant.  */
+         constant. */
       check_assertion(is_or_was_ptr_to_member_function_type(
                                                expr->variant.constant->type) ||
                       !expr->variant.constant->implicit_cast);
@@ -4075,12 +4072,10 @@ Do IL lowering of a pointer-to-member constant.
 }  /* lower_ptr_to_member_constant */
 
 
-a_variable_ptr assoc_var_for_constant(a_constant_ptr constant,
-                                      a_boolean      const_okay)
+a_variable_ptr assoc_var_for_constant(a_constant_ptr constant)
 /*
 Returns the associated variable for a constant if one already exists, otherwise
 it creates an associated variable for the constant and returns that.
-When const_okay is TRUE, the associated variable type is const qualified.
 */
 {
   a_variable_ptr  assoc_var;
@@ -4090,14 +4085,6 @@ When const_okay is TRUE, the associated variable type is const qualified.
   } else {
     a_type_ptr var_type = constant->type;
     /* The variable must be allocated. */
-#if GNU_VECTOR_TYPES_ALLOWED && BACK_END_IS_C_GEN_BE
-    if (const_okay && is_vector_type(var_type) &&
-        gcc_is_generated_code_target) {
-      /* gcc doesn't permit initialization of static const vector types. */
-      const_okay = FALSE;
-    }  /* if */
-#endif /* GNU_VECTOR_TYPES_ALLOWED && BACK_END_IS_C_GEN_BE */
-    if (const_okay) var_type = make_qualified_type(var_type, TQ_CONST);
     if (in_file_scope((char *)constant)) {
       /* The constant is in the file scope, so use a file-scope variable.
          The constant is possibly shared, but we're going to rewrite
@@ -4141,17 +4128,15 @@ When const_okay is TRUE, the associated variable type is const qualified.
 
 static a_boolean check_for_troublesome_aggregate_constant(
                                                      a_constant_ptr constant,
-                                                     a_boolean      const_okay,
                                                      a_variable_ptr *temp_var)
 /*
 Return TRUE if constant is a pointer-to-member constant that has been
 or will be changed into a ck_aggregate for a struct during lowering
 (that's done for pointers to member functions).  If so, create a
 temporary variable and initialize it with the ck_aggregate constant.
-If const_okay is TRUE, make the variable const, if possible.  Return a pointer
-to the variable in *temp_var.  The variable is saved and reused.  This
-trick is necessary for cases where such a pointer to member constant
-is referenced from executable code, because a ck_aggregate can only
+Return a pointer to the variable in *temp_var.  The variable is saved and
+reused.  This trick is necessary for cases where such a pointer to member
+constant is referenced from executable code, because a ck_aggregate can only
 be referenced in an initialization.  The caller will rewrite the
 reference to use the temporary variable instead of the constant.
 
@@ -4181,7 +4166,7 @@ constant is being assigned, e.g.,
     /* See if the variable has been allocated already.  If so, a pointer to
        the variable will have been stored in the constant; otherwise one
        will be created. */
-    assoc_var = assoc_var_for_constant(constant, const_okay);
+    assoc_var = assoc_var_for_constant(constant);
   }  /* if */
   *temp_var = assoc_var;
   return troublesome;
@@ -5100,7 +5085,6 @@ Do IL lowering of the indicated constant and everything under it.
 #endif /* ASSIGN_STRING_LITERAL_SEQUENCE_NUMBERS */
             /* Do not insert code here. */
             if (check_for_troublesome_aggregate_constant(addressed_con,
-                                                         /*const_okay=*/FALSE,
                                                          &temp_var)) {
               /* This constant node is using the address of a pointer-to-
                  member-function constant, which has or will become a
@@ -12578,7 +12562,6 @@ variables can have changed since the first reference.
        constant.  Generate a field selection. */
     if (is_constant_node(expr) &&
         check_for_troublesome_aggregate_constant(expr->variant.constant,
-                                                 /*const_okay=*/TRUE,
                                                  &temp_var)) {
       check_assertion(is_or_was_ptr_to_member_function_type(expr->type) ||
                       !expr->variant.constant->implicit_cast);
@@ -15126,7 +15109,6 @@ cast.  See lower_expr for typical invocation.
           /* If the constant hasn't been rewritten as a variable, lower it. */
           lower_os_constant(con);
           if (check_for_troublesome_aggregate_constant(con,
-                                                       /*const_okay=*/TRUE,
                                                        &temp_var)) {
             check_assertion(is_or_was_ptr_to_member_function_type(con->type) ||
                             !con->implicit_cast);

@@ -1271,8 +1271,7 @@ extern a_boolean type_has_param_passed_via_cctor(a_type_ptr tp);
 extern a_boolean constant_must_remain_in_function_scope(
                                                      a_constant_ptr  constant);
 
-extern a_variable_ptr assoc_var_for_constant(a_constant_ptr constant,
-                                             a_boolean      const_okay);
+extern a_variable_ptr assoc_var_for_constant(a_constant_ptr constant);
 
 extern void prelower_aggregate_constant(a_constant_ptr constant);
 
