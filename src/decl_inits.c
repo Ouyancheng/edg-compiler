@@ -4337,7 +4337,8 @@ returned set to TRUE.
                                  initializer_constant(vp) != NULL ||
                                  is_template_dependent_type(tp) ||
                                  (is_immediate_class_type(tp) &&
-                                  !cssp->has_nontrivial_default_constructor &&
+                                  !class_symbol_supp(symbol_for(tp))
+                                       ->has_nontrivial_default_constructor &&
                                   !tp->variant.class_struct_union
                                               .has_zero_init_component));
   }  /* if */
