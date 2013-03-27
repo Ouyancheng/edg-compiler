@@ -9528,7 +9528,13 @@ typedef struct a_field {
   a_bit_field	has_nonconstant_initializer:1;
 			/* TRUE if a C++11-style initializer was specified for
 			   this field, and the initializer is known not to be
-			   a constant expression. */
+			   a constant expression.  Note that this means
+			   "includes something that rules out a constant
+			   expression", and not "the initializer dynamic-init
+			   is not a constant"; an initializer like f() could be
+			   not-yet-foldable when the initializer is scanned,
+			   but foldable to c constant later when a constexpr
+			   constructor is called. */
   bitfield_to_avoid_codecenter_warnings()
   a_dynamic_init_ptr
 		initializer;

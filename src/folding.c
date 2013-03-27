@@ -8510,10 +8510,100 @@ about the point at which the pointer becomes dangling.
 }  /* set_expiring_temporary_address_constant */
 
 
+static a_boolean fold_dynamic_init(a_dynamic_init_ptr           dip,
+                                   a_type_ptr                   dest_type,
+                                   a_constexpr_evaluation_block *ceblock,
+                                   a_constant                   *result_con);
 static a_boolean i_fold_constexpr_ctor(
                                      a_dynamic_init_ptr           ctor_dip,
                                      a_constexpr_evaluation_block *ceblock,
                                      a_constant                   *result_con);
+
+static a_boolean fold_aggregate_constant(
+                                      a_constant                   *aggr,
+                                      a_constexpr_evaluation_block *ceblock,
+                                      a_constant                   *result_con)
+/*
+Attempt to fold the ck_aggregate constant "aggr" to a constant as part
+of a constexpr evaluation, by substituting argument constant values
+for parameters.  If the aggregate folds to a constant, place the constant
+in *result_con and return TRUE; otherwise, return FALSE.
+*/
+{
+  a_boolean      folded = FALSE;
+  a_constant_ptr new_aggr;
+  a_constant_ptr elem_con;
+
+  check_assertion(aggr->kind == (a_constant_repr_kind)ck_aggregate);
+  if (!aggregate_is_literal_type_constant(aggr)) {
+    /* The constant is not (or may not be) fully initialized, so
+       folding fails. */
+  } else {
+    new_aggr = result_con;
+    clear_constant(new_aggr, (a_constant_repr_kind)ck_aggregate);
+    new_aggr->type = aggr->type;
+    folded = TRUE;
+    /* Loop through the elements of the aggregate and copy each one.
+       Dynamic constants get parameter substitution. */
+    for (elem_con = aggr->variant.aggregate.first_constant;
+         elem_con != NULL;
+         elem_con = elem_con->next) {
+      a_constant_ptr new_elem_con = NULL;
+      if (elem_con->kind == (a_constant_repr_kind)ck_dynamic_init) {
+        a_constant con;
+        if (fold_dynamic_init(elem_con->variant.dynamic_init,
+                              elem_con->type,
+                              ceblock,
+                              &con)) {
+          new_elem_con = alloc_unshared_constant(&con);
+        }  /* if */
+      } else if (elem_con->kind == (a_constant_repr_kind)ck_init_repeat) {
+        /* A repeated constant.  If the repeated constant is a
+           ck_dynamic_init, try to fold it via a recursive call.  If it
+           folds successfully, or for other kinds of repeated
+           constants, copy this constant and the repeated constant. */
+        a_constant_ptr rep_con = elem_con->variant.init_repeat.constant;
+        a_constant     init_con;
+        if (rep_con->kind == (a_constant_repr_kind)ck_dynamic_init) {
+          if (fold_dynamic_init(rep_con->variant.dynamic_init,
+                                rep_con->type, ceblock, &init_con)) {
+            /* The repeated dynamic initialization folded to a constant,
+               so use that in folding this constant. */
+            rep_con = &init_con;
+          } else {
+            /* The repeated dynamic initialization could not be folded,
+               so this initialization cannot be folded. */
+            rep_con = NULL;
+          }  /* if */
+        }  /* if */
+        if (rep_con != NULL) {
+          new_elem_con = alloc_unshared_constant(elem_con);
+          new_elem_con->variant.init_repeat.constant =
+                                              alloc_unshared_constant(rep_con);
+        }  /* if */
+      } else if (elem_con->kind == (a_constant_repr_kind)ck_designator) {
+        /* Just make a copy of the designator (the field and element
+           number are constant and don't change). */
+        new_elem_con = alloc_unshared_constant(elem_con);
+      } else if (elem_con->kind == (a_constant_repr_kind)ck_aggregate) {
+        a_constant elem_aggr_con;
+        if (fold_aggregate_constant(elem_con, ceblock, &elem_aggr_con)) {
+          new_elem_con = alloc_unshared_constant(&elem_aggr_con);
+        }  /* if */
+      } else {
+        /* Normal constant. */
+        new_elem_con = alloc_unshared_constant(elem_con);
+      }  /* if */
+      if (new_elem_con == NULL) {
+        folded = FALSE;
+        break;
+      }  /* if */
+      add_constant_to_aggregate(new_elem_con, new_aggr);
+    }  /* for */
+  }  /* if */
+  return folded;
+}  /* fold_aggregate_constant */
+
 
 static a_boolean fold_dynamic_init(a_dynamic_init_ptr           dip,
                                    a_type_ptr                   dest_type,
@@ -8554,80 +8644,16 @@ evaluation.
       }  /* if */
       break;
     case dik_nonconstant_aggregate:
-      { a_constant_ptr new_aggr;
-        a_constant_ptr elem_con;
-        a_constant_ptr aggr = dip->variant.constant;
-        check_assertion(aggr->kind == (a_constant_repr_kind)ck_aggregate);
-        if (!aggregate_is_literal_type_constant(aggr)) {
-          /* The constant is not (or may not be) fully initialized, so
-             folding fails. */
-          break;
-        }  /* if */
-        new_aggr = result_con;
-        clear_constant(new_aggr, (a_constant_repr_kind)ck_aggregate);
-        new_aggr->type = aggr->type;
-        folded = TRUE;
-        /* Loop through the elements of the aggregate and copy each one.
-           Dynamic constants get parameter substitution. */
-        for (elem_con = aggr->variant.aggregate.first_constant;
-             elem_con != NULL;
-             elem_con = elem_con->next) {
-          a_constant_ptr new_elem_con = NULL;
-          if (elem_con->kind == (a_constant_repr_kind)ck_dynamic_init) {
-            a_constant con;
-            if (fold_dynamic_init(elem_con->variant.dynamic_init,
-                                  elem_con->type,
-                                  ceblock,
-                                  &con)) {
-              new_elem_con = alloc_unshared_constant(&con);
-            }  /* if */
-          } else if (elem_con->kind == (a_constant_repr_kind)ck_init_repeat) {
-            /* A repeated constant.  If the repeated constant is a
-               ck_dynamic_init, try to fold it via a recursive call.  If it
-               folds successfully, or for other kinds of repeated
-               constants, copy this constant and the repeated constant. */
-            a_constant_ptr rep_con = elem_con->variant.init_repeat.constant;
-            a_constant     init_con;
-            if (rep_con->kind == (a_constant_repr_kind)ck_dynamic_init) {
-              if (fold_dynamic_init(rep_con->variant.dynamic_init,
-                                    rep_con->type, ceblock, &init_con)) {
-                /* The repeated dynamic initialization folded to a constant,
-                   so use that in folding this constant. */
-                rep_con = &init_con;
-              } else {
-                /* The repeated dynamic initialization could not be folded,
-                   so this initialization cannot be folded. */
-                rep_con = NULL;
-              }  /* if */
-            }  /* if */
-            if (rep_con != NULL) {
-              new_elem_con = alloc_unshared_constant(elem_con);
-              new_elem_con->variant.init_repeat.constant =
-                                              alloc_unshared_constant(rep_con);
-            }  /* if */
-          } else if (elem_con->kind == (a_constant_repr_kind)ck_designator) {
-            /* Just make a copy of the designator (the field and element
-               number are constant and don't change). */
-            new_elem_con = alloc_unshared_constant(elem_con);
-          } else {
-            /* Normal constant. */
-            new_elem_con = alloc_unshared_constant(elem_con);
-          }  /* if */
-          if (new_elem_con == NULL) {
-            folded = FALSE;
-            break;
-          }  /* if */
-          add_constant_to_aggregate(new_elem_con, new_aggr);
-        }  /* for */
-        if (ref_case) {
-          /* Return the address of the aggregate constant for the reference
-             case. */
-          set_expiring_temporary_address_constant(
-                                         alloc_shareable_constant(new_aggr),
+      folded = fold_aggregate_constant(dip->variant.constant, ceblock,
+                                       result_con);
+      if (ref_case) {
+        /* Return the address of the aggregate constant for the reference
+           case. */
+        set_expiring_temporary_address_constant(
+                                         alloc_shareable_constant(result_con),
                                          dip, result_con);
-          result_con->type = dest_type;
-        }  /* if */
-      }
+        result_con->type = dest_type;
+      }  /* if */
       break;
     case dik_none:
     case dik_zero:
