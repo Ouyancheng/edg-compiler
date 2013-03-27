@@ -1658,7 +1658,7 @@ extensions.)
   enter_gnu_builtin_func4(_ia32_addcarryx_u32, unsigned_char,
                           unsigned_char, unsigned_int, unsigned_int,
                           unsigned_int_star);
-  enter_gnu_builtin_func4(_ia32_addcarryx_u32, unsigned_char,
+  enter_gnu_builtin_func4(_ia32_addcarryx_u64, unsigned_char,
                           unsigned_char, unsigned_long, unsigned_long,
                           unsigned_long_long_star);
 }  /* enter_builtin_ia32_vector_functions */
