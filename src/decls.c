@@ -6114,51 +6114,6 @@ variable.
   }  /* if */
 }  /* check_constant_valued_variable */
 
-#if CHECKING
-
-static void check_consistent_init_type(a_variable_ptr  var)
-/*
-If the given variable it initialized by a constant or an expression, check
-that the type of the initializer is consistent with the type of the variable.
-*/
-{
-  if (var->init_kind != (an_init_kind)initk_none) {
-    /* Verify that the type of an initializer matches that of the variable
-       (only some common initializer kinds are checked). */
-    a_type_ptr  init_type = NULL;
-    if (var->init_kind == (an_init_kind)initk_static) {
-      init_type = var->initializer.constant->type;
-    } else if (var->init_kind == (an_init_kind)initk_dynamic) {
-      a_dynamic_init_ptr  dip = var->initializer.dynamic;
-      switch (dip->kind) {
-        case dik_constant:
-        case dik_nonconstant_aggregate:
-          init_type = dip->variant.constant->type;
-          break;
-        case dik_expression:
-          init_type = dip->variant.expression->type;
-          break;
-        default:
-          /* Other initialization types are not checked. */
-          break;
-      }  /* switch */
-    }  /* if */
-    if (init_type != NULL) {
-      a_type_ptr  var_type = var->type;
-      if (is_reference_type(var_type) && is_reference_type(init_type)) {
-        var_type = type_pointed_to(var_type);
-        init_type = type_pointed_to(init_type);
-      }  /* if */
-      check_assertion(f_types_are_compatible(
-                                    var_type, init_type,
-                                    TCF_REDECLARATION |
-                                    TCF_IGNORE_TYPE_QUALIFIERS |
-                                    TCF_ERROR_TYPE_COMPATIBLE_WITH_ANYTHING));
-
-    }  /* if */
-  }  /* if */
-}  /* check_consistent_init_type */
-#endif /* CHECKING */
 
 #if !EXTRA_SOURCE_POSITIONS_IN_IL && !NAMED_REGISTERS_ALLOWED && \
     !GENERATE_SOURCE_SEQUENCE_LISTS
@@ -6786,9 +6741,6 @@ for use in generating cross-reference output describing this declaration.
      scope stack is restored, since processing depends on the pending_pragmas
      pointer in the scope stack entry. */
   process_curr_construct_pragmas(sym, (a_statement_ptr)NULL);
-#if CHECKING
-  check_consistent_init_type(variable_ptr);
-#endif /* CHECKING */
   /* Return linkage kind. */
   *linkage_ptr = linkage;
   dps->storage_class = storage_class;
@@ -15380,6 +15332,52 @@ if prior declarations specified an alignment attribute.
 }  /* record_std_alignment_attr */
 
 #endif /* USER_CONTROL_OF_STRUCT_PACKING */
+#if CHECKING
+
+static void check_consistent_init_type(a_variable_ptr  var)
+/*
+If the given variable it initialized by a constant or an expression, check
+that the type of the initializer is consistent with the type of the variable.
+*/
+{
+  if (var != NULL && var->init_kind != (an_init_kind)initk_none) {
+    /* Verify that the type of an initializer matches that of the variable
+       (only some common initializer kinds are checked). */
+    a_type_ptr  init_type = NULL;
+    if (var->init_kind == (an_init_kind)initk_static) {
+      init_type = var->initializer.constant->type;
+    } else if (var->init_kind == (an_init_kind)initk_dynamic) {
+      a_dynamic_init_ptr  dip = var->initializer.dynamic;
+      switch (dip->kind) {
+        case dik_constant:
+        case dik_nonconstant_aggregate:
+          init_type = dip->variant.constant->type;
+          break;
+        case dik_expression:
+          init_type = dip->variant.expression->type;
+          break;
+        default:
+          /* Other initialization types are not checked. */
+          break;
+      }  /* switch */
+    }  /* if */
+    if (init_type != NULL) {
+      a_type_ptr  var_type = var->type;
+      if (is_reference_type(var_type) && is_reference_type(init_type)) {
+        var_type = type_pointed_to(var_type);
+        init_type = type_pointed_to(init_type);
+      }  /* if */
+      check_assertion(f_types_are_compatible(
+                                    var_type, init_type,
+                                    TCF_REDECLARATION |
+                                    TCF_IGNORE_TYPE_QUALIFIERS |
+                                    TCF_ERROR_TYPE_COMPATIBLE_WITH_ANYTHING));
+
+    }  /* if */
+  }  /* if */
+}  /* check_consistent_init_type */
+
+#endif /* CHECKING */
 
 static void variable_declaration(a_decl_parse_state  *state,
                                  a_symbol_locator    *locator,
@@ -15886,6 +15884,9 @@ if one is present.
   add_src_seq_end_of_variable_if_needed(state);
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   check_use_of_auto_type(state);
+#if CHECKING
+  check_consistent_init_type(var_ptr);
+#endif /* CHECKING */
 #if MODULE_ID_NEEDED
   if (var_ptr != NULL && is_variable_def) {
     /* See if the variable that is being defined can be used as the basis
