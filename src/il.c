@@ -6528,9 +6528,14 @@ definition of the CC flags in il.h for more information.
                                        cp2->variant.address.variant.variable);
               break;
             case abk_constant:
-            case abk_temporary:
               eq = (cp1->variant.address.variant.constant ==
                     cp2->variant.address.variant.constant);
+              break;
+            case abk_temporary:
+              eq = (cp1->variant.address.variant.constant ==
+                    cp2->variant.address.variant.constant &&
+                    cp1->variant.address.assoc_dyn_init ==
+                    cp2->variant.address.assoc_dyn_init);
               break;
 #if MICROSOFT_EXTENSIONS_ALLOWED
             case abk_uuidof:
