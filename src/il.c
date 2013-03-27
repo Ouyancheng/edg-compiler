@@ -15748,10 +15748,11 @@ for the copy/substitution.
          some instances of the function declared after the template.  Do the
          lookup again to get the full overload set. */
       a_symbol_locator locator;
+      a_symbol_ptr     new_sym;
       make_locator_for_symbol(sym, &locator);
       locator.specific_symbol = NULL;
-      sym = normal_id_lookup(&locator, IDL_NO_OPTIONS);
-      check_assertion(sym != NULL);
+      new_sym = normal_id_lookup(&locator, IDL_NO_OPTIONS);
+      if (new_sym != NULL) sym = new_sym;
     }  /* if */
   } else {
     /* Member constant (normal case). */
