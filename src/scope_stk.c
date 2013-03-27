@@ -3987,7 +3987,7 @@ are non-NULL when they should be used for the outermost instantiation scope.
   check_assertion_str2(class_sym != NULL,
                        "reactivate_class_and_instantiation_scopes:",
                        "class type has NULL assoc_info");
-  is_template = (options & PS_NEW_INSTANTIATION_CONTEXT) == 00 &&
+  is_template = (options & PS_NEW_INSTANTIATION_CONTEXT) == 0 &&
                       is_template_class_and_not_specific_def_symbol(class_sym);
   if (is_template) {
     a_class_symbol_supplement_ptr     cssp;
