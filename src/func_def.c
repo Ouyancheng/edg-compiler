@@ -2245,7 +2245,7 @@ member declaration (allowed in Microsoft mode only).
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   /* Run end-of-declaration-parsing actions prior to scanning the function
      body. */
-  run_end_of_parse_actions(dps);
+  run_end_of_parse_actions(dps, /*more_declarators=*/FALSE);
   /* Now scan the function body, except if we're dealing with the special
      Microsoft and GNU extension case that allows a nondefining out-of-class
      member declaration. */

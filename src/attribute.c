@@ -3800,7 +3800,8 @@ The given entity must be a parameter or a routine.  Apply the
        parameters is fully processed. */
     dps = dps->assoc_func_decl_state;
     check_assertion(dps != NULL);
-    add_end_of_parse_action(check_carries_dependency_for_params, dps);
+    add_end_of_parse_action(check_carries_dependency_for_params, dps,
+                            /*secondary_decls=*/FALSE);
   } else if (entity_kind == iek_routine) {
     if (dps != NULL && !dps->first_decl) {
       /* A redeclaration: Check that the attribute was present on the first

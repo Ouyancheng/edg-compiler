@@ -9861,7 +9861,8 @@ implicit "this" is available, e.g., during overload resolution.
               dps->position_of_this_reference_in_trailing_return = *used_pos;
               dps->position_of_this_reference_in_trailing_return_set = TRUE;
               /* Get a callback routine invoked to check for the error. */
-              add_end_of_parse_action(check_use_of_this_in_member_decl, dps);
+              add_end_of_parse_action(check_use_of_this_in_member_decl, dps,
+                                      /*secondary_decls=*/FALSE);
             }  /* if */
             if (this_type != NULL) {
               /* Use the class from the enclosing class reactivation scope

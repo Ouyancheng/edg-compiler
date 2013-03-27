@@ -265,11 +265,13 @@ static unsigned long
 
 
 void add_end_of_parse_action(a_decl_parse_callback_function  *fn,
-                             a_decl_parse_state              *dps)
+                             a_decl_parse_state              *dps,
+                             a_boolean                       secondary_decls)
 /*
 Allocate an entry to call back the given function with the given parse state,
 and add it to the actions to be performed at the end of the declaration
-described by dps.
+described by dps.  If secondary_decls is TRUE, the action should also be
+performed for declarations associated with subsequent secondary declarators.
 */
 {
   a_decl_parse_callback_ptr  entry;
@@ -284,36 +286,49 @@ described by dps.
 #endif /* DEBUG */
   }  /* if */
   entry->callback_fn = fn;
+  entry->apply_to_secondary_declarators = secondary_decls;
   entry->next = dps->end_of_parse_actions;
   dps->end_of_parse_actions = entry;
 }  /* add_end_of_parse_action */
 
 
-void run_end_of_parse_actions(a_decl_parse_state  *dps)
+void run_end_of_parse_actions(a_decl_parse_state  *dps,
+                              a_boolean           more_declarators)
 /*
 Execute the end-of-parse callbacks registered for the declaration described by
-*dps, and free up the associated callback entries.
+*dps, and, if appropriate, free up the associated callback entries.
+more_declarators is TRUE if secondary declarators will follow (in which case
+some associated callback entries should not be freed).
 */
 {
-  a_decl_parse_callback_ptr  action = dps->end_of_parse_actions, next_action;
+  a_decl_parse_callback_ptr  actions = dps->end_of_parse_actions, *p_action;
 
   /* Clear dps->end_of_parse_actions.  The execution of the actions could
      conceivably add more actions, but that is currently prohibited. */
   dps->end_of_parse_actions = NULL;
-  for (; action != NULL; action = next_action) {
-    /* Retrieve the callback function. */
+  for (p_action = &actions; *p_action != NULL;) {
+    a_decl_parse_callback_ptr       action = *p_action;
     a_decl_parse_callback_function  *callback = action->callback_fn;
-    /* Free up the action for reuse. */
-    next_action = action->next;
-    action->next = avail_decl_parse_callbacks;
-    action->callback_fn = NULL;
-    avail_decl_parse_callbacks = action;
+    if (!more_declarators || !action->apply_to_secondary_declarators) {
+      /* Remove this action from the list and free it up for reuse. */
+      *p_action = action->next;
+      action->next = avail_decl_parse_callbacks;
+      action->callback_fn = NULL;
+      avail_decl_parse_callbacks = action;
+    } else {
+      /* Leave the current action in the list for subsequent declarators, and
+         move to the next action. */
+      p_action = &action->next;
+    }  /* if */
     /* Execute the action. */
     callback(dps);
   }  /* for */
   /* End-of-parse actions are currently not allowed to generate more actions
      for the same declaration. */
   check_assertion(dps->end_of_parse_actions == NULL);
+  /* Reinstall actions that should persist to subsequent secondary
+     declarators. */
+  dps->end_of_parse_actions = actions;
 }  /* run_end_of_parse_actions */
 
 
@@ -11092,7 +11107,7 @@ common cases.
     }  /* if */
   }  /* if */
   copy_source_position(dps->start_pos, error_position);
-  run_end_of_parse_actions(dps);
+  run_end_of_parse_actions(dps, /*more_declarators=*/FALSE);
   db_exit();
 }  /* type_name_full */
 
@@ -11387,7 +11402,7 @@ is_parenthesized comes in FALSE.
        to use it anywhere but in a pointer-to-member declaration. */
     invalidate_type(state);
   }  /* if */
-  run_end_of_parse_actions(state);
+  run_end_of_parse_actions(state, /*more_declarators=*/FALSE);
   db_exit();
 }  /* new_type_name */
 
@@ -12212,7 +12227,7 @@ a normal try.
                                            /*block_lifetime=*/TRUE);
         handler->dynamic_init = dip;
         type_ptr = state.type;
-        run_end_of_parse_actions(&state);
+        run_end_of_parse_actions(&state, /*more_declarators=*/FALSE);
       }  /* if */
     }  /* if */
     prev_handler = try_block_stmt->variant.try_block->handlers;
@@ -12651,7 +12666,7 @@ Return a pointer to the variable that is declared.
   /* Both in the error and normal case consider the variable set.  Don't
      do this earlier so we can catch "if (int x = x);". */
   mark_variable_value_set(sym);
-  run_end_of_parse_actions(&state);
+  run_end_of_parse_actions(&state, /*more_declarators=*/FALSE);
   db_exit();
   /* Return a pointer to the variable. */
   return vp;
@@ -16718,7 +16733,7 @@ parameters are scanned by scan_a_template_parameter_declaration.
       /* We've just skipped a comma separating two declarators. */
       /* Before parsing the next declaration, run any end-of-parse actions
          needed for the previous declarator. */
-      run_end_of_parse_actions(dps);
+      run_end_of_parse_actions(dps, /*more_declarators=*/TRUE);
       /* Reinitialize the declarator-specific parts of the parse state. */
       start_secondary_declarator(dps);
       dps->qualifiers = saved_qualifiers;
@@ -16889,7 +16904,7 @@ advance_past_final_token:
     next_token_is_top_level_decl_start = FALSE;
   }  /* if */
 return_point:
-  run_end_of_parse_actions(dps);
+  run_end_of_parse_actions(dps, /*more_declarators=*/FALSE);
   check_pending_qualifiers_used(dps);
   if (access_checks_deferred) {
     /* We are processing a declaration for which access checks were deferred.

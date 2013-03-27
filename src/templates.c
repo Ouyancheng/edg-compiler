@@ -17992,7 +17992,7 @@ additional position information about the components of the declaration.
 #endif /* GNU_VECTOR_TYPES_ALLOWED */
   }  /* if */
   *param_type_ptr = state.type;
-  run_end_of_parse_actions(&state);
+  run_end_of_parse_actions(&state, /*more_declarators=*/FALSE);
 }  /* scan_a_template_parameter_declaration */
 
 
@@ -21894,7 +21894,7 @@ any non-empty template parameter lists that were scanned.
         prototype_instantiation_should_be_done_for_function(sym)) {
       /* Run end-of-declaration-parsing actions prior to scanning the function
          body. */
-      run_end_of_parse_actions(dps);
+      run_end_of_parse_actions(dps, /*more_declarators=*/FALSE);
       /* Do the prototype instantiation of the function. */
       if (!decl_state->decl_scope_err && decl_state->defines_something &&
           !defer_function_prototype_instantiations) {
@@ -21909,7 +21909,7 @@ any non-empty template parameter lists that were scanned.
       static_data_member_prototype_instantiation(decl_state, sym);
     }  /* if */
   }  /* if */
-  run_end_of_parse_actions(dps);
+  run_end_of_parse_actions(dps, /*more_declarators=*/FALSE);
   /* Save the declaration sequence number at the end of this template
      declaration. */
   if (decl_state->decl_info != NULL) {

@@ -513,6 +513,10 @@ typedef struct a_decl_parse_callback {
   a_decl_parse_callback_function
 		*callback_fn;
 			/* Pointer to function to call. */
+  a_bit_field	apply_to_secondary_declarators:1;
+			/* TRUE if the callback should be called for every
+			   declaration associated with subsequent secondary
+			   declarators. */
 } a_decl_parse_callback;
 
 
@@ -999,10 +1003,13 @@ Macro to record in a parsing state that a type error was encountered.
 #define invalidate_type(ps)                                                  \
   ((ps)->type = (ps)->declared_type = (ps)->specifiers_type = error_type())
 
-extern void add_end_of_parse_action(a_decl_parse_callback_function  *fn,
-                                    a_decl_parse_state              *dps);
+extern void add_end_of_parse_action(
+                             a_decl_parse_callback_function  *fn,
+                             a_decl_parse_state              *dps,
+                             a_boolean                       secondary_decls);
 
-extern void run_end_of_parse_actions(a_decl_parse_state  *dps);
+extern void run_end_of_parse_actions(a_decl_parse_state  *dps,
+                                     a_boolean           more_declarators);
 
 extern void discard_end_of_parse_actions(a_decl_parse_state  *dps);
 

@@ -22387,7 +22387,7 @@ storage specifier may affect whether the property/event is static or not.
     dispose_of_unapplied_attributes(&dps->ms_attributes,
                                     ec_ms_attr_not_allowed);
   }  /* if */
-  run_end_of_parse_actions(dps);
+  run_end_of_parse_actions(dps, /*more_declarators=*/FALSE);
   scope_stack_top().curr_construct_pragmas = new_pragmas;
 }  /* decl_property_or_event_member */
 
@@ -24355,7 +24355,7 @@ passed via template_decl.
       check_use_of_auto_type(decl_state);
       /* Before parsing the next declaration, run any end-of-parse actions
          needed for the previous declarator. */
-      run_end_of_parse_actions(decl_state);
+      run_end_of_parse_actions(decl_state, /*more_declarators=*/TRUE);
       /* Reset certain decl_state fields. */
       start_secondary_declarator(decl_state);
       decl_state->qualifiers = saved_qualifiers;
@@ -24391,7 +24391,7 @@ next_declaration:;
     }  /* if */
   }  /* if */
   check_use_of_auto_type(decl_state);
-  run_end_of_parse_actions(decl_state);
+  run_end_of_parse_actions(decl_state, /*more_declarators=*/FALSE);
 #if MICROSOFT_EXTENSIONS_ALLOWED
   if (microsoft_mode) {
     /* Restore the default name linkage if a linkage specification appeared

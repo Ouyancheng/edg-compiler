@@ -8968,7 +8968,8 @@ storage_class_specifier:
           decl_specifiers_seen |= DS_CONSTEXPR;
           *output_flags |= DSO_CONSTEXPR;
           state->constexpr_pos = pos_curr_token;
-          add_end_of_parse_action(check_use_of_constexpr, state);
+          add_end_of_parse_action(check_use_of_constexpr, state,
+                                  /*secondary_decls=*/TRUE);
         }  /* if */
         break;
       case tok_inline:
