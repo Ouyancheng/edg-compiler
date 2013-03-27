@@ -212,14 +212,17 @@ in some lambdas incorrectly being treated as attributes.  Now fixed.
 3/20/13  [EDGcpfe/12502]
 GNU C++ compatibility: Signedness of __underlying_type
 
-__underlying_type is an operator that produces the underlying type of an
-enumeration type.  Ordinarily, that underlying type corresponds to the type
-the enumeration type might be promoted to, but GCC prefers unsigned types as
-the underlying type if no enumerator constant has a negative value, even when
-the type promoted to is signed.  The front end now reflects this behavior in
-the result of __underlying_type in GNU C++ mode.  However, the integer kind
-recorded for the enumeration type  (variant field "int_kind" in a_type) still
-corresponds to the integer type used for promotion purposes.  For example:
+An enumeration type has two associated integer types: The type used to
+determine integral promotion rules, and an "underlying type" (used for the
+internal representation of enum values).  Ordinarily, these two types are
+identical and the variant field int_kind in a_type entries for enumeration
+types therefore represents them both.  GNU C++, however, sometimes makes the
+underlying type "unsigned" (when no enumerator constant is negative) when the
+type used to determine promotion rules is signed.  In such GNU C++ mode cases,
+the front end records the type for promotion purposes in the int_kind field
+(as it has always done), but the __underlying_type operator (see the entry of
+7/5/11 for EDGcpfe/11495 etc.) now produces the unsigned underlying type
+instead of the (signed) type used for promotion purposes.  For example:
 
   enum E { e, f };
   __underlying_type(E) x;  // x now has an unsigned type in GNU C++ mode
