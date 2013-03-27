@@ -10550,6 +10550,7 @@ enum a_builtin_function_kind_tag {
   bfk_ia32_movmskpd,            /* __builtin_ia32_movmskpd */
   bfk_ia32_pmovmskb128,         /* __builtin_ia32_pmovmskb128 */
   bfk_ia32_movnti,              /* __builtin_ia32_movnti */
+  bfk_ia32_movnti64,            /* __builtin_ia32_movnti64 */
   bfk_ia32_movntpd,             /* __builtin_ia32_movntpd */
   bfk_ia32_movntdq,             /* __builtin_ia32_movntdq */
   bfk_ia32_pshufd,              /* __builtin_ia32_pshufd */
@@ -11012,6 +11013,9 @@ enum a_builtin_function_kind_tag {
   bfk_ia32_rorhi,               /* __builtin_ia32_rorhi */
   bfk_ia32_rorsi,               /* __builtin_ia32_rorsi */
   bfk_ia32_rordi,               /* __builtin_ia32_rordi */
+  bfk_ia32_pause,               /* __builtin_ia32_pause */
+  bfk_ia32_addcarryx_u32,       /* __builtin_ia32_addcarryx_u32 */
+  bfk_ia32_addcarryx_u64,       /* __builtin_ia32_addcarryx_u64 */
 #endif /* GNU_BUILTIN_IA32_VECTOR_FUNCTIONS_ALLOWED */
 #if GCC_BUILTIN_VARARGS
   bfk_va_start,			/* __builtin_va_start */
@@ -11971,6 +11975,7 @@ EXTERN char *builtin_function_kind_names[(int)bfk_last + 1]
   /* bfk_ia32_movmskpd */            "__builtin_ia32_movmskpd",
   /* bfk_ia32_pmovmskb128 */         "__builtin_ia32_pmovmskb128",
   /* bfk_ia32_movnti */              "__builtin_ia32_movnti",
+  /* bfk_ia32_movnti64 */            "__builtin_ia32_movnti64",
   /* bfk_ia32_movntpd */             "__builtin_ia32_movntpd",
   /* bfk_ia32_movntdq */             "__builtin_ia32_movntdq",
   /* bfk_ia32_pshufd */              "__builtin_ia32_pshufd",
@@ -12433,6 +12438,9 @@ EXTERN char *builtin_function_kind_names[(int)bfk_last + 1]
   /* bfk_ia32_rorhi */               "__builtin_ia32_rorhi",
   /* bfk_ia32_rorsi */               "__builtin_ia32_rorsi",
   /* bfk_ia32_rordi */               "__builtin_ia32_rordi",
+  /* bfk_ia32_pause */               "__builtin_ia32_pause",
+  /* bfk_ia32_addcarryx_u32 */       "__builtin_ia32_addcarryx_u32",
+  /* bfk_ia32_addcarryx_u64 */       "__builtin_ia32_addcarryx_u64",
 #endif /* GNU_BUILTIN_IA32_VECTOR_FUNCTIONS_ALLOWED */
 #if GCC_BUILTIN_VARARGS
   /* bfk_va_start */                 "__builtin_va_start",

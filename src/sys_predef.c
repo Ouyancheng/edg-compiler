@@ -850,9 +850,14 @@ extensions.)
   a_type_ptr  unsigned_int_type =
                                integer_type((an_integer_kind)ik_unsigned_int);
   a_type_ptr  unsigned_int_star_type = make_pointer_type(unsigned_int_type);
+  a_type_ptr  unsigned_long_type =
+                              integer_type((an_integer_kind)ik_unsigned_long);
   a_type_ptr  long_long_type = integer_type((an_integer_kind)ik_long_long);
+  a_type_ptr  long_long_star_type = make_pointer_type(long_long_star_type);
   a_type_ptr  unsigned_long_long_type =
                          integer_type((an_integer_kind)ik_unsigned_long_long);
+  a_type_ptr  unsigned_long_long_star_type =
+                              make_pointer_type(unsigned_long_long_star_type);
   /* The QI mode in GCC is "signed char".  However, the types designated with
      "qi" in the GCC vector function documentation appear to be plain
      "char". */
@@ -1141,6 +1146,8 @@ extensions.)
   enter_gnu_builtin_func1(_ia32_movmskpd, int, v2df);
   enter_gnu_builtin_func1(_ia32_pmovmskb128, int, v16qi);
   enter_gnu_builtin_func2(_ia32_movnti, no_return, int_star, int);
+  enter_gnu_builtin_func2(_ia32_movnti64, no_return,
+                          long_long_star, long_long);
   enter_gnu_builtin_func2(_ia32_movntpd, no_return, df_star, v2df);
   enter_gnu_builtin_func2(_ia32_movntdq, no_return, v2di_star, v2di);
   enter_gnu_builtin_func2(_ia32_pshufd, v4si, v4si, int);
@@ -1647,6 +1654,13 @@ extensions.)
   enter_gnu_builtin_func2(_ia32_rorhi, hi, hi, int);
   enter_gnu_builtin_func2(_ia32_rorsi, si, di, int);
   enter_gnu_builtin_func2(_ia32_rordi, di, di, int);
+  enter_gnu_builtin_func0(_ia32_pause, no_return);
+  enter_gnu_builtin_func4(_ia32_addcarryx_u32, unsigned_char,
+                          unsigned_char, unsigned_int, unsigned_int,
+                          unsigned_int_star);
+  enter_gnu_builtin_func4(_ia32_addcarryx_u32, unsigned_char,
+                          unsigned_char, unsigned_long, unsigned_long,
+                          unsigned_long_long_star);
 }  /* enter_builtin_ia32_vector_functions */
 
 #endif /* GNU_BUILTIN_IA32_VECTOR_FUNCTIONS_ALLOWED */

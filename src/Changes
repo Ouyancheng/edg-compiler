@@ -1,5 +1,14 @@
 Version 4.6
 
+3/27/13  [EDGcpfe/13797]
+GNU compatibility: New __builtin_ia32_... functions
+
+When GNU_BUILTIN_IA32_VECTOR_FUNCTIONS_ALLOWED is TRUE, the front end now
+predeclares the following functions in GNU mode: __builtin_ia32_pause,
+__builtin_ia32_movnti64, __builtin_ia32_addcarryx_u32, and
+__builtin_ia32_addcarryx_u64.
+
+
 3/26/13  [EDGcpfe/13435]
 Regression on pack expansion in template default argument
 
