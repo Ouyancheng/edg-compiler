@@ -4477,8 +4477,10 @@ IL entry for that field.
       field->has_direct_braced_initializer = is->direct_init;
       field->initializer = is->init_dip;
       field->has_nonconstant_initializer =
-                    is->init_dip->kind != (a_dynamic_init_kind)dik_constant ||
-                    is->constant_expr_ruled_out;
+               (is->init_dip->kind != (a_dynamic_init_kind)dik_constant &&
+                !(is->init_dip->kind == (a_dynamic_init_kind)dik_expression &&
+                  is_constant_node(is->init_dip->variant.expression))) ||
+               is->constant_expr_ruled_out;
     }  /* if */
   } else {
     expect_error();
