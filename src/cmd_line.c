@@ -9193,6 +9193,15 @@ enable_microsoft_mode:
   if (microsoft_mode) {
     /* Turn on features implied by Microsoft mode. */
     set_microsoft_mode_flags();
+    /* Disable unrestricted unions because they involve making some special
+       member functions "deleted", whereas current Microsoft compilers have
+       a different (i.e., nonstandard) behavior wrt. special members that
+       would be implicitly deleted. */
+    if (option_kind_used[(int)optk_unrestricted_unions] &&
+        unrestricted_unions_enabled) {
+      command_line_error(ec_cl_unrestricted_unions_in_microsoft_mode);
+    }  /* if */
+    unrestricted_unions_enabled = FALSE;
   } else {
     /* Microsoft mode is not being used. */
     microsoft_bugs = FALSE;

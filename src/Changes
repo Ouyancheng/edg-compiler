@@ -1594,6 +1594,10 @@ the command line.  For example:
 Furthermore, when unrestricted unions are enabled, unions can also contain
 static data members.
 
+Currently, unrestricted unions cannot be enabled in Microsoft C++ modes
+because it is unclear how the feature should interact with the nonstandard
+treatment of implicitly deleted special members in those modes.
+
 
 1/17/13  [EDGcpfe/13585]
 Microsoft mode: initialization of local static variable
