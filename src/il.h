@@ -4,7 +4,7 @@
 * Edison Design Group C++/C Front End                        - | \^/ | -      *
 *                                                               \   /         *
 * Proprietary information of Edison Design Group Inc.         /  | |  \       *
-* Copyright 1988-2012 Edison Design Group Inc.                   [_]          *
+* Copyright 1988-2013 Edison Design Group Inc.                   [_]          *
 *                                                                             *
 ******************************************************************************/
 /*
@@ -2520,6 +2520,6 @@ extern an_expr_node_ptr expr_before_type_adjustment(an_expr_node_ptr expr);
 * Edison Design Group C++/C Front End                        - | \^/ | -      *
 *                                                               \   /         *
 * Proprietary information of Edison Design Group Inc.         /  | |  \       *
-* Copyright 1988-2012 Edison Design Group Inc.                   [_]          *
+* Copyright 1988-2013 Edison Design Group Inc.                   [_]          *
 *                                                                             *
 ******************************************************************************/

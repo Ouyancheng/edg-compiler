@@ -4,7 +4,7 @@
 * Edison Design Group C++/C Front End                        - | \^/ | -      *
 *                                                               \   /         *
 * Proprietary information of Edison Design Group Inc.         /  | |  \       *
-* Copyright 2010-2012 Edison Design Group Inc.                   [_]          *
+* Copyright 2010-2013 Edison Design Group Inc.                   [_]          *
 *                                                                             *
 ******************************************************************************/
 
@@ -115,6 +115,6 @@ typedef struct a_portable_assembly_table_entry {
 * Edison Design Group C++/C Front End                        - | \^/ | -      *
 *                                                               \   /         *
 * Proprietary information of Edison Design Group Inc.         /  | |  \       *
-* Copyright 2010-2012 Edison Design Group Inc.                   [_]          *
+* Copyright 2010-2013 Edison Design Group Inc.                   [_]          *
 *                                                                             *
 ******************************************************************************/

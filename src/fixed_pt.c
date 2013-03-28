@@ -4,7 +4,7 @@
 * Edison Design Group C++/C Front End                        - | \^/ | -      *
 *                                                               \   /         *
 * Proprietary information of Edison Design Group Inc.         /  | |  \       *
-* Copyright 2003-2012 Edison Design Group Inc.                   [_]          *
+* Copyright 2003-2013 Edison Design Group Inc.                   [_]          *
 *                                                                             *
 ******************************************************************************/
 /*
@@ -1480,6 +1480,6 @@ assumes a_fixed_point_value is a synonym for an_integer_value.)
 * Edison Design Group C++/C Front End                        - | \^/ | -      *
 *                                                               \   /         *
 * Proprietary information of Edison Design Group Inc.         /  | |  \       *
-* Copyright 2003-2012 Edison Design Group Inc.                   [_]          *
+* Copyright 2003-2013 Edison Design Group Inc.                   [_]          *
 *                                                                             *
 ******************************************************************************/

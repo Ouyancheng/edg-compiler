@@ -4,7 +4,7 @@
 * Edison Design Group C++/C Front End                        - | \^/ | -      *
 *                                                               \   /         *
 * Proprietary information of Edison Design Group Inc.         /  | |  \       *
-* Copyright 1988-2012 Edison Design Group Inc.                   [_]          *
+* Copyright 1988-2013 Edison Design Group Inc.                   [_]          *
 *                                                                             *
 ******************************************************************************/
 /*
@@ -30482,6 +30482,6 @@ corresponding symbol for a CLI array type and return it.
 * Edison Design Group C++/C Front End                        - | \^/ | -      *
 *                                                               \   /         *
 * Proprietary information of Edison Design Group Inc.         /  | |  \       *
-* Copyright 1988-2012 Edison Design Group Inc.                   [_]          *
+* Copyright 1988-2013 Edison Design Group Inc.                   [_]          *
 *                                                                             *
 ******************************************************************************/

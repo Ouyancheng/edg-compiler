@@ -4,7 +4,7 @@
 * Edison Design Group C++/C Front End                        - | \^/ | -      *
 *                                                               \   /         *
 * Proprietary information of Edison Design Group Inc.         /  | |  \       *
-* Copyright 1988-2012 Edison Design Group Inc.                   [_]          *
+* Copyright 1988-2013 Edison Design Group Inc.                   [_]          *
 *                                                                             *
 ******************************************************************************/
 /*
@@ -1962,6 +1962,6 @@ extern void cmd_line_cleanup(void);
 * Edison Design Group C++/C Front End                        - | \^/ | -      *
 *                                                               \   /         *
 * Proprietary information of Edison Design Group Inc.         /  | |  \       *
-* Copyright 1988-2012 Edison Design Group Inc.                   [_]          *
+* Copyright 1988-2013 Edison Design Group Inc.                   [_]          *
 *                                                                             *
 ******************************************************************************/
