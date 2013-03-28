@@ -11308,7 +11308,8 @@ declaration.
     rtsp = NULL;
     expect_error();
   }  /* if */
-  if (rtsp != NULL && rtsp->exception_specification != NULL) {
+  if (rtsp != NULL && rtsp->exception_specification != NULL &&
+      rtsp->exception_specification->arg_cached) {
     /* Instantiation of exception specifications works from a complete
        function description; not just from a function type.  Therefore, we
        temporarily swap the information associated with the new type and its

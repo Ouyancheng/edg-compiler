@@ -2406,6 +2406,8 @@ region.
   esp->compiler_generated = FALSE;
   esp->arg_cached = FALSE;
   esp->variant.exception_specification_type_list = NULL;
+  esp->variant.token_cache = NULL;
+  esp->variant.noexcept_arg = NULL;
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   esp->source_range = null_source_range;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
