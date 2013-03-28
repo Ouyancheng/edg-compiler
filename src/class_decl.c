@@ -26745,8 +26745,13 @@ next_declaration:
           (dps != NULL && dps->is_alias_template_type)) {
         /* For class definitions appearing in invalid contexts, don't add any
            fixups because we cannot be sure to be able to create a reasonable
-           context for the fixups to be processed. */
-        expect_error();
+           context for the fixups to be processed.  Note that a class not
+           appearing in a valid scope is not always an error (in particular,
+           several modes allow a class definition in default arguments). */
+        check_assertion_or_expect_error(
+                           !strict_ansi_mode &&
+                           scope_is(&scope_stack_top(), sck_func_prototype) &&
+                           !class_is_in_valid_scope);
       } else if (!tag_sym->is_class_member || delayed_nested_class_def ||
                  is_in_class_specialization) {
         /* For non-nested classes add the class to the list of classes for
