@@ -9646,7 +9646,7 @@ rescan.
   begin_template_arg_list_traversal(templ_param_list, templ_arg_list,
                                     &tpp, &tap);
   for (; tap != NULL; advance_to_next_template_arg(&tpp, &tap)) {
-    if (tpp->param_symbol == sym) {
+    if (tpp->param_symbol->header == sym->header) {
       result_tap = tap;
       found = TRUE;
       /* Compute the number of pack elements. */

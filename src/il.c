@@ -6637,18 +6637,20 @@ definition of the CC flags in il.h for more information.
       case ck_template_param:
         /* Note that the constant types have been compared above. */
         if (cp1->variant.template_param.kind ==
-                                      cp2->variant.template_param.kind &&
-            (options & CC_EXACT_TEMPLATE_PARAM_TYPE_REQUIRED) == 0) {
+                                            cp2->variant.template_param.kind) {
           switch (cp1->variant.template_param.kind) {
             /* Don't compare coordinates when CC_COORDINATE_MISMATCH_OKAY
                is specified. */
             case tpck_param:
-              eq = (options & CC_COORDINATE_MISMATCH_OKAY) != 0 ||
-                  (cp1->variant.template_param.variant.coordinates.position ==
-                   cp2->variant.template_param.variant.coordinates.position
-                && equiv_nesting_depths(
-                       cp1->variant.template_param.variant.coordinates.depth,
-                       cp2->variant.template_param.variant.coordinates.depth));
+              eq = (options & CC_EXACT_TEMPLATE_PARAM_TYPE_REQUIRED) == 0 &&
+                   ((options & CC_COORDINATE_MISMATCH_OKAY) != 0 ||
+                    (cp1->
+                         variant.template_param.variant.coordinates.position ==
+                     cp2->
+                         variant.template_param.variant.coordinates.position &&
+                     equiv_nesting_depths(
+                      cp1->variant.template_param.variant.coordinates.depth,
+                      cp2->variant.template_param.variant.coordinates.depth)));
               break;
             case tpck_expression:
               eq = compare_expressions(
