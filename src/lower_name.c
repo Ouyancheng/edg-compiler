@@ -359,6 +359,10 @@ typedef struct a_substitution {
     a_variable_ptr
 		variable_ptr;
 			/* The variable to which this substitution applies. */
+    /* When kind == iek_field */
+    a_field_ptr
+		field_ptr;
+			/* The field to which this substitution applies. */
   } variant;
 } a_substitution;
 
@@ -762,6 +766,9 @@ with is_pack_expansion set to FALSE and once with it set to TRUE.
         break;
       case iek_variable:
         sp->variant.variable_ptr = (a_variable_ptr)entity;
+        break;
+      case iek_field:
+        sp->variant.field_ptr = (a_field_ptr)entity;
         break;
       default:
         unexpected_condition();
@@ -1529,6 +1536,12 @@ whether a substitution is available; do not put it out.
               result = TRUE;
             }  /* if */
             break;
+          case iek_field:
+            if (same_entities((a_field_ptr)entity,
+                              sp->variant.field_ptr)) {
+              result = TRUE;
+            }  /* if */
+            break;
           default:
             unexpected_condition();
         }  /* switch */
@@ -1646,6 +1659,8 @@ Return the routine in which the lambda appears in a default argument in
                   cssp != NULL &&
                   cssp->lambda_immediately_inside_default_arg_expression);
   check_assertion(!type_is_lambda_in_initializer(type));
+  check_assertion(!ctsp->defined_in_static_data_member_initializer &&
+                  !ctsp->defined_in_field_initializer);
   routine = ctsp->lambda_parent.routine;
   check_assertion(routine != NULL);
   if (enclosing_routine != NULL) *enclosing_routine = routine;
@@ -6304,6 +6319,8 @@ in a default argument of a function.
     if (cssp->lambda_immediately_inside_default_arg_expression) {
       a_class_type_supplement_ptr  ctsp = class_type_supp(type);
       check_assertion(!type_is_lambda_in_initializer(type));
+      check_assertion(!ctsp->defined_in_static_data_member_initializer &&
+                      !ctsp->defined_in_field_initializer);
       if (ctsp->lambda_parent.routine != NULL) {
         result = TRUE;
       } else {
@@ -7149,21 +7166,30 @@ IA-64 ABI to distinguish function-local entities with the same name.
 
 #endif /* IA64_ABI */
 
-static a_variable_ptr parent_variable_for_lambda_in_initializer(
-                                                             a_type_ptr lambda)
+static void parent_for_lambda_in_initializer(a_type_ptr              lambda,
+                                             a_source_correspondence **scp,
+                                             an_il_entry_kind        *kind)
 /*
-Returns the (static data member) variable in whose initializer the lambda
-is defined.  The variable is used as a "pseudo-parent" for the lambda for
-mangling purposes.
+Returns the variable (if the lambda is in a static data member initializer)
+or the field (if the lambda is in a nonstatic data member initializer) in
+which the lambda is defined.  The variable or field is used as a
+"pseudo-parent" for the lambda for mangling purposes.  *scp is set to the
+source correspondence of the variable or field and *kind is set to iek_variable
+or iek_field as appropriate.
 */
 {
-  a_variable_ptr              var;
+  a_class_type_supplement_ptr ctsp = class_type_supp(lambda);
 
   check_assertion(type_is_lambda_in_initializer(lambda));
-  var = class_type_supp(lambda)->lambda_parent.variable;
-  check_assertion(var != NULL);
-  return var;
-}  /* parent_variable_for_lambda_in_initializer */
+  if (ctsp->defined_in_field_initializer) {
+    *scp = &(class_type_supp(lambda)->lambda_parent.field->source_corresp);
+    *kind = iek_field;
+  } else {
+    check_assertion(ctsp->defined_in_static_data_member_initializer);
+    *scp = &(class_type_supp(lambda)->lambda_parent.variable->source_corresp);
+    *kind = iek_variable;
+  }  /* if */
+}  /* parent_for_lambda_in_initializer */
 
 
 static void mangled_unnamed_type_encoding(a_type_ptr               type,
@@ -7844,7 +7870,6 @@ static data member is used as the parent entity for mangling purposes.
   a_boolean               is_specialization = FALSE;
   a_boolean               use_individuated_namespace = FALSE;
   char                    *name;
-  a_variable_ptr          var;
 
   /* See if the present level is nested inside some other level (class,
      scoped enum, or namespace), or is logically nested inside some other
@@ -7852,14 +7877,11 @@ static data member is used as the parent entity for mangling purposes.
      of mangling. */
   if (kind == iek_type &&
       type_is_lambda_in_initializer((a_type_ptr)scp)) {
-    /* This lambda closure was defined in an initializer for a static data
-       member.  Use the static data member as its "parent" for mangling
-       purposes. */
-    var = parent_variable_for_lambda_in_initializer((a_type_ptr)scp);
-    parent_scp = &var->source_corresp;
-    parent_kind = iek_variable;
-    more_levels = entity_needs_parent_qualifier(&var->source_corresp,
-                                                iek_variable);
+    /* This lambda closure was defined in an initializer for a data member.
+       Use the data member as its "parent" for mangling purposes. */
+    parent_for_lambda_in_initializer((a_type_ptr)scp, &parent_scp,
+                                     &parent_kind);
+    more_levels = entity_needs_parent_qualifier(parent_scp, parent_kind);
   } else if (scp->is_class_member) {
     /* Class member. */
     type = scp_parent_class(scp);
@@ -8022,10 +8044,10 @@ static data member is used as the parent entity for mangling purposes.
      for the specified entity, emit the proper encoding for the parent. */
   if (kind == iek_type &&
       type_is_lambda_in_initializer((a_type_ptr)scp)) {
-    /* Lambda in initializer list.  Simply add the name of the static data
+    /* Lambda in initializer list.  Simply add the name of the data
        member along with its length. */
 #if IA64_ABI
-    if (add_substitution_if_available((char *)var, iek_variable,
+    if (add_substitution_if_available((char *)parent_scp, parent_kind,
                                       /*is_pack_expansion=*/FALSE, mctl)) {
       goto done;
     } else {
@@ -8038,14 +8060,13 @@ static data member is used as the parent entity for mangling purposes.
       }  /* if */
     }  /* if */
 #endif /* IA64_ABI */
-    mangled_name_with_length(unmangled_or_fabricated_name_of(
-                                                         &var->source_corresp),
+    mangled_name_with_length(unmangled_or_fabricated_name_of(parent_scp),
                              mctl);
 #if IA64_ABI
     /* Mangling for lambda in initializer. */
     add_to_mangled_name('M', mctl);
     /* Add a substitution for this variable. */
-    alloc_substitution((char *)var, iek_variable,
+    alloc_substitution((char *)parent_scp, parent_kind,
                        /*is_pack_expansion=*/FALSE, mctl);
 #endif /* IA64_ABI */
   } else if (scp->is_class_member) {
