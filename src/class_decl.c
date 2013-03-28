@@ -23532,7 +23532,10 @@ error.  Called in C++/CLI mode only.
 #if MICROSOFT_EXTENSIONS_ALLOWED
   if (!cli_class_type_kind_is(class_type, cctk_ref) &&
       !cli_class_type_kind_is(class_type, cctk_value) &&
+      microsoft_version < 1800 &&
       (!cpp11_mode || !cli_class_type_kind_is(class_type, cctk_standard))) {
+    /* Early versions of the Microsoft C++/CLI compiler only permitted explicit
+       conversion functions in ref and value classes. */
     pos_error(ec_cppcli_explicit_conversion_only_in_ref_and_value_classes,
               &dps->start_pos);
     okay = FALSE;

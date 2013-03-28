@@ -2160,6 +2160,9 @@ by a command line option.
     if (!va_list_in_std_namespace) {
       va_list_using_using_decl_in_std_namespace = TRUE;
     }  /* if */
+    if (cppcli_enabled || microsoft_version >= 1800) {
+      explicit_conversion_functions_enabled = TRUE;
+    }  /* if */
   }  /* if */
   /* In C++ mode, the Microsoft compiler sometimes finds typedefs when
      looking up names in elaborated type specifiers.  This flag causes
@@ -2193,7 +2196,6 @@ by a command line option.
   assume_this_cannot_be_null_in_conditional_operators = FALSE;
 #endif /* DO_IL_LOWERING */
   ms_declspec_attributes_enabled = TRUE;
-  if (cppcli_enabled) explicit_conversion_functions_enabled = TRUE;
   if (!option_kind_used[(int)optk_implicit_noexcept]) {
     /* Microsoft compilers do not yet (as of Visual C++ 2010) implement
        noexcept.  We therefore keep the traditional relaxed semantics for

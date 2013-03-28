@@ -1,6 +1,16 @@
 Version 4.6
 
 3/28/13  [EDGcpfe/13417]
+Explicit conversion functions in Microsoft and C++/CLI modes
+
+In Microsoft C++ mode with microsoft_version >= 1800, C++11-style explicit
+conversion operators are now accepted.  Furthermore, in C++/CLI modes with
+microsoft_version >= 1800, explicit conversion operators are no longer
+restricted to ref and value class types: They are also permitted in standard
+class types and in interface class types.
+
+
+3/28/13  [EDGcpfe/13417]
 Internal error on noexcept specifier following syntax error
 
 A syntax error in the declarator of a member function template could result
