@@ -22,7 +22,7 @@ initializers added recently.  Now fixed.
 IL version number updated to 4.6
 
 
-3/28/13  [EDGcpfe/13417]
+3/28/13  [EDGcpfe/13727]
 Explicit conversion functions in Microsoft and C++/CLI modes
 
 In Microsoft C++ mode with microsoft_version >= 1800, C++11-style explicit
