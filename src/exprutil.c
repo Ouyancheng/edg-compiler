@@ -13221,6 +13221,14 @@ question_position and colon_position give the position of the "?" and ":".
          the expression will be placed under a ck_template_param constant
          below. */
       do_folding = FALSE;
+    } else if (!curr_expr_is_evaluated()) {
+      /* Don't fold if the current expression is not evaluated.  This is
+         important for decltype operands, where in something like
+           x ? f1() : f2()
+         returning f1() would cause decltype to return the declared return
+         type of f1, which might be different than the type of f1() (e.g.,
+         cv-qualifiers might be different). */
+      do_folding = FALSE;
     } else if (!identical_types(operand_2->type, operand_3->type)) {
       /* Can't fold cases where the operand types do not match (e.g.,
          because one is a throw and the other is not). */
