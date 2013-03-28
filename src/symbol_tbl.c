@@ -2927,6 +2927,7 @@ to the symbol supplement associated with sym.
   a_template_cache_segment_ptr  tcsp;
   a_scope_stack_entry_ptr	ssep;
   a_scope_depth			depth_to_use = NO_SCOPE_DEPTH;
+  a_boolean			is_valid_context;
 
   if (avail_template_cache_segments != NULL) {
     /* Reuse an existing entry. */
@@ -2966,18 +2967,23 @@ to the symbol supplement associated with sym.
     check_assertion(depth_to_use != NO_SCOPE_DEPTH);
   }  /* if */
   ssep = &scope_stack[depth_to_use];
-  check_assertion_str2(ssep->in_prototype_instantiation ||
-                       ssep->in_generic_definition ||
-                       ssep->kind == (a_scope_kind)sck_template_declaration,
-                       "alloc_template_cache_segment:",
-                       "not in prototype instantiation");
-  if (ssep->first_template_cache_segment == NULL) {
-    ssep->first_template_cache_segment = tcsp;
+  is_valid_context = ssep->in_prototype_instantiation ||
+                     ssep->in_generic_definition ||
+                     ssep->kind == (a_scope_kind)sck_template_declaration;
+  check_assertion_or_expect_error_str2(is_valid_context,
+                                       "alloc_template_cache_segment:",
+                                       "not in prototype instantiation");
+  if (is_valid_context) {
+    /* Don't add the entry to the scope stack list if it the construct
+       appeared in an invalid location as a result of an error. */
+    if (ssep->first_template_cache_segment == NULL) {
+      ssep->first_template_cache_segment = tcsp;
+    }  /* if */
+    if (ssep->last_template_cache_segment != NULL) {
+      ssep->last_template_cache_segment->next = tcsp;
+    }  /* if */
+    ssep->last_template_cache_segment = tcsp;
   }  /* if */
-  if (ssep->last_template_cache_segment != NULL) {
-    ssep->last_template_cache_segment->next = tcsp;
-  }  /* if */
-  ssep->last_template_cache_segment = tcsp;
   return tcsp;
 }  /* alloc_template_cache_segment */
 

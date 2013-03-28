@@ -1,5 +1,21 @@
 Version 4.6
 
+3/28/13  [EDGcpfe/13417]
+Internal error on noexcept specifier following syntax error
+
+A syntax error in the declarator of a member function template could result
+in an internal error (in alloc_template_cache_segment) if the declaration
+also included a noexcept specification.  Now fixed.
+
+  template <class T> struct A {
+    template <class U> int f(T::template U {}) noexcept (true);
+  };
+  int main() {
+    A<void> a;
+    a.f(a);
+  }
+
+
 3/27/13  [EDGcpfe/13818]
 Enum types defined in templates
 
