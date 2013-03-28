@@ -5205,23 +5205,26 @@ dsi_flags is the set of input flags passed to decl_specifiers.
       if (tag_sym->defined) {
         /* Catch errors like "enum A { e }; enum ::A { f };". */
         pos_sy_error(ec_redefinition, &locator.source_position, tag_sym);
-      }  /* if */
-      mark_defined(tag_sym, &locator.source_position);
-      if (!C_mode() && inside_class_definition) {
-        /* enum_type is a class member and is being defined having been
-           forward-declared. */
-        check_assertion(tag_sym->is_class_member == TRUE);
-        if (enum_type->source_corresp.access != access) {
-          /* The access specified for the previous declaration does not
-             correspond to the access for current declaration. */
-          pos_sy_diagnostic(strict_ansi_mode ?
-                              strict_ansi_discretionary_severity :
-                              es_warning,
-                            ec_redecl_changes_access,
-                            &locator.source_position, tag_sym);
-           /* Since this is a definition, use the current access instead of
-             that specified on the original declaration. */
-          enum_type->source_corresp.access = access;
+        set_to_error_locator(locator);
+        tag_sym = NULL;
+      } else {
+        mark_defined(tag_sym, &locator.source_position);
+        if (!C_mode() && inside_class_definition) {
+          /* enum_type is a class member and is being defined having been
+             forward-declared. */
+          check_assertion(tag_sym->is_class_member == TRUE);
+          if (enum_type->source_corresp.access != access) {
+            /* The access specified for the previous declaration does not
+               correspond to the access for current declaration. */
+            pos_sy_diagnostic(strict_ansi_mode ?
+                                strict_ansi_discretionary_severity :
+                                es_warning,
+                              ec_redecl_changes_access,
+                              &locator.source_position, tag_sym);
+             /* Since this is a definition, use the current access instead of
+               that specified on the original declaration. */
+            enum_type->source_corresp.access = access;
+          }  /* if */
         }  /* if */
       }  /* if */
     } else if (curr_token == tok_semicolon &&
