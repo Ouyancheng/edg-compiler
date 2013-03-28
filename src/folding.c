@@ -9014,6 +9014,14 @@ evaluation (e.g., parameter values).
                  class. */
               cum_offset += bp->offset;
               curr_type = bp->type;
+            } else if (result_con->kind ==
+                                         (a_constant_repr_kind)ck_designator) {
+              /* The value is that of a specified union member. */
+              check_assertion(curr_type->kind == (a_type_kind)tk_union &&
+                              result_con->variant.designator.field != NULL);
+              curr_type =
+                     skip_typerefs(result_con->variant.designator.field->type);
+              result_con = result_con->next;
             } else {
               /* The offset is in a member subobject.  Scan for it and then
                  go back through the main loop. */
