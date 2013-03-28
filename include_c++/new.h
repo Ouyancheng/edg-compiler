@@ -1,4 +1,4 @@
-/* Edison Design Group, 2000-2012. */
+/* Edison Design Group, 2000-2013. */
 /*
 The new header should be included as "#include <new>".  This file is
 provided for compatibility with older programs that use "#include
