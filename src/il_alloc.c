@@ -2230,6 +2230,7 @@ Clear the fields of the given variable to default values.
   vp->modified_within_try_block   = FALSE;
   vp->is_template_static_data_member
                                   = FALSE;
+  vp->is_prototype_instantiation  = FALSE;
   vp->is_specialized              = FALSE;
   vp->specialized_with_old_syntax = FALSE;
   vp->explicit_instantiation      = FALSE;

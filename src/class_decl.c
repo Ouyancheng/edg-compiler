@@ -14874,6 +14874,7 @@ specific information about the member declaration, respectively.
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
         tip->template_info->token_sequence_number = curr_token_sequence_number;
         var->is_template_static_data_member = TRUE;
+        var->is_prototype_instantiation = TRUE;
         /* Although this is not a template, it is an instantiatable variable
            and hence we create a placeholder a_template entry for it. */
         var->assoc_template = templ = alloc_template();

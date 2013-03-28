@@ -2685,6 +2685,9 @@ Display the indicated variable.
   if (ptr->is_template_static_data_member) {
     disp_boolean("is_template_static_data_member", TRUE);
   }  /* if */
+  if (ptr->is_prototype_instantiation) {
+    disp_boolean("is_prototype_instantiation", TRUE);
+  }  /* if */
   if (ptr->is_specialized) {
     disp_boolean("is_specialized", TRUE);
   }  /* if */

@@ -5327,6 +5327,7 @@ an unnamed namespace.
       var_sym->referenced &&
       (vp->storage_class == (a_storage_class)sc_extern &&
        (!vp->is_template_static_data_member ||
+        vp->is_prototype_instantiation ||
         !will_be_instantiated(var_sym)))) {
     check_constituent_types_have_linkage(var_sym,
                                          &var_sym->decl_position,

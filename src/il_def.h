@@ -9077,6 +9077,10 @@ typedef struct a_variable {
 			   provided by the user.  FALSE for all other cases,
 			   including a static data member of a class that
 			   is a specialization of a template class. */
+  a_bit_field	is_prototype_instantiation:1;
+			/* TRUE if this variable represents the prototype
+			   instantiation of a static data member of
+			   a class template. */
   a_bit_field	is_specialized:1;
 			/* TRUE when is_template_static_data_member is TRUE
 			   but the definition is supplied independently of
