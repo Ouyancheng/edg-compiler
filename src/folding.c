@@ -8918,16 +8918,15 @@ evaluation (e.g., parameter values).
           /* result_con is a string and offset designates a character within
              that string. */
           found_value = TRUE;
-        } else if (is_error_type(curr_type) || is_error_constant(result_con)) {
+        } else if (is_error_type(curr_type) || is_error_constant(result_con) ||
+                   result_con->kind != (a_constant_repr_kind)ck_aggregate) {
           /* There was an error upstream. */
           err = TRUE;
         } else {
           /* curr_type is either an array or a class type, and offset
              represents one of its subobjects.  Step into curr_type and
              continue scanning for the matching offset. */
-          check_assertion(result_con->kind ==
-                                        (a_constant_repr_kind)ck_aggregate &&
-                          cum_offset + (a_targ_ptrdiff_t)curr_type->size >
+          check_assertion(cum_offset + (a_targ_ptrdiff_t)curr_type->size >
                                                                        offset);
           result_con = result_con->variant.aggregate.first_constant;
           if (is_array_type(curr_type)) {
