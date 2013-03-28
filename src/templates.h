@@ -114,9 +114,6 @@ typedef struct a_tmpl_decl_state {
 			/* TRUE if this is a generic generated from metadata
 			   declared with an indication that constraints will
 			   be specified on a later declaration. */
-  a_boolean	globally_qualified_friend_class;
-			/* TRUE if this is a template friend template class
-			   declaration with a global qualifier. */
   a_source_position
 		export_position;
 			/* If export_present is TRUE, the position of the
