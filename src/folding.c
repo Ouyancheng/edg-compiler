@@ -10247,7 +10247,12 @@ fold_constexpr_ctor should usually be called instead.
                             ->variant.class_struct_union.field_list) == NULL) {
               /* Add an empty aggregate initializer for an anonymous union
                  containing no members. */
-              a_constant_ptr anon_union_aggr =
+              a_constant_ptr anon_union_aggr;
+              /* Only initialize such an empty union inside a union if no
+                 field is initialized. */
+              if (class_type->kind == (a_type_kind)tk_union &&
+                  ctor_init != NULL) break;
+              anon_union_aggr =
                             alloc_constant((a_constant_repr_kind)ck_aggregate);
               add_constant_to_aggregate(anon_union_aggr, &aggr_con);
               anon_union_aggr->type = next_expected_field->type;
