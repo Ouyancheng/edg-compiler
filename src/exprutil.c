@@ -6693,21 +6693,21 @@ NULL.
 }  /* add_derived_class_casts */
 
 
-static void add_pm_base_class_casts(a_base_class_ptr  bcp,
+static void add_pm_base_class_casts(a_type_ptr        new_type,
+                                    a_base_class_ptr  bcp,
                                     a_boolean         check_ambiguity,
                                     an_expr_node_ptr  *p_node,
                                     a_source_position *err_pos)
 /*
 Add casts to *p_node to change its type from a pointer to a member of
-a class type to a pointer to a member of a base class of that class; bcp
-indicates the base class.  Check for an ambiguous base class if
-check_ambiguity is TRUE.  *err_pos indicates a source position to be used
-for errors.  This routine is only used in C++ mode.  Note that casts of
-this type always come from explicit casts, so checking for accessibility
-of base classes is not necessary.
+a class type to a pointer to a member as given by new_type, based on a
+base class of that class; bcp indicates the base class.  Check for an
+ambiguous base class if check_ambiguity is TRUE.  *err_pos indicates a
+source position to be used for errors.  This routine is only used in
+C++ mode.  Note that casts of this type always come from explicit
+casts, so checking for accessibility of base classes is not necessary.
 */
 {
-  a_type_ptr            curr_type;
   a_type_ptr            member_type = pm_member_type((*p_node)->type);
   a_derivation_step_ptr dsp;
 
@@ -6731,11 +6731,16 @@ of base classes is not necessary.
        base class.  Generate the necessary casts. */
     for (dsp = cast_derivation_path_of(bcp); dsp != NULL; dsp = dsp->next) {
       /* Add the cast to the next level. */
-      curr_type = dsp->base_class->type;
+      a_type_ptr step_type;
+      if (dsp->next != NULL) {
+        a_type_ptr curr_type = dsp->base_class->type;
+        step_type = related_ptr_to_member_type(member_type, curr_type);
+      } else {
+        step_type = new_type;
+      }  /* if */
       *p_node = make_operator_node(
                                  (an_expr_operator_kind)eok_pm_base_class_cast,
-                                 related_ptr_to_member_type(member_type,
-                                                            curr_type),
+                                 step_type,
                                  *p_node);
       /* No need to set compiler_generated; this cast cannot be implicit. */
       if (dsp->next != NULL) {
@@ -6784,7 +6789,7 @@ is implicit.
 }  /* add_a_pm_derived_class_cast */
 
 
-static void add_pm_derived_class_casts(a_type_ptr        new_class_pointed_to,
+static void add_pm_derived_class_casts(a_type_ptr        new_type,
                                        a_base_class_ptr  bcp,
                                        a_boolean         check_cast_access,
                                        a_boolean         check_ambiguity,
@@ -6793,7 +6798,7 @@ static void add_pm_derived_class_casts(a_type_ptr        new_class_pointed_to,
                                        a_source_position *err_pos)
 /*
 Add casts to *p_node to change its type from pointer to member of a class type
-to pointer to a member of new_class_pointed_to, a derived class of that
+to a pointer to a member as given by new_type, based on a derived class of that
 class; bcp indicates the base class of the derived class that corresponds
 to the current type (i.e., its derivation list is backwards from what's
 needed).  Do access control on the cast if check_cast_access is TRUE.
@@ -6805,6 +6810,7 @@ source position to be used for errors.  This routine is only used in C++ mode.
   a_type_ptr            curr_type;
   a_derivation_step_ptr dsp;
   a_base_class_ptr      base_class;
+  a_type_ptr            new_class_pointed_to = pm_class_type(new_type);
 
   /* The code here looks like fold_pm_derived_class_cast. */
   if (!expr_access_checking_should_be_done()) check_cast_access = FALSE;
@@ -6850,6 +6856,12 @@ source position to be used for errors.  This routine is only used in C++ mode.
     add_a_pm_derived_class_cast(new_class_pointed_to,
                                 cast_derivation_path_of(bcp),
                                 is_implicit_cast, p_node);
+    check_assertion(is_operation_node(*p_node) &&
+                    (*p_node)->variant.operation.kind ==
+                             (an_expr_operator_kind)eok_pm_derived_class_cast);
+    /* Store the final type, which may differ from what's there now in
+       having different cv-qualifiers on the member type. */
+    (*p_node)->type = new_type;
   }  /* if */
 }  /* add_pm_derived_class_casts */
 
@@ -7219,14 +7231,13 @@ indicates that the cast comes from a reinterpret_cast construct in the source.
     if (baseward_cast) {
       /* Derived --> base (allowed only as an explicit cast).  Valid unless
          the cast is ambiguous. */
-      add_pm_base_class_casts(bcp, check_ambiguity, p_node, err_pos);
+      add_pm_base_class_casts(new_type, bcp, check_ambiguity, p_node, err_pos);
     } else {
       /* Base --> derived (allowed as an implicit or explicit cast).  Valid
          unless the cast is ambiguous, the base class is inaccessible (if
          the cast is implicit), or the base class is a virtual base of the
          derived class. */
-      new_type_pointed_to = pm_class_type(new_type);
-      add_pm_derived_class_casts(new_type_pointed_to, bcp,
+      add_pm_derived_class_casts(new_type, bcp,
                                  check_cast_access, check_ambiguity,
                                  is_implicit_cast,
                                  p_node, err_pos);

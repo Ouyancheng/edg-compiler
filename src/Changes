@@ -1,5 +1,23 @@
 Version 4.6
 
+3/28/13 [EDGcpfe/13824]
+Incorrect type on pointer-to-member cast that changes class and cv-qualifiers
+
+An eok_pm_derived_class_cast or eok_pm_base_class_cast cast sequence that
+is also supposed to change the cv-qualifiers of the member type failed
+to do so (it changed the class but kept the cv-qualifiers of the original
+node).  That caused a failure of a consistency check on variable
+initializers added recently.  Now fixed.
+
+  struct B {};
+  struct D: B {
+    int i;
+  };
+  void f(int B::* pmb) {
+    int const D::*pmd = pmb;  // Type of initializer was missing const
+  }
+
+
 3/28/13
 IL version number updated to 4.6
 
