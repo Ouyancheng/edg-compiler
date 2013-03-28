@@ -7959,6 +7959,10 @@ typedef struct a_type {
 			   C++ may be TRUE even when the source-corresp name
 			   pointer is non-NULL, since a name may be acquired
 			   from a typedef name. */
+      a_bit_field
+		is_nonreal:1;
+			/* TRUE for enum types declared in a prototype
+			   instantiation. */
       bitfield_to_avoid_codecenter_warnings()
       union {
         /* When enum_type is TRUE, but is_scoped_enum is FALSE: */

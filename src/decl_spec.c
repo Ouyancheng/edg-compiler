@@ -5239,6 +5239,10 @@ dsi_flags is the set of input flags passed to decl_specifiers.
        allocated in the file scope memory region. */
     enum_type = alloc_type((a_type_kind)tk_integer);
     enum_type->incomplete = TRUE;
+    if (scope_stack[effective_decl_level].in_prototype_instantiation ||
+        scope_stack[effective_decl_level].in_nonreal_instantiation) {
+      enum_type->variant.integer.is_nonreal = TRUE;
+    }  /* if */
     if (parent_scope != NULL && in_file_scope(parent_scope)) {
       /* Record the parent_scope if it is nonlocal so parent classes or parent
          namespaces are available.  (This is recorded in all cases when the

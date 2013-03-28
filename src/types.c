@@ -11322,6 +11322,11 @@ types, i.e., also for nonreal classes.
     /* A nonreal class is a dependent type. */
     *force_end_of_traversal = found = TRUE;
   } else if (find_all_dependent_types &&
+             is_immediate_enum_type(type_ptr) &&
+             type_ptr->variant.integer.is_nonreal) {
+    /* A nonreal enumeration type is a dependent type. */
+    *force_end_of_traversal = found = TRUE;
+  } else if (find_all_dependent_types &&
              type_ptr->kind == (a_type_kind)tk_typeref &&
              type_ptr->variant.typeref.is_dependent_type_operator) {
     /* A dependent decltype or typeof. */

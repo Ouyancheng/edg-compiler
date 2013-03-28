@@ -8257,10 +8257,10 @@ it's to be moved to another position in the list.
       } else if (type_ptr->source_corresp.is_local_to_function &&
                  ssep->in_prototype_instantiation &&
                  !prototype_instantiations_in_il) {
-        /* A local class parsed during the prototype instantiation of a
+        /* A local type parsed during the prototype instantiation of a
            function when prototype instantiations aren't recorded in the IL:
-           Do not add the local class to the IL since it may contain
-           references to template parameters. */
+           Do not add the local type to the IL since it may contain references
+           to template parameters. */
         may_be_added = FALSE;
       }  /* if */
     } else if (type_ptr->source_corresp.is_class_member) {

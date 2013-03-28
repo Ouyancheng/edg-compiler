@@ -1861,6 +1861,9 @@ Display the indicated type entry.
         if (ptr->variant.integer.originally_unnamed) {
           disp_boolean("originally_unnamed", TRUE);
         }  /* if */
+        if (ptr->variant.integer.is_nonreal) {
+          disp_boolean("is_nonreal", TRUE);
+        }  /* if */
         if (integer_type_is_scoped_enum(ptr)) {
           disp_ptr("enum_info.assoc_scope",
                    (char*)ptr->variant.integer.enum_info.assoc_scope,
