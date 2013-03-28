@@ -16584,7 +16584,7 @@ error and set *processed to TRUE if the conversion is ambiguous.
       /* The conversion is possible -- do it. */
       /* Force the result to be an rvalue. */
       conversion.result_is_an_lvalue = FALSE;
-      user_convert_operand(operand, /*dest_type=*/(a_type_ptr)NULL,
+      user_convert_operand(operand, specific_type,
                            &conversion, (a_conv_descr *)NULL,
                            /*force_copy_to_temp=*/FALSE);
       *processed = TRUE;
