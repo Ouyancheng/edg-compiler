@@ -20,7 +20,8 @@ definition could validly be generated.  For example:
   struct X {
     X(S &s) : x(s) {}
     mutable S x;
-  };  //  void g(X &d, X const &s) {
+  };
+  void g(X &d, X const &s) {
     d = s;  // Previously this triggered a spurious error in C++ mode
   }         //  because X::operator=(X const&) was declared "= delete".
 
