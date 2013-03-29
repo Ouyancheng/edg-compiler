@@ -1309,9 +1309,6 @@ typedef struct a_class_symbol_supplement {
   a_bit_field	default_ctor_body_delayed:1;
 			/* TRUE if the generation of the default constructor
 			   body has been delayed. */
-  a_bit_field	constexpr_default_ctor_checked:1;
-			/* TRUE if we have already checked whether this class
-			   has a constexpr generated default constructor. */
   bitfield_to_avoid_codecenter_warnings()
   a_scope_pointers_block
 		pointers_block;
