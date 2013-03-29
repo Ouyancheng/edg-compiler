@@ -9283,12 +9283,13 @@ ceblock gives context information for the evaluation.
           }  /* if */
           if (folded) {
             /* Build a result true or false constant. */
-            a_type_ptr btype = skip_typerefs(expr->type);
-            if (is_template_param_type(btype)) btype = bool_type();
+            a_type_ptr etype = expr->type;
+            a_type_ptr btype = skip_typerefs(etype);
+            if (is_template_param_type(btype)) btype = etype = bool_type();
             check_assertion(btype->kind == (a_type_kind)tk_integer);
             set_integer_constant(result_con, (a_host_large_integer)result,
                                  btype->variant.integer.int_kind);
-            result_con->type = expr->type;
+            result_con->type = etype;
           }  /* if */
         }  /* if */
         break;
@@ -9507,6 +9508,14 @@ pm_field_selection:
                          is_pointer_to_object_type(expr->type)) {
                 /* Core issue 1312: can't fold a cast from pointer-to-void to
                    pointer-to-object. */
+              } else if (could_be_dependent_class_type(expr->type) ||
+                         could_be_dependent_class_type(op1_constant.type)) {
+                /* Don't fold casts involving dependent class types unless
+                   the types are the same except for cv-qualifiers. */
+                if (identical_types_ignoring_qualifiers(expr->type,
+                                                        op1_constant.type)) {
+                  op1_constant.type = expr->type;
+                }  /* if */
               } else {
                 type_change_constant(&op1_constant, expr->type,
                                     expr->variant.operation.compiler_generated,
