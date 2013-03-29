@@ -1,5 +1,28 @@
 Version 4.6
 
+3/28/13 [EDGcpfe/13788]
+Generated special member in class with mutable field incorrectly "deleted"
+
+The changes for EDGcpfe/9807 (see entry of 3/21/12) caused some generated
+copy constructors and copy assignment operators for classes with mutable
+members to be implicitly "deleted" (in C++11 mode) even though their
+definition could validly be generated.  For example:
+
+  struct S {
+    S& operator=(S&);
+  private:
+    S& operator=(S const&);
+  };
+  struct X {
+    X(S &s) : x(s) {}
+    mutable S x;
+  };  //  void g(X &d, X const &s) {
+    d = s;  // Previously this triggered a spurious error in C++ mode
+  }         //  because X::operator=(X const&) was declared "= delete".
+
+This is now fixed.
+
+
 3/28/13 [EDGcpfe/13824]
 Incorrect type on pointer-to-member cast that changes class and cv-qualifiers
 
