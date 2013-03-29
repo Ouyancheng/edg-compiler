@@ -4113,15 +4113,19 @@ it creates an associated variable for the constant and returns that.
     }  /* if */
     /* Save the pointer in the constant so the variable can be reused. */
     constant->assoc_var = assoc_var;
-#if MAINTAIN_NEEDED_FLAGS
-    /* In cases where needed flag processing has already been done (e.g,
-       when processing orphans), make sure assoc_var has the same needed
-       flag settings as the constant it replaces. */
-    mark_as_needed_like((char *)assoc_var, iek_variable,
-                        &constant->source_corresp,
-                        /*set_class_defn_needed=*/FALSE);
-#endif /* MAINTAIN_NEEDED_FLAGS */
   }  /* if */
+#if MAINTAIN_NEEDED_FLAGS
+  /* In cases where needed flag processing has already been done (e.g,
+     when processing orphans), make sure assoc_var has the same needed
+     flag settings as the constant it replaces.  Note that this processing
+     is also performed on subsequent calls (i.e., when the associated
+     variable already exists) because orphan processing takes place after
+     the needed flag processing, so an associated variable that had
+     originally been set to not needed may now be in fact needed. */
+  mark_as_needed_like((char *)assoc_var, iek_variable,
+                      &constant->source_corresp,
+                      /*set_class_defn_needed=*/FALSE);
+#endif /* MAINTAIN_NEEDED_FLAGS */
   return assoc_var;
 }  /* assoc_var_for_constant */
 
