@@ -17523,7 +17523,8 @@ special member whose definition cannot be generated.
 static void check_base_or_mbr_class_type_for_suppression(
                                a_type_ptr                          class_type,
                                a_generated_special_function_descr  *gsfd,
-                               a_type_ptr                          type)
+                               a_type_ptr                          type,
+                               a_boolean                           is_mutable)
 /*
 This is a helper routine for check_suppressed_special_functions.  It checks a
 base class or the class type ("type") of a member of class_type to see if any
@@ -17532,14 +17533,15 @@ definition of a copy/move assignment operator, copy/move constructor, or
 destructor for the specified class_type.  type may be const/volatile qualified
 but if the corresponding subobject is an array, type is the underlying class
 type (possibly qualified).  *gsfd is updated accordingly and warnings or
-remarks may be issued in some cases.
+remarks may be issued in some cases.  is_mutable is TRUE if the given type is
+that of a mutable field.
 */
 {
   a_class_symbol_supplement_ptr  cssp;
   a_symbol_ptr                   rout_sym;
   a_boolean                      ambiguous;
   a_boolean                      bitwise_copy, trivially_copyable;
-  a_type_qualifier_set           subobj_qual;
+  a_type_qualifier_set           subobj_qual, src_qual;
 
   subobj_qual = get_type_qualifiers(type);
   type = skip_typerefs(type);
@@ -17572,8 +17574,10 @@ remarks may be issued in some cases.
                          class_type, type);
     }  /* if */
   } else {
+    src_qual = gsfd->copy_assign_qualifiers;
+    if (is_mutable) src_qual &= ~(a_type_qualifier_set)src_qual;
     rout_sym = find_copy_assignment_operator(
-                                      type, gsfd->copy_assign_qualifiers,
+                                      type, src_qual,
                                       /*source_is_rvalue=*/FALSE, subobj_qual, 
                                       &type->source_corresp.decl_position,
                                       &ambiguous, &bitwise_copy);
@@ -17624,6 +17628,8 @@ remarks may be issued in some cases.
                          class_type, type);
     }  /* if */
   } else {
+    src_qual = gsfd->copy_ctor_qualifiers;
+    if (is_mutable) src_qual &= ~(a_type_qualifier_set)src_qual;
     rout_sym = find_copy_constructor(type, gsfd->copy_ctor_qualifiers,
                                      /*source_is_rvalue=*/FALSE,
                                      &type->source_corresp.decl_position,
@@ -17723,7 +17729,8 @@ warnings or remarks may be issued.
         /* Property fields and events do not affect the special member
            functions. */
         !field_is_property_or_event(sym->variant.field.ptr)) {
-      tp = sym->variant.field.ptr->type;
+      a_field_ptr  fp = sym->variant.field.ptr;
+      tp = fp->type;
       if (is_array_type(tp)) {
         tp = underlying_array_element_type(tp);
       }  /* if */
@@ -17763,7 +17770,8 @@ warnings or remarks may be issued.
         /* Check to see if the special member functions of the member's class
            type would prevent the corresponding functions from being
            generated. */
-        check_base_or_mbr_class_type_for_suppression(class_type, gsfd, tp);
+        check_base_or_mbr_class_type_for_suppression(class_type, gsfd, tp,
+                                                     fp->is_mutable);
       }  /* if */
     }  /* if */
   }  /* for */
@@ -17773,8 +17781,8 @@ warnings or remarks may be issued.
       /* Check to see if the special member functions of this base class would
          prevent the corresponding derived class functions from being
          generated. */
-      check_base_or_mbr_class_type_for_suppression(class_type, gsfd,
-                                                   bcp->type);
+      check_base_or_mbr_class_type_for_suppression(class_type, gsfd, bcp->type,
+                                                   /*is_mutable=*/FALSE);
     }  /* if */
   }  /* for */
 }  /* check_suppressed_special_functions */
