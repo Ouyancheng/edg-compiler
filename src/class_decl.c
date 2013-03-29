@@ -17897,7 +17897,18 @@ default constructor, or an array thereof.
                                                    /*evaluated=*/TRUE,
                                                    /*check_access=*/TRUE,
                                                    &error_detected, &err);
-    result = default_ctor != NULL && default_ctor->is_constexpr;
+    if (default_ctor == NULL) {
+      /* There is no default constructor (and hence no constexpr default
+         constructor). */
+      result = FALSE;
+    } else {
+      if (default_ctor->compiler_generated) {
+        /* A generated default constructor was found: Ensure its is_constexpr
+           flag value has been determined. */
+        (void)check_if_constexpr_generated_default_constructor(type);
+      }  /* if */
+      result = default_ctor->is_constexpr;
+    }  /* if */
   }  /* if */
   return result;
 }  /* type_is_constexpr_default_constructible */
@@ -18117,6 +18128,13 @@ issue an error if it is not actually constexpr.
   a_routine_ptr  ctor_rp;
   a_boolean      is_constexpr = FALSE;
 
+  if (cssp->constexpr_default_ctor_checked) {
+    /* We already called this routine to determine whether the given class
+       type has a "constexpr" generated default constructor.  Reuse the
+       recorded result. */
+    if (ctor != NULL) is_constexpr = ctor->variant.routine.ptr->is_constexpr;
+    goto done;
+  }  /* if */
   check_assertion(constexpr_enabled);
   if (ctor != NULL) {
     ctor_rp = ctor->variant.routine.ptr;
@@ -18153,6 +18171,8 @@ issue an error if it is not actually constexpr.
       ctor_rp->is_constexpr = FALSE;
     }  /* if */
   }  /* if */
+  cssp->constexpr_default_ctor_checked = TRUE;
+done:
   return is_constexpr;
 }  /* check_if_constexpr_generated_default_constructor */
 
