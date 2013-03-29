@@ -10578,20 +10578,17 @@ otherwise, return FALSE.
         if (is_array_type(field_type) && is_array_type(con_type)) {
           field_type = skip_typerefs(field_type);
           con_type = skip_typerefs(con_type);
-          if (!field_type->variant.array.is_variable_size_array &&
-              !field_type->variant.array.is_template_dependent_size_array &&
-              !con_type->variant.array.is_variable_size_array &&
-              !con_type->variant.array.is_template_dependent_size_array) {
-            if (field_type->variant.array.variant.number_of_elements == 0 ||
-                field_type->variant.array.variant.number_of_elements >
-                          con_type->variant.array.variant.number_of_elements) {
-              /* A member may have an unknown bound, completed by the
-                 initializer, or the initializer may have fewer elements
-                 than the member.  In these cases, we can't compare the
-                 array types directly, but the element types must match. */
-              field_type = array_element_type(field_type);
-              con_type = array_element_type(con_type);
-            }  /* if */
+          if (!has_unknown_specified_bound(field_type) &&
+              !has_unknown_specified_bound(con_type) &&
+              (field_type->variant.array.variant.number_of_elements == 0 ||
+               field_type->variant.array.variant.number_of_elements >
+                         con_type->variant.array.variant.number_of_elements)) {
+            /* A member may have an unknown bound, completed by the
+               initializer, or the initializer may have fewer elements than
+               the member.  In these cases, we can't compare the array
+               types directly, but the element types must match. */
+            field_type = array_element_type(field_type);
+            con_type = array_element_type(con_type);
           }  /* if */
         }  /* if */
         check_assertion(identical_types_ignoring_qualifiers(con_type,
