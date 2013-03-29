@@ -19056,7 +19056,9 @@ be a reference type.  Only used in C++.  This is copy-initialization.
          we already have a temporary. */
       have_temp = TRUE;
     }  /* if */
-    if (have_temp && is_an_lvalue(source_operand)) {
+    if (is_error_operand(source_operand)) {
+      /* Leave an error operand alone. */
+    } else if (have_temp && is_an_lvalue(source_operand)) {
       /* The result of the conversion is already a temporary that is an
          lvalue (in particular, this includes array lvalues). */
       /* Adjust the cv-qualifiers on the temp-init if necessary, which
