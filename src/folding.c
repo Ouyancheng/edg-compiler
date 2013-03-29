@@ -9284,6 +9284,7 @@ ceblock gives context information for the evaluation.
           if (folded) {
             /* Build a result true or false constant. */
             a_type_ptr btype = skip_typerefs(expr->type);
+            if (is_template_param_type(btype)) btype = bool_type();
             check_assertion(btype->kind == (a_type_kind)tk_integer);
             set_integer_constant(result_con, (a_host_large_integer)result,
                                  btype->variant.integer.int_kind);
