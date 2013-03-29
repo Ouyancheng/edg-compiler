@@ -22518,7 +22518,7 @@ that follows.
                         sym, dps, locator.template_arg_list,
                         (a_boolean)locator.is_template_id,
 		        /*in_class_specialization=*/decl_state->is_member_decl,
-                        /*prefer_template=*/TRUE,
+                        /*prefer_template=*/(a_boolean)locator.is_template_id,
                         gpp_mode ? NO_NESTING_DEPTH
                                  : decl_state->nesting_depth +
                                                       decl_state->friend_depth,
