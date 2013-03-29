@@ -17933,28 +17933,32 @@ Scan any field initializers of the given class type that haven't yet been
 scanned.
 */
 {
-  if (symbol_supplement_for_class(class_type)
-                                    ->has_instantiatable_field_initializers) {
-    /* A class whose fields are instantiated on demand (normally a class
-       template instance).  Traverse the field symbols and instantiate them
-       if needed. */
-    a_symbol_ptr  sym;
-    a_class_symbol_supplement_ptr
-                  cssp = symbol_supplement_for_class(class_type);
-    for (sym = cssp->symbols; sym != NULL; sym = sym->next_in_scope) {
-      if (symbol_is(sym, sk_field) &&
-          sym->variant.field.ptr->has_initializer) {
-        instantiate_field_initializer_if_needed(sym->variant.field.ptr);
+  a_class_symbol_supplement_ptr
+                cssp = symbol_supplement_for_class(class_type);
+  a_symbol_ptr  sym;
+
+  /* Traverse the field symbols and check if they have an unprocessed field
+     initializer. */
+  for (sym = cssp->symbols; sym != NULL; sym = sym->next_in_scope) {
+    if (symbol_is(sym, sk_field)) {
+      a_field_ptr  field = sym->variant.field.ptr;
+      if (field->has_initializer && field->initializer == NULL) {
+        if (cssp->has_instantiatable_field_initializers) {
+          /* A class whose fields are instantiated on demand (normally a class
+             template instance). */
+          instantiate_field_initializer_if_needed(sym->variant.field.ptr);
+        } else {
+          /* Process the associated initializer fixups (which will take case
+             of any other field initializers, so we can exit the loop). */
+          inclass_initializer_fixup_for_class(
+                   class_type,
+                   class_type->variant.class_struct_union.is_template_class &&
+                     !class_type->variant.class_struct_union.is_specialized);
+          break;
+        }  /* if */
       }  /* if */
-    }  /* for */
-  } else {
-    /* Not a template instance (or a prototype instantiation): Make sure no
-       field initializer fixups are pending. */
-    inclass_initializer_fixup_for_class(
-               class_type,
-               class_type->variant.class_struct_union.is_template_class &&
-                 !class_type->variant.class_struct_union.is_specialized);
-  }  /* if */
+    }  /* if */
+  }  /* for */
 }  /* ensure_all_field_initializers_scanned */
 
 
