@@ -699,6 +699,9 @@ the file scope, do not process it (but record an orphan in the latter case).
         walk_ptr_not_needed(ptr->expr, an_expr_node_ptr, iek_expr_node);
         conditionally_clear_fe_pointer(ptr->rescan_info);
 #if DO_IL_LOWERING
+        /* Make sure to set the needed flag on an associated variable
+           (if there is one), then remove the link to it. */
+        walk_ptr(ptr->assoc_var, a_variable_ptr, iek_variable);
         conditionally_clear_fe_pointer(ptr->assoc_var);
 #endif /* DO_IL_LOWERING */
 #if NEEDED_FLAG_WALK || KEEP_IN_IL_WALK
