@@ -1521,6 +1521,8 @@ extern a_type_kind binary_operation_type_kind(an_expr_operator_kind  op,
                                               a_type_ptr             op1_type,
                                               a_type_ptr             op2_type);
 
+extern a_constant_ptr constant_value_of_dynamic_init(a_dynamic_init_ptr dip);
+
 extern a_dynamic_init_ptr skip_constexpr_ctor_eval(a_dynamic_init_ptr dip);
 
 extern

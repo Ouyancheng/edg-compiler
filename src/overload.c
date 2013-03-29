@@ -20435,6 +20435,7 @@ resolution).
         /* Otherwise, use a dik_constructor entry.  For a nonreal class,
            ctor_routine is NULL to indicate the constructor is unknown.
            If the constructor is constexpr, fold to a constant if possible. */
+        a_constant_ptr folded_con;
         dip = alloc_expr_ctor_dynamic_init(ctor_routine,
                                            (an_expr_node_ptr)NULL,
                                            dest_type,
@@ -20444,11 +20445,11 @@ resolution).
                                            /*sequenced_args=*/FALSE,
                                            /*fold_constexpr=*/TRUE,
                                            pos);
-        if (dip->kind == (a_dynamic_init_kind)dik_constant &&
-            dip->variant.constant->is_result_of_constexpr_call) {
+        if ((folded_con = constant_value_of_dynamic_init(dip)) != NULL &&
+            folded_con->is_result_of_constexpr_call) {
           /* The constructor is declared constexpr and the construction has
              been folded to a constant. */
-          copy_constant(dip->variant.constant, &con);
+          copy_constant(folded_con, &con);
           if (dip->is_partially_initialized) {
             *partially_initialized = TRUE;
           }  /* if */
@@ -20945,6 +20946,7 @@ errors should be suppressed (i.e., SFINAE mode).
     if (ctor == NULL) {
       if (operand != NULL) make_error_operand(operand);
     } else {
+      a_constant_ptr folded_con;
       check_assertion(is_pointer_type(param1_type));
       arg1 = add_cast_if_necessary(expr, param1_type);
       param2_type = skip_typerefs(param2_type);
@@ -20964,10 +20966,10 @@ errors should be suppressed (i.e., SFINAE mode).
                                          pos);
       dip->is_creation_of_initializer_list_object = TRUE;
       dip->is_explicit_cast = is_cast;
-      if (dip->kind == (a_dynamic_init_kind)dik_constant &&
-          dip->variant.constant->is_result_of_constexpr_call) {
+      if ((folded_con = constant_value_of_dynamic_init(dip)) != NULL &&
+          folded_con->is_result_of_constexpr_call) {
         /* The constructor call is constexpr and was folded to a constant. */
-        if (dip->variant.constant->expr == NULL) {
+        if (folded_con->expr == NULL) {
           /* No backing expression, so clear the main flag (the flag sort
              of means "there's something implicit you can skip", and you
              can't skip down if the backing expression is not there). */
@@ -20984,11 +20986,11 @@ errors should be suppressed (i.e., SFINAE mode).
       }  /* if */
       if (p_dip != NULL) *p_dip = dip;
       if (operand != NULL) {
-        if (dip->kind == (a_dynamic_init_kind)dik_constant &&
-            dip->variant.constant->is_result_of_constexpr_call) {
+      if ((folded_con = constant_value_of_dynamic_init(dip)) != NULL &&
+          folded_con->is_result_of_constexpr_call) {
           /* The constructor for std::initializer_list is constexpr,
              and the call was folded to a constant. */
-          make_constant_operand(dip->variant.constant, operand);
+          make_constant_operand(folded_con, operand);
         } else {
           expr = alloc_temp_init_node(list_type, dip,
                                       /*is_lvalue=*/FALSE,

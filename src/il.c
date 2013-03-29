@@ -13586,6 +13586,24 @@ tk_unknown is returned.
 
 #endif /* !STANDALONE_UTILITY_PROGRAM */
 
+a_constant_ptr constant_value_of_dynamic_init(a_dynamic_init_ptr dip)
+/*
+Return the constant value of a dynamic initialization, if it has one,
+otherwise NULL.
+*/
+{
+  a_constant_ptr con = NULL;
+
+  if (dip->kind == (a_dynamic_init_kind)dik_constant) {
+    con = dip->variant.constant;
+  } else if (dip->kind == (a_dynamic_init_kind)dik_expression) {
+    an_expr_node_ptr expr = dip->variant.expression;
+    if (is_constant_node(expr)) con = expr->variant.constant;
+  }  /* if */
+  return con;
+}  /* constant_value_of_dynamic_init */
+
+
 a_dynamic_init_ptr skip_constexpr_ctor_eval(a_dynamic_init_ptr dip)
 /*
 If dip is an initialization to the result of a constexpr constructor
@@ -13593,13 +13611,8 @@ evaluation, return the dynamic init for the unfolded constructor call;
 otherwise, return the original dip.
 */
 {
-  a_constant_ptr con = NULL;
-  if (dip->kind == (a_dynamic_init_kind)dik_constant) {
-    con = dip->variant.constant;
-  } else if (dip->kind == (a_dynamic_init_kind)dik_expression) {
-    an_expr_node_ptr expr = dip->variant.expression;
-    if (is_constant_node(expr)) con = expr->variant.constant;
-  }  /* if */
+  a_constant_ptr con = constant_value_of_dynamic_init(dip);
+
   if (con != NULL && con->is_result_of_constexpr_call) {
     /* The original form of the constructor call is stored as a backing
        expression under the constant. */

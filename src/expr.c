@@ -2950,6 +2950,7 @@ will be equal to init_list_ctor_arg_list->variant.braced.list.
         }  /* if */
       } else {
         /* Constructor call (possibly folded to constant if constexpr). */
+        a_constant_ptr folded_con;
         dip = alloc_expr_ctor_dynamic_init(routine,
                                            arg_expr_list,
                                            dest_type,
@@ -2963,8 +2964,8 @@ will be equal to init_list_ctor_arg_list->variant.braced.list.
         if (is_error_dynamic_init(dip)) {
           /* Some error. */
           dip = NULL;
-        } else if (dip->kind == (a_dynamic_init_kind)dik_constant &&
-                   dip->variant.constant->is_result_of_constexpr_call) {
+        } else if ((folded_con = constant_value_of_dynamic_init(dip)) != NULL&&
+                   folded_con->is_result_of_constexpr_call) {
           /* The construction was folded to a constant result. */
         } else {
           (void)call_did_not_fold_to_constant(ec_expr_not_constant, routine,
@@ -20809,6 +20810,7 @@ freed by this routine.
   if (ctor_case) {
     /* Converting to a class type.  The contents of the parentheses are
        arguments for a constructor call. */
+    a_constant_ptr    folded_con;
     a_boolean         unboxing_conv;
     a_source_position *end_position_arg = NULL;
 #if EXTRA_SOURCE_POSITIONS_IN_IL
@@ -20837,11 +20839,11 @@ freed by this routine.
       /* Error of some sort. */
       make_error_operand(result);
     } else if (constexpr_enabled && curr_expr_kind_is_const() &&
-               dip->kind == (a_dynamic_init_kind)dik_constant &&
-               dip->variant.constant->is_result_of_constexpr_call) {
+               (folded_con = constant_value_of_dynamic_init(dip)) != NULL &&
+               folded_con->is_result_of_constexpr_call) {
       /* The construction was folded to a constant result. */
       skip_constexpr_ctor_eval(dip)->is_explicit_cast = TRUE;
-      make_constant_operand(dip->variant.constant, result);
+      make_constant_operand(folded_con, result);
       result->position = *start_position;
     } else {
       dip->is_explicit_cast = TRUE;
@@ -35727,14 +35729,7 @@ the initializer.
   } else {
     wrap_up_dynamic_init_full_expression(dip);
     if (dip->destructor == NULL && !is->force_dynamic_init) {
-      a_constant_ptr cp = NULL;
-      if (dip->kind == (a_dynamic_init_kind)dik_constant) {
-        cp = dip->variant.constant;
-      } else if (dip->kind == (a_dynamic_init_kind)dik_expression) {
-        if (is_constant_node(dip->variant.expression)) {
-          cp = dip->variant.expression->variant.constant;
-        }  /* if */
-      }  /* if */
+      a_constant_ptr cp = constant_value_of_dynamic_init(dip);
       if (cp != NULL) {
         wrap_up_constant_full_expression(cp, pos);
         if (dip->is_partially_initialized || cp->is_partially_initialized) {
