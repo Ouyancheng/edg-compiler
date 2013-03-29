@@ -17575,7 +17575,7 @@ that of a mutable field.
     }  /* if */
   } else {
     src_qual = gsfd->copy_assign_qualifiers;
-    /* Mutable subobjects of const object are not const. */
+    /* Mutable subobjects of a const object are not const. */
     if (is_mutable) src_qual &= ~(a_type_qualifier_set)TQ_CONST;
     rout_sym = find_copy_assignment_operator(
                                       type, src_qual,
@@ -17630,7 +17630,7 @@ that of a mutable field.
     }  /* if */
   } else {
     src_qual = gsfd->copy_ctor_qualifiers;
-    /* Mutable subobjects of const object are not const. */
+    /* Mutable subobjects of a const object are not const. */
     if (is_mutable) src_qual &= ~(a_type_qualifier_set)TQ_CONST;
     rout_sym = find_copy_constructor(type, gsfd->copy_ctor_qualifiers,
                                      /*source_is_rvalue=*/FALSE,
