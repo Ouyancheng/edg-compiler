@@ -1,5 +1,9 @@
 Version 4.6
 
+3/29/13
+Version number changed to 4.6
+
+
 3/28/13 [EDGcpfe/13788]
 Generated special member in class with mutable field incorrectly "deleted"
 
@@ -552,9 +556,6 @@ body.  Now fixed.
     [](int a[sizeof x]){};  // Formerly aborted with --c++11; now gets error
   }
 
-
-3/11/13
-Version number changed to 4.6
 
 3/11/13  [EDGcpfe/9249]
 Nonstatic data member initializers
