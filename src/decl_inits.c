@@ -4715,7 +4715,7 @@ FALSE is returned) for non-class objects.
             init_dip = alloc_dynamic_init((a_dynamic_init_kind)dik_constant);
             init_dip->variant.constant = cp;
           }  /* if */
-          if (!make_value_initialized_constant(tp, cp)) {
+          if (!make_value_initialized_constant(var_type, cp)) {
             /* The constant couldn't be created, presumably because default
                initialization is not possible.  An error must have been issued
                earlier. */
