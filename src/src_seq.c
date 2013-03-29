@@ -677,8 +677,8 @@ templ_entry is NULL.
       }  /* if */
       tail_to_move = ssep;
       ssep = tail_to_move->next;
-      f_unlink_src_seq_entries(head_to_move, tail_to_move, &start_ssep,
-                               /*end_of_list_ptr=*/NULL);
+      (void)f_unlink_src_seq_entries(head_to_move, tail_to_move, &start_ssep,
+                                     /*end_of_list_ptr=*/NULL);
       if (moved_list == NULL) {
         moved_list = head_to_move;
         end_moved_list = head_to_move;
