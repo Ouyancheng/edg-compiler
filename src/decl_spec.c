@@ -4998,12 +4998,6 @@ dsi_flags is the set of input flags passed to decl_specifiers.
                                  curr_token, (a_symbol_kind)sk_enum_tag,
                                  (dsi_flags & DSI_IS_NEW_TYPE_NAME) != 0,
                                  (dsi_flags & DSI_NO_TAG_DEFINITION) != 0);
-    if (is_definition && tag_sym != NULL && tag_sym->defined) {
-      /* Catch errors like "enum A { e }; enum ::A { f };". */
-      pos_sy_error(ec_redefinition, &locator.source_position, tag_sym);
-      set_to_error_locator(locator);
-      tag_sym = NULL;
-    }  /* if */
     if (tag_resolution) {                            
       /* Resolution of a previous incomplete declaration. */
       if (effective_decl_level != decl_scope_level) {
@@ -5131,6 +5125,12 @@ dsi_flags is the set of input flags passed to decl_specifiers.
        associated enumeration constants. */
     is_opaque_enum_decl = TRUE;
     is_definition = FALSE;
+  }  /* if */
+  if (is_definition && tag_sym != NULL && tag_sym->defined) {
+    /* Catch errors like "enum A { e }; enum ::A { f };". */
+    pos_sy_error(ec_redefinition, &locator.source_position, tag_sym);
+    set_to_error_locator(locator);
+    tag_sym = NULL;
   }  /* if */
   if (tag_sym != NULL) {
     /* Using an existing type.  Fetch the enumerated type pointer from it. */
