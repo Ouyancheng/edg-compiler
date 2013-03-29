@@ -3015,7 +3015,8 @@ typedef struct a_symbol {
 		token_sequence_number;
 			/* For template parameter symbols, the token
 			   sequence number associated with the
-			   declaration.  NO_TOKEN_SEQUENCE_NUMBER otherwise.
+			   declaration.  NO_TOKEN_SEQUENCE_NUMBER
+			   otherwise. */
   a_parent_class_or_namespace
 		parent;
 			/* When is_class_member is TRUE, parent.class_type
