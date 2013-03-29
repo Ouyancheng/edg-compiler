@@ -18095,6 +18095,7 @@ entered into the symbol table.
     sym = make_unnamed_symbol(kind, &pos_curr_token);
   }  /* if */
   sym->is_template_param = TRUE;
+  sym->token_sequence_number = curr_token_sequence_number;
   return sym;
 }  /* create_template_param_symbol */
 

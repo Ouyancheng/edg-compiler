@@ -3011,6 +3011,11 @@ typedef struct a_symbol {
 		decl_position;
 			/* Source position of the declaration of this
 			   symbol. */
+  a_token_sequence_number
+		token_sequence_number;
+			/* For template parameter symbols, the token
+			   sequence number associated with the
+			   declaration.  NO_TOKEN_SEQUENCE_NUMBER otherwise.
   a_parent_class_or_namespace
 		parent;
 			/* When is_class_member is TRUE, parent.class_type

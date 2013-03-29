@@ -15015,6 +15015,7 @@ are handled in symbol_tbl_init.)
   cleared_symbol.decl_scope                        = NO_SCOPE_NUMBER;
   cleared_symbol.decl_seq                          = 0;
   cleared_symbol.decl_position                     = null_source_position;
+  cleared_symbol.token_sequence_number             = NO_TOKEN_SEQUENCE_NUMBER;
   /* Clear both fields for union-as-struct testing. */
   cleared_symbol.parent.class_type                 = NULL;
   cleared_symbol.parent.namespace_ptr              = NULL;
