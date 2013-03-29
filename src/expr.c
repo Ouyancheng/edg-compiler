@@ -7324,14 +7324,28 @@ the selection, not an operator token for the call.
              (is_template_dependent_type(operand_1->type) ||
               is_template_dependent_type(operand_2.type))) {
     /* If either operand has a template parameter type, we cannot
-       check the operand types.  Just produce an expression with
+       check the operand types completely.  Just produce an expression with
        a generic operator.  This is for ".*" only; the "->*" case
        is handled by check_for_operator_overloading. */
-    template_binary_operation((an_expr_operator_kind)eok_pm_field,
-                              operand_1, &operand_2,
-                              result, &operator_position,
-                              operator_tok_seq_number,
-                              (a_source_position *)NULL);
+    if (!(is_class_struct_union_type(operand_1->type) ||
+          could_be_dependent_class_type(operand_1->type))) {
+      if (!is_error_type(operand_1->type)) {
+        error_in_operand(ec_expr_not_class, operand_1);
+      }  /* if */
+      make_error_operand(result);
+    } else if (!(is_template_param_type(operand_2.type) ||
+                 is_ptr_to_member_type(operand_2.type))) {
+      if (!is_error_type(operand_2.type)) {
+        error_in_operand(ec_expr_not_ptr_to_member, &operand_2);
+      }  /* if */
+      make_error_operand(result);
+    } else {
+      template_binary_operation((an_expr_operator_kind)eok_pm_field,
+                                operand_1, &operand_2,
+                                result, &operator_position,
+                                operator_tok_seq_number,
+                                (a_source_position *)NULL);
+    }  /* if */
     processed = TRUE;
   } else {
     if (is_arrow_operator &&
