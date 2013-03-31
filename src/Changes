@@ -1,5 +1,19 @@
 Version 4.7
 
+3/31/13  [EDGcpfe/13713]
+C++-generating back end: omitted extern "C++" on non-defining variable decl
+
+The C++-generating back end generated incorrect code for a non-defining
+declaration of a variable that was explicitly declared with extern "C++".
+Such a declaration is equivalent to declaring the variable with the
+"extern" keyword, but the C++-generating back end omitted both the linkage
+specification and the keyword.  Such declarations are now emitted with
+the "extern" keyword.  For example:
+
+  extern "C++" int x;  // Previously generated as "int x;", which is a
+                       // definition.
+
+
 3/31/13  [EDGcpfe/13683]
 C++-generating back end: qualifier missing in template friend declaration
 
