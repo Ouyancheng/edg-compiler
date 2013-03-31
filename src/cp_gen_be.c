@@ -3490,8 +3490,17 @@ GN_PARENS_IF_GLOBAL_QUALIFIER is not set.
         /* A type generated from a template alias. */
         assoc_template = tp->variant.typeref.extra_info->assoc_template;
       }  /* if */
-      if (assoc_template != NULL &&
-          assoc_template->source_corresp.qualification_needed) {
+      if ((options & GN_FRIEND_DECL) != 0 && !scp->is_class_member &&
+          !(assoc_template != NULL &&
+            assoc_template->kind ==
+                            (a_template_kind)templk_template_template_param) &&
+          scp_parent_namespace_or_null(scp) !=
+                                             innermost_enclosing_namespace()) {
+          /* A friend declaration of a class that is not in the innermost
+             enclosing namespace requires qualification. */
+        force_qualified_name = TRUE;
+      } else if (assoc_template != NULL &&
+                 assoc_template->source_corresp.qualification_needed) {
         /* If the template requires qualification, so do all of its
            instances.  (The check for qualified instance names is done this
            way instead of by putting the instances on the hidden name list
@@ -7715,6 +7724,7 @@ this one is such a continuation.
   a_boolean                    need_extern_C_closing_brace = FALSE;
   a_template_decl_ptr          template_decl = NULL;
   a_template_ptr               assoc_template;
+  a_boolean                    template_param_mappings_saved = FALSE;
 #if GNU_EXTENSIONS_ALLOWED
   a_boolean                    marked_as_gnu_extension = FALSE;
 #endif /* GNU_EXTENSIONS_ALLOWED */
@@ -7796,6 +7806,13 @@ this one is such a continuation.
                     type->variant.class_struct_union.extra_info
                                                     ->assoc_template != NULL);
     if (template_decl != NULL) {
+      if (friend_decl) {
+        /* Make sure that any template parameter name mappings that are
+           overwritten by the friend's template header are restored after
+           the declaration. */
+        template_param_mappings_saved = TRUE;
+        save_template_param_mappings();
+      }  /* if */
       if (assoc_template->canonical_template->is_exported) gen_export();
 #if MICROSOFT_EXTENSIONS_ALLOWED
       gen_template_header(
@@ -7984,6 +8001,12 @@ this one is such a continuation.
       /* Restore the original namespace state if it was changed for a
          specialization. */
       adjust_current_namespace(orig_scope, common_scope);
+    }  /* if */
+    if (template_param_mappings_saved) {
+      /* Make sure template parameter name mappings that may have been
+         overwritten by a friend declaration are restored to the correct
+         values. */
+      restore_template_param_mappings();
     }  /* if */
   }  /* if */
 }  /* gen_type_decl */

@@ -454,6 +454,10 @@ extern void form_lvalue_address_constant(
 
 #if BACK_END_IS_CP_GEN_BE
 
+extern void save_template_param_mappings(void);
+
+extern void restore_template_param_mappings();
+
 extern void remap_template_param(a_template_param_coordinate_ptr  coord,
                                  a_source_correspondence_ptr      scp);
 

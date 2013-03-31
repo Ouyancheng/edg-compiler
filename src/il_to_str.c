@@ -1405,6 +1405,88 @@ static a_template_nesting_depth template_param_map_max_level;
 
 #if BACK_END_IS_CP_GEN_BE
 
+/*
+The following structure is used to record the previous mapping for a
+template parameter name so it can be restored after being overwritten by a
+friend declaration inside a class template.  This happens when the friend
+declaration is matched to an existing template declaration: the coordinates
+will be those of the original declaration of the friend, so the mappings
+from the friend declaration overwrite those of the class template
+containing the friend declaration, and they must be restored so that
+subsequent references to the containing class template's parameters will
+use the correct names.
+*/
+typedef struct a_saved_template_param_mapping
+                                           *a_saved_template_param_mapping_ptr;
+typedef struct a_saved_template_param_mapping {
+  a_saved_template_param_mapping_ptr
+		next;	/* Points to the next saved mapping, either on the
+			   active or the free list. */
+  a_template_param_coordinate
+		coord;	/* The coordinates of the mapped parameter. */
+  a_source_correspondence_ptr
+		scp;	/* The source correspondence used for the mapped
+			   parameter. */
+} a_saved_template_param_mapping;
+
+
+static a_saved_template_param_mapping_ptr
+		saved_template_param_mappings;
+			/* Template parameter mappings to be restored by
+			   restore_template_param_mapping. */
+
+static a_saved_template_param_mapping_ptr
+		avail_template_param_mappings;
+			/* Free template parameter mappings that are
+			   available for reuse. */
+
+static a_boolean
+		saving_template_param_mappings;
+			/* When TRUE, remap_template_param will save the
+			   existing mapping before overwriting it with the
+			   new mapping. */
+
+
+void save_template_param_mappings(void)
+/*
+Begin saving the existing template parameter mappings before overwriting
+them in remap_template_param.
+*/
+{
+  check_assertion(!saving_template_param_mappings);
+  saving_template_param_mappings = TRUE;
+}  /* save_template_param_mapping */
+
+
+void restore_template_param_mappings(void)
+/*
+Restore template parameter mappings that were overwritten by
+remap_template_param.
+*/
+{
+  a_template_param_map_level_ptr level;
+
+  check_assertion(saving_template_param_mappings);
+  saving_template_param_mappings = FALSE;
+  /* Loop through the active mappings and restore the table to its previous
+     contents. */
+  while (saved_template_param_mappings != NULL) {
+    a_saved_template_param_mapping_ptr saved_mapping =
+                                                 saved_template_param_mappings;
+    saved_template_param_mappings = saved_mapping->next;
+    check_assertion(saved_mapping->coord.depth <=
+                                                 template_param_map_max_level);
+    level = &template_param_map[saved_mapping->coord.depth-1];
+    check_assertion(saved_mapping->coord.position <= level->max_position);
+    level->source_corresp[saved_mapping->coord.position-1] =
+                                                            saved_mapping->scp;
+    /* Put the entry on the free list for later reuse. */
+    saved_mapping->next = avail_template_param_mappings;
+    avail_template_param_mappings = saved_mapping;
+  }  /* while */
+}  /* restore_template_param_mappings */
+
+
 void remap_template_param(a_template_param_coordinate_ptr  coord,
                           a_source_correspondence_ptr      scp)
 /*
@@ -1412,7 +1494,8 @@ Associate the given template parameter coordinate with the given source
 correspondence entry.
 */
 {
-  a_template_param_map_level_ptr  level;
+  a_template_param_map_level_ptr     level;
+  a_saved_template_param_mapping_ptr saved_mapping;
 
   if (coord->depth == 0) {
     /* A parameter of a template template parameter; no remapping needed. */
@@ -1456,6 +1539,23 @@ correspondence entry.
               sizeof(a_source_correspondence_ptr)*new_max_pos -
                       sizeof(a_source_correspondence_ptr)*level->max_position);
       level->max_position = new_max_pos;
+    }  /* if */
+    if (saving_template_param_mappings) {
+      /* Save the old mapping so it can be restored later. */
+      if (avail_template_param_mappings != NULL) {
+        /* Reuse an existing entry. */
+        saved_mapping = avail_template_param_mappings;
+        avail_template_param_mappings->next = NULL;
+      } else {
+        /* The free list is empty, so allocate a new entry. */
+        saved_mapping = (a_saved_template_param_mapping_ptr)
+                         alloc_general(sizeof(a_saved_template_param_mapping));
+      }  /* if */
+      /* Link the entry to the active list. */
+      saved_mapping->next = saved_template_param_mappings;
+      saved_template_param_mappings = saved_mapping;
+      saved_mapping->coord = *coord;
+      saved_mapping->scp = level->source_corresp[coord->position-1];
     }  /* if */
     level->source_corresp[coord->position-1] = scp;
   }  /* if */
@@ -6201,6 +6301,9 @@ One-time initialization for il_to_str static variables.
 {
   template_param_map = NULL;
   template_param_map_max_level = 0;
+#if BACK_END_IS_CP_GEN_BE
+  avail_template_param_mappings = NULL;
+#endif /* BACK_END_IS_CP_GEN_BE */
 #if BACK_END_IS_C_GEN_BE
 #if LONG_DOUBLE_AS_DOUBLE_IN_GENERATED_C
 #if ISSUE_WARNING_ON_LONG_DOUBLE_AS_DOUBLE
@@ -6230,6 +6333,10 @@ file is processed.
       }  /* for */
     }  /* for */
   }  /* if */
+#if BACK_END_IS_CP_GEN_BE
+  saved_template_param_mappings = NULL;
+  saving_template_param_mappings = FALSE;
+#endif /* BACK_END_IS_CP_GEN_BE */
 }  /* il_to_str_init */
 
 
