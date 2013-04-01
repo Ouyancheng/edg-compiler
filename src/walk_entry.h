@@ -433,14 +433,28 @@ Set the definition_needed or keep_definition_in_il flag in a routine.
 #define set_proper_routine_definition_needed_flag(ptr) /* Nothing */
 #endif /* NEEDED_FLAG_WALK || KEEP_IN_IL_WALK */
 
-/* Macro to remap parent scope only if it exists. */
+/*
+Macro to remap parent scope only if it exists.  When doing the needed
+or keep-in-IL walk, visit the associated namespace or class (through which
+the scope will also be visited).  When remapping, just ensure that the
+parent scope pointer is remapped. */
 #undef remap_parent
+#if NEEDED_FLAG_WALK || KEEP_IN_IL_WALK
 #define remap_parent(ptr) \
-{ remap_ptr_not_needed((ptr).parent_scope, a_scope_ptr, iek_scope); \
-  if ((ptr).is_class_member) {  \
-    set_proper_definition_needed_flag(scp_parent_class(&ptr)); \
+{ if ((ptr).parent_scope != NULL) { \
+    if ((ptr).parent_scope->kind == (a_scope_kind)sck_namespace) { \
+      walk_ptr((ptr).parent_scope->variant.assoc_namespace, a_namespace_ptr, \
+               iek_namespace); \
+    } else if ((ptr).is_class_member) {  \
+      walk_ptr((ptr).parent_scope->variant.assoc_type, a_type_ptr, iek_type); \
+      set_proper_definition_needed_flag(scp_parent_class(&ptr)); \
+    }  /* if */  \
   }  /* if */  \
 }  /* remap_parent */
+#else /* !(NEEDED_FLAG_WALK || KEEP_IN_IL_WALK) */
+#define remap_parent(ptr) \
+{ remap_ptr((ptr).parent_scope, a_scope_ptr, iek_scope); }
+#endif /* NEEDED_FLAG_WALK || KEEP_IN_IL_WALK */
 
 /*
 Clear a front end pointer (to avoid passing it to the next phase) if

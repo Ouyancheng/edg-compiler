@@ -1,5 +1,20 @@
 Version 4.7
 
+4/1/13   [EDGcpfe/13809]
+Setting of needed flag in namespaces
+
+The changes that introduced the parent_scope for IL entities (see the
+Changes entry of 3/5/08), had a side-effect of neglecting to properly set
+the needed flag on a_namespace entries in certain cases.  A change has been
+made to set the needed flag on parent scope namespaces and class types
+during the needed and keep-in-IL tree walks.  In this case, the needed
+flag for namespace N hadn't been set and now is:
+
+  namespace N {
+    int x;
+  }
+
+
 3/31/13  [EDGcpfe/13713]
 C++-generating back end: omitted extern "C++" on non-defining variable decl
 
