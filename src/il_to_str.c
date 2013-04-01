@@ -1545,7 +1545,7 @@ correspondence entry.
       if (avail_template_param_mappings != NULL) {
         /* Reuse an existing entry. */
         saved_mapping = avail_template_param_mappings;
-        avail_template_param_mappings->next = NULL;
+        avail_template_param_mappings = saved_mapping->next;
       } else {
         /* The free list is empty, so allocate a new entry. */
         saved_mapping = (a_saved_template_param_mapping_ptr)
