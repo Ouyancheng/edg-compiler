@@ -1455,7 +1455,7 @@ them in remap_template_param.
 {
   check_assertion(!saving_template_param_mappings);
   saving_template_param_mappings = TRUE;
-}  /* save_template_param_mapping */
+}  /* save_template_param_mappings */
 
 
 void restore_template_param_mappings(void)
