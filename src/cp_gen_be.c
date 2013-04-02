@@ -15042,13 +15042,17 @@ this one is such a continuation.
     }  /* if */
     storage_class = sec_decl->declared_storage_class;
     if (storage_class == (a_storage_class)sc_unspecified &&
+        !var->source_corresp.is_class_member &&
         has_static_storage_duration(var->declared_storage_class)) {
       /* We have a non-defining declaration of a variable with no explicit
          storage class specifier.  This can result if the declaration was
          given a linkage specifier -- the linkage specifier is ignored but
          treated as if it were "extern".  We need to put out "extern" in
-         the generated code, too, to avoid the appearance that this is a
-         definition. */
+         the generated code, too, to avoid incorrectly transforming this
+         declaration into a definition.  The test for class membership
+         excludes explicit specialization declarations of static data
+         members of class templates, which cannot have a storage class
+         specifier. */
       storage_class = (a_storage_class)sc_extern;
     }  /* if */
     attributes = sec_decl->attributes;
