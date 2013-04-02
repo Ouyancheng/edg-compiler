@@ -8541,6 +8541,11 @@ C99 mode for the same reason.
                that are not available at file-scope).  */
             simple_constant_init = TRUE;
             simple_constant = alloc_unshared_constant(&con);
+            /* Even though the newly allocated constant is marked as having
+               been lowered, it may contain a "troublesome" aggregate constant,
+               so make sure it is truly lowered. */
+            mark_as_not_visited(simple_constant);
+            lower_os_constant(simple_constant);
             break;
           }  /* if */
         }
