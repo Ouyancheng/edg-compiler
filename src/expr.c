@@ -25718,7 +25718,8 @@ indicates that the symbol is an anonymous union and cannot be captured.
            remember the nonlocal reference to help back-end aliasing
            analysis. */
         var->referenced_non_locally = TRUE;
-      } else if (curr_expr_kind_is_const() &&
+      } else if ((curr_expr_kind_is_const() ||
+                  expr_stack->is_vla_dimension_expression) &&
                  var_constant_value(var) != NULL) {
         /* Allow references to constant-valued variables in constant
            expressions.  This is not supported by the standard

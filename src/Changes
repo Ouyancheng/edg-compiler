@@ -1,5 +1,27 @@
 Version 4.7
 
+4/2/13   [EDGcpfe/13507]
+Enclosing-context constant-valued variable treated as constant in VLA
+  expression in lambda
+
+An enclosing-context constant-valued variable is now considered constant
+when referenced in an array bound expression inside a lambda when the
+current dialect allows variable-length arrays (e.g., g++ mode).
+For example, this example from the C++11 standard got a spurious
+error in --g++ --c++11 mode, and is now accepted:
+
+  void f1 (int i) {
+    int const N = 20;
+    auto m1 = [=] {
+      int const M = 30;
+      auto m2 = [i]{
+        int x[N][M];  // Spurious errors on N, M
+        x[0][0] = i;
+      }; // m2
+    }; // m1
+  } 
+
+
 4/2/13   [EDGcpfe/13840]
 Un-lowered constant can get to back end
 
