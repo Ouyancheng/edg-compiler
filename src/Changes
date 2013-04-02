@@ -1,5 +1,21 @@
 Version 4.7
 
+4/2/13   [EDGcpfe/13832]
+Missing backing expression on constexpr base-class cast
+
+In certain cases where the result of a constexpr constructor invocation
+was bitwise copied with slicing to a base class type, the backing
+expression was not recorded on the base-class constant, with the
+consequence that the C++-generating back end output for the case
+was incorrect.  For example (now fixed):
+
+  struct A {
+    union { int x = 37 ; } ;
+  };
+  struct B : A {};
+  constexpr A x = B();  // Was output as "= {{37}}"
+
+
 4/2/13   [EDGcpfe/13507]
 Enclosing-context constant-valued variable treated as constant in VLA
   expression in lambda

@@ -17346,6 +17346,9 @@ the class type is already correct and nothing should be done to it.
          over a constant class value. */
       an_operand orig_operand;
       orig_operand = *source_operand;
+      if (curr_expr_kind_is_one_in_which_const_exprs_are_recorded()) {
+        result_con.expr = source_operand->variant.expression;
+      }  /* if */
       make_constant_operand(&result_con, source_operand);
       restore_operand_details(source_operand, &orig_operand);
     }  /* if */
