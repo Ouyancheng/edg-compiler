@@ -16016,7 +16016,7 @@ handle_as_definition:
       }  /* if */
 #endif /* GCC_IS_GENERATED_CODE_TARGET || ... */
       if (rout->is_template_function && rout->is_prototype_instantiation &&
-          rout->inline_in_class_definition && rout->assoc_template != NULL) {
+          curr_name_context_is_a_class() && rout->assoc_template != NULL) {
         /* There is no definition in the IL for the prototype instantiation
            of the function (presumably because prototype instantiations
            were deferred and the function was never instantiated), so it
