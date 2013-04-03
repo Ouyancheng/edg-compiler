@@ -4959,14 +4959,25 @@ typedef struct a_ctor_init_block {
 		virtual_list, end_of_virtual_list;
 		 	/* Pointer to the first constructor init for a virtual
 			   base class. */
+  a_pack_expansion_stack_entry_ptr
+                pesep;
   a_constructor_init_ptr
 		last_order_checked_init;
 		 	/* Pointer to last constructor init entry for a
 			   mem-initializer whose order has been checked against
 			   the declaration order of bases and members. */
+  a_boolean	has_explicit_init;
+			/* TRUE if mem-initializers appear explicitly in the
+			   source code of this constructor, but possibly FALSE
+			   if an empty pack expansion results in there not
+			   being any actual explicit mem-initializers. */
   a_boolean	out_of_order_diag_issued;
 			/* TRUE if a diagnostic has been issued about
 			   mem-initializers not matching declaration order. */
+  a_boolean	pack_expansion_context_started;
+			/* TRUE if begin_potential_pack_expansion_context has
+			   been called for a mem-initializer, and elements
+			   remain to be processed for that call. */
 } a_ctor_init_block;
 
 
@@ -5879,6 +5890,7 @@ whole array.
   return result;
 }  /* repeat_mem_init_for_array */
 
+#if /* FIXME */ 0
 
 static a_boolean diagnose_delegation_loop(a_constructor_init_ptr  cip,
                                           a_routine_ptr           ctor,
@@ -5921,6 +5933,7 @@ Otherwise return FALSE.
   return result;
 }  /* diagnose_delegation_loop */
 
+#endif /* FIXME */
 
 static a_boolean delegating_ctor_initializer(a_routine_ptr      ctor,
                                              a_ctor_init_block  *cibp)
@@ -5933,7 +5946,27 @@ reflect the initialization.  Otherwise, return FALSE.
 {
   a_boolean  is_delegating_init = FALSE;
 
-  if (is_decl_qualified_name_start()) {
+  /* Start a pack expansion context, but skip empty expansions. */
+  for (;;) {
+    cibp->pack_expansion_context_started = 
+                         begin_potential_pack_expansion_context(&cibp->pesep);
+    if (!cibp->pack_expansion_context_started) {
+      /* An empty pack expansion. */
+      if (curr_token == tok_comma) {
+        /* Additional mem-initializers follow: Iterate to see if the next one
+           is a delegating initializer. */
+        (void)get_token();
+      } else {
+        /* After variadic template expansion there are no mem-initializers. */
+        cibp->has_explicit_init = FALSE;
+        break;
+      }  /* if */
+    } else {
+      /* An actual mem-initializer is presumably next. */
+      break;
+    }  /* if */
+  }  /* for */
+  if (cibp->has_explicit_init && is_decl_qualified_name_start()) {
     /* A name following the colon: Look it up. */
     a_symbol_ptr  sym = lookup_mem_initializer_id();
     if (is_type_symbol(sym)) {
@@ -5954,6 +5987,11 @@ reflect the initialization.  Otherwise, return FALSE.
         pos = pos_curr_token;
         cip = alloc_ctor_init((a_constructor_init_kind)cik_delegation);
         cip->compiler_generated = FALSE;
+        /* Record the reference to the mem-initializer-id. */
+        record_potential_pack_reference(sym, &pos_curr_token);
+        check_ambiguity_and_verify_access(&locator_for_curr_id);
+        record_symbol_reference(SRK_REFERENCE | SRK_INITIALIZATION, sym,
+                                &pos_curr_token, /*update_il_entry=*/FALSE);
         /* Skip over the class name. */
         (void)get_token();
         scan_mem_init_args(ctor, cip, tp, (a_type_ptr)NULL, &pos);
@@ -5962,14 +6000,23 @@ reflect the initialization.  Otherwise, return FALSE.
         if (dip->kind == (a_dynamic_init_kind)dik_constructor) {
           /* Check that this delegation doesn't create a loop of
              delegations.  If it does, discard the constructor init entry. */
+#if /*FIXME*/0
           if (diagnose_delegation_loop(cip, ctor, &pos)) {
             dip = NULL;
           }  /* if */
+#endif /*FIXME*/
         } else {
           /* Some error must have occurred. */
           expect_error();
           dip = NULL; 
         }  /* if */
+        if (end_potential_pack_expansion_context(
+                              cibp->pesep, /*is_declarator=*/FALSE) != NULL) {
+          /* A variadic pack expansion in a prototype instantiation. */
+          cip->is_pack_expansion = TRUE;
+        }  /* if */
+        cibp->pack_expansion_context_started = 
+                                    advance_to_next_pack_element(cibp->pesep);
         if (curr_token == tok_comma) {
           /* More mem-initializers are not permitted for a delegating
              constructor.  For recovery purposes ignore the delegation so
@@ -6036,7 +6083,6 @@ initialized.  These are addressed in the course of the processing.
 {
   a_boolean                     is_union;
   a_boolean                     has_field = FALSE, has_field_init = FALSE;
-  a_boolean                     has_explicit_init;
   a_boolean                     has_explicit_field_init = FALSE;
   a_boolean                     is_generated_cctor, is_generated_mctor;
   a_type_qualifier_set          required_qualifiers, object_qualifiers;
@@ -6062,19 +6108,25 @@ initialized.  These are addressed in the course of the processing.
   cib.direct_list = cib.end_of_direct_list = NULL;
   cib.virtual_list = cib.end_of_virtual_list = NULL;
   cib.last_order_checked_init = NULL;
+  cib.has_explicit_init = FALSE;
   cib.out_of_order_diag_issued = FALSE;
+  cib.pack_expansion_context_started = FALSE;
   if (user_defined && curr_token == tok_colon) {
     /* User-specified initializers are present. */
-    has_explicit_init = TRUE;
+    cib.has_explicit_init = TRUE;
     /* Bypass the colon. */
     (void)get_token();
+    /* Check for the case of a delegating constructor. */
+    /* This requires starting a potential pack expansion context at this time.
+       That context may then be use later on when scanning ordinary
+       mem-initializers if this isn't a delegating constructor (or in some
+       error cases that mix the delegating constructor initializer with
+       ordinary subobject initializers). */
     if (delegating_constructors_enabled &&
         delegating_ctor_initializer(ctor_rout, &cib)) {
       ctor_rout->is_delegating_ctor = TRUE;
       goto done;
     }  /* if */
-  } else {
-    has_explicit_init = FALSE;
   }  /* if */
   class_type = parent_class_of(ctor_rout);
   is_union = class_type->kind == (a_type_kind)tk_union;
@@ -6248,15 +6300,20 @@ initialized.  These are addressed in the course of the processing.
      default (or value) initialization required because base classes and
      fields need it.  It remains to scan the user specified initializers,
      if any, and to integrate them into the lists. */
-  if (has_explicit_init) {
+  if (cib.has_explicit_init) {
     /* User-specified initializers are present. */
     add_stop_token(tok_lbrace);
     /* Loop through the comma-separated list of initializers. */
     do {
-      a_pack_expansion_stack_entry_ptr pesep;
-      a_boolean                        any_more;
+      a_boolean  any_more;
       add_stop_token(tok_comma);
-      any_more = begin_potential_pack_expansion_context(&pesep);
+      if (cib.pack_expansion_context_started) {
+        /* A pack expansion context was started earlier (while checking for a
+           delegating constructor). */
+        any_more = TRUE;
+      } else {
+        any_more = begin_potential_pack_expansion_context(&cib.pesep);
+      }  /* if */
       /* Extra loop is used if the mem-initializer is a variadic template
          pack expansion. */
       while (any_more) {
@@ -6266,7 +6323,7 @@ initialized.  These are addressed in the course of the processing.
           has_field_init = TRUE;
           has_explicit_field_init = TRUE;
         }  /* if */
-        pedep = end_potential_pack_expansion_context(pesep,
+        pedep = end_potential_pack_expansion_context(cib.pesep,
                                                      /*is_declarator=*/FALSE);
         if (pedep != NULL && cip != NULL) {
           /* This mem-initializer is a variadic template pack expansion, i.e.,
@@ -6275,8 +6332,9 @@ initialized.  These are addressed in the course of the processing.
              expansion. */
           cip->is_pack_expansion = TRUE;
         }  /* if */
-        any_more = advance_to_next_pack_element(pesep);
+        any_more = advance_to_next_pack_element(cib.pesep);
       }  /* while */
+      cib.pack_expansion_context_started = FALSE;
       remove_stop_token(tok_comma);
     } while (loop_token(tok_comma));
     remove_stop_token(tok_lbrace);

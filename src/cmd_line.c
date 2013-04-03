@@ -2813,11 +2813,7 @@ handling).
       implicit_noexcept_enabled = DEFAULT_IMPLICIT_NOEXCEPT_ENABLED;
     }  /* if */
   }  /* if */
-#if /*FIXME*/0
-  /* Make this unconditional once lowering can handle delegating
-     constructors. */
   delegating_constructors_enabled = value;
-#endif /* BACK_END_IS_CP_GEN_BE */
   constexpr_enabled = value;
 }  /* check_and_set_cpp11_mode_options */
 
