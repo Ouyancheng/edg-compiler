@@ -727,6 +727,42 @@ the "text" field of *template_ptr to point to it.
   db_exit();
 }  /* make_template_string */
 
+static void make_member_function_template_string(
+					a_symbol_ptr		sym,
+					a_cached_token_ptr	tokens)
+/*
+Create a template string from tokens for the member function specified by
+"sym".  Save the string in the IL template entry associated with the
+member function.
+*/
+{
+  a_template_symbol_supplement_ptr	tssp;
+  a_template_ptr			template_ptr;
+  a_token_cache_ptr			cache;
+
+  tssp = template_supplement_for_symbol(sym);
+  template_ptr = tssp->il_template_entry;
+  template_ptr = template_ptr->canonical_template->definition_template;
+  /* Initialize the buffer that will be used to build the token string.  Use
+     the position of the template declaration as the starting position of
+     the token string. */
+  init_token_string(&template_ptr->source_corresp.decl_position,
+                    /*keep_spacing=*/TRUE,
+                    /*suppress_identifier_wrapping=*/FALSE);
+  cache = &tssp->cache.tokens;
+  check_assertion(cache != NULL);
+  /* Add the tokens from this cache to the template string. */
+  add_token_cache_to_string(cache);
+  /* Copy the string into IL memory. */
+  template_ptr->text = make_copy_of_token_string();
+#if DEBUG
+  if (db_flag_is_set("dump_template_strings")) {
+    /* This won't work properly if the string contains nulls. */
+    fprintf(f_debug, "Saved template string:\n%s\n", template_ptr->text);
+  }  /* if */
+#endif /* DEBUG */
+}  /* make_member_function_template_string */
+
 #endif /* RECORD_TEMPLATE_STRINGS */
 
 
@@ -4268,6 +4304,13 @@ and a list of the unprocessed entries is returned to the caller.
              tokens that were removed from the original cache. */
           { a_cached_token_ptr	first_token = tcsp->before_first_token->next;
             remove_body_from_cache(tcsp, tok_semicolon);
+#if RECORD_TEMPLATE_STRINGS
+            if (symbol_is(tcsp->symbol, sk_member_function)) {
+              /* In some cases, a string version of member functions is
+                 needed. */
+              make_member_function_template_string(tcsp->symbol, first_token);
+            }  /* if */
+#endif /* RECORD_TEMPLATE_STRINGS */
             free_tokens_from_reusable_cache(first_token, &tcp->tokens);
           }
 #if DEBUG
