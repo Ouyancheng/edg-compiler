@@ -1,5 +1,21 @@
 Version 4.7
 
+4/3/13   [EDGcpfe/13844]
+dynamic_cast downcast of pointer to virtual base allowed on null pointer value
+
+The front end now allows dynamic_cast to do a downcast from a polymorphic
+virtual base class to a derived class if the pointer is a constant null
+pointer value.  Previously, the cast got an error.
+
+  struct A {
+    virtual void f();
+  };
+  class D : public virtual A {};
+  int main() {
+    dynamic_cast<D*>(static_cast<A*>(0));
+  }
+
+
 4/3/13   [EDGcpfe/13838]
 Assertion/invalid IL for certain aggregate constant initializations
 

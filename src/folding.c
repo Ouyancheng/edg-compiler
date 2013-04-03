@@ -907,7 +907,6 @@ no error.
   a_boolean             err;
   a_type_ptr            orig_type, curr_type, new_type;
   a_derivation_step_ptr dsp;
-  a_constant            offset;
   an_integer_value      base_class_offset;
   a_base_class_ptr      base_class;
 
@@ -968,14 +967,14 @@ no error.
       }  /* if */
       /* Adjust the address to reflect the cast to the next level. */
       curr_type = base_class->type;
-      get_pointer_offset(constant_1, &offset);
       if (!is_object_pointer &&
-          cmplit_integer_constant(&offset, (a_host_large_integer)0) == 0 &&
-          base_object(constant_1) == NULL) {
+          is_null_pointer_value(constant_1)) {
         /* Preserve a NULL pointer.  Note that we suppress this test when
            is_object_pointer is TRUE, to allow the usual idiom for the
            offsetof macro to work. */
       } else {
+        a_constant offset;
+        get_pointer_offset(constant_1, &offset);
         if (any_virtual_steps_in_derivation(base_class)) {
           /* Casting to a virtual base class.  This can only be folded if we
              have a complete object of the derived class type. */
@@ -1042,7 +1041,6 @@ ec_no_error if there was no error.
 */
 {
   a_type_ptr       new_type = result->type, derived_class_type;
-  a_constant       offset;
   an_integer_value base_class_offset;
   a_boolean        err;
 
@@ -1072,18 +1070,17 @@ ec_no_error if there was no error.
     an_expr_node_ptr expr = constant_1->expr;
     constant_1->expr = NULL;
     copy_constant(constant_1, result);
-    /* Determine the offset and adjust it for the cast. */
-    get_pointer_offset(result, &offset);
-    if (cmplit_integer_constant(&offset, (a_host_large_integer)0) == 0 &&
-        base_object(result) == NULL) {
+    if (is_null_pointer_value(constant_1)) {
       /* Preserve a NULL pointer. */
     } else {
+      a_constant offset;
 #if CHECKING
       if (any_virtual_steps_in_derivation(bcp)) {
         internal_error("fold_derived_class_cast: virtual base class");
       }  /* if */
 #endif /* CHECKING */
-      /* Take the pointer offset, ... */
+      /* Determine the pointer offset, ... */
+      get_pointer_offset(result, &offset);
       /* ... subtract the offset to the base class, ... */
       set_unsigned_integer_value(&base_class_offset, bcp->offset);
       subtract_integer_values(&offset.variant.integer_value,
@@ -1189,8 +1186,9 @@ type.
   } else if (is_reinterpret_cast) {
     /* Suppress the related-class processing for reinterpret_casts.  If
        constant addressing expressions are not being folded, keep the
-       reinterpret_cast in executable form. */
-    if (!fold_constant_addr_exprs) {
+       reinterpret_cast in executable form.  But do fold casts of
+       a null pointer value. */
+    if (!fold_constant_addr_exprs && !is_null_pointer_value(old_constant)) {
       *did_not_fold = TRUE;
     }  /* if */
   } else if (related_class_pointers(old_type, new_type,
@@ -2269,6 +2267,23 @@ description of the parameters.
 }  /* type_change_constant */
 
 
+a_boolean is_null_pointer_value(a_constant *constant)
+/*
+Return TRUE if the given constant is a null pointer value (a pointer
+with a null value, produced by casting 0 to a pointer type).
+*/
+{
+  a_boolean is_null = FALSE;
+
+  if (is_pointer_type(constant->type) &&
+      constant->kind == (a_constant_repr_kind)ck_integer &&
+      cmplit_integer_constant(constant, (a_host_large_integer)0) == 0) {
+    is_null = TRUE;
+  }  /* if */
+  return is_null;
+}  /* is_null_pointer_value */
+
+
 a_boolean is_false_constant(a_constant *constant)
 /*
 Return TRUE if the constant is an integer, floating, pointer, or
@@ -2289,12 +2304,10 @@ operators.  Can also be used to test for a NULL pointer or pointer to member.
   if (is_zero_constant(constant)) {
     /* Zero integral, fixed-point, or floating constant. */
     is_false = TRUE;
-  } else if (constant->kind == (a_constant_repr_kind)ck_integer &&
-             constant->implicit_cast) {
-    /* Check for NULL pointer constant (the nullptr keyword or 0 cast to a
-       pointer type). */
-    is_false = (cmplit_integer_constant(constant,
-                                        (a_host_large_integer)0) == 0);
+  } else if (is_null_pointer_value(constant)) {
+    /* A NULL pointer value (the nullptr keyword or 0 cast to a pointer
+       type). */
+    is_false = TRUE;
   } else if (constant->kind == (a_constant_repr_kind)ck_ptr_to_member) {
     /* Pointer to member constant.  See if null. */
     is_false = pm_constant_is_null(constant);

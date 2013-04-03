@@ -11363,13 +11363,7 @@ that is "null pointer value" not "null pointer constant".
   a_boolean is_null = FALSE;
 
   if (is_an_rvalue(operand) && is_constant_operand(operand)) {
-    a_constant_ptr con = &operand->variant.constant;
-    if (is_pointer_type(con->type) &&
-        constant_bool_value_known_at_compile_time(con) &&
-        /* "false" means zero, i.e., a null pointer. */
-        is_false_constant(con)) {
-      is_null = TRUE;
-    }  /* if */
+    is_null = is_null_pointer_value(&operand->variant.constant);
   }  /* if */
   return is_null;
 }  /* op_is_null_pointer_value */
@@ -11387,9 +11381,7 @@ pointer value.
     a_constant       con;
     an_expr_node_ptr expr = extract_node_from_operand(operand);
     if (constant_lvalue_address(expr, &con, /*address_escapes=*/FALSE)) {
-      if (constant_bool_value_known_at_compile_time(&con) &&
-          /* "false" means zero, i.e., a null pointer. */
-          is_false_constant(&con)) {
+      if (is_null_pointer_value(&con)) {
         is_null = TRUE;
       }  /* if */
     }  /* if */
@@ -11411,8 +11403,7 @@ perfect; the safe value is FALSE.
     if (is_constant_operand(operand)) {
       a_constant_ptr con = &operand->variant.constant;
       if (constant_bool_value_known_at_compile_time(con) &&
-          /* "false" means zero, i.e., a null pointer. */
-          !is_false_constant(con)) {
+          !is_null_pointer_value(con)) {
         op_cannot_be_null = TRUE;
       }  /* if */
     } else if (is_expression_operand(operand)) {

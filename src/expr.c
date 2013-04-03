@@ -14131,7 +14131,18 @@ indication in *rcblock).
                                       /*is_implicit_cast=*/FALSE,
                                       /*reinterpret_semantics=*/FALSE);
     } else {
-      cast_operand(cast_type, &operand, /*is_implicit_cast=*/FALSE);
+      /* reinterpret_semantics is set to TRUE for a cast of a null pointer
+         value to allow a cast from a virtual base to a derived class
+         in that case. */
+      cast_operand_full(cast_type,
+                        &operand,
+                        (a_source_position *)NULL,
+                        /*check_cast_access=*/TRUE,
+                        /*check_ambiguity=*/TRUE,
+                        /*is_implicit_cast=*/FALSE,
+                        /*is_reinterpret_cast=*/FALSE,
+                        /*reinterpret_semantics=*/
+                                           op_is_null_pointer_value(&operand));
     }  /* if */
     copy_operand(&operand, result);
   } else {
