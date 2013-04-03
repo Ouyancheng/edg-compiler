@@ -12002,6 +12002,62 @@ different than the old member), the old value is added to
 }  /* process_union_designators */
   
 
+static void split_multidimensional_ck_init_repeat(a_constant_ptr constant)
+/*
+In cases where a single ck_init_repeat is used to initialize an entire
+multi-dimensional array in the aggregate constant, split the ck_init_repeat
+into multiple ck_init_repeats, one for each dimension of the array.  E.g.,
+change "{<6 repetitions of {47}>}" to "{<2 repetitions of {<3 repetitions of
+{47}>}>}" for an aggregate of type "array [2] of array [3] of A".  Note that
+this routine only handles ck_init_repeat constants that encompass an
+entire multi-dimensional array (and not just a portion thereof).
+*/
+{
+  a_constant_ptr  cp, rep_con, aggr, prev_aggr = NULL;
+  a_type_ptr      aggr_type = skip_typerefs(constant->type);
+
+  check_assertion(constant->kind == (a_constant_repr_kind)ck_aggregate &&
+                  is_array_type(constant->type));
+  cp = constant->variant.aggregate.first_constant;
+  if (cp != NULL &&
+      cp->kind == (a_constant_repr_kind)ck_init_repeat &&
+      cp->variant.init_repeat.count >
+                         aggr_type->variant.array.variant.number_of_elements) {
+    check_assertion(cp->variant.init_repeat.count ==
+                                              num_array_elements(aggr_type) &&
+                    constant->variant.aggregate.last_constant == cp);
+    do {
+      if (is_array_type(skip_typerefs(array_element_type(aggr_type)))) {
+        /* Allocate an aggregate constant for each dimension of the array. */
+        aggr = alloc_constant((a_constant_repr_kind)ck_aggregate);
+        aggr->type = array_element_type(aggr_type);
+      } else {
+        /* Last time through, use the original repeated constant. */
+        aggr = cp->variant.init_repeat.constant;
+      }  /* if */
+      if (aggr_type->variant.array.variant.number_of_elements == 1) {
+        /* No repeat needed if count is one. */
+        rep_con = aggr;
+      } else {
+        rep_con = alloc_constant((a_constant_repr_kind)ck_init_repeat);
+        rep_con->variant.init_repeat.count =
+                           aggr_type->variant.array.variant.number_of_elements;
+        rep_con->variant.init_repeat.constant = aggr;
+      }  /* if */
+      if (prev_aggr == NULL) {
+        constant->variant.aggregate.first_constant = rep_con;
+        constant->variant.aggregate.last_constant = rep_con;
+      } else {
+        prev_aggr->variant.aggregate.first_constant = rep_con;
+        prev_aggr->variant.aggregate.last_constant = rep_con;
+      }  /* if */
+      prev_aggr = aggr;
+      aggr_type = skip_typerefs(array_element_type(aggr_type));
+    } while (is_array_type(aggr_type));
+  }  /* if */
+}  /* split_multidimensional_ck_init_repeat */
+
+
 static void lower_aggregate_designated_initializers(
                                                a_constant_ptr aggr_con,
                                                a_constant_ptr earlier_aggr_con)
@@ -12023,6 +12079,12 @@ have already had their designated initializers lowered.
   an_init_con_pos con, earlier_con;
 
   check_assertion(aggr_con->kind == (a_constant_repr_kind)ck_aggregate);
+  if (is_array_type(aggr_type)) {
+    /* If the aggregate has a ck_init_repeat that spans multiple dimensions
+       of an array, split it into a ck_init_repeat for each dimension so the
+       code below will be able to process it correctly. */
+    split_multidimensional_ck_init_repeat(aggr_con);
+  }  /* if */
   set_init_con_pos(aggr_con->variant.aggregate.first_constant, &con);
   prev_con = NULL;
   if (earlier_aggr_con != NULL) {
