@@ -4729,19 +4729,6 @@ indicated position.
   diag_message(error_code, error_pos, error_severity, dck_standalone);
 }  /* pos_ty2_diagnostic */
 
-
-void type_diagnostic(an_error_severity  error_severity,
-                     an_error_code      error_code,
-                     a_type_ptr         type)
-/*
-Report the indicated diagnostic (with the indicated type) at the position
-indicated by error_position.
-*/
-{
-  pos_ty_diagnostic(error_severity, error_code, &error_position, type);
-}  /* type_diagnostic */
-
-
 #if !STANDALONE_UTILITY_PROGRAM
 
 void pos_sy_diagnostic(an_error_severity  error_severity,

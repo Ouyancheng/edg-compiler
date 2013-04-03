@@ -315,9 +315,6 @@ extern void pos_ty2_diagnostic(an_error_severity  error_severity,
                                a_source_position  *error_pos,
                                struct a_type      *type1,
                                struct a_type      *type2);
-extern void type_diagnostic(an_error_severity  error_severity,
-                            an_error_code      error_code,
-                            struct a_type      *type);
 #if !STANDALONE_UTILITY_PROGRAM
 extern void pos_sy_diagnostic(an_error_severity  error_severity,
                               an_error_code      error_code,
