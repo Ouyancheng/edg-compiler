@@ -1209,6 +1209,9 @@ init position modifier.
       ipmp->curr_field = ctor_init->variant.field;
       ipmp->type = ctor_init->variant.field->type;
       break;
+    case cik_delegation:
+      /* No modification is necessary. */
+      break;
     default:
       unexpected_condition_str("modify_ctor_init_pos_descr: bad kind");
   }  /* switch */
