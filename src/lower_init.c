@@ -12027,7 +12027,7 @@ entire multi-dimensional array (and not just a portion thereof).
                                               num_array_elements(aggr_type) &&
                     constant->variant.aggregate.last_constant == cp);
     do {
-      if (is_array_type(skip_typerefs(array_element_type(aggr_type)))) {
+      if (is_array_type(f_skip_typerefs(array_element_type(aggr_type)))) {
         /* Allocate an aggregate constant for each dimension of the array. */
         aggr = alloc_constant((a_constant_repr_kind)ck_aggregate);
         aggr->type = array_element_type(aggr_type);
@@ -12052,7 +12052,7 @@ entire multi-dimensional array (and not just a portion thereof).
         prev_aggr->variant.aggregate.last_constant = rep_con;
       }  /* if */
       prev_aggr = aggr;
-      aggr_type = skip_typerefs(array_element_type(aggr_type));
+      aggr_type = f_skip_typerefs(array_element_type(aggr_type));
     } while (is_array_type(aggr_type));
   }  /* if */
 }  /* split_multidimensional_ck_init_repeat */
