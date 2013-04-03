@@ -3034,6 +3034,9 @@ after_entry_from_class:
           case cik_field:
             remap_ptr(ptr->variant.field, a_field_ptr, iek_field);
             break;
+          case cik_delegation:
+            /* No variant field. */
+            break;
           default:
             unexpected_condition_str(
                           "walk_entry_and_subtree: bad constructor init kind");

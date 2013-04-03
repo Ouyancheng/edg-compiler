@@ -12193,6 +12193,7 @@ options for the copy.
     case cik_field:
     case cik_virtual_base_class:
     case cik_direct_base_class:
+    case cik_delegation:
       /* These are allocated in the file scope. */
       break;
     default:
@@ -22101,6 +22102,7 @@ eliminate_unneeded_scope_orphaned_list_entries).
   rp->defined = FALSE;
   rp->defined_in_friend_decl = FALSE;
   rp->assoc_scope = NULL_region_number;
+  rp->is_delegating_ctor = FALSE;
   (skip_typerefs(rp->type))->variant.routine.extra_info->assoc_routine = NULL;
   if (rp->storage_class == (a_storage_class)sc_unspecified) {
     rp->storage_class = (a_storage_class)sc_extern;

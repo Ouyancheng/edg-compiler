@@ -12747,6 +12747,10 @@ typedef struct a_routine {
   a_bit_field	is_initializer_list_ctor:1;
 			/* TRUE if this routine is an initializer list
 			   constructor. */
+  a_bit_field	is_delegating_ctor:1;
+			/* TRUE if this routine is a delegating constructor
+			   (which can only be known if the constructor
+			   has been seen). */
 #if ASSIGNMENT_TO_THIS_ALLOWED
   a_bit_field	assignment_to_this_done:1;
 			/* TRUE if an assignment to "this" (an anachronism)
@@ -15903,8 +15907,9 @@ typedef struct a_statement {
 /* Data structure a_constructor_init, used for C++ only, describes the
    explicit and default initialization to be applied when a constructor is
    called.  This information will reflect constructor initializers that the
-   user has supplied with constructor definitions (see ARM 12.6.2), as
-   well as all default constructors that are to be invoked. */
+   user has supplied with constructor definitions, as well as all default
+   constructors that are to be invoked.  In the case of C++11-style delegating
+   constructors, only one entry representing the delegation is recorded. */
 /* A list of these is also used on destructors to indicate destructor
    calls that must be made for base classes and members. */
 enum a_constructor_init_kind_tag {
@@ -15917,7 +15922,9 @@ enum a_constructor_init_kind_tag {
   cik_direct_base_class,
 			/* Object to be initialized is a nonvirtual direct
 			   base class. */
-  cik_field		/* Object to be initialized is a field. */
+  cik_field,		/* Object to be initialized is a field. */
+  cik_delegation	/* Initialization is delegated to another
+			   constructor. */
 };
 /* Define as "a_byte" to explicitly control storage size. */
 typedef a_byte a_constructor_init_kind;
@@ -15959,6 +15966,7 @@ typedef struct a_constructor_init {
     /* When kind is cik_field: */
     a_field_ptr field;	/* The field (nonstatic data member) to be
 			   initialized. */
+    /* When kind is cik_delegation: No variant member. */
   } variant;
   a_dynamic_init_ptr
 		initializer;

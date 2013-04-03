@@ -15377,6 +15377,7 @@ a constructor.
   a_field_ptr field;
 
   for (; ctor_init != NULL; ctor_init = ctor_init->next) {
+    a_dynamic_init_ptr  dip = ctor_init->initializer;
     if (!ctor_init->compiler_generated) {
       if (first_time) {
         write_tok_str(": ");
@@ -15417,6 +15418,13 @@ a constructor.
           gen_field_name(field);
           type = field->type;
           break;
+        case cik_delegation:
+          /* A delegating constructor. */
+          check_assertion(dip != NULL &&
+                          dip->kind == (a_dynamic_init_kind)dik_constructor);
+          type = parent_class_of(dip->variant.constructor.ptr);
+          gen_type_name(type);
+          break;
         default:
           unexpected_condition();
       }  /* switch */
@@ -15429,7 +15437,7 @@ a constructor.
         write_tok_ch(')');
       } else {
         /* Generate the initialization. */
-        gen_paren_or_brace_dynamic_init(ctor_init->initializer, type,
+        gen_paren_or_brace_dynamic_init(dip, type,
                                         /*paren_form=*/!ctor_init->is_braced,
                                         /*is_var_init=*/FALSE);
       }  /* if */

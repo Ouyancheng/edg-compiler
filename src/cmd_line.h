@@ -298,6 +298,7 @@ typedef enum /*an_option_kind*/ {
   optk_unrestricted_unions,
   optk_max_constexpr_call_depth,
   optk_max_constexpr_call_count,
+  optk_delegating_constructors,
   optk_last		/* Must be last. */
 } an_option_kind;
 
@@ -476,6 +477,11 @@ EXTERN a_boolean
 			   (i.e., operator delete and operator delete[]) have
 			   implicit noexcept specifications if no explicit
 			   exception specification is provided. */
+
+EXTERN a_boolean
+		delegating_constructors_enabled;
+			/* TRUE if delegating constructors (a C++11 feature)
+			   are accepted. */
 
 EXTERN a_boolean
 		constexpr_enabled;

@@ -5013,6 +5013,33 @@ previous initializer and update the state for the new entry.
 }  /* check_out_of_order_init */
 
 
+static a_symbol_ptr lookup_mem_initializer_id(void)
+/*
+The current token is (generalized) identifier of a mem-initializer-id (which
+could refer to a field or base class to be initializer, or, in the case of a
+delegating constructor, to the parent class of the constructor itself).  Look
+up this identifier and return the associated symbol.
+*/
+{
+  a_symbol_ptr               sym;
+  an_identifier_options_set  gid_options = GID_NO_OPTIONS;
+  an_identifier_lookup_mode  ilm = ilm_ctor_initializer_name;
+  a_boolean                  gid_err;
+
+  check_assertion(curr_token == tok_identifier);
+  if (locator_for_curr_id.is_qualified_name) {
+    /* A qualified name must name a class. */
+    gid_options |= GID_IMPLICIT_TYPE_CONTEXT;
+    ilm = ilm_qualified_ctor_initializer_name;
+  }  /* if */
+  /* Scan the class name or member name.  (The lookup modes used here skip the
+     current function scope to ensure that a constructor parameter with the
+     same name as a member or base class is not visible.) */
+  sym = coalesce_and_lookup_generalized_identifier(gid_options, ilm, &gid_err);
+  return sym;
+}  /* lookup_mem_initializer_id */
+
+
 static a_constructor_init_ptr scan_mem_initializer_id(
                                              a_type_ptr         class_type,
                                              a_ctor_init_block  *cibp,
@@ -5029,25 +5056,12 @@ is returned through *p_array_type (in non-array cases, *p_array_type is left
 unchanged).
 */
 {
-  a_symbol_ptr               member_or_base_sym;
+  a_symbol_ptr               member_or_base_sym = lookup_mem_initializer_id();
   a_type_ptr                 init_type;
-  a_boolean                  gid_err, template_param_init = FALSE;
-  an_identifier_options_set  gid_options = GID_NO_OPTIONS;
-  an_identifier_lookup_mode  ilm = ilm_ctor_initializer_name;
+  a_boolean                  template_param_init = FALSE;
   a_base_class_ptr           bcp;
   a_constructor_init_ptr     cip, new_cip = NULL;
 
-  if (locator_for_curr_id.is_qualified_name) {
-    /* A qualified name must name a class. */
-    gid_options |= GID_IMPLICIT_TYPE_CONTEXT;
-    ilm = ilm_qualified_ctor_initializer_name;
-  }  /* if */
-  /* Scan the base class name or member name.  (The lookup modes used here
-     skip the current function scope to ensure that a constructor parameter
-     with the same name as a member or base class is not visible.) */
-  check_assertion(curr_token == tok_identifier);
-  member_or_base_sym = coalesce_and_lookup_generalized_identifier(
-                                                  gid_options, ilm, &gid_err);
   if (member_or_base_sym != NULL) {
     record_potential_pack_reference(member_or_base_sym, &pos_curr_token);
     /* Check if a template-dependent entity is being initialized: */
@@ -5337,11 +5351,16 @@ unchanged).
         }  /* if */
         cibp->end_of_direct_list = new_cip;
       } else {
-        /* No match found. */
+        /* No valid match found. */
         if (indirect_nonvirtual_base_class_found) {
           /* Actually, a match was found, but it was not a direct or
              virtual base class. */
           error(ec_indirect_nonvirtual_base_class_not_allowed);
+        } else if (delegating_constructors_enabled &&
+                   same_entities(init_type, class_type)) {
+          /* This looks like the mem-initializer for a delegating constructor,
+             but it followed an ordinary mem-initializer (which is invalid). */
+          pos_error(ec_delegation_init_and_mem_init, &error_position);
         } else {
           /* Not a base class of the class for which a constructor is
              being defined. */
@@ -5662,6 +5681,43 @@ cases, array_type is NULL).
 }  /* scan_parenthesized_mem_init_args */
 
 
+#if !EXTRA_SOURCE_POSITIONS_IN_IL
+/*ARGSUSED*/ /* pos is not used in some configurations. */
+#endif /* !EXTRA_SOURCE_POSITIONS_IN_IL */
+static void scan_mem_init_args(a_routine_ptr           ctor,
+                               a_constructor_init_ptr  cip,
+                               a_type_ptr              init_type,
+                               a_type_ptr              array_type,
+                               a_source_position       *pos)
+/*
+
+*/
+{
+  if (curr_token == tok_lparen) {
+    /* A classic (i.e., parenthesized) mem-initializer argument. */
+    scan_parenthesized_mem_init_args(ctor, cip, init_type, array_type);
+  } else if (list_init_enabled && curr_token == tok_lbrace) {
+    /* A braced (i.e., C++11-style) mem-initializer argument. */
+    a_type_ptr  dtype = (array_type != NULL) ? array_type : init_type;
+    braced_mem_initializer(ctor, dtype, cip);
+  } else {
+    /* Neither brace nor parenthesis: A syntax error. */
+    set_err_pos_to_curr_token();
+    add_stop_token(tok_lparen);
+    if (list_init_enabled) add_stop_token(tok_lbrace);
+    syntax_error(list_init_enabled ? ec_exp_lparen_or_brace : ec_exp_lparen);
+    if (list_init_enabled) remove_stop_token(tok_lbrace);
+    remove_stop_token(tok_lparen);
+  }  /* if */
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+  if (cip != NULL) {
+    cip->ctor_init_range.start = *pos;
+    cip->ctor_init_range.end = curr_construct_end_position;
+  }  /* if */
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+}  /* scan_mem_init_args */
+
+
 static a_constructor_init_ptr scan_mem_initializer(
                                                 a_routine_ptr      ctor,
                                                 a_type_ptr         class_type,
@@ -5681,11 +5737,9 @@ entries are replaced as needed for each mem-initializer that is encountered.
 {
   a_type_ptr              init_type, array_type = NULL;
   a_constructor_init_ptr  new_cip = NULL;
-#if EXTRA_SOURCE_POSITIONS_IN_IL
   a_source_position       init_start_pos;
 
   init_start_pos = pos_curr_token;
-#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   /* Unless this is an old style base class initializer, a base class
      name or a member name is expected. */
   if (curr_token != tok_lparen && !is_decl_qualified_name_start()) {
@@ -5704,7 +5758,7 @@ entries are replaced as needed for each mem-initializer that is encountered.
                                    cibp->virtual_list == NULL);
       if (!allow_anachronisms || !one_direct_base) {
         /* Either no base classes or more than one. */
-        error(ec_missing_base_class_or_member_name);
+        pos_error(ec_missing_base_class_or_member_name, &init_start_pos);
         init_type = error_type();
       } else {
         /* The base class is probably on the direct_list, but if it was
@@ -5716,10 +5770,12 @@ entries are replaced as needed for each mem-initializer that is encountered.
         bcp = new_cip->variant.base_class;
         check_assertion(bcp->direct);
         init_type = bcp->type;
-        type_diagnostic(anachronism_error_severity,
-                        ec_base_class_init_anachronism, init_type);
+        pos_ty_diagnostic(anachronism_error_severity,
+                          ec_base_class_init_anachronism,
+                          &init_start_pos, init_type);
         if (new_cip->initializer != NULL) {
-          type_error(ec_base_class_already_initialized, init_type);
+          pos_ty_error(ec_base_class_already_initialized,
+                       &init_start_pos, init_type);
         } else {
           check_out_of_order_init(new_cip, cibp);
         }  /* if */
@@ -5730,28 +5786,7 @@ entries are replaced as needed for each mem-initializer that is encountered.
       new_cip = scan_mem_initializer_id(class_type, cibp, &init_type,
                                         &array_type);
     }  /* if */
-    if (curr_token == tok_lparen) {
-      /* A classic (i.e., parenthesized) mem-initializer argument. */
-      scan_parenthesized_mem_init_args(ctor, new_cip, init_type, array_type);
-    } else if (list_init_enabled && curr_token == tok_lbrace) {
-      /* A braced (i.e., C++11-style) mem-initializer argument. */
-      a_type_ptr         dtype = (array_type != NULL) ? array_type : init_type;
-      braced_mem_initializer(ctor, dtype, new_cip);
-    } else {
-      /* Neither brace nor parenthesis: A syntax error. */
-      set_err_pos_to_curr_token();
-      add_stop_token(tok_lparen);
-      if (list_init_enabled) add_stop_token(tok_lbrace);
-      syntax_error(list_init_enabled ? ec_exp_lparen_or_brace : ec_exp_lparen);
-      if (list_init_enabled) remove_stop_token(tok_lbrace);
-      remove_stop_token(tok_lparen);
-    }  /* if */
-#if EXTRA_SOURCE_POSITIONS_IN_IL
-    if (new_cip != NULL) {
-      new_cip->ctor_init_range.start = init_start_pos;
-      new_cip->ctor_init_range.end = curr_construct_end_position;
-    }  /* if */
-#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+    scan_mem_init_args(ctor, new_cip, init_type, array_type, &init_start_pos);
   }  /* if */
   return new_cip;
 }  /* scan_mem_initializer */
@@ -5845,6 +5880,114 @@ whole array.
 }  /* repeat_mem_init_for_array */
 
 
+static a_boolean diagnose_delegation_loop(a_constructor_init_ptr  cip,
+                                          a_routine_ptr           ctor,
+                                          a_source_position_ptr   pos)
+/*
+The given constructor init entry is for a delegate constructor.  If it
+directly or indirectly delegates to itself issue an error and return TRUE.
+Otherwise return FALSE.
+*/
+{
+  a_boolean           result = FALSE;
+  a_dynamic_init_ptr  dip = cip->initializer;
+
+  for (;;) {  /* Loop exited in the middle. */
+    a_routine_ptr  target;
+    check_assertion(dip != NULL &&
+                    dip->kind == (a_dynamic_init_kind)dik_constructor);
+    target = dip->variant.constructor.ptr;
+    if (target == ctor) {
+      /* The chain of delegations came back to the current constructor:
+         Issue an error. */
+      pos_error(ec_delegation_loop, pos);
+      result = TRUE;
+      break;
+    } else if (!target->is_delegating_ctor) {
+      /* The chain of delegations finished without getting back to the
+         current constructor. */
+      break;
+    } else {
+      /* The target is itself a delegating constructor (which means
+         it must have a definition).  Continue the loop. */
+      a_constructor_init_ptr  target_cip =
+         scope_for_routine(target)->variant.routine.constructor_inits;
+      check_assertion(target_cip != NULL &&
+                      target_cip->kind ==
+                                     (a_constructor_init_kind)cik_delegation);
+      dip = target_cip->initializer;
+    }  /* if */
+  }  /* for */
+  return FALSE;
+}  /* diagnose_delegation_loop */
+
+
+static a_boolean delegating_ctor_initializer(a_routine_ptr      ctor,
+                                             a_ctor_init_block  *cibp)
+/*
+The current token is the one following a colon (":") presumably introducing
+mem-initializers for the given constructor.  If what follows is a
+mem-initializer for a delegating constructor, return TRUE and update *cibp to
+reflect the initialization.  Otherwise, return FALSE.
+*/
+{
+  a_boolean  is_delegating_init = FALSE;
+
+  if (is_decl_qualified_name_start()) {
+    /* A name following the colon: Look it up. */
+    a_symbol_ptr  sym = lookup_mem_initializer_id();
+    if (is_type_symbol(sym)) {
+      /* The name refers to a type: Check if it's the constructor's class.
+         (It could also be a base class type or, in error cases, another
+         type. */
+      a_type_ptr  tp = type_symbol_type(sym);
+      tp = skip_typerefs(tp);
+      if (is_immediate_class_type(tp) &&
+          same_entities(tp, parent_class_of(ctor))) {
+        /* This does look like a delegating mem-initializer.  Create a
+           constructor init entry for it, and scan the initialization
+           arguments (if any). */
+        a_source_position       pos;
+        a_constructor_init_ptr  cip;
+        a_dynamic_init_ptr      dip;
+        is_delegating_init = TRUE;
+        pos = pos_curr_token;
+        cip = alloc_ctor_init((a_constructor_init_kind)cik_delegation);
+        cip->compiler_generated = FALSE;
+        /* Skip over the class name. */
+        (void)get_token();
+        scan_mem_init_args(ctor, cip, tp, (a_type_ptr)NULL, &pos);
+        dip = cip->initializer;
+        check_assertion(dip != NULL);
+        if (dip->kind == (a_dynamic_init_kind)dik_constructor) {
+          /* Check that this delegation doesn't create a loop of
+             delegations.  If it does, discard the constructor init entry. */
+          if (diagnose_delegation_loop(cip, ctor, &pos)) {
+            is_delegating_init = FALSE;
+          }  /* if */
+        } else {
+          /* Some error must have occurred. */
+          expect_error();
+          is_delegating_init = FALSE;
+        }  /* if */
+        if (curr_token == tok_comma) {
+          /* More mem-initializers are not permitted for a delegating
+             constructor.  For recovery purposes ignore the delegation so
+             that we'll scan the remaining mem-initializers. */
+          pos_error(ec_delegation_init_and_mem_init, &pos_curr_token);
+          (void)get_token();
+          is_delegating_init = FALSE;
+        }  /* if */
+        if (is_delegating_init) {
+          cibp->cip_list = cip;
+        }  /* if */
+      }  /* if */
+    }  /* if */
+  }  /* if */
+  return is_delegating_init;
+}  /* delegating_ctor_initializer */
+
+
 a_constructor_init_ptr ctor_initializer(a_routine_ptr  ctor_rout,
                                         a_boolean      user_defined)
 /*
@@ -5893,6 +6036,7 @@ initialized.  These are addressed in the course of the processing.
 {
   a_boolean                     is_union;
   a_boolean                     has_field = FALSE, has_field_init = FALSE;
+  a_boolean                     has_explicit_init;
   a_boolean                     has_explicit_field_init = FALSE;
   a_boolean                     is_generated_cctor, is_generated_mctor;
   a_type_qualifier_set          required_qualifiers, object_qualifiers;
@@ -5919,6 +6063,19 @@ initialized.  These are addressed in the course of the processing.
   cib.virtual_list = cib.end_of_virtual_list = NULL;
   cib.last_order_checked_init = NULL;
   cib.out_of_order_diag_issued = FALSE;
+  if (user_defined && curr_token == tok_colon) {
+    /* User-specified initializers are present. */
+    has_explicit_init = TRUE;
+    /* Bypass the colon. */
+    (void)get_token();
+    if (delegating_constructors_enabled &&
+        delegating_ctor_initializer(ctor_rout, &cib)) {
+      ctor_rout->is_delegating_ctor = TRUE;
+      goto done;
+    }  /* if */
+  } else {
+    has_explicit_init = FALSE;
+  }  /* if */
   class_type = parent_class_of(ctor_rout);
   is_union = class_type->kind == (a_type_kind)tk_union;
   check_assertion(class_type != NULL);
@@ -6091,10 +6248,8 @@ initialized.  These are addressed in the course of the processing.
      default (or value) initialization required because base classes and
      fields need it.  It remains to scan the user specified initializers,
      if any, and to integrate them into the lists. */
-  if (user_defined && curr_token == tok_colon) {
+  if (has_explicit_init) {
     /* User-specified initializers are present. */
-    /* Bypass the colon. */
-    (void)get_token();
     add_stop_token(tok_lbrace);
     /* Loop through the comma-separated list of initializers. */
     do {
@@ -6705,6 +6860,7 @@ initialized.  These are addressed in the course of the processing.
     }  /* for */
   }  /* if */
 #endif /* DEBUG */
+done:
   db_exit();
   return cib.cip_list;
 }  /* ctor_initializer */

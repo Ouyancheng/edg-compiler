@@ -2544,6 +2544,7 @@ to it.  The entry is allocated in the file scope memory region.
   rp->is_trivial_default_constructor = FALSE;
   rp->is_trivial_copy_function    = FALSE;
   rp->is_initializer_list_ctor    = FALSE;
+  rp->is_delegating_ctor          = FALSE;
 #if ASSIGNMENT_TO_THIS_ALLOWED
   rp->assignment_to_this_done     = FALSE;
 #endif /* ASSIGNMENT_TO_THIS_ALLOWED */
@@ -3646,6 +3647,9 @@ pointer to it.
       break;
     case cik_field:
       cip->variant.field = NULL;
+      break;
+    case cik_delegation:
+      /* No variant members. */
       break;
     default:
       unexpected_condition_str("alloc_ctor_init: bad kind");

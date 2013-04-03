@@ -3194,6 +3194,9 @@ Display the indicated routine.
   if (ptr->is_initializer_list_ctor) {
     disp_boolean("is_initializer_list_ctor", TRUE);
   }  /* if */
+  if (ptr->is_delegating_ctor) {
+    disp_boolean("is_delegating_ctor", TRUE);
+  }  /* if */
 #if ASSIGNMENT_TO_THIS_ALLOWED
   if (ptr->assignment_to_this_done) {
     disp_boolean("assignment_to_this_done", TRUE);
@@ -6430,6 +6433,9 @@ do_base_class:
     case cik_field:
       (void)printf("cik_field\n");
       disp_ptr("field", (char *)ptr->variant.field, iek_field);
+      break;
+    case cik_delegation:
+      (void)printf("cik_delegation\n");
       break;
     default:
       (void)printf("**BAD CONSTRUCTOR INIT KIND**\n");

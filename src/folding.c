@@ -10219,6 +10219,16 @@ fold_constexpr_ctor should usually be called instead.
                                                  &not_foldable);
       if (not_foldable) {
         /* Some problem that prevents folding. */
+      } else if (ctor_routine->is_delegating_ctor) {
+        /* The constructor delegates to another constructor.  Fold the
+           delegating initializer. */
+        a_constructor_init_ptr ctor_init =
+                   scope->variant.routine.variant.constexpr_constructor_inits;
+        check_assertion(ctor_init != NULL &&
+                        ctor_init->kind ==
+                                     (a_constructor_init_kind)cik_delegation);
+        folded = i_fold_constexpr_ctor(ctor_init->initializer, ceblock,
+                                       result_con);
       } else {
         /* Substitute values for parameters and attempt to fold the
            ctor-initializers.  Each one provides a value for one nonstatic

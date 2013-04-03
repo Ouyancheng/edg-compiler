@@ -1369,6 +1369,12 @@ Initialize the option information table.
                          "max_constexpr_call_count",
                          '\0', /*value=*/TRUE, /*arg_required=*/TRUE,
                          pchek_none);
+  add_option_description(optk_delegating_constructors,
+                         "delegating_constructors", '\0', /*value=*/TRUE,
+                         /*arg_required=*/FALSE, pchek_command_line);
+  add_option_description(optk_delegating_constructors,
+                         "no_delegating_constructors", '\0', /*value=*/FALSE,
+                         /*arg_required=*/FALSE, pchek_command_line);
 }  /* initialize_option_descriptions */
 
 
@@ -2807,6 +2813,11 @@ handling).
       implicit_noexcept_enabled = DEFAULT_IMPLICIT_NOEXCEPT_ENABLED;
     }  /* if */
   }  /* if */
+#if /*FIXME*/0
+  /* Make this unconditional once lowering can handle delegating
+     constructors. */
+  delegating_constructors_enabled = value;
+#endif /* BACK_END_IS_CP_GEN_BE */
   constexpr_enabled = value;
 }  /* check_and_set_cpp11_mode_options */
 
@@ -8994,6 +9005,9 @@ enable_microsoft_mode:
       case optk_max_constexpr_call_count:
         max_constexpr_call_count = scan_opt_arg_number(opt_arg);
         break;
+      case optk_delegating_constructors:
+        delegating_constructors_enabled = opt_value;
+        break;
       default:
         /* It should not be possible to get here. */
         unexpected_condition();
@@ -9772,6 +9786,7 @@ variables declared in cmd_line.h.
   exceptions_enabled = DEFAULT_EXCEPTIONS_ENABLED;
   noexcept_enabled = FALSE;
   implicit_noexcept_enabled = FALSE;
+  delegating_constructors_enabled = FALSE;
   constexpr_enabled = FALSE;
   rtti_enabled = 
 #if RTTI_ENABLING_POSSIBLE

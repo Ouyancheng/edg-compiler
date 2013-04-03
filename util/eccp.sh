@@ -619,6 +619,7 @@ check_abbreviation()
 --defer_parse_function_templates
 --define_macro
 --definition_list_file
+--delegating_constructors
 --dep_name
 --dependencies
 --designators
@@ -721,6 +722,7 @@ check_abbreviation()
 --no_cppcli
 --no_defer_parse_function_templates
 --no_definition_list_file
+--no_delegating_constructors
 --no_demangle
 --no_dep_name
 --no_designators
@@ -1445,6 +1447,8 @@ process_option()
          --no_implicit_noexcept | \
          --unrestricted_unions | \
          --no_unrestricted_unions | \
+         --delegating_constructors | \
+         --no_delegating_constructors | \
          --using_framework_directory | \
          --no_using_framework_directory | \
          --force_vtbl)

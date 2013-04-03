@@ -2492,6 +2492,8 @@ ec_block_extern_initializer_not_allowed;;"an initializer is not allowed on a loc
 ec_local_named_register_initializer_not_allowed;;"an initializer is not allowed on a local declaration of a named register variable"
 ec_constexpr_dangling_pointer;;"expression is not constant due to a dangling pointer (points to a temporary whose lifetime has ended)"
 ec_cl_unrestricted_unions_in_microsoft_mode;;"unrestricted unions cannot be enabled in Microsoft mode"
+ec_delegation_loop;;"constructor delegates directly or indirectly to itself"
+ec_delegation_init_and_mem_init;;"a delegating constructor cannot have other mem-initializers"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #
