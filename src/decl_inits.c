@@ -5918,7 +5918,7 @@ Otherwise return FALSE.
       dip = target_cip->initializer;
     }  /* if */
   }  /* for */
-  return FALSE;
+  return result;
 }  /* diagnose_delegation_loop */
 
 
@@ -5963,12 +5963,12 @@ reflect the initialization.  Otherwise, return FALSE.
           /* Check that this delegation doesn't create a loop of
              delegations.  If it does, discard the constructor init entry. */
           if (diagnose_delegation_loop(cip, ctor, &pos)) {
-            is_delegating_init = FALSE;
+            dip = NULL;
           }  /* if */
         } else {
           /* Some error must have occurred. */
           expect_error();
-          is_delegating_init = FALSE;
+          dip = NULL; 
         }  /* if */
         if (curr_token == tok_comma) {
           /* More mem-initializers are not permitted for a delegating
