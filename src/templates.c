@@ -22049,14 +22049,18 @@ found.  Return the symbol for the instance, or NULL if no instance is found.
       if (fund_sym->kind != (a_symbol_kind)sk_function_template) continue;
       if (!any_templates && nesting_depth != NO_NESTING_DEPTH) {
         /* When we encounter the first template, if a nesting depth was
-           supplied, make sure this matches the supplied depth. */
+           supplied, make sure this matches the supplied depth.  A
+           nesting depth mismatch is allowed in g++ mode if a non-template
+           match was not found above. */
         a_template_nesting_depth		depth_of_template;
         a_template_symbol_supplement_ptr	tssp;
         a_template_param_ptr		param_list;
         tssp = fund_sym->variant.template_info;
         param_list = tssp->cache.decl_info->parameters;
         depth_of_template = nesting_depth_of_template_param(param_list);
-        if (nesting_depth != depth_of_template) break;
+        if (nesting_depth != depth_of_template && (!gpp_mode || any_found)) {
+          break;
+        }  /* if */
       }  /* if */
       any_templates = TRUE;
       if (has_matching_template_function(fund_sym, type, explicit_arg_list,
@@ -22528,10 +22532,8 @@ that follows.
                         sym, dps, locator.template_arg_list,
                         (a_boolean)locator.is_template_id,
 		        /*in_class_specialization=*/decl_state->is_member_decl,
-                        /*prefer_template=*/(a_boolean)locator.is_template_id,
-                        gpp_mode ? NO_NESTING_DEPTH
-                                 : decl_state->nesting_depth +
-                                                      decl_state->friend_depth,
+                        /*prefer_template=*/TRUE,
+                        decl_state->nesting_depth + decl_state->friend_depth,
 			es_error);
         if (sym == NULL) {
           /* No match was found and an error was issued. */

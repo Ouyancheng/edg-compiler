@@ -1,5 +1,20 @@
 Version 4.7
 
+4/2/13   [EDGcpfe/13843]
+GNU C++ compatibility: specialization of member vs. member template
+
+Version 4.6 introduced a regression in g++ mode that resulted in a
+spurious "not an entity that can be explicitly specialized" error
+if an explicit specialization matched the type of both a normal member
+function and a function template of a non-template class.  Now fixed.
+
+  struct A {
+    A(int);
+    template<typename T> A(T);
+  };
+  template<> A::A(int i){}
+
+
 4/2/13   [EDGcpfe/13832]
 Missing backing expression on constexpr base-class cast
 
