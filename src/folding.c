@@ -2305,8 +2305,12 @@ operators.  Can also be used to test for a NULL pointer or pointer to member.
     /* Zero integral, fixed-point, or floating constant. */
     is_false = TRUE;
   } else if (is_null_pointer_value(constant)) {
-    /* A NULL pointer value (the nullptr keyword or 0 cast to a pointer
-       type). */
+    /* A NULL pointer value (0 cast to a pointer type). */
+    is_false = TRUE;
+  } else if (constant->kind == (a_constant_repr_kind)ck_integer &&
+             constant->implicit_cast &&
+             is_nullptr_type(constant->type)) {
+    /* The nullptr keyword or a nullptr_t value. */
     is_false = TRUE;
   } else if (constant->kind == (a_constant_repr_kind)ck_ptr_to_member) {
     /* Pointer to member constant.  See if null. */
