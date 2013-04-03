@@ -84,6 +84,11 @@ void scan_compound_literal_initializer(a_decl_parse_state  *dps,
                                        an_init_component  *rescan_aggr,
                                        an_init_component  **return_icp);
 
+extern a_hash_value hash_void_pointer(a_void_ptr  p);
+
+extern a_boolean compare_for_pointer_pair_map(a_void_ptr  p1,
+                                              a_void_ptr  p2);
+
 #endif /* ifndef DECL_INITS_H */
 
 /******************************************************************************

@@ -471,6 +471,8 @@ enum a_function_number_tag {
   fn_hash_unresolved_type_map_key,
   fn_compare_for_unresolved_type_map,
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+  fn_hash_void_pointer,
+  fn_compare_for_pointer_pair_map,
   fn_last
 };
 /* Define as "a_byte" to explicitly control storage size. */

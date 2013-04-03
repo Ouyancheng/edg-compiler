@@ -4961,6 +4961,9 @@ typedef struct a_ctor_init_block {
 			   base class. */
   a_pack_expansion_stack_entry_ptr
                 pesep;
+			/* If pack_expansion_context_started is TRUE, the pack
+			   expansion stack entry produced by the associated
+			   call to begin_potential_pack_expansion_context. */
   a_constructor_init_ptr
 		last_order_checked_init;
 		 	/* Pointer to last constructor init entry for a
@@ -5024,12 +5027,12 @@ previous initializer and update the state for the new entry.
 }  /* check_out_of_order_init */
 
 
-static a_symbol_ptr lookup_mem_initializer_id(void)
+static a_symbol_ptr look_up_mem_initializer_id(void)
 /*
-The current token is (generalized) identifier of a mem-initializer-id (which
-could refer to a field or base class to be initializer, or, in the case of a
+The current token is a (generalized) identifier of a mem-initializer-id (which
+could refer to a field or base class to be initialized, or, in the case of a
 delegating constructor, to the parent class of the constructor itself).  Look
-up this identifier and return the associated symbol.
+up this identifier and return the associated symbol (or NULL if none).
 */
 {
   a_symbol_ptr               sym;
@@ -5048,7 +5051,7 @@ up this identifier and return the associated symbol.
      same name as a member or base class is not visible.) */
   sym = coalesce_and_lookup_generalized_identifier(gid_options, ilm, &gid_err);
   return sym;
-}  /* lookup_mem_initializer_id */
+}  /* look_up_mem_initializer_id */
 
 
 static a_constructor_init_ptr scan_mem_initializer_id(
@@ -5067,7 +5070,7 @@ is returned through *p_array_type (in non-array cases, *p_array_type is left
 unchanged).
 */
 {
-  a_symbol_ptr               member_or_base_sym = lookup_mem_initializer_id();
+  a_symbol_ptr               member_or_base_sym = look_up_mem_initializer_id();
   a_type_ptr                 init_type;
   a_boolean                  template_param_init = FALSE;
   a_base_class_ptr           bcp;
@@ -5890,50 +5893,110 @@ whole array.
   return result;
 }  /* repeat_mem_init_for_array */
 
-#if /* FIXME */ 0
 
-static a_boolean diagnose_delegation_loop(a_constructor_init_ptr  cip,
-                                          a_routine_ptr           ctor,
-                                          a_source_position_ptr   pos)
 /*
-The given constructor init entry is for a delegate constructor.  If it
-directly or indirectly delegates to itself issue an error and return TRUE.
-Otherwise return FALSE.
+Pointer to a hash table tracking the targets of delegating constructors.
+(We cannot use the IL because constructor definitions may be discarded early.)
+Each entry in the table maps a routine entry for a delegating constructor to
+a non-delegating constructor is (possibly indirectly) delegates construction
+to.
+*/
+static a_hash_table_ptr
+	ctor_delegation_map = NULL;
+
+/*
+Type of the data items pointed to by the delegation map.
+*/
+typedef struct a_void_pointer_pair {
+  a_void_ptr
+	key;
+		/* The delegating constructor. */
+  a_void_ptr
+	value;
+		/* The target construct. */
+} a_void_pointer_pair;
+
+
+a_hash_value hash_void_pointer(a_void_ptr  p)
+/*
+Return a hash value for the given pointer.
 */
 {
-  a_boolean           result = FALSE;
-  a_dynamic_init_ptr  dip = cip->initializer;
+  a_hash_value  h = (a_hash_value)(unsigned long)p;
+  /* Jenkins integer hashing algorithm: */
+  h -= (h<<6);
+  h ^= (h>>17);
+  h -= (h<<9);
+  h ^= (h<<4);
+  h -= (h<<3);
+  h ^= (h<<10);
+  h ^= (h>>15);
+  return h;
+}  /* hash_void_pointer */
 
-  for (;;) {  /* Loop exited in the middle. */
-    a_routine_ptr  target;
-    check_assertion(dip != NULL &&
-                    dip->kind == (a_dynamic_init_kind)dik_constructor);
-    target = dip->variant.constructor.ptr;
-    if (target == ctor) {
-      /* The chain of delegations came back to the current constructor:
-         Issue an error. */
-      pos_error(ec_delegation_loop, pos);
-      result = TRUE;
-      break;
-    } else if (!target->is_delegating_ctor) {
-      /* The chain of delegations finished without getting back to the
-         current constructor. */
-      break;
+
+a_boolean compare_for_pointer_pair_map(a_void_ptr  entry,
+                                       a_void_ptr  key)
+/*
+Entry points to a void pointer pair.  Return TRUE if the pair's key equals key.
+*/
+{
+  return ((a_void_pointer_pair*)entry)->key == key;
+}  /* compare_for_pointer_pair_map */
+
+
+static void record_nondelegating_target_ctor(a_routine_ptr  ctor,
+                                             a_routine_ptr  target)
+/*
+Record in ctor_delegation_map the nondelegating target constructor (target) to
+which ctor delegates initialization.
+*/
+{
+  a_void_pointer_pair **p_pair;
+
+  if (ctor_delegation_map == NULL) {
+   ctor_delegation_map = alloc_hash_table(
+                               FRONT_END_REGION_NUMBER,
+                               (a_hash_table_size)1000,
+                               fn_for_function(hash_void_pointer),
+                               fn_for_function(compare_for_pointer_pair_map));
+  }  /* if */
+  p_pair = (a_void_pointer_pair**)hash_find(
+                      ctor_delegation_map, (a_void_ptr)ctor, /*create=*/TRUE);
+  check_assertion(*p_pair == NULL);
+  *p_pair = alloc_fe_of_type(a_void_pointer_pair);
+  (*p_pair)->key = ctor;
+  (*p_pair)->value = target;
+}  /* record_nondelegating_target_ctor */
+
+
+static a_routine_ptr get_nondelegating_target_ctor(a_routine_ptr  ctor)
+/*
+The given constructor is the target of a delegating constructor.  If that
+constructor is itself a delegating constructor, return the non-delegating
+constructor it targets.  Otherwise, just return ctor.
+*/
+{
+  a_routine_ptr       target;
+  a_void_pointer_pair **p_pair;
+
+  if (ctor->is_delegating_ctor) {
+    /* Look up the nondelegating constructor in the delegation map. */
+    check_assertion(ctor_delegation_map != NULL);
+    p_pair = (a_void_pointer_pair**)hash_find(
+                     ctor_delegation_map, (a_void_ptr)ctor, /*create=*/FALSE);
+    if (p_pair != NULL) {
+      target = (a_routine_ptr)(*p_pair)->value;
     } else {
-      /* The target is itself a delegating constructor (which means
-         it must have a definition).  Continue the loop. */
-      a_constructor_init_ptr  target_cip =
-         scope_for_routine(target)->variant.routine.constructor_inits;
-      check_assertion(target_cip != NULL &&
-                      target_cip->kind ==
-                                     (a_constructor_init_kind)cik_delegation);
-      dip = target_cip->initializer;
+      expect_error();
+      target = ctor;
     }  /* if */
-  }  /* for */
-  return result;
-}  /* diagnose_delegation_loop */
+  } else {
+    target = ctor;
+  }  /* if */
+  return target;
+}  /* get_nondelegating_target_ctor */
 
-#endif /* FIXME */
 
 static a_boolean delegating_ctor_initializer(a_routine_ptr      ctor,
                                              a_ctor_init_block  *cibp)
@@ -5968,7 +6031,7 @@ reflect the initialization.  Otherwise, return FALSE.
   }  /* for */
   if (cibp->has_explicit_init && is_decl_qualified_name_start()) {
     /* A name following the colon: Look it up. */
-    a_symbol_ptr  sym = lookup_mem_initializer_id();
+    a_symbol_ptr  sym = look_up_mem_initializer_id();
     if (is_type_symbol(sym)) {
       /* The name refers to a type: Check if it's the constructor's class.
          (It could also be a base class type or, in error cases, another
@@ -5983,6 +6046,7 @@ reflect the initialization.  Otherwise, return FALSE.
         a_source_position       pos;
         a_constructor_init_ptr  cip;
         a_dynamic_init_ptr      dip;
+        a_routine_ptr           target;
         is_delegating_init = TRUE;
         pos = pos_curr_token;
         cip = alloc_ctor_init((a_constructor_init_kind)cik_delegation);
@@ -6000,11 +6064,11 @@ reflect the initialization.  Otherwise, return FALSE.
         if (dip->kind == (a_dynamic_init_kind)dik_constructor) {
           /* Check that this delegation doesn't create a loop of
              delegations.  If it does, discard the constructor init entry. */
-#if /*FIXME*/0
-          if (diagnose_delegation_loop(cip, ctor, &pos)) {
+          target = get_nondelegating_target_ctor(dip->variant.constructor.ptr);
+          if (target == ctor) {
+            pos_error(ec_delegation_loop, &pos);
             dip = NULL;
           }  /* if */
-#endif /*FIXME*/
         } else {
           /* Some error must have occurred. */
           expect_error();
@@ -6026,7 +6090,11 @@ reflect the initialization.  Otherwise, return FALSE.
           is_delegating_init = FALSE;
         }  /* if */
         if (is_delegating_init) {
+          if (cip != NULL && target != NULL) {
+            record_nondelegating_target_ctor(ctor, target);
+          }  /* if */
           cibp->cip_list = cip;
+          ctor->is_delegating_ctor = TRUE;
         }  /* if */
       }  /* if */
     }  /* if */
@@ -6124,7 +6192,6 @@ initialized.  These are addressed in the course of the processing.
        ordinary subobject initializers). */
     if (delegating_constructors_enabled &&
         delegating_ctor_initializer(ctor_rout, &cib)) {
-      ctor_rout->is_delegating_ctor = TRUE;
       goto done;
     }  /* if */
   }  /* if */
