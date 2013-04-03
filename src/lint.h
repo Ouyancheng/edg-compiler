@@ -1019,6 +1019,7 @@ extern int fileno(FILE *);
 /*lint -esym(769,ec_unsequenced_use_of_variable)*/
 #endif /* !EXTRA_SOURCE_POSITIONS_IN_IL */
 
+/*lint -esym(769,ec_delegation_loop)*/
 #endif /* ifndef LINT_H */
 
 /******************************************************************************
