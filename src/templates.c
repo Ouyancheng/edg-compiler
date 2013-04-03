@@ -728,12 +728,10 @@ the "text" field of *template_ptr to point to it.
 }  /* make_template_string */
 
 static void make_member_function_template_string(
-					a_symbol_ptr		sym,
-					a_cached_token_ptr	tokens)
+					a_symbol_ptr		sym)
 /*
-Create a template string from tokens for the member function specified by
-"sym".  Save the string in the IL template entry associated with the
-member function.
+Create a template string for the member function specified by "sym".  Save
+the string in the IL template entry associated with the member function.
 */
 {
   a_template_symbol_supplement_ptr	tssp;
@@ -4304,14 +4302,14 @@ and a list of the unprocessed entries is returned to the caller.
              tokens that were removed from the original cache. */
           { a_cached_token_ptr	first_token = tcsp->before_first_token->next;
             remove_body_from_cache(tcsp, tok_semicolon);
+            free_tokens_from_reusable_cache(first_token, &tcp->tokens);
 #if RECORD_TEMPLATE_STRINGS
             if (symbol_is(tcsp->symbol, sk_member_function)) {
               /* In some cases, a string version of member functions is
                  needed. */
-              make_member_function_template_string(tcsp->symbol, first_token);
+              make_member_function_template_string(tcsp->symbol);
             }  /* if */
 #endif /* RECORD_TEMPLATE_STRINGS */
-            free_tokens_from_reusable_cache(first_token, &tcp->tokens);
           }
 #if DEBUG
           removed = TRUE;
