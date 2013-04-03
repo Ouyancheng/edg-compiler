@@ -1,5 +1,54 @@
 Version 4.7
 
+4/3/12   [EDGcpfe/13785]
+C++-generating back end: missing definition of inline member function of
+class template with function prototype instantiation deferral
+
+In configurations with both PROTOTYPE_INSTANTIATIONS_IN_IL and
+FUNCTION_PROTOTYPE_INSTANTIATION_DEFERRAL_ALLOWED set to TRUE, the
+C++-generating back end failed (in certain very obscure cases) to
+instantiate an inline member function of a class template in --g++ mode
+when g++ does instantiate the function (see the entry for EDGcpfe/12919
+below for some background on this issue).  The result of this difference
+could be seen in the fact that the member function was only declared, not
+defined, in the generated code of the class template definition.  This has
+now been addressed by putting out the definition of such member functions
+from the string form (tokens) of the definition.  In the following example,
+for instance, the C++-generating back end previously put out only a
+declaration, not a definition, for H::~H():
+
+  struct A { };
+  struct B : virtual public A {
+    virtual ~B();
+  };
+  struct C : virtual public A { };
+  struct D : virtual A { };
+  struct E : virtual D { };
+  struct F : virtual D, B { };
+  struct G : virtual E, F { };
+
+  template<typename T> struct H {
+    ~H() { }
+  };
+  template<typename T> struct I : public H<T> { };
+
+  struct J : virtual C {
+    virtual void f() = 0;
+  };
+
+  struct K : virtual C, G {
+    I<int> Ii;
+  };
+  struct L : K {
+    ~L();
+  };
+
+  struct M : virtual J, L {
+    void f();
+  };
+  void M::f() { }
+
+
 4/3/13   [EDGcpfe/13844]
 dynamic_cast downcast of pointer to virtual base allowed on null pointer value
 

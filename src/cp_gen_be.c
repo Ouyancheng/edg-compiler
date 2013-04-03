@@ -15862,6 +15862,7 @@ TRUE if the declaration following this one is such a continuation.
 #if MICROSOFT_EXTENSIONS_ALLOWED
   a_type_ptr                    parent_class;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+  char                          *definition_from_string = NULL;
 
   name_ref = get_current_name_ref();
   *another_decl_in_comma_list = FALSE;
@@ -16014,6 +16015,14 @@ handle_as_definition:
         suppress_inline_kwd = TRUE;
       }  /* if */
 #endif /* GCC_IS_GENERATED_CODE_TARGET || ... */
+      if (rout->is_template_function && rout->is_prototype_instantiation &&
+          rout->inline_in_class_definition && rout->assoc_template != NULL) {
+        /* There is no definition in the IL for the prototype instantiation
+           of the function (presumably because prototype instantiations
+           were deferred and the function was never instantiated), so it
+           should be put out from the saved string form. */
+        definition_from_string = rout->assoc_template->text;
+      }  /* if */
     }  /* if */
   }  /* if */
   check_assertion_str(rout_type != NULL,
@@ -16266,7 +16275,8 @@ handle_as_definition:
            a bug in the Sun C++ 5.0 compiler regarding "inline" on
            constructor definitions. */
         !(decl_within_class &&
-          (is_definition || rout->is_defaulted || rout->is_deleted))) {
+          (is_definition || rout->is_defaulted || rout->is_deleted ||
+           definition_from_string != NULL))) {
       if (gcc_is_generated_code_target) {
 #if GNU_EXTENSIONS_ALLOWED
         if (rout->gnu_c89_inline) {
@@ -16372,6 +16382,14 @@ handle_as_definition:
        transformed into a non-defining declaration by removal of unneeded
        entities.) */
     write_tok_str(" = default;");
+  } else if (definition_from_string != NULL) {
+    /* This is the prototype instantiation of a member function that was
+       defined inline in a class template definition but has no definition
+       in the IL, presumably because its prototype instantiation was
+       deferred and the function was never instantiated.  Put out its
+       definition from the saved string form. */
+    write_space();
+    write_tok_str(definition_from_string);
   } else if (!is_definition) {
     /* A declaration of the routine. */
 #if GNU_EXTENSIONS_ALLOWED
