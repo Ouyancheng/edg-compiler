@@ -13850,9 +13850,11 @@ constructor, but may instead be after an assignment to "this".
                                         insert_location);
     }  /* if */
   }  /* for */
-  /* Generate initialization for each data member that appears on the
-     ctor_init list. */
+  /* Generate initialization for each data member or delegating constructor
+     that appears on the ctor_init list. */
   for (; ctor_init != NULL; ctor_init = ctor_init->next) {
+    check_assertion(ctor_init->kind ==(a_constructor_init_kind)cik_field ||
+                    ctor_init->kind ==(a_constructor_init_kind)cik_delegation);
     lower_ctor_init(ctor_init, this_param_var,
                     /*base_of_complete_object=*/FALSE,
                     (a_variable_ptr)NULL, insert_location);
