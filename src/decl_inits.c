@@ -6032,7 +6032,7 @@ reflect the initialization.  Otherwise, return FALSE.
   if (cibp->has_explicit_init && is_decl_qualified_name_start()) {
     /* A name following the colon: Look it up. */
     a_symbol_ptr  sym = look_up_mem_initializer_id();
-    if (is_type_symbol(sym)) {
+    if (sym != NULL && is_type_symbol(sym)) {
       /* The name refers to a type: Check if it's the constructor's class.
          (It could also be a base class type or, in error cases, another
          type. */
@@ -6061,7 +6061,8 @@ reflect the initialization.  Otherwise, return FALSE.
         scan_mem_init_args(ctor, cip, tp, (a_type_ptr)NULL, &pos);
         dip = cip->initializer;
         check_assertion(dip != NULL);
-        if (dip->kind == (a_dynamic_init_kind)dik_constructor) {
+        if (dip->kind == (a_dynamic_init_kind)dik_constructor &&
+            dip->variant.constructor.ptr != NULL) {
           /* Check that this delegation doesn't create a loop of
              delegations.  If it does, discard the constructor init entry. */
           target = get_nondelegating_target_ctor(dip->variant.constructor.ptr);
