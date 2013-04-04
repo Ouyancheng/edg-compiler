@@ -12750,7 +12750,7 @@ typedef struct a_routine {
   a_bit_field	is_delegating_ctor:1;
 			/* TRUE if this routine is a delegating constructor
 			   (which can only be known if the constructor
-			   has been seen). */
+			   definition has been seen). */
 #if ASSIGNMENT_TO_THIS_ALLOWED
   a_bit_field	assignment_to_this_done:1;
 			/* TRUE if an assignment to "this" (an anachronism)

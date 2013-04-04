@@ -5704,7 +5704,13 @@ static void scan_mem_init_args(a_routine_ptr           ctor,
                                a_type_ptr              array_type,
                                a_source_position       *pos)
 /*
-
+Scan the arguments of a mem-initializer (including the delimiting parentheses
+or braces).  ctor is the constructor with which the mem-initializer is
+associated.  cip describes this particular mem-initializer.  For non-array
+(sub)objects, init_type is the type being initialized and array_type is NULL.
+For array subobjects, init_type is the underlying element type being
+initialized and array_type is the array type.  pos is the start position of
+the mem-initializer.
 */
 {
   if (curr_token == tok_lparen) {
@@ -6035,7 +6041,7 @@ reflect the initialization.  Otherwise, return FALSE.
     if (sym != NULL && is_type_symbol(sym)) {
       /* The name refers to a type: Check if it's the constructor's class.
          (It could also be a base class type or, in error cases, another
-         type. */
+         type.) */
       a_type_ptr  tp = type_symbol_type(sym);
       tp = skip_typerefs(tp);
       if (is_immediate_class_type(tp) &&
@@ -6187,7 +6193,7 @@ initialized.  These are addressed in the course of the processing.
     (void)get_token();
     /* Check for the case of a delegating constructor. */
     /* This requires starting a potential pack expansion context at this time.
-       That context may then be use later on when scanning ordinary
+       That context may then be used later on when scanning ordinary
        mem-initializers if this isn't a delegating constructor (or in some
        error cases that mix the delegating constructor initializer with
        ordinary subobject initializers). */
