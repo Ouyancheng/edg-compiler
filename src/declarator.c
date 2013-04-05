@@ -2145,8 +2145,8 @@ this is a helper function.
          an on certain type name declarations, but never on declarations of
          constructors, destructors, finalizers, or new/delete operators. */
       ref_qualifiers = (a_ref_qualifier_kind)
-                                     curr_token == tok_ampersand ? rqk_lvalue
-                                                                 : rqk_rvalue;
+                                   (curr_token == tok_ampersand ? rqk_lvalue
+                                                                : rqk_rvalue);
     } else {
       pos_error(ec_ref_qualifier_not_allowed, &pos_curr_token);
       qualifier_err = TRUE;

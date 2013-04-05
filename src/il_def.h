@@ -5835,12 +5835,11 @@ be bound to lvalues and rvalues.  For example:
     void h();     // In x.h() x can be an lvalue or an rvalue.
   };
 */
-typedef enum a_ref_qualifier_kind_tag {
+enum a_ref_qualifier_kind_tag {
   rqk_default,
   rqk_lvalue,
-  rqk_rvalue,
-  rqk_error
-} a_ref_qualifier_kind_tag;
+  rqk_rvalue
+};
 
 typedef a_byte a_ref_qualifier_kind;
 
