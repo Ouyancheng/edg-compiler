@@ -1,5 +1,13 @@
 Version 4.7
 
+4/5/13   [EDGcpfe/13850]
+Microsoft mode: objectless nonstatic data member references in non-C++11 mode
+
+Microsoft mode now allows objectless nonstatic data member references
+(see EDGcpfe/8402 below) for microsoft_version >= 1600 even if C++11
+mode is not specified.
+
+
 4/3/13   [EDGcpfe/13785]
 C++-generating back end: missing definition of inline member function of
 class template with function prototype instantiation deferral
