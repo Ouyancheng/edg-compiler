@@ -5494,6 +5494,10 @@ check_typerefs:
                       rtsp1->qualifiers == rtsp2->qualifiers &&
                       identical_types(this1, this2);
           }  /* if */
+          if (rtsp1->ref_qualifiers != rtsp2->ref_qualifiers) {
+            /* If ref-qualifiers don't match, the types don't match. */
+            this_class_matches = FALSE;
+          }  /* if */
           /* For functions, the return types must be identical, the
              parameter lists must be identical, and the implicit "this"
              parameter type (if any) must be identical. */
@@ -6233,6 +6237,7 @@ check_typerefs:
                                           rt_flags, diffs) &&
                 param_types_are_compatible_full(type_1, type_2, flags,
                                                 diffs) &&
+                rtsp1->ref_qualifiers == rtsp2->ref_qualifiers &&
                 ((flags & TCF_IGNORE_THIS_CLASS_TYPE) ||
                  (rtsp1->qualifiers == rtsp2->qualifiers &&
                   ((rtsp1->this_class == NULL) ?
@@ -10637,6 +10642,7 @@ make_new_comp_type:
       rtsp->this_class = rtsp1->this_class;
       rtsp->qualifiers = rtsp1->qualifiers;
       rtsp->this_qualifiers = rtsp1->this_qualifiers;
+      rtsp->ref_qualifiers = rtsp1->ref_qualifiers;
       /* If the two exception specifications are not identical, it is
          because of an error that will already have been reported. */
       if (rtsp1->exception_specification != NULL) {
@@ -10870,6 +10876,8 @@ the old list.  Only callable in C++ mode.  See ARM 13.
   a_type_qualifier_set
                    old_this_qualifiers, new_this_qualifiers;
   a_boolean        old_this_qualified, new_this_qualified;
+  a_ref_qualifier_kind
+                   old_ref_qualifiers, new_ref_qualifiers;
   a_boolean	   new_is_template = templ_param_list != NULL;
 
   db_enter(5, "overload_distinguishable");
@@ -10885,6 +10893,7 @@ the old list.  Only callable in C++ mode.  See ARM 13.
   new_extra_info = new_type->variant.routine.extra_info;
   new_this_class = new_extra_info->this_class;
   new_this_qualifiers = new_extra_info->qualifiers;
+  new_ref_qualifiers = new_extra_info->ref_qualifiers;
   do {
     /* Projection symbols are ignored. */
     if (old_sym_ptr->kind == (a_symbol_kind)sk_projection ||
@@ -10923,6 +10932,18 @@ the old list.  Only callable in C++ mode.  See ARM 13.
           !identical_types(old_this_class, new_this_class)))) {
       /* "this" parameter types are distinguishable; this probably means
          one function is const or volatile and the other isn't. */
+      distinguishable = TRUE;
+      goto distinguishable_determined;
+    }  /* if */
+    old_ref_qualifiers = old_extra_info->ref_qualifiers;
+    if (old_ref_qualifiers != new_ref_qualifiers &&
+        old_ref_qualifiers != (a_ref_qualifier_kind)rqk_default &&
+        new_ref_qualifiers != (a_ref_qualifier_kind)rqk_default) {
+      /* "&" and "&&" ref-qualifiers are distinguishable, but other
+         combinations are not.  In particular, if two declarations only differ
+         in ref-qualifiers and one declaration has no explicit ref-qualifier,
+         the declarations are not overload-distinguishable (and presumably an
+         error will be issued since they aren't compatible either). */
       distinguishable = TRUE;
       goto distinguishable_determined;
     }  /* if */
@@ -10966,6 +10987,10 @@ the old list.  Only callable in C++ mode.  See ARM 13.
          a static and nonstatic member function whose parameter types are
          the same. */
       *err_code = ec_static_nonstatic_with_same_param_types;
+    } else if (old_ref_qualifiers != new_ref_qualifiers) {
+      /* Two member functions with the same name and parameter types must
+         either both have ref-qualifiers or both lack ref-qualifiers. */
+      *err_code = ec_same_param_types_with_and_without_ref_qualifiers;
     } else {
       /* The parameter types are compatible, so the only incompatibility
          remaining must have to do with the return types. */

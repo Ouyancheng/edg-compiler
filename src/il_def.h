@@ -5824,6 +5824,26 @@ about variables and routines.
 			   scope specifier. */
 #endif /* SUN_EXTENSIONS_ALLOWED */
 
+/*
+An enumeration describing the ref-qualifier of a member function type.
+Ref-qualifiers are a C++11 feature indicating how the *this parameter should
+be bound to lvalues and rvalues.  For example:
+
+  struct S {
+    void f() &;   // x.f() is only valid when x is an lvalue.
+    void g() &&;  // x.g() requires x to be an rvalue.
+    void h();     // In x.h() x can be an lvalue or an rvalue.
+  };
+*/
+typedef enum a_ref_qualifier_kind_tag {
+  rqk_default,
+  rqk_lvalue,
+  rqk_rvalue,
+  rqk_error
+} a_ref_qualifier_kind_tag;
+
+typedef a_byte a_ref_qualifier_kind;
+
 
 /* Entry containing additional information about a routine type
 (segregated to keep down the size of a_type). */
@@ -5959,6 +5979,11 @@ typedef struct a_routine_type_supplement {
 			   In the unmodified front end, only the TQ_RESTRICT
 			   qualifier is recorded here (for restrict-qualified
 			   member functions). */
+  a_ref_qualifier_kind
+		ref_qualifiers:2;
+			/* Used for nonstatic member functions: The
+			   ref-qualification of the member function type.
+			   (See a_ref_qualifier_kind_tag above for details.) */
   a_bit_field	does_not_return:1;
 			/* TRUE if this is the type of function that is known
 			   not to return normally (it can still "return" via an

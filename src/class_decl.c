@@ -9259,6 +9259,10 @@ When templates_only is TRUE, only function templates members are considered.
       /* No match is possible.  Don't bother calling types_are_compatible. */
       continue;
     }  /* if */
+    if (new_rts->ref_qualifiers != orig_rts->ref_qualifiers) {
+      /* If ref-qualification differs, no match is possible. */
+      continue;
+    }  /* if */
     if (fund_sym->kind == (a_symbol_kind)sk_function_template &&
         templ_param_list == NULL) {
       /* The symbol we are checking is a template, but no template parameter

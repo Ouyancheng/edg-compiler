@@ -2814,6 +2814,7 @@ handling).
     }  /* if */
   }  /* if */
   delegating_constructors_enabled = value;
+  ref_qualifiers_enabled = value;
   constexpr_enabled = value;
 }  /* check_and_set_cpp11_mode_options */
 

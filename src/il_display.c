@@ -1488,6 +1488,14 @@ Display a_routine_type_supplement.
     disp_type_qualifiers(ptr->this_qualifiers);
     (void)printf("\n");
   }  /* if */
+  if (ptr->ref_qualifiers != (a_ref_qualifier_kind)rqk_default) {
+    disp_name("ref_qualifiers");
+    switch (ptr->ref_qualifiers) {
+      case rqk_lvalue: printf("&\n");                          break;
+      case rqk_rvalue: printf("&&\n");                         break;
+      default:         printf("**BAD REF-QUALIFIER KIND**\n"); break;
+    }  /* switch */
+  }  /* if */
   if (ptr->prototype_scope != NULL) {
     disp_ptr("prototype_scope", (char *)ptr->prototype_scope, iek_scope);
   }  /* if */

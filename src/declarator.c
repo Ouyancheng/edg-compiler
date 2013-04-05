@@ -1999,6 +1999,8 @@ this is a helper function.
   a_routine_type_supplement_ptr   rtsp = rout_type->variant.routine.extra_info;
   a_type_ptr                      this_class = NULL;
   a_type_qualifier_set            qualifiers = TQ_NONE;
+  a_ref_qualifier_kind            ref_qualifiers =
+                                             (a_ref_qualifier_kind)rqk_default;
   a_boolean                       qualifier_err = FALSE;
   a_boolean                       is_lambda_decl = (func_info->lambda != NULL);
   a_boolean                       cv_qualifier_with_no_this_class_okay = FALSE;
@@ -2130,6 +2132,27 @@ this is a helper function.
       pos_error(err_code, &qualifier_pos);
     }  /* if */
   }  /* if */
+  if (ref_qualifiers_enabled &&
+      (curr_token == tok_ampersand || curr_token == tok_and_and)) {
+    /* This looks like a ref-qualifier (e.g., "struct S { int f() &; };"). */
+    if ((is_nonstatic_member || parent_type != NULL ||
+         cv_qualifier_with_no_this_class_okay) &&
+        !(is_constructor || is_destructor || is_finalizer) &&
+        !(locator != NULL && locator->is_operator_name &&
+          (is_new_operator(locator->variant.opname) ||
+           is_delete_operator(locator->variant.opname)))) {
+      /* Ref-qualifiers are permitted on nonstatic member function declarations
+         an on certain type name declarations, but never on declarations of
+         constructors, destructors, finalizers, or new/delete operators. */
+      ref_qualifiers = (a_ref_qualifier_kind)
+                                     curr_token == tok_ampersand ? rqk_lvalue
+                                                                 : rqk_rvalue;
+    } else {
+      pos_error(ec_ref_qualifier_not_allowed, &pos_curr_token);
+      qualifier_err = TRUE;
+    }  /* if */
+    (void)get_token();
+  }  /* if */
   if (!is_nonstatic_member && locator != NULL && locator->is_error &&
       locator->is_class_member) {
     /* Severe errors like
@@ -2175,6 +2198,7 @@ this is a helper function.
        on a parameter). */
     rtsp->qualifiers = (qualifiers & ~TQ_RESTRICT);
     rtsp->this_qualifiers = (qualifiers & TQ_RESTRICT);
+    rtsp->ref_qualifiers = ref_qualifiers;
   }  /* if */
   esp = scan_exception_specification(state, func_info,
                                      !disallow_exception_spec, top_level);

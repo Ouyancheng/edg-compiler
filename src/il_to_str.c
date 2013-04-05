@@ -2544,6 +2544,11 @@ in the way described by octl.
       form_type_qualifier(qualifiers, UPC_BLOCK_SIZE_NONE,
                          /*need_trailing_space=*/FALSE, octl);
     }  /* if */
+    if (rtsp->ref_qualifiers == (a_ref_qualifier_kind)rqk_lvalue) {
+      octl->output_str(" &", octl);
+    } else if (rtsp->ref_qualifiers == (a_ref_qualifier_kind)rqk_rvalue) {
+      octl->output_str(" &&", octl);
+    }  /* if */
     if ((rtsp->trailing_return_type || is_lambda) &&
         !octl->c_generating_back_end) {
       octl->output_str("->", octl);

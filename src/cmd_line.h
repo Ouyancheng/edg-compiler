@@ -479,6 +479,11 @@ EXTERN a_boolean
 			   exception specification is provided. */
 
 EXTERN a_boolean
+		ref_qualifiers_enabled;
+			/* TRUE if ref-qualifiers are supported for nonstatic
+			   member function types. */
+
+EXTERN a_boolean
 		delegating_constructors_enabled;
 			/* TRUE if delegating constructors (a C++11 feature)
 			   are accepted. */

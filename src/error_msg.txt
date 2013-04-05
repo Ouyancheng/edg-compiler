@@ -2494,6 +2494,8 @@ ec_constexpr_dangling_pointer;;"expression is not constant due to a dangling poi
 ec_cl_unrestricted_unions_in_microsoft_mode;;"unrestricted unions cannot be enabled in Microsoft mode"
 ec_delegation_loop;;"constructor delegates directly or indirectly to itself"
 ec_delegation_init_and_mem_init;;"a delegating constructor cannot have other mem-initializers"
+ec_ref_qualifier_not_allowed;;"a ref-qualifier is not allowed here"
+ec_same_param_types_with_and_without_ref_qualifiers;;"overloading two member functions with the same parameter types requires that they both have ref-qualifiers or both lack ref-qualifiers"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

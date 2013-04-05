@@ -1789,6 +1789,7 @@ to default values.
       rtsp->this_class               = NULL;
       rtsp->qualifiers               = TQ_NONE;
       rtsp->this_qualifiers          = TQ_NONE;
+      rtsp->ref_qualifiers           = (a_ref_qualifier_kind)rqk_default;
       rtsp->prototype_scope          = NULL;
       rtsp->exception_specification  = NULL;
       break;

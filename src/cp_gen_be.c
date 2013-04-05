@@ -6242,6 +6242,12 @@ default arguments should be suppressed (needed for template specializations).
                           /*need_trailing_space=*/FALSE, &octl);
     }  /* if */
   }  /* if */
+  /* Output a ref-qualifier, if any. */
+  if (rtsp->ref_qualifiers == (a_ref_qualifier_kind)rqk_lvalue) {
+    write_tok_str(" &");
+  } else if (rtsp->ref_qualifiers == (a_ref_qualifier_kind)rqk_rvalue) {
+    write_tok_str(" &&");
+  }  /* if */
   /* Output a throw specification, if there is one. */
   if (rtsp->exception_specification != NULL) {
     gen_exception_specification(rtsp->exception_specification);
