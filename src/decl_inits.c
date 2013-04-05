@@ -1259,6 +1259,40 @@ is->no_diagnostics is TRUE.
 }  /* implicit_init_anonymous_union_member */
 
 
+static a_boolean implicit_init_involves_ref_init(a_type_ptr tp)
+/*
+Return TRUE if the given type is:
+  - a reference type, or
+  - an aggregate type (in the C++ sense) with a member of such a type.
+*/
+{
+  a_boolean   result = FALSE;
+
+  if (is_any_reference_type(tp)) {
+    result = TRUE;
+  } else {
+    if (is_array_type(tp)) {
+      tp = underlying_array_element_type(tp);
+    }  /* if */
+    tp = skip_typerefs(tp);
+    if (is_immediate_class_type(tp)) {
+      a_class_symbol_supplement_ptr  cssp = class_symbol_supp(symbol_for(tp));
+      if (cssp->is_class_aggregate) {
+        a_symbol_ptr  sym = cssp->symbols;
+        for (; sym != NULL; sym = sym->next_in_scope) {
+          if (symbol_is(sym, sk_field) &&
+              implicit_init_involves_ref_init(sym->variant.field.ptr->type)) {
+            result = TRUE;
+            break;
+          }  /* if */
+        }  /* for */
+      }  /* if */
+    }  /* if */
+  }  /* if */
+  return result;
+}  /* implicit_init_involves_ref_init */
+
+
 static a_constant_ptr add_repeat_con(a_constant_ptr  elem_con,
                                      a_targ_size_t   count)
 /*
@@ -1425,7 +1459,7 @@ the position at which diagnostics should be issued.
     a_class_symbol_supplement_ptr  cssp = symbol_supplement_for_class(etype);
     if (has_trivial_default_constructor(cssp) &&
         (!exceptions_enabled || cssp->has_trivial_destructor)) {
-      if (cssp->any_ref_member) {
+      if (implicit_init_involves_ref_init(etype)) {
         /* An array element of class type with no constructor but with a ref
            member will end up uninitialized. */
         is->any_uninitialized_const_or_ref_member = TRUE;
@@ -2113,7 +2147,7 @@ position for which diagnostics should be issued.
      nontrivial default initialization.  Keep track of the last such field. */
   for (fp = next_field; fp != NULL; fp = next_initializable_field(fp->next)) {
     a_type_ptr  ftp = fp->type;
-    if (is_any_reference_type(ftp)) {
+    if (implicit_init_involves_ref_init(ftp)) {
       /* An uninitialized reference will likely result in a diagnostic. */
       is->any_uninitialized_const_or_ref_member = TRUE;
     } else {
