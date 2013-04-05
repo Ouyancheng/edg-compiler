@@ -15713,12 +15713,15 @@ expression, and return the result in *result (or an error indication in
       element_type = skip_typerefs(element_type);
       /* Cast the dimension expression to size_t (it's already an integral
          type). */
-      cast_node(&array_size_expr, integer_type(targ_size_t_int_kind),
-                /*check_cast_access=*/FALSE, /*check_ambiguity=*/FALSE,
-                /*is_implicit_cast=*/TRUE,
-                /*is_reinterpret_cast=*/FALSE, /*reinterpret_semantics=*/FALSE,
-                /*within_expr_processing=*/TRUE,
-                &type_position);
+      if (!is_template_param_type(array_size_expr->type)) {
+        cast_node(&array_size_expr, integer_type(targ_size_t_int_kind),
+                  /*check_cast_access=*/FALSE, /*check_ambiguity=*/FALSE,
+                  /*is_implicit_cast=*/TRUE,
+                  /*is_reinterpret_cast=*/FALSE,
+                  /*reinterpret_semantics=*/FALSE,
+                  /*within_expr_processing=*/TRUE,
+                  &type_position);
+      }  /* if */
       if (element_type->size == 1) {
         /* If the element size is 1, skip the multiplication. */
         sizeof_node = array_size_expr;
