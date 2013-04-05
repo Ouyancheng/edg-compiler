@@ -5979,7 +5979,7 @@ typedef struct a_routine_type_supplement {
 			   In the unmodified front end, only the TQ_RESTRICT
 			   qualifier is recorded here (for restrict-qualified
 			   member functions). */
-  a_ref_qualifier_kind
+  a_bit_Field /* a_ref_qualifier_kind */
 		ref_qualifiers:2;
 			/* Used for nonstatic member functions: The
 			   ref-qualification of the member function type.
