@@ -26571,7 +26571,8 @@ normal_function:
                                                        locator.source_position;
                 is_objectless_nonstatic_data_mem_ref = TRUE;
                 if (sun_mode || cpp11_mode ||
-                    (microsoft_mode && microsoft_version >= 1600) ||
+                    (microsoft_mode && microsoft_version >= 1600 &&
+                     rcblock == NULL) ||
                     (gnu_mode && gnu_version >= 40400)) {
                   /* Objectless references to non-static data members are
                      permitted in C++11 and accepted by the Sun compiler,
