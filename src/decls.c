@@ -9000,10 +9000,14 @@ definition of a member function of a class template.
           update_routine_type_exception_specification_if_needed(
                                    tssp->variant.function.routine, &type_ptr);
         }  /* if */
-        if (defer_function_prototype_instantiations && sym->is_class_member) {
+        if (defer_function_prototype_instantiations &&
+            symbol_is(sym, sk_member_function)) {
           /* Do the prototype instantiation of the original declaration if
              needed.  Ordinarily this shouldn't be needed, but in some modes
-             (particularly, GNU C++) it may not have been done yet. */
+             since member function exception specifications are usually
+             prototype-instantiated when their class is completed, but when
+             prototype instantiations are deferred (particularly, GNU C++) it
+             may not have been done yet. */
           instantiate_exception_spec_if_needed(sym);
         }  /* if */
         proto_instantiate_exception_spec_redecl(decl_state, sym);
