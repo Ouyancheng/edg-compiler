@@ -1,5 +1,26 @@
 Version 4.7
 
+4/6/13   [EDGcpfe/13868]
+Overload resolution change on "this" parameter cv-qualification difference
+
+Overload resolution has been changed to account for a cv-qualifier difference
+when comparing a reference binding against an implied reference binding
+for a "this" parameter.
+
+  class A;
+  struct B {
+    B(A&&);
+  };
+  struct A {
+    operator B() const;
+  };
+  A f();
+  void g(const B& str);
+  int main() {
+    g(f());  // Was ambiguous; now chooses B(A&&)
+  }
+
+
 4/5/13   [EDGcpfe/13857]
 Abort on out-of-class-template member function with noexcept-specifier
 

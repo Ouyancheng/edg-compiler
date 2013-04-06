@@ -6063,24 +6063,30 @@ Return TRUE if the indicated standard conversion is an identity conversion
 (i.e., no conversion at all, ignoring lvalue-to-rvalue conversions).
 is_ref is TRUE if the parameter has a reference type.  For a reference
 binding, type_qualifiers_added does not indicate a qualification
-conversion; secondary_type_qualifiers_added does.  Lvalue-to-rvalue
-conversions are ignored in this test because of [over.ics.rank]
-paragraph 3 first bullet first sub-bullet "excluding any Lvalue
-Transformation" in the subsequence check.
+conversion; secondary_type_qualifiers_added does.  is_this is TRUE if
+the parameter is the "this" parameter.  Lvalue-to-rvalue conversions
+are ignored in this test because of [over.ics.rank] paragraph 3 first
+bullet first sub-bullet "excluding any Lvalue Transformation" in the
+subsequence check.
 */
-#define is_identity_conversion(is_ref, conv) \
+#define is_identity_conversion(is_ref, is_this, conv) \
   (!(conv)->nontrivial_conversion && \
-   !((is_ref) ? (conv)->secondary_type_qualifiers_added : \
-                (conv)->type_qualifiers_added))
+   ((is_this) || \
+    !((is_ref) ? (conv)->secondary_type_qualifiers_added : \
+                 (conv)->type_qualifiers_added)))
 
 /*
 Return TRUE if the indicated standard conversion is a qualification
 conversion.  is_ref is TRUE if the parameter has a reference type.
 For a reference binding, type_qualifiers_added does not indicate a
 qualification conversion; secondary_type_qualifiers_added does.
+is_this is TRUE if the parameter is the "this" parameter.
+(The "this" parameter always binds directly, so any qualifiers
+indicated don't count as a qualification conversion.)
 */
-#define is_qualification_conversion(is_ref, conv) \
+#define is_qualification_conversion(is_ref, is_this, conv) \
   (!(conv)->nontrivial_conversion && \
+   !(is_this) && \
    ((is_ref) ? (conv)->secondary_type_qualifiers_added : \
                (conv)->type_qualifiers_added))
 
@@ -6092,6 +6098,47 @@ by the standard as a reference-equivalent in overload resolution.
 #define is_ref_or_ref_equivalent(param_type, arg_match) \
   (is_any_reference_type(param_type) || \
    ((arg_match)->is_match_for_this_param && is_pointer_type(param_type)))
+
+
+static int compare_reference_matches(an_arg_match_summary *arg_match1,
+                                     an_arg_match_summary *arg_match2)
+/*
+Compare two argument match summary entries and see if one is an rvalue
+reference match and the other is an lvalue reference match, and return
+
+  +1 if arg_match1 is a better match than arg_match2,
+   0 if the two matches are equal (or this comparison is not applicable), or
+  -1 if arg_match1 is a worse match than arg_match2.
+
+Binding an rvalue reference to an argument is better than binding an
+lvalue reference to that argument.
+*/
+{
+  int        cmp = 0;
+  a_type_ptr arg_type1 = arg_match1->param_type;
+  a_type_ptr arg_type2 = arg_match2->param_type;
+
+  if (arg_type1 != NULL && arg_type2 != NULL &&
+      is_reference_type(arg_type1) &&
+      is_reference_type(arg_type2) &&
+      /* This comparison does not apply if either binding is for the
+         "this" parameter. */
+      !arg_match1->is_match_for_this_param &&
+      !arg_match2->is_match_for_this_param &&
+      (is_rvalue_reference_type(arg_type1) !=
+                                        is_rvalue_reference_type(arg_type2))) {
+    if (is_rvalue_reference_type(arg_type1)) {
+      /* arg_match1 is an rvalue reference binding and arg_match2 is an lvalue
+         reference binding, so arg_match1 is better. */
+      cmp = 1;
+    } else {
+      /* arg_match1 is an lvalue reference binding and arg_match2 is an rvalue
+         reference binding, so arg_match2 is better. */
+      cmp = -1;
+    }  /* if */
+  }  /* if */
+  return cmp;
+}  /* compare_reference_matches */
 
 
 static int compare_argument_tiebreakers(an_arg_match_summary_ptr arg_match1,
@@ -6133,13 +6180,7 @@ apply that would make one better than the other, and return
       cmp = 1;
     }  /* if */
   }  /* if */
-  if (cmp == 0 &&
-      (arg_match1->conversion.std.type_qualifiers_added ||
-       arg_match1->conversion.std.secondary_type_qualifiers_added ||
-       arg_match2->conversion.std.type_qualifiers_added ||
-       arg_match2->conversion.std.secondary_type_qualifiers_added)) {
-    /* There is the possibility of a tie-breaker because of a difference
-       in adding cv-qualifiers. */
+  if (cmp == 0) {
     /* Get the corresponding parameter types. */
     a_type_ptr param_type1 = arg_match1->param_type;
     a_type_ptr param_type2 = arg_match2->param_type;
@@ -6182,6 +6223,8 @@ apply that would make one better than the other, and return
                              (microsoft_version >= 1300 ||
                               (is_ptr_or_ref_type(param_type1) &&
                                is_ptr_or_ref_type(param_type2)))));
+        a_boolean param1_is_this = arg_match1->is_match_for_this_param;
+        a_boolean param2_is_this = arg_match2->is_match_for_this_param;
         a_boolean param1_is_ref =
                              is_ref_or_ref_equivalent(param_type1, arg_match1);
         a_boolean param2_is_ref =
@@ -6191,17 +6234,22 @@ apply that would make one better than the other, and return
            the identity conversion is a subsequence of the other and is
            better. */
         if (do_subsequence_test &&
-            is_identity_conversion(param1_is_ref,
+            is_identity_conversion(param1_is_ref, param1_is_this,
                                    &arg_match1->conversion.std) &&
-            is_qualification_conversion(param2_is_ref,
+            is_qualification_conversion(param2_is_ref, param2_is_this,
                                         &arg_match2->conversion.std)) {
           cmp = 1;
         } else if (do_subsequence_test &&
-                   is_identity_conversion(param2_is_ref,
+                   is_identity_conversion(param2_is_ref, param2_is_this,
                                           &arg_match2->conversion.std) &&
-                   is_qualification_conversion(param1_is_ref,
+                   is_qualification_conversion(param1_is_ref, param1_is_this,
                                                &arg_match1->conversion.std)) {
           cmp = -1;
+        } else if (rvalue_references_enabled &&
+                   (cmp = compare_reference_matches(arg_match1,
+                                                    arg_match2)) != 0) {
+          /* Binding an rvalue reference to an argument is better than
+             binding an lvalue reference to that argument. */
         } else {
           /* Test for adding cv-qualifiers immediately below a reference. */
           a_boolean            both_refs_of_same_kind;
@@ -6223,9 +6271,7 @@ apply that would make one better than the other, and return
              applied only when both parameters are references, according to the
              standard.  However, in a compatibility mode it is applied when
              at least one parameter is a reference. */
-          both_refs_of_same_kind = (param1_is_ref && param2_is_ref &&
-                                    (is_rvalue_reference_type(param_type1) ==
-                                     is_rvalue_reference_type(param_type2)));
+          both_refs_of_same_kind = (param1_is_ref && param2_is_ref);
 #if MICROSOFT_EXTENSIONS_ALLOWED
           if (both_refs_of_same_kind &&
               (is_tracking_reference_type(param_type1) !=
@@ -6374,47 +6420,6 @@ apply that would make one better than the other, and return
 }  /* compare_argument_tiebreakers */
 
 
-static int compare_reference_matches(an_arg_match_summary *arg_match1,
-                                     an_arg_match_summary *arg_match2)
-/*
-Compare two argument match summary entries and see if one is an rvalue
-reference match and the other is an lvalue reference match, and return
-
-  +1 if arg_match1 is a better match than arg_match2,
-   0 if the two matches are equal (or this comparison is not applicable), or
-  -1 if arg_match1 is a worse match than arg_match2.
-
-Binding an rvalue reference to an argument is better than binding an
-lvalue reference to that argument.
-*/
-{
-  int        cmp = 0;
-  a_type_ptr arg_type1 = arg_match1->param_type;
-  a_type_ptr arg_type2 = arg_match2->param_type;
-
-  if (arg_type1 != NULL && arg_type2 != NULL &&
-      is_reference_type(arg_type1) &&
-      is_reference_type(arg_type2) &&
-      /* This comparison does not apply if either binding is for the
-         "this" parameter. */
-      !arg_match1->is_match_for_this_param &&
-      !arg_match2->is_match_for_this_param &&
-      (is_rvalue_reference_type(arg_type1) !=
-                                        is_rvalue_reference_type(arg_type2))) {
-    if (is_rvalue_reference_type(arg_type1)) {
-      /* arg_match1 is an rvalue reference binding and arg_match2 is an lvalue
-         reference binding, so arg_match1 is better. */
-      cmp = 1;
-    } else {
-      /* arg_match1 is an lvalue reference binding and arg_match2 is an rvalue
-         reference binding, so arg_match2 is better. */
-      cmp = -1;
-    }  /* if */
-  }  /* if */
-  return cmp;
-}  /* compare_reference_matches */
-
-
 static int compare_arg_match_levels(an_arg_match_summary *arg_match1,
                                     an_arg_match_summary *arg_match2,
                                     a_boolean            suppress_tiebreakers)
@@ -6460,10 +6465,6 @@ for a Microsoft bug).
              (cmp=compare_argument_tiebreakers(arg_match1, arg_match2)) != 0) {
     /* The argument tiebreakers (applied early, which is the standard-
        conforming way) prefer one match over the other. */
-  } else if (rvalue_references_enabled &&
-             (cmp = compare_reference_matches(arg_match1, arg_match2)) != 0) {
-    /* Binding an rvalue reference to an argument is better than binding an
-       lvalue reference to that argument. */
   } else {
     /* The matches are equal in terms of match level.  One can still be
        better than the other in some cases. */
