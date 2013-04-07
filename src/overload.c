@@ -12791,7 +12791,7 @@ are considered).  conv_context describes the context of the conversion.
         compatible = TRUE;
         /* The result does not have to be forced to an rvalue. */
       } else if ((builtin_types_allowed & BTK_INTEGRAL) != 0 &&
-                                         is_enum_type(return_type)) {
+                                         is_unscoped_enum_type(return_type)) {
         /* The conversion function returns an enum type, which can be
            converted to the desired integral type. */
         compatible = TRUE;
@@ -13368,7 +13368,7 @@ it fits that type description or can be converted to it.
       matches = is_arithmetic_type(type);
       break;
     case PROMOTED_ARITH_TYPE_CODE:
-      matches = is_arithmetic_or_enum_type(type);
+      matches = is_arithmetic_or_unscoped_enum_type(type);
       break;
     case POINTER_TYPE_CODE:
       matches = is_pointer_type(type);

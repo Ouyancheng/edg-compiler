@@ -1,5 +1,26 @@
 Version 4.7
 
+4/7/13   [EDGcpfe/13870]
+No conversion from scoped enum returned from conversion function to integral
+
+The front end mistakenly allowed a conversion function that returns a
+scoped enum type to be used to convert an operand of a built-in operator
+(like "+") that requires an integral or arithmetic type, in spite of the
+fact that there is no implicit conversion of a scoped enum to integral.
+Now fixed.
+
+  enum class SE : int {};
+  struct A {};
+  void operator+(A, int) ;
+  struct B {
+    operator A() const ;
+    operator SE() const ;
+    void operator[](int p) const {
+      *this + p;  // Got spurious ambiguity error; now uses operator+(A, int)
+    }
+  };
+
+
 4/6/13   [EDGcpfe/13868]
 Overload resolution change on "this" parameter cv-qualification difference
 
