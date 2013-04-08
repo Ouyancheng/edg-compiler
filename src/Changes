@@ -1,5 +1,27 @@
 Version 4.7
 
+4/8/13   [EDGcpfe/13865]
+Partial initialization flag not correct set in some cases
+
+In some cases involving C++11-style braced initialization, the flag
+is_partially_initialized of the a_dynamic_init entry representing the
+initialization was not correctly set.  This also resulted in an internal
+error in the C-generating back end ("can't generate code for partial
+aggregate" in dump_initializer_part).  For example:
+
+  struct S {
+    int x;
+    int y[2];
+    struct N { ~N() {} } z;
+  };
+  void f(S p) {}
+  int main() {
+    f({});  // Previously triggered an abort in c_gen_be.c.
+  }
+
+This is now fixed.
+
+
 4/7/13   [EDGcpfe/13870]
 No conversion from scoped enum returned from conversion function to integral
 

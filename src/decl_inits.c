@@ -2231,6 +2231,7 @@ position for which diagnostics should be issued.
               /* Other than for empty classes and zero-length arrays, an empty
                  aggregate constant does not cover all the elements of the
                  destination type. */
+              is->partial_initializer = TRUE;
               init_con->partial_aggr_value = TRUE;
               init_con->is_partially_initialized = TRUE;
             }  /* if */
