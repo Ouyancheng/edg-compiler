@@ -1921,6 +1921,33 @@ arg_done:;
 }  /* mangled_encoding_for_parameter_types */
 
 
+static void mangled_encoding_for_ref_qualifiers(a_type_ptr               type,
+                                                a_mangling_control_block *mctl)
+/*
+Add an indication of the ref-qualifiers (if any) for the specified function
+type.
+*/
+{
+  char                          *s = NULL;
+  a_routine_type_supplement_ptr rtsp = type->variant.routine.extra_info;
+
+  check_assertion(type->kind == (a_type_kind)tk_routine);
+  if (rtsp->ref_qualifiers == (a_ref_qualifier_kind)rqk_lvalue) {
+    s = MANGLING_STRING_FOR_REFERENCE;
+  } else if (rtsp->ref_qualifiers == (a_ref_qualifier_kind)rqk_rvalue) {
+    s = MANGLING_STRING_FOR_RVALUE_REFERENCE;
+  } else {
+    check_assertion(rtsp->ref_qualifiers == (a_ref_qualifier_kind)rqk_default);
+  }  /* if */
+  if (s != NULL) {
+#if !IA64_ABI
+    add_to_mangled_name('_', mctl);
+#endif /* !IA64_ABI */
+    add_str_to_mangled_name(s, mctl);
+  }  /* if */
+}  /* mangled_encoding_for_ref_qualifiers */
+
+
 #if !IA64_ABI
 /*ARGSUSED*/ /* <-- do_markers is unused in that case. */
 #endif /* !IA64_ABI */
@@ -1952,6 +1979,10 @@ must not have been lowered (lowering can modify the parameters or return type).
   if (do_markers) {
     /* Start with the "F" indicating a function type. */
     add_to_mangled_name('F', mctl);
+#if !IA64_ABI
+    /* Add mangled encoding for ref-qualifiers, if any. */
+    mangled_encoding_for_ref_qualifiers(type, mctl);
+#endif /* !IA64_ABI */
     if (c_and_cpp_function_types_are_distinct &&
         type->variant.routine.extra_info->routine_name_linkage ==
                                            (a_name_linkage_kind)nlk_external) {
@@ -1978,6 +2009,9 @@ must not have been lowered (lowering can modify the parameters or return type).
   }  /* if */
 #else /* IA64_ABI */
   if (do_markers) {
+    /* Add mangled encoding for ref-qualifiers, if any.  Note that there are
+       no substitutions for the non-ref-qualified function type. */
+    mangled_encoding_for_ref_qualifiers(type, mctl);
     /* Mark the end of the function type. */
     add_to_mangled_name('E', mctl);
   }  /* if */

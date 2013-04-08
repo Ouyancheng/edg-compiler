@@ -3018,6 +3018,12 @@ not empty, because it contains a name or a derived type).
     /* Function type, e.g., "Fii_f" is function(int, int) returning float.
        The return type is not present for top-level function types (except
        for template functions). */
+    /* An optional ref-qualifier is indicated if the 'F' is followed by
+       an underscore.  Skip it on this pass. */
+    if (get_char(p, dctl) == '_' &&
+        (get_char(p+1, dctl) == 'R' || get_char(p+1, dctl) == 'E')) {
+      p += 2;
+    }  /* if */
     p = skip_extern_C_indication(p+1, dctl);
     /* Skip over the parameter types without outputting anything. */
     dctl->suppress_id_output++;
@@ -3112,12 +3118,22 @@ use of parentheses around parts of the declarator.)
     dctl->suppress_id_output--;
     demangle_type_second_part(p, /*under_lhs_declarator=*/TRUE, dctl);
   } else if (kind == 'F') {
+    char *ref_qual = NULL;
     /* Function type, e.g., "Fii_f" is function(int, int) returning float.
        The return type is not present for top-level function types (except
        for template functions). */
     /* This is a right-side declarator, so if it's under a left-side declarator
        parentheses are needed. */
     if (under_lhs_declarator) write_id_ch(')', dctl);
+    /* An optional ref-qualifier is indicated if the 'F' is followed by
+       an underscore.  Emit the ref-qualifier at the end of the type. */
+    if (get_char(p, dctl) == '_' && (get_char(p+1, dctl) == 'R')) {
+      p += 2;
+      ref_qual = "&";
+    } else if (get_char(p, dctl) == '_' && (get_char(p+1, dctl) == 'E')) {
+      p += 2;
+      ref_qual = "&&";
+    }  /* if */
     p = skip_extern_C_indication(p+1, dctl);
     /* Put out the parameter types. */
     p = demangle_function_parameters(p, dctl);
@@ -3135,6 +3151,7 @@ use of parentheses around parts of the declarator.)
       /* Process the return type. */
       demangle_type_second_part(p+1, /*under_lhs_declarator=*/FALSE, dctl);
     }  /* if */
+    if (ref_qual != NULL) write_id_str(ref_qual, dctl);
   } else if (kind == 'A') {
     /* Array type, e.g., "A10_i" is array[10] of int. */
     /* This is a right-side declarator, so if it's under a left-side declarator
@@ -4293,7 +4310,10 @@ returned value reflects the end position of <bare-function-type> (regardless of
 what portion(s) of it were emitted).
 */
 {
-#define end_of_param_list(p) (*(p) == 'E' || *(p) == '\0')
+/* Stop on a (possibly ref-qualified) "E" or end of the input. */
+#define end_of_param_list(p) (*(p) == 'E' || *(p) == '\0' || \
+                              ((*(p) == 'R' || *(p) == 'O') && \
+                               *((p)+1) == 'E'))
 
   /* Handle the return type first. */
   if ((options & BFT_RETURN) == 0) dctl->suppress_id_output++;
@@ -4329,7 +4349,7 @@ what portion(s) of it were emitted).
         /* Normal type, not an ellipsis. */
         ptr = demangle_type(ptr, dctl);
       }  /* if */
-      /* Stop on an "E" or at the end of the input. */
+      /* Stop on a (possibly ref-qualified) "E" or at the end of the input. */
       if (end_of_param_list(ptr)) break;
       /* Stop on an error. */
       if (dctl->err_in_id) break;
@@ -4919,7 +4939,7 @@ to be on top of the type.  If parse_template_args is TRUE then any
     /* Output the cv-qualifiers on the pointer, if any. */
     output_cv_qualifiers(cv_quals, /*trailing_space=*/TRUE, dctl);
   } else if (kind == 'F') {
-    /* Function type, F [Y] <bare-function-type> E
+    /* Function type, F [Y] <bare-function-type> [<ref-qualifier>] E
        where "Y" indicates extern "C" (and is ignored here). */
     p = skip_extern_C_indication(p+1);
     /* Output the return type. */
@@ -4930,6 +4950,8 @@ to be on top of the type.  If parse_template_args is TRUE then any
     /* Substitutions do get recorded on this scan. */
     p = demangle_bare_function_type(p, /*no_return_type=*/TRUE, BFT_NONE,
                                     dctl);
+    /* Look for an optional ref-qualifier (and skip it in this pass). */
+    if (*p == 'R' || *p == 'O') p++;
     p = advance_past('E', p, dctl);
     /* This is a right-side declarator, so if it's under a left-side declarator
        parentheses are needed. */
@@ -5056,8 +5078,8 @@ to be on top of the type.
     demangle_type_second_part(p, CVQ_NONE, /*under_lhs_declarator=*/TRUE,
                               dctl);
   } else if (kind == 'F') {
-    char *returnt;
-    /* Function type, F [Y] <bare-function-type> E
+    char *returnt, *ref_qual = NULL;
+    /* Function type, F [Y] <bare-function-type> [<ref-qualifier>] E
        where "Y" indicates extern "C" (and is ignored here). */
     /* This is a right-side declarator, so if it's under a left-side declarator
        parentheses are needed. */
@@ -5070,6 +5092,13 @@ to be on top of the type.
     p = demangle_bare_function_type(p, /*no_return_type=*/FALSE, BFT_PARAMS,
                                     dctl);
     dctl->suppress_substitution_recording--;
+    if (*p == 'R') {
+      p++;
+      ref_qual = "&";
+    } else if (*p == 'O') {
+      p++;
+      ref_qual = "&&";
+    }  /* if */
     p = advance_past('E', p, dctl);
     /* Put out any cv-qualifiers (member functions). */
     /* Note that such things could come up on nonmember functions in the
@@ -5084,6 +5113,8 @@ to be on top of the type.
     /* Output the return type. */
     demangle_type_second_part(returnt, CVQ_NONE,
                               /*under_lhs_declarator=*/FALSE, dctl);
+    /* Output ref-qualifiers, if any. */
+    if (ref_qual != NULL) write_id_str(ref_qual, dctl);
   } else if (kind == 'A') {
     /* Array type,
          A <positive dimension number> _ <element type>
