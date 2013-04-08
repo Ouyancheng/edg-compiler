@@ -13369,7 +13369,8 @@ it fits that type description or can be converted to it.
       matches = is_arithmetic_type(type);
       break;
     case PROMOTED_ARITH_TYPE_CODE:
-      matches = is_arithmetic_or_unscoped_enum_type(type);
+      matches = cppcli_enabled ? is_arithmetic_or_enum_type(type) :
+                                 is_arithmetic_or_unscoped_enum_type(type);
       break;
     case POINTER_TYPE_CODE:
       matches = is_pointer_type(type);
