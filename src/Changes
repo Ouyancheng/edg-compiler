@@ -1,5 +1,22 @@
 Version 4.7
 
+4/8/13   [EDGcpfe/13782]
+Microsoft compatibility: "override" and "virtual"
+
+In Microsoft C++/CLI mode with microsoft_version >= 1800 or with C++11 mode
+also enabled, the front end now no longer requires the keyword "virtual" when
+the context-sensitive keyword "override" is present.  For example:
+
+  struct B {
+    virtual void f();
+  };
+  struct D: B {
+    void f() override;  // Previously an error in C++/CLI mode because
+  };                    // "virtual" was not present.  Now accepted if
+                        // microsoft_version >= 1800 or if combined with
+                        // C++11 mode.
+
+
 4/8/13   [EDGcpfe/13755,EDGcpfe/13872]
 Empty clobbers list in GNU C mode
 

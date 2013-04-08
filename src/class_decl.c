@@ -5828,15 +5828,16 @@ next_named_override:
                 } else {
                   pos_sy_error(ec_new_or_override_required, source_pos, sym); 
                 }  /* if */
-              } else if (!virtual_specified && !func_info->new_member 
-                         && (cli_class_type_kind_is(class_type, cctk_ref) ||
-                             cli_class_type_kind_is(class_type, cctk_value))) {
+              } else if (!virtual_specified && !func_info->new_member &&
+                         !func_info->override &&
+                         (cli_class_type_kind_is(class_type, cctk_ref) ||
+                          cli_class_type_kind_is(class_type, cctk_value))) {
                 /* If a member function of a ref or value class matches a
                    virtual member function from a base class it should have
-                   been declared with "new" or "virtual".  If the base is an
-                   interface, the diagnostic should not be issued until we are
-                   sure that the overridden interface member is not otherwise
-                   overridden. */
+                   been declared with "new", "virtual", or "override".  If the
+                   base is an interface, the diagnostic should not be issued
+                   until we are sure that the overridden interface member is
+                   not otherwise overridden. */
                 if (cli_class_type_kind_is(bcp->type, cctk_interface)) {
                   a_quasi_override_descr_ptr  qodp;
                   qodp = append_quasi_override_descr(
@@ -6059,7 +6060,9 @@ done:
         /* An override modifier often requires that the function also be
            declared with an explicit "virtual" keyword. */
         if (func_info->override) {
-          pos_error(ec_override_requires_virtual, source_pos);
+          if (microsoft_version < 1800 && !cpp11_mode) {
+            pos_error(ec_override_requires_virtual, source_pos);
+          }  /* if */
         } else if (is_immediate_managed_class_type(class_type)) {
           if (func_info->abstract) {
             pos_error(ec_abstract_requires_virtual, source_pos);
