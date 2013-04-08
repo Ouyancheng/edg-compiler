@@ -946,6 +946,10 @@ part of a function declarator is found, may_be_decl is set to FALSE.
   while (is_type_qualifier() or_is_near_or_far()) {
     get_token_and_coalesce_if_identifier(flags);
   }  /* while */
+  if (ref_qualifiers_enabled &&
+      (curr_token == tok_ampersand || curr_token == tok_and_and)) {
+    get_token_and_coalesce_if_identifier(flags);
+  }  /* if */
   /* Cache the tokens associated with the optional exception specification.
      Note that we don't try to disambiguate a throw expression from a
      throw declaration. */
