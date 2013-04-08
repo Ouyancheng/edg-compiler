@@ -998,14 +998,14 @@ skip_item:
         }  /* if */
       }  /* if */
     }  /* while */
-    /* GCC treats an empty clobbers list with a colon as a syntax
-       error.  We can parse it correctly, so it's semantic for us.
-       Don't issue this error if we saw anything other than a colon
-       immediately followed by a right parenthesis. */
+    /* GNU C versions prior to 4.5 treat an empty clobbers list with a colon as
+       a syntax error.  We can parse it correctly, so it's semantic for us.
+       Don't issue this error if we saw anything other than a colon immediately
+       followed by a right parenthesis. */
     if (curr_token != tok_rparen) {
       syntax_error(ec_exp_rparen);
-    } else if (nparsed == 0 && C_mode()) {
-      error(ec_empty_clobbers_list);
+    } else if (nparsed == 0 && gcc_mode && gnu_version < 40500) {
+      pos_error(ec_empty_clobbers_list, &pos_curr_token);
     }  /* if */
   }  /* if */
   db_exit();

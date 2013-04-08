@@ -1,5 +1,20 @@
 Version 4.7
 
+4/8/13   [EDGcpfe/13755,EDGcpfe/13872]
+Empty clobbers list in GNU C mode
+
+The front end now accepts empty clobbers lists in extended asm constructs
+when gnu_version >= 40500 (it already accepted empty clobbers lists in GNU
+C++ mode).  For example:
+
+  void f() {
+    void **p = 0;
+    __asm__("mov %0, %%esp" "jmp *%1"
+            : : "r"(p), "r" (p)
+            : /* Previously this elicited an error in all GNU C modes. */);
+  }
+
+
 4/8/13   [EDGcpfe/13865]
 Partial initialization flag not correct set in some cases
 
