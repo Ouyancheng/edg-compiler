@@ -2135,7 +2135,8 @@ this is a helper function.
   if (ref_qualifiers_enabled &&
       (curr_token == tok_ampersand || curr_token == tok_and_and)) {
     /* This looks like a ref-qualifier (e.g., "struct S { int f() &; };"). */
-    if ((is_nonstatic_member || parent_type != NULL ||
+    if ((is_nonstatic_member ||
+         (!state->is_inclass_member_function_decl && parent_type != NULL) ||
          cv_qualifier_with_no_this_class_okay) &&
         !(is_constructor || is_destructor || is_finalizer) &&
         !(locator != NULL && locator->is_operator_name &&
