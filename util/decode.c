@@ -3018,13 +3018,14 @@ not empty, because it contains a name or a derived type).
     /* Function type, e.g., "Fii_f" is function(int, int) returning float.
        The return type is not present for top-level function types (except
        for template functions). */
+    p++;
     /* An optional ref-qualifier is indicated if the 'F' is followed by
        an underscore.  Skip it on this pass. */
     if (get_char(p, dctl) == '_' &&
         (get_char(p+1, dctl) == 'R' || get_char(p+1, dctl) == 'E')) {
       p += 2;
     }  /* if */
-    p = skip_extern_C_indication(p+1, dctl);
+    p = skip_extern_C_indication(p, dctl);
     /* Skip over the parameter types without outputting anything. */
     dctl->suppress_id_output++;
     p = demangle_function_parameters(p, dctl);
@@ -3127,6 +3128,7 @@ use of parentheses around parts of the declarator.)
     if (under_lhs_declarator) write_id_ch(')', dctl);
     /* An optional ref-qualifier is indicated if the 'F' is followed by
        an underscore.  Emit the ref-qualifier at the end of the type. */
+    p++;
     if (get_char(p, dctl) == '_' && (get_char(p+1, dctl) == 'R')) {
       p += 2;
       ref_qual = "&";
@@ -3134,7 +3136,7 @@ use of parentheses around parts of the declarator.)
       p += 2;
       ref_qual = "&&";
     }  /* if */
-    p = skip_extern_C_indication(p+1, dctl);
+    p = skip_extern_C_indication(p, dctl);
     /* Put out the parameter types. */
     p = demangle_function_parameters(p, dctl);
     /* Put out any cv-qualifiers (member functions). */
