@@ -30959,6 +30959,8 @@ otherwise a diagnostic is emitted and one or both of *ne_call_expr/
     if (is_error_operand(&operand)) {
       passed = FALSE;
     } else {
+      /* Convert this to a boolean controlling expression. */
+      process_boolean_controlling_expression(&operand);
       *ne_call_expr = make_node_from_operand(&operand);
       *ne_call_expr = wrap_up_full_expression(*ne_call_expr);
     }  /* if */

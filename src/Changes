@@ -1,5 +1,28 @@
 Version 4.7
 
+4/8/13   [EDGcpfe/13876]
+Missing conversion to boolean controlling expression in enhanced for loops
+
+In range-based-for and Microsoft for-each statements, the ne_call_expr
+expression (that embodies the "not-equal" test for the loop) had not
+been converted to a boolean expression, resulting in invalid IL (and
+generated C code that wouldn't compile in C-generating back end
+configurations) in certain cases.  For example (with --c++11):
+
+  struct H { operator bool(); };
+  struct E {
+    int operator*();
+    E operator++();
+    H operator!=(E &o);
+  };
+  struct D { D(); };
+  E begin(D);
+  E end(D);
+  void f() {
+    for (int i : D()) {}
+  }
+
+
 4/8/13   [EDGcpfe/13782]
 Microsoft compatibility: "override" and "virtual"
 
