@@ -2701,7 +2701,7 @@ typedef int a_string_or_char_literal_kind;
    and quote character of a string or character literal described by the
    specified a_string_or_char_literal_kind. */
 #define start_of_literal_value(k)                                            \
-  ((((k) & SCLK_RAW_STRING_LITERAL) != 0) /*lint !e514*/ /* 1 for "R" */     \
+  ((int)(((k) & SCLK_RAW_STRING_LITERAL) != 0) /* 1 for "R" */               \
    + ((literal_encoding_prefix(k) > SCLK_UTF8_LITERAL) ? 1 /* 1 for u/U/L */ \
       : (literal_encoding_prefix(k) == SCLK_UTF8_LITERAL) ? 2 /* 2 for u8 */ \
       : 0) /* 0 for no prefix */                                             \
