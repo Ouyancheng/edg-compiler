@@ -80,9 +80,9 @@ typedef struct a_char_conversion_state {
 			   NULL for normal multibyte character processing
 			   (indicating multibyte characters will be fetched
 			   directly from the token string).  Also used for
-			   the original form of trigraphs when reversing
-			   trigraph and line splice translation in raw
-			   string literals. */
+			   the original form of trigraphs and line splices
+			   when reversing trigraph and line splice
+			   translation in raw string literals. */
   unsigned long	pending_surrogate_pair;
 			/* When create_surrogate_pairs is TRUE and a
 			   character or universal-character-name is

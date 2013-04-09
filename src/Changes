@@ -1,5 +1,17 @@
 Version 4.7
 
+4/9/13   [EDGcpfe/8626]
+C++11 raw string literals
+
+We have now implemented the "raw string literal" feature of C++11 (see
+papers N2442 and N3077).  These literals can span multiple lines and
+escape sequences and trigraphs are not translated.  For example:
+
+  const char *p = R"+++(a\
+  ??=\0xa
+  z)+++";  // Equivalent to "a\\\n\?\?=\\0xa\nz"
+
+
 4/8/13   [EDGcpfe/13876]
 Missing conversion to boolean controlling expression in enhanced for loops
 
