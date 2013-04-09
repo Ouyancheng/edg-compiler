@@ -6783,13 +6783,15 @@ constant will be set as well.
         }  /* if */
       }  /* if */
     }  /* if */
-    if (microsoft_mode && identical_types(type1, type2)) {
-      /* Microsoft returns TRUE when the types are the same, even
-         if they are (e.g.) both arrays. */
-      result = TRUE;
-    } else if (microsoft_mode && is_void_type(type2)) {
-      /* Microsoft considers a conversion to void to fail. */
+    if (microsoft_mode && (is_void_type(type2) || is_function_type(type2))) {
+      /* Microsoft considers a conversion to void or to a function type to
+         fail. */
       result = FALSE;
+    } else if (microsoft_mode && identical_types(type1, type2)) {
+      /* Microsoft returns TRUE when the types are the same, even if they are
+         (e.g.) both arrays.  (Conversions to void and/or function types are
+         exceptions; tested above. */
+      result = TRUE;
     } else {
       result = compute_is_convertible(type1, type2, from_rvalue);
     }  /* if */
