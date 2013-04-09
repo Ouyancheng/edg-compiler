@@ -2496,8 +2496,8 @@ ec_delegation_loop;;"constructor delegates directly or indirectly to itself"
 ec_delegation_init_and_mem_init;;"a delegating constructor cannot have other mem-initializers"
 ec_ref_qualifier_not_allowed;;"a ref-qualifier is not allowed here"
 ec_same_param_types_with_and_without_ref_qualifiers;;"overloading two member functions with the same parameter types requires that they both have ref-qualifiers or both lack ref-qualifiers"
-ec_bad_raw_string_delim_char;;"invalid character in raw string delimiter -- string will be scanned as non-raw"
-ec_missing_raw_string_delim_lparen;;"parenthesis terminating raw string delimiter not found after 16 characters -- string will be scanned as non-raw"
+ec_bad_raw_string_delim_char;;"invalid character in raw string delimiter -- raw string indicator ignored"
+ec_missing_raw_string_delim_lparen;;"parenthesis terminating raw string delimiter not found after 16 characters -- raw string indicator ignored"
 ec_missing_raw_string_delimiter;;"ending delimiter for raw string not found"
 ###############################################################################
 #                                                             \  ___  /       #
