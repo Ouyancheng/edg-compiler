@@ -11968,7 +11968,7 @@ end_id_scan:
            concatenation can destroy the address correspondence needed for
            the test. */
         check_for_invalid_macro_concatenation_if_needed();
-        ctoken = scan_string_literal(/* SCLK_ORDINARY_LITERAL | */
+        ctoken = scan_string_literal(SCLK_ORDINARY_LITERAL |
                                      SCLK_STRING_LITERAL);
         goto concatenate_adjacent_string_literals;
       }  /* if */
@@ -19827,7 +19827,7 @@ host-target conversions are performed.
     check_assertion(unterminated == FALSE);
     /* Convert it to internal form. */
     conv_string_literal(start_of_curr_token + 1, end_of_curr_token,
-                        /* SCLK_ORDINARY_LITERAL | */ SCLK_STRING_LITERAL,
+                        SCLK_ORDINARY_LITERAL | SCLK_STRING_LITERAL,
                         num_chars, &err_code, &err_pos);
     check_assertion(err_code == ec_no_error);
     /* Copy the result for later use. */

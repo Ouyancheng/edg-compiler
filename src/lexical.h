@@ -2679,15 +2679,15 @@ extern a_boolean compare_include_search_result(a_void_ptr	entry,
 typedef int a_string_or_char_literal_kind;
 #define SCLK_NOT_A_LITERAL      -1
 			/* The characters are not a literal prefix. */
-#define SCLK_ORDINARY_LITERAL   0x00
+#define SCLK_ORDINARY_LITERAL   0x01
 			/* No encoding prefix */
-#define SCLK_UTF8_LITERAL       0x01
+#define SCLK_UTF8_LITERAL       0x02
 			/* u8"..." */
-#define SCLK_CHAR16_T_LITERAL   0x02
+#define SCLK_CHAR16_T_LITERAL   0x03
 			/* u"..." or u'x' */
-#define SCLK_CHAR32_T_LITERAL   0x03
+#define SCLK_CHAR32_T_LITERAL   0x04
 			/* U"..." or U'x' */
-#define SCLK_WIDE_LITERAL       0x04
+#define SCLK_WIDE_LITERAL       0x05
 			/* L"..." or L'x' */
 #define SCLK_RAW_STRING_LITERAL 0x08
 			/* R"...", u8R"...", uR"xxx", or UR"..." */

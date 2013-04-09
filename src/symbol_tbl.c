@@ -14341,7 +14341,7 @@ mode.
       an_error_code	err_code;
       /* Convert the string literal into a string constant. */
       conv_string_literal(start_of_curr_token + 1, end_of_curr_token,
-                          /* SCLK_ORDINARY_LITERAL | */ SCLK_STRING_LITERAL,
+                          SCLK_ORDINARY_LITERAL | SCLK_STRING_LITERAL,
                           num_chars, &err_code, &err_char_pos);
       /* Advance past the opening quote. */
       curr_char_loc++;
