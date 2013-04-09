@@ -818,6 +818,10 @@ default locale.  When state->create_surrogate_pairs is TRUE and a character
 or universal-character-name is encountered that requires a surrogate pair,
 the first code unit is returned by this call and the second code unit is
 saved in state->pending_surrogate_pair to be returned on the next call.
+When processing C++11 raw string literals, state->next_orig_line_modif may
+be non-NULL; if it points to a modification for the current position, the
+original character(s) are returned instead of the modified version and
+state->next_orig_line_modif is advanced to point to the next modification.
 */
 {
   unsigned long targ_ch;
@@ -854,7 +858,50 @@ saved in state->pending_surrogate_pair to be returned on the next call.
   }  /* if */
 get_another:
   targ_ch = (unsigned char)*lptr;
-  if (targ_ch == LE_ESCAPE) {
+  if (state->next_orig_line_modif != NULL &&
+      state->next_orig_line_modif->line_loc == lptr) {
+    /* This is a character that must be restored to its original form
+       because it appeared in a raw string literal. */
+    an_orig_line_modif_ptr olmp = state->next_orig_line_modif;
+    state->next_orig_line_modif = olmp->next;
+    switch (olmp->kind) {
+      case olm_trigraph:
+        /* Reconstruct the original trigraph.  The first '?' will be
+           returned on this call, while the remaining two characters are
+           put into the translated_char array for future calls. */
+        targ_ch = '?';
+        state->remaining_char_count = 2;
+        state->translated_char[0] = '?';
+        state->translated_char[1] = olmp->variant.trigraph_orig_char;
+        state->next_mbc_char = state->translated_char;
+        ++lptr;
+        break;
+      case olm_line_splice:
+        /* A line splice is not represented in the source string
+           characters, so we don't increment lptr, but we return the '\'
+           now and the newline on the next call. */
+        targ_ch = '\\';
+        state->remaining_char_count = 1;
+        state->translated_char[0] = TARG_NEWLINE_CHAR;
+        state->next_mbc_char = state->translated_char;
+        break;
+      case olm_multiline_string_splice:
+        /* scan_multiline_string inserted the two characters '\' and 'n'
+           into the source string to represent the newline.  Skip over
+           those characters and just return a newline character. */
+        targ_ch = TARG_NEWLINE_CHAR;
+        lptr += 2;
+        break;
+      case olm_null:
+        /* A null (0) character in the source was replaced by an LE_NULL
+           lexical escape.  Skip over it and just return the null. */
+        targ_ch = 0;
+        lptr += LE_ESCAPE_LEN;
+        break;
+      default:
+        unexpected_condition();
+    }  /* switch */
+  } else if (targ_ch == LE_ESCAPE) {
     check_assertion(lptr[1] == LE_NULL);
     /* Null (zero) character, represented as an escape. */
     targ_ch = 0;
@@ -1099,6 +1146,7 @@ range_check:
 
 
 static void conv_single_wide_char(a_char_conversion_state_ptr state,
+                                  a_boolean                   process_escapes,
                                   unsigned long               *ch,
                                   unsigned long               centity_mask)
 /*
@@ -1113,15 +1161,16 @@ defines the size of character.
 {
 #if !MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED
   /* Simple version: no multibyte characters to consider. */
-  conv_single_char(state, /*process_escapes=*/TRUE, ch, centity_mask,
+  conv_single_char(state, process_escapes, ch, centity_mask,
                    /*narrow_literal=*/FALSE);
 #else /* MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED */
   /* Multibyte character processing may be needed. */
-  if (!multibyte_chars_in_source_enabled || **state->next_token_char == '\\' ||
+  if (!multibyte_chars_in_source_enabled ||
+      (process_escapes && **state->next_token_char == '\\') ||
       **state->next_token_char == LE_ESCAPE) {
     /* Use simple routine if multibyte characters are disabled or if
        the character is an escape. */
-    conv_single_char(state, /*process_escapes=*/TRUE, ch, centity_mask,
+    conv_single_char(state, process_escapes, ch, centity_mask,
                      /*narrow_literal=*/FALSE);
     check_assertion(state->remaining_char_count == 0 ||
                     state->create_surrogate_pairs);
@@ -1264,13 +1313,15 @@ the actual number of converted characters may be less than num_chars.  */
         }  /* if */
         break;
       case chk_wchar_t:
-        conv_single_wide_char(&conv_state, &ch, centity_mask);
+        conv_single_wide_char(&conv_state, /*process_escapes=*/TRUE, &ch,
+                              centity_mask);
         /* The value of a multi-character L'...' literal is truncated to
            the first character. */
         if (i != 0) continue;
         break;
       case chk_char16_t:
-        conv_single_wide_char(&conv_state, &ch, centity_mask);
+        conv_single_wide_char(&conv_state, /*process_escapes=*/TRUE, &ch,
+                              centity_mask);
         if (i != 0) {
           too_many_chars = TRUE;
         } else {
@@ -1287,7 +1338,8 @@ the actual number of converted characters may be less than num_chars.  */
         }  /* if */
         break;
       case chk_char32_t:
-        conv_single_wide_char(&conv_state, &ch, centity_mask);
+        conv_single_wide_char(&conv_state, /*process_escapes=*/TRUE, &ch,
+                              centity_mask);
         if (i != 0) too_many_chars = TRUE;
         break;
       default:
@@ -1399,20 +1451,27 @@ specifies the number of bytes in a wide character.
 }  /* put_wide_char_into_string */
 
 
-void conv_string_literal(unsigned long num_chars,
-                         an_error_code *err_code,
-                         char          **err_pos)
+void conv_string_literal(char                          *start_of_string_value,
+                         char                          *end_of_string_value,
+                         a_string_or_char_literal_kind lit_kind,
+                         unsigned long                 num_chars,
+                         an_error_code                 *err_code,
+                         char                          **err_pos)
 /*
 Convert a string literal from external form to internal form.
-start_of_curr_token and end_of_curr_token point to the two ends of the
-external form.  The internal form is placed in const_for_curr_token.  If
-there is no error, *err_code is set to ec_no_error (which is 0);
-otherwise, *err_code is set to an appropriate error code and *err_pos
-is set to the character position of the error.  num_chars indicates
-the number of characters contained within the quotes (after escape
-processing, and in wide characters if the string is wide).  If the string
-is a char16_t string of the form u"...", num_chars may be larger (but not
-smaller) than the number of characters needed to represent the string.
+start_of_string_value and end_of_string_value point to the first character
+of the value and to the terminating character of the external form (i.e.,
+following the opening quote and to the closing quote in an ordinary string
+literal, or following the '(' and to the ')' in a raw string literal), and
+lit_kind describes the kind of literal.  The internal form is placed in
+const_for_curr_token.  If there is no error, *err_code is set to
+ec_no_error (which is 0); otherwise, *err_code is set to an appropriate
+error code and *err_pos is set to the character position of the error.
+num_chars indicates the number of characters contained within the quotes
+(after escape processing, and in wide characters if the string is wide).
+If the string is a char16_t string of the form u"...", num_chars may be
+larger (but not smaller) than the number of characters needed to represent
+the string.
 */
 {
   unsigned long           i, ch, centity_mask;
@@ -1422,37 +1481,30 @@ smaller) than the number of characters needed to represent the string.
   unsigned int            char_size;
   a_character_kind        character_kind;
   a_char_conversion_state conv_state;
+  a_boolean               raw_string_end_in_trigraph = FALSE;
 
   /* The number of array elements is one more than the number of characters,
      to leave space for the terminating null.  (For char16_t strings, this
      may need to be adjusted below.) */
   num_elems = (a_targ_size_t)num_chars + 1;
-  temp_ptr = start_of_curr_token + 1;
-  /* See if this is a wide string literal. */
-  switch (*start_of_curr_token) {
-    case '"':
-      /* Normal string literal. */
+  temp_ptr = start_of_string_value;
+  /* Set the character kind and size. */
+  check_assertion(lit_kind & SCLK_STRING_LITERAL);
+  switch (literal_encoding_prefix(lit_kind)) {
+    case SCLK_ORDINARY_LITERAL:
+    case SCLK_UTF8_LITERAL:
       character_kind = (a_character_kind)chk_char;
       char_size = 1;
       break;
-    case 'L':
-      /* Wide string literal. */
-      /* Skip over the 'L': */
-      ++temp_ptr;
+    case SCLK_WIDE_LITERAL:
       character_kind = (a_character_kind)chk_wchar_t;
       char_size = (unsigned int)targ_sizeof_wchar_t;
       break;
-    case 'U':
-      /* char32_t string literal. */
-      /* Skip over the 'U': */
-      ++temp_ptr;
+    case SCLK_CHAR32_T_LITERAL:
       character_kind = (a_character_kind)chk_char32_t;
       char_size = (unsigned int)targ_sizeof_char32_t;
       break;
-    case 'u':
-      /* char16_t string literal. */
-      /* Skip over the 'u': */
-      ++temp_ptr;
+    case SCLK_CHAR16_T_LITERAL:
       character_kind = (a_character_kind)chk_char16_t;
       char_size = (unsigned int)targ_sizeof_char16_t;
       break;
@@ -1503,20 +1555,41 @@ smaller) than the number of characters needed to represent the string.
   /* Initialize for scanning multibyte characters in the string. */
   mbc_scan_init_if_multibyte_chars_in_source_enabled();
 #endif /* MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED */
+  if (lit_kind & SCLK_RAW_STRING_LITERAL) {
+    /* Set up to reverse any original line modifications (trigraphs, line
+       splices) that appear in the raw string. */
+    for (conv_state.next_orig_line_modif = orig_line_modif_list;
+         conv_state.next_orig_line_modif != NULL &&
+                          conv_state.next_orig_line_modif->line_loc < temp_ptr;
+         conv_state.next_orig_line_modif =
+                                      conv_state.next_orig_line_modif->next) {}
+    if (*end_of_string_value == ']') {
+      /* This is the pathological case in which the two characters
+         preceding the terminating ')' of the raw string literal were both
+         '?' characters, which was interpreted as a trigraph for ']'.  Set
+         up the loop control accordingly. */
+      raw_string_end_in_trigraph = TRUE;
+    }  /* if */
+  }  /* if */
   /* Accumulate the characters. */
-  while (temp_ptr < end_of_curr_token ||
-         conv_state.remaining_char_count > 0) {
+  while (temp_ptr < end_of_string_value + raw_string_end_in_trigraph ||
+         conv_state.remaining_char_count > raw_string_end_in_trigraph) {
     /* Convert one character of the string literal. */
     switch (character_kind) {
       case chk_char:
-        conv_single_char(&conv_state, /*process_escapes=*/TRUE, &ch,
-                         centity_mask, /*narrow_literal=*/TRUE);
+        conv_single_char(
+                 &conv_state,
+                 /*process_escapes=*/(lit_kind & SCLK_RAW_STRING_LITERAL) == 0,
+                 &ch, centity_mask, /*narrow_literal=*/TRUE);
         *pstr++ = (char)ch;
         break;
       case chk_wchar_t:
       case chk_char16_t:
       case chk_char32_t:
-        conv_single_wide_char(&conv_state, &ch, centity_mask);
+        conv_single_wide_char(
+                 &conv_state,
+                 /*process_escapes=*/(lit_kind & SCLK_RAW_STRING_LITERAL) == 0,
+                 &ch, centity_mask);
         put_wide_char_into_string(ch, &pstr, char_size);
         break;
       default:

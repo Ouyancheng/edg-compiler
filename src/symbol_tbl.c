@@ -14336,11 +14336,13 @@ mode.
     curr_char_loc++;
     /* Scan the characters that make up the string literal. */
     if (!accum_quoted_string(&num_chars, /*is_header_name=*/FALSE,
-                            (a_character_kind)chk_char, '"')) {
+                            (a_character_kind)chk_char, '"', NULL, -1)) {
       char		*err_char_pos;
       an_error_code	err_code;
       /* Convert the string literal into a string constant. */
-      conv_string_literal(num_chars, &err_code, &err_char_pos);
+      conv_string_literal(start_of_curr_token + 1, end_of_curr_token,
+                          SCLK_ORDINARY_LITERAL | SCLK_STRING_LITERAL,
+                          num_chars, &err_code, &err_char_pos);
       /* Advance past the opening quote. */
       curr_char_loc++;
       if (err_code != ec_no_error) {

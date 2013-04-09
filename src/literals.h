@@ -54,6 +54,14 @@ typedef struct a_char_conversion_state {
 			   multibyte characters; in that case, this will
 			   point to the next complete UTF-8 character in
 			   the token string. */
+  an_orig_line_modif_ptr
+		next_orig_line_modif;
+			/* When processing a raw string literal, points to
+			   the next original line modification (trigraph or
+			   line splice) that must be reversed in creating
+			   the value of the string.  NULL for literals that
+			   are not raw strings or if there is no such
+			   modification. */
   int		remaining_char_count;
 			/* Number of bytes left in the current multibyte
 			   character.  conv_single_char is called multiple
@@ -71,7 +79,10 @@ typedef struct a_char_conversion_state {
 			   next byte from translated_char to be returned.
 			   NULL for normal multibyte character processing
 			   (indicating multibyte characters will be fetched
-			   directly from the token string). */
+			   directly from the token string).  Also used for
+			   the original form of trigraphs when reversing
+			   trigraph and line splice translation in raw
+			   string literals. */
   unsigned long	pending_surrogate_pair;
 			/* When create_surrogate_pairs is TRUE and a
 			   character or universal-character-name is
@@ -104,11 +115,14 @@ typedef struct a_char_conversion_state {
 			/* When translating from UTF-8 to multibyte
 			   characters and for universal-character-names,
 			   contains the translated version of the current
-			   character. */
+			   character.  Also used to reverse translated
+			   trigraphs and line splices in raw string
+			   literals. */
 } a_char_conversion_state;
 
 #define clear_char_conversion_state(state, ptr, translate_utf8) \
   { (state)->next_token_char = ptr;                             \
+    (state)->next_orig_line_modif = NULL;                       \
     (state)->remaining_char_count = 0;                          \
     (state)->next_mbc_char = NULL;                              \
     (state)->translate_utf8_to_mbc = translate_utf8;            \
@@ -123,9 +137,13 @@ extern void conv_single_char(a_char_conversion_state_ptr state,
 extern void conv_char_literal(unsigned long num_chars,
                               an_error_code *err_code,
                               char          **err_pos);
-extern void conv_string_literal(unsigned long num_chars,
-                                an_error_code *err_code,
-                                char          **err_pos);
+extern void conv_string_literal(
+                          char                          *start_of_string_value,
+                          char                          *end_of_string_value,
+                          a_string_or_char_literal_kind lit_kind,
+                          unsigned long                 num_chars,
+                          an_error_code                 *err_code,
+                          char                          **err_pos);
 extern void widen_string_literal(a_constant_ptr con);
 extern void concat_string_literals(a_token_cache_ptr cache,
                                    a_character_kind  kind);

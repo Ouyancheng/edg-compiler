@@ -1716,6 +1716,11 @@ EXTERN a_boolean
 			   can be checked in this table once they have been
 			   converted to a single-byte Unicode code point. */
 #endif /* UNICODE_SOURCE_SUPPORTED */
+EXTERN a_boolean
+		is_raw_string_delimiter_char[CHAR_MAX-CHAR_MIN+1];
+			/* For each character, whether or not it can appear
+			   in the d-char-sequence of a raw string
+			   literal. */
 
 /*
 Structure used to record information about a pp token in a token cache.
@@ -2240,10 +2245,13 @@ extern a_boolean check_context_sensitive_keyword(a_token_kind  tok_kind,
 extern a_boolean is_valid_GUID_string(char          *str,
                                       a_targ_size_t length);
 
-extern a_boolean accum_quoted_string(unsigned long     *num_chars,
-                                     a_boolean         is_header_name,
-                                     a_character_kind  character_kind,
-                                     char              quoting_char);
+extern a_boolean accum_quoted_string(
+                               unsigned long    *num_chars,
+                               a_boolean        is_header_name,
+                               a_character_kind character_kind,
+                               char             quoting_char,
+                               char             *start_of_raw_string_delimiter,
+                               int              raw_string_delimiter_len);
 
 #if NATIVE_MULTIBYTE_CHARS_SUPPORTED_WITH_UNICODE
 extern void setlocale_pragma(a_pending_pragma_ptr	ppp);
@@ -2656,6 +2664,48 @@ extern a_boolean compare_include_file_history(a_void_ptr	entry,
 extern a_hash_value hash_include_search_result(a_void_ptr	key);
 extern a_boolean compare_include_search_result(a_void_ptr	entry,
                                                a_void_ptr	key);
+
+/* Flags describing the encoding prefix, if any, of a string or character
+   literal and which kind of literal is being processed.  The flags are
+   defined as follows:
+
+     kReee
+     ||---
+     || |
+     || +---- The encoding prefix (U, u, u8, L, or none)
+     |+------ Whether the literal is raw or not (string literals only)
+     +------- The kind of literal (string or character) */
+
+typedef int a_string_or_char_literal_kind;
+#define SCLK_NOT_A_LITERAL      -1
+			/* The characters are not a literal prefix. */
+#define SCLK_ORDINARY_LITERAL   0x00
+			/* No encoding prefix */
+#define SCLK_UTF8_LITERAL       0x01
+			/* u8"..." */
+#define SCLK_CHAR16_T_LITERAL   0x02
+			/* u"..." or u'x' */
+#define SCLK_CHAR32_T_LITERAL   0x03
+			/* U"..." or U'x' */
+#define SCLK_WIDE_LITERAL       0x04
+			/* L"..." or L'x' */
+#define SCLK_RAW_STRING_LITERAL 0x08
+			/* R"...", u8R"...", uR"xxx", or UR"..." */
+#define SCLK_STRING_LITERAL     0x10
+			/* TRUE for string literal, FALSE for char literal */
+
+/* Extract the encoding prefix from a_string_or_literal_kind. */
+#define literal_encoding_prefix(k) ((k) & 0x7)
+
+/* Return the offset of the first character following the prefix (if any)
+   and quote character of a string or character literal described by the
+   specified a_string_or_char_literal_kind. */
+#define start_of_literal_value(k)                                            \
+  ((((k) & SCLK_RAW_STRING_LITERAL) != 0) /* 1 for "R" */                    \
+   + ((literal_encoding_prefix(k) > SCLK_UTF8_LITERAL) ? 1 /* 1 for u/U/L */ \
+      : (literal_encoding_prefix(k) == SCLK_UTF8_LITERAL) ? 2 /* 2 for u8 */ \
+      : 0) /* 0 for no prefix */                                             \
+   + 1 /* 1 for quoting character */)
 
 #endif /* ifndef LEXICAL_H */
 

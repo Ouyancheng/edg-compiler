@@ -8765,6 +8765,107 @@ lower case and any multibyte characters are converted to canonical form.
 
 #endif /* ABI_COMPATIBILITY_VERSION >= 302 */
 
+static a_boolean is_closing_raw_string_delimiter(
+                                           char *start_of_raw_string_delimiter,
+                                           int  raw_string_delimiter_len)
+/*
+Return TRUE if the string immediately preceding curr_char_loc is the
+corresponding closing delimiter of the indicated raw string delimiter.
+*/
+{
+  a_boolean              result = FALSE;
+  an_orig_line_modif_ptr olmp;
+
+  if (curr_char_loc - start_of_raw_string_delimiter >=
+                                          2 * (raw_string_delimiter_len + 1)) {
+    /* The total string is long enough to contain two copies of the
+       delimiter and the left and right parentheses. */
+    a_boolean found_right_paren =
+                      (*(curr_char_loc - raw_string_delimiter_len - 1) == ')');
+    if (!found_right_paren && orig_line_modif_list != NULL &&
+        *(curr_char_loc - raw_string_delimiter_len - 1) == ']') {
+      /* Check for the obscure case in which the two characters preceding
+         the closing right parenthesis were both '?', which will have been
+         recognized as the trigraph for ']'. */
+      for (olmp = orig_line_modif_list;
+           olmp != NULL &&
+                 olmp->line_loc < curr_char_loc - raw_string_delimiter_len - 1;
+           olmp = olmp->next) {}
+      if (olmp != NULL && olmp->kind == olm_trigraph &&
+          olmp->line_loc == curr_char_loc - raw_string_delimiter_len - 1) {
+        /* The original text had a ')' in the right location. */
+        found_right_paren = TRUE;
+      }  /* if */
+    }  /* if */
+    if (found_right_paren) {
+      if (strncmp(start_of_raw_string_delimiter,
+                  curr_char_loc - raw_string_delimiter_len,
+                  raw_string_delimiter_len) == 0) {
+        /* The strings compare equal.  Now we just need to make sure that
+           they both have the same set of trigraphs, if any. */
+        an_orig_line_modif_ptr left_olmp;
+        an_orig_line_modif_ptr right_olmp;
+        /* Find the first modification, if any, in the left prefix. */
+        for (left_olmp = orig_line_modif_list;
+             left_olmp != NULL &&
+                           left_olmp->line_loc < start_of_raw_string_delimiter;
+             left_olmp = left_olmp->next) {}
+        /* Find the first modification, if any, in the right prefix. */
+        for (right_olmp = left_olmp;
+             right_olmp != NULL &&
+               right_olmp->line_loc < curr_char_loc - raw_string_delimiter_len;
+             right_olmp = right_olmp->next) {}
+        if (left_olmp != NULL &&
+            left_olmp->line_loc >=
+                    start_of_raw_string_delimiter + raw_string_delimiter_len) {
+          /* No modifications in the left prefix. */
+          left_olmp = NULL;
+        }  /* if */
+        if (right_olmp != NULL && right_olmp->line_loc >= curr_char_loc) {
+          /* No modifications in the right prefix. */
+          right_olmp = NULL;
+        }  /* if */
+        if ((left_olmp == NULL) != (right_olmp == NULL)) {
+          /* There are trigraphs in one but not the other, so the strings
+             do not match. */
+        } else if (left_olmp == NULL && right_olmp == NULL) {
+          /* There are no trigraphs in either, so the strings match. */
+          result = TRUE;
+        } else {
+          /* We have to compare to make sure the strings each have the
+             same trigraphs in the same location. */
+          a_boolean trigraphs_match = TRUE;
+          while (trigraphs_match &&
+                 left_olmp->line_loc <
+                    start_of_raw_string_delimiter + raw_string_delimiter_len &&
+                 right_olmp != NULL &&
+                 right_olmp->line_loc < curr_char_loc) {
+            /* We don't need to check the kind of trigraph, as mismatched
+               kinds would have failed the string comparison above, just
+               the locations. */
+            if (left_olmp->line_loc - start_of_raw_string_delimiter !=
+                right_olmp->line_loc -
+                                  (curr_char_loc - raw_string_delimiter_len)) {
+              trigraphs_match = FALSE;
+            }  /* if */
+            left_olmp = left_olmp->next;
+            right_olmp = right_olmp->next;
+          }  /* while */
+          if (trigraphs_match) {
+            /* Make sure we traversed all the modifications in each
+               prefix. */
+            result = (left_olmp->line_loc >= start_of_raw_string_delimiter +
+                                                    raw_string_delimiter_len &&
+                      (right_olmp == NULL ||
+                       right_olmp->line_loc >= curr_char_loc));
+          }  /* if */
+        }  /* if */
+      }  /* if */
+    }  /* if */
+  }  /* if */
+  return result;
+}  /* is_closing_raw_string_delimiter */
+
 
 #if !MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED
 /*ARGSUSED*/  /* <-- is_wide is not used in that case.*/
@@ -8775,20 +8876,28 @@ static
 a_boolean accum_quoted_string(unsigned long     *num_chars,
                               a_boolean         is_header_name,
                               a_character_kind  character_kind,
-                              char              quoting_char)
+                              char              quoting_char,
+                              char              *start_of_raw_string_delimiter,
+                              int               raw_string_delimiter_len)
 /*
 Scan a quoted construct, i.e., a character constant or a string literal.
-character_kind indicates which character type should be used (e.g., wchar_t).
-This routine is also used for header names in #include and #line directives
-(is_header_name is TRUE for the #include case).  curr_char_loc is just
-past the initial quote.  Scan to the matching closing quote (indicated
-by quoting_char), and do not be confused by escaped characters and
-multibyte character sequences.  Increment *num_chars by the number of
+character_kind indicates which character type should be used (e.g.,
+wchar_t).  This routine is also used for header names in #include and #line
+directives (is_header_name is TRUE for the #include case).  curr_char_loc
+is just past the initial quote.  Scan to the matching closing quote
+(indicated by quoting_char), and do not be confused by escaped characters
+and multibyte character sequences.  Increment *num_chars by the number of
 (possibly wide) characters contained in the string, after escape
 processing.  curr_char_loc and end_of_curr_token are set to point just
-before the closing quote of the string.  The return value is TRUE if
-the string was not terminated before the end of the line, FALSE if it
-was.  The caller is responsible for issuing error messages.
+before the closing quote of the string.  If raw_string_delimiter_len is
+>= 0, the string being scanned is a C++11 raw string, and the terminating
+'"' must be preceded by the same string (of that length) to which
+start_of_raw_string_delimiter points, preceded by a right parenthesis;
+*num_chars will not include the length of this trailing delimiter sequence.
+If raw_string_delimiter_len is < 0, start_of_raw_string_delimiter is not
+used.  The return value is TRUE if the string was not terminated before the
+end of the line, FALSE if it was.  The caller is responsible for issuing
+error messages.
 */
 {
   register char ch;
@@ -8802,8 +8911,11 @@ was.  The caller is responsible for issuing error messages.
 #endif /* MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED */
   /* Scan through the characters of the string looking for the closing quoting
      character. */
-  while ((ch = *curr_char_loc) != quoting_char) {
-    if (ch == '\\' && !is_header_name) {
+  while ((ch = *curr_char_loc) != quoting_char ||
+         (raw_string_delimiter_len >= 0 &&
+          !is_closing_raw_string_delimiter(start_of_raw_string_delimiter,
+                                           raw_string_delimiter_len))) {
+    if (ch == '\\' && !is_header_name && raw_string_delimiter_len < 0) {
       /* Backslash, escapes the next character.  If followed by "0" or
          "x", an octal or hexadecimal value must be scanned.  We recognize
          those digits so we can accurately count characters, but we do
@@ -8875,13 +8987,16 @@ was.  The caller is responsible for issuing error messages.
     } else if (ch == LE_ESCAPE) {
       if (curr_char_loc[1] == LE_NULL) {
         /* Null (zero) character -- keep in string. */
-        /* In Microsoft mode, the character is thrown away. */
+        /* In Microsoft mode, the character is thrown away (even in a raw
+           string literal). */
         if (microsoft_mode) {
           warning_at_line_pos(ec_null_char_ignored, curr_char_loc);
         } else {
-          warning_at_line_pos(is_header_name ? ec_null_char_in_header_name:
-                                               ec_null_char_in_string,
-                              curr_char_loc);
+          if (raw_string_delimiter_len < 0) {
+            warning_at_line_pos(is_header_name ? ec_null_char_in_header_name:
+                                ec_null_char_in_string,
+                                curr_char_loc);
+          }  /* if */
           nchars++;
         }  /* if */
         curr_char_loc += LE_ESCAPE_LEN;
@@ -8945,15 +9060,19 @@ was.  The caller is responsible for issuing error messages.
 return_point:
   end_of_curr_token = curr_char_loc;
   if (unterminated) end_of_curr_token--;
-  *num_chars += nchars;
+  if (raw_string_delimiter_len < 0) {
+    *num_chars += nchars;
+  } else {
+    *num_chars += nchars - raw_string_delimiter_len + 1;
+  }  /* if */
   return unterminated;
 }  /* accum_quoted_string */
 
 
-static a_token_kind scan_char_constant(void)
+static a_token_kind scan_char_constant(a_string_or_char_literal_kind lit_kind)
 /*
-Scan a character constant token, return the token kind or tok_error.
-The token can be a normal or wide character constant.
+Scan a character constant token described by lit_kind, return the token
+kind or tok_error.  The token can be a normal or wide character constant.
 */
 {
   a_token_kind      ctoken = tok_char_constant;
@@ -8962,29 +9081,26 @@ The token can be a normal or wide character constant.
   an_error_code     err_code;
   char              *err_pos;
 
-  switch (*curr_char_loc) {
-    case '\'':
+  check_assertion((lit_kind & SCLK_STRING_LITERAL) == 0);
+  switch (lit_kind) {
+    case SCLK_ORDINARY_LITERAL:
       character_kind = (a_character_kind)chk_char;
       break;
-    case 'L':
+    case SCLK_WIDE_LITERAL:
       character_kind = (a_character_kind)chk_wchar_t;
-      ++curr_char_loc;
       break;
-    case 'U':
+    case SCLK_CHAR32_T_LITERAL:
       character_kind = (a_character_kind)chk_char32_t;
-      ++curr_char_loc;
       break;
-    case 'u':
+    case SCLK_CHAR16_T_LITERAL:
       character_kind = (a_character_kind)chk_char16_t;
-      ++curr_char_loc;
       break;
     default:
       unexpected_condition();
   }  /* switch */
-  check_assertion(*curr_char_loc == '\'');
-  curr_char_loc++;
+  curr_char_loc += start_of_literal_value(lit_kind);
   if (accum_quoted_string(&num_chars, /*is_header_name=*/FALSE,
-                          character_kind, '\'')) {
+                          character_kind, '\'', NULL, -1)) {
     /* Error, character constant is unclosed. */
     /* Similar error for other strange cases of incomplete strings, which
        can come up with preprocessing. */
@@ -9029,21 +9145,34 @@ The token can be a normal or wide character constant.
   return ctoken;
 }  /* scan_char_constant */
 
-#if GNU_EXTENSIONS_ALLOWED
 
-static a_boolean scan_multiline_string(unsigned long     *num_chars,
-                                       a_character_kind  character_kind)
+static a_boolean scan_multiline_string(
+                               unsigned long    *num_chars,
+                               a_character_kind character_kind,
+                               char             *start_of_raw_string_delimiter,
+                               int              raw_string_delimiter_len)
 /*
-Process the second and subsequent lines of a multi-line string.
-Return TRUE if the string turns out to be well-formed, FALSE otherwise.
+Process the second and subsequent lines of a multi-line string.  Return
+TRUE if the string turns out to be well-formed, FALSE otherwise.
 character_kind indicates the kind of character values (char, wchar_t, ...)
 to be scanned.  The number of characters scanned (a conservative estimate
-in the case of char16_t characters) is added to *num_chars.
+in the case of char16_t characters) is added to *num_chars.  If
+raw_string_delimiter_len is >= 0, the string being scanned is a C++11 raw
+string, and the terminating '"' must be preceded by the same string (of
+that length) to which start_of_raw_string_delimiter points, preceded by a
+right parenthesis; *num_chars will not include the length of this trailing
+delimiter sequence.  If raw_string_delimiter_len is < 0,
+start_of_raw_string_delimiter is not used.
 */
 {
-  an_orig_line_modif_ptr olmp;
-  a_boolean              result = FALSE;
+  an_orig_line_modif_ptr     olmp;
+  a_boolean                  result = FALSE;
+  char                       *delim_ptr;
+  a_pointer_registration     delim_ptr_reg;
+  a_pointer_registration_ptr save_registered_pointers = registered_pointers;
 
+  register_pointer_variable(delim_ptr, delim_ptr_reg);
+  delim_ptr = start_of_raw_string_delimiter;
   while (curr_char_loc[0] == LE_ESCAPE &&
          curr_char_loc[1] == LE_NEWLINE) {
     /* Inject the characters \ n on top of the NEWLINE escape,
@@ -9064,66 +9193,149 @@ in the case of char16_t characters) is added to *num_chars.
     /* Back up over the \n added above and resume scanning.  */
     curr_char_loc -= 2;
     if (!accum_quoted_string(num_chars, /*is_header_name=*/FALSE,
-                             character_kind, '"')) {
+                             character_kind, '"', delim_ptr,
+                             raw_string_delimiter_len)) {
       /* End of string, done. */
       result = TRUE;
       break;
     }  /* if */
   }  /* while */
+  registered_pointers = save_registered_pointers;
   return result;
 }  /* scan_multiline_string */
 
-#endif /* GNU_EXTENSIONS_ALLOWED */
 
-static a_token_kind scan_string_literal(void)
+static a_boolean scan_raw_string_delimiter(void)
 /*
-Scan a string literal token, return the token kind or tok_error.
-The token can be a normal or wide string literal.
+On entry, curr_char_loc is pointing to the first character of the
+d-char-sequence (delimiter) of a C++11 raw string literal.  If the
+d-char-sequence is valid, advance curr_char_loc to point immediately
+after the '(' that terminates the d-char-sequence and return TRUE;
+otherwise, issue an error diagnostic, leave curr_char_loc unchanged,
+and return FALSE.
 */
 {
-  a_token_kind     ctoken = tok_string_literal;
-  unsigned long    num_chars = 0;
-  an_error_code    err_code;
-  char             *err_pos;
-  a_character_kind character_kind;
+  a_boolean err = FALSE;
+  char                   *p;
+  char                   *max_delim = curr_char_loc + 16;
+  an_orig_line_modif_ptr olmp;
 
-  /* Determine the string character kind, and skip over the leading quote. */
-  switch (*curr_char_loc) {
-    case '"':
+  for (p = curr_char_loc; !err && *p != '(' && p < max_delim; ++p) {
+    if (!is_raw_string_delimiter_char[*p-CHAR_MIN]) {
+      /* The character is not permitted in a d-char-sequence. */
+      error_at_line_pos(ec_bad_raw_string_delim_char, p);
+      err = TRUE;
+    }  /* if */
+  }  /* for */
+  if (!err && *p != '(') {
+    /* Left parenthesis not found. */
+    error_at_line_pos(ec_missing_raw_string_delim_lparen, start_of_curr_token);
+    err = TRUE;
+  }  /* if */
+  /* Check to make sure there are no non-trigraph original line
+     modifications in the prefix, which are ill-formed. */
+  for (olmp = orig_line_modif_list; olmp != NULL && olmp->line_loc < p;
+       olmp = olmp->next) {
+    if (olmp->line_loc >= curr_char_loc && olmp->kind != olm_trigraph) {
+      error_at_line_pos(ec_bad_raw_string_delim_char, olmp->line_loc);
+      err = TRUE;
+      break;
+    }  /* if */
+  }  /* for */
+  if (!err) {
+    /* Advance curr_char_loc to point after the '(' that terminates the
+       delimiter. */
+    curr_char_loc = p + 1;
+  }  /* if */
+  return !err;
+}  /* scan_raw_string_delimiter */
+
+
+static a_token_kind scan_string_literal(a_string_or_char_literal_kind lit_kind)
+/*
+Scan a string literal token, described by lit_kind, and return the token
+kind or tok_error.  The token can be a normal or wide string literal.
+*/
+{
+  a_token_kind               ctoken = tok_string_literal;
+  unsigned long              num_chars = 0;
+  an_error_code              err_code;
+  char                       *err_pos;
+  a_character_kind           character_kind;
+  int                        raw_string_delimiter_len = -1;
+  a_boolean                  unterminated;
+  char                       *start_of_raw_string_delimiter = NULL;
+  a_pointer_registration     start_of_raw_string_delimiter_reg;
+  char                       *start_of_string_value;
+  a_pointer_registration     start_of_string_value_reg;
+  a_pointer_registration_ptr save_registered_pointers = registered_pointers;
+
+  register_pointer_variable(start_of_raw_string_delimiter,
+                            start_of_raw_string_delimiter_reg);
+  register_pointer_variable(start_of_string_value, start_of_string_value_reg);
+  /* Determine the string character kind, and skip over the prefix, if any,
+     and the leading quote. */
+  check_assertion(lit_kind & SCLK_STRING_LITERAL);
+  switch (literal_encoding_prefix(lit_kind)) {
+    case SCLK_ORDINARY_LITERAL:
+    case SCLK_UTF8_LITERAL:
       character_kind = (a_character_kind)chk_char;
-      curr_char_loc += 1;
       break;
-    case 'L':
+    case SCLK_WIDE_LITERAL:
       character_kind = (a_character_kind)chk_wchar_t;
-      curr_char_loc += 2;
       break;
-    case 'U':
+    case SCLK_CHAR32_T_LITERAL:
       character_kind = (a_character_kind)chk_char32_t;
-      curr_char_loc += 2;
       break;
-    case 'u':
+    case SCLK_CHAR16_T_LITERAL:
       character_kind = (a_character_kind)chk_char16_t;
-      curr_char_loc += 2;
       break;
     default:
       unexpected_condition();
   }  /* switch */
-  if (accum_quoted_string(&num_chars, /*is_header_name=*/FALSE,
-                          character_kind, '"')
+  curr_char_loc += start_of_literal_value(lit_kind);
+  start_of_string_value = curr_char_loc;
+  if (lit_kind & SCLK_RAW_STRING_LITERAL) {
+    /* The literal appears to be a raw string.  Scan the delimiter and
+       save its location and length for later use. */
+    start_of_raw_string_delimiter = curr_char_loc;
+    if (scan_raw_string_delimiter()) {
+      /* curr_char_loc now points immediately following the left
+         parenthesis that terminates the delimiter.  Calculate the length
+         of the delimiter (not counting the left parenthesis). */
+      raw_string_delimiter_len = curr_char_loc -
+                                             start_of_raw_string_delimiter - 1;
+      start_of_string_value = curr_char_loc;
+    }  /* if */                                     
+  }  /* if */
+  unterminated = accum_quoted_string(&num_chars, /*is_header_name=*/FALSE,
+                                     character_kind, '"',
+                                     start_of_raw_string_delimiter,
+                                     raw_string_delimiter_len);
+  if (unterminated && curr_cmd_line_or_predef_macro_def == NULL &&
+      (raw_string_delimiter_len >= 0
 #if GNU_EXTENSIONS_ALLOWED
-      /* GNU C and C++ versions prior to 3.3 permit a string literal to extend
-         over multiple lines. */
-      && (!(gnu_mode && gnu_version < 30300) ||
-          curr_cmd_line_or_predef_macro_def != NULL ||
-          !scan_multiline_string(&num_chars, character_kind))
-#endif  /* GNU_EXTENSIONS_ALLOWED */
-                                                      ) {
+       || (gnu_mode && gnu_version < 30300)
+#endif /* GNU_EXTENSIONS_ALLOWED */
+                                           )) {
+    /* Raw string literals, as well as gcc and g++ versions prior to 3.3,
+       permit a string literal to extend over multiple lines. */
+    unterminated = !scan_multiline_string(&num_chars, character_kind,
+                                          start_of_raw_string_delimiter,
+                                          raw_string_delimiter_len);
+  }  /* if */
+  if (unterminated) {
     /* Error, string is unclosed. */
     /* Similar error for other strange cases of incomplete strings, which
        can come up with preprocessing. */
-    /* Message is generic -- "Missing closing quote". */
     ctoken = tok_error;
-    err_code_for_error_token = ec_unclosed_string;
+    if (raw_string_delimiter_len < 0) {
+      /* Message is generic -- "Missing closing quote". */
+      err_code_for_error_token = ec_unclosed_string;
+    } else {
+      /* Give specific raw string message. */
+      err_code_for_error_token = ec_missing_raw_string_delimiter;
+    }  /* if */
   } else {
     /* Advance past closing quote. */
     check_assertion(*curr_char_loc == '"');
@@ -9136,13 +9348,16 @@ The token can be a normal or wide string literal.
       set_error_constant(&const_for_curr_token);
       error_at_line_pos(err_code_for_error_token, start_of_curr_token);
     } else {
-      conv_string_literal(num_chars, &err_code, &err_pos);
+      conv_string_literal(start_of_string_value,
+                          end_of_curr_token - raw_string_delimiter_len - 1,
+                          lit_kind, num_chars, &err_code, &err_pos);
       /* Check for errors detected. */
       if (err_code != ec_no_error) {
         error_at_line_pos(err_code, err_pos);
       }  /* if */
     }  /* if */
   }  /* if */
+  registered_pointers = save_registered_pointers;
   return ctoken;
 }  /* scan_string_literal */
 
@@ -9162,7 +9377,8 @@ Scan a header name token, return the token kind or tok_error.
   if (quoting_char == '<') quoting_char = '>';
   check_assertion(quoting_char == '"' || quoting_char == '>');
   if (accum_quoted_string(&num_chars, /*is_header_name=*/TRUE,
-                          (a_character_kind)chk_char, quoting_char)) {
+                          (a_character_kind)chk_char, quoting_char, NULL,
+                          -1)) {
     /* Error, header name is unclosed. */
     ctoken = tok_error;
     err_code_for_error_token = ec_unclosed_string;
@@ -10784,6 +11000,56 @@ returns TRUE.  On input symbol points to the symbol for the first token.
 
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
+static a_string_or_char_literal_kind scan_encoding_prefix(void)
+/*
+Upon entry, curr_char_loc points to a character that could be the start
+of a C++11 encoding-prefix, i.e., one of 'u', 'U', 'L', or 'R'.  If it is
+the start of a valid string literal or the start of a valid character
+literal, return the literal kind.  Otherwise, return SCLK_NOT_A_LITERAL.
+*/
+{
+  a_string_or_char_literal_kind kind = SCLK_ORDINARY_LITERAL;
+  char                          *p = curr_char_loc;
+
+  /* Set the kind based on the initial character of the putative
+     encoding-prefix and advance p to the next character. */
+  if (*p == 'u') {
+    ++p;
+    if (cpp11_mode && *p == '8') {
+      ++p;
+      kind = SCLK_UTF8_LITERAL;
+    } else {
+      kind = SCLK_CHAR16_T_LITERAL;
+    }  /* if */
+  } else if (*p == 'U') {
+    ++p;
+    kind = SCLK_CHAR32_T_LITERAL;
+  } else if (*p == 'L') {
+    ++p;
+    kind = SCLK_WIDE_LITERAL;
+  }  /* if */
+  /* Now look for an R, either as the initial character or following an
+     encoding-prefix, indicating that the literal is a C++11 raw string. */
+  if (cpp11_mode && *p == 'R') {
+    ++p;
+    kind |= SCLK_RAW_STRING_LITERAL;
+  }  /* if */
+  /* Finally, determine if this is a valid literal start. */
+  if (*p == '"') {
+    /* A valid string literal. */
+    kind |= SCLK_STRING_LITERAL;
+  } else if (*p == '\'' &&
+             (kind & SCLK_RAW_STRING_LITERAL) == 0 &&
+             kind != SCLK_UTF8_LITERAL) {
+    /* A valid character literal. */
+  } else {
+    /* Not a valid literal. */
+    kind = SCLK_NOT_A_LITERAL;
+  }  /* if */
+  return kind;
+}  /* scan_encoding_prefix */
+
+
 a_token_kind get_token(void)
 /*
 Scan the next token of input, and return its kind.  The kind of token is
@@ -10847,20 +11113,21 @@ been written to be as fast as possible.  Structure has been sacrificed
 to speed in some cases.
 */
 {
-  register a_token_kind ctoken;
-  register char         ch;
-  register a_symbol_ptr	assoc_symbol;
-  a_symbol_kind		id_kind;
-  a_boolean		rescan, is_inert_macro = FALSE;
-  a_boolean             is_temporarily_inert_macro = FALSE;
-  a_boolean		continue_scan;
+  register a_token_kind         ctoken;
+  register char                 ch;
+  register a_symbol_ptr	        assoc_symbol;
+  a_symbol_kind		        id_kind;
+  a_boolean		        rescan, is_inert_macro = FALSE;
+  a_boolean                     is_temporarily_inert_macro = FALSE;
+  a_boolean		        continue_scan;
 #if MICROSOFT_EXTENSIONS_ALLOWED 
-  a_token_kind          token_kind;
+  a_token_kind                  token_kind;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-  a_boolean             gotten_from_cache = FALSE;
-  a_symbol_header_ptr   sym_hdr;
-  sizeof_t              id_length;
-  char                  *id_ptr;
+  a_boolean                     gotten_from_cache = FALSE;
+  a_symbol_header_ptr           sym_hdr;
+  sizeof_t                      id_length;
+  char                          *id_ptr;
+  a_string_or_char_literal_kind lit_kind;
 
   if (any_initial_get_token_tests_needed &&
       !fetching_tokens_from_insert_string()) {
@@ -11387,34 +11654,47 @@ return_end_of_source_token:
            of the forms u'...', U'...', u"...", and U"...".  These are
            similar to wide literals, but potentially involve different
            character types and encodings. */
+        goto literal_prefix_scan;
       } else {
         goto id_scan;
       }  /* if */
-      /*FALLTHROUGH*/
+      /* This can't fall through into the next case. */
+    case 'R':
+      if (cpp11_mode) {
+        /* This might be the start of a raw string literal, e.g.,
+           R"xyz(...)xyz". */
+        goto literal_prefix_scan;
+      } else {
+        goto id_scan;
+      }  /* if */
+      /* This can't fall through into the next case. */
     case 'L':
       /* Probably an identifier, but check for a wide character
          constant (L'x') or wide string literal (L"xyz") first. */
-      if ((ch = *(curr_char_loc+1)) == '\'') {
-        ctoken = scan_char_constant();
+literal_prefix_scan:
+      lit_kind = scan_encoding_prefix();
+      if (lit_kind == SCLK_NOT_A_LITERAL) {
+        goto id_scan;
+      } else if ((lit_kind & SCLK_STRING_LITERAL) == 0) {
+        ctoken = scan_char_constant(lit_kind);
         goto end_of_token_scan;
-      } else if (ch == '"') {
+      } else {
         remember_token_start();
         /* Check for invalid concatenation here, as string literal
            concatenation can destroy the address correspondence needed for
            the test. */
         check_for_invalid_macro_concatenation_if_needed();
-        ctoken = scan_string_literal();
+        ctoken = scan_string_literal(lit_kind);
         goto concatenate_adjacent_string_literals;
       }  /* if */
-      /* Neither of those cases, fall through into identifier processing. */
-      /*FALLTHROUGH*/
+      /* This can't fall through into the next case. */
     case 'a': case 'b': case 'c': case 'd': case 'e': case 'f': case 'g':
     case 'h': case 'i': case 'j': case 'k': case 'l': case 'm': case 'n':
     case 'o': case 'p': case 'q': case 'r': case 's': case 't': /*above*/
     case 'v': case 'w': case 'x': case 'y': case 'z':
     case 'A': case 'B': case 'C': case 'D': case 'E': case 'F': case 'G':
     case 'H': case 'I': case 'J': case 'K': /*above*/ case 'M': case 'N':
-    case 'O': case 'P': case 'Q': case 'R': case 'S': case 'T': /*above*/
+    case 'O': case 'P': case 'Q': /*above*/ case 'S': case 'T': /*above*/
     case 'V': case 'W': case 'X': case 'Y': case 'Z':
     case '_':
 id_scan:
@@ -11670,7 +11950,7 @@ end_id_scan:
       goto end_of_token_scan_b;
     case '\'':
       /* Character constant. */
-      ctoken = scan_char_constant();
+      ctoken = scan_char_constant(SCLK_ORDINARY_LITERAL);
       goto end_of_token_scan;
     case '"':
       /* String literal. */
@@ -11688,7 +11968,8 @@ end_id_scan:
            concatenation can destroy the address correspondence needed for
            the test. */
         check_for_invalid_macro_concatenation_if_needed();
-        ctoken = scan_string_literal();
+        ctoken = scan_string_literal(SCLK_ORDINARY_LITERAL |
+                                     SCLK_STRING_LITERAL);
         goto concatenate_adjacent_string_literals;
       }  /* if */
       /* No break needed, both branches end with a goto. */
@@ -19541,10 +19822,13 @@ host-target conversions are performed.
     curr_char_loc++;
     num_chars = 0;
     unterminated = accum_quoted_string(&num_chars, /*is_header_name=*/FALSE,
-                                       (a_character_kind)chk_char, '"');
+                                       (a_character_kind)chk_char, '"', NULL,
+                                       -1);
     check_assertion(unterminated == FALSE);
     /* Convert it to internal form. */
-    conv_string_literal(num_chars, &err_code, &err_pos);
+    conv_string_literal(start_of_curr_token + 1, end_of_curr_token,
+                        SCLK_ORDINARY_LITERAL | SCLK_STRING_LITERAL,
+                        num_chars, &err_code, &err_pos);
     check_assertion(err_code == ec_no_error);
     /* Copy the result for later use. */
     copy_constant(&const_for_curr_token, name_linkage_constants+(int)kind);
@@ -19614,13 +19898,16 @@ are handled in lexical_init.)
     internal_error("lexical_one_time_init: bad init of opname_kind_for_token");
   }  /* if */
 #endif /* CHECKING */
-  /* Initialize is_id_char to the characters that can appear in an identifier
-     after the first character (i.e., a-z, A-Z, 0-9, and "_").
-     See standard, 3.1.2.  Also used in scanning pp-numbers; the same
-     set applies.  See standard, 3.1.8. */
+  /* Initialize is_id_char to the characters that can appear in an
+     identifier after the first character (i.e., a-z, A-Z, 0-9, and "_").
+     See C++11 Standard, 2.11.  Also used in scanning pp-numbers; the same
+     set applies.  See C++11 Standard, 2.10.  The identifier characters
+     also cover most of the characters that can appear in the
+     d-char-sequence of a raw string literal; see C++11 Standard 2.14.5. */
   for (c = CHAR_MIN; c <= CHAR_MAX; c++) {
     is_id_char[c-CHAR_MIN] = (isalpha((unsigned char)c) ||
                               isdigit((unsigned char)c));
+    is_raw_string_delimiter_char[c-CHAR_MIN] = is_id_char[c-CHAR_MIN];
   }  /* for */
   is_id_char['_' - CHAR_MIN] = TRUE;
   if (allow_dollar_in_id_chars) {
@@ -19639,6 +19926,33 @@ are handled in lexical_init.)
   is_id_char['|' - CHAR_MIN] = FALSE;
   is_id_char['}' - CHAR_MIN] = FALSE;
   is_id_char['~' - CHAR_MIN] = FALSE;
+  /* Mark the remaining raw string delimiter characters. */
+  is_raw_string_delimiter_char['_' - CHAR_MIN] = TRUE;
+  is_raw_string_delimiter_char['{' - CHAR_MIN] = TRUE;
+  is_raw_string_delimiter_char['}' - CHAR_MIN] = TRUE;
+  is_raw_string_delimiter_char['[' - CHAR_MIN] = TRUE;
+  is_raw_string_delimiter_char[']' - CHAR_MIN] = TRUE;
+  is_raw_string_delimiter_char['#' - CHAR_MIN] = TRUE;
+  is_raw_string_delimiter_char['<' - CHAR_MIN] = TRUE;
+  is_raw_string_delimiter_char['>' - CHAR_MIN] = TRUE;
+  is_raw_string_delimiter_char['%' - CHAR_MIN] = TRUE;
+  is_raw_string_delimiter_char[':' - CHAR_MIN] = TRUE;
+  is_raw_string_delimiter_char[';' - CHAR_MIN] = TRUE;
+  is_raw_string_delimiter_char['.' - CHAR_MIN] = TRUE;
+  is_raw_string_delimiter_char['?' - CHAR_MIN] = TRUE;
+  is_raw_string_delimiter_char['*' - CHAR_MIN] = TRUE;
+  is_raw_string_delimiter_char['+' - CHAR_MIN] = TRUE;
+  is_raw_string_delimiter_char['-' - CHAR_MIN] = TRUE;
+  is_raw_string_delimiter_char['/' - CHAR_MIN] = TRUE;
+  is_raw_string_delimiter_char['^' - CHAR_MIN] = TRUE;
+  is_raw_string_delimiter_char['&' - CHAR_MIN] = TRUE;
+  is_raw_string_delimiter_char['|' - CHAR_MIN] = TRUE;
+  is_raw_string_delimiter_char['~' - CHAR_MIN] = TRUE;
+  is_raw_string_delimiter_char['!' - CHAR_MIN] = TRUE;
+  is_raw_string_delimiter_char['=' - CHAR_MIN] = TRUE;
+  is_raw_string_delimiter_char[',' - CHAR_MIN] = TRUE;
+  is_raw_string_delimiter_char['"' - CHAR_MIN] = TRUE;
+  is_raw_string_delimiter_char['\'' - CHAR_MIN] = TRUE;
 #if UNICODE_SOURCE_SUPPORTED
   /* Also build a version used to check identifier characters once
      UTF-8 multibyte characters have been turned into a single code point,
