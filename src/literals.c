@@ -894,9 +894,14 @@ get_another:
         break;
       case olm_null:
         /* A null (0) character in the source was replaced by an LE_NULL
-           lexical escape.  Skip over it and just return the null. */
-        targ_ch = 0;
+           lexical escape.  Skip over it and just return the null, except
+           in Microsoft mode, where the character is ignored. */
         lptr += LE_ESCAPE_LEN;
+        if (microsoft_mode) {
+          goto get_another;
+        } else {
+          targ_ch = 0;
+        }  /* if */
         break;
       default:
         unexpected_condition();

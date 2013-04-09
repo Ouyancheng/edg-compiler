@@ -8900,11 +8900,20 @@ end of the line, FALSE if it was.  The caller is responsible for issuing
 error messages.
 */
 {
-  register char ch;
-  unsigned long	nchars;
-  a_boolean     unterminated = FALSE;
+  register char          ch;
+  unsigned long          nchars;
+  a_boolean              unterminated = FALSE;
+  an_orig_line_modif_ptr olmp = NULL;
 
   nchars = 0;
+  if (raw_string_delimiter_len >= 0 && orig_line_modif_list != NULL) {
+    /* This is a raw string literal, potentially including trigraphs and
+       line splices that will be reversed.  Set up to account for those
+       changes in the character count. */
+    for (olmp = orig_line_modif_list;
+         olmp != NULL && olmp->line_loc < curr_char_loc;
+         olmp = olmp->next) {}
+  }  /* if */
 #if MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED
   /* Initialize for scanning multibyte characters in the string. */
   mbc_scan_init_if_multibyte_chars_in_source_enabled();
@@ -8984,19 +8993,48 @@ error messages.
           while (isxdigit((unsigned char)*curr_char_loc)) curr_char_loc++;
         }  /* if */
       }  /* if */
+    } else if (olmp != NULL && olmp->line_loc == curr_char_loc) {
+      /* Trigraphs and line splices inside raw string literals will be
+         reversed, so calculate the length based on the original
+         characters. */
+      switch (olmp->kind) {
+        case olm_trigraph:
+          /* Two '?'s and another character were replaced by one
+             character. */
+          nchars += 3;
+          ++curr_char_loc;
+          break;
+        case olm_line_splice:
+          /* A '\' and a newline were replaced by nothing. */
+          nchars += 2;
+          break;
+        case olm_multiline_string_splice:
+          /* A newline was replaced by '\' and '\n'. */
+          ++nchars;
+          curr_char_loc += 2;
+          break;
+        case olm_null:
+          /* A zero byte was replaced by an LE_NULL lexical escape.  In
+             Microsoft mode, the character is ignored. */
+          if (!microsoft_mode) {
+            ++nchars;
+          }  /* if */
+          curr_char_loc += LE_ESCAPE_LEN;
+          break;
+        default:
+          unexpected_condition();
+      }  /* switch */
+      olmp = olmp->next;
     } else if (ch == LE_ESCAPE) {
       if (curr_char_loc[1] == LE_NULL) {
         /* Null (zero) character -- keep in string. */
-        /* In Microsoft mode, the character is thrown away (even in a raw
-           string literal). */
+        /* In Microsoft mode, the character is thrown away. */
         if (microsoft_mode) {
           warning_at_line_pos(ec_null_char_ignored, curr_char_loc);
         } else {
-          if (raw_string_delimiter_len < 0) {
-            warning_at_line_pos(is_header_name ? ec_null_char_in_header_name:
-                                ec_null_char_in_string,
-                                curr_char_loc);
-          }  /* if */
+          warning_at_line_pos(is_header_name ? ec_null_char_in_header_name:
+                              ec_null_char_in_string,
+                              curr_char_loc);
           nchars++;
         }  /* if */
         curr_char_loc += LE_ESCAPE_LEN;
@@ -9063,7 +9101,7 @@ return_point:
   if (raw_string_delimiter_len < 0) {
     *num_chars += nchars;
   } else {
-    *num_chars += nchars - raw_string_delimiter_len + 1;
+    *num_chars += nchars - raw_string_delimiter_len - 1;
   }  /* if */
   return unterminated;
 }  /* accum_quoted_string */
