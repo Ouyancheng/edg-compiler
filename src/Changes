@@ -1,6 +1,23 @@
 Version 4.7
 
 4/9/13   [EDGcpfe/13710]
+Abort on out-of-class initialization of (invalid) local static data member
+
+Declaring a static data member of a local class is invalid (and elicits an
+error), but attempting to initialize such a static data member could trigger
+an internal error in Microsoft C++ mode and in some GNU C++ modes
+("push_or_repush_object_lifetime: parent is in file scope memory, new olp is
+not").  For example:
+
+  int main() {
+    struct L { static int x; };  // Invalid static data member declaration.
+    int L::x = 0;                // This could trigger an internal error.
+  }
+
+This problem (introduced in version 4.6) is now fixed.
+
+
+4/9/13   [EDGcpfe/13710]
 Microsoft compatibility: __is_convertible_to
 
 Previously, in Microsoft modes, uses of __is_convertible_to with two identical

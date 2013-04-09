@@ -3943,6 +3943,12 @@ returned set to TRUE.
       check_assertion(symbol_ptr->is_error ||
                       !is_file_or_namespace_scope(
                                             &scope_stack[depth_scope_stack]));
+    } else if (symbol_is(symbol_ptr, sk_static_data_member) &&
+               is_local_scope_kind(scope_stack_top().kind)) {
+      /* An attempt to define a static data member in a local scope.  Don't
+         reactivate the class since it can cause problems with the lifetime
+         management of temporaries. */
+      check_assertion(symbol_ptr->is_error);
     } else if (!is_template_context() || sun_mode ||
                (microsoft_mode && microsoft_version <= 1300)) {
       /* For templates, the class was already reactivated when the
