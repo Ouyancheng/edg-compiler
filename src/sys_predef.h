@@ -23,6 +23,10 @@ extern void enter_system_specific_predeclared_symbols(void);
 
 extern void enter_system_specific_predefined_macros_and_assertions(void);
 
+#if MICROSOFT_EXTENSIONS_ALLOWED
+extern void create_msc_ver_full_build_number(char      *buffer,
+                                             sizeof_t  n_chars);
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #endif /* ifndef SYS_PREDEF_H */
 
 

@@ -2287,6 +2287,20 @@ Enter the predeclared functions for Microsoft mode.
   }  /* if */
 }  /* enter_microsoft_predeclared_functions */
 
+
+void create_msc_ver_full_build_number(char      *buffer,
+                                      sizeof_t  n_chars)
+/*
+Write in the array pointed to by *buffer a null-terminated string
+corresponding to the "build number" component of the predeclared
+_MSC_FULL_VER macro (the "build number" is usually a 5-digit sequence).
+n_chars is the number of characters available in *buffer.
+*/
+{
+  check_assertion(n_chars >= sizeof("99999"));
+  (void)strncpy(buffer, "99999", n_chars);
+}  /* create_msc_ver_full_build_number */
+
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 #if UPC_EXTENSIONS_ALLOWED

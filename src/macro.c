@@ -8564,6 +8564,7 @@ command line -D options.
     }  /* if */
   }
 #endif /* DEFINE_MACRO_WHEN_LONG_LONG_IS_DISABLED */
+#if MICROSOFT_EXTENSIONS_ALLOWED
   if (microsoft_mode) {
     /* Define the _MSC_VER variable that indicates the version of the
        Microsoft compiler that is being emulated. */
@@ -8572,6 +8573,20 @@ command line -D options.
                              "_MSC_VER",
                              /*cannot_be_redefined=*/FALSE,
                              /*ref_suppresses_pch_file=*/FALSE);
+    /* Define _MSC_FULL_VER, which is similar to _MSC_VER but appends a
+       "build number". */
+    { char  macro_val[100], build_num[50];
+      create_msc_ver_full_build_number(build_num, sizeof(build_num));
+      if (snprintf(macro_val, sizeof(macro_val), "%lu%s",
+                   (unsigned long)microsoft_version, build_num) <
+                                                          sizeof(macro_val)) {
+        (void)enter_predef_macro(macro_val, "_MSC_FULL_VER",
+                                 /*cannot_be_redefined=*/FALSE,
+                                 /*ref_suppresses_pch_file=*/FALSE);
+      } else {
+        unexpected_condition();
+      }  /* if */
+    }
     /* Define _MSC_EXTENSIONS. */
     (void)enter_predef_macro("1", "_MSC_EXTENSIONS",
                              /*cannot_be_redefined=*/FALSE,
@@ -8614,7 +8629,10 @@ command line -D options.
                              /*cannot_be_redefined=*/FALSE,
                              /*ref_suppresses_pch_file=*/FALSE);
 #endif /* ifdef _M_IX86 */
-  } else if (type_traits_helpers_enabled) {
+  } else
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+  /* Do not insert code here. */
+  if (type_traits_helpers_enabled) {
     /* Not a Microsoft mode.  Enter a macro to indicate that native type traits
        helpers are available to ease the implementation of ISO/IEC TR 19768. */
     (void)enter_predef_macro(

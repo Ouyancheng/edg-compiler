@@ -1,5 +1,16 @@
 Version 4.7
 
+4/9/13   [EDGcpfe/13877]
+Microsoft compatibility: _MSC_FULL_VER
+
+In Microsoft modes, the front end now predefines a macro MSC_FULL_VER whose
+value is obtained by concatenating the decimal representation of
+microsoft_version and a "build number" obtained from a call to a new function
+create_msc_ver_full_build_number in sys_predef.c.  Our default implementation
+of this function simply produces 99999 as the build number.  So if e.g.
+microsoft_version is 1600, _MSC_FULL_VER expands to 160099999.
+
+
 4/9/13   [EDGcpfe/13710]
 Abort on out-of-class initialization of (invalid) local static data member
 
