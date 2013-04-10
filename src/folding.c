@@ -6754,7 +6754,8 @@ constant will be set as well.
                    constant, (a_template_param_constant_kind)tpck_expression);
     constant->variant.template_param.variant.expr = expr;
   } else {
-    a_boolean  from_rvalue = FALSE, result;
+    a_boolean   from_rvalue = FALSE, result;
+    a_type_ptr  orig_type2 = type2;
     /* The Microsoft version of this test considers the source as an rvalue
        in some cases. */
     if (microsoft_mode) {
@@ -6783,7 +6784,8 @@ constant will be set as well.
         }  /* if */
       }  /* if */
     }  /* if */
-    if (microsoft_mode && (is_void_type(type2) || is_function_type(type2))) {
+    if (microsoft_mode &&
+        (is_void_type(orig_type2) || is_function_type(orig_type2))) {
       /* Microsoft considers a conversion to void or to a function type to
          fail. */
       result = FALSE;
