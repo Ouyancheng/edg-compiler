@@ -9530,6 +9530,7 @@ pm_field_selection:
                 /* Core issue 1312: can't fold a cast from pointer-to-void to
                    pointer-to-object. */
               } else if (could_be_dependent_class_type(expr->type) ||
+                         is_instantiation_dependent_type(expr->type) ||
                          could_be_dependent_class_type(op1_constant.type)) {
                 /* Don't fold casts involving dependent class types unless
                    the types are the same except for cv-qualifiers. */
