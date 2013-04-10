@@ -8579,7 +8579,7 @@ command line -D options.
       create_msc_ver_full_build_number(build_num, sizeof(build_num));
       if (snprintf(macro_val, sizeof(macro_val), "%lu%s",
                    (unsigned long)microsoft_version, build_num) <
-                                                          sizeof(macro_val)) {
+                                                      (int)sizeof(macro_val)) {
         (void)enter_predef_macro(macro_val, "_MSC_FULL_VER",
                                  /*cannot_be_redefined=*/FALSE,
                                  /*ref_suppresses_pch_file=*/FALSE);
