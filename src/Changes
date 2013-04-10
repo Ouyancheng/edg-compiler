@@ -12,7 +12,7 @@ The build number is currently not used by the front end for anything other
 than setting the _MSC_FULL_VER macro value.
 
 
-4/9/13   [EDGcpfe/13710]
+4/9/13   [EDGcpfe/13874]
 Abort on out-of-class initialization of (invalid) local static data member
 
 Declaring a static data member of a local class is invalid (and elicits an
