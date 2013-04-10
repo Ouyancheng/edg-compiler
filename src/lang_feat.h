@@ -1133,6 +1133,11 @@ EXTERN unsigned long
 			   supplied by the version of the Microsoft compiler
 			   that is being emulated. */
 
+EXTERN unsigned long
+		microsoft_build_number;
+			/* The "build number" to use in creating the value of
+			   the predeclared macro _MSC_FULL_VER in Microsoft
+			   mode. */
 
 /*
 Flag that is TRUE if a set of extensions is supported that permits features

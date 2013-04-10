@@ -5,10 +5,11 @@ Microsoft compatibility: _MSC_FULL_VER
 
 In Microsoft modes, the front end now predefines a macro MSC_FULL_VER whose
 value is obtained by concatenating the decimal representation of
-microsoft_version and a "build number" obtained from a call to a new function
-create_msc_ver_full_build_number in sys_predef.c.  Our default implementation
-of this function simply produces 99999 as the build number.  So if e.g.
-microsoft_version is 1600, _MSC_FULL_VER expands to 160099999.
+microsoft_version and a "build number" stored in the new global variable
+microsoft_build_number.  By default the build number is set to 99999, but it
+can be modified with the new command-line option --microsoft_build_number.
+The build number is currently not used by the front end for anything other
+than setting the _MSC_FULL_VER macro value.
 
 
 4/9/13   [EDGcpfe/13710]

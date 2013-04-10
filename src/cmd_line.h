@@ -113,6 +113,7 @@ typedef enum /*an_option_kind*/ {
 #if MICROSOFT_EXTENSIONS_ALLOWED
   optk_microsoft_mode,
   optk_microsoft_version,
+  optk_microsoft_build_number,
   optk_microsoft_bugs,
 #if NEAR_AND_FAR_ALLOWED
   optk_microsoft_16_mode,

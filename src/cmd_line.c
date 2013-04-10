@@ -485,6 +485,9 @@ Initialize the option information table.
   add_option_description(optk_microsoft_version, "microsoft_version",
                          '\0', /*value=*/FALSE, /*arg_required=*/TRUE,
                          pchek_command_line);
+  add_option_description(optk_microsoft_build_number, "microsoft_build_number",
+                         '\0', /*value=*/FALSE, /*arg_required=*/TRUE,
+                         pchek_command_line);
   add_option_description(optk_microsoft_bugs, "microsoft_bugs",
                          '\0', /*value=*/TRUE, /*arg_required=*/FALSE,
                          pchek_command_line);
@@ -3029,6 +3032,7 @@ otherwise implicitly enabled Microsoft mode.
   if (microsoft_mode) {
     if (option_kind_used[(int)optk_microsoft_mode] ||
         option_kind_used[(int)optk_microsoft_version] ||
+        option_kind_used[(int)optk_microsoft_build_number] ||
 #if NEAR_AND_FAR_ALLOWED
         option_kind_used[(int)optk_microsoft_16_mode] ||
 #endif /* NEAR_AND_FAR_ALLOWED */
@@ -8305,6 +8309,11 @@ Process the arguments on the command line that invoked the compiler.
         }  /* if */
         opt_value = TRUE;
         goto enable_microsoft_mode;
+      case optk_microsoft_build_number:
+        /* The build number of the Microsoft compiler being emulated. */
+        microsoft_build_number = scan_opt_arg_number(opt_arg);
+        opt_value = TRUE;
+        goto enable_microsoft_mode;
       case optk_microsoft_mode:
         /* Enable or disable Microsoft extensions, in 32-bit mode.
            Note that 16/32 bit mode is not reset when enable_microsoft_mode
@@ -10153,6 +10162,7 @@ variables declared in cmd_line.h.
   no_ms_nonreal_base_classes = FALSE;
   use_cppcli_fill_ins = TRUE;
   microsoft_version = DEFAULT_MICROSOFT_VERSION;
+  microsoft_build_number = 99999;
   c99_mode = DEFAULT_C99_MODE;
   uliterals_enabled = DEFAULT_ULITERALS_ENABLED;
   char16_t_and_char32_t_are_keywords = DEFAULT_ULITERALS_ENABLED;

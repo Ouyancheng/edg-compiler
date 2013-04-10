@@ -684,6 +684,7 @@ check_abbreviation()
 --microsoft
 --microsoft_16
 --microsoft_bugs
+--microsoft_build_number
 --microsoft_version
 --mmap_address
 --module_init
@@ -1527,6 +1528,7 @@ process_option()
          --inline_statement_limit | \
          --max_constexpr_call_count | \
          --max_constexpr_call_depth | \
+         --microsoft_build_number | \
          --microsoft_version | \
          --mmap_address | \
          --gnu_version | \
@@ -1610,6 +1612,7 @@ process_option()
           --max_constexpr_call_count=* | \
           --max_constexpr_call_depth=* | \
           --mmap_address=* | \
+          --microsoft_build_number=* | \
           --microsoft_version=* | \
           --gnu_version=* | \
           --pending_instantiations=* | \
