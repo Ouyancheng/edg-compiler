@@ -1347,6 +1347,9 @@ is TRUE, cache the argument tokens if this is a template-dependent context.
     a_token_set_array             stop_tokens;
     a_token_sequence_number       first_tsn, last_tsn;
     a_template_cache_segment_ptr  tcsp;
+    /* The caller ensured that an exception specification entry was
+       allocated. */
+    check_assertion(esp != NULL);
     first_tsn = curr_token_sequence_number;
     clear_token_set_array(stop_tokens);
     incr_token_set_array_element(stop_tokens, tok_rparen);
@@ -1366,8 +1369,7 @@ is TRUE, cache the argument tokens if this is a template-dependent context.
          last. */
       tcsp->last_token_number = last_tsn < first_tsn ? first_tsn : last_tsn;
       /* Check for the case where the cache is empty. */
-      tcsp->expression_missing =
-                                 esp->variant.token_cache->first_token == NULL;
+      tcsp->expression_missing = esp->variant.token_cache->first_token == NULL;
     }  /* if */
     terminate_token_cache(esp->variant.token_cache);
   } else {
