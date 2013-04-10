@@ -3401,15 +3401,18 @@ the left parenthesis introducing the declarator-like construct.
   a_type_ptr         func_type = void_type();
   a_decl_flag_set    di_flags = DI_NONSTATIC_MEMBER;
   a_symbol_locator   loc;
+  a_boolean          disallow_default_args = !gpp_mode;
 
   check_assertion(curr_token == tok_lparen);
   add_stop_token(tok_rparen);
   (void)get_token();
+  make_opname_locator((an_opname_kind)onk_function_call, &loc,
+                      &lambda->start_position);
   function_declarator(dps, di_flags, &func_type, func_info, &loc,
                       lambda->closure_class,
                       /*is_nonstatic_member=*/TRUE, /*is_constructor=*/FALSE, 
                       /*is_static_constructor=*/FALSE, /*is_destructor=*/FALSE,
-                      /*is_finalizer=*/FALSE, /*disallow_default_args=*/TRUE,
+                      /*is_finalizer=*/FALSE, disallow_default_args,
                       /*disallow_exception_spec=*/FALSE, decl_pos_block);
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   func_info->declared_type = func_type;

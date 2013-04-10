@@ -1,5 +1,22 @@
 Version 4.7
 
+4/10/13  [EDGcpfe/13883]
+GNU C++ compatibility: Default arguments in lambda expressions
+
+In GNU C++11 mode, the front end now accepts default arguments in lambda
+expressions.  Note that since the lambda's "function declarator" really is the
+declarator for an operator() of the corresponding closure type, constraints
+associated with that operator remain in force.  For example, in a local scope
+a lambda's default arguments cannot refer to local variables.  For example:
+
+  int main() {
+    int x = 1;
+    int y = [](int p = 2){ return p; }(); // Now accepted in GNU C++11 mode.
+    int z = [](int p = x){ return p; }(); // Error even in GNU C++11 mode:
+    return y+z;                           // The local variable x cannot be
+  }                                       // referred to.
+
+
 4/9/13   [EDGcpfe/13877]
 Microsoft compatibility: _MSC_FULL_VER
 
