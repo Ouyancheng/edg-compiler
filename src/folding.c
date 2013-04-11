@@ -10213,8 +10213,9 @@ fold_constexpr_ctor should usually be called instead.
   an_expr_node_ptr args;
   a_constexpr_call call_block;
 
-  check_assertion(ctor_dip != NULL &&
-                  ctor_dip->kind == (a_dynamic_init_kind)dik_constructor);
+  check_assertion(ctor_dip != NULL);
+  if (is_error_dynamic_init(ctor_dip)) goto end_of_routine;
+  check_assertion(ctor_dip->kind == (a_dynamic_init_kind)dik_constructor);
   ctor_routine = ctor_dip->variant.constructor.ptr;
   args = ctor_dip->variant.constructor.args;
   if (incr_constexpr_call_depth(ceblock, &call_block)) {
@@ -10416,6 +10417,7 @@ fail:;
     }  /* if */
   }  /* if */
   decr_constexpr_call_depth(ceblock);
+end_of_routine:
   return folded;
 }  /* i_fold_constexpr_ctor */
 
