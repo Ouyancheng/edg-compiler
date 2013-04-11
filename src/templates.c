@@ -15720,7 +15720,10 @@ definition.  Return TRUE if an error was detected.
 
   decl_scope_number = scope_stack[decl_state->effective_decl_level].number;
   if (sym->decl_scope != decl_scope_number) {
-    if (decl_state->is_template_friend) {
+    if (is_symbol_from_inline_namespace(sym)) {
+      /* A symbol from an inline namespace can be redeclared in the
+         enclosing namespace. */
+    } else if (decl_state->is_template_friend) {
       /* A scope mismatch is okay in a friend declaration. */
     } else if (gpp_mode && is_class_template_symbol(sym)) {
       /* g++ allows a template to be redeclared in another scope (e.g., via a

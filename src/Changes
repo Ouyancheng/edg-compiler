@@ -1,5 +1,23 @@
 Version 4.7
 
+4/11/13  [EDGcpfe/13678]
+Partial specialization in inline namespace
+
+A partial specialization of a class template declared in an inline namespace
+was not allowed to be partially specialized in the enclosing namespace
+using an unqualified name.  Now fixed.
+
+  namespace N {
+    inline namespace N_inline {
+      template <typename T> struct A { T t; };
+    }
+  }
+  template <typename T> struct B { T t; };
+  namespace N {
+    template <typename T> struct A< B<T> > { B<T> t; };
+  }
+
+
 4/10/13  [EDGcpfe/13883]
 GNU C++ compatibility: Default arguments in lambda expressions
 
