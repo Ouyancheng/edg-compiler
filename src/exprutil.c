@@ -18101,11 +18101,16 @@ cases so we don't do it here.
       check_assertion(is_expression_operand(operand));
       node = operand->variant.expression;
       check_assertion(node->is_lvalue);
-      if (gcc_mode && curr_expr_kind_is_const()) {
+      if (gcc_mode &&
+          (curr_expr_kind_is_const() ||
+           (curr_expr_kind_is(ek_sizeof) &&
+            expr_stack->favor_constant_result))) {
         /* gcc allows const variables to be used in constant expressions in
            some cases.  We allow it but report it as a warning.  gcc allows
            these cases only with -O1 and above, and only in foldable
-           constant expressions. */
+           constant expressions.  The ek_sizeof/favor_constant_result part
+           of the test is to identify the operand of a __builtin_constant_p
+           call. */
         a_variable_ptr var;
         if (operand_is_lvalue_for_variable(operand, &var) &&
             is_potentially_constant_valued_variable(var) &&

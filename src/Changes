@@ -1,5 +1,23 @@
 Version 4.7
 
+4/11/13  [EDGcpfe/11205]
+GNU C mode: allow constant-valued variable in __builtin_constant_p operand
+
+GNU C allows the use of constant-valued variables in constant
+expressions when -O1 is specified (normally, they are allowed only in
+C++ mode, but gcc allows them in C mode in that case).  The front end
+already allowed those in most contexts, but it didn't in the operand
+expression of a __builtin_constant_p in a constant expression.  Now,
+it does.
+
+  const int constvar = 1;
+  int notconstvar = 2;
+  int i = __builtin_constant_p(constvar) ? constvar : notconstvar;
+
+(Note, however, that accepting that example depends on the setting of
+DEFAULT_ALWAYS_FOLD_CALLS_TO_BUILTIN_CONSTANT_P.)
+
+
 4/11/13  [EDGcpfe/13678]
 Partial specialization in inline namespace
 
