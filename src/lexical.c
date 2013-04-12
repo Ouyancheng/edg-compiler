@@ -8767,15 +8767,20 @@ lower case and any multibyte characters are converted to canonical form.
 
 static a_boolean is_closing_raw_string_delimiter(
                                            char *start_of_raw_string_delimiter,
-                                           int  raw_string_delimiter_len)
+                                           int  raw_string_delimiter_len,
+                                           int  *trigraph_adjustment)
 /*
 Return TRUE if the string immediately preceding curr_char_loc is the
-corresponding closing delimiter of the indicated raw string delimiter.
+corresponding closing delimiter of the indicated raw string delimiter.  Set
+*trigraph_adjustment to the number of characters that should be subtracted
+from the string character count as a result of having reverted trigraphs in
+the closing delimiter.
 */
 {
   a_boolean              result = FALSE;
   an_orig_line_modif_ptr olmp;
 
+  *trigraph_adjustment = 0;
   if (curr_char_loc - start_of_raw_string_delimiter >=
                                           2 * (raw_string_delimiter_len + 1)) {
     /* The total string is long enough to contain two copies of the
@@ -8850,6 +8855,12 @@ corresponding closing delimiter of the indicated raw string delimiter.
             }  /* if */
             left_olmp = left_olmp->next;
             right_olmp = right_olmp->next;
+            /* The trigraph was counted as 3 characters in the overall
+               string length, but the delimiter length that will be
+               subtracted was calculated using the substituted single
+               character.  Update the trigraph adjustment so the correct
+               length can be calculated. */
+            *trigraph_adjustment += 2;
           }  /* while */
           if (trigraphs_match) {
             /* Make sure we traversed all the modifications in each
@@ -8904,6 +8915,7 @@ error messages.
   unsigned long          nchars;
   a_boolean              unterminated = FALSE;
   an_orig_line_modif_ptr olmp = NULL;
+  int                    trigraph_delim_len_adjustment;
 
   nchars = 0;
   if (raw_string_delimiter_len >= 0 && orig_line_modif_list != NULL) {
@@ -8923,7 +8935,8 @@ error messages.
   while ((ch = *curr_char_loc) != quoting_char ||
          (raw_string_delimiter_len >= 0 &&
           !is_closing_raw_string_delimiter(start_of_raw_string_delimiter,
-                                           raw_string_delimiter_len))) {
+                                           raw_string_delimiter_len,
+                                           &trigraph_delim_len_adjustment))) {
     if (ch == '\\' && !is_header_name && raw_string_delimiter_len < 0) {
       /* Backslash, escapes the next character.  If followed by "0" or
          "x", an octal or hexadecimal value must be scanned.  We recognize
@@ -9101,7 +9114,8 @@ return_point:
   if (raw_string_delimiter_len < 0) {
     *num_chars += nchars;
   } else {
-    *num_chars += nchars - raw_string_delimiter_len - 1;
+    *num_chars += nchars - raw_string_delimiter_len -
+                                             trigraph_delim_len_adjustment - 1;
   }  /* if */
   return unterminated;
 }  /* accum_quoted_string */
@@ -9344,7 +9358,11 @@ kind or tok_error.  The token can be a normal or wide string literal.
       raw_string_delimiter_len = curr_char_loc -
                                              start_of_raw_string_delimiter - 1;
       start_of_string_value = curr_char_loc;
-    }  /* if */                                     
+    } else {
+      /* Clear the raw string indicator in lit_kind, since we're treating
+         this as a non-raw string. */
+      lit_kind &= ~SCLK_RAW_STRING_LITERAL;
+    }  /* if */
   }  /* if */
   unterminated = accum_quoted_string(&num_chars, /*is_header_name=*/FALSE,
                                      character_kind, '"',

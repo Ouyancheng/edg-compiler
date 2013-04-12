@@ -70,7 +70,8 @@ typedef struct a_char_conversion_state {
 			   indicate that the second code unit of a
 			   surrogate pair is pending and should be returned
 			   by conv_single_char instead of reading a new
-			   character from the token. */
+			   character from the token, in which case
+			   next_mbc_char will be NULL. */
   char		*next_mbc_char;
 			/* When translating from UTF-8 to multibyte
 			   characters and for universal-character-names
@@ -79,10 +80,12 @@ typedef struct a_char_conversion_state {
 			   next byte from translated_char to be returned.
 			   NULL for normal multibyte character processing
 			   (indicating multibyte characters will be fetched
-			   directly from the token string).  Also used for
-			   the original form of trigraphs and line splices
-			   when reversing trigraph and line splice
-			   translation in raw string literals. */
+			   directly from the token string) and when
+			   pending_surrogate_pair contains the next code
+			   unit.  Also used for the original form of
+			   trigraphs and line splices when reversing
+			   trigraph and line splice translation in raw
+			   string literals. */
   unsigned long	pending_surrogate_pair;
 			/* When create_surrogate_pairs is TRUE and a
 			   character or universal-character-name is

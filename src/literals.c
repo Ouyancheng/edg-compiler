@@ -838,17 +838,18 @@ state->next_orig_line_modif is advanced to point to the next modification.
        pair started on a previous call of this routine.  Return another
        character (or the second code unit) and decrement the count of
        remaining characters. */
-    if (state->create_surrogate_pairs) {
+    if (state->next_mbc_char != NULL) {
+      /* The Unicode character that was seen was translated into a
+         multibyte character, or a trigraph or line splice was reverted in
+         a raw string literal; state->next_mbc_char points to the
+         translated or reverted byte to return on this call. */
+      targ_ch = (unsigned char)*state->next_mbc_char;
+      ++state->next_mbc_char;
+    } else if (state->create_surrogate_pairs) {
       /* The previous call returned the first code unit of a surrogate
          pair.  Return the second code unit now. */
       check_assertion(state->remaining_char_count == 1);
       targ_ch = state->pending_surrogate_pair;
-    } else if (state->next_mbc_char != NULL) {
-      /* The Unicode character that was seen was translated into a
-         multibyte character; state->next_mbc_char points to the translated
-         byte to return on this call. */
-      targ_ch = (unsigned char)*state->next_mbc_char;
-      ++state->next_mbc_char;
     } else {
       targ_ch = (unsigned char)*lptr;
       lptr++;
@@ -1124,6 +1125,7 @@ range_check:
              error was already reported when the character was scanned, so
              we will just return the masked value.) */
           state->pending_surrogate_pair = encoding[1];
+          state->next_mbc_char = NULL;
           state->remaining_char_count = 1;
           targ_ch = encoding[0];
         }  /* if */
@@ -1177,8 +1179,6 @@ defines the size of character.
        the character is an escape. */
     conv_single_char(state, process_escapes, ch, centity_mask,
                      /*narrow_literal=*/FALSE);
-    check_assertion(state->remaining_char_count == 0 ||
-                    state->create_surrogate_pairs);
   } else {
     unsigned  long wc;
     int       numch;
