@@ -3956,9 +3956,16 @@ call, and rcblock->argument_list to the previously-scanned argument list.
       make_rescan_operand(rcblock->argument_list, rcblock, &arg);
     }  /* if */
     eliminate_unusual_operand_kinds(&arg);
-    if (bfk == (a_builtin_function_kind)bfk_constant_p) {
-      do_operand_transformations(&arg, TOPT_NO_OPTIONS);
-    }  /* if */
+    { a_variable_ptr var;
+      if (gcc_mode &&
+          bfk == (a_builtin_function_kind)bfk_constant_p &&
+          operand_is_lvalue_for_variable(&arg, &var) &&
+          is_potentially_constant_valued_variable(var)) {
+        /* Make sure a constant-valued variable gets converted to a constant in
+           the operand of __builtin_constant_p. */
+        conv_lvalue_to_rvalue(&arg);
+      }  /* if */
+    }
     force_operand_to_constant_if_possible(&arg);
     expr_stack->favor_constant_result = saved_favor_constant_result;
     /* Now determine the constant result of the pseudo-call by examining the
