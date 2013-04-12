@@ -6124,12 +6124,18 @@ reflect the initialization.  Otherwise, return FALSE.
           target = get_nondelegating_target_ctor(dip->variant.constructor.ptr);
           if (target == ctor) {
             pos_error(ec_delegation_loop, &pos);
-            dip = NULL;
           }  /* if */
+        } else if (dip->kind == (a_dynamic_init_kind)dik_constant ||
+                   dip->kind ==
+                              (a_dynamic_init_kind)dik_nonconstant_aggregate) {
+          /* Template-based mem-initializers and constexpr constructors can
+             make us end up with aggregate-like initialization here. */
+          a_constant_ptr  cp = dip->variant.constant;
+          check_assertion_or_expect_error(ctor->is_prototype_instantiation ||
+                                          cp->is_result_of_constexpr_call);
         } else {
           /* Some error must have occurred. */
           expect_error();
-          dip = NULL; 
         }  /* if */
         if (end_potential_pack_expansion_context(
                               cibp->pesep, /*is_declarator=*/FALSE) != NULL) {
