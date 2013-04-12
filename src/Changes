@@ -1,5 +1,26 @@
 Version 4.7
 
+4/11/13  [EDGcpfe/13890]
+Spurious error on defaulted move assignment operator
+
+In C++11 mode, the front end sometimes issued a spurious error on a defaulted
+move assignment operator whose definition could not be generated (e.g.,
+because of the presence of a data member of reference type) if the parent
+class has a user-declared copy constructor and copy assignment operator.
+The standard requires such assignment operators to be simply "dropped", but
+the front end attempted to generate definition anyway, resulting in the
+error.  For example:
+
+  struct S {
+    S(S const&) = delete;
+    void operator=(S const&) {}
+    S& operator=(S&&) = default;  // Defaulted member should be "dropped";
+    int &r;                       // previously it triggered a spurious error.
+  };
+
+This is now fixed.
+
+
 4/11/13  [EDGcpfe/11205]
 GNU C mode: allow constant-valued variable in __builtin_constant_p operand
 

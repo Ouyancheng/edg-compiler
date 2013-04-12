@@ -19281,12 +19281,15 @@ The routine body is not generated until it is known to be needed.
 #if MICROSOFT_EXTENSIONS_ALLOWED
       !class_type->variant.class_struct_union.is_generic_constraint &&
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-      (declare_copy_asgn_op || declare_copy_ctor || declare_dtor)) {
+      (!is_immediate_managed_class_type(class_type) ||
+       declare_copy_asgn_op || declare_copy_ctor || declare_dtor)) {
     /* In standard C++11 mode (a mode where generate_move_operations is TRUE),
        some special members are either not declared (move constructors) or
        declared as deleted (copy constructors, destructors) if generating their
        definitions would produce errors.  Microsoft compilers similarly do not
-       generate special members that don't have a valid definition. */
+       generate special members that don't have a valid definition.  Note that
+       suppression may have to be checked even if no special member is declared
+       so that "= default" definitions can be suppressed if needed. */
     if (microsoft_mode && microsoft_version < 1400 &&
         !generate_move_operations) {
       gsfd.warn_about_suppressed_copy_ctor = declare_copy_ctor;
