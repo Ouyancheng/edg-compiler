@@ -5945,7 +5945,7 @@ whole array.
 Pointer to a hash table tracking the targets of delegating constructors.
 (We cannot use the IL because constructor definitions may be discarded early.)
 Each entry in the table maps a routine entry for a delegating constructor to
-a non-delegating constructor is (possibly indirectly) delegates construction
+a non-delegating constructor it (possibly indirectly) delegates construction
 to.
 */
 static a_hash_table_ptr
@@ -6034,6 +6034,15 @@ constructor it targets.  Otherwise, just return ctor.
                      ctor_delegation_map, (a_void_ptr)ctor, /*create=*/FALSE);
     if (p_pair != NULL) {
       target = (a_routine_ptr)(*p_pair)->value;
+      if (target->is_delegating_ctor) {
+        /* New entries in the delegation map may have lengthened the delegation
+           chain since the entry for ctor was recorded.   Use recursion to find
+           the current end of the chain. */
+        target = get_nondelegating_target_ctor(target);
+        /* Record the updated chain end. */
+        (*p_pair)->value = (void*)target;
+        check_assertion(target != ctor);
+      }  /* if */
     } else {
       expect_error();
       target = ctor;
