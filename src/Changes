@@ -1,5 +1,18 @@
 Version 4.7
 
+4/12/13  [EDGcpfe/13853,EDGcpfe/13894]
+GNU C++ compatibility: Multiple returns in lambdas with implicit return type
+
+In GNU C++11 mode with gnu_version >= 40500, lambdas with an implicit return
+type are now allowed to contain multiple statements and multiple returns as
+long as the returns all imply the same return type.  (This extensions was
+already accepted in Microsoft mode; see entry of 5/9/12 for EDGcpfe/12913).
+For example:
+
+  auto lambda = [](bool b) { if (b) return 42; else return 43; };
+       // Now accepted in some GNU C++11 modes.
+
+
 4/12/13  [EDGcpfe/13893]
 Initialization of std::initializer_list<T> from {} in overload resolution
 

@@ -3956,6 +3956,12 @@ exclude the GNU C++ mode already.  Hence those are not checked again here.)
     }  /* if */
   }  /* if */
 #endif /* FUNCTION_PROTOTYPE_INSTANTIATION_DEFERRAL_ALLOWED */
+  if (lambdas_enabled && gnu_version >= 40500) {
+    /* Starting with version 4.5, GCC no longer imposes the C++11 constraint
+       that lambdas with an implicit non-void return type have a body of
+       (essentially) the form "{ return <expr>; }". */
+    multiple_returns_allowed_in_implicit_return_type_lambda = TRUE;
+  }  /* if */
 }  /* check_and_set_gpp_mode_options */
 
 
