@@ -21659,7 +21659,17 @@ will be an lvalue instead of the usual rvalue.
                                               /*nontrivial_only=*/FALSE)) {
       /* A class with a default constructor, initialized by "{}" -- do
          value initialization. */
-      if (arg_match != NULL && !try_user_conversions_in_ovl_res) {
+      a_boolean initializer_list_case =
+                          (dest_type_is_class &&
+                           is_instance_of_std_initializer_list(dest_type,
+                                                               &element_type));
+      if (arg_match != NULL && !try_user_conversions_in_ovl_res &&
+          !initializer_list_case) {
+        /* If user-defined conversions are not allowed, and we're doing
+           overload resolution, we can fail immediately.  However, an
+           std::initializer_list<T> case will be classified as an exact
+           match (see below, and core issue 1543), so allow that to
+           proceed. */
         arg_match_err = TRUE;
       } else {
         a_routine_ptr ctor_called;
@@ -21675,7 +21685,7 @@ will be an lvalue instead of the usual rvalue.
           if (error_detected) {
             arg_match_err = TRUE;
           } else {
-            if (dest_type_is_class &&
+            if (initializer_list_case &&
                 is_instance_of_std_initializer_list(dest_type,
                                                     &element_type)) {
               /* A std::initializer_list initialized from an empty

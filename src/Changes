@@ -1,5 +1,21 @@
 Version 4.7
 
+4/12/13  [EDGcpfe/13893]
+Initialization of std::initializer_list<T> from {} in overload resolution
+
+According to Core Issue 1543, initializing a parameter of type
+std::initializer_list<T> from an empty initializer list {} is an exact
+match, not a user-defined conversion.  We mostly got that right, but
+in overload resolution we rejected such a match in contexts where a
+user-defined conversion is not permitted.  Now fixed.
+
+  #include <initializer_list>
+  struct A {
+    A(std::initializer_list<A>);
+  };
+  A a = {};  // Formerly got spurious error
+
+
 4/11/13  [EDGcpfe/13890]
 Spurious error on defaulted move assignment operator
 
