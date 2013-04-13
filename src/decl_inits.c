@@ -6130,9 +6130,9 @@ reflect the initialization.  Otherwise, return FALSE.
                               (a_dynamic_init_kind)dik_nonconstant_aggregate) {
           /* Template-based mem-initializers and constexpr constructors can
              make us end up with aggregate-like initialization here. */
-          a_constant_ptr  cp = dip->variant.constant;
           check_assertion_or_expect_error(ctor->is_prototype_instantiation ||
-                                          cp->is_result_of_constexpr_call);
+                                          dip->variant.constant
+                                             ->is_result_of_constexpr_call);
         } else {
           /* Some error must have occurred. */
           expect_error();
