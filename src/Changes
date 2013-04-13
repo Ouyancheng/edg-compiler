@@ -1,5 +1,24 @@
 Version 4.7
 
+4/13/13  [EDGcpfe/13882]
+Microsoft compatibility: partial ordering and references to functions
+
+A change made in version 4.5 added emulation of the Microsoft behavior for
+ordering of references to functions vs. pointers to functions (see
+EDGcpfe/13194 on 2/12/13).  The earlier change did not handle some cases
+properly.  Specifically, the earlier change only preferred a reference
+to function if there was only one parameter involved in partial ordering.
+A reference to function should also be preferred when there are multiple
+parameters if a reference/pointer to function parameter involves dependent
+types.  We now accept examples such as the one below in Microsoft mode.
+
+  template <class Result, class Arg> void f(Result(*)(), Arg); // #1
+  template <class Result, class Arg> void f(Result(&)(), Arg); // #2
+  void g() {
+   f(g, 0); // now calls #2 in Microsoft mode
+  }
+
+
 4/12/13  [EDGcpfe/13853,EDGcpfe/13894]
 GNU C++ compatibility: Multiple returns in lambdas with implicit return type
 

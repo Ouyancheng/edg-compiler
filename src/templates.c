@@ -2425,16 +2425,20 @@ entire_type is FALSE.
       *match1 = FALSE;
     } else if (is_pack2 && !is_pack1) {
       *match2 = FALSE;
-    } else if (microsoft_mode && param_count == 1) {
+    } else if (microsoft_mode &&
+               (type_1_function_pointer_dropped ||
+                type_2_function_pointer_dropped) &&
+               (param_count == 1 || is_template_dependent_type(param_type1) ||
+                is_template_dependent_type(param_type2))) {
       /* The Microsoft compiler prefers a reference to function over a pointer
-         to function if it is the only parameter considered in ordering.
+         to function.
            template <class T> void f(T (&)()){}  // this one is preferred
            template <class T> void f(T (*)()){}
       */
       if (type_1_function_pointer_dropped) {
         *match1 = FALSE;
       } else if (type_2_function_pointer_dropped) {
-       *match2 = FALSE;
+        *match2 = FALSE;
       }  /* if */
     }  /* if */
   }  /* if */
