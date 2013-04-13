@@ -8779,35 +8779,43 @@ the closing delimiter.
 {
   a_boolean              result = FALSE;
   an_orig_line_modif_ptr olmp;
+  int                    right_delim_len = raw_string_delimiter_len;
 
+  if (start_of_raw_string_delimiter[raw_string_delimiter_len] == '[') {
+    /* The left delimiter was terminated by the parenthesis in the
+       trigraph for '['.  As a result, a matching right delimiter will be
+       two characters longer than the left string and the last two
+       characters preceding curr_char_loc must both be '?'. */
+    right_delim_len += 2;
+  }  /* if */
   *trigraph_adjustment = 0;
   if (curr_char_loc - start_of_raw_string_delimiter >=
-                                          2 * (raw_string_delimiter_len + 1)) {
-    /* The total string is long enough to contain two copies of the
+                              raw_string_delimiter_len + right_delim_len + 2) {
+    /* The total string is long enough to contain both copies of the
        delimiter and the left and right parentheses. */
     a_boolean found_right_paren =
-                      (*(curr_char_loc - raw_string_delimiter_len - 1) == ')');
+                               (*(curr_char_loc - right_delim_len - 1) == ')');
     if (!found_right_paren && orig_line_modif_list != NULL &&
-        *(curr_char_loc - raw_string_delimiter_len - 1) == ']') {
+        *(curr_char_loc - right_delim_len - 1) == ']') {
       /* Check for the obscure case in which the two characters preceding
          the closing right parenthesis were both '?', which will have been
          recognized as the trigraph for ']'. */
       for (olmp = orig_line_modif_list;
            olmp != NULL &&
-                 olmp->line_loc < curr_char_loc - raw_string_delimiter_len - 1;
+                          olmp->line_loc < curr_char_loc - right_delim_len - 1;
            olmp = olmp->next) {}
       if (olmp != NULL && olmp->kind == olm_trigraph &&
-          olmp->line_loc == curr_char_loc - raw_string_delimiter_len - 1) {
+          olmp->line_loc == curr_char_loc - right_delim_len - 1) {
         /* The original text had a ')' in the right location. */
         found_right_paren = TRUE;
       }  /* if */
     }  /* if */
     if (found_right_paren) {
       if (strncmp(start_of_raw_string_delimiter,
-                  curr_char_loc - raw_string_delimiter_len,
+                  curr_char_loc - right_delim_len,
                   raw_string_delimiter_len) == 0) {
-        /* The strings compare equal.  Now we just need to make sure that
-           they both have the same set of trigraphs, if any. */
+        /* The strings compare equal.  Now we need to make sure that they
+           both have the same set of trigraphs, if any. */
         an_orig_line_modif_ptr left_olmp;
         an_orig_line_modif_ptr right_olmp;
         /* Find the first modification, if any, in the left prefix. */
@@ -8818,7 +8826,7 @@ the closing delimiter.
         /* Find the first modification, if any, in the right prefix. */
         for (right_olmp = left_olmp;
              right_olmp != NULL &&
-               right_olmp->line_loc < curr_char_loc - raw_string_delimiter_len;
+                        right_olmp->line_loc < curr_char_loc - right_delim_len;
              right_olmp = right_olmp->next) {}
         if (left_olmp != NULL &&
             left_olmp->line_loc >=
@@ -8849,8 +8857,7 @@ the closing delimiter.
                kinds would have failed the string comparison above, just
                the locations. */
             if (left_olmp->line_loc - start_of_raw_string_delimiter !=
-                right_olmp->line_loc -
-                                  (curr_char_loc - raw_string_delimiter_len)) {
+                    right_olmp->line_loc - (curr_char_loc - right_delim_len)) {
               trigraphs_match = FALSE;
             }  /* if */
             left_olmp = left_olmp->next;
@@ -8870,6 +8877,13 @@ the closing delimiter.
                       (right_olmp == NULL ||
                        right_olmp->line_loc >= curr_char_loc));
           }  /* if */
+        }  /* if */
+        if (result && raw_string_delimiter_len != right_delim_len) {
+          /* Ensure that the last two characters of the presumed right
+             delimiter are both '?'. */
+          result = curr_char_loc[-2] == '?' && curr_char_loc[-1] == '?';
+          /* Add the extra terminator length to the adjustment, too. */
+          *trigraph_adjustment += 2;
         }  /* if */
       }  /* if */
     }  /* if */
@@ -9267,39 +9281,60 @@ otherwise, issue an error diagnostic, leave curr_char_loc unchanged,
 and return FALSE.
 */
 {
-  a_boolean err = FALSE;
+  a_boolean              err = FALSE;
+  a_boolean              found_end = FALSE;
   char                   *p;
   char                   *max_delim = curr_char_loc + 16;
   an_orig_line_modif_ptr olmp;
+  int                    trigraph_len_offset = 0;
 
-  for (p = curr_char_loc; !err && *p != '(' && p < max_delim; ++p) {
-    if (!is_raw_string_delimiter_char[*p-CHAR_MIN]) {
+  /* Find the first original line modification that might be in the
+     delimiter, if any. */
+  for (olmp = orig_line_modif_list;
+       olmp != NULL && olmp->line_loc < curr_char_loc;
+       olmp = olmp->next) {}
+  /* Scan through the line looking for the end of the delimiter. */
+  for (p = curr_char_loc;
+       !found_end && !err && p <= max_delim - trigraph_len_offset; ++p) {
+    if (*p == '(') {
+      /* This is the terminator for the delimiter */
+      found_end = TRUE;
+    } else if (olmp != NULL && olmp->line_loc == p) {
+      /* This character is the result of an original line modification
+         (trigraph or splice replacement). */
+      if (olmp->kind != olm_trigraph) {
+        /* The non-trigraph modifications imply that a character not
+           allowed in a raw string delimiter appeared in the original
+           source line. */
+        error_at_line_pos(ec_bad_raw_string_delim_char, p);
+        err = TRUE;
+      } else if (olmp->variant.trigraph_orig_char == '(') {
+        /* Recognition of the delimiter applies to the unmodified source,
+           so the '(' terminates the delimiter. */
+        found_end = TRUE;
+      } else {
+        /* The length calculation is based on the original characters, too;
+           this character accounts for three in the original source. */
+        trigraph_len_offset += 2;
+        olmp = olmp->next;
+      }  /* if */
+    } else if (!is_raw_string_delimiter_char[*p-CHAR_MIN]) {
       /* The character is not permitted in a d-char-sequence. */
       error_at_line_pos(ec_bad_raw_string_delim_char, p);
       err = TRUE;
     }  /* if */
   }  /* for */
-  if (!err && *p != '(') {
+  if (!err && !found_end) {
     /* Left parenthesis not found. */
     error_at_line_pos(ec_missing_raw_string_delim_lparen, start_of_curr_token);
     err = TRUE;
   }  /* if */
-  /* Check to make sure there are no non-trigraph original line
-     modifications in the prefix, which are ill-formed. */
-  for (olmp = orig_line_modif_list; olmp != NULL && olmp->line_loc < p;
-       olmp = olmp->next) {
-    if (olmp->line_loc >= curr_char_loc && olmp->kind != olm_trigraph) {
-      error_at_line_pos(ec_bad_raw_string_delim_char, olmp->line_loc);
-      err = TRUE;
-      break;
-    }  /* if */
-  }  /* for */
-  if (!err) {
-    /* Advance curr_char_loc to point after the '(' that terminates the
-       delimiter. */
-    curr_char_loc = p + 1;
+  if (found_end) {
+    /* Advance curr_char_loc to point after the '(' or '[' that terminates
+       the delimiter. */
+    curr_char_loc = p;
   }  /* if */
-  return !err;
+  return found_end;
 }  /* scan_raw_string_delimiter */
 
 
@@ -9404,8 +9439,14 @@ kind or tok_error.  The token can be a normal or wide string literal.
       set_error_constant(&const_for_curr_token);
       error_at_line_pos(err_code_for_error_token, start_of_curr_token);
     } else {
+      int ending_delim_len = raw_string_delimiter_len;
+      if (start_of_raw_string_delimiter[raw_string_delimiter_len] == '[') {
+        /* The delimiter includes two '?' characters not included in the
+           length because they were part of a trigraph. */
+        ending_delim_len += 2;
+      }  /* if */
       conv_string_literal(start_of_string_value,
-                          end_of_curr_token - raw_string_delimiter_len - 1,
+                          end_of_curr_token - ending_delim_len - 1,
                           lit_kind, num_chars, &err_code, &err_pos);
       /* Check for errors detected. */
       if (err_code != ec_no_error) {
