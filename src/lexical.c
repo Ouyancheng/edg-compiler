@@ -9440,7 +9440,8 @@ kind or tok_error.  The token can be a normal or wide string literal.
       error_at_line_pos(err_code_for_error_token, start_of_curr_token);
     } else {
       int ending_delim_len = raw_string_delimiter_len;
-      if (start_of_raw_string_delimiter[raw_string_delimiter_len] == '[') {
+      if (raw_string_delimiter_len >= 0 &&
+	  start_of_raw_string_delimiter[raw_string_delimiter_len] == '[') {
         /* The delimiter includes two '?' characters not included in the
            length because they were part of a trigraph. */
         ending_delim_len += 2;
