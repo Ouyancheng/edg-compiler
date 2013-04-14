@@ -5853,6 +5853,25 @@ diagnostics, if that changes the control flow.
 }  /* expr_access_checking_should_be_done */
 
 
+static a_boolean base_class_cast_access_checking_should_be_done(void)
+/*
+Return TRUE if access checking for a base class cast should be done.
+That's usually the same answer as expr_access_checking_should_be_done,
+but g++ does seem to check base class cast access in SFINAE contexts even
+though it does not do access checking in general in those contexts.
+*/
+{
+  a_boolean check_access = expr_access_checking_should_be_done();
+
+  if (gpp_mode && expr_stack->template_deduction_context) {
+    /* g++ (checked in 4.7) seems to check this access even though it
+       does not in general check access during SFINAE. */
+    check_access = TRUE;
+  }  /* if */
+  return check_access;
+}  /* base_class_cast_access_checking_should_be_done */
+
+
 void make_error_operand(an_operand *operand)
 /*
 Create an error operand.
@@ -6503,7 +6522,9 @@ appropriately and error_detected can be NULL.
   /* The code here looks like fold_base_class_cast. */
   if (error_detected != NULL) *error_detected = FALSE;
   check_assertion(is_class_struct_union_type(qualifiers_model));
-  if (!expr_access_checking_should_be_done()) check_cast_access = FALSE;
+  if (!base_class_cast_access_checking_should_be_done()) {
+    check_cast_access = FALSE;
+  }  /* if */
   if (bcp->ambiguous && check_ambiguity) {
     /* The cast is ambiguous. */
     if (error_detected != NULL) {
@@ -8044,7 +8065,9 @@ used only in C++ mode.
 
   /* Save the original operand position, etc. */
   orig_operand = *operand;
-  if (!expr_access_checking_should_be_done()) check_cast_access = FALSE;
+  if (!base_class_cast_access_checking_should_be_done()) {
+    check_cast_access = FALSE;
+  }  /* if */
   if (qualifiers_model == NULL) {
     qualifiers_model = operand->type;
     if (!class_object_case) {

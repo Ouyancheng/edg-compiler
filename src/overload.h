@@ -756,7 +756,7 @@ extern a_boolean operand_is_dependent(an_operand *operand);
 
 extern a_boolean arg_list_is_dependent(an_arg_list_elem_ptr arg_list);
 
-extern a_boolean is_microsoft_skipped_decltype_context(void);
+extern a_boolean is_skipped_decltype_context(void);
 
 extern a_symbol_ptr select_overloaded_function(
                         a_symbol_ptr             overloaded_function_symbol,

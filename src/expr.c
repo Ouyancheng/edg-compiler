@@ -6443,6 +6443,26 @@ end_of_routine:;
 }  /* get_locator_for_rescanned_selection_second_operand */
 
 
+static a_boolean force_indefinite_function_in_skipped_decltype(
+                                                              a_symbol_ptr sym)
+/*
+Return TRUE if the indicated symbol should be treated as an indefinite
+function because we're in a context where some compilers treat certain
+calls as dependent even though they are actually nondependent.  Treating
+the function as indefinite allows us to get to the code in overload
+resolution that does the special handling.
+*/
+{
+  a_boolean force_indefinite = FALSE;
+
+  reduce_projection_symbol_to_fundamental_symbol(sym);
+  if (is_simple_function_symbol(sym) && is_skipped_decltype_context()) {
+    force_indefinite = TRUE;
+  }  /* if */
+  return force_indefinite;
+}  /* force_indefinite_function_in_skipped_decltype */
+
+
 static void scan_field_selection_operator(
                                an_operand             *operand_1,
                                a_rescan_control_block *rcblock,
@@ -6901,9 +6921,8 @@ case).
          to be treated as overloaded. */
       rep = NULL;
       force_indefinite_function = TRUE;
-    } else if (is_microsoft_skipped_decltype_context()) {
-      /* MSVC skips tokens in certain dependent decltype contexts,
-         so we make all calls dependent there to avoid errors. */
+    } else if (force_indefinite_function_in_skipped_decltype(member_sym)) {
+      /* Make all calls dependent in certain decltype contexts. */
       rep = NULL;
       force_indefinite_function = TRUE;
 #if MICROSOFT_EXTENSIONS_ALLOWED
@@ -26275,9 +26294,8 @@ if rescan_is_template_id is TRUE, and return the result in *operand
       check_assertion(is_function_or_template_symbol(sym_ptr));
       force_indefinite_function = TRUE;
       rep = NULL;
-    } else if (is_microsoft_skipped_decltype_context()) {
-      /* MSVC skips tokens in certain dependent decltype contexts,
-         so we make all calls dependent there to avoid errors. */
+    } else if (force_indefinite_function_in_skipped_decltype(sym_ptr)) {
+      /* Make all calls dependent in certain decltype contexts. */
       force_indefinite_function = TRUE;
       rep = NULL;
     } else if (sym_ptr->kind == (a_symbol_kind)sk_routine &&

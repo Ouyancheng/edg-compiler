@@ -7995,16 +7995,18 @@ Specifically, this means type-dependent rather than value-dependent.
 }  /* arg_list_is_dependent */
 
 
-a_boolean is_microsoft_skipped_decltype_context(void)
+a_boolean is_skipped_decltype_context(void)
 /*
 MSVC skips tokens in certain dependent decltype contexts, processing the
 expression only when it comes up later in a SFINAE context.  Return
-TRUE if we are in one of those decltypes.
+TRUE if we are in one of those decltypes.  Also found to apply to g++,
+not because it skips tokens but because it considers certain calls there
+dependent even though they shouldn't be.
 */
 {
   a_boolean result = FALSE;
 
-  if (microsoft_bugs && cpp11_sfinae_enabled &&
+  if ((microsoft_bugs || gpp_mode) && cpp11_sfinae_enabled &&
       expr_stack->is_type_operator_arg_expression &&
       scope_stack_top().kind == (a_scope_kind)sck_template_declaration &&
       is_prototype_instantiation_context() &&
@@ -8012,7 +8014,7 @@ TRUE if we are in one of those decltypes.
     result = TRUE;
   }  /* if */
   return result;
-}  /* is_microsoft_skipped_decltype_context */
+}  /* is_skipped_decltype_context */
 
 
 static a_boolean is_symbol_for_which_overload_resolution_should_be_deferred(
@@ -8044,8 +8046,8 @@ dependent context.
     /* The function coexists with a using-declaration that might or
        might not cause it to be overloaded. */
     defer = TRUE;
-  } else if (is_microsoft_skipped_decltype_context()) {
-   /* MSVC skips tokens in certain dependent decltype contexts,
+  } else if (is_skipped_decltype_context()) {
+   /* Some compilers don't really process things in certain decltype contexts,
       so defer all calls there to avoid errors. */
     defer = TRUE;
   }  /* if */

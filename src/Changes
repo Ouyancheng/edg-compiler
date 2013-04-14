@@ -1,5 +1,28 @@
 Version 4.7
 
+4/14/13  [EDGcpfe/13599]
+GNU C++ mode: access checking in SFINAE contexts
+
+As of g++ 4.8, GNU C++ seems to consider access in SFINAE contexts, so
+we now emulate that.  However, we also discovered that access checking on
+base class casts seemed to be considered even on earlier versions, so
+we do that as well now.
+
+  struct A {};
+  struct B : private A {};
+  int g(A);
+  int g(...);
+  void f(...);
+  template <class T> auto f(T p) -> decltype(g(p)) { return 0; }
+  int main() {
+    f(B());  // Got access error, now selects f(...)
+  }
+
+Also, the changes of EDGcpfe/13655 to consider some calls in member
+template declarations dependent in a real instantiation of the
+outer template are now done in g++ mode as well.
+
+
 4/13/13  [EDGcpfe/13882]
 Microsoft compatibility: partial ordering and references to functions
 

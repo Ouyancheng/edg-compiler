@@ -3884,8 +3884,10 @@ exclude the GNU C++ mode already.  Hence those are not checked again here.)
     cpp11_sfinae_enabled = (gnu_version >= 30400);
   } /* if */
   if (!option_kind_used[(int)optk_cpp11_sfinae_ignore_access]) {
-    /* g++ 4.4 at least seems to ignore access checking. */
-    if (cpp11_sfinae_enabled) cpp11_sfinae_ignore_access = TRUE;
+    /* g++ 4.4 seems to ignore access checking until 4.8. */
+    if (cpp11_sfinae_enabled) {
+      cpp11_sfinae_ignore_access = (gnu_version < 40800);
+    }  /* if */
   }  /* if */
   if (!cpp11_mode && gnu_version >= 40300) {
     /* g++ 4.3 enabled the decltype feature unconditionally via the __decltype
