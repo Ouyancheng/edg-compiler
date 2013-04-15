@@ -2145,7 +2145,7 @@ do
   # If the front end aborted, report that.
   #
   if [ $status -ge 128 ] ; then
-    echo $driver_name: $CPFE returned an exit status of $status
+    echo $driver_name: front end returned an exit status of $status
     # EDG_SHOW_TRACEBACK enables a special debugging mode in which the
     # location of an abort is displayed.  This requires that a "show_traceback"
     # command exist and the CPFE be set to the full path of the executable.
