@@ -4682,7 +4682,8 @@ FALSE is returned) for non-class objects.
             /* Ensure a trivial default constructor can be generated and that
                it is accessible. */
             (void)reference_to_trivial_default_constructor(
-                       tp, err_pos, /*check_access=*/TRUE, (a_boolean *)NULL);
+                       tp, tp, err_pos, /*check_access=*/TRUE,
+                       (a_boolean *)NULL);
           }  /* if */
           if (is_const) {
             /* A user-provided default constructor is normally required for a
@@ -4724,7 +4725,7 @@ FALSE is returned) for non-class objects.
              constructor will be called.  We apply the as-if rule and suppress
              the call (since it's a no-op), but the definition still needs to
              be generated, since it may have side-effects. */
-          if (reference_to_trivial_default_constructor(tp, err_pos,
+          if (reference_to_trivial_default_constructor(tp, tp, err_pos,
                                                        /*check_access=*/TRUE,
                                                        (a_boolean *)NULL)) {
             def_init_performed = TRUE;
@@ -5617,7 +5618,7 @@ cases, array_type is NULL).
 #endif /* CHECKING */
     }  /* if */
   } else if (curr_token == tok_rparen && cssp != NULL &&
-             reference_to_trivial_default_constructor(init_type,
+             reference_to_trivial_default_constructor(init_type, class_type,
                                                       &error_position,
                                                       /*check_access=*/TRUE,
                                                       (a_boolean *)NULL)) {
@@ -6818,9 +6819,9 @@ initialized.  These are addressed in the course of the processing.
           } else {
             /* If there is a trivial default constructor for this class,
                treat this as a reference to it. */
-            (void)reference_to_trivial_default_constructor(tp, &err_pos,
-                                                         /*check_access=*/TRUE,
-                                                         (a_boolean *)NULL);
+            (void)reference_to_trivial_default_constructor(
+                               tp, class_type, &err_pos, /*check_access=*/TRUE,
+                               (a_boolean *)NULL);
           }  /* if */
         }  /* if */
         /* Consider dropping the ctor-initializer entry if it isn't needed. */

@@ -1519,7 +1519,7 @@ from values on the expression stack.
      any error. */
   if (expr_stack->suppress_diagnostics) p_error_detected = &error_detected;
   result = reference_to_trivial_default_constructor(
-                                        class_type, pos,
+                                        class_type, class_type, pos,
                                         expr_access_checking_should_be_done(),
                                         p_error_detected);
   if (error_detected) record_suppressed_error();

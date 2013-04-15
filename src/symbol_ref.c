@@ -2659,6 +2659,7 @@ warnings).
 
 a_boolean reference_to_trivial_default_constructor(
                                             a_type_ptr         class_type,
+                                            a_type_ptr         access_class,
                                             a_source_position  *pos,
                                             a_boolean          check_access,
                                             a_boolean          *error_detected)
@@ -2671,6 +2672,8 @@ called) in case the definition has side effects.  If class_type does
 have a trivial default constructor representation return TRUE.
 If error_detected is non-NULL, return *error_detected set to TRUE if
 there was an error, and do not issue any diagnostics (including warnings).
+The access check is doing using access_class as the class in which the
+reference is done.
 */
 {
   a_symbol_ptr   ctor_sym;
@@ -2679,7 +2682,7 @@ there was an error, and do not issue any diagnostics (including warnings).
   ctor_sym = symbol_supplement_for_class(class_type)->
                                             trivial_default_constructor;
   if (ctor_sym != NULL) {
-    reference_to_implicitly_invoked_function(ctor_sym, pos, class_type,
+    reference_to_implicitly_invoked_function(ctor_sym, pos, access_class,
                                              /*honor_virtual=*/FALSE,
                                              /*evaluated=*/TRUE,
                                              /*instantiate=*/TRUE,

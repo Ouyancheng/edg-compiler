@@ -1,5 +1,21 @@
 Version 4.7
 
+4/15/13  [EDGcpfe/13899]
+Access error on reference to protected trivial default constructor
+
+A spurious access error could occur on the use of a protected trivial default
+constructor.  Now fixed.
+
+  struct A { };
+  template <class T> class B : public A {
+  protected:
+    B() = default;
+  };
+  struct C : public B<C> {
+    C() {}
+  };
+
+
 4/14/13  [EDGcpfe/13599]
 GNU C++ mode: access checking in SFINAE contexts
 
