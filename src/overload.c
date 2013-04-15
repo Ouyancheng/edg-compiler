@@ -21687,9 +21687,7 @@ will be an lvalue instead of the usual rvalue.
           if (error_detected) {
             arg_match_err = TRUE;
           } else {
-            if (initializer_list_case &&
-                is_instance_of_std_initializer_list(dest_type,
-                                                    &element_type)) {
+            if (initializer_list_case) {
               /* A std::initializer_list initialized from an empty
                  list is an exact match. */
               arg_match->match_level = aml_exact;
