@@ -1,5 +1,13 @@
 Version 4.7
 
+4/15/13  [EDGcpfe/13907]
+Microsoft compatibility: disable trigraphs by default
+
+Microsoft Visual Studio 2010 and later disable trigraph support by default
+so the front end now does the same (i.e., trigraphs are enabled by default when
+microsoft_version < 1600 and disabled otherwise).
+
+
 4/15/13  [EDGcpfe/13899]
 Access error on reference to protected trivial default constructor
 

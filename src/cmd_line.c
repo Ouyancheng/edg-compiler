@@ -1947,8 +1947,8 @@ by a command line option.
   equiv_typedefs_are_lookup_equivalent = FALSE;
   null_chars_allowed_in_source = TRUE;
   if (!(option_kind_used[(int)optk_trigraphs])) {
-    /* Trigraphs should be allowed if not disabled by a command-line option. */
-    trigraphs_allowed = TRUE;
+    /* Early versions of Microsoft have trigraphs enabled by default. */
+    trigraphs_allowed = microsoft_version < 1600;
   }  /* if */
   if (C_mode()) {
     /* Microsoft C mode. */
