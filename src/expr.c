@@ -31284,8 +31284,9 @@ dependent case.
                                                (an_operand *)NULL,
                                                &member_call_operand)) {
     /* Make the variable and initialize it from the expression just made. */
-    *loop_var = alloc_temporary_variable(member_call_operand.type,
-                                         /*force_static=*/FALSE);
+    *loop_var = alloc_temporary_variable(
+                               make_unqualified_type(member_call_operand.type),
+                               /*force_static=*/FALSE);
     set_variable_initializer(*loop_var, &member_call_operand);
   } else {
     result = FALSE;
@@ -32724,8 +32725,9 @@ errors) in the case where the expression is template dependent.
       if (func_call_node != NULL) {
         /* Make the variable and initialize it with the result of the call
            just made. */
-        *variable = alloc_temporary_variable(result.type,
-                                             /*force_static=*/FALSE);
+        *variable = alloc_temporary_variable(
+                                            make_unqualified_type(result.type),
+                                            /*force_static=*/FALSE);
         set_variable_initializer(*variable, &result);
         passed = TRUE;
       }  /* if */
