@@ -9302,7 +9302,7 @@ if there is an error, otherwise to ec_no_error.
             allowed = TRUE;
           } else if (source_is_constant &&
                      is_nullptr_type(source_constant->type) &&
-                     (is_pointer_type(dest_type) ||
+                     (is_pointer_or_handle_type(dest_type) ||
                       is_ptr_to_member_type(dest_type))) {
             /* Conversions from nullptr to a pointer or pointer to member are
                allowed. */

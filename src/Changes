@@ -1,5 +1,18 @@
 Version 4.7
 
+4/16/13  [EDGcpfe/13891]
+C++/CLI C++11 mode: nullptr accepted as nontype template argument for handle
+
+In C++/CLI plus C++11 mode, a nullptr constant is now accepted as the
+value for a nontype template parameter of handle type.
+
+  ref class A {};
+  template<A^ g> ref class B {};
+  int main() {
+    B<nullptr> k;
+  }
+
+
 4/16/13  [EDGcpfe/13905]
 C++/CLI: safe_cast misinterpreted as identifier in template with dependent base
 
