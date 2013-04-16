@@ -5527,7 +5527,8 @@ dsi_flags is the set of input flags passed to decl_specifiers.
           /* Scan the constant expression.  (If fixed_type is non-NULL, scan
              it as a "converted constant expression" for that type in C++11
              mode.) */
-          scan_fs_integral_constant_expression(fixed_type, &constant);
+          scan_fs_integral_constant_expression(fixed_type, /*is_enum=*/TRUE,
+                                               &constant);
           add_backing_expression_for_named_constant(&constant);
           /* Even though the constant may just be "0", that property should
              not be carried into the enumerators derived from it. */

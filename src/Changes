@@ -1,5 +1,19 @@
 Version 4.7
 
+4/16/13  [EDGcpfe/13846]
+Revert to clearer error in C++11 mode for enum value out of range
+
+In C++11 mode, the expression that gives the value for an enumerator
+is scanned as a converted constant expression of the type of the enum.
+That meant that if the value was out of range a generic message
+about narrowing was issued, instead of the more specific message
+for enums issued in non-C++11 mode.  We have now reverted to the old
+error message for enum-out-of-range cases.  Also, because g++ mode
+treats narrowing errors as warnings, only a warning was issued for an
+enum out of range in g++ mode.  That's also restored to an error with
+the change back to the old message.
+
+
 4/16/13  [EDGcpfe/13891]
 C++/CLI C++11 mode: nullptr accepted as nontype template argument for handle
 

@@ -29500,6 +29500,7 @@ static void process_converted_constant_expression(
                                    a_type_ptr              dest_type,
                                    a_builtin_type_kind_set builtin_types,
                                    a_boolean               is_array_bound,
+                                   a_boolean               is_enum,
                                    a_constant              *result_con)
 /*
 "operand" is an expression scanned as a constant expression, and it
@@ -29511,7 +29512,8 @@ NULL) using only a certain set of acceptable conversions, and must
 produce a constant.  If the conversion does not cause an error,
 the converted constant is returned in *result_con; otherwise, an
 error constant is returned.  is_array_bound is TRUE if the expression
-is an array bound.
+is an array bound.  is_enum is TRUE if the expression is the value of
+an enumerator.
 */
 {
   a_boolean processed = FALSE;
@@ -29540,9 +29542,17 @@ is an array bound.
         error_in_operand(ec_array_size_must_be_positive, operand);
       }  /* if */
     }  /* if */
-    if (dest_type != NULL &&
-        (!constexpr_enabled ||
-         impl_converted_constant_expr_conversion_possible(
+    if (is_enum && dest_type != NULL && constexpr_enabled &&
+        is_constant_operand(operand) &&
+        is_integral_type(operand->type) &&
+        is_integral_type(dest_type)) {
+      /* For enum expressions, don't convert from integer to integer and
+         don't issue an error for narrowing because the enum-specifier
+         processing will do a better check and produce a better error
+         message. */
+    } else if (dest_type != NULL &&
+               (!constexpr_enabled ||
+                impl_converted_constant_expr_conversion_possible(
                                                   operand->type,
                                                   is_constant_operand(operand),
                                                   &operand->variant.constant,
@@ -33711,11 +33721,13 @@ Scan a pre-processor expression.  See sections 3.4 and 3.8.1 in the standard.
 
 static void scan_integral_constant_expression_full(a_type_ptr specific_type,
                                                    a_boolean  is_array_bound,
+                                                   a_boolean  is_enum,
                                                    a_constant *constant)
 /*
 Scan an integral constant expression.  If specific_type is non-NULL,
 the constant will be converted to specific_type in C++11 mode.
 is_array_bound is TRUE if the expression is an array bound.
+is_enum is TRUE if the expression is the value of an enumerator.
 The value of the constant is returned in *constant.
 */
 {
@@ -33755,6 +33767,7 @@ The value of the constant is returned in *constant.
                                             (a_builtin_type_kind_set)
                                                      (BTK_INTEGRAL | BTK_ENUM),
                                             is_array_bound,
+                                            is_enum,
                                             constant);
     } else {
       /* C mode or pre-C++11 C++ mode. */
@@ -33796,17 +33809,20 @@ Scan an integral constant expression, and return its value in *constant.
 {
   scan_integral_constant_expression_full((a_type_ptr)NULL,
                                          /*is_array_bound=*/FALSE,
+                                         /*is_enum=*/FALSE,
                                          constant);
 }  /* scan_integral_constant_expression */
 
 
 void scan_fs_integral_constant_expression(a_type_ptr specific_type,
+                                          a_boolean  is_enum,
                                           a_constant *constant)
 /*
 Scan an integral constant expression.  If specific_type is non-NULL,
 the constant will be converted to specific_type in C++11 mode.  The
 constant will be returned in *constant, which will be subsequently
-allocated in the file scope memory region.
+allocated in the file scope memory region.  is_enum is TRUE if the
+expression is the value of an enumerator.
 */
 {
   a_memory_region_number  region_to_switch_back_to;
@@ -33814,6 +33830,7 @@ allocated in the file scope memory region.
   switch_to_file_scope_region(&region_to_switch_back_to);
   scan_integral_constant_expression_full(specific_type,
                                          /*is_array_bound=*/FALSE,
+                                         is_enum,
                                          constant);
   switch_back_to_original_region(region_to_switch_back_to);
 }  /* scan_fs_integral_constant_expression */
@@ -33833,6 +33850,7 @@ file scope memory region.
   switch_to_file_scope_region(&region_to_switch_back_to);
   scan_integral_constant_expression_full(required_type,
                                          /*is_array_bound=*/TRUE,
+                                         /*is_enum=*/FALSE,
                                          constant);
   switch_back_to_original_region(region_to_switch_back_to);
 }  /* scan_constant_dimension_expression */
@@ -36192,6 +36210,7 @@ selector type.
                                             (a_builtin_type_kind_set)
                                                      (BTK_INTEGRAL | BTK_ENUM),
                                             /*is_array_bound=*/FALSE,
+                                            /*is_enum=*/FALSE,
                                             &constant);
     }  /* if */
   }  /* if */
