@@ -5089,7 +5089,11 @@ error.  *err_pos is used as the position for any diagnostics issued.
              (constant_1->kind == (a_constant_repr_kind)ck_template_param ||
               constant_2->kind == (a_constant_repr_kind)ck_template_param ||
               (context_may_have_dependent_types() &&
-               is_template_dependent_type(result_type)))) {
+               ((constant_1->kind == (a_constant_repr_kind)ck_aggregate &&
+                 is_template_dependent_type(constant_1->type)) ||
+                (constant_2->kind == (a_constant_repr_kind)ck_aggregate &&
+                 is_template_dependent_type(constant_2->type)) ||
+                is_template_dependent_type(result_type))))) {
     /* An operation on a template parameter constant cannot be folded. */
     *did_not_fold = TRUE;
     *template_constant = TRUE;
