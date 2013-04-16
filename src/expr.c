@@ -28102,7 +28102,8 @@ to the safe_cast keyword and return TRUE.
   } else {
     a_symbol_locator temp_locator;
     temp_locator = locator_for_curr_id;
-    if (normal_id_lookup(&temp_locator, IDL_NO_OPTIONS) == NULL) {
+    if (normal_id_lookup(&temp_locator,
+                         IDL_DO_NOT_ADD_TO_NONREAL_CLASS) == NULL) {
       is_keyword = TRUE;
       curr_token = tok_safe_cast;
     }  /* if */
