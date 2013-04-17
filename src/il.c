@@ -14559,8 +14559,10 @@ to TRUE.  *source_pos gives the source position for errors.
     if (op == (an_expr_operator_kind)eok_address_of) {
       /* The operand of "&" can have any type. */
     } else if (op == (an_expr_operator_kind)eok_cast &&
-               is_pointer_type(type_1)) {
-      /* The operand of cast can have a pointer type. */
+               (is_pointer_or_handle_type(type_1) ||
+                is_ptr_to_member_type(type_1))) {
+      /* The operand of cast can have a pointer, handle, or pointer-to-member
+         type. */
     } else {
       bad_types = TRUE;
     }  /* if */

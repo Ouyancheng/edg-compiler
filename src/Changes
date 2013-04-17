@@ -1,5 +1,30 @@
 Version 4.7
 
+4/17/13  [EDGcpfe/13898]
+Incorrect handling of pointer to member as default template argument with C++11
+
+A change made for C++11 in version 4.6 caused pointers-to-members to not
+be accepted as default template argument values in some cases.  Now fixed.
+
+  struct A {
+    int f(int i) const { return i;}
+  };
+  template<typename R, typename S> struct B {
+    template<typename U = A,
+             typename T = A ,
+             typename X = R (U::*)(S) const,
+             X PMF = &A::f >
+    int g() {
+      A a;
+      return (a.*PMF)(0);
+    }
+  };
+  int main() {
+    B<int, int> b;
+    b.g();
+  }
+
+
 4/16/13  [EDGcpfe/13846]
 Revert to clearer error in C++11 mode for enum value out of range
 
