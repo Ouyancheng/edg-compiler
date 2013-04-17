@@ -6522,7 +6522,8 @@ appropriately and error_detected can be NULL.
   /* The code here looks like fold_base_class_cast. */
   if (error_detected != NULL) *error_detected = FALSE;
   check_assertion(is_class_struct_union_type(qualifiers_model));
-  if (!base_class_cast_access_checking_should_be_done()) {
+  if (check_cast_access &&
+      !base_class_cast_access_checking_should_be_done()) {
     check_cast_access = FALSE;
   }  /* if */
   if (bcp->ambiguous && check_ambiguity) {
