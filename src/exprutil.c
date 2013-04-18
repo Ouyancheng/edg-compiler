@@ -5863,7 +5863,8 @@ though it does not do access checking in general in those contexts.
 {
   a_boolean check_access = expr_access_checking_should_be_done();
 
-  if (gpp_mode && expr_stack->template_deduction_context) {
+  if (gpp_mode && expr_stack != NULL &&
+      expr_stack->template_deduction_context) {
     /* g++ (checked in 4.7) seems to check this access even though it
        does not in general check access during SFINAE. */
     check_access = TRUE;
@@ -6522,8 +6523,7 @@ appropriately and error_detected can be NULL.
   /* The code here looks like fold_base_class_cast. */
   if (error_detected != NULL) *error_detected = FALSE;
   check_assertion(is_class_struct_union_type(qualifiers_model));
-  if (check_cast_access &&
-      !base_class_cast_access_checking_should_be_done()) {
+  if (!base_class_cast_access_checking_should_be_done()) {
     check_cast_access = FALSE;
   }  /* if */
   if (bcp->ambiguous && check_ambiguity) {
