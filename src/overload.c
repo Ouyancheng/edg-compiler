@@ -18355,6 +18355,8 @@ happen only in C++ mode.
   a_routine_ptr      elided_cctor = NULL;
   a_type_ptr         class_type = skip_typerefs(dest_type);
   a_type_ptr         elision_source_type;
+  a_boolean          saved_make_access_errors_warnings;
+  a_boolean          need_make_access_errors_warnings_restore = FALSE;
 
   temp_init_node = NULL;
   conversion_routine = conversion->routine;
@@ -18470,13 +18472,29 @@ happen only in C++ mode.
           conversion_routine = NULL;
         } else {
           /* See if an appropriate copy constructor exists. */
+          if (!curr_expr_is_evaluated() &&
+              !expr_stack->template_deduction_context &&
+              (microsoft_mode ||
+               (gpp_mode &&
+                (is_prototype_instantiation_context() ||
+                 is_nonspecialized_instantiation_context()))) &&
+              is_any_reference_type(
+                                il_return_type_of(conversion_routine->type))) {
+            /* MSVC and g++ ignore the access checking on a copy constructor
+               in an unevaluated expression in this case.  g++ only does
+               that in a template. */
+            saved_make_access_errors_warnings =
+                                 scope_stack_top().make_access_errors_warnings;
+            scope_stack_top().make_access_errors_warnings = TRUE;
+            need_make_access_errors_warnings_restore = TRUE;
+          }  /* if */
           conversion_routine = expr_select_copy_constructor(
                                 class_type,
                                 get_type_qualifiers(source_operand->type),
                                 is_an_rvalue(source_operand),
                                 &source_operand->position,
                                 &class_bitwise_copy,
-                                /*record_ref=*/TRUE);
+                                /*record_ref=*/FALSE);
         }  /* if */
       }  /* if */
     }  /* if */
@@ -18576,6 +18594,10 @@ happen only in C++ mode.
   } else {
     /* Some error. */
     dip = NULL;
+  }  /* if */
+  if (need_make_access_errors_warnings_restore) {
+    scope_stack_top().make_access_errors_warnings =
+                                             saved_make_access_errors_warnings;
   }  /* if */
   if (dip != NULL && dip->kind == (a_dynamic_init_kind)dik_constructor) {
     /* Indicate whether this is an unelided copy constructor call. */

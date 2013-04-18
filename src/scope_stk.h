@@ -941,6 +941,9 @@ typedef struct a_scope_stack_entry {
 			/* TRUE if the constexpr constructor or constexpr
 			   function has an invalid body (which precludes
 			   it from being considered constexpr). */
+  a_bit_field	make_access_errors_warnings:1;
+			/* Turn access errors into warnings while this flag
+			   is set. */
   bitfield_to_avoid_codecenter_warnings()
   a_scope_pointers_block_ptr
 		assoc_pointers_block;

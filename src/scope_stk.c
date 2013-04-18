@@ -2630,6 +2630,7 @@ the scope being pushed.
                             (options & PS_FUNCTION_PARTIAL_INSTANTIATION) != 0;
   ssep->has_at_least_one_return = FALSE;
   ssep->constexpr_ruled_out = FALSE;
+  ssep->make_access_errors_warnings = FALSE;
   ssep->is_instantiation_context = FALSE;
   ssep->ignore_during_normal_lookup = FALSE;
   ssep->force_decl_seq_check = (options & PS_FORCE_DECL_SEQ_CHECK) != 0;

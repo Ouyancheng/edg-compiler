@@ -11031,6 +11031,11 @@ a context where deferral of errors applies.
   a_scope_stack_entry_ptr	ssep;
   a_boolean			in_template_arg_list;
 
+  if (scope_stack_top().make_access_errors_warnings) {
+    /* We're in a context where we are supposed to reduce access errors
+       to warnings. */
+    severity = es_warning;
+  }  /* if */
   in_template_arg_list = scope_stack_top().in_template_arg_list;
   if (curr_deferred_access_scope != NO_SCOPE_DEPTH) {
     ssep = &scope_stack[curr_deferred_access_scope];

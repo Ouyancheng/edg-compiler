@@ -14406,6 +14406,8 @@ Supplies some arguments from expression stack values.
   a_routine_ptr cctor_routine;
   a_boolean     error_detected = FALSE;
   a_boolean     *p_error_detected = NULL;
+  a_boolean     check_access = (record_ref &&
+                                expr_access_checking_should_be_done());
 
   /* If errors are suppressed, get a returned variable instead of issuing
      any error. */
@@ -14420,7 +14422,7 @@ Supplies some arguments from expression stack values.
                                         record_ref,
                                         curr_expr_is_potentially_evaluated(),
                                         /*allow_suppressed_ctor=*/FALSE,
-                                        expr_access_checking_should_be_done(),
+                                        check_access,
                                         p_error_detected);
   if (error_detected) record_suppressed_error();
   return cctor_routine;
