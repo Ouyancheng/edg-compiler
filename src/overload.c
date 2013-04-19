@@ -18355,7 +18355,8 @@ happen only in C++ mode.
   a_routine_ptr      elided_cctor = NULL;
   a_type_ptr         class_type = skip_typerefs(dest_type);
   a_type_ptr         elision_source_type;
-  a_boolean          saved_make_access_errors_warnings;
+  a_boolean          saved_make_access_errors_warnings =
+                                 scope_stack_top().make_access_errors_warnings;
   a_boolean          need_make_access_errors_warnings_restore = FALSE;
 
   temp_init_node = NULL;
@@ -18483,8 +18484,6 @@ happen only in C++ mode.
             /* MSVC and g++ ignore the access checking on a copy constructor
                in an unevaluated expression in this case.  g++ only does
                that in a template. */
-            saved_make_access_errors_warnings =
-                                 scope_stack_top().make_access_errors_warnings;
             scope_stack_top().make_access_errors_warnings = TRUE;
             need_make_access_errors_warnings_restore = TRUE;
           }  /* if */
