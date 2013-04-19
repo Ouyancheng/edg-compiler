@@ -2672,7 +2672,7 @@ called) in case the definition has side effects.  If class_type does
 have a trivial default constructor representation return TRUE.
 If error_detected is non-NULL, return *error_detected set to TRUE if
 there was an error, and do not issue any diagnostics (including warnings).
-The access check is doing using access_class as the class in which the
+The access check is done using access_class as the class in which the
 reference is done.
 */
 {
