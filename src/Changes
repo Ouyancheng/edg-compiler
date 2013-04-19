@@ -1,5 +1,28 @@
 Version 4.7
 
+4/19/13  [EDGcpfe/13914]
+Abort in Microsoft mode on use of nonstatic function from dependent base
+
+An assertion failure occurred in select_and_prepare_to_call_overloaded_function
+in overload.c, in Microsoft mode with --parse_templates, on a call of a
+nonstatic member function from a dependent base class, with an implied
+object pointer ("this->").  This problem was introduced in version 4.6.
+Now fixed.
+
+  template <class T> struct B {
+    virtual int f();
+  };
+  template <class T> struct A : B<T> {
+    int g() {
+      return f();  // Aborted previously
+    }
+  };
+  int main() {
+    A<int> a;
+    a.g();
+  }
+
+
 4/19/13  [EDGcpfe/13919]
 Microsoft compatibility: internal error on static data member when parsing
 nonclass templates

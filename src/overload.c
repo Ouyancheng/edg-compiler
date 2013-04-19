@@ -8457,6 +8457,9 @@ in_instantiation:
 #if MICROSOFT_EXTENSIONS_ALLOWED
             !hide_by_sig_lookup_applies(overloaded_function_symbol) &&
             !is_cli_param_array_routine_symbol(overloaded_function_symbol) &&
+            !(function_symbol->is_class_member &&
+              sym_parent_class(function_symbol)->variant.class_struct_union.
+                                           is_ms_instantiated_nonreal_class) &&
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
             (known_to_be_visible ||
              candidate_function_is_visible(
