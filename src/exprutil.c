@@ -7594,6 +7594,8 @@ is_qualified_name is TRUE if the source form used a qualified name.
     prep_generic_template_argument_list(template_arg_list);
     make_constant_operand(&con, operand);
   }  /* if */
+  operand->is_qualified_name = is_qualified_name;
+  operand->is_id_expression = TRUE;
 }  /* make_unknown_dependent_function_operand */
 
 
@@ -18546,6 +18548,7 @@ by an "&" operator and *ampersand_position gives its position.
   an_operand       orig_operand;
   a_boolean        try_folding = FALSE;
   a_boolean        need_expr = FALSE, need_expr_for_constant = FALSE;
+  a_boolean        template_constant = FALSE;
 
   check_assertion(is_expression_operand(operand) &&
                   is_a_function_designator(operand));
@@ -18590,9 +18593,19 @@ by an "&" operator and *ampersand_position gives its position.
                               /*address_escapes=*/!will_call)) {
     /* The address is constant and a constant is preferred in the current
        context. */
-    make_constant_operand(&constant, operand);
-    need_expr = curr_expr_kind_is_one_in_which_const_exprs_are_recorded();
-    need_expr_for_constant = need_expr;
+    if (cpp11_sfinae_enabled &&
+        constant.kind == (a_constant_repr_kind)ck_template_param &&
+        ampersand_position != NULL) {
+      /* In a dependent context with an explicit "&", stay in expression form
+         because that provides more information for rescanning. */
+      need_expr = TRUE;
+      template_constant = TRUE;
+    } else {
+      make_constant_operand(&constant, operand);
+      need_expr = (curr_expr_kind_is_one_in_which_const_exprs_are_recorded() &&
+                   constant.kind != (a_constant_repr_kind)ck_template_param);
+      need_expr_for_constant = need_expr;
+    }  /* if */
   } else if (curr_expr_kind_is_traditional_const() && !will_call) {
     /* A constant result is required in a constant expression. */
     error_in_operand(ec_expr_not_constant, operand);
@@ -18609,7 +18622,10 @@ by an "&" operator and *ampersand_position gives its position.
       a_source_position end_position = expr->expr_range.end;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
       expr = make_operator_node((an_expr_operator_kind)eok_address_of,
-                                make_pointer_type(expr->type),
+                                (template_constant ||
+                                 is_template_param_type(expr->type)) ?
+                                   type_of_unknown_templ_param_nontype :
+                                   make_pointer_type(expr->type),
                                 expr);
 #if EXTRA_SOURCE_POSITIONS_IN_IL
       set_expr_position(expr, ampersand_position, &end_position,
@@ -18631,6 +18647,9 @@ by an "&" operator and *ampersand_position gives its position.
       }  /* if */
     } else {
       make_expression_operand(expr, operand);
+      if (template_constant) {
+        make_template_param_expr_constant_operand(operand);
+      }  /* if */
     }  /* if */
   }  /* if */
   if (ampersand_position != NULL) {

@@ -1,5 +1,33 @@
 Version 4.7
 
+4/19/13  [EDGcpfe/13924]
+Dependent pointer-to-member in C++11 SFINAE context
+
+Dependent pointer-to-member constants were not handled completely
+correctly in C++11 SFINAE contexts.  In particular, the front end
+erroneously rejected some cases due to failing to remember information
+needed to check that the constant has the standard required form
+(i.e., "&" applied to a qualified name).  Now fixed.
+
+  template <bool B> struct A { typedef int type; };
+  template <> struct A<false> {};
+  struct C {
+    template<class T> void f(T&) { }
+  };
+  template<class T> struct D {
+    template<void (C::*)(int&)> struct tester;
+    template<class U> static char test(tester<&U::template f<int> >*);
+    template<class> static long test(...);
+    enum { value = sizeof(test<T>(0)) == 1 };
+  };
+  template<class T>
+  typename A<D<T>::value>::type g(const T&) { }
+  void foo() {
+    C it;
+    g(it);
+  }
+
+
 4/19/13  [EDGcpfe/13914]
 Abort in Microsoft mode on use of nonstatic function from dependent base
 

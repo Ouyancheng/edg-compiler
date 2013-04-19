@@ -4576,6 +4576,7 @@ on every expression.
       case enk_operation:
         { an_expr_node_ptr      operand = expr->variant.operation.operands;
           an_expr_operator_kind op = expr->variant.operation.kind;
+          a_constant_ptr        con;
           if (op == (an_expr_operator_kind)eok_parens) {
             /* Parentheses. */
             octl->output_str("(", octl);
@@ -4669,6 +4670,19 @@ on every expression.
                       is_cast_operation_node(expr))) {
             /* Elide certain implicit operations. */
             form_expression(operand, octl);
+          } else if (op == (an_expr_operator_kind)eok_address_of &&
+                     is_operation_node(operand) &&
+                     node_operator_is(operand, eok_lvalue) &&
+                     is_constant_node(operand->variant.operation.operands) &&
+                     (con = operand->variant.operation.operands
+                                                         ->variant.constant)
+                           ->kind == (a_constant_repr_kind)ck_template_param &&
+                     (con->variant.template_param.kind ==
+                       (a_template_param_constant_kind)tpck_unknown_function ||
+                      con->variant.template_param.kind ==
+                       (a_template_param_constant_kind)tpck_template_ref)) {
+            octl->output_str("&", octl);
+            form_unknown_function_constant(con, octl);
           } else {
             octl->output_str("<expression>", octl);
           }  /* if */
