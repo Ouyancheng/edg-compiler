@@ -3138,6 +3138,7 @@ defined.  Detailed position information is recorded in *decl_pos_block.
   a_symbol_reference_kind srk_flags;
   a_boolean               delayed_nested_class_def = FALSE;
   a_boolean               namespace_extension_pushed = FALSE;
+  a_boolean               specialization_scope_adjusted = FALSE;
   a_boolean               is_redeclaration = FALSE;
   a_boolean               is_template_specific_decl = FALSE;
   a_boolean               is_predeclared_type_decl = FALSE;
@@ -3617,23 +3618,46 @@ defined.  Detailed position information is recorded in *decl_pos_block.
               /* Redeclaration. */
               *declares_something = FALSE;
             } else {
-              /* The "is_symbol_from_inline_namespace" test is used to
-                 check for specializations allowed in g++ mode when a
-                 specializations in one namespace refers to an entity in
-                 a namespace made visible by an inline namespace. */
               if (tag_sym->decl_scope !=
-                                       scope_stack[depth_scope_stack].number &&
-                  !(microsoft_mode &&
-                    is_allowed_ms_spec_of_base_template(tag_sym)) &&
-                  (!sym_is_class_or_namespace_member(tag_sym) ||
-                   !(namespace_is_enclosed_by_curr_scope(tag_sym) ||
-                     is_symbol_from_inline_namespace(tag_sym)))) {
-                pos_sy_error(ec_bad_scope_for_specialization,
-                             &tag_position, tag_sym);
-                tag_sym = NULL;
-                set_to_named_error_locator(locator);
-                is_template_specialization = FALSE;
-                err = TRUE;
+                                      scope_stack[depth_scope_stack].number) {
+                /* The explicit specialization appears outside the scope of
+                   the template.  Check whether that is valid. */ 
+                if (microsoft_mode && !tag_sym->is_class_member &&
+                    tag_sym->parent.namespace_ptr == NULL &&
+                    is_file_or_namespace_scope(&scope_stack_top())) {
+                  /* Microsoft compilers allows a class template defined in
+                     file scope to be specialized in a namespace.  E.g.:
+                       template<class T> struct S {};
+                       namespace N { template<> struct S<int> {}; }
+                     Oddly, this does not work for a non-file-scope template:
+                       namespace M {
+                         template<class T> struct S {};
+                         namespace N { template<> struct S<int> {}; }
+                       }  // Microsoft does not accept this specialization.
+                  */
+                  effective_decl_level = DEPTH_OF_FILE_SCOPE;
+                  specialization_scope_adjusted = TRUE;
+                } else if (microsoft_mode &&
+                           is_allowed_ms_spec_of_base_template(tag_sym)) {
+                  /* In Microsoft mode, certain base class templates can be
+                     specialized in a derived class. */
+                } else if (sym_is_class_or_namespace_member(tag_sym) &&
+                           (namespace_is_enclosed_by_curr_scope(tag_sym) ||
+                            is_symbol_from_inline_namespace(tag_sym))) {
+                  /* A specialization can always appear in a scope enclosing
+                     the namespace scope of the template.  The
+                     "is_symbol_from_inline_namespace" test is used to check
+                     for specializations allowed in g++ mode when a
+                     specializations in one namespace refers to an entity in
+                     a namespace made visible by an inline namespace. */
+                } else {
+                  pos_sy_error(ec_bad_scope_for_specialization,
+                               &tag_position, tag_sym);
+                  tag_sym = NULL;
+                  set_to_named_error_locator(locator);
+                  is_template_specialization = FALSE;
+                  err = TRUE;
+                }  /* if */
               }  /* if */
               if (!class_type->variant.class_struct_union.is_specialized &&
                   tag_sym != NULL) {
@@ -3761,7 +3785,10 @@ defined.  Detailed position information is recorded in *decl_pos_block.
       if (!tag_sym->is_class_member) {
         if (is_class_definition) {
           /* This is a definition and a namespace-qualified name. */
-          if (!sym_is_namespace_member(tag_sym)) {
+          if (specialization_scope_adjusted) {
+            /* This is a specialization whose effective scope has already
+               been adjusted above.  Do not check is again. */
+          } else if (!sym_is_namespace_member(tag_sym)) {
             if (tag_sym->decl_scope != scope_stack[depth_scope_stack].number) {
               /* Unless a class is a namespace member or nested in another
                  class, it cannot be defined other than it the scope to which
