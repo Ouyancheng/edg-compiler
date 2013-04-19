@@ -1,5 +1,23 @@
 Version 4.7
 
+4/19/13  [EDGcpfe/13919]
+Microsoft compatibility: internal error on static data member when parsing
+nonclass templates
+
+An internal error could occur (in generic_cast_operand) in Microsoft mode
+when microsoft_version <= 1300 on a template static data member of
+a class template declared in a namespace when the --parse_templates option
+is used.  Now fixed.
+
+  namespace N {
+    template <class T> struct A {
+      typedef T::x x;
+      static const x i;
+    };
+    template <class U> const A<U>::x A<U>::i = -1;
+  }
+
+
 4/19/13  [EDGcpfe/13704]
 Microsoft C++: Specializing a file-scope class template in a namespace
 
