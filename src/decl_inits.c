@@ -6103,7 +6103,7 @@ reflect the initialization.  Otherwise, return FALSE.
         a_source_position       pos;
         a_constructor_init_ptr  cip;
         a_dynamic_init_ptr      dip;
-        a_routine_ptr           target;
+        a_routine_ptr           target = NULL;
         is_delegating_init = TRUE;
         pos = pos_curr_token;
         cip = alloc_ctor_init((a_constructor_init_kind)cik_delegation);
