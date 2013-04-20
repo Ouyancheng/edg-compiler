@@ -10236,6 +10236,7 @@ fold_constexpr_ctor should usually be called instead.
     check_assertion(special_kind_is(ctor_routine, sfk_constructor) &&
                     scope->kind == (a_scope_kind)sck_function);
     if (scope->is_constexpr_routine) {
+      a_type_ptr            class_type = parent_class_of(ctor_routine);
       a_boolean             not_foldable;
       a_constexpr_remap_ptr saved_remap_list = ceblock->remap_list;
       /* Set up remapping of parameter variables to the argument values. */
@@ -10254,15 +10255,14 @@ fold_constexpr_ctor should usually be called instead.
         check_assertion(ctor_init != NULL &&
                         ctor_init->kind ==
                                      (a_constructor_init_kind)cik_delegation);
-        folded = i_fold_constexpr_ctor(ctor_init->initializer, ceblock,
-                                       result_con);
+        folded = fold_dynamic_init(ctor_init->initializer,
+                                   class_type, ceblock, result_con);
       } else {
         /* Substitute values for parameters and attempt to fold the
            ctor-initializers.  Each one provides a value for one nonstatic
            data member. */
         a_constant             aggr_con;
         a_constructor_init_ptr ctor_init;
-        a_type_ptr             class_type = parent_class_of(ctor_routine);
         a_field_ptr            next_expected_field =
                           next_initializable_field(
                             class_type->variant.class_struct_union.field_list);
