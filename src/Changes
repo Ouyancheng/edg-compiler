@@ -1,5 +1,23 @@
 Version 4.7
 
+4/21/13  [EDGcpfe/13737]
+Variadic parameter packs in __is_constructible argument list
+
+Variadic template parameter packs are now allowed in the argument lists
+of the __is_constructible and __is_nothrow_constructible type trait
+operators.
+
+  template <bool B> struct Base {
+    static const bool value = B;
+  };
+  template <typename T, typename... Args> struct is_constructible
+    : Base<__is_constructible(T, Args...)> { };
+  template <typename T, typename... Args> struct is_nothrow_constructible
+    : Base<__is_nothrow_constructible(T, Args...)> { };
+  static_assert(is_constructible<int, int>::value, "fail");
+  static_assert(is_nothrow_constructible<int, int>::value, "fail");
+
+
 4/19/13  [EDGcpfe/13924]
 Dependent pointer-to-member in C++11 SFINAE context
 

@@ -11003,17 +11003,77 @@ indication in *rcblock).
     if (arg2_kind != iek_none) {
       if (arg2_repeats) {
         /* A (possibly empty) list of arguments after the first. */
-        an_expr_node_ptr argn, last_arg = arg1;
-        while ((rcblock == NULL) ? curr_token == tok_comma :
-                                   rcblock->argument_list != NULL) {
-          if (rcblock == NULL) (void)required_token(tok_comma, ec_exp_comma);
-          argn = scan_builtin_operation_arg(rcblock, arg2_kind);
-          err |= (int)is_error_node(argn);
-          last_arg->next = argn;
-          last_arg = argn;
-        }  /* while */
+        an_expr_node_ptr                 argn, last_arg = arg1;
+        a_boolean                        any_more;
+        an_expr_rescan_info_entry_ptr    eriep;
+        a_pack_expansion_descr_ptr       pedep;
+        a_pack_expansion_stack_entry_ptr pesep;
+        if (rcblock != NULL) {
+          /* Rescanning. */
+          while (rcblock->argument_list != NULL && !err) {
+            an_expr_node_ptr arg_expr = rcblock->argument_list;
+            if (arg_expr->is_pack_expansion) {
+              eriep = get_expr_rescan_info(arg_expr,
+                                           (an_expr_rescan_info_entry *)NULL);
+              pedep = eriep->saved_operand.pack_expansion_descr;
+              check_assertion(pedep != NULL);
+              any_more = begin_rescan_pack_expansion_context(
+                                                 pedep,
+                                                 rcblock->template_param_list,
+                                                 rcblock->template_arg_list,
+                                                 &pesep,
+                                                 rcblock->ctws_state, &err);
+              while (any_more) {
+                /* Rescan each member of the pack expansion. */
+                rcblock->argument_list = arg_expr;
+                argn = scan_builtin_operation_arg(rcblock, arg2_kind);
+                err |= (int)is_error_node(argn);
+                last_arg->next = argn;
+                last_arg = argn;
+                (void)end_potential_pack_expansion_context(
+                                                      pesep,
+                                                      /*is_declarator=*/FALSE);
+                any_more = advance_to_next_pack_element(pesep);
+              }  /* while */
+            } else {
+              /* Not a pack expansion.  Rescan one argument. */
+              argn = scan_builtin_operation_arg(rcblock, arg2_kind);
+              err |= (int)is_error_node(argn);
+              last_arg->next = argn;
+              last_arg = argn;
+            }  /* if */
+          }  /* while */
+        } else {
+          /* Scanning from source or a token cache. */
+          while (curr_token == tok_comma) {
+            (void)required_token(tok_comma, ec_exp_comma);
+            any_more = begin_potential_pack_expansion_context(&pesep);
+            while (any_more) {
+              argn = scan_builtin_operation_arg(rcblock, arg2_kind);
+              err |= (int)is_error_node(argn);
+              last_arg->next = argn;
+              last_arg = argn;
+              pedep = end_potential_pack_expansion_context(
+                                                      pesep,
+                                                      /*is_declarator=*/FALSE);
+              if (pedep != NULL && !is_error_node(argn)) {
+                /* This element is a variadic template pack expansion, i.e.,
+                   it's followed by "...".  Furthermore, we're in the prototype
+                   instantiation, so we record the expansion information on the
+                   element. */
+                argn->is_pack_expansion = TRUE;
+                if (expr_stack->possible_rescan_context) {
+                  an_expr_rescan_info_entry_ptr rescan_info=argn->rescan_info;
+                  check_assertion(rescan_info != NULL);
+                  rescan_info->saved_operand.pack_expansion_descr = pedep;
+                }  /* if */
+              }  /* if */
+              any_more = advance_to_next_pack_element(pesep);
+            }  /* while */
+          }  /* while */
+        }  /* if */
       } else {
-        /* Two arguments. */
+        /* Two arguments, no repeat. */
         if (rcblock == NULL) (void)required_token(tok_comma, ec_exp_comma);
         arg2 = scan_builtin_operation_arg(rcblock, arg2_kind);
         err |= (int)is_error_node(arg2);
@@ -11043,6 +11103,7 @@ indication in *rcblock).
     result->state = (an_operand_state)os_rvalue;
   } else {
     make_error_operand(result);
+    if (rcblock != NULL) rcblock->error_detected = TRUE;
   }  /* if */
   if (rcblock == NULL) {
 #if EXTRA_SOURCE_POSITIONS_IN_IL
