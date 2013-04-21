@@ -15426,10 +15426,11 @@ a constructor.
           break;
         case cik_delegation:
           /* A delegating constructor. */
-          check_assertion(dip != NULL &&
-                          dip->kind == (a_dynamic_init_kind)dik_constructor);
-          type = parent_class_of(dip->variant.constructor.ptr);
-          gen_type_name(type);
+          { a_routine_ptr ctor_routine =
+                                 innermost_function_scope->variant.routine.ptr;
+            type = parent_class_of(ctor_routine);
+            gen_type_name(type);
+          }
           break;
         default:
           unexpected_condition();
