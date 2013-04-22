@@ -1,5 +1,22 @@
 Version 4.7
 
+4/22/13  [EDGcpfe/13391]
+Microsoft compatibility: pack expansion used in default template argument
+
+A spurious error could be issued on the use of a pack expansion in a
+default template argument of a type template parameter in Microsoft mode.
+Now fixed.
+
+  template < typename ... T > struct B { };
+  template<typename ... Args> struct A {
+    template<class T = B<Args...>> void f() { }
+  };
+  int main() {
+    A<int,int> a1;
+    a1.f();  // caused spurious error on evaluation of B<Args...>
+  }
+
+
 4/22/13  [EDGcpfe/13733]
 Sun compatibility: incorrect handling of typename in some cases
 
