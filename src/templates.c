@@ -15549,7 +15549,8 @@ list and template argument list of a partial specialization are valid.
   a_template_param_ptr	tpp;
   a_symbol_ptr		prototype_sym;
   a_type_ptr		prototype_type;
-  a_boolean		any_errors = FALSE;
+  a_template_arg_ptr	templ_arg_list;
+  a_template_arg_ptr	tap;
 
   templ_param_list = decl_state->decl_info->parameters;
   /* Get the primary template argument list from the prototype instantiation
@@ -15572,41 +15573,42 @@ list and template argument list of a partial specialization are valid.
       pos_sy2_diagnostic(severity, ec_not_used_in_partial_spec_arg_list,
                          &param_sym->decl_position, param_sym, prototype_sym);
       if (severity == (an_error_severity)es_error) {
-        any_errors = TRUE;
         /* Set decl_scope_err to indicate that the template cannot be used. */
         decl_state->decl_scope_err = TRUE;
       }  /* if */
     } /* if */
   } /* for */
-  if (!any_errors && !decl_state->in_prototype_instantiation) {
-    /* If no errors were detected above, check each of the template arguments
-       to make sure that it is not an expression involving a template
-       parameter. */
-    a_template_arg_ptr	templ_arg_list;
-    a_template_arg_ptr	tap;
-    templ_arg_list = prototype_type->
+  /* Go through the arguments and make sure they are valid. */
+  templ_arg_list = prototype_type->
                      variant.class_struct_union.extra_info->template_arg_list;
-    for (tap = templ_arg_list; tap != NULL; tap = tap->next) {
-      if (is_nontype_templ_arg(tap)) {
-        a_constant_ptr	cp = tap->variant.constant;
-        /* If this is a cast of a template parameter constant, use the constant
-           under the cast. */
-        cp = strip_implicit_casts_if_template_param_constant(cp);
-        if (cp->kind == (a_constant_repr_kind)ck_template_param &&
-            cp->variant.template_param.kind !=
+  for (tap = templ_arg_list; tap != NULL; tap = tap->next) {
+    /* A pack must be the last template argument in a partial
+       specialization. */
+    if (tap->is_pack && tap->next != NULL) {
+      pos_error(ec_pack_not_last_arg, &sym->decl_position);
+      /* Set decl_scope_err to indicate that the template cannot be used. */
+      decl_state->decl_scope_err = TRUE;
+    }  /* if */
+    if (is_nontype_templ_arg(tap) &&
+        !decl_state->in_prototype_instantiation) {
+      a_constant_ptr	cp = tap->variant.constant;
+      /* If this is a cast of a template parameter constant, use the constant
+         under the cast. */
+      cp = strip_implicit_casts_if_template_param_constant(cp);
+      if (cp->kind == (a_constant_repr_kind)ck_template_param &&
+          cp->variant.template_param.kind !=
                                   (a_template_param_constant_kind)tpck_param) {
-          /* This case indicates one of two errors: Either a specialized
-             parameter (e.g., an integer constant) has a dependent type, or
-             the parameter involves an expression.  Determine which case it is,
-             and issue the appropriate diagnostic. */
-          if (is_constant_with_dependent_type(cp)) {
-            pos_error(ec_partial_spec_arg_depends_on_templ_param,
-                      &sym->decl_position);
-          } else {
-            pos_error(ec_partial_spec_nontype_expr, &sym->decl_position);
-          }  /* if */
-          tap->variant.constant = alloc_error_constant();
+        /* This case indicates one of two errors: Either a specialized
+           parameter (e.g., an integer constant) has a dependent type, or
+           the parameter involves an expression.  Determine which case it is,
+           and issue the appropriate diagnostic. */
+        if (is_constant_with_dependent_type(cp)) {
+          pos_error(ec_partial_spec_arg_depends_on_templ_param,
+                    &sym->decl_position);
+        } else {
+          pos_error(ec_partial_spec_nontype_expr, &sym->decl_position);
         }  /* if */
+        tap->variant.constant = alloc_error_constant();
       }  /* if */
     }  /* for */
   }  /* if */

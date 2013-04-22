@@ -1,5 +1,16 @@
 Version 4.7
 
+4/22/13  [EDGcpfe/13436]
+Missing error on parameter pack not at end of partial specialization arguments
+
+The front end failed to issue a diagnostic on a template parameter pack that
+was not the final template argument in a partial specialization declaration.
+Now fixed.
+
+  template <class ... Args> struct A{};
+  template <class T, class ... Args> struct A<Args..., T> {};
+
+
 4/21/13  [EDGcpfe/13737]
 Variadic parameter packs in __is_constructible argument list
 

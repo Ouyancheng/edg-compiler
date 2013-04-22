@@ -2499,6 +2499,7 @@ ec_same_param_types_with_and_without_ref_qualifiers;;"overloading two member fun
 ec_bad_raw_string_delim_char;;"invalid character in raw string delimiter -- raw string indicator ignored"
 ec_missing_raw_string_delim_lparen;;"parenthesis terminating raw string delimiter not found after 16 characters -- raw string indicator ignored"
 ec_missing_raw_string_delimiter;;"ending delimiter for raw string not found"
+ec_pack_not_last_arg;;"a parameter pack must be the final template argument in a partial specialization"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #
