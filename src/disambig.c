@@ -793,19 +793,15 @@ Scan and cache the tokens that comprise a list of decl_specifiers.
            for them to do so because types can't be defined in parameter
            lists, and other contexts that are involved in disambiguation.
            We assume this is an elaborated type specifier */
-        /* typename is ignored in Sun mode.  Simply discard the token
-           unless the user has disabled implicit typename mode. */
         is_typename = curr_token == tok_typename;
-        if (is_typename &&
-            sun_mode && implicit_typename_enabled) break;
-        /* The Microsoft compiler allows the typename specifier to be
+        /* The Microsoft and Sun compilers allow the typename specifier to be
            repeated.  Note that use_implicit_typename() is not used in this
            case. */
         do {
           f_get_token_and_coalesce_if_identifier(
                        flags, curr_token == tok_typename ? GID_IS_TYPENAME
                                                          : GID_NO_OPTIONS);
-        } while (microsoft_bugs && curr_token == tok_typename);
+        } while ((sun_mode || microsoft_bugs) && curr_token == tok_typename);
 #if MICROSOFT_EXTENSIONS_ALLOWED || NEAR_AND_FAR_ALLOWED
         if (microsoft_mode or_near_and_far_enabled()) {
           /* Check for near/far and a Microsoft decl modifier, such as

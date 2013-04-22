@@ -1,5 +1,18 @@
 Version 4.7
 
+4/22/13  [EDGcpfe/13733]
+Sun compatibility: incorrect handling of typename in some cases
+
+A spurious incomplete type error could result when a class template, that
+was declared but not defined, was used as part of a qualified name in a
+typename specifier in a template declaration.  Now fixed.
+
+  namespace N {
+    template <typename T> struct A;
+  }
+  template <typename T> typename N::A<T>::type f(T& t);
+
+
 4/22/13  [EDGcpfe/13436]
 Missing error on parameter pack not at end of partial specialization arguments
 
