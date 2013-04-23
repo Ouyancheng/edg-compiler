@@ -3460,12 +3460,7 @@ kind of mismatch here.
   } else {
     /* The selector is a class object. */
     if (is_class_struct_union_type(selector_type)) {
-      if (could_be_dependent_class_type(selector_type)) {
-        /* A nonreal class could have an operator-> function, so try matching
-           against an unknown type. */
-        selector_type = type_of_unknown_templ_param_nontype;
-        selector = NULL;
-      }  /* if */
+      /* Okay. */
     } else if (is_template_param_type(selector_type)) {
       /* A template parameter type is okay. */
     } else {
