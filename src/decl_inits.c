@@ -5950,7 +5950,7 @@ a non-delegating constructor it (possibly indirectly) delegates construction
 to.
 */
 static a_hash_table_ptr
-	ctor_delegation_map = NULL;
+	ctor_delegation_map;
 
 /*
 Type of the data items pointed to by the delegation map.
@@ -7522,6 +7522,49 @@ explicit presence of a "static" storage class specifier.
   }  /* if */
   db_exit();
 }  /* check_for_missing_initializer_full */
+
+
+void decl_inits_one_time_init(void)
+/*
+Do one-time initialization of variables related to initialization processing.
+(Variables that need to be reinitialized with each new translation unit are
+handled in decl_inits_init.)
+*/
+{
+  /* Save variables that are needed for precompiled headers */
+  if (precompiled_header_processing_required) {
+    static a_pch_saved_variable saved_vars[] = {
+      pch_saved_var_array_elem(ctor_delegation_map),
+      pch_saved_var_array_terminating_elem()
+    };
+    register_pch_saved_variables(saved_vars);
+  }  /* if */
+  /* Register variables (and arrays) that have distinct copies for distinct
+     compilation units. */
+  register_trans_unit_variable(ctor_delegation_map);
+}  /* decl_inits_one_time_init */
+
+
+void decl_inits_trans_unit_init(void)
+/*
+Initialize static variables related to initialization processing.  These are
+variables that need initialization for every (primary and secondary)
+translation unit.
+*/
+{
+  ctor_delegation_map = NULL;
+}  /* decl_inits_trans_unit_init */
+
+
+void decl_inits_init(void)
+/*
+Initialize static variables related to initialization processing.  This is
+done as a subroutine (rather than relying on static initialization) so that it
+can be redone to compile more than one source file in a single invocation of
+the front end.
+*/
+{
+}  /* decl_inits_init */
 
 
 /******************************************************************************

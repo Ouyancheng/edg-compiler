@@ -89,6 +89,12 @@ extern a_hash_value hash_void_pointer(a_void_ptr  p);
 extern a_boolean compare_for_pointer_pair_map(a_void_ptr  p1,
                                               a_void_ptr  p2);
 
+extern void decl_inits_one_time_init(void);
+
+extern void decl_inits_trans_unit_init(void);
+
+extern void decl_inits_init(void);
+
 #endif /* ifndef DECL_INITS_H */
 
 /******************************************************************************

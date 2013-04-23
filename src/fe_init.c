@@ -1230,6 +1230,7 @@ after the command-line processing has been done.
   class_decl_one_time_init();
   decl_spec_one_time_init();
   decls_one_time_init();
+  decl_inits_one_time_init();
   def_arg_one_time_init();
   error_one_time_init();
   expr_one_time_init();
@@ -1335,6 +1336,7 @@ source file's compilation.
   symbol_tbl_init();
   scope_stk_init();
   decls_init();
+  decl_inits_init();
   class_decl_init();
   layout_init();
   def_arg_init();
@@ -1608,6 +1610,7 @@ when it is a secondary file.
   error_trans_unit_init();
   il_trans_unit_init();
   decls_trans_unit_init();
+  decl_inits_trans_unit_init();
   lexical_trans_unit_init();
   symbol_tbl_trans_unit_init();
   scope_stk_trans_unit_init();
