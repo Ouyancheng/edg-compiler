@@ -7464,6 +7464,32 @@ the selection, not an operator token for the call.
           err = TRUE;
         }  /* if */
       }  /* if */
+      if (!err) {
+        /* Check for invalid combinations with C++11 ref-qualifiers. */
+        a_type_ptr member_type = pm_member_type(operand_2_type);
+        member_type = skip_typerefs(member_type);
+        if (is_function_type(member_type)) {
+          a_ref_qualifier_kind ref_qual =
+                       member_type->variant.routine.extra_info->ref_qualifiers;
+          if (ref_qual == (a_ref_qualifier_kind)rqk_rvalue) {
+            if (is_arrow_operator || is_an_lvalue(operand_1)) {
+              err = TRUE;
+              if (expr_error_should_be_issued()) {
+                pos_ty_error(ec_pm_call_obj_not_rvalue, &operator_position,
+                             operand_2_type);
+              }  /* if */
+            }  /* if */
+          } else if (ref_qual == (a_ref_qualifier_kind)rqk_lvalue) {
+            if (!is_arrow_operator && is_an_rvalue(operand_1)) {
+              err = TRUE;
+              if (expr_error_should_be_issued()) {
+                pos_ty_error(ec_pm_call_obj_not_lvalue, &operator_position,
+                             operand_2_type);
+              }  /* if */
+            }  /* if */
+          }  /* if */
+        }  /* if */
+      }  /* if */
       if (err) {
         /* Some error. */
         make_error_operand(result);

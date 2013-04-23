@@ -2500,6 +2500,8 @@ ec_bad_raw_string_delim_char;;"invalid character in raw string delimiter -- raw 
 ec_missing_raw_string_delim_lparen;;"parenthesis terminating raw string delimiter not found after 16 characters -- raw string indicator ignored"
 ec_missing_raw_string_delimiter;;"ending delimiter for raw string not found"
 ec_pack_not_last_arg;;"a parameter pack must be the final template argument in a partial specialization"
+ec_pm_call_obj_not_lvalue;;"a pointer-to-member function with type %t can only be used with an lvalue object"
+ec_pm_call_obj_not_rvalue;;"a pointer-to-member function with type %t can only be used with an rvalue object"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #
