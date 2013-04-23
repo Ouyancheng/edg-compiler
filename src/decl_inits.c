@@ -6119,13 +6119,19 @@ reflect the initialization.  Otherwise, return FALSE.
         scan_mem_init_args(ctor, cip, tp, (a_type_ptr)NULL, &pos);
         dip = cip->initializer;
         check_assertion(dip != NULL);
-        if (dip->kind == (a_dynamic_init_kind)dik_constructor &&
-            dip->variant.constructor.ptr != NULL) {
-          /* Check that this delegation doesn't create a loop of
-             delegations.  If it does, discard the constructor init entry. */
-          target = get_nondelegating_target_ctor(dip->variant.constructor.ptr);
-          if (target == ctor) {
-            pos_error(ec_delegation_loop, &pos);
+        if (dip->kind == (a_dynamic_init_kind)dik_constructor) {
+          if (dip->variant.constructor.ptr != NULL) {
+            /* Check that this delegation doesn't create a loop of
+               delegations.  If it does, discard the constructor init entry. */
+            target = get_nondelegating_target_ctor(
+                                                 dip->variant.constructor.ptr);
+            if (target == ctor) {
+              pos_error(ec_delegation_loop, &pos);
+            }  /* if */
+          } else {
+            /* During prototype instantiations we may not be able to resolve
+               the constructor. */
+            check_assertion_or_expect_error(ctor->is_prototype_instantiation);
           }  /* if */
         } else if (dip->kind == (a_dynamic_init_kind)dik_expression) {
           /* When forwarding to a trivial copy constructor, the dynamic init
