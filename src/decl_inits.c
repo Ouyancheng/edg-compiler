@@ -6096,6 +6096,7 @@ reflect the initialization.  Otherwise, return FALSE.
       a_type_ptr  tp = type_symbol_type(sym);
       tp = skip_typerefs(tp);
       if (is_immediate_class_type(tp) &&
+          ctor->source_corresp.is_class_member &&
           same_entities(tp, parent_class_of(ctor))) {
         /* This does look like a delegating mem-initializer.  Create a
            constructor init entry for it, and scan the initialization
@@ -6270,7 +6271,14 @@ initialized.  These are addressed in the course of the processing.
       goto done;
     }  /* if */
   }  /* if */
-  class_type = parent_class_of(ctor_rout);
+  if (ctor_rout->source_corresp.is_class_member) {
+    class_type = parent_class_of(ctor_rout);
+  } else {
+    /* In severe error cases we may get here with a routine marked as a
+       constructor, but with no recorded parent scope. */
+    expect_error();
+    goto done;
+  }  /* if */
   is_union = class_type->kind == (a_type_kind)tk_union;
   check_assertion(class_type != NULL);
   ctsp = class_type_supp(class_type);
