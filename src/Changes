@@ -1,5 +1,20 @@
 Version 4.7
 
+4/23/13  [EDGcpfe/7689,EDGcpfe/12842]
+C++11: Delegating constructors
+
+In C++11 mode, the front end now accepts "delegating constructors".
+For example:
+
+  struct S {
+    S(int);
+    S(): S(0) {}  // Default constructor for S delegates to constructor
+  };              // S::S(int).
+
+This feature can also be enabled in non-C++11 modes with the new command-line
+option --delegating_constructors.
+
+
 4/22/13  [EDGcpfe/13391]
 Microsoft compatibility: pack expansion used in default template argument
 
