@@ -18,6 +18,12 @@ lvalue or rvalue objects.  Now implemented.  See paper N2439.
     A().p();  // &&
   }
 
+These changes include a change to include ref-qualifiers in mangled
+function types.  The IA-64 ABI mangling scheme is followed for IA-64 ABI
+configurations.  For Cfront configurations, an optional "_R" (for an
+lvalue ref-qualifier) or "_E" (for an rvalue ref-qualifier) now follows the
+"F" encoding for a function type.
+
 
 4/23/13  [EDGcpfe/7689,EDGcpfe/12842]
 C++11: Delegating constructors

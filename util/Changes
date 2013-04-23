@@ -1,3 +1,16 @@
+Version 4.7
+
+4/23/13  [EDGcpfe/8627]
+C++11: demangling ref-qualifiers on member functions
+
+A change has been made to demangle ref-qualifiers that may be found on member
+function types.  The IA-64 ABI mangling scheme is followed for IA-64 ABI
+configurations.  For Cfront configurations, an optional "_R" (for an lvalue
+ref-qualifier) or "_E" (for an rvalue ref-qualifier) may follow the "F"
+encoding for a function type, and is demangled appropriately.
+
+
+-------------------------------------------------------------------------------
 Version 4.6, March 30, 2013
 
 No Changes.
