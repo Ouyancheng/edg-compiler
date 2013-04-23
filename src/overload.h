@@ -383,6 +383,11 @@ typedef struct an_arg_match_summary {
 		is_match_for_this_param;
 			/* TRUE if this entry describes the match for the
 			   "this" parameter. */
+  a_ref_qualifier_kind
+		ref_qualifier;
+			/* When is_match_for_this_param is TRUE, this gives
+			   the ref-qualifier value ("&", "&&", or none)
+			   for the called function. */
   a_byte_boolean
 		arg_is_constant;
 			/* TRUE if the corresponding argument is a constant.
@@ -746,8 +751,13 @@ extern void choose_function_and_make_address_constant(
 extern void selector_match_with_this_param(
                                an_operand           *bound_function_selector,
                                a_routine_ptr        rout,
+                               a_type_ptr           routine_type,
                                a_type_ptr           this_param_type,
                                an_arg_match_summary *arg_summary);
+extern
+a_type_ptr implicit_object_parameter_type(a_type_ptr   routine_type,
+                                          a_symbol_ptr proj_function_symbol,
+                                          a_boolean    is_conv_func);
 
 extern
 a_boolean is_template_dependent_indefinite_function(an_operand *operand);

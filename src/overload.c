@@ -1258,6 +1258,7 @@ values.
   amsp->tiebreaker_anachronism_used= FALSE;
   amsp->const_anachronism          = FALSE;
   amsp->is_match_for_this_param    = FALSE;
+  amsp->ref_qualifier              = (a_ref_qualifier_kind)rqk_default;
   amsp->arg_is_constant            = FALSE;
   amsp->lvalue_to_rvalue_conversion_used = FALSE;
   amsp->on_conv_allow_any_cv_qual_on_ptr = FALSE;
@@ -1473,7 +1474,13 @@ Print a candidate function entry for debugging purposes.
   narg = 0;
   for (amsp = cfp->arg_matches; amsp != NULL; amsp = amsp->next) {
     if (amsp->is_match_for_this_param) {
-      fprintf(f_debug, "  this:  ");
+      fprintf(f_debug, "  this");
+      if (amsp->ref_qualifier == (a_ref_qualifier_kind)rqk_lvalue) {
+        fprintf(f_debug, " (&)");
+      } else if (amsp->ref_qualifier == (a_ref_qualifier_kind)rqk_rvalue) {
+        fprintf(f_debug, " (&&)");
+      }  /* if */
+      fprintf(f_debug, ":  ");
     } else {
       fprintf(f_debug, "  arg %lu: ", ++narg);
     }  /* if */
@@ -3407,124 +3414,167 @@ handle_braced_init_list:
 
 
 static void determine_selector_match_level(
-                               a_type_ptr           arg_type,
+                               an_operand           *selector,
+                               a_type_ptr           selector_type,
                                a_boolean            selector_is_object_pointer,
                                a_type_ptr           param_type,
+                               a_type_ptr           routine_type,
                                an_arg_match_summary *match_summary)
 /*
-Determine how well a selector argument of type arg_type matches a
-"this" parameter with type param_type.  The selector type is a pointer
-if selector_is_object_pointer is TRUE, a class type otherwise.
-match_summary is set to indicate the level of match.  If the
-anachronism of allowing a call of a non-const function with a const
-selector is enabled, allow that kind of mismatch here.
+Determine how well a selector for a call matches the "this" parameter.
+"selector" gives the selector; it's a pointer (or handle) if
+selector_is_object_pointer is TRUE, a class-typed object otherwise.
+param_type gives the "implicit object parameter" type, which is
+a reference that will be matched up with the selector class object.
+routine_type gives the type of the called routine.  If selector is
+NULL, we don't have full information in operand form for the selector,
+just its type, which is given by selector_type.  match_summary is set
+to indicate the level of match.  If the anachronism of allowing a call
+of a non-const function with a const selector is enabled, allow that
+kind of mismatch here.
 */
 {
-  /* Do the matching in terms of pointers even if arg_type is a class type.
-     This allows differentiating matches on the basis of added qualifiers.
-     The C++ standard [over.match.funcs] actually defines this matching in
-     terms of references, but pointers give the same result. */
-  if (!selector_is_object_pointer) {
-    arg_type = add_right_pointer_type_to_this(arg_type, arg_type);
-  } else if (is_class_struct_union_type(arg_type) &&
-             could_be_dependent_class_type(arg_type)) {
-    /* A nonreal class could have an operator-> function, so try matching
-       against a pointer to unknown type. */
-    arg_type = add_right_pointer_type_to_this(
-                                           type_of_unknown_templ_param_nontype,
-                                           type_pointed_to(param_type));
+  a_boolean                     selector_object_is_lvalue = FALSE;
+  a_routine_type_supplement_ptr rtsp;
+
+  routine_type = skip_typerefs(routine_type);
+  check_assertion(is_function_type(routine_type));
+  rtsp = routine_type->variant.routine.extra_info;
+  if (selector != NULL) selector_type = selector->type;
+  if (selector_is_object_pointer) {
+    /* The selector is a pointer or handle.  Indirect to the underlying
+       class object.  We will have an lvalue, but not full operand
+       information on the object. */
+    selector_object_is_lvalue = TRUE;
+    selector = NULL;
+    if (is_pointer_or_handle_type(selector_type)) {
+      selector_type = type_pointed_to(selector_type);
+      if (could_be_dependent_class_type(selector_type)) {
+        selector_type = type_of_unknown_templ_param_nontype;
+      }  /* if */
+    } else if (could_be_dependent_class_type(selector_type)) {
+      selector_type = type_of_unknown_templ_param_nontype;
+    } else {
+      check_assertion(is_error_type(selector_type));
+    }  /* if */
+  } else {
+    /* The selector is a class object. */
+    if (is_class_struct_union_type(selector_type)) {
+      if (could_be_dependent_class_type(selector_type)) {
+        /* A nonreal class could have an operator-> function, so try matching
+           against an unknown type. */
+        selector_type = type_of_unknown_templ_param_nontype;
+        selector = NULL;
+      }  /* if */
+    } else if (is_template_param_type(selector_type)) {
+      /* A template parameter type is okay. */
+    } else {
+      check_assertion(is_error_type(selector_type));
+    } /* if */
   }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
-  if (cppcli_enabled &&
-      is_handle_type(arg_type) &&
-      is_interior_ptr_type(param_type)) {
-    /* A C++/CLI value class member function can be called with a handle
-       selector even though the function expects an interior_ptr "this". */
-    arg_type = make_interior_ptr_type(type_pointed_to(arg_type));
-  } else if (cppcli_enabled &&
-             is_handle_type(param_type) &&
-             is_interior_ptr_type(arg_type) &&
-             is_managed_class_type(type_pointed_to(arg_type))) {
-    /* A C++/CLI ref class member function can be called with an interior_ptr
-       selector even though the function expects a handle "this".  This
-       comes up in the members of base classes of value classes. */
-    arg_type = make_handle_type(type_pointed_to(arg_type));
-  } else if (microsoft_mode) {
-    /* Drop __unaligned as a type qualifier on the argument type.
+  if (microsoft_mode) {
+    /* Drop __unaligned as a type qualifier on the selector type.
        MSVC++ allows a member function to be called on an __unaligned
        object with no warning. */
-    if (is_pointer_type(arg_type)) {
-      a_type_ptr           underlying_type = type_pointed_to(arg_type);
-      a_type_qualifier_set quals = get_type_qualifiers(underlying_type);
-      if (quals & TQ_UNALIGNED) {
-        quals &= ~TQ_UNALIGNED;
-        arg_type = make_unqualified_type(underlying_type);
-        arg_type = make_qualified_type(arg_type, quals);
-        arg_type = make_pointer_type(arg_type);
-      }  /* if */
+    a_type_qualifier_set quals = get_type_qualifiers(selector_type);
+    if (quals & TQ_UNALIGNED) {
+      quals &= ~TQ_UNALIGNED;
+      selector_type = make_unqualified_type(selector_type);
+      selector_type = make_qualified_type(selector_type, quals);
+      selector = NULL;
     }  /* if */
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-  determine_arg_match_level((an_operand *)NULL, arg_type, param_type,
-                            (a_param_type_ptr)NULL,
-                            /*param_type_is_deduced=*/FALSE,
-                            /*try_user_conversions=*/FALSE,
-                            /*allow_expl_conv_funcs=*/FALSE,
-                            match_summary);
-  match_summary->is_match_for_this_param = TRUE;
-  if (match_summary->match_level == aml_none &&
-      allow_nonconst_call_anachronism) {
-    /* No match.  Try the anachronism of calling a function that
-       does not require a const "this" with a const selector.  See also
-       set_up_for_conversion_function_call. */
-    /* Make the type that the "this" parameter would have if the routine
-       were const, and try again. */
-    a_type_ptr this_param_base_type = type_pointed_to(param_type);
-    a_type_ptr const_this_param_base_type =
-                                      make_qualified_type(this_param_base_type,
-                                                          TQ_CONST);
-    a_type_ptr const_this_param_type =
-                                 make_pointer_type(const_this_param_base_type);
-    const_this_param_type = make_qualified_type(const_this_param_type,
-                                                TQ_CONST);
-    determine_arg_match_level((an_operand *)NULL, arg_type,
-                              const_this_param_type,
+  if (rtsp->ref_qualifiers == (a_ref_qualifier_kind)rqk_default) {
+    /* With a default ref-qualifier (neither "&" not "&&"), lvalueness
+       does not matter, so drop the selector operand so we lose information
+       about that. */
+    selector = NULL;
+  }  /* if */
+  if (selector != NULL) {
+    selector_object_is_lvalue = is_an_lvalue(selector);
+  }  /* if */
+  if (selector_object_is_lvalue &&
+      is_rvalue_reference_type(param_type)) {
+    /* An rvalue reference cannot bind to an lvalue, so this selector
+       cannot match. */
+    clear_arg_match_summary(match_summary);
+    match_summary->match_level = aml_none;
+  } else {
+    determine_arg_match_level(selector,
+                              selector == NULL ? selector_type : NULL,
+                              param_type,
                               (a_param_type_ptr)NULL,
                               /*param_type_is_deduced=*/FALSE,
                               /*try_user_conversions=*/FALSE,
                               /*allow_expl_conv_funcs=*/FALSE,
                               match_summary);
-    match_summary->is_match_for_this_param = TRUE;
-    if (match_summary->match_level != aml_none) {
-      /* Anachronism -- calling non-const function with const object. */
-      match_summary->const_anachronism = TRUE;
-      match_summary->tiebreaker_anachronism_used = TRUE;
+    if (match_summary->match_level == aml_none &&
+        allow_nonconst_call_anachronism &&
+        is_any_reference_type(param_type)) {
+      /* No match.  Try the anachronism of calling a function that
+         does not require a const "this" with a const selector.  See also
+         set_up_for_conversion_function_call. */
+      a_type_ptr under_param_type = type_pointed_to(param_type);
+      if (!is_const_qualified_type(under_param_type)) {
+        a_type_qualifier_set quals = get_type_qualifiers(selector_type);
+        if (quals & TQ_CONST) {
+          quals &= ~TQ_CONST;
+          selector_type = make_unqualified_type(selector_type);
+          selector_type = make_qualified_type(selector_type, quals);
+          selector = NULL;
+          determine_arg_match_level((an_operand *)NULL, selector_type,
+                                    param_type,
+                                    (a_param_type_ptr)NULL,
+                                    /*param_type_is_deduced=*/FALSE,
+                                    /*try_user_conversions=*/FALSE,
+                                    /*allow_expl_conv_funcs=*/FALSE,
+                                    match_summary);
+          if (match_summary->match_level != aml_none) {
+            /* Anachronism -- calling non-const function with const object. */
+            match_summary->const_anachronism = TRUE;
+            match_summary->tiebreaker_anachronism_used = TRUE;
+          }  /* if */
+        }  /* if */
+      }  /* if */
     }  /* if */
   }  /* if */
+  match_summary->is_match_for_this_param = TRUE;
+  match_summary->ref_qualifier = rtsp->ref_qualifiers;
 }  /* determine_selector_match_level */
 
 
 void selector_match_with_this_param(
                                an_operand           *bound_function_selector,
                                a_routine_ptr        rout,
+                               a_type_ptr           routine_type,
                                a_type_ptr           this_param_type,
                                an_arg_match_summary *this_match_summary)
 /*
-Determine how well the selector object indicated by *bound_function_selector
-matches the "this" parameter (of type this_param_type) of a member function.
-If bound_function_selector->selector_is_object_pointer is TRUE,
-*bound_function_selector is a pointer to a class object; otherwise,
-it's a class object (lvalue or rvalue).  Return the match summary in
-*this_match_summary.  If the specific routine being called is known,
-rout points to the routine entry; otherwise, rout is NULL.  rout must
-be non-NULL when calling a constructor or destructor, so that those
-can be treated as a special case: constructors and destructors can be
-called for const- and volatile-qualified objects even though they
-themselves are not (and cannot be) const- or volatile-qualified.
-bound_function_selector is not used in that case, and can be NULL.
+Determine how well the selector object given by bound_function_selector
+matches the "this" parameter of a member function.  If
+bound_function_selector->selector_is_object_pointer is TRUE,
+bound_function_selector is a pointer (or handle) to a class object;
+otherwise, it's a class object (lvalue or rvalue).  this_param_type
+gives the "implicit object parameter type" for the function (a
+reference type).  Return the match summary in *this_match_summary.  If
+the specific routine being called is known, rout points to the routine
+entry; otherwise, rout is NULL.  rout must be non-NULL when calling a
+constructor or destructor, so that those can be treated as a special
+case: constructors and destructors can be called for const- and
+volatile-qualified objects even though they themselves are not (and
+cannot be) const- or volatile-qualified.  bound_function_selector is
+not used in that case, and can be NULL.  routine_type gives the
+routine type.  If it's NULL, rout must be non-NULL and rout->type will
+be used for routine_type.
 */
 {
   db_enter(4, "selector_match_with_this_param");
+  if (routine_type == NULL) {
+    check_assertion(rout != NULL);
+    routine_type = rout->type;
+  }  /* if */
   if (rout != NULL &&
       (rout->special_kind == (a_special_function_kind)sfk_constructor ||
        rout->special_kind == (a_special_function_kind)sfk_destructor)) {
@@ -3541,53 +3591,78 @@ bound_function_selector is not used in that case, and can be NULL.
 #endif /* CHECKING */
     /* See how well the selector type and the "this" parameter type
        match up. */
-    determine_selector_match_level(bound_function_selector->type,
+    determine_selector_match_level(bound_function_selector,
+                                   (a_type_ptr)NULL,
                                    (a_boolean)bound_function_selector->
                                                     selector_is_object_pointer,
                                    this_param_type,
+                                   routine_type,
                                    this_match_summary);
   }  /* if */
   db_exit();
 }  /* selector_match_with_this_param */
 
 
-static a_type_ptr this_param_type_for_overload_res(
-                                             a_type_ptr   routine_type,
-                                             a_symbol_ptr proj_function_symbol,
-                                             a_boolean    is_conv_func)
+a_type_ptr implicit_object_parameter_type(a_type_ptr   routine_type,
+                                          a_symbol_ptr proj_function_symbol,
+                                          a_boolean    is_conv_func)
 /*
-Return the effective "this" parameter type that should be used in
-overload resolution for the function with the indicated type and
-symbol (possibly a projection symbol).  For conversion functions and
-functions imported via a using-declaration, the effective "this"
-parameter type is based on the derived class indicated by the
-projection symbol.  is_conv_func is TRUE if the function is a
-conversion function.
+Return the effective object parameter type (a reference type) that
+should be used in overload resolution to match the selector object on
+a call of the function with the indicated type and symbol (possibly a
+projection symbol).  See the definition of "implicit object parameter"
+in [over.match.funcs] of the C++ standard.  is_conv_func is TRUE if
+the function is a conversion function.  Return NULL if the function
+does not have a "this" parameter.  proj_function_symbol can be NULL
+if it is known that the routine "this" class does not need to be
+adjusted.
 */
 {
-  a_type_ptr this_param_type;
+  a_type_ptr                    impl_obj_param_type, class_type;
+  a_routine_type_supplement_ptr rtsp;
 
-  if (proj_function_symbol->kind == (a_symbol_kind)sk_projection &&
+  routine_type = skip_typerefs(routine_type);
+  check_assertion(is_function_type(routine_type));
+  rtsp = routine_type->variant.routine.extra_info;
+  /* For conversion functions and functions imported via a using-declaration,
+     the underlying class type is the class of the projection symbol.
+     Otherwise, it's the class of the routine type. */
+  if (proj_function_symbol != NULL &&
+      proj_function_symbol->kind == (a_symbol_kind)sk_projection &&
       (proj_function_symbol->variant.projection.is_using_decl ||
        is_conv_func)) {
-    /* Make a pointer to the class of the projection, qualified like the
-       actual "this" parameter type. */
-    a_routine_type_supplement_ptr  rtsp =
-                                     routine_type->variant.routine.extra_info;
-    a_type_ptr                     saved_this_class = rtsp->this_class;
-
-    /* Temporarily replace the class of "*this" by the parent type of the
-       projection symbol.  This allows us to use implicit_this_param_type_of
-       to synthesize the appropriately qualified type. */
-    rtsp->this_class = sym_parent_class(proj_function_symbol);
-    this_param_type = implicit_this_param_type_of(routine_type);
-    /* Restore the correct class for "*this". */
-    rtsp->this_class = saved_this_class;
+    class_type = sym_parent_class(proj_function_symbol);
   } else {
-    this_param_type = implicit_this_param_type_of(routine_type);
+    class_type = rtsp->this_class;
   }  /* if */
-  return this_param_type;
-}  /* this_param_type_for_overload_res */
+  impl_obj_param_type = class_type;
+  if (class_type != NULL) {
+    /* Add qualifiers like "const". */
+    if (rtsp->qualifiers != TQ_NONE) {
+      impl_obj_param_type = make_qualified_type(impl_obj_param_type,
+                                                rtsp->qualifiers);
+    }  /* if */
+    /* Add the right kind of reference to match the ref-qualifiers of the
+       function type. */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    if (cppcli_enabled && is_managed_class_type(class_type)) {
+      impl_obj_param_type = make_tracking_reference_type(impl_obj_param_type);
+    } else
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+    /* Do not insert code here. */
+    if (rtsp->ref_qualifiers == (a_ref_qualifier_kind)rqk_rvalue) {
+      impl_obj_param_type = make_rvalue_reference_type(impl_obj_param_type);
+    } else {
+      impl_obj_param_type = make_reference_type(impl_obj_param_type);
+    }  /* if */
+    /* Add qualifiers like "restrict" that go on top of the reference. */
+    if (rtsp->this_qualifiers != TQ_NONE) {
+      impl_obj_param_type = make_qualified_type(impl_obj_param_type,
+                                                rtsp->this_qualifiers);
+    }  /* if */
+  }  /* if */
+  return impl_obj_param_type;
+}  /* implicit_object_parameter_type */
 
 
 static void check_template_arg_type_qualifiers(a_type_ptr *arg_type,
@@ -5129,21 +5204,21 @@ next_argument:
         this_match->is_match_for_this_param = TRUE;
       } else {
         /* The function requires a selector, and we have one. */
-        /* Determine the effective "this" parameter type.  When namespaces
-           are involved in classes, the parameter type is taken to be the
-           class in which the "using" occurs. */
+        /* Determine the effective parameter type for "this". */
         a_type_ptr this_param_type;
         check_assertion(proj_function_symbol != NULL); /* For Coverity */
-        this_param_type =
-                      this_param_type_for_overload_res(routine_type,
+        this_param_type=implicit_object_parameter_type(routine_type,
                                                        proj_function_symbol,
                                                        /*is_conv_func=*/FALSE);
+        check_assertion(this_param_type != NULL);
         if (implicit_selector_type != NULL) {
           /* The selector is an implicit "this->".  See how well it
              matches.  It might not match at all. */
-          determine_selector_match_level(implicit_selector_type,
+          determine_selector_match_level((an_operand *)NULL,
+                                         implicit_selector_type,
                                          /*selector_is_object_pointer=*/TRUE,
                                          this_param_type,
+                                         routine_type,
                                          this_match);
           /* Set the "next" pointer again, because it is cleared by
              determine_selector_match_level. */
@@ -5165,7 +5240,8 @@ next_argument:
           /* See how the selector expression matches the "this" parameter
              type. */
           selector_match_with_this_param(bound_function_selector,
-                                         routine, this_param_type, this_match);
+                                         routine, routine_type,
+                                         this_param_type, this_match);
           /* Set the "next" pointer again, because it is cleared by
              selector_match_with_this_param. */
           this_match->next = this_match_next;
@@ -5730,7 +5806,7 @@ hide-by-sig lookup.
         an_arg_match_summary
                  match;
         a_type_ptr this_param_type =
-                 this_param_type_for_overload_res(routine_type,
+                   implicit_object_parameter_type(routine_type,
                                                   surrogate_function_conv_sym,
                                                   /*is_conv_func=*/TRUE);
         if (this_param_type == NULL) {
@@ -5745,10 +5821,12 @@ hide-by-sig lookup.
                                     /*allow_expl_conv_funcs=*/FALSE,
                                     &match);
         } else {
-          determine_selector_match_level(class_object->type,
+          determine_selector_match_level(class_object,
+                                         (a_type_ptr)NULL,
                                          /*selector_is_object_pointer=*/
                                                                    handle_case,
                                          this_param_type,
+                                         routine_type,
                                          &match);
         }  /* if */
         /* coverity[uninit_use] */ /* Coverity bug */
@@ -6063,41 +6141,26 @@ Return TRUE if the indicated standard conversion is an identity conversion
 (i.e., no conversion at all, ignoring lvalue-to-rvalue conversions).
 is_ref is TRUE if the parameter has a reference type.  For a reference
 binding, type_qualifiers_added does not indicate a qualification
-conversion; secondary_type_qualifiers_added does.  is_this is TRUE if
-the parameter is the "this" parameter.  Lvalue-to-rvalue conversions
-are ignored in this test because of [over.ics.rank] paragraph 3 first
-bullet first sub-bullet "excluding any Lvalue Transformation" in the
-subsequence check.
+conversion; secondary_type_qualifiers_added does.  Lvalue-to-rvalue
+conversions are ignored in this test because of [over.ics.rank]
+paragraph 3 first bullet first sub-bullet "excluding any Lvalue
+Transformation" in the subsequence check.
 */
-#define is_identity_conversion(is_ref, is_this, conv) \
+#define is_identity_conversion(is_ref, conv) \
   (!(conv)->nontrivial_conversion && \
-   ((is_this) || \
-    !((is_ref) ? (conv)->secondary_type_qualifiers_added : \
-                 (conv)->type_qualifiers_added)))
+   !((is_ref) ? (conv)->secondary_type_qualifiers_added : \
+                 (conv)->type_qualifiers_added))
 
 /*
 Return TRUE if the indicated standard conversion is a qualification
 conversion.  is_ref is TRUE if the parameter has a reference type.
 For a reference binding, type_qualifiers_added does not indicate a
 qualification conversion; secondary_type_qualifiers_added does.
-is_this is TRUE if the parameter is the "this" parameter.
-(The "this" parameter always binds directly, so any qualifiers
-indicated don't count as a qualification conversion.)
 */
-#define is_qualification_conversion(is_ref, is_this, conv) \
+#define is_qualification_conversion(is_ref, conv) \
   (!(conv)->nontrivial_conversion && \
-   !(is_this) && \
    ((is_ref) ? (conv)->secondary_type_qualifiers_added : \
                (conv)->type_qualifiers_added))
-
-/*
-Return TRUE if the indicated parameter type is a reference type, or if
-it is a pointer type for the implicit "this" parameter, which is treated
-by the standard as a reference-equivalent in overload resolution.
-*/
-#define is_ref_or_ref_equivalent(param_type, arg_match) \
-  (is_any_reference_type(param_type) || \
-   ((arg_match)->is_match_for_this_param && is_pointer_type(param_type)))
 
 
 static int compare_reference_matches(an_arg_match_summary *arg_match1,
@@ -6122,9 +6185,11 @@ lvalue reference to that argument.
       is_reference_type(arg_type1) &&
       is_reference_type(arg_type2) &&
       /* This comparison does not apply if either binding is for the
-         "this" parameter. */
-      !arg_match1->is_match_for_this_param &&
-      !arg_match2->is_match_for_this_param &&
+         "this" parameter with a default ref-qualifier. */
+      !(arg_match1->is_match_for_this_param &&
+        arg_match1->ref_qualifier == (a_ref_qualifier_kind)rqk_default) &&
+      !(arg_match2->is_match_for_this_param &&
+        arg_match2->ref_qualifier == (a_ref_qualifier_kind)rqk_default) &&
       (is_rvalue_reference_type(arg_type1) !=
                                         is_rvalue_reference_type(arg_type2))) {
     if (is_rvalue_reference_type(arg_type1)) {
@@ -6223,26 +6288,22 @@ apply that would make one better than the other, and return
                              (microsoft_version >= 1300 ||
                               (is_ptr_or_ref_type(param_type1) &&
                                is_ptr_or_ref_type(param_type2)))));
-        a_boolean param1_is_this = arg_match1->is_match_for_this_param;
-        a_boolean param2_is_this = arg_match2->is_match_for_this_param;
-        a_boolean param1_is_ref =
-                             is_ref_or_ref_equivalent(param_type1, arg_match1);
-        a_boolean param2_is_ref =
-                             is_ref_or_ref_equivalent(param_type2, arg_match2);
+        a_boolean param1_is_ref = is_any_reference_type(param_type1);
+        a_boolean param2_is_ref = is_any_reference_type(param_type2);
         /* If one conversion sequence is an identity conversion (i.e.,
            no change at all) and the other has a qualification conversion,
            the identity conversion is a subsequence of the other and is
            better. */
         if (do_subsequence_test &&
-            is_identity_conversion(param1_is_ref, param1_is_this,
+            is_identity_conversion(param1_is_ref,
                                    &arg_match1->conversion.std) &&
-            is_qualification_conversion(param2_is_ref, param2_is_this,
+            is_qualification_conversion(param2_is_ref,
                                         &arg_match2->conversion.std)) {
           cmp = 1;
         } else if (do_subsequence_test &&
-                   is_identity_conversion(param2_is_ref, param2_is_this,
+                   is_identity_conversion(param2_is_ref,
                                           &arg_match2->conversion.std) &&
-                   is_qualification_conversion(param1_is_ref, param1_is_this,
+                   is_qualification_conversion(param1_is_ref,
                                                &arg_match1->conversion.std)) {
           cmp = -1;
         } else if (rvalue_references_enabled &&
@@ -6810,11 +6871,11 @@ nonstandard).
     /* Both functions add cv-qualifiers, but only one is a "this" match. */
     a_type_qualifier_set qualifiers1 = TQ_NONE,
                          qualifiers2 = TQ_NONE;
-    if (is_ref_or_ref_equivalent(arg_match1->param_type, arg_match1)) {
+    if (is_any_reference_type(arg_match1->param_type)) {
       a_type_ptr base_param_type1 = type_pointed_to(arg_match1->param_type);
       qualifiers1 = simple_qualifiers(get_type_qualifiers(base_param_type1));
     }  /* if */
-    if (is_ref_or_ref_equivalent(arg_match2->param_type, arg_match2)) {
+    if (is_any_reference_type(arg_match2->param_type)) {
       a_type_ptr base_param_type2 = type_pointed_to(arg_match2->param_type);
       qualifiers2 = simple_qualifiers(get_type_qualifiers(base_param_type2));
     }  /* if */
@@ -12824,8 +12885,7 @@ are considered).  conv_context describes the context of the conversion.
         However, we must also see whether or not it can be called for this
         argument (i.e., are the type qualifiers okay), and how good the
         match is. */
-    eff_this_param_type =
-                       this_param_type_for_overload_res(conv_routine_type,
+    eff_this_param_type= implicit_object_parameter_type(conv_routine_type,
                                                         conversion_symbol,
                                                         /*is_conv_func=*/TRUE);
     if (eff_this_param_type == NULL) {
@@ -12848,14 +12908,16 @@ are considered).  conv_context describes the context of the conversion.
               ) {
       selector_match_with_this_param(source_operand,
                                      conversion_routine,
+                                     conv_routine_type,
                                      eff_this_param_type,
                                      &this_match);
     } else {
       /* We only have a source type, not a source operand. */
-      determine_selector_match_level(source_type,
+      determine_selector_match_level((an_operand *)NULL, source_type,
                                      /*selector_is_object_pointer=*/
                                         is_pointer_or_handle_type(source_type),
                                      eff_this_param_type,
+                                     conv_routine_type,
                                      &this_match);
     }  /* if */
     /* Ignore this function if it cannot be called for this argument. */
@@ -23596,7 +23658,8 @@ assignment operator.
                                               &ostblock));
          sym != NULL;
          sym = next_symbol_in_overload_set(&ostblock)) {
-      a_boolean local_uncallable;
+      an_operand selector;
+      a_boolean  local_uncallable;
 #if DEBUG
       if (debug_level >= 4 || db_flag_is_set("overload")) {
         db_display_overload_level();
@@ -23617,14 +23680,16 @@ assignment operator.
         goto reject_function;
       }  /* if */
       /* See if the destination type matches as a selector. */
-      this_param_type =
-                      this_param_type_for_overload_res(routine_type,
+      this_param_type = implicit_object_parameter_type(routine_type,
                                                        overloaded_sym,
                                                        /*is_conv_func=*/FALSE);
+      check_assertion(this_param_type != NULL);
       selector_type = make_qualified_type(class_type, dest_cv_qualifiers);
-      determine_selector_match_level(selector_type,
+      make_dummy_lvalue_operand(selector_type, &selector);
+      determine_selector_match_level(&selector, (a_type_ptr)NULL,
                                      /*selector_is_object_pointer=*/FALSE,
                                      this_param_type,
+                                     routine_type,
                                      selector_match);
       if (selector_match->match_level == aml_none) {
         /* This assignment operator cannot be used. */

@@ -12784,6 +12784,20 @@ arguments may be brace-enclosed lists, in prototype instantiations.
 }  /* make_expr_list_from_argument_list */
 
 
+void make_dummy_lvalue_operand(a_type_ptr type,
+                               an_operand *operand)
+/*
+Make a placeholder lvalue operand whose type is "type".
+*/
+{
+  an_expr_node_ptr expr;
+
+  expr = make_dummy_lvalue_expr(type);
+  make_lvalue_expression_operand(expr, operand);
+  operand->is_dummy_lvalue = TRUE;
+}  /* make_dummy_lvalue_operand */
+
+
 void template_binary_operation(an_expr_operator_kind   op,
                                an_operand              *operand_1,
                                an_operand              *operand_2,

@@ -1,5 +1,24 @@
 Version 4.7
 
+4/23/13  [EDGcpfe/8627]
+C++11: ref-qualifiers on member functions
+
+C++11 adds ref-qualifiers on member function declarations, which
+allows the declaration of functions that will operate only on
+lvalue or rvalue objects.  Now implemented.  See paper N2439.
+
+  extern "C" int printf(const char *, ...);
+  struct A {
+    void p() & { printf("&\n"); }
+    void p() && { printf("&&\n"); }
+  };
+  int main() {
+    A a;
+    a.p();    // &
+    A().p();  // &&
+  }
+
+
 4/23/13  [EDGcpfe/7689,EDGcpfe/12842]
 C++11: Delegating constructors
 

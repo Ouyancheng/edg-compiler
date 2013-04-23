@@ -2444,6 +2444,9 @@ extern an_expr_node_ptr make_expr_from_argument(an_arg_list_elem_ptr arg);
 extern an_expr_node_ptr make_expr_list_from_argument_list(
                                                 an_arg_list_elem_ptr arg_list);
 
+extern void make_dummy_lvalue_operand(a_type_ptr type,
+                                      an_operand *operand);
+
 extern
 void template_binary_operation(an_expr_operator_kind   op,
                                an_operand              *operand_1,

@@ -5037,9 +5037,14 @@ are expected to be NULL in that case.
          Note that if a base class cast was required, it has already been
          done during the function binding, so the differences at this
          point (other than for error cases) are const/non-const differences. */
+      a_type_ptr this_param_type = 
+                        implicit_object_parameter_type(routine_type,
+                                                       (a_symbol *)NULL,
+                                                       /*is_conv_func=*/FALSE);
       selector_match_with_this_param(bound_function_selector,
                                      routine,
-                                     implicit_this_param_type_of(routine_type),
+                                     routine_type,
+                                     this_param_type,
                                      &this_match_summary);
       if (this_match_summary.match_level != aml_none) {
         /* The types are compatible. */
@@ -10653,20 +10658,6 @@ result in *result (or an error indication in *rcblock).
 
   db_exit();
 }  /* scan_alignof_operator */
-
-
-static void make_dummy_lvalue_operand(a_type_ptr type,
-                                      an_operand *operand)
-/*
-Make a placeholder lvalue operand whose type is "type".
-*/
-{
-  an_expr_node_ptr expr;
-
-  expr = make_dummy_lvalue_expr(type);
-  make_lvalue_expression_operand(expr, operand);
-  operand->is_dummy_lvalue = TRUE;
-}  /* make_dummy_lvalue_operand */
 
 
 #if !EXTRA_SOURCE_POSITIONS_IN_IL
