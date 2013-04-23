@@ -2817,7 +2817,7 @@ handling).
     }  /* if */
   }  /* if */
   delegating_constructors_enabled = value;
-  ref_qualifiers_enabled = value;
+  ref_qualifiers_enabled = rvalue_references_enabled;
   constexpr_enabled = value;
 }  /* check_and_set_cpp11_mode_options */
 
@@ -9937,6 +9937,7 @@ variables declared in cmd_line.h.
   opaque_enum_decls_enabled = FALSE;
   lambdas_enabled = DEFAULT_LAMBDAS_ENABLED;
   rvalue_references_enabled = DEFAULT_RVALUE_REFERENCES_ENABLED;
+  ref_qualifiers_enabled = rvalue_references_enabled;
   rvalue_ctor_is_copy_ctor = TRUE;
   generate_move_operations = FALSE;
   local_types_as_template_args_enabled = FALSE;
