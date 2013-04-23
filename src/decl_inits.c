@@ -6132,6 +6132,11 @@ reflect the initialization.  Otherwise, return FALSE.
              copied. */
           check_assertion_or_expect_error(class_symbol_supp(symbol_for(tp))
                                       ->construction_by_bitwise_copy_allowed);
+        } else if (dip->kind == (a_dynamic_init_kind)dik_zero) {
+          /* This can happen when forwarding to a trivial default
+             constructor. */
+          check_assertion_or_expect_error(has_trivial_default_constructor(
+                                           class_symbol_supp(symbol_for(tp))));
         } else if (dip->kind == (a_dynamic_init_kind)dik_constant ||
                    dip->kind ==
                               (a_dynamic_init_kind)dik_nonconstant_aggregate) {
