@@ -3473,10 +3473,8 @@ kind of mismatch here.
     selector = NULL;
     if (is_pointer_or_handle_type(selector_type)) {
       selector_type = type_pointed_to(selector_type);
-      if (could_be_dependent_class_type(selector_type)) {
-        selector_type = type_of_unknown_templ_param_nontype;
-      }  /* if */
     } else if (could_be_dependent_class_type(selector_type)) {
+      /* A dependent class could have an operator-> function. */
       selector_type = type_of_unknown_templ_param_nontype;
     } else {
       check_assertion(is_error_type(selector_type));
