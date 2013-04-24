@@ -9124,8 +9124,10 @@ error messages.
   }  /* while */
 return_point:
   end_of_curr_token = curr_char_loc;
-  if (unterminated) end_of_curr_token--;
-  if (raw_string_delimiter_len < 0) {
+  if (unterminated) {
+    end_of_curr_token--;
+    *num_chars += nchars;
+  } else if (raw_string_delimiter_len < 0) {
     *num_chars += nchars;
   } else {
     *num_chars += nchars - raw_string_delimiter_len -
