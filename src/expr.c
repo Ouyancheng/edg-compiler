@@ -33699,6 +33699,7 @@ handle_implicit_lambda_return_type:
             !is_template_param_type(result.type)) {
           if (!is_error_operand(&result)) {
             error_in_operand(err_code, &result);
+            expression = error_node();
           }  /* if */
         }  /* if */
       }  /* if */
