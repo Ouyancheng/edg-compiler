@@ -1,5 +1,27 @@
 Version 4.7
 
+4/24/13  [EDGcpfe/13937]
+Missing is_partially_initialized flag on initializer_list array constant
+
+When a member of an initializer_list included both a dynamic initialization
+and also partial initialization of an aggregate, the is_partially_initialized
+flag on the ck_aggregate constant for the array was sometimes not
+properly set.  This could cause problems later, e.g., an assertion
+failure in the C-generating back end.  Now fixed.
+
+  #include <initializer_list>
+  struct A {
+    int i;
+    int y[2];
+    struct B {
+      B();
+    } b;
+  };
+  int main() {
+    for (A a : {A{}}) ;
+  }
+
+
 4/24/13  [EDGcpfe/13934]
 Core issue 1402
 

@@ -20970,6 +20970,7 @@ errors should be suppressed (i.e., SFINAE mode).
       }  /* if */
     } else {
       /* Not checking for overload resolution. */
+      if (init_state.partial_initializer) is_partially_initialized = TRUE;
       if (!init_state.init_error && init_state.init_dip != NULL) {
         /* The initialization is dynamic. */
         dip = init_state.init_dip;
@@ -20984,7 +20985,6 @@ errors should be suppressed (i.e., SFINAE mode).
           /* The initialization is to a constant. */
           con = init_state.init_con;
           check_assertion(con != NULL);
-          if (init_state.partial_initializer) is_partially_initialized = TRUE;
         }  /* if */
         /* If a destructor must be specified, force a dynamic
            initialization. */
@@ -22309,6 +22309,9 @@ will be an lvalue instead of the usual rvalue.
     } else {
       check_assertion(is->init_dip != NULL);
       if (is_error_dynamic_init(is->init_dip)) is->init_error = TRUE;
+      if (is->init_dip->is_partially_initialized) {
+        is->partial_initializer = TRUE;
+      }  /* if */
     }  /* if */
   }  /* if */
   if (dip == NULL && dip_to_mark != NULL) {
