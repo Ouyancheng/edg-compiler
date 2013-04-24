@@ -903,10 +903,6 @@ which will be tokenized as a single tok_colon_colon (in C++).
     (void)get_token();
   }  /* if */
   while (curr_token == tok_string_literal || curr_token == tok_lbracket) {
-    /* There is a hard limit of thirty operands per assembly instruction. */
-    if (n == 30) {
-      error(ec_too_many_asm_operands);
-    }  /* if */
     *p_operands = alloc_asm_operand();
     asm_operand(*p_operands, operands, output);
     p_operands = &(*p_operands)->next;

@@ -1,5 +1,13 @@
 Version 4.7
 
+4/23/13  [EDGcpfe/13936]
+GNU compatibility: Extended asm operand limitation
+
+Previously, the front end imposed a limit of 30 total (i.e., input and output)
+operand descriptions in extended GNU asm constructs.  This limit has now been
+lifted.
+
+
 4/23/13  [EDGcpfe/8627]
 C++11: ref-qualifiers on member functions
 
