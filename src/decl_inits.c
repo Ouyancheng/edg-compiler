@@ -6130,8 +6130,14 @@ reflect the initialization.  Otherwise, return FALSE.
             }  /* if */
           } else {
             /* During prototype instantiations we may not be able to resolve
-               the constructor. */
+               the constructor.  If the class is referred to through a
+               typedef or alias, this may be okay, but if the injected
+               class name is used directly, there really is no matching
+               constructor. */
             check_assertion_or_expect_error(ctor->is_prototype_instantiation);
+            if (is_injected_template_symbol(sym)) {
+              pos_sy_error(ec_no_matching_constructor, &pos, sym);
+            }  /* if */
           }  /* if */
         } else if (dip->kind == (a_dynamic_init_kind)dik_expression) {
           /* When forwarding to a trivial copy constructor, the dynamic init
