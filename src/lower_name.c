@@ -1921,10 +1921,10 @@ arg_done:;
 }  /* mangled_encoding_for_parameter_types */
 
 
-static void mangled_encoding_for_ref_qualifiers(a_type_ptr               type,
-                                                a_mangling_control_block *mctl)
+static void mangled_encoding_for_ref_qualifier(a_type_ptr               type,
+                                               a_mangling_control_block *mctl)
 /*
-Add an indication of the ref-qualifiers (if any) for the specified function
+Add an indication of the ref-qualifier (if any) for the specified function
 type.
 */
 {
@@ -1945,7 +1945,7 @@ type.
 #endif /* !IA64_ABI */
     add_str_to_mangled_name(s, mctl);
   }  /* if */
-}  /* mangled_encoding_for_ref_qualifiers */
+}  /* mangled_encoding_for_ref_qualifier */
 
 
 #if !IA64_ABI
@@ -1980,8 +1980,8 @@ must not have been lowered (lowering can modify the parameters or return type).
     /* Start with the "F" indicating a function type. */
     add_to_mangled_name('F', mctl);
 #if !IA64_ABI
-    /* Add mangled encoding for ref-qualifiers, if any. */
-    mangled_encoding_for_ref_qualifiers(type, mctl);
+    /* Add mangled encoding for a ref-qualifier, if any. */
+    mangled_encoding_for_ref_qualifier(type, mctl);
 #endif /* !IA64_ABI */
     if (c_and_cpp_function_types_are_distinct &&
         type->variant.routine.extra_info->routine_name_linkage ==
@@ -2009,9 +2009,9 @@ must not have been lowered (lowering can modify the parameters or return type).
   }  /* if */
 #else /* IA64_ABI */
   if (do_markers) {
-    /* Add mangled encoding for ref-qualifiers, if any.  Note that there are
+    /* Add mangled encoding for a ref-qualifier, if any.  Note that there are
        no substitutions for the non-ref-qualified function type. */
-    mangled_encoding_for_ref_qualifiers(type, mctl);
+    mangled_encoding_for_ref_qualifier(type, mctl);
     /* Mark the end of the function type. */
     add_to_mangled_name('E', mctl);
   }  /* if */
@@ -8382,6 +8382,11 @@ determination is made by the callee.
       mangled_encoding_for_function_qualifiers(routine->type,
                                                scp->is_class_member,
                                                mctl);
+      if (scp->is_class_member) {
+        /* Mangle a ref-qualifier (if present) in a nonstatic member function
+           name. */
+        mangled_encoding_for_ref_qualifier(skip_typerefs(routine->type), mctl);
+      }  /* if */
     }  /* if */
     /* Put out the components of the nested name except for the final one.
        The caller will put out the final name and then close the nested

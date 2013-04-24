@@ -3863,6 +3863,14 @@ typedef int a_cv_qualifier_set;
 #define CVQ_VOLATILE	((a_cv_qualifier_set)0x2)
 #define CVQ_RESTRICT	((a_cv_qualifier_set)0x4)
 
+/*
+Values used to represent an optional ref-qualifier.
+*/
+typedef int a_ref_qualifier;
+#define REFQ_NONE	((a_ref_qualifier)0)
+#define REFQ_LVALUE	((a_ref_qualifier)0x1)
+#define REFQ_RVALUE	((a_ref_qualifier)0x2)
+
 
 /*
 Information about a function that has to be preserved from the
@@ -3877,6 +3885,10 @@ typedef struct a_func_block {
 		cv_quals;
 			/* If the function is a cv-qualified member function,
 			   the set of cv-qualifiers.  0 otherwise. */
+  a_ref_qualifier
+		ref_qual;
+			/* If the function is a ref-qualified member function,
+			   the ref-qualifier.  0 otherwise. */
   char		ctor_dtor_kind;
 			/* If the function is a constructor or destructor,
 			   the character from the mangled name identifying its
@@ -4015,6 +4027,7 @@ Clear a function information block to default values.
 {
   func_block->no_return_type = FALSE;
   func_block->cv_quals = 0;
+  func_block->ref_qual = REFQ_NONE;
   func_block->ctor_dtor_kind = ' ';
 }  /* clear_func_block */
 
@@ -4396,6 +4409,26 @@ but currently the front end doesn't use any).
 }  /* get_cv_qualifiers */
 
 
+static char *get_ref_qualifier(char            *ptr,
+                               a_ref_qualifier *ref_qual)
+/*
+Advance over a ref-qualifier (lvalue/rvalue) at the indicated location
+and return in *ref_qual a value indicating the ref-qualifier encountered.
+Return a pointer to the character position following what was demangled.
+*/
+{
+  *ref_qual = REFQ_NONE;
+  if (*ptr == 'R') {
+    *ref_qual = REFQ_LVALUE;
+    ptr++;
+  } else if (*ptr == 'O') {
+    *ref_qual = REFQ_RVALUE;
+    ptr++;
+  }  /* if */
+  return ptr;
+}  /* get_ref_qualifier */
+
+
 static a_boolean is_vendor_extended_declarator(char *ptr)
 /*
 Returns TRUE if the location pointed to by ptr contains an EDG-specific vendor
@@ -4453,6 +4486,20 @@ put out.
   }  /* if */
   if (any_previous && trailing_space) write_id_ch(' ', dctl);
 }  /* output_cv_qualifiers */
+
+
+static void output_ref_qualifier(a_ref_qualifier            ref_qual,
+                                 a_decode_control_block_ptr dctl)
+/*
+Output a ref-qualifier (lvalue/rvalue) if ref_qual indicates there is one.
+*/
+{
+  if (ref_qual == REFQ_LVALUE) {
+    write_id_str("&", dctl);
+  } else if (ref_qual & REFQ_RVALUE) {
+    write_id_str("&&", dctl);
+  }  /* if */
+}  /* output_ref_qualifier */
 
 
 static char *demangle_template_param(char                       *ptr,
@@ -4941,6 +4988,7 @@ to be on top of the type.  If parse_template_args is TRUE then any
     /* Output the cv-qualifiers on the pointer, if any. */
     output_cv_qualifiers(cv_quals, /*trailing_space=*/TRUE, dctl);
   } else if (kind == 'F') {
+    a_ref_qualifier dummy;
     /* Function type, F [Y] <bare-function-type> [<ref-qualifier>] E
        where "Y" indicates extern "C" (and is ignored here). */
     p = skip_extern_C_indication(p+1);
@@ -4953,7 +5001,7 @@ to be on top of the type.  If parse_template_args is TRUE then any
     p = demangle_bare_function_type(p, /*no_return_type=*/TRUE, BFT_NONE,
                                     dctl);
     /* Look for an optional ref-qualifier (and skip it in this pass). */
-    if (*p == 'R' || *p == 'O') p++;
+    p = get_ref_qualifier(p, &dummy);
     p = advance_past('E', p, dctl);
     /* This is a right-side declarator, so if it's under a left-side declarator
        parentheses are needed. */
@@ -5080,7 +5128,8 @@ to be on top of the type.
     demangle_type_second_part(p, CVQ_NONE, /*under_lhs_declarator=*/TRUE,
                               dctl);
   } else if (kind == 'F') {
-    char *returnt, *ref_qual = NULL;
+    char *returnt;
+    a_ref_qualifier ref_qual;
     /* Function type, F [Y] <bare-function-type> [<ref-qualifier>] E
        where "Y" indicates extern "C" (and is ignored here). */
     /* This is a right-side declarator, so if it's under a left-side declarator
@@ -5094,13 +5143,8 @@ to be on top of the type.
     p = demangle_bare_function_type(p, /*no_return_type=*/FALSE, BFT_PARAMS,
                                     dctl);
     dctl->suppress_substitution_recording--;
-    if (*p == 'R') {
-      p++;
-      ref_qual = "&";
-    } else if (*p == 'O') {
-      p++;
-      ref_qual = "&&";
-    }  /* if */
+    /* Get a ref-qualifier if there is one. */
+    p = get_ref_qualifier(p, &ref_qual);
     p = advance_past('E', p, dctl);
     /* Put out any cv-qualifiers (member functions). */
     /* Note that such things could come up on nonmember functions in the
@@ -5112,11 +5156,14 @@ to be on top of the type.
       write_id_ch(' ', dctl);
       output_cv_qualifiers(cv_quals, /*trailing_space=*/FALSE, dctl);
     }  /* if */
+    if (ref_qual != REFQ_NONE) {
+      /* Output a ref-qualifier, if any. */
+      write_id_ch(' ', dctl);
+      output_ref_qualifier(ref_qual, dctl);
+    }  /* if */
     /* Output the return type. */
     demangle_type_second_part(returnt, CVQ_NONE,
                               /*under_lhs_declarator=*/FALSE, dctl);
-    /* Output ref-qualifiers, if any. */
-    if (ref_qual != NULL) write_id_str(ref_qual, dctl);
   } else if (kind == 'A') {
     /* Array type,
          A <positive dimension number> _ <element type>
@@ -6725,8 +6772,10 @@ a pointer to the character position following what was demangled.
 A <nested-name> represents a qualified name, e.g., A::B::x.
 The syntax is:
 
-    <nested-name> ::= N [<CV-qualifiers>] <prefix> <unqualified-name> E
-                  ::= N [<CV-qualifiers>] <template-prefix> <template-args> E
+    <nested-name> ::= N [<CV-qualifiers>] [<ref-qualifier>]
+                                            <prefix> <unqualified-name> E
+                  ::= N [<CV-qualifiers>] [<ref-qualifier>]
+                                            <template-prefix> <template-args> E
     <prefix> ::= <prefix> <unqualified-name>
              ::= <template-prefix> <template-args>
              ::= <template-param>
@@ -6750,6 +6799,8 @@ For function names, additional information is returned in *func_block.
   ptr++;
   /* Accumulate <CV-qualifiers> if present. */
   ptr = get_cv_qualifiers(ptr, &func_block->cv_quals);
+  /* Save a <ref-qualifier> if present. */
+  ptr = get_ref_qualifier(ptr, &func_block->ref_qual);
   /* Get all the components of the nested name. */
   ptr = demangle_nested_name_components(ptr,
                                         /*num_levels=*/0,
@@ -7344,6 +7395,11 @@ non-template functions).
       write_id_ch(' ', dctl);
       output_cv_qualifiers(func_block.cv_quals,
                            /*trailing_space=*/FALSE, dctl);
+    }  /* if */
+    if (include_func_params && func_block.ref_qual != REFQ_NONE) {
+      /* Put out ref-qualifier for a member function. */
+      write_id_ch(' ', dctl);
+      output_ref_qualifier(func_block.ref_qual, dctl);
     }  /* if */
     if (!include_func_params) dctl->suppress_id_output--;
   }  /* if */
