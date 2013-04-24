@@ -3192,6 +3192,30 @@ copy-initialization).
       goto have_level;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     }  /* if */
+  } else {
+    /* User-defined conversions are not allowed. */
+    if (param_is_class_type && arg_is_class_type && param_is_reference &&
+        !ref_type_qualifiers_dropped &&
+        (could_be_dependent_class_type(arg_type) ||
+         could_be_dependent_class_type(param_type))) {
+      /* Dependent types don't usually come here, but they do when
+         selector_match_with_this_param is called for a non-overloaded
+         function.  The question then is "is there a match" and not so much
+         "how good a match is it".  We'll call it a standard conversion
+         arbitrarily, on the assumption that there will be a base class
+         relationship in a real instantiation.  Also note that we come
+         here only when the underlying class types are not the same and
+         don't have an obvious base class relationship, because we want
+         to identify those cases when we can. */
+      arg_summary->match_level = aml_std_conversion;
+      arg_summary->conversion.std.cast_base_class = NULL;
+      arg_summary->conversion.std.nontrivial_conversion = TRUE;
+      /* The operand need not be forced to an rvalue. */
+      if (arg_operand != NULL) {
+        arg_summary->conversion.result_is_an_lvalue= is_an_lvalue(arg_operand);
+      }  /* if */
+      goto have_level;
+    }  /* if */
   }  /* if */
   /* Case [5] in the ARM, match with ellipsis, is handled by the caller. */
   /* No match is possible. */
