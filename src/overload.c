@@ -4819,6 +4819,14 @@ the point of call.  conv_context describes the context of the conversion.
         if (routine_type == NULL) goto reject_function;
       }  /* if */
     }  /* if */
+    if (rvalue_references_enabled &&
+        routine->is_deleted && routine->is_defaulted &&
+        (routine_is_move_constructor(routine) ||
+         routine_is_move_assignment_operator(routine))) {
+      /* Core issue 1402: defaulted and deleted move constructors and
+         move assignment operators are ignored by overload resolution. */
+      goto reject_function;
+    }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
     /* Constructors for C++/CLI managed classes can't be used for casts
        other than functional-notation casts, nor for copy-initialization.
