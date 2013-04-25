@@ -16272,6 +16272,9 @@ expression, and return the result in *result (or an error indication in
       /* Scan from source. */
       alep = scan_braced_init_list_internal(/*bundle=*/FALSE);
     }  /* if */
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+    end_position = *init_component_end_pos(alep);
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
     expr_clear_init_state(&init_state);
     init_state.variable_size_array = variable_size_array;
     init_state.initializer_can_dimension_array = TRUE;

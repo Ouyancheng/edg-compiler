@@ -1,5 +1,12 @@
 Version 4.7
 
+4/25/13  [EDGcpfe/13942]
+Incorrect end position on expression for "new" with braced-init-list
+
+The end position was not set correctly for a "new" operator with a
+brace-enclosed initializer.  Now fixed.
+
+
 4/24/13  [EDGcpfe/13937]
 Missing is_partially_initialized flag on initializer_list array constant
 
