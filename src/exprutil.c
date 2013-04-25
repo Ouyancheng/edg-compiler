@@ -15425,15 +15425,16 @@ error cases.
     }  /* if */
     if (function_operand->bound_function) {
       /* Bound function.  bound_function_selector indicates the object. */
+      a_type_ptr this_type = implicit_this_param_type_of(function_type);
       selector_is_object_pointer =
                            bound_function_selector->selector_is_object_pointer;
       if (unknown_dependent_function ||
           (is_template_dependent_context() &&
-           is_template_dependent_type(bound_function_selector->type))) {
+           (is_template_dependent_type(bound_function_selector->type) ||
+            is_template_dependent_type(this_type)))) {
         /* In a prototype instantiation, a selector might have a type that's
            not demonstrably related to the "this" type.  Leave it alone. */
       } else {
-        a_type_ptr this_type = implicit_this_param_type_of(function_type);
 #if CHECKING
         /* There shouldn't be a base-class adjustment here.  If there is,
            make_this_pointer_operand or cast_pointer_for_field_selection
