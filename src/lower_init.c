@@ -4509,7 +4509,7 @@ routine will be the same as the one passed in.
     if (new_routine == NULL) {
       a_type_ptr                    routine_type =skip_typerefs(routine->type);
       a_type_ptr                    this_param_type, return_type;
-      a_param_type_ptr              last_param_type;
+      a_param_type_ptr              param_type, last_param_type;
       a_routine_type_supplement_ptr rtsp, new_rtsp;
       a_storage_class               new_storage_class;
       rtsp = routine->type->variant.routine.extra_info;
@@ -4637,10 +4637,10 @@ routine will be the same as the one passed in.
           (new_routine->special_kind ==
                                      (a_special_function_kind)sfk_destructor &&
            dtor_needs_vtt_argument(new_routine))) {
-        /* A VTT parameter is necessary, but that shouldn't arise here
-           (because the subobject would be the primary and in that case the
-           VTT is added in lower_constructor_routine_type). */
-        unexpected_condition();
+        /* Add a VTT parameter if necessary. */
+        param_type = alloc_param_type(make_virtual_table_table_pointer_type());
+        last_param_type->next = param_type;
+        last_param_type = param_type;
       }  /* if */
       /* Copy the remainder of the parameters. */
       copy_and_lower_param_type_list(routine, last_param_type, 
