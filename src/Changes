@@ -32,10 +32,10 @@ failure in the C-generating back end.  Now fixed.
 4/24/13  [EDGcpfe/13934]
 Core issue 1402
 
-We now implement Core Issue 1402, which says that defaulted and deleted
-move constructors and move assignment operators should be ignored by
-overload resolution.  Implementing that fixed a compilation problem with
-the gcc 4.7.2 stl_tree.h header file.
+We now implement (part of) Core Issue 1402, which says that move
+constructors and move assignment operators that are both defaulted and
+deleted should be ignored by overload resolution.  Implementing that
+fixed a compilation problem with the gcc 4.7.2 stl_tree.h header file.
 
 
 4/23/13  [EDGcpfe/13936]
