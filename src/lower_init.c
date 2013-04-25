@@ -4631,6 +4631,17 @@ routine will be the same as the one passed in.
       rlep->next = routine->variant.ctor_dtor.alternate_entry_points;
       routine->variant.ctor_dtor.alternate_entry_points = rlep;
       last_param_type = new_rtsp->param_type_list;
+      if ((new_routine->special_kind ==
+                                    (a_special_function_kind)sfk_constructor &&
+           ctor_needs_vtt_argument(new_routine)) ||
+          (new_routine->special_kind ==
+                                     (a_special_function_kind)sfk_destructor &&
+           dtor_needs_vtt_argument(new_routine))) {
+        /* A VTT parameter is necessary, but that shouldn't arise here
+           (because the subobject would be the primary and in that case the
+           VTT is added in lower_constructor_routine_type). */
+        unexpected_condition();
+      }  /* if */
       /* Copy the remainder of the parameters. */
       copy_and_lower_param_type_list(routine, last_param_type, 
                                      /*do_default_args=*/TRUE,
