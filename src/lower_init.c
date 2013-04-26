@@ -7876,11 +7876,12 @@ statement/expression lowering process (mostly by lower_dynamic_init).
   a_constructor_init_ptr  ctor_init;
   a_constructor_init_ptr  prev = NULL;
   a_boolean               has_ctor_inits;
+  a_routine_ptr           routine = scope->variant.routine.ptr;
 
   check_assertion(scope->kind == (a_scope_kind)sck_function);
-  has_ctor_inits = ((scope->variant.routine.ptr->special_kind ==
+  has_ctor_inits = ((routine->special_kind ==
                                     (a_special_function_kind)sfk_constructor ||
-                     scope->variant.routine.ptr->special_kind ==
+                     routine->special_kind ==
                                     (a_special_function_kind)sfk_destructor) &&
                      scope->variant.routine.constructor_inits != NULL);
 #if DEBUG
@@ -7965,6 +7966,12 @@ statement/expression lowering process (mostly by lower_dynamic_init).
     }  /* if */
   }  /* if */
 #endif /* DEBUG */
+  if (routine->is_delegating_ctor &&
+      scope->variant.routine.constructor_inits == NULL) {
+    /* The target constructor for this delegating constructor does nothing and
+       has been removed, making this no longer a delegating constructor. */
+    routine->is_delegating_ctor = FALSE;
+  }  /* if */
 }  /* remove_unneeded_constructions_and_destructions */
 
 #endif /* LOWERING_REMOVES_UNNEEDED_CONSTRUCTIONS_AND_DESTRUCTIONS */
