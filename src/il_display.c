@@ -3199,6 +3199,9 @@ Display the indicated routine.
   if (ptr->is_trivial_copy_function) {
     disp_boolean("is_trivial_copy_function", TRUE);
   }  /* if */
+  if (ptr->is_trivial_destructor) {
+    disp_boolean("is_trivial_destructor", TRUE);
+  }  /* if */
   if (ptr->is_initializer_list_ctor) {
     disp_boolean("is_initializer_list_ctor", TRUE);
   }  /* if */

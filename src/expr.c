@@ -11215,13 +11215,20 @@ static void scan_is_constructible(a_builtin_operation_kind_tag kind,
 Scan a constant-expression having one of the following forms:
       __is_constructible( T , Args... )
       __is_nothrow_constructible( T , Args... )
+      __is_trivially_constructible( T , Args... )
 The result is a boolean of value true if the following variable definition
 would be well-formed for some invented variable t:
       T t(create<Args>()...);
+with
+      template<class T>
+        typename add_rvalue_reference<T>::type create();
 If kind is bok_is_nothrow_constructible, the definition must be known not to
-throw any exceptions.  If rcblock is non-NULL, redo semantic analysis on a
-previously-scanned __is_constructible/__is_nothrow_constructible expression,
-and return the result in *result (or an error indication in *rcblock).
+throw any exceptions.  If kind is bok_is_trivially_constructible, the
+definition must be known not to involve a non-trivial (copy) construction.
+If rcblock is non-NULL, redo semantic analysis on a previously-scanned
+__is_constructible/__is_nothrow_constructible/__is_trivially_constructible
+expression, and return the result in *result (or an error indication in
+*rcblock).
 */
 {
   a_type_ptr  result_type;
@@ -11246,6 +11253,97 @@ and return the result in *result (or an error indication in *rcblock).
     conv_to_error_operand(result);
   }  /* if */
 }  /* scan_is_constructible */
+
+
+static void scan_is_destructible(a_builtin_operation_kind_tag kind,
+                                 a_rescan_control_block       *rcblock,
+                                 an_operand                   *result)
+/*
+Scan a constant-expression having one of the following forms:
+      __is_destructible( T )
+      __is_nothrow_destructible( T )
+      __is_trivially_destructible( T )
+The result is a boolean of value true if
+      declval<U&>().~U()
+is well-formed, where U is T minus any top-level "array of" layers and the
+declval template is declared as follows:
+      template<class T>
+        typename add_rvalue_reference<T>::type declval() noexcept;
+In the case of __is_nothrow_destructible, a true result also means it is known
+that no exception is thrown for the destruction, and in the case of
+__is_trivially_destructible the destructor is trivial.
+If rcblock is non-NULL, redo semantic analysis on a previously-scanned
+__is_destructible/__is_nothrow_destructible/__is_trivially_destructible
+expression, and return the result in *result (or an error indication in
+*rcblock).
+*/
+{
+  a_type_ptr  result_type;
+
+  if (!type_traits_helpers_enabled) {
+    /* Type traits helpers are not accepted in some modes. */
+    if (expr_error_should_be_issued()) {
+      check_assertion(rcblock == NULL);
+      pos_st_error(ec_feature_not_allowed_in_current_mode, &pos_curr_token,
+                   builtin_operation_names[(int)kind]);
+    }  /* if */
+    result_type = boolean_result_type();
+  } else {
+    result_type = bool_type();
+  }  /* if */
+  scan_call_like_builtin_operation(rcblock, kind, result_type,
+                                   iek_type, iek_none, /*arg2_repeats=*/FALSE,
+                                   result);
+  if (!type_traits_helpers_enabled) {
+    /* Turn the operand into an error operand to avoid any surprises later
+       on. */
+    conv_to_error_operand(result);
+  }  /* if */
+}  /* scan_is_destructible */
+
+
+static void scan_is_assignable(a_builtin_operation_kind_tag kind,
+                               a_rescan_control_block       *rcblock,
+                               an_operand                   *result)
+/*
+Scan a constant-expression having one of the following forms:
+      __is_nothrow_assignable( T , U )
+      __is_trivially_assignable( T , U )
+The result is a boolean of value true if
+      declval<T>() = declval<U>()
+with
+      template<class T>
+        typename add_rvalue_reference<T>::type declval() noexcept;
+is well-formed, and it is known no exception is thrown for the assignment (for
+the __is_nothrow_assignable case) or all calls involved are to trivial special
+members (in the __is_trivially_assignable case).
+If rcblock is non-NULL, redo semantic analysis on a previously-scanned
+__is_nothrow_assignable/__is_trivially_assignable expression, and return the
+result in *result (or an error indication in *rcblock).
+*/
+{
+  a_type_ptr  result_type;
+
+  if (!type_traits_helpers_enabled) {
+    /* Type traits helpers are not accepted in some modes. */
+    if (expr_error_should_be_issued()) {
+      check_assertion(rcblock == NULL);
+      pos_st_error(ec_feature_not_allowed_in_current_mode, &pos_curr_token,
+                   builtin_operation_names[(int)kind]);
+    }  /* if */
+    result_type = boolean_result_type();
+  } else {
+    result_type = bool_type();
+  }  /* if */
+  scan_call_like_builtin_operation(rcblock, kind, result_type,
+                                   iek_type, iek_type, /*arg2_repeats=*/FALSE,
+                                   result);
+  if (!type_traits_helpers_enabled) {
+    /* Turn the operand into an error operand to avoid any surprises later
+       on. */
+    conv_to_error_operand(result);
+  }  /* if */
+}  /* scan_is_assignable */
 
 
 static void scan_unary_type_trait_helper(a_rescan_control_block *rcblock,
@@ -28691,6 +28789,40 @@ handle_identifier:
                             (a_rescan_control_block *)NULL,
                             &local_result);
       break;
+    case tok_is_trivially_constructible:
+      /* __is_trivially_constructible construct: */
+      scan_is_constructible(bok_is_trivially_constructible,
+                            (a_rescan_control_block *)NULL,
+                            &local_result);
+      break;
+    case tok_is_destructible:
+      /* __is_destructible construct: */
+      scan_is_destructible(bok_is_destructible,
+                           (a_rescan_control_block *)NULL,
+                           &local_result);
+      break;
+    case tok_is_nothrow_destructible:
+      /* __is_nothrow_destructible construct: */
+      scan_is_destructible(bok_is_nothrow_destructible,
+                           (a_rescan_control_block *)NULL,
+                           &local_result);
+      break;
+    case tok_is_trivially_destructible:
+      /* __is_trivially_destructible construct: */
+      scan_is_destructible(bok_is_trivially_destructible,
+                           (a_rescan_control_block *)NULL,
+                           &local_result);
+      break;
+    case tok_is_nothrow_assignable:
+      /* __is_nothrow_assignable construct: */
+      scan_is_assignable(bok_is_nothrow_assignable,
+                         (a_rescan_control_block *)NULL, &local_result);
+      break;
+    case tok_is_trivially_assignable:
+      /* __is_trivially_assignable construct: */
+      scan_is_assignable(bok_is_trivially_assignable,
+                         (a_rescan_control_block *)NULL, &local_result);
+      break;
 
 #if GNU_EXTENSIONS_ALLOWED
     case tok_builtin_types_compatible:
@@ -35263,6 +35395,31 @@ alternative callable from outside, see rescan_expr_with_substitution.
         /* __is_nothrow_constructible construct: */
         scan_is_constructible(bok_is_nothrow_constructible, rcblock, result);
         break;
+      case tok_is_trivially_constructible:
+        /* __is_trivially_constructible construct: */
+        scan_is_constructible(bok_is_nothrow_constructible, rcblock, result);
+        break;
+      case tok_is_destructible:
+        /* __is_destructible construct: */
+        scan_is_destructible(bok_is_destructible, rcblock, result);
+        break;
+      case tok_is_nothrow_destructible:
+        /* __is_nothrow_destructible construct: */
+        scan_is_constructible(bok_is_nothrow_destructible, rcblock, result);
+        break;
+      case tok_is_trivially_destructible:
+        /* __is_trivially_destructible construct: */
+        scan_is_constructible(bok_is_nothrow_destructible, rcblock, result);
+        break;
+        break;
+      case tok_is_nothrow_assignable:
+        /* __is_nothrow_assignable construct: */
+        scan_is_constructible(bok_is_nothrow_assignable, rcblock, result);
+        break;
+      case tok_is_trivially_assignable:
+        /* __is_trivially_assignable construct: */
+        scan_is_constructible(bok_is_nothrow_assignable, rcblock, result);
+        break;
 #if GNU_COMPLEX_EXTENSIONS_ALLOWED
       case tok_gnu_real:
       case tok_gnu_imag:
@@ -37081,6 +37238,44 @@ of this where the source should be considered an rvalue.
 }  /* compute_is_convertible */
 
 
+static an_arg_list_elem_ptr make_declval_operand(a_type_ptr  tp)
+/*
+Create and return an operand corresponding to "std::declval<T>()" where T is
+the given type.
+*/
+{
+  an_arg_list_elem_ptr  result = NULL;
+  a_boolean             make_lvalue = FALSE;
+  an_operand            *arg_operand;
+
+  if (is_lvalue_reference_type(tp)) {
+    make_lvalue = TRUE;
+    tp = type_pointed_to(tp);
+  } else if (is_rvalue_reference_type(tp)) {
+    make_lvalue = FALSE;
+    tp = type_pointed_to(tp);
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  } else if (is_tracking_reference_type(tp)) {
+    make_lvalue = TRUE;
+    tp = type_pointed_to(tp);
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+  }  /* if */
+  complete_type_is_needed(tp);
+  if (is_incomplete_type(tp)) {
+    /* Invalid type: Return NULL. */
+    goto done;
+  }  /* if */
+  result = alloc_init_component((an_init_component_kind)ick_expression);
+  arg_operand = operand_of_arg_list_elem(result);
+  make_dummy_lvalue_operand(tp, arg_operand);
+  if (!make_lvalue) {
+    do_operand_transformations(arg_operand, TOPT_NO_OPTIONS);
+  }  /* if */
+done:
+  return result;
+}  /* make_declval_operand */
+
+                                 
 a_boolean compute_is_constructible(a_builtin_operation_kind kind,
                                    a_type_ptr               dst_type,
                                    an_expr_node_ptr         args)
@@ -37113,45 +37308,28 @@ empty) list of type operands args, and returns TRUE if so.
   } else {
     /* Make a list of expressions of the required types. */
     an_arg_list_elem_ptr alep;
-    an_operand           *arg_operand;
     an_operand           operand;
     an_expr_node_ptr     argn;
     for (argn = args; argn != NULL; argn = argn->next) {
-      a_boolean  make_lvalue = FALSE;
       a_type_ptr typen;
       check_assertion(argn->kind == (an_expr_node_kind)enk_type_operand);
       typen = argn->variant.type_operand.type;
-      if (is_lvalue_reference_type(typen)) {
-        make_lvalue = TRUE;
-        typen = type_pointed_to(typen);
-      } else if (is_rvalue_reference_type(typen)) {
-        make_lvalue = FALSE;
-        typen = type_pointed_to(typen);
-#if MICROSOFT_EXTENSIONS_ALLOWED
-      } else if (is_tracking_reference_type(typen)) {
-        make_lvalue = TRUE;
-        typen = type_pointed_to(typen);
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-      }  /* if */
-      complete_type_is_needed(typen);
-      if (is_incomplete_type(typen)) {
+      alep = make_declval_operand(typen);
+      if (alep == NULL) {
+        /* The value creation expression is ill-formed: Return a "false"
+           result. */
         result = FALSE;
         goto have_result;
       }  /* if */
-      alep = alloc_init_component((an_init_component_kind)ick_expression);
-      arg_operand = operand_of_arg_list_elem(alep);
       if (arg_list == NULL) {
         arg_list = alep;
       } else {
         end_arg_list->next = alep;
       }  /* if */
       end_arg_list = alep;
-      make_dummy_lvalue_operand(typen, arg_operand);
-      if (!make_lvalue) {
-        do_operand_transformations(arg_operand, TOPT_NO_OPTIONS);
-      }  /* if */
     }  /* for */
     expr_stack->suppress_diagnostics = TRUE;
+    expr_stack->suppress_constexpr_call_folding = TRUE;
     /* Model the initialization as a functional-notation cast, with
        error suppressed. */
     scan_functional_notation_type_conversion((a_rescan_control_block *)NULL,
@@ -37163,13 +37341,14 @@ empty) list of type operands args, and returns TRUE if so.
                                              &operand,
                                              EOPT_NO_OPTIONS);
     result = !expr_stack->any_suppressed_error;
-    if (result &&
-        kind == (a_builtin_operation_kind)bok_is_nothrow_constructible &&
-        is_expression_operand(&operand) &&
-        expr_might_throw(operand.variant.expression)) {
-      /* The generated expression might throw, so the predicate fails
-         for the __is_nothrow_constructible case. */
-      result = FALSE;
+    if (result && is_expression_operand(&operand)) {
+      an_expr_node_ptr expr = operand.variant.expression;
+      if (kind == (a_builtin_operation_kind)bok_is_nothrow_constructible) {
+        result = !expr_might_throw(expr);
+      } else if (kind == (a_builtin_operation_kind)
+                                             bok_is_trivially_constructible) {
+        result = !expr_calls_nontrivial_function(expr);
+      }  /* if */
     }  /* if */
   }  /* if */
 have_result:
@@ -37178,6 +37357,159 @@ have_result:
   restore_expr_stack(saved_expr_stack);
   return result;
 }  /* compute_is_constructible */
+
+
+a_boolean compute_is_destructible(a_builtin_operation_kind kind,
+                                  a_type_ptr               type)
+/*
+Compute the "is_destructible" type predicate of the C++ standard.  It
+determines whether std::declval<U>().~U() is valid when U is the given type
+minus any top-level "array of" layers.
+kind is bok_is_destructible, bok_is_nothrow_destructible (which also checks
+whether it is known that no exception is thrown by the destruction), or
+bok_is_trivially_destructible (which produces a true value only if the
+invoked destructor is trivial).
+*/
+{
+  a_boolean               result = FALSE;
+  an_expr_stack_entry     expr_stack_entry;
+  an_expr_stack_entry_ptr saved_expr_stack;
+
+  complete_type_is_needed(type);
+  if (is_function_type(type) || is_incomplete_type(type)) {
+    result = FALSE;
+  } else {
+    if (is_array_type(type)) type = underlying_array_element_type(type);
+    type = skip_typerefs(type);
+    if (!is_immediate_class_type(type)) {
+      /* For non-class types, "destruction" semantics are always trivial. */
+      result = TRUE;
+    } else {
+      a_routine_ptr  dtor;
+      /* Even though this is not an expression scan, make sure the expr_stack
+         has something on it.  If there is already something on the stack,
+         save it, clear the stack, and restore it later. */
+      save_expr_stack(&saved_expr_stack);
+      push_expr_stack((an_expression_kind)ek_sizeof, &expr_stack_entry,
+                      /*force_object_lifetime=*/FALSE,
+                      /*suppress_object_lifetime=*/TRUE);
+      expr_stack->suppress_diagnostics = TRUE;
+      expr_stack_entry.evaluated = FALSE;
+      expr_stack_entry.potentially_evaluated = FALSE;
+      dtor = expr_select_destructor(type, type, &pos_curr_token,
+                                    /*honor_virtual=*/TRUE);
+      result = !expr_stack->any_suppressed_error;
+      if (result && dtor != NULL) {
+        if (dtor->is_deleted ||
+            dtor->source_corresp.access != (an_access_specifier)as_public) {
+          result = FALSE;
+        } else if (kind == (a_builtin_operation_kind)
+                                                bok_is_nothrow_destructible) {
+          result = is_non_throwing_routine(dtor);
+        } else if (kind == (a_builtin_operation_kind)
+                                              bok_is_trivially_destructible) {
+          result = dtor->is_trivial_destructor;
+        }  /* if */
+      }  /* if */
+      pop_expr_stack();
+      restore_expr_stack(saved_expr_stack);
+    }  /* if */
+  }  /* if */
+
+  return result;
+}  /* compute_is_destructible */
+
+
+a_boolean compute_is_assignable(a_builtin_operation_kind kind,
+                                a_type_ptr               dst_type,
+                                a_type_ptr               src_type)
+/*
+Compute the "is_assignable" type relationship predicate of the C++ standard.
+It determines whether an assignment between two types -- the given destination
+and source types -- is valid (and whether that assignment is known to throw
+an exception or involve a call to a function other than a trivial special
+member function).
+kind is bok_is_nothrow_assignable or bok_is_trivially_assignable.
+*/
+{
+  a_boolean               result = FALSE;
+  an_expr_stack_entry     expr_stack_entry;
+  an_expr_stack_entry_ptr saved_expr_stack;
+  an_arg_list_elem_ptr    arg_list = NULL;
+
+  /* Even though this is not an expression scan, make sure the expr_stack
+     has something on it.  If there is already something on the stack,
+     save it, clear the stack, and restore it later. */
+  save_expr_stack(&saved_expr_stack);
+  push_expr_stack((an_expression_kind)ek_sizeof, &expr_stack_entry,
+                  /*force_object_lifetime=*/FALSE,
+                  /*suppress_object_lifetime=*/TRUE);
+  complete_type_is_needed(dst_type);
+  complete_type_is_needed(src_type);
+  if (is_void_type(dst_type) ||
+      is_array_type(dst_type) ||
+      is_function_type(dst_type) ||
+      is_incomplete_type(dst_type)) {
+    result = FALSE;
+  } else if (is_void_type(dst_type) ||
+             is_array_type(dst_type) ||
+             is_function_type(dst_type) ||
+             is_incomplete_type(dst_type)) {
+    result = FALSE;
+  } else {
+    /* Make a pair of expressions of the required types. */
+    an_arg_list_elem_ptr  dst_op, src_op;
+    an_operand            result_op;
+    dst_op = arg_list = make_declval_operand(dst_type);
+    if (dst_op == NULL) {
+      /* The value creation expression is ill-formed: Return a "false"
+         result. */
+      result = FALSE;
+      goto have_result;
+    }  /* if */
+    src_op = arg_list->next = make_declval_operand(src_type);
+    if (src_op == NULL) {
+      /* The value creation expression is ill-formed: Return a "false"
+         result. */
+      result = FALSE;
+      goto have_result;
+    }  /* if */
+    /* Check the validity of the assignment. */
+    expr_stack->suppress_diagnostics = TRUE;
+    expr_stack->suppress_constexpr_call_folding = TRUE;
+    process_simple_assignment(operand_of_arg_list_elem(dst_op),
+                              operand_of_arg_list_elem(src_op),
+                              &pos_curr_token,
+                              curr_token_sequence_number,
+                              /*check_for_overloading=*/TRUE,
+                              &result_op);
+    result = !expr_stack->any_suppressed_error;
+    if (result) {
+      if (kind == (a_builtin_operation_kind)bok_is_nothrow_assignable) {
+        if (is_expression_operand(&result_op) &&
+            expr_might_throw(result_op.variant.expression)) {
+          /* The generated expression might throw, so the predicate fails
+             for the __is_nothrow_assignable case. */
+          result = FALSE;
+        }  /* if */
+      } else if (kind == (a_builtin_operation_kind)
+                                                bok_is_trivially_assignable) {
+        if (is_expression_operand(&result_op) &&
+            expr_calls_nontrivial_function(result_op.variant.expression)) {
+          /* The generated expression involves a call to a nontrivial special
+             member. */
+          result = FALSE;
+        }  /* if */
+      }  /* if */
+    }  /* if */
+  }  /* if */
+have_result:
+  free_init_component_list(arg_list);
+  pop_expr_stack();
+  restore_expr_stack(saved_expr_stack);
+
+  return result;
+}  /* compute_is_assignable */
 
 
 /******************************************************************************

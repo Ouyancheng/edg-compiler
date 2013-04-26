@@ -11035,7 +11035,7 @@ accordingly.
              };
          For now, cssp->construction_by_bitwise_copy_allowed is left unchanged
          so that it reflects whether generated/defaulted copy constructors
-         would be trivial (see also mark_trivial_copy_functions). */
+         would be trivial (see also mark_trivial_special_members). */
       cssp->has_user_provided_copy_constructor = TRUE;
     }  /* if */
   } else if (!compiler_generated && routine_is_move_constructor(rout_ptr)) {
@@ -18543,12 +18543,13 @@ some Microsoft modes, record that the body cannot be generated).
 }  /* generate_destructor */
 
 
-static void mark_trivial_copy_functions(a_class_def_state_ptr  class_state)
+static void mark_trivial_special_members(a_class_def_state_ptr  class_state)
 /*
 Set the is_trivial_copy_function flag to TRUE for every trivial copy/move
 constructor routine or trivial copy/move assignment routine of the class
-described by class_state.  (These are compiler-generated or explicitly-
-defaulted member functions.)
+described by class_state.  Also set the is_trivial_destructor flag if the
+destructor of that class is trivial.  (These are compiler-generated or
+explicitly defaulted member functions.)
 */
 {
   a_type_ptr  class_type = class_state->class_type;
@@ -18584,7 +18585,13 @@ defaulted member functions.)
       }  /* if */
     }  /* if */
   }  /* if */
-}  /* mark_trivial_copy_functions */
+  if (cssp->destructor != NULL && cssp->has_trivial_destructor) {
+    a_routine_ptr  dtor = cssp->destructor->variant.routine.ptr;
+    if (dtor->compiler_generated || dtor->is_defaulted) {
+      dtor->is_trivial_destructor = TRUE;
+    }  /* if */
+  }  /* if */
+}  /* mark_trivial_special_members */
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
 
@@ -19406,11 +19413,11 @@ The routine body is not generated until it is known to be needed.
       /* Add the implicit declaration of the move assignment operator. */
       generate_move_assignment_operator(class_state);
   }  /* if */
-  mark_trivial_copy_functions(class_state);
+  mark_trivial_special_members(class_state);
   /* If there were user-provided copy constructors and/or user-provided copy
      assignment operators, set construction_by_bitwise_copy_allowed and/or
      assignment_by_bitwise_copy_allowed to FALSE.  This must happen after
-     the call to mark_trivial_copy_functions. */
+     the call to mark_trivial_special_members. */
   if (cssp->has_user_provided_copy_constructor ||
       cssp->has_user_provided_move_constructor) {
     cssp->construction_by_bitwise_copy_allowed = FALSE;

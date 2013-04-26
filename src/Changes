@@ -1,5 +1,16 @@
 Version 4.7
 
+4/26/13  [EDGcpfe/11272,EDGcpfe/13707]
+Additional type traits helpers
+
+When type traits helpers are enabled (particularly, in C++11 mode) the front
+end now recognizes the following additional helpers: __is_nothrow_assignable,
+__is_trivially_assignable, __is_trivially_constructible, __is_destructible,
+__is_nothrow_destructible, and __is_trivially_destructible.  Each of these
+corresponds to the similarly named class templates in the C++11 standard
+library (e.g., std::is_destructible<T>).
+
+
 4/25/13  [EDGcpfe/13942]
 Incorrect end position on expression for "new" with braced-init-list
 

@@ -1196,6 +1196,12 @@ typedef enum /*a_token_kind*/ {
   tok_has_nothrow_move_assign,
   tok_is_constructible,
   tok_is_nothrow_constructible,
+  tok_is_trivially_constructible,
+  tok_is_destructible,
+  tok_is_nothrow_destructible,
+  tok_is_trivially_destructible,
+  tok_is_nothrow_assignable,
+  tok_is_trivially_assignable,
   tok_underlying_type,
 #if MICROSOFT_EXTENSIONS_ALLOWED
   tok_has_finalizer,
@@ -1345,6 +1351,12 @@ EXTERN char	*token_names[(int)tok_last+1]
    "__has_nothrow_move_assign",
    "__is_constructible",
    "__is_nothrow_constructible",
+   "__is_trivially_constructible",
+   "__is_destructible",
+   "__is_nothrow_destructible",
+   "__is_trivially_destructible",
+   "__is_nothrow_assignable",
+   "__is_trivially_assignable",
    "__underlying_type",
 #if MICROSOFT_EXTENSIONS_ALLOWED
    "__has_finalizer",
@@ -12768,6 +12780,11 @@ typedef struct a_routine {
 			   constructor or a trivial copy or move assignment
 			   operator.  The operation performed by such a
 			   routine is a bitwise copy.  C++ only. */
+  a_bit_field	is_trivial_destructor:1;
+			/* TRUE if this routine is a trivial destructor
+			   (implicitly generated or defaulted).  Such a 
+			   constructor has no effect, and hence calls to it
+			   can be elided.  C++ only. */
   a_bit_field	is_initializer_list_ctor:1;
 			/* TRUE if this routine is an initializer list
 			   constructor. */
@@ -14179,6 +14196,18 @@ typedef enum a_builtin_operation_kind_tag {
 			/* __is_simple_value_class.  One operand: A type. */
   bok_is_value_class,	/* __is_value_class.  One operand: A type. */
   bok_is_final,		/* __is_final.  One operand: A type. */
+  bok_is_trivially_constructible,
+			/* __is_trivially_constructible.  One or more operands,
+			   all types. */
+  bok_is_nothrow_assignable,
+			/* __is_nothrow_assignable.  Two type operands. */
+  bok_is_trivially_assignable,
+			/* __is_trivially_assignable.  Two type operands. */
+  bok_is_destructible,	/* __is_destructible.  One type operand. */
+  bok_is_nothrow_destructible,
+			/* __is_nothrow_destructible.  One type operand. */
+  bok_is_trivially_destructible,
+			/* __is_trivially_destructible.  One type operand. */
   bok_last              /* Marks the end of the list. */
 } a_builtin_operation_kind_tag;
 /* Define as "a_byte" to explicitly control storage size. */
@@ -17869,6 +17898,12 @@ EXTERN char     *builtin_operation_names[(int)bok_last+1]
   "__is_simple_value_class",
   "__is_value_class",
   "__is_final",
+  "__is_trivially_constructible",
+  "__is_destructible",
+  "__is_nothrow_destructible",
+  "__is_trivially_destructible",
+  "__is_trivially_assignable",
+  "__is_nothrow_assignable",
   "last"
 }
 #endif /* VAR_INITIALIZERS */

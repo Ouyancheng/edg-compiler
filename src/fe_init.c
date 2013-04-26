@@ -582,6 +582,17 @@ modes.
   enter_keyword((a_token_kind)tok_is_constructible, "__is_constructible");
   enter_keyword((a_token_kind)tok_is_nothrow_constructible,
                 "__is_nothrow_constructible");
+  enter_keyword((a_token_kind)tok_is_trivially_constructible,
+                "__is_trivially_constructible");
+  enter_keyword((a_token_kind)tok_is_destructible, "__is_destructible");
+  enter_keyword((a_token_kind)tok_is_nothrow_destructible,
+                "__is_nothrow_destructible");
+  enter_keyword((a_token_kind)tok_is_trivially_destructible,
+                "__is_trivially_destructible");
+  enter_keyword((a_token_kind)tok_is_nothrow_assignable,
+                "__is_nothrow_assignable");
+  enter_keyword((a_token_kind)tok_is_trivially_assignable,
+                "__is_trivially_assignable");
   enter_keyword((a_token_kind)tok_underlying_type, "__underlying_type");
   enter_keyword((a_token_kind)tok_is_final, "__is_final");
 #if MICROSOFT_EXTENSIONS_ALLOWED

@@ -6816,15 +6816,20 @@ static void fold_is_constructible(an_expr_node_ptr   expr,
                                   a_constant_ptr     constant,
                                   a_boolean          maintain_expression)
 /*
-expr is an enk_builtin_operation node for an __is_constructible or
-__is_nothrow_constructible operation.  Store a boolean constant in *constant
-whose value is "true" if the following variable definition
-would be well-formed for some invented variable t:
+expr is an enk_builtin_operation node for an __is_constructible,
+__is_nothrow_constructible, or __is_trivially_constructible operation.  Store
+a boolean constant in *constant whose value is "true" if the following
+variable definition would be well-formed for some invented variable t:
       T t(create<Args>()...);
+with
+      template<class T>
+        typename add_rvalue_reference<T>::type create();
 If the built-in operation kind is bok_is_nothrow_constructible, the definition
-must be known not to throw any exceptions.  If any of the operand types is
-dependent, store a ck_template_param constant in *constant.  The constant will
-be of the tpck_expression variant and will point to the given expression.
+must be known not to throw any exceptions.  If the built-in operation kind is
+bok_is_trivially_constructible, the definition must be known not to involve a
+non-trivial (copy) construction.  If any of the operand types is dependent,
+store a ck_template_param constant in *constant.  The constant will be of the
+tpck_expression variant and will point to the given expression.
 If maintain_expression is TRUE, the backing expression for the returned
 constant will be set as well.
 */
@@ -6873,6 +6878,107 @@ constant will be set as well.
   }  /* if */
   constant->type = expr->type;
 }  /* fold_is_constructible */
+
+
+static void fold_is_destructible(an_expr_node_ptr   expr,
+                                 a_constant_ptr     constant,
+                                 a_boolean          maintain_expression)
+/*
+expr is an enk_builtin_operation node for an __is_destructible,
+__is_nothrow_destructible, or __is_trivially_assignable operation.  Store a
+boolean constant in *constant whose value is "true" if
+      declval<U&>().~U()
+is well-formed, where U is the argument type minus any top-level "array of"
+layers and the declval template is declared as follows:
+      template<class T>
+        typename add_rvalue_reference<T>::type declval() noexcept;
+In the case of __is_nothrow_destructible, a true result also means it is known
+that no exception is thrown for the destruction, and in the case of
+__is_trivially_destructible the destructor is trivial.  If any of the operand
+types is dependent, store a ck_template_param constant in *constant.  The
+constant will be of the tpck_expression variant and will point to the given
+expression.  If maintain_expression is TRUE, the backing expression for the
+returned constant will be set as well.
+*/
+{
+  a_builtin_operation_kind
+                    kind = expr->variant.builtin_operation.kind;
+  an_expr_node_ptr  arg1 = expr->variant.builtin_operation.operands;
+  a_type_ptr        type1;
+
+  /* eok_parens shouldn't appear here, since the construct is generated. */
+  check_assertion(arg1 != NULL &&
+                  arg1->kind == (an_expr_node_kind)enk_type_operand);
+  type1 = arg1->variant.type_operand.type;
+  if (is_template_dependent_type(type1)) {
+    /* The type is dependent, so the result is still unknown. */
+    clear_constant(constant, (a_constant_repr_kind)ck_template_param);
+    set_template_param_constant_kind(
+                   constant, (a_template_param_constant_kind)tpck_expression);
+    constant->variant.template_param.variant.expr = expr;
+  } else {
+    a_boolean  result = compute_is_destructible(kind, type1);
+    arg1->variant.type_operand.definition_needed = TRUE;
+    clear_constant(constant, (a_constant_repr_kind)ck_integer);
+    set_integer_value(&constant->variant.integer_value,
+                      (a_host_large_integer)result);
+    if (maintain_expression) constant->expr = expr;
+  }  /* if */
+  constant->type = expr->type;
+}  /* fold_is_destructible */
+
+
+static void fold_is_assignable(an_expr_node_ptr   expr,
+                               a_constant_ptr     constant,
+                               a_boolean          maintain_expression)
+/*
+expr is an enk_builtin_operation node for an __is_nothrow_assignable or
+__is_trivially_assignable operation.  Store a boolean constant in *constant
+whose value is "true" if
+      declval<T>() = declval<U>()
+with
+      template<class T>
+        typename add_rvalue_reference<T>::type declval() noexcept;
+is well-formed, and it is known no exception is thrown for the assignment (for
+the __is_nothrow_assignable case) or all calls involved are to trivial special
+members (in the __is_trivially_assignable case).  If any of the operand types
+is dependent, store a ck_template_param constant in *constant.  The constant
+will be of the tpck_expression variant and will point to the given expression.
+If maintain_expression is TRUE, the backing expression for the returned
+constant will be set as well.
+*/
+{
+  a_builtin_operation_kind
+                    kind = expr->variant.builtin_operation.kind;
+  an_expr_node_ptr  arg1 = expr->variant.builtin_operation.operands, arg2;
+  a_type_ptr        type1, type2;
+
+  /* eok_parens shouldn't appear here, since the construct is generated. */
+  check_assertion(arg1 != NULL &&
+                  arg1->kind == (an_expr_node_kind)enk_type_operand);
+  arg2 = arg1->next;
+  check_assertion(arg2 != NULL &&
+                  arg2->kind == (an_expr_node_kind)enk_type_operand);
+  type1 = arg1->variant.type_operand.type;
+  type2 = arg2->variant.type_operand.type;
+  if (is_template_dependent_type(type1) || is_template_dependent_type(type2)) {
+    /* One or more of the types is dependent, so the result is still
+       unknown. */
+    clear_constant(constant, (a_constant_repr_kind)ck_template_param);
+    set_template_param_constant_kind(
+                   constant, (a_template_param_constant_kind)tpck_expression);
+    constant->variant.template_param.variant.expr = expr;
+  } else {
+    a_boolean  result = compute_is_assignable(kind, type1, type2);
+    arg1->variant.type_operand.definition_needed = TRUE;
+    arg2->variant.type_operand.definition_needed = TRUE;
+    clear_constant(constant, (a_constant_repr_kind)ck_integer);
+    set_integer_value(&constant->variant.integer_value,
+                      (a_host_large_integer)result);
+    if (maintain_expression) constant->expr = expr;
+  }  /* if */
+  constant->type = expr->type;
+}  /* fold_is_assignable */
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
 
@@ -7640,7 +7746,17 @@ constant is set as well.
         break;
       case bok_is_constructible:
       case bok_is_nothrow_constructible:
+      case bok_is_trivially_constructible:
         fold_is_constructible(expr, constant, maintain_expression);
+        break;
+      case bok_is_destructible:
+      case bok_is_nothrow_destructible:
+      case bok_is_trivially_destructible:
+        fold_is_destructible(expr, constant, maintain_expression);
+        break;
+      case bok_is_nothrow_assignable:
+      case bok_is_trivially_assignable:
+        fold_is_assignable(expr, constant, maintain_expression);
         break;
       default:
         unexpected_condition();

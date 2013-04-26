@@ -711,6 +711,15 @@ a_boolean compute_is_constructible(a_builtin_operation_kind kind,
                                    a_type_ptr               dst_type,
                                    an_expr_node_ptr         args);
 
+extern
+a_boolean compute_is_destructible(a_builtin_operation_kind kind,
+                                  a_type_ptr               type);
+
+extern
+a_boolean compute_is_assignable(a_builtin_operation_kind kind,
+                                a_type_ptr               dst_type,
+                                a_type_ptr               src_type);
+
 /*
 Macro that is TRUE if the node is an operation node.
 */

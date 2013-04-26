@@ -851,6 +851,11 @@ typedef struct an_expr_stack_entry {
 		in_noexcept_operand_expression;
 			/* TRUE if we're in the operand of a noexcept
 			   operator. */
+  a_byte_boolean
+		suppress_constexpr_call_folding;
+			/* TRUE to suppress folding of constexpr calls and
+			   constructions.  Used for
+			   __is_trivially_constructible. */
   a_dynamic_init_dtor_fixup_ptr
 		dynamic_init_dtor_fixup_list;
 			/* List of dynamic init entries for which destructor

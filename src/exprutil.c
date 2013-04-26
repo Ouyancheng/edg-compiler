@@ -1661,6 +1661,7 @@ is pushed regardless of any of the other factors.
   new_entry->constant_expr_ruled_out = FALSE;
   new_entry->traditional_const_expr_required = FALSE;
   new_entry->in_noexcept_operand_expression = FALSE;
+  new_entry->suppress_constexpr_call_folding = FALSE;
   new_entry->dynamic_init_dtor_fixup_list = NULL;
   new_entry->nested_construct_depth = 0;
   new_entry->lifetime = NULL;
@@ -5476,6 +5477,7 @@ of the call.
   a_boolean folded = FALSE;
 
   if (constexpr_enabled &&
+      !expr_stack->suppress_constexpr_call_folding &&
       (curr_expr_is_evaluated() ||
        expr_stack->in_noexcept_operand_expression)) {
     an_error_code failure_warning;
@@ -5520,7 +5522,9 @@ routines.  See fold_constexpr_ctor for the description of the parameters.
 {
   a_boolean folded = FALSE;
 
-  if (constexpr_enabled && curr_expr_is_evaluated()) {
+  if (constexpr_enabled &&
+      !expr_stack->suppress_constexpr_call_folding &&
+      curr_expr_is_evaluated()) {
     a_boolean need_backing_expr =
                      curr_expr_kind_is_one_in_which_const_exprs_are_recorded();
     if (fold_constexpr_ctor(ctor_dip, need_backing_expr, pos, result_con)) {

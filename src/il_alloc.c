@@ -2544,6 +2544,7 @@ to it.  The entry is allocated in the file scope memory region.
   rp->is_explicit_conversion_function = FALSE;
   rp->is_trivial_default_constructor = FALSE;
   rp->is_trivial_copy_function    = FALSE;
+  rp->is_trivial_destructor       = FALSE;
   rp->is_initializer_list_ctor    = FALSE;
   rp->is_delegating_ctor          = FALSE;
 #if ASSIGNMENT_TO_THIS_ALLOWED
