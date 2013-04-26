@@ -5770,6 +5770,7 @@ the mem-initializer.
     syntax_error(list_init_enabled ? ec_exp_lparen_or_brace : ec_exp_lparen);
     if (list_init_enabled) remove_stop_token(tok_lbrace);
     remove_stop_token(tok_lparen);
+    cip->initializer = make_error_constant_dynamic_init();
   }  /* if */
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   if (cip != NULL) {
@@ -6126,6 +6127,9 @@ reflect the initialization.  Otherwise, return FALSE.
                                                  dip->variant.constructor.ptr);
             if (target == ctor) {
               pos_error(ec_delegation_loop, &pos);
+              /* To avoid closing the loop in the delegation map (which could
+                 lead to unbounded recursion), proceed with a NULL target. */
+              target = NULL;
             }  /* if */
           } else {
             /* During prototype instantiations we may not be able to resolve
