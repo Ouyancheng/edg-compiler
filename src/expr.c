@@ -35411,7 +35411,6 @@ alternative callable from outside, see rescan_expr_with_substitution.
         /* __is_trivially_destructible construct: */
         scan_is_constructible(bok_is_nothrow_destructible, rcblock, result);
         break;
-        break;
       case tok_is_nothrow_assignable:
         /* __is_nothrow_assignable construct: */
         scan_is_constructible(bok_is_nothrow_assignable, rcblock, result);
