@@ -6028,9 +6028,8 @@ constructor it targets.  Otherwise, just return ctor.
   a_routine_ptr       target;
   a_void_pointer_pair **p_pair;
 
-  if (ctor->is_delegating_ctor) {
+  if (ctor->is_delegating_ctor && ctor_delegation_map != NULL) {
     /* Look up the nondelegating constructor in the delegation map. */
-    check_assertion(ctor_delegation_map != NULL);
     p_pair = (a_void_pointer_pair**)hash_find(
                      ctor_delegation_map, (a_void_ptr)ctor, /*create=*/FALSE);
     if (p_pair != NULL) {
@@ -6045,10 +6044,10 @@ constructor it targets.  Otherwise, just return ctor.
         check_assertion(target != ctor);
       }  /* if */
     } else {
-      expect_error();
       target = ctor;
     }  /* if */
   } else {
+    check_assertion_or_expect_error(!ctor->is_delegating_ctor);
     target = ctor;
   }  /* if */
   return target;
@@ -6133,12 +6132,19 @@ reflect the initialization.  Otherwise, return FALSE.
                the constructor. */
             check_assertion_or_expect_error(ctor->is_prototype_instantiation);
           }  /* if */
+        } else if (dip->kind ==
+                    (a_dynamic_init_kind)dik_call_returning_class_via_cctor) {
+          /* This is fairly unusual.  For example:
+                 extern struct X x;
+                 struct X {
+                   X(): X( []{return x;}() ) {}
+                   X(X const&) {}
+                 };
+          */
         } else if (dip->kind == (a_dynamic_init_kind)dik_expression) {
           /* When forwarding to a trivial copy constructor, the dynamic init
              entry just represents the expression whose value should be
              copied. */
-          check_assertion_or_expect_error(class_symbol_supp(symbol_for(tp))
-                                      ->construction_by_bitwise_copy_allowed);
         } else if (dip->kind == (a_dynamic_init_kind)dik_zero) {
           /* This can happen when forwarding to a trivial default
              constructor. */
