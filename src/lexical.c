@@ -9077,8 +9077,9 @@ error messages.
 #if MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED
       if (multibyte_chars_in_source_enabled) {
         /* Advance to the next character, dealing with multibyte characters. */
+        a_boolean err = FALSE;
 #if !EDG_WIN32
-        int numch = lex_mbc_length_simple(curr_char_loc);
+        int       numch = lex_mbc_length(curr_char_loc, &err);
 #else /* EDG_WIN32 */
         /* Windows has a bug that can cause the length returned by
            lex_mbc_length_simple to differ from what is returned by
@@ -9087,30 +9088,36 @@ error messages.
            lex_mbc_to_wide_char here. */
         unsigned long wc;
         int           numch = lex_mbc_to_wide_char(curr_char_loc,
-                                                   &wc, (a_boolean*)NULL);
+                                                   &wc, &err);
 #endif /* !EDG_WIN32 */
         /* Increment curr_char_loc by numch and create any logical
            character index entries. */
         incr_curr_char_loc_for_multibyte_char(numch);
-        switch (character_kind) {
-          case chk_char:
-            nchars += (unsigned long)numch;
-            break;
-          case chk_char32_t:
-            /* char32_t (kind == 'U') should be able to accommodate any
-               character code. */
-            ++nchars;
-            break;
-          case chk_char16_t:
-          case chk_wchar_t:
-            /* A single char16_t or wchar_t is not assumed to be sufficient
-               for a multibyte input character.  Instead, we assume the
-               longest encoding case. */
-            nchars += MAX_CHAR16_T_ENCODING_LENGTH;
-            break;
-          default:
-            unexpected_condition();
-        }  /* switch */
+        if (err) {
+          /* conv_string_literal will replace an erroneous multibyte
+             character with a single character. */
+          ++nchars;
+        } else {
+          switch (character_kind) {
+            case chk_char:
+              nchars += (unsigned long)numch;
+              break;
+            case chk_char32_t:
+              /* char32_t (kind == 'U') should be able to accommodate any
+                 character code. */
+              ++nchars;
+              break;
+            case chk_char16_t:
+            case chk_wchar_t:
+              /* A single char16_t or wchar_t is not assumed to be sufficient
+                 for a multibyte input character.  Instead, we assume the
+                 longest encoding case. */
+              nchars += MAX_CHAR16_T_ENCODING_LENGTH;
+              break;
+            default:
+              unexpected_condition();
+          }  /* switch */
+        }  /* if */
       } else
 #endif /* MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED */
       /* Do not insert code here -- this is the "else" of an "if". */

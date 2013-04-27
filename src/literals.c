@@ -1174,9 +1174,12 @@ defines the size of character.
   /* Multibyte character processing may be needed. */
   if (!multibyte_chars_in_source_enabled ||
       (process_escapes && **state->next_token_char == '\\') ||
-      **state->next_token_char == LE_ESCAPE) {
+      **state->next_token_char == LE_ESCAPE ||
+      state->remaining_char_count > 0 ||
+      (state->next_orig_line_modif != NULL &&
+       state->next_orig_line_modif->line_loc == *state->next_token_char)) {
     /* Use simple routine if multibyte characters are disabled or if
-       the character is an escape. */
+       the character is an escape or the result of a modification. */
     conv_single_char(state, process_escapes, ch, centity_mask,
                      /*narrow_literal=*/FALSE);
   } else {
