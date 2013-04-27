@@ -1576,9 +1576,16 @@ the string.
       raw_string_end_in_trigraph = TRUE;
     }  /* if */
   }  /* if */
-  /* Accumulate the characters. */
+  /* Accumulate the characters.  Loop until we reach the indicated end of
+     the string value.  The loop is extended while characters are pending,
+     either because a multibyte character is in process, or because of the
+     pathological ']' trigraph case mentioned above, or because a raw
+     string literal ended with a line splice that must be expanded. */
   while (temp_ptr < end_of_string_value + raw_string_end_in_trigraph ||
-         conv_state.remaining_char_count > raw_string_end_in_trigraph) {
+         conv_state.remaining_char_count > raw_string_end_in_trigraph ||
+         (conv_state.next_orig_line_modif != NULL &&
+          conv_state.next_orig_line_modif->kind == olm_line_splice &&
+          conv_state.next_orig_line_modif->line_loc == temp_ptr)) {
     /* Convert one character of the string literal. */
     switch (character_kind) {
       case chk_char:
