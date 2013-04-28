@@ -19651,7 +19651,7 @@ trivial copy assignment operator, or trivial destructor.
   clear_expr_or_stmt_traversal_block(&tblock);
   tblock.process_expr = examine_expr_for_nontrivial_call;
   tblock.process_dynamic_init = examine_dynamic_init_for_nontrivial_call;
-  // FIXME
+  /* FIXME */
   traverse_expr(expr, &tblock);
   return tblock.result;
 }  /* expr_calls_nontrivial_function */
