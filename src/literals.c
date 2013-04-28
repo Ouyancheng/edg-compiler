@@ -887,10 +887,22 @@ get_another:
         state->next_mbc_char = state->translated_char;
         break;
       case olm_multiline_string_splice:
-        /* scan_multiline_string inserted the two characters '\' and 'n'
-           into the source string to represent the newline.  Skip over
-           those characters and just return a newline character. */
-        targ_ch = TARG_NEWLINE_CHAR;
+        /* scan_multiline_string inserted the two characters '\' and either
+           'n' or 'r' into the source string to represent the newline.
+           Skip over those characters and just return a newline or carriage
+           return character. */
+#if ACCEPT_GNU_CARRIAGE_RETURN_LINE_TERMINATOR
+        if (lptr[1] == 'r') {
+          /* The line terminator was a carriage return, so return a
+             target carriage return character. */
+          targ_ch = TARG_CARR_RETURN_CHAR;
+        } else
+#endif /* ACCEPT_GNU_CARRIAGE_RETURN_LINE_TERMINATOR */
+        /* Do not insert code here. */
+        {
+          check_assertion(lptr[1] == 'n');
+          targ_ch = TARG_NEWLINE_CHAR;
+        }  /* if */
         lptr += 2;
         break;
       case olm_null:

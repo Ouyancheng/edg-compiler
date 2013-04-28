@@ -570,6 +570,14 @@ static sizeof_t	offset_of_nonsplice_backslash;
 			   curr_source_line is reallocated between calls
 			   to read_logical_source_line. */
 
+#if IGNORE_CARRIAGE_RETURN_IN_SOURCE
+static sizeof_t	num_ignored_carriage_returns;
+			/* Number of carriage returns that were discarded
+			   preceding the newline that terminates the
+			   current line.  Used to reinsert them in raw
+			   string literals. */
+#endif /* IGNORE_CARRIAGE_RETURN_IN_SOURCE */
+
 /*
 Hash table used by nested_source_line_modif to find the source
 line modification associated with the ATTENTION_MARKER at a given
@@ -6247,7 +6255,8 @@ after_end_of_all_source -- i.e., TRUE if no current source line was read.
 
 If extend_current_line is TRUE, read more characters onto the end of
 the current source line instead of beginning a new line.  This is used
-for the GNU C multiline string extension.
+for the GNU C multiline string extension and for multiline raw string
+literals in C++11.
 */
 {
   int             ch = 0;
@@ -6275,6 +6284,9 @@ for the GNU C multiline string extension.
   /* This routine handles translation phases 1 (trigraphs, newlines) and
      2 (line splices) from the description of translation phases in
      2.1.1.2 of the standard. */
+#if IGNORE_CARRIAGE_RETURN_IN_SOURCE
+  num_ignored_carriage_returns = 0;
+#endif /* IGNORE_CARRIAGE_RETURN_IN_SOURCE */
 #if !FULLY_RESOLVED_MACRO_POSITIONS
   /* Make sure a macro position is not inadvertently used. */
   pos_of_macro_invocation = null_source_position;
@@ -6487,6 +6499,7 @@ for the GNU C multiline string extension.
              lines, and that backslash has to be taken as a line
              splice). */
           while (*(loc_in_line-1) == '\r') {
+            ++num_ignored_carriage_returns;
             loc_in_line--;
             /* Avoid the line splice test if the line is empty except for
                the carriage return. */
@@ -6845,6 +6858,7 @@ entry_for_expand_buffer:
            they are present (there are Microsoft header files that have
            this). */
         while (*(loc_in_line-1) == '\r') {
+          ++num_ignored_carriage_returns;
           loc_in_line--;
           curr_column--;
           /* Avoid the line splice test if the line is empty except for the
@@ -9250,14 +9264,44 @@ start_of_raw_string_delimiter is not used.
   delim_ptr = start_of_raw_string_delimiter;
   while (curr_char_loc[0] == LE_ESCAPE &&
          curr_char_loc[1] == LE_NEWLINE) {
-    /* Inject the characters \ n on top of the NEWLINE escape,
-       and add an entry to the orig_line_modif_list so that this
-       can be undone. */
+    /* Inject the characters \ n (or \ r if the line was terminated by a
+       carriage return) on top of the NEWLINE escape and add an entry to
+       the orig_line_modif_list so that this can be undone. */
+#if IGNORE_CARRIAGE_RETURN_IN_SOURCE
+    if (raw_string_delimiter_len >= 0 && num_ignored_carriage_returns > 0) {
+      /* This is a raw string literal and read_logical_source_line
+         discarded some carriage return characters preceding the newline.
+         Restore them before adding the newline. */
+      sizeof_t count;
+      if (curr_char_loc + num_ignored_carriage_returns + 2 >=
+                                               after_end_of_curr_source_line) {
+        /* The carriage returns and the \ followed by n or r will not fit
+           in the current buffer. */
+        sizeof_t curr_offset = curr_char_loc - curr_source_line;
+        expand_curr_source_line();
+        curr_char_loc = curr_source_line + curr_offset;
+      }  /* if */
+      for (count = 0; count < num_ignored_carriage_returns; ++count) {
+        *curr_char_loc++ = '\r';
+      }  /* for */
+      *num_chars += num_ignored_carriage_returns;
+    }  /* if */
+#endif /* IGNORE_CARRIAGE_RETURN_IN_SOURCE */
     olmp = add_orig_line_modif(olm_multiline_string_splice,
                                curr_char_loc);
     olmp->variant.line_splice_seq_number = seq_number_last_read + 1;
     *curr_char_loc++ = '\\';
-    *curr_char_loc++ = 'n';
+#if ACCEPT_GNU_CARRIAGE_RETURN_LINE_TERMINATOR
+    if (curr_ise->prev_line_terminator_was_carriage_return) {
+      /* The line ended with a carriage return, so we need to insert \ r
+         instead of \ n. */
+      *curr_char_loc++ = 'r';
+    } else
+#endif /* ACCEPT_GNU_CARRIAGE_RETURN_LINE_TERMINATOR */
+    /* Do not insert code here. */
+    {
+      *curr_char_loc++ = 'n';
+    }  /* if */
     /* Read the next line of the input file, extending the current
        logical source line. */
     if (read_logical_source_line(/*do_pop_on_end_of_file=*/FALSE,
@@ -20257,6 +20301,9 @@ done to determine whether a precompiled header may be used.
 #endif /* ASM_SUPPORT_NEEDED */
   pending_nonsplice_backslash = FALSE;
   offset_of_nonsplice_backslash = 0;
+#if IGNORE_CARRIAGE_RETURN_IN_SOURCE
+  num_ignored_carriage_returns = 0;
+#endif /* IGNORE_CARRIAGE_RETURN_IN_SOURCE */
   (void)memzero((char *)source_line_modif_hash_table,
                 sizeof(source_line_modif_hash_table));
 }  /* lexical_reset */
