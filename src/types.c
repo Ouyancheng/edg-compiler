@@ -8498,11 +8498,10 @@ can be NULL if that information is not needed.
 
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
-a_boolean this_param_types_correspond(
-                                   a_type_ptr rout_type_1,
-                                   a_type_ptr rout_type_2,
-                                   a_boolean  check_as_conversion,
-                                   a_boolean  check_as_operands)
+a_boolean this_param_types_correspond(a_type_ptr rout_type_1,
+                                      a_type_ptr rout_type_2,
+                                      a_boolean  check_as_conversion,
+                                      a_boolean  check_as_operands)
 /*
 Return TRUE if the "this" parameter types of the two function types given
 match if one ignores any difference in the underlying class.  If neither
@@ -8510,7 +8509,9 @@ function type has a "this" parameter, they are also considered to match.
 If check_as_conversion is TRUE, rout_type_1 and rout_type_2 are the
 destination and source types of a conversion.  If check_as_operands is
 TRUE, the two types are the types of the operands of an operation.
-If neither is TRUE, the types are checked for an exact match.
+If neither is TRUE, the types are checked for an exact match.  These two
+flags (check_as_conversion and check_as_operands) only have an effect in
+Cfront mode.
 */
 {
   a_boolean                      correspond = FALSE;
@@ -8531,7 +8532,10 @@ If neither is TRUE, the types are checked for an exact match.
   } else {
     a_type_qualifier_set  qualifiers_1 = rtsp_1->qualifiers,
                           qualifiers_2 = rtsp_2->qualifiers;
-    if (!any_cfront_mode()) {
+    if (rtsp_1->ref_qualifiers != rtsp_2->ref_qualifiers) {
+      /* C++11 ref-qualifiers do not match; so the types don't correspond. */
+      /* correspond = FALSE;  -- already set. */
+    } else if (!any_cfront_mode()) {
       if (qualifiers_1 != qualifiers_2) {
         /* The type qualifiers do not match. */
         /* correspond = FALSE;  -- already set. */
