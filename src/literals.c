@@ -938,7 +938,7 @@ get_another:
       if (err) {
         /* Invalid multibyte character sequence. */
         conv_line_loc_to_source_pos(lptr, &error_position);
-        warning(ec_bad_multibyte_char);
+        diagnostic(es_discretionary_error, ec_bad_multibyte_char);
 #if NATIVE_MULTIBYTE_CHARS_SUPPORTED_WITH_UNICODE
       } else if (curr_file_unicode_source_kind != usk_none &&
                  state->translate_utf8_to_mbc) {
@@ -1203,7 +1203,7 @@ defines the size of character.
     if (err) {
       /* Invalid multibyte character sequence. */
       conv_line_loc_to_source_pos(*state->next_token_char, &error_position);
-      warning(ec_bad_multibyte_char);
+      diagnostic(es_discretionary_error, ec_bad_multibyte_char);
       wc = 0;
     }  /* if */
     *ch = wc;
