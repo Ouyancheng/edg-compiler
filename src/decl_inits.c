@@ -6167,6 +6167,12 @@ reflect the initialization.  Otherwise, return FALSE.
           /* Some error must have occurred. */
           expect_error();
         }  /* if */
+        if (exceptions_enabled && dip->destructor != NULL) {
+          /* If an exception is thrown in the delegating body, the destructor
+             for the whole object is invoked. */
+          record_end_of_lifetime_destruction(dip, /*static_lifetime=*/FALSE,
+                                             /*block_lifetime=*/TRUE);
+        }  /* if */
         if (end_potential_pack_expansion_context(
                               cibp->pesep, /*is_declarator=*/FALSE) != NULL) {
           /* A variadic pack expansion in a prototype instantiation. */
