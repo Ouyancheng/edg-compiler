@@ -36370,6 +36370,9 @@ things like (void *)1 as case constants.
       }  /* if */
     }  /* if */
   }  /* if */
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+  curr_construct_end_position = result.end_position;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   db_exit();
 }  /* scan_microsoft_case_label_constant_expression */
 
@@ -36386,6 +36389,9 @@ selector type.
   an_operand          operand;
   a_constant          constant;
   a_source_position   label_position;
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+  a_source_position   end_position;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   an_expr_stack_entry expr_stack_entry;
   an_expr_stack_entry *saved_expr_stack;
 
@@ -36408,6 +36414,9 @@ selector type.
                          /*maintain_expression=*/TRUE,
                          &did_not_fold, &label_position);
     check_assertion(!did_not_fold);
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+    end_position = curr_construct_end_position;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   } else
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   /* Do not insert code here. */
@@ -36427,6 +36436,9 @@ selector type.
     } else {
       scan_expr(&operand, PREC_LOWEST, EOPT_DISALLOW_COMMA_OPERATOR);
     }  /* if */
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+    end_position = operand.end_position;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
     /* Convert the expression to the switch type. */
     if (gpp_mode &&
         is_unscoped_enum_type(operand.type) &&
@@ -36459,6 +36471,9 @@ selector type.
     constant_ptr = alloc_unshared_constant(&constant);
     constant_ptr->source_corresp.decl_position = label_position;
   }  /* if */
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+  curr_construct_end_position = end_position;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   pop_expr_stack();
   restore_expr_stack(saved_expr_stack);
   return constant_ptr;

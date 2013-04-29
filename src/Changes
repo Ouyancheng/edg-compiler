@@ -1,5 +1,12 @@
 Version 4.7
 
+4/29/13  [EDGcpfe/13949]
+Wrong end_position in switch case entry
+
+A change in version 4.6 broke the recording of the end_position field
+in the IL a_switch_case_entry.  Now fixed again.
+
+
 4/26/13  [EDGcpfe/11272,EDGcpfe/13707]
 Additional type traits helpers
 
