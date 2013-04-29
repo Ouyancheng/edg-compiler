@@ -17639,7 +17639,7 @@ that of a mutable field.
     src_qual = gsfd->copy_ctor_qualifiers;
     /* Mutable subobjects of a const object are not const. */
     if (is_mutable) src_qual &= ~(a_type_qualifier_set)TQ_CONST;
-    rout_sym = find_copy_constructor(type, gsfd->copy_ctor_qualifiers,
+    rout_sym = find_copy_constructor(type, src_qual,
                                      /*source_is_rvalue=*/FALSE,
                                      &type->source_corresp.decl_position,
                                      &ambiguous, (a_symbol**)NULL,

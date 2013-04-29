@@ -1,5 +1,29 @@
 Version 4.7
 
+3/28/13 [EDGcpfe/13944]
+Generated copy constructor in class with mutable field
+
+The changes for EDGcpfe/13788 intended to address an issue with mutable fields
+for both copy assignment operators and copy constructors.  However, the copy
+constructor case was not addressed correctly, causing generated copy
+constructors to be implicitly "deleted" (in C++11 mode) even though their
+definition could validly be generated.  For example:
+
+  struct S {
+    S(S&);
+  private:
+    S(S const&);
+  };
+  struct X {
+    mutable S x;
+  };
+  void g(X& s) {
+    X d(s);  // Previously resulted in a spurious error in C++11 mode because
+  }          // X's (generated) copy constructor was declared "= delete".
+
+This is now fixed.
+
+
 4/29/13  [EDGcpfe/8625,EDGcpfe/13915]
 UTF-8 string literals
 
