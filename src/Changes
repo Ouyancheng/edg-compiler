@@ -1,5 +1,25 @@
 Version 4.7
 
+4/29/13 [EDGcpfe/13913]
+Spurious constexpr error on generated default constructor
+
+In some cases involving a class with a generated default constructor and a
+subobject whose type is an instance of a class template the front end issued
+a spurious error ("constexpr constructor calls non-constexpr function") when
+generating the definition of the default constructor.  For example:
+
+  struct S { S(); };
+  template<typename T> struct X {
+    T t;
+    constexpr X() {}
+  };
+  struct D: X<S> {};
+  D d;  // Previously the generation of D::D() at this point triggered a
+        // spurious error.
+
+This is now fixed.
+
+
 4/29/13 [EDGcpfe/13944]
 Generated copy constructor in class with mutable field
 

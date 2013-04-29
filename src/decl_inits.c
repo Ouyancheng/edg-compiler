@@ -6929,13 +6929,19 @@ initialized.  These are addressed in the course of the processing.
           /* A default constructor does exist.  Generate the dynamic init
              entry. */
           dip = alloc_ctor_dynamic_init(rp, /*implied_source=*/FALSE);
-          if (ctor_rout->is_constexpr && !rp->is_constexpr &&
-              !bad_call_for_constexpr_ctor_reported) {
-            if (!ctor_rout->is_template_function ||
-                ctor_rout->is_specialized) {
-              pos_sy_error(ec_nonconstexpr_call_in_mem_initializer, &err_pos,
-                           symbol_for(rp));
-              bad_call_for_constexpr_ctor_reported = TRUE;
+          if (ctor_rout->is_constexpr && !rp->is_constexpr) {
+            /* Check that a constexpr constructor doesn't call a non-
+               constexpr constructor.  For compiler-generated constructors
+               and for template instances failing this test isn't an error,
+               but it makes the function effectively non-constexpr. */
+            if (ctor_rout->is_declared_constexpr &&
+                (!ctor_rout->is_template_function ||
+                 ctor_rout->is_specialized)) {
+              if (!bad_call_for_constexpr_ctor_reported) {
+                pos_sy_error(ec_nonconstexpr_call_in_mem_initializer, &err_pos,
+                             symbol_for(rp));
+                bad_call_for_constexpr_ctor_reported = TRUE;
+              }  /* if */
             } else if (!ctor_rout->is_prototype_instantiation) {
               ctor_rout->is_constexpr = FALSE;
             }  /* if */
