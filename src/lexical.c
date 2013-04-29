@@ -9422,7 +9422,6 @@ kind or tok_error.  The token can be a normal or wide string literal.
   unsigned long              num_chars = 0;
   an_error_code              err_code;
   char                       *err_pos;
-  a_character_kind           character_kind;
   int                        raw_string_delimiter_len = -1;
   a_boolean                  unterminated;
   char                       *start_of_raw_string_delimiter = NULL;
@@ -9434,26 +9433,8 @@ kind or tok_error.  The token can be a normal or wide string literal.
   register_pointer_variable(start_of_raw_string_delimiter,
                             start_of_raw_string_delimiter_reg);
   register_pointer_variable(start_of_string_value, start_of_string_value_reg);
-  /* Determine the string character kind, and skip over the prefix, if any,
-     and the leading quote. */
   check_assertion(lit_kind & SCLK_STRING_LITERAL);
-  switch (literal_encoding_prefix(lit_kind)) {
-    case SCLK_ORDINARY_LITERAL:
-    case SCLK_UTF8_LITERAL:
-      character_kind = (a_character_kind)chk_char;
-      break;
-    case SCLK_WIDE_LITERAL:
-      character_kind = (a_character_kind)chk_wchar_t;
-      break;
-    case SCLK_CHAR32_T_LITERAL:
-      character_kind = (a_character_kind)chk_char32_t;
-      break;
-    case SCLK_CHAR16_T_LITERAL:
-      character_kind = (a_character_kind)chk_char16_t;
-      break;
-    default:
-      unexpected_condition();
-  }  /* switch */
+  /* Skip over the prefix, if any, and the leading quote. */
   curr_char_loc += start_of_literal_value(lit_kind);
   start_of_string_value = curr_char_loc;
   if (lit_kind & SCLK_RAW_STRING_LITERAL) {
