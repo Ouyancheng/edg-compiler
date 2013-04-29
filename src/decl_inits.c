@@ -5748,8 +5748,9 @@ static void scan_mem_init_args(a_routine_ptr           ctor,
 /*
 Scan the arguments of a mem-initializer (including the delimiting parentheses
 or braces).  ctor is the constructor with which the mem-initializer is
-associated.  cip describes this particular mem-initializer.  For non-array
-(sub)objects, init_type is the type being initialized and array_type is NULL.
+associated.  cip describes this particular mem-initializer (it can be NULL in
+error cases).  For non-array (sub)objects, init_type is the type being
+initialized and array_type is NULL.
 For array subobjects, init_type is the underlying element type being
 initialized and array_type is the array type.  pos is the start position of
 the mem-initializer.
@@ -5770,7 +5771,7 @@ the mem-initializer.
     syntax_error(list_init_enabled ? ec_exp_lparen_or_brace : ec_exp_lparen);
     if (list_init_enabled) remove_stop_token(tok_lbrace);
     remove_stop_token(tok_lparen);
-    cip->initializer = make_error_constant_dynamic_init();
+    if (cip != NULL) cip->initializer = make_error_constant_dynamic_init();
   }  /* if */
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   if (cip != NULL) {
