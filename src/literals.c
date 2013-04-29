@@ -730,12 +730,16 @@ the character position of the error.
 
 static unsigned long conv_unicode_literal_char(
                                       a_char_conversion_state_ptr state,
-                                      unsigned long               unicode_char)
+                                      unsigned long               unicode_char,
+                                      a_boolean                   utf8_literal)
 /*
 Convert the Unicode character unicode_char to the appropriate
 representation in a literal.  Return the first byte of the converted
 character and set up state for scanning through the second and following
-bytes (if any).  */
+bytes (if any).  If utf8_literal is TRUE, the character is part of a UTF-8
+string literal and is to be converted to UTF-8 rather than being truncated
+to a Latin-1 byte.
+*/
 {
   int           translated_len;
 #if UNICODE_SOURCE_SUPPORTED
@@ -747,7 +751,7 @@ bytes (if any).  */
 
 #if NATIVE_MULTIBYTE_CHARS_SUPPORTED_WITH_UNICODE
   if (state->translate_utf8_to_mbc ||
-      (!gnu_mode && !is_unicode_source)) {
+      (!gnu_mode && !is_unicode_source && !utf8_literal)) {
     /* If the emulation (such as Microsoft mode) requires it, we translate
        Unicode characters to the system default multibyte character set.
        Except in GNU mode, we also do that translation if the source is not
@@ -767,7 +771,7 @@ bytes (if any).  */
   } else
 #endif /* NATIVE_MULTIBYTE_CHARS_SUPPORTED_WITH_UNICODE */
   /* Do not insert code here. */
-  if (gnu_mode || is_unicode_source) {
+  if (gnu_mode || is_unicode_source || utf8_literal) {
     /* Translate the Unicode character into UTF-8. */
     translated_len = unicode_to_utf8(unicode_char, state->translated_char);
   } else {
@@ -794,7 +798,8 @@ void conv_single_char(a_char_conversion_state_ptr state,
                       a_boolean                   process_escapes,
                       unsigned long               *ch,
                       unsigned long               centity_mask,
-                      a_boolean                   narrow_literal)
+                      a_boolean                   narrow_literal,
+                      a_boolean                   utf8_literal)
 /*
 Fetch one character of a character constant or string literal.  The current
 position in the token is *state->next_token_char (it is incremented
@@ -803,7 +808,8 @@ recognized and processed if process_escapes is TRUE.  The character gotten
 is returned (not sign-extended) in ch.  centity_mask defines the size of
 the character entity into which this character is going (char, wchar_t,
 char16_t, or char32_t); narrow_literal is TRUE for narrow-character string
-and character literals.  When multibyte characters are enabled and for
+and character literals, and utf8_literal is TRUE for a UTF-8 string
+literal.  When multibyte characters are enabled and for
 universal-character-names, each byte of the multibyte character is returned
 on a separate call of this routine.  state->remaining_char_count is set to
 the number of characters remaining to be extracted on subsequent calls, and
@@ -952,11 +958,28 @@ get_another:
         (void)mbc_to_wide_char(lptr, &uc, (a_boolean *)NULL,
                                /*is_native=*/FALSE);
         lptr += state->remaining_char_count;
-        targ_ch = conv_unicode_literal_char(state, uc);
+        targ_ch = conv_unicode_literal_char(state, uc, /*utf8_literal=*/FALSE);
 #endif /* NATIVE_MULTIBYTE_CHARS_SUPPORTED_WITH_UNICODE */
+      } else if (utf8_literal) {
+        /* This is a character in a UTF-8 literal, which could be a
+           multibyte character, either UTF-8 or a native character set:
+           convert it to Unicode and then to UTF-8, returning the first (or
+           only) byte. */
+        (void)lex_mbc_to_wide_char(lptr, &targ_ch, &err);
+        check_assertion(!err);
+        lptr += state->remaining_char_count;
+        targ_ch = conv_unicode_literal_char(state, targ_ch,
+                                            /*utf8_literal=*/TRUE);
       }  /* if */
-    }  /* if */
+    } else
 #endif /* MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED */
+    /* Do not insert code here. */
+    if (utf8_literal) {
+      /* This is a Latin-1 character (one byte) in a UTF-8 literal.
+         Convert it to UTF-8 and return the first (or only) byte. */
+      targ_ch = conv_unicode_literal_char(state, targ_ch,
+                                          /*utf8_literal=*/TRUE);
+    }  /* if */
     lptr++;
   } else {
     /* Backslash, escaped character.  Can be an octal escape, a hexadecimal
@@ -1027,7 +1050,7 @@ get_another:
              multibyte character set as appropriate and set up the
              conversion state to return subsequent bytes of the resulting
              character. */
-          targ_ch = conv_unicode_literal_char(state, targ_ch);
+          targ_ch = conv_unicode_literal_char(state, targ_ch, utf8_literal);
         }  /* if */
         break;
       case 'x':
@@ -1181,7 +1204,7 @@ defines the size of character.
 #if !MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED
   /* Simple version: no multibyte characters to consider. */
   conv_single_char(state, process_escapes, ch, centity_mask,
-                   /*narrow_literal=*/FALSE);
+                   /*narrow_literal=*/FALSE, /*utf8_literal=*/FALSE);
 #else /* MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED */
   /* Multibyte character processing may be needed. */
   if (!multibyte_chars_in_source_enabled ||
@@ -1193,7 +1216,7 @@ defines the size of character.
     /* Use simple routine if multibyte characters are disabled or if
        the character is an escape or the result of a modification. */
     conv_single_char(state, process_escapes, ch, centity_mask,
-                     /*narrow_literal=*/FALSE);
+                     /*narrow_literal=*/FALSE, /*utf8_literal=*/FALSE);
   } else {
     unsigned  long wc;
     int       numch;
@@ -1324,7 +1347,8 @@ the actual number of converted characters may be less than num_chars.  */
     switch (character_kind) {
       case chk_char:
         conv_single_char(&conv_state, /*process_escapes=*/TRUE, &ch,
-                         centity_mask, /*narrow_literal=*/TRUE);
+                         centity_mask, /*narrow_literal=*/TRUE,
+                         /*utf8_literal=*/FALSE);
         if (i >= targ_sizeof_int && !gnu_mode) {
           /* GNU compilers accept overlong literals, simply discarding any
              leading characters that do not fit.  Otherwise, flag this as
@@ -1494,14 +1518,16 @@ larger (but not smaller) than the number of characters needed to represent
 the string.
 */
 {
-  unsigned long           i, ch, centity_mask;
-  char                    *temp_ptr, *pstr, *str_start;
-  sizeof_t                constant_size;
-  a_targ_size_t           num_elems;
-  unsigned int            char_size;
-  a_character_kind        character_kind;
-  a_char_conversion_state conv_state;
-  a_boolean               raw_string_end_in_trigraph = FALSE;
+  unsigned long                 i, ch, centity_mask;
+  char                          *temp_ptr, *pstr, *str_start;
+  sizeof_t                      constant_size;
+  a_targ_size_t                 num_elems;
+  unsigned int                  char_size;
+  a_character_kind              character_kind;
+  a_char_conversion_state       conv_state;
+  a_boolean                     raw_string_end_in_trigraph = FALSE;
+  a_string_or_char_literal_kind prefix_kind =
+                                             literal_encoding_prefix(lit_kind);
 
   /* The number of array elements is one more than the number of characters,
      to leave space for the terminating null.  (For char16_t strings, this
@@ -1510,7 +1536,7 @@ the string.
   temp_ptr = start_of_string_value;
   /* Set the character kind and size. */
   check_assertion(lit_kind & SCLK_STRING_LITERAL);
-  switch (literal_encoding_prefix(lit_kind)) {
+  switch (prefix_kind) {
     case SCLK_ORDINARY_LITERAL:
     case SCLK_UTF8_LITERAL:
       character_kind = (a_character_kind)chk_char;
@@ -1566,11 +1592,10 @@ the string.
   /* UTF-8 characters should be translated to multibyte characters only
      for narrow-character literals in Microsoft mode. */
   clear_char_conversion_state(&conv_state, &temp_ptr,
-                              (character_kind == (a_character_kind)chk_char &&
+                              (prefix_kind == SCLK_ORDINARY_LITERAL &&
                                microsoft_mode));
-  conv_state.create_surrogate_pairs =
-                            (character_kind == (a_character_kind)chk_wchar_t ||
-                             character_kind == (a_character_kind)chk_char16_t);
+  conv_state.create_surrogate_pairs = (prefix_kind == SCLK_WIDE_LITERAL ||
+                                       prefix_kind == SCLK_CHAR16_T_LITERAL);
 #if MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED
   /* Initialize for scanning multibyte characters in the string. */
   mbc_scan_init_if_multibyte_chars_in_source_enabled();
@@ -1607,7 +1632,8 @@ the string.
         conv_single_char(
                  &conv_state,
                  /*process_escapes=*/(lit_kind & SCLK_RAW_STRING_LITERAL) == 0,
-                 &ch, centity_mask, /*narrow_literal=*/TRUE);
+                 &ch, centity_mask, /*narrow_literal=*/TRUE,
+                 (prefix_kind == SCLK_UTF8_LITERAL));
         *pstr++ = (char)ch;
         break;
       case chk_wchar_t:

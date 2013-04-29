@@ -136,7 +136,8 @@ extern void conv_single_char(a_char_conversion_state_ptr state,
                              a_boolean                   process_escapes,
                              unsigned long               *ch,
                              unsigned long               centity_mask,
-                             a_boolean                   narrow_literal);
+                             a_boolean                   narrow_literal,
+                             a_boolean                   utf8_literal);
 extern void conv_char_literal(unsigned long num_chars,
                               an_error_code *err_code,
                               char          **err_pos);

@@ -1170,7 +1170,7 @@ translation of certain characters to UTF-8.
   for (i = 1; i <= name_len; i++) {
     char *prev_pos = in_pos;
     conv_single_char(&conv_state, process_escapes, &ch, centity_mask,
-                     /*narrow_literal=*/TRUE);
+                     /*narrow_literal=*/TRUE, /*utf8_literal=*/FALSE);
     i += (in_pos - prev_pos) - 1;
 #if UNICODE_SOURCE_SUPPORTED && !NATIVE_MULTIBYTE_CHARS_SUPPORTED_WITH_UNICODE
     if (curr_file_unicode_source_kind == usk_none &&

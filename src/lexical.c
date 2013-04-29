@@ -8903,31 +8903,32 @@ the closing delimiter.
 #if !MICROSOFT_EXTENSIONS_ALLOWED
 static
 #endif /* !MICROSOFT_EXTENSIONS_ALLOWED */
-a_boolean accum_quoted_string(unsigned long     *num_chars,
-                              a_boolean         is_header_name,
-                              a_character_kind  character_kind,
-                              char              quoting_char,
-                              char              *start_of_raw_string_delimiter,
-                              int               raw_string_delimiter_len)
+a_boolean accum_quoted_string(
+                  unsigned long                 *num_chars,
+                  a_boolean                     is_header_name,
+                  a_string_or_char_literal_kind literal_kind,
+                  char                          quoting_char,
+                  char                          *start_of_raw_string_delimiter,
+                  int                           raw_string_delimiter_len)
 /*
 Scan a quoted construct, i.e., a character constant or a string literal.
-character_kind indicates which character type should be used (e.g.,
-wchar_t).  This routine is also used for header names in #include and #line
-directives (is_header_name is TRUE for the #include case).  curr_char_loc
-is just past the initial quote.  Scan to the matching closing quote
-(indicated by quoting_char), and do not be confused by escaped characters
-and multibyte character sequences.  Increment *num_chars by the number of
-(possibly wide) characters contained in the string, after escape
-processing.  curr_char_loc and end_of_curr_token are set to point just
-before the closing quote of the string.  If raw_string_delimiter_len is
->= 0, the string being scanned is a C++11 raw string, and the terminating
-'"' must be preceded by the same string (of that length) to which
-start_of_raw_string_delimiter points, preceded by a right parenthesis;
-*num_chars will not include the length of this trailing delimiter sequence.
-If raw_string_delimiter_len is < 0, start_of_raw_string_delimiter is not
-used.  The return value is TRUE if the string was not terminated before the
-end of the line, FALSE if it was.  The caller is responsible for issuing
-error messages.
+literal_kind describes the literal being scanned (string or character, the
+encoding to be used, and whether a string literal is raw or not).  This
+routine is also used for header names in #include and #line directives
+(is_header_name is TRUE for the #include case).  curr_char_loc is just past
+the initial quote.  Scan to the matching closing quote (indicated by
+quoting_char), and do not be confused by escaped characters and multibyte
+character sequences.  Increment *num_chars by the number of target code
+units contained in the string, after escape processing.  curr_char_loc
+and end_of_curr_token are set to point just before the closing quote of the
+string.  If raw_string_delimiter_len is >= 0, the string being scanned is a
+C++11 raw string, and the terminating '"' must be preceded by the same
+string (of that length) to which start_of_raw_string_delimiter points,
+preceded by a right parenthesis; *num_chars will not include the length of
+this trailing delimiter sequence.  If raw_string_delimiter_len is < 0,
+start_of_raw_string_delimiter is not used.  The return value is TRUE if the
+string was not terminated before the end of the line, FALSE if it was.  The
+caller is responsible for issuing error messages.
 */
 {
   register char          ch;
@@ -8935,9 +8936,16 @@ error messages.
   a_boolean              unterminated = FALSE;
   an_orig_line_modif_ptr olmp = NULL;
   int                    trigraph_delim_len_adjustment;
+  a_boolean              is_raw_string;
+  a_boolean              is_string_literal;
 
   nchars = 0;
-  if (raw_string_delimiter_len >= 0 && orig_line_modif_list != NULL) {
+  is_raw_string = (literal_kind & SCLK_RAW_STRING_LITERAL) != 0;
+  check_assertion(is_raw_string == (raw_string_delimiter_len >= 0));
+  is_string_literal = (literal_kind & SCLK_STRING_LITERAL) != 0;
+  check_assertion(!(is_raw_string && !is_string_literal));
+  literal_kind = literal_encoding_prefix(literal_kind);
+  if (is_raw_string && orig_line_modif_list != NULL) {
     /* This is a raw string literal, potentially including trigraphs and
        line splices that will be reversed.  Set up to account for those
        changes in the character count. */
@@ -8952,11 +8960,11 @@ error messages.
   /* Scan through the characters of the string looking for the closing quoting
      character. */
   while ((ch = *curr_char_loc) != quoting_char ||
-         (raw_string_delimiter_len >= 0 &&
+         (is_raw_string &&
           !is_closing_raw_string_delimiter(start_of_raw_string_delimiter,
                                            raw_string_delimiter_len,
                                            &trigraph_delim_len_adjustment))) {
-    if (ch == '\\' && !is_header_name && raw_string_delimiter_len < 0) {
+    if (ch == '\\' && !is_header_name && !is_raw_string) {
       /* Backslash, escapes the next character.  If followed by "0" or
          "x", an octal or hexadecimal value must be scanned.  We recognize
          those digits so we can accurately count characters, but we do
@@ -8983,9 +8991,9 @@ error messages.
                                        /*is_identifier=*/FALSE,
 				       /*is_identifier_start=*/FALSE,
                                        /*issue_diagnostics=*/FALSE);
-        if (ch == 'U' && quoting_char == '"' &&
-            (character_kind == (a_character_kind)chk_char16_t ||
-             character_kind == (a_character_kind)chk_wchar_t)) {
+        if (ch == 'U' && is_string_literal &&
+            (literal_kind == SCLK_CHAR16_T_LITERAL ||
+             literal_kind == SCLK_WIDE_LITERAL)) {
           /* A 32-bit code to be stored in a 16-bit character
              representation.  In a wide character literal, this just
              truncates to a single character; for wide string literals,
@@ -8993,7 +9001,8 @@ error messages.
              don't know how many characters will be needed for the
              encoding, assume the longest. */
           nchars += MAX_CHAR16_T_ENCODING_LENGTH;
-        } else if (character_kind == (a_character_kind)chk_char) {
+        } else if (literal_kind == SCLK_ORDINARY_LITERAL ||
+                   literal_kind == SCLK_UTF8_LITERAL) {
           /* The character will be translated into a multibyte character
              set; the actual length will be calculated when the literal is
              converted.  We set 4 as the estimated length because the
@@ -9003,6 +9012,9 @@ error messages.
              character does not overflow. */
           nchars += 4;
         } else {
+          /* A char32_t literal, which can hold the value in one
+             character. */
+          check_assertion(literal_kind == SCLK_CHAR32_T_LITERAL);
           ++nchars;
         }  /* if */
       } else {
@@ -9111,17 +9123,25 @@ error messages.
              character with a single character. */
           ++nchars;
         } else {
-          switch (character_kind) {
-            case chk_char:
+          switch (literal_kind) {
+            case SCLK_ORDINARY_LITERAL:
+              /* Assume the character will have the same length in the
+                 target encoding. */
               nchars += (unsigned long)numch;
               break;
-            case chk_char32_t:
-              /* char32_t (kind == 'U') should be able to accommodate any
-                 character code. */
+            case SCLK_UTF8_LITERAL:
+              /* Assume the maximum UTF-8 character length, which will be
+                 revised downward if necessary when the character is
+                 converted. */
+              nchars += 4;
+              break;
+            case SCLK_CHAR32_T_LITERAL:
+              /* char32_t should be able to accommodate any character
+                 code. */
               ++nchars;
               break;
-            case chk_char16_t:
-            case chk_wchar_t:
+            case SCLK_CHAR16_T_LITERAL:
+            case SCLK_WIDE_LITERAL:
               /* A single char16_t or wchar_t is not assumed to be sufficient
                  for a multibyte input character.  Instead, we assume the
                  longest encoding case. */
@@ -9147,7 +9167,7 @@ return_point:
   if (unterminated) {
     end_of_curr_token--;
     *num_chars += nchars;
-  } else if (raw_string_delimiter_len < 0) {
+  } else if (!is_raw_string) {
     *num_chars += nchars;
   } else {
     *num_chars += nchars - raw_string_delimiter_len -
@@ -9187,8 +9207,8 @@ kind or tok_error.  The token can be a normal or wide character constant.
       unexpected_condition();
   }  /* switch */
   curr_char_loc += start_of_literal_value(lit_kind);
-  if (accum_quoted_string(&num_chars, /*is_header_name=*/FALSE,
-                          character_kind, '\'', NULL, -1)) {
+  if (accum_quoted_string(&num_chars, /*is_header_name=*/FALSE, lit_kind,
+                          '\'', NULL, -1)) {
     /* Error, character constant is unclosed. */
     /* Similar error for other strange cases of incomplete strings, which
        can come up with preprocessing. */
@@ -9235,16 +9255,16 @@ kind or tok_error.  The token can be a normal or wide character constant.
 
 
 static a_boolean scan_multiline_string(
-                               unsigned long    *num_chars,
-                               a_character_kind character_kind,
-                               char             *start_of_raw_string_delimiter,
-                               int              raw_string_delimiter_len)
+                  unsigned long                 *num_chars,
+                  a_string_or_char_literal_kind literal_kind,
+                  char                          *start_of_raw_string_delimiter,
+                  int                           raw_string_delimiter_len)
 /*
 Process the second and subsequent lines of a multi-line string.  Return
 TRUE if the string turns out to be well-formed, FALSE otherwise.
-character_kind indicates the kind of character values (char, wchar_t, ...)
-to be scanned.  The number of characters scanned (a conservative estimate
-in the case of char16_t characters) is added to *num_chars.  If
+literal_kind indicates the kind of literal (wide, raw, etc.) being scanned.
+The number of characters scanned (a conservative estimate in the case of
+UTF-8, char16_t, and wide literals) is added to *num_chars.  If
 raw_string_delimiter_len is >= 0, the string being scanned is a C++11 raw
 string, and the terminating '"' must be preceded by the same string (of
 that length) to which start_of_raw_string_delimiter points, preceded by a
@@ -9255,19 +9275,21 @@ start_of_raw_string_delimiter is not used.
 {
   an_orig_line_modif_ptr     olmp;
   a_boolean                  result = FALSE;
+  a_boolean                  is_raw_string;
   char                       *delim_ptr;
   a_pointer_registration     delim_ptr_reg;
   a_pointer_registration_ptr save_registered_pointers = registered_pointers;
 
   register_pointer_variable(delim_ptr, delim_ptr_reg);
   delim_ptr = start_of_raw_string_delimiter;
+  is_raw_string = (literal_kind & SCLK_RAW_STRING_LITERAL) != 0;
   while (curr_char_loc[0] == LE_ESCAPE &&
          curr_char_loc[1] == LE_NEWLINE) {
     /* Inject the characters \ n (or \ r if the line was terminated by a
        carriage return) on top of the NEWLINE escape and add an entry to
        the orig_line_modif_list so that this can be undone. */
 #if IGNORE_CARRIAGE_RETURN_IN_SOURCE
-    if (raw_string_delimiter_len >= 0 && num_ignored_carriage_returns > 0) {
+    if (is_raw_string && num_ignored_carriage_returns > 0) {
       /* This is a raw string literal and read_logical_source_line
          discarded some carriage return characters preceding the newline.
          Restore them before adding the newline. */
@@ -9311,7 +9333,7 @@ start_of_raw_string_delimiter is not used.
     /* Back up over the \n added above and resume scanning.  */
     curr_char_loc -= 2;
     if (!accum_quoted_string(num_chars, /*is_header_name=*/FALSE,
-                             character_kind, '"', delim_ptr,
+                             literal_kind, '"', delim_ptr,
                              raw_string_delimiter_len)) {
       /* End of string, done. */
       result = TRUE;
@@ -9452,7 +9474,7 @@ kind or tok_error.  The token can be a normal or wide string literal.
     }  /* if */
   }  /* if */
   unterminated = accum_quoted_string(&num_chars, /*is_header_name=*/FALSE,
-                                     character_kind, '"',
+                                     lit_kind, '"',
                                      start_of_raw_string_delimiter,
                                      raw_string_delimiter_len);
   if (unterminated && curr_cmd_line_or_predef_macro_def == NULL &&
@@ -9463,7 +9485,7 @@ kind or tok_error.  The token can be a normal or wide string literal.
                                            )) {
     /* Raw string literals, as well as gcc and g++ versions prior to 3.3,
        permit a string literal to extend over multiple lines. */
-    unterminated = !scan_multiline_string(&num_chars, character_kind,
+    unterminated = !scan_multiline_string(&num_chars, lit_kind,
                                           start_of_raw_string_delimiter,
                                           raw_string_delimiter_len);
   }  /* if */
@@ -9527,7 +9549,7 @@ Scan a header name token, return the token kind or tok_error.
   if (quoting_char == '<') quoting_char = '>';
   check_assertion(quoting_char == '"' || quoting_char == '>');
   if (accum_quoted_string(&num_chars, /*is_header_name=*/TRUE,
-                          (a_character_kind)chk_char, quoting_char, NULL,
+                          SCLK_ORDINARY_STRING_LITERAL, quoting_char, NULL,
                           -1)) {
     /* Error, header name is unclosed. */
     ctoken = tok_error;
@@ -10417,6 +10439,55 @@ in C99 mode).  See C89 standard, 3.8.1.
 }  /* adjust_pp_int_constant */
 
 
+static a_string_or_char_literal_kind scan_encoding_prefix(char *loc)
+/*
+loc points to a character that could be the start of a C++11
+encoding-prefix, i.e., one of 'u', 'U', 'L', or 'R'.  If it is the start of
+a valid string literal or the start of a valid character literal, return
+the literal kind.  Otherwise, return SCLK_NOT_A_LITERAL.
+*/
+{
+  a_string_or_char_literal_kind kind = SCLK_ORDINARY_LITERAL;
+
+  /* Set the kind based on the initial character of the putative
+     encoding-prefix and advance p to the next character. */
+  if (*loc == 'u') {
+    ++loc;
+    if (cpp11_mode && *loc == '8') {
+      ++loc;
+      kind = SCLK_UTF8_LITERAL;
+    } else {
+      kind = SCLK_CHAR16_T_LITERAL;
+    }  /* if */
+  } else if (*loc == 'U') {
+    ++loc;
+    kind = SCLK_CHAR32_T_LITERAL;
+  } else if (*loc == 'L') {
+    ++loc;
+    kind = SCLK_WIDE_LITERAL;
+  }  /* if */
+  /* Now look for an R, either as the initial character or following an
+     encoding-prefix, indicating that the literal is a C++11 raw string. */
+  if (cpp11_mode && *loc == 'R') {
+    ++loc;
+    kind |= SCLK_RAW_STRING_LITERAL;
+  }  /* if */
+  /* Finally, determine if this is a valid literal start. */
+  if (*loc == '"') {
+    /* A valid string literal. */
+    kind |= SCLK_STRING_LITERAL;
+  } else if (*loc == '\'' &&
+             (kind & SCLK_RAW_STRING_LITERAL) == 0 &&
+             kind != SCLK_UTF8_LITERAL) {
+    /* A valid character literal. */
+  } else {
+    /* Not a valid literal. */
+    kind = SCLK_NOT_A_LITERAL;
+  }  /* if */
+  return kind;
+}  /* scan_encoding_prefix */
+
+
 void concat_adjacent_string_literals(a_boolean function_name_case)
 /*
 The current token (not in curr_token yet, but in const_for_curr_token)
@@ -10430,10 +10501,11 @@ concatenation of strings and function-name keywords like __FUNCTION__;
 curr_token is already set in that case.
 */
 {
-  a_character_kind   character_kind;
-  a_token_cache      cache;
-  a_cached_token_ptr ctp, ctp_next, first_string_token = NULL;
-  a_boolean          more_than_one_string = FALSE;
+  a_character_kind              character_kind;
+  a_string_or_char_literal_kind lit_kind;
+  a_token_cache                 cache;
+  a_cached_token_ptr            ctp, ctp_next, first_string_token = NULL;
+  a_boolean                     more_than_one_string = FALSE;
 
   db_enter(5, "concat_adjacent_string_literals");
   /* Start a new lexical state so that only the composite string literal
@@ -10445,6 +10517,8 @@ curr_token is already set in that case.
      normal char string, the kind of the result may still change if a
      subsequent literal has a different character kind. */
   character_kind = const_for_curr_token.character_kind;
+  lit_kind =
+            literal_encoding_prefix(scan_encoding_prefix(start_of_curr_token));
   /* Start a token cache in which we will accumulate all the adjacent
      string literals.  Usually, this will be just a single string literal. */
   clear_token_cache(&cache, /*reusable=*/FALSE);
@@ -10465,6 +10539,7 @@ curr_token is already set in that case.
   }  /* if */
   /* Loop as long as the next token is a string literal. */
   for (;;) {
+    a_string_or_char_literal_kind next_lit_kind;
     /* Save the current token (a string literal) by adding it to the token
        cache. */
     cache_curr_token(&cache);
@@ -10502,17 +10577,23 @@ curr_token is already set in that case.
     }  /* if */
     /* End the loop if the new token is not a string literal. */
     if (curr_token != tok_string_literal) break;
+    next_lit_kind =
+            literal_encoding_prefix(scan_encoding_prefix(start_of_curr_token));
     if (character_kind != const_for_curr_token.character_kind &&
         !is_error_constant(&const_for_curr_token)) {
-      /* The new string and the old one have different character kinds.
-         In some modes (C99, C++11, and GNU), this may be okay if one of
-         the two kinds is "char" (the concatenation results in the other
-         kind).  In other modes, it is a discretionary error.  If two
+      /* The new string and the old one have different character kinds.  In
+         some modes (C99, C++11, and GNU), this may be okay if one of the
+         two kinds is "char" (the concatenation results in the other kind);
+         however, a UTF-8 literal cannot be concatenated with a wide
+         literal.  In other modes, it is a discretionary error.  If two
          different non-char character types are mixed (e.g., U"A" L"B") a
          non-discretionary error is issued in all modes. */
       an_error_severity  sev;
-      if (character_kind != (a_character_kind)chk_char &&
-          const_for_curr_token.character_kind != (a_character_kind)chk_char) {
+      if ((character_kind != (a_character_kind)chk_char &&
+           const_for_curr_token.character_kind !=
+                                                 (a_character_kind)chk_char) ||
+          lit_kind == SCLK_UTF8_LITERAL ||
+          next_lit_kind == SCLK_UTF8_LITERAL) {
         sev = es_error;
       } else {
         sev = mixed_string_concat_enabled ? es_none : es_discretionary_error;
@@ -10526,6 +10607,11 @@ curr_token is already set in that case.
     }  /* if */
     /* This string literal is okay, and will be added to the concatenation
        in the token cache. */
+    if (next_lit_kind == SCLK_UTF8_LITERAL) {
+      /* Make sure we remember that we're treating the result of this
+         concatenation as a UTF-8 literal. */
+      lit_kind = SCLK_UTF8_LITERAL;
+    }  /* if */
   }  /* for */
   /* Here, all the adjacent string literals have been captured in a token
      cache.  Concatenate them into a single string literal. */
@@ -11150,56 +11236,6 @@ returns TRUE.  On input symbol points to the symbol for the first token.
 
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
-static a_string_or_char_literal_kind scan_encoding_prefix(void)
-/*
-Upon entry, curr_char_loc points to a character that could be the start
-of a C++11 encoding-prefix, i.e., one of 'u', 'U', 'L', or 'R'.  If it is
-the start of a valid string literal or the start of a valid character
-literal, return the literal kind.  Otherwise, return SCLK_NOT_A_LITERAL.
-*/
-{
-  a_string_or_char_literal_kind kind = SCLK_ORDINARY_LITERAL;
-  char                          *p = curr_char_loc;
-
-  /* Set the kind based on the initial character of the putative
-     encoding-prefix and advance p to the next character. */
-  if (*p == 'u') {
-    ++p;
-    if (cpp11_mode && *p == '8') {
-      ++p;
-      kind = SCLK_UTF8_LITERAL;
-    } else {
-      kind = SCLK_CHAR16_T_LITERAL;
-    }  /* if */
-  } else if (*p == 'U') {
-    ++p;
-    kind = SCLK_CHAR32_T_LITERAL;
-  } else if (*p == 'L') {
-    ++p;
-    kind = SCLK_WIDE_LITERAL;
-  }  /* if */
-  /* Now look for an R, either as the initial character or following an
-     encoding-prefix, indicating that the literal is a C++11 raw string. */
-  if (cpp11_mode && *p == 'R') {
-    ++p;
-    kind |= SCLK_RAW_STRING_LITERAL;
-  }  /* if */
-  /* Finally, determine if this is a valid literal start. */
-  if (*p == '"') {
-    /* A valid string literal. */
-    kind |= SCLK_STRING_LITERAL;
-  } else if (*p == '\'' &&
-             (kind & SCLK_RAW_STRING_LITERAL) == 0 &&
-             kind != SCLK_UTF8_LITERAL) {
-    /* A valid character literal. */
-  } else {
-    /* Not a valid literal. */
-    kind = SCLK_NOT_A_LITERAL;
-  }  /* if */
-  return kind;
-}  /* scan_encoding_prefix */
-
-
 a_token_kind get_token(void)
 /*
 Scan the next token of input, and return its kind.  The kind of token is
@@ -11822,7 +11858,7 @@ return_end_of_source_token:
       /* Probably an identifier, but check for a wide character
          constant (L'x') or wide string literal (L"xyz") first. */
 literal_prefix_scan:
-      lit_kind = scan_encoding_prefix();
+      lit_kind = scan_encoding_prefix(curr_char_loc);
       if (lit_kind == SCLK_NOT_A_LITERAL) {
         goto id_scan;
       } else if ((lit_kind & SCLK_STRING_LITERAL) == 0) {
@@ -12118,8 +12154,7 @@ end_id_scan:
            concatenation can destroy the address correspondence needed for
            the test. */
         check_for_invalid_macro_concatenation_if_needed();
-        ctoken = scan_string_literal(SCLK_ORDINARY_LITERAL |
-                                     SCLK_STRING_LITERAL);
+        ctoken = scan_string_literal(SCLK_ORDINARY_STRING_LITERAL);
         goto concatenate_adjacent_string_literals;
       }  /* if */
       /* No break needed, both branches end with a goto. */
@@ -19972,13 +20007,13 @@ host-target conversions are performed.
     curr_char_loc++;
     num_chars = 0;
     unterminated = accum_quoted_string(&num_chars, /*is_header_name=*/FALSE,
-                                       (a_character_kind)chk_char, '"', NULL,
+                                       SCLK_ORDINARY_STRING_LITERAL, '"', NULL,
                                        -1);
     check_assertion(unterminated == FALSE);
     /* Convert it to internal form. */
     conv_string_literal(start_of_curr_token + 1, end_of_curr_token,
-                        SCLK_ORDINARY_LITERAL | SCLK_STRING_LITERAL,
-                        num_chars, &err_code, &err_pos);
+                        SCLK_ORDINARY_STRING_LITERAL, num_chars, &err_code,
+                        &err_pos);
     check_assertion(err_code == ec_no_error);
     /* Copy the result for later use. */
     copy_constant(&const_for_curr_token, name_linkage_constants+(int)kind);

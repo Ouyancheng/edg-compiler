@@ -431,9 +431,8 @@ static a_text_buffer_ptr
 
 static a_text_buffer_ptr
 		utf8_buffer;
-			/* A text buffer used by
-			   convert_multibyte_chars_to_utf8 to hold the UTF-8
-			   result. */
+			/* A text buffer used by multibyte_chars_to_utf8 to
+			   hold the UTF-8 result. */
 
 static a_text_buffer_ptr
 		mbc_buffer;

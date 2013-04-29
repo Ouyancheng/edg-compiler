@@ -1,5 +1,15 @@
 Version 4.7
 
+4/29/13  [EDGcpfe/8625,EDGcpfe/13915]
+UTF-8 string literals
+
+We have now implemented the UTF-8 string literal feature of C++11 (see
+paper N2442).  These literals specify that the encoding of the resulting
+constant will be UTF-8.  For example:
+
+  const char s = u8"\u03a9";  // equivalent to "\xce\xa9"
+
+
 4/29/13  [EDGcpfe/13949]
 Wrong end_position in switch case entry
 
