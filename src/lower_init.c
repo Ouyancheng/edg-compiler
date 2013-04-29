@@ -13901,8 +13901,6 @@ constructor scope, and also lower the user code.
                      dedp = NULL;
 #endif /* GENERATE_EH_TABLES */
 #endif /* NEW_CAN_BE_FOLDED_INTO_CTOR */
-  a_boolean          is_delegating_ctor =
-                                scope->variant.routine.ptr->is_delegating_ctor;
 
   saved_code_pos = code_pos_for_lowering;
   saved_error_position = error_position;
@@ -13919,20 +13917,6 @@ constructor scope, and also lower the user code.
     check_assertion(top_stmt->kind == (a_statement_kind)stmk_block);
     user_code_stmts = top_stmt->variant.block.statements;
     set_block_start_insert_location(top_stmt, &insert_location);
-  }  /* if */
-  if (is_delegating_ctor) {
-    a_dynamic_init_ptr dip;
-    check_assertion(scope->variant.routine.constructor_inits != NULL &&
-                    scope->variant.routine.constructor_inits->kind ==
-                                      (a_constructor_init_kind)cik_delegation);
-    dip = scope->variant.routine.constructor_inits->initializer;
-    check_assertion(dip->lifetime == NULL &&
-                    dip->next_in_destruction_list == NULL);
-    if (dip->destructor != NULL) {
-      /* Remove the destruction for this; the target constructor has the
-         responsibility to destroy the entity. */
-      dip->destructor = NULL;
-    }  /* if */
   }  /* if */
   /* Start an object lifetime if appropriate. */
   begin_block_object_lifetime(scope->lifetime, &insert_location);
