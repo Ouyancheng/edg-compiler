@@ -8576,8 +8576,8 @@ command line -D options.
     /* Define _MSC_FULL_VER, which is similar to _MSC_VER but appends the
        "build number". */
     { char  macro_val[100];
-      if (snprintf(macro_val, sizeof(macro_val), "%lu%lu",
-                   microsoft_version, microsoft_build_number) <
+      if (sprintf(macro_val, "%lu%lu",
+                  microsoft_version, microsoft_build_number) <
                                                       (int)sizeof(macro_val)) {
         (void)enter_predef_macro(macro_val, "_MSC_FULL_VER",
                                  /*cannot_be_redefined=*/FALSE,
