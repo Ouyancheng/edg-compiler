@@ -6267,10 +6267,10 @@ literals in C++11.
   unsigned long   mbc_offset = 0;
 #endif /* MBC_CHECKING_NEEDED_IN_LINE_READING */
   int             next_ch;
-  a_boolean       char_is_trapped = FALSE, has_invalid_char = FALSE;
+  a_boolean       char_is_trapped = FALSE;
   an_orig_line_modif_ptr
 		  olmp;
-  sizeof_t        offset_in_line, offset_to_invalid_char = 0;
+  sizeof_t        offset_in_line;
   char		  *after_curr_source_line_minus_term =
                                after_end_of_curr_source_line - 2*LE_ESCAPE_LEN;
 		       /* For checking of buffer overflow -- to leave
@@ -6557,12 +6557,6 @@ return_with_line:
   /* Store the final LE_END_OF_LINE lexical escape sequence. */
   *loc_in_line++ = LE_ESCAPE;
   *loc_in_line = LE_END_OF_LINE;
-  if (has_invalid_char) {
-    /* Put out an error if the line contains any invalid characters.  Only the
-       position of the first one is identified. */
-    error_at_line_pos(ec_invalid_char,
-                      curr_source_line + offset_to_invalid_char);
-  }  /* if */
   /* Set the input character position to the start of the line. */
   if (!extend_current_line) {
     curr_char_loc = curr_source_line;
@@ -6793,35 +6787,27 @@ entry_for_possible_trigraph:
           }  /* if */
         }  /* if */
       } else if (ch == LE_ESCAPE) {
-        /* The zero character is reserved for internal use.  Replace it
-           by a blank and save the error position for later display. */
+        /* The zero character is reserved for internal use.  Replace it by
+           a lexical escape and add an orig line modification for it.  The
+           null character will be diagnosed, if appropriate, when it is
+           scanned by skip_white_space or accum_quoted_string. */
 entry_for_null_character:
-        if (!null_chars_allowed_in_source) {
-          ch = ' ';
-          if (!has_invalid_char) {
-            has_invalid_char = TRUE;
-            offset_to_invalid_char = loc_in_line - curr_source_line;
-          }  /* if */
-        } else {
-          /* Null allowed: put in an LE_ESCAPE/LE_NULL to represent the null
-             character. */
-          if (loc_in_line == after_curr_source_line_minus_term) {
-            /* The line is too long; the buffer must be expanded. */
-            offset_in_line = loc_in_line - curr_source_line;
-            expand_curr_source_line();
-            loc_in_line = curr_source_line + offset_in_line;
-            after_curr_source_line_minus_term = after_end_of_curr_source_line -
-                                                2*LE_ESCAPE_LEN;
-          }  /* if */
-          /* Add a modification so that we can get the column offsets right
-             (a single character is replaced by a lexical escape, which
-             is more than one character). */
-          (void)add_orig_line_modif(olm_null, loc_in_line);
-          /* Put the LE_ESCAPE character into curr_source_line. */
-          *loc_in_line++ = LE_ESCAPE;
-          /* Fall into the normal code to store the LE_NULL character. */
-          ch = LE_NULL;
+        if (loc_in_line == after_curr_source_line_minus_term) {
+          /* The line is too long; the buffer must be expanded. */
+          offset_in_line = loc_in_line - curr_source_line;
+          expand_curr_source_line();
+          loc_in_line = curr_source_line + offset_in_line;
+          after_curr_source_line_minus_term = after_end_of_curr_source_line -
+                                              2*LE_ESCAPE_LEN;
         }  /* if */
+        /* Add a modification so that we can get the column offsets right
+           (a single character is replaced by a lexical escape, which
+           is more than one character). */
+        (void)add_orig_line_modif(olm_null, loc_in_line);
+        /* Put the LE_ESCAPE character into curr_source_line. */
+        *loc_in_line++ = LE_ESCAPE;
+        /* Fall into the normal code to store the LE_NULL character. */
+        ch = LE_NULL;
       }  /* if */
       /* Check that there is still room in the line buffer.  We have to
          leave room for both the final newline and line-end escapes. */
@@ -7426,7 +7412,12 @@ white_space_loop:
         goto end_skip;
       } else if (ch == LE_NULL) {
         /* Null (zero) character. */
-        warning_at_line_pos(ec_null_char_ignored, curr_char_loc);
+        if (null_chars_allowed_in_source) {
+          warning_at_line_pos(ec_null_char_ignored, curr_char_loc);
+        } else {
+          diagnostic_at_line_pos(es_discretionary_error, ec_invalid_char,
+                                 curr_char_loc);
+        }  /* if */
         kind_skipped |= WHITE_SPACE_OTHER;
         curr_char_loc += LE_ESCAPE_LEN;
       } else if (ch == LE_COMMA_FROM_ARGUMENT) {
@@ -9068,9 +9059,17 @@ error messages.
       olmp = olmp->next;
     } else if (ch == LE_ESCAPE) {
       if (curr_char_loc[1] == LE_NULL) {
-        /* Null (zero) character -- keep in string. */
-        /* In Microsoft mode, the character is thrown away. */
-        if (microsoft_mode) {
+        /* Null (zero) character. */
+        if (!null_chars_allowed_in_source) {
+          diagnostic_at_line_pos(es_discretionary_error, ec_invalid_char,
+                                 curr_char_loc);
+          if (!microsoft_mode) {
+            /* Keep the character in the string, except in Microsoft
+               mode. */
+            ++nchars;
+          }  /* if */
+        } else if (microsoft_mode) {
+          /* In Microsoft mode, the character is thrown away. */
           warning_at_line_pos(ec_null_char_ignored, curr_char_loc);
         } else {
           warning_at_line_pos(is_header_name ? ec_null_char_in_header_name:
