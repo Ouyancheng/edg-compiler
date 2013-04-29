@@ -1,6 +1,6 @@
 Version 4.7
 
-3/28/13 [EDGcpfe/13944]
+4/29/13 [EDGcpfe/13944]
 Generated copy constructor in class with mutable field
 
 The changes for EDGcpfe/13788 intended to address an issue with mutable fields
