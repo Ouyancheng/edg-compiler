@@ -1,5 +1,24 @@
 Version 4.7
 
+4/30/13  [EDGcpfe/13957]
+Using conversion function to reference to array for pointer operand to built-in
+
+A conversion function that returns a reference to an array is now
+considered when trying to match an operand of a built-in operator that
+requires a pointer.  Similarly for a reference to a function type.
+
+  template <typename T> struct X {
+    T data;
+    operator T&() {
+      return data;
+    }
+  };
+  int main() {
+    X<int[10]> x;
+    int i = x[0];
+  }
+
+
 4/29/13 [EDGcpfe/13913]
 Spurious constexpr error on generated default constructor
 

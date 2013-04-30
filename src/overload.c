@@ -12874,6 +12874,20 @@ are considered).  conv_context describes the context of the conversion.
       /* We're looking for a built-in type described in general terms. */
       /* See if this conversion function returns an acceptable built-in
          type. */
+      if (result_is_a_reference && !is_reference_binding) {
+        /* If the conversion function returns a reference to an array or
+           function type, account for the type decay that follows. */
+        if (is_array_type(return_type)) {
+          return_type =
+                       type_after_array_to_pointer_transformation(return_type);
+          result_is_an_lvalue = FALSE;
+        } else if (is_function_type(return_type)) {
+          return_type =
+             type_after_function_to_pointer_transformation(return_type,
+                                                           (an_operand *)NULL);
+          result_is_an_lvalue = FALSE;
+        }  /* if */
+      }  /* if */
       if (need_lvalue_result && is_const_qualified_type(return_type)) {
         /* Rule out const types if an lvalue is required. */
       } else if (type_is_in_builtin_type_set(return_type,
