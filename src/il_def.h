@@ -14199,15 +14199,15 @@ typedef enum a_builtin_operation_kind_tag {
   bok_is_trivially_constructible,
 			/* __is_trivially_constructible.  One or more operands,
 			   all types. */
-  bok_is_nothrow_assignable,
-			/* __is_nothrow_assignable.  Two type operands. */
-  bok_is_trivially_assignable,
-			/* __is_trivially_assignable.  Two type operands. */
   bok_is_destructible,	/* __is_destructible.  One type operand. */
   bok_is_nothrow_destructible,
 			/* __is_nothrow_destructible.  One type operand. */
   bok_is_trivially_destructible,
 			/* __is_trivially_destructible.  One type operand. */
+  bok_is_nothrow_assignable,
+			/* __is_nothrow_assignable.  Two type operands. */
+  bok_is_trivially_assignable,
+			/* __is_trivially_assignable.  Two type operands. */
   bok_last              /* Marks the end of the list. */
 } a_builtin_operation_kind_tag;
 /* Define as "a_byte" to explicitly control storage size. */

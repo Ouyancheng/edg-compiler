@@ -35397,7 +35397,7 @@ alternative callable from outside, see rescan_expr_with_substitution.
         break;
       case tok_is_trivially_constructible:
         /* __is_trivially_constructible construct: */
-        scan_is_constructible(bok_is_nothrow_constructible, rcblock, result);
+        scan_is_constructible(bok_is_trivially_constructible, rcblock, result);
         break;
       case tok_is_destructible:
         /* __is_destructible construct: */
@@ -35405,19 +35405,19 @@ alternative callable from outside, see rescan_expr_with_substitution.
         break;
       case tok_is_nothrow_destructible:
         /* __is_nothrow_destructible construct: */
-        scan_is_constructible(bok_is_nothrow_destructible, rcblock, result);
+        scan_is_destructible(bok_is_nothrow_destructible, rcblock, result);
         break;
       case tok_is_trivially_destructible:
         /* __is_trivially_destructible construct: */
-        scan_is_constructible(bok_is_nothrow_destructible, rcblock, result);
+        scan_is_destructible(bok_is_nothrow_destructible, rcblock, result);
         break;
       case tok_is_nothrow_assignable:
         /* __is_nothrow_assignable construct: */
-        scan_is_constructible(bok_is_nothrow_assignable, rcblock, result);
+        scan_is_assignable(bok_is_nothrow_assignable, rcblock, result);
         break;
       case tok_is_trivially_assignable:
         /* __is_trivially_assignable construct: */
-        scan_is_constructible(bok_is_nothrow_assignable, rcblock, result);
+        scan_is_assignable(bok_is_trivially_assignable, rcblock, result);
         break;
 #if GNU_COMPLEX_EXTENSIONS_ALLOWED
       case tok_gnu_real:
@@ -37252,10 +37252,12 @@ of this where the source should be considered an rvalue.
 }  /* compute_is_convertible */
 
 
-static an_arg_list_elem_ptr make_declval_operand(a_type_ptr  tp)
+static an_arg_list_elem_ptr make_declval_arg(a_type_ptr  tp)
 /*
-Create and return an operand corresponding to "std::declval<T>()" where T is
-the given type.
+Create and return an argument corresponding to "std::declval<T>()" where T is
+the given type and the standard template std::declval is declared as:
+  template<class T> typename add_rvalue_reference<T>::type declval() noexcept;
+Return NULL if tp is an incomplete type or a reference to an incomplete type.
 */
 {
   an_arg_list_elem_ptr  result = NULL;
@@ -37287,7 +37289,7 @@ the given type.
   }  /* if */
 done:
   return result;
-}  /* make_declval_operand */
+}  /* make_declval_arg */
 
                                  
 a_boolean compute_is_constructible(a_builtin_operation_kind kind,
@@ -37313,8 +37315,7 @@ empty) list of type operands args, and returns TRUE if so.
                   /*force_object_lifetime=*/FALSE,
                   /*suppress_object_lifetime=*/TRUE);
   complete_type_is_needed(dst_type);
-  if (is_void_type(dst_type) ||
-      is_array_type(dst_type) ||
+  if (is_array_type(dst_type) ||
       is_function_type(dst_type) ||
       is_incomplete_type(dst_type) ||
       is_abstract_class_type(dst_type)) {
@@ -37328,7 +37329,7 @@ empty) list of type operands args, and returns TRUE if so.
       a_type_ptr typen;
       check_assertion(argn->kind == (an_expr_node_kind)enk_type_operand);
       typen = argn->variant.type_operand.type;
-      alep = make_declval_operand(typen);
+      alep = make_declval_arg(typen);
       if (alep == NULL) {
         /* The value creation expression is ill-formed: Return a "false"
            result. */
@@ -37458,30 +37459,22 @@ kind is bok_is_nothrow_assignable or bok_is_trivially_assignable.
   push_expr_stack((an_expression_kind)ek_sizeof, &expr_stack_entry,
                   /*force_object_lifetime=*/FALSE,
                   /*suppress_object_lifetime=*/TRUE);
-  complete_type_is_needed(dst_type);
-  complete_type_is_needed(src_type);
-  if (is_void_type(dst_type) ||
-      is_array_type(dst_type) ||
-      is_function_type(dst_type) ||
-      is_incomplete_type(dst_type)) {
-    result = FALSE;
-  } else if (is_void_type(dst_type) ||
-             is_array_type(dst_type) ||
-             is_function_type(dst_type) ||
-             is_incomplete_type(dst_type)) {
+  if (is_function_type(dst_type) || is_function_type(src_type)) {
+    /* std::is_assignable doesn't permit function type arguments.  For the
+       associated type traits helper, we just produce "false". */
     result = FALSE;
   } else {
     /* Make a pair of expressions of the required types. */
     an_arg_list_elem_ptr  dst_op, src_op;
     an_operand            result_op;
-    dst_op = arg_list = make_declval_operand(dst_type);
+    dst_op = arg_list = make_declval_arg(dst_type);
     if (dst_op == NULL) {
       /* The value creation expression is ill-formed: Return a "false"
          result. */
       result = FALSE;
       goto have_result;
     }  /* if */
-    src_op = arg_list->next = make_declval_operand(src_type);
+    src_op = arg_list->next = make_declval_arg(src_type);
     if (src_op == NULL) {
       /* The value creation expression is ill-formed: Return a "false"
          result. */
