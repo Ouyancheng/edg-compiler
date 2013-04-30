@@ -5944,6 +5944,44 @@ whole array.
 }  /* repeat_mem_init_for_array */
 
 
+static void restore_mem_init_object_lifetime(a_dynamic_init_ptr  dip)
+/*
+dip points to an entry describing a mem-initializer.  If the initializer had
+produced an object lifetime for the full expression, it was temporarily
+removed from the object lifetime tree.  Restore the object lifetime.  (This
+restoration must respect the order of initialization, which is not necessarily
+the order in which mem-initializers appear in the source.)
+*/
+{
+  an_object_lifetime_ptr  olp = init_expr_lifetime_of(dip);
+
+  if (olp != NULL) {
+    if (!long_lifetime_temps) {
+      /* Add the lifetime back in as a child of the current object
+         lifetime.  This assures that the order of the child-lifetime
+         list will reflect the actual order of construction. */
+      add_as_child_of_curr_object_lifetime(olp);
+    } else {
+      /* Promote destructions associated with expression temps to the
+         function scope lifetime. */
+      promote_lifetime_contents_to_curr_object_lifetime(olp);
+      if (dip->kind == (a_dynamic_init_kind)dik_expression) {
+        an_expr_node_ptr  expr = dip->variant.expression;
+        if (expr->kind == (an_expr_node_kind)enk_object_lifetime &&
+            expr->variant.object_lifetime.ptr == olp) {
+          /* Link around the enk_object_lifetime expression -- it's not needed
+             any longer. */
+          dip->variant.expression = expr->variant.object_lifetime.expr;
+        }  /* if */
+      }  /* if */
+      /* Unbind the object lifetime and return it to an available list. */
+      unbind_object_lifetime(olp);
+      free_object_lifetime(olp);
+    }  /* if */
+  }  /* if */
+}  /* restore_mem_init_object_lifetime */
+
+
 /*
 Pointer to a hash table tracking the targets of delegating constructors.
 (We cannot use the IL because constructor definitions may be discarded early.)
@@ -6167,6 +6205,7 @@ reflect the initialization.  Otherwise, return FALSE.
           /* Some error must have occurred. */
           expect_error();
         }  /* if */
+        restore_mem_init_object_lifetime(dip);
         if (exceptions_enabled && dip->destructor != NULL) {
           /* If an exception is thrown in the delegating body, the destructor
              for the whole object is invoked. */
@@ -6599,36 +6638,10 @@ initialized.  These are addressed in the course of the processing.
     /* If this was an explicit specialization, check whether an object
        lifetime needs to be restored to the IL. */
     if (dip != NULL && dip->kind != (a_dynamic_init_kind)dik_none) {
-      /* If the initializer had produced an object lifetime for the full
-         expression, it was temporarily removed from the object lifetime tree;
-         Now that we are reconsidering the initializers in the canonical order
-         (not the order in the source), restore the object lifetime. */
-      an_object_lifetime_ptr  olp = init_expr_lifetime_of(cip->initializer);
-      if (olp != NULL) {
-        if (!long_lifetime_temps) {
-          /* Add the lifetime back in as a child of the current object
-             lifetime.  This assures that the order of the child-lifetime
-             list will reflect the actual order of construction. */
-          add_as_child_of_curr_object_lifetime(olp);
-        } else {
-          /* Promote destructions associated with expression temps to the
-             function scope lifetime. */
-          promote_lifetime_contents_to_curr_object_lifetime(olp);
-          dip = cip->initializer;
-          if (dip->kind == (a_dynamic_init_kind)dik_expression &&
-              dip->variant.expression->kind ==
-                                      (an_expr_node_kind)enk_object_lifetime &&
-              dip->variant.expression->variant.object_lifetime.ptr == olp) {
-            /* Link around the enk_object_lifetime expression -- it's not
-               needed any longer. */
-            dip->variant.expression =
-                    dip->variant.expression->variant.object_lifetime.expr;
-          }  /* if */
-          /* Unbind the object lifetime and return it to an available list. */
-          unbind_object_lifetime(olp);
-          free_object_lifetime(olp);
-        }  /* if */
-      }  /* if */
+      /* Restore the object lifetime in the object lifetime tree now that we
+         have the initializers in initialization order (rather than source
+         order). */
+      restore_mem_init_object_lifetime(dip);
       /* Unless this is an array type or exception processing is enabled, this
          is all that's required for explicit initializations. */
       if (exceptions_enabled ||
