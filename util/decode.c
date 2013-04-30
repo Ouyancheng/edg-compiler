@@ -6702,16 +6702,11 @@ substitution, the name of the last component in the substitution is used.
           (void)demangle_unqualified_name(prev_component_name, &dummy, dctl);
           /* Check that the second character of the constructor/destructor
              name is a valid digit. */
-          /* "D7" is the code used by the EDG C++ Front End for C++/CLI
-             finalizers.  It's not part of the ABI spec. */
-          /* "C8" is the code used by the EDG C++ Front End for C++/CLI
-             static constructors.  It's not part of the ABI spec. */
           /* '9' is the code used by the EDG C++ Front End for the
-             underlying routine called by the various entry points.
-             It's not part of the ABI spec. */
-          if (ptr[1] == '1' || ptr[1] == '2' || ptr[1] == '9' ||
-              (ptr[0] == 'C' ? (ptr[1] == '3' || ptr[1] == '8') :
-                               (ptr[1] == '0' || ptr[1] == '7'))) {
+             common routine called by the various delegating constructor
+             entry points.  It's not part of the ABI spec. */
+          if (ptr[1] == '1' || ptr[1] == '2' ||
+              (ptr[0] == 'C' && ptr[1] == '9')) {
             /* Okay. */
             *ctor_dtor_kind = ptr[1];
             ptr += 2;
@@ -7415,20 +7410,10 @@ non-template functions).
       case '2':
         write_id_str(" [subobject]", dctl);
         break;
-      case '3':
-        write_id_str(" [allocating]", dctl);
-        break;
-      case '7':
-        /* An EDG extension for C++/CLI finalizers (no extra label). */
-        break;
-      case '8':
-        /* An EDG extension for C++/CLI static constructors. */
-        write_id_str(" [static]", dctl);
-        break;
       case '9':
-        /* The EDG front end uses '9' for the routine called by the
-           other entry points. */
-        write_id_str(" [internal]", dctl);
+        /* The EDG front end uses '9' for the common constructor routine
+           called by delegating constructor alternate entry points. */
+        write_id_str(" [delegation]", dctl);
         break;
       default:
         /* Bad character.  This shouldn't happen, because the character

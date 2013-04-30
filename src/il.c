@@ -388,6 +388,9 @@ is TRUE, include type information for function parameters.
       case cdk_deleting:
         (void)add_string_to_text_buffer(db_name_str_buffer, " [deleting]");
         break;
+      case cdk_delegation:
+        (void)add_string_to_text_buffer(db_name_str_buffer, " [delegation]");
+        break;
       case cdk_none:
         break;
       default:

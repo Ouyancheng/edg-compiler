@@ -745,9 +745,10 @@ is TRUE (only in the IA-64 ABI) if the constructor takes a VTT parameter.
                  variant.class_struct_union.any_virtual_base_classes)
 #else /* IA64_ABI */
 #define ctor_needs_vtt_argument(ctor_routine)                         \
-  ((ctor_routine)->ctor_dtor_kind == (a_ctor_or_dtor_kind)cdk_subobject && \
-   parent_class_of(ctor_routine)->                                    \
-                 variant.class_struct_union.any_virtual_base_classes)
+  ((ctor_routine)->ctor_dtor_kind == (a_ctor_or_dtor_kind)cdk_delegation || \
+   ((ctor_routine)->ctor_dtor_kind == (a_ctor_or_dtor_kind)cdk_subobject && \
+    parent_class_of(ctor_routine)->                                    \
+                 variant.class_struct_union.any_virtual_base_classes))
 #define ctor_needs_implied_arg_list(ctor_routine)                     \
   ctor_needs_vtt_argument(ctor_routine)
 #endif /* IA64_ABI */

@@ -9423,6 +9423,13 @@ enable_microsoft_mode:
   check_assertion(!(cpp11_mode || static_assert_enabled || lambdas_enabled ||
                     rvalue_references_enabled || nullptr_enabled));
 #endif /* CPP11_IL_EXTENSIONS_SUPPORTED */
+#if ASSIGNMENT_TO_THIS_ALLOWED
+  if (cpp11_mode) {
+    /* Delegating constructors aren't compatible with
+       ASSIGNMENT_TO_THIS_ALLOWED, so don't allow c++11 mode. */
+    command_line_error(ec_configuration_not_compatible_with_cpp11);
+  }  /* if */
+#endif /* ASSIGNMENT_TO_THIS_ALLOWED */
   /* Range-based-for relies on the std namespace being enabled. */
   check_assertion(namespaces_enabled || !range_based_for_enabled);
   /* Add the default directories to the end of the include search path.

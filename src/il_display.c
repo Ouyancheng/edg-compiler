@@ -3077,6 +3077,7 @@ Display the name of the indicated constructor or destructor kind.
     case cdk_complete:  s = "complete";                  break;
     case cdk_subobject: s = "subobject";                 break;
     case cdk_deleting:  s = "deleting";                  break;
+    case cdk_delegation:s = "delegation";                break;
     default:            s = "**BAD CTOR OR DTOR KIND**"; break;
   }  /* switch */
   (void)printf("%s", s);

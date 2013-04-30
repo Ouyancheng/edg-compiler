@@ -10110,6 +10110,7 @@ constructors and conversion functions.
           case cdk_none:                   break;
           case cdk_complete:               break;
           case cdk_subobject: name = "C2"; break;
+          case cdk_delegation:name = "C9"; break;
           default:            unexpected_condition();
         }  /* switch */
 #endif /* IA64_ABI */

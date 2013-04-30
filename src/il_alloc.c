@@ -2001,6 +2001,9 @@ the associated variant fields to default values.
       dip->variant.constructor.is_implicit_copy_for_copy_initialization= FALSE;
       dip->variant.constructor.value_initialization = FALSE;
       dip->variant.constructor.has_sequenced_arguments = FALSE;
+#if DO_IL_LOWERING && IA64_ABI
+      dip->variant.constructor.ctor_dtor_kind = (a_ctor_or_dtor_kind)cdk_none;
+#endif /* DO_IL_LOWERING && IA64_ABI */
 #if CENTERLINE_CHECKING
       dip->variant.constructor.avoid_codecenter_warnings = 0;
 #endif /* CENTERLINE_CHECKING */

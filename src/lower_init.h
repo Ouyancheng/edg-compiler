@@ -192,6 +192,7 @@ extern void zero_automatic_temporary(a_variable_ptr   temp_var,
 extern void lower_temp_init(an_expr_node_ptr expr);
 
 extern void make_ctor_implied_arg_list(a_routine_ptr    ctor_routine,
+                                       a_boolean        a_target_ctor,
                                        an_expr_node_ptr *implied_arg_list,
                                        an_expr_node_ptr *end_implied_arg_list);
 

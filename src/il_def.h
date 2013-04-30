@@ -3400,6 +3400,15 @@ typedef struct a_dynamic_init {
 			   order from left to right.  This comes up when a
 			   C++11 initializer list ends up being the argument
 			   list for a constructor. */
+#if DO_IL_LOWERING && IA64_ABI
+      a_bit_field /* a_ctor_or_dtor_kind */
+                ctor_dtor_kind:3;
+			/* When lowering a constructor call, this specifies
+			   the particular alternate entry point to invoke.
+			   Typically cdk_none (in which case the proper
+			   entry point is selected based upon virtual base
+			   classes being present in the parent class). */
+#endif /* DO_IL_LOWERING && IA64_ABI */
       bitfield_to_avoid_codecenter_warnings()
     } constructor;
   } variant;
@@ -12534,6 +12543,10 @@ enum a_ctor_or_dtor_kind_tag {
   cdk_deleting,		/* A version of a destructor that destroys a
 			   complete object and then deletes the storage
 			   associated with the object. */
+  cdk_delegation,	/* A version of a delegating constructor that is
+			   invoked by both complete object and subobject
+			   versions.  This is an EDG extension -- it is not
+			   part of the IA-64 ABI. */
 #endif /* IA64_ABI */
   cdk_last		/*lint -esym(769,a_ctor_or_dtor_kind_tag::cdk_last)*/
 };
@@ -13166,7 +13179,7 @@ typedef struct a_routine {
 			   routines with definitions, never for (e.g.)
 			   external references. */
   a_bit_field /* a_ctor_or_dtor_kind */
-		ctor_dtor_kind:2;
+		ctor_dtor_kind:3;
 			/* The kind of constructor or destructor.  cdk_none
 			   for other kinds of routines.  All constructors and
 			   destructors are given a kind other than cdk_none.

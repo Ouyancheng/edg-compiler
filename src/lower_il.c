@@ -11562,8 +11562,8 @@ them.  The call has already been lowered.
   implied_arg_list = NULL;
   if (rout->special_kind == (a_special_function_kind)sfk_constructor) {
     /* Constructor. */
-    make_ctor_implied_arg_list(rout, &implied_arg_list,
-                               &end_implied_arg_list);
+    make_ctor_implied_arg_list(rout, /*is_target_ctor=*/FALSE,
+                               &implied_arg_list, &end_implied_arg_list);
   } else if (rout->special_kind == (a_special_function_kind)sfk_destructor) {
     /* Destructor. */
     make_dtor_implied_arg_list(rout, /*have_complete_object=*/TRUE,
@@ -14356,6 +14356,8 @@ The given node is an eok_assign node.  Lower the node if needed.
             */
             an_expr_node_ptr   new_expr, orig_expr_copy;
             an_insert_location insert_location;
+            check_assertion(!innermost_function_scope->variant.routine.ptr->
+                                                           is_delegating_ctor);
             if (expr->variant.operation.
                                       returns_lvalue_instead_of_usual_rvalue) {
               /* Create an lvalue for the "this" parameter. */
