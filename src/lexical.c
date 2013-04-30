@@ -9013,8 +9013,8 @@ caller is responsible for issuing error messages.
           nchars += 4;
         } else {
           /* A char32_t literal, which can hold the value in one
-             character. */
-          check_assertion(literal_kind == SCLK_CHAR32_T_LITERAL);
+             character, or a wide-character literal, which will truncate
+             to a single character if necessary. */
           ++nchars;
         }  /* if */
       } else {
@@ -10483,7 +10483,7 @@ curr_token is already set in that case.
 */
 {
   a_character_kind              character_kind;
-  a_string_or_char_literal_kind lit_kind;
+  a_string_or_char_literal_kind lit_kind = SCLK_ORDINARY_LITERAL;
   a_token_cache                 cache;
   a_cached_token_ptr            ctp, ctp_next, first_string_token = NULL;
   a_boolean                     more_than_one_string = FALSE;
@@ -10498,8 +10498,10 @@ curr_token is already set in that case.
      normal char string, the kind of the result may still change if a
      subsequent literal has a different character kind. */
   character_kind = const_for_curr_token.character_kind;
-  lit_kind =
+  if (start_of_curr_token != NULL) {
+    lit_kind =
             literal_encoding_prefix(scan_encoding_prefix(start_of_curr_token));
+  }  /* if */
   /* Start a token cache in which we will accumulate all the adjacent
      string literals.  Usually, this will be just a single string literal. */
   clear_token_cache(&cache, /*reusable=*/FALSE);
@@ -10520,7 +10522,7 @@ curr_token is already set in that case.
   }  /* if */
   /* Loop as long as the next token is a string literal. */
   for (;;) {
-    a_string_or_char_literal_kind next_lit_kind;
+    a_string_or_char_literal_kind next_lit_kind = SCLK_ORDINARY_LITERAL;
     /* Save the current token (a string literal) by adding it to the token
        cache. */
     cache_curr_token(&cache);
@@ -10558,8 +10560,10 @@ curr_token is already set in that case.
     }  /* if */
     /* End the loop if the new token is not a string literal. */
     if (curr_token != tok_string_literal) break;
-    next_lit_kind =
+    if (start_of_curr_token != NULL) {
+      next_lit_kind =
             literal_encoding_prefix(scan_encoding_prefix(start_of_curr_token));
+    }  /* if */
     if (character_kind != const_for_curr_token.character_kind &&
         !is_error_constant(&const_for_curr_token)) {
       /* The new string and the old one have different character kinds.  In
