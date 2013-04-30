@@ -2192,8 +2192,9 @@ dip->variant.constructor.args has already been lowered.
     /* The VTT pointer gets passed as an implied argument. */
     vtt_param = innermost_function_scope->variant.routine.parameters->next;
     check_assertion(vtt_param != NULL &&
-                    il_identical_types(vtt_param->type,
-                                     make_virtual_table_table_pointer_type()));
+                    f_identical_types(vtt_param->type,
+                                      make_virtual_table_table_pointer_type(),
+                                      ITF_IL_IDENTICAL));
     implied_arg_list = end_implied_arg_list = var_rvalue_expr(vtt_param);
   } else
 #endif /* IA64_ABI */
@@ -14028,8 +14029,10 @@ constructor (at the specified insert_location).
     check_assertion(scope->variant.routine.parameters != NULL &&
                     scope->variant.routine.parameters->next != NULL);
     vtt_param = scope->variant.routine.parameters->next;
-    check_assertion(il_identical_types(vtt_param->type,
-                                     make_virtual_table_table_pointer_type()));
+    check_assertion(vtt_param != NULL &&
+                    f_identical_types(vtt_param->type,
+                                      make_virtual_table_table_pointer_type(),
+                                      ITF_IL_IDENTICAL));
     test_node = var_rvalue_expr(vtt_param);
     test_node = boolean_controlling_expr(test_node);
     insert_if_statement(test_node, /*is_initialization_guard=*/FALSE,
