@@ -19390,7 +19390,9 @@ The routine body is not generated until it is known to be needed.
                        ctsp->is_lambda_closure_class ||
                        cssp->constructor != NULL ||
                        class_state->default_ctor_is_nontrivial ||
-                       !cssp->construction_by_bitwise_copy_allowed);
+                       !cssp->construction_by_bitwise_copy_allowed ||
+                       class_state
+                            ->rule_out_bitwise_copy_for_volatile_class_field);
   declare_move_ctor = generate_move_operations &&
                       !cssp->has_copy_constructor &&
                       !cssp->has_user_declared_move_constructor &&
@@ -19400,7 +19402,9 @@ The routine body is not generated until it is known to be needed.
                       (ctsp->is_lambda_closure_class ||
                        cssp->constructor != NULL ||
                        class_state->default_ctor_is_nontrivial ||
-                       !cssp->construction_by_bitwise_copy_allowed);
+                       !cssp->construction_by_bitwise_copy_allowed ||
+                       class_state
+                            ->rule_out_bitwise_copy_for_volatile_class_field);
 #if MICROSOFT_EXTENSIONS_ALLOWED
   declare_copy_asgn_op = declare_copy_asgn_op &&
                          !(cli_class_type_kind_is(class_type, cctk_ref) ||
