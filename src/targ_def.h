@@ -2352,7 +2352,10 @@ typedef a_targ_ptrdiff_t a_virtual_table_index;
 Flag that is TRUE if assignment to "this" (a C++ anachronism) should
 be allowed.  This affects the source language accepted.  If assignment
 to "this" is allowed, the interface to and wrapper code within constructors
-and destructors may have to be changed.
+and destructors may have to be changed.  Initial value of
+assignment_to_this_allowed global variable.  Lowering of delegating
+constructors is incompatible with ASSIGNMENT_TO_THIS_ALLOWED being TRUE,
+consequently the global variable is silently set to FALSE in C++11 mode.
 */
 #ifndef ASSIGNMENT_TO_THIS_ALLOWED
 #if IA64_ABI && DO_IL_LOWERING

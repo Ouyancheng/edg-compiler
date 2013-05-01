@@ -350,7 +350,9 @@ Flags to be set for any version that uses the C++ generating back end.
 #define DEBUG 1
 #endif /* ifndef DEBUG */
 #define SAME_REPR_INTS_INTERCHANGEABLE_IN_IL 0
+#ifndef ASSIGNMENT_TO_THIS_ALLOWED
 #define ASSIGNMENT_TO_THIS_ALLOWED 0
+#endif /* ASSIGNMENT_TO_THIS_ALLOWED */
 #define DEFAULT_ALLOW_ANACHRONISMS 0
 #define CFRONT_GLOBAL_VS_MEMBER_NAME_LOOKUP_BUG 0
 #define CFRONT_2_1_OBJECT_CODE_COMPATIBILITY 0

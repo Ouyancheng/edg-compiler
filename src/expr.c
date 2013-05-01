@@ -24147,30 +24147,37 @@ This is used for checking/allowing assignment to "this" -- an anachronism.
   an_operand     orig_operand;
 
   if (is_this_parameter_operand(operand, &this_var) && this_var != NULL) {
-    /* This is an operand for "this".  Issue an anachronism diagnostic
-       and change the operand to an lvalue for the "this" variable.
-       Ignore "this" in a prototype instantiation, for which there is
-       no associated variable yet.  That will cause an error later. */
-    is_this = TRUE;
-    /* Assignment to "this" is not allowed if exceptions are enabled.
-       For one thing, the code in IL lowering does not know how to
-       build the right region table if there are several assignments
-       to "this" in one constructor. */
-    expr_pos_diagnostic(exceptions_enabled ? es_error :
-                                             anachronism_error_severity,
-                        ec_assignment_to_this, &operand->position);
-    orig_operand = *operand;
-    make_lvalue_variable_operand(this_var,
-                                 &orig_operand.position,
-                                 end_position_of_operand(&orig_operand),
-                                 operand, operand->ref_entries_list);
-    restore_operand_details(operand, &orig_operand);
-    current_routine_entry()->assignment_to_this_done = TRUE;
-    this_var->param_value_has_been_changed = TRUE;
-    if (exceptions_enabled &&
-        scope_stack[decl_scope_level].within_try_block) {
-      /* Mark the this variable as modified within a try block. */
-      this_var->modified_within_try_block = TRUE;
+    if (assignment_to_this_allowed) {
+      /* This is an operand for "this".  Issue an anachronism diagnostic
+         and change the operand to an lvalue for the "this" variable.
+         Ignore "this" in a prototype instantiation, for which there is
+         no associated variable yet.  That will cause an error later. */
+      is_this = TRUE;
+      /* Assignment to "this" is not allowed if exceptions are enabled.
+         For one thing, the code in IL lowering does not know how to
+         build the right region table if there are several assignments
+         to "this" in one constructor. */
+      expr_pos_diagnostic(exceptions_enabled ? es_error :
+                                               anachronism_error_severity,
+                          ec_assignment_to_this, &operand->position);
+      orig_operand = *operand;
+      make_lvalue_variable_operand(this_var,
+                                   &orig_operand.position,
+                                   end_position_of_operand(&orig_operand),
+                                   operand, operand->ref_entries_list);
+      restore_operand_details(operand, &orig_operand);
+      current_routine_entry()->assignment_to_this_done = TRUE;
+      this_var->param_value_has_been_changed = TRUE;
+      if (exceptions_enabled &&
+          scope_stack[decl_scope_level].within_try_block) {
+        /* Mark the this variable as modified within a try block. */
+        this_var->modified_within_try_block = TRUE;
+      }  /* if */
+    } else {
+      /* Assignment to "this" is not allowed in the lowering of delegating
+         constructors.  Alert the user. */
+      expr_pos_diagnostic(es_error, ec_assignment_to_this_in_cpp11_mode,
+                          &operand->position);
     }  /* if */
   }  /* if */
   return is_this;

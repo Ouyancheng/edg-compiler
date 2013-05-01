@@ -344,6 +344,11 @@ EXTERN a_boolean
 			/* Indicates whether the anachronism of calling
 			   a non-const function on a const object should
 			   be accepted. */
+EXTERN a_boolean
+                assignment_to_this_allowed;
+			/* Indicates whether "this" can be assigned to in
+			   a constructor (an anachronism).  The default value
+			   is ASSIGNMENT_TO_THIS_ALLOWED. */
 
 #if DEBUG
 EXTERN int	init_debug_level;
