@@ -3080,8 +3080,13 @@ in Microsoft mode; in that case, token pasting off the end is not allowed.
     /* If the token was preceded by white-space, put a blank in the
        auxiliary buffer. */
     if (any_white_space_skipped) *pos_in_aux_buffer++ = ' ';
-    if (need_inert_macro_indication) {
-      /* Keep the inert macro indication (e.g., for Microsoft mode). */
+    if (need_inert_macro_indication &&
+        (any_white_space_skipped ||
+         last_token_of_expansion != tok_identifier)) {
+      /* The current token is the name of an inert macro that is not being
+         concatenated with a preceding identifier (i.e., will persist as a
+         distinct identifier during the rescan); keep the inert macro
+         indication (e.g., for Microsoft mode). */
       *pos_in_aux_buffer++ = LE_ESCAPE;
       inert_macro_escape = pos_in_aux_buffer;
       *pos_in_aux_buffer++ = LE_INERT_MACRO;
@@ -3113,7 +3118,7 @@ in Microsoft mode; in that case, token pasting off the end is not allowed.
                  size_t_arg(len_of_curr_token));
     pos_in_aux_buffer += len_of_curr_token;
     last_token_of_expansion = curr_token;
-  }  /* while */
+  }  /* for */
 end_loop:
 #if FULLY_RESOLVED_MACRO_POSITIONS
   if (tracker_inited) {
