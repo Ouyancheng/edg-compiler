@@ -10768,7 +10768,8 @@ TRUE.
 }  /* merge_exception_specifications */
 
 
-void form_exception_specification_for_generated_function(a_routine_ptr  rp)
+static void form_exception_specification_for_generated_function(
+                                                            a_routine_ptr  rp)
 /*
 Synthesize an exception specification for the implicitly declared (i.e.,
 compiler-generated) member function rp -- a constructor, destructor, or
