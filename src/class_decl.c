@@ -25532,7 +25532,9 @@ not a literal type.
   a_base_class_ptr  bcp;
 
   for (bcp = base_classes_of(class_type); bcp != NULL; bcp = bcp->next) {
-    if (bcp->direct && !is_literal_type(bcp->type)) {
+    if (bcp->direct &&
+        !bcp->type->variant.class_struct_union.is_nonreal_class &&
+        !is_literal_type(bcp->type)) {
       result = TRUE;
       break;
     }  /* if */
