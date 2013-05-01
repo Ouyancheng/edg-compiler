@@ -973,6 +973,24 @@ typedef struct a_class_def_state {
 			/* TRUE if a field initializer has been seen.  (Used
 			   to diagnose multiple field initializers in
 			   unions.) */
+  a_bit_field	rule_out_bitwise_copy_for_volatile_class_field:1;
+			/* TRUE if bitwise copying should be ruled out because
+			   a field of volatile class type has been seen where
+			   the unqualified class type is bitwise copyable.
+			   For example:
+			     struct E {};
+			     struct S { volatile E e; };
+			   The trivial copy constructor of E cannot copy a
+			   volatile E since it takes an "E const&".  So the
+			   construction_by_bitwise_copy_allowed flag must be
+			   FALSE, but not until the copy constructor of S is
+			   generated since the latter should be marked trivial
+			   (which e.g. matter when determining if it can appear
+			   in a union type). */
+  a_bit_field	rule_out_bitwise_assign_for_volatile_class_field:1;
+			/* TRUE if bitwise copying should be ruled out because
+			   a field of volatile class type has been seen where
+			   the unqualified class type is bitwise assignable. */
   an_access_specifier
 		access;
 			/* The current access. */
@@ -1065,6 +1083,8 @@ class being defined.
   cdsp->base_destruction_required = FALSE;
   cdsp->ms_parenthesized_member = FALSE;
   cdsp->has_field_initializer = FALSE;
+  cdsp->rule_out_bitwise_copy_for_volatile_class_field = FALSE;
+  cdsp->rule_out_bitwise_assign_for_volatile_class_field = FALSE;
   cdsp->access = (an_access_specifier)as_public;
 #if MICROSOFT_EXTENSIONS_ALLOWED
   cdsp->assembly_access = (an_access_specifier)as_public;
@@ -15001,6 +15021,37 @@ specific information about the member declaration, respectively.
   db_exit();
 }  /* decl_static_data_member */
 
+static a_boolean class_has_nontrivial_copy_assignment(a_type_ptr  class_type)
+/*
+Return TRUE if any assignment operator of class type is a nontrivial copy/move
+assignment.
+*/
+{
+  a_boolean     result = FALSE;
+  a_symbol_ptr  sym = class_symbol_supp(symbol_for(class_type))
+                                                        ->assignment_operator;
+
+  if (sym != NULL) {
+    /* Look at every assignment operator in turn (if there are more than
+       one). */
+    a_boolean  is_list = symbol_is(sym, sk_overloaded_function);
+    if (is_list) sym = sym->variant.overloaded_function.symbols;
+    for (; sym != NULL; sym = is_list ? sym->next : NULL) {
+      a_routine_ptr  rp = sym->variant.routine.ptr;
+      if (!sym->variant.routine.ptr->is_trivial_copy_function &&
+          is_copy_assignment_operator_type(rp->type, class_type,
+                                           /*move_assign_okay=*/TRUE,
+                                           (a_boolean*)NULL,
+                                           (a_type_qualifier_set*)NULL,
+                                           (a_boolean*)NULL)) {
+        result = TRUE;
+        break;
+      }  /* if */
+    }  /* for */
+  }  /* if */
+  return result;
+}  /* class_has_nontrivial_copy_assignment */
+
 
 static a_boolean check_valid_union_field(a_type_ptr         field_type,
                                          a_type_ptr         class_type,
@@ -15054,13 +15105,11 @@ for the union type (class_type).
         /* A union member's (underlying) type cannot be a class with a
            nontrivial constructor or destructor. */
         severity = es_error;
-      } else if (!cssp->assignment_by_bitwise_copy_allowed) {
-        /* When this flag is false, memberwise assignment of the union would
-           require calling an assignment operator, but that involves knowing
-           which variant in the union is active.  This means, even if there
-           is no user-defined copy assignment operator the compiler generated
-           one is not trivial.  (This goes beyond what is literally required
-           in WP 9.6 at this time.) */
+      } else if (!cssp->assignment_by_bitwise_copy_allowed &&
+                 class_has_nontrivial_copy_assignment(tp)) {
+        /* Memberwise assignment of the union would require calling a
+           nontrivial assignment operator, but that involves knowing which
+           variant in the union is active. */
         /* There is no error with cfront 2.1, but it is fixed in cfront 3.0. */
         severity = cfront_2_1_mode ? es_warning : es_error;
       }  /* if */
@@ -16991,8 +17040,12 @@ be entered.
           } else if (any_qualifier_in_set_missing(TQ_CONST, quals)) {
             /* A trivially copyable class type is not copyable if it is
                volatile (because the constructor's parameter type is
-               "X const&"). */
-            cssp->construction_by_bitwise_copy_allowed = FALSE;
+               "X const&").  This doesn't make the copy constructor nontrivial
+               though; so don't set the construction_by_bitwise_copy_allowed
+               flag to FALSE yet (until after the generation of special
+               members). */
+            class_state
+                      ->rule_out_bitwise_copy_for_volatile_class_field = TRUE;
           }  /* if */
           if (!cssp->assignment_by_bitwise_copy_allowed) {
             /* Bitwise copy assignment has already been ruled out. */
@@ -17001,8 +17054,12 @@ be entered.
           } else if (any_qualifier_in_set_missing(TQ_CONST, quals)) {
             /* A trivially copyable class type is not copyable if it is
                volatile (because the constructor's parameter type is
-               "X const&"). */
-            cssp->assignment_by_bitwise_copy_allowed = FALSE;
+               "X const&").  This doesn't make the copy assignment operator
+               nontrivial though; so don't set the
+               assignment_by_bitwise_copy_allowed flag to FALSE yet (until
+               after the generation of special members). */
+            class_state
+                    ->rule_out_bitwise_assign_for_volatile_class_field = TRUE;
           }  /* if */
         }  /* if */
         /* If the member type has mutable members, set the flag in the parent
@@ -19499,14 +19556,19 @@ The routine body is not generated until it is known to be needed.
   mark_trivial_special_members(class_state);
   /* If there were user-provided copy constructors and/or user-provided copy
      assignment operators, set construction_by_bitwise_copy_allowed and/or
-     assignment_by_bitwise_copy_allowed to FALSE.  This must happen after
-     the call to mark_trivial_special_members. */
+     assignment_by_bitwise_copy_allowed to FALSE.  This must happen after the
+     call to mark_trivial_special_members.  Similarly, a field of volatile
+     class type where the unqualified class is bitwise copyable disables
+     bitwise copying of the parent class without making the copy functions
+     nontrivial. */
   if (cssp->has_user_provided_copy_constructor ||
-      cssp->has_user_provided_move_constructor) {
+      cssp->has_user_provided_move_constructor ||
+      class_state->rule_out_bitwise_copy_for_volatile_class_field) {
     cssp->construction_by_bitwise_copy_allowed = FALSE;
   }  /* if */
   if (user_provided_copy_assignment_op ||
-      cssp->has_user_provided_move_assign_operator) {
+      cssp->has_user_provided_move_assign_operator ||
+      class_state->rule_out_bitwise_assign_for_volatile_class_field) {
     cssp->assignment_by_bitwise_copy_allowed = FALSE;
   }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
