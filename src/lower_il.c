@@ -20087,7 +20087,7 @@ Do IL lowering of the indicated scope and everything under it.
       (void)make_runtime_routine("_main", &underscore_main, void_type());
       set_block_start_insert_location(scope->assoc_block, &insert_location);
       make_call_statement(underscore_main, (an_expr_node_ptr)NULL,
-                          &insert_location);
+                          (an_expr_node_ptr)NULL, &insert_location);
     }  /* if */
 #endif /* !IA64_ABI || ABI_COMPATIBILITY_VERSION <= 301 */
     /* Free any return memos that were not used. */

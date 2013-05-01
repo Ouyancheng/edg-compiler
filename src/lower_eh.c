@@ -5088,6 +5088,7 @@ for the scope of the handler.
                                            &exception_caught_routine,
                                            void_type()),
                       (an_expr_node_ptr)NULL,
+                      (an_expr_node_ptr)NULL,
                       &insert_location);
 #else /* !DO_FULL_PORTABLE_EH_LOWERING */
   /* In other schemes, insert an enk_lowered_eh_construct/
@@ -5153,11 +5154,13 @@ generated is inserted at insert_location.
 #if ABI_COMPATIBILITY_VERSION > 310
   make_call_statement(make_destroy_exception_object_routine(),
                       (an_expr_node_ptr)NULL,
+                      (an_expr_node_ptr)NULL,
                       insert_location);
 #else /* ABI_COMPATIBILITY_VERSION <= 310 */
   make_call_statement(make_runtime_routine("__free_thrown_object",
                                            &free_thrown_object_routine,
                                            void_type()),
+                      (an_expr_node_ptr)NULL,
                       (an_expr_node_ptr)NULL,
                       insert_location);
 #endif /* ABI_COMPATIBILITY_VERSION > 310 */
@@ -6045,6 +6048,7 @@ the throw, whereas the rest of the throw expression evaluation is
   make_call_statement(make_runtime_routine("__exception_started",
                                            &exception_started_routine,
                                            void_type()),
+                      (an_expr_node_ptr)NULL,
                       (an_expr_node_ptr)NULL,
                       insert_location);
 #else /* !DO_FULL_PORTABLE_EH_LOWERING */

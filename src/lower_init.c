@@ -540,22 +540,26 @@ it would appear as the type on a call of the function in the lowered IL.
 static an_expr_node_ptr make_call_node_full(
                                            a_routine_ptr      routine,
                                            an_expr_node_ptr   arg_list,
+                                           an_expr_node_ptr   return_value,
                                            a_boolean          is_virtual_call,
                                            an_insert_location *insert_location)
 /*
 Make an expression that calls routine "routine" with arguments "arg_list",
-and return a pointer to it.  arg_list is assumed to be lowered already.
-If insert_location is not NULL, an expression statement containing the
-created call node is inserted at *insert_location.  If is_virtual_call
-is TRUE, the call is virtual, and the caller will do further lowering on
-the returned expression.  In cases where a non-NULL insert_location is
-specified and inlining of the routine is possible, the returned expression
-is NULL (reflecting that the call has been inlined and inserted into
-the specified location).  For this reason, use of either make_call_node
-or make_call_statement is preferred when possible.
+and return a pointer to it (or to the assignment expression generated if
+return_value is non-NULL).  arg_list is assumed to be lowered already.
+If return_value is non-NULL, it represents an lvalue to which the return
+value from the call operation will be assigned (otherwise any value returned
+by the call is ignored).  If insert_location is not NULL, an expression
+statement containing the created call node (or assignment expression) is
+inserted at *insert_location.  If is_virtual_call is TRUE, the call is virtual,
+and the caller will do further lowering on the returned expression.  In cases
+where a non-NULL insert_location is specified and inlining of the routine is
+possible, the returned expression is NULL (reflecting that the call has been
+inlined and inserted into the specified location).  For this reason, use of
+either make_call_node or make_call_statement is preferred when possible.
 */
 {
-  an_expr_node_ptr      call_node, rout_node;
+  an_expr_node_ptr      call_node, rout_node, top_level_node;
   a_type_ptr            rout_return_type;
 #if MINIMAL_INLINING
   a_statement_ptr       call_stmt = NULL;
@@ -589,11 +593,21 @@ or make_call_statement is preferred when possible.
   rout_return_type = lowered_return_type_of(routine->type);
   call_node = make_operator_node((an_expr_operator_kind)eok_call,
                                  rout_return_type, rout_node);
+  /* If the caller requested that the return value from the call be
+     assigned to an lvalue expression, create the assignment expression. */
+  if (return_value != NULL) {
+    check_assertion(return_value->is_lvalue);
+    top_level_node = make_assignment_expr(return_value,
+                                          (an_expr_operator_kind)eok_assign,
+                                          call_node);
+  } else {
+    top_level_node = call_node;
+  }  /* if */
   if (insert_location != NULL) {
 #if MINIMAL_INLINING
-    call_stmt = insert_expr_statement_set_pos(call_node, insert_location);
+    call_stmt = insert_expr_statement_set_pos(top_level_node, insert_location);
 #else /* !MINIMAL_INLINING */
-    (void)insert_expr_statement_set_pos(call_node, insert_location);
+    (void)insert_expr_statement_set_pos(top_level_node, insert_location);
 #endif /* MINIMAL_INLINING */
   }  /* if */
   if (is_virtual_call) {
@@ -601,14 +615,14 @@ or make_call_statement is preferred when possible.
   } else {
     routine->source_corresp.referenced = TRUE;
 #if MINIMAL_INLINING
-    if (inlining_enabled) {
+    if (inlining_enabled && top_level_node == call_node) {
       a_boolean expr_has_been_detached;
       do_inlining_of_call(call_node, call_stmt, &expr_has_been_detached);
-      if (expr_has_been_detached) call_node = NULL;
+      if (expr_has_been_detached) top_level_node = NULL;
     }  /* if */
 #endif /* MINIMAL_INLINING */
   }  /* if */
-  return call_node;
+  return top_level_node;
 }  /* make_call_node_full */
 
 
@@ -623,7 +637,8 @@ will be attempted.
 {
   an_expr_node_ptr call_node;
 
-  call_node = make_call_node_full(routine, arg_list, /*is_virtual_call=*/FALSE,
+  call_node = make_call_node_full(routine, arg_list, (an_expr_node_ptr)NULL,
+                                  /*is_virtual_call=*/FALSE,
                                   (an_insert_location *)NULL);
   check_assertion(call_node != NULL);
   return call_node;
@@ -632,14 +647,17 @@ will be attempted.
 
 void make_call_statement(a_routine_ptr      routine,
                          an_expr_node_ptr   arg_list,
+                         an_expr_node_ptr   return_value,
                          an_insert_location *insert_location)
 /*
 Make a statement that calls routine "routine" with arguments "arg_list"
 and insert it at *insert_location.  arg_list is assumed to be lowered already.
+If return_value is non-NULL, it represents an lvalue to which the result
+of the call is assigned.
 */
 {
-  (void)make_call_node_full(routine, arg_list, /*is_virtual_call=*/FALSE,
-                            insert_location);
+  (void)make_call_node_full(routine, arg_list, return_value,
+                            /*is_virtual_call=*/FALSE, insert_location);
 }  /* make_call_statement */
 
 
@@ -2145,7 +2163,7 @@ dip->variant.constructor.args has already been lowered.
 */
 {
   a_routine_ptr    ctor_routine = dip->variant.constructor.ptr;
-  an_expr_node_ptr last_node;
+  an_expr_node_ptr last_node, return_value = NULL;
   an_expr_node_ptr implied_arg_node;
   an_expr_node_ptr implied_arg_list = NULL, end_implied_arg_list = NULL;
 #if IA64_ABI
@@ -2278,8 +2296,22 @@ dip->variant.constructor.args has already been lowered.
     a_boolean is_target_ctor = FALSE;
     if (ctor_init != NULL &&
         ctor_init->kind == (a_constructor_init_kind)cik_delegation) {
-      /* This ctor_init is for a delegating constructor's call of a
+      /* This ctor_init is for a delegating constructor's call to a
          target constructor. */
+#if NEW_CAN_BE_FOLDED_INTO_CTOR
+      /* If the "new" operation is folded into the target constructor,
+         use the value returned from that constructor as the value for
+         "this" in the designated constructor, i.e., create
+            this = target(this, ...);
+         */
+      a_variable_ptr this_param =
+                          innermost_function_scope->variant.routine.parameters;
+      return_value = var_lvalue_expr(this_param);
+      this_param->param_value_has_been_changed = TRUE;
+#if MINIMAL_INLINING
+      this_param->param_used_as_lvalue = TRUE;
+#endif /* MINIMAL_INLINING */
+#endif /* NEW_CAN_BE_FOLDED_INTO_CTOR */
       is_target_ctor = TRUE;
     }  /* if */
     make_ctor_implied_arg_list(ctor_routine, is_target_ctor,
@@ -2299,7 +2331,8 @@ dip->variant.constructor.args has already been lowered.
   }  /* if */
   last_node->next = dip->variant.constructor.args;
   /* Make and insert an expression statement containing the call expression. */
-  make_call_statement(ctor_routine, entity_node, insert_location);
+  make_call_statement(ctor_routine, entity_node, return_value,
+                      insert_location);
 }  /* add_constructor_call */
 
 
@@ -4949,7 +4982,8 @@ dynamic init pointer because of the make_destruction_routine case.
     entity_node->next = implied_arg_list;
     /* Make and insert an expression statement containing the call
        expression. */
-    make_call_statement(dtor_routine, entity_node, insert_location);
+    make_call_statement(dtor_routine, entity_node, (an_expr_node_ptr)NULL,
+                        insert_location);
   }  /* if */
 }  /* add_destructor_call */
 
@@ -7435,7 +7469,7 @@ from entity_type itself.  Insert the code for the call at *insert_location.
                                                        array_case,
                                                        source_node == NULL,
                                                        (a_routine_ptr)NULL),
-                        entity_node, insert_location);
+                        entity_node, (an_expr_node_ptr)NULL, insert_location);
   } else {
     /* The entity (not an empty base class) must be set to all zeroes. */
     an_expr_node_ptr entity_size_node;
@@ -10536,7 +10570,8 @@ of the object being deleted.
 {
   /* Make the call. */
   arg_node = modify_delete_call_args(delete_routine, delete_type, arg_node);
-  make_call_statement(delete_routine, arg_node, insert_location);
+  make_call_statement(delete_routine, arg_node, (an_expr_node_ptr)NULL,
+                      insert_location);
   return;
 }  /* make_delete_call_statement */
 
@@ -10655,6 +10690,7 @@ tricks.
 #endif /* !IA64 */
   /* Make a call of the destructor. */
   call_node = make_call_node_full(dtor_routine, ptr_node,
+                                  (an_expr_node_ptr)NULL,
                                   /*is_virtual_call=*/dtor_routine->is_virtual,
                                   (an_insert_location *)NULL);
   check_assertion(call_node != NULL);
@@ -14143,89 +14179,92 @@ constructor scope, and also lower the user code.
   /* Don't insert code here. */
   {
 #if NEW_CAN_BE_FOLDED_INTO_CTOR
-    /* Add code to allocate storage if "this" is NULL:
-         if (this || (this = new_rout(size)))
-       The entire rest of the routine (both wrapper code and user code)
-       is placed in the dependent statement of the "if". */
-    /* Ordering issue: we want to do the call of make_region_table_entry
-       before any region table entries have been created for anything else,
-       but we don't want to enclose the whole routine in an "if" until the
-       user code has been lowered, because we want cleanup code emitted
-       on the return at the end of the user code.  So we do everything
-       short of inserting the "if" and do that at the end. */
-    a_type_ptr         int_type, unqual_this_param_type;
-    an_expr_node_ptr   size_node, call_node, assign_node;
-    an_expr_node_ptr   this_param_node, this_test_node;
+    if (!ctor_routine->is_delegating_ctor) {
+      /* Add code to allocate storage if "this" is NULL:
+           if (this || (this = new_rout(size)))
+         The entire rest of the routine (both wrapper code and user code)
+         is placed in the dependent statement of the "if". */
+      /* Ordering issue: we want to do the call of make_region_table_entry
+         before any region table entries have been created for anything else,
+         but we don't want to enclose the whole routine in an "if" until the
+         user code has been lowered, because we want cleanup code emitted
+         on the return at the end of the user code.  So we do everything
+         short of inserting the "if" and do that at the end. */
+      a_type_ptr         int_type, unqual_this_param_type;
+      an_expr_node_ptr   size_node, call_node, assign_node;
+      an_expr_node_ptr   this_param_node, this_test_node;
 
-    /* If there is no default new routine for the class, do not put out
-       the code.  This happens if the class has a class-specific new but
-       not one that takes a single argument. */
-    if (new_routine != NULL) {
-      /* Make "new_rout(size)". */
-      size_node = node_for_host_large_integer(
+      /* If there is no default new routine for the class, do not put out
+         the code.  This happens if the class has a class-specific new but
+         not one that takes a single argument. */
+      if (new_routine != NULL) {
+        /* Make "new_rout(size)". */
+        size_node = node_for_host_large_integer(
                                         (a_host_large_integer)class_type->size,
                                         targ_size_t_int_kind);
-      call_node = make_call_node(new_routine, size_node);
-      /* Make "this = new_rout(size)". */
-      unqual_this_param_type = f_skip_typerefs(this_param_var->type);
-      call_node = add_cast_if_necessary(call_node, unqual_this_param_type);
-      assign_node = make_var_assignment_expr(this_param_var, call_node);
-      if (exceptions_enabled &&
-          /* The delete routine pointer can be null if the operator delete for
-             the class is ambiguous. */
-          ctsp->assoc_operator_delete_routine != NULL) {
-        an_insert_location expr_insert_location;
-        an_init_pos_descr  ipd;
-        a_dynamic_init_ptr dyn_init_to_free_storage;
+        call_node = make_call_node(new_routine, size_node);
+        /* Make "this = new_rout(size)". */
+        unqual_this_param_type = f_skip_typerefs(this_param_var->type);
+        call_node = add_cast_if_necessary(call_node, unqual_this_param_type);
+        assign_node = make_var_assignment_expr(this_param_var, call_node);
+        if (exceptions_enabled &&
+            /* The delete routine pointer can be null if the operator delete
+               for the class is ambiguous. */
+            ctsp->assoc_operator_delete_routine != NULL) {
+          an_insert_location expr_insert_location;
+          an_init_pos_descr  ipd;
+          a_dynamic_init_ptr dyn_init_to_free_storage;
 
-        /* Exceptions are enabled.  Record the allocation so it can
-           be freed if a throw occurs while this routine is running. */
-        /* "this = new_rout(size)" is turned into
-             (this = new_rout(size), (exception_code, this))
-        */
-        this_param_node = var_rvalue_expr(this_param_var);
-        assign_node = make_comma_node(assign_node, this_param_node);
-        set_expr_insert_location(this_param_node, &expr_insert_location);
-        /* Make a dynamic initialization entry that describes the deletion. */
-        dyn_init_to_free_storage =
+          /* Exceptions are enabled.  Record the allocation so it can
+             be freed if a throw occurs while this routine is running. */
+          /* "this = new_rout(size)" is turned into
+               (this = new_rout(size), (exception_code, this))
+          */
+          this_param_node = var_rvalue_expr(this_param_var);
+          assign_node = make_comma_node(assign_node, this_param_node);
+          set_expr_insert_location(this_param_node, &expr_insert_location);
+          /* Make a dynamic initialization entry that describes the
+             deletion. */
+          dyn_init_to_free_storage =
                              alloc_dynamic_init((a_dynamic_init_kind)dik_none);
-        dyn_init_to_free_storage->destructor =
+          dyn_init_to_free_storage->destructor =
                                            ctsp->assoc_operator_delete_routine;
-        dyn_init_to_free_storage->has_temporary_lifetime = TRUE;
-        dyn_init_to_free_storage->is_freeing_of_storage_on_exception = TRUE;
-        /* The front end is supposed to guarantee that a constructor of
-           this kind has an object lifetime even if it has no other
-           destructions. */
-        check_assertion_str(scope->lifetime != NULL,
-                            "lower_constructor_code: no lifetime");
-        /* Add the dynamic initialization to the object lifetime list. */
-        add_to_end_of_destructions_list(dyn_init_to_free_storage,
-                                        scope->lifetime);
-        /* Allocate a destructible entity description and add a conditional
-           flag variable. */
-        /* Note that NULL for the insert location here indicates that
-           no initialization code should be added (it gets added below). */
-        initial_processing_on_destructible_initialization(
+          dyn_init_to_free_storage->has_temporary_lifetime = TRUE;
+          dyn_init_to_free_storage->is_freeing_of_storage_on_exception = TRUE;
+          /* The front end is supposed to guarantee that a constructor of
+             this kind has an object lifetime even if it has no other
+             destructions. */
+          check_assertion_str(scope->lifetime != NULL,
+                              "lower_constructor_code: no lifetime");
+          /* Add the dynamic initialization to the object lifetime list. */
+          add_to_end_of_destructions_list(dyn_init_to_free_storage,
+                                          scope->lifetime);
+          /* Allocate a destructible entity description and add a conditional
+             flag variable. */
+          /* Note that NULL for the insert location here indicates that
+             no initialization code should be added (it gets added below). */
+          initial_processing_on_destructible_initialization(
                                                     dyn_init_to_free_storage,
                                                     (an_insert_location*)NULL);
 #if GENERATE_EH_TABLES
-        dedp = dyn_init_to_free_storage->destructible_entity_descr;
+          dedp = dyn_init_to_free_storage->destructible_entity_descr;
 #endif /* GENERATE_EH_TABLES */
-        set_var_indirect_init_pos_descr(this_param_var, &ipd);
-        check_assertion(curr_context->latest_initialization == NULL);
-        /* Add cleanup information. */
-        add_dyn_init_cleanup(dyn_init_to_free_storage, &ipd,
-                             /*set_cond_flag_if_any=*/TRUE,
-                             curr_context, &expr_insert_location);
+          set_var_indirect_init_pos_descr(this_param_var, &ipd);
+          check_assertion(curr_context->latest_initialization == NULL);
+          /* Add cleanup information. */
+          add_dyn_init_cleanup(dyn_init_to_free_storage, &ipd,
+                               /*set_cond_flag_if_any=*/TRUE,
+                               curr_context, &expr_insert_location);
+        }  /* if */
+        /* Make "this || (this = new_rout(size))". */
+        this_param_node = var_rvalue_expr(this_param_var);
+        this_test_node = boolean_controlling_expr(this_param_node);
+        this_test_node->next = boolean_controlling_expr(assign_node);
+        int_type = integer_type((an_integer_kind)ik_int);
+        if_node = make_operator_node((an_expr_operator_kind)eok_lor,
+                                     int_type, this_test_node);
+        /* The "if" statement is inserted later. */
       }  /* if */
-      /* Make "this || (this = new_rout(size))". */
-      this_param_node = var_rvalue_expr(this_param_var);
-      this_test_node = boolean_controlling_expr(this_param_node);
-      this_test_node->next = boolean_controlling_expr(assign_node);
-      int_type = integer_type((an_integer_kind)ik_int);
-      if_node = make_operator_node((an_expr_operator_kind)eok_lor,
-                                   int_type, this_test_node);
-      /* The "if" statement is inserted later. */
     }  /* if */
 #endif /* NEW_CAN_BE_FOLDED_INTO_CTOR */
 #if HANDLE_VIRTUAL_BASES_IN_COMPLETE_CTOR_DTORS
@@ -14259,32 +14298,34 @@ constructor scope, and also lower the user code.
     lower_statement_list(user_code_stmts, &last_statement);
   }  /* if */
 #if NEW_CAN_BE_FOLDED_INTO_CTOR
+  if (!ctor_routine->is_delegating_ctor) {
 #if ASSIGNMENT_TO_THIS_ALLOWED
-  /* Again, if an assignment to "this" was done, the wrapper code is
-     not generated. */
-  if (!ctor_routine->assignment_to_this_done)
+    /* Again, if an assignment to "this" was done, the wrapper code is
+       not generated. */
+    if (!ctor_routine->assignment_to_this_done)
 #endif /* ASSIGNMENT_TO_THIS_ALLOWED */
-  /* Don't insert code here. */
-  {
-    if (new_routine != NULL) {
-      /* Insert an "if" around the whole routine, specifically
-         "if (this || (this = new_rout(size)))".
-         As mentioned above, this must be done after the user code is
-         lowered. */
-      enclose_routine_in_if(scope, if_node, this_param_var);
+    /* Don't insert code here. */
+    {
+      if (new_routine != NULL) {
+        /* Insert an "if" around the whole routine, specifically
+           "if (this || (this = new_rout(size)))".
+           As mentioned above, this must be done after the user code is
+           lowered. */
+        enclose_routine_in_if(scope, if_node, this_param_var);
 #if GENERATE_EH_TABLES
-      if (exceptions_enabled &&
-          /* dedp is NULL if the operator delete is ambiguous. */
-          dedp != NULL && dedp->conditional_flag_var != NULL) {
-        /* Initialize the conditional flag to zero.  This must be done after
-           enclose_routine_in_if is called so that the initialization is
-           done at the right place (i.e., outside the "if"). */
-        set_block_start_insert_location(top_stmt, &insert_location);
-        init_conditional_flag_var(dedp, &insert_location);
-      }  /* if */
+        if (exceptions_enabled &&
+            /* dedp is NULL if the operator delete is ambiguous. */
+            dedp != NULL && dedp->conditional_flag_var != NULL) {
+          /* Initialize the conditional flag to zero.  This must be done after
+             enclose_routine_in_if is called so that the initialization is
+             done at the right place (i.e., outside the "if"). */
+          set_block_start_insert_location(top_stmt, &insert_location);
+          init_conditional_flag_var(dedp, &insert_location);
+        }  /* if */
 #endif /* GENERATE_EH_TABLES */
-    }  /* if */
-  }
+      }  /* if */
+    }
+  }  /* if */
 #endif /* NEW_CAN_BE_FOLDED_INTO_CTOR */
 #if HANDLE_VIRTUAL_BASES_IN_COMPLETE_CTOR_DTORS
   /* Clear the list of non-virtual base constructor inits (the virtual

@@ -95,6 +95,7 @@ extern a_routine_ptr make_prototyped_runtime_routine(
 
 extern void make_call_statement(a_routine_ptr      routine,
                                 an_expr_node_ptr   arg_list,
+                                an_expr_node_ptr   return_value,
                                 an_insert_location *insert_location);
 
 extern an_expr_node_ptr make_runtime_rout_call(char             *name,
