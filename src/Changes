@@ -1,5 +1,32 @@
 Version 4.7
 
+4/30/13  [EDGcpfe/13951]
+C++-generating back end: missing qualification in non-type template arguments
+
+In configurations in which PROTOTYPE_INSTANTIATIONS_IN_IL is set to TRUE
+and the front end is run in C++11 mode, the C++-generating back end
+sometimes used an unqualified name in a non-type template argument when a
+qualified name is required.  This bug was introduced in version 4.6 and is
+now fixed.  For example:
+
+  namespace N {
+    template<typename> struct C {
+      static const bool value = false;
+    };
+    template<bool> struct B {
+      typedef int type;
+    };
+    template<typename T> struct A {
+      typedef typename B<C<T>::value>::type type;
+    };
+  }
+  template<typename T> struct D {
+    template<typename>
+    typename N::B<N::C<T>::value>::type f(); // Argument to B was generated
+                                             // without the required "N::"
+  };
+
+
 4/30/13  [EDGcpfe/13957]
 Using conversion function to reference to array for pointer operand to built-in
 

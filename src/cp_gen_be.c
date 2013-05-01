@@ -3880,7 +3880,8 @@ kind entry_kind using the name-reference information in *nrp.
 is_declaration is TRUE if the name is the declarator-id in a declaration,
 FALSE if the name reference appears as part of an expression.  If nrp is
 NULL, or if the reference represents an unqualified reference to a class
-member in a non-class context, return FALSE; otherwise, return TRUE to
+member in a non-class context, or if the name appears inside an expression
+in a non-type template argument, return FALSE; otherwise, return TRUE to
 indicate that the name reference was successfully emitted.
 */
 {
@@ -3888,7 +3889,17 @@ indicate that the name reference was successfully emitted.
   a_boolean            use_name_reference = TRUE;
   a_name_qualifier_ptr qual;
 
-  if (nrp != NULL) {
+  if (octl.processing_nontype_template_argument) {
+    /* Name references in template arguments are captured from the first
+       use of the instance.  If that use was nested inside a class or
+       namespace, the names may have been unqualified or partially
+       qualified references to members of that class or namespace or its
+       parents.  However, the instance can be used outside that context,
+       in which case the names in template arguments would need to be
+       fully qualified.  For safety's sake, we ignore name references in
+       expressions in template arguments so that gen_name will provide
+       qualification as needed in the current context. */
+  } else if (nrp != NULL) {
 #if TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
     if (nrp->qualifier == NULL && scp->is_class_member && !is_declaration &&
         !class_is_in_name_context_stack(scp_parent_class(scp),
