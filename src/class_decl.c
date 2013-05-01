@@ -3160,6 +3160,9 @@ translation unit.
 }  /* check_trans_unit_for_fixup */
 
 
+static void form_exception_specification_for_generated_function(
+                                                            a_routine_ptr  rp);
+
 static void check_defaulted_member_exception_specifications(
                                                        a_type_ptr  class_type)
 /*
