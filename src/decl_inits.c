@@ -4522,7 +4522,7 @@ IL entry for that field.
     }  /* if */
   } else {
     expect_error();
-    field->has_initializer = FALSE;
+    if (field != NULL) field->has_initializer = FALSE;
   }  /* if */
 #if NEED_NAME_MANGLING
   /* If the initializer defines closure types (i.e., contains lambda
