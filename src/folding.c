@@ -9120,7 +9120,7 @@ evaluation (e.g., parameter values).
                 /* This constant represents some number of elements of the
                    array.  Get the cumulative size of those elements and
                    check if the offset designates one of them. */
-                sizeof_t this_initializer_size =
+                a_targ_size_t this_initializer_size =
                        result_con->variant.init_repeat.count * curr_type->size;
                 if ((a_targ_ptrdiff_t)(cum_offset + this_initializer_size) >
                                                                       offset) {
