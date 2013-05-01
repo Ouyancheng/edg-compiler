@@ -2293,6 +2293,8 @@ typedef int a_string_or_char_literal_kind;
       : 0) /* 0 for no prefix */                                             \
    + 1 /* 1 for quoting character */)
 
+extern a_string_or_char_literal_kind scan_encoding_prefix(char *loc);
+
 #if MICROSOFT_EXTENSIONS_ALLOWED
 extern a_boolean is_valid_GUID_string(char          *str,
                                       a_targ_size_t length);

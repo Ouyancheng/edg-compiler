@@ -2903,7 +2903,8 @@ In such cases, charize is TRUE.
          then this token is a character constant or string literal. */
       if (start_of_token &&
           (ch == '"' || ch == '\'' ||
-           (ch == 'L' && (p[1] == '"' || p[1] == '\'')))) {
+           ((ch == 'u' || ch == 'U' || ch == 'L' || ch == 'R') &&
+            scan_encoding_prefix(p) != SCLK_NOT_A_LITERAL))) {
         /* Start of character constant or string literal. */
         within_char_literal = TRUE;
       }  /* if */

@@ -10420,7 +10420,7 @@ in C99 mode).  See C89 standard, 3.8.1.
 }  /* adjust_pp_int_constant */
 
 
-static a_string_or_char_literal_kind scan_encoding_prefix(char *loc)
+a_string_or_char_literal_kind scan_encoding_prefix(char *loc)
 /*
 loc points to a character that could be the start of a C++11
 encoding-prefix, i.e., one of 'u', 'U', 'L', or 'R'.  If it is the start of
@@ -10432,7 +10432,7 @@ the literal kind.  Otherwise, return SCLK_NOT_A_LITERAL.
 
   /* Set the kind based on the initial character of the putative
      encoding-prefix and advance p to the next character. */
-  if (*loc == 'u') {
+  if (uliterals_enabled && *loc == 'u') {
     ++loc;
     if (cpp11_mode && *loc == '8') {
       ++loc;
@@ -10440,7 +10440,7 @@ the literal kind.  Otherwise, return SCLK_NOT_A_LITERAL.
     } else {
       kind = SCLK_CHAR16_T_LITERAL;
     }  /* if */
-  } else if (*loc == 'U') {
+  } else if (uliterals_enabled && *loc == 'U') {
     ++loc;
     kind = SCLK_CHAR32_T_LITERAL;
   } else if (*loc == 'L') {
