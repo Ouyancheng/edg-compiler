@@ -201,7 +201,7 @@ We have now implemented the UTF-8 string literal feature of C++11 (see
 paper N2442).  These literals specify that the encoding of the resulting
 constant will be UTF-8.  For example:
 
-  const char s = u8"\u03a9";  // equivalent to "\xce\xa9"
+  const char s[] = u8"\u03a9";  // equivalent to "\xce\xa9"
 
 
 4/29/13  [EDGcpfe/13949]
