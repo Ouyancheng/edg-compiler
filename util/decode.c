@@ -6706,7 +6706,8 @@ substitution, the name of the last component in the substitution is used.
              common routine called by the various delegating constructor
              entry points.  It's not part of the ABI spec. */
           if (ptr[1] == '1' || ptr[1] == '2' ||
-              (ptr[0] == 'C' && ptr[1] == '9')) {
+              (ptr[0] == 'C' ? ptr[1] == '9' :
+                               ptr[1] == '0')) {
             /* Okay. */
             *ctor_dtor_kind = ptr[1];
             ptr += 2;
