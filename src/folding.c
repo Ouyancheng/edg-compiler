@@ -6780,27 +6780,43 @@ constant will be set as well.
       }  /* if */
       if (is_any_reference_type(type2)) {
         a_type_ptr  under_type2 = type_pointed_to(type2);
-        if (is_class_struct_union_type(under_type2) ||
-            is_function_type(under_type2) || is_array_type(under_type2)) {
-           /* A reference on the destination type appears to be ignored only if
-             it is a reference to a class, array, or function type. */
+        if (!is_qualified_type(under_type2) &&
+            (is_class_struct_union_type(under_type2) ||
+             is_function_type(under_type2) || is_array_type(under_type2))) {
+           /* A reference on the destination type appears to be (mostly)
+              ignored only if it is a reference to a class, array, or function
+              type. */
           type2 = under_type2;
         }  /* if */
       }  /* if */
     }  /* if */
-    if (microsoft_mode &&
-        (is_void_type(orig_type2) || is_function_type(orig_type2))) {
-      /* Microsoft considers a conversion to void or to a function type to
-         fail. */
-      result = FALSE;
-    } else if (microsoft_mode && identical_types(type1, type2)) {
-      /* Microsoft returns TRUE when the types are the same, even if they are
-         (e.g.) both arrays.  (Conversions to void and/or function types are
-         exceptions; tested above.) */
-      result = TRUE;
-    } else {
-      result = compute_is_convertible(type1, type2, from_rvalue);
+    if (microsoft_mode) {
+      if (is_void_type(orig_type2) || is_function_type(orig_type2)) {
+        /* Microsoft considers a conversion to void or to a function type to
+           fail. */
+        result = FALSE;
+        goto result_known;
+      } else if (orig_type2 != type2) {
+        /* The destination type was a reference.  Although it appears to be
+           mostly ignored by the Microsoft compiler, a difference in
+           qualifiers does matter in that case. */
+        a_type_qualifier_set  tqs1 = get_type_qualifiers(type1);
+        a_type_qualifier_set  tqs2 = get_type_qualifiers(type2);
+        if (any_qualifier_in_set_missing(tqs2, tqs1)) {
+          result = FALSE;
+          goto result_known;
+        }  /* if */
+      }  /* if */       
+      if (identical_types(type1, type2)) {
+        /* Microsoft returns TRUE when the types are the same, even if they are
+           (e.g.) both arrays.  (Conversions to void and/or function types are
+           exceptions; tested above.) */
+        result = TRUE;
+        goto result_known;
+      }  /* if */
     }  /* if */
+    result = compute_is_convertible(type1, type2, from_rvalue);
+result_known:
     arg1->variant.type_operand.definition_needed = TRUE;
     arg2->variant.type_operand.definition_needed = TRUE;
     clear_constant(constant, (a_constant_repr_kind)ck_integer);
