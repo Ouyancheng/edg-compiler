@@ -4530,10 +4530,12 @@ IL entry for that field.
      numbers will be used by name mangling.  Also record the data member as a
      "parent entity" for such closure types (this is also used in the mangled
      encoding). */
-  compute_data_member_name_collision_discriminators(dps->sym);
-  set_parent_entity_for_closure_types(
+  if (field != NULL) {
+    compute_data_member_name_collision_discriminators(dps->sym);
+    set_parent_entity_for_closure_types(
                              field->entities_defined_in_initializer, dps->sym,
                              /*subject_to_trans_unit_corresp=*/TRUE);
+  }  /* if */
 #endif /* NEED_NAME_MANGLING */
   curr_object_lifetime = saved_curr_object_lifetime;
   scope_stack_top().in_field_initializer = saved_in_field_initializer;
