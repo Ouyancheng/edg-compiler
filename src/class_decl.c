@@ -3163,13 +3163,13 @@ translation unit.
 static void form_exception_specification_for_generated_function(
                                                             a_routine_ptr  rp);
 
-static void check_defaulted_member_exception_specifications(
-                                                       a_type_ptr  class_type)
+static void complete_defaulted_member_decl(a_type_ptr  class_type)
 /*
-Establish the exception specification of any special members of class_type
-defined with "= default".  If an exception specification was specified
-explicitly, verify that it matches that of a corresponding generated member
-and issue an error if it does not.
+If needed, establish the exception specification of any special members of
+class_type defined with "= default".  If an exception specification was
+specified explicitly, verify that it matches that of a corresponding generated
+member and issue an error if it does not.
+Also, if the member is virtual, force its definition to be generated.
 */
 {
   a_routine_ptr  rp = class_type_supp(class_type)->assoc_scope->routines;
@@ -3177,36 +3177,41 @@ and issue an error if it does not.
   check_assertion(exceptions_enabled);
   for (; rp != NULL; rp = rp->next) {
     if (rp->is_defaulted && !rp->is_deleted) {
-      a_routine_type_supplement_ptr   rtsp = skip_typerefs(rp->type)
+      if (exceptions_enabled) {
+        /* If a special member is defaulted inside the parent class, it
+           implicitly gets the exception specification that the corresponding
+           implicitly generated member would have had.  If an explicit
+           exception specification is provided, it must be equivalent to the
+           implicitly generated one. */
+        a_routine_type_supplement_ptr   rtsp = skip_typerefs(rp->type)
                                                  ->variant.routine.extra_info;
-       /* If a special member is defaulted inside the parent class, it
-          implicitly gets the exception specification that the corresponding
-          implicitly generated member would have had.  If an explicit
-          exception specification is provided, it must be equivalent to the
-          implicitly generated one. */
-      /* Save any declared exception specification for later comparison to
-         the generated specification. */
-      an_exception_specification_ptr  declared_exception_spec
+        /* Save any declared exception specification for later comparison to
+           the generated specification. */
+        an_exception_specification_ptr  declared_exception_spec
                                               = rtsp->exception_specification;
-      rtsp->exception_specification = NULL;
-      form_exception_specification_for_generated_function(rp);
-      if (declared_exception_spec != NULL) {
-        /* If an exception specification was specified at all, it must be
-           equivalent to the generated one. */
-        if (exception_spec_is_less_restrictive(
+        rtsp->exception_specification = NULL;
+        form_exception_specification_for_generated_function(rp);
+        if (declared_exception_spec != NULL) {
+          /* If an exception specification was specified at all, it must be
+             equivalent to the generated one. */
+          if (exception_spec_is_less_restrictive(
                     declared_exception_spec, rtsp->exception_specification) ||
-            exception_spec_is_less_restrictive(
+              exception_spec_is_less_restrictive(
                     rtsp->exception_specification, declared_exception_spec)) {
-          pos_error(ec_invalid_explicit_exception_specification,
-                    &rp->source_corresp.decl_position);
-        } else {
-          /* Record the declared form. */
-          rtsp->exception_specification = declared_exception_spec;
+            pos_error(ec_invalid_explicit_exception_specification,
+                      &rp->source_corresp.decl_position);
+          } else {
+            /* Record the declared form. */
+            rtsp->exception_specification = declared_exception_spec;
+          }  /* if */
         }  /* if */
+      }  /* if */
+      if (rp->is_virtual) {
+        force_definition_of_compiler_generated_routine(rp);
       }  /* if */
     }  /* if */
   }  /* for */
-}  /* check_defaulted_member_exception_specifications */
+}  /* complete_defaulted_member_decl */
 
 
 static void process_deferred_class_fixups(a_boolean	for_instantiation)
@@ -3279,9 +3284,8 @@ after a class instantiation.
       for (cfp = fixup_list; cfp != NULL; cfp = cfp->next) {
         /* Make sure we are in the right translation unit. */
         check_trans_unit_for_fixup(cfp, &trans_unit_pushed);
-        if (exceptions_enabled &&
-            !cfp->class_type->variant.class_struct_union.is_nonreal_class) {
-          check_defaulted_member_exception_specifications(cfp->class_type);
+        if (!cfp->class_type->variant.class_struct_union.is_nonreal_class) {
+          complete_defaulted_member_decl(cfp->class_type);
         }  /* if */
         inline_function_fixup_for_class(cfp->class_type,
                                         cfp->is_template_instantiation);
