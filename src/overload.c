@@ -11382,6 +11382,8 @@ next parameter.
          argument type is permitted (possibly with limitations imposed
          elsewhere in the front end), but the original argument must be
          preserved and hence promotions should not be applied. */
+      /* But we do convert from lvalue to rvalue. */
+      do_operand_transformations(operand, TOPT_NO_OPTIONS);
     } else
 #endif /* GNU_EXTENSIONS_ALLOWED */
     /* Do not insert code here. */
