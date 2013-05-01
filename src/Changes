@@ -1,5 +1,22 @@
 Version 4.7
 
+5/1/13   [EDGcpfe/13778]
+Spurious error on certain pack expansions in constructor declarations
+
+If a constructor declaration began with a pack expansion that was not at
+the top level in the function declarator, spurious errors could be issued
+about the pack not being expanded and later that the pack expansion did
+not make of any packs.  The errors resulted from the failure to handle
+packs in the disambiguation of a constructor declaration, so the error
+only occurred when the pack was the first parameter of the constructor.
+Now fixed.
+
+  template <typename T> struct A {};
+  template <typename... T> struct B {
+    B(A<T>... ts);
+ };
+
+
 5/1/13   [EDGcpfe/13918]
 Abort on nested class derived from dependent parent class (GNU mode)
 

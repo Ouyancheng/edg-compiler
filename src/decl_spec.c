@@ -6307,10 +6307,23 @@ constructor).
            the start of a parameter declaration, this must be a
            constructor. */
         (void)get_token();
-        if (curr_token == tok_rparen || curr_token == tok_ellipsis ||
-            is_decl_start(IDS_REAL_DECLARATOR_ALLOWED)) {
+        if (curr_token == tok_rparen || curr_token == tok_ellipsis) {
           /* Constructor. */
           is_constructor = TRUE;
+        } else {
+          a_pack_expansion_stack_entry_ptr	pesep;
+          a_pack_expansion_descr_ptr		pedp;
+          a_boolean				any_args;
+          /* A constructor could include a pack expansion. */
+          any_args = begin_potential_pack_expansion_context_full(
+                                         &pesep, &pedp, /*is_lookahead=*/TRUE,
+                                         /*ignore_suppression=*/FALSE);
+          if (!any_args || is_decl_start(IDS_REAL_DECLARATOR_ALLOWED)) {
+            /* An empty pack expansion, or a pack expansion of a parameter. */
+            is_constructor = TRUE;
+          } else {
+            abandon_potential_pack_expansion_context(pesep);
+          }  /* if */
         }  /* if */
       }  /* if */
       /* Note that rescan_cached_tokens caches the current token as well as
