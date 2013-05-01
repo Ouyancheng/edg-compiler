@@ -1,5 +1,27 @@
 Version 4.7
 
+5/1/13   [EDGcpfe/13398]
+Microsoft compatibility: template argument pack expansion containing void
+
+In Microsoft mode, "void" is allowed in some contexts that are not
+permitted by the standard (see EDGcpfe/12029 on 9/6/11).  That feature
+could result in spurious errors on valid uses of "void" in a pack expansion
+in Microsoft mode.  Now fixed.
+
+  template <class ... Ts> struct A {
+    static int i;
+  };
+  template <class ... Ts> struct B {
+    static int f() {
+      return A<Ts...>::i;
+    }
+  };
+  int main() {
+    B<void> b;
+    b.f();
+  }
+
+
 4/30/13  [EDGcpfe/13904]
 Generation of "= default" definitions
 

@@ -8535,7 +8535,7 @@ corresponding change in prescan_decl_specifiers (in disambig.c).
         goto storage_class_specifier;
       case tok_ellipsis:
         if (variadic_templates_enabled &&
-            (decl_specifiers_seen & DS_TYPE) == 0) {
+            (decl_specifiers_seen & (DS_TYPE | DS_VOID)) == 0) {
           /* A "..." before a type specifier, so this can't be part of the
              declarator. */
           pos_error(ec_parameter_pack_decl_not_allowed, &pos_curr_token);
