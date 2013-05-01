@@ -8651,6 +8651,29 @@ about the point at which the pointer becomes dangling.
 }  /* set_expiring_temporary_address_constant */
 
 
+static void folding_fails(void)
+/*
+Exists as a useful place to set a breakpoint to catch the first point
+where folding fails.
+*/
+{
+}  /* folding_fails */
+
+
+static a_boolean folding_result(a_boolean folded)
+/*
+Pass-through routine used to return the result from a folding routine.
+Used to call folding_fails, a useful place to set a breakpoint to
+catch the first point where folding fails.
+*/
+{
+  if (!folded) {
+    folding_fails();
+  }  /* if */
+  return folded;
+}  /* folding_result */
+
+
 static a_boolean fold_dynamic_init(a_dynamic_init_ptr           dip,
                                    a_type_ptr                   dest_type,
                                    a_constexpr_evaluation_block *ceblock,
@@ -8742,7 +8765,7 @@ in *result_con and return TRUE; otherwise, return FALSE.
       add_constant_to_aggregate(new_elem_con, new_aggr);
     }  /* for */
   }  /* if */
-  return folded;
+  return folding_result(folded);
 }  /* fold_aggregate_constant */
 
 
@@ -8807,7 +8830,7 @@ evaluation.
       break;
   }  /* switch */
 end_of_routine:
-  return folded;
+  return folding_result(folded);
 }  /* fold_dynamic_init */
 
 
@@ -8915,7 +8938,7 @@ be an lvalue or rvalue; it doesn't matter.
       }  /* if */
     }  /* if */
   }  /* if */
-  return folded;
+  return folding_result(folded);
 }  /* fold_variable_reference */
 
 
@@ -9683,7 +9706,7 @@ pm_field_selection:
                                ceblock,
                                result_con);
   }  /* if */
-  return folded;
+  return folding_result(folded);
 }  /* fold_expr */
 
 
@@ -9787,7 +9810,7 @@ ceblock gives context information for the evaluation.
                                      dip, result_con);
     }  /* if */
   }  /* if */
-  return folded;
+  return folding_result(folded);
 }  /* fold_lvalue_expr */
 
 
@@ -9858,7 +9881,7 @@ member function call.
       }  /* if */
     }  /* if */
   }  /* if */
-  return folded;
+  return folding_result(folded);
 }  /* fold_object_expr */
 
 
@@ -10268,7 +10291,7 @@ gnu_builtin_fail:;
     }  /* if */
   }  /* if */
   decr_constexpr_call_depth(ceblock);
-  return folded;
+  return folding_result(folded);
 }  /* i_fold_constexpr_call */
 
 
@@ -10538,7 +10561,7 @@ fail:;
   }  /* if */
   decr_constexpr_call_depth(ceblock);
 end_of_routine:
-  return folded;
+  return folding_result(folded);
 }  /* i_fold_constexpr_ctor */
 
 
@@ -10771,7 +10794,7 @@ otherwise, return FALSE.
     set_error_constant(result_con);
     folded = TRUE;
   }  /* if */
-  return folded;
+  return folding_result(folded);
 }  /* fold_constant_field_selection */
 
 
@@ -10849,7 +10872,7 @@ errors.
       }  /* if */
     }  /* if */
   }  /* if */
-  return folded;
+  return folding_result(folded);
 }  /* fold_constexpr_member_selection */
 
 #if DEBUG
