@@ -9113,26 +9113,41 @@ evaluation (e.g., parameter values).
             /* Find the element of the array that is at or contains the
                specified offset.  We'll then go back through the main loop
                again looking at that element. */
+            a_boolean  found_element = FALSE;
             curr_type = skip_typerefs(curr_type->variant.array.element_type);
-            if (result_con != NULL &&
-                result_con->kind == (a_constant_repr_kind)ck_init_repeat) {
-              /* Each element of the array is a copy of the same constant.
-                 Set result_con to that constant and adjust cum_offset to
-                 reflect its position in the array. */
-              result_con = result_con->variant.init_repeat.constant;
-              cum_offset += ((a_targ_size_t)(offset - cum_offset) /
+            while (result_con != NULL && !found_element) {
+              if (result_con->kind == (a_constant_repr_kind)ck_init_repeat) {
+                /* This constant represents some number of elements of the
+                   array.  Get the cumulative size of those elements and
+                   check if the offset designates one of them. */
+                sizeof_t this_initializer_size =
+                       result_con->variant.init_repeat.count * curr_type->size;
+                if ((a_targ_ptrdiff_t)(cum_offset + this_initializer_size) >
+                                                                      offset) {
+                  /* The offset lies within this repeated group.  Set
+                     result_con to that repeated constant and adjust
+                     cum_offset to reflect its position in the array. */
+                  found_element = TRUE;
+                  result_con = result_con->variant.init_repeat.constant;
+                  cum_offset += ((a_targ_size_t)(offset - cum_offset) /
                                             curr_type->size) * curr_type->size;
-            } else {
-              /* Each element of the array is a separate constant.  Step
-                 through them, incrementing cum_offset, until result_con
-                 points to the correct element. */
-              while ((a_targ_ptrdiff_t)(cum_offset + curr_type->size) <=
-                                                                      offset &&
-                     result_con != NULL) {
-                cum_offset += curr_type->size;
+                } else {
+                  /* Skip over this group and continue with the next array
+                     element. */
+                  result_con = result_con->next;
+                  cum_offset += this_initializer_size;
+                }  /* if */
+              } else if ((a_targ_ptrdiff_t)(cum_offset + curr_type->size) >
+                                                                      offset) {
+                /* The offset designates this array element or a subobject
+                   therein. */
+                found_element = TRUE;
+              } else {
+                /* Step to the next element. */
                 result_con = result_con->next;
-              }  /* while */
-            }  /* if */
+                cum_offset += curr_type->size;
+              }  /* if */
+            }  /* while */
           } else {
             /* A class type.  Scan through its subobjects (base classes and
                members) to find which is at or contains the specified
