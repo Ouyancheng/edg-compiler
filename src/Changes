@@ -1,5 +1,37 @@
 Version 4.7
 
+4/30/13  [EDGcpfe/13904]
+Generation of "= default" definitions
+
+The definitions of special member functions defined with "= default" were
+previously always generated when the parent class was completed.  Now, such
+definitions are only generated if the special member is actually used, just
+as if those special members had been implicitly-declared.  The previous
+approach caused some template cases to trigger spurious errors when the
+(unneeded) generation of a definition triggered the instantiation of other
+member functions.  For example:
+
+  template<typename T> struct S {
+    T& m();
+    void operator=(S const&) { m() = m(); }
+  };
+  template<typename T> struct V { T const &r; };
+  template<class T> struct F {
+    F();
+    F& operator=(F&&) = default;
+    S<V<T>> sv;
+  };
+  void g() {
+    F<F<int>> x;
+  }
+
+In this example, the definition of F<F<int>>'s move assignment operator was
+previously generated even though it wasn't used.  That definition triggered
+the instantiation of S<V<F<int>>>'s copy assignment operator, which in turn
+elicited an error because V<F<int>>'s assignment operator is deleted (since
+it has a reference member).
+
+
 4/30/13  [EDGcpfe/13951]
 C++-generating back end: missing qualification in non-type template arguments
 

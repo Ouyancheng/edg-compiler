@@ -2835,34 +2835,6 @@ empty statement block.
       check_assertion(special_kind_is(rout_ptr, sfk_constructor) &&
                       rtsp->param_type_list == NULL);
       form_exception_specification_for_generated_default_ctor(rout_ptr);
-    } else if (rout_ptr->is_defaulted &&
-               !rout_ptr->defined_outside_of_parent &&
-               exceptions_enabled) {
-      /* If a special member is defaulted inside the parent class, it
-         implicitly gets the exception specification that the corresponding
-         implicitly generated member would have had.  If an explicit exception
-         specification is provided, it must be equivalent to the implicitly
-         generated one. */
-      /* Save any declared exception specification for later comparison to the
-         generated specification. */
-      an_exception_specification_ptr  declared_exception_spec
-                                              = rtsp->exception_specification;
-      rtsp->exception_specification = NULL;
-      form_exception_specification_for_generated_function(rout_ptr);
-      if (declared_exception_spec != NULL) {
-        /* If an exception specification was specified at all, it must be
-           equivalent to the generated one. */
-        if (exception_spec_is_less_restrictive(
-                    declared_exception_spec, rtsp->exception_specification) ||
-            exception_spec_is_less_restrictive(
-                    rtsp->exception_specification, declared_exception_spec)) {
-          pos_error(ec_invalid_explicit_exception_specification,
-                    &rout_ptr->source_corresp.decl_position);
-        } else {
-          /* Record the declared form. */
-          rtsp->exception_specification = declared_exception_spec;
-        }  /* if */
-      }  /* if */
     }  /* if */
     if (rtsp->this_class != NULL) {
       scope->variant.routine.this_param_variable =

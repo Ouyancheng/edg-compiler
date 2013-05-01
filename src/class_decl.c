@@ -3160,21 +3160,50 @@ translation unit.
 }  /* check_trans_unit_for_fixup */
 
 
-static void define_defaulted_special_member_functions(a_type_ptr  class_type)
+static void check_defaulted_member_exception_specifications(
+                                                       a_type_ptr  class_type)
 /*
-Generate the definitions of any special members defined with "= default" in
-the definition of the given class type (unless the special member is implicitly
-deleted).
+Establish the exception specification of any special members of class_type
+defined with "= default".  If an exception specification was specified
+explicitly, verify that it matches that of a corresponding generated member
+and issue an error if it does not.
 */
 {
   a_routine_ptr  rp = class_type_supp(class_type)->assoc_scope->routines;
 
+  check_assertion(exceptions_enabled);
   for (; rp != NULL; rp = rp->next) {
     if (rp->is_defaulted && !rp->is_deleted) {
-      force_definition_of_compiler_generated_routine(rp);
+      a_routine_type_supplement_ptr   rtsp = skip_typerefs(rp->type)
+                                                 ->variant.routine.extra_info;
+       /* If a special member is defaulted inside the parent class, it
+          implicitly gets the exception specification that the corresponding
+          implicitly generated member would have had.  If an explicit
+          exception specification is provided, it must be equivalent to the
+          implicitly generated one. */
+      /* Save any declared exception specification for later comparison to
+         the generated specification. */
+      an_exception_specification_ptr  declared_exception_spec
+                                              = rtsp->exception_specification;
+      rtsp->exception_specification = NULL;
+      form_exception_specification_for_generated_function(rp);
+      if (declared_exception_spec != NULL) {
+        /* If an exception specification was specified at all, it must be
+           equivalent to the generated one. */
+        if (exception_spec_is_less_restrictive(
+                    declared_exception_spec, rtsp->exception_specification) ||
+            exception_spec_is_less_restrictive(
+                    rtsp->exception_specification, declared_exception_spec)) {
+          pos_error(ec_invalid_explicit_exception_specification,
+                    &rp->source_corresp.decl_position);
+        } else {
+          /* Record the declared form. */
+          rtsp->exception_specification = declared_exception_spec;
+        }  /* if */
+      }  /* if */
     }  /* if */
   }  /* for */
-}  /* define_defaulted_special_member_functions */
+}  /* check_defaulted_member_exception_specifications */
 
 
 static void process_deferred_class_fixups(a_boolean	for_instantiation)
@@ -3247,8 +3276,10 @@ after a class instantiation.
       for (cfp = fixup_list; cfp != NULL; cfp = cfp->next) {
         /* Make sure we are in the right translation unit. */
         check_trans_unit_for_fixup(cfp, &trans_unit_pushed);
-        /* Define any defaulted member functions. */
-        define_defaulted_special_member_functions(cfp->class_type);
+        if (exceptions_enabled &&
+            !cfp->class_type->variant.class_struct_union.is_nonreal_class) {
+          check_defaulted_member_exception_specifications(cfp->class_type);
+        }  /* if */
         inline_function_fixup_for_class(cfp->class_type,
                                         cfp->is_template_instantiation);
       }  /* for */
@@ -19127,6 +19158,47 @@ before generating declarations for special members.
 }  /* set_move_assign_operator_flags */
 
 
+static void check_defaulted_member_types(
+                               a_type_ptr                          class_type,
+                               a_generated_special_function_descr  *gsfd)
+/*
+Check that the parameter of any "= default" copy constructor or copy assignment
+operator of class_type are not const-qualified if a corresponding generated
+constructor would not be const-qualified.  *gsfd tracks properties of generated
+special members.
+*/
+{
+  a_routine_ptr  rp = class_type_supp(class_type)->assoc_scope->routines;
+
+  for (; rp != NULL; rp = rp->next) {
+    if (rp->is_defaulted) {
+      a_routine_type_supplement_ptr   rtsp = skip_typerefs(rp->type)
+                                                 ->variant.routine.extra_info;
+      /* For a copy constructor or copy assignment operator, check whether the
+         parameter has the expected qualifiers. */
+      if (rtsp->param_type_list != NULL) {
+        a_type_ptr  param_tp = rtsp->param_type_list->type;
+        if (is_reference_type(param_tp)) {
+          param_tp = type_pointed_to(param_tp);
+          if (get_type_qualifiers(param_tp) & TQ_CONST) {
+            if (special_kind_is(rp, sfk_constructor) &&
+                (gsfd->copy_ctor_qualifiers & TQ_CONST) == 0) {
+              pos_error(ec_defaulted_copy_ctor_cannot_have_const_parameter,
+                        &rp->source_corresp.decl_position);
+            } else if (special_kind_is(rp, sfk_operator) &&
+                       rp->variant.opname_kind == (an_opname_kind)onk_assign &&
+                       (gsfd->copy_assign_qualifiers & TQ_CONST) == 0) {
+              pos_error(ec_defaulted_assignment_cannot_have_const_parameter,
+                        &rp->source_corresp.decl_position);
+            }  /* if */
+          }  /* if */
+        }  /* if */
+      }  /* if */
+    }  /* if */
+  }  /* for */
+}  /* check_defaulted_member_types */
+
+
 static void check_special_member_functions(a_type_ptr            class_type,
                                            a_class_def_state_ptr class_state)
 
@@ -19305,6 +19377,10 @@ The routine body is not generated until it is known to be needed.
     }  /* if */
     check_suppressed_special_functions(class_type, &gsfd);
     mark_suppressed_defaulted_members_as_deleted(class_type, &gsfd);
+  }  /* if */
+  if (!is_template_dependent_context()) {
+    /* Check the type of "= default" special members. */
+    check_defaulted_member_types(class_type, &gsfd);
   }  /* if */
   if (declare_default_ctor) {
     if (microsoft_mode && !cpp11_mode && gsfd.suppress_default_ctor) {
@@ -25816,7 +25892,7 @@ bits of information that were acquired while parsing.
     check_base_member_hiding(class_state);
     /* Add final checks for the "standard_layout" flag. */
     wrapup_standard_layout_flag(class_type);
-    /* Add final checks for the "has_nothrow_copy" and "has_nothing_assign"
+    /* Add final checks for the "has_nothrow_copy" and "has_nothrow_assign"
        flags. */
     wrapup_nothrow_assign_and_copy_flags(class_type);
     /* Check the exception specification relationship for override pairs where
