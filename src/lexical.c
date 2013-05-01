@@ -9206,7 +9206,7 @@ kind or tok_error.  The token can be a normal or wide character constant.
     default:
       unexpected_condition();
   }  /* switch */
-  curr_char_loc += start_of_literal_value(lit_kind);
+  curr_char_loc += offset_to_start_of_literal_value(lit_kind);
   if (accum_quoted_string(&num_chars, /*is_header_name=*/FALSE, lit_kind,
                           '\'', NULL, -1)) {
     /* Error, character constant is unclosed. */
@@ -9435,7 +9435,7 @@ kind or tok_error.  The token can be a normal or wide string literal.
   register_pointer_variable(start_of_string_value, start_of_string_value_reg);
   check_assertion(lit_kind & SCLK_STRING_LITERAL);
   /* Skip over the prefix, if any, and the leading quote. */
-  curr_char_loc += start_of_literal_value(lit_kind);
+  curr_char_loc += offset_to_start_of_literal_value(lit_kind);
   start_of_string_value = curr_char_loc;
   if (lit_kind & SCLK_RAW_STRING_LITERAL) {
     /* The literal appears to be a raw string.  Scan the delimiter and
