@@ -3174,7 +3174,6 @@ Also, if the member is virtual, force its definition to be generated.
 {
   a_routine_ptr  rp = class_type_supp(class_type)->assoc_scope->routines;
 
-  check_assertion(exceptions_enabled);
   for (; rp != NULL; rp = rp->next) {
     if (rp->is_defaulted && !rp->is_deleted) {
       if (exceptions_enabled) {
