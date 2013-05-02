@@ -1087,8 +1087,18 @@ there is an applicable one; otherwise, return NULL.
   an_attr_name_map_entry_ptr  *p_ep, ep = NULL;
   char                        *name = ap->name,
                               buf[MAX_ATTRIBUTE_NAME_LENGTH+1];
+  a_byte_attribute_family     family = ap->family;
 
-  if (ap->family == (a_byte_attribute_family)af_gnu) {
+  if (gnu_mode && gnu_version >= 40800 &&
+      family == (a_byte_attribute_family)af_std &&
+      ap->namespace_name != NULL &&
+      strcmp(ap->namespace_name, "gnu") == 0) {
+    /* Starting with version 4.8, GCC maps standard attributes of the form
+       [[ gnu::xyz(...) ]] to __attribute((xyz(...))).  This includes
+       attribute names with added underscores (see below). */
+    family = (a_byte_attribute_family)af_gnu;
+  }  /* if */
+  if (family == (a_byte_attribute_family)af_gnu) {
     /* GNU attribute names are optionally prefixed and suffixed by double
        underscores.  Ensure "name" points to a string without such
        underscores. */
@@ -1117,7 +1127,7 @@ there is an applicable one; otherwise, return NULL.
       /* Skip a leading "1" (which indicates that the attribute should appear
          at most once in a group). */
       if (cond[0] == '1') ++cond;
-      switch (ap->family) {
+      switch (family) {
         case af_std:
           if (cond[0] == 'c' && cond[1] == '+') {
             if (ap->namespace_name != NULL) {

@@ -1,5 +1,21 @@
 Version 4.7
 
+5/2/13   [EDGcpfe/13967]
+GNU attributes with C++11 syntax
+
+In GNU C++11 mode with gnu_version >= 40800, the front end now maps C++11
+attributes of the form "gnu::xyz..." to GNU-style attributes of the form
+"xyz...".  For example:
+
+  struct S { int i; } s [[gnu::aligned(16)]];
+
+is now equivalent to
+
+  struct S { int i; } s __attribute((aligned(16)));
+
+in such GNU modes.
+
+
 5/2/13   [EDGcpfe/13925]
 Empty anonymous unions in strict mode
 
