@@ -1,5 +1,35 @@
 Version 4.7
 
+5/2/13   [EDGcpfe/13961]
+Problems with implicitly-initialized elements of constexpr arrays
+
+The front end incorrectly handled implicitly-initialized elements of
+constexpr arrays in two cases.  In the first case, accessing array elements
+of a class type that were implicitly value-initialized during aggregate
+initialization could result in a segfault or be incorrectly diagnosed as
+non-constant.  For example:
+
+  struct A {
+    constexpr A (): a(6) {}
+    int a;
+  };
+  void f() {
+    constexpr A g[3] = { A () };
+    constexpr A p = g[2]; // Incorrectly diagnosed as non-constant
+    constexpr A q = g[1]; // Front end terminated with a segfault
+  }
+
+In the other case, accessing an element of a string past the end of the
+initializer was incorrectly diagnosed as non-constant.  For example:
+
+  void f() {
+    constexpr char s[2] = "";
+    constexpr char c = s[1];  // Incorrectly diagnosed as non-constant
+  }
+
+These are both now fixed.
+
+
 5/1/13   [EDGcpfe/13960]
 Microsoft C++: __is_convertible_to with reference type as second argument
 
