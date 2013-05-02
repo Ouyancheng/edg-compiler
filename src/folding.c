@@ -9093,11 +9093,15 @@ evaluation (e.g., parameter values).
              union. */
           found_value = TRUE;
           type_mismatch = TRUE;
-        } else if (result_con->kind == (a_constant_repr_kind)ck_string &&
-                   (a_targ_ptrdiff_t)(cum_offset + curr_type->size) > offset) {
-          /* result_con is a string and offset designates a character within
-             that string. */
+        } else if (result_con->kind == (a_constant_repr_kind)ck_string) {
+          /* result_con is a string; offset designates either a character
+             within the constant or a character beyond the length of the
+             initializer that was implicitly value-initialized. */
           found_value = TRUE;
+          if (offset > (a_targ_ptrdiff_t)(cum_offset + curr_type->size)) {
+            /* Return a value-initialized constant of the element type. */
+            result_con = NULL;
+          }  /* if */
         } else if (is_error_type(curr_type) || is_error_constant(result_con) ||
                    result_con->kind != (a_constant_repr_kind)ck_aggregate) {
           /* There was an error upstream. */
