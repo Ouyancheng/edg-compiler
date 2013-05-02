@@ -1,5 +1,16 @@
 Version 4.7
 
+5/2/13   [EDGcpfe/13925]
+Empty anonymous unions in strict mode
+
+The front end now issues a discretionary error for empty anonymous unions in
+strict C++ mode.  For example:
+
+  struct S {
+    union {};  // Now an error by default in strict C++ mode.
+  };
+
+
 5/2/13   [EDGcpfe/13961]
 Problems with implicitly-initialized elements of constexpr arrays
 

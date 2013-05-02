@@ -21093,6 +21093,14 @@ routine.
 #endif /* ALLOW_NONSTANDARD_ANONYMOUS_UNIONS */
     /* Set the IL referenced flag for the anonymous union type. */
     au_type->source_corresp.referenced = TRUE;
+    if (strict_ansi_mode && !C_mode() &&
+        au_type->kind == (a_type_kind)tk_union &&
+        au_type->variant.class_struct_union.field_list == NULL) {
+      /* The C++ grammar does not actually permit omitting field declarations
+         in an anonymous union. */
+      pos_diagnostic(strict_ansi_discretionary_severity,
+                     ec_empty_anonymous_union, err_pos);
+    }  /* if */
   } else if (!C_mode()) {
     /* C++ mode. */
     if (dso_flags & DSO_MUTABLE) {
