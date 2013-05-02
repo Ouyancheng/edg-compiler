@@ -24173,7 +24173,7 @@ This is used for checking/allowing assignment to "this" -- an anachronism.
         /* Mark the this variable as modified within a try block. */
         this_var->modified_within_try_block = TRUE;
       }  /* if */
-    } else {
+    } else if (cpp11_mode) {
       /* Assignment to "this" is not allowed in the lowering of delegating
          constructors.  Alert the user. */
       expr_pos_diagnostic(es_error, ec_assignment_to_this_in_cpp11_mode,
