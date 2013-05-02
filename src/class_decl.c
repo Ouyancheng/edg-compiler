@@ -18513,7 +18513,8 @@ record that fact in *gsfd.
   if (cssp->constructor == NULL) {
     /* See if a default constructor declaration is needed. */
     if (!class_state->POD_ruled_out &&
-        cssp->construction_by_bitwise_copy_allowed) {
+        cssp->construction_by_bitwise_copy_allowed &&
+        !class_state->rule_out_bitwise_copy_for_volatile_class_field) {
       /* This is a POD class with trivial copy semantics (a POD class may have
          nontrivial copy semantics if it has a volatile field).
          Its implicitly-declared default constructor need not actually be
