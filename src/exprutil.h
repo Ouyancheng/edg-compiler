@@ -1484,9 +1484,9 @@ extern void conv_class_rvalue_operand_to_lvalue(an_operand *operand);
 
 extern void conv_class_operand_to_object_pointer(an_operand *operand);
 
-extern void conv_rvalue_reference_object_to_lvalue(an_operand *operand);
+extern void conv_xvalue_to_lvalue(an_operand *operand);
 
-extern a_boolean is_rvalue_reference_object_operand(an_operand *operand);
+extern a_boolean is_an_xvalue(an_operand *operand);
 
 extern a_constant_ptr value_of_constant_var_lvalue_operand(
                                                           an_operand *operand);
@@ -2254,7 +2254,7 @@ extern void adjust_lvalue_type(an_operand *operand,
                                a_type_ptr dest_type);
 
 
-extern void conv_rvalue_reference_result_to_rvalue(an_operand *operand);
+extern void conv_rvalue_reference_result_to_xvalue(an_operand *operand);
 
 extern
 void conv_reference_cast_operand_to_lvalue_if_necessary(an_operand *operand,

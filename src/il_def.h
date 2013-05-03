@@ -14534,6 +14534,11 @@ typedef struct an_expr_node {
 			   lvalue-to-rvalue or function-to-pointer conversion
 			   (but not array-to-pointer conversion, which is
 			   handled by the eok_array_to_pointer operator). */
+  a_bit_field	is_xvalue:1;
+			/* TRUE if the expression is a C++11 xvalue, meaning
+			   a value created by an rvalue reference cast or
+			   rvalue reference return from a function.  Never
+			   TRUE at the same time as is_lvalue. */
   a_bit_field	result_is_not_used:1;
 			/* TRUE if the result of the expression is discarded,
 			   i.e., it's a void expression. */

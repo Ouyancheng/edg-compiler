@@ -1,5 +1,15 @@
 Version 4.7
 
+5/3/13   [EDGcpfe/12021]
+First steps on value categories
+
+As first steps on the way to implementing C++11 value categories, an
+"is_xvalue" field has been added to expression nodes, and a number of
+routines that used the term "rvalue reference object" in their names
+now use "xvalue" instead (e.g., conv_rvalue_reference_object_to_lvalue
+is now conv_xvalue_to_lvalue).
+
+
 5/2/13   [EDGcpfe/13397]
 Incorrect processing of nested variadic pack expansions
 

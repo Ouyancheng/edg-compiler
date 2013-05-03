@@ -1844,8 +1844,6 @@ extern void adjust_nonstandard_anonymous_object_field_references(
 extern an_expr_node_ptr fe_field_lvalue_selection_expr(an_expr_node_ptr node,
                                                        a_field_ptr      field);
 
-extern a_boolean is_rvalue_reference_object_expr(an_expr_node_ptr expr);
-
 extern an_expr_node_ptr base_class_selection_expr(an_expr_node_ptr node,
                                                   a_base_class_ptr bcp);
 

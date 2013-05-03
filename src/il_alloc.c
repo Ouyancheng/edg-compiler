@@ -3118,6 +3118,7 @@ its kind to the indicated kind.
   node->type = NULL;
   node->next = NULL;
   node->is_lvalue = FALSE;
+  node->is_xvalue = FALSE;
   node->result_is_not_used = FALSE;
   node->is_initialization_guard = FALSE;
   node->generated_default_arg = FALSE;

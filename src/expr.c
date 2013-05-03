@@ -14378,7 +14378,7 @@ indication in *rcblock).
         mark_as_reference_cast(expr, cast_type);
         make_lvalue_expression_operand(expr, result);
         if (rvalue_reference_case) {
-          conv_rvalue_reference_result_to_rvalue(result);
+          conv_rvalue_reference_result_to_xvalue(result);
         }  /* if */
       } else {
         /* Generate an eok_dynamic_cast operation. */

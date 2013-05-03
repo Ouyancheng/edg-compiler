@@ -4473,9 +4473,9 @@ base class casts and virtual function calls.
     complete_object_type = tblock.complete_object_type;
   } else {
     /* For an rvalue, the complete object type is usually the expression type,
-       but for rvalue reference objects it's unknown (the dynamic type
-       can be different than the static type for those). */
-    if (!is_rvalue_reference_object_expr(expr)) {
+       but for an xvalue it's unknown (the dynamic type can be different than
+       the static type for those). */
+    if (!expr->is_xvalue) {
       complete_object_type = expr->type;
     }  /* if */
   }  /* if */

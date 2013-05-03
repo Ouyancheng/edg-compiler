@@ -5496,8 +5496,8 @@ of the call.
         add_reference_indirection(result);
         if (is_rvalue_ref) {
           /* A call of a function that returns an rvalue reference is an
-             rvalue. */
-          conv_rvalue_reference_result_to_rvalue(result);
+             xvalue. */
+          conv_rvalue_reference_result_to_xvalue(result);
         }  /* if */
       } else if (!curr_expr_kind_is_const() &&
                  is_class_struct_union_type(result->type)) {
@@ -8246,17 +8246,16 @@ the type to be complete if possible.
 }  /* rvalue_reference_cast_underlying_type_is_complete */
 
 
-void conv_rvalue_reference_result_to_rvalue(an_operand *operand)
+void conv_rvalue_reference_result_to_xvalue(an_operand *operand)
 /*
 The indicated operand is the result of a cast to an rvalue reference type
 or a call of a function returning an rvalue reference type.  It's been
 created as an lvalue, because that's the default for reference operations.
-Convert it to an rvalue instead.  This is the point of creation for
-"rvalue reference objects", which are part lvalue and part rvalue.
+Convert it to an xvalue instead.
 */
 {
   if (is_an_lvalue(operand)) {
-    /* Convert an lvalue to an rvalue. */
+    /* Convert an lvalue to an xvalue. */
     if (is_array_type(operand->type)) {
       /* Convert an array lvalue to an array rvalue, rather than doing the
          decay to a pointer to the first element. */
@@ -8272,6 +8271,9 @@ Convert it to an rvalue instead.  This is the point of creation for
       /* Normal non-array case. */
       conv_lvalue_to_rvalue(operand);
     }  /* if */
+    if (is_expression_operand(operand)) {
+      operand->variant.expression->is_xvalue = TRUE;
+    }  /* if */
   } else if (is_a_function_designator(operand)) {
     /* Convert function to pointer to function (there are no function
        rvalues). */
@@ -8280,7 +8282,7 @@ Convert it to an rvalue instead.  This is the point of creation for
                                                 /*allow_ctor=*/FALSE,
                                                 /*will_call=*/FALSE);
   }  /* if */
-}  /* conv_rvalue_reference_result_to_rvalue */
+}  /* conv_rvalue_reference_result_to_xvalue */
 
 
 void conv_reference_cast_operand_to_lvalue_if_necessary(an_operand *operand,
@@ -8298,8 +8300,8 @@ gives the destination reference type.
   if (is_an_rvalue(operand)) {
     if (is_class_struct_union_type(operand->type)) {
       conv_class_rvalue_operand_to_lvalue(operand);
-    } else if (is_rvalue_reference_object_operand(operand)) {
-      conv_rvalue_reference_object_to_lvalue(operand);
+    } else if (is_an_xvalue(operand)) {
+      conv_xvalue_to_lvalue(operand);
     } else if (is_array_type(operand->type) &&
                operand_is_temp_init_full(operand, &temp_init_node)) {
       /* Convert an array rvalue temp to an lvalue temp. */
@@ -8486,8 +8488,8 @@ is an lvalue reference to const.
       if (is_implicit_cast) expr->variant.operation.compiler_generated = TRUE;
       make_lvalue_expression_operand(expr, operand);
       if (is_rvalue_ref) {
-        /* The result of a cast to an rvalue reference type is an rvalue. */
-        conv_rvalue_reference_result_to_rvalue(operand);
+        /* The result of a cast to an rvalue reference type is an xvalue. */
+        conv_rvalue_reference_result_to_xvalue(operand);
       }  /* if */
     }  /* if */
     restore_operand_details_for_cast(operand, &orig_operand, is_implicit_cast,
@@ -13268,9 +13270,9 @@ question_position and colon_position give the position of the "?" and ":".
       /* Can't fold cases where the operand types do not match (e.g.,
          because one is a throw and the other is not). */
       do_folding = FALSE;
-    } else if (is_rvalue_reference_object_operand(preserved_operand)) {
-      /* Can't fold if the preserved operand is an rvalue reference object,
-         because the result of the "?" is not. */
+    } else if (is_an_xvalue(preserved_operand)) {
+      /* Can't fold if the preserved operand is an xvalue, because the result
+         of the "?" is not. */
       do_folding = FALSE;
     } else if (curr_expr_kind_is_const()) {
       /* In constant expressions we must always fold. */
@@ -13360,11 +13362,9 @@ question_position and colon_position give the position of the "?" and ":".
     if (suppress_class_rvalue_temp) {
       class_rvalue_case = FALSE;
     } else if (microsoft_mode && rvalue_references_enabled) {
-      /* MSVC10 treats an rvalue reference object as similar to an lvalue
-         and doesn't copy it, which prefigures the changes in the C++11
-         standard to add "xvalues". */
-      if (is_rvalue_reference_object_operand(operand_2) &&
-          is_rvalue_reference_object_operand(operand_3)) {
+      /* MSVC10 treats an xvalue as similar to an lvalue and doesn't
+         copy it. */
+      if (is_an_xvalue(operand_2) && is_an_xvalue(operand_3)) {
         class_rvalue_case = FALSE;
       }  /* if */
     }  /* if */
@@ -15317,8 +15317,8 @@ error cases.
     a_boolean is_rvalue_ref = is_rvalue_reference_type(result->type);
     add_reference_indirection(result);
     if (is_rvalue_ref) {
-      /* A call of a function that returns an rvalue reference is an rvalue. */
-      conv_rvalue_reference_result_to_rvalue(result);
+      /* A call of a function that returns an rvalue reference is an xvalue. */
+      conv_rvalue_reference_result_to_xvalue(result);
     }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
   } else if (microsoft_bugs && microsoft_version < 1100 && !C_mode() &&
@@ -17250,11 +17250,9 @@ to a C++/CLI handle instead of a pointer.
 }  /* conv_class_operand_to_object_pointer */
 
 
-void conv_rvalue_reference_object_to_lvalue(an_operand *operand)
+void conv_xvalue_to_lvalue(an_operand *operand)
 /*
-operand is an rvalue reference object, which is an rvalue produced from
-an rvalue reference operation that has some of the properties of an lvalue.
-Convert it to an lvalue.
+operand is an xvalue.  Convert it to an lvalue.
 */
 {
   an_operand       orig_operand;
@@ -17264,7 +17262,8 @@ Convert it to an lvalue.
   orig_operand = *operand;
   check_assertion(is_expression_operand(operand));
   expr = operand->variant.expression;
-  check_assertion(is_rvalue_reference_object_expr(expr));
+  check_assertion(expr->is_xvalue);
+  expr->is_xvalue = FALSE;
   expr = conv_rvalue_expr_to_lvalue(expr, &converted,
                                     /*see_if_possible=*/FALSE,
                                     /*gcc_lvalue=*/FALSE,
@@ -17273,23 +17272,22 @@ Convert it to an lvalue.
   check_assertion(converted);
   make_lvalue_expression_operand(expr, operand);
   restore_operand_details(operand, &orig_operand);
-}  /* conv_rvalue_reference_object_to_lvalue */
+}  /* conv_xvalue_to_lvalue */
 
 
-a_boolean is_rvalue_reference_object_operand(an_operand *operand)
+a_boolean is_an_xvalue(an_operand *operand)
 /*
-Return TRUE if the given operand is an rvalue reference object.
-See is_rvalue_reference_object_expr for a definition of that term.
+Return TRUE if the given operand is an xvalue, as defined in C++11.
 */
 {
-  a_boolean is_rvalue_object = FALSE;
+  a_boolean is_xvalue = FALSE;
 
   if (is_expression_operand(operand) &&
-      is_rvalue_reference_object_expr(operand->variant.expression)) {
-    is_rvalue_object = TRUE;
+      operand->variant.expression->is_xvalue) {
+    is_xvalue = TRUE;
   }  /* if */
-  return is_rvalue_object;
-}  /* is_rvalue_reference_object_operand */
+  return is_xvalue;
+}  /* is_an_xvalue */
 
 
 static a_constant_ptr value_of_constant_var_lvalue_expr(

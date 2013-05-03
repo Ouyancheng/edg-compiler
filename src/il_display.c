@@ -3887,6 +3887,9 @@ Display the indicated expression node.
   if (ptr->is_lvalue) {
     disp_boolean("is_lvalue", TRUE);
   }  /* if */
+  if (ptr->is_xvalue) {
+    disp_boolean("is_xvalue", TRUE);
+  }  /* if */
   if (ptr->result_is_not_used) {
     disp_boolean("result_is_not_used", TRUE);
   }  /* if */

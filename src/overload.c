@@ -20249,10 +20249,10 @@ the conversion.
     conv_object_pointer_to_lvalue(source_operand);
     adjust_lvalue_type(source_operand, adj_base_dest_type);
   } else if (direct_binding_possible &&
-             is_rvalue_reference_object_operand(source_operand)) {
-    /* A reference can be bound directly to an rvalue reference
-       object.  Only non-class cases get here. */
-    conv_rvalue_reference_object_to_lvalue(source_operand);
+             is_an_xvalue(source_operand)) {
+    /* A reference can be bound directly to an xvalue.  Only non-class cases
+       get here. */
+    conv_xvalue_to_lvalue(source_operand);
     adjust_lvalue_type(source_operand, adj_base_dest_type);
   } else {
     /* The initialization cannot be done directly; a temporary must be
