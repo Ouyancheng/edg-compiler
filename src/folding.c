@@ -6758,64 +6758,41 @@ constant will be set as well.
                    constant, (a_template_param_constant_kind)tpck_expression);
     constant->variant.template_param.variant.expr = expr;
   } else {
-    a_boolean   from_rvalue = FALSE, result;
-    a_type_ptr  orig_type2 = type2;
-    /* The Microsoft version of this test considers the source as an rvalue
-       in some cases. */
+    a_boolean  result;
     if (microsoft_mode) {
-      from_rvalue = TRUE;
-      if (is_any_reference_type(type1)) {
-        /* A reference on the source type is always ignored by the Microsoft
-           compiler, except that without it conversions from rvalues are
-           sometimes considered (instead of from lvalues as specified in
-           the standard). */
-        from_rvalue = FALSE;
-        type1 = type_pointed_to(type1);
-      } else if (is_array_type(type1)) {
-        from_rvalue = FALSE;
-      } else if (is_function_type(type1)) {
-        from_rvalue = FALSE;
-      } else if (is_class_struct_union_type(type1)) {
-        from_rvalue = FALSE;
+      a_boolean   is_rvalue_ref1 = is_rvalue_reference_type(type1), 
+                  is_rvalue_ref2 = is_rvalue_reference_type(type2);
+      /* The Microsoft compiler appears to treat rvalue reference types a
+         little strangely.  If both the source and destination type are rvalue
+         reference types, the result is always false.  Otherwise, an rvalue
+         reference on the source type appears to be treated like an lvalue
+         reference, and an rvalue reference on the destination type is treated
+         as the underlying type without a reference. */
+      if (is_rvalue_ref1 && is_rvalue_ref2) {
+        result = FALSE;
+        goto result_known;
+      } else if (is_rvalue_ref1) {
+        type1 = make_reference_type(type_pointed_to(type1));
+      } else if (is_rvalue_ref2) {
+        type2 = type_pointed_to(type2);
       }  /* if */
-      if (is_any_reference_type(type2)) {
-        a_type_ptr  under_type2 = type_pointed_to(type2);
-        if (!is_qualified_type(under_type2) &&
-            (is_class_struct_union_type(under_type2) ||
-             is_function_type(under_type2) || is_array_type(under_type2))) {
-           /* A reference on the destination type appears to be (mostly)
-              ignored only if it is a reference to a class, array, or function
-              type. */
-          type2 = under_type2;
-        }  /* if */
+      if (is_function_type(type1) || is_array_type(type1)) {
+        /* Microsoft appears to treat conversion from functions and arrays as
+           conversions from lvalue references to those types. */
+        type1 = make_reference_type(type1);
       }  /* if */
-    }  /* if */
-    if (microsoft_mode) {
-      if (is_void_type(orig_type2) || is_function_type(orig_type2)) {
+      if (is_array_type(type2)) {
+        /* Microsoft appears to treat a conversion to an array type as an
+           conversions to an lvalue reference to that array type. */
+        type2 = make_reference_type(type2);
+      } else if (is_void_type(type2) || is_function_type(type2)) {
         /* Microsoft considers a conversion to void or to a function type to
            fail. */
         result = FALSE;
         goto result_known;
-      } else if (orig_type2 != type2) {
-        /* The destination type was a reference.  Although it appears to be
-           mostly ignored by the Microsoft compiler, a difference in
-           qualifiers does matter in that case. */
-        a_type_qualifier_set  tqs1 = get_type_qualifiers(type1);
-        a_type_qualifier_set  tqs2 = get_type_qualifiers(type2);
-        if (any_qualifier_in_set_missing(tqs2, tqs1)) {
-          result = FALSE;
-          goto result_known;
-        }  /* if */
       }  /* if */       
-      if (identical_types(type1, type2)) {
-        /* Microsoft returns TRUE when the types are the same, even if they are
-           (e.g.) both arrays.  (Conversions to void and/or function types are
-           exceptions; tested above.) */
-        result = TRUE;
-        goto result_known;
-      }  /* if */
     }  /* if */
-    result = compute_is_convertible(type1, type2, from_rvalue);
+    result = compute_is_convertible(type1, type2);
 result_known:
     arg1->variant.type_operand.definition_needed = TRUE;
     arg2->variant.type_operand.definition_needed = TRUE;

@@ -703,8 +703,7 @@ extern a_boolean check_var_for_lambda_capture(a_variable_ptr  var,
 extern a_boolean current_mode_allows_field_selection_folding(void);
 
 extern a_boolean compute_is_convertible(a_type_ptr  src_type,
-                                        a_type_ptr  dst_type,
-                                        a_boolean   src_is_rvalue);
+                                        a_type_ptr  dst_type);
 
 extern
 a_boolean compute_is_constructible(a_builtin_operation_kind kind,

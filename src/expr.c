@@ -37185,80 +37185,6 @@ operator op, and return a pointer to it.
 }  /* make_assignment_expr */
 
 
-a_boolean compute_is_convertible(a_type_ptr  src_type,
-                                 a_type_ptr  dst_type,
-                                 a_boolean   src_is_rvalue)
-/*
-Compute the "is_convertible" type relationship predicate of the C++
-standard TR1.  See [lib.meta.rel].  It determines whether an invented
-lvalue of type src_type is convertible to the type dst_type, and
-returns TRUE if so.  src_is_rvalue is TRUE for a Microsoft variant
-of this where the source should be considered an rvalue.
-*/
-{
-  a_boolean               result;
-  an_expr_stack_entry     expr_stack_entry;
-  an_expr_stack_entry_ptr saved_expr_stack;
-
-  /* Even though this is not an expression scan, make sure the expr_stack
-     has something on it.  If there is already something on the stack,
-     save it, clear the stack, and restore it later. */
-  save_expr_stack(&saved_expr_stack);
-  push_expr_stack((an_expression_kind)ek_sizeof, &expr_stack_entry,
-                  /*force_object_lifetime=*/FALSE,
-                  /*suppress_object_lifetime=*/TRUE);
-  if (is_any_reference_type(src_type)) {
-    /* It's not clear what it means to specify a reference type as
-       the source type (the standard doesn't say), but we ignore it. */
-    src_type = type_pointed_to(src_type);
-  }  /* if */
-  complete_type_is_needed(src_type);
-  complete_type_is_needed(dst_type);
-  if (is_void_type(dst_type)) {
-    /* Any type can be converted to void. */
-    result = TRUE;
-  } else if (is_void_type(src_type) ||
-             is_array_type(dst_type) ||
-             is_function_type(dst_type)) {
-    /* void can't be converted to any other type, and you can't convert to
-       an array or function type. */
-    result = FALSE;
-  } else if (is_incomplete_type(src_type) ||
-             is_incomplete_type(dst_type) ||
-             is_abstract_class_type(dst_type)) {
-    /* Cases enumerated in [lib.meta.rel] as ill-formed.  However, that's
-       to accommodate a C++ template-tricks version of this predicate, and
-       the committee sense seems to be that returning FALSE is what's
-       really desired. */
-    result = FALSE;
-  } else {
-    an_operand              src_op;
-    an_arg_match_summary    arg_match;
-    /* Test whether the conversion is possible. */
-    make_dummy_lvalue_operand(src_type, &src_op);
-    if (src_is_rvalue &&
-        !is_array_type(src_type) &&
-        !is_function_type(src_type)) { 
-      conv_lvalue_to_rvalue(&src_op);
-    }  /* if */
-    /* Use the argument match routine because it can test whether the
-       conversion is possible without generating any errors.  It also
-       handles destination types that are references. */
-    determine_arg_match_level(&src_op, (a_type_ptr)NULL,
-                              dst_type,
-                              (a_param_type_ptr)NULL,
-                              /*param_type_is_deduced=*/FALSE,
-                              /*try_user_conversions=*/TRUE,
-                              /*allow_expl_conv_funcs=*/FALSE,
-                              &arg_match);
-    result = (arg_match.match_level != aml_none);
-  }  /* if */
-  pop_expr_stack();
-  restore_expr_stack(saved_expr_stack);
-  return result;
-}  /* compute_is_convertible */
-
-
 static an_arg_list_elem_ptr make_declval_arg(a_type_ptr  tp)
 /*
 Create and return an argument corresponding to "std::declval<T>()" where T is
@@ -37278,9 +37204,11 @@ Return NULL if tp is an incomplete type or a reference to an incomplete type.
     make_lvalue = FALSE;
     tp = type_pointed_to(tp);
 #if MICROSOFT_EXTENSIONS_ALLOWED
-  } else if (is_tracking_reference_type(tp)) {
-    make_lvalue = TRUE;
-    tp = type_pointed_to(tp);
+  } else if (microsoft_mode) {
+    if (is_tracking_reference_type(tp)) {
+      make_lvalue = TRUE;
+      tp = type_pointed_to(tp);
+    }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   }  /* if */
   complete_type_is_needed(tp);
@@ -37298,7 +37226,71 @@ done:
   return result;
 }  /* make_declval_arg */
 
-                                 
+
+a_boolean compute_is_convertible(a_type_ptr  src_type,
+                                 a_type_ptr  dst_type)
+/*
+Compute the "std::is_convertible" type relationship predicate of the C++11
+standard library.  See [meta.rel].  It determines whether "create<src_type>()" 
+is convertible to dst_type, with the "create" template declared as follows:
+      template<class T>
+        typename add_rvalue_reference<T>::type create();
+Called from fold_is_convertible_to, which may have pre-adjusted the source and
+destination types in Microsoft mode.
+*/
+{
+  a_boolean               result;
+  an_expr_stack_entry     expr_stack_entry;
+  an_expr_stack_entry_ptr saved_expr_stack;
+
+  /* Even though this is not an expression scan, make sure the expr_stack
+     has something on it.  If there is already something on the stack,
+     save it, clear the stack, and restore it later. */
+  save_expr_stack(&saved_expr_stack);
+  push_expr_stack((an_expression_kind)ek_sizeof, &expr_stack_entry,
+                  /*force_object_lifetime=*/FALSE,
+                  /*suppress_object_lifetime=*/TRUE);
+  if (is_void_type(dst_type)) {
+    /* Any type can be converted to void. */
+    result = TRUE;
+  } else if (is_void_type(src_type) ||
+             is_array_type(dst_type) ||
+             is_function_type(dst_type)) {
+    /* void can't be converted to any other type, and you can't convert to
+       an array or function type. */
+    result = FALSE;
+  } else if (is_incomplete_type(src_type) ||
+             is_incomplete_type(dst_type) ||
+             is_abstract_class_type(dst_type)) {
+    /* Cases enumerated in [lib.meta.rel] as ill-formed.  However, that's
+       to accommodate a C++ template-tricks version of this predicate, and
+       the committee sense seems to be that returning FALSE is what's
+       really desired. */
+    result = FALSE;
+  } else {
+    an_arg_list_elem_ptr    src_val;
+    an_arg_match_summary    arg_match;
+    /* Test whether the conversion is possible.  Use the argument match
+       routine because it can test whether the conversion is possible without
+       generating any errors.  It also handles destination types that are
+       references. */
+    src_val = make_declval_arg(src_type);
+    determine_arg_match_level(operand_of_arg_list_elem(src_val),
+                              (a_type_ptr)NULL, dst_type,
+                              (a_param_type_ptr)NULL,
+                              /*param_type_is_deduced=*/FALSE,
+                              /*try_user_conversions=*/TRUE,
+                              /*allow_expl_conv_funcs=*/FALSE,
+                              &arg_match);
+    free_init_component_list(src_val);
+    result = (arg_match.match_level != aml_none);
+  }  /* if */
+  pop_expr_stack();
+  restore_expr_stack(saved_expr_stack);
+  return result;
+}  /* compute_is_convertible */
+
+
 a_boolean compute_is_constructible(a_builtin_operation_kind kind,
                                    a_type_ptr               dst_type,
                                    an_expr_node_ptr         args)

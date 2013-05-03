@@ -1,5 +1,30 @@
 Version 4.7
 
+5/3/13   [EDGcpfe/13642,EDGcpfe/13681]
+__is_convertible_to
+
+The implementation of the type traits helper function __is_convertible_to
+has been reworked to more closely match the definition of std::is_convertible
+in the C++11 standard library (the prior implementation was based on
+ISO/IEC TR 19768, a pre-C++11 "Technical Report on C++ Library Extensions";
+see the Changes entry of 3/21/06).  For example:
+
+  struct F {};
+  struct B { B(F&&) {} };
+  static_assert(__is_convertible_to(F, B), "F should be convertible to B");
+
+Previously, the static_assert in this example failed; now it is accepted.
+The emulation of Microsoft's implementation of __is_convertible_to has also
+been improved as part of this change.  For example:
+
+  static_assert(__is_convertible_to(int&&, int&&),
+                "Error in Microsoft mode");
+
+This static_assert succeeds in C++11 mode, but now fails in Microsoft mode
+(requires microsoft_version >= 1600 for the rvalue reference type): This
+corresponds to the current behavior of the Microsoft compiler.
+
+
 5/3/13   [EDGcpfe/13970]
 User-defined conversion not considered on nested list initialization
 
