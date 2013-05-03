@@ -9496,6 +9496,12 @@ determine whether we are entering a pack expansion context.
   a_pack_expansion_descr_ptr	pedp;
   a_scope_stack_entry_ptr	ssep;
 
+#if DEBUG
+  if (db_flag_is_set("packs")) {
+    fprintf(f_debug, "Looking for pack expansion at TSN %ld\n",
+            (long)curr_token_sequence_number);
+  }  /* if */
+#endif /* DEBUG */
   for (ssep = scope_stack_entry_for(depth_innermost_instantiation_scope);
        ssep != NULL; ssep = previous_scope_of(ssep)) {
     if (ssep->kind == (a_scope_kind)sck_template_instantiation) {
@@ -9516,8 +9522,6 @@ determine whether we are entering a pack expansion context.
   }  /* for */
 #if DEBUG
   if (db_flag_is_set("packs")) {
-    fprintf(f_debug, "Looking for pack expansion at TSN %ld\n",
-            (long)curr_token_sequence_number);
     if (result_pedp != NULL) {
       fprintf(f_debug, "Found pack expansion from %ld to %ld\n",
             (long)result_pedp->first_token, (long)result_pedp->last_token);
@@ -10701,6 +10705,10 @@ to expand the pack in a real instantiation.
            insert_pedp->first_token > pedp->first_token;
          insert_pedp = insert_pedp->previous) {}
     if (insert_pedp == NULL) {
+      pedp->next = tdip->pack_expansions;
+      if (tdip->pack_expansions != NULL) {
+        tdip->pack_expansions->previous = pedp;
+      }  /* if */
       tdip->pack_expansions = pedp;
     } else {
       if (insert_pedp->next != NULL) insert_pedp->next->previous = pedp;

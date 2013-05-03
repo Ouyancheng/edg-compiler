@@ -1,5 +1,19 @@
 Version 4.7
 
+5/2/13   [EDGcpfe/13397]
+Incorrect processing of nested variadic pack expansions
+
+The front end could sometimes fail to properly handle a pack expansion
+containing another pack expansion, resulting in spurious errors.  Now fixed.
+
+  template <class ... Ts> struct A {};
+  template <template <class ...> class... U, class... T> void f(U<T...>...){}
+  int main() {
+    A<int, int, int, int, int> a;
+    f(a, a, a);
+  }
+
+
 5/2/13   [EDGcpfe/13967]
 GNU attributes with C++11 syntax
 
