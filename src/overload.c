@@ -21875,7 +21875,7 @@ will be an lvalue instead of the usual rvalue.
                                           dest_type,
                                           /*try_bitwise_copy=*/TRUE,
                                           /*is_copy_initialization=*/
-                                                               !is_direct_init,
+                                                               FALSE,
                                           /*orig_is_copy_initialization=*/
                                                                !is_direct_init,
                                           /*is_reference_binding=*/FALSE,

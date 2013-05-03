@@ -1,5 +1,17 @@
 Version 4.7
 
+5/3/13   [EDGcpfe/13970]
+User-defined conversion not considered on nested list initialization
+
+Overload resolution failed to consider user-defined conversions on
+nested list initializations in some cases.  Now fixed.
+
+  struct A { A(int, int); };
+  struct B { B(A); };
+  struct C { C(B); };
+  C c{{{1, 2}}};  // Now accepted
+
+
 5/3/13   [EDGcpfe/12021]
 First steps on value categories
 
