@@ -985,8 +985,8 @@ typedef struct a_class_def_state {
 			   construction_by_bitwise_copy_allowed flag must be
 			   FALSE, but not until the copy constructor of S is
 			   generated since the latter should be marked trivial
-			   (which e.g. matter when determining if it can appear
-			   in a union type). */
+			   (which e.g. matters when determining if it can
+			   appear in a union type). */
   a_bit_field	rule_out_bitwise_assign_for_volatile_class_field:1;
 			/* TRUE if bitwise copying should be ruled out because
 			   a field of volatile class type has been seen where
