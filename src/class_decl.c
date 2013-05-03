@@ -15032,7 +15032,7 @@ assignment.
                                                         ->assignment_operator;
 
   if (sym != NULL) {
-    /* Look at every assignment operator in turn (if there are more than
+    /* Look at every assignment operator in turn (if there is more than
        one). */
     a_boolean  is_list = symbol_is(sym, sk_overloaded_function);
     if (is_list) sym = sym->variant.overloaded_function.symbols;
