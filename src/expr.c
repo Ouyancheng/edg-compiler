@@ -37250,6 +37250,8 @@ destination types in Microsoft mode.
   push_expr_stack((an_expression_kind)ek_sizeof, &expr_stack_entry,
                   /*force_object_lifetime=*/FALSE,
                   /*suppress_object_lifetime=*/TRUE);
+  complete_type_is_needed(src_type);
+  complete_type_is_needed(dst_type);
   if (is_void_type(dst_type)) {
     /* Any type can be converted to void. */
     result = TRUE;

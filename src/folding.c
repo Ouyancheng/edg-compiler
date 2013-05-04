@@ -6777,13 +6777,13 @@ constant will be set as well.
         type2 = type_pointed_to(type2);
       }  /* if */
       if (is_function_type(type1) || is_array_type(type1)) {
-        /* Microsoft appears to treat conversion from functions and arrays as
+        /* Microsoft appears to treat conversions from functions and arrays as
            conversions from lvalue references to those types. */
         type1 = make_reference_type(type1);
       }  /* if */
       if (is_array_type(type2)) {
-        /* Microsoft appears to treat a conversion to an array type as an
-           conversions to an lvalue reference to that array type. */
+        /* Microsoft appears to treat a conversion to an array type as a
+           conversion to an lvalue reference to that array type. */
         type2 = make_reference_type(type2);
       } else if (is_void_type(type2) || is_function_type(type2)) {
         /* Microsoft considers a conversion to void or to a function type to
