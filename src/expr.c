@@ -11620,6 +11620,8 @@ general_case:
         result = type_of_unknown_templ_param_nontype;
       }  /* if */
     } else if (is_an_lvalue(operand)) {
+      /* For an lvalue, the returned type is an lvalue reference to the
+         expression type. */
       if (operand_is_instantiation_dependent(operand)) {
         /* Use a completely unknown type when a reference type would be
            created over an instantiation-dependent type, to avoid problems 
@@ -11628,6 +11630,18 @@ general_case:
         result = type_of_unknown_templ_param_nontype;
       } else {
         result = make_reference_type(result);
+      }  /* if */
+    } else if (is_an_xvalue(operand)) {
+      /* For an xvalue, the returned type is an rvalue reference to the
+         expression type. */
+      if (operand_is_instantiation_dependent(operand)) {
+        /* Use a completely unknown type when a reference type would be
+           created over an instantiation-dependent type, to avoid problems 
+           with stripping the decltype when doing a type_pointed_to on the 
+           resulting type. */
+        result = type_of_unknown_templ_param_nontype;
+      } else {
+        result = make_rvalue_reference_type(result);
       }  /* if */
     }  /* if */
   }  /* if */

@@ -1,5 +1,18 @@
 Version 4.7
 
+5/6/13   [EDGcpfe/12021]
+decltype applied to an xvalue returns an rvalue reference
+
+In accordance with [dcl.type.simple]p4 of the C++11 standard, the decltype
+operator applied to an xvalue now returns an rvalue reference type.
+
+  struct A { A(); A(int); };
+  int main() {
+    A a;
+    decltype((A&&)1) rr = a;  // Error now; can't bind rvalue ref to lvalue
+  }
+
+
 5/6/13   [EDGcpfe/13979]
 Obscure error recovery problem with dependent "&" in constexpr template
 
