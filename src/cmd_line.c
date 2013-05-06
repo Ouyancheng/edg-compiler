@@ -9423,12 +9423,15 @@ enable_microsoft_mode:
   check_assertion(!(cpp11_mode || static_assert_enabled || lambdas_enabled ||
                     rvalue_references_enabled || nullptr_enabled));
 #endif /* CPP11_IL_EXTENSIONS_SUPPORTED */
-  if (cpp11_mode && assignment_to_this_allowed) {
+  if (assignment_to_this_allowed && (cpp11_mode || exceptions_enabled)) {
     /* Silently disable the assignment to "this" anachronism in C++11 mode
-       (it is incompatible with lowering of delegating constructors).
-       An error will be issued if a delegating constructor is used. */
+       (it is incompatible with lowering of delegating constructors), or
+       whenever exceptions are allowed. */
     assignment_to_this_allowed = FALSE;
   }  /* if */
+#if !ASSIGNMENT_TO_THIS_ALLOWED
+  check_assertion(!assignment_to_this_allowed);
+#endif /* !ASSIGNMENT_TO_THIS_ALLOWED */
   /* Range-based-for relies on the std namespace being enabled. */
   check_assertion(namespaces_enabled || !range_based_for_enabled);
   /* Add the default directories to the end of the include search path.

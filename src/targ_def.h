@@ -2355,7 +2355,10 @@ to "this" is allowed, the interface to and wrapper code within constructors
 and destructors may have to be changed.  Initial value of
 assignment_to_this_allowed global variable.  Lowering of delegating
 constructors is incompatible with ASSIGNMENT_TO_THIS_ALLOWED being TRUE,
-consequently the global variable is silently set to FALSE in C++11 mode.
+as is the lowering of exception handling (IL lowering does not know how to
+build the right region table if there are several assignments to "this" in
+one constructor) consequently the global variable is silently set to FALSE in
+C++11 mode or when exceptions are enabled.
 */
 #ifndef ASSIGNMENT_TO_THIS_ALLOWED
 #if IA64_ABI && DO_IL_LOWERING

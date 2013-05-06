@@ -24160,19 +24160,18 @@ This is used for checking/allowing assignment to "this" -- an anachronism.
   a_variable_ptr this_var;
   an_operand     orig_operand;
 
-  if (assignment_to_this_allowed &&
-      is_this_parameter_operand(operand, &this_var) && this_var != NULL) {
+  if (is_this_parameter_operand(operand, &this_var) && this_var != NULL) {
     /* This is an operand for "this".  Issue an anachronism diagnostic
        and change the operand to an lvalue for the "this" variable.
        Ignore "this" in a prototype instantiation, for which there is
        no associated variable yet.  That will cause an error later. */
     is_this = TRUE;
-    /* Assignment to "this" is not allowed if exceptions are enabled.
-       For one thing, the code in IL lowering does not know how to
-       build the right region table if there are several assignments
-       to "this" in one constructor. */
-    expr_pos_diagnostic(exceptions_enabled ? es_error :
-                                             anachronism_error_severity,
+    /* Assignment to "this" is not allowed in certain circumstances
+       (e.g., when exceptions are enabled or delegating constructors are
+       being used). */
+    expr_pos_diagnostic(!assignment_to_this_allowed ?
+                                                    es_error :
+                                                    anachronism_error_severity,
                         ec_assignment_to_this, &operand->position);
     orig_operand = *operand;
     make_lvalue_variable_operand(this_var,
