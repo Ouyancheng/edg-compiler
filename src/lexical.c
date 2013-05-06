@@ -978,6 +978,11 @@ by the caller (including token, source_position, and extra_info_kind).
   }  /* if */                                                           \
   ctp->token_handle = NO_CACHED_TOKEN_HANDLE;				\
   ctp->next = NULL;                                                     \
+  ctp->extra_info_kind = (a_token_extra_info_kind)teik_none;		\
+  ctp->token = tok_error;						\
+  ctp->token_sequence_number = NO_TOKEN_SEQUENCE_NUMBER;		\
+  ctp->ending_token_sequence_number = NO_TOKEN_SEQUENCE_NUMBER;		\
+  ctp->token_handle = NO_CACHED_TOKEN_HANDLE;				\
 }  /* alloc_cached_token */
 
 

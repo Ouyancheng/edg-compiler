@@ -1,5 +1,24 @@
 Version 4.7
 
+5/6/13   [EDGcpfe/13666]
+Possible use of unset memory in copy_tokens_from_cache
+
+alloc_cached_token did not clear some of the fields in the cached token entry.
+This could lead to incorrect behavior, including copy_tokens_from_cache
+not copying all of the expected tokens.  If the example below is compiled
+with a version with INCLUDE_UNRECOGNIZED_PRAGMAS_IN_IL set to TRUE and
+with source sequence lists, unset memory could be referenced from
+copy_tokens_from_cache (whether this causes incorrect behavior for this
+example depends on the contents of the unset memory).  Now fixed.
+
+  #define Y(value) \
+  _Pragma("some_pragma") \
+            (value)
+  int main() {
+    int (*x)[256] = Y(0);
+  }
+
+
 5/3/13   [EDGcpfe/13642,EDGcpfe/13681]
 __is_convertible_to
 
