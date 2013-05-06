@@ -14077,6 +14077,11 @@ constructor (at the specified insert_location).
     copy = copy_ctor_init(ctor_init, CE_NO_OPTIONS);
     ctor_init->initializer->variant.constructor.ctor_dtor_kind =
                                             (a_ctor_or_dtor_kind)cdk_subobject;
+    /* The destruction information (if any) for this constructor init will
+       be handled by the original constructor init; make sure the copied
+       version has no destructor information. */
+    copy->initializer->destructor = NULL;
+    check_assertion(copy->initializer->destructible_entity_descr == NULL);
     lower_ctor_init(ctor_init,
                     scope->variant.routine.parameters,
                     /*base_of_complete_object=*/FALSE,
