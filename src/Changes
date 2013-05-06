@@ -1,5 +1,17 @@
 Version 4.7
 
+5/6/13   [EDGcpfe/13990]
+GNU C++11 compatibility: Vector types and literal types
+
+In GNU C++11 mode with gnu_version >= 40800, the front end now treats a
+vector type as a literal type.  For example:
+
+  typedef float __attribute((vector_size(4*sizeof(float)))) V4;
+  constexpr V4 quad3D(float x, float y, float z) {  // Now accepted in some
+    return (V4){ x, y, z, 0 };                      // GNU C++11 modes.
+  }
+  
+
 5/6/13   [EDGcpfe/12021]
 decltype applied to an xvalue returns an rvalue reference
 

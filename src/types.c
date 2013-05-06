@@ -1610,6 +1610,10 @@ incomplete class type (or an array thereof) in a valid program.
   tp = skip_typerefs(tp);
   if (is_scalar(tp) || is_any_reference(tp)) {
     result = TRUE;
+#if GNU_VECTOR_TYPES_ALLOWED
+  } else if (gpp_mode && gnu_version >= 40800 && is_vector_type(tp)) {
+    result = TRUE;
+#endif /* GNU_VECTOR_TYPES_ALLOWED */
   } else if (is_immediate_class_type(tp)) {
     a_class_symbol_supplement_ptr
                  cssp = symbol_for(tp)->variant.class_struct_union.extra_info;
