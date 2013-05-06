@@ -1,5 +1,19 @@
 Version 4.7
 
+5/6/13   [EDGcpfe/13979]
+Obscure error recovery problem with dependent "&" in constexpr template
+
+An abort inside binary_operation in folding.c resulted from a declaration
+of a dependent variable in a constexpr template (which is not allowed
+and drew an error) followed by a use of "&" applied to that variable.
+Now fixed.
+
+  template <class T> constexpr int* f(T p) {
+    constexpr T y = {1};
+    return new int [ & y ];
+  }
+
+
 5/6/13   [EDGcpfe/13666]
 Possible use of unset memory in copy_tokens_from_cache
 
