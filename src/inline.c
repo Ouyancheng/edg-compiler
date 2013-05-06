@@ -412,7 +412,8 @@ finish_variable_remapping_for_inlining.
         param_is_unmodified = TRUE;
       } else if (param_var->is_this_parameter &&
                  routine->special_kind ==
-                                       (a_special_function_kind)sfk_constructor
+                                    (a_special_function_kind)sfk_constructor &&
+                 !routine->is_delegating_ctor
 #if ASSIGNMENT_TO_THIS_ALLOWED
                  && !routine->assignment_to_this_done
 #endif /* ASSIGNMENT_TO_THIS_ALLOWED */
