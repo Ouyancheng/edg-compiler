@@ -2340,7 +2340,7 @@ dip->variant.constructor.args has already been lowered.
        Create copies of each argument, and in cases where a temporary is
        used, ensure that the temporary is set before the "if" statement
        is executed. */
-    check_assertion(source_node == NULL);
+    check_assertion(source_node == NULL && return_value == NULL);
     arg_list = make_reusable_copy_full(entity_node,
                                        /*vars_can_change=*/FALSE,
                                        &temp_init_used,
@@ -14121,7 +14121,9 @@ constructor (at the specified insert_location).
   /* Lower the delegating constructor init to invoke the target constructor.
      In the Cfront ABI, if parent class has virtual bases, the lowered
      call to the target constructor will forward any implied arguments
-     for virtual base classes (see make_ctor_implied_arg_list). */
+     for virtual base classes (see make_ctor_implied_arg_list).  In the
+     IA-64 ABI, the actual constructor to call is determined at run-time
+     (see add_constructor_call). */
   lower_ctor_init(ctor_init,
                   scope->variant.routine.parameters,
                   /*base_of_complete_object=*/FALSE,
