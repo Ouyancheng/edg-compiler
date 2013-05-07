@@ -8230,11 +8230,19 @@ used to create a ck_template_param result for a dependent case.
       args = skip_parens(args);
     }  /* if */
     switch (rp->variant.builtin_function_kind) {
-      case bfk_constant_p:
       case bfk_classify_type:
-        /* Pseudo-calls to these functions should have been scanned and
+        /* Pseudo-calls to this function should have been scanned and
            folded in scan_gnu_builtin_pseudo_call. */
         unexpected_condition();
+        break;
+      case bfk_constant_p:
+        /* Usually folded in scan_gnu_builtin_pseudo_call, but for
+           folding of constexpr calls we can get here. */
+        check_assertion(is_integral_type(result_type) && args != NULL);
+        set_integer_constant(&result,
+                             (a_host_large_integer)is_constant_node(args),
+                             result_type->variant.integer.int_kind);
+        folded = TRUE;
         break;
       case bfk_huge_valf:
       case bfk_huge_val:

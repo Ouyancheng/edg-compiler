@@ -1,5 +1,19 @@
 Version 4.7
 
+5/7/13   [EDGcpfe/13982]
+Abort on folding of GNU __builtin_constant_p in constexpr function call
+
+The GNU built-in function __builtin_constant_p was not properly handled
+during evaluation of a constexpr function call, with the consequence that
+the front end failed an assertion check in folding.c, in the function
+fold_gnu_builtin_function_call_if_possible.  Now fixed.
+
+  constexpr int f(int x) {
+    return __builtin_constant_p(x) ? 1 : 2;
+  }
+  constexpr int i = f(3);
+
+
 5/6/13   [EDGcpfe/13990]
 GNU C++11 compatibility: Vector types and literal types
 
