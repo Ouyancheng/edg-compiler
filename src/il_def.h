@@ -3400,15 +3400,6 @@ typedef struct a_dynamic_init {
 			   order from left to right.  This comes up when a
 			   C++11 initializer list ends up being the argument
 			   list for a constructor. */
-#if DO_IL_LOWERING && IA64_ABI
-      a_bit_field /* a_ctor_or_dtor_kind */
-                ctor_dtor_kind:3;
-			/* When lowering a constructor call, this specifies
-			   the particular alternate entry point to invoke.
-			   Typically cdk_none (in which case the proper
-			   entry point is selected based upon virtual base
-			   classes being present in the parent class). */
-#endif /* DO_IL_LOWERING && IA64_ABI */
       bitfield_to_avoid_codecenter_warnings()
     } constructor;
   } variant;

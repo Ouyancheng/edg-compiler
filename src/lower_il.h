@@ -903,6 +903,12 @@ extern a_variable_ptr assign_expr_to_temp(an_expr_node_ptr expr);
 extern an_expr_node_ptr assign_expr_to_temp_and_make_expr_for_reuse(
                                                         an_expr_node_ptr expr);
 
+extern an_expr_node_ptr make_reusable_copy_full(
+                                   an_expr_node_ptr expr,
+                                   a_boolean        vars_can_change,
+                                   a_boolean        *temp_init_used,
+                                   a_boolean        treat_as_potential_rvalue);
+
 extern an_expr_node_ptr make_reusable_copy(an_expr_node_ptr expr,
                                            a_boolean        vars_can_change);
 
