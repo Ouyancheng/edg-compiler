@@ -15439,12 +15439,14 @@ error cases.
             is_template_dependent_type(this_type)))) {
         /* In a prototype instantiation, a selector might have a type that's
            not demonstrably related to the "this" type.  Leave it alone. */
+dependent_case:;
       } else {
-#if CHECKING
         /* There shouldn't be a base-class adjustment here.  If there is,
            make_this_pointer_operand or cast_pointer_for_field_selection
            did not do their job. */
-        { a_type_ptr arg_class_type = bound_function_selector->type;
+        if (CHECKING || /*lint !e506 */
+            is_template_dependent_context()) {
+          a_type_ptr arg_class_type = bound_function_selector->type;
           a_type_ptr this_class_type = type_pointed_to(this_type);
           if (selector_is_object_pointer &&
               !is_error_type(arg_class_type)) {
@@ -15454,10 +15456,11 @@ error cases.
           arg_class_type = skip_typerefs(arg_class_type);
           /* Using types_are_compatible so that an error type is considered
              compatible with anything. */
-          check_assertion(types_are_compatible(arg_class_type,
-                                               this_class_type));
-        }
-#endif /* CHECKING */
+          if (!types_are_compatible(arg_class_type, this_class_type)) {
+            if (is_template_dependent_context()) goto dependent_case;
+            unexpected_condition();
+          }  /* if */
+        }  /* if */
         /* Cast if necessary to handle any const etc. adjustment. */
         if (selector_is_object_pointer) {
           /* The selector is a pointer to class. */
