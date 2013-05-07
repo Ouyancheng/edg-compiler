@@ -1,5 +1,20 @@
 Version 4.7
 
+5/7/13   [EDGcpfe/14002]
+GNU C++ compatibility: Implicit noexcept
+
+In GNU mode with gnu_version > 40800 destructors and deallocation functions
+now have an implicit "noexcept" specifier if none is explicitly provided.
+For example:
+
+  struct D { ~D(); };
+  static_assert(noexcept(((D*)nullptr)->~D()),
+                "D::~D should be noexcept");  // Now accepted in some
+                                              // GNU C++ modes.
+
+See also the Changes entries for EDGcpfe/10617 and EDGcpfe/13566.
+
+
 5/7/13   [EDGcpfe/13982]
 Abort on folding of GNU __builtin_constant_p in constexpr function call
 

@@ -3964,6 +3964,12 @@ exclude the GNU C++ mode already.  Hence those are not checked again here.)
        (essentially) the form "{ return <expr>; }". */
     multiple_returns_allowed_in_implicit_return_type_lambda = TRUE;
   }  /* if */
+  if (exceptions_enabled && noexcept_enabled &&
+      !option_kind_used[(int)optk_implicit_noexcept]) {
+    /* GCC 4.8 and later implement the C++11 rules that make a destructor or
+       operator delete implicitly "noexcept" (unless otherwise specified). */
+    implicit_noexcept_enabled = gnu_version >= 40800;
+  }  /* if */
 }  /* check_and_set_gpp_mode_options */
 
 
