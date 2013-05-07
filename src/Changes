@@ -1,5 +1,24 @@
 Version 4.7
 
+5/7/13   [EDGcpfe/13995]
+Microsoft template/nontemplate copy constructor trick no longer needed
+
+A mechanism that fiddled with the comparison of template and nontemplate
+copy constructors in Microsoft mode has proved to no longer be needed
+in recent versions, and is now turned off for microsoft_version 1600
+and above.
+
+  extern "C" int printf(const char *, ...);
+  struct A {
+    A() {}
+    A(const A&) { printf("C1\n"); }
+    template <class T> A(T&) { printf("C2\n"); }
+  } a;
+  int main() {
+    (void)A(a);  // Prints "C1" for < 1600, "C2" for >= 1600
+  }
+
+
 5/7/13   [EDGcpfe/14002]
 GNU C++ compatibility: Implicit noexcept
 

@@ -6618,7 +6618,8 @@ and return TRUE if the tiebreakers should be suppressed for this case.
   check_assertion(microsoft_mode);
   /* The quirks come up when one function is a template and the other
       is not. */
-  if (cfp1->is_function_template != cfp2->is_function_template) {
+  if (microsoft_version < 1600 &&
+      cfp1->is_function_template != cfp2->is_function_template) {
     a_symbol_ptr non_template_sym, template_sym;
     if (cfp1->is_function_template) {
       template_sym = cfp1->function_symbol;
