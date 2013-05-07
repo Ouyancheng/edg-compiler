@@ -10515,10 +10515,13 @@ fold_constexpr_ctor should usually be called instead.
             while (parent_class_of(field) != class_type) {
               a_constant_ptr new_aggr_con;
               a_type_ptr     curr_class = parent_class_of(field);
-              a_class_type_supplement_ptr
-                             ctsp = class_type_supp(curr_class);
-              check_assertion(ctsp->anonymous_union_kind ==
-                                           (an_anonymous_union_kind)auk_field);
+              a_symbol_ptr   field_sym = symbol_for(field);
+              a_symbol_ptr   parent_object_sym;
+              check_assertion(field_sym != NULL);
+              parent_object_sym =
+                              field_sym->variant.field.anonymous_parent_object;
+              check_assertion(parent_object_sym != NULL &&
+                              symbol_is(parent_object_sym, sk_field));
               new_aggr_con= alloc_constant((a_constant_repr_kind)ck_aggregate);
               if (des_con != NULL) {
                 /* Add the designator. */
@@ -10528,7 +10531,7 @@ fold_constexpr_ctor should usually be called instead.
               add_constant_to_aggregate(member_con_ptr, new_aggr_con);
               new_aggr_con->type = curr_class;
               member_con_ptr = new_aggr_con;
-              field = ctsp->anonymous_union_field;
+              field = parent_object_sym->variant.field.ptr;
               if (parent_class_of(field)->kind == (a_type_kind)tk_union &&
                   next_initializable_field(parent_class_of(field)->variant
                                     .class_struct_union.field_list) != field) {
