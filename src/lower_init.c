@@ -2374,13 +2374,13 @@ dip->variant.constructor.args has already been lowered.
     }  /* for */
     /* Call the target subobject constructor in the "then" clause. */
     make_call_statement(alternate_entry_point(dip->variant.constructor.ptr,
-                                              cdk_subobject,
-                                              /*define_now=*/FALSE),
+                                            (a_ctor_or_dtor_kind)cdk_subobject,
+                                            /*define_now=*/FALSE),
                         so_arg_list, return_value, &then_insert_location);
     /* Call the target complete object constructor in the "else" clause. */
     make_call_statement(alternate_entry_point(dip->variant.constructor.ptr,
-                                              cdk_complete,
-                                              /*define_now=*/FALSE),
+                                             (a_ctor_or_dtor_kind)cdk_complete,
+                                             /*define_now=*/FALSE),
                         arg_list, return_value, &else_insert_location);
     /* Note that dip->variant.constructor.ptr is unchanged in this case;
        it can't be set to either alternate entry point, so it's left pointing
