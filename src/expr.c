@@ -4016,7 +4016,8 @@ call, and rcblock->argument_list to the previously-scanned argument list.
                                      arg.variant.constant.kind !=
                                              (a_constant_repr_kind)ck_address);
           if (result_value || innermost_function_scope == NULL ||
-              always_fold_calls_to_builtin_constant_p ||
+              (always_fold_calls_to_builtin_constant_p &&
+               !in_potential_constant_constexpr_context()) ||
               in_constant_expression) {
             set_integer_constant(&result, (a_host_large_integer)result_value,
                                  result_type->variant.integer.int_kind);
