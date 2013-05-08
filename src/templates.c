@@ -15590,7 +15590,7 @@ list and template argument list of a partial specialization are valid.
       decl_state->decl_scope_err = TRUE;
     }  /* if */
     if (is_nontype_templ_arg(tap) &&
-        !decl_state->in_prototype_instantiation) {
+        !is_nonreal_instantiation_context()) {
       a_constant_ptr	cp = tap->variant.constant;
       /* If this is a cast of a template parameter constant, use the constant
          under the cast. */
@@ -16969,7 +16969,7 @@ declaration of a partial specialization declared outside of its class.
       if (sym != NULL && sym->is_template_param &&
           sym->kind == (a_symbol_kind)sk_class_template) {
         sym = NULL;
-      } else if (sym != NULL && !decl_state->in_prototype_instantiation &&
+      } else if (sym != NULL && !is_nonreal_instantiation_context() &&
                  sym->kind == (a_symbol_kind)sk_class_template &&
                  sym->variant.template_info->is_nonreal_member) {
         /* A template friend declaration that refers to a nonreal template
@@ -17428,7 +17428,7 @@ friend_template_checks_done:
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   }	/* if */
   if (decl_state->is_template_friend &&
-      !decl_state->in_prototype_instantiation) {
+      !is_nonreal_instantiation_context()) {
     /* This is a template friend declaration, add the current class to
        the list of friend classes associated with this template. */
     add_befriending_class_to_class_template(tssp,
@@ -20800,7 +20800,7 @@ caller.
        from the prototype instantiation of the enclosing class. */
     update_function_template_default_args(decl_state, sym, tssp);
     if (decl_state->is_template_friend &&
-        !decl_state->in_prototype_instantiation) {
+        !is_nonreal_instantiation_context()) {
       /* This is a template friend declaration, add the current class to
          the list of friend classes associated with this template. */
       add_befriending_class_to_function_template(
@@ -21063,7 +21063,7 @@ instantiation, then you don't know what X is.
   tp = prescan_and_find_declarator(&decl_state->decl_token_cache, &is_friend);
   /* A friend declaration in a prototype instantiation context should always
      reference the nonreal instance. */
-  if (is_friend && decl_state->in_prototype_instantiation) tp = NULL;
+  if (is_friend && is_nonreal_instantiation_context()) tp = NULL;
   /* Flush and remaining tokens from the reusable cache. */
   while (curr_token != tok_end_of_source) {
     if (curr_token == tok_friend && total_errors == 0) {
@@ -23927,7 +23927,7 @@ differs between function and nonfunction declarations.
   if (err) depth = NO_SCOPE_DEPTH;
   decl_state->orig_decl_level = depth;
   if (!err && decl_state->is_template_friend &&
-      !decl_state->in_prototype_instantiation) {
+      !is_nonreal_instantiation_context()) {
     /* For friend declarations (that are not in a prototype instantiation),
        the effective declaration level is the nearest namespace scope. */
     depth = depth_innermost_namespace_scope;
@@ -24227,7 +24227,7 @@ instantiations of any template default arguments now.
          so that it will be recomputed properly below. */
       decl_state->nesting_depth = 0;
       update_nesting_depths = TRUE;
-    } else if (!decl_state->in_prototype_instantiation) {
+    } else if (!is_nonreal_instantiation_context()) {
       decl_state->nesting_depth = decl_state->friend_depth;
       update_nesting_depths = TRUE;
     }  /* if */

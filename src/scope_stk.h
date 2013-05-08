@@ -1665,6 +1665,15 @@ instantiation.
    !scope_stack[depth_scope_stack].in_nonreal_instantiation)
 
 /*
+TRUE if we are in an instantiation that is a prototype or nonreal
+instantiation.
+*/
+#define is_nonreal_instantiation_context()				\
+  (depth_innermost_instantiation_scope != NO_SCOPE_DEPTH &&		\
+   (scope_stack[depth_scope_stack].in_prototype_instantiation ||	\
+    scope_stack[depth_scope_stack].in_nonreal_instantiation))
+
+/*
 TRUE if we are in the instantiation of a template in a translation unit
 loaded for the purpose of instantiating exported templates.  Note that
 this will be FALSE for an instantiation performed during the initial scan

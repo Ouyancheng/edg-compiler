@@ -1,5 +1,25 @@
 Version 4.7
 
+5/8/13   [EDGcpfe/14006]
+Microsoft compatibility: spurious error in partial specialization
+
+Version 4.5 introduced a change that caused certain nonreal classes used
+as base classes to be have actual instantiations done on them in Microsoft
+mode.  This could result in spurious errors on partial specializations
+declared in such base classes when the partial specialization declaration
+used a nontype template parameter of the enclosing class.  Now fixed.
+
+  template <int I> struct A {
+    enum { J = I };
+    template <int K, int L> struct B;
+    template <int K> struct B<K, J> {};
+  };
+  template <int I> struct C : A<I> { };
+  int main() {
+    C<1> c;
+  }
+
+
 5/8/13   [EDGcpfe/14001]
 Elided braces in C++11-style aggregate initializers (Core issue 1270)
 
