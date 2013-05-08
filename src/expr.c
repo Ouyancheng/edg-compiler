@@ -15766,7 +15766,7 @@ expression, and return the result in *result (or an error indication in
      type. */
   if (type_err) {
     /* A type error has already been issued (invalid array type). */
-    expect_error();
+    if (expr_error_should_be_issued()) expect_error();
   } else if (!is_complete_object_type(base_new_type)) {
     /* Invalid type.  Note that base_new_type is tested instead of
        new_type, so the first-level element type of arrays is tested. */

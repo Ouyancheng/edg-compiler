@@ -1,5 +1,25 @@
 Version 4.7
 
+5/8/13   [EDGcpfe/14005]
+Abort following SFINAE rejection of "new" of invalid type
+
+The front end could abort with an assertion failure in expr.c, in
+scan_new_operator, on a use of an invalid type with a "new" operator
+in a SFINAE context.  That set up an expectation that an error
+would be generated somewhere in the compilation, but of course
+no error was issued because the invalid type appeared during
+template deduction, and just caused deduction to fail.  Now fixed.
+
+  struct A {
+    typedef int ARR[];
+  };
+  template <class T> auto f(T p) -> decltype(new typename T::ARR) { return 0; }
+  void f(...);
+  int main() {
+    f(A());
+  }
+
+
 5/8/13   [EDGcpfe/12944,EDGcpfe/13972]
 Core issue 1402: Defaulted move constructors
 
