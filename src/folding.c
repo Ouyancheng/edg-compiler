@@ -10181,7 +10181,8 @@ called instead.
         routine = rout_constant.variant.address.variant.routine;
       } else if (rout_constant.kind ==
                                       (a_constant_repr_kind)ck_ptr_to_member &&
-                 rout_constant.variant.ptr_to_member.is_function_ptr) {
+                 rout_constant.variant.ptr_to_member.is_function_ptr &&
+                 !rout_constant.implicit_cast) {
         routine = rout_constant.variant.ptr_to_member.variant.routine;
       }  /* if */
     }  /* if */

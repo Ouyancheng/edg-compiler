@@ -1,5 +1,24 @@
 Version 4.7
 
+5/8/13   [EDGcpfe/14007]
+reinterpret_cast on pointer-to-member rules out constexpr call folding
+
+A reinterpret_cast of a pointer-to-member-function constant followed by
+a call of that function via a ".*" or "->*" operator is no longer
+considered for constexpr call folding (it involves undefined behavior).
+Formerly, a case like the following aborted in il.c, in
+binary_operation_type_kind, when the front end attempted to fold the
+call with the "wrong" argument type.
+
+  struct A {
+    constexpr int f(double d) { return d+1; }
+  };
+  int main() {
+    A a;
+    if ((a .* (int (A::*)(int))&A::f) (10) != 11) return 1;
+  }
+
+
 5/7/13   [EDGcpfe/13995]
 Microsoft template/nontemplate copy constructor trick no longer needed
 
