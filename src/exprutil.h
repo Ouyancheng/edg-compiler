@@ -2297,6 +2297,8 @@ extern void expr_pos_diagnostic(an_error_severity sev,
 
 extern void expr_syntax_error(an_error_code error_code);
 
+extern void expr_expect_error(void);
+
 extern a_boolean expr_access_checking_should_be_done(void);
 
 extern void make_error_operand(an_operand *operand);

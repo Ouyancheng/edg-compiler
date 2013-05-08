@@ -4303,7 +4303,7 @@ that the final call needs to be cast to the indicated type.
       template_case = TRUE;
     } else if (is_error_type(dispatch_type)) {
       /* An error has already been issued. */
-      if (expr_error_should_be_issued()) expect_error();
+      expr_expect_error();
       err = TRUE;
     } else if (!is_generic && !is_integral_or_enum_type(dispatch_type) &&
                !is_pointer_type(dispatch_type)) {
@@ -5961,7 +5961,7 @@ qualified_name_check:
         /* The identifier is not a member of the operand_1 class, struct,
            or union. */
         *err = TRUE;
-        if (expr_error_should_be_issued()) expect_error();
+        expr_expect_error();
         if (!operand_1_is_complete_class) {
           /* An error will be produced later because the first operand is
              not (a pointer to) a complete class, so do not issue an error
@@ -15766,7 +15766,7 @@ expression, and return the result in *result (or an error indication in
      type. */
   if (type_err) {
     /* A type error has already been issued (invalid array type). */
-    if (expr_error_should_be_issued()) expect_error();
+    expr_expect_error();
   } else if (!is_complete_object_type(base_new_type)) {
     /* Invalid type.  Note that base_new_type is tested instead of
        new_type, so the first-level element type of arrays is tested. */
@@ -24082,7 +24082,7 @@ that case.
         } else if (!C_mode()) {
           check_assertion(is_or_contains_error_type(operand_2.type) ||
                           is_or_contains_error_type(operand_3.type));
-          if (expr_error_should_be_issued()) expect_error();
+          expr_expect_error();
           err = TRUE;
         }  /* if */
 #if GNU_VECTOR_TYPES_ALLOWED

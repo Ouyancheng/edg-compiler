@@ -5829,6 +5829,17 @@ errors in the expression routines.
 }  /* expr_syntax_error */
 
 
+void expr_expect_error(void)
+/*
+Interface to expect_error for use in the expression routines.  Does
+not set up the expectation of an error if we're in a context where
+errors are suppressed (e.g., a SFINAE context).
+*/
+{
+  if (expr_error_should_be_issued()) expect_error();
+}  /* expr_expect_error */
+
+
 a_boolean expr_access_checking_should_be_done(void)
 /*
 Return TRUE if access checking should be done in the current expression

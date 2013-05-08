@@ -17242,7 +17242,7 @@ context of the conversion.
     } else {
       /* In pre-C++11 mode, we should have issued an error earlier on
          the subexpression that created this value. */
-      if (expr_error_should_be_issued()) expect_error();
+      expr_expect_error();
     }  /* if */
   } else {
     a_boolean      source_is_constant;
