@@ -7021,34 +7021,46 @@ initialized.  These are addressed in the course of the processing.
          is issued. */
       an_error_code  errcode = ec_missing_initializer_on_fields;
       if (ctor_rout->is_constexpr) {
-        /* Use a slightly different wording for constexpr constructors. */
-        errcode = ec_missing_initializer_on_fields_with_constexpr_ctor;
+        if (!ctor_rout->is_template_function || ctor_rout->is_specialized) {
+          /* Use a slightly different wording for constexpr constructors. */
+          errcode = ec_missing_initializer_on_fields_with_constexpr_ctor;
+        } else {
+          /* For template instantiations, this is not invalid: The constructor
+             instance is, however, not treated as "constexpr". */
+          severity = es_none;
+          if (!ctor_rout->is_prototype_instantiation) {
+            clear_constexpr_flag = TRUE;
+          }  /* if */
+        }  /* if */
       } else if (!any_ref_member_on_uninit_list) {
         severity = (gpp_mode && gnu_version < 30400) ? es_warning
                                                      : es_discretionary_error;
       }  /* if */
-      pos_sy_start_diagnostic(severity, errcode,
-                              &pos_curr_token, (a_symbol_ptr)ctor_rout->
-                                                   source_corresp.assoc_info);
-    }  /* if */
-    for (cip = uninit_list; cip != NULL; cip = cip->next) {
-      a_symbol_ptr field_sym = symbol_for(cip->variant.field);
-      if (ctor_rout->is_constexpr) {
-        /* The field being a reference or a const member is not relevant, so
-           we use a diagnostic that doesn't emphasize that. */
-        sym_add_diag_info(ec_specific_symbol, field_sym);
-      } else if (is_any_reference_type(cip->variant.field->type)) {
-#if MICROSOFT_EXTENSIONS_ALLOWED
-        /* Fields cannot be tracking references. */
-        check_assertion(!cppcli_enabled || !is_tracking_reference_type(tp));
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-        sym_add_diag_info(ec_reference_member, field_sym);
-      } else {
-        /* Must be a const member. */
-        sym_add_diag_info(ec_const_member, field_sym);
+      if (severity != es_none) {
+        pos_sy_start_diagnostic(severity, errcode, &pos_curr_token,
+                                symbol_for(ctor_rout));
       }  /* if */
-    }  /* for */
-    end_error();
+    }  /* if */
+    if (severity != es_none) {
+      for (cip = uninit_list; cip != NULL; cip = cip->next) {
+        a_symbol_ptr field_sym = symbol_for(cip->variant.field);
+        if (ctor_rout->is_constexpr) {
+          /* The field being a reference or a const member is not relevant, so
+             we use a diagnostic that doesn't emphasize that. */
+          sym_add_diag_info(ec_specific_symbol, field_sym);
+        } else if (is_any_reference_type(cip->variant.field->type)) {
+#if MICROSOFT_EXTENSIONS_ALLOWED
+          /* Fields cannot be tracking references. */
+          check_assertion(!cppcli_enabled || !is_tracking_reference_type(tp));
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+          sym_add_diag_info(ec_reference_member, field_sym);
+        } else {
+          /* Must be a const member. */
+          sym_add_diag_info(ec_const_member, field_sym);
+        }  /* if */
+      }  /* for */
+      end_error();
+    }  /* if */
   } else if (is_union && ctor_rout->is_constexpr && has_field &&
              !has_field_init) {
     /* A constexpr constructor for a union must initialize a field

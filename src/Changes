@@ -1,5 +1,27 @@
 Version 4.7
 
+5/8/13   [EDGcpfe/13991
+Spurious error on constexpr constructor of class template
+
+The C++11 standard makes a general exception for constexpr constraints in the
+context of template instantiations: If a constraint is not satisfied, an
+instantiation can still be valid, but it is not treated as "constexpr".
+The front end previously ignored that exception for a constexpr constructor
+that does not initialize each of its subobjects, which resulted in spurious
+errors.  For example:
+
+  template<typename T> struct S {
+    T x;
+    constexpr S() {}  // Missing initializer for member x.
+  };                  // Previously an error for e.g. S<int>; now okay.
+
+  S<int> si;
+  constexpr S<int> csi;  // Still an error since the S<int>::S() constructor
+                         // is not constexpr.
+
+This is now fixed.
+
+
 5/8/13   [EDGcpfe/14006]
 Microsoft compatibility: spurious error in partial specialization
 
