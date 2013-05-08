@@ -17763,12 +17763,10 @@ that of a mutable field.
                                      &ambiguous, (a_symbol**)NULL,
                                      &bitwise_copy);
     if (ambiguous ||
-        (!bitwise_copy &&
-         (rout_sym == NULL ||
-          !routine_is_move_constructor(rout_sym->variant.routine.ptr))) ||
+        (!bitwise_copy && rout_sym == NULL) ||
         is_unusable_member_sym(rout_sym)) {
-      /* A base or member with a missing, ambiguous, or inaccessible move
-         constructor prevents this one from being generated. */
+      /* A base or member that cannot be moved (or copied) prevents the move
+         constructor from being generated. */
       gsfd->suppress_move_ctor = TRUE;
     }  /* if */
   }  /* if */

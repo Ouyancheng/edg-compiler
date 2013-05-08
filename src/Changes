@@ -1,5 +1,35 @@
 Version 4.7
 
+5/8/13   [EDGcpfe/12944,EDGcpfe/13972]
+Core issue 1402: Defaulted move constructors
+
+The front end no longer "deletes" a defaulted move constructor just because
+a subobject has no associated move constructor.  This is in accordance with
+the C++ committee's "Core issue 1402".  For example:
+
+  struct S { S(S const&); };  // S has no generated move constructor since
+                              // it has a user-declared copy constructor.
+  struct G {
+    S s;
+    G();
+    G(G&&) = default;
+  };
+  G g((G()));  // Previously an error in strict C++11 mode; now okay.
+
+In this example, G's implicitly declared copy constructor is an "= delete"
+member because a move constructor is explicitly declared.  Previously,
+however, that move constructor was disabled because G has a field of type S
+that doesn't have an associated move constructor.  The copy/move required to
+construct the variable g therefore resulted in an error in strict C++11 mode
+(in nonstrict mode, the copy/move construction was elided).  Now, the copy
+constructor of S is deemed acceptable to implement the defaulted "move"
+operation of G.
+
+(See also the entry of 4/24/13 for EDGcpfe/13934, which documents the changes
+for the other part of "Core issue 1402": Ignoring move constructors and move
+assignment operators that are both defaulted and deleted.)
+
+
 5/8/13   [EDGcpfe/14007]
 reinterpret_cast on pointer-to-member rules out constexpr call folding
 
@@ -557,10 +587,14 @@ failure in the C-generating back end.  Now fixed.
 4/24/13  [EDGcpfe/13934]
 Core issue 1402
 
-We now implement (part of) Core Issue 1402, which says that move
+We now implement (part of) Core issue 1402, which says that move
 constructors and move assignment operators that are both defaulted and
 deleted should be ignored by overload resolution.  Implementing that
 fixed a compilation problem with the gcc 4.7.2 stl_tree.h header file.
+
+[ Update: See also the entry of 5/8/13 for EDGcpfe/12944 which documents the
+changes for the remainder of Core issue 1402 (generating a move constructor
+in more cases). ]
 
 
 4/23/13  [EDGcpfe/13936]
