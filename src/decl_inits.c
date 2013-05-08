@@ -3340,12 +3340,12 @@ initializer, already copied and substituted.
     *return_icp = icp_tree;
     need_to_free_icp_tree = FALSE;
   }  /* if */
-  if (need_to_free_icp_tree) free_init_component_list(icp_tree);
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   if (rescan_aggr == NULL) {
     curr_construct_end_position = *init_component_end_pos(icp_tree);
   }  /* if */
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+  if (need_to_free_icp_tree) free_init_component_list(icp_tree);
   is->force_dynamic_init = saved_force_dynamic_init;
   if ((is_aggregate && !is->init_error) ||
       (is->force_dynamic_init && is->init_dip == NULL)) {
@@ -3595,6 +3595,11 @@ to use for diagnostics by default.
                                          /*parenthesized=*/FALSE,
                                          /*allow_empty_pack_expansion=*/FALSE);
   check_assertion(expr_icp->next == NULL);
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+  if (decl_pos_block != NULL) {
+    decl_pos_block->var_init_range.end = *init_component_end_pos(expr_icp);
+  }  /* if */
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   if (is_error_component(expr_icp)) {
     /* An error occurred earlier.  Continue with an error constant. */
     make_error_result = TRUE;
@@ -3646,11 +3651,6 @@ to use for diagnostics by default.
     put_type_back_into_variable(vp, dps->sym, diag_pos, linkage, dps->type);
     dps->type = vp->type;
   }  /* if */
-#if EXTRA_SOURCE_POSITIONS_IN_IL
-  if (decl_pos_block != NULL) {
-    decl_pos_block->var_init_range.end = curr_construct_end_position;
-  }  /* if */
-#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
 }  /* expr_init_aggr_variable */
 
 

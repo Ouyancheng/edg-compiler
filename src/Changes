@@ -1,5 +1,20 @@
 Version 4.7
 
+5/8/13   [EDGcpfe/13969]
+Incorrect end position recorded for aggregate variable initialization
+
+Versions 4.5 and 4.6 of the front end did not always correctly record the end
+position of an initializer for an aggregate variable (in configurations with
+EXTRA_SOURCE_POSITIONS_IN_IL set to TRUE).  For example:
+
+  char const str[] = "Message";  // The end position of the initializer was
+                                 // previously incorrectly set to that of the
+                                 // "]" token.
+
+This is now fixed.  (See also EDGcpfe/13406 for a similar issue with scalar
+variables.)
+
+
 5/8/13   [EDGcpfe/14005]
 Abort following SFINAE rejection of "new" of invalid type
 
@@ -4451,7 +4466,7 @@ For example:
 
 This is now fixed.
 
-  
+
 11/21/12 [EDGcpfe/13413,EDGcpfe/13414]
 Abort in C++/CLI mode on event definition using a malformed delegate type
 
