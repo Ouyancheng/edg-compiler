@@ -3250,18 +3250,20 @@ block under the "try" in a function try block.
   } else {
     /* Push an associated scope.  This does not allocate the IL scope yet. */
     push_block_scope_with_lifetime(function_try_lifetime);
-    /* Set appropriate flags in the scope stack entry. */
-    kind = struct_stmt_stack[depth_stmt_stack].kind;
-    if (kind == ssk_while || kind == ssk_do || kind == ssk_for ||
-        kind == ssk_range_based_for
+    if (depth_stmt_stack >= 0) {
+      /* Set appropriate flags in the scope stack entry. */
+      kind = struct_stmt_stack[depth_stmt_stack].kind;
+      if (kind == ssk_while || kind == ssk_do || kind == ssk_for ||
+          kind == ssk_range_based_for
 #if MICROSOFT_EXTENSIONS_ALLOWED
-        || kind == ssk_for_each
+          || kind == ssk_for_each
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-                               ) {
-      scope_stack[decl_scope_level].is_loop_scope = TRUE;
-    } else if (kind == ssk_try_block) {
-      scope_stack[decl_scope_level].is_try_block = TRUE;
-      scope_stack[decl_scope_level].within_try_block = TRUE;
+                                 ) {
+        scope_stack[decl_scope_level].is_loop_scope = TRUE;
+      } else if (kind == ssk_try_block) {
+        scope_stack[decl_scope_level].is_try_block = TRUE;
+        scope_stack[decl_scope_level].within_try_block = TRUE;
+      }  /* if */
     }  /* if */
   }  /* if */
   /* Push an entry on the structured statement stack. */
@@ -3310,7 +3312,9 @@ the block statement.
   /* If a label appeared in the context of the block that was just
      terminated, it may be appropriate to push a new object lifetime for
      the scope being resumed. */
-  reset_curr_block_object_lifetime(block_stmt);
+  if (depth_stmt_stack >= 0) {
+    reset_curr_block_object_lifetime(block_stmt);
+  }  /* if */
 }  /* finish_block_statement */
 
 
@@ -6798,6 +6802,15 @@ e.g., ({ ... }).
 
   db_enter (3, "compound_statement");
 
+  /* We expect something on the statement stack unless we are starting a
+     new function or this is a statement expression in the ctor-initializer
+     of a constructor. */ 
+  check_assertion(at_function_level ||
+                  depth_stmt_stack >= 0 ||
+                  (is_statement_expr &&
+                   (innermost_function_scope != NULL &&
+                    innermost_function_scope->variant.routine.ptr->special_kind
+                                == (a_special_function_kind)sfk_constructor)));
   /* Allocate the statement block. */
   if (at_function_level) {
     /* Block for a function. */
@@ -6823,7 +6836,8 @@ e.g., ({ ... }).
     push_stmt_stack(ssk_compound, block,
                     innermost_block_object_lifetime(curr_object_lifetime));
 #if MICROSOFT_EXTENSIONS_ALLOWED
-  } else if (struct_stmt_stack[depth_stmt_stack].kind ==
+  } else if (depth_stmt_stack >= 0 &&
+             struct_stmt_stack[depth_stmt_stack].kind ==
                                           (a_struct_stmt_kind)ssk_try_block &&
              struct_stmt_stack[depth_stmt_stack].parsing_finally_clause) {
     /* When scanning the C++/CLI "finally" block, start_block_statement is
@@ -6872,6 +6886,10 @@ e.g., ({ ... }).
                                        (an_object_lifetime_kind)olk_try_block);
       }  /* if */
     }  /* if */
+    if (is_statement_expr && depth_stmt_stack < 0) {
+      /* A statement expression in a ctor-initializer is reachable. */
+      set_reachable(curr_reachability);
+    }  /* if */
     /* Note that there is no check for unreachable code.  It's probably too
        draconian to warn about an unreachable open brace if (say) there
        is a label right afterwards. */
@@ -6882,6 +6900,7 @@ e.g., ({ ... }).
   /* Record in the statement stack entry whether the routine was declared
      with an explicit return type. */
   if (explicit_return_type) {
+    check_assertion(depth_stmt_stack >= 0);
     struct_stmt_stack[depth_stmt_stack].rout_type_explicitly_specified = TRUE;
   }  /* if */
   if (at_function_level && C_mode() && vla_enabled) {
@@ -7066,8 +7085,8 @@ e.g., ({ ... }).
     /* Don't pop the name scope here if this is the end of the guarded
        statement of a Microsoft __try statement.  It will be done after the
        __except expression, if any, is processed. */
-    check_assertion(depth_stmt_stack >= 1);
-    if (struct_stmt_stack[depth_stmt_stack-1].kind != ssk_microsoft_try ||
+    if (depth_stmt_stack < 1 ||
+        struct_stmt_stack[depth_stmt_stack-1].kind != ssk_microsoft_try ||
         struct_stmt_stack[depth_stmt_stack-1].
                                   in_cleanup_statement_of_microsoft_try)
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */

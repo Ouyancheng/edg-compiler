@@ -20283,12 +20283,12 @@ already been consumed.
     err = TRUE;
   }  /* if */
   if (!is_local_scope_kind(scope_stack_top().kind) ||
-      depth_stmt_stack < 0 ||
+      innermost_function_scope == NULL ||
       expr_stack->is_default_arg_expression ||
       scope_stack_top().in_template_arg_list) {
-    /* We're not inside the compound statement of a function definition, so
-       don't try to scan the statement.  Just flush to the matching closing
-       brace. */
+    /* We're not inside the compound statement of a function definition (or
+       mem-initializers of a constructor), so don't try to scan the
+       statement.  Just flush to the matching closing brace. */
     /* Statement expressions are not allowed in default argument expressions
        (we don't have the code to copy them -- see copy_expr_tree). */
     /* Also in template argument expressions, because we can't push

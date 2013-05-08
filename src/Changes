@@ -1,5 +1,17 @@
 Version 4.7
 
+5/8/13   [EDGcpfe/13930]
+GNU C++: statement expressions allowed in ctor-initializers
+
+GNU statement expressions are now allowed in the ctor-initializers of
+a constructor.
+
+  struct A {
+    int i;
+    A() : i( ({ int j = 1; j; }) ) {}
+  };
+
+
 5/8/13   [EDGcpfe/13969]
 Incorrect end position recorded for aggregate variable initialization
 
