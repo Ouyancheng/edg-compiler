@@ -3413,7 +3413,8 @@ is part of.  diag_pos is the position to be used by default for diagnostics
     if (vp != NULL) vp->has_direct_braced_initializer = direct;
     dps->init_state.direct_init = direct;
   } else {
-    /* Traditional aggregate initialization of the form "T x = { ... }". */
+    /* Traditional aggregate initialization of the form "T x = { ... }".
+       Brace elision is allowed in all modes. */
     dps->init_state.elided_braces_allowed = TRUE;
   }  /* if */
   if (list_init_enabled) {

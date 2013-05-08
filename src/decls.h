@@ -414,10 +414,12 @@ typedef struct an_init_state {
 			   aggregate that is not at the top level. */
   a_bit_field	elided_braces_allowed:1;
 			/* TRUE if an aggregate initializer can omit braces.
-			   E.g., for "int x[2][2] = { 1, 2, 3, 4 };" this flag
-			   should be TRUE (making the example well-formed), but
-			   for "int y[2][2]{ 1, 2, 3, 4 };" is should be FALSE
-			   (and the example is an error). */
+			   In the original C++11 specification braces could be
+			   omitted only in initializations of the form
+			     T x = { ... };
+			   but this limitation was soon lifted (through
+			   Core issue 1270).  The limitation is still imposed
+			   when emulating some GCC versions. */
   a_bit_field	elements_are_full_expressions:1;
 			/* TRUE if the elements of a braced initializer are
 			   full expressions.  E.g., in "T x = { f() };", "f()"

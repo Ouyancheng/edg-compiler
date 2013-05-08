@@ -107,7 +107,7 @@ Clear the fields of *is.
   is->pack_expansion_handled = FALSE;
   is->chained_designator_okay = FALSE;
   is->non_top_level_aggregate = FALSE;
-  is->elided_braces_allowed = FALSE;
+  is->elided_braces_allowed = !(gpp_mode && gnu_version < 40800);
   is->elements_are_full_expressions = FALSE;
   is->variable_size_array = FALSE;
   is->initializer_can_dimension_array = FALSE;
