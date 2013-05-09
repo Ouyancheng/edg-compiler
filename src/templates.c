@@ -2524,7 +2524,7 @@ is put at the start of either ptp1 or ptp2.
   a_boolean	rout_2_is_nonstatic = rtsp2->this_class != NULL;
 
   if (!cpp11_mode) {
-    /* The ability order nonstatic vs. nonmember functions was added
+    /* The ability to order nonstatic vs. nonmember functions was added
        as part of C++11 (core issue 532). */
   } else if (rout_1_is_nonstatic == rout_2_is_nonstatic) {
     /* They are both static/nonmember or nonstatic functions.  Nothing
