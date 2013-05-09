@@ -1,5 +1,13 @@
 Version 4.7
 
+5/9/13   [EDGcpfe/14012]
+Demangling of an expression in a variable-sized array
+
+A change has been made to demangle an expression that appears as an
+array bound in a variable-sized array type in the Cfront ABI (the IA-64 ABI
+demangling had previously allowed this).
+
+
 4/23/13  [EDGcpfe/8627]
 C++11: demangling ref-qualifiers on member functions
 

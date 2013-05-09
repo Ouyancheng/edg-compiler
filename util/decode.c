@@ -3049,6 +3049,11 @@ not empty, because it contains a name or a derived type).
       p = demangle_constant(p, /*suppress_address_of=*/FALSE,
                             /*need_parens=*/FALSE, dctl);
       dctl->suppress_id_output--;
+    } else if (get_char(p, dctl) == 'O') {
+      /* Length is specified as an expression. */
+      dctl->suppress_id_output++;
+      p = demangle_expression(p, /*need_parens=*/FALSE, dctl);
+      dctl->suppress_id_output--;
     } else {
       /* Normal constant number of elements. */
       /* Skip the array size. */
@@ -3167,6 +3172,9 @@ use of parentheses around parts of the declarator.)
       p++;
       p = demangle_constant(p, /*suppress_address_of=*/FALSE,
                             /*need_parens=*/FALSE, dctl);
+    } else if (get_char(p, dctl) == 'O') {
+      /* Length is specified as an expression. */
+      p = demangle_expression(p, /*need_parens=*/FALSE, dctl);
     } else {
       /* Normal constant number of elements. */
       if (get_char(p, dctl) == '0' && get_char(p+1, dctl) == '_') {

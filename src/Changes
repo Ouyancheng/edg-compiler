@@ -37,6 +37,10 @@ failed.  Now fixed.
     f<A>();
   }
 
+In addition, a change has been made in mangling to mangle the expression
+that results from a variable-sized array type (previously an assertion
+check prevented mangling of variable-sized array types).
+
 
 5/9/13   [EDGcpfe/13930]
 GNU C++: destructible entities allowed in statement expressions

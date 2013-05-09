@@ -9420,7 +9420,7 @@ top_of_loop:
       case tk_array:
         /* Put out the array size, an underscore, and then the element type,
            i.e., int[10] is put out as A10_i. */
-        check_assertion(!type->variant.array.is_variable_size_array);
+        check_assertion(!type->variant.array.is_vla);
 #if IA64_ABI
         saved_force_dependent_array_mangling =
                                           mctl->force_dependent_array_mangling;
@@ -9477,6 +9477,11 @@ top_of_loop:
                                      mctl);
           add_to_mangled_name('E', mctl);
 #endif /* IA64_ABI */
+        } else if (type->variant.array.is_variable_size_array) {
+          /* Put out the mangled expression for the number of elements. */
+          mangled_encoding_for_expression(
+                               type->variant.array.variant.element_count_expr,
+                               /*in_dependent_expr=*/TRUE, mctl);
         } else {
           /* Put out the (constant) number of elements. */
           add_number_to_mangled_name((unsigned long)type->variant.array.
