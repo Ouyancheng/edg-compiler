@@ -34,7 +34,7 @@ is probably okay for most uses.
   }
 
 
-5/8/13   [EDGcpfe/13991
+5/8/13   [EDGcpfe/13991]
 Spurious error on constexpr constructor of class template
 
 The C++11 standard makes a general exception for constexpr constraints in the
