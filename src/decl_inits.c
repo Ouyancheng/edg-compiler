@@ -3015,6 +3015,7 @@ the type pointed to is opaque to declaration processing.
       unknown_bound_array = is_incomplete_array_type(dtype);
       is->initializer_can_dimension_array = TRUE;
       aggr_init_array(&icp, &dtype, is, diag_pos, &is->init_con);
+      if (arg_match != NULL) record_aggr_init_match(arg_match);
       if (is_error_type(dtype)) {
         is->init_error = TRUE;
         if (!is->no_diagnostics) expect_error();
