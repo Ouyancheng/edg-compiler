@@ -1,5 +1,23 @@
 Version 4.7
 
+5/9/13   [EDGcpfe/13930]
+GNU C++: destructible entities allowed in statement expressions
+
+Destructible entities are now allowed in GNU statement expressions.
+The lifetimes of the entities terminate at the end of the enclosing
+full-expression lifetime, which is not precisely what g++ does, but
+is probably okay for most uses.
+
+  struct A {
+    A();
+    ~A();
+  };
+  int main() {
+    int i = ({ A a; 0; });
+    int j = ({ (void)A(); 0; });
+  }
+
+
 5/8/13   [EDGcpfe/13991
 Spurious error on constexpr constructor of class template
 

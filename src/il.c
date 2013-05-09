@@ -12250,10 +12250,6 @@ list.
 }  /* add_to_dynamic_inits_list */
 
 
-/* Forward declaration needed because of recursion: */
-static void unlink_object_lifetime(an_object_lifetime_ptr lifetime);
-
-
 static a_dynamic_init_ptr i_copy_dynamic_init(
                                              a_dynamic_init_ptr        dip,
                                              an_expr_copy_options_set  options,
@@ -21428,7 +21424,7 @@ description if one is associated with this dip.
 }  /* remove_from_destruction_list */
 
 
-static void unlink_object_lifetime(an_object_lifetime_ptr lifetime)
+void unlink_object_lifetime(an_object_lifetime_ptr lifetime)
 /*
 Unlink the indicated object lifetime from the IL tree.  Its
 child lifetimes, if any, are left attached to it, but will no
