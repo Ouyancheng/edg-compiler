@@ -1,5 +1,21 @@
 Version 4.7
 
+5/9/13   [EDGcpfe/14012]
+SFINAE rescan handling of variably-sized array new
+
+In general, the SFINAE rescan of a dependent variable-sized array new
+did not work correctly, with the consequence that deduction always
+failed.  Now fixed.
+
+  struct A {
+    int f();
+  };
+  template <class T> auto f() -> decltype(new int[T().f()]) { return 0; }
+  int main() {
+    f<A>();
+  }
+
+
 5/9/13   [EDGcpfe/13930]
 GNU C++: destructible entities allowed in statement expressions
 

@@ -15745,12 +15745,14 @@ expression, and return the result in *result (or an error indication in
       /* The first bound is an expression.  Extract the expression. */
       new_array_dimension =
                      unqual_new_type->variant.array.variant.element_count_expr;
-      /* Change the array type to a simple incomplete array type so
-         that the variable-size type does not escape from the front end. */
-      unqual_new_type->variant.array.is_variable_size_array = FALSE;
-      unqual_new_type->variant.array.variant.number_of_elements = 0;
-      unqual_new_type->size = 0;
-      set_type_size(unqual_new_type);
+      if (!expr_stack->possible_rescan_context) {
+        /* Change the array type to a simple incomplete array type so
+           that the variable-size type does not escape from the front end. */
+        unqual_new_type->variant.array.is_variable_size_array = FALSE;
+        unqual_new_type->variant.array.variant.number_of_elements = 0;
+        unqual_new_type->size = 0;
+        set_type_size(unqual_new_type);
+      }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
     } else if (microsoft_mode &&
                is_incomplete_array_type(unqual_new_type)) {
