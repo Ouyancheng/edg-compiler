@@ -3460,6 +3460,7 @@ and return a pointer to it.
       tssp->variant.function.pending_partial_instantiations = 0;
       tssp->variant.function.pending_deductions = 0;
       tssp->variant.function.prototype_friend_symbol = NULL;
+      tssp->variant.function.invented_partial_ordering_param = NULL;
       tssp->variant.function.template_param_not_in_function_type = FALSE;
       tssp->variant.function.has_prototype_instantiation = FALSE;
       tssp->

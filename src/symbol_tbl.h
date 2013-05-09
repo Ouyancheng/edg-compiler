@@ -2741,6 +2741,14 @@ typedef struct a_template_symbol_supplement {
 			   class template and points to the corresponding
 			   friend symbol from the prototype instantiation
 			   of the class template. */
+      a_param_type_ptr
+		invented_partial_ordering_param;
+			/* If the template is a non-static member function
+			   template and an invented parameter type was
+			   created for purposes of comparison with a
+			   static or non-member function during partial
+			   ordering, this points to the invented parameter.
+			   NULL otherwise. */
       a_bit_field
 		template_param_not_in_function_type:1;
 			/* TRUE if the function template has template

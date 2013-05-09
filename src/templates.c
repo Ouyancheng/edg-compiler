@@ -2465,46 +2465,55 @@ entire_type is FALSE.
 }  /* parameter_is_more_specialized */
 
 
-static void add_invented_partial_ordering_param(
-			a_routine_type_supplement_ptr	rtsp,
-			a_param_type_ptr		*ptp)
+static void get_invented_partial_ordering_param(
+			a_routine_type_supplement_ptr		rtsp,
+			a_template_symbol_supplement_ptr	tssp,
+			a_param_type_ptr			*ptp)
 /*
-rtsp is a nonstatic member function.  Add a new invented parameter to the
-beginning of ptp to represent the type to be used for partial ordering
-purposes.
+rtsp and tssp represent a nonstatic member function.  Add a new invented
+parameter to the beginning of ptp to represent the type to be used for
+partial ordering purposes, or return a previously created one.
 */
 {
   a_param_type_ptr	new_ptp;
   a_type_ptr		new_type;
 
-  new_type = rtsp->this_class;
-  new_type = make_qualified_type(new_type, rtsp->this_qualifiers);
-  /* If the routine's ref-qualifiers are "&&", create make the type an
-     rvalue reference, otherwise make an lvalue reference. */
-  if (rtsp->ref_qualifiers == (a_ref_qualifier_kind)rqk_rvalue) {
-    new_type = make_rvalue_reference_type(new_type);
-  } else {
-    new_type = make_reference_type(new_type);
+  new_ptp = tssp->variant.function.invented_partial_ordering_param;
+  if (new_ptp == NULL) {
+    new_type = rtsp->this_class;
+    new_type = make_qualified_type(new_type, rtsp->this_qualifiers);
+    /* If the routine's ref-qualifiers are "&&", create make the type an
+       rvalue reference, otherwise make an lvalue reference. */
+    if (rtsp->ref_qualifiers == (a_ref_qualifier_kind)rqk_rvalue) {
+      new_type = make_rvalue_reference_type(new_type);
+    } else {
+      new_type = make_reference_type(new_type);
+    }  /* if */
+    new_ptp = alloc_param_type(new_type);
+    tssp->variant.function.invented_partial_ordering_param = new_ptp;
   }  /* if */
-  new_ptp = alloc_param_type(new_type);
   /* Insert this at the front of the parameter list.  Note that the actual
-     routine is not updated, so this entry will be discarded at the end
-     of partial ordering. */
+     routine is not updated.  We don't depend on the previously set value
+     of the next pointer in case, for any reason, the parameter type list
+     was updated. */
   new_ptp->next = *ptp;
   *ptp = new_ptp;
-}  /* add_invented_partial_ordering_param */
+}  /* get_invented_partial_ordering_param */
 
 
 static void get_effective_param_type_list_for_templates(
-			a_routine_type_supplement_ptr	rtsp1,
-			a_routine_type_supplement_ptr	rtsp2,
-			a_param_type_ptr		*ptp1,
-			a_param_type_ptr		*ptp2)
+			a_routine_type_supplement_ptr		rtsp1,
+			a_routine_type_supplement_ptr		rtsp2,
+			a_template_symbol_supplement_ptr	tssp1,
+			a_template_symbol_supplement_ptr	tssp2,
+			a_param_type_ptr			*ptp1,
+			a_param_type_ptr			*ptp2)
 /*
 In partial ordering, if one of the function templates is a non-static
 member and the other is a non-static or non-member, the non-static member
 has an invented parameter type entry for partial ordering purposes.  rtsp1
 and rtsp2 specify the type supplements for the routine types involved.
+tssp1 and tssp2 are the corresponding template symbol supplements.
 
 This routine creates such an entry if needed and returns ptp1 and ptp2 as
 the parameter type lists to be used.  If an invented entry is needed, it
@@ -2521,9 +2530,9 @@ is put at the start of either ptp1 or ptp2.
     /* They are both static/nonmember or nonstatic functions.  Nothing
        needs to be done. */
   } else if (rout_1_is_nonstatic) {
-    add_invented_partial_ordering_param(rtsp1, ptp1);
+    get_invented_partial_ordering_param(rtsp1, tssp1, ptp1);
   } else if (rout_2_is_nonstatic) { 
-    add_invented_partial_ordering_param(rtsp2, ptp2);
+    get_invented_partial_ordering_param(rtsp2, tssp2, ptp2);
   }  /* if */
 }  /* get_effective_param_type_list_for_templates */
 
@@ -2603,7 +2612,8 @@ the count of parameters to be compared when entire_type is FALSE.
       /* For normal cases (not using the entire type) an invented parameter
          is added if we are comparing a nonstatic function with a
          static or nonmember function. */
-      get_effective_param_type_list_for_templates(rtsp1, rtsp2, &ptp1, &ptp2);
+      get_effective_param_type_list_for_templates(rtsp1, rtsp2, tssp1,
+                                                  tssp2, &ptp1, &ptp2);
     }  /* if */
     /* Do the argument deduction on each function parameter.  The loop will
        terminate when one of the parameter lists has been exhausted.  When
