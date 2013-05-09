@@ -1824,8 +1824,7 @@ initialization).  *is describes the initialization as a whole.
         a_constant_ptr  elem_con;
         if (!is->non_top_level_aggregate &&
             is->arg_match != NULL &&
-            ((is_aggregate_type(etype) && is_braced_init_component(icp)) ||
-             is_error_type(etype))) {
+            ((is_aggregate_type(etype) && braced) || is_error_type(etype))) {
           /* We're evaluating a match for overload resolution (is->arg_match is
              non-NULL) and this is the top-level braced initializer for an
              array.  If the initialization for this element looks like an
@@ -3015,7 +3014,6 @@ the type pointed to is opaque to declaration processing.
       unknown_bound_array = is_incomplete_array_type(dtype);
       is->initializer_can_dimension_array = TRUE;
       aggr_init_array(&icp, &dtype, is, diag_pos, &is->init_con);
-      if (arg_match != NULL) record_aggr_init_match(arg_match);
       if (is_error_type(dtype)) {
         is->init_error = TRUE;
         if (!is->no_diagnostics) expect_error();
