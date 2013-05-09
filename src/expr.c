@@ -20284,7 +20284,7 @@ object lifetime).  Return TRUE if that was successful.
     an_expr_node_ptr olp_expr = NULL;
     success = TRUE;
     if (olp->entity.ptr != NULL &&
-        olp->entity.kind == (an_il_entry_kind)iek_expr_node) {
+        olp->entity.kind == (a_byte_il_entry_kind)iek_expr_node) {
       /* Eliminate an enk_object_lifetime at the top of an expression. */
       olp_expr = (an_expr_node_ptr)olp->entity.ptr;
       check_assertion(olp_expr->kind==(an_expr_node_kind)enk_object_lifetime);
