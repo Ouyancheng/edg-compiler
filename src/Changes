@@ -1,5 +1,27 @@
 Version 4.7
 
+5/9/13   [EDGcpfe/10974]
+Partial ordering of nonstatic members. vs non-members (core issue 532)
+
+Core issue 532 specifies that nonstatic members can be ordered relative
+to non-members.  We now implement this feature in C++11 mode.
+
+  struct A { };
+  template<class T> struct B {
+    template<typename R> int operator*(R&); // #1
+  };
+  template<typename T, typename R> int operator*(T&, R&); // #2
+
+  // The declaration of B::operator* is transformed into the equivalent of
+  // template<typename R> int operator*(B<A>&, R&);
+
+  int main() {
+    A a;
+    B<A> b;
+    b * a; // calls #1
+  }
+
+
 5/9/13   [EDGcpfe/14012]
 SFINAE rescan handling of variably-sized array new
 
