@@ -20256,52 +20256,6 @@ in *rcblock).
 #endif /* GNU_COMPLEX_EXTENSIONS_ALLOWED */
 #if GNU_EXTENSIONS_ALLOWED
 
-static a_boolean promote_lifetimes_in_statement_expression(
-                                                    an_object_lifetime_ptr olp)
-/*
-The given lifetime is associated with something inside a GNU statement
-expression.  Attempt to promote the entities on the lifetime list out
-to a surrounding full-expression object lifetime (which is the current
-object lifetime).  Return TRUE if that was successful.
-*/
-{
-  a_boolean              success = FALSE;
-  an_object_lifetime_ptr colp, colp_next;
-
-  check_assertion(curr_object_lifetime != NULL &&
-                  curr_object_lifetime->kind ==
-                                  (an_object_lifetime_kind)olk_expr_temporary);
-  /* Do the child lifetimes first. */
-  for (colp = olp->child_lifetime;
-       colp != NULL;
-       colp = colp_next) {
-    colp_next = colp->next;
-    if (!promote_lifetimes_in_statement_expression(colp)) {
-      success = FALSE;
-      goto end_of_routine;
-    }  /* if */
-  }  /* for */
-  promote_lifetime_contents_to_curr_object_lifetime(olp);
-  if (is_useless_object_lifetime(olp)) {
-    an_expr_node_ptr olp_expr = NULL;
-    success = TRUE;
-    if (olp->entity.ptr != NULL &&
-        olp->entity.kind == (a_byte_il_entry_kind)iek_expr_node) {
-      /* Eliminate an enk_object_lifetime at the top of an expression. */
-      olp_expr = (an_expr_node_ptr)olp->entity.ptr;
-      check_assertion(olp_expr->kind==(an_expr_node_kind)enk_object_lifetime);
-    }  /* if */
-    unlink_object_lifetime(olp);
-    if (olp_expr != NULL) {
-      overwrite_node(olp_expr, olp_expr->variant.object_lifetime.expr);
-    }  /* if */
-    free_object_lifetime(olp);
-  }  /* if */
-end_of_routine:
-  return success;
-}  /* promote_lifetimes_in_statement_expression */
-  
-
 static void scan_gnu_statement_expression(an_operand        *result,
                                           a_source_position *start_position)
 /*
@@ -20397,20 +20351,7 @@ already been consumed.
          statement. */
       if (sp->variant.block.extra_info->assoc_scope != NULL &&
           sp->variant.block.extra_info->assoc_scope->lifetime != NULL) {
-        /* In many cases we can promote the destructible entities in the
-           statement expression into a surrounding full-expression lifetime. */
-        if (curr_object_lifetime != NULL &&
-            curr_object_lifetime->kind ==
-                                 (an_object_lifetime_kind)olk_expr_temporary &&
-            promote_lifetimes_in_statement_expression(
-                        sp->variant.block.extra_info->assoc_scope->lifetime)) {
-          /* Okay. */
-          check_assertion(sp->variant.block.extra_info->assoc_scope->lifetime
-                                                                      == NULL);
-        } else {
-          /* Couldn't fix everything by promotion. */
-          expr_pos_error(ec_destr_in_statement_expr, &left_brace_position);
-        }  /* if */
+        expr_pos_error(ec_destr_in_statement_expr, &left_brace_position);
       }  /* if */
     }  /* if */
   }  /* if */

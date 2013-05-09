@@ -1948,8 +1948,6 @@ extern a_boolean is_useless_object_lifetime(an_object_lifetime_ptr  olp);
 
 extern void remove_from_destruction_list(a_dynamic_init_ptr  dip);
 
-extern void unlink_object_lifetime(an_object_lifetime_ptr lifetime);
-
 extern void unlink_expr_destructions(an_expr_node_ptr expr);
 
 extern void mark_object_lifetime_as_useless(an_object_lifetime_ptr  olp);
