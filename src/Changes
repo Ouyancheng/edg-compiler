@@ -1,5 +1,21 @@
 Version 4.7
 
+5/10/13  [EDGcpfe/13968]
+Abort on use of member function name as a GNU asm operand
+
+In GNU C++ modes, the front end triggered an internal error in exprutil.c
+("extract_node_from_operand: converting unexpected operand kind") when the
+name of a nonstatic member function appeared as a GNU-style asm operand.
+For example:
+
+  struct C { void f(); };
+  void C::f() { 
+    asm ("" : : "m" (C::f));  // Previously triggered an internal error;
+  }                           // now an ordinary error is issued.
+
+This is now fixed (an ordinary error is issued).
+
+
 5/9/13   [EDGcpfe/10974]
 Partial ordering of nonstatic members. vs non-members (core issue 532)
 

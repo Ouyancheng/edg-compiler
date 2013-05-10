@@ -9117,7 +9117,17 @@ are TRUE, the operand is first read from and then written to.
       conv_to_error_operand(&result);
     }  /* if */
   }  /* if */
-  expression = make_node_from_operand(&result);
+  if (is_indefinite_function_operand(&result) ||
+      is_sym_for_member_operand(&result) ||
+      is_undefined_symbol_operand(&result)) {
+    if (expr_error_should_be_issued()) {
+      pos_sy_error(ec_invalid_extended_asm_operand_sym, &result.position,
+                   result.symbol);
+    }  /* if */
+    expression = error_node();
+  } else {
+    expression = make_node_from_operand(&result);
+  }  /* if */
   expression = wrap_up_full_expression(expression);
   pop_expr_stack();
   restore_expr_stack(saved_expr_stack);
