@@ -12923,6 +12923,7 @@ in_class_specialization is TRUE for a Microsoft mode in-class specialization.
       rp->is_declared_constexpr = TRUE;
       rp->is_constexpr = TRUE;
     }  /* if */
+    rp->is_initializer_list_ctor = templ_rout->is_initializer_list_ctor;
     set_inline_flag(rp, (a_boolean)templ_rout->is_inline);
 #if IA64_ABI
     rp->inline_in_class_definition = templ_rout->inline_in_class_definition;
