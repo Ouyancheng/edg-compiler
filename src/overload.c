@@ -5543,9 +5543,16 @@ retry2:
          other kinds of constructors.  In the second pass we analyze all
          constructors. */
       function_symbol = fundamental_symbol_of(proj_function_symbol);
-      /* No templates are considered initializer-list constructors. */
-      if (!is_simple_function_symbol(function_symbol) ||
-          !function_symbol->variant.routine.ptr->is_initializer_list_ctor) {
+      if (is_simple_function_symbol(function_symbol)) {
+        if (!function_symbol->variant.routine.ptr->is_initializer_list_ctor) {
+          goto bottom_of_loop;
+        }  /* if */
+      } else if (function_symbol->kind == (a_symbol_kind)sk_function_template){
+        if (!function_symbol->variant.template_info->variant.function.routine
+                                                  ->is_initializer_list_ctor) {
+          goto bottom_of_loop;
+        }  /* if */
+      } else {
         goto bottom_of_loop;
       }  /* if */
       /* Try matching this initializer-list constructor using the braced-init-

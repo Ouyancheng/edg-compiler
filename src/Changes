@@ -1,5 +1,19 @@
 Version 4.7
 
+5/10/13  [EDGcpfe/14015]
+Template initializer-list constructor
+
+The front end formerly did not allow a template to be an initializer-list
+constructor, which gets special special treatment in list-initialization.
+Now, it can be.
+
+  #include <initializer_list>
+  template <class T> struct A {
+    template <class U> A(std::initializer_list<U>);
+  };
+  A<int> v = { 1, 2, 3 };  // Now accepted
+
+
 5/10/13  [EDGcpfe/13968]
 Abort on use of member function name as a GNU asm operand
 
