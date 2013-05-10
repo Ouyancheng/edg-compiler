@@ -19661,7 +19661,12 @@ direct binding is "possible" and not whether it is "valid".
        if the operand has a class type, and using that interpretation
        allows for clearer error messages later. */
     if (!is_class_struct_union_type(unqual_source_type) && !template_case) {
-      direct_binding_possible = FALSE;
+      if (gpp_mode && is_prototype_instantiation_context()) {
+        /* g++ appears to allow such binding in prototype instantiations. */
+        template_case = TRUE;
+      } else {
+        direct_binding_possible = FALSE;
+      }  /* if */
     }  /* if */
   }  /* if */
   /* The destination type must have no fewer type qualifiers than the source

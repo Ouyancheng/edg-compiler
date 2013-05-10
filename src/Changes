@@ -1,5 +1,17 @@
 Version 4.7
 
+5/10/13  [EDGcpfe/14016]
+Binding lvalue reference to rvalue allowed in GNU C++ prototype instantiation
+
+The front end now allows an lvalue reference (to non-const) to bind to
+an rvalue in a template prototype instantiation in GNU C++ mode,
+because g++ appears not to do that check until a real instantiation.
+
+  template<class T> void f(bool &rb = false) {}  // Now accepted;
+                                                 // error on actual
+                                                 // instantiation
+
+
 5/10/13  [EDGcpfe/14015]
 Template initializer-list constructor
 
