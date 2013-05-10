@@ -13865,12 +13865,14 @@ decl_member_function, which handles in-class member function declarations.)
          supplement. */
       if (cssp->constructor == NULL) {
         cssp->constructor = sym;
-      } else if (cssp->constructor->kind ==
-                                  (a_symbol_kind)sk_overloaded_function) {
+      } else if (symbol_is(cssp->constructor, sk_overloaded_function)) {
         /* The overloaded function symbol is already registered. */
       } else {
         /* The overloaded function symbol was just created. */
         cssp->constructor = overload_sym;
+      }  /* if */
+      if (list_init_enabled) {
+        set_initializer_list_ctor_flags(rtn, class_type);
       }  /* if */
     }  /* if */
     attach_decl_attributes(dps, (a_boolean)func_info->is_definition);
