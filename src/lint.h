@@ -610,6 +610,7 @@ extern int fileno(FILE *);
 /*lint -esym(769,ec_bad_argument_for_bases)*/
 /*lint -esym(769,ec_bad_prototype_argument_for_bases)*/
 /*lint -esym(769,ec_bases_not_in_template)*/
+/*lint -esym(769,ec_invalid_extended_asm_operand_sym)*/
 #endif /* !GNU_EXTENSIONS_ALLOWED */
 /*lint -esym(759,is_wide_string_constant)*/
 /*lint -esym(765,is_wide_string_constant)*/
