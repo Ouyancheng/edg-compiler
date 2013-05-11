@@ -4856,12 +4856,12 @@ set if the operation cannot be folded.
         op == (an_expr_operator_kind)eok_ne) {
       /* ... but "&var != NULL" or "&var == NULL" can often be folded. */
       a_variable_ptr var = NULL;
-      if (is_false_constant(constant_2) &&
+      if (is_null_pointer_value(constant_2) &&
           constant_1->kind == (a_constant_repr_kind)ck_address &&
           constant_1->variant.address.kind ==
                                           (an_address_base_kind)abk_variable) {
         var = constant_1->variant.address.variant.variable;
-      } else if (is_false_constant(constant_1) &&
+      } else if (is_null_pointer_value(constant_1) &&
                  constant_2->kind == (a_constant_repr_kind)ck_address &&
                  constant_2->variant.address.kind ==
                                           (an_address_base_kind)abk_variable) {
