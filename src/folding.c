@@ -4852,6 +4852,29 @@ set if the operation cannot be folded.
        their lifetimes are disjoint).  So we never fold cases involving
        different base objects. */
     *did_not_fold = TRUE;
+    if (op == (an_expr_operator_kind)eok_eq ||
+        op == (an_expr_operator_kind)eok_ne) {
+      /* ... but "&var != NULL" or "&var == NULL" can often be folded. */
+      a_variable_ptr var = NULL;
+      if (is_false_constant(constant_2) &&
+          constant_1->kind == (a_constant_repr_kind)ck_address &&
+          constant_1->variant.address.kind ==
+                                          (an_address_base_kind)abk_variable) {
+        var = constant_1->variant.address.variant.variable;
+      } else if (is_false_constant(constant_1) &&
+                 constant_2->kind == (a_constant_repr_kind)ck_address &&
+                 constant_2->variant.address.kind ==
+                                          (an_address_base_kind)abk_variable) {
+        var = constant_2->variant.address.variant.variable;
+      }  /* if */
+      if (var != NULL && variable_has_non_null_address(var)) {
+        *did_not_fold = FALSE;
+        result_value = (op == (an_expr_operator_kind)eok_ne);
+        set_constant_kind(result, (a_constant_repr_kind)ck_integer);
+        set_integer_value(&result->variant.integer_value,
+                          (a_host_large_integer)result_value);
+      }  /* if */
+    }  /* if */
   } else {
     /* The pointers are in the same base object, so they can be compared. */
     get_pointer_offset(constant_1, &offset_1);

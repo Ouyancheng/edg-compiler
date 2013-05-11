@@ -1,5 +1,16 @@
 Version 4.7
 
+5/11/13  [EDGcpfe/14018]
+Folding of comparison of variable address to 0/nullptr
+
+A comparison of the address of a variable to a null pointer, e.g.,
+"&x != nullptr", is now folded to a constant if the variable is not
+extern.
+
+  int a;
+  int x[&a != 0];  // Now accepted as a constant expression in C++11 mode
+
+
 5/11/13  [EDGcpfe/13984]
 Microsoft C++11 mode: null or conversion to void * in nontype template argument
 
