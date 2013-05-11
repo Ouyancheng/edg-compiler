@@ -1,5 +1,21 @@
 Version 4.7
 
+5/11/13  [EDGcpfe/13965]
+C++11 constexpr: lvalue "?" can be folded if first operand value is constant
+
+In C++11 constexpr folding, a "?" operation that returns an lvalue can now
+be folded if its first operand folds to a constant and the selected
+operand (second or third) has a constant address.
+
+  struct A {
+    int i;
+    constexpr A(int p) : i(p) {}
+    constexpr const int &f(int b) { return b ? i : i; }
+  };
+  constexpr A a{2};
+  constexpr int j = a.f(1);  // Now folded to 2
+
+
 5/11/13  [EDGcpfe/14018]
 Folding of comparison of variable address to 0/nullptr
 

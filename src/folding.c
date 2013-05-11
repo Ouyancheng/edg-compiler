@@ -9829,6 +9829,20 @@ ceblock gives context information for the evaluation.
           folded = fold_lvalue_expr(op2, ceblock, result_con);
         }  /* if */
         break;
+      case eok_question:
+        /* If the first operand of a "?" has a known value, we can return
+           the address of the second or third operand. */
+        if (fold_expr(op1, ceblock, &op1_constant) &&
+            constant_bool_value_known_at_compile_time(&op1_constant)) {
+          if (is_false_constant(&op1_constant)) {
+            /* First operand is false, so result is op3. */
+            folded = fold_lvalue_expr(op2->next, ceblock, result_con);
+          } else {
+            /* First operand is true, so result is op2. */
+            folded = fold_lvalue_expr(op2, ceblock, result_con);
+          }  /* if */
+        }  /* if */
+        break;
       default:
         break;
     }  /* switch */
