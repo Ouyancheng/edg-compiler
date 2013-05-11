@@ -9271,10 +9271,12 @@ if there is an error, otherwise to ec_no_error.
   a_boolean     allowed = TRUE;
   an_error_code local_err_code = ec_no_error;
 
-  if (conversion->pointer_normalization_needed && !microsoft_mode) {
+  if (conversion->pointer_normalization_needed) {
     /* Conversion of 0 to a pointer type, or of a pointer to object type
        to void *, is not allowed on a nontype template argument. */
     allowed = FALSE;
+    /* But MSVC does allow it. */
+    if (microsoft_mode) allowed = TRUE;
   } else if (conversion->cast_base_class != NULL) {
     /* Derived-to-base pointer conversions and base-to-derived
        pointer-to-member conversions are not allowed on a nontype

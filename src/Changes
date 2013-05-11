@@ -1,5 +1,20 @@
 Version 4.7
 
+5/11/13  [EDGcpfe/13984]
+Microsoft C++11 mode: null or conversion to void * in nontype template argument
+
+The changes for C++11 constexpr tightened up the allowed conversions for
+nontype template arguments.  However, it turns out MSVC allows some
+additional conversions.  The front end now allows conversion from
+a null pointer constant to a pointer, and conversion from a different
+pointer type to void *, in a nontype template argument.
+
+  template<void *n> class A {};
+  void f() {}
+  typedef A<&f> T;  // Okay now
+  typedef A<0> T2;  // Okay now
+
+
 5/10/13  [EDGcpfe/14016]
 Binding lvalue reference to rvalue allowed in GNU C++ prototype instantiation
 
