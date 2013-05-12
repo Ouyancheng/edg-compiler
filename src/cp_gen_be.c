@@ -11069,7 +11069,12 @@ used as an rvalue).
 
   check_assertion(is_constant_node(expr));
   constant = expr->variant.constant;
-  if (constant->kind == (a_constant_repr_kind)ck_template_param) {
+  if (constant_should_be_put_out_as_expr(constant)) {
+    /* There's a backing expression, so use that. */
+    gen_expr(constant->expr, need_parens,
+             /*obj_expr_of_mfunc_operator=*/FALSE);
+    processed = TRUE;
+  } else if (constant->kind == (a_constant_repr_kind)ck_template_param) {
     tpkind = constant->variant.template_param.kind;
     if (tpkind == (a_template_param_constant_kind)tpck_address) {
       check_assertion(constant->expr == NULL);
