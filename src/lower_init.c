@@ -4233,7 +4233,7 @@ operator of a no-capture lambda.
       move_or_copy_ctor_inits(scope_for_routine(routine),
                               new_routine_scope,
                               move_ctor_init,
-                              cik_delegation);
+                              (a_constructor_init_kind)cik_delegation);
       check_assertion(
            new_routine_scope->variant.routine.constructor_inits != NULL &&
            new_routine_scope->variant.routine.constructor_inits->next == NULL);
@@ -4260,7 +4260,7 @@ operator of a no-capture lambda.
       move_or_copy_ctor_inits(scope_for_routine(routine),
                               scope_for_routine(complete_routine),
                               move_ctor_init,
-                              cik_virtual_base_class);
+                              (a_constructor_init_kind)cik_virtual_base_class);
       /* Start an object lifetime. */
       begin_block_object_lifetime(new_routine_scope->lifetime,
                                   &insert_location);
