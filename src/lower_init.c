@@ -4249,7 +4249,12 @@ operator of a no-capture lambda.
 #if HANDLE_VIRTUAL_BASES_IN_COMPLETE_CTOR_DTORS
     if (construct_virtual_bases || destroy_virtual_bases) {
       a_routine_ptr complete_routine;
-      move_ctor_init = !HANDLE_VIRTUAL_BASES_IN_SUBOBJECT_CTOR_DTORS;
+      move_ctor_init =
+#if HANDLE_VIRTUAL_BASES_IN_SUBOBJECT_CTOR_DTORS
+                       FALSE;
+#else /* !HANDLE_VIRTUAL_BASES_IN_SUBOBJECT_CTOR_DTORS */
+                       TRUE;
+#endif /* HANDLE_VIRTUAL_BASES_IN_SUBOBJECT_CTOR_DTORS */
       /* Move (or copy) virtual base ctor_inits from the subobject ctor/dtor
          into the complete object ctor/dtor so the construction/destruction
          of the virtual bases will take place in the complete object
