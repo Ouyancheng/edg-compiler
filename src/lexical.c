@@ -8814,11 +8814,14 @@ the closing delimiter.
            olmp != NULL &&
                           olmp->line_loc < curr_char_loc - right_delim_len - 1;
            olmp = olmp->next) {}
-      if (olmp != NULL && olmp->kind == olm_trigraph &&
-          olmp->line_loc == curr_char_loc - right_delim_len - 1) {
+      while (olmp != NULL &&
+             olmp->line_loc == curr_char_loc - right_delim_len - 1) {
+        if (olmp->kind == olm_trigraph) {
         /* The original text had a ')' in the right location. */
-        found_right_paren = TRUE;
-      }  /* if */
+          found_right_paren = TRUE;
+        }  /* if */
+        olmp = olmp->next;
+      }  /* while */
     }  /* if */
     if (found_right_paren) {
       if (strncmp(start_of_raw_string_delimiter,
