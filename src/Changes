@@ -252,7 +252,7 @@ Core issue 1402: Defaulted move constructors
 
 The front end no longer "deletes" a defaulted move constructor just because
 a subobject has no associated move constructor.  This is in accordance with
-the C++ committee's "Core issue 1402".  For example:
+the C++ committee's Core issue 1402.  For example:
 
   struct S { S(S const&); };  // S has no generated move constructor since
                               // it has a user-declared copy constructor.
@@ -273,7 +273,7 @@ constructor of S is deemed acceptable to implement the defaulted "move"
 operation of G.
 
 (See also the entry of 4/24/13 for EDGcpfe/13934, which documents the changes
-for the other part of "Core issue 1402": Ignoring move constructors and move
+for the other part of Core issue 1402: Ignoring move constructors and move
 assignment operators that are both defaulted and deleted.)
 
 
