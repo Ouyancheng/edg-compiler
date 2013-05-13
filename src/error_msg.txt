@@ -2505,7 +2505,6 @@ ec_pm_call_obj_not_rvalue;;"a pointer-to-member function with type %t can only b
 ec_defaulted_copy_ctor_cannot_have_const_parameter;;"the parameter of this defaulted copy-constructor cannot be const because a base or member copy constructor parameter is non-const"
 ec_defaulted_assignment_cannot_have_const_parameter;;"the parameter of this defaulted assignment operator cannot be const because a base or member copy assignment parameter is non-const"
 ec_empty_anonymous_union;;"an anonymous union must contain at least one nonstatic data member"
-ec_invalid_extended_asm_operand_sym;;"%n is not allowed as an asm operand"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

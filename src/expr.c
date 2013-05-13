@@ -9062,8 +9062,7 @@ are TRUE, the operand is first read from and then written to.
     /* Non-class (i.e., normal) case. */
     a_transformation_options_set options = 
                                  TOPT_SUPPRESS_ARRAY_TO_POINTER_CONVERSION |
-                                 TOPT_SUPPRESS_FUNCTION_TO_POINTER_CONVERSION |
-                                 TOPT_SUPPRESS_MEMBER_FUNC_TO_PM_CONVERSION;
+                                 TOPT_SUPPRESS_FUNCTION_TO_POINTER_CONVERSION;
     if (output) {
       options |= TOPT_SUPPRESS_LVALUE_TO_RVALUE_CONVERSION;
     }  /* if */
@@ -9117,17 +9116,7 @@ are TRUE, the operand is first read from and then written to.
       conv_to_error_operand(&result);
     }  /* if */
   }  /* if */
-  if (is_indefinite_function_operand(&result) ||
-      is_sym_for_member_operand(&result) ||
-      is_undefined_symbol_operand(&result)) {
-    if (expr_error_should_be_issued()) {
-      pos_sy_error(ec_invalid_extended_asm_operand_sym, &result.position,
-                   result.symbol);
-    }  /* if */
-    expression = error_node();
-  } else {
-    expression = make_node_from_operand(&result);
-  }  /* if */
+  expression = make_node_from_operand(&result);
   expression = wrap_up_full_expression(expression);
   pop_expr_stack();
   restore_expr_stack(saved_expr_stack);
