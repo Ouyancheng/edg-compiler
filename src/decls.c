@@ -9018,6 +9018,17 @@ definition of a member function of a class template.
         reconcile_routine_types(tssp->variant.function.routine, type_ptr,
                                 /*preserve_rout_type=*/TRUE,
                                 /*preserve_type_ptr=*/FALSE, dps);
+        /* Merge the default template argument information. */
+        if (symbol_is(sym, sk_function_template)) {
+          (void)reconcile_template_param_lists(
+                                decl_state->decl_info->parameters,
+                                decl_state, sym,
+                                &locator->source_position,
+                                /*default_allowed=*/FALSE,
+                                /*checking_parent_params=*/FALSE,
+                                /*allow_missing_member_constraint=*/TRUE,
+                                es_discretionary_error);
+        }  /* if */
       }  /* if */
     }  /* if */
   } else if (!is_error_locator(*locator)) {

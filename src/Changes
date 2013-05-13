@@ -1,5 +1,19 @@
 Version 4.7
 
+5/13/13  [EDGcpfe/13426]
+Missing diagnostic on default template argument added outside of class
+
+The front end failed to issue a diagnostic on an attempt to provide
+a default template argument on the definition of a member function
+template outside of its class (default template arguments for function
+templates is a C++11 feature).
+
+  template <class T> struct A {
+    template <class U> void f();
+  };
+  template <class T> template <class U = int> void A<T>::f() {}
+
+
 5/11/13  [EDGcpfe/13965]
 C++11 constexpr: lvalue "?" can be folded if first operand value is constant
 
