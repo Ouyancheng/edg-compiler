@@ -6089,7 +6089,6 @@ constructor it targets.  Otherwise, just return ctor.
       target = ctor;
     }  /* if */
   } else {
-    check_assertion_or_expect_error(!ctor->is_delegating_ctor);
     target = ctor;
   }  /* if */
   return target;
