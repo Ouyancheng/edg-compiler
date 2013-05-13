@@ -1232,7 +1232,15 @@ init position modifier.
       ipmp->type = ctor_init->variant.field->type;
       break;
     case cik_delegation:
-      /* No modification is necessary. */
+#if IA64_ABI
+      /* When we're lowering the target constructor call in a subobject
+         delegating constructor, we need to make sure the exception handling
+         routines call the subobject destructor. */
+      if (innermost_function_scope->variant.routine.ptr->ctor_dtor_kind ==
+                                          (a_ctor_or_dtor_kind)cdk_subobject) {
+        ipdp->base_class_subobject = TRUE;
+      }  /* if */
+#endif /* IA64_ABI */
       break;
     default:
       unexpected_condition_str("modify_ctor_init_pos_descr: bad kind");
@@ -2170,7 +2178,6 @@ dip->variant.constructor.args has already been lowered.
   a_ctor_or_dtor_kind
                    kind = (a_ctor_or_dtor_kind)cdk_complete;
 #endif /* IA64_ABI */
-  a_boolean        is_target_ctor_call = FALSE;
 
 #if CHECKING
   if (dip->kind != (a_dynamic_init_kind)dik_constructor) {
@@ -2179,13 +2186,6 @@ dip->variant.constructor.args has already been lowered.
 #endif /* CHECKING */
   check_assertion(!entity_node->is_lvalue &&
                   is_pointer_type(entity_node->type));
-  if (ctor_init != NULL &&
-      ctor_init->kind == (a_constructor_init_kind)cik_delegation) {
-    /* The routine being called is a target constructor (and is being called
-       from a delegating constructor).  Special treatment is needed in
-       this case. */
-    is_target_ctor_call = TRUE;
-  }  /* if */
   if (need_zeroing_for_value_initialization(dip)) {
     /* To do value-initialization on a class without a user-written
        constructor, zero the object and then call the default constructor. */
@@ -2201,73 +2201,98 @@ dip->variant.constructor.args has already been lowered.
                                insert_location);
     entity_node = entity_node_copy;
   }  /* if */
+#if IA64_ABI
   if (ctor_init != NULL &&
-      (ctor_init->kind == (a_constructor_init_kind)cik_virtual_base_class ||
-       ctor_init->kind == (a_constructor_init_kind)cik_direct_base_class)) {
-    /* Initializing a base class. */
-    a_base_class_ptr base_class = ctor_init->variant.base_class;
-    if (dip->kind == (a_dynamic_init_kind)dik_constructor) {
-      /* A base class initialized by a constructor call. */
+      ctor_init->kind == (a_constructor_init_kind)cik_delegation &&
+      innermost_function_scope->variant.routine.ptr->ctor_dtor_kind ==
+                                          (a_ctor_or_dtor_kind)cdk_subobject) {
+    /* This is a call to a target constructor from a delegating constructor;
+       make sure to call the subobject constructor (with the VTT parameter)
+       when being invoked in the delegating subobject constructor. */
+    a_variable_ptr  vtt_param =
+                    innermost_function_scope->variant.routine.parameters->next;
+    kind = (a_ctor_or_dtor_kind)cdk_subobject;
+    /* The VTT pointer gets passed as an implied argument. */
+    implied_arg_list = end_implied_arg_list = var_rvalue_expr(vtt_param);
+  } else
+#endif /* IA64_ABI */
+  /* Do not insert code here. */
+  { if (ctor_init != NULL &&
+        (ctor_init->kind == (a_constructor_init_kind)cik_virtual_base_class ||
+         ctor_init->kind == (a_constructor_init_kind)cik_direct_base_class)) {
+      /* Initializing a base class. */
+      a_base_class_ptr base_class = ctor_init->variant.base_class;
+      if (dip->kind == (a_dynamic_init_kind)dik_constructor) {
+        /* A base class initialized by a constructor call. */
 #if !IA64_ABI
-      a_type_ptr       base_class_type = base_class->type;
-      a_variable_ptr   param_var;
-      a_base_class_ptr bcp;
-      /* Build a list of implicit virtual base class pointer arguments.
-         The required entries are expressions providing the value of the
-         associated virtual base class pointer parameter for each virtual
-         base class of the base class. */
-      for (bcp = base_class_type->variant.class_struct_union.extra_info->
+        a_type_ptr       base_class_type = base_class->type;
+        a_variable_ptr   param_var;
+        a_base_class_ptr bcp;
+        /* Build a list of implicit virtual base class pointer arguments.
+           The required entries are expressions providing the value of the
+           associated virtual base class pointer parameter for each virtual
+           base class of the base class. */
+        for (bcp = base_class_type->variant.class_struct_union.extra_info->
                                                                   base_classes;
-           bcp != NULL;
-           bcp = bcp->next) {
-        if (bcp->is_virtual) {
-          /* Find the implicit virtual base parameter under the main class
-             that is for this same virtual base class. */
-          a_variable_ptr this_param_var =
+             bcp != NULL;
+             bcp = bcp->next) {
+          if (bcp->is_virtual) {
+            /* Find the implicit virtual base parameter under the main class
+               that is for this same virtual base class. */
+            a_variable_ptr this_param_var =
                           innermost_function_scope->variant.routine.parameters;
-          param_var = implicit_virtual_base_parameter(
+            param_var = implicit_virtual_base_parameter(
                                                      base_class->derived_class,
                                                      bcp->type,
                                                      this_param_var);
-          /* Build an expression specifying the value of the appropriate
-             virtual base class parameter, and add it to the list. */
-          implied_arg_node = var_rvalue_expr(param_var);
-          if (implied_arg_list == NULL) {
-            implied_arg_list = implied_arg_node;
-          } else {
-            end_implied_arg_list->next = implied_arg_node;
+            /* Build an expression specifying the value of the appropriate
+               virtual base class parameter, and add it to the list. */
+            implied_arg_node = var_rvalue_expr(param_var);
+            if (implied_arg_list == NULL) {
+              implied_arg_list = implied_arg_node;
+            } else {
+              end_implied_arg_list->next = implied_arg_node;
+            }  /* if */
+            end_implied_arg_list = implied_arg_node;
           }  /* if */
-          end_implied_arg_list = implied_arg_node;
-        }  /* if */
-      }  /* for */
+        }  /* for */
 #else /* IA64_ABI */
-      /* Use the subobject entry point. */
-      kind = (a_ctor_or_dtor_kind)cdk_subobject;
+        /* Use the subobject entry point. */
+        kind = (a_ctor_or_dtor_kind)cdk_subobject;
 #endif /* IA64_ABI */
 #if ABI_CHANGES_FOR_CONSTRUCTION_VTBLS
-      /* Set up for passing an array of virtual function table pointers
-         to use during the subobject construction, if one is necessary. */
-      build_construction_vtbls_pointer_for_subobject_construction(
-                                                      dip,
-                                                      base_class,
-                                                      ipdp,
-                                                      construction_vtbls_var,
-                                                      insert_location,
-                                                      &implied_arg_node,
-                                                      (a_boolean *)NULL);
+        /* Set up for passing an array of virtual function table pointers
+           to use during the subobject construction, if one is necessary. */
+        build_construction_vtbls_pointer_for_subobject_construction(
+                                                        dip,
+                                                        base_class,
+                                                        ipdp,
+                                                        construction_vtbls_var,
+                                                        insert_location,
+                                                        &implied_arg_node,
+                                                        (a_boolean *)NULL);
 #if IA64_ABI
-      /* The VTT pointer gets passed as an implied argument. */
-      implied_arg_list = end_implied_arg_list = implied_arg_node;
+        /* The VTT pointer gets passed as an implied argument. */
+        implied_arg_list = end_implied_arg_list = implied_arg_node;
 #endif /* IA64_ABI */
 #endif /* ABI_CHANGES_FOR_CONSTRUCTION_VTBLS */
+      }  /* if */
     }  /* if */
   }  /* if */
-#if !IA64_ABI
+#if IA64_ABI
+  /* Use the proper entry point (complete or subobject). */
+  ctor_routine = dip->variant.constructor.ptr =
+                                   alternate_entry_point(ctor_routine,
+                                                         kind,
+                                                         /*define_now=*/FALSE);
+#else /* !IA64_ABI */
   /* If no implied_arg_list is supplied and the constructor needs one
      (because it initializes a class that has virtual base classes), make
      the implied_arg_list (all entries are NULL pointer values). */
   if (implied_arg_list == NULL) {
-    if (is_target_ctor_call) {
+    a_boolean is_target_ctor = FALSE;
+    if (ctor_init != NULL &&
+        ctor_init->kind == (a_constructor_init_kind)cik_delegation) {
       /* This ctor_init is for a delegating constructor's call to a
          target constructor. */
 #if NEW_CAN_BE_FOLDED_INTO_CTOR
@@ -2284,135 +2309,27 @@ dip->variant.constructor.args has already been lowered.
       this_param->param_used_as_lvalue = TRUE;
 #endif /* MINIMAL_INLINING */
 #endif /* NEW_CAN_BE_FOLDED_INTO_CTOR */
+      is_target_ctor = TRUE;
     }  /* if */
-    make_ctor_implied_arg_list(ctor_routine, is_target_ctor_call,
+    make_ctor_implied_arg_list(ctor_routine, is_target_ctor,
                                &implied_arg_list, &end_implied_arg_list);
   }  /* if */
-#endif /* !IA64_ABI */
-#if IA64_ABI
-  if (is_target_ctor_call &&
-      innermost_function_scope->variant.routine.ptr->ctor_dtor_kind ==
-                                         (a_ctor_or_dtor_kind)cdk_delegation) {
-    /* The "common" cdk_delegation constructor is invoked by both subobject
-       and complete alternate entry points and must invoke either the
-       target complete object constructor or the target subobject constructor
-       (depending on whether the delegating complete object constructor or
-       delegating subobject constructor invoked the cdk_delegation
-       constructor respectively).  To accomplish this, add an "if" statement
-       which checks for a NULL VTT argument being passed in, and call the
-       appropriate target constructor at run-time.
-
-       Note that any arguments that are passed to the target constructor
-       need temporaries if they are not reusable (and the temporaries must
-       be set before the "if" statement is evaluated).
-
-       Add this lowered code:
-
-         [initialization for any temporaries required during argument eval]
-         if (vtt_param) {
-           target_subobject(this, vtt_param[, ...]);
-         } else {
-           target_complete_object(this[, ...]);
-         }
-    */
-    an_expr_node_ptr    test_node, arg, arg_list, arg_copy, so_arg_list;
-    an_insert_location  then_insert_location, else_insert_location;
-    a_variable_ptr      vtt_param;
-    a_boolean           temp_init_used;
-
-    /* Create a node to test whether the VTT parameter is NULL. */
-    check_assertion(innermost_function_scope->variant.routine.parameters
-                                                                     != NULL &&
-                    innermost_function_scope->variant.routine.parameters->next
-                                                                      != NULL);
-    vtt_param = innermost_function_scope->variant.routine.parameters->next;
-    check_assertion(vtt_param != NULL &&
-                    f_identical_types(vtt_param->type,
-                                      make_virtual_table_table_pointer_type(),
-                                      ITF_IL_IDENTICAL));
-    test_node = var_rvalue_expr(vtt_param);
-    test_node = boolean_controlling_expr(test_node);
-    /* Create the "if" statement. */
-    insert_if_statement(test_node, /*is_initialization_guard=*/FALSE,
-                        insert_location, (a_statement_ptr *)NULL,
-                        &then_insert_location, &else_insert_location);
-    /* Create the argument list for the complete object constructor first.
-       Create copies of each argument, and in cases where a temporary is
-       used, ensure that the temporary is set before the "if" statement
-       is executed. */
-    check_assertion(source_node == NULL && return_value == NULL);
-    arg_list = make_reusable_copy_full(entity_node,
-                                       /*vars_can_change=*/FALSE,
-                                       &temp_init_used,
-                                       /*treat_as_potential_rvalue=*/FALSE);
-    if (temp_init_used) {
-      (void)insert_expr_statement(entity_node, insert_location);
-    }  /* if */
-    arg_copy = arg_list;
-    for (arg = dip->variant.constructor.args;
-         arg != NULL;
-         arg = arg->next) {
-      arg_copy->next = make_reusable_copy_full(arg,
-                                          /*vars_can_change=*/FALSE,
-                                          &temp_init_used,
-                                          /*treat_as_potential_rvalue=*/FALSE);
-      arg_copy = arg_copy->next;
-      if (temp_init_used) {
-        (void)insert_expr_statement(arg, insert_location);
-      }  /* if */
-    }  /* for */
-    /* Now copy the arguments used in the complete object constructor case
-       to the subobject case (adding the VTT parameter as the second argument).
-       In this case, no (new) temporaries should be created (they would have
-       been created above in the first copy. */
-    so_arg_list = make_reusable_copy(arg_list, /*vars_can_change=*/FALSE);
-    so_arg_list->next = var_rvalue_expr(vtt_param);
-    arg_copy = so_arg_list->next;
-    for (arg = arg_list->next; arg != NULL; arg = arg->next) {
-      arg_copy->next = make_reusable_copy(arg, /*vars_can_change=*/FALSE);
-      arg_copy = arg_copy->next;
-    }  /* for */
-    /* Call the target subobject constructor in the "then" clause. */
-    make_call_statement(alternate_entry_point(dip->variant.constructor.ptr,
-                                            (a_ctor_or_dtor_kind)cdk_subobject,
-                                            /*define_now=*/FALSE),
-                        so_arg_list, return_value, &then_insert_location);
-    /* Call the target complete object constructor in the "else" clause. */
-    make_call_statement(alternate_entry_point(dip->variant.constructor.ptr,
-                                             (a_ctor_or_dtor_kind)cdk_complete,
-                                             /*define_now=*/FALSE),
-                        arg_list, return_value, &else_insert_location);
-    /* Note that dip->variant.constructor.ptr is unchanged in this case;
-       it can't be set to either alternate entry point, so it's left pointing
-       to the primary (cdk_delegation) routine. */
-  } else
 #endif /* IA64_ABI */
-  /* Do not insert code here. */
-  {
-#if IA64_ABI
-    /* Use the proper entry point (complete or subobject). */
-    ctor_routine = dip->variant.constructor.ptr = 
-                                   alternate_entry_point(ctor_routine,
-                                                         kind,
-                                                         /*define_now=*/FALSE);
-#endif /* IA64_ABI */
-    /* Link the entity node, the implied arguments if any, the source node if
-       any, and the other arguments together. */
-    last_node = entity_node;
-    if (implied_arg_list != NULL) {
-      last_node->next = implied_arg_list;
-      last_node = end_implied_arg_list;
-    }  /* if */
-    if (source_node != NULL) {
-      last_node->next = source_node;
-      last_node = source_node;
-    }  /* if */
-    last_node->next = dip->variant.constructor.args;
-    /* Make and insert an expression statement containing the call
-       expression. */
-    make_call_statement(ctor_routine, entity_node, return_value,
-                        insert_location);
+  /* Link the entity node, the implied arguments if any, the source node if
+     any, and the other arguments together. */
+  last_node = entity_node;
+  if (implied_arg_list != NULL) {
+    last_node->next = implied_arg_list;
+    last_node = end_implied_arg_list;
   }  /* if */
+  if (source_node != NULL) {
+    last_node->next = source_node;
+    last_node = source_node;
+  }  /* if */
+  last_node->next = dip->variant.constructor.args;
+  /* Make and insert an expression statement containing the call expression. */
+  make_call_statement(ctor_routine, entity_node, return_value,
+                      insert_location);
 }  /* add_constructor_call */
 
 
@@ -3727,7 +3644,7 @@ Add "if (this)" around the whole routine whose top scope is given by "scope".
   enclose_routine_in_if(scope, if_node, (a_variable_ptr)NULL);
 }  /* add_null_test_around_routine */
 
-#if HANDLE_VIRTUAL_BASES_IN_COMPLETE_CTOR_DTORS
+#if IA64_ABI
 
 static void replace_parameter_in_node(an_expr_node_ptr                expr,
                                       an_expr_or_stmt_traversal_block *tblock)
@@ -3842,76 +3759,63 @@ Assumes ctor_init has not been lowered yet.
 }  /* copy_ctor_init_with_remap */
 
 
-static void move_or_copy_virtual_base_ctor_inits(a_scope_ptr subobj_scope)
+static void move_or_copy_ctor_inits(a_scope_ptr         from_scope,
+                                    a_scope_ptr         to_scope,
+                                    a_boolean           move_ctor_init,
+                                    a_ctor_or_dtor_kind kind)
 /*
-This routine either moves (when HANDLE_VIRTUAL_BASES_IN_SUBOBJECT_CTOR_DTORS
-is FALSE) or copies (when HANDLE_VIRTUAL_BASES_IN_SUBOBJECT_CTOR_DTORS is
-TRUE) virtual base constructors from the specified subobject ctor/dtor
-scope into the complete object ctor/dtor scope.
+This routine either moves (when move_ctor_init is TRUE) or copies (when
+move_ctor_init is FALSE) constructor initializers of type "kind" from the
+specified "from_scope" to the specified "to_scope" (both of which must be
+function scopes for constructors and/or destructors).
 */
 {
-  a_routine_ptr            complete_routine = NULL, subobj_routine;
-  a_scope_ptr              complete_scope;
+  a_routine_ptr            from_routine;
   a_constructor_init_ptr   ctor_init, copy, prev = NULL;
-  a_routine_list_entry_ptr rlep;
-#if !HANDLE_VIRTUAL_BASES_IN_SUBOBJECT_CTOR_DTORS
   a_constructor_init_ptr   *delete_at =
-                              &subobj_scope->variant.routine.constructor_inits;
-#endif /* !HANDLE_VIRTUAL_BASES_IN_SUBOBJECT_CTOR_DTORS */
+                              &from_scope->variant.routine.constructor_inits;
 
 #if DEBUG
-  if (db_flag_is_set("virt_ctor_inits")) {
-    (void)fprintf(f_debug, "Before: subobject lifetime = ");
-    db_object_lifetime(subobj_scope->lifetime);
-    (void)fprintf(f_debug, "subobject ctor_inits:\n");
-    for (ctor_init = subobj_scope->variant.routine.constructor_inits;
+  if (db_flag_is_set("move_or_copy_ctor_inits")) {
+    (void)fprintf(f_debug, "Before: from lifetime = ");
+    db_object_lifetime(from_scope->lifetime);
+    (void)fprintf(f_debug, "from ctor_inits:\n");
+    for (ctor_init = from_scope->variant.routine.constructor_inits;
          ctor_init != NULL;
          ctor_init = ctor_init->next) {
       db_dynamic_initializer(ctor_init->initializer, 0);
     }  /* for */
   }  /* if */
 #endif /* DEBUG */
-  check_assertion(subobj_scope->kind == (a_scope_kind)sck_function);
-  subobj_routine = subobj_scope->variant.routine.ptr;
-  check_assertion(parent_class_of(subobj_routine)->
-                         variant.class_struct_union.any_virtual_base_classes &&
-                  subobj_routine->ctor_dtor_kind ==
-                                          (a_ctor_or_dtor_kind)cdk_subobject &&
-                  (subobj_routine->special_kind ==
+  check_assertion(from_scope->kind == (a_scope_kind)sck_function &&
+                  to_scope->kind == (a_scope_kind)sck_function);
+  from_routine = from_scope->variant.routine.ptr;
+  check_assertion((from_routine->special_kind ==
                                     (a_special_function_kind)sfk_constructor ||
-                   subobj_routine->special_kind ==
-                                     (a_special_function_kind)sfk_destructor));
-  /* Find the complete routine and scope. */
-  for (rlep = subobj_routine->variant.ctor_dtor.alternate_entry_points;
-       rlep != NULL; 
-       rlep = rlep->next) {
-    if (rlep->routine->ctor_dtor_kind == (a_ctor_or_dtor_kind)cdk_complete) {
-      complete_routine = rlep->routine;
-      break;
-    }  /* if */
-  }  /* for */
-  complete_scope = scope_for_routine(complete_routine);
-  check_assertion(complete_scope->variant.routine.constructor_inits == NULL);
-  for (ctor_init = subobj_scope->variant.routine.constructor_inits;
+                   from_routine->special_kind ==
+                                    (a_special_function_kind)sfk_destructor) &&
+                  to_scope->variant.routine.constructor_inits == NULL);
+  for (ctor_init = from_scope->variant.routine.constructor_inits;
        ctor_init != NULL;
        ctor_init = ctor_init->next) {
-    if (ctor_init->kind == (a_constructor_init_kind)cik_virtual_base_class) {
+    if (ctor_init->kind == kind) {
+      /* Found a ctor init of the proper kind. */
       a_dynamic_init_ptr  save_dip;
       check_assertion(ctor_init->initializer != NULL);
-      if (subobj_routine->special_kind ==
+      if (from_routine->special_kind ==
                                      (a_special_function_kind)sfk_destructor) {
         /* During the copy below, a destruction will be queued on the lifetime
            of the current scope.  For destructors, this lifetime will be
            queued in the wrong order, so save the existing destructions
            and queue the new one after these. */
-        save_dip = complete_scope->lifetime->destructions;
-        complete_scope->lifetime->destructions = NULL;
+        save_dip = to_scope->lifetime->destructions;
+        to_scope->lifetime->destructions = NULL;
       }  /* if */
       /* Copy the constructor init into the current memory region and link
-         it onto the list for the complete object ctor/dtor. */
-      copy = copy_ctor_init_with_remap(ctor_init, subobj_scope, complete_scope,
+         it onto the list. */
+      copy = copy_ctor_init_with_remap(ctor_init, from_scope, to_scope,
                                        CE_COPYING_FROM_ONE_FUNC_TO_ANOTHER);
-      if (subobj_routine->special_kind ==
+      if (from_routine->special_kind ==
                                      (a_special_function_kind)sfk_destructor) {
         /* For destructors, queue the new destruction at the end of the
            list. */
@@ -3921,60 +3825,59 @@ scope into the complete object ctor/dtor scope.
                dip->next_in_destruction_list != NULL;
                dip = dip->next_in_destruction_list) {}
           dip->next_in_destruction_list =
-                                        complete_scope->lifetime->destructions;
-          complete_scope->lifetime->destructions = save_dip;
+                                        to_scope->lifetime->destructions;
+          to_scope->lifetime->destructions = save_dip;
         }  /* if */
       }  /* if */
       if (prev == NULL) {
-        complete_scope->variant.routine.constructor_inits = copy;
+        to_scope->variant.routine.constructor_inits = copy;
       } else {
         prev->next = copy;
       }  /* if */
       prev = copy;
-#if !HANDLE_VIRTUAL_BASES_IN_SUBOBJECT_CTOR_DTORS
-      /* We're not going to handle virtual bases in the subobject ctor/dtor,
-         so remove any trace of them. */
-      (*delete_at) = ctor_init->next;
-      remove_from_destruction_list(ctor_init->initializer);
-    } else {
-      /* For destructors, virtual base classes are at the end of the list,
-         so keep track of the last non-virtual ctor_init. */
+      if (move_ctor_init) {
+        /* We're moving the ctor_init, so remove them from the destruction
+           list. */
+        (*delete_at) = ctor_init->next;
+        remove_from_destruction_list(ctor_init->initializer);
+      }  /* if */
+    } else if (move_ctor_init) {
+      /* For destructors, the list is backwards. */
       delete_at = &(ctor_init->next);
-#endif /* !HANDLE_VIRTUAL_BASES_IN_SUBOBJECT_CTOR_DTORS */
     }  /* if */
   }  /* for */
-#if !HANDLE_VIRTUAL_BASES_IN_SUBOBJECT_CTOR_DTORS
-  /* Remove the subobject scope lifetime if it's no longer needed. */
-  if (subobj_scope->lifetime != NULL &&
-      is_useless_object_lifetime(subobj_scope->lifetime)) {
+  /* Remove the from_scope lifetime if it's no longer needed (if we've moved
+     all of the constructors from it). */
+  if (move_ctor_init &&
+      from_scope->lifetime != NULL &&
+      is_useless_object_lifetime(from_scope->lifetime)) {
     /* No need to unlink it from its parent (function scope object lifetimes
        aren't queued on the file scope object lifetime). */
-    subobj_scope->lifetime = NULL;
+    from_scope->lifetime = NULL;
   }  /* if */
-#endif /* !HANDLE_VIRTUAL_BASES_IN_SUBOBJECT_CTOR_DTORS */
 #if DEBUG
-  if (db_flag_is_set("virt_ctor_inits")) {
-    (void)fprintf(f_debug, "After: subobject lifetime = ");
-    db_object_lifetime(subobj_scope->lifetime);
-    (void)fprintf(f_debug, "After: complete lifetime = ");
-    db_object_lifetime(complete_scope->lifetime);
-    (void)fprintf(f_debug, "subobject ctor_inits:\n");
-    for (ctor_init = subobj_scope->variant.routine.constructor_inits;
+  if (db_flag_is_set("move_or_copy_ctor_inits")) {
+    (void)fprintf(f_debug, "After: from lifetime = ");
+    db_object_lifetime(from_scope->lifetime);
+    (void)fprintf(f_debug, "After: to lifetime = ");
+    db_object_lifetime(to_scope->lifetime);
+    (void)fprintf(f_debug, "from ctor_inits:\n");
+    for (ctor_init = from_scope->variant.routine.constructor_inits;
          ctor_init != NULL;
          ctor_init = ctor_init->next) {
       db_dynamic_initializer(ctor_init->initializer, 0);
     }  /* for */
-    (void)fprintf(f_debug, "complete ctor_inits:\n");
-    for (ctor_init = complete_scope->variant.routine.constructor_inits;
+    (void)fprintf(f_debug, "to ctor_inits:\n");
+    for (ctor_init = to_scope->variant.routine.constructor_inits;
          ctor_init != NULL;
          ctor_init = ctor_init->next) {
       db_dynamic_initializer(ctor_init->initializer, 0);
     }  /* for */
   }  /* if */
 #endif /* DEBUG */
-}  /* move_or_copy_virtual_base_ctor_inits */
+}  /* move_or_copy_ctor_inits */
 
-#endif /* HANDLE_VIRTUAL_BASES_IN_COMPLETE_CTOR_DTORS */
+#endif /* IA64_ABI */
 
 /* Forward declarations. */
 #if ABI_CHANGES_FOR_CONSTRUCTION_VTBLS
@@ -4086,6 +3989,9 @@ operator of a no-capture lambda.
   a_generated_routine_context
                    grcontext;
   a_boolean        insert_as_statement, void_return, is_lambda_entry_point;
+#if IA64_ABI
+  a_boolean        move_ctor_init;
+#endif /* IA64_ABI */
   an_object_lifetime_ptr
                    init_expr_lifetime = NULL;
   a_context        def_arg_context;
@@ -4310,14 +4216,51 @@ operator of a no-capture lambda.
       end_implied_arg_list->next = default_arg_list;
       default_arg_list = implied_arg_list;
     }  /* if */
+#if IA64_ABI
+    if (routine->ctor_dtor_kind == (a_ctor_or_dtor_kind)cdk_delegation) {
+      /* When a common routine is used for the body of a delegating
+         constructor, the call to the target constructor is done in the
+         alternate entry point(s) before invoking the common constructor.  The
+         cik_delegation constructor init is originally in the cdk_delegation
+         (primary) routine.  The code below first copies the constructor init
+         to the complete object alternate entry point and lowers it, then is
+         called a second time to move the constructor init to the subobject
+         alternate entry point and lowers it. */
+      move_ctor_init =
+             new_routine->ctor_dtor_kind == (a_ctor_or_dtor_kind)cdk_subobject;
+      check_assertion(scope_for_routine(routine)->
+                                    variant.routine.constructor_inits != NULL);
+      move_or_copy_ctor_inits(scope_for_routine(routine),
+                              new_routine_scope,
+                              move_ctor_init,
+                              cik_delegation);
+      check_assertion(
+           new_routine_scope->variant.routine.constructor_inits != NULL &&
+           new_routine_scope->variant.routine.constructor_inits->next == NULL);
+      /* Start an object lifetime. */
+      begin_block_object_lifetime(new_routine_scope->lifetime,
+                                  &insert_location);
+      lower_ctor_init(new_routine_scope->variant.routine.constructor_inits,
+                      new_routine_scope->variant.routine.parameters,
+                      /*base_of_complete_object=*/FALSE,
+                      (a_variable_ptr)NULL, &insert_location);
+    }  /* if */
+#endif /* IA64_ABI */
 #if HANDLE_VIRTUAL_BASES_IN_COMPLETE_CTOR_DTORS
     if (construct_virtual_bases || destroy_virtual_bases) {
-      a_scope_ptr  subobj_scope = scope_for_routine(routine);
+      a_routine_ptr complete_routine;
+      move_ctor_init = !HANDLE_VIRTUAL_BASES_IN_SUBOBJECT_CTOR_DTORS;
       /* Move (or copy) virtual base ctor_inits from the subobject ctor/dtor
          into the complete object ctor/dtor so the construction/destruction
          of the virtual bases will take place in the complete object
          ctor/dtor. */
-      move_or_copy_virtual_base_ctor_inits(subobj_scope);
+      complete_routine = alternate_entry_point(routine,
+                                             (a_ctor_or_dtor_kind)cdk_complete,
+                                             /*define_now=*/FALSE);
+      move_or_copy_ctor_inits(scope_for_routine(routine),
+                              scope_for_routine(complete_routine),
+                              move_ctor_init,
+                              cik_virtual_base_class);
       /* Start an object lifetime. */
       begin_block_object_lifetime(new_routine_scope->lifetime,
                                   &insert_location);
@@ -14118,16 +14061,29 @@ constructor (at the specified insert_location).
                   ctor_init != NULL &&
                   ctor_init->kind == (a_constructor_init_kind)cik_delegation &&
                   ctor_init->next == NULL);
-  /* Lower the delegating constructor init to invoke the target constructor.
-     In the Cfront ABI, if parent class has virtual bases, the lowered
-     call to the target constructor will forward any implied arguments
-     for virtual base classes (see make_ctor_implied_arg_list).  In the
-     IA-64 ABI, the actual constructor to call is determined at run-time
-     (see add_constructor_call). */
-  lower_ctor_init(ctor_init,
-                  scope->variant.routine.parameters,
-                  /*base_of_complete_object=*/FALSE,
-                  (a_variable_ptr)NULL, insert_location);
+#if IA64_ABI
+  if (scope->variant.routine.ptr->ctor_dtor_kind ==
+                                         (a_ctor_or_dtor_kind)cdk_delegation) {
+    /* If a "common" routine is needed for this delegating constructor, then
+       the constructor init for the target constructor will be copied to the
+       subobject and complete object alternate entry points and lowered there
+       (so they can invoke the subobject target constructor and complete
+       object target constructor respectively).  Lowering them in those
+       routines also helps for the exception handling cleanup. */
+  } else
+#endif /* IA64_ABI */
+  /* Do not insert code here. */
+  {
+    /* Lower the delegating constructor init to invoke the target constructor.
+       In the Cfront ABI, if parent class has virtual bases, the lowered
+       call to the target constructor will forward any implied arguments
+       for virtual base classes (see make_ctor_implied_arg_list). */
+    lower_ctor_init(ctor_init,
+                    scope->variant.routine.parameters,
+                    /*base_of_complete_object=*/FALSE,
+                    (a_variable_ptr)NULL, insert_location);
+    scope->variant.routine.constructor_inits = NULL;
+  }  /* if */
 }  /* add_delegating_constructor_wrapper_code */
 
 
@@ -14160,10 +14116,7 @@ constructor scope, and also lower the user code.
   a_statement_ptr    last_statement;
   an_insert_location insert_location;
   a_source_position  saved_error_position, saved_code_pos;
-#if NEW_CAN_BE_FOLDED_INTO_CTOR || ASSIGNMENT_TO_THIS_ALLOWED || \
-    HANDLE_VIRTUAL_BASES_IN_COMPLETE_CTOR_DTORS
   a_routine_ptr      ctor_routine = scope->variant.routine.ptr;
-#endif /* NEW_CAN_BE_FOLDED_INTO_CTOR || ASSIGNMENT_TO_THIS_ALLOWED || ...*/
 #if NEW_CAN_BE_FOLDED_INTO_CTOR || HANDLE_VIRTUAL_BASES_IN_COMPLETE_CTOR_DTORS
   a_type_ptr         class_type = parent_class_of(ctor_routine);
 #endif /* NEW_CAN_BE_FOLDED_INTO_CTOR || HANDLE_VIRTUAL_BASES_IN_COMPLETE... */
@@ -14325,8 +14278,8 @@ constructor scope, and also lower the user code.
   } else {
     lower_statement_list(user_code_stmts, &last_statement);
   }  /* if */
-#if NEW_CAN_BE_FOLDED_INTO_CTOR
   if (!ctor_routine->is_delegating_ctor) {
+#if NEW_CAN_BE_FOLDED_INTO_CTOR
 #if ASSIGNMENT_TO_THIS_ALLOWED
     /* Again, if an assignment to "this" was done, the wrapper code is
        not generated. */
@@ -14353,32 +14306,32 @@ constructor scope, and also lower the user code.
 #endif /* GENERATE_EH_TABLES */
       }  /* if */
     }
-  }  /* if */
 #endif /* NEW_CAN_BE_FOLDED_INTO_CTOR */
 #if HANDLE_VIRTUAL_BASES_IN_COMPLETE_CTOR_DTORS
-  /* Clear the list of non-virtual base constructor inits (the virtual
-     base constructors are still needed). */
-  { a_constructor_init_ptr  ptr, prev = NULL;
-    for (ptr = scope->variant.routine.constructor_inits;
-         ptr != NULL;
-         ptr = ptr->next) {
-      if (ptr->kind != (a_constructor_init_kind)cik_virtual_base_class) {
-        if (prev == NULL) {
-          scope->variant.routine.constructor_inits = NULL;
-        } else {
-          prev->next = NULL;
+    /* Clear the list of non-virtual base constructor inits (the virtual
+       base constructors are still needed). */
+    { a_constructor_init_ptr  ptr, prev = NULL;
+      for (ptr = scope->variant.routine.constructor_inits;
+           ptr != NULL;
+           ptr = ptr->next) {
+        if (ptr->kind != (a_constructor_init_kind)cik_virtual_base_class) {
+          if (prev == NULL) {
+            scope->variant.routine.constructor_inits = NULL;
+          } else {
+            prev->next = NULL;
+          }  /* if */
+          break;
         }  /* if */
-        break;
-      }  /* if */
-      prev = ptr;
-    }  /* for */
-  }
+        prev = ptr;
+      }  /* for */
+    }
 #else /* !HANDLE_VIRTUAL_BASES_IN_COMPLETE_CTOR_DTORS */
-  /* Clear the list of constructor inits (it can't be cleared by
-     add_constructor_wrapper_code because that routine can be called
-     more than once when assignments to "this" are present). */
-  scope->variant.routine.constructor_inits = NULL;
+    /* Clear the list of constructor inits (it can't be cleared by
+       add_constructor_wrapper_code because that routine can be called
+       more than once when assignments to "this" are present). */
+    scope->variant.routine.constructor_inits = NULL;
 #endif /* HANDLE_VIRTUAL_BASES_IN_COMPLETE_CTOR_DTORS */
+  }  /* if */
   error_position = saved_error_position;
   code_pos_for_lowering = saved_code_pos;
 }  /* lower_constructor_code */

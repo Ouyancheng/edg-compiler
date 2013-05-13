@@ -474,6 +474,11 @@ static void change_node_to_operation(an_expr_node_ptr      node,
                                      a_type_ptr            type,
                                      an_expr_node_ptr      operand,
                                      a_boolean             is_lvalue);
+static an_expr_node_ptr make_reusable_copy_full(
+                                   an_expr_node_ptr expr,
+                                   a_boolean        vars_can_change,
+                                   a_boolean        *temp_init_used,
+                                   a_boolean        treat_as_potential_rvalue);
 static void lower_type(a_type_ptr type);
 static void lower_variable(a_variable_ptr variable);
 static void lower_field_list(a_type_ptr class_type);
@@ -3309,7 +3314,7 @@ to the temporary.
 }  /* assign_expr_to_temp_and_make_expr_for_reuse */
 
 
-an_expr_node_ptr make_reusable_copy_full(
+static an_expr_node_ptr make_reusable_copy_full(
                                     an_expr_node_ptr expr,
                                     a_boolean        vars_can_change,
                                     a_boolean        *temp_init_used,
