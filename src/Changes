@@ -1,5 +1,25 @@
 Version 4.7
 
+5/14/13  [EDGcpfe/14032]
+Abort after error on defaulted default constructor
+
+In some unusual cases, the front end could abort during an IL walk (e.g., in
+walk_tree_and_set_needed) after issuing an error about being unable to
+determine the exception specification for a defaulted default constructor.
+For example:
+
+  template <class T> struct A {
+    constexpr A(int i) {}
+    A() = default;
+    A<B> pmf = &B::f;
+    void g() { A<short> a(37); }
+  };
+
+After issuing various errors, the front aborted on this example (in some
+configurations) while determining needed flags.  This problem was introduced
+in version 4.5 of the front end.
+
+
 5/13/13  [EDGcpfe/13426]
 Missing diagnostic on default template argument added outside of class
 
