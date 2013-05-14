@@ -9328,6 +9328,19 @@ start_of_raw_string_delimiter is not used.
       *num_chars += num_ignored_carriage_returns;
     }  /* if */
 #endif /* IGNORE_CARRIAGE_RETURN_IN_SOURCE */
+    if (is_raw_string && end_orig_line_modif_list != NULL &&
+        end_orig_line_modif_list->line_loc == curr_char_loc &&
+        end_orig_line_modif_list->kind == olm_line_splice) {
+      /* The previous physical line ended in a line splice, which was
+         already seen by accum_quoted_string.  Because a line splice adds
+         no characters to the logical line, the modification for the line
+         splice and the one we're about to add for the multiline string
+         splice will have the same line_loc and will both be processed by
+         the next call to accum_quoted_string.  Decrement the character
+         count appropriately so the line splice won't be counted twice. */
+      check_assertion(*num_chars >= 2);
+      *num_chars -= 2;
+    }  /* if */
     olmp = add_orig_line_modif(olm_multiline_string_splice,
                                curr_char_loc);
     olmp->variant.splice.seq_number = seq_number_last_read + 1;
