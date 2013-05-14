@@ -16020,6 +16020,13 @@ typedef struct a_constructor_init {
 			   front end in that case, but may later be set
 			   to point to a copy of the field initializer in
 			   lowering configurations. */
+#if DO_IL_LOWERING && IA64_ABI
+  a_bit_field	use_subobject_constructor:1;
+			/* TRUE if this cik_delegation initializer should
+			   invoke the subobject target constructor when
+			   lowered (otherwise the complete object target
+			   constructor is invoked). */
+#endif /* DO_IL_LOWERING && IA64_ABI */
   union {
     /* When kind is cik_virtual_base_class or cik_direct_base_class: */
     a_base_class_ptr

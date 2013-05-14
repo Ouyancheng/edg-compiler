@@ -1159,6 +1159,10 @@ Clear the fields of a destructible entity description to default values.
   dedp->initialization_done = FALSE;
   dedp->needs_subobject_construction_vtbl = FALSE;
   dedp->construction_vtbls_var_is_array = FALSE;
+#if IA64_ABI
+  dedp->use_subobject_destructor = FALSE;
+  dedp->subobject_vtt_param = NULL;
+#endif /* IA64_ABI */
   dedp->construction_vtbls_var = NULL;
   dedp->subobject_construction_base_class = NULL;
 }  /* clear_destructible_entity_descr */
@@ -2204,8 +2208,7 @@ dip->variant.constructor.args has already been lowered.
 #if IA64_ABI
   if (ctor_init != NULL &&
       ctor_init->kind == (a_constructor_init_kind)cik_delegation &&
-      innermost_function_scope->variant.routine.ptr->ctor_dtor_kind ==
-                                          (a_ctor_or_dtor_kind)cdk_subobject) {
+      ctor_init->use_subobject_constructor) {
     /* This is a call to a target constructor from a delegating constructor;
        make sure to call the subobject constructor (with the VTT parameter)
        when being invoked in the delegating subobject constructor. */
@@ -4226,6 +4229,7 @@ operator of a no-capture lambda.
          to the complete object alternate entry point and lowers it, then is
          called a second time to move the constructor init to the subobject
          alternate entry point and lowers it. */
+      a_constructor_init_ptr ctor_init;
       move_ctor_init =
              new_routine->ctor_dtor_kind == (a_ctor_or_dtor_kind)cdk_subobject;
       check_assertion(scope_for_routine(routine)->
@@ -4234,13 +4238,27 @@ operator of a no-capture lambda.
                               new_routine_scope,
                               move_ctor_init,
                               (a_constructor_init_kind)cik_delegation);
-      check_assertion(
-           new_routine_scope->variant.routine.constructor_inits != NULL &&
-           new_routine_scope->variant.routine.constructor_inits->next == NULL);
+      ctor_init = new_routine_scope->variant.routine.constructor_inits;
+      check_assertion(ctor_init != NULL && ctor_init->next == NULL);
       /* Start an object lifetime. */
       begin_block_object_lifetime(new_routine_scope->lifetime,
                                   &insert_location);
-      lower_ctor_init(new_routine_scope->variant.routine.constructor_inits,
+      if (new_routine->ctor_dtor_kind == (a_ctor_or_dtor_kind)cdk_subobject) {
+        /* For the subobject version of this constructor init, distinguish
+           this from the complete object version by setting flags that will
+           cause the subobject target constructor to be called, as well as
+           the subobject destructor (if any). */
+        ctor_init->use_subobject_constructor = TRUE;
+        check_assertion(ctor_init->initializer != NULL);
+        if (ctor_init->initializer->destructible_entity_descr != NULL) {
+          a_destructible_entity_descr_ptr dedp;
+          dedp = ctor_init->initializer->destructible_entity_descr;
+          dedp->use_subobject_destructor = TRUE;
+          dedp->subobject_vtt_param =
+                           new_routine_scope->variant.routine.parameters->next;
+        }  /* if */
+      }  /* if */
+      lower_ctor_init(ctor_init,
                       new_routine_scope->variant.routine.parameters,
                       /*base_of_complete_object=*/FALSE,
                       (a_variable_ptr)NULL, &insert_location);

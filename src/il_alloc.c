@@ -3643,6 +3643,9 @@ pointer to it.
   cip->is_pack_expansion = FALSE;
   cip->is_braced = FALSE;
   cip->use_field_initializer = FALSE;
+#if DO_IL_LOWERING && IA64_ABI
+  cip->use_subobject_constructor = FALSE;
+#endif /* DO_IL_LOWERING && IA64_ABI */
   switch (kind) {
     case cik_virtual_base_class:
     case cik_direct_base_class:

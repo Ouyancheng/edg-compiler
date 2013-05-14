@@ -328,6 +328,19 @@ typedef struct a_destructible_entity_descr {
 			/* Set to TRUE if the variable in
 			   construction_vtbls_var is itself the array, FALSE
 			   if the variable is a pointer to the array. */
+#if IA64_ABI
+  a_byte_boolean
+		use_subobject_destructor;
+			/* When TRUE, the destruction is for a cik_delegation
+			   initialization and exception handling destruction
+			   should be handled by the subobject destructor. */
+  a_variable_ptr
+		subobject_vtt_param;
+			/* When use_subobject_destructor is TRUE, this is the
+			   VTT parameter for the delegating constructor
+			   (which is then passed as the VTT argument to
+			   the subobject destructor). */
+#endif /* IA64_ABI */
   a_variable_ptr
 		construction_vtbls_var;
 			/* When needs_subobject_construction_vtbl is TRUE,

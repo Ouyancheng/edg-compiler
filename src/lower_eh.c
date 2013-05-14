@@ -3742,6 +3742,7 @@ table entry.
     routine = alternate_entry_point(routine, 
                                     (a_ctor_or_dtor_kind)cdk_subobject,
                                     /*define_now=*/FALSE);
+    check_assertion(dtor_needs_vtt_argument(routine) == has_subobject_vtable);
   } else if (routine != NULL &&
              (routine->special_kind == 
                                   (a_special_function_kind)sfk_destructor)) {
@@ -3910,6 +3911,16 @@ The region table variable is created if necessary.
     /* Make a routine that sets the transfer pointer and calls the
        destructor, and record that as the "destructor" to be called. */
     dip->destructor = make_subobject_destruction_routine(dip);
+#endif /* IA64_ABI */
+#if IA64_ABI
+  } else if (dedp->use_subobject_destructor) {
+    /* This destruction represents the destruction of an object created
+       in a subobject delegating constructor which must be destroyed using
+       a subobject destructor.  The VTT argument for the subobject
+       destructor is the VTT parameter for the subobject constructor. */
+    has_subobject_vtable = TRUE;
+    set_var_init_pos_descr(dedp->subobject_vtt_param, &ipd);
+    make_handle_for_entity(&ipd, &subobject_vtable_handle, insert_location);
 #endif /* IA64_ABI */
   }  /* if */
 #endif /* ABI_CHANGES_FOR_CONSTRUCTION_VTBLS */
