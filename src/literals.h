@@ -72,6 +72,15 @@ typedef struct a_char_conversion_state {
 			   by conv_single_char instead of reading a new
 			   character from the token, in which case
 			   next_mbc_char will be NULL. */
+  sizeof_t	pending_carriage_returns;
+			/* Number of carriage return characters that
+			   conv_single_char should return before returning
+			   the newline character when an olm_line_splice is
+			   encountered in a raw string literal.  In such
+			   cases, the newline character is stored in
+			   translated_char[0] and remaining_char_count will
+			   be 1 until the carriage returns have been
+			   processed. */
   char		*next_mbc_char;
 			/* When translating from UTF-8 to multibyte
 			   characters and for universal-character-names
@@ -127,6 +136,7 @@ typedef struct a_char_conversion_state {
   { (state)->next_token_char = ptr;                             \
     (state)->next_orig_line_modif = NULL;                       \
     (state)->remaining_char_count = 0;                          \
+    (state)->pending_carriage_returns = 0;                      \
     (state)->next_mbc_char = NULL;                              \
     (state)->translate_utf8_to_mbc = translate_utf8;            \
     (state)->create_surrogate_pairs = FALSE;                    \

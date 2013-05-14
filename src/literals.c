@@ -844,23 +844,34 @@ state->next_orig_line_modif is advanced to point to the next modification.
        pair started on a previous call of this routine.  Return another
        character (or the second code unit) and decrement the count of
        remaining characters. */
-    if (state->next_mbc_char != NULL) {
+    if (state->pending_carriage_returns != 0) {
+      /* Some carriage return characters were part of an olm_line_splice.
+         Return as many of those as necessary before returning the newline
+         character, which is stored in translated_char[0]; consequently,
+         remaining_char_count must remain as 1 until the newline count is
+         exhausted. */
+      check_assertion(state->remaining_char_count == 1);
+      targ_ch = TARG_CARR_RETURN_CHAR;
+      --state->pending_carriage_returns;
+    } else if (state->next_mbc_char != NULL) {
       /* The Unicode character that was seen was translated into a
          multibyte character, or a trigraph or line splice was reverted in
          a raw string literal; state->next_mbc_char points to the
          translated or reverted byte to return on this call. */
       targ_ch = (unsigned char)*state->next_mbc_char;
       ++state->next_mbc_char;
+      --state->remaining_char_count;
     } else if (state->create_surrogate_pairs) {
       /* The previous call returned the first code unit of a surrogate
          pair.  Return the second code unit now. */
       check_assertion(state->remaining_char_count == 1);
       targ_ch = state->pending_surrogate_pair;
+      --state->remaining_char_count;
     } else {
       targ_ch = (unsigned char)*lptr;
       lptr++;
+      --state->remaining_char_count;
     }  /* if */
-    --state->remaining_char_count;
     goto return_point;
   }  /* if */
 get_another:
@@ -891,6 +902,10 @@ get_another:
         state->remaining_char_count = 1;
         state->translated_char[0] = TARG_NEWLINE_CHAR;
         state->next_mbc_char = state->translated_char;
+#if IGNORE_CARRIAGE_RETURN_IN_SOURCE
+        state->pending_carriage_returns =
+                             olmp->variant.splice.num_ignored_carriage_returns;
+#endif /* IGNORE_CARRIAGE_RETURN_IN_SOURCE */
         break;
       case olm_multiline_string_splice:
         /* scan_multiline_string inserted the two characters '\' and either
@@ -1623,6 +1638,9 @@ the string.
      string literal ended with a line splice that must be expanded. */
   while (temp_ptr < end_of_string_value + raw_string_end_in_trigraph ||
          conv_state.remaining_char_count > raw_string_end_in_trigraph ||
+#if IGNORE_CARRIAGE_RETURN_IN_SOURCE
+         conv_state.pending_carriage_returns > 0 ||
+#endif /* IGNORE_CARRIAGE_RETURN_IN_SOURCE */         
          (conv_state.next_orig_line_modif != NULL &&
           conv_state.next_orig_line_modif->kind == olm_line_splice &&
           conv_state.next_orig_line_modif->line_loc == temp_ptr)) {

@@ -1200,10 +1200,20 @@ typedef struct an_orig_line_modif {
 			   for example "=" in "? ? =" (extra space added
 			   so that won't actually be a trigraph). */
     /* When kind == olm_line_splice or olm_multiline_string_splice: */
-    a_seq_number
-		line_splice_seq_number;
+    struct {
+#if IGNORE_CARRIAGE_RETURN_IN_SOURCE
+      sizeof_t	num_ignored_carriage_returns;
+			/* For olm_line_splice, the number of carriage
+			   returns that appeared between the backslash and
+			   the newline (so they can be added back in if the
+			   splice appears inside a raw string literal).
+			   Not used for olm_multiline_string_splice. */
+#endif /* IGNORE_CARRIAGE_RETURN_IN_SOURCE */
+      a_seq_number
+		seq_number;
 			/* The source sequence number of the line following
 			   the line splice. */
+    } splice;
   } variant;
 } an_orig_line_modif;
 

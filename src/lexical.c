@@ -2490,7 +2490,10 @@ original source line because of trigraphs and line splices.
       break;
     case olm_line_splice:
     case olm_multiline_string_splice:
-      olmp->variant.line_splice_seq_number = 0;  /* To be neat. */
+#if IGNORE_CARRIAGE_RETURN_IN_SOURCE
+      olmp->variant.splice.num_ignored_carriage_returns = 0;
+#endif /* IGNORE_CARRIAGE_RETURN_IN_SOURCE */
+      olmp->variant.splice.seq_number = 0;  /* To be neat. */
       break;
     case olm_null:
       /* No variant fields. */
@@ -5958,7 +5961,7 @@ macro_line_loc_to_source_pos should be used when speed is critical.
         if (olmp->kind == olm_multiline_string_splice) {
           start_of_curr_phys_line += 2;
         }  /* if */
-        seq_number              = olmp->variant.line_splice_seq_number;
+        seq_number              = olmp->variant.splice.seq_number;
         column_adjustment       = 0;
       } else if (adj_loc_in_line == olmp->line_loc) {
         /* This position matches the position in the current entry, so
@@ -6630,11 +6633,11 @@ simple_return:
               break;
             case olm_line_splice:
               fprintf(f_debug, "line splice: seq = %lu\n",
-                               olmp->variant.line_splice_seq_number);
+                               olmp->variant.splice.seq_number);
               break;
             case olm_multiline_string_splice:
               fprintf(f_debug, "multiline string splice: seq = %lu\n",
-                               olmp->variant.line_splice_seq_number);
+                               olmp->variant.splice.seq_number);
               break;
             case olm_null:
               fprintf(f_debug, "null\n");
@@ -6923,7 +6926,12 @@ entry_for_line_splice:
         /* Add a modification entry recording the position of the line
            splice. */
         olmp = add_orig_line_modif(olm_line_splice, loc_in_line);
-        olmp->variant.line_splice_seq_number = seq_number_last_read+1;
+#if IGNORE_CARRIAGE_RETURN_IN_SOURCE
+        olmp->variant.splice.num_ignored_carriage_returns =
+                                                  num_ignored_carriage_returns;
+        num_ignored_carriage_returns = 0;
+#endif /* IGNORE_CARRIAGE_RETURN_IN_SOURCE */
+        olmp->variant.splice.seq_number = seq_number_last_read+1;
         /* Begin reading the next line.  It is an error if end of file is
            encountered. */
         ch = getc_curr_input_stream();
@@ -9059,9 +9067,13 @@ caller is responsible for issuing error messages.
         case olm_line_splice:
           /* A '\' and a newline were replaced by nothing. */
           nchars += 2;
+#if IGNORE_CARRIAGE_RETURN_IN_SOURCE
+          /* Count ignored carriage returns, also. */
+          nchars += olmp->variant.splice.num_ignored_carriage_returns;
+#endif /* IGNORE_CARRIAGE_RETURN_IN_SOURCE */
           break;
         case olm_multiline_string_splice:
-          /* A newline was replaced by '\' and '\n'. */
+          /* A newline was replaced by '\' and 'n'. */
           ++nchars;
           curr_char_loc += 2;
           break;
@@ -9318,7 +9330,7 @@ start_of_raw_string_delimiter is not used.
 #endif /* IGNORE_CARRIAGE_RETURN_IN_SOURCE */
     olmp = add_orig_line_modif(olm_multiline_string_splice,
                                curr_char_loc);
-    olmp->variant.line_splice_seq_number = seq_number_last_read + 1;
+    olmp->variant.splice.seq_number = seq_number_last_read + 1;
     *curr_char_loc++ = '\\';
 #if ACCEPT_GNU_CARRIAGE_RETURN_LINE_TERMINATOR
     if (curr_ise->prev_line_terminator_was_carriage_return) {
