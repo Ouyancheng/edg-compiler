@@ -332,7 +332,7 @@ typedef struct an_expr_or_stmt_traversal_block {
   /* Fields used by is_lvalue_for_auto_object: */
   a_boolean	is_temp;
 			/* TRUE if the underlying object is a temporary. */
-#if HANDLE_VIRTUAL_BASES_IN_COMPLETE_CTOR_DTORS
+#if IA64_ABI
   a_variable_ptr
 		orig_params;
 			/* A list of parameters for a subobject ctor/dtor. */
@@ -341,7 +341,7 @@ typedef struct an_expr_or_stmt_traversal_block {
 			/* A list of parameters for a complete ctor/dtor
 			    (should correspond to orig_params above, with the
 			    exception that the VTT param is missing). */
-#endif /* HANDLE_VIRTUAL_BASES_IN_COMPLETE_CTOR_DTORS */
+#endif /* IA64_ABI */
   /* Fields used by traverse_types_for_expr: */
   a_type_predicate_function_ptr
 		type_predicate_function;
