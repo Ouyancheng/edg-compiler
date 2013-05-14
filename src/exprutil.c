@@ -5231,6 +5231,26 @@ This includes in particular name reference information.
 }  /* set_operand_id_details_from_locator */
 
 
+static a_boolean constexpr_call_folding_should_be_done(void)
+/*
+Return TRUE if constexpr call or constructor folding should be done in
+the current context.
+*/
+{
+  a_boolean fold = FALSE;
+
+  if (constexpr_enabled &&
+      !expr_stack->suppress_constexpr_call_folding &&
+      (curr_expr_is_evaluated() ||
+       expr_stack->in_noexcept_operand_expression) &&
+      (!is_prototype_instantiation_context() ||
+       curr_expr_kind_is_const())) {
+    fold = TRUE;
+  }  /* if */
+  return fold;
+}  /* constexpr_call_folding_should_be_done */
+
+
 void force_operand_to_constant_if_possible(an_operand *operand)
 /*
 If possible, force the indicated operand to be a constant.  Specifically,
@@ -5245,6 +5265,7 @@ constant expressions, fold to a constant result.
   if (constexpr_enabled &&
       (curr_expr_kind_is_const() ||
        in_potential_constant_constexpr_context()) &&
+      constexpr_call_folding_should_be_done() &&
       is_expression_operand(operand) && is_an_rvalue(operand) &&
       fold_constexpr_expr(operand->variant.expression,
                           /*treat_as_object=*/FALSE,
@@ -5476,10 +5497,7 @@ of the call.
 {
   a_boolean folded = FALSE;
 
-  if (constexpr_enabled &&
-      !expr_stack->suppress_constexpr_call_folding &&
-      (curr_expr_is_evaluated() ||
-       expr_stack->in_noexcept_operand_expression)) {
+  if (constexpr_call_folding_should_be_done()) {
     an_error_code failure_warning;
     a_constant    result_con;
     a_boolean     returns_reference;
@@ -5522,9 +5540,7 @@ routines.  See fold_constexpr_ctor for the description of the parameters.
 {
   a_boolean folded = FALSE;
 
-  if (constexpr_enabled &&
-      !expr_stack->suppress_constexpr_call_folding &&
-      curr_expr_is_evaluated()) {
+  if (constexpr_call_folding_should_be_done()) {
     a_boolean need_backing_expr =
                      curr_expr_kind_is_one_in_which_const_exprs_are_recorded();
     if (fold_constexpr_ctor(ctor_dip, need_backing_expr, pos, result_con)) {

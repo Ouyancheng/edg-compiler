@@ -1,5 +1,31 @@
 Version 4.7
 
+5/14/13  [EDGcpfe/14033]
+constexpr function calls not folded in prototype instantiations
+
+It appears that common practice (g++, clang) for constexpr is not to
+fold constexpr function calls in prototype instantiations of templates.
+At the least, it appears that no template instantiations are kicked
+off to instantiate the bodies of constexpr templates.  Such an
+instantiation was, in our front end, the cause of a spurious error
+when the g++ 4.7 <tuple> header is compiled with no deferral of
+prototype instantiations, e.g., in C++-generating back end versions.
+Now, we suppress constexpr call folding in prototype instantiations
+except in constant expressions.  The following example gets no
+error now because f is not instantiated:
+
+  template <class T> struct X {
+    T arr[1];
+    constexpr operator int() { return 1; };
+  };
+  template <class T> constexpr int f() {
+    return X<T>{};
+  }
+  template <class T> struct A {
+    int i = f<void>();
+  };
+
+
 5/14/13  [EDGcpfe/14032]
 Abort after error on defaulted default constructor
 
