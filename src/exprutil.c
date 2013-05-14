@@ -10689,7 +10689,7 @@ when gnu_version would ordinarily indicate they should not be.
   an_operand orig_operand;
 
   check_assertion(gnu_mode);
-  if (is_an_rvalue(operand)) {
+  if (is_an_rvalue(operand) && !is_void_type(operand->type)) {
     if (is_expression_operand(operand)) {
       a_boolean             do_recovery = FALSE;
       a_boolean             casts_removed = FALSE;

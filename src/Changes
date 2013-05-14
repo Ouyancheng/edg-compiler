@@ -1,5 +1,19 @@
 Version 4.7
 
+5/14/13  [EDGcpfe/14025]
+GNU C++ mode abort on assignment to lvalue cast to void
+
+The front end aborted in exprutil.c (in conv_rvalue_expr_to_lvalue) on
+processing an assignment to a variable cast to void (which is
+invalid and should get an error) in g++ mode with gnu_version
+less than 40000.  Now fixed (an error is issued).
+
+  int main() {
+    int i;
+    (void)i = 0;
+  }
+
+
 5/14/13  [EDGcpfe/14033]
 constexpr function calls not folded in prototype instantiations
 
