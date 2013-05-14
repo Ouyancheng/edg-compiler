@@ -10864,8 +10864,11 @@ when exception support is enabled.
           /* This can happen when a field initializer depends on a generated
              default constructor that depends itself on the field
              initializer. */
+          a_memory_region_number  region_to_switch_back_to;
           pos_error(ec_generated_default_ctor_exception_spec_circularity, pos);
+          switch_to_file_scope_region(&region_to_switch_back_to);
           fp->initializer = make_error_constant_dynamic_init();
+          switch_back_to_original_region(region_to_switch_back_to);
           throw_any = TRUE;
         } else if (dynamic_init_might_throw(fp->initializer)) {
           throw_any = TRUE;
