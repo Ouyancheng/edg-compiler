@@ -3826,6 +3826,7 @@ parentheses are not needed.
   } else {
     /* Loop, refining the lvalue each time around, until we get something with
        the right type and right address, or until we decide to give up. */
+    a_boolean prev_field_was_base_class_subobject_with_tail_padding = FALSE;
     for (;;) {
       a_type_ptr unqual_type = skip_typerefs(type);
       if (unqual_type->kind == (a_type_kind)tk_array) {
@@ -3861,6 +3862,7 @@ parentheses are not needed.
           type = element_type;
           *offset -= idx * element_size;
         }  /* if */
+        prev_field_was_base_class_subobject_with_tail_padding = FALSE;
       } else if (unqual_type->kind == (a_type_kind)tk_class ||
                  unqual_type->kind == (a_type_kind)tk_struct) {
         /* A class; try to find a field with the right offset, or at least
@@ -3892,7 +3894,22 @@ parentheses are not needed.
           /* Normal field (not anonymous union field). */
           /* Put out the field selection. */
           if (gen_output) {
-            octl->output_str(".", octl);
+            if (prev_field_was_base_class_subobject_with_tail_padding) {
+              /* This field is a member of a base class subobject that was
+                 promoted by the C-generating back end into the derived
+                 class.  Instead of base_obj.base_mem, it must therefore be
+                 put out as base_obj_base_mem. */
+              octl->output_str("_", octl);
+            } else {
+              octl->output_str(".", octl);
+            }  /* if */
+#if DO_IL_LOWERING
+            if (octl->c_generating_back_end) {
+              /* Set up for the next pass to use "_" instead of ".". */
+              prev_field_was_base_class_subobject_with_tail_padding =
+                                 field->base_class_subobject_with_tail_padding;
+            }  /* if */
+#endif /* DO_IL_LOWERING */
             form_unqualified_name(&field->source_corresp, iek_field, octl);
           }  /* if */
         }  /* if */
@@ -3914,6 +3931,7 @@ parentheses are not needed.
           form_unqualified_name(&field->source_corresp, iek_field, octl);
         }  /* if */
         type = field->type;
+        prev_field_was_base_class_subobject_with_tail_padding = FALSE;
       } else {
         /* Some other type (not an aggregate); we can't adjust the offset or
            type.  Give up. */

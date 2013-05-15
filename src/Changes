@@ -1,5 +1,28 @@
 Version 4.7
 
+5/14/13  [EDGcpfe/14036]
+C-generating back end: incorrect naming of promoted base class member
+
+In configurations in which tail-padding reuse is enabled (see the entry for
+EDGcpfe/11008 below), the C-generating back end put out incorrect code when
+referring to a member of a promoted base class subobject when the reference
+is taking the address of a member of a namespace-scope object.  This is now
+fixed.  For example:
+
+  struct ZZZ {
+    int x;
+    virtual void f() {}
+  };
+  struct A : ZZZ {
+    int* ip = &x;
+  };
+  A a;
+  int main() {
+    if (a.ip != &a.x)  // Incorrect code generated for &a.x
+      return 1;
+  }
+
+
 5/14/13  [EDGcpfe/14025]
 GNU C++ mode abort on assignment to lvalue cast to void
 
