@@ -3762,15 +3762,15 @@ Assumes ctor_init has not been lowered yet.
 }  /* copy_ctor_init_with_remap */
 
 
-static void move_or_copy_ctor_inits(a_scope_ptr         from_scope,
-                                    a_scope_ptr         to_scope,
-                                    a_boolean           move_ctor_init,
-                                    a_ctor_or_dtor_kind kind)
+static void copy_ctor_inits(a_scope_ptr         from_scope,
+                            a_scope_ptr         to_scope,
+                            a_boolean           remove_originals,
+                            a_ctor_or_dtor_kind kind)
 /*
-This routine either moves (when move_ctor_init is TRUE) or copies (when
-move_ctor_init is FALSE) constructor initializers of type "kind" from the
+This routine copies constructor initializers of type "kind" from the
 specified "from_scope" to the specified "to_scope" (both of which must be
-function scopes for constructors and/or destructors).
+function scopes for constructors and/or destructors).  When remove_originals
+is TRUE, the original constructor initializers are removed from from_scope.
 */
 {
   a_routine_ptr            from_routine;
@@ -3779,7 +3779,7 @@ function scopes for constructors and/or destructors).
                               &from_scope->variant.routine.constructor_inits;
 
 #if DEBUG
-  if (db_flag_is_set("move_or_copy_ctor_inits")) {
+  if (db_flag_is_set("copy_ctor_inits")) {
     (void)fprintf(f_debug, "Before: from lifetime = ");
     db_object_lifetime(from_scope->lifetime);
     (void)fprintf(f_debug, "from ctor_inits:\n");
@@ -3838,28 +3838,27 @@ function scopes for constructors and/or destructors).
         prev->next = copy;
       }  /* if */
       prev = copy;
-      if (move_ctor_init) {
-        /* We're moving the ctor_init, so remove them from the destruction
+      if (remove_originals) {
+        /* We're removing the ctor_inits, so remove them from the destruction
            list. */
         (*delete_at) = ctor_init->next;
         remove_from_destruction_list(ctor_init->initializer);
       }  /* if */
-    } else if (move_ctor_init) {
+    } else if (remove_originals) {
       /* For destructors, the list is backwards. */
       delete_at = &(ctor_init->next);
     }  /* if */
   }  /* for */
-  /* Remove the from_scope lifetime if it's no longer needed (if we've moved
-     all of the constructors from it). */
-  if (move_ctor_init &&
+  if (remove_originals &&
       from_scope->lifetime != NULL &&
       is_useless_object_lifetime(from_scope->lifetime)) {
-    /* No need to unlink it from its parent (function scope object lifetimes
-       aren't queued on the file scope object lifetime). */
+    /* Remove the from_scope lifetime if it's no longer needed (i.e., if we've
+       removed all of the constructors from it). */
+    unbind_object_lifetime(from_scope->lifetime);
     from_scope->lifetime = NULL;
   }  /* if */
 #if DEBUG
-  if (db_flag_is_set("move_or_copy_ctor_inits")) {
+  if (db_flag_is_set("copy_ctor_inits")) {
     (void)fprintf(f_debug, "After: from lifetime = ");
     db_object_lifetime(from_scope->lifetime);
     (void)fprintf(f_debug, "After: to lifetime = ");
@@ -3878,7 +3877,7 @@ function scopes for constructors and/or destructors).
     }  /* for */
   }  /* if */
 #endif /* DEBUG */
-}  /* move_or_copy_ctor_inits */
+}  /* copy_ctor_inits */
 
 #endif /* IA64_ABI */
 
@@ -3993,7 +3992,7 @@ operator of a no-capture lambda.
                    grcontext;
   a_boolean        insert_as_statement, void_return, is_lambda_entry_point;
 #if IA64_ABI
-  a_boolean        move_ctor_init;
+  a_boolean        remove_originals;
 #endif /* IA64_ABI */
   an_object_lifetime_ptr
                    init_expr_lifetime = NULL;
@@ -4228,16 +4227,16 @@ operator of a no-capture lambda.
          (primary) routine.  The code below first copies the constructor init
          to the complete object alternate entry point and lowers it, then is
          called a second time to move the constructor init to the subobject
-         alternate entry point and lowers it. */
+         alternate entry point and lower it. */
       a_constructor_init_ptr ctor_init;
-      move_ctor_init =
+      remove_originals =
              new_routine->ctor_dtor_kind == (a_ctor_or_dtor_kind)cdk_subobject;
       check_assertion(scope_for_routine(routine)->
                                     variant.routine.constructor_inits != NULL);
-      move_or_copy_ctor_inits(scope_for_routine(routine),
-                              new_routine_scope,
-                              move_ctor_init,
-                              (a_constructor_init_kind)cik_delegation);
+      copy_ctor_inits(scope_for_routine(routine),
+                      new_routine_scope,
+                      remove_originals,
+                      (a_constructor_init_kind)cik_delegation);
       ctor_init = new_routine_scope->variant.routine.constructor_inits;
       check_assertion(ctor_init != NULL && ctor_init->next == NULL);
       /* Start an object lifetime. */
@@ -4267,7 +4266,7 @@ operator of a no-capture lambda.
 #if HANDLE_VIRTUAL_BASES_IN_COMPLETE_CTOR_DTORS
     if (construct_virtual_bases || destroy_virtual_bases) {
       a_routine_ptr complete_routine;
-      move_ctor_init =
+      remove_originals =
 #if HANDLE_VIRTUAL_BASES_IN_SUBOBJECT_CTOR_DTORS
                        FALSE;
 #else /* !HANDLE_VIRTUAL_BASES_IN_SUBOBJECT_CTOR_DTORS */
@@ -4280,10 +4279,10 @@ operator of a no-capture lambda.
       complete_routine = alternate_entry_point(routine,
                                              (a_ctor_or_dtor_kind)cdk_complete,
                                              /*define_now=*/FALSE);
-      move_or_copy_ctor_inits(scope_for_routine(routine),
-                              scope_for_routine(complete_routine),
-                              move_ctor_init,
-                              (a_constructor_init_kind)cik_virtual_base_class);
+      copy_ctor_inits(scope_for_routine(routine),
+                      scope_for_routine(complete_routine),
+                      remove_originals,
+                      (a_constructor_init_kind)cik_virtual_base_class);
       /* Start an object lifetime. */
       begin_block_object_lifetime(new_routine_scope->lifetime,
                                   &insert_location);
