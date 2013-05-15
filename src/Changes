@@ -1,5 +1,21 @@
 Version 4.7
 
+5/15/13  [EDGcpfe/13650]
+Abort on static_assert in some configurations
+
+In configurations that generate source sequence entries (e.g., when using the
+C++-generating back end) and eliminate unneeded IL entries, the front end
+could abort (for example with a "IL entry write-read difference" internal
+error) if a static_assert construct referred to an entity that was not
+otherwise used.  For example:
+
+  const bool b = true;
+  static_assert(b, "fail");  // Previously triggered an internal error in
+                             // some configurations.
+
+This is now fixed.
+
+
 5/15/13  [EDGcpfe/14037]
 Invalid IL/abort with pragma in lambda expression
 

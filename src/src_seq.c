@@ -155,6 +155,13 @@ Display the source-sequence entry pointed to by ssep, for debugging purposes.
         print_type = TRUE;
       }  /* if */
       fputc('"', f_debug);
+    } else if (kind == (an_il_entry_kind)iek_static_assertion) {
+      a_static_assertion_ptr  sap = ss_entry_ptr(ssep, a_static_assertion_ptr);
+      fprintf(f_debug, " (");
+      db_constant(sap->condition);
+      fprintf(f_debug, ", ");
+      db_constant(sap->string_literal);
+      fprintf(f_debug, " ) at %lu", sap->position.seq);
 #if MICROSOFT_EXTENSIONS_ALLOWED
     } else if (kind == (an_il_entry_kind)iek_ms_attribute) {
       an_ms_attribute_ptr	msap;

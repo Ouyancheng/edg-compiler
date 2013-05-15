@@ -1938,6 +1938,24 @@ routine modifies some entry that might be earlier on the list, set
         /* Mark the associated entity to be kept in the IL.  This is generally
            unnecessary, but it is needed for block extern declarations. */
         walk_ptr(entry_ptr, a_char_ptr, entry_kind);
+      } else if (ss_entry_kind(ssep) == iek_static_assertion) {
+        /* Static assertions source sequence entries are kept, as are the
+           a_static_assertion entries associated with them (since they are a
+           kind of "supplement" to their source sequence entries).  Walking
+           arguments of the static_assertion may cause entities already
+           processed to become needed, so another pass may be required.
+           For example:
+              const bool b = true;
+              static_assert(b, "fail");
+           The variable b doesn't get its keep_in_il flag set until we
+           traverse the static_assert, but b's source sequence entry will
+           already have been left with keep_in_il FALSE in this pass. */
+        a_static_assertion  *sap = ss_entry_ptr(ssep, a_static_assertion_ptr);
+        if (!il_entry_prefix_of(sap).keep_in_il) {
+          keep_in_il = TRUE;
+          walk_ptr(entry_ptr, a_char_ptr, entry_kind);
+          *need_another_pass = TRUE;
+        }  /* if */
       } else {
         /* See if the associated IL entity is marked with keep_in_il. */
         keep_in_il = il_entry_prefix_of(entry_ptr).keep_in_il;
