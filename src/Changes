@@ -1,5 +1,30 @@
 Version 4.7
 
+5/15/13  [EDGcpfe/14037]
+Invalid IL/abort with pragma in lambda expression
+
+The front end sometimes incorrectly processed pragmas appearing in lambdas
+with implicit captures.  In particular, in configurations that generate
+source sequence entries (e.g., when using the C++-generating back end), the
+source sequence entry associated with the pragma could end up pointing to
+the wrong IL entry, which in turn was likely to produce an abort later on.
+For example:
+
+  struct S {
+    int f();
+    int g() {
+      return [=]{
+  #pragma test_immediate
+       return f();  // Implicit capture of "this".
+      }();
+    }
+  };
+
+The C++-generating back end previously aborted (in different places
+depending on details of the configuration) when processing this example.
+This is now fixed.
+
+
 5/15/13  [EDGcpfe/13981]
 Constant member access in class object initialized to empty aggregate
 
