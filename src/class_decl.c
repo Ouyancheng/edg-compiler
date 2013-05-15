@@ -16852,7 +16852,7 @@ be entered.
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   if (class_type_supp(class_type)->is_lambda_closure_class) {
     /* Fields of closure types may be declared "on the fly" (in the case of
-       init captures), and are not subject to pragmas in any case. */
+       implicit captures), and are not subject to pragmas in any case. */
   } else if (member_sym != NULL && !decl_info->is_anonymous_union) {
     record_symbol_declaration(SRK_DECLARATION | SRK_DEFINITION, member_sym,
                               &locator->source_position,
