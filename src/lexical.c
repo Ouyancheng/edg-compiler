@@ -6381,6 +6381,7 @@ literals in C++11.
       orig_line_modif_list = orig_line_modif_list->next;
       free_orig_line_modif(&olmp);
     }  while (orig_line_modif_list != NULL);
+    end_orig_line_modif_list = NULL;
   }  /* if */
   if (source_line_modif_list != NULL) {
     a_source_line_modif_ptr slmp, next_slmp;
