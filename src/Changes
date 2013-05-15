@@ -115,8 +115,7 @@ For example:
   };
 
 After issuing various errors, the front aborted on this example (in some
-configurations) while determining needed flags.  This problem was introduced
-in version 4.5 of the front end.
+configurations) while determining needed flags.
 
 
 5/13/13  [EDGcpfe/13426]
