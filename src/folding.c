@@ -7251,7 +7251,12 @@ constant will be set as well.
   check_assertion(arg != NULL && arg->next == NULL &&
                   arg->kind == (an_expr_node_kind)enk_type_operand);
   type = arg->variant.type_operand.type;
-  if (is_template_dependent_type(type)) {
+  if (is_template_dependent_type(type) ||
+      scope_stack_top().in_nonreal_instantiation) {
+    /* For template-dependent types, create a ck_template_param result.
+       In Microsoft nonreal instantiations, we may end up with incomplete-but-
+       nondependent types but they shouldn't trigger an error; therefore, we
+       create a ck_template_param result for all types in such contexts. */
     clear_constant(constant, (a_constant_repr_kind)ck_template_param);
     set_template_param_constant_kind(
                    constant, (a_template_param_constant_kind)tpck_expression);
