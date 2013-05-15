@@ -1,5 +1,16 @@
 Version 4.7
 
+5/15/13  [EDGcpfe/13981]
+Constant member access in class object initialized to empty aggregate
+
+A logic error caused the front end to treat a member access within a const
+class object that is initialized to an empty aggregate as a non-constant
+expression.  This is now fixed.  For example:
+
+  constexpr struct A { int i; } a = { };
+  constexpr int j = a.i;  // Previously incorrectly diagnosed as an error
+
+
 5/14/13  [EDGcpfe/14036]
 C-generating back end: incorrect naming of promoted base class member
 

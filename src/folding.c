@@ -10712,6 +10712,7 @@ otherwise, return FALSE.
     a_type_ptr       anon_union_member_type = NULL;
     int              anon_union_member_depth = 0;
     a_boolean        union_member_mismatch = FALSE;
+    a_boolean        implicit_constant = FALSE;
     /* Check to see if the requested field is a member of an anonymous
        union.  If so, set anon_union_member_type to be the type of the
        immediate anonymous union member of class_type and set
@@ -10781,73 +10782,75 @@ otherwise, return FALSE.
           empty_anonymous_union_initializer = TRUE;
         }  /* if */
       }  /* while */
-      if (union_member_mismatch) {
-        /* The access cannot be folded. */
-      } else if (member_con == NULL) {
-        /* We don't have an explicit constant, so the field was
-           value-initialized, either explicitly or because of a short
-           initializer.  Make a zero constant of the requisite type and use
-           that. */
-        check_assertion(eff_obj_con->partial_aggr_value ||
-                        empty_anonymous_union_initializer);
-        folded = make_value_initialized_constant(field->type, result_con);
-      } else {
-        copy_constant(member_con, result_con);
+    }  /* if */
+    if (union_member_mismatch) {
+      /* The access cannot be folded. */
+    } else if (member_con == NULL) {
+      /* We don't have an explicit constant, so the field was
+         value-initialized, either explicitly or because of a short
+         initializer.  Make a zero constant of the requisite type and use
+         that. */
+      check_assertion(eff_obj_con->partial_aggr_value ||
+                      empty_anonymous_union_initializer);
+      folded = make_value_initialized_constant(field->type, result_con);
+      implicit_constant = TRUE;
+    } else {
+      copy_constant(member_con, result_con);
+    }  /* if */
+    if (union_member_mismatch) {
+      /* The access cannot be folded. */
+    } else if (implicit_constant) {
+      /* No further checking is needed. */
+    } else if (is_error_type(result_con->type)) {
+      /* There was an error in the initializer. */
+      folded = TRUE;
+      set_error_constant(result_con);
+    } else if (anon_union_member_type != NULL) {
+      /* The type of the initializer constant will be that of the first
+         member of the union, but field can be any member of the union and
+         thus might not have the same type.  Make sure the types are
+         compatible; if not, it's undefined behavior, which causes the
+         expression not to be constant. */
+      folded = types_are_compatible(result_con->type, field->type);
+    } else {
+      /* Make sure we found the right constant for the field: at a minimum,
+         the types should be the same except for cv-qualifiers. */
+      a_type_ptr con_type = result_con->type;
+      a_type_ptr field_type = field->type;
+      a_boolean  reference_case = FALSE;
+      if (is_any_reference_type(con_type) &&
+          is_any_reference_type(field_type)) {
+        /* An rvalue reference field can have an lvalue reference
+           initial value. */
+        con_type = type_pointed_to(con_type);
+        field_type = type_pointed_to(field_type);
+        reference_case = TRUE;
       }  /* if */
-      if (union_member_mismatch) {
-        /* The access cannot be folded. */
-      } else if (is_error_type(result_con->type)) {
-        /* There was an error in the initializer. */
-        folded = TRUE;
-        set_error_constant(result_con);
-      } else if (anon_union_member_type != NULL) {
-        /* The type of the initializer constant will be that of the first
-           member of the union, but field can be any member of the union and
-           thus might not have the same type.  Make sure the types are
-           compatible; if not, it's undefined behavior, which causes the
-           expression not to be constant. */
-        folded = types_are_compatible(result_con->type, field->type);
-      } else {
-        /* Make sure we found the right constant for the field: at a
-           minimum, the types should be the same except for
-           cv-qualifiers. */
-        a_type_ptr con_type = result_con->type;
-        a_type_ptr field_type = field->type;
-        a_boolean  reference_case = FALSE;
-        if (is_any_reference_type(con_type) &&
-            is_any_reference_type(field_type)) {
-          /* An rvalue reference field can have an lvalue reference
-             initial value. */
-          con_type = type_pointed_to(con_type);
-          field_type = type_pointed_to(field_type);
-          reference_case = TRUE;
-        }  /* if */
-        if (is_array_type(field_type) && is_array_type(con_type)) {
-          field_type = skip_typerefs(field_type);
-          con_type = skip_typerefs(con_type);
-          if (!has_unknown_specified_bound(field_type) &&
-              !has_unknown_specified_bound(con_type) &&
-              (field_type->variant.array.variant.number_of_elements == 0 ||
-               field_type->variant.array.variant.number_of_elements >
+      if (is_array_type(field_type) && is_array_type(con_type)) {
+        field_type = skip_typerefs(field_type);
+        con_type = skip_typerefs(con_type);
+        if (!has_unknown_specified_bound(field_type) &&
+            !has_unknown_specified_bound(con_type) &&
+            (field_type->variant.array.variant.number_of_elements == 0 ||
+             field_type->variant.array.variant.number_of_elements >
                          con_type->variant.array.variant.number_of_elements)) {
-            /* A member may have an unknown bound, completed by the
-               initializer, or the initializer may have fewer elements than
-               the member.  In these cases, we can't compare the array
-               types directly, but the element types must match. */
-            field_type = array_element_type(field_type);
-            con_type = array_element_type(con_type);
-          }  /* if */
+          /* A member may have an unknown bound, completed by the
+             initializer, or the initializer may have fewer elements than
+             the member.  In these cases, we can't compare the array types
+             directly, but the element types must match. */
+          field_type = array_element_type(field_type);
+          con_type = array_element_type(con_type);
         }  /* if */
-        check_assertion(identical_types_ignoring_qualifiers(con_type,
-                                                            field_type));
-        if (reference_case &&
-            result_con->kind == (a_constant_repr_kind)ck_aggregate) {
-          /* A reference cannot be initialized by an aggregate.  This can
-             occur as a result of upstream errors. */
-          folded = FALSE;
-        } else {
-          folded = TRUE;
-        }  /* if */
+      }  /* if */
+      check_assertion(identical_types_ignoring_qualifiers(con_type,
+                                                          field_type));
+      if (reference_case &&
+          result_con->kind == (a_constant_repr_kind)ck_aggregate) {
+        /* A reference cannot be initialized by an aggregate.  This can
+           occur as a result of upstream errors. */
+        folded = FALSE;
+      } else {
+        folded = TRUE;
       }  /* if */
     }  /* if */
   } else if (eff_obj_con != NULL &&
