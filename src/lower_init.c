@@ -1236,6 +1236,7 @@ init position modifier.
       ipmp->type = ctor_init->variant.field->type;
       break;
     case cik_delegation:
+      /* No modification is necessary. */
       break;
     default:
       unexpected_condition_str("modify_ctor_init_pos_descr: bad kind");
@@ -4919,9 +4920,9 @@ routine will be the same as the one passed in.
       if ((new_routine->special_kind ==
                                     (a_special_function_kind)sfk_constructor &&
            ctor_needs_vtt_argument(new_routine)) ||
-           (new_routine->special_kind ==
+          (new_routine->special_kind ==
                                      (a_special_function_kind)sfk_destructor &&
-            dtor_needs_vtt_argument(new_routine))) {
+           dtor_needs_vtt_argument(new_routine))) {
         /* Add a VTT parameter if necessary. */
         param_type = alloc_param_type(make_virtual_table_table_pointer_type());
         last_param_type->next = param_type;
