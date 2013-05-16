@@ -1236,15 +1236,6 @@ init position modifier.
       ipmp->type = ctor_init->variant.field->type;
       break;
     case cik_delegation:
-#if IA64_ABI
-      /* When we're lowering the target constructor call in a subobject
-         delegating constructor, we need to make sure the exception handling
-         routines call the subobject destructor. */
-      if (innermost_function_scope->variant.routine.ptr->ctor_dtor_kind ==
-                                          (a_ctor_or_dtor_kind)cdk_subobject) {
-        ipdp->base_class_subobject = TRUE;
-      }  /* if */
-#endif /* IA64_ABI */
       break;
     default:
       unexpected_condition_str("modify_ctor_init_pos_descr: bad kind");
