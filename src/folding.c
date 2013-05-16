@@ -10400,6 +10400,143 @@ TRUE, record call_expr as a backing expression for the resulting constant.
 }  /* fold_constexpr_call */
 
 
+static a_boolean init_class_aggr_con_from_ctor_init_list(
+                                a_type_ptr                   class_type,
+                                a_constexpr_evaluation_block *ceblock,
+                                a_constructor_init_ptr       *p_ctor_init_list,
+                                a_constant                   *aggr_con)
+/*
+As part of expanding a constexpr constructor invocation, take zero or more
+constructor-init entries from the list given by p_ctor_init_list and use
+them to initialize members of the class class_type.  aggr_con is already
+a ck_aggregate constant on entry, possibly non-empty, and any member
+initializers are added at the end of the existing member constants list.
+On return, *p_ctor_init_list is updated to point to the remaining
+constructor-inits on the list that have not been taken.  Return TRUE
+if the initialization went okay, FALSE if there was some error that
+prevents folding.  ceblock gives context information for the evaluation.
+*/
+{
+  a_constructor_init_ptr ctor_init = *p_ctor_init_list;
+  a_field_ptr            field;
+  a_boolean              okay = TRUE;
+
+  check_assertion(is_immediate_class_type(class_type));
+  check_assertion(aggr_con->kind == (a_constant_repr_kind)ck_aggregate &&
+                  aggr_con->type == class_type);
+  /* Create an initializer for each member of the class. */
+  /*lint --e{850} field modified in loop */
+  for (field = next_non_generated_initializable_field(
+                            class_type->variant.class_struct_union.field_list);
+       field != NULL;
+       field = next_non_generated_initializable_field(field->next)) {
+    a_constant  member_con;
+    a_field_ptr ctor_init_field = NULL;
+    if (ctor_init != NULL) {
+      check_assertion(ctor_init->kind == (a_constructor_init_kind)cik_field);
+      ctor_init_field = ctor_init->variant.field;
+      if (ctor_init_field != field && is_union_type(class_type)) {
+        /* If we're starting on a union, it might be that the next ctor-init
+           is for a member other than the first (or something inside it,
+           if one of the members is an anonymous union and the ctor-init
+           is for a member of the anonymous union). */
+        a_field_ptr tfield = ctor_init_field;
+        for (;;) {
+          a_symbol_ptr tfield_sym, parent_object_sym;
+          a_type_ptr   tfield_class = parent_class_of(tfield);
+          if (tfield_class == class_type) {
+            /* We found the field of the union that is or contains the field
+               initialized by the ctor-init. */
+            if (field != tfield) {
+              /* For a member other than the first, add a designator. */
+              a_constant_ptr des_con =
+                           alloc_constant((a_constant_repr_kind)ck_designator);
+              field = tfield;
+              des_con->variant.designator.field = field;
+              add_constant_to_aggregate(des_con, aggr_con);
+            }  /* if */
+            break;
+          }  /* if */
+          /* If tfield is a member of an anonymous union, go up one level
+             and try the match there. */
+          tfield_sym = symbol_for(tfield);
+          check_assertion(tfield_sym != NULL);
+          parent_object_sym= tfield_sym->variant.field.anonymous_parent_object;
+          if (parent_object_sym == NULL) {
+            /* This can come up when an anonymous union contains no
+               initializable members, e.g.,
+                 union { union {}; union {}; };
+               We just proceed to initializing the first member of the union,
+               which will be done without taking any ctor-inits, and then
+               the ctor-init will be tried again after the union. */
+            break;
+          }  /* if */
+          check_assertion(symbol_is(parent_object_sym, sk_field));
+          tfield = parent_object_sym->variant.field.ptr;
+        }  /* for */
+      }  /* if */
+    }  /* if */
+    if (field->is_anonymous_parent_object) {
+      /* For an anonymous union, create a sub-aggregate value and initialize
+         that.  The processing may take zero ctor-inits if the anonymous
+         union is empty.  It will typically take one ctor-init, for one
+         member of the union.  It may take several ctor-inits, for an
+         anonymous struct. */
+      clear_constant(&member_con, (a_constant_repr_kind)ck_aggregate);
+      member_con.type = field->type;
+      if (!init_class_aggr_con_from_ctor_init_list(field->type,
+                                                   ceblock,
+                                                   &ctor_init,
+                                                   &member_con)) {
+        /* There was some error in processing. */
+        okay = FALSE;
+        break;
+      }  /* if */
+      add_constant_to_aggregate(alloc_unshared_constant(&member_con),
+                                aggr_con);
+    } else {
+      /* Normal case, not an anonymous parent object.  Initialize directly. */
+      if (ctor_init == NULL) {
+        /* The constructor fails to initialize some field. */
+        expect_error();
+        okay = FALSE;
+        break;
+      } else {
+        a_dynamic_init_ptr dip;
+        if (ctor_init_field != field) {
+          /* Something is messed up, e.g., there's a field that's not
+             represented by a ctor-init. */
+          expect_error();
+          okay = FALSE;
+          break;
+        }  /* if */
+        if (ctor_init->use_field_initializer) {
+          /* The field has an NSDMI.  Use it. */
+          dip = ctor_init_field->initializer;
+        } else {
+          /* Use the initializer from the constructor-init. */
+          dip = ctor_init->initializer;
+        }  /* if */
+        check_assertion(dip != NULL);
+        /* Try to fold the initialization to a constant. */
+        if (!fold_dynamic_init(dip, ctor_init_field->type,
+                               ceblock, &member_con)) {
+          okay = FALSE;
+          break;
+        }  /* if */
+        add_constant_to_aggregate(alloc_unshared_constant(&member_con),
+                                  aggr_con);
+        ctor_init = ctor_init->next;
+      }  /* if */
+    }  /* if */
+    /* Only initialize one member of a union. */
+    if (is_union_type(class_type)) break;
+  }  /* for */
+  *p_ctor_init_list = ctor_init;
+  return okay;
+}  /* init_class_aggr_con_from_ctor_init_list */
+
+
 static a_boolean i_fold_constexpr_ctor(
                                      a_dynamic_init_ptr           ctor_dip,
                                      a_constexpr_evaluation_block *ceblock,
@@ -10449,168 +10586,64 @@ fold_constexpr_ctor should usually be called instead.
                                                  &not_foldable);
       if (not_foldable) {
         /* Some problem that prevents folding. */
-      } else if (ctor_routine->is_delegating_ctor) {
-        /* The constructor delegates to another constructor.  Fold the
-           delegating initializer. */
-        a_constructor_init_ptr ctor_init =
-                   scope->variant.routine.variant.constexpr_constructor_inits;
-        check_assertion(ctor_init != NULL &&
-                        ctor_init->kind ==
-                                     (a_constructor_init_kind)cik_delegation);
-        folded = fold_dynamic_init(ctor_init->initializer,
-                                   class_type, ceblock, result_con);
       } else {
-        /* Substitute values for parameters and attempt to fold the
-           ctor-initializers.  Each one provides a value for one nonstatic
-           data member. */
-        a_constant             aggr_con;
-        a_constructor_init_ptr ctor_init;
-        a_field_ptr            next_expected_field =
-                          next_initializable_field(
-                            class_type->variant.class_struct_union.field_list);
-        clear_constant(&aggr_con, (a_constant_repr_kind)ck_aggregate);
-        aggr_con.type = class_type;
-        for (ctor_init =
+        a_constant aggr_con;
+        if (ctor_routine->is_delegating_ctor) {
+          /* The constructor delegates to another constructor.  Fold the
+             delegating initializer. */
+          a_constructor_init_ptr ctor_init =
+                   scope->variant.routine.variant.constexpr_constructor_inits;
+          check_assertion(ctor_init != NULL &&
+                          ctor_init->kind ==
+                                     (a_constructor_init_kind)cik_delegation);
+          folded = fold_dynamic_init(ctor_init->initializer,
+                                     class_type, ceblock, &aggr_con);
+        } else {
+          /* Substitute values for parameters and attempt to fold the
+             ctor-initializers.  Each one provides a value for one base
+             class or nonstatic data member. */
+          a_constructor_init_ptr ctor_init;
+          clear_constant(&aggr_con, (a_constant_repr_kind)ck_aggregate);
+          aggr_con.type = class_type;
+          /* Add a member constant for each ctor-init for a base class. */
+          for (ctor_init =
                     scope->variant.routine.variant.constexpr_constructor_inits;
-             ;  /* Exit test in middle of loop. */
-             ctor_init = ctor_init->next) {
-          a_field_ptr        field;
-          a_constant         member_con;
-          a_constant_ptr     member_con_ptr, des_con = NULL;
-          a_type_ptr         member_type = NULL;
-          a_dynamic_init_ptr dip;
-          if (ctor_init == NULL ||
-              ctor_init->kind == (a_constructor_init_kind)cik_field) {
-            /* Adjust the variable for the next field we expect to be
-               initializing to account for added/removed fields.  Do this
-               also after the last field. */
-            while (next_expected_field != NULL &&
-                   symbol_for(next_expected_field) == NULL) {
-              /* Skip lowering-generated fields. */
-              next_expected_field =
-                           next_initializable_field(next_expected_field->next);
-            }  /* while */
-            while (next_expected_field != NULL &&
-                   next_expected_field->is_anonymous_parent_object &&
-                   next_initializable_field(next_expected_field->type
-                            ->variant.class_struct_union.field_list) == NULL) {
-              /* Add an empty aggregate initializer for an anonymous union
-                 containing no members. */
-              a_constant_ptr anon_union_aggr;
-              /* Only initialize such an empty union inside a union if no
-                 field is initialized. */
-              if (class_type->kind == (a_type_kind)tk_union &&
-                  ctor_init != NULL) break;
-              anon_union_aggr =
-                            alloc_constant((a_constant_repr_kind)ck_aggregate);
-              add_constant_to_aggregate(anon_union_aggr, &aggr_con);
-              anon_union_aggr->type = next_expected_field->type;
-              next_expected_field =
-                           next_initializable_field(next_expected_field->next);
-              /* Beware of unions containing multiple empty anonymous unions:
-                 Only one should be initialized. */
-              if (class_type->kind == (a_type_kind)tk_union) break;
-            }  /* while */
-          }  /* if */
-          if (ctor_init == NULL) break;
-          /* Process the ctor-initializer to add a constant for the
-             member initialized. */
-          dip = ctor_init->initializer;
-          if (ctor_init->kind ==
+               ctor_init != NULL &&
+                 (ctor_init->kind ==
                              (a_constructor_init_kind)cik_virtual_base_class ||
-              ctor_init->kind ==
-                             (a_constructor_init_kind)cik_direct_base_class) {
-            /* A base class.  Virtual base classes are not actually possible
-               in literal types, but it's easy enough to handle them in
-               case they come up in error cases. */
-            field = NULL;
-            member_type = ctor_init->variant.base_class->type;
-          } else {
-            /* A field. */
-            check_assertion(ctor_init->kind ==
-                                           (a_constructor_init_kind)cik_field);
-            field = ctor_init->variant.field;
-            member_type = field->type;
-            if (ctor_init->use_field_initializer) {
-              /* The field has an NSDMI. */
-              dip = field->initializer;
-              check_assertion(dip != NULL);
+                  ctor_init->kind ==
+                             (a_constructor_init_kind)cik_direct_base_class);
+               ctor_init = ctor_init->next) {
+            a_constant con;
+            /* Try to fold the initialization to a constant. */
+            if (!fold_dynamic_init(ctor_init->initializer,
+                                   ctor_init->variant.base_class->type,
+                                   ceblock, &con)) {
+              goto fail;
             }  /* if */
-            if (parent_class_of(field)->kind == (a_type_kind)tk_union &&
-                next_initializable_field(parent_class_of(field)->variant
-                                    .class_struct_union.field_list) != field) {
-              /* For a field other than the first in a union, add a
-                 designator. */
-              des_con = alloc_constant((a_constant_repr_kind)ck_designator);
-              des_con->variant.designator.field = field;
-            }  /* if */
-          }  /* if */
-          /* Try to fold the initialization to a constant. */
-          if (!fold_dynamic_init(dip, member_type, ceblock, &member_con)) {
+            con.constant_for_base_class_from_constexpr_folding = TRUE;
+            /* Add the constant at the end of the aggregate. */
+            add_constant_to_aggregate(alloc_unshared_constant(&con),
+                                      &aggr_con);
+          }  /* for */
+          /* Now process the ctor-inits for the nonstatic data members of
+             the class. */
+          if (!init_class_aggr_con_from_ctor_init_list(class_type,
+                                                       ceblock,
+                                                       &ctor_init,
+                                                       &aggr_con)) {
+            /* There was some error in processing. */
             goto fail;
           }  /* if */
-          if (field == NULL) {
-            member_con.constant_for_base_class_from_constexpr_folding = TRUE;
-          }  /* if */
-          member_con_ptr = alloc_unshared_constant(&member_con);
-          if (field != NULL) {
-            /* Add extra ck_aggregate levels for an anonymous union field. */
-            while (parent_class_of(field) != class_type) {
-              a_constant_ptr new_aggr_con;
-              a_type_ptr     curr_class = parent_class_of(field);
-              a_symbol_ptr   field_sym = symbol_for(field);
-              a_symbol_ptr   parent_object_sym;
-              check_assertion(field_sym != NULL);
-              parent_object_sym =
-                              field_sym->variant.field.anonymous_parent_object;
-              check_assertion(parent_object_sym != NULL &&
-                              symbol_is(parent_object_sym, sk_field));
-              new_aggr_con= alloc_constant((a_constant_repr_kind)ck_aggregate);
-              if (des_con != NULL) {
-                /* Add the designator. */
-                add_constant_to_aggregate(des_con, new_aggr_con);
-                des_con = NULL;
-              }  /* if */
-              add_constant_to_aggregate(member_con_ptr, new_aggr_con);
-              new_aggr_con->type = curr_class;
-              member_con_ptr = new_aggr_con;
-              field = parent_object_sym->variant.field.ptr;
-              if (parent_class_of(field)->kind == (a_type_kind)tk_union &&
-                  next_initializable_field(parent_class_of(field)->variant
-                                    .class_struct_union.field_list) != field) {
-                /* For a field other than the first in a union, add a
-                   designator. */
-                des_con = alloc_constant((a_constant_repr_kind)ck_designator);
-                des_con->variant.designator.field = field;
-              }  /* if */
-            }  /* while */
-            /* See if the field being initialized is the one expected. */
-            if (next_expected_field != field && des_con == NULL) {
-              /* The constructor must fail to initialize a field.  An error
-                 should have been issued.  Allow a difference if there's
-                 a designator. */
-              if (expr_error_should_be_issued()) expect_error();
-              break;
-            } /* if */
-          }  /* if */
-          /* Add the constant at the end of the aggregate. */
-          if (des_con != NULL) {
-            /* Add the designator for a union member. */
-            add_constant_to_aggregate(des_con, &aggr_con);
-          }  /* if */
-          add_constant_to_aggregate(member_con_ptr, &aggr_con);
-          if (field != NULL) {
-            if (parent_class_of(field)->kind == (a_type_kind)tk_union) {
-              next_expected_field = NULL;
-            } else {
-              next_expected_field = next_initializable_field(field->next);
-            }  /* if */
-          }  /* if */
-        }  /* for */
+          /* Make sure we took all the ctor-inits. */
+          check_assertion(ctor_init == NULL);
+          /* We succeeded in generating a constant for the class value. */
+          folded = TRUE;
+        }  /* if */
         if (folded &&
-            contains_dangling_pointer(result_con, ceblock->active_calls,
+            contains_dangling_pointer(&aggr_con, ceblock->active_calls,
                                       /*end_of_full_expr=*/FALSE)) {
-          /* The constant returned has a dangling pointer, so it's not
+          /* The constant produced has a dangling pointer, so it's not
              considered constant. */
           folded = FALSE;
           ceblock->failure_warning = ec_constexpr_dangling_pointer;
