@@ -10618,6 +10618,7 @@ fold_constexpr_ctor should usually be called instead.
                                      (a_constructor_init_kind)cik_delegation);
           folded = fold_dynamic_init(ctor_init->initializer,
                                      class_type, ceblock, &aggr_con);
+          if (!folded) goto fail;
         } else {
           /* Substitute values for parameters and attempt to fold the
              ctor-initializers.  Each one provides a value for one base
@@ -10657,11 +10658,9 @@ fold_constexpr_ctor should usually be called instead.
           }  /* if */
           /* Make sure we took all the ctor-inits. */
           check_assertion(ctor_init == NULL);
-          /* We succeeded in generating a constant for the class value. */
-          folded = TRUE;
         }  /* if */
-        if (folded &&
-            contains_dangling_pointer(&aggr_con, ceblock->active_calls,
+        /* We succeeded in generating a constant for the class value. */
+        if (contains_dangling_pointer(&aggr_con, ceblock->active_calls,
                                       /*end_of_full_expr=*/FALSE)) {
           /* The constant produced has a dangling pointer, so it's not
              considered constant. */
