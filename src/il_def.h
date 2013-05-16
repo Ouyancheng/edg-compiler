@@ -12537,7 +12537,10 @@ enum a_ctor_or_dtor_kind_tag {
   cdk_delegation,	/* A version of a delegating constructor that is
 			   invoked by both complete object and subobject
 			   versions.  This is an EDG extension -- it is not
-			   part of the IA-64 ABI. */
+			   part of the IA-64 ABI.  Also used for a destructor
+			   that invokes either the complete or subobject
+			   destructor at run-time depending on the value
+			   of the VTT parameter. */
 #endif /* IA64_ABI */
   cdk_last		/*lint -esym(769,a_ctor_or_dtor_kind_tag::cdk_last)*/
 };
@@ -16020,13 +16023,6 @@ typedef struct a_constructor_init {
 			   front end in that case, but may later be set
 			   to point to a copy of the field initializer in
 			   lowering configurations. */
-#if DO_IL_LOWERING && IA64_ABI
-  a_bit_field	use_subobject_constructor:1;
-			/* TRUE if this cik_delegation initializer should
-			   invoke the subobject target constructor when
-			   lowered (otherwise the complete object target
-			   constructor is invoked). */
-#endif /* DO_IL_LOWERING && IA64_ABI */
   union {
     /* When kind is cik_virtual_base_class or cik_direct_base_class: */
     a_base_class_ptr

@@ -685,7 +685,8 @@ requires cleanup.
     char			*temp_addr;
     a_region_descr_flag_set     flags;
     an_eh_array_supplement_ptr	ehasp = NULL;
-    void			*vtbl_ptr = NULL;
+    void			*vtbl_ptr;
+    a_boolean			has_vtbl_ptr = FALSE;
     a_destroy_exception_object_ptr
 				potential_destroy_exception_object_ptr;
 
@@ -733,7 +734,9 @@ requires cleanup.
          that is to be used.  The next region table entry contains a handle
          that points to the vtable address to be used.  If there is a
          conditional flag, the handle is in the region table entry after
-         the conditional flag. */
+         the conditional flag.  It's possible that the vtbl_ptr is NULL
+         (in cases where a delegation destructor is being used). */
+      has_vtbl_ptr = TRUE;
       an_eh_region_descr_ptr	vtbl_ehrdp;
       vtbl_ehrdp = ehrdp + 1;
       if (flag_addr != NULL) vtbl_ehrdp++;
@@ -832,7 +835,7 @@ requires cleanup.
                                         ehasp->element_size, dtor_ptr);
 #endif /* ifdef __EDG_IA64_ABI */
         }  /* if */
-      } else if (vtbl_ptr != NULL) {
+      } else if (has_vtbl_ptr) {
         /* A non-array object for which a special destructor must be called
            in order to supply information about the construction vtable to
            be used. */

@@ -10128,6 +10128,7 @@ constructors and conversion functions.
           case cdk_complete:               break;
           case cdk_deleting:  name = "D0"; break;
           case cdk_subobject: name = "D2"; break;
+          case cdk_delegation:name = "D9"; break;
           default:            unexpected_condition();
         }  /* switch */
 #endif /* IA64_ABI */
@@ -12331,6 +12332,7 @@ in the routine must be set already.
       case cdk_complete:  ch = '1';               break;
       case cdk_subobject: ch = '2';               break;
       case cdk_deleting:  ch = '0';               break;
+      case cdk_delegation:ch = '9';               break;
       default:            unexpected_condition();
     }  /* switch */
     name[prim_routine->variant.ctor_dtor.base_name_offset + 1] = ch;

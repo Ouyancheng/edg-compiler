@@ -6719,9 +6719,11 @@ substitution, the name of the last component in the substitution is used.
           /* "C9" is the code used by the EDG C++ Front End for the
              common routine called by the various delegating constructor
              entry points.  It's not part of the ABI spec. */
-          if (ptr[1] == '1' || ptr[1] == '2' ||
-              (ptr[0] == 'C' ? (ptr[1] == '3' || ptr[1] == '8' ||
-                                ptr[1] == '9') :
+          /* "D9" is the code used by the EDG C++ Front End for the
+             delegation destructor alternate entry point.  It's not part
+             of the ABI spec. */
+          if (ptr[1] == '1' || ptr[1] == '2' || ptr[1] == '9' ||
+              (ptr[0] == 'C' ? (ptr[1] == '3' || ptr[1] == '8') :
                                (ptr[1] == '0' || ptr[1] == '7'))) {
             /* Okay. */
             *ctor_dtor_kind = ptr[1];
@@ -7439,7 +7441,8 @@ non-template functions).
         break;
       case '9':
         /* The EDG front end uses "C9" for the common constructor routine
-           called by delegating constructor alternate entry points. */
+           called by delegating constructor alternate entry points, and
+           "D9" for (corresponding) delegation destructors. */
         write_id_str(" [delegation]", dctl);
         break;
       default:

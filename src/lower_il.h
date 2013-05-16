@@ -330,16 +330,15 @@ typedef struct a_destructible_entity_descr {
 			   if the variable is a pointer to the array. */
 #if IA64_ABI
   a_byte_boolean
-		use_subobject_destructor;
-			/* When TRUE, the destruction is for a cik_delegation
-			   initialization and exception handling destruction
-			   should be handled by the subobject destructor. */
+		use_delegation_dtor;
+			/* Set to TRUE if a special cdk_delegation destructor
+			   should be used in the region table entry for this
+			   destruction. */
   a_variable_ptr
-		subobject_vtt_param;
-			/* When use_subobject_destructor is TRUE, this is the
-			   VTT parameter for the delegating constructor
-			   (which is then passed as the VTT argument to
-			   the subobject destructor). */
+		vtt_param;
+			/* When use_delegation_dtor is TRUE, this variable
+			   is the VTT parameter to be used as an argument to
+			   the cdk_delegation destructor. */
 #endif /* IA64_ABI */
   a_variable_ptr
 		construction_vtbls_var;
@@ -776,7 +775,8 @@ is TRUE (only in the IA-64 ABI) if the destructor takes a VTT parameter.
 #define dtor_needs_implied_arg_list(dtor_routine) TRUE
 #else /* IA64_ABI */
 #define dtor_needs_vtt_argument(dtor_routine)                              \
-  ((dtor_routine)->ctor_dtor_kind == (a_ctor_or_dtor_kind)cdk_subobject && \
+  (((dtor_routine)->ctor_dtor_kind == (a_ctor_or_dtor_kind)cdk_subobject || \
+    (dtor_routine)->ctor_dtor_kind == (a_ctor_or_dtor_kind)cdk_delegation) && \
    parent_class_of(dtor_routine)->                                         \
                  variant.class_struct_union.any_virtual_base_classes)
 #define dtor_needs_implied_arg_list(dtor_routine) \
@@ -915,6 +915,12 @@ extern a_variable_ptr assign_expr_to_temp(an_expr_node_ptr expr);
 
 extern an_expr_node_ptr assign_expr_to_temp_and_make_expr_for_reuse(
                                                         an_expr_node_ptr expr);
+
+extern an_expr_node_ptr make_reusable_copy_full(
+                                   an_expr_node_ptr expr,
+                                   a_boolean        vars_can_change,
+                                   a_boolean        *temp_init_used,
+                                   a_boolean        treat_as_potential_rvalue);
 
 extern an_expr_node_ptr make_reusable_copy(an_expr_node_ptr expr,
                                            a_boolean        vars_can_change);

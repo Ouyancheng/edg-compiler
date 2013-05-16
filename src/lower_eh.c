@@ -3600,6 +3600,9 @@ return a pointer to it.
 }  /* make_destroy_exception_object_routine */
 
 
+#if !IA64_ABI
+/*ARGSUSED*/ /* use_delegation_dtor is not used in that case. */
+#endif /*! IA64_ABI */
 static a_constant_ptr make_region_table_entry(
                         an_init_pos_descr_ptr   ipdp,
                         a_routine_ptr           routine,
@@ -3613,6 +3616,7 @@ static a_constant_ptr make_region_table_entry(
                         a_handle                *subobject_vtable_handle,
                         a_boolean               is_vla,
                         a_handle                *vla_elem_count_handle,
+                        a_boolean               use_delegation_dtor,
                         a_cleanup_region_number next_region_number,
                         a_cleanup_region_number *region_number,
                         an_insert_location      *insert_location)
@@ -3637,7 +3641,10 @@ conditional_flag_handle gives the handle for the address for the
 conditional flag.  has_subobject_vtable is TRUE if a subobject
 construction vtable needs to be passed to the destructor.  In that
 case, subobject_vtable_handle gives the handle for the address for the
-vtable.  is_vla is TRUE if the object is a variable-length array.  In
+vtable.  use_delegation_dtor is TRUE if the cdk_delegation destructor
+(in IA-64 ABI configs) should be used; in that case has_subobject_vtable
+must be TRUE and subobject_vtable_handle gives the handle for the VTT.
+is_vla is TRUE if the object is a variable-length array.  In
 that case, vla_elem_count_handle gives the handle for the address of a
 variable that contains the number of elements in the array.
 next_region_number is used as the next-region-table-entry number for
@@ -3739,14 +3746,27 @@ table entry.
       flags_value |= RDF_SUBOBJECT_VTABLE;
     }  /* if */
 #if IA64_ABI
-    routine = alternate_entry_point(routine, 
+    routine = alternate_entry_point(routine,
                                     (a_ctor_or_dtor_kind)cdk_subobject,
                                     /*define_now=*/FALSE);
     check_assertion(dtor_needs_vtt_argument(routine) == has_subobject_vtable);
+  } else if (use_delegation_dtor) {
+    /* Use a cdk_delegation destructor (since we don't know whether the
+       complete or subobject destructor should be invoked).  The VTT
+       parameter (specified by the subobject_vtable_handle) will be passed
+       to the cdk_delegation destructor and will invoke the complete
+       destructor if the parameter is NULL otherwise it will invoke the
+       subobject destructor. */
+    check_assertion(has_subobject_vtable);
+    flags_value |= RDF_BASE_CLASS_SUBOBJECT | RDF_SUBOBJECT_VTABLE;
+    routine = alternate_entry_point(routine,
+                                    (a_ctor_or_dtor_kind)cdk_delegation,
+                                    /*define_now=*/FALSE);
+    check_assertion(dtor_needs_vtt_argument(routine));
   } else if (routine != NULL &&
              (routine->special_kind == 
                                   (a_special_function_kind)sfk_destructor)) {
-    routine = alternate_entry_point(routine, 
+    routine = alternate_entry_point(routine,
                                     (a_ctor_or_dtor_kind)cdk_complete,
                                     /*define_now=*/FALSE);
 #endif /* IA64_ABI */
@@ -3864,6 +3884,7 @@ The region table variable is created if necessary.
   an_init_pos_descr               ipd;
   a_boolean                       has_subobject_vtable = FALSE;
   a_boolean                       is_vla = FALSE;
+  a_boolean                       use_delegation_dtor = FALSE;
 
   check_assertion(dedp != NULL);
   /* Make a handle that describes the address of the conditional flag if
@@ -3911,17 +3932,17 @@ The region table variable is created if necessary.
     /* Make a routine that sets the transfer pointer and calls the
        destructor, and record that as the "destructor" to be called. */
     dip->destructor = make_subobject_destruction_routine(dip);
-#endif /* IA64_ABI */
-#if IA64_ABI
-  } else if (dedp->use_subobject_destructor) {
-    /* This destruction represents the destruction of an object created
-       in a subobject delegating constructor which must be destroyed using
-       a subobject destructor.  The VTT argument for the subobject
-       destructor is the VTT parameter for the subobject constructor. */
+#else /* IA64_ABI */
+  } else if (dedp->use_delegation_dtor) {
+    /* It isn't known at compilation time which destructor (i.e., complete
+       or subobject) should be used to do the destruction, so pass the
+       VTT parameter to the cdk_delegation destructor and let it decide at
+       run-time which to call. */
+    use_delegation_dtor = TRUE;
     has_subobject_vtable = TRUE;
-    set_var_init_pos_descr(dedp->subobject_vtt_param, &ipd);
+    set_var_indirect_init_pos_descr(dedp->vtt_param, &ipd);
     make_handle_for_entity(&ipd, &subobject_vtable_handle, insert_location);
-#endif /* IA64_ABI */
+#endif /* !IA64_ABI */
   }  /* if */
 #endif /* ABI_CHANGES_FOR_CONSTRUCTION_VTBLS */
 #if ABI_COMPATIBILITY_VERSION < 306
@@ -3965,6 +3986,7 @@ The region table variable is created if necessary.
                                      &subobject_vtable_handle,
                                      is_vla,
                                      &vla_elem_count_handle,
+                                     use_delegation_dtor,
                                      next_region_number,
                                      &dedp->region_number,
                                      insert_location);
