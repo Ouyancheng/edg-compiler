@@ -6840,21 +6840,32 @@ initialized.  These are addressed in the course of the processing.
           } else {
              /* There may be more than one uninitialized const or ref field,
                 so we wait to collect them all before issuing the error. */
-            /* Remove cip from the list. */
-            if (prev_cip == NULL) {
-              cib.cip_list = cip->next;
+            a_constructor_init_ptr  diag_cip;
+            if (ctor_rout->is_constexpr) {
+              /* For constexpr constructors the initializer entry should
+                 remain on the list so folding has something to work with.
+                 Use a copy of the entry for diagnostic purposes instead. */
+              diag_cip = alloc_ctor_init(cip->kind);
+              *diag_cip = *cip;
+              cip->initializer = make_error_constant_dynamic_init();
             } else {
-              prev_cip->next = cip->next;
+              /* Remove cip from the list. */
+              if (prev_cip == NULL) {
+                cib.cip_list = cip->next;
+              } else {
+                prev_cip->next = cip->next;
+              }  /* if */
+              diag_cip = cip;
             }  /* if */
-            cip->next = NULL;
+            diag_cip->next = NULL;
             /* Add it to a list that identifies fields that need to be
                initialized but have no initializer. */
             if (uninit_list == NULL) {
-              uninit_list = cip;
+              uninit_list = diag_cip;
             } else {
-              end_of_uninit_list->next = cip;
+              end_of_uninit_list->next = diag_cip;
             }  /* if */
-            end_of_uninit_list = cip;
+            end_of_uninit_list = diag_cip;
             if (is_any_reference_type(tp)) {
               any_ref_member_on_uninit_list = TRUE;
             }  /* if */
