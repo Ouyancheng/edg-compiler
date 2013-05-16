@@ -2389,13 +2389,13 @@ dip->variant.constructor.args has already been lowered.
                         &then_insert_location, &else_insert_location);
     /* Call the target subobject constructor in the "then" clause. */
     make_call_statement(alternate_entry_point(dip->variant.constructor.ptr,
-                                              cdk_subobject,
-                                              /*define_now=*/FALSE),
+                                            (a_ctor_or_dtor_kind)cdk_subobject,
+                                            /*define_now=*/FALSE),
                         so_arg_list, return_value, &then_insert_location);
     /* Call the target complete object constructor in the "else" clause. */
     make_call_statement(alternate_entry_point(dip->variant.constructor.ptr,
-                                              cdk_complete,
-                                              /*define_now=*/FALSE),
+                                             (a_ctor_or_dtor_kind)cdk_complete,
+                                             /*define_now=*/FALSE),
                         arg_list, return_value, &else_insert_location);
     if (exceptions_enabled &&
         ctor_init->initializer->destructible_entity_descr != NULL) {
@@ -4413,8 +4413,8 @@ operator of a no-capture lambda.
                           &then_insert_location);
       /* Call the complete object destructor in the "else" clause. */
       make_call_statement(alternate_entry_point(routine,
-                                                cdk_complete,
-                                                /*define_now=*/FALSE),
+                                             (a_ctor_or_dtor_kind)cdk_complete,
+                                             /*define_now=*/FALSE),
                           var_rvalue_expr(this_param_var),
                           (an_expr_node_ptr)NULL,
                           &else_insert_location);
