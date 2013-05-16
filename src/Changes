@@ -1,5 +1,14 @@
 Version 4.7
 
+5/16/13  [EDGcpfe/14039]
+Abort on aliases templates when debug output enabled
+
+When fine-grained debug output was enabled (e.g., "-d4"), the front end was
+likely to abort in f_skip_typerefs ("NULL referenced type") while producing
+the tracing output for the instantiation of an alias template.  This is now
+fixed.
+
+
 5/16/13  [EDGcpfe/13992]
 GNU C++: Nonstandard anonymous structs and constexpr constructors
 

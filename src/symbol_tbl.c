@@ -1293,12 +1293,19 @@ do_variable:
       put_string("semivisible");
     }  /* if */
 #endif /* CFRONT_2_1_OBJECT_CODE_COMPATIBILITY */
-    if (!space_left(20) ||
-        (!space_left(30) && is_array_type(type)) || is_function_type(type) ||
-        (is_any_ptr_or_ref_type(type) &&
-	 ((is_array_type(type_pointed_to(type)) && !space_left(35)) ||
-	  is_function_type(type_pointed_to(type)))) ||
-        (!space_left(55) && is_template_class_type(type))) {
+    if (type->kind == (a_type_kind)tk_typeref &&
+        type->variant.typeref.type == NULL) {
+      /* The type may still be under construction (e.g., if this is the symbol
+         for an alias template).  Don't try to test the type with functions,
+         like is_function_type, that will perform a skip_typerefs. */
+      fprintf(f_debug, ",\n%*stype = ", indentation, "");
+    } else if (!space_left(20) ||
+               (!space_left(30) && is_array_type(type)) ||
+               is_function_type(type) ||
+               (is_any_ptr_or_ref_type(type) &&
+                ((is_array_type(type_pointed_to(type)) && !space_left(35)) ||
+                 is_function_type(type_pointed_to(type)))) ||
+               (!space_left(55) && is_template_class_type(type))) {
       fprintf(f_debug, ",\n%*stype = ", indentation, "");
     } else {
       fputs(", type = ", f_debug);
