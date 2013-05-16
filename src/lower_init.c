@@ -121,7 +121,6 @@ static void lower_ctor_init(a_constructor_init_ptr ctor_init,
                             a_boolean              base_of_complete_object,
                             a_variable_ptr         construction_vtbls_var,
                             an_insert_location_ptr insert_location);
-
 static a_type_ptr make_function_type(a_type_ptr return_type,
                                      a_type_ptr param_1_type,
                                      a_type_ptr param_2_type)
@@ -4686,52 +4685,30 @@ void set_primary_ctor_or_dtor_kind(a_routine_ptr routine)
 /*
 If the indicated primary constructor or destructor routine has not
 yet been assigned as one of the required IA-64 entry points, do
-that now by setting its ctor_dtor_kind field.  Note that although the
-ctor_dtor_kind field is set here, it may be re-set by a subsequent
-call (though the only change would be from a cdk_subobject to a
-cdk_delegation because the is_delegating_ctor flag isn't set until the
-definition of the delegating constructor is seen).
+that now by setting its ctor_dtor_kind field.  Note that the delegating
+constructor case (cdk_delegation) is handled separately
+(see add_delegating_constructor_wrapper_code), and it's possible (even
+likely) that a delegating constructor routine will have its primary
+ctor_dtor_kind set to cdk_subobject here only to later be changed to
+cdk_delegation (but externally that should be okay since the external
+interface to the two routines is identical).
 */
 {
-  a_type_ptr           class_type = parent_class_of(routine);
-  a_ctor_or_dtor_kind  orig_kind, new_kind;
-
   check_assertion(routine->primary_ctor_or_dtor == NULL);
-  orig_kind = routine->ctor_dtor_kind;
-  if (routine->is_delegating_ctor &&
-      class_type->variant.class_struct_union.any_virtual_base_classes) {
-    /* Most delegating constructors can be handled through the "normal"
-       mechanism (i.e., the cik_delegation constructor is simply lowered
-       as another constructor init and it doesn't matter if the target
-       subobject constructor or the target complete object constructor
-       are called because they are aliases for each other), but when the
-       parent class of the delegating constructor has virtual base classes,
-       then the delegating subobject constructor must call the target
-       subobject constructor and the delegating complete object constructor
-       must call the target complete object constructor.  To handle this
-       case, the primary routine (which contains the body of the delegating
-       constructor) is a cdk_delegation constructor (an EDG addition), and
-       the alternate entry points invoke the cdk_delegation routine. */
-    new_kind = (a_ctor_or_dtor_kind)cdk_delegation;
-  } else {
+  if (routine->ctor_dtor_kind == (a_ctor_or_dtor_kind)cdk_none) {
+    a_type_ptr class_type = parent_class_of(routine);
     if (class_type->variant.class_struct_union.any_virtual_base_classes) {
       /* The class has virtual bases.  The primary routine is the subobject
          constructor, and the complete object constructor calls that. */
-      new_kind = (a_ctor_or_dtor_kind)cdk_subobject;
+      routine->ctor_dtor_kind = (a_ctor_or_dtor_kind)cdk_subobject;
     } else {
       /* The class has no virtual bases.  The primary routine is the
          complete object constructor, and the subobject constructor
          is an entry point (that does nothing additional, i.e., it's
          an alias). */
-      new_kind = (a_ctor_or_dtor_kind)cdk_complete;
+      routine->ctor_dtor_kind = (a_ctor_or_dtor_kind)cdk_complete;
     }  /* if */
   }  /* if */
-  if (orig_kind != new_kind) {
-    check_assertion(orig_kind == (a_ctor_or_dtor_kind)cdk_none ||
-                    (orig_kind == (a_ctor_or_dtor_kind)cdk_subobject &&
-                     new_kind == (a_ctor_or_dtor_kind)cdk_delegation));
-  }  /* if */
-  routine->ctor_dtor_kind = new_kind;
 }  /* set_primary_ctor_or_dtor_kind */
 
 
@@ -4763,12 +4740,9 @@ routine will be the same as the one passed in.
                   kind == (a_ctor_or_dtor_kind)cdk_deleting);
   /* routine should not be a secondary entry point. */
   check_assertion(routine->primary_ctor_or_dtor == NULL);
-  if (routine->ctor_dtor_kind == (a_ctor_or_dtor_kind)cdk_none ||
-      define_now) {
+  if (routine->ctor_dtor_kind == (a_ctor_or_dtor_kind)cdk_none) {
     /* The primary routine has not been assigned to be one of the entry
-       points yet, so do that now.  Also, re-set the primary ctor_dtor_kind
-       field if we've being asked to define the alternate entry points
-       (since all information about the routine is now known). */
+       points yet, so do that now. */
     set_primary_ctor_or_dtor_kind(routine);
   }  /* if */
   if (routine->ctor_dtor_kind == kind) {
@@ -14213,6 +14187,25 @@ constructor (at the specified insert_location).
                   ctor_init != NULL &&
                   ctor_init->kind == (a_constructor_init_kind)cik_delegation &&
                   ctor_init->next == NULL);
+#if IA64_ABI
+  if (parent_class_of(scope->variant.routine.ptr)
+                       ->variant.class_struct_union.any_virtual_base_classes) {
+      /* Most delegating constructors can be handled through the "normal"
+         mechanism (i.e., the cik_delegation constructor is simply lowered
+         as another constructor init and it doesn't matter if the target
+         subobject constructor or the target complete object constructor
+         are called because they are aliases for each other), but when the
+         parent class of the delegating constructor has virtual base classes,
+         then the delegating subobject constructor must call the target
+         subobject constructor and the delegating complete object constructor
+         must call the target complete object constructor.  To handle this
+         case, the primary routine (which contains the body of the delegating
+         constructor) is a cdk_delegation constructor (an EDG addition), and
+         the alternate entry points invoke the cdk_delegation routine. */
+    scope->variant.routine.ptr->ctor_dtor_kind =
+                                           (a_ctor_or_dtor_kind)cdk_delegation;
+  }  /* if */
+#endif /* IA64_ABI */
   /* Lower the delegating constructor init to invoke the target constructor.
      In the Cfront ABI, if parent class has virtual bases, the lowered
      call to the target constructor will forward any implied arguments
