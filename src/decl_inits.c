@@ -6841,10 +6841,14 @@ initialized.  These are addressed in the course of the processing.
              /* There may be more than one uninitialized const or ref field,
                 so we wait to collect them all before issuing the error. */
             a_constructor_init_ptr  diag_cip;
-            if (ctor_rout->is_constexpr) {
-              /* For constexpr constructors the initializer entry should
-                 remain on the list so folding has something to work with.
-                 Use a copy of the entry for diagnostic purposes instead. */
+            if (ctor_rout->is_constexpr && (!ctor_rout->is_template_function ||
+                                            ctor_rout->is_specialized)) {
+              /* For constexpr constructors that aren't template instances the
+                 initializer entry should remain on the list so folding has
+                 something to work with.  (For template instances, the
+                 constructor will be treated as non-constexpr and so folding
+                 will not be involved.)  Use a copy of the entry for
+                 diagnostic purposes instead. */
               diag_cip = alloc_ctor_init(cip->kind);
               *diag_cip = *cip;
               cip->initializer = make_error_constant_dynamic_init();
