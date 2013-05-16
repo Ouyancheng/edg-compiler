@@ -7225,6 +7225,26 @@ are known not to throw exceptions, or if it is an array of such a class type.
 }  /* has_nothrow_move_assign */
 
 
+static a_boolean in_ms_nonreal_class_instantiation(void)
+/*
+Return TRUE if we are in a Microsoft nonreal class instantiation (a kind of
+instantiation performed to permit lookups in dependent base classes).
+*/
+{
+  a_boolean  result = FALSE;
+
+  if (scope_stack_top().in_nonreal_instantiation) {
+    a_type_ptr  tp =
+                  scope_stack[depth_innermost_instantiation_scope].assoc_type;
+    if (tp != NULL && is_immediate_class_type(tp) &&
+        tp->variant.class_struct_union.is_ms_instantiated_nonreal_class) {
+      result = TRUE;
+    }  /* if */
+  }  /* if */
+  return result;
+}  /* in_ms_nonreal_class_instantiation */
+
+
 static void fold_unary_type_trait_helper(
                                     an_expr_node_ptr   expr,
                                     a_constant_ptr     constant,
@@ -7252,7 +7272,7 @@ constant will be set as well.
                   arg->kind == (an_expr_node_kind)enk_type_operand);
   type = arg->variant.type_operand.type;
   if (is_template_dependent_type(type) ||
-      scope_stack_top().in_nonreal_instantiation) {
+      (microsoft_mode && in_ms_nonreal_class_instantiation())) {
     /* For template-dependent types, create a ck_template_param result.
        In Microsoft nonreal instantiations, we may end up with incomplete-but-
        nondependent types but they shouldn't trigger an error; therefore, we
