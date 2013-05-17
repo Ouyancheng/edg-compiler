@@ -2410,6 +2410,16 @@ dip->variant.constructor.args has already been lowered.
   /* Do not insert code here. */
   {
 #if IA64_ABI
+    if (is_target_ctor_call) {
+      /* Invoke the corresponding target constructor kind for this delegating
+         constructor. */
+      kind = innermost_function_scope->variant.routine.ptr->ctor_dtor_kind;
+      if (kind == (a_ctor_or_dtor_kind)cdk_subobject) {
+        /* The VTT parameter gets passed as an implied argument. */
+        implied_arg_list = end_implied_arg_list = var_rvalue_expr(
+                   innermost_function_scope->variant.routine.parameters->next);
+      }  /* if */
+    }  /* if */
     /* Use the proper entry point (complete or subobject). */
     ctor_routine = dip->variant.constructor.ptr =
                                    alternate_entry_point(ctor_routine,
@@ -8020,9 +8030,10 @@ static void ctor_or_dtor_statement_has_no_effect(
                                  a_statement_ptr                     statement,
                                  an_expr_or_stmt_traversal_block_ptr tblock)
 /*
-Called during a statement traversal of a lowered constructor or destructor
-to see if the routine has any effect.  Any "boilerplate" statements added
-during the creation of the routine by lowering are deemed to have no effect.
+Called during a statement traversal of a (lowered or unlowered) constructor or
+destructor to see if the routine has any effect.  Any "boilerplate" statements
+added during the creation of the routine by lowering are deemed to have no
+effect.
 */
 {
   if (statement->is_lowering_boilerplate) {
@@ -8064,12 +8075,12 @@ during the creation of the routine by lowering are deemed to have no effect.
 
 a_boolean ctor_or_dtor_body_has_no_effect(a_scope_ptr scope)
 /*
-Traverse the statements in the lowered scope of a constructor or destructor
-scope to determine if the routine has no effect when called with "typical"
-arguments.  In some configurations, lowered constructors and destructors
-will have various "boilerplate" statements added (see lower_constructor_code
-and lower_destructor_code) which are ignored for the purposes of determining
-whether or not the routine has an effect.
+Traverse the statements in the (lowered or unlowered) scope of a constructor or
+destructor scope to determine if the routine has no effect when called with
+"typical" arguments.  In some configurations, lowered constructors and
+destructors will have various "boilerplate" statements added (see
+lower_constructor_code and lower_destructor_code) which are ignored for the
+purposes of determining whether or not the routine has an effect.
 
 It's not always possible to know all cases where constructors or destructors
 have no effect; for example, this case doesn't result in the destruction for
@@ -14204,8 +14215,24 @@ constructor (at the specified insert_location).
          case, the primary routine (which contains the body of the delegating
          constructor) is a cdk_delegation constructor (an EDG addition), and
          the alternate entry points invoke the cdk_delegation routine. */
-    scope->variant.routine.ptr->ctor_dtor_kind =
+    check_assertion(ctor_init->initializer != NULL &&
+                    ctor_init->initializer->kind ==
+                                         (a_dynamic_init_kind)dik_constructor);
+    if (ctor_or_dtor_body_has_no_effect(scope) &&
+        (!exceptions_enabled ||
+         same_exception_spec(scope->variant.routine.ptr->type,
+                     ctor_init->initializer->variant.constructor.ptr->type))) {
+      /* Optimize the case where the body of a delegating constructor is
+         empty (this check is made before the body is lowered because lowering
+         of the cik_delegation constructor initializer will create lowered
+         code in the body).  In this case, a cdk_delegation routine is
+         not necessary. */
+      check_assertion(scope->variant.routine.ptr->ctor_dtor_kind ==
+                                           (a_ctor_or_dtor_kind)cdk_subobject);
+    } else {
+      scope->variant.routine.ptr->ctor_dtor_kind =
                                            (a_ctor_or_dtor_kind)cdk_delegation;
+    }  /* if */
   }  /* if */
 #endif /* IA64_ABI */
   /* Lower the delegating constructor init to invoke the target constructor.
