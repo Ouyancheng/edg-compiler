@@ -7225,26 +7225,6 @@ are known not to throw exceptions, or if it is an array of such a class type.
 }  /* has_nothrow_move_assign */
 
 
-static a_boolean in_ms_nonreal_class_instantiation(void)
-/*
-Return TRUE if we are in a Microsoft nonreal class instantiation (a kind of
-instantiation performed to permit lookups in dependent base classes).
-*/
-{
-  a_boolean  result = FALSE;
-
-  if (scope_stack_top().in_nonreal_instantiation) {
-    a_type_ptr  tp =
-                  scope_stack[depth_innermost_instantiation_scope].assoc_type;
-    if (tp != NULL && is_immediate_class_type(tp) &&
-        tp->variant.class_struct_union.is_ms_instantiated_nonreal_class) {
-      result = TRUE;
-    }  /* if */
-  }  /* if */
-  return result;
-}  /* in_ms_nonreal_class_instantiation */
-
-
 static void fold_unary_type_trait_helper(
                                     an_expr_node_ptr   expr,
                                     a_constant_ptr     constant,

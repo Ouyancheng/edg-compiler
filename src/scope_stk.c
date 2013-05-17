@@ -11333,6 +11333,26 @@ done:
 
 #endif /* GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED */
 
+a_boolean in_ms_nonreal_class_instantiation(void)
+/*
+Return TRUE if we are in a Microsoft nonreal class instantiation (a kind of
+instantiation performed to permit lookups in dependent base classes).
+*/
+{
+  a_boolean  result = FALSE;
+
+  if (scope_stack_top().in_nonreal_instantiation) {
+    a_type_ptr  tp =
+                  scope_stack[depth_innermost_instantiation_scope].assoc_type;
+    if (tp != NULL && is_immediate_class_type(tp) &&
+        tp->variant.class_struct_union.is_ms_instantiated_nonreal_class) {
+      result = TRUE;
+    }  /* if */
+  }  /* if */
+  return result;
+}  /* in_ms_nonreal_class_instantiation */
+
+
 a_scope_ptr get_innermost_function_scope(void)
 /*
 Returns the innermost function scope (or NULL if there is none).  Typically

@@ -2112,6 +2112,8 @@ extern a_boolean in_deprecated_definition(void);
 
 #endif /* GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED */
 
+extern a_boolean in_ms_nonreal_class_instantiation(void);
+
 extern void scope_stk_one_time_init(void);
 
 extern void scope_stk_trans_unit_init(void);
