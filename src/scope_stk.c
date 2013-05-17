@@ -9652,10 +9652,9 @@ rescan.
   a_boolean			curr_scope_found = FALSE;
   a_template_param_ptr		curr_param_list = *templ_param_list;
 
-  check_assertion(depth_innermost_instantiation_scope != NO_SCOPE_DEPTH);
   *templ_param_list = NULL;
   *templ_arg_list = NULL;
-  for (ssep = &scope_stack[depth_innermost_instantiation_scope];
+  for (ssep = scope_stack_entry_for(depth_innermost_instantiation_scope);
        ssep != NULL;
        ssep = previous_scope_of(ssep)) {
     if (ssep->kind != (a_scope_kind)sck_template_instantiation) {
