@@ -3747,7 +3747,7 @@ Add "if (this)" around the whole routine whose top scope is given by "scope".
   enclose_routine_in_if(scope, if_node, (a_variable_ptr)NULL);
 }  /* add_null_test_around_routine */
 
-#if IA64_ABI
+#if HANDLE_VIRTUAL_BASES_IN_COMPLETE_CTOR_DTORS
 
 static void replace_parameter_in_node(an_expr_node_ptr                expr,
                                       an_expr_or_stmt_traversal_block *tblock)
@@ -3979,7 +3979,7 @@ is TRUE, the original constructor initializers are removed from from_scope.
 #endif /* DEBUG */
 }  /* copy_ctor_inits */
 
-#endif /* IA64_ABI */
+#endif /* HANDLE_VIRTUAL_BASES_IN_COMPLETE_CTOR_DTORS */
 
 /* Forward declarations. */
 #if ABI_CHANGES_FOR_CONSTRUCTION_VTBLS
@@ -4091,13 +4091,11 @@ operator of a no-capture lambda.
   a_generated_routine_context
                    grcontext;
   a_boolean        insert_as_statement, void_return, is_lambda_entry_point;
-#if IA64_ABI
-  a_boolean        remove_originals;
-#endif /* IA64_ABI */
   an_object_lifetime_ptr
                    init_expr_lifetime = NULL;
   a_context        def_arg_context;
 #if HANDLE_VIRTUAL_BASES_IN_COMPLETE_CTOR_DTORS
+  a_boolean        remove_originals;
   a_boolean        construct_virtual_bases = FALSE;
   a_boolean        destroy_virtual_bases = FALSE;
   a_variable_ptr   construction_vtbls_var;
