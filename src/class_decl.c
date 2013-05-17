@@ -17210,10 +17210,10 @@ information about the member declaration, respectively.
                                                       symbol_for(class_type));
     check_assertion(symbol_is(dps->sym, sk_field));
     field = dps->sym->variant.field.ptr;
-    fssp = dps->sym->variant.field.extra_info;
     if (class_type->kind == (a_type_kind)tk_union &&
         class_state->has_field_initializer) {
-      /* Unions can only have a single member with a field initializer. */
+      /* Unions can only have a single member with a field initializer.
+         Issue an error, and discard the later initializer. */
       a_field_ptr  fp = class_type->variant.class_struct_union.field_list;
       for (; fp != NULL; fp = fp->next) {
         if (fp->has_initializer) break;
@@ -17221,49 +17221,57 @@ information about the member declaration, respectively.
       check_assertion(fp != NULL && fp != field);
       pos_sy_error(ec_multiple_union_field_initializers,
                    &dps->declarator_pos, symbol_for(fp));
+      /* Skip over the initializer (or, in some template cases, the associated
+         placeholder token). */
+      if (curr_token != tok_removed_expr) {
+        flush_tokens();
+      } else {
+        get_token();
+      }  /* if */
     } else {
       class_state->has_field_initializer = TRUE;
-    }  /* if */
-    field->has_initializer = TRUE;
-    ++cssp->num_unparsed_field_initializers;
-    dps->auto_type_allowed = FALSE;
-    if (in_class_template_definition(class_state)) {
-      /* During the prototype instantiation, save the token sequence
-         number associated with this declaration so that it can be used
-         for matching purposes during real instantiations. */
-      fssp->token_sequence_number = curr_token_sequence_number;
-    } else if (in_class_instantiation(class_state)) {
-      if (curr_token != tok_removed_expr) {
-        /* In error cases, the declaration might not look like a nonstatic
-           data member in the prototype instantiation.  Record an error
-           constant as the initializer. */
-        expect_error();
-        flush_tokens();
-        record_fixup = FALSE;
-        field->initializer =
+      field->has_initializer = TRUE;
+      ++cssp->num_unparsed_field_initializers;
+      fssp = dps->sym->variant.field.extra_info;
+      dps->auto_type_allowed = FALSE;
+      if (in_class_template_definition(class_state)) {
+        /* During the prototype instantiation, save the token sequence
+           number associated with this declaration so that it can be used
+           for matching purposes during real instantiations. */
+        fssp->token_sequence_number = curr_token_sequence_number;
+      } else if (in_class_instantiation(class_state)) {
+        if (curr_token != tok_removed_expr) {
+          /* In error cases, the declaration might not look like a nonstatic
+             data member in the prototype instantiation.  Record an error
+             constant as the initializer. */
+          expect_error();
+          flush_tokens();
+          record_fixup = FALSE;
+          field->initializer =
                         alloc_dynamic_init((a_dynamic_init_kind)dik_constant);
-        field->initializer->variant.constant = alloc_error_constant();
-        --cssp->num_unparsed_field_initializers;
-      } else {
-        /* During a real instantiation, the token cache information is copied
-           from the field of the prototype instantiation. */
-        find_inclass_initializer_for_instance(
+          field->initializer->variant.constant = alloc_error_constant();
+          --cssp->num_unparsed_field_initializers;
+        } else {
+          /* During a real instantiation, the token cache information is copied
+             from the field of the prototype instantiation. */
+          find_inclass_initializer_for_instance(
                              dps->sym, class_state->corresp_prototype_tag_sym);
-        /* No fixup is done because field initializers in templates are only
-           instantiated if used. */
-        record_fixup = FALSE;
-        cssp->has_instantiatable_field_initializers = TRUE;
-        (void)get_token();
+          /* No fixup is done because field initializers in templates are only
+             instantiated if used. */
+          record_fixup = FALSE;
+          cssp->has_instantiatable_field_initializers = TRUE;
+          (void)get_token();
+        }  /* if */
       }  /* if */
+      if (record_fixup) {
+        record_inclass_initializer_fixup(class_state, dps);
+      }  /* if */
+      /* Field initializers make the class a non-POD and a non-aggregate.
+         Also, it makes the default constructor nontrivial. */
+      class_state->POD_ruled_out = TRUE;
+      class_state->class_aggregate_ruled_out = TRUE;
+      class_state->default_ctor_is_nontrivial = TRUE;
     }  /* if */
-    if (record_fixup) {
-      record_inclass_initializer_fixup(class_state, dps);
-    }  /* if */
-    /* Field initializers make the class a non-POD and a non-aggregate.  Also,
-       it makes the default constructor nontrivial. */
-    class_state->POD_ruled_out = TRUE;
-    class_state->class_aggregate_ruled_out = TRUE;
-    class_state->default_ctor_is_nontrivial = TRUE;
   }  /* if */
 }  /* scan_nonstatic_data_member */
 
