@@ -17226,7 +17226,7 @@ information about the member declaration, respectively.
       if (curr_token != tok_removed_expr) {
         flush_tokens();
       } else {
-        get_token();
+        (void)get_token();
       }  /* if */
     } else {
       class_state->has_field_initializer = TRUE;
