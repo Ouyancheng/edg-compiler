@@ -1080,6 +1080,23 @@ For example:
 This feature can also be enabled in non-C++11 modes with the new command-line
 option --delegating_constructors.
 
+Note that in the IA-64 ABI configuration, when using lowering, delegating
+constructors that have virtual base classes are implemented by invoking
+a new cdk_delegation constructor (which is specific to the EDG front end
+-- i.e., it's not part of the IA-64 ABI).  This constructor is invoked
+by both the complete and subobject constructors and contains special
+treatment to ensure that the proper (i.e., complete or subobject) target
+constructor is called.  In certain cases where the delegating constructor
+body is empty, use of this constructor is optimized away.  A new cdk_delegation
+destructor (also specific to the EDG front end and not part of the IA-64 ABI)
+is also introduced in cases where the object created by the target constructor
+needs to be destroyed (because an exception may be thrown).  These new
+cdk_delegation constructor and destructor routines are mangled with "C9" and
+"D9" respectively.  The cdk_delegation routine relies on a change in the
+run-time library, and thus are enabled only when ABI_COMPATIBILITY_VERSION is
+407 or greater (in IA-64 ABI configurations where lowering does exception
+handling).
+
 
 4/22/13  [EDGcpfe/13391]
 Microsoft compatibility: pack expansion used in default template argument

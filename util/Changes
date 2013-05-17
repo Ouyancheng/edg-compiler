@@ -1,5 +1,12 @@
 Version 4.7
 
+5/17/13  [EDGcpfe/7689,EDGcpfe/13901]
+C++11: Delegating constructors
+
+Add demangling for the EDG-specific delegation constructors ("C9") and
+destructors ("D9").
+
+
 5/9/13   [EDGcpfe/14012]
 Demangling of an expression in a variable-sized array
 

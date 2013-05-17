@@ -1,3 +1,17 @@
+Version 4.7
+
+5/17/13  [EDGcpfe/7689,EDGcpfe/13901]
+C++11: Delegating constructors
+
+A change has been made to allow a NULL vtable pointer to be passed to a
+destructor during exception handling processing.  Previously if a NULL
+value was found in a RDF_SUBOBJECT_VTABLE region table entry, the run-time
+library silently invoked the "complete" object destructor; now the
+"subobject" destructor is invoked with the NULL value.  This functionality
+is required for the implementation of delegating constructors in
+IA-64 ABI configurations.
+
+
 Version 4.6, March 30, 2013
 
 12/7/12 [EDGcpfe/13489,EDGcpfe/9247,EDGcpfe/9975]
