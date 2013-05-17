@@ -9633,7 +9633,6 @@ template that is being instantiated.
 
 
 static void get_enclosing_template_params_and_args(
-				a_template_arg_ptr	curr_arg_list,
 				a_template_param_ptr	*templ_param_list,
 				a_template_arg_ptr	*templ_arg_list,
 				a_boolean		is_rescan)
@@ -9641,8 +9640,8 @@ static void get_enclosing_template_params_and_args(
 This routine can be called within a template instantiation context to
 return the template parameter list and template argument list of a
 template that is being instantiated.  The template parameter list and
-argument list are the ones of the instantiation that encloses the
-instantiation for curr_arg_list.  If no such instantiation exists,
+argument list are expected to be from one of the instantiations that
+encloses the current context.  If no such instantiation exists,
 NULL template parameter list and argument lists are returned.  is_rescan is
 TRUE if the pack instantiation is being created as part of an expression
 rescan.
@@ -9727,7 +9726,7 @@ rescan.
   if (!found && !is_deduction) {
     /* The immediate instantiation context does not have the specified
        template parameter.  Look in an enclosing context. */
-    get_enclosing_template_params_and_args(templ_arg_list, &templ_param_list,
+    get_enclosing_template_params_and_args(&templ_param_list,
                                            &templ_arg_list, is_rescan);
     if (templ_arg_list != NULL) {
       result_tap = find_template_arg_for_pack(templ_param_list, templ_arg_list,

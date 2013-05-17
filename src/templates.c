@@ -5599,7 +5599,11 @@ in one-instantiation-per-object mode.
 
 #endif /* ONE_INSTANTIATION_PER_OBJECT */
 
-/* Forward declaration. */
+/* Forward declarations. */
+static a_boolean is_template_param_from_list(
+		        a_template_param_coordinate_ptr	coordinates,
+			a_template_param_ptr		templ_param_list);
+
 static void rescan_static_data_member_declaration(
 				a_template_instance_ptr			tip,
 				a_symbol_ptr				sym,
@@ -9413,7 +9417,7 @@ it is always NULL.
 }  /* tentatively_matches_template_type */
 
 
-a_boolean is_template_param_from_list(
+static a_boolean is_template_param_from_list(
 		        a_template_param_coordinate_ptr	coordinates,
 			a_template_param_ptr		templ_param_list)
 /*

@@ -622,10 +622,6 @@ void complete_template_static_data_member_type_is_needed(a_variable_ptr vp);
 
 extern void f_instantiate_template_class(a_type_ptr  type);
 
-extern a_boolean is_template_param_from_list(
-		        a_template_param_coordinate_ptr	coordinates,
-			a_template_param_ptr		templ_param_list);
-
 extern void init_ctws_state(a_ctws_state_ptr	csp);
 
 extern a_template_arg_ptr copy_template_arg_list_with_substitution(
