@@ -7074,12 +7074,18 @@ initialized.  These are addressed in the course of the processing.
       }  /* for */
       end_error();
     }  /* if */
-  } else if (is_union && ctor_rout->is_constexpr && has_field &&
-             !has_field_init) {
-    /* A constexpr constructor for a union must initialize a field
-       explicitly. */
-    pos_error(ec_union_constexpr_constructor_initializes_no_field,
-              &error_position);
+  } else if (is_union && ctor_rout->is_constexpr && has_field) {
+    if (!has_field_init) {
+      /* A constexpr constructor for a union must initialize a field
+         explicitly. */
+      pos_error(ec_union_constexpr_constructor_initializes_no_field,
+                &error_position);
+    } else if (cib.cip_list->next != NULL) {
+      /* More than one initializer: An error should already have been
+         issued. */
+      expect_error();
+      cib.cip_list->next = NULL;
+    }  /* if */
   }  /* if */
   if (clear_constexpr_flag) {
     ctor_rout->is_constexpr = FALSE;
