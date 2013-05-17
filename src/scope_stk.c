@@ -9484,7 +9484,7 @@ Pop the current entry off of the pack expansion stack.
   if (pesep != NULL && !pesep->is_rescan && !pesep->is_deduction) {
     if (pesep->enclosing_packs_reset) {
       reset_enclosing_pack_values();
-   }  /* if */
+    }  /* if */
   }  /* if */
 }  /* pop_pack_expansion_stack */
 
@@ -9684,7 +9684,7 @@ rescan.
 }  /* get_enclosing_template_params_and_args */
 
 
-a_template_arg_ptr find_template_arg_for_pack(
+static a_template_arg_ptr find_template_arg_for_pack(
 				a_template_param_ptr	templ_param_list,
 				a_template_arg_ptr	templ_arg_list,
 				a_symbol_ptr		sym,

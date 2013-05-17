@@ -2109,14 +2109,6 @@ extern
 void record_potential_pack_reference(a_symbol_ptr		pack_symbol,
 				     a_source_position_ptr	position);
 
-extern a_template_arg_ptr find_template_arg_for_pack(
-				a_template_param_ptr	templ_param_list,
-				a_template_arg_ptr	templ_arg_list,
-				a_symbol_ptr		sym,
-				uint32_t		*elements,
-				a_boolean		is_rescan,
-				a_boolean		is_deduction);
-
 #if GNU_EXTENSIONS_ALLOWED
 extern a_type_ptr get_type_for_bases_operator(
 				a_type_ptr		bases_type,
