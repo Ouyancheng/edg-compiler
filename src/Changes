@@ -3,6 +3,29 @@ Version 4.7
 5/17/13
 IL version number changed to 4.7
 
+5/17/13  [EDGcpfe/13643]
+Variadic template issue with member function templates and enclosing packs
+
+The front end did not properly handle variadic member function templates
+of variadic classes that made use of pack expansions that reference
+packs of both the member template and the enclosing class.  The resulting
+pack expansion did not contain the proper types from the enclosing
+class.  That resulted in a spurious error on the assignment in the
+example below.  Now fixed.
+
+  template <class ... T> struct A {};
+  template <class T, class T2> struct B {};
+  template <typename... T> struct C {
+    template <typename... U> static A<B<T, U>...> f(U&& ... args);
+  };
+  class D {};
+  int main() {
+    D d;
+    C<short , int, D> t;
+    A<B<short,short>, B<int,int>, B<D,D&>> ab;
+    ab = t.f((short)0,0,d);
+  }
+
 
 5/16/13  [EDGcpfe/14039]
 Abort on aliases templates when debug output enabled

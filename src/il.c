@@ -16081,22 +16081,19 @@ name lookup options.
       case tpck_param:
         /* The template param constant represents a simple non-type template
            parameter.  Replace it if it has the right depth. */
-        coordinates = &con->variant.template_param.variant.coordinates;
-        if (is_template_param_from_list(coordinates,
-                                        template_param_list)) {
-          a_template_arg_ptr tap = get_template_arg_by_list_pos(
-                                            template_param_list,
-                                            &template_arg_list,
-                                            con->variant.template_param.
-                                                 variant.coordinates.position,
-                                            /*is_rescan=*/TRUE);
-          check_assertion(is_nontype_templ_arg(tap) &&
-                          !tap->is_array_bound_of_unknown_type);
-          if (tap->variant.constant != NULL) {
+        { a_template_arg_ptr tap;
+          coordinates = &con->variant.template_param.variant.coordinates;
+          tap = get_template_arg_for_coordinates(coordinates,
+                                                 &template_arg_list,
+                                                 template_param_list);
+          check_assertion(tap == NULL ||
+                          (is_nontype_templ_arg(tap) &&
+                           !tap->is_array_bound_of_unknown_type));
+          if (tap != NULL && tap->variant.constant != NULL) {
             /* Only use the template argument value if one was specified. */
             con_copy = tap->variant.constant;
           }  /* if */
-        }  /* if */
+        }
         break;
       case tpck_member:
         /* A member constant, e.g., for a case like A<T>::x. */

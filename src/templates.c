@@ -2703,15 +2703,49 @@ the count of parameters to be compared when entire_type is FALSE.
 }  /* compare_function_template */
 
 
-static a_template_nesting_depth *nesting_depth_addr_of_template_param(
-                                                   a_template_param_ptr tpp)
+a_template_param_coordinate_ptr coordinates_of_template_param_symbol(
+                                                   a_symbol_ptr sym)
 /*
-Return the address of the template nesting depth of the specified template
-parameter.
+Return the address of the template coordinates of the template parameter
+specified by sym.
 */
 {
-  a_template_nesting_depth	*p_depth;
-  a_symbol_kind			sym_kind = tpp->param_symbol->kind;
+  a_template_param_coordinate_ptr	coordinates;
+  a_symbol_kind				sym_kind = sym->kind;
+
+  if (sym_kind == (a_symbol_kind)sk_type) {
+    a_type_ptr	tp = sym->variant.type.ptr;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    if (is_cli_generic_definition_argument_type(tp)) {
+      /* If this is a generic definition argument, get the associated generic
+         parameter. */
+      tp = generic_param_if_generic_definition_argument(tp);
+    }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+    check_assertion(tp->kind == (a_type_kind)tk_template_param);
+    coordinates = &tp->variant.template_param.extra_info->coordinates;
+  } else if (sym_kind == (a_symbol_kind)sk_constant) {
+    a_constant_ptr	cp = sym->variant.constant;
+    check_assertion(cp->kind == (a_constant_repr_kind)ck_template_param);
+    coordinates = &cp->variant.template_param.variant.coordinates;
+  } else {
+    /* A template template parameter. */
+    check_assertion(symbol_is(sym, sk_class_template));
+    coordinates = &sym->variant.template_info->il_template_entry->coordinates;
+  }  /* if */
+  return coordinates;
+}  /* coordinates_of_template_param_symbol */
+
+
+static a_template_param_coordinate_ptr coordinates_of_template_param(
+                                                   a_template_param_ptr tpp)
+/*
+Return the address of the template coordinates of the template parameter
+specified by tpp.
+*/
+{
+  a_template_param_coordinate_ptr	coordinates;
+  a_symbol_kind				sym_kind = tpp->param_symbol->kind;
 
   check_assertion(tpp != NULL);
   if (sym_kind == (a_symbol_kind)sk_type) {
@@ -2723,14 +2757,28 @@ parameter.
       tp = generic_param_if_generic_definition_argument(tp);
     }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-    p_depth = &tp->variant.template_param.extra_info->coordinates.depth;
+    coordinates = &tp->variant.template_param.extra_info->coordinates;
   } else if (sym_kind == (a_symbol_kind)sk_constant) {
-    p_depth = &tpp->variant.constant.ptr->
-                   variant.template_param.variant.coordinates.depth;
+    coordinates = &tpp->variant.constant.ptr->
+                                    variant.template_param.variant.coordinates;
   } else {
     /* A template template parameter. */
-    p_depth = &tpp->variant.templ->il_template_entry->coordinates.depth;
+    coordinates = &tpp->variant.templ->il_template_entry->coordinates;
   }  /* if */
+  return coordinates;
+}  /* coordinates_of_template_param */
+
+
+static a_template_nesting_depth *nesting_depth_addr_of_template_param(
+                                                   a_template_param_ptr tpp)
+/*
+Return the address of the template nesting depth of the specified template
+parameter.
+*/
+{
+  a_template_nesting_depth	*p_depth;
+
+  p_depth = &coordinates_of_template_param(tpp)->depth;
   return p_depth;
 }  /* nesting_depth_addr_of_template_param */
 
@@ -7756,14 +7804,16 @@ another template parameter.
 }  /* create_initial_template_arg_list */
 
 
-a_template_arg_ptr get_template_arg_by_list_pos(
-                                    a_template_param_ptr      templ_param_list,
-                                    a_template_arg_ptr        *templ_arg_list,
-                                    a_template_param_list_pos pos,
-                                    a_boolean	              is_rescan)
+static a_template_arg_ptr get_template_arg_by_list_pos(
+			a_template_param_ptr		templ_param_list,
+			a_template_arg_ptr		*templ_arg_list,
+			a_template_param_coordinate_ptr	coordinates,
+			a_boolean			is_rescan)
 /*
-Given a template parameter list position, return a pointer to the template
-argument list element that corresponds to that parameter.  If the template
+Given a template parameter's coordinates, return a pointer to the template
+argument list element that corresponds to that parameter.  Note that only
+the position of the coordinates is used because the parameter is required
+to be one from the specified templ_param_list.  If the template
 argument list has not yet been created, create one.  When the list
 is initially created, the template arguments will contain NULL type
 or constant pointers.  These will be filled in as the argument types
@@ -7771,8 +7821,9 @@ are deduced.  is_rescan is TRUE if this is called from a rescan/substitution
 context.
 */
 {
-  a_template_arg_ptr	tap;
-  a_template_param_ptr	tpp;
+  a_template_arg_ptr		tap;
+  a_template_param_ptr		tpp;
+  a_template_param_list_pos	pos = coordinates->position;
 
   if (*templ_arg_list == NULL) {
     /* The template argument list does not exist yet.  Create an
@@ -7789,7 +7840,8 @@ context.
     special_variadic_advance_to_next_template_arg(&tpp, &tap);
   }  /* if */
   if (tpp->is_pack) {
-    tap = get_curr_variadic_arg_for_param(tpp, is_rescan);
+    tap = get_curr_variadic_arg_for_param(coordinates, is_rescan, tpp,
+                                          /*create_if_not_found=*/TRUE);
   }  /* if */
   return tap;
 }  /* get_template_arg_by_list_pos */
@@ -7874,13 +7926,15 @@ match is found.
         if (depth_of_template ==
                         templ_tssp->il_template_entry->coordinates.depth) {
           /* The depths match. */
-          a_template_param_list_pos	list_pos;
-          a_template_ptr		templ_ptr;
-          a_template_arg_ptr		tap;
+          a_template_param_coordinate_ptr	coordinates;
+          a_template_ptr			templ_ptr;
+          a_template_arg_ptr			tap;
           /* Get the template argument that corresponds with this parameter. */
-          list_pos = templ_tssp->il_template_entry->coordinates.position;
-          tap = get_template_arg_by_list_pos(templ_param_list, templ_arg_list,
-                                             list_pos, /*is_rescan=*/FALSE);
+          coordinates = &templ_tssp->il_template_entry->coordinates;
+          tap = get_template_arg_by_list_pos(templ_param_list,
+                                             templ_arg_list,
+                                             coordinates,
+                                             /*is_rescan=*/FALSE);
           check_assertion(tap->kind == (a_templ_arg_kind)tak_template);
           templ_ptr = tssp->il_template_entry;
           if (tap->variant.templ.ptr == NULL) {
@@ -8116,11 +8170,11 @@ list of a template function.  Returns TRUE if a match is found.
       a_template_arg_ptr        tap;
       /* This is a template parameter from the original source program
          and not a synthesized template parameter. */
-      a_template_param_list_pos list_pos;
-      list_pos =
-           templ_constant->variant.template_param.variant.coordinates.position;
+      a_template_param_coordinate_ptr	coordinates;
+      coordinates =
+                   &templ_constant->variant.template_param.variant.coordinates;
       tap = get_template_arg_by_list_pos(templ_param_list, templ_arg_list,
-                                         list_pos, /*is_rescan=*/FALSE);
+                                         coordinates, /*is_rescan=*/FALSE);
       /* Now we have the nth template argument, which should correspond to
          the nth template parameter, whose constant is templ_constant. */
       if (tap->is_array_bound_of_unknown_type) {
@@ -8144,7 +8198,8 @@ list of a template function.  Returns TRUE if a match is found.
            can only be done for nontype parameters that do not depend on
            other template parameters.  This will be checked later for
            types that do depend on template parameters. */
-        tpp = get_template_param_by_list_pos(templ_param_list, list_pos);
+        tpp = get_template_param_by_list_pos(templ_param_list,
+                                             coordinates->position);
         match = TRUE;
         /* Note that the type of the constant does not participate in
            type deduction.  Once all of the arguments have been deduced
@@ -8292,11 +8347,10 @@ of types after all of the function arguments have been processed.
     a_template_arg_ptr        tap;
     /* This is a template parameter from the original source program
        and not a synthesized template parameter. */
-    a_template_param_list_pos list_pos;
-    list_pos =
-           templ_constant->variant.template_param.variant.coordinates.position;
+    a_template_param_coordinate_ptr	coordinates;
+    coordinates = &templ_constant->variant.template_param.variant.coordinates;
     tap = get_template_arg_by_list_pos(templ_param_list, templ_arg_list,
-                                       list_pos, /*is_rescan=*/FALSE);
+                                       coordinates, /*is_rescan=*/FALSE);
     /* Now we have the nth template argument, which should correspond to
        the nth template parameter, whose constant is templ_constant. */
     if (tap->is_array_bound_of_unknown_type || tap->variant.constant == NULL) {
@@ -8816,16 +8870,18 @@ points to the template parameter list.
              that includes a template parameter type in the parent class. */
           match = identical_types(type, templ_type);
         } else {
-          a_template_param_list_pos list_pos;
+          a_template_param_coordinate_ptr	coordinates;
           /* This is a template parameter from the original source program
              and not a synthesized template parameter. */
           /* A real type "matches" a template parameter type if it is identical
              to the real type, if any, that was previously associated with that
              template type. */
-          list_pos = templ_type->
-                      variant.template_param.extra_info->coordinates.position;
-          tap = get_template_arg_by_list_pos(templ_param_list, templ_arg_list,
-                                             list_pos, /*is_rescan=*/FALSE);
+          coordinates = &templ_type->
+                                variant.template_param.extra_info->coordinates;
+          tap = get_template_arg_by_list_pos(templ_param_list,
+                                             templ_arg_list,
+                                             coordinates,
+                                             /*is_rescan=*/FALSE);
           /* Now we have the nth template argument, which should correspond to
              the nth template parameter, whose type is templ_type. */
           if (tap->variant.type == NULL) {
@@ -9376,6 +9432,39 @@ that of a parameter from templ_param_list.
 }  /* is_template_param_from_list */
 
 
+a_template_arg_ptr get_template_arg_for_coordinates(
+		        a_template_param_coordinate_ptr	coordinates,
+			a_template_arg_ptr		*templ_arg_list,
+			a_template_param_ptr		templ_param_list)
+/*
+Return the template argument associated with the template parameter
+specified by coordinates.  If there is no argument, return NULL.
+templ_arg_list points to the template argument list of the current
+template.  templ_param_list is the parameter list of the current template.
+The template parameter is typically one from the current template except
+for a reference to an enclosing variadic template parameter.
+
+*/
+{
+  a_template_arg_ptr		tap = NULL;
+
+  if (is_template_param_from_list(coordinates, templ_param_list)) {
+    /* This is a parameter from the current template. */
+    tap = get_template_arg_by_list_pos(templ_param_list,
+                                       templ_arg_list,
+                                       coordinates,
+                                       /*is_rescan=*/TRUE);
+  } else if (in_pack_expansion()) {
+    /* If this is a variadic parameter from an enclosing template, get the
+       current argument value. */
+    tap = get_curr_variadic_arg_for_param(coordinates, /*is_rescan=*/TRUE,
+                                          (a_template_param_ptr)NULL,
+                                          /*create_if_not_found=*/FALSE);
+  }  /* if */
+  return tap;
+}  /* get_template_arg_for_coordinates */
+
+
 static a_template_ptr copy_template_with_substitution(
 			a_template_ptr			templ,
 			a_template_arg_ptr		templ_arg_list,
@@ -9424,26 +9513,17 @@ Otherwise, return the original template.
        template argument.  Find the template argument that matches this
        template parameter use it. */
     a_template_param_coordinate_ptr	coordinates;
+    a_template_arg_ptr			tap;
     coordinates = &templ->coordinates;
-    if (!is_template_param_from_list(coordinates,
-                                     templ_param_list)) {
-      /* A template parameter from a different nesting depth or from a
-         different template parameter list.  Leave this template
-         unsubstituted. */
+    tap = get_template_arg_for_coordinates(coordinates,
+                                           &templ_arg_list, templ_param_list);
+    if (tap == NULL || tap->variant.templ.ptr == NULL) {
+      /* No value has been provided for this template parameter yet.
+         Don't do the substitution, but don't consider this to be
+         a copy error either. */
     } else {
-      a_template_arg_ptr	tap;
-      tap = get_template_arg_by_list_pos(templ_param_list,
-                                         &templ_arg_list,
-                                         coordinates->position,
-                                         /*is_rescan=*/TRUE);
-      if (tap->variant.templ.ptr == NULL) {
-        /* No value has been provided for this template parameter yet.
-           Don't do the substitution, but don't consider this to be
-           a copy error either. */
-      } else {
-        /* Use the template specified by this template argument. */
-        result = tap->variant.templ.ptr;
-      }  /* if */
+      /* Use the template specified by this template argument. */
+      result = tap->variant.templ.ptr;
     }  /* if */
   }  /* if */
   return result;
@@ -10392,25 +10472,19 @@ a pointer over a reference type or creating an array of references.
            template parameter and return it to the caller. */
         { a_template_param_coordinate_ptr	coordinates;
           coordinates = &type->variant.template_param.extra_info->coordinates;
-          if (!is_template_param_from_list(coordinates,
-                                           templ_param_list)) {
-            /* A template parameter from a different nesting depth or from a
-               different template parameter list.  Leave this template
-               unsubstituted. */
+          tap = get_template_arg_for_coordinates(coordinates,
+                                                 &templ_arg_list,
+                                                 templ_param_list);
+          if (tap == NULL || !is_type_templ_arg(tap) ||
+              tap->variant.type == NULL) {
+            /* No value has been provided for this template parameter yet,
+               or this is not a template parameter of the current template
+               (or a variadic parameter of an enclosing template).
+               Don't do the substitution, but don't consider this to be
+               a copy error either. */
             new_type = type;
           } else {
-            tap = get_template_arg_by_list_pos(templ_param_list,
-                                               &templ_arg_list,
-                                               coordinates->position,
-                                               /*is_rescan=*/TRUE);
-            if (!is_type_templ_arg(tap) || tap->variant.type == NULL) {
-              /* No value has been provided for this template parameter yet.
-                 Don't do the substitution, but don't consider this to be
-                 a copy error either. */
-              new_type = type;
-            } else {
-              new_type = tap->variant.type;
-            }  /* if */
+            new_type = tap->variant.type;
           }  /* if */
         }
         break;

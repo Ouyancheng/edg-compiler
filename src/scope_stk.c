@@ -2015,6 +2015,57 @@ declaration is scanned and are used as placeholders between instantiations.
 }  /* restore_default_template_params */
 
 
+static void reset_enclosing_pack_values(void)
+/*
+Go through the scope stack and reset the template parameters associated
+with any enclosing variadic classes to their original (dependent)
+values.  See the call in begin_potential_pack_expansion_context_full
+for more information about when this is done.
+*/
+{
+  a_scope_stack_entry_ptr	ssep;
+
+  /* Go through any visible template instantiation scopes on the scope
+     stack and reset the values of their template parameters to their
+     original value. */
+  for (ssep = scope_stack_entry_for(depth_innermost_instantiation_scope);
+       ssep != NULL; ssep = previous_scope_of(ssep)) {
+    if (scope_is(ssep, sck_template_instantiation) &&
+        ssep->assoc_type != NULL && ssep->in_variadic_template) {
+      restore_default_template_params(ssep->template_decl_info->parameters);
+    }  /* if */
+  }  /* for */
+}  /* reset_enclosing_pack_values */
+
+
+static void restore_enclosing_pack_values(void)
+/*
+Go through the scope stack and restore the template parameters associated
+with any enclosing variadic classes to their current actual values
+(after having been changed by a call of reset_enclosing_pack_values).
+*/
+{
+  a_scope_stack_entry_ptr	ssep;
+
+  /* Go through any visible template instantiation scopes on the scope
+     stack and restore the template parameters to refer to the actual
+     template arguments. */
+  for (ssep = scope_stack_entry_for(depth_innermost_instantiation_scope);
+       ssep != NULL; ssep = previous_scope_of(ssep)) {
+    if (scope_is(ssep, sck_template_instantiation) &&
+        ssep->assoc_type != NULL && ssep->in_variadic_template) {
+      a_pack_expansion_stack_entry_ptr	pesep;
+      update_template_param_symbols(ssep->template_decl_info->parameters,
+                                    ssep->template_arg_list);
+      pesep = ssep->pack_expansion_stack;
+      if (pesep != NULL) {
+        update_parameter_pack_symbol_values(pesep);
+      }  /* if */
+    }  /* if */
+  }  /* for */
+}  /* restore_enclosing_pack_values */
+
+
 void set_active_using_list_scope_depths(
 				a_scope_depth		starting_depth,
                                 a_boolean		set_value,
@@ -9233,6 +9284,7 @@ in such cases.
   prp->token_sequence_number = NO_TOKEN_SEQUENCE_NUMBER;
   prp->primary_var_or_param_symbol = NULL;
   prp->param_info = NULL;
+  prp->coordinates = NULL;
   prp->function_scopes_to_skip = 0;
   switch (kind) {
     case prk_variable:       prp->curr_argument.variable = NULL;     break;
@@ -9386,6 +9438,7 @@ to it.
   pesep->is_suppression = FALSE;
   pesep->expansion_with_no_packs_diagnostic_issued = FALSE;
   pesep->is_lookahead = FALSE;
+  pesep->enclosing_packs_reset = FALSE;
   return pesep;
 }  /* alloc_pack_expansion_stack_entry */
 
@@ -9419,14 +9472,19 @@ Pop the current entry off of the pack expansion stack.
   if (pesep->instantiation_descr != NULL) {
     free_pack_instantiation_descr(pesep->instantiation_descr);
   }  /* if */
+  /* If this pack reference involved resetting the enclosing pack parameters,
+     restore those values now. */
+  if (pesep->enclosing_packs_reset) {
+    restore_enclosing_pack_values();
+  }  /* if */
   /* Add the old entry to the list of available stack entries. */
   pesep->next = avail_pack_expansion_stack_entries;
   avail_pack_expansion_stack_entries = pesep;
   pesep = pack_expansion_stack;
-  /* Restore the values for the pack expansion at the top of the stack. */
-  if (pesep != NULL && !pesep->is_rescan && !pesep->is_deduction &&
-      pesep->instantiation_descr != NULL) {
-    update_parameter_pack_symbol_values(pesep);
+  if (pesep != NULL && !pesep->is_rescan && !pesep->is_deduction) {
+    if (pesep->enclosing_packs_reset) {
+      reset_enclosing_pack_values();
+   }  /* if */
   }  /* if */
 }  /* pop_pack_expansion_stack */
 
@@ -9577,19 +9635,23 @@ template that is being instantiated.
 static void get_enclosing_template_params_and_args(
 				a_template_arg_ptr	curr_arg_list,
 				a_template_param_ptr	*templ_param_list,
-				a_template_arg_ptr	*templ_arg_list)
+				a_template_arg_ptr	*templ_arg_list,
+				a_boolean		is_rescan)
 /*
 This routine can be called within a template instantiation context to
 return the template parameter list and template argument list of a
 template that is being instantiated.  The template parameter list and
 argument list are the ones of the instantiation that encloses the
 instantiation for curr_arg_list.  If no such instantiation exists,
-NULL template parameter list and argument lists are returned.
+NULL template parameter list and argument lists are returned.  is_rescan is
+TRUE if the pack instantiation is being created as part of an expression
+rescan.
 */
 {
   a_template_decl_info_ptr	tdip;
   a_scope_stack_entry_ptr	ssep;
   a_boolean			curr_scope_found = FALSE;
+  a_template_param_ptr		curr_param_list = *templ_param_list;
 
   check_assertion(depth_innermost_instantiation_scope != NO_SCOPE_DEPTH);
   *templ_param_list = NULL;
@@ -9602,7 +9664,7 @@ NULL template parameter list and argument lists are returned.
       continue;
     } else if (curr_scope_found) {
       /* We should return the values for this scope below. */
-    } else if (ssep->template_arg_list == curr_arg_list) {
+    } else if (ssep->template_decl_info->parameters == curr_param_list) {
       /* We found the scope that was currently being inspected.  We want
          to return the next one found. */
       curr_scope_found = TRUE;
@@ -9622,7 +9684,7 @@ NULL template parameter list and argument lists are returned.
 }  /* get_enclosing_template_params_and_args */
 
 
-static a_template_arg_ptr find_template_arg_for_pack(
+a_template_arg_ptr find_template_arg_for_pack(
 				a_template_param_ptr	templ_param_list,
 				a_template_arg_ptr	templ_arg_list,
 				a_symbol_ptr		sym,
@@ -9662,11 +9724,11 @@ rescan.
       break;
     }  /* if */
   }  /* for */
-  if (!found && !is_rescan && !is_deduction) {
+  if (!found && !is_deduction) {
     /* The immediate instantiation context does not have the specified
        template parameter.  Look in an enclosing context. */
     get_enclosing_template_params_and_args(templ_arg_list, &templ_param_list,
-                                           &templ_arg_list);
+                                           &templ_arg_list, is_rescan);
     if (templ_arg_list != NULL) {
       result_tap = find_template_arg_for_pack(templ_param_list, templ_arg_list,
                                               sym, elements, is_rescan,
@@ -10046,9 +10108,11 @@ lengths) *err is set to TRUE, FALSE otherwise.
         elements = elements_for_pack;
         is_first_pack = FALSE;
       } else if (elements != elements_for_pack) {
-        pos_st2_error(ec_pack_length_mismatch, &prp->position,
-                      prp->symbol->header->identifier,
-                      pedp->packs_referenced->symbol->header->identifier);
+        if (!is_rescan) {
+          pos_st2_error(ec_pack_length_mismatch, &prp->position,
+                        prp->symbol->header->identifier,
+                        pedp->packs_referenced->symbol->header->identifier);
+        }  /* if */
         any_errors = TRUE;
       }  /* if */
     }  /* if */
@@ -10176,21 +10240,26 @@ is found, NULL is returned.
 
 
 a_template_arg_ptr get_curr_variadic_arg_for_param(
-					a_template_param_ptr	tpp,
-					a_boolean		is_rescan)
+			a_template_param_coordinate_ptr	coordinates,
+			a_boolean			is_rescan,
+			a_template_param_ptr		templ_param,
+			a_boolean			create_if_not_found)
 /*
 This routine is called during rescan and deduction contexts.  We need the
-current template argument value for the pack specified by tpp.  Go through
-the pack references for the current expansion and look for one that
-matches tpp.  Return the current template argument value for that parameter.
-is_rescan is TRUE if this is called from a rescan/substitution context.
-In deduction contexts, if there is no current argument, create one.
+current template argument value for the pack specified by coordinates,
+which identifies the template parameter.  Go through the pack references
+for the current expansion and look for one that matches coordinates.  Return
+the current template argument value for that parameter.  is_rescan is TRUE if
+this is called from a rescan/substitution context.  If there is not matching
+parameter, or if there is not current argument, an argument is created
+if create_if_not_found is TRUE.  Otherwise, NULL is returned.  templ_param
+is the template parameter associated with the argument to be found,
+and can be NULL only if create_if_not_found is FALSE.
 */
 {
   a_pack_reference_ptr			param_prp = NULL;
   a_pack_reference_ptr			arg_prp = NULL;
   a_pack_expansion_stack_entry_ptr	pesep = pack_expansion_stack;
-  a_symbol_ptr				tpp_sym = tpp->param_symbol;
   a_template_arg_ptr			result_tap = NULL;
 
   /* The pack expansion stack could be NULL in certain error cases. */
@@ -10201,9 +10270,12 @@ In deduction contexts, if there is no current argument, create one.
   }  /* if */
   for (; param_prp != NULL;
        param_prp = param_prp->next, arg_prp = arg_prp->next) {
-    a_symbol_ptr	sym = param_prp->symbol;
-    if (sym != tpp_sym) continue;
-    check_assertion(sym->kind != (a_symbol_kind)sk_variable);
+    /* Only process pack references for template parameters. */
+    if (param_prp->kind != prk_template_param) continue;
+    /* See if the coordinates of the pack reference match the ones specified
+       by the caller. */
+    if (param_prp->coordinates->depth != coordinates->depth ||
+        param_prp->coordinates->position != coordinates->position) continue;
     result_tap = arg_prp->curr_argument.template_arg;
     if (pesep->is_deduction) {
       if (result_tap != NULL &&
@@ -10213,7 +10285,7 @@ In deduction contexts, if there is no current argument, create one.
         /* We are deducing the value for a new pack element.  Create the
            argument now and link it into the argument list. */
         result_tap = alloc_template_arg(
-                                templ_arg_kind_for_symbol_kind(tpp_sym->kind));
+                      templ_arg_kind_for_symbol_kind(param_prp->symbol->kind));
         result_tap->is_pack_element = TRUE;
         result_tap->next = arg_prp->prev_template_arg->next;
         arg_prp->prev_template_arg->next = result_tap;
@@ -10223,10 +10295,10 @@ In deduction contexts, if there is no current argument, create one.
     }  /* if */
     break;
   }  /* for */
-  if (result_tap == NULL) {
+  if (result_tap == NULL && create_if_not_found) {
     /* If not found above, just return an empty template argument. */
     result_tap = alloc_template_arg(
-                                templ_arg_kind_for_symbol_kind(tpp_sym->kind));
+              templ_arg_kind_for_symbol_kind(templ_param->param_symbol->kind));
     if (is_rescan) {
       /* In error cases we may not find an argument.  Create an error
          argument. */
@@ -10517,6 +10589,18 @@ suppression is on the stack.
   } else if (is_prototype_instantiation_context()) {
     any_args = TRUE;
     pesep = push_pack_expansion_stack();
+    if (pedp != NULL && is_real_instantiation_context()) {
+      /* This is a template declaration in a real instantiation.  If pedp
+         was set above, reset the any enclosing packs to their dependent
+         values.  This can come up in examples like
+           template <typename... T> struct C {
+             template <typename... U> static A<B<T, U>...> f(U&& ... args);
+           };
+         where it is necessary to record B<T,U> using the template parameter
+         values for both T and U. */
+      reset_enclosing_pack_values();
+      pesep->enclosing_packs_reset = TRUE;
+    }  /* if */
     /* Allocate an expansion descriptor for this stack entry. */
     pesep->expansion_descr = alloc_pack_expansion_descr();
     /* Save the start of the token range for the pack. */
@@ -11174,6 +11258,7 @@ form.
           prp->uses_enclosing_pack = pack_symbol != NULL &&
                                      pack_symbol->decl_scope !=
                                                      scope_stack[depth].number;
+          prp->coordinates = coordinates_of_template_param_symbol(pack_symbol);
         }  /* if */
         prp->position = *position;
         prp->token_sequence_number = curr_token_sequence_number;

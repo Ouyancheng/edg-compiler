@@ -343,6 +343,10 @@ typedef struct a_pack_reference {
 			   expansion.  This can be NULL in contexts in which
 			   it is not possible to refer to the parameter
 			   (e.g., deduction contexts). */
+  a_template_param_coordinate_ptr
+	coordinates;
+			/* When kind == prk_template_param, this points to
+			   the coordinates of the parameter. */
   union {
     a_variable_ptr
 		variable;
@@ -526,7 +530,13 @@ typedef struct a_pack_expansion_stack_entry {
 			   call will be done for the same starting position,
 			   and that context will be responsible for the
 			   end... and advance... calls. */
-
+  a_byte_boolean
+		enclosing_packs_reset;
+			/* TRUE for a pack expansion of a template declaration
+			   in a real instantiation (see call of
+			   reset_enclosing_pack_values in
+			   begin_potential_pack_expansion_context_full for
+			   more information). */
 } a_pack_expansion_stack_entry;
 
 
@@ -2026,8 +2036,10 @@ a_template_decl_info_ptr get_specified_template_decl_info(
 					a_boolean	innermost);
 
 a_template_arg_ptr get_curr_variadic_arg_for_param(
-					a_template_param_ptr	tpp,
-					a_boolean		is_rescan);
+			a_template_param_coordinate_ptr	coordinates,
+			a_boolean			is_rescan,
+			a_template_param_ptr		templ_param,
+			a_boolean			create_if_not_found);
 
 extern a_boolean any_packs_referenced(void);
 
@@ -2097,6 +2109,14 @@ extern
 void record_potential_pack_reference(a_symbol_ptr		pack_symbol,
 				     a_source_position_ptr	position);
 
+extern a_template_arg_ptr find_template_arg_for_pack(
+				a_template_param_ptr	templ_param_list,
+				a_template_arg_ptr	templ_arg_list,
+				a_symbol_ptr		sym,
+				uint32_t		*elements,
+				a_boolean		is_rescan,
+				a_boolean		is_deduction);
+
 #if GNU_EXTENSIONS_ALLOWED
 extern a_type_ptr get_type_for_bases_operator(
 				a_type_ptr		bases_type,
@@ -2152,6 +2172,12 @@ extern a_boolean should_delay_lowering_on_function(
 #endif /* DO_IL_LOWERING */
 
 extern a_scope_ptr get_innermost_function_scope(void);
+
+/*
+Return TRUE if we are in a pack expansion context that is not a suppression.
+*/
+#define in_pack_expansion()					\
+  (pack_expansion_stack != NULL && !pack_expansion_stack->is_suppression)
 
 #endif /* ifndef SCOPE_STK_H */
 

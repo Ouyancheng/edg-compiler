@@ -435,11 +435,13 @@ extern a_template_arg_ptr create_initial_template_arg_list(
 			a_template_arg_ptr		partial_arg_list,
 			a_source_position		*source_pos);
 
-extern a_template_arg_ptr get_template_arg_by_list_pos(
-                                    a_template_param_ptr      templ_param_list,
-                                    a_template_arg_ptr        *templ_arg_list,
-                                    a_template_param_list_pos pos,
-                                    a_boolean	              is_rescan);
+extern a_template_arg_ptr get_template_arg_for_coordinates(
+		        a_template_param_coordinate_ptr	coordinates,
+			a_template_arg_ptr		*templ_arg_list,
+			a_template_param_ptr		templ_param_list);
+
+extern a_template_param_coordinate_ptr coordinates_of_template_param_symbol(
+                                                   a_symbol_ptr sym);
 
 extern a_type_ptr rescan_template_constant_parameter
                                      (a_symbol_ptr	   template_sym,
