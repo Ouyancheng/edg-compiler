@@ -584,7 +584,6 @@ extern int fileno(FILE *);
 #if ABI_COMPATIBILITY_VERSION >= 402 || !NEED_NAME_MANGLING
 /*lint -esym(769,ec_cppcli_requires_newer_abi_version)*/
 #endif /* ABI_COMPATIBILITY_VERSION >= 402 || !NEED_NAME_MANGLING */
-#if ABI_COMPATIBILITY_VERSION >= 402 || !NEED_NAME_MANGLING
 #if ABI_COMPATIBILITY_VERSION >= 407 || !DO_IL_LOWERING || \
     !GENERATE_EH_TABLES || !IA64_ABI
 /*lint -esym(769,ec_delegating_constructor_requires_newer_abi_version)*/
