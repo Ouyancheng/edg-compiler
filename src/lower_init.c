@@ -2324,6 +2324,7 @@ dip->variant.constructor.args has already been lowered.
        subobject destructor as determined by a NULL VTT parameter.
     */
     an_expr_node_ptr    test_node, arg, arg_list, arg_copy, so_arg_list;
+    an_expr_node_ptr    node_next;
     an_insert_location  then_insert_location, else_insert_location;
     a_variable_ptr      this_param, vtt_param;
     a_boolean           temp_init_used;
@@ -2351,7 +2352,9 @@ dip->variant.constructor.args has already been lowered.
     arg_copy = arg_list;
     for (arg = dip->variant.constructor.args;
          arg != NULL;
-         arg = arg->next) {
+         arg = node_next) {
+      node_next = arg->next;
+      arg->next = NULL;
       arg_copy->next = make_reusable_copy_full(arg,
                                           /*vars_can_change=*/FALSE,
                                           &temp_init_used,
@@ -2364,11 +2367,12 @@ dip->variant.constructor.args has already been lowered.
     /* Now copy the arguments used in the complete object constructor case
        to the subobject case (adding the VTT parameter as the second argument).
        In this case, no (new) temporaries should be created (they would have
-       been created above in the first copy. */
+       been created above in the first copy). */
     so_arg_list = make_reusable_copy(arg_list, /*vars_can_change=*/FALSE);
     so_arg_list->next = var_rvalue_expr(vtt_param);
     arg_copy = so_arg_list->next;
-    for (arg = arg_list->next; arg != NULL; arg = arg->next) {
+    for (arg = arg_list->next; arg != NULL; arg = node_next) {
+      node_next = arg->next;
       arg_copy->next = make_reusable_copy(arg, /*vars_can_change=*/FALSE);
       arg_copy = arg_copy->next;
     }  /* for */
