@@ -10246,7 +10246,7 @@ which identifies the template parameter.  Go through the pack references
 for the current expansion and look for one that matches coordinates.  Return
 the current template argument value for that parameter.  is_rescan is TRUE if
 this is called from a rescan/substitution context.  If there is not matching
-parameter, or if there is not current argument, an argument is created
+parameter, or if there is not a current argument, an argument is created
 if create_if_not_found is TRUE.  Otherwise, NULL is returned.  templ_param
 is the template parameter associated with the argument to be found,
 and can be NULL only if create_if_not_found is FALSE.
@@ -10586,7 +10586,7 @@ suppression is on the stack.
     pesep = push_pack_expansion_stack();
     if (pedp != NULL && is_real_instantiation_context()) {
       /* This is a template declaration in a real instantiation.  If pedp
-         was set above, reset the any enclosing packs to their dependent
+         was set above, reset any enclosing packs to their dependent
          values.  This can come up in examples like
            template <typename... T> struct C {
              template <typename... U> static A<B<T, U>...> f(U&& ... args);
