@@ -10245,7 +10245,7 @@ current template argument value for the pack specified by coordinates,
 which identifies the template parameter.  Go through the pack references
 for the current expansion and look for one that matches coordinates.  Return
 the current template argument value for that parameter.  is_rescan is TRUE if
-this is called from a rescan/substitution context.  If there is not matching
+this is called from a rescan/substitution context.  If there is not a matching
 parameter, or if there is not a current argument, an argument is created
 if create_if_not_found is TRUE.  Otherwise, NULL is returned.  templ_param
 is the template parameter associated with the argument to be found,
