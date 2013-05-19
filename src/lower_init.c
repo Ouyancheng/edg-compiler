@@ -2305,13 +2305,11 @@ dip->variant.constructor.args has already been lowered.
        which checks for a NULL VTT argument being passed in, and call the
        appropriate target constructor at run-time.
 
-       Note that any arguments that are passed to the target constructor
-       need temporaries if they are not reusable (and the temporaries must
-       be set before the "if" statement is evaluated).
+       Note that the arguments have already been lowered, but any side-effects
+       that they have are duplicated in the two branches of the "if" below.
 
        Add this lowered code:
 
-         [initialization for any temporaries required during argument eval]
          if (vtt_param) {
            target_subobject(this, vtt_param[, ...]);
          } else {
@@ -2324,10 +2322,8 @@ dip->variant.constructor.args has already been lowered.
        subobject destructor as determined by a NULL VTT parameter.
     */
     an_expr_node_ptr    test_node, arg, arg_list, arg_copy, so_arg_list;
-    an_expr_node_ptr    node_next;
     an_insert_location  then_insert_location, else_insert_location;
     a_variable_ptr      this_param, vtt_param;
-    a_boolean           temp_init_used;
 
     /* Create a node to test whether the VTT parameter is NULL. */
     this_param = innermost_function_scope->variant.routine.parameters;
@@ -2337,48 +2333,21 @@ dip->variant.constructor.args has already been lowered.
                     f_identical_types(vtt_param->type,
                                       make_virtual_table_table_pointer_type(),
                                       ITF_IL_IDENTICAL));
-    /* Create the argument list for the complete object constructor first.
-       Create copies of each argument, and in cases where a temporary is
-       used, ensure that the temporary is set before the "if" statement
-       is executed. */
-    check_assertion(source_node == NULL);
-    arg_list = make_reusable_copy_full(entity_node,
-                                       /*vars_can_change=*/FALSE,
-                                       &temp_init_used,
-                                       /*treat_as_potential_rvalue=*/FALSE);
-    if (temp_init_used) {
-      (void)insert_expr_statement(entity_node, insert_location);
-    }  /* if */
-    arg_copy = arg_list;
-    for (arg = dip->variant.constructor.args;
-         arg != NULL;
-         arg = node_next) {
-      node_next = arg->next;
-      arg->next = NULL;
-      arg_copy->next = make_reusable_copy_full(arg,
-                                          /*vars_can_change=*/FALSE,
-                                          &temp_init_used,
-                                          /*treat_as_potential_rvalue=*/FALSE);
-      arg_copy = arg_copy->next;
-      if (temp_init_used) {
-        (void)insert_expr_statement(arg, insert_location);
-      }  /* if */
-    }  /* for */
-    /* Now copy the arguments used in the complete object constructor case
-       to the subobject case (adding the VTT parameter as the second argument).
-       In this case, no (new) temporaries should be created (they would have
-       been created above in the first copy). */
-    so_arg_list = make_reusable_copy(arg_list, /*vars_can_change=*/FALSE);
+    /* Create the argument list for the complete object constructor. */
+    arg_list = entity_node;
+    arg_list->next = dip->variant.constructor.args;
+    /* Copy the complete object argument list and add the VTT parameter for
+       the subobject constructor. */
+    so_arg_list = copy_expr_tree(arg_list, CE_NO_OPTIONS);
     so_arg_list->next = var_rvalue_expr(vtt_param);
     arg_copy = so_arg_list->next;
-    for (arg = arg_list->next; arg != NULL; arg = node_next) {
-      node_next = arg->next;
-      arg_copy->next = make_reusable_copy(arg, /*vars_can_change=*/FALSE);
+    for (arg = arg_list->next; arg != NULL; arg = arg->next) {
+      arg_copy->next = copy_expr_tree(arg, /*vars_can_change=*/FALSE);
       arg_copy = arg_copy->next;
     }  /* for */
+    /* Create the "if" statement. */
     test_node = var_rvalue_expr(vtt_param);
     test_node = boolean_controlling_expr(test_node);
-    /* Create the "if" statement. */
     insert_if_statement(test_node, /*is_initialization_guard=*/FALSE,
                         insert_location, (a_statement_ptr *)NULL,
                         &then_insert_location, &else_insert_location);
