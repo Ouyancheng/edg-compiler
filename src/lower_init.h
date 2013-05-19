@@ -293,11 +293,9 @@ extern void lower_lambda(an_expr_node_ptr expr);
 extern void copy_non_static_data_member_initializers_if_necessary(
                                                             a_scope_ptr scope);
 
-#if LOWERING_REMOVES_UNNEEDED_CONSTRUCTIONS_AND_DESTRUCTIONS
 extern void remove_unneeded_constructions_and_destructions(a_scope_ptr scope);
 
 extern a_boolean ctor_or_dtor_body_has_no_effect(a_scope_ptr scope);
-#endif /* LOWERING_REMOVES_UNNEEDED_CONSTRUCTIONS_AND_DESTRUCTIONS */
 
 extern void make_vtbl_address_constant(a_variable_ptr   var,
                                        a_type_ptr       class_type,

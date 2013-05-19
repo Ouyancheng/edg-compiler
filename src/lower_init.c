@@ -7994,6 +7994,7 @@ routine is not used before eliding a call to the routine.
   return result;
 }  /* call_to_ctor_or_dtor_has_no_effect */
 
+#endif /* LOWERING_REMOVES_UNNEEDED_CONSTRUCTIONS_AND_DESTRUCTIONS */
 
 static void ctor_or_dtor_statement_has_no_effect(
                                  a_statement_ptr                     statement,
@@ -8082,6 +8083,7 @@ This would require a multi-pass version of lowering.
   return tblock.result;
 }  /* ctor_or_dtor_body_has_no_effect */
 
+#if LOWERING_REMOVES_UNNEEDED_CONSTRUCTIONS_AND_DESTRUCTIONS
 
 static void remove_constructor_with_no_effect(a_dynamic_init_ptr dip)
 /*
