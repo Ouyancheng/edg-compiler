@@ -9338,9 +9338,19 @@ start_of_raw_string_delimiter is not used.
          splice and the one we're about to add for the multiline string
          splice will have the same line_loc and will both be processed by
          the next call to accum_quoted_string.  Decrement the character
-         count appropriately so the line splice won't be counted twice. */
-      check_assertion(*num_chars >= 2);
-      *num_chars -= 2;
+         count appropriately so the line splice won't be counted twice.
+         (A loop is needed in case there are multiple adjacent line
+         splices.) */
+      for (olmp = orig_line_modif_list; olmp != NULL; olmp = olmp->next) {
+        if (olmp->line_loc == curr_char_loc && olmp->kind == olm_line_splice) {
+          check_assertion(*num_chars >= 2);
+          *num_chars -= 2;
+#if IGNORE_CARRIAGE_RETURN_IN_SOURCE
+          /* Also remove any ignored carriage returns from the count. */
+          *num_chars -= olmp->variant.splice.num_ignored_carriage_returns;
+#endif /* IGNORE_CARRIAGE_RETURN_IN_SOURCE */
+        }  /* if */
+      }  /* for */
     }  /* if */
     olmp = add_orig_line_modif(olm_multiline_string_splice,
                                curr_char_loc);
