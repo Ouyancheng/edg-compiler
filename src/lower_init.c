@@ -14184,10 +14184,10 @@ constructor (at the specified insert_location).
          case, the primary routine (which contains the body of the delegating
          constructor) is a cdk_delegation constructor (an EDG addition), and
          the alternate entry points invoke the cdk_delegation routine. */
-    check_assertion(ctor_init->initializer != NULL &&
+    if (ctor_init->initializer != NULL &&
                     ctor_init->initializer->kind ==
-                                         (a_dynamic_init_kind)dik_constructor);
-    if (ctor_or_dtor_body_has_no_effect(scope) &&
+                                        (a_dynamic_init_kind)dik_constructor &&
+        ctor_or_dtor_body_has_no_effect(scope) &&
         (!exceptions_enabled ||
          same_exception_spec(scope->variant.routine.ptr->type,
                      ctor_init->initializer->variant.constructor.ptr->type))) {
