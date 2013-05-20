@@ -1140,7 +1140,7 @@ are mangled with "C9" and "D9" respectively.  The delegation destructor is
 unnamed in the Cfront ABI (a temporary name is used).
 
 The use of a delegation destructor relies on a change in the
-run-time library, and thus are enabled only when ABI_COMPATIBILITY_VERSION is
+run-time library, and thus is enabled only when ABI_COMPATIBILITY_VERSION is
 407 or greater (in configurations where lowering does exception handling).
 
 
