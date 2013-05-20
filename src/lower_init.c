@@ -2340,7 +2340,7 @@ dip->variant.constructor.args has already been lowered.
     so_arg_list->next = var_rvalue_expr(vtt_param);
     arg_copy = so_arg_list->next;
     for (arg = arg_list->next; arg != NULL; arg = arg->next) {
-      arg_copy->next = copy_expr_tree(arg, /*vars_can_change=*/FALSE);
+      arg_copy->next = copy_expr_tree(arg, CE_NO_OPTIONS);
       arg_copy = arg_copy->next;
     }  /* for */
     /* Create the "if" statement. */
@@ -3942,7 +3942,8 @@ is TRUE, the original constructor initializers are removed from from_scope.
       from_scope->lifetime != NULL &&
       is_useless_object_lifetime(from_scope->lifetime)) {
     /* Remove the from_scope lifetime if it's no longer needed (i.e., if we've
-       removed all of the constructors from it). */
+       removed all of the constructor inits -- and any associated destructions
+       from it). */
     unbind_object_lifetime(from_scope->lifetime);
     from_scope->lifetime = NULL;
   }  /* if */
