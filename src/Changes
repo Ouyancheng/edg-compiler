@@ -1657,7 +1657,7 @@ C++ mode).  For example:
 
 
 4/8/13   [EDGcpfe/13865]
-Partial initialization flag not correct set in some cases
+Partial initialization flag not correctly set in some cases
 
 In some cases involving C++11-style braced initialization, the flag
 is_partially_initialized of the a_dynamic_init entry representing the
