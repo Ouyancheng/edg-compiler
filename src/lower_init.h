@@ -76,6 +76,9 @@ extern a_type_ptr lowered_return_type_of(a_type_ptr routine_type);
 #if !IA64_ABI
 extern a_routine_ptr make_subobject_destruction_routine(
                                                        a_dynamic_init_ptr dip);
+
+extern a_routine_ptr make_delegation_destruction_routine(
+                                                       a_dynamic_init_ptr dip);
 #endif /* !IA64_ABI */
 
 extern an_expr_node_ptr make_call_node(a_routine_ptr      routine,

@@ -1114,15 +1114,21 @@ a new cdk_delegation constructor (which is specific to the EDG front end
 by both the complete and subobject constructors and contains special
 treatment to ensure that the proper (i.e., complete or subobject) target
 constructor is called.  In certain cases where the delegating constructor
-body is empty, use of this constructor is optimized away.  A new cdk_delegation
-destructor (also specific to the EDG front end and not part of the IA-64 ABI)
-is also introduced in cases where the object created by the target constructor
-needs to be destroyed (because an exception may be thrown).  These new
-cdk_delegation constructor and destructor routines are mangled with "C9" and
-"D9" respectively.  The cdk_delegation routine relies on a change in the
+body is empty, use of this constructor is optimized away.
+
+A new "delegation" destructor is used in both IA-64 ABI and Cfront
+configurations to determine at run-time whether the complete object or
+the subobject is being destroyed and invoke the appropriate destructor
+(or in the Cfront case, invoke the destructor with the appropriate second
+argument).
+
+In the IA-64 ABI, these new cdk_delegation constructor and destructor routines
+are mangled with "C9" and "D9" respectively.  The delegation destructor is
+unnamed in the Cfront ABI (a temporary name is used).
+
+The use of a delegation destructor relies on a change in the
 run-time library, and thus are enabled only when ABI_COMPATIBILITY_VERSION is
-407 or greater (in IA-64 ABI configurations where lowering does exception
-handling).
+407 or greater (in configurations where lowering does exception handling).
 
 
 4/22/13  [EDGcpfe/13391]

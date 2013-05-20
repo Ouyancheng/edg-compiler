@@ -328,18 +328,20 @@ typedef struct a_destructible_entity_descr {
 			/* Set to TRUE if the variable in
 			   construction_vtbls_var is itself the array, FALSE
 			   if the variable is a pointer to the array. */
-#if IA64_ABI
   a_byte_boolean
 		use_delegation_dtor;
-			/* Set to TRUE if a special cdk_delegation destructor
+			/* Set to TRUE if a special "delegation" destructor
 			   should be used in the region table entry for this
-			   destruction. */
+			   destruction (because the destruction may be for
+			   either a complete or subobject destruction and
+			   that isn't known until run-time). */
   a_variable_ptr
-		vtt_param;
+		delegation_dtor_arg;
 			/* When use_delegation_dtor is TRUE, this variable
-			   is the VTT parameter to be used as an argument to
-			   the cdk_delegation destructor. */
-#endif /* IA64_ABI */
+			   represents the argument that will be passed to the
+			   "delegation" destructor.  In the IA-64 ABI, this
+			   is the VTT parameter from the enclosing routine;
+			   in the Cfront ABI, it is a base class pointer. */
   a_variable_ptr
 		construction_vtbls_var;
 			/* When needs_subobject_construction_vtbl is TRUE,

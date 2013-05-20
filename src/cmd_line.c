@@ -9384,13 +9384,12 @@ enable_microsoft_mode:
   }  /* if */
 #endif /* NEED_NAME_MANGLING && MICROSOFT_EXTENSIONS_ALLOWED */
 #endif /* ABI_COMPATIBILITY_VERSION < 402 */
-#if ABI_COMPATIBILITY_VERSION < 407 && DO_IL_LOWERING && \
-    GENERATE_EH_TABLES && IA64_ABI
+#if ABI_COMPATIBILITY_VERSION < 407 && DO_IL_LOWERING && GENERATE_EH_TABLES
   if (delegating_constructors_enabled && exceptions_enabled &&
       !suppress_il_lowering) {
-    /* The implementation of IA-64 ABI exception handling for delegating
-       constructors relies on a run-time library change that is present
-       only in version 4.7 of the run-time library. */
+    /* The implementation of exception handling for delegating constructors
+       relies on a run-time library change that is present only in version 4.7
+       of the run-time library. */
     if (option_kind_used[(int)optk_delegating_constructors]) {
       command_line_error(ec_delegating_constructor_requires_newer_abi_version);
     }  /* if */

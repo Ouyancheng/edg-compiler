@@ -838,7 +838,12 @@ requires cleanup.
       } else if (has_vtbl_ptr) {
         /* A non-array object for which a special destructor must be called
            in order to supply information about the construction vtable to
-           be used. */
+           be used.  Note that this is also used to invoke a "delegation"
+           destructor which inspects the value of the pointer (a VTT value
+           in the IA-64 ABI, and a pointer to a base class in the Cfront ABI)
+           then invokes either the complete or subobject destructor (in the
+           IA-64 ABI) or invokes the destructor with the appropriate second
+           argument (in the Cfront ABI). */
         a_destructor_with_vtable_param_ptr	dtor_with_vtable;
         dtor_with_vtable = (a_destructor_with_vtable_param_ptr)dtor_ptr;
         dtor_with_vtable(obj_addr, vtbl_ptr);

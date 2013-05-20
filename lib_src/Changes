@@ -8,8 +8,7 @@ destructor during exception handling processing.  Previously if a NULL
 value was found in a RDF_SUBOBJECT_VTABLE region table entry, the run-time
 library silently invoked the "complete" object destructor; now the
 "subobject" destructor is invoked with the NULL value.  This functionality
-is required for the implementation of delegating constructors in
-IA-64 ABI configurations.
+is required for the implementation of delegating constructors.
 
 
 Version 4.6, March 30, 2013

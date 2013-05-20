@@ -1158,10 +1158,8 @@ Clear the fields of a destructible entity description to default values.
   dedp->initialization_done = FALSE;
   dedp->needs_subobject_construction_vtbl = FALSE;
   dedp->construction_vtbls_var_is_array = FALSE;
-#if IA64_ABI
   dedp->use_delegation_dtor = FALSE;
-  dedp->vtt_param = NULL;
-#endif /* IA64_ABI */
+  dedp->delegation_dtor_arg = NULL;
   dedp->construction_vtbls_var = NULL;
   dedp->subobject_construction_base_class = NULL;
 }  /* clear_destructible_entity_descr */
@@ -2361,16 +2359,6 @@ dip->variant.constructor.args has already been lowered.
                                              (a_ctor_or_dtor_kind)cdk_complete,
                                              /*define_now=*/FALSE),
                         arg_list, return_value, &else_insert_location);
-    if (exceptions_enabled &&
-        ctor_init->initializer->destructible_entity_descr != NULL) {
-      /* This initialization requires a corresponding destruction.  Let the
-         normal exception handling mechanism create region table entries
-         as appropriate, but use a special cdk_delegation destructor to
-         perform the destruction. */
-      ctor_init->initializer->destructible_entity_descr->use_delegation_dtor =
-                                                                          TRUE;
-      ctor_init->initializer->destructible_entity_descr->vtt_param = vtt_param;
-    }  /* if */
     /* Note that dip->variant.constructor.ptr is unchanged in this case;
        it can't be set to either alternate entry point, so it's left pointing
        to the primary (cdk_delegation) routine. */
@@ -2411,6 +2399,28 @@ dip->variant.constructor.args has already been lowered.
        expression. */
     make_call_statement(ctor_routine, entity_node, return_value,
                         insert_location);
+  }  /* if */
+  if (is_target_ctor_call && exceptions_enabled &&
+#if IA64_ABI
+      innermost_function_scope->variant.routine.ptr->ctor_dtor_kind ==
+                                         (a_ctor_or_dtor_kind)cdk_delegation &&
+#else /* !IA64_ABI */
+      implied_arg_list != NULL &&
+#endif /* IA64_ABI */
+      ctor_init->initializer->destructible_entity_descr != NULL) {
+    /* This delegating constructor initialization requires a corresponding
+       destruction (and the class has virtual base classes).  Let the
+       normal exception handling mechanism create region table entries as
+       appropriate, but use a special "delegation" destructor to perform the
+       destruction (because it's not known until run-time whether the object is
+       a complete object or a subobject).  Pass the second argument from the
+       constructor call (a VTT parameter in the IA-64 ABI or a virtual base
+       class pointer in the Cfront ABI) as the second argument to the
+       delegation destructor. */
+    ctor_init->initializer->destructible_entity_descr->use_delegation_dtor =
+                                                                          TRUE;
+    ctor_init->initializer->destructible_entity_descr->delegation_dtor_arg =
+                    innermost_function_scope->variant.routine.parameters->next;
   }  /* if */
 }  /* add_constructor_call */
 
@@ -13392,6 +13402,76 @@ ABI.
   pop_generated_routine_context(scope, region_number, &grcontext);
   return routine;
 }  /* make_subobject_destruction_routine */
+
+
+a_routine_ptr make_delegation_destruction_routine(a_dynamic_init_ptr dip)
+/*
+Create a "delegation" destructor that will be placed in the exception
+handling region table in cases where it is unknown at compilation time
+whether "0" (for base class subobject) or "2" (for complete objects) should
+be passed to the destructor.  Use the second argument to the "delegation"
+destructor to determine the proper value when invoking the class destructor.
+Note that a similar mechanism is used in the IA-64 ABI, but it is implemented
+in define_default_version_of_routine (as an alternate entry point).
+*/
+{
+  a_scope_ptr            scope;
+  an_insert_location     insert_location;
+  a_memory_region_number region_number;
+  a_generated_routine_context
+                         grcontext;
+  a_routine_ptr          routine;
+  a_routine_ptr          dtor_routine = dip->destructor;
+  a_type_ptr             this_param_type, delegation_dtor_arg_type;
+  a_variable_ptr         this_param_var, delegation_dtor_param;
+  a_routine_type_supplement_ptr
+                         rtsp;
+  a_destructible_entity_descr_ptr
+                         dedp = dip->destructible_entity_descr;
+  an_expr_node_ptr       args, question_node;
+
+  check_assertion(dedp != NULL && dedp->use_delegation_dtor);
+  /* Create a routine. */
+  this_param_type = implicit_this_param_type_of(dtor_routine->type);
+  delegation_dtor_arg_type = dedp->delegation_dtor_arg->type;
+  routine = make_rout_entry((char *)NULL,
+                            (a_storage_class)sc_static,
+                            void_type(),
+                            this_param_type);
+  rtsp = routine->type->variant.routine.extra_info;
+  rtsp->param_type_list->next = alloc_param_type(delegation_dtor_arg_type);
+  /* Make a memory region, scope, and block for the routine definition. */
+  scope = make_routine_definition(routine, /*make_return=*/TRUE,
+                                  &region_number);
+  push_generated_routine_context(scope, region_number, &grcontext);
+  /* Make the first parameter, "this". */
+  this_param_var = make_lowered_param_variable(this_param_type);
+  scope->variant.routine.parameters = this_param_var;
+  this_param_var->is_this_parameter = TRUE;
+  /* Make the second parameter, a pointer to a virtual base class. */
+  delegation_dtor_param =
+                         make_lowered_param_variable(delegation_dtor_arg_type);
+  this_param_var->next = delegation_dtor_param;
+  set_block_start_insert_location(scope->assoc_block, &insert_location);
+  /* Make "(delegation_dtor_param ? 0 : 2)" to differentiate between
+     a subobject and complete object cases. */
+  question_node = var_rvalue_expr(delegation_dtor_param);
+  question_node = boolean_controlling_expr(question_node);
+  question_node->next = dtor_control_argument(/*have_complete_object=*/FALSE,
+                                              /*free_storage=*/FALSE);
+  question_node->next->next =
+                        dtor_control_argument(/*have_complete_object=*/TRUE,
+                                              /*free_storage=*/FALSE);
+  question_node = make_operator_node((an_expr_operator_kind)eok_question,
+                                     question_node->next->type, question_node);
+  args = var_rvalue_expr(this_param_var);
+  args->next = question_node;
+  /* Generate the code to call the destructor. */
+  make_call_statement(dtor_routine, args, (an_expr_node_ptr)NULL,
+                      &insert_location);
+  pop_generated_routine_context(scope, region_number, &grcontext);
+  return routine;
+}  /* make_delegation_destruction_routine */
 
 #endif /* !IA64_ABI */
 
