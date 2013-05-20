@@ -1110,7 +1110,7 @@ lvalue ref-qualifier) or "_E" (for an rvalue ref-qualifier) now follows the
 C++11: Delegating constructors
 
 In C++11 mode, the front end now accepts "delegating constructors".
-For example:
+See paper N1986.  For example:
 
   struct S {
     S(int);
