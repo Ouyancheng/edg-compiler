@@ -1,5 +1,18 @@
 Version 4.7
 
+5/20/13  [EDGcpfe/14074]
+Ending position of macro replacement range (IL CHANGE)
+
+In configurations with RECORD_MACROS_IN_IL and EXTRA_SOURCE_POSITIONS_IN_IL
+set to TRUE, the ending position in the a_macro replacement_text_range
+reflected the position of the terminating newline of the definition.  This
+has now been changed to reflect the end position of the last token in the
+definition.  For example, with the following definition,
+replacement_text_range.end.column was previously 18 and is now 11.
+
+  #define M 1 /* */
+
+
 5/17/13
 IL version number changed to 4.7
 

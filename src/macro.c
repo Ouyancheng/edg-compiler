@@ -6406,6 +6406,7 @@ Scan and process a #define directive.
 #endif /* FULLY_RESOLVED_MACRO_POSITIONS */
 #if RECORD_MACROS_IN_IL && EXTRA_SOURCE_POSITIONS_IN_IL
     start_of_replacement = pos_curr_token;
+    end_of_replacement = end_pos_curr_token;
 #endif /* RECORD_MACROS_IN_IL && EXTRA_SOURCE_POSITIONS_IN_IL */
     while (curr_token != tok_newline) {
       if (curr_token == tok_paste) {
@@ -6612,10 +6613,12 @@ Scan and process a #define directive.
                                 &any_white_space_skipped);
         }  /* if */
       }  /* if */
-    }  /* while */
 #if RECORD_MACROS_IN_IL && EXTRA_SOURCE_POSITIONS_IN_IL
-    end_of_replacement = pos_curr_token;
+      if (curr_token != tok_newline) {
+        end_of_replacement = end_pos_curr_token;
+      }  /* if */
 #endif /* RECORD_MACROS_IN_IL && EXTRA_SOURCE_POSITIONS_IN_IL */
+    }  /* while */
     /* Store final terminator.  We've ensured that there is room for this. */
     *next_avail_in_macro_buffer = (char)rt_null;
     /* Not inside a cpp string.  Could still be set if there is an 
