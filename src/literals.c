@@ -1644,6 +1644,7 @@ the string.
          (conv_state.next_orig_line_modif != NULL &&
           conv_state.next_orig_line_modif->kind == olm_line_splice &&
           conv_state.next_orig_line_modif->line_loc == temp_ptr)) {
+    check_assertion(pstr < str_start + constant_size);
     /* Convert one character of the string literal. */
     switch (character_kind) {
       case chk_char:

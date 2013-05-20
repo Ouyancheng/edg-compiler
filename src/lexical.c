@@ -9179,7 +9179,18 @@ caller is responsible for issuing error messages.
         /* Advance to the next character without worrying about multibyte
            characters. */
         curr_char_loc++;
-        nchars++;
+        if (literal_kind == SCLK_UTF8_LITERAL) {
+          /* The character will be represented as UTF-8.  Determine the
+             number of code units it will occupy.  (This conversion
+             assumes that the source is in Latin-1, whose code points are
+             the same as the first 256 code points of Unicode.) */
+          char utf8_char[4];
+          nchars += unicode_to_utf8(ch, utf8_char);
+        } else {
+          /* The character will occupy one code unit of the target
+             string. */
+          nchars++;
+        }  /* if */
       }  /* if */
     }  /* if */
   }  /* while */
