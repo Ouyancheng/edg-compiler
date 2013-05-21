@@ -5407,10 +5407,12 @@ outermost class.
     a_routine_ptr   rp = ctsp->assoc_scope->routines;
     a_variable_ptr  vp = ctsp->assoc_scope->variables;
     a_type_ptr      tp = ctsp->assoc_scope->types;
-    /* Check each of the member function of the class. */
+    /* Check each of the member function of the class.  Don't check compiler-
+       generated members, or members defined as "= delete" (which implies they
+       are not meant to be referenced). */
     for (; rp != NULL; rp = rp->next) {
       a_symbol_ptr rout_sym = symbol_for(rp);
-      if (!rp->compiler_generated) {
+      if (!rp->compiler_generated && !rp->is_deleted) {
         end_of_scope_member_function_check(rout_sym, rp, type,
                                            unnamed_ns_member);
       }  /* if */
@@ -5810,6 +5812,9 @@ curr_routine points to the routine entry; otherwise, it is NULL.
              linkage, but the "referenced" flag in prototype instantiation
              contexts is unreliable since overload resolution cannot be done
              until a real instantiation.  So don't issue a diagnostic here. */
+        } else if (rout_ptr->is_deleted) {
+          /* Functions defined with "= delete" are never meant to be
+             referenced.  Don't warn about them being unreferenced. */
         } else {
           /* An unreferenced routine. */
           report_unreferenced(sym, ec_declared_but_not_referenced,

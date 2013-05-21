@@ -1,5 +1,21 @@
 Version 5.0
 
+5/21/13  [EDGcpfe/14080]
+Spurious warnings about unreferenced deleted functions
+
+Functions defined with "= delete" cannot validly be referenced, but in some
+cases the front end issued a warning about them not being referenced.
+For example:
+
+  namespace {
+    void f() = delete;
+  }
+  // Previously the front end issued an unhelpful warning about f being
+  // declared without being referenced.
+
+This is now fixed.
+
+
 5/21/13  [EDGcpfe/14000]
 Visibility of member enumerator constants declared outside their parent class
 
