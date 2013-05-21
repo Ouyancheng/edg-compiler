@@ -4740,9 +4740,9 @@ issue a diagnostic if such a reduction is invalid or ignored.
   if (class_type->alignment_set_explicitly) {
     /* GNU allows the alignment to be increased.  If the class has the
        "packed" attribute its alignment can also be decreased; otherwise,
-       a reduction in alignment is ignored.  Microsoft allows the alignment
-       to be increased or decreased.  The standard attribute does not allow
-       a decrease in alignment. */
+       a reduction in alignment is ignored.  Microsoft ignores a decrease in
+       alignment for standard class types, but not for managed class types.
+       The standard attribute does not allow a decrease in alignment. */
     if (alignment < lob->alignment) {
       /* Find the attribute that results in the indicated alignment. */
       an_attribute_ptr  ap = class_type->source_corresp.attributes;
@@ -4762,21 +4762,23 @@ issue a diagnostic if such a reduction is invalid or ignored.
           }  /* if */
         }  /* if */
       }  /* for */
-      if (gnu_mode || sun_mode) {
+      /* If ap is NULL, the reduction might be the result of a pragma. */
+      if (ap != NULL && ap->family == (a_byte_attribute_family)af_std) {
+        pos_error(ec_invalid_alignment_reducing_attr, &ap->position);
+        alignment = lob->alignment;
+      } else if (gnu_mode || sun_mode || (microsoft_mode && ap != NULL)) {
         a_boolean  is_packed = FALSE;
 #if GNU_EXTENSIONS_ALLOWED
         is_packed = class_type->variant.class_struct_union.is_packed;
 #endif /* GNU_EXTENSIONS_ALLOWED */
         if (!is_packed) {
-          pos_warning(ec_alignment_reduction_ignored,
+          pos_warning(gnu_mode ?
+                               ec_alignment_reduction_ignored
+                             : ec_alignment_reduction_unconditionally_ignored,
                       ap != NULL ? &ap->position
                                  : &class_type->source_corresp.decl_position);
           alignment = lob->alignment;
         }  /* if */
-      } else if (!microsoft_mode && ap != NULL) {
-        /* If ap is NULL, the reduction might be the result of a pragma. */
-        pos_error(ec_invalid_alignment_reducing_attr, &ap->position);
-        alignment = lob->alignment;
       }  /* if */
     }  /* if */
     lob->alignment = alignment;

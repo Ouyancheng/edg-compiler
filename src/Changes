@@ -1,5 +1,22 @@
 Version 5.0
 
+5/21/13  [EDGcpfe/14023]
+Microsoft compatibility: Alignment reduction ignored
+
+In Microsoft mode, an attempt to reduce the alignment of a class type using
+the __declspec(align(...)) attribute is now ignored.  For example, assuming
+a 4-byte aligned int type:
+
+  struct I3 { int x, y, z; };
+  struct __declspec(align(2)) CIC {
+    char c;
+    I3 i;  // Type requires 4-byte alignment: attribute "align(2)" ignored.
+    char c;
+  };
+
+Previously, CIC was given an alignment requirement of 2; now it is 4.
+Note that the behavior of "#pragma align(...)" has not changed.
+
 
 ------------------------------------------------------------------------------
 Version 4.7, May 21, 2013

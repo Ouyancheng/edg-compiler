@@ -2506,6 +2506,7 @@ ec_defaulted_copy_ctor_cannot_have_const_parameter;;"the parameter of this defau
 ec_defaulted_assignment_cannot_have_const_parameter;;"the parameter of this defaulted assignment operator cannot be const because a base or member copy assignment parameter is non-const"
 ec_empty_anonymous_union;;"an anonymous union must contain at least one nonstatic data member"
 ec_delegating_constructor_requires_newer_abi_version;;"option \"delegating_constructors\" requires a different compiler configuration"
+ec_alignment_reduction_unconditionally_ignored;;"a reduction in alignment is ignored"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #
