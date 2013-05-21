@@ -1,5 +1,31 @@
 Version 5.0
 
+5/21/13  [EDGcpfe/14000]
+Visibility of member enumerator constants declared outside their parent class
+
+In some modes (including C++11 mode), an enumeration can be partially declared
+in a class (in C++11, using opaque enum declarations), with the associated
+enumerator constants declared after the class definition.  In the case of
+unscoped enumerations, the front end treats the enumerator constants as
+members of the class, but it previously failed to look up the constants in
+some contexts where class members ought to be visible.  For example:
+
+  struct S {
+    enum E: int;
+    E f();
+  };
+  enum S::E: int { e };
+  S::E S::f() {
+    return e;  // Previously an error because e was not found.
+  }
+
+This is now fixed.  Note that the C++11 standard is currently unclear about
+how such enumerator constants should be treated (this is Core issue 1485): It
+is likely that the C++ standards committee will in the future conclude to
+something different than the front end currently implements.  (See also the
+entry for EDGcpfe/12237 on 2/15/12.)
+
+
 5/21/13  [EDGcpfe/14077]
 C++/CLI: static conversion function allowed for functional-notation cast
 
