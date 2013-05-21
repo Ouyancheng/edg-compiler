@@ -9,9 +9,9 @@ a 4-byte aligned int type:
 
   struct I3 { int x, y, z; };
   struct __declspec(align(2)) CIC {
-    char c;
+    char c1;
     I3 i;  // Type requires 4-byte alignment: attribute "align(2)" ignored.
-    char c;
+    char c2;
   };
 
 Previously, CIC was given an alignment requirement of 2; now it is 4.
