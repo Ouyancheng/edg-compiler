@@ -4594,6 +4594,7 @@ arguments using <simple-id> and others with <expr-primary>.
     a_boolean         suppress_address_of = FALSE;
     an_expr_node_ptr  arg = skip_compiler_generated_expressions(arguments,
                                                          &suppress_address_of);
+    check_assertion(arg != NULL);
     result = is_gnu_dependent_expression(arg);
   }  /* for */
   return result;
