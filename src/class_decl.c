@@ -19357,25 +19357,17 @@ The routine body is not generated until it is known to be needed.
       if (!cssp->has_user_declared_move_assign_operator) {
         gsfd.suppress_move_assign = TRUE;
       }  /* if */
-    } else {
-      /* Since there is no user-declared copy constructor, one might get
-         generated below.  However, a user-declared move constructor or move
-         assignment operator causes a generated copy constructor to be defined
+    }  /* if */
+    if (cssp->has_user_declared_move_constructor ||
+        cssp->has_user_declared_move_assign_operator) {
+      /* A user-declared move constructor or move assignment operator causes a
+         generated copy constructor or copy assignment operator to be defined
          as deleted. */
-      if (cssp->has_user_declared_move_constructor ||
-          cssp->has_user_declared_move_assign_operator) {
+      if (!cssp->has_copy_constructor) {
         gsfd.suppress_copy_ctor = TRUE;
-        if (!user_declared_copy_assignment_op) {
-          gsfd.suppress_copy_assign = TRUE;
-        }  /* if */
-        if (!cssp->has_user_declared_move_assign_operator) {
-          gsfd.suppress_move_assign = TRUE;
-        }  /* if */
       }  /* if */
-      if (class_type->variant.class_struct_union.any_virtual_base_classes) {
-        /* The generated move assignment operator is also suppressed if the
-           class has any virtual base classes. */
-        gsfd.suppress_move_assign = TRUE;
+      if (!user_declared_copy_assignment_op) {
+        gsfd.suppress_copy_assign = TRUE;
       }  /* if */
     }  /* if */
   }  /* if */

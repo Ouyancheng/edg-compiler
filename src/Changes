@@ -1,5 +1,27 @@
 Version 5.0
 
+5/21/13  [EDGcpfe/14065]
+Failure to make generated assignment operator "= delete"
+
+In C++11 mode, the front end sometimes failed to mark a generated copy
+assignment operator as being a "deleted" member (i.e., as if it has been
+declared "= delete", and therefore not invokable).  Specifically, the C++11
+standard specifies that a generated copy assignment operator should be
+"deleted" if the user declared a move constructor for the class, but the
+front end failed to enforce that if the class also declared a copy
+constructor.  For example:
+
+  struct S {
+    S(S const&);
+    S(S&&);  // The generated copy assignment operator should be "deleted";
+  };         // previously, that was not enforced.
+  void f(S x, S y) {
+    x = y;   // Previously, this was erroneously accepted.
+  }
+
+This is now fixed.
+
+
 5/21/13  [EDGcpfe/14081]
 Assertion failure when lowering typeid operation
 
