@@ -16106,6 +16106,7 @@ conversion.
                                                         is_copy_initialization;
   a_boolean                     copy_initialization_done_as_direct = FALSE;
   a_boolean                     try_conversion_functions;
+  a_boolean                     try_static_conversion_functions;
   a_boolean                     try_as_arg_of_bitwise_cctor;
   a_symbol_ptr                  class_symbol, constructor_symbol;
   a_class_symbol_supplement_ptr cssp;
@@ -16280,6 +16281,7 @@ conversion.
     }  /* if */
     /* Determine whether conversion functions should be tried. */
     try_conversion_functions = FALSE;
+    try_static_conversion_functions = FALSE;
     try_as_arg_of_bitwise_cctor = FALSE;
     if (!source_is_class
 #if MICROSOFT_EXTENSIONS_ALLOWED
@@ -16300,6 +16302,8 @@ conversion.
                (conv_context & CCO_FUNC_NOTATION_CAST)) {
       /* In C++/CLI, a functional-notation cast to a managed class type
          sees only the constructors, not the conversion functions. */
+      /* However, static conversion functions are considered. */
+      try_static_conversion_functions = TRUE;
     } else if (cppcli_enabled &&
                is_managed_class_type(dest_type) &&
                (orig_is_copy_initialization ||
@@ -16408,23 +16412,25 @@ conversion.
         }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       }  /* if */
-#if MICROSOFT_EXTENSIONS_ALLOWED
-      if (cppcli_enabled && is_managed_class_type(dest_type) &&
-          source_operand != NULL) {
-        /* Try static conversion functions that convert to the destination
-           class type. */
-        try_static_conversion_function_match(source_operand,
-                                             dest_type,
-                                             (a_builtin_type_kind_set)BTK_NONE,
-                                             /*need_lvalue_result=*/FALSE,
-                                             adjusted_is_copy_initialization,
-                                             orig_is_copy_initialization,
-                                             is_reference_binding,
-                                             conv_context,
-                                             &candidate_functions);
-      }  /* if */
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     }  /* if */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    if (cppcli_enabled &&
+        (try_conversion_functions || try_static_conversion_functions) &&
+        is_managed_class_type(dest_type) &&
+        source_operand != NULL) {
+      /* Try static conversion functions that convert to the destination
+         class type. */
+      try_static_conversion_function_match(source_operand,
+                                           dest_type,
+                                           (a_builtin_type_kind_set)BTK_NONE,
+                                           /*need_lvalue_result=*/FALSE,
+                                           adjusted_is_copy_initialization,
+                                           orig_is_copy_initialization,
+                                           is_reference_binding,
+                                           conv_context,
+                                           &candidate_functions);
+    }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     /* If no functions are viable, check for the possibility of a bitwise
        copy from a derived class to a base class. */
     if (candidate_functions == NULL && bitwise_copy_okay && bcp != NULL &&

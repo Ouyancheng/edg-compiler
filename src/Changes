@@ -1,5 +1,24 @@
 Version 5.0
 
+5/21/13  [EDGcpfe/14077]
+C++/CLI: static conversion function allowed for functional-notation cast
+
+C++/CLI has a rule that a functional-notation cast finds only constructors
+and not conversion functions.  However, it turns out MSVC also finds
+static conversion functions.  Now fixed.
+
+  public value struct B {
+    int x;
+  };
+  public ref struct A {
+    static operator B(A^ );
+  };
+  int main() {
+    A^ z;
+    B b = B(z);  // Accepted now
+  }
+
+
 5/21/13  [EDGcpfe/14065]
 Failure to make generated assignment operator "= delete"
 
