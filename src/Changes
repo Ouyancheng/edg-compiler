@@ -1,5 +1,27 @@
 Version 5.0
 
+5/21/13  [EDGcpfe/14081]
+Assertion failure when lowering typeid operation
+
+Previously, a typeid operation on a lowered nullptr_t type had resulted
+in an assertion failure (in get_typeinfo_var).  This is now fixed.  The
+likelihood of this abort increased in the 4.6 release when typeid
+operations were folded (thereby increasing the likelihood of orphaned
+abk_typeid constants that are lowered after types have been lowered).
+For example (with --g++ --c++11):
+
+  namespace std {
+    typedef decltype(nullptr)     nullptr_t;
+    struct type_info {
+      bool operator==(const type_info&) const;
+    };
+  }
+  void f() {
+    const decltype(nullptr) mynull = 0;
+    char c[bool(typeid(nullptr) == typeid(mynull))];
+  }
+
+
 5/21/13  [EDGcpfe/14023]
 Microsoft compatibility: Alignment reduction ignored
 
