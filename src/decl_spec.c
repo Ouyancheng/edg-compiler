@@ -4919,7 +4919,6 @@ dsi_flags is the set of input flags passed to decl_specifiers.
   a_boolean                    is_redeclaration, is_definition = FALSE;
   a_boolean                    namespace_extension_pushed = FALSE;
   a_boolean                    class_reactivation_pushed = FALSE;
-  a_scope_number               reactivated_class_scope_number = NO_SCOPE_DEPTH;
   a_source_position            enum_pos, tag_position;
   a_decl_pos_block             local_decl_pos_block;
   a_boolean                    is_predeclared_type_decl = FALSE;
@@ -5047,7 +5046,6 @@ dsi_flags is the set of input flags passed to decl_specifiers.
           push_class_reactivation_scope(class_of_which_a_member,
                                         /*extend_namespace=*/FALSE);
           class_reactivation_pushed = TRUE;
-          reactivated_class_scope_number = scope_stack_top().number;
           effective_decl_level = depth_scope_stack;
         } else if (!same_entities(sym_parent_class(tag_sym),
                                   class_of_which_a_member)) {
@@ -5692,7 +5690,6 @@ dsi_flags is the set of input flags passed to decl_specifiers.
              class scope.  Use enter_symbol_into_completed_class instead. */
           enum_sym = make_symbol((a_symbol_kind)sk_constant, &locator);
           enum_sym->is_class_member = TRUE;
-          enum_sym->decl_scope = reactivated_class_scope_number;
           enum_sym->parent.class_type = class_of_which_a_member;
           enter_symbol_into_completed_class(enum_sym);
         } else {
