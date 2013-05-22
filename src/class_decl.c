@@ -19358,20 +19358,31 @@ The routine body is not generated until it is known to be needed.
         gsfd.suppress_move_assign = TRUE;
       }  /* if */
     }  /* if */
-    if ((cssp->has_user_declared_move_constructor ||
-         cssp->has_user_declared_move_assign_operator) &&
-        !(gpp_mode && gnu_version < 40700)) {
+    if (cssp->has_user_declared_move_constructor ||
+        cssp->has_user_declared_move_assign_operator) {
       /* A user-declared move constructor or move assignment operator causes a
          generated copy constructor or copy assignment operator to be defined
          as deleted. */
       if (!cssp->has_copy_constructor) {
-        gsfd.suppress_copy_ctor = TRUE;
+        if (gpp_mode && gnu_version >= 40600 && gnu_version < 40700) {
+          /* GCC 4.6 doesn't delete a generated copy constructor in this
+             case, but simply doesn't declare it at all if there is a move
+             constructor (achieved using a separate test below). */
+        } else {
+          gsfd.suppress_copy_ctor = TRUE;
+        }  /* if */
       }  /* if */
       if (!cssp->has_user_declared_move_constructor) {
         gsfd.suppress_move_ctor = TRUE;
       }  /* if */
       if (!user_declared_copy_assignment_op) {
-        gsfd.suppress_copy_assign = TRUE;
+        if (gpp_mode && gnu_version >= 40600 && gnu_version < 40700) {
+          /* GCC 4.6 doesn't delete a generated assignment operator in this
+             case, but simply doesn't declare it at all if there is a move
+             assignment operator (achieved using a separate test below). */
+        } else {
+          gsfd.suppress_copy_assign = TRUE;
+        }  /* if */
       }  /* if */
       if (!cssp->has_user_declared_move_assign_operator) {
         gsfd.suppress_move_assign = TRUE;
@@ -19519,10 +19530,9 @@ The routine body is not generated until it is known to be needed.
       check_assertion(microsoft_mode);
       class_type->variant.class_struct_union.copy_ctor_decl_suppressed = TRUE;
     } else if (gpp_mode && gnu_version >= 40600 && gnu_version < 40700 &&
-               (cssp->has_user_declared_move_constructor ||
-                cssp->has_user_declared_move_assign_operator)) {
+               cssp->has_user_declared_move_constructor) {
       /* GCC 4.6 does not generate a copy constructor if there is a
-         user-declared move assignment operator or move constructor. */
+         user-declared move constructor. */
     } else {
       generate_copy_constructor(class_state, gsfd.suppress_copy_ctor,
                                 gsfd.copy_ctor_qualifiers);
@@ -19565,6 +19575,10 @@ The routine body is not generated until it is known to be needed.
          do not add its declaration. */
       class_type->variant.class_struct_union.copy_assignment_decl_suppressed
                                                                         = TRUE;
+    } else if (gpp_mode && gnu_version >= 40600 && gnu_version < 40700 &&
+               cssp->has_user_declared_move_assign_operator) {
+      /* GCC 4.6 does not generate a copy assignment operator if there is a
+         user-declared move assignment operator. */
     } else {
       /* Add the implicit declaration of the copy assignment operator. */
       generate_copy_assignment_operator(class_state, gsfd.suppress_copy_assign,
