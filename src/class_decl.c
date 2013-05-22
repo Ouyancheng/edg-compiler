@@ -19366,8 +19366,14 @@ The routine body is not generated until it is known to be needed.
       if (!cssp->has_copy_constructor) {
         gsfd.suppress_copy_ctor = TRUE;
       }  /* if */
+      if (!cssp->has_user_declared_move_constructor) {
+        gsfd.suppress_move_ctor = TRUE;
+      }  /* if */
       if (!user_declared_copy_assignment_op) {
         gsfd.suppress_copy_assign = TRUE;
+      }  /* if */
+      if (!cssp->has_user_declared_move_assign_operator) {
+        gsfd.suppress_move_assign = TRUE;
       }  /* if */
     }  /* if */
   }  /* if */
