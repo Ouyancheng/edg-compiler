@@ -37,9 +37,9 @@ some contexts where class members ought to be visible.  For example:
 
 This is now fixed.  Note that the C++11 standard is currently unclear about
 how such enumerator constants should be treated (this is Core issue 1485): It
-is likely that the C++ standards committee will in the future conclude to
-something different than the front end currently implements.  (See also the
-entry for EDGcpfe/12237 on 2/15/12.)
+is likely that the C++ standards committee will in the future decide on
+something different from what the front end currently implements.  (See also
+the entry for EDGcpfe/12237 on 2/15/12.)
 
 
 5/21/13  [EDGcpfe/14077]
