@@ -73,6 +73,9 @@ virtual base class.  This constraint has now been remove.  For example:
   PMF p = &B::operator=;  // Now accepted.  Previously an error since no
                           // matching operator= was generated.
 
+(In GNU C++ mode with gnu_version < 40800 the prior behavior is maintained
+since that matches corresponding versions of GCC.)
+
 
 5/21/13  [EDGcpfe/14065]
 Failure to make generated assignment operator "= delete"
@@ -93,7 +96,9 @@ constructor.  For example:
     x = y;   // Previously, this was erroneously accepted.
   }
 
-This is now fixed.
+This is now fixed.  (In GNU C++ mode with gnu_version < 40700 the prior
+behavior is maintained since that appears to match corresponding versions of
+GCC.)
 
 
 5/21/13  [EDGcpfe/14081]

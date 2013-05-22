@@ -19358,8 +19358,9 @@ The routine body is not generated until it is known to be needed.
         gsfd.suppress_move_assign = TRUE;
       }  /* if */
     }  /* if */
-    if (cssp->has_user_declared_move_constructor ||
-        cssp->has_user_declared_move_assign_operator) {
+    if ((cssp->has_user_declared_move_constructor ||
+         cssp->has_user_declared_move_assign_operator) &&
+        !(gpp_mode && gnu_version < 40700)) {
       /* A user-declared move constructor or move assignment operator causes a
          generated copy constructor or copy assignment operator to be defined
          as deleted. */
@@ -19375,6 +19376,15 @@ The routine body is not generated until it is known to be needed.
       if (!cssp->has_user_declared_move_assign_operator) {
         gsfd.suppress_move_assign = TRUE;
       }  /* if */
+    }  /* if */
+    if (gpp_mode && gnu_version < 40800 &&
+        !cssp->has_user_declared_move_assign_operator &&
+        class_type->variant.class_struct_union.any_virtual_base_classes) {
+      /* Originally, the C++11 standard specified that generated move
+         assignment operators should be suppressed in the presence of virtual
+         base classes.  Emulate this for GNU versions that adhered to that
+         rule. */
+      gsfd.suppress_move_assign = TRUE;
     }  /* if */
   }  /* if */
   const_okay = default_assignment_of_const_object_okay(class_type);
