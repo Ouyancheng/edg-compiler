@@ -3935,6 +3935,12 @@ typedef struct a_substitution {
 			   the final name (and no template argument list)
 			   that is part of the substitution.  (Therefore,
 			   the count could be zero.) */
+  a_boolean	parse_template_args;
+			/* The value of the parse_template_args boolean
+			   at the time the subk_type substitution is recorded
+			   (so that value can be used on subsequent
+			   demanglings of that substitution string).  Ignored
+			   for other substitution kinds. */
 } a_substitution;
 
 static a_substitution
@@ -4070,16 +4076,21 @@ A negative number is indicated by a leading "n".
 }  /* get_number */
 
 
-static void record_substitutable_entity(char                       *start,
-                                        a_substitution_kind        kind,
-                                        unsigned long              num_levels,
-                                        a_decode_control_block_ptr dctl)
+static void record_substitutable_entity(
+                                char                       *start,
+                                a_substitution_kind        kind,
+                                unsigned long              num_levels,
+                                a_boolean                  parse_template_args,
+                                a_decode_control_block_ptr dctl)
 /*
 Record the entity whose mangled name starts at "start", and whose
 kind (of syntax term) is given by "kind", as a potentially
 substitutable entity, one that can be used again by referencing
 it in a later substitution.  num_levels gives added information
 for the subk_prefix and subk_template_prefix cases.
+For subk_type cases, the value of parse_template_args is stored with
+the substitution information (so that it can be used when demangling
+the type when it is used as a substitution).
 */
 {
   /* Do not record anything if we are suppressing recording of substitutions.
@@ -4106,6 +4117,7 @@ for the subk_prefix and subk_template_prefix cases.
     subp->start = start;
     subp->kind = kind;
     subp->num_levels = num_levels;
+    subp->parse_template_args = parse_template_args;
   }  /* if */
 }  /* record_substitutable_entity */
 
@@ -4271,10 +4283,13 @@ type the substitution represents).
             break;
           case subk_type:
             if (type_pass_num == 1 || type_pass_num == 0) {
+              /* Make sure to use the value of parse_template_args that
+                 was in effect when the type substitution was first
+                 recorded. */
               (void)demangle_type_first_part(p, cv_quals,
                                              under_lhs_declarator,
                                              need_trailing_space,
-                                             /*parse_template_args=*/TRUE,
+                                             subp->parse_template_args,
                                              dctl);
             }  /* if */
             if (type_pass_num == 2 || type_pass_num == 0) {
@@ -4700,7 +4715,7 @@ demangled as part of the template function instead).
         /* Record the template template parameter as a potential
            substitution. */
         record_substitutable_entity(tstart, subk_template_template_param, 0L,
-                                    dctl);
+                                    /*parse_template_args=*/FALSE, dctl);
         p = demangle_template_args(p, dctl);
       }  /* if */
     } else if (*p == 'D' && p[1] == 'p') {
@@ -5056,12 +5071,14 @@ to be on top of the type.  If parse_template_args is TRUE then any
   if (record_substitution) {
     /* Record the non-cv-qualified version of the type as a potential
        substitution. */
-    record_substitutable_entity(unqualp, subk_type, 0L, dctl);
+    record_substitutable_entity(unqualp, subk_type, 0L, parse_template_args,
+                                dctl);
   }  /* if */
   if (qualp != unqualp) {
     /* The type is cv-qualified, so record another potential substitution
        for the fully-qualified type. */
-    record_substitutable_entity(qualp, subk_type, 0L, dctl);
+    record_substitutable_entity(qualp, subk_type, 0L, parse_template_args,
+                                dctl);
   }  /* if */
   return p;
 }  /* demangle_type_first_part */
@@ -6747,7 +6764,8 @@ substitution, the name of the last component in the substitution is used.
          this point, but not if the entire prefix is a substitution. */
       if (!is_substitution) {
         record_substitutable_entity(first_component_start,
-                                    subk_template_prefix, level_num-1, dctl);
+                                    subk_template_prefix, level_num-1,
+                                    /*parse_template_args=*/FALSE, dctl);
       }  /* if */
       /* Scan the template argument list. */
       ptr = demangle_template_args(ptr, dctl);
@@ -6761,7 +6779,8 @@ substitution, the name of the last component in the substitution is used.
          but not if the entire prefix is a substitution (without
          template argument list). */
       record_substitutable_entity(first_component_start, subk_prefix,
-                                  level_num, dctl);
+                                  level_num,
+                                  /*parse_template_args=*/FALSE, dctl);
     }  /* if */
     /* Stop on an error. */
     if (dctl->err_in_id) break;
@@ -7011,7 +7030,7 @@ as a prefix to specify a module id for an externalized name.
         /* This is a template because it is followed by a template arguments
            list.  Record the template as a potential substitution. */
         record_substitutable_entity(start, subk_unscoped_template_name, 0L,
-                                    dctl);
+                                    /*parse_template_args=*/FALSE, dctl);
       }  /* if */
     }  /* if */
     if (*ptr == 'I') {
