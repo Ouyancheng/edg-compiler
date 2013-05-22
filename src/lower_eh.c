@@ -2687,17 +2687,11 @@ indicated type.  When lowering a function scope, generate the variable
 if necessary.
 */
 {
-  a_variable_ptr typeinfo_var;
+  a_variable_ptr typeinfo_var = type->typeinfo_var;
 
-  /* Check for a lowered nullptr_t type (these can occur in orphaned
-     constants after types have been lowered). */
-  if (type->kind == (a_type_kind)tk_typeref &&
-      is_or_was_nullptr_type(type)) {
-    type = get_underlying_type(type);
-  }  /* if */
-  typeinfo_var = type->typeinfo_var;
   /* typedefs and cv-qualified types are not allowed at this level. */
   check_assertion(type->kind != (a_type_kind)tk_typeref ||
+                  is_or_was_nullptr_type(type) ||
                   is_or_was_ptr_to_member_function_type(type) ||
                   is_or_was_ptr_to_data_member_type(type));
   if (typeinfo_var == NULL) {
