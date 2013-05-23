@@ -1,5 +1,19 @@
 Version 5.0
 
+5/23/13  [EDGcpfe/14082]
+Microsoft compatibility: Static data members in unions
+
+In Microsoft mode, the front end now accepts static data member declarations
+in unions.  For example:
+
+  union U {
+    static int count;  // Previously an error in Microsoft mode; now okay.
+  };
+
+This is standard in C++11, but not in C++03 (it is now, however, accepted in
+all Microsoft C++ modes; not just Microsoft C++11 mode).
+
+
 5/23/13  [EDGcpfe/14020]
 Generated default constructor incorrectly treated as noexcept
 
