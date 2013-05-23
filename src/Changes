@@ -1,5 +1,33 @@
 Version 5.0
 
+5/23/13  [EDGcpfe/14020]
+Generated default constructor incorrectly treated as noexcept
+
+The front end sometimes incorrectly treated a generated default constructor as
+being known not to throw any exceptions ("noexcept").  For this to occur, the
+class required a subobject type containing a nonstatic data member initializer
+and a generated default constructor that does in fact throw an exception.
+For example:
+
+  struct X { X() { throw 1; } };
+  struct F {
+    X x;
+    int i = 2;
+  };
+  struct S { F f; };
+  int main() {
+    try {
+      S s;
+    } catch (...) {}
+  }
+
+In this example, F has a nonstatic data member initializer and a generated
+default constructor that might throw an exception.  However, the generated
+default constructor of S was incorrectly recorded as throwing no exception,
+which in turn triggered a call to terminate() at run-time (before the
+exception could be caught in main()).  This is now fixed.
+
+
 5/23/13  [EDGcpfe/14087]
 Some local temporaries not marked with is_local_to_function
 

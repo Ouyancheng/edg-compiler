@@ -10725,40 +10725,46 @@ If there is more than one matching function, set *ambiguous to TRUE.
 static a_boolean merge_exception_specifications(a_symbol_ptr  sym,
                                                 a_type_ptr    new_rout_type)
 /*
-Look up the exception specification associated with the member function
-indicated by sym and record it in func_info, merging it with the exception
-specification already there, if any.  If sym can throw any exception, return
-TRUE.
+Update the exception specification of new_rout_type to reflect the exceptions
+that might be thrown by a call to the member function indicated by sym.  If
+that member function can throw any exception, return TRUE.
 */
 {
   a_boolean                            throw_any;
   an_exception_specification_ptr       old_esp, new_esp;
   an_exception_specification_type_ptr  old_estp, estp;
+  a_type_ptr                           rtp;
   a_routine_type_supplement_ptr        rtsp;
 
   check_assertion(sym->kind == (a_symbol_kind)sk_member_function);
-  /* Fetch the exception specification associated with the member function
-     indicated by sym. */
-  old_esp = sym->variant.routine.ptr
-               ->type->variant.routine.extra_info->exception_specification;
-  if (old_esp == NULL || old_esp->throw_any) {
-    /* The function can throw any exception. */
-    throw_any = TRUE;
+  rtp = sym->variant.routine.ptr->type;
+  if (is_nothrow_type(rtp)) {
+    /* The routine represented by sym doesn't throw any exception.  There is
+       therefore nothing to merge.  Note that the call to is_nothrow_type also
+       ensures that any indeterminate exception specification for a generated
+       default constructor is now determined. */
   } else {
-    throw_any = FALSE;
-    rtsp = new_rout_type->variant.routine.extra_info;
-    new_esp = rtsp->exception_specification;
-    if (new_esp == NULL) {
-      /* No exception specification has been recorded in func_info yet, so
-         allocate the entry. */
-      new_esp = alloc_exception_specification();
+    /* Fetch the exception specification associated with the member function
+       indicated by sym. */
+    old_esp = rtp->variant.routine.extra_info->exception_specification;
+    if (old_esp == NULL || old_esp->throw_any) {
+      /* The function can throw any exception. */
+      throw_any = TRUE;
+    } else {
+      throw_any = FALSE;
+      rtsp = new_rout_type->variant.routine.extra_info;
+      new_esp = rtsp->exception_specification;
+      if (new_esp == NULL) {
+        /* No exception specification has been recorded for the new function
+           yet, so allocate the entry. */
+        new_esp = alloc_exception_specification();
 #if EXTRA_SOURCE_POSITIONS_IN_IL
-      new_esp->source_range.start = sym->decl_position;
-      new_esp->source_range.end = sym->decl_position;
+        new_esp->source_range.start = sym->decl_position;
+        new_esp->source_range.end = sym->decl_position;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
-      rtsp->exception_specification = new_esp;
-    }  /* if */
-    if (!old_esp->is_noexcept) {
+        rtsp->exception_specification = new_esp;
+      }  /* if */
+      check_assertion(!old_esp->is_noexcept);
       /* Now traverse the types specified for the exception specification of
          the function indicated by sym.  Make a copy of any that does not
          already appear on the func_info list. */
