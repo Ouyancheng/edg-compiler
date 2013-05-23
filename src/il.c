@@ -13063,6 +13063,7 @@ needs to generate an explicit temporary.
                                           decl_scope_level,
                           &temp_var->source_corresp,
                           &pointers_block);
+  if (!at_file_scope) temp_var->source_corresp.is_local_to_function = TRUE;
   add_temporary_to_front_of_variables_list(temp_var, sp);
   /* Name linkage stays nlk_none. */
   return temp_var;
