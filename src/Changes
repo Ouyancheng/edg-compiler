@@ -1,5 +1,19 @@
 Version 5.0
 
+5/23/13  [EDGcpfe/14084]
+Environment variable for system default locale name
+
+The normal mechanism for constructing the system default locale name (in
+configurations with NATIVE_MULTIBYTE_CHARS_SUPPORTED_WITH_UNICODE and
+EDG_WIN32 set to TRUE) does not work for Unicode-only locales like Hindi,
+which do not have a native multibyte character set, resulting in an
+assertion failure in host_envir_early_init.  In order to provide a
+workaround that is available in the field, the front end now checks for
+an environment variable named EDG_DEFAULT_SYSTEM_LOCALE and, if set, uses
+that value for the system default locale name instead of constructing one
+from Windows system calls.
+
+
 5/23/13  [EDGcpfe/14082]
 Microsoft compatibility: Static data members in unions
 

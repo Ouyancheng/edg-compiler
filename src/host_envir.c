@@ -4703,35 +4703,45 @@ if they are needed.
 
 static char *get_system_default_locale_name(void)
 /*
-Construct a locale name that can be used to create a locale object for
-the system default locale.  Return a pointer to the resulting string.
+Return a pointer to a locale name that can be used to create a locale
+object for the system default locale.
 
-This routine separately fetches the language, country, and codepage and then
-constructs a locale name with the components.  For a typical U.S. system,
-this will return "English_United States.1252".  A Japanese system would
-return "Japanese_Japan.932".
+If the environment variable EDG_DEFAULT_SYSTEM_LOCALE is defined, that
+value is returned.  Otherwise, this routine separately fetches the
+language, country, and codepage and then constructs a locale name with the
+components.  For a typical U.S. system, this will return
+"English_USA.1252".  A Japanese system would return "Japanese_JPN.932".
 */
 {
 #define TMP_BUF_SIZE 256
-  char	buf[TMP_BUF_SIZE];
-  sizeof_t	chars;
+  char     buf[TMP_BUF_SIZE];
+  sizeof_t chars;
+  char     *locale_from_env = getenv("EDG_DEFAULT_SYSTEM_LOCALE");
+
   locale_name_buffer = alloc_text_buffer(128);
-  /* Each call returns the size of the resulting string, including the
-     null terminator. */
-  chars = GetLocaleInfo(LOCALE_SYSTEM_DEFAULT, LOCALE_SENGLANGUAGE,
-                        buf, TMP_BUF_SIZE);
-  check_assertion(chars != 0);
-  add_to_text_buffer(locale_name_buffer, buf, chars-1);
-  chars = GetLocaleInfo(LOCALE_SYSTEM_DEFAULT, LOCALE_SABBREVCTRYNAME,
-                        buf, TMP_BUF_SIZE);
-  check_assertion(chars != 0);
-  add_char_to_text_buffer(locale_name_buffer, '_');
-  add_to_text_buffer(locale_name_buffer, buf, chars-1);
-  chars = GetLocaleInfo(LOCALE_SYSTEM_DEFAULT, LOCALE_IDEFAULTANSICODEPAGE,
-                        buf, TMP_BUF_SIZE);
-  check_assertion(chars != 0);
-  add_char_to_text_buffer(locale_name_buffer, '.');
-  add_to_text_buffer(locale_name_buffer, buf, chars);
+  
+  if (locale_from_env != NULL) {
+    /* Copy the value of the environment variable. */
+    add_to_text_buffer(locale_name_buffer, locale_from_env,
+                       strlen(locale_from_env) + 1);
+  } else {
+    /* Each call returns the size of the resulting string, including the
+       null terminator. */
+    chars = GetLocaleInfo(LOCALE_SYSTEM_DEFAULT, LOCALE_SENGLANGUAGE,
+                          buf, TMP_BUF_SIZE);
+    check_assertion(chars != 0);
+    add_to_text_buffer(locale_name_buffer, buf, chars-1);
+    chars = GetLocaleInfo(LOCALE_SYSTEM_DEFAULT, LOCALE_SABBREVCTRYNAME,
+                          buf, TMP_BUF_SIZE);
+    check_assertion(chars != 0);
+    add_char_to_text_buffer(locale_name_buffer, '_');
+    add_to_text_buffer(locale_name_buffer, buf, chars-1);
+    chars = GetLocaleInfo(LOCALE_SYSTEM_DEFAULT, LOCALE_IDEFAULTANSICODEPAGE,
+                          buf, TMP_BUF_SIZE);
+    check_assertion(chars != 0);
+    add_char_to_text_buffer(locale_name_buffer, '.');
+    add_to_text_buffer(locale_name_buffer, buf, chars);
+  }  /* if */
 #if DEBUG
   if (db_flag_is_set("locale")) {
     fprintf(f_debug, "System default locale is %s\n",
