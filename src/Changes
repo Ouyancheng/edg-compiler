@@ -74,7 +74,7 @@ static conversion functions.  Now fixed.
 Virtual base classes and generated move constructors
 
 Previously, no move assignment operator was generated for a class with a
-virtual base class.  This constraint has now been remove.  For example:
+virtual base class.  This constraint has now been removed.  For example:
 
   struct A { A(); };
   struct B : virtual A {};
