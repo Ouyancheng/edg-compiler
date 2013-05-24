@@ -18534,9 +18534,14 @@ record that fact in *gsfd.
     /* See if a default constructor declaration is needed. */
     if (!class_state->POD_ruled_out &&
         cssp->construction_by_bitwise_copy_allowed &&
-        !class_state->rule_out_bitwise_copy_for_volatile_class_field) {
+        !class_state->rule_out_bitwise_copy_for_volatile_class_field &&
+        !(deleted_functions_enabled && !gpp_mode &&
+          class_state->any_const_or_ref_fields)) {
       /* This is a POD class with trivial copy semantics (a POD class may have
-         nontrivial copy semantics if it has a volatile field).
+         nontrivial copy semantics if it has a volatile field) and no fields
+         that require special initialization (references and const fields) to
+         prevent the generated constructor from being deleted in C++11 mode
+         (GCC does not appear to enforce this).
          Its implicitly-declared default constructor need not actually be
          generated. */
     } else if (class_type_supp(class_type)->is_lambda_closure_class) {
