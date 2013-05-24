@@ -10737,6 +10737,7 @@ that member function can throw any exception, return TRUE.
   a_routine_type_supplement_ptr        rtsp;
 
   check_assertion(sym->kind == (a_symbol_kind)sk_member_function);
+  instantiate_exception_spec_if_needed(sym);
   rtp = sym->variant.routine.ptr->type;
   is_noexcept = is_nothrow_type(rtp);
   /* The call to is_nothrow_type ensures that any indeterminate exception
