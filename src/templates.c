@@ -23121,6 +23121,7 @@ that follows.
             }  /* if */
             check_assertion(rp->declared_type == NULL);
             set_routine_declared_type(rp, declared_type);
+            rp->declared_storage_class = dps->declared_storage_class;
 #if TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
 #if FRIEND_AND_MEMBER_DEFINITIONS_MAY_BE_MOVED_OUT_OF_CLASS
             if (rp->source_corresp.source_sequence_entry != NULL &&
@@ -23145,9 +23146,13 @@ that follows.
 #endif /* FRIEND_AND_MEMBER_DEFINITIONS_MAY_BE_MOVED_OUT_OF_CLASS */
 #endif /* TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
           } else {
-            (void)update_src_seq_secondary_decl((char *)rp, declared_type,
-                                                name_ref, flags,
-                                                &decl_pos_block);
+            a_src_seq_secondary_decl_ptr  sssdp;
+            sssdp = update_src_seq_secondary_decl((char *)rp, declared_type,
+                                                  name_ref, flags,
+                                                  &decl_pos_block);
+            if (sssdp != NULL) {
+              sssdp->declared_storage_class = dps->declared_storage_class;
+            }  /* if */
           }  /* if */
         }
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */

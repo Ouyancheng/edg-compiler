@@ -2079,7 +2079,8 @@ in the secondary source sequence entry that need to be set.
 /*ARGSUSED*/ /* decl_pos_block is not used unless extra source-position
                 information is being recorded in the IL. */
 #endif /* !EXTRA_SOURCE_POSITIONS_IN_IL */
-a_boolean update_src_seq_secondary_decl(char                  *il_entry_ptr,
+a_src_seq_secondary_decl_ptr update_src_seq_secondary_decl(
+                                        char                  *il_entry_ptr,
                                         a_type_ptr            declared_type,
                                         a_name_reference_ptr  name_ref,
                                         an_sssd_flag_set      flags,
@@ -2087,10 +2088,11 @@ a_boolean update_src_seq_secondary_decl(char                  *il_entry_ptr,
 /*
 Call set_src_seq_secondary_decl_fields to set the declared_type field and
 various flags in the secondary-decl source sequence entry associated with
-il_entry_ptr.  declared_type may be NULL.  flags is a bit vector whose
-non-zero bits correspond to bit fields in the secondary source sequence
+il_entry_ptr (if any).  declared_type may be NULL.  flags is a bit vector
+whose non-zero bits correspond to bit fields in the secondary source sequence
 entry that need to be set.  If decl_pos_block is non-NULL, also update the
-decl_pos_info supplement of the secondary-decl entry.
+decl_pos_info supplement of the secondary-decl entry.  Return the updated
+secondary-decl source sequence entry or NULL if there was none.
 */
 {
   a_src_seq_secondary_decl_ptr  sssdp;
@@ -2110,7 +2112,7 @@ decl_pos_info supplement of the secondary-decl entry.
     }  /* if */
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   }  /* if */
-  return (sssdp != NULL);
+  return sssdp;
 }  /* update_src_seq_secondary_decl */
 
 #endif /* !STANDALONE_UTILITY_PROGRAM */

@@ -183,7 +183,7 @@ extern a_src_seq_secondary_decl_ptr set_src_seq_secondary_decl_fields(
                                            a_name_reference_ptr  name_ref,
                                            an_sssd_flag_set      flags);
 
-extern a_boolean update_src_seq_secondary_decl(
+extern a_src_seq_secondary_decl_ptr update_src_seq_secondary_decl(
                                         char                  *il_entry_ptr,
                                         a_type_ptr            declared_type,
                                         a_name_reference_ptr  name_ref,

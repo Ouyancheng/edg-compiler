@@ -13299,8 +13299,8 @@ implicitly declared member functions.
         sssd_flags |= SSSD_MARKED_AS_GNU_EXTENSION;
       }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
-      if (!update_src_seq_secondary_decl((char *)rtn, tp, name_ref, sssd_flags,
-                                         &decl_info->decl_pos_block)) {
+      if (update_src_seq_secondary_decl((char *)rtn, tp, name_ref, sssd_flags,
+                                        &decl_info->decl_pos_block) == NULL) {
         /* No source-sequence secondary declaration entity was found, which
            means the declared type will not be needed.  Clear the pointer
            to suppress copying the default arg expression to it later on. */

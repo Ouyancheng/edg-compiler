@@ -1,5 +1,22 @@
 Version 5.0
 
+5/28/13  [EDGcpfe/13399]
+C++-generating back end fails to render "static" on in-class specialization
+
+In Microsoft C++ mode, the front accepts in-class specializations of static
+member functions, but the C++-generating back end did not render any "static"
+specifier appearing on the specialization.  For example:
+
+  struct S {
+    template<class T> static void f(T x);
+    template<> static void f<int>(int x);
+                // Previously, "static" on the specialization was not
+  };            // rendered by the C++-generating back end.
+
+This is now fixed (by correctly recording the declared storage class in the
+IL).
+
+
 5/24/13  [EDGcpfe/14040]
 Generated default constructor with const members
 
