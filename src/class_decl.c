@@ -10854,6 +10854,13 @@ when exception support is enabled.
     fp = class_type->variant.class_struct_union.field_list;
     for (; fp != NULL; fp = fp->next) {
       a_type_qualifier_set  subobj_qual;
+      a_symbol_ptr          field_sym = symbol_for(fp);
+      if (field_sym != NULL && field_sym->is_error) {
+        /* Don't attempt to process error fields since that may very well just
+           trigger additional unhelpful errors. */
+        throw_any = TRUE;
+        break;
+      }  /* if */
       tp = fp->type;
       if (is_array_type(tp)) tp = underlying_array_element_type(tp);
       subobj_qual = get_type_qualifiers(tp);
