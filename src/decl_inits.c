@@ -3346,8 +3346,7 @@ initializer, already copied and substituted.
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   if (need_to_free_icp_tree) free_init_component_list(icp_tree);
   is->force_dynamic_init = saved_force_dynamic_init;
-  if ((is_aggregate && !is->init_error) ||
-      (is->force_dynamic_init && is->init_dip == NULL)) {
+  if ((is_aggregate && !is->init_error) || is->force_dynamic_init) {
     /* The routines for aggregate initialization produce a constant entry, but
        those entries may embed a dynamic initialization.  If so, return a
        dynamic initialization entry for a nonconstant aggregate to the caller.
@@ -3455,6 +3454,7 @@ is part of.  diag_pos is the position to be used by default for diagnostics
 
 static void expr_direct_init_object(a_decl_parse_state  *dps,
                                     an_id_linkage_kind  linkage,
+                                    a_boolean           fill_in_dtor,
                                     a_source_position   *diag_pos)
 /*
 Scan and process the expression in a parenthesized variable or member
@@ -3463,8 +3463,11 @@ via a constructor (e.g., The expression "4" in "int x(4);" or in
 "struct S { S(): x(4) {} int x; };").  dps is the declaration parsing state
 associated with the initialization (a synthetic state in the case of member
 initialization) and idl_linkage describes the linkage of the variable being
-initialized (or idl_none for member initializers).  diag_pos is the position
-to use for diagnostics when no more specific position is available.
+initialized (or idl_none for member initializers).  fill_in_dtor is TRUE if
+an applicable destructor should be recorded in any top-level dynamic created
+for this initialization (but it is not put on a lifetime list at this point).
+diag_pos is the position to use for diagnostics when no more specific position
+is available.
 */
 {
   an_init_component_ptr  expr_icp;
@@ -3506,14 +3509,13 @@ to use for diagnostics when no more specific position is available.
     } else {
       /* Ordinary initialization. */
       is->elements_are_full_expressions = TRUE;
-      convert_initializer(expr_icp, dps->type, is_var_init,
-                          /*fill_in_dtor=*/TRUE, is);
+      convert_initializer(expr_icp, dps->type, is_var_init, fill_in_dtor, is);
     }  /* if */
     free_init_component_list(expr_icp);
     is->force_dynamic_init = saved_force_dynamic_init;
   }  /* if */
   if ((is_aggregate_type(dps->type) && !is->init_error) ||
-      (is->force_dynamic_init && is->init_dip == NULL)) {
+      is->force_dynamic_init) {
     /* The routines for aggregate initialization produce a constant entry, but
        those entries may embed a dynamic initialization.  If so, return a
        dynamic initialization entry for a nonconstant aggregate to the caller.
@@ -4081,7 +4083,7 @@ returned set to TRUE.
       add_stop_token(tok_rparen);
       /* Scan the initializer.  Either a constant pointer is returned or else
          a dynamic init entry representing an expression. */
-      expr_direct_init_object(dps, linkage, source_pos);
+      expr_direct_init_object(dps, linkage, /*fill_in_dtor=*/TRUE, source_pos);
       init_err = dps->init_state.init_error;
       init_con = dps->init_state.init_con;
       init_dip = dps->init_state.init_dip;
@@ -5701,7 +5703,7 @@ cases, array_type is NULL).
         dps.type = init_type;
         dps.init_state.force_dynamic_init = TRUE;
         expr_direct_init_object(&dps, (an_id_linkage_kind)idl_none,
-                                &lparen_pos);
+                                /*fill_in_dtor=*/FALSE, &lparen_pos);
         check_constexpr_ctor_init(ctor, &dps.init_state, &lparen_pos);
         dip = dps.init_state.init_dip;
         check_assertion(dip != NULL);
