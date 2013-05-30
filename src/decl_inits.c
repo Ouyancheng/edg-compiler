@@ -3463,11 +3463,11 @@ via a constructor (e.g., The expression "4" in "int x(4);" or in
 "struct S { S(): x(4) {} int x; };").  dps is the declaration parsing state
 associated with the initialization (a synthetic state in the case of member
 initialization) and idl_linkage describes the linkage of the variable being
-initialized (or idl_none for member initializers).  fill_in_dtor is TRUE if
-an applicable destructor should be recorded in any top-level dynamic created
-for this initialization (but it is not put on a lifetime list at this point).
-diag_pos is the position to use for diagnostics when no more specific position
-is available.
+initialized (or idl_none for member initializers).  fill_in_dtor is TRUE if an
+applicable destructor should be recorded in any top-level dynamic init entry
+created for this initialization (but it is not put on a lifetime list at this
+point).  diag_pos is the position to use for diagnostics when no more specific
+position is available.
 */
 {
   an_init_component_ptr  expr_icp;
