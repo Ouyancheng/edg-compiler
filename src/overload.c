@@ -20773,13 +20773,19 @@ static a_routine_ptr find_initializer_list_constructor(
                                                 a_type_ptr        *param1_type,
                                                 a_type_ptr        *param2_type)
 /*
-list_type is an instance of std::initializer_list<X>.  Find the private
-constructor that is used to constructor an initializer_list object from
-an array of values and return a pointer to it.  If the constructor
-does not exist (which indicates some misconfiguration of the front end
-for the library), issue an error at pos and return NULL.  Otherwise,
-Set *param1_type and *param2_type to the types of the first and second
-parameters, and return TRUE.
+list_type is an instance of std::initializer_list<X>.  Find the constructor
+that is used to constructor an initializer_list object from an array of values
+and return a pointer to it.  If the constructor does not exist (which
+indicates some misconfiguration of the front end for the library), issue a
+error at pos and return NULL.  Otherwise, set *param1_type and *param2_type to
+the types of the first and second parameters, and return TRUE.
+Currently, two general forms of the constructor are accepted:
+  initializer_list(elem_type *ptr_to_first_elem, int_type length)
+and
+  initializer_list(elem_typeX *ptr_to_first_elem,
+                   elem_type *ptr_one_past_last_elem)
+(the caller must check the second parameter type to decide which form is being
+used).
 */
 {
   a_routine_ptr                   ctor_rout = NULL, rout;
@@ -20805,7 +20811,8 @@ parameters, and return TRUE.
     ptp = rout_type->variant.routine.extra_info->param_type_list;
     if (ptp != NULL && ptp->next != NULL && ptp->next->next == NULL) {
       if (is_pointer_type(ptp->type) &&
-          is_integral_type(ptp->next->type)) {
+          (is_integral_type(ptp->next->type) ||
+           identical_types(ptp->type, ptp->next->type))) {
         *param1_type = ptp->type;
         *param2_type = ptp->next->type;
         ctor_rout = rout;
@@ -21102,13 +21109,34 @@ errors should be suppressed (i.e., SFINAE mode).
     if (ctor == NULL) {
       if (operand != NULL) make_error_operand(operand);
     } else {
+      a_boolean      temp_init_used = FALSE;
       a_constant_ptr folded_con;
       check_assertion(is_pointer_type(param1_type));
       arg1 = add_cast_if_necessary(expr, param1_type);
-      param2_type = skip_typerefs(param2_type);
-      check_assertion(param2_type->kind == (a_type_kind)tk_integer);
-      arg2 = node_for_host_large_integer((a_host_large_integer)num_elements,
-                                        param2_type->variant.integer.int_kind);
+      if (is_integral_type(param2_type)) {
+        /* Pass in the pointer to the temporary array and its length. */
+        param2_type = skip_typerefs(param2_type);
+        arg2 = node_for_host_large_integer(
+                                       (a_host_large_integer)num_elements,
+                                       param2_type->variant.integer.int_kind);
+      } else {
+        /* Pass in the pointer to the temporary array and a pointer one past
+           its last element.  The second argument is computed by adding the
+           array length to the first argument, but we must ensure that the
+           first argument is computed before the second one: To achieve this,
+           the computation of the first argument may need to be hoisted out of
+           the call. */
+        check_assertion(identical_types(param1_type, param2_type));
+        arg2 = make_expr_reusable_copy(arg1, /*vars_can_change=*/FALSE,
+                                       &temp_init_used,
+                                       /*treat_as_potential_rvalue=*/FALSE);
+        /* Add the number off elements in the second argument: */
+        arg2->next = node_for_host_large_integer(
+                                           (a_host_large_integer)num_elements,
+                                           targ_size_t_int_kind);
+        arg2 = make_operator_node((an_expr_operator_kind)eok_padd,
+                                  arg2->type, arg2);
+      }  /* if */
       arg1->next = arg2;
       if_evaluating_mark_routine_referenced(ctor);
       dip = alloc_expr_ctor_dynamic_init(ctor,
@@ -21117,7 +21145,7 @@ errors should be suppressed (i.e., SFINAE mode).
                                          /*add_default_args=*/TRUE,
                                          /*implied_source=*/FALSE,
                                          /*value_init=*/FALSE,
-                                         /*sequenced_args=*/FALSE,
+                                         /*sequenced_args=*/temp_init_used,
                                          /*fold_constexpr=*/TRUE,
                                          pos);
       dip->is_creation_of_initializer_list_object = TRUE;

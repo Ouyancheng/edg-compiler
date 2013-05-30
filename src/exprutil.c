@@ -3189,7 +3189,7 @@ Macro that returns TRUE if the expression is a reused dynamic init.
   ((expr)->kind == (an_expr_node_kind)enk_temp_init &&                \
     ((expr)->variant.init.dynamic_init->is_reused_value))
 
-static an_expr_node_ptr make_expr_reusable_copy(
+an_expr_node_ptr make_expr_reusable_copy(
                                     an_expr_node_ptr expr,
                                     a_boolean        vars_can_change,
                                     a_boolean        *temp_init_used,

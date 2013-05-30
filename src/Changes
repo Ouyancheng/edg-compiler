@@ -1,5 +1,18 @@
 Version 5.0
 
+5/29/13  [EDGcpfe/14089]
+Microsoft compatibility: std::initializer_list construction
+
+The <initializer_list> header supplied with the front end provides a
+definition for the std::initializer_list template that allows construction
+of an object of type std::initializer_list<X> from a pointer to the first
+element of an array of Xs, and the length of that array.  The front end
+previously relied on the presence of such a constructor.  Now, it can also
+use a constructor that takes a pointer to the first element of the array and
+a pointer one past the last element of the array.  That variant appears to
+be what Microsoft will use in its forthcoming compiler.
+
+
 5/28/13  [EDGcpfe/14089]
 Abort on mem-initializer with destructor when exceptions are disabled
 
