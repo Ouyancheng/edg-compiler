@@ -8408,8 +8408,8 @@ is an lvalue reference to const.
   }  /* if */
   if (err) {
     /* Previous error. */
-  } else if (is_an_rvalue(operand)) {
-    /* If the caller passes in an rvalue, convert it to an lvalue. */
+  } else if (is_a_prvalue(operand)) {
+    /* If the caller passes in a prvalue, convert it to an lvalue. */
     conv_reference_cast_operand_to_lvalue_if_necessary(operand, dest_type);
   } else {
     (void)check_for_taking_the_address_of_a_bit_field(operand,
@@ -8435,7 +8435,7 @@ is an lvalue reference to const.
     a_boolean        need_eok_ref_cast = FALSE;
     an_operand       orig_operand;
     orig_operand = *operand;
-    check_assertion(is_an_lvalue(operand) ||
+    check_assertion(is_a_glvalue(operand) ||
                     is_a_function_designator(operand));
     if (!reinterpret_semantics &&
         is_class_struct_union_type(operand_type) &&
