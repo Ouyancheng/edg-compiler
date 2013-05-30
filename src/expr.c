@@ -37235,8 +37235,10 @@ Return NULL if tp is an incomplete type or a reference to an incomplete type.
   result = alloc_init_component((an_init_component_kind)ick_expression);
   arg_operand = operand_of_arg_list_elem(result);
   make_dummy_lvalue_operand(tp, arg_operand);
-  if (!make_lvalue) {
-    do_operand_transformations(arg_operand, TOPT_NO_OPTIONS);
+  /* If we're not making an lvalue, we make an xvalue.  However, for
+     a function type we always make an lvalue. */
+  if (!make_lvalue && !is_function_type(tp)) {
+    conv_rvalue_reference_result_to_xvalue(arg_operand);
   }  /* if */
 done:
   return result;

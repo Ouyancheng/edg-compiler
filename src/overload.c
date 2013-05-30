@@ -3238,9 +3238,13 @@ have_level:;
     /* In some cases, reference parameters can't be bound to certain kinds of
        arguments, based on their lvalueness. */
     if (param_is_rvalue_reference) {
-      /* An rvalue reference can only be bound to an rvalue. */
+      /* An rvalue reference can only be bound to an rvalue or a function
+         lvalue. */
       if (arg_originally_an_lvalue) {
-        if (ref_type_qualifiers_dropped) {
+        if (is_function_type(param_type) &&
+            (!microsoft_mode || microsoft_version >= 1800)) {
+          /* Okay to bind to a function lvalue. */
+        } else if (ref_type_qualifiers_dropped) {
           /* If type qualifiers are being dropped, don't allow binding to
              an lvalue in any mode. */
           arg_summary->match_level = aml_none;
