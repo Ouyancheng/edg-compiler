@@ -1761,6 +1761,12 @@ extern a_dynamic_init_ptr add_array_nonconstant_aggregate_init_computing_size(
                                          a_type_ptr         array_type,
                                          a_routine_ptr      dtor_routine);
 
+extern an_expr_node_ptr make_expr_reusable_copy(
+                                  an_expr_node_ptr expr,
+                                  a_boolean        vars_can_change,
+                                  a_boolean        *temp_init_used,
+                                  a_boolean        treat_as_potential_rvalue);
+
 #if EXTRA_SOURCE_POSITIONS_IN_IL
 extern void set_expr_position(an_expr_node_ptr  expr,
                               a_source_position *start_position,
