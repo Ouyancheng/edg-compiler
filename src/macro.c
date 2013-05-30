@@ -8658,6 +8658,14 @@ command line -D options.
                             /*ref_suppresses_pch_file=*/FALSE);
   }  /* if */
 #endif /* DEFINE_MACRO_WHEN_VARIADIC_TEMPLATES_ENABLED */
+  if (constexpr_enabled) {
+    /* Define a fixed macro (not configurable since it is used by the
+       EDG-provided <initializer_list> header) indicating whether support for
+       constexpr is enabled. */
+    (void)enter_predef_macro("1", "__EDG_CONSTEXPR_ENABLED__",
+                             /*cannot_be_redefined=*/TRUE,
+                             /*ref_suppresses_pch_file=*/FALSE);
+  }  /* if */
   /* Enter a predefined macro that can be used to determine that the
      EDG front end is being used. */
   (void)enter_predef_macro("1", "__EDG__",

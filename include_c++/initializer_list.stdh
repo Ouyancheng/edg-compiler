@@ -8,6 +8,11 @@ initializer_list -- Include file for std::initializer_list (18.9)
 #ifndef __cplusplus
  #error -- <initializer_list> header requires C++ mode
 #endif /* ifndef __cplusplus */
+#ifdef __EDG_CONSTEXPR_ENABLED__
+#define __EDG_CONSTEXPR constexpr
+#else /* !defined(__EDG_CONSTEXPR_ENABLED) */
+#define __EDG_CONSTEXPR
+#endif /* ifdef __EDG_CONSTEXPR_ENABLED__ */
 
 namespace std {
   typedef __EDG_SIZE_TYPE__ size_t;
@@ -20,26 +25,36 @@ namespace std {
     typedef _E const *const_iterator;
     typedef std::size_t size_type;
 
-    constexpr initializer_list(): __array(0), __length((size_t)0) {}
+    __EDG_CONSTEXPR initializer_list(): __array(0), __length((size_t)0) {}
     /* Default copy constructor. */
     /* Default destructor. */
     /* Default copy assignment operator. */
-    constexpr size_type size() const { return this->__length; }
-    constexpr iterator begin() const { return this->__array; }
-    constexpr iterator end() const { return this->__array + this->__length; }
+    __EDG_CONSTEXPR size_type size() const { return this->__length; }
+    __EDG_CONSTEXPR iterator begin() const { return this->__array; }
+    __EDG_CONSTEXPR iterator end() const {
+      return this->__array + this->__length;
+    }
   private:
     iterator __array;
     size_type __length;
-    constexpr initializer_list(_E __a[], std::size_t __l)
+#ifdef _MSC_VER
+    /* Microsoft's compiler uses a different internal constructor.  The
+       front end can handle either one.  Define a Microsoft-like constructor
+       when compiling in Microsoft mode. */
+    __EDG_CONSTEXPR initializer_list(iterator __b, iterator __e)
+                                    : __array(__b), __length(__e - __b) {}
+#else /* !defined(_MSC_VER) */
+    __EDG_CONSTEXPR initializer_list(_E const __a[], std::size_t __l)
                                     : __array(__a), __length(__l) {}
+#endif /* ifdef _MSC_VER */
   };
 
-  template<typename _E> constexpr
+  template<typename _E> __EDG_CONSTEXPR
     typename initializer_list<_E>::iterator begin(initializer_list<_E> il) {
       return il.begin();
     }  /* initializer_list<_E>::begin */
 
-  template<typename _E> constexpr
+  template<typename _E> __EDG_CONSTEXPR
     typename initializer_list<_E>::iterator end(initializer_list<_E> il) {
       return il.end();
     }  /* initializer_list<_E>::end */

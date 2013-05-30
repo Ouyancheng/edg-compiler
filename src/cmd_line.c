@@ -2172,6 +2172,9 @@ by a command line option.
     if (cppcli_enabled || microsoft_version >= 1800) {
       explicit_conversion_functions_enabled = TRUE;
     }  /* if */
+    if (microsoft_version >= 1800) {
+      list_init_enabled = TRUE;
+    }  /* if */
   }  /* if */
   /* In C++ mode, the Microsoft compiler sometimes finds typedefs when
      looking up names in elaborated type specifiers.  This flag causes

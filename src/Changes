@@ -1,5 +1,18 @@
 Version 5.0
 
+5/30/13  [EDGcpfe/14113]
+Microsoft compatibility: Initializer lists
+
+In Microsoft mode with microsoft_version >= 1800 initializer lists are now
+enabled by default (i.e., even when C++11 mode is not enabled).  The
+<initializer_list> header supplied with the front end has been updated to more
+closely match that of the Microsoft compiler when compiling in Microsoft mode
+(it is not an exact match, however).  Enabling this required the introduction
+of a new macro __EDG_CONSTEXPR_ENABLED__ that is predefined by the front end
+in modes that enable the C++11 constexpr feature.  (The entry of 8/26/12 for
+EDGcpfe/9170 describes the introduction of initializer lists in C++11 mode.)
+
+
 5/29/13  [EDGcpfe/14089]
 Microsoft compatibility: std::initializer_list construction
 
