@@ -5789,7 +5789,7 @@ static a_boolean constant_lvalue_address_full(
                              a_constant_address_option_set options,
                              a_boolean                     *template_constant)
 /*
-expr is an lvalue expression.  If it has a constant address, put that
+expr is a glvalue expression.  If it has a constant address, put that
 address in *con and return TRUE.  Otherwise, return FALSE.  address_escapes is
 TRUE if the address might escape from its immediate context and get saved
 somewhere (if in doubt, the safe value is TRUE).  options contains a
@@ -5814,10 +5814,10 @@ a constexpr expansion, and the block provides context information.
     ceblock->do_not_call_back = FALSE;
   }  /* if */
   expr = skip_parens(expr);
-  check_assertion(expr->is_lvalue || is_error_node(expr));
+  check_assertion(is_glvalue_node(expr) || is_error_node(expr));
   if (ceblock != NULL &&
       !do_not_call_back &&
-      expr->is_lvalue &&
+      is_glvalue_node(expr) &&
       (ceblock->do_not_call_back = TRUE,
        fold_lvalue_expr(expr, ceblock, con))) {
     /* The expression could be folded to a constant address. */
@@ -5902,9 +5902,9 @@ a constexpr expansion, and the block provides context information.
           case eok_dot_field:
           case eok_pm_field:
             /* Field selection, x.y, or pointer-to-member field selection,
-               x.*y.  If the left operand is an lvalue with a constant
+               x.*y.  If the left operand is a glvalue with a constant
                address, we can develop an address for the field. */
-            if (op1->is_lvalue &&
+            if (is_glvalue_node(op1) &&
                 constant_lvalue_address_full(op1, ceblock, &conaddr1,
                                              address_escapes,
                                              options, template_constant)) {
@@ -6011,8 +6011,8 @@ handle_pm_field_selection:
             }  /* if */
             break;
           case eok_base_class_cast:
-            /* A cast of a class lvalue to a base class. */
-            check_assertion(op1->is_lvalue);
+            /* A cast of a class glvalue to a base class. */
+            check_assertion(is_glvalue_node(op1));
             if (constant_lvalue_address_full(op1, ceblock, &conaddr1,
                                              address_escapes,
                                              options, template_constant)) {
@@ -6188,7 +6188,7 @@ a_boolean constant_rvalue_pointer_full(
                              a_constant_address_option_set options,
                              a_boolean                     *template_constant)
 /*
-expr is an rvalue expression of pointer type.  If it has a constant pointer
+expr is a prvalue expression of pointer type.  If it has a constant pointer
 value, put that value in *con and return TRUE.  Otherwise, return FALSE.
 address_escapes is TRUE if the address might escape from its immediate
 context and get saved somewhere (if in doubt, the safe value is TRUE).
@@ -6214,7 +6214,7 @@ context information.
     ceblock->do_not_call_back = FALSE;
   }  /* if */
   expr = skip_parens(expr);
-  check_assertion(!expr->is_lvalue &&
+  check_assertion(!is_glvalue_node(expr) &&
                   ((is_pointer_type(expr->type) ||
                     is_reference_type(expr->type) ||
                     is_template_param_type(expr->type) ||
@@ -6277,10 +6277,10 @@ context information.
             }  /* if */
             break;
           case eok_array_to_pointer:
-            /* Array-to-pointer decay operation.  If the operand is an lvalue
+            /* Array-to-pointer decay operation.  If the operand is a glvalue
                array with a constant address, the result is a constant
                pointer. */
-            if (op1->is_lvalue &&
+            if (is_glvalue_node(op1) &&
                 constant_lvalue_address_full(op1, ceblock, con,
                                              address_escapes,
                                              options, template_constant) &&
@@ -6385,7 +6385,7 @@ a_boolean constant_rvalue_pointer(an_expr_node_ptr expr,
                                   a_constant       *con,
                                   a_boolean        address_escapes)
 /*
-expr is an rvalue expression of pointer type.  If it has a constant pointer
+expr is a prvalue expression of pointer type.  If it has a constant pointer
 value, put that value in *con and return TRUE.  Otherwise, return FALSE.
 address_escapes is TRUE if the address might escape from its immediate context
 and get saved somewhere (if in doubt, the safe value is TRUE).
@@ -9362,7 +9362,7 @@ Attempt to fold the expression "expr" to a constant as part of a
 constexpr evaluation, by substituting argument constant values for
 parameters.  If the expression folds to a constant, place the constant
 in *result_con and return TRUE; otherwise, return FALSE.  If the
-expression is an lvalue, do not fold (see fold_lvalue_expr instead).
+expression is a glvalue, do not fold (see fold_lvalue_expr instead).
 ceblock gives context information for the evaluation.
 */
 {
@@ -9382,8 +9382,8 @@ ceblock gives context information for the evaluation.
     pos = expr->expr_range.start;
   }  /* if */
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
-  if (expr->is_lvalue) {
-    /* Only fold expressions that produce rvalue results. */
+  if (is_glvalue_node(expr)) {
+    /* Only fold expressions that produce prvalue results. */
   } else if (is_constant_node(expr)) {
     /* The expression is a constant. */
     folded = TRUE;
@@ -9451,7 +9451,7 @@ ceblock gives context information for the evaluation.
       case eok_comma:
         /* The value of the first operand is discarded, but it still has to
            fold to a constant. */
-        if (op1->is_lvalue ?
+        if (is_glvalue_node(op1) ?
               fold_lvalue_expr(op1, ceblock, &op1_constant) :
               fold_expr(op1, ceblock, &op1_constant)) {
           folded = fold_expr(op2, ceblock, result_con);
@@ -9573,9 +9573,9 @@ pm_field_selection:
         folded = fold_lvalue_expr(op1, ceblock, result_con);
         break;
       case eok_reference_to:
-        /* The reference equivalent of &x.  If the underlying lvalue has a
+        /* The reference equivalent of &x.  If the underlying glvalue has a
            constant address, the result is that address. */
-        if (op1->is_lvalue) {
+        if (is_glvalue_node(op1)) {
           folded = fold_lvalue_expr(op1, ceblock, result_con);
         } else {
           folded = fold_object_expr(op1, ceblock, /*want_addr=*/TRUE,
@@ -9691,7 +9691,7 @@ pm_field_selection:
                                &pos);
               if (error_detected == ec_no_error && !did_not_fold) {
                 folded = TRUE;
-                if (!expr->is_lvalue) {
+                if (!is_glvalue_node(expr)) {
                   /* The value, not the address, of the element is
                      desired. */
                   a_constant value_con;
@@ -9762,11 +9762,11 @@ static a_boolean fold_lvalue_expr(an_expr_node_ptr             expr,
                                   a_constexpr_evaluation_block *ceblock,
                                   a_constant                   *result_con)
 /*
-Attempt to fold the lvalue expression "expr" to a constant address as
+Attempt to fold the glvalue expression "expr" to a constant address as
 part of constexpr evaluation, by substituting argument constant values for
 parameters.  If the expression folds to a constant address, place the
 constant in *result_con and return TRUE; otherwise, return FALSE.  If
-the expression is not an lvalue, do not fold (see fold_expr instead).
+the expression is not a glvalue, do not fold (see fold_expr instead).
 ceblock gives context information for the evaluation.
 */
 {
@@ -9776,8 +9776,8 @@ ceblock gives context information for the evaluation.
 
   ceblock->do_not_call_back = FALSE;
   expr = skip_parens(expr);
-  if (!expr->is_lvalue) {
-    /* Do not fold expressions that are not lvalues. */
+  if (!is_glvalue_node(expr)) {
+    /* Do not fold expressions that are not glvalues. */
   } else if (!do_not_call_back &&
              (ceblock->do_not_call_back = TRUE,
               constant_lvalue_address_full(expr, ceblock, result_con,
@@ -9828,7 +9828,7 @@ ceblock gives context information for the evaluation.
       case eok_comma:
         /* The value of the first operand is discarded, but it still has to
            fold to a constant. */
-        if (op1->is_lvalue ?
+        if (is_glvalue_node(op1) ?
               fold_lvalue_expr(op1, ceblock, &op1_constant) :
               fold_expr(op1, ceblock, &op1_constant)) {
           folded = fold_lvalue_expr(op2, ceblock, result_con);
@@ -9898,9 +9898,9 @@ member function call.
                   is_array_type(expr->type) ||
                   is_template_param_type(expr->type) ||
                   is_error_type(expr->type));
-  if (!expr->is_lvalue) {
+  if (!is_glvalue_node(expr)) {
     if (fold_expr(expr, ceblock, result_con)) {
-      /* The object is an rvalue constant (probably a ck_aggregate). */
+      /* The object is a prvalue constant (probably a ck_aggregate). */
       folded = TRUE;
       if (want_addr) {
         /* Return the address of a temporary containing that constant. */
@@ -9909,7 +9909,7 @@ member function call.
       }  /* if */
     }  /* if */
   } else {
-    /* Try to fold an lvalue to a constant address. */
+    /* Try to fold a glvalue to a constant address. */
     if (fold_lvalue_expr(expr, ceblock, result_con)) {
       folded = TRUE;
       if (!want_addr) {
@@ -10032,7 +10032,7 @@ a_boolean fold_constexpr_expr(an_expr_node_ptr  expr,
 Attempt to fold the expression "expr" to a constant as part of a
 constexpr evaluation.  If the expression folds to a constant, place
 the constant in *result_con and return TRUE; otherwise, return FALSE.
-The expression can be an rvalue or an rvalue.  If treat_as_object
+The expression can be an lvalue, xvalue, or rvalue.  If treat_as_object
 is TRUE, treat the expression as an object (class or array) and
 look for and return a constant address for the object.  pos gives
 the source position of the evaluation.
@@ -10044,7 +10044,7 @@ the source position of the evaluation.
   clear_constexpr_evaluation_block(&ceblock, pos);
   if (treat_as_object) {
     folded = fold_object_expr(expr, &ceblock, /*want_addr=*/TRUE, result_con);
-  } else if (expr->is_lvalue) {
+  } else if (is_glvalue_node(expr)) {
     folded = fold_lvalue_expr(expr, &ceblock, result_con);
   } else {
     folded = fold_expr(expr, &ceblock, result_con);
@@ -10254,7 +10254,7 @@ called instead.
            arguments. */
         for (arg = args; arg != NULL; arg = arg->next) {
           a_constant arg_con;
-          if (arg->is_lvalue) goto gnu_builtin_fail;
+          if (is_glvalue_node(arg)) goto gnu_builtin_fail;
           if (!fold_expr(arg, ceblock, &arg_con)) goto gnu_builtin_fail;
           new_arg = alloc_node_for_constant(&arg_con);
           *p_last = new_arg;
@@ -10955,7 +10955,7 @@ errors.
                                     /*address_escapes=*/FALSE)) {
           obj_expr_con = &local_con;
         }  /* if */
-      } else if (obj_expr->is_lvalue) {
+      } else if (is_glvalue_node(obj_expr)) {
         /* The member selection can be folded if the object expression
            addresses a constant value. */
         obj_expr_con = constant_value_addressed_by_node(obj_expr, pos);

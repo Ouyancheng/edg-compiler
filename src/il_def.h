@@ -13756,14 +13756,15 @@ enum an_expr_operator_kind_tag {
 			   class type to another).  Cannot handle base or
 			   derived class adjustments.  Unlike eok_lvalue_cast,
 			   this operation is rvalueable (it can include an
-			   implicit lvalue-to-rvalue conversion).  Used in
+			   implicit lvalue-to-rvalue conversion).  Can also be
+			   used on xvalues; the result is an xvalue.  Used in
 			   lowering to rewrite eok_ref_cast (so an explicit
 			   reference cast will become an eok_lvalue_adjust
 			   in configurations that perform lowering). */
   eok_class_rvalue_adjust,
 			/* Used to adjust the cv-qualifiers on a class rvalue.
-			   The operand is an rvalue with class type.  The
-			   result is the same class rvalue with its type
+			   The operand is a prvalue with class type.  The
+			   result is the same class prvalue with its type
 			   changed to the type of the rvalue-adjust expression.
 			   Used only in C++.  Always compiler-generated.
 			   Eliminated by IL lowering if
@@ -14530,7 +14531,12 @@ typedef struct an_expr_node {
 			/* TRUE if the expression is a C++11 xvalue, meaning
 			   a value created by an rvalue reference cast or
 			   rvalue reference return from a function.  Never
-			   TRUE at the same time as is_lvalue. */
+			   TRUE at the same time as is_lvalue.  An xvalue
+			   is treated as the specifier for an object in
+			   storage, like an lvalue is, as opposed to a value,
+			   like a prvalue is.  Like is_lvalue, this field
+			   can be cleared to indicate that an rvalueable
+			   field has been converted to a prvalue. */
   a_bit_field	result_is_not_used:1;
 			/* TRUE if the result of the expression is discarded,
 			   i.e., it's a void expression. */

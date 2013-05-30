@@ -4158,15 +4158,15 @@ static void examine_expr_for_complete_object_type(
 /*
 Called from the expression traversal routines to process an expression
 as part of finding the complete object type.  The expression passed in
-is an addressing expression, meaning either an lvalue that identifies an
-object or an rvalue that is a pointer (or C++/CLI handle) to an object.
+is an addressing expression, meaning either a glvalue that identifies an
+object or a prvalue that is a pointer (or C++/CLI handle) to an object.
 */
 {
   a_type_ptr complete_object_type = NULL;
   a_boolean  suppress_subtree_walk = FALSE;
 
-  if (node->is_lvalue) {
-    /* The expression passed in is an lvalue for an object. */
+  if (is_glvalue_node(node)) {
+    /* The expression passed in is a glvalue for an object. */
     switch (node->kind) {
       case enk_error:
       case enk_routine:
@@ -4273,7 +4273,7 @@ object or an rvalue that is a pointer (or C++/CLI handle) to an object.
 #if DO_IL_LOWERING
     /* The expression passed in is a pointer or reference to an object,
        or a C++/CLI handle. */
-    check_assertion((!node->is_lvalue &&
+    check_assertion((!is_glvalue_node(node) &&
                      (is_any_ptr_or_ref_type(node->type) ||
                       is_template_param_type(node->type) ||
                       is_error_type(node->type))) ||
@@ -4281,7 +4281,7 @@ object or an rvalue that is a pointer (or C++/CLI handle) to an object.
 #else /* !DO_IL_LOWERING */
     /* The expression passed in is a pointer to an object (or a C++/CLI
        handle). */
-    check_assertion((!node->is_lvalue &&
+    check_assertion((!is_glvalue_node(node) &&
                      (is_pointer_or_handle_type(node->type) ||
                       is_template_param_type(node->type) ||
                       is_error_type(node->type))) ||
@@ -4351,9 +4351,9 @@ object or an rvalue that is a pointer (or C++/CLI handle) to an object.
                an array of same-sized elements (e.g., an array of a base
                class type), we wouldn't want the analysis here to assume
                we know the type of the array elements.  So use a recursive
-               call on the first operand.  If the first operand is an
-               rvalue array, give up. */
-            if (operand1->is_lvalue) {
+               call on the first operand.  If the first operand is a
+               prvalue array, give up. */
+            if (is_glvalue_node(operand1)) {
               traverse_expr(operand1, tblock);
               complete_object_type = tblock->complete_object_type;
               if (complete_object_type != NULL &&
@@ -4454,19 +4454,20 @@ a_type_ptr expr_complete_object_type(an_expr_node_ptr expr,
                                      a_boolean        call_case)
 /*
 Return the type of the complete object that contains the object indicated
-by expr (an lvalue or rvalue), or NULL if no complete object can be determined.
-call_case is TRUE if the answer will be used to optimize a virtual function
-call.  NULL is always a safe answer; non-NULL values may permit optimizations.
-Note that "complete object" means an object that is not a base class of
-another object, not necessarily a top-level object.  This is used only in
-C++ mode; it is useful to know what the complete object type is to optimize
-base class casts and virtual function calls.
+by expr (a glvalue or prvalue), or NULL if no complete object can be
+determined.  call_case is TRUE if the answer will be used to optimize
+a virtual function call.  NULL is always a safe answer; non-NULL
+values may permit optimizations.  Note that "complete object" means an
+object that is not a base class of another object, not necessarily a
+top-level object.  This is used only in C++ mode; it is useful to know
+what the complete object type is to optimize base class casts and
+virtual function calls.
 */
 {
   a_type_ptr complete_object_type = NULL;
 
-  if (expr->is_lvalue) {
-    /* For an lvalue, look down the tree to find the underlying object. */
+  if (is_glvalue_node(expr)) {
+    /* For a glvalue, look down the tree to find the underlying object. */
     an_expr_or_stmt_traversal_block tblock;
 
     clear_expr_or_stmt_traversal_block(&tblock);
@@ -4476,12 +4477,8 @@ base class casts and virtual function calls.
     traverse_expr(expr, &tblock);
     complete_object_type = tblock.complete_object_type;
   } else {
-    /* For an rvalue, the complete object type is usually the expression type,
-       but for an xvalue it's unknown (the dynamic type can be different than
-       the static type for those). */
-    if (!expr->is_xvalue) {
-      complete_object_type = expr->type;
-    }  /* if */
+    /* For a prvalue, the expression type is the complete object type. */
+    complete_object_type = expr->type;
   }  /* if */
   return complete_object_type;
 }  /* expr_complete_object_type */
@@ -4491,7 +4488,7 @@ a_type_ptr pointer_expr_complete_object_type(an_expr_node_ptr expr,
                                              a_boolean        call_case)
 /*
 Return the type of the complete object that contains the location pointed to
-by expr (a pointer rvalue), or NULL if no complete object can be determined.
+by expr (a pointer prvalue), or NULL if no complete object can be determined.
 call_case is TRUE if the answer will be used to optimize a virtual function
 call.  NULL is always a safe answer; non-NULL values may permit optimizations.
 Note that "complete object" means an object that is not a base class of
@@ -4503,7 +4500,7 @@ can be a handle.
 {
   an_expr_or_stmt_traversal_block tblock;
 
-  check_assertion((!expr->is_lvalue &&
+  check_assertion((!is_glvalue_node(expr) &&
                    (is_pointer_or_handle_type(expr->type) ||
                     is_template_param_type(expr->type) ||
                     is_error_type(expr->type))) ||

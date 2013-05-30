@@ -756,6 +756,12 @@ Macro that is TRUE if the node is an error node.
 	((node)->kind == (an_expr_node_kind)enk_error)
 
 /*
+Return TRUE if the node is a glvalue, meaning an lvalue or an xvalue.
+*/
+#define is_glvalue_node(node)						\
+  ((node)->is_lvalue || (node)->is_xvalue)
+
+/*
 Return TRUE if the operator in the given node (which must be an operation
 node) is "op".
 */

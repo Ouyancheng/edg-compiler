@@ -3333,7 +3333,7 @@ have_level:;
         if (is_constant_operand(arg_operand)) {
           conptr = &arg_operand->variant.constant;
         } else if (is_expression_operand(arg_operand) &&
-                   is_an_rvalue(arg_operand) &&
+                   is_a_prvalue(arg_operand) &&
                    constant_rvalue_pointer(arg_operand->variant.expression,
                                            &con, /*address_escapes=*/FALSE)) {
           conptr = &con;
@@ -9146,7 +9146,7 @@ or handle to a class ("->" or "->*" case, selector_is_object_pointer TRUE).
               function_expr->variant.routine.ptr = overrider;
               function_operand->orig_routine_type = function->type;
               function_expr->type = overrider->type;
-              if (!function_expr->is_lvalue) {
+              if (!is_glvalue_node(function_expr)) {
                 function_expr->type = make_pointer_type(function_expr->type);
               }  /* if */
               function_operand->type = function_expr->type;
@@ -9499,7 +9499,7 @@ TRUE if the operator is "->", FALSE if it is ".".
   if (is_template_dependent_context() &&
       is_constant_node(stripped_selector_expr) &&
       is_constant_node(stripped_orig_expr) &&
-      !stripped_orig_expr->is_lvalue &&
+      !is_glvalue_node(stripped_orig_expr) &&
       (stripped_selector_expr->variant.constant->kind ==
                                    (a_constant_repr_kind)ck_template_param ||
        stripped_orig_expr->variant.constant->kind ==
@@ -9509,7 +9509,7 @@ TRUE if the operator is "->", FALSE if it is ".".
        under a tpck_expression constant, thus producing a constant result. */
     need_expr = TRUE;
     template_constant = TRUE;
-  } else if (!stripped_orig_expr->is_lvalue &&
+  } else if (!is_glvalue_node(stripped_orig_expr) &&
              is_constant_node(stripped_orig_expr) &&
              stripped_orig_expr->variant.constant->kind !=
                                    (a_constant_repr_kind)ck_template_param &&
@@ -9557,7 +9557,7 @@ TRUE if the operator is "->", FALSE if it is ".".
     }  /* if */
     /* Make a node for the selector and the operand. */
     expr = make_operator_node(op, orig_expr->type, selector_expr);
-    if (orig_expr->is_lvalue) expr->is_lvalue = TRUE;
+    copy_node_value_category(orig_expr, expr);
     /* Save the expression as either the overall result or as the backing
        expression for a constant result. */
     if (need_expr_for_constant) {
@@ -14745,7 +14745,7 @@ the operand type to access the same class object with a new type.
                             /*is_object_pointer=*/TRUE);
   } else if (!identical_types(operand->type, dest_type)) {
     /* Do a cv-qualifier adjustment. */
-    if (is_an_lvalue(operand)) {
+    if (is_a_glvalue(operand)) {
       adjust_lvalue_type(operand, dest_type);
     } else if (is_an_rvalue(operand)) {
       adjust_class_rvalue_type(operand, dest_type);
@@ -17458,8 +17458,8 @@ the class type is already correct and nothing should be done to it.
     /* Adjust the class object type if necessary. */
     full_adjust_class_object_type(source_operand, dest_type);
   }  /* if */
-  if (!is_an_rvalue(source_operand)) {
-    /* Make the source an rvalue. */
+  if (!is_a_prvalue(source_operand)) {
+    /* Make the source a prvalue. */
     do_operand_transformations(source_operand, TOPT_NO_OPTIONS);
   } else if (constexpr_enabled) {
     a_constant result_con;
@@ -19207,9 +19207,10 @@ be a reference type.  Only used in C++.  This is copy-initialization.
     }  /* if */
     if (is_error_operand(source_operand)) {
       /* Leave an error operand alone. */
-    } else if (have_temp && is_an_lvalue(source_operand)) {
+    } else if (have_temp && is_a_glvalue(source_operand)) {
       /* The result of the conversion is already a temporary that is an
          lvalue (in particular, this includes array lvalues). */
+      check_assertion(!is_an_xvalue(source_operand));
       /* Adjust the cv-qualifiers on the temp-init if necessary, which
          changes the cv-qualifiers of the temporary.  Base class differences,
          if any, are handled later. */
@@ -19218,10 +19219,10 @@ be a reference type.  Only used in C++.  This is copy-initialization.
         source_operand->type = temp_type;
       }  /* if */
     } else if (have_temp && is_class_struct_union_type(source_operand->type) &&
-               is_an_rvalue(source_operand)) {
+               is_a_prvalue(source_operand)) {
       /* The result of the conversion is already a class temporary, but
-         it's an rvalue.  Convert it to an lvalue. */
-      conv_class_rvalue_operand_to_lvalue(source_operand);
+         it's a prvalue.  Convert it to an lvalue. */
+      conv_class_prvalue_operand_to_lvalue(source_operand);
       /* Adjust the cv-qualifiers on the temp-init if necessary, which
          changes the cv-qualifiers of the temporary.  Base class differences,
          if any, are handled later. */
@@ -19308,7 +19309,7 @@ routines).
     node = skip_parens(node);
   }  /* while */
   if (create_class_temp &&
-      !node->is_lvalue &&
+      !is_glvalue_node(node) &&
       is_call_node(node) &&
       is_class_struct_union_type(node->type)) {
     /* A call returning a class object by value.  Add an enk_temp_init
@@ -19616,11 +19617,16 @@ direct binding is "possible" and not whether it is "valid".
   *binding_to_rvalue_allowed = *ref_to_const;
   *ref_to_const_volatile = FALSE;
   if (is_rvalue_ref) {
-    /* An rvalue reference can bind (only) to an rvalue. */
+    /* An rvalue reference can bind (only) to an rvalue or a
+       function lvalue. */
     *binding_to_rvalue_allowed = TRUE;
-    if (source_operand != NULL && !is_an_rvalue(source_operand)) {
-      /* The operand is not an rvalue, so in most cases the rvalue reference
-         cannot bind to it. */
+    if (source_operand != NULL &&
+        (is_an_lvalue(source_operand) ||
+         (microsoft_mode && microsoft_version < 1800 &&
+          is_a_function_designator(source_operand)))) {
+      /* The operand is a (non-function) lvalue, so in most cases the rvalue
+         reference cannot bind to it.  Until MSVC 12, MSVC did not allow
+         binding an rvalue reference to a function. */
       if (!direct_binding_possible) {
         /* Don't look for exceptions if we can't bind directly to the
            operand. */
@@ -19862,7 +19868,7 @@ the conversion.
   a_boolean    direct_binding_conversion_possible = FALSE;
   a_boolean    ref_to_const = FALSE;
   a_boolean    ref_to_const_volatile = FALSE;
-  a_boolean    operand_was_rvalue;
+  a_boolean    operand_was_rvalue, operand_is_function_lvalue;
   a_boolean    warn = FALSE, template_case = FALSE;
   a_boolean    initializing_variable =
                        (conv_context & CCO_INITIALIZING_VARIABLE) != 0;
@@ -19959,6 +19965,7 @@ the conversion.
   }  /* if */
   base_dest_type = type_pointed_to(dest_type);
   operand_was_rvalue = is_an_rvalue(source_operand);
+  operand_is_function_lvalue = is_a_function_designator(source_operand);
   adj_base_dest_type = base_dest_type;
   if (bitwise_assignment_param) {
     /* For the bitwise assignment case, the reference type is
@@ -19974,7 +19981,8 @@ the conversion.
                                                            orig_source_type);
     }  /* if */
   }  /* if */
-  if (is_rvalue_ref && !operand_was_rvalue && direct_binding_possible) {
+  if (is_rvalue_ref && !operand_was_rvalue && !operand_is_function_lvalue &&
+      direct_binding_possible && !is_error_operand(source_operand)) {
     /* Issue a remark in some cases about allowing an rvalue reference
        to be bound to an lvalue. */
     if (!binding_rvalue_ref_to_lvalue_allowed(conv_context,
@@ -20293,6 +20301,7 @@ the conversion.
       }  /* if */
       conv_to_error_operand(source_operand);
     } else if (is_rvalue_ref && !operand_was_rvalue &&
+               !operand_is_function_lvalue &&
                (are_reference_related(base_dest_type, orig_source_type) ||
                 microsoft_mode)) {
       /* An rvalue reference cannot be bound to an lvalue.  However, if

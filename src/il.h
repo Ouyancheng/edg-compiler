@@ -1564,6 +1564,9 @@ extern void set_node_operator(an_expr_node_ptr      node,
                               a_boolean             is_lvalue,
 		              an_expr_node_ptr      operands);
 
+extern void copy_node_value_category(an_expr_node_ptr from,
+                                     an_expr_node_ptr to);
+
 extern an_expr_node_ptr make_operator_node(an_expr_operator_kind kind,
 			   	           a_type_ptr            type,
 			   	           an_expr_node_ptr      operands);

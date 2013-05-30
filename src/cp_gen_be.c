@@ -8565,7 +8565,7 @@ indicated by opstr.
   }  /* if */
   gen_expr(operand_1, !is_expl_ctor_or_value_init(operand_1),
            /*obj_expr_of_mfunc_operator=*/FALSE);
-  if (operand_1->is_lvalue &&
+  if (is_glvalue_node(operand_1) &&
       is_template_param_or_nonreal_class_type(operand_1_type)) {
     /* Watch out for prototype instantiations. */
     operand_1_type = NULL;
@@ -8579,7 +8579,7 @@ indicated by opstr.
   /* If the second operand has been turned into a constant (i.e., it
      was a const-valued variable), use a comma operator in the output
      to avoid generating something like "x.2". */
-  if (!operand_2->is_lvalue && is_constant_node(operand_2)) {
+  if (!is_glvalue_node(operand_2) && is_constant_node(operand_2)) {
     con = operand_2->variant.constant;
     /* For unknown functions, we need to use the field-selection form,
        and we need to suppress the "&" below. */
@@ -8821,7 +8821,7 @@ case, is passed along to gen_expr.
     expr = expr->variant.constant->expr;
   }  /* while */
   expr = optimized_expr_for_selection(expr, (a_type_ptr *)NULL);
-  if (!expr->is_lvalue && is_constant_node(expr) &&
+  if (!is_glvalue_node(expr) && is_constant_node(expr) &&
       expr->variant.constant->kind == (a_constant_repr_kind)ck_address &&
       !constant_should_be_put_out_as_expr(expr->variant.constant)) {
     /* This constant is not an lvalue but needs to be put out as one.  This

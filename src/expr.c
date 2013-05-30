@@ -2999,10 +2999,10 @@ will be equal to init_list_ctor_arg_list->variant.braced.list.
                                               /*is_explicit_cast=*/FALSE);
       }  /* if */
     } else {
-      /* Existing enk_temp_init; make sure we get an rvalue for the
-         temporary instead of an lvalue.  Note that in this case dip
+      /* Existing enk_temp_init; make sure we get a prvalue for the
+         temporary instead of a glvalue.  Note that in this case dip
          is the dynamic init pointer extracted from that node. */
-      if (temp_init_node->is_lvalue) {
+      if (is_glvalue_node(temp_init_node)) {
         temp_init_node = rvalue_expr_for_lvalue(temp_init_node);
       }  /* if */
       temp_init_node->type = dest_type;
@@ -3375,7 +3375,7 @@ been scanned: builtin_func represents the reference to the builtin function
   if (err) {
     make_error_operand(result);
   } else if (va_arg_returns_lvalue) {
-    /* Create an lvalue_va_arg expression node for an lvalue. */
+    /* Create an lvalue va_arg expression node for an lvalue. */
     an_expr_node_ptr va_arg_node = make_lvalue_operator_node(
                                              (an_expr_operator_kind)eok_va_arg,
                                              type, node);
@@ -18273,7 +18273,7 @@ called only in C++ mode.
             /* In Microsoft C++ mode, a function that returns a class type is
                considered to return an lvalue.  This was changed in
                MSVC++ 5.0. */
-            conv_class_rvalue_operand_to_lvalue(operand);
+            conv_class_prvalue_operand_to_lvalue(operand);
           }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
         } else if (failed) {
@@ -18360,15 +18360,18 @@ it to an lvalue).
     if (is_an_lvalue(operand) ||
         is_a_function_designator(operand)) {
       /* Okay, the operand is already an lvalue. */
+    } else if (is_an_xvalue(operand)) {
+      /* Convert an xvalue to an lvalue. */
+      conv_xvalue_to_lvalue(operand);
     } else if (allow_rvalue) {
-      /* An rvalue is allowed for certain casts (to rvalue reference types,
+      /* A prvalue is allowed for certain casts (to rvalue reference types,
          and to const lvalue reference types). */
     } else if ((any_cfront_mode() || 
                 allow_nonconst_ref_anachronism) &&
                is_class_struct_union_type(operand->type)) {
-      /* Allow an rvalue for certain anachronisms.  Convert the operand
+      /* Allow a prvalue for certain anachronisms.  Convert the operand
          to an lvalue. */
-      conv_class_rvalue_operand_to_lvalue(operand);
+      conv_class_prvalue_operand_to_lvalue(operand);
     } else {
       if (!is_error_operand(operand)) {
         error_in_operand(ec_expr_not_an_lvalue, operand);
@@ -20742,14 +20745,10 @@ Also scans GNU statement expressions:
       }  /* if */
       if (need_expr) {
         /* Make an expression with an eok_parens node over the operand. */
-        expr = make_node_from_operand(result);
-        if (expr->is_lvalue) {
-          expr = make_lvalue_operator_node((an_expr_operator_kind)eok_parens,
-                                           expr->type, expr);
-        } else {
-          expr = make_operator_node((an_expr_operator_kind)eok_parens,
-                                    expr->type, expr);
-        }  /* if */
+        an_expr_node_ptr orig_expr = make_node_from_operand(result);
+        expr = make_operator_node((an_expr_operator_kind)eok_parens,
+                                  orig_expr->type, orig_expr);
+        copy_node_value_category(orig_expr, expr);
       }  /* if */
       if (need_expr && !need_expr_for_constant) {
         /* Save the expression, with added eok_parens, as the overall
@@ -21083,7 +21082,7 @@ freed by this routine.
       if (microsoft_bugs && microsoft_version < 1100) {
         /* In Microsoft C++ mode, a constructor is considered to return
            an lvalue.  This was changed in MSVC++ 5.0. */
-        conv_class_rvalue_operand_to_lvalue(result);
+        conv_class_prvalue_operand_to_lvalue(result);
       }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     }  /* if */
@@ -23751,6 +23750,10 @@ that case.
         /* Avoid the copy from an lvalue if the other operand is a throw,
            so that we generate code with a single copy of the non-throw
            operand at the end (outside the "?"). */
+      } else if (microsoft_mode && microsoft_version < 1700 &&
+                 is_an_xvalue(&operand_2) && is_an_xvalue(&operand_3)) {
+        /* MSVC 10 treats xvalues as special rvalues and doesn't copy them. */
+        suppress_class_rvalue_temp = TRUE;
       } else {
         /* Do a copy on a conversion from class lvalue to rvalue. */
         options |= TOPT_COPY_CLASS_ON_CONV_TO_RVALUE;
@@ -25461,6 +25464,10 @@ expression, and return the result in *result (or an error indication in
       if (C_dialect == C_dialect_cplusplus) {
         eliminate_unusual_operand_kinds(&operand_2);
         result_is_an_lvalue = is_a_cplusplus_lvalue(&operand_2);
+        if (is_an_xvalue(&operand_2)) {
+          /* FIXME */
+          do_operand_transformations(&operand_2, TOPT_NO_OPTIONS);
+        }  /* if */
       } else if (gcc_mode && gnu_version < 40000) {
         /* gcc leaves an lvalue, but converts a function or array to a
            pointer. */
@@ -34670,7 +34677,7 @@ is TRUE if the expression is the immediate operand of an "&" operator.
          type. */
       new_type = do_type_substitution_for_rescan(expr->type, rcblock, eriep);
     }  /* if */
-    if (!expr_copy->is_lvalue) {
+    if (!is_glvalue_node(expr_copy)) {
       expr_copy->orig_lvalue_type = new_type;
       new_type = rvalue_type(new_type);
     }  /* if */
@@ -37052,7 +37059,7 @@ Find the correct assignment operator to use in copying a base or member
 subobject in the implicit definition of a copy assignment operator and
 return a pointer to the selected routine.  If an error is detected, the
 returned value will be NULL (and the appropriate diagnostic will have been
-issued).  source_expr is an lvalue that refers to the base or member
+issued).  source_expr is an expression that refers to the base or member
 subobject of the class object that is being copied; dest_expr is an
 lvalue that refers to the corresponding subobject of the target
 object.  class_type is the type of the subobject to be copied.

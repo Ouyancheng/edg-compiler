@@ -14191,6 +14191,18 @@ type kind" as a function of the operator kind and the type of the operands.
 }  /* set_node_operator */
 
 
+void copy_node_value_category(an_expr_node_ptr from,
+                              an_expr_node_ptr to)
+/*
+Copy the value category markers from the expression "from" to the
+expression "to".
+*/
+{
+  to->is_lvalue = from->is_lvalue;
+  to->is_xvalue = from->is_xvalue;
+}  /* copy_node_value_category */
+
+
 an_expr_node_ptr make_operator_node(an_expr_operator_kind kind,
 			   	    a_type_ptr            type,
 			   	    an_expr_node_ptr      operands)
@@ -14228,8 +14240,8 @@ an_expr_node_ptr make_comma_node(an_expr_node_ptr expr1,
                                  an_expr_node_ptr expr2)
 /*
 Make a comma expression node with the indicated two expressions as its
-operands, and return a pointer to it.  The lvalueness of the returned
-expression is determined by the lvalueness of its second operand.
+operands, and return a pointer to it.  The value category of the returned
+expression is determined by the value category of its second operand.
 */
 {
   an_expr_node_ptr comma_node;
@@ -14238,10 +14250,12 @@ expression is determined by the lvalueness of its second operand.
   expr2->next = NULL;
   comma_node = make_operator_node((an_expr_operator_kind)eok_comma,
                                   expr2->type, expr1);
-  /* Lvalueness of the comma operation is determined by its second operand. */
-  comma_node->is_lvalue =
-    comma_node->variant.operation.returns_lvalue_instead_of_usual_rvalue =
-                                                              expr2->is_lvalue;
+  /* The value category of the comma operation is determined by its second
+     operand. */
+  copy_node_value_category(expr2, comma_node);
+  if (is_glvalue_node(comma_node)) {
+    comma_node->variant.operation.returns_lvalue_instead_of_usual_rvalue= TRUE;
+  }  /* if */
   return comma_node;
 }  /* make_comma_node */
 
@@ -15561,7 +15575,8 @@ options is a set of name lookup options.
         } else if (op == (an_expr_operator_kind)eok_address_of) {
           /* Taking the address of a constant-address lvalue produces a
              constant. */
-          if (new_operand_1 != NULL && new_operand_1->is_lvalue &&
+          if (new_operand_1 != NULL &&
+              is_glvalue_node(new_operand_1) &&
               constant_lvalue_address(new_operand_1, constant,
                                      /*address_escapes=*/TRUE)) {
             folded_to_constant = TRUE;
@@ -15596,6 +15611,7 @@ options is a set of name lookup options.
           expr_copy = copy_node(expr);
           set_node_operator(expr_copy, op, operation_type,
                             expr->is_lvalue, new_operand_1);
+          copy_node_value_category(expr, expr_copy);
         }  /* if */
       }  /* if */
       break;
@@ -16441,8 +16457,8 @@ lookup options.
                                                      ctws_state);
       if (!*copy_error) {
         check_assertion(expr_copy != NULL);
-        if (expr_copy->is_lvalue) {
-          /* See if the lvalue has a constant address. */
+        if (is_glvalue_node(expr_copy)) {
+          /* See if the glvalue has a constant address. */
           if (constant_lvalue_address(expr_copy, &constant,
                                       /*address_escapes=*/TRUE)) {
             /* Yes.  Change the address constant type to a reference. */
@@ -16614,28 +16630,34 @@ If a cast is added it is marked as compiler-generated.
 an_expr_node_ptr add_cast_to_lvalue(an_expr_node_ptr node,
                                     a_type_ptr       type)
 /*
-Cast the lvalue expression given by node to the type specified by type.
-This adjusts the type of the lvalue without creating a new object.
-The operation is marked as compiler-generated.  The result is an lvalue.
+Cast the glvalue expression given by node to the type specified by type.
+This adjusts the type of the glvalue without creating a new object.
+The operation is marked as compiler-generated.  The result has the
+same value category (lvalue or xvalue) as the original expression.
 Note that an lvalue cast cannot handle base class casts, only
 cv-qualification or other non-base-class type adjustment.
 */
 {
-  check_assertion(node->is_lvalue || is_error_node(node));
-  node = make_lvalue_operator_node((an_expr_operator_kind)eok_lvalue_adjust,
+  an_expr_node_ptr new_node;
+
+  check_assertion(is_glvalue_node(node) || is_error_node(node));
+  new_node = make_lvalue_operator_node(
+                                   (an_expr_operator_kind)eok_lvalue_adjust,
                                    type, node);
-  node->variant.operation.compiler_generated = TRUE;
-  return node;
+  copy_node_value_category(node, new_node);
+  new_node->variant.operation.compiler_generated = TRUE;
+  return new_node;
 }  /* add_cast_to_lvalue */
 
 
 an_expr_node_ptr add_cast_to_lvalue_if_necessary(an_expr_node_ptr node,
                                                  a_type_ptr       type)
 /*
-Cast the lvalue expression given by node to the type specified by type,
+Cast the glvalue expression given by node to the type specified by type,
 but do nothing if the node already has the desired type.
-This adjusts the type of the lvalue without creating a new object.
-The operation is marked as compiler-generated.  The result is an lvalue.
+This adjusts the type of the glvalue without creating a new object.
+The operation is marked as compiler-generated.  The result has the same
+value category (lvalue or xvalue) as the original expression.
 Note that an lvalue cast cannot handle base class casts, only minor
 cv-qualification or type adjustment.
 */
@@ -16654,7 +16676,7 @@ Add an eok_class_rvalue_adjust node to the indicated expression, to
 adjust its type to "type", and return a pointer to the resulting expression.
 */
 {
-  check_assertion(!node->is_lvalue &&
+  check_assertion(!is_glvalue_node(node) &&
                   is_class_struct_union_type(type));
   if (is_operation_node(node) &&
       node_operator_is(node, eok_base_class_cast) &&
@@ -17224,7 +17246,7 @@ return a pointer to the new expression.
 
   expr = alloc_expr_node((an_expr_node_kind)enk_object_lifetime);
   expr->variant.object_lifetime.expr = orig_expr;
-  expr->is_lvalue = orig_expr->is_lvalue;
+  copy_node_value_category(orig_expr, expr);
   /* expr->variant.object_lifetime.ptr is set by the bind call. */
   expr->type = orig_expr->type;
   bind_object_lifetime(lifetime, iek_expr_node, (char *)expr);
@@ -17412,15 +17434,15 @@ static void examine_expr_for_gc_lvalue(
 /*
 Called from the expression traversal routines to process an expression
 as part of finding out whether it is a gc-lvalue.  The expression passed in
-is an addressing expression, meaning either an lvalue that identifies an
-object or an rvalue that is a pointer or handle to an object.
+is an addressing expression, meaning either a glvalue that identifies an
+object or a prvalue that is a pointer or handle to an object.
 */
 {
   a_boolean  determined_result = FALSE;
   a_type_ptr type = node->type;
 
-  if (node->is_lvalue) {
-    /* The expression passed in is an lvalue for an object. */
+  if (is_glvalue_node(node)) {
+    /* The expression passed in is a glvalue for an object. */
     if (is_ref_class_type(type)) {
       /* A ref class is always on the managed heap. */
       tblock->result = TRUE;
@@ -17476,7 +17498,7 @@ object or an rvalue that is a pointer or handle to an object.
       }  /* switch */
     }  /* if */
   } else {
-    /* The expression passed in is an rvalue pointer or handle. */
+    /* The expression passed in is a prvalue pointer or handle. */
     if (is_handle_type(type) ||
         is_interior_ptr_type(type)) {
       /* A handle always points to the managed heap. */
@@ -17520,7 +17542,7 @@ thereafter get stale if the garbage collector moves the underlying object.
   a_boolean is_gc_lvalue = FALSE;
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
-  if (cppcli_enabled && expr->is_lvalue) {
+  if (cppcli_enabled && is_glvalue_node(expr)) {
     an_expr_or_stmt_traversal_block tblock;
 
     clear_expr_or_stmt_traversal_block(&tblock);
@@ -17540,8 +17562,8 @@ static void examine_expr_for_cannot_be_null(
 /*
 Called from the expression traversal routines to process an expression
 as part of determining whether it cannot be NULL.  The expression passed
-in is an addressing expression, meaning either an lvalue that identifies
-an object or an rvalue that is a pointer to an object.  For an lvalue,
+in is an addressing expression, meaning either a glvalue that identifies
+an object or a prvalue that is a pointer to an object.  For a glvalue,
 the test means its address cannot be NULL.
 */
 {
@@ -17549,8 +17571,8 @@ the test means its address cannot be NULL.
 
   /* Note that the safe result is FALSE; TRUE means we have information
      that guarantees that the expression is not NULL. */
-  if (expr->is_lvalue) {
-    /* The expression passed in is an lvalue for an object. */
+  if (is_glvalue_node(expr)) {
+    /* The expression passed in is a glvalue for an object. */
     if (expr->kind == (an_expr_node_kind)enk_variable) {
       /* The address of a variable is generally non-NULL, but watch out for
          extern variables affected by linker magic. */
@@ -17626,7 +17648,7 @@ return value is FALSE.
 {
   an_expr_or_stmt_traversal_block tblock;
 
-  check_assertion(expr->is_lvalue ||
+  check_assertion(is_glvalue_node(expr) ||
                   is_pointer_type(expr->type));
   clear_expr_or_stmt_traversal_block(&tblock);
   tblock.process_expr = examine_expr_for_cannot_be_null;
@@ -17934,12 +17956,12 @@ an_expr_node_ptr add_reference_to_to_node(an_expr_node_ptr node)
 Add an eok_reference_to operation on top of the given node, and return a
 pointer to the new expression.  This is for reference binding, and does
 not correspond directly to any operator in the source code.  The returned
-node is designated an rvalue.
+node is a prvalue.
 */
 {
   if (!is_error_node(node)) {
     a_type_ptr ref_type;
-    if (node->is_lvalue) {
+    if (is_glvalue_node(node)) {
       /* Set the address_taken flag for variables and routines. */
       set_address_taken_for_variable_or_routine_expr(node);
       /* If the entity is a gc-lvalue, the reference created is a tracking
@@ -18120,9 +18142,9 @@ rest.
   op1->next = au_field_node;
   new_op1 = make_operator_node(node->variant.operation.kind,
                                new_selection_type, op1);
-  /* Assign appropriate lvalueness to the new node. */
+  /* Assign the appropriate value category to the new node. */
   if (op == (an_expr_operator_kind)eok_dot_field) {
-    new_op1->is_lvalue = op1->is_lvalue;
+    copy_node_value_category(op1, new_op1);
   } else {
     new_op1->is_lvalue = TRUE;
   }  /* if */
@@ -18241,7 +18263,7 @@ pointer.
     a_derivation_step_ptr dsp;
     a_type_qualifier_set  qualifiers;
     a_type_ptr            tp;
-    check_assertion(!node->is_lvalue && is_pointer_type(node->type));
+    check_assertion(!is_glvalue_node(node) && is_pointer_type(node->type));
     tp = type_pointed_to(node->type);
     qualifiers = get_type_qualifiers(tp);
     /* Add a base class cast for each step in the derivation. */
@@ -18403,7 +18425,7 @@ introduced in C99 to control aliasing of pointers.  See C99 6.7.3.1.
 {
   a_boolean is_restrict_pointer = FALSE;
 
-  if (!node->is_lvalue && is_pointer_type(node->type)) {
+  if (!is_glvalue_node(node) && is_pointer_type(node->type)) {
     /* Walk the expression's addressing parts to see whether it is based
        on a restrict pointer. */
     an_expr_or_stmt_traversal_block tblock;
@@ -18462,10 +18484,10 @@ already indicates the load.
         switch (op) {
           case eok_dot_field:
           case eok_pm_field:
-            /* These are rvalueable if the first operand is an lvalue.
-               If the first operand is an rvalue, there's no place we can
-               load from; the rvalue has already been "loaded". */
-            rvalueable = (node->variant.operation.operands->is_lvalue ||
+            /* These are rvalueable if the first operand is a glvalue.
+               If the first operand is a prvalue, there's no place we can
+               load from; the prvalue has already been "loaded". */
+            rvalueable = (is_glvalue_node(node->variant.operation.operands) ||
                           is_error_node(node->variant.operation.operands));
             break;
           case eok_points_to_field:
@@ -18516,7 +18538,7 @@ Return TRUE if node includes an implicit lvalue-to-rvalue conversion
 FALSE in a node where the default setting would be TRUE.
 */
 {
-  return !node->is_lvalue && is_rvalueable_node(node);
+  return !is_glvalue_node(node) && is_rvalueable_node(node);
 }  /* node_includes_lvalue_to_rvalue_conv */
 
 #if !STANDALONE_UTILITY_PROGRAM
@@ -18526,7 +18548,7 @@ static a_boolean node_does_fetch(an_expr_node_ptr node,
 /*
 Return TRUE if the indicated expression does a fetch from memory.  If so,
 and if p_fetched_type is non-NULL, set *p_fetched_type to the type of the
-object fetched (an lvalue type, with cv-qualifiers intact).  Only the
+object fetched (a glvalue type, with cv-qualifiers intact).  Only the
 top-level node is considered -- fetches in child nodes are not.
 */
 {
@@ -18537,8 +18559,8 @@ top-level node is considered -- fetches in child nodes are not.
      and conv_rvalue_expr_to_lvalue. */
   if (p_fetched_type != NULL) *p_fetched_type = NULL;
   node = skip_parens(node);
-  /* Only rvalue expressions can fetch something from memory. */
-  if (!node->is_lvalue) {
+  /* Only prvalue expressions can fetch something from memory. */
+  if (!is_glvalue_node(node)) {
     switch (node->kind) {
       case enk_variable:
         /* An rvalue variable reference fetches the variable's value. */
@@ -18668,8 +18690,8 @@ process_ptr_to_member_selection:
 #if GNU_COMPLEX_EXTENSIONS_ALLOWED
             case eok_real_part:
             case eok_imag_part:
-              /* These fetch something if the operand is an lvalue. */
-              if (!op1->is_lvalue) break;
+              /* These fetch something if the operand is a glvalue. */
+              if (!is_glvalue_node(op1)) break;
               does_fetch = TRUE;
               fetched_type = type_plus_qualifiers_from_second_type(node->type,
                                                                    op1->type);
@@ -19033,7 +19055,7 @@ doing nothing should be suppressed.
          is actually known an overloaded operator function would be chosen,
          which would mean a function call. */
       has_side_effects = TRUE;
-      if (node->is_lvalue) {
+      if (is_glvalue_node(node)) {
         a_constant local_constant;
         if (constant_lvalue_address(node, &local_constant,
                                     /*address_escapes=*/FALSE)) {
@@ -19132,12 +19154,12 @@ a_boolean is_invariant_expr(an_expr_node_ptr expr,
 /*
 Return TRUE if the indicated expression is invariant, meaning it has no
 side effects and will give the same value if evaluated more than once.
-The expression can be an rvalue or an lvalue; for an lvalue, invariant
+The expression can be a prvalue or a glvalue; for a glvalue, invariant
 means its address will not change (and it has no side effects).
 vars_can_change indicates whether the values of variables should be
 considered to be changeable between successive evaluations for purposes
 of this determination.  treat_as_potential_rvalue is TRUE in cases where the
-eventual lvalueness of expr is not yet known (and can make a difference in
+eventual value category of expr is not yet known (and can make a difference in
 determining whether or not the expression is invariant).
 treat_as_potential_rvalue should always be FALSE when called during lowering
 (as lvalueness is known at that time).
@@ -19151,8 +19173,8 @@ treat_as_potential_rvalue should always be FALSE when called during lowering
     if (is_constant_node(expr) || is_routine_node(expr)) {
       /* Constants and the address of a function are invariant. */
       is_invariant = TRUE;
-    } else if (expr->is_lvalue && !treat_as_potential_rvalue) {
-      /* Lvalue cases. */
+    } else if (is_glvalue_node(expr) && !treat_as_potential_rvalue) {
+      /* Glvalue cases. */
       if (is_variable_node(expr) ||
           expr->kind == (an_expr_node_kind)enk_param_ref) {
         /* An lvalue for a variable is invariant.  Note that local variables
@@ -19168,7 +19190,7 @@ treat_as_potential_rvalue should always be FALSE when called during lowering
         if (node_operator_is(expr, eok_dot_field) ||
             node_operator_is(expr, eok_points_to_field) ||
             node_operator_is(expr, eok_indirect)) {
-          /* An lvalue a.b is invariant if a is invariant. */
+          /* A glvalue a.b is invariant if a is invariant. */
           /* Likewise for a->b and *a. */
           is_invariant = is_invariant_expr(op1, vars_can_change,
                                           /*treat_as_potential_rvalue=*/FALSE);
@@ -20097,7 +20119,7 @@ the statement.  May not be used for array types.
   an_expr_node_ptr node;
 
   check_assertion(dest->is_lvalue || is_error_node(dest));
-  check_assertion(!source->is_lvalue || is_error_node(source));
+  check_assertion(!is_glvalue_node(source) || is_error_node(source));
   /* Make the assignment node. */
   dest->next = source;
   node = make_operator_node(which_binary_operator(tok_assign, source->type),
@@ -24047,7 +24069,8 @@ explicit cast to a_byte_attribute_kind.)
 #if !(STANDALONE_UTILITY_PROGRAM && PROTOTYPE_INSTANTIATIONS_IN_IL)
 /*
 The following table defines whether the operands of a given operation node
-are expected to be lvalues or rvalues.
+are expected to be lvalues or rvalues.  xvalues are treated like lvalues
+for this purpose, and "rvalue" means "prvalue".
 */
 
 /*
@@ -24258,21 +24281,21 @@ have the is_lvalue flag set incorrectly; return TRUE otherwise.
          lvalues, but if va_list is an array type they take rvalue pointer
          operands. */
       if ((flags & LVRV_OPND1_IS_LVALUE) &&
-          !operand_1->is_lvalue &&
+          !is_glvalue_node(operand_1) &&
           is_pointer_type(operand_1->type)) {
         flags ^= LVRV_OPND1_IS_LVALUE;
         flags |= LVRV_OPND1_IS_RVALUE;
       }  /* if */
       if ((flags & LVRV_OPND2_IS_LVALUE) &&
-          !operand_2->is_lvalue &&
+          !is_glvalue_node(operand_2) &&
           is_pointer_type(operand_2->type)) {
         flags ^= LVRV_OPND2_IS_LVALUE;
         flags |= LVRV_OPND2_IS_RVALUE;
       }  /* if */
     }  /* if */
     if (flags & LVRV_OPND1_IS_RVALUE) {
-      /* The first operand is supposed to be an rvalue. */
-      if (operand_1->is_lvalue) {
+      /* The first operand is supposed to be a prvalue. */
+      if (is_glvalue_node(operand_1)) {
         if (!il_header.il_has_C_semantics &&
             node_operator_is(node, eok_cast) &&
             is_void_type(node->type)) {
@@ -24282,25 +24305,27 @@ have the is_lvalue flag set incorrectly; return TRUE otherwise.
         }  /* if */
       }  /* if */
     } else if (flags & LVRV_OPND1_IS_LVALUE) {
-      /* The first operand is supposed to be an lvalue. */
-      if (!operand_1->is_lvalue) operand_error = TRUE;
+      /* The first operand is supposed to be a glvalue. */
+      if (!is_glvalue_node(operand_1)) operand_error = TRUE;
     } else if (flags & LVRV_OPND1_IS_LVALUE_IF_EXPR_IS) {
-      /* The first operand is supposed to be an lvalue if and only if the
-         expression returns an lvalue.  This is complicated, however, by
+      /* The first operand is supposed to be a glvalue if and only if the
+         expression returns a glvalue.  This is complicated, however, by
          the fact that the expression may have an implied
-         lvalue-to-rvalue conversion. */
-      a_boolean eff_node_is_lvalue = node->is_lvalue;
+         glvalue-to-prvalue conversion. */
+      a_boolean eff_node_is_glvalue = is_glvalue_node(node);
       if (node_includes_lvalue_to_rvalue_conv(node)) {
-        eff_node_is_lvalue = TRUE;
+        eff_node_is_glvalue = TRUE;
       }  /* if */
-      if (eff_node_is_lvalue != operand_1->is_lvalue) operand_error = TRUE;
+      if (eff_node_is_glvalue != is_glvalue_node(operand_1)) {
+        operand_error = TRUE;
+      }  /* if */
     }  /* if */
     if (flags & LVRV_OPND2_IS_RVALUE) {
-      /* The second operand is supposed to be an rvalue. */
-      if (operand_2->is_lvalue) operand_error = TRUE;
+      /* The second operand is supposed to be a prvalue. */
+      if (is_glvalue_node(operand_2)) operand_error = TRUE;
     } else if (flags & LVRV_OPND2_IS_LVALUE) {
-      /* The second operand is supposed to be an lvalue. */
-      if (!operand_2->is_lvalue) {
+      /* The second operand is supposed to be a glvalue. */
+      if (!is_glvalue_node(operand_2)) {
         /* Probably an error, but check for one special case. */
         if (gpp_mode && op == (an_expr_operator_kind)eok_va_start &&
             is_variable_node(operand_2) &&
@@ -24313,29 +24338,31 @@ have the is_lvalue flag set incorrectly; return TRUE otherwise.
         }  /* if */
       }  /* if */
     } else if (flags & LVRV_OPND2_IS_LVALUE_IF_EXPR_IS) {
-      /* The second operand is supposed to be an lvalue if and only if
-         the expression returns an lvalue.  This is complicated, however,
+      /* The second operand is supposed to be a glvalue if and only if
+         the expression returns a glvalue.  This is complicated, however,
          by the fact that the expression may have an implied
-         lvalue-to-rvalue conversion. */
-      a_boolean eff_node_is_lvalue = node->is_lvalue;
+         glvalue-to-prvalue conversion. */
+      a_boolean eff_node_is_glvalue = is_glvalue_node(node);
       if (node_includes_lvalue_to_rvalue_conv(node)) {
-        eff_node_is_lvalue = TRUE;
+        eff_node_is_glvalue = TRUE;
       }  /* if */
-      if (eff_node_is_lvalue != operand_2->is_lvalue) {
-        if (node->is_lvalue && op == (an_expr_operator_kind)eok_question &&
+      if (eff_node_is_glvalue != is_glvalue_node(operand_2)) {
+        if (is_glvalue_node(node) &&
+            op == (an_expr_operator_kind)eok_question &&
             operand_2->kind == (an_expr_node_kind)enk_throw) {
-          /* It's okay for an lvalue eok_question node to have an rvalue
+          /* It's okay for a glvalue eok_question node to have a prvalue
              enk_throw operand. */
         } else {
           operand_error = TRUE;
         }  /* if */
       } else if (op == (an_expr_operator_kind)eok_question &&
-                 eff_node_is_lvalue != operand_2->next->is_lvalue) {
-        /* An lvalue result for ?: also requires that the third operand be
-           an lvalue. */
-        if (node->is_lvalue && op == (an_expr_operator_kind)eok_question &&
+                 eff_node_is_glvalue != is_glvalue_node(operand_2->next)) {
+        /* A glvalue result for ?: also requires that the third operand be
+           a glvalue. */
+        if (is_glvalue_node(node) &&
+            op == (an_expr_operator_kind)eok_question &&
             operand_2->next->kind == (an_expr_node_kind)enk_throw) {
-          /* It's okay for an lvalue eok_question node to have an rvalue
+          /* It's okay for a glvalue eok_question node to have a prvalue
              enk_throw operand. */
         } else {
           operand_error = TRUE;
@@ -24349,7 +24376,7 @@ have the is_lvalue flag set incorrectly; return TRUE otherwise.
          (operand_2 != NULL && is_template_dependent_type(operand_2->type)) ||
          (operand_2 != NULL && operand_2->next != NULL &&
           is_template_dependent_type(operand_2->next->type)))) {
-      /* Generic operands are not always lvalue-correct. */
+      /* Generic operands are not always value-category-correct. */
       operand_error = FALSE;
     }  /* if */
 #endif /* PROTOTYPE_INSTANTIATIONS_IN_IL */
@@ -24403,19 +24430,19 @@ their is_lvalue flag set incorrectly, TRUE otherwise.
 
 static a_boolean pointer_type_is_consistent(a_type_ptr ptr_type,
                                             a_type_ptr targ_type,
-                                            a_boolean  targ_type_is_rvalue)
+                                            a_boolean  targ_type_is_prvalue)
 /*
 Check whether a pointer type is what it is supposed to be.  Return FALSE if
 ptr_type is, in fact, not a pointer type (or a reference type -- in some
 cases, reference types are not lowered to pointer types) or if the type to
 which it points is not targ_type; return TRUE if the conditions are met.
-If targ_type_is_rvalue is TRUE, cv-qualification of the pointed-to type
+If targ_type_is_prvalue is TRUE, cv-qualification of the pointed-to type
 is ignored, except for C++ class rvalues.  This is also used for C++/CLI
 handle operations.
 */
 {
   a_boolean result = FALSE;
-  a_boolean drop_qualifiers_under_ptr = targ_type_is_rvalue;
+  a_boolean drop_qualifiers_under_ptr = targ_type_is_prvalue;
 
   if (is_any_ptr_or_ref_type(ptr_type)) {
     a_type_ptr pointed_to_type = type_pointed_to(ptr_type);
@@ -24535,7 +24562,7 @@ node, and report any failure as an internal error.
      available in that environment.) */
   if (op == (an_expr_operator_kind)eok_address_of &&
       !pointer_type_is_consistent(expr->type, operand_1->type,
-                                  /*targ_type_is_rvalue=*/FALSE)) {
+                                  /*targ_type_is_prvalue=*/FALSE)) {
 #if DEBUG
     db_expression(expr);
 #endif /* DEBUG */
@@ -24544,7 +24571,7 @@ node, and report any failure as an internal error.
 #if MICROSOFT_EXTENSIONS_ALLOWED
   if (op == (an_expr_operator_kind)eok_handle_to &&
       !pointer_type_is_consistent(expr->type, operand_1->type,
-                                  /*targ_type_is_rvalue=*/FALSE)) {
+                                  /*targ_type_is_prvalue=*/FALSE)) {
 #if DEBUG
     db_expression(expr);
 #endif /* DEBUG */
@@ -24555,7 +24582,7 @@ node, and report any failure as an internal error.
       !pointer_type_is_consistent(
                          subscript_or_padd_pointer_operand(expr)->type,
                          expr->type,
-                         /*targ_type_is_rvalue=*/!expr->is_lvalue)) {
+                         /*targ_type_is_prvalue=*/!is_glvalue_node(expr))) {
 #if DEBUG
     db_expression(expr);
 #endif /* DEBUG */
@@ -24563,7 +24590,7 @@ node, and report any failure as an internal error.
   }  /* if */
   if (op == (an_expr_operator_kind)eok_indirect) {
     a_type_ptr result_type = expr->type;
-    if (!expr->is_lvalue && is_pointer_type(result_type) &&
+    if (!is_glvalue_node(expr) && is_pointer_type(result_type) &&
         is_ptr_or_ref_type(operand_1->type) &&
         is_function_type(type_pointed_to(operand_1->type))) {
       /* An lvalue-to-rvalue conversion on an expression with function
@@ -24576,7 +24603,7 @@ node, and report any failure as an internal error.
     }  /* if */
     if (!pointer_type_is_consistent(
                          operand_1->type, result_type,
-                         /*targ_type_is_rvalue=*/!expr->is_lvalue)) {
+                         /*targ_type_is_prvalue=*/!is_glvalue_node(expr))) {
 #if DEBUG
       db_expression(expr);
 #endif /* DEBUG */
@@ -25025,8 +25052,8 @@ it can be used by back ends.
                    node_operator_is(expr, eok_ref_cast) ||
                    node_operator_is(expr, eok_ref_dynamic_cast)));
   /* A cast to a reference type. */
-  if (!expr->is_lvalue) {
-    /* The cast has an lvalue-to-rvalue conversion built in, so the node
+  if (!is_glvalue_node(expr)) {
+    /* The cast has a glvalue-to-prvalue conversion built in, so the node
        type may be a little different from the underlying cast type.
        Use the type saved when the reference cast was recorded. */
     dest_type = expr->orig_lvalue_type;

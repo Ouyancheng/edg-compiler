@@ -2798,6 +2798,20 @@ found_base_class:;
 
 #endif /* ABI_CHANGES_FOR_RTTI */
 
+static void change_xvalue_node_to_lvalue(an_expr_node_ptr expr)
+/*
+If expr is an xvalue node, change it to an lvalue node.  That's the
+standard "lowering" for such nodes.
+*/
+{
+  if (expr->is_xvalue) {
+    /* Xvalues get lowered to lvalues. */
+    expr->is_xvalue = FALSE;
+    expr->is_lvalue = TRUE;
+  }  /* if */
+}  /* change_xvalue_node_to_lvalue */
+
+
 an_expr_node_ptr rvalue_pointer_for_class_rvalue(an_expr_node_ptr expr)
 /*
 Return an rvalue pointer expression for the rvalue class expression, expr.
@@ -2888,8 +2902,9 @@ routine can be used on lowered expressions if the expression is known not to
 contain any top level base class casts.
 */
 {
-  if (expr->is_lvalue) {
-    /* Class lvalue. */
+  if (is_glvalue_node(expr)) {
+    /* Class lvalue or xvalue. */
+    change_xvalue_node_to_lvalue(expr);
     expr = add_address_of_to_node(expr);
   } else if (!is_pointer_type(expr->type)) {
     /* Class rvalue. */
@@ -10331,8 +10346,9 @@ more than once.
 
   check_assertion(is_operation_node(node) &&
                   (node_operator_is(node, eok_derived_class_cast) ||
-                   node_operator_is(node, eok_base_class_cast)) &&
-                  node->is_lvalue ==
+                   node_operator_is(node, eok_base_class_cast)));
+  change_xvalue_node_to_lvalue(node->variant.operation.operands);
+  check_assertion(node->is_lvalue ==
                                  node->variant.operation.operands->is_lvalue &&
                   is_ptr_or_ref_type(node->type) ==
                    is_ptr_or_ref_type(node->variant.operation.operands->type));
@@ -14268,7 +14284,7 @@ rest of lowering only sees an eok_address_of operator.
   check_assertion(is_operation_node(expr) &&
                   node_operator_is(expr, eok_reference_to));
   operand = expr->variant.operation.operands;
-  if (!operand->is_lvalue) {
+  if (!is_glvalue_node(operand)) {
     /* eok_reference_to applied to an rvalue.  Get an address, if necessary by
        storing into a temporary. */
     an_expr_node_ptr addr_expr;
@@ -14511,6 +14527,7 @@ cast.  See lower_expr for typical invocation.
     db_expression(expr);
   }  /* if */
 #endif /* DEBUG */
+  change_xvalue_node_to_lvalue(expr);
   if (expr->is_lvalue && expr->result_is_not_used) {
 #if DEBUG
     if (db_flag_is_set("rewrite_expr") && !db_flag_is_set("lower_expr")) {

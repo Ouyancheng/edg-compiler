@@ -1395,7 +1395,7 @@ the file scope, do not process it (but record an orphan in the latter case).
         an_expr_node_ptr ptr = (an_expr_node_ptr)entry_ptr;
         walk_ptr(ptr->type, a_type_ptr, iek_type);
         walk_ptr(ptr->orig_lvalue_type, a_type_ptr, iek_type);
-        if (!ptr->is_lvalue) {
+        if (!is_glvalue_node(ptr)) {
           definition_needed_if_class(ptr->type);
         }  /* if */
         remap_next_ptr(ptr->next, an_expr_node_ptr, iek_expr_node);

@@ -1252,19 +1252,30 @@ allowed to have type void, and this macro returns TRUE for that case.
 The difference is compensated for in the cases where it matters.
 */
 #define is_an_lvalue(operand)						\
-	((operand)->state == (an_operand_state)os_lvalue)
+	(is_a_glvalue(operand) && !is_an_xvalue(operand))
+/*
+Macro that is TRUE if the operand is a prvalue.
+*/
+#define is_a_prvalue(operand)						\
+	((operand)->state == (an_operand_state)os_rvalue)
 
 /*
 Macro that is TRUE if the operand is an rvalue.
 */
 #define is_an_rvalue(operand)						\
-	((operand)->state == (an_operand_state)os_rvalue)
+	(is_a_prvalue(operand) || is_an_xvalue(operand))
 
 /*
 Macro that is TRUE if the operand is a function designator.
 */
 #define is_a_function_designator(operand)				\
 	((operand)->state == (an_operand_state)os_function_designator)
+
+/*
+Macro that is TRUE if the operand is a glvalue (lvalue or xvalue).
+*/
+#define is_a_glvalue(operand)						\
+	((operand)->state == (an_operand_state)os_lvalue)
 
 
 extern a_boolean is_potentially_constant_valued_variable(a_variable_ptr var);
@@ -1480,7 +1491,7 @@ an_expr_node_ptr strip_rvalue_base_class_casts(an_expr_node_ptr expr,
                                                an_expr_node_ptr *top_cast,
                                                an_expr_node_ptr *bottom_cast);
 
-extern void conv_class_rvalue_operand_to_lvalue(an_operand *operand);
+extern void conv_class_prvalue_operand_to_lvalue(an_operand *operand);
 
 extern void conv_class_operand_to_object_pointer(an_operand *operand);
 

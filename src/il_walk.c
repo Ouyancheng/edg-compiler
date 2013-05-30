@@ -2859,8 +2859,8 @@ static void traverse_addressing_subtree(
 Walk the subtree of the given expression, but only those operands that
 contribute to the address of the entity.  Call user-provided routines
 as specified in the control block.  The expression is expected to be
-an addressing expression, meaning either an lvalue that identifies an
-object or an rvalue that is a pointer to an object.  The walk here
+an addressing expression, meaning either a glvalue that identifies an
+object or a prvalue that is a pointer to an object.  The walk here
 follows the underlying object address down to the node that is the origin
 of that address.  So, for example, with
 
@@ -2871,9 +2871,9 @@ and end up at "a".
 
 Tips for proper use of the follow_addressing_path mode:
   (a)  The traversal should be entered at the top only with either an
-       rvalue pointer or an lvalue.  It is sometimes necessary to guard the
+       prvalue pointer or a glvalue.  It is sometimes necessary to guard the
        traverse_expr call to exclude other cases.  Common problem cases are
-       class rvalues and array rvalues.  In C++/CLI mode, a handle is
+       class prvalues and array prvalues.  In C++/CLI mode, a handle is
        acceptable as a kind of pointer.
   (b)  The "?" and GNU min/max operators can have two operands that are
        part of the addressing path, and this routine follows both.  That means
@@ -2888,15 +2888,15 @@ Tips for proper use of the follow_addressing_path mode:
     an_expr_operator_kind op = expr->variant.operation.kind;
     an_expr_node_ptr      operand1 = expr->variant.operation.operands;
     an_expr_node_ptr      operand2 = operand1->next;
-    if (expr->is_lvalue ||
+    if (is_glvalue_node(expr) ||
         (tblock->follow_class_rvalue_addressing_path &&
          is_class_struct_union_type(expr->type))) {
-      /* The expression is an lvalue. */
+      /* The expression is a glvalue. */
       switch (op) {
         case eok_dot_field:
           /* x.y:  Follow x. */
-          /* We don't have to test for the rvalue.field case here because its
-             result is an rvalue and therefore wouldn't get here, unless
+          /* We don't have to test for the prvalue.field case here because its
+             result is a prvalue and therefore wouldn't get here, unless
              follow_class_rvalue_addressing_path is TRUE, in which case
              we want to keep going anyway. */
           traverse_expr(operand1, tblock);
@@ -2907,8 +2907,8 @@ Tips for proper use of the follow_addressing_path mode:
           break;
         case eok_pm_field:
           /* x.*pm:  Follow x. */
-          /* We don't have to test for the rvalue.*pm case here because its
-             result is an rvalue and therefore wouldn't get here, unless
+          /* We don't have to test for the prvalue.*pm case here because its
+             result is a prvalue and therefore wouldn't get here, unless
              follow_class_rvalue_addressing_path is TRUE, in which case
              we want to keep going anyway. */
           traverse_expr(operand1, tblock);
@@ -2948,17 +2948,17 @@ Tips for proper use of the follow_addressing_path mode:
           traverse_expr(operand1, tblock);
           break;
         case eok_base_class_cast:
-          /* Cast of a class lvalue to a base class. */
-          /* Pointer casts and casts of a class rvalue to a base class would
-             not get here because they produce an rvalue result.  When
+          /* Cast of a class glvalue to a base class. */
+          /* Pointer casts and casts of a class prvalue to a base class would
+             not get here because they produce a prvalue result.  When
              follow_class_rvalue_addressing_path is TRUE we would get here
-             for a class rvalue and we would want to keep going anyway. */
+             for a class prvalue and we would want to keep going anyway. */
           traverse_expr(operand1, tblock);
           break;
         case eok_ref_cast:
         case eok_lvalue_adjust:
           /* eok_ref_cast and eok_lvalue_adjust operations are used to adjust
-             the type of an lvalue.  Keep going only if the type change is
+             the type of a glvalue.  Keep going only if the type change is
              trivial. */
           { a_type_ptr target_type = f_skip_typerefs(expr->type);
             a_type_ptr source_type = f_skip_typerefs(operand1->type);
@@ -2977,7 +2977,7 @@ Tips for proper use of the follow_addressing_path mode:
           break;
         case eok_class_rvalue_adjust:
           /* eok_class_rvalue_adjust operations are used to adjust the
-             cv-qualification of a class rvalue.  We wouldn't get here
+             cv-qualification of a class prvalue.  We wouldn't get here
              unless follow_class_rvalue_addressing_path is TRUE. */
           traverse_expr(operand1, tblock);
           break;
@@ -3001,7 +3001,7 @@ Tips for proper use of the follow_addressing_path mode:
           break;
       }  /* switch */
     } else {
-      /* The expression is an rvalue pointer (IL lowering turns references
+      /* The expression is a prvalue pointer (IL lowering turns references
          into pointers, so the check below allows references during and
          after IL lowering, as indicated by il_lowering_underway and
          il_header.il_has_C_semantics, respectively). */
@@ -3032,8 +3032,8 @@ Tips for proper use of the follow_addressing_path mode:
           traverse_expr(operand1, tblock);
           break;
         case eok_array_to_pointer:
-          /* Array-to-pointer decay.  Watch out for the array rvalue case. */
-          if (operand1->is_lvalue) {
+          /* Array-to-pointer decay.  Watch out for the array prvalue case. */
+          if (is_glvalue_node(operand1)) {
             traverse_expr(operand1, tblock);
           }  /* if */
           break;
@@ -3047,7 +3047,7 @@ Tips for proper use of the follow_addressing_path mode:
           break;
         case eok_base_class_cast:
           /* Cast of a pointer to a base class pointer. */
-          /* Casts of class lvalues or rvalues wouldn't get here. */
+          /* Casts of class glvalues or prvalues wouldn't get here. */
           traverse_expr(operand1, tblock);
           break;
         case eok_cast:
