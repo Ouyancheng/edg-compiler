@@ -6300,11 +6300,11 @@ operand position.
 void make_lvalue_or_rvalue_expression_operand(an_expr_node_ptr node,
                                               an_operand       *operand)
 /*
-Make an expression operand for the expression "node".  Make an lvalue or
-an rvalue depending on node->is_lvalue.
+Make an expression operand for the expression "node".  Make an lvalue,
+xvalue, an rvalue depending on node.
 */
 {
-  if (node->is_lvalue) {
+  if (is_glvalue_node(node)) {
     make_lvalue_expression_operand(node, operand);
   } else {
     make_expression_operand(node, operand);
@@ -17276,9 +17276,16 @@ operand is an xvalue.  Convert it to an lvalue.
 
   check_assertion(is_expression_operand(operand));
   expr = operand->variant.expression;
-  check_assertion(expr->is_xvalue);
-  expr->is_xvalue = FALSE;
-  expr->is_lvalue = TRUE;
+  for (;;) {
+    check_assertion(expr->is_xvalue);
+    expr->is_xvalue = FALSE;
+    expr->is_lvalue = TRUE;
+    /* Loop if this is an eok_parens node, to change the underlying node
+       also. */
+    if (!is_operation_node(expr)) break;
+    if (!node_operator_is(expr, eok_parens)) break;
+    expr = expr->variant.operation.operands;
+  }  /* for */
 }  /* conv_xvalue_to_lvalue */
 
 
