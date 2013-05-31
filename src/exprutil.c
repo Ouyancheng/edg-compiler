@@ -8300,7 +8300,7 @@ void conv_reference_cast_operand_to_lvalue_if_necessary(an_operand *operand,
 /*
 The indicated operand is the source of a cast to a reference type.  If it
 is a prvalue, convert it to an lvalue.  This is necessary because the IL
-operators for reference casts take an lvalue as their operand.  dest_type
+operators for reference casts take a glvalue as their operand.  dest_type
 gives the destination reference type.
 */
 {

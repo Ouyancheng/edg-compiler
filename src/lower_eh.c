@@ -2366,7 +2366,7 @@ conversion in cases where their value is not used.
     }  /* for */
 #endif /* !IA64_ABI */
   } else {
-    check_assertion(typeid_expr->is_lvalue);
+    check_assertion(is_glvalue_node(typeid_expr));
     /* Polymorphic class case with expression. */
     check_assertion(is_immediate_class_type(typeid_type) &&
                     is_polymorphic_class_type(typeid_type));

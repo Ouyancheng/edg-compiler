@@ -13334,7 +13334,7 @@ indication in *rcblock).
   } else {
     /* Allow objectless references to nonstatic data members.  These are
        permitted only in unevaluated operands, so we will check later and
-       issue an error if one appears in the polymorphic lvalue case where
+       issue an error if one appears in the polymorphic glvalue case where
        the operand is evaluated. */
     push_expr_stack_with_rcblock(expr_stack->expression_kind,
                                  &expr_stack_entry,
@@ -13411,17 +13411,15 @@ indication in *rcblock).
     typeid_type = operand.type;
     /* *p and p[expr] yielding polymorphic class objects are special cases
        that use runtime typeid determination. */
-    /* As of now (April 2009), the working draft doesn't give special
-       handling to rvalue reference objects here. */
-    if (((is_an_lvalue(&operand) && is_polymorphic_class_type(typeid_type)) ||
-         /* For a dependent case, we don't know the lvalueness for sure. */
+    if (((is_a_glvalue(&operand) && is_polymorphic_class_type(typeid_type)) ||
+         /* For a dependent case, we don't know the value category for sure. */
          could_be_dependent_class_type(typeid_type)) &&
         /* An objectless nonstatic data member reference is not
            polymorphic, regardless of the type of the member. */
         !operand_is_objectless_nonstatic_data_mem_ref(&operand)) {
       if (objectless_nonstatic_data_ref_seen) {
         /* Objectless references to nonstatic data members are permitted
-           only in unevaluated operands, but an lvalue of a polymorphic
+           only in unevaluated operands, but a glvalue of a polymorphic
            class type is not an unevaluated operand.  (This test detects
            subexpressions of the operand, e.g., typeid(f(S::m)).) */
         expr_pos_error(ec_member_ref_requires_object,
@@ -14226,8 +14224,8 @@ indication in *rcblock).
       err = TRUE;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     } else if (!reference_case) {
-      /* When casting to a pointer type, the operand is treated as an
-         rvalue. */
+      /* When casting to a pointer type, the operand is treated as a
+         prvalue. */
       do_operand_transformations(&operand, TOPT_NO_OPTIONS);
       operand_type = operand.type;
       /* The source operand must be a pointer or handle to a complete class
@@ -14267,13 +14265,16 @@ indication in *rcblock).
       /* Reference case. */
       underlying_operand_type = operand_type;
       /* The source operand must be an lvalue of a complete class type
-         (or an rvalue if the destination type is an rvalue reference). */
+         (or any value category if the destination type is an rvalue
+         reference). */
       if (is_class_struct_union_type(operand_type)) {
         complete_class_type_is_needed(operand_type);
         if (!is_incomplete_type(operand_type)) {
-          if (is_an_lvalue(&operand)) {
+          if (rvalue_reference_case) {
+            /* A cast to an rvalue reference type allows any value
+               category. */
             operand_type_okay = TRUE;
-          } else if (rvalue_reference_case && is_an_rvalue(&operand)) {
+          } else if (is_an_lvalue(&operand)) {
             operand_type_okay = TRUE;
           }  /* if */
         }  /* if */
@@ -14376,7 +14377,7 @@ indication in *rcblock).
       err = TRUE;
     } else {
       if (rvalue_reference_case) {
-        /* The IL operator takes an lvalue operand.  Convert an rvalue case
+        /* The IL operator takes a glvalue operand.  Convert a prvalue case
            to an lvalue case. */
         conv_reference_cast_operand_to_lvalue_if_necessary(&operand,
                                                            cast_type);

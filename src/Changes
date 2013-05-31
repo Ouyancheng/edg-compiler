@@ -1,5 +1,12 @@
 Version 5.0
 
+5/31/13  [EDGcpfe/10692]
+typeid of polymorphic xvalue is determined at runtime
+
+The value of a typeid operator applied to an xvalue of polymorphic type
+is now determined at runtime.
+
+
 5/30/13  [EDGcpfe/14113]
 Microsoft compatibility: Initializer lists
 

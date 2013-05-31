@@ -13828,7 +13828,7 @@ enum an_expr_operator_kind_tag {
   eok_dynamic_cast,	/* C++ dynamic_cast operation on pointers or C++/CLI
 			   handles. */
   eok_ref_dynamic_cast,	/* C++ dynamic_cast operation on references.  The
-			   operand and the result are lvalues.  For a
+			   operand and the result are glvalues.  For a
 			   dynamic_cast<T &>(x), the node type is T, not
 			   T&. */
   eok_bool_cast,	/* C++ and C99 cast to bool.  Operand can be
