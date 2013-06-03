@@ -7933,6 +7933,14 @@ issue an error and return FALSE.
              template<class T> struct S { struct N: S<T> {}; };
            In other modes, such cases result in an error. */
         warning(ec_unfinished_base_class);
+      } else if (microsoft_mode &&
+                 is_immediate_class_type(type) &&
+                 type->variant.class_struct_union
+                              .is_ms_instantiated_nonreal_class) {
+        /* We approximate the behavior of the Microsoft compiler by doing
+           "nonreal instantiations" of nonreal base classes.  However, such
+           base classes may involve real incomplete real base classes: Don't
+           issue errors on that. */
       } else {
         error(ec_incomplete_type_not_allowed);
         okay = FALSE;
