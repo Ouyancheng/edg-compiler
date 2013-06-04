@@ -1,5 +1,33 @@
 Version 5.0
 
+6/4/13   [EDGcpfe/5457]
+Use hexadecimal floating-point constants in generated code
+
+A new configuration macro, USE_HEX_FP_CONSTANTS_IN_GENERATED_CODE, has been
+introduced to control whether floating-point values should be emitted as
+hexadecimal floating-point constants (when the macro is TRUE), or as they had
+been, as decimal floating-point constants (when the macro is FALSE) in
+generated code.  Using hexadecimal floating-point constants has the advantage
+of requiring one less floating-point to decimal conversion in the front end
+and one less decimal to floating-point conversion by the back end (thereby
+increasing the likelihood that the floating-point value internally
+represented in the front end is the value that is used at run-time).
+Of course, this can only be used if the back end compiler supports
+hexadecimal floating-point constants (a C99 feature).  Currently enabled
+only when GCC_IS_GENERATED_CODE_TARGET is TRUE (in both C++- and C-generating
+configurations).
+
+In this example, with --c99, with a gcc back end, had produced the output
+string "0xf.fffffffffffffffp+16380" and now produces the output
+string "0xf.ffffffffffffffep+16380":
+
+  extern int printf(const char *,...);
+  int main() {
+    long double ld = 0x0.fffffffffffffffep+16384L;
+    printf("%La\n", ld);
+  }
+
+
 6/3/13   [EDGcpfe/13617]
 Spurious error on incomplete base class in class template in Microsoft mode
 

@@ -1913,6 +1913,69 @@ before setting it if there are unused bits.
 }  /* fp_string_to_float */
 
 
+static a_boolean handle_fp_to_string_special_cases(
+                                         a_float_kind            kind,
+                                         an_internal_float_value *float_value,
+                                         a_boolean               *pos_infinity,
+                                         a_boolean               *neg_infinity,
+                                         a_boolean               *not_a_number,
+                                         char                    *str,
+                                         a_host_fp_value         *temp)
+/*
+The float value in float_value (with precision as indicated by kind)
+is being converted by the caller into either a decimal or hexadecimal string;
+this routine handles special cases which are common and returns TRUE if
+the conversion is indeed a special case.  If the floating-point value is
+positive infinity or negative infinity, return *pos_infinity or *neg_infinity
+set to TRUE.  If the floating-point value is a NaN, return *not_a_number set to
+TRUE.  In these cases, a display string is still returned in str
+(e.g., "NaN") and TRUE is returned.  pos_infinity, neg_infinity, and
+not_a_number can be NULL if the corresponding return value is not needed.
+*temp is set to the value of the floating-point value in internal host
+representation form.  The contents of str (for which the caller has allocated
+space) will be unmodified if the routine returns FALSE.
+*/
+{
+  a_boolean             result = TRUE;
+#if TARG_HAS_IEEE_FLOATING_POINT
+  a_host_fp_value	zero = 0.0;
+#endif /* TARG_HAS_IEEE_FLOATING_POINT */
+
+  if (pos_infinity != NULL) *pos_infinity = FALSE;
+  if (neg_infinity != NULL) *neg_infinity = FALSE;
+  if (not_a_number != NULL) *not_a_number = FALSE;
+  *temp = fetch_host_fp_value(kind, float_value);
+#if TARG_HAS_IEEE_FLOATING_POINT
+  if (is_NaN(*temp)) {
+    /* Not-a-number. */
+    (void)strcpy(str, "NaN");
+    if (not_a_number != NULL) *not_a_number = TRUE;
+  } else if (!is_finite(*temp)) {
+    /* Infinity. */
+    if (*temp < 0.0) {
+      (void)strcpy(str, "-Infinity");
+      if (neg_infinity != NULL) *neg_infinity = TRUE;
+    } else {
+      (void)strcpy(str, "+Infinity");
+      if (pos_infinity != NULL) *pos_infinity = TRUE;
+    }  /* if */
+  } else if (*temp == 0.0 &&
+             memcmp((char *)temp, (char *)&zero,
+                    size_t_arg(data_size_of_host_fp_value)) != 0) {
+    /* Special handling to ensure that -0.0 comes out with the leading "-";
+       some sprintfs do not process that correctly. */
+    (void)strcpy(str, "-0.0");
+  } else
+#endif /* TARG_HAS_IEEE_FLOATING_POINT */
+  /* Do not insert code here. */
+  {
+    /* Not a special case. */
+    result = FALSE;
+  }  /* if */
+  return result;
+}  /* handle_fp_to_string_special_cases */
+
+
 char *fp_to_string(a_float_kind            kind,
                    an_internal_float_value *float_value,
                    a_boolean               *pos_infinity,
@@ -1931,38 +1994,10 @@ be NULL if the corresponding return value is not needed.
 {
   static char		str[60];
   a_host_fp_value	temp;
-#if TARG_HAS_IEEE_FLOATING_POINT
-  a_host_fp_value	zero = 0.0;
-#endif /* TARG_HAS_IEEE_FLOATING_POINT */
 
-  if (pos_infinity != NULL) *pos_infinity = FALSE;
-  if (neg_infinity != NULL) *neg_infinity = FALSE;
-  if (not_a_number != NULL) *not_a_number = FALSE;
-  temp = fetch_host_fp_value(kind, float_value);
-#if TARG_HAS_IEEE_FLOATING_POINT
-  if (is_NaN(temp)) {
-    /* Not-a-number. */
-    (void)strcpy(str, "NaN");
-    if (not_a_number != NULL) *not_a_number = TRUE;
-  } else if (!is_finite(temp)) {
-    /* Infinity. */
-    if (temp < 0.0) {
-      (void)strcpy(str, "-Infinity");
-      if (neg_infinity != NULL) *neg_infinity = TRUE;
-    } else {
-      (void)strcpy(str, "+Infinity");
-      if (pos_infinity != NULL) *pos_infinity = TRUE;
-    }  /* if */
-  } else if (temp == 0.0 &&
-             memcmp((char *)&temp, (char *)&zero,
-                    size_t_arg(data_size_of_host_fp_value)) != 0) {
-    /* Special handling to ensure that -0.0 comes out with the leading "-";
-       some sprintfs do not process that correctly. */
-    (void)strcpy(str, "-0.0");
-  } else
-#endif /* TARG_HAS_IEEE_FLOATING_POINT */
-  /* Do not insert code here. */
-  {
+  if (!handle_fp_to_string_special_cases(kind, float_value, pos_infinity,
+                                         neg_infinity, not_a_number, str,
+                                         &temp)) {
 #if USE_LONG_DOUBLE_FOR_HOST_FP_VALUE
     if (kind == (a_float_kind)fk_float) {
       (void)sprintf(str, "%.10Lg", temp);
@@ -2002,6 +2037,54 @@ be NULL if the corresponding return value is not needed.
   return str;
 }  /* fp_to_string */
 
+#if USE_HEX_FP_CONSTANTS_IN_GENERATED_CODE
+
+char *fp_to_hex_constant_string(a_float_kind            kind,
+                                an_internal_float_value *float_value,
+                                a_boolean               *pos_infinity,
+                                a_boolean               *neg_infinity,
+                                a_boolean               *not_a_number)
+/*
+Convert the float value float_value (with precision as indicated by kind)
+to a C99-style hexadecimal string in an internal static variable, and return a
+pointer to that null-terminated string.  If the floating-point value is
+positive infinity or negative infinity, return *pos_infinity or *neg_infinity
+set to TRUE.  If the floating-point value is a NaN, return *not_a_number set to
+TRUE.  In the above special cases, a display string is still returned (e.g.,
+"NaN").  pos_infinity, neg_infinity, and not_a_number can be NULL if the
+corresponding return value is not needed.
+*/
+{
+  static char           str[60];
+  a_host_fp_value       temp;
+  float                 float_temp;
+  double                double_temp;
+
+  if (!handle_fp_to_string_special_cases(kind, float_value, pos_infinity,
+                                         neg_infinity, not_a_number, str,
+                                         &temp)) {
+    /* Copy the value to a properly aligned floating-point type and
+       use sprintf to generate the appropriate hexadecimal string. */
+    if (kind == (a_float_kind)fk_float) {
+      (void)memcpy((char *)&float_temp, (char *)float_value, sizeof(float));
+      (void)sprintf(str, "%a", float_temp);
+    } else if (kind == (a_float_kind)fk_double) {
+      (void)memcpy((char *)&double_temp, (char *)float_value, sizeof(double));
+      (void)sprintf(str, "%la", double_temp);
+    } else {
+      (void)memcpy((char *)&temp, (char *)float_value,
+                   sizeof(a_host_fp_value));
+#if USE_LONG_DOUBLE_FOR_HOST_FP_VALUE
+      (void)sprintf(str, "%La", temp);
+#else /* !USE_LONG_DOUBLE_FOR_HOST_FP_VALUE */
+      (void)sprintf(str, "%la", temp);
+#endif /* USE_LONG_DOUBLE_FOR_HOST_FP_VALUE */
+    }  /* if */
+  }  /* if */
+  return str;
+}  /* fp_to_hex_constant_string */
+
+#endif /* USE_HEX_FP_CONSTANTS_IN_GENERATED_CODE */
 #if IA64_ABI
 
 char *fp_to_hex_string(a_float_kind            kind,

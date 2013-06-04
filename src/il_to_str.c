@@ -4433,7 +4433,9 @@ static void form_float_constant(
                            an_il_to_str_output_control_block_ptr octl)
 /*
 Output the given floating-point value with the proper suffix (or cast in
-K&R/pcc mode) determined by fkind.
+K&R/pcc mode) determined by fkind.  Typically a decimal string is generated,
+but when generating compilable output, a hexadecimal string will be
+generated (in configurations that support that).
 */
 {
   char          *str, *suffix = "";
@@ -4483,8 +4485,25 @@ K&R/pcc mode) determined by fkind.
       octl->output_str("(float)", octl);
     }  /* if */
   }  /* if */
-  str = fp_to_string(fkind, float_value,
-                     &pos_infinity, &neg_infinity, &not_a_number);
+#if USE_HEX_FP_CONSTANTS_IN_GENERATED_CODE
+  if (octl->gen_compilable_code && !octl->gen_pcc_code) {
+    /* When generating code that will be compiled by a back end, don't
+       bother to do the conversion from floating-point to decimal string
+       conversion (which may lose precision -- and requires the opposite
+       conversion by the back end).  Instead, use a hexadecimal
+       floating-point string (when the back end supports that). */
+    str = fp_to_hex_constant_string(fkind, float_value,
+                                    &pos_infinity, &neg_infinity,
+                                    &not_a_number);
+  } else
+#endif /* USE_HEX_FP_CONSTANTS_IN_GENERATED_CODE */
+  /* Do not insert code here. */
+  {
+    /* Generate a decimal string that best represents the floating-point
+       value. */
+    str = fp_to_string(fkind, float_value,
+                       &pos_infinity, &neg_infinity, &not_a_number);
+  }  /* if */
   if (octl->gen_compilable_code &&
       (pos_infinity || neg_infinity || not_a_number)) {
     /* In compilable code, generate NaNs and Infinities as expressions.

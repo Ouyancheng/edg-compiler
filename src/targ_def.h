@@ -3324,6 +3324,25 @@ the initial value of old_specializations_for_generated_instances.
 #endif /* DEFAULT_OLD_SPECIALIZATIONS_FOR_GENERATED_INSTANCES */
 
 /*
+When generating floating-point constants in generated code, if
+USE_HEX_FP_CONSTANTS_IN_GENERATED_CODE is TRUE, hexadecimal floating-point
+constants (e.g., 0x1.6666666666666p+2) will be emitted in the generated
+code rather than the traditional decimal floating-point constants.
+This has the advantage of requiring one less floating-point to decimal
+conversion in the front end and one less decimal to floating-point
+conversion in the back end.  Hexadecimal floating-point constants are
+standard in C99 and are also supported in some C++ compilers (e.g., g++).
+*/
+#ifndef USE_HEX_FP_CONSTANTS_IN_GENERATED_CODE
+#if ((BACK_END_IS_C_GEN_BE || BACK_END_IS_CP_GEN_BE) && \
+     GCC_IS_GENERATED_CODE_TARGET)
+#define USE_HEX_FP_CONSTANTS_IN_GENERATED_CODE TRUE
+#else /* !(BACK_END_IS_C_GEN_BE && ...) */
+#define USE_HEX_FP_CONSTANTS_IN_GENERATED_CODE FALSE
+#endif /* (BACK_END_IS_C_GEN_BE && ...) */
+#endif /* ifndef USE_HEX_FP_CONSTANTS_IN_GENERATED_CODE */
+
+/*
 Flag that is TRUE if a field of some built-in type requires a different
 alignment than a variable of that same type.  Some GNU compilers exhibit
 this behavior on Intel x86-based platforms.

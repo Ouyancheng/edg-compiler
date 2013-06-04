@@ -7637,6 +7637,11 @@ file.
 #else /* !defined(USE_FIXED_ADDRESS_FOR_MMAP) */
   comment_undefined_macro_name(USE_FIXED_ADDRESS_FOR_MMAP);
 #endif /* defined(USE_FIXED_ADDRESS_FOR_MMAP) */
+#if defined(USE_HEX_FP_CONSTANTS_IN_GENERATED_CODE)
+  define_numeric_valued_macro(USE_HEX_FP_CONSTANTS_IN_GENERATED_CODE);
+#else /* !defined(USE_HEX_FP_CONSTANTS_IN_GENERATED_CODE) */
+  comment_undefined_macro_name(USE_HEX_FP_CONSTANTS_IN_GENERATED_CODE);
+#endif /* defined(USE_HEX_FP_CONSTANTS_IN_GENERATED_CODE) */
 #if defined(USE_INIT_SECTION_IN_GENERATED_C)
   define_numeric_valued_macro(USE_INIT_SECTION_IN_GENERATED_C);
 #else /* !defined(USE_INIT_SECTION_IN_GENERATED_C) */

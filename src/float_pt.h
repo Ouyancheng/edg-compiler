@@ -155,6 +155,12 @@ extern char *fp_to_string(a_float_kind            kind,
                           a_boolean               *neg_infinity,
                           a_boolean               *not_a_number);
 
+extern char *fp_to_hex_constant_string(a_float_kind            kind,
+                                       an_internal_float_value *float_value,
+                                       a_boolean               *pos_infinity,
+                                       a_boolean               *neg_infinity,
+                                       a_boolean               *not_a_number);
+
 #if IA64_ABI
 extern char *fp_to_hex_string(a_float_kind            kind,
                               an_internal_float_value *float_value);
