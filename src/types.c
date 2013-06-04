@@ -11352,7 +11352,7 @@ types, i.e., also for nonreal classes.
     /* This type was tested for instantiation dependence before: Use the
        cached outcome. */
     found = type_ptr->is_instantiation_dependent;
-    *force_end_of_traversal = FALSE;
+    *force_end_of_traversal = TRUE;
   } else {
     if (is_template_param(type_ptr)) {
       if (specific_template_param_type == NULL ||
