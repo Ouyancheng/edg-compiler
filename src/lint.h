@@ -75,7 +75,6 @@ Included from basic_hdrs.h in every compilation.
 /*lint -esym(714,db_format_integer_value)*/
 /*lint -esym(714,db_prefix)*/
 /*lint -esym(714,db_prefix_ptr)*/
-/*lint -esym(757,db_long_double)*/
 /*lint -esym(714,db_long_double)*/
 /*lint -esym(714,db_sym)*/
 /*lint -esym(714,db_hash_statistics)*/
@@ -1024,6 +1023,9 @@ extern int fileno(FILE *);
 /*lint -esym(765,is_effective_diagnostic)*/
 /*lint -esym(769,ec_unsequenced_use_of_variable)*/
 #endif /* !EXTRA_SOURCE_POSITIONS_IN_IL */
+#if !USE_HEX_FP_CONSTANTS_IN_GENERATED_CODE
+/*lint -esym(757,fp_to_hex_constant_string)*/
+#endif /* !USE_HEX_FP_CONSTANTS_IN_GENERATED_CODE */
 
 #endif /* ifndef LINT_H */
 
