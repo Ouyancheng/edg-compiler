@@ -11174,6 +11174,10 @@ static a_boolean
 static a_boolean
 		find_all_dependent_types;
 
+/* TRUE if instantiation dependence is being tested. */
+static a_boolean
+		check_for_instantiation_dependence;
+
 
 /* A pointer to the specific template template parameter to be found by
    ttt_contains_specific_template_template_param. */
@@ -11343,44 +11347,63 @@ types, i.e., also for nonreal classes.
 {
   a_boolean  found = FALSE;
 
-  if (is_template_param(type_ptr)) {
-    if (specific_template_param_type == NULL ||
-        identical_types(type_ptr, specific_template_param_type)) {
-      *force_end_of_traversal = found = TRUE;
-    }  /* if */
-  } else if (find_all_dependent_types &&
-             is_immediate_class_type(type_ptr) &&
-             type_ptr->variant.class_struct_union.is_nonreal_class) {
-    /* A nonreal class is a dependent type. */
-    *force_end_of_traversal = found = TRUE;
-  } else if (find_all_dependent_types &&
-             is_immediate_enum_type(type_ptr) &&
-             type_ptr->variant.integer.is_nonreal) {
-    /* A nonreal enumeration type is a dependent type. */
-    *force_end_of_traversal = found = TRUE;
-  } else if (find_all_dependent_types &&
-             type_ptr->kind == (a_type_kind)tk_typeref &&
-             type_ptr->variant.typeref.is_dependent_type_operator) {
-    /* A dependent decltype or typeof. */
-    *force_end_of_traversal = found = TRUE;
-  } else if (find_all_dependent_types &&
-             type_ptr->kind == (a_type_kind)tk_array &&
-             type_ptr->variant.array.is_template_dependent_size_array) {
-    /* A dependent array. */
-    *force_end_of_traversal = found = TRUE;
+  if (check_for_instantiation_dependence &&
+      type_ptr->is_instantiation_dependent_cached) {
+    /* This type was tested for instantiation dependence before: Use the
+       cached outcome. */
+    found = type_ptr->is_instantiation_dependent;
+    *force_end_of_traversal = FALSE;
   } else {
-    if (specific_template_param_type == NULL) {
-      /* We are not looking for a specific template param type, so any
-         template constant (e.g., appearing as an array bound) will also
-         serve. */
-      found = ttt_contains_template_param_constant(type_ptr,
-                                                   force_end_of_traversal);
-      if (!found) {
-        /* Check for a template template parameter used as a template
-           argument. */
-        found = ttt_contains_template_template_param(type_ptr, 
-                                                     force_end_of_traversal);
+    if (is_template_param(type_ptr)) {
+      if (specific_template_param_type == NULL ||
+          identical_types(type_ptr, specific_template_param_type)) {
+        *force_end_of_traversal = found = TRUE;
       }  /* if */
+    } else if (find_all_dependent_types &&
+               is_immediate_class_type(type_ptr) &&
+               type_ptr->variant.class_struct_union.is_nonreal_class) {
+      /* A nonreal class is a dependent type. */
+      *force_end_of_traversal = found = TRUE;
+    } else if (find_all_dependent_types &&
+               is_immediate_enum_type(type_ptr) &&
+               type_ptr->variant.integer.is_nonreal) {
+      /* A nonreal enumeration type is a dependent type. */
+      *force_end_of_traversal = found = TRUE;
+    } else if (find_all_dependent_types &&
+               type_ptr->kind == (a_type_kind)tk_typeref &&
+               type_ptr->variant.typeref.is_dependent_type_operator) {
+      /* A dependent decltype or typeof. */
+      *force_end_of_traversal = found = TRUE;
+    } else if (check_for_instantiation_dependence &&
+               type_ptr->kind == (a_type_kind)tk_typeref &&
+               typeref_is_type_operator(type_ptr)) {
+      /* A nondependent decltype or typeof. */
+      check_assertion(!type_ptr->variant.typeref.is_dependent_type_operator);
+      *force_end_of_traversal = TRUE;
+      found = FALSE;
+    } else if (find_all_dependent_types &&
+               type_ptr->kind == (a_type_kind)tk_array &&
+               type_ptr->variant.array.is_template_dependent_size_array) {
+      /* A dependent array. */
+      *force_end_of_traversal = found = TRUE;
+    } else {
+      if (specific_template_param_type == NULL) {
+        /* We are not looking for a specific template param type, so any
+           template constant (e.g., appearing as an array bound) will also
+           serve. */
+        found = ttt_contains_template_param_constant(type_ptr,
+                                                     force_end_of_traversal);
+        if (!found) {
+          /* Check for a template template parameter used as a template
+             argument. */
+          found = ttt_contains_template_template_param(type_ptr, 
+                                                       force_end_of_traversal);
+        }  /* if */
+      }  /* if */
+    }  /* if */
+    if (check_for_instantiation_dependence && found) {
+      type_ptr->is_instantiation_dependent_cached = TRUE;
+      type_ptr->is_instantiation_dependent = TRUE;
     }  /* if */
   }  /* if */
   return found;
@@ -12384,6 +12407,7 @@ it is or contains a tk_template_param type entry or a nonreal class.
     specific_template_param_constant = NULL;
     deduced_contexts_only = FALSE;
     find_all_dependent_types = TRUE;
+    check_for_instantiation_dependence = FALSE;
     result = traverse_type_tree(type_ptr, ttt_is_or_contains_template_param,
                                 ttt_flags);
   }  /* if */
@@ -12416,6 +12440,7 @@ returns TRUE for types that contain C++/CLI generic parameters.
     specific_template_param_constant = NULL;
     deduced_contexts_only = FALSE;
     find_all_dependent_types = TRUE;
+    check_for_instantiation_dependence = FALSE;
     result = traverse_type_tree(type_ptr, ttt_is_or_contains_template_param,
                                 ttt_flags);
   }  /* if */
@@ -12430,10 +12455,14 @@ i.e., it contains a template parameter, even in a context that does not
 render the type dependent.
 */
 {
-  a_boolean result = FALSE;
+  a_boolean result;
 
   /* Template parameter types come up only in C++ mode. */
-  if (!C_mode()) {
+  if (C_mode()) {
+    result = FALSE;
+  } else if (type_ptr->is_instantiation_dependent_cached) {
+    result = type_ptr->is_instantiation_dependent;
+  } else {
     a_type_tree_traversal_flag_set  ttt_flags =
 			 (TTT_RETURN_TYPE |
                           TTT_THIS_PARAM_TYPE |
@@ -12448,8 +12477,11 @@ render the type dependent.
     specific_template_param_constant = NULL;
     deduced_contexts_only = FALSE;
     find_all_dependent_types = TRUE;
+    check_for_instantiation_dependence = TRUE;
     result = traverse_type_tree(type_ptr, ttt_is_or_contains_template_param,
                                 ttt_flags);
+    type_ptr->is_instantiation_dependent = result;
+    type_ptr->is_instantiation_dependent_cached = TRUE;
   }  /* if */
   return result;
 }  /* is_instantiation_dependent_type */
@@ -12464,10 +12496,14 @@ render the type dependent.  Also returns TRUE for types that contain
 C++/CLI generic parameters.
 */
 {
-  a_boolean result = FALSE;
+  a_boolean result;
 
   /* Template parameter types come up only in C++ mode. */
-  if (!C_mode()) {
+  if (C_mode()) {
+    result = FALSE;
+  } else if (!cppcli_enabled && type_ptr->is_instantiation_dependent_cached) {
+    result = type_ptr->is_instantiation_dependent;
+  } else {
     a_type_tree_traversal_flag_set  ttt_flags =
 			 (TTT_RETURN_TYPE |
                           TTT_THIS_PARAM_TYPE |
@@ -12483,8 +12519,13 @@ C++/CLI generic parameters.
     specific_template_param_constant = NULL;
     deduced_contexts_only = FALSE;
     find_all_dependent_types = TRUE;
+    check_for_instantiation_dependence = FALSE;
     result = traverse_type_tree(type_ptr, ttt_is_or_contains_template_param,
                                 ttt_flags);
+    if (!cppcli_enabled) {
+      type_ptr->is_instantiation_dependent = result;
+      type_ptr->is_instantiation_dependent_cached = TRUE;
+    }  /* if */
   }  /* if */
   return result;
 }  /* is_instantiation_dependent_type_or_cli_generic_param */
@@ -12513,6 +12554,7 @@ a template parameter constant.
     specific_template_param_constant = NULL;
     deduced_contexts_only = FALSE;
     find_all_dependent_types = FALSE;
+    check_for_instantiation_dependence = FALSE;
     result = traverse_type_tree(type_ptr, ttt_is_or_contains_template_param,
                                 ttt_flags);
   }  /* if */
@@ -12543,6 +12585,7 @@ parameter can be deduced.
   specific_template_param_constant = NULL;
   deduced_contexts_only = TRUE;
   find_all_dependent_types = FALSE;
+  check_for_instantiation_dependence = FALSE;
   if (nonstandard_qualifier_deduction) {
     /* The template parameters of parent classes are normally not deduced, but
        in some modes a nonstandard deduction rule applies. */
@@ -12612,6 +12655,7 @@ contexts are excluded from the check.
   specific_template_param_constant = NULL;
   deduced_contexts_only = deduced_only;
   find_all_dependent_types = FALSE;
+  check_for_instantiation_dependence = FALSE;
   if (nonstandard_qualifier_deduction) {
     /* The template parameters of parent classes are normally not deduced, but
        in some modes a nonstandard deduction rule applies. */
@@ -12681,6 +12725,7 @@ contexts are excluded from the check.
   specific_template_param_type = NULL;
   deduced_contexts_only = deduced_only;
   find_all_dependent_types = FALSE;
+  check_for_instantiation_dependence = FALSE;
   if (nonstandard_qualifier_deduction) {
     /* The template parameters of parent classes are normally not deduced, but
        in some modes a nonstandard deduction rule applies. */

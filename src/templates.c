@@ -10072,6 +10072,10 @@ on the ck_template_param constant pointed to by the expression.
       new_array_type = alloc_type((a_type_kind)tk_array);
       copy_type(type, new_array_type);
       new_array_type->variant.array.element_type = tp;
+      /* The substituted element type or size may not be instantiation
+         dependent.  Clear the cached state. */
+      new_array_type->is_instantiation_dependent_cached = FALSE;
+      new_array_type->is_instantiation_dependent = FALSE;
       if (orig_cp != new_cp) {
         check_assertion(new_cp != NULL);
         if (new_cp->kind == (a_constant_repr_kind)ck_integer) {

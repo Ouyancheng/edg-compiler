@@ -7757,6 +7757,14 @@ typedef struct a_type {
   a_bit_field	declared_in_function_prototype:1;
 			/* TRUE if this is a local type declared or defined
 			   within a function prototype scope (C mode only). */
+  a_bit_field	is_instantiation_dependent:1;
+			/* TRUE if this type is instantiation dependent.  If
+			   FALSE and is_instantiation_dependent_cached is TRUE,
+			   then the type is known not to be instantiation
+			   dependent. */
+  a_bit_field	is_instantiation_dependent_cached:1;
+			/* TRUE if the value of is_instantiation_dependent is
+			   fully determined. */
 #if CFRONT_2_1_OBJECT_CODE_COMPATIBILITY
   a_bit_field	use_cfront_transitional_nested_type_name_mangling:1;
                         /* TRUE if this type should be treated as a
