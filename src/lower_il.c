@@ -12452,7 +12452,10 @@ detached from the IL tree; otherwise it is set to FALSE.
       /* This only happens under a dik_call_returning_class_via_cctor
          dynamic initialization entry. */
       temp_node = make_address_of_init_entity_node(ipdp,
-                                                   /*using_as_dest=*/TRUE);
+                                                   /*using_as_dest=*/FALSE);
+      temp_node = add_cast_if_necessary(temp_node,
+                                        make_pointer_type(
+                                             original_return_type(rout_type)));
       /* Change the result type of the call to "void". */
       expr->type = void_type();
     }  /* if */

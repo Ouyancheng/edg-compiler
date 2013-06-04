@@ -1,5 +1,21 @@
 Version 5.0
 
+6/4/13   [EDGcpfe/14119]
+Incorrect lowered code on conversion function call result bound to rvalue ref
+
+In cases where lowering modifies a call to store the returned value in
+an additional parameter, certain cases had resulted in the cv-qualifiers
+for the added argument to be incorrect.  Now fixed.  For example, with --c++11:
+
+  struct A {
+    A(const volatile A&);
+  };
+  struct B {
+    operator A();
+  };
+  const volatile A &&r = B();
+
+
 6/4/13   [EDGcpfe/5457]
 Use hexadecimal floating-point constants in generated code
 
