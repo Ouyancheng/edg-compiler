@@ -12967,9 +12967,8 @@ start_pass:
                 compatible = FALSE;
               } else if (is_array_type(return_type) ||
                          is_function_type(return_type)) {
-                /* But you can't do this with array and function lvalues,
-                   because they decay to pointers and that destroys the
-                   type match. */
+                /* You can't convert array and function lvalues, because
+                   they decay to pointers and that destroys the type match. */
                 compatible = FALSE;
               } else {
                 /* The function returns a reference type and the referenced
