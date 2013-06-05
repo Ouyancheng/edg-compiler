@@ -10689,27 +10689,6 @@ and function-to-pointer decay are not considered.
 }  /* rvalue_type */
 
 
-static a_type_ptr extended_rvalue_type(a_type_ptr type)
-/*
-A "full" version of rvalue_type, which also handles function -> pointer decay
-and arrays (sort of).  This is intended for use with operations that
-return rvalue reference types.
-*/
-{
-  if (is_function_type(type)) {
-    /* A function type decays to a pointer to function. */
-    type = make_pointer_type(type);
-  } else if (is_array_type(type)) {
-    /* An array type doesn't change.  The result is an rvalue array. */
-  } else {
-    /* For other types, the returned type should be that for an rvalue
-       result. */
-    type = rvalue_type(type);
-  }  /* if */
-  return type;
-}  /* extended_rvalue_type */
-  
-
 a_type_ptr return_type_of(a_type_ptr routine_type)
 /*
 Return the type that is the return type of the given function type.  If
@@ -10728,13 +10707,7 @@ returned.  Otherwise, it is the type of the rvalue returned.
   } else {
     /* The function returns a reference, so the return type is the type
        underlying the reference. */
-    a_boolean is_rvalue_ref = is_rvalue_reference_type(return_type);
     return_type = type_pointed_to(return_type);
-    if (is_rvalue_ref) {
-      /* An rvalue reference type means an rvalue result, so we may have to
-         alter the type accordingly. */
-      return_type = extended_rvalue_type(return_type);
-    }  /* if */
   }  /* if */
   return return_type;
 }  /* return_type_of */

@@ -2973,7 +2973,11 @@ Display an expression operand for debugging purposes.
       }  /* if */
       break;
     case os_rvalue:
-      (void)fprintf(f_debug, "rvalue, ");
+      if (C_mode()) {
+        (void)fprintf(f_debug, "rvalue, ");
+      } else {
+        (void)fprintf(f_debug, "prvalue, ");
+      }  /* if */
       break;
     case os_function_designator:
       (void)fprintf(f_debug, "function, ");
@@ -17302,6 +17306,42 @@ Return TRUE if the given operand is an xvalue, as defined in C++11.
   }  /* if */
   return is_xvalue;
 }  /* is_an_xvalue */
+
+
+a_boolean rvalue_ref_can_be_bound_to_function_lvalue(void)
+/*
+Return TRUE if in the current dialect an rvalue reference can be bound
+to a function lvalue.  (The C++11 standard allows that, but some earlier
+implementations of rvalue references did not.)
+*/
+{
+  a_boolean can_be_bound = TRUE;
+
+  if (microsoft_mode && microsoft_version < 1800) can_be_bound = FALSE;
+  return can_be_bound;
+}  /* rvalue_ref_can_be_bound_to_function_lvalue */
+
+
+a_boolean rvalue_ref_can_be_bound_to(an_operand *operand)
+/*
+Return TRUE if the value category of operand is such that an rvalue reference
+can be bound to it.  For the most part, that means operand is an rvalue
+(including xvalue).  However, for functions, the operand can be an
+lvalue.
+*/
+{
+  a_boolean can_be_bound = FALSE;
+
+  if (is_an_rvalue(operand)) {
+    can_be_bound = TRUE;
+  } else if (is_a_function_designator(operand) &&
+             rvalue_ref_can_be_bound_to_function_lvalue()) {
+    can_be_bound = TRUE;
+  } else if (is_error_operand(operand)) {
+    can_be_bound = TRUE;
+  }  /* if */
+  return can_be_bound;
+}  /* rvalue_ref_can_be_bound_to */
 
 
 static a_constant_ptr value_of_constant_var_lvalue_expr(

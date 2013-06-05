@@ -919,7 +919,8 @@ extern a_boolean conversion_from_class_possible(
                           a_boolean                need_lvalue_result,
                           a_boolean                is_copy_initialization,
                           a_boolean                orig_is_copy_initialization,
-                          a_boolean                is_reference_binding,
+                          a_type_ptr               ref_binding_type,
+                          a_boolean                is_direct_binding,
                           a_conv_context_set       conv_context,
                           a_conv_descr             *conversion,
                           a_boolean                *ambiguous,
@@ -963,7 +964,8 @@ extern a_boolean conversion_to_class_possible(
                           a_boolean                try_bitwise_copy,
                           a_boolean                is_copy_initialization,
                           a_boolean                orig_is_copy_initialization,
-                          a_boolean                is_reference_binding,
+                          a_type_ptr               ref_binding_type,
+                          a_boolean                is_direct_binding,
                           a_conv_context_set       conv_context,
                           a_conv_descr             *conversion,
                           a_conv_descr             *ctor_arg_conversion,
@@ -983,7 +985,8 @@ extern a_boolean cli_handle_user_defined_conversion_possible(
                           a_boolean                need_lvalue_result,
                           a_boolean                is_copy_initialization,
                           a_boolean                orig_is_copy_initialization,
-                          a_boolean                is_reference_binding,
+                          a_type_ptr               ref_binding_type,
+                          a_boolean                is_direct_binding,
                           a_conv_context_set       conv_context,
                           a_conv_descr             *conversion,
                           a_boolean                *ambiguous,
@@ -996,7 +999,8 @@ extern a_boolean user_defined_conversion_possible(
                                 a_boolean          need_lvalue_result,
                                 a_boolean          is_copy_initialization,
                                 a_boolean          orig_is_copy_initialization,
-                                a_boolean          is_reference_binding,
+                                a_type_ptr         ref_binding_type,
+                                a_boolean          is_direct_binding,
                                 a_conv_context_set conv_context,
                                 a_conv_descr       *conversion,
                                 a_conv_descr       *ctor_arg_conversion,
@@ -1047,6 +1051,9 @@ extern a_boolean conversion_for_direct_reference_binding_possible(
                                      a_conv_descr             *conversion,
                                      a_boolean                *ambiguous,
                                      a_candidate_function_ptr *ambiguity_list);
+
+extern a_boolean current_mode_requires_early_rvalue_ref_lvalue_test(void);
+
 extern void determine_arg_match_level(
                                an_operand           *arg_operand,
                                a_type_ptr           arg_type,

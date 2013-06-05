@@ -1499,6 +1499,10 @@ extern void conv_xvalue_to_lvalue(an_operand *operand);
 
 extern a_boolean is_an_xvalue(an_operand *operand);
 
+extern a_boolean rvalue_ref_can_be_bound_to_function_lvalue(void);
+
+extern a_boolean rvalue_ref_can_be_bound_to(an_operand *operand);
+
 extern a_constant_ptr value_of_constant_var_lvalue_operand(
                                                           an_operand *operand);
 

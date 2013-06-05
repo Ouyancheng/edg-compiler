@@ -18012,6 +18012,8 @@ called only in C++ mode.
       a_boolean    binding_to_rvalue_allowed, dropping_qualifiers;
       a_boolean    template_case;
       a_symbol_ptr function_symbol;
+      a_boolean    early_lvalue_check =
+                          current_mode_requires_early_rvalue_ref_lvalue_test();
       revert_microsoft_rvalue_to_lvalue_if_possible(operand);
       /* The is_cast=TRUE argument allows an lvalue expression to be cast
          to an rvalue reference.  For a reference binding that wouldn't
@@ -18059,11 +18061,13 @@ called only in C++ mode.
              a conversion we don't know about. */
           possible = TRUE;
           template_case = TRUE;
-        } else if (cast_to_rvalue_reference &&
-                   !is_an_rvalue(operand)) {
-          /* An rvalue reference cannot be bound to an lvalue.  Note that
-             some cases rejected here may end up being accepted under the
-             pointer-rewrite rule for reinterpret_cast, which is correct. */
+        } else if (early_lvalue_check &&
+                   cast_to_rvalue_reference &&
+                   !rvalue_ref_can_be_bound_to(operand)) {
+          /* An rvalue reference cannot be bound to an lvalue.  In a draft
+             version of the C++11 standard, that restriction applied before
+             any conversions were attempted, and the check here is for
+             dialects that follow that older rule. */
         } else if (is_potential_conv_function_source(operand->type) &&
                    (conversion_for_direct_reference_binding_possible(
                                            operand,
@@ -18092,6 +18096,8 @@ called only in C++ mode.
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
         } else if (binding_to_rvalue_allowed) {
           if (is_class_struct_union_type(eff_type_cast_to)) {
+            /* Look for a conversion to a class prvalue temporary to which
+               the reference can be bound. */
             if (is_an_lvalue(operand) &&
                 is_class_struct_union_type(operand->type) &&
                 find_base_class_of(eff_type_cast_to, operand->type) != NULL) {
@@ -18106,7 +18112,8 @@ called only in C++ mode.
                                   /*try_bitwise_copy=*/TRUE,
                                   /*is_copy_initialization=*/TRUE, /*sic*/
                                   /*orig_is_copy_initialization=*/TRUE, /*sic*/
-                                  /*is_reference_binding=*/FALSE, /*sic*/
+                                  /*ref_binding_type=*/type_cast_to,
+                                  /*is_direct_binding=*/FALSE,
                                   conv_context_temp,
                                   &conversion, (a_conv_descr *)NULL,
                                   &ambiguous,
@@ -18118,6 +18125,8 @@ called only in C++ mode.
               determined_conversion = &conversion;
             }  /* if */
           } else if (is_class_struct_union_type(operand->type)) {
+            /* Look for a conversion from a class type to a temporary to
+               which the reference can be bound. */
             if (conversion_from_class_possible(
                                        operand,
                                        eff_type_cast_to,
@@ -18125,7 +18134,8 @@ called only in C++ mode.
                                        /*need_lvalue_result=*/FALSE,
                                        /*is_copy_initialization=*/TRUE, /*sic*/
                                        /*orig_is_copy_initialization=*/TRUE,
-                                       /*is_reference_binding=*/FALSE, /*sic*/
+                                       /*ref_binding_type=*/type_cast_to,
+                                       /*is_direct_binding=*/FALSE,
                                        conv_context_temp,
                                        &conversion,
                                        &ambiguous,
@@ -18145,7 +18155,8 @@ called only in C++ mode.
                                        /*need_lvalue_result=*/FALSE,
                                        /*is_copy_initialization=*/TRUE, /*sic*/
                                        /*orig_is_copy_initialization=*/TRUE,
-                                       /*is_reference_binding=*/FALSE, /*sic*/
+                                       /*ref_binding_type=*/type_cast_to,
+                                       /*is_direct_binding=*/FALSE,
                                        conv_context_temp,
                                        &conversion,
                                        &ambiguous,
@@ -18157,6 +18168,13 @@ called only in C++ mode.
             possible = TRUE;
             determined_conversion = &conversion;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+          } else if (!early_lvalue_check &&
+                     cast_to_rvalue_reference &&
+                     !rvalue_ref_can_be_bound_to(operand)) {
+            /* An rvalue reference cannot be bound to an lvalue.  This is
+               checked after conversion functions that can change the value
+               category have been checked for, since the restriction is
+               on what the reference binds to, not the original expression. */
           } else {
             /* Neither the source type nor the destination underlying type is
                a class.  See whether the source operand can be converted
@@ -18221,11 +18239,6 @@ called only in C++ mode.
                                        /*leave_as_object=*/TRUE,
                                        conv_context_temp,
                                        ec_bad_cast /* arbitrary */);
-            /* Class rvalues get placed in a temporary, which is then treated
-               as an lvalue, so we don't expect any rvalues here. */
-            check_assertion(is_an_lvalue(operand) ||
-                            is_a_function_designator(operand) ||
-                            is_error_operand(operand));
             cast_operand_for_reference_cast(operand,
                                             type_cast_to,
                                             type_position,
@@ -18250,7 +18263,8 @@ called only in C++ mode.
                                          /*need_lvalue_result=*/FALSE,
                                          /*is_copy_initialization=*/FALSE,
                                          /*orig_is_copy_initialization=*/FALSE,
-                                         /*is_reference_binding=*/FALSE,
+                                         /*ref_binding_type=*/(a_type*)NULL,
+                                         /*is_direct_binding=*/FALSE,
                                          conv_context,
                                          &conversion,
                                          &ctor_arg_conversion,
@@ -36143,7 +36157,8 @@ element of aggregate class type dest_type (as a whole; not just a field of it).
                                           /*try_bitwise_copy=*/TRUE,
                                           /*is_copy_initialization=*/TRUE,
                                           /*orig_is_copy_initialization=*/TRUE,
-                                          /*is_reference_binding=*/FALSE,
+                                          /*ref_binding_type=*/(a_type*)NULL,
+                                          /*is_direct_binding=*/FALSE,
                                           CCO_DEFAULT,
                                           &conversion,
                                           (a_conv_descr *)NULL,
