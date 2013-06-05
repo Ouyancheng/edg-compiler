@@ -2237,6 +2237,36 @@ pointer transformation should be done.
 }  /* function_transformation_needed_on_reference_init */
 
 
+static a_boolean is_lvalue_reference_that_can_bind_to_rvalue(a_type_ptr type)
+/*
+Return TRUE if type is an lvalue reference that can bind to rvalues, i.e.,
+an lvalue reference to non-volatile const.
+*/
+{
+  a_boolean can_bind = FALSE;
+
+  if (is_lvalue_reference_type(type)) {
+    a_type_ptr under_type = type_pointed_to(type);
+    if (is_const_qualified_type(under_type)) {
+      can_bind = TRUE;
+      if (is_volatile_qualified_type(under_type)) {
+        if (microsoft_bugs && microsoft_version < 1600) {
+          /* Before VC10, Microsoft did not include the "volatile" part. */
+        } else if (microsoft_bugs && microsoft_version < 1700 &&
+                   !is_class_struct_union_type(under_type)) {
+          /* VC10 allowed const volatile refs to bind to non-class types. */
+        } else if (any_cfront_mode()) {
+          /* Cfront never considered volatile. */
+        } else {
+          can_bind = FALSE;
+        }  /* if */
+      }  /* if */
+    }  /* if */
+  }  /* if */
+  return can_bind;
+}  /* is_lvalue_reference_that_can_bind_to_rvalue */
+
+
 a_boolean conversion_for_direct_reference_binding_possible(
                                       an_operand               *source_operand,
                                       a_type_ptr               dest_type,
@@ -12603,9 +12633,8 @@ reference.
       } else {
         /* Not direct binding, so an rvalue is okay if the lvalue reference is
            to const. */
-        a_type_ptr under_type = type_pointed_to(ref_binding_type);
-        need_lvalue_result = !(is_const_qualified_type(under_type) &&
-                               !is_volatile_qualified_type(under_type));
+        need_lvalue_result =
+                !is_lvalue_reference_that_can_bind_to_rvalue(ref_binding_type);
         if (allow_anachronisms) need_lvalue_result = FALSE;
       }  /* if */
     }  /* if */
@@ -13133,9 +13162,7 @@ next_function:;
        didn't find any candidates, and the reference is to const, do
        a second pass that considers conversion functions that return
        xvalues or class prvalues. */
-    a_type_ptr under_type = type_pointed_to(ref_binding_type);
-    if (is_const_qualified_type(under_type) &&
-        !is_volatile_qualified_type(under_type)) {
+    if (is_lvalue_reference_that_can_bind_to_rvalue(ref_binding_type)) {
       need_lvalue_result = FALSE;
       pass_number++;
       goto start_pass;
@@ -19803,10 +19830,9 @@ direct binding is "possible" and not whether it is "valid".
        *binding_to_rvalue_allowed to be set to TRUE above). */
     *binding_to_rvalue_allowed = TRUE;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-  } else if (!(any_cfront_mode() || microsoft_bugs) && *ref_to_const &&
-             is_volatile_qualified_type(base_dest_type)) {
-    /* A reference to const volatile may not be bound to an rvalue.
-       This was added after the ARM. */
+  } else if (*ref_to_const && is_lvalue_reference_type(dest_type) &&
+             !is_lvalue_reference_that_can_bind_to_rvalue(dest_type)) {
+    /* An lvalue reference to const volatile may not be bound to an rvalue. */
     *binding_to_rvalue_allowed = FALSE;
     *ref_to_const_volatile = TRUE;
   }  /* if */
