@@ -3782,6 +3782,8 @@ associated global variables will also have been set).
 			   parameters beyond that, a slow linear search
 			   is used. */
   a_macro_arg_ptr arg_values[ARG_VALUES_SIZE];
+  a_source_line_modif_ptr
+                  invocation_slmp = NULL;
 #if FULLY_RESOLVED_MACRO_POSITIONS
   a_text_map_position_tracker
                   tracker;
@@ -3793,8 +3795,6 @@ associated global variables will also have been set).
   sizeof_t        first_text_map_entry;
   sizeof_t        ending_src_offset;
   sizeof_t        bytes_before_token;
-  a_source_line_modif_ptr
-                  invocation_slmp = NULL;
   a_source_position
                   lparen_pos;
   a_macro_invocation_record_index
@@ -3958,9 +3958,7 @@ end_scan_for_macro_modifs:;
        see if it's associated with the macro we are about to expand.  If
        so, the macro name is inert and should be left alone. */
     slmp = assoc_source_line_modif(temp_ptr);
-#if FULLY_RESOLVED_MACRO_POSITIONS
     invocation_slmp = slmp;
-#endif /* FULLY_RESOLVED_MACRO_POSITIONS */
 #if RECORD_MACRO_INVOCATIONS
     parent_macro_invocation_record = slmp->invocation_record;
     macro_invocation_stack_depth = slmp->invocation_depth + 1;
@@ -4763,9 +4761,12 @@ scan_expanded_tokens:
                      were added outside the character-counting regime,
                      typically by skip_white_space, and thus should not be
                      processed.) */
-                  a_source_line_modif_ptr parent_slmp =
-                        assoc_source_line_modif_full(slmp2->line_loc,
-                                                     /*failure_allowed=*/TRUE);
+                  a_source_line_modif_ptr parent_slmp;
+                  if (slmp2->parent_modif_determined) {
+                    parent_slmp = slmp2->parent_modif;
+                  } else {
+                    parent_slmp = NULL;
+                  }  /* if */
                   num_chars_deleted_in_macro_buffer -=
                                                 slmp2->num_chars_to_delete - 1;
                   if (parent_slmp != NULL) {
@@ -5389,6 +5390,11 @@ copy_done:
   adjust_deletion_counts(delete_source_from_loc, slmp->num_chars_to_delete);
   slmp->assoc_macro = mdp;
   slmp->source_position = start_pos;
+  if (invocation_slmp != NULL &&
+      ptr_in_range(delete_source_from_loc, invocation_slmp->inserted_text,
+                   invocation_slmp->end_inserted_text)) {
+    set_parent_modif(slmp, invocation_slmp);
+  }  /* if */
 #if FULLY_RESOLVED_MACRO_POSITIONS
   if (first_text_map_entry == macro_text_map.num_entries) {
     /* If the replacement text is empty, the loop exits immediately and no map

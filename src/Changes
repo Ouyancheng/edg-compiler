@@ -1,5 +1,14 @@
 Version 5.0
 
+6/5/13   [EDGcpfe/14126]
+Performance regression in complex macro expansion
+
+The change for EDGcpfe/11932 below (part of version 4.4) introduced a
+significant performance degradation in certain very complex macro
+expansions, such as might be encountered using the Boost preprocessing
+library.  This is now fixed.
+
+
 6/5/13   [EDGcpfe/14137]
 Missing implicit-step flag on base class cast under rvalue reference cast
 
