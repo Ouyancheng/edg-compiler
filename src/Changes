@@ -1,5 +1,22 @@
 Version 5.0
 
+6/5/13   [EDGcpfe/14137]
+Missing implicit-step flag on base class cast under rvalue reference cast
+
+The implicit_step_of_explicit_cast flag was not set on the top base class
+cast under an eok_ref_cast node for an rvalue reference cast.  That
+caused incorrect C++-generating back end output for cases like this one.
+Now fixed.
+
+  struct A {};
+  struct B : A {};
+  struct C : B {};
+  int main() {
+    C c;
+    A &&r = static_cast<A&&>(c); // Was output as static_cast< A &&>((A)c)
+  }
+
+
 6/4/13   [EDGcpfe/14119]
 Incorrect lowered code on conversion function call result bound to rvalue ref
 

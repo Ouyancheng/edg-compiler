@@ -8482,8 +8482,15 @@ is an lvalue reference to const.
       if (is_rvalue_ref) {
         /* The result of a cast to an rvalue reference type is an rvalue.
            We need an eok_ref_cast after the related-class conversion to
-           effectuate the conversion to rvalue. */
+           effectuate the conversion to xvalue. */
         need_eok_ref_cast = TRUE;
+        if (!is_implicit_cast) {
+          /* The base/derived cast processing marked all the steps except the
+             last as implicit steps.  Since we're adding one more node on
+             top, mark the last-so-far as an implicit step too. */
+          an_expr_node_ptr expr = operand->variant.expression;
+          expr->variant.operation.implicit_step_of_explicit_cast = TRUE;
+        }  /* if */
       } else if (is_expression_operand(operand)) {
         /* We don't need the final eok_ref_cast, so mark the top node of
            the related-class cast as part of a reference cast. */
