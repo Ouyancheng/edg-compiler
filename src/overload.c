@@ -2265,7 +2265,7 @@ guard function.
   *ambiguous = FALSE;
   check_assertion(is_any_reference_type(dest_type));
   base_dest_type = type_pointed_to(dest_type);
-  if (microsoft_bugs && microsoft_version < 1800 &&
+  if (microsoft_bugs && microsoft_version < 1700 &&
       is_rvalue_reference_type(dest_type)) {
     /* MSVC did not allow conversion for direct binding to an rvalue
        reference. */
