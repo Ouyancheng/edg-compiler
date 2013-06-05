@@ -71,7 +71,7 @@ The value of a typeid operator applied to an xvalue of polymorphic type
 is now determined at runtime.
 
 
-5/30/13  [EDGcpfe/14113]
+5/30/13  [EDGcpfe/14088,EDGcpfe/14113]
 Microsoft compatibility: Initializer lists
 
 In Microsoft mode with microsoft_version >= 1800 initializer lists are now
@@ -86,19 +86,6 @@ introduction of a new macro __EDG_CONSTEXPR_ENABLED__ that is predefined by
 the front end in modes that enable the C++11 constexpr feature.
 (The entry of 8/26/12 for EDGcpfe/9170 describes the introduction of
 initializer lists in C++11 mode.)
-
-
-5/29/13  [EDGcpfe/14089]
-Microsoft compatibility: std::initializer_list construction
-
-The <initializer_list> header supplied with the front end provides a
-definition for the std::initializer_list template that allows construction
-of an object of type std::initializer_list<X> from a pointer to the first
-element of an array of Xs, and the length of that array.  The front end
-previously relied on the presence of such a constructor.  Now, it can also
-use a constructor that takes a pointer to the first element of the array and
-a pointer one past the last element of the array.  That variant appears to
-be what Microsoft will use in its forthcoming compiler.
 
 
 5/28/13  [EDGcpfe/14089]

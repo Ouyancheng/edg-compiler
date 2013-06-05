@@ -20966,7 +20966,7 @@ static a_routine_ptr find_initializer_list_constructor(
                                                 a_type_ptr        *param2_type)
 /*
 list_type is an instance of std::initializer_list<X>.  Find the constructor
-that is used to constructor an initializer_list object from an array of values
+that is used to construct an initializer_list object from an array of values
 and return a pointer to it.  If the constructor does not exist (which
 indicates some misconfiguration of the front end for the library), issue a
 error at pos and return NULL.  Otherwise, set *param1_type and *param2_type to
@@ -20974,7 +20974,7 @@ the types of the first and second parameters, and return TRUE.
 Currently, two general forms of the constructor are accepted:
   initializer_list(elem_type *ptr_to_first_elem, int_type length)
 and
-  initializer_list(elem_typeX *ptr_to_first_elem,
+  initializer_list(elem_type *ptr_to_first_elem,
                    elem_type *ptr_one_past_last_elem)
 (the caller must check the second parameter type to decide which form is being
 used).
@@ -21316,13 +21316,14 @@ errors should be suppressed (i.e., SFINAE mode).
            its last element.  The second argument is computed by adding the
            array length to the first argument, but we must ensure that the
            first argument is computed before the second one: To achieve this,
-           the computation of the first argument may need to be hoisted out of
-           the call. */
+           the "sequenced_args" parameter to the alloc_expr_ctor_dynamic_init
+           call below is set to TRUE if reusing the first argument value
+           required the introduction of a temporary. */
         check_assertion(identical_types(param1_type, param2_type));
         arg2 = make_expr_reusable_copy(arg1, /*vars_can_change=*/FALSE,
                                        &temp_init_used,
                                        /*treat_as_potential_rvalue=*/FALSE);
-        /* Add the number off elements in the second argument: */
+        /* Add the number of elements in the second argument: */
         arg2->next = node_for_host_large_integer(
                                            (a_host_large_integer)num_elements,
                                            targ_size_t_int_kind);
