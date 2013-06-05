@@ -29,13 +29,13 @@ and one less decimal to floating-point conversion by the back end (thereby
 increasing the likelihood that the floating-point value internally
 represented in the front end is the value that is used at run-time).
 Of course, this can only be used if the back end compiler supports
-hexadecimal floating-point constants (a C99 feature).  Currently enabled
-only when GCC_IS_GENERATED_CODE_TARGET is TRUE (in both C++- and C-generating
-configurations).
+hexadecimal floating-point constants (a C99 feature).  The default value for
+USE_HEX_FP_CONSTANTS_IN_GENERATED_CODE is FALSE.
 
 In this example, with --c99, with a gcc back end, had produced the output
 string "0xf.fffffffffffffffp+16380" and now produces the output
-string "0xf.ffffffffffffffep+16380":
+string "0xf.ffffffffffffffep+16380" (when
+USE_HEX_FP_CONSTANTS_IN_GENERATED_CODE is TRUE):
 
   extern int printf(const char *,...);
   int main() {

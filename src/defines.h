@@ -396,6 +396,9 @@ Flags to be set for any version that uses the C++ generating back end.
 #define EXPENSIVE_CHECKING 1
 #endif /* ifndef EXPENSIVE_CHECKING */
 #endif /* ifndef OPTIMIZED_VERSION */
+#ifndef USE_HEX_FP_CONSTANTS_IN_GENERATED_CODE
+#define USE_HEX_FP_CONSTANTS_IN_GENERATED_CODE TRUE
+#endif /* ifndef USE_HEX_FP_CONSTANTS_IN_GENERATED_CODE */
 
 #endif /* LINUX_TEST_VERSION */
 
@@ -549,6 +552,9 @@ Flags to be set for any version that uses the C++ generating back end.
 #ifndef COMPILE_MULTIPLE_TRANSLATION_UNITS
 #define COMPILE_MULTIPLE_TRANSLATION_UNITS 1
 #endif /* ifndef COMPILE_MULTIPLE_TRANSLATION_UNITS */
+#ifndef USE_HEX_FP_CONSTANTS_IN_GENERATED_CODE
+#define USE_HEX_FP_CONSTANTS_IN_GENERATED_CODE TRUE
+#endif /* ifndef USE_HEX_FP_CONSTANTS_IN_GENERATED_CODE */
 #endif /* MACOSX_TEST_VERSION */
 
 #include "defines_macosx.h"

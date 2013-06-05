@@ -3332,14 +3332,11 @@ This has the advantage of requiring one less floating-point to decimal
 conversion in the front end and one less decimal to floating-point
 conversion in the back end.  Hexadecimal floating-point constants are
 standard in C99 and are also supported in some C++ compilers (e.g., g++).
+The compiler that is used to compile the front end must support the "%a"
+sprintf format directive when USE_HEX_FP_CONSTANTS_IN_GENERATED_CODE is TRUE.
 */
 #ifndef USE_HEX_FP_CONSTANTS_IN_GENERATED_CODE
-#if ((BACK_END_IS_C_GEN_BE || BACK_END_IS_CP_GEN_BE) && \
-     GCC_IS_GENERATED_CODE_TARGET)
-#define USE_HEX_FP_CONSTANTS_IN_GENERATED_CODE TRUE
-#else /* !(BACK_END_IS_C_GEN_BE && ...) */
 #define USE_HEX_FP_CONSTANTS_IN_GENERATED_CODE FALSE
-#endif /* (BACK_END_IS_C_GEN_BE && ...) */
 #endif /* ifndef USE_HEX_FP_CONSTANTS_IN_GENERATED_CODE */
 
 /*
