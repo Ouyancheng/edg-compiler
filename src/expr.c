@@ -18029,7 +18029,10 @@ called only in C++ mode.
                                        &binding_to_rvalue_allowed,
                                        &dropping_qualifiers,
                                        &template_case,
-                                       &function_symbol)) {
+                                       &function_symbol) ||
+           /* Okay to drop qualifiers in an old-style cast (the function
+              of const_cast is allowed in there). */
+           (dropping_qualifiers && source_form == csf_old_style)) {
         /* The operand can be cast directly to the reference type,
            so don't look for a way to do the cast using a conversion
            function. */
