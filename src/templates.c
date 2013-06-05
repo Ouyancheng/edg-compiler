@@ -6173,10 +6173,18 @@ instantiation-dependent.
 {
   a_boolean	result = FALSE;
 
-  for (; tap != NULL; tap = tap->next) {
-    result = template_arg_is_dependent(tap);
-    if (result) break;
-  }  /* for */
+  if (in_front_end &&
+      !is_template_dependent_context() &&
+      !is_cli_generic_definition_context()) {
+    /* Since we are not inside a template or C++/CLI generic construct, the
+       argument list cannot be dependent. */
+  } else {
+    /* Check each argument in turn. */
+    for (; tap != NULL; tap = tap->next) {
+      result = template_arg_is_dependent(tap);
+      if (result) break;
+    }  /* for */
+  }  /* if */
   return result;
 }  /* template_arg_list_is_dependent */
 
