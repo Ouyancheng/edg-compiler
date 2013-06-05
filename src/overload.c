@@ -12960,16 +12960,17 @@ start_pass:
           compatible = TRUE;
           if (result_is_an_lvalue) {
             if (any_qualifier_missing(dest_type, return_type)) {
-              if (is_array_type(return_type) ||
-                  is_function_type(return_type)) {
-                /* But you can't do this with array and function lvalues,
-                   because they decay to pointers. */
-                compatible = FALSE;
-              } else if (need_rvalue_ref_compat_result ||
-                         is_direct_binding) {
+              if (need_rvalue_ref_compat_result || is_direct_binding) {
                 /* You can't convert to an rvalue when the target is an
                    rvalue reference, or when you're binding a reference
                    directly to the result. */
+                compatible = FALSE;
+              } else if (is_array_type(return_type) ||
+                         is_function_type(return_type)) {
+                /* But you can't do this with array and function lvalues,
+                   because they decay to pointers and that destroys the
+                   type match. */
+                compatible = FALSE;
               } else {
                 /* The function returns a reference type and the referenced
                    type has more qualifiers than necessary.  Force the
