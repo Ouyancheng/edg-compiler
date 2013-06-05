@@ -12462,6 +12462,14 @@ render the type dependent.
     result = FALSE;
   } else if (type_ptr->is_instantiation_dependent_cached) {
     result = type_ptr->is_instantiation_dependent;
+  } else if (in_front_end &&
+             !is_template_dependent_context() &&
+             !is_cli_generic_definition_context()) {
+    /* Invocations from the front end that are not in a template context
+       are never for dependent types. */
+    result = FALSE;
+    type_ptr->is_instantiation_dependent_cached = TRUE;
+    type_ptr->is_instantiation_dependent = FALSE;
   } else {
     a_type_tree_traversal_flag_set  ttt_flags =
 			 (TTT_RETURN_TYPE |
@@ -12503,6 +12511,14 @@ C++/CLI generic parameters.
     result = FALSE;
   } else if (!cppcli_enabled && type_ptr->is_instantiation_dependent_cached) {
     result = type_ptr->is_instantiation_dependent;
+  } else if (in_front_end &&
+             !is_template_dependent_context() &&
+             !is_cli_generic_definition_context()) {
+    /* Invocations from the front end that are not in a template context
+       are never for dependent types. */
+    result = FALSE;
+    type_ptr->is_instantiation_dependent_cached = TRUE;
+    type_ptr->is_instantiation_dependent = FALSE;
   } else {
     a_type_tree_traversal_flag_set  ttt_flags =
 			 (TTT_RETURN_TYPE |
