@@ -6690,7 +6690,9 @@ such classes.
   a_boolean				add_to_instantiation_list = TRUE;
   a_boolean				open_constructed_arg_list = FALSE;
   a_boolean				instantiate_nonreal_class = FALSE;
+  a_boolean				dependent_arg_list;
 
+  dependent_arg_list = template_arg_list_is_dependent(template_arg_list);
   tssp = class_template_sym->variant.template_info;
   /* Switch to the translation unit containing the template, if needed. */
   trans_unit_pushed = push_translation_unit_if_needed(class_template_sym);
@@ -6764,8 +6766,7 @@ such classes.
      some way on a template parameter and is therefore a "nonreal"
      instantiation, give it a size and alignment to permit it to pass
      through subsequent processing without causing spurious errors. */
-  if (!open_constructed_arg_list &&
-      template_arg_list_is_dependent(template_arg_list)) {
+  if (!open_constructed_arg_list && dependent_arg_list) {
     class_type->variant.class_struct_union.is_nonreal_class = TRUE;
 #if MICROSOFT_EXTENSIONS_ALLOWED
     if (microsoft_mode && instantiate_nonreal &&
@@ -7004,7 +7005,9 @@ error type is used.
   a_type_ptr				type;
   a_type_ptr				parent_class = NULL;
   a_boolean				open_constructed_arg_list = FALSE;
+  a_boolean				dependent_arg_list;
 
+  dependent_arg_list = template_arg_list_is_dependent(template_arg_list);
   tssp = template_sym->variant.template_info;
   /* Switch to the translation unit containing the template, if needed. */
   trans_unit_pushed = push_translation_unit_if_needed(template_sym);
@@ -7054,8 +7057,7 @@ error type is used.
       }  /* if */
     }  /* if */
     /* See if the template arguments involve any nonreal types. */
-    if (!open_constructed_arg_list &&
-        template_arg_list_is_dependent(template_arg_list)) {
+    if (!open_constructed_arg_list && dependent_arg_list) {
       type->variant.typeref.is_nonreal = TRUE;
     }  /* if */
     /* Record the argument list in the type. */
