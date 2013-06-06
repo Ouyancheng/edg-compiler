@@ -1928,7 +1928,7 @@ this routine handles special cases which are common and returns TRUE if
 the conversion is indeed a special case.  If the floating-point value is
 positive infinity or negative infinity, return *pos_infinity or *neg_infinity
 set to TRUE.  If the floating-point value is a NaN, return *not_a_number set to
-TRUE.  In these cases, a display string is still returned in str
+TRUE.  In these cases, an appropriate display string is returned in str
 (e.g., "NaN") and TRUE is returned.  pos_infinity, neg_infinity, and
 not_a_number can be NULL if the corresponding return value is not needed.
 *temp is set to the value of the floating-point value in internal host
