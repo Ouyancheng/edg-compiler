@@ -2339,8 +2339,8 @@ guard function.
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       !do_ms_quirk) {
     /* For lvalue references, we first try conversions that produce
-       an lvalue.  If we find none, we try all conversions, including those
-       that produce rvalues. */
+       an lvalue.  If we find none, we will try all conversions, including
+       those that produce rvalues. */
     okay = conversion_from_class_possible(source_operand,
                                           base_dest_type,
                                           (a_builtin_type_kind_set)BTK_NONE,
@@ -2398,7 +2398,31 @@ guard function.
       need_lvalue_result = TRUE;
       is_direct_binding = TRUE;
     }  /* if */
-    okay = conversion_from_class_possible(source_operand,
+    if (!do_ms_quirk &&
+        is_class_struct_union_type(base_dest_type) &&
+        is_reference_that_can_bind_to_rvalue(dest_type) &&
+        /* Avoid using constructors for related class cases: */
+        !(is_class_struct_union_type(source_operand->type) &&
+          is_same_class_or_base_class_thereof(source_operand->type,
+                                              base_dest_type))) {
+      /* For a reference to class that can bind to an rvalue, consider
+         constructors as well as conversion functions. */
+      okay = conversion_to_class_possible(source_operand,
+                                          (an_arg_list_elem *)NULL,
+                                          base_dest_type,
+                                          /*try_bitwise_copy=*/FALSE,
+                                          /*is_copy_initialization=*/TRUE,
+                                          /*orig_is_copy_initialization=*/TRUE,
+                                          /*ref_binding_type=*/dest_type,
+                                          is_direct_binding,
+                                          conv_context,
+                                          conversion,
+                                          (a_conv_descr *)NULL,
+                                          ambiguous,
+                                          ambiguity_list);
+    } else {
+      okay = conversion_from_class_possible(
+                                          source_operand,
                                           base_dest_type,
                                           (a_builtin_type_kind_set)BTK_NONE,
                                           need_lvalue_result,
@@ -2410,6 +2434,7 @@ guard function.
                                           conversion,
                                           ambiguous,
                                           ambiguity_list);
+    }  /* if */
     if (okay && do_ms_quirk) {
       a_boolean    ms_ambiguous = FALSE, local_ambiguous;
       a_conv_descr local_conversion;
@@ -20083,7 +20108,7 @@ the conversion.
   an_operand   orig_operand;
   a_type_ptr   base_dest_type, adj_base_dest_type;
   a_boolean    err = FALSE, dropping_qualifiers = FALSE;
-  a_boolean    ambiguous, is_rvalue_ref;
+  a_boolean    ambiguous = FALSE, is_rvalue_ref;
   a_boolean    direct_binding_possible = FALSE;
   a_boolean    binding_to_rvalue_allowed = FALSE;
   a_boolean    direct_binding_conversion_possible = FALSE;
@@ -20217,7 +20242,18 @@ the conversion.
     if (ambiguity_list != NULL) {
       /* The conversion is ambiguous.  Put out an error. */
       if (expr_error_should_be_issued()) {
-        pos_ty2_start_error(ec_ambiguous_conversion_function,
+        a_boolean                ctor_included = FALSE;
+        a_candidate_function_ptr cfp;
+        for (cfp = ambiguity_list; cfp != NULL; cfp = cfp->next) {
+          if (cfp->function_symbol != NULL &&
+              is_constructor_symbol(cfp->function_symbol)) {
+            ctor_included = TRUE;
+            break;
+          }  /* if */
+        }  /* for */
+        pos_ty2_start_error(ctor_included ?
+                              ec_ambiguous_user_defined_conversion:
+                              ec_ambiguous_conversion_function,
                             &source_operand->position, orig_source_type,
                             base_dest_type);
         diagnose_overload_ambiguity(ambiguity_list,
@@ -20226,6 +20262,10 @@ the conversion.
                                     (an_opname_kind)onk_none);
       }  /* if */
       free_candidate_function_list(ambiguity_list);
+      conv_to_error_operand(source_operand);
+    } else if (ambiguous) {
+      /* Ambiguous because of error. */
+      expr_expect_error();
       conv_to_error_operand(source_operand);
     } else {
       /* Do the conversion, producing an object that can be directly
