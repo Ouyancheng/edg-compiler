@@ -2237,10 +2237,10 @@ pointer transformation should be done.
 }  /* function_transformation_needed_on_reference_init */
 
 
-static a_boolean is_lvalue_reference_that_can_bind_to_rvalue(a_type_ptr type)
+static a_boolean is_reference_that_can_bind_to_rvalue(a_type_ptr type)
 /*
-Return TRUE if type is an lvalue reference that can bind to rvalues, i.e.,
-an lvalue reference to non-volatile const.
+Return TRUE if type is a reference type that can bind to rvalues (including
+xvalues), e.g., an lvalue reference to non-volatile const.
 */
 {
   a_boolean can_bind = FALSE;
@@ -2262,9 +2262,24 @@ an lvalue reference to non-volatile const.
         }  /* if */
       }  /* if */
     }  /* if */
+  } else if (is_rvalue_reference_type(type)) {
+    /* Rvalue references generally bind to rvalues, but rvalue references
+       to functions bind to lvalues. */
+    a_type_ptr under_type = type_pointed_to(type);
+    can_bind = TRUE;
+    if (is_function_type(under_type) &&
+        rvalue_ref_can_be_bound_to_function_lvalue()) {
+      can_bind = FALSE;
+    }  /* if */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  } else if (cppcli_enabled &&
+             is_tracking_reference_type(type)) {
+    /* A tracking reference binds to lvalues. */
+    can_bind = FALSE;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   }  /* if */
   return can_bind;
-}  /* is_lvalue_reference_that_can_bind_to_rvalue */
+}  /* is_reference_that_can_bind_to_rvalue */
 
 
 a_boolean conversion_for_direct_reference_binding_possible(
@@ -2291,15 +2306,19 @@ guard function.
   a_boolean          okay;
   a_type_ptr         base_dest_type;
   a_conv_context_set conv_context = CCO_DEFAULT;
+  a_boolean          do_ms_quirk;
 
   *ambiguous = FALSE;
   check_assertion(is_any_reference_type(dest_type));
   base_dest_type = type_pointed_to(dest_type);
+  do_ms_quirk = (microsoft_bugs && microsoft_version >= 1310 &&
+                 !question_conv && is_const_qualified_type(base_dest_type));
   if (microsoft_bugs && microsoft_version < 1700 &&
       is_rvalue_reference_type(dest_type)) {
     /* MSVC did not allow conversion for direct binding to an rvalue
        reference. */
     okay = FALSE;
+    goto have_result;
   } else if (microsoft_bugs && microsoft_version < 1310 &&
              (!is_an_lvalue(source_operand) ||
               operand_is_temp_init(source_operand))) {
@@ -2311,36 +2330,21 @@ guard function.
        returns a class into an lvalue, we have to test for temp init
        expressions specially. */
     okay = FALSE;
+    goto have_result;
+  }  /* if */
+  if (is_lvalue_reference_type(dest_type) &&
 #if MICROSOFT_EXTENSIONS_ALLOWED
-  } else if (cppcli_enabled &&
-             (cli_handle_user_defined_conversion_possible(
-                                       source_operand,
-                                       base_dest_type,
-                                       (a_builtin_type_kind_set)BTK_NONE,
-                                       /*need_lvalue_result=*/FALSE,/*ignored*/
-                                       /*is_copy_initialization=*/TRUE,
-                                       /*orig_is_copy_initialization=*/TRUE,
-                                       /*ref_binding_type=*/dest_type,
-                                       /*is_direct_binding=*/TRUE,
-                                       conv_context,
-                                       conversion,
-                                       ambiguous,
-                                       ambiguity_list) ||
-              *ambiguous)) {
-    /* A C++/CLI static conversion function involving a handle type
-       can be used to create an lvalue to which the reference can
-       be bound. */
-    if (!*ambiguous) okay = TRUE;
-  } else if (cppcli_enabled &&
-             !is_class_struct_union_type(source_operand->type)) {
-    okay = FALSE;
+      (!cppcli_enabled ||
+       is_class_struct_union_type(source_operand->type)) &&
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-  } else {
+      !do_ms_quirk) {
+    /* For lvalue references, we first try conversions that produce
+       an lvalue.  If we find none, we try all conversions, including those
+       that produce rvalues. */
     okay = conversion_from_class_possible(source_operand,
                                           base_dest_type,
                                           (a_builtin_type_kind_set)BTK_NONE,
-                                          /*need_lvalue_result=*/FALSE,
-                                                                    /*ignored*/
+                                          /*need_lvalue_result=*/TRUE,
                                           /*is_copy_initialization=*/TRUE,
                                           /*orig_is_copy_initialization=*/TRUE,
                                           /*ref_binding_type=*/dest_type,
@@ -2349,14 +2353,64 @@ guard function.
                                           conversion,
                                           ambiguous,
                                           ambiguity_list);
-    if (okay && microsoft_bugs && microsoft_version >= 1310 &&
-        !question_conv && is_const_qualified_type(base_dest_type)) {
+    if (okay || *ambiguous) goto have_result;
+    /* We didn't find any conversion functions that could produce an
+       appropriate lvalue.  If the reference could bind to an rvalue, keep
+       going.  Otherwise, give up. */
+    if (!is_reference_that_can_bind_to_rvalue(dest_type)) goto have_result;
+  }  /* if */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  if (cppcli_enabled &&
+      (cli_handle_user_defined_conversion_possible(
+                                       source_operand,
+                                       base_dest_type,
+                                       (a_builtin_type_kind_set)BTK_NONE,
+                                       /*need_lvalue_result=*/FALSE,
+                                       /*is_copy_initialization=*/TRUE,
+                                       /*orig_is_copy_initialization=*/TRUE,
+                                       /*ref_binding_type=*/dest_type,
+                                       /*is_direct_binding=*/TRUE,
+                                       conv_context,
+                                       conversion,
+                                       ambiguous,
+                                       ambiguity_list) ||
+       *ambiguous)) {
+    /* A C++/CLI static conversion function involving a handle type
+       can be used to create an lvalue to which the reference can
+       be bound. */
+    if (!*ambiguous) okay = TRUE;
+  } else if (cppcli_enabled &&
+             !is_class_struct_union_type(source_operand->type)) {
+    okay = FALSE;
+  } else
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+  /* Do not insert code here. */
+  {
+    a_boolean need_lvalue_result = FALSE;
+    a_boolean is_direct_binding = TRUE;
+    if (do_ms_quirk) {
       /* MSVC++ (up to version 8.0, at least) has some confusion on
          doing a conversion to bind a reference.  Instead of doing one
          overload resolution for the direct binding case and one later
          for the bind-to-converted-temp-rvalue case, it always does both
          and if they're both okay looks to see if they got a different
          result and if so concludes that the case is ambiguous. */
+      need_lvalue_result = TRUE;
+      is_direct_binding = TRUE;
+    }  /* if */
+    okay = conversion_from_class_possible(source_operand,
+                                          base_dest_type,
+                                          (a_builtin_type_kind_set)BTK_NONE,
+                                          need_lvalue_result,
+                                          /*is_copy_initialization=*/TRUE,
+                                          /*orig_is_copy_initialization=*/TRUE,
+                                          /*ref_binding_type=*/dest_type,
+                                          is_direct_binding,
+                                          conv_context,
+                                          conversion,
+                                          ambiguous,
+                                          ambiguity_list);
+    if (okay && do_ms_quirk) {
       a_boolean    ms_ambiguous = FALSE, local_ambiguous;
       a_conv_descr local_conversion;
       if (conversion_from_class_possible(source_operand,
@@ -2420,19 +2474,20 @@ guard function.
         }  /* if */
       }  /* if */
     }  /* if */
-#if MICROSOFT_EXTENSIONS_ALLOWED
-    if (cppcli_enabled && okay &&
-        !is_tracking_reference_type(dest_type) &&
-        is_gc_lvalue_operand(source_operand)) {
-      /* C++/CLI does not allow binding a normal (non-tracking) reference
-         to a gc-lvalue.  That appears to also preclude doing a conversion
-         from a gc-lvalue to a non-gc-lvalue in order to bind the reference. */
-      okay = FALSE;
-    }  /* if */
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-    /* The flag here is deliberately not set when *ambiguous is TRUE. */
-    if (okay) conversion->conversion_for_direct_reference_binding = TRUE;
   }  /* if */
+have_result:
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  if (cppcli_enabled && okay &&
+      !is_tracking_reference_type(dest_type) &&
+      is_gc_lvalue_operand(source_operand)) {
+    /* C++/CLI does not allow binding a normal (non-tracking) reference
+       to a gc-lvalue.  That appears to also preclude doing a conversion
+       from a gc-lvalue to a non-gc-lvalue in order to bind the reference. */
+    okay = FALSE;
+  }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+  /* The flag here is deliberately not set when *ambiguous is TRUE. */
+  if (okay) conversion->conversion_for_direct_reference_binding = TRUE;
   return okay;
 }  /* conversion_for_direct_reference_binding_possible */
 
@@ -12547,13 +12602,16 @@ temporary initialized by the conversion (is_direct_binding FALSE).
 For the direct-binding case, consider conversions to a derived class
 of dest_type, and allow appropriate cv-qualification adjustments, but
 do not consider standard conversions after the conversion function
-(otherwise, allow standard conversions on the result).  Also, the value
-of need_lvalue_result will be overridden by a value appropriate for
-the reference type.  The case with ref_binding_type non-NULL and
-is_direct_binding FALSE is essentially the same as passing
-ref_binding_type NULL; it exists to prevent selection of a conversion
-that produces an lvalue when the ultimate binding is to an rvalue
-reference.
+(otherwise, allow standard conversions on the result).  Also, if
+need_lvalue_result is FALSE on entry for a direct-binding case, its
+value will be replaced by one appropriate for the reference type.
+Passing need_lvalue_result TRUE for a direct-binding case is used to
+test for only the conversions that produce an lvalue, which is needed
+as a first pass in determining reference bindings.  The case with
+ref_binding_type non-NULL and is_direct_binding FALSE is essentially
+the same as passing ref_binding_type NULL; it exists to prevent
+selection of a conversion that produces an lvalue when the ultimate
+binding is to an rvalue reference.
 */
 {
   a_symbol_ptr              conversion_symbol, base_conversion_symbol;
@@ -12566,12 +12624,9 @@ reference.
   a_boolean                 is_reference_binding;
   a_boolean                 compatible;
   a_boolean                 need_rvalue_ref_compat_result = FALSE;
-  a_boolean                 is_lvalue_reference_direct_binding = FALSE;
-  int                       pass_number = 1;
   a_boolean                 result_is_an_lvalue, result_is_an_xvalue;
   a_boolean                 result_is_a_reference;
   a_candidate_function_ptr  candidate;
-  a_candidate_function_ptr  candidates_on_entry = *candidate_functions;
   a_base_class_ptr          bcp;
   a_boolean                 class_object_adjustment_required = FALSE;
   a_boolean                 template_conversions_started;
@@ -12608,38 +12663,43 @@ reference.
   }  /* if */
   if (ref_binding_type != NULL) {
     check_assertion(is_any_reference_type(ref_binding_type));
-    is_reference_binding = is_direct_binding;
     if (is_rvalue_reference_type(ref_binding_type)) {
-      /* An rvalue reference can bind to an rvalue. */
-      need_lvalue_result = FALSE;
       need_rvalue_ref_compat_result = TRUE;
+    }  /* if */
+    if (!is_direct_binding) {
+      /* A non-direct-binding case is supposed to be treated the same as
+         passing ref_binding_type NULL, except for setting
+         need_rvalue_ref_compat_result (already done above). */
+      goto not_direct_binding_case;
+    }  /* if */
+    is_reference_binding = TRUE;
+    if (need_rvalue_ref_compat_result) {
+      /* An rvalue reference.  Generally binds to rvalues, but rvalue
+         references to functions bind to lvalues. */
+      a_boolean can_bind_to_rvalue =
+                        is_reference_that_can_bind_to_rvalue(ref_binding_type);
+      if (need_lvalue_result && can_bind_to_rvalue) {
+        /* Fail if we must produce an lvalue result and we can't bind to
+           it. */
+        goto end_of_function;
+      }  /* if */
+      need_lvalue_result = !can_bind_to_rvalue;
 #if MICROSOFT_EXTENSIONS_ALLOWED
     } else if (cppcli_enabled &&
                is_tracking_reference_type(ref_binding_type)) {
       /* A tracking reference. */
-      need_lvalue_result = is_direct_binding;
+      need_lvalue_result = TRUE;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     } else {
       /* An lvalue reference. */
-      if (is_direct_binding) {
-        /* Direct binding. */
-        is_lvalue_reference_direct_binding = TRUE;
-        /* Do a first pass looking only for conversion functions that return
-           an lvalue.  That's the first bullet, second sub-bullet in
-           [dcl.init.ref].  If no candidates are found, we'll do a second pass
-           looking for conversion functions that return xvalues or
-           class prvalues. */
-        need_lvalue_result = TRUE;
-      } else {
-        /* Not direct binding, so an rvalue is okay if the lvalue reference is
-           to const. */
+      if (!need_lvalue_result) {
         need_lvalue_result =
-                !is_lvalue_reference_that_can_bind_to_rvalue(ref_binding_type);
-        if (allow_anachronisms) need_lvalue_result = FALSE;
+                       !is_reference_that_can_bind_to_rvalue(ref_binding_type);
       }  /* if */
     }  /* if */
   } else {
     /* ref_binding_type is NULL. */
+not_direct_binding_case:
     is_reference_binding = FALSE;
     /* need_lvalue_result is used as passed in by the caller. */
   }  /* if */
@@ -12657,7 +12717,6 @@ reference.
      template class, instantiate it to make its conversion functions
      visible. */
   instantiate_template_class(conv_funcs_class);
-start_pass:
   /* Look at all the conversion functions for the source class.  After the
      end of the normal list, if we have a specific dest_type go through the
      list of template conversion functions. */
@@ -13155,19 +13214,7 @@ reject_function:
     free_template_arg_list(template_arg_list);
 next_function:;
   }  /* for */
-  if (is_lvalue_reference_direct_binding && pass_number == 1 &&
-      *candidate_functions == candidates_on_entry) {
-    /* For a direct binding to an lvalue reference, we did a first pass
-       trying only conversion functions that return lvalues.  If we
-       didn't find any candidates, and the reference is to const, do
-       a second pass that considers conversion functions that return
-       xvalues or class prvalues. */
-    if (is_lvalue_reference_that_can_bind_to_rvalue(ref_binding_type)) {
-      need_lvalue_result = FALSE;
-      pass_number++;
-      goto start_pass;
-    }  /* if */
-  }  /* if */
+end_of_function:
   db_exit();
 }  /* try_conversion_function_match_full */
 
@@ -19831,7 +19878,7 @@ direct binding is "possible" and not whether it is "valid".
     *binding_to_rvalue_allowed = TRUE;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   } else if (*ref_to_const && is_lvalue_reference_type(dest_type) &&
-             !is_lvalue_reference_that_can_bind_to_rvalue(dest_type)) {
+             !is_reference_that_can_bind_to_rvalue(dest_type)) {
     /* An lvalue reference to const volatile may not be bound to an rvalue. */
     *binding_to_rvalue_allowed = FALSE;
     *ref_to_const_volatile = TRUE;
