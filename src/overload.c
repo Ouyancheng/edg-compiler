@@ -12839,6 +12839,13 @@ not_direct_binding_case:
       if (is_abstract_class_type(eff_dest_type)) goto reject_function;
       /* Do type deduction on the return type. */
       return_type = return_type_of(conv_routine_type);
+      if (is_reference_binding && !need_lvalue_result &&
+          is_class_struct_union_type(eff_dest_type) &&
+          !is_any_reference_type(il_return_type_of(conv_routine_type))) {
+        /* When binding to a class prvalue, don't make the result
+           cv-qualified just because the reference is to const. */
+        eff_dest_type = skip_typerefs(eff_dest_type);
+      }  /* if */
       /* Determine whether the desired type matches the type returned by the
          conversion template.  If normal deduction fails, check whether a
          qualification conversion can be used to obtain the desired type. */
