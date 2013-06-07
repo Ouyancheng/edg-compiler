@@ -1,5 +1,21 @@
 Version 5.0
 
+6/7/13   [EDGcpfe/14143]
+Excess elements in lowered array initializers with pointer-to-member type
+
+During the lowering of initializers of arrays whose elements are
+pointer-to-member types, in the IA-64 ABI, any non-specified elements are
+filled with the proper lowered constant (i.e., -1).  The computation of the
+number of existing elements may have been incorrect in some cases, leading to
+an initializer with more elements than the array.  For example, with --g++:
+
+  struct A {
+    int m;
+  };
+  typedef int A::*PDM;
+  PDM x[] = {[3] = &A::m};
+
+
 6/7/13   [EDGcpfe/14114]
 Un-lowered "zero" constants can escape to back end with designators
 

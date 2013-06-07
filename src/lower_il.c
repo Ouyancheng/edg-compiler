@@ -4379,15 +4379,15 @@ pointers to data members are properly initialized to -1 for NULL.
        initialized.  Note that they have previously been run through
        this routine so they fully initialize any pointer to data
        members. */
-    cp = constant->variant.aggregate.first_constant;
-    if (cp != NULL &&
-        cp->kind == (a_constant_repr_kind)ck_init_repeat) {
-      elem = cp->variant.init_repeat.count;
-    } else {
-      for (; cp != NULL; cp = cp->next) {
+    for (cp = constant->variant.aggregate.first_constant;
+         cp != NULL;
+         cp = cp->next) {
+      if (cp->kind == (a_constant_repr_kind)ck_init_repeat) {
+        elem += cp->variant.init_repeat.count;
+      } else {
         ++elem;
-      }  /* for */
-    }  /* if */
+      }  /* if */
+    }  /* for */
     /* Initialize the remaining elements. */
     while (elem < type->variant.array.variant.number_of_elements) {
       cp = lower_zero_initialization(array_element_type(type));
