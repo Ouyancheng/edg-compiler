@@ -2247,7 +2247,9 @@ xvalues), e.g., an lvalue reference to non-volatile const.
 
   if (is_lvalue_reference_type(type)) {
     a_type_ptr under_type = type_pointed_to(type);
-    if (is_const_qualified_type(under_type)) {
+    if (allow_anachronisms) {
+      can_bind = TRUE;
+    } else if (is_const_qualified_type(under_type)) {
       can_bind = TRUE;
       if (is_volatile_qualified_type(under_type)) {
         if (microsoft_bugs && microsoft_version < 1600) {
@@ -2402,9 +2404,8 @@ guard function.
         is_class_struct_union_type(base_dest_type) &&
         is_reference_that_can_bind_to_rvalue(dest_type) &&
         /* Avoid using constructors for related class cases: */
-        !(is_class_struct_union_type(source_operand->type) &&
-          is_same_class_or_base_class_thereof(source_operand->type,
-                                              base_dest_type))) {
+        !is_same_class_or_base_class_thereof(source_operand->type,
+                                             base_dest_type)) {
       /* For a reference to class that can bind to an rvalue, consider
          constructors as well as conversion functions. */
       okay = conversion_to_class_possible(source_operand,
@@ -18110,15 +18111,15 @@ the temporary.
       if (!conversion->result_is_an_lvalue || 
           conversion->std.nontrivial_conversion) {
         /* The caller will not accept an lvalue, or a standard conversion
-           must be done, so convert an lvalue to an rvalue.  The operand
-           could only be an lvalue if the conversion function returns a
+           must be done, so convert a glvalue to a prvalue.  The operand
+           could only be a glvalue if the conversion function returns a
            reference. */
         do_operand_transformations(operand, TOPT_NO_OPTIONS);
       }  /* if */
       /* Do any necessary standard or trivial conversion. */
       if (is_error_operand(operand)) {
         /* Do nothing. */
-      } else if (is_an_rvalue(operand)) {
+      } else if (is_a_prvalue(operand)) {
         an_expr_node_ptr before_cast = (is_expression_operand(operand)) ?
                                             operand->variant.expression : NULL;
         cast_operand(dest_type, operand,
@@ -18132,7 +18133,7 @@ the temporary.
              compiler-generated. */
           conv_function_call_node->variant.operation.compiler_generated = TRUE;
         }  /* if */
-      } else if (is_an_lvalue(operand)) {
+      } else if (is_a_glvalue(operand)) {
         adjust_lvalue_type(operand, dest_type);
       }  /* if */
     }  /* if */
@@ -20272,10 +20273,9 @@ the conversion.
          bound to. */
       convert_operand(source_operand, base_dest_type, conversion);
       direct_binding_possible = TRUE;
-      /* binding_to_rvalue_allowed is not set here, because it's not
-         trivial to do so.  Instead, we make sure that its value is not
-         used below if direct_binding_conversion_possible is TRUE, since in
-         that case we're guaranteeing that the binding is possible. */
+      binding_to_rvalue_allowed =
+                               is_reference_that_can_bind_to_rvalue(dest_type);
+      operand_was_rvalue = is_an_rvalue(source_operand);
     }  /* if */
   }  /* if */
   if (is_error_operand(source_operand)) {
@@ -20502,10 +20502,9 @@ the conversion.
         }  /* if */
       }  /* if */
       conv_to_error_operand(source_operand);
-    } else if (!direct_binding_conversion_possible &&
-               !binding_to_rvalue_allowed &&
+    } else if (!binding_to_rvalue_allowed &&
                operand_was_rvalue) {
-      /* Can't bind this (lvalue) reference to an rvalue. */
+      /* Can't bind this reference to an rvalue. */
       an_error_severity err_severity = es_error;
       /* Some cases get only a warning. */
       /* In cfront mode we allow this for a ref to non-const if
