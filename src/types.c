@@ -3365,6 +3365,28 @@ a base class of class_1.  Only called in C++ mode.
   return is_same_or_base;
 }  /* is_same_class_or_base_class_thereof */
 
+
+a_boolean same_or_related_class_types(a_type_ptr type_1,
+                                      a_type_ptr type_2)
+/*
+Return TRUE if the cv-unqualified versions of type_1 and type_2 are classes
+and they are either the same type or one is a base class of the other.
+*/
+{
+  a_boolean same_or_related = FALSE;
+
+  type_1 = skip_typerefs(type_1);
+  type_2 = skip_typerefs(type_2);
+  if (is_immediate_class_type(type_1) &&
+      is_immediate_class_type(type_2) &&
+      (identical_types(type_1, type_2) ||
+       find_base_class_of(type_1, type_2) != NULL ||
+       find_base_class_of(type_2, type_1) != NULL)) {
+    same_or_related = TRUE;
+  }  /* if */
+  return same_or_related;
+}  /* same_or_related_class_types */
+
 #endif /* !STANDALONE_UTILITY_PROGRAM */
 
 a_boolean any_nonpublic_steps_in_derivation(a_base_class_ptr bcp)

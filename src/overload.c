@@ -2402,8 +2402,7 @@ guard function.
         is_class_struct_union_type(base_dest_type) &&
         is_reference_that_can_bind_to_rvalue(dest_type) &&
         /* Avoid using constructors for related class cases: */
-        !is_same_class_or_base_class_thereof(source_operand->type,
-                                             base_dest_type)) {
+        !same_or_related_class_types(source_operand->type, base_dest_type)) {
       /* For a reference to class that can bind to an rvalue, consider
          constructors as well as conversion functions. */
       okay = conversion_to_class_possible(source_operand,

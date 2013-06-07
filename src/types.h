@@ -548,6 +548,8 @@ extern a_base_class_ptr find_direct_base_class_of(a_type_ptr  derived_class,
                                                   a_type_ptr  base_class_type);
 extern a_boolean is_same_class_or_base_class_thereof(a_type_ptr class_1,
                                                      a_type_ptr class_2);
+extern a_boolean same_or_related_class_types(a_type_ptr type_1,
+                                             a_type_ptr type_2);
 extern a_boolean any_nonpublic_steps_in_derivation(a_base_class_ptr bcp);
 extern a_boolean f_related_class_pointers(a_type_ptr       type_1,
                                           a_type_ptr       type_2,
