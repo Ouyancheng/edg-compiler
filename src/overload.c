@@ -2247,9 +2247,7 @@ xvalues), e.g., an lvalue reference to non-volatile const.
 
   if (is_lvalue_reference_type(type)) {
     a_type_ptr under_type = type_pointed_to(type);
-    if (allow_anachronisms) {
-      can_bind = TRUE;
-    } else if (is_const_qualified_type(under_type)) {
+    if (is_const_qualified_type(under_type)) {
       can_bind = TRUE;
       if (is_volatile_qualified_type(under_type)) {
         if (microsoft_bugs && microsoft_version < 1600) {
