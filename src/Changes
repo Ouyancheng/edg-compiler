@@ -1,5 +1,21 @@
 Version 5.0
 
+6/7/13   [EDGcpfe/14114]
+Un-lowered "zero" constants can escape to back end with designators
+
+In cases where designated initializers are used to initialize arrays
+whose element types require lowering (e.g., complex types, pointer-to-members),
+the repeated "zero" constant under the generated ck_init_repeat had not been
+lowered.  For example, with --g++:
+
+  struct A {
+    int m;
+  };
+  typedef int A::*PDM;
+  PDM x[] = {[3] = &A::m};
+  _Complex double y[] = {[3] = 0.0i};
+
+
 6/5/13   [EDGcpfe/14126]
 Performance regression in complex macro expansion
 

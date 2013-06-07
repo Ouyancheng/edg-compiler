@@ -1481,7 +1481,9 @@ Make a zero constant of type desired_type (a scalar type) and put it in
 *zero_constant.  No IL allocation is done.  This routine is also handy
 for making NULL pointer constants.  This wrapper over
 make_zero_of_proper_type handles returning a -1 constant for a
-NULL pointer-to-data member in the IA-64 ABI.
+NULL pointer-to-data member in the IA-64 ABI.  Note that the type of the
+constant that is returned may be a lowered version of desired_type (and not
+desired_type itself).
 */
 {
   make_zero_of_proper_type(desired_type, zero_constant);
@@ -1502,6 +1504,12 @@ NULL pointer-to-data member in the IA-64 ABI.
 #endif /* IA64_ABI */
                            (an_integer_kind)ik_int);
     }  /* if */
+#if LOWER_COMPLEX
+  } else if (is_complex_type(desired_type)) {
+    /* Make sure a zero complex constant is lowered (note that the
+       type of the constant is also lowered here). */
+    lower_constant(zero_constant);
+#endif /* LOWER_COMPLEX */
   }  /* if */
 }  /* make_lowered_zero_of_proper_type */
 
@@ -11809,7 +11817,8 @@ static a_constant_ptr make_init_zero_constant(a_type_ptr type)
 /*
 Make and return an unshared constant that is a zero of the indicated type.
 If the type is an aggregate, return an aggregate constant that initializes
-the first member of the aggregate.
+the first member of the aggregate.  The returned constant has not been
+lowered.
 */
 {
   a_constant_ptr con;
@@ -11833,11 +11842,36 @@ the first member of the aggregate.
   } else {
     /* Simple scalar case. */
     a_constant zero_constant;
-    make_lowered_zero_of_proper_type(rvalue_type(type), &zero_constant);
+    make_zero_of_proper_type(rvalue_type(type), &zero_constant);
     con = alloc_unshared_constant(&zero_constant);
   }  /* if */
+  /* IL elements allocated during lowering are, by default, set as though
+     they have been lowered.  Reset that flag so the constant will be
+     lowered later. */
+  mark_as_not_visited(con);
   return con;
 }  /* make_init_zero_constant */
+
+
+static a_constant_ptr alloc_repeated_constant(a_constant_ptr repeated_con,
+                                              a_targ_size_t  count)
+/*
+Allocate a ck_init_repeat constant for "count" instances of repeated_con.
+If repeated_con is un-lowered, the returned constant will also be
+un-lowered.
+*/
+{
+  a_constant_ptr con = alloc_constant((a_constant_repr_kind)ck_init_repeat);
+  con->variant.init_repeat.count = count;
+  con->variant.init_repeat.constant = repeated_con;
+  if (!visited_yet(repeated_con)) {
+    /* By default, con is marked as having been lowered, but that would
+       prevent repeated_con from being lowered if it hasn't been lowered
+       already, so mark con appropriately. */
+    mark_as_not_visited(con);
+  }  /* if */
+  return con;
+}  /* alloc_repeated_constant */
 
 
 static a_constant_ptr make_one_or_more_init_zero_constants(
@@ -11859,9 +11893,7 @@ constants are required.
   if (number_of_constants_needed == 1) {
     con = zero_con;
   } else {
-    con = alloc_constant((a_constant_repr_kind)ck_init_repeat);
-    con->variant.init_repeat.count = number_of_constants_needed;
-    con->variant.init_repeat.constant = zero_con;
+    con = alloc_repeated_constant(zero_con, number_of_constants_needed);
   }  /* if */
   return con;
 }  /* make_one_or_more_init_zero_constants */
@@ -12031,10 +12063,8 @@ directly.  *con_pos will be set to indicate the simple constant.
       if (second_count == 1) {
         second_repeat_con = rep_con_copy;
       } else {
-        second_repeat_con =
-                          alloc_constant((a_constant_repr_kind)ck_init_repeat);
-        second_repeat_con->variant.init_repeat.count = second_count;
-        second_repeat_con->variant.init_repeat.constant = rep_con_copy;
+        second_repeat_con = alloc_repeated_constant(rep_con_copy,
+                                                    second_count);
         /* Preserve the setting of the multidimensional_aggr_tail_not_repeated
            field. */
         second_repeat_con->variant.init_repeat.
@@ -12117,10 +12147,7 @@ is not called for union initializations.
         count = (desig_con->variant.designator.array_element -
                  aggr_pos.curr_elem);
         if (count > 1) {
-          a_constant_ptr repeat_con =
-                          alloc_constant((a_constant_repr_kind)ck_init_repeat);
-          repeat_con->variant.init_repeat.count = count;
-          repeat_con->variant.init_repeat.constant = zero_con;
+          a_constant_ptr repeat_con = alloc_repeated_constant(zero_con, count);
 #if DEBUG
           if (db_flag_is_set("designators")) {
             (void)fprintf(f_debug, "Array repeat const = ");
@@ -12345,10 +12372,8 @@ entire multi-dimensional array (and not just a portion thereof).
         /* No repeat needed if count is one. */
         rep_con = aggr;
       } else {
-        rep_con = alloc_constant((a_constant_repr_kind)ck_init_repeat);
-        rep_con->variant.init_repeat.count =
-                           aggr_type->variant.array.variant.number_of_elements;
-        rep_con->variant.init_repeat.constant = aggr;
+        rep_con = alloc_repeated_constant(aggr,
+                          aggr_type->variant.array.variant.number_of_elements);
       }  /* if */
       if (prev_aggr == NULL) {
         constant->variant.aggregate.first_constant = rep_con;

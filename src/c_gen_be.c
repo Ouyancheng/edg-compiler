@@ -1773,10 +1773,15 @@ Output the indicated constant.
   } else
 #endif /* C_GEN_BE_GENERATES_ANSI_C */
   {
-    /* Check that all abk_temporary constants have been lowered. */
+    /* Check that all appropriate constants have been lowered. */
     check_assertion(!(constant->kind == (a_constant_repr_kind)ck_address &&
                       constant->variant.address.kind ==
                                          (an_address_base_kind)abk_temporary));
+    check_assertion(constant->kind != (a_constant_repr_kind)ck_ptr_to_member);
+#if LOWER_COMPLEX
+    check_assertion(constant->kind != (a_constant_repr_kind)ck_complex &&
+                    constant->kind != (a_constant_repr_kind)ck_imaginary);
+#endif /* LOWER_COMPLEX */
     form_constant(constant, /*need_parens=*/TRUE, &octl);
   }  /* if */
 }  /* dump_constant */
