@@ -19202,19 +19202,26 @@ indication in *rcblock).
         template_param_case = TRUE;
       } else if (reference_case) {
         /* Cast to reference type. */
-        /* The source operand must be an lvalue. */
-        if (!is_an_lvalue(&operand)) {
-          /* ... but an rvalue is also okay for a cast to an rvalue reference
-             type. */
-          if (rvalue_reference_case && is_an_rvalue(&operand)) {
+        if (rvalue_reference_case) {
+          /* Cast to an rvalue reference type.  The source expression
+             must be a glvalue or a class prvalue. */
+          if (is_a_glvalue(&operand) ||
+              (is_a_prvalue(&operand) &&
+               is_class_struct_union_type(operand.type))) {
             /* Okay. */
           } else {
             err = TRUE;
-            if (!is_error_operand(&operand)) {
-              /* It's very hard to get here for an rvalue reference case,
-                 so we don't bother with a separate message for that case. */
-              expr_pos_error(ec_expr_not_an_lvalue, &operand.position);
-            }  /* if */
+            expr_pos_error(ec_bad_rvalue_ref_const_cast_operand,
+                           &operand.position);
+          }  /* if */
+        } else {
+          /* Cast to lvalue reference.  (Or tracking reference, in C++/CLI.) */
+          /* The source operand must be an lvalue. */
+          if (is_an_lvalue(&operand)) {
+            /* Okay. */
+          } else {
+            err = TRUE;
+            expr_pos_error(ec_expr_not_an_lvalue, &operand.position);
           }  /* if */
         }  /* if */
       }  /* if */

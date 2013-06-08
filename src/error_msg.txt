@@ -2507,6 +2507,7 @@ ec_defaulted_assignment_cannot_have_const_parameter;;"the parameter of this defa
 ec_empty_anonymous_union;;"an anonymous union must contain at least one nonstatic data member"
 ec_delegating_constructor_requires_newer_abi_version;;"option \"delegating_constructors\" requires a different compiler configuration"
 ec_alignment_reduction_unconditionally_ignored;;"a reduction in alignment is ignored"
+ec_bad_rvalue_ref_const_cast_operand;;"the operand of a const_cast to an rvalue reference type cannot be a non-class prvalue"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #
