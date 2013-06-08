@@ -2508,6 +2508,7 @@ ec_empty_anonymous_union;;"an anonymous union must contain at least one nonstati
 ec_delegating_constructor_requires_newer_abi_version;;"option \"delegating_constructors\" requires a different compiler configuration"
 ec_alignment_reduction_unconditionally_ignored;;"a reduction in alignment is ignored"
 ec_bad_rvalue_ref_const_cast_operand;;"the operand of a const_cast to an rvalue reference type cannot be a non-class prvalue"
+ec_expr_not_a_glvalue;;"expression must be an lvalue or xvalue"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

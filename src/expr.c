@@ -18392,7 +18392,9 @@ it to an lvalue).
       conv_class_prvalue_operand_to_lvalue(operand);
     } else {
       if (!is_error_operand(operand)) {
-        error_in_operand(ec_expr_not_an_lvalue, operand);
+        error_in_operand(rvalue_references_enabled ? ec_expr_not_a_glvalue :
+                                                     ec_expr_not_an_lvalue,
+                         operand);
         *processed = TRUE;
       }  /* if */
     }  /* if */
