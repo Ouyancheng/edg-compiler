@@ -18392,7 +18392,8 @@ it to an lvalue).
       conv_class_prvalue_operand_to_lvalue(operand);
     } else {
       if (!is_error_operand(operand)) {
-        error_in_operand(rvalue_references_enabled ? ec_expr_not_a_glvalue :
+        error_in_operand(is_rvalue_reference_type(type_cast_to) ?
+                                                     ec_expr_not_a_glvalue :
                                                      ec_expr_not_an_lvalue,
                          operand);
         *processed = TRUE;
