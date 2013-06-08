@@ -19489,9 +19489,9 @@ be a reference type.  Only used in C++.  This is copy-initialization.
       /* Initialize a temporary with the converted value. */
       if (conversion->class_object_adjustment_required) {
         /* Adjust the cv-qualifiers before we create the temporary. */
-        if (is_an_lvalue(source_operand)) {
+        if (is_a_glvalue(source_operand)) {
           adjust_lvalue_type(source_operand, temp_type);
-        } else if (is_an_rvalue(source_operand)) {
+        } else if (is_a_prvalue(source_operand)) {
           adjust_class_rvalue_type(source_operand, temp_type);
         }  /* if */
       }  /* if */
