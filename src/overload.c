@@ -2387,7 +2387,6 @@ guard function.
   /* Do not insert code here. */
   {
     a_boolean need_lvalue_result = FALSE;
-    a_boolean is_direct_binding = TRUE;
     if (do_ms_quirk) {
       /* MSVC++ (up to version 8.0, at least) has some confusion on
          doing a conversion to bind a reference.  Instead of doing one
@@ -2396,7 +2395,6 @@ guard function.
          and if they're both okay looks to see if they got a different
          result and if so concludes that the case is ambiguous. */
       need_lvalue_result = TRUE;
-      is_direct_binding = TRUE;
     }  /* if */
     if (!do_ms_quirk &&
         is_class_struct_union_type(base_dest_type) &&
@@ -2412,7 +2410,7 @@ guard function.
                                           /*is_copy_initialization=*/TRUE,
                                           /*orig_is_copy_initialization=*/TRUE,
                                           /*ref_binding_type=*/dest_type,
-                                          is_direct_binding,
+                                          /*is_direct_binding=*/TRUE,
                                           conv_context,
                                           conversion,
                                           (a_conv_descr *)NULL,
@@ -2427,7 +2425,7 @@ guard function.
                                           /*is_copy_initialization=*/TRUE,
                                           /*orig_is_copy_initialization=*/TRUE,
                                           /*ref_binding_type=*/dest_type,
-                                          is_direct_binding,
+                                          /*is_direct_binding=*/TRUE,
                                           conv_context,
                                           conversion,
                                           ambiguous,
