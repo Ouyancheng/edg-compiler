@@ -19406,7 +19406,7 @@ if it's not valid).
           }  /* if */
         }  /* if */
       }  /* if */
-     /* Do lvalue --> rvalue, array --> pointer, and function --> pointer
+      /* Do lvalue --> rvalue, array --> pointer, and function --> pointer
          conversions.  They must be done now because they affect the type
          of the operand. */
       /* Keep indefinite functions, since a particular function can
@@ -19415,6 +19415,11 @@ if it's not valid).
                                  TOPT_SUPPRESS_CHECK_FOR_INDEFINITE_FUNCTION);
       convert_function_template_to_single_function_if_possible(operand,
                                                           /*will_call=*/FALSE);
+    } else if (is_rvalue_reference_type(type_cast_to) &&
+               is_bit_field_operand(operand)) {
+      /* Core issue 1447: a bit field cast to an rvalue reference type gets
+         converted to a prvalue. */
+      do_operand_transformations(operand, TOPT_NO_OPTIONS);
     }  /* if */
     /* Check for casts that aren't valid in this kind of expression.
        Note that this check is done after the operand transformations
