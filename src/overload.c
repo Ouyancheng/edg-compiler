@@ -19416,7 +19416,6 @@ be a reference type.  Only used in C++.  This is copy-initialization.
     a_type_ptr temp_type = dest_type;
     /* Yes, the conversion is possible.  Do it. */
     if (conversion->class_object_adjustment_required) {
-      /* FIXME -- C++03 only? */
       /* The result of the conversion function is a class rvalue that can
          be bound to but has a slightly different type than dest_type
          (because of derived --> base issues or cv-qualifier differences).
