@@ -96,7 +96,7 @@ Clear a conversion description.
   conv->routine                        = NULL;
   conv->routine_symbol                 = NULL;
   conv->class_identity_or_bitwise_copy = FALSE;
-  conv->result_is_an_lvalue            = FALSE;
+  conv->result_is_a_glvalue            = FALSE;
   conv->unusable                       = FALSE;
   conv->class_object_adjustment_required = FALSE;
   conv->conversion_for_direct_reference_binding = FALSE;
@@ -2127,7 +2127,7 @@ is not already accounted for in the conversion.
     check_assertion(arg_summary->conversion.routine != NULL);
     /* Get the return type of the conversion routine. */
     conversion_type = return_type_of(arg_summary->conversion.routine->type);
-    if (!arg_summary->conversion.result_is_an_lvalue) {
+    if (!arg_summary->conversion.result_is_a_glvalue) {
       /* The lvalue gets converted to an rvalue, so the type qualifiers
          are dropped. */
       conversion_type = rvalue_type(conversion_type);
@@ -3164,7 +3164,7 @@ copy-initialization).
            (ARM 4.7). */
         /* The operand need not be forced to an rvalue. */
         if (arg_operand != NULL) {
-          arg_summary->conversion.result_is_an_lvalue =
+          arg_summary->conversion.result_is_a_glvalue =
                                                      is_an_lvalue(arg_operand);
         }  /* if */
       } else {
@@ -3345,7 +3345,7 @@ copy-initialization).
       arg_summary->conversion.std.nontrivial_conversion = TRUE;
       /* The operand need not be forced to an rvalue. */
       if (arg_operand != NULL) {
-        arg_summary->conversion.result_is_an_lvalue= is_an_lvalue(arg_operand);
+        arg_summary->conversion.result_is_a_glvalue= is_an_lvalue(arg_operand);
       }  /* if */
       goto have_level;
     }  /* if */
@@ -5356,7 +5356,7 @@ next_argument:
                is_rvalue_reference_type(return_type))) {
             /* A conversion function returning an lvalue reference type creates
                an lvalue. */
-            this_match->conversion.result_is_an_lvalue = TRUE;
+            this_match->conversion.result_is_a_glvalue = TRUE;
           }  /* if */
         } else {
           /* Normal case (not surrogate function).  This is a match that
@@ -12453,7 +12453,7 @@ by this routine.
                          (a_conv_descr *)NULL,
                          /*force_copy_to_temp=*/FALSE);
     /* See whether the conversion function returns a reference type. */
-    if (arg_match_list->conversion.result_is_an_lvalue) {
+    if (arg_match_list->conversion.result_is_a_glvalue) {
       routine_type = conversion_type;
       if (is_pointer_type(routine_type)) {
         /* Deal with the case of a conversion function returning a
@@ -13234,7 +13234,7 @@ accept_function:
       adjust_std_conversion_for_reference_binding(&std_conversion);
     }  /* if */
     candidate->conversion.std = std_conversion;
-    candidate->conversion.result_is_an_lvalue = (result_is_an_lvalue ||
+    candidate->conversion.result_is_a_glvalue = (result_is_an_lvalue ||
                                                  result_is_an_xvalue);
     goto next_function;
 reject_function:
@@ -14200,7 +14200,7 @@ the target type to be used).
               arg_match->conversion.std.nontrivial_conversion = TRUE;
               arg_match->conversion.class_object_adjustment_required = TRUE;
             }  /* if */
-            arg_match->conversion.result_is_an_lvalue = is_an_lvalue(operand);
+            arg_match->conversion.result_is_a_glvalue = is_an_lvalue(operand);
           }  /* if */
         } else if (conversion_to_class_possible(
                                          operand,
@@ -15037,7 +15037,7 @@ These adjustments are similar to standard conversions, but they're
 not standard conversions, so they get their own routine.  dest_type
 is the new type desired.  conversion->std.cast_base_class, if non-NULL,
 indicates the base class to be referred to.  On return, the operand
-is an rvalue or lvalue as required by conversion->result_is_an_lvalue.
+is an rvalue or lvalue as required by conversion->result_is_a_glvalue.
 */
 {
   if (conversion->class_object_adjustment_required) {
@@ -15046,7 +15046,7 @@ is an rvalue or lvalue as required by conversion->result_is_an_lvalue.
                              conversion->std.cast_base_class);
   }  /* if */
   /* If an rvalue is wanted, convert to an rvalue. */
-  if (!conversion->result_is_an_lvalue) {
+  if (!conversion->result_is_a_glvalue) {
     conv_glvalue_to_prvalue(operand);
   }  /* if */
 }  /* do_class_object_adjustment */
@@ -16951,7 +16951,7 @@ error and set *processed to TRUE if the conversion is ambiguous.
                                        &ambiguous, &ambiguity_list)) {
       /* The conversion is possible -- do it. */
       /* Force the result to be an rvalue. */
-      conversion.result_is_an_lvalue = FALSE;
+      conversion.result_is_a_glvalue = FALSE;
       user_convert_operand(operand, specific_type,
                            &conversion, (a_conv_descr *)NULL,
                            /*force_copy_to_temp=*/FALSE);
@@ -17826,7 +17826,7 @@ is used only in C++ mode.
       prep_class_bitwise_copy_operand(operand, ctor_class);
     } else {
       /* There is a user-defined conversion on the argument. */
-      ctor_arg_conversion->result_is_an_lvalue = FALSE;
+      ctor_arg_conversion->result_is_a_glvalue = FALSE;
       user_convert_operand(operand,
                            ctor_class,
                            ctor_arg_conversion,
@@ -18008,7 +18008,7 @@ caller.  That's particularly significant when the "conversion" is a
 class bitwise copy or simple class object adjustment: the processing
 here changes the operand to access the same class object with the new
 type, but does not copy it to a temporary.  However, if in such a case
-force_copy_to_temp is TRUE and conversion->result_is_an_lvalue
+force_copy_to_temp is TRUE and conversion->result_is_a_glvalue
 indicates an rvalue result is required, a temporary will be created,
 the operand will be copied into it, and the result is an rvalue for
 the temporary.
@@ -18029,7 +18029,7 @@ the temporary.
   }  /* if */
 #endif /* CHECKING */
   is_explicit_cast = conversion->is_explicit_cast;
-  if (conversion->result_is_an_lvalue) force_copy_to_temp = FALSE;
+  if (conversion->result_is_a_glvalue) force_copy_to_temp = FALSE;
   if (conversion->class_identity_or_bitwise_copy) {
     /* Bitwise copy of a class. */
     prep_class_bitwise_copy_operand(operand, dest_type);
@@ -18098,7 +18098,7 @@ the temporary.
       /* No specified destination type.  The result type of the conversion
          function is what we want. */
       /* If an rvalue is wanted, convert to an rvalue. */
-      if (!conversion->result_is_an_lvalue) {
+      if (!conversion->result_is_a_glvalue) {
         do_operand_transformations(operand, TOPT_NO_OPTIONS);
       }  /* if */
     } else if (is_class_struct_union_type(operand->type) ||
@@ -18110,7 +18110,7 @@ the temporary.
       do_class_object_adjustment(operand, dest_type, conversion);
     } else {
       /* Nonclass case. */
-      if (!conversion->result_is_an_lvalue || 
+      if (!conversion->result_is_a_glvalue || 
           conversion->std.nontrivial_conversion) {
         /* The caller will not accept an lvalue, or a standard conversion
            must be done, so convert a glvalue to a prvalue.  The operand
@@ -18316,7 +18316,7 @@ is_transparent.  conv_context describes the context of the conversion.
     /* The types are compatible.  Do the conversion. */
     if (conv_context & CCO_CAST) conversion->is_explicit_cast = TRUE;
     /* Force the result to be an rvalue. */
-    conversion->result_is_an_lvalue = FALSE;
+    conversion->result_is_a_glvalue = FALSE;
     convert_operand(source_operand, dest_type, conversion);
   }  /* if */
 }  /* prep_conversion_operand */
@@ -23326,7 +23326,7 @@ can convert to or from handles.
                                        (a_symbol **)NULL)) {
       possible = TRUE;
       conv->class_object_adjustment_required = TRUE;
-      conv->result_is_an_lvalue = TRUE;
+      conv->result_is_a_glvalue = TRUE;
     } else if ((!curr_expr_kind_is_const() || constexpr_enabled) &&
                is_potential_conv_function_source(op1_type)) {
       /* It might be possible to convert the source operand to an lvalue
@@ -23398,7 +23398,7 @@ can convert to or from handles.
         conv->std.cast_base_class = bcp;
         conv->std.nontrivial_conversion = (bcp != NULL);
         conv->class_object_adjustment_required = TRUE;
-        conv->result_is_an_lvalue = FALSE;
+        conv->result_is_a_glvalue = FALSE;
       }  /* if */
     } else {
       /* Not related classes.  See whether op1 can be converted to the

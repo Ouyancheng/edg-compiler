@@ -2872,7 +2872,7 @@ will be equal to init_list_ctor_arg_list->variant.braced.list.
           arg_match->conversion.class_object_adjustment_required = TRUE;
         }  /* if */
         if (is_bitwise_copy) {
-          arg_match->conversion.result_is_an_lvalue = FALSE;
+          arg_match->conversion.result_is_a_glvalue = FALSE;
         }  /* if */
         user_convert_operand(operand,
                              class_type,
@@ -18278,7 +18278,7 @@ called only in C++ mode.
              to a reference type (otherwise, when a conversion function
              that returns a reference is used, the result would be an
              lvalue).  Microsoft doesn't do that. */
-          if (!microsoft_bugs) conversion.result_is_an_lvalue = FALSE;
+          if (!microsoft_bugs) conversion.result_is_a_glvalue = FALSE;
           /* Except in cfront mode, force a temporary for a cast of a class
              object to the same class type, ignoring cv-qualifiers. */
           user_convert_operand(operand, type_cast_to, &conversion,

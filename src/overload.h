@@ -67,12 +67,12 @@ typedef struct a_conv_descr {
 			   class_object_adjustment_required).  routine is
 			   always NULL when this flag is set. */
   a_byte_boolean
-		result_is_an_lvalue;
+		result_is_a_glvalue;
 			/* If TRUE, the function returns a reference and the
-			   reference should be left as an lvalue rather than
-			   converted to an rvalue.  If FALSE, the result is
-			   an rvalue (either originally or after an
-			   lvalue-->rvalue conversion).  Note that this
+			   reference should be left as a glvalue rather than
+			   converted to a prvalue.  If FALSE, the result is
+			   a prvalue (either originally or after a
+			   glvalue-->prvalue conversion).  Note that this
 			   is meaningful even when the entry indicates no
 			   conversion. */
   a_byte_boolean
