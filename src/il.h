@@ -1028,7 +1028,7 @@ extern a_type_ptr type_plus_qualifiers_from_second_type(a_type_ptr type,
 
 extern a_type_ptr make_unqualified_type(a_type_ptr old_type);
 
-extern a_type_ptr rvalue_type(a_type_ptr type);
+extern a_type_ptr prvalue_type(a_type_ptr type);
 
 extern a_type_ptr return_type_of(a_type_ptr routine_type);
 

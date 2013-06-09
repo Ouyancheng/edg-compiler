@@ -2823,7 +2823,7 @@ Lower the indicated fixed-point increment or decrement operation.
   an_expr_node_ptr      fxmask_expr;
   a_variable_ptr        temp_var = NULL;
   a_boolean             is_post_op, temp_init_used;
-  a_type_ptr            result_type = rvalue_type(op1->type);
+  a_type_ptr            result_type = prvalue_type(op1->type);
   char                  *routine_name;
   a_routine_ptr         *routine;
   unsigned long         fxmask;

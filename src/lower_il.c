@@ -2127,7 +2127,7 @@ The result is an rvalue.
   field_node->variant.field = field;
   node->next = field_node;
   /* The selected field is an rvalue and therefore has no cv-qualifiers. */
-  selection_type = rvalue_type(field->type);
+  selection_type = prvalue_type(field->type);
   /* Make the field selection node. */
   node = make_operator_node((an_expr_operator_kind)eok_dot_field,
                             selection_type, node);
@@ -11374,7 +11374,7 @@ a temporary will be used, and the code will be something like
   an_expr_node_ptr      op1_for_operation, op1_for_assign, op_node, op2_node;
   a_variable_ptr        temp_var = NULL;
   a_boolean             temp_init_used;
-  a_type_ptr            result_type = rvalue_type(op1->type);
+  a_type_ptr            result_type = prvalue_type(op1->type);
   a_type_ptr            operation_type;
   a_boolean             swap_operands = FALSE;
   a_boolean             result_is_lvalue = expr->variant.operation.
@@ -13484,7 +13484,7 @@ expr->next is preserved.
            an rvalue (of the correct type). */
         expr->is_lvalue = FALSE;
         expr->variant.operation.returns_lvalue_instead_of_usual_rvalue = FALSE;
-        expr->type = rvalue_type(expr->type);
+        expr->type = prvalue_type(expr->type);
       }  /* if */
     } else if (node_operator_is(expr, eok_dot_field)) {
       /* Can't take the address of a bit-field selection; drop the

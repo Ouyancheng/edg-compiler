@@ -5099,7 +5099,7 @@ expressions aren't copied; they're just linked together into one tree.
         /* For other cases, e.g., dik_constructor, make an enk_temp_init. */
         expr = alloc_expr_node((an_expr_node_kind)enk_temp_init);
         expr->variant.init.dynamic_init = dip;
-        expr->type = rvalue_type(con->type);
+        expr->type = prvalue_type(con->type);
       }  /* if */
     }  /* if */
   } else if (con->kind == (a_constant_repr_kind)ck_aggregate) {
@@ -5144,7 +5144,7 @@ that expression.
       an_expr_node_ptr expr;
       expr = alloc_expr_node((an_expr_node_kind)enk_temp_init);
       expr->variant.init.dynamic_init = dip;
-      expr->type = rvalue_type(con->type);
+      expr->type = prvalue_type(con->type);
       dip = alloc_dynamic_init((a_dynamic_init_kind)dik_expression);
       dip->variant.expression = expr;
       con->variant.dynamic_init = dip;
@@ -10631,7 +10631,7 @@ a_type_ptr make_unqualified_type(a_type_ptr type)
 Return a type that is the unqualified version of the type given by type.
 This differs from skip_typerefs in that it preserves typedefs where possible.
 Note that this is not the routine to use to drop qualifiers when changing
-to an rvalue type, except possibly for C-mode-only code; see rvalue_type
+to an rvalue type, except possibly for C-mode-only code; see prvalue_type
 instead.
 */
 {
@@ -10668,14 +10668,14 @@ instead.
 }  /* make_unqualified_type */
 
 
-a_type_ptr rvalue_type(a_type_ptr type)
+a_type_ptr prvalue_type(a_type_ptr type)
 /*
-type is the type of an lvalue.  Return the type that the associated rvalue
+type is the type of a glvalue.  Return the type that the associated prvalue
 would have.  That is, drop type qualifiers as appropriate.  Array-to-pointer
 and function-to-pointer decay are not considered.
 */
 {
-  /* In C++, class rvalues can have cv-qualified type, so the cv-qualifiers
+  /* In C++, class prvalues can have cv-qualified type, so the cv-qualifiers
      are kept.  In all other cases, they are removed. */
   if (C_mode() ||
 #if DO_IL_LOWERING
@@ -10686,7 +10686,7 @@ and function-to-pointer decay are not considered.
     type = make_unqualified_type(type);
   }  /* if */
   return type;
-}  /* rvalue_type */
+}  /* prvalue_type */
 
 
 a_type_ptr return_type_of(a_type_ptr routine_type)
@@ -10701,9 +10701,9 @@ returned.  Otherwise, it is the type of the rvalue returned.
   routine_type = skip_typerefs(routine_type);
   return_type = routine_type->variant.routine.return_type;
   if (!is_any_reference_type(return_type)) {
-    /* The function returns a non-reference type, i.e., an rvalue.  Drop
+    /* The function returns a non-reference type, i.e., a prvalue.  Drop
        cv-qualifiers as appropriate. */
-    return_type = rvalue_type(return_type);
+    return_type = prvalue_type(return_type);
   } else {
     /* The function returns a reference, so the return type is the type
        underlying the reference. */
@@ -10727,9 +10727,9 @@ the function returns a reference, the reference type is returned.
   if (is_any_reference_type(return_type)) {
     /* If the function returns a reference type, leave the type alone. */
   } else {
-    /* The function returns a non-reference type, so the result is an
-       rvalue and cv-qualifiers should be dropped appropriately. */
-    return_type = rvalue_type(return_type);
+    /* The function returns a non-reference type, so the result is a
+       prvalue and cv-qualifiers should be dropped appropriately. */
+    return_type = prvalue_type(return_type);
   }  /* if */
   return return_type;
 }  /* il_return_type_of */
@@ -13194,7 +13194,7 @@ care must be taken with fixed-point operands in particular.
   op2 = op1->next;
   op1 = skip_parens(op1);
   op2 = skip_parens(op2);
-  op1_type = rvalue_type(op1->type);
+  op1_type = prvalue_type(op1->type);
   op2_type = op2->type;
   /* Usually, the operation type is the type of the second operand, because
      the second operand will have been cast to the operation type. */
@@ -17659,7 +17659,7 @@ for variables with reference type.
 
   node = alloc_expr_node((an_expr_node_kind)enk_variable);
   /* Drop any type qualifiers on the variable type as appropriate. */
-  node->type = rvalue_type(var->type);
+  node->type = prvalue_type(var->type);
   node->variant.variable = var;
   return node;
 }  /* var_rvalue_expr */
@@ -18063,7 +18063,7 @@ anonymous unions (either standard or nonstandard).
   node = field_lvalue_selection_expr(node, field);
   /* Turn it into an rvalue. */
   node->is_lvalue = FALSE;
-  node->type = rvalue_type(node->type);
+  node->type = prvalue_type(node->type);
   return node;
 }  /* field_rvalue_selection_expr */
 

@@ -7418,7 +7418,7 @@ to indicate that.
     check_cast_access = FALSE;
   }  /* if */
   /* Drop any qualifiers on the destination type, as appropriate. */
-  new_type = rvalue_type(new_type);
+  new_type = prvalue_type(new_type);
   /* See whether a cast operator should be added. */
   if (!is_implicit_cast) {
     /* Explicit casts must always be represented. */
@@ -7810,7 +7810,7 @@ user-defined conversions.
 
   if (!expr_access_checking_should_be_done()) check_cast_access = FALSE;
   /* Drop any qualifiers on the destination type, as appropriate. */
-  new_type = rvalue_type(new_type);
+  new_type = prvalue_type(new_type);
   /* Save the operand's source position, etc. */
   orig_operand = *operand;
   if (err_pos == NULL) err_pos = &orig_operand.position;
@@ -8594,7 +8594,7 @@ desired.
   field = field_node->variant.field;
   field_size = field->bit_size;
   type = node->type;
-  if (!is_glvalue_node(node)) type = rvalue_type(type);
+  if (!is_glvalue_node(node)) type = prvalue_type(type);
   promoted_type = skip_typerefs(type);
   if (is_template_param_type(promoted_type) ||
       is_error_type(promoted_type)) {
@@ -8698,8 +8698,8 @@ if the type is not integral).
        the operand type. */
     promoted_type = operand->type;
     if (is_an_lvalue(operand)) {
-      /* For an lvalue, use the type it would have if it were an rvalue. */
-      promoted_type = rvalue_type(promoted_type);
+      /* For an lvalue, use the type it would have if it were a prvalue. */
+      promoted_type = prvalue_type(promoted_type);
     }  /* if */
     promoted_type = type_after_integral_promotion(promoted_type);
   }  /* if */
@@ -14652,8 +14652,8 @@ represents an explicit cast.
     temp_init_node->type = temp_type;
   } else {
     /* The result is the value of the temporary, so the type is the type
-       of the temporary as an rvalue. */
-    temp_init_node->type = rvalue_type(temp_type);
+       of the temporary as a prvalue. */
+    temp_init_node->type = prvalue_type(temp_type);
   }  /* if */
   dip->is_explicit_cast = is_explicit_cast;
   /* Make sure the IL scope that the temporary is part of exists.  Even though
@@ -17608,7 +17608,7 @@ it might produce an error).
        std::nullptr_t in a glvalue-to-prvalue conversion. */
     prvalue_node_type = standard_nullptr_type();
   } else {
-    prvalue_node_type = rvalue_type(node->type);
+    prvalue_node_type = prvalue_type(node->type);
   }  /* if */
   /* No skip_parens here.  Parentheses are handled under the enk_operation
      case. */
@@ -18879,7 +18879,7 @@ a_type_ptr do_implicit_type_transformations(a_type_ptr type,
                                             an_operand *operand)
 /*
 Do the implicit array --> pointer and function --> pointer transformations on
-a type.  Also do the lvalue --> rvalue type transformation (dropping
+a type.  Also do the glvalue --> prvalue type transformation (dropping
 qualifiers as appropriate).  If operand != NULL, it is the associated operand
 (needed for the member function --> pointer to member function transformation).
 */
@@ -18889,7 +18889,7 @@ qualifiers as appropriate).  If operand != NULL, it is the associated operand
   } else if (is_function_type(type)) {
     type = type_after_function_to_pointer_transformation(type, operand);
   } else {
-    type = rvalue_type(type);
+    type = prvalue_type(type);
   }  /* if */
   return type;
 }  /* do_implicit_type_transformations */

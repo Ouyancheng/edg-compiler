@@ -11842,7 +11842,7 @@ lowered.
   } else {
     /* Simple scalar case. */
     a_constant zero_constant;
-    make_zero_of_proper_type(rvalue_type(type), &zero_constant);
+    make_zero_of_proper_type(prvalue_type(type), &zero_constant);
     con = alloc_unshared_constant(&zero_constant);
   }  /* if */
   /* IL elements allocated during lowering are, by default, set as though

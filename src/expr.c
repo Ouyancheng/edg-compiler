@@ -5409,7 +5409,7 @@ is a C++/CLI handle.
       result_type = make_field_selection_type(field, qualifiers);
     }  /* if */
     selection_type = result_type;
-    if (!is_lvalue) result_type = rvalue_type(result_type);
+    if (!is_lvalue) result_type = prvalue_type(result_type);
     /* Determine the IL operator to use. */
     op = is_arrow_operator ? (an_expr_operator_kind)eok_points_to_field :
                              (an_expr_operator_kind)eok_dot_field;
@@ -8237,7 +8237,7 @@ case.
       } else {
         /* Operand is okay. */
         modifying_lvalue(operand, /*value_used=*/TRUE);
-        result_type = rvalue_type(operand->type);
+        result_type = prvalue_type(operand->type);
       }  /* if */
       if (err) {
         /* Error of some kind. */
@@ -8517,7 +8517,7 @@ and return the result in *result (or an error indication in *rcblock).
         /* Operand is okay. */
         modifying_lvalue(&operand, /*value_used=*/TRUE);
         orig_result_type = operand.type;
-        result_type = rvalue_type(orig_result_type);
+        result_type = prvalue_type(orig_result_type);
       }  /* if */
       if (err) {
         /* Error of some kind. */
@@ -18678,7 +18678,7 @@ an lvalue cast in g++ mode.
         f_skip_typerefs(source_type)->size ==
                                          f_skip_typerefs(type_cast_to)->size &&
         !f_identical_types(source_type,
-                           rvalue_type(type_cast_to),
+                           prvalue_type(type_cast_to),
                            ITF_NO_FLAGS) &&
         !is_bit_field_operand(operand)) {
       is_lvalue_cast = TRUE;
@@ -24382,7 +24382,7 @@ number.
     /* The type of the assignment is the destination type with qualifiers
        dropped as appropriate. */
     orig_result_type = operand_1->type;
-    result_type = rvalue_type(orig_result_type);
+    result_type = prvalue_type(orig_result_type);
     op = which_binary_operator(tok_assign, result_type);
     /* do_operand_transformations is not done in the second operand,
        because the processing for that is done in the conversion stuff. */
@@ -24707,7 +24707,7 @@ assignment was a braced-init-list (allowed in C++11 mode),
                determining the operation type do not parallel those of the
                standard arithmetic types. */
             orig_result_type = operand_1->type;
-            operation_type = rvalue_type(result_type);
+            operation_type = prvalue_type(result_type);
             goto operation_type_determined;
           } else
 #endif /* GNU_VECTOR_TYPES_ALLOWED */
@@ -24740,7 +24740,7 @@ assignment was a braced-init-list (allowed in C++11 mode),
                determining the operation type do not parallel those of the
                standard arithmetic types. */
             orig_result_type = operand_1->type;
-            operation_type = rvalue_type(result_type);
+            operation_type = prvalue_type(result_type);
             goto operation_type_determined;
           } else
 #endif /* GNU_VECTOR_TYPES_ALLOWED */
@@ -24800,7 +24800,7 @@ assignment was a braced-init-list (allowed in C++11 mode),
                determining the operation type do not parallel those of the
                standard arithmetic types. */
             orig_result_type = operand_1->type;
-            operation_type = rvalue_type(result_type);
+            operation_type = prvalue_type(result_type);
             goto operation_type_determined;
           }  /* if */
 #endif /* GNU_VECTOR_TYPES_ALLOWED */
@@ -24818,7 +24818,7 @@ assignment was a braced-init-list (allowed in C++11 mode),
         make_error_operand(result);
       } else {
         orig_result_type = operand_1->type;
-        result_type = rvalue_type(orig_result_type);
+        result_type = prvalue_type(orig_result_type);
         if (pointer_add_sub) {
           /* For pointer += or -=, integral promotions are not done, and
              the operation type is the first operand's type.  This is
@@ -31299,7 +31299,7 @@ otherwise a diagnostic is emitted and one or both of *ne_call_expr/
       /* Make the "++" operator node. */
       build_unary_result_operand(&operand1,
                                  (an_expr_operator_kind)eok_pre_incr,
-                                 rvalue_type(operand1.type), &operand);
+                                 prvalue_type(operand1.type), &operand);
     }  /* if */
   }  /* if */
   if (passed) {
@@ -33707,7 +33707,7 @@ type to be the type of return_op.
      we use the type as the return type. */
   do_operand_transformations(return_op,
                              TOPT_SUPPRESS_LVALUE_TO_RVALUE_CONVERSION);
-  *return_type = set_implicit_lambda_return_type(rvalue_type(return_op->type),
+  *return_type = set_implicit_lambda_return_type(prvalue_type(return_op->type),
                                                  &return_op->position);
 }  /* check_and_adjust_lambda_return_type_if_needed */
 
@@ -34712,7 +34712,7 @@ is TRUE if the expression is the immediate operand of an "&" operator.
     }  /* if */
     if (!is_glvalue_node(expr_copy)) {
       expr_copy->orig_lvalue_type = new_type;
-      new_type = rvalue_type(new_type);
+      new_type = prvalue_type(new_type);
     }  /* if */
     expr_copy->type = new_type;
     make_lvalue_or_rvalue_expression_operand(expr_copy, result);

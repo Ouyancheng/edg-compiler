@@ -2128,9 +2128,9 @@ is not already accounted for in the conversion.
     /* Get the return type of the conversion routine. */
     conversion_type = return_type_of(arg_summary->conversion.routine->type);
     if (!arg_summary->conversion.result_is_a_glvalue) {
-      /* The lvalue gets converted to an rvalue, so the type qualifiers
+      /* The glvalue gets converted to a prvalue, so the type qualifiers
          are dropped. */
-      conversion_type = rvalue_type(conversion_type);
+      conversion_type = prvalue_type(conversion_type);
     }  /* if */
     if (any_qualifier_missing(conversion_type, param_type)) {
       /* Some type qualifiers are being added.  Remember that for use as a
@@ -13852,7 +13852,7 @@ match, promotion, etc.) for the operand and record it in arg_match.
        but this is used in jcool and tools.h++. */
     match_level = aml_std_conversion;
   } else {
-    a_type_ptr operand_type = rvalue_type(operand->type);
+    a_type_ptr operand_type = prvalue_type(operand->type);
     if (type_code == BOOL_TYPE_CODE) {
       /* A bool operand is wanted. */
       if (is_bool_type(operand_type)) {
@@ -19687,7 +19687,7 @@ The type of the operand will be updated if necessary.
       if (is_an_lvalue(operand)) {
         operand->type = var->type;
       } else {
-        operand->type = rvalue_type(var->type);
+        operand->type = prvalue_type(var->type);
       }  /* if */
       expr = operand->variant.expression;
       while (is_operation_node(expr) && node_operator_is(expr, eok_parens)) {
@@ -23166,7 +23166,7 @@ aggregate constant.
   a_dynamic_init_ptr  field_init;
   a_dynamic_init_ptr  aggr_init;
   an_expr_node_ptr    init_expr;
-  a_type_ptr          field_type = rvalue_type(field->type);
+  a_type_ptr          field_type = prvalue_type(field->type);
   an_operand          orig_operand;
 
   db_enter(3, "prep_transparent_union_conversion_operand");
@@ -23403,7 +23403,7 @@ can convert to or from handles.
     } else {
       /* Not related classes.  See whether op1 can be converted to the
          type of op2 as an rvalue. */
-      conv_dest_type = rvalue_type(op2_type);
+      conv_dest_type = prvalue_type(op2_type);
       if (is_class_struct_union_type(op2_type)) {
         if (conversion_to_class_possible(op1,
                                          (an_arg_list_elem *)NULL,
