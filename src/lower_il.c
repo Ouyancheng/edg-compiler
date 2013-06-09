@@ -13864,7 +13864,7 @@ assumed that the "this" variable in a member function cannot be NULL
 (otherwise, it is only assumed that "this" cannot be NULL in virtual member
 functions).  This routine does not investigate all possible cases (i.e., it may
 return FALSE when a more complete inspection would return TRUE).  See
-constant_lvalue_address and constant_rvalue_pointer for more definitive
+constant_glvalue_address and constant_prvalue_pointer for more definitive
 determinations of whether or not an expression is constant valued, but this
 routine has some differences in underlying assumptions (e.g., "this" is
 considered constant, addresses of string literals are not) that are specific to

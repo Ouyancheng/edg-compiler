@@ -3471,8 +3471,8 @@ have_level:;
           conptr = &arg_operand->variant.constant;
         } else if (is_expression_operand(arg_operand) &&
                    is_a_prvalue(arg_operand) &&
-                   constant_rvalue_pointer(arg_operand->variant.expression,
-                                           &con, /*address_escapes=*/FALSE)) {
+                   constant_prvalue_pointer(arg_operand->variant.expression,
+                                            &con, /*address_escapes=*/FALSE)) {
           conptr = &con;
         }  /* if */
         if (conptr != NULL &&

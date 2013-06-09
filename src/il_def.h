@@ -13701,8 +13701,8 @@ enum an_expr_operator_kind_tag {
              according to is_rvalueable_node)
      If the operator is an addressing operator, see also
        folding.c:
-           constant_lvalue_address
-           constant_rvalue_pointer
+           constant_glvalue_address
+           constant_prvalue_pointer
        il_walk.c:
            traverse_addressing_subtree
   */

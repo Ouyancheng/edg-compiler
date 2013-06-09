@@ -34355,7 +34355,7 @@ memory region).  Do various error checks.
       is_pointer_type(param_type) &&
       is_an_lvalue(operand) && is_expression_operand(operand) &&
       identical_types(operand->type, param_type) &&
-      microsoft_template_arg_constant_lvalue_address(
+      microsoft_template_arg_constant_glvalue_address(
                                                    operand->variant.expression,
                                                    constant)) {
     /* In Microsoft mode, an lvalue of type pointer to X can be used
@@ -36612,8 +36612,8 @@ the __uuidof keyword.
     a_constant con;
     check_assertion(is_an_lvalue(&result) &&
                     is_expression_operand(&result));
-    if (constant_lvalue_address(result.variant.expression, &con,
-                                /*address_escapes=*/FALSE)) {
+    if (constant_glvalue_address(result.variant.expression, &con,
+                                 /*address_escapes=*/FALSE)) {
       check_assertion(con.kind == (a_constant_repr_kind)ck_address &&
                       con.variant.address.kind ==
                                              (an_address_base_kind)abk_uuidof);

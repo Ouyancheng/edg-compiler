@@ -14955,8 +14955,8 @@ produced.  See copy_template_param_expr for the parameter descriptions.
       /* The expression is an lvalue.  Try to convert it to an rvalue. */
       if (is_array_type(expr_copy->type)) {
         /* Convert an array to a constant pointer. */
-        if (constant_lvalue_address(expr_copy, constant,
-                                    /*address_escapes=*/TRUE)) {
+        if (constant_glvalue_address(expr_copy, constant,
+                                     /*address_escapes=*/TRUE)) {
           a_type_ptr ptr_type = type_after_array_to_pointer_transformation(
                                                               expr_copy->type);
           implicit_cast(constant, ptr_type);
@@ -14967,8 +14967,8 @@ produced.  See copy_template_param_expr for the parameter descriptions.
         }  /* if */
       } else if (is_function_type(expr_copy->type)) {
         /* Convert a function to a constant pointer. */
-        if (constant_lvalue_address(expr_copy, constant,
-                                    /*address_escapes=*/TRUE)) {
+        if (constant_glvalue_address(expr_copy, constant,
+                                     /*address_escapes=*/TRUE)) {
           a_type_ptr ptr_type = make_pointer_type(expr_copy->type);
           implicit_cast(constant, ptr_type);
           expr_copy = NULL;
@@ -15550,8 +15550,8 @@ options is a set of name lookup options.
              constant. */
           if (new_operand_1 != NULL &&
               is_glvalue_node(new_operand_1) &&
-              constant_lvalue_address(new_operand_1, constant,
-                                     /*address_escapes=*/TRUE)) {
+              constant_glvalue_address(new_operand_1, constant,
+                                      /*address_escapes=*/TRUE)) {
             folded_to_constant = TRUE;
             expr_copy = NULL;
             *alloc_con = NULL;
@@ -16432,8 +16432,8 @@ lookup options.
         check_assertion(expr_copy != NULL);
         if (is_glvalue_node(expr_copy)) {
           /* See if the glvalue has a constant address. */
-          if (constant_lvalue_address(expr_copy, &constant,
-                                      /*address_escapes=*/TRUE)) {
+          if (constant_glvalue_address(expr_copy, &constant,
+                                       /*address_escapes=*/TRUE)) {
             /* Yes.  Change the address constant type to a reference. */
             a_type_ptr ref_type = make_reference_type(
                                                type_pointed_to(constant.type));
@@ -16466,8 +16466,8 @@ lookup options.
         if (is_error_node(expr_copy)) {
           set_error_constant(&constant);
         } else if (is_pointer_type(expr_copy->type) &&
-                   constant_rvalue_pointer(expr_copy, &constant,
-                                           /*address_escapes=*/TRUE)) {
+                   constant_prvalue_pointer(expr_copy, &constant,
+                                            /*address_escapes=*/TRUE)) {
           /* The expression has constant pointer value (possibly
              template-dependent), so return that constant. */
         } else {
@@ -19030,8 +19030,8 @@ doing nothing should be suppressed.
       has_side_effects = TRUE;
       if (is_glvalue_node(node)) {
         a_constant local_constant;
-        if (constant_lvalue_address(node, &local_constant,
-                                    /*address_escapes=*/FALSE)) {
+        if (constant_glvalue_address(node, &local_constant,
+                                     /*address_escapes=*/FALSE)) {
           /* Don't consider an expression whose address is constant to have
              side effects.  This is a detail, but helps ensure that we get
              the same declared-but-not-referenced warnings regardless of how

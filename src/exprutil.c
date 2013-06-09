@@ -5287,8 +5287,8 @@ constant expressions, fold to a constant result.
              is_an_rvalue(operand) &&
              is_pointer_type(operand->type)) {
     a_constant conaddr;
-    if (constant_rvalue_pointer(operand->variant.expression, &conaddr,
-                                /*address_escapes=*/TRUE)) {
+    if (constant_prvalue_pointer(operand->variant.expression, &conaddr,
+                                 /*address_escapes=*/TRUE)) {
       orig_operand = *operand;
       if (curr_expr_kind_is_one_in_which_const_exprs_are_recorded()) {
         conaddr.expr = operand->variant.expression;
@@ -7115,8 +7115,8 @@ the rewritten expression.
 
   if (!expr->is_lvalue &&
       is_pointer_type(expr->type) &&
-      constant_rvalue_pointer(expr, &string_constant,
-                              /*address_escapes=*/TRUE)) {
+      constant_prvalue_pointer(expr, &string_constant,
+                               /*address_escapes=*/TRUE)) {
     /* A constant string literal: set the type to System::String^ and create
        the constant node. */
     an_expr_node_ptr cli_string_node;
@@ -7209,8 +7209,8 @@ is_literal_convertible_to_cli_string is TRUE.
   expr = make_node_from_operand(operand);
   if (!expr->is_lvalue &&
       is_pointer_type(expr->type) &&
-      constant_rvalue_pointer(expr, &string_constant,
-                              /*address_escapes=*/TRUE)) {
+      constant_prvalue_pointer(expr, &string_constant,
+                               /*address_escapes=*/TRUE)) {
     /* The operand is a simple string literal, so make a constant operand
        for the corresponding handle. */
     string_constant.type = make_handle_to_system_string();
@@ -11431,7 +11431,7 @@ pointer value.
   if (is_an_lvalue(operand) && !operand->is_dummy_lvalue) {
     a_constant       con;
     an_expr_node_ptr expr = extract_node_from_operand(operand);
-    if (constant_lvalue_address(expr, &con, /*address_escapes=*/FALSE)) {
+    if (constant_glvalue_address(expr, &con, /*address_escapes=*/FALSE)) {
       if (is_null_pointer_value(&con)) {
         is_null = TRUE;
       }  /* if */
@@ -12146,14 +12146,14 @@ of a subscript operation).
                is_expression_operand(operand_2) &&
                is_pointer_type(operand_1->type) &&
                is_pointer_type(operand_2->type) &&
-               constant_rvalue_pointer_full(
+               constant_prvalue_pointer_full(
                                           operand_1->variant.expression,
                                           (a_constexpr_evaluation_block *)NULL,
                                           &con_1,
                                           /*address_escapes=*/FALSE,
                                           CAO_TREAT_LOCAL_VAR_ADDR_AS_CONSTANT,
                                           (a_boolean *)NULL) &&
-               constant_rvalue_pointer_full(
+               constant_prvalue_pointer_full(
                                           operand_2->variant.expression,
                                           (a_constexpr_evaluation_block *)NULL,
                                           &con_2,
@@ -16084,11 +16084,11 @@ to an error operand.  Return TRUE if an error was issued.
 
 #endif  /* MICROSOFT_EXTENSIONS_ALLOWED */
 
-a_boolean microsoft_template_arg_constant_lvalue_address(
+a_boolean microsoft_template_arg_constant_glvalue_address(
                                                      an_expr_node_ptr expr,
                                                      a_constant       *conaddr)
 /*
-Variant of constant_lvalue_address used for template argument expressions
+Variant of constant_glvalue_address used for template argument expressions
 in Microsoft mode.  Considers a dllimport variable to have a constant
 address in addition to the cases usually covered.
 */
@@ -16096,7 +16096,7 @@ address in addition to the cases usually covered.
   a_boolean is_constant_addr = FALSE;
 
   expr = skip_parens(expr);
-  if (constant_lvalue_address(expr, conaddr, /*address_escapes=*/TRUE)) {
+  if (constant_glvalue_address(expr, conaddr, /*address_escapes=*/TRUE)) {
     is_constant_addr = TRUE;
 #if MICROSOFT_EXTENSIONS_ALLOWED
   } else if (microsoft_mode && is_variable_node(expr)) {
@@ -16109,7 +16109,7 @@ address in addition to the cases usually covered.
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   }  /* if */
   return is_constant_addr;
-}  /* microsoft_template_arg_constant_lvalue_address */
+}  /* microsoft_template_arg_constant_glvalue_address */
 
 
 static a_boolean is_possible_nonstatic_selection_masquerading_as_static(
@@ -16264,10 +16264,10 @@ explicit "&" operator in the source and *operator_position gives its position.
             }  /* if */
           }  /* if */
           if ((microsoft_mode && curr_expr_kind_is(ek_template_arg)) ?
-                     microsoft_template_arg_constant_lvalue_address(test_expr,
+                     microsoft_template_arg_constant_glvalue_address(test_expr,
                                                                     &conaddr) :
-                     constant_lvalue_address(test_expr, &conaddr,
-                                             /*address_escapes=*/TRUE)) {
+                     constant_glvalue_address(test_expr, &conaddr,
+                                              /*address_escapes=*/TRUE)) {
             if (cpp11_sfinae_enabled &&
                 conaddr.kind == (a_constant_repr_kind)ck_template_param &&
                 conaddr.variant.template_param.kind ==
@@ -18461,8 +18461,8 @@ current mode -- just do it.
     error_in_operand(ec_expr_not_integral_constant, operand);
   } else if ((expr_stack->favor_constant_result &&
               is_glvalue_node(expr) &&
-              constant_lvalue_address(expr, &conaddr,
-                                      /*address_escapes=*/TRUE)) ||
+              constant_glvalue_address(expr, &conaddr,
+                                       /*address_escapes=*/TRUE)) ||
              (constexpr_enabled && curr_expr_kind_is_const() &&
               fold_constexpr_expr(expr, /*treat_as_object=*/TRUE,
                                   &operand->position, &conaddr))) {
@@ -18670,8 +18670,8 @@ by an "&" operator and *ampersand_position gives its position.
     }  /* if */
   }  /* if */
   if (try_folding &&
-      constant_lvalue_address(expr, &constant,
-                              /*address_escapes=*/!will_call)) {
+      constant_glvalue_address(expr, &constant,
+                               /*address_escapes=*/!will_call)) {
     /* The address is constant and a constant is preferred in the current
        context. */
     if (cpp11_sfinae_enabled &&

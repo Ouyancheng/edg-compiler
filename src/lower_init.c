@@ -8844,8 +8844,8 @@ C99 mode for the same reason.
           if (!simple_constant_init_opt_ruled_out &&
               !processing_file_scope_init_routine &&
               is_pointer_type(source_node->type) &&
-              constant_rvalue_pointer(source_node, &con,
-                                      /*address_escapes=*/TRUE)) {
+              constant_prvalue_pointer(source_node, &con,
+                                       /*address_escapes=*/TRUE)) {
             /* The initial value is a simple constant.  Rewrite the
                initialization as a simple static initialization.  We can't do
                this optimization when we're processing file scope

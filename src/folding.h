@@ -192,8 +192,8 @@ typedef struct a_constexpr_evaluation_block {
   a_byte_boolean
 		do_not_call_back;
 			/* Set for calls from fold_expr/fold_glvalue_expr to
-			   constant_lvalue_address_full/
-			   constant_rvalue_pointer_full and vice-versa, to
+			   constant_glvalue_address_full/
+			   constant_prvalue_pointer_full and vice-versa, to
 			   prevent a call back (and infinite recursion) on
 			   the current expression node (but not its
 			   subtree). */
@@ -216,7 +216,7 @@ typedef struct a_constexpr_evaluation_block {
 } a_constexpr_evaluation_block;
 
 /*
-Options for constant_lvalue_address and constant_rvalue_pointer.
+Options for constant_glvalue_address and constant_prvalue_pointer.
 */
 typedef int a_constant_address_option_set;
 #define CAO_NONE ((a_constant_address_option_set)0x0)
@@ -236,11 +236,11 @@ typedef int a_constant_address_option_set;
 			   considered an object pointer and not a null pointer
 			   constant. */
 
-extern a_boolean constant_lvalue_address(an_expr_node_ptr expr,
-                                         a_constant       *con,
-                                         a_boolean        address_escapes);
+extern a_boolean constant_glvalue_address(an_expr_node_ptr expr,
+                                          a_constant       *con,
+                                          a_boolean        address_escapes);
 
-extern a_boolean constant_rvalue_pointer_full(
+extern a_boolean constant_prvalue_pointer_full(
                              an_expr_node_ptr              expr,
                              a_constexpr_evaluation_block  *ceblock,
                              a_constant                    *con,
@@ -248,9 +248,9 @@ extern a_boolean constant_rvalue_pointer_full(
                              a_constant_address_option_set options,
                              a_boolean                     *template_constant);
 
-extern a_boolean constant_rvalue_pointer(an_expr_node_ptr expr,
-                                         a_constant       *con,
-                                         a_boolean        address_escapes);
+extern a_boolean constant_prvalue_pointer(an_expr_node_ptr expr,
+                                          a_constant       *con,
+                                          a_boolean        address_escapes);
 
 extern a_boolean constant_is_pointer_to_string_literal(a_constant *con,
                                                        a_constant **scon);
