@@ -6225,7 +6225,7 @@ The position of the current token will be used as the operand position.
        a reference type.  Make an lvalue based on that constant. */
     an_expr_node_ptr expr = alloc_node_for_constant(&constant);
     expr = add_ref_indirection_to_node(expr);
-    make_lvalue_expression_operand(expr, operand);
+    make_glvalue_expression_operand(expr, operand);
   } else {
     /* Normal (non-reference) case. */
     make_constant_operand(&constant, operand);
@@ -6267,8 +6267,8 @@ void make_expression_operand(an_expr_node_ptr node,
 			     an_operand       *operand)
 /*
 Make an expression operand for the expression "node".  The operand is
-made an rvalue; the caller should change that if it's not appropriate
-(or use make_lvalue_expression_operand).  This routine does not
+made a prvalue; the caller should change that if it's not appropriate
+(or use make_glvalue_expression_operand).  This routine does not
 assume that the is_lvalue flag of the expression is already set
 appropriately, and accepts that the caller might adjust it after
 this call returns.  The position of the current token will be used
@@ -6287,29 +6287,29 @@ as the operand position.
 }  /* make_expression_operand */
 
 
-void make_lvalue_expression_operand(an_expr_node_ptr node,
-                                    an_operand       *operand)
+void make_glvalue_expression_operand(an_expr_node_ptr node,
+                                     an_operand       *operand)
 /*
 Make an expression operand for the expression "node".  The operand is
-made a glvalue.  The position of the current token will be used as the
-operand position.
+made a glvalue (either an lvalue or xvalue depending on what node is).
+The position of the current token will be used as the operand position.
 */
 {
   check_assertion(is_glvalue_node(node) || is_error_node(node));
   make_expression_operand(node, operand);
   set_lvalue_operand_state(operand);
-}  /* make_lvalue_expression_operand */
+}  /* make_glvalue_expression_operand */
 
 
 void make_lvalue_or_rvalue_expression_operand(an_expr_node_ptr node,
                                               an_operand       *operand)
 /*
 Make an expression operand for the expression "node".  Make an lvalue,
-xvalue, an rvalue depending on node.
+xvalue, or rvalue depending on node.
 */
 {
   if (is_glvalue_node(node)) {
-    make_lvalue_expression_operand(node, operand);
+    make_glvalue_expression_operand(node, operand);
   } else {
     make_expression_operand(node, operand);
   }  /* if */
@@ -8200,8 +8200,8 @@ used only in C++ mode.
 }  /* base_class_cast_operand */
 
 
-void adjust_lvalue_type(an_operand *operand,
-                        a_type_ptr dest_type)
+void adjust_glvalue_type(an_operand *operand,
+                         a_type_ptr dest_type)
 /*
 *operand is a glvalue (not necessarily of class type).  Adjust its
 type, if necessary, to dest_type, which may differ from the current
@@ -8245,12 +8245,12 @@ like a cast.
         /* Adjust cv-qualifiers or the underlying type. */
         an_expr_node_ptr expr = make_node_from_operand(operand);
         expr = add_cast_to_lvalue(expr, dest_type);
-        make_lvalue_expression_operand(expr, operand);
+        make_glvalue_expression_operand(expr, operand);
       }  /* if */
       restore_operand_details_incl_ref(operand, &orig_operand);
     }  /* if */
   }  /* if */
-}  /* adjust_lvalue_type */
+}  /* adjust_glvalue_type */
 
 
 static a_boolean rvalue_reference_cast_underlying_type_is_complete(
@@ -8327,7 +8327,7 @@ gives the destination reference type.
                                                    /*ignore_casts=*/FALSE,
                                                    (a_type_ptr *)NULL);
       check_assertion(success);
-      make_lvalue_expression_operand(temp_init_node, operand);
+      make_glvalue_expression_operand(temp_init_node, operand);
       restore_operand_details(operand, &orig_operand);
     } else {
       a_type_ptr under_type = type_pointed_to(dest_type);
@@ -8477,7 +8477,7 @@ is an lvalue reference to const.
                                 /*requires_runtime_check=*/FALSE,
                                 &expr, &orig_operand.position,
                                 (a_boolean *)NULL);
-        make_lvalue_expression_operand(expr, operand);
+        make_glvalue_expression_operand(expr, operand);
       }  /* if */
       if (is_rvalue_ref) {
         /* The result of a cast to an rvalue reference type is an rvalue.
@@ -8505,7 +8505,7 @@ is an lvalue reference to const.
                                        underlying_type, expr);
       mark_as_reference_cast(expr, dest_type);
       if (is_implicit_cast) expr->variant.operation.compiler_generated = TRUE;
-      make_lvalue_expression_operand(expr, operand);
+      make_glvalue_expression_operand(expr, operand);
       if (is_rvalue_ref) {
         /* The result of a cast to an rvalue reference type is an xvalue. */
         conv_rvalue_reference_result_to_xvalue(operand);
@@ -10497,7 +10497,7 @@ as an lvalue.
     check_assertion(!expr->is_lvalue);
     expr = make_lvalue_operator_node((an_expr_operator_kind)eok_lvalue,
                                      expr->type, expr);
-    make_lvalue_expression_operand(expr, operand);
+    make_glvalue_expression_operand(expr, operand);
     if (is_function) operand->state = (an_operand_state)os_function_designator;
     restore_operand_details(operand, &orig_operand);
     operand->is_id_expression = orig_operand.is_id_expression;
@@ -10598,7 +10598,7 @@ we rewrite it as an lvalue.
       an_operand orig_operand;
       orig_operand = *operand;
       check_assertion(expr->is_lvalue && rewritten_expr->is_lvalue);
-      make_lvalue_expression_operand(expr, operand);
+      make_glvalue_expression_operand(expr, operand);
       if (is_function) {
         operand->state = (an_operand_state)os_function_designator;
       }  /* if */
@@ -10758,7 +10758,7 @@ when gnu_version would ordinarily indicate they should not be.
           texpr = class_operand.variant.expression;
           /* Add the field selection. */
           texpr = fe_field_lvalue_selection_expr(texpr, field);
-          make_lvalue_expression_operand(texpr, operand);
+          make_glvalue_expression_operand(texpr, operand);
           restore_operand_details(operand, &orig_operand);
         } else {
           /* We failed to make an lvalue.  Keep the original operation
@@ -10821,7 +10821,7 @@ when gnu_version would ordinarily indicate they should not be.
             expr = make_lvalue_cast_node(expr, cast_type,
                                          /*compiler_generated=*/FALSE);
           }  /* if */
-          make_lvalue_expression_operand(expr, operand);
+          make_glvalue_expression_operand(expr, operand);
         }  /* if */
         restore_operand_details(operand, &orig_operand);
         /* Restore the lvalue reference entries saved by do_cast, if any. */
@@ -12445,7 +12445,7 @@ the expression.
       expr = make_node_from_operand(operand);
       expr = make_lvalue_operator_node((an_expr_operator_kind)eok_lvalue,
                                        expr->type, expr);
-      make_lvalue_expression_operand(expr, operand);
+      make_glvalue_expression_operand(expr, operand);
     }  /* if */
   }  /* if */
   restore_operand_details_incl_ref(operand, &orig_operand);
@@ -12818,7 +12818,7 @@ Make a placeholder lvalue operand whose type is "type".
   an_expr_node_ptr expr;
 
   expr = make_dummy_lvalue_expr(type);
-  make_lvalue_expression_operand(expr, operand);
+  make_glvalue_expression_operand(expr, operand);
   operand->is_dummy_lvalue = TRUE;
 }  /* make_dummy_lvalue_operand */
 
@@ -12904,7 +12904,7 @@ list of the subscripts.
   op_expr = make_lvalue_operator_node((an_expr_operator_kind)eok_cli_subscript,
                                       type_of_unknown_templ_param_nontype,
                                       op_1_expr);
-  make_lvalue_expression_operand(op_expr, result);
+  make_glvalue_expression_operand(op_expr, result);
   rule_out_expr_kinds(ROEK_CONSTANT, result);
   record_operator_position_in_rescan_info(result, operator_position,
                                           operator_tok_seq_number,
@@ -13567,7 +13567,7 @@ on output it will be an lvalue.
     if (err) {
       conv_to_error_operand(result);
     } else {
-      make_lvalue_expression_operand(node, result);
+      make_glvalue_expression_operand(node, result);
       /* Restore the original source position, etc.  Note that the reference
          entries are NOT restored, on purpose. */
       restore_operand_details(result, &orig_result);
@@ -13758,7 +13758,7 @@ or is NULL if none is needed.
     make_expression_operand(var_rvalue_expr(variable), result);
   } else {
     node = var_lvalue_expr(variable);
-    make_lvalue_expression_operand(node, result);
+    make_glvalue_expression_operand(node, result);
     /* Start a list of reference entries related to the operand. */
     result->ref_entries_list = rep;
     /* If the variable has a reference type, add an implicit indirection. */
@@ -14184,7 +14184,7 @@ reference entry, or is NULL if none is needed.
   }  /* if */
   /* Make an expression for the function. */
   node = function_lvalue_expr(routine);
-  make_lvalue_expression_operand(node, result);
+  make_glvalue_expression_operand(node, result);
   /* Remember whether or not the routine is virtual.  Use of a qualified
      name suppresses the virtual-ness of the function (ARM 10.2). */
   result->virtual_function = routine->is_virtual && !is_qualified_name;
@@ -16491,7 +16491,7 @@ to (or a function designator).
     orig_operand = *operand;
     expr = make_node_from_operand(operand);
     expr = add_indirection_to_node(expr);
-    make_lvalue_expression_operand(expr, operand);
+    make_glvalue_expression_operand(expr, operand);
     restore_operand_details_incl_ref(operand, &orig_operand);
   }  /* if */
 }  /* conv_object_pointer_to_lvalue */
@@ -17151,7 +17151,7 @@ initializing it from the prvalue.  This routine is used only in C++ mode.
                                          (a_type_ptr *)NULL);
       if (optimized_case) {
         /* The expression has been rewritten as an lvalue. */
-        make_lvalue_expression_operand(node, operand);
+        make_glvalue_expression_operand(node, operand);
       } else {
         /* Couldn't convert to an lvalue directly.  The rvalue will have to be
            copied to a temporary, and an lvalue for the temporary used. */
@@ -17228,7 +17228,7 @@ initializing it from the prvalue.  This routine is used only in C++ mode.
           node = node->variant.operation.operands;
           check_assertion(node != NULL);
         }  /* for */
-        make_lvalue_expression_operand(top_cast, operand);
+        make_glvalue_expression_operand(top_cast, operand);
       }  /* if */
     }  /* if */
     /* Restore the original source position, etc. */

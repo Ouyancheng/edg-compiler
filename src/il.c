@@ -25056,7 +25056,7 @@ it can be used by back ends.
 
 an_expr_node_ptr expr_before_type_adjustment(an_expr_node_ptr expr)
 /*
-expr is an expression that may have been passed through adjust_lvalue_type
+expr is an expression that may have been passed through adjust_glvalue_type
 or adjust_class_rvalue_type to adjust its type.  If it is, strip off the
 adjustment to get back to the original unadjusted lvalue expression, and
 return that.  If not, return the original expression.
@@ -25066,7 +25066,7 @@ return that.  If not, return the original expression.
 
   /* A type adjustment is zero or more base class casts followed optionally
      by an lvalue or rvalue type adjustment to adjust the cv-qualification.
-     That's based on what adjust_lvalue_type and adjust_class_rvalue_type
+     That's based on what adjust_glvalue_type and adjust_class_rvalue_type
      do, and the code here would have to change if those routines change. */
   /* No skip_parens needed here because the sequence we are looking for
      is compiler-generated. */

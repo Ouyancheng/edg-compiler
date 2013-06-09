@@ -1587,7 +1587,7 @@ constructs, in which case offsetof_case is TRUE.
           subsc_node = make_lvalue_operator_node(
                                       (an_expr_operator_kind)eok_cli_subscript,
                                       result_type, op1_node);
-          make_lvalue_expression_operand(subsc_node, result);
+          make_glvalue_expression_operand(subsc_node, result);
         }  /* if */
       } else
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
@@ -3379,7 +3379,7 @@ been scanned: builtin_func represents the reference to the builtin function
     an_expr_node_ptr va_arg_node = make_lvalue_operator_node(
                                              (an_expr_operator_kind)eok_va_arg,
                                              type, node);
-    make_lvalue_expression_operand(va_arg_node, result);
+    make_glvalue_expression_operand(va_arg_node, result);
   } else {
     /* Create a va_arg expression node for an rvalue. */
     an_expr_node_ptr va_arg_node =
@@ -9237,7 +9237,7 @@ error indication in *rcblock).
           node = unbox_after_indirection_if_required(node);
         }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-        make_lvalue_expression_operand(node, result);
+        make_glvalue_expression_operand(node, result);
         if (is_void_type(operand_type)) {
           /* Indirection through a void * pointer. */
           if (!C_mode()) {
@@ -13191,7 +13191,7 @@ enk_typeid entry should be created.
     typeid_node->type = result_type;
     typeid_node->is_lvalue = TRUE;
   }  /* if */
-  make_lvalue_expression_operand(typeid_node, result);
+  make_glvalue_expression_operand(typeid_node, result);
   set_used_in_exception_or_rtti_flag(typeid_type);
 }  /* make_typeid_operand */
 
@@ -13867,9 +13867,9 @@ indication in *rcblock).  after_keyword is ignored in that case.
       make_uuidof_constant(uuidof_type, &uuidof_con);
     }  /* if */
     /* is_uuidof_expr has to match the structure of what's created here. */
-    make_lvalue_expression_operand(add_indirection_to_node(
+    make_glvalue_expression_operand(add_indirection_to_node(
                                          alloc_node_for_constant(&uuidof_con)),
-                                   result);
+                                    result);
   }  /* if */
   if (operand_was_created && !operand_was_used) {
     /* The expression was discarded. */
@@ -14391,7 +14391,7 @@ indication in *rcblock).
                                   underlying_cast_type,
                                   expr);
         mark_as_reference_cast(expr, cast_type);
-        make_lvalue_expression_operand(expr, result);
+        make_glvalue_expression_operand(expr, result);
         if (rvalue_reference_case) {
           conv_rvalue_reference_result_to_xvalue(result);
         }  /* if */
@@ -18231,7 +18231,7 @@ called only in C++ mode.
             expr = add_unbox_to_expression(expr, eff_type_cast_to,
                                            /*make_lvalue=*/TRUE);
             mark_as_reference_cast(expr, type_cast_to);
-            make_lvalue_expression_operand(expr, operand);
+            make_glvalue_expression_operand(expr, operand);
             restore_operand_details(operand, &orig_operand);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
           } else {
@@ -20264,7 +20264,7 @@ in *rcblock).
                                                           operand.type);
       expr = make_node_from_operand(&operand);
       expr = make_lvalue_operator_node(op, result_type, expr);
-      make_lvalue_expression_operand(expr, result);
+      make_glvalue_expression_operand(expr, result);
       /* References to the projection should be passed through to the
          underlying rvalue. */
       result->ref_entries_list = operand.ref_entries_list;
@@ -20579,7 +20579,7 @@ indication in *rcblock).  rescan_icp is not freed.
     /* The compound literal does not have lifetime limited to a full
        expression (C99 says the lifetime extends to the end of the block). */
     dip->has_temporary_lifetime = FALSE;
-    make_lvalue_expression_operand(expr, result);
+    make_glvalue_expression_operand(expr, result);
   }  /* if */
   record_cast_position_in_rescan_info(result,
                                       (an_expr_node_ptr)NULL,
@@ -26279,7 +26279,7 @@ by param_sym (sk_parameter).
   node->is_lvalue = TRUE;
   node->variant.param_ref.param_num = param_sym->variant.param_id->param_num;
   node->variant.param_ref.levels_up = levels_up;
-  make_lvalue_expression_operand(node, result);
+  make_glvalue_expression_operand(node, result);
   /* If the parameter has a reference type, add an implicit indirection. */
   if (!C_mode() && is_any_reference_type(node->type)) {
     add_reference_indirection(result);
@@ -26650,7 +26650,7 @@ variable:
             an_expr_node_ptr sel_expr =
                       make_selection_for_captured_variable(lambda_capture,
                                                            /*is_lvalue=*/TRUE);
-            make_lvalue_expression_operand(sel_expr, result);
+            make_glvalue_expression_operand(sel_expr, result);
             if (is_any_reference_type(lambda_capture->closure_field->type)) {
               add_reference_indirection(result);
             }  /* if */
@@ -28092,7 +28092,7 @@ fields of the closure object.  Return a pointer to the dynamic init entry.
       } else {
         field_sel = field_lvalue_selection_expr(this_expr, source_field);
       }  /* if */
-      make_lvalue_expression_operand(field_sel, &operand);
+      make_glvalue_expression_operand(field_sel, &operand);
       /* Now that we've gotten what we need from the variable pointer, clear
          it because it's a memory-region issue. */
       lcp->variable = NULL;
@@ -31385,7 +31385,7 @@ FALSE otherwise.
       an_expr_node_ptr expr;
       conv_lvalue_to_rvalue(&operand1);
       expr = add_indirection_to_node(make_node_from_operand(&operand1));
-      make_lvalue_expression_operand(expr, &operand);
+      make_glvalue_expression_operand(expr, &operand);
     }  /* if */
   }  /* if */
   if (passed) {
@@ -31485,7 +31485,7 @@ previously created, needed to reactivate that scope.
       an_expr_node_ptr expr;
       conv_lvalue_to_rvalue(&operand1);
       expr = add_indirection_to_node(make_node_from_operand(&operand1));
-      make_lvalue_expression_operand(expr, &operand);
+      make_glvalue_expression_operand(expr, &operand);
     }  /* if */
   }  /* if */
   if (passed) {
@@ -32168,7 +32168,7 @@ created, needed to reactivate that scope.
       expr = make_lvalue_operator_node(
                                       (an_expr_operator_kind)eok_cli_subscript,
                                       element_type, arg_list);
-      make_lvalue_expression_operand(expr, &operand);
+      make_glvalue_expression_operand(expr, &operand);
       deduce_auto_type_in_for_each_if_needed(felp, &operand);
       /* Check the conversion and generate IL for the safe_cast if
          necessary. */

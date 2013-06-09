@@ -2070,8 +2070,8 @@ extern a_boolean check_pointer_or_handle_operand(an_operand     *operand,
 extern void make_expression_operand(an_expr_node_ptr node,
 			            an_operand       *operand);
 
-extern void make_lvalue_expression_operand(an_expr_node_ptr node,
-                                           an_operand       *operand);
+extern void make_glvalue_expression_operand(an_expr_node_ptr node,
+                                            an_operand       *operand);
 
 extern
 void make_lvalue_or_rvalue_expression_operand(an_expr_node_ptr node,
@@ -2271,8 +2271,8 @@ extern void base_class_cast_operand(an_operand       *operand_1,
                                     a_boolean        implicit_in_naming,
                                     a_boolean        is_object_pointer);
 
-extern void adjust_lvalue_type(an_operand *operand,
-                               a_type_ptr dest_type);
+extern void adjust_glvalue_type(an_operand *operand,
+                                a_type_ptr dest_type);
 
 
 extern void conv_rvalue_reference_result_to_xvalue(an_operand *operand);

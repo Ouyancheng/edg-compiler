@@ -14984,7 +14984,7 @@ the operand type to access the same class object with a new type.
   } else if (!identical_types(operand->type, dest_type)) {
     /* Do a cv-qualifier adjustment. */
     if (is_a_glvalue(operand)) {
-      adjust_lvalue_type(operand, dest_type);
+      adjust_glvalue_type(operand, dest_type);
     } else if (is_an_rvalue(operand)) {
       adjust_class_rvalue_type(operand, dest_type);
     } else {
@@ -16175,7 +16175,7 @@ no_applicable_operator_function:
                                             lhs_node->type, lhs_node);
               assign_node->variant.operation.
                                  returns_lvalue_instead_of_usual_rvalue = TRUE;
-              make_lvalue_expression_operand(assign_node, result);
+              make_glvalue_expression_operand(assign_node, result);
               /* Note that reference_to_implicitly_invoked_function is not
                  called. */
               if (operator_not_allowed_in_cpp11_constant_expr(
@@ -18136,7 +18136,7 @@ the temporary.
           conv_function_call_node->variant.operation.compiler_generated = TRUE;
         }  /* if */
       } else if (is_a_glvalue(operand)) {
-        adjust_lvalue_type(operand, dest_type);
+        adjust_glvalue_type(operand, dest_type);
       }  /* if */
     }  /* if */
   } else {
@@ -19487,7 +19487,7 @@ be a reference type.  Only used in C++.  This is copy-initialization.
       if (conversion->class_object_adjustment_required) {
         /* Adjust the cv-qualifiers before we create the temporary. */
         if (is_a_glvalue(source_operand)) {
-          adjust_lvalue_type(source_operand, temp_type);
+          adjust_glvalue_type(source_operand, temp_type);
         } else if (is_a_prvalue(source_operand)) {
           adjust_class_rvalue_type(source_operand, temp_type);
         }  /* if */
@@ -19509,7 +19509,7 @@ be a reference type.  Only used in C++.  This is copy-initialization.
     }  /* if */
     /* Handle base class casts, if any.  cv-qualifier adjustments should have
        been handled above. */
-    adjust_lvalue_type(source_operand, dest_type);
+    adjust_glvalue_type(source_operand, dest_type);
   } else {
     /* The conversion is not possible.  The error has already been issued. */
     *err = TRUE;
@@ -20385,7 +20385,7 @@ the conversion.
       }  /* if */
     }  /* if */
     /* Do any base-class or cv-qualifier adjustment. */
-    adjust_lvalue_type(source_operand, adj_base_dest_type);
+    adjust_glvalue_type(source_operand, adj_base_dest_type);
     if (ref_to_const) {
       /* For a reference to const, tone down the reference kinds to
          indicate the address is taken in a way that can't modify the
@@ -20544,13 +20544,13 @@ the conversion.
        but we'll go ahead and allow it in all modes. */
     do_array_to_pointer_conversion(source_operand);
     conv_object_pointer_to_lvalue(source_operand);
-    adjust_lvalue_type(source_operand, adj_base_dest_type);
+    adjust_glvalue_type(source_operand, adj_base_dest_type);
   } else if (direct_binding_possible &&
              is_an_xvalue(source_operand)) {
     /* A reference can be bound directly to an xvalue.  Only non-class cases
        get here. */
     conv_xvalue_to_lvalue(source_operand);
-    adjust_lvalue_type(source_operand, adj_base_dest_type);
+    adjust_glvalue_type(source_operand, adj_base_dest_type);
   } else {
     /* The initialization cannot be done directly; a temporary must be
        used and/or an implicit conversion must be done. */
@@ -22830,7 +22830,7 @@ found to be acceptable, and *conversion describes it.
                                             /*fill_in_dtor=*/TRUE,
                                             /*elision_done=*/(a_boolean *)NULL,
                                             &dip, &temp_init_node);
-      make_lvalue_expression_operand(temp_init_node, source_operand);
+      make_glvalue_expression_operand(temp_init_node, source_operand);
     }  /* if */
     restore_operand_details(source_operand, &orig_operand);
     rule_out_expr_kinds(ROEK_CONSTANT, source_operand);
@@ -22948,7 +22948,7 @@ to be acceptable (as far as overload resolution checks that), and
       /* g++ allows a volatile lvalue of a bitwise-copyable class type to be
          passed as an argument even though the notional copy constructor
          can't copy a volatile value. */
-      adjust_lvalue_type(source_operand, param_type);
+      adjust_glvalue_type(source_operand, param_type);
     }  /* if */
     if (!adjusted_for_ref_to_non_const) {
       /* Normal case. */
@@ -22974,7 +22974,7 @@ to be acceptable (as far as overload resolution checks that), and
          turn it into a reference. */
       adj_type = type_pointed_to(formal_param->type);
       if (is_an_lvalue(source_operand)) {
-        adjust_lvalue_type(source_operand, adj_type);
+        adjust_glvalue_type(source_operand, adj_type);
       } else if (is_an_rvalue(source_operand)) {
         adjust_class_object_type(source_operand,
                                  adj_type,
