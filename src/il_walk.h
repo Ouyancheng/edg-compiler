@@ -329,7 +329,7 @@ typedef struct an_expr_or_stmt_traversal_block {
 			/* TRUE if expr_complete_object_type was called
 			   to determine the object type for a virtual function
 			   call. */
-  /* Fields used by is_lvalue_for_auto_object: */
+  /* Fields used by is_glvalue_for_auto_object: */
   a_boolean	is_temp;
 			/* TRUE if the underlying object is a temporary. */
 #if HANDLE_VIRTUAL_BASES_IN_COMPLETE_CTOR_DTORS

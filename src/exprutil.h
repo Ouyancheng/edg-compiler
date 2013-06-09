@@ -1517,19 +1517,19 @@ a_constant_ptr fold_constant_base_class_cast(an_expr_node_ptr expr,
                                              a_constant_ptr   alloc_con);
 
 extern
-an_expr_node_ptr conv_lvalue_expr_to_rvalue(an_expr_node_ptr node,
-                                            a_boolean        *constant_case,
-                                            a_constant_ptr   *con_value,
-                                            a_source_position *err_pos);
+an_expr_node_ptr conv_glvalue_expr_to_prvalue(an_expr_node_ptr node,
+                                              a_boolean        *constant_case,
+                                              a_constant_ptr   *con_value,
+                                              a_source_position *err_pos);
 
-extern an_expr_node_ptr conv_lvalue_expr_to_rvalue_external(
+extern an_expr_node_ptr conv_glvalue_expr_to_prvalue_external(
                                             an_expr_node_ptr   node,
                                             a_boolean          *constant_case,
                                             a_constant_ptr     *con_value,
                                             a_source_position  *err_pos,
                                             a_ctws_options_set options);
 
-extern void conv_lvalue_to_rvalue(an_operand *operand);
+extern void conv_glvalue_to_prvalue(an_operand *operand);
 
 extern a_type_ptr determine_arithmetic_conversions(an_operand *operand_1,
 					           an_operand *operand_2);
@@ -2537,11 +2537,11 @@ extern a_boolean check_boolean_controlling_expr(an_operand *operand);
 extern a_boolean still_an_lvalue(a_type_ptr type_before_cast,
 			         a_type_ptr type_cast_to);
 
-extern a_boolean is_lvalue_for_auto_object(an_expr_node_ptr expr,
-                                           a_boolean        *is_temp);
+extern a_boolean is_glvalue_for_auto_object(an_expr_node_ptr expr,
+                                             a_boolean        *is_temp);
 
-extern a_boolean is_rvalue_for_auto_object(an_expr_node_ptr expr,
-                                           a_boolean        *is_temp);
+extern a_boolean is_prvalue_for_auto_object(an_expr_node_ptr expr,
+                                            a_boolean        *is_temp);
 
 extern a_boolean is_address_of_auto_object(an_expr_node_ptr  expr,
                                            a_boolean         *is_temp);

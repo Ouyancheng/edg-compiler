@@ -4844,11 +4844,11 @@ are expected to be NULL in that case.
       unknown_dependent_function = TRUE;
     } else {
       /* Normal function, or call using pointer-to-member-function. */
-      /* Convert to rvalue.  This conversion is needed particularly for the
+      /* Convert to prvalue.  This conversion is needed particularly for the
          case
            int (*fp)();  fp();
          I.e., a call using a pointer to function, with no explicit "*". */
-      conv_lvalue_to_rvalue(operand);
+      conv_glvalue_to_prvalue(operand);
       /* Expression must be of type "pointer to function" or "pointer to
          member function (bound)". */
       if (operand->bound_function &&
@@ -5397,7 +5397,7 @@ is a C++/CLI handle.
         if (operand_1_was_rvalue) {
           /* For the class rvalue case, produce an rvalue again. */
           conv_object_pointer_to_lvalue(operand_1);
-          conv_lvalue_to_rvalue(operand_1);
+          conv_glvalue_to_prvalue(operand_1);
           is_arrow_operator = FALSE;
         }  /* if */
         qualifiers = TQ_NONE;
@@ -7218,9 +7218,9 @@ after_switch:;
       bad = FALSE;
     } else {
       /* Otherwise, the result must be a constant of integral or enum type.
-         The conversion to rvalue exposes any underlying constant, and also
+         The conversion to prvalue exposes any underlying constant, and also
          drops the field selection part leaving only the right operand. */
-      conv_lvalue_to_rvalue(result);
+      conv_glvalue_to_prvalue(result);
       if (is_constant_operand(result)) {
         if (is_integral_or_enum_type(result->type)) {
           bad = FALSE;
@@ -7985,7 +7985,7 @@ any use of the temporary.  The overall result is placed in *result.
        operators an rvalue.  However, with a property, there is no
        underlying lvalue, so we return an rvalue in all cases. */
     if (is_an_lvalue(&operator_result)) {
-      conv_lvalue_to_rvalue(&operator_result);
+      conv_glvalue_to_prvalue(&operator_result);
     }  /* if */
     expr = make_comma_node(expr, make_node_from_operand(&operator_result));
     expr->variant.operation.compiler_generated = TRUE;
@@ -18859,7 +18859,7 @@ indicates which.
              looks a lot like a normal cast, but its operand is an lvalue,
              and therefore doesn't really have its address taken, which is
              important when (e.g.) register entities are subjected to an
-             lvalue cast.  See the code in conv_lvalue_expr_to_rvalue that
+             lvalue cast.  See the code in conv_glvalue_expr_to_prvalue that
              turns the lvalue cast into a simple cast if the cast lvalue is
              then converted to an rvalue (the usual case). */
           lvalue_cast(type_cast_to, operand, /*compiler_generated=*/FALSE);
@@ -18876,11 +18876,11 @@ indicates which.
           a_boolean      reinterpret_semantics = FALSE;
           a_boolean      operand_is_constant;
           a_constant_ptr operand_con = NULL;
-          /* Convert lvalue --> rvalue unless casting to a reference type. */
+          /* Convert glvalue --> prvalue unless casting to a reference type. */
           if (!cast_to_reference) {
             /* Normal cast, including all standard C cases. */
             a_ref_entry_ptr ref_entries_list = operand->ref_entries_list;
-            conv_lvalue_to_rvalue(operand);
+            conv_glvalue_to_prvalue(operand);
             if (gcc_mode && gnu_version < 40000) {
               /* For a cast that might get removed if the operand is turned
                  back into an lvalue, keep the references. */
@@ -30936,7 +30936,7 @@ a for-each statement (otherwise it's a range-based-for statement).
 #if MICROSOFT_EXTENSIONS_ALLOWED
   if (is_for_each && is_handle_type(type)) {
     type = type_pointed_to(type);
-    conv_lvalue_to_rvalue(bound_function_selector);
+    conv_glvalue_to_prvalue(bound_function_selector);
     bound_function_selector->selector_is_object_pointer = TRUE;
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
@@ -31245,8 +31245,8 @@ otherwise a diagnostic is emitted and one or both of *ne_call_expr/
       passed = FALSE;
     } else {
       /* Make the "!=" operator node. */
-      conv_lvalue_to_rvalue(&operand1);
-      conv_lvalue_to_rvalue(&operand2);
+      conv_glvalue_to_prvalue(&operand1);
+      conv_glvalue_to_prvalue(&operand2);
       build_binary_result_operand(&operand1, &operand2,
                                   (an_expr_operator_kind)eok_ne,
                                   boolean_result_type(),
@@ -31383,7 +31383,7 @@ FALSE otherwise.
     } else {
       /* Make the "*" operator node. */
       an_expr_node_ptr expr;
-      conv_lvalue_to_rvalue(&operand1);
+      conv_glvalue_to_prvalue(&operand1);
       expr = add_indirection_to_node(make_node_from_operand(&operand1));
       make_glvalue_expression_operand(expr, &operand);
     }  /* if */
@@ -31483,7 +31483,7 @@ previously created, needed to reactivate that scope.
     } else {
       /* Make the "*" operator node. */
       an_expr_node_ptr expr;
-      conv_lvalue_to_rvalue(&operand1);
+      conv_glvalue_to_prvalue(&operand1);
       expr = add_indirection_to_node(make_node_from_operand(&operand1));
       make_glvalue_expression_operand(expr, &operand);
     }  /* if */
@@ -31710,7 +31710,7 @@ property is found.  *result is set to an expression operand for the
 
   if (is_handle_type(type)) {
     type = type_pointed_to(type);
-    conv_lvalue_to_rvalue(selector);
+    conv_glvalue_to_prvalue(selector);
     selector->selector_is_object_pointer = TRUE;
   }  /* if */
   clear_locator(&locator, expr_position);

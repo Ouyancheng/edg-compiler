@@ -14979,11 +14979,11 @@ produced.  See copy_template_param_expr for the parameter descriptions.
       } else {
         /* Other kind of lvalue (not an array or function). */
         a_boolean constant_case;
-        expr_copy = conv_lvalue_expr_to_rvalue_external(expr_copy,
-                                                        &constant_case,
-                                                        alloc_con,
-                                                        source_pos,
-                                                        options);
+        expr_copy = conv_glvalue_expr_to_prvalue_external(expr_copy,
+                                                          &constant_case,
+                                                          alloc_con,
+                                                          source_pos,
+                                                          options);
       }  /* if */
     }  /* if */
   }  /* if */
@@ -17743,15 +17743,15 @@ in order to call it.
 
 an_expr_node_ptr rvalue_expr_for_lvalue(an_expr_node_ptr expr)
 /*
-Perform any changes needed to convert expr from an lvalue to an rvalue.
+Perform any changes needed to convert expr from a glvalue to a prvalue.
 Return the rvalue expression.  This routine does not handle replacing
 constant-valued variables by their constant values -- see
-conv_lvalue_expr_to_rvalue.
+conv_glvalue_expr_to_prvalue.
 */
 {
-  expr = conv_lvalue_expr_to_rvalue(expr, (a_boolean *)NULL,
-                                    (a_constant **)NULL,
-                                    (a_source_position *)NULL);
+  expr = conv_glvalue_expr_to_prvalue(expr, (a_boolean *)NULL,
+                                      (a_constant **)NULL,
+                                      (a_source_position *)NULL);
   return expr;
 }  /* rvalue_expr_for_lvalue */
 

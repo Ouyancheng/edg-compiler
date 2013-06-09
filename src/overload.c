@@ -12459,7 +12459,7 @@ by this routine.
         /* Deal with the case of a conversion function returning a
            reference to pointer to function. */
         routine_type = type_pointed_to(conversion_type);
-        conv_lvalue_to_rvalue(function_operand);
+        conv_glvalue_to_prvalue(function_operand);
       } else {
         /* A conversion function returning a reference to function. */
         conv_function_designator_to_ptr_to_function(function_operand,
@@ -15047,7 +15047,7 @@ is an rvalue or lvalue as required by conversion->result_is_an_lvalue.
   }  /* if */
   /* If an rvalue is wanted, convert to an rvalue. */
   if (!conversion->result_is_an_lvalue) {
-    conv_lvalue_to_rvalue(operand);
+    conv_glvalue_to_prvalue(operand);
   }  /* if */
 }  /* do_class_object_adjustment */
 
@@ -17766,7 +17766,7 @@ is used only in C++ mode.
       /* VC10 allows calling a traditional nonstatic conversion function
          to convert from a handle-to-class as if the operand is of class
          type. */
-      conv_lvalue_to_rvalue(operand);
+      conv_glvalue_to_prvalue(operand);
       operand->selector_is_object_pointer = TRUE;
     }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
@@ -17962,7 +17962,7 @@ is_explicit_cast is TRUE if this node represents an explicit cast.
   a_dynamic_init_kind kind = (a_dynamic_init_kind)dik_expression;
 
   if (temp_type == NULL) temp_type = operand->type;
-  conv_lvalue_to_rvalue(operand);
+  conv_glvalue_to_prvalue(operand);
   if (constexpr_enabled && curr_expr_kind_is_const()) {
     force_operand_to_constant_if_possible(operand);
     if (is_constant_operand(operand)) kind = (a_dynamic_init_kind)dik_constant;
@@ -20042,8 +20042,8 @@ Issue a warning if it is a local entity.
   a_boolean is_temp;
 
   if (is_expression_operand(operand)) {
-    if (is_lvalue_for_auto_object(operand->variant.expression, &is_temp) ||
-        is_rvalue_for_auto_object(operand->variant.expression, &is_temp)) {
+    if (is_glvalue_for_auto_object(operand->variant.expression, &is_temp) ||
+        is_prvalue_for_auto_object(operand->variant.expression, &is_temp)) {
       /* The expression is an lvalue or class rvalue (object) for a local
          entity.  Use a different message for temporaries and local
          variables. */
@@ -20187,7 +20187,7 @@ the conversion.
           is_bit_field_operand(source_operand)) {
         /* MSVC10 allows binding an rvalue reference to a bit-field lvalue.
            Presumably this is done by converting the bit field to an rvalue. */
-        conv_lvalue_to_rvalue(source_operand);
+        conv_glvalue_to_prvalue(source_operand);
       }  /* if */
     } else {
       /* Direct binding is not possible. */
@@ -23081,7 +23081,7 @@ cases where bitwise copying applies.
                                          /*leave_as_object=*/TRUE,
                                          CCO_BITWISE_ASSIGNMENT_PARAM,
                                          incompatible_err);
-      conv_lvalue_to_rvalue(source_operand);    
+      conv_glvalue_to_prvalue(source_operand);    
     }  /* if */
   } else {
     /* Nonclass assignment, and C mode struct assignment. */
@@ -23171,7 +23171,7 @@ aggregate constant.
 
   db_enter(3, "prep_transparent_union_conversion_operand");
   /* Make sure we have an rvalue. */
-  conv_lvalue_to_rvalue(source_operand);
+  conv_glvalue_to_prvalue(source_operand);
   /* Convert the source expression to the destination type if necessary. */
   cast_operand(field_type, source_operand, /*is_implicit_cast=*/TRUE);
   orig_operand = *source_operand;

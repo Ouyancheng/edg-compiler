@@ -191,7 +191,7 @@ typedef struct a_constexpr_evaluation_block {
 			   nothing more specific. */
   a_byte_boolean
 		do_not_call_back;
-			/* Set for calls from fold_expr/fold_lvalue_expr to
+			/* Set for calls from fold_expr/fold_glvalue_expr to
 			   constant_lvalue_address_full/
 			   constant_rvalue_pointer_full and vice-versa, to
 			   prevent a call back (and infinite recursion) on

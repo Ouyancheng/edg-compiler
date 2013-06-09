@@ -13697,7 +13697,7 @@ enum an_expr_operator_kind_tag {
            operator_takes_lvalue_operand
        exprutil.c:
            conv_rvalue_expr_to_lvalue
-           conv_lvalue_expr_to_rvalue (if the operator is not "rvalueable"
+           conv_glvalue_expr_to_prvalue (if the operator is not "rvalueable"
              according to is_rvalueable_node)
      If the operator is an addressing operator, see also
        folding.c:

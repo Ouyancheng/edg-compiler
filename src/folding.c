@@ -5603,9 +5603,9 @@ pos gives a default source position.
 static a_boolean fold_expr(an_expr_node_ptr             expr,
                            a_constexpr_evaluation_block *ceblock,
                            a_constant                   *result_con);
-static a_boolean fold_lvalue_expr(an_expr_node_ptr             expr,
-                                  a_constexpr_evaluation_block *ceblock,
-                                  a_constant                   *result_con);
+static a_boolean fold_glvalue_expr(an_expr_node_ptr             expr,
+                                   a_constexpr_evaluation_block *ceblock,
+                                   a_constant                   *result_con);
 
 
 static void accum_field_offset(a_constant_ptr  total_offset,
@@ -5819,7 +5819,7 @@ a constexpr expansion, and the block provides context information.
       !do_not_call_back &&
       is_glvalue_node(expr) &&
       (ceblock->do_not_call_back = TRUE,
-       fold_lvalue_expr(expr, ceblock, con))) {
+       fold_glvalue_expr(expr, ceblock, con))) {
     /* The expression could be folded to a constant address. */
     is_constant_addr = TRUE;
     goto have_result;
@@ -9362,7 +9362,7 @@ Attempt to fold the expression "expr" to a constant as part of a
 constexpr evaluation, by substituting argument constant values for
 parameters.  If the expression folds to a constant, place the constant
 in *result_con and return TRUE; otherwise, return FALSE.  If the
-expression is a glvalue, do not fold (see fold_lvalue_expr instead).
+expression is a glvalue, do not fold (see fold_glvalue_expr instead).
 ceblock gives context information for the evaluation.
 */
 {
@@ -9452,7 +9452,7 @@ ceblock gives context information for the evaluation.
         /* The value of the first operand is discarded, but it still has to
            fold to a constant. */
         if (is_glvalue_node(op1) ?
-              fold_lvalue_expr(op1, ceblock, &op1_constant) :
+              fold_glvalue_expr(op1, ceblock, &op1_constant) :
               fold_expr(op1, ceblock, &op1_constant)) {
           folded = fold_expr(op2, ceblock, result_con);
         }  /* if */
@@ -9568,15 +9568,15 @@ pm_field_selection:
         }  /* if */
         break;
       case eok_address_of:
-        /* &x.  If the underlying lvalue has a constant address, the result
+        /* &x.  If the underlying glvalue has a constant address, the result
            is that address. */
-        folded = fold_lvalue_expr(op1, ceblock, result_con);
+        folded = fold_glvalue_expr(op1, ceblock, result_con);
         break;
       case eok_reference_to:
         /* The reference equivalent of &x.  If the underlying glvalue has a
            constant address, the result is that address. */
         if (is_glvalue_node(op1)) {
-          folded = fold_lvalue_expr(op1, ceblock, result_con);
+          folded = fold_glvalue_expr(op1, ceblock, result_con);
         } else {
           folded = fold_object_expr(op1, ceblock, /*want_addr=*/TRUE,
                                     result_con);
@@ -9590,7 +9590,7 @@ pm_field_selection:
            know the address of the underlying lvalue, we can look and see if
            we have a constant there. */
         if (identical_types_ignoring_qualifiers(expr->type, op1->type) &&
-            fold_lvalue_expr(op1, ceblock, &op1_constant) &&
+            fold_glvalue_expr(op1, ceblock, &op1_constant) &&
             constant_value_at_address(&op1_constant,
                                       (a_constexpr_evaluation_block *)NULL,
                                       result_con) != NULL) {
@@ -9758,9 +9758,9 @@ pm_field_selection:
 }  /* fold_expr */
 
 
-static a_boolean fold_lvalue_expr(an_expr_node_ptr             expr,
-                                  a_constexpr_evaluation_block *ceblock,
-                                  a_constant                   *result_con)
+static a_boolean fold_glvalue_expr(an_expr_node_ptr             expr,
+                                   a_constexpr_evaluation_block *ceblock,
+                                   a_constant                   *result_con)
 /*
 Attempt to fold the glvalue expression "expr" to a constant address as
 part of constexpr evaluation, by substituting argument constant values for
@@ -9829,9 +9829,9 @@ ceblock gives context information for the evaluation.
         /* The value of the first operand is discarded, but it still has to
            fold to a constant. */
         if (is_glvalue_node(op1) ?
-              fold_lvalue_expr(op1, ceblock, &op1_constant) :
+              fold_glvalue_expr(op1, ceblock, &op1_constant) :
               fold_expr(op1, ceblock, &op1_constant)) {
-          folded = fold_lvalue_expr(op2, ceblock, result_con);
+          folded = fold_glvalue_expr(op2, ceblock, result_con);
         }  /* if */
         break;
       case eok_question:
@@ -9841,10 +9841,10 @@ ceblock gives context information for the evaluation.
             constant_bool_value_known_at_compile_time(&op1_constant)) {
           if (is_false_constant(&op1_constant)) {
             /* First operand is false, so result is op3. */
-            folded = fold_lvalue_expr(op2->next, ceblock, result_con);
+            folded = fold_glvalue_expr(op2->next, ceblock, result_con);
           } else {
             /* First operand is true, so result is op2. */
-            folded = fold_lvalue_expr(op2, ceblock, result_con);
+            folded = fold_glvalue_expr(op2, ceblock, result_con);
           }  /* if */
         }  /* if */
         break;
@@ -9873,7 +9873,7 @@ ceblock gives context information for the evaluation.
     }  /* if */
   }  /* if */
   return folding_result(folded);
-}  /* fold_lvalue_expr */
+}  /* fold_glvalue_expr */
 
 
 static a_boolean fold_object_expr(an_expr_node_ptr             expr,
@@ -9910,7 +9910,7 @@ member function call.
     }  /* if */
   } else {
     /* Try to fold a glvalue to a constant address. */
-    if (fold_lvalue_expr(expr, ceblock, result_con)) {
+    if (fold_glvalue_expr(expr, ceblock, result_con)) {
       folded = TRUE;
       if (!want_addr) {
         a_constant pointed_to_con;
@@ -10045,7 +10045,7 @@ the source position of the evaluation.
   if (treat_as_object) {
     folded = fold_object_expr(expr, &ceblock, /*want_addr=*/TRUE, result_con);
   } else if (is_glvalue_node(expr)) {
-    folded = fold_lvalue_expr(expr, &ceblock, result_con);
+    folded = fold_glvalue_expr(expr, &ceblock, result_con);
   } else {
     folded = fold_expr(expr, &ceblock, result_con);
   } /* if */
