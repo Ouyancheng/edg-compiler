@@ -1117,7 +1117,7 @@ specified.
   clear_operand((an_operand_kind)ok_property_ref, result);
   result->type = unknown_type();
   result->symbol = property;
-  set_lvalue_operand_state(result);
+  set_glvalue_operand_state(result);
   if (operand != NULL) {
     conv_selector_to_object_pointer(operand, &is_arrow_operator);
     result->variant.property_ref.object = make_node_from_operand(operand);
@@ -1144,7 +1144,7 @@ static event, operand is NULL if no object was specified.
   clear_operand((an_operand_kind)ok_event_ref, result);
   result->type = unknown_type();
   result->symbol = event;
-  set_lvalue_operand_state(result);
+  set_glvalue_operand_state(result);
   if (operand != NULL) {
     conv_selector_to_object_pointer(operand, &is_arrow_operator);
     result->variant.event_ref.object = make_node_from_operand(operand);
@@ -7553,7 +7553,7 @@ the selection, not an operator token for the call.
           if (lvalue_selection) {
             /* The result is an lvalue. */
             select_node->is_lvalue = TRUE;
-            set_lvalue_operand_state(result);
+            set_glvalue_operand_state(result);
             /* Keep the references from the first operand. */
             result->ref_entries_list = operand_1->ref_entries_list;
           } else {
@@ -7896,7 +7896,7 @@ reference rewrite.
         is_a_function_designator(&orig_operand)) {
       /* The original operand is an lvalue, so the result of the comma
          operator is an lvalue. */
-      set_lvalue_operand_state(result);
+      set_glvalue_operand_state(result);
     }  /* if */
     restore_operand_details_incl_ref(result, &orig_operand);
   }  /* if */
@@ -8332,7 +8332,7 @@ in having type qualifiers.  This routine is called only in C++ mode.
     node->type = result->type = result_type;
     /* Keep the reference entries from the lvalue operand. */
     result->ref_entries_list = lvalue_operand->ref_entries_list;
-    set_lvalue_operand_state(result);
+    set_glvalue_operand_state(result);
   }  /* if */
 }  /* change_assignment_result_to_lvalue */
 
@@ -9011,7 +9011,7 @@ current token on entry.
     set_label_address_constant(label, &constant);
     make_constant_operand(&constant, result);
   }  /* else */
-  result->state = (an_operand_state)os_rvalue;
+  result->state = (an_operand_state)os_prvalue;
 
   set_operand_position(result, &start_position, &end_pos_curr_token, 
 		       &start_position);
@@ -9256,7 +9256,7 @@ error indication in *rcblock).
                to an lvalue.  (In GNU modes, the result is always an
                lvalue). */
             if (!is_qualified_type(operand_type) && !gcc_mode) {
-              result->state = (an_operand_state)os_rvalue;
+              result->state = (an_operand_state)os_prvalue;
               node->is_lvalue = FALSE;
             }  /* if */
           }  /* if */
@@ -11117,7 +11117,7 @@ indication in *rcblock).
                      &start_position, &not_a_constant);
     check_assertion(!not_a_constant);
     result->type = result->variant.constant.type;
-    result->state = (an_operand_state)os_rvalue;
+    result->state = (an_operand_state)os_prvalue;
   } else {
     make_error_operand(result);
     if (rcblock != NULL) rcblock->error_detected = TRUE;
@@ -20567,7 +20567,7 @@ indication in *rcblock).  rescan_icp is not freed.
       /* Force string constants to be rvalues; that's used as an indication
          of a string that was a compound literal.  See
          do_array_to_pointer_conversion. */
-      result->state = (an_operand_state)os_rvalue;
+      result->state = (an_operand_state)os_prvalue;
     } else {
       make_lvalue_operand_from_compound_constant(literal_con, result);
     }  /* if */

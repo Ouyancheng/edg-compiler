@@ -2965,14 +2965,14 @@ Display an expression operand for debugging purposes.
   switch (operand->state) {
     case os_none:
       break;
-    case os_lvalue:
+    case os_glvalue:
       if (is_an_xvalue(operand)) {
         (void)fprintf(f_debug, "xvalue, ");
       } else {
         (void)fprintf(f_debug, "lvalue, ");
       }  /* if */
       break;
-    case os_rvalue:
+    case os_prvalue:
       if (C_mode()) {
         (void)fprintf(f_debug, "rvalue, ");
       } else {
@@ -6161,9 +6161,9 @@ Fills in some things from expression context.
 }  /* expr_clear_init_state */
 
 
-void set_lvalue_operand_state(an_operand *operand)
+void set_glvalue_operand_state(an_operand *operand)
 /*
-Set the state of the indicated operand to indicate that it is an lvalue.
+Set the state of the indicated operand to indicate that it is a glvalue.
 Its type must be set already.
 */
 {
@@ -6171,9 +6171,9 @@ Its type must be set already.
   if (is_function_type(operand->type)) {
     operand->state = (an_operand_state)os_function_designator;
   } else {
-    operand->state = (an_operand_state)os_lvalue;
+    operand->state = (an_operand_state)os_glvalue;
   }  /* if */
-}  /* set_lvalue_operand_state */
+}  /* set_glvalue_operand_state */
 
 
 void make_constant_operand(a_constant *constant,
@@ -6194,9 +6194,9 @@ current token will be used as the operand position.
   }  /* if */
   /* A string literal is an lvalue; other constants are rvalues. */
   if (constant->kind == (a_constant_repr_kind)ck_string) {
-    operand->state = (an_operand_state)os_lvalue;
+    operand->state = (an_operand_state)os_glvalue;
   } else {
-    operand->state = (an_operand_state)os_rvalue;
+    operand->state = (an_operand_state)os_prvalue;
   }  /* if */
   set_operand_position_to_pos_curr_token(operand);
 }  /* make_constant_operand */
@@ -6258,7 +6258,7 @@ Make a constant operand and set it to some integer value.
   set_integer_constant(&operand->variant.constant, value,
                        (an_integer_kind)ik_int);
   operand->type = operand->variant.constant.type;
-  operand->state = (an_operand_state)os_rvalue;
+  operand->state = (an_operand_state)os_prvalue;
   set_operand_position_to_pos_curr_token(operand);
 }  /* make_integer_constant_operand */
 
@@ -6280,7 +6280,7 @@ as the operand position.
   } else {
     clear_operand((an_operand_kind)ok_expression, operand);
     operand->type = node->type;
-    operand->state = (an_operand_state)os_rvalue;
+    operand->state = (an_operand_state)os_prvalue;
     operand->variant.expression = node;
   }  /* if */
   set_operand_position_to_pos_curr_token(operand);
@@ -6297,7 +6297,7 @@ The position of the current token will be used as the operand position.
 {
   check_assertion(is_glvalue_node(node) || is_error_node(node));
   make_expression_operand(node, operand);
-  set_lvalue_operand_state(operand);
+  set_glvalue_operand_state(operand);
 }  /* make_glvalue_expression_operand */
 
 
@@ -6386,7 +6386,7 @@ symbol is a function, an rvalue otherwise.
   clear_operand((an_operand_kind)ok_sym_for_member, operand);
   if (fund_sym->kind == (a_symbol_kind)sk_field) {
     /* Data member. */
-    operand->state = (an_operand_state)os_rvalue;
+    operand->state = (an_operand_state)os_prvalue;
     operand->type = fund_sym->variant.field.ptr->type;
   } else {
     check_assertion(fund_sym->kind == (a_symbol_kind)sk_member_function);
@@ -8864,7 +8864,7 @@ lvalue if result_is_lvalue is TRUE.
       if (kind == (an_expr_operator_kind)eok_comma) {
         node->variant.operation.returns_lvalue_instead_of_usual_rvalue = TRUE;
       }  /* if */
-      set_lvalue_operand_state(result);
+      set_glvalue_operand_state(result);
     }  /* if */
   }  /* if */
   copy_operand_position(operand_1, result);
@@ -12114,7 +12114,7 @@ of a subscript operation).
       } else {
         clear_operand((an_operand_kind)ok_constant, result);
         result->type = result_type;
-        result->state = (an_operand_state)os_rvalue;
+        result->state = (an_operand_state)os_prvalue;
         /* Fold the operation on constants to produce a constant result. */
         /* In a nonconstant context, reduce any error to a warning
            and leave the operation to be done at runtime. */
@@ -12164,7 +12164,7 @@ of a subscript operation).
          addresses of the same local variable to be folded to a constant. */
       clear_operand((an_operand_kind)ok_constant, result);
       result->type = result_type;
-      result->state = (an_operand_state)os_rvalue;
+      result->state = (an_operand_state)os_prvalue;
       expr_binary_operation(op, &con_1, &con_2,
                             result_type, &result->variant.constant,
                             &did_not_fold, &template_constant,
@@ -13449,7 +13449,7 @@ question_position and colon_position give the position of the "?" and ":".
       }  /* if */
       if (result_is_an_lvalue) {
         /* Adjust the operand to make it an lvalue. */
-        set_lvalue_operand_state(result);
+        set_glvalue_operand_state(result);
       }  /* if */
     }  /* if */
   }  /* if */
@@ -14284,7 +14284,7 @@ the appropriate value instead.
     clear_operand((an_operand_kind)ok_constant, operand);
     copy_constant(constant, &operand->variant.constant);
     operand->type = constant->type;
-    operand->state = (an_operand_state)os_rvalue;
+    operand->state = (an_operand_state)os_prvalue;
     set_operand_position_to_pos_curr_token(operand);
   }  /* if */
 }  /* make_upc_threads_operand */
@@ -18804,7 +18804,7 @@ used in generating the function-identifying operand in a call.
     /* Note that we do not check for the nonstandard "taking address of member
        function without using &" here; it will be checked once we know
        which of the functions is actually wanted. */
-    operand->state = (an_operand_state)os_rvalue;
+    operand->state = (an_operand_state)os_prvalue;
     set_operand_of_ampersand = TRUE;
   } else if (operand->bound_function) {
     /* A bound function designator converts to a pointer, not a pointer to

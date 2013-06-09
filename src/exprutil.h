@@ -243,7 +243,7 @@ enum an_operand_kind_tag {
 			   i.e., a C++ overloaded function.  With state ==
 			   os_function_designator, represents the function
 			   itself and has very limited lifetime.  With state ==
-			   os_rvalue, represents the address of an overloaded
+			   os_prvalue, represents the address of an overloaded
 			   function, and survives until it meets a destination
 			   type (which selects a specific function) or until
 			   used in some other way (which is an error).  Not
@@ -275,11 +275,15 @@ enum an_operand_kind_tag {
 /* Define as "a_byte" to explicitly control storage size. */
 typedef a_byte an_operand_kind;
 
-/* Operand states (lvalue versus rvalue, etc.): */
+/*
+Operand states (lvalue versus rvalue, etc.).  In C++, glvalues encompass
+lvalues and xvalues, and traditional C rvalues are called prvalues.
+In C mode, interpret "glvalue" as "lvalue" and "prvalue" as "rvalue".
+*/
 enum an_operand_state_tag {
   os_none,
-  os_lvalue,
-  os_rvalue,
+  os_glvalue,
+  os_prvalue,
   os_function_designator
 };
 /* Define as "a_byte" to explicitly control storage size. */
@@ -1257,7 +1261,7 @@ The difference is compensated for in the cases where it matters.
 Macro that is TRUE if the operand is a prvalue.
 */
 #define is_a_prvalue(operand)						\
-	((operand)->state == (an_operand_state)os_rvalue)
+	((operand)->state == (an_operand_state)os_prvalue)
 
 /*
 Macro that is TRUE if the operand is an rvalue.
@@ -1275,7 +1279,7 @@ Macro that is TRUE if the operand is a function designator.
 Macro that is TRUE if the operand is a glvalue (lvalue or xvalue).
 */
 #define is_a_glvalue(operand)						\
-	((operand)->state == (an_operand_state)os_lvalue)
+	((operand)->state == (an_operand_state)os_glvalue)
 
 
 extern a_boolean is_potentially_constant_valued_variable(a_variable_ptr var);
@@ -1738,7 +1742,7 @@ extern void arg_default_promote_operand(an_operand *argument_operand,
 extern void expr_clear_init_state(an_init_state *init_state);
 #endif /* !STANDALONE_UTILITY_PROGRAM */
 
-extern void set_lvalue_operand_state(an_operand *operand);
+extern void set_glvalue_operand_state(an_operand *operand);
 
 extern void make_constant_operand(a_constant *constant,
 			          an_operand *operand);
