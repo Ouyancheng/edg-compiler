@@ -16624,7 +16624,7 @@ an lvalue (which is usually but not always possible).  This routine is
 used for reference casts that allow a source expression that is an
 prvalue, and for certain extensions, such as the GNU and Microsoft bugs
 that allow some prvalues to be used as if they were lvalues.
-It is also used in IL lowering, via conv_rvalue_expr_to_object_pointer.
+It is also used in IL lowering, via conv_prvalue_expr_to_object_pointer.
 As will be clear from that, this routine can be called from outside
 of the expression routines; it does not reference things like the
 expr_stack.  However, it can't be called from outside the front end,
@@ -17054,8 +17054,8 @@ assignment_case:
 }  /* conv_prvalue_expr_to_lvalue */
 
 
-void conv_rvalue_expr_to_object_pointer(an_expr_node_ptr *p_node,
-                                        a_boolean        *converted)
+void conv_prvalue_expr_to_object_pointer(an_expr_node_ptr *p_node,
+                                         a_boolean        *converted)
 /*
 *p_node is an expression tree for a prvalue.  If possible, rewrite it
 as an object pointer for the object, and set *p_node to the new
@@ -17074,7 +17074,7 @@ and *p_node unchanged.
     /* Turn an lvalue into a pointer. */
     *p_node = add_address_of_to_node(node);
   }  /* if */
-}  /* conv_rvalue_expr_to_object_pointer */
+}  /* conv_prvalue_expr_to_object_pointer */
 
 
 an_expr_node_ptr strip_rvalue_base_class_casts(an_expr_node_ptr expr,

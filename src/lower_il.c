@@ -2828,7 +2828,7 @@ not to contain any top level base class casts.
   a_type_ptr cast_type = NULL;
 
   check_assertion(!expr->is_lvalue && is_class_struct_union_type(expr->type));
-  conv_rvalue_expr_to_object_pointer(&expr, &converted);
+  conv_prvalue_expr_to_object_pointer(&expr, &converted);
   if (!converted) {
     /* Couldn't extract a pointer from the rvalue.  Copy the class rvalue to a
        temporary and return an expression for a pointer to the temporary. */
