@@ -4725,6 +4725,7 @@ dynamic init that underlies the cast, or NULL if there isn't one.
     eriep = get_expr_rescan_info(expr, (an_expr_rescan_info_entry *)NULL);
     if (expr->kind == (an_expr_node_kind)enk_temp_init) {
       dip = expr->variant.init.dynamic_init;
+      check_assertion(dip != NULL);  /* Make Coverity analysis happy. */
     } else {
       op1 = expr->variant.operation.operands;
     }  /* if */
