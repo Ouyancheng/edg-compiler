@@ -1882,6 +1882,7 @@ additional ones over the basic ones implied for this case.
     if (allow_braced_init_list && list_init_enabled &&
         curr_token == tok_lbrace) {
       scan_braced_init_list_as_operand(&local_operand);
+      bound_function_selector = NULL;
     } else {
       scan_expr_full(&local_operand, &local_bound_function_selector,
                      PREC_LOWEST, options);
