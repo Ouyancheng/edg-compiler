@@ -1,5 +1,15 @@
 Version 5.0
 
+6/10/13  [EDGcpfe/14141]
+Incorrect memory region used for allocation of module id in name mangling
+
+As a result of the changes made for EDGcpfe/9428, memory allocated for
+the module id of an individuated namespace incorrectly pointed to the
+general memory region which could cause the pointers to be invalid after
+a pre-compiled header file is restored.  A change has been made to allocate
+the storage in the front end memory region.
+
+
 6/7/13   [EDGcpfe/14143]
 Excess elements in lowered array initializers with pointer-to-member type
 

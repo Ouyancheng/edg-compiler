@@ -7846,10 +7846,10 @@ namespace an appropriate name once the module id is chosen.
     if (!mctl->lacking_module_id) {
       /* Construct a real name for the namespace. */
 #if IA64_ABI
-      name = (char *)alloc_general(strlen(module_id)+1+9);
+      name = (char *)alloc_fe(strlen(module_id)+1+9);
       (void)strcpy(name, "_INTERNAL");
 #else /* !IA64_ABI */
-      name = (char *)alloc_general(strlen(module_id)+1+10);
+      name = (char *)alloc_fe(strlen(module_id)+1+10);
       (void)strcpy(name, "__INTERNAL");
 #endif /* IA64_ABI */
       (void)strcat(name, module_id);
