@@ -9038,6 +9038,11 @@ See conversion_possible.
     } else if (is_arithmetic_or_unscoped_enum(source_type)) {
       /* Arithmetic or unscoped enum --> arithmetic (including enum in C). */
       okay = TRUE;
+      if (warning_on_narrowing_conversion && !source_is_constant &&
+          dest_type->size < source_type->size) {
+        /* Warn about possible loss of data. */
+        std_conv->warning_suggested = ec_conversion_to_smaller_type;
+      }  /* if */
       if (C_mode()) {
         /* In C, check for conversion of one enumerated type to another,
            or conversion of an arithmetic non-enum type to an enum.

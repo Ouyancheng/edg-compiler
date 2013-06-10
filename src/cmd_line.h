@@ -300,6 +300,7 @@ typedef enum /*an_option_kind*/ {
   optk_max_constexpr_call_depth,
   optk_max_constexpr_call_count,
   optk_delegating_constructors,
+  optk_narrowing_warning,
   optk_last		/* Must be last. */
 } an_option_kind;
 
@@ -1949,6 +1950,12 @@ EXTERN a_boolean
 			   followed by a newline is to be treated as a line
 			   terminator.  FALSE indicates that only newlines
 			   are to be considered to terminate a line. */
+
+EXTERN a_boolean
+		warning_on_narrowing_conversion;
+			/* TRUE if a diagnostic should be issued whenever
+			   a conversion occurs from one arithmetic type to
+			   a smaller one. */
 
 /* Process the command line arguments. */
 extern void proc_command_line(int argc, char *argv[]);

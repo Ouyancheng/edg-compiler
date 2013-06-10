@@ -1378,6 +1378,14 @@ Initialize the option information table.
   add_option_description(optk_delegating_constructors,
                          "no_delegating_constructors", '\0', /*value=*/FALSE,
                          /*arg_required=*/FALSE, pchek_command_line);
+  add_option_description(optk_narrowing_warning,
+                         "narrowing_conversion_warning", '\0',
+                         /*value=*/TRUE, /*arg_required=*/FALSE,
+                         pchek_command_line);
+  add_option_description(optk_narrowing_warning,
+                         "no_narrowing_conversion_warning", '\0',
+                         /*value=*/FALSE, /*arg_required=*/FALSE,
+                         pchek_command_line);
 }  /* initialize_option_descriptions */
 
 
@@ -5414,6 +5422,11 @@ file.
 #else /* !defined(DEFAULT_WARNING_ON_FOR_INIT_DIFFERENCE) */
   comment_undefined_macro_name(DEFAULT_WARNING_ON_FOR_INIT_DIFFERENCE);
 #endif /* defined(DEFAULT_WARNING_ON_FOR_INIT_DIFFERENCE) */
+#if defined(DEFAULT_WARNING_ON_NARROWING_CONVERSION)
+  define_numeric_valued_macro(DEFAULT_WARNING_ON_NARROWING_CONVERSION);
+#else /* !defined(DEFAULT_WARNING_ON_NARROWING_CONVERSION) */
+  comment_undefined_macro_name(DEFAULT_WARNING_ON_NARROWING_CONVERSION);
+#endif /* defined(DEFAULT_WARNING_ON_NARROWING_CONVERSION) */
 #if defined(DEFAULT_WARNING_ON_NON_TEMPLATE_FRIEND)
   define_numeric_valued_macro(DEFAULT_WARNING_ON_NON_TEMPLATE_FRIEND);
 #else /* !defined(DEFAULT_WARNING_ON_NON_TEMPLATE_FRIEND) */
@@ -9036,6 +9049,9 @@ enable_microsoft_mode:
       case optk_delegating_constructors:
         delegating_constructors_enabled = opt_value;
         break;
+      case optk_narrowing_warning:
+        warning_on_narrowing_conversion = opt_value;
+        break;
       default:
         /* It should not be possible to get here. */
         unexpected_condition();
@@ -10240,6 +10256,7 @@ variables declared in cmd_line.h.
   range_based_for_enabled = DEFAULT_RANGE_BASED_FOR_ENABLED;
   multiple_returns_allowed_in_implicit_return_type_lambda = FALSE;
   carriage_return_is_line_terminator = FALSE;
+  warning_on_narrowing_conversion = DEFAULT_WARNING_ON_NARROWING_CONVERSION;
 }  /* cmd_line_static_var_init */
 
 

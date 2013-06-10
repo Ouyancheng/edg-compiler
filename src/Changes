@@ -1,5 +1,22 @@
 Version 5.0
 
+6/10/13  [EDGcpfe/2155,EDGcpfe/6663,EDGcpfe/12701]
+Warning on narrowing conversion
+
+The front end now optionally issues a warning for a narrowing conversion,
+i.e., when a non-constant value of an arithmetic type is converted to a
+smaller arithmetic type.  This behavior is controlled by the configuration
+option DEFAULT_WARNING_ON_NARROWING_CONVERSION (the default value for the
+global variable warning_on_narrowing_conversion) and by the command-line
+option --[no_]narrowing_conversion_warning.  For example:
+
+  int i;
+  char c;
+  void f() {
+    c = i;   // Now optionally issues a warning for the conversion
+  }
+
+
 6/10/13  [EDGcpfe/13975]
 Allow enumeration type in range-based for statement
 
