@@ -31239,7 +31239,8 @@ otherwise a diagnostic is emitted and one or both of *ne_call_expr/
     /* An overloaded operator!= was used (or there was an error). */
   } else {
     /* Try a non-overloaded "!=" operator. */
-    if (!is_pointer_or_handle_type(operand1.type)) {
+    if (!(is_pointer_or_handle_type(operand1.type) ||
+          is_enum_type(operand1.type))) {
       pos_ty_error(is_for_each ? ec_missing_notequal_on_for_each_type :
                                  ec_missing_notequal_on_range_based_for_type,
                    expr_position, operand1.type);
