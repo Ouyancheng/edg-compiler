@@ -695,6 +695,7 @@ check_abbreviation()
 --named_address_spaces
 --named_registers
 --namespaces
+--narrowing_conversion_warning
 --near_code_pointers
 --near_data_pointers
 --new_for_init
@@ -760,6 +761,7 @@ check_abbreviation()
 --no_named_address_spaces
 --no_named_registers
 --no_namespaces
+--no_narrowing_conversion_warning
 --no_nonconst_ref_anachronism
 --no_nonstd_default_arg_deduction
 --no_nonstd_gnu_keywords
@@ -1452,6 +1454,8 @@ process_option()
          --no_delegating_constructors | \
          --using_framework_directory | \
          --no_using_framework_directory | \
+         --narrowing_conversion_warning | \
+         --no_narrowing_conversion_warning | \
          --force_vtbl)
       feoptions=$feoptions" $curr_arg"
 #     Options that require additional processing
