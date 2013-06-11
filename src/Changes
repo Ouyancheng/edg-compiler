@@ -1,5 +1,32 @@
 Version 5.0
 
+6/11/13  [EDGcpfe/14150]
+Microsoft compatibility: elided constructor not needed
+
+MSVC accepts the example below, apparently because the template copy
+constructor that would be needed (to copy a scoped_ptr<B> rvalue)
+is elided and its existence is never checked for.  (If it were,
+overload resolution would fail because a template constructor can't
+be instantiated to produce a constructor that copies its own type
+by value; such a constructor would be unusable, because passing its
+argument would require a copy, which would require a call of the same
+constructor, etc.)  We now accept this case in Microsoft mode.
+
+  template<class T> struct scoped_ptr {
+    scoped_ptr(scoped_ptr &);
+    static scoped_ptr f();
+    template<typename U> scoped_ptr(scoped_ptr<U> other);
+  };
+  class B {};
+  class D : public B {};
+  struct X {
+    X(scoped_ptr<B>);
+  };
+  int main() {
+    X x(scoped_ptr<D>::f());
+  }
+
+
 6/11/13  [EDGcpfe/14075]
 Preservation of typedefs in result type of "?" on pointer types
 

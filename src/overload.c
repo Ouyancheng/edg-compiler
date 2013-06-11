@@ -2958,7 +2958,7 @@ copy-initialization).
       if (!param_is_reference && param_is_class_type) {
         /* The argument and parameter are the same class type, so this
            qualifies as a class copy. */
-        if (!try_user_conversions) {
+        if (!try_user_conversions && !microsoft_bugs) {
           /* User-defined conversions are not allowed.  Copying a class to
              its own type doesn't count as a conversion if a copy
              constructor is used, but does if some trick of using an
