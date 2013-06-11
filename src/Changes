@@ -5,6 +5,7 @@ Preservation of typedefs in result type of "?" on pointer types
 
 The front end now preserves typedefs where possible in the result type
 of a "?" operation whose second and third operands are pointer types.
+For example (in C mode):
 
   typedef struct {
     int s;
