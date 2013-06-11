@@ -1,5 +1,16 @@
 Version 5.0
 
+6/11/13  [EDGcpfe/14105]
+Performance improvement for instantiation-dependence tests
+
+In some cases involving variadic templates instantiated with very long and
+complex lists of template arguments, the front end spent most of its time
+determining whether those arguments were "instantiation dependent".  This
+test has now been improved (by caching results and by short-circuiting the
+computation in non-template contexts).  For some test cases this improves
+compilation time over a hundredfold.
+
+
 6/11/13  [EDGcpfe/14150]
 Microsoft compatibility: elided constructor not needed
 
