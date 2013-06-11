@@ -496,8 +496,8 @@ static a_boolean expr_gets_volatile_lvalue_to_rvalue_conv(
                                                          an_expr_node_ptr expr)
 /*
 Return TRUE if the expression expr has one of the forms described in
-[expr]p11 for discarded-value expressions that get the lvalue-to-rvalue
-conversion for a volatile lvalue.
+[expr]p11 for discarded-value expressions that get the glvalue-to-prvalue
+conversion for a volatile glvalue.
 */
 {
   a_boolean do_conv = FALSE;
@@ -25433,7 +25433,8 @@ expression, and return the result in *result (or an error indication in
   a_token_sequence_number
                     operator_tok_seq_number;
   a_boolean         err = FALSE, processed = FALSE;
-  a_boolean         result_is_an_lvalue = FALSE;
+  a_boolean         result_is_a_glvalue = FALSE;
+  a_boolean         result_is_an_xvalue = FALSE;
   a_boolean         comma_allowed_in_c99_constant_expr = FALSE;
 
   db_enter(4, "scan_comma_operator");
@@ -25503,17 +25504,15 @@ expression, and return the result in *result (or an error indication in
          In C mode, an lvalue is converted to an rvalue. */
       if (C_dialect == C_dialect_cplusplus) {
         eliminate_unusual_operand_kinds(&operand_2);
-        result_is_an_lvalue = is_a_cplusplus_lvalue(&operand_2);
-        if (is_an_xvalue(&operand_2)) {
-          /* FIXME */
-          do_operand_transformations(&operand_2, TOPT_NO_OPTIONS);
-        }  /* if */
+        result_is_an_xvalue = is_an_xvalue(&operand_2);
+        result_is_a_glvalue = (result_is_an_xvalue ||
+                               is_a_cplusplus_lvalue(&operand_2));
       } else if (gcc_mode && gnu_version < 40000) {
         /* gcc leaves an lvalue, but converts a function or array to a
            pointer. */
         do_operand_transformations(&operand_2,
                                    TOPT_SUPPRESS_LVALUE_TO_RVALUE_CONVERSION);
-        result_is_an_lvalue = is_an_lvalue(&operand_2);
+        result_is_a_glvalue = is_an_lvalue(&operand_2);
       } else {
         do_operand_transformations(&operand_2, TOPT_NO_OPTIONS);
       }  /* if */
@@ -25521,7 +25520,7 @@ expression, and return the result in *result (or an error indication in
                                operand_1,
                                &operand_2,
                                operand_2.type,
-                               result_is_an_lvalue,
+                               result_is_a_glvalue,
                                result,
                                &operator_position,
                                operator_tok_seq_number,
@@ -25531,9 +25530,12 @@ expression, and return the result in *result (or an error indication in
         /* The result is not a null pointer constant. */
         result->variant.constant.null_pointer_constant_ruled_out = TRUE;
       }  /* if */
-      if (result_is_an_lvalue) {
+      if (result_is_a_glvalue) {
         result->ref_entries_list = operand_2.ref_entries_list;
         operand_2.ref_entries_list = NULL;
+        if (result_is_an_xvalue) {
+          conv_rvalue_reference_result_to_xvalue(result);
+        }  /* if */
       }  /* if */
     }  /* if */
   }  /* if */

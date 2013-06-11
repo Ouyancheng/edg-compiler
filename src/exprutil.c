@@ -8280,10 +8280,10 @@ the type to be complete if possible.
 
 void conv_rvalue_reference_result_to_xvalue(an_operand *operand)
 /*
-The indicated operand is the result of a cast to an rvalue reference type
-or a call of a function returning an rvalue reference type.  It's been
-created as an lvalue, because that's the default for reference operations.
-Convert it to an xvalue instead.
+The indicated operand is the result of an rvalue reference operation (e.g.,
+a cast to an rvalue reference type or a call of a function returning an
+rvalue reference type).  It's been created as an lvalue; convert it to
+an xvalue instead.
 */
 {
   /* Note that function designators are not changed -- a cast to an
@@ -8561,7 +8561,7 @@ a_boolean is_a_cplusplus_lvalue(an_operand *operand)
 /*
 Return TRUE if the indicated operand is a C++ lvalue.  The C++ standard
 definition of lvalue includes what are called function designators
-in C.
+in C.  Note this is "lvalue", not "glvalue".
 */
 {
   a_boolean is_lvalue = is_an_lvalue(operand) ||
@@ -17242,7 +17242,69 @@ initializing it from the prvalue.  This routine is used only in C++ mode.
 }  /* conv_class_prvalue_operand_to_lvalue */
 
 
-static void conv_xvalue_to_lvalue(an_operand *operand);
+static an_expr_node_ptr conv_xvalue_expr_to_lvalue(an_expr_node_ptr expr)
+/*
+Convert the indicated xvalue expression to an lvalue, and return a pointer
+to the updated tree.
+*/
+{
+  a_boolean change_directly = FALSE;
+
+  check_assertion(expr->is_xvalue);
+  if (expr->kind == (an_expr_node_kind)enk_temp_init) {
+    /* A temp-init node can be directly changed to be an lvalue. */
+    change_directly = TRUE;
+  } else if (is_operation_node(expr)) {
+    an_expr_operator_kind op = expr->variant.operation.kind;
+    if (op == (an_expr_operator_kind)eok_ref_indirect ||
+        op == (an_expr_operator_kind)eok_ref_cast ||
+        op == (an_expr_operator_kind)eok_ref_dynamic_cast) {
+      /* A reference indirection can be directly changed to be an lvalue.
+         Likewise a reference cast. */
+      change_directly = TRUE;
+#if PARENS_IN_IL
+    } else if (op == (an_expr_operator_kind)eok_parens) {
+      /* For a parenthesis node, do a recursive call to change the subtree,
+         then change the eok_parens node directly. */
+      change_directly = TRUE;
+      expr->variant.operation.operands =
+                  conv_xvalue_expr_to_lvalue(expr->variant.operation.operands);
+#endif /* PARENS_IN_IL */
+    }  /* if */
+  }  /* if */
+  if (change_directly) {
+    check_assertion(expr->is_xvalue);
+    expr->is_xvalue = FALSE;
+    expr->is_lvalue = TRUE;
+  } else {
+    /* Use a general technique: take a reference to the xvalue and then
+       indirect through it to get an lvalue. */
+    an_expr_node_ptr ref_expr = add_reference_to_to_node(expr);
+    expr = add_ref_indirection_to_node(ref_expr);
+  }  /* if */
+  return expr;
+}  /* conv_xvalue_expr_to_lvalue */
+
+
+static void conv_xvalue_to_lvalue(an_operand *operand)
+/*
+operand is an xvalue.  Convert it to an lvalue.
+*/
+{
+  an_expr_node_ptr expr, new_expr;
+
+  check_assertion(is_expression_operand(operand) && is_an_xvalue(operand));
+  expr = operand->variant.expression;
+  check_assertion(expr->is_xvalue);
+  new_expr = conv_xvalue_expr_to_lvalue(expr);
+  if (new_expr != expr) {
+    check_assertion(identical_types(new_expr->type, expr->type));
+    operand->variant.expression = new_expr;
+    /* lvalues and xvalues both use the os_glvalue kind, so no change
+       is needed. */
+    check_assertion(is_a_glvalue(operand));
+  }  /* if */
+}  /* conv_xvalue_to_lvalue */
 
 
 void conv_class_operand_to_object_pointer(an_operand *operand)
@@ -17284,28 +17346,6 @@ to a C++/CLI handle instead of a pointer.
                                            (a_source_position *)NULL);
   }  /* if */
 }  /* conv_class_operand_to_object_pointer */
-
-
-static void conv_xvalue_to_lvalue(an_operand *operand)
-/*
-operand is an xvalue.  Convert it to an lvalue.
-*/
-{
-  an_expr_node_ptr expr;
-
-  check_assertion(is_expression_operand(operand));
-  expr = operand->variant.expression;
-  for (;;) {
-    check_assertion(expr->is_xvalue);
-    expr->is_xvalue = FALSE;
-    expr->is_lvalue = TRUE;
-    /* Loop if this is an eok_parens node, to change the underlying node
-       also. */
-    if (!is_operation_node(expr)) break;
-    if (!node_operator_is(expr, eok_parens)) break;
-    expr = expr->variant.operation.operands;
-  }  /* for */
-}  /* conv_xvalue_to_lvalue */
 
 
 a_boolean is_an_xvalue(an_operand *operand)
