@@ -23388,7 +23388,8 @@ that case.
                         question_tok_seq_number;
   a_boolean             operand_1_is_const = FALSE;
   a_boolean             operand_1_is_false = FALSE;
-  a_boolean             result_is_an_lvalue = FALSE;
+  a_boolean             result_is_a_glvalue = FALSE;
+  a_boolean             result_is_an_xvalue = FALSE;
   a_boolean             err = FALSE, processed = FALSE;
   a_type_ptr            result_type, ptr_result_type, operation_type;
   a_boolean             operand_2_is_pointer, operand_3_is_pointer;
@@ -23768,7 +23769,14 @@ that case.
         is_a_cplusplus_lvalue(&operand_3)) {
       /* In C++, if the second and third operands have the same type and
          they are lvalues, the result is also an lvalue. */
-      result_is_an_lvalue = TRUE;
+      result_is_a_glvalue = TRUE;
+    } else if (types_are_the_same &&
+               is_an_xvalue(&operand_2) &&
+               is_an_xvalue(&operand_3)) {
+      /* If the second and third operands have the same type and
+         they are xvalues, the result is also an xvalue. */
+      result_is_a_glvalue = TRUE;
+      result_is_an_xvalue = TRUE;
     } else {
       /* Do lvalue --> rvalue, array --> pointer, and function --> pointer
          transformations. */
@@ -23833,7 +23841,7 @@ that case.
       if (is_error_type(operand_3.type)) {
         result_type = operand_3.type;
       } else if (microsoft_bugs && microsoft_version < 1400 &&
-                 result_is_an_lvalue &&
+                 result_is_a_glvalue &&
                  is_an_lvalue(&operand_2) && /* Rule out function cases. */
                  !is_class_struct_union_type(result_type) &&
                  !is_error_type(result_type)) {
@@ -24163,16 +24171,19 @@ that case.
   } else {
     /* Build the expression. */
     do_question_operation(operand_1, &operand_2, &operand_3, result_type,
-                          result_is_an_lvalue, suppress_class_rvalue_temp,
+                          result_is_a_glvalue, suppress_class_rvalue_temp,
                           /*template_case=*/FALSE,
                           is_gnu_two_operand_form,
                           &question_position, &colon_position,
                           result);
-    if (result_is_an_lvalue) {
-      /* The result is an lvalue, so its reference list is the union
+    if (result_is_a_glvalue) {
+      /* The result is a glvalue, so its reference list is the union
          of the operand 2 and operand 3 reference lists. */
       result->ref_entries_list = merge_ref_lists(operand_2.ref_entries_list,
                                                  operand_3.ref_entries_list);
+      if (result_is_an_xvalue) {
+        conv_rvalue_reference_result_to_xvalue(result);
+      }  /* if */
     }  /* if */
   }  /* if */
   if (string_literals_are_const && !strict_ansi_mode && !gpp_mode) {

@@ -13217,7 +13217,9 @@ void do_question_operation(an_operand        *operand_1,
 /*
 Build an operand for a "?" operation.  operand_1, operand_2, and operand_3
 are the operands.  result_type is the result type.  The result is an lvalue
-if result_is_an_lvalue is TRUE.  The operand is built in *result.
+if result_is_an_lvalue is TRUE (note that for xvalue cases the result is
+built here as an lvalue and then changed by the caller to an xvalue, so
+result_is_an_lvalue will be passed in TRUE).  The operand is built in *result.
 Constant operations are folded if appropriate.  suppress_class_rvalue_temp
 is TRUE if the generation of an extra temporary for the result of a
 class rvalue case should be suppressed.  template_case is TRUE if this
@@ -13291,10 +13293,6 @@ question_position and colon_position give the position of the "?" and ":".
     } else if (!identical_types(operand_2->type, operand_3->type)) {
       /* Can't fold cases where the operand types do not match (e.g.,
          because one is a throw and the other is not). */
-      do_folding = FALSE;
-    } else if (is_an_xvalue(preserved_operand)) {
-      /* Can't fold if the preserved operand is an xvalue, because the result
-         of the "?" is not. */
       do_folding = FALSE;
     } else if (curr_expr_kind_is_const()) {
       /* In constant expressions we must always fold. */
