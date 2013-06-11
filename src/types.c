@@ -9040,8 +9040,8 @@ See conversion_possible.
       okay = TRUE;
       if (warning_on_lossy_conversion && !source_is_constant &&
           !identical_types(source_type, dest_type)) {
-        int       dest_bits;
-        int       source_bits;
+        a_targ_size_t dest_bits;
+        a_targ_size_t source_bits;
         if (is_floating_type(source_type)) {
           /* Includes complex types, if enabled; the result will be the
              number of mantissa bits in the real part. */
