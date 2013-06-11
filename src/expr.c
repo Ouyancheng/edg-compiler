@@ -24031,6 +24031,13 @@ that case.
             /* The result type is an unqualified pointer to the
                properly-qualified underlying type. */
             result_type = make_pointer_type(ptr_result_type);
+            /* If what we came up with matches one of the original two types,
+               use the original type so we preserve typedefs. */
+            if (identical_types(result_type, operand_2.type)) {
+              result_type = operand_2.type;
+            } else if (identical_types(result_type, operand_3.type)) {
+              result_type = operand_3.type;
+            }  /* if */
           }  /* if */
         }  else {
           /* The operands are incompatible.  (An error has already been

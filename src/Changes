@@ -1,5 +1,20 @@
 Version 5.0
 
+6/11/13  [EDGcpfe/14075]
+Preservation of typedefs in result type of "?" on pointer types
+
+The front end now preserves typedefs where possible in the result type
+of a "?" operation whose second and third operands are pointer types.
+
+  typedef struct {
+    int s;
+  } my_struct;
+  int main() {
+    my_struct *ps1,*ps2;
+    ps2 = 1 ? ps1 : (void *)0;  // my_struct typedef preserved in result type
+  }
+
+
 6/10/13  [EDGcpfe/2155,EDGcpfe/6663,EDGcpfe/12701]
 Warning on narrowing conversion
 
