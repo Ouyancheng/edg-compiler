@@ -17892,10 +17892,10 @@ See add_right_pointer_type_to_this for a variant of this function.
 
 an_expr_node_ptr add_address_of_to_node(an_expr_node_ptr node)
 /*
-Add an eok_address_of operation on top of the given node, and return a
-pointer to the new expression.  This is intended for generated code and
-not for implementation of "&" in the source code.  The returned node is
-designated an rvalue.
+Add an eok_address_of operation on top of the given node (an lvalue),
+and return a pointer to the new expression.  This is intended for
+generated code and not for implementation of "&" in the source code.
+The returned node is a prvalue.
 */
 {
   if (!is_error_node(node)) {
@@ -17926,10 +17926,10 @@ designated an rvalue.
 
 an_expr_node_ptr add_reference_to_to_node(an_expr_node_ptr node)
 /*
-Add an eok_reference_to operation on top of the given node, and return a
-pointer to the new expression.  This is for reference binding, and does
-not correspond directly to any operator in the source code.  The returned
-node is a prvalue.
+Add an eok_reference_to operation on top of the given node (a glvalue
+or class prvalue), and return a pointer to the new expression.  This
+is for reference binding, and does not correspond directly to any
+operator in the source code.  The returned node is a prvalue.
 */
 {
   if (!is_error_node(node)) {
@@ -17946,7 +17946,7 @@ node is a prvalue.
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
                                make_reference_type(node->type);
     } else {
-      /* For the rvalue case, the operand should be a class. */
+      /* For the prvalue case, the operand should be a class. */
       check_assertion(is_class_struct_union_type(node->type) ||
                       is_template_param_type(node->type) ||
                       is_error_type(node->type));

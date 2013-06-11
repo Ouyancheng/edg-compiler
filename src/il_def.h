@@ -13708,9 +13708,9 @@ enum an_expr_operator_kind_tag {
   */
   /* The following have 1 operand: */
   eok_address_of,	/* Address-of operator ("&"). */
-  eok_reference_to,	/* Turns an lvalue into a reference, i.e., the
+  eok_reference_to,	/* Turns a glvalue into a reference, i.e., the
 			   reference equivalent of eok_address_of.  Can also be
-			   applied to a class rvalue, where it produces a
+			   applied to a class prvalue, where it produces a
 			   reference to the class object in memory. */
   eok_handle_to,	/* C++/CLI unary "%" operator, which returns a handle
 			   to its operand.  The operand must have a ref class

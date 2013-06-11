@@ -1499,8 +1499,6 @@ extern void conv_class_prvalue_operand_to_lvalue(an_operand *operand);
 
 extern void conv_class_operand_to_object_pointer(an_operand *operand);
 
-extern void conv_xvalue_to_lvalue(an_operand *operand);
-
 extern a_boolean is_an_xvalue(an_operand *operand);
 
 extern a_boolean rvalue_ref_can_be_bound_to_function_lvalue(void);

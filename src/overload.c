@@ -20549,7 +20549,6 @@ the conversion.
              is_an_xvalue(source_operand)) {
     /* A reference can be bound directly to an xvalue.  Only non-class cases
        get here. */
-    conv_xvalue_to_lvalue(source_operand);
     adjust_glvalue_type(source_operand, adj_base_dest_type);
   } else {
     /* The initialization cannot be done directly; a temporary must be

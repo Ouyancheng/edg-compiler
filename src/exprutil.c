@@ -16171,16 +16171,16 @@ static void take_address_of_or_reference_to_lvalue(
                                     a_boolean         use_handle_for_ref_class,
                                     a_source_position *operator_position)
 /*
-Change operand (an lvalue or a function designator) to an rvalue that is:
+Change operand (an lvalue or a function designator) to a prvalue that is:
 
 (a)  If reference_case is FALSE, a pointer to the lvalue.  This is the
 function of the "&" operator.  If use_handle_for_ref_class is TRUE and
 the operand is a ref class object, add a "%" operator instead to generate
 a C++/CLI handle.
-(b)  If reference_case is TRUE, a reference to the lvalue.  This is the
-value stored in a reference when it is bound to the lvalue.
-If rvalue_reference_case is TRUE, the reference being bound is an rvalue
-reference.
+(b)  If reference_case is TRUE, a reference to the lvalue (or xvalue,
+also allowed in this case).  This is the value stored in a reference
+when it is bound to the glvalue.  If rvalue_reference_case is TRUE,
+the reference being bound is an rvalue reference.
 
 In both cases, check that the operand's address can be taken, and set the
 address_taken flag.  When operator_position is non-NULL, there is an
@@ -16200,7 +16200,11 @@ explicit "&" operator in the source and *operator_position gives its position.
     change_ref_kinds(operand->ref_entries_list, SRK_ADDRESS_TAKEN);
   } else {
 #if CHECKING
-    if (!is_an_lvalue(operand) && !is_a_function_designator(operand)) {
+    if (is_an_lvalue(operand) ||
+        is_a_function_designator(operand) ||
+        (reference_case && is_an_xvalue(operand))) {
+      /* Okay. */
+    } else {
 #if DEBUG
       db_operand(operand);
 #endif /* DEBUG */
@@ -16404,7 +16408,7 @@ in the source and *operator_position gives its position.
 void take_reference_to_operand(an_operand *operand,
                                a_boolean  rvalue_reference_case)
 /*
-Change operand (an lvalue or class rvalue) to an rvalue that is a reference
+Change operand (a glvalue or class prvalue) to a prvalue that is a reference
 to the object.  This is the value that is stored in a reference bound to the
 object.  Check that the operand isn't a register variable or a bit
 field, and set the address_taken flag.  Also works on function
@@ -16414,7 +16418,7 @@ is an rvalue reference.
 {
   if (is_error_operand(operand)) {
     normalize_error_operand(operand);
-  } else if (is_an_lvalue(operand) ||
+  } else if (is_a_glvalue(operand) ||
              is_a_function_designator(operand)) {
     take_address_of_or_reference_to_lvalue(operand,
                                            /*reference_case=*/TRUE,
@@ -16422,7 +16426,7 @@ is an rvalue reference.
                                            /*use_handle_for_ref_class=*/FALSE,
                                            (a_source_position *)NULL);
   } else {
-    /* Binding a reference to a class rvalue. */
+    /* Binding a reference to a class prvalue. */
     an_expr_node_ptr expr;
     an_operand       orig_operand;
     check_assertion(is_an_rvalue(operand) &&
@@ -17238,6 +17242,9 @@ initializing it from the prvalue.  This routine is used only in C++ mode.
 }  /* conv_class_prvalue_operand_to_lvalue */
 
 
+static void conv_xvalue_to_lvalue(an_operand *operand);
+
+
 void conv_class_operand_to_object_pointer(an_operand *operand)
 /*
 Convert a class operand for an object into an operand for a pointer to the
@@ -17279,7 +17286,7 @@ to a C++/CLI handle instead of a pointer.
 }  /* conv_class_operand_to_object_pointer */
 
 
-void conv_xvalue_to_lvalue(an_operand *operand)
+static void conv_xvalue_to_lvalue(an_operand *operand)
 /*
 operand is an xvalue.  Convert it to an lvalue.
 */
