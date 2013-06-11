@@ -119,6 +119,9 @@ int fxp_compare(a_constant	*constant_1,
 
 extern a_hash_value fxp_hash(a_fixed_point_value *value);
 
+extern int non_fractional_bits_for_fixed_point(
+                                          a_fixed_point_type_descr *fxp_descr);
+
 #endif /* ifndef FIXED_PT_H */
 
 /******************************************************************************

@@ -300,7 +300,7 @@ typedef enum /*an_option_kind*/ {
   optk_max_constexpr_call_depth,
   optk_max_constexpr_call_count,
   optk_delegating_constructors,
-  optk_narrowing_warning,
+  optk_lossy_warning,
   optk_last		/* Must be last. */
 } an_option_kind;
 
@@ -1952,10 +1952,11 @@ EXTERN a_boolean
 			   are to be considered to terminate a line. */
 
 EXTERN a_boolean
-		warning_on_narrowing_conversion;
+		warning_on_lossy_conversion;
 			/* TRUE if a diagnostic should be issued whenever
 			   a conversion occurs from one arithmetic type to
-			   a smaller one. */
+			   a smaller one or from a floating to an integral
+			   type. */
 
 /* Process the command line arguments. */
 extern void proc_command_line(int argc, char *argv[]);

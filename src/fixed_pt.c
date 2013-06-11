@@ -84,8 +84,7 @@ Return the number of bytes in a fixed-point value.
 }  /* sizeof_fixed_point */
 
 
-static int non_fractional_bits_for_fixed_point(
-				a_fixed_point_type_descr	*fxp_descr)
+int non_fractional_bits_for_fixed_point(a_fixed_point_type_descr *fxp_descr)
 /*
 Return the number of bits in the non-fractional part of a fixed-point value.
 The sign bit (if any) is included in the non-fractional bits.

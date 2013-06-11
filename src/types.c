@@ -9038,10 +9038,63 @@ See conversion_possible.
     } else if (is_arithmetic_or_unscoped_enum(source_type)) {
       /* Arithmetic or unscoped enum --> arithmetic (including enum in C). */
       okay = TRUE;
-      if (warning_on_narrowing_conversion && !source_is_constant &&
-          dest_type->size < source_type->size) {
-        /* Warn about possible loss of data. */
-        std_conv->warning_suggested = ec_conversion_to_smaller_type;
+      if (warning_on_lossy_conversion && !source_is_constant &&
+          !identical_types(source_type, dest_type)) {
+        int       dest_bits;
+        int       source_bits;
+        if (is_floating_type(source_type)) {
+          /* Includes complex types, if enabled; the result will be the
+             number of mantissa bits in the real part. */
+          switch (source_type->variant.float_kind) {
+            case fk_float:
+              source_bits = targ_flt_mant_dig;
+              break;
+            case fk_double:
+              source_bits = targ_dbl_mant_dig;
+              break;
+            case fk_long_double:
+              source_bits = targ_ldbl_mant_dig;
+              break;
+            default:
+              unexpected_condition();
+          }  /* switch */
+#if FIXED_POINT_ALLOWED
+        } else if (is_fixed_point_type(source_type)) {
+          source_bits = non_fractional_bits_for_fixed_point(
+                                            &source_type->variant.fixed_point);
+#endif /* FIXED_POINT_ALLOWED */
+        } else {
+          source_bits = targ_char_bit * source_type->size;
+        }  /* if */
+        if (is_floating_type(dest_type)) {
+          /* Includes complex types, if enabled; the result will be the
+             number of mantissa bits in the real part. */
+          switch (dest_type->variant.float_kind) {
+            case fk_float:
+              dest_bits = targ_flt_mant_dig;
+              break;
+            case fk_double:
+              dest_bits = targ_dbl_mant_dig;
+              break;
+            case fk_long_double:
+              dest_bits = targ_ldbl_mant_dig;
+              break;
+            default:
+              unexpected_condition();
+          }  /* switch */
+#if FIXED_POINT_ALLOWED
+        } else if (is_fixed_point_type(dest_type)) {
+          dest_bits = non_fractional_bits_for_fixed_point(
+                                              &dest_type->variant.fixed_point);
+#endif /* FIXED_POINT_ALLOWED */
+        } else {
+          dest_bits = targ_char_bit * dest_type->size;
+        }  /* if */
+        if (dest_bits < source_bits ||
+            (is_floating_type(source_type) && !is_floating_type(dest_type))) {
+          /* Warn about possible loss of data. */
+          std_conv->warning_suggested = ec_lossy_conversion;
+        }  /* if */
       }  /* if */
       if (C_mode()) {
         /* In C, check for conversion of one enumerated type to another,

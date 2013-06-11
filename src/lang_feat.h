@@ -2153,14 +2153,15 @@ enabled in C++11 mode.  The default can be overridden using the
 #endif /* DEFAULT_ULITERALS_ENABLED */
 
 /*
-Flag that is TRUE if a warning should be issued whenever one arithmetic type
-is converted to a narrower one.  This is the default value of the global
-variable warning_on_narrowing_conversion.  The behavior can also be
-controlled by the --[no_]narrowing_conversion_warning command-line option.
+Flag that is TRUE if a warning should be issued whenever an arithmetic
+value is converted to a smaller type or from a floating type to an integral
+type.  This is the default value of the global variable
+warning_on_lossy_conversion.  The behavior can also be controlled by the
+--[no_]lossy_conversion_warning command-line option.
 */
-#ifndef DEFAULT_WARNING_ON_NARROWING_CONVERSION
-#define DEFAULT_WARNING_ON_NARROWING_CONVERSION FALSE
-#endif /* ifndef DEFAULT_WARNING_ON_NARROWING_CONVERSION */
+#ifndef DEFAULT_WARNING_ON_LOSSY_CONVERSION
+#define DEFAULT_WARNING_ON_LOSSY_CONVERSION FALSE
+#endif /* ifndef DEFAULT_WARNING_ON_LOSSY_CONVERSION */
 
 EXTERN a_boolean
 		cpp11_mode;
