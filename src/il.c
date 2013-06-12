@@ -18429,11 +18429,11 @@ introduced in C99 to control aliasing of pointers.  See C99 6.7.3.1.
 
 a_boolean is_rvalueable_node(an_expr_node_ptr node)
 /*
-Return TRUE if the indicated node is one in which an lvalue-to-rvalue
+Return TRUE if the indicated node is one in which a glvalue-to-prvalue
 conversion ("load from memory") at the end can be indicated simply by
-clearing the is_lvalue flag.  The node can be an lvalue or rvalue:
-if it is an lvalue, then clearing the flag will add the load.  If
-it is an rvalue, then the flag has already been cleared and the node
+clearing the is_lvalue or is_xvalue flag.  The node can be a glvalue
+or prvalue: if it is a glvalue, then clearing the flag will add the load.
+If it is a prvalue, then the flag has already been cleared and the node
 already indicates the load.
 */
 {
@@ -18519,15 +18519,16 @@ already indicates the load.
 }  /* is_rvalueable_node */
 
 
-a_boolean node_includes_lvalue_to_rvalue_conv(an_expr_node_ptr node)
+a_boolean node_includes_glvalue_to_prvalue_conv(an_expr_node_ptr node)
 /*
-Return TRUE if node includes an implicit lvalue-to-rvalue conversion
-("load from memory").  This is indicated by the is_lvalue flag being
-FALSE in a node where the default setting would be TRUE.
+Return TRUE if node includes an implicit glvalue-to-prvalue conversion
+("load from memory").  This is indicated by the is_lvalue and is_xvalue
+flags being FALSE in a node where the default setting would be
+for is_lvalue to be TRUE.
 */
 {
   return !is_glvalue_node(node) && is_rvalueable_node(node);
-}  /* node_includes_lvalue_to_rvalue_conv */
+}  /* node_includes_glvalue_to_prvalue_conv */
 
 #if !STANDALONE_UTILITY_PROGRAM
 
@@ -18593,8 +18594,8 @@ top-level node is considered -- fetches in child nodes are not.
 process_field_selection:
               /* A field selection that returns an rvalue fetches the field
                  as additionally qualified by the class type.  Note that the
-                 code here differs from node_includes_lvalue_to_rvalue_conv in
-                 considering that rvalue.field is a fetch of the field even
+                 code here differs from node_includes_glvalue_to_prvalue_conv
+                 in considering that rvalue.field is a fetch of the field even
                  though there's no lvalue-to-rvalue conversion.  That makes
                  sense because this routine is used to check for side effects,
                  and a selection of a volatile field from a non-volatile
@@ -24301,7 +24302,7 @@ have the is_lvalue flag set incorrectly; return TRUE otherwise.
          the fact that the expression may have an implied
          glvalue-to-prvalue conversion. */
       a_boolean eff_node_is_glvalue = is_glvalue_node(node);
-      if (node_includes_lvalue_to_rvalue_conv(node)) {
+      if (node_includes_glvalue_to_prvalue_conv(node)) {
         eff_node_is_glvalue = TRUE;
       }  /* if */
       if (eff_node_is_glvalue != is_glvalue_node(operand_1)) {
@@ -24331,7 +24332,7 @@ have the is_lvalue flag set incorrectly; return TRUE otherwise.
          by the fact that the expression may have an implied
          glvalue-to-prvalue conversion. */
       a_boolean eff_node_is_glvalue = is_glvalue_node(node);
-      if (node_includes_lvalue_to_rvalue_conv(node)) {
+      if (node_includes_glvalue_to_prvalue_conv(node)) {
         eff_node_is_glvalue = TRUE;
       }  /* if */
       if (eff_node_is_glvalue != is_glvalue_node(operand_2)) {
@@ -24371,7 +24372,7 @@ have the is_lvalue flag set incorrectly; return TRUE otherwise.
   }  /* if */
 #if CHECKING
   if (node->orig_lvalue_type != NULL) {
-    check_assertion(node_includes_lvalue_to_rvalue_conv(node) ||
+    check_assertion(node_includes_glvalue_to_prvalue_conv(node) ||
                     (is_operation_node(node) &&
                      node->variant.operation.is_reference_cast));
   }  /* if */

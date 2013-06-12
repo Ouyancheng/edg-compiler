@@ -13946,7 +13946,7 @@ inlining and therefore yield different results.
        addresses.  extern routines might have zero addresses because of
        linker magic like weak externals. */
     *is_non_null = routine_has_non_null_address(expr->variant.routine.ptr);
-  } else if (node_includes_lvalue_to_rvalue_conv(expr)) {
+  } else if (node_includes_glvalue_to_prvalue_conv(expr)) {
     /* Node includes an lvalue-to-rvalue conversion ("load from memory"),
        so it's not constant valued. */
   } else if (is_operation_node(expr)) {

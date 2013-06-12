@@ -1090,7 +1090,7 @@ extern a_boolean node_is_pointer_with_restrict_semantics(
 
 extern a_boolean is_rvalueable_node(an_expr_node_ptr node);
 
-extern a_boolean node_includes_lvalue_to_rvalue_conv(an_expr_node_ptr node);
+extern a_boolean node_includes_glvalue_to_prvalue_conv(an_expr_node_ptr node);
 
 extern a_boolean dynamic_init_has_side_effects(
                                         a_dynamic_init_ptr dip,
