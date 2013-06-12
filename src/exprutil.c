@@ -8680,9 +8680,9 @@ a_type_ptr operand_type_after_integral_promotion(an_operand *operand)
 /*
 Determine the type that would result from applying the integral promotions
 (3.2.1.1) to *operand.  Return the promoted type, which may be
-the same as the original type.  The operand may be an rvalue or an lvalue;
-if it is an lvalue, the type returned is the promoted version of the
-rvalue type for that lvalue (i.e., some cv-qualifiers are dropped even
+the same as the original type.  The operand may be a prvalue or a glvalue;
+if it is a glvalue, the type returned is the promoted version of the
+prvalue type for that glvalue (i.e., some cv-qualifiers are dropped even
 if the type is not integral).
 */
 {
@@ -8700,8 +8700,8 @@ if the type is not integral).
     /* Non-bit-field cases.  Determine the promoted type on the basis of
        the operand type. */
     promoted_type = operand->type;
-    if (is_an_lvalue(operand)) {
-      /* For an lvalue, use the type it would have if it were a prvalue. */
+    if (is_a_glvalue(operand)) {
+      /* For a glvalue, use the type it would have if it were a prvalue. */
       promoted_type = prvalue_type(promoted_type);
     }  /* if */
     promoted_type = type_after_integral_promotion(promoted_type);
