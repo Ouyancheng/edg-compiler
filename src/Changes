@@ -1,5 +1,26 @@
 Version 5.0
 
+6/12/13  [EDGcpfe/13581]
+GNU C++ compatibility: friend class declarations and using-directives
+
+The g++ compiler finds friend classes made visible by using-directives,
+but starting with gnu_version 40000 such classes are only found if the
+class name was not found in an enclosing scope.  The example below
+was formerly ambiguous in g++ mode, but is now accepted in g++ mode when
+gnu_version >= 40000.
+
+  namespace N {
+    struct A {
+      friend struct D;
+    };
+  }
+  using namespace N;
+  struct D;
+  struct B {
+    friend struct D;  // Now okay when gnu_version >= 40000
+  };
+
+
 6/11/13  [EDGcpfe/14105]
 Performance improvement for instantiation-dependence tests
 

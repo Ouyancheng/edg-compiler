@@ -2403,13 +2403,16 @@ lookup processing.
        use the type symbol. */
     if (sym == NULL && type_tag_symbol != NULL) sym = type_tag_symbol;
     /* If this is a namespace scope or the file scope, also look for
-       any symbols that are visible because of using directives. */
+       any symbols that are visible because of using directives.
+       Starting with g++ 4.0, a symbol from a using-directive is only
+       considered if the normal lookup did not find a symbol. */
     if ((kind == (a_scope_kind)sck_file ||
         kind == (a_scope_kind)sck_namespace) &&
         ssep->using_directives_that_apply_here != NULL &&
         !lookup_state->is_linkage_lookup &&
         (!lookup_state->is_friend_lookup ||
-         friend_class_decl_can_find_using_dir)) {
+         (friend_class_decl_can_find_using_dir &&
+          (!gpp_mode || gnu_version < 40000 || sym == NULL)))) {
       sym = do_using_directive_lookup(ssep, sym, locator, lookup_state);
     }  /* if */
   }  /* if */
