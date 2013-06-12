@@ -22706,6 +22706,8 @@ is expected to be NULL in that case.
         !is_array_type(operand_1->type)) {
       /* If the types are identical, and both operands are lvalues, then
          the result is an lvalue. */
+      /* Min/max operators disappeared from g++ in version 4.2, so we don't
+         need to worry about xvalue results. */
       result_is_lvalue = TRUE;
       options |= TOPT_SUPPRESS_LVALUE_TO_RVALUE_CONVERSION;
     }  /* if */
