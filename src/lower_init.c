@@ -1284,7 +1284,7 @@ ipdp is the init position description for the complete entity being initialized
     entity_type = make_unqualified_type(entity_type);
     entity_type = make_qualified_type(entity_type, qualifiers);
     if (entity_node->is_lvalue) {
-      entity_node = add_cast_to_lvalue_if_necessary(entity_node, entity_type);
+      entity_node = add_cast_to_glvalue_if_necessary(entity_node, entity_type);
     } else {
       entity_node = add_cast(entity_node, make_pointer_type(entity_type));
     }  /* if */
@@ -1444,8 +1444,8 @@ is the destination of an initialization operation.
     if (ipdp->array_element_sequence) {
       /* For an array element sequence that covers more than one dimension
          of an array, get the type right for the underlying element. */
-      entity_node = add_cast_to_lvalue_if_necessary(entity_node,
-                                                    ipdp->array_element_type);
+      entity_node = add_cast_to_glvalue_if_necessary(entity_node,
+                                                     ipdp->array_element_type);
     }  /* if */
     check_assertion(entity_node->is_lvalue);
     if (!result_is_lvalue) {
@@ -1570,8 +1570,8 @@ initialization (when ipdp->array_element_sequence is TRUE).
           new_type->variant.array.element_type = make_qualified_type(
                                                  array_element_type(con->type),
                                                  TQ_CONST);
-          init_val_node = add_cast_to_lvalue_if_necessary(init_val_node,
-                                                          new_type);
+          init_val_node = add_cast_to_glvalue_if_necessary(init_val_node,
+                                                           new_type);
         }  /* if */
         array_assignment = TRUE;
       } else {
@@ -1641,7 +1641,7 @@ initialization (when ipdp->array_element_sequence is TRUE).
     if (needs_cast) {
       /* If we need a cast, make sure we don't change the lvalueness. */
       if (init_val_node->is_lvalue) {
-        init_val_node = add_cast_to_lvalue(init_val_node, entity_type);
+        init_val_node = add_cast_to_glvalue(init_val_node, entity_type);
       } else {
         init_val_node = add_cast(init_val_node, entity_type);
       }  /* if  */

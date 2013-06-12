@@ -6884,7 +6884,7 @@ case).
         /* There is an actual type change here (probably one involving
            cv-qualifiers). */
         if (node->is_lvalue) {
-          node = add_cast_to_lvalue(node, new_type);
+          node = add_cast_to_glvalue(node, new_type);
         } else {
           node = add_cast(node, new_type);
         }  /* if */
@@ -17397,7 +17397,7 @@ an_expr_node_ptr make_lvalue_cast_node(an_expr_node_ptr source_expr,
 Make an lvalue cast expression node that casts source_expr to type_cast_to.
 This is an extension used only in C mode and Microsoft and GNU C++ modes.
 The cast is compiler-generated if compiler_generated is TRUE.  This is
-a special cast related to nonstandard features; see add_cast_to_lvalue
+a special cast related to nonstandard features; see add_cast_to_glvalue
 for the routine that is used for lvalue type adjustments of a more
 usual nature.
 */

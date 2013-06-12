@@ -8247,7 +8247,7 @@ like a cast.
       } else {
         /* Adjust cv-qualifiers or the underlying type. */
         an_expr_node_ptr expr = make_node_from_operand(operand);
-        expr = add_cast_to_lvalue(expr, dest_type);
+        expr = add_cast_to_glvalue(expr, dest_type);
         make_glvalue_expression_operand(expr, operand);
       }  /* if */
       restore_operand_details_incl_ref(operand, &orig_operand);

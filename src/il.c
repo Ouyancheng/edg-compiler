@@ -16600,8 +16600,8 @@ If a cast is added it is marked as compiler-generated.
 }  /* add_cast_if_necessary */
 
 
-an_expr_node_ptr add_cast_to_lvalue(an_expr_node_ptr node,
-                                    a_type_ptr       type)
+an_expr_node_ptr add_cast_to_glvalue(an_expr_node_ptr node,
+                                     a_type_ptr       type)
 /*
 Cast the glvalue expression given by node to the type specified by type.
 This adjusts the type of the glvalue without creating a new object.
@@ -16620,11 +16620,11 @@ cv-qualification or other non-base-class type adjustment.
   copy_node_value_category(node, new_node);
   new_node->variant.operation.compiler_generated = TRUE;
   return new_node;
-}  /* add_cast_to_lvalue */
+}  /* add_cast_to_glvalue */
 
 
-an_expr_node_ptr add_cast_to_lvalue_if_necessary(an_expr_node_ptr node,
-                                                 a_type_ptr       type)
+an_expr_node_ptr add_cast_to_glvalue_if_necessary(an_expr_node_ptr node,
+                                                  a_type_ptr       type)
 /*
 Cast the glvalue expression given by node to the type specified by type,
 but do nothing if the node already has the desired type.
@@ -16636,10 +16636,10 @@ cv-qualification or type adjustment.
 */
 {
   if (!cast_identical_types(node->type, type)) {
-    node = add_cast_to_lvalue(node, type);
+    node = add_cast_to_glvalue(node, type);
   }  /* if */
   return node;
-}  /* add_cast_to_lvalue_if_necessary */
+}  /* add_cast_to_glvalue_if_necessary */
 
 
 an_expr_node_ptr add_rvalue_class_adjust_node(an_expr_node_ptr node,

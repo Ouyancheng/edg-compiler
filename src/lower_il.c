@@ -3005,7 +3005,7 @@ new node.
                                 char_star_type(), node);
       node = add_indirection_to_node(node);
     }  /* if */
-    node = add_cast_to_lvalue_if_necessary(node, type);
+    node = add_cast_to_glvalue_if_necessary(node, type);
   } else {
     if (offset == 0 && !il_identical_types(type, field->type)) {
       /* No need for a field selection for offset zero (a cast is being
@@ -3019,7 +3019,7 @@ new node.
       /* Presumably this is an optimized empty base class: it has no
          associated field and instead we use the field whose offset it
          shares. */
-      node = add_cast_to_lvalue_if_necessary(node, type);
+      node = add_cast_to_glvalue_if_necessary(node, type);
     }  /* if */
   }  /* if */
   return node;
@@ -15130,8 +15130,8 @@ cast.  See lower_expr for typical invocation.
                and we won't execute this code). */
             a_type_ptr  orig_type = expr->type;
             expr->type = make_unqualified_type(orig_type);
-            overwrite_node(expr, add_cast_to_lvalue(copy_node(expr),
-                                                    orig_type));
+            overwrite_node(expr, add_cast_to_glvalue(copy_node(expr),
+                                                     orig_type));
           }  /* if */
 #endif /* LOWER_STRING_LITERALS_TO_NON_CONST */
         }  /* if */

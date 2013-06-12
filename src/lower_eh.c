@@ -2476,7 +2476,7 @@ conversion in cases where their value is not used.
     new_expr = add_indirection_to_node(new_expr);
   }  /* if */
   /* Cast to maintain original type. */
-  new_expr = add_cast_to_lvalue_if_necessary(new_expr, expr->type);
+  new_expr = add_cast_to_glvalue_if_necessary(new_expr, expr->type);
   if (!expr->is_lvalue) {
     /* new_expr is an lvalue, convert it to an rvalue to match the
        lvalueness of the original expression. */
