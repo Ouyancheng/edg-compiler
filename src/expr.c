@@ -6883,7 +6883,7 @@ case).
       if (!identical_types(node->type, new_type)) {
         /* There is an actual type change here (probably one involving
            cv-qualifiers). */
-        if (node->is_lvalue) {
+        if (is_glvalue_node(node)) {
           node = add_cast_to_glvalue(node, new_type);
         } else {
           node = add_cast(node, new_type);
