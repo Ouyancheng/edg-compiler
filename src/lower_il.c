@@ -13425,21 +13425,27 @@ and lvalueness as question_node.
 
 static void rewrite_discarded_lvalue_as_rvalue(an_expr_node_ptr expr)
 /*
-expr points to an expression tree for an lvalue whose result is discarded
-(e.g., top level void expression or first operand of a comma operator).
-Rewrite it as an rvalue that has the same side effects.  The expression
-can be optimized to remove any operations related to returning the
-result (since it is discarded), as long as the side effects remain.
-The type of the expression may also be modified if it would allow
-optimization.  The resulting expression is an rvalue.  The value of
-expr->next is preserved.
+expr points to a lowered or un-lowered expression tree for an lvalue (or
+glvalue in some cases -- see below) whose result is discarded (e.g., top level
+void expression or first operand of a comma operator).  Rewrite it as an rvalue
+that has the same side effects.  The expression can be optimized to remove any
+operations related to returning the result (since it is discarded), as long as
+the side effects remain.  The type of the expression may also be modified if it
+would allow optimization.  The resulting expression is an rvalue.  The value of
+expr->next is preserved.  Typically, the xvalue to lvalue conversion has taken
+place, but a glvalue can occur in cases where this routine is called
+recursively (and only the top level expression has had its xvalue converted).
 */
 {
   a_constant       zero_con;
   an_expr_node_ptr zero_node;
   an_expr_node_ptr next_node = expr->next;
 
-  check_assertion(expr->is_lvalue);
+  if (!expr->is_lvalue) {
+    check_assertion(is_glvalue_node(expr));
+    /* Convert the glvalue to an lvalue now. */
+    change_xvalue_node_to_lvalue(expr);
+  }  /* if */
   if (!node_has_side_effects(expr, (a_boolean *)NULL)) {
     /* No side effects, so replace the expression with a zero of type int. */
     make_zero_of_proper_type(integer_type((an_integer_kind)ik_int), &zero_con);
