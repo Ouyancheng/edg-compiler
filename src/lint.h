@@ -288,6 +288,9 @@ Included from basic_hdrs.h in every compilation.
 /*lint -esym(714,make_comma_node_if_necessary)*/
 /*lint -esym(759,make_comma_node_if_necessary)*/
 /*lint -esym(765,make_comma_node_if_necessary)*/
+/*lint -esym(714,add_cast_to_glvalue_if_necessary)*/
+/*lint -esym(759,add_cast_to_glvalue_if_necessary)*/
+/*lint -esym(765,add_cast_to_glvalue_if_necessary)*/
 #endif /* !DO_IL_LOWERING */
 #if !BACK_END_IS_CP_GEN_BE
 /*lint -esym(714,is_address_of_string_constant)*/
