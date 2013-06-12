@@ -3432,16 +3432,16 @@ expression will be changed so that its value is stored in a temporary,
 and the copy will reference the temporary.  *temp_init_used is returned
 TRUE if a temporary was used, including a reuse of an existing temporary.
 When it is TRUE, the caller must take steps to ensure that expr is evaluated
-before the copy.  See make_lvalue_expr_reusable_copy for a similar routine
+before the copy.  See make_glvalue_expr_reusable_copy for a similar routine
 used in the front end proper.
 */
 {
   an_expr_node_ptr expr_copy;
 
-  expr_copy = lvalue_expr_reusable_copy(expr, vars_can_change,
-                                        make_reusable_copy_full,
-                                        temp_init_used,
-                                        /*treat_as_potential_prvalue=*/FALSE);
+  expr_copy = glvalue_expr_reusable_copy(expr, vars_can_change,
+                                         make_reusable_copy_full,
+                                         temp_init_used,
+                                         /*treat_as_potential_prvalue=*/FALSE);
   return expr_copy;
 }  /* make_lvalue_reusable_copy_full */
 

@@ -3303,16 +3303,16 @@ lowering (as value category is known at that time).
 }  /* make_expr_reusable_copy */
 
 
-an_expr_node_ptr lvalue_expr_reusable_copy(
+an_expr_node_ptr glvalue_expr_reusable_copy(
                        an_expr_node_ptr             expr,
                        a_boolean                    vars_can_change,
                        a_reusable_copy_function_ptr copy_func,
                        a_boolean                    *temp_init_used,
                        a_boolean                    treat_as_potential_prvalue)
 /*
-Driver that handles lvalue special cases for making reusable copies of
-lvalues in both the front end proper and in IL lowering.  Return a
-copy of the expression tree pointed to by expr, which is an lvalue.
+Driver that handles glvalue special cases for making reusable copies of
+glvalues in both the front end proper and in IL lowering.  Return a
+copy of the expression tree pointed to by expr, which is a glvalue.
 If the expression has side effects, or if its meaning is affected by
 the values of variables and vars_can_change is TRUE, the original
 expression will be changed so that some part of it is stored in a
@@ -3320,10 +3320,10 @@ temporary, and the copy will reference the temporary.  *temp_init_used
 is returned TRUE if a temporary was used, including a reuse of an
 existing temporary.  When it is TRUE, the caller must take steps to
 ensure that expr is evaluated before the copy.  copy_func points to a
-function that does a copy for rvalues and for simple lvalues (ones
+function that does a copy for prvalues and for simple glvalues (ones
 whose address can be taken); it's actually what defines the code for
 storing to a temporary and reusing it, and the decision on which cases
-should use a temporary.  This function rewrites lvalues whose address
+should use a temporary.  This function rewrites glvalues whose address
 cannot be taken, for example bit-field references, into simpler forms
 before calling the lower-level copy routine.  treat_as_potential_prvalue
 is TRUE in cases where the eventual value category of expr is not yet known
@@ -3336,7 +3336,7 @@ called during lowering (as value category is known at that time).
 
   *temp_init_used = FALSE;
   expr = skip_parens(expr);
-  check_assertion(expr->is_lvalue || is_error_node(expr));
+  check_assertion(is_glvalue_node(expr) || is_error_node(expr));
   if (is_bit_field_expr(expr)) {
     /* You can't take the address of a bit field, so break it down
        to underlying lvalues whose addresses can be taken. */
@@ -3352,10 +3352,10 @@ called during lowering (as value category is known at that time).
       /* For a bit-field selection, make a reusable copy of the struct
          address, then add the bit field selection to that. */
       if (op == (an_expr_operator_kind)eok_dot_field) {
-        operand1_copy = lvalue_expr_reusable_copy(operand1, vars_can_change,
-                                                  copy_func,
-                                                  temp_init_used,
-                                                  treat_as_potential_prvalue);
+        operand1_copy = glvalue_expr_reusable_copy(operand1, vars_can_change,
+                                                   copy_func,
+                                                   temp_init_used,
+                                                   treat_as_potential_prvalue);
       } else {
         check_assertion(op == (an_expr_operator_kind)eok_points_to_field);
         operand1_copy = copy_func(operand1, vars_can_change, temp_init_used,
@@ -3363,6 +3363,7 @@ called during lowering (as value category is known at that time).
       }  /* if */
       expr_copy = field_lvalue_selection_expr(operand1_copy,
                                               operand2->variant.field);
+      copy_node_value_category(expr, expr_copy);
     } else if (op == (an_expr_operator_kind)eok_question) {
       /* For a "?" operator, make reusable copies of all three operands,
          and a new "?" that uses the reusable copies. */
@@ -3379,15 +3380,15 @@ called during lowering (as value category is known at that time).
         normalize_boolean_controlling_expr_if_needed(operand1_copy);
       }  /* if */
 #endif /* DO_IL_LOWERING */
-      operand2_copy = lvalue_expr_reusable_copy(operand2, vars_can_change,
-                                                copy_func,
-                                                &local_temp_init_used,
-                                                treat_as_potential_prvalue);
+      operand2_copy = glvalue_expr_reusable_copy(operand2, vars_can_change,
+                                                 copy_func,
+                                                 &local_temp_init_used,
+                                                 treat_as_potential_prvalue);
       if (local_temp_init_used) *temp_init_used = TRUE;
-      operand3_copy = lvalue_expr_reusable_copy(operand3, vars_can_change,
-                                                copy_func,
-                                                &local_temp_init_used,
-                                                treat_as_potential_prvalue);
+      operand3_copy = glvalue_expr_reusable_copy(operand3, vars_can_change,
+                                                 copy_func,
+                                                 &local_temp_init_used,
+                                                 treat_as_potential_prvalue);
       if (local_temp_init_used) *temp_init_used = TRUE;
       operand1_copy->next = operand2_copy;
       operand2_copy->next = operand3_copy;
@@ -3396,36 +3397,38 @@ called during lowering (as value category is known at that time).
                                            expr->type, operand1_copy);
       expr_copy->variant.operation.returns_lvalue_instead_of_usual_rvalue =
                                                                           TRUE;
+      copy_node_value_category(expr, expr_copy);
     } else if (op == (an_expr_operator_kind)eok_comma) {
       /* For a "," operator, make a reusable copy of the second operand. */
       operand2 = operand1->next;
       vars_can_change |= node_has_side_effects(expr, (a_boolean *)NULL);
-      expr_copy = lvalue_expr_reusable_copy(operand2, vars_can_change,
-                                            copy_func,
-                                            temp_init_used,
-                                            treat_as_potential_prvalue);
+      expr_copy = glvalue_expr_reusable_copy(operand2, vars_can_change,
+                                             copy_func,
+                                             temp_init_used,
+                                             treat_as_potential_prvalue);
       /* Note that the result is not a comma expression. */
 #if GNU_EXTENSIONS_ALLOWED
     } else if (gpp_mode && is_gnu_min_max_operator(op)) {
       /* For the GNU C++ minimum and maximum operators, make reusable copies
          of both operands. */
       vars_can_change |= node_has_side_effects(expr, (a_boolean *)NULL);
-      operand1_copy = lvalue_expr_reusable_copy(operand1, vars_can_change,
-                                                copy_func,
-                                                &local_temp_init_used,
-                                                treat_as_potential_prvalue);
+      operand1_copy = glvalue_expr_reusable_copy(operand1, vars_can_change,
+                                                 copy_func,
+                                                 &local_temp_init_used,
+                                                 treat_as_potential_prvalue);
       if (local_temp_init_used) *temp_init_used = TRUE;
-      operand2_copy = lvalue_expr_reusable_copy(operand2, vars_can_change,
-                                                copy_func,
-                                                &local_temp_init_used,
-                                                treat_as_potential_prvalue);
+      operand2_copy = glvalue_expr_reusable_copy(operand2, vars_can_change,
+                                                 copy_func,
+                                                 &local_temp_init_used,
+                                                 treat_as_potential_prvalue);
       if (local_temp_init_used) *temp_init_used = TRUE;
       operand1_copy->next = operand2_copy;
       expr_copy = make_lvalue_operator_node(op, expr->type, operand1_copy);
+      check_assertion(!expr->is_xvalue);
 #endif /* GNU_EXTENSIONS_ALLOWED */
     } else {
       unexpected_condition_str(
-                       "lvalue_expr_reusable_copy: unexpected bit field expr");
+                      "glvalue_expr_reusable_copy: unexpected bit field expr");
     }  /* if */
   } else {
     /* For non-bit-field cases, use the simple copy. */
@@ -3433,17 +3436,17 @@ called during lowering (as value category is known at that time).
                           treat_as_potential_prvalue);
   }  /* if */
   return expr_copy;
-}  /* lvalue_expr_reusable_copy */
+}  /* glvalue_expr_reusable_copy */
 
 
-static an_expr_node_ptr make_lvalue_expr_reusable_copy(
+static an_expr_node_ptr make_glvalue_expr_reusable_copy(
                                    an_expr_node_ptr expr,
                                    a_boolean        vars_can_change,
                                    a_boolean        *temp_init_used,
                                    a_boolean        treat_as_potential_prvalue)
 /*
-Return a copy of the expression tree pointed to by expr, which is an
-lvalue.  If the expression has side effects, or if its value is affected
+Return a copy of the expression tree pointed to by expr, which is a
+glvalue.  If the expression has side effects, or if its value is affected
 by the values of variables and vars_can_change is TRUE, the original
 expression will be changed so that some part of it is stored in a temporary,
 and the copy will reference the temporary.  *temp_init_used is returned
@@ -3458,12 +3461,12 @@ lowering.
 {
   an_expr_node_ptr expr_copy;
 
-  expr_copy = lvalue_expr_reusable_copy(expr, vars_can_change,
+  expr_copy = glvalue_expr_reusable_copy(expr, vars_can_change,
                                         make_expr_reusable_copy,
                                         temp_init_used,
                                         treat_as_potential_prvalue);
   return expr_copy;
-}  /* make_lvalue_expr_reusable_copy */
+}  /* make_glvalue_expr_reusable_copy */
 
 
 void clone_operand(an_operand *operand,
@@ -3506,28 +3509,28 @@ lowering (as value category is known at that time).
       break;
     case ok_expression:
       { an_expr_node_ptr expr;
-        a_boolean        class_rvalue_case = FALSE;
+        a_boolean        class_prvalue_case = FALSE;
 
-        if (!C_mode() && is_an_rvalue(operand) &&
+        if (!C_mode() && is_a_prvalue(operand) &&
             is_class_struct_union_type(operand->type)) {
           /* In class cases, we don't want to make a copy of the class.
              We reuse the address of the class object we have. */
-          class_rvalue_case = TRUE;
+          class_prvalue_case = TRUE;
           conv_class_operand_to_object_pointer(operand);
           check_assertion(is_expression_operand(operand));
         }  /* if */
         expr = operand->variant.expression;
-        if (is_an_lvalue(operand)) {
-          expr = make_lvalue_expr_reusable_copy(expr, vars_can_change,
-                                                temp_init_used,
-                                                treat_as_potential_prvalue);
+        if (is_a_glvalue(operand)) {
+          expr = make_glvalue_expr_reusable_copy(expr, vars_can_change,
+                                                 temp_init_used,
+                                                 treat_as_potential_prvalue);
         } else {
           expr = make_expr_reusable_copy(expr, vars_can_change,
                                          temp_init_used,
                                          treat_as_potential_prvalue);
         }  /* if */
         operand_clone->variant.expression = expr;
-        if (class_rvalue_case) {
+        if (class_prvalue_case) {
           /* Restore the class rvalue for the original and the copy by
              adding an indirection plus a conversion to rvalue on both
              expressions. */

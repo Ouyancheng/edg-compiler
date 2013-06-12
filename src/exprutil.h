@@ -1799,7 +1799,7 @@ extern void set_operand_kind(an_operand      *operand,
 
 /*
 Function type used for the call-back routine of
-make_lvalue_expr_reusable_copy.
+make_glvalue_expr_reusable_copy.
 */
 typedef an_expr_node_ptr a_reusable_copy_function(
                                   an_expr_node_ptr expr,
@@ -1808,7 +1808,7 @@ typedef an_expr_node_ptr a_reusable_copy_function(
                                   a_boolean        treat_as_potential_prvalue);
 typedef a_reusable_copy_function *a_reusable_copy_function_ptr;
 
-extern an_expr_node_ptr lvalue_expr_reusable_copy(
+extern an_expr_node_ptr glvalue_expr_reusable_copy(
                       an_expr_node_ptr             expr,
                       a_boolean                    vars_can_change,
                       a_reusable_copy_function_ptr copy_func,
