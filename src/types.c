@@ -8896,6 +8896,44 @@ an integral type smaller than that.
 }  /* is_conv_from_64_bit_integral_to_smaller */
       
 
+static a_targ_size_t num_significant_bits(a_type_ptr type)
+/*
+Return the number of significant bits in the specified arithmetic type,
+i.e., the size an integral type, the number of bits in the mantissa of a
+floating point type, or the number of non-fractional bits in a fixed point
+type.
+*/
+{
+  a_targ_size_t num_bits;
+
+  if (is_floating_type(type)) {
+    /* Includes complex types, if enabled; in that case, the result will be
+       the number of mantissa bits in the real part. */
+    switch (type->variant.float_kind) {
+      case fk_float:
+        num_bits = targ_flt_mant_dig;
+        break;
+      case fk_double:
+        num_bits = targ_dbl_mant_dig;
+        break;
+      case fk_long_double:
+        num_bits = targ_ldbl_mant_dig;
+        break;
+      default:
+        unexpected_condition();
+    }  /* switch */
+#if FIXED_POINT_ALLOWED
+  } else if (is_fixed_point_type(type)) {
+    num_bits = non_fractional_bits_for_fixed_point(&type->variant.fixed_point);
+#endif /* FIXED_POINT_ALLOWED */
+  } else {
+    check_assertion(is_integral_or_enum(type));
+    num_bits = targ_char_bit * type->size;
+  }  /* if */
+  return num_bits;
+}  /* num_significant_bits */
+
+
 a_boolean impl_conversion_possible(
                           a_type_ptr           source_type,
                           a_boolean            source_is_constant,
@@ -9040,57 +9078,8 @@ See conversion_possible.
       okay = TRUE;
       if (warning_on_lossy_conversion && !source_is_constant &&
           !identical_types(source_type, dest_type)) {
-        a_targ_size_t dest_bits;
-        a_targ_size_t source_bits;
-        if (is_floating_type(source_type)) {
-          /* Includes complex types, if enabled; the result will be the
-             number of mantissa bits in the real part. */
-          switch (source_type->variant.float_kind) {
-            case fk_float:
-              source_bits = targ_flt_mant_dig;
-              break;
-            case fk_double:
-              source_bits = targ_dbl_mant_dig;
-              break;
-            case fk_long_double:
-              source_bits = targ_ldbl_mant_dig;
-              break;
-            default:
-              unexpected_condition();
-          }  /* switch */
-#if FIXED_POINT_ALLOWED
-        } else if (is_fixed_point_type(source_type)) {
-          source_bits = non_fractional_bits_for_fixed_point(
-                                            &source_type->variant.fixed_point);
-#endif /* FIXED_POINT_ALLOWED */
-        } else {
-          source_bits = targ_char_bit * source_type->size;
-        }  /* if */
-        if (is_floating_type(dest_type)) {
-          /* Includes complex types, if enabled; the result will be the
-             number of mantissa bits in the real part. */
-          switch (dest_type->variant.float_kind) {
-            case fk_float:
-              dest_bits = targ_flt_mant_dig;
-              break;
-            case fk_double:
-              dest_bits = targ_dbl_mant_dig;
-              break;
-            case fk_long_double:
-              dest_bits = targ_ldbl_mant_dig;
-              break;
-            default:
-              unexpected_condition();
-          }  /* switch */
-#if FIXED_POINT_ALLOWED
-        } else if (is_fixed_point_type(dest_type)) {
-          dest_bits = non_fractional_bits_for_fixed_point(
-                                              &dest_type->variant.fixed_point);
-#endif /* FIXED_POINT_ALLOWED */
-        } else {
-          dest_bits = targ_char_bit * dest_type->size;
-        }  /* if */
-        if (dest_bits < source_bits ||
+        if (num_significant_bits(dest_type) <
+                                           num_significant_bits(source_type) ||
             (is_floating_type(source_type) && !is_floating_type(dest_type))) {
           /* Warn about possible loss of data. */
           std_conv->warning_suggested = ec_lossy_conversion;
