@@ -6981,7 +6981,6 @@ case).
       change_operand_refs_to_error(operand_1);
       change_refs_to_error(rep);
     } else {
-      a_boolean    is_lvalue;
       a_field_ptr  field;
       if (offsetof_case) {
         /* For offsetof, only a field is allowed. */
