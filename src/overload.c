@@ -23642,16 +23642,16 @@ static void determine_copy_param_match(
 /*
 Determine whether the constructor or assignment operator given by sym
 can be called with a single parameter of type class_type with
-cv-qualifiers as given by source_cv_qualifiers, and an rvalue if
-source_is_rvalue is TRUE.  Fill in *arg_match to indicate the match
-level, if any, and set *template_arg_list to the deduced template
-argument list if needed, and *eff_routine_type to the routine type
-(after deduction if it's a template).  If sym is a constructor, the
-match is rejected if it isn't a copy or move constructor; otherwise,
-it's rejected if it isn't a copy or move assignment operator.  Return
-*uncallable TRUE if sym would have been callable except that the type
-of reference parameter can't bind to an lvalue or rvalue as indicated
-by source_is_rvalue.
+cv-qualifiers as given by source_cv_qualifiers, and an rvalue
+(including xvalue) if source_is_rvalue is TRUE.  Fill in *arg_match to
+indicate the match level, if any, and set *template_arg_list to the
+deduced template argument list if needed, and *eff_routine_type to the
+routine type (after deduction if it's a template).  If sym is a
+constructor, the match is rejected if it isn't a copy or move
+constructor; otherwise, it's rejected if it isn't a copy or move
+assignment operator.  Return *uncallable TRUE if sym would have been
+callable except that the type of reference parameter can't bind to an
+lvalue or rvalue as indicated by source_is_rvalue.
 */
 {
   a_routine_ptr                   routine;
@@ -23762,10 +23762,9 @@ a_symbol_ptr select_overloaded_copy_constructor(
 /*
 Find and return a pointer to a symbol representing a copy constructor for
 the class indicated by class_type and accepting a first parameter whose type
-is qualified as specified by source_cv_qualifiers, and an rvalue if
-source_is_rvalue is TRUE (source_is_rvalue FALSE should be used if the
-rvalueness of the source is irrelevant).  pos is a source position,
-used if a template needs to be instantiated.  If no acceptable copy
+is qualified as specified by source_cv_qualifiers, and an rvalue (including
+xvalue) if source_is_rvalue is TRUE.  pos is a source position, used
+if a template needs to be instantiated.  If no acceptable copy
 constructor is found, return NULL.  If more than one acceptable copy
 constructor is found and only one of them is the best match, return
 that one; otherwise set *ambiguous to TRUE and return NULL.  If no
@@ -23959,15 +23958,14 @@ a_symbol_ptr select_overloaded_assignment_operator(
 Find and return a pointer to a symbol representing a copy/move
 assignment operator for the class indicated by class_type and
 accepting a first parameter whose type is qualified as specified by
-source_cv_qualifiers, and an rvalue if source_is_rvalue is TRUE
-(source_is_rvalue FALSE should be used if the rvalueness of the source
-is irrelevant).  The destination is an lvalue, whose type is
-class_type with the cv-qualifiers given by dest_cv_qualifiers.
-If no acceptable assignment operator is found, return NULL.  If more
-than one acceptable assignment operator is found and only one of them
-is the best match, return that one; otherwise set *ambiguous to TRUE
-and return NULL.  If the right assignment operator cannot be
-determined because of previous errors, return NULL and
+source_cv_qualifiers, and an rvalue (including xvalue) if
+source_is_rvalue is TRUE.  The destination is an lvalue, whose type is
+class_type with the cv-qualifiers given by dest_cv_qualifiers.  If no
+acceptable assignment operator is found, return NULL.  If more than
+one acceptable assignment operator is found and only one of them is
+the best match, return that one; otherwise set *ambiguous to TRUE and
+return NULL.  If the right assignment operator cannot be determined
+because of previous errors, return NULL and
 *undecidable_because_of_error TRUE.  If inaccessible_match is
 non-NULL, in C++/CLI mode it will be set to a symbol that would have
 been chosen except that it was inaccessible because of hide-by-sig

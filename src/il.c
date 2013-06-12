@@ -17756,6 +17756,21 @@ conv_glvalue_expr_to_prvalue.
 }  /* rvalue_expr_for_lvalue */
 
 
+an_expr_node_ptr xvalue_expr_for_lvalue(an_expr_node_ptr expr)
+/*
+Perform any changes needed to convert expr from an lvalue to an xvalue.
+Return the xvalue expression.  This is designed for simple compiler-generated
+expressions and might have to be enhanced if it had to deal with
+complex expressions.
+*/
+{
+  check_assertion(expr->is_lvalue);
+  expr->is_lvalue = FALSE;
+  expr->is_xvalue = TRUE;
+  return expr;
+}  /* xvalue_expr_for_lvalue */
+
+
 an_expr_node_ptr add_indirection_to_node(an_expr_node_ptr node)
 /*
 Add an indirection on top of the given node, and return a pointer to the

@@ -2514,8 +2514,8 @@ operator routine or do bitwise assignment.
           /* A bitwise copy may not be done.  Find the default assignment
              operator and put out a call to it. */
           if (move_assign) {
-            /* For move assignment, do the assignment from an rvalue. */
-            source_expr = rvalue_expr_for_lvalue(source_expr);
+            /* For move assignment, do the assignment from an xvalue. */
+            source_expr = xvalue_expr_for_lvalue(source_expr);
           }
           rp = find_assignment_operator_for_memberwise_copy(
                                                           bcp->type,
@@ -2661,8 +2661,8 @@ operator routine or do bitwise assignment.
                  assignment operator. */
             }  /* if */
             if (move_assign) {
-              /* For move assignment, do the assignment from an rvalue. */
-              source_expr = rvalue_expr_for_lvalue(source_expr);
+              /* For move assignment, do the assignment from an xvalue. */
+              source_expr = xvalue_expr_for_lvalue(source_expr);
             }
             /* Find the assignment operator to do the copy. */
             rp = find_assignment_operator_for_memberwise_copy(

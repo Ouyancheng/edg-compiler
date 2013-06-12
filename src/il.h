@@ -1808,6 +1808,8 @@ extern an_expr_node_ptr function_addr_expr(a_routine_ptr rout);
 
 extern an_expr_node_ptr rvalue_expr_for_lvalue(an_expr_node_ptr expr);
 
+extern an_expr_node_ptr xvalue_expr_for_lvalue(an_expr_node_ptr expr);
+
 extern an_expr_node_ptr add_indirection_to_node(an_expr_node_ptr node);
 
 extern an_expr_node_ptr add_ref_indirection_to_node(an_expr_node_ptr node);

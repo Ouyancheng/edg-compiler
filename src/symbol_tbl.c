@@ -9561,9 +9561,8 @@ a_routine_ptr select_copy_constructor_full(
 /*
 Find and return a pointer to a routine representing a copy constructor for
 the class indicated by class_type and accepting a first parameter whose type
-is qualified as specified by required_qualifiers, and an rvalue if
-source_is_rvalue is TRUE (source_is_rvalue FALSE should be used if the
-rvalueness of the source is irrelevant).  If no acceptable copy
+is qualified as specified by required_qualifiers, and an rvalue
+(including xvalue) if source_is_rvalue is TRUE.  If no acceptable copy
 constructor is found, issue a diagnostic and return NULL.  If more than
 one acceptable copy constructor is found, issue a (different) diagnostic and
 return NULL.  object_class_type points to the type of the object being
