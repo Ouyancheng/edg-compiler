@@ -1,5 +1,14 @@
 Version 5.0
 
+
+6/12/13  [EDGcpfe/14073]
+End position of GNU address-of-label expression
+
+In GNU modes, the recorded end position of an address-of-label expression of
+the form "&& label" was incorrectly set to the end position of the token
+following the label.  This is now fixed.
+
+
 6/12/13  [EDGcpfe/13581]
 GNU C++ compatibility: friend class declarations and using-directives
 

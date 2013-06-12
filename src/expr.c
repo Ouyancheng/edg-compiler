@@ -8986,6 +8986,9 @@ current token on entry.
   a_label_ptr	    label;
   a_constant        constant;
   a_source_position start_position;
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+  a_source_position end_position;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   a_boolean         err = FALSE;
 
   db_enter(4, "scan_address_of_label_operator");
@@ -9019,6 +9022,9 @@ current token on entry.
   /* Scan the operand.  This must be a single label.  */
   (void)get_token();
   check_assertion(curr_token == tok_identifier);
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+  end_position = end_pos_curr_token;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   if (depth_innermost_function_scope != NO_SCOPE_DEPTH) {
     label = scan_label(/*is_definition=*/FALSE, /*is_declaration=*/FALSE);
   } else {
@@ -9037,7 +9043,7 @@ current token on entry.
   }  /* else */
   result->state = (an_operand_state)os_prvalue;
 
-  set_operand_position(result, &start_position, &end_pos_curr_token, 
+  set_operand_position(result, &start_position, &end_position, 
 		       &start_position);
   record_operator_position_in_rescan_info(result,
                                           &start_position,
