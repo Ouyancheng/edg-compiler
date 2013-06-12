@@ -5261,12 +5261,13 @@ static void make_field_selection_operand(
 Make an operand for a field selection.  *operand_1 is the left operand.
 op is the selection operator.  field_locator describes the right
 operand (the field).  selection_type is the result type.  The result
-is an lvalue if is_lvalue is TRUE, an rvalue otherwise.  The field
-selection is compiler-generated if compiler_generated is TRUE.  The
-operand for the selection is created in *result.  member_position and
-end_position give the starting and ending source positions for the
-field reference (end_position only in configurations with extra source
-positions).
+is an lvalue if is_lvalue is TRUE, a prvalue otherwise (note that
+for xvalue cases the node will be built as an lvalue here and then
+the caller will change it to an xvalue).  The field selection is
+compiler-generated if compiler_generated is TRUE.  The operand for the
+selection is created in *result.  member_position and end_position
+give the starting and ending source positions for the field reference
+(end_position only in configurations with extra source positions).
 */
 {
   a_symbol_ptr field_sym = field_locator->specific_symbol;
@@ -5316,7 +5317,6 @@ static void do_field_selection_operation(
                                an_operand        *operand_1,
                                a_type_ptr        class_struct_union_type,
                                a_boolean         is_arrow_operator,
-                               a_boolean         is_lvalue,
                                a_boolean         compiler_generated,
                                a_symbol_locator  *field_locator,
                                a_source_position *member_position,
@@ -5329,16 +5329,15 @@ operand (the class/struct/union or the pointer thereto) is given by operand_1.
 The type of the class/struct/union (before C++ baseward casts, if any) is
 given by class_struct_union_type; it provides the type qualifiers that should
 be attached to the result expression.  The operator is "->" if
-is_arrow_operator is TRUE, "." otherwise.  is_lvalue is TRUE if the
-result should be an lvalue.  compiler_generated is TRUE if this
-selection is compiler-generated (e.g., an implicit "this->" on a nonstatic
-data member reference).  field_locator identifies the symbol for the
-right-side field.  rep points to an associated reference entry, or is NULL
-if none is needed.  The result is placed in *result.  member_position
-and end_position give the starting and ending source positions for the
-field reference (end_position only in configurations with extra source
-positions).  This routine also accepts the case where the first operand
-is a C++/CLI handle.
+is_arrow_operator is TRUE, "." otherwise.  compiler_generated is TRUE
+if this selection is compiler-generated (e.g., an implicit "this->" on
+a nonstatic data member reference).  field_locator identifies the
+symbol for the right-side field.  rep points to an associated
+reference entry, or is NULL if none is needed.  The result is placed
+in *result.  member_position and end_position give the starting and
+ending source positions for the field reference (end_position only in
+configurations with extra source positions).  This routine also
+accepts the case where the first operand is a C++/CLI handle.
 */
 {
   a_symbol_ptr          field_sym = field_locator->specific_symbol;
@@ -5347,6 +5346,8 @@ is a C++/CLI handle.
   a_type_ptr            selection_type;
   an_expr_operator_kind op;
   a_type_qualifier_set  qualifiers;
+  a_boolean             result_is_a_glvalue = FALSE;
+  a_boolean             result_is_an_xvalue = FALSE;
     
   reduce_projection_symbol_to_fundamental_symbol(field_sym);
   check_assertion(field_sym->kind == (a_symbol_kind)sk_field);
@@ -5374,6 +5375,29 @@ is a C++/CLI handle.
     set_operand_id_details_from_locator(result, field_locator);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   } else {
+    /* Determine the value category of the result. */
+    if (is_arrow_operator) {
+      /* "->" always produces an lvalue result. */
+      result_is_a_glvalue = TRUE;
+    } else if (is_an_lvalue(operand_1)) {
+      /* lvalue.field produces an lvalue result. */
+      result_is_a_glvalue = TRUE;
+    } else if (is_an_xvalue(operand_1)) {
+      /* xvalue.field produces an xvalue result. */
+      result_is_a_glvalue = TRUE;
+      result_is_an_xvalue = TRUE;
+    } else {
+      /* prvalue.field produces a prvalue result. */
+      result_is_a_glvalue = FALSE;
+      if (microsoft_bugs && microsoft_version < 1600 &&
+          is_floating_type(field->type)) {
+        /* For some unknown reason, MSVC considers a selection of a field
+           of a floating-point type out of a class rvalue to be an lvalue.
+           Checked in 7.1, 8.0, 10.0 beta.  Fixed in real 10.0 release. */
+        revert_microsoft_rvalue_to_lvalue_if_possible(operand_1);
+        result_is_a_glvalue = is_an_lvalue(operand_1);
+      }  /* if */
+    }  /* if */
     /* Determine the result type. */
     qualifiers = get_type_qualifiers(class_struct_union_type);
     if (cfront_2_1_mode) {
@@ -5410,14 +5434,18 @@ is a C++/CLI handle.
       result_type = make_field_selection_type(field, qualifiers);
     }  /* if */
     selection_type = result_type;
-    if (!is_lvalue) result_type = prvalue_type(result_type);
+    if (!result_is_a_glvalue) result_type = prvalue_type(result_type);
     /* Determine the IL operator to use. */
     op = is_arrow_operator ? (an_expr_operator_kind)eok_points_to_field :
                              (an_expr_operator_kind)eok_dot_field;
     /* Construct the field selection expression tree. */
     make_field_selection_operand(operand_1, op, field_locator,
                                  member_position, end_position, selection_type,
-                                 is_lvalue, compiler_generated, result);
+                                 result_is_a_glvalue, compiler_generated,
+                                 result);
+    if (result_is_an_xvalue) {
+      conv_rvalue_reference_result_to_xvalue(result);
+    }  /* if */
     /* In C++, a field may have a reference type.  An implicit indirection
        is done to get the thing pointed to. */
     if (!C_mode() && is_any_reference_type(result_type)) {
@@ -6980,17 +7008,6 @@ case).
         case sk_field:
           field = member_sym->variant.field.ptr;
           /* Normal field selection. */
-          /* The result is an rvalue if the operator is "." and the left
-             operand is an rvalue. */
-          is_lvalue = is_arrow_operator || is_an_lvalue(operand_1);
-          if (microsoft_bugs && microsoft_version < 1600 && !is_lvalue &&
-              is_floating_type(field->type)) {
-            /* For some unknown reason, MSVC considers a selection of a field
-               of a floating-point type out of a class rvalue to be an lvalue.
-               Checked in 7.1, 8.0, 10.0 beta.  Fixed in real 10.0 release. */
-            revert_microsoft_rvalue_to_lvalue_if_possible(operand_1);
-            is_lvalue = is_an_lvalue(operand_1);
-          }  /* if */
           /* This operation uses the left-side operand, so cast the
              operand to the type of the member symbol. */
           cast_pointer_for_field_selection(
@@ -6999,7 +7016,7 @@ case).
                        (a_boolean)locator.access_control_error_reported,
                        /*do_protected_member_check=*/TRUE, &member_position);
           do_field_selection_operation(operand_1, orig_class_struct_union_type,
-                                       is_arrow_operator, is_lvalue,
+                                       is_arrow_operator,
                                        /*compiler_generated=*/FALSE,
                                        &locator, &member_position,
                                        end_position_or_null(&end_position),
@@ -7283,7 +7300,8 @@ the selection, not an operator token for the call.
                     operator_tok_seq_number;
   a_base_class_ptr  bcp;
   an_expr_node_ptr  select_node, object_node, pm_node;
-  a_boolean         lvalue_selection;
+  a_boolean         result_is_a_glvalue = FALSE;
+  a_boolean         result_is_an_xvalue = FALSE;
 
   db_enter(4, "scan_ptr_to_member_operator");
 
@@ -7501,16 +7519,21 @@ the selection, not an operator token for the call.
             (is_an_lvalue(operand_1) || is_error_operand(operand_1))) {
           /* The result is an lvalue if the operator is "->*" or if the
              first operand is an lvalue (or might be, if an error). */
-          lvalue_selection = TRUE;
+          result_is_a_glvalue = TRUE;
         } else if (any_cfront_mode() || microsoft_mode) {
           /* ARM rules: the result is always an lvalue and that doesn't
              depend on the lvalueness of the left operand. */
-          lvalue_selection = TRUE;
+          /* Also the case for MSVC.  Still true in VC11, VC12 CTP. */
+          result_is_a_glvalue = TRUE;
           /* Force the "->*" form to get an lvalue result. */
           conv_selector_to_object_pointer(operand_1, &is_arrow_operator);
+        } else if (is_an_xvalue(operand_1)) {
+          /* xvalue.*pm produces an xvalue result. */
+          result_is_a_glvalue = TRUE;
+          result_is_an_xvalue = TRUE;
         } else {
-          /* rvalue .* pm, result is an rvalue. */
-          lvalue_selection = FALSE;
+          /* prvalue.*pm, result is a prvalue. */
+          result_is_a_glvalue = FALSE;
         }  /* if */
         /* Cast the left operand to a base class if necessary.  This does the
            ambiguity and accessibility checking. */
@@ -7551,12 +7574,15 @@ the selection, not an operator token for the call.
                                result_type,
                                object_node);
           make_expression_operand(select_node, result);
-          if (lvalue_selection) {
-            /* The result is an lvalue. */
+          if (result_is_a_glvalue) {
+            /* The result is a glvalue. */
             select_node->is_lvalue = TRUE;
             set_glvalue_operand_state(result);
             /* Keep the references from the first operand. */
             result->ref_entries_list = operand_1->ref_entries_list;
+            if (result_is_an_xvalue) {
+              conv_rvalue_reference_result_to_xvalue(result);
+            }  /* if */
           } else {
             /* An rvalue result.  The type must be complete. */
             complete_type_is_needed(result_type);
@@ -25604,7 +25630,6 @@ in *operand.  It's an lvalue for the field.
   /* Add a field selection to get to the field. */
   do_field_selection_operation(&operand_1, union_var->type,
                                /*is_arrow_operator=*/FALSE,
-                               /*is_lvalue=*/TRUE,
                                /*compiler_generated=*/TRUE,
                                locator,
                                source_position, end_position,
@@ -26877,7 +26902,6 @@ do_selection:
                 do_field_selection_operation(&this_pointer_operand,
                                              qual_class_type,
                                              /*is_arrow_operator=*/TRUE,
-                                             /*is_lvalue=*/TRUE,
                                              /*compiler_generated=*/TRUE,
                                              &locator,
                                              &start_position,
