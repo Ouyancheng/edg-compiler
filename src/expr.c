@@ -23793,11 +23793,12 @@ that case.
       /* In C++, if the second and third operands have the same type and
          they are lvalues, the result is also an lvalue. */
       result_is_a_glvalue = TRUE;
-    } else if (types_are_the_same &&
+    } else if (types_are_the_same && !gpp_mode &&
                is_an_xvalue(&operand_2) &&
                is_an_xvalue(&operand_3)) {
       /* If the second and third operands have the same type and
          they are xvalues, the result is also an xvalue. */
+      /* g++ doesn't seem to do this yet.  Checked with 4.7, 4.8.0, 4.8.1. */
       result_is_a_glvalue = TRUE;
       result_is_an_xvalue = TRUE;
     } else {
