@@ -6981,7 +6981,6 @@ case).
       change_operand_refs_to_error(operand_1);
       change_refs_to_error(rep);
     } else {
-      a_field_ptr  field;
       if (offsetof_case) {
         /* For offsetof, only a field is allowed. */
         if (is_nontype_template_param_symbol(member_sym)) {
@@ -7005,7 +7004,6 @@ case).
       /* See what kind of member we have. */
       switch (member_sym->kind) {
         case sk_field:
-          field = member_sym->variant.field.ptr;
           /* Normal field selection. */
           /* This operation uses the left-side operand, so cast the
              operand to the type of the member symbol. */
