@@ -5279,7 +5279,7 @@ constant expressions, fold to a constant result.
       (curr_expr_kind_is_const() ||
        in_potential_constant_constexpr_context()) &&
       constexpr_call_folding_should_be_done() &&
-      is_expression_operand(operand) && is_an_rvalue(operand) &&
+      is_expression_operand(operand) && is_a_prvalue(operand) &&
       fold_constexpr_expr(operand->variant.expression,
                           /*treat_as_object=*/FALSE,
                           &operand->position,
@@ -5289,7 +5289,7 @@ constant expressions, fold to a constant result.
     make_constant_operand(&con, operand);
     restore_operand_details(operand, &orig_operand);
   } else if (is_expression_operand(operand) &&
-             is_an_rvalue(operand) &&
+             is_a_prvalue(operand) &&
              is_pointer_type(operand->type)) {
     a_constant conaddr;
     if (constant_prvalue_pointer(operand->variant.expression, &conaddr,
