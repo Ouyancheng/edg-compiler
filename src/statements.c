@@ -5841,7 +5841,7 @@ See also 3.6.6.4.
     check_assertion(C_mode() && dip == NULL);
     if (return_expr != NULL &&
         !is_invariant_expr(return_expr, /*vars_can_change=*/TRUE,
-                           /*treat_as_potential_rvalue=*/FALSE)) {
+                           /*treat_as_potential_prvalue=*/FALSE)) {
       /* Evaluate the return expression in a temporary and return that
          temporary. */
       a_statement_ptr  eval = add_statement((a_statement_kind)stmk_expr);

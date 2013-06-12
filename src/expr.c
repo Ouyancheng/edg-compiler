@@ -7739,7 +7739,7 @@ early to get the temporary initialized; otherwise, it is set to NULL.
   check_assertion(is_property_ref_operand(operand));
   *temp_init_expr = NULL;
   clone_operand(operand, operand_clone, /*vars_can_change=*/TRUE,
-                &temp_init_used, /*treat_as_potential_rvalue=*/FALSE);
+                &temp_init_used, /*treat_as_potential_prvalue=*/FALSE);
   if (temp_init_used) {
     /* The cloning required a temporary.  Arrange for setting the temporary
        before any of the code that uses it (by adding a comma expression
@@ -7757,7 +7757,7 @@ early to get the temporary initialized; otherwise, it is set to NULL.
       operand->ref_entries_list = NULL;
       clone_operand(operand, &temp_operand, /*vars_can_change=*/TRUE,
                     &dummy_temp_init_used,
-                    /*treat_as_potential_rvalue=*/FALSE);
+                    /*treat_as_potential_prvalue=*/FALSE);
       free_attachments_to_operand(operand);
       copy_operand(&temp_operand, operand);
       operand->ref_entries_list = saved_ref_entries;
@@ -7821,7 +7821,7 @@ it is set to NULL.
        function call for use later as the result of the overall operation. */
     a_boolean temp_used;
     clone_operand(operand, get_result_clone, /*vars_can_change=*/TRUE,
-                  &temp_used, /*treat_as_potential_rvalue=*/TRUE);
+                  &temp_used, /*treat_as_potential_prvalue=*/TRUE);
   }  /* if */
   if (is_overloadable_type_first_operand(operand)) {
     /* Look for C++ operator overloading cases. */
@@ -7989,7 +7989,7 @@ any use of the temporary.  The overall result is placed in *result.
        so we can return that as the value of the operation. */
     a_boolean temp_used;
     clone_operand(result, &operator_result, /*vars_can_change=*/TRUE,
-                  &temp_used, /*treat_as_potential_rvalue=*/TRUE);
+                  &temp_used, /*treat_as_potential_prvalue=*/TRUE);
   } else {
     /* For a postfix operator, *get_result_clone was previously set to the
        result of the "get" function call. */
@@ -23486,7 +23486,7 @@ that case.
       conv_array_operand_to_pointer_operand(operand_1);
     }  /* if */
     clone_operand(operand_1, &operand_2, vars_can_change, &temp_init_used,
-                  /*treat_as_potential_rvalue=*/TRUE);
+                  /*treat_as_potential_prvalue=*/TRUE);
   }  /* if */
   /* Check the first operand's type. */
   process_boolean_controlling_expression(operand_1);

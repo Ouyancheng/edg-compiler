@@ -3441,7 +3441,7 @@ used in the front end proper.
   expr_copy = lvalue_expr_reusable_copy(expr, vars_can_change,
                                         make_reusable_copy_full,
                                         temp_init_used,
-                                        /*treat_as_potential_rvalue=*/FALSE);
+                                        /*treat_as_potential_prvalue=*/FALSE);
   return expr_copy;
 }  /* make_lvalue_reusable_copy_full */
 
@@ -10156,7 +10156,7 @@ points to a location to insert code prior to the execution of the call
            arguments. */
         break;
       } else if (!is_invariant_expr(expr, /*vars_can_change=*/TRUE,
-                                    /*treat_as_potential_rvalue=*/FALSE)) {
+                                    /*treat_as_potential_prvalue=*/FALSE)) {
         if (++invariant_args == 2) break;
       }  /* if */
     }  /* for */
@@ -10210,7 +10210,7 @@ points to a location to insert code prior to the execution of the call
     }  /* if */
     if (maintain_sequencing &&
         !is_invariant_expr(expr, /*vars_can_change=*/TRUE,
-                           /*treat_as_potential_rvalue=*/FALSE)) {
+                           /*treat_as_potential_prvalue=*/FALSE)) {
       /* If the caller requests that argument sequencing be maintained
          (i.e., when an initializer list is used as arguments for a
          constructor call), create a temporary for any argument that
@@ -11679,7 +11679,7 @@ occur in the generated code).
         temp->__vptr[index])
   */
   if (!is_invariant_expr(*object_node, vars_can_change,
-                         /*treat_as_potential_rvalue=*/FALSE)) {
+                         /*treat_as_potential_prvalue=*/FALSE)) {
     /* The object node is not invariant, so assign it to a temporary. */
     *assign_node = *object_node;
     *object_node = assign_expr_to_temp_and_make_expr_for_reuse(*object_node);
@@ -13213,7 +13213,7 @@ parent operation.
          of the address of child1, though that seems to require something
          very strange like ((i <? j) = 2) = 3. */
       vars_can_change = !is_invariant_expr(child1, /*vars_can_change=*/TRUE,
-                                          /*treat_as_potential_rvalue=*/FALSE);
+                                         /*treat_as_potential_prvalue=*/FALSE);
       if (child2 != NULL && !vars_can_change) {
         vars_can_change = node_has_side_effects(child2, (a_boolean *)NULL);
       }  /* if */
@@ -17195,7 +17195,7 @@ Lower an stmk_return statement.
     */
     if (return_expr != NULL &&
         !is_invariant_expr(return_expr, /*vars_can_change=*/TRUE,
-                           /*treat_as_potential_rvalue=*/FALSE) &&
+                           /*treat_as_potential_prvalue=*/FALSE) &&
         routine->special_kind != (a_special_function_kind)sfk_constructor &&
         routine->special_kind != (a_special_function_kind)sfk_destructor) {
       /* There is a nonconstant return expression, so use a temporary.

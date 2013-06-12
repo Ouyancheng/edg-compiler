@@ -19139,7 +19139,7 @@ doing nothing should be suppressed.
 
 a_boolean is_invariant_expr(an_expr_node_ptr expr,
                             a_boolean        vars_can_change,
-                            a_boolean        treat_as_potential_rvalue)
+                            a_boolean        treat_as_potential_prvalue)
 /*
 Return TRUE if the indicated expression is invariant, meaning it has no
 side effects and will give the same value if evaluated more than once.
@@ -19147,10 +19147,10 @@ The expression can be a prvalue or a glvalue; for a glvalue, invariant
 means its address will not change (and it has no side effects).
 vars_can_change indicates whether the values of variables should be
 considered to be changeable between successive evaluations for purposes
-of this determination.  treat_as_potential_rvalue is TRUE in cases where the
+of this determination.  treat_as_potential_prvalue is TRUE in cases where the
 eventual value category of expr is not yet known (and can make a difference in
 determining whether or not the expression is invariant).
-treat_as_potential_rvalue should always be FALSE when called during lowering
+treat_as_potential_prvalue should always be FALSE when called during lowering
 (as lvalueness is known at that time).
 */
 {
@@ -19162,7 +19162,7 @@ treat_as_potential_rvalue should always be FALSE when called during lowering
     if (is_constant_node(expr) || is_routine_node(expr)) {
       /* Constants and the address of a function are invariant. */
       is_invariant = TRUE;
-    } else if (is_glvalue_node(expr) && !treat_as_potential_rvalue) {
+    } else if (is_glvalue_node(expr) && !treat_as_potential_prvalue) {
       /* Glvalue cases. */
       if (is_variable_node(expr) ||
           expr->kind == (an_expr_node_kind)enk_param_ref) {
@@ -19182,13 +19182,13 @@ treat_as_potential_rvalue should always be FALSE when called during lowering
           /* A glvalue a.b is invariant if a is invariant. */
           /* Likewise for a->b and *a. */
           is_invariant = is_invariant_expr(op1, vars_can_change,
-                                          /*treat_as_potential_rvalue=*/FALSE);
+                                       /*treat_as_potential_prvalue=*/FALSE);
         } else if (node_operator_is(expr, eok_subscript)) {
           /* An lvalue a[b] is invariant if a and b are invariant. */
           is_invariant = is_invariant_expr(op1, vars_can_change,
-                                        /*treat_as_potential_rvalue=*/FALSE) &&
+                                       /*treat_as_potential_prvalue=*/FALSE) &&
                          is_invariant_expr(op2, vars_can_change,
-                                          /*treat_as_potential_rvalue=*/FALSE);
+                                       /*treat_as_potential_prvalue=*/FALSE);
         }  /* if */
       }  /* if */
     } else {
@@ -19210,7 +19210,7 @@ treat_as_potential_rvalue should always be FALSE when called during lowering
           /* Likewise for array decay.  Watch out for array rvalues. */
           if (op1->is_lvalue) {
             is_invariant = is_invariant_expr(op1, vars_can_change,
-                                          /*treat_as_potential_rvalue=*/FALSE);
+                                         /*treat_as_potential_prvalue=*/FALSE);
           }  /* if */
         }  /* if */
       }  /* if */

@@ -3198,10 +3198,10 @@ Macro that returns TRUE if the expression is a reused dynamic init.
     ((expr)->variant.init.dynamic_init->is_reused_value))
 
 an_expr_node_ptr make_expr_reusable_copy(
-                                    an_expr_node_ptr expr,
-                                    a_boolean        vars_can_change,
-                                    a_boolean        *temp_init_used,
-                                    a_boolean        treat_as_potential_rvalue)
+                                   an_expr_node_ptr expr,
+                                   a_boolean        vars_can_change,
+                                   a_boolean        *temp_init_used,
+                                   a_boolean        treat_as_potential_prvalue)
 /*
 Return a copy of the expression tree pointed to by expr, which is an
 rvalue or lvalue.  If it is an lvalue, it is one whose address can be
@@ -3216,11 +3216,11 @@ and the use of the copy, and such code might change the values of
 (user) variables.  *temp_init_used is returned TRUE if a temporary was
 used, including a reuse of an existing temporary.  When it is TRUE,
 the caller must take steps to ensure that expr is evaluated before the
-copy.  treat_as_potential_rvalue is TRUE in cases where the eventual
-lvalueness of expr is not yet known (and can make a difference in
+copy.  treat_as_potential_prvalue is TRUE in cases where the eventual
+value category of expr is not yet known (and can make a difference in
 determining whether or not the expression is invariant).
-treat_as_potential_rvalue should always be FALSE when called during
-lowering (as lvalueness is known at that time).
+treat_as_potential_prvalue should always be FALSE when called during
+lowering (as value category is known at that time).
 */
 {
   an_expr_node_ptr   expr_copy, temp_init_expr;
@@ -3251,7 +3251,7 @@ lowering (as lvalueness is known at that time).
     expr_copy = add_indirection_to_node(expr_copy);
     *temp_init_used = TRUE;
   } else if (is_invariant_expr(expr, vars_can_change,
-                               treat_as_potential_rvalue)) {
+                               treat_as_potential_prvalue)) {
     /* The expression has no side effects and will give the same value if
        evaluated more than once. */
     /* A straight copy will work. */
@@ -3304,11 +3304,11 @@ lowering (as lvalueness is known at that time).
 
 
 an_expr_node_ptr lvalue_expr_reusable_copy(
-                        an_expr_node_ptr             expr,
-                        a_boolean                    vars_can_change,
-                        a_reusable_copy_function_ptr copy_func,
-                        a_boolean                    *temp_init_used,
-                        a_boolean                    treat_as_potential_rvalue)
+                       an_expr_node_ptr             expr,
+                       a_boolean                    vars_can_change,
+                       a_reusable_copy_function_ptr copy_func,
+                       a_boolean                    *temp_init_used,
+                       a_boolean                    treat_as_potential_prvalue)
 /*
 Driver that handles lvalue special cases for making reusable copies of
 lvalues in both the front end proper and in IL lowering.  Return a
@@ -3325,11 +3325,11 @@ whose address can be taken); it's actually what defines the code for
 storing to a temporary and reusing it, and the decision on which cases
 should use a temporary.  This function rewrites lvalues whose address
 cannot be taken, for example bit-field references, into simpler forms
-before calling the lower-level copy routine.  treat_as_potential_rvalue
-is TRUE in cases where the eventual lvalueness of expr is not yet known
+before calling the lower-level copy routine.  treat_as_potential_prvalue
+is TRUE in cases where the eventual value category of expr is not yet known
 (and can make a difference in determining whether or not the expression
-is invariant).  treat_as_potential_rvalue should always be FALSE when
-called during lowering (as lvalueness is known at that time).
+is invariant).  treat_as_potential_prvalue should always be FALSE when
+called during lowering (as value category is known at that time).
 */
 {
   an_expr_node_ptr expr_copy;
@@ -3355,11 +3355,11 @@ called during lowering (as lvalueness is known at that time).
         operand1_copy = lvalue_expr_reusable_copy(operand1, vars_can_change,
                                                   copy_func,
                                                   temp_init_used,
-                                                  treat_as_potential_rvalue);
+                                                  treat_as_potential_prvalue);
       } else {
         check_assertion(op == (an_expr_operator_kind)eok_points_to_field);
         operand1_copy = copy_func(operand1, vars_can_change, temp_init_used,
-                                  treat_as_potential_rvalue);
+                                  treat_as_potential_prvalue);
       }  /* if */
       expr_copy = field_lvalue_selection_expr(operand1_copy,
                                               operand2->variant.field);
@@ -3369,7 +3369,7 @@ called during lowering (as lvalueness is known at that time).
       operand3 = operand2->next;
       vars_can_change |= node_has_side_effects(expr, (a_boolean *)NULL);
       operand1_copy = copy_func(operand1, vars_can_change, temp_init_used,
-                                treat_as_potential_rvalue);
+                                treat_as_potential_prvalue);
 #if DO_IL_LOWERING
       if (il_lowering_underway) {
         /* We are producing a lowered eok_question and modifying an existing
@@ -3382,12 +3382,12 @@ called during lowering (as lvalueness is known at that time).
       operand2_copy = lvalue_expr_reusable_copy(operand2, vars_can_change,
                                                 copy_func,
                                                 &local_temp_init_used,
-                                                treat_as_potential_rvalue);
+                                                treat_as_potential_prvalue);
       if (local_temp_init_used) *temp_init_used = TRUE;
       operand3_copy = lvalue_expr_reusable_copy(operand3, vars_can_change,
                                                 copy_func,
                                                 &local_temp_init_used,
-                                                treat_as_potential_rvalue);
+                                                treat_as_potential_prvalue);
       if (local_temp_init_used) *temp_init_used = TRUE;
       operand1_copy->next = operand2_copy;
       operand2_copy->next = operand3_copy;
@@ -3403,7 +3403,7 @@ called during lowering (as lvalueness is known at that time).
       expr_copy = lvalue_expr_reusable_copy(operand2, vars_can_change,
                                             copy_func,
                                             temp_init_used,
-                                            treat_as_potential_rvalue);
+                                            treat_as_potential_prvalue);
       /* Note that the result is not a comma expression. */
 #if GNU_EXTENSIONS_ALLOWED
     } else if (gpp_mode && is_gnu_min_max_operator(op)) {
@@ -3413,12 +3413,12 @@ called during lowering (as lvalueness is known at that time).
       operand1_copy = lvalue_expr_reusable_copy(operand1, vars_can_change,
                                                 copy_func,
                                                 &local_temp_init_used,
-                                                treat_as_potential_rvalue);
+                                                treat_as_potential_prvalue);
       if (local_temp_init_used) *temp_init_used = TRUE;
       operand2_copy = lvalue_expr_reusable_copy(operand2, vars_can_change,
                                                 copy_func,
                                                 &local_temp_init_used,
-                                                treat_as_potential_rvalue);
+                                                treat_as_potential_prvalue);
       if (local_temp_init_used) *temp_init_used = TRUE;
       operand1_copy->next = operand2_copy;
       expr_copy = make_lvalue_operator_node(op, expr->type, operand1_copy);
@@ -3430,17 +3430,17 @@ called during lowering (as lvalueness is known at that time).
   } else {
     /* For non-bit-field cases, use the simple copy. */
     expr_copy = copy_func(expr, vars_can_change, temp_init_used,
-                          treat_as_potential_rvalue);
+                          treat_as_potential_prvalue);
   }  /* if */
   return expr_copy;
 }  /* lvalue_expr_reusable_copy */
 
 
 static an_expr_node_ptr make_lvalue_expr_reusable_copy(
-                                    an_expr_node_ptr expr,
-                                    a_boolean        vars_can_change,
-                                    a_boolean        *temp_init_used,
-                                    a_boolean        treat_as_potential_rvalue)
+                                   an_expr_node_ptr expr,
+                                   a_boolean        vars_can_change,
+                                   a_boolean        *temp_init_used,
+                                   a_boolean        treat_as_potential_prvalue)
 /*
 Return a copy of the expression tree pointed to by expr, which is an
 lvalue.  If the expression has side effects, or if its value is affected
@@ -3449,10 +3449,11 @@ expression will be changed so that some part of it is stored in a temporary,
 and the copy will reference the temporary.  *temp_init_used is returned
 TRUE if a temporary was used, including a reuse of an existing temporary.
 When it is TRUE, the caller must take steps to ensure that expr is evaluated
-before the copy.  treat_as_potential_rvalue is TRUE in cases where the eventual
-lvalueness of expr is not yet known (and can make a difference in determining
-whether or not the expression is invariant).  See
-make_lvalue_reusable_copy_full for a similar routine used in IL lowering.
+before the copy.  treat_as_potential_prvalue is TRUE in cases where the
+eventual value category of expr is not yet known (and can make a
+difference in determining whether or not the expression is invariant).
+See make_lvalue_reusable_copy_full for a similar routine used in IL
+lowering.
 */
 {
   an_expr_node_ptr expr_copy;
@@ -3460,7 +3461,7 @@ make_lvalue_reusable_copy_full for a similar routine used in IL lowering.
   expr_copy = lvalue_expr_reusable_copy(expr, vars_can_change,
                                         make_expr_reusable_copy,
                                         temp_init_used,
-                                        treat_as_potential_rvalue);
+                                        treat_as_potential_prvalue);
   return expr_copy;
 }  /* make_lvalue_expr_reusable_copy */
 
@@ -3469,7 +3470,7 @@ void clone_operand(an_operand *operand,
                    an_operand *operand_clone,
                    a_boolean  vars_can_change,
                    a_boolean  *temp_init_used,
-                   a_boolean  treat_as_potential_rvalue)
+                   a_boolean  treat_as_potential_prvalue)
 /*
 Make a clone of the operand "operand" and put it in "operand_clone".
 The cloning process copies the subtrees of the operand, e.g., if it's
@@ -3481,11 +3482,11 @@ a reuse of an existing temporary), and the caller must ensure that
 operand is evaluated before the copy in that case.  vars_can_change
 is TRUE if values of variables might change due to code executed
 between the first evaluation and the clone evaluation.  The safe
-value is TRUE.  treat_as_potential_rvalue is TRUE in cases where
-the eventual lvalueness of "operand" is not yet known (and can make a
+value is TRUE.  treat_as_potential_prvalue is TRUE in cases where
+the eventual value category of "operand" is not yet known (and can make a
 difference in determining whether or not the expression is invariant).
-treat_as_potential_rvalue should always be FALSE when called during
-lowering (as lvalueness is known at that time).
+treat_as_potential_prvalue should always be FALSE when called during
+lowering (as value category is known at that time).
 */
 {
   *temp_init_used = FALSE;
@@ -3519,11 +3520,11 @@ lowering (as lvalueness is known at that time).
         if (is_an_lvalue(operand)) {
           expr = make_lvalue_expr_reusable_copy(expr, vars_can_change,
                                                 temp_init_used,
-                                                treat_as_potential_rvalue);
+                                                treat_as_potential_prvalue);
         } else {
           expr = make_expr_reusable_copy(expr, vars_can_change,
                                          temp_init_used,
-                                         treat_as_potential_rvalue);
+                                         treat_as_potential_prvalue);
         }  /* if */
         operand_clone->variant.expression = expr;
         if (class_rvalue_case) {
@@ -3550,7 +3551,7 @@ lowering (as lvalueness is known at that time).
         operand_clone->variant.property_ref.object =
                   make_expr_reusable_copy(operand->variant.property_ref.object,
                                           vars_can_change, temp_init_used,
-                                          treat_as_potential_rvalue);
+                                          treat_as_potential_prvalue);
       }  /* if */
       /* Copy the list of subscript operands. */
       { an_arg_list_elem_ptr alep, last_clone_alep = NULL;
@@ -3560,14 +3561,14 @@ lowering (as lvalueness is known at that time).
           a_boolean            local_temp_init_used;
           an_arg_list_elem_ptr alep_clone =
                   alloc_init_component((an_init_component_kind)ick_expression);
-          /* The lvalueness of subscript operators is not known at this
-             point, so make sure treat_as_potential_rvalue is set to
+          /* The value category of subscript operators is not known at this
+             point, so make sure treat_as_potential_prvalue is set to
              reflect this. */
           check_assertion(is_expression_component(alep));
           clone_operand(operand_of_arg_list_elem(alep),
                         operand_of_arg_list_elem(alep_clone),
                         vars_can_change, &local_temp_init_used,
-                        /*treat_as_potential_rvalue=*/TRUE);
+                        /*treat_as_potential_prvalue=*/TRUE);
           if (local_temp_init_used) *temp_init_used = TRUE;
           mark_init_component_as_permanently_allocated(alep_clone);
           if (last_clone_alep == NULL) {
@@ -3584,7 +3585,7 @@ lowering (as lvalueness is known at that time).
         operand_clone->variant.event_ref.object =
                     make_expr_reusable_copy(operand->variant.event_ref.object,
                                             vars_can_change, temp_init_used,
-                                            treat_as_potential_rvalue);
+                                            treat_as_potential_prvalue);
       }  /* if */
       break;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
@@ -7642,10 +7643,11 @@ void conv_indefinite_function_operand_to_unknown_dependent_function(
                                                     a_boolean  force_to_rvalue)
 /*
 Convert the indicated operand (which must be an indefinite function) to
-a constant operand representing an unknown dependent function.  The lvalueness
-of the operand is preserved unless force_to_rvalue is TRUE, in which case
-the result is an rvalue.  This is used in prototype instantiations when the
-function to be selected is not known.
+a constant operand representing an unknown dependent function.  The
+value category of the operand is preserved unless force_to_rvalue is
+TRUE, in which case the result is an rvalue.  This is used in
+prototype instantiations when the function to be selected is not
+known.
 */
 {
   a_boolean  was_lvalue = is_a_function_designator(operand);

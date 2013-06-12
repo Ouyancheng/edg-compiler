@@ -8951,7 +8951,7 @@ do_assignment:;
           an_expr_node_ptr arg_node = dip->variant.constructor.args;
           check_assertion(arg_node != NULL);
           if (!is_invariant_expr(arg_node, /*vars_can_change=*/FALSE,
-                                 /*treat_as_potential_rvalue=*/FALSE)) {
+                                 /*treat_as_potential_prvalue=*/FALSE)) {
             /* The source node can have side effects, so evaluate it before
                the exception is considered started and use a temporary with
                its value in the actual copy constructor call. */

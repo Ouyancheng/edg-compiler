@@ -1104,9 +1104,10 @@ extern a_boolean expr_list_has_side_effects(
 extern a_boolean node_has_side_effects(an_expr_node_ptr node,
                                        a_boolean        *suppress_warning);
 
-extern a_boolean is_invariant_expr(an_expr_node_ptr expr,
-                                   a_boolean        vars_can_change,
-                                   a_boolean        treat_as_rvalue);
+extern a_boolean is_invariant_expr(
+                                  an_expr_node_ptr expr,
+                                  a_boolean        vars_can_change,
+                                  a_boolean        treat_as_potential_prvalue);
 
 extern a_boolean expr_has_reference_to_routine_scope_variable(
                                                         an_expr_node_ptr expr);

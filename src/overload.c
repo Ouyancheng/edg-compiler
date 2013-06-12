@@ -15840,7 +15840,7 @@ select_best_function:
             clone_operand(operand_1, &operand_1_clone,
                           /*vars_can_change=*/TRUE,
                           &temp_init_used,
-                          /*treat_as_potential_rvalue=*/FALSE);
+                          /*treat_as_potential_prvalue=*/FALSE);
             if (temp_init_used) {
               /* operand_1 has side effects, so the cloning generated a
                  temporary.  Extract the initialization of the temporary
@@ -15853,7 +15853,7 @@ select_best_function:
               clone_operand(operand_1, &operand_1_clone_2,
                             /*vars_can_change=*/TRUE,
                             &local_temp_init_used,
-                            /*treat_as_potential_rvalue=*/FALSE);
+                            /*treat_as_potential_prvalue=*/FALSE);
               temp_init_expr = make_node_from_operand(operand_1);
               copy_operand(&operand_1_clone_2, operand_1);
             }  /* if */
@@ -21408,7 +21408,7 @@ errors should be suppressed (i.e., SFINAE mode).
         check_assertion(identical_types(param1_type, param2_type));
         arg2 = make_expr_reusable_copy(arg1, /*vars_can_change=*/FALSE,
                                        &temp_init_used,
-                                       /*treat_as_potential_rvalue=*/FALSE);
+                                       /*treat_as_potential_prvalue=*/FALSE);
         /* Add the number of elements in the second argument: */
         arg2->next = node_for_host_large_integer(
                                            (a_host_large_integer)num_elements,
