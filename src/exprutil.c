@@ -12252,13 +12252,13 @@ the parameters.
 }  /* do_binary_operation */
 
 
-static a_boolean expr_has_uncertain_lvalueness(an_expr_node_ptr expr)
+static a_boolean expr_has_uncertain_value_category(an_expr_node_ptr expr)
 /*
 Sometimes a template-dependent expression can't be known to be an lvalue
 or an rvalue (e.g., T::x might be an lvalue if x is a static data member,
-or an rvalue if x is an enumerator).  Return TRUE if the lvalueness
+or an rvalue if x is an enumerator).  Return TRUE if the value category
 of the given expression is uncertain.  The safe answer is TRUE.
-An error node is considered to have uncertain lvalueness even
+An error node is considered to have uncertain value category even
 outside of a template-dependent context.
 */
 {
@@ -12302,16 +12302,16 @@ outside of a template-dependent context.
     }  /* if */
   }  /* if */
   return uncertain;
-}  /* expr_has_uncertain_lvalueness */
+}  /* expr_has_uncertain_value_category */
 
 
-a_boolean operand_has_uncertain_lvalueness(an_operand *operand)
+a_boolean operand_has_uncertain_value_category(an_operand *operand)
 /*
 Sometimes a template-dependent operand can't be known to be an lvalue
 or an rvalue (e.g., T::x might be an lvalue if x is a static data member,
-or an rvalue if x is an enumerator).  Return TRUE if the lvalueness
+or an rvalue if x is an enumerator).  Return TRUE if the value category
 of the given operand is uncertain.  The safe answer is TRUE.
-An error operand is considered to have uncertain lvalueness even
+An error operand is considered to have uncertain value category even
 outside of a template-dependent context.
 */
 {
@@ -12323,7 +12323,7 @@ outside of a template-dependent context.
     uncertain = FALSE;
   } else if (is_expression_operand(operand)) {
     an_expr_node_ptr expr = operand->variant.expression;
-    uncertain = expr_has_uncertain_lvalueness(expr);
+    uncertain = expr_has_uncertain_value_category(expr);
   } else if (is_template_dependent_type(operand->type)) {
     uncertain = TRUE;
     if (is_constant_operand(operand)) {
@@ -12333,13 +12333,13 @@ outside of a template-dependent context.
                              (a_template_param_constant_kind)tpck_expression) {
         /* A tpck_expression constant is uncertain if the expression is
            uncertain. */
-        uncertain = expr_has_uncertain_lvalueness(
+        uncertain = expr_has_uncertain_value_category(
                                      con->variant.template_param.variant.expr);
       }  /* if */
     }  /* if */
   }  /* if */
   return uncertain;
-}  /* operand_has_uncertain_lvalueness */
+}  /* operand_has_uncertain_value_category */
 
 
 static void do_generic_operand_transformations(an_operand *operand,

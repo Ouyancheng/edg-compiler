@@ -11645,7 +11645,7 @@ general_case:
        we can't reliably tell whether the operand is an lvalue, and therefore
        we can't tell if we should add the reference type. */
     result = operand->type;
-    if (operand_has_uncertain_lvalueness(operand)) {
+    if (operand_has_uncertain_value_category(operand)) {
       if (!is_error_operand(operand)) {
         result = type_of_unknown_templ_param_nontype;
       }  /* if */
