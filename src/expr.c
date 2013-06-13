@@ -5443,9 +5443,6 @@ accepts the case where the first operand is a C++/CLI handle.
                                  member_position, end_position, selection_type,
                                  result_is_a_glvalue, compiler_generated,
                                  result);
-    if (result_is_an_xvalue) {
-      conv_rvalue_reference_result_to_xvalue(result);
-    }  /* if */
     /* In C++, a field may have a reference type.  An implicit indirection
        is done to get the thing pointed to. */
     if (!C_mode() && is_any_reference_type(result_type)) {
@@ -5465,6 +5462,9 @@ accepts the case where the first operand is a C++/CLI handle.
            the operand. */
         rep->next_operand_ref = result->ref_entries_list;
         result->ref_entries_list = rep;
+      }  /* if */
+      if (result_is_an_xvalue) {
+        conv_rvalue_reference_result_to_xvalue(result);
       }  /* if */
     }  /* if */
   }  /* if */
