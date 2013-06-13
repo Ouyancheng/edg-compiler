@@ -475,10 +475,10 @@ static void change_node_to_operation(an_expr_node_ptr      node,
                                      an_expr_node_ptr      operand,
                                      a_boolean             is_lvalue);
 static an_expr_node_ptr make_reusable_copy_full(
-                                   an_expr_node_ptr expr,
-                                   a_boolean        vars_can_change,
-                                   a_boolean        *temp_init_used,
-                                   a_boolean        treat_as_potential_rvalue);
+                                  an_expr_node_ptr expr,
+                                  a_boolean        vars_can_change,
+                                  a_boolean        *temp_init_used,
+                                  a_boolean        treat_as_potential_prvalue);
 static void lower_type(a_type_ptr type);
 static void lower_variable(a_variable_ptr variable);
 static void lower_field_list(a_type_ptr class_type);
@@ -3089,7 +3089,7 @@ new node.
     /* Get the offset to the virtual base out of the virtual table. */
     second_use = make_reusable_copy_full(node, /*vars_can_change=*/FALSE,
                                          &temp_init_used,
-                                         /*treat_as_potential_rvalue=*/FALSE);
+                                         /*treat_as_potential_prvalue=*/FALSE);
     if (temp_init_used) {
       /* The node expression is complex and a temporary was used.
          We will have to use a comma expression to ensure that the
