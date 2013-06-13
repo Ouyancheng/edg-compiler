@@ -1,5 +1,51 @@
 Version 5.0
 
+6/13/13  [EDGcpfe/12021]
+Value categories
+
+We have implemented the C++11 concept of "value categories" (see N3055).
+This adds the concept of "xvalues" (formerly called "rvalue reference
+objects" in the front end), which are eXpiring values created by
+certain rvalue reference operations (e.g., a call of a function
+returning an rvalue reference type).  To the end-user of the front end,
+the visible differences are:
+
+1)  Operations that return rvalue references to function type now return
+function lvalues, not rvalue pointers-to-functions.  Rvalue references
+to function types can now bind (only) to function lvalues.
+2)  The "?" operator produces an xvalue result if its second and third
+operands are xvalues of the same type.
+3)  The "," operator produces an xvalue result if its second operand
+is an xvalue.
+4)  Member selection (x.y) and pointer-to-member selection (x.*y) now
+produce an xvalue result if the class object is an xvalue.
+5)  Casts to rvalue reference types now accept the proper kinds of
+operands, whether lvalues, xvalues, or prvalues.
+6)  Non-class xvalues can now have cv-qualified types.
+7)  Xvalues need not have complete types.
+8)  Xvalues have dynamic type, and typeid applied to an xvalue of
+polymorphic class type is now evaluated at runtime.
+
+Implementation of this feature required some fairly significant changes
+in the expression-processing files (expr.c, exprutil.c, overload.c, and
+to some extent folding.c).  In particular, we chose to update the names
+of many routines and fields to match the new terminology (for example,
+conv_lvalue_to_rvalue became conv_glvalue_to_prvalue).  This may cause
+extra work for those porting customer-written extensions to the new version.
+However, we felt that in the long term it was better to use the more
+modern and precise terminology in the front end.  Most of the changes
+in customer code should be simply mechanical renaming of routine names,
+though one does also have to think about what to do with xvalues (and
+the new names are reminders of that).
+
+The IL is largely unchanged.  The is_xvalue flag added in version 4.7
+is now more widely used, and now the expression nodes so marked are
+essentially funny lvalues rather than funny rvalues.  That is, xvalue
+nodes are considered descriptions of objects in memory, which have
+addresses like lvalues, rather than descriptions of values as they
+formerly were.
+
+
 6/12/13  [EDGcpfe/14172]
 Assertion failure in constant_value_at_address with reinterpret_cast
 
