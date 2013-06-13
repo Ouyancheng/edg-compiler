@@ -1,5 +1,18 @@
 Version 5.0
 
+6/12/13  [EDGcpfe/14172]
+Assertion failure in constant_value_at_address with reinterpret_cast
+
+The folding routines failed to exclude consideration of a reinterpret_cast
+when attempting to fold an address expression, resulting in an assertion
+failure in constant_value_at_address while evaluating such an expression.
+This is now fixed.  For example:
+
+  struct A {};
+  struct B {};
+  // The following initializer expression previously aborted:
+  B b = reinterpret_cast<const B&>(static_cast<const A&>(A()));
+
 
 6/12/13  [EDGcpfe/14073]
 End position of GNU address-of-label expression
