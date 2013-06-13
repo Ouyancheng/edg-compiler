@@ -3348,8 +3348,8 @@ change the values of (user) variables.  *temp_init_used is returned TRUE if a
 temporary was used, including a reuse of an existing temporary.  When it is
 TRUE, the caller must take steps to ensure that expr is evaluated before the
 copy.  treat_as_potential_prvalue should always be FALSE (because this routine
-is only called from lowering and lvalueness is known at that time), but is
-left as an argument to keep the signature the same as other similar routines
+is only called from lowering and value categories are known at that time), but
+is left as an argument to keep the signature the same as other similar routines
 (that are called through a_reusable_copy_function_ptr pointer).  See
 make_expr_reusable_copy for a similar routine used in the front end proper.
 */
