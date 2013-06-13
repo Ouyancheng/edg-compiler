@@ -6055,13 +6055,13 @@ handle_pm_field_selection:
           case eok_ref_cast:
           case eok_lvalue_adjust:
             /* These operations are used to adjust the type of an lvalue. */
-            if (!expr->variant.operation.is_reinterpret_cast &&
+            if (!(cpp11_mode && expr->variant.operation.is_reinterpret_cast) &&
                 constant_glvalue_address_full(op1, ceblock, &conaddr1,
                                               address_escapes,
                                               options, template_constant)) {
               /* The address of the operand is constant.  Adjust its type
                  and it is also the address of the result lvalue.  (A
-                 reinterpret_cast cannot be part of a constant
+                 reinterpret_cast cannot be part of a C++11 constant
                  expression.) */
               a_type_ptr new_type = make_pointer_type(expr->type);
               if (is_template_dependent_type(expr->type) ||
@@ -9592,8 +9592,8 @@ pm_field_selection:
            conversion.  If the type change is only of cv-qualifiers, and we
            know the address of the underlying lvalue, we can look and see if
            we have a constant there.  (A reinterpret_cast cannot be part of a
-           constant expression.) */
-        if (!expr->variant.operation.is_reinterpret_cast &&
+           C++11 constant expression.) */
+        if (!(cpp11_mode && expr->variant.operation.is_reinterpret_cast) &&
             identical_types_ignoring_qualifiers(expr->type, op1->type) &&
             fold_glvalue_expr(op1, ceblock, &op1_constant) &&
             constant_value_at_address(&op1_constant,
