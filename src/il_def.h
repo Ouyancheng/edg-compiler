@@ -14638,7 +14638,10 @@ typedef struct an_expr_node {
 			   but can be TRUE in gcc mode when an rvalue is
 			   reverted to an lvalue (IL lowering eliminates that
 			   later by rewriting it in rvalue form).  When this
-			   field is TRUE, is_lvalue will also be TRUE. */
+			   field is TRUE, is_lvalue will also be TRUE.
+			   In C++11, can also be TRUE for a "?" or ","
+			   operator that returns an xvalue; is_xvalue will
+			   also be TRUE (and is_lvalue FALSE). */
       a_bit_field
 		compiler_generated:1;
 			/* TRUE if the operation is compiler-generated rather
