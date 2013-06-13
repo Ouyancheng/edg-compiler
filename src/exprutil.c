@@ -2757,6 +2757,12 @@ The expression stack entry for the constant expression has not yet been
 popped.
 */
 {
+  if (expr_stack->lifetime != NULL &&
+      !is_useless_object_lifetime(expr_stack->lifetime)) {
+    /* An object lifetime with a constant result -- surprising. */
+    check_assertion(total_errors != 0 || expr_stack->any_suppressed_error);
+    discard_curr_expr_object_lifetime();
+  }  /* if */
   if (constexpr_enabled &&
       contains_dangling_pointer(constant, (a_constexpr_call *)NULL,
                                 /*end_of_full_expr=*/TRUE)) {
