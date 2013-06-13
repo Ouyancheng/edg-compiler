@@ -3330,10 +3330,10 @@ to the temporary.
 
 
 static an_expr_node_ptr make_reusable_copy_full(
-                                    an_expr_node_ptr expr,
-                                    a_boolean        vars_can_change,
-                                    a_boolean        *temp_init_used,
-                                    a_boolean        treat_as_potential_rvalue)
+                                   an_expr_node_ptr expr,
+                                   a_boolean        vars_can_change,
+                                   a_boolean        *temp_init_used,
+                                   a_boolean        treat_as_potential_prvalue)
 /*
 Return a copy of the expression tree pointed to by expr, which can be an
 rvalue or lvalue.  If it is an lvalue, it is one whose address can be taken
@@ -3347,17 +3347,17 @@ original use of the expression and the use of the copy, and such code might
 change the values of (user) variables.  *temp_init_used is returned TRUE if a
 temporary was used, including a reuse of an existing temporary.  When it is
 TRUE, the caller must take steps to ensure that expr is evaluated before the
-copy.  treat_as_potential_rvalue is TRUE in cases where the eventual lvalueness
-of expr is not yet known (and can make a difference in determining whether or
-not the expression is invariant).  treat_as_potential_rvalue should always be
-FALSE when called during lowering (as lvalueness is known at that time).
-See make_expr_reusable_copy for a similar routine used in the front end
-proper.
+copy.  treat_as_potential_prvalue should always be FALSE (because this routine
+is only called from lowering and lvalueness is known at that time), but is
+left as an argument to keep the signature the same as other similar routines
+(that are called through a_reusable_copy_function_ptr pointer).  See
+make_expr_reusable_copy for a similar routine used in the front end proper.
 */
 {
   an_expr_node_ptr expr_copy;
   a_variable_ptr   temp_var;
 
+  check_assertion(!treat_as_potential_prvalue);
   *temp_init_used = FALSE;
   if (is_assignment_to_temp(expr, &temp_var)) {
     /* The expression is an assignment to a temporary, probably generated
@@ -3366,7 +3366,7 @@ proper.
     expr_copy = var_rvalue_expr(temp_var);
     *temp_init_used = TRUE;
   } else if (is_invariant_expr(expr, vars_can_change,
-                               treat_as_potential_rvalue)) {
+                               treat_as_potential_prvalue)) {
     /* The expression has no side effects and will give the same value if
        evaluated more than once. */
     /* A straight copy will work. */
@@ -3406,7 +3406,7 @@ an_expr_node_ptr make_reusable_copy(an_expr_node_ptr expr,
                                     a_boolean        vars_can_change)
 /*
 Simpler interface to make_reusable_copy_full, without the temp_init_used
-and treat_as_potential_rvalue parameters.  The caller must ensure that expr
+and treat_as_potential_prvalue parameters.  The caller must ensure that expr
 will be evaluated before the copy is evaluated.
 */
 {
@@ -3415,7 +3415,7 @@ will be evaluated before the copy is evaluated.
 
   expr_copy = make_reusable_copy_full(expr, vars_can_change,
                                       &temp_init_used,
-                                      /*treat_as_potential_rvalue=*/FALSE);
+                                      /*treat_as_potential_prvalue=*/FALSE);
   return expr_copy;
 }  /* make_reusable_copy */
 
