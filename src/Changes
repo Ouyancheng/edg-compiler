@@ -1,5 +1,27 @@
 Version 5.0
 
+6/13/13  [EDGcpfe/14177]
+Needed flag processing of lowered delegating constructors/destructors
+
+As part of the changes made for delegating constructors (see the Changes
+entry for [EDGcpfe/7689,EDGcpfe/12842]), in IA-64 ABI configurations,
+lowered delegating constructors/destructors alternate entry points
+(which are routines that invoke either the complete or the subobject
+constructor/destructor at run-time) are created whenever exceptions are enabled
+for classes that have virtual bases.  Previously these routines had been marked
+as "needed" when they were in fact unused.  For example (with --c++11):
+
+  struct A {
+    ~A();
+  };
+  struct B : virtual A {
+    B(int i) : A() {}
+  };
+  int main() {
+    B b(0);
+  }
+
+
 6/13/13  [EDGcpfe/12021]
 Value categories
 

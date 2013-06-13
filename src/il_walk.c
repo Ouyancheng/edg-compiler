@@ -1008,17 +1008,24 @@ as needed.
           if (rout->special_kind == (a_special_function_kind)sfk_constructor ||
               rout->special_kind == (a_special_function_kind)sfk_destructor) {
             /* External alternate entry points of constructors and destructors
-               should be marked as needed if the primary routine is. */
+               should be marked as needed if the primary routine is.
+               Any delegating constructors/destructors created during lowering
+               aren't marked as needed here -- they aren't referred to from
+               any vtables, so they are only marked as needed when they're
+               discovered during a needed flag walk. */
             a_routine_list_entry_ptr rlep;
             for (rlep = rout->variant.ctor_dtor.alternate_entry_points;
                  rlep != NULL;
                  rlep = rlep->next) {
               a_routine_ptr arout = rlep->routine;
-              /* We have to use mark_as_needed here instead of
-                 walk_tree_and_set_needed to get the definition_needed flag
-                 set too. */
-              mark_as_needed((char *)arout, (an_il_entry_kind)iek_routine);
-              mark_any_thunks_as_needed(arout);
+              if (arout->ctor_dtor_kind !=
+                                         (a_ctor_or_dtor_kind)cdk_delegation) {
+                /* We have to use mark_as_needed here instead of
+                   walk_tree_and_set_needed to get the definition_needed flag
+                   set too. */
+                mark_as_needed((char *)arout, (an_il_entry_kind)iek_routine);
+                mark_any_thunks_as_needed(arout);
+              }  /* if */
             }  /* for */
           }  /* if */
 #endif /* IA64_ABI */
