@@ -622,6 +622,7 @@ check_abbreviation()
 --delegating_constructors
 --dep_name
 --dependencies
+--deprecated_string_conv
 --designators
 --diag_error
 --diag_once
@@ -727,6 +728,7 @@ check_abbreviation()
 --no_delegating_constructors
 --no_demangle
 --no_dep_name
+--no_deprecated_string_conv
 --no_designators
 --no_display_error_number
 --no_distinct_template_signatures
@@ -1384,6 +1386,8 @@ process_option()
          --report_gnu_extensions | \
          --dep_name | \
          --no_dep_name | \
+         --deprecated_string_conv | \
+         --no_deprecated_string_conv | \
          --parse_templates | \
          --no_parse_templates | \
          --export | \

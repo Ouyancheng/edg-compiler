@@ -8020,6 +8020,7 @@ operators), 3.3.15 (?: operator), and 3.3.16.1 (simple assignment).
         /* Qualifiers are being dropped. */
         if (source_is_string_literal &&
             string_literals_are_const &&
+            deprecated_string_literal_conv_allowed &&
             source_type_qualifiers == (dest_type_qualifiers | TQ_CONST) &&
             same_entities(unqual_dest_type_pointed_to,
                           unqual_source_type_pointed_to)) {
@@ -8027,6 +8028,12 @@ operators), 3.3.15 (?: operator), and 3.3.16.1 (simple assignment).
              a string literal or wide string literal to a pointer to
              non-const ([conv.array] paragraph 2). */
           std_conv->conv_of_string_literal_to_ptr_to_nonconst = TRUE;
+          if (cpp11_mode || (gpp_mode && gnu_version >= 40200)) {
+            std_conv->warning_suggested =
+                               is_character_type(unqual_dest_type_pointed_to) ?
+                                 ec_deprecated_string_conv :
+                                 ec_deprecated_string_conv_gen;
+          }  /* if */
         } else if ((microsoft_mode && !C_mode()) &&
                    source_is_string_literal &&
                    string_literals_are_const &&

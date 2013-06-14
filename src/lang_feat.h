@@ -2163,6 +2163,18 @@ warning_on_lossy_conversion.  The behavior can also be controlled by the
 #define DEFAULT_WARNING_ON_LOSSY_CONVERSION FALSE
 #endif /* ifndef DEFAULT_WARNING_ON_LOSSY_CONVERSION */
 
+/*
+Flag that is true if the C++ deprecated conversion from string literal
+to char * should be allowed by default in C++11 mode (which is nonstandard).
+The conversion is standard in C++ before C++11 (i.e., enabled regardless
+of the setting of this macro), and is also made to match the emulated
+compilers in Microsoft and GNU modes.
+*/
+#ifndef DEFAULT_DEPRECATED_STRING_LITERAL_CONV_ALLOWED
+#define DEFAULT_DEPRECATED_STRING_LITERAL_CONV_ALLOWED TRUE
+#endif /* ifndef DEFAULT_DEPRECATED_STRING_LITERAL_CONV_ALLOWED */
+
+
 EXTERN a_boolean
 		cpp11_mode;
 			/* When TRUE accept language features defined by the
@@ -2257,6 +2269,11 @@ EXTERN a_boolean
 			/* When TRUE, lambdas with an implicit return type
 			   are allowed to have multiple returns as long as
 			   they all give the same type. */
+
+EXTERN a_boolean
+		deprecated_string_literal_conv_allowed;
+			/* When TRUE, the deprecated conversion from string
+			   literal to char * is allowed in C++ mode. */
 
 /*
 Flag that determines the value of variadic_templates_enabled in C++ modes

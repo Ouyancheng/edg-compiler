@@ -1,5 +1,23 @@
 Version 5.0
 
+6/14/13  [EDGcpfe/10299]
+Deprecated conversion from string literal to "char *"
+
+The deprecated conversion from a string literal to "char *",
+deprecated in C++98 and C++03 and removed altogether in C++11, is now
+treated as a distinct feature with its own control variable and macro.
+The variable deprecated_string_literal_conv_allowed controls the
+feature.  It is enabled in pre-C++11 C++ mode, and in Microsoft, GNU,
+and Sun modes.  It is disabled in strict C++11 mode.  In default C++11
+mode, the macro DEFAULT_DEPRECATED_STRING_LITERAL_CONV_ALLOWED gives
+the setting.  The command-line option --[no_]deprecated_string_conv
+can be used to override or confirm the default.  Also, a warning is
+now issued for the conversion in C++11 mode (when the conversion is
+enabled) and in g++ mode with gnu_version >= 40200.
+
+  char *p = "abc";  // Now gets an error or warning in some modes
+
+
 6/14/13  [EDGcpfe/14173]
 Preserve static_cast to identical type in more cases in Microsoft/Sun modes
 

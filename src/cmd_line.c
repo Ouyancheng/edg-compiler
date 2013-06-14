@@ -1384,6 +1384,13 @@ Initialize the option information table.
   add_option_description(optk_lossy_warning, "no_lossy_conversion_warning",
                          '\0', /*value=*/FALSE, /*arg_required=*/FALSE,
                          pchek_command_line);
+  add_option_description(optk_deprecated_string_conv, "deprecated_string_conv",
+                         '\0', /*value=*/TRUE, /*arg_required=*/FALSE,
+                         pchek_command_line);
+  add_option_description(optk_deprecated_string_conv,
+                         "no_deprecated_string_conv",
+                         '\0', /*value=*/FALSE, /*arg_required=*/FALSE,
+                         pchek_command_line);
 }  /* initialize_option_descriptions */
 
 
@@ -2077,6 +2084,9 @@ by a command line option.
       /* String literals are const starting with version 7.1. */
       string_literals_are_const = microsoft_version >= 1310;
     }  /* if */
+    if (!option_kind_used[(int)optk_deprecated_string_conv]) {
+      deprecated_string_literal_conv_allowed = TRUE;
+    }  /* if */
     single_ref_qual_ovl_res_tiebreaker = (microsoft_bugs &&
                                           microsoft_version < 1300);
     if (microsoft_version >= 1310) {
@@ -2305,6 +2315,9 @@ by a command line option.
   if (!(option_kind_used[(int)optk_const_string_literals])) {
     string_literals_are_const = FALSE;
   }  /* if */
+  if (!option_kind_used[(int)optk_deprecated_string_conv]) {
+    deprecated_string_literal_conv_allowed = TRUE;
+  }  /* if */
   if (!(option_kind_used[(int)optk_late_tiebreaker])) {
     do_late_ovl_res_tiebreaker = TRUE;
   }  /* if */
@@ -2460,6 +2473,7 @@ process.
   extern_inline_allowed = FALSE;
   operator_overloading_on_enums_enabled = FALSE;  /* Not really needed. */
   string_literals_are_const = FALSE;
+  deprecated_string_literal_conv_allowed = FALSE;
   arg_dependent_lookup_enabled = FALSE;
   instantiate_before_pch_creation = FALSE;
   instantiate_extern_inline = FALSE;
@@ -2828,6 +2842,11 @@ handling).
   delegating_constructors_enabled = value;
   ref_qualifiers_enabled = rvalue_references_enabled;
   constexpr_enabled = value;
+  if (!option_kind_used[(int)optk_deprecated_string_conv]) {
+    deprecated_string_literal_conv_allowed = value ?
+                               DEFAULT_DEPRECATED_STRING_LITERAL_CONV_ALLOWED :
+                               TRUE;
+  }  /* if */
 }  /* check_and_set_cpp11_mode_options */
 
 
@@ -3432,6 +3451,9 @@ conflicts with the ANSI mode and set various unmentioned settings as needed.
          command line option, set it now. */
       string_literals_are_const = TRUE;
     }  /* if */
+    if (!option_kind_used[(int)optk_deprecated_string_conv]) {
+      deprecated_string_literal_conv_allowed = !cpp11_mode;
+    }  /* if */
     assume_references_cannot_be_null = TRUE;
     if (!(option_kind_used[(int)optk_class_name_injection])) {
       /* If class name injection was not explicitly set by a command
@@ -3600,6 +3622,9 @@ checked again here.)
   }  /* if */
   if (!option_kind_used[(int)optk_const_string_literals]) {
     string_literals_are_const = TRUE;
+  }  /* if */
+  if (!option_kind_used[(int)optk_deprecated_string_conv]) {
+    deprecated_string_literal_conv_allowed = TRUE;
   }  /* if */
   if (!(option_kind_used[(int)optk_nonconst_ref_anachronism])) {
     /* Versions 5.3, 5.5 and 5.8 (at least) of the Sun compiler allow this
@@ -3867,6 +3892,9 @@ exclude the GNU C++ mode already.  Hence those are not checked again here.)
   }  /* if */
   if (!(option_kind_used[(int)optk_const_string_literals])) {
     string_literals_are_const = TRUE;
+  }  /* if */
+  if (!option_kind_used[(int)optk_deprecated_string_conv]) {
+    deprecated_string_literal_conv_allowed = TRUE;
   }  /* if */
   if (!option_kind_used[(int)optk_type_traits_helpers]) {
     /* g++ supports type traits in versions 4.3 and later.  Earlier versions
@@ -4876,6 +4904,11 @@ file.
 #else /* !defined(DEFAULT_DEPENDENT_NAME_PROCESSING) */
   comment_undefined_macro_name(DEFAULT_DEPENDENT_NAME_PROCESSING);
 #endif /* defined(DEFAULT_DEPENDENT_NAME_PROCESSING) */
+#if defined(DEFAULT_DEPRECATED_STRING_LITERAL_CONV_ALLOWED)
+  define_numeric_valued_macro(DEFAULT_DEPRECATED_STRING_LITERAL_CONV_ALLOWED);
+#else /* !defined(DEFAULT_DEPRECATED_STRING_LITERAL_CONV_ALLOWED) */
+  comment_undefined_macro_name(DEFAULT_DEPRECATED_STRING_LITERAL_CONV_ALLOWED);
+#endif /* defined(DEFAULT_DEPRECATED_STRING_LITERAL_CONV_ALLOWED) */
 #if defined(DEFAULT_DESIGNATORS_ALLOWED)
   define_numeric_valued_macro(DEFAULT_DESIGNATORS_ALLOWED);
 #else /* !defined(DEFAULT_DESIGNATORS_ALLOWED) */
@@ -9050,6 +9083,9 @@ enable_microsoft_mode:
       case optk_lossy_warning:
         warning_on_lossy_conversion = opt_value;
         break;
+      case optk_deprecated_string_conv:
+        deprecated_string_literal_conv_allowed = opt_value;
+        break;
       default:
         /* It should not be possible to get here. */
         unexpected_condition();
@@ -9880,6 +9916,7 @@ variables declared in cmd_line.h.
   operator_overloading_on_enums_enabled =
                                          DEFAULT_OPERATOR_OVERLOADING_ON_ENUMS;
   string_literals_are_const = DEFAULT_STRING_LITERALS_ARE_CONST;
+  deprecated_string_literal_conv_allowed = string_literals_are_const;
   class_name_injection_enabled = DEFAULT_CLASS_NAME_INJECTION;
   arg_dependent_lookup_enabled = DEFAULT_ARG_DEPENDENT_LOOKUP;
   friend_class_injection_enabled = DEFAULT_FRIEND_INJECTION;
