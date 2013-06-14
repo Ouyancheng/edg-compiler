@@ -18299,18 +18299,23 @@ is_transparent.  conv_context describes the context of the conversion.
                                     &conversion,
                                     &local_conversion)) {
     /* Some conversions are not allowed on a nontype template argument. */
-    if ((conv_context & CCO_NONTYPE_TEMPLATE_ARG) &&
-        !conversion_allowed_for_nontype_template_argument(
+    if (conv_context & CCO_NONTYPE_TEMPLATE_ARG) {
+      a_type_ptr eff_source_type = source_operand->type;
+      if (conversion->routine != NULL) {
+        eff_source_type = return_type_of(conversion->routine->type);
+      }  /* if */
+      if (!conversion_allowed_for_nontype_template_argument(
                                            &conversion->std,
-                                           source_operand->type,
+                                           eff_source_type,
                                            is_constant_operand(source_operand),
                                            &source_operand->variant.constant,
                                            dest_type,
                                            &err_code)) {
-      if (expr_diagnostic_should_be_issued(es_discretionary_error,
-                                           err_code)) {
-        pos_ty2_diagnostic(es_discretionary_error, err_code, err_pos,
-                           source_operand->type, dest_type);
+        if (expr_diagnostic_should_be_issued(es_discretionary_error,
+                                             err_code)) {
+          pos_ty2_diagnostic(es_discretionary_error, err_code, err_pos,
+                             source_operand->type, dest_type);
+        }  /* if */
       }  /* if */
     }  /* if */
     /* The types are compatible.  Do the conversion. */

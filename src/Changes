@@ -1,5 +1,22 @@
 Version 5.0
 
+6/14/13  [EDGcpfe/14138]
+User-defined conversion allowed on integer nontype template argument
+
+The check for allowed conversions on a C++11 nontype template argument
+passed for an integer template parameter failed to allow a user-defined
+conversion at the end.  Now fixed.
+
+  struct A {
+    constexpr A(int i) : n(i) { }
+    constexpr operator int() { return n; }
+    int n;
+  };
+  template<int> struct B { };
+  constexpr A a = 0;
+  B<a> ba;  // Formerly got a spurious error
+
+
 6/14/13  [EDGcpfe/14129]
 Microsoft compatibility: Reference deduction with array of unknown bound
 

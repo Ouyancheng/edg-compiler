@@ -9281,6 +9281,7 @@ source_is_constant is FALSE, the source is assumed not to be a constant.
 If err_code is non-NULL, *err_code is set to an appropriate error code
 if a specific one is appropriate, otherwise to ec_no_error if
 a generic conversion error code appropriate to the context should be used.
+Does not handle user-defined conversions.
 */
 {
   a_boolean     okay = FALSE;
@@ -9338,7 +9339,8 @@ question.  Additionally, for C++11 constant expressions, source_type,
 source_is_constant, source_constant, and dest_type may be specified.
 If those are not available, dest_type is passed as NULL.
 If err_code is non-NULL, *err_code is set to an appropriate error code
-if there is an error, otherwise to ec_no_error.
+if there is an error, otherwise to ec_no_error.  Does not handle
+user-defined conversions.
 */
 {
   a_boolean     allowed = TRUE;
