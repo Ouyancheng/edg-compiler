@@ -9674,7 +9674,12 @@ and if *p_member_type is a function type, adjust it as follows:
     *p_class_type = class_type;
   } else if (!is_immediate_class_type(class_type)) {
     check_assertion(gpp_mode || microsoft_mode);
-    qualifiers = get_type_qualifiers(class_type);
+    /* The qualifiers are ignored in Microsoft mode for parameters of
+       partial instantiations of function templates. */
+    if (!microsoft_mode ||
+        !is_function_template_partial_instantiation_context()) {
+      qualifiers = get_type_qualifiers(class_type);
+    }  /* if */
     class_type = skip_typerefs(class_type);
     check_assertion(is_immediate_class_type(class_type));
     *p_class_type = class_type;

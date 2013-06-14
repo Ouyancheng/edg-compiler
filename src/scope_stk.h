@@ -1479,6 +1479,15 @@ a NULL pointer if the scope depth is NO_SCOPE_DEPTH.
 #define scope_stack_entry_for(depth)					\
   ((depth) == NO_SCOPE_DEPTH ? NULL : &scope_stack[(depth)])
 
+/*
+Return TRUE if we are in the partial instantiation of a function template.
+*/
+#define is_function_template_partial_instantiation_context()		\
+  (depth_innermost_instantiation_scope != NO_SCOPE_DEPTH &&		\
+   scope_stack[depth_innermost_instantiation_scope].			\
+                                             function_partial_instantiation)
+
+
 
 /*
 Given a pointer to a scope stack entry, return the address of the associated
