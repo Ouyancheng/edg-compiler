@@ -32710,6 +32710,34 @@ expression.
     } else {
       ref_type = make_reference_type(collection_type);
     }  /* if */
+  } else if (result.kind == (an_operand_kind)ok_expression &&
+             result.variant.expression != NULL &&
+             is_variable_node(result.variant.expression) &&
+             result.variant.expression->variant.variable != NULL &&
+             result.variant.expression->variant.variable->is_parameter &&
+             is_array_type(result.variant.expression->variant.variable->
+                                            assoc_param_type->declared_type)) {
+    /* Microsoft allows a parameter whose type is an array to be used
+       as the collection in a for-each statement, e.g.,
+         void f(int b[10]) {
+           for each(int i in b) {}
+         }
+       The collection variable has already had it's type decayed to a pointer
+       so retrieve the collection type from the associated parameter type.
+       Initialize the reference with a glvalue cast of an indirection of
+       the collection variable. */
+    an_expr_node_ptr expr;
+    an_operand       orig_operand;
+    collection_type = result.variant.expression->variant.variable->
+                                               assoc_param_type->declared_type;
+    orig_operand = result;
+    do_operand_transformations(&result, TOPT_NO_OPTIONS);
+    expr = make_node_from_operand(&result);
+    expr = add_indirection_to_node(expr);
+    expr = add_cast_to_glvalue(expr, collection_type);
+    make_glvalue_expression_operand(expr, &result);
+    restore_operand_details(&result, &orig_operand);
+    ref_type = make_reference_type(collection_type);
   } else if (is_template_param_type(collection_type)) {
     /* Template-dependent type.  Consider okay. */
     ref_type = type_of_unknown_templ_param_nontype;
