@@ -25259,7 +25259,8 @@ in *rcblock).
     start_position = pos_curr_token;
   }  /* if */
 
-  if (!exceptions_enabled) {
+  if (!exceptions_enabled &&
+      !(gpp_mode && scope_stack_top().in_prototype_instantiation)) {
     /* Support for exceptions is suppressed for this compilation.  Note that
        semantic errors will not be issued on this throw expression. */
     expr_pos_error(ec_no_exception_support, &start_position);

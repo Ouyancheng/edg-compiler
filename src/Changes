@@ -1,5 +1,18 @@
 Version 5.0
 
+6/13/13  [EDGcpfe/13783]
+GNU C++ compatibility: Throw expressions in templates with exceptions disabled
+
+In GNU C++ mode with exceptions disabled, the front end now accepts throw
+expressions in prototype instantiations.  For example:
+
+  template<class T> void f() {
+    throw 1;  // Accepted during prototype instantiations even if
+  }           // exceptions are disabled in GNU C++ mode.
+  template void f<int>();  // At this point the throw expression triggers
+                           // an error in GNU mode with disabled exceptions.
+
+
 6/13/13  [EDGcpfe/14177]
 Needed flag processing of lowered delegating constructors/destructors
 
