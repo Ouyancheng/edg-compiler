@@ -1,5 +1,32 @@
 Version 5.0
 
+6/14/13  [EDGcpfe/14174]
+VTT param missing in some subobject region table entries (IA-64 ABI only)
+
+In cases where a function returning an object is used to initialize
+a base class and that class has virtual bases, the exception handling
+region table entry generated to invoke the subobject destructor was
+missing the VTT pointer, causing undefined behavior at run-time in releases
+prior to 4.7 and a compile-time assertion failure (in make_region_table_entry)
+in release 4.7.  This is now fixed.  In the following example, the exception
+handling routines had invoked _ZN1AD2Ev with a single argument but now invoke
+it with the VTT argument as well (with -x):
+
+  struct X {};
+  struct A : virtual X {
+    ~A() { while (0); }
+  };
+  A f() { return A(); }
+  struct B : A {
+    B() : A(f()) { throw 1; }
+  };
+  int main() {
+    try {
+      B b;
+    } catch (...) {}
+  }
+
+
 6/14/13  [EDGcpfe/10299]
 Deprecated conversion from string literal to "char *"
 

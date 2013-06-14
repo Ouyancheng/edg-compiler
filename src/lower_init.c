@@ -8893,6 +8893,28 @@ do_assignment:;
                  (a_boolean *)NULL);
       (void)insert_expr_statement_set_pos(dip->variant.expression,
                                           eff_insert_location);
+#if IA64_ABI
+      if (ctor_init != NULL &&
+          dip->destructor != NULL &&
+          dtor_needs_vtt_argument(dip->destructor) &&
+          (ctor_init->kind == (a_constructor_init_kind)cik_virtual_base_class||
+           ctor_init->kind == (a_constructor_init_kind)cik_direct_base_class)){
+        /* This object is being used to initialize a base class and the
+           (subobject) destructor for the base class needs a VTT pointer
+           for the region table entry; create one here (though it's unused
+           here, it is recorded in the dip and will be used when the
+           region table entry for the destructor is created). */
+        an_expr_node_ptr  dummy_vtt_ptr;
+        build_construction_vtbls_pointer_for_subobject_construction(
+                                                 dip,
+                                                 ctor_init->variant.base_class,
+                                                 ipdp,
+                                                 construction_vtbls_var,
+                                                 eff_insert_location,
+                                                 &dummy_vtt_ptr,
+                                                 (a_boolean *)NULL);
+      }  /* if */
+#endif /* IA64_ABI */
       break;
     case dik_constructor:
       /* Initialize the entity by calling a constructor. */
