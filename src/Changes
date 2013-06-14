@@ -1,5 +1,25 @@
 Version 5.0
 
+6/14/13  [EDGcpfe/14173]
+Preserve static_cast to identical type in more cases in Microsoft/Sun modes
+
+The processing for static_cast in Microsoft and Sun modes now
+preserves a do-nothing cast in the IL in more cases, in particular
+cases where the operand is an rvalue.
+
+int main() {
+  int i = 5;
+  i = static_cast<int>(i / 5);  // Cast now preserved
+}
+
+The front end discards casts in some modes because the compilers being
+emulated seem to discard those casts, and it's hard to get the same
+semantics without also discarding the cast.  This conflicts, however,
+with the desire of applications that do source analysis to get the entire
+original program.  While we aren't able to eliminate the problem entirely,
+this change preserves more of the casts that appear.
+
+
 6/14/13  [EDGcpfe/13377]
 Microsoft compatibility: Instantiated pointer-to-member functions
 
