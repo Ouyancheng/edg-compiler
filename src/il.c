@@ -20326,7 +20326,8 @@ pragma has not yet been found for the given IL entity).
 a_boolean operator_takes_lvalue_operand(an_expr_operator_kind op)
 /*
 Return TRUE if the given expression operator takes an lvalue as its first
-operand.
+operand.  That includes some operators that will also accept an xvalue
+as the first operand, but for which the primary use is for lvalues.
 */
 {
   a_boolean takes_lvalue;

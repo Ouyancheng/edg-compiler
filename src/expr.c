@@ -19385,11 +19385,11 @@ if it's not valid).
        stays an lvalue if it is one). */
     if ((microsoft_bugs || sun_mode) &&
         identical_types(type_cast_to, operand->type)) {
-      /* When the operand is an rvalue, there's no harm in keeping the cast.
+      /* When the operand is a prvalue, there's no harm in keeping the cast.
          But ignore casts to array types, since they would be invalid if
          processed. */
       if (is_array_type(type_cast_to) ||
-          !is_an_rvalue(operand)) {
+          !is_a_prvalue(operand)) {
         processed = TRUE;
         ignored = TRUE;
       }  /* if */
