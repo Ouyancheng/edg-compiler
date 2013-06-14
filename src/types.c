@@ -11000,37 +11000,43 @@ the old list.  Only callable in C++ mode.  See ARM 13.
     old_extra_info = old_type->variant.routine.extra_info;
     /* See if the types are sufficiently different that they are
        distinguishable by overload resolution. */
-    /* Note that the code here must match determine_arg_match_level
-       and function_template_matches_operand_list. */
-    /* See if the "this" parameter is distinguishable if it exists.  If one
-       function has a "this" parameter and the other does not, they are not
-       distinguishable on that basis alone (except in cfront compatibility
-       mode, when a type qualifier on the "this" parameter type makes a
-       nonstatic function distinguishable from a static function). */
+    /* Note that the code here must match determine_arg_match_level. */
     old_this_class = old_extra_info->this_class;
-    old_this_qualifiers = old_extra_info->qualifiers;
-    old_this_qualified = (old_this_qualifiers != TQ_NONE);
-    new_this_qualified = (new_this_qualifiers != TQ_NONE);
-    if ((old_this_qualified != new_this_qualified && any_cfront_mode()) ||
-        (old_this_class != NULL && new_this_class != NULL &&
-         (old_this_qualifiers != new_this_qualifiers ||
-          !identical_types(old_this_class, new_this_class)))) {
-      /* "this" parameter types are distinguishable; this probably means
-         one function is const or volatile and the other isn't. */
-      distinguishable = TRUE;
-      goto distinguishable_determined;
-    }  /* if */
     old_ref_qualifiers = old_extra_info->ref_qualifiers;
-    if (old_ref_qualifiers != new_ref_qualifiers &&
-        old_ref_qualifiers != (a_ref_qualifier_kind)rqk_default &&
-        new_ref_qualifiers != (a_ref_qualifier_kind)rqk_default) {
-      /* "&" and "&&" ref-qualifiers are distinguishable, but other
-         combinations are not.  In particular, if two declarations only differ
-         in ref-qualifiers and one declaration has no explicit ref-qualifier,
-         the declarations are not overload-distinguishable (and presumably an
-         error will be issued since they aren't compatible either). */
-      distinguishable = TRUE;
-      goto distinguishable_determined;
+    if (old_ref_qualifiers != new_ref_qualifiers) {
+      if (old_ref_qualifiers != (a_ref_qualifier_kind)rqk_default &&
+          new_ref_qualifiers != (a_ref_qualifier_kind)rqk_default) {
+        /* "&" and "&&" ref-qualifiers are distinguishable, but other
+           combinations are not.  In particular, if two declarations only
+           differ in ref-qualifiers and one declaration has no explicit
+           ref-qualifier, the declarations are not overload-distinguishable
+           (and presumably an error will be issued since they aren't
+           compatible either). */
+        distinguishable = TRUE;
+        goto distinguishable_determined;
+      }  /* if */
+    } else {
+      /* See if the "this" parameter is distinguishable if it exists.  If one
+         function has a "this" parameter and the other does not, they are not
+         distinguishable on that basis alone (except in cfront compatibility
+         mode, when a type qualifier on the "this" parameter type makes a
+         nonstatic function distinguishable from a static function). */
+      /* This is in the "else" branch of the ref-qualifiers test because if
+         ref-qualifiers differ and one case has no ref-qualifiers at all, the
+         cv-qualifiers are not a distinguishing factor (but parameter type
+         differences test below are). */
+      old_this_qualifiers = old_extra_info->qualifiers;
+      old_this_qualified = (old_this_qualifiers != TQ_NONE);
+      new_this_qualified = (new_this_qualifiers != TQ_NONE);
+      if ((old_this_qualified != new_this_qualified && any_cfront_mode()) ||
+          (old_this_class != NULL && new_this_class != NULL &&
+           (old_this_qualifiers != new_this_qualifiers ||
+            !identical_types(old_this_class, new_this_class)))) {
+        /* "this" parameter types are distinguishable; this probably means
+           one function is const or volatile and the other isn't. */
+        distinguishable = TRUE;
+        goto distinguishable_determined;
+      }  /* if */
     }  /* if */
     /* If one type has an ellipsis and the other does not, the types are
        distinguishable. */
