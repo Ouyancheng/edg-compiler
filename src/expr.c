@@ -22999,6 +22999,8 @@ that case.
   a_boolean             operand_1_transformations_done = FALSE;
   a_boolean             saved_cpp11_constant_expr_ruled_out;
   a_boolean             saved_evaluated = curr_expr_is_evaluated();
+  a_boolean             saved_potentially_unevaluated =
+                                        curr_expr_is_potentially_unevaluated();
   a_boolean             expr2_evaluated;
   a_boolean             saved_inside_conditional_expression =
                                      expr_stack->inside_conditional_expression;
@@ -23082,6 +23084,10 @@ that case.
     }  /* if */
     (void)get_token();
     expr_stack->evaluated = expr2_evaluated;
+    if (constexpr_enabled && curr_expr_kind_is_const() &&
+        might_be_overloaded) {
+      expr_stack->potentially_unevaluated = TRUE;
+    }  /* if */
     saved_cpp11_constant_expr_ruled_out = expr_stack->constant_expr_ruled_out;
     expr_stack->inside_conditional_expression = TRUE;
     scan_expr(&operand_2, prec_level, EOPT_NO_OPTIONS);
@@ -23090,6 +23096,7 @@ that case.
     /* Restore the evaluated flag as it was on entry. */
     expr_stack->evaluated = saved_evaluated;
     if (constexpr_enabled) {
+      expr_stack->potentially_unevaluated = saved_potentially_unevaluated;
       expr_stack->constant_expr_ruled_out =
                                            saved_cpp11_constant_expr_ruled_out;
     }  /* if */

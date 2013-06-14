@@ -12138,6 +12138,26 @@ of a subscript operation).
                               operator_position);
       }  /* if */
     } else if (constexpr_enabled &&
+               op == (an_expr_operator_kind)eok_lor &&
+               is_constant_operand(operand_1) &&
+               constant_bool_value_known_at_compile_time(
+                                               &operand_1->variant.constant) &&
+               !op_is_false_constant(operand_1)) {
+      /* (1 || nonconstant) produces true in C++11. */
+      make_integer_constant_operand(result, (a_host_large_integer)1);
+      cast_operand(result_type, result, /*is_implicit_cast=*/TRUE);
+      did_not_fold = FALSE;
+    } else if (constexpr_enabled &&
+               op == (an_expr_operator_kind)eok_land &&
+               is_constant_operand(operand_1) &&
+               constant_bool_value_known_at_compile_time(
+                                               &operand_1->variant.constant) &&
+               op_is_false_constant(operand_1)) {
+      /* (0 && nonconstant) produces false in C++11. */
+      make_integer_constant_operand(result, (a_host_large_integer)0);
+      cast_operand(result_type, result, /*is_implicit_cast=*/TRUE);
+      did_not_fold = FALSE;
+    } else if (constexpr_enabled &&
                op == (an_expr_operator_kind)eok_comma &&
                curr_expr_kind_is_evaluated_const() &&
                is_constant_operand(operand_2) &&

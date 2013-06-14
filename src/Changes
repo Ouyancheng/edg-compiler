@@ -1,5 +1,23 @@
 Version 5.0
 
+6/14/13  [EDGcpfe/14139]
+Spurious error in C++11 constant expression with possibly-overloaded || or &&
+
+The front end gave a spurious error on an expression of the form
+"1 || nonconstant" or "0 && nonconstant" in a constant expression in
+C++11 mode if there was some previous declaration of an operator|| or
+operator&& (which made the operation seem potentially overloaded).
+Now fixed.
+
+  struct S {
+    S operator||(S const&);
+  };
+  int f();
+  int main() {
+    int a[1 || f()];  // Now accepted
+  }
+
+
 6/14/13  [EDGcpfe/14138]
 User-defined conversion allowed on integer nontype template argument
 
