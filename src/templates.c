@@ -8762,6 +8762,30 @@ argument deduction purposes.
 }  /* matches_template_type_with_qualification_conversion */
 
 
+a_boolean is_parameter_type_with_special_ref_deduction(
+                                        a_type_ptr           tp,
+                                        a_template_param_ptr templ_param_list)
+/*
+Return TRUE if tp represents a type T&& (without an intervening typeref) where
+T is a template parameter from the given list.
+*/
+{
+  a_boolean  result = FALSE;
+
+  if (tp->kind == (a_type_kind)tk_pointer &&
+      tp->variant.pointer.is_rvalue_reference) {
+    a_type_ptr  utp = tp->variant.pointer.type;
+    if (utp->kind == (a_type_kind)tk_template_param &&
+        is_template_param_from_list(&utp->variant.template_param.extra_info
+                                        ->coordinates,
+                                    templ_param_list)) {
+      result = TRUE;
+    }  /* if */
+  }  /* if */
+  return result;
+}  /* is_parameter_type_with_special_ref_deduction */
+
+
 a_boolean matches_template_type(a_type_ptr           type,
                                 a_type_ptr           templ_type,
                                 a_template_arg_ptr   *templ_arg_list,
@@ -10540,6 +10564,24 @@ a pointer over a reference type or creating an array of references.
             new_type = make_tracking_reference_type(tp);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
           } else {
+            if (microsoft_mode && is_lvalue_reference_type(type) &&
+                is_incomplete_array_type(tp)) {
+              /* During substitution, the Microsoft compiler transforms
+                 an lvalue reference to an incomplete array type to an
+                 lvalue reference to an array of size 1. */
+              a_type_ptr	new_tp;
+              a_type_ptr	array_tp;
+              new_tp = alloc_type(tp->kind);
+              copy_type(tp, new_tp);
+              array_tp = skip_typerefs(new_tp);
+              check_assertion(array_tp->kind == (a_type_kind)tk_array);
+              new_tp->variant.array.variant.number_of_elements = 1;
+              tp = new_tp;
+              /* If the array is too large, set copy_error. */
+              if (!set_array_type_size(tp, /*suppress_error=*/TRUE)) {
+                *copy_error = TRUE;
+              }  /* if */
+            }  /* if */
             new_type = make_reference_type(tp);
           }  /* if */
         } else {

@@ -511,6 +511,10 @@ extern a_boolean matches_template_type_with_qualification_conversion(
 				a_template_param_ptr templ_param_list,
 				an_mtt_flag_set      flags);
 
+extern a_boolean is_parameter_type_with_special_ref_deduction(
+                                       a_type_ptr           tp,
+                                       a_template_param_ptr templ_param_list);
+
 extern
 a_boolean matches_template_type(a_type_ptr           type,
                                 a_type_ptr           templ_type,

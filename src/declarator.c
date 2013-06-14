@@ -2730,7 +2730,8 @@ an error if a default argument expression is encountered.
         }  /* if */
         /* Check that the type is legal, and do required adjustments. */
         check_use_of_auto_type(&param_state);
-        check_and_adjust_parameter_type(&param_state.type, &param_type_pos);
+        check_and_adjust_parameter_type(&param_state, param_number,
+                                        &param_type_pos);
         /* Standardize the storage class: unspecified becomes auto. */
         if (param_storage_class == (a_storage_class)sc_unspecified) {
           param_storage_class = (a_storage_class)sc_auto;

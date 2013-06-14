@@ -1101,22 +1101,63 @@ DEFAULT_REF_TO_UNKNOWN_BOUND_ARRAY_ALLOWED_IN_PARAM_TYPE.
 }  /* check_ptr_or_ref_to_unknown_bound_array */
 
 
-void check_and_adjust_parameter_type(a_type_ptr           *type_ptr,
-                                     a_source_position    *error_pos)
+static a_boolean is_special_rvalue_ref_generic_parameter_at_pos(
+                                                    a_symbol_ptr   func_templ,
+                                                    unsigned long  param_pos)
+/*
+Return true if the parameter of the given function template at the given
+position (1, 2, 3, ...) is of the form "T&&" where T is a parameter of the
+function template.  (Such parameters are subject to special deduction rules,
+and in Microsoft mode the constraint that T not be substituted by an array of
+unknown length is not enforced for such parameters.)
+*/
+{
+  a_boolean                 result = FALSE;
+  a_type_ptr                ftp;
+  a_param_type_ptr          ptp;
+  a_template_decl_info_ptr  tdip;
+
+  check_assertion(param_pos >= 1 &&
+                  func_templ != NULL &&
+                  symbol_is(func_templ, sk_function_template));
+  ftp = func_templ->variant.template_info->variant.function.routine->type;
+  check_assertion(ftp->kind == (a_type_kind)tk_routine);
+  ptp = ftp->variant.routine.extra_info->param_type_list;
+  /* Move ptp to the given numbered parameter if necessary. */
+  while (param_pos != 1) {
+    ptp = ptp->next;
+    --param_pos;
+  }  /* while */
+  tdip = func_templ->variant.template_info->cache.decl_info;
+  if (tdip != NULL &&
+      is_parameter_type_with_special_ref_deduction(ptp->type,
+                                                   tdip->parameters)) {
+    result = TRUE;
+  }  /* if */
+  return result;
+}  /* is_special_rvalue_ref_generic_parameter_at_pos */
+
+
+void check_and_adjust_parameter_type(a_decl_parse_state  *dps,
+                                     unsigned long       param_num,
+                                     a_source_position   *error_pos)
 /*
 This routine is called for all function parameter declarations.  It does
-error checking and type adjustments as required.
+error checking and type adjustments as required.  dps describes the parameter
+declaration.  param_num is the ordinal position of the parameter (zero for
+old-style parameter declarations).  error_pos is the default position for
+diagnostics.
 */
 {
   if (any_cfront_mode() &&
-      check_member_function_typedef(*type_ptr, error_pos)) {
+      check_member_function_typedef(dps->type, error_pos)) {
     /* The type is a cfront-style member function typedef -- it is an error
        to use it anywhere but in a pointer-to-member declaration. */
-    *type_ptr = error_type();
+    dps->type = error_type();
   } else {
     /* Verify that the parameter type is not a qualified function type. */
-    a_type_ptr  rtp = skip_typerefs(*type_ptr);
-    if (type_is_typedef(*type_ptr) &&
+    a_type_ptr  rtp = skip_typerefs(dps->type);
+    if (type_is_typedef(dps->type) &&
         rtp->kind == (a_type_kind)tk_routine &&
         (rtp->variant.routine.extra_info->qualifiers != TQ_NONE ||
          rtp->variant.routine.extra_info->this_qualifiers != TQ_NONE)) {
@@ -1124,40 +1165,53 @@ error checking and type adjustments as required.
     }  /* if */
     /* Adjust the type if necessary (for example, "array of x" becomes
        "pointer to x"). */
-    adjust_parameter_type(type_ptr);
+    adjust_parameter_type(&dps->type);
     /* Disallow "void" as a parameter type. */
     if (is_void_type(rtp)) {
       pos_error(ec_void_param_not_allowed, error_pos);
-      *type_ptr = error_type();
+      dps->type = error_type();
 #if UPC_EXTENSIONS_ALLOWED
-    } else if (upc_mode && is_shared_qualified_type(*type_ptr)) {
+    } else if (upc_mode && is_shared_qualified_type(dps->type)) {
       /* Do not allow directly shared (i.e. non-pointer) parameter types. */
       pos_error(ec_shared_parameter, error_pos);
-      *type_ptr = error_type();
+      dps->type = error_type();
 #endif /* UPC_EXTENSIONS_ALLOWED */
 #if NAMED_ADDRESS_SPACES_ALLOWED
-    } else if (type_qualified_with_named_address_space(*type_ptr)) {
+    } else if (type_qualified_with_named_address_space(dps->type)) {
       pos_error(ec_named_address_space_for_parameter, error_pos);
 #endif /* NAMED_ADDRESS_SPACES_ALLOWED */
 #if MICROSOFT_EXTENSIONS_ALLOWED
-    } else if (cppcli_enabled && is_pin_ptr_type(*type_ptr)) { 
+    } else if (cppcli_enabled && is_pin_ptr_type(dps->type)) { 
       /* A pin pointer cannot be used as a parameter type. */
       pos_error(ec_pin_ptr_param_not_allowed, error_pos);
-    } else if (cppcli_enabled && is_cli_interface_type(*type_ptr)) { 
+    } else if (cppcli_enabled && is_cli_interface_type(dps->type)) { 
       /* A C++/CLI interface cannot be used as a parameter type. */
       pos_error(ec_parameter_with_interface_type, error_pos);
-      *type_ptr = error_type();
+      dps->type = error_type();
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     } else {
       if (!C_mode() && !(ptr_to_unknown_bound_array_allowed_in_param_type &&
                          ref_to_unknown_bound_array_allowed_in_param_type)) {
         /* In C++ disallow a parameter type that includes a pointer or
-           reference to an array of unspecified size (WP 8.3.5 para 3).
-           (This restriction is relaxed in cfront and Microsoft compatibility
-           modes; it can also be relaxed in default mode -- see
+           reference to an array of unspecified size.  This restriction is
+           relaxed in cfront mode and (for the pointer case) in Microsoft mode;
+           it can also be relaxed in default mode -- see
            DEFAULT_PTR_TO_UNKNOWN_BOUND_ARRAY_ALLOWED_IN_PARAM_TYPE and
-           DEFAULT_REF_TO_UNKNOWN_BOUND_ARRAY_ALLOWED_IN_PARAM_TYPE.) */
-        check_ptr_or_ref_to_unspecified_bound_array(*type_ptr, error_pos);
+           DEFAULT_REF_TO_UNKNOWN_BOUND_ARRAY_ALLOWED_IN_PARAM_TYPE.
+           In Microsoft mode, the check is also skipped for a reference to
+           array type that was produced through the (special) deduction from
+           a parameter of the form T&& (with T a template parameter. */
+        if (microsoft_mode && rvalue_references_enabled &&
+            !dps->is_old_style_param_decl &&
+            scope_stack[depth_scope_stack-1].function_partial_instantiation &&
+            is_special_rvalue_ref_generic_parameter_at_pos(
+                                scope_stack[depth_scope_stack-1].template_sym,
+                                param_num)) {
+          /* In Microsoft mode, don't check an instantiated parameter that was
+             "T&&" in its generic form. */
+        } else {
+          check_ptr_or_ref_to_unspecified_bound_array(dps->type, error_pos);
+        }  /* if */
       }  /* if */
     }  /* if */
   }  /* if */
@@ -14683,7 +14737,8 @@ cases).
       param_id->declared_type = state->declared_type;
     }  /* if */
     /* Check that the type is legal, and do required adjustments. */
-    check_and_adjust_parameter_type(&state->type, &state->start_pos);
+    check_and_adjust_parameter_type(state, /*param_num=*/0,
+                                    &state->start_pos);
     /* For pcc compatibility, promote float parameters to double. */
     if (C_dialect == C_dialect_pcc) {
       promote_float_to_double(state->type);

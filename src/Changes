@@ -1,5 +1,31 @@
 Version 5.0
 
+6/14/13  [EDGcpfe/14129]
+Microsoft compatibility: Reference deduction with array of unknown bound
+
+The Microsoft C++ compiler accepts the following case:
+
+  template<class T> void f(T&&);       // (1)
+  template<class T> void f(const T&);  // (2)
+  extern const char x[];
+  void g() {
+    f(x);  // (3)
+  }
+
+Previously, the front end selected template (2) for call (3), and that
+resulted in an error because deduction produces a reference to a array of
+unknown bound.  Now, the front end modifies that behavior in Microsoft mode
+in the following two ways:
+  a) substitution of the lvalue reference of template (2) turns the array of
+     unknown bound into an array of length one (this appears to match the
+     Microsoft behavior for other cases), which removes template (2) from the
+     list of callable candidates.
+  b) when substituting T&& with an array of unknown bound, no error is
+     issued.
+With these changes, the example above is now accepted (in Microsoft mode
+only).
+
+
 6/14/13  [EDGcpfe/13794]
 Microsoft compatibility: Parameter with array type in for-each loop
 

@@ -1139,8 +1139,9 @@ extern void check_operator_function_params(a_type_ptr        rout_type,
                                            a_type_ptr        class_type,
                                            a_symbol_locator  *locator);
 
-extern void check_and_adjust_parameter_type(a_type_ptr           *type_ptr,
-                                            a_source_position    *error_pos);
+extern void check_and_adjust_parameter_type(a_decl_parse_state  *dps,
+                                            unsigned long       param_num,
+                                            a_source_position   *error_pos);
 
 void check_old_specialization_allowed(a_symbol_ptr       sym,
                                       a_source_position  *pos);
