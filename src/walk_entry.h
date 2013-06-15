@@ -10,7 +10,7 @@
 
 /*
 It must be possible to include this file more than once, so it intentionally
-does have an include guard.
+does not have an include guard.
 */
 
 /*
