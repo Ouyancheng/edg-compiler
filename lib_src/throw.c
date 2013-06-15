@@ -566,12 +566,12 @@ Print the contents of a region description entry.
 } /* db_eh_region_descr */
 
 
-static char *eh_stack_entry_kind_name(an_eh_stack_entry_kind kind)
+static const char *eh_stack_entry_kind_name(an_eh_stack_entry_kind kind)
 /*
 Return the name of the specified EH stack entry kind value.
 */
 {
-  char	*name;
+  const char	*name;
 
   switch (kind) {
     case ehsek_old_try_block:           name = "old try block";     break;
@@ -641,7 +641,7 @@ static void db_throw_stack_entry(a_throw_stack_entry_ptr tsep)
 }  /* db_throw_stack_entry */
 
 
-static void db_throw_stack(char* str)
+static void db_throw_stack(const char* str)
 {
   a_throw_stack_entry_ptr	tsep = curr_throw_stack_entry;
   int				count = 0;

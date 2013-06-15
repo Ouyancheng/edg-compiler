@@ -19,12 +19,12 @@ error.c - runtime error handling.
 
 #if DISPLAY_ABORT_DESCRIPTION
 
-static char *error_text(an_error_code	err_code)
+static const char *error_text(an_error_code	err_code)
 /*
 Return the string associated with the specified error code.
 */
 {
-  char	*s = NULL;
+  const char	*s = NULL;
 
   switch (err_code) {
     case ec_abort_header:
