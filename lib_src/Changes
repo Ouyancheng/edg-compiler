@@ -1,5 +1,38 @@
 Version 4.8
 
+6/16/13  [EDGcpfe/14142]
+Exception object not destroyed when an exception is thrown by placement new
+
+If an exception was thrown by the constructor invoked by a placement
+new operation, the exception object was not destroyed.  Now fixed.
+  
+  #include <stdio.h>
+  #include <stdlib.h>
+
+  struct E {
+      E() { printf("E created\n"); }
+      E(const E &e) { printf("E created (copy)\n"); }
+      ~E() throw() { printf("E destroyed\n"); }
+  };
+
+  void *operator new(size_t size, void *pool);
+  void operator delete(void *ptr, void *pool);
+
+  struct A {
+      A() { throw E(); }
+  };
+
+  int main() {
+    try {
+      char pool[4];
+      new (pool) A();
+    } catch (...) {
+      printf("catch\n");
+    }
+    printf("done\n");
+  }
+
+
 6/15/13  [EDGcpfe/14188]
 C++11: Eliminate use of deprecated string literal conversion
 

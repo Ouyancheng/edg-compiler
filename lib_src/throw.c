@@ -1639,7 +1639,12 @@ Push an entry onto the throw stack and initialize its fields.
   tsep->use_count = 0;
   /* If this is a rethrow, increment the use count of the primary entry.
      Otherwise, increment the use count of this entry. */
-  if (is_rethrow) {
+  if (ehsep != NULL &&
+      (ehsep->kind == (an_eh_stack_entry_kind)ehsek_old_try_block ||
+       ehsep->kind == (an_eh_stack_entry_kind)ehsek_try_block) &&
+      ehsep->variant.try_block.catch_entries == NULL) {
+    /* An internal try block.  Don't increment the use count. */
+  } else if (is_rethrow) {
     primary_entry->use_count++;
   } else {
     tsep->use_count++;
