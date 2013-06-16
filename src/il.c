@@ -24063,204 +24063,205 @@ explicit cast to a_byte_attribute_kind.)
 #if CHECKING
 #if !(STANDALONE_UTILITY_PROGRAM && PROTOTYPE_INSTANTIATIONS_IN_IL)
 /*
-The following table defines whether the operands of a given operation node
-are expected to be lvalues or rvalues.  xvalues are treated like lvalues
-for this purpose, and "rvalue" means "prvalue".
+The following table defines the value category expected for the operands of
+each operation node.  lvalues and xvalues are always treated the same for
+the purposes of this test, so the only categories represented are glvalues
+and prvalues.
 */
 
 /*
 Definition of the bits in lvalue_rvalue_test.
 */
 #define LVRV_NO_REQUIREMENTS			0x0
-#define LVRV_OPND1_IS_RVALUE			0x1
-#define LVRV_OPND1_IS_LVALUE			0x2
-#define LVRV_OPND1_IS_LVALUE_IF_EXPR_IS		0x4
-#define LVRV_OPND2_IS_RVALUE			0x8
-#define LVRV_OPND2_IS_LVALUE			0x10
-#define LVRV_OPND2_IS_LVALUE_IF_EXPR_IS		0x20
+#define LVRV_OPND1_IS_PRVALUE			0x1
+#define LVRV_OPND1_IS_GLVALUE			0x2
+#define LVRV_OPND1_IS_GLVALUE_IF_EXPR_IS	0x4
+#define LVRV_OPND2_IS_PRVALUE			0x8
+#define LVRV_OPND2_IS_GLVALUE			0x10
+#define LVRV_OPND2_IS_GLVALUE_IF_EXPR_IS	0x20
 #define LVRV_VA_LIST_OPERATION			0x40
 #define LVRV_DISTINGUISHED_VALUE_FOR_LAST	0xfd
 
 static a_byte lvalue_rvalue_test[(int)eok_last+1] = {
-  /* eok_address_of: */			LVRV_OPND1_IS_LVALUE,
+  /* eok_address_of: */			LVRV_OPND1_IS_GLVALUE,
   /* eok_reference_to: */		LVRV_NO_REQUIREMENTS,
   /* eok_handle_to: */			LVRV_NO_REQUIREMENTS,
-  /* eok_indirect: */			LVRV_OPND1_IS_RVALUE,
-  /* eok_ref_indirect: */		LVRV_OPND1_IS_RVALUE,
-  /* eok_cast: */			LVRV_OPND1_IS_RVALUE,
-  /* eok_lvalue_cast: */		LVRV_OPND1_IS_LVALUE,
-  /* eok_ref_cast: */			LVRV_OPND1_IS_LVALUE,
-  /* eok_lvalue_adjust: */		LVRV_OPND1_IS_LVALUE,
-  /* eok_class_rvalue_adjust: */	LVRV_OPND1_IS_RVALUE,
-  /* eok_box: */			LVRV_OPND1_IS_RVALUE,
-  /* eok_handle_to_box: */		LVRV_OPND1_IS_RVALUE,
-  /* eok_unbox: */			LVRV_OPND1_IS_RVALUE,
-  /* eok_unbox_lvalue: */		LVRV_OPND1_IS_LVALUE,
-  /* eok_base_class_cast: */		LVRV_OPND1_IS_LVALUE_IF_EXPR_IS,
-  /* eok_derived_class_cast: */		LVRV_OPND1_IS_LVALUE_IF_EXPR_IS,
-  /* eok_pm_base_class_cast: */		LVRV_OPND1_IS_RVALUE,
-  /* eok_pm_derived_class_cast: */	LVRV_OPND1_IS_RVALUE,
-  /* eok_dynamic_cast: */		LVRV_OPND1_IS_RVALUE,
-  /* eok_ref_dynamic_cast: */		LVRV_OPND1_IS_LVALUE,
-  /* eok_bool_cast: */			LVRV_OPND1_IS_RVALUE,
+  /* eok_indirect: */			LVRV_OPND1_IS_PRVALUE,
+  /* eok_ref_indirect: */		LVRV_OPND1_IS_PRVALUE,
+  /* eok_cast: */			LVRV_OPND1_IS_PRVALUE,
+  /* eok_lvalue_cast: */		LVRV_OPND1_IS_GLVALUE,
+  /* eok_ref_cast: */			LVRV_OPND1_IS_GLVALUE,
+  /* eok_lvalue_adjust: */		LVRV_OPND1_IS_GLVALUE,
+  /* eok_class_rvalue_adjust: */	LVRV_OPND1_IS_PRVALUE,
+  /* eok_box: */			LVRV_OPND1_IS_PRVALUE,
+  /* eok_handle_to_box: */		LVRV_OPND1_IS_PRVALUE,
+  /* eok_unbox: */			LVRV_OPND1_IS_PRVALUE,
+  /* eok_unbox_lvalue: */		LVRV_OPND1_IS_GLVALUE,
+  /* eok_base_class_cast: */		LVRV_OPND1_IS_GLVALUE_IF_EXPR_IS,
+  /* eok_derived_class_cast: */		LVRV_OPND1_IS_GLVALUE_IF_EXPR_IS,
+  /* eok_pm_base_class_cast: */		LVRV_OPND1_IS_PRVALUE,
+  /* eok_pm_derived_class_cast: */	LVRV_OPND1_IS_PRVALUE,
+  /* eok_dynamic_cast: */		LVRV_OPND1_IS_PRVALUE,
+  /* eok_ref_dynamic_cast: */		LVRV_OPND1_IS_GLVALUE,
+  /* eok_bool_cast: */			LVRV_OPND1_IS_PRVALUE,
   /* eok_array_to_pointer: */		LVRV_NO_REQUIREMENTS,
   /* eok_dot_vacuous_destructor_call: */
 					LVRV_NO_REQUIREMENTS,
   /* eok_points_to_vacuous_destructor_call: */
-					LVRV_OPND1_IS_RVALUE,	
+					LVRV_OPND1_IS_PRVALUE,	
 #if MICROSOFT_EXTENSIONS_ALLOWED
-  /* eok_assume: */			LVRV_OPND1_IS_RVALUE,
+  /* eok_assume: */			LVRV_OPND1_IS_PRVALUE,
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   /* eok_noexcept: */			LVRV_NO_REQUIREMENTS,
   /* eok_parens: */			LVRV_NO_REQUIREMENTS,
-  /* eok_negate: */			LVRV_OPND1_IS_RVALUE,
-  /* eok_unary_plus: */			LVRV_OPND1_IS_RVALUE,
-  /* eok_complement: */			LVRV_OPND1_IS_RVALUE,
-  /* eok_not: */			LVRV_OPND1_IS_RVALUE,
+  /* eok_negate: */			LVRV_OPND1_IS_PRVALUE,
+  /* eok_unary_plus: */			LVRV_OPND1_IS_PRVALUE,
+  /* eok_complement: */			LVRV_OPND1_IS_PRVALUE,
+  /* eok_not: */			LVRV_OPND1_IS_PRVALUE,
 #if GNU_COMPLEX_EXTENSIONS_ALLOWED
-  /* eok_xconj: */			LVRV_OPND1_IS_RVALUE,
+  /* eok_xconj: */			LVRV_OPND1_IS_PRVALUE,
   /* eok_real_part: */			LVRV_NO_REQUIREMENTS,
   /* eok_imag_part: */			LVRV_NO_REQUIREMENTS,
 #endif /* GNU_COMPLEX_EXTENSIONS_ALLOWED */
-  /* eok_post_incr: */			LVRV_OPND1_IS_LVALUE,
-  /* eok_post_decr: */			LVRV_OPND1_IS_LVALUE,
-  /* eok_pre_incr: */			LVRV_OPND1_IS_LVALUE,
-  /* eok_pre_decr: */			LVRV_OPND1_IS_LVALUE,
-  /* eok_add: */			LVRV_OPND1_IS_RVALUE |
-					LVRV_OPND2_IS_RVALUE,
-  /* eok_subtract: */			LVRV_OPND1_IS_RVALUE |
-					LVRV_OPND2_IS_RVALUE,
-  /* eok_multiply: */			LVRV_OPND1_IS_RVALUE |
-					LVRV_OPND2_IS_RVALUE,
-  /* eok_divide: */			LVRV_OPND1_IS_RVALUE |
-					LVRV_OPND2_IS_RVALUE,
-  /* eok_remainder: */			LVRV_OPND1_IS_RVALUE |
-					LVRV_OPND2_IS_RVALUE,
+  /* eok_post_incr: */			LVRV_OPND1_IS_GLVALUE,
+  /* eok_post_decr: */			LVRV_OPND1_IS_GLVALUE,
+  /* eok_pre_incr: */			LVRV_OPND1_IS_GLVALUE,
+  /* eok_pre_decr: */			LVRV_OPND1_IS_GLVALUE,
+  /* eok_add: */			LVRV_OPND1_IS_PRVALUE |
+					LVRV_OPND2_IS_PRVALUE,
+  /* eok_subtract: */			LVRV_OPND1_IS_PRVALUE |
+					LVRV_OPND2_IS_PRVALUE,
+  /* eok_multiply: */			LVRV_OPND1_IS_PRVALUE |
+					LVRV_OPND2_IS_PRVALUE,
+  /* eok_divide: */			LVRV_OPND1_IS_PRVALUE |
+					LVRV_OPND2_IS_PRVALUE,
+  /* eok_remainder: */			LVRV_OPND1_IS_PRVALUE |
+					LVRV_OPND2_IS_PRVALUE,
 #if C99_IL_EXTENSIONS_SUPPORTED
-  /* eok_jmultiply: */			LVRV_OPND1_IS_RVALUE |
-					LVRV_OPND2_IS_RVALUE,
-  /* eok_jdivide: */			LVRV_OPND1_IS_RVALUE |
-					LVRV_OPND2_IS_RVALUE,
-  /* eok_fjadd: */			LVRV_OPND1_IS_RVALUE |
-					LVRV_OPND2_IS_RVALUE,
-  /* eok_jfadd: */			LVRV_OPND1_IS_RVALUE |
-					LVRV_OPND2_IS_RVALUE,
-  /* eok_fjsubtract: */			LVRV_OPND1_IS_RVALUE |
-					LVRV_OPND2_IS_RVALUE,
-  /* eok_jfsubtract: */			LVRV_OPND1_IS_RVALUE |
-					LVRV_OPND2_IS_RVALUE,
+  /* eok_jmultiply: */			LVRV_OPND1_IS_PRVALUE |
+					LVRV_OPND2_IS_PRVALUE,
+  /* eok_jdivide: */			LVRV_OPND1_IS_PRVALUE |
+					LVRV_OPND2_IS_PRVALUE,
+  /* eok_fjadd: */			LVRV_OPND1_IS_PRVALUE |
+					LVRV_OPND2_IS_PRVALUE,
+  /* eok_jfadd: */			LVRV_OPND1_IS_PRVALUE |
+					LVRV_OPND2_IS_PRVALUE,
+  /* eok_fjsubtract: */			LVRV_OPND1_IS_PRVALUE |
+					LVRV_OPND2_IS_PRVALUE,
+  /* eok_jfsubtract: */			LVRV_OPND1_IS_PRVALUE |
+					LVRV_OPND2_IS_PRVALUE,
 #endif /* C99_IL_EXTENSIONS_SUPPORTED */
-  /* eok_padd: */			LVRV_OPND1_IS_RVALUE |
-					LVRV_OPND2_IS_RVALUE,
-  /* eok_psubtract: */			LVRV_OPND1_IS_RVALUE |
-					LVRV_OPND2_IS_RVALUE,
-  /* eok_pdiff: */			LVRV_OPND1_IS_RVALUE |
-					LVRV_OPND2_IS_RVALUE,
-  /* eok_shiftl: */			LVRV_OPND1_IS_RVALUE |
-					LVRV_OPND2_IS_RVALUE,
-  /* eok_shiftr: */			LVRV_OPND1_IS_RVALUE |
-					LVRV_OPND2_IS_RVALUE,
-  /* eok_and: */			LVRV_OPND1_IS_RVALUE |
-					LVRV_OPND2_IS_RVALUE,
-  /* eok_or: */				LVRV_OPND1_IS_RVALUE |
-					LVRV_OPND2_IS_RVALUE,
-  /* eok_xor: */			LVRV_OPND1_IS_RVALUE |
-					LVRV_OPND2_IS_RVALUE,
-  /* eok_eq: */				LVRV_OPND1_IS_RVALUE |
-					LVRV_OPND2_IS_RVALUE,
-  /* eok_ne: */				LVRV_OPND1_IS_RVALUE |
-					LVRV_OPND2_IS_RVALUE,
-  /* eok_gt: */				LVRV_OPND1_IS_RVALUE |
-					LVRV_OPND2_IS_RVALUE,
-  /* eok_lt: */				LVRV_OPND1_IS_RVALUE |
-					LVRV_OPND2_IS_RVALUE,
-  /* eok_ge: */				LVRV_OPND1_IS_RVALUE |
-					LVRV_OPND2_IS_RVALUE,
-  /* eok_le: */				LVRV_OPND1_IS_RVALUE |
-					LVRV_OPND2_IS_RVALUE,
-  /* eok_gnu_min: */			LVRV_OPND1_IS_LVALUE_IF_EXPR_IS |
-					LVRV_OPND2_IS_LVALUE_IF_EXPR_IS,
-  /* eok_gnu_max: */			LVRV_OPND1_IS_LVALUE_IF_EXPR_IS |
-					LVRV_OPND2_IS_LVALUE_IF_EXPR_IS,
-  /* eok_assign: */			LVRV_OPND1_IS_LVALUE |
-					LVRV_OPND2_IS_RVALUE,
-  /* eok_add_assign: */			LVRV_OPND1_IS_LVALUE |
-					LVRV_OPND2_IS_RVALUE,
-  /* eok_subtract_assign: */		LVRV_OPND1_IS_LVALUE |
-					LVRV_OPND2_IS_RVALUE,
-  /* eok_multiply_assign: */		LVRV_OPND1_IS_LVALUE |
-					LVRV_OPND2_IS_RVALUE,
-  /* eok_divide_assign: */		LVRV_OPND1_IS_LVALUE |
-					LVRV_OPND2_IS_RVALUE,
-  /* eok_remainder_assign: */		LVRV_OPND1_IS_LVALUE |
-					LVRV_OPND2_IS_RVALUE,
-  /* eok_shiftl_assign: */		LVRV_OPND1_IS_LVALUE |
-					LVRV_OPND2_IS_RVALUE,
-  /* eok_shiftr_assign: */		LVRV_OPND1_IS_LVALUE |
-					LVRV_OPND2_IS_RVALUE,
-  /* eok_and_assign: */			LVRV_OPND1_IS_LVALUE |
-					LVRV_OPND2_IS_RVALUE,
-  /* eok_or_assign: */			LVRV_OPND1_IS_LVALUE |
-					LVRV_OPND2_IS_RVALUE,
-  /* eok_xor_assign: */			LVRV_OPND1_IS_LVALUE |
-					LVRV_OPND2_IS_RVALUE,
-  /* eok_padd_assign: */		LVRV_OPND1_IS_LVALUE |
-					LVRV_OPND2_IS_RVALUE,
-  /* eok_psubtract_assign: */		LVRV_OPND1_IS_LVALUE |
-					LVRV_OPND2_IS_RVALUE,
-  /* eok_bassign: */			LVRV_OPND1_IS_LVALUE |
-					LVRV_OPND2_IS_LVALUE,
-  /* eok_land: */			LVRV_OPND1_IS_RVALUE |
-					LVRV_OPND2_IS_RVALUE,
-  /* eok_lor: */			LVRV_OPND1_IS_RVALUE |
-					LVRV_OPND2_IS_RVALUE,
-  /* eok_comma: */			LVRV_OPND2_IS_LVALUE_IF_EXPR_IS,
-  /* eok_subscript: */			LVRV_OPND1_IS_RVALUE |
-					LVRV_OPND2_IS_RVALUE,
-  /* eok_dot_field: */			LVRV_OPND1_IS_LVALUE_IF_EXPR_IS,
-  /* eok_points_to_field: */		LVRV_OPND1_IS_RVALUE,
-  /* eok_pm_field: */			LVRV_OPND1_IS_LVALUE_IF_EXPR_IS |
-					LVRV_OPND2_IS_RVALUE,
-  /* eok_pm_points_to_field: */		LVRV_OPND1_IS_RVALUE |
-					LVRV_OPND2_IS_RVALUE,
-  /* eok_dot_pm_func_ptr */		LVRV_OPND2_IS_RVALUE,
-  /* eok_points_to_pm_func_ptr */	LVRV_OPND1_IS_RVALUE |
-					LVRV_OPND2_IS_RVALUE,
-  /* eok_dot_static: */			LVRV_OPND2_IS_LVALUE_IF_EXPR_IS,
-  /* eok_points_to_static: */		LVRV_OPND1_IS_RVALUE |
-					LVRV_OPND2_IS_LVALUE_IF_EXPR_IS,
-  /* eok_virtual_function_ptr: */	LVRV_OPND1_IS_RVALUE,
-  /* eok_question: */			LVRV_OPND1_IS_RVALUE |
-					LVRV_OPND2_IS_LVALUE_IF_EXPR_IS,
-  /* eok_call: */			LVRV_OPND1_IS_RVALUE,
-  /* eok_dot_member_call: */		LVRV_OPND1_IS_RVALUE,
-  /* eok_points_to_member_call: */	LVRV_OPND1_IS_RVALUE,
-  /* eok_dot_pm_call: */		LVRV_OPND1_IS_RVALUE,
-  /* eok_points_to_pm_call: */		LVRV_OPND1_IS_RVALUE,
-  /* eok_cli_subscript: */		LVRV_OPND1_IS_RVALUE |
-					LVRV_OPND2_IS_RVALUE,
-  /* eok_va_start: */			LVRV_OPND1_IS_LVALUE |
-					LVRV_OPND2_IS_LVALUE |
+  /* eok_padd: */			LVRV_OPND1_IS_PRVALUE |
+					LVRV_OPND2_IS_PRVALUE,
+  /* eok_psubtract: */			LVRV_OPND1_IS_PRVALUE |
+					LVRV_OPND2_IS_PRVALUE,
+  /* eok_pdiff: */			LVRV_OPND1_IS_PRVALUE |
+					LVRV_OPND2_IS_PRVALUE,
+  /* eok_shiftl: */			LVRV_OPND1_IS_PRVALUE |
+					LVRV_OPND2_IS_PRVALUE,
+  /* eok_shiftr: */			LVRV_OPND1_IS_PRVALUE |
+					LVRV_OPND2_IS_PRVALUE,
+  /* eok_and: */			LVRV_OPND1_IS_PRVALUE |
+					LVRV_OPND2_IS_PRVALUE,
+  /* eok_or: */				LVRV_OPND1_IS_PRVALUE |
+					LVRV_OPND2_IS_PRVALUE,
+  /* eok_xor: */			LVRV_OPND1_IS_PRVALUE |
+					LVRV_OPND2_IS_PRVALUE,
+  /* eok_eq: */				LVRV_OPND1_IS_PRVALUE |
+					LVRV_OPND2_IS_PRVALUE,
+  /* eok_ne: */				LVRV_OPND1_IS_PRVALUE |
+					LVRV_OPND2_IS_PRVALUE,
+  /* eok_gt: */				LVRV_OPND1_IS_PRVALUE |
+					LVRV_OPND2_IS_PRVALUE,
+  /* eok_lt: */				LVRV_OPND1_IS_PRVALUE |
+					LVRV_OPND2_IS_PRVALUE,
+  /* eok_ge: */				LVRV_OPND1_IS_PRVALUE |
+					LVRV_OPND2_IS_PRVALUE,
+  /* eok_le: */				LVRV_OPND1_IS_PRVALUE |
+					LVRV_OPND2_IS_PRVALUE,
+  /* eok_gnu_min: */			LVRV_OPND1_IS_GLVALUE_IF_EXPR_IS |
+					LVRV_OPND2_IS_GLVALUE_IF_EXPR_IS,
+  /* eok_gnu_max: */			LVRV_OPND1_IS_GLVALUE_IF_EXPR_IS |
+					LVRV_OPND2_IS_GLVALUE_IF_EXPR_IS,
+  /* eok_assign: */			LVRV_OPND1_IS_GLVALUE |
+					LVRV_OPND2_IS_PRVALUE,
+  /* eok_add_assign: */			LVRV_OPND1_IS_GLVALUE |
+					LVRV_OPND2_IS_PRVALUE,
+  /* eok_subtract_assign: */		LVRV_OPND1_IS_GLVALUE |
+					LVRV_OPND2_IS_PRVALUE,
+  /* eok_multiply_assign: */		LVRV_OPND1_IS_GLVALUE |
+					LVRV_OPND2_IS_PRVALUE,
+  /* eok_divide_assign: */		LVRV_OPND1_IS_GLVALUE |
+					LVRV_OPND2_IS_PRVALUE,
+  /* eok_remainder_assign: */		LVRV_OPND1_IS_GLVALUE |
+					LVRV_OPND2_IS_PRVALUE,
+  /* eok_shiftl_assign: */		LVRV_OPND1_IS_GLVALUE |
+					LVRV_OPND2_IS_PRVALUE,
+  /* eok_shiftr_assign: */		LVRV_OPND1_IS_GLVALUE |
+					LVRV_OPND2_IS_PRVALUE,
+  /* eok_and_assign: */			LVRV_OPND1_IS_GLVALUE |
+					LVRV_OPND2_IS_PRVALUE,
+  /* eok_or_assign: */			LVRV_OPND1_IS_GLVALUE |
+					LVRV_OPND2_IS_PRVALUE,
+  /* eok_xor_assign: */			LVRV_OPND1_IS_GLVALUE |
+					LVRV_OPND2_IS_PRVALUE,
+  /* eok_padd_assign: */		LVRV_OPND1_IS_GLVALUE |
+					LVRV_OPND2_IS_PRVALUE,
+  /* eok_psubtract_assign: */		LVRV_OPND1_IS_GLVALUE |
+					LVRV_OPND2_IS_PRVALUE,
+  /* eok_bassign: */			LVRV_OPND1_IS_GLVALUE |
+					LVRV_OPND2_IS_GLVALUE,
+  /* eok_land: */			LVRV_OPND1_IS_PRVALUE |
+					LVRV_OPND2_IS_PRVALUE,
+  /* eok_lor: */			LVRV_OPND1_IS_PRVALUE |
+					LVRV_OPND2_IS_PRVALUE,
+  /* eok_comma: */			LVRV_OPND2_IS_GLVALUE_IF_EXPR_IS,
+  /* eok_subscript: */			LVRV_OPND1_IS_PRVALUE |
+					LVRV_OPND2_IS_PRVALUE,
+  /* eok_dot_field: */			LVRV_OPND1_IS_GLVALUE_IF_EXPR_IS,
+  /* eok_points_to_field: */		LVRV_OPND1_IS_PRVALUE,
+  /* eok_pm_field: */			LVRV_OPND1_IS_GLVALUE_IF_EXPR_IS |
+					LVRV_OPND2_IS_PRVALUE,
+  /* eok_pm_points_to_field: */		LVRV_OPND1_IS_PRVALUE |
+					LVRV_OPND2_IS_PRVALUE,
+  /* eok_dot_pm_func_ptr */		LVRV_OPND2_IS_PRVALUE,
+  /* eok_points_to_pm_func_ptr */	LVRV_OPND1_IS_PRVALUE |
+					LVRV_OPND2_IS_PRVALUE,
+  /* eok_dot_static: */			LVRV_OPND2_IS_GLVALUE_IF_EXPR_IS,
+  /* eok_points_to_static: */		LVRV_OPND1_IS_PRVALUE |
+					LVRV_OPND2_IS_GLVALUE_IF_EXPR_IS,
+  /* eok_virtual_function_ptr: */	LVRV_OPND1_IS_PRVALUE,
+  /* eok_question: */			LVRV_OPND1_IS_PRVALUE |
+					LVRV_OPND2_IS_GLVALUE_IF_EXPR_IS,
+  /* eok_call: */			LVRV_OPND1_IS_PRVALUE,
+  /* eok_dot_member_call: */		LVRV_OPND1_IS_PRVALUE,
+  /* eok_points_to_member_call: */	LVRV_OPND1_IS_PRVALUE,
+  /* eok_dot_pm_call: */		LVRV_OPND1_IS_PRVALUE,
+  /* eok_points_to_pm_call: */		LVRV_OPND1_IS_PRVALUE,
+  /* eok_cli_subscript: */		LVRV_OPND1_IS_PRVALUE |
+					LVRV_OPND2_IS_PRVALUE,
+  /* eok_va_start: */			LVRV_OPND1_IS_GLVALUE |
+					LVRV_OPND2_IS_GLVALUE |
 					LVRV_VA_LIST_OPERATION,
-  /* eok_va_arg: */			LVRV_OPND1_IS_LVALUE |
+  /* eok_va_arg: */			LVRV_OPND1_IS_GLVALUE |
 					LVRV_VA_LIST_OPERATION,
-  /* eok_va_end: */			LVRV_OPND1_IS_LVALUE |
+  /* eok_va_end: */			LVRV_OPND1_IS_GLVALUE |
 					LVRV_VA_LIST_OPERATION,
-  /* eok_va_copy: */			LVRV_OPND1_IS_LVALUE |
-					LVRV_OPND2_IS_LVALUE |
+  /* eok_va_copy: */			LVRV_OPND1_IS_GLVALUE |
+					LVRV_OPND2_IS_GLVALUE |
 					LVRV_VA_LIST_OPERATION,
-  /* eok_va_start_single_operand: */	LVRV_OPND1_IS_LVALUE |
+  /* eok_va_start_single_operand: */	LVRV_OPND1_IS_GLVALUE |
 					LVRV_VA_LIST_OPERATION,
-  /* eok_lvalue: */			LVRV_OPND1_IS_RVALUE,
+  /* eok_lvalue: */			LVRV_OPND1_IS_PRVALUE,
   /* eok_error: */			LVRV_NO_REQUIREMENTS,
   /* eok_last: */			LVRV_DISTINGUISHED_VALUE_FOR_LAST
 };  /* lvalue_rvalue_test */
 
 
-a_boolean node_operands_have_correct_lvalueness(an_expr_node_ptr node)
+a_boolean node_operands_have_correct_value_category(an_expr_node_ptr node)
 /*
 If node is an operation expression node, return FALSE if any of its operands
-have the is_lvalue flag set incorrectly; return TRUE otherwise.
+have the is_lvalue/is_xvalue flags set incorrectly; return TRUE otherwise.
 */
 {
   a_boolean operand_error = FALSE;
@@ -24275,34 +24276,34 @@ have the is_lvalue flag set incorrectly; return TRUE otherwise.
       /* The builtin operations for stdarg support usually take va_list
          lvalues, but if va_list is an array type they take rvalue pointer
          operands. */
-      if ((flags & LVRV_OPND1_IS_LVALUE) &&
+      if ((flags & LVRV_OPND1_IS_GLVALUE) &&
           !is_glvalue_node(operand_1) &&
           is_pointer_type(operand_1->type)) {
-        flags ^= LVRV_OPND1_IS_LVALUE;
-        flags |= LVRV_OPND1_IS_RVALUE;
+        flags ^= LVRV_OPND1_IS_GLVALUE;
+        flags |= LVRV_OPND1_IS_PRVALUE;
       }  /* if */
-      if ((flags & LVRV_OPND2_IS_LVALUE) &&
+      if ((flags & LVRV_OPND2_IS_GLVALUE) &&
           !is_glvalue_node(operand_2) &&
           is_pointer_type(operand_2->type)) {
-        flags ^= LVRV_OPND2_IS_LVALUE;
-        flags |= LVRV_OPND2_IS_RVALUE;
+        flags ^= LVRV_OPND2_IS_GLVALUE;
+        flags |= LVRV_OPND2_IS_PRVALUE;
       }  /* if */
     }  /* if */
-    if (flags & LVRV_OPND1_IS_RVALUE) {
+    if (flags & LVRV_OPND1_IS_PRVALUE) {
       /* The first operand is supposed to be a prvalue. */
       if (is_glvalue_node(operand_1)) {
         if (!il_header.il_has_C_semantics &&
             node_operator_is(node, eok_cast) &&
             is_void_type(node->type)) {
-          /* In C++, a cast to void can have an lvalue operand. */
+          /* In C++, a cast to void can have a glvalue operand. */
         } else {
           operand_error = TRUE;
         }  /* if */
       }  /* if */
-    } else if (flags & LVRV_OPND1_IS_LVALUE) {
+    } else if (flags & LVRV_OPND1_IS_GLVALUE) {
       /* The first operand is supposed to be a glvalue. */
       if (!is_glvalue_node(operand_1)) operand_error = TRUE;
-    } else if (flags & LVRV_OPND1_IS_LVALUE_IF_EXPR_IS) {
+    } else if (flags & LVRV_OPND1_IS_GLVALUE_IF_EXPR_IS) {
       /* The first operand is supposed to be a glvalue if and only if the
          expression returns a glvalue.  This is complicated, however, by
          the fact that the expression may have an implied
@@ -24315,24 +24316,24 @@ have the is_lvalue flag set incorrectly; return TRUE otherwise.
         operand_error = TRUE;
       }  /* if */
     }  /* if */
-    if (flags & LVRV_OPND2_IS_RVALUE) {
+    if (flags & LVRV_OPND2_IS_PRVALUE) {
       /* The second operand is supposed to be a prvalue. */
       if (is_glvalue_node(operand_2)) operand_error = TRUE;
-    } else if (flags & LVRV_OPND2_IS_LVALUE) {
+    } else if (flags & LVRV_OPND2_IS_GLVALUE) {
       /* The second operand is supposed to be a glvalue. */
       if (!is_glvalue_node(operand_2)) {
         /* Probably an error, but check for one special case. */
         if (gpp_mode && op == (an_expr_operator_kind)eok_va_start &&
             is_variable_node(operand_2) &&
             is_lvalue_reference_type(operand_2->type)) {
-          /* g++ allows use of va_start with a parameter of reference
+          /* g++ allows use of va_start with a parameter of lvalue reference
              type.  This situation is represented in the IL as an rvalue
              variable designating the parameter and is not an error. */
         } else {
           operand_error = TRUE;
         }  /* if */
       }  /* if */
-    } else if (flags & LVRV_OPND2_IS_LVALUE_IF_EXPR_IS) {
+    } else if (flags & LVRV_OPND2_IS_GLVALUE_IF_EXPR_IS) {
       /* The second operand is supposed to be a glvalue if and only if
          the expression returns a glvalue.  This is complicated, however,
          by the fact that the expression may have an implied
@@ -24344,7 +24345,7 @@ have the is_lvalue flag set incorrectly; return TRUE otherwise.
       if (eff_node_is_glvalue != is_glvalue_node(operand_2)) {
         if (is_glvalue_node(node) &&
             op == (an_expr_operator_kind)eok_question &&
-            operand_2->kind == (an_expr_node_kind)enk_throw) {
+            skip_parens(operand_2)->kind == (an_expr_node_kind)enk_throw) {
           /* It's okay for a glvalue eok_question node to have a prvalue
              enk_throw operand. */
         } else {
@@ -24356,7 +24357,8 @@ have the is_lvalue flag set incorrectly; return TRUE otherwise.
            a glvalue. */
         if (is_glvalue_node(node) &&
             op == (an_expr_operator_kind)eok_question &&
-            operand_2->next->kind == (an_expr_node_kind)enk_throw) {
+            skip_parens(operand_2->next)->kind ==
+                                                (an_expr_node_kind)enk_throw) {
           /* It's okay for a glvalue eok_question node to have a prvalue
              enk_throw operand. */
         } else {
@@ -24384,7 +24386,7 @@ have the is_lvalue flag set incorrectly; return TRUE otherwise.
   }  /* if */
 #endif /* CHECKING */
   return !operand_error;
-}  /* node_operands_have_correct_lvalueness */
+}  /* node_operands_have_correct_value_category */
 
 
 static void check_node_operand_lvalueness(
@@ -24397,7 +24399,7 @@ is_lvalue flag; if an incorrect setting is found, it sets tblock->result to
 TRUE and terminates the traversal.
 */
 {
-  if (!node_operands_have_correct_lvalueness(node)) {
+  if (!node_operands_have_correct_value_category(node)) {
     tblock->result = TRUE;
     tblock->terminate = TRUE;
   }  /* if */
@@ -24493,7 +24495,7 @@ node, and report any failure as an internal error.
      PROTOTYPE_INSTANTIATIONS_IN_IL: generic operations and operands are
      not always lvalue-correct, but the code for detecting a dependent
      type is not available in a standalone program. */
-  if (!node_operands_have_correct_lvalueness(expr)) {
+  if (!node_operands_have_correct_value_category(expr)) {
     /* At least one of the operands is an lvalue when an rvalue is
        expected or vice-versa. */
 #if DEBUG && !STANDALONE_UTILITY_PROGRAM

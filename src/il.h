@@ -2453,7 +2453,8 @@ extern void rebuild_structures_on_il_read(void);
 
 #if CHECKING
 #if !(STANDALONE_UTILITY_PROGRAM && PROTOTYPE_INSTANTIATIONS_IN_IL)
-extern a_boolean node_operands_have_correct_lvalueness(an_expr_node_ptr node);
+extern a_boolean node_operands_have_correct_value_category(
+                                                        an_expr_node_ptr node);
 
 extern a_boolean tree_has_correct_lvalueness(an_expr_node_ptr root);
 #endif /* !(STANDALONE_UTILITY_PROGRAM && PROTOTYPE_INSTANTIATIONS_IN_IL) */
