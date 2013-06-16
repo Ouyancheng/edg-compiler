@@ -146,7 +146,9 @@ when either is_function_template or is_template_param are FALSE.
      or right parenthesis.  If both of these are omitted, terminate the token
      stream when some likely delimiter is reached. */
   incr_token_set_array_element(stop_tokens, tok_comma);
-  incr_token_set_array_element(stop_tokens, tok_ellipsis);
+  if (!is_template_param) {
+    incr_token_set_array_element(stop_tokens, tok_ellipsis);
+  }  /* if */
   incr_token_set_array_element(stop_tokens, tok_rparen);
   incr_token_set_array_element(stop_tokens, tok_semicolon);
   clear_token_cache(token_cache, /*reusable=*/TRUE);

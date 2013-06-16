@@ -1,5 +1,29 @@
 Version 5.0
 
+6/16/13  [EDGcpfe/11571]
+Internal error on pack reference in rescan of template default argument
+
+An internal error could occur (in get_curr_template_params_and_args) on
+the rescan of a dependent template default argument that contained a
+pack expansion.  Now fixed.
+
+  template <class ...T> struct A {
+    template <class U = int[sizeof...(T)]> struct B {};
+  };
+  A<int>::B<> ab;
+
+
+6/16/13  [EDGcpfe/14110]
+Spurious error on pack expansion in template nontype default argument
+
+A template nontype template argument containing a top-level (e.g.,
+non-parenthesized) pack expansion was not accepted.  Now fixed.
+
+  template<typename ... T> struct S {
+     template<int a = sizeof...(T)> void f() { }
+  };
+
+
 6/14/13  [EDGcpfe/14180]
 Missing diagnostic on invalid member overloading with ref-qualifiers
 

@@ -9633,7 +9633,6 @@ template that is being instantiated.
   *templ_param_list = tdip->parameters;
   check_assertion(*templ_param_list != NULL);
   *templ_arg_list = ssep->template_arg_list;
-  check_assertion(*templ_arg_list != NULL);
 }  /* get_curr_template_params_and_args */
 
 
