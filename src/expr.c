@@ -32682,7 +32682,7 @@ expression.
   a_transformation_options_set
                       options;
   a_type_ptr          ref_type, collection_type;
-  a_variable_ptr      ref_var;
+  a_variable_ptr      ref_var, param_var;
 
   db_enter(3, "scan_for_each_expression");
   /* We should be in the for-each scope at this point. */
@@ -32717,27 +32717,21 @@ expression.
     } else {
       ref_type = make_reference_type(collection_type);
     }  /* if */
-  } else if (result.kind == (an_operand_kind)ok_expression &&
-             result.variant.expression != NULL &&
-             is_variable_node(result.variant.expression) &&
-             result.variant.expression->variant.variable != NULL &&
-             result.variant.expression->variant.variable->is_parameter &&
-             is_array_type(result.variant.expression->variant.variable->
-                                            assoc_param_type->declared_type)) {
+  } else if (operand_is_lvalue_for_variable(&result, &param_var) &&
+             param_var->is_parameter &&
+             is_array_type(param_var->assoc_param_type->declared_type)) {
     /* Microsoft allows a parameter whose type is an array to be used
        as the collection in a for-each statement, e.g.,
          void f(int b[10]) {
            for each(int i in b) {}
          }
-       The collection variable has already had it's type decayed to a pointer
+       The collection variable has already had its type decayed to a pointer
        so retrieve the collection type from the associated parameter type.
        Initialize the reference with a glvalue cast of an indirection of
        the collection variable. */
     an_expr_node_ptr expr;
-    an_operand       orig_operand;
-    collection_type = result.variant.expression->variant.variable->
-                                               assoc_param_type->declared_type;
-    orig_operand = result;
+    an_operand       orig_operand = result;
+    collection_type = param_var->assoc_param_type->declared_type;
     do_operand_transformations(&result, TOPT_NO_OPTIONS);
     expr = make_node_from_operand(&result);
     expr = add_indirection_to_node(expr);
