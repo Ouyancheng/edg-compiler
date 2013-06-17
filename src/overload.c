@@ -5180,7 +5180,9 @@ the point of call.  conv_context describes the context of the conversion.
           } else {
             /* A non-dependent parameter.  On the second pass, skip it (it
                was processed on the first pass). */
-            if (!first_pass) goto next_parameter;
+            if (!first_pass && !param_before_deduction->is_parameter_pack) {
+              goto next_parameter;
+            }  /* if */
           }  /* if */
           if (param_before_deduction->type_involves_deduced_template_param) {
             param_type_is_deduced = TRUE;

@@ -1,5 +1,23 @@
 Version 5.0
 
+6/17/13  [EDGcpfe/14196]
+Failure to issue error on call of function with parameter pack based on alias
+
+The front end failed to issue an error (or to fail overload resolution)
+for an invalid call of a function having a parameter pack that is based on
+an alias template that does not use its parameter.  The failure to detect
+an error could cause incorrect code generation (the argument type in the
+call did not match the parameter type).  Now fixed.
+
+  enum E {};
+  template <class Z> using AE = E;
+  template <class T> struct A {};
+  template < class ... T > int f (A<T...>, AE<T> ... );
+  int main() {
+    f(A<int>(), 1);
+  }
+
+
 6/17/13  [EDGcpfe/13885]
 Needed flag setting on lowered pointer-to-member constant
 
