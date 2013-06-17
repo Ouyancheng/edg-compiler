@@ -1123,9 +1123,11 @@ unknown length is not enforced for such parameters.)
   ftp = func_templ->variant.template_info->variant.function.routine->type;
   check_assertion(ftp->kind == (a_type_kind)tk_routine);
   ptp = ftp->variant.routine.extra_info->param_type_list;
+  check_assertion(ptp != NULL);
   /* Move ptp to the given numbered parameter if necessary. */
   while (param_pos != 1) {
     ptp = ptp->next;
+    check_assertion(ptp != NULL);
     --param_pos;
   }  /* while */
   tdip = func_templ->variant.template_info->cache.decl_info;
