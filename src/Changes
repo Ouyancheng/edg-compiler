@@ -1,5 +1,14 @@
 Version 5.0
 
+6/17/13  [EDGcpfe/13811]
+GNU C++ compatibility: override and final
+
+In GNU C++ mode with gnu_version >= 40700 the front end now accepts the
+"override" and "final" modifiers on virtual function declarations even when
+C++11 mode is not enabled (a warning is issued in those cases).  See also the
+entry of 3/8/12 for EDGcpfe/12742 and EDGcpfe/12360.
+
+
 6/17/13  [EDGcpfe/14194]
 GNU C++ compatibility: prototype instantiation of noexcept no longer deferred
 

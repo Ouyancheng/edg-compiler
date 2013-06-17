@@ -2512,6 +2512,7 @@ ec_expr_not_a_glvalue;;"expression must be an lvalue or xvalue"
 ec_lossy_conversion;;"conversion may change the value"
 ec_deprecated_string_conv;;"conversion from a string literal to \"char *\" is deprecated"
 ec_deprecated_string_conv_gen;;"conversion from a string literal to pointer-to-character (non-const) is deprecated"
+ec_override_and_final_is_cpp11;;"\"override\" and \"final\" are C++11 features"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

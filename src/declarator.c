@@ -1771,7 +1771,8 @@ Microsoft compilers in their non-CLI modes; "new" is only accepted in C++/CLI
 mode.)
 */
 {
-  a_boolean  accept_std_modifiers = cpp11_mode;
+  a_boolean  accept_std_modifiers = cpp11_mode ||
+                                    (gpp_mode && gnu_version >= 40700);
   a_boolean  accept_ms_modifiers = microsoft_mode &&
                                    (cppcli_enabled ||
                                     microsoft_version >= 1400);
@@ -1789,6 +1790,9 @@ mode.)
                                         ec_modifier_not_allowed_on_destructor
                                       : ec_modifier_not_allowed_on_finalizer);
         } else {
+          if (gpp_mode && !cpp11_mode) {
+            pos_warning(ec_override_and_final_is_cpp11, &error_position);
+          }  /* if */
           func_info->override = TRUE;
         }  /* if */
       } else if (accept_std_modifiers &&
@@ -1796,6 +1800,9 @@ mode.)
         if (func_info->final) {
           error(ec_duplicate_function_modifier);
         } else {
+          if (gpp_mode && !cpp11_mode) {
+            pos_warning(ec_override_and_final_is_cpp11, &error_position);
+          }  /* if */
           func_info->final = TRUE;
         }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
