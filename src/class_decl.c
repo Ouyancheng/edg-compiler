@@ -25636,8 +25636,7 @@ cached for later "prototype instantiation".  Perform these instantiations now
 (when the class has been completed), as appropriate.
 */
 {
-  if (!defer_function_prototype_instantiations &&
-      !class_state->class_type->variant.class_struct_union.
+  if (!class_state->class_type->variant.class_struct_union.
                                            is_ms_instantiated_nonreal_class) {
     a_symbol_list_entry_ptr  slep;
     slep = class_state->members_requiring_exception_spec_instantiation;

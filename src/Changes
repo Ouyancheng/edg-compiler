@@ -1,5 +1,26 @@
 Version 5.0
 
+6/17/13  [EDGcpfe/14194]
+GNU C++ compatibility: prototype instantiation of noexcept no longer deferred
+
+In g++ mode, the prototype instantiation of noexcept specifiers was
+deferred if function prototype instantiations were deferred.  This could
+cause an internal error in C++-generation back end versions (in
+gen_exception_specification) if the function was never used in a way
+that would cause its noexcept specification to be needed.  In addition,
+this did actually not match the behavior of g++.  Prototype instantiations
+of noexcept specifiers are now done in all cases.  This change could
+also affect non-g++ mode if the --defer_parse_function_templates option
+was explicitly specified.
+
+  template<class X, class Y> struct A {
+    X x;
+    Y y;
+    void f(int a, int b) {}
+    void g(A& p) noexcept(noexcept(f(x, p.x)) && noexcept(f(y, p.y))) { }
+  };
+
+
 6/17/13  [EDGcpfe/14195]
 Definition of copy assignment operator
 
