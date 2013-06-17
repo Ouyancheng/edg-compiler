@@ -3029,9 +3029,9 @@ static an_expr_node_ptr scan_va_list_operand(a_boolean     value_used,
 /*
 Scan an expression that is a va_list operand of a stdarg operation and
 return a pointer to it.  Check that the expression is an lvalue of the
-builtin type va_list from <stdarg.h>, or an rvalue of that type decayed
-to a pointer if va_list is an array type.  If the type or lvalueness is
-wrong, issue the error err_code, set *err to TRUE, and return NULL.
+builtin type va_list from <stdarg.h>, or a prvalue of that type decayed
+to a pointer if va_list is an array type.  If the type or value category
+is wrong, issue the error err_code, set *err to TRUE, and return NULL.
 For the non-array case, the value of the lvalue is used if value_used is
 TRUE; the lvalue is assumed always to be set (since we don't know what
 the underlying implementation is).
@@ -3055,9 +3055,9 @@ the underlying implementation is).
   }  /* if */
   scan_expr(&operand, PREC_LOWEST, EOPT_DISALLOW_COMMA_OPERATOR);
   do_operand_transformations(&operand, local_options);
-  /* The operand must be an lvalue of the builtin type va_list (or an rvalue
+  /* The operand must be an lvalue of the builtin type va_list (or a prvalue
      of that type decayed to a pointer, if va_list is an array type. */
-  if ((array_va_list ? !is_an_rvalue(&operand) : !is_an_lvalue(&operand)) ||
+  if ((array_va_list ? !is_a_prvalue(&operand) : !is_an_lvalue(&operand)) ||
       !types_are_compatible_ignoring_qualifiers(eff_va_list_type,
                                                 operand.type)) {
     if (!is_error_operand(&operand)) {
@@ -3382,7 +3382,7 @@ been scanned: builtin_func represents the reference to the builtin function
                                              type, node);
     make_glvalue_expression_operand(va_arg_node, result);
   } else {
-    /* Create a va_arg expression node for an rvalue. */
+    /* Create a va_arg expression node for a prvalue. */
     an_expr_node_ptr va_arg_node =
              make_operator_node((an_expr_operator_kind)eok_va_arg, type, node);
     if (type_to_cast_to != NULL) {
@@ -5298,10 +5298,10 @@ give the starting and ending source positions for the field reference
 #endif /* ALLOW_NONSTANDARD_ANONYMOUS_UNIONS */
   if (!is_lvalue && constexpr_enabled) {
     /* See if the field selection folds to a constant (usually this happens
-       on the lvalue-to-rvalue conversion, but in this case we're building
-       an rvalue immediately). */
+       on the glvalue-to-prvalue conversion, but in this case we're building
+       a prvalue immediately). */
     a_constant constant;
-    check_assertion(is_expression_operand(result) && is_an_rvalue(result));
+    check_assertion(is_expression_operand(result) && is_a_prvalue(result));
     if (fold_constexpr_member_selection(result->variant.expression,
                                         &constant, &result->position)) {
       an_operand orig_operand;
@@ -5392,7 +5392,7 @@ accepts the case where the first operand is a C++/CLI handle.
       if (microsoft_bugs && microsoft_version < 1600 &&
           is_floating_type(field->type)) {
         /* For some unknown reason, MSVC considers a selection of a field
-           of a floating-point type out of a class rvalue to be an lvalue.
+           of a floating-point type out of a class prvalue to be an lvalue.
            Checked in 7.1, 8.0, 10.0 beta.  Fixed in real 10.0 release. */
         revert_microsoft_rvalue_to_lvalue_if_possible(operand_1);
         result_is_a_glvalue = is_an_lvalue(operand_1);
@@ -5658,8 +5658,8 @@ static void box_value_type_operand(an_operand *operand,
 /*
 operand has a C++/CLI boxable type (possibly a fundamental type that
 corresponds to a C++/CLI value class type).  Box the operand, producing
-an lvalue for the boxed value.  If leave_as_handle is TRUE, produce an
-rvalue handle for the boxed value.  In either case, this is an implicit
+an lvalue for the boxed value.  If leave_as_handle is TRUE, produce a
+prvalue handle for the boxed value.  In either case, this is an implicit
 operation.
 */
 {
@@ -5668,7 +5668,7 @@ operation.
 
   orig_operand = *operand;
   check_assertion(is_boxable_type(operand->type));
-  /* Convert the value to an rvalue. */
+  /* Convert the value to a prvalue. */
   do_operand_transformations(operand, TOPT_NO_OPTIONS);
   expr = make_node_from_operand(operand);
   expr = add_box_to_expression(expr, /*is_implicit=*/TRUE,
@@ -6589,7 +6589,7 @@ case).
                !C_mode() && is_arrow_operator &&
                current_mode_allows_field_selection_folding() &&
                (is_an_lvalue(operand_1) ||
-                (is_an_rvalue(operand_1) &&
+                (is_a_prvalue(operand_1) &&
 		 !is_constant_operand(operand_1)))) {
       /* In certain C++ modes, a->e1 can be used as a constant if e1 is a
          constant member (like an enumerator).  The "a" expression requires
@@ -7581,7 +7581,7 @@ the selection, not an operator token for the call.
               conv_rvalue_reference_result_to_xvalue(result);
             }  /* if */
           } else {
-            /* An rvalue result.  The type must be complete. */
+            /* A prvalue result.  The type must be complete. */
             complete_type_is_needed(result_type);
             if (is_incomplete_type(result_type)) {
               expr_pos_error(ec_incomplete_type_not_allowed,
@@ -8337,7 +8337,7 @@ static void change_assignment_result_to_lvalue(an_operand *result,
                                                a_type_ptr result_type)
 /*
 In C++ mode, assignment operators and prefix ++/-- return lvalues.
-Change the operation in *result from an rvalue-returning operation to
+Change the operation in *result from a prvalue-returning operation to
 an lvalue-returning operation.  *lvalue_operand is the operand for
 the lvalue being operated upon.  result_type is the original type of
 the first operand, which may differ from the current type of the result
@@ -8736,7 +8736,7 @@ error indication in *rcblock).
                                        result, &processed);
       }  /* if */
       if (!processed) {
-        a_boolean was_rvalue = is_an_rvalue(&operand);
+        a_boolean was_prvalue = is_a_prvalue(&operand);
         /* Non-operator-function cases. */
         /* As of this writing, this call suppresses every known transformation,
            but it's here to allow for future transformations. */
@@ -8786,7 +8786,7 @@ error indication in *rcblock).
                pointer to array, whereas "abc" decays to pointer to char. */
             conv_array_operand_to_pointer_operand(&operand);
           } else {
-            if (!C_mode() && was_rvalue &&
+            if (!C_mode() && was_prvalue &&
                 is_class_struct_union_type(operand.type)) {
               /* Warn on taking the address of a temporary. */
               expr_pos_warning(ec_taking_address_of_temporary,
@@ -8799,7 +8799,7 @@ error indication in *rcblock).
               expr_pos_error(ec_addr_of_ref_class, &start_position);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
             }  /* if */
-            /* Convert the lvalue operand to an rvalue operand for the
+            /* Convert the lvalue operand to a prvalue operand for the
                pointer. */
             take_address_of_lvalue(&operand, &operator_position);
           }  /* if */
@@ -11617,8 +11617,8 @@ id_case:
       } else {
         goto general_case;
       }  /* if */
-    } else if (is_constant_operand(operand) && is_an_rvalue(operand)) {
-      /* An id-expression resolving to an rvalue constant is an
+    } else if (is_constant_operand(operand) && is_a_prvalue(operand)) {
+      /* An id-expression resolving to an prvalue constant is an
          enumeration constant, a reference to a template parameter that
          is mapped to a constant in a real instantiation, or something from
          a prototype instantiation.  The only lvalues represented in constant
@@ -12410,7 +12410,7 @@ type of the expression.
                   /*suppress_object_lifetime=*/FALSE);
   /* Scan an expression. */
   scan_expr(&operand, PREC_LOWEST, EOPT_DISALLOW_COMMA_OPERATOR);
-  /* The expression is treated as an rvalue. */
+  /* The expression is treated as a prvalue. */
   do_operand_transformations(&operand,
                              (TOPT_SUPPRESS_ARRAY_TO_POINTER_CONVERSION |
                               TOPT_SUPPRESS_FUNCTION_TO_POINTER_CONVERSION));
@@ -17580,7 +17580,7 @@ C++ functional-notation type conversions, and C++ new-style casts.
        type. */
     if (has_explicit_cv_qualifiers) {
       if (!C_mode() && is_class_struct_union_type(type_cast_to)) {
-        /* In C++ class rvalues can have qualifiers, so casting to a
+        /* In C++ class prvalues can have qualifiers, so casting to a
            cv-qualified class type is okay. */
       } else if (microsoft_bugs ||
                  (gpp_mode && gnu_version < 30400)) {
