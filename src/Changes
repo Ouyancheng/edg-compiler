@@ -1,5 +1,23 @@
 Version 5.0
 
+6/17/13  [EDGcpfe/13885]
+Needed flag setting on lowered pointer-to-member constant
+
+In certain cases, the needed flag was incorrectly set to FALSE on lowered
+pointer-to-member constants.  Now fixed.  For example (with --c++11):
+
+  struct A {
+    int x = 37;
+    int A::*const& pd = &A::x;
+  };
+  struct B {
+    A a = A(A{A()});
+  };
+  int main() {
+    B b;
+  }
+
+
 6/17/13  [EDGcpfe/13811]
 GNU C++ compatibility: override and final
 

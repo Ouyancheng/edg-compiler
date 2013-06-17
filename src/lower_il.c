@@ -3924,10 +3924,17 @@ and if not, issue an error.  If class_type is non-NULL, the error is
 related to the indicated class.  This version is for signed integer kinds.
 */
 {
+#if MAINTAIN_NEEDED_FLAGS
+  a_boolean needed = con->source_corresp.needed;
+#endif /* MAINTAIN_NEEDED_FLAGS */
   /* Create the constant as a long and then change its type to get any
      truncation error. */
   set_integer_constant(con, con_val, (an_integer_kind)ik_long);
   conv_integer_constant_with_overflow_check(con, ikind, class_type);
+#if MAINTAIN_NEEDED_FLAGS
+  /* If the needed flag has already been set, maintain it. */
+  if (needed) mark_as_needed((char *)con, iek_constant);
+#endif /* MAINTAIN_NEEDED_FLAGS */
 }  /* set_integer_constant_with_overflow_check */
 
 
@@ -3943,11 +3950,18 @@ and if not, issue an error.  If class_type is non-NULL, the error is
 related to the indicated class.  This version is for unsigned integer kinds.
 */
 {
+#if MAINTAIN_NEEDED_FLAGS
+  a_boolean needed = con->source_corresp.needed;
+#endif /* MAINTAIN_NEEDED_FLAGS */
   /* Create the constant as an unsigned long and then change its type to
      get any truncation error. */
   set_unsigned_integer_constant(con, con_val,
                                 (an_integer_kind)ik_unsigned_long);
   conv_integer_constant_with_overflow_check(con, ikind, class_type);
+#if MAINTAIN_NEEDED_FLAGS
+  /* If the needed flag has already been set, maintain it. */
+  if (needed) mark_as_needed((char *)con, iek_constant);
+#endif /* MAINTAIN_NEEDED_FLAGS */
 }  /* set_unsigned_integer_constant_with_overflow_check */
 
 
