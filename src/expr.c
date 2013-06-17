@@ -32730,7 +32730,8 @@ expression.
        Initialize the reference with a glvalue cast of an indirection of
        the collection variable. */
     an_expr_node_ptr expr;
-    an_operand       orig_operand = result;
+    an_operand       orig_operand;
+    orig_operand = result;
     collection_type = param_var->assoc_param_type->declared_type;
     do_operand_transformations(&result, TOPT_NO_OPTIONS);
     expr = make_node_from_operand(&result);
