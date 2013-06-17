@@ -12036,14 +12036,6 @@ input.
       *qualifiers = get_top_level_type_qualifiers(tp);
     }  /* if */
   }  /* if */
-  if (rtsp->qualifiers != TQ_NONE && !microsoft_mode && !gnu_mode &&
-      !sun_mode) {
-    /* cv-qualifiers on the function disqualify it as a "copy assignment
-       operator".  As of April 2006 this is not in 12.8p9 of the standard,
-       but it makes sense.  (MSVC++, g++, and Sun CC all accept cv-qualified
-       operator= functions as copy assignment operators.) */
-    is_copy_assign = FALSE;
-  }  /* if */
   return is_copy_assign;
 }  /* is_copy_assignment_operator_type */
 

@@ -1,5 +1,24 @@
 Version 5.0
 
+6/17/13  [EDGcpfe/14195]
+Definition of copy assignment operator
+
+The front end previously never considered an assignment operator with a
+const/volatile qualified this parameter to be a copy assignment operator,
+unless Microsoft, GNU, or Sun mode was enabled.  The committee has since
+clarified (via its resolution of Core issue 574) that such assignment
+operators can be valid copy assignment operators, and the front end now
+reflects that decision.  For example:
+
+  struct S {
+    S& operator=(S const&) const;
+  };
+
+Previously the user-declared assignment operator of S was not considered a
+copy assignment operator, and the front end therefore generated another
+such operator.  Now, the front end no longer generated the extra operator.
+
+
 6/16/13  [EDGcpfe/11571]
 Internal error on pack reference in rescan of template default argument
 
