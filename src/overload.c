@@ -3369,7 +3369,7 @@ have_level:;
       arg_summary->tiebreaker_anachronism_used = TRUE;
     }  /* if */
     /* In some cases, reference parameters can't be bound to certain kinds of
-       arguments, based on their lvalueness. */
+       arguments, based on their value category. */
     if (param_is_rvalue_reference) {
       /* An rvalue reference can only be bound to an rvalue or a function
          lvalue. */
@@ -3641,7 +3641,7 @@ kind of mismatch here.
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   if (rtsp->ref_qualifiers == (a_ref_qualifier_kind)rqk_default) {
-    /* With a default ref-qualifier (neither "&" not "&&"), lvalueness
+    /* With a default ref-qualifier (neither "&" not "&&"), value category
        does not matter, so drop the selector operand so we lose information
        about that. */
     selector = NULL;
@@ -14987,8 +14987,8 @@ the operand type to access the same class object with a new type.
     /* Do a cv-qualifier adjustment. */
     if (is_a_glvalue(operand)) {
       adjust_glvalue_type(operand, dest_type);
-    } else if (is_an_rvalue(operand)) {
-      adjust_class_rvalue_type(operand, dest_type);
+    } else if (is_a_prvalue(operand)) {
+      adjust_class_prvalue_type(operand, dest_type);
     } else {
       check_assertion(is_error_operand(operand));
     }  /* if */
@@ -18049,8 +18049,7 @@ the temporary.
     /* Conversion from or to a template-dependent type in a prototype
        instantiation.  Render as a cast. */
     if (dest_type == NULL) dest_type = type_of_unknown_templ_param_nontype;
-    generic_cast_operand(operand, dest_type, csf_none, !is_explicit_cast,
-                         &orig_operand.position);
+    generic_cast_operand(operand, dest_type, csf_none, !is_explicit_cast);
   } else if (conversion_routine == NULL) {
     /* A simple class object type adjustment without a call of a conversion
        routine. */
@@ -19171,7 +19170,6 @@ was done.
       cast_operand_for_reference_cast(&rvalue_operand,
                                       make_rvalue_reference_type(
                                                           rvalue_operand.type),
-                                      &rvalue_operand.position,
                                       /*check_cast_access=*/FALSE,
                                       /*is_implicit_cast=*/TRUE,
                                       /*reinterpret_semantics=*/FALSE); 
@@ -19496,7 +19494,7 @@ be a reference type.  Only used in C++.  This is copy-initialization.
         if (is_a_glvalue(source_operand)) {
           adjust_glvalue_type(source_operand, temp_type);
         } else if (is_a_prvalue(source_operand)) {
-          adjust_class_rvalue_type(source_operand, temp_type);
+          adjust_class_prvalue_type(source_operand, temp_type);
         }  /* if */
       }  /* if */
       temp_init_from_operand_full(source_operand,
@@ -19745,7 +19743,7 @@ conversion_for_direct_reference_binding_possible.
 The condition tested by this function is similar to the
 "reference-compatible" attribute of the WP [dcl.init.ref], except that
 the latter is type-based only (whereas this function also considers
-the lvalueness of the source_operand), and this function deals with
+the value category of the source_operand), and this function deals with
 some extensions.  Also, note that this function indicates whether
 direct binding is "possible" and not whether it is "valid".
 */
@@ -21890,7 +21888,6 @@ will be an lvalue instead of the usual rvalue.
         if (is_cast) {
           cast_operand_for_reference_cast(&operand,
                                           dest_type,
-                                          start_position,
                                           /*check_cast_access=*/TRUE,
                                           /*is_implicit_cast=*/FALSE,
                                           /*reinterpret_semantics=*/FALSE);

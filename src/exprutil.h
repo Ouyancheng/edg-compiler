@@ -2293,13 +2293,12 @@ extern void mark_as_reference_cast(an_expr_node_ptr expr,
 extern
 void cast_operand_for_reference_cast(an_operand        *operand,
                                      a_type_ptr        dest_type,
-                                     a_source_position *type_position,
                                      a_boolean         check_cast_access,
                                      a_boolean         is_implicit_cast,
                                      a_boolean         reinterpret_semantics);
 
-extern void adjust_class_rvalue_type(an_operand *operand,
-                                     a_type_ptr dest_type);
+extern void adjust_class_prvalue_type(an_operand *operand,
+                                      a_type_ptr dest_type);
 
 extern a_boolean is_a_cplusplus_lvalue(an_operand *operand);
 
@@ -2460,8 +2459,7 @@ extern void prep_generic_operand(an_operand *operand);
 extern void generic_cast_operand(an_operand         *operand,
                                  a_type_ptr         dest_type,
                                  a_cast_source_form source_form,
-                                 a_boolean          is_implicit_cast,
-                                 a_source_position  *type_position);
+                                 a_boolean          is_implicit_cast);
 
 extern void prep_generic_argument(an_arg_list_elem_ptr arg);
 

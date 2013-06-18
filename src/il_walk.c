@@ -2945,10 +2945,15 @@ Tips for proper use of the follow_addressing_path mode:
           traverse_expr(operand2, tblock);
           break;
         case eok_question:
-          /* (x ? y : z):  Follow both the second and third operands. */
-          traverse_expr(operand2, tblock);
-          if (tblock->terminate) goto end_of_routine;
-          traverse_expr(operand2->next, tblock);
+          /* (x ? y : z):  Follow both the second and third operands.
+             Skip throw nodes. */
+          if (!is_void_type(operand2->type)) {
+            traverse_expr(operand2, tblock);
+            if (tblock->terminate) goto end_of_routine;
+          }  /* if */
+          if (!is_void_type(operand2->next->type)) {
+            traverse_expr(operand2->next, tblock);
+          }  /* if */
           break;
         case eok_parens:
           /* (p):  Follow p. */

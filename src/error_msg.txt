@@ -1827,7 +1827,7 @@ ec_bad_unevaluated_lambda;;"a lambda is not allowed in an unevaluated expression
 ec_bad_function_for_gnu_va_arg_pack;;"__builtin_va_arg_pack/__builtin_va_arg_pack_len can appear only in an inline function with an ellipsis parameter"
 ec_function_defaulted_in_friend_decl;;"\"= default\" cannot be specified on a friend declaration"
 ec_exp_cpp_keyword;;"expected a C++ keyword"
-ec_cast_to_rvalue_ref_to_incomplete;;"this cast to an rvalue reference type is invalid because the underlying type %t is incomplete"
+REMOVED;ec_cast_to_rvalue_ref_to_incomplete;;"this cast to an rvalue reference type is invalid because the underlying type %t is incomplete"
 ec_nonconstant_offsetof;;"offset is not constant"
 ec_unrecognized_microsoft_comment_pragma_type;;"unrecognized #pragma comment type %sq"
 ec_cl_auto_type_option_only_in_cplusplus;;"option to control whether \"auto\" is a type specifier can be used only when compiling C++"

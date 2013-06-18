@@ -3210,12 +3210,12 @@ an_expr_node_ptr make_expr_reusable_copy(
                                    a_boolean        treat_as_potential_prvalue)
 /*
 Return a copy of the expression tree pointed to by expr, which is an
-rvalue or lvalue.  If it is an lvalue, it is one whose address can be
+prvalue or glvalue.  If it is a glvalue, it is one whose address can be
 taken (e.g., the caller has eliminated bit-field lvalues).  If the
 expression has side effects, or if its value is affected by the values
 of variables and vars_can_change is TRUE, the original expression will
-be changed so that its value (if it's an rvalue) or its address (if
-it's an lvalue) is stored in a temporary, and the copy will reference
+be changed so that its value (if it's a prvalue) or its address (if
+it's a glvalue) is stored in a temporary, and the copy will reference
 the temporary.  vars_can_change TRUE means arbitrary user code might
 be executed in the interval between the original use of the expression
 and the use of the copy, and such code might change the values of
@@ -3537,8 +3537,8 @@ lowering (as value category is known at that time).
         }  /* if */
         operand_clone->variant.expression = expr;
         if (class_prvalue_case) {
-          /* Restore the class rvalue for the original and the copy by
-             adding an indirection plus a conversion to rvalue on both
+          /* Restore the class prvalue for the original and the copy by
+             adding an indirection plus a conversion to prvalue on both
              expressions. */
           expr = add_indirection_to_node(operand->variant.expression);
           expr = conv_glvalue_expr_to_prvalue(expr, (a_boolean *)NULL,
@@ -6203,7 +6203,7 @@ current token will be used as the operand position.
     copy_constant(constant, &operand->variant.constant);
     operand->type = constant->type;
   }  /* if */
-  /* A string literal is an lvalue; other constants are rvalues. */
+  /* A string literal is an lvalue; other constants are prvalues. */
   if (constant->kind == (a_constant_repr_kind)ck_string) {
     operand->state = (an_operand_state)os_glvalue;
   } else {
@@ -6217,7 +6217,7 @@ void make_sym_constant_operand(a_symbol_ptr sym,
 			       an_operand   *operand)
 /*
 Make an operand for the value of the given sk_constant symbol.  It will
-be an rvalue usually, but an lvalue for reference-typed constants.
+be a prvalue usually, but an lvalue for reference-typed constants.
 The position of the current token will be used as the operand position.
 */
 {
@@ -6547,7 +6547,7 @@ void add_base_class_casts(a_base_class_ptr  bcp,
 Add casts to *p_node to change its type from (a pointer to) a class type to
 (a pointer to) a base class of that class; bcp indicates the base class
 and qualifiers_model indicates the qualifiers to be placed on that class
-type.  *p_node can be an rvalue pointer to class, or a class lvalue,
+type.  *p_node can be a prvalue pointer to class, or a class lvalue,
 xvalue, or rvalue.  In C++/CLI mode, it can also be a handle to a class.
 qualifiers_model is a potentially cv-qualified class type.  Access
 control is done on the cast if check_cast_access is TRUE.  Checking
@@ -7215,7 +7215,7 @@ is_literal_convertible_to_cli_string is TRUE.
                                                       /*allow_complex=*/TRUE));
 #endif /* EXPENSIVE_CHECKING */
   orig_operand = *operand;
-  /* Convert lvalue string literals to rvalue pointers. */
+  /* Convert lvalue string literals to prvalue pointers. */
   do_operand_transformations(operand, TOPT_NO_OPTIONS);
   expr = make_node_from_operand(operand);
   if (!expr->is_lvalue &&
@@ -7544,8 +7544,8 @@ was an lvalue or rvalue, etc.
   prep_generic_operand(operand);
   if (is_error_operand(operand)) {
     normalize_error_operand(operand);
-  } else if (is_constant_operand(operand) && is_an_rvalue(operand)) {
-    /* The operand is a constant rvalue, which we can use directly. */
+  } else if (is_constant_operand(operand) && is_a_prvalue(operand)) {
+    /* The operand is a constant prvalue, which we can use directly. */
   } else {
     /* The argument is something more complicated, e.g., an expression.
        Make an expression and put it under a tpck_expression constant. */
@@ -7610,7 +7610,7 @@ void make_unknown_dependent_function_operand(
                                           a_boolean          is_qualified_name,
                                           an_operand         *operand)
 /*
-Make an rvalue operand for the address of an unknown function from the set
+Make a prvalue operand for the address of an unknown function from the set
 of overloaded functions indicated by sym.  This is used in prototype
 instantiations when the function to be selected is not known.  If the
 function name is followed by a list of explicit template arguments,
@@ -7624,7 +7624,7 @@ is_qualified_name is TRUE if the source form used a qualified name.
     /* The symbol is a constant whose value is the "address" of the
        unknown function. */
     make_sym_constant_operand(unk_sym, operand);
-    check_assertion(is_an_rvalue(operand));
+    check_assertion(is_a_prvalue(operand));
   } else {
     /* The function name has an explicit template argument list.  Record
        it in a tpck_template_ref constant that points to the constant for
@@ -7654,7 +7654,7 @@ void conv_indefinite_function_operand_to_unknown_dependent_function(
 Convert the indicated operand (which must be an indefinite function) to
 a constant operand representing an unknown dependent function.  The
 value category of the operand is preserved unless force_to_rvalue is
-TRUE, in which case the result is an rvalue.  This is used in
+TRUE, in which case the result is a prvalue.  This is used in
 prototype instantiations when the function to be selected is not
 known.
 */
@@ -7777,7 +7777,6 @@ raw type based on the function selected.
     check_assertion(is_cast);
     cast_operand_for_reference_cast(operand,
                                     type_cast_to,
-                                    &operand->position,
                                     /*check_cast_access=*/FALSE,
                                     /*is_implicit_cast=*/FALSE,
                                     /*reinterpret_semantics=*/FALSE); 
@@ -7803,7 +7802,7 @@ those diagnostics at err_pos (if err_pos is NULL, use operand's position).
 If is_reinterpret_cast is TRUE, this cast appeared as reinterpret_cast in
 the source.  If reinterpret_semantics is TRUE, the operation has the same
 meaning as a reinterpret_cast, but it may come from another construct.
-The operand must be an rvalue or error operand.  The caller must have
+The operand must be a prvalue or error operand.  The caller must have
 already determined that the conversion is allowed, except for casts to
 ambiguous or inaccessible base classes.  This routine does not handle
 user-defined conversions.
@@ -7815,8 +7814,8 @@ user-defined conversions.
   an_operand        orig_operand;
 
 #if CHECKING
-  if (!is_an_rvalue(operand) && !is_error_operand(operand)) {
-    internal_error("cast_operand_full: operand is not an rvalue");
+  if (!is_a_prvalue(operand) && !is_error_operand(operand)) {
+    internal_error("cast_operand_full: operand is not a prvalue");
   }  /* if */
 #endif /* CHECKING */
 
@@ -8064,7 +8063,7 @@ void conv_selector_to_object_pointer(an_operand *operand,
                                      a_boolean  *is_arrow_operator)
 /*
 operand is the left operand of a selection operation (".", "->", ".*",
-or "->*").  *is_arrow_operator is TRUE if the operand is an rvalue address,
+or "->*").  *is_arrow_operator is TRUE if the operand is a prvalue address,
 FALSE if it's an object (lvalue or rvalue).  We need to be able to deal
 with the operand as an address, so if *is_arrow_operator is FALSE,
 convert operand to an address and set *is_arrow_operator to TRUE.
@@ -8087,8 +8086,8 @@ void base_class_cast_operand(an_operand       *operand,
                              a_boolean        implicit_in_naming,
                              a_boolean        is_object_pointer)
 /*
-Cast operand to its base class identified by bcp.  operand can be an
-rvalue pointer to class, or a class lvalue, xvalue, or prvalue.  In
+Cast operand to its base class identified by bcp.  operand can be a
+prvalue pointer to class, or a class lvalue, xvalue, or prvalue.  In
 C++/CLI mode, it can also be a handle to a class.  The result will be
 of the same kind (pointer, lvalue, xvalue, prvalue, or handle).  If
 qualifiers_model is non-NULL, it is a class type whose cv-qualifiers
@@ -8265,30 +8264,6 @@ like a cast.
 }  /* adjust_glvalue_type */
 
 
-static a_boolean rvalue_reference_cast_underlying_type_is_complete(
-                                             a_type_ptr        underlying_type,
-                                             a_source_position *err_pos)
-/*
-A cast to the type "rvalue reference to underlying_type" is being done.
-The underlying type must be complete, because the cast will produce an rvalue
-with that type.  If it's not complete, issue an error at err_pos.  Force
-the type to be complete if possible.
-*/
-{
-  a_boolean is_complete;
-
-  complete_type_is_needed(underlying_type);
-  is_complete = !is_incomplete_type(underlying_type);
-  if (!is_complete) {
-    if (expr_error_should_be_issued()) {
-      pos_ty_error(ec_cast_to_rvalue_ref_to_incomplete, err_pos,
-                   skip_typerefs(underlying_type));
-    }  /* if */
-  }  /* if */
-  return is_complete;
-}  /* rvalue_reference_cast_underlying_type_is_complete */
-
-
 void conv_rvalue_reference_result_to_xvalue(an_operand *operand)
 /*
 The indicated operand is the result of an rvalue reference operation (e.g.,
@@ -8328,7 +8303,7 @@ gives the destination reference type.
       conv_class_prvalue_operand_to_lvalue(operand);
     } else if (is_array_type(operand->type) &&
                operand_is_temp_init_full(operand, &temp_init_node)) {
-      /* Convert an array rvalue temp to an lvalue temp. */
+      /* Convert an array prvalue temp to an lvalue temp. */
       a_boolean  success;
       an_operand orig_operand;
       orig_operand = *operand;
@@ -8382,16 +8357,14 @@ the expression node to indicate that.
 
 void cast_operand_for_reference_cast(an_operand        *operand,
                                      a_type_ptr        dest_type,
-                                     a_source_position *type_position,
                                      a_boolean         check_cast_access,
                                      a_boolean         is_implicit_cast,
                                      a_boolean         reinterpret_semantics)
 /*
 Cast *operand to a reference type given by dest_type.  That produces an
-lvalue of the type underlying dest_type as the result, or an rvalue if
+lvalue of the type underlying dest_type as the result, or an xvalue if
 dest_type is an rvalue reference.  This cast does not make a new object;
 it merely adjusts the operand to access the same object with a new type.
-type_position gives the source position of the type in the cast.
 Check access on related-class casts if check_cast_access is TRUE.
 The cast is implicit if is_implicit_cast is TRUE.  Consider related-class
 adjustments only if reinterpret_semantics is FALSE (it is TRUE for
@@ -8402,18 +8375,11 @@ is an lvalue reference to const.
 {
   a_type_ptr underlying_type;
   a_boolean  is_rvalue_ref = FALSE;
-  a_boolean  err = FALSE;
 
   check_assertion(is_any_reference_type(dest_type));
   is_rvalue_ref = is_rvalue_reference_type(dest_type);
   underlying_type = type_pointed_to(dest_type);
   if (is_rvalue_ref) {
-    /* A cast to "rvalue reference to T" is invalid if T is incomplete,
-       because it would produce an rvalue with an incomplete type. */
-    if (!rvalue_reference_cast_underlying_type_is_complete(underlying_type,
-                                                           type_position)) {
-      err = TRUE;
-    }  /* if */
     if (!is_an_rvalue(operand) &&
         binding_rvalue_ref_to_bit_field_allowed() &&
         is_bit_field_operand(operand)) {
@@ -8422,9 +8388,7 @@ is an lvalue reference to const.
       conv_glvalue_to_prvalue(operand);
     }  /* if */
   }  /* if */
-  if (err) {
-    /* Previous error. */
-  } else if (is_a_prvalue(operand)) {
+  if (is_a_prvalue(operand)) {
     /* If the caller passes in a prvalue, convert it to an lvalue. */
     conv_reference_cast_operand_to_lvalue_if_necessary(operand, dest_type);
   } else {
@@ -8442,7 +8406,7 @@ is an lvalue reference to const.
   }  /* if */
   if (is_error_operand(operand)) {
     normalize_error_operand(operand);
-  } else if (is_error_type(underlying_type) || err) {
+  } else if (is_error_type(underlying_type)) {
     conv_to_error_operand(operand);
   } else {
     a_type_ptr       operand_type = operand->type;
@@ -8492,7 +8456,7 @@ is an lvalue reference to const.
         make_glvalue_expression_operand(expr, operand);
       }  /* if */
       if (is_rvalue_ref) {
-        /* The result of a cast to an rvalue reference type is an rvalue.
+        /* The result of a cast to an rvalue reference type is an xvalue.
            We need an eok_ref_cast after the related-class conversion to
            effectuate the conversion to xvalue. */
         need_eok_ref_cast = TRUE;
@@ -8529,14 +8493,14 @@ is an lvalue reference to const.
 }  /* cast_operand_for_reference_cast */
 
 
-void adjust_class_rvalue_type(an_operand *operand,
-                              a_type_ptr dest_type)
+void adjust_class_prvalue_type(an_operand *operand,
+                               a_type_ptr dest_type)
 /*
-*operand is a class rvalue.  Adjust its type, if necessary, to dest_type,
+*operand is a class prvalue.  Adjust its type, if necessary, to dest_type,
 which may differ from the current type in having different cv-qualifiers.
 This adjustment does not make a new object; it merely adjusts the operand
 to access the same object with a new type.  On return, the operand is
-still an rvalue.  This adjustment is implicit (e.g., in binding a
+still a prvalue.  This adjustment is implicit (e.g., in binding a
 reference) and not something explicit like a cast.
 */
 {
@@ -8554,7 +8518,7 @@ reference) and not something explicit like a cast.
         an_expr_node_ptr node;
         an_operand       orig_operand;
         orig_operand = *operand;
-        check_assertion(is_an_rvalue(operand) &&
+        check_assertion(is_a_prvalue(operand) &&
                         is_class_struct_union_type(operand_type) &&
                         types_are_compatible_ignoring_qualifiers(operand_type,
                                                                  dest_type));
@@ -8565,7 +8529,7 @@ reference) and not something explicit like a cast.
       }  /* if */
     }  /* if */
   }  /* if */
-}  /* adjust_class_rvalue_type */
+}  /* adjust_class_prvalue_type */
 
 
 a_boolean is_a_cplusplus_lvalue(an_operand *operand)
@@ -8722,7 +8686,7 @@ if the type is not integral).
 void promote_operand(an_operand *operand)
 /*
 Determine the integral promotion and do the promotion on an operand.
-See 3.2.1.1 in the standard.  The operand must be an rvalue.
+See 3.2.1.1 in the standard.  The operand must be a prvalue.
 */
 {
   cast_operand(operand_type_after_integral_promotion(operand), operand,
@@ -8754,7 +8718,7 @@ void arg_default_promote_operand(an_operand *argument_operand,
                                  a_boolean  is_ellipsis)
 /*
 Do default argument promotions on an argument operand.  If the operand is
-an lvalue, it is converted to an rvalue before doing the promotions.
+a glvalue, it is converted to a prvalue before doing the promotions.
 is_ellipsis if the argument is being passed to an ellipsis.  If it's
 FALSE, we just have a case where we have no parameter information
 at all, which happens, for example, for an unprototyped function in
@@ -8772,7 +8736,7 @@ C mode.
        Note that MSVC++ does not instantiate a template class in that case
        so we don't call complete_type_is_needed here. */
   } else {
-    /* Convert the operand to an rvalue if necessary. */
+    /* Convert the operand to a prvalue if necessary. */
     do_operand_transformations(argument_operand, TOPT_NO_OPTIONS);
     /* Catch array rvalues in pre-C99 C.  In strict mode they are not allowed.
        Otherwise, do the special array --> pointer decay as an extension. */
@@ -8828,7 +8792,7 @@ void build_unary_result_operand(an_operand            *operand,
 	                        an_operand            *result)
 /*
 Build an operand for the expression that is the operator "kind" operating
-on "operand", with result type "type".  The operand is an rvalue.
+on "operand", with result type "type".  The operand is a prvalue.
 */
 {
   an_expr_node_ptr  node;
@@ -8894,7 +8858,7 @@ void build_binary_result_operand(an_operand            *operand_1,
 /*
 Build an operand for the expression that is the operator "kind" operating
 on "operand_1" and "operand_2", with result type "type".  The result is
-an rvalue.
+a prvalue.
 */
 {
   build_binary_result_operand_full(operand_1, operand_2, kind, type,
@@ -10486,9 +10450,9 @@ if it is for a nonreal member function, return *is_function TRUE.
 
 void change_template_param_constant_operand_to_lvalue(an_operand *operand)
 /*
-Change the indicated operand (an rvalue for a template parameter constant)
+Change the indicated operand (a prvalue for a template parameter constant)
 to an lvalue by placing an eok_lvalue node on top of the constant.  This
-allows the operand (which has uncertain lvalueness) to be used henceforth
+allows the operand (which has uncertain value category) to be used henceforth
 as an lvalue.
 */
 {
@@ -10500,7 +10464,7 @@ as an lvalue.
     a_boolean        is_nonreal, is_function;
     an_operand       orig_operand;
     orig_operand = *operand;
-    check_assertion(is_an_rvalue(operand) && is_constant_operand(operand));
+    check_assertion(is_a_prvalue(operand) && is_constant_operand(operand));
     con = &operand->variant.constant;
     is_nonreal = is_nonreal_member_constant(con, &is_function);
     check_assertion(is_nonreal);
@@ -10522,7 +10486,7 @@ static an_expr_node_ptr conv_nonreal_member_constant_expr_to_lvalue(
                                                  a_boolean        *is_function)
 /*
 Helper routine for change_nonreal_member_constant_operand_to_lvalue:
-Look for an rvalue for a nonreal member within the expression expr.
+Look for a prvalue for a nonreal member within the expression expr.
 If one is found, rewrite it as an lvalue and rewrite every node above it
 as an lvalue, and return a pointer to the rewritten nonreal member node.
 Also return *is_function set to TRUE if the node is for a nonreal
@@ -10575,18 +10539,18 @@ member function.  If no nonreal member is found, return NULL.
 
 void change_nonreal_member_constant_operand_to_lvalue(an_operand *operand)
 /*
-If the indicated operand is an rvalue indicating the value of a
+If the indicated operand is a prvalue indicating the value of a
 member of a nonreal class, change it to an lvalue that refers to
-the member.  Likewise for an rvalue for the address of an unknown function.
+the member.  Likewise for a prvalue for the address of an unknown function.
 The idea here is that we have a reference to a member which has unknown
-lvalueness, and we have found out that it needs to be an lvalue, so
+value category, and we have found out that it needs to be an lvalue, so
 we rewrite it as an lvalue.
 */
 {
   an_expr_node_ptr expr = NULL;
   a_boolean        is_function;
 
-  if (is_an_rvalue(operand)) {
+  if (is_a_prvalue(operand)) {
     if (is_constant_operand(operand)) {
       a_constant_ptr con = &operand->variant.constant;
       if (is_nonreal_member_constant(con, &is_function)) {
@@ -11425,7 +11389,7 @@ that is "null pointer value" not "null pointer constant".
 {
   a_boolean is_null = FALSE;
 
-  if (is_an_rvalue(operand) && is_constant_operand(operand)) {
+  if (is_a_prvalue(operand) && is_constant_operand(operand)) {
     is_null = is_null_pointer_value(&operand->variant.constant);
   }  /* if */
   return is_null;
@@ -11455,14 +11419,14 @@ pointer value.
 
 a_boolean pointer_operand_cannot_be_null(an_operand *operand)
 /*
-Return TRUE if the indicated operand is an rvalue pointer operand that
+Return TRUE if the indicated operand is a prvalue pointer operand that
 is known not to have a NULL value.  The prediction doesn't have to be
 perfect; the safe value is FALSE.
 */
 {
   a_boolean op_cannot_be_null = FALSE;
 
-  if (is_an_rvalue(operand) && is_pointer_type(operand->type)) {
+  if (is_a_prvalue(operand) && is_pointer_type(operand->type)) {
     if (is_constant_operand(operand)) {
       a_constant_ptr con = &operand->variant.constant;
       if (constant_bool_value_known_at_compile_time(con) &&
@@ -12270,7 +12234,7 @@ void do_binary_operation(an_expr_operator_kind   op,
                          a_token_sequence_number operator_tok_seq_number)
 /*
 Interface to do_binary_operation_full for the usual case where the
-result is an rvalue.  See do_binary_operation_full for a description of
+result is a prvalue.  See do_binary_operation_full for a description of
 the parameters.
 */
 {
@@ -12321,7 +12285,7 @@ outside of a template-dependent context.
               !could_be_dependent_class_type(op1->type) &&
               !is_error_type(op1->type)) {
             /* Casts other than those involving unknown dependent classes
-               have known lvalueness. */
+               have known value category. */
             uncertain = FALSE;
           }  /* if */
           break;
@@ -12436,8 +12400,8 @@ involving template parameter types.  lvalue_expected is TRUE to indicate
 that an lvalue is expected/required, and rvalue_expected is TRUE to indicate
 that an rvalue is expected/required.  If neither is TRUE, either an rvalue
 or an lvalue is acceptable in the context where the expression will be used.
-An eok_lvalue node will be inserted if necessary to adjust the lvalueness of
-the expression.
+(Or an xvalue.)  An eok_lvalue node will be inserted if necessary to adjust
+the value category of the expression.
 */
 {
   an_expr_node_ptr expr;
@@ -12503,15 +12467,13 @@ know whether the operand will be used as an lvalue or an rvalue.
 void generic_cast_operand(an_operand         *operand,
                           a_type_ptr         dest_type,
                           a_cast_source_form source_form,
-                          a_boolean          is_implicit_cast,
-                          a_source_position  *type_position)
+                          a_boolean          is_implicit_cast)
 /*
 Add a generic cast that casts the given operand to dest_type.  This is used
 in prototype instantiations to represent conversions to unknown types.
 source_form identifies the kind of cast (e.g., static_cast, const_cast).
-is_implicit_cast is TRUE if the cast is implicit.  type_position is
-the position of the type in the cast.  dest_type is allowed to be a
-reference type.  Note that the cast can be bizarre in a number of ways,
+is_implicit_cast is TRUE if the cast is implicit.  dest_type is allowed to
+be a reference type.  Note that the cast can be bizarre in a number of ways,
 e.g., if the source operand is an lvalue.
 */
 {
@@ -12548,16 +12510,6 @@ e.g., if the source operand is an lvalue.
     rvalue_expected = TRUE;
   }  /* if */
   prep_generic_operand_full(operand, lvalue_expected, rvalue_expected);
-  if (is_rvalue_reference_cast &&
-      is_incomplete_type(dest_type) &&
-      !is_template_dependent_type(dest_type)) {
-    /* Check that the underlying type for an rvalue reference cast is complete,
-       or complete it if necessary. */
-    if (!rvalue_reference_cast_underlying_type_is_complete(dest_type,
-                                                           type_position)) {
-      dest_type = error_type();
-    }  /* if */
-  }  /* if */
   if (is_error_operand(operand)) {
     normalize_error_operand(operand);
   } else {
@@ -12613,7 +12565,11 @@ e.g., if the source operand is an lvalue.
         }  /* if */
         if (is_reference_cast) {
           mark_as_reference_cast(expr, orig_dest_type);
-          if (!is_rvalue_reference_cast) expr->is_lvalue = TRUE;
+          if (is_rvalue_reference_cast) {
+            expr->is_xvalue = TRUE;
+          } else {
+            expr->is_lvalue = TRUE;
+          }  /* if */
         }  /* if */
       } else {
         /* Cast to a class type.  Use an enk_temp_init/dik_constructor. */
@@ -13132,7 +13088,7 @@ static a_boolean optimizable_class_rvalue_question(
 
 /*
 operand_2 and operand_3 are the second and third operands of a "?"
-operation that returns a class rvalue.  Check to see whether a copy
+operation that returns a class prvalue.  Check to see whether a copy
 elision optimization can be applied, and return TRUE if so, with
 *dip_2 and *dip_3 set to point to the underlying dynamic initialization
 entries for the operands.
@@ -13177,7 +13133,7 @@ static void do_class_rvalue_question_optimization(a_dynamic_init_ptr dip_2,
                                                   a_dynamic_init_ptr dip_3,
                                                   an_operand         *result)
 /*
-Do the copy elision optimization for a class rvalue "?" operation.
+Do the copy elision optimization for a class prvalue "?" operation.
 optimizable_class_rvalue_question has previously determined that the
 optimization can be done.  dip_2 and dip_3 point to the dynamic
 initializations for the temporaries of the operands of the "?", and
@@ -13569,7 +13525,7 @@ on output it will be an lvalue.
       node = make_node_from_operand(result);
       if (is_an_lvalue(result)) {
         a_boolean constant_addr;
-        /* Convert from an lvalue for the reference to an rvalue for the value
+        /* Convert from an lvalue for the reference to a prvalue for the value
            of the reference (in effect, loading the reference pointer value
            from the location that contains it). */
         node = conv_glvalue_expr_to_prvalue(node, &constant_addr,
@@ -13590,7 +13546,7 @@ on output it will be an lvalue.
       }  /* if */
       if (!err) {
         /* Add a reference indirection to make an lvalue.  This is similar to
-           adding a "*" operator on top of a pointer rvalue. */
+           adding a "*" operator on top of a pointer prvalue. */
         node = add_ref_indirection_to_node(node);
       }  /* if */
     }  /* if */
@@ -14776,15 +14732,15 @@ operand is the operand identifying the function to call in a normal call
 (including a virtual call), or some other operand identifying a function.
 If it is possible to determine the specific function named, return a
 pointer to its routine entry.  Otherwise, return NULL.  The operand
-can be an lvalue (function designator) or rvalue pointer to the function,
-even though calls actually always use the rvalue form.
+can be an lvalue (function designator) or prvalue pointer to the function,
+even though calls actually always use the prvalue form.
 */
 {
   a_routine_ptr  routine = NULL;
 
   if (is_expression_operand(operand)) {
     routine = routine_from_function_expr(operand->variant.expression);
-  } else if (is_constant_operand(operand) && is_an_rvalue(operand)) {
+  } else if (is_constant_operand(operand) && is_a_prvalue(operand)) {
     a_constant_ptr con = &operand->variant.constant;
     if (con_is_exact_addr_of_routine(con)) {
       /* Constant that is the address of a routine. */
@@ -16419,7 +16375,7 @@ explicit "&" operator in the source and *operator_position gives its position.
 void take_address_of_lvalue(an_operand        *operand,
                             a_source_position *operator_position)
 /*
-Change operand (an lvalue) to an rvalue that is a pointer to the
+Change operand (an lvalue) to a prvalue that is a pointer to the
 object.  This is the function of the "&" operator.  Check that the
 operand isn't a register variable or a bit field, and set the
 address_taken flag.  Also works on function designators.
@@ -16514,7 +16470,7 @@ used before it is modified.
 
 void conv_object_pointer_to_lvalue(an_operand *operand)
 /*
-operand is an rvalue pointer.  Change it to an lvalue for the object pointed
+operand is a prvalue pointer.  Change it to an lvalue for the object pointed
 to (or a function designator).
 */
 {
@@ -16537,7 +16493,7 @@ static a_boolean okay_as_gcc_lvalue_question(an_expr_node_ptr op2,
                                              a_boolean        ignore_casts,
                                              a_type_ptr       *lvalue_type)
 /*
-Return TRUE if an rvalue expression that is a "?" operator with the
+Return TRUE if a prvalue expression that is a "?" operator with the
 indicated two expressions as the second and third operands can be
 converted to an lvalue "?" in gcc (not g++) mode.  If ignore_casts is TRUE,
 ignore any casts on top of the expressions.  *lvalue_type is set to the
@@ -16549,13 +16505,13 @@ result type for the lvalue operation.
   a_boolean  op2_possible, op3_possible;
 
   /* Note that by the time a "?" operation gets here, it has
-     been validated as a correct rvalue operation, so a certain
+     been validated as a correct prvalue operation, so a certain
      level of compatibility between the operands has already been
      established. */
   /* Do a test conversion of the expressions to lvalues, to
      see whether they can be converted to lvalues and to find out what
      their lvalue types are.  The lvalue types may have cv-qualifiers
-     that the rvalue versions don't. */
+     that the prvalue versions don't. */
   (void)conv_prvalue_expr_to_lvalue(op2, &op2_possible,
                                     /*see_if_possible=*/TRUE,
                                     /*gcc_lvalue=*/TRUE,
@@ -16642,7 +16598,7 @@ node is a prvalue expression.  If possible, rewrite it as an lvalue
 for the object, and return a pointer to the lvalue expression along
 with *converted TRUE.  If such a conversion is not possible, set
 *converted FALSE and return the unmodified original expression.  If
-see_if_possible is TRUE, just see if the rewriting is possible, set
+see_if_possible is TRUE, just see if the rewriting is possible,
 set *converted accordingly, and return the unmodified expression.  If
 gcc_lvalue is TRUE, we're rewriting the operand in a case where gcc
 (not g++) allows treating an rvalue as an lvalue.  If ignore_casts is
@@ -16803,7 +16759,8 @@ from being re-introduced once lowering has eliminated it).
             (void)conv_prvalue_expr_to_lvalue(op2, &op2_possible,
                                               /*see_if_possible=*/TRUE,
                                               /*gcc_lvalue=*/FALSE,
-                                              ignore_casts, &lvalue_type);
+                                              ignore_casts,
+                                              &lvalue_type);
             if (!op2_possible &&
                 skip_parens(op2)->kind == (an_expr_node_kind)enk_throw) {
               op2_is_throw = TRUE;
@@ -16936,7 +16893,7 @@ from being re-introduced once lowering has eliminated it).
             possible = TRUE;
             class_type = op1->type;
           } else {
-            /* The selection is a selection out of an rvalue, so we try to
+            /* The selection is a selection out of a prvalue, so we try to
                convert the first operand to an lvalue. */
             (void)conv_prvalue_expr_to_lvalue(op1, &op1_possible,
                                               /*see_if_possible=*/TRUE,
@@ -16989,7 +16946,7 @@ from being re-introduced once lowering has eliminated it).
         break;
       case eok_base_class_cast:
       case eok_derived_class_cast:
-        /* Base and derived class casts (class rvalue --> class rvalue).
+        /* Base and derived class casts (class prvalue --> class prvalue).
            Try to transform the operand to an lvalue. */
         op1 = conv_prvalue_expr_to_lvalue(op1, &possible,
                                           see_if_possible,
@@ -17016,7 +16973,7 @@ from being re-introduced once lowering has eliminated it).
         /* Assignment -- we can just turn on the is_lvalue flag. */
         goto assignment_case;
       case eok_class_rvalue_adjust:
-        /* cv-qualifier adjustment on a class rvalue.  Try to turn the operand
+        /* cv-qualifier adjustment on a class prvalue.  Try to turn the operand
            into an lvalue. */
         op1 = conv_prvalue_expr_to_lvalue(op1, &possible,
                                           see_if_possible,
@@ -17084,7 +17041,7 @@ assignment_case:
 #endif /* DO_IL_LOWERING */
   }  /* if */
   *converted = possible;
-  if (p_lvalue_type != NULL) *p_lvalue_type = lvalue_type;
+  if (p_lvalue_type != NULL && possible) *p_lvalue_type = lvalue_type;
   return node;
 }  /* conv_prvalue_expr_to_lvalue */
 
@@ -17188,13 +17145,13 @@ initializing it from the prvalue.  This routine is used only in C++ mode.
         /* The expression has been rewritten as an lvalue. */
         make_glvalue_expression_operand(node, operand);
       } else {
-        /* Couldn't convert to an lvalue directly.  The rvalue will have to be
+        /* Couldn't convert to an lvalue directly.  The prvalue will have to be
            copied to a temporary, and an lvalue for the temporary used. */
         /* Avoid recursion loops if the class does not allow bitwise copy.
            The conversion to an lvalue really must succeed (i.e., it's not
            merely an optimization) if a "real" copy constructor would have
            to be used, since in that case we would need the address of this
-           rvalue to be able to call the copy constructor. */
+           prvalue to be able to call the copy constructor. */
         /* Ignore template parameter cases. */
         /* Also ignore cases where we're in a prototype instantiation with
            a non-real class. */
@@ -17214,7 +17171,7 @@ initializing it from the prvalue.  This routine is used only in C++ mode.
               db_expression(node);
 #endif /* DEBUG */
               internal_error(
-               "conv_class_rvalue_operand_to_lvalue: couldn't convert to ptr");
+              "conv_class_prvalue_operand_to_lvalue: couldn't convert to ptr");
             }  /* if */
 #endif /* CHECKING */
             conv_to_error_operand(operand);
@@ -17340,8 +17297,8 @@ operand is an xvalue.  Convert it to an lvalue.
 void conv_class_operand_to_object_pointer(an_operand *operand)
 /*
 Convert a class operand for an object into an operand for a pointer to the
-object.  The operand may be either an lvalue or an rvalue; in the rvalue
-case, a temporary may be created and initialized with the rvalue, and the
+object.  The operand may be either a glvalue or a prvalue; in the prvalue
+case, a temporary may be created and initialized with the prvalue, and the
 address of the temporary returned.  It's assumed that the address of
 the class object may escape.  If the operand has a ref class type, convert
 to a C++/CLI handle instead of a pointer.
@@ -17489,7 +17446,7 @@ static a_boolean conv_subscript_in_string_to_char(a_constant *op1,
                                                   a_constant *char_con)
 /*
 op1 and op2 are the operands of an lvalue subscripting operation (i.e.,
-op1[op2]) that is being converted to an rvalue.  If the operation is
+op1[op2]) that is being converted to a prvalue.  If the operation is
 something like "abc"[1] such that the value after conversion to an
 rvalue is a character constant, set *char_con to the character
 value and return TRUE.  Otherwise, return FALSE.  This conversion is
@@ -17636,7 +17593,7 @@ function designator.  If constant_case is non-NULL, look for cases
 where conversion to a prvalue produces a constant value (e.g., use of
 a constant-valued variable in C++), and return *constant_case TRUE if
 the whole glvalue was folded to a constant.  Note that some parts of
-the glvalue tree might be folded to constants and the overall rvalue
+the glvalue tree might be folded to constants and the overall prvalue
 might still not be constant, in which case *constant_case is returned
 FALSE (for example, in "(i ? constvar : j)" constvar would be replaced
 by its constant value but the overall expression would not fold to a
@@ -17670,10 +17627,10 @@ it might produce an error).
   check_assertion(is_glvalue_node(node) || is_error_node(node));
   /* Constant folding can be done only within the expression routines. */
   check_assertion(constant_case == NULL || expr_stack != NULL);
-  /* Determine the type for the node after conversion to an rvalue. */
+  /* Determine the type for the node after conversion to a prvalue. */
   if (is_function_type(node->type)) {
     /* Function designator (C) or function lvalue (C++): the conversion to
-       rvalue adds a "pointer to". */
+       prvalue adds a "pointer to". */
     prvalue_node_type = make_pointer_type(node->type);
   } else if (is_array_type(node->type)) {
     /* In the unlikely event we convert an array glvalue to an array prvalue
@@ -17700,7 +17657,7 @@ it might produce an error).
                                                        &variable);
       if (con_expr_value != NULL) {
         /* Below, we'll record the expression for the constant, so make the
-           rvalue version of the expression. */
+           prvalue version of the expression. */
         node = expr_to_record_for_variable(variable, /*is_lvalue=*/FALSE);
       }  /* if */
     }  /* if */
@@ -17722,7 +17679,7 @@ it might produce an error).
          an rvalue.  Convert it to the C form. */
       if (op == (an_expr_operator_kind)eok_question) {
         /* "?" operator.  Convert the second and third operands to
-           rvalues. */
+           prvalues. */
         an_expr_node_ptr op3 = op2->next;
         op1->next = NULL;
         op2->next = NULL;
@@ -17769,7 +17726,7 @@ it might produce an error).
       } else {
         /* The operation is an assignment or a prefix ++/-- that returns
            an lvalue.  All that's needed is the code below that changes it
-           to an operation returning an rvalue. */
+           to an operation returning a prvalue. */
       }  /* if */
       processed = TRUE;
       node->variant.operation.returns_lvalue_instead_of_usual_rvalue = FALSE;
@@ -17957,7 +17914,7 @@ it might produce an error).
         case eok_derived_class_cast:
           /* Base or derived class cast (class lvalue --> class lvalue).
              Apply the transformation to the operand; the cast becomes a
-             cast from a class rvalue to a class rvalue. */
+             cast from a class prvalue to a class prvalue. */
           op1 = conv_glvalue_expr_to_prvalue(op1, allow_folding,
                                              (a_constant_ptr *)NULL,
                                              err_pos);
@@ -17976,8 +17933,8 @@ it might produce an error).
           processed = TRUE;
           break;
         case eok_parens:
-          /* For parentheses, turn the underlying expression into an rvalue,
-             and re-mark the parenthesis node as an rvalue. */
+          /* For parentheses, turn the underlying expression into a prvalue,
+             and re-mark the parenthesis node as a prvalue. */
           op1 = conv_glvalue_expr_to_prvalue(op1, allow_folding,
                                              (a_constant_ptr *)NULL, err_pos);
           node->variant.operation.operands = op1;
@@ -18023,7 +17980,7 @@ it might produce an error).
              only allow the conversion to a constant if the underlying
              entity is a temporary.  See core issue 1480.  Normally,
              the underlying entity has an address that we must preserve
-             (e.g., in an rvalue reference object). */
+             (e.g., in an xvalue). */
           if (constexpr_enabled &&
               op1->kind == (an_expr_node_kind)enk_temp_init &&
               op1->variant.init.dynamic_init->has_temporary_lifetime) {
@@ -18060,7 +18017,7 @@ lvalue_adjust:
         case eok_lvalue:
           /* A node that forces an rvalue to be considered to be an lvalue, in
              a prototype instantiation. */
-          /* Return the rvalue operand of the eok_lvalue operation. */
+          /* Return the prvalue operand of the eok_lvalue operation. */
           node = op1;
           check_assertion(!is_glvalue_node(node));
           processed = TRUE;
@@ -18081,7 +18038,7 @@ lvalue_adjust:
           break;
         case eok_unbox:
         case eok_unbox_lvalue:
-          /* You can get an rvalue by setting is_lvalue to FALSE to cause
+          /* You can get a prvalue by setting is_lvalue to FALSE to cause
              a fetch from the boxed entity, but the operation is not
              rvalueable. */
           node->is_lvalue = node->is_xvalue = FALSE;
@@ -18099,16 +18056,16 @@ lvalue_adjust:
   }  /* if */
   /* At this point,
        -- If con_expr_value != NULL, the expression has a constant value.
-          node will also have been set to the rvalue version of the
+          node will also have been set to the prvalue version of the
           expression, to be recorded in the constant, or NULL if no
           expression should be recorded.  constant_case will be non-NULL.
        -- If template_constant is TRUE, the expression has a constant result
-          that is template-dependent.  node will have been set to the rvalue
+          that is template-dependent.  node will have been set to the prvalue
           version of the expression, to be used under a template parameter
           constant.  con_expr_value will be NULL.  constant_case will be
           non-NULL.
        -- If processed is TRUE (and the above do not apply), node will have
-          been set to the rvalue version of the expression.
+          been set to the prvalue version of the expression.
   */
   if (con_expr_value != NULL) {
     /* The expression is constant-valued. */
@@ -18341,7 +18298,7 @@ cases so we don't do it here.
                                                 var->constant_valued);
           }  /* if */
         }  /* if */
-        /* Convert the expression to an rvalue. */
+        /* Convert the expression to a prvalue. */
         node = conv_glvalue_expr_to_prvalue(node, &constant_case, &con_value,
                                             &operand->position);
       }  /* if */
@@ -18363,7 +18320,7 @@ cases so we don't do it here.
                  construct_not_allowed_in_cpp11_constant_expr(
                                                          ec_expr_not_constant,
                                                          &operand->position)) {
-        /* An lvalue cannot be converted to an rvalue in a C++11 constant
+        /* A glvalue cannot be converted to a prvalue in a C++11 constant
            expression. */
         conv_to_error_operand(operand);
       } else {
@@ -18588,7 +18545,7 @@ current mode -- just do it.
 void conv_array_operand_to_pointer_operand(an_operand *operand)
 /*
 Apply the implicit array to pointer-to-first-element-of-array transformation
-to the operand.  If the operand is an array lvalue it is changed to an rvalue
+to the operand.  If the operand is an array lvalue it is changed to a prvalue
 pointer to the first element of the array.  If the operand is an array rvalue,
 the conversion is done in some modes (C++, C99) and not in others.  All other
 cases are left alone.
@@ -18692,8 +18649,8 @@ void conv_expr_function_designator_to_ptr_to_function(
                                          a_boolean         will_call,
                                          a_source_position *ampersand_position)
 /*
-Convert an expression-form function designator in *operand into an
-rvalue for the address of the function.  Note that for nonstatic member
+Convert an expression-form function designator in *operand into a
+prvalue for the address of the function.  Note that for nonstatic member
 functions this produces a pointer, not a pointer to member, which
 is what's wanted for the function-identifying operand of a call.
 will_call is TRUE if the resulting expression will be used to call the
@@ -18773,7 +18730,7 @@ by an "&" operator and *ampersand_position gives its position.
     need_expr = TRUE;
   }  /* if */
   if (need_expr) {
-    /* Make an rvalue expression from the lvalue function expression. */
+    /* Make a prvalue expression from the lvalue function expression. */
     if (ampersand_position != NULL) {
       /* Use a "&" operator to get the address because there was one in
          the source. */
@@ -18878,7 +18835,7 @@ used in generating the function-identifying operand in a call.
   } else if (is_indefinite_function_operand(operand)) {
     /* An overloaded function where we do not yet have arguments that will
        select a specific instance of the function.  Change to a pointer to an
-       indefinite function by changing the state to rvalue. */
+       indefinite function by changing the state to prvalue. */
     /* Note that we do not check for the nonstandard "taking address of member
        function without using &" here; it will be checked once we know
        which of the functions is actually wanted. */
@@ -19558,7 +19515,7 @@ in *single_func_sym, or set that to NULL if there is no single function.
           if (orig_operand.has_required_ptr_to_member_form) {
             operand->is_id_expression = TRUE;
           }  /* if */
-          if (is_an_rvalue(&orig_operand)) {
+          if (is_a_prvalue(&orig_operand)) {
             conv_sym_for_member_operand_to_ptr_to_member(operand,
                                                          ampersand_pos);
           }  /* if */
@@ -19574,7 +19531,7 @@ in *single_func_sym, or set that to NULL if there is no single function.
                                            orig_operand.ref_entries_list,
                                            operand);
           restore_operand_details(operand, &orig_operand);
-          if (is_an_rvalue(&orig_operand)) {
+          if (is_a_prvalue(&orig_operand)) {
             conv_function_designator_to_ptr_to_function(operand,
                                                         ampersand_pos,
                                                         /*allow_ctor=*/FALSE,
@@ -19662,7 +19619,7 @@ The transformations are:
   (1)  Conversion of a function designator to a pointer-to-function.
   (2)  Conversion of an array lvalue to pointer-to-first-element.
   (3)  (Not really a transformation, but...) Checking for indefinite functions.
-  (4)  Conversion of an lvalue to an rvalue.
+  (4)  Conversion of a glvalue to a prvalue.
   (5)  Conversion of a reference to a member declared as a Microsoft
        property to a call of the appropriate "get" function, and
        similarly for event references.
@@ -20037,7 +19994,7 @@ user-defined conversions.
   /* When constexpr is enabled, constants can come from all kinds of
      things, e.g., calls, so turn off the warning. */
   if (!constexpr_enabled &&
-      is_an_rvalue(operand) &&
+      is_a_prvalue(operand) &&
       is_constant_operand(operand) &&
       (is_pointer_type(operand->type) ||
        is_ptr_to_member_type(operand->type))) {
