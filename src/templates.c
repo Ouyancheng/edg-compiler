@@ -12352,6 +12352,7 @@ information.
                                   DSI_EMPTY_DECL_SPECIFIERS_ALLOWED |
                                   DSI_STORAGE_CLASS_SPECIFIER_ALLOWED;
 
+  state->is_template_declaration = TRUE;
   state->prefix_attributes = scan_attributes(al_prefix);
   if (gpp_mode) {
     dsi_flags |= DSI_GNU_ATTRIBUTES_ALLOWED;

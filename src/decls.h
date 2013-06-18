@@ -603,6 +603,9 @@ typedef struct a_decl_parse_state {
 		in_nested_declarator:1;
 			/* TRUE while parsing a nested declarator. */
   a_bit_field
+		is_template_declaration:1;
+			/* TRUE when scanning a template declaration. */
+  a_bit_field
 		is_trailing_return_type:1;
 			/* TRUE if this information block describes the parsing
 			   of a trailing return type (this is set before

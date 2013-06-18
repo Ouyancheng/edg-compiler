@@ -144,6 +144,7 @@ be restored).
     dps->constexpr_pos = null_source_position;
     dps->in_class_scope = FALSE;
     dps->secondary_declarator = FALSE;
+    dps->is_template_declaration = FALSE;
     dps->is_trailing_return_type = FALSE;
     dps->is_type_name = FALSE;
     dps->is_alias_template_type = FALSE;
@@ -1205,6 +1206,7 @@ diagnostics.
            a parameter of the form T&& (with T a template parameter. */
         if (microsoft_mode && rvalue_references_enabled &&
             !dps->is_old_style_param_decl &&
+            dps->assoc_func_decl_state->is_template_declaration &&
             scope_stack[depth_scope_stack-1].function_partial_instantiation &&
             is_special_rvalue_ref_generic_parameter_at_pos(
                                 scope_stack[depth_scope_stack-1].template_sym,
