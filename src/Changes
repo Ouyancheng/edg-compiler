@@ -1,5 +1,18 @@
 Version 5.0
 
+6/18/13  [EDGcpfe/13977]
+Severity of invalid attributes in GNU mode
+
+Some invalid uses of attributes in GNU mode are now diagnosed with a warning
+instead of an error.  Some of those cases are specific to the C++11 form of
+attributes.  For example:
+
+  struct S {};
+  S* g() {
+    return (S [[gnu::unused]]*)0;  // Previously an error; now accepted with
+  }                                // a warning in GNU C++11 mode.
+
+
 6/17/13  [EDGcpfe/14112]
 Spurious correspondence error when namespace member used as template argument
 

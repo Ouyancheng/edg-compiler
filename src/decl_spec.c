@@ -8162,7 +8162,7 @@ static void scan_specifier_attributes(a_decl_flag_set     flags,
 /*
 Scan specifier attributes and record them in *dps.  flags is the set of input
 flags passed to the call of decl_specifiers (which in turn called this
-function).  Issue an error if attributes appear in a context that doesn't
+function).  Issue a diagnostic if attributes appear in a context that doesn't
 allow for them (as indicated by flags); such attributes are otherwise ignored.
 *std_attr_seen is set to TRUE if standard attributes were encountered, and to
 FALSE otherwise.
@@ -8174,7 +8174,7 @@ FALSE otherwise.
   if (ap != NULL) {
     a_boolean         disallow_std = !(flags & DSI_STD_ATTRIBUTES_ALLOWED);
     a_boolean         disallow_gnu = !(flags & DSI_GNU_ATTRIBUTES_ALLOWED);
-    a_boolean         error_emitted = FALSE;
+    a_boolean         diag_emitted = FALSE;
     an_attribute_ptr  *p_ap = &ap;
     /* Traverse the attributes dropping any that aren't allowed and recording
        the presence of a standard attribute (if one is allowed). */
@@ -8190,9 +8190,10 @@ FALSE otherwise.
         }  /* if */
       }  /* if */
       if (drop_attribute) {
-        if (!error_emitted) {
-          pos_error(ec_attribute_not_allowed, &(*p_ap)->position);
-          error_emitted = TRUE;
+        if (!diag_emitted) {
+          pos_diagnostic(gpp_mode ? es_warning : es_error,
+                         ec_attribute_not_allowed, &(*p_ap)->position);
+          diag_emitted = TRUE;
         }  /* if */
         *p_ap = (*p_ap)->next;
       } else {
@@ -8285,7 +8286,7 @@ dps->specifier_attributes list.
         /* Move the attribute to the prefix attributes list. */
         an_attribute_ptr  ap = *p_ap;
         if (ap->family == (a_byte_attribute_family)af_std) {
-          report_bad_attribute_target(es_error, ap);
+          report_bad_attribute_target(gpp_mode ? es_warning : es_error, ap);
         }  /* if */
         *p_ap = ap->next;
         ap->next = NULL;

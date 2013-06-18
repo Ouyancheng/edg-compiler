@@ -387,7 +387,8 @@ entity.  Issue diagnostics as appropriate.
        attributes only trigger a warning). */
     for (; ap != NULL; ap = ap->next) {
       if (ap->family == (a_byte_attribute_family)af_std &&
-          ap->kind != (a_byte_attribute_kind)ak_empty_attr) {
+          ap->kind != (a_byte_attribute_kind)ak_empty_attr &&
+          !gpp_mode) {
         sev = es_error;
         err_ap = ap;
         break;
