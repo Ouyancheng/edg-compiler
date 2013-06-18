@@ -640,7 +640,10 @@ some of the transformations.
 			/* Arrays should not be converted implicitly to
 			   pointer-to-first-element-of-the-array. */
 #define TOPT_SUPPRESS_LVALUE_TO_RVALUE_CONVERSION 0x4
-			/* Suppress conversion of an lvalue to an rvalue. */
+			/* Suppress conversion of an lvalue to an rvalue.
+			   (Really, a glvalue to a prvalue, but like the
+			   C++11 standard we keep the traditional
+			   terminology.) */
 #define TOPT_SUPPRESS_CHECK_FOR_INDEFINITE_FUNCTION 0x8
 			/* Suppress the check for indefinite functions. */
 #define TOPT_WILL_CALL 0x10

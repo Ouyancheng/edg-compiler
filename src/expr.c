@@ -5455,7 +5455,7 @@ accepts the case where the first operand is a C++/CLI handle.
     } else {
       /* Preserve the reference entries for the base struct.  Don't do this
          if we are dereferencing a reference, because in that case the
-         reference is not modified if the lvalue is modified. */
+         reference is not modified if the glvalue is modified. */
       result->ref_entries_list = operand_1->ref_entries_list;
       if (rep != NULL) {
         /* Add the reference entry for the field to the list of entries for
@@ -6652,7 +6652,7 @@ case).
                                                      &saved_traditional);
         need_restore = TRUE;
       }  /* if */
-      /* Do implicit operand transformations.  In the "." case, keep an lvalue
+      /* Do implicit operand transformations.  In the "." case, keep a glvalue
          if we have one. */
       do_operand_transformations(operand_1,
                                  is_arrow_operator ?
@@ -7410,8 +7410,8 @@ the selection, not an operator token for the call.
     }  /* if */
     if (!processed) {
       /* Non-operator-function cases. */
-      /* Do implicit operand transformations.  In the ".*" case, keep an
-         lvalue if we have one. */
+      /* Do implicit operand transformations.  In the ".*" case, keep a
+         glvalue if we have one. */
       do_operand_transformations(operand_1,
                                  is_arrow_operator ?
                                     TOPT_NO_OPTIONS :
@@ -7433,7 +7433,7 @@ the selection, not an operator token for the call.
           /* ".*" operator. */
           qual_operand_1_type = operand_1->type;
           revert_microsoft_rvalue_to_lvalue_if_possible(operand_1);
-          if (is_an_lvalue(operand_1)) using_lvalue(operand_1);
+          if (is_a_glvalue(operand_1)) using_lvalue(operand_1);
         }  /* if */
         if (!err) {
           /* Drop any qualifiers or typedefs on the underlying first operand
@@ -7916,10 +7916,10 @@ reference rewrite.
     expr->variant.operation.rewritten_property_reference_kind =
                  (a_rewritten_property_reference_kind)rprk_comma_discard_first;
     make_expression_operand(expr, result);
-    if (is_an_lvalue(&orig_operand) ||
+    if (is_a_glvalue(&orig_operand) ||
         is_a_function_designator(&orig_operand)) {
-      /* The original operand is an lvalue, so the result of the comma
-         operator is an lvalue. */
+      /* The original operand is a glvalue, so the result of the comma
+         operator is a glvalue. */
       set_glvalue_operand_state(result);
     }  /* if */
     restore_operand_details_incl_ref(result, &orig_operand);
@@ -11547,9 +11547,10 @@ Determine the type resulting from a decltype(<expr>) construct where operand
 represents <expr>.
 
 In the general case, the result is the type of the expression if the
-expression is an rvalue, or a reference to that type if it's an lvalue.
-However, different rules apply for non-parenthesized id-expressions, for
-non-parenthesized class member access expressions, and for calls.
+expression is an rvalue, or a reference to that type if it's an lvalue
+or xvalue.  However, different rules apply for non-parenthesized
+id-expressions, for non-parenthesized class member access expressions,
+and for calls.
 
 *no_parens_matters is returned TRUE for cases where there are no surrounding
 parentheses and the lack of parentheses does matter for the kind of
@@ -11641,9 +11642,10 @@ id_case:
   } else {
 general_case:
     /* General case: The type T of the expression, or T& if the expression
-       is an lvalue.  If T is template-dependent, the result is unknown because
-       we can't reliably tell whether the operand is an lvalue, and therefore
-       we can't tell if we should add the reference type. */
+       is an lvalue, or T&& is the expression is an xvalue.  If T is
+       template-dependent, the result is unknown because we can't reliably
+       tell the value category, and therefore we can't tell if we should
+       add a reference type. */
     result = operand->type;
     if (operand_has_uncertain_value_category(operand)) {
       if (!is_error_operand(operand)) {
@@ -17602,8 +17604,7 @@ an_expr_node_ptr make_node_from_void_expression_operand(an_operand *operand)
 /*
 *operand is an expression scanned as a void expression, or cast to void.
 Determine an expression representation for the operand, and return a pointer
-to the expression.  If the expression is an lvalue (possible only in C++),
-set the void_expression_lvalue flag in the expression.
+to the expression.
 */
 {
   an_expr_node_ptr node = make_node_from_operand(operand);
@@ -17845,8 +17846,9 @@ contains something not valid in a constant expression.
        elsewhere.) */
     valid_in_const_expr = TRUE;
   } else if (is_lvalue_reference_type(dest_type)) {
-    /* A cast to a reference type is allowed (but not to an rvalue reference
-       type, since that would produce an rvalue). */
+    /* A cast to a reference type is allowed.  We don't test for rvalue
+       reference types because we are testing for allowability in pre-C++11
+       constant expressions here. */
     valid_in_const_expr = TRUE;
   } else if (gcc_mode &&
              is_class_struct_union_type(dest_type) &&
@@ -18131,11 +18133,11 @@ called only in C++ mode.
           if (is_class_struct_union_type(eff_type_cast_to)) {
             /* Look for a conversion to a class prvalue temporary to which
                the reference can be bound. */
-            if (is_an_lvalue(operand) &&
+            if (is_a_glvalue(operand) &&
                 is_class_struct_union_type(operand->type) &&
                 find_base_class_of(eff_type_cast_to, operand->type) != NULL) {
               /* Don't use constructors or conversion functions for
-                 a cast of an lvalue to a reference to a derived class
+                 a cast of a glvalue to a reference to a derived class
                  because we're supposed to just recast the same object
                  ([expr.static.cast] paragraph 2).  That's discovered later. */
             } else if (conversion_to_class_possible(
@@ -18235,7 +18237,7 @@ called only in C++ mode.
                  where the (non-class) operand can be converted to the
                  underlying type of the reference.  Do the reference binding,
                  which will create a temporary and return an lvalue for it
-                 as the result (an rvalue for the rvalue reference case). */
+                 as the result (an xvalue for the rvalue reference case). */
               possible = TRUE;
               determined_conversion = &conversion;
             }  /* if */
@@ -18306,8 +18308,8 @@ called only in C++ mode.
           conversion.is_explicit_cast = TRUE;
           /* Force the result to an rvalue because the cast is not
              to a reference type (otherwise, when a conversion function
-             that returns a reference is used, the result would be an
-             lvalue).  Microsoft doesn't do that. */
+             that returns a reference is used, the result would be a
+             glvalue).  Microsoft doesn't do that. */
           if (!microsoft_bugs) conversion.result_is_a_glvalue = FALSE;
           /* Except in cfront mode, force a temporary for a cast of a class
              object to the same class type, ignoring cv-qualifiers. */
@@ -26874,8 +26876,8 @@ normal_function:
                    unevaluated contexts.  Use a zero pointer instead of
                    "this" and issue a discretionary error in modes where
                    this is not permitted.  (Note: such references are not
-                   allowed in the operand of typeid when the operand is an
-                   lvalue of polymorphic class type, because the operand
+                   allowed in the operand of typeid when the operand is a
+                   glvalue of polymorphic class type, because the operand
                    will be evaluated at runtime.  This case is diagnosed in
                    scan_typeid_operator.) */
                 a_type_ptr class_ptr_type =

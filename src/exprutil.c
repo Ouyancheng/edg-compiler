@@ -15655,13 +15655,14 @@ operand of the "." operator, and when an lvalue is converted to an
 rvalue.  This routine checks that the address indicated by the lvalue
 is valid; specifically, it checks for actually using the element just
 past the end of an array.  It's okay to take the address of that
-element, but it's not okay to actually reference it.
+element, but it's not okay to actually reference it.  "operand"
+can also be an xvalue.
 */
 {
   a_boolean just_past_end = FALSE;
   
   if (is_expression_operand(operand)) {
-    /* Lvalue given by an expression.  Check for a subscript just past
+    /* glvalue given by an expression.  Check for a subscript just past
        the end of an array. */
     an_error_code err_code;
     (void)valid_node_if_subscript(operand->variant.expression, &just_past_end,
