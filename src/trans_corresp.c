@@ -1126,8 +1126,9 @@ static a_boolean f_il_entries_have_known_same_parents(
                                             a_source_correspondence_ptr  scp1,
                                             a_source_correspondence_ptr  scp2)
 /*
-This function performs the same task for IL entries as known_same_parents
-does for symbol entries.
+This function performs a similar task for IL entries as known_same_parents
+does for symbol entries, but in the case of namespace members it does
+establish correspondences if needed.
 */
 {
   a_boolean  result;
@@ -1138,8 +1139,13 @@ does for symbol entries.
     result = same_entities(scp_parent_class(scp1),
                            scp_parent_class(scp2));
   } else {
-    result = same_entities(scp_parent_namespace_or_null(scp1),
-                           scp_parent_namespace_or_null(scp2));
+    a_namespace_ptr ns1 = scp_parent_namespace_or_null(scp1),
+                    ns2 = scp_parent_namespace_or_null(scp2);
+    if (ns1 == NULL) {
+      result = ns2 == NULL;
+    } else {
+      result = corresponding_namespaces(ns1, ns2);
+    }  /* if */
   }  /* if */
   return result;
 }  /* f_il_entries_have_known_same_parents */
@@ -5253,6 +5259,7 @@ supplement for an instantiation that matches inst.
               guard;
   a_symbol_list_entry_ptr
               result = NULL, sym_entry, *last_ptr, *guard_ptr;
+
   if (is_type_symbol(inst)) {
     tssp = primary_template_of(symbol_for(tssp->il_template_entry))
                                                       ->variant.template_info;

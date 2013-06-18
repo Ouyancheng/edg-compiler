@@ -1,5 +1,15 @@
 Version 5.0
 
+6/17/13  [EDGcpfe/14112]
+Spurious correspondence error when namespace member used as template argument
+
+When simultaneously compiling multiple translation units in configurations
+the front end occasionally reported a spurious correspondence error on entities
+(usually fields or variables) involving a template argument that is a type
+from a namespace not enclosing the entity for which the error occurred.
+This rare problem is now fixed.
+
+
 6/17/13  [EDGcpfe/14196]
 Failure to issue error on call of function with parameter pack based on alias
 
