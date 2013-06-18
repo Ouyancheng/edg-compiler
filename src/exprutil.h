@@ -394,7 +394,8 @@ typedef struct an_operand {
 			   lookup. */
   a_bit_field	is_dummy_lvalue:1;
 			/* TRUE if this operand was created by
-			   make_dummy_lvalue_operand. */
+			   make_dummy_lvalue_operand.  It could be a dummy
+			   xvalue, in spite of the name. */
   a_bit_field	is_parenthesized:1;
 			/* TRUE if the operand is enclosed in one or more sets 
 			   of parentheses. */
