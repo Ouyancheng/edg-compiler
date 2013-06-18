@@ -18154,6 +18154,7 @@ called only in C++ mode.
               /* A user-defined conversion can be done to create a temporary
                  to which the reference can be bound. */
               possible = TRUE;
+              conversion.result_is_a_glvalue = FALSE;
               determined_conversion = &conversion;
             }  /* if */
           } else if (is_class_struct_union_type(operand->type)) {
@@ -18176,6 +18177,7 @@ called only in C++ mode.
               /* A user-defined conversion can be done to create a temporary
                  to which the reference can be bound. */
               possible = TRUE;
+              conversion.result_is_a_glvalue = FALSE;
               determined_conversion = &conversion;
             }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
@@ -18198,6 +18200,7 @@ called only in C++ mode.
                can be used to create a temporary to which the reference can
                be bound. */
             possible = TRUE;
+            conversion.result_is_a_glvalue = FALSE;
             determined_conversion = &conversion;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
           } else if (!early_lvalue_check &&
