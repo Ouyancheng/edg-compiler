@@ -724,9 +724,12 @@ destination type (this comes up in a Microsoft-mode extension).
          directly to it.  need_templates_pass is left FALSE to suppress the
          template loop as well.  Some match may still be possible via a
          conversion, for a reference to const.  That's checked below. */
-    } else if (is_rvalue_ref && source_is_lvalue && !is_cast) {
-      /* Similar case for rvalue references -- they can't bind to an lvalue
-         (but a static_cast to an rvalue reference type can). */
+    } else if (is_rvalue_ref && !is_cast &&
+               (rvalue_ref_can_be_bound_to_function_lvalue() !=
+                                                          source_is_lvalue)) {
+      /* Similar case for rvalue references -- they can't bind to an rvalue
+         (sic -- an rvalue reference to function binds to a function lvalue).
+         But a static_cast to an rvalue reference type can. */
     } else if (is_template_id) {
       /* There is an explicit template argument list, so do not look
          for exact matches on non-templates. */
@@ -20400,7 +20403,8 @@ the conversion.
                             SRK_ADDRESS_TAKEN | SRK_CONST_ADDRESS_TAKEN);
     }  /* if */
   } else if (direct_binding_possible &&
-             is_a_function_designator(source_operand)) {
+             (is_a_function_designator(source_operand) ||
+              function_symbol != NULL)) {
     /* The initial value is a function designator of the right type;
        the binding can be done directly. */
     if (function_symbol != NULL) {
@@ -20573,6 +20577,14 @@ the conversion.
                       &source_operand->position,
                       dest_type, orig_source_type);
       }  /* if */
+      conv_to_error_operand(source_operand);
+    } else if (is_rvalue_ref && is_function_type(base_dest_type) &&
+               operand_was_rvalue) {
+      /* For an rvalue reference to function, we fail if we couldn't
+         bind directly.  We can't make a temporary of function type.
+         We let lvalue cases go because the conversion checking does
+         a better job of diagnosing those. */
+      expr_pos_error(ec_expr_not_an_lvalue, &source_operand->position);
       conv_to_error_operand(source_operand);
     } else if (is_rvalue_ref && !operand_was_rvalue &&
                !operand_is_function_lvalue &&
