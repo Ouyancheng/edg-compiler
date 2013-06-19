@@ -1,5 +1,14 @@
 Version 5.0
 
+6/19/13  [EDGcpfe/14198]
+C++/CLI: Type of BeginInvoke/EndInvoke
+
+In C++/CLI mode, the front end predeclares BeginInvoke and EndInvoke methods
+for delegate types.  However, previously it failed to record the type of the
+"this" parameter for those generated members (which resulted in those members
+being static).  This is now fixed.
+
+
 6/19/13  [EDGcpfe/14199]
 Unbounded loop on Microsoft mode typedef
 

@@ -22181,6 +22181,7 @@ signature that matches that of the delegate definition).
       (void)add_param_type(mdps->type,
                            make_handle_type(
                                       cli_class_type_for(csk_system_object)));
+      mdps->type->variant.routine.extra_info->this_class = class_type;
       mdps->declared_type = mdps->type;
       decl_member_function(&member_loc, func_info, &class_state, &member_info,
                            /*compiler_generated=*/TRUE);
@@ -22194,6 +22195,7 @@ signature that matches that of the delegate definition).
                                 cli_class_type_for(csk_system_iasync_result)),
                         /*param2_type=*/NULL, /*param3_type=*/NULL,
                         /*param4_type=*/NULL);
+      mdps->type->variant.routine.extra_info->this_class = class_type;
       mdps->declared_type = mdps->type;
       decl_member_function(&member_loc, func_info, &class_state, &member_info,
                            /*compiler_generated=*/TRUE);
