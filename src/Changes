@@ -73,7 +73,7 @@ GNU C++ compatibility: prototype instantiation of noexcept no longer deferred
 
 In g++ mode, the prototype instantiation of noexcept specifiers was
 deferred if function prototype instantiations were deferred.  This could
-cause an internal error in C++-generation back end versions (in
+cause an internal error in C++-generating back end versions (in
 gen_exception_specification) if the function was never used in a way
 that would cause its noexcept specification to be needed.  In addition,
 this did actually not match the behavior of g++.  Prototype instantiations
