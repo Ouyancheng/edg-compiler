@@ -1,5 +1,24 @@
 Version 5.0
 
+6/18/13  [EDGcpfe/14203]
+Abort mode on aggregate initialization with missing braces
+
+In nonstrict C modes, the front allows the omission of braces on array
+initializers.  For example:
+
+  void g() {
+    double z = 1.0;
+    double az[2] = z;  // Allowed in nonstrict C modes.
+  }
+
+However, when such code contained a dynamic component (as in the example
+above), the generated IL was invalid, which was likely to result in an abort
+if the initializer was lowered (e.g., in C99 mode).  This is now fixed.
+
+Furthermore, cases like these are now diagnosed as errors by default in
+GNU C and Microsoft C modes (to match the GNU and Microsoft compilers).
+
+
 6/18/13  [EDGcpfe/13977]
 Severity of invalid attributes in GNU mode
 

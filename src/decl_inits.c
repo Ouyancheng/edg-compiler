@@ -3613,11 +3613,11 @@ to use for diagnostics by default.
     /* A braced initializer is normally required here.  However, pcc allows
        the braces to be omitted (e.g., "int a[2] = 1;" is treated as equivalent
        to "int a[2] = { 1 };"), and we also accept it with a warning in
-       nonstrict C modes. */
+       default C89 mode. */
     if (!missing_braces_diagnosed && C_dialect != C_dialect_pcc) {
       if (C_dialect == C_dialect_cplusplus) {
         severity = es_error;
-      } else if (strict_ansi_mode) {
+      } else if (strict_ansi_mode || gcc_mode || microsoft_mode) {
         severity = strict_ansi_error_severity;
       } else {
         /* Issue a warning in non-ANSI C mode. */
@@ -3647,6 +3647,11 @@ to use for diagnostics by default.
     is->init_con = alloc_error_constant();
     is->init_error = TRUE;
     if (is_incomplete_array_type(dps->type)) dps->type = error_type();
+  } else {
+    /* Ensure a dynamic initializer result is returned if needed.  (Since in
+       C++ mode only the string literal initialization case is valid, no
+       destructor needs to be passed in.) */
+    prep_initializer_result(is, /*dtor_rp=*/NULL);
   }  /* if */
   if (is_incomplete_array_type(vp->type) &&
       (is_array_type(dps->type) || is_error_type(dps->type))) {
