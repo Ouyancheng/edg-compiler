@@ -1,6 +1,6 @@
 Version 5.0
 
-6/18/13  [EDGcpfe/14203]
+6/19/13  [EDGcpfe/14203]
 Abort mode on aggregate initialization with missing braces
 
 In nonstrict C modes, the front allows the omission of braces on array
