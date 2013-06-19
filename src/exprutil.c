@@ -16764,7 +16764,7 @@ from being re-introduced once lowering has eliminated it).
             if (!op2_possible &&
                 skip_parens(op2)->kind == (an_expr_node_kind)enk_throw) {
               op2_is_throw = TRUE;
-              op2_possible = TRUE;
+              if (!gpp_mode) op2_possible = TRUE;
             }  /* if */
             (void)conv_prvalue_expr_to_lvalue(op3, &op3_possible,
                                               /*see_if_possible=*/TRUE,
@@ -16773,7 +16773,7 @@ from being re-introduced once lowering has eliminated it).
             if (!op3_possible &&
                 skip_parens(op3)->kind == (an_expr_node_kind)enk_throw) {
               op3_is_throw = TRUE;
-              op3_possible = TRUE;
+              if (!gpp_mode) op3_possible = TRUE;
             }  /* if */
             possible = (op2_possible && op3_possible);
           } else {
