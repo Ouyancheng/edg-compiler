@@ -1,5 +1,17 @@
 Version 5.0
 
+6/19/13  [EDGcpfe/14199]
+Unbounded loop on Microsoft mode typedef
+
+In Microsoft mode, the size_t type is predeclared.  A typedef for size_t can
+be created that uses the former declaration; for example:
+
+  typedef size_t size_t;
+
+However, that previously resulted in a circular type graph, which in turn
+resulted in an unbounded loop.  This is now fixed.
+
+
 6/19/13  [EDGcpfe/14203]
 Abort mode on aggregate initialization with missing braces
 

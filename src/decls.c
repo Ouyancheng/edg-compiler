@@ -10276,14 +10276,25 @@ symbol entry, and return a pointer to it in state->sym.
 #if MICROSOFT_EXTENSIONS_ALLOWED
           if (microsoft_mode && sym == predeclared_size_t_symbol &&
               !sym->defined) {
+            a_type_ptr  size_t_type = sym->variant.type.ptr;
+            check_assertion(type_is_typedef(size_t_type));
             /* This is a redeclaration of the predeclared symbol for size_t.
                We know it's the first explicit declaration because the defined
                flag is not set. */
             ref_kind |= SRK_DEFINITION;
             /* Retain the underlying type specified in this declaration
-               because it may include the __w64 annotation. */
-            check_assertion(type_is_typedef(sym->variant.type.ptr));
-            sym->variant.type.ptr->variant.typeref.type = type_ptr;
+               because it may include the __w64 annotation, but beware of
+               loops introduced by something like "typedef size_t size_t;". */
+            tp = type_ptr;
+            while (tp->kind == (a_type_kind)tk_typeref) {
+              if (same_entities(tp, size_t_type)) {
+                /* Prevent a loop by using the underlying type directly. */
+                state->type = type_ptr = tp->variant.typeref.type;
+                break;
+              }  /* if */
+              tp = tp->variant.typeref.type;
+            }  /* while */
+            size_t_type->variant.typeref.type = type_ptr;
           } else
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
           if (C_mode()) {
