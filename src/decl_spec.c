@@ -554,8 +554,8 @@ of class_type.  err_pos is a pointer to a source position used for diagnostics.
   if (!C_mode()) {
     a_class_type_supplement_ptr  ctsp = class_type_supp(class_type);
     /* Record any C++-only declaration modifiers in the class type supplement.
-       (See also scan_extended_decl_modifiers and scan_declspec_attributes
-       which reject C++-only modifiers in C mode.) */
+       (See also scan_extended_decl_modifiers which rejects C++-only modifiers
+       in C mode.) */
 #if DECL_MODIFIERS_IN_USE
     a_decl_modifier  flags = extended_decl_info->decl_modifiers.flags;
 #endif /* DECL_MODIFIERS_IN_USE */
