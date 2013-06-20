@@ -6163,6 +6163,10 @@ have_result:
                                         /*is_explicit=*/FALSE);
     }  /* if */
   }  /* if */
+  if (is_constant_addr) {
+    /* Preserve the original expression. */
+    con->expr = expr;
+  }  /* if */
   return is_constant_addr;
 }  /* constant_glvalue_address_full */                                
 

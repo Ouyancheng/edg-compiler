@@ -1,5 +1,22 @@
 Version 5.0
 
+6/20/13  [EDGcpfe/14224]
+Assertion failure casting derived class reference to base class reference
+
+In configurations in which RECORD_BACKING_EXPRS_WITH_IL_LOWERING is set to
+TRUE, an attempt to cast a derived-class reference to a base-class reference
+could result in an assertion failure in add_base_class_casts.  This is now
+fixed.  For example:
+
+  struct B { };
+  struct D: B { };
+  D d;
+  D &dr = d;
+  void f() {
+    B &br = dr;  // Previously aborted
+  }
+
+
 6/20/13  [EDGcpfe/14168]
 C++11: User-defined conversions to std::nullptr_t and comparison operators
 
