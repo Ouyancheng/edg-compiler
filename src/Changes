@@ -1,5 +1,15 @@
 Version 5.0
 
+6/20/13  [EDGcpfe/14223]
+C++/CLI: Interface list processing from DLL
+
+When reading a DLL and parsing a list of interfaces for a managed type,
+in some cases a comma would be missing from the list, causing the resulting
+portable assembly to have spurious errors.  The Control and BindingSource
+types in the System.Windows.Forms.dll file had instances of this issue and
+are now fixed.
+
+
 6/20/13  [EDGcpfe/10300]
 Constant static data members
 

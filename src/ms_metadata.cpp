@@ -5268,13 +5268,13 @@ Decode the interface tokens (if there are any) and emit the appropriate text.
   ULONG    count_of_interfaces;
   HRESULT  hr;
 
+  bool is_first_interface = true;
   do {
     hr = import_interface()->EnumInterfaceImpls(&enum_interfaces,
                                                 token_, interfaces,
                                                 _countof(interfaces),
                                                 &count_of_interfaces);
     CHECK_API_RESULT(hr, EnumInterfaceImpls);
-    bool is_first_interface = true;
     for (ULONG i = 0; i < count_of_interfaces; ++i) {
       auto interface_type = type_from_token(interfaces[i]);
       bool skip_interface = false;
