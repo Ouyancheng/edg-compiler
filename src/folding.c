@@ -888,20 +888,21 @@ void fold_base_class_cast(a_constant        *constant_1,
                           an_error_code     *error_detected)
 /*
 Fold a C++ cast of a class pointer to a base class pointer.  constant_1 is
-an address of a class object.  It is converted to a pointer to the base
-class indicated by bcp and the new constant is returned in *result.
-qualifiers_model is a class type whose cv-qualification indicates
-the cv-qualification desired on the result (i.e., the result type is
-the base class type of bcp and the cv-qualifiers of qualifiers_model).
-result->type need not be set on entry.  Do access control on the cast
-if check_cast_access is TRUE.  Check for ambiguity on the cast if
-check_ambiguity is TRUE.  The cast is implicit if is_implicit_cast is
-TRUE.  The pointer is known to point to an object if is_object_pointer
-is TRUE.  If the operation cannot be folded, *did_not_fold is returned
-TRUE.  If there is an error, issue it at *err_pos.  If error_detected
-is non-NULL, set *error_detected to the code for any error detected,
-and do not issue the diagnostic, or set it to ec_no_error if there was
-no error.
+an address of a class object or an error constant.  In the former case, it
+is converted to a pointer to the base class indicated by bcp and the new
+constant is returned in *result.  qualifiers_model is a class type whose
+cv-qualification indicates the cv-qualification desired on the result
+(i.e., the result type is the base class type of bcp and the cv-qualifiers
+of qualifiers_model).  result->type need not be set on entry.  Do access
+control on the cast if check_cast_access is TRUE.  Check for ambiguity on
+the cast if check_ambiguity is TRUE.  The cast is implicit if
+is_implicit_cast is TRUE.  The pointer is known to point to an object if
+is_object_pointer is TRUE.  If the operation cannot be folded,
+*did_not_fold is returned TRUE.  If there is an error, issue it at
+*err_pos.  If error_detected is non-NULL, set *error_detected to the code
+for any error detected, and do not issue the diagnostic, or set it to
+ec_no_error if there was no error.  An error constant is (successfully)
+folded to another error constant.
 */
 {
   a_boolean             err;
@@ -929,6 +930,10 @@ no error.
   } else if (constant_1->kind == (a_constant_repr_kind)ck_template_param) {
     /* Can't fold a dependent case. */
     *did_not_fold = TRUE;
+  } else if (is_error_constant(constant_1)) {
+    /* An upstream error occurred.  Just propagate the error constant as
+       the result. */
+    set_error_constant(result);
   } else {
     an_expr_node_ptr expr = constant_1->expr;
     constant_1->expr = NULL;

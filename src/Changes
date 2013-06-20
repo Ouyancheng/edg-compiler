@@ -1,5 +1,23 @@
 Version 5.0
 
+6/20/13  [EDGcpfe/14221]
+Error recovery attempting to cast to a base class type
+
+The front end failed to recover from errors when casting to a pointer or
+reference to a base class type, leading to an assertion failure in
+get_pointer_offset.  This is now fixed.  For example:
+
+  template <class T, class U> void f(T x, U y) {
+    struct B : T, virtual U {
+      B(const T& x, const U& y) : T(x), U(y) {}
+    };
+    B b (x, static_cast<B&&>(y));  // Previously aborted casting x to T&
+  }
+  int main() {
+    f([]{}, []{});
+  }
+
+
 6/20/13  [EDGcpfe/13734]
 Microsoft C++ compatibility: __is_convertible_to(void, void)
 
