@@ -13852,17 +13852,18 @@ be returned for a C mode const variable.
     con_val = init->constant;
   } else if (var->source_corresp.is_class_member &&
              !var->is_member_constant &&
+             !cpp11_mode &&
              (strict_ansi_mode ||
               (var->is_template_static_data_member &&
                !gpp_mode))) {
     /* The variable is a static data member but it's not initialized within
-       the class (it might be initialized outside the class), so it's not
-       a constant.  The standard puts this requirement on all static data
-       members, but many compilers relax that for non-template static data
-       members.  g++ also allows template static data members. */
+       the class (it might be initialized outside the class).  This is not a
+       constant according to the C++03 standard, but C++11 changed that.  Many
+       C++03 compilers relax that for non-template static data members, and
+       g++ also allows template static data members. */
   } else if ((!C_mode() || allow_C_mode_const_var) &&
               is_potentially_constant_valued_variable(var)) {
-    if (gpp_mode &&
+    if ((gpp_mode || cpp11_mode) &&
         var->source_corresp.is_class_member &&
         var->is_template_static_data_member &&
         !var->is_member_constant &&
