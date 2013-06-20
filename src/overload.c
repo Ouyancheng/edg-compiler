@@ -1958,14 +1958,12 @@ Return a printable string describing a type code.
     case POINTER_TYPE_CODE:
       str = "pointer";
       break;
-#if MICROSOFT_EXTENSIONS_ALLOWED
     case HANDLE_TYPE_CODE:
       str = "handle";
       break;
     case HANDLE_TO_CLI_ARRAY_TYPE_CODE:
       str = "handle-to-CLI-array";
       break;
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     case POINTER_TO_OBJECT_TYPE_CODE:
       str = "pointer-to-object";
       break;
@@ -13712,6 +13710,7 @@ point to the character after the pattern.  Otherwise, return FALSE.
       case HANDLE_TYPE_CODE:
       case HANDLE_TO_CLI_ARRAY_TYPE_CODE:
         if (!cppcli_enabled) result = TRUE;
+        break;
       default:
         break;
     }  /* switch */
@@ -13821,14 +13820,12 @@ type_code.
     case NULLPTR_TYPE_CODE:
       builtin_types_allowed = BTK_NULLPTR_T;
       break;
-#if MICROSOFT_EXTENSIONS_ALLOWED
     case HANDLE_TYPE_CODE:
       builtin_types_allowed = BTK_HANDLE;
       break;
     case HANDLE_TO_CLI_ARRAY_TYPE_CODE:
       builtin_types_allowed = BTK_HANDLE_TO_CLI_ARRAY;
       break;
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     case POINTER_TO_OBJECT_TYPE_CODE:
       builtin_types_allowed = BTK_POINTER_TO_OBJECT;
       break;
