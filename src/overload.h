@@ -181,6 +181,8 @@ conversion_from_class_possible.
 #define BTK_HANDLE_TO_CLI_ARRAY 0x800
 			/* Handle to a CLI array type. */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+#define BTK_NULLPTR_T 0x1000
+			/* decltype(nullptr), aka. std::nullptr_t. */
 #define BTK_NONE 0
 typedef int a_builtin_type_kind_set;
 

@@ -1846,12 +1846,12 @@ for overload resolution.
 			/* Arithmetic type. */
 #define POINTER_TYPE_CODE 'P'
 			/* Any pointer type. */
-#if MICROSOFT_EXTENSIONS_ALLOWED
+#define NULLPTR_TYPE_CODE 'N'
+			/* decltype(nullptr), aka. std::nullptr_t. */
 #define HANDLE_TYPE_CODE 'H'
 			/* Any C++/CLI handle type. */
 #define HANDLE_TO_CLI_ARRAY_TYPE_CODE 'h'
 			/* C++/CLI handle to CLI array type. */
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #define POINTER_TO_OBJECT_TYPE_CODE 'O'
 			/* Pointer to object type. */
 #define POINTER_TO_FUNCTION_TYPE_CODE 'F'
@@ -1924,6 +1924,9 @@ the type set when the set indicates multiple types, return "built-in".
       result = "handle-to-CLI-array";
       break;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+    case BTK_NULLPTR_T:
+      result = "nullptr_t";
+      break;
     default:
       result = "built-in";
       break;
@@ -12555,7 +12558,9 @@ builtin_types.
       ((builtin_types & BTK_PTR_TO_MEMBER) &&
                              is_ptr_to_member_type(type)) ||
       ((builtin_types & BTK_PTRDIFF_T) &&
-                             is_ptrdiff_t_type(type))) {
+                             is_ptrdiff_t_type(type)) ||
+      ((builtin_types & BTK_NULLPTR_T) &&
+                             is_nullptr_type(type))) {
     in_set = TRUE;
   }  /* if */
   return in_set;
@@ -12684,6 +12689,11 @@ binding is to an rvalue reference.
     /* There's only one type in the BTK_PTRDIFF_T category, so make this a
        conversion to a specific type so that templates can be used. */
     dest_type = requested_type = integer_type(targ_ptrdiff_t_int_kind);
+    builtin_types_allowed = (a_builtin_type_kind_set)BTK_NONE;
+  } else if (builtin_types_allowed == BTK_NULLPTR_T) {
+    /* There's only one type in the BTK_NULLPTR_T category, so make this a
+       conversion to a specific type so that templates can be used. */
+    dest_type = requested_type = standard_nullptr_type();
     builtin_types_allowed = (a_builtin_type_kind_set)BTK_NONE;
   }  /* if */
   if (source_type != NULL) {
@@ -13581,50 +13591,25 @@ as its first operand.
       case onk_le:
       case onk_gt:
       case onk_ge:
-        /* Relational operators take arithmetic or pointer operands.
-           Also, if overloading on enums is enabled, matching enum types. */
+        /* Relational operators take arithmetic, enum, pointer, or nullptr
+           operands. */
         if (cfront_2_1_mode) {
           /* cfront 2.1 is confused and allows pointers to members on this
              case (they get rejected if chosen). */
-          operand_type_pattern = "AA;=PP;=MM";
-        } else if (microsoft_bugs &&
-                   microsoft_version < 1310) {
+          operand_type_pattern = "AA;=PP;=MM;=EE;NN";
+        } else if (microsoft_bugs && microsoft_version < 1310) {
           /* Microsoft considers only arithmetic types, not pointers.
              This is fixed in MSVC++ 7.1. */
-          if (operator_overloading_on_enums_enabled) {
-            /* MSVC++ 6.0 does seem not to have enums in the set (MSVC++ 7.0
-               does), but it has compensating bugs that make things act mostly
-               as if the enums were in the set, so we do that. */
-            operand_type_pattern = "AA;=EE";
-          } else {
-            operand_type_pattern = "AA";
-          }  /* if */
-        } else if (operator_overloading_on_enums_enabled) {
-          operand_type_pattern = "AA;=PP;=EE";
+          operand_type_pattern = "AA;=EE";
         } else {
-          operand_type_pattern = "AA;=PP";
+          operand_type_pattern = "AA;=PP;=EE;NN";
         }  /* if */
         break;
       case onk_eq:
       case onk_ne:
-        /* Equality operators take arithmetic, pointer, or pointer-to-member
-           operands.  Also, if overloading on enums is enabled, matching
-           enum types. */
-        /* MSVC++ 6.0 does seem not to have enums in the set (MSVC++ 7.0
-           does), but it has compensating bugs that make things act mostly
-           as if the enums were in the set, so we do that. */
-#if MICROSOFT_EXTENSIONS_ALLOWED
-        if (cppcli_enabled) {
-          /* C++/CLI allows handles too. */
-          operand_type_pattern = "AA;=PP;=MM;=EE;=HH";
-        } else
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-        /* Do not insert code here. */
-        if (operator_overloading_on_enums_enabled) {
-          operand_type_pattern = "AA;=PP;=MM;=EE";
-        } else {
-          operand_type_pattern = "AA;=PP;=MM";
-        }  /* if */
+        /* Equality operators take arithmetic, enum, pointer (and handle),
+           nullptr, or pointer-to-member operands. */
+        operand_type_pattern = "AA;=PP;NN;=MM;=EE:=HH";
         break;
       case onk_gnu_min:
       case onk_gnu_max:
@@ -13672,14 +13657,8 @@ as its first operand.
         /* "[]" takes pointer[ptrdiff_t] or ptrdiff_t[pointer]. */
         if (sun_mode) {
           operand_type_pattern = "OD";
-#if MICROSOFT_EXTENSIONS_ALLOWED
-        } else if (cppcli_enabled) {
-          /* C++/CLI allows handles to CLI arrays too (but we only allow
-             that on the first operand). */
-          operand_type_pattern = "OD;DO;hD";
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
         } else {
-          operand_type_pattern = "OD;DO";
+          operand_type_pattern = "OD;DO;hD";
         }  /* if */
         break;
       case onk_plus_plus:
@@ -13710,6 +13689,42 @@ as its first operand.
 }  /* operand_type_pattern_for_operator */
 
 
+static a_boolean skip_type_pattern_in_current_mode(char **p_pattern)
+/*
+*p_pattern points to a type pattern that is part of a pattern string returned
+by operand_type_pattern_for_operator).  If that pattern is not applicable in
+the current mode (e.g., because it requires a std::nullptr_t match in a mode
+that doesn't support std::nullptr_t) return NULL and update *p_pattern to
+point to the character after the pattern.  Otherwise, return FALSE.
+*/
+{
+  a_boolean  result = FALSE;
+  char       *p_code = *p_pattern;
+  
+  while (*p_code != ';' && *p_code != '\0') {
+    switch (*p_code) {
+      case ENUM_TYPE_CODE:
+        if (!operator_overloading_on_enums_enabled) result = TRUE;
+        break;
+      case NULLPTR_TYPE_CODE:
+        if (!nullptr_enabled) result = TRUE;
+        break;
+      case HANDLE_TYPE_CODE:
+      case HANDLE_TO_CLI_ARRAY_TYPE_CODE:
+        if (!cppcli_enabled) result = TRUE;
+      default:
+        break;
+    }  /* switch */
+    ++p_code;
+  }  /* while */
+  if (result) {
+    /* Skip the pattern. */
+    *p_pattern = p_code;
+  }  /* if */
+  return result;
+}  /* skip_type_pattern_in_current_mode */
+
+
 static a_boolean type_matches_type_code(a_type_ptr type,
                                         char       type_code)
 /*
@@ -13737,6 +13752,9 @@ it fits that type description or can be converted to it.
       break;
     case POINTER_TYPE_CODE:
       matches = is_pointer_type(type);
+      break;
+    case NULLPTR_TYPE_CODE:
+      matches = is_nullptr_type(type);
       break;
 #if MICROSOFT_EXTENSIONS_ALLOWED
     case HANDLE_TYPE_CODE:
@@ -13799,6 +13817,9 @@ type_code.
       break;
     case POINTER_TYPE_CODE:
       builtin_types_allowed = BTK_POINTER;
+      break;
+    case NULLPTR_TYPE_CODE:
+      builtin_types_allowed = BTK_NULLPTR_T;
       break;
 #if MICROSOFT_EXTENSIONS_ALLOWED
     case HANDLE_TYPE_CODE:
@@ -14847,6 +14868,9 @@ can be used, it is added to the candidate_functions list.
      types. */
   /* Loop for each ";"-separated pattern in the string. */
   do {
+    if (skip_type_pattern_in_current_mode(&operand_type_pattern)) {
+      continue;
+    }  /* if */
     if (operand_type_pattern[0] == CORRESP_TYPE_CODE) {
       /* This operator takes operands of corresponding types (e.g., two
          pointers that must match).  Use a special routine that
