@@ -6811,9 +6811,10 @@ constant will be set as well.
         /* Microsoft appears to treat a conversion to an array type as a
            conversion to an lvalue reference to that array type. */
         type2 = make_reference_type(type2);
-      } else if (is_void_type(type2) || is_function_type(type2)) {
-        /* Microsoft considers a conversion to void or to a function type to
-           fail. */
+      } else if (is_void_type(type2) &&
+                 (microsoft_version < 1800 || !is_void_type(type1))) {
+        /* Microsoft considers a conversion to void to fail, except that
+           MSVC++ 12 allows conversions from void to void. */
         result = FALSE;
         goto result_known;
       }  /* if */       

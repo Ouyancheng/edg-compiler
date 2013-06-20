@@ -1,5 +1,15 @@
 Version 5.0
 
+6/20/13  [EDGcpfe/13734]
+Microsoft C++ compatibility: __is_convertible_to(void, void)
+
+In Microsoft C++ mode with microsoft_version >= 1800, the result of the
+builtin-in type trait helper __is_convertible_to now produces "true" for two
+void types (including when such types are const/volatile qualified).  Other
+conversions to void types still produce "false" (contrary to the value implied
+by the standard).
+
+
 6/19/13  [EDGcpfe/14198]
 C++/CLI: Type of BeginInvoke/EndInvoke
 
