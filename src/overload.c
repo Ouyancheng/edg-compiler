@@ -13820,12 +13820,14 @@ type_code.
     case NULLPTR_TYPE_CODE:
       builtin_types_allowed = BTK_NULLPTR_T;
       break;
+#if MICROSOFT_EXTENSIONS_ALLOWED
     case HANDLE_TYPE_CODE:
       builtin_types_allowed = BTK_HANDLE;
       break;
     case HANDLE_TO_CLI_ARRAY_TYPE_CODE:
       builtin_types_allowed = BTK_HANDLE_TO_CLI_ARRAY;
       break;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     case POINTER_TO_OBJECT_TYPE_CODE:
       builtin_types_allowed = BTK_POINTER_TO_OBJECT;
       break;
