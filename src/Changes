@@ -1,5 +1,23 @@
 Version 5.0
 
+6/21/13  [EDGcpfe/14227]
+C++-generating back end, GNU C++ compatibility: static member function of
+class template as template argument
+
+g++ has a bug requiring that a qualified name be used when passing the
+address of a static member function of a class template as a template
+argument inside the definition of the class template.  The C++-generating
+back end has now been changed to work around this g++ bug by
+unconditionally putting out a qualified name in such contexts.  For
+example:
+
+  template <void(*)()> struct A;
+  template <typename T> struct B {
+    static void f();
+    typedef A<&B::f> Af;  // Previous generated as A<&f>, now A<&::B<T>::f>
+  };
+
+
 6/21/13  [EDGcpfe/14220]
 C++-generating back end: incorrect name references in partial specializations
 

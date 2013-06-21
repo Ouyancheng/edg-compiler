@@ -4043,9 +4043,19 @@ qualified is TRUE, force the generation of a qualified name.
       gen_unqualified_name(&rout->source_corresp, iek_routine);
     }  /* if */
   } else {
-    a_boolean saved_qualification_needed =
+    a_boolean  saved_qualification_needed =
                                      rout->source_corresp.qualification_needed;
-    if (qualified) {
+    a_type_ptr parent_class = parent_class_or_null(rout);
+    if (qualified ||
+        /* The following condition is a workaround for the fact that g++
+           has a bug requiring that a qualified name be used when the
+           address of a static member function is used as a non-type
+           template argument in the definition of a class template. */
+        (gcc_is_generated_code_target &&
+         octl.processing_nontype_template_argument &&
+         parent_class != NULL &&
+         parent_class->
+                      variant.class_struct_union.is_prototype_instantiation)) {
       rout->source_corresp.qualification_needed = TRUE;
     }  /* if */
     gen_routine_name(rout);
