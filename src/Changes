@@ -1,5 +1,29 @@
 Version 5.0
 
+6/21/13  [EDGcpfe/14229]
+std::bad_array_new_length mistakenly thrown in non-C++11 modes
+
+Throwing std::bad_array_new_length is a C++11 feature (see the Changes
+entry for EDGcpfe/13489) and code in lowering had mistakenly enabled
+throwing that exception in non-C++11 modes.  That is now fixed.
+For example, with -x, the following example had returned 0 and now returns 1:
+
+  #include <new>
+  void f(int i) {
+    new int[i];
+  }
+  int main() {
+    try {
+      f(-1);
+    } catch(std::bad_array_new_length) {
+      return 0;
+    } catch(...) {
+      return 1;
+    }
+    return 2;
+  }
+
+
 6/20/13  [EDGcpfe/14224]
 Assertion failure casting derived-class reference to base-class reference
 

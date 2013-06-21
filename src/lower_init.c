@@ -9656,7 +9656,7 @@ and its initialization put in insert_location).
                                            number_of_elements);
     }  /* if */
 #if RUNTIME_SUPPORTS_ARRAY_LENGTH_CHECK && ABI_COMPATIBILITY_VERSION >= 406
-    if (exceptions_enabled) {
+    if (exceptions_enabled && cpp11_mode) {
       /* Insert code to check, at run-time, that the number of elements
          has a valid value; throw std::bad_array_new_length otherwise. */
       insert_runtime_array_length_check(ndsp->dynamic_init,
