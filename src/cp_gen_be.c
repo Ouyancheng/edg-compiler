@@ -4918,8 +4918,12 @@ field designator.
              except with arrays where all the elements have the same type. */
           template_dependent_case = TRUE;
         }  /* if */
-        if (template_dependent_case) {
-          /* No constraints on the type: use the type of the constant. */
+        if (template_dependent_case /*||
+            (gpp_mode && in_prototype_instantiation_context())*/) {
+          /* No constraints on the type: use the type of the constant.  (Note
+             that in GNU C++ mode, even nondependent types allow for near-
+             arbitrary initializer structure if the initializer appears during
+             a prototype instantiation.) */
           sub_type = eff_sub_con->type;
         } else if (!array_case) {
           check_assertion_str(field != NULL,

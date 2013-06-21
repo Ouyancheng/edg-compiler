@@ -1,5 +1,25 @@
 Version 5.0
 
+6/21/13  [EDGcpfe/14228]
+C++-generating back end: Abort on initializer in template
+
+In GNU C++ mode, the front end does not attempt to match the structure of an
+initializer to that of a class type variable it initializes.  For example:
+
+  struct S { int i[2]; };
+  template<class T> void f() {
+    S s = { 1, 2 };  // Previously aborted in GNU C++ mode for certain
+  }                  // configurations.  Now okay.
+
+In GNU C++ mode, the initializer "{ 1, 2 }" in this example is not matched to
+type S, and therefore only has a single ck_aggregate constant (in other modes
+a ck_aggregate constant is constructed for S and another one for the embedded
+array).  In configurations with PROTOTYPE_INSTANTIATIONS_IN_IL set to TRUE,
+such situations could cause the C++-generating back end to abort with an
+internal error ("gen_initializer_constant: ran out of fields").  This is now
+fixed.
+
+
 6/21/13  [EDGcpfe/14227]
 C++-generating back end, GNU C++ compatibility: static member function of
 class template as template argument
