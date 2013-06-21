@@ -6163,7 +6163,7 @@ have_result:
                                         /*is_explicit=*/FALSE);
     }  /* if */
   }  /* if */
-  if (is_constant_addr) {
+  if (is_constant_addr && con->expr != NULL) {
     /* Preserve the original expression. */
     con->expr = expr;
   }  /* if */
