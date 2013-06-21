@@ -1,7 +1,7 @@
 Version 5.0
 
 6/20/13  [EDGcpfe/14224]
-Assertion failure casting derived class reference to base class reference
+Assertion failure casting derived-class reference to base-class reference
 
 In configurations in which RECORD_BACKING_EXPRS_WITH_IL_LOWERING is set to
 TRUE, an attempt to cast a derived-class reference to a base-class reference
