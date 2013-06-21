@@ -13574,6 +13574,7 @@ if is_lvalue is TRUE.  Return NULL if the expression cannot be generated.
 */
 {
   an_expr_node_ptr expr = NULL;
+  a_type_ptr       parent_class = parent_class_or_null(variable);
 
   if (curr_expr_kind_is_one_in_which_const_exprs_are_recorded()) {
     if (!in_file_scope(variable) &&
@@ -13590,6 +13591,12 @@ if is_lvalue is TRUE.  Return NULL if the expression cannot be generated.
     } else if (variable->is_compound_literal) {
       /* The constant for this variable is the variable's initializer, so
          avoid a circular reference by recording no expression. */
+    } else if (parent_class != NULL &&
+               parent_class->
+                       variant.class_struct_union.is_prototype_instantiation) {
+      /* This variable is a member of a prototype instantiation; do not
+         record an expression lest the variable be referred to outside
+         the prototype instantiation. */
     } else {
       expr = is_lvalue ? var_lvalue_expr(variable) : var_rvalue_expr(variable);
     }  /* if */

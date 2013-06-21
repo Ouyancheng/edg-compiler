@@ -1,5 +1,35 @@
 Version 5.0
 
+6/21/13  [EDGcpfe/14220]
+C++-generating back end: incorrect name references in partial specializations
+
+In configurations with PROTOTYPE_INSTANTIATIONS_IN_IL set to TRUE, under
+some circumstances a template argument appearing in one partial
+specialization could refer to a template parameter of a different partial
+specialization in the output of the C++-generating back end.  This is now
+fixed.  For example:
+
+  template<int> struct A;
+  template<char> struct B;
+
+  template<typename T, bool, bool> struct C { };
+
+  template<typename T, bool b> struct C<T, true, b> {
+    static constexpr char x = A<T::i>::v;
+    static constexpr char y = 100 / x;
+    typedef B<y> By;
+  };
+
+  template<typename T> struct C<T, false, false> {
+    static constexpr char x = A<T::i>::v;
+    static constexpr char y = 100 / x;
+    typedef B<y> By;  // template argument previously generated as
+                      // "100 / ::C< T, true, b> ::x", using the template
+                      // parameter "b" from the previous partial
+                      // specialization.
+  };
+
+
 6/21/13  [EDGcpfe/14229]
 std::bad_array_new_length mistakenly thrown in non-C++11 modes
 
