@@ -13336,13 +13336,14 @@ question_position and colon_position give the position of the "?" and ":".
       }  /* if */
 #if BACK_END_IS_CP_GEN_BE
     } else if (is_expression_operand(result)) {
-      /* Force the C++-generating back end to keep an implicit cast
-         at the top of this expression. */
+      /* Force the C++-generating back end to keep an implicit cast or a
+         reference indirection at the top of this expression. */
       an_expr_node_ptr expr = result->variant.expression;
       /* No skip_parens needed here; the implicit cast is on top of everything
          else because it's compiler-generated. */
       if (is_operation_node(expr) &&
           (is_cast_operation_node(expr) ||
+           node_operator_is(expr, eok_ref_indirect) ||
            expr->variant.operation.is_conversion_call) &&
           expr->variant.operation.compiler_generated) {
         expr->variant.operation.keep_cast_for_cp_gen_be = TRUE;

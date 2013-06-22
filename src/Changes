@@ -1,5 +1,24 @@
 Version 5.0
 
+6/21/13  [EDGcpfe/14230]
+C++-generating back end: lvalue-to-rvalue conversion with folded
+conditional expression
+
+In cases where a conditional expression has a constant first operand and is
+consequently folded to just the second or third operand and that operand
+has a reference type but the other operand is a prvalue or has a different
+type, the implicit type and lvalue-to-rvalue conversion of the selected
+operand could be lost in the code put out by the C++-generating back end.
+This has now been addressed by explicitly reflecting the lvalue-to-rvalue
+conversion as a cast of the selected operand to the prvalue type.  For
+example:
+
+  struct A {
+    operator int&();
+  };
+  int&& ir = true ? A() : 0;  // Previously generated as A(), now (int)A()
+
+
 6/21/13  [EDGcpfe/14228]
 C++-generating back end: Abort on initializer in template
 

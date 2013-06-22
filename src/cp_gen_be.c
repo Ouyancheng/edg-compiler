@@ -11197,6 +11197,20 @@ gen_expr that might end up generating this expr as a temporary.
        reference-producing expression directly.  (Do this here rather than
        in a case below to suppress parentheses around function calls that
        return references.) */
+    if (expr->variant.operation.keep_cast_for_cp_gen_be) {
+      /* The reference indirection is required to get the correct type for
+         the operand, so put out an explicit cast to the prvalue type.
+         This can occur when a conditional operator is folded, e.g.,
+             true ? x : 0
+         where x is a class type with a user-defined conversion to int&.
+         In the unfolded example, the conversion to int& and subsequent
+         lvalue-to-rvalue conversion would automatically be supplied, but
+         they are lost when the expression is folded to just the second
+         operand, and that can make a difference if the expression appears
+         in an overload resolution context. */
+      gen_cast(expr->type);
+      need_parens = TRUE;
+    }
     expr = expr->variant.operation.operands;
   }  /* if */
   switch (expr->kind) {
