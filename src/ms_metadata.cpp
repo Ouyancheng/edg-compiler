@@ -5267,8 +5267,8 @@ Decode the interface tokens (if there are any) and emit the appropriate text.
   mdToken  interfaces[8];
   ULONG    count_of_interfaces;
   HRESULT  hr;
+  bool     is_first_interface = true;
 
-  bool is_first_interface = true;
   do {
     hr = import_interface()->EnumInterfaceImpls(&enum_interfaces,
                                                 token_, interfaces,
