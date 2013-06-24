@@ -4023,8 +4023,6 @@ The given entity must be a variable, routine, type, or field.  Apply the
   check_assertion(entity_kind == iek_routine || entity_kind == iek_variable ||
                   entity_kind == iek_field || entity_kind == iek_type ||
                   entity_kind == iek_param_type);
-  /* Note that when the entity is a parameter type, the attribute is later
-     transferred to the corresponding parameter. */
   if (entity_kind == iek_type) {
     /* Only user-defined types can be deprecated. */
     a_type_ptr  tp = (a_type_ptr)entity;
@@ -4044,6 +4042,13 @@ The given entity must be a variable, routine, type, or field.  Apply the
                        &ap->position, ap->name);
         make_attr_unrecognized(ap);
       }  /* if */
+    }  /* if */
+  } else if (entity_kind == iek_param_type) {
+    /* Note that when the entity is a parameter type, the attribute is later
+       transferred to the corresponding parameter variable. */
+    if (microsoft_mode) {
+      /* Microsoft appears to accept and then discard the attribute. */
+      make_attr_unrecognized(ap);
     }  /* if */
   }  /* if */
   if (!is_unrecognized_attr(ap)) {
