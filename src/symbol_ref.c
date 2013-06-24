@@ -2613,6 +2613,9 @@ warnings).
   if (error_detected == NULL) {
     record_symbol_reference((SRK_REFERENCE | SRK_IMPLICIT), base_sym, pos,
                             /*update_il_entry=*/FALSE);
+  } else if (rp->is_deleted) {
+    /* Access checking didn't check for deleted functions. */
+    *error_detected = TRUE;
   }  /* if */
   if (scope_stack_top().in_field_initializer &&
       special_kind_is(rp, sfk_constructor) &&
