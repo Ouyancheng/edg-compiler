@@ -252,7 +252,7 @@ Dump the top "entries" of the scope stack (for debugging).
 
 #if EXTRA_SOURCE_POSITIONS_IN_IL
 
-static void db_source_range(a_source_range  *range)
+void db_source_range(a_source_range  *range)
 /*
 Dump the specified range.
 */

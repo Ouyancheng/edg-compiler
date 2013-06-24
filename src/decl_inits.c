@@ -4394,9 +4394,14 @@ returned set to TRUE.
 #if DEBUG
   if (debug_level >= 3 || db_flag_is_set("dump_init")) {
     if (!var_err) {
+      fputs("initializer for ", f_debug);
       db_variable(vp);
-      fputs(",\n", f_debug);
       db_initializer(vp, 2);
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+      fputs("  (initializer range: ", f_debug);
+      db_source_range(&vp->initializer_range);
+      fputs(")\n", f_debug);
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
     }  /* if */
   }  /* if */
 #endif /* DEBUG */

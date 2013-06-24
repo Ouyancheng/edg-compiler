@@ -2155,6 +2155,8 @@ extern void db_scope_stack(void);
 extern void db_top_of_scope_stack(int entries);
 
 #if EXTRA_SOURCE_POSITIONS_IN_IL
+extern void db_source_range(a_source_range *range);
+
 extern void db_decl_pos_info(a_symbol_ptr sym);
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
 
