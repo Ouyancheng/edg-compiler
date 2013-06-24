@@ -4096,8 +4096,8 @@ returned set to TRUE.
          the arg list for a constructor call is scanned, so bypass it
          explicitly. */
 #if EXTRA_SOURCE_POSITIONS_IN_IL
-      if (first_token == tok_rparen && decl_pos_block != NULL) {
-        decl_pos_block->var_init_range.end = pos_first_token;
+      if (curr_token == tok_rparen && decl_pos_block != NULL) {
+        decl_pos_block->var_init_range.end = end_pos_curr_token;
       }  /* if */
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
       remove_stop_token(tok_rparen);

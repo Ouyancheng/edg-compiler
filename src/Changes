@@ -1,5 +1,18 @@
 Version 5.0
 
+6/24/13  [EDGcpfe/14234]
+End position of parenthesized initializer
+
+In configurations with EXTRA_SOURCE_POSITIONS_IN_IL set to TRUE, the end
+position of a parenthesized initializer was often not recorded.  For example:
+
+  int main() {
+    int x(2);  // The position of the right parenthesis was not recorded
+  }            // in the a_variable entry.
+
+This is now fixed.
+
+
 6/21/13  [EDGcpfe/14230]
 C++-generating back end: lvalue-to-rvalue conversion with folded
 conditional expression
