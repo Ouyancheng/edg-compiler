@@ -171,8 +171,8 @@ Constant static data members
 
 C++11 changed the rule deciding when a const static data member can be used
 as a valid constant expression.  In C++03, the data member had to be
-initialized withing the class, but in C++11 that is no longer needed (this
-change was the resolution to Core issue 712).  The front end already
+initialized within the class, but in C++11 that is no longer needed (this
+change was the resolution to Core issue 721).  The front end already
 implemented this relaxation in nonstrict modes for non-template classes, but
 now it implements the change completely.  For example:
 
