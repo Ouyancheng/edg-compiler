@@ -11277,7 +11277,7 @@ gen_expr that might end up generating this expr as a temporary.
          in an overload resolution context. */
       gen_cast(expr->type);
       need_parens = TRUE;
-    }
+    }  /* if */
     expr = expr->variant.operation.operands;
   }  /* if */
   switch (expr->kind) {
