@@ -5585,14 +5585,17 @@ attribute to it and return the entity.
          is legal. */
       tp->variant.class_struct_union.is_transparent = TRUE;
     } else if (ap->syntactic_location !=
+                                (a_byte_attribute_location)al_prefix &&
+               (ap->syntactic_location !=
                                 (a_byte_attribute_location)al_declarator_id ||
-               !type_is_typedef(type) ||
-               is_incomplete_type(tp)) {
+                !type_is_typedef(type) ||
+                is_incomplete_type(tp))) {
       pos_warning(ec_transparent_attribute_ignored, &ap->position);
       make_attr_unrecognized(ap);
     } else {
       /* In the typedef case, the type has already been laid out and we can do
          the check now. */
+      check_assertion(type_is_typedef(type));
       if (check_transparent_union(tp, &ap->position)) {
         tp->variant.class_struct_union.is_transparent = TRUE;
       } else {

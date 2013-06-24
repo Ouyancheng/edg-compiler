@@ -1,5 +1,17 @@
 Version 5.0
 
+6/24/13  [EDGcpfe/14215]
+GNU compatibility: placement of transparent_union attribute
+
+The old attributes framework had allowed the transparent_union attribute to be
+specified as a specifier in a declaration.  That behavior is now restored.
+For example (with --gcc):
+
+  typedef __attribute__((transparent_union)) union {
+    int i;
+  } U;
+
+
 6/24/13  [EDGcpfe/14214]
 GNU compatibility: deprecated attribute on a parameter
 
