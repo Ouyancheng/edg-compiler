@@ -1,5 +1,18 @@
 Version 5.0
 
+6/24/13  [EDGcpfe/14214]
+GNU compatibility: deprecated attribute on a parameter
+
+As a result of the changes for the underlying attribute processing mechanism
+(see the 12/3/09 Changes entry), specifying the "deprecated" attribute on
+a parameter in GNU emulation mode had resulted in a spurious error and is now
+fixed.  For example (with --gcc):
+
+  int f(int p __attribute((deprecated))) {
+    return p;
+  }
+
+
 6/24/13  [EDGcpfe/14222]
 Deleted special member functions and C++11 SFINAE rules
 

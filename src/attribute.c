@@ -572,7 +572,7 @@ static an_attr_appl_descr known_attr_appl_table[(int)ak_last+1] = {
 #if GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED
   /* Nonstandard attributes available in both GNU and Microsoft
      configurations. */
-  { ak_deprecated, "t|c|e|r|v|d", apply_deprecated_attr },
+  { ak_deprecated, "t|p|c|e|r|v|d", apply_deprecated_attr },
 #if GNU_NAKED_ATTRIBUTE_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED
   { ak_naked, "r", apply_naked_attr },
 #endif /* GNU_NAKED_ATTRIBUTE_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED */
@@ -3411,6 +3411,11 @@ their syntactic location recorded as al_implicit.
         do_copy = TRUE;
         break;
 #endif /* GNU_EXTENSIONS_ALLOWED */
+#if GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED
+      case ak_deprecated:
+        do_copy = TRUE;
+        break;
+#endif /* GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED */
       default:
         do_copy = FALSE;
     }  /* switch */ /*lint !e764*/  /* Lint complains about there not being
@@ -3739,7 +3744,8 @@ static void check_carries_dependency_for_params(a_decl_parse_state_ptr  dps)
 Check constraints on the carries_dependency attribute specified on the
 parameters in the given declaration.  (This function is set up as an
 end-of-declaration callback when applying a carries_dependency attribute to
-a parameter.  So we know that the declaration involved a function declarator.)
+a parameter.  So we know that the declaration involved is a function
+declarator.)
 */
 { 
   if (total_errors != 0 && is_or_contains_error_type(dps->type)) {
@@ -4016,7 +4022,10 @@ The given entity must be a variable, routine, type, or field.  Apply the
 */
 {
   check_assertion(entity_kind == iek_routine || entity_kind == iek_variable ||
-                  entity_kind == iek_field || entity_kind == iek_type);
+                  entity_kind == iek_field || entity_kind == iek_type ||
+                  entity_kind == iek_param_type);
+  /* Note that when the entity is a parameter type, the attribute is later
+     transferred to the corresponding parameter. */
   if (entity_kind == iek_type) {
     /* Only user-defined types can be deprecated. */
     a_type_ptr  tp = (a_type_ptr)entity;
