@@ -13509,7 +13509,7 @@ recursively (and only the top level expression has had its xvalue converted).
     } else if (node_operator_is(expr, eok_dot_field)) {
       /* Can't take the address of a bit-field selection; drop the
          field selection. */
-      if (op1->is_lvalue) {
+      if (is_glvalue_node(op1)) {
         rewrite_discarded_lvalue_as_rvalue(op1);
       }  /* if */
       overwrite_node(expr, op1);
