@@ -4,7 +4,10 @@ Version 4.8
 Exception object not destroyed when an exception is thrown by placement new
 
 If an exception was thrown by the constructor invoked by a placement
-new operation, the exception object was not destroyed.  Now fixed.
+new operation, a variety of incorrect behavior could result.  This
+includes not destroying the exception object in the example below.
+Other possible behavior includes getting an internal error in the
+EH runtime, and rethrowing the incorrect object.  Now fixed.
   
   #include <stdio.h>
   #include <stdlib.h>
