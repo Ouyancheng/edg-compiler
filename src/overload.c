@@ -13699,6 +13699,9 @@ point to the character after the pattern.  Otherwise, return FALSE.
   a_boolean  result = FALSE;
   char       *p_code = *p_pattern;
   
+  /* Skip over characters in the type pattern (including a leading '=') and
+     note in result whether a character in the pattern doesn't apply in the
+     current mode. */
   while (*p_code != ';' && *p_code != '\0') {
     switch (*p_code) {
       case ENUM_TYPE_CODE:
