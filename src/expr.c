@@ -18407,10 +18407,7 @@ to an lvalue).
     if (is_an_lvalue(operand) ||
         is_a_function_designator(operand)) {
       /* Okay, the operand is already an lvalue. */
-    } else if (allow_rvalue) {
-      /* An rvalue is allowed for certain casts (to rvalue reference types,
-         and to const lvalue reference types). */
-    } else if (is_an_xvalue(operand)) {
+    } else if (allow_rvalue && is_an_xvalue(operand)) {
       /* An xvalue operand is okay as is. */
     } else if ((any_cfront_mode() || 
                 allow_nonconst_ref_anachronism) &&
@@ -18418,7 +18415,9 @@ to an lvalue).
       /* Allow a prvalue for certain anachronisms.  Convert the operand
          to an lvalue. */
       conv_class_prvalue_operand_to_lvalue(operand);
-    } else {
+    } else if (!allow_rvalue) {
+      /* An rvalue is allowed for certain casts (to rvalue reference types,
+         and to const lvalue reference types), but not in this case. */
       if (!is_error_operand(operand)) {
         error_in_operand(is_rvalue_reference_type(type_cast_to) ?
                                                      ec_expr_not_a_glvalue :
