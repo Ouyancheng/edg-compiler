@@ -4052,6 +4052,8 @@ The given entity must be a variable, routine, type, or field.  Apply the
     }  /* if */
   }  /* if */
   if (!is_unrecognized_attr(ap)) {
+    a_source_correspondence *scp = source_corresp_for_il_entry(entity,
+                                                               entity_kind);
     if (ap->arguments != NULL) {
       an_attribute_arg_ptr  aap = ap->arguments;
       a_constant_ptr        cp;
@@ -4066,9 +4068,8 @@ The given entity must be a variable, routine, type, or field.  Apply the
         /* Only Microsoft and GNU compilers of recent vintage allow an
            optional string argument. */
         report_bad_attribute_arg(aap, ap);
-      } else {
-        an_attribute_ptr  prev_ap = deprecation_arg_attr_for(
-                                            (a_source_correspondence*)entity);
+      } else if (scp != NULL) {
+        an_attribute_ptr  prev_ap = deprecation_arg_attr_for(scp);
         if (prev_ap != NULL) {
           if (!eq_constants(prev_ap->arguments->variant.constant, cp)) {
             /* Note that if multiple deprecated attributes were recorded,
@@ -4081,7 +4082,9 @@ The given entity must be a variable, routine, type, or field.  Apply the
         }  /* if */
       }  /* if */
     }  /* if */
-    ((a_source_correspondence*)entity)->is_deprecated = TRUE;
+    if (scp != NULL) {
+      scp->is_deprecated = TRUE;
+    }  /* if */
   }  /* if */
   return entity;
 }  /* apply_deprecated_attr */
