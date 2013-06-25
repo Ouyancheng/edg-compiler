@@ -1,5 +1,22 @@
 Version 5.0
 
+6/25/13  [EDGcpfe/14246]
+C++-generating back end: range-based for generated incorrectly
+
+In configurations with MICROSOFT_EXTENSIONS_ALLOWED set to FALSE, the
+C++-generating back end put out a range-based for statement with an
+extraneous undeclared initializer for the index variable.  This is now
+fixed.  For example:
+
+  void f() {
+    int a[5] = { 1, 2, 3, 4, 5 };
+    for (int &x : a) {  // Previously generated as
+                        // "for (int &x = *__T12345678 : a)"
+      x *= 2;
+    }
+  }
+
+
 6/25/13  [EDGcpfe/13545]
 Rvalue references in exception specifications
 
