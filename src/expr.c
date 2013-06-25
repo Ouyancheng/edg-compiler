@@ -14851,9 +14851,11 @@ the deallocation and return a pointer to it.
   if (curr_expr_is_potentially_evaluated()) {
     /* Mark the routine as called. */
     delete_routine->called = TRUE;
-    record_end_of_lifetime_destruction(dyn_init_to_free_storage,
-                                       /*static_lifetime=*/FALSE,
-                                       /*block_lifetime=*/FALSE);
+    if (curr_expr_is_evaluated()) {
+      record_end_of_lifetime_destruction(dyn_init_to_free_storage,
+                                         /*static_lifetime=*/FALSE,
+                                         /*block_lifetime=*/FALSE);
+    }  /* if */
   }  /* if */
   return dyn_init_to_free_storage;
 }  /* f_make_dyn_init_for_deletion_for_throw */
@@ -14875,7 +14877,8 @@ as new_routine will always be NULL and array_new will always be FALSE.
    on a non-array new). */
 #define make_dyn_init_for_deletion_for_throw()                        \
 { if (delete_routine != NULL &&                                       \
-      (new_routine != NULL || array_new)) {                           \
+      (new_routine != NULL || array_new) &&                           \
+      !curr_expr_kind_is_const()) {                                   \
     dyn_init_to_free_storage =                                        \
       f_make_dyn_init_for_deletion_for_throw(delete_routine, array_new); \
   }  /* if */                                                         \
