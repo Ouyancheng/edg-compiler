@@ -7484,7 +7484,8 @@ for use in generating cross-reference output describing this declaration.
   a_decl_modifiers_block_ptr
                            decl_modifiers = &dps->decl_modifiers;
 #endif /* DECL_MODIFIERS_IN_USE || BACK_END_IS_CP_GEN_BE || ... */
-  a_source_position        prev_pos, saved_pos;
+  a_source_position        prev_pos;
+  a_boolean                update_sym_pos = FALSE;
 
   db_enter(3, "decl_routine");
   *old_type = NULL;
@@ -7740,13 +7741,13 @@ for use in generating cross-reference output describing this declaration.
 #endif /* GNU_EXTENSIONS_ALLOWED */
   }  /* if */
   if (redeclaration) {
+    prev_pos = linked_symbol->decl_position;
     if (linked_symbol->kind == (a_symbol_kind)sk_routine) {
       /* Linked symbol and new symbol are both routines.  The new declaration
          must be compatible with the old. */
       sym = linked_symbol;
       routine_ptr = linked_symbol->variant.routine.ptr;
       dps->prev_type = routine_ptr->type;
-      prev_pos = sym->decl_position;
       check_assertion_str(routine_ptr != NULL,
                           "decl_routine: linked symbol routine is missing");
       if (routine_has_been_defined(routine_ptr)
@@ -7939,8 +7940,9 @@ for use in generating cross-reference output describing this declaration.
                                               rtsp->exception_specification;
             /* The new declaration's position is treated as the primary
                position (and may no longer be in a system header). */
-            routine_ptr->source_corresp.decl_position = sym->decl_position =
+            routine_ptr->source_corresp.decl_position =
                                                      locator->source_position;
+            update_sym_pos = TRUE;
           }  /* if */
         }  /* if */
       }  /* if */
@@ -8426,7 +8428,6 @@ skip_overloading:;
       check_assertion_str2(routine_ptr->source_corresp.decl_position.seq == 0,
                            "decl_routine: compiler-generated function was",
                            "already assigned a position");
-      routine_ptr->compiler_generated = FALSE;
       /* Since the flag is cleared here, we're guaranteed that this is the
          first time we see the declaration in this translation unit. */
       dps->first_decl = TRUE;
@@ -8434,9 +8435,10 @@ skip_overloading:;
       /* Don't diagnose linkage mismatches either. */
       suppress_diagnostic = TRUE;
       /* Record the new source position, both in the symbol and in the
-         routine entry. */
-      sym->decl_position = locator->source_position;
-      routine_ptr->source_corresp.decl_position = sym->decl_position;
+         routine entry (but update the symbol position later, so redeclaration
+         diagnostics come out right in what follows). */
+      update_sym_pos = TRUE;
+      routine_ptr->source_corresp.decl_position = locator->source_position;
       /* Record the type of the latest declaration (which may have a different
          exception specification). */
       routine_ptr->type = type_ptr;
@@ -8675,6 +8677,13 @@ skip_overloading:;
                             dps->source_sequence_entry);
   reload_source_sequence_entry(dps);
   dps->sym = sym;
+  if (redeclaration && is_function_def) {
+    /* The call to record_symbol_declaration has updated the decl_position of
+       the symbol, but we may need the old position for diagnostic purposes
+       still. */
+    sym->decl_position = prev_pos;
+    update_sym_pos = TRUE;
+  }  /* if */
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   if (is_function_def || dps->first_decl) {
     update_decl_pos_info(&routine_ptr->source_corresp, decl_pos_block);
@@ -8717,17 +8726,20 @@ skip_overloading:;
     }  /* if */
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-  if (redeclaration) {
-    /* Temporarily restore the former declaration position in the routine's
-       symbol to make diagnostics come out right. */
-    saved_pos = sym->decl_position;
-    sym->decl_position = prev_pos;
-  }  /* if */
   update_routine_decl_modifiers(routine_ptr, decl_modifiers,
                                 &locator->source_position, redeclaration,
                                 is_function_def,
                                 (a_boolean)func_info->is_inline);
-  if (redeclaration) sym->decl_position = saved_pos;
+  if (update_sym_pos) {
+    /* The position recorded in the symbol was not updated until now so that
+       diagnostics would correctly refer to the prior declaration's position
+       if needed.  Similarly, the compiler_generated flag was left unchanged
+       until now to improve diagnostics. */
+    sym->decl_position = locator->source_position;
+    if (redeclaration && routine_ptr->compiler_generated) {
+      routine_ptr->compiler_generated = FALSE;
+    }  /* if */
+  }  /* if */
 #if GNU_EXTENSIONS_ALLOWED
   if (gnu_mode) {
     /* Record the assembly name. */

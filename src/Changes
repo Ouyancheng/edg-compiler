@@ -1,5 +1,21 @@
 Version 5.0
 
+6/25/13  [EDGcpfe/14239]
+Improved diagnostic on explicit declaration of predeclared function
+
+Some compatibility diagnostics on explicit declarations of predeclared
+functions referred to the explicit declaration itself as if it were the
+"prior" declaration.  For example, in Microsoft mode:
+
+  extern "C++" void __cdecl __debugbreak(void);  // (1)
+    // Previously triggered an error about the linkage specification being
+    // incompatible with the "previous" declaration, but the diagnostic
+    // pointed to line (1) for that "previous" declaration.
+
+This is now fixed: The diagnostic now clarifies that the incompatibility is
+with an implicit declaration.
+
+
 6/24/13  [EDGcpfe/14166]
 Spurious correspondence error when using complicated nonreal types
 
