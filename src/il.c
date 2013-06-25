@@ -15608,6 +15608,21 @@ options is a set of name lookup options.
             expr_copy = NULL;
             goto end_of_routine;
           }  /* if */
+        } else if (dip->kind == (a_dynamic_init_kind)dik_constant) {
+          /* Even with new-style SFINAE, a cast to an rvalue reference can
+             create a temporary initialized with a constant.  Use the
+             underlying constant. */
+          check_assertion(is_generated_dynamic_init(dip));
+          *alloc_con = copy_template_param_con(dip->variant.constant,
+                                               template_arg_list,
+                                               template_param_list,
+                                               guide_type,
+                                               source_pos,
+                                               options,
+                                               copy_error,
+                                               ctws_state,
+                                               constant);
+          goto end_of_routine;
         }  /* if */
       }
       *copy_error = TRUE;

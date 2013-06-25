@@ -4126,6 +4126,12 @@ that has it.
       a_dynamic_init_ptr dip = expr->variant.init.dynamic_init;
       /* Explicit casts are retained. */
       if (!is_generated_dynamic_init(dip)) goto end_of_loop;
+      /* Constant dynamic inits can't be stripped because there's no underlying
+         expression to return. */
+      if (dip->kind == (a_dynamic_init_kind)dik_constant) {
+        check_assertion(expr->rescan_info != NULL);
+        goto end_of_loop;
+      }  /* if */
       /* Anything else is implicit and stripped. */
       expr = arg_list_from_dyn_init(dip);
     } else {
