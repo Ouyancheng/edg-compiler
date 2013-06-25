@@ -16,7 +16,7 @@ This is now fixed: The diagnostic now clarifies that the incompatibility is
 with an implicit declaration.
 
 
-6/24/13  [EDGcpfe/14166]
+6/25/13  [EDGcpfe/14166]
 Spurious correspondence error when using complicated nonreal types
 
 When simultaneously compiling multiple translation units containing
