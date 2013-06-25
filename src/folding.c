@@ -6013,6 +6013,11 @@ handle_pm_field_selection:
               is_constant_addr = TRUE;
               copy_constant(&conaddr1, con);
               con->type = make_pointer_type(type_pointed_to(op1->type));
+              /* The backing expression of con, if any, is that of op1,
+                 designating the reference.  That is not consistent with a
+                 ck_address constant, which conceptually represents a
+                 pointer, so do not propagate the backing expression. */
+              con->expr = NULL;
             }  /* if */
             break;
           case eok_base_class_cast:
@@ -6162,10 +6167,6 @@ have_result:
       make_template_param_cast_constant(&local_constant, con, con->type,
                                         /*is_explicit=*/FALSE);
     }  /* if */
-  }  /* if */
-  if (is_constant_addr && con->expr != NULL) {
-    /* Preserve the original expression. */
-    con->expr = expr;
   }  /* if */
   return is_constant_addr;
 }  /* constant_glvalue_address_full */                                
