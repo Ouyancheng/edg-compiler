@@ -1267,6 +1267,14 @@ given position.
   type_name(&estp->type);
   if (is_error_type(estp->type)) {
     /* Nothing to be done. */
+  } else if (strict_ansi_mode && is_rvalue_reference_type(estp->type) &&
+             !is_template_param_type(type_pointed_to(estp->type))) {
+    /* A C++11 defect resolution (for Core issue 1267) made rvalue reference
+       types invalid in exception specifications, but other compilers appear
+       not to enforce this. */
+    pos_diagnostic(strict_ansi_discretionary_severity,
+                   ec_rvalue_reference_in_exception_specification, diag_pos);
+    estp->type = error_type();
   }  else if (exceptions_enabled && !microsoft_mode &&
               !ignoring_exception_spec) {
     /* Check the type to be sure it's not an incomplete type or a pointer

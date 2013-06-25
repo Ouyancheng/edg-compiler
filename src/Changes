@@ -1,5 +1,17 @@
 Version 5.0
 
+6/25/13  [EDGcpfe/13545]
+Rvalue references in exception specifications
+
+In strict mode, the front end now issues a discretionary error on rvalue
+reference types used as exception specification types.  For example:
+
+  void f() throw(int&&); // Now an error in strict C++11 mode.
+
+This corresponds to the resolution of the C++ standards committee's Core 
+issue 1267.
+
+
 6/25/13  [EDGcpfe/14239]
 Improved diagnostic on explicit declaration of predeclared function
 
