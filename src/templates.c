@@ -5876,7 +5876,7 @@ template template parameters compare unequal.
   } else if (sym1 != NULL && sym2 != NULL) {
     templ1 = sym1->variant.template_info->il_template_entry;
     templ2 = sym2->variant.template_info->il_template_entry;
-    result = same_entities(templ1, templ2);
+    result = corresponding_templates(templ1, templ2);
   }  /* if */
   return result;
 }  /* identical_templates_given_symbol */
