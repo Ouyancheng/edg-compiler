@@ -12678,7 +12678,7 @@ constant; otherwise, return NULL.
   } else if (init_kind == (an_init_kind)initk_dynamic &&
              init->dynamic->kind == (a_dynamic_init_kind)dik_constant) {
     /* The variable is dynamically initialized to a constant. */
-      con_val = init->dynamic->variant.constant;
+    con_val = init->dynamic->variant.constant;
   }  /* if */
   return con_val;
 }  /* initializer_constant */
