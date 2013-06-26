@@ -18089,6 +18089,7 @@ called only in C++ mode.
            direct-binding cases that were detected above and don't need to be
            processed in this routine. */
         a_boolean ambiguous;
+        *allow_rvalue_on_rewrite = binding_to_rvalue_allowed;
         template_case = FALSE;
         if (could_be_dependent_class_type(operand->type)) {
           /* A template parameter type could be a class type, so assume that
@@ -18932,7 +18933,11 @@ indicates which.
                                        operand_is_function(operand),
                                        operand_con, adj_type_cast_to,
                                        &reinterpret_semantics,
-                                       ec_bad_cast, &warning_suggested)) {
+                                       ec_bad_cast, &warning_suggested) &&
+               /* A cast to reference type rewritten as a reinterpret_cast
+                  can only have a glvalue as its operand, not a prvalue. */
+               !(cast_to_reference && reinterpret_semantics &&
+                 is_a_prvalue(operand))) {
             /* Valid explicit conversion. */
             /* Issue a warning on oddball cases. */
             if (warning_suggested != ec_no_error) {
