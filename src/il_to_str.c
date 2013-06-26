@@ -4877,15 +4877,9 @@ precedence confusion.  Do the output in the way described by octl.
 #endif /* CHECKING */
   } else if (constant_should_be_put_out_as_expr(constant) &&
              !octl->c_generating_back_end &&
-             !(octl->gen_compilable_code &&
-               octl->processing_nontype_template_argument) &&
              octl->output_expression != NULL) {
     /* An expression was recorded for this constant.  Output that expression
-       rather than the folded constant.  Avoid using the backing expression
-       in a non-type template argument, however; the C++-generating back
-       end handles cases directly where the backing expression can be used,
-       so if control has reached this point, the backing expression must be
-       avoided. */
+       rather than the folded constant. */
     octl->output_expression(constant->expr, !need_parens);
     goto done;
   } else {

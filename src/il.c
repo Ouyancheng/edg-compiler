@@ -6395,6 +6395,9 @@ definition of the CC flags in il.h for more information.
   a_type_ptr cp1_type = cp1->type, cp2_type = cp2->type;
   a_boolean  same_types;
   a_boolean  strictly_identical = (options & CC_STRICTLY_IDENTICAL) != 0;
+  a_boolean  strict_template_constant_identity =
+           strictly_identical ||
+           (options & CC_EXACT_TEMPLATE_CONSTANT_IDENTITY_MATCH_REQUIRED) != 0;
 
   if (cp1 == cp2) {
     eq = TRUE;
@@ -6664,12 +6667,14 @@ definition of the CC flags in il.h for more information.
                                     options);
               break;
             case tpck_member:
-              eq = equiv_template_constant_identity(cp1, cp2,
-                                                    strictly_identical);
+              eq = equiv_template_constant_identity(
+                                            cp1, cp2,
+                                            strict_template_constant_identity);
               break;
             case tpck_unknown_function:
-              if (equiv_template_constant_identity(cp1, cp2,
-                                                   strictly_identical) &&
+              if (equiv_template_constant_identity(
+                                          cp1, cp2,
+                                          strict_template_constant_identity) &&
                   (!strictly_identical ||
                    (cp1->variant.template_param.variant.
                                                    unknown_function.symbol ==

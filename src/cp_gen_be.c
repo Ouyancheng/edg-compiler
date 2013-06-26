@@ -429,6 +429,22 @@ static a_boolean
 		need_pragma_pack_restore;
 #endif /* USER_CONTROL_OF_STRUCT_PACKING */
 
+/*
+If e is an enk_constant node and the constant has an associated expression
+(backing expression or template parameter expression) that will be put out,
+return that expression; otherwise return e.
+*/
+#define assoc_expr_if_constant(e)                                            \
+  (is_constant_node(e) &&                                                    \
+   constant_should_be_put_out_as_expr((e)->variant.constant)) ?              \
+                                  (e)->variant.constant->expr :              \
+  (is_constant_node(e) &&                                                    \
+   (e)->variant.constant->kind == (a_constant_repr_kind)ck_template_param && \
+   (e)->variant.constant->variant.template_param.kind ==                     \
+                          (a_template_param_constant_kind)tpck_expression) ? \
+            (e)->variant.constant->variant.template_param.variant.expr : (e)
+
+
 /* Needed because of forward references: */
 static a_boolean is_default_dynamic_init(a_dynamic_init_ptr dip);
 static void gen_name(a_source_correspondence *scp,
@@ -1141,89 +1157,6 @@ are also considered to be on the stack.
   }  /* for */
   return class_in_stack;
 }  /* class_is_in_name_context_stack */
-
-
-#if PROTOTYPE_INSTANTIATIONS_IN_IL
-static void check_for_member_of_other_prototype_instantiation(
-                                    an_expr_node_ptr                    expr,
-                                    an_expr_or_stmt_traversal_block_ptr tblock)
-/*
-This routine is called by traverse_expr in a top-down traversal of an
-expression tree.  It stops the traversal and sets tblock->result to TRUE
-when it finds a node designating a member of a prototype instantiation that
-is not in the name context stack.
-*/
-{
-  a_type_ptr parent_class = NULL;
-
-  if (is_variable_node(expr)) {
-    parent_class = parent_class_or_null(expr->variant.variable);
-  } else if (is_routine_node(expr)) {
-    parent_class = parent_class_or_null(expr->variant.routine.ptr);
-  } else if (is_constant_node(expr) &&
-             expr->variant.constant->is_named_constant_definition) {
-    /* This node is something like an enumerator.  Check for the parent of
-       its type. */
-    parent_class = parent_class_or_null(expr->type);
-  }  /* if */
-  if (parent_class != NULL &&
-      parent_class->variant.class_struct_union.is_prototype_instantiation &&
-      !class_is_in_name_context_stack(parent_class,
-                                      /*include_base_classes=*/FALSE)) {
-    /* The entity designated by this node is a member of a prototype
-       instantiation and the reference occurs outside that class. */
-    tblock->result = TRUE;
-    tblock->terminate = TRUE;
-  }  /* if */
-}  /* check_for_member_of_other_prototype_instantiation */
-#endif /* PROTOTYPE_INSTANTIATIONS_IN_IL */
-
-static an_expr_node_ptr assoc_expr_if_constant(an_expr_node_ptr expr)
-/*
-If expr is an enk_constant node and the constant has an associated
-expression (backing expression or template parameter expression) that will
-be put out, return that expression; otherwise return expr.  As a special
-case, an enk_constant whose backing expression contains a reference to a
-member of a prototype instantiation that is not in the name context stack
-will be preserved to avoid referring to that member outside its prototype
-instantiation.
-*/
-{
-  an_expr_node_ptr assoc_expr = expr;
-
-  if (is_constant_node(expr)) {
-    if (constant_should_be_put_out_as_expr(expr->variant.constant)) {
-      assoc_expr = expr->variant.constant->expr;
-    } else if (expr->variant.constant->kind ==
-                                     (a_constant_repr_kind)ck_template_param &&
-               expr->variant.constant->variant.template_param.kind ==
-                             (a_template_param_constant_kind)tpck_expression) {
-      assoc_expr = expr->variant.constant->variant.template_param.variant.expr;
-    }  /* if */
-#if PROTOTYPE_INSTANTIATIONS_IN_IL
-    if (assoc_expr != expr && octl.processing_nontype_template_argument) {
-      /* Make sure the associated expression doesn't refer to a member of
-         a prototype instantiation that is no longer in the current
-         context.  This can occur in non-type template arguments, where
-         the constant is recorded for the first reference. */
-      an_expr_or_stmt_traversal_block tblock;
-      clear_expr_or_stmt_traversal_block(&tblock);
-      tblock.process_expr = check_for_member_of_other_prototype_instantiation;
-      /* Note that we do not set tblock.process_expressions_for_constants,
-         as we want to keep as much of a constant's backing expression as
-         possible, so if a nested constant has bad reference, we'll only
-         skip the nested constant's backing expression rather than the
-         entire top-level backing expression. */
-      traverse_expr(assoc_expr, &tblock);
-      if (tblock.result) {
-        /* We found a bad reference; use the original expression. */
-        assoc_expr = expr;
-      }  /* if */
-    }  /* if */
-#endif /* PROTOTYPE_INSTANTIATIONS_IN_IL */
-  }  /* if */
-  return assoc_expr;
-}  /* assoc_expr_if_constant */
 
 
 static a_boolean in_prototype_instantiation_context(void)

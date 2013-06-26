@@ -1342,6 +1342,9 @@ typedef int a_compare_constants_options_set;
 			/* TRUE if, when comparing template parameters of
 			   tpck_param kind, the coordinates are not
 			   required to match. */
+#define CC_EXACT_TEMPLATE_CONSTANT_IDENTITY_MATCH_REQUIRED 0x10
+			/* TRUE if, when comparing template constant
+			   identities, they must match exactly. */
 
 extern a_boolean compare_constants(a_constant_ptr                   cp1,
                                    a_constant_ptr                   cp2,
