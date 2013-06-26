@@ -1997,8 +1997,8 @@ af_alignas and the attribute name is "alignas".
 
   check_assertion(curr_token == tok_alignas);
   record_attribute_name(ap);
-  ap->kind = (an_attribute_kind)ak_align;
-  ap->syntactic_location = loc;
+  ap->kind = (a_byte_attribute_kind)ak_align;
+  ap->syntactic_location = (a_byte_attribute_location)loc;
   group_pos = pos_curr_token;
   /* Skip over "alignas". */
   (void)get_token();
@@ -2222,7 +2222,7 @@ doesn't apply to the entity on which it is specified.  The given attribute is
 turned into an ak_unrecognized attribute.
 */
 {
-  if (ap->family == (an_attribute_family)af_alignas) {
+  if (ap->family == (a_byte_attribute_family)af_alignas) {
     pos_diagnostic(sev, ec_wrong_entity_for_alignas, &ap->position);
   } else {
     pos_st_diagnostic(sev, ec_wrong_entity_for_attribute, &ap->position,
