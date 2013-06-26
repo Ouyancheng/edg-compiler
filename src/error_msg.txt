@@ -2513,7 +2513,7 @@ ec_lossy_conversion;;"conversion may change the value"
 ec_deprecated_string_conv;;"conversion from a string literal to \"char *\" is deprecated"
 ec_deprecated_string_conv_gen;;"conversion from a string literal to pointer-to-character (non-const) is deprecated"
 ec_override_and_final_is_cpp11;;"\"override\" and \"final\" are C++11 features"
-ec_rvalue_reference_in_exception_specification;;"rvalue references aren't allowed as exception specification types"
+ec_rvalue_reference_in_exception_specification;;"rvalue references are not allowed as exception specification types"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #
