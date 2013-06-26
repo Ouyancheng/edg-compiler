@@ -8428,7 +8428,7 @@ skip_overloading:;
       check_assertion_str2(routine_ptr->source_corresp.decl_position.seq == 0,
                            "decl_routine: compiler-generated function was",
                            "already assigned a position");
-      /* Since the flag is cleared here, we're guaranteed that this is the
+      /* Since the flag is cleared below, we're guaranteed that this is the
          first time we see the declaration in this translation unit. */
       dps->first_decl = TRUE;
       dps->first_decl_of_predeclared_entity = TRUE;
@@ -8453,8 +8453,7 @@ skip_overloading:;
       }  /* if */
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
 #if CHECKING
-      if (routine_ptr->special_kind ==
-                             (a_special_function_kind)sfk_operator) {
+      if (routine_ptr->special_kind == (a_special_function_kind)sfk_operator) {
         /* In C++/CLI, there are several compiler generated "+" operators
            (e.g. String concatenation) that can be hidden by user defined 
            versions. */
@@ -8736,7 +8735,7 @@ skip_overloading:;
        if needed.  Similarly, the compiler_generated flag was left unchanged
        until now to improve diagnostics. */
     sym->decl_position = locator->source_position;
-    if (redeclaration && routine_ptr->compiler_generated) {
+    if (dps->first_decl_of_predeclared_entity) {
       routine_ptr->compiler_generated = FALSE;
     }  /* if */
   }  /* if */
