@@ -79,8 +79,8 @@ Spurious correspondence error when using complicated nonreal types
 
 When simultaneously compiling multiple translation units containing
 declarations involving relatively complicated "nonreal types" (i.e., types
-expression using template parameters, such as "typename X<1, T>::Y" where T is
-a template parameter), the front end sometimes issue spurious correspondence
+expressed using template parameters, such as "typename X<1, T>::Y" where T is
+a template parameter), the front end sometimes issued spurious correspondence
 errors.  This was triggered by the failure of the front end to establish a
 correspondence relationship between templates involved in the expression of
 those nonreal types.  This problem -- which is believed to be rare in
