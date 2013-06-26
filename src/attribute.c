@@ -401,6 +401,7 @@ typedef struct an_attr_appl_descr {
 			       "x"  : external linkage
 			     "v"  : variables
 			       "a"  : automatic variables
+			       "h"  : exception handler parameter variable
 			       "l"  : local variables (automatic/static)
 			       "r"  : register variables
 			       "x"  : external linkage
@@ -2465,6 +2466,17 @@ attribute ap applied to the given variable matches those constraints.
           }  /* if */
         }  /* if */
         constr += 2;
+      } else if (constr[1] == 'h') {
+        /* Check for exception handler parameter variables. */
+        if (variable->is_handler_param) {
+          if (constr[0] == '-') {
+            err = ec_attr_disallows_handler_param;
+          }  /* if */
+        } else {
+          if (constr[0] == '+') {
+            err = ec_attr_requires_handler_param;
+          }  /* if */
+        }  /* if */
       } else if (constr[1] == 'l') {
         /* Check for local variables. */
         if (variable->source_corresp.is_local_to_function &&

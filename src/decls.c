@@ -12116,6 +12116,8 @@ a normal try.
   set_block_scope_handler(handler);
   set_stmt_source_position(handler->catch_position, *catch_pos);
   if (required_token(tok_lparen, ec_exp_lparen)) {
+    a_decl_parse_state  state;
+    init_decl_parse_state(&state);
 #if MICROSOFT_EXTENSIONS_ALLOWED
     if (struct_stmt_stack != NULL) {
       struct_stmt_stack[depth_stmt_stack].in_handler_parameter_declaration
@@ -12123,8 +12125,10 @@ a normal try.
     }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     decl_pos = pos_curr_token;
+    state.prefix_attributes = scan_attributes(al_prefix);
     if (curr_token == tok_ellipsis) {
       /* NULL parameter. */
+      disallow_attributes(&state.prefix_attributes);
       (void)get_token();
     } else {
       if (curr_token != tok_identifier &&
@@ -12135,9 +12139,7 @@ a normal try.
         set_to_error_locator(locator);
         remove_stop_token(tok_rparen);
       } else {
-        a_decl_parse_state  state;
-        a_decl_pos_block    decl_pos_block;
-        init_decl_parse_state(&state);
+        a_decl_pos_block  decl_pos_block;
         state.auto_type_allowed = FALSE;
         clear_decl_pos_block(&decl_pos_block);
         decl_specifiers((DSI_TYPE_SPECIFIER_ALLOWED |

@@ -1,5 +1,16 @@
 Version 5.0
 
+6/26/13  [EDGcpfe/13502]
+Prefix attributes on exception handler parameters
+
+The front end now accepts prefix attributes on exception handler parameters.
+For example:
+
+  void f() try {
+  } catch ([[]] int) {  // Now accepted in C++11 mode.
+  }
+
+
 6/26/13  [EDGcpfe/14216]
 Macro/variable to control gcc mode const variable feature
 
