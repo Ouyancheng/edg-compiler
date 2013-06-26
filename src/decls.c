@@ -7248,7 +7248,7 @@ use of).
   if (is_simple_function_symbol(dps->sym) &&
       !sym_is_class_or_namespace_member(dps->sym)) {
     a_routine_ptr  rp = dps->sym->variant.routine.ptr;
-    if (rp->implicit_alias && dps->sym->defined) {
+    if (rp->implicit_alias && dps->is_definition) {
       /* If a definition is seen after a declaration that was implicitly
          aliased, the alias is cleared. */
       rp->aliased_routine = NULL;
@@ -7484,7 +7484,6 @@ for use in generating cross-reference output describing this declaration.
   a_decl_modifiers_block_ptr
                            decl_modifiers = &dps->decl_modifiers;
 #endif /* DECL_MODIFIERS_IN_USE || BACK_END_IS_CP_GEN_BE || ... */
-  a_source_position        prev_pos;
   a_boolean                update_sym_pos = FALSE;
 
   db_enter(3, "decl_routine");
@@ -7741,7 +7740,6 @@ for use in generating cross-reference output describing this declaration.
 #endif /* GNU_EXTENSIONS_ALLOWED */
   }  /* if */
   if (redeclaration) {
-    prev_pos = linked_symbol->decl_position;
     if (linked_symbol->kind == (a_symbol_kind)sk_routine) {
       /* Linked symbol and new symbol are both routines.  The new declaration
          must be compatible with the old. */
@@ -8669,20 +8667,7 @@ skip_overloading:;
     check_for_conflicts_with_using_decls(overload_symbol,
                                          &locator->source_position);
   }  /* if */
-  /* If cross-reference information is being issued, update the output.  If
-     source sequence entries are being generated, update the source sequence
-     entry. */
-  record_symbol_declaration(srk_flags, sym, &locator->source_position,
-                            dps->source_sequence_entry);
-  reload_source_sequence_entry(dps);
   dps->sym = sym;
-  if (redeclaration && is_function_def) {
-    /* The call to record_symbol_declaration has updated the decl_position of
-       the symbol, but we may need the old position for diagnostic purposes
-       still. */
-    sym->decl_position = prev_pos;
-    update_sym_pos = TRUE;
-  }  /* if */
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   if (is_function_def || dps->first_decl) {
     update_decl_pos_info(&routine_ptr->source_corresp, decl_pos_block);
@@ -8778,6 +8763,12 @@ skip_overloading:;
     check_assertion(!is_friend_decl || locator->is_error);
     routine_ptr->defined_outside_of_parent = TRUE;
   }  /* if */
+  /* If cross-reference information is being issued, update the output.  If
+     source sequence entries are being generated, update the source sequence
+     entry. */
+  record_symbol_declaration(srk_flags, sym, &locator->source_position,
+                            dps->source_sequence_entry);
+  reload_source_sequence_entry(dps);
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   /* Do fixup on the source sequence entry that was just created to
      represent the current declaration.  Note that declaration_ssep is not
