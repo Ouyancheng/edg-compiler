@@ -1,5 +1,18 @@
 Version 5.0
 
+6/26/13  [EDGcpfe/8527]
+C++11: alignas and alignof
+
+In C++11, the front end now accept alignas(...) as an alignment specifier
+(equivalent to the draft-standard [[align(...)]] attribute; see the entry
+of 12/3/09 for EDGcpfe/8293) and alignof(...) to query the alignment of a
+type (similar to the existing __alignof__ extension, but permitting only a
+type name as the argument; not an expression).  For example:
+
+  struct alignas(16) S {};
+  static_assert(alignof(S) == 16, "Error");
+
+
 6/26/13  [EDGcpfe/13502]
 Prefix attributes on exception handler parameters
 

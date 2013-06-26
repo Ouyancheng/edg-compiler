@@ -1981,6 +1981,36 @@ location in which the group appears.
 }  /* scan_std_attribute_group */
 
 
+static an_attribute_ptr scan_alignas_construct(an_attribute_location  loc)
+/*
+Scan either
+  alignas ( type-id ...opt )
+or
+  alignas ( constant-expr ...opt )
+and return an attribute description that is equivalent to that of the
+corresponding [[ align(...) ]] construct, except that the attribute family is
+af_alignas and the attribute name is "alignas".
+*/
+{
+  an_attribute_ptr   ap = make_attribute((an_attribute_family)af_alignas);
+  a_source_position  group_pos;
+
+  check_assertion(curr_token == tok_alignas);
+  record_attribute_name(ap);
+  ap->kind = (an_attribute_kind)ak_align;
+  ap->syntactic_location = loc;
+  group_pos = pos_curr_token;
+  /* Skip over "alignas". */
+  (void)get_token();
+  /* Use the general attribute argument scanning framework to scan a type or
+     constant. */
+  scan_attribute_args(ap, "(ct)");
+  make_attribute_group(ap, &group_pos);
+  attr_family_seen[ap->kind] |= 1 << ap->family;
+  return ap;
+}  /* scan_alignas_construct */
+
+
 static an_attribute_ptr scan_gnu_attribute_group(an_attribute_location  loc)
 /*
 Scan a GNU attribute group of the form
@@ -2079,6 +2109,9 @@ is made.
         /* Two brackets are next: Those must be introducing a standard
            attribute construct. */
         *p_attributes = scan_std_attribute_group((an_attribute_location)loc);
+        new_attr_seen = TRUE;
+      } else if (curr_token == tok_alignas) {
+        *p_attributes = scan_alignas_construct((an_attribute_location)loc);
         new_attr_seen = TRUE;
       } else if (curr_token == tok_attribute && gnu_attributes_enabled) {
         *p_attributes = scan_gnu_attribute_group((an_attribute_location)loc);
@@ -2189,8 +2222,12 @@ doesn't apply to the entity on which it is specified.  The given attribute is
 turned into an ak_unrecognized attribute.
 */
 {
-  pos_st_diagnostic(sev, ec_wrong_entity_for_attribute, &ap->position,
-                    ap->name);
+  if (ap->family == (an_attribute_family)af_alignas) {
+    pos_diagnostic(sev, ec_wrong_entity_for_alignas, &ap->position);
+  } else {
+    pos_st_diagnostic(sev, ec_wrong_entity_for_attribute, &ap->position,
+                      ap->name);
+  }  /* if */
   make_attr_unrecognized(ap);
 }  /* report_bad_attribute_target */
 
@@ -3579,8 +3616,10 @@ return that entity.
 {
 #if USER_CONTROL_OF_STRUCT_PACKING
   char  *constr;
+  a_boolean  std_specifier = ap->family == (a_byte_attribute_family)af_std ||
+                             ap->family == (a_byte_attribute_family)af_alignas;
 
-  if (ap->family == (a_byte_attribute_family)af_std) {
+  if (std_specifier) {
     constr = "c|e|v:-r!|d:-b!";
   } else if (ap->family == (a_byte_attribute_family)af_gnu) {
     /* GCC allows types and bit fields to have a user-specified alignment. */
@@ -3614,7 +3653,7 @@ return that entity.
       alignment = targ_maximum_intrinsic_alignment;
     } else if (aap->kind == (an_attribute_arg_kind)aak_type) {
       a_type_ptr  tp = aap->variant.type;
-      check_assertion(ap->family == (a_byte_attribute_family)af_std);
+      check_assertion(std_specifier);
       /* For references and/or arrays, use the underlying type. */
       if (is_any_reference_type(tp)) tp = type_pointed_to(tp);
       if (is_array_type(tp)) tp = underlying_array_element_type(tp);
@@ -3657,7 +3696,7 @@ return that entity.
       /* Nothing more to do. */
     } else if (entity_kind == iek_field) {
       a_field_ptr  fp = (a_field_ptr)entity;
-      if (ap->family == (a_byte_attribute_family)af_std) {
+      if (std_specifier) {
         if (field_alignment_for(fp->type) > alignment) {
           pos_error(ec_invalid_alignment_reducing_attr, &aap->position);
           make_attr_unrecognized(ap);
@@ -3681,7 +3720,7 @@ return that entity.
         /* GCC retains the "last" applied alignment.  Declarator attributes
            are applied before prefix attributes. */
         vp->alignment = alignment;
-      } else if (ap->family == (a_byte_attribute_family)af_std) {
+      } else if (std_specifier) {
         check_assertion(dps != NULL);
         if (alignment > dps->alignment) {
           /* The actual recording of the alignment in the variable entry will

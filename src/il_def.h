@@ -1226,6 +1226,7 @@ typedef enum /*a_token_kind*/ {
   tok_is_final,
   tok_noexcept,
   tok_constexpr,
+  tok_alignas,
 #if GNU_EXTENSIONS_ALLOWED
   /* g++ variadic type operators. */
   tok_bases,
@@ -1379,6 +1380,7 @@ EXTERN char	*token_names[(int)tok_last+1]
    "override", "final", "__is_final",
    "noexcept",
    "constexpr",
+   "alignas",
 #if GNU_EXTENSIONS_ALLOWED
    "__bases",
    "__direct_bases",
@@ -2153,6 +2155,7 @@ typedef enum an_attribute_family_tag {
 			   compilers, including Sun's.) */
   af_ms_declspec,	/* An attribute specified using the Microsoft
 			   __declspec construct. */
+  af_alignas,		/* The C++11 attribute-like construct "alignas". */
   af_last		/*lint -esym(769,an_attribute_family_tag::af_last)*/
 } an_attribute_family;
 
@@ -2239,7 +2242,8 @@ typedef enum an_attribute_kind_tag {
 
   /* Standard attributes (some of which also have GNU and/or Microsoft
      variants). */
-  ak_align,		/* "align" (std, ms) or "aligned" (gnu). */
+  ak_align,		/* "align" (std, ms) or "aligned" (gnu).  Also used
+			   for the C++11 alignas construct. */
   ak_base_check,	/* "base_check" (std). */
   ak_carries_dependency,
 			/* "carries_dependency" (std). */

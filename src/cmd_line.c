@@ -2795,6 +2795,8 @@ handling).
   list_init_enabled = value;
   field_initializers_enabled = value;
   std_attributes_enabled = value;
+  alignas_enabled = value;
+  alignof_enabled = value;
   alias_declarations_enabled = value;
   inline_namespaces_enabled = value;
   if (!option_kind_used[(int)optk_variadic_templates]) {
@@ -10044,6 +10046,8 @@ variables declared in cmd_line.h.
   variadic_templates_enabled = FALSE;
   inline_namespaces_enabled = FALSE;
   std_attributes_enabled = FALSE;
+  alignas_enabled = FALSE;
+  alignof_enabled = FALSE;
   gnu_attributes_enabled = FALSE;
   ms_declspec_attributes_enabled = FALSE;
   defaulted_special_members_enabled = FALSE;

@@ -1042,6 +1042,12 @@ Install the keywords in the symbol table.
     if (constexpr_enabled) {
       enter_keyword((a_token_kind)tok_constexpr, "constexpr");
     }  /* if */
+    if (alignas_enabled) {
+      enter_keyword((a_token_kind)tok_alignas, "alignas");
+    }  /* if */
+    if (alignof_enabled) {
+      enter_keyword((a_token_kind)tok_alignof, "alignof");
+    }  /* if */
   }  /* if */
   if (microsoft_mode && microsoft_version >= 1300) {
     /* The __wchar_t keyword is entered even when wchar_t_is_keyword is FALSE.

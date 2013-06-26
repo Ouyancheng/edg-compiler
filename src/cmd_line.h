@@ -1170,6 +1170,17 @@ EXTERN a_boolean
 			   accepted. */
 
 EXTERN a_boolean
+		alignas_enabled;
+			/* TRUE if the C++11 attribute-like "alignas" construct
+			   is accepted. */
+
+EXTERN a_boolean
+		alignof_enabled;
+			/* TRUE if the C++11 "alignof" operator is accepted.
+			   (If FALSE, the alternative syntax __alignof remains
+			   valid.) */
+
+EXTERN a_boolean
 		inline_namespaces_enabled;
 			/* TRUE if C++11 inline namespaces are accepted.
 			   Note that when this is FALSE, g++ mode strong
