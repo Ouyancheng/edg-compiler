@@ -8668,11 +8668,6 @@ skip_overloading:;
                                          &locator->source_position);
   }  /* if */
   dps->sym = sym;
-#if EXTRA_SOURCE_POSITIONS_IN_IL
-  if (is_function_def || dps->first_decl) {
-    update_decl_pos_info(&routine_ptr->source_corresp, decl_pos_block);
-  }  /* if */
-#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   if (is_function_def && is_friend_decl) {
     /* Mark this function as defined in a friend declaration. */
     routine_ptr->defined_in_friend_decl = TRUE;
@@ -8769,6 +8764,11 @@ skip_overloading:;
   record_symbol_declaration(srk_flags, sym, &locator->source_position,
                             dps->source_sequence_entry);
   reload_source_sequence_entry(dps);
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+  if (is_function_def || dps->first_decl) {
+    update_decl_pos_info(&routine_ptr->source_corresp, decl_pos_block);
+  }  /* if */
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   /* Do fixup on the source sequence entry that was just created to
      represent the current declaration.  Note that declaration_ssep is not
