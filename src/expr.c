@@ -18346,6 +18346,7 @@ called only in C++ mode.
 static void set_up_cast_to_reference(a_type_ptr         type_cast_to,
                                      an_operand         *operand,
                                      a_boolean          allow_rvalue,
+                                     a_boolean          allow_xvalue,
                                      a_cast_source_form source_form,
                                      a_source_position  *type_position,
                                      a_type_ptr         *adj_type_cast_to,
@@ -18357,23 +18358,25 @@ processing on a cast to a reference type.  type_cast_to is the
 reference type; *operand is the operand of the cast; allow_rvalue is
 TRUE if an rvalue operand (including xvalue) should be allowed (e.g.,
 for a static_cast to a reference-to-const type, or a cast to an rvalue
-reference type); and source_form indicates the source form of the cast
-(e.g., static_cast).  *type_position indicates the source position of
-the type in the cast.  For template-dependent casts, this routine
-processes the cast by updating *operand and returns *processed set to
-TRUE.  Otherwise, *processed is returned FALSE and it's expected that
-the caller will validate the cast as the corresponding pointer cast
-(for example, (T &)x is equivalent to *(T*)&x); *adj_type_cast_to and
-*adj_operand_type are set to the appropriate types for the pointer
-version.  Verify that *operand is an lvalue if it's required to be,
-and issue an error if not (or, in some anachronism cases, convert it
-to an lvalue).
+reference type); allow_xvalue is TRUE if an xvalue operand should
+be allowed (even if allow_rvalue is FALSE); and source_form indicates
+the source form of the cast (e.g., static_cast).  *type_position
+indicates the source position of the type in the cast.  For
+template-dependent casts, this routine processes the cast by updating
+*operand and returns *processed set to TRUE.  Otherwise, *processed is
+returned FALSE and it's expected that the caller will validate the
+cast as the corresponding pointer cast (for example, (T &)x is
+equivalent to *(T*)&x); *adj_type_cast_to and *adj_operand_type are
+set to the appropriate types for the pointer version.  Verify that
+*operand is an lvalue if it's required to be, and issue an error if
+not (or, in some anachronism cases, convert it to an lvalue).
 */
 {
   a_type_ptr underlying_type_cast_to;
 
   *processed = FALSE;
   check_assertion(is_any_reference_type(type_cast_to));
+  if (allow_rvalue) allow_xvalue = TRUE;
   underlying_type_cast_to = type_pointed_to(type_cast_to);
   if (is_template_dependent_context() &&
       (is_template_dependent_type(type_cast_to) ||
@@ -18410,7 +18413,7 @@ to an lvalue).
     if (is_an_lvalue(operand) ||
         is_a_function_designator(operand)) {
       /* Okay, the operand is already an lvalue. */
-    } else if (allow_rvalue && is_an_xvalue(operand)) {
+    } else if (allow_xvalue && is_an_xvalue(operand)) {
       /* An xvalue operand is okay as is. */
     } else if ((any_cfront_mode() || 
                 allow_nonconst_ref_anachronism) &&
@@ -18422,9 +18425,8 @@ to an lvalue).
       /* An rvalue is allowed for certain casts (to rvalue reference types,
          and to const lvalue reference types), but not in this case. */
       if (!is_error_operand(operand)) {
-        error_in_operand(is_rvalue_reference_type(type_cast_to) ?
-                                                     ec_expr_not_a_glvalue :
-                                                     ec_expr_not_an_lvalue,
+        error_in_operand(allow_xvalue ? ec_expr_not_a_glvalue :
+                                        ec_expr_not_an_lvalue,
                          operand);
         *processed = TRUE;
       }  /* if */
@@ -18835,6 +18837,7 @@ indicates which.
            a conversion function, it should be. */
         set_up_cast_to_reference(type_cast_to, operand,
                                  allow_rvalue_on_rewrite,
+                                 /*allow_xvalue=*/FALSE,  /* Ignored. */
                                  source_form,
                                  type_position,
                                  &adj_type_cast_to,
@@ -19475,6 +19478,7 @@ if it's not valid).
          a conversion function, it should be. */
       set_up_cast_to_reference(type_cast_to, operand,
                                allow_rvalue_on_rewrite,
+                               /*allow_xvalue=*/FALSE,  /* Ignored. */
                                source_form,
                                type_position,
                                &adj_type_cast_to,
@@ -20026,8 +20030,11 @@ indication in *rcblock).
     if (cast_to_reference && !err) {
       /* Determine the types to be used for checking a reference cast
          if we pretend it has been rewritten as a pointer cast. */
+      /* g++ doesn't seem to allow xvalues as operands for a reference
+         cast.  (Checked with 4.8.) */
       set_up_cast_to_reference(type_cast_to, result,
                                /*allow_rvalue=*/FALSE,
+                               /*allow_xvalue=*/!gpp_mode,
                                csf_reinterpret_cast,
                                &type_position,
                                &adj_type_cast_to,
