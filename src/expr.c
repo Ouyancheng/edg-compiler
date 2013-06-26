@@ -18378,6 +18378,7 @@ not (or, in some anachronism cases, convert it to an lvalue).
   *processed = FALSE;
   check_assertion(is_any_reference_type(type_cast_to));
   if (allow_rvalue) allow_xvalue = TRUE;
+  if (!rvalue_references_enabled) allow_xvalue = FALSE;
   underlying_type_cast_to = type_pointed_to(type_cast_to);
   if (is_template_dependent_context() &&
       (is_template_dependent_type(type_cast_to) ||
