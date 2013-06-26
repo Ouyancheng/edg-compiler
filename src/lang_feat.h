@@ -2174,6 +2174,17 @@ compilers in Microsoft and GNU modes.
 #define DEFAULT_DEPRECATED_STRING_LITERAL_CONV_ALLOWED TRUE
 #endif /* ifndef DEFAULT_DEPRECATED_STRING_LITERAL_CONV_ALLOWED */
 
+/*
+Flag that is true if in gcc mode initialized const integral variables
+are usable as constants.  gcc allows that only when -O1 or above
+is specified, but by default we allow it always (since we don't have
+an option comparable to the -O option).  Note that the downside to
+always allowing it is that __builtin_constant_p will return TRUE
+for some expressions that gcc without -O1 would return FALSE for.
+*/
+#ifndef DEFAULT_GCC_CONST_VARIABLES_ALLOWED
+#define DEFAULT_GCC_CONST_VARIABLES_ALLOWED TRUE
+#endif /* ifndef DEFAULT_GCC_CONST_VARIABLES_ALLOWED */
 
 EXTERN a_boolean
 		cpp11_mode;
@@ -2274,6 +2285,12 @@ EXTERN a_boolean
 		deprecated_string_literal_conv_allowed;
 			/* When TRUE, the deprecated conversion from string
 			   literal to char * is allowed in C++ mode. */
+
+EXTERN a_boolean
+		gcc_const_variables_allowed;
+			/* When TRUE, gcc mode allows use of const integral
+			   variables as constants.  gcc allows this, but only
+			   with -O1. */
 
 /*
 Flag that determines the value of variadic_templates_enabled in C++ modes

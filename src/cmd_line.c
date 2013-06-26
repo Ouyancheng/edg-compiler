@@ -5030,6 +5030,11 @@ file.
 #else /* !defined(DEFAULT_FRIEND_INJECTION) */
   comment_undefined_macro_name(DEFAULT_FRIEND_INJECTION);
 #endif /* defined(DEFAULT_FRIEND_INJECTION) */
+#if defined(DEFAULT_GCC_CONST_VARIABLES_ALLOWED)
+  define_numeric_valued_macro(DEFAULT_GCC_CONST_VARIABLES_ALLOWED);
+#else /* !defined(DEFAULT_GCC_CONST_VARIABLES_ALLOWED) */
+  comment_undefined_macro_name(DEFAULT_GCC_CONST_VARIABLES_ALLOWED);
+#endif /* defined(DEFAULT_GCC_CONST_VARIABLES_ALLOWED) */
 #if defined(DEFAULT_GENERIC_ARITY_OVERLOAD_ALLOWED)
   define_numeric_valued_macro(DEFAULT_GENERIC_ARITY_OVERLOAD_ALLOWED);
 #else /* !defined(DEFAULT_GENERIC_ARITY_OVERLOAD_ALLOWED) */
@@ -10292,6 +10297,7 @@ variables declared in cmd_line.h.
   multiple_returns_allowed_in_implicit_return_type_lambda = FALSE;
   carriage_return_is_line_terminator = FALSE;
   warning_on_lossy_conversion = DEFAULT_WARNING_ON_LOSSY_CONVERSION;
+  gcc_const_variables_allowed = DEFAULT_GCC_CONST_VARIABLES_ALLOWED;
 }  /* cmd_line_static_var_init */
 
 

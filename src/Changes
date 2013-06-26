@@ -1,5 +1,34 @@
 Version 5.0
 
+6/26/13  [EDGcpfe/14216]
+Macro/variable to control gcc mode const variable feature
+
+gcc with -O1 allows the use of const variables in constant expressions
+in C mode (see EDGcpfe/10651).  We've allowed this unconditionally in
+gcc mode (because we do not have an equivalent of the -O option), with
+the rationale that it's harmless to accept more cases than gcc does.
+However, folding more cases can produce different results on uses
+of the __builtin_constant_p operator.  For example, the following
+compiled by gcc with -O1 will print that both cases are constant, but
+with -O0 will print that both are non-constant:
+
+  extern int printf(const char *, ...);
+  #define check_const(a) \
+  if (__builtin_constant_p(a)) printf(#a " is constant\n"); else \
+  printf(#a " is not constant\n");
+  const int ci=2;
+  int main() {
+    check_const(ci);
+    check_const(ci == 2);
+  }
+
+We've now added a macro DEFAULT_GCC_CONST_VARIABLES_ALLOWED and an
+associated variable gcc_const_variables_allowed, which default to
+TRUE, giving the same behavior as before (the -O1 behavior).
+Customers who do not want that behavior can change the setting of the
+macro to FALSE.
+
+
 6/25/13  [EDGcpfe/14246]
 C++-generating back end: range-based for generated incorrectly
 

@@ -18251,7 +18251,7 @@ cases so we don't do it here.
       check_assertion(is_expression_operand(operand));
       node = operand->variant.expression;
       check_assertion(is_glvalue_node(node));
-      if (gcc_mode &&
+      if (gcc_mode && gcc_const_variables_allowed &&
           (curr_expr_kind_is_const() ||
            (curr_expr_kind_is(ek_sizeof) &&
             expr_stack->favor_constant_result))) {
