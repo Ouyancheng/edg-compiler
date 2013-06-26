@@ -3926,6 +3926,11 @@ Display the indicated expression node.
     disp_boolean("is_non_normalized_boolean_controlling_expr", TRUE);
   }  /* if */
 #endif /* DO_IL_LOWERING */
+#if BACK_END_IS_CP_GEN_BE
+  if (ptr->keep_as_cast_for_cp_gen_be) {
+    disp_boolean("keep_as_cast_for_cp_gen_be", TRUE);
+  }  /* if */
+#endif /* BACK_END_IS_CP_GEN_BE */
   disp_name("kind");
   switch (ptr->kind) {
     case enk_error:
@@ -3979,9 +3984,6 @@ Display the indicated expression node.
 #if BACK_END_IS_CP_GEN_BE
       if (ptr->variant.operation.only_found_through_arg_dependent_lookup) {
         disp_boolean("only_found_through_arg_dependent_lookup", TRUE);
-      }  /* if */
-      if (ptr->variant.operation.keep_cast_for_cp_gen_be) {
-        disp_boolean("keep_cast_for_cp_gen_be", TRUE);
       }  /* if */
 #endif /* BACK_END_IS_CP_GEN_BE */
       if (ptr->variant.operation.call_uses_operator_syntax) {

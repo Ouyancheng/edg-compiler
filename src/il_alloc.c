@@ -2931,7 +2931,6 @@ fields to default values.
       node->variant.operation.call_with_qualified_function_name = FALSE;
 #if BACK_END_IS_CP_GEN_BE
       node->variant.operation.only_found_through_arg_dependent_lookup = FALSE;
-      node->variant.operation.keep_cast_for_cp_gen_be = FALSE;
 #endif /* BACK_END_IS_CP_GEN_BE */
       node->variant.operation.call_uses_operator_syntax = FALSE;
 #if GNU_EXTENSIONS_ALLOWED
@@ -3132,6 +3131,9 @@ its kind to the indicated kind.
 #if DO_IL_LOWERING
   node->is_non_normalized_boolean_controlling_expr = FALSE;
 #endif /* DO_IL_LOWERING */
+#if BACK_END_IS_CP_GEN_BE
+  node->keep_as_cast_for_cp_gen_be = FALSE;
+#endif /* BACK_END_IS_CP_GEN_BE */
 #if CENTERLINE_CHECKING
   node->avoid_codecenter_warnings = 0;
 #endif /* CENTERLINE_CHECKING */

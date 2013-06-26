@@ -8556,6 +8556,10 @@ in determining how to generate dynamic initializations).
         gen_cast(con->type);
         cast_added = TRUE;
       }  /* if */
+    } else if (expr->keep_as_cast_for_cp_gen_be) {
+      write_tok_ch('(');
+      gen_cast(expr->type);
+      cast_added = TRUE;
     }  /* if */
     gen_dynamic_init(dip, temp_type, expr,
                      /*avoid_top_level_comma=*/FALSE,
@@ -9089,7 +9093,7 @@ get to the expression that will appear, and return that.
            node_operator_is(node, eok_class_rvalue_adjust) ||
            node_operator_is(node, eok_unbox_lvalue) ||
            (is_cast_operation_node(node) &&
-            !node->variant.operation.keep_cast_for_cp_gen_be &&
+            !node->keep_as_cast_for_cp_gen_be &&
             !is_const_string_literal_cast(node)))))) {
       node = node->variant.operation.operands;
       node_changed = TRUE;
@@ -9182,7 +9186,7 @@ is_reinterpret_cast indicate it.
   } else if (is_cast_of_UDC_to_different_pointer_type(dest_type, operand_1)) {
     /* Ensure that a class object is not explicitly cast to a pointer type
        different from that of its conversion operator. */
-    operand_1->variant.operation.keep_cast_for_cp_gen_be = TRUE;
+    operand_1->keep_as_cast_for_cp_gen_be = TRUE;
   }  /* if */
   /* Skip any implicit steps for a base or derived class cast. */
   while (is_operation_node(operand_1) &&
@@ -9764,7 +9768,7 @@ normal way.
     a_type_ptr    bare_return_type = skip_typerefs(return_type);
     /* This is a call of a conversion function. */
     if (expr->variant.operation.compiler_generated &&
-        !expr->variant.operation.keep_cast_for_cp_gen_be) {
+        !expr->keep_as_cast_for_cp_gen_be) {
       /* This is an implicit conversion.  Put out just the operand. */
       gen_object_expr_for_implicit_call(operand_2,
                                         /*obj_expr_of_mfunc_operator=*/FALSE);
@@ -11264,7 +11268,7 @@ gen_expr that might end up generating this expr as a temporary.
        reference-producing expression directly.  (Do this here rather than
        in a case below to suppress parentheses around function calls that
        return references.) */
-    if (expr->variant.operation.keep_cast_for_cp_gen_be) {
+    if (expr->keep_as_cast_for_cp_gen_be) {
       /* The reference indirection is required to get the correct type for
          the operand, so put out an explicit cast to the prvalue type.
          This can occur when a conditional operator is folded, e.g.,
@@ -11399,7 +11403,7 @@ gen_expr that might end up generating this expr as a temporary.
              to "char *" explicit in case the underlying compiler does
              not allow that in this context. */
           if (expr->variant.operation.compiler_generated &&
-              !expr->variant.operation.keep_cast_for_cp_gen_be &&
+              !expr->keep_as_cast_for_cp_gen_be &&
               !is_const_string_literal_cast(expr)) {
             /* Normal implicit cast.  Just omit the cast. */
             a_boolean saved_suppress_cast_on_short_integral_const =
@@ -11451,7 +11455,7 @@ gen_expr that might end up generating this expr as a temporary.
           goto done_with_operation;
         case eok_lvalue_cast:
           if (!expr->variant.operation.compiler_generated ||
-              expr->variant.operation.keep_cast_for_cp_gen_be) {
+              expr->keep_as_cast_for_cp_gen_be) {
             gen_cast(expr->type);
           }  /* if */
           gen_expr(operand_1, /*need_parens=*/TRUE,
