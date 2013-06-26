@@ -4155,6 +4155,7 @@ al_id_equivalent attributes.
       break;
     case af_ms_declspec:
       write_tok_str("__declspec(");
+      break;
     case af_alignas:
       /* No group delimiter. */
       break;
