@@ -12571,12 +12571,9 @@ e.g., if the source operand is an lvalue.
         }  /* if */
         if (is_reference_cast) {
           mark_as_reference_cast(expr, orig_dest_type);
-          if (is_rvalue_reference_cast) {
-            expr->is_xvalue = TRUE;
-          } else {
-            expr->is_lvalue = TRUE;
-          }  /* if */
-        }  /* if */
+          expr->is_lvalue = TRUE;
+          /* The expression will be changed to an xvalue below. */
+         }  /* if */
       } else {
         /* Cast to a class type.  Use an enk_temp_init/dik_constructor. */
         a_dynamic_init_ptr dip;
@@ -12621,6 +12618,9 @@ e.g., if the source operand is an lvalue.
           unexpected_condition();
       }  /* switch */
       make_lvalue_or_rvalue_expression_operand(expr, operand);
+      if (is_rvalue_reference_cast) {
+        conv_rvalue_reference_result_to_xvalue(operand);
+      }  /* if */
       if (template_constant) {
         make_template_param_expr_constant_operand(operand);
       }  /* if */
