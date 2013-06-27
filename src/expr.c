@@ -11619,7 +11619,7 @@ id_case:
         goto general_case;
       }  /* if */
     } else if (is_constant_operand(operand) && is_a_prvalue(operand)) {
-      /* An id-expression resolving to an prvalue constant is an
+      /* An id-expression resolving to a prvalue constant is an
          enumeration constant, a reference to a template parameter that
          is mapped to a constant in a real instantiation, or something from
          a prototype instantiation.  The only lvalues represented in constant

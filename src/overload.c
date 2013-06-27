@@ -617,7 +617,7 @@ the address of an overloaded function.  (For completeness, ovl_sym
 can be a simple function or a template).  is_template_id is TRUE if ovl_sym
 is followed by an explicit template argument list, in which case
 template_arg_list gives the argument list.  The source is an lvalue
-(function designator) if source_is_lvalue is TRUE, an rvalue (pointer
+(function designator) if source_is_lvalue is TRUE, a prvalue (pointer
 or pointer to member) otherwise.  The indefinite function is being
 converted to a destination type dest_type.  If dest_type is a
 pointer, reference, or pointer-to-member type that could be a
@@ -2838,8 +2838,10 @@ copy-initialization).
     arg_type_qualifiers   = get_type_qualifiers(arg_type);
     /* See whether the reference can bind to an rvalue. */
     if (param_is_rvalue_reference) {
-      /* An rvalue reference can bind (only) to an rvalue. */
-      source_can_be_rvalue = TRUE;
+      /* An rvalue reference can bind (only) to an rvalue.  (But rvalue
+         references to functions bind to lvalues.) */
+      source_can_be_rvalue =
+                         is_reference_that_can_bind_to_rvalue(orig_param_type);
     } else if (any_cfront_mode() || allow_anachronisms) {
       /* A reference to non-const can bind to an rvalue in cfront mode
          or anachronisms mode. */
@@ -2936,7 +2938,7 @@ copy-initialization).
   /* Determine whether the argument is constant. */
   arg_operand_is_constant = FALSE;
   arg_operand_constant = NULL;
-  if (arg_operand != NULL && is_an_rvalue(arg_operand)) {
+  if (arg_operand != NULL && is_a_prvalue(arg_operand)) {
     /* For a constant argument, get the constant value. */
     arg_operand_is_constant = is_constant_operand(arg_operand);
     if (arg_operand_is_constant) {
@@ -3037,6 +3039,8 @@ copy-initialization).
          pointer, reference, or pointer-to-member type.  For the
          pointer and pointer-to-member cases, the operand can be a function
          designator or pointer to function; for the (non-const) reference
+         case it must be a function designator.  For an rvalue reference
+         to function parameter, the operand can be a function designator;
          case it must be a function designator.  For an rvalue reference
          parameter, only an rvalue pointer to function will do. */
       a_symbol_ptr chosen_function;
@@ -3171,10 +3175,10 @@ copy-initialization).
       if (param_is_reference) {
         /* This case falls under the reference standard conversions
            (ARM 4.7). */
-        /* The operand need not be forced to an rvalue. */
+        /* The operand need not be forced to a prvalue. */
         if (arg_operand != NULL) {
           arg_summary->conversion.result_is_a_glvalue =
-                                                     is_an_lvalue(arg_operand);
+                                                     is_a_glvalue(arg_operand);
         }  /* if */
       } else {
         /* This case falls under the aggregate initialization rules
@@ -3352,9 +3356,9 @@ copy-initialization).
       arg_summary->match_level = aml_std_conversion;
       arg_summary->conversion.std.cast_base_class = NULL;
       arg_summary->conversion.std.nontrivial_conversion = TRUE;
-      /* The operand need not be forced to an rvalue. */
+      /* The operand need not be forced to a prvalue. */
       if (arg_operand != NULL) {
-        arg_summary->conversion.result_is_a_glvalue= is_an_lvalue(arg_operand);
+        arg_summary->conversion.result_is_a_glvalue= is_a_glvalue(arg_operand);
       }  /* if */
       goto have_level;
     }  /* if */
@@ -9130,17 +9134,17 @@ type is to optimize base class casts and virtual function calls.
     complete_object_type = 
                          expr_complete_object_type(operand->variant.expression,
                                                    call_case);
-  } else if (is_an_lvalue(operand)) {
+  } else if (is_a_glvalue(operand)) {
     if (is_constant_operand(operand)) {
-      /* The only lvalue case that is a constant is a string literal. */
+      /* The only glvalue case that is a constant is a string literal. */
       if (operand_is_string_literal(operand)) {
         complete_object_type = operand->type;
       }  /* if */
     }  /* if */
   } else if (is_error_operand(operand)) {
     complete_object_type = NULL;
-  } else if (is_an_rvalue(operand)) {
-    /* For other rvalues (not in expression form), the complete object type
+  } else if (is_a_prvalue(operand)) {
+    /* For other prvalues (not in expression form), the complete object type
        is the operand type. */
     complete_object_type = operand->type;
   }  /* if */
@@ -9153,7 +9157,7 @@ static a_type_ptr pointer_operand_complete_object_type(an_operand *operand,
                                                        a_boolean  call_case)
 /*
 Return the type of the complete object that contains the location pointed to
-by operand (an rvalue), or NULL if no complete object type can be determined.
+by operand (a prvalue), or NULL if no complete object type can be determined.
 call_case is TRUE if the answer will be used to optimize a virtual function
 call.  NULL is always a safe answer; non-NULL values may permit optimizations.
 Note that "complete object" means an object that is not a base class of
@@ -9165,7 +9169,7 @@ can be a handle.
 {
   a_type_ptr complete_object_type = NULL;
 
-  check_assertion((is_an_rvalue(operand) &&
+  check_assertion((is_a_prvalue(operand) &&
                    (is_pointer_or_handle_type(operand->type) ||
                     is_template_param_type(operand->type) ||
                     is_error_type(operand->type))) ||
@@ -9361,11 +9365,11 @@ and address_taken.  When result_is_lvalue is TRUE (address_taken must be
 FALSE), the operand created is an lvalue for the function; this is used,
 for example, when a reference is bound to an overloaded function.  When
 result_is_lvalue is FALSE and address_taken is FALSE, the operand created
-is an rvalue address of the function suitable for use in calling the
+is a prvalue address of the function suitable for use in calling the
 function; the address is assumed not to escape, and the operand for a
 nonstatic member function is a pointer, not a pointer to member (weird,
 but that's what calls require).  When result_is_lvalue is FALSE and
-address_taken is TRUE, the operand created is an rvalue for the address of
+address_taken is TRUE, the operand created is a prvalue for the address of
 the function as would be created by the "&" operator; the address is
 assumed to escape (i.e., address_taken is set), and the operand for a
 nonstatic member function is a pointer to member.  operand can be NULL
@@ -9665,10 +9669,10 @@ TRUE if the operator is "->", FALSE if it is ".".
              current_mode_allows_dot_static_folding(stripped_selector_expr) &&
              !is_dependent_selection_first_operand(is_arrow_operator,
                                                    selector_expr)) {
-    /* In certain modes, produce a constant result for an rvalue.
+    /* In certain modes, produce a constant result for a prvalue.
        Note that only things like enumerator values are handled here.  Most
-       others stay as lvalues at this point and are converted to the constant
-       when lvalue-to-rvalue conversion is done. */
+       others stay as glvalues at this point and are converted to the constant
+       when glvalue-to-prvalue conversion is done. */
     /* Don't do this simplification for template-dependent cases, because
        we're going to need the left operand later to do substitution
        to find out what we really have.  We might find we have a nonstatic
@@ -10239,7 +10243,7 @@ reference is implicit if is_implicit is TRUE.  The source position of
 the operand is set to *position and its end position (if present) to
 *end_position.  The position in the expression, which exists when
 EXTRA_SOURCE_POSITIONS_IN_IL is TRUE, is set only when is_implicit is
-FALSE.  The result operand is an rvalue.  this_var is NULL if the
+FALSE.  The result operand is a prvalue.  this_var is NULL if the
 reference to "this" is within a prototype instantiation, where there is
 no "this" variable yet.  An enk_param_ref is used for the reference in
 that case, and this_type is used for the type.
@@ -10307,7 +10311,7 @@ a_boolean make_this_pointer_operand(
                                an_operand        *result)
 /*
 Make an operand for the "this" pointer of a C++ nonstatic member function.
-The operand made is an rvalue for the value of the pointer.  If we are not
+The operand made is a prvalue for the value of the pointer.  If we are not
 currently in a nonstatic member function, issue an error and return an
 error operand.  member_sym is the referenced member (possibly a projection
 symbol, but the presence or absence of a projection is ignored);
@@ -10449,10 +10453,10 @@ is not considered to match.  For "this" in a prototype instantiation
   an_expr_node_ptr operand_expr;
 
   if (p_this_var != NULL) *p_this_var = NULL;
-  if (is_an_rvalue(operand) && is_expression_operand(operand)) {
+  if (is_a_prvalue(operand) && is_expression_operand(operand)) {
     operand_expr = skip_parens(operand->variant.expression);
     if (is_variable_node(operand_expr)) {
-      /* The operand is an rvalue that is the value of a simple variable. */
+      /* The operand is a prvalue that is the value of a simple variable. */
       operand_var = operand_expr->variant.variable;
       if (variable_this_exists_full(&this_var, (a_type_ptr *)NULL,
                                     /*allow_lambda_this=*/FALSE,
@@ -11539,7 +11543,7 @@ next parameter.
          argument type is permitted (possibly with limitations imposed
          elsewhere in the front end), but the original argument must be
          preserved and hence promotions should not be applied. */
-      /* But we do convert from lvalue to rvalue. */
+      /* But we do convert from glvalue to prvalue. */
       do_operand_transformations(operand, TOPT_NO_OPTIONS);
     } else
 #endif /* GNU_EXTENSIONS_ALLOWED */
@@ -11632,7 +11636,7 @@ next parameter.
   } else {
     /* Normal prototyped parameter. */
     /* Check the argument for compatibility against the parameter,
-       casting it if necessary.  Also convert from lvalue to rvalue
+       casting it if necessary.  Also convert from glvalue to prvalue
        when appropriate. */
     operand = &local_operand;
     prep_argument(arg_list_elem, ptp,
@@ -12116,11 +12120,11 @@ operand as its selector object.  Change the type of references to the
 selector appropriately.
 */
 {
-  /* The selector's address is implicitly taken if it is a class lvalue.
-     (We don't mark a class rvalue as having its address taken, and
+  /* The selector's address is implicitly taken if it is a class glvalue.
+     (We don't mark a class prvalue as having its address taken, and
      if the selector is already a pointer its address has already been
      taken in a way that doesn't allow discrimination of const use.) */
-  if (is_an_lvalue(bound_function_selector)) {
+  if (is_a_glvalue(bound_function_selector)) {
     a_symbol_reference_kind ref_kinds = SRK_ADDRESS_TAKEN;
     a_routine_type_supplement_ptr
                             rtsp = routine_type->variant.routine.extra_info;
@@ -13427,18 +13431,18 @@ type conversion.  conv_context describes the context of the conversion.
 
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
-static a_type_ptr rvalue_return_type_of(a_type_ptr conv_func_type)
+static a_type_ptr prvalue_return_type_of(a_type_ptr conv_func_type)
 /*
 Return the return type of the conversion function with the indicated
-routine type, assuming that the value will be converted to an rvalue.
+routine type, assuming that the value will be converted to a prvalue.
 */
 {
   a_type_ptr return_type = return_type_of(conv_func_type);
-  /* Convert the type to an rvalue type. */
+  /* Convert the type to a prvalue type. */
   return_type = do_implicit_type_transformations(return_type,
                                                  (an_operand *)NULL);
   return return_type;
-}  /* rvalue_return_type_of */
+}  /* prvalue_return_type_of */
 
 
 static a_symbol_ptr find_conversion_function(
@@ -13459,7 +13463,7 @@ deal with differences like
   operator int();
 
 For which one needs to know the exact type of the operand to be converted.
-It also assumes that the converted value will be used as an rvalue.
+It also assumes that the converted value will be used as a prvalue.
 This routine is useful as a quick way of seeing whether or not a particular
 type appears on the list of conversion functions.
 */
@@ -13493,7 +13497,7 @@ type appears on the list of conversion functions.
     }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     conv_routine_type = routine_symbol_type(conversion_symbol);
-    return_type = rvalue_return_type_of(conv_routine_type);
+    return_type = prvalue_return_type_of(conv_routine_type);
     if (identical_types(dest_type, return_type)) {
       /* Found the required function. */
       goto end_of_search;
@@ -14233,7 +14237,7 @@ the target type to be used).
               arg_match->conversion.std.nontrivial_conversion = TRUE;
               arg_match->conversion.class_object_adjustment_required = TRUE;
             }  /* if */
-            arg_match->conversion.result_is_a_glvalue = is_an_lvalue(operand);
+            arg_match->conversion.result_is_a_glvalue = is_a_glvalue(operand);
           }  /* if */
         } else if (conversion_to_class_possible(
                                          operand,
@@ -14442,7 +14446,7 @@ of a previous non-class operand already considered.
        previous conversion function for the current operand class type.
        (For example, a conversion function returning int and one
        returning int & have the same effective type if we're looking
-       for an rvalue.) */
+       for a prvalue.) */
     previously_handled = TRUE;
   }  /* if */
   return previously_handled;
@@ -14582,7 +14586,7 @@ for the previous operand.
                                       fundamental_symbol_of(conversion_symbol);
             a_type_ptr   conv_routine_type =
                                    routine_symbol_type(base_conversion_symbol);
-            a_type_ptr   return_type= rvalue_return_type_of(conv_routine_type);
+            a_type_ptr   return_type=prvalue_return_type_of(conv_routine_type);
 #if MICROSOFT_EXTENSIONS_ALLOWED
             if (!conversion_function_converts_from_class(
                                 base_conversion_symbol->variant.routine.ptr)) {
@@ -14704,7 +14708,7 @@ in some way, e.g., two pointers that must have the same type.
           continue;
         }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-        return_type = rvalue_return_type_of(conv_routine_type);
+        return_type = prvalue_return_type_of(conv_routine_type);
         if (type_matches_type_code(return_type, *type_pattern_position)) {
           /* We've found a conversion function to an appropriate type.  Make
              sure it's not a type we've already checked while examining a
@@ -14915,7 +14919,7 @@ Now we have decided to actually do the conversion, and we have gotten to
 a point that uses conversion_possible to determine (again) whether or
 not the conversion can be done and how.  Since we already know that, we
 can skip the call of conversion_possible.  However, conversion_possible
-does some things (like conversion from lvalue to rvalue) that need to be
+does some things (like conversion from glvalue to prvalue) that need to be
 done anyway.  This routine is called instead of conversion_possible and
 does those things.
 */
@@ -14924,7 +14928,7 @@ does those things.
      transformations.  They are done (if needed) when processing the
      argument of the conversion routine. */
   if (conversion->routine == NULL) {
-    /* Convert lvalue --> rvalue, array --> pointer, and
+    /* Convert glvalue --> prvalue, array --> pointer, and
        function --> pointer. */
     do_operand_transformations(operand,
                                TOPT_SUPPRESS_CHECK_FOR_INDEFINITE_FUNCTION);
@@ -15073,7 +15077,7 @@ These adjustments are similar to standard conversions, but they're
 not standard conversions, so they get their own routine.  dest_type
 is the new type desired.  conversion->std.cast_base_class, if non-NULL,
 indicates the base class to be referred to.  On return, the operand
-is an rvalue or lvalue as required by conversion->result_is_a_glvalue.
+is a glvalue or prvalue as required by conversion->result_is_a_glvalue.
 */
 {
   if (conversion->class_object_adjustment_required) {
@@ -15081,7 +15085,7 @@ is an rvalue or lvalue as required by conversion->result_is_a_glvalue.
     adjust_class_object_type(operand, dest_type,
                              conversion->std.cast_base_class);
   }  /* if */
-  /* If an rvalue is wanted, convert to an rvalue. */
+  /* If a prvalue is wanted, convert to a prvalue. */
   if (!conversion->result_is_a_glvalue) {
     conv_glvalue_to_prvalue(operand);
   }  /* if */
@@ -16143,7 +16147,7 @@ no_applicable_operator_function:
               bound_function_selector = operand_of_arg_list_elem(arg_list);
               have_selector = TRUE;
               if (selector_is_object_pointer) {
-                /* Convert the handle to an rvalue. */
+                /* Convert the handle to a prvalue. */
                 do_operand_transformations(bound_function_selector,
                                            TOPT_NO_OPTIONS);
                 bound_function_selector->selector_is_object_pointer = TRUE;
@@ -16716,7 +16720,7 @@ error.  conv_context describes the context of the conversion.
         /* Watch out for the case where the source type's definition
            has been partially processed -- we know that the destination
            type is a base class, but the source class is still
-           incomplete, and one can't make an rvalue of an
+           incomplete, and one can't make a prvalue of an
            incomplete type. */
         /* instantiate_template_class need not be called here, because
            find_base_class_of has that effect. */
@@ -16986,7 +16990,7 @@ error and set *processed to TRUE if the conversion is ambiguous.
                                        &conversion,
                                        &ambiguous, &ambiguity_list)) {
       /* The conversion is possible -- do it. */
-      /* Force the result to be an rvalue. */
+      /* Force the result to be a prvalue. */
       conversion.result_is_a_glvalue = FALSE;
       user_convert_operand(operand, specific_type,
                            &conversion, (a_conv_descr *)NULL,
@@ -17725,7 +17729,7 @@ source_operand is to be copied bitwise to an entity of type dest_type.
 Both have class types (or source_operand is a braced-init-list that
 can be converted to dest_type).  Adjust source_operand if necessary,
 specifically for the case where the source type is a derived class of
-dest_type, and convert it to an rvalue if it isn't one already.  This
+dest_type, and convert it to a prvalue if it isn't one already.  This
 routine does not do the bitwise copy; it just prepares the operand for
 it.  Note also that this routine is called for the identity case where
 the class type is already correct and nothing should be done to it.
@@ -17989,7 +17993,7 @@ Create a temporary of type temp_type and initialize it by bitwise copy from
 the given operand.  If temp_type is NULL, use the current type of the
 operand.  Create an enk_temp_init node for the initialization, and
 update *operand to refer to that node.  The result is an lvalue for
-the temporary if result_is_lvalue is TRUE, an rvalue otherwise.
+the temporary if result_is_lvalue is TRUE, a prvalue otherwise.
 is_explicit_cast is TRUE if this node represents an explicit cast.
 */
 {
@@ -18045,8 +18049,8 @@ class bitwise copy or simple class object adjustment: the processing
 here changes the operand to access the same class object with the new
 type, but does not copy it to a temporary.  However, if in such a case
 force_copy_to_temp is TRUE and conversion->result_is_a_glvalue
-indicates an rvalue result is required, a temporary will be created,
-the operand will be copied into it, and the result is an rvalue for
+indicates a prvalue result is required, a temporary will be created,
+the operand will be copied into it, and the result is a prvalue for
 the temporary.
 */
 {
@@ -18132,14 +18136,14 @@ the temporary.
     if (dest_type == NULL) {
       /* No specified destination type.  The result type of the conversion
          function is what we want. */
-      /* If an rvalue is wanted, convert to an rvalue. */
+      /* If a prvalue is wanted, convert to a prvalue. */
       if (!conversion->result_is_a_glvalue) {
         do_operand_transformations(operand, TOPT_NO_OPTIONS);
       }  /* if */
     } else if (is_class_struct_union_type(operand->type) ||
                is_class_struct_union_type(dest_type)) {
       /* Class types get special handling: they can involve derived --> base
-         conversions, and class rvalues retain their cv-qualifiers.
+         conversions, and class prvalues retain their cv-qualifiers.
          The "or" test is needed because one or the other might be an
          error type. */
       do_class_object_adjustment(operand, dest_type, conversion);
@@ -18147,7 +18151,7 @@ the temporary.
       /* Nonclass case. */
       if (!conversion->result_is_a_glvalue || 
           conversion->std.nontrivial_conversion) {
-        /* The caller will not accept an lvalue, or a standard conversion
+        /* The caller will not accept a glvalue, or a standard conversion
            must be done, so convert a glvalue to a prvalue.  The operand
            could only be a glvalue if the conversion function returns a
            reference. */
@@ -18307,7 +18311,7 @@ issue incompatible_err at *err_pos.  If is_copy_initialization is TRUE,
 this is copy-initialization ("="-form); otherwise, it's
 direct-initialization ("()"-form).  See user_defined_conversion_possible
 for the meaning of orig_is_copy_initialization.  source_operand may be
-an rvalue or an lvalue.  On return, it will always be an rvalue.  If
+a glvalue or prvalue.  On return, it will always be a prvalue.  If
 conversion is non-NULL, the conversion has previously been found to be
 acceptable, and *conversion describes it.  dest_type must not be a
 reference type.  See conversion_possible for the meaning of
@@ -18355,7 +18359,7 @@ is_transparent.  conv_context describes the context of the conversion.
     }  /* if */
     /* The types are compatible.  Do the conversion. */
     if (conv_context & CCO_CAST) conversion->is_explicit_cast = TRUE;
-    /* Force the result to be an rvalue. */
+    /* Force the result to be a prvalue. */
     conversion->result_is_a_glvalue = FALSE;
     convert_operand(source_operand, dest_type, conversion);
   }  /* if */
@@ -18465,7 +18469,7 @@ static void handle_elided_copy_constructor_no_guard(
 A conversion from source_type (a possibly-qualified class type) is being done
 by eliding a copy constructor.  Check that the copy constructor that would
 have been referenced exists and is accessible (ARM 12.6.1) and callable
-(we assume that the thing being copied is an rvalue because it's the result
+(we assume that the thing being copied is a prvalue because it's the result
 of a constructor call).  Issue an error (or a warning, or no diagnostic,
 depending on the mode) at *err_pos if not.  If the caller has already
 determined the copy constructor that was elided, it is passed in as
@@ -18582,7 +18586,7 @@ void handle_elided_copy_constructor(a_type_ptr        source_type,
 A conversion from source_type (a possibly-qualified class type) is being done
 by eliding a copy constructor.  Check that the copy constructor that would
 have been referenced exists and is accessible (ARM 12.6.1) and callable
-(we assume that the thing being copied is an rvalue because it's the result
+(we assume that the thing being copied is a prvalue because it's the result
 of a constructor call).  Issue an error (or a warning, or no diagnostic,
 depending on the mode) at *err_pos if not.  If the caller has already
 determined the copy constructor that was elided, it is passed in as
@@ -19299,7 +19303,7 @@ temp_type to a copy of the indicated operand.  temp_type should be
 the same as the operand type or differ only in cv-qualification.
 If it's NULL, operand->type is used.  The source operand can be an
 rvalue or an lvalue.  On return, *operand will have been changed to an
-lvalue for the temporary if result_is_lvalue is TRUE, or an rvalue for
+lvalue for the temporary if result_is_lvalue is TRUE, or a prvalue for
 the temporary if result_is_lvalue is FALSE.  Used only in C++ mode.
 */
 {
@@ -19381,7 +19385,7 @@ void temp_init_from_operand(an_operand *operand,
 Create an enk_temp_init node that initializes a temporary to a copy of
 the indicated operand.  The source operand can be an rvalue or an
 lvalue.  On return, *operand will have been changed to an lvalue for
-the temporary if result_is_lvalue is TRUE, or an rvalue for the
+the temporary if result_is_lvalue is TRUE, or a prvalue for the
 temporary if result_is_lvalue is FALSE.  Used only in C++ mode.
 */
 {
@@ -19455,7 +19459,7 @@ be a reference type.  Only used in C++.  This is copy-initialization.
     a_type_ptr temp_type = dest_type;
     /* Yes, the conversion is possible.  Do it. */
     if (conversion->class_object_adjustment_required) {
-      /* The result of the conversion function is a class rvalue that can
+      /* The result of the conversion function is a class prvalue that can
          be bound to but has a slightly different type than dest_type
          (because of derived --> base issues or cv-qualifier differences).
          Do the conversion, but make the temporary have the type of the
@@ -20083,7 +20087,7 @@ Issue a warning if it is a local entity.
   if (is_expression_operand(operand)) {
     if (is_glvalue_for_auto_object(operand->variant.expression, &is_temp) ||
         is_prvalue_for_auto_object(operand->variant.expression, &is_temp)) {
-      /* The expression is an lvalue or class rvalue (object) for a local
+      /* The expression is a glvalue or class prvalue (object) for a local
          entity.  Use a different message for temporaries and local
          variables. */
       expr_pos_warning(is_temp ? ec_return_ref_init_requires_temp :
@@ -20099,19 +20103,19 @@ static void add_copy_to_temp_for_microsoft_rvalue_question_mark(
                                                            an_operand *operand)
 /*
 According to the C++ standard, a "?" operator that returns a class
-rvalue copies one or the other of its operands into a single result
+prvalue copies one or the other of its operands into a single result
 temporary (see core issue 446).  MSVC++ doesn't do that.  Its
 approximation of that is to add an additional copy into a temporary
-when a reference variable is bound to a class rvalue "?", which
+when a reference variable is bound to a class prvalue "?", which
 solves the trickiest problem, that of extending the lifetime of the
 temporary to match the lifetime of the reference.  This routine
 is called in Microsoft mode when a reference is being bound to "operand".
-If the operand is a class rvalue "?" operation, the extra copy to a
+If the operand is a class prvalue "?" operation, the extra copy to a
 temporary is added.
 */
 {
   check_assertion(microsoft_mode);
-  if (is_an_rvalue(operand) &&
+  if (is_a_prvalue(operand) &&
       is_class_struct_union_type(operand->type) &&
       is_expression_operand(operand)) {
     an_expr_node_ptr expr = skip_parens(operand->variant.expression);
@@ -20134,10 +20138,10 @@ void prep_reference_initializer_operand(an_operand         *source_operand,
 A reference of type dest_type is being initialized from the indicated
 source_operand.  Check that the operand has the right type (and other
 attributes), converting it if necessary.  On return, *source_operand
-will contain an rvalue that is a reference to the object to which the
+will contain a prvalue that is a reference to the object to which the
 reference should be bound (i.e., if it's an expression it will have an
 eok_reference_to on top, or it could be an address constant with
-reference type); if leave_as_object is TRUE, an lvalue or class rvalue
+reference type); if leave_as_object is TRUE, a glvalue or class prvalue
 for the object is returned instead.  If the operand and type are
 incompatible, the error incompatible_err is issued.  If conversion is
 non-NULL, the initializer has previously been found to be acceptable,
@@ -20346,7 +20350,7 @@ the conversion.
     if (curr_expr_kind_is_traditional_const()) {
       /* In a constant expression (i.e., nontype template argument),
          we can check that the source operand is an lvalue.  Elsewhere,
-         the lvalue-ness of some operands is not knowable. */
+         the value category of some operands is not knowable. */
       if (is_rvalue_ref) {
         /* An rvalue reference can only bind to an rvalue.  We don't expect to
            be able to generate an rvalue in a constant expression, but let it
@@ -20475,11 +20479,11 @@ the conversion.
     if (any_cfront_mode()) {
       operand_was_temp_init = operand_is_temp_init(source_operand);
     }  /* if */
-    /* The source is a class rvalue but otherwise has the right type,
+    /* The source is a class prvalue but otherwise has the right type,
        so we can bind directly if the reference is to const non-volatile
        (and in some other cases in cfront mode or when anachronisms
        are allowed).  No temporary is required.  Get the address of
-       the rvalue, then cast the pointer to the right type to handle
+       the prvalue, then cast the pointer to the right type to handle
        the derived-class case.  We also allow some error cases (e.g.,
        when the reference is to non-const) to come through here to
        get better error messages. */
@@ -20576,19 +20580,19 @@ the conversion.
         conv_to_error_operand(source_operand);
       }  /* if */
     }  /* if */
+  } else if (direct_binding_possible &&
+             is_an_xvalue(source_operand)) {
+    /* A reference can be bound directly to an xvalue.  Only non-class cases
+       get here. */
+    adjust_glvalue_type(source_operand, adj_base_dest_type);
   } else if (direct_binding_possible && operand_was_rvalue &&
              is_array_type(base_dest_type)) {
-    /* Direct binding of a reference to an rvalue array.  This was made
+    /* Direct binding of a reference to a prvalue array.  This was made
        valid by core issue 450.  MSVC++ allows this since version 7.0,
        Sun allows it in Studio 11, and g++ doesn't allow it even in 4.1,
        but we'll go ahead and allow it in all modes. */
     do_array_to_pointer_conversion(source_operand);
     conv_object_pointer_to_lvalue(source_operand);
-    adjust_glvalue_type(source_operand, adj_base_dest_type);
-  } else if (direct_binding_possible &&
-             is_an_xvalue(source_operand)) {
-    /* A reference can be bound directly to an xvalue.  Only non-class cases
-       get here. */
     adjust_glvalue_type(source_operand, adj_base_dest_type);
   } else {
     /* The initialization cannot be done directly; a temporary must be
@@ -20768,7 +20772,7 @@ the conversion.
     check_for_returning_reference_to_local_entity(source_operand);
   }  /* if */
   if (!leave_as_object) {
-    /* Final step: add the reference-to to turn the lvalue or class rvalue
+    /* Final step: add the reference-to to turn the glvalue or class prvalue
        into an rvalue for the reference. */
     take_reference_to_operand(source_operand, is_rvalue_ref);
   }  /* if */
@@ -21061,7 +21065,7 @@ initialization processing.
     con = &source_operand->variant.constant;
   } else if (is_an_lvalue(source_operand)) {
     /* Look also for cases where a const variable would become a constant
-       when converted to an rvalue. */
+       when converted to a prvalue. */
     con = value_of_constant_var_lvalue_operand(source_operand);
   }  /* if */
   is_narrowing = is_narrowing_conversion(source_type, con, dest_type,
@@ -21700,7 +21704,7 @@ only warnings are issued (again, subject to the error-suppression
 controls).
 
 If make_lvalue_temp is TRUE, the temporary created for a list initialization
-will be an lvalue instead of the usual rvalue.
+will be an lvalue instead of the usual prvalue.
 */
 {
   a_dynamic_init_ptr   dip = NULL;
@@ -22401,7 +22405,7 @@ will be an lvalue instead of the usual rvalue.
           arg_match_err = TRUE;
         } else if (is_lvalue_reference_type(dest_type) &&
                    !is_const_qualified_type(underlying_type)) {
-          /* An lvalue reference to non-const cannot bind to the rvalue
+          /* An lvalue reference to non-const cannot bind to the prvalue
              produced in the first step. */
           arg_match_err = TRUE;
         } else {
@@ -22616,7 +22620,7 @@ will be an lvalue instead of the usual rvalue.
              !is_generated_dynamic_init(
                                  temp_init_node->variant.init.dynamic_init))) {
           if (!is_error_operand(&operand)) {
-            /* Make a temporary.  Normally, it's an rvalue, but make an
+            /* Make a temporary.  Normally, it's a prvalue, but make an
                lvalue if the caller has requested it. */
             temp_init_from_operand(&operand, make_lvalue_temp);
           }  /* if */
@@ -22769,7 +22773,7 @@ void prep_initializer_operand(an_operand         *source_operand,
 /*
 Check the operand for initializer compatibility against the destination
 type dest_type.  Cast the operand if required to make it the right type.
-Convert the operand from an lvalue to an rvalue if necessary (it
+Convert the operand from a glvalue to a prvalue if necessary (it
 usually is).  is_copy_initialization is TRUE if this is
 copy-initialization ("="-form); otherwise, it is direct-initialization
 ("()"-form).  This routine is not used when copy constructor elision
@@ -22896,7 +22900,7 @@ Return TRUE if the operand is reference to a packed field in GNU mode.
 
 #if GNU_EXTENSIONS_ALLOWED && USER_CONTROL_OF_STRUCT_PACKING
   if (is_expression_operand(operand) &&
-      is_an_lvalue(operand)) {
+      is_a_glvalue(operand)) {
     an_expr_node_ptr expr = skip_parens(operand->variant.expression);
     if (is_operation_node(expr) &&
         (node_operator_is(expr, eok_dot_field) ||
@@ -22945,7 +22949,7 @@ to be acceptable (as far as overload resolution checks that), and
   } else {
     /* Normal argument. */
     if (microsoft_mode && conversion != NULL &&
-        is_lvalue_reference_type(param_type) && is_an_rvalue(source_operand)) {
+        is_lvalue_reference_type(param_type) && is_a_prvalue(source_operand)) {
       /* In Microsoft mode, a reference to non-const is sometimes
          allowed to bind to an rvalue.  If that's been done (which we
          know because conversion != NULL means that we've made it through
@@ -22954,7 +22958,7 @@ to be acceptable (as far as overload resolution checks that), and
       if (!is_const_qualified_type(underlying_type)) {
         /* For certain cases, convert the rvalue back to an lvalue. */
         revert_microsoft_rvalue_to_lvalue_if_possible(source_operand);
-        if (is_an_rvalue(source_operand)) {
+        if (is_a_prvalue(source_operand)) {
           /* For remaining cases, change the reference type to reference
              to const so that the binding is valid. */
           underlying_type = make_qualified_type(underlying_type, TQ_CONST);
@@ -22985,13 +22989,13 @@ to be acceptable (as far as overload resolution checks that), and
       }  /* if */
     } else if (gpp_mode && gnu_version >= 40200 &&
                is_volatile_qualified_type(source_operand->type) &&
-               is_an_lvalue(source_operand) &&
+               is_a_glvalue(source_operand) &&
                is_class_struct_union_type(param_type) &&
                symbol_supplement_for_class(param_type)->
                                         construction_by_bitwise_copy_allowed &&
                identical_types_ignoring_qualifiers(param_type,
                                                    source_operand->type)) {
-      /* g++ allows a volatile lvalue of a bitwise-copyable class type to be
+      /* g++ allows a volatile glvalue of a bitwise-copyable class type to be
          passed as an argument even though the notional copy constructor
          can't copy a volatile value. */
       adjust_glvalue_type(source_operand, param_type);
@@ -23019,9 +23023,9 @@ to be acceptable (as far as overload resolution checks that), and
       /* Adjust the object type back to the non-const type and then
          turn it into a reference. */
       adj_type = type_pointed_to(formal_param->type);
-      if (is_an_lvalue(source_operand)) {
+      if (is_a_glvalue(source_operand)) {
         adjust_glvalue_type(source_operand, adj_type);
-      } else if (is_an_rvalue(source_operand)) {
+      } else if (is_a_prvalue(source_operand)) {
         adjust_class_object_type(source_operand,
                                  adj_type,
                                  (a_base_class_ptr)NULL);
@@ -23216,7 +23220,7 @@ aggregate constant.
   an_operand          orig_operand;
 
   db_enter(3, "prep_transparent_union_conversion_operand");
-  /* Make sure we have an rvalue. */
+  /* Make sure we have a prvalue. */
   conv_glvalue_to_prvalue(source_operand);
   /* Convert the source expression to the destination type if necessary. */
   cast_operand(field_type, source_operand, /*is_implicit_cast=*/TRUE);
