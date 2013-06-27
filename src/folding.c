@@ -6064,13 +6064,13 @@ handle_pm_field_selection:
             break;
           case eok_ref_cast:
           case eok_lvalue_adjust:
-            /* These operations are used to adjust the type of an lvalue. */
+            /* These operations are used to adjust the type of a glvalue. */
             if (!(cpp11_mode && expr->variant.operation.is_reinterpret_cast) &&
                 constant_glvalue_address_full(op1, ceblock, &conaddr1,
                                               address_escapes,
                                               options, template_constant)) {
               /* The address of the operand is constant.  Adjust its type
-                 and it is also the address of the result lvalue.  (A
+                 and it is also the address of the result glvalue.  (A
                  reinterpret_cast cannot be part of a C++11 constant
                  expression.) */
               a_type_ptr new_type = make_pointer_type(expr->type);
@@ -6121,8 +6121,8 @@ handle_pm_field_selection:
                                        (a_template_param_constant_kind)
                                                        tpck_template_ref) {
                   /* The address of an lvalue based on an unknown function
-                     constant is the constant itself (which represents an
-                     rvalue for the "address" of the function). */
+                     constant is the constant itself (which represents a
+                     prvalue for the "address" of the function). */
                   copy_constant(acon, con);
                   is_constant_addr = TRUE;
                   *template_constant = TRUE;
@@ -6243,7 +6243,7 @@ context information.
   }  /* if */
   switch (expr->kind) {
     case enk_error:
-      /* Assume an error expression could have been an rvalue constant
+      /* Assume an error expression could have been a prvalue constant
          pointer. */
       is_constant_ptr = TRUE;
       set_error_constant(con);
@@ -9342,7 +9342,7 @@ evaluation (e.g., parameter values).
 a_constant_ptr constant_value_addressed_by_node(an_expr_node_ptr  expr,
                                                 a_source_position *pos)
 /*
-If expr (which must be an lvalue) is a constant address of a constant
+If expr (which must be a glvalue) is a constant address of a constant
 value, return that value; otherwise, return NULL.  For example, if the
 expression is something like *p, the value of p is an address constant, and
 the variable to which p points has a constant value, return that value.
@@ -9582,7 +9582,7 @@ pm_field_selection:
         }  /* if */
         break;
       case eok_address_of:
-        /* &x.  If the underlying glvalue has a constant address, the result
+        /* &x.  If the underlying lvalue has a constant address, the result
            is that address. */
         folded = fold_glvalue_expr(op1, ceblock, result_con);
         break;
@@ -9601,7 +9601,7 @@ pm_field_selection:
       case eok_lvalue_adjust:
         /* An lvalue adjust or reference cast with an implicit lvalue-to-rvalue
            conversion.  If the type change is only of cv-qualifiers, and we
-           know the address of the underlying lvalue, we can look and see if
+           know the address of the underlying glvalue, we can look and see if
            we have a constant there.  (A reinterpret_cast cannot be part of a
            C++11 constant expression.) */
         if (!(cpp11_mode && expr->variant.operation.is_reinterpret_cast) &&
@@ -10208,9 +10208,9 @@ try to fold the call to a constant.  If that's possible, place the
 constant in *result_con and return TRUE; otherwise, return FALSE.  If
 returns_reference is non-NULL, *returns_reference is returned TRUE if
 the result is a reference, and result_con is the constant address for
-the reference.  If returns_reference is NULL, the caller requires an
-rvalue result and the reference return case will be converted to an
-rvalue if possible.  ceblock gives context information for the
+the reference.  If returns_reference is NULL, the caller requires a
+prvalue result and the reference return case will be converted to a
+prvalue if possible.  ceblock gives context information for the
 evaluation.  If gnu_builtins_too is TRUE, also attempt folding on
 GNU builtin functions.  This is the internal version of the routine,
 as indicated by the "i_" prefix; fold_constexpr_call should usually be
@@ -10386,9 +10386,9 @@ try to fold the call to a constant.  If that's possible, place the
 constant in *result_con and return TRUE; otherwise, return FALSE.  If
 returns_reference is non-NULL, *returns_reference is returned TRUE if
 the result is a reference, and result_con is the constant address for
-the reference.  If returns_reference is NULL, the caller requires an
-rvalue result and the reference return case will be converted to an
-rvalue if possible.  pos gives the source position for the call.
+the reference.  If returns_reference is NULL, the caller requires a
+prvalue result and the reference return case will be converted to an
+prvalue if possible.  pos gives the source position for the call.
 If failure_warning is non-NULL, *failure_warning will be set to
 the error code for a reason why folding failed, or ec_no_error
 if no specific reason is available.  If record_backing_expr is
@@ -10924,7 +10924,7 @@ eok_points_to_field).  If the object expression is a constant object of
 literal type, set *result_con to the value of the field designated by
 the second operand and return TRUE; otherwise, return FALSE.
 Whether expr is an lvalue or not, the returned constant is the
-rvalue result of the field selection.  *pos is the source position for any
+prvalue result of the field selection.  *pos is the source position for any
 errors.
 */
 {
