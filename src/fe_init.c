@@ -716,8 +716,8 @@ Install the keywords in the symbol table.
      lower case spelling __alignof__ is also accepted).
      __INTADDR__(addr_expr) scans its argument as an initializer expression
      and converts it to integer.  It is used in the definition of offsetof. */
-  enter_keyword((a_token_kind)tok_alignof, "__ALIGNOF__");
-  enter_keyword((a_token_kind)tok_alignof, "__alignof__");
+  enter_keyword((a_token_kind)tok_ext_alignof, "__ALIGNOF__");
+  enter_keyword((a_token_kind)tok_ext_alignof, "__alignof__");
   enter_keyword((a_token_kind)tok_intaddr, "__INTADDR__");
   if (restrict_keyword_enabled) {
     enter_keyword((a_token_kind)tok_restrict, "restrict");
@@ -756,8 +756,8 @@ Install the keywords in the symbol table.
     enter_underscore_keywords((a_token_kind)tok_leave, "__leave");
     enter_underscore_keywords((a_token_kind)tok_except, "__except");
     enter_underscore_keywords((a_token_kind)tok_assume, "__assume");
-    enter_underscore_keywords((a_token_kind)tok_alignof, "__alignof");
-    enter_keyword((a_token_kind)tok_alignof, "__builtin_alignof");
+    enter_underscore_keywords((a_token_kind)tok_ext_alignof, "__alignof");
+    enter_keyword((a_token_kind)tok_ext_alignof, "__builtin_alignof");
     if (targ_int8_int_kind != (an_integer_kind)ik_none) {
       /* There is a 8 bit target integer kind to which __int8 can map. */
       enter_underscore_keywords((a_token_kind)tok_int8, "__int8");
@@ -880,7 +880,7 @@ Install the keywords in the symbol table.
     enter_gnu_keyword((a_token_kind)tok_const, "__const");
     enter_gnu_keyword((a_token_kind)tok_signed, "__signed");
     enter_gnu_keyword((a_token_kind)tok_volatile, "__volatile");
-    enter_keyword((a_token_kind)tok_alignof, "__alignof");
+    enter_keyword((a_token_kind)tok_ext_alignof, "__alignof");
   }  /* if */
 #if GNU_EXTENSIONS_ALLOWED
   if (gnu_attributes_enabled) {
@@ -1063,7 +1063,7 @@ Install the keywords in the symbol table.
     enter_keyword((a_token_kind)tok_hidden_link_scope, "__hidden");
   }  /* if */
   if (sun_mode) {
-    enter_keyword((a_token_kind)tok_alignof, "__alignof");
+    enter_keyword((a_token_kind)tok_ext_alignof, "__alignof");
   }  /* if */
 #endif /* SUN_EXTENSIONS_ALLOWED */
   if (thread_local_storage_specifier_enabled) {

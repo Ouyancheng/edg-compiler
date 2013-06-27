@@ -5415,6 +5415,9 @@ precedence confusion.  Do the output in the way described by octl.
             octl->output_str("__alignof(", octl);
           } else if (use_gnu_form()) {
             octl->output_str("__alignof__(", octl);
+          } else if (constant->variant.template_param
+                              .variant.templ_sizeof.is_std_alignof) {
+            octl->output_str("alignof(", octl);
           } else {
             octl->output_str("__ALIGNOF__(", octl);
           }  /* if */

@@ -12002,6 +12002,8 @@ done_with_operation_after_parens:
         write_tok_str("__alignof");
       } else if (gcc_is_generated_code_target) {
         write_tok_str("__alignof__");
+      } else if (expr->variant.sizeof_info.is_std_alignof) {
+        write_tok_str("alignof");
       } else {
         write_tok_str("__ALIGNOF__");
       }  /* if */

@@ -19260,7 +19260,7 @@ of characters added.
              token == tok_pretty_function_name) {
     /* In the Microsoft dialect, __PRETTY_FUNCTION__ is __FUNCSIG__. */
     put_str_to_temp_text_buffer("__FUNCSIG__");
-  } else if (gcc_is_generated_code_target && token == tok_alignof) {
+  } else if (gcc_is_generated_code_target && token == tok_ext_alignof) {
     /* g++ expects the lower-case variant of the keyword spelling. */
     put_str_to_temp_text_buffer("__alignof__");
   } else if (gcc_is_generated_code_target && token == tok_c99_complex) {
@@ -19273,7 +19273,7 @@ of characters added.
     put_str_to_temp_text_buffer("__offsetof");
   } else if ((microsoft_dialect_is_generated_code_target ||
               sun_is_generated_code_target) &&
-             token == tok_alignof) {
+             token == tok_ext_alignof) {
     put_str_to_temp_text_buffer("__alignof");
   } else if (gcc_is_generated_code_target && token == tok_decltype) {
     /* Current versions of g++ only accept the decltype keyword with

@@ -967,6 +967,9 @@ do_sizeof_cases:
       disp_ptr("expr",
                (char *)ptr->variant.template_param.variant.templ_sizeof.expr,
                iek_expr_node);
+      if (ptr->variant.template_param.variant.templ_sizeof.is_std_alignof) {
+        disp_boolean("is_std_alignof", TRUE);
+      }  /* if */
 #if PROTOTYPE_INSTANTIATIONS_IN_IL
       if (ptr->variant.template_param.variant.templ_sizeof.local_expr_ref) {
         disp_boolean("local_expr_ref", TRUE);
@@ -4110,6 +4113,8 @@ Display the indicated expression node.
 sizeof_cases:
       disp_boolean("is_type",
                    (a_boolean)ptr->variant.sizeof_info.is_type);
+      disp_boolean("is_std_alignof",
+                   (a_boolean)ptr->variant.sizeof_info.is_std_alignof);
       if (ptr->variant.sizeof_info.is_type) {
         disp_ptr("type", (char *)ptr->variant.sizeof_info.variant.type,
                  iek_type);

@@ -987,9 +987,11 @@ typedef enum /*a_token_kind*/ {
   /* Specific to C99 mode. */
   tok_generic,
   tok_genericfx,
-  /* Extensions (__ALIGNOF__ is similar to sizeof; __INTADDR__ is used
-     to scan an integer address expression for offsetof): */
-  tok_alignof,
+  /* Extensions.  __ALIGNOF__ (and __alignof__, __alignof, or __builtin_alignof
+     in some modes) is similar to sizeof, but slightly different from the C++11
+     alignof (tok_alignof).  __INTADDR__ is used to scan an integer address
+     expression for offsetof): */
+  tok_ext_alignof,
   tok_intaddr,
   /* Used when <stdarg.h> is treated as a builtin. */
   tok_va_start, tok_va_arg, tok_va_end, tok_va_copy,
@@ -1226,6 +1228,7 @@ typedef enum /*a_token_kind*/ {
   tok_is_final,
   tok_noexcept,
   tok_constexpr,
+  tok_alignof,
   tok_alignas,
 #if GNU_EXTENSIONS_ALLOWED
   /* g++ variadic type operators. */
@@ -1380,6 +1383,7 @@ EXTERN char	*token_names[(int)tok_last+1]
    "override", "final", "__is_final",
    "noexcept",
    "constexpr",
+   "alignof",
    "alignas",
 #if GNU_EXTENSIONS_ALLOWED
    "__bases",
@@ -4214,6 +4218,10 @@ typedef struct a_constant {
 			   stored in the same memory region as this constant,
 			   this points to the expression.  NULL otherwise (in
 			   particular, NULL when local_expr_ref is TRUE). */
+          a_bit_field
+		is_std_alignof:1;
+			/* TRUE if this represents the standard C++11 alignof
+			   operation. */
 #if PROTOTYPE_INSTANTIATIONS_IN_IL
           a_bit_field
 		local_expr_ref:1;
@@ -14925,6 +14933,10 @@ typedef struct an_expr_node {
 		is_type;
 			/* TRUE if the sizeof is sizeof(type); FALSE for
 			   sizeof expression.  Likewise for alignof. */
+      a_byte_boolean
+		is_std_alignof;
+			/* TRUE if this node is for the standard C++11 alignof
+			   feature. */
       union {
         /* When is_type == TRUE: */
         a_type_ptr

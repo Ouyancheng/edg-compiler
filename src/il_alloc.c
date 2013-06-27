@@ -701,6 +701,7 @@ ck_template_param constant.
     case tpck_noexcept:
       cp->variant.template_param.variant.templ_sizeof.type = NULL;
       cp->variant.template_param.variant.templ_sizeof.expr = NULL;
+      cp->variant.template_param.variant.templ_sizeof.is_std_alignof = FALSE;
 #if PROTOTYPE_INSTANTIATIONS_IN_IL
       cp->variant.template_param.variant.templ_sizeof.local_expr_ref = FALSE;
 #endif /* PROTOTYPE_INSTANTIATIONS_IN_IL */
@@ -3047,6 +3048,7 @@ fields to default values.
     case enk_sizeof:
     case enk_alignof:
       node->variant.sizeof_info.is_type = TRUE;
+      node->variant.sizeof_info.is_std_alignof = FALSE;
       node->variant.sizeof_info.variant.type = NULL;
       break;
     case enk_sizeof_pack:

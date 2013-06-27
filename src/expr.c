@@ -10420,7 +10420,7 @@ result in *result (or an error indication in *rcblock).
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   an_operand          operand;
   a_constant          constant;
-  a_boolean           is_parenthesized = FALSE, is_type = FALSE;
+  a_boolean           is_parenthesized = FALSE, is_type = FALSE, is_std_syntax;
   a_type_ptr          alignof_type;
   an_expr_stack_entry expr_stack_entry;
   a_boolean           template_case = FALSE;
@@ -10438,7 +10438,9 @@ result in *result (or an error indication in *rcblock).
   if (rcblock != NULL) {
     /* Redoing semantic analysis on a previously-scanned expression. */
     a_token_sequence_number operator_tok_seq_number;
-    check_assertion(rcblock->operator_token == tok_alignof);
+    is_std_syntax = (rcblock->operator_token == tok_alignof);
+    check_assertion(is_std_syntax ||
+                    rcblock->operator_token == tok_ext_alignof);
     make_sizeof_et_al_rescan_operands(rcblock,
                                       &is_type, &operand, &alignof_type,
                                       &operator_position,
@@ -10450,6 +10452,7 @@ result in *result (or an error indication in *rcblock).
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   } else {
     /* Normal, non-rescan, processing. */
+    is_std_syntax = (curr_token == tok_alignof);
     operator_position = pos_curr_token;
   }  /* if */
   start_position = operator_position;
@@ -10554,6 +10557,14 @@ result in *result (or an error indication in *rcblock).
     }  /* if */
   } else {
     /* Expression case. */
+    if (is_std_syntax) {
+      /* The standard C++11 "alignof" does not permit an expression argument.
+         However, since common practice does permit it, we only issue a warning
+         by default. */
+      expr_pos_diagnostic(strict_ansi_mode ?
+                            strict_ansi_discretionary_severity : es_warning,
+                          ec_std_alignof_with_expr_arg, &operand.position);
+    }  /* if */
 #if GNU_EXTENSIONS_ALLOWED
     if (gnu_mode && is_expression_operand(&operand) &&
         skip_parens(operand.variant.expression)->kind ==
@@ -10634,6 +10645,8 @@ result in *result (or an error indication in *rcblock).
     set_template_param_constant_kind(&constant,
                                  (a_template_param_constant_kind)tpck_alignof);
     constant.variant.template_param.variant.templ_sizeof.type = alignof_type;
+    constant.variant.template_param.variant.templ_sizeof.is_std_alignof =
+                                                                 is_std_syntax;
     if (!is_type) {
       prep_generic_operand(&operand);
       constant.variant.template_param.variant.templ_sizeof.expr =
@@ -25124,6 +25137,7 @@ Return TRUE if the indicated token is one that could start an expression.
     case tok_not:
     case tok_sizeof:
     case tok_alignof:
+    case tok_ext_alignof:
     case tok_typeid:
     case tok_va_start:
     case tok_va_arg:
@@ -28850,7 +28864,8 @@ handle_identifier:
       break;
 
     case tok_alignof:
-      /* __ALIGNOF__ operation. */
+    case tok_ext_alignof:
+      /* alignof/__alignof__ operation. */
       scan_alignof_operator((a_rescan_control_block *)NULL, &local_result);
       break;
 
@@ -35191,7 +35206,9 @@ set accordingly.
           *unary = TRUE;
           break;
         case tpck_alignof:
-          operator_token = tok_alignof;
+          operator_token =
+            con->variant.template_param.variant.templ_sizeof.is_std_alignof ?
+                                                tok_alignof : tok_ext_alignof;
           *unary = TRUE;
           break;
         case tpck_typeid:
@@ -35217,7 +35234,8 @@ set accordingly.
     operator_token = tok_sizeof;
     *unary = TRUE;
   } else if (expr->kind == (an_expr_node_kind)enk_alignof) {
-    operator_token = tok_alignof;
+    operator_token = expr->variant.sizeof_info.is_std_alignof ?
+                                                tok_alignof : tok_ext_alignof;
     *unary = TRUE;
   } else if (expr->kind == (an_expr_node_kind)enk_typeid) {
     operator_token = tok_typeid;
