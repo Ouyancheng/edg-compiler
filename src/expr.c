@@ -35475,6 +35475,7 @@ alternative callable from outside, see rescan_expr_with_substitution.
         scan_sizeof_operator(rcblock, result);
         break;
       case tok_alignof:
+      case tok_ext_alignof:
         scan_alignof_operator(rcblock, result);
         break;
       case tok_builtin_offsetof:
