@@ -18837,9 +18837,12 @@ indicates which.
         /* Note that this is done after the check for user-defined
            conversions above, since if such a cast can be done by
            a conversion function, it should be. */
+        /* allow_xvalue is TRUE because when the reinterpret_cast
+           interpretation of the cast is used, the operand can be an
+           lvalue or xvalue. */
         set_up_cast_to_reference(type_cast_to, operand,
                                  allow_rvalue_on_rewrite,
-                                 /*allow_xvalue=*/FALSE,  /* Ignored. */
+                                 /*allow_xvalue=*/TRUE,
                                  source_form,
                                  type_position,
                                  &adj_type_cast_to,
