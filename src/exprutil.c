@@ -3345,7 +3345,7 @@ called during lowering (as value category is known at that time).
   check_assertion(is_glvalue_node(expr) || is_error_node(expr));
   if (is_bit_field_expr(expr)) {
     /* You can't take the address of a bit field, so break it down
-       to underlying lvalues whose addresses can be taken. */
+       to underlying glvalues whose addresses can be taken. */
     an_expr_operator_kind op;
     an_expr_node_ptr      operand1, operand2, operand3;
     an_expr_node_ptr      operand1_copy, operand2_copy, operand3_copy;
@@ -6223,7 +6223,7 @@ void make_sym_constant_operand(a_symbol_ptr sym,
 			       an_operand   *operand)
 /*
 Make an operand for the value of the given sk_constant symbol.  It will
-be a prvalue usually, but an lvalue for reference-typed constants.
+be a prvalue usually, but a glvalue for reference-typed constants.
 The position of the current token will be used as the operand position.
 */
 {
@@ -6239,7 +6239,7 @@ The position of the current token will be used as the operand position.
   if (is_reference_type(constant.type)) {
     /* The constant has a reference type.  This happens for a constant
        that is an argument for a nontype template parameter that has
-       a reference type.  Make an lvalue based on that constant. */
+       a reference type.  Make a glvalue based on that constant. */
     an_expr_node_ptr expr = alloc_node_for_constant(&constant);
     expr = add_ref_indirection_to_node(expr);
     make_glvalue_expression_operand(expr, operand);
@@ -6286,10 +6286,10 @@ void make_expression_operand(an_expr_node_ptr node,
 Make an expression operand for the expression "node".  The operand is
 made a prvalue; the caller should change that if it's not appropriate
 (or use make_glvalue_expression_operand).  This routine does not
-assume that the is_lvalue flag of the expression is already set
-appropriately, and accepts that the caller might adjust it after
-this call returns.  The position of the current token will be used
-as the operand position.  
+assume that the is_lvalue or is_xvalue flags of the expression are
+already set appropriately, and accepts that the caller might adjust
+them after this call returns.  The position of the current token will
+be used as the operand position.
 */
 {
   if (is_error_node(node)) {
@@ -8494,7 +8494,7 @@ is an lvalue reference to const.
       }  /* if */
     }  /* if */
     restore_operand_details_for_cast(operand, &orig_operand, is_implicit_cast,
-                                     /*incl_ref=*/is_an_lvalue(operand));
+                                     /*incl_ref=*/is_a_glvalue(operand));
   }  /* if */
 }  /* cast_operand_for_reference_cast */
 
@@ -18210,7 +18210,7 @@ cases so we don't do it here.
   a_constant_ptr    con_value;
   a_boolean         possibly_constant_with_constexpr = FALSE;
 
-  /* Ignore non-lvalues. */
+  /* Ignore non-glvalues. */
   if (is_a_glvalue(operand)) {
     /* A glvalue becomes a prvalue. */
     operand_type = operand->type;
@@ -18235,7 +18235,7 @@ cases so we don't do it here.
     complete_type_is_needed(operand_type);
     if (is_error_operand(operand)) {
       /* Aside from the usual function, the normalization here makes sure the
-         operand is not an lvalue anymore. */
+         operand is not a glvalue anymore. */
       normalize_error_operand(operand);
     } else if (is_incomplete_type(operand_type) &&
                !is_managed_nullptr_type(operand_type) &&
@@ -18285,7 +18285,7 @@ cases so we don't do it here.
              things that might be constant in an actual call of the
              function because the parameters may have constant values.
              So suppress setting that flag if the lvalue is one that might
-             end of being constant. */
+             end up being constant. */
           /* Many more complex expressions can have embedded uses of
              the parameters, like "this->i" or "*&(this->i)", so be
              conservative.  The only downside is that we might not
@@ -18341,7 +18341,7 @@ cases so we don't do it here.
     /* Restore the operand's source position. */
     restore_operand_details(operand, &orig_operand);
     /* The ref_entries_list is cleared because it should only contain
-       information on lvalue addresses. */
+       information on glvalue addresses. */
     operand->ref_entries_list = NULL;
     restore_operand_form_of_name_reference(operand, &orig_operand);
     if (!constant_case) {
@@ -19627,7 +19627,7 @@ void do_operand_transformations(an_operand                   *operand,
 Do some implicit operand transformations on the indicated operand.
 The transformations are:
   (1)  Conversion of a function designator to a pointer-to-function.
-  (2)  Conversion of an array lvalue to pointer-to-first-element.
+  (2)  Conversion of an array glvalue to pointer-to-first-element.
   (3)  (Not really a transformation, but...) Checking for indefinite functions.
   (4)  Conversion of a glvalue to a prvalue.
   (5)  Conversion of a reference to a member declared as a Microsoft
