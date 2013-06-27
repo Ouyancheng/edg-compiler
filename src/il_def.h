@@ -3289,9 +3289,10 @@ typedef struct a_dynamic_init {
 			   the expression pointed to by variant.expression
 			   is evaluated to effect the initialization of this
 			   temporary, but the value of the expression is not
-			   stored into the temporary.  Note that this case
-			   is eliminated by IL lowering and therefore will
-			   never be seen in lowered code. */
+			   stored into the temporary (i.e., its associated
+			   node has the result_is_not_used flag set to TRUE).
+			   Note that this case is eliminated by IL lowering
+			   and therefore will never be seen in lowered code. */
   a_bit_field	is_reused_value:1;
 			/* TRUE if this initialization's value is reused
 			   elsewhere in the current expression via an
@@ -14558,8 +14559,18 @@ typedef struct an_expr_node {
 			   can be cleared to indicate that an rvalueable
 			   field has been converted to a prvalue. */
   a_bit_field	result_is_not_used:1;
-			/* TRUE if the result of the expression is discarded,
-			   i.e., it's a void expression. */
+			/* TRUE if the result of evaluating this node is
+			   discarded.  The most common case is a void
+			   expression.  However, other subtler cases are
+			   possible too.  For example, "b ? X() : x", with x
+			   of class type X, produces an enk_temp_init node
+			   pointing to the eok_question operation, but the
+			   result of that operation is discarded because the
+			   temporary is initialized by the dependent
+			   enk_temp_init nodes that are the second and third
+			   operands of the eok_question operator (see also the
+			   is_optimized_class_rvalue_question_mark flag in
+			   a_dynamic_init). */
   a_bit_field	is_initialization_guard:1;
 			/* TRUE if this node is a "?" that guards a first-time
 			   test on an initialization.  When generating
