@@ -7136,8 +7136,8 @@ put it on a list of constants).
 #if DEBUG
   num_searches_for_shareable_constants++;
 #endif /* DEBUG */
-#if ASSIGN_STRING_LITERAL_SEQUENCE_NUMBERS
-  if (cp->kind == (a_constant_repr_kind)ck_string && string_literals_shared &&
+#if DO_IL_LOWERING && ASSIGN_STRING_LITERAL_SEQUENCE_NUMBERS
+  if (cp->kind == (a_constant_repr_kind)ck_string &&
       cp->variant.string.sequence_number != 0 && cp->expr != NULL) {
     /* If we're sharing string literals and assigning string literal sequence
        numbers for the IA-64 ABI, it is imperative that equal string literals
@@ -7146,7 +7146,7 @@ put it on a list of constants).
        backing expression (a backing expression would disable sharing). */
     cp->expr = NULL;
   }  /* if */
-#endif /* ASSIGN_STRING_LITERAL_SEQUENCE_NUMBERS */
+#endif /* DO_IL_LOWERING && ASSIGN_STRING_LITERAL_SEQUENCE_NUMBERS */
   if (!in_front_end) {
     /* If we're not in the front end, the shareable constants table is
        not available, nor is the assoc_info pointer. */

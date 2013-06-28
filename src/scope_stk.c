@@ -1070,8 +1070,10 @@ assign one now.
                   cp->kind == (a_constant_repr_kind)ck_error);
   ssep = &scope_stack[depth_innermost_function_scope];
   /* If this is the first string literal in the function, create the hash
-     table to be used. */
+     table to be used to ensure that equal string literals (which will share
+     their representation) are assigned the same sequence number. */
   if (ssep->string_literal_table == NULL) {
+    check_assertion(string_literals_shared);
     initialize_string_literal_table(ssep);
   }  /* if */
   if (cp->kind == (a_constant_repr_kind)ck_error) {
