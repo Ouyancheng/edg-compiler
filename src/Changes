@@ -1,5 +1,17 @@
 Version 5.0
 
+6/28/13  [EDGcpfe/14190]
+GNU compatibility: __builtin_bswap16
+
+In GNU modes, the front end now predeclares the byte swapping function
+__builtin_bswap16.  For example (with --gcc):
+
+  typedef unsigned short uint16_t;
+  int main() {
+    return __builtin_bswap16((uint16_t)0xaabb) != (uint16_t)0xbbaa;
+  }
+
+
 6/28/13  [EDGcpfe/14255]
 String literal discriminators and folding in the IA-64 ABI
 

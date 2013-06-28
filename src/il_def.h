@@ -11092,6 +11092,7 @@ enum a_builtin_function_kind_tag {
 #endif /* GCC_BUILTIN_VARARGS */
   bfk_va_arg_pack,              /* __builtin_va_arg_pack */
   bfk_va_arg_pack_len,          /* __builtin_va_arg_pack_len */
+  bfk_bswap16,                  /* __builtin_bswap16 */
   bfk_bswap32,                  /* __builtin_bswap32 */
   bfk_bswap64,                  /* __builtin_bswap64 */
   bfk_isnan,			/* __builtin_isnan */
@@ -12517,6 +12518,7 @@ EXTERN char *builtin_function_kind_names[(int)bfk_last + 1]
 #endif /* GCC_BUILTIN_VARARGS */
   /* bfk_va_arg_pack */              "__builtin_va_arg_pack",
   /* bfk_va_arg_pack_len */          "__builtin_va_arg_pack_len",
+  /* bfk_bswap16 */                  "__builtin_bswap16",
   /* bfk_bswap32 */                  "__builtin_bswap32",
   /* bfk_bswap64 */                  "__builtin_bswap64",
   /* bfk_isnan */		     "__builtin_isnan",

@@ -1701,8 +1701,8 @@ Enter the standard predeclared functions for GCC.
   a_type_ptr  long_double_star_type;
   a_type_ptr  va_list_type;
   an_integer_kind
-              u4_kind, u8_kind;
-  a_type_ptr  u4_type, u8_type;
+              u2_kind, u4_kind, u8_kind;
+  a_type_ptr  u2_type, u4_type, u8_type;
 
 #if CHECKING
   /* Check that the table of builtin function names is correctly
@@ -1764,11 +1764,14 @@ Enter the standard predeclared functions for GCC.
     va_list_type = void_star_type;
 #endif /* GCC_BUILTIN_VARARGS */
   }  /* if */
+  u2_kind = int_kind_for_bit_size(2*CHAR_BIT, /*is_signed=*/FALSE);
   u4_kind = int_kind_for_bit_size(4*CHAR_BIT, /*is_signed=*/FALSE);
   u8_kind = int_kind_for_bit_size(8*CHAR_BIT, /*is_signed=*/FALSE);
-  check_assertion_str(u4_kind != (an_integer_kind)ik_none &&
+  check_assertion_str(u2_kind != (an_integer_kind)ik_none &&
+                      u4_kind != (an_integer_kind)ik_none &&
                       u8_kind != (an_integer_kind)ik_none,
                "Invalid target configuration for GNU __builtin... functions");
+  u2_type = integer_type(u2_kind);
   u4_type = integer_type(u4_kind);
   u8_type = integer_type(u8_kind);
 
@@ -2169,6 +2172,7 @@ Enter the standard predeclared functions for GCC.
 #endif /* GCC_BUILTIN_VARARGS */
   enter_gnu_builtin_func0(_va_arg_pack, int);
   enter_gnu_builtin_func0(_va_arg_pack_len, int);
+  enter_gnu_builtin_func1(_bswap16, u2, u2);
   enter_gnu_builtin_func1(_bswap32, u4, u4);
   enter_gnu_builtin_func1(_bswap64, u8, u8);
 #if TARG_HAS_IEEE_FLOATING_POINT
