@@ -1512,20 +1512,29 @@ capture described by lcp.  Return the field entry.
   } else if (by_reference) {
     /* The variable is being captured by reference.  Create a reference
        type based on the variable's type. */
-    if (lcp->source_closure_field != NULL &&
-        !is_reference_type(lcp->source_closure_field->type)) {
-      /* The variable is being indirectly captured through a value capture
-         from an enclosing lambda.  If the enclosing lambda is not mutable,
-         the reference should be to a const type. */
-      a_type_ptr     enclosing_closure =
-                                   parent_class_of(lcp->source_closure_field);
-      a_routine_ptr  enclosing_body = lambda_body_for_closure(
+    a_field_ptr  enclosing_field = lcp->source_closure_field;
+    if (enclosing_field != NULL) {
+      /* If this is a nested lambda, the capture may be indirect through a
+         capture from the enclosing lambda, and the type should be determined
+         by the associated field of the enclosing lambda's capture. */
+      if (is_reference_type(enclosing_field->type)) {
+        /* The new field should just have the same type as the enclosing
+           field, but since we are adding a reference type layer below, just
+           skip the reference layer here to compensate. */
+        field_type = type_pointed_to(enclosing_field->type);
+      } else {
+        /* The variable is being indirectly captured through a value capture
+           from an enclosing lambda.  If the enclosing lambda is not mutable,
+           the reference should be to a const type. */
+        a_type_ptr     enclosing_closure = parent_class_of(enclosing_field);
+        a_routine_ptr  enclosing_body = lambda_body_for_closure(
                                                            enclosing_closure);
-      check_assertion(enclosing_body != NULL);
-      if (enclosing_body->type->kind == (a_type_kind)tk_routine &&
-          enclosing_body->type->variant.routine.extra_info->qualifiers ==
+        check_assertion(enclosing_body != NULL);
+        if (enclosing_body->type->kind == (a_type_kind)tk_routine &&
+            enclosing_body->type->variant.routine.extra_info->qualifiers ==
                                                                    TQ_CONST) {
-        field_type = make_qualified_type(field_type, TQ_CONST);
+          field_type = make_qualified_type(field_type, TQ_CONST);
+        }  /* if */
       }  /* if */
     }  /* if */
     field_type = make_reference_type(field_type);
