@@ -2518,6 +2518,7 @@ ec_attr_disallows_handler_param;;"attribute %sq does not apply to handler parame
 ec_attr_requires_handler_param;;"attribute %sq requires a handler parameter"
 ec_wrong_entity_for_alignas;;"alignas does not apply here"
 ec_std_alignof_with_expr_arg;;"the standard \"alignof\" operator does not accept an expression argument (use a type instead)"
+ec_bad_qualifier_for_member_enum_decl;;"invalid qualifier for %t (a derived class is not allowed here)"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

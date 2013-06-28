@@ -1,5 +1,21 @@
 Version 5.0
 
+6/27/13  [EDGcpfe/14179]
+Missing diagnostic on member enum defined using derived class name qualifier
+
+In C++11 enum types can be declared using opaque declaration in a class and
+then defined outside that class.  However, the front end failed to diagnose
+attempts to do this using a derived class name qualifiers.  For example:
+
+  struct B {
+    enum class E;
+  };
+  struct D: B {};
+  enum class D::E { e };  // Invalid, but previously accepted.
+
+This is now fixed (i.e., an error is now issued on cases like these).
+
+
 6/27/13  [EDGcpfe/14254]
 By reference capture of a variable captured by value in an enclosing lambda
 

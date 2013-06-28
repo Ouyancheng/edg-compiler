@@ -5041,9 +5041,18 @@ dsi_flags is the set of input flags passed to decl_specifiers.
            a long time. */
         if ((opaque_enum_decls_enabled || microsoft_mode) &&
             class_of_which_a_member == NULL) {
+          a_type_ptr  qualifier_class = qualifier_class_type(locator);
           /* An out-of-class definition of a class member enum: Reactivate the
              class scope. */
           class_of_which_a_member = sym_parent_class(tag_sym);
+          if (!same_entities(qualifier_class, class_of_which_a_member)) {
+            /* Something like:
+                 struct B { enum class E; }; struct D: B {};
+                 enum D::E { e };  // Invalid.
+            */
+            pos_ty_error(ec_bad_qualifier_for_member_enum_decl,
+                         &locator.source_position, type_symbol_type(tag_sym));
+          }  /* if */
           push_class_reactivation_scope(class_of_which_a_member,
                                         /*extend_namespace=*/FALSE);
           class_reactivation_pushed = TRUE;
