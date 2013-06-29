@@ -1,5 +1,17 @@
 Version 5.0
 
+6/29/13  [EDGcpfe/14258]
+C++-generating back end: deleted definition not included in template strings
+
+When the string representation is used to reconstruct template definitions
+in the C++-generating back end, the "= delete" was emitted from the
+string representation.  Now fixed.
+
+  template <typename T> struct A {
+   template <typename U> void operator()(U *) const = delete;
+  };
+
+
 6/28/13  [EDGcpfe/14190]
 GNU compatibility: __builtin_bswap16
 

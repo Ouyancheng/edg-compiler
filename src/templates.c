@@ -490,6 +490,7 @@ Initialize a template declaration state block.
   tdsp->is_partial_specialization = FALSE;
   tdsp->is_full_specialization = FALSE;
   tdsp->defines_something = FALSE;
+  tdsp->is_deleted = FALSE;
   tdsp->in_prototype_instantiation = FALSE;
   tdsp->in_generic_definition = FALSE;
   tdsp->decl_scope_err = FALSE;
@@ -17938,6 +17939,7 @@ function declarator.
        want to see those tokens during partial instantiations.  So they
        shouldn't be cached again as part of the body. */
     decl_state->defines_something = TRUE;
+    decl_state->is_deleted = TRUE;
 #if EXTRA_SOURCE_POSITIONS_IN_IL
     decl_state->definition_range.start = pos_curr_token;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
@@ -20953,11 +20955,13 @@ caller.
     if (is_nonspecialized_prototype_instantiation_context()) {
       if (sym->is_class_member && decl_state->class_declared_in != NULL &&
           decl_state->defines_something &&
+          !decl_state->is_deleted &&
           sym->kind == (a_symbol_kind)sk_function_template) {
         /* This is a member template function definition.  Create a template
            cache segment entry so that the body of this template can
            be removed from the enclosing template cache.  Note that this
-           is not done for members of Microsoft in-class specializations. */
+           is not done for members of Microsoft in-class specializations.
+           Deleted definitions are also not removed. */
         tssp->cache_segment = alloc_template_cache_segment(sym, tssp);
         tssp->cache_segment->first_token_number = first_token_number;
         tssp->cache_segment->last_token_number = last_token_number;

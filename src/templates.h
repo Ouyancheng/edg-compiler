@@ -76,6 +76,9 @@ typedef struct a_tmpl_decl_state {
 			   lists (i.e., "template <>"). */
   a_boolean	defines_something;
 			/* TRUE if the declaration is a definition. */
+  a_boolean	is_deleted;
+			/* TRUE for a function template declaration that
+			   was defined as "= delete". */
   a_boolean	in_prototype_instantiation;
 			/* TRUE if the declaration is being processed as
 			   part of the prototype instantiation of an
