@@ -6398,7 +6398,11 @@ definition of the CC flags in il.h for more information.
   a_boolean  strict_template_constant_identity =
            strictly_identical ||
            (options & CC_EXACT_TEMPLATE_CONSTANT_IDENTITY_MATCH_REQUIRED) != 0;
+  an_itf_flag_set itf_options;
 
+  itf_options = strict_template_constant_identity
+                                       ? ITF_EXACT_TEMPLATE_PARAM_TYPE_REQUIRED
+                                       : ITF_NO_FLAGS;
   if (cp1 == cp2) {
     eq = TRUE;
     goto end_of_routine;
@@ -6722,9 +6726,10 @@ definition of the CC flags in il.h for more information.
             case tpck_uuidof:
             case tpck_typeid:
             case tpck_noexcept:
-              eq = identical_types(
-                      cp1->variant.template_param.variant.templ_sizeof.type,
-                      cp2->variant.template_param.variant.templ_sizeof.type);
+              eq = f_identical_types(
+                         cp1->variant.template_param.variant.templ_sizeof.type,
+                         cp2->variant.template_param.variant.templ_sizeof.type,
+                         itf_options);
               if (eq) {
                 an_expr_node_ptr expr1 = generic_sizeof_arg_expr(cp1);
                 an_expr_node_ptr expr2 = generic_sizeof_arg_expr(cp2);
