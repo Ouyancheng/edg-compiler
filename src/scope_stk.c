@@ -1073,7 +1073,6 @@ assign one now.
      table to be used to ensure that equal string literals (which will share
      their representation) are assigned the same sequence number. */
   if (ssep->string_literal_table == NULL) {
-    check_assertion(string_literals_shared);
     initialize_string_literal_table(ssep);
   }  /* if */
   if (cp->kind == (a_constant_repr_kind)ck_error) {
