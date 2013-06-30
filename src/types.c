@@ -5301,7 +5301,14 @@ for more information.
 
   db_enter(5, "f_identical_types");
 
-  /* First check for typeref equivalence: This includes type qualifiers and
+  /* First, check if the types are the same.  This repeats the test in the
+     identical_types macro, but needs to be done here, too, since this
+     function is called directly when the flags must be specified. */
+  if (type_1 == type_2) {
+    identical = TRUE;
+    goto done;
+  }  /* if */
+  /* Now check for typeref equivalence: This includes type qualifiers and
      decltype/typeof constructs. */
 check_typerefs:
   if (type_1->kind == (a_type_kind)tk_typeref ||
