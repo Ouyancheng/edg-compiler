@@ -5302,7 +5302,7 @@ for more information.
   db_enter(5, "f_identical_types");
 
   /* First, check if the types are the same.  This repeats the test in the
-     identical_types macro, but needs to be done here, too, since this
+     identical_types macro, but it needs to be done here, too, since this
      function is called directly when the flags must be specified. */
   if (type_1 == type_2) {
     identical = TRUE;
