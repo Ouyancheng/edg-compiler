@@ -12493,6 +12493,8 @@ exception-handling "try" block.
     } else {
       /* Put out the parameter.  It may be unnamed. */
       a_source_correspondence *scp = NULL;
+      gen_attributes(handler_var->source_corresp.attributes,
+                     al_prefix, /*primary_only=*/FALSE);
       if (has_name(handler_var)) {
         scp = &handler_var->source_corresp;
         /* Advance past the source sequence entry. */

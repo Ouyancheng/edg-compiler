@@ -441,6 +441,34 @@ avoid a dangling pointer when *dps goes away).
 }  /* detach_parse_state_from_attributes */
 
 
+static void attach_decl_attributes_to_entity(a_decl_parse_state  *dps,
+                                             an_il_entry_kind    entity_kind,
+                                             char                *entity,
+                                             a_boolean           primary_decl)
+/*
+Attach the attributes recorded in *dps to the given entity.  If primary_decl
+is TRUE, the on_primary_declaration flag of the attributes is set to TRUE
+before they are attached.  
+This routine is usually called through attach_decl_attributes, which uses
+dps->sym to identify the target entity.  It can be called directly in cases
+where dps->sym might be NULL (e.g., exception handler parameters, which may
+be unnamed).
+*/
+{
+  if (dps->id_attributes != NULL || dps->prefix_attributes != NULL) {
+    if (dps->secondary_declarator) {
+      dps->prefix_attributes = copy_of_attributes_list(dps->prefix_attributes);
+    }  /* if */
+    attach_parse_state_to_attributes(dps);
+    if (primary_decl) mark_primary_decl_attributes(dps->id_attributes);
+    attach_attributes(dps->id_attributes, entity, entity_kind);
+    if (primary_decl) mark_primary_decl_attributes(dps->prefix_attributes);
+    attach_attributes(dps->prefix_attributes, entity, entity_kind);
+    detach_parse_state_from_attributes(dps);
+  }  /* if */
+}  /* attach_decl_attributes_to_entity */
+
+
 void attach_decl_attributes(a_decl_parse_state  *dps,
                             a_boolean           primary_decl)
 /*
@@ -485,15 +513,7 @@ set to TRUE before they are attached.
     } else {
       entity = il_entry_for_symbol(dps->sym, &entity_kind);
     }  /* if */
-    if (dps->secondary_declarator) {
-      dps->prefix_attributes = copy_of_attributes_list(dps->prefix_attributes);
-    }  /* if */
-    attach_parse_state_to_attributes(dps);
-    if (primary_decl) mark_primary_decl_attributes(dps->id_attributes);
-    attach_attributes(dps->id_attributes, entity, entity_kind);
-    if (primary_decl) mark_primary_decl_attributes(dps->prefix_attributes);
-    attach_attributes(dps->prefix_attributes, entity, entity_kind);
-    detach_parse_state_from_attributes(dps);
+    attach_decl_attributes_to_entity(dps, entity_kind, entity, primary_decl);
   }  /* if */
 done:;
 }  /* attach_decl_attributes */
@@ -12241,7 +12261,9 @@ a normal try.
         /* Set the is_local_to_function flag after returning from
            set_source_corresp. */
         handler->parameter->source_corresp.is_local_to_function = TRUE;
-        attach_decl_attributes(&state, /*primary_decl=*/TRUE);
+        attach_decl_attributes_to_entity(&state, iek_variable,
+                                         (char*)handler->parameter,
+                                         /*primary_decl=*/TRUE);
         /* A handler parameter is initialized by the run-time when the
            handler is invoked.  Create the dynamic init entry to represent
            the initialization. */
