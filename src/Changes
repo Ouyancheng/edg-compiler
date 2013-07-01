@@ -82,7 +82,7 @@ This is now fixed (i.e., an error is now issued on a case like this).
 
 
 6/27/13  [EDGcpfe/14254]
-By reference capture of a variable captured by value in an enclosing lambda
+Capture by reference of a variable captured by value in an enclosing lambda
 
 When a nested lambda captures a variable by reference that is captured by
 value in a non-mutable enclosing lambda, the reference capture should behave
