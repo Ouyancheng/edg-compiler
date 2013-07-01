@@ -2869,6 +2869,11 @@ Display the indicated field.
   disp_ptr("property_or_event_descr", (char*)ptr->property_or_event_descr,
            iek_property_or_event_descr);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+  if (ptr->has_initializer) {
+    disp_source_range("initializer_range", &ptr->initializer_range);
+  }  /* if */
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
 }  /* disp_field */
 
 

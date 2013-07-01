@@ -4531,6 +4531,23 @@ IL entry for that field.
       field->has_direct_braced_initializer = is->direct_init;
       field->initializer = is->init_dip;
       field->has_nonconstant_initializer = is->constant_expr_ruled_out;
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+      field->initializer_range.start = init_pos;
+      field->initializer_range.end = curr_construct_end_position;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+#if DEBUG
+      if (db_flag_is_set("dump_init")) {
+        fputs("initializer for field ", f_debug);
+        db_name(&field->source_corresp);
+        fputs(":\n", f_debug);
+        db_dynamic_initializer(field->initializer, 2);
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+        fputs("  (initializer range: ", f_debug);
+        db_source_range(&field->initializer_range);
+        fputs(")\n", f_debug);
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+      }  /* if */
+#endif /* DEBUG */
     }  /* if */
   } else {
     expect_error();
@@ -4557,6 +4574,7 @@ IL entry for that field.
        properties may have been delayed until now. */
     update_class_for_last_parsed_field_initializer(class_type);
   }  /* if */
+
 }  /* field_initializer */
 
 

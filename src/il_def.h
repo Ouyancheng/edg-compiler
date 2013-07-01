@@ -9641,6 +9641,14 @@ typedef struct a_field {
 			   ABI). NULL otherwise, and NULL until the containing
 			   class type has been laid out. */
 #endif /* BACK_END_IS_C_GEN_BE */
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+  a_source_range
+		initializer_range;
+			/* When the field has an in-class initializer, the
+			   source positions corresponding to the start and end
+			   of that initializer (i.e, including "=" or "{" and
+			   "}").  May be null_source_range. */
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
 } a_field;
 
 

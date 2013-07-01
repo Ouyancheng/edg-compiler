@@ -2385,6 +2385,9 @@ to it.
 #if BACK_END_IS_C_GEN_BE
   fp->bit_field_alignment_type = NULL;
 #endif /* BACK_END_IS_C_GEN_BE */
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+  fp->initializer_range           = null_source_range;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
 
   db_exit();
   return fp;

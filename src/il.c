@@ -2061,6 +2061,7 @@ dik_constructor.
   an_expr_node_ptr  arg;
   int               a;
 
+  for (a = 0; a < level; a++) fputs(" ", f_debug);
   fputs("ctor: ", f_debug);
   if (dip->variant.constructor.value_initialization) {
     fputs("(value initialization) ", f_debug);
@@ -2076,10 +2077,10 @@ dik_constructor.
   }  /* if */
   fputs("\n", f_debug);
   if ((arg = dip->variant.constructor.args) != NULL) {
-    for (a = 0; a < level; a++) fputs(" ", f_debug);
+    for (a = 0; a < level+2; a++) fputs(" ", f_debug);
     fputs("ctor args =\n", f_debug);
     for (; arg != NULL; arg = arg->next) {
-      db_expr_node(arg, level+2);
+      db_expr_node(arg, level+4);
     }  /* if */
   }  /* if */
 }  /* db_constructor_initializer */

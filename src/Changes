@@ -1,5 +1,15 @@
 Version 5.0
 
+7/1/13   [EDGcpfe/14259]
+Extended position information for nonstatic data member initializers
+
+When EXTRA_SOURCE_POSITIONS_IN_IL is TRUE, the front end now records the
+start and end positions of nonstatic data member initializers in the
+corresponding a_field entry.  (A new initializer_range field has been added
+to a_field entries in such configurations; it mimics the field of the same
+name in a_variable.)
+
+
 7/1/13   [EDGcpfe/14257]
 Failure to set correspondence on function template prototype instantiation
 
