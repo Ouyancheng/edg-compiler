@@ -1,5 +1,18 @@
 Version 5.0
 
+7/1/13   [EDGcpfe/14263]
+GNU compatibility: Sentinel values
+
+When checking argument values for the GNU "sentinel" attribute (see the entry
+of 3/24/06), the front end now also accepts the GNU __null constant and any
+expression of the C++11 type std::nullptr.  For example (GNU mode):
+
+  void f(int, ...) __attribute__((sentinel));
+  void g() {
+    f(42, __null);  // No longer elicits a warning.
+  }
+
+
 7/1/13   [EDGcpfe/14259]
 Extended position information for nonstatic data member initializers
 

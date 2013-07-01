@@ -11826,6 +11826,33 @@ arguments).
 
 #if GNU_EXTENSIONS_ALLOWED
 
+static a_boolean is_valid_gnu_sentinel(an_arg_list_elem_ptr  arg)
+/*
+Return TRUE if the given argument is (a) a constant null pointer, (b) a GNU
+__null value, or (c) a value of type decltype(nullptr).
+*/
+{
+  a_boolean  result = FALSE;
+
+  if (is_expression_component(arg)) {
+    an_operand  *op = operand_of_arg_list_elem(arg);
+    if (is_nullptr_type(op->type)) {
+      /* Any value of type decltype(nullptr) is a valid sentinel. */
+      result = TRUE;
+    } else if (is_constant_operand(op)) {
+      a_constant_ptr  opcon = &op->variant.constant;
+      if (opcon->null_keyword) {
+        /* The GNU __null keyword is a valid sentinel. */
+        result = TRUE;
+      } else if (is_a_prvalue(op)) {
+        result = is_null_pointer_value(opcon);
+      }  /* if */
+    }  /* if */
+  }  /* if */
+  return result;
+}  /* is_valid_gnu_sentinel */
+
+
 static void warn_if_missing_sentinel(an_arg_list_elem_ptr arg_list,
                                      an_arg_check_block   *arg_block)
 /*
@@ -11848,9 +11875,7 @@ is a constant null pointer.
       if (param != NULL) param = param->next;
     }  /* while */
     check_assertion(sentinel != NULL);
-    valid_sentinel_value = (is_expression_component(sentinel) &&
-                            op_is_null_pointer_value(
-                                          operand_of_arg_list_elem(sentinel)));
+    valid_sentinel_value = is_valid_gnu_sentinel(sentinel);
     /* Check that the operand is a valid sentinel. */
     if (gnu_mode && gnu_version >= 40002 && param != NULL) {
       /* gcc/g++ version 4.0.0 allowed a sentinel to correspond to a named
