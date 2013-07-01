@@ -21,7 +21,7 @@ in the C++-generating back end, the "= delete" was omitted from the
 string representation.  Now fixed.
 
   template <typename T> struct A {
-   template <typename U> void operator()(U *) const = delete;
+    template <typename U> void operator()(U *) const = delete;
   };
 
 
