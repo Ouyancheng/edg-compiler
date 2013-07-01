@@ -4,7 +4,7 @@ Version 5.0
 C++-generating back end: deleted definition not included in template strings
 
 When the string representation is used to reconstruct template definitions
-in the C++-generating back end, the "= delete" was emitted from the
+in the C++-generating back end, the "= delete" was omitted from the
 string representation.  Now fixed.
 
   template <typename T> struct A {
