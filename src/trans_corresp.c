@@ -1889,7 +1889,7 @@ correspondences.  If visited is TRUE, also record those instantiations of the
 all_instantiations list of the associated template symbol supplement.
 */
 {
-  a_symbol_ptr  templ_sym = (a_symbol_ptr)templ->source_corresp.assoc_info;
+  a_symbol_ptr  templ_sym = symbol_for(templ);
   a_template_symbol_supplement_ptr
                 tssp = is_template_symbol(templ_sym) ?
                                       templ_sym->variant.template_info : NULL;
@@ -1927,11 +1927,21 @@ all_instantiations list of the associated template symbol supplement.
   } else {
     /* A function template. */
     a_template_instance_ptr  inst = tssp->variant.function.instantiations;
+    a_routine_ptr            proto = tssp->variant.function.routine;
+    /* Process the prototype instantiation first. */
+    if (proto != NULL) {
+      clear_trans_unit_corresp(iek_routine, proto, visited);
+      if (visited) {
+        add_instantiation(tssp, symbol_for(proto));
+      }  /* if */
+    }  /* if */
     for (; inst != NULL; inst = inst->next) {
       a_routine_ptr   routine = inst->instance_sym->variant.routine.ptr;
-      clear_trans_unit_corresp(iek_routine, routine, visited);
-      if (visited) {
-        add_instantiation(tssp, inst->instance_sym);
+      if (routine != proto) {
+        clear_trans_unit_corresp(iek_routine, routine, visited);
+        if (visited) {
+          add_instantiation(tssp, inst->instance_sym);
+        }  /* if */
       }  /* if */
     }  /* for */
   }  /* if */
