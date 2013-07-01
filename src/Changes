@@ -40,7 +40,7 @@ __builtin_bswap16.  For example (with --gcc):
 6/28/13  [EDGcpfe/14255]
 String literal discriminators and folding in the IA-64 ABI
 
-The IA-64 ABI requires that string literals appearing in certain local context
+The IA-64 ABI requires that string literals appearing in certain local contexts
 be numbered with a "discriminator" value used for mangling purposes.  This is
 important, for example, to ensure that all the string literals emitted in
 inline functions share the same address.  Consider the following example:
@@ -57,7 +57,7 @@ entry for them.  However, the conditional operator can be folded in this case
 and previously the folded result pointed to a backing expression, which in
 turn prevented sharing of the a_constant entries representing the initializers
 of p1 and p2, despite the two having the same discriminator value.
-A consequence on the resulting invalid IL was that lowering could generate
+A consequence of the resulting invalid IL was that lowering could generate
 duplicate definitions of variables storing the string literal (in
 configurations with RECORD_BACKING_EXPRS_WITH_IL_LOWERING set to TRUE).
 This is now fixed: No backing expression is recorded for string constants
