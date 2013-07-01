@@ -67,7 +67,7 @@ with a discriminator value even when the constant results from folding.
 6/27/13  [EDGcpfe/14179]
 Missing diagnostic on member enum defined using derived class name qualifier
 
-In C++11 ab enum type can be declared using an opaque declaration in a class
+In C++11 an enum type can be declared using an opaque declaration in a class
 and then defined outside that class.  However, the front end failed to
 diagnose attempts to do this using a derived class name qualifier.
 For example:
