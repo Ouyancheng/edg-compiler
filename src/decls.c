@@ -5090,6 +5090,14 @@ a copy of the previous type).
                the routine type. */
             rout_type_ptp->decl_pos_info = saved_decl_pos_info;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+            /* Copy the Microsoft attributes list (if any). */
+            if (comp_type_ptp->ms_attributes != NULL) {
+              rout_type_ptp->ms_attributes = duplicate_ms_attributes(
+                                                  comp_type_ptp->ms_attributes,
+                                                  (char*)rout_type_ptp);
+            }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
           }  /* for */
         }  /* if */
         if (!C_mode()) {
