@@ -2618,9 +2618,7 @@ the way described by octl.
   } else if (type->variant.array.bound_constant != NULL &&
              !type->variant.array.is_template_dependent_size_array &&
              !octl->c_generating_back_end &&
-             octl->output_expression != NULL &&
-             constant_should_be_put_out_as_expr(
-                                         type->variant.array.bound_constant)) {
+             octl->output_expression != NULL) {
     /* Use the recorded a_constant entry rather than a plain integer.  This
        allows the output to be closer to the original bound expression when
        the bound is more than just a literal (e.g., "2*2" instead of "4"). */

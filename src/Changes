@@ -1,5 +1,22 @@
 Version 5.0
 
+7/2/13   [EDGcpfe/14265]
+C++-generating back end: enumerators as array bounds
+
+A change in version 4.7 caused the C++-generating back end to put out the
+value instead of the name of an enumerator when the enumerator is used in
+the source code as an array bound in a cast.  This is now fixed.  For
+example:
+
+  struct S {
+    enum { e = 4 * 256 };
+  };
+  extern void* p;
+  void f() {
+    (int(*)[S::e])p;  // Cast previously generated as (int(*)[1024])
+  }
+
+
 7/1/13   [EDGcpfe/14263]
 GNU compatibility: Sentinel values
 
