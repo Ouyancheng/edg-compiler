@@ -11828,8 +11828,8 @@ arguments).
 
 static a_boolean is_valid_gnu_sentinel(an_arg_list_elem_ptr  arg)
 /*
-Return TRUE if the given argument is (a) a constant null pointer, (b) a GNU
-__null value, or (c) a value of type decltype(nullptr).
+Return TRUE if the given argument is a null pointer constant (C++11 nullptr,
+GNU __null, or a zero-valued constant cast to a pointer type).
 */
 {
   a_boolean  result = FALSE;

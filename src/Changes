@@ -5,7 +5,7 @@ GNU compatibility: Sentinel values
 
 When checking argument values for the GNU "sentinel" attribute (see the entry
 of 3/24/06), the front end now also accepts the GNU __null constant and any
-expression of the C++11 type std::nullptr.  For example (GNU mode):
+expression of the C++11 type std::nullptr_t.  For example (GNU mode):
 
   void f(int, ...) __attribute__((sentinel));
   void g() {
