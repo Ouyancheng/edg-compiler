@@ -4574,7 +4574,6 @@ IL entry for that field.
        properties may have been delayed until now. */
     update_class_for_last_parsed_field_initializer(class_type);
   }  /* if */
-
 }  /* field_initializer */
 
 

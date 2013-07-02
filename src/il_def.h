@@ -9389,8 +9389,8 @@ typedef struct a_variable {
 			/* When an initializer appears explicitly in the
 			   source, the source positions corresponding to the
 			   start and end of the top-level initializer
-			   construct (i.e, including "=" or "(" and ")").
-			   May be null_source_range. */
+			   construct (i.e., including "=" or "(" and ")").
+			   Otherwise, null_source_range. */
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   an_il_entity_list_entry_ptr
 		entities_defined_in_initializer;
@@ -9647,7 +9647,7 @@ typedef struct a_field {
 			/* When the field has an in-class initializer, the
 			   source positions corresponding to the start and end
 			   of that initializer (i.e, including "=" or "{" and
-			   "}").  May be null_source_range. */
+			   "}").  Otherwise, null_source_range. */
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
 } a_field;
 
