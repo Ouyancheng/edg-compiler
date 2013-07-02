@@ -32,8 +32,7 @@ failed to record a cross-translation unit correspondence for the a_routine
 entry representing a prototype instantiation of a function template defined
 in a secondary translation unit.  This, in turn could result in an internal
 error ("entity with external linkage does not have corresp info") in
-trans_copy.c.
-This is now fixed.
+trans_copy.c.  This is now fixed.
 
 
 6/29/13  [EDGcpfe/14258]
