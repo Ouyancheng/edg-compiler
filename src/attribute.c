@@ -4390,9 +4390,21 @@ to it and return the entity.
 {
   a_routine_ptr  rp = (a_routine_ptr)entity;
 
-  check_assertion(entity_kind == iek_routine);
-  set_inline_flag(rp, TRUE);
-  rp->always_inline = TRUE;
+  check_assertion(entity_kind == iek_routine && gnu_mode);
+  if (!rp->is_inline && gnu_version >= 40700) {
+    /* Later GNU versions give a warning and don't mark the routine as
+       "inline". */
+    if (ap->on_primary_declaration) {
+      /* Only give a warning on the primary declaration. */
+      pos_warning(ec_always_inline_requires_inline, &ap->position);
+    }  /* if */
+    make_attr_unrecognized(ap);
+  } else {
+    /* Early versions of GNU simply implied "inline" in cases where it
+       wasn't already specified. */
+    set_inline_flag(rp, TRUE);
+    rp->always_inline = TRUE;
+  }  /* if */
   return entity;
 }  /* apply_always_inline_attr */
 

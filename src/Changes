@@ -1,5 +1,20 @@
 Version 5.0
 
+7/3/13   [EDGcpfe/14103]
+GNU compatibility: use of "always_inline" attribute on non-inline functions
+
+Recent versions of GNU (i.e., 4.7.0 and later) give a warning and don't inline
+a function when the "always_inline" attribute is used on the definition of a
+function that is not otherwise inline.  The front end now produces a similar
+warning and does not implicitly mark the routine as inline (when
+gnu_version >= 40700).  The previous behavior (i.e., to implicitly mark the
+routine as inline) is maintained when gnu_version < 40700.  For example:
+
+  __attribute__((always_inline)) void f() {}
+                  // gnu_version >= 40700: warning and f is not marked inline
+                  // gnu_version <  40700: f is implicitly marked inline
+
+
 7/2/13   [EDGcpfe/14264]
 IL write-read error with Microsoft attributes in parameter types
 
