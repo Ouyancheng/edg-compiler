@@ -1772,10 +1772,9 @@ static void scan_member_function_modifiers(a_symbol_locator    *locator,
 /*
 Scan for member function modifiers and record their presence in *func_info.
 *state describes some syntactic properties of the current declaration.
-  ("sealed",
-"abstract", and "override" are an ECMA C++/CLI extension also accepted by some
-Microsoft compilers in their non-CLI modes; "new" is only accepted in C++/CLI
-mode.)
+("sealed", "abstract", and "override" are an ECMA C++/CLI extension also
+accepted by some Microsoft compilers in their non-CLI modes; "new" is only
+accepted in C++/CLI mode.)  "final" is accepted in later Microsoft modes.
 */
 {
   a_boolean  accept_std_modifiers = cpp11_mode ||
@@ -1783,6 +1782,8 @@ mode.)
   a_boolean  accept_ms_modifiers = microsoft_mode &&
                                    (cppcli_enabled ||
                                     microsoft_version >= 1400);
+  a_boolean  accept_ms_final_modifiers = (microsoft_mode &&
+                                          microsoft_version >= 1700);
 
   if (accept_std_modifiers || accept_ms_modifiers) {
     for (;;) {
@@ -1802,7 +1803,7 @@ mode.)
           }  /* if */
           func_info->override = TRUE;
         }  /* if */
-      } else if (accept_std_modifiers &&
+      } else if ((accept_std_modifiers || accept_ms_final_modifiers) &&
                  check_context_sensitive_keyword(tok_final, "final")) {
         if (func_info->final) {
           error(ec_duplicate_function_modifier);
