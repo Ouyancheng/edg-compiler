@@ -3045,8 +3045,10 @@ the meaning of need_closing_paren.
     /* Use recursion to handle multiple levels of nesting. */
     gen_name(&nsp->source_corresp, iek_namespace, options | GN_QUALIFIER,
              need_closing_paren);
-    write_tok_str("::");
   }  /* if */
+  /* Write either the scope operator following the namespace name or, if
+     the top-level namespace was unnamed, the global scope operator. */
+  write_tok_str("::");
 }  /* gen_namespace_qualifier */
 
 

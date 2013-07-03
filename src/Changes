@@ -1,5 +1,21 @@
 Version 5.0
 
+7/3/13   [EDGcpfe/14267]
+C++-generating back end: qualified names for members of the unnamed namespace
+
+When a member of the unnamed namespace is hidden, requiring a qualified
+name to refer to it, the C++-generating back end incorrectly used an
+unqualified name.  This is now fixed.  For example:
+
+  struct A { enum { B }; };
+  namespace {
+    struct B { };
+  }
+  struct C: A {      // A::B hides struct B inside C
+    void f(::B *);   // Previously generated as f(B *)
+  };
+
+
 7/3/13   [EDGcpfe/14103]
 GNU compatibility: use of "always_inline" attribute on non-inline functions
 
