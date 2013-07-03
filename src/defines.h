@@ -122,7 +122,9 @@ Flags to be set for any version that uses the C++ generating back end.
 #define DEFAULT_EXCEPTIONS_ENABLED 0
 #define COMPILE_MULTIPLE_TRANSLATION_UNITS 0
 #define DO_IL_LOWERING 0
+#ifndef INCLUDE_UNRECOGNIZED_PRAGMAS_IN_IL
 #define INCLUDE_UNRECOGNIZED_PRAGMAS_IN_IL 0
+#endif /* ifndef INCLUDE_UNRECOGNIZED_PRAGMAS_IN_IL */
 #ifdef SSI_VERSION
 /* Generating instantiations in source sequence lists. */
 #define CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS 1
