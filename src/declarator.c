@@ -1782,8 +1782,8 @@ accepted in C++/CLI mode.)  "final" is accepted in later Microsoft modes.
   a_boolean  accept_ms_modifiers = microsoft_mode &&
                                    (cppcli_enabled ||
                                     microsoft_version >= 1400);
-  a_boolean  accept_ms_final_modifiers = (microsoft_mode &&
-                                          microsoft_version >= 1700);
+  a_boolean  accept_ms_final_modifier = (microsoft_mode &&
+                                         microsoft_version >= 1700);
 
   if (accept_std_modifiers || accept_ms_modifiers) {
     for (;;) {
@@ -1803,7 +1803,7 @@ accepted in C++/CLI mode.)  "final" is accepted in later Microsoft modes.
           }  /* if */
           func_info->override = TRUE;
         }  /* if */
-      } else if ((accept_std_modifiers || accept_ms_final_modifiers) &&
+      } else if ((accept_std_modifiers || accept_ms_final_modifier) &&
                  check_context_sensitive_keyword(tok_final, "final")) {
         if (func_info->final) {
           error(ec_duplicate_function_modifier);
