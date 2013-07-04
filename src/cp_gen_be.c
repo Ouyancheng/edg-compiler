@@ -3045,6 +3045,11 @@ the meaning of need_closing_paren.
     /* Use recursion to handle multiple levels of nesting. */
     gen_name(&nsp->source_corresp, iek_namespace, options | GN_QUALIFIER,
              need_closing_paren);
+  } else if (options & GN_PARENS_IF_GLOBAL_QUALIFIER) {
+    /* Parentheses are needed to avoid treating a preceding name as part
+       of the qualifier, e.g., A (::B) and not A ::B. */
+    write_ch('(');
+    *need_closing_paren = TRUE;
   }  /* if */
   /* Write either the scope operator following the namespace name or, if
      the top-level namespace was unnamed, the global scope operator. */
@@ -3675,10 +3680,16 @@ GN_PARENS_IF_GLOBAL_QUALIFIER is not set.
     } else if (scp_is_namespace_member(scp)) {
       /* The entity is a member of a namespace. */
       a_namespace_ptr nsp = scp_parent_namespace(scp);
+      a_boolean       member_of_global_unnamed_namespace;
+      member_of_global_unnamed_namespace =
+          (!has_name_before_mangling(nsp) &&
+           (nsp->source_corresp.parent_scope == NULL ||
+            nsp->source_corresp.parent_scope->kind == (a_scope_kind)sck_file));
       if (!force_qualified_name &&
           (!scp->qualification_needed ||
            ((options & GN_DECLARATION) && !(options & GN_FRIEND_DECL))) &&
           (scp->visible_as_unqualified_name ||
+           member_of_global_unnamed_namespace ||
            scope_is_in_name_context_stack(nsp->variant.assoc_scope)) &&
           /* MSVC++ 7.0 does not always correctly parse "class S<x>::N {}",
              but the problem goes away with a leading namespace qualifier. */
