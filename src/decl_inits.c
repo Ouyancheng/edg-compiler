@@ -4071,6 +4071,8 @@ returned set to TRUE.
       } else {
         scan_class_parenthesized_initializer(vp_type, vp_type, &pos,
                                              /*fill_in_dtor=*/TRUE,
+                                             /*args_supplied=*/FALSE,
+                                             (an_arg_list_elem_ptr)NULL,
                                              &dps->init_state);
       }  /* if */
 #if EXTRA_SOURCE_POSITIONS_IN_IL
@@ -5620,6 +5622,8 @@ cases, array_type is NULL).
       scan_class_parenthesized_initializer(init_type, object_class_type,
                                            &lparen_pos,
                                            /*fill_in_dtor=*/exceptions_enabled,
+                                           /*args_supplied=*/FALSE,
+                                           (an_arg_list_elem_ptr)NULL,
                                            &is);
     }  /* if */
     dip = is.init_dip;
@@ -6770,6 +6774,13 @@ initialized.  These are addressed in the course of the processing.
              init entry. */
           dip = alloc_ctor_dynamic_init(rp, /*implied_source=*/TRUE);
         }  /* if */
+      } else if (ctor_rout->is_inheriting_ctor &&
+                 cip->kind != (a_constructor_init_kind)cik_field &&
+                 identical_types(cip->variant.base_class->type,
+                                 ctor_rout->generating_using_decl
+                                          ->qualifier.class_type)) {
+        /* This is the forwarding initializer for an inheriting constructor. */
+        dip = forwarding_initializer_for_inheriting_constructor(ctor_rout);
       } else if (field_initializers_enabled &&
                  cip->kind == (a_constructor_init_kind)cik_field &&
                  cip->variant.field->has_initializer) {
@@ -7150,10 +7161,9 @@ initialized.  These are addressed in the course of the processing.
               "constructor: ", 2);
     for (cip = cib.cip_list; cip != NULL; cip = cip->next) {
       if (cip->kind == (a_constructor_init_kind)cik_field) {
-        sym = (a_symbol_ptr)cip->variant.field->source_corresp.assoc_info;
+        sym = symbol_for(cip->variant.field);
       } else {
-        sym = (a_symbol_ptr)cip->variant.base_class->type->
-                                                source_corresp.assoc_info;
+        sym = symbol_for(cip->variant.base_class->type);
       }  /* if */
       fprintf(f_debug, "    initializer for %s %s%s: %s",
                        (cip->kind == (a_constructor_init_kind)cik_field) ?

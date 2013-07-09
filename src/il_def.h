@@ -2963,6 +2963,12 @@ typedef struct a_using_decl {
 			   using-declaration appeared as a class member, but
 			   in Microsoft bugs mode a nonmember using-declaration
 			   can refer to a type that is a class member. */
+  a_bit_field	is_inheriting_ctor:1;
+			/* TRUE if this represents a using-declaration for
+			   inheriting constructors.  If so, entity points to
+			   the class type whose constructors are to be
+			   inherited, is_class_member is TRUE, and
+			   is_using_directive is FALSE. */
   a_bit_field	hidden:1;
 			/* For class member using-declarations only, TRUE if
 			   a base class member brought into a derived class
@@ -12830,6 +12836,8 @@ typedef struct a_routine {
 			/* TRUE if this routine is a delegating constructor
 			   (which can only be known if the constructor
 			   definition has been seen). */
+  a_bit_field	is_inheriting_ctor:1;
+			/* TRUE if this routine is an inherited constructor. */
 #if ASSIGNMENT_TO_THIS_ALLOWED
   a_bit_field	assignment_to_this_done:1;
 			/* TRUE if an assignment to "this" (an anachronism)
@@ -13443,6 +13451,10 @@ typedef struct a_routine {
 			   specific init_priority value.  This indicates
 			   the priority.  Zero otherwise. */
 #endif /* GNU_INIT_PRIORITY_ATTRIBUTE_ALLOWED && DO_IL_LOWERING */
+  a_using_decl_ptr
+		generating_using_decl;
+			/* If this is an inheriting constructor, the
+			   using-declaration that generated it. */
 } a_routine;
 
 

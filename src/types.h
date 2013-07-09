@@ -774,10 +774,7 @@ Bit flags for calls of f_types_are_compatible et al.
 			   bug in redeclaration of static data members. */
 #define TCF_IGNORE_THIS_CLASS_TYPE 0x80
 			/* Two function types are deemed compatible even if
-			   the this class types do not match.
-			   This flag is used in Microsoft-bugs mode only, to
-			   deal with a bug in redeclaration of static data
-			   members. */
+			   the this class types do not match. */
 #define TCF_SEEK_CORRESP 0x100
 			/* The given types are expected to be compatible and
 			   if they are, the first type (and its components)

@@ -4186,7 +4186,8 @@ symbol pointer is returned.  This routine is used in both C and C++ mode.
 #define is_acceptable_symbol(sym, fund_sym)                           \
   ((sym)->is_class_member &&					      \
    (!is_injected_class_symbol(sym) ||				      \
-    (gpp_mode && is_typename_lookup) ||           \
+    (is_using_declaration && inheriting_constructors_enabled) ||      \
+    (gpp_mode && is_typename_lookup) ||                               \
     (gpp_mode && !is_prototype_instantiation_lookup &&		      \
      !is_using_declaration &&					      \
        (gnu_version < 30400 ||               			      \
@@ -4205,7 +4206,7 @@ symbol pointer is returned.  This routine is used in both C and C++ mode.
     symbol_may_precede_qualifier(fund_sym)) &&	     		      \
    (!must_be_class ||						      \
     is_class_or_class_proxy_symbol(fund_sym)) &&     		      \
-   (!must_be_tag ||						       \
+   (!must_be_tag ||                                                   \
     is_tag_or_tag_proxy_symbol(fund_sym,			      \
                                (options & IDL_FRIEND_LOOKUP) != 0) || \
     (microsoft_bugs && fund_sym->kind == (a_symbol_kind)sk_type)) &&  \

@@ -2553,6 +2553,7 @@ to it.  The entry is allocated in the file scope memory region.
   rp->is_trivial_destructor       = FALSE;
   rp->is_initializer_list_ctor    = FALSE;
   rp->is_delegating_ctor          = FALSE;
+  rp->is_inheriting_ctor          = FALSE;
 #if ASSIGNMENT_TO_THIS_ALLOWED
   rp->assignment_to_this_done     = FALSE;
 #endif /* ASSIGNMENT_TO_THIS_ALLOWED */
@@ -2726,6 +2727,7 @@ to it.  The entry is allocated in the file scope memory region.
 #if GNU_INIT_PRIORITY_ATTRIBUTE_ALLOWED && DO_IL_LOWERING
   rp->init_priority               = 0;
 #endif /* GNU_INIT_PRIORITY_ATTRIBUTE_ALLOWED && DO_IL_LOWERING */
+  rp->generating_using_decl = NULL;
   db_exit();
   return rp;
 }  /* alloc_routine */
@@ -3959,6 +3961,7 @@ Allocate a using-decl entry, initialize its fields, and return a pointer to it.
   udp->attributes            = NULL;
   udp->is_using_directive    = FALSE;
   udp->is_class_member       = FALSE;
+  udp->is_inheriting_ctor    = FALSE;
   udp->hidden                = FALSE;
   udp->compiler_generated    = FALSE;
   udp->inline_namespace      = FALSE;

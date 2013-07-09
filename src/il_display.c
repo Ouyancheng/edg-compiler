@@ -3217,6 +3217,9 @@ Display the indicated routine.
   if (ptr->is_delegating_ctor) {
     disp_boolean("is_delegating_ctor", TRUE);
   }  /* if */
+  if (ptr->is_inheriting_ctor) {
+    disp_boolean("is_inheriting_ctor", TRUE);
+  }  /* if */
 #if ASSIGNMENT_TO_THIS_ALLOWED
   if (ptr->assignment_to_this_done) {
     disp_boolean("assignment_to_this_done", TRUE);
@@ -3549,6 +3552,10 @@ Display the indicated routine.
     disp_unsigned_long("init_priority", (unsigned long)ptr->init_priority);
   }  /* if */
 #endif /* GNU_INIT_PRIORITY_ATTRIBUTE_ALLOWED && DO_IL_LOWERING */
+  if (ptr->generating_using_decl != NULL) {
+    disp_ptr("generating_using_decl", (char *)ptr->generating_using_decl,
+             iek_routine);
+  }  /* if */
 }  /* disp_routine */
 
 
@@ -5847,6 +5854,7 @@ Display the indicated using-directive entry.
     if (ptr->is_class_member) {
       /* Class member using-declaration. */
       disp_access("access", ptr->access);
+      if (ptr->is_inheriting_ctor) disp_boolean("is_inheriting_ctor", TRUE);
       if (ptr->hidden) disp_boolean("hidden", TRUE);
       disp_ptr("qualifier.class_type",
                (char *)ptr->qualifier.class_type, iek_type);

@@ -18242,7 +18242,7 @@ See also coalesce_and_lookup_generalized_identifier.
          reference to a instance of the class template.  This can occur when
          a template name appears in a qualified name without a template
          argument list (if a template argument list were specified it would
-         have been coalesced by f_is_generized_identifier_start). */
+         have been coalesced by f_is_generalized_identifier_start). */
       {
         a_symbol_ptr	symbol;
 	a_boolean	templ_err = FALSE;

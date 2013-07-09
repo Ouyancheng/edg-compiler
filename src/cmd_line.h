@@ -497,6 +497,11 @@ EXTERN a_boolean
 			   are accepted. */
 
 EXTERN a_boolean
+		inheriting_constructors_enabled;
+			/* TRUE if inheriting constructors (a C++11 feature)
+			   are accepted. */
+
+EXTERN a_boolean
 		constexpr_enabled;
 			/* TRUE if constexpr functions and variables are
 			   accepted (a C++11 feature). */

@@ -991,6 +991,9 @@ typedef struct a_class_def_state {
 			/* TRUE if bitwise copying should be ruled out because
 			   a field of volatile class type has been seen where
 			   the unqualified class type is bitwise assignable. */
+  a_bit_field	has_inheriting_constructors:1;
+			/* TRUE if a using-declaration introducing inheriting
+			   constructors has been encountered. */
   an_access_specifier
 		access;
 			/* The current access. */
@@ -1085,6 +1088,7 @@ class being defined.
   cdsp->has_field_initializer = FALSE;
   cdsp->rule_out_bitwise_copy_for_volatile_class_field = FALSE;
   cdsp->rule_out_bitwise_assign_for_volatile_class_field = FALSE;
+  cdsp->has_inheriting_constructors = TRUE;
   cdsp->access = (an_access_specifier)as_public;
 #if MICROSOFT_EXTENSIONS_ALLOWED
   cdsp->assembly_access = (an_access_specifier)as_public;
@@ -1363,6 +1367,12 @@ typedef struct a_member_decl_info {
 			   pragmas appear.  (Used in for C++/CLI properties
 			   and events.) */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+  a_using_decl_ptr
+		inheriting_ctor_using_decl;
+			/* For an inheriting constructor (always compiler-
+			   generated), the using-declaration representation
+			   that resulted in that constructor.  (NULL in other
+			   cases.) */
 } a_member_decl_info;
 
 
@@ -1412,6 +1422,7 @@ a class member declaration as it appears.
   mdip->named_overrides = NULL;
   mdip->suspended_pragmas = NULL;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+  mdip->inheriting_ctor_using_decl = NULL;
 }  /* initialize_member_decl_info */
 
 
@@ -19666,6 +19677,162 @@ The routine body is not generated until it is known to be needed.
 }  /* check_special_member_functions */
 
 
+static void generate_inheriting_constructors_for_base_ctor(
+                                                 a_symbol_ptr           bctor,
+                                                 a_using_decl_ptr       udp,
+                                                 a_class_def_state_ptr  cdsp)
+/*
+cdsp represents a class whose definition has just been completed, and whose
+implicitly-declared special members, if any, have been generated.  udp points
+to the representation of a using-declaration for inheriting constructors and
+bctor is one of the potentially inherited constructors associated with that
+using-declaration.  Generate any needed inheriting constructors from that base
+constructor.
+*/
+{
+  a_routine_ptr     brp;
+  uint32_t          n_params, n_base_params = 0, n_default_args = 0;
+  a_param_type_ptr  ptp, base_param_list;
+
+  check_assertion(symbol_is(bctor, sk_member_function));
+  brp = bctor->variant.routine.ptr;
+  check_assertion(brp->type->kind == (a_type_kind)tk_routine);
+  base_param_list = function_type_params(brp->type);
+  for (ptp = base_param_list; ptp != NULL; ptp = ptp->next) {
+    ++n_base_params;
+    if (ptp->has_default_arg) ++n_default_args;
+  }  /* if */
+  n_params = n_base_params-n_default_args;
+  /* Don't inherit a constructor with no parameters. */
+  if (n_params == 0) ++n_params;
+  for (; n_params <= n_base_params; ++n_params) {
+    a_type_ptr        new_tp;
+    a_symbol_ptr      dctor;
+    if (n_params == 1 && is_reference_type(base_param_list->type)) {
+      /* Exclude copy/move constructors. */
+      a_type_ptr  tp = type_pointed_to(base_param_list->type);
+      if (identical_types_ignoring_qualifiers(tp, udp->qualifier.class_type)) {
+        continue;
+      }  /* if */
+    }  /* if */
+    new_tp = alloc_type((a_type_kind)tk_routine);
+    /* Copy the base constructor type without its parameter list. */
+    brp->type->variant.routine.extra_info->param_type_list = NULL;
+    copy_type(brp->type, new_tp);
+    brp->type->variant.routine.extra_info->param_type_list = base_param_list;
+    /* Now copy the n_params first parameters. */
+    new_tp->variant.routine.extra_info->param_type_list =
+                         copy_param_type_list(base_param_list,
+                                              /*copy_default_args=*/FALSE,
+                                              n_params);
+    new_tp->variant.routine.extra_info->this_class = cdsp->class_type;
+    new_tp->variant.routine.extra_info->assoc_routine = NULL;
+    new_tp->variant.routine.extra_info->has_ellipsis = FALSE;
+    /* Check if the derived class already contains a user-declared constructor
+       with this signature: */
+    dctor = class_symbol_supp(symbol_for(cdsp->class_type))->constructor;
+    if (symbol_is(dctor, sk_overloaded_function)) {
+      dctor = dctor->variant.overloaded_function.symbols;
+    }  /* if */
+    for (; dctor != NULL; dctor = dctor->next) {
+      a_routine_ptr  drp = dctor->variant.routine.ptr;
+      if (!drp->compiler_generated &&
+          f_types_are_compatible(drp->type, new_tp,
+                                 TCF_REDECLARATION |
+                                 TCF_IGNORE_THIS_CLASS_TYPE)) {
+        /* Don't inherit constructors that match a constructor explicitly
+           declared in the derived class. */
+        /* FIXME: Recycle new_tp and copied parameter list? */
+        break;
+      }  /* if */
+    }  /* for */
+    if (dctor == NULL) {
+      /* There is no user-declared constructor with this signature yet:
+         Generate one now (the declaration only; the definition is generated
+         only if used). */
+      a_member_decl_info  decl_info;
+      a_func_info_block   func_info;
+      a_symbol_locator    loc;
+      a_routine_ptr       new_rp;
+      initialize_member_decl_info(&decl_info, &udp->position);
+      decl_info.is_constructor = TRUE;
+      decl_info.decl_state.type = new_tp;
+      if (brp->is_explicit_constructor) {
+        decl_info.decl_state.dso_flags |= (a_decl_flag_set)DSO_EXPLICIT;
+      }  /* if */
+      if (brp->is_constexpr) {
+        decl_info.decl_state.dso_flags |= (a_decl_flag_set)DSO_CONSTEXPR;
+      }  /* if */
+      clear_func_info(&func_info);
+      func_info.is_inline = TRUE;
+      make_locator_for_symbol(symbol_for(cdsp->class_type), &loc);
+      change_class_locator_into_constructor_locator(&loc, &udp->position,
+                                                    /*is_static_ctor=*/FALSE);
+      decl_member_function(&loc, &func_info, cdsp, &decl_info,
+                           /*compile_generated=*/TRUE);
+      new_rp = decl_info.decl_state.sym->variant.routine.ptr;
+      new_rp->generating_using_decl = udp;
+      new_rp->is_inheriting_ctor = TRUE;
+      done_with_func_info(func_info);
+    }  /* if */
+  }  /* for */
+}  /* generate_inheriting_constructors_for_base_ctor */
+
+
+static void generate_inheriting_constructors_for_using_decl(
+                                                  a_using_decl_ptr       udp,
+                                                  a_class_def_state_ptr  cdsp)
+/*
+cdsp represents a class whose definition has just been completed, and whose
+implicitly-declared special members, if any, have been generated.  udp points
+to the representation of a using-declaration for inheriting constructors.
+Generate those constructors.
+*/
+{
+  a_type_ptr  base_class;
+
+  check_assertion(udp->entity.kind == (a_byte_il_entry_kind)iek_type);
+  base_class = skip_typerefs((a_type_ptr)udp->entity.ptr);
+  if (is_immediate_class_type(base_class)) {
+    a_symbol_ptr  base_ctors, bctor;
+    /* Examine each base class constructor and constructor template in turn,
+       and generate corresponding derived-class inheriting constructors from
+       it if applicable. */
+    base_ctors = class_symbol_supp(symbol_for(base_class))->constructor;
+    if (base_ctors != NULL && symbol_is(base_ctors, sk_overloaded_function)) {
+      base_ctors = base_ctors->variant.overloaded_function.symbols;
+    }  /* if */
+    for (bctor = base_ctors; bctor != NULL; bctor = bctor->next) {
+      if (symbol_is(bctor, sk_member_function)) {
+        generate_inheriting_constructors_for_base_ctor(bctor, udp, cdsp);
+      } else if (symbol_is(bctor, sk_function_template)) {
+        check_assertion("NYI: Inherited constructor templates");
+      } else {
+        unexpected_condition();
+      }  /* if */
+    }  /* for */
+  }  /* if */
+}  /* generate_inheriting_constructors_for_using_decl */
+
+
+static void generate_inheriting_constructors(a_class_def_state_ptr  cdsp)
+/*
+cdsp represents a class whose definition has just been completed, and whose
+implicitly-declared special members, if any, have been generated.  Generate
+any needed inherited constructors.
+*/
+{
+  a_scope_ptr       class_scope = ensure_il_scope_exists(&scope_stack_top());
+  a_using_decl_ptr  udp;
+
+  for (udp = class_scope->using_decls; udp != NULL; udp = udp->next) {
+    if (udp->is_inheriting_ctor) {
+      generate_inheriting_constructors_for_using_decl(udp, cdsp);
+    }  /*if */
+  }  /* for */
+}  /* generate_inheriting_constructors */
+
+
 static void check_base_class_destructors(a_class_def_state_ptr  class_state)
 /*
 Issue a remark in some situations where class_type is a class derived from a
@@ -20258,28 +20425,71 @@ search_done:
 }  /* check_member_using_visibility */
 
 
-static void member_using_or_alias_declaration(a_type_ptr           class_type,
-                                              an_access_specifier  access)
+static void record_inheriting_ctor_using_decl(a_class_def_state_ptr  cdsp,
+                                              a_source_position      *pos)
 /*
-Scan what is either a using-declaration, an alias declaration, or (if
-tok_using is not the current token) a deprecated access-adjustment
-declaration.  The semantics and representation of using-declarations and
-access-adjustment declarations are identical.  class_type is the class in
-which the declaration appears, and access is the current access (explicitly
-specified or implicit) controlling the declaration.  (The alias declaration
-case is almost entirely handled by a call to alias_declaration.  The latter
-call is made in this routine because the tok_using token must be consumed to
-distinguish an alias declaration from a using-declaration.)
+A member using-declaration appears to introduce inheriting constructors into
+the class type being defined (described by cdsp).   pos is the position of the
+"using" keyword.  Create the a_using_decl entry for this construct.  The
+actual constructors will be synthesized later (after special members have been
+declared).
 */
 {
-  a_symbol_ptr       sym, declared_sym;
-  a_symbol_ptr       other_sym, fund_sym;
-  a_base_class_ptr   bcp;
-  a_boolean          err = FALSE, bcp_is_dummy = FALSE, no_il_entry = FALSE;
-  a_boolean          is_overloaded;
-  a_symbol_locator   locator;
-  a_using_decl_ptr   prev_udp = NULL;
-  a_source_position  decl_pos, using_pos, end_of_using_pos;
+  a_type_ptr        class_type = cdsp->class_type;
+  a_type_ptr        parent_class = qualifier_class_type(locator_for_curr_id);
+  a_base_class_ptr  bcp = base_classes_of(class_type);
+
+  /* Ensure the name qualifier is a direct base class. */
+  for (; bcp != NULL; bcp = bcp->next) {
+    if (bcp->direct && identical_types(bcp->type, parent_class)) break;
+  }  /* for */
+  if (bcp == NULL) {
+    pos_error(ec_inheriting_ctor_not_from_direct_base,
+              &locator_for_curr_id.source_position);
+    discard_curr_construct_pragmas();
+  } else {
+    a_using_decl_ptr  udp = alloc_using_decl();
+    udp->is_inheriting_ctor = TRUE;
+    udp->is_class_member = TRUE;
+    udp->qualifier.class_type = parent_class;
+    udp->entity.kind = (a_byte_il_entry_kind)iek_type;
+    udp->entity.ptr = (char*)parent_class;
+    udp->position = *pos;
+    add_to_using_decls_list(udp, depth_scope_stack);
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+    add_to_source_sequence_list((char*)udp, (an_il_entry_kind)iek_using_decl);
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+    cdsp->has_inheriting_constructors = TRUE;
+    cannot_bind_to_curr_construct();
+  }  /* if */
+  /* Bypass the identifier. */
+  (void)get_token();
+}  /* record_inheriting_ctor_using_decl */
+
+
+static void member_using_or_alias_declaration(a_class_def_state_ptr  cdsp)
+/*
+Scan what is either a using-declaration (possibly introducing one or more
+inheriting constructors), an alias declaration, or (if tok_using is not the
+current token) a deprecated access-adjustment declaration.  The semantics and
+representation of using-declarations (excluding the inheriting constructors
+case) and access-adjustment declarations are identical.
+cdsp describes the class being defined.  (The alias declaration case is almost
+entirely handled by a call to alias_declaration.  The latter call is made in
+this routine because the tok_using token must be consumed to distinguish an
+alias declaration from a using-declaration.)
+*/
+{
+  a_type_ptr           class_type = cdsp->class_type;
+  an_access_specifier  access = cdsp->access;
+  a_symbol_ptr         sym, declared_sym;
+  a_symbol_ptr         other_sym, fund_sym;
+  a_base_class_ptr     bcp;
+  a_boolean            err = FALSE, bcp_is_dummy = FALSE, no_il_entry = FALSE;
+  a_boolean            is_overloaded;
+  a_symbol_locator     locator;
+  a_using_decl_ptr     prev_udp = NULL;
+  a_source_position    decl_pos, using_pos, end_of_using_pos;
 
   db_enter(3, "member_using_or_alias_declaration");
   add_stop_token(tok_semicolon);
@@ -20330,7 +20540,7 @@ distinguish an alias declaration from a using-declaration.)
     /* If typename appears in the using declaration, the lookup is a bit
        different, and there are some additional error checks.  If an error
        type is returned, an error was reported in the subroutine. */
-    a_type_ptr   tp;
+	    a_type_ptr   tp;
     a_symbol_ptr type_sym;
 
     typename_specifier(&tp, &type_sym, /*within_using_decl=*/TRUE,
@@ -20396,19 +20606,25 @@ distinguish an alias declaration from a using-declaration.)
          here. */
       error(ec_template_id_not_allowed);
       err = TRUE;
-    } else if (is_constructor_symbol(declared_sym) ||
-               is_destructor_symbol(declared_sym)) {
-      /* A using-declaration may not specify a constructor or destructor. */
-      an_error_severity  sev = microsoft_mode ? es_warning :
-                               strict_ansi_mode ? es_error :
-                                                  es_discretionary_error;
-      an_error_code      ec = ec_no_ctor_or_dtor_using_declaration;
-      pos_diagnostic(sev, ec, &decl_pos);
-      if (is_effective_error(ec, sev)) {
-        err = TRUE;
-      } else {
-        /* Continue validity checks, but do not generate IL. */
-        no_il_entry = TRUE;
+    } else {
+      a_boolean  is_ctor =  is_constructor_symbol(declared_sym);
+      if (inheriting_constructors_enabled &&
+          (is_ctor || is_injected_class_symbol(declared_sym))) {
+        record_inheriting_ctor_using_decl(cdsp, &using_pos);
+        goto done;
+      } else if (is_ctor || is_destructor_symbol(declared_sym)) {
+        /* A using-declaration may not specify a constructor or destructor. */
+        an_error_severity  sev = microsoft_mode ? es_warning :
+                                 strict_ansi_mode ? es_error :
+                                                    es_discretionary_error;
+        an_error_code      ec = ec_no_ctor_or_dtor_using_declaration;
+        pos_diagnostic(sev, ec, &decl_pos);
+        if (is_effective_error(ec, sev)) {
+          err = TRUE;
+        } else {
+          /* Continue validity checks, but do not generate IL. */
+          no_il_entry = TRUE;
+        }  /* if */
       }  /* if */
     }  /* if */
     if (!err) {
@@ -25948,6 +26164,9 @@ bits of information that were acquired while parsing.
     /* Create compiler-generated default constructor, copy constructor,
        destructor, and assignment operator, if any is needed. */
     check_special_member_functions(class_type, class_state);
+    if (class_state->has_inheriting_constructors) {
+      generate_inheriting_constructors(class_state);
+    }  /* if */
     if (cssp->is_class_aggregate && !class_state->POD_ruled_out) {
       /* It was intentional to wait until check_special_member_functions
          was called to set the is_POD flag -- the check for copy
@@ -26705,7 +26924,7 @@ classes.
           /* Check for a using declaration, alias declaration, or
              static_assert declaration. */
           if (curr_token == tok_using) {
-            member_using_or_alias_declaration(class_type, class_state.access);
+            member_using_or_alias_declaration(&class_state);
             goto next_declaration;
           } else if (curr_token == tok_static_assert) {
             static_assert_declaration(/*leave_semicolon=*/FALSE);
@@ -26733,7 +26952,7 @@ classes.
             /* This looks syntactically like an access adjustment declaration.
                Be sure the semantics are correct.  Its semantics are the same
                as a using-declaration. */
-            member_using_or_alias_declaration(class_type, class_state.access);
+            member_using_or_alias_declaration(&class_state);
             goto next_declaration;
           }  /* if */
           /* Check for template declaration. */

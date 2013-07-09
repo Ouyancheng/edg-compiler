@@ -2842,6 +2842,7 @@ handling).
     }  /* if */
   }  /* if */
   delegating_constructors_enabled = value;
+  inheriting_constructors_enabled = value;
   ref_qualifiers_enabled = rvalue_references_enabled;
   constexpr_enabled = value;
   if (!option_kind_used[(int)optk_deprecated_string_conv]) {
@@ -9894,6 +9895,7 @@ variables declared in cmd_line.h.
   noexcept_enabled = FALSE;
   implicit_noexcept_enabled = FALSE;
   delegating_constructors_enabled = FALSE;
+  inheriting_constructors_enabled = FALSE;
   constexpr_enabled = FALSE;
   rtti_enabled = 
 #if RTTI_ENABLING_POSSIBLE

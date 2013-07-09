@@ -11218,11 +11218,6 @@ discarding typedefs.
 }  /* skip_common_type_qualifiers */
 
 
-static a_param_type_ptr copy_param_type_list(
-                                       a_param_type_ptr  ptp,
-                                       a_boolean         copy_default_args);
-
-
 static void copy_type_full(a_type_ptr from,
                            a_type_ptr to,
                            a_boolean  copy_default_args)
@@ -11273,9 +11268,8 @@ field in the new parameter types will be NULL.
       to->variant.routine.extra_info = extra_info;
       /* Copy the parameter type list. */
       extra_info->param_type_list =
-            copy_param_type_list(from->variant.routine.extra_info->
-                                                               param_type_list,
-                                 copy_default_args);
+            copy_param_type_list(function_type_params(from), copy_default_args,
+                                 /*max_params=*/(uint32_t)0);
       tp = skip_typerefs(to->variant.routine.return_type);
       dtf_kind = (a_dependent_type_fixup_kind)dtfk_routine_calling_method;
     } else {
@@ -11325,18 +11319,19 @@ Copy the type entry "from" to "to".
 }  /* copy_type */
 
 
-static a_param_type_ptr copy_param_type_list(
-                                       a_param_type_ptr  ptp,
-                                       a_boolean         copy_default_args)
+a_param_type_ptr copy_param_type_list(a_param_type_ptr  ptp,
+                                      a_boolean         copy_default_args,
+                                      uint32_t          max_params)
 /*
 Copy the param-type list pointed to by ptp and return a pointer to the new
 list.  If copy_default_args is TRUE, copy any default argument expressions
 into the new param types.  If it is FALSE, the default_arg_expr field
-in the new param types will be NULL.
+in the new param types will be NULL.  If max_params is not zero, copy no
+more than the given number of parameter entries.
 */
 {
   a_param_type_ptr  new_list = NULL, new_ptp, prev_new_ptp = NULL;
-
+  uint32_t          n_copied = 0;
   for (; ptp != NULL; ptp = ptp->next) {
     /* Pass a NULL source position to make_param_type to avoid inappropriate
        diagnostics on a type that doesn't correspond directly to a source
@@ -11391,6 +11386,11 @@ in the new param types will be NULL.
       prev_new_ptp->next = new_ptp;
     }  /* if */
     prev_new_ptp = new_ptp;
+    ++n_copied;
+    if (n_copied == max_params) {
+      new_ptp->next = NULL;
+      break;
+    }  /* if */
   }  /* for */
   return new_list;
 }  /* copy_param_type_list */

@@ -1137,6 +1137,12 @@ extern void set_routine_calling_method_flag(a_type_ptr         routine_type,
 extern void copy_type(a_type_ptr from,
                       a_type_ptr to);
 
+extern a_param_type_ptr copy_param_type_list(
+                                         a_param_type_ptr  ptp,
+                                         a_boolean         copy_default_args,
+                                         uint32_t          max_params);
+
+
 extern a_type_ptr copy_routine_type_with_param_types(
                                                a_type_ptr  from_type,
                                                a_boolean   copy_default_args);

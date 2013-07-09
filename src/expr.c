@@ -29,6 +29,7 @@ expr.c -- Expression scanning routines.
 #include "disambig.h"
 #include "decl_spec.h"
 #include "declarator.h"
+#include "func_def.h"
 #if MICROSOFT_EXTENSIONS_ALLOWED
 /* The Microsoft-specific predefined identifier __FUNCDNAME__ refers to the
    mangled name of the current function.  Hence, we may need access to the
@@ -36401,20 +36402,24 @@ position.
 
 
 void scan_class_parenthesized_initializer(
-                                   a_type_ptr         class_type,
-                                   a_type_ptr         object_class_type,
-                                   a_source_position  *source_pos,
-                                   a_boolean          fill_in_dtor,
-                                   an_init_state      *is)
+                                   a_type_ptr            class_type,
+                                   a_type_ptr            object_class_type,
+                                   a_source_position     *source_pos,
+                                   a_boolean             fill_in_dtor,
+                                   a_boolean             args_supplied,
+                                   an_arg_list_elem_ptr  arg_list,
+                                   an_init_state         *is)
 /*
-Scan a parenthesized initializer for an object of type class_type.  If the
-initializer is for a variable declaration, *is->decl_parse_state describes
-that declaration (is->decl_parse_state is NULL when the initializer is a
-ctor-initializer).  class_type must be a class type having at least one
-constructor.  Build a dynamic initialization or constant entry for the
-initialization, and set *is pointing to it (or set is->init_error to TRUE if
-there is an error).
-The current token is right after the left parenthesis of the initialization.
+Scan a parenthesized initializer for an object of type class_type or, if
+args_supplied is TRUE, process such an initializer with the given list of
+argument expressions.  If the initializer is for a variable declaration,
+*is->decl_parse_state describes that declaration (is->decl_parse_state is NULL
+when the initializer is a ctor-initializer).  class_type must be a class type
+having at least one constructor.  Build a dynamic initialization or constant
+entry for the initialization, and set *is pointing to it (or set
+is->init_error to TRUE if there is an error).
+If args_supplied is FALSE, the current token is right after the left
+parenthesis of the initialization.
 This routine is used for constructs like
 
   A a(1, 2, 3);
@@ -36451,8 +36456,7 @@ source position to be used in overall errors.
                       object_class_type, (a_type_ptr)NULL,
                       fill_in_dtor, /*elision_allowed=*/TRUE,
                       (a_rescan_control_block *)NULL,
-                      /*arg_list_supplied=*/FALSE,
-                      (an_arg_list_elem *)NULL,
+                      args_supplied, arg_list,
                       (an_arg_list_elem *)NULL,
                       /*trivial_ctor=*/(a_boolean *)NULL,
                       /*elision_done=*/(a_boolean *)NULL,
@@ -36474,6 +36478,62 @@ source position to be used in overall errors.
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   db_exit();
 }  /* scan_class_parenthesized_initializer */
+
+
+a_dynamic_init_ptr forwarding_initializer_for_inheriting_constructor(
+                                                          a_routine_ptr  ctor)
+/*
+Generate a dynamic init entry representing the mem-initializer of an
+inheriting constructor for the base class whose constructor signature it
+inherits.
+*/
+{
+  a_using_decl_ptr      udp = ctor->generating_using_decl;
+  a_type_ptr            class_type = udp->qualifier.class_type;
+  a_dynamic_init_ptr    result = NULL;
+  an_arg_list_elem_ptr  arg_list = NULL, *p_alep = &arg_list;
+  a_variable_ptr        vp;
+  an_init_state         is;
+
+  clear_init_state(&is);
+  is.direct_init = TRUE;
+  is.force_dynamic_init = TRUE;
+  /* Create inheriting constructor's parameter variables and the corresponding
+     argument list for the constructor call. */
+  check_assertion(innermost_function_scope != NULL &&
+                  ctor->type->kind == (a_type_kind)tk_routine);
+  vp = innermost_function_scope->variant.routine.parameters;
+  for (; vp != NULL; vp = vp->next) {
+    a_ruled_out_expr_kind_set  ruled_out_expr_kinds = ROEK_NONE;
+    a_type_ptr                 tp = vp->type;
+    an_operand                 *operand;
+    an_expr_stack_entry        expr_stack_entry;
+    /* Create an operand representing the use of the parameter.  Specifically,
+       if the parameter p's type is T, the operand is "static_cast<T&&>(p)". */
+    push_expr_stack((an_expression_kind)ek_normal, &expr_stack_entry,
+                    /*force_object_lifetime=*/FALSE,
+                    /*suppress_object_lifetime=*/FALSE);
+    *p_alep = alloc_init_component((an_init_component_kind)ick_expression);
+    operand = operand_of_arg_list_elem(*p_alep);
+    make_lvalue_variable_operand(vp, &error_position,
+                                 &error_position, operand,
+                                 (a_ref_entry_ptr)NULL);
+    /* Create the T&& type, taking into account reference-collapsing rules. */
+    if (!is_any_reference_type(tp)) {
+      tp = make_rvalue_reference_type(tp);
+    }  /* if */
+    process_static_cast(tp, operand, &error_position, &error_position,
+                        /*is_safe_cast=*/FALSE, &ruled_out_expr_kinds);
+    pop_expr_stack();
+    p_alep = &(*p_alep)->next;
+  }  /* for */
+  scan_class_parenthesized_initializer(class_type, class_type, &udp->position,
+                                       /*fill_in_dtor=*/exceptions_enabled,
+                                       /*args_supplied=*/TRUE, arg_list, &is);
+  result = is.init_dip;
+  free_init_component_list(arg_list);
+  return result;
+}  /* forwarding_initializer_for_inheriting_constructor */
 
 
 void scan_dependent_type_parenthesized_initializer(an_init_state  *is)
