@@ -19806,7 +19806,7 @@ Generate those constructors.
       if (symbol_is(bctor, sk_member_function)) {
         generate_inheriting_constructors_for_base_ctor(bctor, udp, cdsp);
       } else if (symbol_is(bctor, sk_function_template)) {
-        check_assertion("NYI: Inherited constructor templates");
+        unexpected_condition_str("NYI: Inherited constructor templates");
       } else {
         unexpected_condition();
       }  /* if */

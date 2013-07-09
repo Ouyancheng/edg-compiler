@@ -29,7 +29,6 @@ expr.c -- Expression scanning routines.
 #include "disambig.h"
 #include "decl_spec.h"
 #include "declarator.h"
-#include "func_def.h"
 #if MICROSOFT_EXTENSIONS_ALLOWED
 /* The Microsoft-specific predefined identifier __FUNCDNAME__ refers to the
    mangled name of the current function.  Hence, we may need access to the

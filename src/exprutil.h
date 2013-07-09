@@ -1697,9 +1697,6 @@ extern void make_lvalue_variable_operand(a_variable_ptr    variable,
                                          an_operand        *result,
                                          a_ref_entry_ptr   rep);
 
-extern void make_generated_xvalue_variable_operand(a_variable_ptr  var,
-                                                   an_operand      *result);
-
 extern void make_lvalue_operand_from_compound_constant(
                                                      a_constant_ptr  constant,
                                                      an_operand      *operand);
