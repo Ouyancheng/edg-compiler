@@ -2521,6 +2521,7 @@ ec_std_alignof_with_expr_arg;;"the standard \"alignof\" operator does not accept
 ec_bad_qualifier_for_member_enum_decl;;"invalid qualifier for %t (a derived class is not allowed here)"
 ec_always_inline_requires_inline;;"the \"always_inline\" attribute is ignored on non-inline functions"
 ec_inheriting_ctor_not_from_direct_base;;"inheriting constructors must be inherited from a direct base class"
+ec_inheriting_ctor_conflict;;"%np already inherited from %t"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

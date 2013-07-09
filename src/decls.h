@@ -838,6 +838,9 @@ typedef struct a_decl_parse_state {
   a_bit_field	decl_okay_in_constexpr_body:1;
 			/* TRUE if this declaration is a valid form for a
 			   constexpr function or constructor body. */
+  a_bit_field	is_inheriting_ctor:1;
+			/* TRUE if this is the declaration of an inheriting
+			   constructor. */
   an_init_state
 		init_state;
 			/* Information about the initializer (if any)
