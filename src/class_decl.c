@@ -26033,6 +26033,14 @@ flag is set in the class symbol supplement of the given type.
                 /* Don't issue this diagnostic for destructors: A more
                    specialized error is issued elsewhere. */
                 expect_error();
+              } else if (rp->is_template_function && !rp->is_specialized) {
+                /* A constexpr member instantiation that is not a member of a
+                   literal type.  Because this is the result of template
+                   instantiation, don't issue an error (and drop the
+                   "constexpr", unless this is a prototype instantiation). */
+                if (!rp->is_prototype_instantiation) {
+                  rp->is_constexpr = FALSE;
+                }  /* if */
               } else {
                 pos_error(
                        ec_constexpr_nonstatic_member_func_in_nonliteral_class,

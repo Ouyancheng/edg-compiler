@@ -1,5 +1,22 @@
 Version 5.0
 
+7/9/13   [EDGcpfe/14202]
+Spurious error for constexpr member instantiation that is not a member of a
+literal type
+
+The instantiation of a constexpr member function that is not
+a member of a literal type had resulted in a spurious error.  The
+spurious error is now suppressed (and the instantiated member function
+is not considered constexpr).  For example (with --c++11):
+
+  template <class T> struct A {
+    A() {}            // non-constexpr constructor prevents A<int> from being
+                      // considered a literal type
+    constexpr int f() { return 0; }
+  };
+  A<int> a;
+
+
 7/3/13   [EDGcpfe/14128]
 Microsoft compatibility: accept "final" function modifier
 
