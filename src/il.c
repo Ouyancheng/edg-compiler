@@ -13645,10 +13645,21 @@ init_entity_type can be NULL if the caller does not need that information.
   check_assertion(dip->kind == (a_dynamic_init_kind)dik_constructor);
   arg1 = dip->variant.constructor.args;
   check_assertion(arg1 != NULL);
-  while (is_cast_operation_node(arg1) &&
-         arg1->variant.operation.compiler_generated) {
-    arg1 = arg1->variant.operation.operands;
-  }  /* while */
+  /* Skip compiler-generated casts as well as any enk_temp_init nodes
+     introduced to reuse the address of the initialized temporary array. */
+  for (;;) {
+    if (is_cast_operation_node(arg1) &&
+        arg1->variant.operation.compiler_generated) {
+      arg1 = arg1->variant.operation.operands;
+    } else if (arg1->kind == (an_expr_node_kind)enk_temp_init &&
+               arg1->variant.init.dynamic_init->is_reused_value) {
+      check_assertion(arg1->variant.init.dynamic_init->kind ==
+                                         (a_dynamic_init_kind)dik_expression);
+      arg1 = arg1->variant.init.dynamic_init->variant.expression;
+    } else {
+      break;
+    }  /* if */
+  }  /* for */
   check_assertion(is_operation_node(arg1) &&
                   node_operator_is(arg1, eok_array_to_pointer));
   arg1 = arg1->variant.operation.operands;
