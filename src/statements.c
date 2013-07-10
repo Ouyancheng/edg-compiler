@@ -3843,6 +3843,13 @@ See also 3.6.5.2.
   (void)required_token(tok_while, ec_exp_while);
   remove_stop_token(tok_while);
   add_stop_token(tok_semicolon);
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+  /* Add an end-of-construct source sequence entry.  This was added so that
+     pragmas, etc. can be represented when they occur between the dependent
+     statement and the "while" keyword. */
+  add_end_of_construct_source_sequence_entry((char *)sp,
+                                          (a_byte_il_entry_kind)iek_statement);
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   /* Check for and skip the opening parenthesis. */
   (void)required_token(tok_lparen, ec_exp_lparen);
   add_stop_token(tok_rparen);

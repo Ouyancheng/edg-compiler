@@ -1,5 +1,23 @@
 Version 5.0
 
+7/10/13  [EDGcpfe/14219]
+pragma before "while" keyword in "do" statement (IL CHANGE)
+
+In C++-generating back end configurations, when a pragma occurs
+between the dependent statement of a "do" statement and the closing "while"
+keyword, that pragma had been emitted in the generated C++ after the "do"
+statement, thereby causing it to pertain to the following statement.
+In order to handle cases such as this, a new end-of-construct source sequence
+entry has been added for "do" statements (IL CHANGE).  For example
+(with --microsoft):
+
+  void f() {
+    do {} __pragma(warning(suppress:4127)) while(false);
+      // had generated this C++:
+      // do {} while(false); __pragma(warning(suppress:4127))
+  }
+
+
 7/9/13   [EDGcpfe/14202]
 Instantiation of class template of non-literal type with a constexpr member
 function

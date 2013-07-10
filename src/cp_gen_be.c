@@ -13955,6 +13955,8 @@ one that yields the value) of a statement expression.
   a_statement_kind    kind;
   a_statement_ptr     else_stmt;
   a_boolean           suppress_trailing_space = is_stmt_expression;
+  a_src_seq_end_of_construct_ptr
+                      ssecp;
 
   check_assertion(statement != NULL);
   kind = statement->kind;
@@ -14058,6 +14060,21 @@ one that yields the value) of a statement expression.
       write_tok_str("do ");
       /* Generate the dependent statement. */
       gen_statement(statement->variant.loop_statement);
+      /* Process any pragmas, etc. that appear before the "while". */
+      (void)process_preprocessing_directives();
+      /* Verify that there's an end-of-construct entry, then consume it.
+         This was an addition to allow for pragmas, etc. to appear before
+         the "while" keyword. */
+      check_assertion(curr_source_sequence_entry != NULL &&
+                      ss_entry_kind(curr_source_sequence_entry) ==
+                                                 iek_src_seq_end_of_construct);
+      ssecp = ss_entry_ptr(curr_source_sequence_entry,
+                           a_src_seq_end_of_construct_ptr);
+      check_assertion(ss_entry_kind(ssecp) == iek_statement &&
+                      ss_entry_ptr(ssecp, a_statement_ptr) == statement);
+      adv_curr_source_sequence_entry();
+      /* Set the position for the keyword "while". */
+      set_output_position(&ssecp->position);
       write_tok_str("while (");
       gen_full_boolean_controlling_expression(statement->expr);
       write_tok_str(");");
