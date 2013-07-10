@@ -1,20 +1,23 @@
 Version 5.0
 
 7/9/13   [EDGcpfe/14202]
-Spurious error for constexpr member instantiation that is not a member of a
-literal type
+Instantiation of class template of non-literal type with a constexpr member
+function
 
-The instantiation of a constexpr member function that is not
-a member of a literal type had resulted in a spurious error.  The
-spurious error is now suppressed (and the instantiated member function
-is not considered constexpr).  For example (with --c++11):
+A constexpr member function is only permitted in a literal class type, and
+previously such an error was emitted whenever the class was instantiated
+(regardless of whether or not the member function was used).  Now, the error
+is suppressed, but the member function is not considered constexpr.
+For example (with --c++11):
 
-  template <class T> struct A {
-    A() {}            // non-constexpr constructor prevents A<int> from being
-                      // considered a literal type
+  struct A {
+    A() { }
+  };
+  template <class T> struct B {
+    T m;
     constexpr int f() { return 0; }
   };
-  A<int> a;
+  B<A> a;
 
 
 7/3/13   [EDGcpfe/14128]
