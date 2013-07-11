@@ -1595,7 +1595,6 @@ buffer.  If an arithmetic value is negative, it is preceded by a "-".
 */
 {
   static char buffer[50];
-  int         i;
 
 #if INTEGER_VALUE_REPR_IS_A_HOST_INTEGER
   if (non_arithmetic) {
@@ -1611,6 +1610,8 @@ buffer.  If an arithmetic value is negative, it is preceded by a "-".
                   *p_value);
   }  /* if */
 #else /* !INTEGER_VALUE_REPR_IS_A_HOST_INTEGER */
+  int         i;
+
   if (non_arithmetic) {
     /* Put out the value in hexadecimal. */
     sizeof_t  buff_len;
