@@ -1617,7 +1617,7 @@ buffer.  If an arithmetic value is negative, it is preceded by a "-".
     sizeof_t  buff_len;
     a_boolean nonzero_part_seen = FALSE;
     buff_len = sprintf(buffer, "0x");
-    for (i = 0; i < INT_VALUE_PARTS_PER_INTEGER_VALUE; ++i) {
+    for (i = 0; i < (int)INT_VALUE_PARTS_PER_INTEGER_VALUE; ++i) {
       if (p_value->part[i] != 0 || nonzero_part_seen) {
         if (!nonzero_part_seen) {
           /* This is the first nonzero part, so do not pad with leading

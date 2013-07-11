@@ -162,7 +162,7 @@ extern void check_expected_errors(void);
    the condition is not TRUE.  The macro expands to nothing when checking
    code is not being used. */
 #define check_assertion(test)						\
-  ((/*lint --e(774)*/(test)) ? (void)0 :				\
+  ((/*lint --e(774,506)*/(test)) ? (void)0 :				\
     assertion_failed(__FILE__, __LINE__,				\
                      (char *)NULL, (char *)NULL))
 
