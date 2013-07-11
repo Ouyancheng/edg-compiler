@@ -13,8 +13,8 @@ For example:
   template <int (A::*p)()> struct B {
     void g(A &x) {
       typedef int (B::*PMF)();
-      PMF( x.*p )();  // Function-style cast  of invalid expression"x.*p"
-    }                 // (invalid because it is not immediately "called"):
+      PMF( x.*p )();  // Function-style cast  of invalid expression "x.*p"
+    }                 // (invalid because it is not immediately called):
   };                  // This previously triggered an abort in most
                       // configurations.
 
