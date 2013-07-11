@@ -3812,6 +3812,9 @@ See also 3.6.5.2.
   a_statement_ptr    sp;
   a_boolean          assume_loop_reachable;
   a_source_position  stmt_pos;
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+  a_source_position  saved_while_position;
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 
   db_enter(3, "do_statement");
 
@@ -3840,15 +3843,30 @@ See also 3.6.5.2.
   /* Define the "continue" label, if it is needed. */
   define_continue_label();
   /* Check for and skip the keyword "while". */
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+  saved_while_position = pos_curr_token;
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   (void)required_token(tok_while, ec_exp_while);
   remove_stop_token(tok_while);
   add_stop_token(tok_semicolon);
 #if GENERATE_SOURCE_SEQUENCE_LISTS
-  /* Add an end-of-construct source sequence entry.  This was added so that
-     pragmas, etc. can be represented when they occur between the dependent
-     statement and the "while" keyword. */
+  /* Add an end-of-construct source sequence entry to indicate the location of
+     the "while" clause.  This allows pragmas and such to be represented when
+     they occur between the dependent statement and the "while" keyword. */
   add_end_of_construct_source_sequence_entry((char *)sp,
                                           (a_byte_il_entry_kind)iek_statement);
+  if (!source_sequence_entries_disallowed) {
+    /* Retrieve the end-of-construct entry just created and modify its
+       position to point to the "while" keyword (it currently points to the
+       "(" following the "while"). */
+    a_source_sequence_entry_ptr     ssep;
+    a_src_seq_end_of_construct_ptr  sseocp;
+    ssep = scope_stack[depth_scope_stack].end_of_source_sequence_list;
+    check_assertion(ssep->entity.kind ==
+                           (a_byte_il_entry_kind)iek_src_seq_end_of_construct);
+    sseocp = (a_src_seq_end_of_construct_ptr)ssep->entity.ptr;
+    sseocp->position = saved_while_position;
+  }  /* if */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   /* Check for and skip the opening parenthesis. */
   (void)required_token(tok_lparen, ec_exp_lparen);

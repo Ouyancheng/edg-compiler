@@ -29,8 +29,8 @@ between the dependent statement of a "do" statement and the closing "while"
 keyword, that pragma had been emitted in the generated C++ after the "do"
 statement, thereby causing it to pertain to the following statement.
 In order to handle cases such as this, a new end-of-construct source sequence
-entry has been added for "do" statements (IL CHANGE).  For example
-(with --microsoft):
+entry has been added for "do" statements to indicate the placement of the
+"while" clause (which is an IL CHANGE).  For example (with --microsoft):
 
   void f() {
     do {} __pragma(warning(suppress:4127)) while(false);

@@ -14060,11 +14060,12 @@ one that yields the value) of a statement expression.
       write_tok_str("do ");
       /* Generate the dependent statement. */
       gen_statement(statement->variant.loop_statement);
-      /* Process any pragmas, etc. that appear before the "while". */
+      /* Process any pragmas, etc., that appear before the "while". */
       (void)process_preprocessing_directives();
       /* Verify that there's an end-of-construct entry, then consume it.
-         This was an addition to allow for pragmas, etc. to appear before
-         the "while" keyword. */
+         The existence of an end-of-construct entry, corresponding to the while
+         clause, allows pragmas and such to appear between the dependent
+         statement and the "while" clause. */
       check_assertion(curr_source_sequence_entry != NULL &&
                       ss_entry_kind(curr_source_sequence_entry) ==
                                                  iek_src_seq_end_of_construct);
