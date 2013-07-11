@@ -21406,6 +21406,13 @@ non_ctor_case_after_expr_scan:
         }  /* if */
       } else if (is_template_dependent_context() &&
                  is_template_dependent_type(type_cast_to)) {
+        if (result->bound_function) {
+          /* Make sure the bound function is handled now and not returned to
+             the caller. */
+          bound_function_in_cast(type_cast_to, start_position, result,
+                                 &local_bound_function_selector);
+          check_assertion(!result->bound_function);
+        }  /* if */
         generic_cast_operand(result, type_cast_to, csf_functional,
                              /*is_implicit_cast=*/FALSE);
       } else {

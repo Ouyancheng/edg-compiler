@@ -1,5 +1,26 @@
 Version 5.0
 
+7/10/13  [EDGcpfe/14209]
+Abort on function-style cast with template-dependent pointer-to-member
+
+In some unusual cases involving a function-style cast of a template-dependent
+pointer-to-member function bound to an object, but not immediately used for
+a call (which should be an error), the front produced a corrupt data structure,
+which in turn caused internal errors or other aborts in later processing.
+For example:
+
+  struct A { int f(); };
+  template <int (A::*p)()> struct B {
+    void g(A &x) {
+      typedef int (B::*PMF)();
+      PMF( x.*p )();  // Function-style cast  of invalid expression"x.*p"
+    }                 // (invalid because it is not immediately "called"):
+  };                  // This previously triggered an abort in most
+                      // configurations.
+
+This is now fixed.
+
+
 7/10/13  [EDGcpfe/14219]
 pragma before "while" keyword in "do" statement (IL CHANGE)
 
