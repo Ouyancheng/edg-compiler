@@ -1,5 +1,23 @@
 Version 5.0
 
+7/11/13  [EDGcpfe/14287]
+C++-generating back end: format of "non-arithmetic" integer constants
+
+When the front end scans a hexadecimal or octal integer literal, it marks
+the resulting constant as "non-arithmetic," reflecting the assumption that
+such literals are likely to be used as bit masks and the like rather than
+as numeric values.  This allows the front end to suppress warnings for sign
+changes and such that may not be appropriate.  The C++-generating back end,
+however, ignored this flag and put out all integer constants as decimal,
+rendering the generated code susceptible to the warnings that were
+suppressed in the original source.  Such constants are now put out as
+hexadecimal literals, avoiding this problem.  For example:
+
+  int i = 0xffffe52e;  // Previously generated as 4294960430U, resulting
+                       // in a "sign change" warning when the generated
+                       // code was compiled.
+
+
 7/10/13  [EDGcpfe/14209]
 Abort on function-style cast with template-dependent pointer-to-member
 

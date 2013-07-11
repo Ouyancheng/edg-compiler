@@ -125,7 +125,8 @@ large unsigned if is_signed is FALSE) otherwise set err to FALSE.
 
 /* Forward declaration. */
 static char *str_for_integer_value(an_integer_value	*p_value,
-				   a_boolean		is_signed);
+                                   a_boolean		is_signed,
+                                   a_boolean		non_arithmetic);
 
 static a_host_large_unsigned unsigned_value_of_integer_value(
 					    an_integer_value	*int_value,
@@ -164,7 +165,8 @@ an error occurred during the conversion.
   if (*err) {
     /* Try again with larger precision by converting the integer to a
        character string then converting the string to a float value. */
-    char *str = str_for_integer_value(int_value, is_signed);
+    char *str = str_for_integer_value(int_value, is_signed,
+                                      /*non_arithmetic=*/FALSE);
     fp_string_to_float(float_kind, str, float_value, err);
   }  /* if */
 #endif /* !INTEGER_VALUE_REPR_IS_A_HOST_INTEGER */
@@ -1581,84 +1583,121 @@ The result is returned in the first operand (op_1 = op_1 % op_2).
 
 
 static char *str_for_integer_value(an_integer_value	*p_value,
-				   a_boolean		is_signed)
+                                   a_boolean		is_signed,
+                                   a_boolean		non_arithmetic)
 /*
 Return a pointer to the literal form of the integer value *p_value.
-is_signed indicates whether the value should be treated as signed.  The
-pointer is to an internal static buffer.  If the value is negative, it is
-preceded by a "-".
+is_signed indicates whether the value should be treated as signed.  A TRUE
+value for non_arithmetic indicates that the constant should be considered
+as a bit mask or the like instead of a number and thus should be
+represented as a hexadecimal literal.  The pointer is to an internal static
+buffer.  If an arithmetic value is negative, it is preceded by a "-".
 */
 {
   static char buffer[50];
+  int         i;
+
 #if INTEGER_VALUE_REPR_IS_A_HOST_INTEGER
-  (void)sprintf(buffer, is_signed ?
-                            PRINTF_FORMAT_FOR_SIGNED_INTEGER_VALUE :
-                            PRINTF_FORMAT_FOR_UNSIGNED_INTEGER_VALUE,
-                        *p_value);
+  if (non_arithmetic) {
+    /* The constant is to be considered as a bit mask or the like, i.e.,
+       it was originally specified in hexadecimal or octal or it was folded
+       from bit-manipulation expressions.  Put it out in hexadecimal. */
+    buffer[0] = '0';
+    buffer[1] = 'x';
+    (void)sprintf(buffer + 2, PRINTF_FORMAT_FOR_HEX_INTEGER_VALUE, *p_value);
+  } else {
+    (void)sprintf(buffer, is_signed ? PRINTF_FORMAT_FOR_SIGNED_INTEGER_VALUE
+                                    : PRINTF_FORMAT_FOR_UNSIGNED_INTEGER_VALUE,
+                  *p_value);
+  }  /* if */
 #else /* !INTEGER_VALUE_REPR_IS_A_HOST_INTEGER */
-  static a_boolean	initialized = FALSE;
-  static long		max_power_of_10;
-  static int		digits_in_max_power_of_10;
-  long			parts[INT_VALUE_PARTS_PER_INTEGER_VALUE];
-  int			i;
-  an_integer_value	value;
-  an_integer_value	remainder;
-  an_integer_value	iv_max_power_of_10;
-  char			*sign_string = "";
-  a_boolean		err;
-  /* Compute the maximum power of 10 that can be represented in a long.
-     Compute the number of digits in the maximum power of 10.
-     We will use sprintf to output groups of digits of this size. */
-  if (!initialized) {
-    initialized = TRUE;
-    max_power_of_10 = 10;
-    digits_in_max_power_of_10 = 1;
-    while (LONG_MAX / max_power_of_10 > 10) {
-      max_power_of_10 *= 10;
-      digits_in_max_power_of_10++;
-    }  /* while */
-  }  /* if */
-  value = *p_value;
-  /* If the number is negative, save the sign and convert the number
-     to be positive. */
-  if (sign_of(value) && is_signed) {
-    sign_string = "-";
-    negate_integer_value(&value, &err);
-  }  /* if */
-  /* Divide the number into pieces that are in the range of 0 to
-     max_power_of_10.  These are stored in the parts array. */
-  set_integer_value(&iv_max_power_of_10,
-                    (a_host_large_integer)max_power_of_10);
-  for (i = INT_VALUE_PARTS_PER_INTEGER_VALUE - 1;; --i) {
-    /* If the remaining value is less than the maximum power of
-       ten, then convert it to a long and we are done.  Otherwise
-       divide the value by the maximum power of 10, store the
-       remainder and continue looping. */
-    a_host_large_integer	tmp_result;
-    if (cmp_integer_values(&value, /*op_1_signed=*/FALSE,
-			   &iv_max_power_of_10, /*op_2_signed=*/FALSE) <= 0) {
-      conv_integer_value_to_host_large_integer(&value, /*is_signed=*/FALSE,
-                                               &tmp_result, &err);
-      parts[i] = (long)tmp_result;
-      break;
-    } else {
-      divide_and_remainder_integer_values(&value, &iv_max_power_of_10,
-					  &value, &remainder,
-					  /*is_signed=*/FALSE, &err);
-      conv_integer_value_to_host_large_integer(&remainder, /*is_signed=*/FALSE,
-                                               &tmp_result, &err);
-      parts[i] = (long)tmp_result;
+  if (non_arithmetic) {
+    /* Put out the value in hexadecimal. */
+    sizeof_t  buff_len;
+    a_boolean nonzero_part_seen = FALSE;
+    buff_len = sprintf(buffer, "0x");
+    for (i = 0; i < INT_VALUE_PARTS_PER_INTEGER_VALUE; ++i) {
+      if (p_value->part[i] != 0 || nonzero_part_seen) {
+        if (!nonzero_part_seen) {
+          /* This is the first nonzero part, so do not pad with leading
+             zeroes. */
+          buff_len += sprintf(buffer + buff_len, "%x", p_value->part[i]);
+          nonzero_part_seen = TRUE;
+        } else {
+          /* A previous nonzero part was seen, so we must pad with leading
+             zeroes to preserve the correct value. */
+          check_assertion(MAX_UINT_VALUE_PART == 0xffff);
+          buff_len += sprintf(buffer + buff_len, "%.4x", p_value->part[i]);
+        }  /* if */
+      }  /* if */
+    }  /* for */
+  } else {
+    /* Put out the value in decimal. */
+    static a_boolean	initialized = FALSE;
+    static long		max_power_of_10;
+    static int		digits_in_max_power_of_10;
+    long			parts[INT_VALUE_PARTS_PER_INTEGER_VALUE];
+    an_integer_value	value;
+    an_integer_value	remainder;
+    an_integer_value	iv_max_power_of_10;
+    char			*sign_string = "";
+    a_boolean		err;
+    /* Compute the maximum power of 10 that can be represented in a long.
+       Compute the number of digits in the maximum power of 10.
+       We will use sprintf to output groups of digits of this size. */
+    if (!initialized) {
+      initialized = TRUE;
+      max_power_of_10 = 10;
+      digits_in_max_power_of_10 = 1;
+      while (LONG_MAX / max_power_of_10 > 10) {
+        max_power_of_10 *= 10;
+        digits_in_max_power_of_10++;
+      }  /* while */
     }  /* if */
-  }  /* for */
-  /* Print the first part. The first part includes the sign and is
-     not padded with zeros. */
-  sprintf(buffer, "%s%ld", sign_string, parts[i]);
-  for (++i ; i < (int)INT_VALUE_PARTS_PER_INTEGER_VALUE; ++i) {
-    /* Print subsequent parts.  These do not include the sign and
-       are padded on the right with zeros. */
-    sprintf(&buffer[strlen(buffer)], "%0*ld", digits_in_max_power_of_10,
-            parts[i]);
-  }  /* for */
+    value = *p_value;
+    /* If the number is negative, save the sign and convert the number
+       to be positive. */
+    if (sign_of(value) && is_signed) {
+      sign_string = "-";
+      negate_integer_value(&value, &err);
+    }  /* if */
+    /* Divide the number into pieces that are in the range of 0 to
+       max_power_of_10.  These are stored in the parts array. */
+    set_integer_value(&iv_max_power_of_10,
+                      (a_host_large_integer)max_power_of_10);
+    for (i = INT_VALUE_PARTS_PER_INTEGER_VALUE - 1;; --i) {
+      /* If the remaining value is less than the maximum power of
+         ten, then convert it to a long and we are done.  Otherwise
+         divide the value by the maximum power of 10, store the
+         remainder and continue looping. */
+      a_host_large_integer	tmp_result;
+      if (cmp_integer_values(&value, /*op_1_signed=*/FALSE,
+                             &iv_max_power_of_10,
+                             /*op_2_signed=*/FALSE) <= 0) {
+        conv_integer_value_to_host_large_integer(&value, /*is_signed=*/FALSE,
+                                                 &tmp_result, &err);
+        parts[i] = (long)tmp_result;
+        break;
+      } else {
+        divide_and_remainder_integer_values(&value, &iv_max_power_of_10,
+                                            &value, &remainder,
+                                            /*is_signed=*/FALSE, &err);
+        conv_integer_value_to_host_large_integer(&remainder,
+                                                 /*is_signed=*/FALSE,
+                                                 &tmp_result, &err);
+        parts[i] = (long)tmp_result;
+      }  /* if */
+    }  /* for */
+    /* Print the first part. The first part includes the sign and is
+       not padded with zeros. */
+    sprintf(buffer, "%s%ld", sign_string, parts[i]);
+    for (++i ; i < (int)INT_VALUE_PARTS_PER_INTEGER_VALUE; ++i) {
+      /* Print subsequent parts.  These do not include the sign and
+         are padded on the right with zeros. */
+      sprintf(&buffer[strlen(buffer)], "%0*ld", digits_in_max_power_of_10,
+              parts[i]);
+    }  /* for */
+  }  /* if */
 #endif /* INTEGER_VALUE_REPR_IS_A_HOST_INTEGER */
   return buffer;
 }  /* str_for_integer_value */
@@ -1666,15 +1705,17 @@ preceded by a "-".
 
 char *str_for_integer_constant(a_constant *cp)
 /*
-Interface to str_for_integer_value that extracts the value and signedness
-from the constant pointed to by cp.  The pointer returned is to an internal
-static buffer.
+Interface to str_for_integer_value that extracts the value, signedness, and
+whether the value should be considered as numeric or as a bit mask from the
+constant pointed to by cp.  The pointer returned is to an internal static
+buffer.
 */
 {
   char	*result;
 
   result = str_for_integer_value(&cp->variant.integer_value,
-                                 int_constant_is_signed(cp));
+                                 int_constant_is_signed(cp),
+                                 cp->non_arithmetic);
   return result;
 }  /* str_for_integer_constant */
 
