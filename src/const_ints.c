@@ -1600,7 +1600,7 @@ buffer.  If an arithmetic value is negative, it is preceded by a "-".
 {
   static char buffer[50];
   char        *result = buffer;
-  int         num_hex_digits_in_repr = (size * targ_char_bit) / 4;
+  int         num_hex_digits_in_repr = ((int)size * targ_char_bit) / 4;
   int         num_hex_digits_printed;
 
 #if INTEGER_VALUE_REPR_IS_A_HOST_INTEGER
