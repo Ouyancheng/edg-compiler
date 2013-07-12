@@ -4165,7 +4165,7 @@ end_scan_for_macro_modifs:;
            an integer constant. */
         /* We assume we don't need to call ensure_arg_raw_text_space. */
         (void)strcpy(repl_text,
-                     str_for_integer_constant(&const_for_curr_token));
+                     decimal_str_for_integer_constant(&const_for_curr_token));
         (void)strcat(repl_text, "L");
       } else if (macro_symbol == stdc_macro_symbol) {
         /* This macro symbol is only non-NULL when stdc_zero_in_system_headers

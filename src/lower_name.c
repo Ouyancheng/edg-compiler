@@ -3841,7 +3841,7 @@ operator on some template constants when suppress_address_of is TRUE
         break;
       }  /* if */
 #endif /* IA64_ABI */
-      str = str_for_integer_constant(con);
+      str = decimal_str_for_integer_constant(con);
       /* Use "n" to represent a minus sign. */
       if (str[0] == '-') str[0] = 'n';
 #if !IA64_ABI
