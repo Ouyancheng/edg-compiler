@@ -1,5 +1,30 @@
 Version 5.0
 
+7/12/13  [EDGcpfe/12812,EDGcpfe/14282]
+Criterion for user-provided member functions
+
+The C++11 standard defines a function to be user-provided if it is neither
+defaulted not deleted on its first declaration.  However, that definition was
+different earlier in the standardization process, and that is what we
+previously implemented: deleted member functions were always considered to be
+user-provided.  The front end has now been updated to implement the newer
+definition, which changes the validity of certain cases.  For example:
+
+  struct S {
+    int i;
+    S() = default;
+    S(S const&) = delete;  // No longer a user-provided constructor.
+  };
+  S s = { 1 };  // Now valid (in C++11 mode).
+
+Previously, S was not considered an aggregate type because it included a
+user-provided constructor (the deleted copy constructor), and so the
+initialization of s was invalid because no matching constructor is present
+in S.  However, with the new rules, the deleted constructor is no longer
+considered to be user-provided, and S is therefore an aggregate type, which
+in turn makes the initialization of s valid.
+
+
 7/12/13  [EDGcpfe/14284]
 Microsoft compatibility: Core issue 1138
 

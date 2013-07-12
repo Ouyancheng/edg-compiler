@@ -11123,7 +11123,8 @@ accordingly.
     if (qualifiers & TQ_CONST) {
       cssp->has_copy_constructor_for_const_object = TRUE;
     }  /* if */
-    if (!compiler_generated && !rout_ptr->is_defaulted) {
+    if (!compiler_generated && !rout_ptr->is_defaulted &&
+        !rout_ptr->is_deleted) {
       /* Record the presence of a user-provided copy constructor.  Later, this
          will also imply that cssp->construction_by_bitwise_copy_allowed is
          FALSE because we cannot a priori assume that copy construction will
@@ -11140,7 +11141,7 @@ accordingly.
     }  /* if */
   } else if (!compiler_generated && routine_is_move_constructor(rout_ptr)) {
     cssp->has_user_declared_move_constructor = TRUE;
-    if (!rout_ptr->is_defaulted) {
+    if (!rout_ptr->is_defaulted && !rout_ptr->is_deleted) {
       cssp->has_user_provided_move_constructor = TRUE;
     }  /* if */
   }  /* if */
@@ -11579,7 +11580,8 @@ whether one of the operators is user-provided.
            the current class. */
         found_assignment_operator_for_copy = TRUE;
         if (!viable_sym->variant.routine.ptr->compiler_generated &&
-            !viable_sym->variant.routine.ptr->is_defaulted) {
+            !viable_sym->variant.routine.ptr->is_defaulted &&
+            !viable_sym->variant.routine.ptr->is_deleted) {
           if (p_is_user_provided != NULL) *p_is_user_provided = TRUE;
         }  /* if */
         /* If it takes the object to be copied by value, a const object
@@ -12362,7 +12364,7 @@ otherwise, it is NULL.
           }  /* if */
           if (!rtn->compiler_generated) {
             cssp->has_user_declared_default_constructor = TRUE;
-            if (!rtn->is_defaulted) {
+            if (!rtn->is_defaulted && !rtn->is_deleted) {
               cssp->has_user_provided_default_constructor = TRUE;
               class_state->POD_ruled_out = TRUE;
             }  /* if */
@@ -19277,7 +19279,7 @@ before generating declarations for special members.
         if (!rp->compiler_generated &&
             routine_is_move_assignment_operator(rp)) {
           cssp->has_user_declared_move_assign_operator = TRUE;
-          if (!rp->is_defaulted) {
+          if (!rp->is_defaulted && !rp->is_deleted) {
             cssp->has_user_provided_move_assign_operator = TRUE;
             break;
           }  /* if */
@@ -24428,14 +24430,17 @@ passed via template_decl.
           pos_error(ec_static_not_allowed, &decl_state->start_pos);
           decl_state->storage_class = (a_storage_class)sc_unspecified;
         }  /* if */
-        if ((decl_info.is_constructor && !func_info.is_defaulted) ||
+        if ((decl_info.is_constructor && !func_info.is_defaulted &&
+             !func_info.is_deleted) ||
             (dso_flags & DSO_VIRTUAL)) {
           /* A class with a user-provided constructor or a virtual function
-             cannot be an "aggregate" (8.5.1).  (A defaulted constructor is
-             not considered "user-provided".) */
+             cannot be an "aggregate" (8.5.1).  (A constructor that is
+             defaulted or deleted inside its enclosing class is not considered
+             "user-provided".) */
           class_state->class_aggregate_ruled_out = TRUE;
           class_state->POD_ruled_out = TRUE;
-        } else if (decl_info.is_destructor && !func_info.is_defaulted) {
+        } else if (decl_info.is_destructor && !func_info.is_defaulted &&
+                   !func_info.is_deleted) {
         /* A POD may not have a user-provided destructor, either. */
           class_state->POD_ruled_out = TRUE;
 #if MICROSOFT_EXTENSIONS_ALLOWED
