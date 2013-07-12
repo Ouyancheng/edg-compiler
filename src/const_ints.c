@@ -124,9 +124,10 @@ large unsigned if is_signed is FALSE) otherwise set err to FALSE.
 }  /* conv_integer_value_to_host_large_integer */
 
 /* Forward declaration. */
-static char *str_for_integer_value(an_integer_value	*p_value,
-                                   a_boolean		is_signed,
-                                   a_boolean		non_arithmetic);
+static char *str_for_integer_value(an_integer_value *p_value,
+                                   a_boolean        is_signed,
+                                   a_boolean        non_arithmetic,
+                                   a_targ_size_t    size);
 
 static a_host_large_unsigned unsigned_value_of_integer_value(
 					    an_integer_value	*int_value,
@@ -166,7 +167,8 @@ an error occurred during the conversion.
     /* Try again with larger precision by converting the integer to a
        character string then converting the string to a float value. */
     char *str = str_for_integer_value(int_value, is_signed,
-                                      /*non_arithmetic=*/FALSE);
+                                      /*non_arithmetic=*/FALSE,
+                                      TARG_SIZEOF_LARGEST_INTEGER);
     fp_string_to_float(float_kind, str, float_value, err);
   }  /* if */
 #endif /* !INTEGER_VALUE_REPR_IS_A_HOST_INTEGER */
@@ -1582,28 +1584,43 @@ The result is returned in the first operand (op_1 = op_1 % op_2).
 }  /* remainder_integer_values */
 
 
-static char *str_for_integer_value(an_integer_value	*p_value,
-                                   a_boolean		is_signed,
-                                   a_boolean		non_arithmetic)
+static char *str_for_integer_value(an_integer_value *p_value,
+                                   a_boolean        is_signed,
+                                   a_boolean        non_arithmetic,
+                                   a_targ_size_t    size)
 /*
 Return a pointer to the literal form of the integer value *p_value.
 is_signed indicates whether the value should be treated as signed.  A TRUE
 value for non_arithmetic indicates that the constant should be considered
 as a bit mask or the like instead of a number and thus should be
-represented as a hexadecimal literal.  The pointer is to an internal static
+represented as a hexadecimal literal.  size is the number of target bytes
+of the size of the value's type.  The pointer is to an internal static
 buffer.  If an arithmetic value is negative, it is preceded by a "-".
 */
 {
   static char buffer[50];
+  char        *result = buffer;
+  int         num_hex_digits_in_repr = (size * targ_char_bit) / 4;
+  int         num_hex_digits_printed;
 
 #if INTEGER_VALUE_REPR_IS_A_HOST_INTEGER
-  if (non_arithmetic) {
+  if (non_arithmetic && *p_value != 0) {
     /* The constant is to be considered as a bit mask or the like, i.e.,
        it was originally specified in hexadecimal or octal or it was folded
        from bit-manipulation expressions.  Put it out in hexadecimal. */
-    buffer[0] = '0';
-    buffer[1] = 'x';
-    (void)sprintf(buffer + 2, PRINTF_FORMAT_FOR_HEX_INTEGER_VALUE, *p_value);
+    num_hex_digits_printed = sprintf(buffer + 2,
+                                     PRINTF_FORMAT_FOR_HEX_INTEGER_VALUE,
+                                     *p_value);
+    if (num_hex_digits_printed > num_hex_digits_in_repr) {
+      /* The hex string is longer than what is required to represent the
+         type of the integer, probably because it is a negative value and
+         thus padded with leading 'ff' bytes.  Advance the result pointer
+         to skip over the superfluous digits. */
+      result += num_hex_digits_printed - num_hex_digits_in_repr;
+    }  /* if */
+    /* Add the hexadecimal prefix. */
+    result[0] = '0';
+    result[1] = 'x';
   } else {
     (void)sprintf(buffer, is_signed ? PRINTF_FORMAT_FOR_SIGNED_INTEGER_VALUE
                                     : PRINTF_FORMAT_FOR_UNSIGNED_INTEGER_VALUE,
@@ -1614,21 +1631,22 @@ buffer.  If an arithmetic value is negative, it is preceded by a "-".
 
   if (non_arithmetic) {
     /* Put out the value in hexadecimal. */
-    sizeof_t  buff_len;
     a_boolean nonzero_part_seen = FALSE;
-    buff_len = sprintf(buffer, "0x");
+    /* The code below assumes four hex digits for each part. */
+    check_assertion(MAX_UINT_VALUE_PART == 0xffff);
     for (i = 0; i < (int)INT_VALUE_PARTS_PER_INTEGER_VALUE; ++i) {
       if (p_value->part[i] != 0 || nonzero_part_seen) {
         if (!nonzero_part_seen) {
           /* This is the first nonzero part, so do not pad with leading
              zeroes. */
-          buff_len += sprintf(buffer + buff_len, "%x", p_value->part[i]);
+          num_hex_digits_printed = sprintf(buffer + 2, "%x",
+                                           p_value->part[i]);
           nonzero_part_seen = TRUE;
         } else {
           /* A previous nonzero part was seen, so we must pad with leading
              zeroes to preserve the correct value. */
-          check_assertion(MAX_UINT_VALUE_PART == 0xffff);
-          buff_len += sprintf(buffer + buff_len, "%.4x", p_value->part[i]);
+          num_hex_digits_printed += sprintf(buffer+2 + num_hex_digits_printed,
+                                            "%.4x", p_value->part[i]);
         }  /* if */
       }  /* if */
     }  /* for */
@@ -1636,6 +1654,16 @@ buffer.  If an arithmetic value is negative, it is preceded by a "-".
       /* All the parts were zero, so there's no need for a hexadecimal
          literal; a simple "0" will do. */
       (void)sprintf(buffer, "0");
+    } else {
+      /* Make sure the resulting string isn't longer than what is
+         required to represent the type of the integer. */
+      if (num_hex_digits_printed > num_hex_digits_in_repr) {
+        /* Advance the result pointer to skip over the superfluous digits. */
+        result += num_hex_digits_printed - num_hex_digits_in_repr;
+      }  /* if */
+      /* Add the hexadecimal prefix. */
+      result[0] = '0';
+      result[1] = 'x';
     }  /* if */
   } else {
     /* Put out the value in decimal. */
@@ -1705,23 +1733,39 @@ buffer.  If an arithmetic value is negative, it is preceded by a "-".
     }  /* for */
   }  /* if */
 #endif /* INTEGER_VALUE_REPR_IS_A_HOST_INTEGER */
-  return buffer;
+  return result;
 }  /* str_for_integer_value */
 
 
 char *str_for_integer_constant(a_constant *cp)
 /*
-Interface to str_for_integer_value that extracts the value, signedness, and
-whether the value should be considered as numeric or as a bit mask from the
-constant pointed to by cp.  The pointer returned is to an internal static
-buffer.
+Interface to str_for_integer_value that extracts the value, signedness,
+size, and whether the value should be considered as numeric or as a bit
+mask from the constant pointed to by cp.  The pointer returned is to an
+internal static buffer.
 */
 {
   char	*result;
 
   result = str_for_integer_value(&cp->variant.integer_value,
                                  int_constant_is_signed(cp),
-                                 cp->non_arithmetic);
+                                 cp->non_arithmetic, cp->type->size);
+  return result;
+}  /* str_for_integer_constant */
+
+
+char *decimal_str_for_integer_constant(a_constant *cp)
+/*
+Interface to str_for_integer_value that extracts the value, signedness, and
+size from the constant pointed to by cp, forcing a decimal representation.
+The pointer returned is to an internal static buffer.
+*/
+{
+  char	*result;
+
+  result = str_for_integer_value(&cp->variant.integer_value,
+                                 int_constant_is_signed(cp),
+                                 /*non_arithmetic=*/FALSE, cp->type->size);
   return result;
 }  /* str_for_integer_constant */
 

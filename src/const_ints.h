@@ -176,6 +176,8 @@ extern int bits_required_to_represent_integer_constant(a_constant *cp);
 
 extern char *str_for_integer_constant(a_constant *cp);
 
+extern char *decimal_str_for_integer_constant(a_constant *cp);
+
 extern
 void conv_integer_value_to_float(an_integer_value		*int_value,
 				 a_boolean			is_signed,

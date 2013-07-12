@@ -2957,6 +2957,7 @@ precedence confusion.  Do the output in the way described by octl.
                                    (con_type->kind == (a_type_kind)tk_integer);
   an_integer_kind ikind;
   a_boolean       signed_constant = FALSE;
+  char            *literal_form;
 
   /* See if the constant is signed. */
   if (integer_type_constant) {
@@ -3029,7 +3030,15 @@ precedence confusion.  Do the output in the way described by octl.
     }  /* if */
   }  /* if */
   /* Write the literal form of the constant. */
-  output_partial_token_str(str_for_integer_constant(eff_constant), octl);
+  if (octl->gen_compilable_code) {
+    /* In compilable code, we want to represent non-arithmetic integer
+       constants in hexadecimal. */
+    literal_form = str_for_integer_constant(eff_constant);
+  } else {
+    /* In diagnostics and debugging output, always use decimal. */
+    literal_form = decimal_str_for_integer_constant(eff_constant);
+  }  /* if */
+  output_partial_token_str(literal_form, octl);
   /* Put out a suffix if needed. */
   /* Unsigned suffix is only valid in ANSI C.  When generating K&R C,
      a prefix cast is used (see above). */
