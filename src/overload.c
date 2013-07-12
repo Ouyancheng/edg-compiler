@@ -19494,7 +19494,7 @@ be a reference type.  Only used in C++.  This is copy-initialization.
          right, but we leave it the way it was to avoid affecting existing
          code (except in Microsoft mode since Microsoft compilers appear to
          implement this aspect of core issue 1138). */
-      if ((cpp11_mode || cpp11_sfinae_enabled || microsoft_mode)) &&
+      if ((cpp11_mode || cpp11_sfinae_enabled || microsoft_mode) &&
           !type_qualifiers_match(source_operand->type, dest_type) &&
           !is_error_operand(source_operand) &&
           !is_error_type(dest_type)) {
