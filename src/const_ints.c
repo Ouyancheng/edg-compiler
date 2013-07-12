@@ -1749,7 +1749,8 @@ internal static buffer.
 
   result = str_for_integer_value(&cp->variant.integer_value,
                                  int_constant_is_signed(cp),
-                                 cp->non_arithmetic, cp->type->size);
+                                 cp->non_arithmetic,
+                                 skip_typerefs(cp->type)->size);
   return result;
 }  /* str_for_integer_constant */
 
@@ -1765,7 +1766,8 @@ The pointer returned is to an internal static buffer.
 
   result = str_for_integer_value(&cp->variant.integer_value,
                                  int_constant_is_signed(cp),
-                                 /*non_arithmetic=*/FALSE, cp->type->size);
+                                 /*non_arithmetic=*/FALSE,
+                                 skip_typerefs(cp->type)->size);
   return result;
 }  /* str_for_integer_constant */
 
