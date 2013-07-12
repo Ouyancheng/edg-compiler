@@ -2640,12 +2640,8 @@ not be bound to an lvalue be done before any conversions (the final
 standard applies that on the result of the conversions).
 */
 {
-  a_boolean early_test = FALSE;
-
-  if (rvalue_references_enabled &&
-      microsoft_mode &&
-      microsoft_version < 1800) early_test = TRUE;
-  return early_test;
+  return rvalue_references_enabled &&
+         microsoft_mode && microsoft_version < 1800;
 }  /* current_mode_requires_early_rvalue_ref_lvalue_test */
 
 
@@ -19494,10 +19490,11 @@ be a reference type.  Only used in C++.  This is copy-initialization.
       user_convert_operand(source_operand, /*dest_type=*/(a_type_ptr)NULL,
                            conversion, (a_conv_descr *)NULL,
                            /*force_copy_to_temp=*/FALSE);
-      /* Core issue 1138 is C++11.  Before that, we did something that
-         wasn't right, but we leave it the way it was to avoid affecting
-         existing code. */
-      if ((cpp11_mode || cpp11_sfinae_enabled) &&
+      /* Core issue 1138 is C++11.  Before that, we did something that wasn't
+         right, but we leave it the way it was to avoid affecting existing
+         code (except in Microsoft mode since Microsoft compilers appear to
+         implement this aspect of core issue 1138). */
+      if ((cpp11_mode || cpp11_sfinae_enabled || microsoft_mode)) &&
           !type_qualifiers_match(source_operand->type, dest_type) &&
           !is_error_operand(source_operand) &&
           !is_error_type(dest_type)) {
@@ -20649,7 +20646,7 @@ the conversion.
     } else if (is_rvalue_ref && !operand_was_rvalue &&
                !operand_is_function_lvalue &&
                (are_reference_related(base_dest_type, orig_source_type) ||
-                microsoft_mode)) {
+                current_mode_requires_early_rvalue_ref_lvalue_test())) {
       /* An rvalue reference cannot be bound to an lvalue.  However, if
          the types are not reference-related, it's okay to do a conversion
          from an lvalue into a temp. */

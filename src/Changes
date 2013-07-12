@@ -1,5 +1,23 @@
 Version 5.0
 
+7/11/13  [EDGcpfe/14284]
+Microsoft compatibility: Core issue 1138
+
+The changes for EDGcpfe/12427 (part of implementing support for the C++
+standards committee's resolution for Core issue 1138) are now also enabled
+in Microsoft C++ mode with microsoft_version >= 1800.  For example:
+
+  struct S { Test(int const&); };
+  void f(S&&) {}
+  void g(x) {
+    f(x);  // Now accepted in newer Microsoft C++ modes.  Previously an error
+  }        // about attempting to bind an lvalue to an rvalue reference.
+
+A related behavior implemented for C++11 mode through the changes for
+EDGcpfe/11002 (see Changes entry of 9/10/10) has now also been enabled in
+Microsoft C++ mode (all versions).
+
+
 7/11/13  [EDGcpfe/14287]
 C++-generating back end: format of "non-arithmetic" integer constants
 
