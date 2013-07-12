@@ -1632,6 +1632,11 @@ buffer.  If an arithmetic value is negative, it is preceded by a "-".
         }  /* if */
       }  /* if */
     }  /* for */
+    if (!nonzero_part_seen) {
+      /* All the parts were zero, so there's no need for a hexadecimal
+         literal; a simple "0" will do. */
+      (void)sprintf(buffer, "0");
+    }  /* if */
   } else {
     /* Put out the value in decimal. */
     static a_boolean	initialized = FALSE;
