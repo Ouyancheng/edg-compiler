@@ -9895,7 +9895,7 @@ mechanism.  This routine scans and builds the asm string.
     }  /* while */
   } else {
     /* Not an asm block.  Just take tokens up to the end of the line or up
-       to an closing brace. */
+       to a closing brace. */
 #if EXTRA_SOURCE_POSITIONS_IN_IL
     a_source_position	end_pos;
     end_pos = end_pos_curr_token;
