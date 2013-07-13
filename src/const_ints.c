@@ -1594,7 +1594,7 @@ is_signed indicates whether the value should be treated as signed.  A TRUE
 value for non_arithmetic indicates that the constant should be considered
 as a bit mask or the like instead of a number and thus should be
 represented as a hexadecimal literal.  size is the number of target bytes
-of the size of the value's type.  The pointer is to an internal static
+in the value's type.  The return value is a pointer to an internal static
 buffer.  If an arithmetic value is negative, it is preceded by a "-".
 */
 {
@@ -1607,7 +1607,10 @@ buffer.  If an arithmetic value is negative, it is preceded by a "-".
   if (non_arithmetic && *p_value != 0) {
     /* The constant is to be considered as a bit mask or the like, i.e.,
        it was originally specified in hexadecimal or octal or it was folded
-       from bit-manipulation expressions.  Put it out in hexadecimal. */
+       from bit-manipulation expressions.  Put it out in hexadecimal.  (A
+       plain 0 is considered to be an octal literal, but there is no need
+       to use hexadecimal for the value 0, regardless of how it was
+       originally specified.) */
     num_hex_digits_printed = sprintf(buffer + 2,
                                      PRINTF_FORMAT_FOR_HEX_INTEGER_VALUE,
                                      *p_value);
