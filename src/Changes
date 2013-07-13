@@ -4,7 +4,7 @@ Version 5.0
 Criterion for user-provided member functions
 
 The C++11 standard defines a function to be user-provided if it is neither
-defaulted not deleted on its first declaration.  However, that definition was
+defaulted nor deleted on its first declaration.  However, that definition was
 different earlier in the standardization process, and that is what we
 previously implemented: deleted member functions were always considered to be
 user-provided.  The front end has now been updated to implement the newer
