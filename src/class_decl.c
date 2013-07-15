@@ -987,10 +987,16 @@ typedef struct a_class_def_state {
 			   generated since the latter should be marked trivial
 			   (which e.g. matters when determining if it can
 			   appear in a union type). */
+  a_bit_field	rule_out_bitwise_copy_for_deleted_ctor:1;
+			/* TRUE if bitwise copying should be ruled out because
+			   a copy/move constructor is deleted. */
   a_bit_field	rule_out_bitwise_assign_for_volatile_class_field:1;
 			/* TRUE if bitwise copying should be ruled out because
 			   a field of volatile class type has been seen where
 			   the unqualified class type is bitwise assignable. */
+  a_bit_field	rule_out_bitwise_assign_for_deleted_operator:1;
+			/* TRUE if bitwise copying should be ruled out because
+			   a copy/move assignment operator is deleted. */
   a_bit_field	has_inheriting_constructors:1;
 			/* TRUE if a using-declaration introducing inheriting
 			   constructors has been encountered. */
@@ -1087,7 +1093,9 @@ class being defined.
   cdsp->ms_parenthesized_member = FALSE;
   cdsp->has_field_initializer = FALSE;
   cdsp->rule_out_bitwise_copy_for_volatile_class_field = FALSE;
+  cdsp->rule_out_bitwise_copy_for_deleted_ctor = FALSE;
   cdsp->rule_out_bitwise_assign_for_volatile_class_field = FALSE;
+  cdsp->rule_out_bitwise_assign_for_deleted_operator = FALSE;
   cdsp->has_inheriting_constructors = TRUE;
   cdsp->access = (an_access_specifier)as_public;
 #if MICROSOFT_EXTENSIONS_ALLOWED
@@ -18712,7 +18720,8 @@ Set the is_trivial_copy_function flag to TRUE for every trivial copy/move
 constructor routine or trivial copy/move assignment routine of the class
 described by class_state.  Also set the is_trivial_destructor flag if the
 destructor of that class is trivial.  (These are compiler-generated or
-explicitly defaulted member functions.)
+explicitly defaulted member functions.)  In addition, if a copy function is
+deleted, disable bitwise copying.
 */
 {
   a_type_ptr  class_type = class_state->class_type;
@@ -18732,18 +18741,26 @@ explicitly defaulted member functions.)
        operators. */
     a_routine_ptr  rp = class_type_supp(class_type)->assoc_scope->routines;
     for (; rp != NULL; rp = rp->next) {
-      if ((rp->compiler_generated || rp->is_defaulted) && !rp->is_deleted) {
+      if (rp->compiler_generated || rp->is_defaulted || rp->is_deleted) {
         a_type_qualifier_set  tqs;
         if (rp->special_kind == (a_special_function_kind)sfk_constructor &&
             is_copy_constructor(rp, (a_type*)NULL, &tqs,
                                 /*include_move_ctors=*/TRUE,
                                 /*is_declarative_context=*/TRUE)) {
-          rp->is_trivial_copy_function =
+          if (!rp->is_deleted) {
+            rp->is_trivial_copy_function =
                                    cssp->construction_by_bitwise_copy_allowed;
+          } else {
+            class_state->rule_out_bitwise_copy_for_deleted_ctor = TRUE;
+          }  /* if */
         } else if (rp->special_kind == (a_special_function_kind)sfk_operator &&
                    rp->variant.opname_kind == (an_opname_kind)onk_assign) {
-          rp->is_trivial_copy_function =
+          if (!rp->is_deleted) {
+            rp->is_trivial_copy_function =
                                      cssp->assignment_by_bitwise_copy_allowed;
+          } else {
+            class_state->rule_out_bitwise_assign_for_deleted_operator = TRUE;
+          }  /* if */
         }  /* if */
       }  /* if */
     }  /* if */
@@ -19652,11 +19669,13 @@ The routine body is not generated until it is known to be needed.
      nontrivial. */
   if (cssp->has_user_provided_copy_constructor ||
       cssp->has_user_provided_move_constructor ||
+      class_state->rule_out_bitwise_copy_for_deleted_ctor  ||
       class_state->rule_out_bitwise_copy_for_volatile_class_field) {
     cssp->construction_by_bitwise_copy_allowed = FALSE;
   }  /* if */
   if (user_provided_copy_assignment_op ||
       cssp->has_user_provided_move_assign_operator ||
+      class_state->rule_out_bitwise_assign_for_deleted_operator  ||
       class_state->rule_out_bitwise_assign_for_volatile_class_field) {
     cssp->assignment_by_bitwise_copy_allowed = FALSE;
   }  /* if */
