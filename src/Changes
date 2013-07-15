@@ -26,11 +26,12 @@ in turn makes the initialization of s valid.
 
 
 7/12/13  [EDGcpfe/14284]
-Microsoft compatibility: Core issue 1138
+Microsoft compatibility: Binding an rvalue reference to a converted lvalue
 
-The changes for EDGcpfe/12427 (part of implementing support for the C++
-standards committee's resolution for Core issue 1138) are now also enabled
-in Microsoft C++ mode with microsoft_version >= 1800.  For example:
+The changes for EDGcpfe/12427 that permit binding an lvalue converted to an
+rvalue to an rvalue reference in C++11 mode (part of implementing support for
+the C++ standards committee's resolution for Core issue 1138) are now also
+enabled in Microsoft C++ mode with microsoft_version >= 1800.  For example:
 
   struct S { Test(int const&); };
   void f(S&&) {}
@@ -39,7 +40,7 @@ in Microsoft C++ mode with microsoft_version >= 1800.  For example:
   }        // about attempting to bind an lvalue to an rvalue reference.
 
 A related behavior implemented for C++11 mode through the changes for
-EDGcpfe/11002 (see Changes entry of 9/10/10) has now also been enabled in
+EDGcpfe/11002 (see Changes entry of 9/10/10) has also been enabled in
 Microsoft C++ mode (all versions).
 
 
