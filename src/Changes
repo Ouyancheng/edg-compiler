@@ -33,9 +33,9 @@ rvalue to an rvalue reference in C++11 mode (part of implementing support for
 the C++ standards committee's resolution for Core issue 1138) are now also
 enabled in Microsoft C++ mode with microsoft_version >= 1800.  For example:
 
-  struct S { Test(int const&); };
+  struct S { S(int const&); };
   void f(S&&) {}
-  void g(x) {
+  void g(int x) {
     f(x);  // Now accepted in newer Microsoft C++ modes.  Previously an error
   }        // about attempting to bind an lvalue to an rvalue reference.
 
