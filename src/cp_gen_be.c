@@ -13348,6 +13348,8 @@ Set *abstract_generated to TRUE if the Microsoft function-modifier "abstract"
 is generated.
 */
 {
+  a_boolean gen_sealed = FALSE;
+
   if (rout->override) {
     write_tok_str(" override");
   }  /* if */
@@ -13357,17 +13359,17 @@ is generated.
       write_tok_str(" abstract");
       *abstract_generated = TRUE;
     }  /* if */
-    if (rout->final) {
+    if (rout->sealed) {
       write_tok_str(" sealed");
+      gen_sealed = TRUE;
     }  /* if */
     if (rout->new_member) {
       write_tok_str(" new");
     }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-  } else {
-    if (rout->final) {
-      write_tok_str(" final");
-    }  /* if */
+  }  /* if */
+  if (rout->final && !gen_sealed) {
+    write_tok_str(" final");
   }  /* if */
 }  /* gen_member_function_modifiers */
 
