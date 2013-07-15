@@ -2484,12 +2484,15 @@ do_set_proper_definition_needed_flag:
           walk_list(ptr->types, a_type_ptr, iek_type);
           walk_list(ptr->variables, a_variable_ptr, iek_variable);
           walk_list(ptr->routines, a_routine_ptr, iek_routine);
+          walk_list(ptr->namespaces, a_namespace_ptr, iek_namespace);
         } else {
           /* For lists not within a function, mark only the needed entities
              to be kept. */
           walk_needed_on_list(ptr->types, a_type_ptr, iek_type, kind);
           walk_needed_on_list(ptr->variables, a_variable_ptr, iek_variable,
                               kind);
+          walk_list_with_keep_in_il_reset(ptr->namespaces, a_namespace_ptr,
+                                          iek_namespace);
           walk_needed_on_list(ptr->routines, a_routine_ptr, iek_routine, kind);
         }  /* if */
 #else /* !KEEP_IN_IL_WALK */
@@ -2502,11 +2505,14 @@ do_set_proper_definition_needed_flag:
              would have been created. */
           remap_list_ptr(ptr->types, a_type_ptr, iek_type);
           remap_list_ptr(ptr->variables, a_variable_ptr, iek_variable);
+          remap_list_ptr(ptr->namespaces, a_namespace_ptr, iek_namespace);
         } else {
           /* Not a function or block scope, or one for which the orphan
              lists have not been generated yet. */
           walk_list(ptr->types, a_type_ptr, iek_type);
           walk_list(ptr->variables, a_variable_ptr, iek_variable);
+          walk_list_with_keep_in_il_reset(ptr->namespaces, a_namespace_ptr,
+                                          iek_namespace);
         }  /* if */
         walk_list(ptr->routines, a_routine_ptr, iek_routine);
 #endif /* KEEP_IN_IL_WALK */
@@ -2537,8 +2543,6 @@ do_set_proper_definition_needed_flag:
 #endif /* NEEDED_FLAG_WALK && defined(nonstatic_variable_always_needed) */
         walk_list_not_needed(ptr->labels, a_label_ptr, iek_label);
         walk_list(ptr->scopes, a_scope_ptr, iek_scope);
-        walk_list_with_keep_in_il_reset(ptr->namespaces, a_namespace_ptr,
-                                        iek_namespace);
         walk_list_not_needed(ptr->using_decls, a_using_decl_ptr,
                              iek_using_decl);
         walk_list(ptr->asm_entries, an_asm_entry_ptr, iek_asm_entry);
