@@ -1,22 +1,5 @@
 Version 5.0
 
-7/15/13  [EDGcpfe/14281]
-Internal error on reading local namespace alias from IL file
-
-In configurations with the configuration macro MAINTAIN_NEEDED_FLAG set to
-FALSE, reading the IL entries for a function with more than one local
-namespace alias resulted in an internal error ("ptr_remap_function: address
-not in any mem block").  For example:
-
-  namespace N {}
-  void g() {
-    namespace LN1 = N;
-    namespace LN2 = N;  // Triggered an abort when reading the corresponding
-  }                     // IL entries from a file.
-
-This is now fixed.
-
-
 7/12/13  [EDGcpfe/12812,EDGcpfe/14282]
 Criterion for user-provided member functions
 
