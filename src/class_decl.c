@@ -13745,8 +13745,10 @@ decl_member_function, which handles in-class member function declarations.)
           a_template_param_ptr			other_templ_param_list;
           a_template_symbol_supplement_ptr	other_tssp;
           a_type_ptr				tp;
+          a_routine_ptr                         other_rp;
           other_tssp = template_supplement_for_symbol(fund_sym);
-          tp = other_tssp->variant.function.routine->type;
+          other_rp = other_tssp->variant.function.routine;
+          tp = other_rp->type;
           other_templ_param_list =
                  other_tssp->variant.function.decl_cache.decl_info->parameters;
           if (equiv_template_param_lists(other_templ_param_list,
@@ -13767,8 +13769,15 @@ decl_member_function, which handles in-class member function declarations.)
               pos_error(error_code, &locator->source_position);
             } else if (routine_types_are_redecl_compatible(tp, member_type,
                                                            TCF_NO_FLAGS)) {
-              error_code = ec_member_function_redeclaration;
-              pos_sy_error(error_code, &locator->source_position, other_sym);
+              if (dps->is_inheriting_ctor && other_rp->is_inheriting_ctor) {
+                error_code = ec_inheriting_ctor_conflict;
+                pos_syty_error(error_code, &locator->source_position,
+                               fund_sym, other_rp->generating_using_decl
+                                                 ->qualifier.class_type);
+              } else {
+                error_code = ec_member_function_redeclaration;
+                pos_sy_error(error_code, &locator->source_position, other_sym);
+              }  /* if */
             }  /* if */
             if (error_code != ec_no_error) {
               set_to_named_error_locator(*locator);
@@ -13986,22 +13995,25 @@ decl_member_function, which handles in-class member function declarations.)
     }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
-    remove_declarator_sse(dps, depth_scope_stack);
-    if (!func_info->is_definition) {
-      if (!source_sequence_entries_disallowed) {
-        /* Turn the source sequence entry for the a_template entry into a
-           secondary source sequence entry. */
-        a_src_seq_secondary_decl_ptr sssdp =
+    if (!source_sequence_entries_disallowed) {
+      check_assertion(il_template_entry != NULL);
+      remove_declarator_sse(dps, depth_scope_stack);
+      if (!func_info->is_definition) {
+        if (!source_sequence_entries_disallowed) {
+          /* Turn the source sequence entry for the a_template entry into a
+             secondary source sequence entry. */
+          a_src_seq_secondary_decl_ptr sssdp =
                             secondary_src_seq_for_template(il_template_entry);
-        sssdp->declared_type = func_info->declared_type;
+          sssdp->declared_type = func_info->declared_type;
+        }  /* if */
+      } else {
+        rtn->declared_type = func_info->declared_type;
+        rtn->declared_storage_class = dps->declared_storage_class;
       }  /* if */
-    } else {
-      tssp->variant.function.routine->declared_type = func_info->declared_type;
-      rtn->declared_storage_class = dps->declared_storage_class;
-    }  /* if */
-    dps->source_sequence_entry =
+      dps->source_sequence_entry =
                       il_template_entry->source_corresp.source_sequence_entry;
-    wrapup_sse_for_simple_decl(dps);
+      wrapup_sse_for_simple_decl(dps);
+    }  /* if */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   }  /* if */
   db_exit();
@@ -19705,6 +19717,199 @@ The routine body is not generated until it is known to be needed.
 }  /* check_special_member_functions */
 
 
+static void count_params_for_inheriting_ctor(a_routine_ptr  brp,
+                                             uint32_t       *p_n_params,
+                                             uint32_t       *p_min_n_args)
+/*
+For the given routine, return in *p_n_params how many parameters it has, and
+in *p_min_n_args how many arguments it requires at a minimum for a call (which
+equals the number of parameters with no default argument).
+*/
+{
+  uint32_t              n_params = 0, n_default_args = 0;
+  a_param_type_ptr      ptp, base_param_list;
+
+  check_assertion(brp->type->kind == (a_type_kind)tk_routine);
+  base_param_list = function_type_params(brp->type);
+  for (ptp = base_param_list; ptp != NULL; ptp = ptp->next) {
+    ++n_params;
+    if (ptp->has_default_arg) ++n_default_args;
+  }  /* if */
+  *p_n_params = n_params;
+  *p_min_n_args = n_params-n_default_args;
+}  /* count_params_for_inheriting_ctor */
+
+
+static a_type_ptr create_inheriting_ctor_type(a_routine_ptr  brp,
+                                              uint32_t       n_base_params,
+                                              uint32_t       n_params,
+                                              a_type_ptr     class_type)
+/*
+brp is a base class constructor (possibly a base class constructor prototype
+instantiation) from which an inheriting constructor (or constructor template)
+will be generated for the given class type.  n_base_params is the number of
+parameter of the base class constructor, and the new inheriting constructor is
+to have n_params parameters (n_base_params and n_params may be different if the
+base class constructor has default arguments).  
+*/
+{
+  a_type_ptr        new_tp = alloc_type((a_type_kind)tk_routine);
+  a_param_type_ptr  base_param_list = function_type_params(brp->type);
+  a_routine_type_supplement_ptr
+                    new_rtsp = new_tp->variant.routine.extra_info;
+
+  /* Copy the base constructor type without its parameter list. */
+  brp->type->variant.routine.extra_info->param_type_list = NULL;
+  copy_type(brp->type, new_tp);
+  brp->type->variant.routine.extra_info->param_type_list = base_param_list;
+  /* Now copy the n_params first parameters. */
+  new_rtsp->param_type_list = copy_param_type_list(base_param_list,
+                                               /*copy_default_args=*/FALSE,
+                                               n_params);
+  new_rtsp->this_class = class_type;
+  new_rtsp->assoc_routine = NULL;
+  if (n_params != n_base_params) {
+    new_rtsp->has_ellipsis = FALSE;
+  }  /* if */
+  return new_tp;
+}  /* create_inheriting_ctor_type */
+
+
+static void generate_inheriting_constructors_for_base_template(
+                                                 a_symbol_ptr           bctor,
+                                                 a_using_decl_ptr       udp,
+                                                 a_class_def_state_ptr  cdsp)
+/*
+cdsp represents a class whose definition has just been completed, and whose
+implicitly-declared special members, if any, have been generated.  udp points
+to the representation of a using-declaration for inheriting constructors and
+bctor is one of the potentially inherited constructor templates associated
+with that using-declaration.  Generate any needed inheriting constructor
+templates from that base template.
+*/
+{
+  a_routine_ptr         brp, drp;
+  uint32_t              n_params, n_base_params;
+  a_template_symbol_supplement_ptr
+                        btssp, dtssp, new_tssp;
+  a_template_param_ptr  btpl, dtpl, new_tpl;
+  a_type_ptr            new_tp;
+  a_symbol_ptr          dctor;
+
+  check_assertion(symbol_is(bctor, sk_function_template));
+  btssp = bctor->variant.template_info;
+  btpl = btssp->variant.function.decl_cache.decl_info->parameters;
+  brp = btssp->variant.function.routine;
+  count_params_for_inheriting_ctor(brp, &n_base_params, &n_params);
+  /* Attempt to declare an inheriting constructor for each valid number of
+     arguments that could be passed to the base constructor, but exclude the
+     zero-argument case. */
+  if (n_params == 0) ++n_params;
+  for (; n_params <= n_base_params; ++n_params) {
+    new_tp = create_inheriting_ctor_type(brp, n_base_params, n_params,
+                                         cdsp->class_type);
+    /* Check if the derived class already contains a user-declared constructor
+       with this signature: */
+    dctor = class_symbol_supp(symbol_for(cdsp->class_type))->constructor;
+    if (symbol_is(dctor, sk_overloaded_function)) {
+      dctor = dctor->variant.overloaded_function.symbols;
+    }  /* if */
+    for (; dctor != NULL; dctor = dctor->next) {
+      if (!symbol_is(dctor, sk_function_template)) {
+        /* Probably a non-template constructor.  In any case, there is no
+           conflict. */
+        continue;
+      }  /* if */
+      dtssp = dctor->variant.template_info;
+      dtpl = dtssp->variant.function.decl_cache.decl_info->parameters;
+      /* Check template parameter list and type. */
+      if (!equiv_template_param_lists(btpl, dtpl, /*issue_errors=*/FALSE,
+                                      ETP_NESTING_DEPTH_MISMATCH_OKAY,
+                                      (a_source_position*)NULL, es_none)) {
+        continue;
+      }  /* if */
+      drp = dtssp->variant.function.routine;
+      if (!drp->compiler_generated &&
+          f_types_are_compatible(drp->type, new_tp,
+                                 TCF_REDECLARATION |
+                                 TCF_IGNORE_THIS_CLASS_TYPE)) {
+        /* Don't inherit constructors templates that match a constructor
+           template explicitly declared in the derived class. */
+        /* FIXME: Recycle new_tp and copied parameter list? */
+        break;
+      }  /* if */
+    }  /* for */
+    if (dctor == NULL) {
+      /* There is no user-declared constructor template with this signature
+         yet: Generate one now (the declaration only; the definition is
+         generated for instantiations at the point of use). */
+      a_member_decl_info  decl_info;
+      a_func_info_block   func_info;
+      a_symbol_locator    loc;
+      a_tmpl_decl_state   templ_decl_state;
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+      /* Don't issue source sequence entries for generated entities. */
+      a_boolean             saved_source_sequence_entries_disallowed;
+      saved_source_sequence_entries_disallowed =
+                                            source_sequence_entries_disallowed;
+      scope_stack_top().source_sequence_entries_disallowed = TRUE;
+      source_sequence_entries_disallowed = TRUE;
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+      initialize_member_decl_info(&decl_info, &udp->position);
+      decl_info.is_constructor = TRUE;
+      decl_info.decl_state.is_inheriting_ctor = TRUE;
+      decl_info.decl_state.type = new_tp;
+      if (brp->is_explicit_constructor) {
+        decl_info.decl_state.dso_flags |= (a_decl_flag_set)DSO_EXPLICIT;
+      }  /* if */
+      if (brp->is_constexpr) {
+        decl_info.decl_state.dso_flags |= (a_decl_flag_set)DSO_CONSTEXPR;
+      }  /* if */
+      clear_func_info(&func_info);
+      func_info = btssp->variant.function.func_info;
+      func_info.is_inline = TRUE;
+      make_locator_for_symbol(symbol_for(cdsp->class_type), &loc);
+      change_class_locator_into_constructor_locator(&loc, &udp->position,
+                                                    /*is_static_ctor=*/FALSE);
+      init_tmpl_decl_state_for_inheriting_ctor_template(&templ_decl_state);
+      new_tpl = copy_template_param_list(btpl);
+      templ_decl_state.decl_info->parameters = new_tpl;
+      push_template_declaration_scope(
+                                  templ_decl_state.decl_info,
+                                  /*is_template_template_param_rescan*/FALSE);
+      templ_decl_state.number_of_template_decl_scopes += 1;
+      /* Save a pointer to the template declaration information in the
+         scope stack entry. */
+      scope_stack_top().tmpl_decl_state = &templ_decl_state;
+      decl_member_function_template(&loc, new_tpl,
+                                    templ_decl_state.il_template_entry,
+                                    &func_info, cdsp, &decl_info);
+      if (symbol_is(decl_info.decl_state.sym, sk_function_template)) {
+        a_routine_ptr  new_rp;
+        new_tssp = decl_info.decl_state.sym->variant.template_info;
+        set_il_template_entry(&templ_decl_state, decl_info.decl_state.sym,
+                              new_tssp);
+        new_rp = new_tssp->variant.function.routine;
+        new_rp->generating_using_decl = udp;
+        new_rp->is_inheriting_ctor = TRUE;
+        new_rp->compiler_generated = TRUE;
+        new_tssp->variant.function.decl_cache.decl_info =
+                                                   templ_decl_state.decl_info;
+      }  /* if */
+      pop_scope();
+      done_with_func_info(func_info);
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+      /* Restore the previous state wrt. generating source sequence entries. */
+      source_sequence_entries_disallowed =
+                                     saved_source_sequence_entries_disallowed;
+      scope_stack_top().source_sequence_entries_disallowed 
+                                    = saved_source_sequence_entries_disallowed;
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+    }  /* if */
+  }  /* for */
+}  /* generate_inheriting_constructors_for_base_template */
+
+
 static void generate_inheriting_constructors_for_base_ctor(
                                                  a_symbol_ptr           bctor,
                                                  a_using_decl_ptr       udp,
@@ -19719,43 +19924,31 @@ constructor.
 */
 {
   a_routine_ptr     brp;
-  uint32_t          n_params, n_base_params = 0, n_default_args = 0;
-  a_param_type_ptr  ptp, base_param_list;
+  uint32_t          n_params, n_base_params;
 
   check_assertion(symbol_is(bctor, sk_member_function));
   brp = bctor->variant.routine.ptr;
-  check_assertion(brp->type->kind == (a_type_kind)tk_routine);
-  base_param_list = function_type_params(brp->type);
-  for (ptp = base_param_list; ptp != NULL; ptp = ptp->next) {
-    ++n_base_params;
-    if (ptp->has_default_arg) ++n_default_args;
-  }  /* if */
-  n_params = n_base_params-n_default_args;
-  /* Don't inherit a constructor with no parameters. */
+  count_params_for_inheriting_ctor(brp, &n_base_params, &n_params);
+  /* Attempt to declare an inheriting constructor for each valid number of
+     arguments that could be passed to the base constructor, but exclude the
+     zero-argument case. */
   if (n_params == 0) ++n_params;
   for (; n_params <= n_base_params; ++n_params) {
     a_type_ptr        new_tp;
     a_symbol_ptr      dctor;
-    if (n_params == 1 && is_reference_type(base_param_list->type)) {
-      /* Exclude copy/move constructors. */
-      a_type_ptr  tp = type_pointed_to(base_param_list->type);
-      if (identical_types_ignoring_qualifiers(tp, udp->qualifier.class_type)) {
-        continue;
+    if (n_params == 1) {
+      a_type_ptr  param_type = function_type_params(brp->type)->type,
+                  class_type = udp->qualifier.class_type;
+      if (is_reference_type(param_type)) {
+        /* Exclude copy/move constructors. */
+        a_type_ptr  tp = type_pointed_to(param_type);
+        if (identical_types_ignoring_qualifiers(tp, class_type)) {
+          continue;
+        }  /* if */
       }  /* if */
     }  /* if */
-    new_tp = alloc_type((a_type_kind)tk_routine);
-    /* Copy the base constructor type without its parameter list. */
-    brp->type->variant.routine.extra_info->param_type_list = NULL;
-    copy_type(brp->type, new_tp);
-    brp->type->variant.routine.extra_info->param_type_list = base_param_list;
-    /* Now copy the n_params first parameters. */
-    new_tp->variant.routine.extra_info->param_type_list =
-                         copy_param_type_list(base_param_list,
-                                              /*copy_default_args=*/FALSE,
-                                              n_params);
-    new_tp->variant.routine.extra_info->this_class = cdsp->class_type;
-    new_tp->variant.routine.extra_info->assoc_routine = NULL;
-    new_tp->variant.routine.extra_info->has_ellipsis = FALSE;
+    new_tp = create_inheriting_ctor_type(brp, n_base_params, n_params,
+                                         cdsp->class_type);
     /* Check if the derived class already contains a user-declared constructor
        with this signature: */
     dctor = class_symbol_supp(symbol_for(cdsp->class_type))->constructor;
@@ -19763,7 +19956,13 @@ constructor.
       dctor = dctor->variant.overloaded_function.symbols;
     }  /* if */
     for (; dctor != NULL; dctor = dctor->next) {
-      a_routine_ptr  drp = dctor->variant.routine.ptr;
+      a_routine_ptr  drp;
+      if (!symbol_is(dctor, sk_member_function)) {
+        /* This could be a constructor template.  In any case, there is no
+           conflict. */
+        continue;
+      }  /* if */
+      drp  = dctor->variant.routine.ptr;
       if (!drp->compiler_generated &&
           f_types_are_compatible(drp->type, new_tp,
                                  TCF_REDECLARATION |
@@ -19835,7 +20034,8 @@ Generate those constructors.
       if (symbol_is(bctor, sk_member_function)) {
         generate_inheriting_constructors_for_base_ctor(bctor, udp, cdsp);
       } else if (symbol_is(bctor, sk_function_template)) {
-        unexpected_condition_str("NYI: Inherited constructor templates");
+        // FIXME
+        generate_inheriting_constructors_for_base_template(bctor, udp, cdsp);
       } else {
         unexpected_condition();
       }  /* if */

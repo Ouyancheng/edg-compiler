@@ -610,6 +610,12 @@ extern void record_predeclared_template_function(
                                        a_template_param_ptr templ_param_list,
 				       a_template_ptr	    il_template_entry);
 
+extern void set_il_template_entry(
+			a_tmpl_decl_state_ptr			decl_state,
+			a_symbol_ptr				sym,
+			a_template_symbol_supplement_ptr	tssp);
+
+
 extern void find_member_function_template(
                                     a_symbol_ptr  rout_sym,
                                     a_symbol_ptr  corresp_prototype_tag_sym);
@@ -1038,6 +1044,12 @@ extern a_boolean is_instance_of_class_template(
 				a_type_ptr		instance_type,
 				a_symbol_ptr		template_sym,
 				a_template_arg_ptr	*templ_arg_list);
+
+extern a_template_param_ptr copy_template_param_list(
+                                                   a_template_param_ptr  tpl);
+
+extern void init_tmpl_decl_state_for_inheriting_ctor_template(
+                                                a_tmpl_decl_state_ptr  state);
 
 #if DEBUG
 extern unsigned long db_show_template_space_used(unsigned long grand_total);

@@ -2315,24 +2315,25 @@ to it.
 }  /* implicitly_generated_param_variable */
 
 
-static void make_default_constructor_body(a_scope_ptr  scope)
+static void make_generated_constructor_body(a_scope_ptr  scope)
 /*
-Create the body for a default constructor or a default copy constructor.  It
-will return a pointer to the constructed object.
+Create the body for a generated constructor (this could be a default
+constructor, a default copy constructor, or an inheriting constructor).
+The heavy lifting for this function is mostly in ctor_initializer, which
+generates the implicit mem-initializer constructs that do the actual member
+construction (if any is needed).
 */
 {
   a_routine_ptr                  rp;
   a_routine_type_supplement_ptr  rtsp;
-  a_variable_ptr                 vp;
   a_param_type_ptr               ptp;
 
-  db_enter(4, "make_default_constructor_body");
+  db_enter(4, "make_generated_constructor_body");
   rp = scope->variant.routine.ptr;
   /* Create the parameter variable -- needed for copy constructors only. */
   rtsp = (skip_typerefs(rp->type))->variant.routine.extra_info;
-  ptp = rtsp->param_type_list;
-  if (ptp != NULL) {
-    vp = implicitly_generated_param_variable(ptp->type);
+  for (ptp = rtsp->param_type_list; ptp != NULL; ptp = ptp->next) {
+    a_variable_ptr  vp = implicitly_generated_param_variable(ptp->type);
     vp->assoc_param_type = ptp;
   }  /* if */    
   /* Create entries describing constructions to be done in the wrapper code. */
@@ -2346,7 +2347,7 @@ will return a pointer to the constructed object.
      of virtual functions of the class. */
   require_definitions_of_virtual_functions_due_to_definition_of(rp);
   db_exit();
-}  /* make_default_constructor_body */
+}  /* make_generated_constructor_body */
 
 
 static void make_default_destructor_body(a_scope_ptr  scope)
@@ -2843,7 +2844,7 @@ empty statement block.
     /* Enter the constructor and destructor initializers, to record possible
        implicit initializers. */
     if (rout_ptr->special_kind == (a_special_function_kind)sfk_constructor) {
-      make_default_constructor_body(scope);
+      make_generated_constructor_body(scope);
     } else if (rout_ptr->special_kind ==
                                   (a_special_function_kind)sfk_destructor) {
       make_default_destructor_body(scope);

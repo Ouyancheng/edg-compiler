@@ -3232,11 +3232,6 @@ static void update_export_flag_for_class(
 			a_tmpl_decl_state_ptr			decl_state,
 			a_template_symbol_supplement_ptr	tssp);
 
-static void set_il_template_entry(
-			a_tmpl_decl_state_ptr			decl_state,
-			a_symbol_ptr				sym,
-			a_template_symbol_supplement_ptr	tssp);
-
 
 static void reactivate_template_declaration_scope(
 				a_template_decl_info_ptr	decl_info)
@@ -12966,10 +12961,23 @@ in_class_specialization is TRUE for a Microsoft mode in-class specialization.
       /* Skip past the tok_end_of_source. */
       (void)get_token();
     } else if (parent_class != NULL) {
-      rout_type = scan_member_declaration(parent_class, templ_rout, tip);
+      if (templ_rout->is_inheriting_ctor) {
+        a_template_param_ptr  tpl;
+        a_boolean             copy_error = FALSE;
+        a_ctws_state          ctws_state;
+        init_ctws_state(&ctws_state);
+        tpl = tssp->variant.function.decl_cache.decl_info->parameters;
+        rout_type = copy_type_with_substitution(templ_rout->type,
+                                                templ_arg_list, tpl,
+                                                &templ_sym->decl_position,
+                                                CTWS_NO_OPTIONS, &copy_error,
+                                                &ctws_state);
+      } else {
+        rout_type = scan_member_declaration(parent_class, templ_rout, tip);
 #if DECL_MODIFIERS_IN_USE
-      /* Note that locator_position is not updated in this case. */
+        /* Note that locator_position is not updated in this case. */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+      }  /* if */
     } else {
       a_decl_parse_state  state;
       a_func_info_block	  func_info;
@@ -13061,7 +13069,10 @@ in_class_specialization is TRUE for a Microsoft mode in-class specialization.
       rp->is_declared_constexpr = TRUE;
       rp->is_constexpr = TRUE;
     }  /* if */
+    rp->compiler_generated = templ_rout->compiler_generated;
     rp->is_initializer_list_ctor = templ_rout->is_initializer_list_ctor;
+    rp->is_inheriting_ctor = templ_rout->is_inheriting_ctor;
+    rp->generating_using_decl = templ_rout->generating_using_decl;
     set_inline_flag(rp, (a_boolean)templ_rout->is_inline);
 #if IA64_ABI
     rp->inline_in_class_definition = templ_rout->inline_in_class_definition;
@@ -13171,8 +13182,12 @@ in_class_specialization is TRUE for a Microsoft mode in-class specialization.
   }
 #if GENERATE_SOURCE_SEQUENCE_LISTS
 #if NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
-  if (parent_class != NULL &&
-      parent_class->variant.class_struct_union.is_prototype_instantiation) {
+  if (source_sequence_entries_disallowed || rp->compiler_generated) {
+    /* For generated function templates (inheriting constructor templates, in
+       particular) no source sequence entries are generated. */
+  } else if (parent_class != NULL &&
+             parent_class
+                    ->variant.class_struct_union.is_prototype_instantiation) {
     /* In Microsoft mode a member template may be specialized within the
        definition of the parent class.  Don't generate the source sequence
        entry when the parent class is a prototype instantiation. */
@@ -16165,7 +16180,7 @@ done:;
 }  /* skip_illegal_class_template_decl_specifiers */
 
 
-static void set_il_template_entry(
+void set_il_template_entry(
 			a_tmpl_decl_state_ptr			decl_state,
 			a_symbol_ptr				sym,
 			a_template_symbol_supplement_ptr	tssp)
@@ -30522,6 +30537,53 @@ instance, otherwise it is set to NULL.
   }  /* if */
   return result;
 }  /* is_instance_of_class_template */
+
+
+a_template_param_ptr copy_template_param_list(a_template_param_ptr  tpl)
+/*
+Return a copy of the given template parameter list as part of the process of
+creating a compiler-generated template.
+*/
+{
+  a_template_param_ptr  result = NULL, *p_tp = &result, tp;
+
+  for (tp = tpl; tp != NULL; tp = tp->next) {
+    *p_tp = alloc_template_param(tp->param_symbol);
+    **p_tp = *tp;
+    (*p_tp)->next = NULL;
+    p_tp = &(*p_tp)->next;
+  }  /* for */
+  return result;
+}  /* copy_template_param_list */
+
+
+void init_tmpl_decl_state_for_inheriting_ctor_template(
+                                                 a_tmpl_decl_state_ptr  state)
+/*
+Create a new template declaration state for declaring a compiler-generated
+inheriting constructor template.  This includes the allocation and
+initialization of an object of type a_template_decl_info pointed to by state.
+*/
+{
+  a_scope_stack_entry_ptr   ssep = &scope_stack_top();
+  a_template_decl_info_ptr  templ_decl_info;
+
+  check_assertion(scope_is(ssep, sck_class_struct_union));
+  init_templ_decl_state(state);
+  state->is_member_decl = TRUE;
+  state->in_prototype_instantiation = ssep->in_prototype_instantiation;
+  state->enclosing_scope = ssep->il_scope;
+  state->class_declared_in = ssep->assoc_type;
+  state->il_template_entry = alloc_template();
+  templ_decl_info = alloc_template_decl_info();
+  state->decl_info = templ_decl_info;
+  templ_decl_info->enclosing_scope = state->enclosing_scope;
+  templ_decl_info->name_linkage = ssep->default_name_linkage;
+
+}  /* init_tmpl_decl_state_for_inheriting_ctor_template */
+
+
+
 
 #if DEBUG
 unsigned long db_show_template_space_used(unsigned long grand_total)
