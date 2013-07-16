@@ -1,5 +1,30 @@
 Version 5.0
 
+7/16/13  [EDGcpfe/14295]
+IA-64 ABI: Return value copy constructor optimization and defaulted destructor
+
+According to the IA-64 ABI, a function that returns a class type that
+has a non-trivial copy constructor or destructor should expect that the
+caller has allocated a temporary for the return value and passed a pointer to
+the temporary as an implicit first parameter.  In cases where the class has a
+trivial copy constructor and a defaulted destructor, this copy constructor
+optimization had been erroneously applied to such functions.  When the EDG
+front end is used to compile both caller and callee, the issue is largely
+hidden, but if one side of the call is compiled with a different compiler (or
+now, with a different version of the EDG front end), this mismatch could result
+in undefined behavior at run-time.  For example (with --c++11):
+
+  struct A {
+    ~A() = default;
+  };
+  A f() {
+    return A();
+  }
+  int main() {
+    f();  // had generated call to _Z1fv(&temp), now _Z1fv()
+  }
+
+
 7/12/13  [EDGcpfe/14279]
 Microsoft compatibility: "boolean-converted" in C++/CLI mode
 

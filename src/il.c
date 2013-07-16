@@ -19973,6 +19973,8 @@ the case if the return type was incomplete at the point of definition.
          constructor, make the caller provide a temporary for the result. */
       return_type = skip_typerefs(routine_type->variant.routine.return_type);
       if (is_immediate_class_type(return_type)) {
+        a_class_symbol_supplement_ptr cssp;
+        cssp = symbol_supplement_for_class(return_type);
         if (return_type->variant.class_struct_union.is_nonreal_class) {
           /* For a nonreal class, we can't answer the question, so leave the
              flag FALSE. */
@@ -19993,13 +19995,11 @@ the case if the return type was incomplete at the point of definition.
              diagnosed elsewhere. */
           expect_error();
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-        } else if (!symbol_supplement_for_class(return_type)->
-                                        construction_by_bitwise_copy_allowed
+        } else if (!cssp->construction_by_bitwise_copy_allowed
 #if IA64_ABI
-                   || symbol_supplement_for_class(return_type)->
-                                                          destructor != NULL
+                   || has_nontrivial_destructor(cssp)
 #endif /* IA64_ABI */
-                                                                            ) {
+                                                     ) {
           rtsp->value_returned_by_cctor = TRUE;
           /* If the return type is an abstract class, issue an error.  Note
              that construction_by_bitwise_copy_allowed will never be TRUE
