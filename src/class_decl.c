@@ -20034,7 +20034,6 @@ Generate those constructors.
       if (symbol_is(bctor, sk_member_function)) {
         generate_inheriting_constructors_for_base_ctor(bctor, udp, cdsp);
       } else if (symbol_is(bctor, sk_function_template)) {
-        // FIXME
         generate_inheriting_constructors_for_base_template(bctor, udp, cdsp);
       } else {
         unexpected_condition();
