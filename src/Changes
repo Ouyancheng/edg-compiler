@@ -71,6 +71,7 @@ initialization of s was invalid because no matching constructor is present
 in S.  However, with the new rules, the deleted constructor is no longer
 considered to be user-provided, and S is therefore an aggregate type, which
 in turn makes the initialization of s valid.
+
 As part of this change, a fix was made also to more reliably mark classes
 with implicitly deleted copy functions (constructors and/or copy assignment
 operators) as being not bitwise copyable.  For example:
@@ -84,7 +85,7 @@ operators) as being not bitwise copyable.  For example:
   }                  // deleted copy constructor.
 
 In this example, S has a deleted copy constructor because of the user-declared
-copy assignment operator.  Struct S should therefore not be considered
+move assignment operator.  Struct S should therefore not be considered
 bitwise copyable, but previously the front end failed to mark the class as
 such.  That in turn caused it to fail to diagnose the use of the deleted copy
 copy constructor in some contexts (such as the conversion needed for the
