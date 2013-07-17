@@ -29,9 +29,9 @@ in undefined behavior at run-time.  For example (with --c++11):
 Microsoft compatibility: "boolean-converted" in C++/CLI mode
 
 In C++11, conversion functions can be declared "explicit" to indicate that
-they shouldn't be considered for explicit conversions (i.e., casts) but not
-for implicit conversions.  One exception, however, are "boolean-converted"
-expressions (i.e., expressions appearing in contexts the expect a boolean
+they should be considered for explicit conversions (e.g., casts) but not for
+implicit conversions.  One exception, however, are "boolean-converted"
+expressions (i.e., expressions appearing in contexts that expect a boolean
 control value, such as the controlling expression of a "while" statement):
 In those contexts, C++11 mode also considers explicit conversion functions.
 C++/CLI mode also enables explicit conversion functions, but previously the
@@ -43,7 +43,7 @@ Now, it does apply if microsoft_version >= 1800.  For example:
     while (s) {}  // Previously not accepted in any C++/CLI mode; now
   }               // accepted if microsoft_version >= 1800.
 
-See also the Changes entry of 4/19/11 for EDGcpfe/8624 etc. 
+See also the Changes entry of 4/19/11 for EDGcpfe/8624, etc. 
 
 
 7/12/13  [EDGcpfe/12812,EDGcpfe/14282]
