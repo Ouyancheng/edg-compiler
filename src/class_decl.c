@@ -19748,7 +19748,7 @@ static a_type_ptr create_inheriting_ctor_type(a_routine_ptr  brp,
 brp is a base class constructor (possibly a base class constructor prototype
 instantiation) from which an inheriting constructor (or constructor template)
 will be generated for the given class type.  n_base_params is the number of
-parameter of the base class constructor, and the new inheriting constructor is
+parameters of the base class constructor, and the new inheriting constructor is
 to have n_params parameters (n_base_params and n_params may be different if the
 base class constructor has default arguments).  
 */
