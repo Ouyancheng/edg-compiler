@@ -211,3 +211,4 @@ status is returned to the caller.
 * Copyright 1988-2013 Edison Design Group Inc.                   [_]          *
 *                                                                             *
 ******************************************************************************/
+// Testing c++ comment
