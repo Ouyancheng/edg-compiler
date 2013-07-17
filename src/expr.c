@@ -16301,13 +16301,15 @@ expression, and return the result in *result (or an error indication in
   if (!has_new_initializer) {
     /* No new-initializer is present. */
     if (is_class_struct_union_type(base_new_type) &&
-        !symbol_supplement_for_class(base_new_type)->is_POD
+        (cssp == NULL || !cssp->is_POD || cssp->constructor != NULL)
 #if MICROSOFT_EXTENSIONS_ALLOWED
         && !(cppcli_enabled &&
              is_value_class_type(base_new_type))
 #endif  /* MICROSOFT_EXTENSIONS_ALLOWED */
        ) {
-      /* A non-POD class (or array thereof), with no new-initializer. */
+      /* A class (or array thereof), with no new-initializer where the class
+         is not a POD class with no user-declared constructors (a POD class
+         with a defaulted or deleted constructor, however, is possible). */
       a_boolean is_generated_ctor = FALSE, do_const_test = FALSE;
       /* Look for a default constructor. */
       if (unqual_base_new_type->variant.class_struct_union.is_nonreal_class) {
@@ -16396,8 +16398,9 @@ expression, and return the result in *result (or an error indication in
         }  /* if */
       }  /* if */
     } else {
-      /* Non-class type, or POD class, with no new-initializer.  Check for
-         error cases like const entities not being initialized. */
+      /* A non-class type or a POD class with no user-declared constructor,
+         and no new-initializer.  Check for error cases like const entities
+         not being initialized. */
       if (!err) check_for_missing_initializer((a_symbol_ptr)NULL, new_type);
 #if MICROSOFT_EXTENSIONS_ALLOWED
       if (is_gcnew) {
