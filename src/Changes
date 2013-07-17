@@ -13,7 +13,9 @@ the front end erroneously used this calling sequence for such functions.
 When the EDG front end is used to compile both caller and callee, the issue is
 largely hidden, but if one side of the call is compiled with a different
 compiler (or now, with a different version of the EDG front end), this mismatch
-could result in undefined behavior at run-time.  For example (with --c++11):
+could result in undefined behavior at run-time.  The previous (incorrect)
+behavior is preserved when ABI_COMPATIBILITY_VERSION < 408.  For example
+(with --c++11):
 
   struct A {
     ~A() = default;
