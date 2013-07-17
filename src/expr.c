@@ -16307,9 +16307,9 @@ expression, and return the result in *result (or an error indication in
              is_value_class_type(base_new_type))
 #endif  /* MICROSOFT_EXTENSIONS_ALLOWED */
        ) {
-      /* A class (or array thereof), with no new-initializer where the class
-         is not a POD class with no user-declared constructors (a POD class
-         with a defaulted or deleted constructor, however, is possible). */
+      /* A class type (or array thereof) where the class is either not a POD
+        class or is a POD class with a user-declared (defaulted or deleted)
+        constructor. */
       a_boolean is_generated_ctor = FALSE, do_const_test = FALSE;
       /* Look for a default constructor. */
       if (unqual_base_new_type->variant.class_struct_union.is_nonreal_class) {
@@ -16398,9 +16398,9 @@ expression, and return the result in *result (or an error indication in
         }  /* if */
       }  /* if */
     } else {
-      /* A non-class type or a POD class with no user-declared constructor,
-         and no new-initializer.  Check for error cases like const entities
-         not being initialized. */
+      /* A non-class type or a POD class with no user-declared constructor.
+         Check for error cases like const entities not being initialized
+         (since there is no initializer). */
       if (!err) check_for_missing_initializer((a_symbol_ptr)NULL, new_type);
 #if MICROSOFT_EXTENSIONS_ALLOWED
       if (is_gcnew) {
