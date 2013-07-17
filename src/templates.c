@@ -30570,6 +30570,7 @@ initialization of an object of type a_template_decl_info pointed to by state.
 
   check_assertion(scope_is(ssep, sck_class_struct_union));
   init_templ_decl_state(state);
+  state->effective_decl_level = depth_scope_stack;
   state->is_member_decl = TRUE;
   state->in_prototype_instantiation = ssep->in_prototype_instantiation;
   state->enclosing_scope = ssep->il_scope;
