@@ -30579,11 +30579,19 @@ initialization of an object of type a_template_decl_info pointed to by state.
   state->decl_info = templ_decl_info;
   templ_decl_info->enclosing_scope = state->enclosing_scope;
   templ_decl_info->name_linkage = ssep->default_name_linkage;
-
 }  /* init_tmpl_decl_state_for_inheriting_ctor_template */
 
 
-
+void complete_inheriting_ctor_template(a_tmpl_decl_state_ptr  decl_state,
+                                       a_symbol_ptr           sym)
+/*
+Complete the data structures representing an inheriting constructor template
+(including the associate IL a_template entry).  sym is the symbol representing
+the template and decl_state tracks its declaration.
+*/
+{
+  complete_il_template_entry(decl_state, sym);
+}  /* complete_inheriting_ctor_template */
 
 #if DEBUG
 unsigned long db_show_template_space_used(unsigned long grand_total)

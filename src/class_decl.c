@@ -19895,6 +19895,8 @@ templates from that base template.
         new_rp->compiler_generated = TRUE;
         new_tssp->variant.function.decl_cache.decl_info =
                                                    templ_decl_state.decl_info;
+        complete_inheriting_ctor_template(&templ_decl_state,
+                                          decl_info.decl_state.sym);
       }  /* if */
       pop_scope();
       done_with_func_info(func_info);
