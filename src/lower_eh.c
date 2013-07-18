@@ -1098,7 +1098,8 @@ allocated in the file scope memory region.
       set_integer_constant_with_overflow_check(offset_con,
                                                (a_host_large_integer)offset,
                                                TARG_DELTA_INT_KIND,
-                                               bcp->type);
+                                               bcp->type,
+                                               /*preserve_needed_flag=*/FALSE);
       /* Make the flags constant. */
       flags_con = alloc_constant((a_constant_repr_kind)ck_integer);
       set_unsigned_integer_constant(flags_con,
