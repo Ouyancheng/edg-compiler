@@ -19858,6 +19858,7 @@ templates from that base template.
       initialize_member_decl_info(&decl_info, &udp->position);
       decl_info.is_constructor = TRUE;
       decl_info.decl_state.is_inheriting_ctor = TRUE;
+      decl_info.decl_state.first_decl = TRUE;
       decl_info.decl_state.type = new_tp;
       if (brp->is_explicit_constructor) {
         decl_info.decl_state.dso_flags |= (a_decl_flag_set)DSO_EXPLICIT;
@@ -19986,6 +19987,7 @@ constructor.
       initialize_member_decl_info(&decl_info, &udp->position);
       decl_info.is_constructor = TRUE;
       decl_info.decl_state.is_inheriting_ctor = TRUE;
+      decl_info.decl_state.first_decl = TRUE;
       decl_info.decl_state.type = new_tp;
       if (brp->is_explicit_constructor) {
         decl_info.decl_state.dso_flags |= (a_decl_flag_set)DSO_EXPLICIT;
