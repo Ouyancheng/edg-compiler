@@ -8085,7 +8085,7 @@ appear in the string (i.e., in "%l[label]") with the appropriate label name
 */
 {
   a_label_list_ptr llp;
-  size_t           pos = 0, end_pos;
+  a_targ_size_t    pos = 0, end_pos;
   char             *str;
 
   check_assertion(aep->asm_string->kind == (a_constant_repr_kind)ck_string &&
@@ -8095,7 +8095,7 @@ appear in the string (i.e., in "%l[label]") with the appropriate label name
   m_write_ch('"');
   str = aep->asm_string->variant.string.value;
   while (pos < aep->asm_string->variant.string.length) {
-    if (pos + 5 < aep->asm_string->variant.string.length &&
+    if (pos+5 < aep->asm_string->variant.string.length &&
         str[pos] == '%' && str[pos+1] == 'l' && str[pos+2] == '[') {
 #if CHECKING
       a_boolean found = FALSE;
@@ -8133,7 +8133,8 @@ appear in the string (i.e., in "%l[label]") with the appropriate label name
 resume_scanning:;
       check_assertion(found);
     } else {
-      if (pos+1 < aep->asm_string->variant.string.length || str[pos] != '\0') {
+      if (pos+1 < aep->asm_string->variant.string.length ||
+          str[pos] != '\0') {
         /* Suppress the last character in the string if it is NULL. */
         (void)form_char(str[pos], &octl);
       }  /* if */
@@ -8180,11 +8181,14 @@ Generate C for an asm statement or declaration.
     }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
     write_tok_ch('(');
+#if GNU_EXTENSIONS_ALLOWED
     if (aep->is_asm_goto) {
       /* An "asm goto" string may have label references which need special
          attention. */
       dump_asm_goto_string(aep);
-    } else {
+    } else
+#endif /* GNU_EXTENSIONS_ALLOWED */
+    {
       dump_constant(aep->asm_string);
     }  /* if */
 #if GNU_EXTENSIONS_ALLOWED
