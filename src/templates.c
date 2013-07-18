@@ -13182,7 +13182,7 @@ in_class_specialization is TRUE for a Microsoft mode in-class specialization.
   }
 #if GENERATE_SOURCE_SEQUENCE_LISTS
 #if NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
-  if (source_sequence_entries_disallowed || rp->compiler_generated) {
+  if (rp->compiler_generated) {
     /* For generated function templates (inheriting constructor templates, in
        particular) no source sequence entries are generated. */
   } else if (parent_class != NULL &&
