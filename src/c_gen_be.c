@@ -8109,12 +8109,11 @@ appear in the string (i.e., in "%l[label]") with the appropriate label name
       while (end_pos < aep->asm_string->variant.string.length) {
         if (str[end_pos] == ']') {
           /* Found the closing bracket.  Now match the label. */
-          a_targ_size_t len = end_pos - pos;
+          sizeof_t len = (sizeof_t)(end_pos - pos);
           for (llp = aep->labels; llp != NULL; llp = llp->next) {
             if (strncmp(&str[pos], llp->label->source_corresp.name, len)
                                                                         == 0 &&
-                (sizeof_t)strlen(llp->label->source_corresp.name) ==
-                                                               (sizeof_t)len) {
+                (sizeof_t)strlen(llp->label->source_corresp.name) == len) {
 #if CHECKING
               found = TRUE;
 #endif /* CHECKING */
