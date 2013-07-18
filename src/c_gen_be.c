@@ -8051,8 +8051,97 @@ Dump the GNU C clobber specifications for the given asm entry.
         m_write_ch(',');
       }  /* if */
     }  /* for */
+  } else if (aep->is_asm_goto) {
+    /* Emit an empty clobbers list if labels are to follow. */
+    write_tok_str(" :");
   }  /* if */
 }  /* dump_asm_clobbers */
+
+
+static void dump_asm_labels(an_asm_entry_ptr aep)
+/*
+Dump the GNU labels specifications for the given asm goto entry.
+*/
+{
+  a_label_list_ptr llp;
+
+  write_tok_str(" :");
+  for (llp = aep->labels; llp != NULL; llp = llp->next) {
+    /* Permit line breaking here. */
+    write_tok_ch(' ');
+    dump_label_name(llp->label);
+    if (llp->next != NULL) {
+      m_write_ch(',');
+    }  /* if */
+  }  /* for */
+}  /* dump_asm_labels */
+
+
+static void dump_asm_goto_string(an_asm_entry_ptr aep)
+/*
+Dump the asm_string associated with aep replacing any labels that may
+appear in the string (i.e., in "%l[label]") with the appropriate label name
+(which has its position added to it).
+*/
+{
+  a_label_list_ptr llp;
+  size_t           pos = 0, end_pos;
+  char             *str;
+
+  check_assertion(aep->asm_string->kind == (a_constant_repr_kind)ck_string &&
+                  is_normal_character_kind(aep->asm_string->character_kind));
+  /* Permit line breaking here. */
+  write_tok_ch(' ');
+  m_write_ch('"');
+  str = aep->asm_string->variant.string.value;
+  while (pos < aep->asm_string->variant.string.length) {
+    if (pos + 5 < aep->asm_string->variant.string.length &&
+        str[pos] == '%' && str[pos+1] == 'l' && str[pos+2] == '[') {
+#if CHECKING
+      a_boolean found = FALSE;
+#endif /* CHECKING */
+      /* Found "%l[" which indicates the beginning of a label; find the
+         corresponding label argument (the front end has ensured that there
+         is one) and dump that name instead. */
+      m_write_str("%l[");
+      pos += 3;
+      end_pos = pos;
+      while (end_pos < aep->asm_string->variant.string.length) {
+        if (str[end_pos] == ']') {
+          /* Found the closing bracket.  Now match the label. */
+          size_t len = end_pos - pos;
+          for (llp = aep->labels; llp != NULL; llp = llp->next) {
+            if (strncmp(&str[pos], llp->label->source_corresp.name, len)
+                                                                        == 0 &&
+                (sizeof_t)strlen(llp->label->source_corresp.name) ==
+                                                               (sizeof_t)len) {
+#if CHECKING
+              found = TRUE;
+#endif /* CHECKING */
+              /* Dump the label name. */
+              dump_label_name(llp->label);
+              /* Resume normal processing starting with the "]". */
+              pos = end_pos;
+              goto resume_scanning;
+            }  /* if */
+          }  /* for */
+          unexpected_condition();
+        } else {
+          ++end_pos;
+        }  /* if */
+      }  /* while */
+resume_scanning:;
+      check_assertion(found);
+    } else {
+      if (pos+1 < aep->asm_string->variant.string.length || str[pos] != '\0') {
+        /* Suppress the last character in the string if it is NULL. */
+        (void)form_char(str[pos], &octl);
+      }  /* if */
+      ++pos;
+    }  /* if */
+  }  /* while */
+  m_write_ch('"');
+}  /* dump_asm_goto_string */
 
 #endif /* GNU_EXTENSIONS_ALLOWED */
 
@@ -8086,15 +8175,27 @@ Generate C for an asm statement or declaration.
                              aep->gnu_asm_form)) {
       write_tok_str(" volatile");
     }  /* if */
+    if (aep->is_asm_goto) {
+      write_tok_str(" goto");
+    }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
     write_tok_ch('(');
-    dump_constant(aep->asm_string);
+    if (aep->is_asm_goto) {
+      /* An "asm goto" string may have label references which need special
+         attention. */
+      dump_asm_goto_string(aep);
+    } else {
+      dump_constant(aep->asm_string);
+    }  /* if */
 #if GNU_EXTENSIONS_ALLOWED
     if (aep->operands != NULL || aep->clobbers != NULL || !aep->is_volatile ||
         aep->gnu_asm_form) {
       write_tok_str(" :");
       dump_asm_operands(aep);
       dump_asm_clobbers(aep);
+      if (aep->is_asm_goto) {
+        dump_asm_labels(aep);
+      }  /* if */
     }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
     write_tok_str(");");

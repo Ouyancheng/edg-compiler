@@ -2130,6 +2130,8 @@ extern void finish_raw_listing_file(void);
 extern void add_source_line_modif_to_hash_table(a_source_line_modif_ptr slmp);
 extern void rem_source_line_modif_from_hash_table(
                                                 a_source_line_modif_ptr slmp);
+extern a_token_kind get_token_with_colon_separation(
+                                              a_boolean *seen_tok_colon_colon);
 #if FULLY_RESOLVED_MACRO_POSITIONS
 #if BSEARCH_QSORT_FUNCTION_IS_EXTERN_C
 BEGIN_EXTERN_C_BLOCK

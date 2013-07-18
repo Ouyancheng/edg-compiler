@@ -1172,7 +1172,7 @@ ec_missing_constraint_letter;;"asm operand has no constraint letter"
 ec_asm_output_must_have_output_mod;;"an asm output operand must have one of the '=' or '+' modifiers"
 ec_asm_input_must_not_have_output_mod;;"an asm input operand may not have the '=' or '+' modifiers"
 REMOVED;ec_too_many_asm_operands;;"too many operands to asm statement (maximum is 30; '+' modifier adds an implicit operand)"
-ec_too_many_asm_colons;;"too many colons in asm statement"
+REMOVED;ec_too_many_asm_colons;;"too many colons in asm statement"
 ec_register_used_twice;;"register \"%s\" used more than once"
 ec_register_used_and_clobbered;;"register \"%s\" is both used and clobbered"
 ec_register_clobbered_twice;;"register \"%s\" clobbered more than once"
@@ -2522,6 +2522,10 @@ ec_bad_qualifier_for_member_enum_decl;;"invalid qualifier for %t (a derived clas
 ec_always_inline_requires_inline;;"the \"always_inline\" attribute is ignored on non-inline functions"
 ec_inheriting_ctor_not_from_direct_base;;"inheriting constructors must be inherited from a direct base class"
 ec_inheriting_ctor_conflict;;"%np already inherited from %t"
+ec_exp_asm_label;;"expected a label"
+ec_missing_label_operand_number;;"expected an operand number after \"%%l\""
+ec_label_operand_number_out_of_range;;"operand number for \"%%l\" doesn't refer to a valid label argument"
+ec_wide_string_invalid_in_asm;;"a wide string is invalid in an \"asm\" statement"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

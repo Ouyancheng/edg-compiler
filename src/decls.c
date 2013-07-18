@@ -12449,8 +12449,8 @@ is saved and restored as needed by the token caching mechanism.
 
 In GNU C and C++ modes support is provided for additional syntax:
 
-  asm volatile    ( string-literal : operand-spec )
-              opt
+  asm volatile    goto    ( string-literal : operand-spec )
+              opt     opt
 
 This may appear only at function or block scope.  The operand-spec tells
 the compiler how to map C/C++ variables into and out of the assembly
@@ -12467,9 +12467,13 @@ to NULL.
 #if GNU_EXTENSIONS_ALLOWED
   a_boolean                 gnu_asm_form = FALSE;
   a_boolean                 is_volatile = FALSE;
+  a_boolean                 is_asm_goto = FALSE;
   an_asm_operand_ptr        operands = NULL;
   a_named_register_list_ptr clobbers = NULL;
+  a_label_list_ptr          labels = NULL;
 #endif /* GNU_EXTENSIONS_ALLOWED */
+  a_boolean                 seen_tok_colon_colon = FALSE;
+  a_boolean                 err = FALSE;
 
   db_enter(3, "asm_declaration");
   check_assertion(curr_token == tok_asm || curr_token == tok_microsoft_asm);
@@ -12524,6 +12528,11 @@ to NULL.
         is_volatile = TRUE;
       }  /* if */
     }  /* if */
+    if (gnu_mode && gnu_version >= 40500 && curr_token == tok_goto) {
+      is_asm_goto = TRUE;
+      /* Bypass the goto. */
+      (void)get_token();
+    }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
     /* Check for and skip the opening parenthesis. */
     (void)required_token(tok_lparen, ec_exp_lparen);
@@ -12531,19 +12540,37 @@ to NULL.
     /* Scan the enclosed string. */
     if (curr_token != tok_string_literal) {
       syntax_error(ec_exp_asm_string);
-      set_error_constant(&asm_string);
+      err = TRUE;
+    } else if (gnu_mode &&
+               !is_normal_character_kind(const_for_curr_token.character_kind)){
+      /* GNU only allows narrow string literals. */
+      syntax_error(ec_wide_string_invalid_in_asm);
+      err = TRUE;
     } else {
       copy_constant(&const_for_curr_token, &asm_string);
-      (void)get_token();
+      (void)get_token_with_colon_separation(&seen_tok_colon_colon);
+    }  /* if */
+    if (err) {
+      set_error_constant(&asm_string);
     }  /* if */
 #if GNU_EXTENSIONS_ALLOWED
     /* Check for operands spec. */
     if (gnu_mode && is_asm_statement) {
       a_boolean  outputs;
-      if (curr_token == tok_colon || curr_token == tok_colon_colon) {
+      if (curr_token == tok_colon) {
         gnu_asm_form = TRUE;
-        operands = asm_operands_spec();
-        clobbers = asm_clobbers_spec();
+        operands = asm_operands_spec(&seen_tok_colon_colon);
+        clobbers = asm_clobbers_spec(&seen_tok_colon_colon);
+        if (is_asm_goto) {
+          /* The GNU documentation specifies that there should be no
+             operands in an "asm goto", but also that this restriction may
+             be lifted in the future, so no check is made here. */
+          labels = asm_labels_spec(&seen_tok_colon_colon);
+        } else {
+          if (curr_token != tok_rparen) {
+            syntax_error(ec_exp_rparen);
+          }  /* if */
+        }  /* if */
       }  /* if */
       /* An asm() with no outputs is automatically volatile. */
 #if RECORD_RAW_ASM_OPERAND_DESCRIPTIONS
@@ -12580,8 +12607,10 @@ to NULL.
 #if GNU_EXTENSIONS_ALLOWED
     ap->gnu_asm_form = gnu_asm_form;
     ap->is_volatile = is_volatile;
+    ap->is_asm_goto = is_asm_goto;
     ap->operands = operands;
     ap->clobbers = clobbers;
+    ap->labels = labels;
     if (gnu_asm_form) {
       validate_operands_and_clobbers(ap);
     }  /* if */

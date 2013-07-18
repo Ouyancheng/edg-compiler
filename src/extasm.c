@@ -229,15 +229,20 @@ provided by the author of the back end.
 
 static int find_symbolic_operand(char                **pc,
                                  an_asm_operand_ptr  operands,
+                                 a_label_list_ptr    labels,
+                                 a_boolean           is_label,
                                  a_source_position   *diag_pos)
 /*
 *pc points to a left bracket ('[') that starts a reference to a symbolic asm
-operand.  Advance the *pc pointer to the matching right bracket (or the null
-character terminating the string if there is no right bracket) and return the
-position of the indicated operand.  If the indicated operand name does not
-correspond to a previous operand, issue an error (at the given source
-position) and return -1.  operands points to the list of operands created so
-far (this routine is sometimes called when that list is still incomplete).
+operand or label.  Advance the *pc pointer to the matching right bracket (or
+the null character terminating the string if there is no right bracket) and
+return the position of the indicated operand.  If the indicated operand name
+does not correspond to a previous operand or label, issue an error (at the
+given source position) and return -1.  operands points to the list of operands
+created so far (this routine is sometimes called when that list is still
+incomplete).  labels points to a list of labels (if this is an "asm goto"
+statement) or NULL.  When is_label is TRUE, the symbolic name is from a
+"%l[label]" reference, and thus refers to a label (and not an operand).
 */
 {
   int   result = -1, n = 0;
@@ -249,17 +254,33 @@ far (this routine is sometimes called when that list is still incomplete).
   while (**pc != ']' && **pc != '\0') {
     ++*pc;
   }  /* while */
-  /* Look for an operand with that name in the list of preceding operands. */
-  while (operands != NULL) {
-    if (operands->name != NULL &&
-        strncmp(operands->name, start, *pc-start) == 0 &&
-        (sizeof_t)strlen(operands->name) == (sizeof_t)(*pc-start)) {
-      result = n;
-      break;
-    }  /* if */
-    operands = operands->next;
-    ++n;
-  }  /* while */
+  if (is_label) {
+    /* Look for a label whose name matches the symbolic name. */
+    check_assertion_or_expect_error(labels != NULL);
+    while (labels != NULL) {
+      char *label_name = labels->label->source_corresp.name;
+      if (label_name != NULL &&
+          strncmp(label_name, start, *pc-start) == 0 &&
+          (sizeof_t)strlen(label_name) == (sizeof_t)(*pc-start)) {
+        result = n;
+        break;
+      }  /* if */
+      labels = labels->next;
+      ++n;
+    }  /* while */
+  } else {
+    /* Look for an operand with that name in the list of preceding operands. */
+    while (operands != NULL) {
+      if (operands->name != NULL &&
+          strncmp(operands->name, start, *pc-start) == 0 &&
+          (sizeof_t)strlen(operands->name) == (sizeof_t)(*pc-start)) {
+        result = n;
+        break;
+      }  /* if */
+      operands = operands->next;
+      ++n;
+    }  /* while */
+  }  /* if */
   if (result == -1) {
     char saved_char = **pc;
     **pc = '\0';
@@ -270,18 +291,23 @@ far (this routine is sometimes called when that list is still incomplete).
 }  /* find_symbolic_operand */
 
 
-static void validate_symbolic_operand_references(
-                                              a_constant_ptr      asm_string,
-                                              an_asm_operand_ptr  operands,
-                                              a_source_position   *diag_pos)
+static void validate_symbolic_operand_and_label_references(
+                                                   an_asm_entry_ptr  asm_entry)
 /*
-Traverse the given asm string and validate any symbolic operand references of
-the form "%[<name>]" it contains against the given list of operands.  Invalid
-references are reported at the given position.
+Traverse the asm string for the given asm_entry and validate any symbolic
+operand references of the form "%[<name>]" it contains against the list of
+operands.  Check the string also for any references to labels, either by
+symbolic reference (e.g., "%l[label]) or by argument number (e.g., "%l0).
 */
 {
+  a_constant_ptr      asm_string = asm_entry->asm_string;
+
   if (asm_string->kind == (a_constant_repr_kind)ck_string) {
-    char  *pc = asm_string->variant.string.value;
+    size_t    label_count = 0;
+    a_boolean is_label;
+    a_source_position
+              *diag_pos = &asm_entry->source_corresp.decl_position;
+    char      *pc = asm_string->variant.string.value;
     while (*pc != '\0') {
       if (pc[0] == '%' && (pc[1] == '[' || (pc[1] != '\0' && pc[2] == '['))) {
         /* We found a "%[" or "%X[" (where X is an output format modifier)
@@ -289,11 +315,44 @@ references are reported at the given position.
            follows.  The call to find_symbol_operand will trigger any needed
            diagnostics. */
         ++pc;
+        is_label = FALSE;
         if (*pc != '[')  {
           /* An output format modifier between the '%' and '['. */
+          if (*pc == 'l' && asm_entry->is_asm_goto) {
+            /* Found "%l[" which introduces a label in an "asm goto".  The
+               name that follows must match one of the label arguments. */
+            is_label = TRUE;
+          }  /* if */
           ++pc;
         } /* if */
-        (void)find_symbolic_operand(&pc, operands, diag_pos);
+        (void)find_symbolic_operand(&pc, asm_entry->operands,
+                                    asm_entry->labels, is_label, diag_pos);
+      } else if (pc[0] == '%' && pc[1] == 'l') {
+        /* Found "%l" (but not "%l["); what follows should be a decimal number
+           that corresponds to a valid label argument number. */
+        pc += 2;
+        if (*pc >= '0' && *pc <= '9') {
+          size_t operand_num = 0;
+          while (*pc >= '0' && *pc <= '9') {
+            operand_num *= 10;
+            operand_num += *pc - '0';
+            ++pc;
+          }  /* while */
+          /* Verify that the (zero-based) operand number refers to a label
+             argument that was specified. */
+          if (label_count == 0) {
+            a_label_list_ptr llp;
+            for (llp = asm_entry->labels; llp != NULL; llp = llp->next) {
+              ++label_count;
+            }  /* for */
+          }  /* if */
+          if (operand_num >= label_count) {
+            pos_error(ec_label_operand_number_out_of_range, diag_pos);
+          }  /* if */
+        } else {
+          /* No operand number after "%l". */
+          pos_error(ec_missing_label_operand_number, diag_pos);
+        }  /* if */
       } else {
         ++pc;
       }  /* if */
@@ -302,7 +361,7 @@ references are reported at the given position.
     check_assertion(is_error_constant(asm_string));
     expect_error();
   }  /* if */
-}  /* validate_symbolic_operand_references */
+}  /* validate_symbolic_operand_and_label_references */
 
 #if !RECORD_RAW_ASM_OPERAND_DESCRIPTIONS
 
@@ -319,9 +378,10 @@ Errors are diagnosed at the given position.
 */
 {
   an_asm_operand_constraint_kind  result;
-  int                             op_num = find_symbolic_operand(pc, operands,
-                                                                 diag_pos);
+  int                             op_num;
 
+  op_num = find_symbolic_operand(pc, operands, (a_label_list_ptr)NULL,
+                                 /*is_label=*/FALSE, diag_pos);
   if (op_num < 0) {
     /* An error was already issued. */
     result = (an_asm_operand_constraint_kind)aoc_invalid;
@@ -789,15 +849,14 @@ even if they are invalid.
     }  /* if */
   }  /* for */
 #endif /* RECORD_RAW_ASM_OPERAND_DESCRIPTIONS */
-  validate_symbolic_operand_references(
-                                    asm_entry->asm_string, asm_entry->operands,
-                                    &asm_entry->source_corresp.decl_position);
+  validate_symbolic_operand_and_label_references(asm_entry);
 }  /* validate_operands_and_clobbers */
 
 
 static void asm_operand(an_asm_operand_ptr operand,
                         an_asm_operand_ptr operands,
-                        a_boolean          output)
+                        a_boolean          output,
+                        a_boolean          *seen_tok_colon_colon)
 /*
 Scan a single asm-statement operand, writing it into the structure pointed to
 by operand.  The syntax is
@@ -809,7 +868,8 @@ optionally preceded by a symbolic name specifier of the form
    [ identifier ]
 
 operands points to the list of operands created so far and output is TRUE
-if we're scanning an output operand.
+if we're scanning an output operand.  seen_tok_colon_colon maintains
+state information for get_token_with_colon_separation.
 */
 {
   char              *constraint_string = NULL;
@@ -822,7 +882,7 @@ if we're scanning an output operand.
   operand->position = pos_curr_token;
   if (curr_token == tok_lbracket) {
     /* Presumably a named operand.  The next token must be an identifier. */
-    (void)get_token();
+    (void)get_token_with_colon_separation(seen_tok_colon_colon);
     add_stop_token(tok_rbracket);
     if (curr_token != tok_identifier) {
       syntax_error(ec_exp_identifier);
@@ -831,17 +891,19 @@ if we're scanning an output operand.
       a_symbol_header  *sym_hdr = locator_for_curr_id.symbol_header;
       operand->name = alloc_il(sym_hdr->identifier_length+1);
       (void)strcpy(operand->name, sym_hdr->identifier);
-      (void)get_token();
+      (void)get_token_with_colon_separation(seen_tok_colon_colon);
     }  /* if */
     (void)required_token(tok_rbracket, ec_exp_rbracket);
     remove_stop_token(tok_rbracket);
   }  /* if */
   if (curr_token != tok_string_literal) {
     syntax_error(ec_exp_string_literal);
+  } else if (!is_normal_character_kind(const_for_curr_token.character_kind)) {
+    syntax_error(ec_wide_string_invalid_in_asm);
   } else {
     constraint_string = const_for_curr_token.variant.string.value;
     /* Advance past string literal. */
-    (void)get_token();
+    (void)get_token_with_colon_separation(seen_tok_colon_colon);
     if (required_token(tok_lparen, ec_exp_lparen)) {
       a_boolean  input = !output;
       if (output && constraint_string != NULL) {
@@ -864,7 +926,7 @@ if we're scanning an output operand.
 }  /* asm_operand */
 
 
-an_asm_operand_ptr asm_operands_spec(void)
+an_asm_operand_ptr asm_operands_spec(a_boolean *seen_tok_colon_colon)
 /*
 Parse and validate a list of asm-statement operands.  This handles both input
 and output operands.  The list is returned as a sequence of an_asm_operand
@@ -878,57 +940,42 @@ The syntax is
     : [operand [, operand...]]   // outputs
    [: [operand [, operand...]]]  // inputs
 
-Since both operand lists can be empty, we must cope with two adjacent colons,
-which will be tokenized as a single tok_colon_colon (in C++).
+Operand lists and clobbers can be empty, leading to cases where
+two adjacent colons are parsed (in C++) as a single_tok_colon_colon.  To
+get around this case (without undue complexity), use
+get_token_with_colon_separation rather than get_token to return two
+tok_colon tokens rather than a single tok_tolon_colon.  See
+get_token_with_colon_separation for a description of seen_tok_colon_colon.
 */
 {
-  int                n = 0;
   a_boolean          output = TRUE;
   an_asm_operand_ptr operands = NULL;
   an_asm_operand_ptr *p_operands = &operands;
 
   db_enter(3, "asm_operands_spec");
-  check_assertion(curr_token == tok_colon || curr_token == tok_colon_colon);
+  check_assertion(curr_token == tok_colon);
   report_gnu_extension_if_needed(&pos_curr_token,
                                  ec_asm_operand_spec_is_gnu_extension);
-  /* :: is interpreted the same as as : :, i.e. an empty output list. */
-  if (curr_token == tok_colon_colon) {
-    output = FALSE;
-  }  /* if */
-  /* Skip initial : or ::. */
-  (void)get_token();
+  /* Skip initial :. */
+  (void)get_token_with_colon_separation(seen_tok_colon_colon);
   /* If the output list is empty, we'll be at another colon. */
-  if (output && curr_token == tok_colon) {
+  if (curr_token == tok_colon) {
     output = FALSE;
-    (void)get_token();
+    (void)get_token_with_colon_separation(seen_tok_colon_colon);
   }  /* if */
   while (curr_token == tok_string_literal || curr_token == tok_lbracket) {
     *p_operands = alloc_asm_operand();
-    asm_operand(*p_operands, operands, output);
+    asm_operand(*p_operands, operands, output, seen_tok_colon_colon);
     p_operands = &(*p_operands)->next;
-    ++n;
-#if !RECORD_RAW_ASM_OPERAND_DESCRIPTIONS
-    if (operands->modifiers == (an_asm_operand_modifier)aom_modify) {
-      /* GNU compilers seem to count '+' modifiers as two operands.  Presumably
-         because it involves a read and a write operation. */
-      ++n;
-    }  /* if */
-#endif /* !RECORD_RAW_ASM_OPERAND_DESCRIPTIONS */
     /* Next must be a comma, colon, or right paren. */
     if (curr_token == tok_colon) {
       if (output) {
         /* End of output list; consume colon and continue. */
         output = FALSE;
-        (void)get_token();
+        (void)get_token_with_colon_separation(seen_tok_colon_colon);
       } /* if */
-    } else if (curr_token == tok_colon_colon) {
-      if (!output) {
-        /* Too many colons.  Flush to right paren and bail out. */
-        syntax_error(ec_too_many_asm_colons);
-        break;
-      }  /* if */
     } else if (curr_token == tok_comma) {
-      (void)get_token();
+      (void)get_token_with_colon_separation(seen_tok_colon_colon);
       if (curr_token != tok_string_literal && curr_token != tok_lbracket) {
         syntax_error(ec_exp_asm_operand);
       }  /* if */
@@ -939,7 +986,7 @@ which will be tokenized as a single tok_colon_colon (in C++).
 }  /* asm_operands_spec */
 
 
-a_named_register_list_ptr asm_clobbers_spec(void)
+a_named_register_list_ptr asm_clobbers_spec(a_boolean *seen_tok_colon_colon)
 /*
 Parse and validate a list of asm-statement clobbers.  Returns the list of
 registers clobbered.
@@ -948,6 +995,12 @@ The syntax is
 
    string-literal [, string-literal ...]
 
+Operand lists and clobbers can be empty, leading to cases where
+two adjacent colons are parsed (in C++) as a single_tok_colon_colon.  To
+get around this case (without undue complexity), use
+get_token_with_colon_separation rather than get_token to return two
+tok_colon tokens rather than a single tok_tolon_colon.  See
+get_token_with_colon_separation for a description of seen_tok_colon_colon.
 */
 {
   /* There is no hard limit on the number of clobbers. */
@@ -957,8 +1010,8 @@ The syntax is
   a_named_register_list_ptr  first_reg = NULL, last_reg = NULL;
 
   db_enter(3, "asm_clobbers_spec");
-  if (curr_token == tok_colon || curr_token == tok_colon_colon) {
-    (void)get_token();
+  if (curr_token == tok_colon) {
+    (void)get_token_with_colon_separation(seen_tok_colon_colon);
     while (curr_token == tok_string_literal) {
       nparsed++;
       name = const_for_curr_token.variant.string.value;
@@ -985,10 +1038,10 @@ The syntax is
       }  /* if */
 skip_item:
       /* Advance past the string literal. */
-      (void)get_token();
+      (void)get_token_with_colon_separation(seen_tok_colon_colon);
       /* The next token must be a comma or a right parenthesis. */
       if (curr_token == tok_comma) {
-        (void)get_token();
+        (void)get_token_with_colon_separation(seen_tok_colon_colon);
         if (curr_token != tok_string_literal) {
           syntax_error(ec_exp_asm_clobber);
         }  /* if */
@@ -997,8 +1050,9 @@ skip_item:
     /* GNU C versions prior to 4.5 treat an empty clobbers list with a colon as
        a syntax error.  We can parse it correctly, so it's semantic for us.
        Don't issue this error if we saw anything other than a colon immediately
-       followed by a right parenthesis. */
-    if (curr_token != tok_rparen) {
+       followed by a right parenthesis.  In the "asm goto" case, a fourth
+       colon follows the clobber list. */
+    if (curr_token != tok_rparen && curr_token != tok_colon) {
       syntax_error(ec_exp_rparen);
     } else if (nparsed == 0 && gcc_mode && gnu_version < 40500) {
       pos_error(ec_empty_clobbers_list, &pos_curr_token);
@@ -1007,6 +1061,65 @@ skip_item:
   db_exit();
   return first_reg;
 }  /* asm_clobbers_spec */
+
+
+a_label_list_ptr asm_labels_spec(a_boolean *seen_tok_colon_colon)
+/*
+Parse and validate a list of asm-statement labels that appear after the
+fourth colon in an "asm goto" statement.  Returns the list of labels.
+
+The syntax is
+
+   label [, label ...]
+
+Operand lists and clobbers can be empty, leading to cases where
+two adjacent colons are parsed (in C++) as a single_tok_colon_colon.  To
+get around this case (without undue complexity), use
+get_token_with_colon_separation rather than get_token to return two
+tok_colon tokens rather than a single tok_tolon_colon.  See
+get_token_with_colon_separation for a description of seen_tok_colon_colon.
+*/
+{
+  /* There is no hard limit on the number of labels. */
+  int               nparsed = 0;
+  a_label_ptr       label;
+  a_label_list_ptr  first_label = NULL, last_label = NULL;
+
+  db_enter(3, "asm_labels_spec");
+  if (curr_token == tok_colon) {
+    (void)get_token_with_colon_separation(seen_tok_colon_colon);
+    while (curr_token == tok_identifier) {
+      nparsed++;
+      label = scan_label(/*is_definition=*/FALSE, /*is_declaration=*/FALSE);
+      check_assertion(label != NULL);
+      /* Add this label to our list. */
+      if (first_label == NULL) {
+        first_label = last_label = alloc_label_list();
+      } else {
+        last_label->next = alloc_label_list();
+        last_label = last_label->next;
+      }  /* if */
+      last_label->label = label;
+      /* The next token must be a comma or a right parenthesis. */
+      if (curr_token == tok_comma) {
+        (void)get_token_with_colon_separation(seen_tok_colon_colon);
+        if (curr_token != tok_identifier) {
+          syntax_error(ec_exp_asm_label);
+        }  /* if */
+      }  /* if */
+    }  /* while */
+    /* Make sure at least one label was specified. */
+    if (curr_token != tok_rparen) {
+      syntax_error(ec_exp_rparen);
+    } else if (nparsed == 0) {
+      pos_error(ec_exp_asm_label, &pos_curr_token);
+    }  /* if */
+  } else {
+    syntax_error(ec_exp_colon);
+  }  /* if */
+  db_exit();
+  return first_label;
+}  /* asm_labels_spec */
 
 
 #if BSEARCH_QSORT_FUNCTION_IS_EXTERN_C

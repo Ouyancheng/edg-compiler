@@ -2752,8 +2752,10 @@ to it.
 #if GNU_EXTENSIONS_ALLOWED
   ap->gnu_asm_form = FALSE;
   ap->is_volatile = FALSE;
+  ap->is_asm_goto = FALSE;
   ap->operands = NULL;
   ap->clobbers = NULL;
+  ap->labels = NULL;
 #endif /* GNU_EXTENSIONS_ALLOWED */
   db_exit();
   return ap;
@@ -2831,6 +2833,19 @@ it.
   nrl->reg = (a_named_register)anr_invalid;
   return nrl;
 }  /* alloc_named_register_list */
+
+
+a_label_list_ptr alloc_label_list(void)
+/*
+Allocate space for an a label list and return a pointer to it.
+*/
+{
+  a_label_list_ptr  ll = (a_label_list_ptr)alloc_cil(sizeof(a_label_list));
+
+  ll->next = NULL;
+  ll->label = NULL;
+  return ll;
+}  /* alloc_label_list */
 
 #endif /* GNU_EXTENSIONS_ALLOWED */
 

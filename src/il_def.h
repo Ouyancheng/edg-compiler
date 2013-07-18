@@ -609,6 +609,7 @@ typedef enum /*an_il_entry_kind*/ {
 #endif /* !RECORD_RAW_ASM_OPERAND_DESCRIPTIONS */
   iek_named_register_list,
                         /* a_named_register_list */
+  iek_label_list,       /* a_label_list */
 #endif /* GNU_EXTENSIONS_ALLOWED */
   iek_template_arg,     /* a_template_arg */
   iek_new_delete_supplement,
@@ -784,6 +785,7 @@ EXTERN char *il_entry_kind_names[(int)iek_last + 1]
 /* iek_asm_operand_constraint */        "asm-operand-constraint",
 #endif /* !RECORD_RAW_ASM_OPERAND_DESCRIPTIONS */
 /* iek_named_register_list */           "named-register-list",
+/* iek_label_list */                    "label-list",
 #endif /* GNU_EXTENSIONS_ALLOWED */
 /* iek_template_arg */			"template-arg",
 /* iek_new_delete_supplement */		"new-delete-supplement",
@@ -4802,6 +4804,13 @@ typedef struct a_named_register_list {
   a_named_register
                 reg;    /* The register itself. */
 } a_named_register_list;
+
+typedef struct a_label_list *a_label_list_ptr;
+typedef struct a_label_list {
+  a_label_list_ptr
+                next;   /* Next entry on the list, or NULL if last. */
+  a_label_ptr   label;  /* The label itself. */
+} a_label_list;
 #endif /* GNU_EXTENSIONS_ALLOWED */
 
 /*
@@ -13488,6 +13497,8 @@ typedef struct an_asm_entry {
 			   TRUE. */
   a_bit_field	is_volatile:1;
 			/* asm is marked volatile (not to be reordered). */
+  a_bit_field	is_asm_goto:1;
+			/* TRUE is this is an "asm goto". */
   an_asm_operand_ptr
 		operands;
 			/* List of asm operands.  Output operands
@@ -13495,6 +13506,9 @@ typedef struct an_asm_entry {
   a_named_register_list_ptr
                 clobbers;
                         /* List of registers clobbered. */
+  a_label_list_ptr
+                labels;
+                        /* List of labels (for "asm goto"). */
 #endif /* GNU_EXTENSIONS_ALLOWED */
 } an_asm_entry;
 
@@ -18056,6 +18070,7 @@ EXTERN sizeof_t	sizeof_il_entry[(int)iek_last+1]
   sizeof(an_asm_operand_constraint),
 #endif /* !RECORD_RAW_ASM_OPERAND_DESCRIPTIONS */
   sizeof(a_named_register_list),
+  sizeof(a_label_list),
 #endif /* GNU_EXTENSIONS_ALLOWED */
   sizeof(a_template_arg),
   sizeof(a_new_delete_supplement),

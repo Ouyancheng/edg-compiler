@@ -12451,6 +12451,63 @@ concatenate_adjacent_string_literals:
 }  /* get_token */
 
 
+a_token_kind get_token_with_colon_separation(a_boolean *seen_tok_colon_colon)
+/*
+Like get_token except that tok_colon_colon (i.e., "::") is treated as
+two separate tok_colon tokens.  Used in GNU asm statements where operands,
+clobbers, and labels are separated by colons, but there may not be any white
+space between the colons.  seen_tok_colon_colon points to a variable
+that is used to maintain "state" information about whether or not a
+tok_colon_colon token is currently being processed.  *seen_tok_colon_colon
+should be set to FALSE by the initial caller, and the same address used
+in subsequent sequential calls (until the colon processing is finished).
+*/
+{
+  a_token_kind result;
+
+  if (C_mode()) {
+    /* There is no tok_colon_colon in C mode. */
+    result = get_token();
+  } else {
+    if (!*seen_tok_colon_colon) {
+      /* No pending token to process, get the next token. */
+      result = get_token();
+      if (result == tok_colon_colon) {
+        /* Split a tok_colon_colon into two tok_colon tokens, returning
+           one now and setting a flag so that the second one will be
+           returned on the next call. */
+        *seen_tok_colon_colon = TRUE;
+        result = tok_colon;
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+        /* The start position is the same, but the end position needs
+           adjusting. */
+        end_pos_curr_token.column--;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+      }  /* if */
+    } else {
+      /* The last call to this routine found a tok_colon_colon in the input
+         stream; this call returns the "second" tok_colon token to the
+         caller. */
+      *seen_tok_colon_colon = FALSE;
+      result = tok_colon;
+      /* Give the second ":" token a new token sequence number.  When the
+         numbers were assigned, a slot is reserved so that this number will be
+         known to be unique. */
+      curr_token_sequence_number++;
+      last_token_sequence_number_of_token = curr_token_sequence_number;
+      /* Update the position information to point to the second character. */
+      pos_curr_token.column++;
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+      end_pos_curr_token.column++;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+    }  /* if */
+  }  /* if */
+  curr_token = result;
+  check_assertion(result != tok_colon_colon);
+  return result;
+}  /* get_token_with_colon_separation */
+
+
 a_boolean is_keyword_token(a_token_kind	token)
 /*
 Return TRUE if token is a token kind associated with a keyword.  This is

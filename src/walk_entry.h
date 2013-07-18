@@ -3059,6 +3059,7 @@ after_entry_from_class:
         walk_list(ptr->operands, an_asm_operand_ptr, iek_asm_operand);
         walk_list(ptr->clobbers, a_named_register_list_ptr, 
                   iek_named_register_list);
+        walk_list(ptr->labels, a_label_list_ptr, iek_label_list);
 #endif /* GNU_EXTENSIONS_ALLOWED */
       }
       break;
@@ -3097,6 +3098,13 @@ after_entry_from_class:
                        iek_named_register_list);
       }
 #endif /* !DO_SUBTREE_WALK */
+      break;
+    case iek_label_list:
+      {
+        a_label_list_ptr ptr = (a_label_list_ptr)entry_ptr;
+        remap_next_ptr(ptr->next, a_label_list_ptr, iek_label_list);
+        remap_ptr(ptr->label, a_label_ptr, iek_label);
+      }
       break;
 #endif /* GNU_EXTENSIONS_ALLOWED */
     case iek_template_arg:

@@ -1,5 +1,20 @@
 Version 5.0
 
+7/18/13  [EDGcpfe/12441,EDGcpfe/12528,EDGcpfe/13092,EDGcpfe/14104]
+GNU: Support for "asm goto"
+
+Support has been added for GNU's "asm goto" in GNU C and C++ emulation
+modes when gnu_version >= 40500.  "asm goto" is described by
+http://gcc.gnu.org/onlinedocs/gcc/Extended-Asm.htm.  For example
+(with --gnu_version 40500):
+
+  void f() {
+  label:
+    asm goto ("jmp %l[label]"::::label);
+    asm goto ("jmp %l0"::::label);
+  }
+
+
 7/16/13  [EDGcpfe/14295]
 IA-64 ABI: Calling sequence for function returning class type with trivial
 copy constructor and trivial, but explicitly-defaulted, destructor

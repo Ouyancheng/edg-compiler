@@ -159,6 +159,8 @@ extern an_asm_operand_constraint_ptr alloc_asm_operand_constraint(
 extern an_asm_operand_ptr alloc_asm_operand(void);
 
 extern a_named_register_list_ptr alloc_named_register_list(void);
+
+extern a_label_list_ptr alloc_label_list(void);
 #endif /* GNU_EXTENSIONS_ALLOWED */
 
 extern a_label_ptr alloc_label(void);

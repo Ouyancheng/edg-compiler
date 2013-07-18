@@ -13846,8 +13846,31 @@ Generate the GNU C clobber specifications for the given asm entry.
         m_write_ch(',');
       }  /* if */
     }  /* for */
+  } else if (aep->is_asm_goto) {
+    /* Emit an empty clobbers list if labels are to follow. */
+    write_tok_str(" :");
   }  /* if */
 }  /* gen_asm_clobbers */
+
+
+static void gen_asm_labels(an_asm_entry_ptr aep)
+/*
+Generate the labels for the given "asm goto" entry.
+*/
+{
+  a_label_list_ptr llp;
+
+  check_assertion(aep->labels != NULL);
+  write_tok_str(" :");
+  for (llp = aep->labels; llp != NULL; llp = llp->next) {
+    /* Permit line breaking here. */
+    write_tok_ch(' ');
+    gen_unqualified_name(&llp->label->source_corresp, iek_label);
+    if (llp->next != NULL) {
+      m_write_ch(',');
+    }  /* if */
+  }  /* for */
+}  /* gen_asm_labels */
   
 #endif /* GNU_EXTENSIONS_ALLOWED */
 
@@ -14238,6 +14261,9 @@ one that yields the value) of a statement expression.
              asm_entry->gnu_asm_form)) {
           write_tok_str(" volatile");
         }  /* if */
+        if (asm_entry->is_asm_goto) {
+          write_tok_str(" goto");
+        }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
         write_tok_ch('(');
         gen_constant(asm_entry->asm_string, /*need_parens=*/FALSE);
@@ -14247,6 +14273,9 @@ one that yields the value) of a statement expression.
           write_tok_str(" :");
           gen_asm_operands(asm_entry);
           gen_asm_clobbers(asm_entry);
+        }  /* if */
+        if (asm_entry->is_asm_goto) {
+          gen_asm_labels(asm_entry);
         }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
         write_tok_ch(')');
