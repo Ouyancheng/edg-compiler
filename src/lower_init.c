@@ -2489,7 +2489,8 @@ for the Cfront-like ABI, type size_t for the IA-64 ABI.
 #else /* !IA64_ABI */
                  targ_runtime_elem_count_int_kind,
 #endif /* IA64_ABI */
-                 (a_type_ptr)NULL);
+                 (a_type_ptr)NULL,
+                 /*preserve_needed_flag=*/FALSE);
   /* Allocate an expression node for the constant. */
   num_elem_node = alloc_node_for_constant(&num_elem_constant);
   return num_elem_node;
@@ -2569,7 +2570,8 @@ all dimensions.
 #else /* !IA64_ABI */
                                  targ_runtime_elem_count_int_kind,
 #endif /* IA64_ABI */
-                                 (a_type_ptr)NULL);
+                                 (a_type_ptr)NULL,
+                                 /*preserve_needed_flag=*/FALSE);
           num_elem_node->next = alloc_node_for_constant(
                                                       &starting_elem_constant);
           num_elem_node = make_operator_node(
@@ -9712,7 +9714,8 @@ and its initialization put in insert_location).
     set_unsigned_integer_constant_with_overflow_check(&constant,
                                                skip_typerefs(ndsp->type)->size,
                                                targ_size_t_int_kind,
-                                               (a_type_ptr)NULL);
+                                               (a_type_ptr)NULL,
+                                               /*preserve_needed_flag=*/FALSE);
     number_of_bytes = alloc_node_for_constant(&constant);
     if (num_elem_node != NULL && is_array_type(ndsp->type)) {
       /* An array new where the number of elements is specified at compile
@@ -9726,7 +9729,8 @@ and its initialization put in insert_location).
 #else /* !IA64_ABI */
                                               targ_runtime_elem_count_int_kind,
 #endif /* IA64_ABI */
-                                              (a_type_ptr)NULL);
+                                              (a_type_ptr)NULL,
+                                              /*preserve_needed_flag=*/FALSE);
       number_of_elements = alloc_node_for_constant(&constant);
       *num_elem_node = number_of_elements;
     }  /* if */

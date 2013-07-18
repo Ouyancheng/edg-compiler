@@ -3148,7 +3148,8 @@ a variable) and return a pointer to the constant.
   set_unsigned_integer_constant_with_overflow_check(
                                     handle_con, (a_host_large_unsigned)*handle,
                                     targ_var_handle_int_kind,
-                                    (a_type_ptr)NULL);
+                                    (a_type_ptr)NULL,
+                                    /*preserve_needed_flag=*/FALSE);
 #else /* !DO_FULL_PORTABLE_EH_LOWERING */
   /* Non-portable scheme -- can use a ck_stack_offset for the offset of
      a variable. */
@@ -3178,7 +3179,8 @@ a variable) and return a pointer to the constant.
     set_unsigned_integer_constant_with_overflow_check(handle_con,
                                          (a_host_large_unsigned)handle->offset,
                                          targ_var_handle_int_kind,
-                                         (a_type_ptr)NULL);
+                                         (a_type_ptr)NULL,
+                                         /*preserve_needed_flag=*/FALSE);
   }  /* if */
 #endif /* DO_FULL_PORTABLE_EH_LOWERING */
   return handle_con;

@@ -3912,16 +3912,24 @@ indicated class.
 }  /* conv_integer_constant_with_overflow_check */
 
 
+#if !MAINTAIN_NEEDED_FLAGS
+/*ARGSUSED*/ /* preserve_needed_flag is not used in this case. */
+#endif /* !MAINTAIN_NEEDED_FLAGS */
 void set_integer_constant_with_overflow_check(
-					a_constant_ptr		con,
-                                        a_host_large_integer	con_val,
-                                        an_integer_kind		ikind,
-                                        a_type_ptr              class_type)
+                                    a_constant_ptr       con,
+                                    a_host_large_integer con_val,
+                                    an_integer_kind      ikind,
+                                    a_type_ptr           class_type,
+                                    a_boolean            preserve_needed_flag)
 /*
 Set the constant "con" to the integer value "con_val" with integer kind
 "ikind".  Check to make sure that the value will fit an integer of that size,
 and if not, issue an error.  If class_type is non-NULL, the error is
-related to the indicated class.  This version is for signed integer kinds.
+related to the indicated class.  If preserve_needed_flag is TRUE, the value
+of con's "needed" flag will be preserved (used in cases where the constant
+has already gone through needed flag processing).  Note that this should be
+FALSE for constants that are not in the IL.  This version is for signed integer
+kinds.
 */
 {
 #if MAINTAIN_NEEDED_FLAGS
@@ -3933,21 +3941,31 @@ related to the indicated class.  This version is for signed integer kinds.
   conv_integer_constant_with_overflow_check(con, ikind, class_type);
 #if MAINTAIN_NEEDED_FLAGS
   /* If the needed flag has already been set, maintain it. */
-  if (needed) mark_as_needed((char *)con, iek_constant);
+  if (preserve_needed_flag && needed) {
+    mark_as_needed((char *)con, iek_constant);
+  }  /* if */
 #endif /* MAINTAIN_NEEDED_FLAGS */
 }  /* set_integer_constant_with_overflow_check */
 
 
+#if !MAINTAIN_NEEDED_FLAGS
+/*ARGSUSED*/ /* preserve_needed_flag is not used in this case. */
+#endif /* !MAINTAIN_NEEDED_FLAGS */
 void set_unsigned_integer_constant_with_overflow_check(
-                                          a_constant_ptr	con,
-                                          a_host_large_unsigned	con_val,
-                                          an_integer_kind	ikind,
-                                          a_type_ptr            class_type)
+                                    a_constant_ptr        con,
+                                    a_host_large_unsigned con_val,
+                                    an_integer_kind       ikind,
+                                    a_type_ptr            class_type,
+                                    a_boolean             preserve_needed_flag)
 /*
 Set the constant "con" to the integer value "con_val" with integer kind
 "ikind".  Check to make sure that the value will fit an integer of that size,
 and if not, issue an error.  If class_type is non-NULL, the error is
-related to the indicated class.  This version is for unsigned integer kinds.
+related to the indicated class.  If preserve_needed_flag is TRUE, the value
+of con's "needed" flag will be preserved (used in cases where the constant
+has already gone through needed flag processing).  Note that this should be
+FALSE for constants that are not in the IL.  This version is for unsigned
+integer kinds.
 */
 {
 #if MAINTAIN_NEEDED_FLAGS
@@ -3960,7 +3978,9 @@ related to the indicated class.  This version is for unsigned integer kinds.
   conv_integer_constant_with_overflow_check(con, ikind, class_type);
 #if MAINTAIN_NEEDED_FLAGS
   /* If the needed flag has already been set, maintain it. */
-  if (needed) mark_as_needed((char *)con, iek_constant);
+  if (preserve_needed_flag && needed) {
+    mark_as_needed((char *)con, iek_constant);
+  }  /* if */
 #endif /* MAINTAIN_NEEDED_FLAGS */
 }  /* set_unsigned_integer_constant_with_overflow_check */
 
@@ -3977,7 +3997,8 @@ class type is class_type, for use in the error message.
 {
   set_integer_constant_with_overflow_check(delta_con, delta,
                                            TARG_DELTA_INT_KIND,
-                                           class_type);
+                                           class_type,
+                                           /*preserve_needed_flag=*/FALSE);
 }  /* set_delta_constant */
 
 
@@ -4085,12 +4106,14 @@ Do IL lowering of a pointer-to-member constant.
     set_unsigned_integer_constant_with_overflow_check(
                                         constant, (a_host_large_unsigned)delta,
                                         targ_ptr_to_data_member_int_kind,
-                                        class_type);
+                                        class_type,
+                                        /*preserve_needed_flag=*/TRUE);
 #else /* IA64_ABI */
     set_integer_constant_with_overflow_check(
                                         constant, (a_host_large_integer)delta,
                                         targ_ptr_to_data_member_int_kind,
-                                        class_type);
+                                        class_type,
+                                        /*preserve_needed_flag=*/TRUE);
 #endif /* IA64_ABI */
   }  /* if */
   constant->next = constant_next;
@@ -10858,7 +10881,8 @@ of a base or derived class of that class.
                                     &offset_constant,
                                     (a_host_large_unsigned)offset,
                                     targ_ptr_to_data_member_int_kind,
-                                    class_type);
+                                    class_type,
+                                    /*preserve_needed_flag=*/FALSE);
       if (!targ_ptr_to_data_member_is_promoted_integral_type()) {
         promote_integer_constant(&offset_constant);
       }  /* if */

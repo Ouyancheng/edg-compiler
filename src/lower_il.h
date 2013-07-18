@@ -1050,16 +1050,18 @@ extern a_type_ptr char_star_type(void);
 extern a_type_ptr make_vptp_type(void);
 
 extern void set_integer_constant_with_overflow_check(
-					a_constant_ptr		con,
-                                        a_host_large_integer	con_val,
-                                        an_integer_kind		ikind,
-                                        a_type_ptr              class_type);
+                                    a_constant_ptr       con,
+                                    a_host_large_integer con_val,
+                                    an_integer_kind      ikind,
+                                    a_type_ptr           class_type,
+                                    a_boolean            preserve_needed_flag);
 
 extern void set_unsigned_integer_constant_with_overflow_check(
-                                          a_constant_ptr	con,
-                                          a_host_large_unsigned	con_val,
-                                          an_integer_kind	ikind,
-                                          a_type_ptr            class_type);
+                                   a_constant_ptr        con,
+                                   a_host_large_unsigned con_val,
+                                   an_integer_kind       ikind,
+                                   a_type_ptr            class_type,
+                                   a_boolean             preserve_needed_flag);
 
 extern void set_virtual_function_table_name(a_variable_ptr   vtbl_var,
                                             a_type_ptr       class_type,
