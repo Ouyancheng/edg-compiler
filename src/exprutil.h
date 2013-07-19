@@ -864,6 +864,12 @@ typedef struct an_expr_stack_entry {
 			/* TRUE to suppress folding of constexpr calls and
 			   constructions.  Used for
 			   __is_trivially_constructible. */
+  a_byte_boolean
+		allow_call_with_incomplete_return_type;
+			/* TRUE if a call with an incomplete return type should
+			   be permitted at the top level of an expression.
+			   (This is only the case for the operand of a
+			   decltype construct.) */
   a_dynamic_init_dtor_fixup_ptr
 		dynamic_init_dtor_fixup_list;
 			/* List of dynamic init entries for which destructor

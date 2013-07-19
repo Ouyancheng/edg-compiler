@@ -2296,6 +2296,27 @@ function and update the corresponding flags in *dps.
 }  /* set_early_member_function_decl_flags */
 
 
+void report_incomplete_function_return_type(a_type_ptr         return_type,
+                                            a_source_position  *pos,
+                                            a_routine_ptr      rp)
+/*
+Report an error at the given position for a function being called or defined
+with the given incomplete return type.  rp is the called function if it is
+known; otherwise it is NULL.
+*/
+{
+  if (rp != NULL) {
+    /* We know the routine that is being defined or called. */
+    pos_syty_error(ec_incomplete_function_return_type, pos, symbol_for(rp),
+                   return_type);
+  } else {
+    /* The actual function being called is not available, presumably because
+       it is called through a pointer-to-function variable. */
+    pos_ty_error(ec_incomplete_return_type, pos, return_type);
+  }  /* if */
+}  /* report_incomplete_function_return_type */
+
+
 static void function_declarator(a_decl_parse_state  *state,
                                 a_decl_flag_set     di_flags,
                                 a_type_ptr          *new_type_ptr,

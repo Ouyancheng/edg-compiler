@@ -1,5 +1,18 @@
 Version 5.0
 
+7/19/13  [EDGcpfe/11740,EDGcpfe/14277]
+C++11: Incomplete return types and decltype
+
+Toward the end of the C++11 standardization process, the committee relaxed the
+requirement that the return type in a function call be complete if the function
+call appears as the immediate operand of a decltype construct (see the
+committee's paper N3276).  This behavior is now implemented.  For example:
+
+  struct S;
+  S f();
+  decltype(f()) *p;  // Previously an error, now okay.
+
+
 7/19/13  [EDGcpfe/14299]
 C++/CLI: "= default" in C++11 mode
 

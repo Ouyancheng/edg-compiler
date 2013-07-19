@@ -1662,6 +1662,7 @@ is pushed regardless of any of the other factors.
   new_entry->traditional_const_expr_required = FALSE;
   new_entry->in_noexcept_operand_expression = FALSE;
   new_entry->suppress_constexpr_call_folding = FALSE;
+  new_entry->allow_call_with_incomplete_return_type = FALSE;
   new_entry->dynamic_init_dtor_fixup_list = NULL;
   new_entry->nested_construct_depth = 0;
   new_entry->lifetime = NULL;
@@ -15182,9 +15183,11 @@ error cases.
      at the point of declaration of the function so long as it is completed
      by the time the function is defined or called (if it is). */
   if (!unknown_dependent_function &&
-      !check_function_return_type(function_type, err_pos,
-                                  /*is_expr_use=*/TRUE,
-                                  curr_expr_is_evaluated(), rp)) {
+      !check_function_return_type(function_type, err_pos, /*is_expr_use=*/TRUE,
+                                  curr_expr_is_evaluated(),
+                                  expr_stack
+                                      ->allow_call_with_incomplete_return_type,
+                                  rp)) {
     /* There was some error in the return type, and a diagnostic was issued. */
     call_node = error_node();
     goto done;

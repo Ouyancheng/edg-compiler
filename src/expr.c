@@ -11561,6 +11561,41 @@ if necessary).
 }  /* type_of_call */
 
 
+static void check_for_incomplete_call_return(an_operand  *operand)
+/*
+If the given operand represents a call expression (or a comma expression that
+has a call in its right hand operand), check that the called function type is
+complete (and issue an error if appropriate).
+*/
+{
+  if (is_expression_operand(operand)) {
+    an_expr_node_ptr  expr = skip_parens(expr_node_from_operand(operand));
+    while (is_operation_node(expr) && node_operator_is(expr, eok_comma)) {
+      expr = skip_parens(expr->variant.operation.operands->next);
+    }  /* if */
+    if (is_call_node(expr)) {
+      a_type_ptr  type = type_of_call(expr);
+      if (type->kind == (a_type_kind)tk_routine) {
+        a_type_ptr  return_type = type->variant.routine.return_type;
+        if (!is_void_type(return_type)) {
+          a_routine_type_supplement_ptr
+                                      rtsp = type->variant.routine.extra_info;
+          complete_type_is_needed(return_type);
+          if (!rtsp->suppress_diagnostic_on_incomplete_return_type &&
+              expr_error_should_be_issued()) {
+            a_routine_ptr  callee = routine_from_function_expr(
+                                            expr->variant.operation.operands);
+            report_incomplete_function_return_type(
+                                     return_type, &operand->position, callee);
+          }  /* if */
+          rtsp->suppress_diagnostic_on_incomplete_return_type = TRUE;
+        }  /* if */
+      }  /* if */
+    }  /* if */
+  }  /* if */
+}  /* check_for_incomplete_call_return */
+
+
 static a_type_ptr decltype_from_operand(an_operand *operand,
                                         a_boolean  *no_parens_matters)
 /*
@@ -11823,6 +11858,7 @@ outside of the expression-processing routines.
   transfer_expr_context_if_applicable(saved_expr_stack);
   expr_stack->unevaluated_expr_will_be_kept_in_il = TRUE;
   expr_stack->is_type_operator_arg_expression = TRUE;
+  expr_stack->allow_call_with_incomplete_return_type = TRUE;
   if (rcblock != NULL) {
     /* This call is done late because we need the expression stack to be pushed
        already. */
@@ -25554,7 +25590,12 @@ expression, and return the result in *result (or an error indication in
 
   /* There is a potential sequence point after the first operand. */
   potential_sequence_point_after_operand(operand_1);
-
+  if (expr_stack->allow_call_with_incomplete_return_type) {
+    /* The allowance for incomplete return types on top-level calls extends to
+       the right hand operands of comma expressions but not to their left
+       hand operands. */
+    check_for_incomplete_call_return(operand_1);
+  }  /* if */
   if (c99_mode && !curr_expr_is_evaluated()) {
     /* C99 allows a comma expression in a constant expression if it's
        not evaluated (6.6p3).  Even if the current expression kind is not

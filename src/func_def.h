@@ -60,11 +60,13 @@ extern void scan_function_body(a_routine_ptr      rout_ptr,
 
 extern void define_lambda_conversion_function(a_routine_ptr  conv_op);
 
-extern a_boolean check_function_return_type(a_type_ptr         return_type,
-                                            a_source_position  *err_pos,
-                                            a_boolean          is_expr_use,
-                                            a_boolean          evaluated,
-                                            a_routine_ptr      rout_ptr);
+extern a_boolean check_function_return_type(
+                                     a_type_ptr         return_type,
+                                     a_source_position  *err_pos,
+                                     a_boolean          is_expr_use,
+                                     a_boolean          evaluated,
+                                     a_boolean          incomplete_return_okay,
+                                     a_routine_ptr      rout_ptr);
 
 extern void scan_defaulted_or_deleted_definition(
                                             a_decl_parse_state    *dps,

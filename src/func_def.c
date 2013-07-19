@@ -326,6 +326,7 @@ a_boolean check_function_return_type(a_type_ptr         rout_type,
                                      a_source_position  *err_pos,
                                      a_boolean          is_expr_use,
                                      a_boolean          evaluated,
+                                     a_boolean          incomplete_return_okay,
                                      a_routine_ptr      rout_ptr)
 /*
 Given a routine type, check that the return type is valid, issuing an error
@@ -333,8 +334,10 @@ if not (additional checks are performed by add_to_derived_type_list).
 is_expr_use is TRUE if the function is being called or its address is being
 taken; otherwise, the function is being defined (nondefining declarations are
 checked by add_to_derived_type_list).  When is_expr_use is TRUE, evaluated is
-TRUE if the expression is in an evaluated context.  rout_ptr is a pointer to
-the routine that is being defined or called; may be NULL.
+TRUE if the expression is in an evaluated context.  incomplete_return_okay is
+TRUE if no error should be issued for an incomplete (non-void) return type.
+rout_ptr is a pointer to the routine that is being defined or called; may be
+NULL.
 */
 {
   a_type_ptr  return_type;
@@ -363,7 +366,7 @@ the routine that is being defined or called; may be NULL.
     }  /* if */
   } else if (is_error_type(return_type)) {
     /* No diagnostic this time. */
-  } else {
+  } else if (!incomplete_return_okay) {
     /* If return_type is an uninstantiated template class, force its
        instantiation. */
     complete_type_is_needed(return_type);
@@ -390,7 +393,7 @@ the routine that is being defined or called; may be NULL.
           }  /* if */
           rtsp->suppress_diagnostic_on_incomplete_return_type = TRUE;
           /* Note that err is set (for the return value) even if no diagnostic
-             is actually issued. */
+            is actually issued. */
           err = TRUE;
         }  /* if */
       }  /* if */
@@ -422,16 +425,8 @@ the routine that is being defined or called; may be NULL.
       }  /* if */
     }  /* if */
     if (incomplete_type_error) {
-      if (rout_ptr != NULL) {
-        /* We know the routine that is being defined or called. */
-        pos_syty_error(ec_incomplete_function_return_type, err_pos,
-                       (a_symbol_ptr)rout_ptr->source_corresp.assoc_info,
-                       orig_return_type);
-      } else {
-        /* The name of the function is not available, presumably because it
-           is called through a pointer-to-function variable. */
-        pos_ty_error(ec_incomplete_return_type, err_pos, orig_return_type);
-      }  /* if */
+      report_incomplete_function_return_type(orig_return_type, err_pos,
+                                             rout_ptr);
     }  /* if */
   }  /* if */
   return !err;
@@ -970,8 +965,8 @@ of lambda expressions.
   /* Issue an error if this is an invalid return type. */
   (void)check_function_return_type(rout_type,
                                    &rout_ptr->source_corresp.decl_position,
-                                   /*is_expr_use=*/FALSE,
-                                   /*evaluated=*/FALSE, rout_ptr);
+                                   /*is_expr_use=*/FALSE, /*evaluated=*/FALSE,
+                                   /*incomplete_return_okay=*/FALSE, rout_ptr);
   /* In certain very obscure cases, the routine type associated with
      rout_ptr may be replaced by an equivalent type entry.  Refetch the type,
      just in case. */

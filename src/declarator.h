@@ -374,6 +374,11 @@ extern a_boolean check_param_array_type(a_param_type_ptr   ptp,
   /*lint --e(506)*/TRUE
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
+extern
+void report_incomplete_function_return_type(a_type_ptr         return_type,
+                                            a_source_position  *pos,
+                                            a_routine_ptr      rp);
+
 extern void scan_lambda_declarator(a_lambda_ptr        lambda,
                                    a_decl_parse_state  *dps,
                                    a_func_info_block   *func_info,
