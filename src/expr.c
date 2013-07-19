@@ -11584,6 +11584,7 @@ complete (and issue an error if appropriate).
                                       rtsp = type->variant.routine.extra_info;
           complete_type_is_needed(return_type);
           if (!rtsp->suppress_diagnostic_on_incomplete_return_type &&
+              is_incomplete_type(return_type) &&
               expr_error_should_be_issued()) {
             a_routine_ptr  callee = routine_from_function_expr(
                                             expr->variant.operation.operands);
