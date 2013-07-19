@@ -61,15 +61,16 @@ diagnostic which is now fixed.  For example (with --microsoft --c99):
 7/19/13  [EDGcpfe/14300]
 GNU C compatibility: __builtin_constant_p and const variables
 
-In GNU C mode, when gcc_const_variables_allowed is TRUE (see the Changes entry
-of 6/25/13 for EDGcpfe/14216), a call of the form __builtin_constant_p(x),
-where x is the name of a const variable initialized with a constant expression,
-now produces the value 1 (i.e., "true").  For example:
+In GNU mode with gnu_version < 40500, when gcc_const_variables_allowed is TRUE
+(see the Changes entry of 6/25/13 for EDGcpfe/14216), a call of the form
+__builtin_constant_p(x), where x is the name of a const variable initialized
+with a constant expression, now produces the value 1 (i.e., "true").
+For example:
 
   int const N = 20;
   void g() {
-    if (__builtin_constant_p(N)) {  // Condition is now true when
-    }                               // gcc_const_variables_allowed is TRUE.
+    if (__builtin_constant_p(N)) {  // Condition is now true in some
+    }                               // GNU modes.
   }
 
 
