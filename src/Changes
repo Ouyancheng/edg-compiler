@@ -1,5 +1,17 @@
 Version 5.0
 
+7/19/13  [EDGcpfe/14274]
+Microsoft compatibility: __declspec(restrict) in C99 mode
+
+In configurations where SUPPRESS_RESTRICT_IN_GENERATED_CODE is TRUE and
+"restrict" is a keyword, using __declspec(restrict) had caused a spurious
+diagnostic which is now fixed.  For example (with --microsoft --c99):
+
+  __declspec(restrict) void *f() {
+    return 0;
+  }
+
+
 7/19/13  [EDGcpfe/14300]
 GNU C compatibility: __builtin_constant_p and const variables
 

@@ -1735,8 +1735,15 @@ track end positions).
 */
 {
   check_assertion(is_valid_attribute_identifier(curr_token));
-  /* Record the attribute name as an IL string. */
-  ap->name = il_string_for_curr_token();
+  if (curr_token == tok_restrict) {
+    /* The general mechanism for turning a tok_restrict into a string
+       won't work in cases where SUPPRESS_RESTRICT_IN_GENERATED_CODE is TRUE,
+       so handle that as a special case here. */
+    ap->name = copy_string_to_region(file_scope_region_number, "restrict");
+  } else {
+    /* Record the attribute name as an IL string. */
+    ap->name = il_string_for_curr_token();
+  }  /* if */
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   ap->end_position = end_pos_curr_token;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
