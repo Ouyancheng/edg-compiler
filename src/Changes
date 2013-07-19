@@ -1,5 +1,15 @@
 Version 5.0
 
+7/19/13  [EDGcpfe/14303]
+Setting of this_param_variable (in a_scope) for IA-64 alternate entry points
+
+Member functions created during lowering by define_default_version_of_routine
+(which are typically IA-64 alternate entry points) had been created with
+a_scope::this_param_variable set to NULL.  A change has been made to set
+a_scope::this_param_variable to point to the "this" parameter for the
+member function.
+
+
 7/18/13  [EDGcpfe/12441,EDGcpfe/12528,EDGcpfe/13092,EDGcpfe/14104]
 GNU: Support for "asm goto"
 

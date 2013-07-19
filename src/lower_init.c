@@ -4145,6 +4145,7 @@ operator of a no-capture lambda.
          form as a normal parameter). */
       new_routine_scope->variant.routine.parameters = this_param_var =
                                   make_lowered_param_variable(this_param_type);
+      new_routine_scope->variant.routine.this_param_variable = this_param_var;
       this_param_var->is_this_parameter = TRUE;
       last_param_var = this_param_var;
     } else {
