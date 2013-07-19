@@ -153,11 +153,11 @@ static unsigned long alignment(char *p2, char *p1)
 }  /* alignment */
 
 
-static char *int_kind_for_integral_type(unsigned long size,
-                                        unsigned long alignment,
-                                        int           is_signed,
-                                        int           favor_long,
-                                        int           *error)
+static const char *int_kind_for_integral_type(unsigned long size,
+                                              unsigned long alignment,
+                                              int           is_signed,
+                                              int           favor_long,
+                                              int           *error)
 /*
 Return a string for the integer kind that matches the given size and
 alignment, and is signed or unsigned according to is_signed (is_signed
@@ -166,7 +166,7 @@ over int if long and int have the same size.  Return *error set to TRUE
 if no such integer kind exists.
 */
 {
-  char *s;
+  const char *s;
 
   *error = 0;
   if (size == 1 && alignment == 1) {
@@ -210,15 +210,15 @@ if no such integer kind exists.
 }  /* int_kind_for_integral_type */
 
 
-static char *type_for_integer_size(int  size,
-                                   int  is_signed)
+static const char *type_for_integer_size(int  size,
+                                         int  is_signed)
 /*
 Return the C data type for an integer data type of size bits.  Return the
 signed version if is_signed is TRUE, the unsigned one otherwise.  Return
 NULL if no suitable type is found.
 */
 {
-  char	*result = NULL;
+  const char *result = NULL;
 
   if (size == sizeof(char) * targ_char_bit ) {
     result = is_signed ? "signed char" : "unsigned char";
@@ -328,7 +328,7 @@ int main() {
 #endif /* HAVE_LONG_DOUBLE */
 #if HAVE_WCHAR_T
   { struct {char c; wchar_t s;} v;
-    char                        *targ_wchar_t_int_kind;
+    const char                  *targ_wchar_t_int_kind;
     int                         is_signed, error;
     targ_sizeof_wchar_t = sizeof(wchar_t);
     targ_alignof_wchar_t = alignment((char *)&v.s, (char *)&v);
@@ -349,7 +349,7 @@ int main() {
 #endif /* HAVE_WCHAR_T */
 #if HAVE_SIZE_T
   { struct {char c; size_t s;} v;
-    char                        *targ_size_t_int_kind;
+    const char                  *targ_size_t_int_kind;
     int                         error;
     targ_sizeof_size_t = sizeof(size_t);
     targ_alignof_size_t = alignment((char *)&v.s, (char *)&v);
@@ -369,7 +369,7 @@ int main() {
 #endif /* HAVE_SIZE_T */
 #if HAVE_PTRDIFF_T
   { struct {char c; ptrdiff_t s;} v;
-    char                        *targ_ptrdiff_t_int_kind;
+    const char                  *targ_ptrdiff_t_int_kind;
     int                         error;
     targ_sizeof_ptrdiff_t = sizeof(ptrdiff_t);
     targ_alignof_ptrdiff_t = alignment((char *)&v.s, (char *)&v);
@@ -452,7 +452,7 @@ int main() {
     jmp_buf       jb;
     unsigned long targ_sizeof_jmp_buf_element = sizeof(jb[0]);
     unsigned long targ_jmp_buf_num_elements = sizeof(jb) / sizeof(jb[0]);
-    char          *targ_jmp_buf_element_int_kind;
+    const char    *targ_jmp_buf_element_int_kind;
     int           error;
 
     printf("#define TARG_JMP_BUF_NUM_ELEMENTS %lu\n",
@@ -473,7 +473,7 @@ int main() {
              targ_jmp_buf_element_int_kind);
     }  /* if */
   }
-  { char *type_string;
+  { const char *type_string;
     type_string = type_for_integer_size(8, /*is_signed=*/1);
     if (type_string == NULL) {
       fprintf(stderr, "Unable to determine EDG_INT8_T.\n");
@@ -484,7 +484,7 @@ int main() {
       printf("#define EDG_INT8_T %s\n", type_string);
     }  /* if */
   }
-  { char *type_string;
+  { const char *type_string;
     type_string = type_for_integer_size(8, /*is_signed=*/0);
     if (type_string == NULL) {
       fprintf(stderr, "Unable to determine EDG_UINT8_T.\n");
@@ -495,7 +495,7 @@ int main() {
       printf("#define EDG_UINT8_T %s\n", type_string);
     }  /* if */
   }
-  { char *type_string;
+  { const char *type_string;
     type_string = type_for_integer_size(16, /*is_signed=*/1);
     if (type_string == NULL) {
       fprintf(stderr, "Unable to determine EDG_INT16_T.\n");
@@ -506,7 +506,7 @@ int main() {
       printf("#define EDG_INT16_T %s\n", type_string);
     }  /* if */
   }
-  { char *type_string;
+  { const char *type_string;
     type_string = type_for_integer_size(16, /*is_signed=*/0);
     if (type_string == NULL) {
       fprintf(stderr, "Unable to determine EDG_UINT16_T.\n");
@@ -517,7 +517,7 @@ int main() {
       printf("#define EDG_UINT16_T %s\n", type_string);
     }  /* if */
   }
-  { char *type_string;
+  { const char *type_string;
     type_string = type_for_integer_size(32, /*is_signed=*/1);
     if (type_string == NULL) {
       fprintf(stderr, "Unable to determine EDG_INT32_T.\n");
@@ -528,7 +528,7 @@ int main() {
       printf("#define EDG_INT32_T %s\n", type_string);
     }  /* if */
   }
-  { char *type_string;
+  { const char *type_string;
     type_string = type_for_integer_size(32, /*is_signed=*/0);
     if (type_string == NULL) {
       fprintf(stderr, "Unable to determine EDG_UINT32_T.\n");

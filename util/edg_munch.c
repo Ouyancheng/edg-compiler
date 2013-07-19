@@ -74,7 +74,7 @@ needed.
 #define is_id_char(c) (((c) != ' ') && ((c) != '\t') && ((c) != '\0'))
 
 
-static void error_util(char*   error_string)
+static void error_util(a_const_char *error_string)
 /*
 Prints an error message and exits with an error exit status.
 */
@@ -84,7 +84,7 @@ Prints an error message and exits with an error exit status.
 }
 
 
-static void internal_error_util(char*   error_string)
+static void internal_error_util(a_const_char *error_string)
 /*
 Prints an internal error message and exits with a catastrophic error
 exit status.
@@ -230,8 +230,8 @@ invalid_input:
 
 
 
-static void create_output(a_list_entry_ptr     list_ptr,
-                          char*                array_name)
+static void create_output(a_list_entry_ptr list_ptr,
+                          a_const_char     *array_name)
 /*
 Generate the output for this list of functions.
 */

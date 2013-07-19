@@ -112,7 +112,7 @@ typedef struct a_decode_control_block {
 			   and this indicates the length of the uncompressed
 			   (but still mangled) name. */
 #if !IA64_ABI
-  char		*end_of_name;
+  a_const_char	*end_of_name;
 			/* Set to the character position just after the end of
 			   the mangled name.  When sections with indicated
 			   lengths are scanned, set temporarily to just after
@@ -167,7 +167,7 @@ typedef struct a_template_param_block {
   unsigned long	nesting_level;
 			/* Number of levels of template nesting at this
 			   point (1 == top level). */
-  char		*final_specialization;
+  a_const_char	*final_specialization;
 			/* Set to point to the mangled encoding for the final
 			   specialization encountered while working from
 			   outermost template to innermost.  NULL if
@@ -199,14 +199,14 @@ typedef struct a_template_param_block {
 /*
 Declarations needed because of forward references:
 */
-static char *demangle_identifier_with_preceding_length(
-                     char                       *ptr,
+static a_const_char *demangle_identifier_with_preceding_length(
+                     a_const_char               *ptr,
                      a_boolean                  suppress_parent_and_local_info,
                      a_decode_control_block_ptr dctl);
-static char *demangle_operation(char                       *ptr,
-                                a_boolean                  need_parens,
-                                a_decode_control_block_ptr dctl);
-static char *demangle_operator(char                       *ptr,
+static a_const_char *demangle_operation(a_const_char               *ptr,
+                                        a_boolean                  need_parens,
+                                        a_decode_control_block_ptr dctl);
+static a_const_char *demangle_operator(a_const_char               *ptr,
                                int                        *mangled_length,
                                a_boolean                  *takes_type,
                                a_boolean                  *is_new_style_cast,
@@ -214,29 +214,30 @@ static char *demangle_operator(char                       *ptr,
                                a_boolean                  *need_adl_parens,
                                a_boolean                  *is_initializer_list,
                                a_decode_control_block_ptr dctl);
-static char *demangle_type(char                       *ptr,
-                           a_decode_control_block_ptr dctl);
-static char *full_demangle_type_name(
-                                 char                       *ptr,
+static a_const_char *demangle_type(a_const_char               *ptr,
+                                   a_decode_control_block_ptr dctl);
+static a_const_char *full_demangle_type_name(
+                                 a_const_char               *ptr,
                                  a_boolean                  base_name_only,
                                  a_template_param_block_ptr temp_par_info,
                                  a_boolean                  is_destructor_name,
                                  a_decode_control_block_ptr dctl);
-static char *demangle_template_arguments(
-                                    char                       *ptr,
+static a_const_char *demangle_template_arguments(
+                                    a_const_char               *ptr,
                                     a_boolean                  emit_arg_values,
                                     a_template_param_block_ptr temp_par_info,
                                     a_decode_control_block_ptr dctl);
-static a_boolean is_mangled_type_name(char                       *ptr,
+static a_boolean is_mangled_type_name(a_const_char               *ptr,
                                       a_decode_control_block_ptr dctl);
-static char *demangle_name(char                       *ptr,
-                           unsigned long              nchars,
-                           a_boolean                  stop_on_underscores,
-                           unsigned long              *nchars_left,
-                           char                       *mclass,
-                           a_template_param_block_ptr temp_par_info,
-                           a_boolean                  *instance_emitted,
-                           a_decode_control_block_ptr dctl);
+static a_const_char *demangle_name(
+                                a_const_char               *ptr,
+                                unsigned long              nchars,
+                                a_boolean                  stop_on_underscores,
+                                unsigned long              *nchars_left,
+                                a_const_char               *mclass,
+                                a_template_param_block_ptr temp_par_info,
+                                a_boolean                  *instance_emitted,
+                                a_decode_control_block_ptr dctl);
 /*
 Interface to full_demangle_type_name for the simple case.
 */
@@ -245,8 +246,8 @@ Interface to full_demangle_type_name for the simple case.
                           /*temp_par_info=*/(a_template_param_block_ptr)NULL, \
                           /*is_destructor_name=*/FALSE,               \
                           (dctl))
-static char *full_demangle_identifier(
-                     char                       *ptr,
+static a_const_char *full_demangle_identifier(
+                     a_const_char               *ptr,
                      unsigned long              nchars,
                      a_boolean                  suppress_parent_and_local_info,
                      a_decode_control_block_ptr dctl);
@@ -284,13 +285,13 @@ Add the indicated character to the demangled version of the current identifier.
 }  /* write_id_ch */
 
 
-static void write_id_str(char                      *str,
+static void write_id_str(a_const_char              *str,
                         a_decode_control_block_ptr dctl)
 /*
 Add the indicated string to the demangled version of the current identifier.
 */
 {
-  char *p = str;
+  a_const_char *p = str;
 
   if (!dctl->suppress_id_output) {
     for (; *p != '\0'; p++) write_id_ch(*p, dctl);
@@ -345,8 +346,8 @@ A bad name mangling has been encountered.  Record an error.
 #if IA64_ABI
 
 /*ARGSUSED*/
-static char get_char(char                       *ptr,
-                     a_decode_control_block_ptr dctl)
+static a_const_char get_char(a_const_char               *ptr,
+                             a_decode_control_block_ptr dctl)
 /*
 Get and return the character pointed to by ptr.  Stub version; this
 does nothing in the IA-64 ABI, but it's called from some low-level routines.
@@ -356,8 +357,8 @@ does nothing in the IA-64 ABI, but it's called from some low-level routines.
 }  /* get_char */
 
 
-static a_boolean start_of_id_is(char *str,
-                                char *id)
+static a_boolean start_of_id_is(a_const_char *str,
+                                a_const_char *id)
 /*
 Return TRUE if the part of the mangled name at id begins with the string str.
 */
@@ -377,8 +378,8 @@ Return TRUE if the part of the mangled name at id begins with the string str.
 
 #else /* !IA64_ABI */
 
-static char get_char(char                       *ptr,
-                     a_decode_control_block_ptr dctl)
+static a_const_char get_char(a_const_char               *ptr,
+                             a_decode_control_block_ptr dctl)
 /*
 Get and return the character pointed to by ptr.  However, if that
 position is at or beyond dctl->end_of_name, return a null character
@@ -396,8 +397,8 @@ instead.
 }  /* get_char */
 
 
-static a_boolean start_of_id_is(char                       *str,
-                                char                       *id,
+static a_boolean start_of_id_is(a_const_char               *str,
+                                a_const_char               *id,
                                 a_decode_control_block_ptr dctl)
 /*
 Return TRUE if the part of the mangled name at id begins with the string str.
@@ -418,9 +419,9 @@ Return TRUE if the part of the mangled name at id begins with the string str.
 
 #endif /* IA64_ABI */
 
-static char *advance_past(char                       ch,
-                          char                       *p,
-                          a_decode_control_block_ptr dctl)
+static a_const_char *advance_past(a_const_char               ch,
+                                  a_const_char               *p,
+                                  a_decode_control_block_ptr dctl)
 /*
 The character ch is expected at *p.  If it's there, advance past it.  If
 not, call bad_mangled_name.  In either case, return the updated value of p.
@@ -435,8 +436,8 @@ not, call bad_mangled_name.  In either case, return the updated value of p.
 }  /* advance_past */
 
 
-static char *advance_past_underscore(char                       *p,
-                                     a_decode_control_block_ptr dctl)
+static a_const_char *advance_past_underscore(a_const_char               *p,
+                                             a_decode_control_block_ptr dctl)
 /*
 An underscore is expected at *p.  If it's there, advance past it.  If
 not, call bad_mangled_name.  In either case, return the updated value of p.
@@ -446,19 +447,19 @@ not, call bad_mangled_name.  In either case, return the updated value of p.
 }  /* advance_past_underscore */
 
 #if IA64_ABI
-static char *get_number(char                       *p,
-                        long                       *num,
-                        a_decode_control_block_ptr dctl);
+static a_const_char *get_number(a_const_char               *p,
+                                long                       *num,
+                                a_decode_control_block_ptr dctl);
 #else /* !IA64_ABI */
-static char *get_number(char                       *p,
-                        unsigned long              *num,
-                        a_decode_control_block_ptr dctl);
+static a_const_char *get_number(a_const_char               *p,
+                                unsigned long              *num,
+                                a_decode_control_block_ptr dctl);
 #endif /* IA64_ABI */
 
-static char *demangle_module_id(char                       *ptr,
-                                unsigned long              num,
-                                char                       *prefix,
-                                a_decode_control_block_ptr dctl)
+static a_const_char *demangle_module_id(a_const_char               *ptr,
+                                        unsigned long              num,
+                                        a_const_char               *prefix,
+                                        a_decode_control_block_ptr dctl)
 /*
 Demangle a module id name (an EDG extension), which has the form
 
@@ -476,7 +477,7 @@ entire module id.
 #else /* !IA64_ABI */
   unsigned long num_chars_to_output;
 #endif /* IA64_ABI */
-  char          *start;
+  a_const_char  *start;
 
   if (*ptr != '_' || !isdigit((unsigned char)ptr[1])) {
     /* May not be an EDG module_id, in which case, emit the entire string
@@ -511,10 +512,10 @@ entire module id.
 
 #if !IA64_ABI
 
-static char *get_length(char                       *p,
-                        unsigned long              *num,
-                        char                       **prev_end,
-                        a_decode_control_block_ptr dctl)
+static a_const_char *get_length(a_const_char               *p,
+                                unsigned long              *num,
+                                a_const_char               **prev_end,
+                                a_decode_control_block_ptr dctl)
 /*
 Accumulate a number indicating a length, starting at position p, and
 return its value in *num.  Return a pointer to the character position
@@ -550,9 +551,9 @@ end_of_routine:
 }  /* get_length */
 
 
-static char *get_number(char                       *p,
-                        unsigned long              *num,
-                        a_decode_control_block_ptr dctl)
+static a_const_char *get_number(a_const_char               *p,
+                                unsigned long              *num,
+                                a_decode_control_block_ptr dctl)
 /*
 Accumulate a number starting at position p and return its value in *num.
 Return a pointer to the character position following the number.
@@ -577,9 +578,9 @@ end_of_routine:
 }  /* get_number */
 
 
-static char *get_single_digit_number(char                       *p,
-                                     unsigned long              *num,
-                                     a_decode_control_block_ptr dctl)
+static a_const_char *get_single_digit_number(a_const_char               *p,
+                                             unsigned long              *num,
+                                             a_decode_control_block_ptr dctl)
 /*
 Accumulate a number starting at position p and return its value in *num.
 The number is a single digit.  Return a pointer to the character position
@@ -601,10 +602,11 @@ end_of_routine:
 }  /* get_single_digit_number */
 
 
-static char *get_single_digit_length(char                       *p,
-                                     unsigned long              *num,
-                                     char                       **prev_end,
-                                     a_decode_control_block_ptr dctl)
+static a_const_char *get_single_digit_length(
+                                         a_const_char               *p,
+                                         unsigned long              *num,
+                                         a_const_char               **prev_end,
+                                         a_decode_control_block_ptr dctl)
 /*
 Accumulate a length starting at position p and return its value in *num.
 The length is a single digit.  Return a pointer to the character position
@@ -625,10 +627,10 @@ previous value of dctl->end_of_name for later restoration.
 }  /* get_single_digit_length */
 
 
-static char *get_length_with_optional_underscore(
-                                         char                       *p,
+static a_const_char *get_length_with_optional_underscore(
+                                         a_const_char               *p,
                                          unsigned long              *num,
-                                         char                       **prev_end,
+                                         a_const_char               **prev_end,
                                          a_decode_control_block_ptr dctl)
 /*
 Accumulate a number starting at position p and return its value in *num.
@@ -671,8 +673,8 @@ of dctl->end_of_name for later restoration.
 }  /* get_length_with_optional_underscore */
 
 
-static char *get_number_with_optional_underscore(
-                                               char                       *p,
+static a_const_char *get_number_with_optional_underscore(
+                                               a_const_char               *p,
                                                unsigned long              *num,
                                                a_decode_control_block_ptr dctl)
 /*
@@ -715,7 +717,7 @@ immediately follow the number).
 }  /* get_number_with_optional_underscore */
 
 
-static a_boolean is_immediate_type_qualifier(char                       *p,
+static a_boolean is_immediate_type_qualifier(a_const_char               *p,
                                              a_decode_control_block_ptr dctl)
 /*
 Return TRUE if the encoding pointed to is one that indicates type
@@ -734,7 +736,8 @@ qualification.
 }  /* is_immediate_type_qualifier */
 
 
-static char *remove_immediate_type_qualifiers(char                       *p,
+static a_const_char *remove_immediate_type_qualifiers(
+                                              a_const_char               *p,
                                               a_decode_control_block_ptr dctl)
 /*
 Return a pointer to the mangled name after removing any type qualifiers
@@ -801,8 +804,8 @@ as indicated.  It's a nontype parameter if nontype is TRUE.
 }  /* write_template_parameter_name */
 
 
-static char *demangle_template_parameter_name(
-                                            char                       *ptr,
+static a_const_char *demangle_template_parameter_name(
+                                            a_const_char               *ptr,
                                             a_boolean                  nontype,
                                             a_decode_control_block_ptr dctl)
 /*
@@ -811,7 +814,7 @@ is a nontype parameter if nontype is TRUE.  Return a pointer to the character
 position following what was demangled.
 */
 {
-  char          *p = ptr;
+  a_const_char  *p = ptr;
   unsigned long position, depth = 1;
 
   /* This comes up with the modern mangling for template functions.
@@ -850,10 +853,11 @@ position following what was demangled.
 }  /* demangle_template_parameter_name */
 
 
-static char *demangle_constant_value(char                       *ptr,
-                                     a_boolean                  is_bool,
-                                     a_boolean                  is_nullptr,
-                                     a_decode_control_block_ptr dctl)
+static a_const_char *demangle_constant_value(
+                                         a_const_char               *ptr,
+                                         a_boolean                  is_bool,
+                                         a_boolean                  is_nullptr,
+                                         a_decode_control_block_ptr dctl)
 /*
 Demangle a constant value that is part of a literal.  The form of the
 constant has an initial length (which may or may not use the new underscore
@@ -870,7 +874,8 @@ When is_bool is TRUE, emit "true"/"false" instead of 1/0.  Likewise when
 is_nullptr is TRUE (emits "nullptr" rather than 0).
 */
 {
-  char          *p = ptr, *prev_end, ch;
+  a_const_char  *p = ptr, *prev_end;
+  char          ch;
   unsigned long nchars;
   a_boolean     is_nonzero = FALSE;
 
@@ -919,10 +924,11 @@ end_of_routine:
 }  /* demangle_constant_value */
 
 
-static char *demangle_constant(char                       *ptr,
-                               a_boolean                  suppress_address_of,
-                               a_boolean                  need_parens,
-                               a_decode_control_block_ptr dctl)
+static a_const_char *demangle_constant(
+                                a_const_char               *ptr,
+                                a_boolean                  suppress_address_of,
+                                a_boolean                  need_parens,
+                                a_decode_control_block_ptr dctl)
 /*
 Demangle a constant (e.g., a nontype template class argument) beginning at
 ptr, and output the demangled form.  When suppress_address_of is TRUE, the
@@ -933,7 +939,7 @@ and expressions (but not addresses or template parameters).  Return a pointer
 to the character position following what was demangled.
 */
 {
-  char          *p = ptr, *type = NULL, *index, *prev_end;
+  a_const_char  *p = ptr, *type = NULL, *index, *prev_end;
   unsigned long nchars;
   char          ch;
 
@@ -1131,13 +1137,14 @@ end_of_routine:
   return p;
 }  /* demangle_constant */
 
-static char *demangle_type_qualifiers(
-                                     char                       *ptr,
+static a_const_char *demangle_type_qualifiers(
+                                     a_const_char               *ptr,
                                      a_boolean                  trailing_space,
                                      a_decode_control_block_ptr dctl);
 
-static char *demangle_parameter_reference(char                       *ptr,
-                                          a_decode_control_block_ptr dctl)
+static a_const_char *demangle_parameter_reference(
+                                               a_const_char               *ptr,
+                                               a_decode_control_block_ptr dctl)
 /*
 Demangle a function parameter reference (e.g., in a late specified return
 type) as pointed to by ptr:
@@ -1153,7 +1160,7 @@ type) as pointed to by ptr:
      ^--------- "I" indicates parameter reference.
 */
 {
-  char          *p = ptr;
+  a_const_char  *p = ptr;
   unsigned long num, level = 0;
   char          buffer[50];
 
@@ -1191,16 +1198,17 @@ type) as pointed to by ptr:
 }  /* demangle_parameter_reference */
 
 
-static char *demangle_expression(char                       *ptr,
-                                 a_boolean                  need_parens,
-                                 a_decode_control_block_ptr dctl)
+static a_const_char *demangle_expression(
+                                        a_const_char               *ptr,
+                                        a_boolean                  need_parens,
+                                        a_decode_control_block_ptr dctl)
 /*
 Demangle an expression; ensure that the expression is enclosed in
 parentheses when necessary if need_parens is TRUE (names aren't parenthesized
 even when need_parens is TRUE).
 */
 {
-  char          *p = ptr;
+  a_const_char  *p = ptr;
 
   if (get_char(p, dctl) == 'I') {
     /* A function parameter reference. */
@@ -1226,9 +1234,9 @@ even when need_parens is TRUE).
 }  /* demangle_expression */
 
 
-static char *demangle_operation(char                       *ptr,
-                                a_boolean                  need_parens,
-                                a_decode_control_block_ptr dctl)
+static a_const_char *demangle_operation(a_const_char               *ptr,
+                                        a_boolean                  need_parens,
+                                        a_decode_control_block_ptr dctl)
 /*
 Demangle an operation in a constant expression (these come up in template
 arguments and array sizes, in template function parameter lists) beginning
@@ -1237,7 +1245,7 @@ are emitted around the operation.  Return a pointer to the character
 position following what was demangled.
 */
 {
-  char          *p = ptr, *operator_str, *close_str = "";
+  a_const_char  *p = ptr, *operator_str, *close_str = "";
   int           op_length;
   unsigned long num_operands, i, num_dimensions;
   a_boolean     takes_type, is_new_style_cast, is_postfix, need_adl_parens;
@@ -1279,7 +1287,7 @@ position following what was demangled.
       /* For casts, sizeof, __alignof__, __uuidof__, typeid, new, or sizeof...
          get the type. */
       if (strcmp(operator_str, "cast") == 0) {
-        char *num_args_ptr;
+        a_const_char *num_args_ptr;
         /* A "cast" can have zero or more operands (aside from the type).
            For casts with exactly one operand, emit "(type)arg", but for
            other cases, emit the functional-notation type conversion syntax:
@@ -1432,7 +1440,7 @@ handle_new_operands:
         /* Non-array case. */
         p = demangle_type(p, dctl);
       } else {
-        char *dim_p = p;
+        a_const_char *dim_p = p;
         /* Array case; emit the dimensions (but emit the type first). */
         dctl->suppress_id_output++;
         for (i = 1; i <= num_dimensions; i++) {
@@ -1563,8 +1571,8 @@ Clear the fields of the indicated template parameter block.
 }  /* clear_template_param_block */
 
 
-static char *demangle_template_arguments(
-                                    char                       *ptr,
+static a_const_char *demangle_template_arguments(
+                                    a_const_char               *ptr,
                                     a_boolean                  emit_arg_values,
                                     a_template_param_block_ptr temp_par_info,
                                     a_decode_control_block_ptr dctl)
@@ -1580,7 +1588,8 @@ NULL, it points to a block that controls output of extra information on
 template parameters.
 */
 {
-  char          *p = ptr, *arg_base, ch, *prev_end;
+  a_const_char  *p = ptr, *arg_base, *prev_end;
+  char          ch;
   unsigned long nchars, position;
   a_boolean     nontype, skipped, unskipped, is_pack;
 
@@ -1697,7 +1706,8 @@ template parameters.
 }  /* demangle_template_arguments */
 
 
-static char *demangle_operator(char                       *ptr,
+static a_const_char *demangle_operator(
+                               a_const_char               *ptr,
                                int                        *mangled_length,
                                a_boolean                  *takes_type,
                                a_boolean                  *is_new_style_cast,
@@ -1719,7 +1729,7 @@ if the operator is a call that requires parentheses to suppress ADL.
 If the first few characters are not an operator encoding, return NULL.
 */
 {
-  char *s;
+  a_const_char *s;
   int  len = 2;
 
   *takes_type = FALSE;
@@ -1930,8 +1940,8 @@ If the first few characters are not an operator encoding, return NULL.
 
 
 static a_boolean is_operator_function_name(
-                                   char                       *ptr,
-                                   char                       **demangled_name,
+                                   a_const_char               *ptr,
+                                   a_const_char               **demangled_name,
                                    int                        *mangled_length,
                                    a_decode_control_block_ptr dctl)
 /*
@@ -1940,10 +1950,10 @@ an operator function.  If so, return TRUE and set *demangled_name to
 the demangled form, and *mangled_length to the length of the mangled form.
 */
 {
-  char      *s, *end_ptr;
-  int       len;
-  a_boolean takes_type, is_new_style_cast, is_postfix, need_adl_parens;
-  a_boolean is_initializer_list;
+  a_const_char *s, *end_ptr;
+  int         len;
+  a_boolean   takes_type, is_new_style_cast, is_postfix, need_adl_parens;
+  a_boolean   is_initializer_list;
 
   /* Get the operator name. */
   s = demangle_operator(ptr, &len, &takes_type, &is_new_style_cast, 
@@ -1965,7 +1975,7 @@ the demangled form, and *mangled_length to the length of the mangled form.
 }  /* is_operator_function_name */
 
 
-static void note_specialization(char                       *ptr,
+static void note_specialization(a_const_char               *ptr,
                                 a_template_param_block_ptr temp_par_info)
 /*
 Note the fact that a specialization indication has been encountered at ptr
@@ -1987,11 +1997,11 @@ a block of information related to template parameter processing.
 }  /* note_specialization */
 
 
-static char *demangle_function_local_indication(
-                                     char                       *ptr,
-                                     unsigned long              nchars,
-                                     unsigned long              *instance,
-                                     a_decode_control_block_ptr dctl)
+static a_const_char *demangle_function_local_indication(
+                                          a_const_char               *ptr,
+                                          unsigned long              nchars,
+                                          unsigned long              *instance,
+                                          a_decode_control_block_ptr dctl)
 /*
 Demangle the function name and id number in a function-local indication:
 
@@ -2011,7 +2021,7 @@ This allows the caller to emit it later (after the name of the entity) or
 suppress it (in cases where it is duplicated).
 */
 {
-  char          *p = ptr, *prev_end = NULL;
+  a_const_char  *p = ptr, *prev_end = NULL;
 
   if (nchars != 0) {
     prev_end = dctl->end_of_name;
@@ -2053,14 +2063,15 @@ on what has been mangled.  Emit it as an instance number.
 }  /* emit_instance */
 
 
-static char *demangle_name(char                       *ptr,
-                           unsigned long              nchars,
-                           a_boolean                  stop_on_underscores,
-                           unsigned long              *nchars_left,
-                           char                       *mclass,
-                           a_template_param_block_ptr temp_par_info,
-                           a_boolean                  *instance_emitted,
-                           a_decode_control_block_ptr dctl)
+static a_const_char *demangle_name(
+                                a_const_char               *ptr,
+                                unsigned long              nchars,
+                                a_boolean                  stop_on_underscores,
+                                unsigned long              *nchars_left,
+                                a_const_char               *mclass,
+                                a_template_param_block_ptr temp_par_info,
+                                a_boolean                  *instance_emitted,
+                                a_decode_control_block_ptr dctl)
 /*
 Demangle the name at ptr and output the demangled form.  Return a pointer
 to the character position following what was demangled.  A "name" is
@@ -2089,10 +2100,10 @@ it points to a block that controls output of extra information on
 template parameters.
 */
 {
-  char          *p, *end_ptr = NULL, *prev_end = NULL;
+  a_const_char  *p, *end_ptr = NULL, *prev_end = NULL;
   a_boolean     is_special_name = FALSE, is_pt, is_partial_spec = FALSE;
   a_boolean     partial_spec_output_suppressed = FALSE;
-  char          *demangled_name;
+  a_const_char  *demangled_name;
   int           mangled_length;
   unsigned long discriminator;
 
@@ -2392,8 +2403,8 @@ template parameters.
 }  /* demangle_name */
 
 
-static char *demangle_type_name_with_preceding_length(
-                                   char                       *ptr,
+static a_const_char *demangle_type_name_with_preceding_length(
+                                   a_const_char               *ptr,
                                    a_boolean                  base_name_only,
                                    unsigned long              nchars,
                                    unsigned long              *nchars_left,
@@ -2412,8 +2423,8 @@ output of extra information on template parameters.  When base_name_only
 is TRUE, suppress any function-local information.
 */
 {
-  char          *p = ptr, *orig_end, *prev_end;
-  char          *p2;
+  a_const_char  *p = ptr, *orig_end, *prev_end;
+  a_const_char  *p2;
   unsigned long nchars2, instance;
   a_boolean     has_function_local_info = FALSE;
   a_boolean     instance_emitted;
@@ -2468,8 +2479,8 @@ is TRUE, suppress any function-local information.
 }  /* demangle_type_name_with_preceding_length */
 
 
-static char *demangle_simple_type_name(
-                                   char                       *ptr,
+static a_const_char *demangle_simple_type_name(
+                                   a_const_char               *ptr,
                                    a_boolean                  base_name_only,
                                    a_template_param_block_ptr temp_par_info,
                                    a_decode_control_block_ptr dctl)
@@ -2482,7 +2493,7 @@ controls output of extra information on template parameters.
 When base_name_only is TRUE, suppress any function-local information.
 */
 {
-  char *p = ptr;
+  a_const_char *p = ptr;
 
   if (get_char(p, dctl) == 'Z') {
     /* A template parameter name. */
@@ -2507,8 +2518,8 @@ When base_name_only is TRUE, suppress any function-local information.
 }  /* demangle_simple_type_name */
 
 
-static char *full_demangle_type_name(
-                                 char                       *ptr,
+static a_const_char *full_demangle_type_name(
+                                 a_const_char               *ptr,
                                  a_boolean                  base_name_only,
                                  a_template_param_block_ptr temp_par_info,
                                  a_boolean                  is_destructor_name,
@@ -2528,7 +2539,7 @@ the last component of a qualified name (e.g., T::~X).  See demangle_type_name
 for an interface to this routine for the simple case.
 */
 {
-  char          *p = ptr;
+  a_const_char  *p = ptr;
   unsigned long nquals;
 
   if (get_char(p, dctl) == 'Q') {
@@ -2560,15 +2571,15 @@ for an interface to this routine for the simple case.
 }  /* full_demangle_type_name */
 
 
-static char *demangle_vtbl_class_name(char                       *ptr,
-                                      a_decode_control_block_ptr dctl)
+static a_const_char *demangle_vtbl_class_name(a_const_char               *ptr,
+                                              a_decode_control_block_ptr dctl)
 /*
 Demangle a class or base class name that is one component of a virtual
 function table name.  Such names are mangled mostly as types, but with
 a few special quirks.
 */
 {
-  char          *p = ptr, *prev_end;
+  a_const_char  *p = ptr, *prev_end;
   unsigned long nchars, nchars_left;
 
   /* This code handles both the base class part of the name and
@@ -2599,7 +2610,7 @@ a few special quirks.
          "Q2_" is still going to be a problem, but that's a truly
          ambiguous case.  This is inherited from Cfront. */
       if (get_char(p, dctl) == 'Q') {
-        char *p2 = p+1;
+        a_const_char *p2 = p+1;
         if (isdigit((unsigned char)get_char(p2, dctl))) {
           do { p2++; } while (isdigit((unsigned char)get_char(p2, dctl)));
           if (get_char(p2, dctl) == '_') {
@@ -2609,7 +2620,7 @@ a few special quirks.
       }  /* if */
       if (nested_name_case) {
         /* Nested class name. */
-        char          *end_ptr = demangle_type_name(p, dctl);
+        a_const_char  *end_ptr = demangle_type_name(p, dctl);
         unsigned long chars_taken = end_ptr - p;
         nchars -= chars_taken;
         p = end_ptr;
@@ -2647,8 +2658,8 @@ a few special quirks.
 }  /* demangle_vtbl_class_name */
 
 
-static char *demangle_type_qualifiers(
-                                     char                       *ptr,
+static a_const_char *demangle_type_qualifiers(
+                                     a_const_char               *ptr,
                                      a_boolean                  trailing_space,
                                      a_decode_control_block_ptr dctl)
 /*
@@ -2658,8 +2669,8 @@ demangled.  If trailing_space is TRUE, add a space at the end if any qualifiers
 were put out.
 */
 {
-  char      *p = ptr;
-  a_boolean any_quals = FALSE;
+  a_const_char *p = ptr;
+  a_boolean    any_quals = FALSE;
 
   for (;; p++) {
     if (get_char(p, dctl) == 'C') {
@@ -2682,14 +2693,15 @@ were put out.
 }  /* demangle_type_qualifiers */
 
 
-static char *demangle_type_specifier(char                       *ptr,
-                                     a_decode_control_block_ptr dctl)
+static a_const_char *demangle_type_specifier(a_const_char               *ptr,
+                                             a_decode_control_block_ptr dctl)
 /*
 Demangle the type at ptr and output the specifier part.  Return a pointer
 to the character position following what was demangled.
 */
 {
-  char *p = ptr, *s, ch;
+  a_const_char *p = ptr, *s;
+  char         ch;
 
   /* Process type qualifiers. */
   p = demangle_type_qualifiers(p, /*trailing_space=*/TRUE, dctl);
@@ -2839,17 +2851,18 @@ to the character position following what was demangled.
 }  /* demangle_type_specifier */
 
 
-static char *demangle_function_parameters(char                       *ptr,
-                                          a_decode_control_block_ptr dctl)
+static a_const_char *demangle_function_parameters(
+                                               a_const_char               *ptr,
+                                               a_decode_control_block_ptr dctl)
 /*
 Demangle the parameter list beginning at ptr and output the demangled form.
 Return a pointer to the character position following what was demangled.
 */
 {
-  char      *p = ptr;
-  char      *param_pos[10];
-  unsigned  long curr_param_num, param_num, nreps;
-  a_boolean any_params = FALSE;
+  a_const_char  *p = ptr;
+  a_const_char  *param_pos[10];
+  unsigned long curr_param_num, param_num, nreps;
+  a_boolean     any_params = FALSE;
 
   write_id_ch('(', dctl);
   if (get_char(p, dctl) == 'v') {
@@ -2920,8 +2933,8 @@ end_of_routine:
 }  /* demangle_function_parameters */
 
 
-static char *skip_extern_C_indication(char                       *ptr,
-                                      a_decode_control_block_ptr dctl)
+static a_const_char *skip_extern_C_indication(a_const_char               *ptr,
+                                              a_decode_control_block_ptr dctl)
 /*
 ptr points to the character after the "F" of a function type.  Skip over
 and ignore an indication of extern "C" following the "F", if one is present.
@@ -2935,8 +2948,8 @@ just ignore it.
 }  /* skip_extern_C_indication */
 
 
-static char *demangle_type_first_part(
-                               char                       *ptr,
+static a_const_char *demangle_type_first_part(
+                               a_const_char               *ptr,
                                a_boolean                  under_lhs_declarator,
                                a_boolean                  need_trailing_space,
                                a_decode_control_block_ptr dctl)
@@ -2951,8 +2964,8 @@ at the end of the type first part (needed if the declarator part is
 not empty, because it contains a name or a derived type).
 */
 {
-  char *p = ptr, *qualp = p;
-  char kind, ext_kind;
+  a_const_char *p = ptr, *qualp = p;
+  char    kind, ext_kind;
 
   /* Remove type qualifiers. */
   p = remove_immediate_type_qualifiers(p, dctl);
@@ -3002,7 +3015,7 @@ not empty, because it contains a name or a derived type).
   } else if (kind == 'M') {
     /* Pointer-to-member type, e.g., "M1Ai" is pointer to member of A of
        type int. */
-    char *classp = p+1;
+    a_const_char *classp = p+1;
     /* Skip over the class name. */
     dctl->suppress_id_output++;
     p = demangle_type_name(classp, dctl);
@@ -3088,7 +3101,7 @@ not empty, because it contains a name or a derived type).
 
 
 static void demangle_type_second_part(
-                               char                       *ptr,
+                               a_const_char               *ptr,
                                a_boolean                  under_lhs_declarator,
                                a_decode_control_block_ptr dctl)
 /*
@@ -3102,8 +3115,8 @@ uses a left-side declarator, e.g., a pointer type.  (That's used to control
 use of parentheses around parts of the declarator.)
 */
 {
-  char *p = ptr, *qualp = p;
-  char kind;
+  a_const_char *p = ptr, *qualp = p;
+  char         kind;
 
   /* Remove type qualifiers. */
   p = remove_immediate_type_qualifiers(p, dctl);
@@ -3124,7 +3137,7 @@ use of parentheses around parts of the declarator.)
     dctl->suppress_id_output--;
     demangle_type_second_part(p, /*under_lhs_declarator=*/TRUE, dctl);
   } else if (kind == 'F') {
-    char *ref_qual = NULL;
+    a_const_char *ref_qual = NULL;
     /* Function type, e.g., "Fii_f" is function(int, int) returning float.
        The return type is not present for top-level function types (except
        for template functions). */
@@ -3211,14 +3224,14 @@ use of parentheses around parts of the declarator.)
 }  /* demangle_type_second_part */
 
 
-static char *demangle_type(char                       *ptr,
-                           a_decode_control_block_ptr dctl)
+static a_const_char *demangle_type(a_const_char               *ptr,
+                                   a_decode_control_block_ptr dctl)
 /*
 Demangle the type at ptr and output the demangled form.  Return a pointer to
 the character position following what was demangled.
 */
 {
-  char *p;
+  a_const_char *p;
 
   /* Generate the specifier part of the type. */
   p = demangle_type_first_part(ptr, /*under_lhs_declarator=*/FALSE,
@@ -3229,8 +3242,8 @@ the character position following what was demangled.
 }  /* demangle_type */
 
 
-static char *demangle_identifier_with_preceding_length(
-                     char                       *ptr,
+static a_const_char *demangle_identifier_with_preceding_length(
+                     a_const_char               *ptr,
                      a_boolean                  suppress_parent_and_local_info,
                      a_decode_control_block_ptr dctl)
 /*
@@ -3242,7 +3255,7 @@ If suppress_parent_and_local_info is TRUE, do not output parent and
 function-local information if present (but do scan over it).
 */
 {
-  char          *p = ptr, *prev_end;
+  a_const_char  *p = ptr, *prev_end;
   unsigned long nchars;
 
   p = get_length(p, &nchars, &prev_end, dctl);
@@ -3253,8 +3266,8 @@ function-local information if present (but do scan over it).
 }  /* demangle_identifier_with_preceding_length */
 
 
-static char *full_demangle_identifier(
-                     char                       *ptr,
+static a_const_char *full_demangle_identifier(
+                     a_const_char               *ptr,
                      unsigned long              nchars,
                      a_boolean                  suppress_parent_and_local_info,
                      a_decode_control_block_ptr dctl)
@@ -3268,9 +3281,10 @@ An identifier can include template argument, parent, and function-local
 information.
 */
 {
-  char          *p = ptr, *pname, *end_ptr, *function_local_end_ptr = NULL;
-  char          *final_specialization, *end_ptr_first_scan, *prev_end = NULL;
-  char          ch, *oname;
+  a_const_char  *p = ptr, *pname, *end_ptr, *function_local_end_ptr = NULL;
+  a_const_char  *final_specialization, *end_ptr_first_scan, *prev_end = NULL;
+  char          ch;
+  a_const_char  *oname;
   a_boolean     is_function = TRUE;
   a_template_param_block
                 temp_par_info;
@@ -3500,7 +3514,7 @@ end_of_routine:
 }  /* full_demangle_identifier */
 
 
-static a_boolean is_mangled_type_name(char                       *ptr,
+static a_boolean is_mangled_type_name(a_const_char               *ptr,
                                       a_decode_control_block_ptr dctl)
 /*
 Return TRUE if the encoding beginning at ptr appears to be a mangled
@@ -3510,8 +3524,8 @@ cfront-style local name (e.g., __2name); the character passed in is
 the one after the double underscore.
 */
 {
-  a_boolean is_type_name = FALSE;
-  char      *p = ptr;
+  a_boolean    is_type_name = FALSE;
+  a_const_char *p = ptr;
 
   if (isdigit((unsigned char)get_char(p, dctl))) {
     /* Skip over the number. */
@@ -3542,15 +3556,16 @@ the one after the double underscore.
 }  /* is_mangled_type_name */
 
 
-static char *demangle_static_variable_name(char                       *ptr,
-                                           a_decode_control_block_ptr dctl)
+static a_const_char *demangle_static_variable_name(
+                                               a_const_char               *ptr,
+                                               a_decode_control_block_ptr dctl)
 /*
 Demangle the name of a static variable promoted to being external by
 addition of a prefix "__STV__" and a suffix of a module id.  Just put out
 the part in the middle, which is the original name.
 */
 {
-  char *start_ptr;
+  a_const_char *start_ptr;
 
   ptr += 7;  /* Move to after "__STV__". */
   /* Copy the name until "__". */
@@ -3571,8 +3586,8 @@ the part in the middle, which is the original name.
 }  /* demangle_static_variable_name */
 
 
-static char *demangle_local_name(char                       *ptr,
-                                 a_decode_control_block_ptr dctl)
+static a_const_char *demangle_local_name(a_const_char               *ptr,
+                                         a_decode_control_block_ptr dctl)
 /*
 Demangle the local name at ptr and output the demangled form.  Return
 a pointer to the character position following what was demangled.
@@ -3584,7 +3599,7 @@ of these demangling routines, but it's an easy and common case, so...
 Also handles the cfront-style __nnName form.
 */
 {
-  char *p = ptr+2;
+  a_const_char *p = ptr+2;
 
   /* Check for the initial two numbers and underscores.  The caller checked
      for the two initial underscores and the digit following that. */
@@ -3618,14 +3633,14 @@ end_of_routine:
 }  /* demangle_local_name */
 
 
-static char *uncompress_mangled_name(char                       *id,
-                                     a_decode_control_block_ptr dctl)
+static a_const_char *uncompress_mangled_name(a_const_char               *id,
+                                             a_decode_control_block_ptr dctl)
 /*
 Uncompress the compressed mangled name beginning at id.  Return the
 address of the uncompressed name.
 */
 {
-  char          *uncompressed_name = id, *src_end = dctl->end_of_name;
+  a_const_char  *uncompressed_name = id, *src_end = dctl->end_of_name;
   unsigned long length;
 
   /* Advance past "__CPR". */
@@ -3651,12 +3666,13 @@ address of the uncompressed name.
     dctl->output_overflow_err = TRUE;
     goto end_of_routine;
   } else {
-    char *src, *dst, *dst_end = dctl->output_id+dctl->output_id_size;
+    a_const_char *src, *dst_end = dctl->output_id+dctl->output_id_size;
+    char         *dst;
     /* Uncompress to the end of the buffer supplied by the caller, then
        do the demangling in the space remaining at the beginning. */
     uncompressed_name = dst_end-(length+1);
     dctl->output_id_size -= length+1;
-    dst = uncompressed_name;
+    dst = (char *)uncompressed_name;
     for (src = id; *src != '\0';) {
       char ch = *src++;
       if (ch != 'J') {
@@ -3681,7 +3697,7 @@ address of the uncompressed name.
           /* "JnnnJ" indicates a repetition of a string that appeared
              earlier, at position "nnn". */
           unsigned long pos, prev_len;
-          char          *prev_str, *prev_str2, *prev_end;
+          a_const_char  *prev_str, *prev_str2, *prev_end;
           dctl->end_of_name = src_end;
           src = get_number(src, &pos, dctl);
           if (*src != 'J' || pos > length) {
@@ -3727,12 +3743,12 @@ end_of_routine:;
 }  /* uncompress_mangled_name */
 
 
-void decode_identifier(char      *id,
-                       char      *output_buffer,
-                       sizeof_t  output_buffer_size,
-                       a_boolean *err,
-                       a_boolean *buffer_overflow_err,
-                       sizeof_t  *required_buffer_size)
+void decode_identifier(a_const_char *id,
+                       char         *output_buffer,
+                       sizeof_t     output_buffer_size,
+                       a_boolean    *err,
+                       a_boolean    *buffer_overflow_err,
+                       sizeof_t     *required_buffer_size)
 /*
 Demangle the identifier id (which is null-terminated), and put the demangled
 form (null-terminated) into the output_buffer provided by the caller.
@@ -3748,7 +3764,7 @@ The caller must be prepared in that case to loop a second time (the
 length returned the second time will be correct).
 */
 {
-  char                       *end_ptr, *p;
+  a_const_char               *end_ptr, *p;
   a_decode_control_block     control_block;
   a_decode_control_block_ptr dctl = &control_block;
 
@@ -3922,7 +3938,7 @@ typedef enum a_substitution_kind {
 } a_substitution_kind;
 
 typedef struct a_substitution {
-  char		*start;	/* First character of the encoding of the entity. */
+  a_const_char	*start;	/* First character of the encoding of the entity. */
   a_substitution_kind
 		kind;	/* Kind of entity. */
   unsigned long	num_levels;
@@ -3959,24 +3975,25 @@ static unsigned long
 			   elements. */
 
 
-static char *demangle_type_first_part(
-                               char                       *ptr,
+static a_const_char *demangle_type_first_part(
+                               a_const_char               *ptr,
                                a_cv_qualifier_set         cv_quals,
                                a_boolean                  under_lhs_declarator,
                                a_boolean                  need_trailing_space,
                                a_boolean                  parse_template_args,
                                a_decode_control_block_ptr dctl);
 static void demangle_type_second_part(
-                               char                       *ptr,
+                               a_const_char               *ptr,
                                a_cv_qualifier_set         cv_quals,
                                a_boolean                  under_lhs_declarator,
                                a_decode_control_block_ptr dctl);
-static char *full_demangle_type(char                       *ptr,
+static a_const_char *full_demangle_type(
+                                a_const_char               *ptr,
                                 a_boolean                  parse_template_args,
                                 a_boolean                  is_pack_expansion,
                                 a_decode_control_block_ptr dctl);
-static char *demangle_simple_id(char                       *ptr,
-                                a_decode_control_block_ptr dctl);
+static a_const_char *demangle_simple_id(a_const_char               *ptr,
+                                        a_decode_control_block_ptr dctl);
 /*
 Macro to invoke full_demangle_type in the usual case where parse_template_args
 is TRUE and is_pack_expansion is FALSE.
@@ -3985,8 +4002,8 @@ is TRUE and is_pack_expansion is FALSE.
   full_demangle_type(ptr, /*parse_template_args=*/TRUE,                   \
                      /*is_pack_expansion=*/FALSE, dctl)
 
-static char *demangle_template_args(char                       *ptr,
-                                    a_decode_control_block_ptr dctl);
+static a_const_char *demangle_template_args(a_const_char               *ptr,
+                                            a_decode_control_block_ptr dctl);
 
 /*
 Bit mask used to determine which portion(s) of a <name> should
@@ -4001,34 +4018,36 @@ typedef int a_demangle_name_option;
 #define DNO_NAME	((a_demangle_name_option)0x2)
 #define DNO_ALL 	(DNO_EXTERNALIZATION | DNO_NAME)
 
-static char *demangle_name(char                       *ptr,
-                           a_func_block               *func_block,
-                           a_demangle_name_option     options,
-                           a_decode_control_block_ptr dctl);
-static char *demangle_unresolved_name(char                       *ptr,
-                                      a_decode_control_block_ptr dctl);
-static char *demangle_expression(char                       *ptr,
-                                 a_decode_control_block_ptr dctl);
-static char *demangle_encoding(char                       *ptr,
-                               a_boolean                  include_func_params,
-                               a_decode_control_block_ptr dctl);
-static char *demangle_nested_name_components(
-                              char                       *ptr,
+static a_const_char *demangle_name(a_const_char               *ptr,
+                                   a_func_block               *func_block,
+                                   a_demangle_name_option     options,
+                                   a_decode_control_block_ptr dctl);
+static a_const_char *demangle_unresolved_name(a_const_char               *ptr,
+                                              a_decode_control_block_ptr dctl);
+static a_const_char *demangle_expression(a_const_char               *ptr,
+                                         a_decode_control_block_ptr dctl);
+static a_const_char *demangle_encoding(
+                                a_const_char               *ptr,
+                                a_boolean                  include_func_params,
+                                a_decode_control_block_ptr dctl);
+static a_const_char *demangle_nested_name_components(
+                              a_const_char               *ptr,
                               unsigned long              num_levels,
                               a_boolean                  *is_no_return_name,
                               a_boolean                  *has_templ_arg_list,
                               char                       *ctor_dtor_kind,
-                              char                       **last_component_name,
+                              a_const_char               **last_component_name,
                               a_decode_control_block_ptr dctl);
-static char *demangle_unscoped_name(char                       *ptr,
-                                    a_func_block               *func_block,
-                                    a_decode_control_block_ptr dctl);
-static char *demangle_unqualified_name(
-                                 char                       *ptr,
+static a_const_char *demangle_unscoped_name(
+                                        a_const_char               *ptr,
+                                        a_func_block               *func_block,
+                                        a_decode_control_block_ptr dctl);
+static a_const_char *demangle_unqualified_name(
+                                 a_const_char               *ptr,
                                  a_boolean                  *is_no_return_name,
                                  a_decode_control_block_ptr dctl);
-static char *demangle_template_param(char                       *ptr,
-                                     a_decode_control_block_ptr dctl);
+static a_const_char *demangle_template_param(a_const_char               *ptr,
+                                             a_decode_control_block_ptr dctl);
 static void output_cv_qualifiers(a_cv_qualifier_set         cv_quals,
                                  a_boolean                  trailing_space,
                                  a_decode_control_block_ptr dctl);
@@ -4046,7 +4065,7 @@ Clear a function information block to default values.
 }  /* clear_func_block */
 
 
-static char *get_number(char                       *p,
+static a_const_char *get_number(a_const_char               *p,
                         long                       *num,
                         a_decode_control_block_ptr dctl)
 /*
@@ -4077,7 +4096,7 @@ A negative number is indicated by a leading "n".
 
 
 static void record_substitutable_entity(
-                                char                       *start,
+                                a_const_char               *start,
                                 a_substitution_kind        kind,
                                 unsigned long              num_levels,
                                 a_boolean                  parse_template_args,
@@ -4122,14 +4141,14 @@ the type when it is used as a substitution).
 }  /* record_substitutable_entity */
 
 
-static char *demangle_substitution(
-                             char                       *ptr,
+static a_const_char *demangle_substitution(
+                             a_const_char               *ptr,
                              int                        type_pass_num,
                              a_cv_qualifier_set         cv_quals,
                              a_boolean                  under_lhs_declarator,
                              a_boolean                  need_trailing_space,
-                             char                       **last_component_name,
-                             char                       **substitution,
+                             a_const_char               **last_component_name,
+                             a_const_char               **substitution,
                              a_decode_control_block_ptr dctl)
 /*
 Demangle an IA-64 <substitution> and output the demangled form.
@@ -4173,8 +4192,8 @@ type the substitution represents).
   if (substitution != NULL) *substitution = NULL;
   if (islower((unsigned char)ch2)) {
     /* Predefined substitution. */
-    char *str = "";
-    char *last_name = "";
+    a_const_char *str = "";
+    a_const_char *last_name = "";
     if (ch2 == 't') {
       str = "std";
       last_name = "3std";
@@ -4209,11 +4228,11 @@ type the substitution represents).
     /* Not a predefined substitution.  Convert the base-36 sequence number. */
     uint32_t        number = 0;
     a_substitution *subp;
-    char           *p;
+    a_const_char   *p;
     ptr++;
     if (ch2 != '_') {
       do {
-        static char digits[] = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+        static a_const_char digits[] = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ";
         number *= 36;
         if (*ptr == '\0') {
           bad_mangled_name(dctl);
@@ -4322,8 +4341,8 @@ typedef int a_bare_function_type_option;
 #define BFT_PARAMS	((a_bare_function_type_option)0x2)
 
 
-static char *demangle_bare_function_type(
-                                    char                        *ptr,
+static a_const_char *demangle_bare_function_type(
+                                    a_const_char                *ptr,
                                     a_boolean                   no_return_type,
                                     a_bare_function_type_option options,
                                     a_decode_control_block_ptr  dctl)
@@ -4402,8 +4421,8 @@ what portion(s) of it were emitted).
 }  /* demangle_bare_function_type */
 
 
-static char *get_cv_qualifiers(char               *ptr,
-                               a_cv_qualifier_set *cv_quals)
+static a_const_char *get_cv_qualifiers(a_const_char       *ptr,
+                                       a_cv_qualifier_set *cv_quals)
 /*
 Advance over any cv-qualifiers (const/volatile) at the indicated location
 and return in *cv_quals a bit set indicating the qualifiers encountered.
@@ -4432,8 +4451,8 @@ but currently the front end doesn't use any).
 }  /* get_cv_qualifiers */
 
 
-static char *get_ref_qualifier(char            *ptr,
-                               a_ref_qualifier *ref_qual)
+static a_const_char *get_ref_qualifier(a_const_char    *ptr,
+                                       a_ref_qualifier *ref_qual)
 /*
 Advance over a ref-qualifier (lvalue/rvalue) at the indicated location
 and return in *ref_qual a value indicating the ref-qualifier encountered.
@@ -4452,7 +4471,7 @@ Return a pointer to the character position following what was demangled.
 }  /* get_ref_qualifier */
 
 
-static a_boolean is_vendor_extended_declarator(char *ptr)
+static a_boolean is_vendor_extended_declarator(a_const_char *ptr)
 /*
 Returns TRUE if the location pointed to by ptr contains an EDG-specific vendor
 extended type qualifier and the extension is being used as a declarator.
@@ -4466,8 +4485,9 @@ Note that these vendor extended type qualifiers are treated as order-sensitive.
 }  /* is_vendor_extended_declarator */
 
 
-static char *demangle_vector_size_qualifier(char                       *ptr,
-                                            a_decode_control_block_ptr dctl)
+static a_const_char *demangle_vector_size_qualifier(
+                                               a_const_char               *ptr,
+                                               a_decode_control_block_ptr dctl)
 /*
 Demangle the GNU vector_size qualifier if it appears at the indicated
 location.  Return a pointer to the character position following what was
@@ -4525,7 +4545,7 @@ Output a ref-qualifier (lvalue/rvalue) if ref_qual indicates there is one.
 }  /* output_ref_qualifier */
 
 
-static char *demangle_template_param(char                       *ptr,
+static a_const_char *demangle_template_param(a_const_char               *ptr,
                                      a_decode_control_block_ptr dctl)
 /*
 Demangle an IA-64 <template-param> and output the demangled form.  Return
@@ -4559,8 +4579,9 @@ The syntax is:
 }  /* demangle_template_param */
 
 
-static char *demangle_parameter_reference(char                       *ptr,
-                                          a_decode_control_block_ptr dctl)
+static a_const_char *demangle_parameter_reference(
+                                               a_const_char               *ptr,
+                                               a_decode_control_block_ptr dctl)
 /*
 Demangle an IA-64 <function-param> and output the demangled form.
 Function parameter placeholders are needed for late-specified return types.
@@ -4642,8 +4663,8 @@ end_of_routine:
 
 
 /* Forward reference. */
-static char *demangle_source_name(
-                                 char                       *ptr,
+static a_const_char *demangle_source_name(
+                                 a_const_char               *ptr,
                                  a_boolean                  is_module_id,
                                  a_decode_control_block_ptr dctl);
 
@@ -4672,8 +4693,8 @@ vendor extended types which are recorded.
 */
 #define record_substitution_for_type(p) (!(is_builtin_type(p)) || *(p) == 'u')
 
-static char *demangle_type_specifier(
-                                char                       *ptr,
+static a_const_char *demangle_type_specifier(
+                                a_const_char               *ptr,
                                 a_boolean                  parse_template_args,
                                 a_decode_control_block_ptr dctl)
 /*
@@ -4701,14 +4722,14 @@ parsed as part of the type.  parse_template_args is FALSE when parsing the
 demangled as part of the template function instead).
 */
 {
-  char *p = ptr, *s;
+  a_const_char *p = ptr, *s;
 
   /* Builtin type encodings are typically lower-case (with some exceptions).
      Names begin with a digit or an upper-case letter. */
   if (!is_builtin_type(p)) {
     if (*p == 'T') {
       /* A template parameter, possibly a template template parameter. */
-      char *tstart = p;
+      a_const_char *tstart = p;
       p = demangle_template_param(p, dctl);
       if (*p == 'I' && parse_template_args) {
         /* A <template-args> list. */
@@ -4875,7 +4896,7 @@ demangled as part of the template function instead).
 }  /* demangle_type_specifier */
 
 
-static char *skip_extern_C_indication(char *ptr)
+static a_const_char *skip_extern_C_indication(a_const_char *ptr)
 /*
 ptr points to the character after the "F" of a function type.  Skip over
 and ignore an indication of extern "C" following the "F", if one is present.
@@ -4889,8 +4910,8 @@ just ignore it.
 }  /* skip_extern_C_indication */
 
 
-static char *demangle_type_first_part(
-                               char                       *ptr,
+static a_const_char *demangle_type_first_part(
+                               a_const_char               *ptr,
                                a_cv_qualifier_set         cv_quals,
                                a_boolean                  under_lhs_declarator,
                                a_boolean                  need_trailing_space,
@@ -4910,7 +4931,7 @@ to be on top of the type.  If parse_template_args is TRUE then any
 <template-args> in the type should be parsed as part of the type.
 */
 {
-  char               *p = ptr, *qualp = p, *unqualp;
+  a_const_char       *p = ptr, *qualp = p, *unqualp;
   char               kind;
   a_cv_qualifier_set local_cv_quals;
   a_boolean          record_substitution = TRUE;
@@ -4927,8 +4948,8 @@ to be on top of the type.  If parse_template_args is TRUE then any
     p = demangle_substitution(p, 1, cv_quals,
                               under_lhs_declarator,
                               need_trailing_space,
-                              (char **)NULL,
-                              (char **)NULL,
+                              (a_const_char **)NULL,
+                              (a_const_char **)NULL,
                               dctl);
     record_substitution = FALSE;
     if (*p == 'I') {
@@ -4938,8 +4959,8 @@ to be on top of the type.  If parse_template_args is TRUE then any
     }  /* if */
   } else if (kind == 'P' || kind == 'R' || kind == 'O' || kind == 'C' ||
              (kind == 'U' && is_vendor_extended_declarator(p))) {
-    char      *vendor_ext = NULL;
-    a_boolean need_space = TRUE;
+    a_const_char *vendor_ext = NULL;
+    a_boolean    need_space = TRUE;
     /* Look for type qualifiers:
         <type> ::= <CV-qualifiers> <type>
                ::= P <type> # pointer-to
@@ -4994,7 +5015,7 @@ to be on top of the type.  If parse_template_args is TRUE then any
     output_cv_qualifiers(cv_quals, /*trailing_space=*/TRUE, dctl);
   } else if (kind == 'M') {
     /* Pointer-to-member type, M <class type> <member type>. */
-    char *classp = p+1;
+    a_const_char *classp = p+1;
     /* Skip over the class name. */
     /* Substitutions do get recorded on this scan. */
     dctl->suppress_id_output++;
@@ -5085,7 +5106,7 @@ to be on top of the type.  If parse_template_args is TRUE then any
 
 
 static void demangle_type_second_part(
-                               char                       *ptr,
+                               a_const_char               *ptr,
                                a_cv_qualifier_set         cv_quals,
                                a_boolean                  under_lhs_declarator,
                                a_decode_control_block_ptr dctl)
@@ -5102,7 +5123,7 @@ indicates any previously-scanned cv-qualifiers that are to considered
 to be on top of the type.
 */
 {
-  char               *p = ptr;
+  a_const_char       *p = ptr;
   char               kind;
   a_cv_qualifier_set local_cv_quals;
 
@@ -5117,8 +5138,8 @@ to be on top of the type.
     p = demangle_substitution(p, 2, cv_quals,
                               under_lhs_declarator,
                               /*need_trailing_space=*/FALSE,
-                              (char **)NULL,
-                              (char **)NULL,
+                              (a_const_char **)NULL,
+                              (a_const_char **)NULL,
                               dctl);
     /* No need to scan the <template-args> list if there is one -- 
        that was done by demangle_type_first_part. */
@@ -5153,7 +5174,7 @@ to be on top of the type.
     demangle_type_second_part(p, CVQ_NONE, /*under_lhs_declarator=*/TRUE,
                               dctl);
   } else if (kind == 'F') {
-    char *returnt;
+    a_const_char *returnt;
     a_ref_qualifier ref_qual;
     /* Function type, F [Y] <bare-function-type> [<ref-qualifier>] E
        where "Y" indicates extern "C" (and is ignored here). */
@@ -5224,7 +5245,8 @@ to be on top of the type.
 }  /* demangle_type_second_part */
 
 
-static char *full_demangle_type(char                       *ptr,
+static a_const_char *full_demangle_type(
+                                a_const_char               *ptr,
                                 a_boolean                  parse_template_args,
                                 a_boolean                  is_pack_expansion,
                                 a_decode_control_block_ptr dctl)
@@ -5255,7 +5277,7 @@ parsed as part of the type.  When is_pack_expansion is TRUE, emit an
 indication that the type is a pack expansion.
 */
 {
-  char *p;
+  a_const_char *p;
 
   /* Generate the specifier part of the type. */
   p = demangle_type_first_part(ptr, CVQ_NONE, /*under_lhs_declarator=*/FALSE,
@@ -5274,11 +5296,12 @@ indication that the type is a pack expansion.
 }  /* full_demangle_type */
 
 
-static char *get_operator_name(char                       *ptr,
-                               int                        *num_operands,
-                               int                        *length,
-                               char                       **close_str,
-                               a_decode_control_block_ptr dctl)
+static a_const_char *get_operator_name(
+                                      a_const_char               *ptr,
+                                      int                        *num_operands,
+                                      int                        *length,
+                                      a_const_char               **close_str,
+                                      a_decode_control_block_ptr dctl)
 /*
 Demangle an IA-64 <operator-name> and return the demangled form.
 Return NULL if the operator is invalid.  An <operator-name> encodes
@@ -5289,7 +5312,7 @@ operators).  *close_str is set to a string that closes the operator,
 if necessary, e.g., "]" for subscripting; it is set to "" if not needed.
 */
 {
-  char *str = NULL;
+  a_const_char *str = NULL;
 
   *num_operands = 2;
   *close_str = "";
@@ -5593,8 +5616,8 @@ if necessary, e.g., "]" for subscripting; it is set to "" if not needed.
           */
           static char builtin_name[] = "builtin-operation-XX";
           str = builtin_name;
-          str[18] = ptr[10];
-          str[19] = ptr[11];
+          builtin_name[18] = ptr[10];
+          builtin_name[19] = ptr[11];
           *length = 12;
           *num_operands = ptr[1]-'0';
         } else if (start_of_id_is("12clisubscript", ptr+2) &&
@@ -5615,8 +5638,8 @@ if necessary, e.g., "]" for subscripting; it is set to "" if not needed.
 }  /* get_operator_name */
 
 
-static char *demangle_source_name(
-                                 char                       *ptr,
+static a_const_char *demangle_source_name(
+                                 a_const_char               *ptr,
                                  a_boolean                  is_module_id,
                                  a_decode_control_block_ptr dctl)
 /*
@@ -5683,9 +5706,9 @@ output the rest of the string).  This is used for an EDG extension.
 }  /* demangle_source_name */
 
 
-static char *get_instance_number(char                       *p,
-                                 unsigned long              *instance,
-                                 a_decode_control_block_ptr dctl)
+static a_const_char *get_instance_number(a_const_char               *p,
+                                         unsigned long              *instance,
+                                         a_decode_control_block_ptr dctl)
 /*
 An underscore optionally preceded by a non-negative instance number is
 expected at *p.  Advance past the underscore.  Return the instance number
@@ -5711,8 +5734,8 @@ expected at *p.  Advance past the underscore.  Return the instance number
 }  /* get_instance_number */
 
 
-static char *demangle_unnamed_type(char                       *ptr,
-                                   a_decode_control_block_ptr dctl)
+static a_const_char *demangle_unnamed_type(a_const_char               *ptr,
+                                           a_decode_control_block_ptr dctl)
 /*
 Demangle an IA-64 <unnamed-type-name>.  Return a pointer to the character
 position following what was demangled.
@@ -5762,8 +5785,8 @@ position following what was demangled.
 }  /* demangle_unnamed_type */
 
 
-static char *demangle_unqualified_name(
-                                 char                       *ptr,
+static a_const_char *demangle_unqualified_name(
+                                 a_const_char               *ptr,
                                  a_boolean                  *is_no_return_name,
                                  a_decode_control_block_ptr dctl)
 /*
@@ -5821,8 +5844,8 @@ caller does not need the value.
       dctl->contains_conversion_operator = TRUE;
     } else {
       /* Other operator function (not conversion function). */
-      int       num_operands, length;
-      char      *op_str, *close_str;
+      int          num_operands, length;
+      a_const_char *op_str, *close_str;
       op_str = get_operator_name(ptr, &num_operands, &length, &close_str,
                                  dctl);
       if (op_str == NULL) {
@@ -5838,7 +5861,7 @@ caller does not need the value.
 }  /* demangle_unqualified_name */
 
 
-static unsigned char get_hex_digit(char                       *ptr,
+static unsigned char get_hex_digit(a_const_char               *ptr,
                                    a_decode_control_block_ptr dctl)
 /*
 Convert a hexadecimal digit at ptr to an integral value, and return the
@@ -5860,8 +5883,8 @@ value.
 }  /* get_hex_digit */
 
 
-static char *demangle_float_number(char                       *ptr,
-                                   a_decode_control_block_ptr dctl)
+static a_const_char *demangle_float_number(a_const_char               *ptr,
+                                           a_decode_control_block_ptr dctl)
 /*
 Demangle a floating point number as specified in an IA-64 float or complex
 literal and output the demangled form.  The floating point number is
@@ -5888,7 +5911,7 @@ to the terminating character.
   /* Determine the number of digits in the value by scanning to the
      terminating "E" or "_". */
   length = 0;
-  p = ptr;
+  p = (char *)ptr;
   while (*p != 'E' && *p != '_' && *p != '\0') {
     length++;
     p++;
@@ -5963,8 +5986,8 @@ to the terminating character.
 }  /* demangle_float_number */
 
 
-static char *demangle_float_literal(char                       *ptr,
-                                    a_decode_control_block_ptr dctl)
+static a_const_char *demangle_float_literal(a_const_char               *ptr,
+                                            a_decode_control_block_ptr dctl)
 /*
 Demangle an IA-64 float literal and output the demangled form.
 Return a pointer to the character position following what was demangled.
@@ -5990,8 +6013,8 @@ high-order bytes first, using lower-case letters.
 }  /* demangle_float_literal */
 
 
-static char *demangle_complex_literal(char                       *ptr,
-                                      a_decode_control_block_ptr dctl)
+static a_const_char *demangle_complex_literal(a_const_char               *ptr,
+                                              a_decode_control_block_ptr dctl)
 /*
 Demangle an IA-64 complex float literal and output the demangled form.
 Return a pointer to the character position following what was demangled.
@@ -6033,8 +6056,8 @@ Macro that returns TRUE if the character represents a floating point type.
 #define is_floating_point_type(ch)                                        \
  ((ch) == 'd' || (ch) == 'e' || (ch) == 'f' || (ch) == 'g')
 
-static char *demangle_expr_primary(char                       *ptr,
-                                   a_decode_control_block_ptr dctl)
+static a_const_char *demangle_expr_primary(a_const_char               *ptr,
+                                           a_decode_control_block_ptr dctl)
 /*
 Demangle an IA-64 literal or external name and output the demangled form.
 Return a pointer to the character position following what was demangled.
@@ -6050,7 +6073,7 @@ The syntax is:
 
 */
 {
-  char        *sub = NULL;
+  a_const_char *sub = NULL;
 
   if (ptr[1] == 'S') {
     /* Most of the types used in literals are <builtin-type>s, so there are no
@@ -6060,7 +6083,7 @@ The syntax is:
     (void)demangle_substitution(ptr+1, 0, CVQ_NONE,
                                 /*under_lhs_declarator=*/FALSE,
                                 /*need_trailing_space=*/FALSE,
-                                (char **)NULL,
+                                (a_const_char **)NULL,
                                 &sub,
                                 dctl);
     dctl->suppress_id_output--;
@@ -6130,8 +6153,8 @@ The syntax is:
 }  /* demangle_expr_primary */
 
 
-static char *demangle_expression_list_full(
-                                 char                       *ptr,
+static a_const_char *demangle_expression_list_full(
+                                 a_const_char               *ptr,
                                  char                       stop_char,
                                  char                       open_paren,
                                  char                       close_paren,
@@ -6162,8 +6185,8 @@ Returns a pointer to the terminating character (unless an error occurs).
 }  /* demangle_expression_list_full */
 
 
-static char *demangle_expression_list(
-                                 char                       *ptr,
+static a_const_char *demangle_expression_list(
+                                 a_const_char               *ptr,
                                  char                       stop_char,
                                  a_decode_control_block_ptr dctl)
 /*
@@ -6176,8 +6199,8 @@ pointer to the terminating character (unless an error occurs).
 }  /* demangle_expression_list */
 
 
-static char *demangle_initializer(
-                                 char                       *ptr,
+static a_const_char *demangle_initializer(
+                                 a_const_char               *ptr,
                                  a_decode_control_block_ptr dctl)
 /*
 Demangle an <initializer> (or an 'E') starting at ptr.
@@ -6204,8 +6227,8 @@ Demangle an <initializer> (or an 'E') starting at ptr.
 }  /* demangle_initializer */
 
 
-static char *demangle_expression(char                       *ptr,
-                                 a_decode_control_block_ptr dctl)
+static a_const_char *demangle_expression(a_const_char               *ptr,
+                                         a_decode_control_block_ptr dctl)
 /*
 Demangle an IA-64 <expression> and output the demangled form.
 Return a pointer to the character position following what was demangled.
@@ -6300,7 +6323,7 @@ Also, these non-standard expressions (EDG-specific) are demangled:
 */
 {
   int          num_operands, length;
-  char         *op_str, *close_str;
+  a_const_char *op_str, *close_str;
 
   if (*ptr == 'L') {
     /* A literal or external name. */
@@ -6329,7 +6352,7 @@ Also, these non-standard expressions (EDG-specific) are demangled:
     /* Cast/conversion (with one type and zero or more arguments).  When
        exactly one expression is specified, emit "(T)expr", otherwise
        emit T(expr). */
-    char      *nptr;
+    a_const_char *nptr;
     a_boolean one_argument = FALSE;
     /* Take a peek (without emitting the type, but recording substitutions)
        to see which case we have. */
@@ -6391,7 +6414,7 @@ Also, these non-standard expressions (EDG-specific) are demangled:
     write_id_str("gcnew ", dctl);
     /* Optional array dimension expressions. */
     if (*ptr != '_') {
-      char *optr = ptr, *ptr2;
+      a_const_char *optr = ptr, *ptr2;
       /* We need the type before the dimension list, so suppress the list
          to get to the type. */
       dctl->suppress_id_output++;
@@ -6578,8 +6601,8 @@ Also, these non-standard expressions (EDG-specific) are demangled:
 }  /* demangle_expression */
 
 
-static char *demangle_template_args(char                       *ptr,
-                                    a_decode_control_block_ptr dctl)
+static a_const_char *demangle_template_args(a_const_char               *ptr,
+                                            a_decode_control_block_ptr dctl)
 /*
 Demangle an IA-64 <template-args> and output the demangled form.
 Return a pointer to the character position following what was demangled.
@@ -6628,13 +6651,13 @@ A <template-args> encodes a template argument list.  The syntax is:
 }  /* demangle_template_args */
 
 
-static char *demangle_nested_name_components(
-                              char                       *ptr,
+static a_const_char *demangle_nested_name_components(
+                              a_const_char               *ptr,
                               unsigned long              num_levels,
                               a_boolean                  *is_no_return_name,
                               a_boolean                  *has_templ_arg_list,
                               char                       *ctor_dtor_kind,
-                              char                       **last_component_name,
+                              a_const_char               **last_component_name,
                               a_decode_control_block_ptr dctl)
 /*
 Demangle one or more name level components of an IA-64 <nested-name>.
@@ -6657,8 +6680,8 @@ for the name of the last component.  If the last component is a
 substitution, the name of the last component in the substitution is used.
 */
 {
-  char          *prev_component_name = NULL;
-  char          *first_component_start = ptr;
+  a_const_char  *prev_component_name = NULL;
+  a_const_char  *first_component_start = ptr;
   unsigned long level_num = 0;
 
   *is_no_return_name = FALSE;
@@ -6681,7 +6704,7 @@ substitution, the name of the last component in the substitution is used.
                                   /*under_lhs_declarator=*/FALSE,
                                   /*need_trailing_space=*/FALSE,
                                   &prev_component_name,
-                                  (char **)NULL,
+                                  (a_const_char **)NULL,
                                   dctl);
       /* A substitution cannot be the last thing; it must be followed
          by another name or a template argument list. */
@@ -6795,9 +6818,10 @@ substitution, the name of the last component in the substitution is used.
 }  /* demangle_nested_name_components */
 
 
-static char *demangle_nested_name(char                       *ptr,
-                                  a_func_block               *func_block,
-                                  a_decode_control_block_ptr dctl)
+static a_const_char *demangle_nested_name(
+                                        a_const_char               *ptr,
+                                        a_func_block               *func_block,
+                                        a_decode_control_block_ptr dctl)
 /*
 Demangle an IA-64 <nested-name> and output the demangled form.  Return
 a pointer to the character position following what was demangled.
@@ -6839,7 +6863,7 @@ For function names, additional information is returned in *func_block.
                                         &is_no_return_name,
                                         &has_templ_arg_list,
                                         &func_block->ctor_dtor_kind,
-                                        (char **)NULL,
+                                        (a_const_char **)NULL,
                                         dctl);
   ptr = advance_past('E', ptr, dctl);
   /* The function will have no return type if it is not a template. */
@@ -6855,9 +6879,10 @@ For function names, additional information is returned in *func_block.
 }  /* demangle_nested_name */
 
 
-static char *demangle_local_name(char                       *ptr,
-                                 a_func_block               *func_block,
-                                 a_decode_control_block_ptr dctl)
+static a_const_char *demangle_local_name(
+                                        a_const_char               *ptr,
+                                        a_func_block               *func_block,
+                                        a_decode_control_block_ptr dctl)
 /*
 Demangle an IA-64 <local-name> and output the demangled form.  Return
 a pointer to the character position following what was demangled.
@@ -6939,9 +6964,10 @@ For function names, additional information is returned in *func_block.
 }  /* demangle_local_name */
 
 
-static char *demangle_unscoped_name(char                       *ptr,
-                                    a_func_block               *func_block,
-                                    a_decode_control_block_ptr dctl)
+static a_const_char *demangle_unscoped_name(
+                                        a_const_char               *ptr,
+                                        a_func_block               *func_block,
+                                        a_decode_control_block_ptr dctl)
 /*
 Demangle an IA-64 <unscoped-name> and output the demangled form.
 Return a pointer to the character position following what was demangled.
@@ -6966,10 +6992,10 @@ For function names, additional information is updated in *func_block.
 }  /* demangle_unscoped_name */
 
 
-static char *demangle_name(char                       *ptr,
-                           a_func_block               *func_block,
-                           a_demangle_name_option     options,
-                           a_decode_control_block_ptr dctl)
+static a_const_char *demangle_name(a_const_char               *ptr,
+                                   a_func_block               *func_block,
+                                   a_demangle_name_option     options,
+                                   a_decode_control_block_ptr dctl)
 /*
 Demangle selected portions of an IA-64 <name> and output the demangled form.
 Return a pointer to the character position following what was demangled.
@@ -7018,13 +7044,13 @@ as a prefix to specify a module id for an externalized name.
       ptr = demangle_substitution(ptr, 0, CVQ_NONE,
                                   /*under_lhs_declarator=*/FALSE,
                                   /*need_trailing_space=*/FALSE,
-                                  (char **)NULL,
-                                  (char **)NULL,
+                                  (a_const_char **)NULL,
+                                  (a_const_char **)NULL,
                                   dctl);
     } else {
       /* An <unscoped-name>, possibly as the whole of an
          <unscoped-template-name>.  */
-      char *start = ptr;
+      a_const_char *start = ptr;
       ptr = demangle_unscoped_name(ptr, func_block, dctl);
       if (*ptr == 'I') {
         /* This is a template because it is followed by a template arguments
@@ -7046,8 +7072,8 @@ as a prefix to specify a module id for an externalized name.
 }  /* demangle_name */
 
 
-static char *demangle_simple_id(char                       *ptr,
-                                a_decode_control_block_ptr dctl)
+static a_const_char *demangle_simple_id(a_const_char               *ptr,
+                                        a_decode_control_block_ptr dctl)
 /*
 Demangle a <simple-id>:
 
@@ -7064,8 +7090,9 @@ Demangle a <simple-id>:
 }  /* demangle_simple_id */
 
 
-static char *demangle_base_unresolved_name(char                       *ptr,
-                                           a_decode_control_block_ptr dctl)
+static a_const_char *demangle_base_unresolved_name(
+                                               a_const_char               *ptr,
+                                               a_decode_control_block_ptr dctl)
 /*
 Demangle a <base-unresolved-name>:
 
@@ -7085,7 +7112,7 @@ Demangle a <base-unresolved-name>:
 */
 {
   int          num_operands, length;
-  char         *op_str, *close_str;
+  a_const_char *op_str, *close_str;
 
   if (*ptr == 'o' && ptr[1] == 'n') {
     /* Operator name. */
@@ -7125,8 +7152,8 @@ Demangle a <base-unresolved-name>:
 }  /* demangle_base_unresolved_name */
 
 
-static char *demangle_unresolved_name(char                       *ptr,
-                                      a_decode_control_block_ptr dctl)
+static a_const_char *demangle_unresolved_name(a_const_char               *ptr,
+                                              a_decode_control_block_ptr dctl)
 /*
 Demangle an <unresolved-name>:
 
@@ -7190,7 +7217,7 @@ can also appear at the <expression> level).
            operand.  Look ahead to see whether that form is used.
            If so, we want to skip over the type but not output it,
            because the qualified name repeats that type. */
-        char *ptr2;
+        a_const_char *ptr2;
         dctl->suppress_id_output++;
         dctl->suppress_substitution_recording++;
         ptr2 = demangle_type(ptr, dctl);
@@ -7242,8 +7269,8 @@ can also appear at the <expression> level).
 }  /* demangle_unresolved_name */
 
 
-static char *demangle_call_offset(char                       *ptr,
-                                  a_decode_control_block_ptr dctl)
+static a_const_char *demangle_call_offset(a_const_char               *ptr,
+                                          a_decode_control_block_ptr dctl)
 /*
 Demangle an IA-64 <call_offset> and output the demangled form.  Return
 a pointer to the character position following what was demangled.
@@ -7281,8 +7308,8 @@ virtual function.  The syntax is:
 }  /* demangle_call_offset */
 
 
-static char *demangle_special_name(char                       *ptr,
-                                   a_decode_control_block_ptr dctl)
+static a_const_char *demangle_special_name(a_const_char               *ptr,
+                                           a_decode_control_block_ptr dctl)
 /*
 Demangle an IA-64 <special-name> and output the demangled form.  Return
 a pointer to the character position following what was demangled.
@@ -7350,8 +7377,8 @@ The syntax is:
 }  /* demangle_special_name */
 
 
-static char *demangle_function_or_data_name(
-                               char                       *ptr,
+static a_const_char *demangle_function_or_data_name(
+                               a_const_char               *ptr,
                                a_boolean                  include_func_params,
                                a_boolean                  first_scan,
                                a_decode_control_block_ptr dctl)
@@ -7479,9 +7506,10 @@ non-template functions).
 }  /* demangle_function_or_data_name */
 
 
-static char *demangle_encoding(char                       *ptr,
-                               a_boolean                  include_func_params,
-                               a_decode_control_block_ptr dctl)
+static a_const_char *demangle_encoding(
+                                a_const_char               *ptr,
+                                a_boolean                  include_func_params,
+                                a_decode_control_block_ptr dctl)
 /*
 Demangle an IA-64 <encoding> and output the demangled form.  Return
 a pointer to the character position following what was demangled.
@@ -7557,7 +7585,7 @@ The caller must be prepared in that case to loop a second time (the
 length returned the second time will be correct).
 */
 {
-  char                       *end_ptr;
+  a_const_char               *end_ptr;
   a_decode_control_block     control_block;
   a_decode_control_block_ptr dctl = &control_block;
 

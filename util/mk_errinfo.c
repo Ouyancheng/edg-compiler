@@ -65,11 +65,11 @@ Maximum number of error tags that can be used.
 #define MAX_TAGS 10000
 
 /* String that is used as the prefix of all diagnostic messages generated. */
-static char *message_prefix = "mk_errinfo";
+static a_const_char *message_prefix = "mk_errinfo";
 
 
 
-void me_internal_error(char*   error_string)
+void me_internal_error(a_const_char* error_string)
 /*
 Prints an internal error message and exits with a catastrophic error
 exit status.
@@ -80,8 +80,8 @@ exit status.
 }  /* me_internal_error */
 
 
-static void me_error(char		*error_text,
-                     char		*insertion_string)
+static void me_error(a_const_char	*error_text,
+                     a_const_char	*insertion_string)
 /*
 Prints an error message and exits with an error exit status.  A string
 may be inserted into the message by passing a pointer to the string
@@ -173,7 +173,7 @@ static void me_command_line_error(void)
   me_error("command line error", (char *)NULL);
 }  /* me_command_line_error */
 
-static char *header_comments[] =
+static a_const_char *header_comments[] =
 {
   "/*",
   "",
@@ -200,8 +200,8 @@ Output the comments that appear at the top of the generated files.
 }  /* me_write_file_header */
 
 
-static void me_write_include_guard_test(FILE  *file,
-                                        char  *guard_name)
+static void me_write_include_guard_test(FILE         *file,
+                                        a_const_char *guard_name)
 /*
 Write an include guard test to the specified file.  guard_name is the string
 to be used for the guard.
@@ -211,8 +211,8 @@ to be used for the guard.
 }  /* me_write_include_guard_test */
 
 
-static void me_write_include_guard_end(FILE  *file,
-                                       char  *guard_name)
+static void me_write_include_guard_end(FILE         *file,
+                                       a_const_char *guard_name)
 /*
 Write the "#endif" of an include guard test to the specified file.
 guard_name is the string to be used for the guard.
@@ -227,9 +227,9 @@ Structure used to record information about an error message.
 */
 typedef struct an_error_info *an_error_info_ptr;
 typedef struct an_error_info {
-  char	*text;
-  char	*enumerator;
-  char	*tag;
+  a_const_char*text;
+  a_const_char *enumerator;
+  a_const_char *tag;
 } an_error_info;
 
 
@@ -484,7 +484,7 @@ static a_font_kind curr_font;
 			   to the documentation file. */
 
 
-typedef void a_doc_string_output_routine(char *, int, a_font_kind);
+typedef void a_doc_string_output_routine(a_const_char *, int, a_font_kind);
 
 static a_doc_string_output_routine
 		*output_doc_string;
@@ -493,7 +493,7 @@ static a_doc_string_output_routine
 
 
 static
-void me_output_latex_doc_string(char	     *string,
+void me_output_latex_doc_string(a_const_char *string,
                                 int	     length,
 			        a_font_kind  font)
 /*
@@ -507,7 +507,7 @@ should be used to determine the length.
   int	i;
 
   if (curr_font != font) {
-    char	*start_string;
+    a_const_char *start_string;
     /* We need to switch fonts.  Terminate the previous font. */
     if (curr_font == fk_normal) {
       /* No action needed to terminate normal font. */
@@ -549,9 +549,9 @@ should be used to determine the length.
 
 
 static
-void me_output_mml_doc_string(char	     *string,
-                                int	     length,
-			        a_font_kind  font)
+void me_output_mml_doc_string(a_const_char *string,
+                              int          length,
+                              a_font_kind  font)
 /*
 Output characters that are part of the error text.  Make sure that
 certain characters are put in the right font, when needed.
@@ -562,7 +562,7 @@ should be used to determine the length.
   int	i;
 
   if (curr_font != font) {
-    char	*start_string;
+    a_const_char *start_string;
     /* We need to switch fonts.  Terminate the previous font. */
     /* Begin the new font. */
     switch (font) {
@@ -584,17 +584,17 @@ should be used to determine the length.
 }  /* me_output_mml_doc_string */
 
 
-static void me_create_doc_fillin(char	**ptr_to_ptr)
+static void me_create_doc_fillin(a_const_char **ptr_to_ptr)
 /*
 */
 {
-  char		*ptr = *ptr_to_ptr;
-  char		*orig_ptr = ptr;
+  a_const_char	*ptr = *ptr_to_ptr;
+  a_const_char	*orig_ptr = ptr;
   char		ch;
-  char    	*fill_in = NULL;
+  a_const_char	*fill_in = NULL;
   char		fill_in_specifier[100];
   char		*fis_ptr;
-  char		*fill_in_override = NULL;
+  a_const_char	*fill_in_override = NULL;
 
   /* Scan the characters that make up the fill-in specifier. */
   fis_ptr = fill_in_specifier;
@@ -617,7 +617,7 @@ static void me_create_doc_fillin(char	**ptr_to_ptr)
     fill_in_override = ptr;
     while (*ptr != '\'' && *ptr != '\0') ptr++;
     /* Replace the ending quote with a null. */
-    *ptr = '\0';
+    *(char *)ptr = '\0';
     ptr++;
   }  /* if */
   if (fill_in_override != NULL) {
@@ -703,9 +703,9 @@ Write the error text array to the error data file.
   int	i;
 
   fprintf(data_output_file,
-          "static char *message_text[(int)ec_last + 1] = {\n");
+          "static a_const_char *message_text[(int)ec_last + 1] = {\n");
   for (i = 0; i < number_of_errors; ++i) {
-    char	*ptr;
+    a_const_char *ptr;
     /* If this is not the first time through, terminate the previous line. */
     if (i != 0) fprintf(data_output_file, ",\n");
     fprintf(data_output_file, "  /* %s */\n", error_info[i].enumerator);
@@ -714,7 +714,7 @@ Write the error text array to the error data file.
     ptr = error_info[i].text;
     if (ptr == NULL) {
       /* There is no error text.  This is used for REMOVED errors. */
-      fprintf(data_output_file, "(char *)NULL");
+      fprintf(data_output_file, "(a_const_char *)NULL");
     } else {
       for (; *ptr != '\0'; ++ptr) {
         char ch = *ptr;
@@ -760,7 +760,7 @@ Write the tag lookup table to the error data file.
 }  /* me_write_tag_table */
 
 
-typedef void a_write_item_header_routine(int dummy, char*);
+typedef void a_write_item_header_routine(int dummy, a_const_char*);
                                           /* ^^^^^ needed for c_deproto. */
 
 static a_write_item_header_routine
@@ -769,14 +769,14 @@ static a_write_item_header_routine
 			   for an error message to the documentation file. */
 
 
-static void me_write_latex_item_header(int	number,
-		                       char	*tag)
+static void me_write_latex_item_header(int          number,
+		                       a_const_char *tag)
 /*
 Write the header information for a given error message to the latex
 documentation file.
 */
 {
-  char	*ptr;
+  a_const_char *ptr;
 
   /* Write the item command containing the number. */
   fprintf(doc_output_file, "\\item[\\tt %04d ", number);
@@ -796,14 +796,14 @@ documentation file.
 }  /* me_write_latex_item_header */
 
 
-static void me_write_mml_item_header(int	number,
-		                     char	*tag)
+static void me_write_mml_item_header(int          number,
+		                     a_const_char *tag)
 /*
 Write the header information for a given error message to the mml
 documentation file.
 */
 {
-  char			*ptr;
+  a_const_char		*ptr;
   static a_boolean	first = TRUE;
 
   if (first) {
@@ -838,7 +838,7 @@ Generate a TeX file that documents the error messages
 
   /* Start with position 1 to skip over ec_no_error. */
   for (i = 1; i < number_of_errors; ++i) {
-    char	*ptr;
+    a_const_char *ptr;
     /* Skip any removed errors. */
     if (error_info[i].text == NULL) continue;
     /* Skip INTERNAL messages that have no tags. */
