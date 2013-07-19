@@ -19795,6 +19795,7 @@ templates from that base template.
   a_template_param_ptr  btpl, dtpl, new_tpl;
   a_type_ptr            new_tp;
   a_symbol_ptr          dctor;
+  an_access_specifier   saved_access = cdsp->access;
 
   check_assertion(symbol_is(bctor, sk_function_template));
   btssp = bctor->variant.template_info;
@@ -19882,6 +19883,7 @@ templates from that base template.
       /* Save a pointer to the template declaration information in the
          scope stack entry. */
       scope_stack_top().tmpl_decl_state = &templ_decl_state;
+      cdsp->access = brp->source_corresp.access;
       decl_member_function_template(&loc, new_tpl,
                                     templ_decl_state.il_template_entry,
                                     &func_info, cdsp, &decl_info);
@@ -19910,6 +19912,7 @@ templates from that base template.
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
     }  /* if */
   }  /* for */
+  cdsp->access = saved_access;
 }  /* generate_inheriting_constructors_for_base_template */
 
 
@@ -19926,8 +19929,9 @@ using-declaration.  Generate any needed inheriting constructors from that base
 constructor.
 */
 {
-  a_routine_ptr     brp;
-  uint32_t          n_params, n_base_params;
+  a_routine_ptr        brp;
+  uint32_t             n_params, n_base_params;
+  an_access_specifier  saved_access = cdsp->access;
 
   check_assertion(symbol_is(bctor, sk_member_function));
   brp = bctor->variant.routine.ptr;
@@ -20000,6 +20004,7 @@ constructor.
       make_locator_for_symbol(symbol_for(cdsp->class_type), &loc);
       change_class_locator_into_constructor_locator(&loc, &udp->position,
                                                     /*is_static_ctor=*/FALSE);
+      cdsp->access = brp->source_corresp.access;
       decl_member_function(&loc, &func_info, cdsp, &decl_info,
                            /*compile_generated=*/TRUE);
       new_rp = decl_info.decl_state.sym->variant.routine.ptr;
@@ -20008,6 +20013,7 @@ constructor.
       done_with_func_info(func_info);
     }  /* if */
   }  /* for */
+  cdsp->access = saved_access;
 }  /* generate_inheriting_constructors_for_base_ctor */
 
 
