@@ -11569,9 +11569,11 @@ complete (and issue an error if appropriate).
 */
 {
   if (is_expression_operand(operand)) {
-    an_expr_node_ptr  expr = skip_parens(expr_node_from_operand(operand));
+    an_expr_node_ptr   expr = skip_parens(expr_node_from_operand(operand));
+    a_source_position  *diag_pos = &operand->position;
     while (is_operation_node(expr) && node_operator_is(expr, eok_comma)) {
       expr = skip_parens(expr->variant.operation.operands->next);
+      diag_pos = &expr_stack->call_in_right_comma_operand_pos;
     }  /* if */
     if (is_call_node(expr)) {
       a_type_ptr  type = type_of_call(expr);
@@ -11585,8 +11587,8 @@ complete (and issue an error if appropriate).
               expr_error_should_be_issued()) {
             a_routine_ptr  callee = routine_from_function_expr(
                                             expr->variant.operation.operands);
-            report_incomplete_function_return_type(
-                                     return_type, &operand->position, callee);
+            report_incomplete_function_return_type(return_type, diag_pos,
+                                                   callee);
           }  /* if */
           rtsp->suppress_diagnostic_on_incomplete_return_type = TRUE;
         }  /* if */
@@ -25640,6 +25642,16 @@ expression, and return the result in *result (or an error indication in
     if (!processed) {
       /* Non-operator-function cases. */
       process_void_operand(operand_1);
+      if (expr_stack->allow_call_with_incomplete_return_type) {
+        /* If the second operand is a call, it might require a diagnostic
+           later on if it turns out to have an incomplete return type and
+           another comma operator follows.  Save the position for such a
+           potential diagnostic. */
+        if (is_expression_operand(&operand_2) &&
+            is_call_node(skip_parens(expr_node_from_operand(&operand_2)))) {
+          expr_stack->call_in_right_comma_operand_pos = operand_2.position;
+        }  /* if */
+      }  /* if */
       /* In C++ mode, an lvalue in the second operand is preserved.
          In C mode, an lvalue is converted to an rvalue. */
       if (C_dialect == C_dialect_cplusplus) {

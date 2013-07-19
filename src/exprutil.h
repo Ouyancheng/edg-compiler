@@ -929,11 +929,17 @@ typedef struct an_expr_stack_entry {
 			   unevaluated lambda definition, for use in
 			   diagnostic messages if the definition is later
 			   deemed invalid. */
+  a_source_position
+		call_in_right_comma_operand_pos;
+			/* The source position of the most recent function call
+			   seen in the right hand side of a comma operation.
+			   Only set when allow_call_with_incomplete_return_type
+			   is TRUE; it is used to provide a position for a
+			   diagnostic potentially occurring later on. */
   a_lambda_ptr
 		current_lambda_in_header;
 			/* If non-NULL, we're inside the header (not the body)
 			   of the indicated lambda. */
-  
   an_il_entity_list_entry_ptr
 		*p_end_of_entities_defined_in_expression;
 			/* If non-NULL, entries are recorded to keep track of

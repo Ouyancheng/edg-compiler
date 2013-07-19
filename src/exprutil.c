@@ -1676,6 +1676,7 @@ is pushed regardless of any of the other factors.
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   new_entry->objectless_nonstatic_data_ref_pos = null_source_position;
   new_entry->potentially_unevaluated_lambda_pos = null_source_position;
+  new_entry->call_in_right_comma_operand_pos = null_source_position;
   new_entry->current_lambda_in_header = NULL;
   new_entry->p_end_of_entities_defined_in_expression = NULL;
   new_entry->default_rescan_info = NULL;
