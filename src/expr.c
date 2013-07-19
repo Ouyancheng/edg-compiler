@@ -3957,6 +3957,14 @@ call, and rcblock->argument_list to the previously-scanned argument list.
       make_rescan_operand(rcblock->argument_list, rcblock, &arg);
     }  /* if */
     eliminate_unusual_operand_kinds(&arg);
+    if (bfk == (a_builtin_function_kind)bfk_constant_p) {
+      /* Make sure the usual operand transformations are applied to the operand
+         of __builtin_constant_p since that affects whether we can constant-
+         fold that operand (e.g., if it is the name of a const variable
+         initialized with a constant expression).  Don't do this for
+         __builtin_classify_type because it would affect its result. */
+      do_operand_transformations(&arg, TOPT_NO_OPTIONS);
+    }  /* if */
     force_operand_to_constant_if_possible(&arg);
     expr_stack->favor_constant_result = saved_favor_constant_result;
     /* Now determine the constant result of the pseudo-call by examining the
