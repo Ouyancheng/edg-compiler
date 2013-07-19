@@ -7197,8 +7197,9 @@ end_of_comment:
 }  /* skip_pcc_mode_half_comment */
 
 #if ASM_SUPPORT_NEEDED && !ASM_FUNCTION_ALLOWED
-static void copy_from_source_to_asm_func_buffer(char *stop_char,
-                                                char *after_comment_stop_char);
+static void copy_from_source_to_asm_func_buffer(
+                                        a_const_char *stop_char,
+                                        a_const_char *after_comment_stop_char);
 #endif /* ASM_SUPPORT_NEEDED && !ASM_FUNCTION_ALLOWED */
 
 /*
