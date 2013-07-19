@@ -378,11 +378,11 @@ previously-deprecated implicit conversion of a string literal to char*)
 while preserving the historical interface for C and C++03 applications.
 */
 #ifndef USE_POINTER_TO_CONST_CHAR
-#if __cplusplus >= 201103L
+#if defined(__cplusplus) && __cplusplus >= 201103L
 #define USE_POINTER_TO_CONST_CHAR TRUE
-#else /* !(__cplusplus >= 201103L) */
+#else /* !(defined(__cplusplus) && __cplusplus >= 201103L) */
 #define USE_POINTER_TO_CONST_CHAR FALSE
-#endif /* __cplusplus >= 201103L */
+#endif /* defined(__cplusplus) && __cplusplus >= 201103L */
 #endif /* USE_POINTER_TO_CONST_CHAR */
 #if USE_POINTER_TO_CONST_CHAR
 typedef const char a_const_char;

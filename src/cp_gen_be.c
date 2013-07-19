@@ -12738,10 +12738,10 @@ characters in the string indicate new source lines.
 
   for (; (eol = strchr(p, '\n')) != NULL; p = eol+1) {
     /* Write a sequence of characters ending with a newline. */
-    *eol = '\0';
+    *(char *)eol = '\0';
     write_str(p);
     end_output_line();
-    *eol = '\n';
+    *(char *)eol = '\n';
   }  /* for */
   write_str(p);
 }  /* write_code_string */

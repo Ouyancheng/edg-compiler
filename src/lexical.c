@@ -8641,7 +8641,7 @@ are the prefix characters to be used for 4-digit and 8-digit output.
 */
 {
   int  ucn_chars = ucn_value > 0xffff ? 8 : 4;
-  char ucn[8];
+  char ucn[8] = "";
   int  i;
 
   for (i = ucn_chars; i > 0; i--) {
