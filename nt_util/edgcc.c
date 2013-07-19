@@ -13,7 +13,6 @@ Driver program.
 
 */
 
-#include <malloc.h>
 #include <stdlib.h>
 #include <signal.h>
 #include "basics.h"
@@ -30,7 +29,9 @@ Driver program.
 #define GEN_C_OBJECT_FILE_SUFFIX	".int.obj"
 #define EXECUTABLE_FILE_SUFFIX		".exe"
 #define DEFAULT_OUTPUT_FILE_NAME	"aout"
+#ifndef DEFAULT_EDG_BASE
 #define DEFAULT_EDG_BASE		"\\edg"
+#endif /* ifndef DEFAULT_EDG_BASE */
 #define PATH_DELIMITER			"\\"
 #define LIBC_NAME			"libedg.lib"
 #define DEFAULT_DEFINES			""
@@ -46,7 +47,9 @@ Driver program.
 #define GEN_C_OBJECT_FILE_SUFFIX	".int.o"
 #define EXECUTABLE_FILE_SUFFIX		""
 #define DEFAULT_OUTPUT_FILE_NAME	"a.out"
+#ifndef DEFAULT_EDG_BASE
 #define DEFAULT_EDG_BASE		"/edg/cpfe"
+#endif /* ifndef DEFAULT_EDG_BASE */
 #define PATH_DELIMITER			"/"
 #define LIBC_NAME			"libC.a"
 #define DEFAULT_DEFINES			""
@@ -115,9 +118,13 @@ static a_boolean
 			/* TRUE if edg_munch should be used for static
 			   initialization. */
 
+#if __WIN32__
+
 static long	msvc_target_version;
 			/* The version of the Microsoft compiler being
 			   used to compile the generated code. */
+
+#endif /* __WIN32__ */
 
 /*
 Buffer into which commands are built.
@@ -141,8 +148,6 @@ static char	*edg_base;
                            reside. */
 static char	*cpfe_command;
 			/* Name of the front end executable. */
-static char	*edg_bin;
-			/* $EDG_BASE/bin. */
 static char	*edg_lib;
 			/* $EDG_BASE/lib. */
 static char	*edg_include;
@@ -853,9 +858,6 @@ Startup initialization.
   /* Get the name of the front end executable. */
   cpfe_command = getenv("EDG_CPFE");
   if (cpfe_command == NULL) cpfe_command = CPFE_COMMAND;
-  /* Build $EDG_BASE/bin. */
-  sprintf(string_buffer, "%s%sbin", edg_base, PATH_DELIMITER);
-  edg_bin = copy_of_string(string_buffer);
   /* Build $EDG_BASE/lib. */
   sprintf(string_buffer, "%s%slib", edg_base, PATH_DELIMITER);
   edg_lib = copy_of_string(string_buffer);
@@ -949,7 +951,6 @@ If there is a .ti file, update it with the necessary driver information.
   char			*ti_file_name;
   FILE			*ti_file;
   a_command_line	file_contents;
-  int			i;
   a_cl_argument_ptr	clap;
   a_cl_argument_ptr	prev_clap;
 
@@ -979,7 +980,7 @@ If there is a .ti file, update it with the necessary driver information.
       putc(' ', ti_file);
       clap = clap->next;
     }  /* while */
-    fprintf(ti_file, "-c\n", file_name);
+    fprintf(ti_file, "-c\n");
     /* Write the current directory. */
     fprintf(ti_file, "dir:%s\n", curr_dir_name);
     /* Write the name of the file being compiled. */
