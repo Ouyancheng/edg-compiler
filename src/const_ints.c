@@ -1677,7 +1677,7 @@ buffer.  If an arithmetic value is negative, it is preceded by a "-".
     an_integer_value	value;
     an_integer_value	remainder;
     an_integer_value	iv_max_power_of_10;
-    char			*sign_string = "";
+    a_const_char	*sign_string = "";
     a_boolean		err;
     /* Compute the maximum power of 10 that can be represented in a long.
        Compute the number of digits in the maximum power of 10.
@@ -1776,7 +1776,7 @@ The pointer returned is to an internal static buffer.
 
 #if !INTEGER_VALUE_REPR_IS_A_HOST_INTEGER || FIXED_POINT_ALLOWED
 
-void conv_float_string_to_integer_value(char			*float_str,
+void conv_float_string_to_integer_value(a_const_char		*float_str,
 					an_integer_value	*intval,
 					a_boolean		is_signed,
 					a_boolean		*err)
@@ -1795,7 +1795,7 @@ so no checking is done.
   a_boolean		decimal_present = FALSE;
   int			digits_before_decimal;
   char			*digit_pos = digit_string;
-  char			*curr_pos = float_str;
+  a_const_char		*curr_pos = float_str;
   a_boolean		is_negative = FALSE;
   a_boolean		exp_is_negative = FALSE;
   int			exponent = 0;

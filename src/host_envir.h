@@ -1866,7 +1866,8 @@ specified.  FIXED_ADDRESS_FOR_MMAP is used to provide the default address
 #endif /* ifndef FIXED_ADDRESS_FOR_MMAP */
 
 #if USE_FIXED_ADDRESS_FOR_MMAP
-EXTERN char	*fixed_address_for_mmap;
+EXTERN a_const_char
+		*fixed_address_for_mmap;
 			/* The fixed address to use for mmap calls;
 			   initially set to FIXED_ADDRESS_FOR_MMAP and may be
 			   modified by command line option. */
@@ -2226,8 +2227,8 @@ EXTERN a_boolean
 			   file, the front end should check for the presence
 			   of a byte order mark. */
 #if EDG_WIN32
-extern wchar_t *translate_filename_to_wchar(char *filename);
-extern wchar_t *conv_utf8_to_wchar(char *buffer);
+extern wchar_t *translate_filename_to_wchar(a_const_char *filename);
+extern wchar_t *conv_utf8_to_wchar(a_const_char *buffer);
 
 EXTERN a_text_buffer_ptr
 		wchar_translation_buffer;
@@ -2381,9 +2382,11 @@ the macro need not be defined at all.
   f_mbc_length((ptr), (a_boolean *)NULL, /*is_native=*/FALSE)
 #endif /* ifdef char_may_begin_multibyte_sequence */
 extern void set_multibyte_locale(void);
-extern int f_mbc_length(char *ptr, a_boolean *err, a_boolean is_native);
+extern int f_mbc_length(a_const_char *ptr,
+                        a_boolean    *err,
+                        a_boolean    is_native);
 /* Convert multibyte character sequence to wide character. */
-extern int mbc_to_wide_char(char          *mb,
+extern int mbc_to_wide_char(a_const_char  *mb,
                             unsigned long *wc,
                             a_boolean     *err,
                             a_boolean     is_native);
@@ -2611,11 +2614,11 @@ extern int getc_utf16(FILE                *file,
                     curr_file_unicode_source_kind == usk_none))
 
 #if NATIVE_MULTIBYTE_CHARS_SUPPORTED_WITH_UNICODE
-extern a_boolean set_windows_locale(char	*locale_name);
+extern a_boolean set_windows_locale(a_const_char *locale_name);
 
-extern char *multibyte_chars_to_utf8(char	*id_ptr,
-				     sizeof_t	*id_length,
-				     a_boolean	*err);
+extern char *multibyte_chars_to_utf8(a_const_char *id_ptr,
+				     sizeof_t     *id_length,
+				     a_boolean    *err);
 #endif /* NATIVE_MULTIBYTE_CHARS_SUPPORTED_WITH_UNICODE */
 
 #else /*!UNICODE_SOURCE_SUPPORTED */
@@ -2632,8 +2635,8 @@ extern char *multibyte_chars_to_utf8(char	*id_ptr,
 #endif /* UNICODE_SOURCE_SUPPORTED */
 
 #if MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED
-extern char *mbc_strchr(char *str,
-                        int  chr);
+extern a_const_char *mbc_strchr(a_const_char *str,
+                                int          chr);
 #else /* !MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED */
 /*
 When not using multibyte characters, just map this name onto the
@@ -2657,7 +2660,8 @@ Primary source file name, as given on the command line.  FILE_NAME_FOR_STDIN
 if the primary source file is stdin.  The string is allocated in general
 storage, not IL storage.
 */
-EXTERN char	*primary_source_file_name;
+EXTERN a_const_char
+		*primary_source_file_name;
 
 EXTERN char	*dir_name_of_primary_source_file;
 			/* The directory name of the primary source file.
@@ -2737,7 +2741,7 @@ path for include file opens).
 */
 typedef struct a_directory_name_entry *a_directory_name_entry_ptr;
 typedef struct a_directory_name_entry {
-  char		*dir_name;
+  a_const_char	*dir_name;
 			/* The directory name. */
   a_boolean	system_include_dir;
 			/* TRUE if the directory is considered a "system"
@@ -2883,28 +2887,28 @@ extern void add_default_include_search_path(
 				a_directory_name_entry_ptr *end_search_path);
 /* Add a directory to a specified search path. */
 extern void add_to_specified_include_search_path(
-			char				*dir_name,
+			a_const_char			*dir_name,
 			a_boolean			system_include_dir,
 			a_directory_name_entry_ptr	*search_path,
 			a_directory_name_entry_ptr	*end_search_path);
 /* Add a directory to the end of the include file search path. */
-extern void add_to_include_search_path(char		*dir_name,
+extern void add_to_include_search_path(a_const_char	*dir_name,
                                        a_boolean	sys_include_dir);
 /* Add a directory to the front of the include file search path. */
 extern void add_to_front_of_include_search_path(
-				char			   *dir_name,
+				a_const_char		   *dir_name,
 				a_directory_name_entry_ptr *search_path,
 				a_directory_name_entry_ptr *end_search_path);
 
 /* Change the directory name in the primary include file search path entry. */
-extern void change_primary_include_search_dir(char *dir_name);
+extern void change_primary_include_search_dir(a_const_char *dir_name);
 /* Manage include search path when source input file is pushed or popped. */
-extern void push_primary_include_search_dir(char	*dir_name,
-                                            a_boolean	system_include_dir);
-extern void pop_primary_include_search_dir(char	*dir_name,
+extern void push_primary_include_search_dir(a_const_char *dir_name,
+                                            a_boolean    system_include_dir);
+extern void pop_primary_include_search_dir(a_const_char	*dir_name,
                                            a_boolean	system_include_dir);
 
-extern void add_to_template_search_path(char		*dir_name);
+extern void add_to_template_search_path(a_const_char	*dir_name);
 #if !STANDALONE_UTILITY_PROGRAM
 extern void remove_duplicate_system_includes(
                             a_directory_name_entry_ptr *include_path_boundary);
@@ -2919,8 +2923,8 @@ EXTERN a_boolean
 			   microsoft_mode is TRUE. */
 
 /* Extract the directory name from a file name. */
-extern char *f_directory_of(char *file_name,
-                            a_boolean	in_general_memory);
+extern char *f_directory_of(a_const_char *file_name,
+                            a_boolean	 in_general_memory);
 
 #if !STANDALONE_UTILITY_PROGRAM
 #define directory_of(file_name) f_directory_of(file_name,	\
@@ -2930,8 +2934,8 @@ extern char *f_directory_of(char *file_name,
                                                   /*in_general_memory=*/TRUE)
 
 /* Extract the base name from a file name. */
-extern char *derived_name(char *file_name,
-                          char *suffix);
+extern char *derived_name(a_const_char *file_name,
+                          a_const_char *suffix);
 
 /*
 The character used to separate components of a path name.  On Microsoft
@@ -2968,19 +2972,19 @@ handling code to be tested on a non-Microsoft system.
 
 /* Add a component to a path name. */
 extern void append_to_path_name(a_text_buffer_ptr	buffer,
-				char			*name);
+				a_const_char		*name);
 
 /* Combine a directory name and file name into a full path name. */
 extern a_text_buffer_ptr combine_dir_and_file_name(
-				char			*dir_name,
-				char			*file_name,
+				a_const_char		*dir_name,
+				a_const_char		*file_name,
 				a_text_buffer_ptr	buffer);
 
 /* Read a line from a file. */
 extern char *read_line_from_file(FILE *f_file);
 
 /* Replace the suffix of a file name with a specified suffix. */
-extern void replace_file_name_suffix(char		*new_suffix,
+extern void replace_file_name_suffix(a_const_char	*new_suffix,
 		                     a_text_buffer_ptr	file_name_buffer);
 
 /*
@@ -3019,42 +3023,42 @@ EXTERN_C int stat(char *path, struct stat *buf);
 #endif /* ifdef STAT_DECLARATION_NEEDED */
 
 /* See if a file exists, if it does, return the modification time. */
-extern a_boolean get_file_modification_time(char   *file_name,
-					    time_t *time);
+extern a_boolean get_file_modification_time(a_const_char *file_name,
+					    time_t       *time);
 
 /* Get the file modification time as a string. */
-extern char *get_file_modification_time_string(char		*file_name,
+extern char *get_file_modification_time_string(a_const_char	*file_name,
 					       a_boolean	strip_newline);
 
 /* Is the specified file a regular (e.g., not directory) file. */
-extern a_boolean is_regular_file(char *file_name);
+extern a_boolean is_regular_file(a_const_char *file_name);
 
-extern void change_directory(char *dir_name);
+extern void change_directory(a_const_char *dir_name);
 
 /* Is the specified file a directory. */
-extern a_boolean is_directory(char *file_name);
+extern a_boolean is_directory(a_const_char *file_name);
 
-extern a_boolean is_absolute_file_name(char *file_name);
+extern a_boolean is_absolute_file_name(a_const_char *file_name);
 
 /* Open a source file. */
 extern
-FILE *open_source_file(char                  *file_name,
+FILE *open_source_file(a_const_char          *file_name,
 		       an_open_file_result   *open_result,
                        a_unicode_source_kind *unicode_source_kind);
 /* Reopen a source file. */
-extern FILE *reopen_source_file(char                  *file_name,
+extern FILE *reopen_source_file(a_const_char          *file_name,
                                 a_unicode_source_kind *unicode_source_kind);
 /* Open an output file. */
 extern
-FILE *open_output_file(char			*file_name,
+FILE *open_output_file(a_const_char		*file_name,
                        a_boolean		binary_file,
                        a_boolean		update_mode,
 		       an_open_file_result	*open_result);
 
-a_boolean okay_as_output_file(char *file_name);
+a_boolean okay_as_output_file(a_const_char *file_name);
 
-extern FILE *fopen_with_result(char			*file_name,
-			       char			*mode,
+extern FILE *fopen_with_result(a_const_char		*file_name,
+			       a_const_char		*mode,
 			       an_open_file_result	*open_result);
 
 extern a_boolean close_output_file(FILE	*f_output,
@@ -3062,11 +3066,11 @@ extern a_boolean close_output_file(FILE	*f_output,
 
 /* Open an input file. */
 extern
-FILE *open_input_file(char			*file_name,
+FILE *open_input_file(a_const_char		*file_name,
                       a_boolean			binary_file,
 		      an_open_file_result	*open_result);
 
-extern void delete_file(char *file_name);
+extern void delete_file(a_const_char *file_name);
 
 /* Open a temporary file. */
 extern FILE *open_temp_file(a_boolean binary_file);
@@ -3096,7 +3100,7 @@ typedef struct a_timer {
 
 EXTERN void get_timer(a_timer *timer);
 
-EXTERN void display_time_used(char		*message,
+EXTERN void display_time_used(a_const_char	*message,
 			      a_timer_ptr	start_time,
 			      a_timer_ptr	end_time);
 
@@ -3138,16 +3142,16 @@ extern void write_signoff(void);
 extern DOES_NOT_RETURN exit_compilation(an_error_severity severity);
 #endif /* !defined(COMPILING_MK_ERRINFO) */
 
-extern char *file_name_in_internal_encoding(char *orig_name);
+extern a_const_char *file_name_in_internal_encoding(a_const_char *orig_name);
 
-extern char *file_name_in_external_encoding(char *orig_name);
+extern a_const_char *file_name_in_external_encoding(a_const_char *orig_name);
 
 /* Get the next file name from the current directory. */
 extern
-char *get_file_name_from_dir(a_boolean	first,
-			     char	*dir_name,
-			     char	*suffix,
-			     char	*curr_dir_name);
+char *get_file_name_from_dir(a_boolean    first,
+			     a_const_char *dir_name,
+			     a_const_char *suffix,
+			     a_const_char *curr_dir_name);
 
 #if USE_MMAP_FOR_MEMORY_REGIONS
 extern sizeof_t do_page_alignment(sizeof_t size);
@@ -3162,7 +3166,7 @@ void map_input_file_to_region(FILE		*file,
                               sizeof_t		offset,
 			      sizeof_t		size,
 			      a_void_ptr	address,
-			      char		*file_name);
+			      a_const_char	*file_name);
 
 extern void unmap_memory(a_void_ptr	addr,
 			 sizeof_t	size);
@@ -3229,30 +3233,30 @@ routines are needed when C_GEN_BE_GENERATES_ANSI_C is FALSE.
 
 extern void change_non_id_characters(char *str);
 
-extern void set_module_id(char *new_module_id);
+extern void set_module_id(a_const_char *new_module_id);
 
-extern char *get_module_id(void);
+extern a_const_char *get_module_id(void);
 
-extern char *make_module_id(char *external_name);
+extern a_const_char *make_module_id(a_const_char *external_name);
 
 #endif /* MODULE_ID_NEEDED */
 
-extern unsigned long write_file_name(char      *name,
-                                     FILE      *f_output,
-                                     a_boolean process_escapes,
-				     a_boolean escape_nonprintable_chars);
+extern unsigned long write_file_name(a_const_char *name,
+                                     FILE         *f_output,
+                                     a_boolean    process_escapes,
+				     a_boolean    escape_nonprintable_chars);
 
 extern unsigned long write_file_name_to_text_buffer(
-                                  char             *name,
+                                  a_const_char     *name,
                                   a_text_buffer_ptr buffer,
                                   a_boolean         process_escapes,
                                   a_boolean         escape_nonprintable_chars);
 
-extern char *format_file_name(char *name);
+extern char *format_file_name(a_const_char *name);
 
-extern char *suffix_of(char		*file_name);
+extern a_const_char *suffix_of(a_const_char *file_name);
 
-extern unsigned long extract_character_from_string(char          *str,
+extern unsigned long extract_character_from_string(a_const_char  *str,
                                                    unsigned int  char_size);
 
 #define extract_wide_char_from_string(str)                                  \
@@ -3276,7 +3280,8 @@ up file names.
 #if __MICROSOFT_OS__
 /* On MS-DOS, the comparison must be case insensitive. */
 #if EDG_WIN32 && UNICODE_SOURCE_SUPPORTED
-extern int compare_file_chars_case_insensitive(char *file1, char *file2);
+extern int compare_file_chars_case_insensitive(a_const_char *file1,
+                                               a_const_char *file2);
 #define compare_file_chars(s1, s2)					\
   (compare_file_chars_case_insensitive((s1), (s2)))
 #else /* !(EDG_WIN32 && UNICODE_SOURCE_SUPPORTED) */
@@ -3295,17 +3300,17 @@ the ignore_delimiters and is_partial_file_name parameters.
   (f_compare_file_names(s1, s2, /*ignore_delimiters=*/FALSE,		\
                         /*is_partial_file_name=*/FALSE))
 
-extern char *start_of_file_name(char *file_name);
+extern a_const_char *start_of_file_name(a_const_char *file_name);
 
-extern char *normalize_file_name(char	*file_name);
+extern char *normalize_file_name(a_const_char *file_name);
 
-extern int f_compare_file_names(char		*file1,
-	 		        char		*file2,
+extern int f_compare_file_names(a_const_char	*file1,
+	 		        a_const_char	*file2,
 		                a_boolean	ignore_delimiters,
 			        a_boolean	is_partial_file_name);
 
-extern int compare_dir_names(char	*dir1,
-			     char	*dir2,
+extern int compare_dir_names(a_const_char *dir1,
+			     a_const_char *dir2,
                              a_boolean	is_partial_file_name);
 
 #ifndef STDLIB_H_INCLUDED
@@ -3374,7 +3379,7 @@ extern "C".  This flag must not be TRUE when compiling in C mode.
 
 
 #if EDG_WIN32
-extern void open_mapped_input_file(char *file_name);
+extern void open_mapped_input_file(a_const_char *file_name);
 extern void close_mapped_input_file(void);
 extern char *conv_wide_to_utf8(wchar_t *wide_str);
 typedef unsigned long an_ms_dword;
@@ -3385,17 +3390,18 @@ extern char *win32_error_to_str(an_ms_dword error_code);
 #endif /* EDG_WIN32 */
 
 /* Custom version of memcmp. */
-extern int smemcmp(char     *s1,
-                   char     *s2,
-                   sizeof_t length);
+extern int smemcmp(a_const_char *s1,
+                   a_const_char *s2,
+                   sizeof_t     length);
 
 /* Routines defined in host_util.h. */
 
-extern unsigned long crc_32(char          *str,
+extern unsigned long crc_32(a_const_char  *str,
                             unsigned long prev_crc);
 
 #if ONE_INSTANTIATION_PER_OBJECT
-extern char *generate_instantiation_output_file_name(char *mangled_name);
+extern char *generate_instantiation_output_file_name(
+                                                   a_const_char *mangled_name);
 #endif /* ONE_INSTANTIATION_PER_OBJECT */
 
 #if DEBUG
@@ -3430,7 +3436,8 @@ EXTERN a_boolean
 			/* TRUE if the host system uses little-endian
 			   byte ordering. */
 
-EXTERN char	*edg_base_directory;
+EXTERN a_const_char
+		*edg_base_directory;
 			/* The directory in which to find files needed by
 			   the front end at execution time (e.g., the
 			   predefined macro table). */
@@ -3463,7 +3470,8 @@ EXTERN a_boolean
 			/* TRUE if a given predefined macro mode should be
 			   considered to be in effect. */
 
-EXTERN char	*predef_macro_mode_names[(int)pmm_last + 1]
+EXTERN a_const_char
+		*predef_macro_mode_names[(int)pmm_last + 1]
 			/* A list of the mode strings that may be used in
 			   predefined macro definition entries. */
 #if VAR_INITIALIZERS

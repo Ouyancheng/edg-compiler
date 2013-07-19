@@ -5763,7 +5763,7 @@ declared entity is known to not be a function.
         set_to_error_locator(*locator);
       }  /* if */
     } else {
-      char *s = NULL;
+      a_const_char *s = NULL;
       switch (locator->variant.opname) {
         case onk_assign:         s = "=";       break;
         case onk_function_call:  s = "()";      break;

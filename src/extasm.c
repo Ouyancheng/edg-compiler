@@ -32,7 +32,7 @@ extasm.c -- Scanning and validation of GNU extended asm() statements.
 
 struct name_to_reg {
   /* Structure to hold a name-to-register mapping entry. */
-  char              *name;
+  a_const_char      *name;
   a_named_register  reg;
 };
 
@@ -171,7 +171,7 @@ static struct name_to_reg *regmap;
 static size_t regmap_size;
 
 
-a_named_register name_to_register(char  *name)
+a_named_register name_to_register(a_const_char  *name)
 /*
 Given the user-specified name of a register as a string, return
 its code number, or anr_invalid if there is no such register.
@@ -181,7 +181,7 @@ In the latter case, issues an error.
   unsigned int      md, mn = 0, mx = regmap_size;
   int               comp;
   a_named_register  result = (a_named_register)anr_invalid;
-  char              *name_to_search = name;
+  a_const_char      *name_to_search = name;
 
 #if GNU_X86_ASM_EXTENSIONS_ALLOWED
   if (name[0] == '%') {
@@ -227,7 +227,7 @@ provided by the author of the back end.
 
 #endif /* !RECORD_RAW_ASM_OPERAND_DESCRIPTIONS */
 
-static int find_symbolic_operand(char                **pc,
+static int find_symbolic_operand(a_const_char        **pc,
                                  an_asm_operand_ptr  operands,
                                  a_label_list_ptr    labels,
                                  a_boolean           is_label,
@@ -245,8 +245,8 @@ statement) or NULL.  When is_label is TRUE, the symbolic name is from a
 "%l[label]" reference, and thus refers to a label (and not an operand).
 */
 {
-  int   result = -1, n = 0;
-  char  *start;
+  int          result = -1, n = 0;
+  a_const_char *start;
 
   check_assertion(**pc == '[');
   start = ++*pc;
@@ -258,7 +258,7 @@ statement) or NULL.  When is_label is TRUE, the symbolic name is from a
     /* Look for a label whose name matches the symbolic name. */
     check_assertion_or_expect_error(labels != NULL);
     while (labels != NULL) {
-      char *label_name = labels->label->source_corresp.name;
+      a_const_char *label_name = labels->label->source_corresp.name;
       if (label_name != NULL &&
           strncmp(label_name, start, *pc-start) == 0 &&
           (sizeof_t)strlen(label_name) == (sizeof_t)(*pc-start)) {
@@ -283,9 +283,9 @@ statement) or NULL.  When is_label is TRUE, the symbolic name is from a
   }  /* if */
   if (result == -1) {
     char saved_char = **pc;
-    **pc = '\0';
+    *(char *)*pc = '\0';
     pos_st_error(ec_invalid_symbolic_asm_operand_name, diag_pos, start);
-    **pc = saved_char;
+    *(char *)*pc = saved_char;
   }  /* if */
   return result;
 }  /* find_symbolic_operand */
@@ -303,11 +303,11 @@ symbolic reference (e.g., "%l[label]) or by argument number (e.g., "%l0).
   a_constant_ptr      asm_string = asm_entry->asm_string;
 
   if (asm_string->kind == (a_constant_repr_kind)ck_string) {
-    size_t    label_count = 0;
-    a_boolean is_label;
+    size_t       label_count = 0;
+    a_boolean    is_label;
     a_source_position
-              *diag_pos = &asm_entry->source_corresp.decl_position;
-    char      *pc = asm_string->variant.string.value;
+                 *diag_pos = &asm_entry->source_corresp.decl_position;
+    a_const_char *pc = asm_string->variant.string.value;
     while (*pc != '\0') {
       if (pc[0] == '%' && (pc[1] == '[' || (pc[1] != '\0' && pc[2] == '['))) {
         /* We found a "%[" or "%X[" (where X is an output format modifier)
@@ -366,7 +366,7 @@ symbolic reference (e.g., "%l[label]) or by argument number (e.g., "%l0).
 #if !RECORD_RAW_ASM_OPERAND_DESCRIPTIONS
 
 static an_asm_operand_constraint_kind get_symbolic_matching_constraint(
-                                                 char                **pc,
+                                                 a_const_char        **pc,
                                                  an_asm_operand_ptr  operands,
                                                  a_source_position   *diag_pos)
 /*
@@ -402,7 +402,7 @@ Errors are diagnosed at the given position.
 static void process_asm_operand(an_asm_operand_ptr  operand,
                                 an_asm_operand_ptr  operands,
                                 an_expr_node_ptr    expr,
-                                char                *cstring,
+                                a_const_char        *cstring,
                                 a_boolean           output)
 /*
 Fill in *operand (a GNU asm operand description) using the cstring constraints
@@ -425,7 +425,7 @@ operands points to the operands created so far.
   an_asm_operand_constraint_kind ck;
   an_asm_operand_modifier        modifiers;
   a_boolean                      error_occurred = FALSE;
-  char                           *p;
+  a_const_char                   *p;
   char                           errletter[2];
 
   operand->constraints = NULL;
@@ -872,8 +872,8 @@ if we're scanning an output operand.  seen_tok_colon_colon maintains
 state information for get_token_with_colon_separation.
 */
 {
-  char              *constraint_string = NULL;
-  an_expr_node_ptr  expr = NULL;
+  a_const_char     *constraint_string = NULL;
+  an_expr_node_ptr expr = NULL;
 
   db_enter(4, "asm_operand");
   add_stop_token(tok_comma);
@@ -1006,7 +1006,7 @@ get_token_with_colon_separation for a description of seen_tok_colon_colon.
   /* There is no hard limit on the number of clobbers. */
   a_named_register           reg;
   int                        nparsed = 0;
-  char                       *name;
+  a_const_char               *name;
   a_named_register_list_ptr  first_reg = NULL, last_reg = NULL;
 
   db_enter(3, "asm_clobbers_spec");

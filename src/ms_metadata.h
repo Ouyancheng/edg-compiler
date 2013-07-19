@@ -48,7 +48,7 @@ enum a_cpp_cli_import_flag_tag {
 
 
 extern an_assembly_index import_metadata_file(
-                                char                      *assembly_full_name,
+                                a_const_char              *assembly_full_name,
                                 a_cpp_cli_import_flag_set import_flags,
                                 a_boolean                 *is_duplicate);
 extern void import_all_types(an_assembly_index assembly_index,
@@ -59,7 +59,7 @@ extern void import_class_definition(
                                  a_cpp_cli_token         typedef_token,
                                     char              *buffer,
                                     size_t            *buffer_size);
-extern void ms_metadata_trans_unit_init(char *trans_unit_file_name);
+extern void ms_metadata_trans_unit_init(a_const_char *trans_unit_file_name);
 extern void ms_metadata_trans_unit_wrapup(void);
 extern void ms_metadata_cleanup(void);
 

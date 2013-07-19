@@ -62,7 +62,8 @@ Table of names of preprocessing directives, used as event kinds for PCH
 processing.  This is not the definition of the preprocessing directive
 keywords (see identify_dir_keyword).
 */
-EXTERN char	*pp_directive_kind_names[(int)ppd_not_valid+1]
+EXTERN a_const_char
+		*pp_directive_kind_names[(int)ppd_not_valid+1]
 #if VAR_INITIALIZERS
 = { "if",
     "ifdef",

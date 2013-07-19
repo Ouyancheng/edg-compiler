@@ -337,7 +337,7 @@ extern void expand_text_buffer(a_text_buffer_ptr	buffer,
 			       sizeof_t			length);
 
 extern unsigned long add_to_text_buffer(a_text_buffer_ptr	buffer,
-					char			*string,
+					a_const_char		*string,
 					sizeof_t		length);
 
 extern
@@ -372,8 +372,8 @@ Add the specified character to the text buffer specifier by "buf".
 }  /* add_char_to_text_buffer */
 
 #if DEBUG
-extern void db_text_buffer(char		*prefix,
-			   a_text_buffer_ptr	buf);
+extern void db_text_buffer(a_const_char      *prefix,
+			   a_text_buffer_ptr buf);
 
 extern void db_prefix(char  *entry);
 

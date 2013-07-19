@@ -84,12 +84,12 @@ extern a_routine_ptr make_delegation_destruction_routine(
 extern an_expr_node_ptr make_call_node(a_routine_ptr      routine,
                                        an_expr_node_ptr   arg_list);
 
-extern a_routine_ptr make_runtime_routine(char          *name,
+extern a_routine_ptr make_runtime_routine(a_const_char  *name,
                                           a_routine_ptr *routine,
                                           a_type_ptr    return_type);
 
 extern a_routine_ptr make_prototyped_runtime_routine(
-                                               char             *name,
+                                               a_const_char     *name,
                                                a_routine_ptr    *routine,
                                                a_type_ptr       return_type,
                                                a_type_ptr       param1_type,
@@ -101,7 +101,7 @@ extern void make_call_statement(a_routine_ptr      routine,
                                 an_expr_node_ptr   return_value,
                                 an_insert_location *insert_location);
 
-extern an_expr_node_ptr make_runtime_rout_call(char             *name,
+extern an_expr_node_ptr make_runtime_rout_call(a_const_char     *name,
                                                a_routine_ptr    *routine,
                                                a_type_ptr       return_type,
                                                an_expr_node_ptr arg_expr_list);

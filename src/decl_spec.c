@@ -80,7 +80,7 @@ otherwise, set *pstr to NULL.
 */
 {
   a_boolean      result = TRUE;
-  char           *str = strcon->variant.string.value;
+  a_const_char   *str = strcon->variant.string.value;
   a_targ_size_t  length;
 
   *pstr = NULL;
@@ -110,8 +110,9 @@ otherwise, set *pstr to NULL.
   } else {
     /* Copy the string, lower-casing hex letters so that strcmp can be used to
        compare strings. */
-    char  *src = str, *dst = alloc_primary_file_scope_il((sizeof_t)length+1);
-    int   count = (int)length;
+    a_const_char *src = str;
+    char         *dst = alloc_primary_file_scope_il((sizeof_t)length+1);
+    int          count = (int)length;
     *pstr = dst;
     for (; count != 0; count--) {
       char ch = *src++;
@@ -176,8 +177,8 @@ return the result in *inheritance_kind.  The source position of the specified
 inheritance kind is returned in *pos.  Return TRUE if the scan is successful.
 */
 {
-  a_boolean  found = FALSE;
-  char       *name;
+  a_boolean    found = FALSE;
+  a_const_char *name;
 
   if (*inheritance_kind == (an_inheritance_kind)ihk_none) {
     check_assertion(curr_token == tok_identifier);
@@ -511,7 +512,7 @@ template class, its DLL interface may need to be adjusted implicitly.
 
 
 void record_uuid_for_class(a_type_ptr         class_type,
-                           char               *uuid_string,
+                           a_const_char       *uuid_string,
                            a_source_position  *err_pos)
 /*
 Record the given uuid string in the given class type.  If the class type

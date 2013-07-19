@@ -77,7 +77,7 @@ static void lower_c99_fixed_point_operation(an_expr_node_ptr expr);
 #if LOWER_VARIABLE_LENGTH_ARRAYS || LOWER_COMPLEX || LOWER_FIXED_POINT
 
 static an_expr_node_ptr make_prototyped_runtime_call_full(
-                                               char             *name,
+                                               a_const_char     *name,
                                                a_routine_ptr    *routine,
                                                a_type_ptr       return_type,
                                                a_type_ptr       param1_type,
@@ -107,7 +107,7 @@ argument).
 
 
 static
-an_expr_node_ptr make_prototyped_runtime_call(char             *name,
+an_expr_node_ptr make_prototyped_runtime_call(a_const_char     *name,
                                               a_routine_ptr    *routine,
                                               a_type_ptr       return_type,
                                               a_type_ptr       param1_type,
@@ -1208,14 +1208,14 @@ done:;
 
 #if LOWER_COMPLEX || LOWER_FIXED_POINT
 
-static char* select_name_from_float_kind(a_float_kind  fkind,
-                                         char          *names[3])
+static a_const_char* select_name_from_float_kind(a_float_kind  fkind,
+                                                 a_const_char  *names[3])
 /*
 Return one of the three given strings depending on the given floating-point
 precision.
 */
 {
-  char  *result;
+  a_const_char *result;
 
   switch (fkind) {
     case fk_float:
@@ -1243,7 +1243,7 @@ static a_type_ptr lowered_complex_long_double;
 
 
 static a_type_ptr make_lowered_complex_type(a_float_kind  fkind,
-                                            char          *name)
+                                            a_const_char  *name)
 /*
 Create a struct type with the given name to represent a complex type of the
 given precision.  The struct contains a single field that is an array of two
@@ -1255,7 +1255,7 @@ floating point elements.
   a_field_ptr  last_field = NULL;
 
   result->source_corresp.name = alloc_il((sizeof_t)(strlen(name)+1));
-  strcpy(result->source_corresp.name, name);
+  strcpy((char *)result->source_corresp.name, name);
   /* Create a type "array of two real values". */
   array_type = alloc_type((a_type_kind)tk_array);
   array_type->variant.array.variant.number_of_elements = 2;
@@ -1360,9 +1360,10 @@ static a_routine_ptr  cast_clong_double_to_ilong_double;
 
 
 /* Names of the complex negate runtime routines. */
-static char *xnegate_routine_name[3] = {"__c99_complex_float_negate",
-                                        "__c99_complex_double_negate",
-                                        "__c99_complex_long_double_negate"};
+static a_const_char *xnegate_routine_name[3] = {
+                                           "__c99_complex_float_negate",
+                                           "__c99_complex_double_negate",
+                                           "__c99_complex_long_double_negate"};
 
 
 void lower_c99_xnegate(an_expr_node_ptr  expr)
@@ -1373,7 +1374,7 @@ with C89).
 {
   a_type_ptr        return_type = skip_typerefs(expr->type);
   a_float_kind      fkind;
-  char              *rout_name;
+  a_const_char      *rout_name;
   an_expr_node_ptr  xnegate_call;
 
   check_assertion(is_complex_type(return_type));
@@ -1388,9 +1389,9 @@ with C89).
 
 
 /* Names of the complex add runtime routines. */
-static char *xadd_routine_name[3] = {"__c99_complex_float_add",
-                                     "__c99_complex_double_add",
-                                     "__c99_complex_long_double_add"};
+static a_const_char *xadd_routine_name[3] = {"__c99_complex_float_add",
+                                             "__c99_complex_double_add",
+                                             "__c99_complex_long_double_add"};
 
 
 void lower_c99_xadd(an_expr_node_ptr  expr)
@@ -1401,7 +1402,7 @@ Transform the given complex expression ("z1+z2") into a function call
 {
   a_type_ptr        return_type = skip_typerefs(expr->type);
   a_float_kind      fkind;
-  char              *rout_name;
+  a_const_char      *rout_name;
   an_expr_node_ptr  xadd_call;
 
   check_assertion(is_complex_type(return_type));
@@ -1416,7 +1417,7 @@ Transform the given complex expression ("z1+z2") into a function call
 
 
 /* Names of the complex subtract runtime routines. */
-static char *xsubtract_routine_name[3] = {
+static a_const_char *xsubtract_routine_name[3] = {
                                          "__c99_complex_float_subtract",
                                          "__c99_complex_double_subtract",
                                          "__c99_complex_long_double_subtract"};
@@ -1430,7 +1431,7 @@ Transform the given complex expression ("z1-z2") into a function call
 {
   a_type_ptr        return_type = skip_typerefs(expr->type);
   a_float_kind      fkind;
-  char              *rout_name;
+  a_const_char      *rout_name;
   an_expr_node_ptr  xsubtract_call;
 
   check_assertion(is_complex_type(return_type));
@@ -1445,7 +1446,7 @@ Transform the given complex expression ("z1-z2") into a function call
 
 
 /* Names of the complex multiply runtime routines. */
-static char *xmultiply_routine_name[3] = {
+static a_const_char *xmultiply_routine_name[3] = {
                                          "__c99_complex_float_multiply",
                                          "__c99_complex_double_multiply",
                                          "__c99_complex_long_double_multiply"};
@@ -1459,7 +1460,7 @@ Transform the given complex expression ("z1*z2") into a function call
 {
   a_type_ptr        return_type = skip_typerefs(expr->type);
   a_float_kind      fkind;
-  char              *rout_name;
+  a_const_char      *rout_name;
   an_expr_node_ptr  xmultiply_call;
 
   check_assertion(is_complex_type(return_type));
@@ -1474,10 +1475,10 @@ Transform the given complex expression ("z1*z2") into a function call
 
 
 /* Names of the complex divide runtime routines. */
-static char *xdivide_routine_name[3] = {
-                                        "__c99_complex_float_divide",
-                                        "__c99_complex_double_divide",
-                                        "__c99_complex_long_double_divide"};
+static a_const_char *xdivide_routine_name[3] = {
+                                           "__c99_complex_float_divide",
+                                           "__c99_complex_double_divide",
+                                           "__c99_complex_long_double_divide"};
 
 
 void lower_c99_xdivide(an_expr_node_ptr  expr)
@@ -1488,7 +1489,7 @@ Transform the given complex expression ("z1/z2") into a function call
 {
   a_type_ptr        return_type = skip_typerefs(expr->type);
   a_float_kind      fkind;
-  char              *rout_name;
+  a_const_char      *rout_name;
   an_expr_node_ptr  xdivide_call;
 
   check_assertion(is_complex_type(return_type));
@@ -1503,9 +1504,9 @@ Transform the given complex expression ("z1/z2") into a function call
 
 
 /* Names of the complex == runtime routines. */
-static char *xeq_routine_name[3] = {"__c99_complex_float_eq",
-                                    "__c99_complex_double_eq",
-                                    "__c99_complex_long_double_eq"};
+static a_const_char *xeq_routine_name[3] = {"__c99_complex_float_eq",
+                                            "__c99_complex_double_eq",
+                                            "__c99_complex_long_double_eq"};
 
 
 void lower_c99_xeq(an_expr_node_ptr  expr)
@@ -1517,7 +1518,7 @@ Transform the given complex expression ("z1==z2") into a function call
   a_type_ptr        return_type = skip_typerefs(expr->type);
   a_type_ptr        op_type = expr->variant.operation.operands->type;
   a_float_kind      fkind;
-  char              *rout_name;
+  a_const_char      *rout_name;
   an_expr_node_ptr  xeq_call;
 
   op_type = skip_typerefs(op_type);
@@ -1532,9 +1533,9 @@ Transform the given complex expression ("z1==z2") into a function call
 
 
 /* Names of the complex != runtime routines. */
-static char *xne_routine_name[3] = {"__c99_complex_float_ne",
-                                    "__c99_complex_double_ne",
-                                    "__c99_complex_long_double_ne"};
+static a_const_char *xne_routine_name[3] = {"__c99_complex_float_ne",
+                                            "__c99_complex_double_ne",
+                                            "__c99_complex_long_double_ne"};
 
 
 void lower_c99_xne(an_expr_node_ptr  expr)
@@ -1546,7 +1547,7 @@ Transform the given complex expression ("z1!=z2") into a function call
   a_type_ptr        return_type = skip_typerefs(expr->type);
   a_type_ptr        op_type = expr->variant.operation.operands->type;
   a_float_kind      fkind;
-  char              *rout_name;
+  a_const_char      *rout_name;
   an_expr_node_ptr  xne_call;
 
   op_type = skip_typerefs(op_type);
@@ -1575,8 +1576,8 @@ is used for the increment/decrement).
   a_variable_ptr        temp_var = NULL;
   a_boolean             is_post_op, temp_init_used;
   a_type_ptr            return_type = skip_typerefs(expr->type);
-  char                  *rout_name;
-  char                  **routine_names;
+  a_const_char          *rout_name;
+  a_const_char          **routine_names;
   a_routine_ptr         *routines;
   a_float_kind          fkind;
   a_constant            con;
@@ -1867,9 +1868,10 @@ negating one part in the "-" case.
 static a_routine_ptr  xconj_routine[(int)fk_last];
 
 /* Names of the complex conjugation runtime routines. */
-static char *xconj_routine_name[3] = {"__c99_complex_float_conj",
-                                      "__c99_complex_double_conj",
-                                      "__c99_complex_long_double_conj"};
+static a_const_char *xconj_routine_name[3] = {
+                                             "__c99_complex_float_conj",
+                                             "__c99_complex_double_conj",
+                                             "__c99_complex_long_double_conj"};
 
 void lower_xconj(an_expr_node_ptr  expr)
 /*
@@ -1880,7 +1882,7 @@ into a function call.
 {
   a_type_ptr        return_type = skip_typerefs(expr->type);
   a_float_kind      fkind;
-  char              *rout_name;
+  a_const_char      *rout_name;
   an_expr_node_ptr  xconj_call;
 
   check_assertion(is_complex_type(return_type));
@@ -1931,7 +1933,7 @@ Transform the given complex cast expression into a function call
   a_type_ptr        src_type = skip_typerefs(src->type);
   a_type_ptr        dst_type = skip_typerefs(expr->type);
   a_routine_ptr     *routine;
-  char              *routine_name;
+  a_const_char      *routine_name;
 
   if (is_void_type(dst_type)) {
     /* A cast to void.  Nothing needs to be done. */
@@ -2399,13 +2401,14 @@ static a_routine_ptr fixed_conv_routine;
 Runtime routines for conversions between floating point and
 fixed point.
 */
-static char *float_fixed_conv_routine_name[3] = {"_Fixed_from_float",
-                                                 "_Fixed_from_double",
-                                                 "_Fixed_from_ldouble"};
+static a_const_char *float_fixed_conv_routine_name[3] = {
+                                                        "_Fixed_from_float",
+                                                        "_Fixed_from_double",
+                                                        "_Fixed_from_ldouble"};
 static a_routine_ptr float_fixed_conv_routine[(int)fk_last];
-static char *fixed_float_conv_routine_name[3] = {"_Fixed_to_float",
-                                                 "_Fixed_to_double",
-                                                 "_Fixed_to_ldouble"};
+static a_const_char *fixed_float_conv_routine_name[3] = {"_Fixed_to_float",
+                                                         "_Fixed_to_double",
+                                                         "_Fixed_to_ldouble"};
 static a_routine_ptr fixed_float_conv_routine[(int)fk_last];
 
 
@@ -2424,7 +2427,7 @@ destination) to a runtime call).
   a_type_ptr        return_type;
   a_type_ptr        param2_type;
   a_routine_ptr     *routine;
-  char              *routine_name;
+  a_const_char      *routine_name;
   a_float_kind      fkind;
   unsigned long     fxmask;
   int               shift_amount = 0;
@@ -2668,7 +2671,7 @@ Lower a fixed-point operation expression.
   an_expr_node_ptr      op1 = expr->variant.operation.operands;
   an_expr_node_ptr      op2 = op1->next;
   an_expr_node_ptr      fxmask_expr, new_expr;
-  char                  *routine_name;
+  a_const_char          *routine_name;
   a_routine_ptr         *routine;
   unsigned long         fxmask;
   int                   shift_amount = 0;
@@ -2824,7 +2827,7 @@ Lower the indicated fixed-point increment or decrement operation.
   a_variable_ptr        temp_var = NULL;
   a_boolean             is_post_op, temp_init_used;
   a_type_ptr            result_type = prvalue_type(op1->type);
-  char                  *routine_name;
+  a_const_char          *routine_name;
   a_routine_ptr         *routine;
   unsigned long         fxmask;
   int                   shift_amount = 0;
@@ -4512,7 +4515,7 @@ Do C99 lowering for all entities in and under the given scope.
 #if LOWER_COMPLEX
 
 static void lower_c99_imaginary_type(a_float_kind  kind,
-                                     char          *name)
+                                     a_const_char  *name)
 /*
 Lower the C99 imaginary type whose precision is given by kind.
 The lowered form is a typedef to one of the floating-point types.
@@ -4525,14 +4528,14 @@ The lowered type is given the name indicated by "name".
     set_type_kind(im_type, (a_type_kind)tk_typeref);
     im_type->variant.typeref.type = float_type(kind);
     im_type->source_corresp.name = alloc_il((sizeof_t)(strlen(name)+1));
-    strcpy(im_type->source_corresp.name, name);
+    strcpy((char *)im_type->source_corresp.name, name);
     add_to_front_of_file_scope_types_list(im_type);
   }  /* if */
 }  /* lower_c99_imaginary_type */
 
 
 static void lower_c99_complex_type(a_float_kind  kind,
-                                   char          *name)
+                                   a_const_char  *name)
 /*
 Lower the C99 complex type whose precision is given by kind (if it was used).
 The lowered form is a typedef to a struct containing an array of
@@ -4547,7 +4550,7 @@ The lowered type is given the name indicated by "name".
     /* Typedef the complex type to its lowered representation. */
     set_type_kind(cmplx_type, (a_type_kind)tk_typeref);
     cmplx_type->source_corresp.name = alloc_il((sizeof_t)(strlen(name)+1));
-    strcpy(cmplx_type->source_corresp.name, name);
+    strcpy((char *)cmplx_type->source_corresp.name, name);
     cmplx_type->variant.typeref.type = lowered_repr;
 #if MAINTAIN_NEEDED_FLAGS
     if (needed_flag_is_set(&cmplx_type->source_corresp)) {
@@ -4653,7 +4656,7 @@ The lowered form is a typedef to one of the integral types.
     set_type_kind(fx_type, (a_type_kind)tk_typeref);
     fx_type->variant.typeref.type = int_type;
     fx_type->source_corresp.name = alloc_il((sizeof_t)(strlen(name)+1));
-    (void)strcpy(fx_type->source_corresp.name, name);
+    (void)strcpy((char *)fx_type->source_corresp.name, name);
     add_to_front_of_file_scope_types_list(fx_type);
   }  /* if */
 }  /* lower_c99_fixed_point_type */

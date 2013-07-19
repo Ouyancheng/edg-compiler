@@ -154,7 +154,7 @@ and param_2_type can be NULL if fewer parameters are needed.
 }  /* make_function_type */
 
 
-static a_routine_ptr make_rout_entry_no_add(char            *name,
+static a_routine_ptr make_rout_entry_no_add(a_const_char    *name,
                                             a_storage_class rout_storage_class,
                                             a_type_ptr      return_type,
                                             a_type_ptr      param_1_type)
@@ -194,7 +194,7 @@ not added to any routines list; see make_rout_entry for that.
 }  /* make_rout_entry_no_add */
 
 
-static a_routine_ptr make_rout_entry(char            *name,
+static a_routine_ptr make_rout_entry(a_const_char    *name,
                                      a_storage_class rout_storage_class,
                                      a_type_ptr      return_type,
                                      a_type_ptr      param_1_type)
@@ -213,8 +213,8 @@ the routine to the file-scope routines list.
 }  /* make_rout_entry */
 
 
-static a_routine_ptr find_existing_runtime_routine(char       *name,
-                                                   a_type_ptr rout_type)
+static a_routine_ptr find_existing_runtime_routine(a_const_char *name,
+                                                   a_type_ptr   rout_type)
 /*
 See if an existing runtime routine entry named "name" with a type that
 matches rout_type can be found.  If so, return a pointer to the routine,
@@ -250,7 +250,7 @@ otherwise return NULL.
 }  /* find_existing_runtime_routine */
 
 
-a_routine_ptr make_runtime_routine(char          *name,
+a_routine_ptr make_runtime_routine(a_const_char  *name,
                                    a_routine_ptr *routine,
                                    a_type_ptr    return_type)
 /*
@@ -271,7 +271,7 @@ in which case this will create a second routine entry for the same function.
 }  /* make_runtime_routine */
 
 
-a_routine_ptr make_prototyped_runtime_routine(char             *name,
+a_routine_ptr make_prototyped_runtime_routine(a_const_char     *name,
                                               a_routine_ptr    *routine,
                                               a_type_ptr       return_type,
                                               a_type_ptr       param1_type,
@@ -660,7 +660,7 @@ of the call is assigned.
 }  /* make_call_statement */
 
 
-an_expr_node_ptr make_runtime_rout_call(char             *name,
+an_expr_node_ptr make_runtime_rout_call(a_const_char     *name,
                                         a_routine_ptr    *routine,
                                         a_type_ptr       return_type,
                                         an_expr_node_ptr arg_expr_list)
@@ -5892,7 +5892,7 @@ static a_scope_ptr make_file_scope_init_or_term_routine(
                                  a_type_ptr                  param1_type,
                                  unsigned long               needed_bit_number,
                                  int                         init_priority,
-                                 char                        *prefix,
+                                 a_const_char                *prefix,
                                  unsigned long               unique_id,
                                  an_insert_location_ptr      insert_location,
                                  a_memory_region_number      *il_region,
@@ -5952,7 +5952,8 @@ be combined with needed_bit_number and/or init_priority specified above.
   } else {
     /* Combine the prefix and an identifier for the current module to make
        a name that is likely to be unique. */
-    char	*module_id, *end;
+    a_const_char *module_id;
+    char         *end;
     module_id = get_module_id();
     check_assertion(module_id != NULL);
     prefix_len = strlen(prefix);
@@ -16446,7 +16447,7 @@ operator (an extension).  Its definition is
 }  /* make_guid_type */
 
 
-static a_constant_ptr conv_uuid_constant(char            **ptr,
+static a_constant_ptr conv_uuid_constant(a_const_char    **ptr,
                                          int             ndigits,
                                          an_integer_kind ikind)
 /*
@@ -16456,7 +16457,7 @@ kind ikind, allocate an unshared copy, and return a pointer to the
 allocated integer constant.
 */
 {
-  char             *local_ptr = *ptr;
+  a_const_char     *local_ptr = *ptr;
   a_constant       con;
   a_constant_ptr   con_ptr;
   a_boolean        err;
@@ -16495,7 +16496,7 @@ GUID.
 {
   a_variable_ptr              *p_uuid_var;
   a_variable_ptr              uuid_var;
-  char                        *uuid_string;
+  a_const_char                *uuid_string;
 
   if (type != NULL) {
     if (is_immediate_class_type(type)) {
@@ -16516,7 +16517,7 @@ GUID.
   if (uuid_var == NULL) {
     a_memory_region_number
                    region_to_switch_back_to;
-    char           *ptr = uuid_string;
+    a_const_char   *ptr = uuid_string;
     a_constant_ptr aggr, con1, con2, con3, con4, prev_con;
     int            i;
 

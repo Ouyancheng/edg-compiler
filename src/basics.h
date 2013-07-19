@@ -371,6 +371,26 @@ typedef char * a_const_void_ptr;
 #endif /* USING_ISO_C */
 
 /*
+Define a type to be used in declaring variables, parameters, and fields
+that are intended as pointers to read-only string data.  This permits the
+front end to be compiled as C++11 source (which does not permit the
+previously-deprecated implicit conversion of a string literal to char*)
+while preserving the historical interface for C and C++03 applications.
+*/
+#ifndef USE_POINTER_TO_CONST_CHAR
+#if __cplusplus >= 201103L
+#define USE_POINTER_TO_CONST_CHAR TRUE
+#else /* !(__cplusplus >= 201103L) */
+#define USE_POINTER_TO_CONST_CHAR FALSE
+#endif /* __cplusplus >= 201103L */
+#endif /* USE_POINTER_TO_CONST_CHAR */
+#if USE_POINTER_TO_CONST_CHAR
+typedef const char a_const_char;
+#else /* !USE_POINTER_TO_CONST_CHAR */
+typedef char a_const_char;
+#endif /* USE_POINTER_TO_CONST_CHAR */
+
+/*
 Type to be used for small bit fields.  Usually this is "unsigned int,"
 but on compilers that follow the Microsoft bit-field allocation convention
 that results in poor packing, so use "unsigned char".
@@ -579,7 +599,7 @@ EXTERN a_boolean
 EXTERN FILE	*f_debug;
 			/* Debug output file. */
 
-extern void debug_enter(int reporting_level, char *function_name);
+extern void debug_enter(int reporting_level, a_const_char *function_name);
 extern void debug_exit(void);
 
 /* Function entry and exit macros. */

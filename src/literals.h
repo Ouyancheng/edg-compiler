@@ -30,15 +30,15 @@ literals.h -- Declarations relating to literals.c (having to do with
 
 extern void conv_integer_literal(int           radix,
                                  an_error_code *err_code,
-                                 char          **err_pos);
+                                 a_const_char  **err_pos);
 #if FIXED_POINT_ALLOWED
 extern void conv_fixed_point_literal(a_boolean      is_hexadecimal,
                                      an_error_code  *err_code,
-                                     char           **err_pos);
+                                     a_const_char   **err_pos);
 #endif /* FIXED_POINT_ALLOWED */
 extern void conv_float_literal(a_boolean	is_hexadecimal,
 			       an_error_code	*err_code,
-	                       char		**err_pos);
+	                       a_const_char	**err_pos);
 
 /*
 Structure to maintain the current state of the processing of
@@ -46,7 +46,7 @@ conv_single_char.
 */
 typedef struct a_char_conversion_state *a_char_conversion_state_ptr;
 typedef struct a_char_conversion_state {
-  char		**next_token_char;
+  a_const_char	**next_token_char;
 			/* Points to a pointer to the next character in the
 			   token string to be processed.  This can point
 			   within a multibyte character (both native and
@@ -150,14 +150,14 @@ extern void conv_single_char(a_char_conversion_state_ptr state,
                              a_boolean                   utf8_literal);
 extern void conv_char_literal(unsigned long num_chars,
                               an_error_code *err_code,
-                              char          **err_pos);
+                              a_const_char  **err_pos);
 extern void conv_string_literal(
-                          char                          *start_of_string_value,
-                          char                          *end_of_string_value,
+                          a_const_char                  *start_of_string_value,
+                          a_const_char                  *end_of_string_value,
                           a_string_or_char_literal_kind lit_kind,
                           unsigned long                 num_chars,
                           an_error_code                 *err_code,
-                          char                          **err_pos);
+                          a_const_char                  **err_pos);
 extern void widen_string_literal(a_constant_ptr con);
 extern void concat_string_literals(a_token_cache_ptr cache,
                                    a_character_kind  kind);

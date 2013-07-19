@@ -18963,7 +18963,7 @@ error.  The source position of the reference is given by pos.
   check_assertion(property_sym != NULL);
   if (symbol_is(property_sym, sk_field)) {
     /* And old-style property, specified via __declspec. */
-    char                          *getput_property_name;
+    a_const_char                  *getput_property_name;
     a_property_or_event_descr_ptr pedp = property_sym->variant.field.ptr
                                                      ->property_or_event_descr;
     check_assertion(pedp != NULL);

@@ -478,7 +478,7 @@ least in non-pcc mode).
 
 
 char *copy_string_to_region(a_memory_region_number region,
-                            char                   *string)
+                            a_const_char           *string)
 /*
 Make a copy of the specified string in the memory region indicated by
 "region" (which must be the front end or file scope region number).
@@ -500,7 +500,7 @@ Make a copy of the specified string in the memory region indicated by
 
 
 char *copy_string_of_length_to_region(a_memory_region_number region,
-				      char                   *string,
+				      a_const_char           *string,
 				      sizeof_t		     length)
 /*
 Make a copy of the specified string, whose length is specified by "length"

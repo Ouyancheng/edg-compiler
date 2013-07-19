@@ -616,7 +616,8 @@ EXTERN an_opname_kind opname_kind_for_token[(int)tok_last+1]
 /*
 Array giving the token name for each opname kind.
 */
-EXTERN char	*opname_names[(int)onk_last];
+EXTERN a_const_char
+		*opname_names[(int)onk_last];
 
 
 /*
@@ -627,7 +628,7 @@ typedef struct a_preinclude_file {
   a_preinclude_file_ptr
 		next;	/* Pointer to the next entry in a linked list of
 			   preinclude files. */
-  char		*file_name;
+  a_const_char	*file_name;
 			/* Name of the file to be preincluded. */
 } a_preinclude_file;
 
@@ -637,7 +638,7 @@ See the comment preceding find_include_history in lexical.c.
 */
 typedef struct an_include_file_history *an_include_file_history_ptr;
 typedef struct an_include_file_history {
-  char          *full_name;
+  a_const_char  *full_name;
 			/* Pointer to the full path name of the include
 			   file. */
   a_bit_field	suppress_subsequent_include:1;
@@ -655,7 +656,7 @@ typedef struct an_include_file_history {
 			   compare_include_file_history routine to indicate
 			   whether the file name comparison should use the
 			   canonical form of the file name. */
-  char          *controlling_macro_name;
+  a_const_char  *controlling_macro_name;
 			/* The name of the macro used to guard the include
 			   file against multiple inclusions. */
 } an_include_file_history;
@@ -682,13 +683,13 @@ The order of these states is important.
 
 
 extern a_boolean suppress_subsequent_include_of_file(
-				 char                         *full_name,
+				 a_const_char                 *full_name,
 				 an_include_file_history_ptr *ifhp_ptr,
 				 a_boolean		     create,
 			         a_boolean		     use_canonical);
 
 extern
-a_boolean find_include_history(char                        *full_name,
+a_boolean find_include_history(a_const_char                *full_name,
 			       an_include_file_history_ptr *ifhp_ptr,
 			       a_boolean		   create,
 			       a_boolean		   use_canonical);
@@ -718,15 +719,15 @@ typedef struct an_input_stack_entry {
   FILE		*file;
 			/* The file at this level.  NULL if the file has
 			   been closed and must be reopened (see position). */
-  char		*file_name;
+  a_const_char	*file_name;
 			/* The form of the file name to be used in error
 			   messages and the like, null-terminated.
 			   May have been modified by a #line directive. */
-  char		*full_name;
+  a_const_char	*full_name;
 			/* The form of the file name to be used in opening the
 			   file (may have directory).  Null-terminated.
 			   Can be the same as file_name. */
-  char		*dir_name;
+  a_const_char	*dir_name;
 			/* The directory name of full_name.  Can be "". */
   a_directory_name_entry_ptr
 		dir_entry;
@@ -972,7 +973,8 @@ sequence of characters following curr_char_loc where input must be
 diverted elsewhere, there must be a marker character at that point to
 force examination of related data structures.
 */
-EXTERN char	*curr_source_line;
+EXTERN a_const_char
+		*curr_source_line;
 			/* Characters of the current logical source line,
 			   ended by LE_NEWLINE and LE_END_OF_LINE lexical
 			   escape sequences.  Space is dynamically allocated,
@@ -990,13 +992,15 @@ EXTERN char	*curr_source_line;
 			   all the lines of a large macro definition.
 			   Subsequent reallocations will double the amount
 			   previously allocated. */
-EXTERN char	*after_end_of_curr_source_line;
+EXTERN a_const_char
+		*after_end_of_curr_source_line;
 			/* Address past the last element of curr_source_line,
 			   as an aid to checking for overflow, etc.  A variable
 			   because curr_source_line line can reallocated larger
 			   if needed. */
 #if MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED
-EXTERN char	**logical_char_info;
+EXTERN a_const_char
+		**logical_char_info;
 			/* A dynamically allocated array that is used to
 			   convert a pointer into curr_source_line from a
 			   raw byte offset to a logical column number.  Each
@@ -1072,7 +1076,8 @@ logical source line.  Usually, this points within curr_source_line,
 but when macros are being scanned, it can point elsewhere (in macro_buffer
 or in an argument string).
 */
-EXTERN char	*curr_char_loc;
+EXTERN a_const_char
+		*curr_char_loc;
 			/* Pointer to the current character within
 			   curr_source_line.  More precisely, this is the
 			   character about to be processed.  Points at the
@@ -1186,7 +1191,7 @@ typedef struct an_orig_line_modif {
 			   orig_line_modif_list, or NULL if there is no
 			   next entry.  Also used to link entries on
 			   the avail_orig_line_modifs list. */
-  char		*line_loc;
+  a_const_char	*line_loc;
 			/* The location in curr_source_line of the
 			   modification.  Points to the character that
 			   resulted from the trigraph, or the character
@@ -1247,7 +1252,7 @@ typedef struct a_source_line_modif {
 		next_in_hash_table;
 			/* A pointer to the next entry in the same bucket
 			   of the hash table of source line modifications. */
-  char		*line_loc;
+  a_const_char	*line_loc;
 			/* The location in curr_source_line or macro_buffer
 			   of the modification.  Points to an ATTENTION_MARKER
 			   character that replaced the first character of
@@ -1321,12 +1326,12 @@ typedef struct a_source_line_modif {
 			/* Place for an insert string of up to three characters
 			   including the end-of-insertion lexical escape.
 			   Used for the blank that replaces comments. */
-  char		*inserted_text;
+  a_const_char	*inserted_text;
 			/* Pointer to text to be inserted, in macro_buffer.
 			   The text is terminated by an LE_END_OF_INSERTION
 			   lexical escape.  Points to a zero-length string
 			   if this is a deletion only. */
-  char		*end_inserted_text;
+  a_const_char	*end_inserted_text;
 			/* Pointer to the LE_END_OF_INSERTION lexical escape
 			   at the end of inserted_text. */
   a_macro_def_ptr
@@ -1350,7 +1355,7 @@ typedef struct a_source_line_modif {
 			   the source position associated with this
 			   modification.  This is particularly useful when
 			   the modification is for a multi-line macro call. */
-  char		*text_from_primary_source_line;
+  a_const_char	*text_from_primary_source_line;
 			/* If non-NULL, text from the location pointed to
 			   to the end-of-insertion marker is from the primary
 			   source line, placed in this modification so that
@@ -1442,7 +1447,8 @@ logical source line.  Having the flag ensures that the deletion will be
 done as the newline is processed, after which delete_source_from_loc
 will be set to the start of the new line.
 */
-EXTERN char	*delete_source_from_loc;
+EXTERN a_const_char
+		*delete_source_from_loc;
 
 /*
 Variables pertaining to the current token:
@@ -1457,7 +1463,8 @@ EXTERN a_token_kind
 		curr_token;
 			/* The current token of input.  More precisely,
 			   the one about to be processed. */
-EXTERN char	*start_of_curr_token,
+EXTERN a_const_char
+		*start_of_curr_token,
 		*end_of_curr_token;
 			/* The characters of the current token, in
 			   curr_source_line.  Only valid outside the
@@ -1565,19 +1572,20 @@ EXTERN a_boolean
 			/* TRUE if processing takes place during the scan of
 			   an asm function body. */
 
-EXTERN sizeof_t pos_in_asm_func_body_buffer;
+EXTERN sizeof_t	pos_in_asm_func_body_buffer;
 			/* The number of characters that have been added to
 			   asm_func_body_buffer thus far in processing. */
 
-EXTERN char *asm_func_body_buffer;
+EXTERN char	*asm_func_body_buffer;
 			/* Pointer to a dynamically allocated buffer used to
 			   construct the string representation of an asm
 			   function or Microsoft asm block. */
 
-EXTERN sizeof_t size_asm_func_body_buffer;
+EXTERN sizeof_t	size_asm_func_body_buffer;
 			/* The size of the asm buffer. */
 
-EXTERN char *prev_asm_stop_char;
+EXTERN a_const_char
+		*prev_asm_stop_char;
 			/* The last character copied by the previous call to
 			   copy_from_source_to_asm_func_buffer.  (Must be
 			   EXTERN so it can be relocated if macro_buffer is
@@ -1585,8 +1593,9 @@ EXTERN char *prev_asm_stop_char;
 
 
 #if ASM_FUNCTION_ALLOWED
-extern void copy_from_source_to_asm_func_buffer(char *stop_char,
-                                                char *after_comment_stop_char);
+extern void copy_from_source_to_asm_func_buffer(
+                                        a_const_char *stop_char,
+                                        a_const_char *after_comment_stop_char);
 
 extern void reset_asm_buffer(void);
 #endif /* ASM_FUNCTION_ALLOWED */
@@ -2031,8 +2040,8 @@ extern void increment_variadic_rescans_for_reusable_cache(void);
 
 extern void decrement_variadic_rescans_for_reusable_cache(void);
 
-extern a_boolean same_string_ignoring_underscores(char  *s1, 
-                                                  char  *s2);
+extern a_boolean same_string_ignoring_underscores(a_const_char *s1, 
+                                                  a_const_char *s2);
 
 /*
 Variables to flag whether extra token separators should be emitted in
@@ -2097,9 +2106,9 @@ EXTERN a_byte	pp_lexical_category[CHAR_MAX-CHAR_MIN+1];
 a_boolean read_logical_source_line(a_boolean do_pop_on_end_of_file,
                                    a_boolean extend_current_line);
 /* Check character as identifier character. */
-extern a_boolean is_identifier_char(char      *ptr,
-                                    int       *len,
-                                    a_boolean is_identifier_start);
+extern a_boolean is_identifier_char(a_const_char *ptr,
+                                    int          *len,
+                                    a_boolean    is_identifier_start);
 #if CPPCLI_ENABLING_POSSIBLE && EDG_WIN32
 extern an_error_code is_valid_UCN_identifier_char(
                                            unsigned long uchar,
@@ -2149,10 +2158,10 @@ extern void add_concatenation_record(a_concatenation_record_ptr *headp,
                                      a_symbol_ptr               macro_sym);
 /* Add an entry recording a logical modification to the source line. */
 extern a_source_line_modif_ptr add_source_line_modif(
-                          char                      *line_loc,
+                          a_const_char              *line_loc,
                           sizeof_t                  num_chars_to_delete,
-                          char                      *inserted_text,
-                          char                      *end_inserted_text);
+                          a_const_char              *inserted_text,
+                          a_const_char              *end_inserted_text);
 /* Free a source line modification entry. */
 extern void free_source_line_modif(a_source_line_modif_ptr *slmp);
 /* Remove a source line modification entry from the source_line_modif_list. */
@@ -2160,8 +2169,8 @@ extern void rem_source_line_modif(a_source_line_modif_ptr slmp);
 /* Find the source line modification entry associated with a given source
    location. */
 extern a_source_line_modif_ptr assoc_source_line_modif_full(
-                                                    char      *loc_in_line,
-                                                    a_boolean failure_allowed);
+                                                 a_const_char *loc_in_line,
+                                                 a_boolean    failure_allowed);
 /* Interface for assoc_source_line_modif_full that assumes a matching
    source line modification will be found. */
 #define assoc_source_line_modif(loc_in_line)                          \
@@ -2179,10 +2188,11 @@ extern a_source_line_modif_ptr f_parent_source_line_modif(
 }  /* set_parent_modif */
 /* Find the source line modification that affects the attention marker
    at a given source location. */
-extern a_source_line_modif_ptr nested_source_line_modif(char *loc_in_line);
+extern a_source_line_modif_ptr nested_source_line_modif(
+                                                    a_const_char *loc_in_line);
 /* Convert a character location in the source line to a source sequence
    number and column. */
-extern void conv_line_loc_to_source_pos(char              *loc_in_line,
+extern void conv_line_loc_to_source_pos(a_const_char      *loc_in_line,
                                         a_source_position *position_var);
 /* Check for a specific token. */
 extern a_boolean required_token(a_token_kind  token,
@@ -2232,14 +2242,14 @@ extern a_symbol_ptr coalesce_and_lookup_generalized_identifier
                          a_boolean                        *err);
 
 extern unsigned long scan_universal_character(
-					char		**start_pos,
+					a_const_char	**start_pos,
 					a_boolean	is_identifier,
 				        a_boolean	is_identifier_start,
 					a_boolean	issue_diagnostics);
 
 #if ABI_COMPATIBILITY_VERSION >= 302
-extern char *make_canonical_identifier(char     *identifier,
-                                       sizeof_t *length);
+extern char *make_canonical_identifier(a_const_char *identifier,
+                                       sizeof_t     *length);
 #else /* !(ABI_COMPATIBILITY_VERSION >= 302) */
 /*
 No translation of identifiers was done for older ABIs.  Simply
@@ -2256,10 +2266,10 @@ string.
   ((sym_hdr)->identifier[0] == (tok_str)[0] &&                               \
    strcmp((sym_hdr)->identifier, (tok_str)) == 0)
 
-extern a_boolean curr_token_is_identifier_string(char  *tok_str);
+extern a_boolean curr_token_is_identifier_string(a_const_char *tok_str);
 
 extern a_boolean check_context_sensitive_keyword(a_token_kind  tok_kind,
-                                                 char          *tok_str);
+                                                 a_const_char  *tok_str);
 
 /* Flags describing the encoding prefix, if any, of a string or character
    literal and which kind of literal is being processed.  The flags are
@@ -2307,10 +2317,10 @@ typedef int a_string_or_char_literal_kind;
       : 0) /* 0 for no prefix */                                             \
    + 1 /* 1 for quoting character */)
 
-extern a_string_or_char_literal_kind scan_encoding_prefix(char *loc);
+extern a_string_or_char_literal_kind scan_encoding_prefix(a_const_char *loc);
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
-extern a_boolean is_valid_GUID_string(char          *str,
+extern a_boolean is_valid_GUID_string(a_const_char  *str,
                                       a_targ_size_t length);
 
 extern a_boolean accum_quoted_string(
@@ -2318,7 +2328,7 @@ extern a_boolean accum_quoted_string(
                   a_boolean                     is_header_name,
                   a_string_or_char_literal_kind literal_kind,
                   char                          quoting_char,
-                  char                          *start_of_raw_string_delimiter,
+                  a_const_char                  *start_of_raw_string_delimiter,
                   int                           raw_string_delimiter_len);
 
 #if NATIVE_MULTIBYTE_CHARS_SUPPORTED_WITH_UNICODE
@@ -2396,19 +2406,20 @@ because uses of the nonstandard spelling are warned about in some modes.)
 extern void push_next_preinclude_file(void);
 
 /* Push a file onto the input stack. */
-extern void open_file_and_push_input_stack(char      *file_name,
-                                           a_boolean use_search_path,
-                                           a_boolean is_include_file,
-                                           a_boolean is_system_include,
-                                           a_boolean is_preinclude,
-					   a_boolean preinclude_macros,
-                                           a_boolean is_implicit_include,
-                                           a_boolean is_include_next,
-					   a_boolean continue_on_open_failure,
-					   a_boolean *include_was_suppressed);
+extern void open_file_and_push_input_stack(
+                                         a_const_char *file_name,
+                                         a_boolean    use_search_path,
+                                         a_boolean    is_include_file,
+                                         a_boolean    is_system_include,
+                                         a_boolean    is_preinclude,
+                                         a_boolean    preinclude_macros,
+                                         a_boolean    is_implicit_include,
+                                         a_boolean    is_include_next,
+                                         a_boolean    continue_on_open_failure,
+                                         a_boolean    *include_was_suppressed);
 
 extern a_boolean open_file_for_input(
-		char				*file_name,
+		a_const_char			*file_name,
 		a_boolean			use_search_path,
 		a_boolean			is_include_file,
 		a_boolean			is_system_include,
@@ -2416,17 +2427,17 @@ extern a_boolean open_file_for_input(
 		a_boolean			is_implicit_include,
 		a_boolean			is_preinclude,
 		a_boolean			continue_on_open_failure,
-		char				**full_file_name,
-		char				**display_name,
+		a_const_char			**full_file_name,
+		a_const_char			**display_name,
 		FILE				**new_input_file,
 		a_boolean			*suppress_include,
 		a_unicode_source_kind		*unicode_source_kind,
 		a_directory_name_entry_ptr	*dir_entry);
 extern void push_input_stack(
 			FILE			    *new_input_file,
-                        char			    *name_as_written,
-                        char			    *display_name,
-                        char     		    *full_file_name,
+                        a_const_char		    *name_as_written,
+                        a_const_char		    *display_name,
+                        a_const_char		    *full_file_name,
 			a_boolean                   is_include_file,
 			a_boolean                   is_system_include,
                         a_boolean                   is_preinclude,
@@ -2501,7 +2512,7 @@ extern a_template_ptr scan_template_template_argument(
 				a_boolean		is_default);
 
 extern void insert_string_into_token_stream(
-                                        char              *string,
+                                        a_const_char      *string,
                                         a_boolean         insert_after,
                                         a_boolean         p_expand_macros,
                                         a_source_position position_for_tokens);
@@ -2544,7 +2555,7 @@ extern void init_token_string(a_source_position *pos,
 
 extern char *make_copy_of_token_string(void);
 
-extern char *il_string_for_curr_token(void);
+extern a_const_char *il_string_for_curr_token(void);
 
 extern a_preinclude_file_ptr alloc_preinclude_file(void);
 
@@ -2578,7 +2589,7 @@ and all entities declared in functions.
 extern unsigned long show_lexical_space_used(void);
 
 extern void db_token_cache(a_token_cache *cache,
-                           char		 *cache_name);
+                           a_const_char	 *cache_name);
 
 extern void db_stop_tokens(void);
 #endif /* DEBUG */

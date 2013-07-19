@@ -69,7 +69,7 @@ extern void db_long_double(long double d);
 #endif /* DEBUG */
 
 extern void conv_hex_string_to_mantissa_and_exponent(
-				char			*str,
+				a_const_char		*str,
 				a_mantissa_ptr		mantissa,
 				long			*p_exponent,
 				a_boolean		*exponent_overflow);
@@ -139,13 +139,13 @@ extern a_boolean make_huge_fp_val(an_internal_float_value  *value,
 
 extern
 void fp_hex_string_to_float(a_float_kind		kind,
-	                    char			*str,
+	                    a_const_char		*str,
 	                    an_internal_float_value	*float_value,
 	                    a_boolean			*err,
 			    a_boolean			*inexact);
 
 extern void fp_string_to_float(a_float_kind            kind,
-                               char                    *str,
+                               a_const_char            *str,
                                an_internal_float_value *float_value,
                                a_boolean               *err);
 

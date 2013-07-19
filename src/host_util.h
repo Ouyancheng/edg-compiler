@@ -18,7 +18,7 @@ host_util.h -- host environment utility routines that are shared by
 #ifndef HOST_UTIL_H
 #define HOST_UTIL_H 1
 
-unsigned long crc_32(char		*str,
+unsigned long crc_32(a_const_char	*str,
 		     unsigned long	prev_crc)
 /*
 Determines and returns the CRC-32 value for a null-terminated string.
@@ -51,7 +51,7 @@ value, a zero should be passed in.
 
 #if ONE_INSTANTIATION_PER_OBJECT
 
-char *generate_instantiation_output_file_name(char *mangled_name)
+char *generate_instantiation_output_file_name(a_const_char *mangled_name)
 /*
 Generate the name of an instantiation output file that is used in
 one instantiation per object mode.  A pointer to a static buffer
@@ -87,8 +87,8 @@ called again.
 
 #if EDG_WIN32 && UNICODE_SOURCE_SUPPORTED 
 #if defined(MEM_MANAGE_H)  /* Will be FALSE when building the prelinker. */
-static wchar_t *conv_utf8_to_wchar_full(char      *char_buffer, 
-                                        a_boolean *utf8_character_seen)
+static wchar_t *conv_utf8_to_wchar_full(a_const_char *char_buffer, 
+                                        a_boolean    *utf8_character_seen)
 /*
 Copy the supplied char_buffer to a buffer as wchar_t characters, translating
 any UTF-8 multibyte characters to UTF-16, and return the address of the
@@ -176,7 +176,7 @@ buffer.  utf8_character_seen is set to TRUE if any utf8 character is detected.
 }  /* conv_utf8_to_wchar_full */
 
 
-wchar_t *translate_filename_to_wchar(char *filename)
+wchar_t *translate_filename_to_wchar(a_const_char *filename)
 /*
 Copy the supplied filename to a buffer as wchar_t characters, translating
 any UTF-8 multibyte characters to UTF-16, and return the address of the
@@ -194,7 +194,7 @@ caller should copy the contents as needed.
 }  /* translate_filename_to_wchar */
 
 
-wchar_t *conv_utf8_to_wchar(char *buffer)
+wchar_t *conv_utf8_to_wchar(a_const_char *buffer)
 /* 
 Copy the supplied buffer containing UTF-8 to a buffer as wchar_t
 characters, translating any UTF-8 multibyte characters to UTF-16, and
@@ -208,8 +208,8 @@ successive call, so the caller should copy the contents as needed.
 #endif /* EDG_WIN32 && UNICODE_SOURCE_SUPPORTED */
 
 
-a_boolean get_file_modification_time(char   *file_name,
-                                     time_t *p_time)
+a_boolean get_file_modification_time(a_const_char *file_name,
+                                     time_t       *p_time)
 /*
 Determine whether a file exists, and if so, return the last modification
 time.  Return TRUE if the file exists and is a regular file, FALSE otherwise.

@@ -119,7 +119,8 @@ typedef enum /* a_template_info_line_type */ {
 The template information line type string to be written to the
 file for the various line type kinds.
 */
-static char	*template_info_line_type_names[(int)tilt_last+1] = {
+static a_const_char
+		*template_info_line_type_names[(int)tilt_last+1] = {
   /* tilt_command_line */		"cmd",
   /* tilt_curr_dir */			"dir",
   /* tilt_file_name */			"fnm",
@@ -153,7 +154,8 @@ The template information line type string to be written to the
 file for the various line type kinds.  The routines that read the
 exported template file require that the names be three characters long.
 */
-static char	*exported_template_line_type_names[(int)etlt_last+1] = {
+static a_const_char
+		*exported_template_line_type_names[(int)etlt_last+1] = {
   /* etlt_none */			NULL,
   /* etlt_file_name */			"fnm",
   /* etlt_template_name */		"tnm",
@@ -204,7 +206,8 @@ static an_instance_lookup_entry_ptr
 			   entries associated with instantiations that hashed
 			   to a given group. */
 
-static char	*instantiation_request_file_name;
+static a_const_char
+		*instantiation_request_file_name;
                         /* The name of a file containing a list of names
 			   of template functions and static data members to
 			   be instantiated.  Intended to be used for linker
@@ -845,7 +848,7 @@ source sequence entry.
 
 #if TEMPLATE_LOOKUP_NEEDED
 /* Forward declaration. */
-static char *get_mangled_name_for_symbol(a_symbol_ptr	sym);
+static a_const_char *get_mangled_name_for_symbol(a_symbol_ptr	sym);
 
 
 static char *get_mangled_name_of_template(a_symbol_ptr	template_sym,
@@ -865,7 +868,7 @@ exist.
   template_sym = prototype_template_if_template_symbol(template_sym);
   tssp = template_supplement_for_symbol(template_sym);
   if (tssp->name == NULL && okay_to_create) {
-    char	*name;
+    a_const_char *name;
     name = get_mangled_name_for_symbol(template_sym);
     tssp->name = copy_string_to_region(FRONT_END_REGION_NUMBER, name);
   }  /* if */
@@ -953,8 +956,8 @@ Open the template information file.
 
 static void write_to_template_info_file(
 				a_template_info_line_type	line_type,
-				char				*string,
-				char				*flags_string,
+				a_const_char			*string,
+				a_const_char			*flags_string,
 				a_symbol_ptr			template_sym)
 /*
 Write a line to the template information file.  line_type specifies
@@ -1040,7 +1043,7 @@ Open the template information file.
 
 static void write_to_exported_template_file(
 				an_exported_template_line_type	line_type,
-				char				*string)
+				a_const_char			*string)
 /*
 Write a line to the exported template file.  line_type specifies
 the kind of line to be written.  string specifies the value to
@@ -15404,7 +15407,7 @@ sure it matches the primary template.
     if ((type_kind == (a_type_kind)tk_union) !=
           (primary_tssp->variant.class_template.type_kind ==
                                                   (a_type_kind)tk_union)) {
-      char	*type_kind_name;
+      a_const_char *type_kind_name;
       switch (type_kind) {
         case tk_struct: type_kind_name = "struct"; break;
         case tk_class:  type_kind_name = "class";  break;
@@ -20092,7 +20095,7 @@ set, and its source sequence entry, if any, has been put out.)
 }  /* complete_il_template_entry */
 
 
-static unsigned long hash_string(char *str)
+static unsigned long hash_string(a_const_char *str)
 /*
 Compute a hash value for the string "str".
 */
@@ -23557,7 +23560,7 @@ void db_generic_constraint_kind(a_generic_constraint_kind	kind)
 Display a generic constraint kind of kind, for debugging purposes.
 */
 {
-  char	*str = NULL;
+  a_const_char *str = NULL;
 
   switch (kind) {
     case gck_none: str = "none"; break;
@@ -24744,7 +24747,7 @@ file we simply return.
   a_line_number		line_number;
   a_boolean		at_end_of_source;
   a_source_file_ptr	sfp;
-  char			*full_file_name, *display_name;
+  a_const_char		*full_file_name, *display_name;
   FILE			*f_source;
   a_boolean		is_system_include;
   a_unicode_source_kind unicode_source_kind;
@@ -25948,7 +25951,7 @@ Mangle the name of the instance specified by "mip" and save a copy of the
 name.
 */
 {
-  char	*name;
+  a_const_char *name;
 
   name = get_mangled_name_for_symbol(mip->instance->instance_sym);
   mip->name = copy_string_to_region(FRONT_END_REGION_NUMBER, name);
@@ -26276,7 +26279,7 @@ Determine the type of "line" that was read from an exported template file.
   for (type = (an_exported_template_line_type)((int)etlt_none + 1);
        (int)type < (int)etlt_last;
        type = (an_exported_template_line_type)((int)type + 1)) {
-    char	*line_type_name;
+    a_const_char *line_type_name;
     line_type_name = exported_template_line_type_names[(int)type];
     /* This routine requires that all type names be three characters. */
     check_assertion(line_type_name[3] == '\0');
@@ -26326,7 +26329,7 @@ This routine reads all of the entries from a given exported template file.
     /* Identify the line type. */
     line_type = get_exported_line_type(line);
     if (line_type == etlt_file_name) {
-      char	*name = &line[4];
+      a_const_char *name = &line[4];
       name = file_name_in_internal_encoding(name);
       line_type = get_exported_line_type(line);
       /* Create an entry that describes this exported template file. */
@@ -26601,13 +26604,13 @@ compilation can be looked up to find the corresponding definition.
 
 #if TEMPLATE_LOOKUP_NEEDED
 
-static char *get_mangled_name_for_symbol(a_symbol_ptr	sym)
+static a_const_char *get_mangled_name_for_symbol(a_symbol_ptr	sym)
 /*
 Return the mangled name of the variable, routine, or template specified
 by "sym".
 */
 {
-  char	*name;
+  a_const_char *name;
 
   if (sym->kind == (a_symbol_kind)sk_static_data_member) {
     a_variable_ptr	variable;
@@ -27397,7 +27400,7 @@ Create the exported template information file.
      some template names were written above. */
   if (f_exported_template != NULL) {
 #if MODULE_ID_NEEDED
-    char *module_id = get_module_id();
+    a_const_char *module_id = get_module_id();
     check_assertion(module_id != NULL);
     /* Write the module ID. */
     write_to_exported_template_file(etlt_module_id, module_id);
@@ -30570,7 +30573,6 @@ initialization of an object of type a_template_decl_info pointed to by state.
 
   check_assertion(scope_is(ssep, sck_class_struct_union));
   init_templ_decl_state(state);
-  state->effective_decl_level = depth_scope_stack;
   state->is_member_decl = TRUE;
   state->in_prototype_instantiation = ssep->in_prototype_instantiation;
   state->enclosing_scope = ssep->il_scope;
@@ -30580,19 +30582,11 @@ initialization of an object of type a_template_decl_info pointed to by state.
   state->decl_info = templ_decl_info;
   templ_decl_info->enclosing_scope = state->enclosing_scope;
   templ_decl_info->name_linkage = ssep->default_name_linkage;
+
 }  /* init_tmpl_decl_state_for_inheriting_ctor_template */
 
 
-void complete_inheriting_ctor_template(a_tmpl_decl_state_ptr  decl_state,
-                                       a_symbol_ptr           sym)
-/*
-Complete the data structures representing an inheriting constructor template
-(including the associate IL a_template entry).  sym is the symbol representing
-the template and decl_state tracks its declaration.
-*/
-{
-  complete_il_template_entry(decl_state, sym);
-}  /* complete_inheriting_ctor_template */
+
 
 #if DEBUG
 unsigned long db_show_template_space_used(unsigned long grand_total)

@@ -460,7 +460,8 @@ typedef a_byte a_symbol_kind;
 /*
 Table of names corresponding to symbol kinds.
 */
-EXTERN char	*symbol_kind_names[(int)sk_last + 1]
+EXTERN a_const_char
+		*symbol_kind_names[(int)sk_last + 1]
 #if VAR_INITIALIZERS
 = {
    "keyword", "macro", "constant", "type", "class or struct", "union",
@@ -1808,7 +1809,7 @@ typedef struct a_decl_modifiers_block {
   a_bit_field	is_microsoft_intrinsic:1;
 			/* TRUE if the declaration was marked with
 			   __declspec(intrin_type). */
-  char		*uuid_string;
+  a_const_char	*uuid_string;
 			/* Pointer to a string representing the argument of
 			   a "uuid" decl-modifier (in Microsoft mode). */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
@@ -1949,7 +1950,7 @@ typedef struct a_def_undef_string {
 		next;
 			/* Next entry on this list, or NULL if this is the
 			   last entry. */
-  char		*text;
+  a_const_char	*text;
 			/* The text of the argument (i.e., "x=1" for the
 			   option "-Dx=1", "x" for "-Ux"). */
   a_boolean
@@ -1964,16 +1965,16 @@ template definitions.
 */
 typedef struct an_exported_template_file *an_exported_template_file_ptr;
 typedef struct an_exported_template_file {
-  char		*directory_name;
+  a_const_char	*directory_name;
 			/* Directory containing the file. */
-  char		*source_file_name;
+  a_const_char	*source_file_name;
 			/* Name of the source file. */
   a_translation_unit_ptr
 		translation_unit;
 			/* If the translation unit for this file has been
 			   loaded, this point to the translation unit entry.
 			   NULL if the translation unit has not been loaded. */
-  char		*module_id;
+  a_const_char	*module_id;
 			/* The module ID read from the exported template
 			   file.  When instantiating exported templates, the
 			   original module ID must be used when referring to
@@ -3676,9 +3677,9 @@ typedef a_byte a_cli_operator_kind;
 typedef struct a_cli_operator_info *a_cli_operator_info_ptr;
 typedef struct a_cli_operator_info {
   /* Structure representing information associated with a CLI operator. */
-  char		*cli_name;
+  a_const_char	*cli_name;
 			/* Name of the operator. */
-  char		*cpp_name;
+  a_const_char	*cpp_name;
 			/* Name of the operator in C++/CLI; NULL if no such
 			   mapping exists. */
   a_boolean	is_assignment_operator;
@@ -3753,7 +3754,7 @@ EXTERN a_cli_operator_info cli_operator_info[(int)cok_last + 1]
 extern void init_cli_operator_headers(void);
 
 #if CPPCLI_ENABLING_POSSIBLE && EDG_WIN32
-extern a_cli_operator_kind find_cli_operator_kind(char *identifier);
+extern a_cli_operator_kind find_cli_operator_kind(a_const_char *identifier);
 #endif /* CPPCLI_ENABLING_POSSIBLE && EDG_WIN32 */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
@@ -3766,7 +3767,7 @@ typedef struct a_symbol_header {
 			/* This is the pointer to the next symbol header in the
 			   same bucket of the symbol table.  This field is NULL
 			   if this is the last symbol header in this bucket. */
-  char		*identifier;
+  a_const_char	*identifier;
 			/* A pointer to a null-terminated string containing the
 			   name of the symbol. */
   sizeof_t	identifier_length;
@@ -4082,7 +4083,7 @@ EXTERN a_symbol_ptr
 #endif /* CFRONT_GLOBAL_VS_MEMBER_NAME_LOOKUP_BUG */
 
 
-extern a_symbol_ptr find_symbol(char             *identifier,
+extern a_symbol_ptr find_symbol(a_const_char     *identifier,
 			        sizeof_t         identifier_length,
 				a_symbol_locator *location);
 
@@ -4312,24 +4313,24 @@ extern a_symbol_ptr make_anonymous_parent_object_symbol(
                                                 a_source_position  *pos,
                                                 a_scope_number     decl_scope);
 
-extern a_symbol_ptr full_enter_symbol(char          *identifier,
+extern a_symbol_ptr full_enter_symbol(a_const_char  *identifier,
 				      sizeof_t      identifier_length,
 				      a_symbol_kind sym_kind,
 				      a_scope_depth scope_depth);
 
 extern void enter_keyword(a_token_kind token,
-                          char         *keyword);
+                          a_const_char *keyword);
 
 #if NAMED_ADDRESS_SPACES_ALLOWED
-extern a_symbol_ptr enter_named_address_space(char  *name);
+extern a_symbol_ptr enter_named_address_space(a_const_char  *name);
 #endif /* NAMED_ADDRESS_SPACES_ALLOWED */
 
 #if NAMED_REGISTERS_ALLOWED
-extern a_symbol_ptr enter_named_register(char  *name);
+extern a_symbol_ptr enter_named_register(a_const_char  *name);
 #endif /* NAMED_REGISTERS_ALLOWED */
 
-extern void make_symbol_for_predeclared_type(a_type_ptr  predeclared_type,
-                                             char        *name);
+extern void make_symbol_for_predeclared_type(a_type_ptr    predeclared_type,
+                                             a_const_char  *name);
 
 extern void enter_injected_class_name_symbol(a_symbol_ptr  tag_sym);
 
@@ -4454,7 +4455,7 @@ Structure representing a managed symbol that will be pre-created
 and stored in cli_symbols.
 */
 typedef struct {
-  char *name;           /* Unqualified name of the symbol. */
+  a_const_char	*name;           /* Unqualified name of the symbol. */
   enum a_cli_symbol_kind_tag
                 namespace_kind;
                         /* Enum value for the parent namespace for the symbol
@@ -5170,11 +5171,11 @@ extern a_symbol_ptr find_label_symbol(a_symbol_header_ptr	sym_hdr);
 
 extern a_symbol_ptr find_macro_symbol(a_symbol_header_ptr	sym_hdr);
 
-extern a_symbol_ptr find_macro_symbol_by_name(char             *identifier,
+extern a_symbol_ptr find_macro_symbol_by_name(a_const_char     *identifier,
 					      sizeof_t         length,
 					      a_symbol_locator	*locator);
 
-extern a_symbol_header_ptr find_symbol_header(char             *identifier,
+extern a_symbol_header_ptr find_symbol_header(a_const_char     *identifier,
 					      sizeof_t         length,
 					      a_symbol_locator	*locator);
 
@@ -5200,7 +5201,7 @@ Return whether a given symbol is of a given kind.
 extern an_attribute_ptr deprecation_arg_attr_for(
                                             a_source_correspondence_ptr  scp);
 
-extern char *deprecation_string_for(a_source_correspondence_ptr  scp);
+extern a_const_char *deprecation_string_for(a_source_correspondence_ptr  scp);
 #endif /* GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED */
 
 /*
@@ -5879,7 +5880,7 @@ extern void form_symbol_name(a_symbol_ptr                          sym,
 extern unsigned long show_symbol_space_used(void);
 /* Display a symbol table entry. */
 extern void db_symbol(a_symbol_ptr	sym,
-                      char		*string,
+                      a_const_char	*string,
                       int		indentation);
 
 /* Short-hand version of db_symbol. */
@@ -5887,7 +5888,7 @@ extern void db_sym(a_symbol_ptr  sym);
 
 extern void db_symbol_name(a_symbol_ptr  sym);
 
-extern char *db_symbol_trans_unit(a_symbol_ptr sym);
+extern a_const_char *db_symbol_trans_unit(a_symbol_ptr sym);
 
 extern void db_symbol_name_trans_unit(a_symbol_ptr sym);
 

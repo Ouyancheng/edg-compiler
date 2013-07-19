@@ -27,7 +27,7 @@ il_to_str.h -- Declarations related to il_to_str.c (produce an external
 Block describing how to do output from within the il_to_str routines.
 */
 typedef void an_output_str_function(
-                                   char                                  *str,
+                                   a_const_char                          *str,
                                    an_il_to_str_output_control_block_ptr octl);
 typedef an_output_str_function *an_output_str_function_ptr;
 typedef void an_output_name_function(char *entry, an_il_entry_kind kind);
@@ -350,14 +350,14 @@ void form_unqualified_name(a_source_correspondence               *scp,
                            an_il_entry_kind                      entry_kind,
                            an_il_to_str_output_control_block_ptr octl);
 
-extern char *int_kind_name_full(an_integer_kind kind,
-                                a_boolean       for_generated_code);
+extern a_const_char *int_kind_name_full(an_integer_kind kind,
+                                  a_boolean       for_generated_code);
 
-extern char *int_kind_name(an_integer_kind kind);
+extern a_const_char *int_kind_name(an_integer_kind kind);
 
-extern char *int_type_name(a_type_ptr type);
+extern a_const_char *int_type_name(a_type_ptr type);
 
-extern char *float_kind_name(a_float_kind kind);
+extern a_const_char *float_kind_name(a_float_kind kind);
 
 extern void form_type_qualifier(
                      a_type_qualifier_set                  qualifiers,
@@ -366,7 +366,7 @@ extern void form_type_qualifier(
                      an_il_to_str_output_control_block_ptr octl);
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
-extern char *cli_managed_class_tag_keyword(a_type_ptr type);
+extern a_const_char *cli_managed_class_tag_keyword(a_type_ptr type);
 
 extern void form_pointer_modifiers(
                              a_pointer_modifier_set                 modifiers,
@@ -509,7 +509,7 @@ extern a_boolean form_label_attributes(
 #endif /* BACK_END_IS_C_GEN_BE */
 
 #if BACK_END_IS_C_GEN_BE || BACK_END_IS_CP_GEN_BE
-extern void form_asm_name(char                                   *asm_name,
+extern void form_asm_name(a_const_char                           *asm_name,
                           an_il_to_str_output_control_block_ptr  octl);
 
 extern void form_var_reg_name(a_named_register                       reg,

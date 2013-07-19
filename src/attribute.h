@@ -42,7 +42,7 @@ extern void push_ELF_visibility(an_ELF_visibility_kind  evk,
 extern void pop_ELF_visibility(a_boolean  namespace_attribute);
 
 extern an_ELF_visibility_kind ELF_visibility_from_string(
-                                                       char  *visibility_str);
+                                                 a_const_char *visibility_str);
 
 extern void update_for_default_ELF_visibility(
                                      an_ELF_visibility_kind  *visibility,

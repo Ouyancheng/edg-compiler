@@ -1387,7 +1387,7 @@ a_boolean traverse_type_tree(a_type_ptr                     type_ptr,
                              a_type_tree_traversal_flag_set flags);
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
-extern char *uuid_string_of_type(a_type_ptr  type);
+extern a_const_char *uuid_string_of_type(a_type_ptr  type);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 extern void set_declspec_align(a_type_ptr         type,

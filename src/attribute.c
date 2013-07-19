@@ -109,12 +109,12 @@ typedef struct an_attr_descr {
      of its arguments if any (i.e., its "signature"), and the modes in which
      that attribute should be recognized.  This defines the structure of the
      table known_attr_table (below) of recognizable attributes. */
-  char		*name;
+  a_const_char	*name;
 			/* The name of the attribute.  If an attribute name
 			   can include optional leading/trailing underscores,
 			   those underscores are not included here.  The name
 			   may not be longer than MAX_ATTRIBUTE_NAME_LENGTH. */
-  char		*sig;
+  a_const_char	*sig;
 			/* A compact encoding of the "signature" of this
 			   attribute.  If sig is "", no attribute arguments
 			   are permitted.  If sig starts with "?", arguments
@@ -148,7 +148,7 @@ typedef struct an_attr_descr {
 			         followed by a type, itself optionally followed
 			         by an integer constant.
 			*/
-  char		*cond;
+  a_const_char	*cond;
 			/* A compact encoding of the condition in which this
 			   attribute is accepted.  The encoding consists of an
 			   optional prefix (see below) followed by a condition
@@ -361,7 +361,7 @@ typedef struct an_attr_appl_descr {
 			/* The kind of attribute this description is applied
 			   to.  (This is only useful for internal consistency
 			   checking.) */
-  char		*target_constraints;
+  a_const_char	*target_constraints;
 			/* A compact description of the kind of target entity
 			   that this attribute can be applied to.  If this is
 			   the empty string, the attributes apply to any entity
@@ -889,9 +889,9 @@ if no function should be called).
 
 static DOES_NOT_RETURN abort_for_misconfigured_attribute(
                                                 an_attribute_ptr  ap,
-                                                char              *filename,
+                                                a_const_char      *filename,
                                                 int               line_number,
-                                                char              *msg)
+                                                a_const_char      *msg)
 /*
 Abort with a message indicating the given file name, line number, and message.
 Also indicate the name of the affected attribute.  This function is called
@@ -954,7 +954,7 @@ entry of type an_attr_name_map_entry) to the given key (key is a pointer to a
 character string).  Return TRUE if they are equal.
 */
 {
-  char  *name = ((an_attr_name_map_entry_ptr)entry)->descr->name;
+  a_const_char *name = ((an_attr_name_map_entry_ptr)entry)->descr->name;
 
   return strcmp(name, (char*)key) == 0;
 }  /* compare_for_attr_name_map */
@@ -973,9 +973,10 @@ Initialize the attribute name map.
                                    fn_for_function(compare_for_attr_name_map));
   for (k = 0; k<KNOWN_ATTR_TABLE_LENGTH; ++k) {
     an_attr_name_map_entry_ptr  *ep;
-    char                        *name = known_attr_table[k].name;
+    a_const_char                *name = known_attr_table[k].name;
     check_assertion(strlen(name) <= MAX_ATTRIBUTE_NAME_LENGTH);
-    ep = (an_attr_name_map_entry_ptr*)hash_find(attr_name_map, name,
+    ep = (an_attr_name_map_entry_ptr*)hash_find(attr_name_map,
+                                                (a_void_ptr)name,
                                                 /*create=*/TRUE);
     attr_name_map_entries[k].next = *ep;
     attr_name_map_entries[k].descr = &known_attr_table[k];
@@ -988,7 +989,7 @@ Initialize the attribute name map.
 /*ARGSUSED*/  /* ap is not used in some configurations. */
 #endif /* !CHECKING */
 static a_boolean in_attr_cond_range(unsigned long     version,
-                                    char              *cond_range,
+                                    a_const_char      *cond_range,
                                     an_attribute_ptr  ap)
 /*
 cond_range is the "version range" portion of the cond string in an attribute
@@ -997,19 +998,19 @@ version lies in the indicated range.
 */
 {
   unsigned long  min_version = 0, max_version = (unsigned long)-1;
-  char           *str = cond_range;
+  a_const_char   *str = cond_range;
 
   check_attr_config(str[0] == '(', ap, "invalid version range configuration");
   str += 1;
   if (str[0] != '-') {
     check_attr_config(str[0] >= '0' && str[0] <= '9', ap,
                       "invalid version range configuration");
-    min_version = strtoul(str, &str, 10);
+    min_version = strtoul(str, (char **)&str, 10);
   }  /* if */
   if (str[0] == '-') {
     str += 1;
     if (str[0] >= '0' && str[0] <= '9') {
-      max_version = strtoul(str, &str, 10);
+      max_version = strtoul(str, (char **)&str, 10);
     }  /* if */
   } else {
     /* Not a range, but a single version number. */
@@ -1020,7 +1021,7 @@ version lies in the indicated range.
 }  /* in_attr_cond_range */
 
 
-static a_boolean cond_matches_gnu_attr_mode(char              *cond,
+static a_boolean cond_matches_gnu_attr_mode(a_const_char      *cond,
                                             an_attribute_ptr  ap)
 /*
 cond is the "cond" field of an attribute description entry for the given GNU
@@ -1049,7 +1050,7 @@ string.
 }  /* cond_matches_gnu_attr_mode */
 
 
-static a_boolean cond_matches_ms_declspec_mode(char              *cond,
+static a_boolean cond_matches_ms_declspec_mode(a_const_char      *cond,
                                                an_attribute_ptr  ap)
 /*
 cond is the "cond" field of an attribute description entry for the given
@@ -1086,8 +1087,8 @@ there is an applicable one; otherwise, return NULL.
 {
   an_attr_descr_ptr           result = NULL;
   an_attr_name_map_entry_ptr  *p_ep, ep = NULL;
-  char                        *name = ap->name,
-                              buf[MAX_ATTRIBUTE_NAME_LENGTH+1];
+  a_const_char                *name = ap->name;
+  char                        buf[MAX_ATTRIBUTE_NAME_LENGTH+1];
   a_byte_attribute_family     family = ap->family;
 
   if (gnu_mode && gnu_version >= 40800 &&
@@ -1119,12 +1120,13 @@ there is an applicable one; otherwise, return NULL.
     }  /* if */
   }  /*  if */
   if (attr_name_map == NULL) init_attr_name_map();
-  p_ep = (an_attr_name_map_entry_ptr*)hash_find(attr_name_map, name,
-                                              /*create=*/FALSE);
+  p_ep = (an_attr_name_map_entry_ptr*)hash_find(attr_name_map,
+                                                (a_void_ptr)name,
+                                                /*create=*/FALSE);
   if (p_ep != NULL) {
     check_assertion(*p_ep != NULL);
     for (ep = *p_ep; ep != NULL; ep = ep->next) {
-      char  *cond = ep->descr->cond;
+      a_const_char *cond = ep->descr->cond;
       /* Skip a leading "1" (which indicates that the attribute should appear
          at most once in a group). */
       if (cond[0] == '1') ++cond;
@@ -1176,7 +1178,7 @@ search_done:
 
 
 static void record_empty_attribute_argument(an_attribute_ptr  ap,
-                                            char              *sig)
+                                            a_const_char      *sig)
 /*
 An argument list of the form "()" has been encountered (the current token is
 the left parenthesis) for the given attribute.  sig points to the character
@@ -1469,7 +1471,7 @@ such cases an error is issued and ap->kind is set to ak_unrecognized.
 
 
 static void scan_attr_arg_list(an_attribute_ptr  ap,
-                               char              *sig)
+                               a_const_char      *sig)
 /*
 A non-empty attribute argument list for the given attribute is next.  The
 current token is the first token after the left parenthesis, and sig points
@@ -1479,7 +1481,7 @@ ak_unrecognized.
 */
 {
   an_attribute_arg_ptr  *p_aap = &ap->arguments;
-  char                  *saved_sig;
+  a_const_char          *saved_sig;
   a_boolean             may_terminate;
 
   do {
@@ -1584,7 +1586,7 @@ ak_unrecognized.
 
 
 static void scan_attribute_args(an_attribute_ptr  ap,
-                                char              *sig)
+                                a_const_char      *sig)
 /*
 Scan a parenthesized list of attribute arguments (if one is present) for the
 given attribute.  sig is a string describing the structure of the expected
@@ -1770,7 +1772,7 @@ the attribute is declared with.
     syntax_error(ec_exp_identifier);
   } else {
     an_attr_descr_ptr  adp;
-    char               *sig;
+    a_const_char       *sig;
     ap = make_attribute(af);
     record_attribute_name(ap);
     (void)get_token();
@@ -1877,7 +1879,7 @@ appear.
           /* Create a name that includes the quotation characters. */
           (*p_attribute)->name = alloc_il(
                       (sizeof_t)const_for_curr_token.variant.string.length+2);
-          sprintf((*p_attribute)->name, "\"%s\"",
+          sprintf((char *)(*p_attribute)->name, "\"%s\"",
                   const_for_curr_token.variant.string.value);
         }  /* if */
 #if EXTRA_SOURCE_POSITIONS_IN_IL
@@ -2254,7 +2256,7 @@ the given attribute into an ak_unrecognized attribute.
 
 #endif /* USER_CONTROL_OF_STRUCT_PACKING || GNU_EXTENSIONS_ALLOWED || ... */
 
-static void check_simple_type_constraints(char              *constr,
+static void check_simple_type_constraints(a_const_char      *constr,
                                           an_attribute_ptr  ap,
                                           a_type_ptr        type)
 /*
@@ -2319,7 +2321,7 @@ attribute ap applied to the given type matches those constraints.
 }  /* check_simple_type_constraints */
 
 
-static void check_simple_field_constraints(char              *constr,
+static void check_simple_field_constraints(a_const_char      *constr,
                                            an_attribute_ptr  ap,
                                            a_field_ptr       field)
 /*
@@ -2374,7 +2376,7 @@ attribute ap applied to the given field matches those constraints.
 }  /* check_simple_field_constraints */
 
 
-static void check_simple_routine_constraints(char              *constr,
+static void check_simple_routine_constraints(a_const_char      *constr,
                                              an_attribute_ptr  ap,
                                              a_routine_ptr     routine)
 /*
@@ -2480,7 +2482,7 @@ attribute ap applied to the given routine matches those constraints.
 }  /* check_simple_routine_constraints */
 
 
-static void check_simple_variable_constraints(char              *constr,
+static void check_simple_variable_constraints(a_const_char      *constr,
                                               an_attribute_ptr  ap,
                                               a_variable_ptr     variable)
 /*
@@ -2582,7 +2584,7 @@ attribute ap applied to the given variable matches those constraints.
 
 
 /*ARGSUSED*/
-static void check_simple_parameter_constraints(char              *constr,
+static void check_simple_parameter_constraints(a_const_char      *constr,
                                                an_attribute_ptr  ap,
                                                a_param_type_ptr  ptp)
 /*
@@ -2596,7 +2598,7 @@ constraints.
 
 
 /*ARGSUSED*/
-static void check_simple_label_constraints(char              *constr,
+static void check_simple_label_constraints(a_const_char      *constr,
                                            an_attribute_ptr  ap,
                                            a_label_ptr       label)
 /*
@@ -2609,7 +2611,7 @@ attribute ap applied to the given label matches those constraints.
 
 
 /*ARGSUSED*/
-static void check_simple_namespace_constraints(char              *constr,
+static void check_simple_namespace_constraints(a_const_char      *constr,
                                                an_attribute_ptr  ap,
                                                a_namespace_ptr   nsp)
 /*
@@ -2622,7 +2624,7 @@ attribute ap applied to the given namespace matches those constraints.
 
 
 /*ARGSUSED*/
-static void check_simple_using_decl_constraints(char              *constr,
+static void check_simple_using_decl_constraints(a_const_char      *constr,
                                                 an_attribute_ptr  ap,
                                                 a_using_decl_ptr  udp)
 /*
@@ -2635,9 +2637,9 @@ those constraints.
 }  /* check_simple_using_decl_constraints */
 
 
-static a_boolean check_target_entity_match(char              *constr,
+static a_boolean check_target_entity_match(a_const_char      *constr,
                                            an_attribute_ptr  ap,
-                                           char              *entity,
+                                           a_const_char      *entity,
                                            an_il_entry_kind  entity_kind)
 /*
 constr is a target constraint string as described in the definition of
@@ -2841,7 +2843,7 @@ Output the given source position form to f_debug.
 */
 {
   if (pos->seq > 0) {
-    char           *file_name, *full_name;
+    a_const_char   *file_name, *full_name;
     a_line_number  line_number;
     a_boolean      at_end_of_source;
     conv_seq_to_file_and_line(pos->seq, &file_name, &full_name, &line_number,
@@ -2867,7 +2869,7 @@ static void db_attribute(an_attribute_ptr  ap)
 Output the given attribute to f_debug.
 */
 {
-  char  *str;
+  a_const_char *str;
 
   if (ap == NULL) {
     (void)fprintf(f_debug, "null attribute pointer\n");
@@ -2955,7 +2957,7 @@ Output the given list of attributes to f_debug.
 }  /* db_attribute_list */
 
 
-static void db_log_attribute_action(char               *descr,
+static void db_log_attribute_action(a_const_char       *descr,
                                     an_attribute_ptr   ap,
                                     char               *entity,
                                     an_il_entry_kind   entity_kind)
@@ -2979,7 +2981,7 @@ including (a) the string descr, (b) a rendering of the given attribute, and
       } else {
         switch (entity_kind) {
           case iek_param_type:
-            { char  *name = ((a_param_type*)entity)->name;
+            { a_const_char *name = ((a_param_type*)entity)->name;
               (void)fprintf(f_debug, "%s", name == NULL ? "(unnamed)" : name);
             }
             break;
@@ -3027,9 +3029,9 @@ The application of the attribute may result in diagnostics and may cause
 the attribute to get marked as unrecognized.
 */
 {
-  char       *constr = known_attr_appl_table[ap->kind].target_constraints;
+  a_const_char *constr = known_attr_appl_table[ap->kind].target_constraints;
   an_attr_application_fn
-             *appl_fn = known_attr_appl_table[(int)ap->kind].appl_fn;
+               *appl_fn = known_attr_appl_table[(int)ap->kind].appl_fn;
 
   if (check_target_entity_match(constr, ap, entity, entity_kind) &&
       !is_unrecognized_attr(ap)) {
@@ -3622,8 +3624,9 @@ return that entity.
 */
 {
 #if USER_CONTROL_OF_STRUCT_PACKING
-  char  *constr;
-  a_boolean  std_specifier = ap->family == (a_byte_attribute_family)af_std ||
+  a_const_char *constr;
+  a_boolean    std_specifier =
+                             ap->family == (a_byte_attribute_family)af_std ||
                              ap->family == (a_byte_attribute_family)af_alignas;
 
   if (std_specifier) {
@@ -4228,7 +4231,7 @@ or Microsoft "allocate" attribute to it and return the entity.
 {
   an_attribute_arg_ptr  aap = ap->arguments;
   a_constant_ptr        arg;
-  char                  *str;
+  a_const_char          *str;
 
   check_assertion(entity_kind == iek_routine || entity_kind == iek_variable);
   check_assertion(aap != NULL && aap->next == NULL &&
@@ -4244,7 +4247,7 @@ or Microsoft "allocate" attribute to it and return the entity.
     if (entity_kind == iek_routine) {
       report_bad_attribute_target(es_error, ap);
     } else {
-      char  *prev_str = ((a_variable_ptr)entity)->section;
+      a_const_char *prev_str = ((a_variable_ptr)entity)->section;
       if (prev_str != NULL && strcmp(prev_str, str) != 0) {
         pos_diagnostic(es_discretionary_error,
                        ec_decl_modifiers_incompatible_with_previous_decl,
@@ -4273,9 +4276,9 @@ or Microsoft "allocate" attribute to it and return the entity.
 #if GNU_EXTENSIONS_ALLOWED
 
 static void add_alias_fixup(a_symbol_ptr        alias,
-                            char*               alias_name,
-                            char*               aliased_name,
-                            a_source_position*  alias_position);
+                            a_const_char        *alias_name,
+                            a_const_char        *aliased_name,
+                            a_source_position   *alias_position);
 
 static char* apply_alias_attr(an_attribute_ptr  ap,
                               char              *entity,
@@ -4687,7 +4690,7 @@ static struct {
   /* Data structure for table entries mapping the argument to a GNU "format"
      attribute to the equivalent EDG pragma.  This is used by the function
      apply_format_attr below. */
-  char		*name;
+  a_const_char	*name;
 			/* Format name. */
   a_pragma_kind
 		arg_pragma;
@@ -4722,7 +4725,7 @@ described by the format string.
   an_attribute_arg_ptr
                  aap = ap->arguments;
   a_boolean      known_values = TRUE;
-  char           *format_name;
+  a_const_char   *format_name;
   int            k, val[2];
 #define FMT_ARG 0
 #define FIRST_SUBST_ARG 1
@@ -5105,7 +5108,7 @@ doesn't apply to the given type, issue an error and return an error type.
 {
   a_type_ptr            type = (a_type_ptr)entity;
   an_attribute_arg_ptr  aap = ap->arguments;
-  char                  *name, *ename;
+  a_const_char          *name, *ename;
   int                   i;
 #if GNU_VECTOR_TYPES_ALLOWED
   int                   vector_length = 0;
@@ -5518,7 +5521,7 @@ return that entity.
 {
   a_variable_ptr      vp = (a_variable_ptr)entity;
   a_decl_parse_state  *dps = (a_decl_parse_state*)ap->assoc_info;
-  char                *valid_model_names[] =
+  a_const_char        *valid_model_names[] =
                                        { "global-dynamic", "local-dynamic",
                                          "initial-exec", "local-exec", NULL };
 
@@ -5532,7 +5535,7 @@ return that entity.
   } else {
     /* Check that the model name (the attribute argument) is valid. */
     a_constant_ptr    arg = ap->arguments->variant.constant;
-    char              **pvmn = valid_model_names;
+    a_const_char      **pvmn = valid_model_names;
     check_assertion(arg->kind == (a_constant_repr_kind)ck_string);
     for (; *pvmn != NULL; ++pvmn) {
       if (strcmp(arg->variant.string.value, *pvmn) == 0) break;
@@ -6674,8 +6677,8 @@ return that entity).
   if (!convert_GUID_string_literal(arg, &str)) {
     pos_error(ec_bad_uuid_string, &ap->arguments->position);
   } else {
-    a_type_ptr  tp = (a_type_ptr)entity;
-    char        *prev_str = uuid_string_of_type(tp);
+    a_type_ptr    tp = (a_type_ptr)entity;
+    a_const_char  *prev_str = uuid_string_of_type(tp);
     if (prev_str != NULL && strcmp(prev_str, str) != 0) {
       pos_diagnostic(es_discretionary_error,
                      ec_decl_modifiers_incompatible_with_previous_decl,
@@ -6750,11 +6753,11 @@ typedef struct an_alias_fixup {
 			/* The symbol that is an alias for another entity.
 			   NULL if this is an entry created by a
 			   redefine_extname pragma directive. */
-  char*		alias_name;
+  a_const_char	*alias_name;
 			/* If this is an entry created by a redefine_extname
 			   pragma directive, the name to substitute by the
 			   name indicated by aliased_name.  NULL otherwise. */
-  char*		aliased_name;
+  a_const_char	*aliased_name;
 			/* The name of the entity being aliased. */
   a_source_position
 		alias_position;
@@ -6781,9 +6784,9 @@ static unsigned long
 
 
 static void add_alias_fixup(a_symbol_ptr        alias,
-                            char*               alias_name,
-                            char*               aliased_name,
-                            a_source_position*  alias_position)
+                            a_const_char        *alias_name,
+                            a_const_char        *aliased_name,
+                            a_source_position   *alias_position)
 /*
 Allocate a fixup entry for a new alias described by the given parameters.
 */
@@ -6940,7 +6943,7 @@ equal.
 */
 {
   a_symbol_ptr  sym = (a_symbol_ptr)entry;
-  char          *str;
+  a_const_char  *str;
 
   switch (sym->kind) {
     case sk_variable:
@@ -6965,7 +6968,7 @@ attribute refers to that name).
 */
 {
   a_symbol_ptr  *p_sym;
-  char          *str = NULL;
+  a_const_char  *str = NULL;
 
   switch (sym->kind) {
     case sk_variable:
@@ -7160,9 +7163,9 @@ alias fixup entry.  Such fixup entries are applied at a later time by
 process_alias_fixup_list.
 */
 {
-  char       *src_name = NULL, *asm_name = NULL;
-  sizeof_t   src_name_len, asm_name_len;
-  a_boolean  err = FALSE;
+  a_const_char *src_name = NULL, *asm_name = NULL;
+  sizeof_t     src_name_len, asm_name_len;
+  a_boolean    err = FALSE;
 
   begin_rescan_of_pragma_tokens(ppp);
   if (curr_token == tok_identifier) {

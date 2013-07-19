@@ -1320,7 +1320,7 @@ static void db_arg_match_summary(an_arg_match_summary_ptr amsp)
 Print an argument match summary for debug purposes.
 */
 {
-  char             *str;
+  a_const_char     *str;
   a_base_class_ptr bcp;
 
   switch (amsp->match_level) {
@@ -1575,7 +1575,7 @@ have match the function's formal parameters.
 
 
 static void add_builtin_operator_to_candidate_functions_list(
-                                char                     *operand_type_pattern,
+                                a_const_char             *operand_type_pattern,
                                 a_type_ptr               specific_type,
                                 an_arg_match_summary_ptr arg_matches,
                                 a_candidate_function_ptr *candidate_functions)
@@ -1757,7 +1757,7 @@ call end_error.
   an_arg_list_elem_ptr alep;
   a_boolean            unary_operator;
   a_boolean            list_form;
-  char                 *opname = opname_names[(int)kind];
+  a_const_char         *opname = opname_names[(int)kind];
   unsigned long        num;
 
   check_assertion(expr_stack != NULL &&
@@ -1872,7 +1872,7 @@ for overload resolution.
 			   class object if possible. */
 
 
-char *name_for_builtin_type_kind(a_builtin_type_kind_set builtin_types)
+a_const_char *name_for_builtin_type_kind(a_builtin_type_kind_set builtin_types)
 /*
 Return the name of the built-in type indicated by builtin_types.  The form of
 the name is one that can appear before the word "type", so for example
@@ -1880,7 +1880,7 @@ the name is one that can appear before the word "type", so for example
 the type set when the set indicates multiple types, return "built-in".
 */
 {
-  char *result;
+  a_const_char *result;
 
   switch (builtin_types) {
     case BTK_INTEGRAL:
@@ -1935,12 +1935,12 @@ the type set when the set indicates multiple types, return "built-in".
 }  /* name_for_builtin_type_kind */
     
 
-static char *name_for_type_code(char type_code)
+static a_const_char *name_for_type_code(char type_code)
 /*
 Return a printable string describing a type code.
 */
 {
-  char *str;
+  a_const_char *str;
 
   switch (type_code) {
     case INTEGRAL_TYPE_CODE:
@@ -2056,10 +2056,10 @@ call.
       /* Put out something like
            built-in operator "pointer + integer"
       */
-      char buf[100]; /* Big enough for
-                        "pointer-to-member == pointer-to-member". */
-      char *pattern = cfp->operand_type_pattern;
-      char *opname = opname_names[(int)kind];
+      char         buf[100]; /* Big enough for
+                              "pointer-to-member == pointer-to-member". */
+      a_const_char *pattern = cfp->operand_type_pattern;
+      a_const_char *opname = opname_names[(int)kind];
       if (pattern[1] == '\0' || pattern[1] == ';') {
         /* Unary operator. */
         (void)sprintf(buf, "%s %s", opname, name_for_type_code(pattern[0]));
@@ -7450,7 +7450,8 @@ with the same signature as the builtin operator indicated by builtin_cfp.
         /* Compare the function parameter types to the builtin operator
            operand types. */
         an_arg_match_summary_ptr arg = cfp->arg_matches;
-        char *type_code = builtin_cfp->operand_type_pattern;
+        a_const_char             *type_code =
+                                             builtin_cfp->operand_type_pattern;
         for (; arg != NULL; arg = arg->next, type_code++) {
           check_assertion(arg->param_type != NULL);
           if (!type_matches_type_code(arg->param_type, *type_code)) {
@@ -10603,7 +10604,7 @@ less than INT_MAX-9 (to avoid overflow).
 */
 #define CHECKED_PRINTF_SCANF_ARG_POS_LIMIT  100
 
-static int printf_scanf_arg_pos(char  **fmt_string_ptr)
+static int printf_scanf_arg_pos(a_const_char **fmt_string_ptr)
 /*
 *fmt_string_ptr points to the first character following a '%' character of a
 conversion specifier in a format string (specified as a literal) for a call
@@ -10619,7 +10620,7 @@ present).
   int   result = 0, k = 0;
 
   if (check_printf_scanf_positional_args) {
-    char  *pc = *fmt_string_ptr;
+    a_const_char *pc = *fmt_string_ptr;
     while (isdigit((unsigned char)*pc)) {
       if (result < CHECKED_PRINTF_SCANF_ARG_POS_LIMIT) {
         result = result*10 + (int)(*pc - '0');
@@ -10648,7 +10649,7 @@ present).
 
 static a_type_ptr next_printf_scanf_arg_type(
                                  a_boolean           is_scanf,
-                                 char                **fmt_string_ptr,
+                                 a_const_char        **fmt_string_ptr,
                                  a_printf_scan_state *pss_ptr,
                                  a_boolean           *indirect,
                                  a_boolean           *weakly_typed,
@@ -10692,7 +10693,7 @@ to manage that variable.
 */
 {
   a_type_ptr          required_type;
-  char                *fmt_string = *fmt_string_ptr;
+  a_const_char        *fmt_string = *fmt_string_ptr;
   a_printf_scan_state pss = *pss_ptr;
   a_boolean           l_size, L_size, h_size, add_pointer;
   a_boolean           hh_size, j_size, z_size, t_size;
@@ -11744,7 +11745,7 @@ format string.  arg_block contains some information about the call arguments
 arguments).
 */
 {
-  char                 *fmt_string = arg_block->fmt_string;
+  a_const_char         *fmt_string = arg_block->fmt_string;
   an_arg_list_elem_ptr arg = arg_block->printf_scanf_args;
   a_type_ptr           type = NULL, alt_type = NULL;
   a_boolean            indirect, weakly_typed, weak_pointer_to_integral;
@@ -13531,8 +13532,9 @@ end_of_search:
 }  /* find_conversion_function */
 
 
-static char *operand_type_pattern_for_operator(an_opname_kind kind,
-                                               a_boolean      unary_operator)
+static a_const_char *operand_type_pattern_for_operator(
+                                                 an_opname_kind kind,
+                                                 a_boolean      unary_operator)
 /*
 Return a string describing the argument type patterns permitted for the
 indicated operator (the unary version if unary_operator is TRUE).
@@ -13545,7 +13547,7 @@ with LVALUE_FIRST_OPERAND_TYPE_CODE if the operator requires an lvalue
 as its first operand.
 */
 {
-  char *operand_type_pattern;
+  a_const_char *operand_type_pattern;
 
   if (unary_operator) {
     switch (kind) {
@@ -13712,7 +13714,7 @@ as its first operand.
 }  /* operand_type_pattern_for_operator */
 
 
-static a_boolean skip_type_pattern_in_current_mode(char **p_pattern)
+static a_boolean skip_type_pattern_in_current_mode(a_const_char **p_pattern)
 /*
 *p_pattern points to a type pattern that is part of a pattern string returned
 by operand_type_pattern_for_operator).  If that pattern is not applicable in
@@ -13721,8 +13723,8 @@ that doesn't support std::nullptr_t) return NULL and update *p_pattern to
 point to the character after the pattern.  Otherwise, return FALSE.
 */
 {
-  a_boolean  result = FALSE;
-  char       *p_code = *p_pattern;
+  a_boolean    result = FALSE;
+  a_const_char *p_code = *p_pattern;
   
   /* Skip over characters in the type pattern (including a leading '=') and
      note in result whether a character in the pattern doesn't apply in the
@@ -14050,7 +14052,7 @@ bound to a reference.
 
 static void try_builtin_operands_match(
                        an_opname_kind           kind,
-                       char                     *operand_type_pattern,
+                       a_const_char             *operand_type_pattern,
                        a_boolean                first_operand_must_be_lvalue,
                        an_arg_list_elem_ptr     operand_list,
                        a_candidate_function_ptr *candidate_functions,
@@ -14071,7 +14073,7 @@ the target type to be used).
 {
   a_boolean                okay;
   char                     type_code;
-  char                     *type_pattern_position;
+  a_const_char             *type_pattern_position;
   an_arg_list_elem_ptr     alep;
   an_operand               *operand;
   an_arg_match_summary_ptr arg_match, arg_match_list, end_arg_match_list;
@@ -14640,7 +14642,7 @@ for the previous operand.
 
 static void try_corresp_builtin_operands_match(
                          an_opname_kind           kind,
-                         char                     *operand_type_pattern,
+                         a_const_char             *operand_type_pattern,
                          a_boolean                first_operand_must_be_lvalue,
                          an_arg_list_elem_ptr     operand_list,
                          a_candidate_function_ptr *candidate_functions)
@@ -14659,7 +14661,7 @@ in some way, e.g., two pointers that must have the same type.
   an_arg_list_elem_ptr     alep;
   an_operand               *operand;
   a_type_ptr               specific_type, operand_type;
-  char                     *type_pattern_position;
+  a_const_char             *type_pattern_position;
   a_symbol_ptr             conversion_symbol, base_conversion_symbol;
   a_symbol_list_entry_ptr  slep;
   an_overload_set_traversal_block
@@ -14857,9 +14859,9 @@ The operands are specified by operand_list.  If the built-in operator
 can be used, it is added to the candidate_functions list.
 */
 {
-  char       *operand_type_pattern;
-  an_operand *first_operand;
-  a_boolean  first_operand_must_be_lvalue = FALSE;
+  a_const_char *operand_type_pattern;
+  an_operand   *first_operand;
+  a_boolean    first_operand_must_be_lvalue = FALSE;
 
   db_enter(4, "try_conversions_for_builtin_operator");
   /* Determine the argument pattern for the operator, and whether or not
@@ -15127,13 +15129,14 @@ operand of "&&").  arg_match is the argument match entry for the operand.
 Adjust the operand type to match the type requirement.
 */
 {
-  a_type_ptr specific_type;
+  a_type_ptr   specific_type;
   /* Get the type code for this operand (see
      operand_type_pattern_for_operator). */
-  char       *operand_type_pattern = candidate_function->operand_type_pattern;
-  char       type_code = operand_type_pattern[operand_num-1];
+  a_const_char *operand_type_pattern =
+                                      candidate_function->operand_type_pattern;
+  char         type_code = operand_type_pattern[operand_num-1];
   a_conv_context_set
-             conv_context = (arg_match->on_conv_allow_any_cv_qual_on_ptr ?
+               conv_context = (arg_match->on_conv_allow_any_cv_qual_on_ptr ?
                                CCO_ANY_CV_QUAL_ON_PTR_ALLOWED :
                                CCO_DEFAULT);
 

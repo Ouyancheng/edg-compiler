@@ -4700,8 +4700,8 @@ A structure describing a named address space.  The structure is primarily
 used to construct the array named_address_spaces (see below).
 */
 typedef struct a_named_address_space_descr {
-  char  *name;
-		/* Pointer to null-terminated name.  TR 18037 ("Embedded C")
+  a_const_char
+	*name;	/* Pointer to null-terminated name.  TR 18037 ("Embedded C")
 		   requires that such address spaces have names in the
 		   implementation namespace: They must start with a double
 		   underscore, or with an underscore followed by an upper-case
@@ -4751,8 +4751,8 @@ described in ISO/IEC TR 18037).  The structure is primarily used to construct
 the array named_register_storage_classes (see below).
 */
 typedef struct a_named_register_storage_class_descr {
-  char  *name;
-		/* Pointer to null-terminated name.  TR 18037 ("Embedded C")
+  a_const_char
+	*name;	/* Pointer to null-terminated name.  TR 18037 ("Embedded C")
 		   requires that such storage classes have names in the
 		   implementation namespace: They must start with a double
 		   underscore, or with an underscore followed by an upper-case

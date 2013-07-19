@@ -97,7 +97,7 @@ int db_scope_kind(a_scope_kind sck)
 Put out a scope kind name (for debugging).
 */
 {
-  char	*s;
+  a_const_char *s;
 
   switch (sck) {
     case sck_file:                   s = "file";                     break;
@@ -476,14 +476,14 @@ the given scope stack entry.
 }  /* free_local_name_collision_table */
 
 
-static char* name_for_linkage_purposes(a_symbol_ptr  sym)
+static a_const_char* name_for_linkage_purposes(a_symbol_ptr  sym)
 /*
 Return the "name for linkage purposes" of the given entity.  If the entity is
 unnamed, return the symbol header identifier (usually something like
 "<unnamed>").  The returned value is always non-NULL.
 */
 {
-  char  *result = NULL;
+  a_const_char *result = NULL;
 
   if (is_unnamed_tag_symbol(sym)) {
     /* Unnamed tag types may have acquired a name for linkage purposes through
@@ -510,7 +510,7 @@ Return TRUE if the two given entities have the same "name for linkage
 purposes".
 */
 {
-  char  *name1, *name2;
+  a_const_char *name1, *name2;
 
   name1 = name_for_linkage_purposes(sym1);
   name2 = name_for_linkage_purposes(sym2);
@@ -538,7 +538,8 @@ function, one is created.)
     initialize_local_name_collision_table(ssep);
   }  /* if */
   table = ssep->name_discr.local_name_collision_table;
-  hash_index = (unsigned)(hash_source_string(name_for_linkage_purposes(sym)) %
+  hash_index = (unsigned)(hash_source_string(
+                                 (a_void_ptr)name_for_linkage_purposes(sym)) %
                                               LOCAL_NAME_COLLISION_TABLE_SIZE);
   return &table->buckets[hash_index];
 }  /* get_name_collision_list */

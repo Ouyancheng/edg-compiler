@@ -330,7 +330,7 @@ a source correspondence).
   a_source_correspondence_ptr  scp = (a_source_correspondence_ptr)entity;
   a_symbol_ptr                 sym = (a_symbol_ptr)scp->assoc_info;
   a_line_number                line;
-  char                         *file_name, *full_name;
+  a_const_char                 *file_name, *full_name;
   a_boolean                    at_end_of_source;
 
   if (scp->assoc_info != NULL) {
@@ -355,7 +355,7 @@ Dump a short summary of the symbols in the given list.
 */
 {
   a_line_number            line;
-  char                     *file_name, *full_name;
+  a_const_char             *file_name, *full_name;
   a_boolean                at_end_of_source;
   a_symbol_list_entry_ptr  first = NULL;
 
@@ -1856,7 +1856,7 @@ its corresponding primary template supplement will be used instead.
 #if DEBUG
   if (db_sym_trace("trans_corresp", inst)) {
     a_line_number  line;
-    char           *file_name, *full_name;
+    a_const_char   *file_name, *full_name;
     a_boolean      at_end_of_source;
     fprintf(f_debug, "Adding ");
     db_symbol_name(inst);
@@ -2257,8 +2257,8 @@ symbols are listed under the same header).
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
 
-static a_boolean same_str(char *s1,
-                          char *s2)
+static a_boolean same_str(a_const_char *s1,
+                          a_const_char *s2)
 /*
 Determine whether the given character strings are the same.  Also handle NULL
 pointers.

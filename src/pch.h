@@ -45,7 +45,8 @@ typedef enum /* a_pch_event_kind */ {
 /*
 Table of names of PCH event kinds.
 */
-EXTERN char	*pch_event_kind_names[(int)pchek_last+1]
+EXTERN a_const_char
+		*pch_event_kind_names[(int)pchek_last+1]
 #if VAR_INITIALIZERS
 = { "none",
     "command_line",
@@ -129,7 +130,7 @@ typedef struct a_pch_saved_variable {
 			   in order to get the true address of the
 			   data to be stored. */
 #if DEBUG
-  char		*var_name;
+  a_const_char	*var_name;
 			/* The name of the variable being saved.  Used for
 			   debug output purposes. */
 #endif /* DEBUG */
@@ -259,7 +260,7 @@ Macro used to set cannot_create_pch_file.
 extern
 void add_pch_event(a_pch_event_kind	kind,
 		   a_pp_directive_kind	ppd_kind,
-		   char			*value,
+		   a_const_char		*value,
 		   a_source_position	*position,
 		   a_line_number	actual_line);
 
@@ -267,7 +268,7 @@ extern
 void add_command_line_pch_event(a_pch_event_kind	kind,
                                 an_option_kind		opt_kind,
 				a_boolean		opt_value,
-				char			*optarg);
+				a_const_char		*optarg);
 
 extern void precompiled_header_processing(void);
 

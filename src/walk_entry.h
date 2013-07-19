@@ -1381,8 +1381,8 @@ the file scope, do not process it (but record an orphan in the latter case).
         walk_string_ptr(ptr->asm_name, iek_other_text, 0);
 #endif /* GNU_EXTENSIONS_ALLOWED || REDEFINE_EXTNAME_PRAGMA_ENABLED */
 #if !NEEDED_FLAG_WALK
-        walk_ptr(ptr->generating_using_decl, a_using_decl_ptr,
-                 iek_using_decl);
+        remap_ptr(ptr->generating_using_decl, a_using_decl_ptr,
+                  iek_using_decl);
 #endif /* !NEEDED_FLAG_WALK */
       }
       break;

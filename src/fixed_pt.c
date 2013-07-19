@@ -956,7 +956,7 @@ to be issued; otherwise set err_code to ec_no_error.
 
 
 void fxp_hex_string_to_fixed_point(a_fixed_point_type_descr  *fxp_descr,
-                                   char                      *str,
+                                   a_const_char              *str,
                                    a_fixed_point_value       *value,
                                    a_boolean                 *err,
                                    a_boolean                 *inexact)
@@ -982,7 +982,7 @@ indicated by the given string.  Otherwise, it is set to FALSE.
 
 
 void fxp_string_to_fixed_point(a_fixed_point_type_descr  *fxp_descr,
-                               char                      *str,
+                               a_const_char              *str,
                                a_fixed_point_value       *value,
                                a_boolean                 *err)
 /*

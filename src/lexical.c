@@ -791,8 +791,8 @@ static unsigned long
 #endif /* DEBUG */
 
 
-a_boolean same_string_ignoring_underscores(char  *s1, 
-                                           char  *s2)
+a_boolean same_string_ignoring_underscores(a_const_char *s1, 
+                                           a_const_char *s2)
 /*
 Returns TRUE if s1 and s2 are the same string, or if s2 has two 
 leading and trailing underscores, but is otherwise the same string as
@@ -2457,7 +2457,7 @@ Macro that is TRUE when tokens are being rescanned from a cache.
 
 static an_orig_line_modif_ptr add_orig_line_modif(
                                 an_orig_line_modif_kind kind,
-                                char                    *line_loc)
+                                a_const_char            *line_loc)
 /*
 Allocate an original line modification entry, set its kind to "kind",
 set its line location to "line_loc", set its fields to default values,
@@ -2562,7 +2562,7 @@ END_EXTERN_C_BLOCK
 
 static void get_source_pos_from_macro_text_map(
 				a_source_line_modif_ptr		slmp,
-				char				*loc_in_line,
+				a_const_char			*loc_in_line,
                                 a_seq_number                    *seq,
                                 a_column_number                 *column,
                                 a_macro_invocation_record_index *macro_context)
@@ -2740,10 +2740,10 @@ to NULL.
 
 
 a_source_line_modif_ptr add_source_line_modif(
-                          char                      *line_loc,
+                          a_const_char              *line_loc,
                           sizeof_t                  num_chars_to_delete,
-                          char                      *inserted_text,
-                          char                      *end_inserted_text)
+                          a_const_char              *inserted_text,
+                          a_const_char              *end_inserted_text)
 /*
 Allocate a source line modification entry, put "line_loc",
 "num_chars_to_delete", "inserted_text", and "end_inserted_text" in its
@@ -2811,7 +2811,7 @@ invocations.
        original character, and replace it with a marker that will call
        attention to the source modification. */
     slmp->orig_char         = *line_loc;
-    *line_loc               = ATTENTION_MARKER;
+    *(char *)line_loc       = ATTENTION_MARKER;
   } else {
     /* Insertion before the first character of curr_source_line. */
     slmp->orig_char         = ' ';
@@ -2941,15 +2941,16 @@ source_line_modif_list.  The entry is not freed.
   } else {
     /* Restore the original character (thus removing the attention marker
        character put in when this entry was added). */
-    *(slmp->line_loc) = slmp->orig_char;
+    *(char *)(slmp->line_loc) = slmp->orig_char;
   }  /* if */
   /* Remove the entry from the hash table used by nested_source_line_modif. */
   rem_source_line_modif_from_hash_table(slmp);
 }  /* rem_source_line_modif */
 
 
-a_source_line_modif_ptr assoc_source_line_modif_full(char      *loc_in_line,
-                                                     a_boolean failure_allowed)
+a_source_line_modif_ptr assoc_source_line_modif_full(
+                                                  a_const_char *loc_in_line,
+                                                  a_boolean    failure_allowed)
 /*
 Find the source line modification entry that defines the character location
 loc_in_line.  If failure_allowed is FALSE, the location must be one that
@@ -2995,7 +2996,7 @@ the parent_modif_determined flag to see if the parent is already known.
 */
 {
   a_source_line_modif_ptr parent_slmp;
-  char                    *line_loc;
+  a_const_char            *line_loc;
 
   line_loc = slmp->line_loc;
   if (line_loc == NULL) {
@@ -3019,7 +3020,7 @@ the parent_modif_determined flag to see if the parent is already known.
 }  /* f_parent_source_line_modif */
 
 
-a_source_line_modif_ptr nested_source_line_modif(char *loc_in_line)
+a_source_line_modif_ptr nested_source_line_modif(a_const_char *loc_in_line)
 /*
 *loc_in_line contains an ATTENTION_MARKER, indicating that the text at that
 point is altered by a source line modification entry.  Find the entry,
@@ -3186,7 +3187,7 @@ necessary.  This routine should be called only if generate_pp_output
 is TRUE.
 */
 {
-  register char                    *loc_in_line;
+  register a_const_char            *loc_in_line;
   register char                    ch;
   register a_source_line_modif_ptr slmp;
            a_source_line_modif_ptr ins_slmp;
@@ -3513,8 +3514,8 @@ uniqueness requirements.  Sometimes there's no good way to get a unique name.
 }  /* gen_rlisting_line_info */
 
 
-static void write_orig_line_piece(char *loc_in_line,
-                                  char *stop_loc)
+static void write_orig_line_piece(a_const_char *loc_in_line,
+                                  a_const_char *stop_loc)
 /*
 Write the characters from *loc_in_line to just before *stop_loc in
 the current source line to the raw listing file.  If stop_loc is NULL,
@@ -3524,7 +3525,7 @@ markers with the original characters.  The caller guarantees that no
 orig_line_modif_list modifications apply to the indicated text.
 */
 {
-  char                    *local_stop_loc;
+  a_const_char            *local_stop_loc;
   a_source_line_modif_ptr slmp;
 
   for (;;) {
@@ -3654,7 +3655,7 @@ See gen_raw_listing_output_for_curr_line and cpp_driver, which control
 the calls to this routine.
 */
 {
-  register char                    *loc_in_line;
+  register a_const_char            *loc_in_line;
   register char                    ch;
   register a_source_line_modif_ptr slmp;
            a_source_line_modif_ptr ins_slmp;
@@ -3818,7 +3819,7 @@ only be called when f_raw_listing is non-NULL.
 */
 {
   an_orig_line_modif_ptr olmp, olmp_next;
-  char                   *loc_in_line;
+  a_const_char           *loc_in_line;
 
   /* No output if there is no current line. */
   if (curr_raw_listing_line_code != '\0') {
@@ -4028,7 +4029,7 @@ a pointer to an include file history entry.
 */
 {
   an_include_file_history_ptr	ifhp = (an_include_file_history_ptr)key;
-  char				*str = ifhp->full_name;
+  a_const_char			*str = ifhp->full_name;
   a_hash_value			value = 0;
   /* Only hash the characters of the actual file name so that differences
      in the directory portion won't affect the result (e.g., x.h and ./x.h
@@ -4055,7 +4056,7 @@ Return TRUE if the key matches the entry.
 {
   an_include_file_history_ptr	ifhp;
   an_include_file_history_ptr	key_ifhp;
-  char				*full_name;
+  a_const_char			*full_name;
   a_boolean			result;
 
   ifhp = (an_include_file_history_ptr)entry;
@@ -4072,7 +4073,7 @@ Return TRUE if the key matches the entry.
 }  /* compare_include_file_history */
 
 
-a_boolean find_include_history(char                        *full_name,
+a_boolean find_include_history(a_const_char                *full_name,
 	    		       an_include_file_history_ptr *ifhp_ptr,
 			       a_boolean		   create,
 			       a_boolean		   use_canonical)
@@ -4192,7 +4193,7 @@ code that makes it possible to suppress subsequent re-inclusions.
 
 
 a_boolean suppress_subsequent_include_of_file(
-				 char                        *full_name,
+				 a_const_char                *full_name,
 				 an_include_file_history_ptr *ifhp_ptr,
 				 a_boolean		     create,
 			         a_boolean		     use_canonical)
@@ -4229,8 +4230,8 @@ Display the include guard information associated with the current input
 stack entry, for debugging purposes.
 */
 {
-  char *idemp_name;
-  char *idemp_text;
+  a_const_char *idemp_name;
+  a_const_char *idemp_text;
   db_enter(5, "db_include_guard_info");
   switch (curr_ise->ifg_state) {
     case IFG_STATE_START:
@@ -4327,7 +4328,8 @@ macro-only include files.  When we reach the end of the macro-only preinclude
 list, we process the normal (non-macro-only) preincludes.
 */
 {
-  char	*file_name;
+  a_const_char *file_name;
+
   if (next_preinclude_file == NULL && processing_macro_preincludes) {
     next_preinclude_file = preinclude_file_list;
     processing_macro_preincludes = FALSE;
@@ -4379,8 +4381,8 @@ list, we process the normal (non-macro-only) preincludes.
 }  /* push_next_preinclude_file */
 
 
-static void display_included_file_name(int	depth,
-				       char	*file_name)
+static void display_included_file_name(int          depth,
+				       a_const_char *file_name)
 /*
 When using the option to list the included files, this routine is called
 to actually output the include file name.  depth is the stack depth
@@ -4395,16 +4397,16 @@ to be displayed.
 }  /* display_included_file_name */
   
 
-void open_file_and_push_input_stack(char      *file_name,
-                                    a_boolean use_search_path,
-				    a_boolean is_include_file,
-                                    a_boolean is_system_include,
-                                    a_boolean is_preinclude,
-				    a_boolean preinclude_macros,
-                                    a_boolean is_implicit_include,
-                                    a_boolean is_include_next,
-				    a_boolean continue_on_open_failure,
-				    a_boolean *include_was_suppressed)
+void open_file_and_push_input_stack(a_const_char *file_name,
+                                    a_boolean    use_search_path,
+				    a_boolean    is_include_file,
+                                    a_boolean    is_system_include,
+                                    a_boolean    is_preinclude,
+				    a_boolean    preinclude_macros,
+                                    a_boolean    is_implicit_include,
+                                    a_boolean    is_include_next,
+				    a_boolean    continue_on_open_failure,
+				    a_boolean    *include_was_suppressed)
 /*
 Push the indicated file onto the input stack, so that the next time a line
 is read, it will come from that file.  If the file cannot be opened,
@@ -4425,8 +4427,8 @@ to TRUE if file was not included because it had been previously included
 and this include was suppressed, FALSE otherwise.
 */
 {
-  char				*full_file_name;
-  char				*display_name;
+  a_const_char			*full_file_name;
+  a_const_char			*display_name;
   FILE 				*input_file;
   an_include_file_history_ptr	ifhp = NULL;
   a_directory_name_entry_ptr    dir_entry;
@@ -4488,7 +4490,7 @@ done:
 
 
 static FILE *try_to_open_source_file(
-                                    char                  *name_to_try,
+                                    a_const_char          *name_to_try,
 				    an_open_file_result   *open_result,
                                     a_unicode_source_kind *unicode_source_kind)
 /*
@@ -4515,7 +4517,7 @@ the file pointer if the open succeeds, or NULL otherwise.
 
 
 static a_boolean try_to_open_source_file_if_not_already_included(
-                                    char                  *name_to_try,
+                                    a_const_char          *name_to_try,
                                     FILE                  **new_input_file,
                                     a_boolean             *suppress_include,
 				    an_open_file_result   *open_result,
@@ -4563,14 +4565,14 @@ attempted include searches.
 */
 typedef struct an_include_search_result *an_include_search_result_ptr;
 typedef struct an_include_search_result {
-  char		*current_directory;
+  a_const_char	*current_directory;
 			/* The current directory when the search was done. */
-  char		*dir_name;
+  a_const_char	*dir_name;
 			/* The name of the directory in which the search was
 			   done. */
-  char		*file_name;
+  a_const_char	*file_name;
 			/* The name of the file sought in the directory. */
-  char		*result_file;
+  a_const_char	*result_file;
 			/* The result of the search.  If a file was found, this
 			   is the file name (including the directory as
 			   specified in the "directory" field and any file
@@ -4650,8 +4652,8 @@ Return TRUE if the key matches the entry.
 
 
 static an_include_search_result_ptr find_or_create_include_search_result(
-						char		*dir_name,
-						char		*file_name,
+						a_const_char	*dir_name,
+						a_const_char	*file_name,
 						a_boolean	*is_new_entry)
 /*
 Look for a record of a previous search for this directory name / file name
@@ -4690,7 +4692,7 @@ is set to indicate whether or not the returned entry is a newly created one.
     /* Copy the key entry created above into the new entry. */
     *isrp = isr;
     isrp->file_name = (char*)alloc_general((sizeof_t)strlen(file_name) + 1);
-    (void)strcpy(isrp->file_name, file_name);
+    (void)strcpy((char *)isrp->file_name, file_name);
     *is_new_entry = TRUE;
   }  /* if */
   return isrp;
@@ -4698,14 +4700,14 @@ is set to indicate whether or not the returned entry is a newly created one.
 
 
 static a_boolean search_for_input_file(
-			char				*file_name,
+			a_const_char			*file_name,
 			a_boolean			use_search_path,
 			a_directory_name_entry_ptr	search_path,
 			a_file_suffix_ptr		suffix_list,
 			a_boolean			is_implicit_include,
 			a_boolean			is_system_include,
 			a_boolean			is_preinclude,
-			char				**name_found,
+			a_const_char			**name_found,
 			FILE				**new_input_file,
 			a_boolean			*suppress_include,
 			an_open_file_result		*open_result,
@@ -4736,13 +4738,13 @@ the file could not be opened if the open fails.
 {
   a_file_suffix_ptr		fsp;
   a_directory_name_entry_ptr	curr_directory_name_entry;
-  char				*name_to_try;
+  a_const_char			*name_to_try;
   a_boolean			file_found = FALSE;
-  char				*prev_dir_name = NULL;
+  a_const_char			*prev_dir_name = NULL;
   a_text_buffer_ptr		buffer = NULL;
   a_boolean			replace_suffix;
   an_include_search_result_ptr	isrp = NULL;
-  char				*suffix;
+  a_const_char			*suffix;
   a_boolean			special_sun_include = FALSE;
 
   *dir_entry = NULL;
@@ -4792,7 +4794,7 @@ the file could not be opened if the open fails.
     str_catastrophe(ec_empty_include_search_path, file_name);
   } else {
     /* Loop through the directory name entries. */
-    char	*dir_name;
+    a_const_char *dir_name;
     for (curr_directory_name_entry = search_path;
          curr_directory_name_entry != NULL;
          curr_directory_name_entry = curr_directory_name_entry->next) {
@@ -4898,8 +4900,8 @@ the file could not be opened if the open fails.
        stored search result, make a copy and return a pointer to the copy. */
     if ((buffer != NULL && name_to_try == buffer->buffer) ||
         (isrp != NULL && name_to_try == isrp->result_file)) {
-      char	*src_name;
-      sizeof_t	src_len;
+      a_const_char *src_name;
+      sizeof_t	   src_len;
       if (buffer != NULL && name_to_try == buffer->buffer) {
         src_name = buffer->buffer;
         src_len = buffer->size;
@@ -4908,14 +4910,14 @@ the file could not be opened if the open fails.
         src_len = strlen(src_name) + 1;
       }  /* if */
       name_to_try = alloc_primary_file_scope_il((sizeof_t)src_len);
-      (void)strcpy(name_to_try, src_name);
+      (void)strcpy((char *)name_to_try, src_name);
     }  /* if */
     *name_found = name_to_try;
     if (isrp != NULL && isrp->result_file == NULL) {
       /* Record the name found in the include search result entry. */
       isrp->result_file =
                        (char*)alloc_general((sizeof_t)strlen(name_to_try) + 1);
-      (void)strcpy(isrp->result_file, name_to_try);
+      (void)strcpy((char *)isrp->result_file, name_to_try);
     }  /* if */
   } else {
     /* A file was not found.  Reset the name_found to make sure it is not
@@ -4931,7 +4933,7 @@ the file could not be opened if the open fails.
                     implicit inclusion. */
 #endif /* !INSTANTIATION_BY_IMPLICIT_INCLUSION */
 a_boolean open_file_for_input(
-		char				*file_name,
+		a_const_char			*file_name,
 		a_boolean			use_search_path,
 		a_boolean			is_include_file,
 		a_boolean			is_system_include,
@@ -4939,8 +4941,8 @@ a_boolean open_file_for_input(
 		a_boolean			is_implicit_include,
 		a_boolean			is_preinclude,
 		a_boolean			continue_on_open_failure,
-		char				**full_file_name,
-		char				**display_name,
+		a_const_char			**full_file_name,
+		a_const_char			**display_name,
 		FILE				**new_input_file,
 		a_boolean			*suppress_include,
 		a_unicode_source_kind		*unicode_source_kind,
@@ -4976,7 +4978,7 @@ be TRUE when doing preprocessing only.  If a file cannot be opened, and
 a catastrophic error is not issued, FALSE is returned.
 */
 {
-  char                        *temp_file_name;
+  a_const_char                *temp_file_name;
   a_directory_name_entry_ptr  search_path;
   a_boolean		      file_found = FALSE;
   a_boolean		      input_from_stdin = FALSE;
@@ -5068,7 +5070,7 @@ a catastrophic error is not issued, FALSE is returned.
       /*  Copy the path name to IL memory. */
       *full_file_name =
                      alloc_primary_file_scope_il((sizeof_t)(strlen(temp) + 1));
-      (void)strcpy(*full_file_name, temp);
+      (void)strcpy((char *)*full_file_name, temp);
     } else {
       *full_file_name = temp_file_name;
     }  /* if */
@@ -5079,7 +5081,7 @@ a catastrophic error is not issued, FALSE is returned.
 
 
 static
-int look_for_file_on_input_stack(char	*file_name)
+int look_for_file_on_input_stack(a_const_char *file_name)
 /*
 Look for the file specified by file_name in the input stack and return
 the number of times that the file appears there.
@@ -5100,9 +5102,9 @@ the number of times that the file appears there.
 
 void push_input_stack(
 		FILE     			*new_input_file,
-                char    			*name_as_written,
-                char     			*display_name,
-                char     			*full_file_name,
+                a_const_char			*name_as_written,
+                a_const_char			*display_name,
+                a_const_char			*full_file_name,
 		a_boolean			is_include_file,
 		a_boolean		 	is_system_include,
                 a_boolean                       is_preinclude,
@@ -5518,7 +5520,7 @@ at the next level down.
        updated to be the full path name of the primary source file (as
        opposed to the directory name portion of the primary source file name
        as specified on the command line). */
-    { char	*prev_dir_name = curr_ise->dir_name;
+    { a_const_char *prev_dir_name = curr_ise->dir_name;
       if (put_dir_of_each_opened_source_file_on_incl_search_path &&
           stack_referenced_include_directories) {
         if (is_end_of_preinclude && !microsoft_mode &&
@@ -5554,8 +5556,8 @@ at the next level down.
          determine whether or not the include file defined any
          templates and, if so, whether the templates were used in a
          way that requires the related source file to be read. */
-      char		*full_file_name;
-      char		*display_name;
+      a_const_char	*full_file_name;
+      a_const_char	*display_name;
       FILE		*f_source = NULL;
       a_directory_name_entry_ptr
                         dir_entry;
@@ -5669,15 +5671,15 @@ reallocate curr_source_line to make it bigger.
   /* Allocate one more byte than required, so that a pointer past the end
      will not have the same address as a pointer to the next object in
      memory. */
-  new_curr_source_line = realloc_buffer(curr_source_line,
+  new_curr_source_line = realloc_buffer((char *)curr_source_line,
                                          (sizeof_t)(old_size+1),
                                          (sizeof_t)(new_size+1));
 #if MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED
   /* Reallocate the logical character info array to have the same size as
      the source line. */
-  logical_char_info = (char**)realloc_buffer((char*)logical_char_info,
-                                     (sizeof_t)(old_size * sizeof(char*)),
-                                     (sizeof_t)(new_size * sizeof(char*)));
+  logical_char_info = (a_const_char**)realloc_buffer((char*)logical_char_info,
+                                         (sizeof_t)(old_size * sizeof(char*)),
+                                         (sizeof_t)(new_size * sizeof(char*)));
 #endif /* MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED */
   /* Update any pointers to the old curr_source_line in the
      curr_source_line data structure. */
@@ -5725,7 +5727,7 @@ of the token.
 static int cached_logical_char_info_entries_used;
 
 
-static int f_logical_column_offset(char	*loc_in_line)
+static int f_logical_column_offset(a_const_char *loc_in_line)
 /*
 Compute the logical column offset (the difference between the actual byte
 number of the source line and the logical column number) for cases where
@@ -5737,10 +5739,10 @@ for.  The array index+1 is the adjustment needed to convert to a
 logical column number.
 */
 {
-  int	low = 0;
-  int	high = logical_char_info_entries_used;
-  int	idx;
-  char	*idx_ptr;
+  int          low = 0;
+  int          high = logical_char_info_entries_used;
+  int          idx;
+  a_const_char *idx_ptr;
 
   if (loc_in_line < logical_char_info[0]) {
     /* The location precedes the first multibyte character. */
@@ -5816,7 +5818,7 @@ needed to convert to a logical column number.
 
 #endif /* MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED */
 
-void conv_line_loc_to_source_pos(char              *loc_in_line,
+void conv_line_loc_to_source_pos(a_const_char      *loc_in_line,
                                  a_source_position *position_var)
 /*
 Convert a pointer to somewhere in curr_source_line, macro_buffer, or a
@@ -5827,10 +5829,10 @@ for cases where the processing need not be very fast;
 macro_line_loc_to_source_pos should be used when speed is critical.
 */
 {
-  char                    *adj_loc_in_line;
+  a_const_char            *adj_loc_in_line;
   a_source_line_modif_ptr slmp, parent_slmp, orig_slmp;
   an_orig_line_modif_ptr  olmp                     = orig_line_modif_list;
-  char                    *start_of_curr_phys_line = curr_source_line;
+  a_const_char            *start_of_curr_phys_line = curr_source_line;
   a_seq_number            seq_number               = curr_seq_number;
   int                     column_adjustment        = 0;
 #if FULLY_RESOLVED_MACRO_POSITIONS
@@ -6099,7 +6101,7 @@ conv_line_loc_to_source_pos.
 
 static void diagnostic_at_line_pos(an_error_severity  severity,
                                    an_error_code      error_code,
-                                   char               *loc_in_line)
+                                   a_const_char       *loc_in_line)
 /*
 Record the occurrence of the indicated diagnostic at the indicated character
 position of the current logical source line.
@@ -6170,7 +6172,7 @@ curr_source_line is resized.
 */
 {
   unsigned long offset = *mbc_offset;
-  char          *ptr;
+  a_const_char  *ptr;
   int           numch;
 
 #if UNICODE_SOURCE_SUPPORTED
@@ -6279,7 +6281,7 @@ literals in C++11.
   an_orig_line_modif_ptr
 		  olmp;
   sizeof_t        offset_in_line;
-  char		  *after_curr_source_line_minus_term =
+  a_const_char	  *after_curr_source_line_minus_term =
                                after_end_of_curr_source_line - 2*LE_ESCAPE_LEN;
 		       /* For checking of buffer overflow -- to leave
                           room for the newline and line-end lexical escapes. */
@@ -6369,7 +6371,7 @@ literals in C++11.
      end of source case, a line with just a line-end lexical escape
      is placed in curr_source_line and the sequence number is incremented
      to an "after all source" position. */
-  loc_in_line = curr_source_line;
+  loc_in_line = (char *)curr_source_line;
   curr_seq_number = ++seq_number_last_read;
   /* If there are entries on either of the lists indicating modifications
      to the current source line, clear those lists now, since they are for the
@@ -6805,7 +6807,7 @@ entry_for_null_character:
           /* The line is too long; the buffer must be expanded. */
           offset_in_line = loc_in_line - curr_source_line;
           expand_curr_source_line();
-          loc_in_line = curr_source_line + offset_in_line;
+          loc_in_line = (char *)curr_source_line + offset_in_line;
           after_curr_source_line_minus_term = after_end_of_curr_source_line -
                                               2*LE_ESCAPE_LEN;
         }  /* if */
@@ -6825,7 +6827,7 @@ entry_for_expand_buffer:
         /* The line is too long; the buffer must be expanded. */
         offset_in_line = loc_in_line - curr_source_line;
         expand_curr_source_line();
-        loc_in_line = curr_source_line + offset_in_line;
+        loc_in_line = (char *)curr_source_line + offset_in_line;
         after_curr_source_line_minus_term = after_end_of_curr_source_line -
                                             2*LE_ESCAPE_LEN;
       }  /* if */
@@ -6959,7 +6961,7 @@ entry_for_extend_current_line:
     after_curr_source_line_minus_term =
                                after_end_of_curr_source_line - 2*LE_ESCAPE_LEN;
   }  /* if */
-  loc_in_line = curr_char_loc;
+  loc_in_line = (char *)curr_char_loc;
   if (!eof_read_on_curr_input_stream) {
     ch = getc_curr_input_stream();
     discard_newline_after_gnu_cr(ch);
@@ -6971,9 +6973,9 @@ entry_for_extend_current_line:
 }  /* read_logical_source_line */
 
 
-a_boolean is_identifier_char(char      *ptr,
-                             int       *len,
-                             a_boolean is_identifier_start)
+a_boolean is_identifier_char(a_const_char *ptr,
+                             int          *len,
+                             a_boolean    is_identifier_start)
 /*
 ptr points to a character, possibly multibyte.  Return TRUE if that
 character is valid as a character in an identifier (as the first
@@ -7268,11 +7270,11 @@ source text (end of token, start of expansion, end of expansion).
 {
   register char      ch;
   register int	     kind_skipped;
-  char               *comment_start_loc, *saved_curr_char_loc;
+  a_const_char       *comment_start_loc, *saved_curr_char_loc;
   a_boolean          comment_pos_determined;
   a_source_position  comment_start_pos;
-  char               *delete_from;
-  char               *delete_to;
+  a_const_char       *delete_from;
+  a_const_char       *delete_to;
   a_source_line_modif_ptr
 		     slmp;
   a_boolean          delete_only_for_comment;
@@ -7906,7 +7908,7 @@ the kind of token.
   register a_token_kind 
 		ctoken;
   a_boolean     err = FALSE;
-  char		*err_pos;
+  a_const_char	*err_pos;
   an_error_code	err_code;
   a_boolean	is_hex_fp_value = FALSE;
   a_boolean	any_hex_digits = FALSE;
@@ -8236,7 +8238,7 @@ fixed_point_suffix:
 
 #if DEBUG
   if (debug_level >= 4) {
-    char *ks;
+    a_const_char *ks;
     switch (kind) {
       case k_decimal:     ks = "decimal";     break;
       case k_octal:       ks = "octal";       break;
@@ -8466,7 +8468,7 @@ character is invalid.
 
 static void check_for_invalid_cplusplus_ucn(
 					unsigned long	ucn,
-				        char		**start_pos,
+				        a_const_char	**start_pos,
 					a_boolean	is_identifier,
 					a_boolean	is_identifier_start)
 /*
@@ -8518,7 +8520,7 @@ are different.
 
 
 static void check_for_invalid_c99_ucn(unsigned long	ucn,
-				      char		**start_pos,
+				      a_const_char	**start_pos,
 				      a_boolean		is_identifier,
 				      a_boolean		is_identifier_start)
 /*
@@ -8557,7 +8559,7 @@ Issue a diagnostic if it is not.
 }  /* check_for_invalid_c99_ucn */
 
 
-unsigned long scan_universal_character(char		**start_pos,
+unsigned long scan_universal_character(a_const_char	**start_pos,
 				       a_boolean	is_identifier,
 				       a_boolean	is_identifier_start,
 				       a_boolean	issue_diagnostics)
@@ -8573,7 +8575,7 @@ names an invalid character.  start_pos is updated by this routine to
 point to the character after the universal character name.
 */
 {
-  char		*pos = *start_pos;
+  a_const_char	*pos = *start_pos;
   a_boolean	err = FALSE;
   unsigned long	result = 0;
   int		digits;
@@ -8657,8 +8659,8 @@ are the prefix characters to be used for 4-digit and 8-digit output.
 
 #endif /* !(UNICODE_SOURCE_SUPPORTED && ...) */
 
-char *make_canonical_identifier(char     *identifier,
-                                sizeof_t *length)
+char *make_canonical_identifier(a_const_char *identifier,
+                                sizeof_t     *length)
 /*
 "identifier" points to the characters of an identifier containing
 universal character names or multibyte characters.  Make a copy of the
@@ -8667,8 +8669,8 @@ lower case and any multibyte characters are converted to canonical form.
 "length" is updated to the actual length of the new identifier.
 */
 {
-  char	*src;
-  char	*end_pos = identifier + *length - 1;
+  a_const_char *src;
+  a_const_char *end_pos = identifier + *length - 1;
 
   /* Allocate a text buffer to be used for the copy if one has not
      yet been created. */
@@ -8785,9 +8787,9 @@ lower case and any multibyte characters are converted to canonical form.
 #endif /* ABI_COMPATIBILITY_VERSION >= 302 */
 
 static a_boolean is_closing_raw_string_delimiter(
-                                           char *start_of_raw_string_delimiter,
-                                           int  raw_string_delimiter_len,
-                                           int  *trigraph_adjustment)
+                                   a_const_char *start_of_raw_string_delimiter,
+                                   int          raw_string_delimiter_len,
+                                   int          *trigraph_adjustment)
 /*
 Return TRUE if the string immediately preceding curr_char_loc is the
 corresponding closing delimiter of the indicated raw string delimiter.  Set
@@ -8925,7 +8927,7 @@ a_boolean accum_quoted_string(
                   a_boolean                     is_header_name,
                   a_string_or_char_literal_kind literal_kind,
                   char                          quoting_char,
-                  char                          *start_of_raw_string_delimiter,
+                  a_const_char                  *start_of_raw_string_delimiter,
                   int                           raw_string_delimiter_len)
 /*
 Scan a quoted construct, i.e., a character constant or a string literal.
@@ -9219,7 +9221,7 @@ kind or tok_error.  The token can be a normal or wide character constant.
   a_character_kind  character_kind;
   unsigned long     num_chars = 0;
   an_error_code     err_code;
-  char              *err_pos;
+  a_const_char      *err_pos;
 
   check_assertion((lit_kind & SCLK_STRING_LITERAL) == 0);
   switch (lit_kind) {
@@ -9289,7 +9291,7 @@ kind or tok_error.  The token can be a normal or wide character constant.
 static a_boolean scan_multiline_string(
                   unsigned long                 *num_chars,
                   a_string_or_char_literal_kind literal_kind,
-                  char                          *start_of_raw_string_delimiter,
+                  a_const_char                  *start_of_raw_string_delimiter,
                   int                           raw_string_delimiter_len)
 /*
 Process the second and subsequent lines of a multi-line string.  Return
@@ -9308,7 +9310,7 @@ start_of_raw_string_delimiter is not used.
   an_orig_line_modif_ptr     olmp;
   a_boolean                  result = FALSE;
   a_boolean                  is_raw_string;
-  char                       *delim_ptr;
+  a_const_char               *delim_ptr;
   a_pointer_registration     delim_ptr_reg;
   a_pointer_registration_ptr save_registered_pointers = registered_pointers;
 
@@ -9335,7 +9337,7 @@ start_of_raw_string_delimiter is not used.
         curr_char_loc = curr_source_line + curr_offset;
       }  /* if */
       for (count = 0; count < num_ignored_carriage_returns; ++count) {
-        *curr_char_loc++ = '\r';
+        *(char *)curr_char_loc++ = '\r';
       }  /* for */
       *num_chars += num_ignored_carriage_returns;
     }  /* if */
@@ -9366,17 +9368,17 @@ start_of_raw_string_delimiter is not used.
     olmp = add_orig_line_modif(olm_multiline_string_splice,
                                curr_char_loc);
     olmp->variant.splice.seq_number = seq_number_last_read + 1;
-    *curr_char_loc++ = '\\';
+    *(char *)curr_char_loc++ = '\\';
 #if ACCEPT_GNU_CARRIAGE_RETURN_LINE_TERMINATOR
     if (curr_ise->prev_line_terminator_was_carriage_return) {
       /* The line ended with a carriage return, so we need to insert \ r
          instead of \ n. */
-      *curr_char_loc++ = 'r';
+      *(char *)curr_char_loc++ = 'r';
     } else
 #endif /* ACCEPT_GNU_CARRIAGE_RETURN_LINE_TERMINATOR */
     /* Do not insert code here. */
     {
-      *curr_char_loc++ = 'n';
+      *(char *)curr_char_loc++ = 'n';
     }  /* if */
     /* Read the next line of the input file, extending the current
        logical source line. */
@@ -9412,8 +9414,8 @@ and return FALSE.
 {
   a_boolean              err = FALSE;
   a_boolean              found_end = FALSE;
-  char                   *p;
-  char                   *max_delim = curr_char_loc + 16;
+  a_const_char           *p;
+  a_const_char           *max_delim = curr_char_loc + 16;
   an_orig_line_modif_ptr olmp;
   int                    trigraph_len_offset = 0;
 
@@ -9476,12 +9478,12 @@ kind or tok_error.  The token can be a normal or wide string literal.
   a_token_kind               ctoken = tok_string_literal;
   unsigned long              num_chars = 0;
   an_error_code              err_code;
-  char                       *err_pos;
+  a_const_char               *err_pos;
   int                        raw_string_delimiter_len = -1;
   a_boolean                  unterminated;
-  char                       *start_of_raw_string_delimiter = NULL;
+  a_const_char               *start_of_raw_string_delimiter = NULL;
   a_pointer_registration     start_of_raw_string_delimiter_reg;
-  char                       *start_of_string_value;
+  a_const_char               *start_of_string_value;
   a_pointer_registration     start_of_string_value_reg;
   a_pointer_registration_ptr save_registered_pointers = registered_pointers;
 
@@ -9630,8 +9632,8 @@ is at least size_needed.  Called by ensure_asm_func_body_buffer_space.
 }  /* expand_asm_func_body_buffer */
 
 
-static void add_to_asm_func_buffer(char      *start_char,
-                                   sizeof_t  len)
+static void add_to_asm_func_buffer(a_const_char *start_char,
+                                   sizeof_t     len)
 /*
 Add len characters to the asm function body buffer, beginning at start_char
 (a pointer to a piece of text in the source program).
@@ -9674,8 +9676,8 @@ of an asm function or Microsoft asm block.
 #if !ASM_FUNCTION_ALLOWED
 static
 #endif /* !ASM_FUNCTION_ALLOWED */
-void copy_from_source_to_asm_func_buffer(char *stop_char,
-                                         char *after_comment_stop_char)
+void copy_from_source_to_asm_func_buffer(a_const_char *stop_char,
+                                         a_const_char *after_comment_stop_char)
 /*
 The buffer in which to collect the characters comprising the asm function is
 asm_func_body_buffer.  Append to it all the characters in the source beginning
@@ -9686,7 +9688,7 @@ non-NULL, also append the characters in the comment, through but not including
 */
 {
   a_source_line_modif_ptr  slmp;
-  char                     *curr_char, *next_char;
+  a_const_char             *curr_char, *next_char;
   sizeof_t                 len;
   char                     ch;
   a_boolean                ends_with_newline = FALSE;
@@ -10475,7 +10477,7 @@ in C99 mode).  See C89 standard, 3.8.1.
 }  /* adjust_pp_int_constant */
 
 
-a_string_or_char_literal_kind scan_encoding_prefix(char *loc)
+a_string_or_char_literal_kind scan_encoding_prefix(a_const_char *loc)
 /*
 loc points to a character that could be the start of a C++11
 encoding-prefix, i.e., one of 'u', 'U', 'L', or 'R'.  If it is the start of
@@ -10742,9 +10744,9 @@ operation in a macro expansion ("a ## b") did not result in a valid token.
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
 
-static char *check_GUID_hex_digits(char      *str,
-                                   int       ndigits,
-                                   a_boolean *err)
+static a_const_char *check_GUID_hex_digits(a_const_char *str,
+                                           int          ndigits,
+                                           a_boolean    *err)
 /*
 As part of checking a GUID string, check for ndigits hexadecimal digits
 beginning at str.  Set *err to TRUE if the digits do not appear.  Return str,
@@ -10761,8 +10763,8 @@ advanced past the digits that do appear.
 }  /* check_GUID_hex_digits */
 
 
-static char *check_GUID_hyphen(char      *str,
-                               a_boolean *err)
+static a_const_char *check_GUID_hyphen(a_const_char *str,
+                                       a_boolean    *err)
 /*
 As part of checking a GUID string, check that *str is a hyphen character.
 If not, set *err to TRUE.  Return str, advanced past the hyphen if one is
@@ -10778,7 +10780,7 @@ present.
 }  /* check_GUID_hyphen */
 
 
-a_boolean is_valid_GUID_string(char          *str,
+a_boolean is_valid_GUID_string(a_const_char  *str,
                                a_targ_size_t length)
 /*
 Check the indicated string to see if it is a valid Microsoft GUID string.
@@ -10818,7 +10820,7 @@ the initial character of a UUID.  Return TRUE if the characters make up a
 valid UUID.
 */
 {
-  char		*ptr = curr_char_loc;
+  a_const_char	*ptr = curr_char_loc;
   a_boolean	begins_with_brace;
   a_boolean	valid;
 
@@ -10850,8 +10852,8 @@ If the UUID is followed by additional hexadecimal characters (i.e., characters
 that look like they should be part of the UUID, those characters are discarded
 */
 {
-  char		*ptr;
-  char		*end_ptr;
+  a_const_char	*ptr;
+  a_const_char	*end_ptr;
   a_boolean	valid = TRUE;
   a_token_kind	result_token;
   a_targ_size_t	uuid_length = 36;
@@ -11022,12 +11024,12 @@ modification will be added to restore the first token to the current line.
 {
   a_token_kind             return_token = first_word;
   a_token_kind             next_word = tok_identifier;
-  char                     *end_of_word;
+  a_const_char             *end_of_word;
   sizeof_t                 next_word_len;
   a_source_position        start_pos = pos_curr_token;
   a_seq_number             start_seq_number = curr_seq_number;
-  char                     *orig_loc = start_of_curr_token;
-  char                     *saved_curr_char_loc = curr_char_loc;
+  a_const_char             *orig_loc = start_of_curr_token;
+  a_const_char             *saved_curr_char_loc = curr_char_loc;
   a_boolean                saved_do_not_advance_past_end_of_file;
   a_whitespace_keyword_ptr kwd;
   a_source_line_modif_ptr  slmp;
@@ -11352,7 +11354,7 @@ to speed in some cases.
   a_boolean                     gotten_from_cache = FALSE;
   a_symbol_header_ptr           sym_hdr;
   sizeof_t                      id_length;
-  char                          *id_ptr;
+  a_const_char                  *id_ptr;
   a_string_or_char_literal_kind lit_kind;
 
   if (any_initial_get_token_tests_needed &&
@@ -18472,7 +18474,7 @@ scanned is, in fact, an identifier).
 }  /* coalesce_and_lookup_generalized_identifier */
 
 
-a_boolean curr_token_is_identifier_string(char  *tok_str)
+a_boolean curr_token_is_identifier_string(a_const_char *tok_str)
 /*
 Return TRUE if the current token is an identifier spelled like *tok_str.
 */
@@ -18490,7 +18492,7 @@ Return TRUE if the current token is an identifier spelled like *tok_str.
 
 
 a_boolean check_context_sensitive_keyword(a_token_kind  tok_kind,
-                                          char          *tok_str)
+                                          a_const_char  *tok_str)
 /*
 If the current token is an identifier spelled like *tok_str, turn that token
 into the given token kind.  Return whether (after this transformation) the
@@ -18523,7 +18525,7 @@ Allocate a file suffix entry, initialize it, and return a pointer to it.
 
 
 static void add_to_file_suffix_list(a_file_suffix_ptr	*list_ptr,
-				    char*		suffix,
+				    a_const_char	*suffix,
                                     int			length)
 /*
 Add a new entry to the end of the file suffix list specified by list_ptr.
@@ -18568,16 +18570,16 @@ If the entry is already on the list the new entry is ignored.
 }  /* add_to_file_suffix_list */
 
 
-static a_file_suffix_ptr conv_string_to_file_suffix_list(char *list)
+static a_file_suffix_ptr conv_string_to_file_suffix_list(a_const_char *list)
 /*
 Convert the members of a colon separated list of file suffixes to a
 list of file suffix entries.  Return a pointer to the newly created
 list.
 */
 {
-  char			*ptr = list;
-  char			*start;
-  char			*end;
+  a_const_char		*ptr = list;
+  a_const_char		*start;
+  a_const_char		*end;
   a_file_suffix_ptr	list_fsp = NULL;
 
   /* Skip over an initial ":" in the string. */
@@ -18943,7 +18945,7 @@ that tokens should be fetched from the insertion string.
 }  /* pop_string_insert_cache_entry */
 
 
-void insert_string_into_token_stream(char		*string,
+void insert_string_into_token_stream(a_const_char	*string,
 				     a_boolean		insert_after,
 				     a_boolean		p_expand_macros,
 				     a_source_position	position_for_tokens)
@@ -18961,15 +18963,15 @@ is used as the beginning and end source position for each token in the string.
   a_token_cache		cache;
   a_token_cache		curr_token_cache;
   a_boolean		save_no_modifs_to_curr_source_line;
-  char			*save_curr_source_line;
-  char			*save_after_end_of_curr_source_line;
+  a_const_char		*save_curr_source_line;
+  a_const_char		*save_after_end_of_curr_source_line;
   a_boolean		save_caching_tokens;
   a_boolean		save_expand_macros;
   /* WATCH OUT: Pointers into macro_buffer or the raw_text of a macro arg
      are dangerous, since those things can be reallocated.  Such pointers
      must be registered by calling register_pointer_variable so that they
      can be updated on any reallocation. */
-  char			*save_curr_char_loc = NULL;
+  a_const_char		*save_curr_char_loc = NULL;
   a_pointer_registration
 			save_curr_char_loc_reg;
   a_pointer_registration_ptr
@@ -19573,14 +19575,14 @@ in IL memory.
 }  /* make_copy_of_token_string */
 
 
-char *il_string_for_curr_token(void)
+a_const_char *il_string_for_curr_token(void)
 /*
 Return a pointer to a null-terminated string representing the current token.
 For non-identifiers, the string may occasionally be slightly different from
 the source form (e.g., digraphs are returned as ordinary tokens).
 */
 {
-  char  *result;
+  a_const_char *result;
 
   if (curr_token == tok_identifier) {
     /* For identifiers reuse the string already stored in IL memory. */
@@ -19886,7 +19888,7 @@ the caller should copy the contents as needed.
 
 #if DEBUG
 void db_token_cache(a_token_cache *cache,
-                    char	  *cache_name)
+                    a_const_char  *cache_name)
 /*
 Display the contents of a token cache.
 */
@@ -19914,7 +19916,7 @@ Display the contents of a token cache.
               (unsigned long)ctp->token_sequence_number);
       if (ctp->extra_info_kind != (a_token_extra_info_kind)teik_none &&
           ctp->extra_info_kind != (a_token_extra_info_kind)teik_identifier) {
-        char	*s;
+        a_const_char *s;
         switch (ctp->extra_info_kind) {
           case teik_identifier:     s = "identifier"; break; /* not used */
           case teik_constant:       s = "constant"; break;
@@ -20034,7 +20036,7 @@ suffix list.  The sun_include_file_suffix_list is used for files with a .h
 suffix; the normal include_file_suffix_list is used for unsuffixed files.
 */
 {
-  char	*suffix;
+  a_const_char *suffix;
 
   sun_include_file_suffix_list =
                               conv_string_to_file_suffix_list("h.SUNWCCh:h:");
@@ -20078,26 +20080,28 @@ host-target conversions are performed.
   a_boolean     unterminated;
   unsigned long num_chars;
   an_error_code err_code;
-  char          *err_pos;
+  a_const_char  *err_pos;
+  char          *p;
 
   name_linkage_constants =
                    (a_constant_ptr)alloc_fe((int)nlk_last*sizeof(a_constant));
   for (kind = (a_name_linkage_kind)nlk_cplusplus_external;
        (int)kind < (int)nlk_last;
        kind = (a_name_linkage_kind)(kind + 1)) {
-    char      *name_linkage = name_linkage_kind_names[kind];
-    sizeof_t  orig_len = strlen(name_linkage);
+    a_const_char *name_linkage = name_linkage_kind_names[kind];
+    sizeof_t     orig_len = strlen(name_linkage);
     /* First initialize the current source line to scan the string. */
     ensure_min_curr_source_line_length(orig_len+2+2*LE_ESCAPE_LEN);
-    curr_source_line[0] = '"';
-    strcpy(curr_source_line+1, name_linkage);
-    curr_source_line[orig_len+1] = '"';
-    curr_source_line[orig_len+2] = LE_ESCAPE;
-    curr_source_line[orig_len+3] = LE_NEWLINE;
+    p = (char *)curr_source_line;
+    p[0] = '"';
+    strcpy(p+1, name_linkage);
+    p[orig_len+1] = '"';
+    p[orig_len+2] = LE_ESCAPE;
+    p[orig_len+3] = LE_NEWLINE;
     /* If the following LE_ESCAPE is changed to be at a different offset,
        the setting of curr_char_loc below must be updated too. */
-    curr_source_line[orig_len+4] = LE_ESCAPE;
-    curr_source_line[orig_len+5] = LE_END_OF_LINE;
+    p[orig_len+4] = LE_ESCAPE;
+    p[orig_len+5] = LE_END_OF_LINE;
     start_of_curr_token = curr_char_loc = curr_source_line;
     logical_char_info_entries_used = 0;
     /* Tokenize the string. */
@@ -20143,8 +20147,8 @@ are handled in lexical_init.)
   after_end_of_curr_source_line = curr_source_line +
                                     CURR_SOURCE_LINE_INITIAL_ALLOCATION;
 #if MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED
-  logical_char_info = (char**)alloc_resizable_buffer(
-            (sizeof_t)(CURR_SOURCE_LINE_INITIAL_ALLOCATION * sizeof(char*)));
+  logical_char_info = (a_const_char**)alloc_resizable_buffer(
+      (sizeof_t)(CURR_SOURCE_LINE_INITIAL_ALLOCATION * sizeof(a_const_char*)));
 #endif /* MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED */
   logical_char_info_entries_used = 0;
   set_cached_logical_char_info_entries_used(0);

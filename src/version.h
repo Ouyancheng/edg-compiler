@@ -39,13 +39,15 @@ be defined when fe_init.c is compiled.
 #define __TIME__ "[time unknown]"
 #endif /* ifndef __TIME__ */
 
-EXTERN char	*build_date
+EXTERN a_const_char
+		*build_date
 #if VAR_INITIALIZERS
 			    = __DATE__
 #endif /* VAR_INITIALIZERS */
                                       ;
 
-EXTERN char	*build_time
+EXTERN a_const_char
+		*build_time
 #if VAR_INITIALIZERS
 			    = __TIME__
 #endif /* VAR_INITIALIZERS */

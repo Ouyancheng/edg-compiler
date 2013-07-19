@@ -482,7 +482,7 @@ of parent block, and the control flow entry itself.
 
 
 static void db_ssse_with_indentation(a_struct_stmt_kind  kind,
-                                     char                *str)
+                                     a_const_char        *str)
 /*
 Display a structured statement stack entry in a special format, for use when
 dump_control_flow has been enabled at the command line.

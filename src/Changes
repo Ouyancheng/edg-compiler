@@ -1,5 +1,26 @@
 Version 5.0
 
+7/19/13  [EDGcpfe/10662]
+C++11 const-correctness in the front end
+
+C++11 removed the previously-deprecated implicit conversion from a narrow
+string literal to char* (see the entry for EDGcpfe/10299 below for a
+discussion of the implementation of this change in the front end).  In
+order to permit compilation of the front end as C++11 code while still
+allowing clients of the front end and IL structures to use the former
+interfaces, the front end now defines a new typedef, a_const_char, that is
+used in declaring pointers to read-only string data and pointers to such
+pointers.  Depending on the value of the new configuration macro
+USE_POINTER_TO_CONST_CHAR, a_const_char is typedef'ed either to const char
+(for C++11 compatibility) or to char (to preserve the existing interfaces).
+The default value for the macro is TRUE when __cplusplus is defined and has
+a value of at least 201103L when the front end is built and FALSE
+otherwise.  Customers who set USE_POINTER_TO_CONST_CHAR to TRUE will need
+to make possibly-extensive changes to their code, as the types of many
+variables, function parameters, function return values, and fields of IL
+data structures will be different.
+
+
 7/19/13  [EDGcpfe/11740,EDGcpfe/14277]
 C++11: Incomplete return types and decltype
 

@@ -225,7 +225,7 @@ typedef struct a_pack_alignment_stack_entry {
 		next;
 			/* Next entry on the stack.  NULL for the entry at
 			   the bottom of the stack. */
-  char		*name;
+  a_const_char	*name;
 			/* The identifying name of this stack entry -- used
 			   for "targeted" popping.  May be NULL. */
   a_targ_alignment
@@ -283,7 +283,7 @@ stack when exiting a class template instantiation or function definition.
 }  /* restore_pack_alignment_state */
 
 
-static void push_pack_alignment(char              *name,
+static void push_pack_alignment(a_const_char      *name,
                                 a_targ_alignment  alignment)
 /*
 Push an entry onto the top of the pack alignment stack, initializing it with
@@ -322,7 +322,7 @@ list.
 
 
 static a_pack_alignment_stack_entry_ptr find_pack_alignment_stack_entry(
-                                                                  char  *name)
+                                                           a_const_char  *name)
 /*
 Search the pack alignment stack for an entry that matches "name" and if it's
 found return a pointer to it.  Return NULL if it's not found.
@@ -451,7 +451,7 @@ curr_max_member_alignment.
     }  /* if */
     if (is_push || is_pop) {
       /* Do special processing for managing the pack alignment stack. */
-      char                              *name = NULL;
+      a_const_char                      *name = NULL;
       a_pack_alignment_stack_entry_ptr  pasep = NULL;
 
       /* Next should be either the closing parenthesis or a comma. */
@@ -617,7 +617,7 @@ curr_max_member_alignment.
     if (pack_alignment_stack == NULL) {
       fputs("NULL\n", f_debug);
     } else {
-      char *name = pack_alignment_stack->name;
+      a_const_char *name = pack_alignment_stack->name;
       fprintf(f_debug, "\"%s\" : %d\n", name == NULL ? "" : name,
               pack_alignment_stack->alignment);
     }  /* if */

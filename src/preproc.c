@@ -93,14 +93,14 @@ implementation of the Microsoft include_alias pragma.
 */
 typedef struct an_include_alias *an_include_alias_ptr;
 typedef struct an_include_alias {
-  char		*long_file_name;
+  a_const_char	*long_file_name;
 			/* The file name that is to be aliased to another
 			   name.  This contains the raw characters of the
 			   header name token. */
   sizeof_t	long_file_name_length;
 			/* The length of long_file_name, not including the
 			   null terminator. */
-  char		*short_file_name;
+  a_const_char	*short_file_name;
 			/* The file name to be used in place of
 			   long_file_name.  This contains the file name
 			   after conversions such as possible conversion to
@@ -173,8 +173,8 @@ if the key matches the entry.  Return TRUE if the entries match.
 
 
 static an_include_alias_ptr find_or_create_include_alias(
-						char		*long_name,
-						char		*short_name,
+						a_const_char	*long_name,
+						a_const_char	*short_name,
 						a_boolean	create)
 /*
 Look for long_name in the include alias hash table.  If it is not found
@@ -214,7 +214,7 @@ refer to the new short_name.
 
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
-static char *check_for_include_alias(void)
+static a_const_char *check_for_include_alias(void)
 /*
 Check whether the current header name token refers to a file name for
 which an include_alias pragma has been seen.
@@ -222,7 +222,7 @@ which an include_alias pragma has been seen.
 {
 #if MICROSOFT_EXTENSIONS_ALLOWED
   an_include_alias_ptr	iap;
-  char			*result = NULL;
+  a_const_char		*result = NULL;
   a_text_buffer_ptr	buf = header_name_buffer;
 
   /* The hash table will only exist if an include alias has been seen. */
@@ -753,7 +753,7 @@ optimization, so the failure to detect the presence of a guard does not
 affect the proper compilation of the program.
 */
 {
-  char		*ptr;
+  a_const_char	*ptr;
   a_boolean	not_operator_present = FALSE;
   a_boolean	is_possible_include_guard = FALSE;
 
@@ -777,8 +777,8 @@ affect the proper compilation of the program.
     local_skip_white_space();
     /* Check for a "(". */
     if (*ptr++ == '(') {
-      char	*id_start;
-      sizeof_t	id_len;
+      a_const_char *id_start;
+      sizeof_t	   id_len;
       local_skip_white_space();
       /* Find the end of the macro identifier.  This only needs to be the
          actual end of the identifier for valid cases.  Other cases will be
@@ -867,9 +867,9 @@ FALSE, respectively).
       some_error_in_curr_directive = TRUE;
     }  /* if */
   } else {
-    a_byte   ifg_state = get_ifg_state();
-    char     *id_ptr = start_of_curr_token;
-    sizeof_t id_len = len_of_curr_token;
+    a_byte       ifg_state = get_ifg_state();
+    a_const_char *id_ptr = start_of_curr_token;
+    sizeof_t     id_len = len_of_curr_token;
     /* Get the canonical spelling of the identifier. */
     if (id_contains_ucn_or_multibyte_char) {
       id_ptr = make_canonical_identifier(start_of_curr_token, &id_len);
@@ -960,8 +960,8 @@ Scan and process an #undef directive.
     some_error_in_curr_directive = TRUE;
   } else {
     /* Get the canonical spelling of the identifier. */
-    char     *id_ptr = start_of_curr_token;
-    sizeof_t id_len = len_of_curr_token;
+    a_const_char *id_ptr = start_of_curr_token;
+    sizeof_t     id_len = len_of_curr_token;
     if (id_contains_ucn_or_multibyte_char) {
       id_ptr = make_canonical_identifier(start_of_curr_token, &id_len);
     }  /* if */
@@ -1010,7 +1010,7 @@ as a pseudo-token.  If the next token is not a header name, return
 FALSE.
 */
 {
-  char              *p;
+  a_const_char      *p;
   a_source_position saved_pos_curr_token;
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   a_source_position saved_end_pos_curr_token;
@@ -1087,9 +1087,9 @@ end_of_header_name:
 
 
 static void trim_leading_and_trailing_blanks_from_header_name(
-                                                 char      **name,
-                                                 sizeof_t  *len,
-                                                 a_boolean trim_leading_blanks)
+                                              a_const_char **name,
+                                              sizeof_t     *len,
+                                              a_boolean    trim_leading_blanks)
 /*
 The header name consists of *len characters starting at *name.  This routine
 modifies those quantities to trim leading and trailing whitespace (only
@@ -1097,10 +1097,10 @@ trailing whitespace is trimmed if trim_leading_blanks is FALSE).
 E.g., "    stdio   " becomes "stdio" with trim_leading_blanks TRUE.
 */
 {
-  char		*ptr;
-  char		*last_nonblank;
-  char		*end = *name + *len - 1;
-  char		*begin = *name;
+  a_const_char	*ptr;
+  a_const_char	*last_nonblank;
+  a_const_char	*end = *name + *len - 1;
+  a_const_char	*begin = *name;
   sizeof_t	len_without_leading_blanks = *len;
 
   /* Scan past leading whitespace. */
@@ -1125,7 +1125,7 @@ E.g., "    stdio   " becomes "stdio" with trim_leading_blanks TRUE.
 }  /* trim_leading_and_trailing_blanks_from_header_name */
 
 
-static char *copy_header_name(a_boolean process_escapes)
+static a_const_char *copy_header_name(a_boolean process_escapes)
 /*
 Allocate and copy the file name from the current token (a header name).
 Escapes in the string are processed only if process_escapes is TRUE.
@@ -1134,7 +1134,7 @@ When UNICODE_SOURCE_SUPPORTED is TRUE, this can also involve the
 translation of certain characters to UTF-8.
 */
 {
-  char                    *name_start_pos, *in_pos;
+  a_const_char            *name_start_pos, *in_pos;
   sizeof_t                name_len, i;
   unsigned long           ch;
   unsigned long           centity_mask;
@@ -1168,7 +1168,7 @@ translation of certain characters to UTF-8.
      the conversion of any multibyte character sequences into Unicode. */
   /*lint --e{850} i modified in loop */
   for (i = 1; i <= name_len; i++) {
-    char *prev_pos = in_pos;
+    a_const_char *prev_pos = in_pos;
     conv_single_char(&conv_state, process_escapes, &ch, centity_mask,
                      /*narrow_literal=*/TRUE, /*utf8_literal=*/FALSE);
     i += (in_pos - prev_pos) - 1;
@@ -1206,7 +1206,7 @@ translation of certain characters to UTF-8.
   result_length++;
   /* Copy the name from the text buffer. */
   name_start_pos = alloc_primary_file_scope_il(result_length);
-  (void)memcpy(name_start_pos, result, result_length);
+  (void)memcpy((char *)name_start_pos, result, result_length);
   return name_start_pos;
 }  /* copy_header_name */
 
@@ -1268,9 +1268,9 @@ whether or not the include was of stdarg.h or cstdarg when using
 pass_stdarg_references_to_generated_code.
 */
 {
-  char      *name_start_pos;
-  a_boolean is_system_include;
-  a_byte    ifg_state;
+  a_const_char *name_start_pos;
+  a_boolean    is_system_include;
+  a_byte       ifg_state;
 
   /* The syntax is one of the following (see standard, 3.8.2):
 
@@ -1398,7 +1398,7 @@ simply include that.
     /* Escapes are not processed.  That is appropriate since "\" is used
        in file names on Microsoft systems. */
     a_text_buffer_ptr	buffer;
-    name = copy_header_name(/*process_escapes=*/FALSE);
+    name = (char *)copy_header_name(/*process_escapes=*/FALSE);
     /* Move past the header name. */
     (void)get_token();
     /* Ignore the rest of the directives on the line. */
@@ -1430,8 +1430,8 @@ simply include that.
 
 
 static a_cli_metadata_file_ptr make_cli_metadata_file(
-                                 char                  *name,
-                                 char                  *full_name,
+                                 a_const_char          *name,
+                                 a_const_char          *full_name,
                                  a_boolean             as_friend,
                                  a_boolean             is_system_include,
                                  a_boolean             referenced_by_preusing,
@@ -1481,7 +1481,7 @@ are being generated, the directive is added to that list as well.
 }  /* make_cli_metadata_file */
 
 
-static char *search_for_metadata_file(char *file_name)
+static char *search_for_metadata_file(a_const_char *file_name)
 /*
 Attempt to find the given file_name, searching, if necessary, in this order:
   * Current directory
@@ -1528,7 +1528,7 @@ it is NULL.
 }  /* search_for_metadata_file */
 
 
-static void import_metadata(char                  *name,
+static void import_metadata(a_const_char          *name,
                             a_boolean             as_friend,
                             a_boolean             is_system_include,
                             a_boolean             referenced_by_preusing,
@@ -1604,9 +1604,9 @@ Import mscorlib.dll or the file to be used in place of mscorlib to define
 system types.  Then import any other metadata files specified via --preusing.
 */
 {
-  char *name;
-  char *mscorlib;
-  char *il_mscorlib;
+  char         *name;
+  a_const_char *mscorlib;
+  char         *il_mscorlib;
 
   /* mscorlib_file_name will be non-NULL if a user-specified file should
      be used in place of mscorlib. */
@@ -1639,7 +1639,7 @@ from the indicated metadata file available to the compilation if they are
 referenced.
 */
 {
-  char                        *name;
+  a_const_char                *name;
   a_boolean                   as_friend         = FALSE;
   a_boolean                   is_system_include = FALSE;
 
@@ -1690,10 +1690,10 @@ directive is the variant that is output from cpp (has no keyword "line",
 may have extra operand at end).
 */
 {
-  char          *temp_ptr;
+  a_const_char  *temp_ptr;
   a_line_number temp_line;
   int           digit;
-  char          *temp_file;
+  a_const_char  *temp_file;
   a_boolean     bad_line_number;
   a_boolean	from_system_include = FALSE;
 
@@ -2290,8 +2290,8 @@ The returned value includes the delimiters of the header name.
 }  /* get_raw_header_name */
 
 
-static void create_include_alias_entry(char	*long_name,
-				       char	*short_name)
+static void create_include_alias_entry(a_const_char *long_name,
+				       a_const_char *short_name)
 /*
 Create an entry in the include alias table to map uses of long_name to
 short_name.
@@ -2334,7 +2334,7 @@ directive must match the long file name exactly (including use of '"' vs.
 {
   a_boolean	any_errors = FALSE;
   char		*long_name = NULL;
-  char		*short_name = NULL;
+  a_const_char	*short_name = NULL;
 
   /* Bypass the "include_alias" token. */
   (void)get_token();
@@ -2684,7 +2684,7 @@ pragmas, and by translation_unit for pragmas that appear in the file scope.
   a_stdc_pragma_value	value = (a_stdc_pragma_value)stdc_pv_none;
   a_boolean		err = FALSE, accept_on_off = FALSE;
   a_boolean		accept_sat = FALSE;
-  char			*str;
+  a_const_char		*str;
   a_stdc_pragma_value	*state_var_ptr;
 
   begin_rescan_of_pragma_tokens(ppp);
@@ -2830,7 +2830,7 @@ the construct is not correctly formed.
   /* Skip the "visibility" identifier. */
   (void)get_token();
   if (curr_token == tok_identifier) {
-    char *str = locator_for_curr_id.symbol_header->identifier;
+    a_const_char *str = locator_for_curr_id.symbol_header->identifier;
     if (strcmp(str, "push") == 0) {
       recognized = TRUE;
       (void)get_token();
@@ -2948,7 +2948,7 @@ Process a "#pragma GCC ..." construct.
 
   begin_rescan_of_pragma_tokens(ppp);
   if (curr_token == tok_identifier) {
-    char *str = locator_for_curr_id.symbol_header->identifier;
+    a_const_char *str = locator_for_curr_id.symbol_header->identifier;
     if (strcmp(str, "system_header") == 0) {
       recognized = TRUE;
       ignore_in_back_end = TRUE;
@@ -3079,7 +3079,7 @@ assoc_statement should be NULL).
   if (curr_token != tok_identifier) {
     unrecognized = TRUE;
   } else {
-    char  *str = locator_for_curr_id.symbol_header->identifier;
+    a_const_char *str = locator_for_curr_id.symbol_header->identifier;
     if (strcmp(str, "strict") == 0) {
       access = (a_upc_access_method)upc_access_strict;
     } else if (strcmp(str, "relaxed") == 0) {
@@ -3089,7 +3089,7 @@ assoc_statement should be NULL).
       if (curr_token != tok_identifier) {
         unrecognized = TRUE;
       } else {
-        char  *str2 = locator_for_curr_id.symbol_header->identifier;
+        a_const_char *str2 = locator_for_curr_id.symbol_header->identifier;
         if (strcmp(str2, "save") == 0) {
           stack_op = (a_upc_coherence_stack_operation)upc_coherence_stack_save;
         } else if (strcmp(str2, "restore") == 0) {
@@ -3314,8 +3314,8 @@ executable file.
       error(ec_exp_identifier);
       err = TRUE;
     } else {
-      char *str = locator_for_curr_id.symbol_header->identifier;
-      int  i;
+      a_const_char *str = locator_for_curr_id.symbol_header->identifier;
+      int          i;
       for (i = 0; i < (int)mpct_last; ++i) {
         if (strcmp(str, microsoft_pragma_comment_ids[i]) == 0) {
           /* Found the comment type. */
@@ -3391,7 +3391,7 @@ typedef struct a_forScope_stack_entry {
 		next;
 			/* Next entry on the stack.  NULL for the entry at
 			   the bottom of the stack. */
-  char		*name;
+  a_const_char	*name;
 			/* The identifying name of this stack entry -- used
 			   for "targeted" popping.  May be NULL. */
   a_boolean
@@ -3420,7 +3420,7 @@ static a_forScope_stack_entry_ptr
 			   freed and are now available for reuse. */
 
 
-static void push_forScope_stack_entry(char  *name)
+static void push_forScope_stack_entry(a_const_char *name)
 /*
 Push an entry onto the top of the stack of forScope conformance states.
 Record the given name and the current conformance state in that entry.
@@ -3461,7 +3461,7 @@ Pop the top entry from the forScope stack.
 }  /* pop_forScope_stack_entry */
 
 
-static a_forScope_stack_entry_ptr find_forScope_stack_entry(char  *id)
+static a_forScope_stack_entry_ptr find_forScope_stack_entry(a_const_char *id)
 /*
 Look through the forScope stack for an entry that has the given identifier
 associated with it.  If id is NULL, return the last pushed entry.  If the
@@ -3502,9 +3502,10 @@ first form had followed the "push" or "pop".
 Malformed constructs result in warnings, not errors.
 */
 {
-  a_boolean  err = FALSE;
-  a_boolean  on = FALSE, off = FALSE, show = FALSE, push = FALSE, pop = FALSE;
-  char       *id = NULL;
+  a_boolean    err = FALSE;
+  a_boolean    on = FALSE, off = FALSE, show = FALSE,
+               push = FALSE, pop = FALSE;
+  a_const_char *id = NULL;
 
 #define check_and_skip_token(tok, ec)                                        \
   if (curr_token != tok) {                                                   \

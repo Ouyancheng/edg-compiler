@@ -507,9 +507,9 @@ static void mangled_function_name_externalized_if_necessary(
                              a_mangling_control_block *mctl);
 static void mangled_member_variable_name(a_variable_ptr           variable,
                                          a_mangling_control_block *mctl);
-static char *mangled_expr_operator_name(an_expr_node_ptr expr,
-                                        a_boolean        *bad_operator,
-                                        a_boolean        *is_cast);
+static a_const_char *mangled_expr_operator_name(an_expr_node_ptr expr,
+                                                a_boolean        *bad_operator,
+                                                a_boolean        *is_cast);
 
 /*
 Macro for the typical invocation of mangled_encoding_for_expression_full
@@ -534,7 +534,7 @@ static void mangled_encoding_for_constant(
                                   a_boolean                suppress_address_of,
                                   a_mangling_control_block *mctl);
 #if !IA64_ABI
-static char *compress_mangled_name(char                     *mangled_name,
+static char *compress_mangled_name(a_const_char             *mangled_name,
                                    a_source_correspondence  *scp,
                                    a_mangling_control_block *mctl);
 static void add_nesting_level_encoding(unsigned long            nesting_level,
@@ -581,15 +581,16 @@ static a_boolean variable_name_mangling_needed(a_variable_ptr variable);
 static a_boolean function_name_mangling_needed(
                                        a_routine_ptr routine,
                                        a_boolean     *suppress_param_encoding);
-static char *mangled_operator_name(an_opname_kind kind,
-                                   unsigned int   num_operands);
+static a_const_char *mangled_operator_name(an_opname_kind kind,
+                                           unsigned int   num_operands);
 static void mangled_simple_id(a_source_correspondence_ptr scp,
                               a_template_arg_ptr          template_arg_list,
                               a_name_reference_ptr        name_reference,
                               a_boolean                   include_length,
                               a_mangling_control_block    *mctl);
 #if DO_IL_LOWERING || !IA64_ABI
-static char *unmangled_or_fabricated_name_of_variable(a_variable_ptr var);
+static a_const_char *unmangled_or_fabricated_name_of_variable(
+                                                           a_variable_ptr var);
 #endif /* DO_IL_LOWERING || !IA64_ABI */
 #if ABI_COMPATIBILITY_VERSION >= 402
 static void mangled_unresolved_name(an_expr_node_ptr         expr,
@@ -627,8 +628,9 @@ static void mangled_dynamic_init(a_dynamic_init_ptr       dip,
                                  a_boolean                is_static_cast,
                                  a_mangling_control_block *mctl);
 static a_boolean type_is_lambda_in_initializer(a_type_ptr type);
-static char *give_unnamed_namespace_a_name(a_namespace_ptr          nsp,
-                                           a_mangling_control_block *mctl);
+static a_const_char *give_unnamed_namespace_a_name(
+                                               a_namespace_ptr          nsp,
+                                               a_mangling_control_block *mctl);
 
 /*
 Interface to mangled_type_name_full for the usual case, where the
@@ -870,7 +872,7 @@ Add the indicated character to the mangled name.
 }  /* add_to_mangled_name */
 
 
-static void add_str_to_mangled_name(char                         *str,
+static void add_str_to_mangled_name(a_const_char                 *str,
                                     a_mangling_control_block_ptr mctl)
 /*
 Add the indicated null-terminated string to the mangled name.
@@ -1207,8 +1209,8 @@ Return TRUE if the indicated type is "char".
 }  /* is_char_type */
 
 
-static a_boolean is_special_char_template(a_type_ptr  type,
-					  const char  *template_name)
+static a_boolean is_special_char_template(a_type_ptr    type,
+					  a_const_char  *template_name)
 /*
 Return TRUE if type represents ::std::`template_name'<char>. 
 */
@@ -1286,8 +1288,8 @@ and thus is eligible for the `Ss' substitution.
 }  /* is_Ss_substitution */
 
 
-static a_boolean is_stream_substitution(a_type_ptr  type,
-					const char  *stream_name)
+static a_boolean is_stream_substitution(a_type_ptr    type,
+					a_const_char  *stream_name)
 /*
 Return TRUE if type represents 
 ::std::`stream_name'<char, ::std::char_traits<char> >
@@ -1427,7 +1429,7 @@ whether a substitution is available; do not put it out.
   a_substitution_ptr   sp;
   a_substitution_index idx;
   a_boolean            result = FALSE;
-  char                 *str;
+  a_const_char         *str;
 
   /* Nothing to do if substitution processing is temporarily suspended. */
   if (mctl->suppress_substitutions != 0) goto end_of_routine;
@@ -1928,7 +1930,7 @@ Add an indication of the ref-qualifier (if any) for the specified function
 type.
 */
 {
-  char                          *s = NULL;
+  a_const_char                  *s = NULL;
   a_routine_type_supplement_ptr rtsp = type->variant.routine.extra_info;
 
   check_assertion(type->kind == (a_type_kind)tk_routine);
@@ -2840,7 +2842,7 @@ lengths of literals.  old_form is significant only in the Cfront ABI.
 
 #endif /* C99_IL_EXTENSIONS_SUPPORTED */
 
-static void mangled_name_with_length(char                     *name,
+static void mangled_name_with_length(a_const_char             *name,
                                      a_mangling_control_block *mctl)
 /*
 Add to the mangled name the encoding for a name, with a prefix that
@@ -2865,7 +2867,7 @@ template classes.
 {
   an_address_base_kind abkind;
 #if !IA64_ABI
-  char                 *str;
+  a_const_char         *str;
   a_length_reservation length_reservation;
 #endif /* !IA64_ABI */
 
@@ -2933,8 +2935,8 @@ template classes.
                           mctl);
 #if MICROSOFT_EXTENSIONS_ALLOWED
   } else if (abkind == (an_address_base_kind)abk_uuidof) {
-    a_type_ptr uuid_type;
-    char       *uuid_str;
+    a_type_ptr   uuid_type;
+    a_const_char *uuid_str;
 
     /* Microsoft __uuidof. */
     /* The uuid string attached to the associated type has the format
@@ -2970,9 +2972,9 @@ template classes.
   } else if (abkind == (an_address_base_kind)abk_typeid) {
     /* A typeid(...) expression used as a template argument. */
 #if IA64_ABI
-    char *ti_prefix = "TI";
+    a_const_char *ti_prefix = "TI";
 #else /* !IA64_ABI */
-    char *ti_prefix = "__T_";
+    a_const_char *ti_prefix = "__T_";
 #endif /* IA64_ABI */
     add_mangled_name_prefix(mctl);
     add_str_to_mangled_name(ti_prefix, mctl);
@@ -2991,8 +2993,8 @@ template classes.
 
 #if DO_IL_LOWERING || !IA64_ABI
 
-static char *first_field_name(a_type_ptr              class_type,
-                              a_source_correspondence **field_scp)
+static a_const_char *first_field_name(a_type_ptr              class_type,
+                                      a_source_correspondence **field_scp)
 /*
 Return the name of the first named field of the indicated class, struct,
 or union.  If the first member of the class is unnamed, recursively look
@@ -3001,8 +3003,8 @@ Set *field_scp to point to the source correspondence of the
 first named field; leave it unchanged if there is no named field.
 */
 {
-  char        *name = NULL;
-  a_field_ptr field;
+  a_const_char  *name = NULL;
+  a_field_ptr   field;
 
   /* GNU and Microsoft compilers allow cv-qualifiers on anonymous unions. */
   class_type = skip_typerefs(class_type);
@@ -3028,7 +3030,8 @@ first named field; leave it unchanged if there is no named field.
 }  /* first_field_name */
 
 
-static char *unmangled_or_fabricated_name_of_variable(a_variable_ptr var)
+static a_const_char *unmangled_or_fabricated_name_of_variable(
+                                                            a_variable_ptr var)
 /*
 Return the unmangled or fabricated name of the specified variable.  If the
 variable is an anonymous union variable, give it the name of its first member.
@@ -3036,7 +3039,7 @@ Can return NULL in some cases (e.g., temporary variables, but they shouldn't
 appear in mangled names).
 */
 {
-  char                    *name;
+  a_const_char            *name;
   a_source_correspondence *field_scp;
 
   name = unmangled_or_fabricated_name_of(&var->source_corresp);
@@ -3524,7 +3527,7 @@ Add to the mangled name the name of the variable.  Used in cfront ABI only.
 */
 {
   a_length_reservation    length_reservation;
-  char                    *str;
+  a_const_char            *str;
 
   str = unmangled_or_fabricated_name_of_variable(variable);
   check_assertion(str != NULL);
@@ -3566,9 +3569,9 @@ specification in the mangling for lengths of literals.
 */
 {
 #if !IA64_ABI
-  sizeof_t str_length;
-  char     *str;
-  char     buffer[50];
+  sizeof_t     str_length;
+  a_const_char *str;
+  char         buffer[50];
 
   /* Pointer to member:
      For pointers to data members, the offset value encoded as an integer:
@@ -3596,7 +3599,7 @@ specification in the mangling for lengths of literals.
     (void)sprintf(buffer, "%ld", (long)delta);
     str = buffer;
     /* Use "n" to represent a minus sign. */
-    if (str[0] == '-') str[0] = 'n';
+    if (str[0] == '-') ((char *)str)[0] = 'n';
     str_length = strlen(str);  /* Includes "-" sign if any. */
     add_to_mangled_name('L', mctl);
     store_digits_and_underscore((unsigned long)str_length, old_form, mctl);
@@ -3613,14 +3616,14 @@ specification in the mangling for lengths of literals.
     (void)sprintf(buffer, "%ld", (long)delta);
     str = buffer;
     /* Use "n" to represent a minus sign. */
-    if (str[0] == '-') str[0] = 'n';
+    if (str[0] == '-') ((char *)str)[0] = 'n';
     str_length = strlen(str);  /* Includes "-" sign if any. */
     add_str_to_mangled_name(str, mctl);
     /* Index value. */
     (void)sprintf(buffer, "%ld", (long)idx);
     str = buffer;
     /* Use "n" to represent a minus sign. */
-    if (str[0] == '-') str[0] = 'n';
+    if (str[0] == '-') ((char *)str)[0] = 'n';
     str_length = strlen(str);  /* Includes "-" sign if any. */
     add_str_to_mangled_name("_L", mctl);
     store_digits_and_underscore((unsigned long)str_length, old_form, mctl);
@@ -4465,7 +4468,7 @@ source form.  In the Cfront ABI, if include_length is TRUE, the length of the
 mangled name (including any template arguments) is prefixed to the name.
 */
 {
-  char                 *str;
+  a_const_char         *str;
 #if !IA64_ABI
   a_length_reservation length_reservation;
 
@@ -5297,7 +5300,7 @@ this expression is part of a template-dependent expression.
        won't get here). */
     a_routine_ptr    rp = routine_from_function_expr(call_operand);
     unsigned long    num_arguments = number_of_operands_in_list(arguments);
-    char             *name = NULL;
+    a_const_char     *name = NULL;
     a_boolean        remove_last_arg = FALSE;
 #if IA64_ABI
     a_boolean        is_prefix = FALSE;
@@ -5603,7 +5606,7 @@ the dynamic initialization is the result of a static_cast.
   a_constant_ptr      con_list;
   an_expr_node_ptr    args;
   unsigned long       num_operands;
-  char                *str;
+  a_const_char        *str;
 
   check_assertion(dip != NULL);
   dip = skip_compiler_generated_initialization(dip);
@@ -5750,7 +5753,7 @@ initial "address of" mangling on certain expressions when suppress_address_of
 is TRUE.
 */
 {
-  char             *operation_name;
+  a_const_char     *operation_name;
   an_expr_node_ptr operand;
 #if IA64_ABI
   a_boolean        add_address_of;
@@ -6053,7 +6056,7 @@ is TRUE.
       break;
     case enk_new_delete:
       /* Mangling for a new/delete operation. */
-      { char             *name; 
+      { a_const_char     *name; 
         an_expr_node_ptr args = expr->variant.new_delete->arg;
 #if !IA64_ABI
         /* new/delete.  new operation encodes placement new arguments (if any),
@@ -6382,7 +6385,8 @@ functions with the same signature).
   (type_is_lambda_in_default_argument((type)) &&                        \
    !(type)->source_corresp.is_local_to_function)
 
-static char    *placeholder_name = "";
+static a_const_char
+		*placeholder_name = "";
                         /* A character string that is returned in place of a
                            module id, namespace name, or type name when no
                            module id is required (i.e., in a mangling
@@ -6429,8 +6433,9 @@ and "routine" is the routine to which the entity is local.
 }  /* add_local_name_suffix */
 
 
-static char *fabricate_name_for_unnamed_type(a_type_ptr               type,
-                                             a_mangling_control_block *mctl)
+static a_const_char *fabricate_name_for_unnamed_type(
+                                                a_type_ptr               type,
+                                                a_mangling_control_block *mctl)
 /*
 Return a fabricated name (already allocated in the file scope memory region)
 for the specified unnamed type.  If the fabricated name for the type requires a
@@ -6439,7 +6444,7 @@ returned and mctl->lacking_module_id is set to TRUE.
 */
 {
   a_mangling_control_block local_mctl;
-  char                     *fabricated_name, *name;
+  a_const_char             *fabricated_name, *name;
   unsigned long            discriminator;
 
   /* Note that the fabricated name is created using the mangling text buffer
@@ -6537,7 +6542,7 @@ returned and mctl->lacking_module_id is set to TRUE.
   } else {
     /* Allocate space for the generated name and copy it. */
     name = alloc_lowered_name_string(local_mctl.length);
-    (void)strcpy(name, fabricated_name);
+    (void)strcpy((char *)name, fabricated_name);
   }  /* if */
   return name;
 }  /* fabricate_name_for_unnamed_type */
@@ -6553,8 +6558,9 @@ static unsigned long
 #if IA64_ABI
 /*ARGSUSED*/ /* <-- mctl is unused in that case. */
 #endif /* IA64_ABI */
-static char *give_unnamed_class_or_enum_a_name(a_type_ptr               type,
-                                               a_mangling_control_block *mctl)
+static a_const_char *give_unnamed_class_or_enum_a_name(
+                                                a_type_ptr               type,
+                                                a_mangling_control_block *mctl)
 /*
 If the indicated class or enum type is unnamed, fabricate a name (if it needs
 one) and return that name.  In the Cfront ABI, all unnamed types are given a
@@ -6569,7 +6575,7 @@ returned (so mangling can proceed), but mctl->lacking_module_id is set so the
 mangled name will eventually be discarded.  
 */
 {
-  char            *name;
+  a_const_char    *name;
   char            buffer[50];
 
   check_assertion(is_immediate_class_type(type) ||
@@ -6593,7 +6599,7 @@ mangled name will eventually be discarded.
                     is_immediate_class_type(type) ? "__C%lu" : "__E%lu",
                     (unsigned long)num);
       name = alloc_lowered_name_string(strlen(buffer) + 1);
-      (void)strcpy(name, buffer);
+      (void)strcpy((char *)name, buffer);
       type->source_corresp.name = name;
 #if !IA64_ABI
     } else {
@@ -6616,8 +6622,9 @@ mangled name will eventually be discarded.
 }  /* give_unnamed_class_or_enum_a_name */
 
 
-static char *module_id_for_source_corresp(a_source_correspondence  *scp,
-                                          a_mangling_control_block *mctl)
+static a_const_char *module_id_for_source_corresp(
+                                                a_source_correspondence  *scp,
+                                                a_mangling_control_block *mctl)
 /*
 Return the module id for the translation unit which the given source
 correspondence is part of.  For a source correspondence with no
@@ -6632,7 +6639,7 @@ with multiply defined symbols.
 */
 {
   a_translation_unit_ptr tup;
-  char                   *module_id;
+  a_const_char           *module_id;
 
   if (in_mangling_pre_pass) {
     /* In the mangling pre-pass, return a placeholder and set a flag to
@@ -6655,8 +6662,9 @@ with multiply defined symbols.
 }  /* module_id_for_source_corresp */
 
 
-static char *give_unnamed_namespace_a_name(a_namespace_ptr          nsp,
-                                           a_mangling_control_block *mctl)
+static a_const_char *give_unnamed_namespace_a_name(
+                                                a_namespace_ptr          nsp,
+                                                a_mangling_control_block *mctl)
 /*
 If the indicated namespace is unnamed, give it a fabricated name (if possible).
 If we're in the mangling pre-pass, mctl->lacking_module_id will be set to TRUE
@@ -6664,8 +6672,8 @@ and a placeholder name will be returned.  A subsequent call (once the module id
 has been chosen) will give the namespace an appropriate name.
 */
 {
-  char     *name, *prefix;
-  sizeof_t name_len;
+  a_const_char *name, *prefix;
+  sizeof_t     name_len;
 
   /* Note that we may be changing a namespace that is not being lowered yet,
      but that's okay -- the name in the IL entry is not used by the front
@@ -6674,7 +6682,7 @@ has been chosen) will give the namespace an appropriate name.
   if (name == NULL) {
     /* The namespace is unnamed, so fabricate a name and use it as both
        the "mangled" name and the fabricated name. */
-    char            *module_id;
+    a_const_char    *module_id;
     a_namespace_ptr parent_nsp;
     a_boolean       lacking_module_id = FALSE;
     /* The name is either __N or _GLOBAL__N_ followed by the module id. */
@@ -6704,8 +6712,8 @@ has been chosen) will give the namespace an appropriate name.
 #endif /* IA64_ABI */
       name_len = strlen(prefix) + strlen(module_id) + 1;
       name = alloc_lowered_name_string(name_len);
-      (void)strcpy(name, prefix);
-      (void)strcpy(name+strlen(prefix), module_id);
+      (void)strcpy((char *)name, prefix);
+      (void)strcpy((char *)name+strlen(prefix), module_id);
       nsp->source_corresp.name = name;
       nsp->source_corresp.name_has_been_mangled = TRUE;
       nsp->source_corresp.unmangled_name_or_mangled_encoding = name;
@@ -6885,7 +6893,7 @@ last argument in the list).
   a_template_arg_ptr   tap;
   long                 tap_no;
 #if !IA64_ABI
-  char                 *str;
+  a_const_char         *str;
   a_length_reservation length_reservation;
   a_boolean            saved_suppress_partial_spec_args =
                                               mctl->suppress_partial_spec_args;
@@ -7233,7 +7241,7 @@ static void mangled_unnamed_type_encoding(a_type_ptr               type,
 Generate an encoding for the specified unnamed (class or enum) type.
 */
 {
-  char *name;
+  a_const_char *name;
   check_assertion(is_immediate_class_type(type) ||
                   is_immediate_enum_type(type));
 #if IA64_ABI
@@ -7301,7 +7309,7 @@ not in the Cfront ABI -- this is the responsibility of the caller and may
 often be unknown at the time of the call, requiring a length reservation).
 */
 {
-  char *name = unmangled_or_fabricated_name_of(&type->source_corresp);
+  a_const_char *name = unmangled_or_fabricated_name_of(&type->source_corresp);
   check_assertion(is_immediate_class_type(type) ||
                   is_immediate_enum_type(type));
   if (name == NULL) {
@@ -7468,8 +7476,8 @@ is TRUE if the class is itself a specialization and an indication of
 that fact should be put out.
 */
 {
-  a_type_ptr template_param = NULL;
-  char       *name;
+  a_type_ptr   template_param = NULL;
+  a_const_char *name;
 
   check_assertion(is_immediate_class_type(type));
   if (type->source_corresp.assoc_info != NULL) {
@@ -7841,7 +7849,8 @@ namespace an appropriate name once the module id is chosen.
     tup->individuated_namespace = nsp;
   }  /* if */
   if (nsp->source_corresp.name == NULL) {
-    char *name, *module_id = module_id_for_source_corresp(scp, mctl);
+    char         *name;
+    a_const_char *module_id = module_id_for_source_corresp(scp, mctl);
     /* Namespace needs a real name, see if we can give it one. */
     if (!mctl->lacking_module_id) {
       /* Construct a real name for the namespace. */
@@ -7904,7 +7913,7 @@ static data member is used as the parent entity for mangling purposes.
   a_boolean               is_template_specialization = FALSE;
   a_boolean               is_specialization = FALSE;
   a_boolean               use_individuated_namespace = FALSE;
-  char                    *name;
+  a_const_char            *name;
 
   /* See if the present level is nested inside some other level (class,
      scoped enum, or namespace), or is logically nested inside some other
@@ -8443,7 +8452,7 @@ mangled name, the typeref indicating the alias is stripped and the underlying
 type is mangled in its place.
 */
 {
-  char                 *name =
+  a_const_char         *name =
                         unmangled_or_fabricated_name_of(&type->source_corresp);
 #if !IA64_ABI
   a_length_reservation length_reservation;
@@ -8490,7 +8499,7 @@ only).  Setting ok_to_mangle_type to FALSE is a safe value (TRUE enables a
 potential performance improvement, allowing re-use of a mangled name).
 */
 {
-  char                        *name;
+  a_const_char                *name;
 #if IA64_ABI
   a_source_correspondence     *discriminator_scp;
   a_template_ptr              tmpl;
@@ -8690,7 +8699,7 @@ potential performance improvement, allowing re-use of a mangled name).
     type->source_corresp.unmangled_name_or_mangled_encoding =
                                             alloc_lowered_name_string(len + 1);
     src = &mangling_text_buffer->buffer[encoding_start];
-    dest = type->source_corresp.unmangled_name_or_mangled_encoding;
+    dest = (char *)type->source_corresp.unmangled_name_or_mangled_encoding;
     do {
       ch = *src++;
       if (ch != ' ') {
@@ -8878,16 +8887,16 @@ If suppress_substitution is TRUE, no substitution is recorded for type
 as needed.
 */
 {
-  a_type_ptr named_type, pm_base_type;
+  a_type_ptr   named_type, pm_base_type;
 #if ABI_COMPATIBILITY_VERSION < 230
-  a_type_ptr named_typedef = NULL;
+  a_type_ptr   named_typedef = NULL;
 #endif /* ABI_COMPATIBILITY_VERSION < 230 */
-  char       *s = NULL;
+  a_const_char *s = NULL;
   a_type_qualifier_set
-             qualifiers;
+               qualifiers;
 #if IA64_ABI
-  a_type_ptr qualified_type = type;
-  a_boolean  saved_force_dependent_array_mangling;
+  a_type_ptr   qualified_type = type;
+  a_boolean    saved_force_dependent_array_mangling;
 #endif /* IA64_ABI */
 
   if (total_errors != 0) {
@@ -9554,8 +9563,8 @@ a substitution is recorded for the type.
 #if !IA64_ABI
 /*ARGSUSED*/ /* <-- num_operands is unused in that case. */
 #endif /* !IA64_ABI */
-static char *mangled_operator_name(an_opname_kind kind,
-                                   unsigned int   num_operands)
+static a_const_char *mangled_operator_name(an_opname_kind kind,
+                                           unsigned int   num_operands)
 /*
 Return the string used to indicate the indicated operator name in mangled
 names.  The string does not have the leading "__" used in some cases.  The
@@ -9563,7 +9572,7 @@ number of operands is given by num_operands; in some configurations unary and
 binary versions of operators are mangled differently.
 */
 {
-  char *name;
+  a_const_char *name;
 
   switch (kind) {
     case onk_new:               /* "new" */
@@ -9742,9 +9751,9 @@ binary versions of operators are mangled differently.
 }  /* mangled_operator_name */
 
 
-static char *mangled_expr_operator_name(an_expr_node_ptr expr,
-                                        a_boolean        *bad_operator,
-                                        a_boolean        *is_cast)
+static a_const_char *mangled_expr_operator_name(an_expr_node_ptr expr,
+                                                a_boolean        *bad_operator,
+                                                a_boolean        *is_cast)
 /*
 Return the string used to mangle the operator in the indicated expression.
 Operators that don't appear in mangled names should already have been stripped.
@@ -9757,7 +9766,7 @@ pointer to statically allocated storage, so the caller should copy the
 returned string to an appropriate buffer before this routine is invoked again.
 */
 {
-  char           *name = NULL;
+  a_const_char   *name = NULL;
   an_opname_kind opkind;
   unsigned int   num_operands = 2;
 
@@ -10070,9 +10079,9 @@ and conversion_type give additional information for special functions like
 constructors and conversion functions.
 */
 {
-  char      *name;
+  a_const_char *name;
 #if !IA64_ABI
-  a_boolean add_leading_underscores = FALSE;
+  a_boolean    add_leading_underscores = FALSE;
 #endif /* !IA64_ABI */
 
   if (special_kind == (a_special_function_kind)sfk_none
@@ -10512,7 +10521,7 @@ is_variable is TRUE, a routine otherwise.
        B <length> <module-id>
      This is not in the ABI spec.  It's an EDG extension.  It can appear
      as a prefix to a name. */
-  char *module_id = module_id_for_source_corresp(scp, mctl);
+  a_const_char *module_id = module_id_for_source_corresp(scp, mctl);
   check_assertion(!mctl->lacking_module_id);
   add_to_mangled_name('B', mctl);
   mangled_name_with_length(module_id, mctl);
@@ -10531,7 +10540,7 @@ the indicated source correspondence.
 */
 {
 #if !IA64_ABI
-  char *module_id;
+  a_const_char *module_id;
 
   /* The generated name has the form
        __STV__name__module_id  (variable)
@@ -10559,7 +10568,8 @@ is TRUE, a routine otherwise.
 */
 {
   a_mangling_control_block mctl;
-  char                     *externalized_name, *name = scp->name;
+  char                     *externalized_name;
+  a_const_char             *name = scp->name;
   char                     buffer[50];
   a_source_correspondence  *module_scp = scp;
   sizeof_t                 name_len;
@@ -10753,7 +10763,7 @@ to the point where the base name appears.
       !function_name_mangling_needed(routine, &suppress_param_encoding)) {
     /* The name has already been (completely) mangled, or it doesn't need
        to be mangled, so just return it. */
-    mangled_name = routine->source_corresp.name;
+    mangled_name = (char *)routine->source_corresp.name;
     /* The routine should not be unnamed. */
     check_assertion(mangled_name != NULL);
 #if IA64_ABI && DO_IL_LOWERING
@@ -10848,7 +10858,7 @@ scoped enumerators, and class and namespace member constants.
 */
 {
 #if !IA64_ABI
-  char *name;
+  a_const_char *name;
 
   /* The mangled name of a static data member or member constant is the
      original name followed by two underscores followed by the mangled
@@ -10924,7 +10934,7 @@ Add to the mangled name the encoding for the name of the member variable
 
 #if TEMPLATE_LOOKUP_NEEDED || MODULE_ID_NEEDED
 
-char *get_mangled_member_variable_name(a_variable_ptr variable)
+a_const_char *get_mangled_member_variable_name(a_variable_ptr variable)
 /*
 Get the mangled name for the indicated variable or static data member, and
 return a pointer to it.  If the variable name has not been mangled yet,
@@ -10934,7 +10944,7 @@ or a static data member (e.g., not a file scope variable).
 */
 {
   a_mangling_control_block mctl;
-  char                     *mangled_name;
+  a_const_char             *mangled_name;
   a_boolean                needs_to_be_externalized = FALSE;
 
 #if DO_IL_LOWERING
@@ -11404,7 +11414,7 @@ configurations.
 {
   if (scp->final_name_mangling_pending) {
     a_mangling_control_block mctl;
-    char                     *name = scp->name;
+    a_const_char             *name = scp->name;
     sizeof_t                 length = strlen(name)+1;
 
     error_position = scp->decl_position;
@@ -11420,7 +11430,7 @@ configurations.
 #if !IA64_ABI
     name = compress_mangled_name(name, scp, &mctl);
 #endif /* !IA64_ABI */
-    name = truncate_mangled_name(name, scp, &mctl);
+    name = truncate_mangled_name((char *)name, scp, &mctl);
     /* Signal that we're done using mangling_text_buffer. */
     pop_mangling_text_buffer();
     scp->name = name;
@@ -11532,9 +11542,9 @@ necessarily "same type."
        bcp != NULL;
        bcp = bcp->next) {
     if (bcp != orig_bcp) {
-      char *bcp_name      = unmangled_or_fabricated_name_of(
+      a_const_char *bcp_name = unmangled_or_fabricated_name_of(
                                                    &bcp->type->source_corresp);
-      char *orig_bcp_name = unmangled_or_fabricated_name_of(
+      a_const_char *orig_bcp_name = unmangled_or_fabricated_name_of(
                                               &orig_bcp->type->source_corresp);
       if (bcp_name != NULL && orig_bcp_name != NULL &&
           strcmp(bcp_name, orig_bcp_name) == 0) {
@@ -11874,8 +11884,8 @@ type-as-subobject of class_type.
 }  /* mangle_subobject_class_name */
 
 
-static char *mangled_prefixed_type_encoding(char       *prefix,
-                                            a_type_ptr type)
+static char *mangled_prefixed_type_encoding(a_const_char *prefix,
+                                              a_type_ptr type)
 /*
 Return a mangled name that is the indicated prefix followed by the encoding
 for the indicated type.  The name returned is in a temporary buffer and must
@@ -12043,7 +12053,7 @@ be embedded in other mangled names.
          the first member of the anonymous union.  Note that this is
          required by the IA-64 ABI spec. */
       a_source_correspondence *field_scp;
-      char                    *name = first_field_name(var->type, &field_scp);
+      a_const_char            *name = first_field_name(var->type, &field_scp);
       if (name != NULL) {
         scp->name = name;
       }  /* if */
@@ -12129,8 +12139,8 @@ be embedded in other mangled names.
       if (scp_is_enum_member(scp)) {
         /* Add the scoped enumeration type name.  Scoped enumerators aren't
            promoted out of their scope and so must be mangled here. */
-        a_type_ptr  scoped_enum_type = scp_parent_scoped_enum_type(scp);
-        char *scoped_enum_type_name = unmangled_or_fabricated_name_of(
+        a_type_ptr   scoped_enum_type = scp_parent_scoped_enum_type(scp);
+        a_const_char *scoped_enum_type_name = unmangled_or_fabricated_name_of(
                                             &scoped_enum_type->source_corresp);
         check_assertion(kind == iek_constant &&
                         scoped_enum_type_name != NULL);
@@ -12386,7 +12396,7 @@ to the available list for reuse.
 }  /* free_compressible_string_pos */
 
 
-static char *compress_mangled_name(char                     *mangled_name,
+static char *compress_mangled_name(a_const_char             *mangled_name,
                                    a_source_correspondence  *scp,
                                    a_mangling_control_block *mctl)
 /*
@@ -12590,7 +12600,7 @@ correspondence entry for the entity whose name this is.
     }  /* if */
   }  /* if */
   /* If the name was not compressed, return the source mangled name address. */
-  if (compr_name == NULL) compr_name = src_mangled_name;
+  if (compr_name == NULL) compr_name = (char *)src_mangled_name;
   return compr_name;
 #undef get_char_from_mangled_name
 }  /* compress_mangled_name */

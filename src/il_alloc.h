@@ -281,11 +281,11 @@ extern void clear_name_reference(a_name_reference_ptr	nrp);
 #if !STANDALONE_UTILITY_PROGRAM
 
 extern char *copy_string_to_region(a_memory_region_number region,
-                                   char                   *string);
+                                   a_const_char           *string);
 
 extern char *copy_string_of_length_to_region(
 				      a_memory_region_number region,
-				      char                   *string,
+				      a_const_char           *string,
 				      sizeof_t		     length);
 
 extern char *alloc_text_of_string_literal(sizeof_t size);

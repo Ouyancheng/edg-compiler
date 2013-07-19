@@ -644,7 +644,7 @@ a pointer to the entry created.
 }  /* alloc_translation_unit */
 
 
-void process_translation_unit(char				*file_name,
+void process_translation_unit(a_const_char			*file_name,
 			      a_boolean				is_primary,
 			      an_exported_template_file_ptr	exported_file)
 /*

@@ -392,7 +392,8 @@ EXTERN FILE	*f_pp_output;
 			/* File to which preprocessing output is written.
 			   Meaningful only when generate_pp_output is
 			   TRUE. */
-EXTERN char	*pp_file_name;
+EXTERN a_const_char
+		*pp_file_name;
 			/* Name of the preprocessing output file to be
 			   opened, or NULL if no such file is needed or if
 			   a default file should be used. */
@@ -873,7 +874,8 @@ EXTERN a_boolean
 			   generated as part of the automatic instantiation
 			   process be suppressed. */
 
-EXTERN char	*ii_file_name;
+EXTERN a_const_char
+		*ii_file_name;
 			/* Name of the instantiation information file to
 			   be used, or NULL if the default file name
 			   should be used. */
@@ -892,17 +894,20 @@ EXTERN a_boolean
 			   per object mode, and for instantiation flags when
 			   they are not put in the object file. */
 
-EXTERN char	*template_info_file_name;
+EXTERN a_const_char
+		*template_info_file_name;
 			/* The name of a file into which the front end should
 			   write a list of files that were created that contain
 			   instantiations. */
 
-EXTERN char	*exported_template_file_name;
+EXTERN a_const_char
+		*exported_template_file_name;
 			/* The name of a file into which the front end should
 			   write information about the exported templates
 			   defined by the compilation. */
 
-EXTERN char	*definition_list_file_name;
+EXTERN a_const_char
+		*definition_list_file_name;
 			/* The name of a file containing a list of functions
 			   and static data members that are defined in the
 			   objects and libraries with which the current file
@@ -941,7 +946,8 @@ EXTERN a_boolean
 
 
 #if BACK_END_IS_C_GEN_BE || BACK_END_IS_CP_GEN_BE
-EXTERN char	*gen_c_file_name;
+EXTERN a_const_char
+		*gen_c_file_name;
 			/* Points to a string specifying the name of the
 			   generated C file to be created.  The front end
 			   will generate a name if this string is NULL. */
@@ -962,12 +968,14 @@ EXTERN a_boolean
 			/* TRUE if this compilation should use a specified
 			   precompiled header file. */
 
-EXTERN char	*pch_input_file_name;
+EXTERN a_const_char
+		*pch_input_file_name;
 			/* When use_precompiled_header is TRUE, this specifies
 			   the name of the precompiled header file to be
 			   used. */
 
-EXTERN char	*pch_output_file_name;
+EXTERN a_const_char
+		*pch_output_file_name;
 			/* When create_precompiled_header is TRUE, this
                            specifies the name of the precompiled header
                            file to be created. */
@@ -995,7 +1003,8 @@ EXTERN sizeof_t	pch_mem_size;
 			/* Size of the preallocated PCH memory area. */
 #endif /* !USE_MMAP_FOR_MEMORY_REGIONS */
 
-EXTERN char	*pch_dir_name;
+EXTERN a_const_char
+		*pch_dir_name;
 			/* Directory in which PCH files are to be stored.
 			   NULL if no directory has been specified. */
 
@@ -1218,7 +1227,7 @@ EXTERN a_boolean
 			/* TRUE if 64-bit pointer extensions (__ptr32/__ptr64
 			   and __sptr/__uptr) should be accepted in Microsoft
 			   modes. */
-EXTERN char
+EXTERN a_const_char
 		*mscorlib_file_name;
 			/* If non-NULL, the name of the file to be used
 			   to load mscorlib instead of using the normal
@@ -1570,7 +1579,8 @@ EXTERN a_boolean
 			   file. */
 
 #if ONE_INSTANTIATION_PER_OBJECT
-EXTERN char	*instantiation_dir_name;
+EXTERN a_const_char
+		*instantiation_dir_name;
 			/* The name of the directory in which the instantiation
 			   files should be created when one instantiation is
 			   being put into each file. */
@@ -1610,7 +1620,8 @@ EXTERN unsigned long
 			   top-level call. */
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
-EXTERN char	*import_dir_name;
+EXTERN a_const_char
+		*import_dir_name;
 			/* The name of the directory in which files should be
 			   sought for the Microsoft #import directive. */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
@@ -1666,14 +1677,14 @@ EXTERN a_boolean
 			   are enabled. */
 #endif /* NEED_NAME_MANGLING */
 
-EXTERN char
+EXTERN a_const_char
 		*include_file_suffixes;
 			/* The file suffixes to be used when searching for an
 			   include file name specified with no suffix.  This
 			   is a colon-separated list of suffixes (but without
 			   the "." delimiter). */
 
-EXTERN char
+EXTERN a_const_char
 		*curr_cmd_line_or_predef_macro_def;
 			/* Non-NULL if and only if we are processing a
 			   command-line macro definition option of the form
@@ -1987,7 +1998,7 @@ extern void proc_secondary_translation_units(void);
 
 extern void cmd_line_early_init(void);
 
-extern void add_to_def_undef_list(char                   *str,
+extern void add_to_def_undef_list(a_const_char           *str,
                                   a_def_undef_string_ptr *du_list,
                                   a_def_undef_string_ptr *du_list_end,
                                   a_boolean              is_undef);

@@ -314,16 +314,16 @@ in the first size bytes of str, or NULL if chr is not found.
 
 #endif /* __MICROSOFT_OS__ */
 
-char *mbc_strchr(char	*str,
-                 int	chr)
+a_const_char *mbc_strchr(a_const_char *str,
+                         int          chr)
 /*
 This is a version of the strchr routine that also works properly for strings
 containing multibyte characters.  Return the first occurrence of chr
 in str, or NULL if chr does not occur in str.
 */
 {
-  char	*result = NULL;
-  char	*p;
+  a_const_char *result = NULL;
+  a_const_char *p;
 
   for (p = str; *p != '\0'; increment_mbc_ptr(p)) {
     if (*p == chr) {
@@ -335,16 +335,16 @@ in str, or NULL if chr does not occur in str.
 }  /* mbc_strchr */
 
 
-static char *mbc_strrchr(char	*str,
-                         int	chr)
+static a_const_char *mbc_strrchr(a_const_char *str,
+                                 int          chr)
 /*
 This is a version of the strrchr routine that also works properly for strings
 containing multibyte characters.  Return the last occurrence of chr
 in str, or NULL if chr does not occur in str.
 */
 {
-  char	*result = NULL;
-  char	*p;
+  a_const_char *result = NULL;
+  a_const_char *p;
 
   for (p = str; *p != '\0'; increment_mbc_ptr(p)) {
     if (*p == chr) result = p;
@@ -564,7 +564,7 @@ that directory is removed because of duplication.
 #endif /* !STANDALONE_UTILITY_PROGRAM */
 
 void add_to_specified_include_search_path(
-			char				*dir_name,
+			a_const_char			*dir_name,
 			a_boolean			system_include_dir,
 			a_directory_name_entry_ptr	*search_path,
 			a_directory_name_entry_ptr	*end_search_path)
@@ -590,7 +590,7 @@ allocated in general memory.
 }  /* add_to_specified_include_search_path */
 
 
-void add_to_include_search_path(char		*dir_name,
+void add_to_include_search_path(a_const_char	*dir_name,
 				a_boolean	system_include_dir)
 /*
 Add the indicated directory to the end of the include file search
@@ -605,7 +605,7 @@ a "system" include directory.
 
 
 void add_to_front_of_include_search_path(
-				char			   *dir_name,
+				a_const_char		   *dir_name,
 				a_directory_name_entry_ptr *search_path,
 				a_directory_name_entry_ptr *end_search_path)
 /*
@@ -637,7 +637,7 @@ include files to the end of the search path lists.
      as a cross-compiler and all the "system" include files should be
      explicitly included from somewhere else. */
 #else /* !NO_USR_INCLUDE */
-  char *usr_include;
+  a_const_char *usr_include;
 
   /* Add the default directory to the end of the normal search path. */
   usr_include = getenv("USR_INCLUDE");
@@ -668,7 +668,7 @@ Display the include search path, for debugging purposes.
 
 #endif /* DEBUG */
 
-void change_primary_include_search_dir(char *dir_name)
+void change_primary_include_search_dir(a_const_char *dir_name)
 /*
 Replace the directory name in the primary include file search path
 entry by "dir_name".  The directory name string should be allocated in
@@ -687,8 +687,8 @@ general memory.
 }  /* change_primary_include_search_dir */
 
 
-void push_primary_include_search_dir(char	*dir_name,
-                                     a_boolean	system_include_dir)
+void push_primary_include_search_dir(a_const_char *dir_name,
+                                     a_boolean    system_include_dir)
 /*
 dir_name is the directory of a source file that has just been pushed onto
 the input stack.  Adjust the include search path as appropriate, e.g.,
@@ -736,8 +736,8 @@ stack_referenced_include_directories to TRUE.
 }  /* push_primary_include_search_dir */
 
 
-void pop_primary_include_search_dir(char	*dir_name,
-                                    a_boolean	system_include_dir)
+void pop_primary_include_search_dir(a_const_char *dir_name,
+                                    a_boolean    system_include_dir)
 /*
 The directory name in the primary include file search path should revert to
 "dir_name", as the result of popping an include file from the source
@@ -782,7 +782,7 @@ considered a system include directory.
 }  /* pop_primary_include_search_dir */
 
 
-void add_to_template_search_path(char		*dir_name)
+void add_to_template_search_path(a_const_char *dir_name)
 /*
 Add the indicated directory to the end of the template file search
 path.  The directory name string should be allocated in general memory.
@@ -802,7 +802,7 @@ path.  The directory name string should be allocated in general memory.
 }  /* add_to_template_search_path */
 
 
-static char *end_of_directory_name(char *file_name)
+static a_const_char *end_of_directory_name(a_const_char *file_name)
 /*
 Return a pointer to the end of the directory part of the indicated file
 name, or NULL if there is no directory part.
@@ -810,9 +810,9 @@ Note that the following must work for FILE_NAME_FOR_STDIN, which is
 used to represent stdin; it must return  NULL.
 */
 {
-  char *last_slash;
+  a_const_char *last_slash;
 #if BACKSLASH_IS_ALSO_DIR_SEPARATOR
-  char *last_backslash;
+  a_const_char *last_backslash;
 #endif /* BACKSLASH_IS_ALSO_DIR_SEPARATOR */
 
   if (strcmp(file_name, FILE_NAME_FOR_STDIN) == 0) {
@@ -846,13 +846,13 @@ used to represent stdin; it must return  NULL.
 }  /* end_of_directory_name */
 
 
-char *start_of_file_name(char *file_name)
+a_const_char *start_of_file_name(a_const_char *file_name)
 /*
 Return the first character of the file name portion of "file_name"
 (i.e., the part after an optional directory name).
 */
 {
-  char	*result;
+  a_const_char *result;
 
   result = end_of_directory_name(file_name);
   /* If there is a directory, use the character after the end of the
@@ -862,7 +862,7 @@ Return the first character of the file name portion of "file_name"
 }  /* start_of_file_name */
 
 
-static char *end_of_base_name(char *file_name)
+static a_const_char *end_of_base_name(a_const_char *file_name)
 /*
 Given a simple file name (with no directory name), return a pointer to
 the last byte of the file name before the suffix, if any.  Note that
@@ -870,8 +870,8 @@ this is the last byte of the name, not the start of the last (possibly
 multibyte) character.
 */
 {
-  char	*last_dot;
-  char	*name_end;
+  a_const_char *last_dot;
+  a_const_char *name_end;
 
   if ((last_dot = mbc_strrchr(file_name, '.')) == NULL) {
     /* No suffix, end of base name is the same as end of file name. */
@@ -884,14 +884,14 @@ multibyte) character.
 }  /* end_of_base_name */
 
 
-char *suffix_of(char		*file_name)
+a_const_char *suffix_of(a_const_char	*file_name)
 /*
 Find the suffix of "file_name".  Return a pointer to the beginning
 of the suffix.  If the file has no suffix, a pointer to the null-terminator
 of the file name is returned.
 */
 {
-  char	*ptr;
+  a_const_char *ptr;
 
   ptr = end_of_directory_name(file_name);
   if (ptr == NULL) {
@@ -906,8 +906,8 @@ of the file name is returned.
 }  /* suffix_of */
 
 
-char *f_directory_of(char	*file_name,
-		     a_boolean	in_general_memory)
+char *f_directory_of(a_const_char *file_name,
+		     a_boolean    in_general_memory)
 /*
 Return a string that is the directory name for the given file.  If the
 file has no explicit directory, return a representation for the current 
@@ -919,7 +919,7 @@ memory region (when in_general_memory is FALSE) or in general memory.
 {
   a_directory_name_entry_ptr	curr_dir_name;
   a_directory_name_entry_ptr	*list_ptr;
-  char				*last_slash;
+  a_const_char			*last_slash;
   sizeof_t			dir_name_length;
   char				*dir_name;
 
@@ -939,7 +939,7 @@ memory region (when in_general_memory is FALSE) or in general memory.
   for (curr_dir_name = *list_ptr;
        curr_dir_name != NULL;
        curr_dir_name = curr_dir_name->next) {
-    dir_name = curr_dir_name->dir_name;
+    dir_name = (char *)curr_dir_name->dir_name;
     if (strlen(dir_name) == dir_name_length &&
         strncmp(dir_name, file_name, size_t_arg(dir_name_length)) == 0) {
       goto found_dir_name;
@@ -965,7 +965,7 @@ memory region (when in_general_memory is FALSE) or in general memory.
   curr_dir_name->next = *list_ptr;
   *list_ptr = curr_dir_name;
 found_dir_name:;
-  return(dir_name);
+  return dir_name;
 }  /* f_directory_of */
 
 
@@ -993,8 +993,8 @@ with some suffix.
 #endif /* __MICROSOFT_OS__ */
 
 
-char *derived_name(char *file_name,
-                   char *suffix)
+char *derived_name(a_const_char *file_name,
+                   a_const_char *suffix)
 /*
 Return a string that is the base name of file_name with the given suffix
 appended.  The string is allocated in general storage, NOT in an
@@ -1002,9 +1002,9 @@ intermediate language memory region, so it must be copied if it is to
 be passed to the back end.
 */
 {
-  char     *last_slash, *last_dot, *name_start, *name_end;
-  sizeof_t der_name_length, suffix_length, base_name_length;
-  char     *der_name;
+  a_const_char *last_slash, *last_dot, *name_start, *name_end;
+  sizeof_t     der_name_length, suffix_length, base_name_length;
+  char         *der_name;
 
   /* Find the base name by removing the directory and suffix. */
   last_slash = end_of_directory_name(file_name);
@@ -1048,7 +1048,7 @@ be passed to the back end.
 
 
 void append_to_path_name(a_text_buffer_ptr	buffer,
-			 char			*name)
+			 a_const_char		*name)
 /*
 Add "name" to the path name in "buffer".
 */
@@ -1097,8 +1097,8 @@ Add "name" to the path name in "buffer".
 
 
 a_text_buffer_ptr combine_dir_and_file_name(
-				char			*dir_name,
-				char			*file_name,
+				a_const_char		*dir_name,
+				a_const_char		*file_name,
 				a_text_buffer_ptr	buffer)
 /*
 Combine the given directory name and file name to make a full path name,
@@ -1184,7 +1184,7 @@ macro file.  It is not used when reading source files.
 }  /* read_line_from_file */
 
 
-void replace_file_name_suffix(char		*new_suffix,
+void replace_file_name_suffix(a_const_char	*new_suffix,
                               a_text_buffer_ptr	file_name_buffer)
 /*
 Replace the suffix of a file name with a specified suffix.  The
@@ -1192,9 +1192,9 @@ replacement is done in place in file_name_buffer, which is expanded if
 necessary.  This routine may be called iteratively.
 */
 {
-  sizeof_t   curr_file_name_size;
-  sizeof_t   new_suffix_length;
-  char	     *suffix_loc;
+  sizeof_t curr_file_name_size;
+  sizeof_t new_suffix_length;
+  char     *suffix_loc;
 #define SUFFIX_DELIMITER '.'
 
   db_enter(5, "replace_file_name_suffix");
@@ -1209,7 +1209,7 @@ necessary.  This routine may be called iteratively.
   new_suffix_length = strlen(new_suffix);
   check_assertion(curr_file_name_size > 0);
   check_assertion(file_name_buffer->buffer[curr_file_name_size] == '\0');
-  suffix_loc = suffix_of(file_name_buffer->buffer);
+  suffix_loc = (char *)suffix_of(file_name_buffer->buffer);
   /* Update the buffer to specify that characters should be added
      at the position specified by suffix_loc. */
   set_buffer_position(file_name_buffer, suffix_loc);
@@ -1233,8 +1233,8 @@ necessary.  This routine may be called iteratively.
 #endif /* !STANDALONE_UTILITY_PROGRAM */
 
 
-static FILE *fopen_interface(char *filename,
-                             char *mode)
+static FILE *fopen_interface(a_const_char *filename,
+                             a_const_char *mode)
 /*
 Interface to the standard fopen routine.  If multibyte characters are
 supported in the file name, handle that specially.
@@ -1271,7 +1271,7 @@ supported in the file name, handle that specially.
 }  /* fopen_interface */
 
 
-char *get_file_modification_time_string(char		*file_name,
+char *get_file_modification_time_string(a_const_char	*file_name,
 				        a_boolean	strip_newline)
 /*
 Return the last modification time of "file_name" as a date/time string.
@@ -1288,9 +1288,9 @@ which will be overwritten when ctime is called again.
   if (get_file_modification_time(file_name, &mod_time)) {
     time_str = ctime(&mod_time);
     if (strip_newline) {
-      char	*ptr;
+      char *ptr;
       /* Replace the newline with a null. */
-      ptr = mbc_strchr(time_str, '\n');
+      ptr = (char *)mbc_strchr(time_str, '\n');
       if (ptr != NULL) *ptr = '\0';
     }  /* if */
   }  /* if */
@@ -1298,7 +1298,7 @@ which will be overwritten when ctime is called again.
 }  /* get_file_modification_time_string */
 
 
-a_boolean is_regular_file(char *file_name)
+a_boolean is_regular_file(a_const_char *file_name)
 /*
 Return TRUE if the specified file is a regular file (i.e., not a
 directory or some other kind of special file).
@@ -1323,7 +1323,7 @@ Clear the fields of an_open_file_result entry.
 static void do_check_for_byte_order_mark(
                                     FILE                  *f_file,
                                     a_unicode_source_kind *unicode_source_kind,
-                                    char                  *file_name)
+                                    a_const_char          *file_name)
 /*
 We are at the start of a source file.  See if the f_file begins with a
 byte order mark and return *unicode_source_kind set appropriately
@@ -1391,8 +1391,8 @@ is the name of the file, which is used for diagnostic purposes.
 
 #endif /* UNICODE_SOURCE_SUPPORTED */
 
-FILE *fopen_with_result(char			*file_name,
-		        char			*mode,
+FILE *fopen_with_result(a_const_char		*file_name,
+		        a_const_char		*mode,
 		        an_open_file_result	*open_result)
 /*
 Interface to fopen_interface that maps any resulting error into
@@ -1432,7 +1432,7 @@ an_open_file_result (*open_result).
 }  /* fopen_with_result */
 
 
-FILE *open_source_file(char                  *file_name,
+FILE *open_source_file(a_const_char          *file_name,
 		       an_open_file_result   *open_result,
                        a_unicode_source_kind *unicode_source_kind)
 /*
@@ -1465,7 +1465,7 @@ file is not Unicode.
 }  /* open_source_file */
 
 
-FILE *reopen_source_file(char                  *file_name,
+FILE *reopen_source_file(a_const_char          *file_name,
                          a_unicode_source_kind *unicode_source_kind)
 /*
 Reopen the source file of the given name, and return a pointer to
@@ -1491,7 +1491,7 @@ Unicode.
 }  /* reopen_source_file */
 
 
-a_boolean okay_as_output_file(char *file_name)
+a_boolean okay_as_output_file(a_const_char *file_name)
 /*
 Return TRUE if the given file name is acceptable as an output file.
 This involves (potentially) not just checks on the file system permissions,
@@ -1514,7 +1514,7 @@ writing.  This helps avoid problems with clobbering of input files.
 }  /* okay_as_output_file */
 
 
-FILE *open_output_file(char			*file_name,
+FILE *open_output_file(a_const_char		*file_name,
                        a_boolean		binary_file,
                        a_boolean		update_mode,
 		       an_open_file_result	*open_result)
@@ -1579,7 +1579,7 @@ caused the error.
 }  /* close_output_file */
 
 
-FILE *open_input_file(char			*file_name,
+FILE *open_input_file(a_const_char		*file_name,
                       a_boolean			binary_file,
 		      an_open_file_result	*open_result)
 /*
@@ -1611,7 +1611,7 @@ reason for the failure.
 EXTERN_C int delete(char *file_name);
 #endif /* __VMS__ */
 
-void delete_file(char *file_name)
+void delete_file(a_const_char *file_name)
 /*
 Delete the file with the indicated name.  It shouldn't be open currently.
 */
@@ -1655,7 +1655,7 @@ static a_temp_file_name_ptr
 /*
 Static variables used by open_temp_file.
 */
-static char *temp_dir;
+static a_const_char  *temp_dir;
 static unsigned long temp_seed;
 
 
@@ -2127,9 +2127,9 @@ when we choose to make sizeof_t something longer.
 #endif /* ifdef NEED_SIZE_T_ARG_ERROR */
 
 
-int smemcmp(char     *s1,
-            char     *s2,
-            sizeof_t length)
+int smemcmp(a_const_char *s1,
+            a_const_char *s2,
+            sizeof_t     length)
 /*
 Like the standard memcmp, but guaranteed to compare the characters
 sequentially and read no more characters than necessary.  Used when one
@@ -2253,7 +2253,7 @@ time in seconds.
 }  /* calc_time_difference */
 
 
-void display_time_used(char		*message,
+void display_time_used(a_const_char	*message,
 		       a_timer_ptr	start_time,
 		       a_timer_ptr	end_time)
 /*
@@ -2272,8 +2272,8 @@ Display the difference in CPU time and elapsed time between two timers.
 #if !UNICODE_SOURCE_SUPPORTED
 /*ARGSUSED*/ /* <-- "to_internal" is not used in that case. */
 #endif /* !UNICODE_SOURCE_SUPPORTED */
-static char *convert_file_name_encoding(char		*orig_name,
-					a_boolean	to_internal)
+static a_const_char *convert_file_name_encoding(a_const_char *orig_name,
+                                                a_boolean    to_internal)
 /*
 orig_name is the null-terminated name of a file or directory.  Translate
 to or from the internal encoding of the file name (depending on the value
@@ -2282,7 +2282,7 @@ in general storage, it is filled with the converted form, and its address
 is returned. If no conversion is required, the original string is returned.
 */
 {
-  char *file_name = orig_name;
+  char *file_name = (char *)orig_name;
 
 #if UNICODE_SOURCE_SUPPORTED
 #if EDG_WIN32 && NATIVE_MULTIBYTE_CHARS_SUPPORTED_WITH_UNICODE
@@ -2299,7 +2299,7 @@ is returned. If no conversion is required, the original string is returned.
        characters, a new copy of the string must be created. */
     a_boolean		conversion_needed = FALSE;
     sizeof_t		size_needed = 0;
-    char		*p;
+    a_const_char	*p;
     unsigned long	wc;
     int			in_len;
     int			out_len;
@@ -2324,8 +2324,8 @@ is returned. If no conversion is required, the original string is returned.
     if (conversion_needed) {
       /* The string contains at least one character that needs to be rewritten.
          Allocate and fill a new string. */
-      char *dest;
-      dest = file_name = alloc_general(size_needed+1);
+      char *dest = alloc_general(size_needed+1);
+      file_name = dest;
       for (p = orig_name; *p != '\0'; p += in_len) {
         int		i;
         a_boolean	err;
@@ -2368,7 +2368,7 @@ is returned. If no conversion is required, the original string is returned.
 }  /* convert_file_name_encoding */
 
 
-char *file_name_in_internal_encoding(char *orig_name)
+a_const_char *file_name_in_internal_encoding(a_const_char *orig_name)
 /*
 orig_name is the null-terminated name of a file or directory as provided
 by the environment, e.g., from the command line or from a system call.
@@ -2378,14 +2378,14 @@ in general storage, it is filled with the converted form, and its address
 is returned. If no conversion is required, the original string is returned.
 */
 {
-  char	*file_name;
+  a_const_char *file_name;
 
   file_name = convert_file_name_encoding(orig_name, /*to_internal=*/TRUE);
   return file_name;
 }  /* file_name_in_internal_encoding */
 
 
-char *file_name_in_external_encoding(char *orig_name)
+a_const_char *file_name_in_external_encoding(a_const_char *orig_name)
 /*
 orig_name is the null-terminated name of a file or directory in the
 internal encoding.  Convert it if necessary to the form used by the
@@ -2394,7 +2394,7 @@ in general storage, it is filled with the converted form, and its address
 is returned. If no conversion is required, the original string is returned.
 */
 {
-  char	*file_name;
+  a_const_char *file_name;
 
   file_name = convert_file_name_encoding(orig_name, /*to_internal=*/FALSE);
   return file_name;
@@ -2412,7 +2412,7 @@ Not used in some configurations.
 }  /* chdir_with_check */
 
 
-void change_directory(char *dir_name)
+void change_directory(a_const_char *dir_name)
 /*
 Change to the directory specified by "dir_name".
 */
@@ -2434,7 +2434,7 @@ When the macro S_ISDIR is defined, we assume that the stat system call
 is available and can be used to determine whether a file name is
 a directory.
 */
-a_boolean is_directory(char   *file_name)
+a_boolean is_directory(a_const_char *file_name)
 {
   a_boolean	result = FALSE;
   struct stat   buf;
@@ -2515,7 +2515,7 @@ the prefix of "\\" is treated as a drive specification.
 
 #endif /* __MICROSOFT_OS__ */
 
-a_boolean is_absolute_file_name(char *file_name)
+a_boolean is_absolute_file_name(a_const_char *file_name)
 /*
 Test whether or not a file name is absolute (a full path name).
 */
@@ -2688,10 +2688,10 @@ UNIX Version.
 #endif /* ifndef __AIX__ */
 
 /*ARGSUSED*/ /* <-- Because "curr_dir_name" is not used. */
-char *get_file_name_from_dir(a_boolean	first,
-			     char	*dir_name,
-			     char	*suffix,
-			     char	*curr_dir_name)
+char *get_file_name_from_dir(a_boolean	  first,
+			     a_const_char *dir_name,
+			     a_const_char *suffix,
+			     a_const_char *curr_dir_name)
 /*
 See comment above.
 */
@@ -2709,7 +2709,7 @@ See comment above.
     check_assertion(dir != NULL);
   }  /* if */
   for (;;) {
-    char	*ptr;
+    a_const_char *ptr;
     dir_entry = readdir(dir);
     if (dir_entry == NULL) {
       /* The last entry was read. */
@@ -2729,7 +2729,7 @@ See comment above.
 #endif /* EDG_WIN32 */
 
 
-static char *get_curr_dir_name(void)
+static a_const_char *get_curr_dir_name(void)
 /*
 Get the current directory name and return it in the temporary string
 buffer.
@@ -2775,11 +2775,12 @@ Change any non-identifier characters in the indicated string to underscores.
 }  /* change_non_id_characters */
 
 
-static char	*module_id;
+static a_const_char
+		*module_id;
 			/* A string used to qualify static names that are put
 			   out as external names to make them unique. */
 
-void set_module_id(char *new_module_id)
+void set_module_id(a_const_char *new_module_id)
 /*
 Set the module id for the current translation unit to the value specified
 by new_module_id.
@@ -2791,7 +2792,7 @@ by new_module_id.
 }  /* set_module_id */
 
 
-char *get_module_id(void)
+a_const_char *get_module_id(void)
 /*
 Return the module id.
 */
@@ -2800,7 +2801,7 @@ Return the module id.
 }  /* get_module_id */
 
 
-char *make_module_id(char *external_name)
+a_const_char *make_module_id(a_const_char *external_name)
 /*
 Make a string that is based on the name of the current module and is used to
 qualify static names that are put out as external names, to make them unique.
@@ -2809,10 +2810,10 @@ defined in this translation unit (or NULL if no such definition exists).
 Set module_id to the string and return it.
 */
 {
-  char			*file_name;
+  a_const_char		*file_name;
   sizeof_t		file_name_len;
-  char			*str1;
-  char			*str2;
+  a_const_char		*str1;
+  a_const_char		*str2;
   char			crc_buf[9];
 
   /* Only generate the module id the first time that this routine is called
@@ -2855,9 +2856,10 @@ Set module_id to the string and return it.
          longer than 8 characters, a CRC of the string is used in place
          of the string.  Non-identifier characters are replaced with
          underscores. */
-      char      len_buf[50];
-      int	len1;
-      int	len2;
+      char len_buf[50];
+      int  len1;
+      int  len2;
+      char *mod_id;     
       len1 = (int)strlen(str1);
       len2 = str2 == NULL ? 0 : (int)strlen(str2);
       if ((len1 + len2 + (int)(len2 != 0)) > 8) {
@@ -2873,25 +2875,26 @@ Set module_id to the string and return it.
         len2 = 0;
       }  /* if */
       /* Exclude the directory portion of the file name. */
-      { char	*end_of_dir;
+      { a_const_char *end_of_dir;
         end_of_dir = end_of_directory_name(file_name);
         if (end_of_dir != NULL) file_name = end_of_dir+1;
       }
       file_name_len = strlen(file_name);
       /* The file name is preceded by its length enclosed in underscores. */
       (void)sprintf(len_buf, "_%lu_", (unsigned long)file_name_len);
-      module_id = alloc_general(strlen(len_buf) + file_name_len + 1 +
+      mod_id = alloc_general(strlen(len_buf) + file_name_len + 1 +
                                 len1 + len2 + (int)(len2 != 0) + 1);
-      (void)strcpy(module_id, len_buf);
-      (void)strcat(module_id, file_name);
-      (void)strcat(module_id, "_");
-      (void)strcat(module_id, str1);
+      (void)strcpy(mod_id, len_buf);
+      (void)strcat(mod_id, file_name);
+      (void)strcat(mod_id, "_");
+      (void)strcat(mod_id, str1);
       if (str2 != NULL) {
-        (void)strcat(module_id, "_");
-        (void)strcat(module_id, str2);
+        (void)strcat(mod_id, "_");
+        (void)strcat(mod_id, str2);
       }  /* if */
       /* Change non-identifier characters to "_". */
-      change_non_id_characters(module_id);
+      change_non_id_characters(mod_id);
+      module_id = mod_id;
     }
 #if DEBUG
     if (db_flag_is_set("module_id")) {
@@ -3228,7 +3231,7 @@ page size.
       /* Suppress the CodeCenter warning that would be issued because we
          build an address that is not yet valid. */
       /*SUPPRESS 25 */  /*SUPPRESS 26 */
-      map_address = fixed_address_for_mmap + curr_size;
+      map_address = (a_void_ptr)(fixed_address_for_mmap + curr_size);
       /* Suppress the CodeCenter warning that an invalid pointer is being
          passed. */
       /*SUPPRESS 71 */
@@ -3462,7 +3465,7 @@ in case it had been previously changed by set_cpu_time_limit.
 #if !UNICODE_SOURCE_SUPPORTED
 /*ARGSUSED*/ /* <-- "is_native" is not used in that case. */
 #endif /* !UNICODE_SOURCE_SUPPORTED */
-int f_mbc_length(char			*ptr,
+int f_mbc_length(a_const_char		*ptr,
                  a_boolean		*err,
                  a_boolean		is_native)
 /*
@@ -3619,7 +3622,7 @@ are assumed to be Latin-1.
 #if !UNICODE_SOURCE_SUPPORTED
 /*ARGSUSED*/ /* <-- "is_native" is not used in that case. */
 #endif /* !UNICODE_SOURCE_SUPPORTED */
-int mbc_to_wide_char(char          *mb,
+int mbc_to_wide_char(a_const_char  *mb,
                      unsigned long *wc,
                      a_boolean     *err,
                      a_boolean	   is_native)
@@ -4080,7 +4083,7 @@ native_multibyte_locale.
 
 #endif /* NATIVE_MULTIBYTE_CHARS_SUPPORTED_WITH_UNICODE */
 
-unsigned long extract_character_from_string(char          *str,
+unsigned long extract_character_from_string(a_const_char  *str,
                                             unsigned int  char_size)
 /*
 Extract a character of the given size from the given string and return its
@@ -4163,13 +4166,13 @@ Macro that returns TRUE if "ch" is a directory separator character.
 #endif /* BACKSLASH_IS_ALSO_DIR_SEPARATOR */
 
 static void append_dir_name(a_text_buffer_ptr	buf,
-			    char		*dir_name)
+			    a_const_char	*dir_name)
 /*
 Add "dir_name" to the end of the directory name specified by "buf".
 */
 {
-  char		*ptr = dir_name;
-  char		*dir_start;
+  a_const_char	*ptr = dir_name;
+  a_const_char	*dir_start;
   int		length;
   a_boolean	starts_with_separator;
 
@@ -4201,8 +4204,8 @@ Add "dir_name" to the end of the directory name specified by "buf".
         /* Back up to the start of the previous directory component.  This
            actually needs to be done by scanning from the start of the
            string to handle multibyte characters. */
-        char	*last_dir_sep = NULL;
-        char	*ds_ptr;
+        a_const_char *last_dir_sep = NULL;
+        a_const_char *ds_ptr;
         for (ds_ptr = &buf->buffer[0]; ds_ptr < buf_end;
             increment_mbc_ptr(ds_ptr)) {
           if (is_dir_separator(*ds_ptr)) last_dir_sep = ds_ptr;
@@ -4228,7 +4231,7 @@ Add "dir_name" to the end of the directory name specified by "buf".
 }  /* append_dir_name */
 
 
-static char *normalize_dir_name(char			*dir_name,
+static char *normalize_dir_name(a_const_char		*dir_name,
 				a_text_buffer_ptr	buf,
 				a_boolean		is_partial_file_name)
 /*
@@ -4282,9 +4285,9 @@ static a_text_buffer_ptr
 				   normalized directory name. */
 
 
-int compare_dir_names(char	*dir1,
-		      char	*dir2,
-		      a_boolean	is_partial_file_name)
+int compare_dir_names(a_const_char *dir1,
+		      a_const_char *dir2,
+		      a_boolean	   is_partial_file_name)
 /*
 Compare the directory names specified by dir1 and dir2.  Return zero if
 they are the same.
@@ -4310,7 +4313,7 @@ to the current directory.
 }  /* compare_dir_names */
 
 
-char *normalize_file_name(char	*file_name)
+char *normalize_file_name(a_const_char	*file_name)
 /*
 Normalize "file_name" by converting it into a canonical form.  For
 example, if the file name is "/a/b/../c", the normalized name will
@@ -4331,8 +4334,8 @@ this routine or compare_dir_names.
 }  /* normalize_file_name */
 
 
-int f_compare_file_names(char		*file1,
-	 		 char		*file2,
+int f_compare_file_names(a_const_char	*file1,
+	 		 a_const_char	*file2,
 		         a_boolean	ignore_delimiters,
 			 a_boolean	is_partial_file_name)
 /*
@@ -4342,10 +4345,10 @@ the '"' or '<' delimiters.  is_partial_file_name is TRUE if the
 file names are not known to be relative to the current directory.
 */
 {
-  char		*start1 = file1;
-  char		*start2 = file2;
-  char		*file_start1;
-  char		*file_start2;
+  a_const_char	*start1 = file1;
+  a_const_char	*start2 = file2;
+  a_const_char	*file_start1;
+  a_const_char	*file_start2;
   char		*end1;
   char		*end2;
   a_boolean	match = FALSE;
@@ -4355,10 +4358,10 @@ file names are not known to be relative to the current directory.
   /* If we are ignoring delimiters, temporarily replace the trailing
      delimiter with a null. */
   if (ignore_delimiters) {
-    end1 = start1 + strlen(file1) - 1;
+    end1 = (char *)start1 + strlen(file1) - 1;
     saved_delim1 = *end1;
     *end1 = '\0';
-    end2 = start2 + strlen(file2) - 1;
+    end2 = (char *)start2 + strlen(file2) - 1;
     saved_delim2 = *end2;
     *end2 = '\0';
     /* Increment the starting point past the delimiters. */
@@ -4531,7 +4534,7 @@ be used until that point.
 #endif /* NATIVE_MULTIBYTE_CHARS_SUPPORTED_WITH_UNICODE */
 
 unsigned long write_file_name_to_text_buffer(
-                                   char             *name,
+                                   a_const_char     *name,
                                    a_text_buffer_ptr buffer,
                                    a_boolean         process_escapes,
                                    a_boolean         escape_nonprintable_chars)
@@ -4548,7 +4551,7 @@ character when not escaping nonprinting characters).  The result is not
 null-terminated.
 */
 {
-  char          *p;
+  a_const_char  *p;
   unsigned long len = 0;
 #if MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED
   a_boolean	is_native = FALSE;
@@ -4621,7 +4624,7 @@ null-terminated.
 
 
 static
-a_text_buffer_ptr f_format_file_name(char          *name,
+a_text_buffer_ptr f_format_file_name(a_const_char  *name,
                                      a_boolean     process_escapes,
                                      a_boolean     escape_nonprintable_chars,
                                      unsigned long *len)
@@ -4655,7 +4658,7 @@ contents can only be used until that point.
 }  /* f_format_file_name */
 
 
-char *format_file_name(char *name)
+char *format_file_name(a_const_char *name)
 /*
 Return a pointer to a version of the file name "name" formatted for display
 purposes.  This returns a pointer into a text buffer used by
@@ -4673,10 +4676,10 @@ is called again.
 }  /* format_file_name */
 
 
-unsigned long write_file_name(char      *name,
-                              FILE      *f_output,
-                              a_boolean process_escapes,
-                              a_boolean escape_nonprintable_chars)
+unsigned long write_file_name(a_const_char *name,
+                              FILE         *f_output,
+                              a_boolean    process_escapes,
+                              a_boolean    escape_nonprintable_chars)
 /*
 Write out the null-terminated file name "name" to the output file f_output.
 If process_escapes is TRUE, an escape is added for quotes and backslashes.
@@ -5103,7 +5106,7 @@ Initialize the specified portable assembly header.
 typedef struct a_portable_assembly_entry {
   /* This structure contains information about a portable assembly file
      whose C++/CLI metadata is being used in the current compilation. */
-  char          *name;  /* The full name of the portable assembly. */
+  a_const_char  *name;  /* The full name of the portable assembly. */
   FILE          *f_assembly;
                         /* A FILE pointer to the file. */
   void          *mmap_addr;
@@ -5159,7 +5162,7 @@ return an error indication.
 
 /*ARGSUSED*/
 an_assembly_index import_metadata_file(
-                                char                      *assembly_full_name,
+                                a_const_char              *assembly_full_name,
                                 a_cpp_cli_import_flag_set import_flags,
                                 a_boolean                 *is_duplicate)
 /*
@@ -5335,7 +5338,7 @@ so configured.
 
 
 /*ARGSUSED*/
-void ms_metadata_trans_unit_init(char *file_name) {}
+void ms_metadata_trans_unit_init(a_const_char *file_name) {}
 
 
 void ms_metadata_trans_unit_wrapup(void)
@@ -5425,7 +5428,7 @@ One time initialization that must take place early on in the front end.
 This is done before command line processing.
 */
 {
-  char			*ptr;
+  a_const_char		*ptr;
   static a_boolean	first_time = TRUE;
 
   if (first_time) {

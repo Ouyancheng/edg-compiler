@@ -2401,7 +2401,7 @@ a template parameter constant that might be a null pointer constant.
 
 
 #if DEBUG
-static void db_unary_operation(char          *operation,
+static void db_unary_operation(a_const_char  *operation,
 			       a_constant    *operand,
                                a_constant    *result,
 			       an_error_code err_code)
@@ -2839,7 +2839,7 @@ for any diagnostics issued.
 
 
 #if DEBUG
-static void db_binary_operation(char           *operation,
+static void db_binary_operation(a_const_char   *operation,
 				a_constant_ptr constant_1,
 				a_constant_ptr constant_2,
 				a_constant_ptr result,
@@ -9291,7 +9291,7 @@ evaluation (e.g., parameter values).
         } else {
           /* Copy the character into char_con and use that as the result. */
           a_host_large_integer char_val;
-          char                 *start_of_char_within_string;
+          a_const_char         *start_of_char_within_string;
           check_assertion(target_type->kind == (a_type_kind)tk_integer);
           start_of_char_within_string =
                       result_con->variant.string.value + (offset - cum_offset);

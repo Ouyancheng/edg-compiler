@@ -351,7 +351,8 @@ static a_macro_arg_ptr
 		end_of_macro_arg_list;
 			/* All the a_macro_arg entries currently being used. */
 
-static char *arg_get_token_start_of_curr_token;
+static a_const_char
+		*arg_get_token_start_of_curr_token;
 			/* Set by arg_get_token to point to the position
 			   after the white-space skip.  This differs from
 			   the value returned in start_of_curr_token when
@@ -368,7 +369,8 @@ static unsigned long
 			/* Used to track space use. */
 #endif /* DEBUG */
 
-static char	*end_of_cpp_string;
+static a_const_char
+		*end_of_cpp_string;
 			/* When preprocessing in cpp-compatibility mode,
 			   the insides of character constants and string
 			   literals in macro definitions are examined for
@@ -377,7 +379,8 @@ static char	*end_of_cpp_string;
 			   When this flag is non-NULL, we are inside a
 			   string, and it points to the closing quote
 			   character. */
-static char	*start_of_white_space_in_cpp_string;
+static a_const_char
+		*start_of_white_space_in_cpp_string;
 			/* When end_of_cpp_string is non-NULL, this
 			   is set by mdefn_get_token to the start of any
 			   white space skipped before the current token,
@@ -668,7 +671,7 @@ preserved; otherwise, the specified context will be saved in newly-created
 text map entries.
 */
 {
-  char *adj_start_of_curr_token = start_of_curr_token;
+  a_const_char *adj_start_of_curr_token = start_of_curr_token;
 
   tmpt->next_active_tracker = active_text_map_position_trackers;
   active_text_map_position_trackers = tmpt;
@@ -706,8 +709,8 @@ text map entries.
 
 static void add_token_part_to_macro_text_map(
                              a_text_map_position_tracker_ptr tmpt,
-                             char                            *token_part_start,
-                             a_source_position	             *token_part_pos,
+                             a_const_char                    *token_part_start,
+                             a_source_position               *token_part_pos,
                              a_boolean                       force_new_region,
                              sizeof_t                        next_targ_offset)
 /*
@@ -721,10 +724,10 @@ the source position of token_part_start.  force_new_region is TRUE if a new
 text map entry must be created.
 */
 {
-  sizeof_t  rel_src_offset;
-  sizeof_t  rel_targ_offset;
-  a_boolean new_region_required = FALSE;
-  char      *adj_start_of_curr_token = start_of_curr_token;
+  sizeof_t     rel_src_offset;
+  sizeof_t     rel_targ_offset;
+  a_boolean    new_region_required = FALSE;
+  a_const_char *adj_start_of_curr_token = start_of_curr_token;
 
   if (tmpt->src_slmp != NULL) {
     /* Previous tokens were from the inserted text of a source line
@@ -876,8 +879,8 @@ multibyte character in the token.
       within_curr_source_line(start_of_curr_token) &&
       (end_of_curr_token - start_of_curr_token > 2 ||
        curr_token == tok_identifier)) {
-    a_source_position	token_part_pos = pos_curr_token;
-    char  *ptr = start_of_curr_token;
+    a_source_position     token_part_pos = pos_curr_token;
+    a_const_char          *ptr = start_of_curr_token;
     /* Step through the characters of the token. */
     for (;;) {
       int numch = mbc_length_simple(ptr);
@@ -1221,10 +1224,10 @@ macro_invocation_records list, and set the appropriate fields in il_header.
 
 
 void adjust_curr_source_line_structure_after_realloc(
-                                           char      *old_ptr,
-                                           char      *old_after_end_ptr,
-                                           char      *new_ptr,
-                                           a_boolean adjust_source_line_modifs)
+                                        a_const_char *old_ptr,
+                                        a_const_char *old_after_end_ptr,
+                                        a_const_char *new_ptr,
+                                        a_boolean    adjust_source_line_modifs)
 /*
 Walk the data structure associated with curr_source_line, and change any
 pointers that point in the range old_ptr..old_after_end_ptr (the latter
@@ -1236,24 +1239,24 @@ line modifications can pass adjust_source_line_modifs as FALSE; otherwise,
 the pointers in all source line modifications will be adjusted as needed.
 */
 {
-  an_orig_line_modif_ptr     olmp;
-  a_source_line_modif_ptr    slmp;
-  a_macro_arg_ptr            map;
-  a_pointer_registration_ptr prp;
-  char                       *old_after_end_plus_1;
+  an_orig_line_modif_ptr       olmp;
+  a_source_line_modif_ptr      slmp;
+  a_macro_arg_ptr              map;
+  a_pointer_registration_ptr   prp;
+  a_const_char                 *old_after_end_plus_1;
 
 /* Macro to adjust a single pointer if it needs it.  Include the address
    just past the end of the area moved, since a pointer to there should be
    adjusted.  Recall that an extra byte is allocated at the end of each
    area so that that address will not be the same as the start address of
    the area following it in memory. */
-#define fix_ptr(ptr)                                                  \
+#define fix_ptr(ptr)                                                         \
 { /* Suppress the warning on use of the expired pointer value in CodeCenter. \
-     Version 3.1.1 warning number. */                                 \
-  /*SUPPRESS 29*/                                                     \
-  if (ptr != NULL && ptr_in_range(ptr, old_ptr, old_after_end_plus_1)) { \
-    ptr = ptr - old_ptr + new_ptr;                                    \
-  }  /* if */                                                         \
+     Version 3.1.1 warning number. */                                        \
+  /*SUPPRESS 29*/                                                            \
+  if (ptr != NULL && ptr_in_range(ptr, old_ptr, old_after_end_plus_1)) {     \
+    *(a_const_char **)&ptr = ptr - old_ptr + new_ptr;                        \
+  }  /* if */                                                                \
 }  /* fix_ptr */
 
   db_enter(4, "adjust_curr_source_line_structure_after_realloc");
@@ -1344,8 +1347,8 @@ is the address of the character in the destination buffer immediately
 following the last copied ATTENTION_MARKER.
 */
 {
-  char *src = slmp->line_loc + 1;
-  char *this_target = next_avail - 1;
+  a_const_char *src = slmp->line_loc + 1;
+  char         *this_target = next_avail - 1;
 
   while (src < slmp->line_loc + slmp->num_chars_to_delete) {
     if (*src == ATTENTION_MARKER) {
@@ -1375,10 +1378,10 @@ ensure_macro_buffer_space.
 {
   sizeof_t                total_needed, old_size, old_len, new_size, increment;
   char                    *new_macro_buffer;
-  register char           *src;
+  register a_const_char   *src;
   register char           *dst;
   register char           ch;
-  char                    *old_start_for_remapping;
+  a_const_char            *old_start_for_remapping;
   char                    *new_start_for_remapping;
   a_source_line_modif_ptr slmp;
   a_source_line_modif_ptr nested_slmp;
@@ -2017,9 +2020,9 @@ Free the macro argument description pointed to by *map, and set *map to NULL.
 
 
 #if DEBUG
-static void print_markered_text(char      *str,
-                                sizeof_t  len,
-                                a_boolean go_to_end_of_line)
+static void print_markered_text(a_const_char *str,
+                                sizeof_t     len,
+                                a_boolean    go_to_end_of_line)
 /*
 Print the indicated string, interpreting any marker characters therein
 (attention characters and lexical escapes).  Printing stops after
@@ -2030,7 +2033,7 @@ to disable the character-counting feature.  This routine is used to
 print the replacement text and expansions of macros.
 */
 {
-  char                    *p;
+  a_const_char            *p;
   sizeof_t                n_printed;
   char                    ch;
   a_source_line_modif_ptr slmp;
@@ -2171,14 +2174,14 @@ re-insert the identifier if necessary (delete_source_from_loc is non-NULL,
 so a hanging delete is in effect).
 */
 {
-  a_seq_number    old_seq_number;
-  char            *orig_loc;
-  char            *ins_loc;
+  a_seq_number  old_seq_number;
+  a_const_char  *orig_loc;
+  char          *ins_loc;
   a_source_line_modif_ptr
-		  slmp,
-                  slmp2;
-  unsigned long   sequence_id;
-  a_boolean       saved_do_not_advance_past_end_of_file;
+                slmp,
+                slmp2;
+  unsigned long sequence_id;
+  a_boolean     saved_do_not_advance_past_end_of_file;
 
   old_seq_number = curr_seq_number;
   orig_loc = start_of_curr_token;
@@ -2436,7 +2439,7 @@ with \.  Return the macro argument created.
 {
   a_macro_arg_ptr	map;
   sizeof_t		length;
-  char			*end_of_string;
+  a_const_char		*end_of_string;
 #if FULLY_RESOLVED_MACRO_POSITIONS
   a_source_position     curr_pos;
 #endif /* FULLY_RESOLVED_MACRO_POSITIONS */
@@ -2454,8 +2457,8 @@ with \.  Return the macro argument created.
   ensure_arg_raw_text_space(length, map);
   end_of_string = end_of_curr_token;
   /* Copy the characters to the macro argument. */
-  { char	*src = start_of_curr_token;
-    char	*dest = map->raw_text;
+  { a_const_char *src = start_of_curr_token;
+    char         *dest = map->raw_text;
     /* For a wide string literal, skip the leading "L". */
     if (*src == 'L') src++;
     /* Skip over the opening quote. */
@@ -2517,7 +2520,7 @@ through *pragma_descr can be NULL.
 */
 {
   a_source_line_modif_ptr	slmp;
-  char				*save_curr_char_loc;
+  a_const_char			*save_curr_char_loc;
   a_pointer_registration_ptr	save_registered_pointers = registered_pointers;
   a_pointer_registration	save_curr_char_loc_reg;
 
@@ -2976,14 +2979,15 @@ in Microsoft mode; in that case, token pasting off the end is not allowed.
      are dangerous, since those things can be reallocated.  Such pointers
      must be registered by calling register_pointer_variable so that they
      can be updated on any reallocation. */
-  char          *pos_in_aux_buffer, *save_curr_char_loc;
-  char          *loc_following_insertion;
-  char          *inert_macro_escape;
+  char         *pos_in_aux_buffer;
+  a_const_char *save_curr_char_loc;
+  a_const_char *loc_following_insertion;
+  char         *inert_macro_escape;
   a_pointer_registration
-                pos_in_aux_buffer_reg, save_curr_char_loc_reg,
-                loc_following_insertion_reg, inert_macro_escape_reg;
+               pos_in_aux_buffer_reg, save_curr_char_loc_reg,
+               loc_following_insertion_reg, inert_macro_escape_reg;
   a_pointer_registration_ptr
-                save_registered_pointers = registered_pointers;
+               save_registered_pointers = registered_pointers;
 
   register_pointer_variable(pos_in_aux_buffer,   pos_in_aux_buffer_reg);
   register_pointer_variable(save_curr_char_loc,  save_curr_char_loc_reg);
@@ -3196,7 +3200,7 @@ end_loop:
          buffer so that the macro and what follows have a chance to be pasted
          together. */
       /* Find the end of the primary source line. */
-      { char              *temp;  /* Not registered, not kept long. */
+      { a_const_char *temp;  /* Not registered, not kept long. */
         for (num_chars_added_from_source_line = 0,
                temp = loc_following_insertion;
              ;
@@ -3420,9 +3424,9 @@ static a_token_kind func_name_token[] = {tok_function_name,
                                          tok_pretty_function_name};
 
 static a_boolean is_microsoft_function_name_paste(a_macro_arg_ptr map,
-                                                 char             *prev_text,
-                                                 sizeof_t         prev_len,
-                                                 char             **post_end)
+                                                  a_const_char    *prev_text,
+                                                  sizeof_t        prev_len,
+                                                  a_const_char    **post_end)
 /*
 We are in Microsoft mode and we are doing a token paste in a macro
 expansion.  Return TRUE if the paste operation is pasting "L" to one
@@ -3450,8 +3454,9 @@ position after the end of the function-name keyword.
         /* Compare the raw_text of map against the function-name tokens. */
         unsigned int i;
         for (i = 0; i < sizeof(func_name_token)/sizeof(a_token_kind); i++) {
-          char     *tok = spelling_for_function_name_token(func_name_token[i]);
-          sizeof_t tok_len = strlen(tok);
+          a_const_char *tok =
+                          spelling_for_function_name_token(func_name_token[i]);
+          sizeof_t     tok_len = strlen(tok);
           if (map->raw_len >= tok_len &&
               strncmp(map->raw_text, tok, size_t_arg(tok_len)) == 0) {
             /* The beginning of the raw text matches the token.  See if the
@@ -3622,7 +3627,7 @@ hence its name should not be changed.
               map->raw_text[0] == LE_ESCAPE &&
               map->raw_text[1] == LE_INERT_MACRO) sect_len -= LE_ESCAPE_LEN;
 #if MICROSOFT_EXTENSIONS_ALLOWED
-          { char *post_end;
+          { a_const_char *post_end;
             /* coverity[var_deref_model] */
             if (microsoft_mode && prev_section_is_paste &&
                 is_microsoft_function_name_paste(map,
@@ -3681,8 +3686,8 @@ hence its name should not be changed.
 }  /* length_of_replacement_text */
 
 
-void adjust_deletion_counts(char                    *line_loc,
-                            sizeof_t                deletion_len)
+void adjust_deletion_counts(a_const_char *line_loc,
+                            sizeof_t     deletion_len)
 /*
 The text beginning at line_loc is being replaced.  If the text being
 replaced is in the part of the macro buffer that is subject to compaction,
@@ -3768,7 +3773,7 @@ associated global variables will also have been set).
   a_boolean       comma_ignored_inside_argument = microsoft_mode;
   a_source_position
                   start_pos;
-  char            *file_name, *full_name;
+  a_const_char    *file_name, *full_name;
   a_line_number   line_number;
   a_boolean       at_end_of_source;
   a_boolean       delete_source_from_loc_was_set_on_entry = FALSE;
@@ -3802,7 +3807,7 @@ associated global variables will also have been set).
   a_macro_text_map_entry_ptr
                   tmep;
   a_boolean       macro_text_map_in_use = FALSE;
-  char            *after_last_invocation_token;
+  a_const_char    *after_last_invocation_token;
   a_pointer_registration
                   after_last_invocation_token_reg;
 #endif /* FULLY_RESOLVED_MACRO_POSITIONS */
@@ -3822,8 +3827,9 @@ associated global variables will also have been set).
      are dangerous, since those things can be reallocated.  Such pointers
      must be registered by calling register_pointer_variable so that they
      can be updated on any reallocation. */
-  char		  *src_loc, *text_loc, *rescan_loc, *repl_text,
-		  *save_delete_source_from_loc, *src_loc_before_copy;
+  a_const_char    *rescan_loc;
+  a_const_char    *save_delete_source_from_loc;
+  char		  *src_loc, *text_loc, *repl_text, *src_loc_before_copy;
   a_pointer_registration
                   src_loc_reg, text_loc_reg, rescan_loc_reg, repl_text_reg,
                   save_delete_source_from_loc_reg, src_loc_before_copy_reg;
@@ -3832,7 +3838,7 @@ associated global variables will also have been set).
 			   it will point to the raw_text of
 			   special_macro_arg. */
   /* The following are safe: */
-  char            *temp_ptr;
+  a_const_char    *temp_ptr;
 			/* Used in climbing through the source line
 			   modifications that enclose the macro invocation,
 			   to determine inertness or pcc mode recursion.
@@ -4219,8 +4225,8 @@ end_scan_for_macro_modifs:;
       } else if (macro_symbol == timestamp_macro_symbol) {
         /* The Microsoft/GNU __TIMESTAMP__ macro.  This returns the
            modification time of the current input file. */
-        char	*time_str;
-        size_t	length;
+        a_const_char *time_str;
+        size_t	     length;
         time_str = get_file_modification_time_string(curr_ise->full_name,
                                                      /*strip_newline=*/TRUE);
         /* The time string should only be NULL if the file was removed
@@ -4398,7 +4404,7 @@ do_argument_again:
                That gives us the original context we need to test for
                macro inertness. */
             map->initial_raw_text_not_in_primary_source_line =
-                                             arg_get_token_start_of_curr_token;
+                                     (char *)arg_get_token_start_of_curr_token;
             scanning_text_not_in_primary_source_line = TRUE;
           }  /* if */
 #if FULLY_RESOLVED_MACRO_POSITIONS
@@ -4477,7 +4483,7 @@ do_argument_again:
                  LE_COMMA_FROM_ARGUMENT escape with LE_END_OF_TOKEN (an
                  innocuous substitution, since all commas start new
                  tokens). */
-              char *cp = start_of_curr_token;
+              char *cp = (char *)start_of_curr_token;
               /* The LE_COMMA_FROM_ARGUMENT escape might be followed by an
                  LE_END_OF_TOKEN escape and/or a single space character,
                  in that order, as per add_curr_token_text_to_buffer. */
@@ -5047,7 +5053,7 @@ end_arg_expansion:;
     /* For pcc mode macro recursion, use an empty string as the expansion
        of the macro to avoid more recursion errors. */
     special_repl_text = TRUE;
-    repl_text = "";
+    repl_text[0] = '\0';
   }  /* if */
   /* Replace the identifier by the replacement text.  Start by determining
      the length of the replacement string. */
@@ -5172,7 +5178,7 @@ end_arg_expansion:;
                  token. */
             }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
-            { char *post_end;
+            { a_const_char *post_end;
               if (microsoft_mode && prev_section_is_paste &&
                   is_microsoft_function_name_paste(map,
                                                    rescan_loc,
@@ -5183,9 +5189,9 @@ end_arg_expansion:;
                    is replaced by __LPREFIX(__FUNCTION__).  Note that
                    length_of_replacement_text has to do the right length
                    computation for this. */
-                char     *tok = token_names[(int)tok_microsoft_lprefix];
-                sizeof_t tok_len = strlen(tok);
-                sizeof_t fnk_len;
+                a_const_char *tok = token_names[(int)tok_microsoft_lprefix];
+                sizeof_t     tok_len = strlen(tok);
+                sizeof_t     fnk_len;
                 src_loc--;  /* Back up to remove the "L". */
                 /* Add "__LPREFIX(". */
                 (void)memcpy(src_loc, tok, size_t_arg(tok_len));
@@ -5716,9 +5722,9 @@ any text section underway.
 }  /* put_start_of_non_text_section */
 
 
-static void put_raw_text(char     *str,
-                         sizeof_t length,
-                         char     **curr_text_section)
+static void put_raw_text(a_const_char *str,
+                         sizeof_t     length,
+                         char         **curr_text_section)
 /*
 Put the given raw-text string into the macro buffer.
 next_avail_in_macro_buffer is the current output position.
@@ -6182,8 +6188,8 @@ Scan and process a #define directive.
     some_error_in_curr_directive = TRUE;
   } else {
     /* Get the canonical spelling of the identifier. */
-    char     *id_ptr = start_of_curr_token;
-    sizeof_t id_len = len_of_curr_token;
+    a_const_char *id_ptr = start_of_curr_token;
+    sizeof_t     id_len = len_of_curr_token;
     if (id_contains_ucn_or_multibyte_char) {
       id_ptr = make_canonical_identifier(start_of_curr_token, &id_len);
     }  /* if */
@@ -6343,7 +6349,7 @@ Scan and process a #define directive.
              "X3".  We must set curr_cmd_line_or_predef_macro_def to NULL
              before issuing the diagnostic to avoid treating this warning
              as a catastrophic command-line error. */
-          char *saved_command_line_macro_def =
+          a_const_char *saved_command_line_macro_def =
                                              curr_cmd_line_or_predef_macro_def;
           curr_cmd_line_or_predef_macro_def = NULL;
           str_warning(ec_equals_assumed_in_cmd_line_macro_def,
@@ -6641,7 +6647,7 @@ Scan and process a #define directive.
       a_boolean         discard_new_definition;
       an_error_severity severity;
       an_error_code     code;
-      char              *saved_macro_def = curr_cmd_line_or_predef_macro_def;
+      a_const_char      *saved_macro_def = curr_cmd_line_or_predef_macro_def;
       if (curr_cmd_line_or_predef_macro_def == NULL ||
           processing_predefined_macro ||
           assoc_symbol->variant.macro_def->cannot_be_redefined) {
@@ -6883,7 +6889,7 @@ static an_assert_predicate_ptr
 
 
 static an_assert_predicate_ptr find_predicate_entry(
-                                             char                    *name,
+                                             a_const_char            *name,
                                              sizeof_t                name_len,
                                              an_assert_predicate_ptr *prev_app)
 /*
@@ -6909,8 +6915,9 @@ it on the list, or NULL if it is the first entry on the list.
 }  /* find_predicate_entry */
 
 
-static an_assert_predicate_ptr find_or_make_predicate_entry(char     *name,
-                                                            sizeof_t name_len)
+static an_assert_predicate_ptr find_or_make_predicate_entry(
+                                                         a_const_char *name,
+                                                         sizeof_t     name_len)
 /*
 Find an existing predicate entry for the name given by "name" of length
 "name_len", or create one if one does not exist, and return a pointer to
@@ -6999,7 +7006,7 @@ Return *err TRUE if there was some error.
 
 
 static an_assert_value_ptr find_assert_value(an_assert_predicate_ptr app,
-                                             char                    *value,
+                                             a_const_char            *value,
                                              an_assert_value_ptr     *prev_avp)
 /*
 Look for an existing value of the #assert predicate indicated by app that
@@ -7019,7 +7026,7 @@ first on the list.  If no appropriate value entry is found, return NULL.
 }  /* find_assert_value */
 
 
-static void add_assert_value(char                    *value,
+static void add_assert_value(a_const_char            *value,
                              an_assert_predicate_ptr app)
 /*
 Make an #assert predicate value entry for the given value and add it to the
@@ -7369,8 +7376,8 @@ try_match_again:
 }  /* scan_assert_predicate_reference */
 
 
-void enter_assert_predicate(char *value,
-                            char *name)
+void enter_assert_predicate(a_const_char *value,
+                            a_const_char *name)
 /*
 Enter an #assert predicate with name "name" and value "value".  This is
 used for predefined predicates (see fe_init.c).  CAREFUL:  The value string
@@ -7395,8 +7402,8 @@ must have an extra blank at the end, as in
 #endif /* ATT_PREPROCESSING_EXTENSIONS_ALLOWED */
 
 
-static char *make_repl_text(char     *repl_text,
-                            sizeof_t *repl_text_length)
+static char *make_repl_text(a_const_char *repl_text,
+                            sizeof_t     *repl_text_length)
 /*
 Make a replacement text string for a macro, corresponding to the raw text
 given by repl_text.  repl_text == NULL implies an empty replacement string.
@@ -7433,10 +7440,10 @@ repl_text_length is not NULL.
 }  /* make_repl_text */
 
 
-a_symbol_ptr enter_predef_macro(char      *macro_value,
-                                char      *macro_name,
-                                a_boolean cannot_be_redefined,
-                                a_boolean ref_suppresses_pch_file)
+a_symbol_ptr enter_predef_macro(a_const_char *macro_value,
+                                a_const_char *macro_name,
+                                a_boolean    cannot_be_redefined,
+                                a_boolean    ref_suppresses_pch_file)
 /*
 Enter a predefined macro.  macro_name is the name, macro_value the replacement
 text string (or NULL for a special macro).  cannot_be_redefined is TRUE
@@ -7505,7 +7512,7 @@ symbol entry is returned.
 }  /* enter_predef_macro */
 
 
-a_boolean is_valid_identifier(char             *id_start,
+a_boolean is_valid_identifier(a_const_char     *id_start,
                               sizeof_t         id_len,
                               a_symbol_ptr     *assoc_symbol,
                               a_symbol_locator *locator)
@@ -7616,7 +7623,7 @@ from the front end to the runtime.
 {
 #if DO_IL_LOWERING
 #if DO_FULL_PORTABLE_EH_LOWERING
-  char		*ptr;
+  a_const_char	*ptr;
   /* Define a macro that specifies the type of an element of the setjmp
      buffer. */
   if (targ_jmp_buf_elements_are_float) {
@@ -7760,8 +7767,8 @@ TRUE) and "-U" (when process_undefs is TRUE) options on the command line.
   in_preprocessing_directive = TRUE;
   fetch_pp_tokens = TRUE;
   for (; du_ptr != NULL; du_ptr = du_ptr->next) {
-    sizeof_t  du_len;
-    char      *du_str = du_ptr->text, *equal_pos;
+    sizeof_t     du_len;
+    a_const_char *du_str = du_ptr->text, *equal_pos;
     if (du_ptr->is_undef && process_undefs) {
       /* -U option. */
       a_boolean  err = FALSE, suppress_error = FALSE;
@@ -7795,6 +7802,7 @@ TRUE) and "-U" (when process_undefs is TRUE) options on the command line.
       }  /* if */
     } else if (!du_ptr->is_undef && process_defs) {
       /* -D option. */
+      char *p;
       if (strchr(du_str, ATTENTION_MARKER) != NULL) {
         /* Definition contains a newline character, which cannot be allowed
            (it would be confused with a lexical escape character). */
@@ -7815,8 +7823,9 @@ TRUE) and "-U" (when process_undefs is TRUE) options on the command line.
       /* Ensure the buffer holding the logical source line is large enough to
          hold the synthetic line we are going to create. */
       ensure_min_curr_source_line_length(du_len+2+2*LE_ESCAPE_LEN);
-      strcpy(curr_source_line, du_str);
-      equal_pos = strchr(curr_source_line, '=');
+      p = (char *)curr_source_line;
+      strcpy(p, du_str);
+      equal_pos = strchr(p, '=');
       if (equal_pos == NULL) {
         /* "-DNAME(X)" becomes "NAME(X)=1". */
         if (gnu_mode) {
@@ -7825,16 +7834,16 @@ TRUE) and "-U" (when process_undefs is TRUE) options on the command line.
              where the definition has an implicit "=", such as "-Dx3.9":
              the GNU preprocessor treats this as equivalent to
              "#define x3 .9 1". */
-          strcpy(curr_source_line+du_len, " 1");
+          strcpy(p+du_len, " 1");
         } else {
-          strcpy(curr_source_line+du_len, "=1");
+          strcpy(p+du_len, "=1");
         }  /* if */
         du_len += 2;
       }  /* if */
-      curr_source_line[du_len]   = LE_ESCAPE;
-      curr_source_line[du_len+1] = LE_NEWLINE;
-      curr_source_line[du_len+2] = LE_ESCAPE;
-      curr_source_line[du_len+3] = LE_END_OF_LINE;
+      p[du_len]   = LE_ESCAPE;
+      p[du_len+1] = LE_NEWLINE;
+      p[du_len+2] = LE_ESCAPE;
+      p[du_len+3] = LE_END_OF_LINE;
       curr_char_loc = curr_source_line;
       logical_char_info_entries_used = 0;
       (void)proc_define();
@@ -7900,8 +7909,8 @@ to deallocate the buffer using free_general.
   unsigned long  major_num = (unsigned long)(gnu_version/10000);
   unsigned long  minor_num = (unsigned long)((gnu_version%10000)/100);
   unsigned long  patch_num = (unsigned long)(gnu_version%100);
-  char           *version_string_pattern = GCC_VERSION_STRING,
-                 *version_string, *src, *dst;
+  a_const_char   *version_string_pattern = GCC_VERSION_STRING, *src;
+  char           *version_string, *dst;
   a_boolean      percent_m_seen = FALSE, percent_v_seen = FALSE;
 
   check_assertion_str(gnu_mode &&
@@ -8160,14 +8169,16 @@ that occurred.
     /* The macro should be defined based on the mode parameters.  Set up to
        process the macro definition as if it were a #define in a source
        file. */
+    char *p;
     curr_cmd_line_or_predef_macro_def = ptr;
     def_len = strlen(ptr);
     ensure_min_curr_source_line_length(def_len + 2 * LE_ESCAPE_LEN);
-    strcpy(curr_source_line, ptr);
-    curr_source_line[def_len] = LE_ESCAPE;
-    curr_source_line[def_len + 1] = LE_NEWLINE;
-    curr_source_line[def_len + 2] = LE_ESCAPE;
-    curr_source_line[def_len + 3] = LE_END_OF_LINE;
+    p = (char *)curr_source_line;
+    strcpy(p, ptr);
+    p[def_len] = LE_ESCAPE;
+    p[def_len + 1] = LE_NEWLINE;
+    p[def_len + 2] = LE_ESCAPE;
+    p[def_len + 3] = LE_END_OF_LINE;
     curr_char_loc = curr_source_line;
     logical_char_info_entries_used = 0;
     /* Process the definition and get the symbol pointer for the new
@@ -8215,7 +8226,7 @@ Return the file descriptor.
   a_text_buffer_ptr	buf;
   char			*file_name;
   FILE			*f_file;
-  char			*aux_dir_name;
+  a_const_char		*aux_dir_name;
 
   /* Make sure the auxiliary directory name is not NULL. */
   aux_dir_name = EDG_AUXILIARY_INFO_DIR_NAME;
@@ -8385,9 +8396,9 @@ command line -D options.
      ignores attempts to redefine it.  For compatibility, c_plusplus is
      defined in cfront mode. */
   if (C_dialect == C_dialect_cplusplus) {
-    char *val;
-    char *cpp98_date = "199711L";
-    char *cpp11_date = "201103L";
+    a_const_char *val;
+    a_const_char *cpp98_date = "199711L";
+    a_const_char *cpp11_date = "201103L";
     if (microsoft_mode) {
       if (microsoft_version < 1310) {
         val = "1";

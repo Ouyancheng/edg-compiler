@@ -1681,7 +1681,7 @@ will be placed starting at the location specified by pos.
 
 
 unsigned long add_to_text_buffer(a_text_buffer_ptr	buffer,
-				 char			*string,
+				 a_const_char		*string,
 				 sizeof_t		length)
 /*
 Add "length" characters of "string" to the text buffer pointed to "buffer".
@@ -1713,7 +1713,7 @@ text can be added).
 
 #if DEBUG
 
-void db_text_buffer(char		*prefix,
+void db_text_buffer(a_const_char	*prefix,
 		    a_text_buffer_ptr	buf)
 /*
 Display the contents of a text buffer, for debugging purposes.  "prefix"

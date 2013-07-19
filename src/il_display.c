@@ -63,17 +63,17 @@ static an_il_to_str_output_control_block
 
 
 /* Declaration required because of mutual recursion. */
-static void disp_ptr(char             *ptr_name,
+static void disp_ptr(a_const_char     *ptr_name,
                      char             *entry_ptr,
                      an_il_entry_kind entry_kind);
 static void disp_opname_kind_name(an_opname_kind kind);
-static void disp_template_arg_list(char                *name,
+static void disp_template_arg_list(a_const_char        *name,
                                    a_template_arg_ptr  ptr);
 static void disp_special_function_kind_name(a_special_function_kind kind);
 
 
-static void disp_string(char    *string_ptr,
-                        sizeof_t string_length)
+static void disp_string(a_const_char *string_ptr,
+                        sizeof_t     string_length)
 /*
 Print the string at string_ptr, whose length is string_length.
 */
@@ -101,7 +101,7 @@ Print the string at string_ptr, whose length is string_length.
 }  /* disp_string */
 
 
-static void disp_null_term_string(char *string_ptr)
+static void disp_null_term_string(a_const_char *string_ptr)
 /*
 Display the NULL-terminated string at string_ptr.
 */
@@ -115,7 +115,7 @@ Display the NULL-terminated string at string_ptr.
 
 
 /*ARGSUSED*/ /* octl is not used. */
-static void put_str_to_stdout(char                                  *str,
+static void put_str_to_stdout(a_const_char                          *str,
                               an_il_to_str_output_control_block_ptr octl)
 /*
 Output the indicated string to stdout.  This is used as an output routine
@@ -202,7 +202,7 @@ kind entry_kind.
 }  /* disp_ptr_value */
 
 
-static void disp_name(char *name)
+static void disp_name(a_const_char *name)
 /*
 Display a name that labels the display of an item.  name == NULL to display
 no name.
@@ -227,8 +227,8 @@ no name.
 }  /* disp_name */
 
 
-static void disp_int32(char    *name,
-                       int32_t value)
+static void disp_int32(a_const_char *name,
+                       int32_t      value)
 /*
 Display an int32_t value along with a name.
 */
@@ -238,8 +238,8 @@ Display an int32_t value along with a name.
 }  /* disp_int32 */
 
 
-static void disp_uint32(char    *name,
-                        uint32_t value)
+static void disp_uint32(a_const_char *name,
+                        uint32_t     value)
 /*
 Display an uint32_t value along with a name.
 */
@@ -249,8 +249,8 @@ Display an uint32_t value along with a name.
 }  /* disp_uint32 */
 
 
-static void disp_long(char *name,
-                      long value)
+static void disp_long(a_const_char *name,
+                      long         value)
 /*
 Display a long value along with a name.
 */
@@ -260,7 +260,7 @@ Display a long value along with a name.
 }  /* disp_long */
 
 
-static void disp_unsigned_long(char          *name,
+static void disp_unsigned_long(a_const_char  *name,
                                unsigned long value)
 /*
 Display an unsigned long value along with a name.
@@ -271,7 +271,7 @@ Display an unsigned long value along with a name.
 }  /* disp_unsigned_long */
 
 
-static void disp_host_large_integer(char			*name,
+static void disp_host_large_integer(a_const_char		*name,
                                     a_host_large_integer	value)
 /*
 Display a host large unsigned value along with a name.
@@ -283,7 +283,7 @@ Display a host large unsigned value along with a name.
 }  /* disp_host_large_integer */
 
 
-static void disp_host_large_unsigned(char			*name,
+static void disp_host_large_unsigned(a_const_char		*name,
                                      a_host_large_unsigned	value)
 /*
 Display a host large unsigned value along with a name.
@@ -295,8 +295,8 @@ Display a host large unsigned value along with a name.
 }  /* disp_host_large_unsigned */
 
 
-static void disp_boolean(char      *name,
-                         a_boolean value)
+static void disp_boolean(a_const_char *name,
+                         a_boolean    value)
 /*
 Display a boolean value along with a name.
 */
@@ -310,7 +310,7 @@ Display a boolean value along with a name.
 }  /* disp_boolean */
 
 
-static void disp_ptr(char             *ptr_name,
+static void disp_ptr(a_const_char     *ptr_name,
                      char             *entry_ptr,
                      an_il_entry_kind entry_kind)
 /*
@@ -320,8 +320,8 @@ gives the name to be used for the display, or is NULL if no name should
 be written.
 */
 {
-  char        *name = NULL;
-  a_type_ptr  type_name_type = NULL;
+  a_const_char *name = NULL;
+  a_type_ptr   type_name_type = NULL;
 
   disp_name(ptr_name);
   disp_ptr_value(entry_ptr, entry_kind);
@@ -387,8 +387,8 @@ be written.
 }  /* disp_ptr */
 
 
-static void disp_string_ptr(char             *ptr_name,
-                            char             *entry_ptr,
+static void disp_string_ptr(a_const_char     *ptr_name,
+                            a_const_char     *entry_ptr,
                             an_il_entry_kind entry_kind,
                             sizeof_t         entry_length)
 /*
@@ -400,7 +400,7 @@ be written.
 */
 {
   disp_name(ptr_name);
-  disp_ptr_value(entry_ptr, entry_kind);
+  disp_ptr_value((char *)entry_ptr, entry_kind);
   if (entry_ptr != NULL) {
     (void)printf(": ");
     if (entry_kind == iek_string_text) {
@@ -414,7 +414,7 @@ be written.
 }  /* disp_string_ptr */
 
 
-static void disp_entity_list(char                        *name,
+static void disp_entity_list(a_const_char                *name,
                              an_il_entity_list_entry_ptr ptr)
 /*
 Display the indicated entity list and name.
@@ -438,13 +438,13 @@ Display the indicated entity list and name.
 }  /* disp_entity_list */
 
 
-static void disp_access(char                *name,
+static void disp_access(a_const_char        *name,
                         an_access_specifier access)
 /*
 Display the indicated access specifier with a name.
 */
 {
-  char * s;
+  a_const_char *s;
 
   disp_name(name);
   switch (access) {
@@ -459,7 +459,7 @@ Display the indicated access specifier with a name.
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
 
-static void disp_assembly_visibility(char                    *name,
+static void disp_assembly_visibility(a_const_char            *name,
                                      an_assembly_visibility  vis)
 /*
 Display the indicated assembly visibility with a name.
@@ -467,7 +467,7 @@ Display the indicated assembly visibility with a name.
 {
 
   if (vis != (an_assembly_visibility)av_none) {
-    char  *s;
+    a_const_char  *s;
     disp_name(name);
     switch (vis) {
       case av_public:         s = "av_public\n";         break;
@@ -479,7 +479,7 @@ Display the indicated assembly visibility with a name.
 }  /* disp_assembly_visibility */
 
 
-static void disp_cli_class_type_kind(char                   *name,
+static void disp_cli_class_type_kind(a_const_char           *name,
                                      a_cli_class_type_kind  cctk)
 /*
 Display the indicated C++/CLI class kind with a name.
@@ -487,7 +487,7 @@ Display the indicated C++/CLI class kind with a name.
 {
 
   if (il_header.cppcli_enabled) {
-    char  *s;
+    a_const_char  *s;
     disp_name(name);
     switch (cctk) {
       case cctk_standard:     s = "cctk_standard\n";         break;
@@ -503,7 +503,7 @@ Display the indicated C++/CLI class kind with a name.
 
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
-static void disp_name_linkage(char                 *name,
+static void disp_name_linkage(a_const_char         *name,
                               a_name_linkage_kind  nlk)
 /*
 Display the indicated field name and name linkage kind.
@@ -514,7 +514,7 @@ Display the indicated field name and name linkage kind.
 }  /* disp_name_linkage */
 
 
-static void disp_source_position(char               *str,
+static void disp_source_position(a_const_char       *str,
                                  a_source_position  *pos)
 /*
 Display the indicated source position, preceding it with the specified
@@ -555,7 +555,7 @@ string.  Note that nothing is printed out when *pos is null_source_position.
 
 #if EXTRA_SOURCE_POSITIONS_IN_IL
 
-static void disp_source_range(char            *str,
+static void disp_source_range(a_const_char    *str,
                               a_source_range  *range)
 /*
 Display the indicated source position range, preceding it with the specified
@@ -1384,7 +1384,7 @@ Print the name of a pragma kind.  Actually, the pragma ID (the name
 used in the #pragma directive) is displayed.
 */
 {
-  char *s;
+  a_const_char *s;
 
   s = pragma_ids[(int)kind];
  (void) printf("%s\n", s);
@@ -1514,7 +1514,7 @@ static void disp_based_type_list(a_based_type_list_member_ptr ptr)
 Display the indicated based type list.
 */
 {
-  char *kind_str;
+  a_const_char *kind_str;
 
   if (ptr == NULL) {
     disp_ptr("based_types", (char *)ptr, iek_based_type_list_member);
@@ -1567,7 +1567,7 @@ static void disp_generic_constraint(a_generic_constraint_ptr ptr)
 Display the indicated generic constraint.
 */
 {
-  char  *kind_str;
+  a_const_char  *kind_str;
 
   switch (ptr->kind) {
     case gck_none:             kind_str = "unknown/invalid";      break;
@@ -1673,12 +1673,12 @@ Display the indicated integer type supplement.
 }  /* disp_integer_type_supplement */
 
 
-static char* type_kind_string(a_type_kind  type_kind)
+static a_const_char* type_kind_string(a_type_kind  type_kind)
 /*
 Return a string corresponding to the indicated type kind.
 */
 {
-  char  *str;
+  a_const_char  *str;
 
   switch (type_kind) {
     case tk_error:
@@ -2290,13 +2290,13 @@ Display the indicated type entry.
 }  /* disp_type */
 
 
-static void disp_stdc_pragma_value(char			*name,
+static void disp_stdc_pragma_value(a_const_char		*name,
                                    a_stdc_pragma_value	value)
 /*
 Display a STDC pragma value along with a name.
 */
 {
-  char	*s;
+  a_const_char *s;
 
   disp_name(name);
   switch (value) {
@@ -2318,7 +2318,7 @@ static void disp_storage_class_name(a_storage_class sclass)
 Display the name for the indicated storage class.
 */
 {
-  char *s;
+  a_const_char *s;
 
   switch (sclass) {
     case sc_extern:       s = "sc_extern";             break;
@@ -2408,14 +2408,14 @@ Display the indicated init kind and initializer.
 
 #if GNU_EXTENSIONS_ALLOWED
 
-static void disp_named_register(char             *field_name,
+static void disp_named_register(a_const_char     *field_name,
                                 a_named_register reg)
 /*
 Display a named register "reg".  The "name" is the name of the IL
 field storing the register.
 */
 {
-  char *s;
+  a_const_char *s;
 
   disp_name(field_name);
   (void)printf(": ");
@@ -2486,7 +2486,7 @@ static void disp_ELF_visibility_kind(an_ELF_visibility_kind  ELF_visibility)
 Display an ELF_visibility field.
 */
 {
-  char  *str;
+  a_const_char  *str;
 
   disp_name("ELF_visibility");
   switch (ELF_visibility) {
@@ -2882,7 +2882,7 @@ static void disp_special_function_kind_name(a_special_function_kind kind)
 Print the name of a special function kind.
 */
 {
-  char * s;
+  a_const_char * s;
 
   switch (kind) {
     case sfk_none:               s = "sfk_none";               break;
@@ -2910,7 +2910,7 @@ static void disp_opname_kind_name(an_opname_kind kind)
 Print the name of the C++ operator kind.
 */
 {
-  char *s;
+  a_const_char *s;
 
   switch (kind) {
     case onk_none:                s = "onk_none";                  break;
@@ -2968,7 +2968,7 @@ Print the name of the C++ operator kind.
 static void disp_builtin_function_kind_name(a_builtin_function_kind kind)
 /* Print the name of the builtin function kind. */
 {
-  char *s;
+  a_const_char *s;
 
   if (kind == (a_builtin_function_kind)bfk_none) {
     s = "(bfk_none)";
@@ -2984,13 +2984,13 @@ static void disp_builtin_function_kind_name(a_builtin_function_kind kind)
 
 #endif /* GNU_EXTENSIONS_ALLOWED */
 
-static void disp_class_list(char                   *name,
+static void disp_class_list(a_const_char           *name,
                             a_class_list_entry_ptr ptr)
 /*
 Display the indicated class list and name.
 */
 {
-  char *type_string;
+  a_const_char *type_string;
 
   if (ptr == NULL) {
     disp_ptr(name, (char *)ptr, iek_class_list_entry);
@@ -3010,7 +3010,7 @@ Display the indicated class list and name.
 }  /* disp_class_list */
 
 
-static void disp_routine_list(char                     *name,
+static void disp_routine_list(a_const_char             *name,
                               a_routine_list_entry_ptr ptr)
 /*
 Display the indicated routine list and name.
@@ -3028,7 +3028,7 @@ Display the indicated routine list and name.
 }  /* disp_routine_list */
 
 
-static void disp_template_arg_list(char                *name,
+static void disp_template_arg_list(a_const_char        *name,
                                    a_template_arg_ptr  ptr)
 /*
 Display the indicated name and template arg list.
@@ -3610,7 +3610,7 @@ static void disp_expr_operator_name(an_expr_operator_kind okind)
 Display the name of an expression operator.
 */
 {
-  char *s;
+  a_const_char *s;
 
   switch (okind) {
     case eok_address_of:        s = "eok_address_of";             break;
@@ -5117,7 +5117,7 @@ static void disp_attribute(an_attribute_ptr  ap)
 Display the indicated attribute entry.
 */
 {
-  char  *kind_name, *family_name, *loc_name;
+  a_const_char *kind_name, *family_name, *loc_name;
 
   switch (ap->kind) {
     case ak_unrecognized:        kind_name = "unrecognized";        break;
@@ -5291,7 +5291,7 @@ static void disp_attribute_arg(an_attribute_arg_ptr  aap)
 Display the indicated attribute argument entry.
 */
 {
-  char  *kind_name;
+  a_const_char *kind_name;
 
   switch (aap->kind) {
     case aak_empty:              kind_name = "empty";               break;
@@ -5526,7 +5526,7 @@ Display the indicated macro entry.
 
 #if RECORD_MACRO_INVOCATIONS
 
-static void disp_simple_source_position(char                      *str,
+static void disp_simple_source_position(a_const_char              *str,
                                         a_simple_source_position  *pos)
 /*
 Display the indicated source position, preceding it with the specified
@@ -7015,7 +7015,7 @@ static void disp_source_language_name(a_source_language source_language)
 Display the name for the indicated source language name.
 */
 {
-  char *s;
+  a_const_char *s;
 
   switch (source_language) {
     case sl_Cplusplus:    s = "sl_Cplusplus";            break;
@@ -7157,7 +7157,7 @@ form.
 {
   a_scope_ptr   sp;
   a_routine_ptr rp;
-  char          *fname = NULL;
+  a_const_char  *fname = NULL;
 
   /* Set up for use of the il_to_str routines. */
   init_for_il_to_str_output();

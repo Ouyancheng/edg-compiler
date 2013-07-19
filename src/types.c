@@ -1433,7 +1433,7 @@ Given a delegate class type, return its Invoke function.
   check_assertion(is_immediate_delegate_type(delegate_type));
   rp = class_type_supp(delegate_type)->assoc_scope->routines;
 #if CHECKING
-  { char  *name = unmangled_name_of(&rp->source_corresp);
+  { a_const_char *name = unmangled_name_of(&rp->source_corresp);
     check_assertion(name != NULL && strcmp(name, "Invoke") == 0);
   }
 #endif /* CHECKING */
@@ -13800,13 +13800,13 @@ i.e., rewrite them as though they had been declared with [*].
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
 
-char *uuid_string_of_type(a_type_ptr  type)
+a_const_char *uuid_string_of_type(a_type_ptr  type)
 /*
 Return the uuid specification of a class or enum type.  If the given type is
 not a class or enum type, return NULL.
 */
 {
-  char  *result;
+  a_const_char *result;
 
   type = skip_typerefs(type);
   if (is_immediate_class_type(type)) {

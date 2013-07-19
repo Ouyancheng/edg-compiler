@@ -20,7 +20,7 @@ extasm.h -- Declarations related to extasm.c (having to do with
 
 #if GNU_EXTENSIONS_ALLOWED
 
-extern a_named_register name_to_register(char  *name);
+extern a_named_register name_to_register(a_const_char *name);
 
 extern an_asm_operand_ptr asm_operands_spec(a_boolean *seen_tok_colon_colon);
 

@@ -24,16 +24,16 @@ Externals for debugging.
 */
 extern void debug_early_init(void);
 
-extern a_boolean proc_debug_option(char *debug_option);
+extern a_boolean proc_debug_option(a_const_char *debug_option);
 
-extern a_boolean proc_debug_name_option(char *debug_option);
+extern a_boolean proc_debug_name_option(a_const_char *debug_option);
 
 #if MAINTAIN_ALLOCATION_SEQUENCE_NUMBER
-extern a_boolean proc_debug_alloc_seq_option(char *debug_option);
+extern a_boolean proc_debug_alloc_seq_option(a_const_char *debug_option);
 #endif /* MAINTAIN_ALLOCATION_SEQUENCE_NUMBER */
 
 /* See the macro db_flag_is_set for a good way to call debug_flag_is_set. */
-extern a_boolean debug_flag_is_set(char *name);
+extern a_boolean debug_flag_is_set(a_const_char *name);
 
 extern a_boolean f_db_sym_has_traced_name(a_symbol_ptr	sym);
 
@@ -54,7 +54,7 @@ Macro interface to f_db_sym_has_traced_name.
   (db_active && \
    f_db_sym_has_traced_name(sym))
 
-extern a_boolean f_db_trace(char             *flag_name,
+extern a_boolean f_db_trace(a_const_char     *flag_name,
                             char             *entry,
                             an_il_entry_kind kind);
 
@@ -62,7 +62,7 @@ extern a_boolean f_db_trace(char             *flag_name,
 #define db_trace(name, entry, kind) \
   (db_active && f_db_trace((name), (char *)(entry), (kind)))
 
-extern a_boolean f_db_sym_trace(char		*flag_name,
+extern a_boolean f_db_sym_trace(a_const_char	*flag_name,
 				a_symbol_ptr	sym);
 
 /* Macro interface to f_db_sym_trace. */

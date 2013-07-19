@@ -355,7 +355,7 @@ called, the current token must be the initial keyword.
       a_boolean	done = TRUE;
       if (curr_token == tok_identifier &&
           locator_for_curr_id.symbol_header != NULL) {
-        char  *name = locator_for_curr_id.symbol_header->identifier;
+        a_const_char *name = locator_for_curr_id.symbol_header->identifier;
         if (*(name++) == '_') {
           if (*name == '_') name++;
           /* Check the name without its leading single or double underscore. */

@@ -34,7 +34,8 @@ il_write.h -- Declarations relating to il_write.c (having to do with
 EXTERN FILE	*f_il_output /* = NULL */;
 			/* File to which the intermediate language is 
 			   written.  NULL if file should not be written. */
-EXTERN char	*il_file_name /* = NULL */;
+EXTERN a_const_char
+		*il_file_name /* = NULL */;
 			/* Name of the IL file, NULL if there isn't one or
 			   it's a temporary file. */
 

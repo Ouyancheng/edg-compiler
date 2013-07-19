@@ -28,7 +28,8 @@ EXTERN a_memory_region_number
 		curr_il_region_number;
 
 /* A dummy name for placeholders. */
-EXTERN char     *routine_move_placeholder_name
+EXTERN a_const_char
+		*routine_move_placeholder_name
 #if VAR_INITIALIZERS
                          = "<routine move placeholder>"
 #endif /* VAR_INITIALIZERS */
@@ -113,7 +114,8 @@ enum a_type_info_kind_tag {
 typedef enum a_type_info_kind_tag a_type_info_kind;
 
 /* Names of type_info types. */
-EXTERN char	*type_info_names[(int)tik_last+1]
+EXTERN a_const_char
+		*type_info_names[(int)tik_last+1]
 #if VAR_INITIALIZERS
 = { 
   "type_info",			/* tik_user */
@@ -729,14 +731,14 @@ expand temp_text_buffer by reallocating it.
   }  /* if */                                                          \
 }  /* ensure_temp_text_buffer_space */
 
-extern void put_str_to_temp_text_buffer(char *str);
+extern void put_str_to_temp_text_buffer(a_const_char *str);
 
 extern void put_str_to_temp_text_buffer_octl(
-                               char                                  *str,
+                               a_const_char                          *str,
                                an_il_to_str_output_control_block_ptr octl);
 
 extern
-void put_str_into_text_buffer(char                                  *str,
+void put_str_into_text_buffer(a_const_char                          *str,
                               an_il_to_str_output_control_block_ptr octl);
 
 extern void put_ch_to_temp_text_buffer(char ch);
@@ -910,8 +912,8 @@ extern a_boolean imaginary_type_used_in_primary_IL(a_float_kind kind);
 extern a_type_ptr imaginary_type(a_float_kind kind);
 
 extern void set_complex_constant(a_float_kind float_kind,
-                                 char         *real,
-                                 char         *imag,
+                                 a_const_char *real,
+                                 a_const_char *imag,
                                  a_constant   *con);
 #endif /* C99_IL_EXTENSIONS_SUPPORTED */
 
@@ -1979,9 +1981,9 @@ extern void record_start_of_source_file(
 				 a_source_file_ptr parent_file,
 			         a_seq_number      seq_number,
 				 a_line_number     line_number,
-			         char	           *file_name,
-			         char	           *full_name,
-                                 char              *name_as_written,
+			         a_const_char      *file_name,
+			         a_const_char      *full_name,
+                                 a_const_char      *name_as_written,
 			         a_source_file_ptr *new_file,
                                  a_boolean	   is_include_file,
 				 a_boolean	   is_system_include,
@@ -1993,9 +1995,9 @@ extern void record_start_of_source_file(
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
 extern void record_inclusion_of_assembly_source_file(
-                                     char              *file_name,
-                                     char              *full_name,
-                                     char              *name_as_written,
+                                     a_const_char      *file_name,
+                                     a_const_char      *full_name,
+                                     a_const_char      *name_as_written,
                                      a_source_file_ptr *new_file,
                                      a_boolean         is_system_include,
                                      a_boolean         is_preinclude,
@@ -2014,8 +2016,8 @@ extern a_source_file_ptr source_file_for_seq(a_seq_number   seq_number,
                                              a_boolean      *at_end_of_source,
                                              a_boolean      physical_line);
 extern void conv_seq_to_file_and_line(a_seq_number  seq_number,
-			              char          **file_name,
-				      char          **full_name,
+			              a_const_char  **file_name,
+				      a_const_char  **full_name,
 				      a_line_number *line_number,
                                       a_boolean     *at_end_of_source);
 
@@ -2309,7 +2311,7 @@ extern void db_statement(a_statement_ptr  sp);
 
 extern void db_statement_list(a_statement_ptr  sp,
                               int              indent,
-                              char             *str,
+                              a_const_char     *str,
                               int              how_deep);
 
 extern void db_scope(a_scope_ptr sp);
@@ -2346,7 +2348,7 @@ extern a_line_number db_line_for_seq(a_seq_number seq_number);
 
 extern void db_scheduled_routine_moves(void);
 
-extern void put_str_to_f_debug(char                                  *str,
+extern void put_str_to_f_debug(a_const_char                          *str,
                                an_il_to_str_output_control_block_ptr octl);
 #endif /* DEBUG */
 
@@ -2433,7 +2435,7 @@ skipping any namespace aliases that might be present.
   ((nsp)->is_namespace_alias ? f_skip_namespace_aliases(nsp) : (nsp))
 
 extern a_type_ptr init_predeclared_class(a_type_kind  kind,
-                                         char         *name);
+                                         a_const_char *name);
 
 extern void enter_predeclared_class(a_type_ptr         predeclared_type,
                                     a_scope_depth      scope_depth,

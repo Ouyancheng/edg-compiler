@@ -64,7 +64,7 @@ typedef struct an_option_description {
 		kind;
 			/* Code that indicates the action to be taken
 			   when this option is used. */
-  char		*keyword;
+  a_const_char	*keyword;
 			/* The keyword option used to specify this option.
 			   May be NULL if a keyword option may not be used. */
   char		letter;
@@ -123,7 +123,7 @@ static a_boolean
 
 static void add_config_dependent_option_description(
 				an_option_kind		kind,
-				char			*keyword,
+				a_const_char		*keyword,
 				char			letter,
 				a_boolean		value,
 				a_boolean		arg_required,
@@ -188,7 +188,7 @@ is FALSE an error will be issued if the option is used.
 
 
 static void add_option_description(an_option_kind	kind,
-				   char			*keyword,
+				   a_const_char		*keyword,
 				   char			letter,
 				   a_boolean		value,
 				   a_boolean		arg_required,
@@ -1458,7 +1458,8 @@ to is the option letter.
 }  /* look_up_option_description */
 
 
-static char	*opt_arg;
+static a_const_char
+		*opt_arg;
 			/* Returned from get_option -- Pointer to the current
 			   option argument. */
 static int	opt_ind;
@@ -1635,7 +1636,7 @@ end_of_routine:
 }  /* get_option */
 
 
-void add_to_def_undef_list(char                   *str,
+void add_to_def_undef_list(a_const_char           *str,
                            a_def_undef_string_ptr *du_list,
                            a_def_undef_string_ptr *du_list_end,
                            a_boolean              is_undef)
@@ -1662,14 +1663,14 @@ pointed to by *du_list.  The end of the list is pointed to by
 }  /* add_to_def_undef_list */
 
 
-static long scan_opt_arg_number(char *optstr)
+static long scan_opt_arg_number(a_const_char *optstr)
 /*
 Scan an argument option as a decimal number, and return its value.
 */
 {
-  char *arg_ptr;
-  long result = 0;
-  int  digit;
+  a_const_char *arg_ptr;
+  long         result = 0;
+  int          digit;
 
   for (arg_ptr = optstr; *arg_ptr != '\0'; arg_ptr++) {
     if (!isdigit((unsigned char)*arg_ptr)) goto number_error;
@@ -1688,15 +1689,15 @@ return_point:
 
 #if USE_FIXED_ADDRESS_FOR_MMAP
 
-static char *scan_address(char *optstr)
+static char *scan_address(a_const_char *optstr)
 /*
 Scan an argument option as an address (either decimal or hexadecimal),
 and return its value.
 */
 {
-  char   *arg_ptr = optstr;
-  size_t result = 0;
-  int    digit, base;
+  a_const_char *arg_ptr = optstr;
+  size_t       result = 0;
+  int          digit, base;
 
   if (*arg_ptr != '\0' && *arg_ptr == '0' &&
       (arg_ptr[1] == 'x' || arg_ptr[1] == 'X')) {
@@ -1732,7 +1733,7 @@ return_point:
 
 #endif /* USE_FIXED_ADDRESS_FOR_MMAP */
 
-static char *file_name_from_opt_arg(char *optstr)
+static a_const_char *file_name_from_opt_arg(a_const_char *optstr)
 /*
 The command-line argument given by optstr is a file name or directory
 name.  Return the string to be used for the file name, translated if
@@ -1744,13 +1745,13 @@ for this call, so the string will be available throughout this
 compilation.
 */
 {
-  char *file_name = file_name_in_internal_encoding(optstr);
+  a_const_char *file_name = file_name_in_internal_encoding(optstr);
   return file_name;
 }  /* file_name_from_opt_arg */
 
 
 static void process_diag_override_option(an_option_kind kind,
-					 char		*arg)
+					 a_const_char	*arg)
 /*
 Go through a comma separated list of error tags and call an error
 processing routine to update the severity.
@@ -1767,9 +1768,9 @@ processing routine to update the severity.
      after it is used. */
   local_arg = (char *)alloc_general((sizeof_t)(strlen(arg) + 1));
   {
-    char	*src = arg;
-    char	*dest = local_arg;
-    char	ch;
+    a_const_char *src = arg;
+    char         *dest = local_arg;
+    char         ch;
     do {
       ch = *src;
       /* Remove blanks. */
@@ -1822,7 +1823,7 @@ processing routine to update the severity.
 
 
 static void process_preinclude_option(an_option_kind	kind,
-				      char		*arg)
+				      a_const_char	*arg)
 /*
 Process a preinclude or preinclude_macros option (determined by
 "kind").  "arg" is the file name.
@@ -1865,7 +1866,7 @@ command-line option.
 */
 typedef struct a_flag_name *a_flag_name_ptr;
 typedef struct a_flag_name {
-  char		*name;
+  a_const_char	*name;
 			/* Name used to set the flag. */
   a_boolean	*variable;
 			/* Pointer to the variable to be set. */
@@ -1911,7 +1912,7 @@ static a_flag_name
 };
 
 
-static void set_flag_value(char		*flag_name,
+static void set_flag_value(a_const_char	*flag_name,
 			   a_boolean	value)
 /*
 Set or clear the flag specified by "flag_name".  "value" is the value to
@@ -2351,7 +2352,7 @@ by a command line option.
 }  /* set_cfront_mode_flags */
 
 
-static void check_pch_file_name(char *file_name)
+static void check_pch_file_name(a_const_char *file_name)
 /*
 Make sure the specified file name is acceptable as an output file.
 If it is not acceptable, issue an error.
@@ -7719,6 +7720,11 @@ file.
 #else /* !defined(USE_PATCH_INIT_STARTUP) */
   comment_undefined_macro_name(USE_PATCH_INIT_STARTUP);
 #endif /* defined(USE_PATCH_INIT_STARTUP) */
+#if defined(USE_POINTER_TO_CONST_CHAR)
+  define_numeric_valued_macro(USE_POINTER_TO_CONST_CHAR);
+#else /* !defined(USE_POINTER_TO_CONST_CHAR) */
+  comment_undefined_macro_name(USE_POINTER_TO_CONST_CHAR);
+#endif /* defined(USE_POINTER_TO_CONST_CHAR) */
 #if defined(USE_PRAGMA_IDENT_IN_GENERATED_CODE)
   define_numeric_valued_macro(USE_PRAGMA_IDENT_IN_GENERATED_CODE);
 #else /* !defined(USE_PRAGMA_IDENT_IN_GENERATED_CODE) */
@@ -7829,9 +7835,9 @@ Process the arguments on the command line that invoked the compiler.
 */
 {
   an_option_description_ptr	odp;
-  char 			        *ofile_name = NULL;
+  a_const_char		        *ofile_name = NULL;
   a_boolean			source_file_name_optional = FALSE;
-  char				*instantiation_mode_string = NULL;
+  a_const_char			*instantiation_mode_string = NULL;
   a_directory_name_entry_ptr	include_path_boundary = NULL;
 #if !USE_MMAP_FOR_MEMORY_REGIONS
   a_boolean			non_pch_option_used = FALSE;
@@ -7840,9 +7846,9 @@ Process the arguments on the command line that invoked the compiler.
 #if MICROSOFT_EXTENSIONS_ALLOWED
   int                           i;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-  char				*error_file_name = NULL;
-  char				*xref_file_name = NULL;
-  char				*listing_file_name = NULL;
+  a_const_char			*error_file_name = NULL;
+  a_const_char			*xref_file_name = NULL;
+  a_const_char			*listing_file_name = NULL;
 
   /* Set a current position indicating we are looking at the command line. */
   set_position_to(pos_curr_token, 0, SP_COL_CMD_LINE);
@@ -9773,7 +9779,7 @@ multiple translation units.
 Call the translation unit routine for the secondary translation units.
 */
 {
-  char	*file_name;
+  a_const_char *file_name;
 
   /* Make sure the same file name was not specified more than once.
      Duplicates are permitted in trans_unit_test_mode (because that is

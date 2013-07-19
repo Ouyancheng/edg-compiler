@@ -288,7 +288,9 @@ static a_boolean
 			   implicitly declared old-style parameters). */
 #endif /* ASM_FUNCTION_ALLOWED */
 #if C_GEN_BE_NEEDS_MODULE_ID
-static char	*module_id, *module_init_id;
+static a_const_char
+		*module_id;
+static char	*module_init_id;
 			/* Seed for module-unique names. */
 #endif /* C_GEN_BE_NEEDS_MODULE_ID */
 #if !C_GEN_BE_GENERATES_ANSI_C
@@ -344,7 +346,7 @@ static a_variable_ptr
 			   master_routine_return_variable (passing the returned
 			   value back to the alternate entry point that
 			   is calling the master routine). */
-static char
+static a_const_char
 		*end_of_master_routine_label = "__L_end_of_master_routine";
 			/* Label used to indicate the end of a master routine.
 			   Used as a target for "inlined" returns from the
@@ -531,7 +533,7 @@ typedef struct a_member_name_prefix_component {
 		prev;	/* The component corresponding to the previous
 			   (i.e., more-derived) base class for the current
 			   member. */
-  char		*str;	/* The name of the base class subobject member out
+  a_const_char	*str;	/* The name of the base class subobject member out
 			   of which the current member is being
 			   promoted. */
   a_targ_size_t	prev_subobject_offset;
@@ -604,7 +606,7 @@ static void dump_general_declaration_using_type(
                                       a_routine_ptr           rout,
                                       a_field_ptr             field,
                                       char                    *temp,
-                                      char                    *name,
+                                      a_const_char            *name,
                                       a_type_qualifier_set    added_qualifiers,
                                       a_boolean               suppress_const,
                                       uint32_t                counter);
@@ -633,7 +635,7 @@ static void dump_expr(an_expr_node_ptr expr,
 static void dump_boolean_controlling_expression(an_expr_node_ptr node);
 static void dump_compound_literal(an_expr_node_ptr expr);
 #if MICROSOFT_EXTENSIONS_ALLOWED
-static void dump_asm_function_body(char *p);
+static void dump_asm_function_body(a_const_char *p);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 static a_constant_ptr constant_initializer(a_variable_ptr variable,
@@ -975,14 +977,14 @@ Write a space to the output file.
 Write the indicated string to the output file.  It is not necessarily a
 complete token.  This is the macro version.
 */
-#define m_write_str(str)                                              \
-{ register char *p = (str);                                           \
-  register char ch;                                                   \
-  while ((ch = *p++) != '\0') m_write_ch(ch);                         \
+#define m_write_str(str)                      \
+{ register a_const_char *p = (str);           \
+  register char         ch;                   \
+  while ((ch = *p++) != '\0') m_write_ch(ch); \
 }  /* m_write_str */
 
 
-static void write_str(char *str)
+static void write_str(a_const_char *str)
 /*
 Write the indicated string to the output file.  It is not necessarily a
 complete token.  This is the non-macro version.
@@ -993,7 +995,7 @@ complete token.  This is the non-macro version.
 
 
 /*ARGSUSED*/ /* local_octl is not used. */
-static void write_str_octl(char                                  *str,
+static void write_str_octl(a_const_char                          *str,
                            an_il_to_str_output_control_block_ptr local_octl)
 /*
 Version of write_str intended to be called by the il-to-str routines.
@@ -1044,16 +1046,16 @@ several), which means a long line could be broken before or after it.
 This is the macro version.
 */
 #define m_write_tok_str(str)                                          \
-{ register char *p = (str);                                           \
-  sizeof_t      len = (sizeof_t)strlen(p);                            \
-  register char ch;                                                   \
+{ register a_const_char *p = (str);                                   \
+  sizeof_t              len = (sizeof_t)strlen(p);                    \
+  register char         ch;                                           \
   ensure_enough_room_on_line(len);                                    \
   while ((ch = *p++) != '\0') (void)putc(ch, f_C_output);             \
   curr_output_column += (uint32_t)len;                                \
 }  /* m_write_tok_str */
 
 
-static void write_tok_str(char *str)
+static void write_tok_str(a_const_char *str)
 /*
 Write the indicated string to the output file.  It's a complete token (or
 several), which means a long line could be broken before or after it.
@@ -1066,7 +1068,7 @@ This is the non-macro version.
 
 /*ARGSUSED*/ /* local_octl is not used. */
 static void write_tok_str_octl(
-                              char                                  *str,
+                              a_const_char                          *str,
                               an_il_to_str_output_control_block_ptr local_octl)
 /*
 Version of write_tok_str intended to be called by the il-to-str routines.
@@ -1139,8 +1141,8 @@ done:;
 }  /* write_unsigned_num */
 
 
-static void write_pp_directive(char *directive,
-                               char *more)
+static void write_pp_directive(a_const_char *directive,
+                               a_const_char *more)
 /*
 Write an output line that is a preprocessing directive.  directive is the
 string for the directive.  If more is non-NULL, the string it points to
@@ -1241,7 +1243,7 @@ end it here.
 }  /* end_unreferenced_bracket */
 
 
-static a_boolean is_C_reserved_word(char *name)
+static a_boolean is_C_reserved_word(a_const_char *name)
 /*
 Return TRUE if "name" is a C reserved word.
 */
@@ -1392,7 +1394,7 @@ outputting just a bare name, counter is used in addition to the declaration
 position to ensure that the name is unique.
 */
 {
-  char *name = scp->name;
+  a_const_char *name = scp->name;
 
   if (name == NULL ||
       (scp->copied_from_secondary_trans_unit && 
@@ -1602,7 +1604,8 @@ done:;
 }  /* dump_type_name */
 
 
-static void dump_field_name_with_prefix(char *field_name, a_field_ptr field)
+static void dump_field_name_with_prefix(a_const_char *field_name,
+                                        a_field_ptr  field)
 /*
 Print the supplied field name, prefixed by the current set of member name
 prefix components.  field_name may be NULL, in which case a temporary
@@ -1695,7 +1698,7 @@ Print the name of the indicated label.
 #else /* !C_GEN_BE_GENERATES_ANSI_C */
   /* K&R/pcc compilers do not provide a separate name space for labels,
      so add a disambiguating prefix. */
-  char *name = label->source_corresp.name;
+  a_const_char *name = label->source_corresp.name;
   if (name == NULL) {
     /* Generated labels are already unambiguous. */
     dump_name(&label->source_corresp);
@@ -1793,7 +1796,7 @@ Print the storage class and a space.  If there is no printable storage class,
 omit the space.
 */
 {
-  char *str;
+  a_const_char *str;
 
   switch (storage_class) {
     case sc_extern:
@@ -1872,13 +1875,13 @@ Print the storage class of the indicated variable followed by a space.
 }  /* dump_variable_storage_class */
 
 
-static char *tag_kind(a_type_kind kind)
+static a_const_char *tag_kind(a_type_kind kind)
 /*
 Return a string that describes the tag kind for the indicated type, i.e.,
 "class" or "enum".
 */
 {
-  char *str;
+  a_const_char *str;
 
   switch (kind) {
     case tk_enum:   str = "enum";   break;
@@ -2137,7 +2140,7 @@ is non-NULL, in which case that is the function scope.
           {
             /* This is just a declaration, so put out the type and no name. */
             char              *temp = NULL;
-            char              *name = NULL;
+            a_const_char      *name = NULL;
             uint32_t          counter = 0;
             a_param_type_ptr  ptp;
             if (param->duplicate_name && !param->is_pack_element) {
@@ -2258,7 +2261,7 @@ static void dump_general_declaration_using_type(
                                       a_routine_ptr           rout,
                                       a_field_ptr             field,
                                       char                    *temp,
-                                      char                    *name,
+                                      a_const_char            *name,
                                       a_type_qualifier_set    added_qualifiers,
                                       a_boolean               suppress_const,
                                       uint32_t                counter)
@@ -2645,7 +2648,7 @@ Print a set of Microsoft declaration modifiers.
 }  /* dump_microsoft_decl_modifiers */
 
 
-static void dump_microsoft_allocate_declspec(char *allocate_segname)
+static void dump_microsoft_allocate_declspec(a_const_char *allocate_segname)
 /*
 Put out the Microsoft __declspec(allocate(...)) declaration modifier.
 allocate_segname is the segment name, or NULL if the modifier does not apply.
@@ -2841,7 +2844,7 @@ Output the name of the type to be used as the base type of the indicated
 bit field in the generated code.
 */
 {
-  char *type_str;
+  a_const_char *type_str;
 
   /* Note that "const" is dropped; that's important so that
      initialization code rewritten as executable code by IL lowering
@@ -2907,9 +2910,9 @@ Dump out declarations to describe padding after the indicated bit field,
 which has a declared size that is larger than its base type.
 */
 {
-  uint32_t padding = field->declared_bit_size - field->bit_size;
-  uint32_t bits = field->offset_bit_remainder + field->bit_size;
-  char     *bf_type;
+  uint32_t     padding = field->declared_bit_size - field->bit_size;
+  uint32_t     bits = field->offset_bit_remainder + field->bit_size;
+  a_const_char *bf_type;
 
 #if ALLOW_NON_INT_BIT_FIELD_BASE_TYPE_IN_GENERATED_C
   bf_type = "char";
@@ -3920,11 +3923,13 @@ be NULL if promoting a type out of a prototype scope that is not associated
 with a routine.
 */
 {
-  sizeof_t mangled_name_length, alloc_length, name_length, routine_name_length;
-  char     *mangled_name, *store_at, *routine_name = NULL;
-  char     buffer[50];
+  sizeof_t     mangled_name_length, alloc_length, name_length;
+  sizeof_t     routine_name_length;
+  char         *mangled_name, *store_at;
+  a_const_char *routine_name = NULL;
+  char         buffer[50];
 #if IA64_ABI
-  char     buffer2[50], buffer0[50];
+  char         buffer2[50], buffer0[50];
 #endif /* IA64_ABI */
 
   /* Leave the name alone if the type is unnamed or if the name has
@@ -5127,8 +5132,8 @@ type of the variable to which it refers.
     expected_type = skip_typerefs(expected_type);
     if (is_immediate_class_type(tp) &&
         is_immediate_class_type(expected_type)) {
-      const char *name1 = tp->source_corresp.name;
-      const char *name2 = expected_type->source_corresp.name;
+      a_const_char *name1 = tp->source_corresp.name;
+      a_const_char *name2 = expected_type->source_corresp.name;
       if (name1 != NULL && name2 != NULL &&
           name1[0] == '_' && name1[1] == '_' &&
           name2[0] == '_' && name2[1] == '_') {
@@ -5262,11 +5267,11 @@ there's some possibility of precedence confusion and need_parens is TRUE.
   an_expr_operator_kind          op;
   an_expr_node_ptr               call_argument;
   a_boolean                      is_unary;
-  char                           *opstr;
+  a_const_char                   *opstr;
   an_expr_node_ptr               operand_1, operand_2, operand_3;
   a_type_ptr                     expr_type;
   a_boolean                      pointer_comparison = FALSE;
-  char                           *pointer_comparison_cast;
+  a_const_char                   *pointer_comparison_cast;
   uint32_t                       comma_column;
 #if !C_GEN_BE_GENERATES_ANSI_C
   a_field_ptr                    field;
@@ -6502,10 +6507,10 @@ the "routine" is a block.
 */
 {
 #if !C_GEN_BE_GENERATES_ANSI_C
-  char      *pos_in_module_list, *end_pos;
-  a_boolean call_this_module_init = FALSE;
-  a_boolean is_main = (routine != NULL &&
-                       routine == il_header.main_routine);
+  a_const_char *pos_in_module_list, *end_pos;
+  a_boolean    call_this_module_init = FALSE;
+  a_boolean    is_main = (routine != NULL &&
+                          routine == il_header.main_routine);
 #endif /* !C_GEN_BE_GENERATES_ANSI_C */
 #if !C_GEN_BE_GENERATES_ANSI_C || USE_INIT_SECTION_IN_GENERATED_C
   a_boolean is_init_routine;
@@ -6573,9 +6578,9 @@ the "routine" is a block.
         /* Write a piece of the list string by putting in a null, writing,
            and then restoring the original character. */
         saved_ch = *end_pos;
-        *end_pos = '\0';
+        *(char *)end_pos = '\0';
         write_str(pos_in_module_list);
-        *end_pos = saved_ch;
+        *(char *)end_pos = saved_ch;
         write_tok_str("();");
         if (saved_ch == '\0') break;
         pos_in_module_list = end_pos + 1;
@@ -7668,7 +7673,7 @@ parameters.
   a_constant_ptr init_con;
   a_type_ptr     var_type = variable->type;
   a_boolean      has_magic_name, suppress_const = FALSE;
-  char           *name;
+  a_const_char   *name;
   an_init_kind   init_kind;
 #if !C_GEN_BE_GENERATES_ANSI_C
   a_boolean      forced_static;
@@ -8086,7 +8091,7 @@ appear in the string (i.e., in "%l[label]") with the appropriate label name
 {
   a_label_list_ptr llp;
   a_targ_size_t    pos = 0, end_pos;
-  char             *str;
+  a_const_char     *str;
 
   check_assertion(aep->asm_string->kind == (a_constant_repr_kind)ck_string &&
                   is_normal_character_kind(aep->asm_string->character_kind));
@@ -8440,7 +8445,7 @@ is TRUE.
 
 #if ASM_FUNCTION_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED
 
-static void dump_asm_function_body(char *p)
+static void dump_asm_function_body(a_const_char *p)
 /*
 Generate an asm function body, including the opening and closing braces.
 p is a pointer to the start of a null-terminated string.
@@ -9595,7 +9600,7 @@ is put in the pragma, otherwise "name" is used.
 /*ARGSUSED*/  /* <-- init_priority is not used in that case. */
 #endif /* !GNU_INIT_PRIORITY_ATTRIBUTE_ALLOWED */
 static void dump_gcc_init_sequence(a_routine_ptr rout,
-                                   char          *name,
+                                   a_const_char  *name,
                                    unsigned long init_priority)
 /*
 Put out GCC-specific code to invoke the specified routine at initialization
@@ -10044,7 +10049,7 @@ Write a header at the beginning of the generated file, containing any
 definitions needed to support the generated code.
 */
 {
-  char *p;
+  a_const_char *p;
 
   /* Put out a tentative definition of a variable that identifies the
      version number.  This also ensures that the generated file has at
@@ -10328,7 +10333,7 @@ C compiler).
 
 #endif /* SEPARATE_ROUTINES_FOR_FILE_SCOPE_DYNAMIC_INITS */
 
-static void generate_C_output_file(char *C_output_file_name)
+static void generate_C_output_file(a_const_char *C_output_file_name)
 /*
 Generate a C output file (with the given name) from the intermediate language.
 If C_output_file_name is NULL, use stdout for the output.
@@ -10589,8 +10594,8 @@ the C output files for all instantiations.
           } else {
             /* Determine the address of the character of the name to
                be changed to get the canonical routine name. */
-            char_pos = &rout->source_corresp.name[rout->variant.ctor_dtor.
-                                                           base_name_offset+1];
+            char_pos = (char *)&rout->source_corresp.name[
+                                   rout->variant.ctor_dtor.base_name_offset+1];
           }  /* if */
         }  /* if */
 #endif /* IA64_ABI */
@@ -10634,7 +10639,7 @@ The IL is already available when this routine is called.
      static names to make them unique. */
   module_id = make_module_id((char *)NULL);
   /* Get module name for use in name of file-scope init routine. */
-  module_init_id = module_id;
+  module_init_id = (char *)module_id;
 #endif /* C_GEN_BE_NEEDS_MODULE_ID */
 #if !C_GEN_BE_GENERATES_ANSI_C
   module_list_for_union_init = NULL;
@@ -10708,11 +10713,11 @@ static void c_gen_be(void)
 Generate C from the intermediate language.
 */
 {
-  char *C_output_file_name;
+  a_const_char *C_output_file_name;
 #if STANDALONE_UTILITY_PROGRAM
   /* This is a command-line option normally, but it's not available in the
      standalone version. */
-  char *gen_c_file_name = NULL;
+  a_const_char *gen_c_file_name = NULL;
 #endif /* STANDALONE_UTILITY_PROGRAM */
 
   /* Do overall initialization. */

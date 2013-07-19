@@ -1051,10 +1051,6 @@ extern a_template_param_ptr copy_template_param_list(
 extern void init_tmpl_decl_state_for_inheriting_ctor_template(
                                                 a_tmpl_decl_state_ptr  state);
 
-extern void complete_inheriting_ctor_template(
-                                            a_tmpl_decl_state_ptr  decl_state,
-                                            a_symbol_ptr           sym);
-
 #if DEBUG
 extern unsigned long db_show_template_space_used(unsigned long grand_total);
 #endif /* DEBUG */

@@ -182,8 +182,8 @@ Enter some predefined macros for a MacOS X (Apple) system.
 
 #if GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED
 
-static a_symbol_ptr enter_builtin_function(char        *name,
-                                           a_type_ptr  rout_type)
+static a_symbol_ptr enter_builtin_function(a_const_char  *name,
+                                           a_type_ptr    rout_type)
 /*
 Enter a builtin function with the given name and type (which must be a
 tk_routine type; not a tk_typeref).  The routine is given C name linkage (and
@@ -2229,8 +2229,8 @@ Enter the standard predeclared functions for GCC.
 
 #if GNU_EXTENSIONS_ALLOWED && GCC_BUILTIN_VARARGS
 
-static void enter_predefined_type(a_type_ptr type,
-                                  char       *name)
+static void enter_predefined_type(a_type_ptr   type,
+                                  a_const_char *name)
 /*
 Enter a predefined type.
 */
@@ -2244,8 +2244,8 @@ Enter a predefined type.
 }  /* enter_predefined_type */
 
 
-static a_type_ptr enter_predefined_typedef(char        *name,
-                                            a_type_ptr  type)
+static a_type_ptr enter_predefined_typedef(a_const_char *name,
+                                           a_type_ptr   type)
 /*
 Create a type entry and associated symbol for a typedef of the given name with
 the given underlying type.  Mark the type as being a predeclared typedef.

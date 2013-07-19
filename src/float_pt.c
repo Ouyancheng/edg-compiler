@@ -207,7 +207,7 @@ static void init_strtod(void)
 
 #if !USE_LONG_DOUBLE_FOR_HOST_FP_VALUE
 
-static double strtod_interface(char *str)
+static double strtod_interface(a_const_char *str)
 /*
 Interface routine to call strtod.  Converts the string str to double, and
 returns the converted value.  errno is set to zero for no error, a non-zero
@@ -242,7 +242,7 @@ Display a long double, for debugging purposes.
 }  /* db_long_double */
 #endif /* DEBUG */
 
-static long double str_to_long_double(char * str)
+static long double str_to_long_double(a_const_char * str)
 /*
 Convert a string to a long double.
 */
@@ -250,7 +250,7 @@ Convert a string to a long double.
   long double	temp;
   static char	buf[60];
   a_boolean	err = FALSE;
-  char		*ptr;
+  a_const_char	*ptr;
 
   (void)sscanf(str, "%Lf", &temp);
   /* Check for overflow or underflow by converting the number back to a
@@ -1619,7 +1619,7 @@ the long double kind will have already been mapped to double by the caller.
 
 
 void conv_hex_string_to_mantissa_and_exponent(
-				char			*str,
+				a_const_char		*str,
 				a_mantissa_ptr		mantissa,
 				long			*p_exponent,
 				a_boolean		*exponent_overflow)
@@ -1826,7 +1826,7 @@ because the exponent was out of range).
 
 
 void fp_hex_string_to_float(a_float_kind		kind,
-	                    char			*str,
+	                    a_const_char		*str,
 	                    an_internal_float_value	*float_value,
 	                    a_boolean			*err,
 			    a_boolean			*inexact)
@@ -1864,7 +1864,7 @@ fit in the indicated type.
 
 
 void fp_string_to_float(a_float_kind            kind,
-                        char                    *str,
+                        a_const_char            *str,
                         an_internal_float_value *float_value,
                         a_boolean               *err)
 /*

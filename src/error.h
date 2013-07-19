@@ -37,7 +37,7 @@ may be used to look up a given tag.
 */
 typedef struct an_error_tag_entry *an_error_tag_entry_ptr;
 typedef struct an_error_tag_entry {
-  char		*tag;
+  a_const_char	*tag;
 			/* The character string to be used as a tag
 			   for a given error. */
   an_error_code	code;
@@ -144,17 +144,17 @@ EXTERN a_boolean
 
 
 /*lint -sem(internal_error, r_no)*/
-extern DOES_NOT_RETURN internal_error(char *error_message);
+extern DOES_NOT_RETURN internal_error(a_const_char *error_message);
 /*lint -sem(assertion_failed, r_no)*/
-extern DOES_NOT_RETURN assertion_failed(char *filename,
-			                int  line_number,
-					char *string1,
-					char *string2);
+extern DOES_NOT_RETURN assertion_failed(a_const_char *filename,
+			                int          line_number,
+					a_const_char *string1,
+					a_const_char *string2);
 
-extern void record_expected_error(char *filename,
-                                  int  line_number,
-                                  char *string1,
-                                  char *string2);
+extern void record_expected_error(a_const_char *filename,
+                                  int          line_number,
+                                  a_const_char *string1,
+                                  a_const_char *string2);
 
 extern void check_expected_errors(void);
 
@@ -262,7 +262,7 @@ extern a_boolean find_prototype_diagnostic(an_error_code      error_code,
                                            an_error_severity  severity,
                                            a_source_position  *error_pos);
 
-extern a_boolean set_severity_for_error_tag(char		*tag,
+extern a_boolean set_severity_for_error_tag(a_const_char	*tag,
 				            an_error_severity	severity,
 					    a_boolean		make_default);
 extern
@@ -280,19 +280,19 @@ extern a_boolean is_effective_diagnostic(an_error_code     error_code,
 extern DOES_NOT_RETURN command_line_error(an_error_code error_code);
 /*lint -sem(str_command_line_error, r_no)*/
 extern DOES_NOT_RETURN str_command_line_error(an_error_code error_code,
-                                              char          *fill_in_string);
+                                              a_const_char  *fill_in_string);
 
 extern
 void file_open_error(an_error_severity		severity,
 		     an_error_code		file_kind,
-                     char			*file_name,
+                     a_const_char		*file_name,
 		     an_open_file_result	*open_result);
 
 /*lint -sem(output_file_open_error, r_no)*/
 extern
 DOES_NOT_RETURN output_file_open_error(a_boolean         bad_name,
                                        an_error_code     file_kind,
-                                       char              *file_name,
+                                       a_const_char      *file_name,
                                        an_error_severity severity);
 /*lint -sem(file_write_error, r_no)*/
 extern DOES_NOT_RETURN file_write_error(an_error_code file_kind,
@@ -300,7 +300,7 @@ extern DOES_NOT_RETURN file_write_error(an_error_code file_kind,
 extern void pos_st_diagnostic(an_error_severity error_severity,
                               an_error_code     error_code,
                               a_source_position *error_pos,
-                              char              *error_string);
+                              a_const_char      *error_string);
 extern void pos_diagnostic(an_error_severity  error_severity,
                            an_error_code      error_code,
                            a_source_position  *error_pos);
@@ -345,12 +345,12 @@ extern void pos_syty_diagnostic(an_error_severity  error_severity,
 extern void pos_stsy_diagnostic(an_error_severity  error_severity,
                                 an_error_code      error_code,
                                 a_source_position  *error_pos,
-                                char               *error_string,
+                                a_const_char       *error_string,
                                 struct a_symbol    *symbol);
 #endif /* !STANDALONE_UTILITY_PROGRAM */
 extern void pos_st_remark(an_error_code     error_code,
                           a_source_position *error_pos,
-                          char              *error_string);
+                          a_const_char      *error_string);
 extern void pos_remark(an_error_code     error_code,
                        a_source_position *error_pos);
 extern void remark(an_error_code error_code);
@@ -374,21 +374,21 @@ extern void sym_remark(an_error_code   error_code,
                        struct a_symbol *symbol);
 extern void pos_stsy_remark(an_error_code     error_code,
                             a_source_position *error_pos,
-                            char              *error_string,
+                            a_const_char      *error_string,
                             struct a_symbol   *symbol);
 #endif /* !STANDALONE_UTILITY_PROGRAM */
 extern void pos_st_warning(an_error_code     error_code,
                            a_source_position *error_pos,
-                           char              *error_string);
+                           a_const_char      *error_string);
 extern void pos_warning(an_error_code     error_code,
                         a_source_position *error_pos);
 extern void str_warning(an_error_code error_code,
-                        char          *error_string);
+                        a_const_char  *error_string);
 #if MICROSOFT_EXTENSIONS_ALLOWED
 extern void pos_st2_warning(an_error_code     error_code,
                             a_source_position *error_pos,
-                            char              *error_string1,
-                            char              *error_string2);
+                            a_const_char      *error_string1,
+                            a_const_char      *error_string2);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 extern void warning(an_error_code error_code);
 extern void pos_ty_warning(an_error_code     error_code,
@@ -416,28 +416,28 @@ extern void sym_warning(an_error_code   error_code,
                         struct a_symbol *symbol);
 extern void pos_stsy_warning(an_error_code     error_code,
                              a_source_position *error_pos,
-                             char              *error_string,
+                             a_const_char      *error_string,
                              struct a_symbol   *symbol);
 #endif /* !STANDALONE_UTILITY_PROGRAM */
 extern void pos_stty_warning(an_error_code     error_code,
                              a_source_position *error_pos,
-                             char              *error_string,
+                             a_const_char      *error_string,
                              struct a_type     *type);
 extern void pos_st_error(an_error_code     error_code,
                          a_source_position *error_pos,
-                         char              *error_string);
+                         a_const_char      *error_string);
 extern void pos_st2_error(an_error_code     error_code,
                           a_source_position *error_pos,
-                          char              *error_string1,
-                          char              *error_string2);
+                          a_const_char      *error_string1,
+                          a_const_char      *error_string2);
 extern void pos_stty_error(an_error_code     error_code,
                            a_source_position *error_pos,
-                           char              *error_string,
+                           a_const_char      *error_string,
                            struct a_type     *type);
 extern void pos_error(an_error_code     error_code,
                       a_source_position *error_pos);
 extern void str_error(an_error_code error_code,
-                      char          *error_string);
+                      a_const_char  *error_string);
 extern void error(an_error_code error_code);
 extern void pos_ty_error(an_error_code     error_code,
                          a_source_position *error_pos,
@@ -449,7 +449,7 @@ extern void pos_ty2_error(an_error_code     error_code,
 extern void pos_ty_str_error(an_error_code     error_code,
                              a_source_position *error_pos,
                              struct a_type     *type,
-                             char              *error_string);
+                             a_const_char      *error_string);
 #if MICROSOFT_EXTENSIONS_ALLOWED
 extern void pos_ty3_error(an_error_code      error_code,
                           a_source_position  *error_pos,
@@ -471,7 +471,7 @@ extern void type_error(an_error_code error_code,
 #if !STANDALONE_UTILITY_PROGRAM
 extern void pos_stsy_error(an_error_code     error_code,
                            a_source_position *error_pos,
-                           char              *error_string,
+                           a_const_char      *error_string,
                            struct a_symbol   *symbol);
 extern void pos_sy_error(an_error_code     error_code,
                          a_source_position *error_pos,
@@ -490,32 +490,32 @@ extern void sym_error(an_error_code   error_code,
 /*lint -sem(pos_st_catastrophe, r_no)*/
 extern DOES_NOT_RETURN pos_st_catastrophe(an_error_code     error_code,
                                           a_source_position *error_pos,
-                                          char              *error_string);
+                                          a_const_char      *error_string);
 /*lint -sem(str_catastrophe, r_no)*/
 extern DOES_NOT_RETURN str_catastrophe(an_error_code error_code,
-                                       char          *error_string);
+                                       a_const_char  *error_string);
 /*lint -sem(catastrophe, r_no)*/
 extern DOES_NOT_RETURN catastrophe(an_error_code error_code);
 
 /*lint -sem(pos_str2_catastrophe, r_no)*/
 extern DOES_NOT_RETURN pos_str2_catastrophe(an_error_code     error_code,
-                                            char              *error_string1,
-                                            char              *error_string2,
+                                            a_const_char      *error_string1,
+                                            a_const_char      *error_string2,
     				            a_source_position *error_pos);
 #if EDG_WIN32
 #if !STANDALONE_UTILITY_PROGRAM
 /*lint -sem(win32_catastrophe, r_no)*/
 extern DOES_NOT_RETURN win32_catastrophe(an_ms_dword   error_code,
-                                         char          *error_string);
+                                         a_const_char  *error_string);
 
 /*lint -sem(hresult_catastrophe, r_no)*/
-extern DOES_NOT_RETURN hresult_catastrophe(char *error_string);
+extern DOES_NOT_RETURN hresult_catastrophe(a_const_char *error_string);
 #endif /* !STANDALONE_UTILITY_PROGRAM */
 #endif /* EDG_WIN32 */
 
 /*lint -sem(str_errno_catastrophe, r_no)*/
 extern DOES_NOT_RETURN str_errno_catastrophe(an_error_code error_code,
-                                             char          *error_string,
+                                             a_const_char  *error_string,
                                              int           errno_value);
 /* Interfaces for producing multiple message diagnostics. */
 extern void pos_start_diagnostic(an_error_severity  error_severity,
@@ -529,7 +529,7 @@ extern void pos_start_error(an_error_code     error_code,
                             a_source_position *error_pos);
 extern void pos_st_start_error(an_error_code     error_code,
                                a_source_position *error_pos,
-                               char              *error_string);
+                               a_const_char      *error_string);
 extern void pos_ty_start_error(an_error_code     error_code,
                                a_source_position *error_pos,
                                struct a_type     *type);
@@ -540,19 +540,19 @@ extern void pos_ty2_start_error(an_error_code     error_code,
 extern void ty_add_diag_info(an_error_code error_code,
                              struct a_type *type);
 extern void str_add_diag_info(an_error_code error_code,
-                              char          *error_string);
+                              a_const_char  *error_string);
 extern void add_diag_info(an_error_code error_code);
 void add_diag_info_with_pos_insert(an_error_code      error_code,
                                    a_source_position  *pos);
 extern
-FILE *fopen_with_error(char			*file_name,
-		       char			*mode,
+FILE *fopen_with_error(a_const_char		*file_name,
+		       a_const_char		*mode,
 		       an_open_file_flag_set	open_flags,
 		       an_error_code		file_kind);
 
 extern
 FILE *open_output_file_with_error_handling(
-					char			*file_name,
+					a_const_char		*file_name,
 					a_boolean		binary_file,
 					a_boolean		update_mode,
 					an_open_file_flag_set	open_flags,
@@ -560,7 +560,7 @@ FILE *open_output_file_with_error_handling(
 
 extern
 FILE *open_input_file_with_error_handling(
-				char			*file_name,
+				a_const_char		*file_name,
 				a_boolean		binary_file,
 				an_open_file_flag_set	open_flags,
 				an_error_code		file_kind);
@@ -570,12 +570,12 @@ extern void close_output_file_with_error_handling(FILE		**f_output,
 
 extern
 FILE *open_source_file_with_error_handling(
-				char			*file_name,
+				a_const_char		*file_name,
 				an_open_file_flag_set	open_flags,
 				an_open_file_result	*open_result,
 				a_unicode_source_kind	*unicode_source_kind);
 
-extern char *error_text(an_error_code error_code);
+extern a_const_char *error_text(an_error_code error_code);
 
 #if !STANDALONE_UTILITY_PROGRAM
 extern void pos_sy_start_diagnostic(an_error_severity  error_severity,
@@ -587,7 +587,7 @@ extern void pos_sy_start_error(an_error_code     error_code,
                                struct a_symbol   *symbol);
 extern void pos_stsy_start_error(an_error_code     error_code,
                                  a_source_position *error_pos,
-                                 char              *error_string,
+                                 a_const_char      *error_string,
                                  struct a_symbol   *symbol);
 #if 0
 /* This routine is not currently used by the compiler. */
@@ -603,7 +603,7 @@ extern void sym_add_diag_info(an_error_code   error_code,
                               struct a_symbol *symbol);
 
 extern void pch_message(an_error_code error_code,
-   		        char	      *fill_in_str);
+   		        a_const_char  *fill_in_str);
 
 extern void diag_pragma(struct a_pending_pragma *ppp);
 
@@ -652,7 +652,7 @@ C++/CLI managed nullptr type and other incomplete types.
 extern void end_error(void);
 
 extern void start_command_line_error(an_error_code      error_code,
-			             char		*error_string);
+			             a_const_char	*error_string);
 
 /*lint -sem(end_command_line_error, r_no)*/
 extern DOES_NOT_RETURN end_command_line_error(void);

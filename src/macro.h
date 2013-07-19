@@ -52,7 +52,7 @@ shouldn't be initialized in its declaration).
 */
 #define register_pointer_variable(ptr_var, ptr_registration)          \
 { ptr_registration.next = registered_pointers;                        \
-  ptr_registration.ptr_variable = &(ptr_var);                         \
+  ptr_registration.ptr_variable = (char **)&(ptr_var);                \
   /*lint --e(789)*/                                                   \
   registered_pointers = &ptr_registration;                            \
   (ptr_var) = NULL;                                                   \
@@ -105,14 +105,14 @@ extern a_symbol_ptr find_defined_macro(a_symbol_header_ptr sym_hdr);
 /* Adjust addresses in the curr_source_line structure after something
    has been realloc'd. */
 extern void adjust_curr_source_line_structure_after_realloc(
-                                          char      *old_ptr,
-                                          char      *old_after_end_ptr,
-                                          char      *new_ptr,
-                                          a_boolean adjust_source_line_modifs);
+                                       a_const_char *old_ptr,
+                                       a_const_char *old_after_end_ptr,
+                                       a_const_char *new_ptr,
+                                       a_boolean    adjust_source_line_modifs);
 
 /* Adjust the running deletion counts in the macro_buffer and the source
    line modification associated with line_loc, if applicable. */
-extern void adjust_deletion_counts(char                    *line_loc,
+extern void adjust_deletion_counts(a_const_char            *line_loc,
                                    sizeof_t                deletion_len);
 
 /* Expand a macro invocation. */
@@ -133,16 +133,16 @@ extern void proc_assert(void);
 extern void proc_unassert(void);
 
 /* Enter a predefined #assert predicate. */
-extern void enter_assert_predicate(char *value,
-                                   char *name);
+extern void enter_assert_predicate(a_const_char *value,
+                                   a_const_char *name);
 
 /* Scan a reference to an #assert predicate */
 extern void scan_assert_predicate_reference(a_boolean *rescan);
 
-extern a_symbol_ptr enter_predef_macro(char      *repl_text,
-			               char      *macro_name,
-                                       a_boolean cannot_be_redefined,
-                                       a_boolean ref_suppresses_pch_file);
+extern a_symbol_ptr enter_predef_macro(a_const_char *repl_text,
+			               a_const_char *macro_name,
+                                       a_boolean    cannot_be_redefined,
+                                       a_boolean    ref_suppresses_pch_file);
 
 extern void fixup_predefined_macros(char  curr_date_time[26]);
 
@@ -155,7 +155,7 @@ extern void clear_macro_def(a_macro_def_ptr mdp);
 
 extern void gen_pp_output_for_macro_definitions(void);
 
-extern a_boolean is_valid_identifier(char             *id_start,
+extern a_boolean is_valid_identifier(a_const_char     *id_start,
                                      sizeof_t         id_len,
                                      a_symbol_ptr     *assoc_symbol,
                                      a_symbol_locator *locator);

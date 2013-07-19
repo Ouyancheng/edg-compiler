@@ -984,7 +984,7 @@ extern a_variable_ptr make_unnamed_local_static_variable(
                                                  a_type_ptr type,
                                                  a_boolean  in_function_scope);
 
-extern a_variable_ptr make_lowered_variable(char            *var_name,
+extern a_variable_ptr make_lowered_variable(a_const_char    *var_name,
                                             a_boolean       already_il_name,
                                             a_type_ptr      var_type,
                                             a_storage_class var_storage_class);
@@ -994,7 +994,7 @@ extern a_variable_ptr make_lowered_param_variable(a_type_ptr type);
 extern an_expr_node_ptr make_array_to_pointer_node(an_expr_node_ptr operand);
 
 extern a_variable_ptr make_global_var_with_prefixed_name(
-                                      char                    *prefix,
+                                      a_const_char            *prefix,
                                       an_integer_kind         ikind,
                                       a_source_correspondence *source_corresp);
 
@@ -1002,7 +1002,7 @@ extern a_boolean routine_might_exist_in_multiple_copies(a_routine_ptr rout);
 
 #if AUTOMATIC_TEMPLATE_INSTANTIATION
 extern void make_instantiation_info_var(
-                                    char                    *prefix,
+                                    a_const_char            *prefix,
                                     a_source_correspondence *source_corresp);
 #endif /* AUTOMATIC_TEMPLATE_INSTANTIATION */
 
@@ -1038,7 +1038,7 @@ extern a_variable_ptr make_temporary_for_dynamic_init(
 
 extern a_type_ptr make_lowered_class_type(a_type_kind  kind);
 
-extern void make_lowered_field(char          *field_name,
+extern void make_lowered_field(a_const_char  *field_name,
                                a_type_ptr    field_type,
                                a_type_ptr    struct_type,
                                a_field_ptr   *last_field);

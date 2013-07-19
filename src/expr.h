@@ -341,7 +341,7 @@ extern void set_curr_token_to_function_name_string(a_boolean do_concat);
 extern a_boolean set_curr_token_to_microsoft_lprefix_operator_string(void);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
-extern char *spelling_for_function_name_token(a_token_kind token);
+extern a_const_char *spelling_for_function_name_token(a_token_kind token);
 
 extern a_boolean operand_is_string_literal(an_operand_ptr operand);
 
@@ -605,7 +605,7 @@ extern a_constant_ptr scan_case_label_constant(a_type_ptr switch_type);
 extern an_expr_node_ptr scan_boolean_controlling_expression(void);
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
-extern char *scan_uuidof_operand(void);
+extern a_const_char *scan_uuidof_operand(void);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 extern

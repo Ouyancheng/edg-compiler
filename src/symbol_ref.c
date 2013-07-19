@@ -42,7 +42,7 @@ static a_boolean
 
 /*ARGSUSED*/ /* local_octl is not used. */
 static void write_string_to_xref_file(
-                              char                                  *str,
+                              a_const_char                          *str,
                               an_il_to_str_output_control_block_ptr local_octl)
 /*
 Write str to the xref file.  The address of this routine is passed to
@@ -64,7 +64,7 @@ should only be called if cross-reference information is being generated
 */
 {
   char              code;
-  char              *file_name, *full_name;
+  a_const_char      *file_name, *full_name;
   a_line_number     line_number;
   a_boolean         at_end_of_source;
 

@@ -2319,14 +2319,14 @@ Write the indicated string to the output file.  It is not necessarily a
 complete token.  This is the macro version.
 */
 #define m_write_str(str)                                              \
-{ register char *p = (str);                                           \
-  register char ch;                                                   \
+{ register a_const_char *p = (str);                                   \
+  register char         ch;                                           \
   check_pending_output_position();                                    \
   while ((ch = *p++) != '\0') m_write_ch_no_pending_check(ch);        \
 }  /* m_write_str */
 
 
-static void write_str(char *str)
+static void write_str(a_const_char *str)
 /*
 Write the indicated string to the output file.  It is not necessarily a
 complete token.  This is the non-macro version.
@@ -2337,7 +2337,7 @@ complete token.  This is the non-macro version.
 
 
 /*ARGSUSED*/ /* local_octl is not used. */
-static void write_str_octl(char                                  *str,
+static void write_str_octl(a_const_char                          *str,
                            an_il_to_str_output_control_block_ptr local_octl)
 /*
 Version of write_str intended to be called by the il-to-str routines.
@@ -2413,9 +2413,9 @@ The normal version checks output_position_is_pending; the "_no_pending_check"
 version does not.  Both are macros.
 */
 #define m_write_tok_str_no_pending_check(str)                         \
-{ register char *p = (str);                                           \
-  sizeof_t      len = (sizeof_t)strlen(p);                            \
-  register char ch;                                                   \
+{ register a_const_char *p = (str);                                   \
+  sizeof_t              len = (sizeof_t)strlen(p);                    \
+  register char         ch;                                           \
   ensure_enough_room_on_line(len);                                    \
   while ((ch = *p++) != '\0') (void)putc(ch, f_C_output);             \
   curr_output_column += (uint32_t)len;                                \
@@ -2426,7 +2426,7 @@ version does not.  Both are macros.
 }  /* m_write_tok_str */
 
 
-static void write_tok_str(char *str)
+static void write_tok_str(a_const_char *str)
 /*
 Write the indicated string to the output file.  It's a complete token (or
 several), which means a long line could be broken before or after it.
@@ -2439,7 +2439,7 @@ This is the non-macro version.
 
 /*ARGSUSED*/ /* local_octl is not used. */
 static void write_tok_str_octl(
-                              char                                  *str,
+                              a_const_char                          *str,
                               an_il_to_str_output_control_block_ptr local_octl)
 /*
 Version of write_tok_str intended to be called by the il-to-str routines.
@@ -2513,7 +2513,7 @@ done:;
 }  /* write_unsigned_num */
 
 
-static void begin_pp_directive(char *str)
+static void begin_pp_directive(a_const_char *str)
 /*
 Begin output of a preprocessing directive.  str is the beginning of the
 directive.  end_pp_directive must be called to end the directive.
@@ -2573,7 +2573,7 @@ etc.)
 }  /* gen_conversion_function_name */
 
 
-static void gen_pack_element_param_name(char          *name,
+static void gen_pack_element_param_name(a_const_char  *name,
                                         unsigned long count)
 /*
 Output the name of a parameter, given by "name", which is an element of
@@ -2596,7 +2596,7 @@ Output the name of a parameter from the indicated parameter type
 entry, or nothing if the parameter is unnamed.
 */
 {
-  char *name = ptp->name;
+  a_const_char *name = ptp->name;
 
   if (name != NULL) {
     if (ptp->is_pack_element) {
@@ -2619,7 +2619,7 @@ Output the name of a function parameter, or nothing if the parameter is
 unnamed.
 */
 {
-  char *name = unmangled_name_of(&var->source_corresp);
+  a_const_char *name = unmangled_name_of(&var->source_corresp);
 
   if (name != NULL) {
     if (var->is_pack_element) {
@@ -2645,7 +2645,7 @@ entry_kind indicates the IL entry kind.  If the entity is unnamed, generate
 a name.  Never generate a qualified name.
 */
 {
-  char *name = unmangled_name_of(scp);
+  a_const_char *name = unmangled_name_of(scp);
 
   if (name == NULL) {
     /* For entities without names, create a name. */
@@ -3087,14 +3087,14 @@ output_enum_qualifier function in the il_to_str output control block.
 }  /* gen_enum_qualifier_wrapper */
 
 
-static char *tag_kind(a_type_kind kind)
+static a_const_char *tag_kind(a_type_kind kind)
 /*
 Return a string that describes the tag kind for the indicated type kind, i.e.,
 "class", "struct", "union", or "enum".  This routine cannot distinguish
 interface types from struct types: Use tag_keyword to do so.
 */
 {
-  char *str;
+  a_const_char *str;
 
   switch (kind) {
     case tk_enum:   str = "enum";   break;
@@ -3107,13 +3107,13 @@ interface types from struct types: Use tag_keyword to do so.
 }  /* tag_kind */
 
 
-static char *tag_keyword(a_type_ptr type)
+static a_const_char *tag_keyword(a_type_ptr type)
 /*
 Return a string that describes the tag kind for the indicated type (i.e.,
 "__interface", "class", "struct", "union", or "enum").
 */
 {
-  char *result;
+  a_const_char *result;
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
   if (type->kind != (a_type_kind)tk_enum &&
@@ -5037,7 +5037,7 @@ Print the storage class and a space.  If there is no printable storage class,
 omit the space.
 */
 {
-  char *str;
+  a_const_char *str;
 
   switch (storage_class) {
     case sc_extern:
@@ -5176,7 +5176,7 @@ al_tag_name attributes (if any).
   } else {
     /* Put out a reference to the tag by name.  Note that unnamed tags will
        have been given compiler-generated names so they can be referred to. */
-    char  *tag_kind_str = tag_keyword(type);
+    a_const_char *tag_kind_str = tag_keyword(type);
     if (is_immediate_enum_type(type) && (options & GN_DECLARATION) != 0 &&
         integer_type_is_scoped_enum(type)) {
       /* A declaration of a scoped enumeration type: Use "enum class" rather
@@ -5802,7 +5802,7 @@ static void gen_access_specifier(an_access_specifier access)
 Write the string that corresponds to the indicated access specifier value.
 */
 {
-  char *s;
+  a_const_char *s;
 
   switch (access) {
     case as_public:     s = "public";    break;
@@ -8575,7 +8575,7 @@ generated as an expression and the expression is a named variable.
 
 
 static void gen_dot_static(an_expr_node_ptr operand_1,
-                           char             *opstr,
+                           a_const_char     *opstr,
                            an_expr_node_ptr operand_2)
 /*
 operand_1 and operand_2 are the operands of an eok_dot_static or
@@ -8697,8 +8697,9 @@ indicated by opstr.
       innermost_function_scope != NULL) {
     /* This is a call to a dependent destructor.  Check to see if it's
        being called in a member function of its class. */
-    char *class_name = unmangled_name_of(&operand_1_type->source_corresp);
-    char *dtor_name = unmangled_name_of(&con->source_corresp);
+    a_const_char *class_name =
+                            unmangled_name_of(&operand_1_type->source_corresp);
+    a_const_char *dtor_name = unmangled_name_of(&con->source_corresp);
     if (class_name != NULL && dtor_name != NULL &&
         strcmp(class_name, dtor_name + 1) == 0 &&
         !scope_is_in_name_context_stack(con->source_corresp.parent_scope)) {
@@ -9127,7 +9128,7 @@ is_reinterpret_cast indicate it.
   an_expr_operator_kind op = expr->variant.operation.kind;
   an_expr_node_ptr      operand_1 = expr->variant.operation.operands;
   a_type                ref_type;
-  char                  *new_cast_keyword = NULL;
+  a_const_char          *new_cast_keyword = NULL;
 
   if (expr->variant.operation.is_reference_cast ||
       op == (an_expr_operator_kind)eok_ref_cast ||
@@ -9844,8 +9845,8 @@ return FALSE and let the caller generate the code normally.
     a_byte                        operator_precedence;
     a_boolean                     outer_parens_needed;
     a_boolean                     operand_parens_needed;
-    char                          *op_name;
-    char                          *right_half;
+    a_const_char                  *op_name;
+    a_const_char                  *right_half;
 
     check_assertion_str(rp != NULL,
                      "handle_operator_call: operand not a function constant.");
@@ -10062,7 +10063,8 @@ analyze_decomposed_compound_operation, set during the traversal of the
 expression by find_pieces_of_decomposed_compound_operation, and then
 queried after the traversal by analyze_decomposed_compound_operation.
 */
-static char	*compound_operation_string;
+static a_const_char
+		*compound_operation_string;
 			/* Set to point to a string containing the compound
 			   operator corresponding to the simple operator
 			   into which the source expression was
@@ -10287,7 +10289,7 @@ static void analyze_decomposed_compound_operation(
                             a_rewritten_property_reference_kind rpr_kind,
                             an_expr_node_ptr                    *obj_expr,
                             an_expr_node_ptr                    *args,
-                            char                                **opstr)
+                            a_const_char                        **opstr)
 /*
 This function is called for a "set" operation on a Microsoft property,
 either C++/CLI or __declspec, described by desc, that is the result of
@@ -10398,7 +10400,7 @@ otherwise.
 {
   an_expr_node_ptr              subscripts;
   unsigned long                 num_subscripts = 0;
-  char                          *opstr = " = ";
+  a_const_char                  *opstr = " = ";
   a_boolean                     need_context_pop = FALSE;
 
   if (obj_expr != NULL || (desc != NULL && desc->is_static)) {
@@ -10852,7 +10854,7 @@ Most cases fit a simple pattern, but some require special handling.
     /* The normal case:
           <operation-name> ( <operand1>, <operand2>, ... )
     */
-    char *name;
+    a_const_char *name;
     if (gcc_is_generated_code_target &&
         expr->variant.builtin_operation.kind ==
                                        (a_builtin_operation_kind)bok_intaddr) {
@@ -11174,7 +11176,7 @@ gen_expr that might end up generating this expr as a temporary.
 {
   /* Note: don't extract things from expr here in the declarations, because
      expr may be changed just below for the reference indirection case. */
-  char                  *opstr;
+  a_const_char          *opstr;
   an_expr_node_ptr      operand_1, operand_2;
   a_boolean             need_op1_parens;
   a_boolean             need_reference_close_paren = FALSE;
@@ -12726,7 +12728,7 @@ is the one associated with the pragma.
 }  /* gen_pragma */
 
 
-static void write_code_string(char *p)
+static void write_code_string(a_const_char *p)
 /*
 Write a string of code (e.g., a template or an asm function body).  Newline
 characters in the string indicate new source lines.
@@ -12745,7 +12747,7 @@ characters in the string indicate new source lines.
 }  /* write_code_string */
 
 
-static void write_tok_str_if_nonnull(char *str)
+static void write_tok_str_if_nonnull(a_const_char *str)
 /*
 If str is NULL, do nothing.  Otherwise call write_tok_str(str).
 */
@@ -15989,7 +15991,7 @@ TRUE if the declaration following this one is such a continuation.
 #if MICROSOFT_EXTENSIONS_ALLOWED
   a_type_ptr                    parent_class;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-  char                          *definition_from_string = NULL;
+  a_const_char                  *definition_from_string = NULL;
 
   name_ref = get_current_name_ref();
   *another_decl_in_comma_list = FALSE;
@@ -16620,7 +16622,7 @@ one associated with the asm.
 {
   an_asm_entry_ptr asm_entry = ss_entry_ptr(curr_source_sequence_entry,
                                             an_asm_entry_ptr);
-  char             *asm_keyword;
+  a_const_char     *asm_keyword;
 
   /* Advance past the source sequence entry for the variable. */
   adv_curr_source_sequence_entry();
@@ -16866,7 +16868,7 @@ static void cp_gen_be(void)
 Generate C++ or C from the intermediate language.
 */
 {
-  char              *C_output_file_name;
+  a_const_char      *C_output_file_name;
   a_source_file_ptr prim_source_file;
 #if STANDALONE_UTILITY_PROGRAM
   /* This is a command-line option normally, but it's not available in the

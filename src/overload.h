@@ -186,7 +186,8 @@ conversion_from_class_possible.
 #define BTK_NONE 0
 typedef int a_builtin_type_kind_set;
 
-extern char *name_for_builtin_type_kind(a_builtin_type_kind_set builtin_types);
+extern a_const_char *name_for_builtin_type_kind(
+                                        a_builtin_type_kind_set builtin_types);
 
 /*
 Bit flags used to indicate information about the context of a conversion
@@ -476,7 +477,7 @@ typedef struct a_candidate_function {
 			   the list of template arguments.  The list is
 			   complete, through some combination of explicit
 			   specification and deduction. */
-  char		*operand_type_pattern;
+  a_const_char	*operand_type_pattern;
 			/* For a built-in operator, the operand type pattern
 			   string (see operand_type_pattern_for_operator).
 			   Specifically, the appropriate one- or two-character
@@ -680,7 +681,7 @@ typedef struct an_arg_check_block {
 			/* A pointer to a list of operands passed as the
 			   ellipsis arguments for a printf/scanf-like
 			   function. */
-  char		*fmt_string;
+  a_const_char	*fmt_string;
 			/* When checking a printf- or scanf-like function,
 			   points to the format string.  NULL otherwise. */
   a_source_position

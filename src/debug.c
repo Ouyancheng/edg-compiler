@@ -96,7 +96,7 @@ added to the stack; db_exit removes it.
 */
 typedef struct a_debug_stack_entry *a_debug_stack_entry_ptr;
 typedef struct a_debug_stack_entry {
-  char		*name;
+  a_const_char	*name;
 	        	/* The name of the function. */
   int           old_debug_level;
 	                /* The value of the debug level before it was
@@ -177,7 +177,7 @@ remove the entry.
 }  /* remove_debug_flag */
 
 
-a_boolean proc_debug_option(char *debug_option)
+a_boolean proc_debug_option(a_const_char *debug_option)
 /*
 Parse the debug option (as received by proc_command_line) and either set
 the global debug variable to some static value, or build a data structure
@@ -213,17 +213,17 @@ from the list of flags.
 Returns TRUE if there was an error during parsing of the debug option.
 */
 {
-  register char       *curr_char;
-  char                curr_name[128];
-  register char       *curr_name_ptr;
-  a_debug_request_ptr head;
-  a_debug_request_ptr request;
-  int                 level;
-  a_debug_action      action;
-  a_boolean           do_not_print_message;
-  a_boolean           dump_list = FALSE;
-  a_boolean           done;
-  a_boolean	      remove_flag = FALSE;
+  register a_const_char *curr_char;
+  char                  curr_name[128];
+  register char         *curr_name_ptr;
+  a_debug_request_ptr   head;
+  a_debug_request_ptr   request;
+  int                   level;
+  a_debug_action        action;
+  a_boolean             do_not_print_message;
+  a_boolean             dump_list = FALSE;
+  a_boolean             done;
+  a_boolean	        remove_flag = FALSE;
 
   db_active = TRUE;
   if (isdigit((unsigned char)*debug_option)) {
@@ -368,7 +368,7 @@ error_exit:
 }  /* proc_debug_option */
 
 
-a_boolean debug_flag_is_set(char *function_name)
+a_boolean debug_flag_is_set(a_const_char *function_name)
 /*
 Return TRUE if the debug request list contains a da_set_flag entry
 for the specified name. 
@@ -518,7 +518,7 @@ that is to be traced.
 }  /* f_db_sym_has_traced_name */
 
 
-a_boolean f_db_sym_trace(char		*flag_name,
+a_boolean f_db_sym_trace(a_const_char	*flag_name,
 			 a_symbol_ptr	sym)
 /*
 Return TRUE if either (a) there are no debug flags set, and
@@ -552,7 +552,7 @@ the macro db_sym_trace to call this function.
 
 #endif /* !STANDALONE_UTILITY_PROGRAM */
 
-a_boolean f_db_trace(char             *flag_name,
+a_boolean f_db_trace(a_const_char     *flag_name,
                      char             *entry,
                      an_il_entry_kind kind)
 /*
@@ -601,7 +601,7 @@ the macro db_trace to call this function.
 }  /* f_db_trace */
 
 
-a_boolean proc_debug_name_option(char *debug_option)
+a_boolean proc_debug_name_option(a_const_char *debug_option)
 /*
 Parse the debug_name option (as received by proc_command_line) and enter
 information about it in the debug requests list.  Its format is
@@ -653,7 +653,7 @@ Return TRUE if there was an error.
 
 #endif /* MAINTAIN_ALLOCATION_SEQUENCE_NUMBER */
 
-void debug_enter(int reporting_level, char *function_name)
+void debug_enter(int reporting_level, a_const_char *function_name)
 /*
 Place the name of this function on the stack.  If the name of this function
 appears in the debug request list, do what the request indicates and remember

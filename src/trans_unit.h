@@ -181,7 +181,7 @@ typedef struct a_trans_unit_corresp {
 extern void trans_unit_early_init(void);
 
 extern void process_translation_unit(
-				char				*file_name,
+				a_const_char			*file_name,
 				a_boolean			is_primary,
 				an_exported_template_file_ptr	exported_file);
 
@@ -208,7 +208,8 @@ EXTERN a_boolean
 			   unit.  FALSE when processing secondary translation
 			   units. */
 
-EXTERN char	*trans_unit_file_name;
+EXTERN a_const_char
+		*trans_unit_file_name;
 			/* Name of the primary source file for the current
 			   translation unit. */
 

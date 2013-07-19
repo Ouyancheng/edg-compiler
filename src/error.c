@@ -192,7 +192,8 @@ typedef struct a_msg_segment {
 		kind;		/* The kind of this message segment. */
   union {
     /* When kind == msk_error_text_part: */
-    char 	*msg_part;	/* Pointer into the error message text to the
+    a_const_char
+		*msg_part;	/* Pointer into the error message text to the
 				   start of this portion of the error.  The
 				   length specifies the exact number of 
 				   characters since this portion may not have
@@ -257,7 +258,7 @@ should be filled in based upon the value of a variable.  Useful in cases
 where an error message should differ depending on a particular mode.
 */
 typedef struct a_label_fill_in_entry {
-  char          *label;         /* The name of the "label" that is used in
+  a_const_char  *label;         /* The name of the "label" that is used in
                                    error message text (i.e., %[label]).  This
                                    string is used only for matching purposes
                                    and doesn't necessarily have to appear
@@ -285,8 +286,8 @@ static a_label_fill_in_entry label_fill_ins[] = {
 };
 
 
-static a_label_fill_in_entry *get_label_fill_in_entry(char   *label,
-                                                      size_t length)
+static a_label_fill_in_entry *get_label_fill_in_entry(a_const_char *label,
+                                                      size_t       length)
 /*
 Return a pointer to the label fill-in entry that matches the specified
 label, with the specified length.  An assertion failure occurs if the
@@ -321,8 +322,8 @@ Check the label fill-ins of each error message to ensure that the label
 fill-in entries are valid.
 */
 {
-  int error_code;
-  char *ptr, *end_label;
+  int          error_code;
+  a_const_char *ptr, *end_label;
 
   for (error_code = 0; error_code < ec_last; error_code++) {
     ptr = error_text((an_error_code)error_code);
@@ -359,7 +360,8 @@ message segment descriptor is used as an index into the appropriate array.
 				/* The maximum number of error message
 				   arguments of any message segment kind. */
 
-static char *	error_msg_strings[MAX_ERR_SEG_KIND_PER_MSG + 1];
+static a_const_char
+		*error_msg_strings[MAX_ERR_SEG_KIND_PER_MSG + 1];
 				/* Array of pointers to the strings to be
 				   inserted into diagnostic messages. */
 static a_type_ptr
@@ -548,7 +550,7 @@ static a_msg_segment_ptr curr_output_msg_segment;
 			   put_str_to_curr_output_msg_segment. */
 
 
-char *error_text(an_error_code error_code)
+a_const_char *error_text(an_error_code error_code)
 /*
 Return a pointer to the error text for the message identified by the given
 error code.  Note that if this routine is modified to get the text from
@@ -565,7 +567,7 @@ be read into memory so that an array of strings can still be used here.
 }  /* error_text */
 
 
-static void add_string_to_segment(char              *str,
+static void add_string_to_segment(a_const_char      *str,
                                   a_msg_segment_ptr seg_ptr)
 /*
 Add the specified string to the end of the message segment described by the
@@ -655,7 +657,7 @@ is NULL, allocate a message seqment.
 
 /*ARGSUSED*/ /* local_octl is not used. */
 static void put_str_to_curr_output_msg_segment(
-			char					*str,
+			a_const_char				*str,
 			an_il_to_str_output_control_block_ptr	local_octl)
 /*
 Output the indicated string to the current output message segment.  This is
@@ -748,9 +750,9 @@ e.g., 1297 --> 4.
 
 static void form_source_position(a_source_position   *pos,
                                  a_source_position   *error_pos,
-			         char		     *prefix_string,
-			         char		     *suffix_string,
-                                 char		     *end_of_source_string,
+			         a_const_char	     *prefix_string,
+			         a_const_char	     *suffix_string,
+                                 a_const_char	     *end_of_source_string,
                                  a_msg_segment_ptr   seg_ptr)
 /*
 Format a source position in the message segment described by seg_ptr.
@@ -767,7 +769,7 @@ emitted as part of this declaration position.  error_pos represents the
 source position of the diagnostic being formed and is used  to eliminate
 redundant file names in a diagnostic.*/
 {
-  char		*file_name, *full_name, *diag_file_name;
+  a_const_char	*file_name, *full_name, *diag_file_name;
   char		buffer[BASE_MSG_SEGMENT_SIZE];
   a_line_number line_number;
   a_boolean	at_end_of_source;
@@ -1527,7 +1529,7 @@ symbol_name:
 
 #endif /* !STANDALONE_UTILITY_PROGRAM */
 
-static void construct_message_segments(char *msg_ptr)
+static void construct_message_segments(a_const_char *msg_ptr)
 /*
 Scan the message template pointed to by msg_ptr and construct the message
 segment list.  The static variable error_message_head points to the first
@@ -1569,7 +1571,7 @@ NOTE:  Symbol name insertion is not available if STANDALONE_UTILITY_PROGRAM
 */
 {
   a_msg_segment_ptr     curr_segment;	/* Pointer to the current segment. */
-  char                  *end_ptr, *end_label;
+  a_const_char          *end_ptr, *end_label;
   int                   i;
   a_label_fill_in_entry *lfie;
   
@@ -1729,7 +1731,7 @@ Return TRUE if the message text for the indicated error code has at least
 one error fill-in.
 */
 {
-  char *p;
+  a_const_char *p;
 
   p = mbc_strchr(error_text(error_code), '%');
   /* Ignore "%%"; it's not a real fill-in. */
@@ -2153,9 +2155,9 @@ original character at that position.
       and_unicode_source_kind_ne_usk_none(ukind)) { \
     int  numch; \
     char orig_ch = *loc_in_line; \
-    *loc_in_line = (ch); \
+    *(char *)loc_in_line = (ch);                       \
     numch = mbc_length_simple(loc_in_line) - 1; \
-    *loc_in_line = orig_ch; \
+    *(char *)loc_in_line = orig_ch;                    \
     while (numch-- > 0) { \
       loc_in_line++; \
       if (!pass_for_caret) { \
@@ -2185,7 +2187,7 @@ later output as appropriate.
 {
   a_seq_number            seq;
   an_orig_line_modif_ptr  line_olmp, olmp, olmp_next;
-  char                    *line_start, *loc_in_line;
+  a_const_char            *line_start, *loc_in_line;
   a_column_number         curr_column;
   int                     pass_for_caret;
   char                    ch;
@@ -2384,7 +2386,7 @@ end_of_loop:
 
 #endif /* !STANDALONE_UTILITY_PROGRAM */
 
-static void write_message_part(char              *msg,
+static void write_message_part(a_const_char      *msg,
                                int32_t           len,
                                a_text_buffer_ptr buffer,
                                int               *line_len,
@@ -2599,7 +2601,7 @@ handle_embedded_quoted_text:
 }  /* write_message */
 
 
-static void write_position(char              *file_name,
+static void write_position(a_const_char      *file_name,
                            a_line_number     line_number,
                            a_column_number   column_number,
                            int               *line_len)
@@ -2610,7 +2612,7 @@ the column number is added into the output.
 */
 {
   char              number_buffer[50];
-  char              *error_text_string;
+  a_const_char      *error_text_string;
   a_text_buffer_ptr buffer = write_diagnostic_buffer;
 
   /* Print the file and line number, with a column number if it is not
@@ -2656,7 +2658,7 @@ static void write_position_and_severity(
                                     an_error_code         error_code,
                                     an_error_severity     severity,
                                     a_source_position     *error_pos,
-                                    char                  **file_name,
+                                    a_const_char          **file_name,
                                     a_line_number         *line_number,
                                     a_boolean             *src_text_needed,
                                     a_unicode_source_kind *unicode_source_kind,
@@ -2670,7 +2672,7 @@ the source files.   If the actual source line is not available, the column
 number is added into the output.
 */
 {
-  char          *full_name, *error_text_string;
+  a_const_char  *full_name, *error_text_string;
   a_boolean	at_end_of_source;
   a_boolean     capitalize_severity;
   a_boolean     column_needed;
@@ -2825,7 +2827,7 @@ number is added into the output.
 #if !STANDALONE_UTILITY_PROGRAM
 
 static void write_diag_to_raw_listing(an_error_severity          severity,
-                                      char                       *file_name,
+                                      a_const_char               *file_name,
                                       a_line_number              line_number,
                                       a_source_position          *error_pos,
                                       a_diagnostic_category_kind diag_kind)
@@ -2934,7 +2936,7 @@ compilation.
 */
 {
 		
-  static char                   *file_name;
+  static a_const_char           *file_name;
   static a_line_number          line_number;
   static a_boolean              source_text_needed;
   static a_unicode_source_kind  unicode_source_kind;
@@ -2942,7 +2944,7 @@ compilation.
   int                           line_len;
   a_source_position             local_pos;
 #if FULLY_RESOLVED_MACRO_POSITIONS
-  char                          *full_name;
+  a_const_char                  *full_name;
   a_boolean                     at_end_of_source;
   int                           save_diagnostic_indent;
 #endif /* FULLY_RESOLVED_MACRO_POSITIONS */
@@ -3165,7 +3167,7 @@ compilation.
         if (need_generic_introducer) {
           /* There was no stack trace, so we don't know the name of the
              macro involved -- use a more generic message. */
-          char  *gen_text = error_text(ec_in_macro_expansion_at);
+          a_const_char *gen_text = error_text(ec_in_macro_expansion_at);
           for (line_len = 0; line_len < MACRO_CONTEXT_INDENT; ++line_len) {
             putcwdb(' ');
           }  /* for */
@@ -3252,7 +3254,7 @@ static a_boolean internal_error_loop;
 			   detected.  Used to detect a loop in internal
 			   error processing. */
 
-DOES_NOT_RETURN internal_error(char *error_message)
+DOES_NOT_RETURN internal_error(a_const_char *error_message)
 /*
 An internal error has occurred.  Write the given message and abort.
 */
@@ -3286,10 +3288,10 @@ An internal error has occurred.  Write the given message and abort.
 }  /* internal_error */
 
 
-DOES_NOT_RETURN assertion_failed(char	*filename,
-		                 int	 line_number,
-				 char   *string1,
-				 char   *string2)
+DOES_NOT_RETURN assertion_failed(a_const_char *filename,
+		                 int          line_number,
+				 a_const_char *string1,
+				 a_const_char *string2)
 /*
 An assertion has failed.  Abort the compilation.
 */
@@ -3321,7 +3323,7 @@ An assertion has failed.  Abort the compilation.
   } else {
     /* Print the two strings.  Only separate them by a blank if the second
        string is not null. */
-    char	*separator;
+    a_const_char *separator;
     if (string2 == NULL || strlen(string2) == 0) {
       separator = "";
       if (string2 == NULL) string2 = "";
@@ -3340,17 +3342,17 @@ Structure to record a pending assertion.  If necessary, the recorded entities
 will be passed to assertion_failed at a later time.
 */
 static struct {
-  char *filename;
-  int  line_number;
-  char *string1;
-  char *string2;
+  a_const_char *filename;
+  int          line_number;
+  a_const_char *string1;
+  a_const_char *string2;
 } expected_error_record;
 
   
-void record_expected_error(char *filename,
-                           int  line_number,
-                           char *string1,
-                           char *string2)
+void record_expected_error(a_const_char *filename,
+                           int          line_number,
+                           a_const_char *string1,
+                           a_const_char *string2)
 /*
 Record a pending assertion.  This routine may be called in a situation that
 is expected to be the result of processing invalid source code but where a
@@ -3390,7 +3392,7 @@ expected_error.
 
 
 DOES_NOT_RETURN str_command_line_error(an_error_code error_code,
-                                       char          *concat_string)
+                                       a_const_char  *concat_string)
 /*
 Write a command-line error message concatenated with concat_string, and
 terminate the compilation.
@@ -3434,7 +3436,7 @@ that fill-in kind.  error_code is provided for debugging information.
 {
   a_msg_segment_ptr  curr_seg;
 #if DEBUG
-  char		   *s;
+  a_const_char	   *s;
 #endif /* DEBUG */
 
   for (curr_seg = error_message_head;
@@ -3626,8 +3628,8 @@ but if that position represents the end-of-source position, then use the
 position of the first reference of the instance specified by "sym".
 */
 {
-  char		*file_name;
-  char		*full_name;
+  a_const_char	*file_name;
+  a_const_char	*full_name;
   a_line_number	line_number;
   a_boolean	at_end_of_source;
 
@@ -3914,7 +3916,7 @@ static DOES_NOT_RETURN error_code_errno_catastrophe(
 
 static void file_open_error_full(an_error_severity	severity,
 				 an_error_code		file_kind,
-                                 char			*file_name,
+                                 a_const_char		*file_name,
 				 an_open_file_result	*open_result,
 				 a_source_position	*error_pos)
 /*
@@ -3924,7 +3926,7 @@ open_result is the entry that describes the kind of failure, which was
 returned by the file open routine.
 */
 {
-  char				*reason = NULL;
+  a_const_char			*reason = NULL;
   an_open_file_result_set	flags = open_result->flags;
   an_error_code			error_code;
   a_source_position		local_error_pos = *error_pos;
@@ -3963,7 +3965,7 @@ returned by the file open routine.
 
 void file_open_error(an_error_severity		severity,
 		     an_error_code		file_kind,
-                     char			*file_name,
+                     a_const_char		*file_name,
 		     an_open_file_result	*open_result)
 /*
 Write an error message about opening the file named file_name.  file_kind is
@@ -3979,7 +3981,7 @@ the kind of failure.
 
 DOES_NOT_RETURN output_file_open_error(a_boolean         bad_name,
                                        an_error_code     file_kind,
-                                       char              *file_name,
+                                       a_const_char      *file_name,
                                        an_error_severity severity)
 /*
 Write an error message about opening the output file named file_name,
@@ -4064,7 +4066,7 @@ to the error severity of the error to be issued.
 
 
 FILE *open_source_file_with_error_handling(
-				char			*file_name,
+				a_const_char		*file_name,
 				an_open_file_flag_set	open_flags,
 				an_open_file_result	*open_result,
 				a_unicode_source_kind	*unicode_source_kind)
@@ -4118,8 +4120,8 @@ that describes the kind of file being closed.
 }  /* close_output_file_with_error_handling */
 
 
-FILE *fopen_with_error(char			*file_name,
-		       char			*mode,
+FILE *fopen_with_error(a_const_char		*file_name,
+		       a_const_char		*mode,
 		       an_open_file_flag_set	open_flags,
 		       an_error_code		file_kind)
 /*
@@ -4152,7 +4154,7 @@ code for the description of the file to be used if an error is issued.
 
 
 FILE *open_output_file_with_error_handling(
-					char			*file_name,
+					a_const_char		*file_name,
 					a_boolean		binary_file,
 					a_boolean		update_mode,
 					an_open_file_flag_set	open_flags,
@@ -4190,7 +4192,7 @@ the description of the file to be used if an error is issued.
 
 
 FILE *open_input_file_with_error_handling(
-				char			*file_name,
+				a_const_char		*file_name,
 				a_boolean		binary_file,
 				an_open_file_flag_set	open_flags,
 				an_error_code		file_kind)
@@ -4310,7 +4312,7 @@ and doing any required expansions, the diagnostic is written.
 */
 {
   a_msg_segment_ptr  curr_seg;
-  char               *msg_template;
+  a_const_char       *msg_template;
   a_boolean	     diag_should_be_issued;
 #if CHECKING
   int                i;
@@ -4587,7 +4589,7 @@ the tag.
 END_EXTERN_C_BLOCK
 #endif /* BSEARCH_QSORT_FUNCTION_IS_EXTERN_C */
 
-a_boolean set_severity_for_error_tag(char		*tag,
+a_boolean set_severity_for_error_tag(a_const_char	*tag,
 				     an_error_severity	severity,
 				     a_boolean		make_default)
 /*
@@ -4665,7 +4667,7 @@ table is used to reset the value in the current table.
 void pos_st_diagnostic(an_error_severity error_severity,
                        an_error_code     error_code,
                        a_source_position *error_pos,
-                       char              *error_string)
+                       a_const_char      *error_string)
 /*
 Report the indicated diagnostic message (with the indicated fill-in string)
 at the indicated position.
@@ -4846,7 +4848,7 @@ indicated position.
 void pos_stsy_diagnostic(an_error_severity  error_severity,
                          an_error_code      error_code,
                          a_source_position  *error_pos,
-                         char               *error_string,
+                         a_const_char       *error_string,
                          a_symbol_ptr       symbol)
 /*
 Report the indicated diagnostic (with the indicated fill-in string and symbol)
@@ -4863,7 +4865,7 @@ at the indicated position.
 
 void pos_st_remark(an_error_code     error_code,
                    a_source_position *error_pos,
-                   char              *error_string)
+                   a_const_char      *error_string)
 /*
 Report the indicated remark (with the indicated fill-in string) at the
 indicated position.
@@ -4968,7 +4970,7 @@ indicated by error_position.
 
 void pos_stsy_remark(an_error_code     error_code,
                      a_source_position *error_pos,
-                     char              *error_string,
+                     a_const_char      *error_string,
                      a_symbol_ptr      symbol)
 /*
 Report the indicated remark (with the indicated fill-in string and symbol)
@@ -4985,7 +4987,7 @@ at the indicated position.
 
 void pos_st_warning(an_error_code     error_code,
                     a_source_position *error_pos,
-                    char              *error_string)
+                    a_const_char      *error_string)
 /*
 Report the indicated warning (with the indicated fill-in string) at the
 indicated position.
@@ -5008,7 +5010,7 @@ Report the indicated warning at the indicated position.
 
 
 void str_warning(an_error_code error_code,
-               char          *error_string)
+                 a_const_char  *error_string)
 /*
 Report the indicated warning (with the indicated fill-in string) at the
 position indicated by error_position.
@@ -5021,8 +5023,8 @@ position indicated by error_position.
 
 void pos_st2_warning(an_error_code     error_code,
                      a_source_position *error_pos,
-                     char              *error_string1,
-                     char              *error_string2)
+                     a_const_char      *error_string1,
+                     a_const_char      *error_string2)
 /*
 Report the indicated warning (with the indicated fill-in strings) at the
 position indicated by error_position.
@@ -5149,7 +5151,7 @@ indicated by error_position.
 
 void pos_stsy_warning(an_error_code     error_code,
                       a_source_position *error_pos,
-                      char              *error_string,
+                      a_const_char      *error_string,
                       a_symbol_ptr      symbol)
 /*
 Report the indicated warning (with the indicated fill-in string and symbol)
@@ -5166,7 +5168,7 @@ at the indicated position.
 
 void pos_stty_warning(an_error_code     error_code,
                       a_source_position *error_pos,
-                      char              *error_string,
+                      a_const_char      *error_string,
                       a_type_ptr        type)
 /*
 Report the indicated warning (with the indicated fill-in string and type) at
@@ -5182,7 +5184,7 @@ the indicated position.
 
 void pos_st_error(an_error_code     error_code,
                   a_source_position *error_pos,
-                  char              *error_string)
+                  a_const_char      *error_string)
 /*
 Report the indicated error (with the indicated fill-in string) at the
 indicated position.
@@ -5196,8 +5198,8 @@ indicated position.
 
 void pos_st2_error(an_error_code     error_code,
                    a_source_position *error_pos,
-                   char              *error_string1,
-                   char              *error_string2)
+                   a_const_char      *error_string1,
+                   a_const_char      *error_string2)
 /*
 Report the indicated error (with the indicated fill-in strings) at the
 indicated position.
@@ -5212,7 +5214,7 @@ indicated position.
 
 void pos_stty_error(an_error_code     error_code,
                     a_source_position *error_pos,
-                    char              *error_string,
+                    a_const_char      *error_string,
                     a_type_ptr        type)
 /*
 Report the indicated error (with the indicated fill-in string and type) at the
@@ -5237,7 +5239,7 @@ Report the indicated error at the indicated position.
 
 
 void str_error(an_error_code error_code,
-               char          *error_string)
+               a_const_char  *error_string)
 /*
 Report the indicated error (with the indicated fill-in string) at the
 position indicated by error_position.
@@ -5289,7 +5291,7 @@ indicated position.
 void pos_ty_str_error(an_error_code     error_code,
                       a_source_position *error_pos,
                       a_type_ptr        type,
-                      char              *error_string)
+                      a_const_char      *error_string)
 /*
 Report the indicated error (with the indicated type and string value) at the
 indicated position.
@@ -5357,7 +5359,7 @@ indicated by error_position.
 
 void pos_stsy_error(an_error_code     error_code,
                     a_source_position *error_pos,
-                    char              *error_string,
+                    a_const_char      *error_string,
                     a_symbol_ptr      symbol)
 /*
 Report the indicated error (with the indicated fill-in string) at the
@@ -5451,7 +5453,7 @@ errors.
 /*lint -esym(765,pos_st_catastrophe)*/
 DOES_NOT_RETURN pos_st_catastrophe(an_error_code     error_code,
                                    a_source_position *error_pos,
-                                   char              *error_string)
+                                   a_const_char      *error_string)
 /*
 Report the indicated catastrophic error (with the indicated fill-in string)
 at the indicated position, and then terminate the compilation.
@@ -5468,7 +5470,7 @@ at the indicated position, and then terminate the compilation.
 
 
 DOES_NOT_RETURN str_catastrophe(an_error_code error_code,
-                                char          *error_string)
+                                a_const_char  *error_string)
 /*
 Report the indicated catastrophe (with the indicated fill-in string) at the
 position indicated by error_position, and then terminate the compilation.
@@ -5479,8 +5481,8 @@ position indicated by error_position, and then terminate the compilation.
 
 
 DOES_NOT_RETURN pos_str2_catastrophe(an_error_code     error_code,
-                                     char              *error_string1,
-                                     char              *error_string2,
+                                     a_const_char      *error_string1,
+                                     a_const_char      *error_string2,
 				     a_source_position *error_pos)
 /*
 Report the indicated catastrophe (with the indicated fill-in strings) at the
@@ -5541,7 +5543,7 @@ this produces a diagnostic that describes the failure.
 #endif /* EDG_WIN32 */
 
 DOES_NOT_RETURN str_errno_catastrophe(an_error_code error_code,
-                                      char          *error_string,
+                                      a_const_char  *error_string,
                                       int           errno_value)
 /*
 Report the indicated catastrophe with the fill-in string error_string and
@@ -5623,7 +5625,7 @@ position.
 
 void pos_st_start_error(an_error_code     error_code,
                         a_source_position *error_pos,
-                        char              *error_string)
+                        a_const_char      *error_string)
 /*
 Begin a multiple message error with the specified error code, source
 position and string fill-in.
@@ -5680,7 +5682,7 @@ multiple message diagnostic being processed.
 
 
 void str_add_diag_info(an_error_code error_code,
-                       char          *error_string)
+                       a_const_char  *error_string)
 /*
 Add the specified diagnostic message with the string substitution to the
 multiple message diagnostic being processed.
@@ -5749,7 +5751,7 @@ position and symbol fill-in.
 
 void pos_stsy_start_error(an_error_code     error_code,
                           a_source_position *error_pos,
-                          char              *error_string,
+                          a_const_char      *error_string,
                           a_symbol_ptr      symbol)
 /*
 Begin a multiple message error with the specified error code, source
@@ -5810,7 +5812,7 @@ multiple message diagnostic being processed.
 
 
 void pch_message(an_error_code error_code,
-		 char	    *fill_in_str)
+		 a_const_char  *fill_in_str)
 /*
 Display a message of the form:
 
@@ -5821,7 +5823,7 @@ being created or used.  The text from the error message file must supply
 two string fill-ins for the source file name and PCH file name.
 */
 {
-  char	*text;
+  a_const_char *text;
 
   if (!suppress_pch_messages) {
     text = error_text(error_code);
@@ -5894,7 +5896,7 @@ where "arg" is either an error number or an error tag.
     } else if (curr_token == tok_identifier) {
       /* The argument is an identifier, which is expected to name an error
          tag. */
-      char	*error_tag;
+      a_const_char *error_tag;
       error_tag = locator_for_curr_id.symbol_header->identifier;
       /* The routine will return TRUE if the tag is invalid. */
       err = set_severity_for_error_tag(error_tag, severity,
@@ -5930,7 +5932,7 @@ Complete the multiple message diagnostic currently being processed.
 }  /* end_error */
 
 void start_command_line_error(an_error_code      error_code,
-			      char		 *error_string)
+			      a_const_char	 *error_string)
 /*
 Begin a multiple message command line error.
 */

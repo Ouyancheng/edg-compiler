@@ -870,7 +870,7 @@ typedef struct a_decl_parse_state {
 		ms_attributes;
 			/* A list of Microsoft attributes scanned for the
 			   current declaration. */
-  char
+  a_const_char
 		*asm_name;
 			/* The string specified by a GNU asm name construct. */
   a_source_position
@@ -1201,7 +1201,7 @@ extern void scan_implicitly_included_template_definition_file(void);
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
 extern void scan_top_level_metadata_declarations(
-                                             char              *buffer,
+                                             a_const_char      *buffer,
                                              an_assembly_index assembly_index);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 

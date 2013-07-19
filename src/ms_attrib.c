@@ -95,7 +95,7 @@ static an_ms_attribute_kind_descr_ptr
 			   values are likely to work better than
 			   non-prime values. */
 
-static unsigned long hash_attribute_name(char		*name,
+static unsigned long hash_attribute_name(a_const_char	*name,
 					 sizeof_t	length)
 /*
 Generate a hash value for the specified name.
@@ -132,7 +132,7 @@ Generate a hash value for the specified name.
 
 static void add_attribute_lookup_table_entry(
 					an_ms_attribute_kind_descr_ptr	msakdp,
-					char				*name)
+					a_const_char			*name)
 /*
 Add "msakdp" to the attribute lookup table.  "name" is the name of the
 attribute.
@@ -149,7 +149,7 @@ attribute.
 }  /* add_attribute_lookup_table_entry  */
 
 
-static an_ms_attribute_kind_descr_ptr find_attribute_kind(char		*name,
+static an_ms_attribute_kind_descr_ptr find_attribute_kind(a_const_char	*name,
 							  sizeof_t	length)
 /*
 Look up an attribute named "name" (with a length of "length") in the attribute
@@ -198,7 +198,7 @@ return a pointer to the entry.
 
 
 static void make_attribute_description(an_ms_attribute_kind	kind,
-				       char			*name,
+				       a_const_char		*name,
 				       an_ms_attribute_target	target)
 /*
 Create an attribute kind description entry for the specified attribute
@@ -252,9 +252,9 @@ return a pointer to the entry.
 
 
 static void add_attribute_parameter(an_ms_attribute_arg_kind	kind,
-				    char			*name,
+				    a_const_char		*name,
 				    a_boolean			is_unnamed,
-				    char			*values)
+				    a_const_char		*values)
 /*
 Add the specified parameter to the list of parameter accepted by the
 attribute most recently added by make_attribute_description.
@@ -284,10 +284,10 @@ case.
   if (kind == (an_ms_attribute_kind)msaak_enumeration && values != NULL) {
     /* Convert the specified list of values from a comma-separated list into
        an array of acceptable values. */
-    int		num_elements = 1;
-    int		element;
-    char	*ptr;
-    char	**list;
+    int          num_elements = 1;
+    int          element;
+    a_const_char *ptr;
+    char         **list;
     /* Find the number of elements. */
     for (ptr = values; *ptr != '\0'; ptr++) {
       if (*ptr == ',') num_elements++;
@@ -299,9 +299,9 @@ case.
     list[num_elements] = NULL;
     for (element = 0, ptr = values; element < num_elements; ++element) {
       /* Find the end of this element. */
-      char	*end = strchr(ptr, ',');
-      sizeof_t	length;
-      char	*entry;
+      a_const_char *end = strchr(ptr, ',');
+      sizeof_t     length;
+      char         *entry;
       /* If this is the last element, find the end of the string. */
       if (end == NULL) end = &ptr[strlen(ptr)];
       length = end - ptr;
@@ -1248,7 +1248,7 @@ the token is a string literal, but the constant is an error constant, "err"
 is set to TRUE.  Note that "err" is not TRUE for an unexpected token kind.
 */
 {
-  char		    *src = NULL;
+  a_const_char	    *src = NULL;
   a_boolean	    valid_token = TRUE;
   char		    *result = NULL;
   a_character_kind  char_kind = (a_character_kind)chk_char;
@@ -1348,8 +1348,8 @@ TRUE.  Note that "err" is not TRUE for an unexpected token kind.
     /* Convert the identifier into a string constant.  If a token was
        initially scanned as a keyword, treat is as an identifier with the
        name of the keyword. */
-    sizeof_t	length;
-    char	*str;
+    sizeof_t     length;
+    a_const_char *str;
     if (curr_token == tok_identifier) {
       str = locator_for_curr_id.symbol_header->identifier;
     } else {
@@ -1525,14 +1525,15 @@ significant.
 }  /* scan_ms_attribute_enum_arg */
 
 
-static char *scan_ms_attribute_uuid_arg(an_ms_attribute_param_ptr	param)
+static a_const_char *scan_ms_attribute_uuid_arg(
+                                               an_ms_attribute_param_ptr param)
 /*
 Scan an argument of UUID type.  Such arguments are either a UUID string
 or a __uuidof operator.  The UUID string is returned.  A NULL pointer is
 returned for invalid arguments.
 */
 {
-  char			*result = NULL;
+  a_const_char		*result = NULL;
   a_source_position	arg_pos;
 
   arg_pos = pos_curr_token;

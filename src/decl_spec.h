@@ -75,7 +75,7 @@ extern void update_dll_info_for_class(a_type_ptr         class_type,
                                       a_source_position  *err_pos);
 
 extern void record_uuid_for_class(a_type_ptr         class_type,
-                                  char               *uuid_string,
+                                  a_const_char       *uuid_string,
                                   a_source_position  *err_pos);
 
 extern a_hash_value hash_unresolved_type_map_key(a_void_ptr  key_ptr);

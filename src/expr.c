@@ -12506,7 +12506,7 @@ expression-processing routines.
   a_source_position	type_position;
   a_boolean		direct_bases;
   a_boolean		err = FALSE;
-  char			*token_name;
+  a_const_char		*token_name;
 
   check_assertion(curr_token == tok_bases || curr_token == tok_direct_bases);
   token_name = token_names[(int)curr_token];
@@ -16347,15 +16347,13 @@ expression, and return the result in *result (or an error indication in
   if (!has_new_initializer) {
     /* No new-initializer is present. */
     if (is_class_struct_union_type(base_new_type) &&
-        (cssp == NULL || !cssp->is_POD || cssp->constructor != NULL)
+        !symbol_supplement_for_class(base_new_type)->is_POD
 #if MICROSOFT_EXTENSIONS_ALLOWED
         && !(cppcli_enabled &&
              is_value_class_type(base_new_type))
 #endif  /* MICROSOFT_EXTENSIONS_ALLOWED */
        ) {
-      /* A class type (or array thereof) where the class is either not a POD
-        class or is a POD class with a user-declared (defaulted or deleted)
-        constructor. */
+      /* A non-POD class (or array thereof), with no new-initializer. */
       a_boolean is_generated_ctor = FALSE, do_const_test = FALSE;
       /* Look for a default constructor. */
       if (unqual_base_new_type->variant.class_struct_union.is_nonreal_class) {
@@ -16444,9 +16442,8 @@ expression, and return the result in *result (or an error indication in
         }  /* if */
       }  /* if */
     } else {
-      /* A non-class type or a POD class with no user-declared constructor.
-         Check for error cases like const entities not being initialized
-         (since there is no initializer). */
+      /* Non-class type, or POD class, with no new-initializer.  Check for
+         error cases like const entities not being initialized. */
       if (!err) check_for_missing_initializer((a_symbol_ptr)NULL, new_type);
 #if MICROSOFT_EXTENSIONS_ALLOWED
       if (is_gcnew) {
@@ -27746,7 +27743,7 @@ keyword identified by curr_token (e.g., __FUNCTION__, __PRETTY_FUNCTION__).
 If do_concat is TRUE, do concatenation of any subsequent string literals.
 */
 {
-  char          *name_str;
+  a_const_char  *name_str;
   a_targ_size_t length;
 
   if (innermost_function_scope == NULL) {
@@ -27804,7 +27801,7 @@ simple_name:
   const_for_curr_token.variant.string.length = length;
   const_for_curr_token.variant.string.value =
                                alloc_text_of_string_literal((sizeof_t)length);
-  (void)memcpy(const_for_curr_token.variant.string.value, name_str,
+  (void)memcpy((char *)const_for_curr_token.variant.string.value, name_str,
                size_t_arg(length));
   curr_token = tok_string_literal;
   if (do_concat) {
@@ -27814,14 +27811,14 @@ simple_name:
 }  /* set_curr_token_to_function_name_string */
 
 
-char *spelling_for_function_name_token(a_token_kind token)
+a_const_char *spelling_for_function_name_token(a_token_kind token)
 /*
 Return the spelling of the function-name token for the indicated
 token kind, e.g., __FUNCTION__ for tok_function_name.  The string
 returned is not in the IL and must be copied if needed there.
 */
 {
-  char *name;
+  a_const_char *name;
 
   name = token_names[(int)token];
   switch (token) {
@@ -27855,7 +27852,7 @@ which of the various keywords was used.
   a_generated_entity_block *gen_entity_block;
   a_constant_ptr           name_string;
   a_token_kind             func_name_token = curr_token;
-  char                     *token_spelling =
+  a_const_char             *token_spelling =
                              spelling_for_function_name_token(func_name_token);
 
   /* Decide whether this keyword is equivalent to a string literal
@@ -30913,7 +30910,7 @@ operation implementing the allocation of the array and its initialization.
 
 static a_symbol_ptr look_up_enhanced_for_member_function(
                                                      a_type_ptr       type,
-                                                     char             *name,
+                                                     a_const_char     *name,
                                                      a_symbol_locator *locator)
 /*
 This is a helper function used when parsing an enhanced-for (i.e., a
@@ -31063,7 +31060,7 @@ for-each (otherwise it's a range-based-for).
 
 static a_boolean check_enhanced_for_user_defined_function(
                               an_operand              *bound_function_selector,
-                              char                    *function_name,
+                              a_const_char            *function_name,
                               a_boolean               is_for_each,
                               a_source_position       *expr_position,
                               a_token_sequence_number tok_seq_number,
@@ -31687,7 +31684,7 @@ end_of_routine:;
 
 static a_boolean make_enhanced_for_initializer_for_call_to_member_function(
                                         a_variable_ptr          selector_var,
-                                        char                    *function_name,
+                                        a_const_char            *function_name,
                                         a_boolean               is_for_each,
                                         a_source_position       *expr_position,
                                         a_token_sequence_number tok_seq_number,
@@ -31792,7 +31789,7 @@ If so, also return in *p_bcp the base class for the interface implemented.
       if (bcp->direct || bcp->is_virtual) {
         a_type_ptr base_type = bcp->type;
         if (is_immediate_cli_interface_type(base_type)) {
-          char *name = unmangled_name_of(&base_type->source_corresp);
+          a_const_char *name = unmangled_name_of(&base_type->source_corresp);
           if (name != NULL && strcmp(name, "IEnumerable") == 0) {
             a_type_ptr  ienumerable =
                         cli_class_type_for(csk_system_collections_ienumerable);
@@ -31850,7 +31847,7 @@ set it to NULL.
 
 static a_boolean check_for_each_user_defined_property(
                                             an_operand        *selector,
-                                            char              *name,
+                                            a_const_char      *name,
                                             a_source_position *expr_position,
                                             an_operand        *result)
 /*
@@ -33100,7 +33097,7 @@ issued and FALSE is returned.
 
 static a_boolean create_range_based_for_variable_for_function_call(
                                         a_variable_ptr          range_var,
-                                        char                    *function_name,
+                                        a_const_char            *function_name,
                                         a_source_position       *expr_position,
                                         a_token_sequence_number tok_seq_number,
                                         a_variable_ptr          *variable)
@@ -36832,7 +36829,7 @@ class type that can be converted to those types.
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
 
-char *scan_uuidof_operand(void)
+a_const_char *scan_uuidof_operand(void)
 /*
 Scan the operand of a __uuidof(...) in a Microsoft attribute and return
 the UUID string for the operand, or NULL for an error.  The operand
@@ -36841,7 +36838,7 @@ type must have an associated UUID.  The current token is the one following
 the __uuidof keyword.
 */
 {
-  char                *uuid_str;
+  a_const_char        *uuid_str;
   an_operand          result;
   an_expr_stack_entry expr_stack_entry;
 

@@ -8434,7 +8434,7 @@ can only contain CLI interfaces.
   an_access_specifier           access;
   a_boolean                     is_virtual;
   a_boolean                     explicit_access_specifier;
-  char                          *default_access_str;
+  a_const_char                  *default_access_str;
   a_symbol_ptr                  sym;
   a_type_ptr                    base_class_type;
   a_type_ptr                    orig_base_class_type;
@@ -12654,8 +12654,8 @@ locator is a valid accessor name, return TRUE.  Otherwise, issue an error,
 set the locator to an error locator, and return FALSE.
 */
 {
-  char       *id = NULL;
-  a_boolean  err = FALSE;
+  a_const_char *id = NULL;
+  a_boolean    err = FALSE;
 
   if (locator->symbol_header != NULL) id = locator->symbol_header->identifier;
   if (pdp->kind == (a_property_or_event_kind)pek_cli_property) {
@@ -19898,8 +19898,6 @@ templates from that base template.
         new_rp->compiler_generated = TRUE;
         new_tssp->variant.function.decl_cache.decl_info =
                                                    templ_decl_state.decl_info;
-        complete_inheriting_ctor_template(&templ_decl_state,
-                                          decl_info.decl_state.sym);
       }  /* if */
       pop_scope();
       done_with_func_info(func_info);
@@ -21493,7 +21491,7 @@ Check that this is a valid type and if so make member_type a friend.
       } else if (!(state->dso_flags & DSO_ELABORATED_TYPE_SPECIFIER)) {
         member_type = skip_typerefs(member_type);
         if (!extended_friends_enabled) {
-          char  *class_key_string;
+          a_const_char *class_key_string;
           switch (member_type->kind) {
             case tk_class:   class_key_string = "class";   break;
             case tk_struct:  class_key_string = "struct";  break;
@@ -22877,7 +22875,7 @@ done:
 
 static void generate_trivial_accessor(a_class_def_state  *class_state,
                                       a_type_ptr         type,
-                                      char               *name)
+                                      a_const_char       *name)
 /*
 Declare an accessor function with the given name and type for a trivial
 property or event being defined in the class described by class_state (the
@@ -25407,7 +25405,7 @@ from such interface-like types.)
   a_type_ptr  type = state->class_type;
 
   if (!type->variant.class_struct_union.is_interface) {
-    char  *uuid_str = class_type_supp(type)->uuid_string;
+    a_const_char *uuid_str = class_type_supp(type)->uuid_string;
     if (type->kind == (a_type_kind)tk_struct &&
         uuid_str != NULL &&
         type->source_corresp.name != NULL &&
@@ -25667,8 +25665,8 @@ named XYZ.
   a_symbol_ptr  sym = symbol_supplement_for_class(class_type)->symbols;
 
   for (; sym != NULL; sym = sym->next_in_scope) {
-    char       *mem_id = sym->header->identifier, *pname = NULL;
-    a_boolean  property_case;
+    a_const_char *mem_id = sym->header->identifier, *pname = NULL;
+    a_boolean    property_case;
     if (symbol_is(sym, sk_type) && sym->variant.type.is_injected_class_name) {
       /* The injected class name is not considered. */
       continue;
@@ -28294,8 +28292,8 @@ For example:
 
 #if USE_X86_64
 
-static void add_field_to_generated_type(char        *name,
-                                        a_type_ptr  type)
+static void add_field_to_generated_type(a_const_char *name,
+                                        a_type_ptr   type)
 /*
 A sck_class_struct_union scope is currently on top of the scope stack.  It
 is associated with a compiler-generated class type.  Declare a field with the

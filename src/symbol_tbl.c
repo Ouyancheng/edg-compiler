@@ -320,24 +320,24 @@ is done according to the output control block octl.
    blank if the line still has room for sting_len additional characters;
    otherwise, it puts a new-line character and indents the next line.
    Variable col is updated in both cases. */
-#define put_separator(separator, string_len)			\
-{ col += (uint32_t)(strlen(separator) + 1);				\
-  if (col + (string_len) > DEBUG_LINE_LENGTH) {				\
-    fprintf(f_debug, "%s\n%*s", (separator), indentation, "");	\
-    col = indentation;						\
-  } else {							\
-    fprintf(f_debug, "%s ", (separator));			\
-  }  /* if */							\
+#define put_separator(separator, string_len)                    \
+{ col += (uint32_t)(strlen(separator) + 1);                     \
+  if (col + (string_len) > DEBUG_LINE_LENGTH) {                 \
+    fprintf(f_debug, "%s\n%*s", (separator), indentation, "");  \
+    col = indentation;                                          \
+  } else {                                                      \
+    fprintf(f_debug, "%s ", (separator));                       \
+  }  /* if */                                                   \
 }  /* put_separator */
 
 
 /* put_string puts out a comma separator and then writes out str.  col is
    updated. */
-#define put_string(str)						\
-{ char *local_str = (str);					\
-  put_separator(",", strlen(local_str));			\
-  fputs((local_str), f_debug);					\
-  col += (uint32_t)strlen((local_str));					\
+#define put_string(str)                                         \
+{ a_const_char *local_str = (str);                              \
+  put_separator(",", strlen(local_str));                        \
+  fputs((local_str), f_debug);                                  \
+  col += (uint32_t)strlen((local_str));                         \
 }  /* put_string */
 
 
@@ -351,7 +351,7 @@ static char *db_symbol_buffer_pointer;
 
 /*ARGSUSED*/ /* octl is not used. */
 static void put_str_into_db_symbol_buffer(
-                               char                                  *str,
+                               a_const_char                          *str,
                                an_il_to_str_output_control_block_ptr octl)
 /*
 Output a string into the db_symbol buffer.  Used once
@@ -394,7 +394,7 @@ Construct a string in buffer that represents an access specifier -- called
 from db_symbol.
 */
 {
-  char  *s;
+  a_const_char *s;
   switch (access) {
     case as_public:       s = "public";       break;
     case as_protected:    s = "protected";    break;
@@ -461,8 +461,8 @@ function param list -- called from db_symbol.
 
 static char *str_path(char               buffer[],
                       a_derivation_step  *path,
-                      char               *initial_string,
-                      char               *separator)
+                      a_const_char       *initial_string,
+                      a_const_char       *separator)
 /*
 Construct a string in buffer that represents a derivation path -- called
 from db_symbol.
@@ -471,7 +471,7 @@ from db_symbol.
   a_derivation_step  *dsp;
   a_base_class       *bcp;
   a_type             *tp;
-  char               *sep = initial_string;
+  a_const_char       *sep = initial_string;
 
   buffer[0] = '\0';
   for (dsp = path; dsp != NULL; dsp = dsp->next) {
@@ -496,7 +496,8 @@ Construct a string in buffer that represents a name linkage kind -- called
 from db_symbol.
 */
 {
-  char *str = name_linkage_kind_names[(int)source_corresp->name_linkage];
+  a_const_char *str =
+                    name_linkage_kind_names[(int)source_corresp->name_linkage];
   (void)sprintf(buffer, "%s linkage", str);
   return buffer;
 }  /* str_name_linkage */
@@ -562,14 +563,14 @@ specified symbol.
 }  /* db_symbol_name */
 
 
-char *db_symbol_trans_unit(a_symbol_ptr sym)
+a_const_char *db_symbol_trans_unit(a_symbol_ptr sym)
 /*
 Return the name of the file for the translation unit of the indicated
 symbol, if it has one and if it is not the primary translation unit.
 Return NULL otherwise.  Also return NULL if sym is NULL.
 */
 {
-  char *name = NULL;
+  a_const_char *name = NULL;
 
   if (sym != NULL && sym->decl_scope != NO_SCOPE_NUMBER) {
     a_translation_unit_ptr	tup;
@@ -590,7 +591,7 @@ Write out the symbol name (including function parameters, if any).  Include
 the translation unit, if not the primary translation unit.
 */
 {
-  char *name;
+  a_const_char *name;
 
   db_symbol_name(sym);
   name = db_symbol_trans_unit(sym);
@@ -599,7 +600,7 @@ the translation unit, if not the primary translation unit.
 
 
 void db_symbol(a_symbol_ptr	sym,
-	       char		*string,
+	       a_const_char	*string,
 	       int		indentation)
 /*
 Write out information on a symbol, for debugging purposes.  sym points to
@@ -607,8 +608,9 @@ the symbol; string is an optional identifying string ("" or NULL if omitted);
 and indentation is the indentation desired.
 */
 {
-  char				*str, buffer[1000];
-  int			col = indentation;
+  a_const_char			*str;
+  char				buffer[1000];
+  int				col = indentation;
   a_type_ptr			type = NULL, temp_type;
   a_variable_ptr		var = NULL;
   a_routine_ptr                 rp;
@@ -679,8 +681,8 @@ and indentation is the indentation desired.
   /* Display the file name (if not the primary source file) and the line
      number of the symbol declaration. */
   {
-    char	  *file_name;
-    char	  *full_name;
+    a_const_char  *file_name;
+    a_const_char  *full_name;
     a_line_number line_number;
     a_boolean	  at_end_of_source;
     if (sym->decl_position.seq > 0) {
@@ -832,7 +834,7 @@ and indentation is the indentation desired.
         }  /* if */
         if (cssp->friend_functions != NULL) {
           a_symbol_ptr  friend_sym, overload_sym, fund_sym;
-          char          *sep;
+          a_const_char  *sep;
 
           friend_sym = cssp->friend_functions;
           put_string("invisible friends =");
@@ -1225,7 +1227,7 @@ do_variable:
               a_routine_ptr inst_rp = tip->instance_sym->variant.routine.ptr;
               if (tip->instantiation_required || tip->is_guiding_decl ||
                   inst_rp->is_specialized) {
-                char* comma = "";
+                a_const_char* comma = "";
                 fputs(" (", f_debug);
                 if (tip->instantiation_required) {
                   fputs("instantiation req'd", f_debug);
@@ -1962,7 +1964,7 @@ be NULL, in which case nothing is done.
 
 static void set_identifier_for_symbol_header(
 					a_symbol_header_ptr	hdr_ptr,
-					char			*string,
+					a_const_char		*string,
 					sizeof_t		length)
 /*
 Make a copy of the specified string, whose length is specified by "length"
@@ -2600,7 +2602,7 @@ be NULL, in which case nothing is done.
 }  /* free_list_of_type_list_entries */
 
 
-a_symbol_ptr find_symbol(char             *identifier,
+a_symbol_ptr find_symbol(a_const_char     *identifier,
 			 sizeof_t         length,
 			 a_symbol_locator *location)
 /*
@@ -2613,7 +2615,7 @@ caller may have to set it directly.
 */
 {
   register a_hash_value        hash_value = 0;
-  register char                *ptr;
+  register a_const_char        *ptr;
   register sizeof_t            a;
   register a_symbol_header_ptr hdr_ptr;
   a_symbol_header_ptr	       prev_hdr_ptr;
@@ -2730,7 +2732,7 @@ and implicit return types).
   } /* if */
   if (!answer && loc->symbol_header != NULL) {
     /* Misdeclared destructors may not be marked as class members: */
-    char *name = loc->symbol_header->identifier;
+    a_const_char *name = loc->symbol_header->identifier;
     if (name != NULL &&
         (name[0] == '~' || (cppcli_enabled && name[0] == '!'))) {
       answer = TRUE;
@@ -6739,8 +6741,8 @@ is none, create a new one.
     sym_hdr->identifier_length = (sizeof_t)OPERATOR_LEN + name_length;
     sym_hdr->identifier =
                    alloc_primary_file_scope_il(sym_hdr->identifier_length + 1);
-    (void)memcpy(sym_hdr->identifier, "operator ", OPERATOR_LEN);
-    (void)strcpy((sym_hdr->identifier + OPERATOR_LEN), name);
+    (void)memcpy((char *)sym_hdr->identifier, "operator ", OPERATOR_LEN);
+    (void)strcpy(((char *)sym_hdr->identifier + OPERATOR_LEN), name);
 #if DEBUG
     symbol_name_string_space += (unsigned long)(sym_hdr->identifier_length);
 #endif /* DEBUG */
@@ -7154,7 +7156,7 @@ parent object" for an anonymous union.  Do not enter it in the symbol table.
 }  /* make_anonymous_parent_object_symbol */
 
 
-a_symbol_ptr full_enter_symbol(char          *identifier,
+a_symbol_ptr full_enter_symbol(a_const_char  *identifier,
 		               sizeof_t      length,
 			       a_symbol_kind sym_kind,
 			       a_scope_depth scope_depth)
@@ -7179,7 +7181,7 @@ entered during initialization.
 
 
 void enter_keyword(a_token_kind token,
-                   char         *keyword)
+                   a_const_char *keyword)
 /*
 Enter a keyword.  keyword is the keyword string, token is the lexical
 token that corresponds to it.
@@ -7296,8 +7298,8 @@ to the symbol entry before the symbol is added to the symbol table.
 }  /* enter_typedef_symbol */
 
 
-void make_symbol_for_predeclared_type(a_type_ptr  predeclared_type,
-                                      char        *name)
+void make_symbol_for_predeclared_type(a_type_ptr   predeclared_type,
+                                      a_const_char *name)
 /*
 Create a symbol of the specified name for the type entry pointed to by
 predeclared_type, binding them to one another.  (predeclared_type should
@@ -7322,7 +7324,7 @@ point to an undefined class or struct type generated by the compiler.)
 static void enter_symbol_for_namespace(a_symbol_ptr      sym,
                                        a_symbol_locator  *locator);
 
-static void make_symbol_for_predeclared_namespace(char         *name,
+static void make_symbol_for_predeclared_namespace(a_const_char *name,
                                                   a_symbol_ptr *sym)
 /*
 Predeclare the namespace with the indicated name -- that is, create the name
@@ -7452,7 +7454,7 @@ Predeclare namespace "cli".  This namespace is used in C++/CLI mode.
 
 
 static a_symbol_ptr look_up_name_string_in_namespace(
-                                        char                     *symbol_name,
+                                        a_const_char             *symbol_name,
                                         a_namespace_ptr          ns_ptr,
                                         an_id_lookup_options_set options)
 /*
@@ -7474,8 +7476,8 @@ NULL).  Return the symbol found, if any.
 }  /* look_up_name_string_in_namespace */
 
 
-static a_symbol_ptr make_cli_internal_template(char *symbol_name,
-                                               char *definition_string)
+static a_symbol_ptr make_cli_internal_template(a_const_char *symbol_name,
+                                               a_const_char *definition_string)
 /*
 Declare and define the template specified by symbol_name and return the symbol
 associated with it.  The definition is provided by definition_string.
@@ -7689,7 +7691,7 @@ Look up the C++/CLI namespace or type specified by csk and cache it in the
 cli_symbols array.  This function assumes that mscorlib.dll has been imported.
 */
 {
-  char              *name;
+  a_const_char      *name;
   a_cli_symbol_kind ns_kind;
 
   check_assertion((int)csk >= (int)csk_first && (int)csk < (int)csk_last);
@@ -7864,7 +7866,7 @@ namespace abi was encountered in the source.
 
 #if defined(GUARD_MACRO_FOR_VA_LIST) || defined(GUARD_MACRO2_FOR_VA_LIST)
 
-static a_boolean define_guard_macro(char *macro_name)
+static a_boolean define_guard_macro(a_const_char *macro_name)
 /*
 If the guard macro with the indicated name is not defined already, define
 it and return FALSE.  If it is defined already, do nothing and return TRUE.
@@ -8312,7 +8314,7 @@ the latter will be NULL for variables.
 }  /* find_external_symbol */
 
 
-a_symbol_header_ptr find_symbol_header(char             *identifier,
+a_symbol_header_ptr find_symbol_header(a_const_char     *identifier,
 				       sizeof_t         length,
 				       a_symbol_locator	*locator)
 /*
@@ -8349,7 +8351,7 @@ is reserved.
   for (cok = (int)cok_first; cok < (int)cok_last; ++cok) {
     a_symbol_header_ptr header;
     a_symbol_locator    locator;
-    char                *name = cli_operator_info[cok].cli_name;
+    a_const_char        *name = cli_operator_info[cok].cli_name;
     check_assertion(name != NULL && *name != '\0');
     clear_locator(&locator, &null_source_position);
     header = find_symbol_header(name, (sizeof_t)strlen(name), &locator);
@@ -8447,7 +8449,7 @@ symbol or NULL if none is found.
 }  /* find_macro_symbol */
 
 
-a_symbol_ptr find_macro_symbol_by_name(char             *identifier,
+a_symbol_ptr find_macro_symbol_by_name(a_const_char     *identifier,
 				       sizeof_t         length,
 				       a_symbol_locator	*locator)
 /*
@@ -8504,8 +8506,8 @@ portion of the destructor or finalizer name with the name of the class symbol.
 Returns TRUE if the names match and FALSE if they do not match.
 */
 {
-  char		*destructor_name;
-  char		*class_name;
+  a_const_char	*destructor_name;
+  a_const_char	*class_name;
   a_boolean	result = FALSE;
 
   check_assertion(!is_error_locator(locator_for_curr_id));
@@ -8614,7 +8616,8 @@ used for C++ constructs like "operator+".  Use pos as the source position.
 {
   a_symbol_header_ptr *table_entry = &opname_symbol_table[opname];
   a_symbol_header_ptr hdr_ptr;
-  char                *opstr, *str;
+  a_const_char        *opstr;
+  char                *str;
   a_boolean           blank_needed;
   sizeof_t            opname_length;
 #define OPERATOR_LEN 8 /* Length of "operator" */
@@ -9208,7 +9211,7 @@ C compatibility mode).
 
 
 static a_symbol_ptr make_predeclared_typedef(a_type_ptr    tp,
-                                             char          *name)
+                                             a_const_char  *name)
 /*
 Create a typedef of the given name for the given type and return the
 associated symbol.
@@ -13490,14 +13493,14 @@ any) applied to the entity associated with scp.
 }  /* deprecation_arg_attr_for */
 
 
-char *deprecation_string_for(a_source_correspondence_ptr  scp)
+a_const_char *deprecation_string_for(a_source_correspondence_ptr  scp)
 /*
 Return the value of the narrow string literal recorded for the "deprecated"
 attribute (if any) applied to the entity associated with scp.
 */
 {
   an_attribute_ptr  ap = deprecation_arg_attr_for(scp);
-  char              *result = NULL;
+  a_const_char      *result = NULL;
 
   if (ap != NULL &&
       is_ordinary_string_constant(ap->arguments->variant.constant)) {
@@ -14206,8 +14209,8 @@ for the class template of which this class is an instance.
 
 #if SUN_EXTENSIONS_ALLOWED
 
-static void set_keyword_visibility(char       *keyword,
-                                   a_boolean  is_visible)
+static void set_keyword_visibility(a_const_char *keyword,
+                                   a_boolean    is_visible)
 /*
 Retrieve the symbol for the given keyword (it must exist) and set its
 visibility as indicated.
@@ -14349,7 +14352,7 @@ mode.
     /* Scan the characters that make up the string literal. */
     if (!accum_quoted_string(&num_chars, /*is_header_name=*/FALSE,
                             SCLK_ORDINARY_STRING_LITERAL, '"', NULL, -1)) {
-      char		*err_char_pos;
+      a_const_char	*err_char_pos;
       an_error_code	err_code;
       /* Convert the string literal into a string constant. */
       conv_string_literal(start_of_curr_token + 1, end_of_curr_token,

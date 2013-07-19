@@ -243,7 +243,7 @@ extern void remainder_integer_values(an_integer_value *op_1,
 
 #if !INTEGER_VALUE_REPR_IS_A_HOST_INTEGER || FIXED_POINT_ALLOWED
 extern void conv_float_string_to_integer_value
-                                       (char			*float_str,
+                                       (a_const_char		*float_str,
 					an_integer_value	*intval,
 					a_boolean		is_signed,
 					a_boolean		*err);

@@ -423,7 +423,7 @@ enter_system_specific_predeclared_symbols; see sys_predef.c.)
 #if MICROSOFT_EXTENSIONS_ALLOWED
 
 static void enter_underscore_keywords(a_token_kind token,
-                                      char         *keyword)
+                                      a_const_char *keyword)
 /*
 This routine is called in Microsoft compatibility mode.  The string pointed
 to by keyword has a double-underscore prefix (e.g., __cdecl), and an
@@ -442,7 +442,7 @@ token is the lexical token that corresponds to both.  Enter both keywords.
 
 
 static void enter_gnu_keyword(a_token_kind token,
-                              char         *keyword)
+                              a_const_char *keyword)
 /*
 The Gnu compiler accepts some keywords in two forms and some in
 three.  For example, typeof can be specified as "typeof", "__typeof",
@@ -492,7 +492,7 @@ name with two underscores appended.
 }  /* enter_gnu_keyword */
 
 
-static void enter_unimplemented_keyword(char          *keyword,
+static void enter_unimplemented_keyword(a_const_char  *keyword,
 					an_error_code error_code)
 /*
 Enter a keyword for a token that is not yet implemented.  error_code
@@ -509,7 +509,7 @@ specifies a diagnostic message to be issued if the keyword is used.
 
 
 static void enter_preproc_op_keyword(a_token_kind token,
-                                     char         *keyword)
+                                     a_const_char *keyword)
 /*
 Like enter_keyword but for keywords that also have a meaning when parsing
 preprocessing directives (i.e., operators like "and").
@@ -1718,8 +1718,8 @@ as a standalone program, but nothing else from lexical.c is needed in that
 configuration.)
 */
 {
-  int  tok_kind, opname_kind;
-  char *str;
+  int          tok_kind, opname_kind;
+  a_const_char *str;
 
   (void)memzero((char *)opname_names, sizeof(opname_names));
   for (tok_kind = 0; tok_kind < (int)tok_last; tok_kind++) {

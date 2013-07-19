@@ -170,7 +170,7 @@ they are referenced for purposes of tree walking.
   if (entry_ptr != NULL) {
 #if DEBUG
     if (debug_level >= 5) {
-      char *s;
+      a_const_char *s;
       switch (entry_kind) {
         case iek_id_name:       s = "id name";                 break;
         case iek_string_text:   s = "string text";             break;

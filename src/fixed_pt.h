@@ -28,12 +28,12 @@ extern void fxp_init_value(a_fixed_point_value  *value);
 extern a_boolean fxp_value_is_zero(a_fixed_point_value  *value);
 
 extern void fxp_string_to_fixed_point(a_fixed_point_type_descr  *fxp_descr,
-                                      char                      *str,
+                                      a_const_char              *str,
                                       a_fixed_point_value       *value,
                                       a_boolean                 *err);
 
 extern void fxp_hex_string_to_fixed_point(a_fixed_point_type_descr  *fxp_descr,
-                                          char                      *str,
+                                          a_const_char              *str,
                                           a_fixed_point_value       *value,
                                           a_boolean                 *err,
                                           a_boolean                 *inexact);

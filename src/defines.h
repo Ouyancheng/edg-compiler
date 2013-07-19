@@ -104,6 +104,12 @@ Set the test version flags to FALSE for demo versions.
 #define ENABLE_TRANS_UNIT_TEST_MODE 1
 #define DEFAULT_FLOATING_POINT_TEMPLATE_PARAMETERS_ALLOWED 1
 
+#ifndef USE_POINTER_TO_CONST_CHAR
+/* Typedef a_const_char to const char to check for violations of const
+   correctness. */
+#define USE_POINTER_TO_CONST_CHAR 1
+#endif /* ifndef USE_POINTER_TO_CONST_CHAR */
+
 #ifdef IA64_ABI
 #if IA64_ABI
 #define TARG_ZERO_WIDTH_BIT_FIELD_ALIGNMENT (-1)

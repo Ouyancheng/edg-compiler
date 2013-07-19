@@ -283,8 +283,8 @@ this vtable does not belong to any type_info type.
 }  /* is_type_info_vtbl */
 
 
-static void set_name_for_typeinfo_type(a_type_ptr type,
-                                       char       *name)
+static void set_name_for_typeinfo_type(a_type_ptr   type,
+                                       a_const_char *name)
 /*
 Set the name for type (a typeinfo type) as indicated.  The type must
 be named and is given external linkage so we can generate a virtual
@@ -293,7 +293,7 @@ function table for it.
 {
   type->source_corresp.name = 
                            alloc_lowered_name_string((sizeof_t)strlen(name)+1);
-  (void)strcpy(type->source_corresp.name, name);
+  (void)strcpy((char *)type->source_corresp.name, name);
   type->source_corresp.name_linkage =
                                    (a_name_linkage_kind)nlk_cplusplus_external;
 }  /* set_name_for_typeinfo_type */
@@ -1531,7 +1531,7 @@ typeinfo variable in a COMDAT group.
       /* We didn't generate a virtual function table for the corresponding
          type_info type, probably because we don't have that type.
          Generate a virtual function table for the typeinfo type. */
-      char          *saved_name;
+      a_const_char  *saved_name;
       a_symbol_ptr  ns_sym = NULL;
       a_type_ptr    tinfo_type_for_vtbl =
                                    typeinfo_types[(int)typeinfo_kind_for_vtbl];

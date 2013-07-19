@@ -71,7 +71,8 @@ static a_pch_event_ptr
 			/* Pointer to the end of the list of precompiled
                            header events associated with the command line. */
 
-static char	*pch_file_name;
+static a_const_char
+		*pch_file_name;
 			/* Name of the precompiled header file being written
 			   or read. */
 
@@ -253,7 +254,8 @@ typedef enum /* a_pch_file_section */ {
 } a_pch_file_section;
 
 #if DEBUG
-static char	*file_section_names[(int)pfs_last + 1] =
+static a_const_char
+		*file_section_names[(int)pfs_last + 1] =
 {
   "cmd_line_events",
   "other_events",
@@ -402,14 +404,14 @@ If not, expand file_name_buffer by reallocating it.
 }  /* ensure_file_name_buffer_space */
 
 
-static char *build_pch_file_name(char	*file_name)
+static a_const_char *build_pch_file_name(a_const_char *file_name)
 /*
 Concatenate the PCH directory with the specified file name.  Uses a
 local file name buffer for storage.  Return a pointer to the name.  If no
 directory name is being used, a pointer to the original name is returned.
 */
 {
-  char	*result;
+  a_const_char *result;
 
   if (pch_dir_name == NULL || is_absolute_file_name(file_name)) {
     result = file_name;
@@ -432,7 +434,7 @@ Create the string that is used to identify a flag as a precompiled header
 associated with this compiler version.
 */
 {
-  char		*format_string = "EDG C/C++ version %s (%s %s)\n";
+  a_const_char	*format_string = "EDG C/C++ version %s (%s %s)\n";
   check_assertion_str2((sizeof_t)(strlen(format_string) +
                        strlen(VERSION_NUMBER) +
                        strlen(build_date) +
@@ -478,7 +480,7 @@ Allocate and initialize a precompiled header event record.
 
 void add_pch_event(a_pch_event_kind	kind,
 		   a_pp_directive_kind	ppd_kind,
-		   char			*value,
+		   a_const_char		*value,
 		   a_source_position	*position,
 		   a_line_number	actual_line)
 /*
@@ -521,7 +523,7 @@ file.
 void add_command_line_pch_event(a_pch_event_kind	kind,
                                 an_option_kind		opt_kind,
 				a_boolean		opt_value,
-				char			*opt_arg)
+				a_const_char		*opt_arg)
 /*
 Add a precompiled header event to the list of events associated with
 the command line.
@@ -722,7 +724,7 @@ static void open_pch_output_file(void)
 Create or truncate the precompiled header file.
 */
 {
-  char		*file_name;
+  a_const_char *file_name;
 
   if (create_precompiled_header) {
     file_name = pch_output_file_name;
@@ -742,7 +744,7 @@ Create or truncate the precompiled header file.
 }  /* open_pch_output_file */
 
 
-static a_boolean open_pch_input_file(char *file_name)
+static a_boolean open_pch_input_file(a_const_char *file_name)
 /*
 Open the PCH input file.  Return TRUE if the file could be opened.
 If the file cannot be opened, and the name was explicitly specified by the
@@ -792,7 +794,7 @@ See if the PCH file being used (if any) is associated with the
 file currently being compiled.  If not, remove the associated file.
 */
 {
-  char		*assoc_pch_file_name;
+  a_const_char	*assoc_pch_file_name;
   a_boolean	remove_file = FALSE;
 
   db_enter(3, "remove_assoc_pch_file_if_not_being_used");
@@ -824,7 +826,7 @@ file currently being compiled.  If not, remove the associated file.
 }  /* remove_assoc_pch_file_if_not_being_used */
 
 
-static void pch_write_string(char	*str)
+static void pch_write_string(a_const_char *str)
 /*
 Write a null terminated character string to the PCH output file.  The
 string is written as a length followed by the characters of the string.
@@ -1517,7 +1519,7 @@ current point.
 
 
 #if DEBUG
-static void db_cannot_generate_reason(char *str)
+static void db_cannot_generate_reason(a_const_char *str)
 /*
 Display a debugging message explaining why a precompiled header file
 can't be generated.
@@ -1938,7 +1940,7 @@ directory.  Return TRUE if an applicable PCH was found.
 {
   a_boolean		first;
   a_boolean		first_from_dir;
-  char			*file_name;
+  a_const_char		*file_name;
   a_source_position	best_result_so_far;
   a_boolean		is_applicable;
   a_boolean		result = FALSE;
@@ -2043,7 +2045,7 @@ directory.  Return TRUE if an applicable PCH was found.
     /* Save a copy of the precompiled header file name to be used. */
     pch_input_file_name = 
            (char *)alloc_general((sizeof_t)strlen(file_name_buffer.name) + 1);
-    (void)strcpy(pch_input_file_name, file_name_buffer.name);
+    (void)strcpy((char *)pch_input_file_name, file_name_buffer.name);
   }  /* if */
   db_exit();
   return result;

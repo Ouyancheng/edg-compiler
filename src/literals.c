@@ -29,7 +29,7 @@ literals.c -- Literal constant conversion to and from internal form.
 
 void conv_integer_literal(int           radix,
                           an_error_code *err_code,
-                          char          **err_pos)
+                          a_const_char  **err_pos)
 /*
 Convert an integer of base indicated by radix (2, 8, 10, or 16) from
 external form to internal form.  start_of_curr_token and
@@ -51,10 +51,10 @@ is allowed.) (Or a suffix like "i32", if Microsoft extensions are enabled.)
   a_boolean        has_ll_suffix = FALSE;
   char		   l_char_used = '\0';
 #endif /* LONG_LONG_ALLOWED */
-  char             *temp_ptr;
+  a_const_char     *temp_ptr;
   a_boolean        err, ovflo = FALSE, do_sign_extension = FALSE;
   a_boolean        non_arith = (radix != 10);
-  char             *real_end_pos = end_of_curr_token;
+  a_const_char     *real_end_pos = end_of_curr_token;
   unsigned long    intdigit;
   an_integer_kind  kind;
 #if MICROSOFT_EXTENSIONS_ALLOWED
@@ -81,7 +81,7 @@ is allowed.) (Or a suffix like "i32", if Microsoft extensions are enabled.)
           /* Yes, we have a suffix like "i32". */
           /* scan_number has ensured that there is at least one digit
              following the "i". */
-          char          *suffix_loc = temp_ptr;
+          a_const_char  *suffix_loc = temp_ptr;
           unsigned long isuffix = 0;
           unsigned long ndigits = 0;
 
@@ -507,7 +507,7 @@ wrapup:
 
 void conv_fixed_point_literal(a_boolean      is_hexadecimal,
                               an_error_code  *err_code,
-                              char           **err_pos)
+                              a_const_char   **err_pos)
 /*
 Convert a fixed-point constant from external form to internal form.
 start_of_curr_token and end_of_curr_token point to the two ends of the
@@ -523,13 +523,13 @@ This function is modeled after conv_float_literal (see below).
 */
 {
   a_fixed_point_type_descr
-             fxp_descr;
+               fxp_descr;
   a_fixed_point_value
-             value;
-  char       *actual_end = end_of_curr_token;
-  char       old_next_char;
-  a_boolean  err;
-  a_boolean  inexact = FALSE;
+               value;
+  a_const_char *actual_end = end_of_curr_token;
+  char         old_next_char;
+  a_boolean    err;
+  a_boolean    inexact = FALSE;
 
   *err_code = ec_no_error;
   /* Check the suffixes. */
@@ -562,7 +562,7 @@ This function is modeled after conv_float_literal (see below).
   /* Place a null after the number to guarantee stopping at the right
      point.  */
   old_next_char = *(actual_end+1);
-  *(actual_end+1) = '\0';
+  *(char *)(actual_end+1) = '\0';
   /* Do the conversion. */
   if (is_hexadecimal) {
     fxp_hex_string_to_fixed_point(&fxp_descr, start_of_curr_token, &value,
@@ -571,7 +571,7 @@ This function is modeled after conv_float_literal (see below).
     fxp_string_to_fixed_point(&fxp_descr, start_of_curr_token, &value, &err);
   }  /* if */
   /* Restore the character that was replaced by a null. */
-  *(actual_end+1) = old_next_char;
+  *(char *)(actual_end+1) = old_next_char;
   if (err) {
     *err_code = ec_bad_fixed_point_value;
     *err_pos = start_of_curr_token;
@@ -599,7 +599,7 @@ This function is modeled after conv_float_literal (see below).
 
 void conv_float_literal(a_boolean	is_hexadecimal,
 			an_error_code	*err_code,
-                        char		**err_pos)
+                        a_const_char	**err_pos)
 /*
 Convert a floating constant from external form to internal form.
 start_of_curr_token and end_of_curr_token point to the two ends of the
@@ -615,7 +615,7 @@ the character position of the error.
   a_float_kind kind;
   an_internal_float_value
                number;
-  char         *actual_end = end_of_curr_token;
+  a_const_char *actual_end = end_of_curr_token;
   char         old_next_char, old_next2_char;
   a_boolean    err;
   a_boolean    inexact = FALSE;
@@ -678,10 +678,10 @@ the character position of the error.
        actual_end != start_of_curr_token &&
        (*(actual_end-1) == 'E' || *(actual_end-1) == 'e'))) {
     /* Missing exponent digits (pcc case); add 0 exponent. */
-    *(actual_end+1) = '0';
-    *(actual_end+2) = '\0';
+    *(char *)(actual_end+1) = '0';
+    *(char *)(actual_end+2) = '\0';
   } else {
-    *(actual_end+1) = '\0';
+    *(char *)(actual_end+1) = '\0';
   }  /* if */
   /* Do the conversion. */
   if (is_hexadecimal) {
@@ -690,8 +690,8 @@ the character position of the error.
   } else {
     fp_string_to_float(kind, start_of_curr_token, &number, &err);
   }  /* if */
-  *(actual_end+1) = old_next_char;
-  *(actual_end+2) = old_next2_char;
+  *(char *)(actual_end+1) = old_next_char;
+  *(char *)(actual_end+2) = old_next2_char;
   if (err) {
     *err_code = ec_bad_float_value;
     *err_pos = start_of_curr_token;
@@ -832,7 +832,7 @@ state->next_orig_line_modif is advanced to point to the next modification.
 {
   unsigned long targ_ch;
   unsigned char tch;
-  char          *lptr;
+  a_const_char  *lptr;
   int           digit;
   a_boolean     range_error = FALSE;
   a_boolean     numeric_escape = FALSE;
@@ -1253,7 +1253,7 @@ defines the size of character.
 
 void conv_char_literal(unsigned long num_chars,
                        an_error_code *err_code,
-                       char          **err_pos)
+                       a_const_char  **err_pos)
 /*
 Convert a character constant from external form to internal form.
 start_of_curr_token and end_of_curr_token point to the two ends of the
@@ -1267,7 +1267,7 @@ the actual number of converted characters may be less than num_chars.  */
 {
   unsigned long           i, ch;
   an_integer_value        number, ch_int_val;
-  char                    *temp_ptr;
+  a_const_char            *temp_ptr;
   a_boolean               err, too_many_chars = FALSE, bad_character = FALSE;
   a_type_ptr              con_type;
   unsigned int            char_size;
@@ -1510,12 +1510,12 @@ specifies the number of bytes in a wide character.
 }  /* put_wide_char_into_string */
 
 
-void conv_string_literal(char                          *start_of_string_value,
-                         char                          *end_of_string_value,
+void conv_string_literal(a_const_char                  *start_of_string_value,
+                         a_const_char                  *end_of_string_value,
                          a_string_or_char_literal_kind lit_kind,
                          unsigned long                 num_chars,
                          an_error_code                 *err_code,
-                         char                          **err_pos)
+                         a_const_char                  **err_pos)
 /*
 Convert a string literal from external form to internal form.
 start_of_string_value and end_of_string_value point to the first character
@@ -1534,7 +1534,9 @@ the string.
 */
 {
   unsigned long                 i, ch, centity_mask;
-  char                          *temp_ptr, *pstr, *str_start;
+  a_const_char                  *temp_ptr;
+  char                          *pstr;
+  char                          *str_start;
   sizeof_t                      constant_size;
   a_targ_size_t                 num_elems;
   unsigned int                  char_size;
@@ -1713,7 +1715,7 @@ the string.
 }  /* conv_string_literal */
 
 
-static void widening_copy(char              *src,
+static void widening_copy(a_const_char      *src,
                           char              *dst,
                           a_targ_size_t     len,
                           a_character_kind  kind)
@@ -1740,7 +1742,7 @@ literal.
 */
 {
   a_targ_size_t  narrow_str_len = con->variant.string.length;
-  char           *narrow_str = con->variant.string.value;
+  a_const_char   *narrow_str = con->variant.string.value;
 
   clear_constant(con, (a_constant_repr_kind)ck_string);
   con->type = string_literal_type((a_character_kind)chk_wchar_t,
@@ -1749,7 +1751,7 @@ literal.
   con->variant.string.length = narrow_str_len * targ_sizeof_wchar_t;
   con->variant.string.value = alloc_text_of_string_literal(
                                         (sizeof_t)con->variant.string.length);
-  widening_copy(narrow_str, con->variant.string.value,
+  widening_copy(narrow_str, (char *)con->variant.string.value,
                 narrow_str_len, (a_character_kind)chk_wchar_t);
 }  /* widen_string_literal */
 

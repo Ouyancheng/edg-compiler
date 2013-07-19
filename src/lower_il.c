@@ -1073,7 +1073,7 @@ allocated is not a bit field.
 }  /* add_field */
 
 
-static void add_dummy_field(char          *field_name,
+static void add_dummy_field(a_const_char  *field_name,
                             a_type_ptr    field_type,
                             a_targ_size_t field_offset,
                             a_type_ptr    struct_type)
@@ -1101,7 +1101,7 @@ field_offset gives the byte offset for the field.
 
 
 static void add_base_class_dummy_field(a_type_ptr    base_class_type,
-                                       char          *field_prefix,
+                                       a_const_char  *field_prefix,
                                        a_type_ptr    field_type,
                                        a_targ_size_t field_offset,
                                        a_type_ptr    struct_type)
@@ -1159,9 +1159,9 @@ last field, or is NULL if there are no fields yet; it is updated
 on return.
 */
 {
-  char        *field_name;
-  sizeof_t    name_length, alloc_length;
-  a_field_ptr field_ptr;
+  a_const_char *field_name;
+  sizeof_t     name_length, alloc_length;
+  a_field_ptr  field_ptr;
 
   /* Copy the name into the file-scope IL memory region. */
   field_name = old_field_ptr->source_corresp.name;
@@ -1190,7 +1190,7 @@ on return.
 }  /* copy_field */
 
 
-void make_lowered_field(char          *field_name,
+void make_lowered_field(a_const_char  *field_name,
                         a_type_ptr    field_type,
                         a_type_ptr    struct_type,
                         a_field_ptr   *last_field)
@@ -1864,7 +1864,7 @@ instead of the current context (which might be a block scope).
 }  /* make_unnamed_local_static_variable */
 
 
-a_variable_ptr make_lowered_variable(char            *var_name,
+a_variable_ptr make_lowered_variable(a_const_char    *var_name,
                                      a_boolean       already_il_name,
                                      a_type_ptr      var_type,
                                      a_storage_class var_storage_class)
@@ -1945,7 +1945,7 @@ it.  The variable has no name.
 
 
 a_variable_ptr make_global_var_with_prefixed_name(
-                                      char                    *prefix,
+                                      a_const_char            *prefix,
                                       an_integer_kind         ikind,
                                       a_source_correspondence *source_corresp)
 /*
@@ -1957,7 +1957,8 @@ about potential template instantiations.
 */
 {
   a_variable_ptr var;
-  char           *mangled_name, *info_name;
+  a_const_char   *mangled_name;
+  char           *info_name;
   sizeof_t       mangled_name_length, info_name_length;
   sizeof_t       prefix_length, alloc_length;
 
@@ -1992,7 +1993,7 @@ about potential template instantiations.
 
 #if AUTOMATIC_TEMPLATE_INSTANTIATION
 
-void make_instantiation_info_var(char                    *prefix,
+void make_instantiation_info_var(a_const_char            *prefix,
                                  a_source_correspondence *source_corresp)
 /*
 Create a variable whose name records information on instantiation of some
@@ -3844,13 +3845,13 @@ in the given source correspondence entry.
   if (il_header.UCN_identifiers_used) {
     /* Rewrite the escape character in UCNs. */
     char *p;
-    p = source_corresp->name;
+    p = (char *)source_corresp->name;
     if (p != NULL) {
       while ((p = strchr(p, '\\')) != NULL) {
         *p++ = UCN_ESCAPE_REWRITE_CHAR;
       }  /* while */
     }  /* if */
-    p = source_corresp->unmangled_name_or_mangled_encoding;
+    p = (char *)source_corresp->unmangled_name_or_mangled_encoding;
     if (p != NULL) {
       while ((p = strchr(p, '\\')) != NULL) {
         *p++ = UCN_ESCAPE_REWRITE_CHAR;

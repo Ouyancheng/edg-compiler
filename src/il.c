@@ -304,7 +304,7 @@ template arguments on template classes.
 #endif /* DEBUG */
 #endif /* !STANDALONE_UTILITY_PROGRAM */
 
-void put_str_into_text_buffer(char                                  *str,
+void put_str_into_text_buffer(a_const_char                          *str,
                               an_il_to_str_output_control_block_ptr octl)
 /*
 Output a string into the db_name_str buffer.
@@ -357,7 +357,7 @@ is TRUE, include type information for function parameters.
   if (in_front_end) {
     /* Generate a translation unit name if this entity's symbol is
        not from the primary translation unit. */
-    char  *trans_unit_name;
+    a_const_char *trans_unit_name;
     trans_unit_name = db_symbol_trans_unit((a_symbol_ptr)scp->assoc_info);
     if (trans_unit_name != NULL) {
       add_char_to_text_buffer(db_name_str_buffer, '[');
@@ -915,7 +915,7 @@ Dump information on a using-decl entry, for debug purposes.
 */
 {
   a_source_correspondence  *sc;
-  char                     *str;
+  a_const_char             *str;
 
   if (!udp->is_using_directive) {
     /* A using-declaration. */
@@ -1003,7 +1003,7 @@ If tp is a routine type, dump the function parameters, for debug purposes.
 
 static void db_add_qualifier_to_string(a_type_qualifier_set	qualifier,
 				       a_type_qualifier_set	qualifiers,
-				       char			*name)
+				       a_const_char		*name)
 /*
 If "qualifier" is set in "qualifiers" add "name" to the qualifier
 buffer.  If "qualifier" is TQ_NONE, unconditionally add "name"
@@ -1571,7 +1571,7 @@ Dump the contents of the indicated type entry, for debug purposes.
 
 
 /*ARGSUSED*/ /* octl is not used. */
-void put_str_to_f_debug(char                                  *str,
+void put_str_to_f_debug(a_const_char                          *str,
                         an_il_to_str_output_control_block_ptr octl)
 /*
 Output the indicated string to f_debug.  This is used as an output routine
@@ -2116,7 +2116,7 @@ static void db_constant_repr_kind(a_constant_repr_kind  kind)
 Dump a string identifying a constant-representation kind, for debug purposes.
 */
 {
-  char *s;
+  a_const_char *s;
 
   switch (kind) {
     case ck_error:            s = "ck_error";		 break;
@@ -2289,7 +2289,7 @@ void db_statement_kind(a_statement_kind  kind)
 Dump a statement kind, for debug purposes.
 */
 {
-  char *s;
+  a_const_char *s;
 
   switch (kind) {
     case stmk_empty:           s = "empty";             break;
@@ -2457,7 +2457,7 @@ Dump a statement, for debug purposes.
 
 void db_statement_list(a_statement_ptr  sp,
                        int              indent,
-                       char             *str,
+                       a_const_char     *str,
                        int              how_deep)
 /*
 Dump a list of statements, for debug purposes.  sp is the head of the
@@ -2731,7 +2731,7 @@ is at least size_needed.  Called by ensure_temp_text_buffer_space.
 }  /* expand_temp_text_buffer */
 
 
-void put_str_to_temp_text_buffer(char *str)
+void put_str_to_temp_text_buffer(a_const_char *str)
 /*
 Output the indicated string to temp_text_buffer at the position indicated by
 pos_in_temp_text_buffer, and update the latter.  The terminating null character
@@ -2749,7 +2749,7 @@ is copied but not counted in updating pos_in_temp_text_buffer.
 
 /*ARGSUSED*/ /* octl is not used. */
 void put_str_to_temp_text_buffer_octl(
-                               char                                  *str,
+                               a_const_char                          *str,
                                an_il_to_str_output_control_block_ptr octl)
 /*
 Wrapper for put_str_to_temp_text_buffer for use with the il-to-str routines.
@@ -3106,9 +3106,9 @@ is used.
 void record_start_of_source_file(a_source_file_ptr parent_file,
 			         a_seq_number      seq_number,
 				 a_line_number     line_number,
-			         char	           *file_name,
-			         char	           *full_name,
-                                 char              *name_as_written,
+			         a_const_char      *file_name,
+			         a_const_char      *full_name,
+                                 a_const_char      *name_as_written,
 			         a_source_file_ptr *new_file,
                                  a_boolean	   is_include_file,
 				 a_boolean	   is_system_include,
@@ -3207,9 +3207,9 @@ a file that contains metadata).
 #if MICROSOFT_EXTENSIONS_ALLOWED
 
 void record_inclusion_of_assembly_source_file(
-                                     char              *file_name,
-                                     char              *full_name,
-                                     char              *name_as_written,
+                                     a_const_char      *file_name,
+                                     a_const_char      *full_name,
+                                     a_const_char      *name_as_written,
                                      a_source_file_ptr *new_file,
                                      a_boolean         is_system_include,
                                      a_boolean         is_preinclude,
@@ -3726,8 +3726,8 @@ physical line position for the sequence number.
 
 
 void conv_seq_to_file_and_line(a_seq_number  seq_number,
-	     		       char	     **file_name,
-			       char          **full_name,
+	     		       a_const_char  **file_name,
+			       a_const_char  **full_name,
 			       a_line_number *line_number,
                                a_boolean     *at_end_of_source)
 /*
@@ -3779,7 +3779,7 @@ Return the line number that corresponds to the given sequence number.  Also
 print the file name and line number.
 */
 {
-  char          *file_name, *full_name;
+  a_const_char  *file_name, *full_name;
   a_boolean     at_end_of_source;
   a_line_number line_number;
 
@@ -5054,7 +5054,7 @@ characters.  The constant is updated in place.
     a_character_kind  char_kind = con->character_kind;
     unsigned int      char_size = (unsigned int)character_size[char_kind];
     a_targ_size_t     i, len = con->variant.string.length;
-    char              *str = con->variant.string.value;
+    a_const_char      *str = con->variant.string.value;
     a_constant        char_val;
 
     clear_constant(&char_val, (a_constant_repr_kind)ck_integer);
@@ -5616,13 +5616,13 @@ constant is assumed to be an allocated IL constant.
 }  /* copy_unshared_constant */
 
 
-static a_hash_value hash_string(char *ptr)
+static a_hash_value hash_string(a_const_char *ptr)
 /*
 Return a hash value developed from the string pointed to by ptr.
 */
 {
   a_hash_value hash_value = 0;
-  char                  *cptr;
+  a_const_char          *cptr;
 
   for (cptr = ptr; *cptr != '\0'; cptr++) {
     hash_value = (hash_value << 5) + hash_value + *cptr;
@@ -5638,7 +5638,7 @@ correspondence entry.
 */
 {
   a_hash_value hash_value = 0;
-  char         *cptr = scp->name;
+  a_const_char *cptr = scp->name;
 
   if (cptr != NULL) {
     for (; *cptr != '\0'; cptr++) {
@@ -5857,7 +5857,7 @@ Return the hash value for the indicated constant.
   a_hash_value    hash_value;
   a_targ_size_t   length;
   a_boolean       ovflo;
-  char            *p;
+  a_const_char    *p;
 
   /* Compute a hash value from the constant.  The hash doesn't have to
      be perfect, but it should spread the expected constants fairly widely.
@@ -5941,7 +5941,7 @@ Return the hash value for the indicated constant.
           /* Note that the type is not included in the hash because two
              constants with the same UUID value but different types
              are considered equal (e.g., by compare_constants). */
-          { char *uuid_string;
+          { a_const_char *uuid_string;
             hash_value = 231;
             uuid_string = uuid_string_of_type(cp->type);
             if (uuid_string != NULL) hash_value += hash_string(uuid_string);
@@ -6562,8 +6562,8 @@ definition of the CC flags in il.h for more information.
                   /* eq = FALSE; -- already set. */
                 } else {
                   /* Compare the uuid strings. */
-                  char *string1 = uuid_string_of_type(uuid_type1);
-                  char *string2 = uuid_string_of_type(uuid_type2);
+                  a_const_char *string1 = uuid_string_of_type(uuid_type1);
+                  a_const_char *string2 = uuid_string_of_type(uuid_type2);
                   eq = (string1 == string2) ||
                        (string1 != NULL && string2 != NULL &&
                         strcmp(string1, string2) == 0);
@@ -9269,8 +9269,8 @@ return a pointer to it.
 
 
 void set_complex_constant(a_float_kind float_kind,
-                          char         *real,
-                          char         *imag,
+                          a_const_char *real,
+                          a_const_char *imag,
                           a_constant   *con)
 /*
 Fill in the constant "con" as a complex constant of kind "float_kind" with
@@ -19997,16 +19997,9 @@ the case if the return type was incomplete at the point of definition.
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
         } else if (!cssp->construction_by_bitwise_copy_allowed
 #if IA64_ABI
-#if ABI_COMPATIBILITY_VERSION >= 408
                    || has_nontrivial_destructor(cssp)
-#else /* ABI_COMPATIBILITY_VERSION < 408 */
-                   /* This test had failed to take into account defaulted
-                      destructors and is replaced by the test above, but
-                      remains here for backward compatibility. */
-                   || cssp->destructor != NULL
-#endif /* ABI_COMPATIBILITY_VERSION >= 408 */
 #endif /* IA64_ABI */
-                                              ) {
+                                                     ) {
           rtsp->value_returned_by_cctor = TRUE;
           /* If the return type is an abstract class, issue an error.  Note
              that construction_by_bitwise_copy_allowed will never be TRUE
@@ -20738,7 +20731,7 @@ Dump the "name" of an object lifetime (really, some identifying information
 about it).
 */
 {
-  char            *str;
+  a_const_char    *str;
 
   switch (olp->kind) {
     case olk_block_after_label: str = "block_after_label"; break;
@@ -20888,7 +20881,7 @@ stopping when the object lifetime indicated by stop_at is reached.
 
 
 static void db_object_lifetime_with_indentation(an_object_lifetime_ptr  olp,
-                                                char                    *str)
+                                                a_const_char            *str)
 /*
 Display an object lifetime in a special format, for use when dump_lifetimes
 has been enabled at the command line.  The display line includes the current
@@ -21051,7 +21044,7 @@ lifetimes, since those are never bound.
   an_object_lifetime_ptr   *lifetime_addr;
 
 #if CHECKING
-  char *str = "bind_object_lifetime:";
+  a_const_char *str = "bind_object_lifetime:";
 
   check_assertion_str2(entity_ptr != NULL, str, "NULL entity");
   check_assertion_str2(olp->entity.ptr == NULL, str, "lifetime already bound");
@@ -24010,7 +24003,7 @@ return FALSE.
 #endif /* UPC_EXTENSIONS_ALLOWED */
 
 a_type_ptr init_predeclared_class(a_type_kind          kind,
-                                  char                 *name)
+                                  a_const_char         *name)
 /*
 Create a type entry for a predeclared class of the specified kind.  It is
 given the name indicated and a symbol is created, but the symbol is not
@@ -24991,7 +24984,7 @@ be used, but there are exceptions.
 */
 {
   if (get_module_id() == NULL) {
-    char *name = NULL;
+    a_const_char *name = NULL;
     check_assertion(scp != NULL &&
                     (kind == (an_il_entry_kind)iek_variable ||
                      kind == (an_il_entry_kind)iek_routine));
