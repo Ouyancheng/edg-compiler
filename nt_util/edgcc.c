@@ -65,7 +65,7 @@ typedef struct a_cl_argument {
   a_cl_argument_ptr
 		next;
 			/* Pointer to the next argument in the list. */
-  char		*str;
+  a_const_char	*str;
 			/* Pointer to the argument text. */
 } a_cl_argument;
 
@@ -143,10 +143,12 @@ static int multi_trans_unit_mode = FALSE;
 			/* Use multiple translation unit mode. */
 static int preprocess_only = FALSE;
 			/* Running in preprocessing mode. */
-static char	*edg_base;
+static a_const_char
+		*edg_base;
 			/* Where the EDG bin, lib, and include directories
                            reside. */
-static char	*cpfe_command;
+static a_const_char
+		*cpfe_command;
 			/* Name of the front end executable. */
 static char	*edg_lib;
 			/* $EDG_BASE/lib. */
@@ -208,7 +210,7 @@ EXTERN_C char* getwd(char *pathname);
 #endif /* __MICROSOFT_OS__ */
 
 
-static void internal_error(char*   error_string)
+static void internal_error(a_const_char* error_string)
 /*
 Prints an internal error message and exits with a catastrophic error
 exit status.
@@ -296,7 +298,7 @@ static a_cl_argument_ptr
 
 
 static void add_cl_argument(a_command_line_ptr	clp,
-			    char		*new_arg)
+			    a_const_char	*new_arg)
 /*
 Add an argument to a command line.  The argument pointer points to the
 actual string passed by the caller, not a copy.
@@ -549,7 +551,7 @@ when we choose to make sizeof_t something longer.
 #endif /* __WIN32__ */
 
 
-static char *end_of_directory_name(char *file_name)
+static char *end_of_directory_name(a_const_char *file_name)
 /*
 Return a pointer to the end of the directory part of the indicated file
 name, or NULL if there is no directory part.
@@ -591,8 +593,8 @@ used to represent stdin; it must return  NULL.
 }  /* end_of_directory_name */
 
 
-char *derived_name(char *file_name,
-                   char *suffix)
+char *derived_name(a_const_char *file_name,
+                   a_const_char *suffix)
 /*
 Return a string that is the base name of file_name with the given suffix
 appended.  The string is allocated in general storage, NOT in an
@@ -600,9 +602,9 @@ intermediate language memory region, so it must be copied if it is to
 be passed to the back end.
 */
 {
-  char     *last_slash, *last_dot, *name_start, *name_end;
-  sizeof_t der_name_length, suffix_length, base_name_length;
-  char     *der_name;
+  a_const_char *last_slash, *last_dot, *name_start, *name_end;
+  sizeof_t     der_name_length, suffix_length, base_name_length;
+  char         *der_name;
 
   /* Find the base name by removing the directory and suffix. */
   last_slash = end_of_directory_name(file_name);
@@ -681,7 +683,7 @@ Rename a file from "from" to "to".
 }  /* rename_file */
 
 
-static void remove_file(char *file)
+static void remove_file(a_const_char *file)
 /*
 Remove a file.
 */
@@ -728,16 +730,16 @@ to the number of characters read not including the trailing null character.
 }  /* read_input_line */
 
 
-static char *get_suffix(char	*file_name)
+static a_const_char *get_suffix(a_const_char *file_name)
 /*
 Return a pointer to the suffix part of the file name.
 */
 {
-  char	*ptr;
+  a_const_char *ptr;
 #if __WIN32__
-  char	*ptr2;
+  a_const_char *ptr2;
 #endif /* __WIN32__ */
-  char	*suffix;
+  a_const_char *suffix;
   /* Find the file name part of the path name.  This is the part after
      any directory name.  In MS-DOS it is also the part after a drive name. */
   ptr = strrchr(file_name, '/');
@@ -771,7 +773,7 @@ Execute the command in "string_buffer" and return the resulting status.
   to = string_buffer;
   clap = clp->args;
   while (clap != NULL) {
-    char	*from = clap->str;
+    a_const_char *from = clap->str;
     while (*from) *to++ = *from++;
     *to++ = ' ';
     prev_clap = clap;
@@ -943,7 +945,7 @@ Startup initialization.
 }  /* init */
 
 
-static void update_template_info_file(char *file_name)
+static void update_template_info_file(a_const_char *file_name)
 /*
 If there is a .ti file, update it with the necessary driver information.
 */
@@ -993,7 +995,7 @@ If there is a .ti file, update it with the necessary driver information.
       prev_clap = clap;
       clap = clap->next;
       /* Free the space used to store the string. */
-      free(prev_clap->str);
+      free((void *)prev_clap->str);
       free_cl_argument(prev_clap);
     }  /* while */
     fclose(ti_file);
@@ -1002,7 +1004,7 @@ If there is a .ti file, update it with the necessary driver information.
 
 
 
-static int compile_file(char* file_name)
+static int compile_file(a_const_char* file_name)
 /*
 Compile a file and generate an object file.
 */
@@ -1330,8 +1332,8 @@ int main(int argc, char *argv[])
   /* Loop through the file names. */
   clap = file_list.args;
   while (clap != NULL) {
-    char	*file_name = clap->str;
-    char	*suffix = get_suffix(file_name);
+    a_const_char *file_name = clap->str;
+    a_const_char *suffix = get_suffix(file_name);
     if (suffix != NULL &&
         (strcmp(suffix, "c") == 0 || strcmp(suffix, "C") == 0 ||
          strcmp(suffix, "cpp") == 0 || strcmp(suffix, "CPP") == 0 ||

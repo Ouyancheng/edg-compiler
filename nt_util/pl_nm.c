@@ -107,7 +107,7 @@ to the number of characters read not including the trailing null character.
 }  /* read_input_line */
 
 
-static a_boolean find_line(char *starting_string)
+static a_boolean find_line(a_const_char *starting_string)
 /*
 Read lines until one is found that begins with the specified string.
 */
@@ -136,7 +136,7 @@ void process_file(char *file_to_process)
 {
   char		*ptr;
   char		*file_name;
-  char		*find_string;
+  a_const_char	*find_string;
   int		file_number = 0;
   char		*name;
   char		*status;

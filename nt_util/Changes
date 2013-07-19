@@ -1,5 +1,15 @@
 Version 4.8
 
+7/19/13  [EDGcpfe/10662]
+C++11 const-correctness
+
+C++11 removed the previously-deprecated implicit conversion from a narrow
+string literal to char*.  In order to permit their compilation as C++11
+code, edgcc.c and pl_nm.c have been changed to use the new a_const_char
+typedef that has been added to basics.h (see the EDGcpfe/10662 entry in
+the src/Changes file for a more detailed discussion).
+
+
 7/19/13  Fix warnings in edgcc.c compilation with EDG front end
 
 A number of warnings were issued when edgcc.c was compiled with our front
