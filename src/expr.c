@@ -3959,18 +3959,21 @@ call, and rcblock->argument_list to the previously-scanned argument list.
     eliminate_unusual_operand_kinds(&arg);
     if (gnu_version < 40500 &&
         bfk == (a_builtin_function_kind)bfk_constant_p &&
-        is_expression_operand(&arg) &&
-        is_variable_node(expr_node_from_operand(&arg))) {
-      a_variable_ptr  vp = expr_node_from_operand(&arg)->variant.variable;
-      if (is_potentially_constant_valued_variable(vp) &&
-          var_constant_value_full(vp, /*copy_for_reuse=*/FALSE,
-                                  /*clear_backing_expr=*/FALSE,
-                                  /*allow_C_mode_const_var=*/TRUE) != NULL) {
-        /* Ensure the lvalue-to-rvalue transformation is applied since that
-           affects whether we can constant-fold the reference to the variable.
-           Don't do this for __builtin_classify_type because it would affect
-           its result. */
-        do_operand_transformations(&arg, TOPT_NO_OPTIONS);
+        is_expression_operand(&arg)) {
+      an_expr_node_ptr  arg_expr = expr_node_from_operand(&arg);
+      arg_expr = skip_parens(arg_expr);
+      if (is_variable_node(arg_expr)) {
+        a_variable_ptr  vp = expr_node_from_operand(&arg)->variant.variable;
+        if (is_potentially_constant_valued_variable(vp) &&
+            var_constant_value_full(vp, /*copy_for_reuse=*/FALSE,
+                                    /*clear_backing_expr=*/FALSE,
+                                    /*allow_C_mode_const_var=*/TRUE) != NULL) {
+          /* Ensure the lvalue-to-rvalue transformation is applied since that
+             affects whether we can constant-fold the reference to the
+             variable.  Don't do this for __builtin_classify_type because it
+             would affect its result. */
+          do_operand_transformations(&arg, TOPT_NO_OPTIONS);
+        }  /* if */
       }  /* if */
     }  /* if */
     force_operand_to_constant_if_possible(&arg);
