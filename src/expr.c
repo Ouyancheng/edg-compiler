@@ -25647,9 +25647,12 @@ expression, and return the result in *result (or an error indication in
            later on if it turns out to have an incomplete return type and
            another comma operator follows.  Save the position for such a
            potential diagnostic. */
-        if (is_expression_operand(&operand_2) &&
-            is_call_node(skip_parens(expr_node_from_operand(&operand_2)))) {
-          expr_stack->call_in_right_comma_operand_pos = operand_2.position;
+        if (is_expression_operand(&operand_2)) {
+          an_expr_node_ptr  expr2 = expr_node_from_operand(&operand_2);
+          expr2 = skip_parens(expr2);
+          if (is_call_node(expr2)) {
+            expr_stack->call_in_right_comma_operand_pos = operand_2.position;
+          }  /* if */
         }  /* if */
       }  /* if */
       /* In C++ mode, an lvalue in the second operand is preserved.
