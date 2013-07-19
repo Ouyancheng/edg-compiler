@@ -2547,7 +2547,7 @@ Display the indicated variable.
 #endif /* GNU_EXTENSIONS_ALLOWED || REDEFINE_EXTNAME_PRAGMA_ENABLED */
 #if NAMED_REGISTERS_ALLOWED
     } else if (named_register_storage_class) {
-      char  *name =
+      a_const_char *name =
                   named_register_storage_classes[ptr->asm_name_or_reg.id].name;
       disp_name("register_id");
       (void)printf("%s\n", name);

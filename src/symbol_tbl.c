@@ -7196,7 +7196,7 @@ token that corresponds to it.
 
 #if NAMED_ADDRESS_SPACES_ALLOWED
 
-a_symbol_ptr enter_named_address_space(char  *name)
+a_symbol_ptr enter_named_address_space(a_const_char *name)
 /*
 Enter a new symbol for an Embedded C (TR 18037) named address space with the
 given name.
@@ -7219,7 +7219,7 @@ given name.
 #endif /* NAMED_ADDRESS_SPACES_ALLOWED */
 #if NAMED_REGISTERS_ALLOWED
 
-a_symbol_ptr enter_named_register(char  *name)
+a_symbol_ptr enter_named_register(a_const_char *name)
 /*
 Enter a new symbol for an Embedded C (TR 18037) named register with the given
 name.

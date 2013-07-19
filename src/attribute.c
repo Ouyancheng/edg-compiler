@@ -5938,7 +5938,7 @@ stack is empty.
 }  /* pop_ELF_visibility */
 
 
-an_ELF_visibility_kind ELF_visibility_from_string(char  *visibility_str)
+an_ELF_visibility_kind ELF_visibility_from_string(a_const_char *visibility_str)
 /*
 Return the ELF visibility kind corresponding to the given string, or
 evk_unspecified if the string is not recognized.

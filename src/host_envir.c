@@ -3267,7 +3267,7 @@ void map_input_file_to_region(FILE		*file,
                               sizeof_t		offset,
 			      sizeof_t		size,
 			      a_void_ptr	address,
-			      char		*file_name)
+			      a_const_char	*file_name)
 /*
 Map the data pointed to by "file", starting at "offset" bytes,
 for "size" bytes to the address specified by "address".

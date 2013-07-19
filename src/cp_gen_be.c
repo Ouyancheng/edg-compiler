@@ -12734,7 +12734,7 @@ Write a string of code (e.g., a template or an asm function body).  Newline
 characters in the string indicate new source lines.
 */
 {
-  char *eol;
+  a_const_char *eol;
 
   for (; (eol = strchr(p, '\n')) != NULL; p = eol+1) {
     /* Write a sequence of characters ending with a newline. */
