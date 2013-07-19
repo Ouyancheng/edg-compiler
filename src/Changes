@@ -1,5 +1,17 @@
 Version 5.0
 
+7/19/13  [EDGcpfe/14299]
+C++/CLI: "= default" in C++11 mode
+
+When using C++/CLI and C++11 modes, the front end erroneously rejected
+an explicitly-defaulted member function declaration.  This is now fixed.
+For example (with --cppcli --c++11):
+
+  class A {
+    A() = default;
+  };
+
+
 7/19/13  [EDGcpfe/14274]
 Microsoft compatibility: __declspec(restrict) in C99 mode
 

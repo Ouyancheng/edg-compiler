@@ -23483,7 +23483,9 @@ and record the overridden base class members in decl_info->named_overrides.
     clear_token_cache(&cache, /*reusable=*/FALSE);
     cache_curr_token(&cache);
     (void)get_token();
-    if (!is_generalized_identifier_start(GID_NO_OPTIONS)) {
+    if (!is_generalized_identifier_start(GID_NO_OPTIONS) ||
+        check_context_sensitive_keyword(tok_default, "default")) {
+      /* Handle these cases elsewhere. */
       rescan_cached_tokens(&cache);
       goto done;
     }  /* if */
