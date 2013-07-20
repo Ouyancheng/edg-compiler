@@ -1192,7 +1192,9 @@ replacement is done in place in file_name_buffer, which is expanded if
 necessary.  This routine may be called iteratively.
 */
 {
+#if CHECKING
   sizeof_t curr_file_name_size;
+#endif /* CHECKING */
   sizeof_t new_suffix_length;
   char     *suffix_loc;
 #define SUFFIX_DELIMITER '.'
@@ -1205,10 +1207,12 @@ necessary.  This routine may be called iteratively.
   }  /* if */
 #endif /* DEBUG */
   /* Determine the size of file_name, excluding the trailing NULL. */
-  curr_file_name_size = file_name_buffer->size - 1;
   new_suffix_length = strlen(new_suffix);
+#if CHECKING
+  curr_file_name_size = file_name_buffer->size - 1;
   check_assertion(curr_file_name_size > 0);
   check_assertion(file_name_buffer->buffer[curr_file_name_size] == '\0');
+#endif /* CHECKING */
   suffix_loc = (char *)suffix_of(file_name_buffer->buffer);
   /* Update the buffer to specify that characters should be added
      at the position specified by suffix_loc. */
