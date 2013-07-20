@@ -2546,8 +2546,6 @@ void float_pt_init(void)
 Initialize static variables related to float_pt.c.
 */
 {
-  sizeof_t	size;
-
   /* Compute the number of bytes of the host floating point value that are
      actually used to represent the value.  This is usually the same size
      as the host floating point value, but on some systems may be smaller.
@@ -2580,8 +2578,7 @@ Initialize static variables related to float_pt.c.
   } /* if */
 #endif /* !USE_LONG_DOUBLE_FOR_HOST_FP_VALUE */
   /* Make sure that an_fp_value_part is 32 bits. */
-  size = sizeof(an_fp_value_part);
-  check_assertion_str(size == 4,
+  check_assertion_str(sizeof(an_fp_value_part) == 4,
          "float_pt_init: bad size for an_fp_value_part");  /*lint !e774*/
 }  /* float_pt_init */
 
