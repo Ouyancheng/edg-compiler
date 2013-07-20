@@ -3488,8 +3488,9 @@ defined.  Detailed position information is recorded in *decl_pos_block.
   if (class_modifiers_allowed()) {
     /* Record any class modifiers indicated by the context-sensitive keywords
        "final", "abstract", or "sealed". */
-    a_source_position  pos_after_name;
-    pos_after_name = pos_curr_token;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    a_source_position  pos_after_name = pos_curr_token;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     scan_class_modifiers(type_kind, &is_final, &is_abstract, &is_sealed);
 #if MICROSOFT_EXTENSIONS_ALLOWED
     if (cli_type_kind == (a_cli_class_type_kind)cctk_value) {
