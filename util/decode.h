@@ -26,12 +26,12 @@ decode.h -- Declarations for decode.c (name demangler for C++).
 #ifndef DECODE_H
 #define DECODE_H 1
 
-void decode_identifier(char      *id,
-                       char      *output_buffer,
-                       sizeof_t  output_buffer_size,
-                       a_boolean *err,
-                       a_boolean *buffer_overflow_err,
-                       sizeof_t  *required_buffer_size);
+void decode_identifier(a_const_char *id,
+                       char         *output_buffer,
+                       sizeof_t     output_buffer_size,
+                       a_boolean    *err,
+                       a_boolean    *buffer_overflow_err,
+                       sizeof_t     *required_buffer_size);
 
 #endif /* ifndef DECODE_H */
 
