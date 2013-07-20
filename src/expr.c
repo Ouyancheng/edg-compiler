@@ -27879,11 +27879,12 @@ which of the various keywords was used.
       }  /* if */
       make_error_operand(result);
       goto end_of_routine;
+    } else {
+      /* Force the use of the string representation in this case, because
+         we don't have a scope to use to save the variable pointer.  gcc
+         treats this case as a string; g++ treats it as a variable. */
+      is_string = TRUE;
     }  /* if */
-    /* Force the use of the string representation in this case, because
-       we don't have a scope to use to save the variable pointer.  gcc
-       treats this case as a string; g++ treats it as a variable. */
-    is_string = TRUE;
   } else if (curr_expr_kind_is_traditional_const() &&
              curr_expr_kind_is(ek_integral_constant)) {
     /* These are not allowed in an integral constant expression. */
