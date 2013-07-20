@@ -10469,13 +10469,14 @@ as an lvalue.
   } else {
     a_constant_ptr   con;
     an_expr_node_ptr expr;
-    a_boolean        is_nonreal, is_function;
+    a_boolean        is_function;
     an_operand       orig_operand;
     orig_operand = *operand;
     check_assertion(is_a_prvalue(operand) && is_constant_operand(operand));
     con = &operand->variant.constant;
-    is_nonreal = is_nonreal_member_constant(con, &is_function);
-    check_assertion(is_nonreal);
+    if (!is_nonreal_member_constant(con, &is_function)) {
+      unexpected_condition();
+    }  /* if */
     /* Use make_node_from_operand to get operand rescan information saved. */
     expr = make_node_from_operand(operand);
     check_assertion(!expr->is_lvalue);
