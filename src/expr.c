@@ -9918,7 +9918,9 @@ previously-scanned sizeof expression, and return the result in *result
   a_type_ptr            sizeof_type;
   an_expr_stack_entry   expr_stack_entry;
   a_boolean             template_case = FALSE;
+#if UPC_EXTENSIONS_ALLOWED || CHECKING
   a_token_kind          operator_token;
+#endif /* UPC_EXTENSIONS_ALLOWED || CHECKING */
 #if UPC_EXTENSIONS_ALLOWED
   a_upc_block_size      block_size;
   a_boolean             multiply_by_threads_needed = FALSE;
@@ -9959,7 +9961,9 @@ previously-scanned sizeof expression, and return the result in *result
   if (rcblock != NULL) {
     /* Redoing semantic analysis on a previously-scanned expression. */
     a_token_sequence_number operator_tok_seq_number;
+#if UPC_EXTENSIONS_ALLOWED || CHECKING
     operator_token = rcblock->operator_token;
+#endif /* UPC_EXTENSIONS_ALLOWED || CHECKING */
     make_sizeof_et_al_rescan_operands(rcblock,
                                       &is_type, &operand, &sizeof_type,
                                       &operator_position,
@@ -9971,7 +9975,9 @@ previously-scanned sizeof expression, and return the result in *result
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   } else {
     /* Normal, non-rescan, processing. */
+#if UPC_EXTENSIONS_ALLOWED || CHECKING
     operator_token = curr_token;
+#endif /* UPC_EXTENSIONS_ALLOWED || CHECKING */
     operator_position = pos_curr_token;
   }  /* if */
   start_position = operator_position;
@@ -10766,14 +10772,18 @@ of rescan information.
     /* Get rescan information recorded for this expression by going by way
        of an operand. */
     an_operand       operand;
+#if CHECKING
     an_expr_node_ptr result;
+#endif /* CHECKING */
     make_expression_operand(node, &operand);
     set_operand_position(&operand, start_position, end_position,
                          &null_source_position);
+#if CHECKING
     result = make_node_from_operand(&operand);
     /* We should get the same expression back when we extract it, because
        we haven't really done anything. */
     check_assertion(result == node);
+#endif /* CHECKING */
   }  /* if */
 }  /* record_position_in_expr_for_rescan */
 
@@ -13341,7 +13351,9 @@ indication in *rcblock).
 */
 {
   a_source_position operator_position, start_position, operand_position;
+#if MICROSOFT_EXTENSIONS_ALLOWED
   a_token_kind      operator_token;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   a_source_position end_position;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
@@ -13369,22 +13381,26 @@ indication in *rcblock).
   if (rcblock != NULL) {
     /* Redoing semantic analysis on a previously-scanned expression. */
     a_token_sequence_number operator_tok_seq_number;
-    operator_token = rcblock->operator_token;
-    check_assertion(operator_token == tok_typeid
+    check_assertion(rcblock->operator_token == tok_typeid
                     if_microsoft_extensions(
-                       || operator_token == tok_cli_typeid));
+                       || rcblock->operator_token == tok_cli_typeid));
     make_sizeof_et_al_rescan_operands(rcblock,
                                       &is_type, &operand, &typeid_type,
                                       &operator_position,
                                       &operator_tok_seq_number,
                                       &operand_position);
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    operator_token = rcblock->operator_token;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if EXTRA_SOURCE_POSITIONS_IN_IL
     end_position = rcblock->expr->expr_range.end;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
     if (!is_type) operand_position = operand.position;
   } else {
     /* Normal, non-rescan, processing. */
+#if MICROSOFT_EXTENSIONS_ALLOWED
     operator_token = curr_token;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     operator_position = pos_curr_token;
   }  /* if */
   start_position = operator_position;
