@@ -10736,7 +10736,9 @@ otherwise, return FALSE.
 {
   a_boolean      folded = FALSE;
   a_constant_ptr eff_obj_con = NULL;
+#if CHECKING
   a_boolean      empty_anonymous_union_initializer = FALSE;
+#endif /* CHECKING */
 
   if (object_is_pointer) {
     /* eok_points_to_field case.  See if the pointer value points to
@@ -10831,9 +10833,11 @@ otherwise, return FALSE.
           break;
         }  /* if */
         member_con = member_con->variant.aggregate.first_constant;
+#if CHECKING
         if (member_con == NULL) {
           empty_anonymous_union_initializer = TRUE;
         }  /* if */
+#endif /* CHECKING */
       }  /* while */
     }  /* if */
     if (union_member_mismatch) {
