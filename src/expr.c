@@ -3963,7 +3963,7 @@ call, and rcblock->argument_list to the previously-scanned argument list.
       an_expr_node_ptr  arg_expr = expr_node_from_operand(&arg);
       arg_expr = skip_parens(arg_expr);
       if (is_variable_node(arg_expr)) {
-        a_variable_ptr  vp = expr_node_from_operand(&arg)->variant.variable;
+        a_variable_ptr  vp = arg_expr->variant.variable;
         if (is_potentially_constant_valued_variable(vp) &&
             var_constant_value_full(vp, /*copy_for_reuse=*/FALSE,
                                     /*clear_backing_expr=*/FALSE,
