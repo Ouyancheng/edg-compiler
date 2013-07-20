@@ -16145,9 +16145,8 @@ a field selection.
                !is_template_symbol(class_fund_sym) &&
                (is_class_or_injected_template_symbol(normal_fund_sym) ||
                 (gpp_microsoft_mode_case =
-                 ((gpp_mode || microsoft_mode) &&
-                  symbol_is_or_contains_template(
-                                          normal_fund_sym))))) { /*lint !e820*/
+                 (symbol_is_or_contains_template(normal_fund_sym) &&
+                  (gpp_mode || microsoft_mode))))) { /*lint !e820*/
       /* The class symbol is a nonreal nontemplate and the normal symbol
          is a class template.  Use the normal symbol.  In g++ and Microsoft
          mode, a function template or overload set containing a function
