@@ -19374,13 +19374,13 @@ The routine body is not generated until it is known to be needed.
   a_class_symbol_supplement_ptr cssp;
   a_class_type_supplement_ptr   ctsp;
   a_boolean                     const_okay, dummy_flag;
-  a_source_position             *pos;
   a_boolean                     user_declared_copy_assignment_op;
   a_boolean                     user_provided_copy_assignment_op;
   a_boolean                     declare_copy_asgn_op, declare_move_asgn_op;
   a_boolean                     declare_copy_ctor, declare_move_ctor;
   a_boolean                     declare_default_ctor, declare_dtor;
 #if MICROSOFT_EXTENSIONS_ALLOWED
+  a_source_position             *pos;
   a_boolean                     declare_static_ctor;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   a_generated_special_function_descr
@@ -19389,7 +19389,9 @@ The routine body is not generated until it is known to be needed.
   db_enter(3, "check_special_member_functions");
   cssp = symbol_supplement_for_class(class_type);
   ctsp = class_type_supp(class_type);
+#if MICROSOFT_EXTENSIONS_ALLOWED
   pos = &class_type->source_corresp.decl_position;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   init_generated_special_function_descr(&gsfd);
   if (unrestricted_unions_enabled) {
     /* Variant members with special member functions suppress the corresponding
