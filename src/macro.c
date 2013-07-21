@@ -7911,7 +7911,9 @@ to deallocate the buffer using free_general.
   unsigned long  patch_num = (unsigned long)(gnu_version%100);
   a_const_char   *version_string_pattern = GCC_VERSION_STRING, *src;
   char           *version_string, *dst;
+#if CHECKING
   a_boolean      percent_m_seen = FALSE, percent_v_seen = FALSE;
+#endif /* CHECKING */
 
   check_assertion_str(gnu_mode &&
                       major_num < 100 && minor_num < 100 && patch_num < 100,
@@ -7923,16 +7925,20 @@ to deallocate the buffer using free_general.
   for (; *src != '\0'; ++src, ++dst) {
     if (*src == '%') {
       if (*(src+1) == 'm') {
+#if CHECKING
         check_assertion_str(!percent_m_seen,
                             "too many %m in GCC_VERSION_STRING");
         percent_m_seen = TRUE;
+#endif /* CHECKING */
         ++src;
         (void)strcpy(dst, gcc_mode ? "gcc" : "g++");
         dst += 2;
       } else if (*(src+1) == 'v') {
+#if CHECKING
         check_assertion_str(!percent_v_seen,
                             "too many %v in GCC_VERSION_STRING");
         percent_v_seen = TRUE;
+#endif /* CHECKING */
         ++src;
         (void)sprintf(dst, "%lu.%lu", major_num, minor_num);
         while (*dst != '\0') ++dst;
