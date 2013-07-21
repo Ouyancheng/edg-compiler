@@ -414,7 +414,6 @@ pointed to by the translation unit entry.
        can skip that step. */
     cmfp = il_header.cli_metadata_files;
     while (cmfp != NULL) {
-      an_assembly_index         assembly_index;
       a_cpp_cli_import_flag_set import_flags = default_cpp_cli_import_flags;
       if (cmfp->as_friend) {
         import_flags |= (a_cpp_cli_import_flag_set)cpp_cli_as_friend_assembly;
@@ -425,9 +424,10 @@ pointed to by the translation unit entry.
       /* Re-register the assemblies that we have imported.  It is important
          that we import the assemblies in the same order so that they will
          maintain the same assembly index. */
-      assembly_index = import_metadata_file(cmfp->full_name, import_flags,
-                                            &is_duplicate);
-      check_assertion(assembly_index == cmfp->assembly_index);
+      if (import_metadata_file(cmfp->full_name, import_flags,
+                               &is_duplicate) != cmfp->assembly_index) {
+        unexpected_condition();
+      }  /* if */
       cmfp = cmfp->next;
     }  /* while */
   }  /* if */
