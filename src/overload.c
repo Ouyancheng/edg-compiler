@@ -16408,7 +16408,9 @@ error.  conv_context describes the context of the conversion.
   a_boolean                     copy_initialization_done_as_direct = FALSE;
   a_boolean                     is_reference_binding=(ref_binding_type!=NULL);
   a_boolean                     try_conversion_functions;
-  a_boolean                     try_static_conversion_functions;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  a_boolean                     try_static_conversion_functions = FALSE;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   a_boolean                     try_as_arg_of_bitwise_cctor;
   a_symbol_ptr                  class_symbol, constructor_symbol;
   a_class_symbol_supplement_ptr cssp;
@@ -16583,7 +16585,6 @@ error.  conv_context describes the context of the conversion.
     }  /* if */
     /* Determine whether conversion functions should be tried. */
     try_conversion_functions = FALSE;
-    try_static_conversion_functions = FALSE;
     try_as_arg_of_bitwise_cctor = FALSE;
     if (!source_is_class
 #if MICROSOFT_EXTENSIONS_ALLOWED
@@ -23734,7 +23735,9 @@ lvalue or rvalue as indicated by source_is_rvalue.
   a_routine_type_supplement_ptr   rtsp;
   a_type_ptr                      routine_type, arg_type, param_type;
   a_param_type_ptr                ptp;
+#if CHECKING
   a_boolean                       assign_case = FALSE;
+#endif /* CHECKING */
 
   *template_arg_list = NULL;
   *eff_routine_type = NULL;
@@ -23788,7 +23791,9 @@ lvalue or rvalue as indicated by source_is_rvalue.
        Standard copy assignment operators always have one parameter, but
        we check just in case some dialects allow default arguments.
        We assume parameter packs won't be allowed. */
+#if CHECKING
     assign_case = TRUE;
+#endif /* CHECKING */
     if (!is_copy_assignment_operator_type(routine_type, class_type, 
                                          /*move_assign_okay=*/source_is_rvalue,
                                           /*is_ref_arg=*/(a_boolean *)NULL,
