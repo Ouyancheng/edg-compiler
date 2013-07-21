@@ -6914,15 +6914,17 @@ entry_for_line_splice:
                end of the line causes the backslash not to be interpreted
                as a line splice. */
             goto add_newline_and_line_end_and_return;
+          } else {
+            /* Some white-space characters occurred between "\" and the
+               newline.  Fix the line so it will display properly, adjust
+               loc_in_line and curr_column appropriately, and issue a
+               warning. */
+            finish_off_source_line_so_it_can_be_displayed_in_error();
+            loc_in_line -= white_space_chars_after_backslash;
+            curr_column -= white_space_chars_after_backslash;
+            warning_at_line_pos(ec_white_space_inside_splice, loc_in_line);
+            white_space_chars_after_backslash = 0;
           }  /* if */
-          /* Some white-space characters occurred between "\" and the newline.
-             Fix the line so it will display properly, adjust loc_in_line and
-             curr_column appropriately, and issue a warning. */
-          finish_off_source_line_so_it_can_be_displayed_in_error();
-          loc_in_line -= white_space_chars_after_backslash;
-          curr_column -= white_space_chars_after_backslash;
-          warning_at_line_pos(ec_white_space_inside_splice, loc_in_line);
-          white_space_chars_after_backslash = 0;
         }  /* if */
         /* Remove the backslash in the buffer. */
         loc_in_line--;
