@@ -12753,7 +12753,9 @@ have already had their designated initializers lowered.
      of the aggregate members to be initialized. */
   { an_aggregate_position aggr_pos;
     an_init_con_pos       con_pos;
+#if CHECKING
     a_constant_ptr        last_con = NULL;
+#endif /* CHECKING */
     init_aggregate_position(aggr_con, &aggr_pos);
     temp_con = aggr_con->variant.aggregate.first_constant;
     if (temp_con != NULL &&
@@ -12808,8 +12810,8 @@ have already had their designated initializers lowered.
                                     member_type)),
                    "lower_aggregate_designated_initializers: type mismatch");
       }
-#endif /* CHECKING */
       last_con = con_pos.ptr;
+#endif /* CHECKING */
       advance_init_con_pos(&con_pos);
       if (con_pos.ptr != NULL) {
         advance_aggregate_position_to_next_member(&aggr_pos);
