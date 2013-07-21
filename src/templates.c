@@ -18034,8 +18034,9 @@ nesting depth to be used.
          Look for the token sequence "friend class X", where X is a
          simple identifier.  Look up the identifier and if it is a template,
          use its nesting depth as the nesting depth for this declaration. */
-        if (!microsoft_mode && !gpp_mode) break;
-        if (curr_token == tok_identifier) {
+        if (!microsoft_mode && !gpp_mode) {
+          break;
+        } else if (curr_token == tok_identifier) {
           a_symbol_locator	locator = locator_for_curr_id;
           (void)get_token();
           if (curr_token == tok_end_of_source) {
