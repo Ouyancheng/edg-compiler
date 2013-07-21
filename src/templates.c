@@ -377,12 +377,12 @@ static a_boolean
 			   wrapup requiring another pass through the list
 			   to make sure all entries have been considered. */
 
-#if CHECKING
+#if CHECKING && INSTANTIATION_BY_IMPLICIT_INCLUSION
 static a_boolean
 		after_instantiation_wrapup;
 			/* TRUE after instantiation wrapup processing has
 			   completed. */
-#endif /* CHECKING */
+#endif /* CHECKING && INSTANTIATION_BY_IMPLICIT_INCLUSION */
 
 static a_symbol_list_entry_ptr
 		exported_templates_tail;
@@ -5940,7 +5940,9 @@ the same constant.
 {
   a_boolean		equiv;
   a_template_arg_ptr	arg1 = list1, arg2 = list2;
+#if CHECKING
   a_boolean		is_nonreal_member;
+#endif /* CHECKING */
   a_boolean		error_matches_anything;
   a_boolean		ignore_qualifiers;
   a_boolean		is_prototype;
@@ -5950,7 +5952,9 @@ the same constant.
 			cc_options;
 
   db_enter(4, "equiv_template_arg_lists");
+#if CHECKING
   is_nonreal_member = (options & ETA_IS_NONREAL_MEMBER) != 0;
+#endif /* CHECKING */
   error_matches_anything = (options & ETA_ERROR_MATCHES_ANYTHING) != 0;
   ignore_qualifiers = (options & ETA_MS_IGNORE_QUALIFIERS) != 0;
   is_prototype = (options & ETA_IS_PROTOTYPE) != 0;
@@ -10571,11 +10575,15 @@ a pointer over a reference type or creating an array of references.
                  an lvalue reference to an incomplete array type to an
                  lvalue reference to an array of size 1. */
               a_type_ptr	new_tp;
+#if CHECKING
               a_type_ptr	array_tp;
+#endif /* CHECKING */
               new_tp = alloc_type(tp->kind);
               copy_type(tp, new_tp);
+#if CHECKING
               array_tp = skip_typerefs(new_tp);
               check_assertion(array_tp->kind == (a_type_kind)tk_array);
+#endif /* CHECKING */
               new_tp->variant.array.variant.number_of_elements = 1;
               tp = new_tp;
               /* If the array is too large, set copy_error. */
@@ -28112,9 +28120,9 @@ translation unit.
       /* Do the actual processing of instantiations, virtual destructors,
          and inline functions. */
       template_and_inline_function_wrapup_for_trans_unit(/*do_inline=*/TRUE);
-#if CHECKING
+#if CHECKING && INSTANTIATION_BY_IMPLICIT_INCLUSION
       after_instantiation_wrapup = TRUE;
-#endif /* CHECKING */
+#endif /* CHECKING && INSTANTIATION_BY_IMPLICIT_INCLUSION */
       /* Pop the translation unit. */
       pop_translation_unit_stack();
     }  /* for */
@@ -30699,7 +30707,9 @@ given translation unit.
   can_instantiate_list = NULL;
 #if CHECKING
   any_friend_state_changed = FALSE;
+#if INSTANTIATION_BY_IMPLICIT_INCLUSION
   after_instantiation_wrapup = FALSE;
+#endif /* INSTANTIATION_BY_IMPLICIT_INCLUSION */
 #endif /* CHECKING */
   /* Allocate a type to be used for template parameter constants whose
      real types cannot be known.  This type will be used for all such
