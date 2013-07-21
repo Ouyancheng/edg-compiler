@@ -20079,7 +20079,6 @@ host-target conversions are performed.
 */
 {
   a_name_linkage_kind  kind;
-  a_boolean     unterminated;
   unsigned long num_chars;
   an_error_code err_code;
   a_const_char  *err_pos;
@@ -20109,10 +20108,10 @@ host-target conversions are performed.
     /* Tokenize the string. */
     curr_char_loc++;
     num_chars = 0;
-    unterminated = accum_quoted_string(&num_chars, /*is_header_name=*/FALSE,
-                                       SCLK_ORDINARY_STRING_LITERAL, '"', NULL,
-                                       -1);
-    check_assertion(unterminated == FALSE);
+    if (accum_quoted_string(&num_chars, /*is_header_name=*/FALSE,
+                            SCLK_ORDINARY_STRING_LITERAL, '"', NULL, -1)) {
+      unexpected_condition();
+    }  /* if */
     /* Convert it to internal form. */
     conv_string_literal(start_of_curr_token + 1, end_of_curr_token,
                         SCLK_ORDINARY_STRING_LITERAL, num_chars, &err_code,
