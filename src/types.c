@@ -5297,7 +5297,9 @@ for more information.
   a_param_type_ptr              list1, list2;
   a_routine_type_supplement_ptr rtsp1, rtsp2;
   a_symbol_ptr                  sym_1, sym_2;
+#if MICROSOFT_EXTENSIONS_ALLOWED || GNU_X86_ATTRIBUTES_ALLOWED
   a_boolean                     ignore_ms_calling_convention = FALSE;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED || GNU_X86_ATTRIBUTES_ALLOWED */
 
   db_enter(5, "f_identical_types");
 
@@ -5365,7 +5367,9 @@ check_typerefs:
     }  /* ITF_IGNORE_TOP_LEVEL_QUALIFIERS */
     /* ITF_IGNORE_CALLING_CONVENTION should not be passed down. */
     if (flags & ITF_IGNORE_MS_CALLING_CONVENTION) {
+#if MICROSOFT_EXTENSIONS_ALLOWED || GNU_X86_ATTRIBUTES_ALLOWED
       ignore_ms_calling_convention = TRUE;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED || GNU_X86_ATTRIBUTES_ALLOWED */
       flags &= ~ITF_IGNORE_MS_CALLING_CONVENTION;
     }  /* if */
     switch (type_1->kind) {
