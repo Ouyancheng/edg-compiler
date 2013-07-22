@@ -375,7 +375,7 @@ typedef EDG_UINT32_T uint32_t;
 
 #if !defined(UINT32_MAX)
  #error -- UINT32_MAX must be defined
-#endif /* !defined(UINT32_MAX)
+#endif /* !defined(UINT32_MAX) */
 
 /* Define typedefs to be used for "void *" and "const void *".  When
    using an ANSI C compiler these are just typedefs to the appropriate
