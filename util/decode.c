@@ -4546,7 +4546,7 @@ Output a ref-qualifier (lvalue/rvalue) if ref_qual indicates there is one.
 
 
 static a_const_char *demangle_template_param(a_const_char               *ptr,
-                                     a_decode_control_block_ptr dctl)
+                                             a_decode_control_block_ptr dctl)
 /*
 Demangle an IA-64 <template-param> and output the demangled form.  Return
 a pointer to the character position following what was demangled.
