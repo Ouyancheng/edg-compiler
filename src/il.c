@@ -1161,6 +1161,9 @@ Dump the contents of the indicated type entry, for debug purposes.
             fputs(" ", f_debug);
             db_assembly_visibility_of_type(tp);
             fputs("enum", f_debug);
+            if (tp->variant.integer.is_scoped_enum) {
+              fputs(" class", f_debug);
+            }  /* if */
           }  /* if */
         }  /* if */
         break;

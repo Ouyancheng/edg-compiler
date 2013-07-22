@@ -1,5 +1,21 @@
 Version 5.0
 
+7/22/13  [EDGcpfe/14276]
+Spurious implicit conversions of scoped enums used with built-in operators
+
+The front end erroneously considered conversions of scoped enumeration types
+when comparing certain built-in operators taking integer-like operands with
+user-declared overloaded operators.  For example:
+
+  enum class E: int { e };
+  void operator|(void*, E);
+  int x = 0 | E::e;  // Only the user-declared operator should match, but
+                     // the front end previously reported an ambiguity with
+                     // the built-in operator.
+
+This is now fixed.
+
+
 7/22/13  [EDGcpfe/14200]
 Abort on malformed friend declaration of main()
 

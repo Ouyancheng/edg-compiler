@@ -13767,7 +13767,7 @@ it fits that type description or can be converted to it.
     case INTEGRAL_TYPE_CODE:
     case PROMOTED_INTEGRAL_TYPE_CODE:
     case PTRDIFF_T_TYPE_CODE:
-      matches = is_integral_or_enum_type(type);
+      matches = is_integral_or_unscoped_enum_type(type);
       break;
     case ENUM_TYPE_CODE:
       matches = is_enum_type(type);
