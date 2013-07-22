@@ -1040,8 +1040,10 @@ extern int fileno(FILE *);
 #if !USE_HEX_FP_CONSTANTS_IN_GENERATED_CODE
 /*lint -esym(757,fp_to_hex_constant_string)*/
 #endif /* !USE_HEX_FP_CONSTANTS_IN_GENERATED_CODE */
+#if !AUTOMATIC_TEMPLATE_INSTANTIATION
 /*lint -esym(759,add_to_def_undef_list)*/
 /*lint -esym(765,add_to_def_undef_list)*/
+#endif /*AUTOMATIC_TEMPLATE_INSTANTIATION*/
 
 #endif /* ifndef LINT_H */
 
