@@ -3957,9 +3957,15 @@ call, and rcblock->argument_list to the previously-scanned argument list.
       make_rescan_operand(rcblock->argument_list, rcblock, &arg);
     }  /* if */
     eliminate_unusual_operand_kinds(&arg);
-    if (gnu_version < 40500 &&
+    if (gcc_mode && gnu_version < 40500 && innermost_function_scope != NULL &&
         bfk == (a_builtin_function_kind)bfk_constant_p &&
         is_expression_operand(&arg)) {
+      /* The GCC C compiler produces a true value for __builtin_constant_p(x)
+         if x is an initialized const variable and the expression appears in
+         function scope.  In order for the front end to be able to fold that
+         case, and lvalue-to-rvalue conversion must take place.   This should
+         not be done for other pseudo-functions because it can affect their
+         result (e.g., __builtin_classify_type). */
       an_expr_node_ptr  arg_expr = expr_node_from_operand(&arg);
       arg_expr = skip_parens(arg_expr);
       if (is_variable_node(arg_expr)) {
@@ -3968,10 +3974,6 @@ call, and rcblock->argument_list to the previously-scanned argument list.
             var_constant_value_full(vp, /*copy_for_reuse=*/FALSE,
                                     /*clear_backing_expr=*/FALSE,
                                     /*allow_C_mode_const_var=*/TRUE) != NULL) {
-          /* Ensure the lvalue-to-rvalue transformation is applied since that
-             affects whether we can constant-fold the reference to the
-             variable.  Don't do this for __builtin_classify_type because it
-             would affect its result. */
           do_operand_transformations(&arg, TOPT_NO_OPTIONS);
         }  /* if */
       }  /* if */
