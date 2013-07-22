@@ -11587,8 +11587,8 @@ if necessary).
 static void check_for_incomplete_call_return(an_operand  *operand)
 /*
 If the given operand represents a call expression (or a comma expression that
-has a call in its right hand operand), check that the called function type is
-complete (and issue an error if appropriate).
+has a call in its right hand operand), check that the called function's return
+type is complete (and issue an error if appropriate).
 */
 {
   if (is_expression_operand(operand)) {
