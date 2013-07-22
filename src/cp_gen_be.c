@@ -8373,7 +8373,7 @@ the expression reflects an implicit member access ("this->y"), so the
         a_namespace_ptr  nsp = parent_namespace_of(selection_class);
         if (!scope_is_in_name_context_stack(nsp->variant.assoc_scope)) {
           gen_namespace_qualifier(nsp, GN_BOUND_MEMBER,
-                                  /*need_closing_parens=*/FALSE);
+                                  (a_boolean *)NULL);
         }  /* if */
       }  /* if */
     } else if (selection_class != naming_class) {
@@ -11800,7 +11800,7 @@ gen_expr that might end up generating this expr as a temporary.
                 write_str("::");
               } else {
                 gen_class_qualifier(type, GN_NO_OPTIONS,
-                                    /*need_closing_paren=*/FALSE);
+                                    (a_boolean *)NULL);
               }  /* if */
             }  /* if */
             write_str("~");
