@@ -3963,7 +3963,7 @@ call, and rcblock->argument_list to the previously-scanned argument list.
       /* The GCC C compiler produces a true value for __builtin_constant_p(x)
          if x is an initialized const variable and the expression appears in
          function scope.  In order for the front end to be able to fold that
-         case, and lvalue-to-rvalue conversion must take place.   This should
+         case, an lvalue-to-rvalue conversion must take place.   This should
          not be done for other pseudo-functions because it can affect their
          result (e.g., __builtin_classify_type). */
       an_expr_node_ptr  arg_expr = expr_node_from_operand(&arg);
