@@ -342,9 +342,10 @@ a source correspondence).
   conv_seq_to_file_and_line(scp->decl_position.seq, &file_name,
                             &full_name, &line, &at_end_of_source);
   if (line != 0) {
-    fprintf(f_debug, " in file %s (line %lu)\n", file_name, line);
+    fprintf(f_debug, " in file %s (line %lu)\n", file_name,
+            (unsigned long)line);
   } else {
-    fprintf(f_debug, " (built-in; line %lu)\n", line);
+    fprintf(f_debug, " (built-in; line %lu)\n", (unsigned long)line);
   }  /* if */
 }  /* db_scp */
 
@@ -372,7 +373,7 @@ Dump a short summary of the symbols in the given list.
     conv_seq_to_file_and_line(sym->decl_position.seq, &file_name,
                               &full_name, &line, &at_end_of_source);
     if (line != 0) {
-      fprintf(f_debug, " (%s:%lu)\n", file_name, line);
+      fprintf(f_debug, " (%s:%lu)\n", file_name, (unsigned long)line);
     } else {
       fprintf(f_debug, " (%s:built-in)\n", file_name);
     }  /* if */
@@ -1869,9 +1870,10 @@ its corresponding primary template supplement will be used instead.
       conv_seq_to_file_and_line(templ_sym->decl_position.seq, &file_name,
                                 &full_name, &line, &at_end_of_source);
       if (line != 0) {
-        fprintf(f_debug, " in file %s (line %lu)\n", file_name, line);
+        fprintf(f_debug, " in file %s (line %lu)\n", file_name,
+                (unsigned long)line);
       } else {
-        fprintf(f_debug, " (built-in; line %lu)\n", line);
+        fprintf(f_debug, " (built-in; line %lu)\n", (unsigned long)line);
       }  /* if */
     } else {
       fprintf(f_debug, "unknown symbol\n");

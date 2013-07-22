@@ -1990,10 +1990,10 @@ Dump the source expression range from the expression node if it is available.
 {
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   if (node->expr_range.start.seq != 0) {
-    fprintf(f_debug, ", at %lu/%lu", node->expr_range.start.seq,
+    fprintf(f_debug, ", at %lu/%lu", (unsigned long)node->expr_range.start.seq,
             (unsigned long)node->expr_range.start.column);
     if (node->expr_range.end.seq != 0) {
-      fprintf(f_debug, " -- %lu/%lu", node->expr_range.end.seq,
+      fprintf(f_debug, " -- %lu/%lu", (unsigned long)node->expr_range.end.seq,
               (unsigned long)node->expr_range.end.column);
     }  /* if */
   }  /* if */
@@ -2440,12 +2440,12 @@ Dump a statement, for debug purposes.
       default:;
     }  /* switch */
     fprintf(f_debug, ", at %lu",
-            seq_number_from_stmt_source_position(sp->position));
+            (unsigned long)seq_number_from_stmt_source_position(sp->position));
 #if FULL_SOURCE_POS_IN_IL_STATEMENT
     fprintf(f_debug, "/%lu", (unsigned long)sp->position.column);
 #if EXTRA_SOURCE_POSITIONS_IN_IL
     if (sp->end_position.seq != 0) {
-      fprintf(f_debug, " -- %lu/%lu", sp->end_position.seq,
+      fprintf(f_debug, " -- %lu/%lu", (unsigned long)sp->end_position.seq,
               (unsigned long)sp->end_position.column);
     }  /* if */
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
@@ -2529,8 +2529,8 @@ the dump (this one counts as the first).
                 for (a = 0; a < indent+2; a++) fputs(" ", f_debug);
                 fprintf(f_debug, "catch%s, at %lu:",
                         hp->parameter == NULL ? " (...)" : "",
-                        seq_number_from_stmt_source_position(
-                                                        hp->catch_position));
+                        (unsigned long)seq_number_from_stmt_source_position(
+                                                         hp->catch_position));
                 if (hp->statement->kind == (a_statement_kind)stmk_block) {
                   fputs(" ", f_debug);
                   db_statement(hp->statement);
@@ -2565,10 +2565,10 @@ the dump (this one counts as the first).
           }  /* if */
 #if EXTRA_SOURCE_POSITIONS_IN_IL
           if (sp->variant.microsoft_try->except_or_finally_position.seq != 0) {
+            a_microsoft_try_supplement_ptr  mtsp = sp->variant.microsoft_try;
             fprintf(f_debug, ", at %lu/%lu",
-                    sp->variant.microsoft_try->except_or_finally_position.seq,
-                    (unsigned long)sp->variant.microsoft_try->
-                                           except_or_finally_position.column);
+                    (unsigned long)mtsp->except_or_finally_position.seq,
+                    (unsigned long)mtsp->except_or_finally_position.column);
           }  /* if */
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
           fputc('\n', f_debug);
@@ -2891,25 +2891,29 @@ of the translation unit.
                             /*physical_line=*/FALSE);
   fprintf(f_debug, "End of source, physical_line=FALSE\n");
   fprintf(f_debug, "file=%s, line=%lu, end-of-source=%d\n",
-          sfp ? sfp->file_name : "<NULL>", line, at_end_of_source);
+          sfp ? sfp->file_name : "<NULL>", (unsigned long)line,
+          at_end_of_source);
 
   sfp = source_file_for_seq(curr_seq_number, &line, &at_end_of_source,
                             /*physical_line=*/TRUE);
   fprintf(f_debug, "End of source, physical_line=TRUE\n");
   fprintf(f_debug, "file=%s, line=%lu, end-of-source=%d\n",
-          sfp ? sfp->file_name : "<NULL>", line, at_end_of_source);
+          sfp ? sfp->file_name : "<NULL>", (unsigned long)line,
+          at_end_of_source);
 
   sfp = source_file_for_seq(curr_seq_number - 1, &line, &at_end_of_source,
                             /*physical_line=*/FALSE);
   fprintf(f_debug, "Last line of file, physical_line=FALSE\n");
   fprintf(f_debug, "file=%s, line=%lu, end-of-source=%d\n",
-          sfp ? sfp->file_name : "<NULL>", line, at_end_of_source);
+          sfp ? sfp->file_name : "<NULL>", (unsigned long)line,
+          at_end_of_source);
 
   sfp = source_file_for_seq(curr_seq_number - 1, &line, &at_end_of_source,
                             /*physical_line=*/TRUE);
   fprintf(f_debug, "Last line of file, physical_line=TRUE\n");
   fprintf(f_debug, "file=%s, line=%lu, end-of-source=%d\n",
-          sfp ? sfp->file_name : "<NULL>", line, at_end_of_source);
+          sfp ? sfp->file_name : "<NULL>", (unsigned long)line,
+          at_end_of_source);
 }  /* db_source_file_for_seq_info */
 
 #endif /* DEBUG */
@@ -3141,7 +3145,8 @@ a file that contains metadata).
   db_enter(5, "record_start_of_source_file");
 #if DEBUG
   if (debug_level >= 5) {
-    fprintf(f_debug, "file = \"%s\", seq = %lu\n", file_name, seq_number);
+    fprintf(f_debug, "file = \"%s\", seq = %lu\n", file_name,
+            (unsigned long)seq_number);
   }  /* if */
 #endif /* DEBUG */
   /* Allocate the new file block. */
@@ -3306,7 +3311,7 @@ by recording that the last sequence number contained therein is seq_number.
   db_enter(5, "record_end_of_source_file");
 #if DEBUG
   if (debug_level >= 5) {
-    fprintf(f_debug, "seq = %lu\n", seq_number);
+    fprintf(f_debug, "seq = %lu\n", (unsigned long)seq_number);
   }  /* if */
 #endif /* DEBUG */
   curr_file->last_seq_number = seq_number;
@@ -3396,8 +3401,10 @@ number conversions.
   if (debug_level >= 5) {
     fprintf(f_debug, "Cached source sequence conversion information:\n");
     fprintf(f_debug, "  file=%s\n", source_file->file_name);
-    fprintf(f_debug, "  first_seq_number: %lu\n", seq_cache.first_seq_number);
-    fprintf(f_debug, "  last_seq_number: %lu\n", seq_cache.last_seq_number);
+    fprintf(f_debug, "  first_seq_number: %lu\n",
+            (unsigned long)seq_cache.first_seq_number);
+    fprintf(f_debug, "  last_seq_number: %lu\n",
+            (unsigned long)seq_cache.last_seq_number);
     fprintf(f_debug, "  line_offset: %ld\n", seq_cache.line_offset);
     fprintf(f_debug, "  physical_line: %d\n", seq_cache.physical_line);
   }  /* if */
@@ -3558,7 +3565,7 @@ the source file structure to do the conversion.
     if (curr_file == NULL) {
 #if DEBUG
       if (debug_level > 0) {
-        fprintf(f_debug, "seq number = %lu\n", seq_number);
+        fprintf(f_debug, "seq number = %lu\n", (unsigned long)seq_number);
       }  /* if */
 #endif /* DEBUG */
       internal_error("find_seq_in_source_files: bad seq number");
@@ -3717,7 +3724,7 @@ physical line position for the sequence number.
       db_flag_is_set("source_file_for_seq")) {
     fprintf(f_debug, "File=%s, Line=%lu, sequence number=%lu\n",
             curr_file == NULL ? "<NULL>" : curr_file->file_name,
-            *line_number, seq_number);
+            (unsigned long)*line_number, (unsigned long)seq_number);
   }  /* if */
 #endif /* DEBUG */
   db_exit();
@@ -3760,10 +3767,12 @@ the line number to 0.
 #if DEBUG
   if (debug_level >= 5) {
     if (*line_number == 0) {
-      fprintf(f_debug, "seq %lu is outside of all source.\n", seq_number);
+      fprintf(f_debug, "seq %lu is outside of all source.\n",
+              (unsigned long)seq_number);
     } else {
       fprintf(f_debug, "seq %lu maps into line %lu of file \"%s\".\n",
-              seq_number, *line_number, *file_name);
+              (unsigned long)seq_number, (unsigned long)*line_number,
+              *file_name);
       if (*at_end_of_source) fprintf(f_debug, "(really: at end of source)\n");
     }  /* if */
   }  /* if */
@@ -10383,7 +10392,7 @@ qual_pos must be non-NULL.
 #if DEBUG
     if (db_flag_is_set("ref_to_ref")) {
       fprintf(f_debug, "Ref-to-ref resulted in (line %lu): ",
-              pos_curr_token.seq);
+              (unsigned long)pos_curr_token.seq);
       db_type(result);
       fprintf(f_debug, "\n");
     }  /* if */

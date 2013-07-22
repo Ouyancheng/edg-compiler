@@ -764,9 +764,9 @@ Write a #line directive for the indicated line number and file.
   if (gen_old_style_line_dirs || gcc_is_generated_code_target) {
     /* Generate old-style directives, i.e., the kind output by the Reiser
        cpp and by the GNU preprocessor. */
-    (void)fprintf(f_C_output, "# %lu", curr_output_line);
+    (void)fprintf(f_C_output, "# %lu", (unsigned long)curr_output_line);
   } else {
-    (void)fprintf(f_C_output, "#line %lu", curr_output_line);
+    (void)fprintf(f_C_output, "#line %lu", (unsigned long)curr_output_line);
   }  /* if */
   if (new_output_file != curr_output_file) {
     /* The file name is put out only if it changed. */
@@ -10028,9 +10028,9 @@ Dump all source files at this level.
     (void)fprintf(f_C_output,
                   "%s (from line number %lu, sequence numbers %lu-%lu%s)\n",
                   format_file_name(source_file->file_name),
-		  source_file->first_line_number,
-                  source_file->first_seq_number,
-		  source_file->last_seq_number,
+		  (unsigned long)source_file->first_line_number,
+                  (unsigned long)source_file->first_seq_number,
+		  (unsigned long)source_file->last_seq_number,
                   source_file->top_level_file_from_pch ?
                                              ", top level file from PCH" : "");
     if (source_file->first_child_file != NULL) {

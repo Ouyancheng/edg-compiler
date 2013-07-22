@@ -50,7 +50,7 @@ Display the source-sequence entry pointed to by ssep, for debugging purposes.
     if (kind == (an_il_entry_kind)iek_statement) {
       sp = (a_statement_ptr)ssep->entity.ptr;
       seq = seq_number_from_stmt_source_position(sp->position);
-      if (seq != 0) fprintf(f_debug, " (at %lu)", seq);
+      if (seq != 0) fprintf(f_debug, " (at %lu)", (unsigned long)seq);
       fputs(": ", f_debug);
       if (sp->kind == (a_statement_kind)stmk_init) {
         fputs("**BAD STMT KIND**", f_debug);
@@ -60,13 +60,13 @@ Display the source-sequence entry pointed to by ssep, for debugging purposes.
       if (sp->kind == (a_statement_kind)stmk_expr) db_expr_summary(sp->expr);
     } else if (kind == (an_il_entry_kind)iek_pragma) {
       a_pragma_ptr  pp = (a_pragma_ptr)ssep->entity.ptr;
-      fprintf(f_debug, " (at %lu): %s", pp->position.seq,
+      fprintf(f_debug, " (at %lu): %s", (unsigned long)pp->position.seq,
                        pragma_ids[(int)pp->kind]);
     } else if (kind == (an_il_entry_kind)iek_src_seq_end_of_construct) {
       a_src_seq_end_of_construct_ptr  sseocp;
       sseocp = (a_src_seq_end_of_construct_ptr)ssep->entity.ptr;
       seq = sseocp->position.seq;
-      if (seq != 0) fprintf(f_debug, " (at %lu)", seq);
+      if (seq != 0) fprintf(f_debug, " (at %lu)", (unsigned long)seq);
       fputs(": ", f_debug);
       switch (sseocp->entity.kind) {
         case iek_statement:
@@ -75,7 +75,7 @@ Display the source-sequence entry pointed to by ssep, for debugging purposes.
           fputs(" statement", f_debug);
           seq = seq_number_from_stmt_source_position(sp->position);
           if (seq != 0) {
-            fprintf(f_debug, " (at %lu)", seq);
+            fprintf(f_debug, " (at %lu)", (unsigned long)seq);
           }  /* if */
           break;
         case iek_type:
@@ -109,7 +109,7 @@ Display the source-sequence entry pointed to by ssep, for debugging purposes.
       }  /* switch */
     } else if (kind == (an_il_entry_kind)iek_using_decl) {
       a_using_decl_ptr         udp = (a_using_decl_ptr)ssep->entity.ptr;
-      fprintf(f_debug, " (at %lu", udp->position.seq);
+      fprintf(f_debug, " (at %lu", (unsigned long)udp->position.seq);
       if (udp->is_using_directive) {
         /* A namespace directive. */
         fputs(", using-directive", f_debug);
@@ -143,7 +143,7 @@ Display the source-sequence entry pointed to by ssep, for debugging purposes.
     } else if (kind == (an_il_entry_kind)iek_instantiation_directive) {
       an_instantiation_directive_ptr  idp;
       idp = (an_instantiation_directive_ptr)ssep->entity.ptr;
-      fprintf(f_debug, " (at %lu", idp->position.seq);
+      fprintf(f_debug, " (at %lu", (unsigned long)idp->position.seq);
       if (idp->do_not_instantiate) fputs(", do not instantiate", f_debug);
       fputs("): \"", f_debug);
       if (idp->entity.kind == (a_byte_il_entry_kind)iek_type) {
@@ -161,22 +161,22 @@ Display the source-sequence entry pointed to by ssep, for debugging purposes.
       db_constant(sap->condition);
       fprintf(f_debug, ", ");
       db_constant(sap->string_literal);
-      fprintf(f_debug, " ) at %lu", sap->position.seq);
+      fprintf(f_debug, " ) at %lu", (unsigned long)sap->position.seq);
 #if MICROSOFT_EXTENSIONS_ALLOWED
     } else if (kind == (an_il_entry_kind)iek_ms_attribute) {
       an_ms_attribute_ptr	msap;
       msap = (an_ms_attribute_ptr)ssep->entity.ptr;
-      fprintf(f_debug, " (at %lu) ", msap->position.seq);
+      fprintf(f_debug, " (at %lu) ", (unsigned long)msap->position.seq);
       fprintf(f_debug, "%s", msap->string);
     } else if (kind == (an_il_entry_kind)iek_cli_metadata_file) {
       a_cli_metadata_file_ptr cmfp;
       cmfp = (a_cli_metadata_file_ptr)ssep->entity.ptr;
-      fprintf(f_debug, " (at %lu) ", cmfp->position.seq);
+      fprintf(f_debug, " (at %lu) ", (unsigned long)cmfp->position.seq);
       fprintf(f_debug, "#using <%s>", cmfp->name_as_written);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     } else if (kind == (an_il_entry_kind)iek_lambda) {
       a_lambda_ptr  lambda = ss_entry_ptr(ssep, a_lambda_ptr);
-      fprintf(f_debug, " (at %lu)", lambda->start_position.seq);
+      fprintf(f_debug, " (at %lu)", (unsigned long)lambda->start_position.seq);
     } else {
       a_source_position             *pos;
       a_source_correspondence       *scp;
@@ -267,7 +267,7 @@ Display the source-sequence entry pointed to by ssep, for debugging purposes.
         }  /* if */
         if (pos->seq > 0) {
           fprintf(f_debug, "%sat %lu", (lparen_printed ? ", " : " ("),
-                  pos->seq);
+                  (unsigned long)pos->seq);
           lparen_printed = TRUE;
         }  /* if */
         if (is_friend) {

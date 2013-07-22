@@ -2343,8 +2343,8 @@ Display a Microsoft attribute entry, for debugging purposes.
   int				arg_number = 0;
 
   fprintf(f_debug, "Microsoft attribute '%s' at %p (%lu/%d):\n",
-          msap->name == NULL ? "NULL" : msap->name,
-          (void *)msap, msap->position.seq, msap->position.column);
+          msap->name == NULL ? "NULL" : msap->name, (void *)msap,
+          (unsigned long)msap->position.seq, msap->position.column);
   fprintf(f_debug, "  attribute string: %s\n", msap->string);
   for (arg = msap->arg_list; arg != NULL; arg = arg->next) {
     fprintf(f_debug, "  argument %d (%s): ", arg_number++, arg->param_name);

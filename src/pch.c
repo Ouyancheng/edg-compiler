@@ -513,7 +513,7 @@ file.
     fprintf(f_debug, "Added PCH event: %s, value=%s, line %lu, col %d\n",
             pch_event_kind_names[(int)pep->kind],
             pep->value == NULL ? "(NULL)" : pep->value,
-            pep->position.seq, pep->position.column);
+            (unsigned long)pep->position.seq, pep->position.column);
   }  /* if */
 #endif /* DEBUG */
   db_exit();
@@ -585,7 +585,8 @@ Display a PCH event for debugging purposes.
       unexpected_condition();
   }  /* switch */
   fprintf(f_debug, ", value: %s", pep->value == NULL ? "(NULL)" : pep->value);
-  fprintf(f_debug, ", seq: %lu, column: %lu\n", pep->position.seq,
+  fprintf(f_debug, ", seq: %lu, column: %lu\n",
+          (unsigned long)pep->position.seq,
           (unsigned long)pep->position.column);
 }  /* db_pch_event */
 #endif /* DEBUG */

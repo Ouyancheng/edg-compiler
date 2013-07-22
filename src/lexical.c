@@ -3504,7 +3504,7 @@ uniqueness requirements.  Sometimes there's no good way to get a unique name.
        L line-number "file-name" kind
   */
   fprintf(f_raw_listing, "L %lu \"%s\"",
-                         (a_line_number)(curr_ise->line_number+1),
+                         (unsigned long)(curr_ise->line_number+1),
                          curr_ise->file_name);
   if (kind != ' ') {
     putc(' ', f_raw_listing);
@@ -6619,7 +6619,8 @@ simple_return:
     if (after_end_of_all_source) {
       fprintf(f_debug, "\nafter_end_of_all_source = TRUE.\n");
     } else {
-      fprintf(f_debug, "seq = %lu\n%s\n", curr_seq_number, curr_source_line);
+      fprintf(f_debug, "seq = %lu\n%s\n", (unsigned long)curr_seq_number,
+              curr_source_line);
       if (debug_level >= 4) {
         /* Dump out the modification list, which shows the location
            of the trigraphs and line splices. */
@@ -6636,11 +6637,11 @@ simple_return:
               break;
             case olm_line_splice:
               fprintf(f_debug, "line splice: seq = %lu\n",
-                               olmp->variant.splice.seq_number);
+                      (unsigned long)olmp->variant.splice.seq_number);
               break;
             case olm_multiline_string_splice:
               fprintf(f_debug, "multiline string splice: seq = %lu\n",
-                               olmp->variant.splice.seq_number);
+                      (unsigned long)olmp->variant.splice.seq_number);
               break;
             case olm_null:
               fprintf(f_debug, "null\n");
@@ -12389,7 +12390,7 @@ return_from_token_scan:
     /* Write out the current token. */
     fprintf(f_debug, "get_token%s: pos = %lu/%2d, %-10s",
                      gotten_from_cache ? " (from cache)" : "",
-                     pos_curr_token.seq, pos_curr_token.column,
+                     (unsigned long)pos_curr_token.seq, pos_curr_token.column,
                      token_names[(int)curr_token]);
     if (start_of_curr_token != NULL) {
       /* Print token string if valid. */

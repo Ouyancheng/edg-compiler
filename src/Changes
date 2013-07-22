@@ -1,5 +1,18 @@
 Version 5.0
 
+7/22/13  [EDGcpfe/14305]
+a_source_position
+
+The type a_source_position included two or more fields of type unsigned long
+(depending on the configuration macros FULLY_RESOLVED_MACRO_POSITIONS and
+RECORD_MACRO_INVOCATIONS).  The type unsigned long was chosen long ago to
+ensure at least 32 significant bits, but it now commonly is a 64-bit type.
+Now these fields have type uint32_t, which can result in significant space
+savings on some platforms.  In addition, for configurations that set
+FULLY_RESOLVED_MACRO_POSITIONS to TRUE, the declaration order of some fields
+has been rearranged to increase the likelihood of a more efficient layout.
+
+
 7/19/13  [EDGcpfe/10662]
 C++11 const-correctness in the front end
 

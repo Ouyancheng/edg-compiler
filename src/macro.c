@@ -4091,7 +4091,7 @@ end_scan_for_macro_modifs:;
         conv_seq_to_file_and_line(curr_seq_number, &file_name, &full_name,
                                   &line_number, &at_end_of_source);
         /* We assume we don't need to call ensure_arg_raw_text_space. */
-        (void)sprintf(repl_text, "%lu", line_number);
+        (void)sprintf(repl_text, "%lu", (unsigned long)line_number);
       } else if (macro_symbol == file_macro_symbol ||
                  macro_symbol == base_file_macro_symbol) {
         /* __FILE__.  Make and return a string for a string literal 

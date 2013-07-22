@@ -1886,7 +1886,7 @@ made is returned.
     for (idx = 0;
          idx < NUMBER_OF_ERROR_FILE_INDEX_TABLE_ENTRIES; ++idx) {
       fprintf(f_debug, "entry %d=%5lu\n", idx,
-              curr_file->line_number[idx]);
+              (unsigned long)curr_file->line_number[idx]);
     }  /* for */
     fprintf(f_debug, "\n");
   }  /* if */
@@ -2619,7 +2619,7 @@ the column number is added into the output.
      SP_COL_UNKNOWN. */
   /* If the line is from stdin, do not display the file name. */
   if (strcmp(file_name, FILE_NAME_FOR_STDIN) == 0) {
-    (void)sprintf(number_buffer, "%lu", line_number);
+    (void)sprintf(number_buffer, "%lu", (unsigned long)line_number);
     error_text_string = error_text(ec_Line);
     *line_len += add_string_to_text_buffer(buffer, error_text_string);
     *line_len += add_string_to_text_buffer(buffer, " ");
@@ -2634,7 +2634,7 @@ the column number is added into the output.
                                           /*escape_nonprintable_chars=*/FALSE);
     *line_len += add_string_to_text_buffer(buffer, "\"");
     if (line_number != SP_LINE_UNKNOWN) {
-      (void)sprintf(number_buffer, "%lu", line_number);
+      (void)sprintf(number_buffer, "%lu", (unsigned long)line_number);
       error_text_string = error_text(ec_line);
       *line_len += add_string_to_text_buffer(buffer, ", ");
       *line_len += add_string_to_text_buffer(buffer, error_text_string);
@@ -2883,7 +2883,8 @@ in lower case.
        conv_seq_to_file_and_line has returned the position of the
        last line of the primary source file for the end-of-source case. */
     fprintf(f_raw_listing, "\"%s\" %lu %d ",
-            format_file_name(file_name), line_number, error_pos->column);
+            format_file_name(file_name), (unsigned long)line_number,
+            error_pos->column);
   }  /* if */
   /* For an internal error, the coded-form message indicates only that the
      error is catastrophic, so we add text to indicate that it is an

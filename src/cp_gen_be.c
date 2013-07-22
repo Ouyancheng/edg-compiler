@@ -2172,9 +2172,9 @@ Write a #line directive for the indicated line number and file.
   if (gen_old_style_line_dirs || gcc_is_generated_code_target) {
     /* Generate old-style directives, i.e., the kind output by the Reiser
        cpp and by the GNU preprocessor. */
-    (void)fprintf(f_C_output, "# %lu", curr_output_line);
+    (void)fprintf(f_C_output, "# %lu", (unsigned long)curr_output_line);
   } else {
-    (void)fprintf(f_C_output, "#line %lu", curr_output_line);
+    (void)fprintf(f_C_output, "#line %lu", (unsigned long)curr_output_line);
   }  /* if */
   if (new_output_file != curr_output_file) {
     /* The file name is put out only if it changed. */

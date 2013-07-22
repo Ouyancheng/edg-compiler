@@ -314,6 +314,17 @@ stdint.h are instead defined in some other unexpected place.
 #endif /* ifndef SUPPRESS_DEFINITION_OF_STDINT_TYPES */
 
 /*
+When compiling C++ code on some common platforms, the <stdint.h> and/or
+<inttypes.h> headers do not define the macro UINT32_MAX (and other similar
+macros) unless __STDC_LIMIT_MACROS is defined before inclusion.
+*/
+#if defined(__cplusplus) && (USE_STDINT_HEADER || USE_INT_TYPES_HEADER)
+#ifndef __STDC_LIMIT_MACROS
+#define __STDC_LIMIT_MACROS
+#endif /* ifndef __STDC_LIMIT_MACROS */
+#endif /* defined(__cplusplus) && ... */
+
+/*
 Include a header to provide typedefs for integer types of specific sizes.  If
 no such header is available, provide typedefs for the selected fixed size
 integral types.
@@ -352,12 +363,19 @@ typedef EDG_INT32_T int32_t;
 
 #ifndef EDG_UINT32_T
 #define EDG_UINT32_T unsigned int
+#ifndef UINT32_MAX
+#define UINT32_MAX UINT_MAX
+#endif /* ifndef UINT32_MAX */
 #endif /* ifndef EDG_UINT32_T */
 typedef EDG_UINT32_T uint32_t;
 
 #endif /* SUPPRESS_DEFINITION_OF_STDINT_TYPES */
 #endif /* !USE_INT_TYPES_HEADER */
 #endif /* !USE_STDINT_HEADER */
+
+#if !defined(UINT32_MAX)
+ #error -- UINT32_MAX must be defined
+#endif /* !defined(UINT32_MAX)
 
 /* Define typedefs to be used for "void *" and "const void *".  When
    using an ANSI C compiler these are just typedefs to the appropriate
@@ -799,13 +817,13 @@ typedef unsigned short
                            0..MAX_CHARS_IN_A_LOGICAL_SOURCE_LINE.  Applies to
 			   columns of physical source lines.  The first
 		           column is column 1.  0 indicates unknown. */
-#define MAX_LINE_NUMBER ULONG_MAX
-typedef unsigned long
+#define MAX_LINE_NUMBER UINT32_MAX
+typedef uint32_t
 		a_line_number;
 			/* A line number within a file; not often used --
 			   sequence numbers (below) are more common. */
-#define MAX_SEQ_NUMBER ULONG_MAX
-typedef unsigned long
+#define MAX_SEQ_NUMBER UINT32_MAX
+typedef uint32_t
 		a_seq_number;
 			/* A line number in compilation sequence order.
 			   Such a number can be mapped back to a file and
@@ -814,7 +832,8 @@ typedef unsigned long
 			   number one larger than all those in use indicates
 			   "after end of file, after the last line". */
 #if FULLY_RESOLVED_MACRO_POSITIONS || RECORD_MACRO_INVOCATIONS
-typedef long 	a_macro_invocation_record_index;
+typedef int32_t
+	 	a_macro_invocation_record_index;
 			/* The index of a macro invocation record (defined in
 			   il_def.h; all we need is the index type here). */
 #define NO_PARENT_MACRO_INVOCATION (-1L)
@@ -840,9 +859,13 @@ typedef struct a_source_position {
      predefined macros and macros defined on the command line.  If the
      location is not within a macro expansion, orig_seq and orig_column will
      have the same values as seq and column. */
-  a_seq_number	orig_seq;
+  /* Note that the fields orig_column and orig_seq are declared in reverse
+     order of seq and column to improve the layout of the a_source_position
+     structure in the common case where a_column_number requires half the
+     size and alignment of a_seq_number. */
   a_column_number
 		orig_column;
+  a_seq_number	orig_seq;
 #endif /* FULLY_RESOLVED_MACRO_POSITIONS */
 #if RECORD_MACRO_INVOCATIONS
   a_macro_invocation_record_index

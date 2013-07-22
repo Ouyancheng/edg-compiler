@@ -145,7 +145,7 @@ should only be called if cross-reference information is being generated
     fprintf(f_xref_info, "\t%c\t%s\t%lu\t%d\n",
                          code,
                          format_file_name(file_name),
-                         line_number,
+                         (unsigned long)line_number,
                          source_position->column);
   }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED

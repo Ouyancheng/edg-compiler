@@ -6414,7 +6414,7 @@ Dump a base class entry, for debug purposes.
   if (bcp->derived_class != NULL) {
     fputc('"', f_debug);
     fprintf(f_debug, " (%lu/%d)",
-            bcp->decl_position.seq, bcp->decl_position.column);
+            (unsigned long)bcp->decl_position.seq, bcp->decl_position.column);
     fputs(", base class of \"", f_debug);
     db_type_name(bcp->derived_class);
   }  /* if */

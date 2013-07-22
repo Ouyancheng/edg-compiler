@@ -281,7 +281,7 @@ purposes.
   switch (cfdp->kind) {
     case cfdk_block:
       fprintf(f_debug, "block (#%lu, line %lu)", cfdp->id_number,
-              cfdp->source_pos.seq);
+              (unsigned long)cfdp->source_pos.seq);
       if (cfdp->variant.block.is_catch_block) {
         fprintf(f_debug, ", catch");
       } else if (cfdp->variant.block.is_try_block) {
@@ -327,7 +327,7 @@ purposes.
         fprintf(f_debug, "goto %s", label->source_corresp.name);
       }  /* if */
       fprintf(f_debug, " (#%lu, line %lu)", cfdp->id_number,
-              cfdp->source_pos.seq);
+              (unsigned long)cfdp->source_pos.seq);
       break;
     case cfdk_label:
       label = cfdp->variant.label_statement->variant.label.ptr;
@@ -341,7 +341,7 @@ purposes.
         fprintf(f_debug, "label \"%s\"", label->source_corresp.name);
       }  /* if */
       fprintf(f_debug, " (#%lu, line %lu)", cfdp->id_number,
-              cfdp->source_pos.seq);
+              (unsigned long)cfdp->source_pos.seq);
       break;
     case cfdk_init:
       sp = cfdp->variant.init.statement;
@@ -375,11 +375,11 @@ purposes.
         fprintf(f_debug, "***BAD STMT KIND***");
       }  /* if */
       fprintf(f_debug, " (#%lu, line %lu)", cfdp->id_number,
-              cfdp->source_pos.seq);
+              (unsigned long)cfdp->source_pos.seq);
       break;
     case cfdk_end_of_block:
       fprintf(f_debug, "EOB (#%lu, line %lu)", cfdp->id_number,
-              cfdp->source_pos.seq);
+              (unsigned long)cfdp->source_pos.seq);
       if (cfdp->variant.start_of_block != NULL) {
         fprintf(f_debug, " for block #%lu",
                 cfdp->variant.start_of_block->id_number);
@@ -387,7 +387,7 @@ purposes.
       break;
     case cfdk_case_label:
       fprintf(f_debug, "case label (#%lu, line %lu)", cfdp->id_number,
-              cfdp->source_pos.seq);
+              (unsigned long)cfdp->source_pos.seq);
       break;
     default:
       fprintf(f_debug, "***UNKNOWN KIND***");

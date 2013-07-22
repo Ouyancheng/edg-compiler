@@ -7912,7 +7912,7 @@ it is set to NULL.
                                      result, operand_clone,
                                      get_result_clone, *temp_init_expr,
                                      result);
-      *temp_init_expr = FALSE;
+      *temp_init_expr = NULL;
     }  /* if */
   }  /* if */
 }  /* prepare_property_ref_incr_decr */
