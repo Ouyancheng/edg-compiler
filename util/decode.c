@@ -4066,8 +4066,8 @@ Clear a function information block to default values.
 
 
 static a_const_char *get_number(a_const_char               *p,
-                        long                       *num,
-                        a_decode_control_block_ptr dctl)
+                                long                       *num,
+                                a_decode_control_block_ptr dctl)
 /*
 Accumulate a number starting at position p and return its value in *num.
 Return a pointer to the character position following the number.
