@@ -1,5 +1,22 @@
 Version 5.0
 
+7/22/13  [EDGcpfe/14200]
+Abort on malformed friend declaration of main()
+
+The front end previously aborted (in corresponding_param_type; class_decl.c)
+when processing a malformed friend declaration of main() that attempted to
+add default arguments to main().  For example:
+
+  template <class T> class S {
+    friend int main (T x = 2) ;
+  };
+  int main() {
+    S<bool> s;  // Previously triggered an abort.
+  }
+
+This is now fixed.
+
+
 7/22/13  [EDGcpfe/14305]
 a_source_position
 

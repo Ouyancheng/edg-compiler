@@ -1909,7 +1909,8 @@ static a_param_type_ptr corresponding_param_type(a_type_ptr        type,
 /*
 "ptp" describes the n-th parameter of some unspecified routine type.  This
 routine assumes "type" has a compatible routine type and returns its n-th
-parameter type description.
+parameter type description.  If the given type has insufficient parameters,
+NULL is returned.
 */
 {
   a_routine_type_supplement_ptr  rtsp = type->variant.routine.extra_info;
@@ -1922,9 +1923,16 @@ parameter type description.
   ptp = rtsp->param_type_list;
   for (; ptp != NULL; ptp = ptp->next) { ++n_params; }
   /* Skip the right number. */
-  ptp = rtsp->param_type_list;
-  param_pos = n_params - n_params_remaining;
-  for (; param_pos--;) { ptp = ptp->next; }
+  if (n_params_remaining > n_params) {
+    /* This can happen in some severe error cases.  Return a NULL parameter
+       entry. */
+    expect_error();
+    ptp = NULL;
+  } else {
+    ptp = rtsp->param_type_list;
+    param_pos = n_params - n_params_remaining;
+    for (; param_pos--;) { ptp = ptp->next; }
+  }  /* if */
   return ptp;
 }  /* corresponding_param_type */
 
@@ -2264,8 +2272,14 @@ and for member functions of template classes.
                  */
               ptp = corresponding_param_type(routine_symbol_type(sym), ptp);
             }  /* if */
-            delayed_scan_of_default_arg_expr(ptp, sym,
-                                            /*check_for_errors=*/!is_friend);
+            if (ptp != NULL) {
+              delayed_scan_of_default_arg_expr(
+                                   ptp, sym, /*check_for_errors=*/!is_friend);
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+            } else {
+              do_declared_type_fixup = FALSE;
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+            }  /* if */
           }  /* for */
           /* Pop the reactivated function prototype scope off the stack. */
           pop_scope();
