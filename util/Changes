@@ -8,8 +8,9 @@ string literal to char*.  In order to permit their compilation as C++11
 code, decode.c, edg_munch.c, edg_prelink.c, and mk_errinfo.c have been
 changed to use the new a_const_char typedef that has been added to basics.h
 (see the EDGcpfe/10662 entry in the src/Changes file for a more detailed
-discussion).  In addition, dettarg.c has been changed to use const char
-instead of char for pointers to read-only string data.
+discussion), and mk_errinfo now uses that typedef in the output err_data.h
+file.  In addition, dettarg.c has been changed to use const char instead of
+char for pointers to read-only string data.
 
 
 5/22/13  [EDGcpfe/14014]
