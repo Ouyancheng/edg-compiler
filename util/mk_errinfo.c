@@ -227,7 +227,7 @@ Structure used to record information about an error message.
 */
 typedef struct an_error_info *an_error_info_ptr;
 typedef struct an_error_info {
-  a_const_char*text;
+  a_const_char *text;
   a_const_char *enumerator;
   a_const_char *tag;
 } an_error_info;
