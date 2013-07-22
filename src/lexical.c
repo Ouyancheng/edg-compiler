@@ -18485,7 +18485,8 @@ Return TRUE if the current token is an identifier spelled like *tok_str.
 
   if (curr_token == tok_identifier) {
     a_symbol_header_ptr  sym_hdr = locator_for_curr_id.symbol_header;
-    if (symbol_header_is_for_identifier_string(sym_hdr, tok_str)) {
+    if (sym_hdr != NULL &&
+        symbol_header_is_for_identifier_string(sym_hdr, tok_str)) {
       result = TRUE;
     }  /* if */
   }  /* if */
