@@ -11885,7 +11885,7 @@ type-as-subobject of class_type.
 
 
 static char *mangled_prefixed_type_encoding(a_const_char *prefix,
-                                              a_type_ptr type)
+                                            a_type_ptr   type)
 /*
 Return a mangled name that is the indicated prefix followed by the encoding
 for the indicated type.  The name returned is in a temporary buffer and must
