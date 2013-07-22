@@ -1584,7 +1584,7 @@ The current token must be a ">>": Replace it with two ">" tokens.
   replace_curr_token(tok_gt);
   cache_curr_token(&cache);
   /* Give the second ">" token a new token sequence number.  When the numbers
-     were assigned, a slot is reserved so that this number will be known to
+     were assigned, a slot was reserved so that this number will be known to
      be unique. */
   curr_token_sequence_number++;
   last_token_sequence_number_of_token = curr_token_sequence_number;
@@ -12496,7 +12496,7 @@ in subsequent sequential calls (until the colon processing is finished).
       *seen_tok_colon_colon = FALSE;
       result = tok_colon;
       /* Give the second ":" token a new token sequence number.  When the
-         numbers were assigned, a slot is reserved so that this number will be
+         numbers were assigned, a slot was reserved so that this number will be
          known to be unique. */
       curr_token_sequence_number++;
       last_token_sequence_number_of_token = curr_token_sequence_number;

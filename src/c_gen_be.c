@@ -8065,7 +8065,7 @@ Dump the GNU C clobber specifications for the given asm entry.
 
 static void dump_asm_labels(an_asm_entry_ptr aep)
 /*
-Dump the GNU labels specifications for the given asm goto entry.
+Dump the GNU label specifications for the given asm goto entry.
 */
 {
   a_label_list_ptr llp;
@@ -8085,7 +8085,7 @@ Dump the GNU labels specifications for the given asm goto entry.
 static void dump_asm_goto_string(an_asm_entry_ptr aep)
 /*
 Dump the asm_string associated with aep replacing any labels that may
-appear in the string (i.e., in "%l[label]") with the appropriate label name
+appear in the string (e.g., in "%l[label]") with the appropriate label name
 (which has its position added to it).
 */
 {
@@ -8105,7 +8105,7 @@ appear in the string (i.e., in "%l[label]") with the appropriate label name
 #if CHECKING
       a_boolean found = FALSE;
 #endif /* CHECKING */
-      /* Found "%l[" which indicates the beginning of a label; find the
+      /* Found "%l[", which indicates the beginning of a label; find the
          corresponding label argument (the front end has ensured that there
          is one) and dump that name instead. */
       m_write_str("%l[");
@@ -8187,7 +8187,7 @@ Generate C for an asm statement or declaration.
     write_tok_ch('(');
 #if GNU_EXTENSIONS_ALLOWED
     if (aep->is_asm_goto) {
-      /* An "asm goto" string may have label references which need special
+      /* An "asm goto" string may have label references that need special
          attention. */
       dump_asm_goto_string(aep);
     } else

@@ -2822,7 +2822,7 @@ Allocate space for an asm operand and return a pointer to it.
 
 a_named_register_list_ptr alloc_named_register_list(void)
 /*
-Allocate space for an a named register list and return a pointer to
+Allocate space for a named register list and return a pointer to
 it.
 */
 {
@@ -2837,7 +2837,7 @@ it.
 
 a_label_list_ptr alloc_label_list(void)
 /*
-Allocate space for an a label list and return a pointer to it.
+Allocate space for a label list and return a pointer to it.
 */
 {
   a_label_list_ptr  ll = (a_label_list_ptr)alloc_cil(sizeof(a_label_list));

@@ -319,7 +319,7 @@ symbolic reference (e.g., "%l[label]) or by argument number (e.g., "%l0).
         if (*pc != '[')  {
           /* An output format modifier between the '%' and '['. */
           if (*pc == 'l' && asm_entry->is_asm_goto) {
-            /* Found "%l[" which introduces a label in an "asm goto".  The
+            /* Found "%l[", which introduces a label in an "asm goto".  The
                name that follows must match one of the label arguments. */
             is_label = TRUE;
           }  /* if */
@@ -941,7 +941,7 @@ The syntax is
    [: [operand [, operand...]]]  // inputs
 
 Operand lists and clobbers can be empty, leading to cases where
-two adjacent colons are parsed (in C++) as a single_tok_colon_colon.  To
+two adjacent colons are parsed (in C++) as a single tok_colon_colon.  To
 get around this case (without undue complexity), use
 get_token_with_colon_separation rather than get_token to return two
 tok_colon tokens rather than a single tok_tolon_colon.  See
@@ -996,7 +996,7 @@ The syntax is
    string-literal [, string-literal ...]
 
 Operand lists and clobbers can be empty, leading to cases where
-two adjacent colons are parsed (in C++) as a single_tok_colon_colon.  To
+two adjacent colons are parsed (in C++) as a single tok_colon_colon.  To
 get around this case (without undue complexity), use
 get_token_with_colon_separation rather than get_token to return two
 tok_colon tokens rather than a single tok_tolon_colon.  See
@@ -1066,14 +1066,14 @@ skip_item:
 a_label_list_ptr asm_labels_spec(a_boolean *seen_tok_colon_colon)
 /*
 Parse and validate a list of asm-statement labels that appear after the
-fourth colon in an "asm goto" statement.  Returns the list of labels.
+fourth colon in an "asm goto" statement and return the list.
 
 The syntax is
 
    label [, label ...]
 
 Operand lists and clobbers can be empty, leading to cases where
-two adjacent colons are parsed (in C++) as a single_tok_colon_colon.  To
+two adjacent colons are parsed (in C++) as a single tok_colon_colon.  To
 get around this case (without undue complexity), use
 get_token_with_colon_separation rather than get_token to return two
 tok_colon tokens rather than a single tok_tolon_colon.  See

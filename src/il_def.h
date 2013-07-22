@@ -13507,7 +13507,7 @@ typedef struct an_asm_entry {
   a_bit_field	is_volatile:1;
 			/* asm is marked volatile (not to be reordered). */
   a_bit_field	is_asm_goto:1;
-			/* TRUE is this is an "asm goto". */
+			/* TRUE if this is an "asm goto". */
   an_asm_operand_ptr
 		operands;
 			/* List of asm operands.  Output operands
