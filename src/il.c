@@ -19997,9 +19997,16 @@ the case if the return type was incomplete at the point of definition.
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
         } else if (!cssp->construction_by_bitwise_copy_allowed
 #if IA64_ABI
+#if ABI_COMPATIBILITY_VERSION >= 408
                    || has_nontrivial_destructor(cssp)
+#else /* ABI_COMPATIBILITY_VERSION < 408 */
+                   /* This test had failed to take into account defaulted
+                      destructors and is replaced by the test above, but
+                      remains here for backward compatibility. */
+                   || cssp->destructor != NULL
+#endif /* ABI_COMPATIBILITY_VERSION >= 408 */
 #endif /* IA64_ABI */
-                                                     ) {
+                                              ) {
           rtsp->value_returned_by_cctor = TRUE;
           /* If the return type is an abstract class, issue an error.  Note
              that construction_by_bitwise_copy_allowed will never be TRUE
