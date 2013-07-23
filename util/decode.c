@@ -7562,12 +7562,12 @@ Utility to set the state of the demangler to its initial values.
 #if COMPILE_DECODE_FOR_LIB_SRC
 static
 #endif /* COMPILE_DECODE_FOR_LIB_SRC */
-void decode_identifier(char      *id,
-                       char      *output_buffer,
-                       sizeof_t  output_buffer_size,
-                       a_boolean *err,
-                       a_boolean *buffer_overflow_err,
-                       sizeof_t  *required_buffer_size)
+void decode_identifier(a_const_char *id,
+                       char         *output_buffer,
+                       sizeof_t     output_buffer_size,
+                       a_boolean    *err,
+                       a_boolean    *buffer_overflow_err,
+                       sizeof_t     *required_buffer_size)
 /*
 Demangle the identifier id (which is null-terminated), and put the demangled
 form (null-terminated) into the output_buffer provided by the caller.
