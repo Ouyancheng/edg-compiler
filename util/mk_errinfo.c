@@ -15,16 +15,19 @@ the error text.
 
 Usage:
 
-    - mk_errinfo error_msg.txt error_tag.txt err_codes.h err_data.h
+    - mk_errinfo [-cch] error_msg.txt error_tag.txt err_codes.h err_data.h
 
 	Generates the err_codes.h and err_data.h files used by the front end.
+	If -cch is specified, the element type of the message_text array
+	is put out as "const char*"; otherwise, the element type is
+	a_const_char*.
 
     - mk_errinfo -d error_msg.txt error_tag.txt err_msgs.tex
 
 	Generates an err_msgs.tex file that can be used with the Latex
 	internal documentation.
 
-    mk_errinfo -mml error_msg.txt error_tag.txt err_msgs.mml
+    - mk_errinfo -mml error_msg.txt error_tag.txt err_msgs.mml
 
 	Generates an err_msgs.mml file in FrameMaker MML (maker markup
 	language) that can be used to create a FrameMaker document containing
@@ -164,11 +167,11 @@ static void me_invalid_input(void)
 static void me_command_line_error(void)
 {
   fprintf(stderr, "usage:\n");
-  fprintf(stderr, "  %s %s\n",
-          "mk_errinfo message_input_file_name tag_input_file_name",
+  fprintf(stderr, "  %s \\\n\t\t%s\n",
+          "mk_errinfo [-cch] message_input_file_name tag_input_file_name",
           "codes_output_file data_output_file");
-  fprintf(stderr, "  %s %s\n",
-          "mk_errinfo -d message_input_file_name tag_input_file_name",
+  fprintf(stderr, "  %s \\\n\t\t%s\n",
+          "mk_errinfo {-d|-mml} message_input_file_name tag_input_file_name",
           "documentation_output_file");
   me_error("command line error", (char *)NULL);
 }  /* me_command_line_error */
@@ -695,6 +698,15 @@ static void me_create_doc_fillin(a_const_char **ptr_to_ptr)
 }  /* me_create_doc_fillin */
 
 
+/*
+The type to be used in declaring the message_text array.  By default, it is
+a_const_char, the typedef declared in basics.h.  To allow use of a single
+mk_errinfo executable with versions of the front end before that typedef
+was added, the -cch command-line option changes the type to "const char".
+*/
+static const char *char_type = "a_const_char";
+
+
 static void me_write_error_text(void)
 /*
 Write the error text array to the error data file.
@@ -703,7 +715,7 @@ Write the error text array to the error data file.
   int	i;
 
   fprintf(data_output_file,
-          "static a_const_char *message_text[(int)ec_last + 1] = {\n");
+          "static %s *message_text[(int)ec_last + 1] = {\n", char_type);
   for (i = 0; i < number_of_errors; ++i) {
     a_const_char *ptr;
     /* If this is not the first time through, terminate the previous line. */
@@ -714,7 +726,7 @@ Write the error text array to the error data file.
     ptr = error_info[i].text;
     if (ptr == NULL) {
       /* There is no error text.  This is used for REMOVED errors. */
-      fprintf(data_output_file, "(a_const_char *)NULL");
+      fprintf(data_output_file, "(%s *)NULL", char_type);
     } else {
       for (; *ptr != '\0'; ++ptr) {
         char ch = *ptr;
@@ -875,7 +887,7 @@ int main(int argc, char *argv[])
   int		argpos = 1;
   a_boolean	doc_mode = FALSE;
 
-  if (argc != 5) me_command_line_error();
+  if (argc < 5) me_command_line_error();
   if (strcmp(argv[argpos], "-d") == 0) {
     /* We should generate a latex documentation output file. */
     doc_mode = TRUE;
@@ -888,6 +900,11 @@ int main(int argc, char *argv[])
     output_doc_string = me_output_mml_doc_string;
     write_item_header = me_write_mml_item_header;
     argpos++;
+  } else if (strcmp(argv[argpos], "-cch") == 0) {
+    /* We should use "const char" instead of a_const_char in declaring the
+       message_text array. */
+    char_type = "const char";
+    argpos++;
   }  /* if */
   message_input_file_name = argv[argpos++];
   tag_input_file_name = argv[argpos++];
@@ -896,6 +913,9 @@ int main(int argc, char *argv[])
   } else {
     codes_output_file_name = argv[argpos++];
     data_output_file_name = argv[argpos++];
+  }  /* if */
+  if (argpos != argc) {
+    me_command_line_error();
   }  /* if */
   /* Open the message input file. */
   message_input_file = fopen(message_input_file_name, "r");
