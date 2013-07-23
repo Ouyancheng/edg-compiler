@@ -11554,6 +11554,12 @@ Generate code for a stmk_init (dynamic initialization) statement.
         }  /* if */
         break;
       case dik_none:
+        /* Delete the do-nothing stmk_init statement; these can occur in
+           C++ configurations where lowering removes calls to unnecessary
+           destructors. */
+        check_assertion(dip->destructor == NULL);
+        turn_statement_into_noop(statement);
+        var->init_kind = (an_init_kind)initk_none;
         break;
       default:
         unexpected_condition_str("lower_stmk_init: bad dynamic init kind (2)");

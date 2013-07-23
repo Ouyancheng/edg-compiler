@@ -1,5 +1,21 @@
 Version 5.0
 
+7/23/13  [EDGcpfe/14328]
+Remove do-nothing lowered dynamic initialization
+
+In certain cases, lowering is able to remove a dynamic initialization
+from the IL completely.  The changes for
+LOWERING_REMOVES_UNNEEDED_CONSTRUCTIONS_AND_DESTRUCTIONS
+(see the Changes entry for 11/19/11) suppressed this removal in some cases
+where a dynamic initialization had a call to an unneeded destructor.
+Now fixed.  For example:
+
+  struct A { ~A() { } };
+  void f() {
+    A a;
+  }
+
+
 7/22/13  [EDGcpfe/11271]
 C++11: [[final]], [[override]], [[base_check]], and [[hiding]] attributes
 
