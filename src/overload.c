@@ -13767,7 +13767,11 @@ it fits that type description or can be converted to it.
     case INTEGRAL_TYPE_CODE:
     case PROMOTED_INTEGRAL_TYPE_CODE:
     case PTRDIFF_T_TYPE_CODE:
-      matches = is_integral_or_unscoped_enum_type(type);
+      /* C++/CLI permits operations like E::e | E::f where E is a scoped
+         enum type: That relies on enum->integer conversions.  C++11, however,
+         does not permit (or consider) that option all all. */
+      matches = cppcli_enabled ? is_integral_or_enum_type(type)
+                               : is_integral_or_unscoped_enum_type(type);
       break;
     case ENUM_TYPE_CODE:
       matches = is_enum_type(type);
