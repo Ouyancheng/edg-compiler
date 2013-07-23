@@ -3782,6 +3782,32 @@ return that entity.
 }  /* apply_align_attr */
 
 
+static a_boolean issue_error_for_removed_attribute(an_attribute_ptr  ap)
+/*
+The specified C++ attribute had appeared in a working version of the
+standard (and had been implemented in the front end), but is not part
+of the ratified C++11 standard.  A discretionary error is issued in
+strict mode.  Returns TRUE (and makes the attribute unrecognized) if an error
+is issued.
+*/
+{
+  a_boolean result = FALSE;
+
+  if (strict_ansi_mode) {
+    check_assertion(ap->family == (a_byte_attribute_family)af_std &&
+                    cpp11_mode);
+    pos_diagnostic(es_discretionary_error, ec_attribute_is_nonstandard,
+                   &ap->position);
+    if (is_effective_error(ec_attribute_is_nonstandard,
+                           es_discretionary_error)) {
+      make_attr_unrecognized(ap);
+      result = TRUE;
+    }  /* if */
+  }  /* if */
+  return result;
+}  /* issue_error_for_removed_attribute */
+
+
 /*ARGSUSED*/  /* ap is unused (but required by the callback type). */
 static char* apply_base_check_attr(an_attribute_ptr  ap,
                                    char              *entity,
@@ -3789,13 +3815,17 @@ static char* apply_base_check_attr(an_attribute_ptr  ap,
 /*
 The given entity must be a class type.  Apply the "base_check" attribute to it
 and return entity.  (The "checking" implied by "base_check" is delayed until
-the class' definition has been completed.)
+the class' definition has been completed.)  Note that this C++ attribute
+appeared in working drafts of the C++11 standard, but is not part of the C++11
+standard.
 */
 {
-  a_type_ptr  tp = (a_type_ptr)entity;
+  if (!issue_error_for_removed_attribute(ap)) {
+    a_type_ptr  tp = (a_type_ptr)entity;
 
-  check_assertion(entity_kind == iek_type);
-  symbol_supplement_for_class(tp)->base_check = TRUE;
+    check_assertion(entity_kind == iek_type);
+    symbol_supplement_for_class(tp)->base_check = TRUE;
+  }  /* if */
   return entity;
 }  /* apply_base_check_attr */
 
@@ -3907,27 +3937,31 @@ static char* apply_final_attr(an_attribute_ptr  ap,
                               an_il_entry_kind  entity_kind)
 /*
 The given entity must be a member function or a class.  Apply the "final"
-attribute to it and return the entity.
+attribute to it and return the entity.  Note that this C++ attribute
+appeared in working drafts of the C++11 standard, but is not part of the
+C++11 standard.
 */
 {
-  if (entity_kind == iek_routine) {
-    a_routine_ptr  rp = (a_routine_ptr)entity;
-    a_type_ptr     parent_class = parent_class_of(rp);
-    if (!is_incomplete_type(parent_class)) {
-      /* Since the class is complete, the attribute is being applied to an
-         out-of-class member definition, which is invalid. */
-      pos_st_error(ec_attr_must_appear_in_class_definition,
-                   &ap->position, ap->name);
-      make_attr_unrecognized(ap);
+  if (!issue_error_for_removed_attribute(ap)) {
+    if (entity_kind == iek_routine) {
+      a_routine_ptr  rp = (a_routine_ptr)entity;
+      a_type_ptr     parent_class = parent_class_of(rp);
+      if (!is_incomplete_type(parent_class)) {
+        /* Since the class is complete, the attribute is being applied to an
+           out-of-class member definition, which is invalid. */
+        pos_st_error(ec_attr_must_appear_in_class_definition,
+                     &ap->position, ap->name);
+        make_attr_unrecognized(ap);
+      } else {
+        rp->final = TRUE;
+      }  /* if */
+    } else if (entity_kind == iek_type) {
+      a_type_ptr  tp = (a_type_ptr)entity;
+      check_assertion(is_immediate_class_type(tp));
+      tp->variant.class_struct_union.final = TRUE;
     } else {
-      rp->final = TRUE;
+      unexpected_condition();
     }  /* if */
-  } else if (entity_kind == iek_type) {
-    a_type_ptr  tp = (a_type_ptr)entity;
-    check_assertion(is_immediate_class_type(tp));
-    tp->variant.class_struct_union.final = TRUE;
-  } else {
-    unexpected_condition();
   }  /* if */
   return entity;
 }  /* apply_final_attr */
@@ -3943,20 +3977,25 @@ checking is delayed until the definition is complete (because later member
 declarations can affect the validity of the attribute), but record the use
 of this attribute in the class to avoid unnecessary work for class definitions
 that do not involve the "hiding" attribute.  Return the given entity.
+
+Note that this C++ attribute appeared in working drafts of the C++11 standard,
+but is not part of the C++11 standard.
 */
 {
-  a_decl_parse_state  *dps = (a_decl_parse_state*)ap->assoc_info;
+  if (!issue_error_for_removed_attribute(ap)) {
+    a_decl_parse_state  *dps = (a_decl_parse_state*)ap->assoc_info;
 
-  if (scope_stack_top().kind != (a_scope_kind)sck_class_struct_union) {
-    pos_st_error(ec_attr_must_appear_in_class_definition,
-                 &ap->position, ap->name);
-    make_attr_unrecognized(ap);
-  } else if (dps != NULL && (dps->dso_flags & DSO_FRIEND) != 0) {
-    /* Something like "friend class[[hiding]] X;" is invalid. */
-    report_bad_attribute_target(es_error, ap);
-  } else {
-    symbol_supplement_for_class(scope_stack_top().assoc_type)
+    if (scope_stack_top().kind != (a_scope_kind)sck_class_struct_union) {
+      pos_st_error(ec_attr_must_appear_in_class_definition,
+                   &ap->position, ap->name);
+      make_attr_unrecognized(ap);
+    } else if (dps != NULL && (dps->dso_flags & DSO_FRIEND) != 0) {
+      /* Something like "friend class[[hiding]] X;" is invalid. */
+      report_bad_attribute_target(es_error, ap);
+    } else {
+      symbol_supplement_for_class(scope_stack_top().assoc_type)
                                                    ->check_hiding_attr = TRUE;
+    }  /* if */
   }  /* if */
   return entity;
 }  /* apply_hiding_attr */
@@ -4051,20 +4090,23 @@ static char* apply_override_attr(an_attribute_ptr  ap,
                                  an_il_entry_kind  entity_kind)
 /*
 Apply the given "override" attribute to the given entity and return that
-entity.
+entity.  Note that this C++ attribute appeared in working drafts of the C++11
+standard, but is not part of the C++11 standard.
 */
 {
-  check_assertion(entity_kind == iek_routine);
-  if (scope_stack_top().kind != (a_scope_kind)sck_class_struct_union) {
-    /* The attribute is presumably being applied to an out-of-class member
-       definition, which is invalid. */
-    pos_st_error(ec_attr_must_appear_in_class_definition,
-                 &ap->position, ap->name);
-    make_attr_unrecognized(ap);
-  } else {
-    a_decl_parse_state  *dps = (a_decl_parse_state*)ap->assoc_info;
-    if (!dps->override_okay) {
-      pos_error(ec_override_member_does_not_override, &dps->declarator_pos);
+  if (!issue_error_for_removed_attribute(ap)) {
+    check_assertion(entity_kind == iek_routine);
+    if (scope_stack_top().kind != (a_scope_kind)sck_class_struct_union) {
+      /* The attribute is presumably being applied to an out-of-class member
+         definition, which is invalid. */
+      pos_st_error(ec_attr_must_appear_in_class_definition,
+                   &ap->position, ap->name);
+      make_attr_unrecognized(ap);
+    } else {
+      a_decl_parse_state  *dps = (a_decl_parse_state*)ap->assoc_info;
+      if (!dps->override_okay) {
+        pos_error(ec_override_member_does_not_override, &dps->declarator_pos);
+      }  /* if */
     }  /* if */
   }  /* if */
   return entity;
