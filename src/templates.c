@@ -30599,7 +30599,7 @@ void complete_inheriting_ctor_template(a_tmpl_decl_state_ptr  decl_state,
                                        a_symbol_ptr           sym)
 /*
 Complete the data structures representing an inheriting constructor template
-(including the associate IL a_template entry).  sym is the symbol representing
+(including the associated IL a_template entry).  sym is the symbol representing
 the template and decl_state tracks its declaration.
 */
 {
