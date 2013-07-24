@@ -54,9 +54,9 @@ During the C++11 standardization process the [[final]], [[override]],
 and implemented by the EDG front end (see the Changes entries of 12/3/09 and
 3/26/10).  Subsequently, those attributes were removed from the final C++11
 standard (in favor of context-sensitive keywords -- see the Changes entry of
-3/8/12 and N3206).  A change has been made to issue a discretionary error for
-use of these attributes in strict mode.  This example (with --c++11 --strict)
-now elicits an error:
+3/8/12 and N3206).  A change has been made to issue a warning for use of these
+attributes in strict mode.  This example (with --c++11 --strict) now elicits
+a warning:
 
   struct B {
     virtual void f();
