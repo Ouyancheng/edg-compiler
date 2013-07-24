@@ -13769,7 +13769,7 @@ it fits that type description or can be converted to it.
     case PTRDIFF_T_TYPE_CODE:
       /* C++/CLI permits operations like E::e | E::f where E is a scoped
          enum type: That relies on enum->integer conversions.  C++11, however,
-         does not permit (or consider) that option all all. */
+         does not permit (or consider) that option at all. */
       matches = cppcli_enabled ? is_integral_or_enum_type(type)
                                : is_integral_or_unscoped_enum_type(type);
       break;
