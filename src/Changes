@@ -4,15 +4,15 @@ Version 5.0
 Completeness of enum types with explicit underlying types
 
 The front end now implements support for the resolution to the C++ standards
-committee's Core issues 803 and 977, which makes an enum type with an
-explicit underlying type complete as soon as that underlying type has been
-seen.  For example:
+committee's Core issues 803 and 977, which makes an enum type with an explicit
+underlying type complete as soon as that underlying type has been seen.
+For example:
 
   enum E: char { e = sizeof(E) };
 
 In addition, for such enumeration types, the first enumerator constant was
-previously given type int until the end of the enum type's definition when
-it should have been given the specified underlying type instead.  For example:
+previously given type int until the end of the enum type's definition when it
+should have been given the specified underlying type instead.  For example:
 
   enum F: char { f0, f1 = sizeof(f1) };
     // Previously sizeof(f1) was equivalent to sizeof(int)l; now it is 1.
