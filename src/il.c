@@ -16103,6 +16103,7 @@ Compute and return the result of "alignof" (or a variant, like "__alignof" or
 "__ALIGNOF__") applied to the given type (or, if is_type is FALSE, to an
 expression of that type; for cases where the operand is represented by an
 expression node, expr is that node).
+
 In error cases set *p_is_error to TRUE and, if appropriate and diag_pos is
 non-NULL, issue the diagnostic at the given position.  (The return value is
 more or less arbitrary in error cases.) If the alignof operand is
