@@ -650,11 +650,9 @@ static a_column_number
 			   disabled, this is the column in the line of
 			   the trigraph so that a diagnostic can be issued. */
 
-#if MICROSOFT_EXTENSIONS_ALLOWED
 static a_boolean
 		scanning_microsoft_asm;
 			/* TRUE while scanning a Microsoft asm. */
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 /*
 Hash table of history information about include files that have
@@ -20433,9 +20431,7 @@ done to determine whether a precompiled header may be used.
   curr_cached_token_handle = NO_CACHED_TOKEN_HANDLE;
   any_tokens_fetched_from_curr_input_file = FALSE;
   curr_token_asm_string = NULL;
-#if MICROSOFT_EXTENSIONS_ALLOWED
   scanning_microsoft_asm = FALSE;
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if ASM_SUPPORT_NEEDED
   asm_func_body_buffer = NULL;
   size_asm_func_body_buffer = 0;
