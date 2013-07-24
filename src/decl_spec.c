@@ -5432,6 +5432,11 @@ dsi_flags is the set of input flags passed to decl_specifiers.
       /* Record the explicit underlying type as it appeared in the source. */
       integer_type_supp(enum_type)->base_type = explicit_base;
       enum_type->variant.integer.has_explicit_enum_base = TRUE;
+      /* If an explicit base is specified, the type is complete at this
+         point. */
+      enum_type->incomplete = FALSE;
+      enum_type->size = skip_typerefs(explicit_base)->size;
+      enum_type->alignment = alignment_of_type(explicit_base);
     }  /* if */
     if (is_scoped_enum) {
       enum_type->variant.integer.is_scoped_enum = TRUE;
@@ -5636,8 +5641,12 @@ dsi_flags is the set of input flags passed to decl_specifiers.
           }  /* if */
           if (end_of_enum_con_list == NULL) {
             /* This is the first enumerator.  Start with zero. */
+            an_integer_kind  first_kind = (an_integer_kind)ik_int;
+            if (explicit_base_kind != (an_integer_kind)ik_none) {
+              first_kind = explicit_base_kind;
+            }  /* if */
             set_integer_constant(&constant, (a_host_large_integer)0,
-                                 (an_integer_kind)ik_int);
+                                 first_kind);
           } else if (is_error_constant(&constant)) {
             /* There was a previous error. */
             err = TRUE;

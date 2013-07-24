@@ -1,5 +1,25 @@
 Version 5.0
 
+7/24/13  [EDGcpfe/10301,EDGcpfe/13921,EDGcpfe/13997,EDGcpfe/14161]
+Completeness of enum types with explicit underlying types
+
+The front end now implements support for the resolution to the C++ standards
+committee's Core issues 803 and 977, which makes an enum type with an
+explicit underlying type complete as soon as that underlying type has been
+seen.  For example:
+
+  enum E: char { e = sizeof(E) };
+
+In addition, for such enumeration types, the first enumerator constant was
+previously given type int until the end of the enum type's definition when
+it should have been given the specified underlying type instead.  For example:
+
+  enum F: char { f0, f1 = sizeof(f1) };
+    // Previously sizeof(f1) was equivalent to sizeof(int)l; now it is 1.
+
+This is now fixed.
+
+
 7/23/13  [EDGcpfe/14288]
 Microsoft compatibility: internal error on Microsoft asm in for statement
 
