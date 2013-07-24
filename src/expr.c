@@ -38,10 +38,6 @@ expr.c -- Expression scanning routines.
 #include "literals.h"
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if GNU_EXTENSIONS_ALLOWED
-/* Needed for access to "alignment_of_field_full". */
-#include "layout.h"
-#endif /* GNU_EXTENSIONS_ALLOWED */
-#if GNU_EXTENSIONS_ALLOWED
 /* Needed for GNU statement expression, ({...}). */
 #include "statements.h"
 #endif /* GNU_EXTENSIONS_ALLOWED */
@@ -10451,10 +10447,7 @@ result in *result (or an error indication in *rcblock).
   a_type_ptr          alignof_type;
   an_expr_stack_entry expr_stack_entry;
   a_boolean           template_case, is_error;
-  a_boolean           instantiation_dependent_operand = FALSE;
-#if GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED
-  a_targ_alignment    alignment = 0, alignof_value;
-#endif /* GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED */
+  a_targ_alignment    alignof_value;
   a_boolean           operand_was_created = FALSE, operand_was_used = FALSE;
   a_memory_region_number
                       region_to_switch_back_to;
@@ -10594,23 +10587,6 @@ result in *result (or an error indication in *rcblock).
                             strict_ansi_discretionary_severity : es_warning,
                           ec_std_alignof_with_expr_arg, &operand.position);
     }  /* if */
-#if 0 && GNU_EXTENSIONS_ALLOWED
-    if (gnu_mode && is_expression_operand(&operand) &&
-        skip_parens(operand.variant.expression)->kind ==
-                                            (an_expr_node_kind)enk_operation) {
-      /* Field selection operations need special treatment in GNU modes: The
-         alignment of the field (including field-specific attributes) is
-         produced. */
-      an_expr_node_ptr       expr = skip_parens(operand.variant.expression);
-      an_expr_operator_kind  opkind = expr->variant.operation.kind;
-      if (opkind == (an_expr_operator_kind)eok_dot_field ||
-          opkind == (an_expr_operator_kind)eok_points_to_field) {
-        an_expr_node_ptr  field_op = expr->variant.operation.operands->next;
-        alignment = alignment_of_field_full(
-                               field_op->variant.field, /*for_alignof=*/TRUE);
-      }  /* if */
-    }  /* if */
-#endif /* GNU_EXTENSIONS_ALLOWED */
     /* Do not convert a type of "routine returning type" to "pointer to
        routine returning type".  See section 3.2.2.1 in the C standard.
        Likewise do not convert arrays to pointers, or lvalues to rvalues. */
@@ -10622,21 +10598,6 @@ result in *result (or an error indication in *rcblock).
     force_complete_type_if_a_variable(&operand);
     alignof_type = operand.type;
     type_position = operand.position;
-    if (operand_is_instantiation_dependent(&operand)) {
-      instantiation_dependent_operand = TRUE;
-    }  /* if */
-#if 0 && (GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED)
-    if ((gnu_mode && gnu_version >= 30100) || microsoft_mode) {
-      /* If the expression is an lvalue for a variable with an explicit
-         alignment, use it.  (GNU C++ versions prior to 3.1 ignore the
-         explicit alignment.) */
-      a_variable_ptr  var;
-      if (operand_is_lvalue_for_variable(&operand, &var) &&
-          var->alignment != 0) {
-        alignment = var->alignment;
-      }  /* if */
-    }  /* if */
-#endif /* GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED */
     if (is_expression_operand(&operand)) {
       operand_expr = skip_parens(operand.variant.expression);
     }  /* if */
@@ -10644,7 +10605,10 @@ result in *result (or an error indication in *rcblock).
   alignof_value = compute_alignof_value(alignof_type, is_type, operand_expr,
                                         &start_position, &is_error,
                                         &template_case);
-  if (instantiation_dependent_operand) template_case = TRUE;
+  if (!is_type && !template_case && is_template_dependent_context() &&
+      operand_is_instantiation_dependent(&operand)) {
+    template_case = TRUE;
+  }  /* if */
   /* The result of alignof (or __ALIGNOF__, etc.) is an integer indicating the
      alignment of the operand, of type size_t. */
   if (is_error) {
@@ -10667,13 +10631,6 @@ result in *result (or an error indication in *rcblock).
     constant.type = integer_type(targ_size_t_int_kind);
   } else {
     /* Normal case; known constant alignof. */
-#if GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED
-    if (alignment != 0) {
-      /* Previous processing of a special case has already decided what
-         the result should be. */
-      alignof_value = alignment;
-    }  /* if */
-#endif /* GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED */
     set_unsigned_integer_constant(
                      &constant, (a_host_large_unsigned)alignof_value,
                      targ_size_t_int_kind);
