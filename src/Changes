@@ -1,5 +1,17 @@
 Version 5.0
 
+7/23/13  [EDGcpfe/14288]
+Microsoft compatibility: internal error on Microsoft asm in for statement
+
+In Microsoft mode, in modes in which range-based for loops are enabled
+(C++/CLI and Microsoft version >= 1700), an internal error could occur on
+a Microsoft asm in an invalid location in a for statement.  Now fixed.
+
+  int main() {
+    for _asm{ }
+  }
+
+
 7/23/13  [EDGcpfe/14184]
 alignof/__alignof and arrays of unspecified bound
 

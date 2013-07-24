@@ -12373,11 +12373,14 @@ return_from_token_scan:
   curr_token_is_inert_macro = is_inert_macro;
   curr_token_is_temporarily_inert_macro = is_temporarily_inert_macro;
   curr_token = ctoken;
-  if (curr_lexical_state_stack_entry->cache_tokens) {
+  if (curr_lexical_state_stack_entry->cache_tokens &&
+      !scanning_microsoft_asm) {
     /* A copy of each new token fetched should be saved in a token cache.
        The token sequence number check is used to prevent a token from
        being added more than once in cases where tokens are cached and
-       rescanned by the caller for lookahead purposes. */
+       rescanned by the caller for lookahead purposes.  Don't include tokens
+       that are part of a Microsoft asm as those will be encoded in the
+       string that is saved as part of the Microsoft asm token. */
     if (curr_token_sequence_number >
                            curr_lexical_state_stack_entry->last_tsn_in_cache) {
       cache_curr_token(&curr_lexical_state_stack_entry->cache);
