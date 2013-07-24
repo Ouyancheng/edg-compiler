@@ -49,14 +49,15 @@ Now fixed.  For example:
 7/22/13  [EDGcpfe/11271]
 C++11: [[final]], [[override]], [[base_check]], and [[hiding]] attributes
 
-During the C++11 standardization process, the [[final]], [[override]],
+During the C++11 standardization process the [[final]], [[override]],
 [[base_check]], and [[hiding]] attributes were added to the
-C++ working paper, and subsequently implemented by the EDG front end
+C++ working paper and implemented by the EDG front end
 (see the Changes entries of 12/3/09 and 3/26/10).  Subsequently, those
 attributes were removed from the final C++11 standard (in favor of
 context-sensitive keywords -- see the Changes entry of 3/8/12 and N3206).
 A change has been made to issue a discretionary error in strict mode.
-This example (with --c++11 --strict) now elicits an error:
+This example (with --c++11 --strict) now elicits an error for use of
+these attributes:
 
   struct B {
     virtual void f();
