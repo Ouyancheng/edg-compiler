@@ -20709,6 +20709,8 @@ Also scans GNU statement expressions:
                              DFS_IS_CAST)) {
       /* This is a cast operation. */
       a_boolean explicit_cv_qualifiers, type_defined;
+      /* Don't permit a call with incomplete type to be cast. */
+      expr_stack->allow_call_with_incomplete_return_type = FALSE;
       /* Get the type to cast to. */
       type_position = pos_curr_token;
       type_cast_to = scan_type_for_cast(curr_expr_kind_is_const(),
@@ -29308,6 +29310,12 @@ bad_start_of_primary:
      return to its caller (also scan_expr_full). */
   for (;;) {
     a_boolean op2_was_braced_init_list;
+    a_boolean allow_call_with_incomplete_return_type =
+                           expr_stack->allow_call_with_incomplete_return_type;
+    /* For most operations, don't permit a call with an incomplete return
+       type.  If this is a call, the flag may have to temporarily be
+       re-enabled below. */
+    expr_stack->allow_call_with_incomplete_return_type = FALSE;
     if (C_dialect == C_dialect_pcc) {
       /* In pcc mode, check for nonstandard assignment operators like "+ =". */
       check_for_pcc_compound_assignment_operators();
@@ -29413,8 +29421,14 @@ bad_start_of_primary:
         break;
       case tok_lparen:
         /* Routine call. */
+        if (allow_call_with_incomplete_return_type) {
+          expr_stack->allow_call_with_incomplete_return_type = TRUE;
+        }  /* if */
         scan_function_call(&operand, &local_bound_function_selector,
                            (a_rescan_control_block *)NULL, &local_result);
+        if (allow_call_with_incomplete_return_type) {
+          expr_stack->allow_call_with_incomplete_return_type = FALSE;
+        }  /* if */
         break;
       case tok_period:
       case tok_arrow:
