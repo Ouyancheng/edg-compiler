@@ -16152,7 +16152,7 @@ instantiation dependent, set *p_template_case to TRUE.
       if ((gnu_mode && is_type && !is_void_type(alignof_type)) ||
           strict_ansi_mode) {
         /* Issue an error in strict ANSI mode.  GNU compilers issue an error
-           if the argument was not an expression and was not a void type. */
+           if the argument is not an expression and is not a void type. */
         severity = (an_error_severity)es_error;
         is_error = TRUE;
       } else {
