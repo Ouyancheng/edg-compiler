@@ -87,8 +87,8 @@ This is now fixed.
 Abort on malformed friend declaration of main()
 
 The front end previously aborted (in corresponding_param_type; class_decl.c)
-when processing a malformed friend declaration of main() that attempted to
-add default arguments to main().  For example:
+when processing a malformed friend declaration of main() that attempts to add
+default arguments.  For example:
 
   template <class T> class S {
     friend int main (T x = 2) ;
