@@ -28,6 +28,7 @@ il.c -- Construction of intermediate language trees.
 #include "il_walk.h"
 #if !STANDALONE_UTILITY_PROGRAM
 #include "func_def.h"
+#include "layout.h"
 #include "pch.h"
 #include "templates.h"
 #include "class_decl.h"
@@ -16088,6 +16089,112 @@ name lookup options.
 }  /* copy_template_param_unknown_entity_con */
 
 
+a_targ_alignment compute_alignof_value(a_type_ptr         alignof_type,
+                                       a_boolean          is_type,
+                                       an_expr_node_ptr   expr,
+                                       a_source_position  *diag_pos,
+                                       a_boolean          *p_is_error,
+                                       a_boolean          *p_template_case)
+/*
+Compute and return the result of "alignof" (or a variant, like "__alignof" or
+"__ALIGNOF__") applied to the given type (or, if is_type is FALSE, to an
+expression of that type; for cases where the operand is represented by an
+expression node, expr is that node).
+In error cases set *p_is_error to TRUE and, if appropriate and diag_pos is
+non-NULL, issue the diagnostic at the given position.  (The return value is
+more or less arbitrary in error cases.) If the alignof operand is
+instantiation dependent, set *p_template_case to TRUE.
+*/
+{
+  a_targ_alignment  alignof_value = 0;
+  a_boolean         is_error = FALSE, template_case = FALSE;
+
+  /* Instantiate the type if it is a template class. */
+  complete_type_is_needed(alignof_type);
+  if (is_error_type(alignof_type)) {
+    is_error = TRUE;
+  } else if (!C_mode() && is_template_dependent_context() &&
+             is_template_dependent_type(alignof_type)) {
+    template_case = TRUE;
+  } else {
+#if GNU_EXTENSIONS_ALLOWED
+    if (gnu_mode && expr != NULL && is_operation_node(expr)) {
+      /* Field selection operations need special treatment in GNU modes: The
+         alignment of the field (including field-specific attributes) is
+         produced. */
+      an_expr_operator_kind  opkind = expr->variant.operation.kind;
+      if (opkind == (an_expr_operator_kind)eok_dot_field ||
+          opkind == (an_expr_operator_kind)eok_points_to_field) {
+        an_expr_node_ptr  field_op = expr->variant.operation.operands->next;
+        alignof_value = alignment_of_field_full(
+                               field_op->variant.field, /*for_alignof=*/TRUE);
+      }  /* if */
+    }  /* if */
+#endif /* GNU_EXTENSIONS_ALLOWED */
+#if GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED
+    if (((gnu_mode && gnu_version >= 30100) || microsoft_mode) &&
+        expr != NULL && expr->is_lvalue && is_variable_node(expr)) {
+      /* If the expression is an lvalue for a variable with an explicit
+         alignment, use it.  (GNU C++ versions prior to 3.1 ignore the
+         explicit alignment.) */
+      a_variable_ptr  var = expr->variant.variable;
+      if (var->alignment != 0) {
+        alignof_value = var->alignment;
+      }  /* if */
+    }  /* if */
+#endif /* GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED */
+    if (is_incomplete_type(skip_array_types(alignof_type))) {
+      an_error_severity  severity;
+      if ((gnu_mode && is_type && !is_void_type(alignof_type)) ||
+          strict_ansi_mode) {
+        /* Issue an error in strict ANSI mode.  GNU compilers issue an error
+           if the argument was not an expression and was not a void type. */
+        severity = (an_error_severity)es_error;
+        is_error = TRUE;
+      } else {
+        severity = (an_error_severity)es_warning;
+      }  /* if */
+      if (diag_pos != NULL) {
+        expr_pos_diagnostic(severity, ec_alignof_incomplete_type, diag_pos);
+      }  /* if */
+    }  /* if */
+    /* Force building a template-dependent representation for cases that
+       involve a dependent expression even though the result type is not
+       dependent.  This is done after the type validity tests above so
+       we can detect any possible errors anyway. */
+    if (is_template_dependent_context() &&
+        (expr != NULL ?
+           expr_is_instantiation_dependent(expr) :
+           is_instantiation_dependent_type(alignof_type))) {
+      template_case = TRUE;
+    }  /* if */
+  }  /* if */
+  if (!is_error && !template_case && alignof_value == 0) {
+    alignof_value = alignment_of_type(alignof_type);
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    if (microsoft_mode && is_incomplete_type(alignof_type)) {
+      /* In Microsoft mode, the alignment-of operator sometimes returns
+         zero for incomplete types. */
+      if (is_array_type(alignof_type)) {
+        /* Microsoft ignores array declarators to determine alignment.  This
+           matters particularly for arrays of unspecified length:
+           __alignof(int[]) is the same as __alignof(int). */
+        alignof_type = underlying_array_element_type(alignof_type);
+        alignof_value = alignment_of_type(alignof_type);
+      }  /* if */
+      if (is_class_struct_union_type(alignof_type) ||
+          (C_mode() && is_void_type(alignof_type))) {
+        alignof_value = 0;
+      }  /* if */
+    }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+  }  /* if */
+  *p_template_case = template_case;
+  *p_is_error = is_error;
+  return alignof_value;
+}  /* compute_alignof_value */
+
+
 static a_constant_ptr copy_template_param_con(
                                   a_constant_ptr           con,
                                   a_template_arg_ptr       template_arg_list,
@@ -16308,7 +16415,7 @@ name lookup options.
           } else {
             /* No longer a template parameter type, so the sizeof, alignof,
                uuidof, typeid, or noexcept result is known. */
-            a_targ_alignment  new_alignment = alignment_of_type(new_type);
+            a_type_ptr  orig_new_type = new_type;
             new_type = skip_typerefs(new_type);
             complete_type_is_needed(new_type);
 #if MICROSOFT_EXTENSIONS_ALLOWED
@@ -16333,12 +16440,19 @@ name lookup options.
                                 bool_type()->variant.integer.int_kind);
             } else {
               /* sizeof/alignof. */
+              a_boolean template_case;
               a_boolean is_sizeof = (con->variant.template_param.kind ==
                                   (a_template_param_constant_kind)tpck_sizeof);
               set_unsigned_integer_constant(
                                   constant, is_sizeof ?
                                     (a_host_large_unsigned)new_type->size :
-                                    (a_host_large_unsigned)new_alignment,
+                                    (a_host_large_unsigned)
+                                       compute_alignof_value(orig_new_type,
+                                                             expr == NULL,
+                                                             expr,
+                                                             /*diag_pos=*/NULL,
+                                                             copy_error,
+                                                             &template_case),
                                   targ_size_t_int_kind);
             }  /* if */
             con_copy = NULL;

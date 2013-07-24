@@ -2533,6 +2533,14 @@ extern an_expr_node_ptr make_dummy_lvalue_expr(a_type_ptr type);
 
 extern an_expr_node_ptr expr_before_type_adjustment(an_expr_node_ptr expr);
 
+extern
+a_targ_alignment compute_alignof_value(a_type_ptr         alignof_type,
+                                       a_boolean          is_type,
+                                       an_expr_node_ptr   expr,
+                                       a_source_position  *diag_pos,
+                                       a_boolean          *p_is_error,
+                                       a_boolean          *p_template_case);
+
 #endif /* ifndef IL_H */
 
 /******************************************************************************

@@ -10450,15 +10450,17 @@ result in *result (or an error indication in *rcblock).
   a_boolean           is_parenthesized = FALSE, is_type = FALSE, is_std_syntax;
   a_type_ptr          alignof_type;
   an_expr_stack_entry expr_stack_entry;
-  a_boolean           template_case = FALSE;
+  a_boolean           template_case, is_error;
+  a_boolean           instantiation_dependent_operand = FALSE;
 #if GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED
-  a_targ_alignment    alignment = 0;
+  a_targ_alignment    alignment = 0, alignof_value;
 #endif /* GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED */
   a_boolean           operand_was_created = FALSE, operand_was_used = FALSE;
   a_memory_region_number
                       region_to_switch_back_to;
   an_object_lifetime_ptr
                       saved_object_lifetime;
+  an_expr_node_ptr    operand_expr = NULL;
 
   db_enter(4, "scan_alignof_operator");
 
@@ -10592,7 +10594,7 @@ result in *result (or an error indication in *rcblock).
                             strict_ansi_discretionary_severity : es_warning,
                           ec_std_alignof_with_expr_arg, &operand.position);
     }  /* if */
-#if GNU_EXTENSIONS_ALLOWED
+#if 0 && GNU_EXTENSIONS_ALLOWED
     if (gnu_mode && is_expression_operand(&operand) &&
         skip_parens(operand.variant.expression)->kind ==
                                             (an_expr_node_kind)enk_operation) {
@@ -10621,9 +10623,9 @@ result in *result (or an error indication in *rcblock).
     alignof_type = operand.type;
     type_position = operand.position;
     if (operand_is_instantiation_dependent(&operand)) {
-      template_case = TRUE;
+      instantiation_dependent_operand = TRUE;
     }  /* if */
-#if GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED
+#if 0 && (GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED)
     if ((gnu_mode && gnu_version >= 30100) || microsoft_mode) {
       /* If the expression is an lvalue for a variable with an explicit
          alignment, use it.  (GNU C++ versions prior to 3.1 ignore the
@@ -10635,39 +10637,21 @@ result in *result (or an error indication in *rcblock).
       }  /* if */
     }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED */
-  }  /* if */
-  /* Instantiate the type if it is a template class. */
-  complete_type_is_needed(alignof_type);
-  if (!C_mode() && is_template_dependent_context() &&
-      is_template_dependent_type(alignof_type)) {
-    template_case = TRUE;
-  } else if (is_incomplete_type(alignof_type)) {
-    an_error_severity  severity;
-    if ((gnu_mode && is_type && !is_void_type(alignof_type)) ||
-        strict_ansi_mode) {
-      /* Issue an error in strict ANSI mode.  GNU compilers issue an error
-         if the argument was not an expression and was not a void type. */
-      severity = (an_error_severity)es_error;
-    } else {
-      severity = (an_error_severity)es_warning;
+    if (is_expression_operand(&operand)) {
+      operand_expr = skip_parens(operand.variant.expression);
     }  /* if */
-    expr_pos_diagnostic(severity, ec_alignof_incomplete_type,
-                        &start_position);
   }  /* if */
-  /* Force building a template-dependent representation for cases that
-     involve a dependent expression even though the result type is not
-     dependent.  This is done after the type validity tests above so
-     we can detect any possible errors anyway. */
-  if (is_template_dependent_context() &&
-      is_instantiation_dependent_type(alignof_type)) {
-    template_case = TRUE;
-  }  /* if */
-  /* The result of __ALIGNOF__ is an integer indicating the alignment of
-     the operand, of type size_t. */
-  if (is_error_type(alignof_type)) {
+  alignof_value = compute_alignof_value(alignof_type, is_type, operand_expr,
+                                        &start_position, &is_error,
+                                        &template_case);
+  if (instantiation_dependent_operand) template_case = TRUE;
+  /* The result of alignof (or __ALIGNOF__, etc.) is an integer indicating the
+     alignment of the operand, of type size_t. */
+  if (is_error) {
     set_error_constant(&constant);
   } else if (template_case) {
-    /* For __ALIGNOF__ of a template type, use a ck_template_param. */
+    /* For the alignment of a template-dependent type, use a
+       ck_template_param. */
     clear_constant(&constant, (a_constant_repr_kind)ck_template_param);
     set_template_param_constant_kind(&constant,
                                  (a_template_param_constant_kind)tpck_alignof);
@@ -10683,35 +10667,13 @@ result in *result (or an error indication in *rcblock).
     constant.type = integer_type(targ_size_t_int_kind);
   } else {
     /* Normal case; known constant alignof. */
-    a_targ_alignment alignof_value;
 #if GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED
     if (alignment != 0) {
       /* Previous processing of a special case has already decided what
          the result should be. */
       alignof_value = alignment;
-    } else
+    }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED */
-    /* Do not insert code here. */
-    {
-      alignof_value = alignment_of_type(alignof_type);
-    }  /* if */
-#if MICROSOFT_EXTENSIONS_ALLOWED
-    if (microsoft_mode && is_incomplete_type(alignof_type)) {
-      /* In Microsoft mode, the alignment-of operator sometimes returns
-         zero for incomplete types. */
-      if (is_array_type(alignof_type)) {
-        /* Microsoft ignores array declarators to determine alignment.  This
-           matters particularly for arrays of unspecified length:
-           __alignof(int[]) is the same as __alignof(int). */
-        alignof_type = underlying_array_element_type(alignof_type);
-        alignof_value = alignment_of_type(alignof_type);
-      }  /* if */
-      if (is_class_struct_union_type(alignof_type) ||
-          (C_mode() && is_void_type(alignof_type))) {
-        alignof_value = 0;
-      }  /* if */
-    }  /* if */
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     set_unsigned_integer_constant(
                      &constant, (a_host_large_unsigned)alignof_value,
                      targ_size_t_int_kind);

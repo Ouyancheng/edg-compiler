@@ -1,5 +1,23 @@
 Version 5.0
 
+7/23/13  [EDGcpfe/14184]
+alignof/__alignof and arrays of unspecified bound
+
+Previously, applying the "alignof" (or "__alignof") operator to an array of
+unspecified bound elicited a warning or an error depending on the mode
+(because such an array type is technically incomplete).  Now it is silently
+accepted in all modes.  For example:
+
+  unsigned n = (unsigned)__alignof(int[]);  // Now silently accepted in
+                                            // all modes that accept the
+                                            // __alignof operator.
+
+In addition, the evaluation of "alignof" in template substitution contexts
+now more closely matches that of ordinary contexts (previously, for example,
+in substitution contexts alignment attributes applied to variables or fields
+were never considered).
+
+
 7/23/13  [EDGcpfe/14328]
 Remove do-nothing lowered dynamic initialization
 
