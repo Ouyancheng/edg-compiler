@@ -101,7 +101,7 @@ This is now fixed.
 
 
 7/22/13  [EDGcpfe/14305]
-a_source_position
+Space usage of a_source_position
 
 The type a_source_position included two or more fields of type unsigned long
 (depending on the configuration macros FULLY_RESOLVED_MACRO_POSITIONS and
