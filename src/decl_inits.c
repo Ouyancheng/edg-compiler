@@ -5135,109 +5135,129 @@ static a_constructor_init_ptr scan_mem_initializer_id(
                                              a_type_ptr         *p_init_type,
                                              a_type_ptr         *p_array_type)
 /*
-Scan a mem-initializer-id (i.e., the name of a field or base class to be
-initialized by a constructor definition) and return a constructor init entry
-corresponding to it.  class_type is the parent class of the constructor.
-*cibp tracks the state of the constructor init entries for the constructor
-currently being defined.  *p_init_type is the type to be initialized; in the
-case of an array, it is the underlying element type and the array type itself
-is returned through *p_array_type (in non-array cases, *p_array_type is left
-unchanged).
+Scan a mem-initializer-id (i.e., the name of a field or base class or a
+decltype that denotes a base class to be initialized by a constructor
+definition) and return a constructor init entry corresponding to it.
+class_type is the parent class of the constructor.  *cibp tracks the state of
+the constructor init entries for the constructor currently being defined.
+*p_init_type is the type to be initialized; in the case of an array, it is the
+underlying element type and the array type itself is returned through
+*p_array_type (in non-array cases, *p_array_type is left unchanged).
 */
 {
-  a_symbol_ptr               member_or_base_sym = look_up_mem_initializer_id();
+  a_symbol_ptr               member_or_base_sym = NULL;
   a_type_ptr                 init_type;
-  a_boolean                  template_param_init = FALSE;
+  a_boolean                  template_param_init = FALSE, is_decltype = FALSE;
   a_base_class_ptr           bcp;
   a_constructor_init_ptr     cip, new_cip = NULL;
+  a_source_position          pos = pos_curr_token;
 
-  if (member_or_base_sym != NULL) {
-    record_potential_pack_reference(member_or_base_sym, &pos_curr_token);
-    /* Check if a template-dependent entity is being initialized: */
-    if (symbol_is(member_or_base_sym, sk_field)) {
-      if (!member_or_base_sym->is_class_member) {
-        /* This can happen in error cases with anonymous unions:
-             static union { int i; double j; };
-             struct S { S(): i(j) {} };
-           Avoid having to deal with non-member fields during error recovery
-           by dropping the result of the lookup.  */
-        member_or_base_sym = NULL;
-      }  /* if */
-    } else if (is_type_symbol(member_or_base_sym)) {
-      /* This is presumably a mem-initializer for a base. */
-      a_type_ptr  type = type_symbol_type(member_or_base_sym);
-      type = skip_typerefs(type);
-      template_param_init = (type->kind == (a_type_kind)tk_template_param);
+  if (cpp11_mode && curr_token == tok_decltype) {
+    /* In C++11 mode, decltype may be used to denote a base class. */
+    is_decltype = TRUE;
+    init_type = scan_decltype_operator((a_rescan_control_block *)NULL,
+                                       (a_decl_pos_block *)NULL);
+    if (is_error_type(init_type)) {
+      /* An error has been issued. */
+      goto scan_paren;
     }  /* if */
-  }  /* if */
-  if ((!class_name_injection_enabled || microsoft_mode) &&
-      !is_error_locator(locator_for_curr_id) &&
-      !locator_for_curr_id.is_qualified_name) {
-    /* If no symbol was returned from the lookup, or if the symbol returned
-       was not a base class or member of the current class, see if the name
-       (if it was unqualified) matches the name of a base class. This can be
-       necessary in cases like this:
-         namespace N {
-           class A { A(int); ... };
-         }
-         class B : public N::A {
-           B() : A(0) { }
-         };
-       The check that follows does not quite emulate the results of a lookup
-       that supports class name injection (e.g., it doesn't deal properly with
-       hiding within the inheritance hierarchy), but the differences will be
-       manifested as slightly different diagnostics, and then only in rather
-       obscure cases.
-       This check is done in Microsoft mode even though class name injection
-       is enabled because, in Microsoft mode, the injected name is ignored for
-       most lookups. */
-    a_boolean  check_base_classes;
-    if (member_or_base_sym == NULL) {
-      check_base_classes = TRUE;
-    } else if (is_class_symbol(member_or_base_sym) &&
-               find_base_class_of(class_type,
-                                  type_symbol_type(member_or_base_sym))) {
-      /* A class that's on the base-classes list. */
-      check_base_classes = FALSE;
-    } else if (member_or_base_sym->is_class_member &&
-               same_entities(sym_parent_class(member_or_base_sym),
-                             class_type)) {
-      /* A member of the current class. */
-      check_base_classes = FALSE;
-    } else {
-      check_base_classes = TRUE;
+    check_assertion(init_type->kind == (a_type_kind)tk_typeref &&
+                    typeref_is_type_operator(init_type));
+    if (init_type->variant.typeref.is_dependent_type_operator) {
+      template_param_init = TRUE;
     }  /* if */
-    if (check_base_classes) {
-      for (bcp = base_classes_of(class_type); bcp != NULL; bcp = bcp->next) {
-        if (bcp->direct || bcp->is_virtual || member_or_base_sym == NULL) {
-          a_symbol_ptr  tmp_sym = symbol_for(bcp->type);
-          if (locator_for_curr_id.symbol_header == tmp_sym->header) {
-            member_or_base_sym = tmp_sym;
-            break;
-          }  /* if */
+  } else {
+    /* A field or base class name. */
+    member_or_base_sym = look_up_mem_initializer_id();
+    if (member_or_base_sym != NULL) {
+      record_potential_pack_reference(member_or_base_sym, &pos_curr_token);
+      /* Check if a template-dependent entity is being initialized: */
+      if (symbol_is(member_or_base_sym, sk_field)) {
+        if (!member_or_base_sym->is_class_member) {
+          /* This can happen in error cases with anonymous unions:
+               static union { int i; double j; };
+               struct S { S(): i(j) {} };
+             Avoid having to deal with non-member fields during error recovery
+             by dropping the result of the lookup.  */
+          member_or_base_sym = NULL;
         }  /* if */
-      }  /* for */
+      } else if (is_type_symbol(member_or_base_sym)) {
+        /* This is presumably a mem-initializer for a base. */
+        a_type_ptr  type = type_symbol_type(member_or_base_sym);
+        type = skip_typerefs(type);
+        template_param_init = (type->kind == (a_type_kind)tk_template_param);
+      }  /* if */
     }  /* if */
-  }  /* if */
-  if (member_or_base_sym == NULL ||
-      symbol_is(member_or_base_sym, sk_undefined)) {
-    /* No such name or qualified name in the symbol table. */
-    if (is_error_locator(locator_for_curr_id)) {
-      /* Some error will already have been issued on this name. */
-    } else {
-      pos_stty_error(ec_not_a_field_or_base_class, &error_position,
-                     locator_for_curr_id.symbol_header->identifier,
-                     class_type);
+    if ((!class_name_injection_enabled || microsoft_mode) &&
+        !is_error_locator(locator_for_curr_id) &&
+          !locator_for_curr_id.is_qualified_name) {
+      /* If no symbol was returned from the lookup, or if the symbol returned
+         was not a base class or member of the current class, see if the name
+         (if it was unqualified) matches the name of a base class. This can be
+         necessary in cases like this:
+           namespace N {
+             class A { A(int); ... };
+           }
+           class B : public N::A {
+             B() : A(0) { }
+           };
+         The check that follows does not quite emulate the results of a lookup
+         that supports class name injection (e.g., it doesn't deal properly
+         with hiding within the inheritance hierarchy), but the differences
+         will be manifested as slightly different diagnostics, and then only in
+         rather obscure cases.
+         This check is done in Microsoft mode even though class name injection
+         is enabled because, in Microsoft mode, the injected name is ignored
+         for most lookups. */
+      a_boolean  check_base_classes;
+      if (member_or_base_sym == NULL) {
+        check_base_classes = TRUE;
+      } else if (is_class_symbol(member_or_base_sym) &&
+                 find_base_class_of(class_type,
+                                    type_symbol_type(member_or_base_sym))) {
+        /* A class that's on the base-classes list. */
+        check_base_classes = FALSE;
+      } else if (member_or_base_sym->is_class_member &&
+                 same_entities(sym_parent_class(member_or_base_sym),
+                               class_type)) {
+        /* A member of the current class. */
+        check_base_classes = FALSE;
+      } else {
+        check_base_classes = TRUE;
+      }  /* if */
+      if (check_base_classes) {
+        for (bcp = base_classes_of(class_type); bcp != NULL; bcp = bcp->next) {
+          if (bcp->direct || bcp->is_virtual || member_or_base_sym == NULL) {
+            a_symbol_ptr  tmp_sym = symbol_for(bcp->type);
+            if (locator_for_curr_id.symbol_header == tmp_sym->header) {
+              member_or_base_sym = tmp_sym;
+              break;
+            }  /* if */
+          }  /* if */
+        }  /* for */
+      }  /* if */
     }  /* if */
-    init_type = error_type();
-    goto scan_paren;
+    if (member_or_base_sym == NULL ||
+        symbol_is(member_or_base_sym, sk_undefined)) {
+      /* No such name or qualified name in the symbol table. */
+      if (is_error_locator(locator_for_curr_id)) {
+        /* Some error will already have been issued on this name. */
+      } else {
+        pos_stty_error(ec_not_a_field_or_base_class, &error_position,
+                       locator_for_curr_id.symbol_header->identifier,
+                       class_type);
+      }  /* if */
+      init_type = error_type();
+      goto scan_paren;
+    }  /* if */
+    /* Make sure the symbol found is accessible and not ambiguous. */
+    check_ambiguity_and_verify_access(&locator_for_curr_id);
+    record_symbol_reference(SRK_REFERENCE | SRK_INITIALIZATION,
+                            member_or_base_sym, &error_position,
+                            /*update_il_entry=*/FALSE);
   }  /* if */
-  /* Make sure the symbol found is accessible and not ambiguous. */
-  check_ambiguity_and_verify_access(&locator_for_curr_id);
-  record_symbol_reference(SRK_REFERENCE | SRK_INITIALIZATION,
-                          member_or_base_sym, &error_position,
-                          /*update_il_entry=*/FALSE);
-  if (symbol_is(member_or_base_sym, sk_field) &&
+  if (!is_decltype &&
+      symbol_is(member_or_base_sym, sk_field) &&
       same_entities(sym_parent_class(member_or_base_sym), class_type)) {
     /* This is a field of the current class and may be mentioned in the
        constructor's initializer list.  But it's an error to refer to
@@ -5364,19 +5384,23 @@ unchanged).
        in or inserted into the list of such entries at a spot corresponding to
        its declaration order. */
     check_out_of_order_init(new_cip, cibp);
-  } else if (is_class_symbol(member_or_base_sym) || template_param_init) {
+  } else if (is_decltype ||
+             is_class_symbol(member_or_base_sym) ||
+             template_param_init) {
     /* It is a base class of the current class for which initialization is to
        be done.  (In a prototype instantiation, this could look like the
        initialization of a template parameter.) */
     a_boolean  indirect_nonvirtual_base_class_found = FALSE;
-    if (locator_for_curr_id.is_semivisible_nested_type) {
-      /* The symbol in the locator is a nested class that is not visible with
-         the standard lookup rules but is returned in support of the nested
-         class anachronism (ARM 18.3.5).  Issue an anachronism diagnostic. */
-      sym_diagnostic(anachronism_error_severity, ec_nested_class_anachronism,
-                     locator_for_curr_id.specific_symbol);
+    if (!is_decltype) {
+      if (locator_for_curr_id.is_semivisible_nested_type) {
+        /* The symbol in the locator is a nested class that is not visible with
+           the standard lookup rules but is returned in support of the nested
+           class anachronism (ARM 18.3.5).  Issue an anachronism diagnostic. */
+        sym_diagnostic(anachronism_error_severity, ec_nested_class_anachronism,
+                       locator_for_curr_id.specific_symbol);
+      }  /* if */
+      init_type = type_symbol_type(member_or_base_sym);
     }  /* if */
-    init_type = type_symbol_type(member_or_base_sym);
     init_type = skip_typerefs(init_type);
     if (template_param_init &&
         init_type->kind == (a_type_kind)tk_template_param) {
@@ -5397,8 +5421,7 @@ unchanged).
             } else {
               /* This condition occurs when there is a direct nonvirtual base
                  class with the same name as an indirect virtual base class. */
-              pos_ty_error(ec_ambiguous_base_class, &error_position,
-                           bcp->type);
+              pos_ty_error(ec_ambiguous_base_class, &pos, bcp->type);
               /* Go ahead and process the first one found. */
               break;
             }  /* if */
@@ -5413,7 +5436,9 @@ unchanged).
       bcp = found_bcp;
     }  /* if */
     if (bcp == NULL) {
-      if ((!member_or_base_sym->is_template_param && template_param_init) ||
+      if ((member_or_base_sym != NULL &&
+           !member_or_base_sym->is_template_param &&
+           template_param_init) ||
           (class_type->variant.class_struct_union.is_nonreal_class &&
            symbol_supplement_for_class(class_type)->
                                                   any_nonreal_base_classes)) {
@@ -5449,11 +5474,15 @@ unchanged).
                    same_entities(init_type, class_type)) {
           /* This looks like the mem-initializer for a delegating constructor,
              but it followed an ordinary mem-initializer (which is invalid). */
-          pos_error(ec_delegation_init_and_mem_init, &error_position);
+          pos_error(ec_delegation_init_and_mem_init, &pos);
+        } else if (is_decltype) {
+          /* Decltype does not denote a base class of the type
+             being defined. */
+          pos_ty_error(ec_decltype_is_not_base_class, &pos, class_type);
         } else {
           /* Not a base class of the class for which a constructor is
              being defined. */
-          pos_stty_error(ec_not_a_field_or_base_class, &error_position,
+          pos_stty_error(ec_not_a_field_or_base_class, &pos,
                          member_or_base_sym->header->identifier, class_type);
         }  /* if */
         init_type = error_type();
@@ -5478,13 +5507,15 @@ unchanged).
     }  /* if */
   } else {
     /* Not a base class, not a field.  Issue an error. */
-    pos_stty_error(ec_not_a_field_or_base_class, &error_position,
+    pos_stty_error(ec_not_a_field_or_base_class, &pos,
                    member_or_base_sym->header->identifier, class_type);
     init_type = error_type();
   }  /* if */
 scan_paren:
-  /* Advance past the identifier. */
-  (void)get_token();
+  if (!is_decltype) {
+    /* Advance past the identifier. */
+    (void)get_token();
+  }  /* if */
   *p_init_type = init_type;
   return new_cip;
 }  /* scan_mem_initializer_id */
@@ -5840,8 +5871,10 @@ entries are replaced as needed for each mem-initializer that is encountered.
 
   init_start_pos = pos_curr_token;
   /* Unless this is an old style base class initializer, a base class
-     name or a member name is expected. */
-  if (curr_token != tok_lparen && !is_decl_qualified_name_start()) {
+     name, member name, or (in C++11 mode) decltype is expected. */
+  if (curr_token != tok_lparen &&
+      !(is_decl_qualified_name_start() ||
+        (cpp11_mode && curr_token == tok_decltype))) {
     /* Either an identifier or "::" is expected here. */
     syntax_error(ec_exp_identifier);
   } else {
@@ -5880,8 +5913,9 @@ entries are replaced as needed for each mem-initializer that is encountered.
         }  /* if */
       }  /* if */
     } else {
-      /* Standard case: A mem-initializer that starts with the name of a field
-         or base class.  Scan that name. */
+      /* Standard case: A mem-initializer that starts with the name of a field,
+         base class, or (in C++11 mode) a decltype that denotes a base
+         class. */
       new_cip = scan_mem_initializer_id(class_type, cibp, &init_type,
                                         &array_type);
     }  /* if */
@@ -6298,6 +6332,10 @@ source, based on the following syntax:
               mem-initializer-id "(" expression-list    ")"
                                                      opt
               mem-initializer-id braced-init-list
+
+    mem-initializer-id:
+              class-or-decltype
+              identifier
 
 complete-class-name identifies a base class from which the class to which
 the constructor belongs is derived, in which case the initializer list entry

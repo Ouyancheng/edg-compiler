@@ -2527,6 +2527,7 @@ ec_missing_label_operand_number;;"expected an operand number after \"%%l\""
 ec_label_operand_number_out_of_range;;"operand number for \"%%l\" doesn't refer to a valid label argument"
 ec_wide_string_invalid_in_asm;;"a wide string is invalid in an \"asm\" statement"
 ec_attribute_is_nonstandard;;"attribute is nonstandard"
+ec_decltype_is_not_base_class;;"not a base class of class %t"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

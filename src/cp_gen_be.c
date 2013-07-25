@@ -7132,8 +7132,14 @@ Put out the list of direct base classes of the class associated with ctsp
           gen_access_specifier(bcdp->access);
         }  /* if */
         write_space();
-        gen_name(&bcp->orig_type->source_corresp, iek_type, GN_BASE_SPECIFIER,
-                 (a_boolean *)NULL);
+        if (bcp->orig_type->kind == (a_type_kind)tk_typeref &&
+            typeref_is_type_operator(bcp->orig_type)) {
+          /* Base class is denoted by a decltype. */
+          gen_type_operator(bcp->orig_type);
+        } else {
+          gen_name(&bcp->orig_type->source_corresp, iek_type,
+                   GN_BASE_SPECIFIER, (a_boolean *)NULL);
+        }  /* if */
         if (bcp->is_pack_expansion) write_tok_str("...");
         if (bcp->next == NULL || bcp->next->direct_base_number != next_base) {
           break;

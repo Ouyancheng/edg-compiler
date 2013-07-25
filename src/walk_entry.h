@@ -2791,7 +2791,9 @@ do_set_proper_definition_needed_flag:
 #endif /* IA64_ABI */
         walk_list(ptr->attributes, an_attribute_ptr, iek_attribute);
         remap_ptr(ptr->type, a_type_ptr, iek_type);
-        remap_ptr(ptr->orig_type, a_type_ptr, iek_type);
+        /* Use an unconditional walk for the orig_type since it can be
+           a decltype which won't appear on the types list. */
+        walk_ptr(ptr->orig_type, a_type_ptr, iek_type);
         set_proper_definition_needed_flag(ptr->type);
         remap_ptr(ptr->derived_class, a_type_ptr, iek_type);
         set_proper_definition_needed_flag(ptr->derived_class);

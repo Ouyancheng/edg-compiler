@@ -8416,19 +8416,28 @@ static void scan_base_specifier_list(a_class_def_state_ptr  class_state)
 Scan a list of base class specifiers, which may appear only on a class
 or struct definition (described by class_state).  The syntax is
 
-        base-spec:
-                : base-list
+  base-spec:
+    : base-list
 
-        base-list:
-                base-specifier
-                base-list , base-specifier
+  base-list:
+    base-specifier
+    base-list , base-specifier
 
-        base-specifier:
-                class_name
-                virtual access-specifier    complete-class-name
-                                        opt
-                access-specifier virtual    complete-class-name
-                                        opt
+  base-specifier:
+    base-type-specifier attribute-specifier
+                                           opt
+    virtual access-specifier    base-type-specifier attribute-specifier
+                            opt                                        opt
+    access-specifier virtual    base-type-specifier attribute-specifier
+                            opt                                        opt
+
+  class-or-decltype:
+    ::    nested-name-specifier    class-name
+      opt                      opt
+    decl-type-specifier
+
+  base-type-specifier:
+    class-or-decltype
 
 The current token is the leading colon.
 
@@ -8578,12 +8587,15 @@ can only contain CLI interfaces.
       }  /* if */
 #endif /* TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
-      /* Test for identifier or "::" next. */
-      if (!is_generalized_identifier_start(GID_IS_BASE_CLASS)) {
+      /* Test for identifier, decltype or "::" next. */
+      if (!is_generalized_identifier_start(GID_IS_BASE_CLASS) &&
+          !(cpp11_mode && curr_token == tok_decltype)) {
         syntax_error(ec_exp_identifier);
       } else {
         /* Scan the base class name. */
-        a_boolean err = FALSE;
+        a_boolean         err = FALSE, is_decltype = FALSE;
+        a_boolean         is_dependent_type = FALSE;
+        a_decl_pos_block  decltype_pos_block;
         base_class_decl_pos = pos_curr_token;
         base_class_type = NULL;
         if (!first_base_class || is_virtual) {
@@ -8593,54 +8605,88 @@ can only contain CLI interfaces.
                                 &base_specifier_start_pos,
                                 ec_multiple_inheritance_in_embedded_cplusplus);
         }  /* if */
-        /* Look up the identifier for the base class.  Only identifiers
-           that could be classes (including typedefs to classes and template
-           parameters) are considered in the lookup. */
-        sym = coalesce_and_lookup_generalized_identifier(
-                                 GID_IMPLICIT_TYPE_CONTEXT | GID_IS_BASE_CLASS,
-                                 ilm_class, &err);
-        if (sym != NULL) {
-          record_potential_pack_reference(
-                                    sym, &locator_for_curr_id.source_position);
-        }  /* if */
-        /* Be sure a type symbol was found and that it identifies a class. */
-        if (sym == NULL || !is_class_symbol(sym)) {
-          /* Not a class symbol.  In most cases, issue an error and skip it.
-             When a template param is involved, just skip it. */
-          if (sym != NULL && sym->kind == (a_symbol_kind)sk_type) {
-            a_type_ptr  tp = skip_typedefs(type_symbol_type(sym));
-            if (tp->kind == (a_type_kind)tk_template_param) {
-              if (is_template_dependent_context()) {
-                /* No diagnostic on template parameters, which will only show
-                   up during prototype instantiations.  Set the flag that
-                   indicates that this prototype instantiation has a nonreal
-                   base class.  ctsp will be NULL if an error was issued for
-                   an attempt to put a base class on a union.  Don't set
-                   any_nonreal_base_classes as the base class will not be
-                   on the base class list. */
-                cssp->any_nonreal_base_classes = ctsp != NULL;
-                base_class_type = proxy_class_for_template_param(tp);
-                orig_base_class_type = base_class_type;
-              } else {
-                /* Error case.  Ignore the specifier. */
-                error(ec_bad_base_class);
-                goto skip_base_class;
-              }  /* if */
-            }  /* if */
-          } /* if */
-          if (base_class_type == NULL) {
-            error(ec_not_a_class_or_struct_name);
-            reference_to_invalid_name(&locator_for_curr_id);
+        if (cpp11_mode && curr_token == tok_decltype) {
+          /* C++11 allows a decltype to denote a base class. */
+          is_decltype = TRUE;
+          sym = NULL;
+          base_class_type = scan_decltype_operator(
+                                                (a_rescan_control_block *)NULL,
+                                                &decltype_pos_block);
+          if (is_error_type(base_class_type)) {
+            /* An error has already been issued; skip this base class. */
             goto skip_base_class;
           }  /* if */
+          check_assertion(base_class_type->kind == (a_type_kind)tk_typeref &&
+                          typeref_is_type_operator(base_class_type));
+          if (is_template_dependent_context() &&
+              base_class_type->variant.typeref.is_dependent_type_operator) {
+            /* This is a dependent decltype. */
+            is_dependent_type = TRUE;
+          } else if (!is_class_or_struct(skip_typerefs(base_class_type))) {
+            /* Must be a class or struct (not a union). */
+            pos_error(ec_not_a_class_or_struct_name, &base_class_decl_pos);
+            goto skip_base_class;
+          }  /* if */
+        } else {
+          /* Look up the identifier for the base class.  Only identifiers
+             that could be classes (including typedefs to classes and template
+             parameters) are considered in the lookup. */
+          sym = coalesce_and_lookup_generalized_identifier(
+                                 GID_IMPLICIT_TYPE_CONTEXT | GID_IS_BASE_CLASS,
+                                 ilm_class, &err);
+          if (sym != NULL) {
+            record_potential_pack_reference(
+                                    sym, &locator_for_curr_id.source_position);
+          }  /* if */
+          /* Be sure a type symbol was found and that it identifies a class. */
+          if (sym == NULL || !is_class_symbol(sym)) {
+            /* Not a class symbol.  In most cases, issue an error and skip it.
+               When a template param is involved, just skip it. */
+            if (sym != NULL && sym->kind == (a_symbol_kind)sk_type) {
+              a_type_ptr  tp = skip_typedefs(type_symbol_type(sym));
+              if (tp->kind == (a_type_kind)tk_template_param) {
+                if (is_template_dependent_context()) {
+                  is_dependent_type = TRUE;
+                } else {
+                  /* Error case.  Ignore the specifier. */
+                  error(ec_bad_base_class);
+                  goto skip_base_class;
+                }  /* if */
+              }  /* if */
+            }  /* if */
+            if (!is_dependent_type) {
+              error(ec_not_a_class_or_struct_name);
+              reference_to_invalid_name(&locator_for_curr_id);
+              goto skip_base_class;
+            }  /* if */
+          }  /* if */
+          /* Get the type entry for the base class name. */
+          check_assertion(sym != NULL);
+          base_class_type = type_symbol_type(sym);
+          base_class_type->source_corresp.referenced = TRUE;
+        }  /* if */
+        /* Be sure a type symbol was found and that it identifies a class. */
+        if (is_dependent_type) {
+          /* No diagnostic on template parameters or dependent decltypes, which
+             will only show up during prototype instantiations.  Set the flag
+             that indicates that this prototype instantiation has a nonreal
+             base class.  ctsp will be NULL if an error was issued for an
+             attempt to put a base class on a union.  Don't set
+             any_nonreal_base_classes as the base class will not be on the base
+             class list. */
+          cssp->any_nonreal_base_classes = ctsp != NULL;
+          base_class_type = proxy_class_for_template_param(base_class_type);
+          orig_base_class_type = base_class_type;
 #if MICROSOFT_EXTENSIONS_ALLOWED
         } else if (is_implements_construct &&
+                   sym != NULL &&
                    !is_cli_interface_type(type_symbol_type(sym))) {
           /* Only CLI interfaces can appear in an __implements list. */
           type_error(ec_implements_requires_interface, type_symbol_type(sym));
           goto skip_base_class;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-        } else if (locator_for_curr_id.is_semivisible_nested_type) {
+        } else if (!is_decltype &&
+                   locator_for_curr_id.is_semivisible_nested_type) {
           /* The symbol in the locator is a nested class that is not visible
              according to the ARM lookup rules but is returned in support of
              the nested class anachronism (ARM 18.3.5). Issue an anachronism
@@ -8654,14 +8700,13 @@ can only contain CLI interfaces.
              has already been issued. */
           goto skip_base_class;
         }  /* if */
-        /* Record the symbol as referenced. */
-        mark_referenced(sym, &locator_for_curr_id.source_position);
-        /* Do ambiguity and access control checking for the symbol. */
-        check_ambiguity_and_verify_access(&locator_for_curr_id);
-        if (base_class_type == NULL) {
-          /* Get the type entry for the base class name. */
-          base_class_type = type_symbol_type(sym);
-          base_class_type->source_corresp.referenced = TRUE;
+        if (!is_decltype) {
+          /* Record the symbol as referenced. */
+          mark_referenced(sym, &locator_for_curr_id.source_position);
+          /* Do ambiguity and access control checking for the symbol. */
+          check_ambiguity_and_verify_access(&locator_for_curr_id);
+        }  /* if */
+        if (!is_dependent_type) {
           if (!check_base_class_type(type_ptr, base_class_type)) {
             /* The type of the base class is invalid (e.g., incomplete). */
             goto skip_base_class;
@@ -8788,7 +8833,12 @@ can only contain CLI interfaces.
                                       proto_base_number);
 #if EXTRA_SOURCE_POSITIONS_IN_IL
         new_direct_bcp->base_specifier_range.start = base_specifier_start_pos;
-        new_direct_bcp->base_specifier_range.end = end_pos_curr_token;
+        if (is_decltype) {
+          new_direct_bcp->base_specifier_range.end =
+                                       decltype_pos_block.specifiers_range.end;
+        } else {
+          new_direct_bcp->base_specifier_range.end = end_pos_curr_token;
+        }  /* if */
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
         if (attributes != NULL) {
           attach_attributes(attributes, (char*)new_direct_bcp, iek_base_class);
@@ -8798,8 +8848,9 @@ can only contain CLI interfaces.
                             &may_be_first_direct_nonvirtual_base);
 skip_base_class:
         first_base_class = FALSE;
-        /* Advance past the base class name to the comma or right brace. */
-        (void)get_token();
+        /* Advance past the base class name to the comma or right brace
+           (in the decltype case the tokens have already been consumed). */
+        if (!is_decltype) (void)get_token();
       }  /* if */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
 #if TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
