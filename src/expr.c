@@ -3962,15 +3962,21 @@ call, and rcblock->argument_list to the previously-scanned argument list.
       make_rescan_operand(rcblock->argument_list, rcblock, &arg);
     }  /* if */
     eliminate_unusual_operand_kinds(&arg);
-    if (gcc_mode && gnu_version < 40500 && innermost_function_scope != NULL &&
-        bfk == (a_builtin_function_kind)bfk_constant_p &&
+    if (bfk == (a_builtin_function_kind)bfk_constant_p &&
+        gcc_const_variables_allowed &&
+        ((gcc_mode && gnu_version < 40500 &&
+          innermost_function_scope != NULL) ||
+         (gpp_mode && gnu_version >= 40600)) &&
         is_expression_operand(&arg)) {
-      /* The GCC C compiler produces a true value for __builtin_constant_p(x)
-         if x is an initialized const variable and the expression appears in
-         function scope.  In order for the front end to be able to fold that
-         case, an lvalue-to-rvalue conversion must take place.   This should
-         not be done for other pseudo-functions because it can affect their
-         result (e.g., __builtin_classify_type). */
+      /* Whether GCC produces a true value for __builtin_constant_p(x) if x is
+         an initialized const variable varies on a number of conditions,
+         including the optimization level requested from GCC.  We cannot
+         emulate that condition exactly, but the condition above comes close
+         if gcc_const_variables_allowed is interpreted as "optimization level
+         -O1 or above".  In order for the front end to be able to fold the
+         constant value of the variable, an lvalue-to-rvalue conversion must
+         take place.   This should not be done for other pseudo-functions
+         because it can affect their result (e.g., __builtin_classify_type). */
       an_expr_node_ptr  arg_expr = expr_node_from_operand(&arg);
       arg_expr = skip_parens(arg_expr);
       if (is_variable_node(arg_expr)) {
