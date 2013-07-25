@@ -25533,6 +25533,8 @@ expression, and return the result in *result (or an error indication in
   a_boolean         result_is_a_glvalue = FALSE;
   a_boolean         result_is_an_xvalue = FALSE;
   a_boolean         comma_allowed_in_c99_constant_expr = FALSE;
+  a_boolean         allow_call_with_incomplete_return_type =
+                           expr_stack->allow_call_with_incomplete_return_type;
 
   db_enter(4, "scan_comma_operator");
 
@@ -25552,7 +25554,7 @@ expression, and return the result in *result (or an error indication in
 
   /* There is a potential sequence point after the first operand. */
   potential_sequence_point_after_operand(operand_1);
-  if (expr_stack->allow_call_with_incomplete_return_type) {
+  if (allow_call_with_incomplete_return_type) {
     /* The allowance for incomplete return types on top-level calls extends to
        the right hand operands of comma expressions but not to their left
        hand operands. */
@@ -25602,7 +25604,7 @@ expression, and return the result in *result (or an error indication in
     if (!processed) {
       /* Non-operator-function cases. */
       process_void_operand(operand_1);
-      if (expr_stack->allow_call_with_incomplete_return_type) {
+      if (allow_call_with_incomplete_return_type) {
         /* If the second operand is a call, it might require a diagnostic
            later on if it turns out to have an incomplete return type and
            another comma operator follows.  Save the position for such a
@@ -25614,6 +25616,9 @@ expression, and return the result in *result (or an error indication in
             expr_stack->call_in_right_comma_operand_pos = operand_2.position;
           }  /* if */
         }  /* if */
+        /* Another comma operator might follow, so reset the flag to permit
+           another call with an incomplete return type. */
+        expr_stack->allow_call_with_incomplete_return_type = TRUE;
       }  /* if */
       /* In C++ mode, an lvalue in the second operand is preserved.
          In C mode, an lvalue is converted to an rvalue. */
@@ -29322,8 +29327,8 @@ bad_start_of_primary:
     a_boolean allow_call_with_incomplete_return_type =
                            expr_stack->allow_call_with_incomplete_return_type;
     /* For most operations, don't permit a call with an incomplete return
-       type.  If this is a call, the flag may have to temporarily be
-       re-enabled below. */
+       type.  If this is a call or a comma operator, the flag may have to
+       temporarily be re-enabled below. */
     expr_stack->allow_call_with_incomplete_return_type = FALSE;
     if (C_dialect == C_dialect_pcc) {
       /* In pcc mode, check for nonstandard assignment operators like "+ =". */
@@ -29435,9 +29440,6 @@ bad_start_of_primary:
         }  /* if */
         scan_function_call(&operand, &local_bound_function_selector,
                            (a_rescan_control_block *)NULL, &local_result);
-        if (allow_call_with_incomplete_return_type) {
-          expr_stack->allow_call_with_incomplete_return_type = FALSE;
-        }  /* if */
         break;
       case tok_period:
       case tok_arrow:
@@ -29542,9 +29544,6 @@ bad_start_of_primary:
         }  /* if */
         scan_comma_operator(&operand, (a_rescan_control_block *)NULL,
                             &local_result);
-        if (allow_call_with_incomplete_return_type) {
-          expr_stack->allow_call_with_incomplete_return_type = FALSE;
-        }  /* if */
         break;
       default:
         unexpected_condition_str("scan_expr_full: bad operator token in loop");
