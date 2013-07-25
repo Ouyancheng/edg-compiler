@@ -11,11 +11,11 @@ For example:
   enum E: char { e = sizeof(E) };
 
 In addition, for such enumeration types, the first enumerator constant was
-previously given type int until the end of the enum type's definition when it
+previously given type int until the end of the enum type's definition; it
 should have been given the specified underlying type instead.  For example:
 
   enum F: char { f0, f1 = sizeof(f1) };
-    // Previously sizeof(f1) was equivalent to sizeof(int)l; now it is 1.
+    // Previously sizeof(f1) was equivalent to sizeof(int); now it is 1.
 
 This is now fixed.
 
