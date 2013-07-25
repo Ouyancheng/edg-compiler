@@ -8607,6 +8607,7 @@ can only contain CLI interfaces.
         }  /* if */
         if (cpp11_mode && curr_token == tok_decltype) {
           /* C++11 allows a decltype to denote a base class. */
+          a_type_ptr underlying_type;
           is_decltype = TRUE;
           sym = NULL;
           base_class_type = scan_decltype_operator(
@@ -8618,11 +8619,12 @@ can only contain CLI interfaces.
           }  /* if */
           check_assertion(base_class_type->kind == (a_type_kind)tk_typeref &&
                           typeref_is_type_operator(base_class_type));
+          underlying_type = f_skip_typerefs(base_class_type);
           if (is_template_dependent_context() &&
               base_class_type->variant.typeref.is_dependent_type_operator) {
             /* This is a dependent decltype. */
             is_dependent_type = TRUE;
-          } else if (!is_class_or_struct(f_skip_typerefs(base_class_type))) {
+          } else if (!is_class_or_struct(underlying_type)) {
             /* Must be a class or struct (not a union). */
             pos_error(ec_not_a_class_or_struct_name, &base_class_decl_pos);
             goto skip_base_class;
