@@ -8622,7 +8622,7 @@ can only contain CLI interfaces.
               base_class_type->variant.typeref.is_dependent_type_operator) {
             /* This is a dependent decltype. */
             is_dependent_type = TRUE;
-          } else if (!is_class_or_struct(skip_typerefs(base_class_type))) {
+          } else if (!is_class_or_struct(f_skip_typerefs(base_class_type))) {
             /* Must be a class or struct (not a union). */
             pos_error(ec_not_a_class_or_struct_name, &base_class_decl_pos);
             goto skip_base_class;
