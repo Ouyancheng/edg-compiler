@@ -29537,8 +29537,14 @@ bad_start_of_primary:
         }  /* if */
         break;
       case tok_comma:
+        if (allow_call_with_incomplete_return_type) {
+          expr_stack->allow_call_with_incomplete_return_type = TRUE;
+        }  /* if */
         scan_comma_operator(&operand, (a_rescan_control_block *)NULL,
                             &local_result);
+        if (allow_call_with_incomplete_return_type) {
+          expr_stack->allow_call_with_incomplete_return_type = FALSE;
+        }  /* if */
         break;
       default:
         unexpected_condition_str("scan_expr_full: bad operator token in loop");
