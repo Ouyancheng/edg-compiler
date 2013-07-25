@@ -2161,8 +2161,14 @@ to TRUE.
   an_arg_check_block   arg_block;
   a_boolean            scanning_source = (rcblock == NULL &&
                                           !arg_list_supplied);
+  a_boolean            saved_allow_call_with_incomplete_return_type;
 
   db_enter(4, "scan_call_arguments");
+  /* Allowing a call with incomplete return type doesn't propagate to calls
+    in the arguments of the current call. */
+  saved_allow_call_with_incomplete_return_type =
+                           expr_stack->allow_call_with_incomplete_return_type;
+  expr_stack->allow_call_with_incomplete_return_type = FALSE;
   if (p_arg_list != NULL) *p_arg_list = NULL;
   if (single_operand_returned != NULL) *single_operand_returned = FALSE;
   if (return_raw_arguments) {
@@ -2181,7 +2187,6 @@ to TRUE.
     /* Arguments will be discarded, e.g., because of an error. */
     arg_block.args_will_be_discarded = TRUE;
   } /* if */
-
   if (arg_list_supplied) {
     /* Use the argument list supplied. */
     check_assertion(rcblock == NULL);
@@ -2240,6 +2245,10 @@ to TRUE.
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
     (void)required_token(tok_rparen, ec_exp_rparen);
   }  /* if */
+  /* Restore the previous state wrt. allowing an incomplete return type for
+     the current call. */
+  expr_stack->allow_call_with_incomplete_return_type = 
+                                 saved_allow_call_with_incomplete_return_type;
   db_exit();
 }  /* scan_call_arguments */
 
