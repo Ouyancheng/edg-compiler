@@ -2142,6 +2142,11 @@ by a command line option.
         auto_storage_class_specifier_enabled = FALSE;
       }  /* if */
       decltype_enabled = TRUE;
+      if (microsoft_version >= 1800) {
+        /* Note that MSVC++ 12 accepts decltype as a base-specifier, but
+           not as a mem-initializer, so this setting is more lenient. */
+        enable_decltype_in_base_specifier_and_mem_initializer = TRUE;
+      }  /* if */
       if (!option_kind_used[(int)optk_rvalue_ctor_is_copy_ctor]) {
         /* Microsoft MSVC++10 generates an implicit traditional copy
            constructor even when a move constructor was explicitly declared. */
@@ -2757,6 +2762,7 @@ handling).
   extern_template_allowed = value;
   standard_form_of_extern_template = value;
   decltype_enabled = value;
+  enable_decltype_in_base_specifier_and_mem_initializer = value;
   explicit_enum_base_enabled = value;
   enum_qualifiers_enabled = value;
   opaque_enum_decls_enabled = value;
@@ -10292,6 +10298,7 @@ variables declared in cmd_line.h.
   inline_template_allowed = FALSE;
   standard_form_of_extern_template = FALSE;
   decltype_enabled = FALSE;
+  enable_decltype_in_base_specifier_and_mem_initializer = FALSE;
   enable_underscore_decltype_only = FALSE;
   check_concatenations = DEFAULT_CHECK_CONCATENATIONS;
   equiv_typedefs_are_lookup_equivalent = TRUE;

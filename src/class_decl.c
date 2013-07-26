@@ -8414,30 +8414,7 @@ to FALSE before returning).
 static void scan_base_specifier_list(a_class_def_state_ptr  class_state)
 /*
 Scan a list of base class specifiers, which may appear only on a class
-or struct definition (described by class_state).  The syntax is
-
-  base-spec:
-    : base-list
-
-  base-list:
-    base-specifier
-    base-list , base-specifier
-
-  base-specifier:
-    base-type-specifier attribute-specifier
-                                           opt
-    virtual access-specifier    base-type-specifier attribute-specifier
-                            opt                                        opt
-    access-specifier virtual    base-type-specifier attribute-specifier
-                            opt                                        opt
-
-  class-or-decltype:
-    ::    nested-name-specifier    class-name
-      opt                      opt
-    decl-type-specifier
-
-  base-type-specifier:
-    class-or-decltype
+or struct definition (described by class_state).
 
 The current token is the leading colon.
 
@@ -8589,7 +8566,8 @@ can only contain CLI interfaces.
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
       /* Test for identifier, decltype or "::" next. */
       if (!is_generalized_identifier_start(GID_IS_BASE_CLASS) &&
-          !(cpp11_mode && curr_token == tok_decltype)) {
+          !(enable_decltype_in_base_specifier_and_mem_initializer &&
+            curr_token == tok_decltype)) {
         syntax_error(ec_exp_identifier);
       } else {
         /* Scan the base class name. */
@@ -8605,7 +8583,8 @@ can only contain CLI interfaces.
                                 &base_specifier_start_pos,
                                 ec_multiple_inheritance_in_embedded_cplusplus);
         }  /* if */
-        if (cpp11_mode && curr_token == tok_decltype) {
+        if (enable_decltype_in_base_specifier_and_mem_initializer &&
+            curr_token == tok_decltype) {
           /* C++11 allows a decltype to denote a base class. */
           a_type_ptr underlying_type;
           is_decltype = TRUE;

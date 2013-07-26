@@ -5152,7 +5152,8 @@ underlying element type and the array type itself is returned through
   a_constructor_init_ptr     cip, new_cip = NULL;
   a_source_position          pos = pos_curr_token;
 
-  if (cpp11_mode && curr_token == tok_decltype) {
+  if (enable_decltype_in_base_specifier_and_mem_initializer &&
+      curr_token == tok_decltype) {
     /* In C++11 mode, decltype may be used to denote a base class. */
     is_decltype = TRUE;
     init_type = scan_decltype_operator((a_rescan_control_block *)NULL,
@@ -5874,7 +5875,8 @@ entries are replaced as needed for each mem-initializer that is encountered.
      name, member name, or (in C++11 mode) decltype is expected. */
   if (curr_token != tok_lparen &&
       !(is_decl_qualified_name_start() ||
-        (cpp11_mode && curr_token == tok_decltype))) {
+        (enable_decltype_in_base_specifier_and_mem_initializer &&
+         curr_token == tok_decltype))) {
     /* Either an identifier or "::" is expected here. */
     syntax_error(ec_exp_identifier);
   } else {
@@ -6317,32 +6319,11 @@ routine ctor_rout.  If user_defined is TRUE, the context is that of an
 explicit definition in the source code; otherwise, this routine is called
 as part of the implicit definition of a compiler generated constructor.
 
-When user_defined is TRUE, the explicit initializations are scanned from the
-source, based on the following syntax:
-
-    ctor-initializer
-              ":" mem-initializer-list
-    mem-initializer-list:
-              mem-initializer "..."
-                                   opt
-              mem-initializer "," mem-initializer-list "..."
-                                                            opt
-
-    mem-initializer:
-              mem-initializer-id "(" expression-list    ")"
-                                                     opt
-              mem-initializer-id braced-init-list
-
-    mem-initializer-id:
-              class-or-decltype
-              identifier
-
-complete-class-name identifies a base class from which the class to which
-the constructor belongs is derived, in which case the initializer list entry
-means "invoke the constructor X::X with the (possibly null) actual arguments
-given by expression-list".  identifier represents a nonstatic data member of
-the current class, and expression-list contains the value(s) with which it
-is to be initialized.
+If user_defined is TRUE, scan a comma-separated list of mem-initializers
+for data members and/or base classes, if any.  If present, the current
+token should be the colon introducing that list.  The special case of
+a delegating constructor (a feature introduced in C++11) is also handled
+here.
 
 The implicit initializations are performed for base classes and class-type
 data members for which no explicit initializers were specified and for which

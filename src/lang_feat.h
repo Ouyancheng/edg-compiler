@@ -2255,6 +2255,16 @@ EXTERN a_boolean
 			   same meaning as the standard token. */
 
 EXTERN a_boolean
+                enable_decltype_in_base_specifier_and_mem_initializer;
+                        /* TRUE if a decltype-specifier is allowed in a
+                           base-specifier (e.g., struct A : decltype(x) {};)
+                           and mem-initializer-id (e.g., A():decltype(x)() {}).
+                           Note that some compilers support decltype in
+                           a base-specifier but not in a mem-initializer,
+                           so there are cases where the front end accepts
+                           more cases than the compilers they're emulating. */
+
+EXTERN a_boolean
 		nullptr_enabled;
 			/* When TRUE, the C++11 keyword "nullptr" is
 			   enabled. */
