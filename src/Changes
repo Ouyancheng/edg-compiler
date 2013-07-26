@@ -1,5 +1,21 @@
 Version 5.0
 
+7/26/13  [EDGcpfe/14337]
+Alignment of GNU vector types
+
+The front end failed to record an alignment for GNU vector types (leaving the
+alignment of such types to be one in all cases).  For example:
+
+  __attribute((vector_size(16))) int v16;
+  static_assert(__alignof(v16) == 16, "Invalid alignment");
+
+This is now fixed: The alignment of a vector type equals its size.  (Note that
+while current versions of GCC appear to accept almost arbitrarily large
+vector sizes, the front end must limit the vector size to what can be
+represented with the a_targ_alignment type.  See also the Changes entry of
+10/5/01 describing how this type can be configured to be larger than the
+default a_byte type.)
+
 7/24/13  [EDGcpfe/10301,EDGcpfe/13921,EDGcpfe/13997,EDGcpfe/14161]
 Completeness of enum types with explicit underlying types
 

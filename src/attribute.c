@@ -5836,7 +5836,11 @@ error type.
   } else {
     check_assertion(size_con->kind == (a_constant_repr_kind)ck_integer);
     size = value_of_integer_constant(size_con, &ovflo);
-    if (ovflo) {
+    if (ovflo ||
+        size > (a_host_large_integer)targ_maximum_pack_alignment) {
+      /* More recent versions of g++ appear to accept almost arbitrary vector
+         sizes, and set the alignment to match.  However, we do not want to
+         exceed the maximum representable alignment. */
       pos_error(ec_vector_size_too_large, &ap->position);
       err = TRUE;
     } else if (size <= 0 || (size & (size-1)) != 0) {
@@ -5859,6 +5863,7 @@ error type.
     vector_type = alloc_type((a_type_kind)tk_vector);
     vector_type->source_corresp.decl_position = ap->position;
     vector_type->size = size;
+    vector_type->alignment = size;
     vector_type->variant.vector.element_type = elem_type;
     vector_type->variant.vector.size_constant = size_con;
     if (dps != NULL) {

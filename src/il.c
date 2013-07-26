@@ -7974,6 +7974,8 @@ elements of type element_type.
   a_type_ptr  vtype = alloc_type((a_type_kind)tk_vector);
 
   vtype->size = skip_typerefs(element_type)->size*n_elements;
+  check_assertion(vtype->size < (a_targ_size_t)targ_maximum_pack_alignment);
+  vtype->alignment = vtype->size;
   vtype->variant.vector.element_type = element_type;
   return vtype;
 }  /* make_vector_type */
