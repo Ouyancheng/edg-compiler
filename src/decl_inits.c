@@ -5044,6 +5044,26 @@ typedef struct a_ctor_init_block {
 		 	/* Pointer to last constructor init entry for a
 			   mem-initializer whose order has been checked against
 			   the declaration order of bases and members. */
+  a_type_ptr    pending_decltype_initializer_type;
+                        /* A decltype-specifier in a mem-initializer-id can
+                           be either a delegating constructor or a base
+                           class initializer, for example:
+                               struct B {};
+                               struct A : B {
+                                 A() {}
+                                 A(int) : decltype(A())() {}
+                                 A(float) : decltype(B())() {}
+                               };
+                           decltype-specifiers in a mem-initializer-id are
+                           consumed by delegating_ctor_initializer, and if
+                           found not to be a delegating constructor, the
+                           resulting type is stored here for later
+                           consideration as a base class initializer. */
+  a_source_position
+                pending_decltype_pos;
+                        /* When pending_decltype_initializer_type is non-NULL
+                           contains the starting source position of the
+                           decltype-specifier. */
   a_boolean	has_explicit_init;
 			/* TRUE if mem-initializers appear explicitly in the
 			   source code of this constructor, but possibly FALSE
@@ -5057,6 +5077,17 @@ typedef struct a_ctor_init_block {
 			   been called for a mem-initializer, and elements
 			   remain to be processed for that call. */
 } a_ctor_init_block;
+
+/*
+Macro that returns TRUE when a decltype-specifier is allowed in a
+mem-initializer and the token stream indicates that such a decltype
+is present at the current spot (either because curr_token == tok_decltype
+or because a previously scanned decltype-specifier is pending).
+*/
+#define is_decltype_mem_initializer(cibp)                                     \
+  (enable_decltype_in_base_specifier_and_mem_initializer &&                   \
+   (curr_token == tok_decltype ||                                             \
+    (cibp)->pending_decltype_initializer_type != NULL))                       \
 
 
 static void check_out_of_order_init(a_constructor_init_ptr  new_cip,
@@ -5152,15 +5183,28 @@ underlying element type and the array type itself is returned through
   a_constructor_init_ptr     cip, new_cip = NULL;
   a_source_position          pos = pos_curr_token;
 
-  if (enable_decltype_in_base_specifier_and_mem_initializer &&
-      curr_token == tok_decltype) {
+  if (is_decltype_mem_initializer(cibp)) {
     /* In C++11 mode, decltype may be used to denote a base class. */
     is_decltype = TRUE;
-    init_type = scan_decltype_operator((a_rescan_control_block *)NULL,
-                                       (a_decl_pos_block *)NULL);
-    if (is_error_type(init_type)) {
-      /* An error has been issued. */
-      goto scan_paren;
+    if (cibp->pending_decltype_initializer_type != NULL) {
+      /* The first mem-initializer-id in a list may already have been
+         analyzed to see if it is a delegating constructor, and in cases
+         where it's not, the pending decltype-specifier type has been stored
+         for consideration as a base class initializer.  Use the pending
+         type (which is not an error type). */
+      init_type = cibp->pending_decltype_initializer_type;
+      pos = cibp->pending_decltype_pos;
+      cibp->pending_decltype_initializer_type = NULL;
+      check_assertion(!is_error_type(init_type));
+    } else {
+      /* Delegating constructors are disabled or this is not the first
+         mem-initializer-id in a list; scan the decltype-specifier. */
+      init_type = scan_decltype_operator((a_rescan_control_block *)NULL,
+                                         (a_decl_pos_block *)NULL);
+      if (is_error_type(init_type)) {
+        /* An error has been issued. */
+        goto scan_paren;
+      }  /* if */
     }  /* if */
     check_assertion(init_type->kind == (a_type_kind)tk_typeref &&
                     typeref_is_type_operator(init_type));
@@ -5874,13 +5918,12 @@ entries are replaced as needed for each mem-initializer that is encountered.
   /* Unless this is an old style base class initializer, a base class
      name, member name, or (in C++11 mode) decltype is expected. */
   if (curr_token != tok_lparen &&
-      !(is_decl_qualified_name_start() ||
-        (enable_decltype_in_base_specifier_and_mem_initializer &&
-         curr_token == tok_decltype))) {
+      !(is_decl_qualified_name_start() || is_decltype_mem_initializer(cibp))) {
     /* Either an identifier or "::" is expected here. */
     syntax_error(ec_exp_identifier);
   } else {
-    if (curr_token == tok_lparen) {
+    if (curr_token == tok_lparen &&
+        cibp->pending_decltype_initializer_type == NULL) {
       /* Old-style base class initializer.  It is assumed to apply to the
          direct base class (it's allowed only if there is exactly one direct
          base class). */
@@ -6171,9 +6214,12 @@ The current token is the one following a colon (":") presumably introducing
 mem-initializers for the given constructor.  If what follows is a
 mem-initializer for a delegating constructor, return TRUE and update *cibp to
 reflect the initialization.  Otherwise, return FALSE.
+In cases where a decltype-specifier is the next token in the stream, the
+decltype-specifier is consumed here and if found not to be a delegating
+constructor, the scanned type is stored for later use.
 */
 {
-  a_boolean  is_delegating_init = FALSE;
+  a_boolean  is_delegating_init = FALSE, is_decltype = FALSE;
 
   /* Start a pack expansion context, but skip empty expansions. */
   for (;;) {
@@ -6195,14 +6241,45 @@ reflect the initialization.  Otherwise, return FALSE.
       break;
     }  /* if */
   }  /* for */
-  if (cibp->has_explicit_init && is_decl_qualified_name_start()) {
-    /* A name following the colon: Look it up. */
-    a_symbol_ptr  sym = look_up_mem_initializer_id();
-    if (sym != NULL && is_type_symbol(sym)) {
-      /* The name refers to a type: Check if it's the constructor's class.
-         (It could also be a base class type or, in error cases, another
-         type.) */
-      a_type_ptr  tp = type_symbol_type(sym);
+  check_assertion(cibp->pending_decltype_initializer_type == NULL);
+  if (cibp->has_explicit_init &&
+      (is_decl_qualified_name_start() || is_decltype_mem_initializer(cibp))) {
+    a_type_ptr    tp = NULL, decltype_type;
+    a_symbol_ptr  sym;
+    if (is_decltype_mem_initializer(cibp)) {
+      /* decltype can be used to denote a delegating constructor in C++11
+         modes; scan the decltype operator and see if the underlying type
+         matches that of the constructor's class.  If not, the scanned
+         type is saved (see below) and re-analyzed as a potential base
+         class initializer. */
+      is_decltype = TRUE;
+      cibp->pending_decltype_pos = pos_curr_token;
+      decltype_type = scan_decltype_operator((a_rescan_control_block *)NULL,
+                                         (a_decl_pos_block *)NULL);
+      if (is_error_type(decltype_type)) {
+        /* An error has been issued.  Even though this isn't really a
+           delegating constructor, return TRUE to prevent the caller from
+           continuing to scan for mem-initializers (since this mem-initializer
+           has been consumed). */
+        is_delegating_init = TRUE;
+        goto end_of_routine;
+      }  /* if */
+      check_assertion(decltype_type->kind == (a_type_kind)tk_typeref &&
+                      typeref_is_type_operator(decltype_type));
+      tp = decltype_type;
+    } else {
+      /* A name following the colon: Look it up. */
+      sym = look_up_mem_initializer_id();
+      if (sym != NULL && is_type_symbol(sym)) {
+        /* The name refers to a type: Check if it's the constructor's class.
+           (It could also be a base class type or, in error cases, another
+           type.) */
+        tp = type_symbol_type(sym);
+      }  /* if */
+    }  /* if */
+    if (tp != NULL) {
+      /* We have a candidate for a delegating constructor; see if it meets
+         the criteria. */
       tp = skip_typerefs(tp);
       if (is_immediate_class_type(tp) &&
           ctor->source_corresp.is_class_member &&
@@ -6218,13 +6295,15 @@ reflect the initialization.  Otherwise, return FALSE.
         pos = pos_curr_token;
         cip = alloc_ctor_init((a_constructor_init_kind)cik_delegation);
         cip->compiler_generated = FALSE;
-        /* Record the reference to the mem-initializer-id. */
-        record_potential_pack_reference(sym, &pos_curr_token);
-        check_ambiguity_and_verify_access(&locator_for_curr_id);
-        record_symbol_reference(SRK_REFERENCE | SRK_INITIALIZATION, sym,
-                                &pos_curr_token, /*update_il_entry=*/FALSE);
-        /* Skip over the class name. */
-        (void)get_token();
+        if (!is_decltype) {
+          /* Record the reference to the mem-initializer-id. */
+          record_potential_pack_reference(sym, &pos_curr_token);
+          check_ambiguity_and_verify_access(&locator_for_curr_id);
+          record_symbol_reference(SRK_REFERENCE | SRK_INITIALIZATION, sym,
+                                  &pos_curr_token, /*update_il_entry=*/FALSE);
+          /* Skip over the class name. */
+          (void)get_token();
+        }  /* if */
         scan_mem_init_args(ctor, cip, tp, (a_type_ptr)NULL, &pos);
         dip = cip->initializer;
         check_assertion(dip != NULL);
@@ -6304,9 +6383,15 @@ reflect the initialization.  Otherwise, return FALSE.
           cibp->cip_list = cip;
           ctor->is_delegating_ctor = TRUE;
         }  /* if */
+      } else if (is_decltype && !is_delegating_init) {
+        /* A syntactically valid decltype-specifier has been found, but it's
+           not a delegating constructor.  Save this type so that it can be
+           processed as a potential base class initializer. */
+        cibp->pending_decltype_initializer_type = decltype_type;
       }  /* if */
     }  /* if */
   }  /* if */
+end_of_routine:
   return is_delegating_init;
 }  /* delegating_ctor_initializer */
 
@@ -6367,6 +6452,8 @@ initialized.  These are addressed in the course of the processing.
   cib.direct_list = cib.end_of_direct_list = NULL;
   cib.virtual_list = cib.end_of_virtual_list = NULL;
   cib.last_order_checked_init = NULL;
+  cib.pending_decltype_initializer_type = NULL;
+  cib.pending_decltype_pos = null_source_position;
   cib.has_explicit_init = FALSE;
   cib.out_of_order_diag_issued = FALSE;
   cib.pack_expansion_context_started = FALSE;
@@ -6381,6 +6468,12 @@ initialized.  These are addressed in the course of the processing.
        mem-initializers if this isn't a delegating constructor (or in some
        error cases that mix the delegating constructor initializer with
        ordinary subobject initializers). */
+    /* Note that a decltype-specifier may be used to denote either a delegating
+       constructor or a base class specifier; if a decltype-specifier is
+       present it is scanned by delegating_ctor_initializer and if it is
+       found not to be a delegating constructor, the resulting type is
+       saved (in cib.pending_decltype_initializer_type) for later consideration
+       by scan_mem_initializer_id. */
     if (delegating_constructors_enabled &&
         delegating_ctor_initializer(ctor_rout, &cib)) {
       goto done;
