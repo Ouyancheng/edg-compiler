@@ -393,7 +393,7 @@ NULL.
           }  /* if */
           rtsp->suppress_diagnostic_on_incomplete_return_type = TRUE;
           /* Note that err is set (for the return value) even if no diagnostic
-            is actually issued. */
+             is actually issued. */
           err = TRUE;
         }  /* if */
       }  /* if */
