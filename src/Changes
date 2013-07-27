@@ -1,5 +1,19 @@
 Version 5.0
 
+7/27/13  [EDGcpfe/14330]
+Additional source positions for constants
+
+Constants representing literals (numbers, strings, and characters) now
+indicate the source position of the corresponding token via the
+source_corresp.decl_position field of a_constant.  (It should be noted that
+constants with a non-null source position cannot be shared.)  In addition,
+in configurations with EXTRA_SOURCE_POSITIONS_IN_IL set to TRUE, a new
+field, end_position, has been added to a_constant to record the ending
+position of the corresponding literal token; it is also set for initializer
+list elements, which already indicated the starting position in
+source_corresp.decl_position.
+
+
 7/27/13  [EDGcpfe/14333]
 GNU compatibility: command-line macro definitions with embedded spaces
 

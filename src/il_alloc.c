@@ -836,6 +836,9 @@ associated variant fields to default values.
   /* When changing this routine because the structure of a_constant
      has changed, be sure to change eq_constants as well. */
   set_default_source_corresp(cp->source_corresp);
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+  cp->end_position = null_source_position;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   cp->next           = NULL;
   cp->type           = NULL;
   cp->expr           = NULL;

@@ -7109,8 +7109,9 @@ alloc_shareable_constant would return a shareable constant.
                 "constant_is_shareable: implicitly-cast const has assoc_info");
     }  /* if */
 #endif /* CHECKING */
-  } else if (cp->expr != NULL) {
-    /* Constants with backing expressions should not be shared. */
+  } else if (cp->expr != NULL || cp->source_corresp.decl_position.seq != 0) {
+    /* Constants with backing expressions or associated with specific
+       source positions should not be shared. */
     shareable = FALSE;
   } else if (cp->kind == (a_constant_repr_kind)ck_ptr_to_member &&
              cp->variant.ptr_to_member.name_reference != NULL) {

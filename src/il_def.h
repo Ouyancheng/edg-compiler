@@ -3694,6 +3694,16 @@ typedef struct a_constant {
                 source_corresp;
                         /* Information on any source entity that corresponds
                            to this entity. */
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+  a_source_position
+		end_position;
+			/* For constants representing literals in the
+			   source and for initializer list elements, the
+			   ending position of the token or initializer
+			   element; otherwise, null_source_position.  (The
+			   corresponding starting position is given by
+			   source_corresp.decl_position.) */
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   a_constant_ptr
                 next;
                         /* Next constant declared in the same scope, or

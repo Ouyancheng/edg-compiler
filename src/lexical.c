@@ -12342,6 +12342,12 @@ end_of_token_scan_b:;
      has been called) should call remember_token_start before scanning
      the initial token, and then should branch here after all other
      processing is done. */
+  /* Save the starting position in const_for_curr_token in case this is a
+     literal token.  This is done unconditionally to avoid the overhead of
+     having to test the token kind, which would likely outweigh the cost
+     of the assignment; it is innocuous, since const_for_curr_token is
+     ignored for non-literal token kinds. */
+  const_for_curr_token.source_corresp.decl_position = pos_curr_token;
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   if (start_of_curr_token != NULL) {
     /* Determine the source position of the end of the token. */
@@ -12353,6 +12359,9 @@ end_of_token_scan_b:;
     } else {
       macro_line_loc_to_source_pos(end_of_curr_token, end_pos_curr_token);
     }  /* if */
+    /* Save the ending position in const_for_curr_token in case this is a
+       literal token. */
+    const_for_curr_token.end_position = end_pos_curr_token;
   }  /* if */
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
 return_from_token_scan:

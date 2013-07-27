@@ -36759,6 +36759,9 @@ selector type.
   } else {
     constant_ptr = alloc_unshared_constant(&constant);
     constant_ptr->source_corresp.decl_position = label_position;
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+    constant_ptr->end_position = end_position;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   }  /* if */
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   curr_construct_end_position = end_position;

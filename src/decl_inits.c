@@ -781,6 +781,9 @@ remove_any_extraneous_braces:
     (*init_con)->variant.dynamic_init = dip;
     (*init_con)->type = dest_type;
     (*init_con)->source_corresp.decl_position = *init_component_pos(icp);
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+    (*init_con)->end_position = *init_component_end_pos(icp);
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
     if (dip->kind == (a_dynamic_init_kind)dik_constant ||
         dip->kind == (a_dynamic_init_kind)dik_nonconstant_aggregate) {
       /* If this dynamic initialization embeds a designator, record it in the
@@ -835,6 +838,9 @@ of the whole initialization (*is) as appropriate.
     *init_con = alloc_constant((a_constant_repr_kind)ck_aggregate);
     (*init_con)->type = gtype;
     (*init_con)->source_corresp.decl_position = *init_component_pos(icp);
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+    (*init_con)->end_position = *init_component_end_pos(icp);
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
     (*init_con)->explicit_braces_on_aggregate = TRUE;
     for (icp = icp->variant.braced.list; icp != NULL; icp = icp->next) {
       a_constant_ptr  elem_con;
@@ -922,6 +928,9 @@ diagnostics.
       *init_con = alloc_constant((a_constant_repr_kind)ck_aggregate);
       (*init_con)->type = vtype;
       (*init_con)->source_corresp.decl_position = *init_component_pos(icp);
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+      (*init_con)->end_position = *init_component_end_pos(icp);
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
       (*init_con)->explicit_braces_on_aggregate = braced;
     }  /* if */
     if (braced) {
@@ -1024,6 +1033,9 @@ braced initializer (or NULL if there is none) is returned through *p_icp.
     *init_con = alloc_constant((a_constant_repr_kind)ck_aggregate);
     (*init_con)->type = dtype;
     (*init_con)->source_corresp.decl_position = *init_component_pos(icp);
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+    (*init_con)->end_position = *init_component_end_pos(icp);
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
     (*init_con)->explicit_braces_on_aggregate = TRUE;
   }  /* if */
   /* Determine the underlying floating-point type of dtype. */
@@ -1637,6 +1649,9 @@ available.
       des_con = alloc_constant((a_constant_repr_kind)ck_designator);
       des_con->variant.designator.array_element = *idx;
       des_con->source_corresp.decl_position = *init_component_pos(*p_icp);
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+      des_con->end_position = *init_component_end_pos(icp);
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
       add_constant_to_aggregate(des_con, aggr_con);
       aggr_con->is_partially_initialized = TRUE;
     }  /* if */
@@ -1740,6 +1755,9 @@ initialization).  *is describes the initialization as a whole.
       *init_con = alloc_constant((a_constant_repr_kind)ck_aggregate);
       (*init_con)->type = atype;
       (*init_con)->source_corresp.decl_position = *init_component_pos(icp);
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+      (*init_con)->end_position = *init_component_end_pos(icp);
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
       (*init_con)->explicit_braces_on_aggregate = braced;
     }  /* if */
     if (braced) {
@@ -1970,6 +1988,9 @@ dims[rank].  Produce an aggregate constant representing this initialization in
       *result = alloc_constant((a_constant_repr_kind)ck_aggregate);
       (*result)->type = make_handle_type(type_symbol_type(array_type_sym));
       (*result)->source_corresp.decl_position = *init_component_pos(icp);
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+      (*result)->end_position = *init_component_end_pos(icp);
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
       (*result)->explicit_braces_on_aggregate = TRUE;
     }  /* if */
     icp = icp->variant.braced.list;
@@ -2567,6 +2588,9 @@ specific position is available.
       des_con = alloc_constant((a_constant_repr_kind)ck_designator);
       des_con->variant.designator.field = *field;
       des_con->source_corresp.decl_position = *init_component_pos(*p_icp);
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+      des_con->end_position = *init_component_end_pos(icp);
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
       add_constant_to_aggregate(des_con, aggr_con);
       if (class_type->kind != (a_type_kind)tk_union) {
         aggr_con->is_partially_initialized = TRUE;
@@ -2652,6 +2676,9 @@ issued if no more specific position is available.
       *init_con = alloc_constant((a_constant_repr_kind)ck_aggregate);
       (*init_con)->type = class_type;
       (*init_con)->source_corresp.decl_position = *init_component_pos(icp);
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+      (*init_con)->end_position = *init_component_end_pos(icp);
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
       (*init_con)->explicit_braces_on_aggregate = braced;
     }  /* if */
     if (braced) {
@@ -2908,6 +2935,9 @@ aggr_init_array or aggr_init_class, to produce a ck_aggregate constant.
       (*init_con)->variant.dynamic_init = cli_array_dip;
       (*init_con)->type = etype;
       (*init_con)->source_corresp.decl_position = *init_component_pos(icp);
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+      (*init_con)->end_position = *init_component_end_pos(icp);
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
     }  /* if */
     *p_icp = icp->next;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */

@@ -1001,6 +1001,9 @@ Display the indicated constant entry.
 */
 {
   disp_source_corresp(&ptr->source_corresp, iek_constant);
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+  disp_source_position("end_position", &ptr->end_position);
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   disp_ptr("next", (char *)ptr->next, iek_constant);
   disp_ptr("type", (char *)ptr->type, iek_type);
   if (ptr->expr != NULL) {
