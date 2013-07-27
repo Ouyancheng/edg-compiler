@@ -6337,13 +6337,19 @@ Scan and process a #define directive.
       remove_stop_token(tok_rparen);
     }  /* if */
     /* If we're scanning a command-line macro definition option, then the
-       next character should be a "=" (or, in GNU mode, possibly a " ").
-       Skip it. */
+       next character should be a "=" (or, in GNU mode, a " ").  Skip
+       it. */
     if (curr_cmd_line_or_predef_macro_def != NULL &&
         !processing_predefined_macro) {
-      if (*curr_char_loc != '=' &&
-          !(gnu_mode && *curr_char_loc == ' ')) {
-        if (gnu_mode) {
+      if (gnu_mode) {
+        /* The command-line syntax of the GNU preprocessor has an optional
+           "=", optionally preceded by one or more spaces, before the
+           replacement text.  To simplify processing here,
+           process_command_line_macro_definitions replaced the "=", if
+           present, with a space, so we only have to deal with spaces at
+           this point. */
+        skip_white_space();
+        if (kind_of_white_space_skipped == 0) {
           /* The GNU preprocessor accepts command-line definitions of the
              form -DX3.9 with only a warning, treating the macro name as
              "X3".  We must set curr_cmd_line_or_predef_macro_def to NULL
@@ -6355,10 +6361,10 @@ Scan and process a #define directive.
           str_warning(ec_equals_assumed_in_cmd_line_macro_def,
                       locator_for_curr_id.symbol_header->identifier);
           curr_cmd_line_or_predef_macro_def = saved_command_line_macro_def;
-        } else {
-          str_command_line_error(ec_bad_cmd_line_macro,
-                                 curr_cmd_line_or_predef_macro_def);
         }  /* if */
+      } else if (*curr_char_loc != '=') {
+        str_command_line_error(ec_bad_cmd_line_macro,
+                               curr_cmd_line_or_predef_macro_def);
       } else {
         ++curr_char_loc;
       }  /* if */
@@ -7839,6 +7845,12 @@ TRUE) and "-U" (when process_undefs is TRUE) options on the command line.
           strcpy(p+du_len, "=1");
         }  /* if */
         du_len += 2;
+      } else if (gnu_mode) {
+        /* The "=" is optional in the GNU preprocessor command line -- that
+           is, the GNU preprocessor treats "-DFOO=BAR", "-DFOO =BAR", and
+           "-DFOO BAR" as equivalent -- so replace the "=" with a space to
+           simplify the processing in proc_define. */
+        *(char *)equal_pos = ' ';
       }  /* if */
       p[du_len]   = LE_ESCAPE;
       p[du_len+1] = LE_NEWLINE;
