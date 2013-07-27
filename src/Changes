@@ -1,5 +1,22 @@
 Version 5.0
 
+7/27/13  [EDGcpfe/14332]
+Error recovery with invalid character in raw string delimiter
+
+The severity of the diagnostic issued when an invalid character is found in
+a raw string delimiter has been reduced to a discretionary error, allowing
+it to be further weakened or suppressed altogether.  Also, such an error
+previously caused the front end to consider the raw string literal defective
+and consequently to scan it as a non-raw string; now, if the raw string
+delimiter is otherwise well-formed, the front end will continue to treat the
+literal as a raw string.  For example:
+
+  const char *p = R"@(abc
+  def)@";   // Previously elicited a non-discretionary error for the '@'
+            // and a cascade of errors from an unterminated string literal;
+            // now results in a single discretionary error.
+
+
 7/26/13  [EDGcpfe/14337]
 Alignment of GNU vector types
 

@@ -9407,14 +9407,13 @@ start_of_raw_string_delimiter is not used.
 static a_boolean scan_raw_string_delimiter(void)
 /*
 On entry, curr_char_loc is pointing to the first character of the
-d-char-sequence (delimiter) of a C++11 raw string literal.  If the
-d-char-sequence is valid, advance curr_char_loc to point immediately
-after the '(' that terminates the d-char-sequence and return TRUE;
-otherwise, issue an error diagnostic, leave curr_char_loc unchanged,
+d-char-sequence (delimiter) of a C++11 raw string literal.  If a '(' is
+found within the permitted delimiter length, advance curr_char_loc to point
+immediately after the '(' that terminates the d-char-sequence and return
+TRUE; otherwise, issue an error diagnostic, leave curr_char_loc unchanged,
 and return FALSE.
 */
 {
-  a_boolean              err = FALSE;
   a_boolean              found_end = FALSE;
   a_const_char           *p;
   a_const_char           *max_delim = curr_char_loc + 16;
@@ -9427,8 +9426,8 @@ and return FALSE.
        olmp != NULL && olmp->line_loc < curr_char_loc;
        olmp = olmp->next) {}
   /* Scan through the line looking for the end of the delimiter. */
-  for (p = curr_char_loc;
-       !found_end && !err && p <= max_delim - trigraph_len_offset; ++p) {
+  for (p = curr_char_loc; !found_end && p <= max_delim - trigraph_len_offset;
+       ++p) {
     if (*p == '(') {
       /* This is the terminator for the delimiter */
       found_end = TRUE;
@@ -9438,9 +9437,10 @@ and return FALSE.
       if (olmp->kind != olm_trigraph) {
         /* The non-trigraph modifications imply that a character not
            allowed in a raw string delimiter appeared in the original
-           source line. */
-        error_at_line_pos(ec_bad_raw_string_delim_char, p);
-        err = TRUE;
+           source line.  Put out a discretionary error, but continue to
+           scan for the end of the delimiter. */
+        diagnostic_at_line_pos(es_discretionary_error,
+                               ec_bad_raw_string_delim_char, p);
       } else if (olmp->variant.trigraph_orig_char == '(') {
         /* Recognition of the delimiter applies to the unmodified source,
            so the '(' terminates the delimiter. */
@@ -9452,20 +9452,20 @@ and return FALSE.
         olmp = olmp->next;
       }  /* if */
     } else if (!is_raw_string_delimiter_char[*p-CHAR_MIN]) {
-      /* The character is not permitted in a d-char-sequence. */
-      error_at_line_pos(ec_bad_raw_string_delim_char, p);
-      err = TRUE;
+      /* The character is not permitted in a d-char-sequence.  Put out a
+         discretionary error, but continue to scan for the end of the
+         delimiter. */
+      diagnostic_at_line_pos(es_discretionary_error,
+                             ec_bad_raw_string_delim_char, p);
     }  /* if */
   }  /* for */
-  if (!err && !found_end) {
-    /* Left parenthesis not found. */
-    error_at_line_pos(ec_missing_raw_string_delim_lparen, start_of_curr_token);
-    err = TRUE;
-  }  /* if */
   if (found_end) {
     /* Advance curr_char_loc to point after the '(' or '[' that terminates
        the delimiter. */
     curr_char_loc = p;
+  } else {
+    /* Left parenthesis not found. */
+    error_at_line_pos(ec_missing_raw_string_delim_lparen, start_of_curr_token);
   }  /* if */
   return found_end;
 }  /* scan_raw_string_delimiter */
