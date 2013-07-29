@@ -10484,7 +10484,8 @@ a_string_or_char_literal_kind scan_encoding_prefix(a_const_char *loc)
 loc points to a character that could be the start of a C++11
 encoding-prefix, i.e., one of 'u', 'U', 'L', or 'R'.  If it is the start of
 a valid string literal or the start of a valid character literal, return
-the literal kind.  Otherwise, return SCLK_NOT_A_LITERAL.
+the literal kind.  Otherwise, return SCLK_NOT_A_LITERAL.  Set
+encoding_prefix_for_curr_token to the encoding prefix of the value returned.
 */
 {
   a_string_or_char_literal_kind kind = SCLK_ORDINARY_LITERAL;
@@ -10524,6 +10525,7 @@ the literal kind.  Otherwise, return SCLK_NOT_A_LITERAL.
     /* Not a valid literal. */
     kind = SCLK_NOT_A_LITERAL;
   }  /* if */
+  encoding_prefix_for_curr_token = literal_encoding_prefix(kind);
   return kind;
 }  /* scan_encoding_prefix */
 

@@ -25144,6 +25144,7 @@ Return TRUE if the indicated token is one that could start an expression.
     case tok_float_constant:
     case tok_fixed_point_constant:
     case tok_string_literal:
+    case tok_ud_literal:
     case tok_int_constant:
     case tok_char_constant:
     case tok_true:

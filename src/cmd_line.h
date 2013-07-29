@@ -302,6 +302,7 @@ typedef enum /*an_option_kind*/ {
   optk_delegating_constructors,
   optk_lossy_warning,
   optk_deprecated_string_conv,
+  optk_user_defined_literals,
   optk_last		/* Must be last. */
 } an_option_kind;
 

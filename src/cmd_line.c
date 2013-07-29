@@ -1391,6 +1391,12 @@ Initialize the option information table.
                          "no_deprecated_string_conv",
                          '\0', /*value=*/FALSE, /*arg_required=*/FALSE,
                          pchek_command_line);
+  add_option_description(optk_user_defined_literals, "user_defined_literals",
+                         '\0', /*value=*/TRUE, /*arg_required=*/FALSE,
+                         pchek_command_line);
+  add_option_description(optk_user_defined_literals,
+                         "no_user_defined_literals", '\0', /*value=*/FALSE,
+                         /*arg_required=*/FALSE, pchek_command_line);
 }  /* initialize_option_descriptions */
 
 
@@ -2088,6 +2094,9 @@ by a command line option.
     if (!option_kind_used[(int)optk_deprecated_string_conv]) {
       deprecated_string_literal_conv_allowed = TRUE;
     }  /* if */
+    if (!option_kind_used[(int)optk_user_defined_literals]) {
+      user_defined_literals_enabled = FALSE;
+    }  /* if */
     single_ref_qual_ovl_res_tiebreaker = (microsoft_bugs &&
                                           microsoft_version < 1300);
     if (microsoft_version >= 1310) {
@@ -2323,6 +2332,9 @@ by a command line option.
   }  /* if */
   if (!option_kind_used[(int)optk_deprecated_string_conv]) {
     deprecated_string_literal_conv_allowed = TRUE;
+  }  /* if */
+  if (!option_kind_used[(int)optk_user_defined_literals]) {
+    user_defined_literals_enabled = FALSE;
   }  /* if */
   if (!(option_kind_used[(int)optk_late_tiebreaker])) {
     do_late_ovl_res_tiebreaker = TRUE;
@@ -2856,6 +2868,9 @@ handling).
     deprecated_string_literal_conv_allowed = value ?
                                DEFAULT_DEPRECATED_STRING_LITERAL_CONV_ALLOWED :
                                TRUE;
+  }  /* if */
+  if (!option_kind_used[(int)optk_user_defined_literals]) {
+    user_defined_literals_enabled = value;
   }  /* if */
 }  /* check_and_set_cpp11_mode_options */
 
@@ -3464,6 +3479,9 @@ conflicts with the ANSI mode and set various unmentioned settings as needed.
     if (!option_kind_used[(int)optk_deprecated_string_conv]) {
       deprecated_string_literal_conv_allowed = !cpp11_mode;
     }  /* if */
+    if (!option_kind_used[(int)optk_user_defined_literals]) {
+      user_defined_literals_enabled = cpp11_mode;
+    }  /* if */
     assume_references_cannot_be_null = TRUE;
     if (!(option_kind_used[(int)optk_class_name_injection])) {
       /* If class name injection was not explicitly set by a command
@@ -3635,6 +3653,9 @@ checked again here.)
   }  /* if */
   if (!option_kind_used[(int)optk_deprecated_string_conv]) {
     deprecated_string_literal_conv_allowed = TRUE;
+  }  /* if */
+  if (!option_kind_used[(int)optk_user_defined_literals]) {
+    user_defined_literals_enabled = FALSE;
   }  /* if */
   if (!(option_kind_used[(int)optk_nonconst_ref_anachronism])) {
     /* Versions 5.3, 5.5 and 5.8 (at least) of the Sun compiler allow this
@@ -3905,6 +3926,9 @@ exclude the GNU C++ mode already.  Hence those are not checked again here.)
   }  /* if */
   if (!option_kind_used[(int)optk_deprecated_string_conv]) {
     deprecated_string_literal_conv_allowed = TRUE;
+  }  /* if */
+  if (!option_kind_used[(int)optk_user_defined_literals]) {
+    user_defined_literals_enabled = (cpp11_mode && gnu_version >= 40700);
   }  /* if */
   if (!option_kind_used[(int)optk_type_traits_helpers]) {
     /* g++ supports type traits in versions 4.3 and later.  Earlier versions
@@ -9105,6 +9129,9 @@ enable_microsoft_mode:
         break;
       case optk_deprecated_string_conv:
         deprecated_string_literal_conv_allowed = opt_value;
+        break;
+      case optk_user_defined_literals:
+        user_defined_literals_enabled = opt_value;
         break;
       default:
         /* It should not be possible to get here. */

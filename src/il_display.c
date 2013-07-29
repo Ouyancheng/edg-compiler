@@ -2892,6 +2892,7 @@ Print the name of a special function kind.
     case sfk_constructor:        s = "sfk_constructor";        break;
     case sfk_destructor:         s = "sfk_destructor";         break;
     case sfk_conversion:         s = "sfk_conversion";         break;
+    case sfk_udl_operator:       s = "sfk_udl_operator";       break;
     case sfk_operator:           s = "sfk_operator";           break;
     case sfk_lambda_entry_point: s = "sfk_lambda_entry_point"; break;
 #if MICROSOFT_EXTENSIONS_ALLOWED
@@ -3457,6 +3458,9 @@ Display the indicated routine.
     disp_boolean("embedded_source_sequence_entries", TRUE);
   }  /* if */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+  if (ptr->is_raw_literal_operator) {
+    disp_boolean("is_raw_literal_operator", TRUE);
+  }  /* if */
 #if MAINTAIN_NEEDED_FLAGS
   disp_boolean("definition_needed", (a_boolean)ptr->definition_needed);
   /* Note: the keep_definition_in_il flag is not displayed, since it is

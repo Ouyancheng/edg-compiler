@@ -2297,6 +2297,11 @@ EXTERN a_boolean
 			   literal to char * is allowed in C++ mode. */
 
 EXTERN a_boolean
+		user_defined_literals_enabled;
+			/* When TRUE, C++11 user-defined literals are
+			   permitted. */
+
+EXTERN a_boolean
 		gcc_const_variables_allowed;
 			/* When TRUE, gcc mode allows use of const integral
 			   variables as constants.  gcc allows this, but only

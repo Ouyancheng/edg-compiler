@@ -291,6 +291,7 @@ EXTERN an_opname_kind opname_kind_for_token[(int)tok_last+1]
    (an_opname_kind)onk_none,          /* tok_int_constant */
    (an_opname_kind)onk_none,          /* tok_char_constant */
    (an_opname_kind)onk_none,          /* tok_string_literal */
+   (an_opname_kind)onk_none,          /* tok_ud_literal */
    (an_opname_kind)onk_none,          /* tok_end_of_source */
    (an_opname_kind)onk_none,          /* tok_newline */
    (an_opname_kind)onk_none,          /* tok_header_name */
@@ -1510,6 +1511,19 @@ EXTERN a_constant
 		const_for_curr_token;
 			/* If the current token is a literal constant,
 			   this is its value. */
+EXTERN a_symbol_ptr
+		ud_lit_op_sym_for_curr_token;
+			/* If the current token is a user-defined literal
+			   (tok_ud_literal), this is the symbol for its
+			   literal operator or literal operator template,
+			   if known.  May be NULL or designate an
+			   overloaded function in error cases or if the
+			   user-defined literal is a string literal
+			   appearing in the declaration of a literal
+			   operator or literal operator template;
+			   otherwise, it designates the specific function
+			   or template to be used to produce the value of
+			   this literal. */
 EXTERN an_error_code
 		err_code_for_error_token;
 			/* If the current token is tok_error, this is the
@@ -2318,6 +2332,13 @@ typedef int a_string_or_char_literal_kind;
    + 1 /* 1 for quoting character */)
 
 extern a_string_or_char_literal_kind scan_encoding_prefix(a_const_char *loc);
+
+EXTERN a_string_or_char_literal_kind
+		encoding_prefix_for_curr_token;
+			/* If the current token is a string literal or a
+			   user-defined string literal, the encoding prefix
+			   with which it is written; otherwise, the value
+			   is unspecified. */
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
 extern a_boolean is_valid_GUID_string(a_const_char  *str,

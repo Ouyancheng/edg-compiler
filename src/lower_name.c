@@ -10147,6 +10147,9 @@ constructors and conversion functions.
         name = MANGLING_STRING_FOR_CONVERSION_FUNC;
         /* Type signature is put out below. */
         break;
+      case sfk_udl_operator:
+        /* FIXME */
+        break;
       case sfk_operator:
         name = mangled_operator_name(opname_kind, num_operands);
         break;

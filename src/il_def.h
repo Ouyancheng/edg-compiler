@@ -884,6 +884,7 @@ typedef enum /*a_token_kind*/ {
   tok_int_constant,
   tok_char_constant,
   tok_string_literal,
+  tok_ud_literal,
   tok_end_of_source,
   tok_newline,
   tok_header_name,
@@ -1257,9 +1258,9 @@ EXTERN a_const_char
 		*token_names[(int)tok_last+1]
 #if VAR_INITIALIZERS
 = {"error", "identifier", "float constant", "fixed-point constant",
-   "int constant", "char constant", "string literal", "end of source",
-   "newline", "header name", "pp number", "digit sequence", "cpp quote",
-   "ptr to member", "removed expr", "removed template body",
+   "int constant", "char constant", "string literal", "user-defined literal",
+   "end of source", "newline", "header name", "pp number", "digit sequence",
+   "cpp quote", "ptr to member", "removed expr", "removed template body",
 #if MICROSOFT_EXTENSIONS_ALLOWED
    "cli typeid",
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
@@ -3633,6 +3634,7 @@ enum a_special_function_kind_tag {
   sfk_constructor,	/* A constructor. */
   sfk_destructor,	/* A destructor. */
   sfk_conversion,	/* A conversion operator function. */
+  sfk_udl_operator,	/* A literal operator function. */
   sfk_operator,		/* Any other operator function. */
   sfk_lambda_entry_point,
 			/* A static member representing an alternative entry
@@ -3670,8 +3672,8 @@ Table of names corresponding to special function kinds, for debug purposes.
 EXTERN a_const_char *db_special_function_kinds[(int)sfk_last + 1]
 #if VAR_INITIALIZERS
 = {
-   "none", "constructor", "destructor", "conversion", "operator",
-   "lambda entry point",
+   "none", "constructor", "destructor", "conversion", "literal operator",
+   "operator", "lambda entry point",
 #if MICROSOFT_EXTENSIONS_ALLOWED
    "static constructor", "finalizer",
    "IDisposable::Dispose implementation", "Dispose(bool)",
@@ -12675,6 +12677,7 @@ typedef struct a_routine {
 			   ordinary member function or not a member function
 			   at all. */
   union {
+    /* When special_kind == sfk_udl_operator, no variant fields. */
     /* When special_kind == sfk_operator. */
     an_opname_kind
 		opname_kind;
@@ -13318,6 +13321,10 @@ typedef struct a_routine {
 			   use only, to catch cases where a function was the
 			   decider and then becomes not the decider because of
 			   an out-of-class inline definition. */
+  a_bit_field	is_raw_literal_operator:1;
+			/* TRUE if this routine is a raw literal operator,
+			   i.e., a literal operator with one parameter of
+			   type const char*, and FALSE otherwise. */
   bitfield_to_avoid_codecenter_warnings()
 #if DECL_MODIFIERS_IN_USE
   a_decl_modifier

@@ -2462,6 +2462,7 @@ value.  Also clear related variant fields to default values.
   rp->special_kind = special_kind;
   switch (special_kind) {
     case sfk_conversion:
+    case sfk_udl_operator:
       break;
     case sfk_operator:
       rp->variant.opname_kind = (an_opname_kind)onk_none;
@@ -2683,6 +2684,7 @@ to it.  The entry is allocated in the file scope memory region.
   rp->embedded_source_sequence_entries = FALSE;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   rp->considered_decider_function_at_some_point = FALSE;
+  rp->is_raw_literal_operator     = FALSE;
 #if CENTERLINE_CHECKING
   rp->avoid_codecenter_warnings = 0;
 #endif /* CENTERLINE_CHECKING */
