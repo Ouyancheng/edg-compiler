@@ -630,7 +630,7 @@ To select only a name from the primary translation unit, use [], e.g.,
 
 #if MAINTAIN_ALLOCATION_SEQUENCE_NUMBER
 
-a_boolean proc_debug_alloc_seq_option(char *debug_option)
+a_boolean proc_debug_alloc_seq_option(a_const_char *debug_option)
 /*
 Parse the db_alloc_seq option (as received by proc_command_line) and enter
 information about it in the debug requests list.  Its format is
