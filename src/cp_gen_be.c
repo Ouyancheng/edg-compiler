@@ -14500,7 +14500,8 @@ when possible.
          form.  If there are extra cv-qualifiers on the entity type they
          must have been added by the context. */
       if (!has_name_before_mangling(init_entity_type)) {
-        init_entity_type = skip_typerefs_not_typedefs(init_entity_type);
+        init_entity_type =
+               skip_typerefs_not_typedefs_or_type_operators(init_entity_type);
       }  /* if */
       use_func_notation_cast = TRUE;
     } else if (assoc_expr != NULL && assoc_expr->is_static_cast) {
@@ -14572,7 +14573,9 @@ when possible.
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     }  /* if */
     if (use_func_notation_cast &&
-        !has_name_before_mangling(init_entity_type)) {
+        !has_name_before_mangling(init_entity_type) &&
+        !(init_entity_type->kind == (a_type_kind)tk_typeref &&
+          typeref_is_type_operator(init_entity_type))) {
       /* We decided we wanted to use a functional-notation cast, but the
          type is unnamed, so there's no way to write that.  This comes up
          with generated types in SSI versions.  Use an old-style cast and
