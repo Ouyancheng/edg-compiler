@@ -6560,6 +6560,9 @@ Display the indicated asm entry.
   if (ptr->is_volatile) {
     disp_boolean("is_volatile", TRUE);
   }  /* if */
+  if (ptr->has_volatile_keyword) {
+    disp_boolean("has_volatile_keyword", TRUE);
+  }  /* if */
   disp_ptr("operands", (char *)ptr->operands, iek_asm_operand);
   disp_ptr("clobbers", (char *)ptr->clobbers, iek_named_register_list);
   putchar('\n');
