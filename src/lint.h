@@ -1044,6 +1044,14 @@ extern int fileno(FILE *);
 /*lint -esym(759,add_to_def_undef_list)*/
 /*lint -esym(765,add_to_def_undef_list)*/
 #endif /*AUTOMATIC_TEMPLATE_INSTANTIATION*/
+/*lint -esym(714,find_literal_operator)*/
+/*lint -esym(759,find_literal_operator)*/
+/*lint -esym(765,find_literal_operator)*/
+/*lint -esym(714,ud_lit_op_sym_for_curr_token)*/
+/*lint -esym(759,ud_lit_op_sym_for_curr_token)*/
+/*lint -esym(765,ud_lit_op_sym_for_curr_token)*/
+/*lint -esym(552,encoding_prefix_for_curr_token)*/
+/*lint -esym(552,user_defined_literals_enabled)*/
 
 #endif /* ifndef LINT_H */
 
