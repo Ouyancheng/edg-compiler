@@ -544,6 +544,7 @@ static void gen_statement_list(a_statement_ptr stmt_list,
                                a_boolean       is_stmt_expression);
 static void gen_cast(a_type_ptr type);
 static a_boolean is_expl_ctor_or_value_init(an_expr_node_ptr expr);
+static void gen_type_operator(a_type_ptr tp);
 static void gen_expr(an_expr_node_ptr expr,
                      a_boolean        need_parens,
                      a_boolean        obj_expr_of_mfunc_operator);
@@ -3403,6 +3404,7 @@ GN_PARENS_IF_GLOBAL_QUALIFIER is not set.
   a_source_correspondence *scp_for_unknown_base_member =
                                     (scp->member_of_unknown_base) ? scp : NULL;
   a_boolean               is_partial_spec_prototype_inst = FALSE;
+  a_boolean               is_decltype = FALSE;
 
   if (entry_kind == (an_il_entry_kind)iek_constant &&
       ((a_constant_ptr)scp)->kind == (a_constant_repr_kind)ck_template_param) {
@@ -3522,6 +3524,12 @@ GN_PARENS_IF_GLOBAL_QUALIFIER is not set.
              won't be a type, as this name is. */
           scp->qualification_needed = TRUE;
         }  /* if */
+      }  /* if */
+      if (tp->kind == (a_type_kind)tk_typeref &&
+          typeref_is_type_operator(tp)) {
+        /* If this is a decltype (or similar type operator), emit it as
+           such. */
+        is_decltype = TRUE;
       }  /* if */
     }  /* if */
     if (scp_for_unknown_base_member != NULL) {
@@ -3772,6 +3780,8 @@ unqualified_part:
     gen_temp_name((char *)scp);
   } else if (options & GN_NO_TEMPLATE_ARGS) {
     gen_bare_name(scp, entry_kind);
+  } else if (is_decltype) {
+    gen_type_operator((a_type_ptr)scp);
   } else {
     gen_unqualified_name(scp, entry_kind);
   }  /* if */
@@ -7132,14 +7142,8 @@ Put out the list of direct base classes of the class associated with ctsp
           gen_access_specifier(bcdp->access);
         }  /* if */
         write_space();
-        if (bcp->orig_type->kind == (a_type_kind)tk_typeref &&
-            typeref_is_type_operator(bcp->orig_type)) {
-          /* Base class is denoted by a decltype. */
-          gen_type_operator(bcp->orig_type);
-        } else {
-          gen_name(&bcp->orig_type->source_corresp, iek_type,
-                   GN_BASE_SPECIFIER, (a_boolean *)NULL);
-        }  /* if */
+        gen_name(&bcp->orig_type->source_corresp, iek_type,
+                 GN_BASE_SPECIFIER, (a_boolean *)NULL);
         if (bcp->is_pack_expansion) write_tok_str("...");
         if (bcp->next == NULL || bcp->next->direct_base_number != next_base) {
           break;
@@ -15520,7 +15524,9 @@ a constructor.
       switch (ctor_init->kind) {
         case cik_virtual_base_class:
           /* Initializing a virtual base class. */
-          type = ctor_init->variant.base_class->type;
+          type = ctor_init->orig_type == NULL ?
+                                          ctor_init->variant.base_class->type :
+                                          ctor_init->orig_type;
           { a_boolean  saved_qualification_needed = 
                                      type->source_corresp.qualification_needed;
             a_boolean  saved_visible_as_unqualified_name =
@@ -15541,11 +15547,14 @@ a constructor.
           break;
         case cik_direct_base_class:
           /* Initializing a direct base class. */
-          type = ctor_init->variant.base_class->type;
+          type = ctor_init->orig_type == NULL ?
+                                          ctor_init->variant.base_class->type :
+                                          ctor_init->orig_type;
           gen_type_name(type);
           break;
         case cik_field:
           /* Initializing a nonstatic data member. */
+          check_assertion(ctor_init->orig_type == NULL);
           field = ctor_init->variant.field;
           gen_field_name(field);
           type = field->type;
@@ -15554,7 +15563,9 @@ a constructor.
           /* A delegating constructor. */
           { a_routine_ptr ctor_routine =
                                  innermost_function_scope->variant.routine.ptr;
-            type = parent_class_of(ctor_routine);
+            type = ctor_init->orig_type == NULL ?
+                                          parent_class_of(ctor_routine) :
+                                          ctor_init->orig_type;
             gen_type_name(type);
           }
           break;

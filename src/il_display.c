@@ -6491,6 +6491,9 @@ do_base_class:
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   disp_source_range("ctor_init_range", &ptr->ctor_init_range);
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+  if (ptr->orig_type != NULL) {
+    disp_ptr("orig_type", (char *)ptr->orig_type, iek_type);
+  }  /* if */
 }  /* disp_constructor_init */
 
 #if GNU_EXTENSIONS_ALLOWED

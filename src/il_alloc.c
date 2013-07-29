@@ -3689,6 +3689,7 @@ pointer to it.
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   cip->ctor_init_range = null_source_range; 
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+  cip->orig_type = NULL;
 
   return cip;
 }  /* alloc_ctor_init */

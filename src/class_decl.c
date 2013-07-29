@@ -8656,8 +8656,8 @@ can only contain CLI interfaces.
              any_nonreal_base_classes as the base class will not be on the base
              class list. */
           cssp->any_nonreal_base_classes = ctsp != NULL;
-          base_class_type = proxy_class_for_template_param(base_class_type);
           orig_base_class_type = base_class_type;
+          base_class_type = proxy_class_for_template_param(base_class_type);
 #if MICROSOFT_EXTENSIONS_ALLOWED
         } else if (is_implements_construct &&
                    sym != NULL &&

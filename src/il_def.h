@@ -16165,6 +16165,12 @@ typedef struct a_constructor_init {
 			   the source positions corresponding to the opening
 			   "(" and closing ")".  May be null_source_range. */
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+  a_type_ptr    orig_type;
+                        /* When non-NULL, is the type that was used in the
+                           source to refer to the base class or delegating
+                           constructor.  NULL for compiler-generated cases
+                           as well as field initializers.  Used to recreate
+                           the original source form. */
 } a_constructor_init;
 
 

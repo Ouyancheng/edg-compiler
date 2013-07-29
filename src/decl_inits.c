@@ -5217,7 +5217,7 @@ underlying element type and the array type itself is returned through
 */
 {
   a_symbol_ptr               member_or_base_sym = NULL;
-  a_type_ptr                 init_type;
+  a_type_ptr                 init_type, orig_type = NULL;
   a_boolean                  template_param_init = FALSE, is_decltype = FALSE;
   a_base_class_ptr           bcp;
   a_constructor_init_ptr     cip, new_cip = NULL;
@@ -5232,25 +5232,26 @@ underlying element type and the array type itself is returned through
          where it's not, the pending decltype-specifier type has been stored
          for consideration as a base class initializer.  Use the pending
          type (which is not an error type). */
-      init_type = cibp->pending_decltype_initializer_type;
+      orig_type = cibp->pending_decltype_initializer_type;
       pos = cibp->pending_decltype_pos;
       cibp->pending_decltype_initializer_type = NULL;
-      check_assertion(!is_error_type(init_type));
+      check_assertion(!is_error_type(orig_type));
     } else {
       /* Delegating constructors are disabled or this is not the first
          mem-initializer-id in a list; scan the decltype-specifier. */
-      init_type = scan_decltype_operator((a_rescan_control_block *)NULL,
+      orig_type = scan_decltype_operator((a_rescan_control_block *)NULL,
                                          (a_decl_pos_block *)NULL);
-      if (is_error_type(init_type)) {
+      if (is_error_type(orig_type)) {
         /* An error has been issued. */
         goto scan_paren;
       }  /* if */
     }  /* if */
-    check_assertion(init_type->kind == (a_type_kind)tk_typeref &&
-                    typeref_is_type_operator(init_type));
-    if (init_type->variant.typeref.is_dependent_type_operator) {
+    check_assertion(orig_type->kind == (a_type_kind)tk_typeref &&
+                    typeref_is_type_operator(orig_type));
+    if (orig_type->variant.typeref.is_dependent_type_operator) {
       template_param_init = TRUE;
     }  /* if */
+    init_type = orig_type;
   } else {
     /* A field or base class name. */
     member_or_base_sym = look_up_mem_initializer_id();
@@ -5484,9 +5485,9 @@ underlying element type and the array type itself is returned through
         sym_diagnostic(anachronism_error_severity, ec_nested_class_anachronism,
                        locator_for_curr_id.specific_symbol);
       }  /* if */
-      init_type = type_symbol_type(member_or_base_sym);
+      orig_type = type_symbol_type(member_or_base_sym);
     }  /* if */
-    init_type = skip_typerefs(init_type);
+    init_type = skip_typerefs(orig_type);
     if (template_param_init &&
         init_type->kind == (a_type_kind)tk_template_param) {
       init_type = proxy_class_for_template_param(init_type);
@@ -5541,6 +5542,7 @@ underlying element type and the array type itself is returned through
                               (a_constructor_init_kind)cik_direct_base_class);
         new_cip->variant.base_class = alloc_base_class();
         new_cip->variant.base_class->type = init_type;
+        new_cip->orig_type = orig_type;
         if (cibp->direct_list == NULL) {
           /* Start a new list. */
           cibp->direct_list = new_cip;
@@ -5584,6 +5586,7 @@ underlying element type and the array type itself is returned through
          flag now that it's appeared explicitly in the ctor-initializer
          list. */
       new_cip->compiler_generated = FALSE;
+      new_cip->orig_type = orig_type;
       if (new_cip->initializer != NULL) {
         type_error(ec_base_class_already_initialized, bcp->type);
       } else {
@@ -6284,7 +6287,7 @@ constructor, the scanned type is stored for later use.
   check_assertion(cibp->pending_decltype_initializer_type == NULL);
   if (cibp->has_explicit_init &&
       (is_decl_qualified_name_start() || is_decltype_mem_initializer(cibp))) {
-    a_type_ptr    tp = NULL, decltype_type;
+    a_type_ptr    tp, orig_type = NULL, decltype_type;
     a_symbol_ptr  sym;
     if (is_decltype_mem_initializer(cibp)) {
       /* decltype can be used to denote a delegating constructor in C++11
@@ -6306,7 +6309,7 @@ constructor, the scanned type is stored for later use.
       }  /* if */
       check_assertion(decltype_type->kind == (a_type_kind)tk_typeref &&
                       typeref_is_type_operator(decltype_type));
-      tp = decltype_type;
+      orig_type = decltype_type;
     } else {
       /* A name following the colon: Look it up. */
       sym = look_up_mem_initializer_id();
@@ -6314,13 +6317,13 @@ constructor, the scanned type is stored for later use.
         /* The name refers to a type: Check if it's the constructor's class.
            (It could also be a base class type or, in error cases, another
            type.) */
-        tp = type_symbol_type(sym);
+        orig_type = type_symbol_type(sym);
       }  /* if */
     }  /* if */
-    if (tp != NULL) {
+    if (orig_type != NULL) {
       /* We have a candidate for a delegating constructor; see if it meets
          the criteria. */
-      tp = skip_typerefs(tp);
+      tp = skip_typerefs(orig_type);
       if (is_immediate_class_type(tp) &&
           ctor->source_corresp.is_class_member &&
           same_entities(tp, parent_class_of(ctor))) {
@@ -6335,6 +6338,7 @@ constructor, the scanned type is stored for later use.
         pos = pos_curr_token;
         cip = alloc_ctor_init((a_constructor_init_kind)cik_delegation);
         cip->compiler_generated = FALSE;
+        cip->orig_type = orig_type;
         if (!is_decltype) {
           /* Record the reference to the mem-initializer-id. */
           record_potential_pack_reference(sym, &pos_curr_token);
