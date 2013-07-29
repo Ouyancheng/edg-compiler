@@ -14554,7 +14554,8 @@ when possible.
         /*  If there are extra cv-qualifiers on the entity type they
             must have been added by the context. */
         if (!has_name_before_mangling(init_entity_type)) {
-          init_entity_type = skip_typerefs_not_typedefs(init_entity_type);
+          init_entity_type =
+               skip_typerefs_not_typedefs_or_type_operators(init_entity_type);
         }  /* if */
       }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED

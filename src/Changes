@@ -1,5 +1,19 @@
 Version 5.0
 
+7/29/13  [EDGcpfe/14347]
+C++-generating back end failed to render some type operators
+
+A type operator like C++11's "decltype" was not always rendered correctly
+when it appears as the type of a cast (an odd-looking identifier of the form
+__Txxx was rendered instead, with xxx a long string of digits).  For example:
+
+  struct {} x;
+  decltype(decltype(x)()) y;
+
+The inner decltype (which specifies the type in a function-style cast) was
+previously incorrectly rendered.  This is now fixed.
+
+
 7/29/13  [EDGcpfe/14329]
 Spurious "volatile" keyword added to asm statement reconstruction
 

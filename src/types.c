@@ -356,6 +356,20 @@ type, without changing the type represented, for deduction purposes."
 }  /* skip_typedefs_not_dependent_decltypes */
 
 
+a_type_ptr skip_typerefs_not_typedefs_or_type_operators(a_type_ptr type_ptr)
+/*
+Skip any typerefs that don't represent a typedef or a type operator.
+*/
+{
+  while (type_ptr->kind == (a_type_kind)tk_typeref &&
+         !(typeref_is_typedef(type_ptr) ||
+           typeref_is_type_operator(type_ptr))) {
+    type_ptr = type_ptr->variant.typeref.type;
+  }  /* while */
+  return type_ptr;
+}  /* skip_typerefs_not_typedefs_or_type_operators */
+
+
 a_boolean is_error_type(a_type_ptr tp)
 /*
 Return TRUE if the given type is an error type.
