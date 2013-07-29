@@ -12467,6 +12467,7 @@ to NULL.
 #if GNU_EXTENSIONS_ALLOWED
   a_boolean                 gnu_asm_form = FALSE;
   a_boolean                 is_volatile = FALSE;
+  a_boolean                 has_volatile_keyword = FALSE;
   a_boolean                 is_asm_goto = FALSE;
   an_asm_operand_ptr        operands = NULL;
   a_named_register_list_ptr clobbers = NULL;
@@ -12526,6 +12527,7 @@ to NULL.
         report_gnu_extension_if_needed(&cv_pos,
                                        ec_volatile_asm_is_gnu_extension);
         is_volatile = TRUE;
+        has_volatile_keyword = TRUE;
       }  /* if */
     }  /* if */
     if (gnu_mode && gnu_version >= 40500 && curr_token == tok_goto) {
@@ -12607,6 +12609,7 @@ to NULL.
 #if GNU_EXTENSIONS_ALLOWED
     ap->gnu_asm_form = gnu_asm_form;
     ap->is_volatile = is_volatile;
+    ap->has_volatile_keyword = has_volatile_keyword;
     ap->is_asm_goto = is_asm_goto;
     ap->operands = operands;
     ap->clobbers = clobbers;

@@ -1,5 +1,20 @@
 Version 5.0
 
+7/29/13  [EDGcpfe/14329]
+Spurious "volatile" keyword added to asm statement reconstruction
+
+A GNU asm statement without output operands is treated as "volatile"
+(i.e., the GNU compiler won't delete it).  Such statements had resulted in
+the generation of "asm volatile" statements in C++-generating back end
+configurations.  A change has been made to generate the "volatile" keyword
+in the output only in cases where the input contained the "volatile" keyword.
+For example (with --gcc):
+
+  void f() {
+    asm("ret" : :);   // had generated 'asm volatile ("ret" : :);'
+  }
+
+
 7/27/13  [EDGcpfe/14330]
 Additional source positions for constants
 

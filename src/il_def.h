@@ -13523,7 +13523,12 @@ typedef struct an_asm_entry {
 			   string may be subtly different if this flag is
 			   TRUE. */
   a_bit_field	is_volatile:1;
-			/* asm is marked volatile (not to be reordered). */
+			/* asm is volatile (not to be reordered) either
+			   because it has the "volatile" keyword or because
+			   it has no output operands. */
+  a_bit_field	has_volatile_keyword:1;
+			/* asm is marked volatile (not to be reordered) because
+			   the "volatile" keyword was used. */
   a_bit_field	is_asm_goto:1;
 			/* TRUE if this is an "asm goto". */
   an_asm_operand_ptr

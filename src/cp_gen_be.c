@@ -14264,9 +14264,7 @@ one that yields the value) of a statement expression.
         write_tok_str((char *)(gcc_is_generated_code_target ? "__asm__" :
                                                               "asm"));
 #if GNU_EXTENSIONS_ALLOWED
-        if (asm_entry->is_volatile && 
-            (asm_entry->operands != NULL || asm_entry->clobbers != NULL ||
-             asm_entry->gnu_asm_form)) {
+        if (asm_entry->has_volatile_keyword) {
           write_tok_str(" volatile");
         }  /* if */
         if (asm_entry->is_asm_goto) {
