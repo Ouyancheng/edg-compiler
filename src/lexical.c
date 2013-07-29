@@ -9414,11 +9414,15 @@ TRUE; otherwise, issue an error diagnostic, leave curr_char_loc unchanged,
 and return FALSE.
 */
 {
+#define MAX_DELIM_LENGTH 16
   a_boolean              found_end = FALSE;
   a_const_char           *p;
-  a_const_char           *max_delim = curr_char_loc + 16;
+  a_const_char           *max_delim = curr_char_loc + MAX_DELIM_LENGTH;
   an_orig_line_modif_ptr olmp;
   int                    trigraph_len_offset = 0;
+  a_const_char           *invalid_char_loc[MAX_DELIM_LENGTH];
+  int                    num_invalid_chars_seen = 0;
+  a_byte_boolean         invalid_char_seen[CHAR_MAX-CHAR_MIN+1];
 
   /* Find the first original line modification that might be in the
      delimiter, if any. */
@@ -9428,6 +9432,8 @@ and return FALSE.
   /* Scan through the line looking for the end of the delimiter. */
   for (p = curr_char_loc; !found_end && p <= max_delim - trigraph_len_offset;
        ++p) {
+    a_boolean char_is_invalid = FALSE;
+    char      invalid_char;
     if (*p == '(') {
       /* This is the terminator for the delimiter */
       found_end = TRUE;
@@ -9437,10 +9443,9 @@ and return FALSE.
       if (olmp->kind != olm_trigraph) {
         /* The non-trigraph modifications imply that a character not
            allowed in a raw string delimiter appeared in the original
-           source line.  Put out a discretionary error, but continue to
-           scan for the end of the delimiter. */
-        diagnostic_at_line_pos(es_discretionary_error,
-                               ec_bad_raw_string_delim_char, p);
+           source line.  Treat it as a backslash. */
+        char_is_invalid = TRUE;
+        invalid_char = '\\';
       } else if (olmp->variant.trigraph_orig_char == '(') {
         /* Recognition of the delimiter applies to the unmodified source,
            so the '(' terminates the delimiter. */
@@ -9452,22 +9457,46 @@ and return FALSE.
         olmp = olmp->next;
       }  /* if */
     } else if (!is_raw_string_delimiter_char[*p-CHAR_MIN]) {
-      /* The character is not permitted in a d-char-sequence.  Put out a
-         discretionary error, but continue to scan for the end of the
-         delimiter. */
-      diagnostic_at_line_pos(es_discretionary_error,
-                             ec_bad_raw_string_delim_char, p);
+      /* The character is not permitted in a d-char-sequence. */
+      char_is_invalid = TRUE;
+      invalid_char = *p;
+    }  /* if */
+    if (char_is_invalid) {
+      if (num_invalid_chars_seen == 0) {
+        /* This is the first one.  Put out only one diagnostic for each
+           invalid code point used in the delimiter -- if the user wrote
+           "@@@$$$" as a delimiter, there's no reason to put out six
+           diagnostics, but it could be friendly to put out one for the
+           first '@' and one for the first '$'. */
+        int c;
+        for (c = CHAR_MIN; c <= CHAR_MAX; ++c) {
+          invalid_char_seen[c - CHAR_MIN] = FALSE;
+        }
+      }  /* if */
+      if (!invalid_char_seen[invalid_char - CHAR_MIN]) {
+        invalid_char_seen[invalid_char - CHAR_MIN] = TRUE;
+        invalid_char_loc[num_invalid_chars_seen++] = p;
+      }  /* if */
     }  /* if */
   }  /* for */
   if (found_end) {
+    int i;
+    /* Put out any pending "invalid character" diagnostics. */
+    for (i = 0; i < num_invalid_chars_seen; ++i) {
+      diagnostic_at_line_pos(es_discretionary_error,
+                             ec_bad_raw_string_delim_char,
+                             invalid_char_loc[i]);
+    }  /* for */
     /* Advance curr_char_loc to point after the '(' or '[' that terminates
        the delimiter. */
     curr_char_loc = p;
   } else {
-    /* Left parenthesis not found. */
+    /* Left parenthesis not found.  Ignore any pending "invalid character"
+       diagnostics, as the raw string appears to be garbage. */
     error_at_line_pos(ec_missing_raw_string_delim_lparen, start_of_curr_token);
   }  /* if */
   return found_end;
+#undef MAX_DELIM_LENGTH
 }  /* scan_raw_string_delimiter */
 
 
