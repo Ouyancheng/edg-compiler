@@ -355,6 +355,7 @@ type, without changing the type represented, for deduction purposes."
   return type_ptr;
 }  /* skip_typedefs_not_dependent_decltypes */
 
+#if BACK_END_IS_CP_GEN_BE
 
 a_type_ptr skip_typerefs_not_typedefs_or_type_operators(a_type_ptr type_ptr)
 /*
@@ -369,6 +370,7 @@ Skip any typerefs that don't represent a typedef or a type operator.
   return type_ptr;
 }  /* skip_typerefs_not_typedefs_or_type_operators */
 
+#endif /* BACK_END_IS_CP_GEN_BE */
 
 a_boolean is_error_type(a_type_ptr tp)
 /*
