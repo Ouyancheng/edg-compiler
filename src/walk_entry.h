@@ -3049,7 +3049,7 @@ after_entry_from_class:
         }  /* switch */
         walk_ptr(ptr->initializer, a_dynamic_init_ptr, iek_dynamic_init);
         walk_ptr(ptr->source_expr, an_expr_node_ptr, iek_expr_node);
-        remap_ptr(ptr->orig_type, a_type_ptr, iek_type);
+        walk_ptr(ptr->orig_type, a_type_ptr, iek_type);
       }
       break;
     case iek_asm_entry:
