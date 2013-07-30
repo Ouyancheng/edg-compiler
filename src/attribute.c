@@ -6822,6 +6822,8 @@ static void add_alias_fixup(a_symbol_ptr        alias,
                             a_source_position   *alias_position)
 /*
 Allocate a fixup entry for a new alias described by the given parameters.
+Note that the caller must allocate alias_name in the IL (when non-NULL) as
+it will be pointed to by the aliased IL entry.
 */
 {
   an_alias_fixup_ptr  entry;
@@ -7191,7 +7193,7 @@ static unsigned long
 
 void redefine_extname_pragma(a_pending_pragma_ptr  ppp)
 /*
-Process the Solaris redefine_extname pragma by recording an appropriate
+Process the GNU/Solaris redefine_extname pragma by recording an appropriate
 alias fixup entry.  Such fixup entries are applied at a later time by
 process_alias_fixup_list.
 */
@@ -7221,7 +7223,9 @@ process_alias_fixup_list.
   if (!err) {
     sizeof_t  prefix_len = sizeof("redefine_extname ")-1;
     sizeof_t  pragma_len = prefix_len+src_name_len+1+asm_name_len+1;
-    add_alias_fixup((a_symbol_ptr)NULL, asm_name, src_name,
+    add_alias_fixup((a_symbol_ptr)NULL,
+                    copy_string_to_region(file_scope_region_number, asm_name),
+                    src_name,
                     &ppp->pragma_position);
     /* Recreate the pragma string: "redefine_extname <src-name> <asm-name>". */
     ppp->pragma_text  = (char *)alloc_primary_file_scope_il(pragma_len);
