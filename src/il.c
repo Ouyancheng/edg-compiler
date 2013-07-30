@@ -15664,7 +15664,7 @@ options is a set of name lookup options.
           /* Even with new-style SFINAE, a cast to an rvalue reference can
              create a temporary initialized with a constant.  Use the
              underlying constant. */
-          check_assertion(is_generated_dynamic_init(dip));
+          check_assertion_or_expect_error(is_generated_dynamic_init(dip));
           *alloc_con = copy_template_param_con(dip->variant.constant,
                                                template_arg_list,
                                                template_param_list,
