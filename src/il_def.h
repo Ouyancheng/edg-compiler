@@ -13528,7 +13528,7 @@ typedef struct an_asm_entry {
 			   it has no output operands. */
   a_bit_field	has_volatile_keyword:1;
 			/* asm is marked volatile because the "volatile"
-			   appeared in the source. */
+			   keyword appeared in the source. */
   a_bit_field	is_asm_goto:1;
 			/* TRUE if this is an "asm goto". */
   an_asm_operand_ptr
