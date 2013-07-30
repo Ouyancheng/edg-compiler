@@ -15,7 +15,8 @@ previously incorrectly rendered.  This is now fixed.
 
 
 7/29/13  [EDGcpfe/14329]
-Spurious "volatile" keyword added to asm statement reconstruction
+C++-generating back end, GNU compatibility: Spurious "volatile" keyword added
+to asm statement reconstruction
 
 A GNU asm statement without output operands is treated as "volatile"
 (i.e., the GNU compiler won't delete it).  Such statements had resulted in
