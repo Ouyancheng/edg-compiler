@@ -50,11 +50,12 @@ GNU compatibility: command-line macro definitions with embedded spaces
 
 The GNU preprocessor separates the name and replacement text of a
 command-line macro definition with an optional "=", preceded by zero or
-more spaces; that is, "-DA=B", "-DA B", and "-DA =B" are all treated
-equivalently by the GNU preprocessor.  The front end correctly handled the
-first two forms but incorrectly interpreted the third as including the "="
-in the replacement text.  This is now fixed.  For example, assuming a
-command-line option "-DX =y" with --gcc or --g++:
+more spaces; that is, "-DA=B", "-DA B", and "-DA =B" are all accepted by
+the GNU preprocessor (the second form defines macro A with the value
+"B 1").  The front end correctly handled the first two forms but
+incorrectly interpreted the third as including the "=" in the replacement
+text.  This is now fixed.  For example, assuming a command-line option
+"-DX =y" with --gcc or --g++:
 
   int X;  // Previously equivalent to "int =y;", now to "int y;"
 

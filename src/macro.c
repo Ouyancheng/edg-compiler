@@ -7847,9 +7847,9 @@ TRUE) and "-U" (when process_undefs is TRUE) options on the command line.
         du_len += 2;
       } else if (gnu_mode) {
         /* The "=" is optional in the GNU preprocessor command line -- that
-           is, the GNU preprocessor treats "-DFOO=BAR", "-DFOO =BAR", and
-           "-DFOO BAR" as equivalent -- so replace the "=" with a space to
-           simplify the processing in proc_define. */
+           is, the GNU preprocessor accepts "-DFOO=BAR", "-DFOO =BAR", and
+           "-DFOO BAR" -- so replace the "=" with a space to simplify the
+           processing in proc_define. */
         *(char *)equal_pos = ' ';
       }  /* if */
       p[du_len]   = LE_ESCAPE;
