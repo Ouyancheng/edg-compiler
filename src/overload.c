@@ -1958,6 +1958,9 @@ Return a printable string describing a type code.
     case POINTER_TYPE_CODE:
       str = "pointer";
       break;
+    case NULLPTR_TYPE_CODE:
+      str = "nullptr type";
+      break;
     case HANDLE_TYPE_CODE:
       str = "handle";
       break;
