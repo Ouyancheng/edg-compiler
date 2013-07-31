@@ -33,10 +33,10 @@ Spurious naming issues when using pragma redefine_extname
 
 In configurations that support pragma redefine_extname, the use of this
 pragma had corrupted the strings used in the IL entries, causing undefined
-behavior.  For example (with --gcc):
+behavior.  Additionally, pragma redefine_extname now finds routines
+and variables that are implicitly declared.  For example (with --gcc):
 
   #pragma redefine_extname old new
-  extern int old();
   int new() { return 0; }
   int main() {
     return old();     // Now returns zero; had caused linker errors in

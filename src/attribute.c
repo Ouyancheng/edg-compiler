@@ -7086,7 +7086,30 @@ Traverse the list of alias fixups and set the alias fields as needed.
       /* This entry corresponds to a redefine_extname pragma directive. */
       check_assertion(entry->alias_name != NULL);
       if (aliased_sym == NULL) {
-        /* There is no declaration on which the pragma has an effect. */
+        /* Normal symbol lookup failed to find a suitable symbol; look
+           on the other_symbols list for routines/variables that may have been
+           implicitly declared in scopes that have since been popped.  E.g.,
+              int main() {
+                old();
+              }
+           where "old" has no previous declaration. */
+        a_symbol_ptr ext_sym;
+        for (ext_sym = locator.symbol_header->other_symbols;
+             ext_sym != NULL;
+             ext_sym = ext_sym->next) {
+          if (ext_sym->kind == (a_symbol_kind)sk_extern_routine) {
+            ext_sym->variant.extern_symbol_descr->variant.routine.ptr->
+                                                  asm_name = entry->alias_name;
+            break;
+          } else if (ext_sym->kind == (a_symbol_kind)sk_extern_variable) {
+            ext_sym->variant.extern_symbol_descr->variant.variable->
+                                      asm_name_or_reg.name = entry->alias_name;
+            break;
+          }  /* if */
+        }  /* for */
+        /* If ext_sym == NULL, there is no declaration on which the pragma has
+           an effect (but no diagnostic is issued -- which matches GNU's
+           and Sun's behavior). */
       } else {
         a_source_correspondence_ptr  scp = NULL;
         switch (aliased_sym->kind) {
