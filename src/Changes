@@ -1,5 +1,25 @@
 Version 5.0
 
+7/31/13  [EDGcpfe/14341]
+Names of enumerator constants
+
+The front end previously did not record the name of an enumerator in the IL
+entry representing the use of an enumerator constant.  The C++-generating
+back end attempted to re-create the name by comparing the constant's value
+to the corresponding enumerator constants, but that failed if more than one
+enumerator constant had the same value.  For example:
+
+  enum E { e1 = 42, e2 = 42 };
+  void test() {
+    enum E x = e1, y = e2;
+  }
+
+Previously, the initializer for y was rendered as "e1" by the C++-generating
+back end.  Now "e2" is rendered instead (i.e., the form that appeared in the
+source) because that name is recorded in the a_constant entry representing
+the use of e2 in the initializer for y.
+
+
 7/31/13  [EDGcpfe/14334]
 Sun C++ compatibility: __typeof__ and __alignof__
 

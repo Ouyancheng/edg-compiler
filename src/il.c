@@ -4490,17 +4490,21 @@ constant that has the same value.
 }  /* break_instance_source_corresp */
 
 
-void break_source_corresp(a_source_correspondence *sc)
+static void break_source_corresp_full(a_source_correspondence *sc,
+                                      a_boolean               keep_name)
 /*
 Clear any parts of the indicated source correspondence that record
 information related to a specific source occurrence of an entity,
 or the name or parent of the entity.  So, for example, if this is
 applied to a copy of a constant, the copy is a distinct constant
 that has the same value as the original constant.
+If keep_name is TRUE, leave the sc->name field unchanged.
 */
 {
   sc->assoc_info            = NULL;
-  sc->name                  = NULL;
+  if (!keep_name) {
+    sc->name                = NULL;
+  }  /* if */
   sc->trans_unit_corresp    = NULL;
   sc->is_class_member       = FALSE;
   sc->parent_scope          = NULL;
@@ -4516,6 +4520,17 @@ that has the same value as the original constant.
   sc->unnamed_entity_given_fabricated_name = FALSE;
 #endif /* NEED_NAME_MANGLING */
   break_instance_source_corresp(sc);
+}  /* break_source_corresp_full */
+
+
+void break_source_corresp(a_source_correspondence *sc)
+/*
+Clear any parts of the indicated source correspondence that record information
+related to a specific source occurrence of an entity, including the name and
+parent of the entity (if any).
+*/
+{
+  break_source_corresp_full(sc, /*keep_name=*/FALSE);
 }  /* break_source_corresp */
 
 
@@ -4524,7 +4539,8 @@ void break_constant_source_corresp(a_constant_ptr cp)
 Break the correspondence between the given constant and any particular
 source occurrence of the constant.  The altered constant is a distinct
 constant with the same value as the original constant, and not simply
-another use of the same constant.
+another use of the same constant.  The name of the constant, if any, is
+kept.
 */
 {
   a_boolean break_instance = FALSE;
@@ -4545,7 +4561,12 @@ another use of the same constant.
        symbol. */
     cp->source_corresp.assoc_info = NULL;
   } else {
-    break_source_corresp(&cp->source_corresp);
+    /* If the original expression has a name but no backing expression, keep
+       keep its name.  This is e.g. useful to be able to render the original
+       form of the constant in the C++-generating back end.  (Don't do this
+       if there is a backing expression to avoid IL loops.) */
+    break_source_corresp_full(&cp->source_corresp,
+                              /*keep_name=*/cp->expr == NULL);
   }  /* if */
   /* Make sure that this reference is not considered the definition of a
      named constant. */
@@ -7695,7 +7716,10 @@ you want to know if the enum constant is one that appears on the constant
 list of an enum type, you must also test for it having a name; there are
 copies of enum constants in initializer lists, and constants formed by
 casting integral constants to an enum type, which do not correspond to
-any enum constant.
+any enum constant.  Also, to test whether the specific IL entry is one
+appearing on the list pointed to by the corresponding enumeration type
+(possibly via a scope entry in the case of scoped enum types), test the
+con->is_named_constant_definition flag.
 */
 {
   a_boolean is_enum = FALSE;

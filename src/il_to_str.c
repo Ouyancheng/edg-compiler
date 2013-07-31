@@ -5008,8 +5008,14 @@ precedence confusion.  Do the output in the way described by octl.
          constants when generating K&R C from the C-generating back end. */
       is_enum = !(octl->c_generating_back_end && octl->gen_pcc_code) &&
                 is_enum_constant(constant);
-      if (is_enum && has_name(constant)) {
-        /* An enum constant. */
+      if (is_enum && has_name(constant) &&
+          !(octl->c_generating_back_end &&
+            !constant->is_named_constant_definition)) {
+        /* A named enum constant.  The original constant entry used to
+           represent the enumerator constant declaration can always just be
+           rendered.  However, for copies of that entry (used in expression
+           contexts) only the unmangled name is available, which may not be
+           appropriate when generating code in the C-generating back end. */
         form_name(&constant->source_corresp, iek_constant, octl);
       } else if (is_enum && il_header.source_language == sl_Cplusplus &&
 #if DEBUG
