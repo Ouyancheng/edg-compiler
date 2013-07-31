@@ -453,6 +453,8 @@ If "keyword" does not begin with an underscore, enter all three forms
 of the name.  If it does begin with an underscore, enter the form
 provided (which is presumed to be the __name form) and also the
 name with two underscores appended.
+
+This function is also called in Sun C++ mode.
 */
 {
   char     buffer[50];
@@ -1063,7 +1065,8 @@ Install the keywords in the symbol table.
     enter_keyword((a_token_kind)tok_hidden_link_scope, "__hidden");
   }  /* if */
   if (sun_mode) {
-    enter_keyword((a_token_kind)tok_ext_alignof, "__alignof");
+    enter_gnu_keyword((a_token_kind)tok_ext_alignof, "__alignof");
+    enter_gnu_keyword((a_token_kind)tok_typeof, "__typeof");
   }  /* if */
 #endif /* SUN_EXTENSIONS_ALLOWED */
   if (thread_local_storage_specifier_enabled) {

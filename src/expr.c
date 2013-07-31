@@ -12187,13 +12187,13 @@ the expression-processing routines.
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   a_boolean                   parens_optional;
 
+  check_assertion(gnu_mode || sun_mode);
   parens_optional = gpp_mode && gnu_version >= 30400;
   /* Note that, unlike e.g. sizeof, typeof can appear directly in a declarative
      context (without any intervening expression context).  The expression
      stack should therefore not be pushed until we know that the argument is
      indeed an expression.  Otherwise, "in_expression_context()" may return
      the wrong answer. */
-  check_assertion(gnu_mode);
   if (rcblock != NULL) {
     /* Redoing semantic analysis on a previously-scanned expression.
        Note that rcblock->expr is the expression that is the operand of

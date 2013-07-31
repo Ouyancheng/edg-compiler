@@ -87,7 +87,9 @@ This version is for the Apple MacOS X operating system.
 
 
 /* Language extensions. */
+#ifndef GNU_EXTENSIONS_ALLOWED
 #define GNU_EXTENSIONS_ALLOWED 1
+#endif /* GNU_EXTENSIONS_ALLOWED */
 #define DEFAULT_GNU_COMPATIBILITY 0
 #define DEFAULT_USE_PREDEFINED_MACRO_FILE 1
 #define C99_IL_EXTENSIONS_SUPPORTED 1

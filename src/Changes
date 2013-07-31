@@ -1,5 +1,18 @@
 Version 5.0
 
+7/31/13  [EDGcpfe/14334]
+Sun C++ compatibility: __typeof__ and __alignof__
+
+In Sun C++ mode the front end now accepts the GNU "__typeof__" feature.  The
+variant "__typeof" is also accepted, but, unlike in GNU modes, "typeof"
+(without underscores) is not.  For example:
+
+  __typeof(42) x;  // Declares x of type int
+
+Also, the keyword "__alignof__" is now accepted as a synonym for "__alignof"
+in Sun C++ mode.
+
+
 7/31/13  [EDGcpfe/14348]
 GNU compatibility: non-prototyped routines not eligible for aliasing
 
