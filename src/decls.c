@@ -7277,12 +7277,15 @@ use of).
   if (is_simple_function_symbol(dps->sym) &&
       !sym_is_class_or_namespace_member(dps->sym)) {
     a_routine_ptr  rp = dps->sym->variant.routine.ptr;
+    a_routine_type_supplement_ptr
+                   rtsp = skip_typerefs(rp->type)->variant.routine.extra_info;
     if (rp->implicit_alias && dps->is_definition) {
       /* If a definition is seen after a declaration that was implicitly
          aliased, the alias is cleared. */
       rp->aliased_routine = NULL;
       rp->implicit_alias = FALSE;
     } else if (dps->first_decl && !dps->sym->defined &&
+               rtsp->prototyped &&
                rp->aliased_routine == NULL) {
       a_const_char *name = NULL;
       if (strcmp(rp->source_corresp.name, "strlen") == 0) {
@@ -7297,8 +7300,11 @@ use of).
         for (; bsym != NULL; bsym = bsym->next) {
           if (is_simple_function_symbol(bsym) &&
               !sym_is_class_or_namespace_member(bsym)) {
-            a_routine_ptr  brp = bsym->variant.routine.ptr;
-            if (types_are_redecl_compatible(rp->type, brp->type)) {
+            a_routine_ptr                 brp = bsym->variant.routine.ptr;
+            a_routine_type_supplement_ptr brtsp;
+            brtsp = skip_typerefs(brp->type)->variant.routine.extra_info;
+            if (brtsp->prototyped &&
+                types_are_redecl_compatible(rp->type, brp->type)) {
               rp->aliased_routine = brp;
               rp->implicit_alias = TRUE;
               break;

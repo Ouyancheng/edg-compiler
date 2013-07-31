@@ -1,5 +1,20 @@
 Version 5.0
 
+7/31/13  [EDGcpfe/14348]
+GNU compatibility: non-prototyped routines not eligible for aliasing
+
+In some cases, __builtin_strlen and __builtin_abs are used as aliases for
+routines respectively named "strlen" and "abs" in order to allow calls to these
+routines to be folded in the front end (see Changes entries for EDGcpfe/10328
+and EDGcpfe/10179).  Such aliasing had been allowed on non-prototyped routines,
+but a change has been made to disallow this.  For example (with --gcc):
+
+  int abs();
+  int main() {
+    return abs(0, 0);  // no longer an alias for __builtin_abs
+  }
+
+
 7/30/13  [EDGcpfe/14335]
 Spurious naming issues when using pragma redefine_extname
 
