@@ -3131,10 +3131,21 @@ an error if a default argument expression is encountered.
           last_param_id->is_parameter_pack = ptp->is_parameter_pack;
         }  /* if */
         any_variadic_params = advance_to_next_pack_element(pesep);
-        if (!any_variadic_params) pesep = NULL;
-        if (!any_variadic_params && !done) {
-          any_variadic_params = begin_potential_pack_expansion_context(&pesep);
-          if (!any_variadic_params) done = TRUE;
+        if (!any_variadic_params) {
+          /* The previous variadic expansion is now complete.  Prepare for the
+             possibility that the next parameter will come from a variadic
+             expansion.  We may have to skip one or more empty expansions
+             as part of this process. */
+          pesep = NULL;
+          while (!done && !any_variadic_params) {
+            any_variadic_params =
+                               begin_potential_pack_expansion_context(&pesep);
+            if (!any_variadic_params) {
+              /* We ran into an empty expansion, which caused us to skip the
+                 pattern tokens.  Update "done" accordingly. */
+              done = curr_token == tok_rparen;
+            }  /* if */
+          }  /* while */
         }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
         if (param_array_next) {

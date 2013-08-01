@@ -1,5 +1,23 @@
 Version 5.0
 
+8/1/13   [EDGcpfe/14111]
+Spurious error on function declarator in variadic class template instance
+
+The front end previously could produce a spurious error when attempting to
+parse a function declarator during the instantiation of a variadic class
+template if a parameter parameter pack in the function declarator "collapses"
+due to an empty pack expansion, and that pack is both preceded and succeeded
+by a non-collapsing parameter pack.  For example:
+
+  template<typename ... T> struct S {
+    int f(int, T *...p, int) { return 42; }
+  };
+  template struct S<>;  // Previously triggered a spurious error.
+
+The spurious error suggested that the parameter list should end with the
+function parameter pack (expected a ")").  This is now fixed.
+
+
 8/1/13   [EDGcpfe/13855]
 Microsoft and GNU C++ compatibility: C++-generating back end issue with
 friend templates
