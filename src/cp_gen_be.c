@@ -3405,13 +3405,24 @@ GN_PARENS_IF_GLOBAL_QUALIFIER is not set.
                                     (scp->member_of_unknown_base) ? scp : NULL;
   a_boolean               is_partial_spec_prototype_inst = FALSE;
   a_boolean               is_decltype = FALSE;
+  a_boolean               is_parentless_enumerator = FALSE;
 
-  if (entry_kind == (an_il_entry_kind)iek_constant &&
-      ((a_constant_ptr)scp)->kind == (a_constant_repr_kind)ck_template_param) {
-    /* If the name was qualified in the source, qualify it in the output,
-       too. */
-    if (((a_constant_ptr)scp)->variant.template_param.is_qualified_name) {
-      force_qualified_name = TRUE;
+  if (entry_kind == (an_il_entry_kind)iek_constant) {
+    a_constant_ptr con = (a_constant_ptr)scp;
+    if (con->kind == (a_constant_repr_kind)ck_template_param) {
+      /* If the name was qualified in the source, qualify it in the output,
+         too. */
+      if (con->variant.template_param.is_qualified_name) {
+        force_qualified_name = TRUE;
+      }  /* if */
+    } else if (is_enum_constant(con) && scp->parent_scope == NULL) {
+      /* This is presumably a copy of an enumerator, e.g., appearing in an
+         initializer.  Use its type's parent scope for the purposes of
+         determining a qualifier, if any, and reset its parent scope to
+         NULL after we're finished. */
+      scp->parent_scope = con->type->source_corresp.parent_scope;
+      scp->is_class_member = con->type->source_corresp.is_class_member;
+      is_parentless_enumerator = TRUE;
     }  /* if */
   } else if (in_class_scope_with_dependent_base &&
              !(options & GN_DECLARATION) &&
@@ -3784,6 +3795,13 @@ unqualified_part:
     gen_type_operator((a_type_ptr)scp);
   } else {
     gen_unqualified_name(scp, entry_kind);
+  }  /* if */
+  if (is_parentless_enumerator) {
+    /* This is an enumerator whose parent scope was NULL, so we borrowed
+       its type's parent scope temporarily.  Reset the parent scope to
+       NULL. */
+    scp->parent_scope = NULL;
+    scp->is_class_member = FALSE;
   }  /* if */
 }  /* gen_name */
 
