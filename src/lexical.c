@@ -14025,6 +14025,7 @@ the destructor or finalizer is part of a qualified name (e.g., "A::B::~B").
 }  /* get_destructor_or_finalizer_name */
 
 
+/*ARGSUSED*/  /*FIXME: For now. */
 static a_boolean scan_literal_operator_id(
                              a_boolean                        is_class_member,
                              a_parent_class_or_namespace_ptr  parent,
