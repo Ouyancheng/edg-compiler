@@ -7931,6 +7931,7 @@ the kind of token.
   a_boolean     imaginary_literal = FALSE;
 #endif /* GNU_COMPLEX_EXTENSIONS_ALLOWED */
   a_const_char  *first_non_id_char = NULL;
+  a_boolean     first_char_is_id_char = FALSE;
 
   /* Hexadecimal floating point constants are normally controlled by the
      hex_floating_point_constants_allowed variable, but should also be
@@ -8306,18 +8307,20 @@ fixed_point_suffix:
        (fetch_pp_tokens && (!generate_pp_output || microsoft_mode ||
                             in_preprocessing_directive || macro_depth > 0))) &&
       C_dialect != C_dialect_pcc) {
-    a_boolean initial_char = TRUE;
     int       char_bytes;
     a_boolean part_of_pp_num;
-    char      prev_ch = 0;
+    char      prev_ch = *(curr_char_loc - 1);
     do {
       ch = *curr_char_loc;
       part_of_pp_num = FALSE;
-      if (is_identifier_char(curr_char_loc, &char_bytes, initial_char)) {
+      if (is_identifier_char(curr_char_loc, &char_bytes,
+                             curr_char_loc == end_of_curr_token + 1)) {
         /* An identifier character is part of a pp-number. */
         part_of_pp_num = TRUE;
+        if (curr_char_loc == end_of_curr_token + 1) {
+          first_char_is_id_char = TRUE;
+        }  /* if */
         curr_char_loc += char_bytes;
-        initial_char = FALSE;
       } else {
         /* This is a non-identifier character. */
         if (ch == '.') {
@@ -8371,7 +8374,7 @@ fixed_point_suffix:
     /* Preprocessing number is not wanted. */
     if (curr_char_loc != (end_of_curr_token + 1) && !err) {
       /* Extra characters were seen in the pp-number scan. */
-      if (user_defined_literals_enabled
+      if (user_defined_literals_enabled  && first_char_is_id_char
 #if FIXED_POINT_ALLOWED
           && kind != k_fixed_point
 #endif /* FIXED_POINT_ALLOWED */
@@ -8387,6 +8390,7 @@ fixed_point_suffix:
         /* The pp-number is not a valid numeric literal.  Note that the
            extra characters just get thrown away. */
         error_at_line_pos(ec_extra_chars_on_number, end_of_curr_token+1);
+        err = TRUE;
       }  /* if */
     }  /* if */
     /* Convert the constant.  Errors are still possible, since the checking
