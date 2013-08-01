@@ -509,7 +509,7 @@ Initialize a template declaration state block.
   tdsp->is_generic = FALSE;
   tdsp->is_delegate = FALSE;
   tdsp->generic_constraints_pending = FALSE;
-  tdsp->friend_depth_known = FALSE;
+  tdsp->globally_qualified_friend_class = FALSE;
   tdsp->export_position = null_source_position;
   tdsp->starting_token_sequence_number = NO_TOKEN_SEQUENCE_NUMBER;
   tdsp->last_token_sequence_number_of_params = NO_TOKEN_SEQUENCE_NUMBER;
@@ -17234,10 +17234,6 @@ declaration of a partial specialization declared outside of its class.
     }  /* if */
     /* Make sure the friend is not in a local class. */
     check_local_class_template_friend(decl_state, &locator);
-    if (decl_state->is_template_friend) {
-      /* Record that this is a friend template in the IL entry. */
-      decl_state->il_template_entry->is_friend_template = TRUE;
-    }  /* if */
   }  /* if */
 friend_template_checks_done:
   if (decl_state->is_partial_specialization) {
@@ -18032,7 +18028,7 @@ nesting depth to be used.
           /* If we have "friend class ::X" remember that there was a
              global qualifier so that we can take that into account in the
              depth computation. */
-          decl_state->friend_depth_known = TRUE;
+          decl_state->globally_qualified_friend_class = TRUE;
           decl_state->friend_depth = 1;
           break;
         }  /* if */
@@ -18046,47 +18042,30 @@ nesting depth to be used.
          Look for the token sequence "friend class X", where X is a
          simple identifier.  Look up the identifier and if it is a template,
          use its nesting depth as the nesting depth for this declaration. */
-        if ((microsoft_mode || gpp_mode) &&
-            is_generalized_identifier_start(
-                                              GID_TEMPLATE_ARGS_OPTIONAL |
-                                              GID_USE_PROTOTYPE_NOT_NONREAL)) {
-          a_symbol_ptr	sym = NULL;
-          a_boolean	err = FALSE;
-          sym = coalesce_and_lookup_generalized_identifier(
-                                                GID_TEMPLATE_ARGS_OPTIONAL |
-                                                GID_USE_PROTOTYPE_NOT_NONREAL,
-                                                ilm_template_friend, &err);
-          if (sym != NULL) {
-            if (is_injected_template_symbol(sym)) {
+        if (!microsoft_mode && !gpp_mode) {
+          break;
+        } else if (curr_token == tok_identifier) {
+          a_symbol_locator	locator = locator_for_curr_id;
+          (void)get_token();
+          if (curr_token == tok_end_of_source) {
+            a_symbol_ptr	sym;
+            sym = normal_id_lookup(&locator, IDL_FRIEND_LOOKUP);
+            if (sym != NULL && is_injected_template_symbol(sym)) {
               sym = class_template_for_injected_template_symbol(sym);
-            } else if (locator_for_curr_id.template_arg_list == NULL &&
-                       is_any_template_instance_class_symbol(sym)) {
-              /* If this is an instance of a template, use the associated
-                 class template symbol.  This can come up during real
-                 instantiations when the symbol is an injected class name
-                 but not an injected template symbol. */
-              a_class_symbol_supplement_ptr	cssp;
-              cssp = sym->variant.class_struct_union.extra_info;
-              if (cssp->class_template != NULL) {
-                sym = cssp->class_template;
-              }  /* if */
             }  /* if */
-          }  /* if */
-          if (sym != NULL &&
-              sym->kind == (a_symbol_kind)sk_class_template) {
-            a_template_symbol_supplement_ptr	tssp;
-            a_template_param_ptr		tpp;
-            a_template_nesting_depth		depth;
-            tssp = sym->variant.template_info;
-            if (!tssp->is_nonreal_member) {
+            if (sym != NULL &&
+                sym->kind == (a_symbol_kind)sk_class_template) {
+              a_template_symbol_supplement_ptr	tssp;
+              a_template_param_ptr		tpp;
+              a_template_nesting_depth		depth;
+              tssp = sym->variant.template_info;
               tpp = tssp->cache.decl_info->parameters;
               depth = nesting_depth_of_template_param(tpp);
-              decl_state->friend_depth_known = TRUE;
-              decl_state->friend_depth = depth;
+              decl_state->friend_depth = depth - 1;
             }  /* if */
+            break;
           }  /* if */
         }  /* if */
-        break;
       }  /* if */
     }  /* if */
     if (curr_token != tok_end_of_source) (void)get_token();
@@ -22564,14 +22543,10 @@ issued.
   }  /* if */
   if ((unsigned long)depth != (decl_state->number_of_template_param_clauses +
                                decl_state->friend_depth) &&
-      !decl_state->decl_scope_err && !decl_state->friend_depth_known) {
+      !decl_state->decl_scope_err) {
     /* The depths do not match, issue a diagnostic.  Don't set decl_scope_err
        because the message can be issued as a warning in g++ mode or the
-       severity can be reduced by the diagnostic control facilities.
-       If friend_depth_known is TRUE, we were able to determine the depth
-       based on the name specified.   Ignore the mismatch if there was
-       the friend depth was determined by doing a lookup.  This can occur in
-       g++ and Microsoft modes. */
+       severity can be reduced by the diagnostic control facilities. */
     an_error_severity	severity = es_discretionary_error;
     if ((gpp_mode || microsoft_mode) &&
         decl_state->is_template_friend && is_class_template_symbol(sym)) {
@@ -24501,10 +24476,10 @@ instantiations of any template default arguments now.
   /* If this is a friend declaration the nesting depths of the parameter
      may need to be updated. */
   if (decl_state->is_template_friend) {
-    if (decl_state->friend_depth_known) {
+    if (decl_state->globally_qualified_friend_class) {
       /* We previously saw "friend class ::X".  Reset the depth to zero
          so that it will be recomputed properly below. */
-      decl_state->nesting_depth = decl_state->friend_depth - 1;
+      decl_state->nesting_depth = 0;
       update_nesting_depths = TRUE;
     } else if (!is_nonreal_instantiation_context()) {
       decl_state->nesting_depth = decl_state->friend_depth;

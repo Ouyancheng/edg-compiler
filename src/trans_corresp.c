@@ -2089,11 +2089,7 @@ visited; otherwise, they may yet be set to correspond to another entry.
     a_template_ptr  templ = scope->templates;
     for (; templ != NULL; templ = templ->next) {
       clear_trans_unit_corresp(iek_template, templ, visited);
-      if (!templ->is_friend_template) {
-        /* Avoid traversing friend template entries because that could lead to
-           unbounded recursion in some cases. */
-        clear_instantation_correspondences(templ, visited);
-      }  /* for */
+      clear_instantation_correspondences(templ, visited);
     }  /* for */
   }
 

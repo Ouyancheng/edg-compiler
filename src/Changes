@@ -1,24 +1,5 @@
 Version 5.0
 
-8/1/13   [EDGcpfe/13855]
-Microsoft and GNU C++ compatibility: C++-generating back end issue with
-friend templates
-
-When a qualified friend template is used in either Microsoft mode with
---parse_templates, or in g++ mode, the C++-generating back end omitted
-the qualifier on the name in the friend declaration.  Now fixed.
-
-  namespace N {
-    namespace M {
-      template<typename T1> struct A;
-    }
-    template <int I> struct A;
-    template <typename T> class reference {
-      template <typename T1> friend struct N::M::A;
-    };
-  }
-
-
 7/31/13  [EDGcpfe/14341]
 Names of enumerator constants
 

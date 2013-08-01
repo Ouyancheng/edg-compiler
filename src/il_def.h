@@ -16547,10 +16547,6 @@ typedef struct a_template {
 		is_pack;
 			/* TRUE for a template template arguments if it is
 			   a template parameter pack. */
-  a_byte_boolean
-		is_friend_template;
-			/* TRUE for a template declared as a friend
-			   template. */
 #if RECORD_TEMPLATE_STRINGS
   a_const_char	*text;
 			/* A null-terminated string representing the text of
