@@ -8311,7 +8311,7 @@ fixed_point_suffix:
     a_boolean part_of_pp_num;
     char      prev_ch = 0;
     do {
-      char ch = *curr_char_loc;
+      ch = *curr_char_loc;
       part_of_pp_num = FALSE;
       if (is_identifier_char(curr_char_loc, &char_bytes, initial_char)) {
         /* An identifier character is part of a pp-number. */

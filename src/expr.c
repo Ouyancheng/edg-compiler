@@ -27702,7 +27702,7 @@ caching the tokens of a member function.
       || nextt == tok_microsoft_lprefix
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
                                        ) {
-    concat_adjacent_string_literals(/*function_name_case=*/TRUE);
+    (void)concat_adjacent_string_literals(/*function_name_case=*/TRUE);
     concat_done = TRUE;
   }  /* if */
   return concat_done;
@@ -27780,7 +27780,7 @@ simple_name:
   curr_token = tok_string_literal;
   if (do_concat) {
     /* Make sure that adjacent strings are concatenated. */
-    concat_adjacent_string_literals(/*function_name_case=*/TRUE);
+    (void)concat_adjacent_string_literals(/*function_name_case=*/TRUE);
   }  /* if */
 }  /* set_curr_token_to_function_name_string */
 
