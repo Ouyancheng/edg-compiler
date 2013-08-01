@@ -1050,6 +1050,7 @@ extern int fileno(FILE *);
 /*lint -esym(714,ud_lit_op_sym_for_curr_token)*/
 /*lint -esym(759,ud_lit_op_sym_for_curr_token)*/
 /*lint -esym(765,ud_lit_op_sym_for_curr_token)*/
+/*lint -esym(552,ud_lit_op_sym_for_curr_token)*/
 /*lint -esym(552,encoding_prefix_for_curr_token)*/
 /*lint -esym(552,user_defined_literals_enabled)*/
 
