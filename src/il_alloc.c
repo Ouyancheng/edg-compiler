@@ -4410,6 +4410,7 @@ fields, and return a pointer to it.
   tp->is_exported = FALSE;
   tp->ignore_export = FALSE;
   tp->is_pack = FALSE;
+  tp->is_friend_template = FALSE;
 #if RECORD_TEMPLATE_STRINGS
   tp->text = NULL;
 #endif /* RECORD_TEMPLATE_STRINGS */
