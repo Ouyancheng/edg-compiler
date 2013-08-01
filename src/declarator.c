@@ -3144,6 +3144,9 @@ an error if a default argument expression is encountered.
               /* We ran into an empty expansion, which caused us to skip the
                  pattern tokens.  Update "done" accordingly. */
               done = curr_token == tok_rparen;
+              /* Keep the parameter numbering of the instantiation in sync
+                 with the generic numbering. */
+              ++param_number;
             }  /* if */
           }  /* while */
         }  /* if */
