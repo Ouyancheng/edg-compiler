@@ -2133,7 +2133,8 @@ extern a_boolean is_nonstandard_character(char ch);
 /* Skip white space. */
 extern void skip_white_space(void);
 /* Concatenate adjacent string literals in the current string constant. */
-extern void concat_adjacent_string_literals(a_boolean function_name_case);
+extern a_token_kind concat_adjacent_string_literals(
+                                                 a_boolean function_name_case);
 /* Get next token. */
 extern a_token_kind get_token(void);
 /* Return whether a token is a keyword token. */

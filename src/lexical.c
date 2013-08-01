@@ -578,6 +578,12 @@ static sizeof_t	num_ignored_carriage_returns;
 			   string literals. */
 #endif /* IGNORE_CARRIAGE_RETURN_IN_SOURCE */
 
+static a_text_buffer_ptr
+		ud_lit_suffix_buffer;
+			/* Text buffer used for the ud-suffix of a
+			   user-defined-string-literal during concatenation
+			   of adjacent string literals. */
+
 /*
 Hash table used by nested_source_line_modif to find the source
 line modification associated with the ATTENTION_MARKER at a given
@@ -7901,21 +7907,21 @@ Scan a numeric token (integer, fixed-point, or floating constant).  Return
 the kind of token.
 */
 {
-  register char	ch;
+  register char ch;
   register enum {k_decimal, k_octal, k_hex, k_binary,
 #if FIXED_POINT_ALLOWED
                  k_fixed_point,
 #endif /* FIXED_POINT_ALLOWED */
                  k_float} kind;
   register a_token_kind 
-		ctoken;
+                ctoken;
   a_boolean     err = FALSE;
-  a_const_char	*err_pos;
-  an_error_code	err_code;
-  a_boolean	is_hex_fp_value = FALSE;
-  a_boolean	any_hex_digits = FALSE;
+  a_const_char  *err_pos;
+  an_error_code err_code;
+  a_boolean     is_hex_fp_value = FALSE;
+  a_boolean     any_hex_digits = FALSE;
   a_boolean     u_suffix_seen = FALSE;
-  a_boolean	local_allow_hex_fp_constants;
+  a_boolean     local_allow_hex_fp_constants;
   int           l_suffix_seen = 0;
 #if FIXED_POINT_ALLOWED
   a_boolean     l_before_u_suffix = FALSE;
@@ -7924,17 +7930,18 @@ the kind of token.
 #if GNU_COMPLEX_EXTENSIONS_ALLOWED
   a_boolean     imaginary_literal = FALSE;
 #endif /* GNU_COMPLEX_EXTENSIONS_ALLOWED */
+  a_const_char  *first_non_id_char = NULL;
 
   /* Hexadecimal floating point constants are normally controlled by the
      hex_floating_point_constants_allowed variable, but should also be
      allowed when scanning C++/CLI metadata. */
   local_allow_hex_fp_constants = hex_floating_point_constants_allowed ||
                                  scanning_generated_code_from_metadata;
-  /* Collect the characters of the constant, and figure out where it
-     ends.  In the process, figure out what kind of token it is.
-     This is done according to the syntax for integer constants (3.1.3.2)
-     and floating constants (3.1.3.1), rather than according to the
-     pp-number syntax (3.1.8).  */
+  /* Collect the characters of the constant, and figure out where it ends.
+     In the process, figure out what kind of token it is.  This is done
+     according to the syntax for integer constants (C++11 Standard 2.14.2
+     [lex.icon]) and floating constants (2.14.4 [lex.fcon]), rather than
+     according to the pp-number syntax (2.10 [lex.ppnumber]).  */
   kind = k_decimal;
   if (*curr_char_loc == '0') {
     /* First digit is a zero.  This is probably an octal constant (like
@@ -8259,13 +8266,13 @@ fixed_point_suffix:
 #endif /* DEBUG */
   /* See if there are more characters that would have been part of
      this number had it been scanned as a pp-number.  The pp-number
-     syntax is (3.1.8):
+     syntax is (C++11 Standard 2.10 [lex.ppnumber], C99 Standard 6.4.8):
 
      pp-number:
             digit
             . digit
             pp-number digit
-            pp-number nondigit
+            pp-number identifier-nondigit
             pp-number e sign
             pp-number E sign
             pp-number p sign    (C99)
@@ -8273,7 +8280,7 @@ fixed_point_suffix:
             pp-number .
 
      digit is any decimal digit (0-9).
-     nondigit is an alphabetic or "_".
+     identifier-nondigit is an alphabetic, "_", or UCN.
   */
   /* The decision for whether to scan for a pp-number is complex.  We never
      do so in pcc mode, but we always do so in strict and GNU modes.  In
@@ -8287,20 +8294,55 @@ fixed_point_suffix:
      and when producing preprocessing output, scanning for pp-numbers in
      the latter case but not the former, so in Microsoft mode we always
      scan for pp-numbers when fetch_pp_tokens is TRUE, regardless of the
-     value of generate_pp_output. */
+     value of generate_pp_output.  In addition, if C++11 user-defined
+     literals are enabled, we use the pp-number scan to check for a
+     potential ud-suffix. */
   if ((strict_ansi_mode || gnu_mode ||
+       (user_defined_literals_enabled
+#if FIXED_POINT_ALLOWED
+        && kind != k_fixed_point
+#endif /* FIXED_POINT_ALLOWED */
+                                ) ||
        (fetch_pp_tokens && (!generate_pp_output || microsoft_mode ||
                             in_preprocessing_directive || macro_depth > 0))) &&
       C_dialect != C_dialect_pcc) {
-    while (is_id_char[(ch = *curr_char_loc)-CHAR_MIN] || ch == '.' ||
-           ((ch == '+' || ch == '-') &&
-            ((ch = *(curr_char_loc-1)) == 'e' || ch == 'E' ||
-             ((local_allow_hex_fp_constants || fixed_point_enabled) &&
-              (ch == 'p' || ch == 'P'))))) {
-      /* 0-9, a-z, A-Z, "_", ".", or sign preceded by "e" or "E" or "p"
-         or "P".  Keep accumulating. */
-      curr_char_loc++;
-    }  /* while */
+    a_boolean initial_char = TRUE;
+    int       char_bytes;
+    a_boolean part_of_pp_num;
+    char      prev_ch = 0;
+    do {
+      char ch = *curr_char_loc;
+      part_of_pp_num = FALSE;
+      if (is_identifier_char(curr_char_loc, &char_bytes, initial_char)) {
+        /* An identifier character is part of a pp-number. */
+        part_of_pp_num = TRUE;
+        curr_char_loc += char_bytes;
+        initial_char = FALSE;
+      } else {
+        /* This is a non-identifier character. */
+        if (ch == '.') {
+          /* A decimal point is part of a pp-number. */
+          part_of_pp_num = TRUE;
+        } else if (ch == '+' || ch == '-') {
+          /* A sign character is part of a pp-number if it follows an
+             exponent indicator. */
+          if (prev_ch == 'e' || prev_ch == 'E' ||
+              ((local_allow_hex_fp_constants || fixed_point_enabled) &&
+               (prev_ch == 'p' || prev_ch == 'P'))) {
+            part_of_pp_num = TRUE;
+          }  /* if */
+        }  /* if */
+        if (part_of_pp_num) {
+          if (first_non_id_char == NULL) {
+            /* Remember the location for possible use in a diagnostic
+               below. */
+            first_non_id_char = curr_char_loc;
+          }  /* if */
+          ++curr_char_loc;
+        }  /* if */
+      }  /* if */
+      prev_ch = ch;
+    } while (part_of_pp_num);
 #if DEBUG
     if (debug_level >= 4) {
       if (curr_char_loc != (end_of_curr_token + 1)) {
@@ -8327,11 +8369,25 @@ fixed_point_suffix:
     ctoken = tok_pp_number;
   } else {
     /* Preprocessing number is not wanted. */
-    /* Check for extra pp-number characters of token to be converted.
-       This is an error. */
     if (curr_char_loc != (end_of_curr_token + 1) && !err) {
-      error_at_line_pos(ec_extra_chars_on_number, end_of_curr_token+1);
-      /* Note that the extra characters just get thrown away. */
+      /* Extra characters were seen in the pp-number scan. */
+      if (user_defined_literals_enabled
+#if FIXED_POINT_ALLOWED
+          && kind != k_fixed_point
+#endif /* FIXED_POINT_ALLOWED */
+                                  ) {
+        if (first_non_id_char != NULL) {
+          /* A pp-number must convert to a single token, so if a
+             non-identifier character was part of the pp-number, it does
+             not satisfy the grammar for a user-defined-literal. */
+          error_at_line_pos(ec_bad_user_defined_suffix, first_non_id_char);
+          err = TRUE;
+        }  /* if */
+      } else {
+        /* The pp-number is not a valid numeric literal.  Note that the
+           extra characters just get thrown away. */
+        error_at_line_pos(ec_extra_chars_on_number, end_of_curr_token+1);
+      }  /* if */
     }  /* if */
     /* Convert the constant.  Errors are still possible, since the checking
        above allows certain cases by. */
@@ -8372,6 +8428,24 @@ fixed_point_suffix:
     /* Check for errors detected. */
     if (err_code != ec_no_error) {
       error_at_line_pos(err_code, err_pos);
+    } else if (user_defined_literals_enabled && !err &&
+               curr_char_loc != end_of_curr_token + 1) {
+      /* A user-defined literal was seen. */
+      a_type_ptr   literal_operator_param_type;
+      a_const_char *canonical_id;
+      sizeof_t     id_len;
+      literal_operator_param_type = (kind != k_float)
+                         ? integer_type((an_integer_kind)ik_unsigned_long_long)
+                         : float_type((a_float_kind)fk_long_double);
+      id_len = (sizeof_t)(curr_char_loc - end_of_curr_token - 1);
+      canonical_id = make_canonical_identifier(end_of_curr_token + 1, &id_len);
+      ud_lit_op_sym_for_curr_token =
+                        find_literal_operator(canonical_id, id_len,
+                                              literal_operator_param_type,
+                                              /*is_string=*/FALSE,
+                                              /*allow_raw_and_template=*/TRUE);
+      ctoken = tok_ud_literal;
+      end_of_curr_token = curr_char_loc - 1;
     }  /* if */
   }  /* if */
 #if DEBUG
@@ -9257,7 +9331,6 @@ kind or tok_error.  The token can be a normal or wide character constant.
     curr_char_loc++;
     /* Character constants may not be zero length.  (Except wide character
        literals in Microsoft mode.) */
-    /* Do not insert code here. */
     if (num_chars == 0) {
       if (microsoft_mode && character_kind == (a_character_kind)chk_wchar_t) {
         /* Microsoft accepts L'' as a null character constant.  (The call to
@@ -9280,6 +9353,41 @@ kind or tok_error.  The token can be a normal or wide character constant.
       error_at_line_pos(err_code_for_error_token, start_of_curr_token);
     } else {
       conv_char_literal(num_chars, &err_code, &err_pos);
+      if (err_code == ec_no_error && user_defined_literals_enabled) {
+        /* Check for a user-defined literal. */
+        a_boolean    initial_char = TRUE;
+        int          char_bytes;
+        a_const_char *id_start = curr_char_loc;
+        while (is_identifier_char(curr_char_loc, &char_bytes, initial_char)) {
+          curr_char_loc += char_bytes;
+          initial_char = FALSE;
+        }  /* while */
+        if (curr_char_loc != id_start) {
+          /* Found a ud-suffix. */
+          if (const_for_curr_token.type ==
+                                       integer_type((an_integer_kind)ik_int)) {
+            /* A multicharacter literal cannot be part of a user-defined
+               literal because it is not permitted to declare a literal
+               operator with int as its parameter type.  Note that the
+               ud-suffix is simply discarded -- it does not become part of
+               the current token -- and the token value and kind are left
+               unchanged. */
+            err_code = ec_multichar_ud_lit;
+            err_pos = start_of_curr_token;
+          } else {
+            sizeof_t     id_len = (sizeof_t)(curr_char_loc - id_start);
+            a_const_char *canonical_id =
+                                  make_canonical_identifier(id_start, &id_len);
+            ud_lit_op_sym_for_curr_token =
+                       find_literal_operator(canonical_id, id_len,
+                                             const_for_curr_token.type,
+                                             /*is_string=*/FALSE,
+                                             /*allow_raw_and_template=*/FALSE);
+            ctoken = tok_ud_literal;
+            end_of_curr_token = curr_char_loc - 1;
+          }  /* if */
+        }  /* if */
+      }  /* if */
       /* Check for errors detected. */
       if (err_code != ec_no_error) {
         error_at_line_pos(err_code, err_pos);
@@ -10559,7 +10667,7 @@ encoding_prefix_for_curr_token to the encoding prefix of the value returned.
 }  /* scan_encoding_prefix */
 
 
-void concat_adjacent_string_literals(a_boolean function_name_case)
+a_token_kind concat_adjacent_string_literals(a_boolean function_name_case)
 /*
 The current token (not in curr_token yet, but in const_for_curr_token)
 is a string literal (tok_string_literal), and in the current lexical
@@ -10577,6 +10685,8 @@ curr_token is already set in that case.
   a_token_cache                 cache;
   a_cached_token_ptr            ctp, ctp_next, first_string_token = NULL;
   a_boolean                     more_than_one_string = FALSE;
+  a_boolean                     suffix_mismatch = FALSE;
+  a_token_kind                  ctoken = tok_string_literal;
 
   db_enter(5, "concat_adjacent_string_literals");
   /* Start a new lexical state so that only the composite string literal
@@ -10610,9 +10720,57 @@ curr_token is already set in that case.
     macro_line_loc_to_source_pos(end_of_curr_token, end_pos_curr_token);
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   }  /* if */
+  /* Clear a text buffer to remember any user-defined literal suffixes so
+     they can be processed after the tokens are concatenated. */
+  if (ud_lit_suffix_buffer == NULL) {
+    ud_lit_suffix_buffer = alloc_text_buffer(128);
+  }  /* if */
+  reset_text_buffer(ud_lit_suffix_buffer);
   /* Loop as long as the next token is a string literal. */
   for (;;) {
     a_string_or_char_literal_kind next_lit_kind = SCLK_ORDINARY_LITERAL;
+    if (user_defined_literals_enabled) {
+      /* Check for a ud-suffix. */
+      a_boolean    initial_char = TRUE;
+      int          char_bytes;
+      a_const_char *id_start = curr_char_loc;
+      while (is_identifier_char(curr_char_loc, &char_bytes, initial_char)) {
+        curr_char_loc += char_bytes;
+        initial_char = FALSE;
+      }  /* while */
+      if (curr_char_loc != id_start) {
+        /* Found a ud-suffix. */
+        sizeof_t     suffix_len = (sizeof_t)(curr_char_loc - id_start);
+        a_const_char *canonical_id =
+                              make_canonical_identifier(id_start, &suffix_len);
+        if (ud_lit_suffix_buffer->size == 0) {
+          /* This is the first one -- copy the identifier. */
+          (void)add_to_text_buffer(ud_lit_suffix_buffer, canonical_id,
+                                   suffix_len);
+          add_char_to_text_buffer(ud_lit_suffix_buffer, '\0');
+          end_of_curr_token = curr_char_loc - 1;
+        } else if (!suffix_mismatch) {
+          /* A suffix has already been seen.  Make sure that this one
+             matches the earlier one. */
+          if (suffix_len == ud_lit_suffix_buffer->size - 1 &&
+              memcmp(canonical_id, ud_lit_suffix_buffer->buffer,
+                     suffix_len) == 0) {
+            end_of_curr_token = curr_char_loc - 1;
+          } else {
+            conv_line_loc_to_source_pos(id_start, &error_position);
+            str_error(ec_ud_string_suffix_mismatch,
+                      ud_lit_suffix_buffer->buffer);
+            suffix_mismatch = TRUE;
+          }  /* if */
+        }  /* if */
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+        if (!suffix_mismatch) {
+          /* Update the token end position. */
+          macro_line_loc_to_source_pos(end_of_curr_token, end_pos_curr_token);
+        }  /* if */
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+      }  /* if */
+    }  /* if */
     /* Save the current token (a string literal) by adding it to the token
        cache. */
     cache_curr_token(&cache);
@@ -10732,7 +10890,20 @@ curr_token is already set in that case.
   rescan_cached_tokens(&cache);
   /* Pop the lexical state pushed by this routine. */
   pop_lexical_state_stack();
+  if (user_defined_literals_enabled && ud_lit_suffix_buffer->size != 0  &&
+      !suffix_mismatch) {
+    /* Process the suffix. */
+    a_type_ptr param_type =
+              make_pointer_type(array_element_type(const_for_curr_token.type));
+    ud_lit_op_sym_for_curr_token =
+                       find_literal_operator(ud_lit_suffix_buffer->buffer,
+                                             ud_lit_suffix_buffer->size - 1,
+                                             param_type, /*is_string=*/TRUE,
+                                             /*allow_raw_and_template=*/FALSE);
+    ctoken = tok_ud_literal;
+  }  /* if */
   db_exit();
+  return ctoken;
 }  /* concat_adjacent_string_literals */
 
 
@@ -12491,7 +12662,7 @@ concatenate_adjacent_string_literals:
   /* Do string literal concatenation. */
   check_assertion_str(ctoken == tok_string_literal,
                       "get_token: concatenating string literal, bad token");
-  concat_adjacent_string_literals(/*function_name_case=*/FALSE);
+  ctoken = concat_adjacent_string_literals(/*function_name_case=*/FALSE);
   /* Give this string literal a sequence number, if needed. */
   assign_string_literal_sequence_number();
   goto return_from_token_scan;
@@ -20548,6 +20719,7 @@ of the front end.
   metadata_import_buffer = NULL;
   scanning_for_whitespace_keyword = FALSE;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+  ud_lit_suffix_buffer = NULL;
   avail_token_cache_entries = NULL;
   in_token_insertion_from_string = FALSE;
   token_insertion_position = null_source_position;

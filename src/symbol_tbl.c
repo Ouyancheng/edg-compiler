@@ -14215,16 +14215,17 @@ a_symbol_ptr find_literal_operator(a_const_char *name,
                                    a_boolean    is_string,
                                    a_boolean    allow_raw_and_template)
 /*
-name and name_len specify the ud-suffix of a user-defined literal (C++
-Standard 2.14.8); param-type is the type of the first parameter of the
-literal operator implied by the associated literal (the list of potential
-types is found in 13.5.8 of the Standard).  is_string is TRUE if the lookup
-is for a string literal operator, implying a second parameter of type
-std::size_t.  allow_raw_and_template is TRUE if a raw literal operator or a
-literal operator template is an acceptable result.  If the lookup finds a
-single matching function, return the corresponding symbol; otherwise,
-return the overloaded function symbol or NULL, if no literal operator or
-literal operator template with the designated name has yet been declared.
+name and name_len specify the ud-suffix of a user-defined literal (C++11
+Standard 2.14.8 [lex.ext]); param-type is the type of the first parameter
+of the literal operator implied by the associated literal (the list of
+potential types is found in 13.5.8 [over.literal] of the C++11 Standard).
+is_string is TRUE if the lookup is for a string literal operator, implying
+a second parameter of type std::size_t.  allow_raw_and_template is TRUE if
+a raw literal operator or a literal operator template is an acceptable
+result.  If the lookup finds a single matching function, return the
+corresponding symbol; otherwise, return the overloaded function symbol or
+NULL, if no literal operator or literal operator template with the
+designated name has yet been declared.
 */
 {
   /* FIXME */
