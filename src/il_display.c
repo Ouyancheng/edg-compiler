@@ -5012,6 +5012,9 @@ Display the indicated template.
   if (ptr->is_pack) {
     disp_boolean("is_pack", TRUE);
   }  /* if */
+  if (ptr->is_friend_template) {
+    disp_boolean("is_friend_template", TRUE);
+  }  /* if */
   if (ptr->template_decl != NULL) {
     disp_ptr("template_decl", (char *)ptr->template_decl, iek_template_decl);
   }  /* if */
