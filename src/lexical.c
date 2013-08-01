@@ -7931,7 +7931,7 @@ the kind of token.
   a_boolean     imaginary_literal = FALSE;
 #endif /* GNU_COMPLEX_EXTENSIONS_ALLOWED */
   a_const_char  *first_non_id_char = NULL;
-  a_boolean     first_char_is_id_char = FALSE;
+  a_boolean     potential_ud_suffix = FALSE;
 
   /* Hexadecimal floating point constants are normally controlled by the
      hex_floating_point_constants_allowed variable, but should also be
@@ -8318,7 +8318,7 @@ fixed_point_suffix:
         /* An identifier character is part of a pp-number. */
         part_of_pp_num = TRUE;
         if (curr_char_loc == end_of_curr_token + 1) {
-          first_char_is_id_char = TRUE;
+          potential_ud_suffix = TRUE;
         }  /* if */
         curr_char_loc += char_bytes;
       } else {
@@ -8374,7 +8374,7 @@ fixed_point_suffix:
     /* Preprocessing number is not wanted. */
     if (curr_char_loc != (end_of_curr_token + 1) && !err) {
       /* Extra characters were seen in the pp-number scan. */
-      if (user_defined_literals_enabled  && first_char_is_id_char
+      if (user_defined_literals_enabled && potential_ud_suffix
 #if FIXED_POINT_ALLOWED
           && kind != k_fixed_point
 #endif /* FIXED_POINT_ALLOWED */
@@ -8432,8 +8432,7 @@ fixed_point_suffix:
     /* Check for errors detected. */
     if (err_code != ec_no_error) {
       error_at_line_pos(err_code, err_pos);
-    } else if (user_defined_literals_enabled && !err &&
-               curr_char_loc != end_of_curr_token + 1) {
+    } else if (user_defined_literals_enabled && !err && potential_ud_suffix) {
       /* A user-defined literal was seen. */
       a_type_ptr   literal_operator_param_type;
       a_const_char *canonical_id;
