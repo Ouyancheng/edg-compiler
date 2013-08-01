@@ -15018,6 +15018,7 @@ are handled in symbol_tbl_init.)
 #if MICROSOFT_EXTENSIONS_ALLOWED
   cleared_locator.is_finalizer_name               = FALSE;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+  cleared_locator.is_udl_operator_name            = FALSE;
   cleared_locator.is_semivisible_nested_type      = FALSE;
   cleared_locator.access_control_error_reported   = FALSE;
   cleared_locator.has_been_coalesced              = FALSE;

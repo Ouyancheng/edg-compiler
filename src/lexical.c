@@ -14025,6 +14025,38 @@ the destructor or finalizer is part of a qualified name (e.g., "A::B::~B").
 }  /* get_destructor_or_finalizer_name */
 
 
+static a_boolean scan_literal_operator_id(
+                             a_boolean                        is_class_member,
+                             a_parent_class_or_namespace_ptr  parent,
+		             a_type_ptr                       field_sel_type)
+/*
+The current token follows an "operator" token.  If it is a string literal or a
+user-defined string literal (and user-defined literals are enabled) assume the
+whole construct is a literal-operator-id and return TRUE.  For example:
+  operator "" X
+or
+  operator ""s12
+If returning TRUE, validate the details of the literal-operator-id, make the
+current token a tok_identifier, and update locator_for_curr_id to reflect this
+construct (but the caller must update its position to that of the "operator"
+token).
+*/
+{
+  a_boolean          result = FALSE;
+
+  if (user_defined_literals_enabled) {
+    if (curr_token == tok_string_literal) {
+    } else if (curr_token == tok_ud_literal) {
+      /* FIXME: Guard against something like operator u8"xx"S */
+      result = TRUE;
+      curr_token = tok_identifier;
+      locator_for_curr_id.is_udl_operator_name = TRUE;
+    }  /* if */
+  }  /* if */
+  return result;
+}  /* scan_literal_operator_id */
+
+
 static void get_opname(a_boolean                   	is_class_member,
                        a_parent_class_or_namespace_ptr	parent,
 		       a_type_ptr			field_sel_type)
@@ -14049,10 +14081,16 @@ This routine is called only in C++ mode.
   an_opname_kind    opname;
 
   start_position = pos_curr_token;
-  if (scan_conversion_operator(&start_position, is_class_member, parent,
-                               field_sel_type)) {
+  /* Note the order of the tests here is important because
+     scan_conversion_operator has to call get_token() for the "operator"
+     token (after setting up the scope stack if needed). */
+  if (scan_conversion_operator(is_class_member, parent, field_sel_type)) {
     /* This is a conversion operator function -- "operator" followed by
        a type name. */
+  } else if (scan_literal_operator_id(is_class_member, parent,
+                                      field_sel_type)) {
+    /* A user-defined literal operator. */
+    locator_for_curr_id.source_position = start_position;
   } else {
     /* It must be an overloaded operator name (or an error). */
     token = curr_token;

@@ -180,6 +180,13 @@ typedef struct a_symbol_locator {
 			/* TRUE if the "identifier" is a C++/CLI finalizer
 			   name, of the form "!<name>". */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+  a_bit_field	is_udl_operator_name:1;
+			/* TRUE if the "identifier" is a literal-operator-id.
+			   I.e., a constructor like
+			     operator "" X
+			   or
+			     operator ""X
+			   where X is an identifier. */
   a_bit_field	is_semivisible_nested_type:1;
 			/* TRUE if specific_symbol points to a nested type
 			   that is not actually visible, except as a C++

@@ -8411,6 +8411,9 @@ skip_overloading:;
         set_routine_special_kind(routine_ptr,
                                  (a_special_function_kind)sfk_operator);
         routine_ptr->variant.opname_kind = locator->variant.opname;
+      } else if (locator->is_udl_operator_name) {
+        set_routine_special_kind(routine_ptr,
+                                 (a_special_function_kind)sfk_udl_operator);
       }  /* if */
     }  /* if */
     if (!linked_redecl_error && *ext_sym != NULL &&
@@ -11557,26 +11560,23 @@ style casts where the type involves more than one token -- e.g.,
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED || GNU_EXTENSIONS_ALLOWED */
 
 a_boolean scan_conversion_operator(
-			a_source_position		*id_pos,
-                        a_boolean			is_class_member,
-                        a_parent_class_or_namespace_ptr	parent,
-			a_type_ptr			field_sel_type)
+                             a_boolean                        is_class_member,
+                             a_parent_class_or_namespace_ptr  parent,
+                             a_type_ptr                       field_sel_type)
 /*
-The token "operator" has been seen and passed; we are now on the token
-immediately following it.  If it marks the start of a type name we have
-an identifier for a conversion operator -- scan the type name, update the
-locator, and return TRUE.  If it doesn't, return FALSE.
-If the class or namespace pointed to by parent is not NULL then push a
-class or namespace reactivation scope before scanning type name in a type
-conversion operator.  is_class_member is TRUE if the parent points
-to a class, it is FALSE if parent points to a namespace or if there
-is no parent.  If field_sel_type is not NULL, it is the type of
-the left operator of a field selection operation associated with this
-operator function reference.
+The current token is "operator".  If it is followed by the start of a type
+name we have an identifier for a conversion operator -- scan the whole
+construct, update the locator, and return TRUE.  If it doesn't, return FALSE.
+If the class or namespace pointed to by parent is not NULL then push a class
+or namespace reactivation scope before scanning the type name of the
+conversion operator.  is_class_member is TRUE if the parent points to a class,
+it is FALSE if parent points to a namespace or if there is no parent.  If
+field_sel_type is not NULL, it is the type of the left operand of a field
+selection operation associated with this operator function reference.
 */
 {
   a_type_ptr              complete_type;
-  a_source_position       type_pos;
+  a_source_position       type_pos, start_pos;
   a_boolean               is_conversion_operator;
   a_boolean               class_reactivated = FALSE;
   a_boolean               namespace_reactivated = FALSE;
@@ -11584,6 +11584,7 @@ operator function reference.
   a_scope_stack_entry_ptr ssep;
 
   db_enter(3, "scan_conversion_operator");
+  start_pos = pos_curr_token;
   /* Push a class or namespace reactivation scope if the class or namespace
      pointed to by parent is not NULL.  This is used when scanning conversion
      operators such as "A::operator B" where B needs to be looked up within
@@ -11676,7 +11677,7 @@ operator function reference.
     }  /* if */
     unget_token();
     curr_token = tok_identifier;
-    pos_curr_token = error_position = *id_pos;
+    pos_curr_token = error_position = start_pos;
 #if EXTRA_SOURCE_POSITIONS_IN_IL
     /* After backing up one token, the end position needs to be reset too. */
     if (decl_pos_block.declarator_range.end.seq != 0) {
@@ -11692,7 +11693,8 @@ operator function reference.
       if (err) complete_type = error_type();
     }  /* if */
     check_pending_qualifiers_used(&state);
-    make_type_conversion_locator(complete_type, &locator_for_curr_id, id_pos);
+    make_type_conversion_locator(complete_type, &locator_for_curr_id,
+                                 &start_pos);
   } else {
     is_conversion_operator = FALSE;
   }  /* if */
