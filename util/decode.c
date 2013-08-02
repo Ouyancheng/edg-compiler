@@ -213,6 +213,7 @@ static a_const_char *demangle_operator(a_const_char               *ptr,
                                a_boolean                  *is_postfix,
                                a_boolean                  *need_adl_parens,
                                a_boolean                  *is_initializer_list,
+                               a_boolean                  *ud_suffix_follows,
                                a_decode_control_block_ptr dctl);
 static a_const_char *demangle_type(a_const_char               *ptr,
                                    a_decode_control_block_ptr dctl);
@@ -238,6 +239,9 @@ static a_const_char *demangle_name(
                                 a_template_param_block_ptr temp_par_info,
                                 a_boolean                  *instance_emitted,
                                 a_decode_control_block_ptr dctl);
+static a_const_char *demangle_name_with_preceding_length(
+                                              a_const_char               *ptr,
+                                              a_decode_control_block_ptr dctl);
 /*
 Interface to full_demangle_type_name for the simple case.
 */
@@ -1251,6 +1255,7 @@ position following what was demangled.
   a_boolean     takes_type, is_new_style_cast, is_postfix, need_adl_parens;
   a_boolean     has_variable_number_of_operands = FALSE, is_initializer_list;
   a_boolean     is_call = FALSE, is_cli_subscript = FALSE;
+  a_boolean     ud_suffix_follows;
 
   /* An operation has the form
        Opl2Z1ZZ2ZO <-- "Z1 + Z2", Z1/Z2 indicating nontype template parameters.
@@ -1268,7 +1273,7 @@ position following what was demangled.
   operator_str = demangle_operator(p, &op_length, &takes_type,
                                    &is_new_style_cast, &is_postfix,
                                    &need_adl_parens, &is_initializer_list,
-                                   dctl);
+                                   &ud_suffix_follows, dctl);
   if (operator_str == NULL) {
     bad_mangled_name(dctl);
   } else {
@@ -1714,6 +1719,7 @@ static a_const_char *demangle_operator(
                                a_boolean                  *is_postfix,
                                a_boolean                  *need_adl_parens,
                                a_boolean                  *is_initializer_list,
+                               a_boolean                  *ud_suffix_follows,
                                a_decode_control_block_ptr dctl)
 /*
 Examine the first few characters at ptr to see if they are an encoding for
@@ -1726,6 +1732,9 @@ is a new style cast (and needs a closing '>' and expression emitted).
 operators are typically emitted as prefix).  *need_adl_parens is set to TRUE
 if the operator is a call that requires parentheses to suppress ADL.
 *is_initializer_list is set to TRUE if the operator is an initializer list.
+*ud_suffix_follows is set to TRUE if a literal operator (i.e., operator "")
+is scanned and the ud-suffix follows the decoded operator name (which
+must then be demangled by the caller).
 If the first few characters are not an operator encoding, return NULL.
 */
 {
@@ -1737,6 +1746,7 @@ If the first few characters are not an operator encoding, return NULL.
   *is_postfix = FALSE;
   *need_adl_parens = FALSE;
   *is_initializer_list = FALSE;
+  *ud_suffix_follows = FALSE;
   /* The length-3 codes are tested first to avoid taking their first two
      letters as one of the length-2 codes. */
   if (start_of_id_is("apl", ptr, dctl)) {
@@ -1931,6 +1941,11 @@ If the first few characters are not an operator encoding, return NULL.
     *is_initializer_list = TRUE;
   } else if (start_of_id_is("nx", ptr, dctl)) {
     s = "noexcept(";
+  } else if (start_of_id_is("li", ptr, dctl)) {
+    /* Note that the ud-suffix follows the "li" and needs to be
+       demangled by the caller. */
+    s = "\"\" ";
+    *ud_suffix_follows = TRUE;
   } else {
     s = NULL;
   }  /* if */
@@ -1940,14 +1955,18 @@ If the first few characters are not an operator encoding, return NULL.
 
 
 static a_boolean is_operator_function_name(
-                                   a_const_char               *ptr,
-                                   a_const_char               **demangled_name,
-                                   int                        *mangled_length,
-                                   a_decode_control_block_ptr dctl)
+                                 a_const_char               *ptr,
+                                 a_const_char               **demangled_name,
+                                 int                        *mangled_length,
+                                 a_boolean                  *ud_suffix_follows,
+                                 a_decode_control_block_ptr dctl)
 /*
 Examine the string beginning at ptr to see if it is the mangled name for
 an operator function.  If so, return TRUE and set *demangled_name to
 the demangled form, and *mangled_length to the length of the mangled form.
+*ud_suffix_follows is set to TRUE if the encoding for the operator function
+name is followed by a user-defined literal suffix (which must be demangled
+by the caller).
 */
 {
   a_const_char *s, *end_ptr;
@@ -1958,7 +1977,7 @@ the demangled form, and *mangled_length to the length of the mangled form.
   /* Get the operator name. */
   s = demangle_operator(ptr, &len, &takes_type, &is_new_style_cast, 
                         &is_postfix, &need_adl_parens, &is_initializer_list,
-                        dctl);
+                        ud_suffix_follows, dctl);
   if (s != NULL) {
     /* Make sure we took the whole name and nothing more. */
     end_ptr = ptr + len;
@@ -2102,7 +2121,7 @@ template parameters.
 {
   a_const_char  *p, *end_ptr = NULL, *prev_end = NULL;
   a_boolean     is_special_name = FALSE, is_pt, is_partial_spec = FALSE;
-  a_boolean     partial_spec_output_suppressed = FALSE;
+  a_boolean     partial_spec_output_suppressed = FALSE, ud_suffix_follows;
   a_const_char  *demangled_name;
   int           mangled_length;
   unsigned long discriminator;
@@ -2188,12 +2207,17 @@ template parameters.
       write_id_str("operator ", dctl);
       end_ptr = demangle_type(p+2, dctl);
     } else if (is_operator_function_name(p, &demangled_name,
-                                         &mangled_length, dctl)) {
+                                         &mangled_length, &ud_suffix_follows,
+                                         dctl)) {
       /* Operator function. */
       is_special_name = TRUE;
       write_id_str("operator ", dctl);
       write_id_str(demangled_name, dctl);
       end_ptr = p + mangled_length;
+      if (ud_suffix_follows) {
+        /* A literal operator (i.e., operator ""); the ud-suffix follows. */
+        end_ptr = demangle_name_with_preceding_length(end_ptr, dctl);
+      }  /* if */
     } else if (nchars != 0 && start_of_id_is("N", p, dctl)) {
       /* __Nxxxx: unnamed namespace name.  Put out "<unnamed>" and ignore
          the characters after "__N".  For nested unnamed namespaces there
@@ -2477,6 +2501,25 @@ is TRUE, suppress any function-local information.
   dctl->end_of_name = prev_end;
   return p;
 }  /* demangle_type_name_with_preceding_length */
+
+
+static a_const_char *demangle_name_with_preceding_length(
+                                               a_const_char               *ptr,
+                                               a_decode_control_block_ptr dctl)
+/*
+Demangle a name with a preceding length (e.g., "3abc") and return a pointer
+to the character position following what was demangled.
+*/
+{
+  ptr = demangle_type_name_with_preceding_length(
+                                              ptr,
+                                              /*base_name_only=*/TRUE,
+                                              (unsigned long)0,
+                                              (unsigned long *)NULL,
+                                              (a_template_param_block_ptr)NULL,
+                                              dctl);
+  return ptr;
+}  /* demangle_name_with_preceding_length */
 
 
 static a_const_char *demangle_simple_type_name(
@@ -5409,6 +5452,9 @@ if necessary, e.g., "]" for subscripting; it is set to "" if not needed.
       case 'l':
         if (ch2 == 'e') {
           str = "<=";
+        } else if (ch2 == 'i') {
+          str = "\"\" ";
+          *num_operands = 1;
         } else if (ch2 == 's') {
           str = "<<";
         } else if (ch2 == 'S') {
@@ -5854,6 +5900,11 @@ caller does not need the value.
         write_id_str(op_str, dctl);
         write_id_str(close_str, dctl);
         ptr += length;
+        if (strcmp(op_str, "\"\" ") == 0) {
+          /* For a user-defined literal operator, emit the ud-suffix as
+             well. */
+          ptr = demangle_source_name(ptr, /*is_module_id=*/FALSE, dctl);
+        }  /* if */
       }  /* if */
     }  /* if */
   }  /* if */
@@ -7129,6 +7180,11 @@ Demangle a <base-unresolved-name>:
         ptr = demangle_type(ptr, dctl);
       } else {
         write_id_str(op_str, dctl);
+        if (strcmp(op_str, "\"\" ") == 0) {
+          /* For a user-defined literal operator, emit the ud-suffix as
+             well. */
+          ptr = demangle_source_name(ptr, /*is_module_id=*/FALSE, dctl);
+        }  /* if */
       }  /* if */
       if (!dctl->err_in_id && *ptr == 'I') {
         /* A <template-args> list is present. */

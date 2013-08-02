@@ -138,6 +138,7 @@ lower_name.c -- Do name mangling for IL lowering.
 #define MANGLING_STRING_FOR_CONSTRUCTOR "C1"
 #define MANGLING_STRING_FOR_DESTRUCTOR "D1"
 #define MANGLING_STRING_FOR_CONVERSION_FUNC "cv"
+#define MANGLING_STRING_FOR_LITERAL_OPERATORS "li"
 #define MANGLING_STRING_FOR_NULLPTR "Dn"
 #define MANGLING_STRING_FOR_DECLTYPE_TYPE "Dt"
 #define MANGLING_STRING_FOR_DECLTYPE_EXPR "DT"
@@ -275,6 +276,7 @@ differs (see the IA-64 ABI spec for details).
 #define MANGLING_STRING_FOR_CONSTRUCTOR "ct"
 #define MANGLING_STRING_FOR_DESTRUCTOR "dt"
 #define MANGLING_STRING_FOR_CONVERSION_FUNC "op"
+#define MANGLING_STRING_FOR_LITERAL_OPERATORS "li"
 #define MANGLING_STRING_FOR_NULLPTR "n"
 #define MANGLING_STRING_FOR_CAST "cs"
 #define MANGLING_STRING_FOR_DECLTYPE_TYPE "y"
@@ -489,6 +491,7 @@ static void mangled_function_base_name(
                                       a_ctor_or_dtor_kind      ctor_dtor_kind,
                                       unsigned int             num_operands,
                                       a_type_ptr               conversion_type,
+                                      a_const_char             *ud_suffix,
                                       a_mangling_control_block *mctl);
 static void mangled_function_name(
                              a_routine_ptr            routine,
@@ -654,6 +657,16 @@ see mangled_ia64_parent_qualifier.
                              (mctl))
 #endif /* !IA64_ABI */
 
+/*
+Returns the ud-suffix for a literal operator routine, or NULL if the
+routine is not a literal operator routine.
+*/
+#define ud_suffix_for_routine(rp)                                             \
+  ((rp)->special_kind == (a_special_function_kind)sfk_udl_operator ?          \
+    (unmangled_name_of(&(rp)->source_corresp) == NULL ?                       \
+                             NULL :                                           \
+                             unmangled_name_of(&(rp)->source_corresp) + 12) : \
+    NULL)
 
 static void clear_mangling_control_block(a_mangling_control_block_ptr mctl)
 /*
@@ -3394,6 +3407,7 @@ add mangling for an eok_address_of operation.
                                      (a_ctor_or_dtor_kind)cdk_none,
                                      /*num_operands=*/0,
                                      rinfo->conversion_type,
+                                     /*ud_suffix=*/NULL,
                                      mctl);
         }  /* if */
         if (rinfo->template_arg_list != NULL) {
@@ -3479,6 +3493,7 @@ add mangling for an eok_address_of operation.
                                    (a_ctor_or_dtor_kind)cdk_none,
                                    /*num_operands=*/0,
                                    rinfo->conversion_type,
+                                   /*ud_suffix=*/NULL,
                                    mctl);
         if (rinfo->template_arg_list != NULL) {
           /* Put out the template argument list. */
@@ -3725,6 +3740,7 @@ of prototype instantiations.  If has_template_args is TRUE, the function
 has an explicit template argument list, given by template_arg_list.
 If add_address_of is TRUE, mangling for an "&" operation is added (IA-64 ABI
 only).
+FIXME: Can this be used for a literal operator?  If so, need a ud-suffix.
 */
 {
   a_type_ptr              conversion_type =
@@ -3747,6 +3763,7 @@ only).
                              (a_ctor_or_dtor_kind)cdk_none,
                              /*num_operands=*/0,
                              conversion_type,
+                             /*ud_suffix=*/NULL,
                              mctl);
   if (has_template_args) {
     /* Put out the template argument list. */
@@ -10071,12 +10088,15 @@ static void mangled_function_base_name(
                                       a_ctor_or_dtor_kind      ctor_dtor_kind,
                                       unsigned int             num_operands,
                                       a_type_ptr               conversion_type,
+                                      a_const_char             *ud_suffix,
                                       a_mangling_control_block *mctl)
 /*
 Add to the mangled name the encoding for the base name of the function
 indicated by scp.  special_kind, opname_kind, ctor_dtor_kind, num_operands,
 and conversion_type give additional information for special functions like
-constructors and conversion functions.
+constructors and conversion functions.  When special_kind is sfk_udl_operator,
+ud_suffix is a non-NULL string that specifies the suffix for the user-defined
+literal.
 */
 {
   a_const_char *name;
@@ -10148,7 +10168,11 @@ constructors and conversion functions.
         /* Type signature is put out below. */
         break;
       case sfk_udl_operator:
-        /* FIXME */
+        /* A literal operator (i.e., operator "") for user-defined literals. */
+        check_assertion(ud_suffix != NULL /* FIXME: && *ud_suffix != '\0' */);
+        name = MANGLING_STRING_FOR_LITERAL_OPERATORS;
+        /* The user-defined suffix for the literal operator is emitted
+           below. */
         break;
       case sfk_operator:
         name = mangled_operator_name(opname_kind, num_operands);
@@ -10165,10 +10189,13 @@ constructors and conversion functions.
 #endif /* !IA64_ABI */
   /* Copy the name. */
   add_str_to_mangled_name(name, mctl);
-  /* For a conversion function, add the type signature. */
   if (special_kind == (a_special_function_kind)sfk_conversion) {
+    /* For a conversion function, add the type signature. */
     check_assertion(conversion_type != NULL);
     mangled_encoding_for_type(conversion_type, mctl);
+  } else if (special_kind == (a_special_function_kind)sfk_udl_operator) {
+    /* For a literal operator, add the ud-suffix to the mangled name. */
+    add_str_to_mangled_name(ud_suffix, mctl);
   }  /* if */
 }  /* mangled_function_base_name */
 
@@ -10315,7 +10342,8 @@ determination is made by the callee.
 #endif /* IA64_ABI && DO_IL_LOWERING */
   mangled_function_base_name(&routine->source_corresp, routine->special_kind,
                              opname_kind, ctor_dtor_kind,
-                             num_operands, conversion_type, mctl);
+                             num_operands, conversion_type,
+                             ud_suffix_for_routine(routine), mctl);
   if (mangle_as_template) {
 #if IA64_ABI
 mangle_template:
