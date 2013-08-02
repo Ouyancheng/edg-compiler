@@ -14043,15 +14043,31 @@ construct (but the caller must update its position to that of the "operator"
 token).
 */
 {
-  a_boolean          result = FALSE;
+  a_boolean  result = FALSE;
 
   if (user_defined_literals_enabled) {
+    a_boolean  invalid = FALSE;
     if (curr_token == tok_string_literal) {
     } else if (curr_token == tok_ud_literal) {
       /* FIXME: Guard against something like operator u8"xx"S */
-      result = TRUE;
+      if (const_for_curr_token.kind != (a_constant_repr_kind)ck_string ||
+          const_for_curr_token.variant.string.length != 1 ||
+          encoding_prefix_for_curr_token != SCLK_ORDINARY_LITERAL) {
+        /* If this is not a string literal of some sort, or the string is not
+           empty, or the string has a prefix, the operator name is invalid. */
+        invalid = TRUE;
+      } else {
+        result = TRUE;
+      }  /* if */
+    }  /* if */
+    if (result) {
       curr_token = tok_identifier;
       locator_for_curr_id.is_udl_operator_name = TRUE;
+    } else if (invalid) {
+      curr_token = tok_identifier;
+      pos_error(ec_invalid_literal_operator_id, &pos_curr_token);
+      set_to_error_locator(locator_for_curr_id);
+      result = TRUE;
     }  /* if */
   }  /* if */
   return result;
