@@ -4006,6 +4006,11 @@ members), and does not enter those.
             /* Template parameter constants can be orphans even if they
                are named. */
             do_source_corresp_check = FALSE;
+          } else if (con->kind == (a_constant_repr_kind)ck_integer &&
+                     !con->is_named_constant_definition) {
+            /* Uses of named enumeration constants result in ck_integer entries
+               with a non-NULL "name", but they can be orphans. */
+            do_source_corresp_check = FALSE;
           }  /* if */
         }
         break;
