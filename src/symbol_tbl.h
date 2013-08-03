@@ -4697,12 +4697,6 @@ extern void make_literal_opname_locator(a_const_char      *ud_suffix,
                                         a_symbol_locator  *locator,
                                         a_source_position *pos);
 
-/*
-Return a pointer to the ud-suffix position of a canonical
-literal-operator-id (operator "" suffix).
-*/
-#define ud_suffix_from_literal_operator_id(name) ((name) + 12)
-
 extern void make_type_conversion_locator(a_type_ptr         type,
                                          a_symbol_locator   *locator,
                                          a_source_position  *pos);

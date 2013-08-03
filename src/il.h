@@ -2541,6 +2541,12 @@ a_targ_alignment compute_alignof_value(a_type_ptr         alignof_type,
                                        a_boolean          *p_is_error,
                                        a_boolean          *p_template_case);
 
+/*
+Return a pointer to the ud-suffix position of a canonical
+literal-operator-id (operator "" suffix).
+*/
+#define ud_suffix_from_literal_operator_id(name) ((name) + 12)
+
 #endif /* ifndef IL_H */
 
 /******************************************************************************
