@@ -102,6 +102,7 @@ static unsigned long
 		num_symbol_headers_allocated,
 		num_symbol_headers_in_hash_table,
 		num_conversion_headers_allocated,
+		num_literal_operator_headers_allocated,
 		symbol_name_string_space,
 		num_symbol_header_lookup_entries_allocated,
 		num_field_symbol_supplements_allocated,
@@ -1868,6 +1869,33 @@ Allocate a new conversion header and return a pointer to it.
   db_exit();
   return ptr;
 }  /* alloc_conversion_header */
+
+
+static a_literal_operator_header_ptr alloc_literal_operator_header(
+                                                       a_const_char *suffix,
+                                                       sizeof_t     suffix_len)
+/*
+Allocate a new literal operator header, initialize its fields with the
+values provided, link it to the list of literal operator headers, and
+return a pointer to it.
+*/
+{
+  register a_literal_operator_header_ptr ptr;
+
+  db_enter(5, "alloc_literal_operator_header");
+  ptr = (a_literal_operator_header_ptr)
+                                   alloc_fe(sizeof(a_literal_operator_header));
+#if DEBUG
+  ++num_literal_operator_headers_allocated;
+#endif /* DEBUG */
+  ptr->next = literal_operator_header_list;
+  literal_operator_header_list = ptr;
+  ptr->symbol_header = NULL;
+  ptr->suffix = (a_const_char *)alloc_fe(suffix_len);
+  memcpy((char *)ptr->suffix, suffix, suffix_len);
+  ptr->suffix_len = suffix_len;
+  return ptr;
+}  /* alloc_literal_operator_header */
 
 
 a_substituted_type_list_entry_ptr alloc_substituted_type_list_entry(void)
@@ -8652,6 +8680,50 @@ used for C++ constructs like "operator+".  Use pos as the source position.
 }  /* make_opname_locator */
 
 
+void make_literal_opname_locator(a_const_char      *ud_suffix,
+                                 sizeof_t          ud_suffix_len,
+                                 a_symbol_locator  *locator,
+                                 a_source_position *pos)
+/*
+Make a locator in *locator for the C++11 literal operator or literal
+operator template whose literal-operator-id contains the identifier
+ud_suffix (of length ud_suffix_len).  Use pos as the source position.
+*/
+{
+  a_literal_operator_header_ptr lo_hdr_ptr;
+  a_symbol_header_ptr           sym_hdr_ptr;
+#define OPERATOR_LEN 12 /* Length of 'operator "" ' */
+
+  clear_locator(locator, pos);
+  for (lo_hdr_ptr = literal_operator_header_list;
+       lo_hdr_ptr != NULL && (lo_hdr_ptr->suffix_len != ud_suffix_len ||
+                              memcmp(lo_hdr_ptr->suffix, ud_suffix,
+                                     ud_suffix_len) != 0);
+       lo_hdr_ptr = lo_hdr_ptr->next) {}
+  if (lo_hdr_ptr != NULL) {
+    sym_hdr_ptr = lo_hdr_ptr->symbol_header;
+  } else {
+    /* First use of this literal operator name.  Allocate the header. */
+    sizeof_t len = OPERATOR_LEN + ud_suffix_len;
+    char     *str = alloc_primary_file_scope_il((sizeof_t)(len + 1));
+    lo_hdr_ptr = alloc_literal_operator_header(ud_suffix, ud_suffix_len);
+    sym_hdr_ptr = alloc_symbol_header();
+    /* Give the header the name 'operator "" X' where "X" is ud_suffix. */
+    strcpy(str, "operator \"\" ");
+    memcpy(str + OPERATOR_LEN, ud_suffix, ud_suffix_len);
+    str[len + 1] = '\0';
+    sym_hdr_ptr->identifier_length = len;
+    sym_hdr_ptr->identifier = str;
+    lo_hdr_ptr->symbol_header = sym_hdr_ptr;
+#if DEBUG
+    symbol_name_string_space += (unsigned long)(len + 1);
+#endif /* DEBUG */
+  }  /* if */
+  locator->symbol_header = sym_hdr_ptr;
+#undef OPERATOR_LEN
+}  /* make_literal_opname_locator */
+
+
 void make_type_conversion_locator(a_type_ptr         type,
                                   a_symbol_locator   *locator,
                                   a_source_position  *pos)
@@ -14209,25 +14281,28 @@ for the class template of which this class is an instance.
 
 
 /* ARGSUSED */ /* FIXME */
-a_symbol_ptr find_literal_operator(a_const_char *name,
-                                   sizeof_t     name_len,
-                                   a_type_ptr   param_type,
-                                   a_boolean    is_string,
-                                   a_boolean    allow_raw_and_template)
+a_symbol_ptr find_literal_operator(a_const_char      *name,
+                                   sizeof_t          name_len,
+                                   a_source_position *pos,
+                                   a_type_ptr        param_type,
+                                   a_boolean         is_string,
+                                   a_boolean         allow_raw_and_template)
 /*
 name and name_len specify the ud-suffix of a user-defined literal (C++11
-Standard 2.14.8 [lex.ext]); param-type is the type of the first parameter
-of the literal operator implied by the associated literal (the list of
-potential types is found in 13.5.8 [over.literal] of the C++11 Standard).
-is_string is TRUE if the lookup is for a string literal operator, implying
-a second parameter of type std::size_t.  allow_raw_and_template is TRUE if
-a raw literal operator or a literal operator template is an acceptable
-result.  If the lookup finds a single matching function, return the
-corresponding symbol; otherwise, return the overloaded function symbol or
-NULL, if no literal operator or literal operator template with the
-designated name has yet been declared.
+Standard 2.14.8 [lex.ext]) and pos is the start of the literal or of the
+literal-operator-id in which name appears; param-type is the type of the
+first parameter of the literal operator implied by the associated literal
+(the list of potential types is found in 13.5.8 [over.literal] of the C++11
+Standard).  is_string is TRUE if the lookup is for a string literal
+operator, implying a second parameter of type std::size_t.
+allow_raw_and_template is TRUE if a raw literal operator or a literal
+operator template is an acceptable result.  If the lookup finds a single
+matching function, return the corresponding symbol; otherwise, return the
+overloaded function symbol or NULL, if no literal operator or literal
+operator template with the designated name has yet been declared.
 */
 {
+  make_literal_opname_locator(name, name_len, &locator_for_curr_id, pos);
   /* FIXME */
   return NULL;
 }  /* find_literal_operator */
@@ -14799,6 +14874,9 @@ for space tracking purposes.
                         a_scope_stack_entry);
   db_space_used("conversion header", num_conversion_headers_allocated,
                 a_conversion_header);
+  db_space_used("literal operator header",
+                num_literal_operator_headers_allocated,
+                a_literal_operator_header);
   db_space_used("Name strings", symbol_name_string_space, char);
   db_space_used("symbol header lookup ents",
                 num_symbol_header_lookup_entries_allocated,
@@ -15182,6 +15260,7 @@ are handled in symbol_tbl_init.)
       pch_saved_var_array_elem(num_class_symbol_supplements_allocated),
       pch_saved_var_array_elem(num_compares_for_symbols),
       pch_saved_var_array_elem(num_conversion_headers_allocated),
+      pch_saved_var_array_elem(num_literal_operator_headers_allocated),
       pch_saved_var_array_elem(num_dependent_type_fixups_allocated),
       pch_saved_var_array_elem(num_extern_symbol_descrs_allocated),
       pch_saved_var_array_elem(num_vla_fixups_allocated),
@@ -15362,6 +15441,7 @@ of the front end.
   num_symbol_headers_allocated                  = 0;
   num_symbol_headers_in_hash_table              = 0;
   num_conversion_headers_allocated              = 0;
+  num_literal_operator_headers_allocated        = 0;
   symbol_name_string_space                      = 0;
   num_symbol_header_lookup_entries_allocated    = 0;
   num_field_symbol_supplements_allocated        = 0;

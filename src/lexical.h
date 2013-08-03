@@ -2297,7 +2297,6 @@ extern a_boolean check_context_sensitive_keyword(a_token_kind  tok_kind,
      |+------ Whether the literal is raw or not (string literals only)
      +------- The kind of literal (string or character) */
 
-typedef int a_string_or_char_literal_kind;
 #define SCLK_NOT_A_LITERAL      -1
 			/* The characters are not a literal prefix. */
 #define SCLK_ORDINARY_LITERAL   0x01
@@ -2333,13 +2332,6 @@ typedef int a_string_or_char_literal_kind;
    + 1 /* 1 for quoting character */)
 
 extern a_string_or_char_literal_kind scan_encoding_prefix(a_const_char *loc);
-
-EXTERN a_string_or_char_literal_kind
-		encoding_prefix_for_curr_token;
-			/* If the current token is a string literal or a
-			   user-defined string literal, the encoding prefix
-			   with which it is written; otherwise, the value
-			   is unspecified. */
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
 extern a_boolean is_valid_GUID_string(a_const_char  *str,

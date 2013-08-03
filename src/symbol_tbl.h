@@ -3911,13 +3911,45 @@ function symbols.
 EXTERN a_conversion_header_ptr
 		conversion_header_list;
 
+typedef struct a_literal_operator_header *a_literal_operator_header_ptr;
+typedef struct a_literal_operator_header {
+  /* Top level lookup mechanism for symbols that identify literal operators
+     and literal operator templates (for C++11 user-defined literals).  Each
+     literal operator header entry points to a symbol header that points to
+     symbols for all the literal operators and literal operator templates
+     that have the same ud-suffix identifier. */
+  a_literal_operator_header_ptr
+		next;	/* Next in a linked list of literal operator header
+			   entries, NULL for the last one. */
+  a_symbol_header_ptr
+		symbol_header;
+			/* Pointer to the symbol header pointing to literal
+			   operators and literal operator templates whose
+			   ud-suffix identifier is of length suffix_len and
+			   spelling suffix. */
+  a_const_char	*suffix;
+			/* The spelling of the ud-suffix. */
+  sizeof_t	suffix_len;
+			/* The length of the ud-suffix. */
+} a_literal_operator_header;
+
+/*
+List of literal operator header entries that serve as a lookup list for
+literal operators and literal operator templates.
+*/
+EXTERN a_literal_operator_header_ptr
+		literal_operator_header_list;
+
 /*
 Symbol information related to the current token:
 */
 EXTERN a_symbol_locator
 		locator_for_curr_id;
 			/* If curr_token == tok_identifier, this is information
-			   fully specifying the identifier. */
+			   fully specifying the identifier.  If curr_token ==
+			   tok_ud_literal, this is information specifying the
+			   canonical name of the literal operator or literal
+			   operator template, i.e., operator "" identifier. */
 
 EXTERN an_active_using_directive_ptr
 		avail_active_using_directives;
@@ -4659,6 +4691,17 @@ extern void change_class_locator_into_constructor_locator(
 extern void make_opname_locator(an_opname_kind    opname,
                                 a_symbol_locator  *locator,
                                 a_source_position *pos);
+
+extern void make_literal_opname_locator(a_const_char      *ud_suffix,
+                                        sizeof_t          ud_suffix_len,
+                                        a_symbol_locator  *locator,
+                                        a_source_position *pos);
+
+/*
+Return a pointer to the ud-suffix position of a canonical
+literal-operator-id (operator "" suffix).
+*/
+#define ud_suffix_from_literal_operator_id(name) ((name) + 12)
 
 extern void make_type_conversion_locator(a_type_ptr         type,
                                          a_symbol_locator   *locator,
@@ -5934,11 +5977,13 @@ cases that are not template classes.
 extern a_symbol_ptr class_template_for_injected_template_symbol(
 							a_symbol_ptr sym);
 
-extern a_symbol_ptr find_literal_operator(a_const_char *name,
-                                          sizeof_t     name_len,
-                                          a_type_ptr   param_type,
-                                          a_boolean    is_string,
-                                          a_boolean    allow_raw_and_template);
+extern a_symbol_ptr find_literal_operator(
+                                     a_const_char      *name,
+                                     sizeof_t          name_len,
+                                     a_source_position *pos,
+                                     a_type_ptr        param_type,
+                                     a_boolean         is_string,
+                                     a_boolean         allow_raw_and_template);
 
 /*
 Return TRUE if "tp" is a proxy class.

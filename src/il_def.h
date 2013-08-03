@@ -103,6 +103,10 @@ typedef struct an_arg_operand *an_arg_operand_ptr;
    front-end only fields in the IL; its structure is not known here).
    It is defined in exprutil.h. */
 typedef struct an_expr_rescan_info_entry *an_expr_rescan_info_entry_ptr;
+/* Opaque type definition for a string or literal kind (used in the lexical
+   processing routines, but part of the ck_string variant of a_constant for
+   convenience); its values are not known here. */
+typedef int a_string_or_char_literal_kind;
 #if MICROSOFT_EXTENSIONS_ALLOWED
 /* Deal with a forward reference: */
 typedef struct a_property_or_event_descr *a_property_or_event_descr_ptr;
@@ -3963,6 +3967,13 @@ typedef struct a_constant {
 			   functions and templates in certain
 			   configurations). */
 #endif /* DO_IL_LOWERING && ASSIGN_STRING_LITERAL_SEQUENCE_NUMBERS */
+      a_string_or_char_literal_kind
+		literal_kind;
+			/* Captures the encoding prefix of the literal this
+			   constant represents, if any, as well as whether
+			   it was a raw string literal.  For string
+			   constants that are not associated with string
+			   literals, has the value SCLK_NOT_A_LITERAL. */
     } string;
     /* When kind == ck_float: */
 #if C99_IL_EXTENSIONS_SUPPORTED

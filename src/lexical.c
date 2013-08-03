@@ -7932,7 +7932,10 @@ the kind of token.
 #endif /* GNU_COMPLEX_EXTENSIONS_ALLOWED */
   a_const_char  *first_non_id_char = NULL;
   a_boolean     potential_ud_suffix = FALSE;
+  a_source_position
+                start_pos;
 
+  macro_line_loc_to_source_pos(curr_char_loc, start_pos);
   /* Hexadecimal floating point constants are normally controlled by the
      hex_floating_point_constants_allowed variable, but should also be
      allowed when scanning C++/CLI metadata. */
@@ -8443,7 +8446,7 @@ fixed_point_suffix:
       id_len = (sizeof_t)(curr_char_loc - end_of_curr_token - 1);
       canonical_id = make_canonical_identifier(end_of_curr_token + 1, &id_len);
       ud_lit_op_sym_for_curr_token =
-                        find_literal_operator(canonical_id, id_len,
+                        find_literal_operator(canonical_id, id_len, &start_pos,
                                               literal_operator_param_type,
                                               /*is_string=*/FALSE,
                                               /*allow_raw_and_template=*/TRUE);
@@ -9301,8 +9304,10 @@ kind or tok_error.  The token can be a normal or wide character constant.
   unsigned long     num_chars = 0;
   an_error_code     err_code;
   a_const_char      *err_pos;
+  a_source_position start_pos;
 
   check_assertion((lit_kind & SCLK_STRING_LITERAL) == 0);
+  macro_line_loc_to_source_pos(curr_char_loc, start_pos);
   switch (lit_kind) {
     case SCLK_ORDINARY_LITERAL:
       character_kind = (a_character_kind)chk_char;
@@ -9382,7 +9387,7 @@ kind or tok_error.  The token can be a normal or wide character constant.
             a_const_char *canonical_id =
                                   make_canonical_identifier(id_start, &id_len);
             ud_lit_op_sym_for_curr_token =
-                       find_literal_operator(canonical_id, id_len,
+                       find_literal_operator(canonical_id, id_len, &start_pos,
                                              const_for_curr_token.type,
                                              /*is_string=*/FALSE,
                                              /*allow_raw_and_template=*/FALSE);
@@ -10624,8 +10629,7 @@ a_string_or_char_literal_kind scan_encoding_prefix(a_const_char *loc)
 loc points to a character that could be the start of a C++11
 encoding-prefix, i.e., one of 'u', 'U', 'L', or 'R'.  If it is the start of
 a valid string literal or the start of a valid character literal, return
-the literal kind.  Otherwise, return SCLK_NOT_A_LITERAL.  Set
-encoding_prefix_for_curr_token to the encoding prefix of the value returned.
+the literal kind.  Otherwise, return SCLK_NOT_A_LITERAL.
 */
 {
   a_string_or_char_literal_kind kind = SCLK_ORDINARY_LITERAL;
@@ -10665,7 +10669,6 @@ encoding_prefix_for_curr_token to the encoding prefix of the value returned.
     /* Not a valid literal. */
     kind = SCLK_NOT_A_LITERAL;
   }  /* if */
-  encoding_prefix_for_curr_token = literal_encoding_prefix(kind);
   return kind;
 }  /* scan_encoding_prefix */
 
@@ -10684,7 +10687,9 @@ curr_token is already set in that case.
 */
 {
   a_character_kind              character_kind;
-  a_string_or_char_literal_kind lit_kind = SCLK_ORDINARY_LITERAL;
+  a_string_or_char_literal_kind lit_kind;
+  a_string_or_char_literal_kind encoding = SCLK_ORDINARY_LITERAL;
+  a_boolean                     raw_string_seen = FALSE;
   a_token_cache                 cache;
   a_cached_token_ptr            ctp, ctp_next, first_string_token = NULL;
   a_boolean                     more_than_one_string = FALSE;
@@ -10702,8 +10707,9 @@ curr_token is already set in that case.
      subsequent literal has a different character kind. */
   character_kind = const_for_curr_token.character_kind;
   if (start_of_curr_token != NULL) {
-    lit_kind =
-            literal_encoding_prefix(scan_encoding_prefix(start_of_curr_token));
+    lit_kind = scan_encoding_prefix(start_of_curr_token);
+    encoding = literal_encoding_prefix(lit_kind);
+    raw_string_seen = (lit_kind & SCLK_RAW_STRING_LITERAL) != 0;
   }  /* if */
   /* Start a token cache in which we will accumulate all the adjacent
      string literals.  Usually, this will be just a single string literal. */
@@ -10731,7 +10737,7 @@ curr_token is already set in that case.
   reset_text_buffer(ud_lit_suffix_buffer);
   /* Loop as long as the next token is a string literal. */
   for (;;) {
-    a_string_or_char_literal_kind next_lit_kind = SCLK_ORDINARY_LITERAL;
+    a_string_or_char_literal_kind next_encoding = SCLK_ORDINARY_LITERAL;
     if (user_defined_literals_enabled) {
       /* Check for a ud-suffix. */
       a_boolean    initial_char = TRUE;
@@ -10812,8 +10818,11 @@ curr_token is already set in that case.
     /* End the loop if the new token is not a string literal. */
     if (curr_token != tok_string_literal) break;
     if (start_of_curr_token != NULL) {
-      next_lit_kind =
-            literal_encoding_prefix(scan_encoding_prefix(start_of_curr_token));
+      lit_kind = scan_encoding_prefix(start_of_curr_token);
+      next_encoding = literal_encoding_prefix(lit_kind);
+      if (lit_kind & SCLK_RAW_STRING_LITERAL) {
+        raw_string_seen = TRUE;
+      }  /* if */
     }  /* if */
     if (character_kind != const_for_curr_token.character_kind &&
         !is_error_constant(&const_for_curr_token)) {
@@ -10828,8 +10837,8 @@ curr_token is already set in that case.
       if ((character_kind != (a_character_kind)chk_char &&
            const_for_curr_token.character_kind !=
                                                  (a_character_kind)chk_char) ||
-          lit_kind == SCLK_UTF8_LITERAL ||
-          next_lit_kind == SCLK_UTF8_LITERAL) {
+          encoding == SCLK_UTF8_LITERAL ||
+          next_encoding == SCLK_UTF8_LITERAL) {
         sev = es_error;
       } else {
         sev = mixed_string_concat_enabled ? es_none : es_discretionary_error;
@@ -10843,10 +10852,10 @@ curr_token is already set in that case.
     }  /* if */
     /* This string literal is okay, and will be added to the concatenation
        in the token cache. */
-    if (next_lit_kind == SCLK_UTF8_LITERAL) {
+    if (next_encoding == SCLK_UTF8_LITERAL) {
       /* Make sure we remember that we're treating the result of this
          concatenation as a UTF-8 literal. */
-      lit_kind = SCLK_UTF8_LITERAL;
+      encoding = SCLK_UTF8_LITERAL;
     }  /* if */
   }  /* for */
   /* Here, all the adjacent string literals have been captured in a token
@@ -10893,6 +10902,18 @@ curr_token is already set in that case.
   rescan_cached_tokens(&cache);
   /* Pop the lexical state pushed by this routine. */
   pop_lexical_state_stack();
+  const_for_curr_token.variant.string.literal_kind =
+                                                encoding | SCLK_STRING_LITERAL;
+  if (raw_string_seen) {
+    /* Although whether any of the literals was raw does not affect the
+       final value of the constant, we need to recall whether a raw string
+       was seen in order to exclude something like
+           int operator R"x()x" _foo(const char*);
+       which would otherwise be accepted as a valid literal operator
+       declaration. */
+    const_for_curr_token.variant.string.literal_kind |=
+                                                       SCLK_RAW_STRING_LITERAL;
+  }  /* if */
   if (user_defined_literals_enabled && ud_lit_suffix_buffer->size != 0  &&
       !suffix_mismatch) {
     /* Process the suffix. */
@@ -10901,6 +10922,7 @@ curr_token is already set in that case.
     ud_lit_op_sym_for_curr_token =
                        find_literal_operator(ud_lit_suffix_buffer->buffer,
                                              ud_lit_suffix_buffer->size - 1,
+                                             &pos_curr_token,
                                              param_type, /*is_string=*/TRUE,
                                              /*allow_raw_and_template=*/FALSE);
     ctoken = tok_ud_literal;
@@ -14047,18 +14069,39 @@ token).
 
   if (user_defined_literals_enabled) {
     a_boolean  invalid = FALSE;
-    if (curr_token == tok_string_literal) {
-    } else if (curr_token == tok_ud_literal) {
-      /* FIXME: Guard against something like operator u8"xx"S */
+    if (curr_token == tok_string_literal ||
+        curr_token == tok_ud_literal) {
+      /* Guard against something like operator u8"xx"S */
       if (const_for_curr_token.kind != (a_constant_repr_kind)ck_string ||
           const_for_curr_token.variant.string.length != 1 ||
-          encoding_prefix_for_curr_token != SCLK_ORDINARY_LITERAL) {
+          const_for_curr_token.variant.string.literal_kind !=
+                                                SCLK_ORDINARY_STRING_LITERAL) {
         /* If this is not a string literal of some sort, or the string is not
            empty, or the string has a prefix, the operator name is invalid. */
         invalid = TRUE;
-      } else {
-        result = TRUE;
+      } else if (curr_token == tok_string_literal) {
+        /* Make sure the next token is an identifier and, if so, set up
+           locator_for_curr_id for the operator name. */
+        get_token();
+        if (curr_token != tok_identifier ||
+            locator_for_curr_id.is_qualified_name ||
+            locator_for_curr_id.is_operator_name ||
+            locator_for_curr_id.is_conversion_name ||
+            locator_for_curr_id.is_destructor_name ||
+            locator_for_curr_id.is_udl_operator_name
+#if MICROSOFT_EXTENSIONS_ALLOWED
+            || locator_for_curr_id.is_finalizer_name
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+                                                    ) {
+          invalid = TRUE;
+        } else {
+          make_literal_opname_locator(
+                          locator_for_curr_id.symbol_header->identifier,
+                          locator_for_curr_id.symbol_header->identifier_length,
+                          &locator_for_curr_id, &pos_curr_token);
+        }  /* if */
       }  /* if */
+      result = !invalid;
     }  /* if */
     if (result) {
       curr_token = tok_identifier;
