@@ -1053,6 +1053,7 @@ extern int fileno(FILE *);
 /*lint -esym(552,ud_lit_op_sym_for_curr_token)*/
 /*lint -esym(552,encoding_prefix_for_curr_token)*/
 /*lint -esym(552,user_defined_literals_enabled)*/
+/*lint -esym(755,ud_suffix_from_literal_operator_id)*/
 
 #endif /* ifndef LINT_H */
 

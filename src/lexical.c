@@ -14082,7 +14082,7 @@ token).
       } else if (curr_token == tok_string_literal) {
         /* Make sure the next token is an identifier and, if so, set up
            locator_for_curr_id for the operator name. */
-        get_token();
+        (void)get_token();
         if (curr_token != tok_identifier ||
             locator_for_curr_id.is_qualified_name ||
             locator_for_curr_id.is_operator_name ||
