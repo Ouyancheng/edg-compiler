@@ -253,6 +253,16 @@ static a_boolean
 			/* Incremental allocation for the trans_unit_for_scope
 			   table. */
 
+static a_type_ptr
+		size_t_type;
+			/* Type for std::size_t, used for parameter type
+			   checking by find_literal_operator. */
+
+static a_type_ptr
+		ptr_to_const_char_type;
+			/* Type for const char*, used for parameter type
+			   checking by find_literal_operator. */
+
 void form_optionally_qualified_symbol_name(
 		a_symbol_ptr				sym,
 		an_il_to_str_output_control_block_ptr	octl,
@@ -14280,31 +14290,141 @@ for the class template of which this class is an instance.
 }  /* class_template_for_injected_template_symbol */
 
 
-/* ARGSUSED */ /* FIXME */
 a_symbol_ptr find_literal_operator(a_const_char      *name,
                                    sizeof_t          name_len,
                                    a_source_position *pos,
-                                   a_type_ptr        param_type,
+                                   a_type_ptr        req_param1_type,
                                    a_boolean         is_string,
                                    a_boolean         allow_raw_and_template)
 /*
 name and name_len specify the ud-suffix of a user-defined literal (C++11
 Standard 2.14.8 [lex.ext]) and pos is the start of the literal or of the
-literal-operator-id in which name appears; param-type is the type of the
-first parameter of the literal operator implied by the associated literal
-(the list of potential types is found in 13.5.8 [over.literal] of the C++11
-Standard).  is_string is TRUE if the lookup is for a string literal
-operator, implying a second parameter of type std::size_t.
+literal-operator-id in which name appears; req_param1_type is the type of
+the first parameter of the literal operator implied by the associated
+literal (the list of potential types is found in 13.5.8 [over.literal] of
+the C++11 Standard).  is_string is TRUE if the lookup is for a string
+literal operator, implying a second parameter of type std::size_t.
 allow_raw_and_template is TRUE if a raw literal operator or a literal
 operator template is an acceptable result.  If the lookup finds a single
 matching function, return the corresponding symbol; otherwise, return the
 overloaded function symbol or NULL, if no literal operator or literal
-operator template with the designated name has yet been declared.
+operator template with the designated name has yet been declared.  As a
+side effect, locator_for_curr_id is set to refer to the corresponding
+literal-operator-id.
 */
 {
+  a_symbol_ptr orig_sym;
+  a_symbol_ptr raw_operator = NULL;
+  a_boolean    ambiguous_raw_operator = FALSE;
+  a_symbol_ptr operator_template = NULL;
+  a_boolean    ambiguous_operator_template = FALSE;
+  a_symbol_ptr matching_sym = NULL;
+  a_boolean    ambiguous_matching_sym = FALSE;
+  a_symbol_ptr sym;
+
   make_literal_opname_locator(name, name_len, &locator_for_curr_id, pos);
-  /* FIXME */
-  return NULL;
+  orig_sym = normal_id_lookup(&locator_for_curr_id, IDL_NO_OPTIONS);
+  if (orig_sym != NULL) {
+    if (size_t_type == NULL) {
+      /* Initialize the special types used for parameter checking. */
+      size_t_type = integer_type(targ_size_t_int_kind);
+      ptr_to_const_char_type = make_pointer_type(
+                    make_qualified_type(integer_type((an_integer_kind)ik_char),
+                                        TQ_CONST));
+    }  /* if */
+    sym = symbol_is(orig_sym, sk_overloaded_function)
+                                ? orig_sym->variant.overloaded_function.symbols
+                                : orig_sym;
+    do {
+      /* Check the symbol for a match against the permitted operators. */
+      if (symbol_is(sym, sk_namespace_projection)) {
+        sym = sym->variant.namespace_projection.fundamental_symbol;
+      }  /* if */
+      if (symbol_is(sym, sk_function_template) && allow_raw_and_template) {
+        /* This is a literal operator template, and the current literal is
+           of a kind for which a literal operator template is a possible
+           match.  Make a note of it and continue the scan. */
+        if (operator_template != NULL) {
+          /* We already saw a literal operator template.  Remember that for
+             possible later handling. */
+          ambiguous_operator_template = TRUE;
+        }  /* if */
+        operator_template = sym;
+      } else {
+        /* This is a function.  Get its parameter list and check it against
+           the required parameter type(s). */
+        a_routine_type_supplement_ptr rtsp;
+        a_type_ptr                    param1_type;
+        a_type_ptr                    param2_type;
+        check_assertion(symbol_is(sym, sk_routine));
+        rtsp = sym->variant.routine.ptr->type->variant.routine.extra_info;
+        check_assertion(rtsp->param_type_list != NULL);
+        param1_type = skip_typerefs(rtsp->param_type_list->type);
+        if (rtsp->param_type_list->next != NULL) {
+          param2_type = skip_typerefs(rtsp->param_type_list->next->type);
+          check_assertion(rtsp->param_type_list->next->next == NULL);
+        } else {
+          param2_type = NULL;
+        }  /* if */
+        if (identical_types(param1_type, ptr_to_const_char_type) &&
+            param2_type == NULL && allow_raw_and_template) {
+          /* This is a raw literal operator, and the current literal is of
+             a kind for which a raw literal operator is a possible match.
+             Make a note of it and continue the scan. */
+          if (raw_operator != NULL) {
+            /* We already saw a raw literal operator.  Remember that for
+               possible later handling. */
+            ambiguous_raw_operator = TRUE;
+          }  /* if */
+          raw_operator = sym;
+          /* Incidentally, mark this function as a raw literal operator for
+             convenience in later references. */
+          sym->variant.routine.ptr->is_raw_literal_operator = TRUE;
+        } else if (identical_types(req_param1_type, param1_type)) {
+          /* The first parameter has the required type. */
+          if (is_string) {
+            check_assertion(param2_type != NULL &&
+                            identical_types(param2_type, size_t_type));
+          } else {
+            check_assertion(param2_type == NULL);
+          }  /* if */
+          if (matching_sym != NULL) {
+            /* We already saw a matching symbol.  This is an error, so
+               there's no need to keep scanning. */
+            ambiguous_matching_sym = TRUE;
+            break;
+          } else {
+            matching_sym = sym;
+          }  /* if */
+        }  /* if */
+      }  /* if */
+    } while (symbol_is(orig_sym, sk_overloaded_function) &&
+             (sym = sym->next) != NULL);
+    if (ambiguous_matching_sym) {
+      /* Return the original overloaded function symbol to indicate the
+         ambiguity. */
+      matching_sym = orig_sym;
+    } else if (matching_sym == NULL) {
+      if (operator_template != NULL) {
+        if (raw_operator != NULL || ambiguous_operator_template) {
+          /* Return the original overloaded function symbol to indicate the
+             ambiguity. */
+          matching_sym = orig_sym;
+        } else {
+          matching_sym = operator_template;
+        }  /* if */
+      } else if (raw_operator != NULL) {
+        if (ambiguous_raw_operator) {
+          /* Return the original overloaded function symbol to indicate the
+             ambiguity. */
+          matching_sym = orig_sym;
+        } else {
+          matching_sym = raw_operator;
+        }  /* if */
+      }  /* if */
+    }  /* if */
+  }  /* if */
+  return matching_sym;
 }  /* find_literal_operator */
 
 #if SUN_EXTENSIONS_ALLOWED
@@ -15436,6 +15556,8 @@ of the front end.
   unnamed_namespace_symbol_header = NULL;
   anonymous_parent_object_symbol_header = NULL;
   unnamed_field_symbol_header = NULL;
+  size_t_type = NULL;
+  ptr_to_const_char_type = NULL;
 #if DEBUG
   num_symbols_allocated                         = 0;
   num_symbol_headers_allocated                  = 0;

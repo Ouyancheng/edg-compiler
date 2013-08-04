@@ -5975,7 +5975,7 @@ extern a_symbol_ptr find_literal_operator(
                                      a_const_char      *name,
                                      sizeof_t          name_len,
                                      a_source_position *pos,
-                                     a_type_ptr        param_type,
+                                     a_type_ptr        req_param1_type,
                                      a_boolean         is_string,
                                      a_boolean         allow_raw_and_template);
 
