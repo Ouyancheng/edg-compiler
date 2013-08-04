@@ -14444,7 +14444,7 @@ literal-operator-id.
                                                       token_len);
         const_for_curr_token.type =
                                 string_literal_type((a_character_kind)chk_char,
-                                                    token_len);
+                                                    (a_targ_size_t)token_len);
       }  /* if */
     }  /* if */
   }  /* if */
