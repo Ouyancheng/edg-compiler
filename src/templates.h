@@ -120,7 +120,7 @@ typedef struct a_tmpl_decl_state {
   a_boolean	friend_depth_known;
 			/* TRUE if this is a template friend template class
 			   declaration whose nesting depth has been
-			   determine via global qualification or by looking
+			   determined via global qualification or by looking
 			   up the template. */
   a_source_position
 		export_position;

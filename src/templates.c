@@ -22569,11 +22569,11 @@ issued.
       !decl_state->decl_scope_err && !decl_state->friend_depth_known) {
     /* The depths do not match, issue a diagnostic.  Don't set decl_scope_err
        because the message can be issued as a warning in g++ mode or the
-       severity can be reduced by the diagnostic control facilities.
-       If friend_depth_known is TRUE, we were able to determine the depth
-       based on the name specified.   Ignore the mismatch if there was
-       the friend depth was determined by doing a lookup.  This can occur in
-       g++ and Microsoft modes. */
+       severity can be reduced by the diagnostic control facilities.  If
+       friend_depth_known is TRUE, we were able to determine the depth
+       based on the name specified.  Ignore the mismatch if the friend
+       depth was determined by doing a lookup.  This can occur in g++ and
+       Microsoft modes. */
     an_error_severity	severity = es_discretionary_error;
     if ((gpp_mode || microsoft_mode) &&
         decl_state->is_template_friend && is_class_template_symbol(sym)) {
