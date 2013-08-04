@@ -17135,6 +17135,8 @@ declaration of a partial specialization declared outside of its class.
           a_class_symbol_supplement_ptr	cssp;
           cssp = class_symbol_supp(new_sym);
           sym = cssp->class_template;
+          /* If this is a partial specialization, get the primary template. */
+          sym = primary_template_of(sym);
         }  /* if */
       }  /* if */
       /* If the symbol found is an injected template symbol, replace it with
