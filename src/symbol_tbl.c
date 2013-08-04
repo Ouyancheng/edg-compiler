@@ -14405,6 +14405,11 @@ literal-operator-id.
          ambiguity. */
       matching_sym = orig_sym;
     } else if (matching_sym == NULL) {
+      /* See if there is exactly one literal operator template or raw
+         literal operator in the set; if so, select that and convert
+         const_for_curr_token to a string containing the spelling of the
+         token. */
+      a_boolean token_string_needed = FALSE;
       if (operator_template != NULL) {
         if (raw_operator != NULL || ambiguous_operator_template) {
           /* Return the original overloaded function symbol to indicate the
@@ -14412,6 +14417,7 @@ literal-operator-id.
           matching_sym = orig_sym;
         } else {
           matching_sym = operator_template;
+          token_string_needed = TRUE;
         }  /* if */
       } else if (raw_operator != NULL) {
         if (ambiguous_raw_operator) {
@@ -14420,7 +14426,25 @@ literal-operator-id.
           matching_sym = orig_sym;
         } else {
           matching_sym = raw_operator;
+          token_string_needed = TRUE;
         }  /* if */
+      }  /* if */
+      if (token_string_needed) {
+        /* There was exactly one matching raw literal operator or literal
+           operator template.  These operate on the spelling of the
+           literal (before the suffix), so replace const_for_curr_token
+           with a ck_string constant containing the required text. */
+        sizeof_t token_len =
+                       (sizeof_t)(end_of_curr_token - start_of_curr_token + 1);
+        clear_constant(&const_for_curr_token, (a_constant_repr_kind)ck_string);
+        const_for_curr_token.variant.string.length = token_len;
+        const_for_curr_token.variant.string.value =
+                      copy_string_of_length_to_region(file_scope_region_number,
+                                                      start_of_curr_token,
+                                                      token_len);
+        const_for_curr_token.type =
+                                string_literal_type((a_character_kind)chk_char,
+                                                    token_len);
       }  /* if */
     }  /* if */
   }  /* if */
