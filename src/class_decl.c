@@ -24400,6 +24400,7 @@ passed via template_decl.
   initialize_member_decl_info(&decl_info, &pos_curr_token);
   is_member_template_rescan = (scope_stack[depth_scope_stack].kind ==
                                  (a_scope_kind)sck_template_instantiation);
+  decl_state->is_template_rescan = is_member_template_rescan;
   /* Scan prefix attributes. */
   decl_state->prefix_attributes = scan_attributes(al_prefix);
   /* Set the flags to control the calls to decl_specifiers. */

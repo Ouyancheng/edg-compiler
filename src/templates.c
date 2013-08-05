@@ -10569,11 +10569,13 @@ a pointer over a reference type or creating an array of references.
             new_type = make_tracking_reference_type(tp);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
           } else {
-            if (microsoft_mode && is_lvalue_reference_type(type) &&
+            if (microsoft_mode && ctws_state->routine_type_levels >= 0 &&
+                is_lvalue_reference_type(type) &&
                 is_incomplete_array_type(tp)) {
-              /* During substitution, the Microsoft compiler transforms
-                 an lvalue reference to an incomplete array type to an
-                 lvalue reference to an array of size 1. */
+              /* During substitution in function template parameters, the
+                 Microsoft compiler transforms an lvalue reference to an
+                 incomplete array type to an lvalue reference to an array of
+                 size 1. */
               a_type_ptr	new_tp;
 #if CHECKING
               a_type_ptr	array_tp;
@@ -12362,6 +12364,7 @@ information.
                                   DSI_STORAGE_CLASS_SPECIFIER_ALLOWED;
 
   state->is_template_declaration = TRUE;
+  state->is_template_rescan = !is_initial_decl;
   state->prefix_attributes = scan_attributes(al_prefix);
   if (gpp_mode) {
     dsi_flags |= DSI_GNU_ATTRIBUTES_ALLOWED;

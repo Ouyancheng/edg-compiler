@@ -145,6 +145,7 @@ be restored).
     dps->in_class_scope = FALSE;
     dps->secondary_declarator = FALSE;
     dps->is_template_declaration = FALSE;
+    dps->is_template_rescan = FALSE;
     dps->is_trailing_return_type = FALSE;
     dps->is_type_name = FALSE;
     dps->is_alias_template_type = FALSE;
@@ -1223,18 +1224,19 @@ diagnostics.
            it can also be relaxed in default mode -- see
            DEFAULT_PTR_TO_UNKNOWN_BOUND_ARRAY_ALLOWED_IN_PARAM_TYPE and
            DEFAULT_REF_TO_UNKNOWN_BOUND_ARRAY_ALLOWED_IN_PARAM_TYPE.
-           In Microsoft mode, the check is also skipped for a reference to
-           array type that was produced through the (special) deduction from
-           a parameter of the form T&& (with T a template parameter. */
-        if (microsoft_mode && rvalue_references_enabled &&
-            !dps->is_old_style_param_decl &&
-            dps->assoc_func_decl_state->is_template_declaration &&
+           The check is also skipped for a reference to a array type during
+           instantiations in GNU C++ mode, and in Microsoft mode, if the
+           reference to array type was produced through the (special)
+           deduction from a parameter of the form T&& (with T a template
+           parameter). */
+        if (!dps->is_old_style_param_decl &&
+            dps->assoc_func_decl_state->is_template_rescan &&
             scope_stack[depth_scope_stack-1].function_partial_instantiation &&
-            is_special_rvalue_ref_generic_parameter_at_pos(
+            (gpp_mode ||
+             (microsoft_mode && rvalue_references_enabled &&
+              is_special_rvalue_ref_generic_parameter_at_pos(
                                 scope_stack[depth_scope_stack-1].template_sym,
-                                param_num)) {
-          /* In Microsoft mode, don't check an instantiated parameter that was
-             "T&&" in its generic form. */
+                                param_num)))) {
         } else {
           check_ptr_or_ref_to_unspecified_bound_array(dps->type, error_pos);
         }  /* if */
