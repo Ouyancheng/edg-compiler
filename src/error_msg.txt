@@ -2534,6 +2534,7 @@ ec_ud_string_suffix_mismatch;;"user-defined literal suffix does not match the ea
 ec_invalid_literal_operator_id;;"invalid literal operator name"
 ec_literal_operator_not_found;;"user-defined literal operator not found"
 ec_ambig_literal_operator;;"ambiguous literal operators and/or literal operator template:"
+ec_udl_cannot_be_class_member;;"a literal operator cannot be a member of a class"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

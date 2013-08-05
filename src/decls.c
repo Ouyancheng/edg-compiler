@@ -14157,9 +14157,10 @@ semicolon.
   decl_pos_block.declarator_range.end = end_pos_curr_token;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   loc = locator_for_curr_id;
-  if (loc.is_qualified_name || loc.is_operator_name) {
-    pos_error(loc.is_operator_name ? ec_operator_name_not_allowed
-                                   : ec_qualified_name_not_allowed,
+  if (loc.is_qualified_name || loc.is_operator_name ||
+      loc.is_udl_operator_name) {
+    pos_error(loc.is_qualified_name ? ec_qualified_name_not_allowed
+                                    : ec_operator_name_not_allowed,
               &pos_curr_token);
     set_to_error_locator(loc);
   }  /* if */

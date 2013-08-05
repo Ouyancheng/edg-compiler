@@ -12931,6 +12931,11 @@ implicitly declared member functions.
   if (!decl_info->is_constructor && !is_static_member) {
     adjust_constexpr_member_type_if_needed(decl_state);
   }  /* if */
+  if (locator->is_udl_operator_name) {
+    /* User-defined literal operators cannot be class members. */
+    pos_error(ec_udl_cannot_be_class_member, &locator->source_position);
+    set_to_error_locator(*locator);
+  }  /* if */
   remove_routine_typedef_if_needed(locator, decl_state, is_static_member);
   decl_state->is_definition = func_info->is_definition;
   rtsp = skip_typerefs(member_type)->variant.routine.extra_info;
@@ -13756,7 +13761,11 @@ decl_member_function, which handles in-class member function declarations.)
   is_static_member = dps->storage_class == (a_storage_class)sc_static;
   dps->is_definition = func_info->is_definition;
   if (!is_error_locator(*locator)) {
-    if (is_single_param_operator_new_or_delete(locator, member_type)) {
+    if (locator->is_udl_operator_name) {
+      /* User-defined literal operators cannot be class members. */
+      pos_error(ec_udl_cannot_be_class_member, &locator->source_position);
+      set_to_error_locator(*locator);
+    } else if (is_single_param_operator_new_or_delete(locator, member_type)) {
       /* Overloading should not be allowed on the single-argument version
          of operator new(size_t) or delete(void *). */
       pos_error(is_new_operator(locator->variant.opname) ?

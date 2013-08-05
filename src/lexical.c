@@ -14068,46 +14068,51 @@ token).
   a_boolean  result = FALSE;
 
   if (user_defined_literals_enabled) {
-    a_boolean  invalid = FALSE;
-    if (curr_token == tok_string_literal ||
-        curr_token == tok_ud_literal) {
+    an_error_code  err_code = ec_no_error;
+    if (curr_token == tok_string_literal || curr_token == tok_ud_literal) {
       /* Guard against something like operator u8"xx"S */
       if (const_for_curr_token.kind != (a_constant_repr_kind)ck_string ||
           const_for_curr_token.variant.string.length != 1 ||
           const_for_curr_token.variant.string.literal_kind !=
-                                                SCLK_ORDINARY_STRING_LITERAL) {
+                                               SCLK_ORDINARY_STRING_LITERAL) {
         /* If this is not a string literal of some sort, or the string is not
            empty, or the string has a prefix, the operator name is invalid. */
-        invalid = TRUE;
+        err_code = ec_invalid_literal_operator_id;
       } else if (curr_token == tok_string_literal) {
-        /* Make sure the next token is an identifier and, if so, set up
+        /* Make sure the next token is a plain identifier and, if so, set up
            locator_for_curr_id for the operator name. */
-        if (get_token() != tok_identifier ||
+        (void)get_token();
+        if (curr_token != tok_identifier ||
             locator_for_curr_id.is_qualified_name ||
             locator_for_curr_id.is_operator_name ||
             locator_for_curr_id.is_conversion_name ||
             locator_for_curr_id.is_destructor_name ||
-            locator_for_curr_id.is_udl_operator_name
 #if MICROSOFT_EXTENSIONS_ALLOWED
-            || locator_for_curr_id.is_finalizer_name
+            locator_for_curr_id.is_finalizer_name ||
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-                                                    ) {
-          invalid = TRUE;
+            locator_for_curr_id.is_udl_operator_name) {
+          err_code = ec_invalid_literal_operator_id;
         } else {
           make_literal_opname_locator(
-                          locator_for_curr_id.symbol_header->identifier,
-                          locator_for_curr_id.symbol_header->identifier_length,
-                          &locator_for_curr_id, &pos_curr_token);
+                         locator_for_curr_id.symbol_header->identifier,
+                         locator_for_curr_id.symbol_header->identifier_length,
+                         &locator_for_curr_id, &pos_curr_token);
         }  /* if */
       }  /* if */
-      result = !invalid;
+      if (err_code == ec_no_error) {
+        if (is_class_member) {
+          err_code = ec_udl_cannot_be_class_member;
+        } else {
+          result = TRUE;
+        }  /* if */
+      }  /* if */
     }  /* if */
     if (result) {
       curr_token = tok_identifier;
       locator_for_curr_id.is_udl_operator_name = TRUE;
-    } else if (invalid) {
+    } else if (err_code != ec_no_error) {
       curr_token = tok_identifier;
-      pos_error(ec_invalid_literal_operator_id, &pos_curr_token);
+      pos_error(err_code, &pos_curr_token);
       set_to_error_locator(locator_for_curr_id);
       result = TRUE;
     }  /* if */

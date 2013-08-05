@@ -5815,6 +5815,12 @@ declared entity is known to not be a function.
       /* Avoid error recovery problems later. */
       locator->is_conversion_name = TRUE;
     }  /* if */
+  } else if (locator->is_udl_operator_name) {
+    if (input_flags & DI_IS_TYPEDEF_DECLARATION) {
+      /* "typedef int operator ""X(char*);" is not allowed either. */
+      pos_error(ec_operator_name_not_allowed, &locator->source_position);
+      set_to_error_locator(*locator);
+    }  /* if */
   }  /* if */
   scan_id_attributes(dps);
   db_exit();
@@ -7034,7 +7040,8 @@ function_lparen:
     check_assertion(complete_type != NULL);
     if (!is_function_type(complete_type)) {
       if (locator != NULL &&
-          (locator->is_operator_name || locator->is_conversion_name)) {
+          (locator->is_operator_name || locator->is_conversion_name ||
+           locator->is_udl_operator_name)) {
         /* A declaration of an operator must have a function type. */
         pos_error(ec_function_type_required, &locator->source_position);
         set_to_error_locator(*locator);
