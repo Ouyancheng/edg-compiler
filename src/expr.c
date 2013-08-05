@@ -28482,34 +28482,108 @@ to the safe_cast keyword and return TRUE.
 
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
-static void scan_ud_literal(an_operand *result)
+static a_boolean make_func_operand_for_literal_operator_call(
+                                                          an_operand  *result)
 /*
-Scan a user-defined literal and return an operand for it in *operand.
+The current token is a user-defined literal.  Create a function operand for
+the function call implied by that literal.  In error cases return FALSE and
+issue an error; otherwise, return TRUE.
 */
 {
-  error_position = pos_curr_token;
+  a_boolean  okay = FALSE;
+
   if (ud_lit_op_sym_for_curr_token == NULL) {
     /* No literal operators or literal operator template has been declared
        for the specified ud-suffix.  Report an error. */
-    error_and_make_error_operand(ec_literal_operator_not_found, result);
+    pos_error(ec_literal_operator_not_found, &pos_curr_token);
   } else if (symbol_is(ud_lit_op_sym_for_curr_token, sk_overloaded_function)) {
-    /* There are ambiguous literal operators and/or literal operator
-       template.  Report the error. */
-    a_symbol_ptr sym;
+    /* The set of matching literal operators (including possibly a template)
+       results in an ambiguity: Report the error. */
+    a_symbol_ptr sym = ud_lit_op_sym_for_curr_token
+                                        ->variant.overloaded_function.symbols;
     pos_start_error(ec_ambig_literal_operator, &pos_curr_token);
-    for (sym =
-             ud_lit_op_sym_for_curr_token->variant.overloaded_function.symbols;
-         sym != NULL; sym = sym->next) {
+    for (; sym != NULL; sym = sym->next) {
       a_symbol_ptr op_sym = sym;
       reduce_projection_symbol_to_fundamental_symbol(op_sym);
       sym_add_diag_info(ec_ambiguous_function_add_on, op_sym);
     }
     end_error();
     make_error_operand(result);
+  } else if (symbol_is(ud_lit_op_sym_for_curr_token, sk_routine)) {
+    a_source_position  end_pos;
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+    end_pos = end_pos_curr_token;
+#else /* !EXTRA_SOURCE_POSITIONS_IN_IL */
+    end_pos = null_source_position;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+    make_function_designator_operand(ud_lit_op_sym_for_curr_token,
+                                     /*is_qualified_name=*/FALSE,
+                                     /*compiler_generated=*/TRUE,
+                                     &pos_curr_token,
+                                     &end_pos,
+                                     (a_ref_entry_ptr)NULL,
+                                     result);
+    /* Do standard transformations on the operand. */
+    { a_transformation_options_set options =
+                               TOPT_WILL_CALL |
+                               TOPT_SUPPRESS_LVALUE_TO_RVALUE_CONVERSION |
+                               TOPT_SUPPRESS_CHECK_FOR_INDEFINITE_FUNCTION;
+      do_operand_transformations(result, options);
+    }
+
+    okay = TRUE;
+  } else if (symbol_is(ud_lit_op_sym_for_curr_token, sk_function_template)) {
   } else {
-    /* FIXME */
-    error_and_make_error_operand(ec_exp_primary_expr, result);
-  }
+    unexpected_condition();
+  }  /* if */
+  return okay;
+}  /* make_func_operand_for_literal_operator_call */
+
+
+static an_expr_node_ptr make_implicit_operands_for_literal_operator_call(void)
+/*
+FIXME
+*/
+{
+  an_expr_node_ptr  arg_list;
+
+  if (symbol_is(ud_lit_op_sym_for_curr_token, sk_routine)) {
+    arg_list = alloc_node_for_constant(&const_for_curr_token);
+    /* FIXME: Raw literal operator. */
+  } else if (symbol_is(ud_lit_op_sym_for_curr_token, sk_function_template)) {
+    arg_list = NULL;
+  } else {
+    unexpected_condition();
+  }  /* if */
+  return arg_list;
+}  /* make_implicit_operands_for_literal_operator_call */
+
+
+static void scan_ud_literal(an_operand *result)
+/*
+Scan a user-defined literal and return an operand for it in *operand.
+*/
+{
+  an_operand  func_operand;
+
+  error_position = pos_curr_token;
+    if (make_func_operand_for_literal_operator_call(&func_operand)) {
+      an_expr_node_ptr   arg_list;
+      arg_list = make_implicit_operands_for_literal_operator_call();
+      assemble_function_call(&func_operand, 
+                             /*bound_function_selector=*/(an_operand*)NULL, 
+                             arg_list,
+                             /*compiler_generated=*/TRUE,
+                             /*arg_dep_lookup_suppressed=*/FALSE,
+                             /*is_qualified_name=*/FALSE,
+                             /*found_through_adl=*/FALSE,
+                             /*uses_operator_syntax=*/TRUE,
+                             &pos_curr_token,
+                             result,
+                             /*function_call_node=*/(an_expr_node_ptr*)NULL);
+  } else {
+    make_error_operand(result);
+  }  /* if */
   /* Skip over user-defined literal token. */
   (void)get_token();
 }  /* scan_ud_literal */
