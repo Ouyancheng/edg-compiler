@@ -386,7 +386,7 @@ diagnostic which is now fixed.  For example (with --microsoft --c99):
 
 
 7/19/13  [EDGcpfe/14300]
-GNU C compatibility: __builtin_constant_p and const variables
+GNU compatibility: __builtin_constant_p and const variables
 
 In GNU C mode with gnu_version < 40500 and in GNU C++ mode with
 gnu_version >= 40600, and when gcc_const_variables_allowed is TRUE (see the
