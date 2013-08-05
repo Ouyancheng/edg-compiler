@@ -5243,6 +5243,7 @@ underlying element type and the array type itself is returned through
                                          (a_decl_pos_block *)NULL);
       if (is_error_type(orig_type)) {
         /* An error has been issued. */
+        init_type = error_type();
         goto scan_paren;
       }  /* if */
     }  /* if */
