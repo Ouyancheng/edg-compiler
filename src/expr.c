@@ -28567,20 +28567,21 @@ Scan a user-defined literal and return an operand for it in *operand.
   an_operand  func_operand;
 
   error_position = pos_curr_token;
-    if (make_func_operand_for_literal_operator_call(&func_operand)) {
-      an_expr_node_ptr   arg_list;
-      arg_list = make_implicit_operands_for_literal_operator_call();
-      assemble_function_call(&func_operand, 
-                             /*bound_function_selector=*/(an_operand*)NULL, 
-                             arg_list,
-                             /*compiler_generated=*/TRUE,
-                             /*arg_dep_lookup_suppressed=*/FALSE,
-                             /*is_qualified_name=*/FALSE,
-                             /*found_through_adl=*/FALSE,
-                             /*uses_operator_syntax=*/TRUE,
-                             &pos_curr_token,
-                             result,
-                             /*function_call_node=*/(an_expr_node_ptr*)NULL);
+  if (make_func_operand_for_literal_operator_call(&func_operand)) {
+    an_expr_node_ptr   arg_list;
+    arg_list = make_implicit_operands_for_literal_operator_call();
+    check_assertion(!func_operand.bound_function);
+    assemble_function_call(&func_operand, 
+                           /*bound_function_selector=*/(an_operand*)NULL, 
+                           arg_list,
+                           /*compiler_generated=*/TRUE,
+                           /*arg_dep_lookup_suppressed=*/FALSE,
+                           /*is_qualified_name=*/FALSE,
+                           /*found_through_adl=*/FALSE,
+                           /*uses_operator_syntax=*/TRUE,
+                           &pos_curr_token,
+                           result,
+                           /*function_call_node=*/(an_expr_node_ptr*)NULL);
   } else {
     make_error_operand(result);
   }  /* if */
