@@ -1813,7 +1813,8 @@ enum a_token_extra_info_kind_tag {
   /* Kind of additional information saved in a cached token entry. */
   teik_none,		/* No extra information, i.e., normal token. */
   teik_identifier,	/* Extra information for an identifier. */
-  teik_constant,	/* Extra information for a literal constant. */
+  teik_constant,	/* Extra information for a literal constant or
+			   user-defined literal. */
   teik_pragma,		/* Extra information for a pragma. */
   teik_pp_token,        /* Extra information for a pp token. */
   teik_extracted_body,  /* Extra information for an extracted template body. */
@@ -1862,6 +1863,11 @@ typedef struct a_cached_token {
 			   a token from a reusable cache is later placed in
 			   a non-reusable one, this still refers to the
 			   entry in the reusable cache. */
+  a_symbol_ptr	ud_lit_op_sym;
+			/* For user-defined literal tokens (tok_ud_literal),
+			   the literal operator or literal operator template
+			   selected to produce the value of the literal;
+			   otherwise, NULL. */
   union {
     /* When extra_info_kind == teik_normal, no variant fields. */
     /* When extra_info_kind == teik_identifier: */
@@ -1872,7 +1878,13 @@ typedef struct a_cached_token {
     a_constant_ptr
 		constant;
 			/* Pointer to a constant entry (in front end storage)
-			   giving the value for the literal constant. */
+			   giving the value for the literal constant.  For
+			   tok_ud_literal tokens, this is the value to be
+			   passed as the first argument to the literal
+			   operator designated by ud_lit_op_sym or the
+			   ck_string containing the characters of the token
+			   spelling with which the literal operator template
+			   is to be instantiated. */
     /* When extra_info_kind == teik_pragma: */
     struct a_pending_pragma
 		*pragmas;

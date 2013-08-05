@@ -1390,14 +1390,21 @@ This is used to save tokens for later rescanning.
   } else if (curr_token == tok_microsoft_asm) {
     ctp->extra_info_kind = (a_token_extra_info_kind)teik_asm_string;
     ctp->variant.asm_string = curr_token_asm_string;
-  } else if (is_literal_constant_token(curr_token)) {
-    /* Literal constant -- save the constant's value. */
+  } else if (is_literal_constant_token(curr_token) ||
+             curr_token == tok_ud_literal) {
+    /* Literal constant or user-defined literal -- save the constant's
+       value. */
     ctp->extra_info_kind = (a_token_extra_info_kind)teik_constant;
     ctp->variant.constant = alloc_cached_constant();
     /* Copy the constant.  Note that anything pointed to by the constant
        (e.g., a string) has been allocated in the file scope and doesn't
        need to be copied. */
     copy_constant(&const_for_curr_token, ctp->variant.constant);
+    if (curr_token == tok_ud_literal) {
+      /* Save the symbol for the associated literal operator or literal
+         operator template. */
+      ctp->ud_lit_op_sym = ud_lit_op_sym_for_curr_token;
+    }  /* if */
   } else {
     /* No extra information needed for this token. */
     ctp->extra_info_kind = (a_token_extra_info_kind)teik_none;
@@ -2329,6 +2336,11 @@ an equivalent change.
   } else if (ctp->extra_info_kind == (a_token_extra_info_kind)teik_constant) {
     /* For a literal constant, restore const_for_curr_token. */
     copy_constant(ctp->variant.constant, &const_for_curr_token);
+    if (ctoken == tok_ud_literal) {
+      /* Restore the symbol designating the associated literal operator or
+         literal operator template. */
+      ud_lit_op_sym_for_curr_token = ctp->ud_lit_op_sym;
+    }  /* if */
   }  /* if */
   free_cached_token(ctp);
   if (cached_token_rescan_list == NULL) {
@@ -2434,6 +2446,11 @@ an equivalent change.
   } else if (ctp->extra_info_kind == (a_token_extra_info_kind)teik_constant) {
     /* For a literal constant, restore const_for_curr_token. */
     copy_constant(ctp->variant.constant, &const_for_curr_token);
+    if (ctoken == tok_ud_literal) {
+      /* Restore the symbol designating the associated literal operator or
+         literal operator template. */
+      ud_lit_op_sym_for_curr_token = ctp->ud_lit_op_sym;
+    }  /* if */
   }  /* if */
   /* Check whether we have reached the end of this cache. */
   while ((reusable_cache_stack->next_cached_token == NULL ||
@@ -19559,6 +19576,7 @@ of characters added.
              token == tok_float_constant ||
              token == tok_string_literal ||
              token == tok_char_constant ||
+             token == tok_ud_literal ||
              is_microsoft_tok_uuid(token)) {
     a_constant_ptr	constant = ctp->variant.constant;
     /* Write out a string that represents the constant. */
@@ -19568,7 +19586,42 @@ of characters added.
          "<error-const>" will be put out in the template string. */
       octl.gen_compilable_code = FALSE;
     }  /* if */
-    form_constant(constant, /*need_parens=*/TRUE, &octl);
+    if (token == tok_ud_literal) {
+      /* Put out a user-defined literal. */
+      a_boolean    use_token_spelling = FALSE;
+      a_symbol_ptr ud_lit_op_sym = ctp->ud_lit_op_sym;
+      if (symbol_is(ud_lit_op_sym, sk_function_template)) {
+        /* The literal is associated with a literal operator template, so
+           the constant contains the spelling of the literal. */
+        use_token_spelling = TRUE;
+      } else if (symbol_is(ud_lit_op_sym, sk_routine)) {
+        a_routine_ptr rout;
+        rout = ud_lit_op_sym->variant.routine.ptr;
+        if (rout->is_raw_literal_operator) {
+          /* The literal is associated with a raw literal operator, so the
+             constant contains the spelling of the literal. */
+          use_token_spelling = TRUE;
+        }  /* if */
+      }  /* if */
+      if (use_token_spelling) {
+        /* The constant is a ck_string whose value is the exact spelling of
+           the literal. */
+        check_assertion(constant->kind == (a_constant_repr_kind)ck_string);
+        put_str_of_length_to_temp_text_buffer(
+                                    constant->variant.string.value,
+                                    (sizeof_t)constant->variant.string.length);
+      } else {
+        /* The constant should just be put out as normal. */
+        form_constant(constant, /*need_parent=*/FALSE, &octl);
+      }  /* if */
+      /* Now put out the ud-suffix, which can be obtained from the name of
+         the literal operator. */
+      put_str_to_temp_text_buffer(ud_suffix_from_literal_operator_id(
+                                           ud_lit_op_sym->header->identifier));
+    } else {
+      /* Just put out the constant. */
+      form_constant(constant, /*need_parens=*/TRUE, &octl);
+    }  /* if */
     /* Reset the flag, in case it had been changed. */
     octl.gen_compilable_code = TRUE;
 #if CHECKING
@@ -20255,6 +20308,8 @@ Display the contents of a token cache.
           fprintf(f_debug, "  Pragma: %s\n",
                                      pragma_ids[(int)ppp->descr_ptr->kind]);
         }  /* for */
+      } else if (ctp->ud_lit_op_sym != NULL) {
+        db_symbol(ctp->ud_lit_op_sym, "  Literal operator: ", 4);
       }  /* if */
     }  /* for */
   }  /* if */

@@ -731,6 +731,9 @@ expand temp_text_buffer by reallocating it.
   }  /* if */                                                          \
 }  /* ensure_temp_text_buffer_space */
 
+extern void put_str_of_length_to_temp_text_buffer(a_const_char *str,
+                                                  sizeof_t     len);
+
 extern void put_str_to_temp_text_buffer(a_const_char *str);
 
 extern void put_str_to_temp_text_buffer_octl(
