@@ -2532,6 +2532,8 @@ ec_bad_user_defined_suffix;;"non-identifier character in user-defined literal su
 ec_multichar_ud_lit;;"a multicharacter literal cannot be part of a user-defined literal"
 ec_ud_string_suffix_mismatch;;"user-defined literal suffix does not match the earlier %sq"
 ec_invalid_literal_operator_id;;"invalid literal operator name"
+ec_literal_operator_not_found;;"user-defined literal operator not found"
+ec_ambig_literal_operator;;"ambiguous literal operators and/or literal operator template:"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

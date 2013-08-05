@@ -28482,6 +28482,39 @@ to the safe_cast keyword and return TRUE.
 
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
+static void scan_ud_literal(an_operand *result)
+/*
+Scan a user-defined literal and return an operand for it in *operand.
+*/
+{
+  error_position = pos_curr_token;
+  if (ud_lit_op_sym_for_curr_token == NULL) {
+    /* No literal operators or literal operator template has been declared
+       for the specified ud-suffix.  Report an error. */
+    error_and_make_error_operand(ec_literal_operator_not_found, result);
+  } else if (symbol_is(ud_lit_op_sym_for_curr_token, sk_overloaded_function)) {
+    /* There are ambiguous literal operators and/or literal operator
+       template.  Report the error. */
+    a_symbol_ptr sym;
+    pos_start_error(ec_ambig_literal_operator, &pos_curr_token);
+    for (sym =
+             ud_lit_op_sym_for_curr_token->variant.overloaded_function.symbols;
+         sym != NULL; sym = sym->next) {
+      a_symbol_ptr op_sym = sym;
+      reduce_projection_symbol_to_fundamental_symbol(op_sym);
+      sym_add_diag_info(ec_ambiguous_function_add_on, op_sym);
+    }
+    end_error();
+    make_error_operand(result);
+  } else {
+    /* FIXME */
+    error_and_make_error_operand(ec_exp_primary_expr, result);
+  }
+  /* Skip over user-defined literal token. */
+  (void)get_token();
+}  /* scan_ud_literal */
+
+
 static void scan_expr_full(an_operand               *result,
                            an_operand               *bound_function_selector,
                            int                      prec_level,
@@ -29312,6 +29345,11 @@ type_start:
     case tok_lbracket:
       if (!lambdas_enabled) goto bad_start_of_primary;
       scan_lambda_expression(&local_result);
+      break;
+
+    case tok_ud_literal:
+      check_assertion(user_defined_literals_enabled);
+      scan_ud_literal(&local_result);
       break;
 
     default:
