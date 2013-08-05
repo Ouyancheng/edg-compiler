@@ -5491,6 +5491,10 @@ underlying element type and the array type itself is returned through
     if (template_param_init &&
         init_type->kind == (a_type_kind)tk_template_param) {
       init_type = proxy_class_for_template_param(init_type);
+    } else if (is_decltype && !is_class_struct_union_type(init_type)) {
+      /* The decltype doesn't refer to a class. */
+      pos_ty_error(ec_decltype_is_not_base_class, &pos, class_type);
+      goto scan_paren;
     }  /* if */
     if (is_qualified_type(init_type)) {
       bcp = NULL;
