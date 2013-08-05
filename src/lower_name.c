@@ -665,7 +665,8 @@ routine is not a literal operator routine.
   ((rp)->special_kind == (a_special_function_kind)sfk_udl_operator ?          \
     (unmangled_name_of(&(rp)->source_corresp) == NULL ?                       \
                              NULL :                                           \
-                             unmangled_name_of(&(rp)->source_corresp) + 12) : \
+                             ud_suffix_from_literal_operator_id(              \
+                                 unmangled_name_of(&(rp)->source_corresp))) : \
     NULL)
 
 static void clear_mangling_control_block(a_mangling_control_block_ptr mctl)
@@ -10169,7 +10170,7 @@ literal.
         break;
       case sfk_udl_operator:
         /* A literal operator (i.e., operator "") for user-defined literals. */
-        check_assertion(ud_suffix != NULL /* FIXME: && *ud_suffix != '\0' */);
+        check_assertion(ud_suffix != NULL && *ud_suffix != '\0');
         name = MANGLING_STRING_FOR_LITERAL_OPERATORS;
         /* The user-defined suffix for the literal operator is emitted
            below. */
@@ -10195,7 +10196,7 @@ literal.
     mangled_encoding_for_type(conversion_type, mctl);
   } else if (special_kind == (a_special_function_kind)sfk_udl_operator) {
     /* For a literal operator, add the ud-suffix to the mangled name. */
-    add_str_to_mangled_name(ud_suffix, mctl);
+    mangled_name_with_length(ud_suffix, mctl);
   }  /* if */
 }  /* mangled_function_base_name */
 
