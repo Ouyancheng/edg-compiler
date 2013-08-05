@@ -7088,7 +7088,7 @@ Traverse the list of alias fixups and set the alias fields as needed.
       if (aliased_sym == NULL) {
         /* Normal symbol lookup failed to find a suitable symbol; look
            on the other_symbols list for routines/variables that may have been
-           implicitly declared in scopes that have since been popped.  E.g.,
+           implicitly declared in scopes that have since been popped, e.g.,
               int main() {
                 old();
               }
