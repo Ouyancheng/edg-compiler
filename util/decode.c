@@ -1981,6 +1981,16 @@ by the caller).
   if (s != NULL) {
     /* Make sure we took the whole name and nothing more. */
     end_ptr = ptr + len;
+    if (ud_suffix_follows) {
+      /* If a ud-suffix follows, make sure its length is accounted for.
+         Note that prev_end is restored here as this is just speculative
+         look ahead. */
+      unsigned long  num;
+      a_const_char   *prev_end;
+      end_ptr = get_length(end_ptr, &num, &prev_end, dctl);
+      end_ptr = end_ptr + num;
+      dctl->end_of_name = prev_end;
+    }  /* if */
     if (get_char(end_ptr, dctl) == '\0' ||
         (get_char(end_ptr, dctl) == '_' && get_char(end_ptr+1, dctl) == '_')) {
       /* Okay. */
