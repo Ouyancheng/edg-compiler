@@ -28548,28 +28548,26 @@ FIXME
   an_expr_node_ptr  arg_list;
 
   if (symbol_is(ud_lit_op_sym_for_curr_token, sk_routine)) {
-    a_routine_ptr  rp = ud_lit_op_sym_for_curr_token->variant.routine.ptr;
-    if (rp->is_raw_literal_operator) {
-      check_assertion(const_for_curr_token.kind !=
-                                             (a_constant_repr_kind)ck_string);
-      /* FIXME: Raw literal operator. */
-    } else {
-      arg_list = alloc_node_for_constant(&const_for_curr_token);
-      if (const_for_curr_token.kind == (a_constant_repr_kind)ck_string) {
-        /* For user-defined string literal operators, the number of code units
-           (not including the terminating null character) is passed as a second
-           argument to the literal operator. */
-        an_operand     length_op;
-        a_character_kind  char_kind = const_for_curr_token.character_kind;
-        a_targ_size_t     length = const_for_curr_token.variant.string.length,
-                          char_size = character_size[char_kind];
-        /* Adjust the length for the character size and the terminating null
-           character. */
-        length = (length/char_size)-1;
-        make_integer_constant_operand(&length_op, 
-                                      (a_host_large_integer)length);
-        arg_list->next = alloc_node_for_constant_operand(&length_op);
-      }  /* if */
+    /* The user-defined literal results in a call to an ordinary (i.e.,
+       non-template) literal operator.  const_for_curr_token already has
+       the constant to be passed to the literal operator. */
+    arg_list = alloc_node_for_constant(&const_for_curr_token);
+    if (const_for_curr_token.kind == (a_constant_repr_kind)ck_string &&
+        !ud_lit_op_sym_for_curr_token->variant.routine.ptr
+                                     ->is_raw_literal_operator) {
+      /* For user-defined string literal operators (note that there cannot be
+         a raw version of those), the number of code units (not including the
+         terminating null character) is passed as a second argument to the
+         literal operator. */
+      an_operand        length_op;
+      a_character_kind  char_kind = const_for_curr_token.character_kind;
+      a_targ_size_t     length = const_for_curr_token.variant.string.length,
+                        char_size = character_size[char_kind];
+      /* Adjust the length for the character size and the terminating null
+         character. */
+      length = (length/char_size)-1;
+      make_integer_constant_operand(&length_op, (a_host_large_integer)length);
+      arg_list->next = alloc_node_for_constant_operand(&length_op);
     }  /* if */
   } else if (symbol_is(ud_lit_op_sym_for_curr_token, sk_function_template)) {
     /* FIXME : literal operator template. */
