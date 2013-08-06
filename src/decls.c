@@ -7498,7 +7498,8 @@ needed.
   } else if (ptp == NULL) {
     pos_error(ec_no_parameter_for_literal_operator, &loc->source_position);
   } else if (is_plain_pointer_type(ptp->type)) {
-    a_type_ptr  tp = type_pointed_to(ptp->type);
+    a_type_ptr  tp = type_pointed_to(ptp->type),
+                size_t_type = integer_type(targ_size_t_int_kind);
     if (get_type_qualifiers(tp) != TQ_CONST) {
       pos_ty_error(ec_pointer_to_nonconst_for_literal_operator,
                    &loc->source_position, skip_typerefs(ptp->type));
@@ -7513,8 +7514,7 @@ needed.
     } else if (ptp->next->next != NULL) {
       pos_error(ec_too_many_parameters_for_literal_operator,
                 &loc->source_position);
-    } else if (!identical_types(ptp->next->type,
-                                integer_type(targ_size_t_int_kind))) {
+    } else if (!identical_types(ptp->next->type, size_t_type)) {
       pos_ty_error(ec_invalid_second_parameter_type_for_literal_operator,
                    &loc->source_position, skip_typerefs(ptp->next->type));
     } else {
@@ -7533,7 +7533,7 @@ needed.
               &loc->source_position);
   } else {
     a_type_ptr  tp = skip_typerefs(ptp->type);
-    if (tp->kind == tk_integer) {
+    if (tp->kind == (a_type_kind)tk_integer) {
       if (tp->variant.integer.enum_type) {
         pos_ty_error(ec_invalid_parameter_type_for_literal_operator,
                      &loc->source_position, tp);
@@ -7546,7 +7546,7 @@ needed.
         pos_ty_error(ec_invalid_integer_parameter_for_literal_operator,
                      &loc->source_position, tp);
       }  /* if */
-    } else if (tp->kind == tk_float) {
+    } else if (tp->kind == (a_type_kind)tk_float) {
       if (tp->variant.float_kind != (a_float_kind)fk_long_double) {
         pos_ty_error(ec_invalid_float_parameter_for_literal_operator,
                      &loc->source_position, tp);
