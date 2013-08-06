@@ -14340,16 +14340,20 @@ literal-operator-id.
       if (symbol_is(sym, sk_namespace_projection)) {
         sym = sym->variant.namespace_projection.fundamental_symbol;
       }  /* if */
-      if (symbol_is(sym, sk_function_template) && allow_raw_and_template) {
-        /* This is a literal operator template, and the current literal is
-           of a kind for which a literal operator template is a possible
-           match.  Make a note of it and continue the scan. */
-        if (operator_template != NULL) {
-          /* We already saw a literal operator template.  Remember that for
-             possible later handling. */
-          ambiguous_operator_template = TRUE;
+      if (symbol_is(sym, sk_function_template)) {
+        if (!allow_raw_and_template) {
+          /* Ignore the symbol. */
+        } else {
+          /* This is a literal operator template, and the current literal
+             is of a kind for which a literal operator template is a
+             possible match.  Make a note of it and continue the scan. */
+          if (operator_template != NULL) {
+            /* We already saw a literal operator template.  Remember that
+               for possible later handling. */
+            ambiguous_operator_template = TRUE;
+          }  /* if */
+          operator_template = sym;
         }  /* if */
-        operator_template = sym;
       } else {
         /* This is a function.  Get its parameter list and check it against
            the required parameter type(s). */

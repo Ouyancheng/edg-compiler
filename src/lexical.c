@@ -980,13 +980,15 @@ by the caller (including token, source_position, and extra_info_kind).
     ctp = (a_cached_token_ptr)alloc_fe(sizeof(a_cached_token));         \
     incr_num_cached_tokens_allocated();                                 \
   }  /* if */                                                           \
-  ctp->token_handle = NO_CACHED_TOKEN_HANDLE;				\
+  ctp->token_handle = NO_CACHED_TOKEN_HANDLE;                           \
   ctp->next = NULL;                                                     \
-  ctp->extra_info_kind = (a_token_extra_info_kind)teik_none;		\
-  ctp->token = (a_small_token_kind)tok_error;				\
-  ctp->token_sequence_number = NO_TOKEN_SEQUENCE_NUMBER;		\
-  ctp->ending_token_sequence_number = NO_TOKEN_SEQUENCE_NUMBER;		\
-  ctp->token_handle = NO_CACHED_TOKEN_HANDLE;				\
+  ctp->extra_info_kind = (a_token_extra_info_kind)teik_none;            \
+  ctp->token = (a_small_token_kind)tok_error;                           \
+  ctp->token_sequence_number = NO_TOKEN_SEQUENCE_NUMBER;                \
+  ctp->ending_token_sequence_number = NO_TOKEN_SEQUENCE_NUMBER;         \
+  ctp->token_handle = NO_CACHED_TOKEN_HANDLE;                           \
+  ctp->ud_lit_op_sym = NULL;                                            \
+  ctp->ud_suffix = NULL;                                                \
 }  /* alloc_cached_token */
 
 
@@ -1402,8 +1404,10 @@ This is used to save tokens for later rescanning.
     copy_constant(&const_for_curr_token, ctp->variant.constant);
     if (curr_token == tok_ud_literal) {
       /* Save the symbol for the associated literal operator or literal
-         operator template. */
+         operator template and the ud_suffix spelling. */
       ctp->ud_lit_op_sym = ud_lit_op_sym_for_curr_token;
+      ctp->ud_suffix = ud_suffix_from_literal_operator_id(
+                                locator_for_curr_id.symbol_header->identifier);
     }  /* if */
   } else {
     /* No extra information needed for this token. */
@@ -19592,7 +19596,9 @@ of characters added.
       /* Put out a user-defined literal. */
       a_boolean    use_token_spelling = FALSE;
       a_symbol_ptr ud_lit_op_sym = ctp->ud_lit_op_sym;
-      if (symbol_is(ud_lit_op_sym, sk_function_template)) {
+      if (ud_lit_op_sym == NULL) {
+        /* The associated symbol was not known when the token was cached. */
+      } else if (symbol_is(ud_lit_op_sym, sk_function_template)) {
         /* The literal is associated with a literal operator template, so
            the constant contains the spelling of the literal. */
         use_token_spelling = TRUE;
@@ -19616,8 +19622,7 @@ of characters added.
       }  /* if */
       /* Now put out the ud-suffix, which can be obtained from the name of
          the literal operator. */
-      put_str_to_temp_text_buffer(ud_suffix_from_literal_operator_id(
-                                           ud_lit_op_sym->header->identifier));
+      put_str_to_temp_text_buffer(ctp->ud_suffix);
     } else {
       /* Just put out the constant. */
       form_constant(constant, /*need_parens=*/TRUE, &octl);
@@ -20310,6 +20315,8 @@ Display the contents of a token cache.
         }  /* for */
       } else if (ctp->ud_lit_op_sym != NULL) {
         db_symbol(ctp->ud_lit_op_sym, "  Literal operator: ", 4);
+      } else if (ctp->ud_suffix != NULL) {
+        fprintf(f_debug, "  Literal operator suffix: %s\n", ctp->ud_suffix);
       }  /* if */
     }  /* for */
   }  /* if */

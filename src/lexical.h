@@ -1866,8 +1866,17 @@ typedef struct a_cached_token {
   a_symbol_ptr	ud_lit_op_sym;
 			/* For user-defined literal tokens (tok_ud_literal),
 			   the literal operator or literal operator template
-			   selected to produce the value of the literal;
-			   otherwise, NULL. */
+			   selected to produce the value of the literal, if
+			   any; otherwise, NULL. */
+  a_const_char	*ud_suffix;
+			/* For user-defined literal tokens (tok_ud_literal),
+			   the identifier portion of the literal operator
+			   or literal operator template name (this is needed
+			   when a user-defined literal is used to declare
+			   the first literal operator or literal operator
+			   template with that name and thus there is no
+			   existing symbol for ud_lit_op_sym).  NULL for
+			   tokens other than tok_ud_literal. */
   union {
     /* When extra_info_kind == teik_normal, no variant fields. */
     /* When extra_info_kind == teik_identifier: */
