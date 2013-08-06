@@ -28486,11 +28486,12 @@ static a_boolean make_func_operand_for_literal_operator_call(
                                                           an_operand  *result)
 /*
 The current token is a user-defined literal.  Create a function operand for
-the function call implied by that literal.  In error cases return FALSE and
+the function call implied by that literal (which may involve partially
+instantiating a literal operator template).  In error cases return FALSE and
 issue an error; otherwise, return TRUE.
 */
 {
-  a_boolean  okay = FALSE;
+  a_symbol_ptr  op_sym = NULL;
 
   if (ud_lit_op_sym_for_curr_token == NULL) {
     /* No literal operators or literal operator template has been declared
@@ -28510,13 +28511,49 @@ issue an error; otherwise, return TRUE.
     end_error();
     make_error_operand(result);
   } else if (symbol_is(ud_lit_op_sym_for_curr_token, sk_routine)) {
+    /* An ordinary (i.e., non-template) literal operator.  Use the operator
+       symbol directly. */
+    op_sym = ud_lit_op_sym_for_curr_token;
+  } else if (symbol_is(ud_lit_op_sym_for_curr_token, sk_function_template)) {
+    /* A literal operator template: Create a list of template arguments from
+       the string in const_for_curr_token, and use the corresponding instance
+       as the symbol to call. */
+    a_template_arg_ptr  templ_arg_list = NULL, tap;
+    a_constant_ptr      char_con, next_char_con;
+    check_assertion(const_for_curr_token.kind ==
+                                             (a_constant_repr_kind)ck_string);
+    /* The template argument list corresponds to a pack expansion. */
+    templ_arg_list =
+            alloc_template_arg((a_templ_arg_kind)tak_start_of_pack_expansion);
+    tap = templ_arg_list;
+    /* Turn const_for_curr_token into a ck_aggregate constant with a constant
+       for every character. */
+    explode_string_initializer(&const_for_curr_token);
+    char_con = const_for_curr_token.variant.aggregate.first_constant;
+    while (char_con != NULL) {
+      tap->next = alloc_template_arg((a_templ_arg_kind)tak_nontype);
+      tap = tap->next;
+      tap->is_pack_element = TRUE;
+      tap->variant.constant = char_con;
+      next_char_con = char_con->next;
+      char_con->next = NULL;
+      char_con = next_char_con;
+    }  /* while */
+    op_sym = find_template_function(ud_lit_op_sym_for_curr_token,
+                                    &templ_arg_list,
+                                    /*explicit_arg_list_present=*/TRUE,
+                                    &pos_curr_token);
+  } else {
+    unexpected_condition();
+  }  /* if */
+  if (op_sym != NULL) {
     a_source_position  end_pos;
 #if EXTRA_SOURCE_POSITIONS_IN_IL
     end_pos = end_pos_curr_token;
 #else /* !EXTRA_SOURCE_POSITIONS_IN_IL */
     end_pos = null_source_position;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
-    make_function_designator_operand(ud_lit_op_sym_for_curr_token,
+    make_function_designator_operand(op_sym,
                                      /*is_qualified_name=*/FALSE,
                                      /*compiler_generated=*/TRUE,
                                      &pos_curr_token,
@@ -28530,19 +28567,17 @@ issue an error; otherwise, return TRUE.
                                TOPT_SUPPRESS_CHECK_FOR_INDEFINITE_FUNCTION;
       do_operand_transformations(result, options);
     }
-
-    okay = TRUE;
-  } else if (symbol_is(ud_lit_op_sym_for_curr_token, sk_function_template)) {
-  } else {
-    unexpected_condition();
   }  /* if */
-  return okay;
+  return op_sym != NULL;
 }  /* make_func_operand_for_literal_operator_call */
 
 
 static an_expr_node_ptr make_implicit_operands_for_literal_operator_call(void)
 /*
-FIXME
+The current token is a user-defined literal, which must be translated to a
+call to a literal operator or a literal operator template.  Return the
+argument list that has to be passed into that call (NULL if no arguments are
+passed).
 */
 {
   an_expr_node_ptr  arg_list;
@@ -28570,7 +28605,9 @@ FIXME
       arg_list->next = alloc_node_for_constant_operand(&length_op);
     }  /* if */
   } else if (symbol_is(ud_lit_op_sym_for_curr_token, sk_function_template)) {
-    /* FIXME : literal operator template. */
+    /* A literal operator template: No arguments are passed through the call
+       itself.  (Instead, the "arguments" are the template arguments for the
+       literal operator template.) */
     arg_list = NULL;
   } else {
     unexpected_condition();
