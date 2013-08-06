@@ -1981,7 +1981,7 @@ by the caller).
   if (s != NULL) {
     /* Make sure we took the whole name and nothing more. */
     end_ptr = ptr + len;
-    if (ud_suffix_follows) {
+    if (*ud_suffix_follows) {
       /* If a ud-suffix follows, make sure its length is accounted for.
          Note that prev_end is restored here as this is just speculative
          look ahead. */
