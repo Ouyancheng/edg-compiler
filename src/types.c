@@ -93,6 +93,7 @@ predicates.
    !(tp)->variant.integer.wchar_t_type && \
    !(tp)->variant.integer.char16_t_type && \
    !(tp)->variant.integer.char32_t_type && \
+   !(tp)->variant.integer.enum_type && \
    !(tp)->variant.integer.bool_type)
 
 /* A general character is a char-type, a wchar_t, a char16_t, or a char32_t. */
@@ -645,6 +646,22 @@ Return TRUE if the type is a character type (signed, unsigned, or "plain").
   return (is_character(tp));
 }  /* is_character_type */
 
+
+a_boolean is_plain_char_type(a_type_ptr tp)
+/*
+Return TRUE if the type is a "plain" char type (not signed or unsigned).
+*/
+{
+  tp = skip_typerefs(tp);
+  return tp->kind == (a_type_kind)tk_integer &&
+         tp->variant.integer.int_kind == (an_integer_kind)ik_char &&
+         !tp->variant.integer.enum_type &&
+         !tp->variant.integer.bool_type &&
+         !tp->variant.integer.wchar_t_type &&
+         !tp->variant.integer.char16_t_type &&
+         !tp->variant.integer.char32_t_type;
+}  /* is_plain_char_type */
+
 #if MICROSOFT_EXTENSIONS_ALLOWED
 #if !STANDALONE_UTILITY_PROGRAM
 
@@ -829,6 +846,23 @@ interior_ptr and pin_ptr types.
 {
   tp = skip_typerefs(tp);
   return(is_pointer(tp));
+}  /* is_pointer_type */
+
+
+a_boolean is_plain_pointer_type(a_type_ptr tp)
+/*
+Return TRUE if the given type is a "plain" pointer type.  ("plain" in the sense
+that C++/CLI-mode handles, interior_ptr, and pin_ptr types are not included.)
+*/
+{
+  tp = skip_typerefs(tp);
+  return tp->kind == (a_type_kind)tk_pointer &&
+#if MICROSOFT_EXTENSIONS_ALLOWED
+         !tp->variant.pointer.is_handle &&
+         !tp->variant.pointer.is_interior_ptr &&
+         !tp->variant.pointer.is_pin_ptr &&
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+         !tp->variant.pointer.is_reference;
 }  /* is_pointer_type */
 
 

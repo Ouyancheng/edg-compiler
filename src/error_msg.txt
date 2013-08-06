@@ -2535,6 +2535,18 @@ ec_invalid_literal_operator_id;;"invalid literal operator name"
 ec_literal_operator_not_found;;"user-defined literal operator not found"
 ec_ambig_literal_operator;;"ambiguous literal operators and/or literal operator template:"
 ec_udl_cannot_be_class_member;;"a literal operator cannot be a member of a class"
+ec_extern_c_literal_operator;;"a literal operator cannot have extern \"C\" name linkage"
+ec_no_parameter_for_literal_operator;;"at least parameter expected for a literal operator"
+ec_too_many_parameters_for_literal_operator;;"too many parameters for this literal operator"
+ec_invalid_parameter_type_for_literal_operator;;"invalid parameter type %t for literal operator"
+ec_invalid_integer_parameter_for_literal_operator;;"invalid integer parameter type (%t) for literal operator; expected char, wchar_t, char16_t, char32_t, or unsigned long long"
+ec_invalid_float_parameter_for_literal_operator;;"invalid floating-point parameter type (%t) for literal operator; expected long double"
+ec_pointer_to_nonconst_for_literal_operator;;"invalid first parameter type (%t) for literal operator; pointer to non-const type is not allowed"
+ec_invalid_second_parameter_type_for_literal_operator;;"invalid second parameter type (%t) for literal operator; must be size_t"
+ec_invalid_pointer_parameter_for_literal_operator;;"invalid pointer parameter type (%t) for literal operator; expected char const*, wchar_t const*, char16_t const*, or char32_t const*"
+ec_ellipsis_parameter_for_literal_operator;;"a literal operator cannot have an ellipsis parameter"
+ec_invalid_parameter_for_literal_operator_template;;"a literal operator template cannot have any parameters"
+ec_invalid_template_parameter_for_literal_operator_template;;"a literal operator template must have a template parameter list equivalent to \"<char ...>\""
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

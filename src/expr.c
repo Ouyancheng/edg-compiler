@@ -28531,14 +28531,17 @@ issue an error; otherwise, return TRUE.
                                              (a_constant_repr_kind)ck_string);
     explode_string_initializer(&const_for_curr_token);
     char_con = const_for_curr_token.variant.aggregate.first_constant;
-    while (char_con != NULL) {
+    check_assertion(char_con != NULL);
+    next_char_con = char_con->next;
+    /* Be careful not to include the terminating null character. */
+    while (next_char_con != NULL) {
       tap->next = alloc_template_arg((a_templ_arg_kind)tak_nontype);
       tap = tap->next;
       tap->is_pack_element = TRUE;
       tap->variant.constant = char_con;
-      next_char_con = char_con->next;
       char_con->next = NULL;
       char_con = next_char_con;
+      next_char_con = next_char_con->next;
     }  /* while */
     switch_back_to_original_region(region_to_switch_back_to);
     op_sym = find_template_function(ud_lit_op_sym_for_curr_token,

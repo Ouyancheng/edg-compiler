@@ -85,6 +85,7 @@ extern a_boolean is_integral_or_enum_type(a_type_ptr tp);
 extern a_boolean is_integral_or_unscoped_enum_type(a_type_ptr tp);
 extern a_boolean is_bool_type(a_type_ptr tp);
 extern a_boolean is_character_type(a_type_ptr tp);
+extern a_boolean is_plain_char_type(a_type_ptr tp);
 #if MICROSOFT_EXTENSIONS_ALLOWED
 extern a_boolean is_narrow_or_wide_character_type(a_type_ptr tp);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
@@ -108,6 +109,7 @@ extern a_boolean is_arithmetic_or_enum_type(a_type_ptr tp);
 extern a_boolean is_arithmetic_or_unscoped_enum_type(a_type_ptr tp);
 extern a_boolean is_arithmetic_type(a_type_ptr tp);
 extern a_boolean is_pointer_type(a_type_ptr tp);
+extern a_boolean is_plain_pointer_type(a_type_ptr tp);
 extern a_boolean is_pointer_to_object_type(a_type_ptr tp);
 extern a_boolean is_pointer_or_handle_type(a_type_ptr tp);
 extern a_boolean types_are_both_pointers_or_both_handles(a_type_ptr tp1, 

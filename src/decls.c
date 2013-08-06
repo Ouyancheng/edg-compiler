@@ -7444,6 +7444,121 @@ position.
 }  /* check_constexpr_routine_def_type */
 
 
+static void check_udl_operator_template(a_symbol_locator  *loc,
+                                        a_routine_ptr     rp)
+/*
+rp is associated with a literal operator template (declared with the given
+locator).  Check that the template has an acceptable signature and issue an
+appropriate error if it doesn't.  The current scope is the declaration scope
+for the literal operator template.
+*/
+{
+  a_type_ptr            rtp = skip_typerefs(rp->type);
+  a_param_type_ptr      ptp = function_type_params(rtp);
+  a_template_param_ptr  tpp;
+
+  check_assertion(scope_is(&scope_stack_top(), sck_template_declaration));
+  if (rp->source_corresp.name_linkage == (a_name_linkage_kind)nlk_external) {
+    pos_error(ec_extern_c_literal_operator, &loc->source_position);
+  }  /* if */
+  if (ptp != NULL || rtp->variant.routine.extra_info->has_ellipsis) {
+    pos_error(ec_invalid_parameter_for_literal_operator_template,
+              &loc->source_position);
+  }  /* if */
+  tpp = scope_stack_top().template_decl_info->parameters;
+  check_assertion(tpp != NULL);
+  if (tpp->next != NULL ||
+      !tpp->is_pack  ||
+      !symbol_is(tpp->param_symbol, sk_constant) ||
+      !is_plain_char_type(tpp->variant.constant.ptr->type)) {
+    pos_error(ec_invalid_template_parameter_for_literal_operator_template,
+              &loc->source_position);
+  }  /* if */
+}  /* check_udl_operator_template */
+
+
+static void check_udl_operator_type(a_symbol_locator  *loc,
+                                    a_routine_ptr     rp)
+/*
+The given function (declared with the given locator) represents a literal
+operator.  Check that it has an acceptable type and linkage and issue an
+appropriate error if it doesn't.  Also set the is_raw_literal_operator flag if
+needed.
+*/
+{
+  a_type_ptr        rtp = skip_typerefs(rp->type);
+  a_param_type_ptr  ptp = function_type_params(rtp);
+
+  if (rp->source_corresp.name_linkage == (a_name_linkage_kind)nlk_external) {
+    pos_error(ec_extern_c_literal_operator, &loc->source_position);
+  }  /* if */
+  if (rtp->variant.routine.extra_info->has_ellipsis) {
+    pos_error(ec_ellipsis_parameter_for_literal_operator,
+              &loc->source_position);
+  } else if (ptp == NULL) {
+    pos_error(ec_no_parameter_for_literal_operator, &loc->source_position);
+  } else if (is_plain_pointer_type(ptp->type)) {
+    a_type_ptr  tp = type_pointed_to(ptp->type);
+    if (get_type_qualifiers(tp) != TQ_CONST) {
+      pos_ty_error(ec_pointer_to_nonconst_for_literal_operator,
+                   &loc->source_position, skip_typerefs(ptp->type));
+    } else if (ptp->next == NULL) {
+      /* Presumable a raw literal operator. */
+      if (is_plain_char_type(tp)) {
+        rp->is_raw_literal_operator = TRUE;
+      } else {
+        pos_ty_error(ec_invalid_parameter_type_for_literal_operator,
+                     &loc->source_position, skip_typerefs(ptp->type));
+      }  /* if */
+    } else if (ptp->next->next != NULL) {
+      pos_error(ec_too_many_parameters_for_literal_operator,
+                &loc->source_position);
+    } else if (!identical_types(ptp->next->type,
+                                integer_type(targ_size_t_int_kind))) {
+      pos_ty_error(ec_invalid_second_parameter_type_for_literal_operator,
+                   &loc->source_position, skip_typerefs(ptp->next->type));
+    } else {
+      tp = skip_typerefs(tp);
+      if (tp->kind != (a_type_kind)tk_integer ||
+          (!is_plain_char_type(tp) &&
+           !tp->variant.integer.wchar_t_type &&
+           !tp->variant.integer.char16_t_type &&
+           !tp->variant.integer.char32_t_type)) {
+        pos_ty_error(ec_invalid_pointer_parameter_for_literal_operator,
+                     &loc->source_position, skip_typerefs(ptp->type));
+      }  /* if */
+    }  /* if */
+  } else if (ptp->next != NULL) {
+    pos_error(ec_too_many_parameters_for_literal_operator,
+              &loc->source_position);
+  } else {
+    a_type_ptr  tp = skip_typerefs(ptp->type);
+    if (tp->kind == tk_integer) {
+      if (tp->variant.integer.enum_type) {
+        pos_ty_error(ec_invalid_parameter_type_for_literal_operator,
+                     &loc->source_position, tp);
+      } else if (tp->variant.integer.int_kind != (an_integer_kind)ik_char &&
+                 !tp->variant.integer.wchar_t_type &&
+                 !tp->variant.integer.char16_t_type &&
+                 !tp->variant.integer.char32_t_type &&
+                 tp->variant.integer.int_kind !=
+                                     (an_integer_kind)ik_unsigned_long_long) {
+        pos_ty_error(ec_invalid_integer_parameter_for_literal_operator,
+                     &loc->source_position, tp);
+      }  /* if */
+    } else if (tp->kind == tk_float) {
+      if (tp->variant.float_kind != (a_float_kind)fk_long_double) {
+        pos_ty_error(ec_invalid_float_parameter_for_literal_operator,
+                     &loc->source_position, tp);
+      }  /* if */
+    } else {
+      pos_ty_error(ec_invalid_parameter_type_for_literal_operator,
+                   &loc->source_position, tp);
+    }  /* if */
+  }  /* if */
+}  /* check_udl_operator_type */
+
+
 #if !(EXTRA_SOURCE_POSITIONS_IN_IL || GENERATE_SOURCE_SEQUENCE_LISTS)
 /* ARGSUSED */ /* decl_pos_block is not used in some configurations. */
 #endif /* !(EXTRA_SOURCE_POSITIONS_IN_IL || GENERATE_SOURCE_SEQUENCE_LISTS) */
@@ -8906,6 +9021,9 @@ skip_overloading:;
        applicable construct). */
     process_curr_construct_pragmas(sym, (a_statement_ptr)NULL);
   }  /* if */
+  if (special_kind_is(routine_ptr, sfk_udl_operator)) {
+    check_udl_operator_type(locator, routine_ptr);
+  }  /* if */
 #if NEED_NAME_MANGLING
   if (func_info->any_default_args) {
     set_parent_routine_for_closure_types_in_default_args(type_ptr, sym);
@@ -8975,8 +9093,7 @@ definition of a member function of a class template.
                                                  decl_state->il_template_entry;
 
   db_enter(3, "decl_function_template");
-  check_assertion(scope_stack[depth_scope_stack].kind ==
-                                (a_scope_kind)sck_template_declaration);
+  check_assertion(scope_is(&scope_stack_top(), sck_template_declaration));
   if (func_info->is_inline && !extern_inline_allowed) {
     storage_class = (a_storage_class)sc_static;
   } else if (storage_class == (a_storage_class)sc_unspecified) {
@@ -9424,6 +9541,9 @@ definition of a member function of a class template.
       set_routine_special_kind(rout_ptr,
                                (a_special_function_kind)sfk_operator);
       rout_ptr->variant.opname_kind = locator->variant.opname;
+    } else if (locator->is_udl_operator_name) {
+      set_routine_special_kind(rout_ptr,
+                               (a_special_function_kind)sfk_udl_operator);
     } else if (locator->is_destructor_name && sym->is_class_member) {
       /* This can happen in a friend declaration that refers to a destructor
          with a dependent name qualifier.  It can also occur with out-of-class
@@ -9722,6 +9842,9 @@ definition of a member function of a class template.
     warn_about_use_of_deprecated_type(type_ptr, &locator->source_position);
   }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED */
+  if (special_kind_is(rout_ptr, sfk_udl_operator)) {
+    check_udl_operator_template(locator, rout_ptr);
+  }  /* if */
   /* Return the function template symbol. */
   *symbol_ptr = sym;
 #if DEBUG
