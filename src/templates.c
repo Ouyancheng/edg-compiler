@@ -7721,8 +7721,8 @@ another template parameter.
         prev_tap = tap;
         is_parameter_pack = TRUE;
       }  /* if */
-      /* Don't create a template an empty argument for a parameter pack with
-         no specified arguments. */
+      /* Don't create an empty argument for a parameter pack with no
+         specified arguments. */
       if (tpp->is_pack && specified_tap == NULL) continue;
       if (specified_tap != NULL &&
           is_start_of_pack_expansion_templ_arg(specified_tap)) {
