@@ -19609,9 +19609,7 @@ of characters added.
         /* The constant is a ck_string whose value is the exact spelling of
            the literal. */
         check_assertion(constant->kind == (a_constant_repr_kind)ck_string);
-        put_str_of_length_to_temp_text_buffer(
-                                    constant->variant.string.value,
-                                    (sizeof_t)constant->variant.string.length);
+        put_str_to_temp_text_buffer(constant->variant.string.value);
       } else {
         /* The constant should just be put out as normal. */
         form_constant(constant, /*need_parent=*/FALSE, &octl);

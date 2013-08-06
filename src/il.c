@@ -2738,21 +2738,6 @@ is at least size_needed.  Called by ensure_temp_text_buffer_space.
 }  /* expand_temp_text_buffer */
 
 
-void put_str_of_length_to_temp_text_buffer(a_const_char *str,
-                                           sizeof_t     len)
-/*
-Output len characters of the indicated string to temp_text_buffer at the
-position indicated by pos_in_temp_text_buffer, and update the latter.
-*/
-{
-  sizeof_t new_size = pos_in_temp_text_buffer + len;
-
-  ensure_temp_text_buffer_space(new_size);
-  (void)memcpy(temp_text_buffer+pos_in_temp_text_buffer, str, len);
-  pos_in_temp_text_buffer = new_size;
-}  /* put_str_to_temp_text_buffer */
-
-
 void put_str_to_temp_text_buffer(a_const_char *str)
 /*
 Output the indicated string to temp_text_buffer at the position indicated by

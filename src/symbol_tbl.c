@@ -14435,13 +14435,17 @@ literal-operator-id.
            literal (before the suffix), so replace const_for_curr_token
            with a ck_string constant containing the required text. */
         sizeof_t token_len =
-                       (sizeof_t)(end_of_curr_token - start_of_curr_token + 1);
+                       (sizeof_t)(end_of_curr_token - start_of_curr_token + 2);
+        char     *str;
+        str = copy_string_of_length_to_region(file_scope_region_number,
+                                              start_of_curr_token,
+                                              token_len);
+        /* Overwrite the character following the token spelling with the
+           terminating zero byte. */
+        str[token_len - 1] = '\0';
         clear_constant(&const_for_curr_token, (a_constant_repr_kind)ck_string);
         const_for_curr_token.variant.string.length = token_len;
-        const_for_curr_token.variant.string.value =
-                      copy_string_of_length_to_region(file_scope_region_number,
-                                                      start_of_curr_token,
-                                                      token_len);
+        const_for_curr_token.variant.string.value = str;
         const_for_curr_token.type =
                                 string_literal_type((a_character_kind)chk_char,
                                                     (a_targ_size_t)token_len);
