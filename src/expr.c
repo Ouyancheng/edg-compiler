@@ -28504,9 +28504,8 @@ issue an error; otherwise, return TRUE.
                                         ->variant.overloaded_function.symbols;
     pos_start_error(ec_ambig_literal_operator, &pos_curr_token);
     for (; sym != NULL; sym = sym->next) {
-      a_symbol_ptr op_sym = sym;
-      reduce_projection_symbol_to_fundamental_symbol(op_sym);
-      sym_add_diag_info(ec_ambiguous_function_add_on, op_sym);
+      sym_add_diag_info(ec_ambiguous_function_add_on,
+                        fundamental_symbol_of(sym));
     }
     end_error();
     make_error_operand(result);
