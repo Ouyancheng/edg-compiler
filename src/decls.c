@@ -1224,11 +1224,11 @@ diagnostics.
            it can also be relaxed in default mode -- see
            DEFAULT_PTR_TO_UNKNOWN_BOUND_ARRAY_ALLOWED_IN_PARAM_TYPE and
            DEFAULT_REF_TO_UNKNOWN_BOUND_ARRAY_ALLOWED_IN_PARAM_TYPE.
-           The check is also skipped for a reference to a array type during
-           instantiations in GNU C++ mode, and in Microsoft mode, if the
-           reference to array type was produced through the (special)
-           deduction from a parameter of the form T&& (with T a template
-           parameter). */
+           The check is also skipped for a reference to an array type during
+           instantiations in GNU C++ mode; the same is true in Microsoft mode,
+           but only if the reference to array type was produced through the
+           (special) deduction from a parameter of the form T&& (with T a
+           template parameter). */
         if (!dps->is_old_style_param_decl &&
             dps->assoc_func_decl_state->is_template_rescan &&
             scope_stack[depth_scope_stack-1].function_partial_instantiation &&

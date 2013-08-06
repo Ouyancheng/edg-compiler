@@ -10572,9 +10572,9 @@ a pointer over a reference type or creating an array of references.
             if (microsoft_mode && ctws_state->routine_type_levels >= 0 &&
                 is_lvalue_reference_type(type) &&
                 is_incomplete_array_type(tp)) {
-              /* During substitution in function template parameters, the
-                 Microsoft compiler transforms an lvalue reference to an
-                 incomplete array type to an lvalue reference to an array of
+              /* During substitution in the parameters of a function template,
+                 the Microsoft compiler transforms an lvalue reference to an
+                 incomplete array type into an lvalue reference to an array of
                  size 1. */
               a_type_ptr	new_tp;
 #if CHECKING
