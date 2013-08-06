@@ -10919,30 +10919,32 @@ curr_token is already set in that case.
   rescan_cached_tokens(&cache);
   /* Pop the lexical state pushed by this routine. */
   pop_lexical_state_stack();
-  const_for_curr_token.variant.string.literal_kind =
+  if (!is_error_constant(&const_for_curr_token)) {
+    const_for_curr_token.variant.string.literal_kind =
                                                 encoding | SCLK_STRING_LITERAL;
-  if (raw_string_seen) {
-    /* Although whether any of the literals was raw does not affect the
-       final value of the constant, we need to recall whether a raw string
-       was seen in order to exclude something like
-           int operator R"x()x" _foo(const char*);
-       which would otherwise be accepted as a valid literal operator
-       declaration. */
-    const_for_curr_token.variant.string.literal_kind |=
+    if (raw_string_seen) {
+      /* Although whether any of the literals was raw does not affect the
+         final value of the constant, we need to recall whether a raw string
+         was seen in order to exclude something like
+             int operator R"x()x" _foo(const char*);
+         which would otherwise be accepted as a valid literal operator
+         declaration. */
+      const_for_curr_token.variant.string.literal_kind |=
                                                        SCLK_RAW_STRING_LITERAL;
-  }  /* if */
-  if (user_defined_literals_enabled && ud_lit_suffix_buffer->size != 0  &&
-      !suffix_mismatch) {
-    /* Process the suffix. */
-    a_type_ptr param_type =
+    }  /* if */
+    if (user_defined_literals_enabled && ud_lit_suffix_buffer->size != 0  &&
+        !suffix_mismatch) {
+      /* Process the suffix. */
+      a_type_ptr param_type =
               make_pointer_type(array_element_type(const_for_curr_token.type));
-    ud_lit_op_sym_for_curr_token =
+      ud_lit_op_sym_for_curr_token =
                        find_literal_operator(ud_lit_suffix_buffer->buffer,
                                              ud_lit_suffix_buffer->size - 1,
                                              &pos_curr_token,
                                              param_type, /*is_string=*/TRUE,
                                              /*allow_raw_and_template=*/FALSE);
-    ctoken = tok_ud_literal;
+      ctoken = tok_ud_literal;
+    }  /* if */
   }  /* if */
   db_exit();
   return ctoken;
