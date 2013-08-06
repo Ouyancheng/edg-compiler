@@ -28564,15 +28564,19 @@ static void scan_ud_literal(an_operand *result)
 Scan a user-defined literal and return an operand for it in *operand.
 */
 {
-  an_operand  func_operand;
+  an_operand  func_operand, dummy_bound_function_selector;
 
   error_position = pos_curr_token;
   if (make_func_operand_for_literal_operator_call(&func_operand)) {
     an_expr_node_ptr   arg_list;
     arg_list = make_implicit_operands_for_literal_operator_call();
     check_assertion(!func_operand.bound_function);
+#ifdef _lint
+    /* We pass dummy_bound_function_selector rather than a null pointer
+               constant to avoid a spurious diagnostic by Gimpel lint. */
+#endif /* ifdef _lint */
     assemble_function_call(&func_operand, 
-                           /*bound_function_selector=*/(an_operand*)NULL, 
+                           &dummy_bound_function_selector,
                            arg_list,
                            /*compiler_generated=*/TRUE,
                            /*arg_dep_lookup_suppressed=*/FALSE,
