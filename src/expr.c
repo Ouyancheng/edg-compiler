@@ -28517,16 +28517,18 @@ issue an error; otherwise, return TRUE.
     /* A literal operator template: Create a list of template arguments from
        the string in const_for_curr_token, and use the corresponding instance
        as the symbol to call. */
-    a_template_arg_ptr  templ_arg_list = NULL, tap;
-    a_constant_ptr      char_con, next_char_con;
-    check_assertion(const_for_curr_token.kind ==
-                                             (a_constant_repr_kind)ck_string);
+    a_template_arg_ptr      templ_arg_list = NULL, tap;
+    a_constant_ptr          char_con, next_char_con;
+    a_memory_region_number  region_to_switch_back_to;
     /* The template argument list corresponds to a pack expansion. */
+    switch_to_file_scope_region(&region_to_switch_back_to);
     templ_arg_list =
             alloc_template_arg((a_templ_arg_kind)tak_start_of_pack_expansion);
     tap = templ_arg_list;
     /* Turn const_for_curr_token into a ck_aggregate constant with a constant
        for every character. */
+    check_assertion(const_for_curr_token.kind ==
+                                             (a_constant_repr_kind)ck_string);
     explode_string_initializer(&const_for_curr_token);
     char_con = const_for_curr_token.variant.aggregate.first_constant;
     while (char_con != NULL) {
@@ -28538,6 +28540,7 @@ issue an error; otherwise, return TRUE.
       char_con->next = NULL;
       char_con = next_char_con;
     }  /* while */
+    switch_back_to_original_region(region_to_switch_back_to);
     op_sym = find_template_function(ud_lit_op_sym_for_curr_token,
                                     &templ_arg_list,
                                     /*explicit_arg_list_present=*/TRUE,
