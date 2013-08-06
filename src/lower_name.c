@@ -601,10 +601,11 @@ static void mangled_unresolved_name(an_expr_node_ptr         expr,
                                     an_expr_node_ptr         selector,
                                     a_boolean                in_dependent_expr,
                                     a_mangling_control_block *mctl);
-static void mangled_operator_or_conversion_function(
+static void mangled_operator_or_special_function(
                          an_opname_kind           kind,
                          unsigned int             num_operands,
                          a_type_ptr               conversion_type,
+                         a_const_char             *ud_suffix,
                          a_template_arg_ptr       template_arg_list,
                          a_name_reference_ptr     name_reference,
                          a_boolean                suppress_operation_indicator,
@@ -3391,9 +3392,10 @@ add mangling for an eok_address_of operation.
             rinfo->special_kind != (an_opname_kind)onk_none) {
           /* This is some type of special function; make sure it receives
              the proper mangling treatment within an "sr" mangling. */
-          mangled_operator_or_conversion_function(rinfo->opname_kind,
+          mangled_operator_or_special_function(rinfo->opname_kind,
                                         /*num_operands=*/0,
                                         rinfo->conversion_type,
+                                        /*ud_suffix=*/NULL,
                                         rinfo->template_arg_list,
                                         (a_name_reference_ptr)NULL,
                                         /*suppress_operation_indicator=*/FALSE,
@@ -4694,17 +4696,19 @@ mangling was needed and that logic is reflected in this routine.
 #if !IA64_ABI
 /*ARGSUSED*/ /* <-- suppress_operation_indicator is unused in that case. */
 #endif /* !IA64_ABI */
-static void mangled_operator_or_conversion_function(
+static void mangled_operator_or_special_function(
                          an_opname_kind           kind,
                          unsigned int             num_operands,
                          a_type_ptr               conversion_type,
+                         a_const_char             *ud_suffix,
                          a_template_arg_ptr       template_arg_list,
                          a_name_reference_ptr     name_reference,
                          a_boolean                suppress_operation_indicator,
                          a_mangling_control_block *mctl)
 /*
-This routine adds the proper mangling for the operator specified by kind or
-for a conversion operation if conversion_type is not NULL.  num_operands
+This routine adds the proper mangling for a special function which can be the
+operator specified by kind or for a conversion operation if conversion_type is
+not NULL, or for a literal operator when ud_suffix is non-NULL.  num_operands
 is the number of operands that the operator takes (and is used to differentiate
 unary/binary versions of the operator).  If template_arg_list is non-NULL,
 include a mangling for the specified template arguments.  name_reference (when
@@ -4713,18 +4717,23 @@ accurately represents those that appeared in the source form.  In the IA-64
 ABI, the "on" prefix is suppressed when suppress_operation_indicator is TRUE.
 */
 {
+  check_assertion(conversion_type == NULL || ud_suffix == NULL);
 #if IA64_ABI
   if (!suppress_operation_indicator) add_str_to_mangled_name("on", mctl);
 #else /* !IA64_ABI */
   add_str_to_mangled_name("__", mctl);
 #endif /* IA64_ABI */
-  if (conversion_type == NULL) {
-    /* An operator. */
-    add_str_to_mangled_name(mangled_operator_name(kind, num_operands), mctl);
-  } else {
+  if (conversion_type != NULL) {
     /* A conversion operation; include the type being converted to. */
     add_str_to_mangled_name(MANGLING_STRING_FOR_CONVERSION_FUNC, mctl);
     mangled_encoding_for_type(conversion_type, mctl);
+  } else if (ud_suffix != NULL) {
+    /* A user-defined literal operator. */
+    add_str_to_mangled_name(MANGLING_STRING_FOR_LITERAL_OPERATORS, mctl);
+    mangled_name_with_length(ud_suffix, mctl);
+  } else {
+    /* An operator. */
+    add_str_to_mangled_name(mangled_operator_name(kind, num_operands), mctl);
   }  /* if */
   if (name_reference == NULL ? template_arg_list != NULL :
                                name_reference->is_template_id) {
@@ -4733,7 +4742,7 @@ ABI, the "on" prefix is suppressed when suppress_operation_indicator is TRUE.
                                /*old_form=*/FALSE, (a_name_reference_ptr)NULL,
                                mctl);
   }  /* if */
-}  /* mangled_operator_or_conversion_function */
+}  /* mangled_operator_or_special_function */
 
 
 #if IA64_ABI
@@ -4878,6 +4887,7 @@ expression that was used to select expr (NULL if no selector was used).
   a_boolean                   suppress_qualification = FALSE;
   a_name_reference_ptr        name_reference;
   an_opname_kind              opname;
+  a_const_char                *ud_suffix = NULL;
   a_type_ptr                  conversion_type = NULL, destructor_type = NULL;
 #if IA64_ABI
   a_boolean                   dummy, selector_has_known_type = FALSE;
@@ -4987,19 +4997,21 @@ expression that was used to select expr (NULL if no selector was used).
 #endif /* IA64_ABI */
     /* Do not insert code here. */
     {
-      template_arg_list = expr->variant.routine.ptr->template_arg_list;
-      if (expr->variant.routine.ptr->special_kind !=
-                                           (a_special_function_kind)sfk_none) {
+      a_routine_ptr rp = expr->variant.routine.ptr;
+      template_arg_list = rp->template_arg_list;
+      if (rp->special_kind != (a_special_function_kind)sfk_none) {
         /* See if this routine requires special handling. */
-        if (expr->variant.routine.ptr->special_kind ==
-                                     (a_special_function_kind)sfk_destructor) {
-          destructor_type = scp_parent_class(
-                                   &expr->variant.routine.ptr->source_corresp);
-        } else if (expr->variant.routine.ptr->special_kind ==
-                                       (a_special_function_kind)sfk_operator) {
+        if (rp->special_kind == (a_special_function_kind)sfk_destructor) {
+          destructor_type = scp_parent_class(&rp->source_corresp);
+        } else if (rp->special_kind == (a_special_function_kind)sfk_operator) {
           mangle_as_operator = TRUE;
-          opname = expr->variant.routine.ptr->variant.opname_kind;
-        } else if (expr->variant.routine.ptr->special_kind ==
+          opname = rp->variant.opname_kind;
+        } else if (rp->special_kind ==
+                                   (a_special_function_kind)sfk_udl_operator) {
+          mangle_as_operator = TRUE;
+          opname = (an_opname_kind)onk_none;
+          ud_suffix = ud_suffix_for_routine(rp);
+        } else if (rp->special_kind ==
                                      (a_special_function_kind)sfk_conversion) {
           /* Compiler-generated conversion operations have been stripped. */
 #if IA64_ABI
@@ -5007,8 +5019,7 @@ expression that was used to select expr (NULL if no selector was used).
             /* Mangle as a conversion operation. */
             mangle_as_operator = TRUE;
             opname = (an_opname_kind)onk_none;
-            conversion_type = expr->variant.routine.ptr->type->
-                                                   variant.routine.return_type;
+            conversion_type = rp->type->variant.routine.return_type;
           }  /* if */
           suppress_address_of = TRUE;
 #endif /* IA64_ABI */
@@ -5017,7 +5028,7 @@ expression that was used to select expr (NULL if no selector was used).
         }  /* if */
       } else {
         /* Provide a spelling for the routine. */
-        scp = &expr->variant.routine.ptr->source_corresp;
+        scp = &rp->source_corresp;
 #if IA64_ABI
         if (emulate_gnu_abi_bugs &&
             (name_reference != NULL && name_reference->is_template_id)) {
@@ -5084,9 +5095,10 @@ expression that was used to select expr (NULL if no selector was used).
     mangled_destructor_name(destructor_type, name_reference, mctl);
   } else if (mangle_as_operator) {
     /* Mangle the entity as an operator. */
-    mangled_operator_or_conversion_function(opname,
+    mangled_operator_or_special_function(opname,
                                          number_of_operands_in_list(arguments),
                                          conversion_type,
+                                         ud_suffix,
                                          template_arg_list,
                                          name_reference,
                                          suppress_operation_indicator,
@@ -5282,6 +5294,7 @@ this expression is part of a template-dependent expression.
 */
 {
   an_expr_node_ptr  call_operand, arguments, child, member = NULL;
+  a_routine_ptr     rp;
 
   check_assertion(is_operation_node(expr));
   child = expr->variant.operation.operands;
@@ -5309,21 +5322,21 @@ this expression is part of a template-dependent expression.
     default:
       unexpected_condition();
   }  /* switch */
-  if (expr->variant.operation.call_uses_operator_syntax) {
+  rp = routine_from_function_expr(call_operand);
+  if (expr->variant.operation.call_uses_operator_syntax &&
+      !rp->special_kind == (a_special_function_kind)sfk_udl_operator) {
     /* This is a call operator that was added by the compiler, for example,
        for a+a, and for mangling purposes needs to be represented as it
        appeared in the source code (i.e., a+a, not operator+(a,a)).  Note that
        not all operators can have the call_uses_operator_syntax field set to
        TRUE (for example, those operators represented by enk_new_delete
        won't get here). */
-    a_routine_ptr    rp = routine_from_function_expr(call_operand);
     unsigned long    num_arguments = number_of_operands_in_list(arguments);
     a_const_char     *name = NULL;
     a_boolean        remove_last_arg = FALSE;
 #if IA64_ABI
     a_boolean        is_prefix = FALSE;
 #endif /* IA64_ABI */
-    check_assertion(rp != NULL);
 #if MICROSOFT_EXTENSIONS_ALLOWED
     check_assertion(!is_delegate_invocation_function(rp));
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
@@ -5356,15 +5369,24 @@ this expression is part of a template-dependent expression.
         remove_last_arg = TRUE;
       }  /* if */
     }  /* if */
+#if !IA64_ABI
+    add_to_mangled_name('O', mctl);
+#endif /* !IA64_ABI */
     if (name == NULL) {
-      name = mangled_operator_name(rp->variant.opname_kind, num_arguments);
+      mangled_operator_or_special_function(rp->variant.opname_kind,
+                                         num_arguments,
+                                         (a_type_ptr)NULL,
+                                         ud_suffix_for_routine(rp),
+                                         (a_template_arg_ptr)NULL,
+                                         (a_name_reference_ptr)NULL,
+                                         /*suppress_operation_indicator=*/TRUE,
+                                         mctl);
+    } else {
+      add_str_to_mangled_name(name, mctl);
     }  /* if */
 #if IA64_ABI
-    add_str_to_mangled_name(name, mctl);
     if (is_prefix && !emulate_gnu_abi_bugs) add_to_mangled_name('_', mctl);
 #else /* !IA64_ABI */
-    add_to_mangled_name('O', mctl);
-    add_str_to_mangled_name(name, mctl);
     store_digits_and_underscore(num_arguments, /*old_form=*/FALSE, mctl);
 #endif /* IA64_ABI */
     if (member != NULL) {
@@ -5411,8 +5433,29 @@ this expression is part of a template-dependent expression.
 #endif /* IA64_ABI */
     if (node_operator_is(expr, eok_call)) {
       /* Source form doesn't have a selection operation. */
-      mangled_unresolved_name(call_operand, arguments, /*selector=*/NULL, 
-                              in_dependent_expr, mctl);
+#if IA64_ABI
+      if (expr->variant.operation.call_uses_operator_syntax &&
+          rp->special_kind == (a_special_function_kind)sfk_udl_operator) {
+        /* This is a compiler-generated call for a user-defined literal.
+           Most compiler-generated calls are suppressed during mangling, but
+           these are not; they're mangled as "L <mangled-name> E" with the
+           mangled name of the literal operator. */
+        add_str_to_mangled_name("L_Z", mctl);
+        mangled_function_name(rp,
+                              /*suppress_param_encoding=*/FALSE,
+                              /*suppress_parent_encoding=*/TRUE,
+                              /*force_primary_name=*/TRUE,
+                              /*force_individuation=*/FALSE,
+                              /*base_name_offset=*/(sizeof_t *)NULL,
+                              mctl);
+        add_to_mangled_name('E', mctl);
+      } else
+#endif /* IA64_ABI */
+      /* Do not insert code here. */
+      {
+        mangled_unresolved_name(call_operand, arguments, /*selector=*/NULL,
+                                in_dependent_expr, mctl);
+      }  /* if */
     } else {
       /* Mangle the selection operation. */
       mangled_selection_operation(expr, arguments, in_dependent_expr, mctl);
@@ -10097,7 +10140,7 @@ indicated by scp.  special_kind, opname_kind, ctor_dtor_kind, num_operands,
 and conversion_type give additional information for special functions like
 constructors and conversion functions.  When special_kind is sfk_udl_operator,
 ud_suffix is a non-NULL string that specifies the suffix for the user-defined
-literal.
+literal operator.
 */
 {
   a_const_char *name;

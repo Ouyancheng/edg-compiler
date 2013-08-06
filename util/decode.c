@@ -4027,6 +4027,13 @@ static unsigned long
 			/* The allocated size of the array, as a number of
 			   elements. */
 
+static char     *ud_suffix_buffer = NULL;
+                        /* A dynamically allocated buffer into which
+                           ud-suffixes are copied (when demangling literal
+                           operators). */
+static unsigned long
+                ud_suffix_buffer_length = 0;
+                        /* The allocated length of ud_suffix_buffer. */
 
 static a_const_char *demangle_type_first_part(
                                a_const_char               *ptr,
@@ -5363,6 +5370,10 @@ an operator in an expression or operator function name.
 *length is set to the mangled name length (2 except for vendor extended
 operators).  *close_str is set to a string that closes the operator,
 if necessary, e.g., "]" for subscripting; it is set to "" if not needed.
+Note that for the literal operator case (i.e., for the "li" mangled operator),
+the string that is returned is in a temporary buffer (and a subsequent call
+with another "li" mangled name will overwrite it), so the string should
+be copied quickly.
 */
 {
   a_const_char *str = NULL;
@@ -5463,8 +5474,42 @@ if necessary, e.g., "]" for subscripting; it is set to "" if not needed.
         if (ch2 == 'e') {
           str = "<=";
         } else if (ch2 == 'i') {
-          str = "\"\" ";
-          *num_operands = 1;
+          /* A literal operator is followed by a ud-suffix (with a pre-pended
+             length).  Copy the ud-suffix into a buffer following the ""
+             for the literal operator (we need to concatenate '"" ' and
+             the ud-suffix). */
+          long          ud_suffix_len;
+          a_const_char  *ud_suffix_ptr;
+          ud_suffix_ptr = get_number(ptr+2, &ud_suffix_len, dctl);
+          *num_operands = 0;  /* Call can have zero or one operand. */
+          str = NULL;
+          if (!dctl->err_in_id) {
+            if (ud_suffix_len <= 0) {
+              bad_mangled_name(dctl);
+            } else {
+              if (ud_suffix_buffer == NULL) {
+                ud_suffix_buffer_length = 128;
+                ud_suffix_buffer = (char *)malloc(
+                                         (true_size_t)ud_suffix_buffer_length);
+              } else if (ud_suffix_len + 3 + 1 > ud_suffix_buffer_length) {
+                ud_suffix_buffer_length = ud_suffix_len + 3 + 1;
+                ud_suffix_buffer = (char *)realloc(ud_suffix_buffer,
+                                         (true_size_t)ud_suffix_buffer_length);
+              }  /* if */
+              if (ud_suffix_buffer != NULL) {
+                if (strlen(ud_suffix_ptr) < ud_suffix_len) {
+                  bad_mangled_name(dctl);
+                } else {
+                  strcpy(ud_suffix_buffer, "\"\" ");
+                  strncpy(&ud_suffix_buffer[3], ud_suffix_ptr, ud_suffix_len);
+                  str = (a_const_char *)ud_suffix_buffer;
+                  *length = ud_suffix_ptr + ud_suffix_len - ptr;
+                }  /* if */
+              } else {
+                bad_mangled_name(dctl);
+              }  /* if */
+            }  /* if */
+          }  /* if */
         } else if (ch2 == 's') {
           str = "<<";
         } else if (ch2 == 'S') {
@@ -5910,11 +5955,6 @@ caller does not need the value.
         write_id_str(op_str, dctl);
         write_id_str(close_str, dctl);
         ptr += length;
-        if (strcmp(op_str, "\"\" ") == 0) {
-          /* For a user-defined literal operator, emit the ud-suffix as
-             well. */
-          ptr = demangle_source_name(ptr, /*is_module_id=*/FALSE, dctl);
-        }  /* if */
       }  /* if */
     }  /* if */
   }  /* if */
@@ -7190,11 +7230,6 @@ Demangle a <base-unresolved-name>:
         ptr = demangle_type(ptr, dctl);
       } else {
         write_id_str(op_str, dctl);
-        if (strcmp(op_str, "\"\" ") == 0) {
-          /* For a user-defined literal operator, emit the ud-suffix as
-             well. */
-          ptr = demangle_source_name(ptr, /*is_module_id=*/FALSE, dctl);
-        }  /* if */
       }  /* if */
       if (!dctl->err_in_id && *ptr == 'I') {
         /* A <template-args> list is present. */
