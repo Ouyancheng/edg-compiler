@@ -28629,6 +28629,14 @@ passed).
                         /*single_operand=*/(an_operand*)NULL,
                         /*single_operand_return=*/(a_boolean*)NULL,
                         (a_source_position*)NULL);
+    /* Clear backing expressions in the argument constants since they're
+       meaningless and confuse mangling. */
+    if (is_constant_node(arg_list)) {
+      arg_list->variant.constant->expr = NULL;
+    }  /* if */
+    if (arg_list->next != NULL && is_constant_node(arg_list->next)) {
+      arg_list->next->variant.constant->expr = NULL;
+    }  /* if */
     free_init_component_list(op_list);
   } else if (symbol_is(ud_lit_op_sym_for_curr_token, sk_function_template)) {
     /* A literal operator template: No arguments are passed through the call
