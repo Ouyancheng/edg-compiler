@@ -609,6 +609,7 @@ static void mangled_operator_or_special_function(
                          a_template_arg_ptr       template_arg_list,
                          a_name_reference_ptr     name_reference,
                          a_boolean                suppress_operation_indicator,
+                         a_boolean                suppress_underscores,
                          a_mangling_control_block *mctl);
 #endif /* ABI_COMPATIBILITY_VERSION >= 402 */
 static a_boolean entity_needs_to_be_individuated(a_source_correspondence *scp,
@@ -3399,6 +3400,7 @@ add mangling for an eok_address_of operation.
                                         rinfo->template_arg_list,
                                         (a_name_reference_ptr)NULL,
                                         /*suppress_operation_indicator=*/FALSE,
+                                        /*suppress_underscores=*/FALSE,
                                         mctl);
         } else
 #endif /* ABI_COMPATIBILITY_VERSION >= 402 */
@@ -4693,9 +4695,7 @@ mangling was needed and that logic is reflected in this routine.
 
 #endif /* IA64_ABI */
 
-#if !IA64_ABI
-/*ARGSUSED*/ /* <-- suppress_operation_indicator is unused in that case. */
-#endif /* !IA64_ABI */
+/*ARGSUSED*/ /* <-- suppress_operation_indicator, suppress_underscores. */
 static void mangled_operator_or_special_function(
                          an_opname_kind           kind,
                          unsigned int             num_operands,
@@ -4704,6 +4704,7 @@ static void mangled_operator_or_special_function(
                          a_template_arg_ptr       template_arg_list,
                          a_name_reference_ptr     name_reference,
                          a_boolean                suppress_operation_indicator,
+                         a_boolean                suppress_underscores,
                          a_mangling_control_block *mctl)
 /*
 This routine adds the proper mangling for a special function which can be the
@@ -4715,13 +4716,15 @@ include a mangling for the specified template arguments.  name_reference (when
 non-NULL) is used to ensure that the mangled list of template arguments
 accurately represents those that appeared in the source form.  In the IA-64
 ABI, the "on" prefix is suppressed when suppress_operation_indicator is TRUE.
+In the Cfront ABI, the "__" prefix is suppressed when suppress_underscores is
+TRUE.
 */
 {
   check_assertion(conversion_type == NULL || ud_suffix == NULL);
 #if IA64_ABI
   if (!suppress_operation_indicator) add_str_to_mangled_name("on", mctl);
 #else /* !IA64_ABI */
-  add_str_to_mangled_name("__", mctl);
+  if (!suppress_underscores) add_str_to_mangled_name("__", mctl);
 #endif /* IA64_ABI */
   if (conversion_type != NULL) {
     /* A conversion operation; include the type being converted to. */
@@ -5102,6 +5105,7 @@ expression that was used to select expr (NULL if no selector was used).
                                          template_arg_list,
                                          name_reference,
                                          suppress_operation_indicator,
+                                         /*suppress_underscores=*/FALSE,
                                          mctl);
 #if !IA64_ABI
     if (!needs_qualification) {
@@ -5323,8 +5327,11 @@ this expression is part of a template-dependent expression.
       unexpected_condition();
   }  /* switch */
   rp = routine_from_function_expr(call_operand);
-  if (expr->variant.operation.call_uses_operator_syntax &&
-      !(rp->special_kind == (a_special_function_kind)sfk_udl_operator)) {
+  if (expr->variant.operation.call_uses_operator_syntax
+#if IA64_ABI
+      && !(rp->special_kind == (a_special_function_kind)sfk_udl_operator)
+#endif /* IA64_ABI */
+                                                                         ) {
     /* This is a call operator that was added by the compiler, for example,
        for a+a, and for mangling purposes needs to be represented as it
        appeared in the source code (i.e., a+a, not operator+(a,a)).  Note that
@@ -5380,6 +5387,7 @@ this expression is part of a template-dependent expression.
                                          (a_template_arg_ptr)NULL,
                                          (a_name_reference_ptr)NULL,
                                          /*suppress_operation_indicator=*/TRUE,
+                                         /*suppress_underscores=*/TRUE,
                                          mctl);
     } else {
       add_str_to_mangled_name(name, mctl);
