@@ -14842,7 +14842,9 @@ typedef struct an_expr_node {
 			   member operator might be found by ordinary
 			   lookup of the name and thus suppress ADL.  Also
 			   TRUE for implicit calls of the Invoke function of
-			   a C++/CLI delegate. */
+			   a C++/CLI delegate and for implicit calls of C++11
+			   literal operators (resulting from user-defined
+			   literals). */
 #if GNU_EXTENSIONS_ALLOWED
       a_bit_field
 		is_gnu_two_operand_question_mark:1;
