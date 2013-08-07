@@ -6781,9 +6781,9 @@ is none, create a new one.
                   alloc_primary_file_scope_il(sym_hdr->identifier_length + 1);
     (void)memcpy((char *)sym_hdr->identifier,
                  CANONICAL_CONVERSION_FUNCTION_INTRO,
-                 LENGTH_CANONICAL_LITERAL_OPERATOR_INTRO);
+                 LENGTH_CANONICAL_CONVERSION_FUNCTION_INTRO);
     (void)strcpy((char *)sym_hdr->identifier +
-                                      LENGTH_CANONICAL_LITERAL_OPERATOR_INTRO,
+                                   LENGTH_CANONICAL_CONVERSION_FUNCTION_INTRO,
                  name);
 #if DEBUG
     symbol_name_string_space += (unsigned long)(sym_hdr->identifier_length);
