@@ -6745,7 +6745,6 @@ is none, create a new one.
   a_symbol_header_ptr      sym_hdr;
   char                     *name;
   sizeof_t                 name_length;
-#define OPERATOR_LEN 9 /* Length of "operator " */
 
   /* Search the conversion header list for an entry of the required type.
      If one is found, it is moved to the front of the list. */
@@ -6776,17 +6775,21 @@ is none, create a new one.
     conv_hdr->symbol_header = sym_hdr = alloc_symbol_header();
     /* Conversion symbols have the name "operator <type-name>". */
     name = format_type_string(type, &name_length);
-    sym_hdr->identifier_length = (sizeof_t)OPERATOR_LEN + name_length;
+    sym_hdr->identifier_length =
+                     LENGTH_CANONICAL_CONVERSION_FUNCTION_INTRO + name_length;
     sym_hdr->identifier =
-                   alloc_primary_file_scope_il(sym_hdr->identifier_length + 1);
-    (void)memcpy((char *)sym_hdr->identifier, "operator ", OPERATOR_LEN);
-    (void)strcpy(((char *)sym_hdr->identifier + OPERATOR_LEN), name);
+                  alloc_primary_file_scope_il(sym_hdr->identifier_length + 1);
+    (void)memcpy((char *)sym_hdr->identifier,
+                 CANONICAL_CONVERSION_FUNCTION_INTRO,
+                 LENGTH_CANONICAL_LITERAL_OPERATOR_INTRO);
+    (void)strcpy((char *)sym_hdr->identifier +
+                                      LENGTH_CANONICAL_LITERAL_OPERATOR_INTRO,
+                 name);
 #if DEBUG
     symbol_name_string_space += (unsigned long)(sym_hdr->identifier_length);
 #endif /* DEBUG */
   }  /* if */
   return conv_hdr->symbol_header;
-#undef OPERATOR_LEN
 }  /* symbol_header_for_conversion_function */
 
 
@@ -8658,7 +8661,6 @@ used for C++ constructs like "operator+".  Use pos as the source position.
   char                *str;
   a_boolean           blank_needed;
   sizeof_t            opname_length;
-#define OPERATOR_LEN 8 /* Length of "operator" */
 
   clear_locator(locator, pos);
   hdr_ptr = *table_entry;
@@ -8671,13 +8673,16 @@ used for C++ constructs like "operator+".  Use pos as the source position.
     /* For "new" and "delete", a blank is needed between the "operator"
        and the opname. */
     blank_needed = (is_id_char[opstr[1]-CHAR_MIN] != FALSE);
-    opname_length = OPERATOR_LEN + strlen(opstr) + blank_needed;
+    opname_length = LENGTH_CANONICAL_OPERATOR_FUNCTION_INTRO + strlen(opstr)
+                    + blank_needed;
     hdr_ptr->identifier_length = opname_length;
     hdr_ptr->identifier = str =
                     alloc_primary_file_scope_il((sizeof_t)(opname_length + 1));
-    (void)memcpy(str, "operator", OPERATOR_LEN);
-    if (blank_needed) str[OPERATOR_LEN] = ' ';
-    (void)strcpy(str+OPERATOR_LEN+blank_needed, opstr);
+    (void)memcpy(str, CANONICAL_OPERATOR_FUNCTION_INTRO,
+                 LENGTH_CANONICAL_OPERATOR_FUNCTION_INTRO);
+    if (blank_needed) str[LENGTH_CANONICAL_OPERATOR_FUNCTION_INTRO] = ' ';
+    (void)strcpy(str+LENGTH_CANONICAL_OPERATOR_FUNCTION_INTRO+blank_needed,
+                 opstr);
     hdr_ptr->variant.opname = opname;
 #if DEBUG
     symbol_name_string_space += (unsigned long)(opname_length + 1);
@@ -8686,7 +8691,6 @@ used for C++ constructs like "operator+".  Use pos as the source position.
   locator->symbol_header = hdr_ptr;
   locator->is_operator_name = TRUE;
   locator->variant.opname = opname;
-#undef OPERATOR_LEN
 }  /* make_opname_locator */
 
 
@@ -8702,7 +8706,6 @@ ud_suffix (of length ud_suffix_len).  Use pos as the source position.
 {
   a_literal_operator_header_ptr lo_hdr_ptr;
   a_symbol_header_ptr           sym_hdr_ptr;
-#define OPERATOR_LEN 12 /* Length of 'operator "" ' */
 
   clear_locator(locator, pos);
   for (lo_hdr_ptr = literal_operator_header_list;
@@ -8714,13 +8717,14 @@ ud_suffix (of length ud_suffix_len).  Use pos as the source position.
     sym_hdr_ptr = lo_hdr_ptr->symbol_header;
   } else {
     /* First use of this literal operator name.  Allocate the header. */
-    sizeof_t len = OPERATOR_LEN + ud_suffix_len;
+    sizeof_t len = LENGTH_CANONICAL_LITERAL_OPERATOR_INTRO + ud_suffix_len;
     char     *str = alloc_primary_file_scope_il((sizeof_t)(len + 1));
     lo_hdr_ptr = alloc_literal_operator_header(ud_suffix, ud_suffix_len);
     sym_hdr_ptr = alloc_symbol_header();
     /* Give the header the name 'operator "" X' where "X" is ud_suffix. */
-    strcpy(str, "operator \"\" ");
-    memcpy(str + OPERATOR_LEN, ud_suffix, ud_suffix_len);
+    strcpy(str, CANONICAL_LITERAL_OPERATOR_INTRO);
+    memcpy(str + LENGTH_CANONICAL_LITERAL_OPERATOR_INTRO, ud_suffix,
+           ud_suffix_len);
     str[len] = '\0';
     sym_hdr_ptr->identifier_length = len;
     sym_hdr_ptr->identifier = str;
@@ -8730,7 +8734,6 @@ ud_suffix (of length ud_suffix_len).  Use pos as the source position.
 #endif /* DEBUG */
   }  /* if */
   locator->symbol_header = sym_hdr_ptr;
-#undef OPERATOR_LEN
 }  /* make_literal_opname_locator */
 
 

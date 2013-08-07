@@ -2542,10 +2542,35 @@ a_targ_alignment compute_alignof_value(a_type_ptr         alignof_type,
                                        a_boolean          *p_template_case);
 
 /*
+The canonical form of the introductory part of an operator-function-id (i.e.,
+the part without the type or "operator").
+*/
+#define CANONICAL_OPERATOR_FUNCTION_INTRO "operator"
+#define LENGTH_CANONICAL_OPERATOR_FUNCTION_INTRO \
+  (sizeof(CANONICAL_OPERATOR_FUNCTION_INTRO)-1)
+
+/*
+The canonical form of the introductory part of a conversion-function-id (i.e.,
+the part without the type or "operator ").
+*/
+#define CANONICAL_CONVERSION_FUNCTION_INTRO "operator "
+#define LENGTH_CANONICAL_CONVERSION_FUNCTION_INTRO \
+  (sizeof(CANONICAL_CONVERSION_FUNCTION_INTRO)-1)
+
+/*
+The canonical form of the introductory part of a literal-operator-id (i.e.,
+the part without the suffix).
+*/
+#define CANONICAL_LITERAL_OPERATOR_INTRO "operator \"\" "
+#define LENGTH_CANONICAL_LITERAL_OPERATOR_INTRO \
+  (sizeof(CANONICAL_LITERAL_OPERATOR_INTRO)-1)
+
+/*
 Return a pointer to the ud-suffix position of a canonical
 literal-operator-id (operator "" suffix).
 */
-#define ud_suffix_from_literal_operator_id(name) ((name) + 12)
+#define ud_suffix_from_literal_operator_id(name) \
+  ((name) + LENGTH_CANONICAL_LITERAL_OPERATOR_INTRO)
 
 #endif /* ifndef IL_H */
 
