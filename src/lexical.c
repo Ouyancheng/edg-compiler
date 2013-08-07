@@ -9318,6 +9318,34 @@ return_point:
 }  /* accum_quoted_string */
 
 
+static a_boolean check_for_ud_suffix(void)
+/*
+Upon entry, curr_char_loc points to the character following a
+character-literal or string-literal.  If a ud-suffix for a
+user-defined-literal is found there, update curr_char_loc to point after
+the ud-suffix and return TRUE.  Otherwise, leave curr_char_loc unchanged
+and return FALSE.
+*/
+{
+  a_const_char *p = curr_char_loc;
+  a_boolean    initial_char = TRUE;
+  int          char_bytes;
+  a_boolean    found_suffix = FALSE;
+
+  check_assertion(user_defined_literals_enabled);
+  while (is_identifier_char(p, &char_bytes, initial_char)) {
+    p += char_bytes;
+    initial_char = FALSE;
+  }  /* while */
+  if (p != curr_char_loc) {
+    /* Found a ud-suffix. */
+    found_suffix = TRUE;
+    curr_char_loc = p;
+  }  /* if */
+  return found_suffix;
+}  /* check_for_ud_suffix */
+
+
 static a_token_kind scan_char_constant(a_string_or_char_literal_kind lit_kind)
 /*
 Scan a character constant token described by lit_kind, return the token
@@ -9388,14 +9416,8 @@ kind or tok_error.  The token can be a normal or wide character constant.
       conv_char_literal(num_chars, &err_code, &err_pos);
       if (err_code == ec_no_error && user_defined_literals_enabled) {
         /* Check for a user-defined literal. */
-        a_boolean    initial_char = TRUE;
-        int          char_bytes;
         a_const_char *id_start = curr_char_loc;
-        while (is_identifier_char(curr_char_loc, &char_bytes, initial_char)) {
-          curr_char_loc += char_bytes;
-          initial_char = FALSE;
-        }  /* while */
-        if (curr_char_loc != id_start) {
+        if (check_for_ud_suffix()) {
           /* Found a ud-suffix. */
           if (const_for_curr_token.type ==
                                        integer_type((an_integer_kind)ik_int)) {
@@ -10765,14 +10787,8 @@ curr_token is already set in that case.
     a_string_or_char_literal_kind next_encoding = SCLK_ORDINARY_LITERAL;
     if (user_defined_literals_enabled) {
       /* Check for a ud-suffix. */
-      a_boolean    initial_char = TRUE;
-      int          char_bytes;
       a_const_char *id_start = curr_char_loc;
-      while (is_identifier_char(curr_char_loc, &char_bytes, initial_char)) {
-        curr_char_loc += char_bytes;
-        initial_char = FALSE;
-      }  /* while */
-      if (curr_char_loc != id_start) {
+      if (check_for_ud_suffix()) {
         /* Found a ud-suffix. */
         sizeof_t     suffix_len = (sizeof_t)(curr_char_loc - id_start);
         a_const_char *canonical_id =
@@ -12709,6 +12725,18 @@ concatenate_adjacent_string_literals:
       (in_preprocessing_directive && !caching_pragma_tokens) ||
       !do_string_literal_concatenation) {
     /* String literal concatenation should not be done in the current mode. */
+    if (fetch_pp_tokens && ctoken == tok_string_literal &&
+        user_defined_literals_enabled && check_for_ud_suffix()) {
+      /* Normally user-defined literals are detected during string literal
+         concatenation, to allow for merging of suffixed and unsuffixed
+         string literals.  We still need to detect a user-defined literal
+         when fetching pp-tokens, however, so check for a ud-suffix here.
+         This will produce a tok_ud_literal token, but in this mode there
+         is no need to set locator_for_curr_id and
+         ud_lit_op_sym_for_curr_token. */
+      ctoken = tok_ud_literal;
+      end_of_curr_token = curr_char_loc - 1;
+    }  /* if */
     goto end_of_token_scan_b;
   }  /* if */
   /* Do string literal concatenation. */
