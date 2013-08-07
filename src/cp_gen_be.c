@@ -9885,6 +9885,8 @@ return FALSE and let the caller generate the code normally.
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     check_assertion_str(rp->special_kind ==
                                        (a_special_function_kind)sfk_operator ||
+                        rp->special_kind ==
+                                   (a_special_function_kind)sfk_udl_operator ||
                         is_delegate_invocation_fcn,
           "handle_operator_call: non-operator function using operator syntax");
 
@@ -9899,6 +9901,47 @@ return FALSE and let the caller generate the code normally.
     } else {
       op = rp->variant.opname_kind;
     }  /* if */
+    if (rp->special_kind == (a_special_function_kind)sfk_udl_operator) {
+      /* A call to a literal operator or an instance of a literal operator
+         template.  Reconstruct the original user-defined-literal token. */
+      a_const_char *ud_suffix = ud_suffix_from_literal_operator_id(
+                                       unmangled_name_of(&rp->source_corresp));
+      if (rp->template_arg_list != NULL) {
+        /* This is a call to an instance of a literal operator template.
+           The spelling of the literal portion is given as the elements of
+           a parameter pack expansion. */
+        a_template_arg_ptr tap;
+        for (tap = rp->template_arg_list; tap != NULL; tap = tap->next) {
+          if (tap->kind == (a_templ_arg_kind)tak_start_of_pack_expansion) {
+            /* Ignore. */
+          } else {
+            check_assertion(tap->kind == (a_templ_arg_kind)tak_nontype &&
+                            tap->is_pack_element &&
+                            tap->variant.constant->kind ==
+                                             (a_constant_repr_kind)ck_integer);
+            write_ch((char)tap->variant.constant->variant.integer_value);
+          }  /* if */
+        }  /* for */
+      } else if (rp->is_raw_literal_operator) {
+        /* The argument is the address of a character string giving the
+           spelling of the literal portion. */
+        a_constant_ptr con;
+        check_assertion(arg != NULL && is_constant_node(arg));
+        con = arg->variant.constant;
+        check_assertion(con->kind == (a_constant_repr_kind)ck_address &&
+                        con->variant.address.kind ==
+                                           (an_address_base_kind)abk_constant);
+        con = con->variant.address.variant.constant;
+        check_assertion(con->kind == (a_constant_repr_kind)ck_string);
+        write_str(con->variant.string.value);
+      } else {
+        /* The argument is the value of the literal portion. */
+        check_assertion(arg != NULL);
+        gen_expression(arg);
+      }  /* if */
+      write_str(ud_suffix);
+      handled = TRUE;
+    } else
 #if MICROSOFT_EXTENSIONS_ALLOWED
     if (expr->variant.operation.rewritten_property_reference_kind !=
                               (a_rewritten_property_reference_kind)rprk_none) {
