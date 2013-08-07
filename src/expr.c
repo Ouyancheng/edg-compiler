@@ -28591,7 +28591,14 @@ passed).
     /* The user-defined literal results in a call to an ordinary (i.e.,
        non-template) literal operator.  const_for_curr_token already has
        the constant to be passed to the literal operator. */
-    arg_list = alloc_node_for_constant(&const_for_curr_token);
+    a_routine_ptr     rp = ud_lit_op_sym_for_curr_token->variant.routine.ptr;
+    a_type_ptr        rtp = skip_typerefs(rp->type);
+    an_arg_list_elem  *op_list;
+    an_operand        *operand;
+    /* Create a one- or two-element operand list. */
+    op_list = alloc_init_component((an_init_component_kind)ick_expression);
+    operand = operand_of_arg_list_elem(op_list);
+    make_constant_operand(&const_for_curr_token, operand);
     if (const_for_curr_token.kind == (a_constant_repr_kind)ck_string &&
         !ud_lit_op_sym_for_curr_token->variant.routine.ptr
                                      ->is_raw_literal_operator) {
@@ -28599,16 +28606,30 @@ passed).
          a raw version of those), the number of code units (not including the
          terminating null character) is passed as a second argument to the
          literal operator. */
-      an_operand        length_op;
       a_character_kind  char_kind = const_for_curr_token.character_kind;
       a_targ_size_t     length = const_for_curr_token.variant.string.length,
                         char_size = character_size[char_kind];
+      op_list->next = alloc_init_component(
+                                      (an_init_component_kind)ick_expression);
+      operand = operand_of_arg_list_elem(op_list->next);
       /* Adjust the length for the character size and the terminating null
          character. */
       length = (length/char_size)-1;
-      make_integer_constant_operand(&length_op, (a_host_large_integer)length);
-      arg_list->next = alloc_node_for_constant_operand(&length_op);
+      make_integer_constant_operand(operand, (a_host_large_integer)length);
     }  /* if */
+    /* Process the argument list through the usual process to ensure that any
+       needed conversions are performed. */
+    scan_call_arguments(rtp, rp, /*already_after_left_paren=*/FALSE,
+                        &arg_list, /*return_raw_arguments=*/FALSE,
+                        /*unknown_dependent_function=*/FALSE,
+                        /*args_will_be_discarded=*/FALSE,
+                        (a_rescan_control_block*)NULL,
+                        /*arg_list_supplied=*/TRUE, op_list,
+                        (an_arg_list_elem_ptr*)NULL,
+                        /*single_operand=*/(an_operand*)NULL,
+                        /*single_operand_return=*/(a_boolean*)NULL,
+                        (a_source_position*)NULL);
+    free_init_component_list(op_list);
   } else if (symbol_is(ud_lit_op_sym_for_curr_token, sk_function_template)) {
     /* A literal operator template: No arguments are passed through the call
        itself.  (Instead, the "arguments" are the template arguments for the
