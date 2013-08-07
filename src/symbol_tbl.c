@@ -8721,7 +8721,7 @@ ud_suffix (of length ud_suffix_len).  Use pos as the source position.
     /* Give the header the name 'operator "" X' where "X" is ud_suffix. */
     strcpy(str, "operator \"\" ");
     memcpy(str + OPERATOR_LEN, ud_suffix, ud_suffix_len);
-    str[len + 1] = '\0';
+    str[len] = '\0';
     sym_hdr_ptr->identifier_length = len;
     sym_hdr_ptr->identifier = str;
     lo_hdr_ptr->symbol_header = sym_hdr_ptr;
