@@ -7514,7 +7514,7 @@ needed.
     } else if (ptp->next->next != NULL) {
       pos_error(ec_too_many_parameters_for_literal_operator,
                 &loc->source_position);
-    } else if (!identical_types(ptp->next->type, size_t_type)) {
+    } else if (!types_are_compatible(ptp->next->type, size_t_type)) {
       pos_ty_error(ec_invalid_second_parameter_type_for_literal_operator,
                    &loc->source_position, skip_typerefs(ptp->next->type));
     } else {

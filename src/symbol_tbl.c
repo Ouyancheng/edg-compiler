@@ -14362,11 +14362,21 @@ literal-operator-id.
         a_type_ptr                    param2_type;
         check_assertion(symbol_is(sym, sk_routine));
         rtsp = sym->variant.routine.ptr->type->variant.routine.extra_info;
-        check_assertion(rtsp->param_type_list != NULL);
+        if (rtsp->param_type_list == NULL) {
+          /* A literal operator must have at least on parameter  An error
+             should already have been issued. */
+          expect_error();
+          continue;
+        }  /* if */
         param1_type = skip_typerefs(rtsp->param_type_list->type);
         if (rtsp->param_type_list->next != NULL) {
           param2_type = skip_typerefs(rtsp->param_type_list->next->type);
-          check_assertion(rtsp->param_type_list->next->next == NULL);
+          if (rtsp->param_type_list->next->next != NULL) {
+            /* A literal operator cannot have more than two parameters.  An
+               error should already have been issued. */
+            expect_error();
+            continue;
+          }  /* if */
         } else {
           param2_type = NULL;
         }  /* if */
@@ -14381,16 +14391,20 @@ literal-operator-id.
             ambiguous_raw_operator = TRUE;
           }  /* if */
           raw_operator = sym;
-          /* Incidentally, mark this function as a raw literal operator for
-             convenience in later references. */
-          sym->variant.routine.ptr->is_raw_literal_operator = TRUE;
         } else if (identical_types(req_param1_type, param1_type)) {
           /* The first parameter has the required type. */
-          if (is_string) {
-            check_assertion(param2_type != NULL &&
-                            identical_types(param2_type, size_t_type));
-          } else {
-            check_assertion(param2_type == NULL);
+          if (is_string ? (param2_type == NULL ||
+                           !types_are_compatible(param2_type, size_t_type))
+                        : param2_type != NULL) {
+            /* In the case of a string literal operator there should be a
+               second parameter of type size_t; otherwise, there should not
+               be another parameter.  If this is not the case, this candidate
+               was declared erroneously and should be discarded.  (Note the
+               use of types_are_compatible instead of identical_types; this
+               produces slightly better error recovery in the presence of
+               error types.) */
+            expect_error();
+            continue;
           }  /* if */
           if (matching_sym != NULL) {
             /* We already saw a matching symbol.  This is an error, so
