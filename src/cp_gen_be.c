@@ -9915,11 +9915,15 @@ return FALSE and let the caller generate the code normally.
           if (tap->kind == (a_templ_arg_kind)tak_start_of_pack_expansion) {
             /* Ignore. */
           } else {
+            a_host_large_integer val;
+            a_boolean            overflow;
             check_assertion(tap->kind == (a_templ_arg_kind)tak_nontype &&
                             tap->is_pack_element &&
                             tap->variant.constant->kind ==
                                              (a_constant_repr_kind)ck_integer);
-            write_ch((char)tap->variant.constant->variant.integer_value);
+            val = value_of_integer_constant(tap->variant.constant, &overflow);
+            check_assertion(!overflow);
+            write_ch((char)val);
           }  /* if */
         }  /* for */
       } else if (rp->is_raw_literal_operator) {
