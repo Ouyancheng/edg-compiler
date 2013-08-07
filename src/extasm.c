@@ -303,7 +303,7 @@ symbolic reference (e.g., "%l[label]) or by argument number (e.g., "%l0).
   a_constant_ptr      asm_string = asm_entry->asm_string;
 
   if (asm_string->kind == (a_constant_repr_kind)ck_string) {
-    size_t       label_count = 0;
+    size_t       operand_count = 0;
     a_boolean    is_label;
     a_source_position
                  *diag_pos = &asm_entry->source_corresp.decl_position;
@@ -339,14 +339,19 @@ symbolic reference (e.g., "%l[label]) or by argument number (e.g., "%l0).
             ++pc;
           }  /* while */
           /* Verify that the (zero-based) operand number refers to a label
-             argument that was specified. */
-          if (label_count == 0) {
-            a_label_list_ptr llp;
+             argument that was specified.  The argument number includes
+             any input or output operands specified before the labels. */
+          if (operand_count == 0) {
+            a_label_list_ptr   llp;
+            an_asm_operand_ptr aop;
+            for (aop = asm_entry->operands; aop != NULL; aop = aop->next) {
+              ++operand_count;
+            }  /* for */
             for (llp = asm_entry->labels; llp != NULL; llp = llp->next) {
-              ++label_count;
+              ++operand_count;
             }  /* for */
           }  /* if */
-          if (operand_num >= label_count) {
+          if (operand_num >= operand_count) {
             pos_error(ec_label_operand_number_out_of_range, diag_pos);
           }  /* if */
         } else {
