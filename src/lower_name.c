@@ -5324,7 +5324,7 @@ this expression is part of a template-dependent expression.
   }  /* switch */
   rp = routine_from_function_expr(call_operand);
   if (expr->variant.operation.call_uses_operator_syntax &&
-      !rp->special_kind == (a_special_function_kind)sfk_udl_operator) {
+      !(rp->special_kind == (a_special_function_kind)sfk_udl_operator)) {
     /* This is a call operator that was added by the compiler, for example,
        for a+a, and for mangling purposes needs to be represented as it
        appeared in the source code (i.e., a+a, not operator+(a,a)).  Note that
