@@ -2342,8 +2342,10 @@ an equivalent change.
     copy_constant(ctp->variant.constant, &const_for_curr_token);
     if (ctoken == tok_ud_literal) {
       /* Restore the symbol designating the associated literal operator or
-         literal operator template. */
+         literal operator template and set up locator_for_curr_id. */
       ud_lit_op_sym_for_curr_token = ctp->ud_lit_op_sym;
+      make_literal_opname_locator(ctp->ud_suffix, strlen(ctp->ud_suffix),
+                                  &locator_for_curr_id, &pos_curr_token);
     }  /* if */
   }  /* if */
   free_cached_token(ctp);
@@ -2452,8 +2454,10 @@ an equivalent change.
     copy_constant(ctp->variant.constant, &const_for_curr_token);
     if (ctoken == tok_ud_literal) {
       /* Restore the symbol designating the associated literal operator or
-         literal operator template. */
+         literal operator template and set up locator_for_curr_id. */
       ud_lit_op_sym_for_curr_token = ctp->ud_lit_op_sym;
+      make_literal_opname_locator(ctp->ud_suffix, strlen(ctp->ud_suffix),
+                                  &locator_for_curr_id, &pos_curr_token);
     }  /* if */
   }  /* if */
   /* Check whether we have reached the end of this cache. */
