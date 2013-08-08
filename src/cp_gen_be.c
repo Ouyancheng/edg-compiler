@@ -9950,9 +9950,17 @@ return FALSE and let the caller generate the code normally.
       } else {
         /* The argument is the value of the literal portion. */
         check_assertion(arg != NULL);
+        octl.part_of_ud_literal = TRUE;
         gen_expression(arg);
+        octl.part_of_ud_literal = FALSE;
       }  /* if */
       write_str(ud_suffix);
+      if (octl.pending_right_paren) {
+        /* The il_to_str routines preceded the literal portion with a
+           left parenthesis.  Close it now. */
+        write_ch(')');
+        octl.pending_right_paren = FALSE;
+      }  /* if */
       handled = TRUE;
     } else
 #if MICROSOFT_EXTENSIONS_ALLOWED

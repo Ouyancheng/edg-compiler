@@ -113,6 +113,8 @@ Clear an output control block to default values.
   octl->suppress_ptr_to_data_member_parens = FALSE;
   octl->suppress_compiler_generated_parameters = FALSE;
   octl->processing_nontype_template_argument = FALSE;
+  octl->part_of_ud_literal        = FALSE;
+  octl->pending_right_paren       = FALSE;
 }  /* clear_il_to_str_output_control_block */
 
 
@@ -5233,7 +5235,14 @@ precedence confusion.  Do the output in the way described by octl.
         octl->output_str("*__I__", octl);
       }  /* if */
 #endif /* C99_IL_EXTENSIONS_SUPPORTED */
-      octl->output_str(")", octl);
+      if (octl->part_of_ud_literal) {
+        /* This constant is the literal portion of a C++11 user-defined
+           literal.  The ud-suffix must follow the literal immediately, so
+           the right parenthesis cannot be put out now. */
+        octl->pending_right_paren = TRUE;
+      } else {
+        octl->output_str(")", octl);
+      }  /* if */
       break;
 #if C99_IL_EXTENSIONS_SUPPORTED
     case ck_complex:

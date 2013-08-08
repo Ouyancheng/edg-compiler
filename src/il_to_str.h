@@ -306,6 +306,20 @@ typedef struct an_il_to_str_output_control_block {
 			   calling the output_name routine to indicate that
 			   the name appears in the context of a nontype
 			   template argument. */
+  a_byte_boolean
+	part_of_ud_literal;
+			/* When TRUE, a constant being put out is the
+			   literal portion of a user-defined literal, so
+			   nothing can be put out following the constant. */
+  a_byte_boolean
+	pending_right_paren;
+			/* Set to TRUE by the il_to_str routines when a left
+			   parenthesis is put out but the corresponding
+			   right parenthesis cannot be (e.g., because
+			   part_of_ud_literal is TRUE).  The caller is
+			   responsible for checking this flag, putting out
+			   the right parenthesis at the appropriate point,
+			   and clearing the flag. */
 } an_il_to_str_output_control_block;
 
 /*
