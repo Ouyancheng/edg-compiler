@@ -4955,12 +4955,20 @@ expression that was used to select expr (NULL if no selector was used).
           opname = sym->header->variant.opname;
         }  /* if */
         if (opname != (an_opname_kind)onk_none ||
-             con->variant.template_param.variant.unknown_function.
+            con->variant.template_param.variant.unknown_function.
                                                      conversion_type != NULL) {
           /* An operator or a conversion function. */
           mangle_as_operator = TRUE;
           conversion_type = con->
                variant.template_param.variant.unknown_function.conversion_type;
+        } else if (sym != NULL && sym->header != NULL &&
+                   strncmp(sym->header->identifier,
+                           CANONICAL_LITERAL_OPERATOR_INTRO,
+                           LENGTH_CANONICAL_LITERAL_OPERATOR_INTRO) == 0) {
+          /* A literal operator function. */
+          mangle_as_operator = TRUE;
+          ud_suffix =
+                   ud_suffix_from_literal_operator_id(sym->header->identifier);
         } else {
           scp = &con->source_corresp;
         }  /* if */
