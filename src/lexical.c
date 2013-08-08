@@ -9355,7 +9355,7 @@ kind or tok_error.  The token can be a normal or wide character constant.
   a_token_kind      ctoken = tok_char_constant;
   a_character_kind  character_kind;
   unsigned long     num_chars = 0;
-  an_error_code     err_code;
+  an_error_code     err_code = ec_no_error;
   a_const_char      *err_pos;
   a_source_position start_pos;
 
@@ -9411,15 +9411,22 @@ kind or tok_error.  The token can be a normal or wide character constant.
     if (ctoken == tok_error) {
       ctoken = tok_char_constant;
       set_error_constant(&const_for_curr_token);
-      error_at_line_pos(err_code_for_error_token, start_of_curr_token);
+      err_code = err_code_for_error_token;
+      err_pos = start_of_curr_token;
     } else {
       conv_char_literal(num_chars, &err_code, &err_pos);
-      if (err_code == ec_no_error && user_defined_literals_enabled) {
-        /* Check for a user-defined literal. */
-        a_const_char *id_start = curr_char_loc;
-        if (check_for_ud_suffix()) {
-          /* Found a ud-suffix. */
-          if (const_for_curr_token.type ==
+    }  /* if */
+  }  /* if */
+  if (err_code == ec_no_error && user_defined_literals_enabled) {
+    /* Check for a user-defined literal. */
+    a_const_char *id_start = curr_char_loc;
+    if (check_for_ud_suffix()) {
+      /* Found a ud-suffix. */
+      if (!fetch_pp_tokens) {
+        /* The type and value of the literal are known: set up
+           locator_for_curr_id and ud_lit_op_sym_for_curr_token (they are
+           not needed when fetching pp-tokens). */
+        if (const_for_curr_token.type ==
                                        integer_type((an_integer_kind)ik_int)) {
             /* A multicharacter literal cannot be part of a user-defined
                literal because it is not permitted to declare a literal
@@ -9429,25 +9436,26 @@ kind or tok_error.  The token can be a normal or wide character constant.
                unchanged. */
             err_code = ec_multichar_ud_lit;
             err_pos = start_of_curr_token;
-          } else {
-            sizeof_t     id_len = (sizeof_t)(curr_char_loc - id_start);
-            a_const_char *canonical_id =
+        } else {
+          sizeof_t     id_len = (sizeof_t)(curr_char_loc - id_start);
+          a_const_char *canonical_id =
                                   make_canonical_identifier(id_start, &id_len);
-            ud_lit_op_sym_for_curr_token =
+          ud_lit_op_sym_for_curr_token =
                        find_literal_operator(canonical_id, id_len, &start_pos,
                                              const_for_curr_token.type,
                                              /*is_string=*/FALSE,
                                              /*allow_raw_and_template=*/FALSE);
-            ctoken = tok_ud_literal;
-            end_of_curr_token = curr_char_loc - 1;
-          }  /* if */
         }  /* if */
       }  /* if */
-      /* Check for errors detected. */
-      if (err_code != ec_no_error) {
-        error_at_line_pos(err_code, err_pos);
+      if (err_code == ec_no_error) {
+        ctoken = tok_ud_literal;
+        end_of_curr_token = curr_char_loc - 1;
       }  /* if */
     }  /* if */
+  }  /* if */
+  /* Check for errors detected. */
+  if (err_code != ec_no_error) {
+    error_at_line_pos(err_code, err_pos);
   }  /* if */
   return ctoken;
 }  /* scan_char_constant */
