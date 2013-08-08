@@ -9927,15 +9927,24 @@ return FALSE and let the caller generate the code normally.
           }  /* if */
         }  /* for */
       } else if (rp->is_raw_literal_operator) {
-        /* The argument is the address of a character string giving the
-           spelling of the literal portion. */
+        /* The argument is a character string giving the spelling of the
+           literal portion.  Depending on the context, the string can be
+           represented as either an array decay node on top of a ck_string
+           constant or as an enk_constant node for a
+           ck_address/abk_constant constant referring to a ck_string
+           constant. */
         a_constant_ptr con;
-        check_assertion(arg != NULL && is_constant_node(arg));
+        check_assertion(arg != NULL);
+        if (is_operation_node(arg) &&
+            node_operator_is(arg, eok_array_to_pointer)) {
+          arg = arg->variant.operation.operands;
+        }  /* if */
+        check_assertion(is_constant_node(arg));
         con = arg->variant.constant;
-        check_assertion(con->kind == (a_constant_repr_kind)ck_address &&
-                        con->variant.address.kind ==
-                                           (an_address_base_kind)abk_constant);
-        con = con->variant.address.variant.constant;
+        if (con->kind == (a_constant_repr_kind)ck_address &&
+            con->variant.address.kind == (an_address_base_kind)abk_constant) {
+          con = con->variant.address.variant.constant;
+        }  /* if */
         check_assertion(con->kind == (a_constant_repr_kind)ck_string);
         write_str(con->variant.string.value);
       } else {
