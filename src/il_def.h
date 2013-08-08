@@ -1160,6 +1160,7 @@ typedef enum /*a_token_kind*/ {
   tok_hidden_link_scope,
 #endif /* SUN_EXTENSIONS_ALLOWED */
   tok_thread,
+  tok_thread_local,
 #if UPC_EXTENSIONS_ALLOWED
   /* Recognized in UPC mode only. */
   tok_upc_strict,
@@ -1329,6 +1330,7 @@ EXTERN a_const_char
    "__global", "__symbolic", "__hidden",
 #endif /* SUN_EXTENSIONS_ALLOWED */
    "__thread",
+   "thread_local",
 #if UPC_EXTENSIONS_ALLOWED
    "strict", "relaxed", "shared", "upc_forall", "upc_barrier", "upc_notify",
    "upc_wait", "upc_fence", "THREADS", "MYTHREAD", "upc_blocksizeof",
@@ -9420,6 +9422,11 @@ typedef struct a_variable {
 			   a constant expression so that uses of the variable's
 			   value are permitted in constant-expressions.
 			   Only set in C++. */
+  a_bit_field	is_thread_local:1;
+			/* TRUE for variables declared with the "thread_local"
+			   storage class (i.e., variable has thread storage
+			   duration).  Not used for variables declared with
+			   "__thread" (see DM_THREAD).  Only set in C++. */
   an_init_kind	init_kind;
 			/* Kind of initialization, if any.
 			   When init_kind == initk_function_local (local

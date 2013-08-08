@@ -14643,7 +14643,7 @@ cast.  See lower_expr for typical invocation.
              out the extra pointer-to on the parameter type.*/
           an_expr_node_ptr new_expr;
           an_expr_node_ptr var_copy = copy_node(expr);
-          /* Make sure the type of the enk_variable_node matches that of
+          /* Make sure the type of the enk_variable node matches that of
              the variable. */
           var_copy->type = var->type;
           if (var_copy->is_lvalue) {

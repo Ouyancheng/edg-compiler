@@ -52,11 +52,15 @@ specifier.  Includes an "||" at the beginning.
 #define or_is_microsoft_storage_class() /* Nothing */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
+/*
+Macro to test for "__thread" or "thread_local" storage specifier.
+*/
 #if THREAD_LOCAL_STORAGE_SPECIFIER_ALLOWED
 #define or_is_thread_local_storage_specifier() ||                     \
-  (curr_token == tok_thread)
+  (curr_token == tok_thread_local) || (curr_token == tok_thread)
 #else /* !THREAD_LOCAL_STORAGE_SPECIFIER_ALLOWED */
-#define or_is_thread_local_storage_specifier() /* Nothing */
+#define or_is_thread_local_storage_specifier() ||                     \
+  (curr_token == tok_thread_local)
 #endif /* THREAD_LOCAL_STORAGE_SPECIFIER_ALLOWED */
 
 /*
@@ -6561,6 +6565,21 @@ for use in generating cross-reference output describing this declaration.
                                &linkage, &storage_class,
                                &locator->source_position,
                                /*suppress_diagnostic=*/linked_redecl_error);
+    if (redeclaration &&
+        symbol_is(linked_symbol, sk_variable) &&
+        variable_ptr->is_thread_local !=
+        ((dps->dso_flags & DSO_THREAD_LOCAL) == DSO_THREAD_LOCAL)) {
+      /* If "thread_local" is specified on one declaration, it must be
+         specified on all. */
+      pos2_sy_diagnostic(es_error,
+                         variable_ptr->is_thread_local ?
+                                     ec_non_thread_local_follows_thread_local :
+                                     ec_thread_local_follows_non_thread_local,
+                         &locator->source_position,
+                         &linked_symbol->variant.variable.ptr->
+                                                  source_corresp.decl_position,
+                         linked_symbol);
+    }  /* if */
     if (linkage != idlb.linkage) {
       /* The linkage has been changed, so change the "name linkage", too. */
       idlb.linkage = linkage;

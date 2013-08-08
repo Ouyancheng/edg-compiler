@@ -363,7 +363,10 @@ extern void decl_spec_one_time_init(void);
 #define DSO_CONSTEXPR 		((a_decl_flag_set)0x80000)
 			/* If this bit is set the specifier "constexpr" was
 			   found. */
-#define DSO_LAST DSO_CONSTEXPR
+#define DSO_THREAD_LOCAL 	((a_decl_flag_set)0x100000)
+			/* If this bit is set the storage class specifier
+			   "local_thread" was found. */
+#define DSO_LAST DSO_THREAD_LOCAL
 			/* Last bit in the bit vector that is in use. */
 			/*lint -esym(755,DSO_LAST)*/
 #endif /* DECL_SPEC_H */

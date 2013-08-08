@@ -1913,7 +1913,13 @@ scanned (which may be NULL in some error cases).
   init_decl_parse_state(&dps);
   dps.range_based_for = TRUE;
   scan_nonmember_declaration(&dps, (a_source_range *)NULL);
-  if (dps.declared_storage_class != (a_storage_class)sc_unspecified) {
+  if (dps.sym != NULL &&
+      symbol_is(dps.sym, sk_variable) &&
+      dps.sym->variant.variable.ptr->is_thread_local) {
+    /* Only "constexpr" and a type-specifier are allowed in the
+       decl-specifier. */
+    pos_error(ec_thread_local_not_allowed, &dps.storage_class_pos);
+  } else if (dps.declared_storage_class != (a_storage_class)sc_unspecified) {
     /* A storage class is not allowed on a for-range-declaration. */
     pos_error(ec_storage_class_not_allowed, &dps.storage_class_pos);
   }  /* if */

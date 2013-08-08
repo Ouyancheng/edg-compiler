@@ -1937,6 +1937,12 @@ EXTERN a_boolean
 			   local storage. */
 
 EXTERN a_boolean
+		std_thread_local_storage_specifier_enabled;
+			/* TRUE if the C++11 "thread_local" specifier should be
+			   accepted to indicate that a variable should reside
+			   in thread-local storage. */
+
+EXTERN a_boolean
 		allow_nonconstant_auto_aggr_init_in_c_mode;
 			/* TRUE if aggregate initializers for C mode automatic
 			   variables can contain nonconstant expressions.

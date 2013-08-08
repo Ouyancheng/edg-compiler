@@ -15468,16 +15468,19 @@ this one is such a continuation.
          static data members) it should only appear on the definition. */
       write_tok_str("constexpr ");
     }  /* if */
+    if (var->is_thread_local) {
+      /* Put out the "thread_local" keyword. */
+      write_tok_str("thread_local ");
 #if DECL_MODIFIERS_IN_USE && \
     (MICROSOFT_EXTENSIONS_ALLOWED || THREAD_LOCAL_STORAGE_SPECIFIER_ALLOWED)
-    if (!microsoft_dialect_is_generated_code_target &&
-        (var->decl_modifiers & DM_THREAD)) {
+    } else if (!microsoft_dialect_is_generated_code_target &&
+               (var->decl_modifiers & DM_THREAD)) {
       /* Non-Microsoft dialects usually include a "__thread" keyword to
          indicate thread-local storage.  (The Microsoft syntax will have
          been emitted by the call to gen_attributes.) */
       write_tok_str("__thread ");
-    }  /* if */
 #endif /* DECL_MODIFIERS_IN_USE && (MICROSOFT_EXTENSIONS_ALLOWED || ...) */
+    }  /* if */
   }  /* if */
   /* An unqualified name is used in the declarator if this is a declaration
      rather than a definition.  Specializations are an exception, and

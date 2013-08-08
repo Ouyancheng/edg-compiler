@@ -660,6 +660,7 @@ Scan and cache the tokens that comprise a list of decl_specifiers.
       /* GNU/Sun __thread storage class. */
       case tok_thread:
 #endif /* THREAD_LOCAL_STORAGE_SPECIFIER_ALLOWED */
+      case tok_thread_local:
 #if MICROSOFT_EXTENSIONS_ALLOWED
       /* The Microsoft __inline and __forceinline keywords are treated as
          storage classes. */

@@ -2872,6 +2872,7 @@ handling).
   if (!option_kind_used[(int)optk_user_defined_literals]) {
     user_defined_literals_enabled = value;
   }  /* if */
+  std_thread_local_storage_specifier_enabled = value;
 }  /* check_and_set_cpp11_mode_options */
 
 
@@ -10261,6 +10262,7 @@ variables declared in cmd_line.h.
                                  DEFAULT_EMULATE_GNU_VALUE_INITIALIZATION_BUGS;
   thread_local_storage_specifier_enabled =
                                 DEFAULT_THREAD_LOCAL_STORAGE_SPECIFIER_ENABLED;
+  std_thread_local_storage_specifier_enabled = FALSE;
   allow_nonconstant_auto_aggr_init_in_c_mode = FALSE;
   /* Global variables from lang_feat.h. */
 #if SUN_EXTENSIONS_ALLOWED || defined(_lint)

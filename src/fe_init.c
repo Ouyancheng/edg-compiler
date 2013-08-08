@@ -1072,6 +1072,9 @@ Install the keywords in the symbol table.
   if (thread_local_storage_specifier_enabled) {
     enter_keyword((a_token_kind)tok_thread, "__thread");
   }  /* if */
+  if (std_thread_local_storage_specifier_enabled) {
+    enter_keyword((a_token_kind)tok_thread_local, "thread_local");
+  }  /* if */
 #if UPC_EXTENSIONS_ALLOWED
   if (upc_mode) {
     enter_keyword((a_token_kind)tok_upc_shared,      "shared");
