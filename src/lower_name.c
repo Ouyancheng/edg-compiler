@@ -3745,7 +3745,6 @@ of prototype instantiations.  If has_template_args is TRUE, the function
 has an explicit template argument list, given by template_arg_list.
 If add_address_of is TRUE, mangling for an "&" operation is added (IA-64 ABI
 only).
-FIXME: Can this be used for a literal operator?  If so, need a ud-suffix.
 */
 {
   a_type_ptr              conversion_type =
