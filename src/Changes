@@ -1,5 +1,20 @@
 Version 5.0
 
+8/8/13   [EDGcpfe/9616]
+C++11: Throwing an array with unspecified bound
+
+The resolution of the C++ standards committee's Core issue 499, which is
+part of the C++11 standard, clarified that throwing an array of unspecified
+bound can be valid.  Previously, this was an error in strict mode (and it
+is still an error in GNU C++ mode, since GCC has not implemented the new
+rule yet), but now it is accepted in strict C++11 mode.  For example:
+
+  extern int x[];
+  void f() {
+    throw x;  // Now accepted in strict C++11 mode.
+  }
+
+
 8/8/13   [EDGcpfe/14358]
 Microsoft compatibility: defined() operator in macro expansion
 

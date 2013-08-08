@@ -25391,12 +25391,14 @@ in *rcblock).
       /* Array decays to pointer, function decays to pointer.  Don't do
          this for classes so we don't convert lvalues to rvalues. */
       do_operand_transformations(&operand, TOPT_NO_OPTIONS);
-      /* Generally, the type we test for incomplete is the type after any
-         transformations, but the standard actually requires that the
-         original type not be incomplete (not even an incomplete array).
-         That may be a mistake in the standard.  g++ does the test like
-         the standard requires. */
-      if (!strict_ansi_mode && !gpp_mode) incomp_test_type = operand.type;
+      if ((cpp11_mode || !strict_ansi_mode) && !gpp_mode) {
+        /* Generally, the type we test for incomplete is the type after any
+           transformations, but the C++03 standard actually required that the
+           original type not be incomplete (not even an incomplete array).
+           C++11 changes that (via Core issue 499), but g++ still does the
+           test like the C++03 standard required. */
+        incomp_test_type = operand.type;
+      }  /* if */
     }  /* if */
     throw_type = operand.type;
     /* Instantiate the type if it is a template class.  The type has to be
