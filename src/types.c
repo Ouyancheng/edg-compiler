@@ -9910,7 +9910,7 @@ well as C++ mode.
                && !(upc_mode && is_ptr_to_shared_type(dest_type))
 #endif /* UPC_EXTENSIONS_ALLOWED */
                                                                  ) ||
-              identical_types(source_type, dest_type))) {
+              (cpp11_mode && identical_types(source_type, dest_type)))) {
     /* Integral or enum --> pointer or same integral or enum type. */
     okay = TRUE;
     if (is_pointer_type(dest_type) &&
