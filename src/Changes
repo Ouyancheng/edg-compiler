@@ -1,5 +1,28 @@
 Version 5.0
 
+8/8/13   [EDGcpfe/14358]
+Microsoft compatibility: defined() operator in macro expansion
+
+As noted below in the change for EDGcpfe/13211, the Microsoft compiler has
+a bug in the handling of the "defined" operator when it appears in the
+expansion of a macro instead of directly in the source.  As noted below in
+the change for EDGcpfe/13703, the bug only occurs with the parenthesized
+form of the "defined" operator.  Further experience now reveals that the
+bug only occurs when the operand of "defined" immediately follows the left
+parenthesis with no intervening white space, and the front end has been
+revised accordingly.  For example:
+
+  #define A 1
+  #define NOSPACE defined(A)
+  #if NOSPACE
+  #error "Non-space not handled correctly: result is always false"
+  #endif
+  #define SPACE defined( A)
+  #if !SPACE
+  #error "Space not handled correctly: result has the correct value"
+  #endif
+
+
 8/1/13   [EDGcpfe/14353]
 GNU C++ compatibility: Instantiating a reference to array of unknown bound
 

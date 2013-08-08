@@ -2343,6 +2343,7 @@ beyond the operator has not yet been fetched.
     } else {
       /* "defined" is followed by a left parenthesis or identifier.
          Get it as a token. */
+      a_boolean paren_followed_by_whitespace = TRUE;
       /* Turn off macro expansion for the get_token calls that follow. */
       expand_macros = FALSE;
       if (get_token() == tok_identifier) {
@@ -2361,6 +2362,10 @@ beyond the operator has not yet been fetched.
         }  /* if */
 #endif /* CHECKING */
         parenthesized_form = TRUE;
+        /* Check to see if the left parenthesis is followed by white space,
+           which is significant in emulating a Microsoft bug below. */
+        skip_white_space();
+        paren_followed_by_whitespace = (kind_of_white_space_skipped != 0);
         if (get_token() != tok_identifier) {
           /* Error -- Expected an identifier. */
           error(ec_exp_identifier);
@@ -2409,12 +2414,16 @@ beyond the operator has not yet been fetched.
         if (assoc_symbol != NULL) {
           mark_referenced(assoc_symbol, &locator_for_curr_id.source_position);
         }  /* if */
-        if (microsoft_bugs && in_macro_expansion && parenthesized_form) {
+        if (microsoft_bugs && in_macro_expansion && parenthesized_form &&
+            !paren_followed_by_whitespace) {
           /* The Microsoft preprocessor has a bug that results in the
              parenthesized form of "defined" unconditionally having the
-             value 0 if it appears in a macro expansion, and some system
-             headers depend on this behavior.  (The unparenthesized form
-             is processed correctly.) */
+             value 0 if it appears in a macro expansion and the left
+             parenthesis is not followed by white space, and some system
+             headers depend on this behavior.  (The unparenthesized form is
+             processed correctly, as is the parenthesized form when the
+             operand is separated from the left parenthesis by a space or
+             comment.) */
           pos_warning(ec_defined_always_false, &start_position);
           assoc_symbol = NULL;
         }  /* if */
