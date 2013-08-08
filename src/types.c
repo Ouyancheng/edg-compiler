@@ -9904,15 +9904,17 @@ well as C++ mode.
       *is_mild_warning = TRUE;
     }  /* if */
   } else if (is_integral_or_enum(source_type) &&
-             is_non_cli_pointer(dest_type)
+             ((is_non_cli_pointer(dest_type)
 #if UPC_EXTENSIONS_ALLOWED
-             /* Casting an integer to a ptr-to-shared is not allowed. */
-             && !(upc_mode && is_ptr_to_shared_type(dest_type))
+              /* Casting an integer to a ptr-to-shared is not allowed. */
+               && !(upc_mode && is_ptr_to_shared_type(dest_type))
 #endif /* UPC_EXTENSIONS_ALLOWED */
-                                                               ) {
-    /* Integral or enum --> pointer. */
+                                                                 ) ||
+              identical_types(source_type, dest_type))) {
+    /* Integral or enum --> pointer or same integral or enum type. */
     okay = TRUE;
-    if (!dest_of_ptr_cast_big_enough(source_type, dest_type)) {
+    if (is_pointer_type(dest_type) &&
+        !dest_of_ptr_cast_big_enough(source_type, dest_type)) {
       /* The destination is not large enough to hold all of the bits
          of the integer.  Issue a warning. */
       *warning_suggested = ec_conversion_to_pointer_loses_bits;
