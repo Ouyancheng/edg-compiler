@@ -7880,7 +7880,7 @@ and ensure the IL reflects the presence of the specifier otherwise.
     if (dps->declared_storage_class == (a_storage_class)sc_unspecified) {
       if (depth_innermost_function_scope != NO_SCOPE_DEPTH ||
           dps->param_id != NULL) {
-        vp->storage_class = sc_static;
+        vp->storage_class = (a_storage_class)sc_static;
       }  /* if */
     } else if (dps->declared_storage_class != (a_storage_class)sc_extern &&
                dps->declared_storage_class != (a_storage_class)sc_static) {
