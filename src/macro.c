@@ -2419,7 +2419,7 @@ beyond the operator has not yet been fetched.
           /* The Microsoft preprocessor has a bug that results in the
              parenthesized form of "defined" unconditionally having the
              value 0 if it appears in a macro expansion and the left
-             parenthesis is not followed by white space, and some system
+             parenthesis is not followed by white space; some system
              headers depend on this behavior.  (The unparenthesized form is
              processed correctly, as is the parenthesized form when the
              operand is separated from the left parenthesis by a space or
