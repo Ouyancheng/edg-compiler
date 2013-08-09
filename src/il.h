@@ -2561,7 +2561,7 @@ the part without the type or "operator ").
 The canonical form of the introductory part of a literal-operator-id (i.e.,
 the part without the suffix).
 */
-#define CANONICAL_LITERAL_OPERATOR_INTRO "operator \"\" "
+#define CANONICAL_LITERAL_OPERATOR_INTRO "operator \"\""
 #define LENGTH_CANONICAL_LITERAL_OPERATOR_INTRO \
   (sizeof(CANONICAL_LITERAL_OPERATOR_INTRO)-1)
 
