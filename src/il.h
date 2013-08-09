@@ -1197,6 +1197,8 @@ extern a_boolean is_copy_constructor(
                                  a_boolean             include_move_ctors,
                                  a_boolean             is_declarative_context);
 
+extern a_boolean copy_ctor_is_move_ctor(a_routine_ptr  rp);
+
 extern a_boolean routine_is_move_constructor(a_routine_ptr  rp);
 
 extern a_boolean is_copy_assignment_operator_type(
@@ -1206,6 +1208,12 @@ extern a_boolean is_copy_assignment_operator_type(
                                  a_boolean             *is_ref_arg,
                                  a_type_qualifier_set  *qualifiers,
                                  a_boolean             *is_base_class_match);
+
+extern
+a_boolean routine_is_copy_or_move_assign_operator(
+                                               a_routine_ptr  rp,
+                                               a_type_qualifier_set  *tqs,
+                                               a_boolean             *is_move);
 
 extern a_boolean routine_is_move_assignment_operator(a_routine_ptr  rp);
 

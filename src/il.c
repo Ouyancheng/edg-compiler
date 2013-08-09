@@ -12011,7 +12011,7 @@ is NULL, no value is returned for that.  ctor_rout must be a constructor.
 }  /* is_copy_constructor */
 
 
-static a_boolean copy_ctor_is_move_ctor(a_routine_ptr  rp)
+a_boolean copy_ctor_is_move_ctor(a_routine_ptr  rp)
 /*
 The given routine is a copy constructor or a move constructor.  Return TRUE if
 it is a move constructor.
@@ -12110,24 +12110,47 @@ input.
 }  /* is_copy_assignment_operator_type */
 
 
+a_boolean routine_is_copy_or_move_assign_operator(
+                                               a_routine_ptr  rp,
+                                               a_type_qualifier_set  *tqs,
+                                               a_boolean             *is_move)
+/*
+Return TRUE if the given function is a copy or move assignment operator.
+If it is, set *tqs to the qualifiers referred to by the first parameter (or
+TQ_NONE if that parameter is not a reference), and set *is_move to TRUE if
+it is a move constructor and to FALSE otherwise.  Otherwise, set *tqs to
+TQ_NONE and *is_move to FALSE.
+*/
+{
+  a_boolean result, base_match_only;
+
+  result = special_kind_is(rp, sfk_operator) &&
+           rp->variant.opname_kind == (an_opname_kind)onk_assign &&
+           is_copy_assignment_operator_type(rp->type, parent_class_of(rp),
+                                            /*move_assign_okay=*/TRUE,
+                                            /*is_ref_arg=*/(a_boolean *)NULL,
+                                            tqs, &base_match_only) &&
+           !base_match_only;
+  if (result) {
+    *is_move = is_rvalue_reference_type(
+                         function_type_params(skip_typerefs(rp->type))->type);
+  } else {
+    *is_move = FALSE;
+  }  /* if */
+  return result;
+}  /* routine_is_copy_or_move_assign_operator */
+
+
 a_boolean routine_is_move_assignment_operator(a_routine_ptr  rp)
 /*
 Return TRUE if and only if the given routine is a move assignment operator.
 */
 {
-  a_boolean base_match_only;
+  a_type_qualifier_set  tqs;
+  a_boolean             is_move;
 
-  return special_kind_is(rp, sfk_operator) &&
-         rp->variant.opname_kind == (an_opname_kind)onk_assign &&
-         is_copy_assignment_operator_type(rp->type,
-                                          parent_class_of(rp),
-                                         /*move_assign_okay=*/TRUE,
-                                         /*is_ref_arg=*/(a_boolean *)NULL,
-                                         (a_type_qualifier_set *)NULL,
-                                         &base_match_only) &&
-         !base_match_only &&
-         is_rvalue_reference_type(
-                         function_type_params(skip_typerefs(rp->type))->type);
+  return routine_is_copy_or_move_assign_operator(rp, &tqs, &is_move) &&
+         is_move;
 }  /* routine_is_move_assignment_operator */
 
 #if DO_IL_LOWERING

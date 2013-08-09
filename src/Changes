@@ -1,5 +1,23 @@
 Version 5.0
 
+8/9/13   [EDGcpfe/14360]
+Triviality of defaulted copy constructor or copy assignment operator
+
+The C++11 standard specifies that a defaulted copy constructor or copy
+assignment operator is nontrivial if its parameter does not have the same
+type as the type that its implicit counterpart would have had.  The front
+end previously failed to adhere to this rule.  For example:
+
+  struct A { 
+    A(A&) = default;  // The implicit copy constructor would have a
+  };                  // parameter of type A const&.
+  static_assert(!__is_trivially_copyable(A), "XXX");
+     // The front end previously failed this assertion because the
+     // defaulted copy constructor was considered trivial.
+
+This is now fixed.
+
+
 8/9/13   [EDGcpfe/14359]
 C++-generating back end: assertion failure with member types of
 dependent base classes
