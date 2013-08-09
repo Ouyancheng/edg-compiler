@@ -1,5 +1,22 @@
 Version 5.0
 
+8/9/13   [EDGcpfe/14359]
+C++-generating back end: assertion failure with member types of
+dependent base classes
+
+The changes for EDGcpfe/10680 (included in version 4.2) introduced a bug in
+C++-generating back end configurations in which
+PROTOTYPE_INSTANTIATIONS_IN_IL is TRUE.  When a type member of a dependent
+base class is named in the derived class using an unqualified name
+(permitted in Microsoft and default modes), the front end could abort with
+an assertion failure in gen_name.  This is now fixed.  For example:
+
+  template<typename T> struct B { };
+  template<typename T> struct D : B<T> {
+    int arr[X::N];   // "X" assumed to be a member of B<T>, causing an abort
+  };
+
+
 8/8/13   [EDGcpfe/10584]
 C++11: reinterpret_cast and identical integer/enum types
 

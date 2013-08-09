@@ -3544,15 +3544,18 @@ GN_PARENS_IF_GLOBAL_QUALIFIER is not set.
       }  /* if */
     }  /* if */
     if (scp_for_unknown_base_member != NULL) {
-      /* An unqualified name for a member of an unknown base should not
-         come here but should use something like gen_unqualified_name, to
-         ensure that an expression like "this->f()" (potentially a virtual
-         call when the template is instantiated) does not become
-         "this->S::f()" (which would make it unconditionally
-         non-virtual). */
-      check_assertion(scp_for_unknown_base_member->
+      /* An unqualified name for a member function of an unknown base
+         should not come here but should use something like
+         gen_unqualified_name, to ensure that an expression like
+         "this->f()" (potentially a virtual call when the template is
+         instantiated) does not become "this->S::f()" (which would make it
+         unconditionally non-virtual). */
+      check_assertion(entry_kind == iek_type ||
+                      scp_for_unknown_base_member->
                                                 qualified_unknown_base_member);
-      force_qualified_name = TRUE;
+      if (scp_for_unknown_base_member->qualified_unknown_base_member) {
+        force_qualified_name = TRUE;
+      }  /* if */
     }  /* if */
     if (entry_kind == iek_constant) {
       /* Check the special case of a scoped enumerator constant: It requires
