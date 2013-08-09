@@ -18809,8 +18809,12 @@ deleted, disable bitwise copying.
        compiler-generated copy/move constructors and copy/move assignment
        operators. */
     a_routine_ptr  rp = class_type_supp(class_type)->assoc_scope->routines;
-    a_boolean      cli_value_class = cli_class_type_kind_is(class_type,
-                                                            cctk_value);
+    a_boolean      cli_value_class = FALSE;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    if (cli_class_type_kind_is(class_type, cctk_value)) {
+      cli_value_class = FALSE;
+    }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     for (; rp != NULL; rp = rp->next) {
       if (rp->compiler_generated || rp->is_defaulted || rp->is_deleted) {
         a_type_qualifier_set  tqs;
@@ -18824,9 +18828,6 @@ deleted, disable bitwise copying.
             /* If the declared parameter type doesn't match what would have
                been generated, the function is not trivially copyable. */
             rp->is_trivial_copy_function = FALSE;
-            if (!cli_class_type_kind_is(class_type, cctk_value)) {
-              cssp->construction_by_bitwise_copy_allowed = FALSE;
-            }  /* if */
           } else if (!rp->is_deleted) {
             rp->is_trivial_copy_function =
                                    cssp->construction_by_bitwise_copy_allowed;
