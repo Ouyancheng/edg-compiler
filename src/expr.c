@@ -28661,7 +28661,9 @@ Scan a user-defined literal and return an operand for it in *operand.
 
   error_position = pos_curr_token;
   if (make_func_operand_for_literal_operator_call(&func_operand)) {
-    an_expr_node_ptr   arg_list;
+    an_expr_node_ptr arg_list;
+    an_expr_node_ptr function_call_node;
+    a_routine_ptr    routine = routine_from_function_operand(&func_operand);
     arg_list = make_implicit_operands_for_literal_operator_call();
     check_assertion(!func_operand.bound_function);
 #ifdef _lint
@@ -28677,8 +28679,22 @@ Scan a user-defined literal and return an operand for it in *operand.
                            /*found_through_adl=*/FALSE,
                            /*uses_operator_syntax=*/TRUE,
                            &pos_curr_token,
-                           result,
-                           /*function_call_node=*/(an_expr_node_ptr*)NULL);
+                           result, &function_call_node);
+    if (constexpr_enabled && (routine == NULL || routine->is_constexpr) &&
+        expr_fold_constexpr_call(function_call_node, &pos_curr_token,
+                                 result)) {
+      /* The call is to a constexpr function and it has been folded to
+         a constant result. */
+    } else {
+      /* Unfolded routine calls are not allowed in constant expressions;
+         report an error if necessary. */
+      (void)call_did_not_fold_to_constant(constexpr_enabled
+                                          ? ec_bad_cpp11_constant_function_call
+                                          : ec_bad_constant_function_call,
+                                          routine, result,
+                                          (a_source_position *)NULL);
+      rule_out_expr_kinds(ROEK_CONSTANT, result);
+    }  /* if */
   } else {
     make_error_operand(result);
   }  /* if */
