@@ -20761,6 +20761,11 @@ declared).
   a_base_class_ptr  bcp = base_classes_of(class_type);
 
   /* Ensure the name qualifier is a direct base class. */
+  if (!is_class_struct_union_type(parent_class)) {
+    /* If the base class is a template parameter, get the associated proxy
+       class. */
+    parent_class = proxy_class_for_template_param(parent_class);
+  }  /* if */
   for (; bcp != NULL; bcp = bcp->next) {
     if (bcp->direct && identical_types(bcp->type, parent_class)) break;
   }  /* for */
@@ -20811,8 +20816,20 @@ alias declaration from a using-declaration.)
   a_symbol_locator     locator;
   a_using_decl_ptr     prev_udp = NULL;
   a_source_position    decl_pos, using_pos, end_of_using_pos;
+  a_boolean            saved_record_form_of_name_reference;
+  a_boolean            saved_record_dependent_name_references;
 
   db_enter(3, "member_using_or_alias_declaration");
+  /* Record name referencing during member using-declaration processing as they
+     are needed to correctly handle inheriting constructors. */
+  saved_record_form_of_name_reference =
+                               scope_stack_top().record_form_of_name_reference;
+  scope_stack_top().record_form_of_name_reference =
+                                               inheriting_constructors_enabled;
+  saved_record_dependent_name_references =
+                            scope_stack_top().record_dependent_name_references;
+  scope_stack_top().record_dependent_name_references =
+                                               inheriting_constructors_enabled;
   add_stop_token(tok_semicolon);
   using_pos = pos_curr_token;
   if (curr_token == tok_using) {
@@ -20930,7 +20947,10 @@ alias declaration from a using-declaration.)
     } else {
       a_boolean  is_ctor =  is_constructor_symbol(declared_sym);
       if (inheriting_constructors_enabled &&
-          (is_ctor || is_injected_class_symbol(declared_sym))) {
+          (is_ctor || locator_for_curr_id.is_nonclass_inheriting_ctor ||
+           is_injected_class_symbol(declared_sym))) {
+        /* The is_inheriting_ctor flag will be set when the symbol names a
+           nonclass type (such as a template parameter). */
         record_inheriting_ctor_using_decl(cdsp, &using_pos);
         goto done;
       } else if (is_ctor || is_destructor_symbol(declared_sym)) {
@@ -21122,6 +21142,11 @@ alias declaration from a using-declaration.)
   /* Bypass the identifier. */
   (void)get_token();
 done:;
+  /* Restore the name reference recording information to its previous state. */
+  scope_stack_top().record_form_of_name_reference =
+                                           saved_record_form_of_name_reference;
+  scope_stack_top().record_dependent_name_references =
+                                        saved_record_dependent_name_references;
   remove_stop_token(tok_semicolon);
   (void)required_token(tok_semicolon, ec_exp_semicolon);
   db_exit();

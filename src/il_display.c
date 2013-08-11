@@ -622,6 +622,9 @@ Display a_name_qualifier entry.
     disp_ptr("qualifier.namespace_ptr", (char *)ptr->qualifier.namespace_ptr,
              iek_namespace);
   }  /* if */
+  if (ptr->name != NULL) {
+    disp_string_ptr("name", ptr->name, iek_id_name, (sizeof_t)0);
+  }  /* if */
   disp_ptr("previous_qualifier", (char *)ptr->previous_qualifier,
            iek_name_qualifier);
 }  /* disp_name_qualifier */

@@ -16199,12 +16199,15 @@ original type or namespace that was specified.
   check_assertion(qualifier_sym != NULL);
   if (!prototype_instantiations_in_il &&
       is_prototype_instantiation_context() &&
+      !scope_stack_top().record_dependent_name_references &&
       (!create_template_deduction_name_references ||
        !is_template_deduction_context())) {
     /* Don't build name reference information for prototype instantiations
        when prototype instantiations are not being included in the IL,
        except in template deduction contexts where the information may
-       be needed for name mangling purposes. */
+       be needed for name mangling purposes.  record_dependend_name_references
+       is used to force dependent name references to be recorded when they
+       would not otherwise be. */
     goto done;
   }  /* if */
   /* Get the class or namespace represented by the qualifier.  A
@@ -16257,10 +16260,16 @@ original type or namespace that was specified.
     for (new_nqp = *qualifier_list; new_nqp != NULL; new_nqp = new_nqp->next) {
       if (is_type == new_nqp->is_class &&
           prev_nqp == new_nqp->previous_qualifier) {
+        const char	*name;
+        name = is_type
+               ? new_nqp->qualifier.class_type->source_corresp.name
+               : new_nqp->qualifier.namespace_ptr->source_corresp.name;
         if (is_type ? new_type == new_nqp->qualifier.class_type
                     : new_namespace == new_nqp->qualifier.namespace_ptr) {
-          /* We found a matching entry. */
-          break;
+          if (strcmp(name, qualifier_sym->header->identifier) == 0) {
+            /* We found a matching entry. */
+            break;
+          }  /* if */
         }  /* if */
       }  /* if */
     }  /* for */
@@ -16270,6 +16279,7 @@ original type or namespace that was specified.
     new_nqp = alloc_name_qualifier();
     new_nqp->previous_qualifier = prev_nqp;
     new_nqp->is_class = is_type;
+    new_nqp->name = qualifier_sym->header->identifier;
     if (is_type) {
       new_nqp->qualifier.class_type = new_type;
     } else {

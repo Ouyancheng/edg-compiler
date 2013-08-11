@@ -4133,6 +4133,49 @@ current template member that is being defined; FALSE otherwise.
 }  /* is_definition_of_template_member */
 
 
+static a_symbol_ptr check_for_inheriting_constructor_decl(
+				a_symbol_locator	*locator,
+				a_type_ptr		type)
+/*
+Check for an inheriting constructor declaration.  Such a declaration
+has the form "using X::X".  When X is a class type, the normal lookup
+rules find the constructor, but when X is a template parameter or
+typedef, we need to handle this construct specially.  If the name
+following the :: is the same as the type before the ::, this is considered
+to be a reference to an inheriting constructor.  Note that this routine
+is only called for using-declaration cases.  The identifier being looked
+up is described by locator.  The type of the qualifier is specified by
+type.
+*/
+{
+  a_symbol_ptr	sym = NULL;
+
+  if (inheriting_constructors_enabled) {
+    a_symbol_ptr	type_sym = symbol_for(type);
+    if (type_sym != NULL) {
+      if (locator->name_qualifier != NULL &&
+          locator->name_qualifier->name != NULL &&
+          locator->name_qualifier->name ==
+                                          locator->symbol_header->identifier) {
+        type = skip_typerefs(type);
+        /* If the type is a class type, return its constructor.
+           If it is not a class type, return the type and set the
+           is_nonclass_inheriting_ctor flag. */
+        if (is_immediate_class_type(type)) {
+          a_class_symbol_supplement_ptr	cssp;
+          cssp = symbol_supplement_for_class(type);
+          sym = cssp->constructor;
+        } else {
+          sym = type_sym;
+          locator->is_nonclass_inheriting_ctor = TRUE;
+        }  /* if */
+      }  /* if */
+    }  /* if */
+  }  /* if */
+  return sym;
+}  /* check_for_inheriting_constructor_decl */
+
+
 a_symbol_ptr class_qualified_id_lookup(a_symbol_locator         *locator,
                                        a_type_ptr               class_type,
                                        an_id_lookup_options_set options)
@@ -4222,6 +4265,13 @@ symbol pointer is returned.  This routine is used in both C and C++ mode.
     goto end_lookup;
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+  if (is_using_declaration &&
+      !must_be_tag && !must_be_class_or_namespace) {
+    /* Check for a using-declaration of the form "using T::T", which
+       is an inheriting constructor declaration. */
+    sym = check_for_inheriting_constructor_decl(locator, class_type);
+    if (sym != NULL) goto end_lookup;
+  }  /* if */
   /* Remove any typedef on the class type. */
   class_type = skip_typerefs_not_dependent_decltypes(class_type);
   if ((options & IDL_IS_DECLARATOR) != 0) {

@@ -733,6 +733,11 @@ typedef struct a_scope_stack_entry {
   a_bit_field	record_form_of_name_reference:1;
 			/* TRUE if the form of name references should be
 			   recorded in this scope. */
+  a_bit_field	record_dependent_name_references:1;
+			/* Dependent name references are not usually recorded
+			   unless prototype_instantiations_in_il is TRUE.
+			   This forces name references to be recorded in
+			   dependent contexts. */
   a_bit_field	defer_access_checks:1;
 			/* TRUE while scanning the decl-specifiers and
 			   declarator of a global or namespace-level

@@ -2663,6 +2663,7 @@ the scope being pushed.
   ssep->in_variadic_template     = FALSE;
   ssep->record_form_of_name_reference = kind == (a_scope_kind)sck_file &&
                                         record_form_of_name_reference;
+  ssep->record_dependent_name_references = FALSE;
   ssep->defer_access_checks      = FALSE;
   ssep->nested_instantiation     = FALSE;
   ssep->is_try_block             = FALSE;

@@ -212,6 +212,13 @@ typedef struct a_symbol_locator {
 			   nonclass types such as int::~int or i::~i
 			   where "i" is a typedef name.  (Also used for
 			   C++/CLI finalizers.) */
+  a_bit_field	is_nonclass_inheriting_ctor:1;
+			/* TRUE for certain inheriting constructor
+			   references named by template parameters or
+			   typedefs.  When this is TRUE, the symbol
+			   returned by the lookup names the type, not the
+			   constructor (in cases where the type is dependent,
+			   there is no constructor to return). */
   a_bit_field	is_error:1;
 			/* TRUE if an error has been diagnosed on the use
 			   of the associated identifier and no symbol should

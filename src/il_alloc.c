@@ -4559,6 +4559,7 @@ to it.
   nqp->qualifier.class_type = NULL;
   nqp->qualifier.namespace_ptr = NULL;
   nqp->previous_qualifier = NULL;
+  nqp->name = NULL;
   nqp->is_class = FALSE;
   return nqp;
 }  /* alloc_name_qualifier */

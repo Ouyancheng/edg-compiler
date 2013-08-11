@@ -2219,6 +2219,7 @@ do_set_proper_definition_needed_flag:
           walk_ptr(ptr->qualifier.namespace_ptr, a_namespace_ptr,
                    iek_namespace);
         }  /* if */
+        if (ptr->name != NULL) walk_string_ptr(ptr->name, iek_other_text, 0);
         walk_ptr(ptr->previous_qualifier, a_name_qualifier_ptr,
                  iek_name_qualifier);
       }

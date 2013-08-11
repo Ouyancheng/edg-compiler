@@ -15271,6 +15271,7 @@ are handled in symbol_tbl_init.)
   cleared_locator.has_been_coalesced              = FALSE;
   cleared_locator.is_vacuous_destructor_reference = FALSE;
   cleared_locator.is_nonclass_destructor          = FALSE;
+  cleared_locator.is_nonclass_inheriting_ctor     = FALSE;
   cleared_locator.is_error                        = FALSE;
   cleared_locator.do_not_clear_specific_symbol    = FALSE;
   cleared_locator.is_template_id                  = FALSE;
