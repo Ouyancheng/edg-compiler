@@ -5481,7 +5481,11 @@ be copied quickly.
           long          ud_suffix_len;
           a_const_char  *ud_suffix_ptr;
           ud_suffix_ptr = get_number(ptr+2, &ud_suffix_len, dctl);
-          *num_operands = 0;  /* Call can have zero or one operand. */
+          /* Note that a literal operator can have zero, one, or two operands,
+             but we can't tell which case that is here, so consume zero
+             operands and let the operands be parsed by the "cl" mangling
+             for the implicit call to the literal operator. */
+          *num_operands = 0;
           str = NULL;
           if (!dctl->err_in_id) {
             if (ud_suffix_len <= 0) {
