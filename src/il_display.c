@@ -3567,7 +3567,7 @@ Display the indicated routine.
 #endif /* GNU_INIT_PRIORITY_ATTRIBUTE_ALLOWED && DO_IL_LOWERING */
   if (ptr->generating_using_decl != NULL) {
     disp_ptr("generating_using_decl", (char *)ptr->generating_using_decl,
-             iek_routine);
+             iek_using_decl);
   }  /* if */
 }  /* disp_routine */
 
