@@ -8026,7 +8026,11 @@ also been consumed.
          Just return a flag to the caller. */
       *decl_specifiers_seen |= DS_MUTABLE;
       state->dso_flags |= DSO_MUTABLE;
-      state->storage_class_pos = pos_first_token;
+      if ((*decl_specifiers_seen & DS_STORAGE_CLASS) == 0) {
+        /* If there's already a "real" storage class, don't overwrite its
+           position. */
+        state->storage_class_pos = pos_first_token;
+      }  /* if */
     }  /* if */
   } else if (first_token == tok_thread_local) {
     /* Do some checking for the "thread_local" specifier. */
@@ -8042,7 +8046,11 @@ also been consumed.
          been scanned. */
       *decl_specifiers_seen |= DS_THREAD_LOCAL;
       state->dso_flags |= DSO_THREAD_LOCAL;
-      state->storage_class_pos = pos_first_token;
+      if ((*decl_specifiers_seen & DS_STORAGE_CLASS) == 0) {
+        /* If there's already a "real" storage class, don't overwrite its
+           position. */
+        state->storage_class_pos = pos_first_token;
+      }  /* if */
       add_end_of_parse_action(check_use_of_thread_local, state,
                               /*secondary_decls=*/TRUE);
     }  /* if */
