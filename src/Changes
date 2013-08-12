@@ -1,5 +1,24 @@
 Version 5.0
 
+8/12/13  [EDGcpfe/9164]
+C++11: Inheriting constructors
+
+In C++11 mode, the front end now accepts using declarations in derived classes
+that denote the implicit generation of "inheriting constructors.  For example:
+
+  struct B {
+    B(int);
+    B(double);
+  };
+  struct D: B {
+    using B::B;  // Generates D::D(double), but not D::D(int).
+    D(int);
+  };
+
+The acceptance of this feature is controlled by the global variable
+inheriting_constructors_enabled.
+
+
 8/9/13   [EDGcpfe/14360]
 Triviality of defaulted copy constructor or copy assignment operator
 
