@@ -4557,8 +4557,7 @@ IL entry for that field.
     /* We can get here with severe syntax errors.  Use an error constant to
        proceed. */
     expect_error();
-    is->init_dip = alloc_dynamic_init((a_dynamic_init_kind)dik_constant);
-    is->init_dip->variant.constant = alloc_error_constant();
+    is->init_dip = make_error_constant_dynamic_init();
   } else {
     unexpected_condition();
   }  /* if */
@@ -5755,8 +5754,7 @@ cases, array_type is NULL).
       /* An error occurred: Create a fake initializer to represent the
          error. */
       check_assertion(is.init_error);
-      dip = alloc_dynamic_init((a_dynamic_init_kind)dik_constant);
-      dip->variant.constant = alloc_error_constant();
+      dip = make_error_constant_dynamic_init();
     } else {
       check_constexpr_ctor_init(ctor, &is, &lparen_pos);
       /* If the initializer produced an object lifetime for the full
@@ -7148,8 +7146,7 @@ initialized.  These are addressed in the course of the processing.
                fully initialize the object). */
             pos_ty_error(ec_constexpr_ctor_does_not_initialize_base,
                          &err_pos, tp);
-            dip = alloc_dynamic_init((a_dynamic_init_kind)dik_constant);
-            dip->variant.constant = alloc_error_constant();
+            dip = make_error_constant_dynamic_init();
           } else {
             check_assertion(is_immediate_class_type(tp) ||
                             tp->kind == (a_type_kind)tk_template_param);

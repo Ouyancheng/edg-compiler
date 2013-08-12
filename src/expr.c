@@ -36815,6 +36815,11 @@ inherits.
                                        /*args_supplied=*/TRUE, arg_list, &is);
   result = is.init_dip;
   free_init_component_list(arg_list);
+  if (result == NULL) {
+    /* An error occurred: Continue with an error initializer. */
+    check_assertion(is.init_error);
+    result = make_error_constant_dynamic_init();
+  }  /* if */
   return result;
 }  /* forwarding_initializer_for_inheriting_constructor */
 
