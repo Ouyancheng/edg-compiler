@@ -18822,9 +18822,9 @@ deleted, disable bitwise copying.
           if (!cli_class &&
               tqs != (is_move ? TQ_NONE : gsfd->copy_ctor_qualifiers)) {
             /* If the declared parameter type doesn't match what would have
-               been generated, the function is not trivially copyable.
-               (Exclude managed classes from this because they follow 
-               different copy semantics.) */
+               been generated, the function is not trivial.  (Exclude managed
+               classes from this because they follow different copy
+               semantics.) */
             rp->is_trivial_copy_function = FALSE;
           } else if (!rp->is_deleted) {
             rp->is_trivial_copy_function =
@@ -18840,9 +18840,9 @@ deleted, disable bitwise copying.
           if (!cli_class &&
               tqs != (is_move ? TQ_NONE : gsfd->copy_assign_qualifiers)) {
             /* If the declared parameter type doesn't match what would have
-               been generated, the function is not trivially copyable.
-               (Exclude managed classes from this because they follow 
-               different copy semantics.) */
+               been generated, the function is not trivial.  (Exclude managed
+               classes from this because they follow different copy
+               semantics.) */
             rp->is_trivial_copy_function = FALSE;
             cssp->assignment_by_bitwise_copy_allowed = FALSE;
           } else if (!rp->is_deleted) {
