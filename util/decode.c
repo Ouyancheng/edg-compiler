@@ -6692,6 +6692,13 @@ Also, these non-standard expressions (EDG-specific) are demangled:
         /* throw.  This handles the rethrow variety, throw-expression is
            handled separately. */
         write_id_str(op_str, dctl);
+      } else if (strncmp(op_str, "\"\" ", 3) == 0) {
+        /* A literal operator.  The EDG front end doesn't produce a mangled
+           name that should get here (i.e., there should be no "clli" mangled
+           names), but other compilers produce this mangling, so handle it
+           by inserting the implied operator keyword. */
+        write_id_str("operator ", dctl);
+        write_id_str(op_str, dctl);
       } else {
         bad_mangled_name(dctl);
       }  /* if */
