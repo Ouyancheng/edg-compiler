@@ -14366,7 +14366,7 @@ literal-operator-id.
         check_assertion(symbol_is(sym, sk_routine));
         rtsp = sym->variant.routine.ptr->type->variant.routine.extra_info;
         if (rtsp->param_type_list == NULL) {
-          /* A literal operator must have at least on parameter  An error
+          /* A literal operator must have at least one parameter.  An error
              should already have been issued. */
           expect_error();
           continue;
@@ -14396,20 +14396,21 @@ literal-operator-id.
           raw_operator = sym;
         } else if (identical_types(req_param1_type, param1_type)) {
           /* The first parameter has the required type. */
-          if (is_string ? (param2_type == NULL ||
-                           !types_are_compatible(param2_type, size_t_type))
-                        : param2_type != NULL) {
+          if (is_string && param2_type == NULL) {
+            /* This is a raw literal operator, which can't be used for a
+               string literal -- ignore it. */
+          } else if ((is_string &&
+                      !types_are_compatible(param2_type, size_t_type)) ||
+                     (!is_string && param2_type != NULL)) {
             /* In the case of a string literal operator there should be a
                second parameter of type size_t; otherwise, there should not
-               be another parameter.  If this is not the case, this candidate
-               was declared erroneously and should be discarded.  (Note the
-               use of types_are_compatible instead of identical_types; this
-               produces slightly better error recovery in the presence of
-               error types.) */
+               be another parameter.  If this is not the case, this
+               candidate was declared erroneously and should be ignored.
+               (Note the use of types_are_compatible instead of
+               identical_types; this produces slightly better error
+               recovery in the presence of error types.) */
             expect_error();
-            continue;
-          }  /* if */
-          if (matching_sym != NULL) {
+          } else if (matching_sym != NULL) {
             /* We already saw a matching symbol.  This is an error, so
                there's no need to keep scanning. */
             ambiguous_matching_sym = TRUE;
