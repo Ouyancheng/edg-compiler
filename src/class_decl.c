@@ -18787,8 +18787,8 @@ static void mark_trivial_special_members(
 /*
 Set the is_trivial_copy_function flag to TRUE for every trivial copy/move
 constructor routine or trivial copy/move assignment routine of the class
-described by class_state.  Also set the is_trivial_destructor flag if the
-destructor of that class is trivial.  (These are compiler-generated or
+described by class_state and gsfd.  Also set the is_trivial_destructor flag if
+the destructor of that class is trivial.  (These are compiler-generated or
 explicitly defaulted member functions.)  In addition, if a copy function is
 deleted, disable bitwise copying.
 */
@@ -18809,12 +18809,7 @@ deleted, disable bitwise copying.
        compiler-generated copy/move constructors and copy/move assignment
        operators. */
     a_routine_ptr  rp = class_type_supp(class_type)->assoc_scope->routines;
-    a_boolean      cli_value_class = FALSE;
-#if MICROSOFT_EXTENSIONS_ALLOWED
-    if (cli_class_type_kind_is(class_type, cctk_value)) {
-      cli_value_class = FALSE;
-    }  /* if */
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+    a_boolean      cli_class = is_immediate_managed_class_type(class_type);
     for (; rp != NULL; rp = rp->next) {
       if (rp->compiler_generated || rp->is_defaulted || rp->is_deleted) {
         a_type_qualifier_set  tqs;
@@ -18824,9 +18819,12 @@ deleted, disable bitwise copying.
                                 /*include_move_ctors=*/TRUE,
                                 /*is_declarative_context=*/TRUE)) {
           is_move = copy_ctor_is_move_ctor(rp);
-          if (tqs != (is_move ? TQ_NONE : gsfd->copy_ctor_qualifiers)) {
+          if (!cli_class &&
+              tqs != (is_move ? TQ_NONE : gsfd->copy_ctor_qualifiers)) {
             /* If the declared parameter type doesn't match what would have
-               been generated, the function is not trivially copyable. */
+               been generated, the function is not trivially copyable.
+               (Exclude managed classes from this because they follow 
+               different copy semantics.) */
             rp->is_trivial_copy_function = FALSE;
           } else if (!rp->is_deleted) {
             rp->is_trivial_copy_function =
@@ -18836,16 +18834,15 @@ deleted, disable bitwise copying.
           }  /* if */
         } else if (rp->special_kind == (a_special_function_kind)sfk_operator &&
                    rp->variant.opname_kind == (an_opname_kind)onk_assign &&
-                   (cli_value_class ||
+                   (cli_class ||
                     routine_is_copy_or_move_assign_operator(rp, &tqs,
                                                             &is_move))) {
-          /* A C++/CLI value class type's assignment operator is always a
-             trivial copy assignment operator (such class don't allow for a
-             user-defined assignment operator). */
-          if (!cli_value_class &&
+          if (!cli_class &&
               tqs != (is_move ? TQ_NONE : gsfd->copy_assign_qualifiers)) {
             /* If the declared parameter type doesn't match what would have
-               been generated, the function is not trivially copyable. */
+               been generated, the function is not trivially copyable.
+               (Exclude managed classes from this because they follow 
+               different copy semantics.) */
             rp->is_trivial_copy_function = FALSE;
             cssp->assignment_by_bitwise_copy_allowed = FALSE;
           } else if (!rp->is_deleted) {
