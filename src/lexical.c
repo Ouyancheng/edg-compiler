@@ -8457,11 +8457,10 @@ fixed_point_suffix:
       default:
         unexpected_condition_str("scan_number: bad kind");
     }  /* switch */
-    /* Check for errors detected. */
-    if (err_code != ec_no_error) {
-      error_at_line_pos(err_code, err_pos);
-    } else if (user_defined_literals_enabled && !err && potential_ud_suffix) {
-      /* A user-defined literal was seen. */
+    if (user_defined_literals_enabled && !err && potential_ud_suffix &&
+        (err_code == ec_no_error || err_code == ec_bad_float_value ||
+         err_code == ec_integer_too_large)) {
+      /* A syntactically-correct user-defined literal was seen. */
       a_type_ptr   literal_operator_param_type;
       a_const_char *canonical_id;
       sizeof_t     id_len;
@@ -8475,8 +8474,31 @@ fixed_point_suffix:
                                               literal_operator_param_type,
                                               /*is_string=*/FALSE,
                                               /*allow_raw_and_template=*/TRUE);
-      ctoken = tok_ud_literal;
-      end_of_curr_token = curr_char_loc - 1;
+      if (err_code != ec_no_error &&
+          ud_lit_op_sym_for_curr_token != NULL) {
+        /* Check to see if ud_lit_op_sym_for_curr_token designates a raw
+           literal operator or a literal operator template. */
+        a_symbol_ptr sym = ud_lit_op_sym_for_curr_token;
+        if (symbol_is(sym, sk_function_template) ||
+            (symbol_is(sym, sk_routine) &&
+             sym->variant.routine.ptr->is_raw_literal_operator)) {
+          /* An out-of-range literal is okay with a raw literal operator or
+             a literal operator template, as the spelling, not the value,
+             of the literal is used.  For other kinds of literal operators,
+             as well as when no literal operator is found, report the
+             invalid literal and do not categorize this as a user-defined
+             literal. */
+          err_code = ec_no_error;
+        }  /* if */
+      }  /* if */
+      if (err_code == ec_no_error) {
+        ctoken = tok_ud_literal;
+        end_of_curr_token = curr_char_loc - 1;
+      }  /* if */
+    }  /* if */
+    /* Check for errors detected. */
+    if (err_code != ec_no_error) {
+      error_at_line_pos(err_code, err_pos);
     }  /* if */
   }  /* if */
 #if DEBUG
