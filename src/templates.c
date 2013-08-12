@@ -3734,6 +3734,11 @@ be completed here.
     } else if (cssp->instantiation_in_progress) {
       /* This particular template class (not just some other one based on
          the same template) is currently being instantiated. */
+    } else if (cssp->being_defined) {
+      /* Scan class definition is already being called for this template class,
+         but apparently it's not for an instantiation.  This can happen with
+         severe errors. */
+      expect_error();
     } else if (tssp->pending_instantiations >= max_pending_instantiations) {
       /* This class instantiation occurs within the context of other
          instantiations of the same class template.  When the number of
