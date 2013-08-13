@@ -1054,6 +1054,9 @@ extern int fileno(FILE *);
 /*lint -esym(552,encoding_prefix_for_curr_token)*/
 /*lint -esym(552,user_defined_literals_enabled)*/
 /*lint -esym(755,ud_suffix_from_literal_operator_id)*/
+#if !THREAD_LOCAL_STORAGE_SPECIFIER_ALLOWED
+/*lint -esym(755,var_has_static_storage_duration)*/
+#endif /* !THREAD_LOCAL_STORAGE_SPECIFIER_ALLOWED */
 
 #endif /* ifndef LINT_H */
 
