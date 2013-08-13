@@ -2502,7 +2502,7 @@ attribute ap applied to the given variable matches those constraints.
                         ap, "invalid attribute constraint configuration");
       if (constr[1] == 'a') {
         /* Check for automatic storage duration. */
-        if (!has_static_storage_duration(variable->storage_class)) {
+        if (!var_has_static_or_thread_storage_duration(variable)) {
           if (constr[0] == '-') {
             err = ec_attr_disallows_automatic_storage;
           }  /* if */
@@ -6678,7 +6678,7 @@ return that entity).
   check_assertion(entity_kind == iek_variable && dps != NULL);
   /* The "thread" specifier can only be applied to variables with a static
      lifetime. */
-  if (!has_static_storage_duration(vp->storage_class)) {
+  if (!var_has_static_storage_duration(vp)) {
     pos_error(ec_cannot_use_thread_local_storage, &ap->position);
   } else if (!dps->first_decl && !(vp->decl_modifiers & DM_THREAD)) {
     /* This variable was previously declared with no thread locality. */

@@ -2310,11 +2310,9 @@ to it.
 
   db_enter(5, "alloc_variable");
 
-  if (storage_class == (a_storage_class)sc_extern ||
-      storage_class == (a_storage_class)sc_unspecified ||
-      storage_class == (a_storage_class)sc_static) {
-    /* Variable that will have static storage should always be allocated in
-       the file scope memory region. */
+  if (is_static_or_thread_storage_duration_storage_class(storage_class)) {
+    /* Variable that will have static or thread storage duration should always
+       be allocated in the file scope memory region. */
     vp = (a_variable_ptr)alloc_il(sizeof(a_variable));
   } else {
     vp = (a_variable_ptr)alloc_cil(sizeof(a_variable));

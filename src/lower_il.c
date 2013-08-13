@@ -1570,7 +1570,7 @@ in the user's program.
         /* Don't create scopes for local static variables, because that
            makes it too hard to figure out the scope to use when
            calling make_local_static_variable_init later. */
-        !has_static_storage_duration(temp->storage_class)) {
+        !var_has_static_or_thread_storage_duration(temp)) {
       a_statement_ptr stmt = scsp->stmt;
       a_block_ptr     block = stmt->variant.block.extra_info;
       if (block->assoc_scope != NULL) {
@@ -1613,7 +1613,7 @@ in the user's program.
       (innermost_function_scope->variant.routine.ptr->
                                                   statics_have_been_promoted ||
        processing_file_scope_init_routine) &&
-      has_static_storage_duration(temp->storage_class)) {
+      var_has_static_or_thread_storage_duration(temp)) {
     /* If statics have already been promoted out of this function, promote
        this temporary to the file scope (in case it is referenced in the
        initialization of a static that has already been promoted to the
@@ -9502,7 +9502,7 @@ local-variable-static-init entry.
         }  /* if */
         cp = lower_zero_initialization(variable->type);
         switch_back_to_original_region(region_to_switch_back_to);
-        if (has_static_storage_duration(variable->storage_class)) {
+        if (var_has_static_or_thread_storage_duration(variable)) {
           *init_kind = (an_init_kind)initk_static;
           initializer->constant = cp;
         } else {
@@ -13956,7 +13956,7 @@ inlining and therefore yield different results.
     } else if (!local_vars_change &&
                var->source_corresp.is_local_to_function &&
                !var->address_taken &&
-               !has_static_storage_duration(var->storage_class)) {
+               !var_has_static_or_thread_storage_duration(var)) {
       /* This is a local variable, and local variables are invariant
          over the lifetime of the call.  Local static variables are
          excluded because the flow of control can get back to the same
@@ -19372,8 +19372,8 @@ of variables that have been promoted.
          static variables. */
       while (*p_entry != NULL && n_vars > 0) {
         if ((*p_entry)->entity.kind == (a_byte_il_entry_kind)iek_variable &&
-            has_static_storage_duration(
-                      ((a_variable*)(*p_entry)->entity.ptr)->storage_class)) {
+            var_has_static_or_thread_storage_duration(
+                                      ((a_variable*)(*p_entry)->entity.ptr))) {
           n_vars -= 1;
           *p_entry = (*p_entry)->next;
         } else {

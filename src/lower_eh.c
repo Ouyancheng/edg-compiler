@@ -3157,7 +3157,7 @@ a variable) and return a pointer to the constant.
   if (handle->variable != NULL) {
     a_variable_ptr var = handle->variable;
     a_type_ptr     var_handle_type = integer_type(targ_var_handle_int_kind);
-    if (has_static_storage_duration(var->storage_class)) {
+    if (var_has_static_or_thread_storage_duration(var)) {
       /* A guard variable for the initialization of a static variable,
          which is itself static.  Put the address of the variable in the
          constant, cast to the appropriate integral type. */

@@ -318,7 +318,7 @@ recorded in the stmk_init statement.
       dip->follows_an_exec_statement = TRUE;
     }  /* if */
     /* Must be the initialization of a local variable. */
-    static_lifetime = has_static_storage_duration(vp->storage_class);
+    static_lifetime = var_has_static_or_thread_storage_duration(vp);
     check_assertion(!in_file_scope(dip));
     check_assertion(in_file_scope(vp) == static_lifetime);
     if (static_lifetime) {
@@ -3866,7 +3866,7 @@ returned set to TRUE.
     static_lifetime = FALSE;
   } else if (symbol_ptr->kind == (a_symbol_kind)sk_variable) {
     vp = symbol_ptr->variant.variable.ptr;
-    static_lifetime = has_static_storage_duration(vp->storage_class);
+    static_lifetime = var_has_static_or_thread_storage_duration(vp);
   } else if (symbol_ptr->kind == (a_symbol_kind)sk_static_data_member) {
     vp = symbol_ptr->variant.static_data_member.variable;
     static_lifetime = TRUE;
@@ -4295,7 +4295,7 @@ returned set to TRUE.
            without a constructor. */
         dtor = select_destructor(vp_type, vp_type, source_pos);
       }  /* if */
-      if (dtor != NULL || !has_static_storage_duration(vp->storage_class)) {
+      if (dtor != NULL || !var_has_static_or_thread_storage_duration(vp)) {
         init_dip = alloc_dynamic_init((a_dynamic_init_kind)dik_constant);
         init_dip->variant.constant = init_con;
         init_dip->is_braced_initializer = (first_token == tok_lbrace);
@@ -4335,7 +4335,7 @@ returned set to TRUE.
       }  /* if */
 #endif /* LOWER_MICROSOFT_NONCONSTANT_AGGREGATE */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED && DO_IL_LOWERING */
-    } else if (has_static_storage_duration(vp->storage_class) &&
+    } else if (var_has_static_or_thread_storage_duration(vp) &&
                vp->source_corresp.is_local_to_function) {
       /* This must be a non-dynamic initialization of a local static
          variable. */
@@ -4694,7 +4694,7 @@ FALSE is returned) for non-class objects.
     }  /* if */
   }  /* if */
   if (var != NULL) {
-    static_lifetime = has_static_storage_duration(var->storage_class),
+    static_lifetime = var_has_static_or_thread_storage_duration(var);
     is_const = is_const_qualified_type(var->type);
     tp = var_type = skip_typerefs(var->type);
     if (is_array_type(tp)) {

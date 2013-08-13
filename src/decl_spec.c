@@ -7877,18 +7877,14 @@ and ensure the IL reflects the presence of the specifier otherwise.
                 &dps->storage_class_pos);
     }  /* if */
 #endif /* THREAD_LOCAL_STORAGE_SPECIFIER_ALLOWED */
-    if (dps->declared_storage_class == (a_storage_class)sc_unspecified) {
-      if (depth_innermost_function_scope != NO_SCOPE_DEPTH ||
-          dps->param_id != NULL) {
-        vp->storage_class = (a_storage_class)sc_static;
-      }  /* if */
-    } else if (dps->declared_storage_class != (a_storage_class)sc_extern &&
-               dps->declared_storage_class != (a_storage_class)sc_static) {
+    if (!is_static_or_thread_storage_duration_storage_class(
+                                                dps->declared_storage_class)) {
       /* If a storage class was specified with "thread_local", it must be
          "extern" or "static". */
       pos_error(ec_cannot_use_thread_local_storage, &dps->storage_class_pos);
     }  /* if */
     vp->is_thread_local = TRUE;
+    check_assertion_or_expect_error(var_has_thread_storage_duration(vp));
   } else {
     pos_error(ec_thread_local_not_allowed, &dps->storage_class_pos);
   }  /* if */

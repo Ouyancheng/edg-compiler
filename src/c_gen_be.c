@@ -6850,7 +6850,7 @@ If this assignment is the first one, put out anything that must precede it.
          incompletely initialized.  See 3.5.7.  Also do zeroing for variables
          with an explicit initk_zero initialization (there won't be any
          assignments following the zeroing in that case). */
-      if (!has_static_storage_duration(variable->storage_class)) {
+      if (!var_has_static_or_thread_storage_duration(variable)) {
         an_init_kind       init_kind;
         an_initializer_ptr initializer;
         get_variable_initializer(variable, curr_scope, &init_kind,
@@ -7563,7 +7563,7 @@ rendered as executable code.
 
 #if !C_GEN_BE_GENERATES_ANSI_C
   if (!gen_assignments) {
-    if (!has_static_storage_duration(variable->storage_class) &&
+    if (!var_has_static_or_thread_storage_duration(variable) &&
         (type->kind == (a_type_kind)tk_struct ||
          type->kind == (a_type_kind)tk_union ||
 #if GNU_VECTOR_TYPES_ALLOWED
@@ -7944,7 +7944,7 @@ parameters.
            force_zeroing_of_comdat_variable ||
 #endif /* IA64_ABI */
           (init_kind == (an_init_kind)initk_zero &&
-           (!has_static_storage_duration(variable->storage_class) ||
+           (!var_has_static_or_thread_storage_duration(variable) ||
             !is_array_type(variable->type) ||
             variable->is_template_static_data_member))) {
         dump_initializer(variable, init_con);

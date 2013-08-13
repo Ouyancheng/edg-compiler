@@ -13675,7 +13675,7 @@ variable, for example, has a constant address, whereas a local auto
 variable does not.
 */
 {
-  a_boolean const_addr = has_static_storage_duration(variable->storage_class);
+  a_boolean const_addr = var_has_static_or_thread_storage_duration(variable);
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
   if (variable->decl_modifiers & DM_DLLIMPORT) {
@@ -19823,7 +19823,7 @@ that identifies an object or a prvalue that is a pointer to an object.
        prvalue object). */
     if (is_variable_node(expr)) {
       a_variable_ptr var = expr->variant.variable;
-      if (!has_static_storage_duration(var->storage_class)) {
+      if (!var_has_static_or_thread_storage_duration(var)) {
         /* An lvalue for a nonstatic local variable or a parameter. */
         tblock->result = TRUE;
         tblock->is_temp = FALSE;

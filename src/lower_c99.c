@@ -3693,7 +3693,7 @@ in C99 mode to represent a compound literal.
     add_stmk_init_for_temp_init(var, dip);
   }  /* if */
   if (var->init_kind == (an_init_kind)initk_zero &&
-      !has_static_storage_duration(var->storage_class)) {
+      !var_has_static_or_thread_storage_duration(var)) {
     /* If an automatic temporary ends up with initk_zero initialization,
        insert code to do the zeroing because we can't count on the block
        being entered at the top. */

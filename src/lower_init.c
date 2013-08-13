@@ -1132,7 +1132,7 @@ variable (or a part of one).
 #if !DO_FULL_PORTABLE_EH_LOWERING
                                 !ipdp->thrown_object_address &&
 #endif /* !DO_FULL_PORTABLE_EH_LOWERING */
-                    has_static_storage_duration(ipdp->variable->storage_class);
+                     var_has_static_or_thread_storage_duration(ipdp->variable);
   return is_for_static_var;
 }  /* init_pos_is_static */
 
@@ -6879,8 +6879,9 @@ location is the insert_location2 value (after the assignment statement).
     *test_var = make_unnamed_local_static_variable(int_type,
                                                   /*in_function_scope=*/FALSE);
   }  /* if */
-#if MICROSOFT_EXTENSIONS_ALLOWED || THREAD_LOCAL_STORAGE_SPECIFIER_ALLOWED
   /* Thread-local variables call for thread-local test variables. */
+  guarded_var->is_thread_local = (*test_var)->is_thread_local;
+#if MICROSOFT_EXTENSIONS_ALLOWED || THREAD_LOCAL_STORAGE_SPECIFIER_ALLOWED
   if (guarded_var->decl_modifiers & DM_THREAD) {
     (*test_var)->decl_modifiers |= DM_THREAD;
   }  /* if */
@@ -11170,7 +11171,7 @@ Do IL lowering of an enk_temp_init expression node.
         add_stmk_init_for_temp_init(dip->variable, dip);
       }  /* if */
       if (temp_var->init_kind == (an_init_kind)initk_zero) {
-        if (!has_static_storage_duration(temp_var->storage_class)) {
+        if (!var_has_static_or_thread_storage_duration(temp_var)) {
           /* If an automatic temporary ends up with initk_zero initialization,
              insert code to do the zeroing because we can't count on the block
              being entered at the top. */
@@ -11435,7 +11436,7 @@ Generate code for a stmk_init (dynamic initialization) statement.
     /* Initialization that wraps a lifetime around the initialization (because
        there are temporaries created in it). */
     non_C_case = TRUE;
-  } else if (has_static_storage_duration(var->storage_class)) {
+  } else if (var_has_static_or_thread_storage_duration(var)) {
     /* Initialization of a local static variable cannot be dynamic in C.
        Code must be used to do the initialization. */
     non_C_case = TRUE;

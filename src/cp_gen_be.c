@@ -15268,7 +15268,7 @@ this one is such a continuation.
     storage_class = sec_decl->declared_storage_class;
     if (storage_class == (a_storage_class)sc_unspecified &&
         !var->source_corresp.is_class_member &&
-        has_static_storage_duration(var->declared_storage_class)) {
+        var_has_static_or_thread_storage_duration(var)) {
       /* We have a non-defining declaration of a variable with no explicit
          storage class specifier.  This can result if the declaration was
          given a linkage specifier -- the linkage specifier is ignored but

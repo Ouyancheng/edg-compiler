@@ -17535,10 +17535,11 @@ typedef struct a_scope {
                 variables;
                         /* List of local variables of this scope, NULL
                            if none.  In a function or block scope, this is the
-			   list of variables with static allocation; in a scope
-			   for a class, this is the list of static data
-			   members.  All variables on this list will be
-			   allocated in the file scope memory region. */
+                           list of variables with static or thread storage
+                           duration; in a scope for a class, this is the list
+                           of static data members.  All variables on this list
+                           will be allocated in the file scope memory region.
+                           */
   a_variable_ptr
 		nonstatic_variables;
 			/* List of local nonstatic variables in a function or

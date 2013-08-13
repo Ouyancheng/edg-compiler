@@ -26018,7 +26018,7 @@ an appropriate error code.
 
   check_assertion(expr_stack != NULL);
   *diag = ec_no_error;
-  if (has_static_storage_duration(var->storage_class)) {
+  if (var_has_static_or_thread_storage_duration(var)) {
     *diag = ec_capture_of_static_duration_variable;
     /* A reference to a static/extern variable doesn't amount to an implicit
        capture.  So implicit captures should never get here. */
@@ -26117,7 +26117,7 @@ indicates that the symbol is an anonymous union and cannot be captured.
       } else if (var_declared_in_current_routine(var)) {
         /* The variable is declared in the current routine, so the
            reference is fine. */
-      } else if (has_static_storage_duration(var->storage_class)) {
+      } else if (var_has_static_or_thread_storage_duration(var)) {
         /* Static variables of enclosing routines can be referenced, but
            remember the nonlocal reference to help back-end aliasing
            analysis. */
@@ -31433,7 +31433,7 @@ Set the initializer for the variable vp from the operand "operand".
     dip->variable = vp;
     record_end_of_lifetime_destruction(
             dip,
-            /*static_lifetime=*/has_static_storage_duration(vp->storage_class),
+            /*static_lifetime=*/var_has_static_or_thread_storage_duration(vp),
             /*block_lifetime=*/TRUE);
   }  /* if */
 }  /* set_variable_initializer */
@@ -33888,7 +33888,7 @@ done for a move optimization.
   a_boolean eligible = FALSE;
 
   if ((!var->is_parameter || move_case) &&
-      !has_static_storage_duration(var->storage_class) &&
+      !var_has_static_or_thread_storage_duration(var) &&
       is_class_struct_union_type(var->type) &&
       !is_volatile_qualified_type(var->type)) {
     if (return_case) {

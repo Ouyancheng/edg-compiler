@@ -2146,13 +2146,28 @@ Return TRUE if a constant is an error constant.
 */
 #define is_error_constant(cp) ((cp)->kind == (a_constant_repr_kind)ck_error)
 
-/* Macro that returns TRUE if a variable's storage class has static storage
-   duration.  See 3.1.2.4.  Note that storage classes have been 
-   standardized during declaration processing. */
-#define has_static_storage_duration(storage_class)                    \
-  ((storage_class) == (a_storage_class)sc_static ||                   \
-   (storage_class) == (a_storage_class)sc_extern ||                   \
+/*
+Macros for determining static and/or thread storage duration.  Internally,
+the difference between the static storage duration and thread storage duration
+is the setting of is_thread_local (since thread local storage doesn't have an
+a_storage_class setting).  Note that storage classes have been canonicalized
+during declaration processing.
+*/
+#define is_static_or_thread_storage_duration_storage_class(storage_class)     \
+  ((storage_class) == (a_storage_class)sc_static ||                           \
+   (storage_class) == (a_storage_class)sc_extern ||                           \
    (storage_class) == (a_storage_class)sc_unspecified)
+
+#define var_has_static_or_thread_storage_duration(var)                        \
+  is_static_or_thread_storage_duration_storage_class((var)->storage_class)
+
+#define var_has_thread_storage_duration(var)                                  \
+  ((var)->is_thread_local &&                                                  \
+   (var_has_static_or_thread_storage_duration(var)))
+
+#define var_has_static_storage_duration(var)                                  \
+  (!(var)->is_thread_local &&                                                 \
+   (var_has_static_or_thread_storage_duration(var)))
 
 /*
 Macros used to determine the kind of a template argument.

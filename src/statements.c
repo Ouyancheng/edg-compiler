@@ -955,7 +955,7 @@ is found, a diagnostic is issued (an error in C++, a warning otherwise), and
                           sp->kind == (a_statement_kind)stmk_init ||
                           (C_mode() && microsoft_mode &&
                            sp->kind == (a_statement_kind)stmk_block));
-          if (!has_static_storage_duration(vp->storage_class)) {
+          if (!var_has_static_or_thread_storage_duration(vp)) {
             severity = es_warning;
             if (!C_mode() && !cfront_2_1_mode) {
               a_boolean  has_nontrivial_dtor = FALSE;
@@ -4874,7 +4874,7 @@ issue a diagnostic complaining about skipping over an initialization.
                          sp->kind == (a_statement_kind)stmk_block));
         /* We only issue a diagnostic for jumping over an initialization of
            an automatic variable (see [stmt.decl], para 3). */
-        if (!has_static_storage_duration(vp->storage_class)) {
+        if (!var_has_static_or_thread_storage_duration(vp)) {
           if (C_mode()) {
             /* Just a warning in C mode. */
             severity = es_warning;

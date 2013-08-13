@@ -4814,7 +4814,7 @@ because the constant might be used in a way that doesn't really take
 the address of the variable, e.g., an lvalue).
 */
 {
-  check_assertion(has_static_storage_duration(variable->storage_class) ||
+  check_assertion(var_has_static_or_thread_storage_duration(variable) ||
                   variable->is_constexpr);
   clear_constant(con, (a_constant_repr_kind)ck_address);
   con->variant.address.kind = (an_address_base_kind)abk_variable;
@@ -12562,7 +12562,7 @@ scope.  Otherwise, return NULL.
   a_variable_ptr test_var;
   a_type_ptr     test_type;
 
-  if (has_static_storage_duration(variable->storage_class)) {
+  if (var_has_static_or_thread_storage_duration(variable)) {
     /* Check for static data members only in class scopes. */
     if ((scope->kind == (a_scope_kind)sck_class_struct_union) ==
                                     variable->source_corresp.is_class_member) {
@@ -12919,11 +12919,10 @@ scope depth.
     /* Variables requiring static allocation go on one list, those for stack
        and register allocation on another. */
     if (at_file_or_namespace_scope ||
-        var_ptr->storage_class == (a_storage_class)sc_static ||
-        var_ptr->storage_class == (a_storage_class)sc_extern ||
-        var_ptr->storage_class == (a_storage_class)sc_unspecified) {
-      /* Variables with static storage will always be allocated in file scope
-         memory region, regardless of which scope's list they are on. */
+        var_has_static_or_thread_storage_duration(var_ptr)) {
+      /* Variables with static or thread storage duration will always be
+         allocated in file scope memory region, regardless of which scope's
+         list they are on. */
       check_assertion_str(
                        in_file_scope(var_ptr),
                        "add_to_variables_list: var not in file scope region");

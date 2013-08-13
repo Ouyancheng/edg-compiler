@@ -4667,7 +4667,7 @@ attribute application mechanism.)
 #endif /* SUN_EXTENSIONS_ALLOWED */
 #if THREAD_LOCAL_STORAGE_SPECIFIER_ALLOWED
   if (flags & DM_THREAD) {
-    if (!has_static_storage_duration(variable->storage_class)) {
+    if (!var_has_static_or_thread_storage_duration(variable)) {
       /* The "thread" specifier can only be applied to variables with a static
          lifetime. */
       pos_error(ec_cannot_use_thread_local_storage, &dps->declarator_pos);
@@ -5901,7 +5901,7 @@ If an error occurs, the given locator may be changed to an error locator.
 */
 {
   if (upc_mode) {
-    if (!has_static_storage_duration(storage_class) &&
+    if (!is_static_or_thread_storage_duration_storage_class(storage_class) &&
         is_underlying_shared_qualified_type(type_ptr)) {
       /* Only variables with static storage duration can be UPC shared. */
       pos_error(ec_bad_shared_storage_class, &locator->source_position);
@@ -5956,7 +5956,7 @@ locator.
 */
 {
   if (named_address_spaces_enabled) {
-    if (!has_static_storage_duration(storage_class) &&
+    if (!is_static_or_thread_storage_duration_storage_class(storage_class) &&
         type_qualified_with_named_address_space(type_ptr)) {
       /* Only variables with static storage duration can have a named
          address space qualifier (at the top level). */
@@ -15786,10 +15786,15 @@ if one is present.
        or variable declarations erroneously using a qualified-id), not
        specifying a storage class implies "auto" storage. */
     if (depth_innermost_function_scope != NO_SCOPE_DEPTH ||
-        state->param_id != NULL) {
+         state->param_id != NULL) {
       /* We are inside a function body or this is an old-style parameter
-         declaration, so an unspecified storage class means "auto". */
-      state->storage_class = (a_storage_class)sc_auto;
+         declaration, so an unspecified storage class means "auto", unless
+         thread_local was specified, in which case "static" is implied. */
+      if (state->dso_flags & DSO_THREAD_LOCAL) {
+        state->storage_class = (a_storage_class)sc_static;
+      } else {
+        state->storage_class = (a_storage_class)sc_auto;
+      }  /* if */
     } else if (state->is_linkage_spec_decl) {
       /* This must be part of an linkage specification declaration.  An
          "extern" storage class is implied (ARM 7.4, comment on p. 118). */
@@ -16007,7 +16012,7 @@ if one is present.
       }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
     } else if (cppcli_enabled && 
-               has_static_storage_duration(var_ptr->storage_class)) {
+               var_has_static_or_thread_storage_duration(var_ptr)) {
       /* Variables with static storage duration cannot have a C++/CLI type
          that may require tracking.  (An exception are static data members of
          managed class types, but those are not handled here since they must
@@ -16111,7 +16116,7 @@ if one is present.
         /* Unless this variable has non-static storage duration and is
            default-initialized by a trivial default constructor (which is a
            no-op), mark it as having a value. */
-        if (has_static_storage_duration(var_ptr->storage_class)) {
+        if (var_has_static_or_thread_storage_duration(var_ptr)) {
           /* Objects with static storage duration are zero-initialized, so
              they always have some value. */
           mark_variable_value_set(state->sym);
