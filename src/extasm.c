@@ -898,7 +898,10 @@ state information for get_token_with_colon_separation.
       (void)strcpy(operand->name, sym_hdr->identifier);
       (void)get_token_with_colon_separation(seen_tok_colon_colon);
     }  /* if */
-    (void)required_token(tok_rbracket, ec_exp_rbracket);
+    if (curr_token != tok_rbracket) {
+      syntax_error(ec_exp_rbracket);
+    }  /* if */
+    (void)get_token_with_colon_separation(seen_tok_colon_colon);
     remove_stop_token(tok_rbracket);
   }  /* if */
   if (curr_token != tok_string_literal) {
@@ -909,7 +912,8 @@ state information for get_token_with_colon_separation.
     constraint_string = const_for_curr_token.variant.string.value;
     /* Advance past string literal. */
     (void)get_token_with_colon_separation(seen_tok_colon_colon);
-    if (required_token(tok_lparen, ec_exp_lparen)) {
+    if (curr_token == tok_lparen) {
+      (void)get_token_with_colon_separation(seen_tok_colon_colon);
       a_boolean  input = !output;
       if (output && constraint_string != NULL) {
         /* A '+' in the constraint string of an output operand indicates a
@@ -919,8 +923,14 @@ state information for get_token_with_colon_separation.
       }  /* if */
       add_stop_token(tok_rparen);
       expr = scan_asm_operand_expression(output, input);
-      (void)required_token(tok_rparen, ec_exp_rparen);
+      if (curr_token == tok_rparen) {
+        (void)get_token_with_colon_separation(seen_tok_colon_colon);
+      } else {
+        syntax_error(ec_exp_rparen);
+      }  /* if */
       remove_stop_token(tok_rparen);
+    } else {
+      syntax_error(ec_exp_lparen);
     }  /* if */
   }  /* if */
   process_asm_operand(operand, operands, expr, constraint_string, output);
