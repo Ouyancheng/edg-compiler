@@ -28519,37 +28519,45 @@ issue an error; otherwise, return TRUE.
     /* A literal operator template: Create a list of template arguments from
        the string in const_for_curr_token, and use the corresponding instance
        as the symbol to call. */
-    a_template_arg_ptr      templ_arg_list = NULL, tap;
-    a_constant_ptr          char_con, next_char_con;
-    a_memory_region_number  region_to_switch_back_to;
-    /* The template argument list corresponds to a pack expansion. */
-    switch_to_file_scope_region(&region_to_switch_back_to);
-    templ_arg_list =
+    if (!check_udl_operator_template(ud_lit_op_sym_for_curr_token,
+                                     (a_source_position*)NULL)) {
+      /* The template is not valid: An error should have been issued
+         already. */
+      expect_error();
+      op_sym = NULL;
+    } else {
+      a_template_arg_ptr      templ_arg_list = NULL, tap;
+      a_constant_ptr          char_con, next_char_con;
+      a_memory_region_number  region_to_switch_back_to;
+      /* The template argument list corresponds to a pack expansion. */
+      switch_to_file_scope_region(&region_to_switch_back_to);
+      templ_arg_list =
             alloc_template_arg((a_templ_arg_kind)tak_start_of_pack_expansion);
-    tap = templ_arg_list;
-    /* Turn const_for_curr_token into a ck_aggregate constant with a constant
-       for every character. */
-    check_assertion(const_for_curr_token.kind ==
+      tap = templ_arg_list;
+      /* Turn const_for_curr_token into a ck_aggregate constant with a
+         constant for every character. */
+      check_assertion(const_for_curr_token.kind ==
                                              (a_constant_repr_kind)ck_string);
-    explode_string_initializer(&const_for_curr_token);
-    char_con = const_for_curr_token.variant.aggregate.first_constant;
-    check_assertion(char_con != NULL);
-    next_char_con = char_con->next;
-    /* Be careful not to include the terminating null character. */
-    while (next_char_con != NULL) {
-      tap->next = alloc_template_arg((a_templ_arg_kind)tak_nontype);
-      tap = tap->next;
-      tap->is_pack_element = TRUE;
-      tap->variant.constant = char_con;
-      char_con->next = NULL;
-      char_con = next_char_con;
-      next_char_con = next_char_con->next;
-    }  /* while */
-    switch_back_to_original_region(region_to_switch_back_to);
-    op_sym = find_template_function(ud_lit_op_sym_for_curr_token,
-                                    &templ_arg_list,
-                                    /*explicit_arg_list_present=*/TRUE,
-                                    &pos_curr_token);
+      explode_string_initializer(&const_for_curr_token);
+      char_con = const_for_curr_token.variant.aggregate.first_constant;
+      check_assertion(char_con != NULL);
+      next_char_con = char_con->next;
+      /* Be careful not to include the terminating null character. */
+      while (next_char_con != NULL) {
+        tap->next = alloc_template_arg((a_templ_arg_kind)tak_nontype);
+        tap = tap->next;
+        tap->is_pack_element = TRUE;
+        tap->variant.constant = char_con;
+        char_con->next = NULL;
+        char_con = next_char_con;
+        next_char_con = next_char_con->next;
+      }  /* while */
+      switch_back_to_original_region(region_to_switch_back_to);
+      op_sym = find_template_function(ud_lit_op_sym_for_curr_token,
+                                      &templ_arg_list,
+                                      /*explicit_arg_list_present=*/TRUE,
+                                      &pos_curr_token);
+    }  /* if */
   } else {
     unexpected_condition();
   }  /* if */

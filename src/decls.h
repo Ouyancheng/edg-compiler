@@ -1269,6 +1269,9 @@ extern a_boolean check_constexpr_routine_def_type(
                                                 a_routine_ptr      rp,
                                                 a_source_position  *diag_pos);
 
+extern a_boolean check_udl_operator_template(a_symbol_ptr       templ_sym,
+                                             a_source_position  *pos);
+
 extern void decl_routine(a_symbol_locator         *locator,
                          a_decl_parse_state       *dps,
                          a_func_info_block_ptr    func_info,

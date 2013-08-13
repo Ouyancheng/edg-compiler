@@ -7463,36 +7463,48 @@ position.
 }  /* check_constexpr_routine_def_type */
 
 
-static void check_udl_operator_template(a_symbol_locator  *loc,
-                                        a_routine_ptr     rp)
+a_boolean check_udl_operator_template(a_symbol_ptr       templ_sym,
+                                      a_source_position  *pos)
 /*
-rp is associated with a literal operator template (declared with the given
-locator).  Check that the template has an acceptable signature and issue an
-appropriate error if it doesn't.  The current scope is the declaration scope
-for the literal operator template.
+templ_sym represents a literal operator template.  Check that the template has
+an acceptable signature.  Return TRUE if it does.  Otherwise, return FALSE,
+and, if the given position is non-NULL, issue one or more errors as
+appropriate.
 */
 {
+  a_boolean             result = TRUE;
+  a_template_symbol_supplement_ptr
+                        tssp = templ_sym->variant.template_info;
+  a_routine_ptr         rp = tssp->variant.function.routine;
   a_type_ptr            rtp = skip_typerefs(rp->type);
   a_param_type_ptr      ptp = function_type_params(rtp);
   a_template_param_ptr  tpp;
 
-  check_assertion(scope_is(&scope_stack_top(), sck_template_declaration));
   if (rp->source_corresp.name_linkage == (a_name_linkage_kind)nlk_external) {
-    pos_error(ec_extern_c_literal_operator, &loc->source_position);
+    if (pos != NULL) {
+      pos_error(ec_extern_c_literal_operator, pos);
+    }  /* if */
+    result = FALSE;
   }  /* if */
   if (ptp != NULL || rtp->variant.routine.extra_info->has_ellipsis) {
-    pos_error(ec_invalid_parameter_for_literal_operator_template,
-              &loc->source_position);
+    if (pos != NULL) {
+      pos_error(ec_invalid_parameter_for_literal_operator_template, pos);
+    }  /* if */
+    result = FALSE;
   }  /* if */
-  tpp = scope_stack_top().template_decl_info->parameters;
+  tpp = tssp->variant.function.decl_cache.decl_info->parameters;
   check_assertion(tpp != NULL);
   if (tpp->next != NULL ||
       !tpp->is_pack  ||
       !symbol_is(tpp->param_symbol, sk_constant) ||
       !is_plain_char_type(tpp->variant.constant.ptr->type)) {
-    pos_error(ec_invalid_template_parameter_for_literal_operator_template,
-              &loc->source_position);
+    if (pos != NULL) {
+      pos_error(ec_invalid_template_parameter_for_literal_operator_template,
+                pos);
+    }  /* if */
+    result = FALSE;
   }  /* if */
+  return result;
 }  /* check_udl_operator_template */
 
 
@@ -9862,7 +9874,7 @@ definition of a member function of a class template.
   }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED */
   if (special_kind_is(rout_ptr, sfk_udl_operator)) {
-    check_udl_operator_template(locator, rout_ptr);
+    (void)check_udl_operator_template(sym, &locator->source_position);
   }  /* if */
   /* Return the function template symbol. */
   *symbol_ptr = sym;
