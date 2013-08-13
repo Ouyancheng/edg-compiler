@@ -1096,7 +1096,7 @@ class being defined.
   cdsp->rule_out_bitwise_copy_for_deleted_ctor = FALSE;
   cdsp->rule_out_bitwise_assign_for_volatile_class_field = FALSE;
   cdsp->rule_out_bitwise_assign_for_deleted_operator = FALSE;
-  cdsp->has_inheriting_constructors = TRUE;
+  cdsp->has_inheriting_constructors = FALSE;
   cdsp->access = (an_access_specifier)as_public;
 #if MICROSOFT_EXTENSIONS_ALLOWED
   cdsp->assembly_access = (an_access_specifier)as_public;
