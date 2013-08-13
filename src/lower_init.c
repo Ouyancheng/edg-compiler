@@ -6880,7 +6880,7 @@ location is the insert_location2 value (after the assignment statement).
                                                   /*in_function_scope=*/FALSE);
   }  /* if */
   /* Thread-local variables call for thread-local test variables. */
-  guarded_var->is_thread_local = (*test_var)->is_thread_local;
+  (*test_var)->is_thread_local = guarded_var->is_thread_local;
 #if MICROSOFT_EXTENSIONS_ALLOWED || THREAD_LOCAL_STORAGE_SPECIFIER_ALLOWED
   if (guarded_var->decl_modifiers & DM_THREAD) {
     (*test_var)->decl_modifiers |= DM_THREAD;
