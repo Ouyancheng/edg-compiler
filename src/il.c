@@ -4498,11 +4498,10 @@ constant that has the same value.
 static void break_source_corresp_full(a_source_correspondence *sc,
                                       a_boolean               keep_name)
 /*
-Clear any parts of the indicated source correspondence that record
-information related to a specific source occurrence of an entity,
-or the name or parent of the entity.  So, for example, if this is
-applied to a copy of a constant, the copy is a distinct constant
-that has the same value as the original constant.
+Clear any parts of the indicated source correspondence that record information
+related to a specific source occurrence of an entity, or the name or parent of
+the entity.  So, for example, if this is applied to a copy of a constant, the
+copy is a distinct constant that has the same value as the original constant.
 If keep_name is TRUE, leave the sc->name field unchanged.
 */
 {
@@ -4567,9 +4566,9 @@ kept.
     cp->source_corresp.assoc_info = NULL;
   } else {
     /* If the original expression has a name but no backing expression, keep
-       keep its name.  This is e.g. useful to be able to render the original
-       form of the constant in the C++-generating back end.  (Don't do this
-       if there is a backing expression to avoid IL loops.) */
+       its name.  This is useful, for example, to be able to render the
+       original form of the constant in the C++-generating back end.  (Don't
+       do this if there is a backing expression to avoid IL loops.) */
     break_source_corresp_full(&cp->source_corresp,
                               /*keep_name=*/cp->expr == NULL);
   }  /* if */

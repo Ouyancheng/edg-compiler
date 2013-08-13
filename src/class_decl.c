@@ -19892,7 +19892,7 @@ templates from that base template.
     /* Check if the derived class already contains a user-declared constructor
        with this signature: */
     dctor = class_symbol_supp(symbol_for(cdsp->class_type))->constructor;
-    if (symbol_is(dctor, sk_overloaded_function)) {
+    if (dctor != NULL && symbol_is(dctor, sk_overloaded_function)) {
       dctor = dctor->variant.overloaded_function.symbols;
     }  /* if */
     for (; dctor != NULL; dctor = dctor->next) {

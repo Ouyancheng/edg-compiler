@@ -5016,7 +5016,7 @@ precedence confusion.  Do the output in the way described by octl.
         /* A named enum constant.  The original constant entry used to
            represent the enumerator constant declaration can always just be
            rendered.  However, for copies of that entry (used in expression
-           contexts) only the unmangled name is available, which may not be
+           contexts), only the unmangled name is available, which may not be
            appropriate when generating code in the C-generating back end. */
         form_name(&constant->source_corresp, iek_constant, octl);
       } else if (is_enum && il_header.source_language == sl_Cplusplus &&
