@@ -798,6 +798,7 @@ check_abbreviation()
 --no_unrestricted_unions
 --no_upc
 --no_use_before_set_warnings
+--no_user_defined_literals
 --no_using_framework_directory
 --no_using_std
 --no_variadic_macros
@@ -891,6 +892,7 @@ check_abbreviation()
 --upc_strict
 --upc_threads
 --use_pch
+--user_defined_literals
 --using_directory
 --using_framework_directory
 --using_std
@@ -1460,6 +1462,8 @@ process_option()
          --no_using_framework_directory | \
          --lossy_conversion_warning | \
          --no_lossy_conversion_warning | \
+         --user_defined_literals | \
+         --no_user_defined_literals | \
          --force_vtbl)
       feoptions=$feoptions" $curr_arg"
 #     Options that require additional processing
