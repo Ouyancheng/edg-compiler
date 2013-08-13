@@ -14,8 +14,9 @@ C++ Standard Committee document N2765.  For example:
 8/12/13  [EDGcpfe/9164]
 C++11: Inheriting constructors
 
-In C++11 mode, the front end now accepts using declarations in derived classes
-that denote the implicit generation of "inheriting constructors.  For example:
+In C++11 mode, the front end now accepts using declarations in derived
+classes that denote the implicit generation of "inheriting constructors", as
+described in the C++ standards committee's paper N2540.  For example:
 
   struct B {
     B(int);
