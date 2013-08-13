@@ -1986,7 +1986,7 @@ values needed for the previous call.
 }  /* update_template_param_symbols */
 
 
-static void restore_default_template_params(a_template_param_ptr  tpp)
+void restore_default_template_params(a_template_param_ptr  tpp)
 /*
 Update the symbol entries for template formal parameters to their
 "resting values".  These are the initial values supplied when the template

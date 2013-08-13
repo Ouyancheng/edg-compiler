@@ -19955,6 +19955,11 @@ templates from that base template.
                                                     /*is_static_ctor=*/FALSE);
       init_tmpl_decl_state_for_inheriting_ctor_template(&templ_decl_state);
       new_tpl = copy_template_param_list(btpl);
+      /* The base class constructor may actually be in the process of being
+         instantiated, which causes its template parameter symbols to
+         temporarily point to concrete type.  Undo this in the copied template
+         parameter list. */
+      restore_default_template_params(new_tpl);
       templ_decl_state.decl_info->parameters = new_tpl;
       push_template_declaration_scope(
                                   templ_decl_state.decl_info,
