@@ -1,5 +1,16 @@
 Version 5.0
 
+8/13/13  [EDGcpfe/9252]
+C++11: user-defined literals
+
+In C++11 mode, or when --user_defined_literals is specified on the command
+line, the front end now accepts user-defined literals as described in
+C++ Standard Committee document N2765.  For example:
+
+  long double operator "" _hr(long double h) { return h * 3600; }
+  long double seconds_in_2_hours = 2.0_hr;
+
+
 8/12/13  [EDGcpfe/9164]
 C++11: Inheriting constructors
 
