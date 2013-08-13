@@ -13328,7 +13328,8 @@ and to tok_brace otherwise; the final token is swallowed by the caller.
       error(ec_qualified_name_not_allowed);
       set_to_error_locator(locator);
       err = TRUE;
-    } else if (locator.is_operator_name || locator.is_conversion_name) {
+    } else if (locator.is_operator_name || locator.is_conversion_name ||
+               locator.is_udl_operator_name) {
       error(ec_operator_name_not_allowed);
       set_to_error_locator(locator);
       err = TRUE;
