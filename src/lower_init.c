@@ -6936,7 +6936,11 @@ location is the insert_location2 value (after the assignment statement).
                                         insert_location2);
 #else /* IA64_ABI */
 #if IA64_ABI_USE_GUARD_ACQUIRE_RELEASE
-  {
+  if (guarded_var->is_thread_local) {
+    /* No need to worry about multi-threading (this variable is
+       local to the thread, so a simple flag will ensure that the guarded
+       initialization is performed only once in this thread). */
+  } else {
     /* To support multi-threading, make an inner
          "if (__cxa_guard_acquire(&test_var)) {
             ...
@@ -6976,37 +6980,45 @@ location is the insert_location2 value (after the assignment statement).
 }  /* add_first_time_test */
 
 #if IA64_ABI
-#if !IA64_ABI_USE_GUARD_ACQUIRE_RELEASE
+
 static void set_local_static_guard_var(
                                  a_variable_ptr         local_static_guard_var,
                                  an_insert_location_ptr insert_location)
 /*
 local_static_guard_var is the guard variable associated with the initialization
-of a local static variable.  Add code to set the guard variable to
-indicate that the initialization is complete.  Insert the code at
+of a local static variable.  If necessary, add code to set the guard variable
+to indicate that the initialization is complete.  Insert the code at
 *insert_location.
 */
 {
+#if IA64_ABI_USE_GUARD_ACQUIRE_RELEASE
+  if (!local_static_guard_var->is_thread_local) {
+    /* In non-thread-local cases, the call to __cxa_guard_release has already
+       been emitted, so there's nothing to do here. */
+  } else
+#endif /* IA64_ABI_USE_GUARD_ACQUIRE_RELEASE */
+  /* Do not insert code here. */
+  {
 #if IA64_ABI_USE_INT_STATIC_INIT_GUARD
-  /* ARM EABI specifies to use least significant bit for guard test. */
-  (void)insert_assignment_statement(var_lvalue_expr(local_static_guard_var),
-                                    (an_expr_operator_kind)eok_assign,
-                                    node_for_integer_constant(1L,
+    /* ARM EABI specifies to use least significant bit for guard test. */
+    (void)insert_assignment_statement(var_lvalue_expr(local_static_guard_var),
+                                      (an_expr_operator_kind)eok_assign,
+                                      node_for_integer_constant(1L,
                                                       (an_integer_kind)ik_int),
-                                    insert_location);
+                                      insert_location);
 #else /* !IA64_ABI_USE_INT_STATIC_INIT_GUARD */
-  /* IA-64 ABI specifies to use first byte for guard test. */
-  (void)insert_assignment_statement(add_indirection_to_node(
-                                     add_cast_to_char_star(
+    /* IA-64 ABI specifies to use first byte for guard test. */
+    (void)insert_assignment_statement(add_indirection_to_node(
+                                       add_cast_to_char_star(
                                        var_addr_expr(local_static_guard_var))),
-                                    (an_expr_operator_kind)eok_assign,
-                                    node_for_integer_constant(1L,
+                                      (an_expr_operator_kind)eok_assign,
+                                      node_for_integer_constant(1L,
                                                      (an_integer_kind)ik_char),
-                                    insert_location);
+                                      insert_location);
 #endif /* IA64_ABI_USE_INT_STATIC_INIT_GUARD */
+  }  /* if */
 }  /* set_local_static_guard_var */
 
-#endif /* !IA64_ABI_USE_GUARD_ACQUIRE_RELEASE */
 #endif /* IA64_ABI */
 
 #if !IA64_ABI
@@ -9190,13 +9202,11 @@ do_assignment:;
     pop_context();
   }  /* if */
 #if IA64_ABI
-#if !IA64_ABI_USE_GUARD_ACQUIRE_RELEASE
   if (lsvip != NULL) {
     /* Set the guard variable to indicate the local static is initialized
        after the initialization is completed. */
     set_local_static_guard_var(local_static_guard_var, insert_location);
   }  /* if */
-#endif /* !IA64_ABI_USE_GUARD_ACQUIRE_RELEASE */
 #endif /* IA64_ABI */
   /* In the whole-variable cases, adjust the initialization specified in
      the variable (it points to the dynamic init entry). */
@@ -11397,11 +11407,9 @@ This routine returns TRUE if guard code was emitted.
     /* Normal case -- emit the usual guard code. */
     add_first_time_test(variable, insert_location, insert_location2,
                         (a_statement_ptr *)NULL, &test_var);
-#if !IA64_ABI_USE_GUARD_ACQUIRE_RELEASE
     /* The guard variable is set to 1 at the end of the initialization.
        See set_local_static_guard_var. */
     *guard_var = test_var;
-#endif /* !IA64_ABI_USE_GUARD_ACQUIRE_RELEASE */
     guard_code_emitted = TRUE;
   }  /* if */
 #endif /* IA64_ABI */
@@ -15963,9 +15971,7 @@ to cause the back end to invoke the routine at initialization.
                          (a_constant **)NULL);
       /* Insert any generated stmk_inits at the previously marked location. */
       insert_pending_stmk_init_statements_at_mark(eff_insert_location);
-#if TEMPLATE_STATIC_DATA_MEMBER_INIT_GUARD_CODE && \
-    IA64_ABI &&                                    \
-    !IA64_ABI_USE_GUARD_ACQUIRE_RELEASE
+#if TEMPLATE_STATIC_DATA_MEMBER_INIT_GUARD_CODE && IA64_ABI
       if (guard_var != NULL) {
         /* Set the guard variable to indicate the local static is initialized
            after the initialization is completed. */
