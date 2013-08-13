@@ -913,8 +913,8 @@ state information for get_token_with_colon_separation.
     /* Advance past string literal. */
     (void)get_token_with_colon_separation(seen_tok_colon_colon);
     if (curr_token == tok_lparen) {
-      (void)get_token_with_colon_separation(seen_tok_colon_colon);
       a_boolean  input = !output;
+      (void)get_token_with_colon_separation(seen_tok_colon_colon);
       if (output && constraint_string != NULL) {
         /* A '+' in the constraint string of an output operand indicates a
            read-modify-write instruction; i.e., the operand is first an input
