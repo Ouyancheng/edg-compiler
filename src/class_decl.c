@@ -18653,7 +18653,8 @@ record that fact in *gsfd.
         cssp->construction_by_bitwise_copy_allowed &&
         !class_state->rule_out_bitwise_copy_for_volatile_class_field &&
         !(deleted_functions_enabled && !gpp_mode &&
-          class_state->any_const_or_ref_fields)) {
+          class_state->any_const_or_ref_fields) &&
+        !class_state->has_inheriting_constructors) {
       /* This is a POD class with trivial copy semantics (a POD class may have
          nontrivial copy semantics if it has a volatile field) and no fields
          that require special initialization (references and const fields) to
@@ -19586,6 +19587,7 @@ The routine body is not generated until it is known to be needed.
                        ctsp->is_lambda_closure_class ||
                        cssp->constructor != NULL ||
                        class_state->default_ctor_is_nontrivial ||
+                       class_state->has_inheriting_constructors ||
                        !cssp->construction_by_bitwise_copy_allowed ||
                        class_state
                             ->rule_out_bitwise_copy_for_volatile_class_field);
@@ -19598,6 +19600,7 @@ The routine body is not generated until it is known to be needed.
                       (ctsp->is_lambda_closure_class ||
                        cssp->constructor != NULL ||
                        class_state->default_ctor_is_nontrivial ||
+                       class_state->has_inheriting_constructors ||
                        !cssp->construction_by_bitwise_copy_allowed ||
                        class_state
                             ->rule_out_bitwise_copy_for_volatile_class_field);
@@ -19657,7 +19660,8 @@ The routine body is not generated until it is known to be needed.
     }  /* if */
     if (cssp->constructor == NULL &&
         cssp->trivial_default_constructor != NULL &&
-        (declare_copy_ctor || declare_move_ctor)) {
+        (declare_copy_ctor || declare_move_ctor ||
+         class_state->has_inheriting_constructors)) {
       /* A trivial default constructor was generated but not added to the set
          of constructors, presumably because no nontrivial constructor is
          expected.  However, sometimes a copy or move constructor must be
