@@ -14132,11 +14132,7 @@ the destructor or finalizer is part of a qualified name (e.g., "A::B::~B").
 }  /* get_destructor_or_finalizer_name */
 
 
-/*ARGSUSED*/  /*FIXME: For now. */
-static a_boolean scan_literal_operator_id(
-                             a_boolean                        is_class_member,
-                             a_parent_class_or_namespace_ptr  parent,
-		             a_type_ptr                       field_sel_type)
+static a_boolean scan_literal_operator_id(a_boolean  is_class_member)
 /*
 The current token follows an "operator" token.  If it is a string literal or a
 user-defined string literal (and user-defined literals are enabled) assume the
@@ -14177,6 +14173,11 @@ token).
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
             locator_for_curr_id.is_udl_operator_name) {
           err_code = ec_invalid_literal_operator_id;
+          if (curr_token != tok_identifier) {
+            /* The suffix might be omitted and the next token might be useful
+               in interpreting was comes next. */
+            unget_token();
+          }  /*if */
         } else {
           make_literal_opname_locator(
                          locator_for_curr_id.symbol_header->identifier,
@@ -14198,7 +14199,7 @@ token).
     } else if (err_code != ec_no_error) {
       curr_token = tok_identifier;
       pos_error(err_code, &pos_curr_token);
-      set_to_error_locator(locator_for_curr_id);
+      make_specific_symbol_error_locator(&locator_for_curr_id);
       result = TRUE;
     }  /* if */
   }  /* if */
@@ -14236,8 +14237,7 @@ This routine is called only in C++ mode.
   if (scan_conversion_operator(is_class_member, parent, field_sel_type)) {
     /* This is a conversion operator function -- "operator" followed by
        a type name. */
-  } else if (scan_literal_operator_id(is_class_member, parent,
-                                      field_sel_type)) {
+  } else if (scan_literal_operator_id(is_class_member)) {
     /* A user-defined literal operator. */
     locator_for_curr_id.source_position = start_position;
   } else {
