@@ -4843,6 +4843,11 @@ user later during real instantiations.
   rout_sym = (a_symbol_ptr)rout_ptr->source_corresp.assoc_info;
   check_assertion(rout_sym != NULL);
   for (daefp = def_arg_list; daefp != NULL; daefp = daefp->next) {
+    if (daefp->cache.decl_info == NULL) {
+      /* This can happen with severe errors: Skip this entry. */
+      expect_error();
+      continue;
+    }  /* if */
     /* Push the template instantiation scope. */
     /* For member functions that are not member templates the argument
        list comes from the enclosing class that is reactivated by
