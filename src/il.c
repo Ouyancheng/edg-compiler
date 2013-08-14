@@ -17522,14 +17522,13 @@ evaluated is TRUE if the expression is evaluated.
     /* This is a parameter of a function template, or a member function of a
        template class, and the default value has not yet been instantiated.
        Instantiate it now. */
+    /* First check for some problems that may arise because of prior errors. */
     if (rout == NULL) {
-      check_assertion_str(total_errors != 0,
-                          "copy_default_arg_expr: rout NULL, no error");
-      /* Avoid an error recovery problem. */
+      expect_error_str("copy_default_arg_expr: rout NULL, no error");
+    } else if (symbol_for(rout)->variant.routine.instance_ptr == NULL) {
+      expect_error_str("copy_default_arg_expr: missing template instance ptr");
     } else {
-      a_symbol_ptr rout_sym;
-      rout_sym = (a_symbol_ptr)rout->source_corresp.assoc_info;
-      instantiate_default_argument(rout_sym, ptp);
+      instantiate_default_argument(symbol_for(rout), ptp);
     }  /* if */
   }  /* if */
   /* Watch out for cases where a default argument is followed by
