@@ -16300,6 +16300,7 @@ original type or namespace that was specified.
         name = is_type
                ? new_nqp->qualifier.class_type->source_corresp.name
                : new_nqp->qualifier.namespace_ptr->source_corresp.name;
+        name = new_nqp->name;
         if (is_type ? new_type == new_nqp->qualifier.class_type
                     : new_namespace == new_nqp->qualifier.namespace_ptr) {
           if (strcmp(name, qualifier_sym->header->identifier) == 0) {
@@ -16315,7 +16316,8 @@ original type or namespace that was specified.
     new_nqp = alloc_name_qualifier();
     new_nqp->previous_qualifier = prev_nqp;
     new_nqp->is_class = is_type;
-    new_nqp->name = qualifier_sym->header->identifier;
+    new_nqp->name = copy_string_to_region(FRONT_END_REGION_NUMBER,
+                                          qualifier_sym->header->identifier);
     if (is_type) {
       new_nqp->qualifier.class_type = new_type;
     } else {
