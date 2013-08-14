@@ -9776,15 +9776,15 @@ indication in *rcblock).
         /* Advance past the identifier. */
         (void)get_token();
       }  /* if */
-#if EXTRA_SOURCE_POSITIONS_IN_IL
-      end_position = pos_curr_token;
-#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
       (void)required_token_no_advance(tok_rparen, ec_exp_rparen);
       remove_matching_stop_token(tok_rparen);
       pedep = end_potential_pack_expansion_context(pesep,
                                                    /*is_declarator=*/TRUE);
       any_more = advance_to_next_pack_element(pesep);
     }  /* while */
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+    end_position = pos_curr_token;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
     /* Skip over the closing right parenthesis. */
     if (curr_token == tok_rparen) (void)get_token();
   } else {

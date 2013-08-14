@@ -1,5 +1,25 @@
 Version 5.0
 
+8/13/13  [EDGcpfe/14375]
+End position of sizeof...(x) construct
+
+The front end previously did not correctly record the position of the closing
+parenthesis of a C++11 sizeof...(x) construct for an empty pack expansion (in
+configurations with EXTRA_SOURCE_POSITIONS_IN_IL set to TRUE).  This could
+result in invalid position information in the IL.  For example:
+
+  template<typename... T> struct S {
+    static const auto N = sizeof...(T);
+  };
+  int g() {
+   return (int)(S<>::N);
+  }
+
+In this example, the recorded end position for the initializer of S<>::N
+(i.e., the field initializer.end in the corresponding a_variable entry) was
+previously an arbitrary (uninitialized) value.  This is now fixed.
+
+
 8/13/13  [EDGcpfe/9252]
 C++11: user-defined literals
 
