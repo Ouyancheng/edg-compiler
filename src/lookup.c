@@ -4155,8 +4155,8 @@ type.
     if (type_sym != NULL) {
       if (locator->name_qualifier != NULL &&
           locator->name_qualifier->name != NULL &&
-          locator->name_qualifier->name ==
-                                          locator->symbol_header->identifier) {
+          strcmp(locator->name_qualifier->name,
+                 locator->symbol_header->identifier) == 0) {
         type = skip_typerefs(type);
         /* If the type is a class type, return its constructor.
            If it is not a class type, return the type and set the
