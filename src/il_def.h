@@ -2014,7 +2014,7 @@ typedef struct a_name_qualifier {
 			/* Pointer to the previous portion of the qualifier,
 			   if any, i.e., the parent qualifier.  NULL if
 			   this is the first/topmost qualifier. */
-  const char	*name;
+  a_const_char	*name;
 			/* The string that specifies the identifier used for
 			   this qualifier.  This is usually the same as the
 			   name specified by "qualifier".   But when the
