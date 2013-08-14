@@ -7009,121 +7009,135 @@ a_boolean is_identifier_char(a_const_char *ptr,
                              int          *len,
                              a_boolean    is_identifier_start)
 /*
-ptr points to a character, possibly multibyte.  Return TRUE if that
-character is valid as a character in an identifier (as the first
-character if is_identifier_start is TRUE, otherwise as a character
-after the first).  If so, also return *len set to the length of the
-character (possibly >1 for a multibyte character).  If len == NULL, no
-length is returned.  This routine consults the
-curr_file_unicode_source_kind global variable, and therefore should be
-used only within the lexical input routines.
+ptr points to a character, possibly multibyte, or to a universal character
+name.  Return TRUE if that character or UCN is valid as a character in an
+identifier (as the first character if is_identifier_start is TRUE,
+otherwise as a character after the first).  If so, also return *len set to
+the length of the character (possibly >1 for a multibyte character or a
+UCN).  If len == NULL, no length is returned.  This routine consults the
+curr_file_unicode_source_kind global variable, and therefore should be used
+only within the lexical input routines.
 */
 {
   a_boolean is_id;
   int       llen = 1;
 
+  if (*ptr == '\\' && (ptr[1] == 'u' || ptr[1] == 'U') &&
+      universal_character_names_allowed) {
+    /* This is a universal character name.  Decode it and see if it is an
+       identifier or identifier-start character.  Note that we pass FALSE
+       to the identifier flag parameters of scan_universal_character; it is
+       not an error in this routine for the character to fail those tests,
+       and we will do them here directly. */
+    a_const_char  *p = ptr;
+    unsigned long ucn = scan_universal_character(&p, /*is_identifier=*/FALSE,
+                                                 /*is_identifier_start=*/FALSE,
+                                                 /*issue_diagnostics=*/TRUE);
+    is_id = (is_valid_UCN_identifier_char(ucn, is_identifier_start) ==
+                                                                  ec_no_error);
+    llen = (int)(p - ptr);
+  } else {
 #if !MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED
-  /* Simplest case: no multibyte characters of any kind allowed. */
-  is_id = is_id_char[*ptr-CHAR_MIN] &&
-          (!is_identifier_start || !isdigit((unsigned char)*ptr));
+    /* Simplest case: no multibyte characters of any kind allowed. */
+    is_id = is_id_char[*ptr-CHAR_MIN] &&
+                       (!is_identifier_start || !isdigit((unsigned char)*ptr));
 #else /* MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED */
-  { unsigned long ch;
-    a_boolean     err;
+    { unsigned long ch;
+      a_boolean     err;
 #if !UNICODE_SOURCE_SUPPORTED
-    if (!multibyte_chars_in_source_enabled
+      if (!multibyte_chars_in_source_enabled
 #ifdef char_may_begin_multibyte_sequence
-        || !char_may_begin_multibyte_sequence(*ptr)
+          || !char_may_begin_multibyte_sequence(*ptr)
 #endif /* ifdef char_may_begin_multibyte_sequence */
-                                                   ) {
-      /* Multibyte characters are allowed, but this character isn't one. */
-      is_id = is_id_char[*ptr-CHAR_MIN] &&
-              (!is_identifier_start || !isdigit((unsigned char)*ptr));
-    } else {
-      /* This might be a multibyte character. */
-      llen = mbc_to_wide_char(ptr, &ch, &err, /*is_native=*/FALSE);
-      if (err) {
-        is_id = FALSE;
+                                                     ) {
+        /* Multibyte characters are allowed, but this character isn't one. */
+        is_id = is_id_char[*ptr-CHAR_MIN] &&
+                       (!is_identifier_start || !isdigit((unsigned char)*ptr));
       } else {
+        /* This might be a multibyte character. */
+        llen = mbc_to_wide_char(ptr, &ch, &err, /*is_native=*/FALSE);
+        if (err) {
+          is_id = FALSE;
+        } else {
 #if EDG_MULTIBYTE_CHAR_TEST_MODE
-        /* Consider all multi-byte characters as identifier characters. */
-        is_id = TRUE;
+          /* Consider all multi-byte characters as identifier characters. */
+          is_id = TRUE;
 #else /* !EDG_MULTIBYTE_CHAR_TEST_MODE */
 #if USE_OWN_SJIS_MULTIBYTE_CHAR_PROCESSING
-        /* We don't have the wide character classification functions if we're
-           using our own SJIS functions. */
-        is_id = FALSE;
+          /* We don't have the wide character classification functions if we're
+             using our own SJIS functions. */
+          is_id = FALSE;
 #else /* !USE_OWN_SJIS_MULTIBYTE_CHAR_PROCESSING */
-        /* Use C99 library routines from <wctype.h> to classify the
-           character. */
-        wint_t wc = (wint_t)ch;
-        is_id = iswalpha(wc) ||
-                (!is_identifier_start && iswdigit(wc));
+          /* Use C99 library routines from <wctype.h> to classify the
+             character. */
+          wint_t wc = (wint_t)ch;
+          is_id = iswalpha(wc) || (!is_identifier_start && iswdigit(wc));
 #endif /* USE_OWN_SJIS_MULTIBYTE_CHAR_PROCESSING */
 #endif /* EDG_MULTIBYTE_CHAR_TEST_MODE */
+        }  /* if */
       }  /* if */
-    }  /* if */
 #else /* UNICODE_SOURCE_SUPPORTED */
-    /* The multibyte coding selected is UTF-8 (but if
-       curr_file_unicode_source_kind is usk_none, this is a non-Unicode source
-       file). */
-    ch = (unsigned char)*ptr;
-    if (ch > 0x7f) {
-      if (curr_file_unicode_source_kind != usk_none) {
-        /* Convert the multibyte UTF-8 sequence to a single code point. */
-        llen = mbc_to_wide_char(ptr, &ch, &err, /*is_native=*/FALSE);
-        if (err) ch = 0;  /* Forces FALSE result. */
+      /* The multibyte coding selected is UTF-8 (but if
+         curr_file_unicode_source_kind is usk_none, this is a non-Unicode
+         source file). */
+      ch = (unsigned char)*ptr;
+      if (ch > 0x7f) {
+        if (curr_file_unicode_source_kind != usk_none) {
+          /* Convert the multibyte UTF-8 sequence to a single code point. */
+          llen = mbc_to_wide_char(ptr, &ch, &err, /*is_native=*/FALSE);
+          if (err) ch = 0;  /* Forces FALSE result. */
 #if NATIVE_MULTIBYTE_CHARS_SUPPORTED_WITH_UNICODE
-      } else {
-        /* Convert the native multibyte sequence to a single Unicode
-           code point. */
-        wint_t	wc;
-        llen = lex_mbc_to_wide_char(ptr, &ch, &err);
-        if (err) ch = 0;  /* Forces FALSE result. */
+        } else {
+          /* Convert the native multibyte sequence to a single Unicode
+             code point. */
+          wint_t	wc;
+          llen = lex_mbc_to_wide_char(ptr, &ch, &err);
+          if (err) ch = 0;  /* Forces FALSE result. */
 #if EDG_WIN32
-        /* Note that this code is Windows-specific and must be customized for
-           other platforms. */
-        wc = (wint_t)ch;
-        is_id = _iswalpha_l(wc, native_multibyte_locale) ||
-                (!is_identifier_start &&
-                 _iswdigit_l(wc, native_multibyte_locale));
-        goto is_id_known;
+          /* Note that this code is Windows-specific and must be customized for
+             other platforms. */
+          wc = (wint_t)ch;
+          is_id = _iswalpha_l(wc, native_multibyte_locale) ||
+                                    (!is_identifier_start &&
+                                     _iswdigit_l(wc, native_multibyte_locale));
+          goto is_id_known;
 #else /* !EDG_WIN32 */
 #if EDG_NATIVE_MULTIBYTE_TEST_MODE
-        /* Use C99 library routines from <wctype.h> to classify the
-           character. */
-        wc = (wint_t)ch;
-        is_id = iswalpha(wc) ||
-                (!is_identifier_start && iswdigit(wc));
-        goto is_id_known;
+          /* Use C99 library routines from <wctype.h> to classify the
+             character. */
+          wc = (wint_t)ch;
+          is_id = iswalpha(wc) || (!is_identifier_start && iswdigit(wc));
+          goto is_id_known;
 #else /* !EDG_NATIVE_MULTIBYTE_TEST_MODE */
-        #error is_identifier_char requires customization on non-Windows \
+          #error is_identifier_char requires customization on non-Windows \
                platforms when using \
                NATIVE_MULTIBYTE_CHARS_SUPPORTED_WITH_UNICODE.
 #endif /* EDG_NATIVE_MULTIBYTE_TEST_MODE */
 #endif /* EDG_WIN32 */
 #endif /* NATIVE_MULTIBYTE_CHARS_SUPPORTED_WITH_UNICODE */
+        }  /* if */
       }  /* if */
-    }  /* if */
-    /* See whether the Unicode code point ch is a valid identifier
-       character. */
-    if (ch <= UCHAR_MAX) {
-      /* Small value -- use the lookup table. */
-      is_id = is_id_char_no_mbc[ch] &&
-              (!is_identifier_start || !isdigit((unsigned char)ch));
-    } else if (ch >= 0xd800 && ch <= 0xdfff) {
-      /* Surrogate code points are not allowed. */
-      is_id = FALSE;
-    } else {
-      /* Do the full lookup for larger values. */
-      is_id = (is_valid_UCN_identifier_char(ch, is_identifier_start) ==
-               ec_no_error);
-    }  /* if */
+      /* See whether the Unicode code point ch is a valid identifier
+         character. */
+      if (ch <= UCHAR_MAX) {
+        /* Small value -- use the lookup table. */
+        is_id = is_id_char_no_mbc[ch] &&
+                (!is_identifier_start || !isdigit((unsigned char)ch));
+      } else if (ch >= 0xd800 && ch <= 0xdfff) {
+        /* Surrogate code points are not allowed. */
+        is_id = FALSE;
+      } else {
+        /* Do the full lookup for larger values. */
+        is_id = (is_valid_UCN_identifier_char(ch, is_identifier_start) ==
+                 ec_no_error);
+      }  /* if */
 #if NATIVE_MULTIBYTE_CHARS_SUPPORTED_WITH_UNICODE
 is_id_known:;
 #endif /* NATIVE_MULTIBYTE_CHARS_SUPPORTED_WITH_UNICODE */
 #endif /* !UNICODE_SOURCE_SUPPORTED */
-  }
+    }
 #endif /* !MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED */
+  }  /* if */
   if (len != NULL) *len = llen;
   return is_id;
 }  /* is_identifier_char */
