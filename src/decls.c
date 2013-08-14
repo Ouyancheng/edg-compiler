@@ -7519,6 +7519,7 @@ needed.
 {
   a_type_ptr        rtp = skip_typerefs(rp->type);
   a_param_type_ptr  ptp = function_type_params(rtp);
+  a_boolean         param_err = FALSE;
 
   if (rp->source_corresp.name_linkage == (a_name_linkage_kind)nlk_external) {
     pos_error(ec_extern_c_literal_operator, &loc->source_position);
@@ -7526,28 +7527,34 @@ needed.
   if (rtp->variant.routine.extra_info->has_ellipsis) {
     pos_error(ec_ellipsis_parameter_for_literal_operator,
               &loc->source_position);
+    param_err = TRUE;
   } else if (ptp == NULL) {
     pos_error(ec_no_parameter_for_literal_operator, &loc->source_position);
+    param_err = TRUE;
   } else if (is_plain_pointer_type(ptp->type)) {
     a_type_ptr  tp = type_pointed_to(ptp->type),
                 size_t_type = integer_type(targ_size_t_int_kind);
     if (get_type_qualifiers(tp) != TQ_CONST) {
       pos_ty_error(ec_pointer_to_nonconst_for_literal_operator,
                    &loc->source_position, skip_typerefs(ptp->type));
+      param_err = TRUE;
     } else if (ptp->next == NULL) {
-      /* Presumable a raw literal operator. */
+      /* Presumably a raw literal operator. */
       if (is_plain_char_type(tp)) {
         rp->is_raw_literal_operator = TRUE;
       } else {
         pos_ty_error(ec_invalid_parameter_type_for_literal_operator,
                      &loc->source_position, skip_typerefs(ptp->type));
+        param_err = TRUE;
       }  /* if */
     } else if (ptp->next->next != NULL) {
       pos_error(ec_too_many_parameters_for_literal_operator,
                 &loc->source_position);
+      param_err = TRUE;
     } else if (!types_are_compatible(ptp->next->type, size_t_type)) {
       pos_ty_error(ec_invalid_second_parameter_type_for_literal_operator,
                    &loc->source_position, skip_typerefs(ptp->next->type));
+      param_err = TRUE;
     } else {
       tp = skip_typerefs(tp);
       if (tp->kind != (a_type_kind)tk_integer ||
@@ -7557,17 +7564,20 @@ needed.
            !tp->variant.integer.char32_t_type)) {
         pos_ty_error(ec_invalid_pointer_parameter_for_literal_operator,
                      &loc->source_position, skip_typerefs(ptp->type));
+        param_err = TRUE;
       }  /* if */
     }  /* if */
   } else if (ptp->next != NULL) {
     pos_error(ec_too_many_parameters_for_literal_operator,
               &loc->source_position);
+    param_err = TRUE;
   } else {
     a_type_ptr  tp = skip_typerefs(ptp->type);
     if (tp->kind == (a_type_kind)tk_integer) {
       if (tp->variant.integer.enum_type) {
         pos_ty_error(ec_invalid_parameter_type_for_literal_operator,
                      &loc->source_position, tp);
+        param_err = TRUE;
       } else if (tp->variant.integer.int_kind != (an_integer_kind)ik_char &&
                  !tp->variant.integer.wchar_t_type &&
                  !tp->variant.integer.char16_t_type &&
@@ -7576,16 +7586,25 @@ needed.
                                      (an_integer_kind)ik_unsigned_long_long) {
         pos_ty_error(ec_invalid_integer_parameter_for_literal_operator,
                      &loc->source_position, tp);
+        param_err = TRUE;
       }  /* if */
     } else if (tp->kind == (a_type_kind)tk_float) {
       if (tp->variant.float_kind != (a_float_kind)fk_long_double) {
         pos_ty_error(ec_invalid_float_parameter_for_literal_operator,
                      &loc->source_position, tp);
+        param_err = TRUE;
       }  /* if */
     } else {
       pos_ty_error(ec_invalid_parameter_type_for_literal_operator,
                    &loc->source_position, tp);
+      param_err = TRUE;
     }  /* if */
+  }  /* if */
+  if (!param_err && ptp != NULL && !gpp_mode &&
+      (ptp->has_default_arg ||
+       (ptp->next != NULL && ptp->next->has_default_arg))) {
+    pos_error(ec_default_arg_for_literal_operator, &loc->source_position);
+    param_err = TRUE;
   }  /* if */
 }  /* check_udl_operator_type */
 
