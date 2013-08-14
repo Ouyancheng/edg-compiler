@@ -1232,9 +1232,10 @@ of lambda expressions.
         /* A variadic function can have a function parameter pack that ends
            up having no elements. */
       } else {
-        check_assertion(microsoft_mode && param_id->next == NULL &&
-                        param_id->type != NULL &&
-                        is_template_dependent_type(param_id->type));
+        check_assertion_or_expect_error(
+                                  microsoft_mode && param_id->next == NULL &&
+                                  param_id->type != NULL &&
+                                  is_template_dependent_type(param_id->type));
       }  /* if */
 #endif /* CHECKING */
       param_id = NULL;
