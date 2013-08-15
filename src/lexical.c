@@ -16316,7 +16316,7 @@ original type or namespace that was specified.
     new_nqp = alloc_name_qualifier();
     new_nqp->previous_qualifier = prev_nqp;
     new_nqp->is_class = is_type;
-    new_nqp->name = copy_string_to_region(FRONT_END_REGION_NUMBER,
+    new_nqp->name = copy_string_to_region(file_scope_region_number,
                                           qualifier_sym->header->identifier);
     if (is_type) {
       new_nqp->qualifier.class_type = new_type;
