@@ -4349,9 +4349,10 @@ symbol pointer is returned.  This routine is used in both C and C++ mode.
            is_template_dependent_type(locator->variant.conversion_result_type);
   }  /* if */
   sym = locator->specific_symbol;
-  if (is_error_locator(*locator)) {
-    /* The locator is an error locator, so return NULL (i.e., no symbol
-       found). */
+  if (is_error_locator(*locator) || locator->is_udl_operator_name) {
+    /* The locator is an error locator or it designates a user-defined
+       literal operator name (which cannot be a class member), so return
+       NULL (i.e., no symbol found). */
     sym = NULL;
   } else if (sym != NULL) {
     /* The locator is for a specific symbol, so return the symbol for it. */
