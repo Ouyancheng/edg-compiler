@@ -2550,7 +2550,7 @@ ec_invalid_template_parameter_for_literal_operator_template;;"a literal operator
 ec_thread_local_not_allowed;;"\"thread_local\" is not valid here"
 ec_thread_local_follows_non_thread_local;;"thread_local declaration of %n follows non-thread_local declaration (declared %p)"
 ec_non_thread_local_follows_thread_local;;"non-thread_local declaration of %n follows thread_local declaration (declared %p)"
-ec_default_arg_for_literal_operator;;"a literal operator cannot have default argument"
+ec_default_arg_for_literal_operator;;"a literal operator cannot have default arguments"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #
