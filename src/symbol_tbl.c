@@ -14357,13 +14357,12 @@ literal-operator-id.
           }  /* if */
           operator_template = sym;
         }  /* if */
-      } else {
+      } else if (symbol_is(sym, sk_routine)) {
         /* This is a function.  Get its parameter list and check it against
            the required parameter type(s). */
         a_routine_type_supplement_ptr rtsp;
         a_type_ptr                    param1_type;
         a_type_ptr                    param2_type;
-        check_assertion(symbol_is(sym, sk_routine));
         rtsp = sym->variant.routine.ptr->type->variant.routine.extra_info;
         if (rtsp->param_type_list == NULL) {
           /* A literal operator must have at least one parameter.  An error
@@ -14419,6 +14418,11 @@ literal-operator-id.
             matching_sym = sym;
           }  /* if */
         }  /* if */
+      } else {
+        /* Not a template and not a function.  This can result from
+           erroneous declarations using literal operator ids.  Ignore the
+           symbol. */
+        expect_error();
       }  /* if */
     } while (symbol_is(orig_sym, sk_overloaded_function) &&
              (sym = sym->next) != NULL);
