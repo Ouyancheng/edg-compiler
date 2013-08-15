@@ -18827,6 +18827,7 @@ deleted, disable bitwise copying.
                classes from this because they follow different copy
                semantics.) */
             rp->is_trivial_copy_function = FALSE;
+            cssp->construction_by_bitwise_copy_allowed = FALSE;
           } else if (!rp->is_deleted) {
             rp->is_trivial_copy_function =
                                    cssp->construction_by_bitwise_copy_allowed;
