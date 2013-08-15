@@ -2566,7 +2566,7 @@ a_targ_alignment compute_alignof_value(a_type_ptr         alignof_type,
 
 /*
 The canonical form of the introductory part of an operator-function-id (i.e.,
-the part without the type or "operator").
+the part without the type, which is "operator").
 */
 #define CANONICAL_OPERATOR_FUNCTION_INTRO "operator"
 #define LENGTH_CANONICAL_OPERATOR_FUNCTION_INTRO \
@@ -2574,7 +2574,7 @@ the part without the type or "operator").
 
 /*
 The canonical form of the introductory part of a conversion-function-id (i.e.,
-the part without the type or "operator ").
+the part without the type, which is "operator ").
 */
 #define CANONICAL_CONVERSION_FUNCTION_INTRO "operator "
 #define LENGTH_CANONICAL_CONVERSION_FUNCTION_INTRO \
@@ -2590,7 +2590,7 @@ the part without the suffix).
 
 /*
 Return a pointer to the ud-suffix position of a canonical
-literal-operator-id (operator "" suffix).
+literal-operator-id (operator ""suffix).
 */
 #define ud_suffix_from_literal_operator_id(name) \
   ((name) + LENGTH_CANONICAL_LITERAL_OPERATOR_INTRO)
