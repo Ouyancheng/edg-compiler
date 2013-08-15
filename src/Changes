@@ -16,8 +16,8 @@ result in invalid position information in the IL.  For example:
   }
 
 In this example, the recorded end position for the initializer of S<>::N
-(i.e., the field initializer.end in the corresponding a_variable entry) was
-previously an arbitrary (uninitialized) value.  This is now fixed.
+(i.e., the field initializer_range.end in the corresponding a_variable entry)
+was previously an arbitrary (uninitialized) value.  This is now fixed.
 
 
 8/13/13  [EDGcpfe/9252]
