@@ -1944,7 +1944,7 @@ If the first few characters are not an operator encoding, return NULL.
   } else if (start_of_id_is("li", ptr, dctl)) {
     /* Note that the ud-suffix follows the "li" and needs to be
        demangled by the caller. */
-    s = "\"\" ";
+    s = "\"\"";
     *ud_suffix_follows = TRUE;
   } else {
     s = NULL;
@@ -5504,8 +5504,8 @@ be copied quickly.
                 if (strlen(ud_suffix_ptr) < ud_suffix_len) {
                   bad_mangled_name(dctl);
                 } else {
-                  strcpy(ud_suffix_buffer, "\"\" ");
-                  strncpy(&ud_suffix_buffer[3], ud_suffix_ptr, ud_suffix_len);
+                  strcpy(ud_suffix_buffer, "\"\"");
+                  strncpy(&ud_suffix_buffer[2], ud_suffix_ptr, ud_suffix_len);
                   str = (a_const_char *)ud_suffix_buffer;
                   *length = ud_suffix_ptr + ud_suffix_len - ptr;
                 }  /* if */
@@ -6692,7 +6692,7 @@ Also, these non-standard expressions (EDG-specific) are demangled:
         /* throw.  This handles the rethrow variety, throw-expression is
            handled separately. */
         write_id_str(op_str, dctl);
-      } else if (strncmp(op_str, "\"\" ", 3) == 0) {
+      } else if (strncmp(op_str, "\"\"", 2) == 0) {
         /* A literal operator.  The EDG front end doesn't produce a mangled
            name that should get here (i.e., there should be no "clli" mangled
            names), but other compilers produce this mangling, so handle it
