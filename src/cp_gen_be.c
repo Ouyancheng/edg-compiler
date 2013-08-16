@@ -2668,7 +2668,21 @@ a name.  Never generate a qualified name.
              ((a_variable_ptr)scp)->is_parameter) {
     gen_param_name((a_variable_ptr)scp);
   } else {
-    m_write_tok_str(name);
+    if (entry_kind == iek_routine &&
+        ((a_routine_ptr)scp)->special_kind ==
+                                   (a_special_function_kind)sfk_udl_operator &&
+        gcc_is_generated_code_target) {
+      /* The canonical form of literal-operator-id has no space between the
+         "" and the ud-suffix, to prevent something like ""if, which is
+         well-formed, from becoming "" if, which is ill-formed.  However,
+         at least through version 4.8, g++ does not accept the form without
+         the space, so we have to add it here. */
+      m_write_tok_str(CANONICAL_LITERAL_OPERATOR_INTRO);
+      m_write_space();
+      m_write_tok_str(ud_suffix_from_literal_operator_id(name));
+    } else {
+      m_write_tok_str(name);
+    }  /* if */
   }  /* if */
 }  /* gen_bare_name */
 
