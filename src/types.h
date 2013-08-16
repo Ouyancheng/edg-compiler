@@ -825,6 +825,10 @@ Bit flags for calls of f_types_are_compatible et al.
 			   can be a base class of the first.  This is used
 			   to allow a base/derived mismatch in template
 			   function matching. */
+#define TCF_IGNORE_NESTING_DEPTH 0x10000
+			/* TRUE if the nesting depths of template parameters
+			   should be ignored for purposes of this
+			   comparison. */
 #define TCF_NO_FLAGS 0x0
 typedef int a_type_compat_flags_set;
 

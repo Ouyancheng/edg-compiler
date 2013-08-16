@@ -6411,6 +6411,9 @@ check_typerefs:
               it_flags |= ITF_CONTEXTUAL_GENERIC_PARAMETERS;
             }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+            if (flags & TCF_IGNORE_NESTING_DEPTH) {
+              it_flags |= ITF_IGNORE_NESTING_DEPTH;
+            }  /* if */
             compat = f_identical_types(type_1, type_2, it_flags);
           }
           break;
