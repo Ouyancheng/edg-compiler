@@ -20867,7 +20867,7 @@ static void complete_function_template_decl(
 Complete the processing for a function template declaration.  sym is a symbol
 indicating the template.  func_info points to the block of information for
 the current function declaration.  template_decl_info points to the template
-declaration information (parameter list, declaration scope, etc.)  for this
+declaration information (parameter list, declaration scope, etc.) for this
 template declaration.  p_tssp points to the location in which the
 template symbol supplement for this template should be returned to the
 caller.
@@ -28705,7 +28705,7 @@ directive.
     tip = sym->variant.routine.instance_ptr;
     if (routine->compiler_generated) {
       result = FALSE;
-      if (issue_errors) {
+      if (issue_errors && !routine->is_inheriting_ctor) {
         sym_diagnostic(is_pragma ? es_error : es_discretionary_error,
                        ec_compiler_generated_function_cannot_be_instantiated,
                        sym);
@@ -30636,13 +30636,18 @@ initialization of an object of type a_template_decl_info pointed to by state.
 
 
 void complete_inheriting_ctor_template(a_tmpl_decl_state_ptr  decl_state,
+                                       a_func_info_block      *func_info,
                                        a_symbol_ptr           sym)
 /*
 Complete the data structures representing an inheriting constructor template
-(including the associated IL a_template entry).  sym is the symbol representing
-the template and decl_state tracks its declaration.
+(including the associated IL a_template entry).  sym and function info
+represent the function template, and decl_state tracks its declaration.
 */
 {
+  a_template_symbol_supplement_ptr  tssp;
+
+  complete_function_template_decl(decl_state, sym, func_info, &tssp,
+                                  &sym->decl_position);
   complete_il_template_entry(decl_state, sym);
 }  /* complete_inheriting_ctor_template */
 

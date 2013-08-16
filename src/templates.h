@@ -1055,6 +1055,7 @@ extern void init_tmpl_decl_state_for_inheriting_ctor_template(
 
 extern void complete_inheriting_ctor_template(
                                             a_tmpl_decl_state_ptr  decl_state,
+                                            a_func_info_block      *func_info,
                                             a_symbol_ptr           sym);
 
 #if DEBUG
