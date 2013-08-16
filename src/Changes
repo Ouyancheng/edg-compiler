@@ -1,5 +1,19 @@
 Version 5.0
 
+8/16/13  [EDGcpfe/14327]
+GNU compatibility: Don't emit "GCC system_header" pragmas when preprocessing
+
+The GNU compiler doesn't emit a "GCC system_header" pragma when producing
+preprocessed output and now neither does the front end in GNU emulation mode.
+For example, invoking the front end with "--gcc -P ex.c" will result in no
+output (with the two files as given below):
+
+  $ cat ex.h
+  #pragma GCC system_header
+  $ cat ex.c
+  #include "ex.h"
+  $
+
 8/13/13  [EDGcpfe/14375]
 End position of sizeof...(x) construct
 

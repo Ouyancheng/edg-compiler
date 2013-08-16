@@ -2528,6 +2528,9 @@ Scan and process a #pragma directive.
   a_pragma_kind_description_ptr	pkdp = NULL;
   a_source_position		id_position;
   a_boolean			pass_to_output = generate_pp_output;
+#if GNU_EXTENSIONS_ALLOWED
+  a_boolean                     is_gcc_system_header = FALSE;
+#endif /* GNU_EXTENSIONS_ALLOWED */
 
   /* Look up the identifier that specifies the kind of pragma. */
   pkdp = look_up_pragma_id(&id_position);
@@ -2558,7 +2561,24 @@ Scan and process a #pragma directive.
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       }  /* if */
     }  /* if */
+#if GNU_EXTENSIONS_ALLOWED
+    if (pkdp != NULL &&
+        pkdp->kind == (a_pragma_kind)pk_gcc &&
+        curr_id_is("GCC")) {
+      /* Look for a "GCC system_header" pragma. */
+      a_const_char *ptr = &start_of_curr_token[3];
+      while (ptr != NULL && (*ptr == ' ' || *ptr == '\t')) ptr++;
+      if (strcmp(ptr, "system_header") == 0) is_gcc_system_header = TRUE;
+    }  /* if */
+#endif /* GNU_EXTENSIONS_ALLOWED */
     if (pass_to_output) pass_pragma_to_output(pkdp);
+#if GNU_EXTENSIONS_ALLOWED
+    if (is_gcc_system_header) {
+      /* If we're just producing preprocessed output, suppress
+         "GCC system_header" pragmas in the preprocessed output. */
+      do_not_put_curr_line_in_pp_output = TRUE;
+    }  /* if */
+#endif /* GNU_EXTENSIONS_ALLOWED */
   } else {
     /* Compiling.  Record the pragma for later processing, or for
        processing now in the case of immediate pragmas. */
