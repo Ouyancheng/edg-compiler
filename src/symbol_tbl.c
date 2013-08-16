@@ -8721,7 +8721,7 @@ ud_suffix (of length ud_suffix_len).  Use pos as the source position.
     char     *str = alloc_primary_file_scope_il((sizeof_t)(len + 1));
     lo_hdr_ptr = alloc_literal_operator_header(ud_suffix, ud_suffix_len);
     sym_hdr_ptr = alloc_symbol_header();
-    /* Give the header the name 'operator "" X' where "X" is ud_suffix. */
+    /* Give the header the name 'operator ""X' where "X" is ud_suffix. */
     strcpy(str, CANONICAL_LITERAL_OPERATOR_INTRO);
     memcpy(str + LENGTH_CANONICAL_LITERAL_OPERATOR_INTRO, ud_suffix,
            ud_suffix_len);

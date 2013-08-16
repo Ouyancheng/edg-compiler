@@ -28496,7 +28496,7 @@ issue an error; otherwise, return TRUE.
   a_symbol_ptr  op_sym = NULL;
 
   if (ud_lit_op_sym_for_curr_token == NULL) {
-    /* No literal operators or literal operator template has been declared
+    /* No literal operators or literal operator template have been declared
        for the specified ud-suffix.  Report an error. */
     pos_error(ec_literal_operator_not_found, &pos_curr_token);
   } else if (symbol_is(ud_lit_op_sym_for_curr_token, sk_overloaded_function)) {
@@ -28706,7 +28706,7 @@ Scan a user-defined literal and return an operand for it in *operand.
   } else {
     make_error_operand(result);
   }  /* if */
-  /* Skip over user-defined literal token. */
+  /* Skip over the user-defined literal token. */
   (void)get_token();
 }  /* scan_ud_literal */
 

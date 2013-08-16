@@ -3956,7 +3956,7 @@ EXTERN a_symbol_locator
 			   fully specifying the identifier.  If curr_token ==
 			   tok_ud_literal, this is information specifying the
 			   canonical name of the literal operator or literal
-			   operator template, i.e., operator "" identifier. */
+			   operator template, i.e., operator ""identifier. */
 
 EXTERN an_active_using_directive_ptr
 		avail_active_using_directives;

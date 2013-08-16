@@ -19706,11 +19706,18 @@ of characters added.
         put_str_to_temp_text_buffer(constant->variant.string.value);
       } else {
         /* The constant should just be put out as normal. */
+        octl.part_of_ud_literal = TRUE;
         form_constant(constant, /*need_parent=*/FALSE, &octl);
+        octl.part_of_ud_literal = FALSE;
       }  /* if */
-      /* Now put out the ud-suffix, which can be obtained from the name of
-         the literal operator. */
+      /* Now put out the ud-suffix. */
       put_str_to_temp_text_buffer(ctp->ud_suffix);
+      if (octl.pending_right_paren) {
+        /* The il_to_str routines preceded the literal portion with a left
+           parenthesis.  Close it now. */
+        put_ch_to_temp_text_buffer(')');
+        octl.pending_right_paren = FALSE;
+      }  /* if */
     } else {
       /* Just put out the constant. */
       form_constant(constant, /*need_parens=*/TRUE, &octl);
