@@ -20904,7 +20904,8 @@ caller.
     }  /* if */
   }  /* if */
   if (sym != NULL && sym->kind == (a_symbol_kind)sk_function_template) {
-    if (sym->is_class_member && !decl_state->is_template_friend) {
+    if (sym->is_class_member && !decl_state->is_template_friend &&
+        !rout_ptr->is_inheriting_ctor) {
       if (in_prototype_instantiation_or_cli_generic(decl_state)) {
         /* Save the token sequence number associated with this declaration.
            This is done here for function templates that are class members.
