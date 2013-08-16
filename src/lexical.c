@@ -14189,7 +14189,7 @@ token).
           err_code = ec_invalid_literal_operator_id;
           if (curr_token != tok_identifier) {
             /* The suffix might be omitted and the next token might be useful
-               in interpreting was comes next. */
+               in interpreting what comes next. */
             unget_token();
           }  /*if */
         } else {
