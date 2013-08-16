@@ -6890,7 +6890,8 @@ function_lparen:
        member functions and set complete_type appropriately, so that it can
        be added as return type to the associated routine type. */
     if (!(input_flags & DI_OPERATOR_NAME_ALLOWED) && locator != NULL &&
-        (locator->is_operator_name || locator->is_conversion_name)) {
+        (locator->is_operator_name || locator->is_conversion_name ||
+         locator->is_udl_operator_name)) {
       pos_error(ec_operator_name_not_allowed, &locator->source_position);
       set_to_error_locator(*locator);
       complete_type = error_type();
