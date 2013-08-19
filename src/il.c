@@ -12110,7 +12110,7 @@ input.
 
 
 a_boolean routine_is_copy_or_move_assign_operator(
-                                               a_routine_ptr  rp,
+                                               a_routine_ptr         rp,
                                                a_type_qualifier_set  *tqs,
                                                a_boolean             *is_move)
 /*
