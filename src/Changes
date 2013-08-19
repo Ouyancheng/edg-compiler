@@ -1,5 +1,20 @@
 Version 5.0
 
+8/18/13  [EDGcpfe/14387]
+Microsoft compatibility: prototype instantiations of in-class specializations
+done in C++11 mode
+
+A change made in version 4.5 caused prototype instantiations of Microsoft
+mode in-class specializations to be done in C++11 mode, resulting in
+errors in cases such as the one below, which is accepted by the
+Microsoft compiler.  Now fixed.
+
+  template<class T> struct A {
+    template<class T2> void f(T2);
+    template<> void f(wchar_t) { xxx; } 
+  }; 
+
+
 8/16/13  [EDGcpfe/14327]
 GNU compatibility: Don't emit "GCC system_header" pragmas when preprocessing
 

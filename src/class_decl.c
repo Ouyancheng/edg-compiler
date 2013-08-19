@@ -2674,7 +2674,8 @@ nested class.
              classes -- instantiate_function_template does its thing based
              on the tokens saved during prototype instantiation. */
           discard_token_cache(&rfp->function_body_token_cache);
-        } else if (!some_nonclass_prototype_instantiations &&
+        } else if (!nonclass_prototype_instantiations &&
+                   !is_variadic_template_context() &&
                    is_nonreal_template_instantiation &&
                    (is_friend || rfp->is_specialization ||
                     (microsoft_mode && in_class_specialization))) {
