@@ -12727,7 +12727,7 @@ correspondence entry for the entity whose name this is.
 }  /* truncate_mangled_name */
 
 
-void name_lower_one_time_init(void)
+void lower_name_one_time_init(void)
 /*
 Do one-time initialization of variables related to name mangling.
 */
@@ -12736,6 +12736,9 @@ Do one-time initialization of variables related to name mangling.
   mangling_buffer_free_list = NULL;
   mangling_buffers_in_use = NULL;
   in_mangling_pre_pass = FALSE;
+#if IA64_ABI
+  avail_substitutions = NULL;
+#endif /* !IA64_ABI */
   /* Save variables from lower_name.c that are needed for precompiled
      headers. */
   if (precompiled_header_processing_required) {
@@ -12750,10 +12753,10 @@ Do one-time initialization of variables related to name mangling.
      between translation units. */
   register_trans_unit_variable(unnamed_type_seed);
   register_trans_unit_variable(unnamed_member_variable_name_seed);
-}  /* name_lower_one_time_init */
+}  /* lower_name_one_time_init */
 
 
-void name_lower_init(void)
+void lower_name_init(void)
 /*
 Initialize static variables related to name mangling that must be
 initialized for each compilation.
@@ -12766,10 +12769,8 @@ initialized for each compilation.
 #if DEBUG
   num_compressible_string_pos_allocated = 0;
 #endif /* DEBUG */
-#else /* IA64_ABI */
-  avail_substitutions = NULL;
-#endif /* IA64_ABI */
-}  /* name_lower_init */
+#endif /* !IA64_ABI */
+}  /* lower_name_init */
 
 #endif /* NEED_NAME_MANGLING */
 

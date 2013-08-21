@@ -1286,7 +1286,7 @@ after the command-line processing has been done.
 #endif /* DO_C99_IL_LOWERING */
 #endif /* DO_IL_LOWERING */
 #if NEED_NAME_MANGLING
-  name_lower_one_time_init();
+  lower_name_one_time_init();
 #endif /* NEED_NAME_MANGLING */
   attribute_one_time_init();
 #if GNU_EXTENSIONS_ALLOWED
@@ -1391,7 +1391,7 @@ source file's compilation.
 #if NEED_NAME_MANGLING
   /* Do lower_name.c initialization.  Name mangling can be included
      independently of the rest of IL lowering. */
-  name_lower_init();
+  lower_name_init();
 #endif /* NEED_NAME_MANGLING */
   attribute_init();
 #if MICROSOFT_EXTENSIONS_ALLOWED

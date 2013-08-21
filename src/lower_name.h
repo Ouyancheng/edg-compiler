@@ -128,9 +128,9 @@ extern void do_all_name_mangling(a_boolean mangling_pre_pass);
 
 extern void do_final_name_mangling(void);
 
-extern void name_lower_one_time_init(void);
+extern void lower_name_one_time_init(void);
 
-extern void name_lower_init(void);
+extern void lower_name_init(void);
 
 extern a_boolean routine_contains_an_individuated_entity(
                                                         a_routine_ptr routine);
