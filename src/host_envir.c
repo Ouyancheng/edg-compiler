@@ -355,8 +355,8 @@ in str, or NULL if chr does not occur in str.
 
 #if __MICROSOFT_OS__
 
-static sizeof_t truncate_length_to_whole_characters(char	*str,
-						    sizeof_t	length)
+static sizeof_t truncate_length_to_whole_characters(a_const_char *str,
+                                                    sizeof_t     length)
 /*
 Return the number of bytes of "str" that represent whole characters whose
 total length does not exceed "length".  This is used to ensure that when
@@ -364,7 +364,7 @@ a string is truncated, it is done on a multibyte character boundary.
 */
 {
   sizeof_t	result = length;
-  char		*ptr;
+  a_const_char	*ptr;
   sizeof_t	last_len;
   sizeof_t	curr_len;
 
@@ -971,7 +971,7 @@ found_dir_name:;
 
 #if __MICROSOFT_OS__
 
-static sizeof_t truncated_msdos_base_name_length(char		*str,
+static sizeof_t truncated_msdos_base_name_length(a_const_char	*str,
 						 sizeof_t	base_length,
 						 sizeof_t	suffix_length)
 /*
@@ -2503,7 +2503,7 @@ system that supports chdir.
 
 #if __MICROSOFT_OS__
 
-a_boolean has_drive_specification(char *file_name)
+a_boolean has_drive_specification(a_const_char *file_name)
 /*
 Test whether or not a file name includes a drive specification.  A drive
 specification is normally something like "X:" but for UNC file names
@@ -2554,10 +2554,10 @@ WIN32 (e.g., Windows-NT) version.
 #include <dos.h>
 #include <io.h>
 
-char *get_file_name_from_dir(a_boolean	first,
-			     char	*dir_name,
-			     char	*suffix,
-			     char	*curr_dir_name)
+char *get_file_name_from_dir(a_boolean	  first,
+			     a_const_char *dir_name,
+			     a_const_char *suffix,
+			     a_const_char *curr_dir_name)
 {
   static intptr_t		handle;
   static struct _tfinddata_t	fileinfo;
@@ -2931,7 +2931,7 @@ static HANDLE	f_map_object;
 			   the mapped input file. */
 
 static DOES_NOT_RETURN str_GetLastError_catastrophe(an_error_code error_code,
-                                                    char          *file_name)
+                                                    a_const_char  *file_name)
 /*
 Use the WIN32 routines to get and format the last error that occurred.
 Issue a catastrophic error using the specified error_code, file_name, and
@@ -2994,7 +2994,7 @@ Close the file used for allocation of file mapped memory for IL memory blocks.
 
 #endif /* MAKE_FRONT_END_CALLABLE */
 
-void open_mapped_input_file(char *file_name)
+void open_mapped_input_file(a_const_char *file_name)
 /*
 Open a file that contains memory region information that will be mapped
 into the address space of the current process.  This is used to reactivate
@@ -3077,7 +3077,7 @@ page size.
                                 (LPTSTR)NULL);
       if (f_map != INVALID_HANDLE_VALUE) {
 #if USE_FIXED_ADDRESS_FOR_MMAP
-        map_address = fixed_address_for_mmap + curr_size;
+        map_address = (a_void_ptr)(fixed_address_for_mmap + curr_size);
         addr = MapViewOfFileEx(f_map, FILE_MAP_WRITE, (DWORD)0,
                                (DWORD)file_offset, incremental_size,
                                map_address);
@@ -3108,7 +3108,7 @@ void map_input_file_to_region(FILE		*file,
                               sizeof_t		offset,
 			      sizeof_t		size,
 			      a_void_ptr	address,
-			      char		*file_name)
+			      a_const_char	*file_name)
 /*
 Map the data pointed to by "file", starting at "offset" bytes,
 for "size" bytes to the address specified by "address".
@@ -3954,7 +3954,7 @@ representation in the array chars, and return the length (1-4).
 #if !EDG_WIN32
 /*ARGSUSED*/ /* <-- "locale_name" is not used in that case. */
 #endif /* !EDG_WIN32 */
-a_boolean set_windows_locale(char	*locale_name)
+a_boolean set_windows_locale(a_const_char *locale_name)
 /*
 Set the locale to be used for multibyte character to Unicode conversion.
 Return TRUE if the locale_name is invalid, FALSE otherwise.
@@ -4022,9 +4022,9 @@ system_default_locale.
 }  /* unicode_to_multibyte_char */
     
 
-char *multibyte_chars_to_utf8(char	*str_ptr,
-			      sizeof_t	*str_length,
-			      a_boolean	*err)
+char *multibyte_chars_to_utf8(a_const_char *str_ptr,
+			      sizeof_t     *str_length,
+			      a_boolean    *err)
 /*
 str_ptr points to a character string of str_length bytes containing multibyte
 characters.  Convert the string to UTF-8 and return a pointer to the converted
@@ -4039,8 +4039,8 @@ the locale to be used for the multibyte encoding is specified by
 native_multibyte_locale.
 */
 {
-  char			*ptr;
-  char			*after_str_end = str_ptr + *str_length;
+  a_const_char		*ptr;
+  a_const_char		*after_str_end = str_ptr + *str_length;
 
   /* Clear the caller's error flag. */
   *err = FALSE;
@@ -4400,7 +4400,8 @@ file names are not known to be relative to the current directory.
 
 #if __MICROSOFT_OS__ && EDG_WIN32 && UNICODE_SOURCE_SUPPORTED
 
-int compare_file_chars_case_insensitive(char *file1, char *file2)
+int compare_file_chars_case_insensitive(a_const_char *file1,
+                                        a_const_char *file2)
 /*
 Compare the file names specified by "file1" and "file2" in a
 case-insensitive manner.  Return zero if they are the same.  "file1" and
@@ -4492,7 +4493,7 @@ upper-case mapping each UTF-16 code unit.
 
 #if NATIVE_MULTIBYTE_CHARS_SUPPORTED_WITH_UNICODE
 
-static a_text_buffer_ptr utf8_to_multibyte_char(char	*str)
+static a_text_buffer_ptr utf8_to_multibyte_char(a_const_char *str)
 /*
 Convert "str" from UTF-8 to the native multibyte characters.  Return a
 pointer to a text buffer containing the converted string.  The text buffer
@@ -4500,8 +4501,8 @@ will be reused on the next call to this routine, so the contents can only
 be used until that point.
 */
 {
-  char	*p;
-  int	len;
+  a_const_char *p;
+  int          len;
 
   /* Allocate the buffer if it does not exist yet. */
   if (mbc_buffer == NULL) {
@@ -4763,7 +4764,7 @@ components.  For a typical U.S. system, this will return
 #if !STANDALONE_UTILITY_PROGRAM
 #if EDG_WIN32
 
-char *win32_error_to_str(an_ms_dword err_code)
+a_const_char *win32_error_to_str(an_ms_dword err_code)
 /*
 Use the system routine FormatMessageA to get the message for "err_code".  If
 the system routine fails for any reason, return the string "unknown error".
@@ -4772,7 +4773,7 @@ so the result must be used before the buffer is reused.
 */
 {
   unsigned long chars_written;
-  char          *result;
+  a_const_char  *result;
 
   ensure_temp_text_buffer_space(256);
   chars_written = FormatMessageA(

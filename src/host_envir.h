@@ -3384,8 +3384,8 @@ extern void close_mapped_input_file(void);
 extern char *conv_wide_to_utf8(wchar_t *wide_str);
 typedef unsigned long an_ms_dword;
 #if !STANDALONE_UTILITY_PROGRAM
-extern char *com_error_to_str(void);
-extern char *win32_error_to_str(an_ms_dword error_code);
+extern a_const_char *com_error_to_str(void);
+extern a_const_char *win32_error_to_str(an_ms_dword error_code);
 #endif /* !STANDALONE_UTILITY_PROGRAM */
 #endif /* EDG_WIN32 */
 
