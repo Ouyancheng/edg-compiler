@@ -1,5 +1,16 @@
 Version 5.0
 
+8/21/13  [EDGcpfe/14402]
+Allow mangling routines to be used during back_end processing
+
+Previously, the mangling routines (i.e., routines in lower_name.c) had used a
+mixture of front end memory and general memory to create mangled names.  A
+change has been made to use general memory whenever possible in order to allow
+customers to make calls to mangling routines in most situations (front end
+memory is still needed in certain cases, but those are unlikely to occur at
+this point in the compilation).
+
+
 8/18/13  [EDGcpfe/14387]
 Microsoft compatibility: prototype instantiations of in-class specializations
 done in C++11 mode

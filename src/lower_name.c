@@ -768,7 +768,7 @@ with is_pack_expansion set to FALSE and once with it set to TRUE.
       sp = avail_substitutions;
       avail_substitutions = sp->next;
     } else {
-      sp = (a_substitution_ptr)alloc_fe(sizeof(a_substitution));
+      sp = (a_substitution_ptr)alloc_general(sizeof(a_substitution));
     }  /* if */
     sp->kind = kind;
     switch (kind) {
@@ -12460,7 +12460,7 @@ values, and return a pointer to it.
     avail_compressible_string_pos = cspp->next;
   } else {
     /* Allocate a new entry. */
-    cspp = (a_compressible_string_pos_ptr)alloc_fe(
+    cspp = (a_compressible_string_pos_ptr)alloc_general(
                                             sizeof(a_compressible_string_pos));
 #if DEBUG
     num_compressible_string_pos_allocated++;
@@ -12737,14 +12737,11 @@ Do one-time initialization of variables related to name mangling.
   mangling_buffers_in_use = NULL;
   in_mangling_pre_pass = FALSE;
   /* Save variables from lower_name.c that are needed for precompiled
-     headers */
+     headers. */
   if (precompiled_header_processing_required) {
     static a_pch_saved_variable saved_vars[] = {
       pch_saved_var_array_elem(unnamed_type_seed),
       pch_saved_var_array_elem(unnamed_member_variable_name_seed),
-#if IA64_ABI
-      pch_saved_var_array_elem(avail_substitutions),
-#endif /* IA64_ABI */
       pch_saved_var_array_terminating_elem()
     };
     register_pch_saved_variables(saved_vars);
