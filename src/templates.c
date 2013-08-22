@@ -20279,6 +20279,19 @@ template symbol supplement for this template should be returned to the caller.
     pos_sy_error(ec_not_compatible_with_previous_decl,
 		 &locator->source_position, sym);
     err = TRUE;
+  } else if (sym->variant.static_data_member.variable->is_thread_local !=
+             ((dps->dso_flags & DSO_THREAD_LOCAL) != 0)) {
+    /* If "thread_local" is specified on one declaration, it must be
+       specified on all. */
+    pos2_sy_diagnostic(es_error,
+                   sym->variant.static_data_member.variable->is_thread_local ?
+                                     ec_non_thread_local_follows_thread_local :
+                                     ec_thread_local_follows_non_thread_local,
+                   &locator->source_position,
+                   &sym->variant.static_data_member.variable->
+                                                  source_corresp.decl_position,
+                   sym);
+    err = TRUE;
   } else {
     /* This is a template definition of a static data member of a
        class template. */
@@ -22912,6 +22925,19 @@ that follows.
              the declaration in the class. */
           pos_sy_error(ec_not_compatible_with_previous_decl,
                        &locator.source_position, sym);
+          sym = NULL;
+        } else if (sym->variant.static_data_member.variable->is_thread_local !=
+                   ((dps->dso_flags & DSO_THREAD_LOCAL) != 0)) {
+          /* If "thread_local" is specified on one declaration, it must be
+             specified on all. */
+          pos2_sy_diagnostic(es_error,
+                   sym->variant.static_data_member.variable->is_thread_local ?
+                                     ec_non_thread_local_follows_thread_local :
+                                     ec_thread_local_follows_non_thread_local,
+                   &locator.source_position,
+                   &sym->variant.static_data_member.variable->
+                                                  source_corresp.decl_position,
+                   sym);
           sym = NULL;
         }  /* if */
       } else if (microsoft_bugs && microsoft_version <= 1300) {
