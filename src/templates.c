@@ -22726,6 +22726,11 @@ that follows.
        specializations. */
     dsi_flags |= DSI_STORAGE_CLASS_SPECIFIER_ALLOWED;
   }  /* if */
+  if (std_thread_local_storage_specifier_enabled) {
+    /* Allow the thread_local keyword to be used for explicit specializations
+       of static data members. */
+    dsi_flags |= DSI_STORAGE_CLASS_SPECIFIER_ALLOWED;
+  }  /* if */
   decl_specifiers(dsi_flags, dps, &decl_pos_block);
   dso_flags = dps->dso_flags;
   /* A storage class is not permitted on an explicit specialization, except
