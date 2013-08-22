@@ -7884,6 +7884,20 @@ and ensure the IL reflects the presence of the specifier otherwise.
          "extern" or "static". */
       pos_error(ec_cannot_use_thread_local_storage, &dps->storage_class_pos);
     }  /* if */
+#if GNU_INIT_PRIORITY_ATTRIBUTE_ALLOWED
+    if (vp->source_corresp.attributes != NULL) {
+      /* Issue a warning for any attributes that conflict with thread_local
+         (this is done here rather than in attribute processing because
+         is_thread_local is not set at the time attributes are being
+         processed). */
+      an_attribute_ptr ap;
+      for (ap = vp->source_corresp.attributes; ap != NULL; ap = ap->next) {
+        if (ap->kind == (a_byte_attribute_kind)ak_init_priority) {
+          pos_warning(ec_attribute_ignored_for_thread_local, &ap->position);
+        }  /* if */
+      }  /* for */
+    }  /* if */
+#endif /* GNU_INIT_PRIORITY_ATTRIBUTE_ALLOWED */
     vp->is_thread_local = TRUE;
     check_assertion_or_expect_error(var_has_thread_storage_duration(vp));
   } else {
