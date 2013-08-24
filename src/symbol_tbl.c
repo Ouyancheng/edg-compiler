@@ -14343,6 +14343,7 @@ literal-operator-id.
   a_symbol_ptr matching_sym = NULL;
   a_boolean    ambiguous_matching_sym = FALSE;
   a_symbol_ptr sym;
+  a_symbol_ptr list_sym;
 
   make_literal_opname_locator(name, name_len, &locator_for_curr_id, pos);
   orig_sym = normal_id_lookup(&locator_for_curr_id, IDL_NO_OPTIONS);
@@ -14354,14 +14355,12 @@ literal-operator-id.
                     make_qualified_type(integer_type((an_integer_kind)ik_char),
                                         TQ_CONST));
     }  /* if */
-    sym = symbol_is(orig_sym, sk_overloaded_function)
+    list_sym = symbol_is(orig_sym, sk_overloaded_function)
                                 ? orig_sym->variant.overloaded_function.symbols
                                 : orig_sym;
     do {
       /* Check the symbol for a match against the permitted operators. */
-      if (symbol_is(sym, sk_namespace_projection)) {
-        sym = sym->variant.namespace_projection.fundamental_symbol;
-      }  /* if */
+      sym = fundamental_symbol_of(list_sym);
       if (symbol_is(sym, sk_function_template)) {
         if (!allow_raw_and_template) {
           /* Ignore the symbol. */
@@ -14444,7 +14443,7 @@ literal-operator-id.
         expect_error();
       }  /* if */
     } while (symbol_is(orig_sym, sk_overloaded_function) &&
-             (sym = sym->next) != NULL);
+             (list_sym = list_sym->next) != NULL);
     if (ambiguous_matching_sym) {
       /* Return the original overloaded function symbol to indicate the
          ambiguity. */
