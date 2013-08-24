@@ -2552,6 +2552,7 @@ ec_thread_local_follows_non_thread_local;;"thread_local declaration of %n follow
 ec_non_thread_local_follows_thread_local;;"non-thread_local declaration of %n follows thread_local declaration (declared %p)"
 ec_default_arg_for_literal_operator;;"a literal operator cannot have default arguments"
 ec_attribute_ignored_for_thread_local;;"attribute is ignored for thread_local variables"
+ec_lit_suffix_no_underscore;;"a literal suffix that does not begin with \"_\" is nonstandard"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

@@ -10766,15 +10766,18 @@ the literal kind.  Otherwise, return SCLK_NOT_A_LITERAL.
 
 a_token_kind concat_adjacent_string_literals(a_boolean function_name_case)
 /*
-The current token (not in curr_token yet, but in const_for_curr_token)
-is a string literal (tok_string_literal), and in the current lexical
-mode normal (not pp) tokens should be fetched, and concatenation of
-adjacent string literals should be done.  Look to see if the next
-token of input is a string literal, and if so, concatenate it with the
-current token.  Loop to pick up all the adjacent string literals.
-If function_name_case is TRUE, this is a special call to handle
-concatenation of strings and function-name keywords like __FUNCTION__;
-curr_token is already set in that case.
+The current token (not in curr_token yet, but in const_for_curr_token) is a
+string literal (tok_string_literal), and in the current lexical mode normal
+(not pp) tokens should be fetched, and concatenation of adjacent string
+literals should be done.  Look to see if the next token of input is a
+string literal, and if so, concatenate it with the current token.  Loop to
+pick up all the adjacent string literals.  If function_name_case is TRUE,
+this is a special call to handle concatenation of strings and function-name
+keywords like __FUNCTION__; curr_token is already set in that case.
+Encoding prefixes and user-defined literal suffixes are merged, as
+appropriate.  If one or more of the literals have the same valid
+user-defined literal suffix, set ud_lit_op_sym_for_curr_token and return
+tok_ud_literal; otherwise, return tok_string_literal.
 */
 {
   a_character_kind              character_kind;

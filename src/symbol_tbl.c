@@ -1887,7 +1887,10 @@ static a_literal_operator_header_ptr alloc_literal_operator_header(
 /*
 Allocate a new literal operator header, initialize its fields with the
 values provided, link it to the list of literal operator headers, and
-return a pointer to it.
+return a pointer to it.  suffix is not assumed to be null-terminated, and
+suffix_len does not include a null terminator; however, for convenience, a
+null terminator is added to the header's copy of the string, even though it
+is not needed by make_literal_opname_locator.
 */
 {
   register a_literal_operator_header_ptr ptr;
@@ -1901,8 +1904,9 @@ return a pointer to it.
   ptr->next = literal_operator_header_list;
   literal_operator_header_list = ptr;
   ptr->symbol_header = NULL;
-  ptr->suffix = (a_const_char *)alloc_fe(suffix_len);
+  ptr->suffix = (a_const_char *)alloc_fe(suffix_len + 1);
   memcpy((char *)ptr->suffix, suffix, suffix_len);
+  ((char *)ptr->suffix)[suffix_len] = '\0';
   ptr->suffix_len = suffix_len;
   return ptr;
 }  /* alloc_literal_operator_header */
@@ -8732,6 +8736,21 @@ ud_suffix (of length ud_suffix_len).  Use pos as the source position.
 #if DEBUG
     symbol_name_string_space += (unsigned long)(len + 1);
 #endif /* DEBUG */
+    if (*ud_suffix != '_') {
+      /* ud-suffixes that do not begin with "_" are reserved. */
+      if (curr_ise == NULL || curr_ise->from_system_include_dir) {
+        /* Accept the ud-suffix silently on the assumption that it
+           represents a standard suffix, which are exempt from the naming
+           restriction. */
+      } else {
+        /* Issue a diagnostic of a severity that depends on the context. */
+        an_error_severity severity;
+        severity = strict_ansi_mode ? strict_ansi_discretionary_severity
+                                    : gpp_mode ? es_warning
+                                               : es_remark;
+        pos_diagnostic(severity, ec_lit_suffix_no_underscore, pos);
+      }  /* if */
+    }  /* if */
   }  /* if */
   locator->symbol_header = sym_hdr_ptr;
 }  /* make_literal_opname_locator */
@@ -15541,6 +15560,7 @@ given translation unit.
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   /* Initialize the conversion header list. */
   conversion_header_list = NULL;
+  literal_operator_header_list = NULL;
   decl_seq_counter = FIRST_DECL_SEQUENCE_NUMBER;
 #if CFRONT_GLOBAL_VS_MEMBER_NAME_LOOKUP_BUG
   last_ctor_or_dtor_sym = NULL;

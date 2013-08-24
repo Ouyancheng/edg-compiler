@@ -2094,9 +2094,6 @@ by a command line option.
     if (!option_kind_used[(int)optk_deprecated_string_conv]) {
       deprecated_string_literal_conv_allowed = TRUE;
     }  /* if */
-    if (!option_kind_used[(int)optk_user_defined_literals]) {
-      user_defined_literals_enabled = FALSE;
-    }  /* if */
     single_ref_qual_ovl_res_tiebreaker = (microsoft_bugs &&
                                           microsoft_version < 1300);
     if (microsoft_version >= 1310) {
@@ -2332,9 +2329,6 @@ by a command line option.
   }  /* if */
   if (!option_kind_used[(int)optk_deprecated_string_conv]) {
     deprecated_string_literal_conv_allowed = TRUE;
-  }  /* if */
-  if (!option_kind_used[(int)optk_user_defined_literals]) {
-    user_defined_literals_enabled = FALSE;
   }  /* if */
   if (!(option_kind_used[(int)optk_late_tiebreaker])) {
     do_late_ovl_res_tiebreaker = TRUE;
@@ -3480,9 +3474,6 @@ conflicts with the ANSI mode and set various unmentioned settings as needed.
     if (!option_kind_used[(int)optk_deprecated_string_conv]) {
       deprecated_string_literal_conv_allowed = !cpp11_mode;
     }  /* if */
-    if (!option_kind_used[(int)optk_user_defined_literals]) {
-      user_defined_literals_enabled = cpp11_mode;
-    }  /* if */
     assume_references_cannot_be_null = TRUE;
     if (!(option_kind_used[(int)optk_class_name_injection])) {
       /* If class name injection was not explicitly set by a command
@@ -3654,9 +3645,6 @@ checked again here.)
   }  /* if */
   if (!option_kind_used[(int)optk_deprecated_string_conv]) {
     deprecated_string_literal_conv_allowed = TRUE;
-  }  /* if */
-  if (!option_kind_used[(int)optk_user_defined_literals]) {
-    user_defined_literals_enabled = FALSE;
   }  /* if */
   if (!(option_kind_used[(int)optk_nonconst_ref_anachronism])) {
     /* Versions 5.3, 5.5 and 5.8 (at least) of the Sun compiler allow this
@@ -9937,6 +9925,7 @@ variables declared in cmd_line.h.
   delegating_constructors_enabled = FALSE;
   inheriting_constructors_enabled = FALSE;
   constexpr_enabled = FALSE;
+  user_defined_literals_enabled = FALSE;
   rtti_enabled = 
 #if RTTI_ENABLING_POSSIBLE
                  DEFAULT_RTTI_ENABLED;
