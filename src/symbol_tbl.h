@@ -5978,13 +5978,11 @@ cases that are not template classes.
 extern a_symbol_ptr class_template_for_injected_template_symbol(
 							a_symbol_ptr sym);
 
-extern a_symbol_ptr find_literal_operator(
-                                     a_const_char      *name,
-                                     sizeof_t          name_len,
-                                     a_source_position *pos,
-                                     a_type_ptr        req_param1_type,
-                                     a_boolean         is_string,
-                                     a_boolean         allow_raw_and_template);
+extern a_symbol_ptr find_literal_operator(a_const_char      *name,
+                                          sizeof_t          name_len,
+                                          a_source_position *pos,
+                                          a_type_ptr        literal_type,
+                                          a_boolean         display_errors);
 
 /*
 Return TRUE if "tp" is a proxy class.

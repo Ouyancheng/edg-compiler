@@ -14315,36 +14315,79 @@ for the class template of which this class is an instance.
 a_symbol_ptr find_literal_operator(a_const_char      *name,
                                    sizeof_t          name_len,
                                    a_source_position *pos,
-                                   a_type_ptr        req_param1_type,
-                                   a_boolean         is_string,
-                                   a_boolean         allow_raw_and_template)
+                                   a_type_ptr        literal_type,
+                                   a_boolean         display_errors)
 /*
 name and name_len specify the ud-suffix of a user-defined literal (C++11
 Standard 2.14.8 [lex.ext]) and pos is the start of the literal or of the
-literal-operator-id in which name appears; req_param1_type is the type of
-the first parameter of the literal operator implied by the associated
-literal (the list of potential types is found in 13.5.8 [over.literal] of
-the C++11 Standard).  is_string is TRUE if the lookup is for a string
-literal operator, implying a second parameter of type std::size_t.
-allow_raw_and_template is TRUE if a raw literal operator or a literal
-operator template is an acceptable result.  If the lookup finds a single
-matching function, return the corresponding symbol; otherwise, return the
-overloaded function symbol or NULL, if no literal operator or literal
-operator template with the designated name has yet been declared.  As a
-side effect, locator_for_curr_id is set to refer to the corresponding
-literal-operator-id.
+literal-operator-id in which name appears; literal_type is the type of the
+literal and determines the type of the first parameter of the literal
+operator (the list of potential types is found in 13.5.8 [over.literal] of
+the C++11 Standard).  If the lookup finds a single matching function,
+return the corresponding symbol; otherwise, return the overloaded function
+symbol or NULL, if no literal operator or literal operator template with
+the designated name has yet been declared.  If ambiguous symbols are found
+and display_errors is TRUE, put out an "additional info" diagnostic for
+each one (i.e., this function should be called with display_errors TRUE
+only after an ambiguity has been detected and a "start error" diagnostic
+has been issued).  As a side effect, locator_for_curr_id is set to refer to
+the corresponding literal-operator-id.
 */
 {
-  a_symbol_ptr orig_sym;
-  a_symbol_ptr raw_operator = NULL;
-  a_boolean    ambiguous_raw_operator = FALSE;
-  a_symbol_ptr operator_template = NULL;
-  a_boolean    ambiguous_operator_template = FALSE;
-  a_symbol_ptr matching_sym = NULL;
-  a_boolean    ambiguous_matching_sym = FALSE;
-  a_symbol_ptr sym;
-  a_symbol_ptr list_sym;
+  a_type_ptr              req_param1_type = NULL;
+  a_boolean               is_string;
+  a_boolean               allow_raw_and_template;
+  a_symbol_ptr            orig_sym;
+  a_symbol_ptr            raw_operator = NULL;
+  a_boolean               ambiguous_raw_operator = FALSE;
+  a_symbol_ptr            operator_template = NULL;
+  a_boolean               ambiguous_operator_template = FALSE;
+  a_symbol_ptr            matching_sym = NULL;
+  a_boolean               ambiguous_matching_sym = FALSE;
+  a_symbol_ptr            sym;
+  a_symbol_ptr            list_sym;
+  a_symbol_list_entry_ptr slep;
+  a_symbol_list_entry_ptr operators = NULL;
+  a_symbol_list_entry_ptr raw_and_template_operators = NULL;
 
+  /* Find the required first parameter type and other literal operator
+     characteristics based on the type of the literal. */
+  if (literal_type->kind == (a_type_kind)tk_integer) {
+    /* An integral type, including character types. */
+    is_string = FALSE;
+    if (literal_type->variant.integer.int_kind == (an_integer_kind)ik_char ||
+        literal_type->variant.integer.wchar_t_type ||
+        literal_type->variant.integer.char16_t_type ||
+        literal_type->variant.integer.char32_t_type) {
+      /* This is a character literal.  Raw literal operators and literal
+         operator templates are not allowed, and the matching operator's
+         parameter type is the same as that of the literal. */
+      allow_raw_and_template = FALSE;
+      req_param1_type = literal_type;
+    } else {
+      /* This is an integer literal.  Raw literal operators and literal
+         operator templates are allowed, and the matching operator's
+         parameter type is unsigned long long. */
+      allow_raw_and_template = TRUE;
+      req_param1_type = integer_type((an_integer_kind)ik_unsigned_long_long);
+    }  /* if */
+  } else if (literal_type->kind == (a_type_kind)tk_float) {
+    /* This is a floating-point literal.  Raw literal operators and literal
+       operator templates are allowed, and the matching operator's
+       parameter type is long double. */
+    is_string = FALSE;
+    allow_raw_and_template = TRUE;
+    req_param1_type = float_type((a_float_kind)fk_long_double);
+  } else {
+    /* This is a string literal.  Raw literal operators and literal
+       operator templates are not allowed, and the matching operator's
+       parameter type is a pointer to the literal's array element type. */
+    check_assertion(literal_type->kind == (a_type_kind)tk_array);
+    is_string = TRUE;
+    allow_raw_and_template = FALSE;
+    req_param1_type = make_pointer_type(array_element_type(literal_type));
+  }  /* if */
+  /* Look up the symbol(s) for the specified literal operator. */
   make_literal_opname_locator(name, name_len, &locator_for_curr_id, pos);
   orig_sym = normal_id_lookup(&locator_for_curr_id, IDL_NO_OPTIONS);
   if (orig_sym != NULL) {
@@ -14374,6 +14417,13 @@ literal-operator-id.
             ambiguous_operator_template = TRUE;
           }  /* if */
           operator_template = sym;
+          if (display_errors) {
+            /* Record the symbol for later display, if needed. */
+            slep = alloc_symbol_list_entry();
+            slep->symbol = sym;
+            slep->next = raw_and_template_operators;
+            raw_and_template_operators = slep;
+          }  /* if */
         }  /* if */
       } else if (symbol_is(sym, sk_routine)) {
         /* This is a function.  Get its parameter list and check it against
@@ -14411,6 +14461,13 @@ literal-operator-id.
             ambiguous_raw_operator = TRUE;
           }  /* if */
           raw_operator = sym;
+          if (display_errors) {
+            /* Record the symbol for later display, if needed. */
+            slep = alloc_symbol_list_entry();
+            slep->symbol = sym;
+            slep->next = raw_and_template_operators;
+            raw_and_template_operators = slep;
+          }  /* if */
         } else if (identical_types(req_param1_type, param1_type)) {
           /* The first parameter has the required type. */
           if (is_string && param2_type == NULL) {
@@ -14427,13 +14484,23 @@ literal-operator-id.
                identical_types; this produces slightly better error
                recovery in the presence of error types.) */
             expect_error();
-          } else if (matching_sym != NULL) {
-            /* We already saw a matching symbol.  This is an error, so
-               there's no need to keep scanning. */
-            ambiguous_matching_sym = TRUE;
-            break;
           } else {
+            if (matching_sym != NULL) {
+              /* We already saw a matching symbol. */
+              ambiguous_matching_sym = TRUE;
+              if (!display_errors) {
+                /* This is an error; no need to keep scanning. */
+                break;
+              }  /* if */
+            }  /* if */
             matching_sym = sym;
+            if (display_errors) {
+              /* Record the symbol for later display. */
+              slep = alloc_symbol_list_entry();
+              slep->symbol = sym;
+              slep->next = operators;
+              operators = slep;
+            }  /* if */
           }  /* if */
         }  /* if */
       } else {
@@ -14495,6 +14562,27 @@ literal-operator-id.
                                                     (a_targ_size_t)token_len);
       }  /* if */
     }  /* if */
+  }  /* if */
+  if (display_errors) {
+    /* There should have been an ambiguity of some kind.  Display
+       "additional info" diagnostics for each symbol that contributed to
+       the ambiguity. */
+    check_assertion(orig_sym != NULL);
+    if (ambiguous_matching_sym) {
+      /* More than one literal operator matched the requirements. */
+      for (slep = operators; slep != NULL; slep = slep->next) {
+        sym_add_diag_info(ec_ambiguous_function_add_on, slep->symbol);
+      }  /* for */
+    } else {
+      check_assertion(raw_and_template_operators != NULL &&
+                      raw_and_template_operators->next != NULL);
+      for (slep = raw_and_template_operators; slep != NULL;
+           slep = slep->next) {
+        sym_add_diag_info(ec_ambiguous_function_add_on, slep->symbol);
+      }  /* for */
+    }  /* if */
+    free_list_of_symbol_list_entries(operators);
+    free_list_of_symbol_list_entries(raw_and_template_operators);
   }  /* if */
   return matching_sym;
 }  /* find_literal_operator */

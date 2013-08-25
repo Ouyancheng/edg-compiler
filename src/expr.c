@@ -28502,13 +28502,13 @@ issue an error; otherwise, return TRUE.
   } else if (symbol_is(ud_lit_op_sym_for_curr_token, sk_overloaded_function)) {
     /* The set of matching literal operators (including possibly a template)
        results in an ambiguity: Report the error. */
-    a_symbol_ptr sym = ud_lit_op_sym_for_curr_token
-                                        ->variant.overloaded_function.symbols;
+    a_symbol_header_ptr sym_hdr = ud_lit_op_sym_for_curr_token->header;
     pos_start_error(ec_ambig_literal_operator, &pos_curr_token);
-    for (; sym != NULL; sym = sym->next) {
-      sym_add_diag_info(ec_ambiguous_function_add_on,
-                        fundamental_symbol_of(sym));
-    }
+    (void)find_literal_operator(
+          ud_suffix_from_literal_operator_id(sym_hdr->identifier),
+          sym_hdr->identifier_length - LENGTH_CANONICAL_LITERAL_OPERATOR_INTRO,
+          &pos_curr_token, const_for_curr_token.type,
+          /*display_errors=*/TRUE);
     end_error();
     make_error_operand(result);
   } else if (symbol_is(ud_lit_op_sym_for_curr_token, sk_routine)) {

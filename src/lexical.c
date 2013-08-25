@@ -8475,19 +8475,14 @@ fixed_point_suffix:
         (err_code == ec_no_error || err_code == ec_bad_float_value ||
          err_code == ec_integer_too_large)) {
       /* A syntactically-correct user-defined literal was seen. */
-      a_type_ptr   literal_operator_param_type;
       a_const_char *canonical_id;
       sizeof_t     id_len;
-      literal_operator_param_type = (kind != k_float)
-                         ? integer_type((an_integer_kind)ik_unsigned_long_long)
-                         : float_type((a_float_kind)fk_long_double);
       id_len = (sizeof_t)(curr_char_loc - end_of_curr_token - 1);
       canonical_id = make_canonical_identifier(end_of_curr_token + 1, &id_len);
       ud_lit_op_sym_for_curr_token =
                         find_literal_operator(canonical_id, id_len, &start_pos,
-                                              literal_operator_param_type,
-                                              /*is_string=*/FALSE,
-                                              /*allow_raw_and_template=*/TRUE);
+                                              const_for_curr_token.type,
+                                              /*display_errors=*/FALSE);
       if (err_code != ec_no_error &&
           ud_lit_op_sym_for_curr_token != NULL) {
         /* Check to see if ud_lit_op_sym_for_curr_token designates a raw
@@ -9479,8 +9474,7 @@ kind or tok_error.  The token can be a normal or wide character constant.
           ud_lit_op_sym_for_curr_token =
                        find_literal_operator(canonical_id, id_len, &start_pos,
                                              const_for_curr_token.type,
-                                             /*is_string=*/FALSE,
-                                             /*allow_raw_and_template=*/FALSE);
+                                             /*display_errors=*/FALSE);
         }  /* if */
       }  /* if */
       if (err_code == ec_no_error) {
@@ -11006,14 +11000,12 @@ tok_ud_literal; otherwise, return tok_string_literal.
     if (user_defined_literals_enabled && ud_lit_suffix_buffer->size != 0  &&
         !suffix_mismatch) {
       /* Process the suffix. */
-      a_type_ptr param_type =
-              make_pointer_type(array_element_type(const_for_curr_token.type));
       ud_lit_op_sym_for_curr_token =
                        find_literal_operator(ud_lit_suffix_buffer->buffer,
                                              ud_lit_suffix_buffer->size - 1,
                                              &pos_curr_token,
-                                             param_type, /*is_string=*/TRUE,
-                                             /*allow_raw_and_template=*/FALSE);
+                                             const_for_curr_token.type,
+                                             /*display_errors=*/FALSE);
       ctoken = tok_ud_literal;
     }  /* if */
   }  /* if */
