@@ -8745,9 +8745,8 @@ ud_suffix (of length ud_suffix_len).  Use pos as the source position.
       } else {
         /* Issue a diagnostic of a severity that depends on the context. */
         an_error_severity severity;
-        severity = strict_ansi_mode ? strict_ansi_discretionary_severity
-                                    : gpp_mode ? es_warning
-                                               : es_remark;
+        severity = (strict_ansi_mode | gpp_mode) ? es_warning
+                                                 : es_remark;
         pos_diagnostic(severity, ec_lit_suffix_no_underscore, pos);
       }  /* if */
     }  /* if */
