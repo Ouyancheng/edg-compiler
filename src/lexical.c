@@ -8477,12 +8477,24 @@ fixed_point_suffix:
       /* A syntactically-correct user-defined literal was seen. */
       a_const_char *canonical_id;
       sizeof_t     id_len;
+      a_type_ptr   literal_type;
       id_len = (sizeof_t)(curr_char_loc - end_of_curr_token - 1);
       canonical_id = make_canonical_identifier(end_of_curr_token + 1, &id_len);
+      if (is_error_constant(&const_for_curr_token)) {
+        /* The literal overflowed/underflowed, which is not an error for
+           raw literal operators and literal operator templates.
+           Synthesize an appropriate type for the lookup. */
+        literal_type = (kind != k_float)
+                         ? integer_type((an_integer_kind)ik_unsigned_long_long)
+                         : float_type((a_float_kind)fk_long_double);
+      } else {
+        /* Use the actual type of the literal. */
+        literal_type = const_for_curr_token.type;
+      }  /* if */
       ud_lit_op_sym_for_curr_token =
-                        find_literal_operator(canonical_id, id_len, &start_pos,
-                                              const_for_curr_token.type,
-                                              /*display_errors=*/FALSE);
+                               find_literal_operator(canonical_id, id_len,
+                                                     &start_pos, literal_type,
+                                                     /*display_errors=*/FALSE);
       if (err_code != ec_no_error &&
           ud_lit_op_sym_for_curr_token != NULL) {
         /* Check to see if ud_lit_op_sym_for_curr_token designates a raw
