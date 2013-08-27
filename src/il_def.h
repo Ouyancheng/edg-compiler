@@ -3212,9 +3212,8 @@ typedef struct a_dynamic_init {
 			   here makes it accessible from both the stmk_init
 			   and the variable being initialized. */
   a_bit_field	inside_conditional_expression:1;
-			/* This initialization (under an enk_temp_init) is
-			   inside a conditional part of an expression
-			   (e.g., under a "?" operator). */
+                        /* This initialization is inside a conditional part of
+                           an expression (e.g., under a "?" operator). */
   a_bit_field	unordered:1;
 			/* TRUE if this entry represents an automatic
 			   end-of-lifetime destruction and is unordered

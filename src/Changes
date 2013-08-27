@@ -1,5 +1,28 @@
 Version 5.0
 
+8/27/13  [EDGcpfe/14376]
+Destructor invoked when conditional constructor is bypassed
+
+In certain cases, it had been possible for a destructor to be called
+when the constructor had not been invoked (because the expression involving
+the constructor is conditionally executed).  For example (with --c++11):
+
+  int ctor, dtor;
+  struct A {
+    bool b;
+    A() : b(true) { ctor++; }
+    ~A() { dtor++; }
+  };
+  int main() {
+    {
+      A a = A();
+      bool x = false;
+      if (x && ([=]{ return a.b; })()) { }
+    }
+    return (ctor != dtor);  // now returns 0
+  }
+
+
 8/26/13  [EDGcpfe/14434]
 Incorrect processing of cast using decltype without GNU_EXTENSIONS_ALLOWED
 

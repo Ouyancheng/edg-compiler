@@ -28270,12 +28270,12 @@ fields of the closure object.  Return a pointer to the dynamic init entry.
     /* Build the dynamic initialization entry. */
     if (err) {
       /* Some previous error. */
-      dip = alloc_dynamic_init((a_dynamic_init_kind)dik_none);
+      dip = alloc_expr_dynamic_init((a_dynamic_init_kind)dik_none);
       array_case = FALSE;
     } else if (do_bitwise_copy) {
       /* The copy is a bitwise copy.  Use a dik_bitwise_copy dynamic init
          entry.  The source is implied (always, for dik_bitwise_copy). */
-      dip = alloc_dynamic_init((a_dynamic_init_kind)dik_bitwise_copy);
+      dip = alloc_expr_dynamic_init((a_dynamic_init_kind)dik_bitwise_copy);
       /* For arrays, the bitwise copy can handle the whole array so no
          ck_init_repeat is needed. */
       array_case = FALSE;
@@ -28337,9 +28337,9 @@ fields of the closure object.  Return a pointer to the dynamic init entry.
   /* Make a dynamic initializer for the aggregate.  If no initialization
      is needed, make a dik_none dynamic init. */
   if (aggr_con == NULL) {
-    aggr_dip = alloc_dynamic_init((a_dynamic_init_kind)dik_none);
+    aggr_dip = alloc_expr_dynamic_init((a_dynamic_init_kind)dik_none);
   } else {
-    aggr_dip = alloc_dynamic_init(
+    aggr_dip = alloc_expr_dynamic_init(
                                (a_dynamic_init_kind)dik_nonconstant_aggregate);
     set_dynamic_init_constant(aggr_dip, aggr_con);
   }  /* if */
