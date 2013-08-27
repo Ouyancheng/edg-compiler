@@ -1,5 +1,21 @@
 Version 5.0
 
+8/26/13  [EDGcpfe/14434]
+Incorrect processing of cast using decltype without GNU_EXTENSIONS_ALLOWED
+
+If the front end was built with GNU_EXTENSIONS_ALLOWED set to FALSE, a
+decltype operator used as the type in a functional-notation cast was not
+processed correctly.  If MICROSOFT_EXTENSIONS_ALLOWED was TRUE, an abort
+could occur (in is_incomplete_type).  If MICROSOFT_EXTENSIONS_ALLOWED was
+FALSE, spurious errors were issued.  Now fixed.
+
+  struct A { };
+  int main() {
+    A a;
+    decltype(&a)(0);
+  }
+
+
 8/21/13  [EDGcpfe/14402]
 Allow mangling routines to be used during back_end processing
 
