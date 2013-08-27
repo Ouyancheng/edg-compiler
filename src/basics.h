@@ -454,20 +454,6 @@ typedef ptrdiff_t a_ptrdiff;
 #endif /* ifdef CHAR_MIN */
 #define CHAR_MIN (-128)
 #endif /* __TURBOC__ */
-#if __MSC__
-/* Microsoft C does not define the minimum signed integer values correctly.
-   For example, they define SCHAR_MIN as -127 instead of -128. */
-#undef SCHAR_MIN
-#undef CHAR_MIN
-#undef SHRT_MIN
-#undef INT_MIN
-#undef LONG_MIN
-#define SCHAR_MIN       (-128)          /* minimum signed char value */
-#define CHAR_MIN SCHAR_MIN
-#define SHRT_MIN        (-32768)        /* minimum (signed) short value */
-#define INT_MIN         (-32768)        /* minimum (signed) int value */
-#define LONG_MIN        (-2147483647 - 1)   /* minimum (signed) long value */
-#endif /* __MSC__ */
 #else /* !__ANSIC__ */
 /* Definitions to make pre-ANSI compilers look more like ANSI C: */
 #define CHAR_BIT 8		/* Bits per byte (char). */

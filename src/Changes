@@ -1,5 +1,16 @@
 Version 5.0
 
+8/27/13  [EDGcpfe/14409]
+Obsolete macro definitions when building with a Microsoft compiler
+
+The basics.h file contained some macro definitions for integer limits
+such as SCHAR_MIN that were used when the front end was being built with
+a Microsoft compiler.  Those macros were present because they were defined
+incorrectly by very old versions of the Microsoft header files.  These
+macros are no longer needed and some of the values were incorrect for
+modern Microsoft compilers, so those macro definitions have been removed.
+
+
 8/27/13  [EDGcpfe/14376]
 Destructor invoked when conditional constructor is bypassed
 
