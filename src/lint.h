@@ -139,6 +139,9 @@ Included from basic_hdrs.h in every compilation.
 /*lint -esym(765,routine_and_node_from_function_expr)*/
 /*lint -esym(759,set_template_decl_info_for_class_definition)*/
 /*lint -esym(765,set_template_decl_info_for_class_definition)*/
+/*lint -esym(714,make_prefixed_object_name)*/
+/*lint -esym(759,make_prefixed_object_name)*/
+/*lint -esym(765,make_prefixed_object_name)*/
 #if !RECORD_MACRO_INVOCATIONS
 /*lint -esym(755,copy_simple_position_to_full_position)*/
 #endif /* !RECORD_MACRO_INVOCATIONS */

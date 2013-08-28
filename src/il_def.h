@@ -9517,6 +9517,8 @@ typedef struct a_variable {
 			   that currently applies to this variable for copies
 			   done for inlining.  Front end only. */
 #endif /* MINIMAL_INLINING */
+#if SEPARATE_ROUTINES_FOR_FILE_SCOPE_DYNAMIC_INITS || \
+    USE_LAZY_INITIALIZATION_FOR_THREAD_LOCAL_VARIABLES
   union {
 #if SEPARATE_ROUTINES_FOR_FILE_SCOPE_DYNAMIC_INITS
     /* When is_thread_local is FALSE: */
@@ -9543,6 +9545,7 @@ typedef struct a_variable {
     } thread_local;
 #endif /* USE_LAZY_INITIALIZATION_FOR_THREAD_LOCAL_VARIABLES */
   } init_routine;
+#endif /* SEPARATE_ROUTINES_FOR_FILE_SCOPE_DYNAMIC_INITS || USE_LAZY_... */
 } a_variable;
 
 

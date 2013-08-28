@@ -13596,153 +13596,6 @@ in define_default_version_of_routine (as an alternate entry point).
 }  /* make_delegation_destruction_routine */
 
 #endif /* !IA64_ABI */
-#if USE_LAZY_INITIALIZATION_FOR_THREAD_LOCAL_VARIABLES
-
-a_routine_ptr thread_local_init_routine_for_variable(a_variable_ptr var)
-/*
-Return the routine to use for initializing the specified thread_local variable.
-These routines are used in the "lazy initialization" for thread_local
-variables and are typically aliases with a well-known name; calling such
-a routine guarantees the caller that the thread_local variable has been
-properly initialized.  The routine has no definition (the back end emits
-this as an alias for __tls_init in the current translation unit).
-*/
-{
-  a_routine_ptr   init_routine;
-  a_const_char    *init_name;
-
-  if (var->init_routine.thread_local.init_routine == NULL) {
-    /* This routine is an alias for the __tls_init routine. */
-    init_name = make_prefixed_object_name(
-#if IA64_ABI
-                                          "_ZTH",
-#else /* !IA64_ABI */
-                                          "__THI__",
-#endif /* IA64_ABI */
-                                          &var->source_corresp,
-                                          (an_il_entry_kind)iek_variable);
-    init_routine = make_rout_entry(init_name,
-                                   var->storage_class,
-                                   void_type(),
-                                   (a_type_ptr)NULL);
-    init_routine->source_corresp.name_has_been_mangled = TRUE;
-    init_routine->type->variant.routine.extra_info->prototyped = TRUE;
-    init_routine->is_tls_init_alias = TRUE;
-#if GNU_EXTENSIONS_ALLOWED
-    if (init_routine->storage_class != (a_storage_class)sc_static) {
-      init_routine->is_weak = TRUE;
-    }  /* if */
-#endif /* GNU_EXTENSIONS_ALLOWED */
-    var->init_routine.thread_local.init_routine = init_routine;
-  }  /* if */
-  return var->init_routine.thread_local.init_routine;
-}  /* thread_local_init_routine_for_variable */
-
-
-a_routine_ptr thread_local_wrapper_for_variable(a_variable_ptr var)
-/*
-Return the wrapper routine for the specified thread_local variable.  The
-wrapper routine is used as a replacement for uses of thread_local variables
-in cases where such variables may have a dynamic-initialization associated
-with them.  The wrapper calls the variable's init routine (if it has one)
-and then returns a pointer to the variable itself.  If the wrapper routine
-has not yet been defined, it is created here.
-*/
-{
-  a_scope_ptr            scope;
-  an_insert_location     insert_location, if_insert_location;
-  an_insert_location     *call_insert_location;
-  a_memory_region_number region_number;
-  a_generated_routine_context
-                         grcontext;
-  a_routine_ptr          wrapper_routine, init_routine;
-  a_statement_ptr        return_stmt;
-  a_const_char           *wrapper_name;
-
-  if (var->init_routine.thread_local.wrapper == NULL) {
-    /* Create the routine and give it a well-known name (based on the
-       variable's name). */
-    wrapper_name = make_prefixed_object_name(
-#if IA64_ABI
-                                             "_ZTW",
-#else /* !IA64_ABI */
-                                             "__TWR__",
-#endif /* IA64_ABI */
-                                             &var->source_corresp,
-                                             (an_il_entry_kind)iek_variable);
-    wrapper_routine = make_rout_entry(wrapper_name,
-                                      var->storage_class,
-                                      make_pointer_type(var->type),
-                                      (a_type_ptr)NULL);
-    wrapper_routine->source_corresp.name_has_been_mangled = TRUE;
-    wrapper_routine->type->variant.routine.extra_info->prototyped = TRUE;
-    /* Make a memory region, scope, and block for the routine definition. */
-    scope = make_routine_definition(wrapper_routine, /*make_return=*/FALSE,
-                                    &region_number);
-    if (wrapper_routine->storage_class == (a_storage_class)sc_static) {
-      /* Set the inline flag. */
-      set_inline_flag(wrapper_routine, TRUE);
-#if MINIMAL_INLINING
-      wrapper_routine->inlinable = TRUE;
-#endif /* MINIMAL_INLINING */
-    } else {
-      /* Set the "weak" attribute since there may be multiple of these
-         routines defined. */
-#if GNU_EXTENSIONS_ALLOWED
-      wrapper_routine->is_weak = TRUE;
-#endif /* GNU_EXTENSIONS_ALLOWED */
-    }  /* if */
-    push_generated_routine_context(scope, region_number, &grcontext);
-    set_block_start_insert_location(scope->assoc_block, &insert_location);
-    /* In cases where we know the variable has a dynamic initialization
-       (because it's in this translation unit), the wrapper looks like:
-
-         extern void var_init() __attribute__ ((weak));
-         inline T* var_wrapper() {
-           var_init();
-           return &var;
-         }
-
-       For the case where the variable is not defined in this translation
-       unit, an additional "if" statement is added:
-
-         extern void var_init() __attribute__ ((weak));
-         inline T* var_wrapper() {
-           if (var_init) var_init();
-           return &var;
-         }
-
-        If the variable is not dynamically-initialized, there will be no
-        definition of var_init. */
-    init_routine = thread_local_init_routine_for_variable(var);
-    call_insert_location = &insert_location;
-    if (var->storage_class == (a_storage_class)sc_extern) {
-      an_expr_node_ptr test_node;
-      /* Make the boolean controlling expression "test_var". */
-      test_node = function_addr_expr(init_routine);
-      test_node = boolean_controlling_expr(test_node);
-      /* Make an "if" statement and insert it into the program. */
-      insert_if_statement(test_node, /*is_initialization_guard=*/FALSE,
-                          &insert_location, (a_statement_ptr *)NULL,
-                          &if_insert_location, (an_insert_location *)NULL);
-      call_insert_location = &if_insert_location;
-    }  /* if */
-    /* Call the initialization routine. */
-    make_call_statement(init_routine, (an_expr_node_ptr)NULL,
-                        (an_expr_node_ptr)NULL, call_insert_location);
-    /* Return a pointer to the variable. */
-    return_stmt = alloc_statement((a_statement_kind)stmk_return);
-    return_stmt->expr = var_addr_expr(var);
-    insert_statement(return_stmt, &insert_location);
-    add_to_return_memo_list(return_stmt);
-    /* Finish up. */
-    pop_generated_routine_context(scope, region_number, &grcontext);
-    var->init_routine.thread_local.wrapper = wrapper_routine;
-  }  /* if */
-  return var->init_routine.thread_local.wrapper;
-}  /* thread_local_wrapper_for_variable */
-
-#endif /* USE_LAZY_INITIALIZATION_FOR_THREAD_LOCAL_VARIABLES */
 
 #if IA64_ABI
 /*ARGSUSED*/  /* <-- ipdp and insert_location are not used in that case. */
@@ -15945,6 +15798,151 @@ can access them simultaneously).
                                     test_var_node);
   enclose_routine_in_if(scope, compare_node, (a_variable_ptr)NULL);
 }  /* add_guard_code_to_thread_local_init */
+
+
+static a_routine_ptr thread_local_init_routine_for_variable(a_variable_ptr var)
+/*
+Return the routine to use for initializing the specified thread_local variable.
+These routines are used in the "lazy initialization" for thread_local
+variables and are typically aliases with a well-known name; calling such
+a routine guarantees the caller that the thread_local variable has been
+properly initialized.  The routine has no definition (the back end emits
+this as an alias for __tls_init in the current translation unit).
+*/
+{
+  a_routine_ptr   init_routine;
+  a_const_char    *init_name;
+
+  if (var->init_routine.thread_local.init_routine == NULL) {
+    /* This routine is an alias for the __tls_init routine. */
+    init_name = make_prefixed_object_name(
+#if IA64_ABI
+                                          "_ZTH",
+#else /* !IA64_ABI */
+                                          "__THI__",
+#endif /* IA64_ABI */
+                                          &var->source_corresp,
+                                          (an_il_entry_kind)iek_variable);
+    init_routine = make_rout_entry(init_name,
+                                   var->storage_class,
+                                   void_type(),
+                                   (a_type_ptr)NULL);
+    init_routine->source_corresp.name_has_been_mangled = TRUE;
+    init_routine->type->variant.routine.extra_info->prototyped = TRUE;
+    init_routine->is_tls_init_alias = TRUE;
+#if GNU_EXTENSIONS_ALLOWED
+    if (init_routine->storage_class != (a_storage_class)sc_static) {
+      init_routine->is_weak = TRUE;
+    }  /* if */
+#endif /* GNU_EXTENSIONS_ALLOWED */
+    var->init_routine.thread_local.init_routine = init_routine;
+  }  /* if */
+  return var->init_routine.thread_local.init_routine;
+}  /* thread_local_init_routine_for_variable */
+
+
+a_routine_ptr thread_local_wrapper_for_variable(a_variable_ptr var)
+/*
+Return the wrapper routine for the specified thread_local variable.  The
+wrapper routine is used as a replacement for uses of thread_local variables
+in cases where such variables may have a dynamic-initialization associated
+with them.  The wrapper calls the variable's init routine (if it has one)
+and then returns a pointer to the variable itself.  If the wrapper routine
+has not yet been defined, it is created here.
+*/
+{
+  a_scope_ptr            scope;
+  an_insert_location     insert_location, if_insert_location;
+  an_insert_location     *call_insert_location;
+  a_memory_region_number region_number;
+  a_generated_routine_context
+                         grcontext;
+  a_routine_ptr          wrapper_routine, init_routine;
+  a_statement_ptr        return_stmt;
+  a_const_char           *wrapper_name;
+
+  if (var->init_routine.thread_local.wrapper == NULL) {
+    /* Create the routine and give it a well-known name (based on the
+       variable's name). */
+    wrapper_name = make_prefixed_object_name(
+#if IA64_ABI
+                                             "_ZTW",
+#else /* !IA64_ABI */
+                                             "__TWR__",
+#endif /* IA64_ABI */
+                                             &var->source_corresp,
+                                             (an_il_entry_kind)iek_variable);
+    wrapper_routine = make_rout_entry(wrapper_name,
+                                      var->storage_class,
+                                      make_pointer_type(var->type),
+                                      (a_type_ptr)NULL);
+    wrapper_routine->source_corresp.name_has_been_mangled = TRUE;
+    wrapper_routine->type->variant.routine.extra_info->prototyped = TRUE;
+    /* Make a memory region, scope, and block for the routine definition. */
+    scope = make_routine_definition(wrapper_routine, /*make_return=*/FALSE,
+                                    &region_number);
+    if (wrapper_routine->storage_class == (a_storage_class)sc_static) {
+      /* Set the inline flag. */
+      set_inline_flag(wrapper_routine, TRUE);
+#if MINIMAL_INLINING
+      wrapper_routine->inlinable = TRUE;
+#endif /* MINIMAL_INLINING */
+    } else {
+      /* Set the "weak" attribute since there may be multiple of these
+         routines defined. */
+#if GNU_EXTENSIONS_ALLOWED
+      wrapper_routine->is_weak = TRUE;
+#endif /* GNU_EXTENSIONS_ALLOWED */
+    }  /* if */
+    push_generated_routine_context(scope, region_number, &grcontext);
+    set_block_start_insert_location(scope->assoc_block, &insert_location);
+    /* In cases where we know the variable has a dynamic initialization
+       (because it's in this translation unit), the wrapper looks like:
+
+         extern void var_init() __attribute__ ((weak));
+         inline T* var_wrapper() {
+           var_init();
+           return &var;
+         }
+
+       For the case where the variable is not defined in this translation
+       unit, an additional "if" statement is added:
+
+         extern void var_init() __attribute__ ((weak));
+         inline T* var_wrapper() {
+           if (var_init) var_init();
+           return &var;
+         }
+
+        If the variable is not dynamically-initialized, there will be no
+        definition of var_init. */
+    init_routine = thread_local_init_routine_for_variable(var);
+    call_insert_location = &insert_location;
+    if (var->storage_class == (a_storage_class)sc_extern) {
+      an_expr_node_ptr test_node;
+      /* Make the boolean controlling expression "test_var". */
+      test_node = function_addr_expr(init_routine);
+      test_node = boolean_controlling_expr(test_node);
+      /* Make an "if" statement and insert it into the program. */
+      insert_if_statement(test_node, /*is_initialization_guard=*/FALSE,
+                          &insert_location, (a_statement_ptr *)NULL,
+                          &if_insert_location, (an_insert_location *)NULL);
+      call_insert_location = &if_insert_location;
+    }  /* if */
+    /* Call the initialization routine. */
+    make_call_statement(init_routine, (an_expr_node_ptr)NULL,
+                        (an_expr_node_ptr)NULL, call_insert_location);
+    /* Return a pointer to the variable. */
+    return_stmt = alloc_statement((a_statement_kind)stmk_return);
+    return_stmt->expr = var_addr_expr(var);
+    insert_statement(return_stmt, &insert_location);
+    add_to_return_memo_list(return_stmt);
+    /* Finish up. */
+    pop_generated_routine_context(scope, region_number, &grcontext);
+    var->init_routine.thread_local.wrapper = wrapper_routine;
+  }  /* if */
+  return var->init_routine.thread_local.wrapper;
+}  /* thread_local_wrapper_for_variable */
 
 #endif /* USE_LAZY_INITIALIZATION_FOR_THREAD_LOCAL_VARIABLES */
 
