@@ -24,8 +24,10 @@ thread_dtor.c -- thread_local destruction list processing.
 #if USE_PTHREADS
 #include <pthread.h>
 
+extern "C" {
+
 /*ARGSUSED*/ /* argument is unused */
-EXTERN_C void __thread_terminated(void *unused)
+static void __thread_terminated(void *unused)
 /*
 Invoked at pthread destruction time and used as a hook to perform all
 thread_local destructions for the current thread.  Note that dso_handle
@@ -38,6 +40,8 @@ is not used here (though it could be for some implementations).
   __finalize_destructions(&__thread_needed_destruction_head, NULL);
 #endif /* __EDG_IA64_ABI */
 }  /* __thread_terminated */
+
+}
 
 #endif /* USE_PTHREADS */
 
