@@ -25,7 +25,7 @@ thread_dtor.c -- thread_local destruction list processing.
 #include <pthread.h>
 
 /*ARGSUSED*/ /* argument is unused */
-static void thread_terminated(void *unused)
+EXTERN_C void __thread_terminated(void *unused)
 /*
 Invoked at pthread destruction time and used as a hook to perform all
 thread_local destructions for the current thread.  Note that dso_handle
@@ -37,7 +37,7 @@ is not used here (though it could be for some implementations).
 #else /* !__EDG_IA64_ABI */
   __finalize_destructions(&__thread_needed_destruction_head, NULL);
 #endif /* __EDG_IA64_ABI */
-}  /* thread_terminated */
+}  /* __thread_terminated */
 
 #endif /* USE_PTHREADS */
 
@@ -55,7 +55,7 @@ Returns zero on success.
 {
 #if USE_PTHREADS
   static thread_local pthread_key_t pthread_key;
-  int result =  pthread_key_create(&pthread_key, thread_terminated);
+  int result =  pthread_key_create(&pthread_key, __thread_terminated);
   if (result == 0) {
     /* The key must have a non-NULL value in order for the destructor to be
        invoked later, so set it to a non-NULL value. */
