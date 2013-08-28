@@ -10351,6 +10351,7 @@ variables declared in cmd_line.h.
   carriage_return_is_line_terminator = FALSE;
   warning_on_lossy_conversion = DEFAULT_WARNING_ON_LOSSY_CONVERSION;
   gcc_const_variables_allowed = DEFAULT_GCC_CONST_VARIABLES_ALLOWED;
+  gnu_bases_operators_enabled = FALSE;
 }  /* cmd_line_static_var_init */
 
 

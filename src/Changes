@@ -1,5 +1,14 @@
 Version 5.0
 
+8/28/13 [EDGcpfe/14443]
+Missing static initialization of gnu_bases_operators_enabled
+
+The global variable gnu_bases_operators_enabled was not statically
+initialized, resulting in errors when running multiple invocations of
+the front end in the same process with different sets of command-line
+options.  Now fixed.
+
+
 8/28/13 [EDGcpfe/9167,EDGcpfe/12359]
 C++11: Support for thread_local
 
