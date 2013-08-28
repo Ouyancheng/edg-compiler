@@ -16276,13 +16276,15 @@ enough to cause the back end to invoke the routine at initialization.
           (var->storage_class == (a_storage_class)sc_unspecified ||
            var->storage_class == (a_storage_class)sc_extern)) {
         /* If a dynamically-initialized thread_local variable is defined in
-           this translation unit, make sure that the init routine for
-           the variable is emitted (the variable may not be used in this
-           translation unit). */
-        a_routine_ptr init_routine =
-                                   thread_local_init_routine_for_variable(var);
+           this translation unit, make sure that the initialization routine for
+           the variable is created and marked as needed (the variable may not
+           be used in this translation unit and if it is used in another
+           translation unit, it'll invoke this alias). */
 #if MAINTAIN_NEEDED_FLAGS
-        set_routine_definition_needed(init_routine);
+        set_routine_definition_needed(
+                                  thread_local_init_routine_for_variable(var));
+#else /* !MAINTAIN_NEEDED_FLAGS */
+        thread_local_init_routine_for_variable(var);
 #endif /* MAINTAIN_NEEDED_FLAGS */
       }  /* if */
 #endif /* USE_LAZY_INITIALIZATION_FOR_THREAD_LOCAL_VARIABLES */
@@ -16391,6 +16393,7 @@ needed bit number does not match needed_bit_number.
 
 #endif /* GNU_INIT_PRIORITY_ATTRIBUTE_ALLOWED */
 
+#if GNU_INIT_PRIORITY_ATTRIBUTE_ALLOWED || ONE_INSTANTIATION_PER_OBJECT
 
 static void p_lower_file_scope_dynamic_inits(unsigned long needed_bit_number)
 /*
@@ -16416,6 +16419,7 @@ level.
 #endif /* GNU_INIT_PRIORITY_ATTRIBUTE_ALLOWED */
 }  /* p_lower_file_scope_dynamic_inits */
 
+#endif /* GNU_INIT_PRIORITY_ATTRIBUTE_ALLOWED || ONE_INSTANTIATION_PER_OBJECT*/
 
 void lower_file_scope_dynamic_inits(void)
 /*
