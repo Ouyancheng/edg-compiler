@@ -11019,7 +11019,6 @@ Add to the mangled name the encoding for the name of the member variable
   mangled_member_name(&variable->source_corresp, iek_variable, mctl);
 }  /* mangled_member_variable_name */
 
-#if TEMPLATE_LOOKUP_NEEDED || MODULE_ID_NEEDED
 
 a_const_char *get_mangled_member_variable_name(a_variable_ptr variable)
 /*
@@ -11069,7 +11068,75 @@ or a static data member (e.g., not a file scope variable).
   return mangled_name;
 }  /* get_mangled_member_variable_name */
 
-#endif /* TEMPLATE_LOOKUP_NEEDED || MODULE_ID_NEEDED */
+
+char *make_prefixed_object_name(a_const_char            *prefix,
+                                a_source_correspondence *scp,
+                                an_il_entry_kind        kind)
+/*
+Allocate (in the file scope) and return a string which incorporates the
+given prefix along with the mangled name of the specific entity.
+This is used in cases where a unique (and sometimes well-known) name is
+needed for cases like a guard variable for a local static or the
+wrapper functions for a thread_local variable.  This is also used to create
+names for instantiation flag variables in some template instantiation modes.
+*/
+{
+  a_const_char              *mangled_name;
+  char                      *prefixed_name;
+  sizeof_t                  mangled_name_length, info_name_length;
+  sizeof_t                  prefix_length, alloc_length;
+#if IA64_ABI
+  a_boolean                has_z_prefix = TRUE;
+  a_mangling_control_block mctl;
+#endif /* IA64_ABI */
+
+  if (scp->name_has_been_mangled) {
+    /* In many cases the object's name has already been mangled (e.g.,
+       for a local static variable that has been promoted). */
+    mangled_name = scp->name;
+  } else {
+    check_assertion(kind == (an_il_entry_kind)iek_variable);
+    if (scp_is_class_or_namespace_member(scp)) {
+      /* A static data member or member of a namespace needs to be
+         appropriately qualified. */
+      mangled_name = get_mangled_member_variable_name((a_variable_ptr)scp);
+    } else {
+      /* A file-scope variable needs no qualification, so provide the
+         appropriate mangled encoding for the variable name here. */
+      check_assertion(!scp->is_local_to_function &&
+                      in_file_scope(scp) &&
+                      scp->name != NULL);
+#if IA64_ABI
+      /* Just the variable's name with a preceding length */
+      start_mangling(&mctl);
+      mangled_name_with_length(scp->name, &mctl);
+      mangled_name = end_mangling(/*final=*/TRUE, &mctl);
+      has_z_prefix = FALSE;
+#else /* !IA64_ABI */
+      /* Just the variable's name. */
+      mangled_name = scp->name;
+#endif /* IA64_ABI */
+    }  /* if */
+  }  /* if */
+#if IA64_ABI
+  if (has_z_prefix) {
+    /* Skip the '_Z' prefix. */
+    check_assertion(mangled_name[0] == '_' && mangled_name[1] == 'Z');
+    mangled_name += 2;
+  }  /* if */
+#endif /* IA64_ABI */
+  mangled_name_length = strlen(mangled_name);
+  prefix_length = strlen(prefix);
+  info_name_length = prefix_length + mangled_name_length;
+  /* Allocate space for the prefixed name, including the final null. */
+  alloc_length = info_name_length + 1;
+  prefixed_name = alloc_lowered_name_string(alloc_length);
+  /* Build the mangled name. */
+  (void)strcpy(prefixed_name, prefix);
+  (void)strcpy(prefixed_name+prefix_length, mangled_name);
+  return prefixed_name;
+}  /* make_prefixed_object_name */
+
 
 static void do_local_name_mangling(
                       a_type_list_processing_routine_ptr list_mangling_routine)

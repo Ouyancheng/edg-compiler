@@ -138,6 +138,9 @@ extern a_boolean routine_contains_an_individuated_entity(
 extern a_boolean exception_specification_contains_an_individuated_entity(
                                                       a_type_ptr routine_type);
 
+extern char *make_prefixed_object_name(a_const_char            *prefix,
+                                       a_source_correspondence *scp,
+                                       an_il_entry_kind        kind);
 #endif /* NEED_NAME_MANGLING */
 #endif /* ifndef LOWER_NAME_H */
 

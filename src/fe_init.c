@@ -1466,6 +1466,9 @@ source file's compilation.
 #endif /* ONE_INSTANTIATION_PER_OBJECT */
 #if SEPARATE_ROUTINES_FOR_FILE_SCOPE_DYNAMIC_INITS
   il_header.file_scope_dynamic_init_routines = NULL;
+#if !USE_LAZY_INITIALIZATION_FOR_THREAD_LOCAL_VARIABLES
+  il_header.thread_local_dynamic_init_routines = NULL;
+#endif /* !USE_LAZY_INITIALIZATION_FOR_THREAD_LOCAL_VARIABLES */
 #endif /* SEPARATE_ROUTINES_FOR_FILE_SCOPE_DYNAMIC_INITS */
   if (pp_output_file_needed) {
     /* Open the preprocessing output file. */

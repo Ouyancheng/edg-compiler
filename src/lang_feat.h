@@ -1533,6 +1533,16 @@ TRUE.
 #endif /* DEFINE_MACRO_WHEN_VARIADIC_TEMPLATES_ENABLED */
 
 /*
+Flag that is TRUE if the implementation supports having more than one
+thread of execution.  When TRUE, the predefined macro __STDCPP_THREADS__ is set
+to 1.  When FALSE, if enabled (by std_thread_local_storage_specifier_enabled),
+the thread_local keyword is parsed and ignored.
+*/
+#ifndef IMPLEMENTATION_SUPPORTS_MULTIPLE_THREADS
+#define IMPLEMENTATION_SUPPORTS_MULTIPLE_THREADS TRUE
+#endif /* ifndef IMPLEMENTATION_SUPPORTS_MULTIPLE_THREADS */
+
+/*
 Flag that is TRUE if, in C++ mode, operator keywords (e.g., bitand, compl)
 and digraphs are recognized.  This is the default value for the global
 flag alternative_tokens_allowed, the value of which may also be modified

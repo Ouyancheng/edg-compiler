@@ -3078,20 +3078,6 @@ typedef struct a_using_decl {
 
 
 /*
-Macro that is TRUE if we need the mechanism for generating multiple
-initialization routines in IL lowering.
-*/
-#if DO_IL_LOWERING
-#if ONE_INSTANTIATION_PER_OBJECT || GNU_INIT_PRIORITY_ATTRIBUTE_ALLOWED || \
-    SEPARATE_ROUTINES_FOR_FILE_SCOPE_DYNAMIC_INITS
-#define MULTIPLE_INIT_ROUTINES TRUE
-#endif /* ONE_INSTANTIATION_PER_OBJECT || GNU_INIT_PRIORITY_ALLOWED || ... */
-#endif /* DO_IL_LOWERING */
-#ifndef MULTIPLE_INIT_ROUTINES
-#define MULTIPLE_INIT_ROUTINES FALSE
-#endif /* ifndef MULTIPLE_INIT_ROUTINES */
-
-/*
 Data structure a_dynamic_init describes a dynamic initialization of a simple
 (non-aggregate) variable, an aggregate variable (class or array), or a
 component of an aggregate variable (field or array element).  Dynamic-init
@@ -3269,13 +3255,13 @@ typedef struct a_dynamic_init {
 			   duration.  It is set when there are partial-
 			   aggregate cleanups in an inner lifetime, even if
 			   there are no "real" temporaries. */
-#if DO_IL_LOWERING && MULTIPLE_INIT_ROUTINES
+#if DO_IL_LOWERING
   a_bit_field	included_in_slice:1;
 			/* Used to mark destructions associated with the
 			   initializations included in a file-scope
 			   initialization routine for a given instantiation
 			   slice. */
-#endif /* DO_IL_LOWERING && MULTIPLE_INIT_ROUTINES */
+#endif /* DO_IL_LOWERING */
   a_bit_field	is_explicit_cast:1;
 			/* If TRUE, the source construct that generated
 			   this initialization is an explicit cast. */
@@ -9433,7 +9419,9 @@ typedef struct a_variable {
 			/* TRUE for variables declared with the "thread_local"
 			   storage class (i.e., variable has thread storage
 			   duration).  Not used for variables declared with
-			   "__thread" (see DM_THREAD).  Only set in C++. */
+			   "__thread" (see DM_THREAD).  Only set in C++ (when
+                           IMPLEMENTATION_SUPPORTS_MULTIPLE_THREADS is
+                           TRUE). */
   an_init_kind	init_kind;
 			/* Kind of initialization, if any.
 			   When init_kind == initk_function_local (local
@@ -9529,13 +9517,32 @@ typedef struct a_variable {
 			   that currently applies to this variable for copies
 			   done for inlining.  Front end only. */
 #endif /* MINIMAL_INLINING */
+  union {
 #if SEPARATE_ROUTINES_FOR_FILE_SCOPE_DYNAMIC_INITS
-  a_routine_ptr
+    /* When is_thread_local is FALSE: */
+    a_routine_ptr
 		dynamic_init_routine;
 			/* If non-NULL, a pointer to the initialization
 			   routine for any dynamic initialization required to
 			   initialize this variable. */
 #endif /* SEPARATE_ROUTINES_FOR_FILE_SCOPE_DYNAMIC_INITS */
+#if USE_LAZY_INITIALIZATION_FOR_THREAD_LOCAL_VARIABLES
+    /* When is_thread_local is TRUE: */
+    struct {
+      a_routine_ptr
+                init_routine;
+			/* If non-NULL, a pointer to the initialization routine
+                           (or more likely an alias for routine that does the
+                           actual dynamic initialization) for this thread_local
+			   variable. */
+      a_routine_ptr
+                wrapper;
+			/* If non-NULL, a pointer to the wrapper routine to
+			   call for dynamic initialization of this
+			   thread_local variable. */
+    } thread_local;
+#endif /* USE_LAZY_INITIALIZATION_FOR_THREAD_LOCAL_VARIABLES */
+  } init_routine;
 } a_variable;
 
 
@@ -13351,6 +13358,12 @@ typedef struct a_routine {
 			/* TRUE if this routine is a raw literal operator,
 			   i.e., a literal operator with one parameter of
 			   type const char*, and FALSE otherwise. */
+#if USE_LAZY_INITIALIZATION_FOR_THREAD_LOCAL_VARIABLES
+  a_bit_field	is_tls_init_alias:1;
+                        /* TRUE if this routine is an alias for the
+                           thread_local initialization routine for the
+                           translation unit. */
+#endif /* USE_LAZY_INITIALIZATION_FOR_THREAD_LOCAL_VARIABLES */
   bitfield_to_avoid_codecenter_warnings()
 #if DECL_MODIFIERS_IN_USE
   a_decl_modifier
@@ -17947,6 +17960,15 @@ typedef struct an_il_header {
 			   dynamic initialization (if any).  Routines on the
 			   list are ordered by "needed" bit number and GNU
 			   init_priority in applicable configurations. */
+#if !USE_LAZY_INITIALIZATION_FOR_THREAD_LOCAL_VARIABLES
+  a_routine_list_entry_ptr
+		thread_local_dynamic_init_routines;
+			/* If not NULL, a pointer to a list of routine
+			   entries that specify which routines to call,
+			   in the order they appear on the list, to correctly
+			   initialize thread_local variables in the file scope
+			   that need dynamic initialization (if any). */
+#endif /* !USE_LAZY_INITIALIZATION_FOR_THREAD_LOCAL_VARIABLES */
 #endif /* SEPARATE_ROUTINES_FOR_FILE_SCOPE_DYNAMIC_INITS */
 } an_il_header;
 

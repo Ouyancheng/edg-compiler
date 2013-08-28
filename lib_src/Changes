@@ -1,5 +1,34 @@
 Version 4.8
 
+8/28/13 [EDGcpfe/9167,EDGcpfe/12359]
+C++11: Support for thread_local
+
+In configurations where the front end supports thread_local storage, the
+runtime library is required to handle destruction of objects with thread_local
+storage duration at thread termination.  The front end signals that a
+destruction for a thread_local object is necessary by calling
+__cxa_thread_atexit in the IA-64 ABI or __record_needed_thread_destruction
+in the Cfront ABI.  Such destructions requests are queued on thread-specific
+lists and invoked in reverse order when the thread is terminated.
+
+In cases where the target system already has an IA-64 compliant library
+that includes __cxa_thread_atexit, that library can be used to perform
+the necessary destructions, but in all other cases (i.e., in Cfront ABI
+configurations, or when the target system does not have an IA-64 compliant
+library, or when that library doesn't yet implement __cxa_thread_atexit
+-- in which case SYSTEM_RUNTIME_HAS_IA64_THREAD_ATEXIT should be set to FALSE),
+this runtime library can be used for thread_local destructions.
+
+In order to process destruction of objects with thread_local storage at
+thread termination, the runtime library requires notification each time
+a thread terminates.  Such notification is highly specific to the threading
+system used and will likely need to be customized.  When USE_PTHREADS is
+TRUE, the runtime library assumes that the POSIX thread library is being
+used to manage threads and issues calls to that library to determine
+when a thread is terminated.  If USE_PTHREADS is FALSE, an #error directive
+will trigger to indicate the location of code that needs to be customized.
+
+
 6/16/13  [EDGcpfe/14142]
 Exception object not destroyed when an exception is thrown by placement new
 

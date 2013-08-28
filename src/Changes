@@ -1,5 +1,53 @@
 Version 5.0
 
+8/28/13 [EDGcpfe/9167,EDGcpfe/12359]
+C++11: Support for thread_local
+
+Changes have been made to support the C++11 thread_local keyword (see N2659).
+Objects declared with thread_local storage duration are unique to each
+thread of execution, can be dynamically initialized and are destroyed
+at thread termination.
+
+Initialization and destruction of objects with thread_local storage
+duration presents some challenges for a stand-alone compiler with no
+inherent knowledge of the underlying system's threading model; as a result,
+several configuration options are available to allow back ends to choose
+the model that works best for their application.
+
+When a back end generates code that is unaware of thread creation,
+"lazy initialization" can be used to ensure that each object with
+thread_local storage duration is initialized at its first use in each thread
+by setting USE_LAZY_INITIALIZATION_FOR_THREAD_LOCAL_VARIABLES to TRUE.
+In such configurations, each use of a potentially dynamically-initialized
+thread_local variable is re-written to call an initialization wrapper routine
+that does the one-time (per-thread) initialization.  All file-scope dynamic
+initialization for objects with thread_local storage are lowered and placed in
+a single __tls_init routine (regardless of the setting of
+SEPARATE_ROUTINES_FOR_FILE_SCOPE_DYNAMIC_INITS).
+
+If a back end has the means to execute startup code at thread creation,
+the overhead associated with lazy initialization can be avoided.  In that
+case, USE_LAZY_INITIALIZATION_FOR_THREAD_LOCAL_VARIABLES should be set to
+FALSE and the back end should arrange to invoke the __tls_init routine from
+each translation unit (or, when SEPARATE_ROUTINES_FOR_FILE_SCOPE_DYNAMIC_INITS
+is TRUE, each of the routines pointed to by
+il_header.thread_local_dynamic_init_routines) at thread creation.
+
+Note that conformance with the IA-64 ABI requires that
+USE_LAZY_INITIALIZATION_FOR_THREAD_LOCAL_VARIABLES be set to TRUE.
+C-generating back end configurations also require
+USE_LAZY_INITIALIZATION_FOR_THREAD_LOCAL_VARIABLES to be set to TRUE.
+
+If IMPLEMENTATION_SUPPORTS_MULTIPLE_THREADS is set to FALSE, the
+thread_local keyword is parsed and ignored.
+
+In all cases, the destructions needed at thread termination time are
+registered with the runtime library by calling __cxa_thread_atexit in the
+IA-64 ABI or __record_needed_thread_destruction in the Cfront ABI.
+See the Changes entry in lib_src/Changes for information about related
+changes to the runtime library to support this.
+
+
 8/27/13  [EDGcpfe/14409]
 Obsolete macro definitions when building with a Microsoft compiler
 

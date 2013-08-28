@@ -825,12 +825,12 @@ static void enclose_routine_in_if(a_scope_ptr      scope,
                                   an_expr_node_ptr if_node,
                                   a_variable_ptr   return_var)
 /*
-Add an "if" statement around the entire body of the routine (a constructor
-or destructor) whose scope is pointed to by scope.  if_node is the expression
-to be tested in the "if".  return_var is the variable to be returned if a
-"return" statement must be generated, or NULL if no value needs to be returned.
-This routine should only be used when adding boilerplate code to constructors
-or destructors.
+Add an "if" statement around the entire body of the routine (a constructor,
+destructor, or generated thread_local initialization routine) whose scope is
+pointed to by scope.  if_node is the expression to be tested in the "if".
+return_var is the variable to be returned if a "return" statement must be
+generated, or NULL if no value needs to be returned.  This routine should only
+be used when adding boilerplate code to constructors or destructors.
 */
 {
   a_statement_ptr if_stmt, block_stmt;
@@ -5894,6 +5894,7 @@ static a_scope_ptr make_file_scope_init_or_term_routine(
                                  int                         init_priority,
                                  a_const_char                *prefix,
                                  unsigned long               unique_id,
+                                 a_boolean                   do_thread_local,
                                  an_insert_location_ptr      insert_location,
                                  a_memory_region_number      *il_region,
                                  a_generated_routine_context *grcontext)
@@ -5906,7 +5907,8 @@ statement that is the body of the routine, set *il_region to the IL memory
 region number for the routine, and return a pointer to the scope for the
 routine.  The routine is external if named, and static if unnamed.  A
 generated routine context is pushed, with *grcontext used to save the old
-state for later restoration.
+state for later restoration.  When do_thread_local is TRUE, the routine
+is being created for (one or more) thread_local dynamic initialization(s).
 */
 #if ONE_INSTANTIATION_PER_OBJECT
 /*
@@ -5928,6 +5930,11 @@ If unique_id is non-zero, this routine is an initialization routine for a
 specific variable and unique_id is added to the routine's name to ensure
 that the routine name is differentiated from other routines.  This can
 be combined with needed_bit_number and/or init_priority specified above.
+When do_thread_local is TRUE, separate initialization routines are created
+for each thread_local dynamic initialization.  The separate initialization
+routines are queued on lists (one for thread_local initializations and
+one for non-thread_local initializations) in the IL header so a back end
+can easily access them.
 */
 #endif /* SEPARATE_ROUTINES_FOR_FILE_SCOPE_DYNAMIC_INITS */
 {
@@ -5936,6 +5943,7 @@ be combined with needed_bit_number and/or init_priority specified above.
   char            *name;
   sizeof_t        prefix_len, alloc_length;
   a_statement_ptr return_stmt;
+  a_storage_class storage_class;
 #if ONE_INSTANTIATION_PER_OBJECT
   char            buffer[50];
 #endif /* ONE_INSTANTIATION_PER_OBJECT */
@@ -5946,14 +5954,30 @@ be combined with needed_bit_number and/or init_priority specified above.
   char            buffer3[50];
 #endif /* SEPARATE_ROUTINES_FOR_FILE_SCOPE_DYNAMIC_INITS */
 
-  if (prefix == NULL) {
+  if (do_thread_local) {
+#if USE_LAZY_INITIALIZATION_FOR_THREAD_LOCAL_VARIABLES || \
+    !SEPARATE_ROUTINES_FOR_FILE_SCOPE_DYNAMIC_INITS
+    /* Create a static routine with a well-known name to contain all of
+       the thread_local initializations. */
+    name = (char *)"__tls_init";
+    storage_class = (a_storage_class)sc_static;
+#else /* !(USE_LAZY_INITIALIZATION_FOR_THREAD_LOCAL_VARIABLES || !...) */
+    /* Create separate routines for each thread_local initialization.  The
+       names of these routines are unimportant (they will be referred to
+       from the il_header). */
+    name = NULL;
+    storage_class = (a_storage_class)sc_unspecified;
+#endif /* USE_LAZY_INITIALIZATION_FOR_THREAD_LOCAL_VARIABLES || !... */
+  } else if (prefix == NULL) {
     /* Make an unnamed routine. */
     name = NULL;
+    storage_class = (a_storage_class)sc_static;
   } else {
     /* Combine the prefix and an identifier for the current module to make
        a name that is likely to be unique. */
     a_const_char *module_id;
     char         *end;
+    storage_class = (a_storage_class)sc_unspecified;
     module_id = get_module_id();
     check_assertion(module_id != NULL);
     prefix_len = strlen(prefix);
@@ -6007,11 +6031,7 @@ be combined with needed_bit_number and/or init_priority specified above.
 #endif /* SEPARATE_ROUTINES_FOR_FILE_SCOPE_DYNAMIC_INITS */
   }  /* if */
   /* Make a type and routine entry for the routine. */
-  init_rout = make_rout_entry(name,
-                              (a_storage_class)(name != NULL ? sc_unspecified :
-                                                               sc_static),
-                              void_type(),
-                              param1_type);
+  init_rout = make_rout_entry(name, storage_class, void_type(), param1_type);
 #if GNU_INIT_PRIORITY_ATTRIBUTE_ALLOWED
   if (init_priority != 0) init_rout->init_priority = init_priority;
 #endif /* GNU_INIT_PRIORITY_ATTRIBUTE_ALLOWED */
@@ -6043,11 +6063,12 @@ static a_scope_ptr file_scope_init_insert_location(
                                  unsigned long               needed_bit_number,
                                  int                         init_priority,
                                  unsigned long               unique_id,
+                                 a_boolean                   do_thread_local,
                                  an_insert_location_ptr      insert_location,
                                  a_memory_region_number      *region_number,
                                  a_generated_routine_context *grcontext)
 /*
-Create the file-scope initialization routine.  Set *insert location so it
+Create a file-scope initialization routine.  Set *insert location so it
 can be used to insert code in that routine, and set *region_number to
 the memory region number for the routine.  Return the scope for the routine.
 A generated routine context is pushed, with *grcontext used to save the
@@ -6058,6 +6079,8 @@ instantiation.  If init_priority is non-zero, this routine is an
 initialization routine for variables with the GNU init_priority
 set to that value.  If unique_id is non-zero, the name of the generated
 initialization routine will contain a representation of this value.
+If do_thread_local is TRUE, the routine will contain only dynamic
+initializations of thread_local variables.
 */
 {
   a_scope_ptr scope = make_file_scope_init_or_term_routine(
@@ -6066,6 +6089,7 @@ initialization routine will contain a representation of this value.
                                        init_priority,
                                        IL_LOWERING_INIT_ROUTINE_PREFIX,
                                        unique_id,
+                                       do_thread_local,
                                        insert_location,
                                        region_number,
                                        grcontext);
@@ -6102,6 +6126,7 @@ old state for later restoration.
                                        0,
                                        (char *)NULL,  /* Unnamed. */
                                        (unsigned long)0,
+                                       /*do_thread_local=*/FALSE,
                                        insert_location,
                                        region_number,
                                        grcontext);
@@ -6477,10 +6502,12 @@ is described by ipdp.
 
 /*
 Pointer to the routine entry for the runtime routine used to record a
-needed call of a destructor, once created.  NULL until then.
+needed call of a destructor at process termination and at thread
+termination.  NULL until created.
 */
 static a_routine_ptr
-		record_needed_destruction_routine;
+		record_needed_destruction_routine,
+                record_needed_thread_destruction_routine;
 
 #if IA64_ABI
 
@@ -6505,8 +6532,8 @@ static void record_needed_destruction(a_dynamic_init_ptr     dip,
 ipdp describes the position of a static entity, initialized by the dynamic
 initialization entry pointed to by dip, that requires a destruction.
 Generate a runtime call that records the need for the destruction at the
-time of program termination.  Insert any generated code at *insert_location
-and update *insert_location accordingly.
+time of thread or program termination as appropriate.  Insert any generated
+code at *insert_location and update *insert_location accordingly.
 */
 {
 #if IA64_ABI
@@ -6538,8 +6565,9 @@ and update *insert_location accordingly.
   }  /* if */
 #endif /* LOWERING_REMOVES_UNNEEDED_CONSTRUCTIONS_AND_DESTRUCTIONS */
   /* Record the required destruction by generating a call of the runtime
-     routine __record_needed_destruction.  A data structure passed to
-     that routine describes the destruction to be done:
+     routine __record_needed_destruction or __record_needed_thread_destruction
+     (as appropriate).  A data structure passed to the routine describes the
+     destruction to be done:
 
        struct a_needed_destruction {
          a_needed_destruction *next;
@@ -6553,12 +6581,17 @@ and update *insert_location accordingly.
      to a routine generated specifically for this case and containing
      the necessary destruction code.  next is always initialized to
      NULL; the runtime routine sets it. */
-  /* For the IA-64 ABI, the runtime routine is __cxa_atexit. */
+  /* For the IA-64 ABI, the runtime routine is __cxa_atexit for
+     destruction at the end of the process and __cxa_thread_atexit for
+     destruction at the end of the thread. */
   complex_cleanup = ipdp->array_element_sequence ||
                     is_array_type(entity_type);
   /* Compute the object address (instead of doing static initialization to
-     the address) if it is more than a simple variable. */
+     the address) if it is more than a simple variable.  The address of
+     a thread_local variable isn't a constant at compile-time, so it's also
+     considered "complex". */
   complex_address = ipdp->indirect_through_variable ||
+                    ipdp->variable->is_thread_local ||
                     ipdp->modifiers != NULL;
 #if !IA64_ABI
   /* Make an unnamed static variable for the descriptive structure. */
@@ -6607,9 +6640,9 @@ and update *insert_location accordingly.
   if (!complex_cleanup && complex_address) {
     /* For simple cleanup with a complex address, get an rvalue pointer for
        the object to be destroyed at exit.  This will be used as the second
-       argument to __cxa_atexit. */
-    object_node = make_init_entity_node(ipdp, /*result_is_lvalue=*/FALSE,
-                                        /*using_as_dest=*/FALSE);
+       argument to the runtime routine. */
+    object_node = make_address_of_init_entity_node(ipdp,
+                                                   /*using_as_dest=*/FALSE);
   } else {
     object_node = alloc_node_for_constant(object_con);
   }  /* if */
@@ -6628,12 +6661,19 @@ and update *insert_location accordingly.
   dso_handle_node = var_addr_expr(dso_handle_var);
   dtor_node->next = object_node;
   object_node->next = dso_handle_node;
-  /* Make a call of __cxa_atexit.  Its arguments are the expressions created
-     above. */
-  call_node = make_runtime_rout_call("__cxa_atexit", 
-                                     &record_needed_destruction_routine,
+  /* Make a call of __cxa_atexit or __cxa_thread_atexit as appropriate.
+     Their arguments are the expressions created above. */
+  if (ipdp->variable != NULL && ipdp->variable->is_thread_local) {
+    call_node = make_runtime_rout_call("__cxa_thread_atexit", 
+                                     &record_needed_thread_destruction_routine,
                                      integer_type((an_integer_kind)ik_int),
                                      dtor_node);
+  } else {
+    call_node = make_runtime_rout_call("__cxa_atexit", 
+                                       &record_needed_destruction_routine,
+                                       integer_type((an_integer_kind)ik_int),
+                                       dtor_node);
+  }  /* if */
 #else /* !IA64_ABI */
   implicit_cast(dtor_con, make_vptp_type());
   /* Link the aggregate constant together. */
@@ -6646,8 +6686,9 @@ and update *insert_location accordingly.
        the object and store it in the object field of the struct. */
     an_expr_node_ptr field_node;
     a_statement_ptr  assign_stmt;
-    object_node = make_init_entity_node(ipdp, /*result_is_lvalue=*/FALSE,
-                                        /*using_as_dest=*/FALSE);
+    object_node = make_address_of_init_entity_node(ipdp,
+                                                   /*using_as_dest=*/FALSE);
+    check_assertion(is_pointer_type(object_node->type));
     object_node = add_cast_if_necessary(object_node,
                                         needed_destruction_object_field->type);
     field_node = field_lvalue_selection_expr(var_lvalue_expr(var),
@@ -6658,11 +6699,18 @@ and update *insert_location accordingly.
                                               insert_location);
     set_stmt_pos_to_code_pos_for_lowering(assign_stmt);
   }  /* if */
-  /* Make a call of __record_needed_destruction.  Its argument is the
+  /* Make a call of __record_needed_destruction or
+     __record_needed_thread_destruction as appropriate.  Their argument is the
      address of the structure variable created above. */
-  call_node = make_runtime_rout_call("__record_needed_destruction",
-                                     &record_needed_destruction_routine,
+  if (ipdp->variable != NULL && ipdp->variable->is_thread_local) {
+    call_node = make_runtime_rout_call("__record_needed_thread_destruction",
+                                     &record_needed_thread_destruction_routine,
                                      void_type(), var_addr_expr(var));
+  } else {
+    call_node = make_runtime_rout_call("__record_needed_destruction",
+                                       &record_needed_destruction_routine,
+                                       void_type(), var_addr_expr(var));
+  }  /* if */
 #endif /* IA64_ABI */
   /* Make a statement containing the call and insert it at the right
      location. */
@@ -6843,12 +6891,13 @@ location is the insert_location2 value (after the assignment statement).
        turned into an external variable). */
     *test_var = make_global_var_with_prefixed_name(
 #if !IA64_ABI
-                                                   "__LSG__",
+                                               "__LSG__",
 #else /* IA64_ABI */
-                                                   "_ZGV",
+                                               "_ZGV",
 #endif /* IA64_ABI */
-                                                   int_kind,
-                                                 &guarded_var->source_corresp);
+                                               int_kind,
+                                               &guarded_var->source_corresp,
+                                               (an_il_entry_kind)iek_variable);
     /* Treat the guard variable as a promoted local static so that it will
        be removed during needed flag processing if the static variable ends
        up not being needed (e.g., because the inline routine that contains
@@ -11352,8 +11401,9 @@ This routine returns TRUE if guard code was emitted.
 #if !IA64_ABI
   /* Make the guard variable at the file scope. */
   test_var = make_global_var_with_prefixed_name("__SDG__",
-                                                (an_integer_kind)ik_int,
-                                                &variable->source_corresp);
+                                               (an_integer_kind)ik_int,
+                                               &variable->source_corresp,
+                                               (an_il_entry_kind)iek_variable);
   if (variable->is_specialized) {
     /* This variable is a specialization of a template entity, so its
        initialization should take precedence over any initialization code
@@ -11395,8 +11445,9 @@ This routine returns TRUE if guard code was emitted.
        all other initialization code.  No test of the guard variable is
        needed here. */
     test_var = make_global_var_with_prefixed_name("_ZGV",
-                                                  (an_integer_kind)ik_int,
-                                                  &variable->source_corresp);
+                                               (an_integer_kind)ik_int,
+                                               &variable->source_corresp,
+                                               (an_il_entry_kind)iek_variable);
     test_var->init_kind = (an_init_kind)initk_static;
     set_integer_constant(&minus_one_constant, (a_host_large_integer)-1,
                          (an_integer_kind)ik_int);
@@ -13545,6 +13596,153 @@ in define_default_version_of_routine (as an alternate entry point).
 }  /* make_delegation_destruction_routine */
 
 #endif /* !IA64_ABI */
+#if USE_LAZY_INITIALIZATION_FOR_THREAD_LOCAL_VARIABLES
+
+a_routine_ptr thread_local_init_routine_for_variable(a_variable_ptr var)
+/*
+Return the routine to use for initializing the specified thread_local variable.
+These routines are used in the "lazy initialization" for thread_local
+variables and are typically aliases with a well-known name; calling such
+a routine guarantees the caller that the thread_local variable has been
+properly initialized.  The routine has no definition (the back end emits
+this as an alias for __tls_init in the current translation unit).
+*/
+{
+  a_routine_ptr   init_routine;
+  a_const_char    *init_name;
+
+  if (var->init_routine.thread_local.init_routine == NULL) {
+    /* This routine is an alias for the __tls_init routine. */
+    init_name = make_prefixed_object_name(
+#if IA64_ABI
+                                          "_ZTH",
+#else /* !IA64_ABI */
+                                          "__THI__",
+#endif /* IA64_ABI */
+                                          &var->source_corresp,
+                                          (an_il_entry_kind)iek_variable);
+    init_routine = make_rout_entry(init_name,
+                                   var->storage_class,
+                                   void_type(),
+                                   (a_type_ptr)NULL);
+    init_routine->source_corresp.name_has_been_mangled = TRUE;
+    init_routine->type->variant.routine.extra_info->prototyped = TRUE;
+    init_routine->is_tls_init_alias = TRUE;
+#if GNU_EXTENSIONS_ALLOWED
+    if (init_routine->storage_class != (a_storage_class)sc_static) {
+      init_routine->is_weak = TRUE;
+    }  /* if */
+#endif /* GNU_EXTENSIONS_ALLOWED */
+    var->init_routine.thread_local.init_routine = init_routine;
+  }  /* if */
+  return var->init_routine.thread_local.init_routine;
+}  /* thread_local_init_routine_for_variable */
+
+
+a_routine_ptr thread_local_wrapper_for_variable(a_variable_ptr var)
+/*
+Return the wrapper routine for the specified thread_local variable.  The
+wrapper routine is used as a replacement for uses of thread_local variables
+in cases where such variables may have a dynamic-initialization associated
+with them.  The wrapper calls the variable's init routine (if it has one)
+and then returns a pointer to the variable itself.  If the wrapper routine
+has not yet been defined, it is created here.
+*/
+{
+  a_scope_ptr            scope;
+  an_insert_location     insert_location, if_insert_location;
+  an_insert_location     *call_insert_location;
+  a_memory_region_number region_number;
+  a_generated_routine_context
+                         grcontext;
+  a_routine_ptr          wrapper_routine, init_routine;
+  a_statement_ptr        return_stmt;
+  a_const_char           *wrapper_name;
+
+  if (var->init_routine.thread_local.wrapper == NULL) {
+    /* Create the routine and give it a well-known name (based on the
+       variable's name). */
+    wrapper_name = make_prefixed_object_name(
+#if IA64_ABI
+                                             "_ZTW",
+#else /* !IA64_ABI */
+                                             "__TWR__",
+#endif /* IA64_ABI */
+                                             &var->source_corresp,
+                                             (an_il_entry_kind)iek_variable);
+    wrapper_routine = make_rout_entry(wrapper_name,
+                                      var->storage_class,
+                                      make_pointer_type(var->type),
+                                      (a_type_ptr)NULL);
+    wrapper_routine->source_corresp.name_has_been_mangled = TRUE;
+    wrapper_routine->type->variant.routine.extra_info->prototyped = TRUE;
+    /* Make a memory region, scope, and block for the routine definition. */
+    scope = make_routine_definition(wrapper_routine, /*make_return=*/FALSE,
+                                    &region_number);
+    if (wrapper_routine->storage_class == (a_storage_class)sc_static) {
+      /* Set the inline flag. */
+      set_inline_flag(wrapper_routine, TRUE);
+#if MINIMAL_INLINING
+      wrapper_routine->inlinable = TRUE;
+#endif /* MINIMAL_INLINING */
+    } else {
+      /* Set the "weak" attribute since there may be multiple of these
+         routines defined. */
+#if GNU_EXTENSIONS_ALLOWED
+      wrapper_routine->is_weak = TRUE;
+#endif /* GNU_EXTENSIONS_ALLOWED */
+    }  /* if */
+    push_generated_routine_context(scope, region_number, &grcontext);
+    set_block_start_insert_location(scope->assoc_block, &insert_location);
+    /* In cases where we know the variable has a dynamic initialization
+       (because it's in this translation unit), the wrapper looks like:
+
+         extern void var_init() __attribute__ ((weak));
+         inline T* var_wrapper() {
+           var_init();
+           return &var;
+         }
+
+       For the case where the variable is not defined in this translation
+       unit, an additional "if" statement is added:
+
+         extern void var_init() __attribute__ ((weak));
+         inline T* var_wrapper() {
+           if (var_init) var_init();
+           return &var;
+         }
+
+        If the variable is not dynamically-initialized, there will be no
+        definition of var_init. */
+    init_routine = thread_local_init_routine_for_variable(var);
+    call_insert_location = &insert_location;
+    if (var->storage_class == (a_storage_class)sc_extern) {
+      an_expr_node_ptr test_node;
+      /* Make the boolean controlling expression "test_var". */
+      test_node = function_addr_expr(init_routine);
+      test_node = boolean_controlling_expr(test_node);
+      /* Make an "if" statement and insert it into the program. */
+      insert_if_statement(test_node, /*is_initialization_guard=*/FALSE,
+                          &insert_location, (a_statement_ptr *)NULL,
+                          &if_insert_location, (an_insert_location *)NULL);
+      call_insert_location = &if_insert_location;
+    }  /* if */
+    /* Call the initialization routine. */
+    make_call_statement(init_routine, (an_expr_node_ptr)NULL,
+                        (an_expr_node_ptr)NULL, call_insert_location);
+    /* Return a pointer to the variable. */
+    return_stmt = alloc_statement((a_statement_kind)stmk_return);
+    return_stmt->expr = var_addr_expr(var);
+    insert_statement(return_stmt, &insert_location);
+    add_to_return_memo_list(return_stmt);
+    /* Finish up. */
+    pop_generated_routine_context(scope, region_number, &grcontext);
+    var->init_routine.thread_local.wrapper = wrapper_routine;
+  }  /* if */
+  return var->init_routine.thread_local.wrapper;
+}  /* thread_local_wrapper_for_variable */
+
+#endif /* USE_LAZY_INITIALIZATION_FOR_THREAD_LOCAL_VARIABLES */
 
 #if IA64_ABI
 /*ARGSUSED*/  /* <-- ipdp and insert_location are not used in that case. */
@@ -15710,7 +15908,45 @@ destructor scope, and also lower the user code.
   code_pos_for_lowering = saved_code_pos;
 }  /* lower_destructor_code */
 
-#if MULTIPLE_INIT_ROUTINES
+#if USE_LAZY_INITIALIZATION_FOR_THREAD_LOCAL_VARIABLES
+
+static void add_guard_code_to_thread_local_init(a_scope_ptr scope)
+/*
+Add guard code to ensure that the code contained in the scope (which contains
+dynamic initialization for all thread_local variables in this translation
+unit) is only performed once per thread.  A simple guard is all that is needed
+(because these variables are already unique to a thread so no other thread
+can access them simultaneously).
+*/
+{
+  a_variable_ptr      guard;
+  an_expr_node_ptr    test_var_node, compare_node;
+  an_insert_location  insert_location;
+
+  /* The guard variable need not be visible outside of the function,
+     so an unnamed, thread-local variable is fine. */
+  guard = make_temporary_in_scope(integer_type((an_integer_kind)ik_char),
+                                  (a_scope_ptr)NULL,
+                                  /*force_static=*/TRUE,
+                                  /*promote_if_necessary=*/TRUE);
+  guard->is_thread_local = TRUE;
+  /* Add "guard = 1;" at the beginning of the block. */
+  set_block_start_insert_location(scope->assoc_block, &insert_location);
+  (void)insert_var_assignment_statement(guard,
+                                        node_for_integer_constant(1L,
+                                                     (an_integer_kind)ik_char),
+                                        &insert_location);
+  /* Enclose the entire scope in an "if (guard == 0)" statement. */
+  test_var_node = var_rvalue_expr(guard);
+  test_var_node->next = node_for_integer_constant(0L,
+                                                  (an_integer_kind)ik_char);
+  compare_node = make_operator_node((an_expr_operator_kind)eok_eq,
+                                    integer_type((an_integer_kind)ik_int),
+                                    test_var_node);
+  enclose_routine_in_if(scope, compare_node, (a_variable_ptr)NULL);
+}  /* add_guard_code_to_thread_local_init */
+
+#endif /* USE_LAZY_INITIALIZATION_FOR_THREAD_LOCAL_VARIABLES */
 
 /*ARGSUSED*/  /* <-- tblock is not used. */
 static void set_dynamic_init_included_in_slice(
@@ -15738,7 +15974,6 @@ in all dynamic initializations under it.
   traverse_dynamic_init(dip, &tblock);
 }  /* mark_slice_dyn_inits */
 
-#endif /* MULTIPLE_INIT_ROUTINES */
 
 #if SEPARATE_ROUTINES_FOR_FILE_SCOPE_DYNAMIC_INITS
 static a_routine_list_entry_ptr
@@ -15746,6 +15981,13 @@ static a_routine_list_entry_ptr
                         /* Points to the last entry on the list of routine
                            entries pointed to by
                            il_header.file_scope_dynamic_init_routines. */
+#if !USE_LAZY_INITIALIZATION_FOR_THREAD_LOCAL_VARIABLES
+static a_routine_list_entry_ptr
+                thread_local_dynamic_init_routines_tail;
+                        /* Points to the last entry on the list of routine
+                           entries pointed to by
+                           il_header.thread_local_dynamic_init_routines. */
+#endif /* !USE_LAZY_INITIALIZATION_FOR_THREAD_LOCAL_VARIABLES */
 #endif /* SEPARATE_ROUTINES_FOR_FILE_SCOPE_DYNAMIC_INITS */
 
 #if !SEPARATE_ROUTINES_FOR_FILE_SCOPE_DYNAMIC_INITS
@@ -15755,6 +15997,7 @@ static void b_lower_file_scope_dynamic_inits(
                                       unsigned long       needed_bit_number,
                                       int                 init_priority,
                                       a_boolean           do_single_init,
+                                      a_boolean           do_thread_local,
                                       a_boolean           *more_matching_inits)
 /*
 Do lowering on the file-scope dynamic initializations list.  Determine the set
@@ -15770,10 +16013,11 @@ criteria (if any -- as specified by needed_bit_number and init_priority) is
 lowered and included in the generated initialization routine.  When
 do_single_init is TRUE, *more_matching_inits is set to indicate whether
 there are additional dynamic initializations that match the criteria.
-When configured with USE_PATCH_INIT_STARTUP, the generated routine is
-queued on a list of routines to be executed at startup, in other cases,
-the name of the routine (typically with the __sti__ prefix) is enough
-to cause the back end to invoke the routine at initialization.
+When do_thread_local is TRUE, only dynamic initializations for thread_local
+variables are considered.  When configured with USE_PATCH_INIT_STARTUP, the
+generated routine is queued on a list of routines to be executed at startup, in
+other cases, the name of the routine (typically with the __sti__ prefix) is
+enough to cause the back end to invoke the routine at initialization.
 */
 {
   a_dynamic_init_ptr dip, dip_next;
@@ -15785,19 +16029,15 @@ to cause the back end to invoke the routine at initialization.
   a_memory_region_number
                      region_number;
   unsigned long      eff_needed_bit_number = needed_bit_number;
-#if MULTIPLE_INIT_ROUTINES
   a_boolean          processing_partial_list = FALSE;
   a_dynamic_init_ptr process_list, end_process_list;
   a_dynamic_init_ptr dtor_process_list, end_dtor_process_list;
   a_dynamic_init_ptr delay_list, end_delay_list;
   a_dynamic_init_ptr dtor_delay_list, end_dtor_delay_list;
-#endif /* MULTIPLE_INIT_ROUTINES */
-#if USE_PATCH_INIT_STARTUP
   a_routine_ptr      init_rout;
-#endif /* USE_PATCH_INIT_STARTUP */
+  a_variable_ptr     var;
 
   dip = file_scope->dynamic_inits;
-#if MULTIPLE_INIT_ROUTINES
 #if ONE_INSTANTIATION_PER_OBJECT
   if (needed_bit_number == 1) eff_needed_bit_number = 0;
   if (needed_bit_number != 0) processing_partial_list = TRUE;
@@ -15805,6 +16045,7 @@ to cause the back end to invoke the routine at initialization.
 #if GNU_INIT_PRIORITY_ATTRIBUTE_ALLOWED
   if (init_priority != 0) processing_partial_list = TRUE;
 #endif /* GNU_INIT_PRIORITY_ATTRIBUTE_ALLOWED */
+  if (do_thread_local) processing_partial_list = TRUE;
 #if SEPARATE_ROUTINES_FOR_FILE_SCOPE_DYNAMIC_INITS
   if (do_single_init) {
     check_assertion(more_matching_inits != NULL);
@@ -15815,27 +16056,46 @@ to cause the back end to invoke the routine at initialization.
   if (processing_partial_list) {
     /* We're putting out separate initialization routines for different
        groups of initializations.  Split the dynamic initializations list
-       into two lists: one that gets processed on this call (because the
-       variables are assigned to the current slice), and another that does
-       not get processed and goes back on the list after we're done with
+       into two lists: one that gets processed on this call, and another that
+       does not get processed and goes back on the list after we're done with
        this call, for processing on a subsequent call. */
     process_list = end_process_list = NULL;
     delay_list = end_delay_list = NULL;
     for (; dip != NULL; dip = dip_next) {
-      a_boolean in_slice = TRUE;
+      a_boolean process_dip = TRUE;
+      var = dip->variable;
       dip_next = dip->next;
       dip->next = NULL;
-      /* Determine whether this variable initialization should be in
-         the current slice. */
+      /* Determine whether this variable initialization should be emitted
+         in the current initialization routine. */
+      if (var->is_thread_local) {
+        /* Process a thread_local initialization regardless of
+           init_priority or slice.  thread_local variables are processed
+           in the first pass. */
+        check_assertion(do_thread_local);
+      } else {
+        if (do_thread_local) {
+          /* If we're processing thread_local initializations and this isn't
+             one of them, skip it. */
+          process_dip = FALSE;
+        } else {
 #if ONE_INSTANTIATION_PER_OBJECT
-      if (one_instantiation_per_object &&
-          dip->variable->instantiation_needed_bit_number !=
-                                       eff_needed_bit_number) in_slice = FALSE;
+          if (one_instantiation_per_object &&
+              var->instantiation_needed_bit_number != eff_needed_bit_number) {
+            /* This variable initialization is not in the current slice;
+               skip it. */
+            process_dip = FALSE;
+          }  /* if */
 #endif /* ONE_INSTANTIATION_PER_OBJECT */
 #if GNU_INIT_PRIORITY_ATTRIBUTE_ALLOWED
-      if (dip->variable->init_priority != init_priority) in_slice = FALSE;
+          if (var->init_priority != init_priority) {
+            /* The init_priority doesn't match; skip it for now. */
+            process_dip = FALSE;
+          }  /* if */
 #endif /* GNU_INIT_PRIORITY_ATTRIBUTE_ALLOWED */
-      if (in_slice) {
+        }  /* if */
+      }  /* if */
+      if (process_dip) {
 #if SEPARATE_ROUTINES_FOR_FILE_SCOPE_DYNAMIC_INITS
         if (do_single_init && process_list != NULL) {
           if (more_matching_inits != NULL) *more_matching_inits = TRUE;
@@ -15910,21 +16170,19 @@ to cause the back end to invoke the routine at initialization.
       file_scope->lifetime->destructions = dtor_process_list;
     }  /* if */
   }  /* if */
-#endif /* MULTIPLE_INIT_ROUTINES */
   if (dip != NULL) {
-    /* There are some file-scope dynamic initializations.  Generate a routine
-       containing them. */
+    /* There are some applicable file-scope dynamic initializations.
+       Generate a routine containing them. */
     scope = file_scope_init_insert_location(eff_needed_bit_number,
                                             init_priority,
                                             do_single_init ?
                                               unique_id_for_il_pointer(dip) :
                                               (unsigned long)0,
+                                            do_thread_local,
                                             &insert_location, &region_number,
                                             &grcontext);
     processing_file_scope_init_routine = TRUE;
-#if USE_PATCH_INIT_STARTUP
     init_rout = scope->variant.routine.ptr;
-#endif /* USE_PATCH_INIT_STARTUP */
     if (file_scope->lifetime != NULL) {
       begin_object_lifetime(file_scope->lifetime, &insert_location);
     }  /* if */
@@ -15934,10 +16192,13 @@ to cause the back end to invoke the routine at initialization.
 #if TEMPLATE_STATIC_DATA_MEMBER_INIT_GUARD_CODE
       an_insert_location     insert_location2;
       a_variable_ptr         guard_var = NULL;
-      if (dip->variable->is_template_static_data_member) {
+#endif /* TEMPLATE_STATIC_DATA_MEMBER_INIT_GUARD_CODE */
+      var = dip->variable;
+#if TEMPLATE_STATIC_DATA_MEMBER_INIT_GUARD_CODE
+      if (var->is_template_static_data_member) {
         /* This is the initialization of a static data member in a template.
            Add guard code around the initialization if necessary. */
-        if (add_static_data_member_init_guard_test(dip->variable,
+        if (add_static_data_member_init_guard_test(var,
                                                    &insert_location,
                                                    &insert_location2,
                                                    &guard_var)) {
@@ -15954,7 +16215,7 @@ to cause the back end to invoke the routine at initialization.
          not linked into the IL. */
       dip_next = dip->next;
       dip->next = NULL;
-      set_var_init_pos_descr(dip->variable, &ipd);
+      set_var_init_pos_descr(var, &ipd);
 #if LOWER_DESIGNATED_INITIALIZERS
       lower_dynamic_init_designated_initializers(dip, (a_type_ptr)NULL);
 #endif /* LOWER_DESIGNATED_INITIALIZERS */
@@ -15981,22 +16242,67 @@ to cause the back end to invoke the routine at initialization.
 #if SEPARATE_ROUTINES_FOR_FILE_SCOPE_DYNAMIC_INITS
       if (do_single_init) {
         a_routine_list_entry_ptr rlep;
-        check_assertion(dip_next == NULL);
+        check_assertion(dip_next == NULL && !var->is_thread_local);
         /* Create an association between the variable being initialized and
            the initialization routine. */
-        dip->variable->dynamic_init_routine = scope->variant.routine.ptr;
+        var->init_routine.dynamic_init_routine = init_rout;
         /* Queue this routine on a list of initialization routines. */
         rlep = alloc_list_entry_for_routine();
-        rlep->routine = scope->variant.routine.ptr;
-        if (file_scope_dynamic_init_routines_tail == NULL) {
-          il_header.file_scope_dynamic_init_routines = rlep;
-        } else {
-          file_scope_dynamic_init_routines_tail->next = rlep;
+        rlep->routine = init_rout;
+#if !USE_LAZY_INITIALIZATION_FOR_THREAD_LOCAL_VARIABLES
+        if (var->is_thread_local) {
+          /* Queue this routine on the list of thread_local routines. */
+          if (thread_local_dynamic_init_routines_tail == NULL) {
+            il_header.thread_local_dynamic_init_routines = rlep;
+          } else {
+            thread_local_dynamic_init_routines_tail->next = rlep;
+          }  /* if */
+          thread_local_dynamic_init_routines_tail = rlep;
+        } else
+#endif /* !USE_LAZY_INITIALIZATION_FOR_THREAD_LOCAL_VARIABLES */
+        /* Do not insert code here. */
+        {
+          /* Queue this routine on the list of file-scope init routines */
+          if (file_scope_dynamic_init_routines_tail == NULL) {
+            il_header.file_scope_dynamic_init_routines = rlep;
+          } else {
+            file_scope_dynamic_init_routines_tail->next = rlep;
+          }  /* if */
+          file_scope_dynamic_init_routines_tail = rlep;
         }  /* if */
-        file_scope_dynamic_init_routines_tail = rlep;
       }  /* if */
 #endif /* SEPARATE_ROUTINES_FOR_FILE_SCOPE_DYNAMIC_INITS */
+#if USE_LAZY_INITIALIZATION_FOR_THREAD_LOCAL_VARIABLES
+      if (var->is_thread_local &&
+          var->source_corresp.name_linkage != (a_name_linkage_kind)nlk_none &&
+          (var->storage_class == (a_storage_class)sc_unspecified ||
+           var->storage_class == (a_storage_class)sc_extern)) {
+        /* If a dynamically-initialized thread_local variable is defined in
+           this translation unit, make sure that the init routine for
+           the variable is emitted (the variable may not be used in this
+           translation unit). */
+        a_routine_ptr init_routine =
+                                   thread_local_init_routine_for_variable(var);
+#if MAINTAIN_NEEDED_FLAGS
+        set_routine_definition_needed(init_routine);
+#endif /* MAINTAIN_NEEDED_FLAGS */
+      }  /* if */
+#endif /* USE_LAZY_INITIALIZATION_FOR_THREAD_LOCAL_VARIABLES */
     }  /* for */
+    if (do_thread_local) {
+#if USE_LAZY_INITIALIZATION_FOR_THREAD_LOCAL_VARIABLES
+      check_assertion(!do_single_init);
+      /* If we're creating the thread_local initialization routine for the
+         translation unit, add a test to ensure the initialization is performed
+         only once per thread. */
+      add_guard_code_to_thread_local_init(scope);
+#endif /* USE_LAZY_INITIALIZATION_FOR_THREAD_LOCAL_VARIABLES */
+#if MAINTAIN_NEEDED_FLAGS
+      /* Mark this routine as needed because it is only accessed through
+         aliases. */
+      set_routine_definition_needed(init_rout);
+#endif /* MAINTAIN_NEEDED_FLAGS */
+    }  /* if */
     pop_generated_routine_context(scope, region_number, &grcontext);
     processing_file_scope_init_routine = FALSE;
     /* Generate code to ensure that the initialization routine is called
@@ -16010,7 +16316,6 @@ to cause the back end to invoke the routine at initialization.
     make_code_to_invoke_file_scope_init_routine(init_rout);
 #endif /* USE_PATCH_INIT_STARTUP */
   }  /* if */
-#if MULTIPLE_INIT_ROUTINES
   if (processing_partial_list) {
     /* Put the not-processed initializations back on the list. */
     file_scope->dynamic_inits = delay_list;
@@ -16019,7 +16324,6 @@ to cause the back end to invoke the routine at initialization.
       file_scope->lifetime->destructions = dtor_delay_list;
     }  /* if */
   }  /* if */
-#endif /* MULTIPLE_INIT_ROUTINES */
 }  /* b_lower_file_scope_dynamic_inits */
 
 
@@ -16042,11 +16346,13 @@ dynamic initialization is lowered into its own initialization routine.
   do {
     b_lower_file_scope_dynamic_inits(needed_bit_number, init_priority,
                                      /*do_single_init=*/TRUE,
+                                     /*do_thread_local=*/FALSE,
                                      &more_matching_inits);
   } while (more_matching_inits);
 #else /* !SEPARATE_ROUTINES_FOR_FILE_SCOPE_DYNAMIC_INITS */
   b_lower_file_scope_dynamic_inits(needed_bit_number, init_priority,
                                    /*do_single_init=*/FALSE,
+                                   /*do_thread_local=*/FALSE,
                                    (a_boolean*)NULL);
 #endif /* SEPARATE_ROUTINES_FOR_FILE_SCOPE_DYNAMIC_INITS */
 }  /* s_lower_file_scope_dynamic_inits */
@@ -16087,7 +16393,6 @@ needed bit number does not match needed_bit_number.
 
 #endif /* GNU_INIT_PRIORITY_ATTRIBUTE_ALLOWED */
 
-#if MULTIPLE_INIT_ROUTINES
 
 static void p_lower_file_scope_dynamic_inits(unsigned long needed_bit_number)
 /*
@@ -16113,7 +16418,6 @@ level.
 #endif /* GNU_INIT_PRIORITY_ATTRIBUTE_ALLOWED */
 }  /* p_lower_file_scope_dynamic_inits */
 
-#endif /* MULTIPLE_INIT_ROUTINES */
 
 void lower_file_scope_dynamic_inits(void)
 /*
@@ -16123,6 +16427,28 @@ code to cause the generated initialization routine to be called at startup.
 {
   a_scope_ptr file_scope = il_header.primary_scope;
 
+  /* FIXME: what about the one_instantiation_per_object case? */
+  /* FIXME: perhaps move this into a separate routine? */
+#if USE_LAZY_INITIALIZATION_FOR_THREAD_LOCAL_VARIABLES || \
+    !SEPARATE_ROUTINES_FOR_FILE_SCOPE_DYNAMIC_INITS
+  /* Create a single routine for all thread_local initialization in this
+     translation unit. */
+  b_lower_file_scope_dynamic_inits((unsigned long)0, 0,
+                                   /*do_single_init=*/FALSE,
+                                   /*do_thread_local=*/TRUE,
+                                   (a_boolean*)NULL);
+#else /* !USE_LAZY_INITIALIZATION_FOR_THREAD_LOCAL_VARIABLES || ... */
+  /* If we're not lowering thread_local uses, create an initialization
+     routine for each thread_local dynamic initialization and let the
+     back end call them as needed. */
+  a_boolean more_matching_inits;
+  do {
+    b_lower_file_scope_dynamic_inits((unsigned long)0, 0,
+                                     /*do_single_init=*/TRUE,
+                                     /*do_thread_local=*/TRUE,
+                                     &more_matching_inits);
+  } while (more_matching_inits);
+#endif /* USE_LAZY_INITIALIZATION_FOR_THREAD_LOCAL_VARIABLES || ... */
 #if ONE_INSTANTIATION_PER_OBJECT
   if (one_instantiation_per_object) {
     /* When generating one instantiation per object, each instantiation gets
@@ -16745,6 +17071,7 @@ Do one-time initialization of static variables declared in lower_init.c.
       pch_saved_var_array_elem(memcpy_routine),
       pch_saved_var_array_elem(memzero_routine),
       pch_saved_var_array_elem(record_needed_destruction_routine),
+      pch_saved_var_array_elem(record_needed_thread_destruction_routine),
 #if !IA64_ABI
       pch_saved_var_array_elem(needed_destruction_type),
       pch_saved_var_array_elem(needed_destruction_object_field),
@@ -16806,6 +17133,7 @@ Do one-time initialization of static variables declared in lower_init.c.
   register_trans_unit_variable(memcpy_routine);
   register_trans_unit_variable(memzero_routine);
   register_trans_unit_variable(record_needed_destruction_routine);
+  register_trans_unit_variable(record_needed_thread_destruction_routine);
 #if !IA64_ABI
   register_trans_unit_variable(needed_destruction_type);
   register_trans_unit_variable(needed_destruction_object_field);
@@ -16870,6 +17198,7 @@ for each translation unit.
   memcpy_routine = NULL;
   memzero_routine = NULL;
   record_needed_destruction_routine = NULL;
+  record_needed_thread_destruction_routine = NULL;
 #if !IA64_ABI
   needed_destruction_type = NULL;
   needed_destruction_object_field = NULL;
@@ -16909,6 +17238,9 @@ for each compilation.
   processing_file_scope_init_routine = FALSE;
 #if SEPARATE_ROUTINES_FOR_FILE_SCOPE_DYNAMIC_INITS
   file_scope_dynamic_init_routines_tail = NULL;
+#if !USE_LAZY_INITIALIZATION_FOR_THREAD_LOCAL_VARIABLES
+  thread_local_dynamic_init_routines_tail = NULL;
+#endif /* !USE_LAZY_INITIALIZATION_FOR_THREAD_LOCAL_VARIABLES */
 #endif /* SEPARATE_ROUTINES_FOR_FILE_SCOPE_DYNAMIC_INITS */
   /* init_lower_trans_unit_init is called from il_lower_trans_unit_init. */
 }  /* init_lower_init */

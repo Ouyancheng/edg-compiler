@@ -1,4 +1,13 @@
-Version 5.0
+Version 4.8
+
+8/28/13 [EDGcpfe/9167,EDGcpfe/12359]
+C++11: Support for thread_local
+
+Demangling of compiler-generated wrapper routine names that are introduced
+in some front end configurations when lowering thread_local variables.
+In the Cfront ABI, __THI__ and __THW__ are prefixed to the variable name
+for the thread_local initialization and wrapper routines, respectively.
+
 
 7/19/13  [EDGcpfe/10662]
 C++11 const-correctness

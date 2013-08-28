@@ -2090,6 +2090,10 @@ from the PCH file) to reflect the information loaded from the file.
 #if SEPARATE_ROUTINES_FOR_FILE_SCOPE_DYNAMIC_INITS
   il_header.file_scope_dynamic_init_routines =
                            il_header_from_pch.file_scope_dynamic_init_routines;
+#if !USE_LAZY_INITIALIZATION_FOR_THREAD_LOCAL_VARIABLES
+  il_header.il_header.thread_local_dynamic_init_routines =
+               il_header_from_pch.il_header.thread_local_dynamic_init_routines;
+#endif /* !USE_LAZY_INITIALIZATION_FOR_THREAD_LOCAL_VARIABLES */
 #endif /* SEPARATE_ROUTINES_FOR_FILE_SCOPE_DYNAMIC_INITS */
   /* Rebuild the trans_unit_for_scope table.  This is done by calling
      take_next_scope_number the appropriate number of times. */

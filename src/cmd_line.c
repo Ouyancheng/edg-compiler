@@ -6025,6 +6025,11 @@ file.
   comment_undefined_macro_name(
                            IMPL_CONV_BETWEEN_C_AND_CPP_FUNCTION_PTRS_POSSIBLE);
 #endif /* defined(IMPL_CONV_BETWEEN_C_AND_CPP_FUNCTION_PTRS_POSSIBLE) */
+#if defined(IMPLEMENTATION_SUPPORTS_MULTIPLE_THREADS)
+  define_numeric_valued_macro(IMPLEMENTATION_SUPPORTS_MULTIPLE_THREADS);
+#else /* !defined(IMPLEMENTATION_SUPPORTS_MULTIPLE_THREADS) */
+  comment_undefined_macro_name(IMPLEMENTATION_SUPPORTS_MULTIPLE_THREADS);
+#endif /* defined(IMPLEMENTATION_SUPPORTS_MULTIPLE_THREADS) */
 #if defined(INCLUDE_COMMENTS_IN_ASM_FUNC_BODY)
   define_numeric_valued_macro(INCLUDE_COMMENTS_IN_ASM_FUNC_BODY);
 #else /* !defined(INCLUDE_COMMENTS_IN_ASM_FUNC_BODY) */
@@ -7719,6 +7724,13 @@ file.
 #else /* !defined(USE_INIT_SECTION_IN_GENERATED_C) */
   comment_undefined_macro_name(USE_INIT_SECTION_IN_GENERATED_C);
 #endif /* defined(USE_INIT_SECTION_IN_GENERATED_C) */
+#if defined(USE_LAZY_INITIALIZATION_FOR_THREAD_LOCAL_VARIABLES)
+  define_numeric_valued_macro(
+                           USE_LAZY_INITIALIZATION_FOR_THREAD_LOCAL_VARIABLES);
+#else /* !defined(USE_LAZY_INITIALIZATION_FOR_THREAD_LOCAL_VARIABLES) */
+  comment_undefined_macro_name(
+                           USE_LAZY_INITIALIZATION_FOR_THREAD_LOCAL_VARIABLES);
+#endif /* defined(USE_LAZY_INITIALIZATION_FOR_THREAD_LOCAL_VARIABLES) */
 #if defined(USE_LONG_DOUBLE_FOR_HOST_FP_VALUE)
   define_numeric_valued_macro(USE_LONG_DOUBLE_FOR_HOST_FP_VALUE);
 #else /* !defined(USE_LONG_DOUBLE_FOR_HOST_FP_VALUE) */
@@ -9541,6 +9553,10 @@ enable_microsoft_mode:
        whenever exceptions are allowed. */
     assignment_to_this_allowed = FALSE;
   }  /* if */
+#if IMPLEMENTATION_SUPPORTS_MULTIPLE_THREADS
+  /* Must enable thread_local if implementation supports multiple threads. */
+  check_assertion(!cpp11_mode || std_thread_local_storage_specifier_enabled);
+#endif /* IMPLEMENTATION_SUPPORTS_MULTIPLE_THREADS */
 #if !ASSIGNMENT_TO_THIS_ALLOWED
   check_assertion(!assignment_to_this_allowed);
 #endif /* !ASSIGNMENT_TO_THIS_ALLOWED */

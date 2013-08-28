@@ -104,6 +104,13 @@ instead of K&R C.
             with the IA-64 ABI
 #endif /* TARG_REUSE_TAIL_PADDING && !IA64_ABI */
 
+#if !USE_LAZY_INITIALIZATION_FOR_THREAD_LOCAL_VARIABLES
+/* The C-generating back end doesn't know when threads are created, so it
+   can't invoke the thread_local initializations at the proper time. */
+ #error -- The C-generating back end requires lazy initialization for \
+            thread_local variables
+#endif /* !USE_LAZY_INITIALIZATION_FOR_THREAD_LOCAL_VARIABLES */
+
 /*
 See if the target is the SunPro C compiler.
 */
@@ -9724,7 +9731,52 @@ if this routine has a body (dump nothing if it has no body).
 #endif /* ONE_INSTANTIATION_PER_OBJECT */
   if (!has_defn && dump_defn) {
     /* The routine has no body (i.e., no definition), and we're supposed
-       to dump it only if it has a definition, so do nothing. */
+       to dump it only if it has a definition, so do nothing (except for
+       the special case of a __tls_init alias below). */
+#if USE_LAZY_INITIALIZATION_FOR_THREAD_LOCAL_VARIABLES
+    if (rout->is_tls_init_alias) {
+      /* This routine is an "alias" for the thread_local initialization
+         for this translation unit.  If the back end supports it, create
+         an alias, otherwise emit a routine to invoke __tls_init explicitly. */
+      /* FIXME: need some help here: how to "begin" a new line?. */
+      /* FIXME: "void" return type and arguments are hardcoded, etc. */
+      uint32_t saved_indent = indent;
+      end_output_line_if_begun();
+      indent = 0;
+      disable_line_wrapping();
+      if (gcc_is_generated_code_target) {
+        if (rout->storage_class == (a_storage_class)sc_static) {
+          /* Use an __asm__ label to create an alias to __tls_init. */
+          dump_storage_class(rout->storage_class);
+          write_str("void ");
+          dump_routine_name(rout);
+          write_str("(void) ");
+#if GNU_EXTENSIONS_ALLOWED
+          form_asm_name("__tls_init", &octl);
+#endif /* GNU_EXTENSIONS_ALLOWED */
+          write_tok_ch(';');
+        } else if (rout->storage_class == (a_storage_class)sc_unspecified) {
+          /* Defined in this translation unit; emit an alias indication. */
+          write_str("__asm__(\".global ");
+          dump_routine_name(rout);
+          write_str("\\n ");
+          dump_routine_name(rout);
+          write_str(" = __tls_init\");");
+        }  /* if */
+      } else if (rout->storage_class == (a_storage_class)sc_static ||
+                 rout->storage_class == (a_storage_class)sc_unspecified) {
+        /* If the back end compiler has no aliasing capability, simply
+           define the routine with a body that calls __tls_init. */
+        dump_storage_class(rout->storage_class);
+        write_str("void ");
+        dump_routine_name(rout);
+        write_str("(void) { __tls_init(); }");
+      }  /* if */
+      enable_line_wrapping();
+      end_output_line();
+      indent = saved_indent;
+    }  /* if */
+#endif /* USE_LAZY_INITIALIZATION_FOR_THREAD_LOCAL_VARIABLES */
 #if SGIC
   } else if (has_name(rout) &&
              strncmp(rout->source_corresp.name, "__builtin_", 10) == 0) {

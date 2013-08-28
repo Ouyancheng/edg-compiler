@@ -31,6 +31,7 @@ typedef enum /* an_error_code */ {
   ec_negative_vla_size,
   ec_vla_allocation_failed,
   ec_deleted_virtual_called,
+  ec_thread_registration_failed,
   ec_last
 } an_error_code;
 

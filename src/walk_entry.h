@@ -1183,8 +1183,19 @@ the file scope, do not process it (but record an orphan in the latter case).
         conditionally_clear_fe_pointer(ptr->remapping_for_inlining);
 #endif /* MINIMAL_INLINING */
 #if SEPARATE_ROUTINES_FOR_FILE_SCOPE_DYNAMIC_INITS
-        remap_ptr(ptr->dynamic_init_routine, a_routine_ptr, iek_routine);
+        if (!ptr->is_thread_local) {
+          remap_ptr(ptr->init_routine.dynamic_init_routine,
+                    a_routine_ptr, iek_routine);
+        }  /* if */
 #endif /* SEPARATE_ROUTINES_FOR_FILE_SCOPE_DYNAMIC_INITS */
+#if USE_LAZY_INITIALIZATION_FOR_THREAD_LOCAL_VARIABLES
+        if (ptr->is_thread_local) {
+          remap_ptr(ptr->init_routine.thread_local.init_routine,
+                    a_routine_ptr, iek_routine);
+          remap_ptr(ptr->init_routine.thread_local.wrapper,
+                    a_routine_ptr, iek_routine);
+        }  /* if */
+#endif /* USE_LAZY_INITIALIZATION_FOR_THREAD_LOCAL_VARIABLES */
       }
       break;
     case iek_field:

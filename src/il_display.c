@@ -2793,11 +2793,27 @@ Display the indicated variable.
 #endif /* ONE_INSTANTIATION_PER_OBJECT */
   /* remapping_for_inlining is a front-end-only field. */
 #if SEPARATE_ROUTINES_FOR_FILE_SCOPE_DYNAMIC_INITS
-  if (ptr->dynamic_init_routine != NULL) {
-    disp_ptr("dynamic_init_routine", (char *)ptr->dynamic_init_routine,
+  if (!ptr->is_thread_local &&
+      ptr->init_routine.dynamic_init_routine != NULL) {
+    disp_ptr("dynamic_init_routine",
+             (char *)ptr->init_routine.dynamic_init_routine,
              iek_routine);
   }  /* if */
 #endif /* SEPARATE_ROUTINES_FOR_FILE_SCOPE_DYNAMIC_INITS */
+#if USE_LAZY_INITIALIZATION_FOR_THREAD_LOCAL_VARIABLES
+  if (ptr->is_thread_local &&
+      ptr->init_routine.thread_local.init_routine != NULL) {
+    disp_ptr("init_routine",
+             (char *)ptr->init_routine.thread_local.init_routine,
+             iek_routine);
+  }  /* if */
+  if (ptr->is_thread_local &&
+      ptr->init_routine.thread_local.wrapper != NULL) {
+    disp_ptr("wrapper",
+             (char *)ptr->init_routine.thread_local.wrapper,
+             iek_routine);
+  }  /* if */
+#endif /* USE_LAZY_INITIALIZATION_FOR_THREAD_LOCAL_VARIABLES */
 }  /* disp_variable */
 
 
@@ -3467,6 +3483,11 @@ Display the indicated routine.
   if (ptr->is_raw_literal_operator) {
     disp_boolean("is_raw_literal_operator", TRUE);
   }  /* if */
+#if USE_LAZY_INITIALIZATION_FOR_THREAD_LOCAL_VARIABLES
+  if (ptr->is_tls_init_alias) {
+    disp_boolean("is_tls_init_alias", TRUE);
+  }  /* if */
+#endif /* USE_LAZY_INITIALIZATION_FOR_THREAD_LOCAL_VARIABLES */
 #if MAINTAIN_NEEDED_FLAGS
   disp_boolean("definition_needed", (a_boolean)ptr->definition_needed);
   /* Note: the keep_definition_in_il flag is not displayed, since it is
@@ -7166,6 +7187,12 @@ Display the IL for the file scope in human-readable form.
     disp_routine_list("file_scope_dynamic_init_routines",
                       il_header.file_scope_dynamic_init_routines);
   }  /* if */
+#if !USE_LAZY_INITIALIZATION_FOR_THREAD_LOCAL_VARIABLES
+  if (il_header.thread_local_dynamic_init_routines != NULL) {
+    disp_routine_list("thread_local_dynamic_init_routines",
+                      il_header.thread_local_dynamic_init_routines);
+  }  /* if */
+#endif /* !USE_LAZY_INITIALIZATION_FOR_THREAD_LOCAL_VARIABLES */
 #endif /* SEPARATE_ROUTINES_FOR_FILE_SCOPE_DYNAMIC_INITS */
   walk_file_scope_il(disp_entry, (a_string_entry_process_function_ptr)NULL,
                      (a_remap_function_ptr)NULL, (a_remap_function_ptr)NULL,

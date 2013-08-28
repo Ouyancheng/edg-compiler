@@ -1,3 +1,15 @@
+Version 4.8
+
+8/28/13 [EDGcpfe/9167,EDGcpfe/12359]
+C++11: Support for thread_local
+
+The __cxa_thread_atexit function has been added to cxxabi.h.  This routine
+is invoked by the front end (in IA-64 ABI configurations) to register
+destructions for thread_local variables that should occur when the current
+thread terminates.
+
+
+------------------------------------------------------------------------------
 Version 4.7, May 21, 2013
 
 No changes.

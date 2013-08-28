@@ -33,24 +33,36 @@ static a_needed_destruction_ptr
 #endif /* !defined(__EDG_IA64_ABI) || !SYSTEM_RUNTIME_HAS_IA64_SUPPORT
           !SYSTEM_RUNTIME_HAS_IA64_ATEXIT */
 
+#if RUNTIME_DOES_THREAD_LOCAL_DESTRUCTIONS
+
+/*
+The list of thread_local objects that require destruction.  An entry is
+added to the front of this list each time a new destructible thread_local
+object is created.
+*/
+thread_local a_needed_destruction_ptr
+		__thread_needed_destruction_head /* = NULL*/;
+
+#endif /* RUNTIME_DOES_THREAD_LOCAL_DESTRUCTIONS */
+
 
 #ifndef __EDG_IA64_ABI
 
-void __process_needed_destructions(void)
+void __process_destruction_list(a_needed_destruction_ptr *destruction_list)
 /*
-Go through the needed destructions list and perform the required
+Go through the specified destructions list and perform the required
 destructions.
 */
 {
   a_needed_destruction_ptr	ndp;
-  while (needed_destruction_head != NULL) {
+  while (*destruction_list != NULL) {
     void	*object_ptr;
-    /* Note that the value of needed_destruction_head may change
+    /* Note that the value of *destruction_list may change
        during the execution of the destructor.  Consequently, the
        current entry is removed from the list before the destructor
        routine is called. */
-    ndp = needed_destruction_head;
-    needed_destruction_head = needed_destruction_head->next;
+    ndp = *destruction_list;
+    *destruction_list = (*destruction_list)->next;
     object_ptr = ndp->object;
     /* Choose between a simple and complex destruction based on whether
        or not the object pointer is NULL. */
@@ -67,6 +79,18 @@ destructions.
       (ndp->destruction_routine)();
     }  /* if */
   }  /* while */
+}  /* __process_destruction_list */
+
+
+void __process_needed_destructions(void)
+/*
+Go through the needed destructions lists and perform the required
+destructions (for the current thread as well as the process).
+*/
+{
+  /* thread_local destructions are performed first. */
+  __process_destruction_list(&__thread_needed_destruction_head);
+  __process_destruction_list(&needed_destruction_head);
 }  /* __process_needed_destructions */
 
 
@@ -80,6 +104,19 @@ of the problem to the user.
   __abort_execution(ec_already_marked_for_destruction);
 }
 
+void __record_destruction_on_list(a_needed_destruction_ptr *destruction_list,
+                                  a_needed_destruction_ptr ndp)
+/*
+Add ndp to the list pointed to by *destruction_list.
+*/
+{
+  /* If the entry has already been put on the list, terminate the execution. */
+  if (ndp->next != NULL ||
+      ndp == *destruction_list) __already_marked_for_destruction();
+  ndp->next = *destruction_list;
+  *destruction_list = ndp;
+}  /* __record_destruction_on_list */
+
 
 EXTERN_C void __record_needed_destruction(a_needed_destruction_ptr ndp)
 /*
@@ -89,11 +126,7 @@ a needed destruction entry that is to be added to the front of the
 list of needed destructions.
 */
 {
-  /* If the entry has already been put on the list, terminate the execution. */
-  if (ndp->next != NULL ||
-      ndp == needed_destruction_head) __already_marked_for_destruction();
-  ndp->next = needed_destruction_head;
-  needed_destruction_head = ndp;
+  __record_destruction_on_list(&needed_destruction_head, ndp);
 }  /* __record_needed_destruction */
 
 
@@ -152,18 +185,19 @@ a_dso_handle __dso_handle;
 
 #endif /* !SYSTEM_RUNTIME_HAS_IA64_SUPPORT */
 
-#if !SYSTEM_RUNTIME_HAS_IA64_ATEXIT
+#if !SYSTEM_RUNTIME_HAS_IA64_ATEXIT || !SYSTEM_RUNTIME_HAS_IA64_THREAD_ATEXIT
 
-void ABI_NAMESPACE::__cxa_finalize(a_dso_handle dso_handle)
+void __finalize_destructions(a_needed_destruction_ptr *destruction_list,
+                             a_dso_handle             dso_handle)
 /*
-Go through the needed destructions list and perform the required
+Go through the specified destructions list and perform the required
 destructions for the DSO indicated by dso_handle, or all destructions if
 dso_handle is NULL.
 */
 {
   a_needed_destruction_ptr *ndpp, ndp, old_head;
   
-  ndpp = &needed_destruction_head;
+  ndpp = destruction_list;
   while (*ndpp != NULL) {
     ndp = *ndpp;
     /* Skip destructions that do not apply to this DSO. */
@@ -171,22 +205,69 @@ dso_handle is NULL.
       ndpp = &ndp->next;
       continue;
     }  /* if */
-    /* Note that the value of needed_destruction_head may change
+    /* Note that the value pointed to by destruction_list may change
        during the execution of the destructor.  Consequently, the
        current entry is removed from the list before the destructor
        routine is called. */
     *ndpp = ndp->next;
-    old_head = needed_destruction_head;
+    old_head = *destruction_list;
     /* Call the routine. */
     (*ndp->destruction_routine)(ndp->object);
     /* Deallocate the entry. */
     free(ndp);
     /* If the head has changed, start at the beginning of the list 
        again so that we can process the newly added destruction. */
-    if (needed_destruction_head != old_head) {
-      ndpp = &needed_destruction_head;
+    if (*destruction_list != old_head) {
+      ndpp = destruction_list;
     }  /* if */
   }  /* while */
+}  /* __finalize_destructions */
+
+
+int __add_destruction_to_list(a_needed_destruction_ptr *destruction_list,
+                              a_cxa_dtor_ptr           destruction_routine,
+                              void                     *object,
+                              a_dso_handle             dso_handle)
+/*
+Register an action to be taken at a later time (either program termination --
+or DSO unload -- or thread termination) by queuing the action (a call
+to destruction_routine with object as it's argument) on the specified
+destruction list.  Return zero if the registration is successful, or non-zero
+otherwise.
+*/
+{
+  int                      success = TRUE;
+  a_needed_destruction_ptr ndp;
+
+  ndp = (a_needed_destruction_ptr)malloc(sizeof(a_needed_destruction));
+  if (ndp == NULL) {
+    success = FALSE;
+  }  else {
+    ndp->object = object;
+    ndp->destruction_routine = (a_destructor_ptr)destruction_routine;
+    ndp->dso_handle = dso_handle;
+    ndp->next = *destruction_list;
+    *destruction_list = ndp;
+  }  /* if */
+  return !success;
+}  /* __add_destruction_to_list */
+
+#endif /* !SYSTEM_RUNTIME_HAS_IA64_ATEXIT || !SYSTEM_RUNTIME_HAS_IA64_... */
+#if !SYSTEM_RUNTIME_HAS_IA64_ATEXIT
+
+void ABI_NAMESPACE::__cxa_finalize(a_dso_handle dso_handle)
+/*
+Go through the needed destructions lists and perform the required
+destructions for the DSO indicated by dso_handle, or all destructions if
+dso_handle is NULL.
+*/
+{
+#if RUNTIME_DOES_THREAD_LOCAL_DESTRUCTIONS
+  /* Do thread_local destructions for the current thread first. */
+  /* FIXME: test this (i.e., does g++ do this?) */
+  __finalize_destructions(&__thread_needed_destruction_head, dso_handle);
+#endif /* RUNTIME_DOES_THREAD_LOCAL_DESTRUCTIONS */
+  __finalize_destructions(&needed_destruction_head, dso_handle);
 }  /* __cxa_finalize */
 
 
@@ -212,21 +293,10 @@ __register_finalization_routine on the first invocation of this function.
 Return zero if the registration is successful, or non-zero otherwise.
 */
 {
-  int                      success = TRUE;
-  a_needed_destruction_ptr ndp;
-
-  ndp = (a_needed_destruction_ptr)malloc(sizeof(a_needed_destruction));
-  if (ndp == NULL) {
-    success = FALSE;
-  }  else {
-    if (needed_destruction_head == NULL) __register_finalization_routine();
-    ndp->object = object;
-    ndp->destruction_routine = (a_destructor_ptr)destruction_routine;
-    ndp->dso_handle = dso_handle;
-    ndp->next = needed_destruction_head;
-    needed_destruction_head = ndp;
-  }  /* if */
-  return !success;
+  if (needed_destruction_head == NULL) __register_finalization_routine();
+  return __add_destruction_to_list(&needed_destruction_head,
+                                   destruction_routine,
+                                   object, dso_handle);
 }  /* __cxa_atexit */
 
 #endif /* !SYSTEM_RUNTIME_HAS_IA64_ATEXIT */

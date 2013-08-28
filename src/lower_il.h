@@ -996,14 +996,16 @@ extern an_expr_node_ptr make_array_to_pointer_node(an_expr_node_ptr operand);
 extern a_variable_ptr make_global_var_with_prefixed_name(
                                       a_const_char            *prefix,
                                       an_integer_kind         ikind,
-                                      a_source_correspondence *source_corresp);
+                                      a_source_correspondence *source_corresp,
+                                      an_il_entry_kind        kind);
 
 extern a_boolean routine_might_exist_in_multiple_copies(a_routine_ptr rout);
 
 #if AUTOMATIC_TEMPLATE_INSTANTIATION
 extern void make_instantiation_info_var(
                                     a_const_char            *prefix,
-                                    a_source_correspondence *source_corresp);
+                                    a_source_correspondence *source_corresp,
+                                    an_il_entry_kind        kind);
 #endif /* AUTOMATIC_TEMPLATE_INSTANTIATION */
 
 extern void add_temporary_to_scope(a_variable_ptr temp,

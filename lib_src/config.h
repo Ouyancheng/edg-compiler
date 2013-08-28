@@ -245,9 +245,61 @@ runtime includes the __cxa_atexit function.
 #endif /* SYSTEM_RUNTIME_HAS_IA64_SUPPORT */
 #endif /* ifndef SYSTEM_RUNTIME_HAS_IA64_ATEXIT */
 
+/*
+The __cxa_thread_atexit routine was added for C++11 compatibility, so it
+may not be available in older system runtime libraries in which case
+this runtime library can supply it (when SYSTEM_RUNTIME_HAS_IA64_THREAD_ATEXIT
+is TRUE).  Note that in the configuration where
+SYSTEM_RUNTIME_HAS_IA64_THREAD_ATEXIT is TRUE and
+SYSTEM_RUNTIME_HAS_IA64_ATEXIT is FALSE the runtime library is not
+standard-compliant because the thread_local destructions are supposed to
+occur before the static and atexit destructions, but, for calls like exit(),
+the system runtime is invoked first and performs the necessary static
+destructions before invoking the atexit destructions (one of which is
+registered by the EDG runtime to invoke the thread_local destructions), so
+the ordering is incorrect.
+*/
+#ifndef SYSTEM_RUNTIME_HAS_IA64_THREAD_ATEXIT
+/* Assume that systems that have __cxa_atexit also have __cxa_thread_atexit. */
+#define SYSTEM_RUNTIME_HAS_IA64_THREAD_ATEXIT SYSTEM_RUNTIME_HAS_IA64_ATEXIT
+#endif /* ifndef SYSTEM_RUNTIME_HAS_IA64_THREAD_ATEXIT */
+
 #else /* ifndef __EDG_IA64_ABI */
 #define SYSTEM_RUNTIME_HAS_IA64_ATEXIT FALSE
+#define SYSTEM_RUNTIME_HAS_IA64_THREAD_ATEXIT FALSE
 #endif /* ifdef __EDG_IA64_ABI */
+
+/*
+Determine if the runtime library is responsible for thread_local destructions.
+*/
+#if !defined(__EDG_IA64_ABI) || !SYSTEM_RUNTIME_HAS_IA64_SUPPORT || \
+    !SYSTEM_RUNTIME_HAS_IA64_THREAD_ATEXIT
+#ifdef __STDCPP_THREADS__
+/* The runtime is responsible for thread_local destructions. */
+#define RUNTIME_DOES_THREAD_LOCAL_DESTRUCTIONS TRUE
+#else /* !defined(__STDCPP_THREADS__) */
+/* The front end won't generate thread_local destructions. */
+#define RUNTIME_DOES_THREAD_LOCAL_DESTRUCTIONS FALSE
+#endif /* __STDCPP_THREADS__ */
+#else /* !(!defined(__EDG_IA64_ABI) || !SYSTEM_RUNTIME_HAS_IA64_SUPPORT...) */
+/* The runtime isn't responsible for thread_local destructions. */
+#define RUNTIME_DOES_THREAD_LOCAL_DESTRUCTIONS FALSE
+#endif /* !defined(__EDG_IA64_ABI) || !SYSTEM_RUNTIME_HAS_IA64_SUPPORT ||... */
+
+/*
+The runtime must know when a thread is terminated in order to properly destroy
+thread_local objects.  The runtime needs operating system support to make this
+determination; when USE_PTHREADS is TRUE, calls to the POSIX thread (pthread)
+library are made to get this information.  If a different threading mechanism
+is used, USE_PTHREADS should be set to FALSE (and
+__thread_register_finalization_routine needs to be modified to provide
+the appropriate notification on thread termination).
+*/
+#if RUNTIME_DOES_THREAD_LOCAL_DESTRUCTIONS
+#ifndef USE_PTHREADS
+#define USE_PTHREADS TRUE
+#endif /* ifndef USE_PTHREADS */
+#endif /* RUNTIME_DOES_THREAD_LOCAL_DESTRUCTIONS */
 
 #if EXCEPTION_HANDLING
 /*

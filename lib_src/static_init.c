@@ -132,7 +132,7 @@ called when the program exits.
 #elif defined(sun)
   on_exit((void_c_function_ptr)__call_dtors, (char *)NULL);
 #endif /* USE_ATEXIT */
-}  /* __register_finalization_rotuine */
+}  /* __register_finalization_routine */
 
 
 void __call_ctors()

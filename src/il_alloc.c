@@ -2043,9 +2043,9 @@ Initialize a dynamic_init entry of the kind specified.
   dip->is_guard_var_for_local_static_var_init = FALSE;
 #endif /* DO_IL_LOWERING */
   dip->overlaps_temps_in_inner_lifetime = FALSE;
-#if DO_IL_LOWERING && MULTIPLE_INIT_ROUTINES
+#if DO_IL_LOWERING
   dip->included_in_slice = FALSE;
-#endif /* DO_IL_LOWERING && MULTIPLE_INIT_ROUTINES */
+#endif /* DO_IL_LOWERING */
   dip->is_explicit_cast = FALSE;
   dip->is_compound_literal = FALSE;
   dip->is_braced_initializer = FALSE;
@@ -2295,8 +2295,12 @@ Clear the fields of the given variable to default values.
   vp->remapping_for_inlining      = NULL;
 #endif /* MINIMAL_INLINING */
 #if SEPARATE_ROUTINES_FOR_FILE_SCOPE_DYNAMIC_INITS
-  vp->dynamic_init_routine        = NULL;
+  vp->init_routine.dynamic_init_routine = NULL;
 #endif /* SEPARATE_ROUTINES_FOR_FILE_SCOPE_DYNAMIC_INITS */
+#if USE_LAZY_INITIALIZATION_FOR_THREAD_LOCAL_VARIABLES
+  vp->init_routine.thread_local.init_routine = NULL;
+  vp->init_routine.thread_local.wrapper = NULL;
+#endif /* USE_LAZY_INITIALIZATION_FOR_THREAD_LOCAL_VARIABLES */
 }  /* clear_variable */
 
 
@@ -2685,6 +2689,9 @@ to it.  The entry is allocated in the file scope memory region.
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   rp->considered_decider_function_at_some_point = FALSE;
   rp->is_raw_literal_operator     = FALSE;
+#if USE_LAZY_INITIALIZATION_FOR_THREAD_LOCAL_VARIABLES
+  rp->is_tls_init_alias           = FALSE;
+#endif /* USE_LAZY_INITIALIZATION_FOR_THREAD_LOCAL_VARIABLES */
 #if CENTERLINE_CHECKING
   rp->avoid_codecenter_warnings = 0;
 #endif /* CENTERLINE_CHECKING */

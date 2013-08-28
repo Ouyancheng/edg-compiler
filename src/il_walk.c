@@ -291,6 +291,10 @@ That is what the remap function does.
 #if SEPARATE_ROUTINES_FOR_FILE_SCOPE_DYNAMIC_INITS
   walk_list(il_header.file_scope_dynamic_init_routines,
             a_routine_list_entry_ptr, iek_routine_list_entry);
+#if !USE_LAZY_INITIALIZATION_FOR_THREAD_LOCAL_VARIABLES
+  walk_list(il_header.thread_local_dynamic_init_routines,
+            a_routine_list_entry_ptr, iek_routine_list_entry);
+#endif /* !USE_LAZY_INITIALIZATION_FOR_THREAD_LOCAL_VARIABLES */
 #endif /* SEPARATE_ROUTINES_FOR_FILE_SCOPE_DYNAMIC_INITS */
   /* Restore the state of global variables. */
   restore_il_walk_state(saved_state);

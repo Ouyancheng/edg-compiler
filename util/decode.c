@@ -3861,6 +3861,12 @@ length returned the second time will be correct).
   } else if (start_of_id_is("__LSG__", id, dctl)) {
     write_id_str("initialization guard variable for ", dctl);
     end_ptr = demangle_identifier(id+7, dctl);
+  } else if (start_of_id_is("__THI__", id, dctl)) {
+    write_id_str("thread_local initialization routine for ", dctl);
+    end_ptr = demangle_identifier(id+7, dctl);
+  } else if (start_of_id_is("__TWR__", id, dctl)) {
+    write_id_str("thread_local wrapper for ", dctl);
+    end_ptr = demangle_identifier(id+7, dctl);
   } else if (start_of_id_is("__TID_", id, dctl)) {
     write_id_str("type identifier for ", dctl);
     end_ptr = demangle_type(id+6, dctl);
@@ -7433,6 +7439,8 @@ The syntax is:
                  ::= TI <type>  # typeinfo structure
                  ::= TS <type>  # typeinfo name (null-terminated byte string)
                  ::= GV <object name> # Guard variable for one-time init
+                 ::= TW <object name> # Thread-local wrapper
+                 ::= TH <object name> # Thread-local initialization
                  ::= T <call-offset> <base encoding>
                       # base is the nominal target function of thunk
                  ::= Tc <call-offset> <call-offset> <base encoding>
@@ -7442,10 +7450,11 @@ The syntax is:
 
 */
 {
+  a_func_block func_block;
+
   if (*ptr == 'G') {
     if (ptr[1] == 'V') {
       /* Guard variable, GV <object name>. */
-      a_func_block func_block;
       write_id_str("Initialization guard variable for ", dctl);
       ptr = demangle_name(ptr+2, &func_block, /*options=*/DNO_ALL, dctl);
     } else {
@@ -7479,6 +7488,14 @@ The syntax is:
       write_id_str("Thunk for ", dctl);
       ptr = demangle_call_offset(ptr+1, dctl);
       ptr = demangle_encoding(ptr, /*include_func_params=*/TRUE, dctl);
+    } else if (ptr[1] == 'H') {
+      /* Thread-local initialization alias for <object name>. */
+      write_id_str("Thread-local initialization routine for ", dctl);
+      ptr = demangle_name(ptr+2, &func_block, /*options=*/DNO_ALL, dctl);
+    } else if (ptr[1] == 'W') {
+      /* Thread-local wrapper for <object name>. */
+      write_id_str("Thread-local wrapper routine for ", dctl);
+      ptr = demangle_name(ptr+2, &func_block, /*options=*/DNO_ALL, dctl);
     } else {
       bad_mangled_name(dctl);
     }  /* if */

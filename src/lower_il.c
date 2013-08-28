@@ -1947,7 +1947,8 @@ it.  The variable has no name.
 a_variable_ptr make_global_var_with_prefixed_name(
                                       a_const_char            *prefix,
                                       an_integer_kind         ikind,
-                                      a_source_correspondence *source_corresp)
+                                      a_source_correspondence *source_corresp,
+                                      an_il_entry_kind        kind)
 /*
 Create a global variable whose name is the concatenation of the indicated
 prefix and the mangled name of the entity whose source correspondence
@@ -1957,31 +1958,9 @@ about potential template instantiations.
 */
 {
   a_variable_ptr var;
-  a_const_char   *mangled_name;
   char           *info_name;
-  sizeof_t       mangled_name_length, info_name_length;
-  sizeof_t       prefix_length, alloc_length;
 
-  /* The name of the entity should be mangled already, if it needs to
-     be mangled.  Unfortunately, there's no easy way to test that
-     because some entities don't need name mangling (e.g., extern "C"
-     inline functions), and we don't have the information to tell whether
-     this entity needs mangling. */
-  mangled_name = source_corresp->name;
-#if IA64_ABI
-  /* Skip the '_Z' prefix. */
-  check_assertion(mangled_name[0] == '_' && mangled_name[1] == 'Z');
-  mangled_name += 2;
-#endif /* IA64_ABI */
-  mangled_name_length = strlen(mangled_name);
-  prefix_length = strlen(prefix);
-  info_name_length = prefix_length + mangled_name_length;
-  /* Allocate space for the info name, including the final null. */
-  alloc_length = info_name_length + 1;
-  info_name = alloc_lowered_name_string(alloc_length);
-  /* Build the mangled name. */
-  (void)strcpy(info_name, prefix);
-  (void)strcpy(info_name+prefix_length, mangled_name);
+  info_name = make_prefixed_object_name(prefix, source_corresp, kind);
   /* Make the variable.  Note that it is a definition of an external name. */  
   var = make_lowered_variable(info_name, /*already_il_name=*/TRUE,
                               integer_type(ikind),
@@ -1994,11 +1973,12 @@ about potential template instantiations.
 #if AUTOMATIC_TEMPLATE_INSTANTIATION
 
 void make_instantiation_info_var(a_const_char            *prefix,
-                                 a_source_correspondence *source_corresp)
+                                 a_source_correspondence *source_corresp,
+                                 an_il_entry_kind        kind)
 /*
 Create a variable whose name records information on instantiation of some
 entity.  Such variables are used as part of the automatic instantiation scheme.
-source_corresp identifies the entity (variable or routine) for which some
+source_corresp/kind identifies the entity (variable or routine) for which some
 information is to be encoded.  The name of the generated variable encodes
 the information about that entity; it consists of the indicated prefix
 (e.g., something like "__DNI__" to indicate "do not instantiate") followed
@@ -2013,7 +1993,7 @@ by the mangled name of the entity.  The variable has type char (arbitrarily).
   (void)
 #endif /* MAINTAIN_NEEDED_FLAGS */
         make_global_var_with_prefixed_name(prefix, (an_integer_kind)ik_char,
-                                           source_corresp);
+                                           source_corresp, kind);
 #if MAINTAIN_NEEDED_FLAGS
   /* Since this routine is always called after normal needed flag processing
      (since the determination of which instantiation info variables to put
@@ -14546,6 +14526,45 @@ where an enk_param_ref is found in a constant or non-constant aggregate
   expr->variant.variable = param;
 }  /* lower_param_ref */
 
+#if USE_LAZY_INITIALIZATION_FOR_THREAD_LOCAL_VARIABLES
+
+static void lower_thread_local_variable(an_expr_node_ptr expr)
+/*
+Lower a reference to a thread_local variable by ensuring that the variable,
+if dynamically initialized, or potentially dynamically initialized, has
+had it's dynamic initialization performed before it's first use in the
+thread.
+*/
+{
+  a_variable_ptr    var;
+  a_routine_ptr     wrapper;
+  an_expr_node_ptr  new_expr;
+
+  check_assertion(is_variable_node(expr));
+  var = expr->variant.variable;
+  check_assertion(var_has_thread_storage_duration(var));
+  if (var->source_corresp.name_linkage != (a_name_linkage_kind)nlk_none &&
+      (var->storage_class == (a_storage_class)sc_unspecified ||
+       var->storage_class == (a_storage_class)sc_extern ||
+       var->init_kind == (an_init_kind)initk_dynamic)) {
+    /* A reference to a thread_local variable that is not defined in this
+       translation unit or one that is defined in this translation unit
+       and has a dynamic initialization.  In these cases, invoke the
+       wrapper routine to ensure that the variable is properly initialized
+       in this thread before it is used.  Replace the enk_variable node
+       with "*wrapper()" (the wrapper returns the address of the variable). */
+    wrapper = thread_local_wrapper_for_variable(var);
+    new_expr = make_call_node(wrapper, (an_expr_node_ptr)NULL);
+    check_assertion(!new_expr->is_lvalue);
+    new_expr = add_indirection_to_node(new_expr);
+    if (!expr->is_lvalue) {
+      new_expr = rvalue_expr_for_lvalue(new_expr);
+    }  /* if */
+    overwrite_node(expr, new_expr);
+  }  /* if */
+}  /* lower_thread_local_variable */
+
+#endif /* USE_LAZY_INITIALIZATION_FOR_THREAD_LOCAL_VARIABLES */
 
 void lower_expr_full(an_expr_node_ptr expr,
                      a_boolean        assume_expr_is_non_null)
@@ -14670,6 +14689,7 @@ cast.  See lower_expr for typical invocation.
              implicit parameter through which the return address is passed by
              the caller. */
           a_boolean expr_is_lvalue = expr->is_lvalue;
+          check_assertion(!var->is_thread_local);
           operand_node = var_rvalue_expr(return_value_pointer_variable);
           /* Make sure the types are consistent (cv-qualification can
              be mismatched here). */
@@ -14699,6 +14719,15 @@ cast.  See lower_expr for typical invocation.
              the type of the overall expression. */
           expr->type = var->type;
 #endif /* ASSIGNMENT_TO_THIS_ALLOWED */
+#if USE_LAZY_INITIALIZATION_FOR_THREAD_LOCAL_VARIABLES
+        } else if (var->is_thread_local) {
+          /* If this thread_local variable has an initialization (or may
+             have an initialization), rewrite it with a call to the
+             initialization routine before the variable is accessed. */
+          lower_thread_local_variable(expr);
+          /* Note that the expression may no longer be an enk_variable
+             after this lowering. */
+#endif /* USE_LAZY_INITIALIZATION_FOR_THREAD_LOCAL_VARIABLES */
         }  /* if */
       }  /* if */
       break;

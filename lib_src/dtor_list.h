@@ -59,8 +59,37 @@ typedef struct a_needed_destruction {
 #ifndef __EDG_IA64_ABI
 extern void __process_needed_destructions(void);
 
+extern void __process_destruction_list(
+                                   a_needed_destruction_ptr *destruction_list);
+
+extern void __record_destruction_on_list(
+                                    a_needed_destruction_ptr *destruction_list,
+                                    a_needed_destruction_ptr ndp);
+
 EXTERN_C void __record_needed_destruction(a_needed_destruction_ptr ndp);
+
+EXTERN_C void __record_needed_thread_destruction(a_needed_destruction_ptr ndp);
+
+#else /* ifdef __EDG_IA64_ABI */
+#if !(SYSTEM_RUNTIME_HAS_IA64_ATEXIT && SYSTEM_RUNTIME_HAS_IA64_THREAD_ATEXIT)
+
+extern void __finalize_destructions(a_needed_destruction_ptr *destruction_list,
+                                    a_dso_handle             dso_handle);
+
+extern int __add_destruction_to_list(
+                              a_needed_destruction_ptr *destruction_list,
+                              a_cxa_dtor_ptr           destruction_routine,
+                              void                     *object,
+                              a_dso_handle             dso_handle);
+#endif /* !(SYSTEM_RUNTIME_HAS_IA64_ATEXIT && SYSTEM_RUNTIME_HAS_IA64_...) */
 #endif /* ifndef __EDG_IA64_ABI */
+
+#if RUNTIME_DOES_THREAD_LOCAL_DESTRUCTIONS
+extern thread_local a_needed_destruction_ptr
+		__thread_needed_destruction_head;
+#endif /* RUNTIME_DOES_THREAD_LOCAL_DESTRUCTIONS */
+
+
 
 #endif /* DTOR_LIST_H */
 

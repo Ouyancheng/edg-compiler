@@ -311,6 +311,13 @@ extern void init_lower_trans_unit_init(void);
 
 extern void init_lower_init(void);
 
+#if USE_LAZY_INITIALIZATION_FOR_THREAD_LOCAL_VARIABLES
+extern a_routine_ptr thread_local_init_routine_for_variable(
+                                                           a_variable_ptr var);
+
+extern a_routine_ptr thread_local_wrapper_for_variable(a_variable_ptr var);
+#endif /* USE_LAZY_INITIALIZATION_FOR_THREAD_LOCAL_VARIABLES */
+
 #endif /* DO_IL_LOWERING */
 #endif /* ifndef LOWER_INIT_H */
 

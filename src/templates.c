@@ -27274,6 +27274,7 @@ update_instantiation_required_flag to do the appropriate processing.
 
 static void create_instantiation_flag_variables(
 				a_source_correspondence *scp,
+                                an_il_entry_kind        kind,
 				a_boolean		instance_required,
 				a_boolean		do_not_instantiate,
 				a_boolean		can_be_instantiated)
@@ -27285,15 +27286,15 @@ only if IL lowering is done.
 {
   if (instance_required) {
     /* An instantiation of this routine or static data member is required. */
-    make_instantiation_info_var("__TIR__", scp);
+    make_instantiation_info_var("__TIR__", scp, kind);
   }  /* if */
   if (do_not_instantiate) {
     /* This routine or variable cannot be instantiated. */
-    make_instantiation_info_var("__DNI__", scp);
+    make_instantiation_info_var("__DNI__", scp, kind);
   }  /* if */
   if (can_be_instantiated) {
     /* This routine or variable can be instantiated. */
-    make_instantiation_info_var("__CBI__", scp);
+    make_instantiation_info_var("__CBI__", scp, kind);
   }  /* if */
 }  /* create_instantiation_flag_variables */
 
@@ -27716,10 +27717,14 @@ be processed.
         /* The flags are to be placed in the IL as special variables. */
         if (il_lowering_needed()) {
           a_source_correspondence	*scp;
+          an_il_entry_kind              kind;
           scp = is_static_data_member ?
                           &variable->source_corresp : &routine->source_corresp;
-          create_instantiation_flag_variables(
-             scp, instance_required, do_not_instantiate, can_be_instantiated);
+          kind = is_static_data_member ?
+                (an_il_entry_kind)iek_variable : (an_il_entry_kind)iek_routine;
+          create_instantiation_flag_variables(scp, kind, instance_required,
+                                              do_not_instantiate,
+                                              can_be_instantiated);
         }  /* if */
 #endif /* DO_IL_LOWERING */
       }  /* if */
@@ -28612,8 +28617,11 @@ a body (if needed) for extern inline functions.
         if (il_lowering_needed()) {
           a_source_correspondence	*scp;
           scp = &rout_ptr->source_corresp;
-          create_instantiation_flag_variables(
-             scp, instance_required, do_not_instantiate, can_be_instantiated);
+          create_instantiation_flag_variables(scp,
+                                              (an_il_entry_kind)iek_routine,
+                                              instance_required,
+                                              do_not_instantiate,
+                                              can_be_instantiated);
         }  /* if */
 #endif /* DO_IL_LOWERING */
       }  /* if */

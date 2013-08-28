@@ -64,6 +64,9 @@ Return the string associated with the specified error code.
     case ec_deleted_virtual_called:
       s = "a deleted virtual function was called";
       break;
+    case ec_thread_registration_failed:
+      s = "registration for thread termination notification failed";
+      break;
     case ec_main_called_more_than_once:
     default:
       unexpected_condition();

@@ -490,6 +490,38 @@ cv-qualifiers on a class rvalue (e.g., as part of binding a reference).
 #endif /* LOWER_CLASS_RVALUE_ADJUST && !DO_IL_LOWERING */
 
 /*
+In the absence of OS support for dynamic initialization of thread_local
+variables, lowering provides such support using "lazy initialization", that is,
+each access to a potentially-dynamically-initialized thread_local variable is
+surrounded by a guard variable to ensure that the initialization is performed
+only once per thread.  For the case of thread_local variables that are local to
+a function, a simple thread_local guard variable suffices.  In cases where the
+variable is static or external, lowering replaces the reference to the variable
+with a call to a wrapper routine that properly initializes the variable and
+returns the address of the variable itself.  Re-writing variables in this way
+has an obvious performance effect, so if customers have a way to invoke all
+thread_local dynamic initializations once when a thread is initially created,
+they should use that mechanism and set
+USE_LAZY_INITIALIZATION_FOR_THREAD_LOCAL_VARIABLES to FALSE.
+The IA-64 ABI requires USE_LAZY_INITIALIZATION_FOR_THREAD_LOCAL_VARIABLES
+be set to TRUE (as do configurations that use the C-generating back end).
+See also IMPLEMENTATION_SUPPORTS_MULTIPLE_THREADS (if that configuration
+macro is FALSE, lowering of thread_local is moot).
+*/
+#ifndef USE_LAZY_INITIALIZATION_FOR_THREAD_LOCAL_VARIABLES
+#define USE_LAZY_INITIALIZATION_FOR_THREAD_LOCAL_VARIABLES DO_IL_LOWERING
+#endif /* USE_LAZY_INITIALIZATION_FOR_THREAD_LOCAL_VARIABLES */
+
+#if !USE_LAZY_INITIALIZATION_FOR_THREAD_LOCAL_VARIABLES && IA64_ABI
+ #error -- IA64_ABI requires \
+           USE_LAZY_INITIALIZATION_FOR_THREAD_LOCAL_VARIABLES to be TRUE
+#endif /* !USE_LAZY_INITIALIZATION_FOR_THREAD_LOCAL_VARIABLES && IA64_ABI */
+#if !USE_LAZY_INITIALIZATION_FOR_THREAD_LOCAL_VARIABLES && BACK_END_IS_C_GEN_BE
+ #error -- BACK_END_IS_C_GEN_BE requires \
+           USE_LAZY_INITIALIZATION_FOR_THREAD_LOCAL_VARIABLES to be TRUE
+#endif /* !USE_LAZY_INITIALIZATION_FOR_THREAD_LOCAL_VARIABLES && BACK_... */
+
+/*
 This flag indicates whether the back end is capable of handling C++11
 features.  When set to FALSE, the front end is configured such that
 C++11 mode, as well as any C++11 feature that requires back end support, cannot
@@ -4068,6 +4100,16 @@ useful when a back end has somehow determined that a file-scope variable or
 static data member is otherwise unused and can be removed from the translation
 unit (in which case the routine that initializes it can simply be removed from
 this list).
+
+When USE_LAZY_INITIALIZATION_FOR_THREAD_LOCAL_VARIABLES is TRUE, file-scope
+thread_local dynamic initializations are consolidated in a single __tls_init
+initialization routine (regardless of the setting of
+SEPARATE_ROUTINES_FOR_FILE_SCOPE_DYNAMIC_INITS).  When
+USE_LAZY_INITIALIZATION_FOR_THREAD_LOCAL_VARIABLES is FALSE and
+SEPARATE_ROUTINES_FOR_FILE_SCOPE_DYNAMIC_INITS is TRUE, separate routines
+are created for each thread_local initialization and these routines
+are pointed to by il_header.thread_local_dynamic_init_routines (in the
+order they should be executed).
 */
 #ifndef SEPARATE_ROUTINES_FOR_FILE_SCOPE_DYNAMIC_INITS
 #define SEPARATE_ROUTINES_FOR_FILE_SCOPE_DYNAMIC_INITS FALSE
