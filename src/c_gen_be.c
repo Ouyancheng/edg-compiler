@@ -9744,7 +9744,7 @@ if this routine has a body (dump nothing if it has no body).
       end_output_line_if_begun();
       indent = 0;
       disable_line_wrapping();
-      if (gcc_is_generated_code_target) {
+      if (gcc_is_generated_code_target && 0 /* FIXME -- disable for now */) {
         if (rout->storage_class == (a_storage_class)sc_static) {
           /* Use an __asm__ label to create an alias to __tls_init. */
           dump_storage_class(rout->storage_class);
