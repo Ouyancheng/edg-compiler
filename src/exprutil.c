@@ -13672,10 +13672,10 @@ a_boolean variable_has_constant_address(a_variable_ptr variable)
 /*
 Return TRUE if the indicated variable has a constant address.  A static
 variable, for example, has a constant address, whereas a local auto
-variable does not.
+or thread_local variable does not.
 */
 {
-  a_boolean const_addr = var_has_static_or_thread_storage_duration(variable);
+  a_boolean const_addr = var_has_static_storage_duration(variable);
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
   if (variable->decl_modifiers & DM_DLLIMPORT) {
