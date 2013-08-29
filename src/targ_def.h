@@ -507,6 +507,10 @@ The IA-64 ABI requires USE_LAZY_INITIALIZATION_FOR_THREAD_LOCAL_VARIABLES
 be set to TRUE (as do configurations that use the C-generating back end).
 See also IMPLEMENTATION_SUPPORTS_MULTIPLE_THREADS (if that configuration
 macro is FALSE, lowering of thread_local is moot).
+
+Note also that the current implementation of lazy initialization relies
+on weak references, and as such requires that GNU_EXTENSIONS_ALLOWED
+be set to TRUE.
 */
 #ifndef USE_LAZY_INITIALIZATION_FOR_THREAD_LOCAL_VARIABLES
 #define USE_LAZY_INITIALIZATION_FOR_THREAD_LOCAL_VARIABLES DO_IL_LOWERING
@@ -521,6 +525,11 @@ macro is FALSE, lowering of thread_local is moot).
  #error -- BACK_END_IS_C_GEN_BE requires \
            USE_LAZY_INITIALIZATION_FOR_THREAD_LOCAL_VARIABLES to be TRUE
 #endif /* !USE_LAZY_INITIALIZATION_FOR_THREAD_LOCAL_VARIABLES && BACK_... */
+#if USE_LAZY_INITIALIZATION_FOR_THREAD_LOCAL_VARIABLES && DO_IL_LOWERING && \
+    !GNU_EXTENSIONS_ALLOWED
+ #error -- USE_LAZY_INITIALIZATION_FOR_THREAD_LOCAL_VARIABLES requires \
+           that GNU_EXTENSIONS_ALLOWED be TRUE
+#endif /* USE_LAZY_INITIALIZATION_FOR_THREAD_LOCAL_VARIABLES && !... */
 
 /*
 This flag indicates whether the back end is capable of handling C++11
