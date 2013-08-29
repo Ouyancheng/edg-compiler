@@ -15860,6 +15860,7 @@ has not yet been defined, it is created here.
   a_routine_ptr          wrapper_routine, init_routine;
   a_statement_ptr        return_stmt;
   a_const_char           *wrapper_name;
+  a_type_ptr             wrapper_type;
 
   if (var->init_routine.thread_local.wrapper == NULL) {
     /* Create the routine and give it a well-known name (based on the
@@ -15872,9 +15873,16 @@ has not yet been defined, it is created here.
 #endif /* IA64_ABI */
                                              &var->source_corresp,
                                              (an_il_entry_kind)iek_variable);
+    if (is_reference_type(var->type)) {
+      /* Replace a reference type with a pointer type. */
+      wrapper_type = make_pointer_type(type_pointed_to(var->type));
+    } else {
+      wrapper_type = var->type;
+    }  /* if */
+    wrapper_type = make_pointer_type(wrapper_type);
     wrapper_routine = make_rout_entry(wrapper_name,
                                       var->storage_class,
-                                      make_pointer_type(var->type),
+                                      wrapper_type,
                                       (a_type_ptr)NULL);
     wrapper_routine->source_corresp.name_has_been_mangled = TRUE;
     wrapper_routine->type->variant.routine.extra_info->prototyped = TRUE;

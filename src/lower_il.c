@@ -9169,8 +9169,11 @@ Do IL lowering of the indicated type and everything under it.
         break;
 #endif /* FIXED_POINT_ALLOWED */
       case tk_pointer:
-        /* Note that references aren't turned into pointers, because back ends
-           shouldn't care. */
+        if (type->variant.pointer.is_reference) {
+          /* Lower reference types to pointer types (though a back end
+             should accept either). */
+          type->variant.pointer.is_reference = FALSE;
+        }  /* if */
         lower_type(type->variant.pointer.type);
         break;
       case tk_ptr_to_member:
