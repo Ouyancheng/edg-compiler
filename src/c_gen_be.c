@@ -10040,7 +10040,7 @@ if this routine has a body (dump nothing if it has no body).
       }  /* if */
 #endif /* !SEPARATE_ROUTINES_FOR_FILE_SCOPE_DYNAMIC_INITS */
 #if GNU_EXTENSIONS_ALLOWED && SUNPRO_C_IS_C_GEN_BE_TARGET
-      if (rout->is_weak && sun_is_generated_code_target) {
+      if (rout->is_weak) {
         /* Indicate that the routine is a weak reference by emitting
            a "#pragma weak". */
         dump_sunpro_weak_pragma(rout);
