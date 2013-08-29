@@ -9755,12 +9755,7 @@ if this routine has a body (dump nothing if it has no body).
       /* This routine is an "alias" for the thread_local initialization
          for this translation unit.  If the back end supports it, create
          an alias, otherwise emit a routine to invoke __tls_init explicitly. */
-      /* FIXME: need some help here: how to "begin" a new line?. */
       /* FIXME: "void" return type and arguments are hardcoded, etc. */
-      uint32_t saved_indent = indent;
-      end_output_line_if_begun();
-      indent = 0;
-      disable_line_wrapping();
       if (gcc_is_generated_code_target && 0 /*lint !e506*/ /* FIXME */) {
         if (rout->storage_class == (a_storage_class)sc_static) {
           /* Use an __asm__ label to create an alias to __tls_init. */
@@ -9789,9 +9784,6 @@ if this routine has a body (dump nothing if it has no body).
         dump_routine_name(rout);
         write_str("(void) { __tls_init(); }");
       }  /* if */
-      enable_line_wrapping();
-      end_output_line();
-      indent = saved_indent;
     }  /* if */
 #endif /* USE_LAZY_INITIALIZATION_FOR_THREAD_LOCAL_VARIABLES */
 #if SGIC
