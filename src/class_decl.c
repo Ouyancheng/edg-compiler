@@ -29128,6 +29128,7 @@ Initializations for class declaration processing.
   avail_routine_fixup = NULL;
   avail_class_fixup = NULL;
   avail_override_registry_entries = NULL;
+  avail_override_exception_check_entries = NULL;
   avail_initializer_fixup = NULL;
 #if MICROSOFT_EXTENSIONS_ALLOWED
   avail_quasi_override_descrs = NULL;

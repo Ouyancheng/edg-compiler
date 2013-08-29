@@ -1,12 +1,13 @@
 Version 5.0
 
 8/28/13 [EDGcpfe/14443]
-Missing static initialization of gnu_bases_operators_enabled
+Missing initialization of global and static variables
 
-The global variable gnu_bases_operators_enabled was not statically
-initialized, resulting in errors when running multiple invocations of
-the front end in the same process with different sets of command-line
-options.  Now fixed.
+The front end can be repeatedly invoked in a single process and must
+re-initialize itself each time.  The variables gnu_bases_operators_enabled
+and avail_override_exception_check_entries were not properly initialized
+and could retain their values from a previous invocation, resulting
+in undefined behavior.  Now fixed.
 
 
 8/28/13 [EDGcpfe/9167,EDGcpfe/12359]
