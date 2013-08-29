@@ -22734,9 +22734,10 @@ that follows.
   decl_specifiers(dsi_flags, dps, &decl_pos_block);
   dso_flags = dps->dso_flags;
   /* A storage class is not permitted on an explicit specialization, except
-     in GNU and Microsoft modes. */
+     in GNU and Microsoft modes or when the thread_local keyword is enabled. */
   check_assertion(decl_state->decl_scope_err ||
                   dps->storage_class == (a_storage_class)sc_unspecified ||
+                  std_thread_local_storage_specifier_enabled ||
 		  microsoft_mode || (gpp_mode && !decl_state->is_member_decl));
   /* Issue a diagnostic if there are any unapplied pragmas at this point. */
   cannot_bind_to_curr_construct();
