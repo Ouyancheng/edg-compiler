@@ -14546,10 +14546,8 @@ thread.
   check_assertion(is_variable_node(expr));
   var = expr->variant.variable;
   check_assertion(var_has_thread_storage_duration(var));
-  if (var->source_corresp.name_linkage != (a_name_linkage_kind)nlk_none &&
-      (var->storage_class == (a_storage_class)sc_unspecified ||
-       var->storage_class == (a_storage_class)sc_extern ||
-       var->init_kind == (an_init_kind)initk_dynamic)) {
+  if (var->storage_class == (a_storage_class)sc_extern ||
+      var->init_kind == (an_init_kind)initk_dynamic) {
     /* A reference to a thread_local variable that is not defined in this
        translation unit or one that is defined in this translation unit
        and has a dynamic initialization.  In these cases, invoke the
