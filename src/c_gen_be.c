@@ -9584,6 +9584,23 @@ is put in the pragma, otherwise "name" is used.
 }  /* dump_sunpro_init_pragma */
 
 #endif /* !USE_INIT_SECTION_IN_GENERATED_C && SUNPRO_C_IS_C_GEN_BE_TARGET */
+#if SUNPRO_C_IS_C_GEN_BE_TARGET
+
+static void dump_sunpro_weak_pragma(a_routine_ptr rout)
+/*
+Put out a "#pragma weak name", which is used for weak references
+when using the SunPro C compiler.
+*/
+{
+  end_output_line_if_begun();
+  disable_line_wrapping();
+  write_str("#pragma weak ");
+  dump_routine_name(rout);
+  enable_line_wrapping();
+  end_output_line();
+}  /* dump_sunpro_weak_pragma */
+
+#endif /* SUNPRO_C_IS_C_GEN_BE_TARGET */
 
 static void dump_msvc_init_pragma(a_routine_ptr rout,
 			          char		*name)
@@ -10022,6 +10039,13 @@ if this routine has a body (dump nothing if it has no body).
         }  /* if */
       }  /* if */
 #endif /* !SEPARATE_ROUTINES_FOR_FILE_SCOPE_DYNAMIC_INITS */
+#if GNU_EXTENSIONS_ALLOWED && SUNPRO_C_IS_C_GEN_BE_TARGET
+      if (rout->is_weak && sun_is_generated_code_target) {
+        /* Indicate that the routine is a weak reference by emitting
+           a "#pragma weak". */
+        dump_sunpro_weak_pragma(rout);
+      }  /* if */
+#endif /* GNU_EXTENSIONS_ALLOWED && SUNPRO_C_IS_C_GEN_BE_TARGET */
     } else {
 #if ASM_FUNCTION_ALLOWED
       /* If appropriate, set a flag to assure special processing for asm
