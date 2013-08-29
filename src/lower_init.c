@@ -16032,7 +16032,10 @@ enough to cause the back end to invoke the routine at initialization.
   a_dynamic_init_ptr dtor_process_list, end_dtor_process_list;
   a_dynamic_init_ptr delay_list, end_delay_list;
   a_dynamic_init_ptr dtor_delay_list, end_dtor_delay_list;
+#if SEPARATE_ROUTINES_FOR_FILE_SCOPE_DYNAMIC_INITS || MAINTAIN_NEEDED_FLAGS ||\
+    USE_PATCH_INIT_STARTUP
   a_routine_ptr      init_rout;
+#endif /* SEPARATE_ROUTINES_FOR_FILE_SCOPE_DYNAMIC_INITS || ... */
   a_variable_ptr     var;
 
   dip = file_scope->dynamic_inits;
