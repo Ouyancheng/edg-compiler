@@ -8048,7 +8048,10 @@ also been consumed.
   } else if (first_token == tok_thread_local) {
 #if IMPLEMENTATION_SUPPORTS_MULTIPLE_THREADS
     /* Do some checking for the "thread_local" specifier. */
-    if (*decl_specifiers_seen & DS_FRIEND) {
+    if (input_flags & DSI_IS_CONDITION_DECL) {
+      pos_error(ec_storage_class_not_allowed, &pos_first_token);
+      *err = TRUE;
+    } else if (*decl_specifiers_seen & DS_FRIEND) {
       pos_error(ec_thread_local_not_allowed, &pos_first_token);
       *err = TRUE;
     } else if (*decl_specifiers_seen & DS_THREAD_LOCAL) {
