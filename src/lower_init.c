@@ -16191,7 +16191,10 @@ enough to cause the back end to invoke the routine at initialization.
                                             &insert_location, &region_number,
                                             &grcontext);
     processing_file_scope_init_routine = TRUE;
+#if SEPARATE_ROUTINES_FOR_FILE_SCOPE_DYNAMIC_INITS || MAINTAIN_NEEDED_FLAGS ||\
+    USE_PATCH_INIT_STARTUP
     init_rout = scope->variant.routine.ptr;
+#endif /* SEPARATE_ROUTINES_FOR_FILE_SCOPE_DYNAMIC_INITS || ... */
     if (file_scope->lifetime != NULL) {
       begin_object_lifetime(file_scope->lifetime, &insert_location);
     }  /* if */
