@@ -9755,30 +9755,20 @@ if this routine has a body (dump nothing if it has no body).
       /* This routine is an "alias" for the thread_local initialization
          for this translation unit.  If the back end supports it, create
          an alias, otherwise emit a routine to invoke __tls_init explicitly. */
-      /* FIXME: "void" return type and arguments are hardcoded, etc. */
-      if (gcc_is_generated_code_target && 0 /*lint !e506*/ /* FIXME */) {
-        if (rout->storage_class == (a_storage_class)sc_static) {
-          /* Use an __asm__ label to create an alias to __tls_init. */
-          dump_storage_class(rout->storage_class);
-          write_str("void ");
-          dump_routine_name(rout);
-          write_str("(void) ");
-#if GNU_EXTENSIONS_ALLOWED
-          form_asm_name("__tls_init", &octl);
-#endif /* GNU_EXTENSIONS_ALLOWED */
-          write_tok_ch(';');
-        } else if (rout->storage_class == (a_storage_class)sc_unspecified) {
-          /* Defined in this translation unit; emit an alias indication. */
-          write_str("__asm__(\".global ");
-          dump_routine_name(rout);
-          write_str("\\n ");
-          dump_routine_name(rout);
-          write_str(" = __tls_init\");");
-        }  /* if */
+      /* FIXME: What is the proper output line positioning? */
+      if (gcc_is_generated_code_target &&
+          rout->storage_class == (a_storage_class)sc_unspecified) {
+        /* Defined in this translation unit; emit an alias indication. */
+        write_str("__asm__(\".global ");
+        dump_routine_name(rout);
+        write_str("\\n ");
+        dump_routine_name(rout);
+        write_str(" = __tls_init\");");
       } else if (rout->storage_class == (a_storage_class)sc_static ||
                  rout->storage_class == (a_storage_class)sc_unspecified) {
         /* If the back end compiler has no aliasing capability, simply
            define the routine with a body that calls __tls_init. */
+        /* FIXME: "void" return type and arguments are hardcoded, etc. */
         dump_storage_class(rout->storage_class);
         write_str("void ");
         dump_routine_name(rout);

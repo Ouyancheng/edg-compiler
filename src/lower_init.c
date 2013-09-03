@@ -121,6 +121,11 @@ static void lower_ctor_init(a_constructor_init_ptr ctor_init,
                             a_boolean              base_of_complete_object,
                             a_variable_ptr         construction_vtbls_var,
                             an_insert_location_ptr insert_location);
+#if USE_LAZY_INITIALIZATION_FOR_THREAD_LOCAL_VARIABLES
+static a_routine_ptr make_tls_init_routine(void);
+#endif /* USE_LAZY_INITIALIZATION_FOR_THREAD_LOCAL_VARIABLES */
+
+
 static a_type_ptr make_function_type(a_type_ptr return_type,
                                      a_type_ptr param_1_type,
                                      a_type_ptr param_2_type)
@@ -904,7 +909,7 @@ routine later in order to ensure that the "defined" flag is set.
                                  alloc_statement((a_statement_kind)stmk_block);
   block_stmt->variant.block.extra_info->end_of_block_reachable = FALSE;
   if (make_return) {
-    /* Make a return statement as the end of the block. */
+    /* Make a return statement at the end of the block. */
     block_stmt->variant.block.statements =
                                 alloc_statement((a_statement_kind)stmk_return);
   }  /* if */
@@ -5953,14 +5958,16 @@ can easily access them.
 #if SEPARATE_ROUTINES_FOR_FILE_SCOPE_DYNAMIC_INITS
   char            buffer3[50];
 #endif /* SEPARATE_ROUTINES_FOR_FILE_SCOPE_DYNAMIC_INITS */
+#if USE_LAZY_INITIALIZATION_FOR_THREAD_LOCAL_VARIABLES
+  a_boolean       use_tls_init = FALSE;
+#endif /* USE_LAZY_INITIALIZATION_FOR_THREAD_LOCAL_VARIABLES */
 
   if (do_thread_local) {
 #if USE_LAZY_INITIALIZATION_FOR_THREAD_LOCAL_VARIABLES || \
     !SEPARATE_ROUTINES_FOR_FILE_SCOPE_DYNAMIC_INITS
-    /* Create a static routine with a well-known name to contain all of
-       the thread_local initializations. */
-    name = (char *)"__tls_init";
-    storage_class = (a_storage_class)sc_static;
+    /* Create a static __tls_init routine to contain all of the thread_local
+       initializations. */
+    use_tls_init = TRUE;
 #else /* !(USE_LAZY_INITIALIZATION_FOR_THREAD_LOCAL_VARIABLES || !...) */
     /* Create separate routines for each thread_local initialization.  The
        names of these routines are unimportant (they will be referred to
@@ -6030,8 +6037,19 @@ can easily access them.
     }  /* if */
 #endif /* SEPARATE_ROUTINES_FOR_FILE_SCOPE_DYNAMIC_INITS */
   }  /* if */
-  /* Make a type and routine entry for the routine. */
-  init_rout = make_rout_entry(name, storage_class, void_type(), param1_type);
+#if USE_LAZY_INITIALIZATION_FOR_THREAD_LOCAL_VARIABLES
+  if (use_tls_init) {
+    /* We may already have an entry for the __tls_init routine; if so,
+       use it. */
+    check_assertion(param1_type == NULL);
+    init_rout = make_tls_init_routine();
+  } else
+#endif /* USE_LAZY_INITIALIZATION_FOR_THREAD_LOCAL_VARIABLES */
+  /* Do not insert code here. */
+  {
+    /* Make a type and routine entry for the routine. */
+    init_rout = make_rout_entry(name, storage_class, void_type(), param1_type);
+  }  /* if */
 #if GNU_INIT_PRIORITY_ATTRIBUTE_ALLOWED
   if (init_priority != 0) init_rout->init_priority = init_priority;
 #endif /* GNU_INIT_PRIORITY_ATTRIBUTE_ALLOWED */
@@ -15841,6 +15859,47 @@ this as an alias for __tls_init in the current translation unit).
 }  /* thread_local_init_routine_for_variable */
 
 
+static a_routine_ptr
+                tls_init_routine;
+                        /* Pointer to the __tls_init routine entry that is
+                           created by lowering (if necessary). */
+
+
+static a_routine_ptr make_tls_init_routine(void)
+/*
+Make a routine entry for the __tls_init routine.
+*/
+{
+  if (tls_init_routine == NULL) {
+    tls_init_routine = make_rout_entry("__tls_init",
+                                       (a_storage_class)sc_static,
+                                       void_type(),
+                                       (a_type_ptr)NULL);
+    tls_init_routine->source_corresp.name_has_been_mangled = TRUE;
+  }  /* if */
+  return tls_init_routine;
+}  /* make_tls_init_routine */
+
+
+static a_routine_ptr routine_for_thread_local_init(a_variable_ptr var)
+/*
+Return the routine to use for initializing the specified thread_local variable.
+If the variable is static, then use the __tls_init routine in this
+translation unit, otherwise, use a routine that is an alias for a __tls_init
+routine in some other translation unit.
+*/
+{
+  a_routine_ptr   result;
+
+  if (var->storage_class == (a_storage_class)sc_static) {
+    result = make_tls_init_routine();
+  } else {
+    result = thread_local_init_routine_for_variable(var);
+  }  /* if */
+  return result;
+}  /* routine_for_thread_local_init */
+
+
 a_routine_ptr thread_local_wrapper_for_variable(a_variable_ptr var)
 /*
 Return the wrapper routine for the specified thread_local variable.  The
@@ -15924,7 +15983,7 @@ has not yet been defined, it is created here.
 
         If the variable is not dynamically-initialized, there will be no
         definition of var_init. */
-    init_routine = thread_local_init_routine_for_variable(var);
+    init_routine = routine_for_thread_local_init(var);
     call_insert_location = &insert_location;
     if (var->storage_class == (a_storage_class)sc_extern) {
       an_expr_node_ptr test_node;
@@ -17114,8 +17173,9 @@ Do one-time initialization of static variables declared in lower_init.c.
       pch_saved_var_array_elem(delete_routine_ptr_type),
       pch_saved_var_array_terminating_elem(),
 #if RUNTIME_SUPPORTS_ARRAY_LENGTH_CHECK && ABI_COMPATIBILITY_VERSION >= 406
-      pch_saved_var_array_elem(throw_bad_array_new_length_routine)
+      pch_saved_var_array_elem(throw_bad_array_new_length_routine),
 #endif /* RUNTIME_SUPPORTS_ARRAY_LENGTH_CHECK && ABI_COMPATIBILITY_VERSION...*/
+      pch_saved_var_array_elem(tls_init_routine)
     };
     register_pch_saved_variables(saved_vars);
   }  /* if */
@@ -17177,6 +17237,7 @@ Do one-time initialization of static variables declared in lower_init.c.
 #if RUNTIME_SUPPORTS_ARRAY_LENGTH_CHECK && ABI_COMPATIBILITY_VERSION >= 406
   register_trans_unit_variable(throw_bad_array_new_length_routine);
 #endif /* RUNTIME_SUPPORTS_ARRAY_LENGTH_CHECK && ABI_COMPATIBILITY_VERSION...*/
+  register_trans_unit_variable(tls_init_routine);
 }  /* init_lower_one_time_init */
 
 
@@ -17242,6 +17303,7 @@ for each translation unit.
   throw_bad_array_new_length_routine = NULL;
 #endif /* RUNTIME_SUPPORTS_ARRAY_LENGTH_CHECK && ABI_COMPATIBILITY_VERSION...*/
   delete_routine_ptr_type = NULL;
+  tls_init_routine = NULL;
 }  /* init_lower_trans_unit_init */
 
 
