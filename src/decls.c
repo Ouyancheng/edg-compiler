@@ -10083,6 +10083,19 @@ the symbol through dps->sym and its linkage (which is always "none") through
                      &dps->specifiers_pos, sym);
         dps->dso_flags &= ~(a_decl_flag_set)DSO_CONSTEXPR;
       }  /* if */
+      if (var->is_thread_local !=
+          ((dps->dso_flags & DSO_THREAD_LOCAL) == DSO_THREAD_LOCAL)) {
+        /* If "thread_local" is specified on one declaration, it must be
+           specified on all. */
+        pos2_sy_diagnostic(es_error,
+                           var->is_thread_local ?
+                                     ec_non_thread_local_follows_thread_local :
+                                     ec_thread_local_follows_non_thread_local,
+                           &locator->source_position,
+                           &sym->variant.variable.ptr->
+                                                  source_corresp.decl_position,
+                           sym);
+      }  /* if */
       /* Set the IL referenced flag since, as an externally visible variable,
          it could be referenced from another translation unit. */
       var->source_corresp.referenced = TRUE;
