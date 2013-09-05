@@ -15848,11 +15848,11 @@ this as an alias for __tls_init in the current translation unit).
     init_routine->source_corresp.name_has_been_mangled = TRUE;
     init_routine->type->variant.routine.extra_info->prototyped = TRUE;
     init_routine->is_tls_init_alias = TRUE;
-#if LAZY_INITIALIZATION_USES_WEAK_REFERENCES
+#if LAZY_INITIALIZATION_USES_WEAK_REFERENCES && GNU_EXTENSIONS_ALLOWED
     if (init_routine->storage_class != (a_storage_class)sc_static) {
       init_routine->is_weak = TRUE;
     }  /* if */
-#endif /* LAZY_INITIALIZATION_USES_WEAK_REFERENCES */
+#endif /* LAZY_INITIALIZATION_USES_WEAK_REFERENCES && GNU_EXTENSIONS_ALLOWED */
     var->init_routine.thread_local.init_routine = init_routine;
   }  /* if */
   return var->init_routine.thread_local.init_routine;
@@ -15991,16 +15991,16 @@ has not yet been defined, it is created here.
       wrapper_routine->inlinable = TRUE;
 #endif /* MINIMAL_INLINING */
     } else {
-#if LAZY_INITIALIZATION_USES_WEAK_REFERENCES
+#if LAZY_INITIALIZATION_USES_WEAK_REFERENCES && GNU_EXTENSIONS_ALLOWED
       /* Set the "weak" attribute since there may be multiple of these
          routines defined. */
       wrapper_routine->is_weak = TRUE;
-#else /* !LAZY_INITIALIZATION_USES_WEAK_REFERENCES */
+#else /* !LAZY_INITIALIZATION_USES_WEAK_REFERENCES && GNU_EXTENSIONS_ALLOWED */
       /* Each translation unit that uses this thread_local variable will
          emit its own wrapper routine, so ensure they're all static
          (to avoid multiple definition errors from the linker). */
       wrapper_routine->storage_class = (a_storage_class)sc_static;
-#endif /* LAZY_INITIALIZATION_USES_WEAK_REFERENCES */
+#endif /* LAZY_INITIALIZATION_USES_WEAK_REFERENCES && GNU_EXTENSIONS_ALLOWED */
     }  /* if */
     push_generated_routine_context(scope, region_number, &grcontext);
     set_block_start_insert_location(scope->assoc_block, &insert_location);
