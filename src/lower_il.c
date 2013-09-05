@@ -9611,6 +9611,20 @@ Do IL lowering of the indicated variable and everything under it.
       variable->modified_within_try_block = FALSE;
     }  /* if */
 #endif /* DO_RETURN_VALUE_OPTIMIZATION_IN_LOWERING */
+#if USE_LAZY_INITIALIZATION_FOR_THREAD_LOCAL_VARIABLES && \
+    !LAZY_INITIALIZATION_USES_WEAK_REFERENCES
+    if (variable->is_thread_local &&
+        variable->storage_class == (a_storage_class)sc_unspecified &&
+        variable->init_kind != (an_init_kind)initk_dynamic) {
+      /* When we're not using weak references, any thread_local variable
+         with external linkage that is defined in this translation unit and
+         has no initialization needs to have a NULL initialization routine
+         emitted (since other translation units don't know whether or not
+         this variable has dynamic initialization, they'll emit references
+         to this routine). */
+      make_null_thread_local_init_routine_for_variable(variable);
+    }  /* if */
+#endif /* USE_LAZY_INITIALIZATION_FOR_THREAD_LOCAL_VARIABLES && !LAZY_... */
     /* Lower the initializer if any. */
     lower_initializer(variable, &variable->init_kind, &variable->initializer);
   }  /* if */

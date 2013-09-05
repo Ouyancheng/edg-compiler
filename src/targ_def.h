@@ -507,10 +507,6 @@ The IA-64 ABI requires USE_LAZY_INITIALIZATION_FOR_THREAD_LOCAL_VARIABLES
 be set to TRUE (as do configurations that use the C-generating back end).
 See also IMPLEMENTATION_SUPPORTS_MULTIPLE_THREADS (if that configuration
 macro is FALSE, lowering of thread_local is moot).
-
-Note also that the current implementation of lazy initialization relies
-on weak references, and as such requires that GNU_EXTENSIONS_ALLOWED
-be set to TRUE. FIXME
 */
 #ifndef USE_LAZY_INITIALIZATION_FOR_THREAD_LOCAL_VARIABLES
 #define USE_LAZY_INITIALIZATION_FOR_THREAD_LOCAL_VARIABLES DO_IL_LOWERING
@@ -525,6 +521,28 @@ be set to TRUE. FIXME
  #error -- BACK_END_IS_C_GEN_BE requires \
            USE_LAZY_INITIALIZATION_FOR_THREAD_LOCAL_VARIABLES to be TRUE
 #endif /* !USE_LAZY_INITIALIZATION_FOR_THREAD_LOCAL_VARIABLES && BACK_... */
+
+/*
+The IA-64 ABI implementation of lazy initialization for thread_local
+variables relies on the back end supporting weak references.  For back ends
+that don't support weak references, this configuration macro can be
+set to TRUE and a do-nothing initialization routine will be emitted for every
+thread_local with external linkage.
+*/
+#ifndef LAZY_INITIALIZATION_USES_WEAK_REFERENCES
+#define LAZY_INITIALIZATION_USES_WEAK_REFERENCES TRUE
+#endif /* LAZY_INITIALIZATION_USES_WEAK_REFERENCES */
+
+#if LAZY_INITIALIZATION_USES_WEAK_REFERENCES && !GNU_EXTENSIONS_ALLOWED && \
+    DO_IL_LOWERING
+ #error -- LAZY_INITIALIZATION_USES_WEAK_REFERENCES requires \
+           GNU_EXTENSIONS_ALLOWED to be TRUE
+#endif /* LAZY_INITIALIZATION_USES_WEAK_REFERENCES && !GNU_EXTENSIONS_ALLOWED*/
+#if !LAZY_INITIALIZATION_USES_WEAK_REFERENCES && IA64_ABI && \
+    DO_IL_LOWERING
+ #error -- IA64_ABI requires LAZY_INITIALIZATION_USES_WEAK_REFERENCES \
+           to be TRUE
+#endif /* !LAZY_INITIALIZATION_USES_WEAK_REFERENCES && IA64_ABI && ... */
 
 /*
 This flag indicates whether the back end is capable of handling C++11

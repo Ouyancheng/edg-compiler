@@ -15848,16 +15848,49 @@ this as an alias for __tls_init in the current translation unit).
     init_routine->source_corresp.name_has_been_mangled = TRUE;
     init_routine->type->variant.routine.extra_info->prototyped = TRUE;
     init_routine->is_tls_init_alias = TRUE;
-#if GNU_EXTENSIONS_ALLOWED
+#if LAZY_INITIALIZATION_USES_WEAK_REFERENCES
     if (init_routine->storage_class != (a_storage_class)sc_static) {
       init_routine->is_weak = TRUE;
     }  /* if */
-#endif /* GNU_EXTENSIONS_ALLOWED */
+#endif /* LAZY_INITIALIZATION_USES_WEAK_REFERENCES */
     var->init_routine.thread_local.init_routine = init_routine;
   }  /* if */
   return var->init_routine.thread_local.init_routine;
 }  /* thread_local_init_routine_for_variable */
 
+#if !LAZY_INITIALIZATION_USES_WEAK_REFERENCES
+
+void make_null_thread_local_init_routine_for_variable(a_variable_ptr var)
+/*
+If we're not using weak references, then every thread_local variable with
+external linkage needs to have an initialization routine defined, even if it
+does nothing.  This routine creates the do-nothing routine for such cases.
+*/
+{
+  a_routine_ptr   routine;
+  a_scope_ptr     scope;
+  a_generated_routine_context
+                  grcontext;
+  a_statement_ptr return_stmt;
+  a_memory_region_number
+                  region_number;
+
+  check_assertion(var->init_routine.thread_local.init_routine == NULL);
+  routine = thread_local_init_routine_for_variable(var);
+  /* Make a memory region, scope, and block for the routine definition. */
+  scope = make_routine_definition(routine, /*make_return=*/TRUE,
+                                  &region_number);
+  push_generated_routine_context(scope, region_number, &grcontext);
+  /* Add the return statement at the end of the routine to the return memo
+     list. */
+  return_stmt = scope->assoc_block->variant.block.statements;
+  check_assertion(return_stmt != NULL &&
+                  return_stmt->kind == (a_statement_kind)stmk_return);
+  add_to_return_memo_list(return_stmt);
+  pop_generated_routine_context(scope, region_number, &grcontext);
+}  /* make_null_thread_local_init_routine_for_variable */
+
+#endif /* !LAZY_INITIALIZATION_USES_WEAK_REFERENCES */
 
 static a_routine_ptr
                 tls_init_routine;
@@ -15911,7 +15944,7 @@ has not yet been defined, it is created here.
 */
 {
   a_scope_ptr            scope;
-  an_insert_location     insert_location, if_insert_location;
+  an_insert_location     insert_location;
   an_insert_location     *call_insert_location;
   a_memory_region_number region_number;
   a_generated_routine_context
@@ -15920,6 +15953,9 @@ has not yet been defined, it is created here.
   a_statement_ptr        return_stmt;
   a_const_char           *wrapper_name;
   a_type_ptr             wrapper_type;
+#if LAZY_INITIALIZATION_USES_WEAK_REFERENCES
+  an_insert_location     if_insert_location;
+#endif /* LAZY_INITIALIZATION_USES_WEAK_REFERENCES */
 
   if (var->init_routine.thread_local.wrapper == NULL) {
     /* Create the routine and give it a well-known name (based on the
@@ -15955,11 +15991,16 @@ has not yet been defined, it is created here.
       wrapper_routine->inlinable = TRUE;
 #endif /* MINIMAL_INLINING */
     } else {
+#if LAZY_INITIALIZATION_USES_WEAK_REFERENCES
       /* Set the "weak" attribute since there may be multiple of these
          routines defined. */
-#if GNU_EXTENSIONS_ALLOWED
       wrapper_routine->is_weak = TRUE;
-#endif /* GNU_EXTENSIONS_ALLOWED */
+#else /* !LAZY_INITIALIZATION_USES_WEAK_REFERENCES */
+      /* Each translation unit that uses this thread_local variable will
+         emit its own wrapper routine, so ensure they're all static
+         (to avoid multiple definition errors from the linker). */
+      wrapper_routine->storage_class = (a_storage_class)sc_static;
+#endif /* LAZY_INITIALIZATION_USES_WEAK_REFERENCES */
     }  /* if */
     push_generated_routine_context(scope, region_number, &grcontext);
     set_block_start_insert_location(scope->assoc_block, &insert_location);
@@ -15973,7 +16014,8 @@ has not yet been defined, it is created here.
          }
 
        For the case where the variable is not defined in this translation
-       unit, an additional "if" statement is added:
+       unit (and we're using weak references), an additional "if" statement
+       is added:
 
          extern void var_init() __attribute__ ((weak));
          inline T* var_wrapper() {
@@ -15981,10 +16023,14 @@ has not yet been defined, it is created here.
            return &var;
          }
 
-        If the variable is not dynamically-initialized, there will be no
-        definition of var_init. */
+        If weak references are being used and the variable is not
+        dynamically-initialized, there will be no definition of var_init.
+        When weak references are not used, the "if" statement isn't needed --
+        a var_init routine is emitted for all thread_local variables with
+        external linkage in that case. */
     init_routine = routine_for_thread_local_init(var);
     call_insert_location = &insert_location;
+#if LAZY_INITIALIZATION_USES_WEAK_REFERENCES
     if (var->storage_class == (a_storage_class)sc_extern) {
       an_expr_node_ptr test_node;
       /* Make the boolean controlling expression "test_var". */
@@ -15996,6 +16042,7 @@ has not yet been defined, it is created here.
                           &if_insert_location, (an_insert_location *)NULL);
       call_insert_location = &if_insert_location;
     }  /* if */
+#endif /* LAZY_INITIALIZATION_USES_WEAK_REFERENCES */
     /* Call the initialization routine. */
     make_call_statement(init_routine, (an_expr_node_ptr)NULL,
                         (an_expr_node_ptr)NULL, call_insert_location);

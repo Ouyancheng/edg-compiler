@@ -43,8 +43,15 @@ each translation unit (or, when SEPARATE_ROUTINES_FOR_FILE_SCOPE_DYNAMIC_INITS
 is TRUE, each of the routines pointed to by
 il_header.thread_local_dynamic_init_routines) at thread creation.
 
+Additionally, the configuration macro LAZY_INITIALIZATION_USES_WEAK_REFERENCES
+has been added to allow for back ends that do not support "weak" references.
+The default value for this macro is TRUE (as a value of FALSE creates
+NULL initialization routines for thread_local variables with external
+linkage even when they don't have any dynamic initialization).
+
 Note that conformance with the IA-64 ABI requires that
-USE_LAZY_INITIALIZATION_FOR_THREAD_LOCAL_VARIABLES be set to TRUE.
+USE_LAZY_INITIALIZATION_FOR_THREAD_LOCAL_VARIABLES and
+LAZY_INITIALIZATION_USES_WEAK_REFERENCES be set to TRUE.
 C-generating back end configurations also require
 USE_LAZY_INITIALIZATION_FOR_THREAD_LOCAL_VARIABLES to be set to TRUE.
 

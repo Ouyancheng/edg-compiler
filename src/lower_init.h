@@ -313,6 +313,10 @@ extern void init_lower_init(void);
 
 #if USE_LAZY_INITIALIZATION_FOR_THREAD_LOCAL_VARIABLES
 extern a_routine_ptr thread_local_wrapper_for_variable(a_variable_ptr var);
+#if !LAZY_INITIALIZATION_USES_WEAK_REFERENCES
+extern void make_null_thread_local_init_routine_for_variable(
+                                                           a_variable_ptr var);
+#endif /* !LAZY_INITIALIZATION_USES_WEAK_REFERENCES */
 #endif /* USE_LAZY_INITIALIZATION_FOR_THREAD_LOCAL_VARIABLES */
 
 #endif /* DO_IL_LOWERING */
