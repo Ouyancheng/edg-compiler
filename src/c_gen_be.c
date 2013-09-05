@@ -9713,6 +9713,7 @@ if this routine has a body (dump nothing if it has no body).
   a_boolean       part_of_current_output_file = TRUE;
 #endif /* IA64_ABI && ONE_INSTANTIATION_PER_OBJECT */
   a_boolean       is_marked_weak = FALSE;
+  a_boolean       thread_local_init_case = FALSE;
 
   if (rout->suppress_inline_body && has_defn) {
     /* The body is present only to be used for inlining.  This happens
@@ -9755,24 +9756,23 @@ if this routine has a body (dump nothing if it has no body).
       /* This routine is an "alias" for the thread_local initialization
          for this translation unit.  If the back end supports it, create
          an alias, otherwise emit a routine to invoke __tls_init explicitly. */
-      /* FIXME: What is the proper output line positioning? */
       if (gcc_is_generated_code_target &&
           rout->storage_class == (a_storage_class)sc_unspecified) {
+        set_output_position(&rout->source_corresp.decl_position);
         /* Defined in this translation unit; emit an alias indication. */
         write_str("__asm__(\".global ");
         dump_routine_name(rout);
-        write_str("\\n ");
+        write_str("\");");
+        end_output_line();
+        write_str("__asm__(\"");
         dump_routine_name(rout);
         write_str(" = __tls_init\");");
       } else if (rout->storage_class == (a_storage_class)sc_static ||
                  rout->storage_class == (a_storage_class)sc_unspecified) {
         /* If the back end compiler has no aliasing capability, simply
            define the routine with a body that calls __tls_init. */
-        /* FIXME: "void" return type and arguments are hardcoded, etc. */
-        dump_storage_class(rout->storage_class);
-        write_str("void ");
-        dump_routine_name(rout);
-        write_str("(void) { __tls_init(); }");
+        thread_local_init_case = TRUE;
+        goto declare_routine;
       }  /* if */
     }  /* if */
 #endif /* USE_LAZY_INITIALIZATION_FOR_THREAD_LOCAL_VARIABLES */
@@ -9805,6 +9805,7 @@ if this routine has a body (dump nothing if it has no body).
                                          (a_boolean *)NULL)) {
     /* Unreferenced routine. */
   } else {
+declare_routine:
     is_definition = (has_defn && dump_defn);
 #if SGIC
     /* The SGI compiler uses a pragma to indicate "inline". */
@@ -9886,7 +9887,7 @@ if this routine has a body (dump nothing if it has no body).
 #endif /* IA64_ABI */
     set_output_position(&rout->source_corresp.decl_position);
     /* Determine the proper storage class to display. */
-    if (!is_definition) {
+    if (!is_definition && !thread_local_init_case) {
       /* The function is not defined (here), so use "extern", unless this
          is a superseded external declaration.  In that case, because the
          declaration will be changed to a function pointer, use
@@ -10002,7 +10003,12 @@ if this routine has a body (dump nothing if it has no body).
         dump_cast_to_pointer_to(rout->type);
         dump_name(&rout->source_corresp);
       }  /* if */
-      write_tok_ch(';');
+      if (thread_local_init_case) {
+        /* Generate a definition that just calls __tls_init. */
+        write_tok_str(" { __tls_init(); }");
+      } else {
+        write_tok_ch(';');
+      }  /* if */
 #if !SEPARATE_ROUTINES_FOR_FILE_SCOPE_DYNAMIC_INITS
       if (routine_is_init_routine(rout)) {
 #if SUNPRO_C_IS_C_GEN_BE_TARGET
