@@ -7923,12 +7923,12 @@ syntactically similar).  (first_token is usually also the only token of the
 storage class specifier; the only exception are named-register storage class
 specifiers.)  input_flags, state, and decl_pos_block are parameters forwarded
 from decl_specifiers.  If first_specifier is TRUE, the storage specifier token
-was the first decl-specifier (ignoring "friend" and "inline"); a warning may
-be issued if that is not the case.  *decl_specifiers_seen is updated with an
-indication of the specifiers that were consumed.  *err is set to TRUE if an
-error is issued.  All the storage class specifier tokens are consumed by this
-routine, except for "auto" which is processed after any other specifiers have
-also been consumed.
+was the first decl-specifier (ignoring "friend", "inline", and "thread_local");
+a warning may be issued if that is not the case.  *decl_specifiers_seen is
+updated with an indication of the specifiers that were consumed.  *err is set
+to TRUE if an error is issued.  All the storage class specifier tokens are
+consumed by this routine, except for "auto" which is processed after any other
+specifiers have also been consumed.
 */
 {
   a_boolean          is_parameter = (input_flags & DSI_IS_PARAMETER);
@@ -8164,7 +8164,7 @@ also been consumed.
     if (C_dialect != C_dialect_pcc && !*err) {
       if (!first_specifier) {
         /* Issue a diagnostic if the storage class is not the first
-           specifier (except for "inline" or "friend"). */
+           specifier (except for "inline", "friend", or "thread_local"). */
         pos_diagnostic(strict_ansi_mode ? es_warning : es_remark,
                        ec_storage_class_not_first, &pos_first_token);
       }  /* if */
@@ -8702,7 +8702,8 @@ corresponding change in prescan_decl_specifiers (in disambig.c).
 storage_class_specifier:
         process_storage_class_specifier(
                             curr_token, input_flags, state, decl_pos_block, 
-                            !(decl_specifiers_seen & ~(DS_INLINE | DS_FRIEND)),
+                            !(decl_specifiers_seen &
+                              ~(DS_INLINE | DS_FRIEND | DS_THREAD_LOCAL)),
                             &decl_specifiers_seen, &err);
         goto no_get_token;
 #if THREAD_LOCAL_STORAGE_SPECIFIER_ALLOWED
