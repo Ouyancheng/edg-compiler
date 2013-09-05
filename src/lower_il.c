@@ -14547,11 +14547,15 @@ thread.
   var = expr->variant.variable;
   check_assertion(var_has_thread_storage_duration(var));
   if (var->storage_class == (a_storage_class)sc_extern ||
-      var->init_kind == (an_init_kind)initk_dynamic) {
+      ((var->storage_class == (a_storage_class)sc_unspecified ||
+        (var->storage_class == (a_storage_class)sc_static &&
+         !(var->source_corresp.is_local_to_function ||
+           var->promoted_local_static))) &&
+       var->init_kind == (an_init_kind)initk_dynamic)) {
     /* A reference to a thread_local variable that is not defined in this
        translation unit or one that is defined in this translation unit
-       and has a dynamic initialization.  In these cases, invoke the
-       wrapper routine to ensure that the variable is properly initialized
+       and has a file-scope dynamic initialization.  In these cases, invoke
+       the wrapper routine to ensure that the variable is properly initialized
        in this thread before it is used.  Replace the enk_variable node
        with "*wrapper()" (the wrapper returns the address of the variable). */
     wrapper = thread_local_wrapper_for_variable(var);
