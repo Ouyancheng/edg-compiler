@@ -363,9 +363,6 @@ typedef EDG_INT32_T int32_t;
 
 #ifndef EDG_UINT32_T
 #define EDG_UINT32_T unsigned int
-#ifndef UINT32_MAX
-#define UINT32_MAX UINT_MAX
-#endif /* ifndef UINT32_MAX */
 #endif /* ifndef EDG_UINT32_T */
 typedef EDG_UINT32_T uint32_t;
 
@@ -374,7 +371,7 @@ typedef EDG_UINT32_T uint32_t;
 #endif /* !USE_STDINT_HEADER */
 
 #if !defined(UINT32_MAX)
- #error -- UINT32_MAX must be defined
+#define UINT32_MAX UINT_MAX
 #endif /* !defined(UINT32_MAX) */
 
 /* Define typedefs to be used for "void *" and "const void *".  When

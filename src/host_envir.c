@@ -5600,6 +5600,10 @@ This is done before command line processing.
                               "last") == 0,
                        "host_envir_early_init",
                        "predef_macro_mode_names not initialized properly");
+  /* If the host environment and the front end configuration did not provide a
+     definition for UINT32_MAX, we defaulted that macro to UINT_MAX.  Check
+     that this does not exceed the capacity of the uint32_t type. */
+  check_assertion(sizeof(UINT32_MAX) <= sizeof(uint32_t));
 }  /* host_envir_early_init */
 
 
