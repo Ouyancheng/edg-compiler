@@ -9173,6 +9173,7 @@ Do IL lowering of the indicated type and everything under it.
           /* Lower reference types to pointer types (though a back end
              should accept either). */
           type->variant.pointer.is_reference = FALSE;
+          type->variant.pointer.is_rvalue_reference = FALSE;
         }  /* if */
         lower_type(type->variant.pointer.type);
         break;
