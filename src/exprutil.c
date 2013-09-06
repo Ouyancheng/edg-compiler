@@ -8834,7 +8834,8 @@ lvalue if result_is_lvalue is TRUE.
   } else {
     /* Make nodes from the operands, and link the first node to the second. */
     if (kind == (an_expr_operator_kind)eok_comma) {
-      node = make_node_from_void_expression_operand(operand_1);
+      node = make_node_from_void_expression_operand(
+                                    operand_1, /*result_of_stmt_expr=*/FALSE);
     } else {
       node = make_node_from_operand(operand_1);
     }  /* if */

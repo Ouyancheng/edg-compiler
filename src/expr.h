@@ -377,7 +377,8 @@ copy_template_arg_list_with_substitution_rebuilding_arg_operands(
 extern an_expr_node_ptr scan_integer_expression(a_boolean is_switch_expr);
 
 extern an_expr_node_ptr make_node_from_void_expression_operand(
-                                                       an_operand_ptr operand);
+                                          an_operand_ptr  operand,
+                                          a_boolean       result_of_stmt_expr);
 
 extern an_expr_node_ptr scan_void_expression(a_boolean repeated_in_loop,
                                              a_boolean marked_as_gnu_extension,

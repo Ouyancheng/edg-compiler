@@ -17627,17 +17627,21 @@ C++ functional-notation type conversions, and C++ new-style casts.
 }  /* cast_type_pre_check */
 
 
-an_expr_node_ptr make_node_from_void_expression_operand(an_operand *operand)
+an_expr_node_ptr make_node_from_void_expression_operand(
+                                          an_operand_ptr  operand,
+                                          a_boolean       result_of_stmt_expr)
 /*
 *operand is an expression scanned as a void expression, or cast to void.
 Determine an expression representation for the operand, and return a pointer
-to the expression.
+to the expression.  result_of_stmt_expr is TRUE if operand corresponds to an
+expression statement that is the last statement of a GNU statement expression
+(and therefore that statement expression's result).
 */
 {
   an_expr_node_ptr node = make_node_from_operand(operand);
 
 #if GNU_EXTENSIONS_ALLOWED
-  if (gnu_mode) {
+  if (gnu_mode && !result_of_stmt_expr) {
     /* In GNU mode, check for void expressions that are calls to a function
        marked with the "warn_unused_result" attribute.  Such calls should be
        warned about. */
@@ -17682,7 +17686,8 @@ Lvalue-to-rvalue transformations are done on the operand if appropriate
      This special cast to void is only used for the case handled here,
      i.e., for an explicit cast to void.  cast_operand is not used because
      we do not wish to try to change the types of constants to void. */
-  node = make_node_from_void_expression_operand(operand);
+  node = make_node_from_void_expression_operand(
+                                      operand, /*result_of_stmt_expr=*/FALSE);
   node = make_operator_node((an_expr_operator_kind)eok_cast,
                             type_cast_to,
                             node);
@@ -30074,7 +30079,7 @@ expression.
   } else {
     do_void_operand_transformations(&result, /*force_lvalue_to_rvalue=*/TRUE);
   }  /* if */
-  expression = make_node_from_void_expression_operand(&result);
+  expression = make_node_from_void_expression_operand(&result, result_used);
   expression = wrap_up_full_expression(expression);
   /* Indicate that the value of the node is not used. */
   if (!result_used) set_expr_result_not_used(expression);
@@ -34284,7 +34289,8 @@ handle_implicit_lambda_return_type:
          to issue a warning on an expression with no side effects. */
       do_void_operand_transformations(&result,
                                       /*force_lvalue_to_rvalue=*/FALSE);
-      expression = make_node_from_void_expression_operand(&result);
+      expression = make_node_from_void_expression_operand(
+                                      &result, /*result_of_stmt_expr=*/FALSE);
       if (microsoft_mode && C_mode()) {
         /* The type is not checked in Microsoft C mode. */
       } else if (gcc_mode) {

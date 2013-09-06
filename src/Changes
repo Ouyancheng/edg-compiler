@@ -1,5 +1,22 @@
 Version 5.0
 
+9/6/13   [EDGcpfe/12468]
+Calls to "warn_unused_result" functions in GNU statement expressions
+
+The front end previously issued a spurious warning when the last expression
+statement of a GNU statement expression is a call to a function declared with
+the attribute "warn_unused_result" (that call produces the result of the
+statement expression and is therefore not unused).  For example (assuming
+GNU mode):
+
+  __attribute((warn_unused_result)) int f();
+  int g() {
+    return ({ f(); });  // Previously triggered a warning; now silently
+  }                     // accepted.
+
+This is now fixed.
+
+
 9/6/13   [EDGcpfe/14475]
 GNU compatibility: Floating-point literals in integral constant expressions
 
