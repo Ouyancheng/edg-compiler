@@ -28926,16 +28926,20 @@ handle_identifier:
         if (constexpr_enabled && !curr_expr_kind_is_traditional_const()) {
           /* Cast issues are irrelevant when C++11 constexpr is enabled. */
           float_con_allowed_in_integral_const_expr = TRUE;
+        } else if (gnu_mode && !curr_expr_kind_is(ek_pp)) {
+          /* GCC appears to accept floating-point literals in all contexts
+             expected integral constant expressions, except in preprocessing
+             expressions. */
+          float_con_allowed_in_integral_const_expr = TRUE;
         } else if ((local_options & EOPT_OPERAND_OF_CAST) &&
                    curr_token == tok_float_constant &&
                    /* Guard against something like "int(3.0/1)". */
                    token_ends_expr(next_token(), prec_level, local_options)) {
           float_con_allowed_in_integral_const_expr = TRUE;
-        } else if ((gpp_mode || microsoft_mode) &&
-                   curr_expr_kind_is(ek_template_arg)) {
-          /* g++ allows float constants in template argument expressions
-             as long as the overall result is integral.  Checked in 3.2-4.3.
-             Also allowed by MSVC.  Checked in 7.1, 8.0, 10.0. */
+        } else if (microsoft_mode && curr_expr_kind_is(ek_template_arg)) {
+          /* MSVC allows float constants in template argument expressions as
+             long as the overall result is integral.  Checked in versions 7.1,
+             8.0, and 10.0. */
           float_con_allowed_in_integral_const_expr = TRUE;
         }  /* if */
         if (curr_expr_kind_is_traditional_const()) {

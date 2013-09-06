@@ -1,5 +1,15 @@
 Version 5.0
 
+9/6/13   [EDGcpfe/14475]
+GNU compatibility: Floating-point literals in integral constant expressions
+
+In GNU modes, the front end now accepts floating-point literals in more
+contexts expecting integral constant expressions.  For example:
+
+  enum E { e = 2.1 ? 1 : 2 };  // Previously an error in many GNU modes;
+                               // now accepted in all such modes.
+
+
 9/6/13   [EDGcpfe/14435]
 Missing error on invalid braced initializer for character array
 
