@@ -17627,6 +17627,9 @@ C++ functional-notation type conversions, and C++ new-style casts.
 }  /* cast_type_pre_check */
 
 
+#if !GNU_EXTENSIONS_ALLOWED
+/*ARGSUSED*/ /* result_of_stmt_expr is not used in all configurations. */
+#endif /* !GNU_EXTENSIONS_ALLOWED */
 an_expr_node_ptr make_node_from_void_expression_operand(
                                           an_operand_ptr  operand,
                                           a_boolean       result_of_stmt_expr)
