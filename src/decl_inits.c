@@ -1366,8 +1366,13 @@ size.
 
   if (may_be_string_type(*p_array_type)) {
     a_constant_ptr  string_constant;
-    /* Permit an extra level of braces. */
-    if (is_braced_init_component(icp)) icp = icp->variant.braced.list;
+    /* Permit an extra level of braces (but only if the braces enclose a
+       single element). */
+    if (is_braced_init_component(icp) &&
+        icp->variant.braced.list != NULL &&
+        icp->variant.braced.list->next == NULL) {
+      icp = icp->variant.braced.list;
+    }  /* if */
     if (icp != NULL && is_string_literal_component(icp, &string_constant)) {
       a_type_ptr  orig_string_type = string_constant->type;
       a_boolean   excess = FALSE, *p_excess = gcc_mode ? &excess : NULL;
