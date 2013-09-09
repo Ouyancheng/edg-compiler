@@ -28936,7 +28936,7 @@ handle_identifier:
           float_con_allowed_in_integral_const_expr = TRUE;
         } else if (gnu_mode && !curr_expr_kind_is(ek_pp)) {
           /* GCC appears to accept floating-point literals in all contexts
-             expected integral constant expressions, except in preprocessing
+             expecting integral constant expressions, except in preprocessing
              expressions. */
           float_con_allowed_in_integral_const_expr = TRUE;
         } else if ((local_options & EOPT_OPERAND_OF_CAST) &&
