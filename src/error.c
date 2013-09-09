@@ -3906,6 +3906,25 @@ diagnostic should be suppressed.
   return result;
 }  /* diagnostic_already_issued_for_diag_once */
 
+#if GNU_EXTENSIONS_ALLOWED
+
+void f_report_gnu_cpp11_extensions_if_needed(a_source_position  *pos,
+                                             an_error_code      error_code)
+/*
+If the given position is not in a system header file, and the given
+diagnostic has not been issued yet, issue that diagnostic now at the given
+position.  (This function should only be called through the macro
+report_gnu_cpp11_extension_if_needed.)
+*/
+{
+  if (!diagnostic_issued_for_error_code[(int)error_code] &&
+      !seq_is_in_system_header(pos->seq) &&
+      cmd_line_option_inhibits_gnu_cpp11_extension_warning(error_code)) {
+    pos_warning(error_code, pos);
+  }  /* if */
+}  /* f_report_gnu_cpp11_extensions_if_needed */
+
+#endif /* GNU_EXTENSIONS_ALLOWED */
 #endif /* !STANDALONE_UTILITY_PROGRAM */
 
 /* Forward declaration. */

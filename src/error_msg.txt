@@ -2553,6 +2553,14 @@ ec_non_thread_local_follows_thread_local;;"non-thread_local declaration of %n fo
 ec_default_arg_for_literal_operator;;"a literal operator cannot have default arguments"
 ec_attribute_ignored_for_thread_local;;"attribute is ignored for thread_local variables"
 ec_lit_suffix_no_underscore;;"a user-provided literal suffix must begin with \"_\""
+ec_rvalue_references_is_cpp11;;"rvalue references are a C++11 feature"
+ec_lambdas_is_cpp11;;"lambda expressions are a C++11 feature"
+ec_std_attributes_is_cpp11;;"standard attribute syntax is a C++11 feature"
+ec_delegating_constructor_is_cpp11;;"delegating constructors are a C++11 feature"
+ec_inheriting_constructor_is_cpp11;;"inheriting constructors are a C++11 feature"
+ec_field_initializers_is_cpp11;;"field initializers are a C++11 feature"
+ec_deleted_functions_is_cpp11;;"deleted functions are a C++11 feature"
+ec_defaulted_functions_is_cpp11;;"defaulted functions are a C++11 feature"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

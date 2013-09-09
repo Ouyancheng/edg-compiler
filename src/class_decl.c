@@ -17388,6 +17388,8 @@ information about the member declaration, respectively.
         }  /* if */
       }  /* if */
       if (record_fixup) {
+        report_gnu_cpp11_extension_if_needed(
+                             &pos_curr_token, ec_field_initializers_is_cpp11);
         record_inclass_initializer_fixup(class_state, dps);
       }  /* if */
       /* Field initializers make the class a non-POD and a non-aggregate.
@@ -20796,6 +20798,8 @@ declared).
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
     cdsp->has_inheriting_constructors = TRUE;
     cannot_bind_to_curr_construct();
+    report_gnu_cpp11_extension_if_needed(
+                                     pos, ec_inheriting_constructor_is_cpp11);
   }  /* if */
   /* Bypass the identifier. */
   (void)get_token();
@@ -22159,6 +22163,9 @@ current declarator was preceded by another one sharing the same specifiers
     if (deleted_functions_enabled && curr_token == tok_delete) {
       func_info->is_deleted = TRUE;
       func_info->is_definition = TRUE;
+      report_gnu_cpp11_extension_if_needed(
+                              &pos_curr_token, ec_deleted_functions_is_cpp11);
+
     } else if (defaulted_special_members_enabled &&
                (curr_token == tok_default ||
                 (microsoft_mode && microsoft_version >= 1400 &&
@@ -22167,6 +22174,8 @@ current declarator was preceded by another one sharing the same specifiers
          modes. */
       func_info->is_defaulted = TRUE;
       func_info->is_definition = TRUE;
+      report_gnu_cpp11_extension_if_needed(
+                            &pos_curr_token, ec_defaulted_functions_is_cpp11);
     } else if (curr_token == tok_int_constant) {
       /* A pure virtual specifier (presumably).  If a definition follows,
          that will usually be diagnosed as an error (elsewhere), but in
@@ -28356,6 +28365,7 @@ For example:
   push_stop_token_stack();
   check_assertion(curr_token == tok_lbracket);
   lambda->start_position = pos_curr_token;
+  report_gnu_cpp11_extension_if_needed(&pos_curr_token, ec_lambdas_is_cpp11);
   /* Initialize the closure class and set up a context in which members
      can be added. */
   decl_level = decl_level_for_lambda_closure_class(&bad_scope);

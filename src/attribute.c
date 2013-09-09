@@ -1976,6 +1976,7 @@ location in which the group appears.
   a_source_position  group_pos;
 
   group_pos = pos_curr_token;
+  report_gnu_cpp11_extension_if_needed(&group_pos, ec_std_attributes_is_cpp11);
   check_assertion(curr_token == tok_lbracket);
   (void)get_token();
   check_assertion(curr_token == tok_lbracket);

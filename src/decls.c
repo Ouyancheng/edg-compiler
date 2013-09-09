@@ -15213,6 +15213,8 @@ proceed after the call.
         }  /* if */
       } else {
         func_info->is_deleted = TRUE;
+        report_gnu_cpp11_extension_if_needed(
+                              &pos_curr_token, ec_deleted_functions_is_cpp11);
       }  /* if */
     } else {
       has_initializer = TRUE;

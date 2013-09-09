@@ -1,5 +1,24 @@
 Version 5.0
 
+9/9/13   [EDGcpfe/14245,EDGcpfe/14399,EDGcpfe/14422,EDGcpfe/14423,
+          EDGcpfe/14428,EDGcpfe/14429,EDGcpfe/14430]
+C++11 features accepted in non-C++11 GNU C++ mode
+
+The front end now accepts a number of C++11 features in some non-C++11 GNU
+C++ modes.  This includes: rvalue references (gnu_version >= 40800), lambdas
+(gnu_version >= 40500), standard attribute syntax (gnu_version >= 40800),
+delegating constructors (gnu_version >= 40700), inheriting constructors
+(gnu_version >= 40800), nonstatic data member initializers (aka. NSDMIs,
+gnu_version >= 40700), and deleted/defaulted functions (gnu_version >= 40400).
+
+GCC doesn't actually enable rvalue references in this way, but since
+inheriting constructors require rvalue references, we have paired the
+enabling of those two features.
+
+A warning is issued whenever one of these features is used for the first time
+outside a system header in a non-C++11 GNU C++ mode.
+
+
 9/9/13   [EDGcpfe/14410]
 GNU C++ compatibility: Abort on declaration of variadic member template
 

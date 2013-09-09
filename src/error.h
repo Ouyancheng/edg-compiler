@@ -628,9 +628,21 @@ extern void embedded_cplusplus_noncompliance_diagnostic(
     }  /* if */                                                             \
   }
 
+/* Macro to warn about C++11 features enabled in default non-c++11 GNU C++
+   modes. */
+#define report_gnu_cpp11_extension_if_needed(pos, error_code)               \
+  { if (gpp_mode && !cpp11_mode) {                                          \
+      f_report_gnu_cpp11_extensions_if_needed((pos), (error_code));         \
+    }  /* if */                                                             \
+  }
+
+extern void f_report_gnu_cpp11_extensions_if_needed(
+                                               a_source_position  *pos,
+                                               an_error_code      error_code);
 #else /* !GNU_EXTENSIONS_ALLOWED */
 
 #define report_gnu_extension_if_needed(pos, error_code)  /* Nothing */
+#define report_gnu_cpp11_extension_if_needed(pos, error_code)  /* Nothing */
 
 #endif /* GNU_EXTENSIONS_ALLOWED */
 

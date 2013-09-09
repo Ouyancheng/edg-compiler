@@ -6344,6 +6344,8 @@ constructor, the scanned type is stored for later use.
         a_routine_ptr           target = NULL;
         is_delegating_init = TRUE;
         pos = pos_curr_token;
+        report_gnu_cpp11_extension_if_needed(
+                                    &pos, ec_delegating_constructor_is_cpp11);
         cip = alloc_ctor_init((a_constructor_init_kind)cik_delegation);
         cip->compiler_generated = FALSE;
         cip->orig_type = orig_type;

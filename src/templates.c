@@ -21171,9 +21171,13 @@ function declaration.
     func_info->is_definition = TRUE;
     if (defaulted) {
       func_info->is_defaulted = TRUE;
+      report_gnu_cpp11_extension_if_needed(
+                            &pos_curr_token, ec_defaulted_functions_is_cpp11);
     } else {
       func_info->is_deleted = TRUE;
       func_info->is_inline = TRUE;
+      report_gnu_cpp11_extension_if_needed(
+                              &pos_curr_token, ec_deleted_functions_is_cpp11);
     }  /* if */
   }  /* if */
   dps->is_definition = func_info->is_definition;

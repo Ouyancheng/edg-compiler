@@ -4030,6 +4030,35 @@ exclude the GNU C++ mode already.  Hence those are not checked again here.)
        operator delete implicitly "noexcept" (unless otherwise specified). */
     implicit_noexcept_enabled = gnu_version >= 40800;
   }  /* if */
+  if (!cpp11_mode) {
+    /* Some C++11 extensions are enabled by default in some non-C++11 GNU C++
+       modes.  A warning is issued on the first use (if any). */
+    if (gnu_version >= 40400) {
+      deleted_functions_enabled = TRUE;
+      defaulted_special_members_enabled = TRUE;
+    }  /* if */
+    if (!option_kind_used[(int)optk_lambdas] && gnu_version >= 40500) {
+      lambdas_enabled = TRUE;
+    }  /* if */
+    if (gnu_version >= 40700) {
+      if (!option_kind_used[(int)optk_delegating_constructors]) {
+        delegating_constructors_enabled = TRUE;
+      }  /* if */
+      field_initializers_enabled = TRUE;
+    }  /* if */
+    if (gnu_version >= 40800) {
+      if (!option_kind_used[(int)optk_rvalue_references]) {
+        /* GCC doesn't enable rvalue references by default, but it does enable
+           inheriting constructors, which in theory requires rvalue
+           references.  We pair both features. */
+        rvalue_references_enabled = TRUE;
+      }  /* if */
+      if (rvalue_references_enabled) {
+        inheriting_constructors_enabled = TRUE;
+      }  /* if */
+      std_attributes_enabled = TRUE;
+    }  /* if */
+  }  /* if */
 }  /* check_and_set_gpp_mode_options */
 
 
@@ -10394,6 +10423,36 @@ the point at which the compilation was terminated.
 }  /* cmd_line_cleanup */
 
 #endif /* MAKE_FRONT_END_CALLABLE */
+#if GNU_EXTENSIONS_ALLOWED
+
+a_boolean cmd_line_option_inhibits_gnu_cpp11_extension_warning(
+                                                    an_error_code  error_code)
+/*
+The given error code corresponds to a warning that a C++11 feature is being
+used in a non-C++11 GNU mode.  Return TRUE if that feature was enabled using a
+specific command-line option (e.g., optk_lambdas for lambda expressions), to
+indicate that no warning should be issued in that case.
+*/
+{
+  a_boolean  result;
+
+  switch (error_code) {
+    case ec_rvalue_references_is_cpp11:
+      result = option_kind_used[(int)optk_rvalue_references];
+      break;
+    case ec_lambdas_is_cpp11:
+      result = option_kind_used[(int)optk_lambdas];
+      break;
+    case ec_delegating_constructor_is_cpp11:
+      result = option_kind_used[(int)optk_delegating_constructors];
+      break;
+    default:
+      result = FALSE;
+  }  /* switch */
+  return result;
+}  /* cmd_line_option_inhibits_gnu_cpp11_extension_warning */
+
+#endif /* GNU_EXTENSIONS_ALLOWED */
 
 /******************************************************************************
 *                                                             \  ___  /       *

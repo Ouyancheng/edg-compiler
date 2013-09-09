@@ -2014,6 +2014,11 @@ extern void add_to_def_undef_list(a_const_char           *str,
 extern void cmd_line_cleanup(void);
 #endif /* MAKE_FRONT_END_CALLABLE */
 
+#if GNU_EXTENSIONS_ALLOWED
+extern a_boolean cmd_line_option_inhibits_gnu_cpp11_extension_warning(
+                                                   an_error_code  error_code);
+#endif /* GNU_EXTENSIONS_ALLOWED */
+
 #endif /* ifndef CMD_LINE_H */
 
 /******************************************************************************
