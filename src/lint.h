@@ -628,6 +628,14 @@ extern int fileno(FILE *);
 /*lint -esym(769,ec_exp_asm_label)*/
 /*lint -esym(769,ec_missing_label_operand_number)*/
 /*lint -esym(769,ec_label_operand_number_out_of_range)*/
+/*lint -esym(769,ec_rvalue_references_is_cpp11)*/
+/*lint -esym(769,ec_lambdas_is_cpp11)*/
+/*lint -esym(769,ec_std_attributes_is_cpp11)*/
+/*lint -esym(769,ec_delegating_constructor_is_cpp11)*/
+/*lint -esym(769,ec_inheriting_constructor_is_cpp11)*/
+/*lint -esym(769,ec_field_initializers_is_cpp11)*/
+/*lint -esym(769,ec_deleted_functions_is_cpp11)*/
+/*lint -esym(769,ec_defaulted_functions_is_cpp11)*/
 #endif /* !GNU_EXTENSIONS_ALLOWED */
 /*lint -esym(759,is_wide_string_constant)*/
 /*lint -esym(765,is_wide_string_constant)*/
