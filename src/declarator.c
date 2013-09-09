@@ -4640,7 +4640,11 @@ Microsoft extended decl modifiers are also scanned, but they are ignored
       /* A pointer "*", ordinary ("lvalue") reference "&", or rvalue
          reference "&&". */
       another_pointer_declarator = TRUE;
-      rvalue_ref_case = curr_token == tok_and_and;
+      if (curr_token == tok_and_and) {
+        rvalue_ref_case = TRUE;
+        report_gnu_cpp11_extension_if_needed(
+                              &pos_curr_token, ec_rvalue_references_is_cpp11);
+      }  /* if */
     } else if (!C_mode() && is_ptr_to_member_declarator_start()) {
       /* A pointer-to-member "Name::*". */
       another_pointer_declarator = TRUE;
