@@ -22165,7 +22165,6 @@ current declarator was preceded by another one sharing the same specifiers
       func_info->is_definition = TRUE;
       report_gnu_cpp11_extension_if_needed(
                               &pos_curr_token, ec_deleted_functions_is_cpp11);
-
     } else if (defaulted_special_members_enabled &&
                (curr_token == tok_default ||
                 (microsoft_mode && microsoft_version >= 1400 &&
