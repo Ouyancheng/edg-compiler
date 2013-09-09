@@ -8365,8 +8365,8 @@ fixed_point_suffix:
         curr_char_loc += char_bytes;
       } else {
         /* This is a non-identifier character. */
-        if (ch == '.') {
-          /* A decimal point is part of a pp-number. */
+        if (ch == '.' || isdigit((unsigned char)ch)) {
+          /* A decimal point or digit is part of a pp-number. */
           part_of_pp_num = TRUE;
         } else if (ch == '+' || ch == '-') {
           /* A sign character is part of a pp-number if it follows an
