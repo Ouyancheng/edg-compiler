@@ -1,5 +1,28 @@
 Version 5.0
 
+9/9/13   [EDGcpfe/14410]
+GNU C++ compatibility: Abort on declaration of variadic member template
+
+A change made in version 4.7 (see EDGcpfe/13643 on 5/17/13) could result in
+an abort (in update_parameter_pack_symbol_values) on the declaration of a
+variadic member template in g++ mode when gnu_version >= 40700.  Now fixed.
+
+  template <typename...> class A;
+  template <class T1> struct B {
+    B(const T1&);
+    template<typename... Args> B(A<Args...>);
+  };
+  template <typename T> struct C {
+    void f() {
+      B<int> b(0);
+    }
+  };
+  int main() {
+    C<int> c;
+    c.f();
+  }
+
+
 9/6/13   [EDGcpfe/12468]
 Calls to "warn_unused_result" functions in GNU statement expressions
 

@@ -2060,7 +2060,7 @@ with any enclosing variadic classes to their current actual values
       update_template_param_symbols(ssep->template_decl_info->parameters,
                                     ssep->template_arg_list);
       pesep = ssep->pack_expansion_stack;
-      if (pesep != NULL) {
+      if (pesep != NULL && pesep->instantiation_descr != NULL) {
         update_parameter_pack_symbol_values(pesep);
       }  /* if */
     }  /* if */
