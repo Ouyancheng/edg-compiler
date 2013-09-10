@@ -37414,6 +37414,7 @@ Return TRUE if the given arg_operand makes use of an error type or constant.
 
 a_symbol_ptr find_default_constructor(a_type_ptr        class_type,
                                       a_boolean         include_templates,
+                                      a_boolean         declarative_context,
                                       a_source_position *pos,
                                       a_boolean         *ambiguous,
                                       a_symbol_ptr      *inaccessible_match,
@@ -37428,7 +37429,10 @@ not user-declared, there's no symbol, so return NULL; for a user-declared
 default constructor that's defaulted and trivial, return the symbol.
 In either of those cases, if trivial is non-NULL return *trivial set to TRUE.
 If include_templates is TRUE, consider also template constructors that can
-be called with zero arguments.  pos gives the source position for the
+be called with zero arguments.  If declarative_context is TRUE, the function is
+being called in a declarative context (where default arguments are not
+parsed); otherwise, this is a call in an expression context (where default
+arguments must have been parsed).  pos gives the source position for the
 reference (it's needed only if include_templates is TRUE).
 If inaccessible_match is non-NULL, in C++/CLI mode it will be set to a
 symbol that would have been chosen except that it was inaccessible
@@ -37461,6 +37465,7 @@ because of hide-by-sig lookup.
                     /*suppress_object_lifetime=*/TRUE);
     ctor_sym = select_overloaded_default_constructor(class_type,
                                                      include_templates,
+                                                     declarative_context,
                                                      pos,
                                                      ambiguous,
                                                      inaccessible_match);

@@ -10745,6 +10745,7 @@ If there is more than one matching function, set *ambiguous to TRUE.
           /* Default constructor. */
           sym = find_default_constructor(class_type,
                                          /*include_templates=*/TRUE,
+                                         /*declarative_context=*/TRUE,
                                          source_pos, ambiguous,
                                          (a_symbol **)NULL,
                                          (a_boolean *)NULL);
@@ -18135,10 +18136,12 @@ default constructor, or an array thereof.
   }  /* if */
   type = skip_typerefs(type);
   if (is_immediate_class_type(type)) {
-    default_ctor = select_default_constructor_full(type, &error_position, type,
-                                                   /*evaluated=*/TRUE,
-                                                   /*check_access=*/TRUE,
-                                                   &error_detected, &err);
+    default_ctor = select_default_constructor_full(
+                                                 type, &error_position, type,
+                                                 /*declarative_context=*/TRUE,
+                                                 /*evaluated=*/TRUE,
+                                                 /*check_access=*/TRUE,
+                                                 &error_detected, &err);
     result = default_ctor != NULL && default_ctor->is_constexpr;
   }  /* if */
   return result;
@@ -18558,6 +18561,7 @@ deleted.
           /* Check that tp can be default-initialized. */
           a_boolean  error_detected, err;
           (void)select_default_constructor_full(tp, &pos_curr_token, tp,
+                                                /*declarative_context=*/TRUE,
                                                 /*evaluated=*/TRUE,
                                                 /*check_access=*/TRUE,
                                                 &error_detected, &err);
@@ -18584,10 +18588,11 @@ deleted.
             !(bcp->is_virtual &&
               virtual_base_class_is_indirect(bcp, class_type))) {
           a_boolean  error_detected, err;
-          (void)select_default_constructor_full(bcp->type, &pos_curr_token,
-                                                class_type, /*evaluated=*/TRUE,
-                                                /*check_access=*/TRUE,
-                                                &error_detected, &err);
+          (void)select_default_constructor_full(
+                                    bcp->type, &pos_curr_token, class_type,
+                                    /*declarative_context=*/TRUE,
+                                    /*evaluated=*/TRUE, /*check_access=*/TRUE,
+                                    &error_detected, &err);
           if (error_detected) {
             gsfd->suppress_default_ctor = TRUE;
             break;

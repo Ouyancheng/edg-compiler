@@ -1172,6 +1172,7 @@ extern a_boolean conditional_operator_conversion_possible(
 extern a_symbol_ptr select_overloaded_default_constructor(
                                         a_type_ptr        class_type,
                                         a_boolean         include_templates,
+                                        a_boolean         declarative_context,
                                         a_source_position *pos,
                                         a_boolean         *ambiguous,
                                         a_symbol_ptr      *inaccessible_match);

@@ -3,7 +3,7 @@ Version 5.0
 9/10/13  [EDGcpfe/14442]
 Microsoft mode handling of "?" operator with interconvertible 2nd/3rd operands
 
-Usually, if the second and third operands of a "?" operand have different
+Usually, if the second and third operands of a "?" operator have different
 types and are each convertible to the other, the operator is ambiguous.
 Microsoft compilers, however, disambiguate some of these cases when one of
 the operands has a class type (see e.g. the Changes entry of 10/7/10 for
@@ -21855,7 +21855,7 @@ arguments.
 Microsoft mode handling of "?" operator with interconvertible 2nd/3rd operands
 
 According to the C++ standard, if the second and third operands of a "?"
-operand have different class types and are each convertible to the other, the
+operator have different class types and are each convertible to the other, the
 operator is ambiguous.  In such cases, MSVC favors the second operand,
 converting the third operand to the type of the second.  Now, we do
 that too.

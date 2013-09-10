@@ -658,6 +658,7 @@ extern a_boolean arg_operand_involves_error_entity(
 extern
 a_symbol_ptr find_default_constructor(a_type_ptr        class_type,
                                       a_boolean         include_templates,
+                                      a_boolean         declarative_context,
                                       a_source_position *pos,
                                       a_boolean         *ambiguous,
                                       a_symbol_ptr      *inaccessible_match,

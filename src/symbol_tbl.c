@@ -9425,6 +9425,7 @@ a_routine_ptr select_default_constructor_full(
                                          a_type_ptr        class_type,
                                          a_source_position *err_pos,
                                          a_type_ptr        object_class_type,
+                                         a_boolean         declarative_context,
                                          a_boolean         evaluated,
                                          a_boolean         check_access,
                                          a_boolean         *error_detected,
@@ -9441,7 +9442,10 @@ Check access to the constructor (if check_access is TRUE) and issue an
 error if the constructor is not accessible.  object_class_type points
 to the type of the object being created; class_type may be a base
 class of object_class_type.  This is needed for protected member
-access checking.  If evaluated is FALSE, the reference is within an
+access checking.  If declarative_context is TRUE, the function is being
+called in a declarative context (where default arguments are not parsed);
+otherwise, this is a call in an expression context (where default arguments
+must have been parsed).  If evaluated is FALSE, the reference is within an
 unevaluated expression.  If error_detected is non-NULL, return
 *error_detected set to TRUE if there was an error, and do not issue
 any diagnostics (including warnings).  (That return value does not
@@ -9459,7 +9463,7 @@ that can be called with zero arguments.
   if (error_detected != NULL) *error_detected = FALSE;
   class_type = skip_typerefs(class_type);
   ctor_sym = find_default_constructor(class_type, /*include_templates=*/TRUE,
-                                      err_pos, &ambiguous,
+                                      declarative_context, err_pos, &ambiguous,
                                       (error_detected == NULL ?
                                          &inaccessible_match :
                                          (a_symbol **)NULL),
@@ -9529,6 +9533,7 @@ Interface to select_default_constructor for the simple case.
   ctor_routine = select_default_constructor_full(class_type,
                                                  err_pos,
                                                  object_class_type,
+                                                 /*declarative_context=*/FALSE,
                                                  /*evaluated=*/TRUE,
                                                  /*check_access=*/TRUE,
                                                  /*error_detected=*/

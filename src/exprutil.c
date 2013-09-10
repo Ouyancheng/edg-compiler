@@ -14423,6 +14423,7 @@ processing.  Supplies some arguments from expression stack values.
          select_default_constructor_full(class_type,
                                          err_pos,
                                          class_type,
+                                         /*declarative_context=*/FALSE,
                                          curr_expr_is_potentially_evaluated(),
                                          expr_access_checking_should_be_done(),
                                          p_error_detected,

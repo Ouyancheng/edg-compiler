@@ -20920,6 +20920,7 @@ resolution).
          select_default_constructor_full(unqual_dest_type,
                                          pos,
                                          unqual_dest_type,
+                                         /*declarative_context=*/FALSE,
                                          curr_expr_is_potentially_evaluated(),
                                          generate_il &&
                                          expr_access_checking_should_be_done(),
@@ -23577,6 +23578,7 @@ end_of_routine:
 a_symbol_ptr select_overloaded_default_constructor(
                                          a_type_ptr        class_type,
                                          a_boolean         include_templates,
+                                         a_boolean         declarative_context,
                                          a_source_position *pos,
                                          a_boolean         *ambiguous,
                                          a_symbol_ptr      *inaccessible_match)
@@ -23586,8 +23588,11 @@ See if there is a default constructor of the indicated class type
 to the symbol for the constructor.  Consider template constructors as
 possible default constructors if include_templates is TRUE (they can
 be called with zero arguments if they have default template arguments
-or a parameter pack).  If more than one constructor matches, set
-*ambiguous to TRUE and return NULL.  The source position of the
+or a parameter pack).  If declarative_context is TRUE, the function is
+being called in a declarative context (where default arguments are not
+parsed); otherwise, this is a call in an expression context (where default
+arguments must have been parsed).  If more than one constructor matches,
+set *ambiguous to TRUE and return NULL.  The source position of the
 reference is given by pos (it's needed only if include_templates is
 TRUE).  If inaccessible_match is non-NULL, in C++/CLI mode it will be
 set to a symbol that would have been chosen except that it was
@@ -23633,10 +23638,8 @@ find_default_constructor.
          loop here. */
       if (include_templates) need_second_pass = TRUE;
     } else if (is_default_constructor(sym->variant.routine.ptr,
-                                      /*is_declarative_context=*/TRUE)) {
-      /* sym is a default constructor.  (Note that is_declarative_context is
-         passed TRUE because we're only checking for the existence of a
-         default constructor; we're not actually creating a call.) */
+                                      declarative_context)) {
+      /* sym is a default constructor. */
       if (ctor_sym != NULL) {
         /* A default constructor had already been found, so there's
            more than one.  Do the full overload resolution to see if one

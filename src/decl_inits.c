@@ -1095,7 +1095,9 @@ given position, unless is->no_diagnostics is TRUE.
   /* No access checking is done during tentative matching for overload
      resolution (indicated by is->check_validity_only). */
   ctor_rp = select_default_constructor_full(
-                                    tp, diag_pos, tp, /*evaluated=*/TRUE,
+                                    tp, diag_pos, tp,
+                                    /*declarative_context=*/FALSE,
+                                    /*evaluated=*/TRUE,
                                     /*check_access=*/!is->check_validity_only,
                                     p_err, (a_boolean *)NULL);
   if (err) is->init_error = TRUE;
