@@ -21420,13 +21420,13 @@ instantiation, then you don't know what X is.
 }  /* prescan_nonclass_template_declaration */
 
 
-static void make_template_decl(a_template_decl_ptr	tdp,
+static void complete_template_decl(a_template_decl_ptr	tdp,
 			       a_template_param_ptr	tp_list)
 /*
-Create an IL structure describing the parameterization of a template using the
-information gathered in the front end structures.  tdp points to a previously
-allocated template declaration entry.  tp_list is the template parameter
-list to be copied to tdp.
+Fill in the IL structure describing the parameterization of a template using
+the information gathered in the front end structures.  tdp points to a
+previously allocated template declaration entry.  tp_list is the template
+parameter list to be copied to tdp.
 */
 {
   a_template_parameter_ptr  il_tpp = NULL;
@@ -21463,7 +21463,8 @@ list to be copied to tdp.
                   (char*)new_tpp->variant.templ.class_template, iek_template);
         break;
       default:
-        unexpected_condition_str("make_template_decl: unexpected symbol kind");
+        unexpected_condition_str2("complete_template_decl:",
+                                  "unexpected symbol kind");
     }  /* switch */
     if (il_tpp == NULL) {
       tdp->param_list = new_tpp;
@@ -21472,7 +21473,27 @@ list to be copied to tdp.
     }  /* if */
     il_tpp = new_tpp;
   }  /* for */
-}  /* make_template_decl */
+}  /* complete_template_decl */
+
+
+static void create_template_decl(
+				a_tmpl_decl_state_ptr	decl_state,
+				a_source_position_ptr	template_pos)
+/*
+Allocate a template decl entry and fill in its field.  template_pos is
+the position of the "template" keyword in the declaration, and can be
+null_source_position for a synthesized template declaration (i.e., for
+an generated declaration for an inheriting constructor template).
+*/
+{
+  a_template_decl_ptr	tdp;
+  tdp = alloc_template_decl();
+  tdp->scope = scope_stack_top().il_scope;
+  tdp->template_pos = *template_pos;
+  tdp->parent = decl_state->template_decl;
+  decl_state->template_decl = tdp;
+  decl_state->decl_info->template_decl = tdp;
+}  /* create_template_decl */
 
 
 static void scan_template_param_clauses(
@@ -21502,11 +21523,10 @@ of the parsing of the template clause so far (and this routine adds to that
 information).  See the definition of a_tmpl_decl_state for details.
 */
 {
-  a_template_decl_info_ptr	    prev_template_decl_info = NULL;
-  a_template_decl_info_ptr	    template_decl_info = NULL;
+  a_template_decl_info_ptr     prev_template_decl_info = NULL;
+  a_template_decl_info_ptr     template_decl_info = NULL;
   a_boolean                    param_list_seen = FALSE;
   a_source_position            template_pos;
-  a_template_decl_ptr          template_decl;
 
   /* Loop until there are no more template parameter clauses.  Note that
      this routine is not called for explicit instantiations, in which
@@ -21562,12 +21582,7 @@ information).  See the definition of a_tmpl_decl_state for details.
            subsequent missing parameter list is an error. */
         param_list_seen = TRUE;
         if (prototype_instantiations_in_il) {
-          template_decl = alloc_template_decl();
-          template_decl->scope = scope_stack_top().il_scope;
-          template_decl->template_pos = template_pos;
-          template_decl->parent = decl_state->template_decl;
-          decl_state->template_decl = template_decl;
-          template_decl_info->template_decl = template_decl;
+          create_template_decl(decl_state, &template_pos);
         }  /* if */
       } else if (is_template_param || decl_state->is_generic) {
         /* A template or generic parameter declaration with a missing template
@@ -21587,12 +21602,9 @@ information).  See the definition of a_tmpl_decl_state for details.
         /* Bypass the ">". */
         (void)get_token();
         if (prototype_instantiations_in_il) {
-          template_decl = alloc_template_decl();
-          template_decl->template_pos = template_pos;
-          template_decl->parent = decl_state->template_decl;
-          decl_state->template_decl = template_decl;
+          create_template_decl(decl_state, &template_pos);
         }  /* if */
-      }  /* if */
+    }  /* if */
     } else {
       error(ec_missing_template_param_list);
     }  /* if */
@@ -24514,7 +24526,7 @@ to TRUE.
   }  /* for */
   if (prototype_instantiations_in_il) {
     /* Fill in the information in the IL template declaration structures. */
-    make_template_decl(decl_info->template_decl, decl_info->parameters);
+    complete_template_decl(decl_info->template_decl, decl_info->parameters);
   }  /* if */
 }  /* update_param_depth_and_default_args */
 
@@ -30693,6 +30705,13 @@ represent the function template, and decl_state tracks its declaration.
 
   complete_function_template_decl(decl_state, sym, func_info, &tssp,
                                   &sym->decl_position);
+  if (prototype_instantiations_in_il) {
+    a_template_decl_info_ptr tdip;
+    create_template_decl(decl_state, &null_source_position);
+    tdip = decl_state->decl_info;
+    complete_template_decl(tdip->template_decl, tdip->parameters);
+    decl_state->il_template_entry->template_decl = decl_state->template_decl;
+  }  /* if */
   complete_il_template_entry(decl_state, sym);
 }  /* complete_inheriting_ctor_template */
 
