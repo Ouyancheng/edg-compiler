@@ -23747,30 +23747,38 @@ that case.
                                                                 &ambig_3_to_2);
       if (microsoft_bugs && conv_2_to_3_possible && conv_3_to_2_possible &&
           !ambig_2_to_3 && !ambig_3_to_2) {
-        /* The Microsoft compiler prefers a conversion using a constructor
-           to one that uses a conversion function. */
+        /* The Microsoft compiler appears to often prefer the 3->2 conversion
+           over the 2->3 conversion is both are possible.  However, it also
+           sometimes prefers a conversion by constructor over a conversion by
+           conversion function.  The exact rules aren't clear, but the
+           following seems to cover known cases. */
         a_boolean conv_func_2_to_3 = (conv_2_to_3.routine != NULL &&
                                       conv_2_to_3.routine->special_kind ==
                                       (a_special_function_kind)sfk_conversion);
         a_boolean conv_func_3_to_2 = (conv_3_to_2.routine != NULL &&
                                       conv_3_to_2.routine->special_kind ==
                                       (a_special_function_kind)sfk_conversion);
-        if (conv_func_2_to_3 && !conv_func_3_to_2) {
+        a_boolean arg3_is_class = is_class_struct_union_type(operand_3.type);
+        if (arg3_is_class && !conv_3_to_2.std.nontrivial_conversion) {
+          /* The third operand has class type and its conversion to the type
+             of the second operand has a trivial "standard conversion" part:
+             Prefer the 3->2 conversion. */
+          conv_2_to_3_possible = FALSE;
+        } else if (conv_func_2_to_3 && !conv_func_3_to_2) {
+          /* Prefer the 3->2 conversion because is uses a constructor call
+             rather than a conversion function call. */
           conv_2_to_3_possible = FALSE;
         } else if (conv_func_3_to_2 && !conv_func_2_to_3) {
+          /* Prefer the 2->3 conversion because is uses a constructor call
+             rather than a conversion function call. */
           conv_3_to_2_possible = FALSE;
+        } else if (arg3_is_class) {
+          /* The third operand has class type and its conversion to the type
+             of the second operand has a nontrivial "standard conversion" part,
+             but the previous condition didn't apply: Prefer the 3->2
+             conversion. */
+          conv_2_to_3_possible = FALSE;
         }  /* if */
-      }  /* if */
-      if (microsoft_bugs && conv_2_to_3_possible && conv_3_to_2_possible &&
-          !ambig_2_to_3 && !ambig_3_to_2 &&
-          is_class_struct_union_type(operand_2.type) &&
-          is_class_struct_union_type(operand_3.type)) {
-        /* MSVC (checked up to MSVC10) picks the conversion from 3->2 if
-           both are possible.  Apparently it makes some effort to compare the
-           conversions to see which is better, but since we don't know the
-           exact tie-breakers used, we apply this trick only when both
-           operands have class types. */
-        conv_2_to_3_possible = FALSE;
       }  /* if */
       /* Decide whether the extra temporary for the case where the result
          is a class rvalue should be suppressed (suppress_class_rvalue_temp),
