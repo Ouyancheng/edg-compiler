@@ -1,5 +1,22 @@
 Version 5.0
 
+9/10/13  [EDGcpfe/14470]
+Spurious suppression of default nested class constructor
+
+In C++11 and Microsoft C++ modes, the front end sometimes incorrectly
+suppressed the default constructor of a nested class that requires a call
+to another nested class default constructor involving a default argument.
+For example:
+
+  struct S {
+    struct D { D(int = 0); };
+    struct N { D d; };  // Default constructor was accidentally suppressed
+  };                    // in some modes.
+  S::N n;  // Previously a spurious error.
+
+This is now fixed.
+
+
 9/9/13   [EDGcpfe/14245,EDGcpfe/14399,EDGcpfe/14422,EDGcpfe/14423,
           EDGcpfe/14428,EDGcpfe/14429,EDGcpfe/14430]
 C++11 features accepted in non-C++11 GNU C++ mode

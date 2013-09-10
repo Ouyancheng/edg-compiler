@@ -23633,8 +23633,10 @@ find_default_constructor.
          loop here. */
       if (include_templates) need_second_pass = TRUE;
     } else if (is_default_constructor(sym->variant.routine.ptr,
-                                      /*is_declarative_context=*/FALSE)) {
-      /* sym is a default constructor. */
+                                      /*is_declarative_context=*/TRUE)) {
+      /* sym is a default constructor.  (Note that is_declarative_context is
+         passed TRUE because we're only checking for the existence of a
+         default constructor; we're not actually creating a call.) */
       if (ctor_sym != NULL) {
         /* A default constructor had already been found, so there's
            more than one.  Do the full overload resolution to see if one
