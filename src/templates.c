@@ -21604,7 +21604,7 @@ information).  See the definition of a_tmpl_decl_state for details.
         if (prototype_instantiations_in_il) {
           create_template_decl(decl_state, &template_pos);
         }  /* if */
-    }  /* if */
+      }  /* if */
     } else {
       error(ec_missing_template_param_list);
     }  /* if */
