@@ -6,14 +6,13 @@ Microsoft mode handling of "?" operator with interconvertible 2nd/3rd operands
 Usually, if the second and third operands of a "?" operator have different
 types and are each convertible to the other, the operator is ambiguous.
 Microsoft compilers, however, disambiguate some of these cases when one of
-the operands has a class type (see e.g. the Changes entry of 10/7/10 for
+the operands has a class type (see, e.g., the Changes entry of 10/7/10 for
 EDGcpfe/11052).  In particular, it appears Microsoft compilers (a) prefer
 converting the third operand to the type of the second operand rather than
-vice versa, and (b) that they prefer converting through a constructor call
-than through a user-defined conversion call.  The exact boundaries of these
-two preferences is unfortunately not clear, but the front end now balances
-the two in a way that matches all the cases we are currently aware of.
-For example:
+vice versa, and (b) prefer a constructor call over a user-defined conversion
+call.  The exact boundaries of these two preferences is unfortunately not
+clear, but the front end now balances the two in a way that matches all the
+cases we are currently aware of.  For example:
 
   struct S {
     S() {}

@@ -23748,7 +23748,7 @@ that case.
       if (microsoft_bugs && conv_2_to_3_possible && conv_3_to_2_possible &&
           !ambig_2_to_3 && !ambig_3_to_2) {
         /* The Microsoft compiler appears to often prefer the 3->2 conversion
-           over the 2->3 conversion is both are possible.  However, it also
+           over the 2->3 conversion if both are possible.  However, it also
            sometimes prefers a conversion by constructor over a conversion by
            conversion function.  The exact rules aren't clear, but the
            following seems to cover known cases. */
@@ -23765,11 +23765,11 @@ that case.
              Prefer the 3->2 conversion. */
           conv_2_to_3_possible = FALSE;
         } else if (conv_func_2_to_3 && !conv_func_3_to_2) {
-          /* Prefer the 3->2 conversion because is uses a constructor call
+          /* Prefer the 3->2 conversion because it uses a constructor call
              rather than a conversion function call. */
           conv_2_to_3_possible = FALSE;
         } else if (conv_func_3_to_2 && !conv_func_2_to_3) {
-          /* Prefer the 2->3 conversion because is uses a constructor call
+          /* Prefer the 2->3 conversion because it uses a constructor call
              rather than a conversion function call. */
           conv_3_to_2_possible = FALSE;
         } else if (arg3_is_class) {
