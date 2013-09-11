@@ -21492,7 +21492,10 @@ an generated declaration for an inheriting constructor template).
   tdp->template_pos = *template_pos;
   tdp->parent = decl_state->template_decl;
   decl_state->template_decl = tdp;
-  decl_state->decl_info->template_decl = tdp;
+  if (decl_state->decl_info != NULL) {
+    /* The decl_info field can be NULL for full specializations. */
+    decl_state->decl_info->template_decl = tdp;
+  }  /* if */
 }  /* create_template_decl */
 
 
