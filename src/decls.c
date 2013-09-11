@@ -1153,10 +1153,9 @@ unknown length is not enforced for such parameters.)
   ptp = ftp->variant.routine.extra_info->param_type_list;
   check_assertion(ptp != NULL);
   /* Move ptp to the given numbered parameter if necessary. */
-  while (param_pos != 1) {
+  while (ptp->param_num != param_pos) {
     ptp = ptp->next;
     check_assertion(ptp != NULL);
-    --param_pos;
   }  /* while */
   tdip = func_templ->variant.template_info->cache.decl_info;
   if (tdip != NULL &&
