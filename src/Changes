@@ -1,5 +1,23 @@
 Version 5.0
 
+9/11/13  [EDGcpfe/14407]
+Spurious exception specification mismatch error on class template destructor
+
+In C++11 mode, the front previously attempted to check the exception
+specification of a destructor of a class template thought to override a
+virtual base class destructor.  However, that check sometimes triggered
+spurious errors because of unknown properties of templates parameters (i.e.,
+the check cannot be done in general for class templates).  For example:
+
+  struct B { virtual ~B() {} };
+  template<class T> struct D: B {
+    T x;
+    virtual ~D() {}  // Previously triggered a spurious error in C++11 mode.
+  };
+
+This is now fixed (the check is no longer performed in templates).
+
+
 9/10/13  [EDGcpfe/14442]
 Microsoft mode handling of "?" operator with interconvertible 2nd/3rd operands
 

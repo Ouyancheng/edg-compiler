@@ -5407,11 +5407,14 @@ return_types_are_override_compatible.
   rout->is_virtual = TRUE;
   /* Check the exception specification relationship between the overriding and
      overridden members. */
-  if ((rout->is_defaulted ||
-       (implicit_noexcept_enabled && special_kind_is(rout, sfk_destructor))) &&
-       rout->type->kind == (a_type_kind)tk_routine &&
-       rout->type
-           ->variant.routine.extra_info->exception_specification == NULL) {
+  if (rout->is_prototype_instantiation) {
+    /* This check cannot be done reliably for prototype instantiations. */
+  } else if ((rout->is_defaulted ||
+              (implicit_noexcept_enabled &&
+               special_kind_is(rout, sfk_destructor))) &&
+             rout->type->kind == (a_type_kind)tk_routine &&
+             rout->type->variant.routine.extra_info
+                       ->exception_specification == NULL) {
     /* For destructors and defaulted members, the exception specification may
        not be known until the complete class has been seen.  Delay the check
        until then. */
