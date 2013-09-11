@@ -58,6 +58,8 @@ C++ modes.  This includes: rvalue references (gnu_version >= 40800), lambdas
 delegating constructors (gnu_version >= 40700), inheriting constructors
 (gnu_version >= 40800), nonstatic data member initializers (aka. NSDMIs,
 gnu_version >= 40700), and deleted/defaulted functions (gnu_version >= 40400).
+(Scoped enumeration types and variadic templates were already handled by
+previous changes.  See the entries of 8/28/12 and 9/26/12.)
 
 GCC doesn't actually enable rvalue references in this way, but since
 inheriting constructors require rvalue references, we have paired the
