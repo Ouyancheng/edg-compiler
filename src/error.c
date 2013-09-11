@@ -3918,8 +3918,9 @@ report_gnu_cpp11_extension_if_needed.)
 */
 {
   if (!diagnostic_issued_for_error_code[(int)error_code] &&
-      !seq_is_in_system_header(pos->seq) &&
-      !cmd_line_option_inhibits_gnu_cpp11_extension_warning(error_code)) {
+      is_effective_diagnostic(error_code, es_warning) &&
+      !cmd_line_option_inhibits_gnu_cpp11_extension_warning(error_code) &&
+      !seq_is_in_system_header(pos->seq)) {
     pos_warning(error_code, pos);
   }  /* if */
 }  /* f_report_gnu_cpp11_extensions_if_needed */
