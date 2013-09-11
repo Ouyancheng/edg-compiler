@@ -5127,12 +5127,13 @@ typedef struct a_ctor_init_block {
 /*
 Macro that returns TRUE when a decltype-specifier is allowed in a
 mem-initializer and the token stream indicates that such a decltype
-is present at the current spot (either because curr_token == tok_decltype
-or because a previously scanned decltype-specifier is pending).
+is present at the current spot (either because curr_token ==
+tok_decltype_construct or because a previously scanned decltype-specifier
+is pending).
 */
 #define is_decltype_mem_initializer(cibp)                                     \
   (enable_decltype_in_base_specifier_and_mem_initializer &&                   \
-   (curr_token == tok_decltype ||                                             \
+   (curr_token == tok_decltype_construct ||                                   \
     (cibp)->pending_decltype_initializer_type != NULL))                       \
 
 
@@ -5245,8 +5246,9 @@ underlying element type and the array type itself is returned through
     } else {
       /* Delegating constructors are disabled or this is not the first
          mem-initializer-id in a list; scan the decltype-specifier. */
-      orig_type = scan_decltype_operator((a_rescan_control_block *)NULL,
-                                         (a_decl_pos_block *)NULL);
+      orig_type = locator_for_curr_id.variant.decltype_type;
+      /* Advance to the token after the decltype(...). */
+      (void)get_token();
       if (is_error_type(orig_type)) {
         /* An error has been issued. */
         init_type = error_type();
@@ -6307,8 +6309,9 @@ constructor, the scanned type is stored for later use.
          class initializer. */
       is_decltype = TRUE;
       cibp->pending_decltype_pos = pos_curr_token;
-      decltype_type = scan_decltype_operator((a_rescan_control_block *)NULL,
-                                         (a_decl_pos_block *)NULL);
+      decltype_type = locator_for_curr_id.variant.decltype_type;
+      /* Advance to the token after the decltype(...). */
+      (void)get_token();
       if (is_error_type(decltype_type)) {
         /* An error has been issued.  Even though this isn't really a
            delegating constructor, return TRUE to prevent the caller from

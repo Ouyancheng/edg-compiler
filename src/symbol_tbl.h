@@ -135,7 +135,8 @@ EXTERN a_translation_unit_ptr
 typedef struct a_symbol_locator {
   /* Data structure used to store information about an identifier token.
      Can be used to look up the identifier or enter it into the symbol
-     table. */
+     table.  This is also used for tok_decltype_construct to store the
+     type of a decltype operator that has been scanned. */
   /* If you change this structure, be sure to also change the initialization
      of global variable cleared_locator in symbol_tbl_one_time_init. */
   a_symbol_header_ptr
@@ -325,6 +326,10 @@ typedef struct a_symbol_locator {
 			   This field is only guaranteed to be non-NULL for
 			   destructor and finalizer names from field selection
 			   operations. */
+    /* When curr_token is tok_decltype_construct: */
+    a_type_ptr	decltype_type;
+			/* The type of a decltype operator that has been
+			   scanned. */
   } variant;
 } a_symbol_locator;
 

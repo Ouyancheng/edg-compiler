@@ -245,6 +245,7 @@ specifier (except for the typedef and friend cases).  (3.5.2)
   is_enum_type_keyword(curr_token)  || curr_token == tok_typename        || \
   curr_token == tok_typeof          || curr_token == tok_decltype        || \
   curr_token == tok_underlying_type ||                                      \
+  curr_token == tok_decltype_construct ||                                   \
   (auto_type_specifier_enabled && curr_token == tok_auto)                   \
   or_is_cli_assembly_visibility_specifier(curr_token))
 

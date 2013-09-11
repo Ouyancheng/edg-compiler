@@ -304,6 +304,7 @@ EXTERN an_opname_kind opname_kind_for_token[(int)tok_last+1]
 #if MICROSOFT_EXTENSIONS_ALLOWED
    (an_opname_kind)onk_none,          /* tok_cli_typeid */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+   (an_opname_kind)onk_none,          /* tok_decltype_construct */
    (an_opname_kind)onk_none,          /* tok_unimplemented */
    (an_opname_kind)onk_subscript,     /* operator[] starts with tok_lbracket */
    (an_opname_kind)onk_none,          /* tok_rbracket */

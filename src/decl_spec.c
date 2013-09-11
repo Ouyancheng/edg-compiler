@@ -7739,9 +7739,17 @@ of a declarator or a syntax error) return TRUE; otherwise return FALSE.
       options |= GID_IS_NEW_TYPE_NAME;
     }  /* if */
     if (!is_generalized_identifier_start(options)) {
-      /* This could result from "::" followed by something strange. */
-      *err = TRUE;
-      result = TRUE;
+      if (curr_token == tok_decltype_construct) {
+        /* We get here for a decltype because it could be followed by
+           "::", in which case it is part of a qualified name.  If
+           tok_decltype_construct is returned, it was not followed by
+           "::", so is a normal decltype case. */
+        goto done;
+      } else {
+        /* This could result from "::" followed by something strange. */
+        *err = TRUE;
+        result = TRUE;
+      }  /* if */
     }  /* if */
     /* Check for a constructor declaration.  The following conditions
        must be satisfied:  (1) we are inside a class definition;
@@ -7822,6 +7830,7 @@ of a declarator or a syntax error) return TRUE; otherwise return FALSE.
       }  /* if */
     }  /* if */
   }  /* if */
+done:
 #if NAMED_ADDRESS_SPACES_ALLOWED
   *named_address_space = 0;
   if (!result && named_address_spaces_enabled) {
@@ -7836,7 +7845,8 @@ of a declarator or a syntax error) return TRUE; otherwise return FALSE.
     }  /* if */
   }  /* if */
 #endif /* NAMED_ADDRESS_SPACES_ALLOWED */
-  if (!result && *basic_type != bt_none && !identifier_names_address_space) {
+  if (!result && curr_token == tok_identifier &&
+      *basic_type != bt_none && !identifier_names_address_space) {
     /* There's already a basic type, so the identifier should be processed as
        a declarator.  If it happens to be a type name, it is better to have an
        invalid-redeclaration error later than a bad-combination-of-types error
@@ -9629,24 +9639,6 @@ process_enum_specifier:
         diagnostic(anachronism_error_severity, ec_overload_anachronism);
         decl_specifiers_seen |= DS_OVERLOAD;
         break;
-      case tok_decltype:
-        { a_source_position  decltype_pos = pos_curr_token;
-          *type_ptr = scan_decltype_operator((a_rescan_control_block *)NULL,
-                                              decl_pos_block);
-          if (!is_error_type(*type_ptr) &&
-              (basic_type != bt_none || sign != sign_none ||
-               size != size_none)) {
-            /* We've already seen specifiers that cannot be combined with
-               decltype: Ignore them and issue an error. */
-            pos_error(ec_bad_combination_of_type_specifiers, &decltype_pos);
-            *type_ptr = error_type();
-            sign = sign_none;
-            size = size_none;
-          }  /* if */
-          basic_type = bt_typedef;
-          decl_specifiers_seen |= DS_TYPE;
-          goto no_get_token;
-        }
       case tok_underlying_type:
         { a_source_position  decltype_pos = pos_curr_token;
           *type_ptr = scan_underlying_type_operator();
@@ -9705,6 +9697,7 @@ process_enum_specifier:
 #endif /* GNU_EXTENSIONS_ALLOWED */
       case tok_identifier:  /* Identifier or "::". */
       case tok_colon_colon:
+      case tok_decltype:
 #if MICROSOFT_EXTENSIONS_ALLOWED
       case tok_super:
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
@@ -9716,7 +9709,12 @@ process_enum_specifier:
            are complete (the identifier is a declarator) or it may be another
            specifier.  First we look for conditions that will cause us to
            exit the loop -- generally because the identifier is clearly not
-           a specifier. */
+           a specifier.  Note that when we get here with a decltype token
+           this could be a simple "decltype(x)" or the start of a qualified
+           name (e.g., "decltype(x)::something").  In the former case,
+           the call to process_nontype_identifier will return FALSE and
+           the current token will be a tok_decltype_construct, which is
+           handled below. */
         /* To be more specific: in ANSI C, an identifier that appears to be
            a typedef name is not recognized as such if the specifiers list
            already includes a basic type or sign.  This is so that the
@@ -9772,6 +9770,29 @@ process_enum_specifier:
 #endif /* NAMED_ADDRESS_SPACES_ALLOWED */
           }  /* if */
         }
+        /*FALLTHROUGH*/
+      case tok_decltype_construct:
+        /* When a decltype is encountered by is_identifier_start, it must
+           be scanned to see if it is followed by "::".  When it is not
+           followed by "::", a tok_decltype_construct token is created,
+           and the type from the decltype is stored in the locator. */
+        if (curr_token == tok_decltype_construct) {
+          a_source_position  decltype_pos = pos_curr_token;
+          *type_ptr = locator_for_curr_id.variant.decltype_type;
+          if (!is_error_type(*type_ptr) &&
+              (basic_type != bt_none || sign != sign_none ||
+               size != size_none)) {
+            /* We've already seen specifiers that cannot be combined with
+               decltype: Ignore them and issue an error. */
+            pos_error(ec_bad_combination_of_type_specifiers, &decltype_pos);
+            *type_ptr = error_type();
+            sign = sign_none;
+            size = size_none;
+          }  /* if */
+          basic_type = bt_typedef;
+          decl_specifiers_seen |= DS_TYPE;
+          break;
+        }  /* if */
         if (sign != sign_none || size != size_none) {
           /* There is an indication of sign and/or size (but no indication
              of a basic type).  In ANSI C and C++, assume we're dealing with

@@ -1384,9 +1384,11 @@ This is used to save tokens for later rescanning.
        string. */
     ctp->extra_info_kind = (a_token_extra_info_kind)teik_pp_token;
     make_copy_of_pp_token(&ctp->variant.pp_token_descr);
-  } else if (curr_token == tok_identifier || curr_token == tok_ptr_to_member
+  } else if (curr_token == tok_identifier || curr_token == tok_ptr_to_member ||
+             curr_token == tok_decltype_construct
              if_microsoft_extensions(|| curr_token == tok_cli_typeid)) {
-    /* Identifier -- save information about it. */
+    /* Identifier -- save information about it.  The locator is also saved
+       for pointer-to-member and decltype_construct tokens. */
     ctp->extra_info_kind = (a_token_extra_info_kind)teik_identifier;
     ctp->variant.locator = locator_for_curr_id;
   } else if (curr_token == tok_microsoft_asm) {
@@ -13867,8 +13869,12 @@ the destructor or finalizer is part of a qualified name (e.g., "A::B::~B").
   (void)get_token();
   if (!f_is_generalized_identifier_start(GID_DISALLOW_QUALIFIED_NAME |
 				         GID_DISALLOW_OPERATOR_NAME,
-                                         field_sel_type)) {
-    /* syntax_error is deliberately not called. */
+                                         field_sel_type) &&
+      (curr_token != tok_decltype_construct || qualifier_sym != NULL ||
+       is_finalizer)) {
+    /* What follows the "~" or "!" is not an identifier or is something
+       like X::~decltype(...).  ~decltype is only allowed as an unqualified
+       name. */
     error(ec_exp_identifier);
     /* Put back the current token and make a fake error identifier. */
     unget_token();
@@ -13932,6 +13938,14 @@ the destructor or finalizer is part of a qualified name (e.g., "A::B::~B").
         /* The destructor/finalizer name matches the class name -- this is a
            normal destructor/finalizer reference. */
         dtor_or_finalizer_okay = TRUE;
+      } else if (curr_token == tok_decltype_construct) {
+        a_type_ptr  decltype_tp = locator_for_curr_id.variant.decltype_type;
+        if (acceptable_dtor_or_finalizer_type(field_sel_type, decltype_tp)) {
+          dtor_or_finalizer_okay = TRUE;
+          decltype_tp = skip_typerefs(decltype_tp);
+          type_sym = symbol_for(decltype_tp);
+          curr_token = tok_identifier;
+        }  /* if */
       } else {
         clear_specific_symbol(locator_for_curr_id);
         /* Do a normal lookup.  If this produces a class symbol, see if the
@@ -16216,14 +16230,18 @@ Display a name reference, for debugging purposes.
 static void make_name_qualifier(a_name_qualifier_ptr	*nqp,
 				a_symbol_ptr		qualifier_sym,
 				a_type_ptr		qualifier_type,
-				a_namespace_ptr		qualifier_namespace)
+				a_namespace_ptr		qualifier_namespace,
+				a_type_ptr		decltype_type)
 /*
 Construct a name qualifier entry for the qualifier specified by
-"qualifier_sym".  "nqp" points to the previous qualifier, if any.
-If "qualifier_sym" is a type symbol, "qualifier_type" is the type
-referred to, after any typerefs/typedefs have been removed.  If
+"qualifier_sym" or "decltype_type".  "nqp" points to the previous
+qualifier, if any.  If "qualifier_sym" is a type symbol, "qualifier_type"
+is the type referred to, after any typerefs/typedefs have been removed.  If
 "qualifier_sym" is a namespace symbol, "qualifier_namespace" is the
 namespace referred to, after any namespace aliases have been removed.
+If "decltype_type" is not NULL, it is the original type specified by
+a decltype qualifier and is used in place of the type specified by
+"qualifier_sym", which refers to the underlying type in this case.
 
 We look for a previously allocated name qualifier entry for classes and
 namespaces.  The list is stored in the class or namespace supplement
@@ -16253,35 +16271,40 @@ original type or namespace that was specified.
        would not otherwise be. */
     goto done;
   }  /* if */
-  /* Get the class or namespace represented by the qualifier.  A
-     "class" can actually be an enum type or template parameter type
-     in certain cases. */
-  switch (qualifier_sym->kind) {
-    case sk_class_or_struct_tag:
-    case sk_union_tag:
-      /* Get the type specified by the qualifier. */
-      new_type = qualifier_sym->variant.class_struct_union.type;
-      is_type = TRUE;
-      break;
-    case sk_namespace:
-      /* Get the namespace specified by the qualifier. */
-      new_namespace = qualifier_sym->variant.namespace_info.ptr;
-      break;
-    case sk_enum_tag:
-      /* Get the enumeration type specified by the qualifier. */
-      new_type = qualifier_sym->variant.enumeration.type;
-      is_type = TRUE;
-      break;
-    case sk_type:
-      /* Get the typedef or template parameter type specified by the
-         qualifier. */
-      new_type = qualifier_sym->variant.type.ptr;
-      is_type = TRUE;
-      break;
-    default:
-      unexpected_condition();
-      break;
-  }  /* switch */
+  if (decltype_type != NULL) {
+    new_type = decltype_type;
+    is_type = TRUE;
+  } else {
+    /* Get the class or namespace represented by the qualifier.  A
+       "class" can actually be an enum type or template parameter type
+       in certain cases. */
+    switch (qualifier_sym->kind) {
+      case sk_class_or_struct_tag:
+      case sk_union_tag:
+        /* Get the type specified by the qualifier. */
+        new_type = qualifier_sym->variant.class_struct_union.type;
+        is_type = TRUE;
+        break;
+      case sk_namespace:
+        /* Get the namespace specified by the qualifier. */
+        new_namespace = qualifier_sym->variant.namespace_info.ptr;
+        break;
+      case sk_enum_tag:
+        /* Get the enumeration type specified by the qualifier. */
+        new_type = qualifier_sym->variant.enumeration.type;
+        is_type = TRUE;
+        break;
+      case sk_type:
+        /* Get the typedef or template parameter type specified by the
+           qualifier. */
+        new_type = qualifier_sym->variant.type.ptr;
+        is_type = TRUE;
+        break;
+      default:
+        unexpected_condition();
+        break;
+    }  /* switch */
+  }  /* if */
   /* See if there is a list of previously used qualifiers that can be
      checked for an entry that can be reused. */
   if (qualifier_type != NULL && is_class_struct_union_type(qualifier_type)) {
@@ -17055,6 +17078,7 @@ following cases:
 	A:: ... anything except * ...
 	NS::i
 	NS::A::i
+	decltype(expr)::something
 	i
 	operator =
 	operator int
@@ -17077,6 +17101,10 @@ constructs:
 
 	X::typeid
 	A<int>::typeid	Template reference will be coalesced
+
+Returns FALSE and sets curr_token to tok_declspec_construct for:
+
+	decltype(expr)	When not followed by ::
 
 Returns FALSE and leaves curr_token_unchanged for:
 
@@ -17160,6 +17188,8 @@ selection operator, in which case it points to the type of the left operand.
   a_boolean			qualifier_is_super = FALSE;
   a_boolean			is_super_qualified = FALSE;
   a_boolean			is_conversion_type = FALSE;
+  a_boolean			qualifier_is_decltype = FALSE;
+  a_type_ptr			decltype_type = NULL;
   a_boolean			qualified_conversion_operator = FALSE;
   a_boolean			separator_warning_issued = FALSE;
   a_name_qualifier_ptr          name_qualifier = NULL;
@@ -17263,6 +17293,37 @@ selection operator, in which case it points to the type of the left operand.
       might_be_qualifier = TRUE;
       qualifier_separator = tok_period;
     }  /* if */
+  } else if (curr_token == tok_decltype) {
+    /* This is most likely just a decltype specifiers (e.g., "decltype(expr)"),
+       but could also be a qualifier in a qualified name (e.g.,
+       "decltype(expr)::something").  The former is not treated as an
+       identifier, while the latter is. */
+    a_type_ptr	tp;
+    tp = scan_decltype_operator((a_rescan_control_block *)NULL,
+                                /*might_be_id_start=*/TRUE);
+    if (next_token() != tok_colon_colon) {
+      locator_for_curr_id = cleared_locator;
+      locator_for_curr_id.variant.decltype_type = tp;
+      curr_token = tok_decltype_construct;
+      /* Since we're returning a pseudo-token, set pos_curr_token. */
+      pos_curr_token = start_position;
+      curr_token_sequence_number = start_seq_number;
+      curr_cached_token_handle = start_cached_token_handle;
+      /* Restore the original error position. */
+      error_position = orig_error_position;
+      goto exit;
+    } else {
+      /* The current token is the ")" of the decltype. */
+      might_be_qualifier = TRUE;
+      decltype_type = tp;
+      qualifier_type = skip_typerefs(tp);
+      qualifier_is_type = TRUE;
+      qualifier_is_decltype = TRUE;
+      /* Get the symbol for the qualifier.  A type that can be used as
+         a qualifier should have a symbol.  A NULL symbol will result in
+         an error below. */
+      qualifier_sym = symbol_for(qualifier_type);
+    }  /* if */
   } else if (dtor_or_finalizer_must_be_nonclass) {
     if (is_global_qualified_name && curr_token != tok_identifier) {
       /* Something of the form "::~int", which is not allowed. */
@@ -17335,6 +17396,9 @@ selection operator, in which case it points to the type of the left operand.
          "::". */
       is_vacuous_dtor_or_finalizer = TRUE;
       qualifier_sym = NULL;
+    } else if (qualifier_is_decltype) {
+      /* A construct like "decltype(x)::something.  The qualifier type
+         was set above. */
 #if MICROSOFT_EXTENSIONS_ALLOWED
     } else if (curr_token == tok_super) {
       /* The Microsoft __super qualifier. */
@@ -17573,6 +17637,9 @@ selection operator, in which case it points to the type of the left operand.
           qualifier_is_type = TRUE;
           qualifier_type_is_class = FALSE;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+        } else if (qualifier_is_decltype) {
+          qualifier_is_type = TRUE;
+          qualifier_is_decltype = FALSE;
         } else if (qualifier_sym->is_error) {
           invalid_qualifier_sym = TRUE;
           err = TRUE;
@@ -17690,8 +17757,9 @@ selection operator, in which case it points to the type of the left operand.
                name. */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
           } else {
-            make_name_qualifier(&name_qualifier, qualifier_sym, qualifier_type,
-                                qualifier_namespace);
+            make_name_qualifier(&name_qualifier, qualifier_sym,
+                                qualifier_type, qualifier_namespace,
+                                decltype_type);
           }  /* if */
         }  /* if */
         /* Skip over the class-name, and the "::".  After the two get_token
@@ -18236,10 +18304,18 @@ selection operator, in which case it points to the type of the left operand.
           }  /* if */
           err = TRUE;
 	}  /* if */
-      } else if (!strict_ansi_mode &&
-                 (dtor_or_finalizer_type = type_keyword()) != NULL) {
-	/* A type keyword (e.g. int, long, etc.). Get the type
-           associated with the keyword. */
+      } else if (curr_token == tok_decltype ||
+                 (!strict_ansi_mode &&
+                  (dtor_or_finalizer_type = type_keyword()) != NULL)) {
+	/* "~decltype(x)" or a type keyword such as "~int". */
+        if (curr_token == tok_decltype) {
+          a_type_ptr	tp;
+          /* might_be_id_start is passed in as TRUE to prevent the token
+             after the closing ")" from being fetched. */
+          tp = scan_decltype_operator((a_rescan_control_block *)NULL,
+                                      /*might_be_id_start=*/TRUE);
+          dtor_or_finalizer_type = skip_typerefs(tp);
+        }  /* if */
         /* If the thing being scanned looks like "T::~int", where T is a
 	   typedef, save the type pointed to as dtor_or_finalizer_class_type.
            This will be used later for error checking. */

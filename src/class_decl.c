@@ -8568,16 +8568,20 @@ can only contain CLI interfaces.
       }  /* if */
 #endif /* TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
-      /* Test for identifier, decltype or "::" next. */
+      /* Test for identifier, decltype or "::" next.  tok_decltype_construct
+         is used for a decltype that has been coalesced and the type stored
+         in the locator. */
       if (!is_generalized_identifier_start(GID_IS_BASE_CLASS) &&
           !(enable_decltype_in_base_specifier_and_mem_initializer &&
-            curr_token == tok_decltype)) {
+            curr_token == tok_decltype_construct)) {
         syntax_error(ec_exp_identifier);
       } else {
         /* Scan the base class name. */
         a_boolean         err = FALSE, is_decltype = FALSE;
         a_boolean         is_dependent_type = FALSE;
-        a_decl_pos_block  decltype_pos_block;
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+        a_source_position decltype_end_pos = end_pos_curr_token;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
         base_class_decl_pos = pos_curr_token;
         base_class_type = NULL;
         if (!first_base_class || is_virtual) {
@@ -8588,14 +8592,16 @@ can only contain CLI interfaces.
                                 ec_multiple_inheritance_in_embedded_cplusplus);
         }  /* if */
         if (enable_decltype_in_base_specifier_and_mem_initializer &&
-            curr_token == tok_decltype) {
+            curr_token == tok_decltype_construct) {
           /* C++11 allows a decltype to denote a base class. */
           a_type_ptr underlying_type;
           is_decltype = TRUE;
           sym = NULL;
-          base_class_type = scan_decltype_operator(
-                                                (a_rescan_control_block *)NULL,
-                                                &decltype_pos_block);
+          /* tok_decltype_construct is used for a decltype that has been
+             coalesced and the type stored in the locator. */
+          base_class_type = locator_for_curr_id.variant.decltype_type;
+          /* Advance to the token after the decltype(...). */
+          (void)get_token();
           if (is_error_type(base_class_type)) {
             /* An error has already been issued; skip this base class. */
             goto skip_base_class;
@@ -8819,8 +8825,7 @@ can only contain CLI interfaces.
 #if EXTRA_SOURCE_POSITIONS_IN_IL
         new_direct_bcp->base_specifier_range.start = base_specifier_start_pos;
         if (is_decltype) {
-          new_direct_bcp->base_specifier_range.end =
-                                       decltype_pos_block.specifiers_range.end;
+          new_direct_bcp->base_specifier_range.end = decltype_end_pos;
         } else {
           new_direct_bcp->base_specifier_range.end = end_pos_curr_token;
         }  /* if */

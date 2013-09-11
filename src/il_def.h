@@ -902,6 +902,8 @@ typedef enum /*a_token_kind*/ {
 #if MICROSOFT_EXTENSIONS_ALLOWED
   tok_cli_typeid,           /* Represents C++/CLI X::typeid construct. */  
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+  tok_decltype_construct,   /* Used to represent a decltype(expr) construct
+                               that has been coalesced. */
   tok_unimplemented         /* Token used to indicate keywords that are not
                                yet implemented. */,
   tok_last_complex_token = tok_unimplemented,
@@ -1269,7 +1271,7 @@ EXTERN a_const_char
 #if MICROSOFT_EXTENSIONS_ALLOWED
    "cli typeid",
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-   "unimplemented",
+   "decltype construct", "unimplemented",
    "[", "]", "(", ")", ".", "->", "++", "--", "&", "*", "+", "-",
    "~", "!", "/", "%", "<<", ">>", "<", ">", "<=", ">=", "==",
    "!=", "^", "|", "&&", "||", "?", ":", "=", "*=", "/=", "%=",

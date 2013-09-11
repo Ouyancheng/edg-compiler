@@ -11751,7 +11751,7 @@ source sequence entry list.  Return a pointer to the created entry.
 /* ARGSUSED */  /* <-- decl_pos_block is not used in some configurations. */
 #endif /* !EXTRA_SOURCE_POSITIONS_IN_IL */
 a_type_ptr scan_decltype_operator(a_rescan_control_block *rcblock,
-                                  a_decl_pos_block       *decl_pos_block)
+                                  a_boolean              might_be_id_start)
 /*
 Scan the decltype operator.  This is a C++11 construct that is similar to
 sizeof (in that its argument is not evaluated), but returns a type rather
@@ -11760,12 +11760,13 @@ than a size.  It is used in type contexts, not expression contexts.
 Syntax:
         decltype ( expression )
 
-The parentheses are required, unlike for sizeof.  If decl_pos_block is
-not NULL, the end position in its specifiers_range is updated.  If
-rcblock is non-NULL, redo semantic analysis on a previously-scanned
-decltype expression, and return the result type (or an error
-indication in *rcblock).  This routine is intended to be called from
-outside of the expression-processing routines.
+The parentheses are required, unlike for sizeof.  If rcblock is
+non-NULL, redo semantic analysis on a previously-scanned decltype
+expression, and return the result type (or an error indication in
+*rcblock).  This routine is intended to be called from outside of the
+expression-processing routines.  might_be_id_start is TRUE if we are
+in a context where the decltype could be the start of a qualified
+name.  We do not advance to the token after the decltype in this case.
 */
 {
   a_type_ptr              result;
@@ -11787,10 +11788,8 @@ outside of the expression-processing routines.
     /* Redoing semantic analysis on a previously-scanned expression.
        Note that rcblock->expr is the expression that is the operand of
        the decltype, not the decltype itself, because there is no
-       expression for that. */
-    check_assertion(decl_pos_block == NULL);
-    /* The operand is picked up later after the expression stack has been
-       pushed. */
+       expression for that.  The operand is picked up later after the
+       expression stack has been pushed. */
   } else {
     /* Normal, non-rescan, processing. */
     /* Skip the decltype token. */
@@ -11902,16 +11901,12 @@ outside of the expression-processing routines.
   }  /* if */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   if (rcblock == NULL) {
-#if EXTRA_SOURCE_POSITIONS_IN_IL
-    if (decl_pos_block != NULL) {
-      /* Update the end of the specifiers range to describe the end of the
-         typeof construct. */
-      decl_pos_block->specifiers_range.end = end_pos_curr_token;
-    }  /* if */
-#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
     /* Check for and pass over the right parenthesis. */
     remove_matching_stop_token(tok_rparen);
-    (void)required_token(tok_rparen, ec_exp_rparen);
+    if (required_token_no_advance(tok_rparen, ec_exp_rparen) &&
+        !might_be_id_start) {
+      (void)get_token();
+    }  /* if */
   }  /* if */
   pop_expr_stack();
   restore_expr_stack(saved_expr_stack);
@@ -12055,7 +12050,7 @@ expression-processing routines.
                                   &rcblock,
                                   &expr_stack_entry);
   if (!is_typeof) {
-    new_type = scan_decltype_operator(&rcblock, (a_decl_pos_block *)NULL);
+    new_type = scan_decltype_operator(&rcblock, /*might_be_id_start=*/FALSE);
   } else {
 #if GNU_EXTENSIONS_ALLOWED
     new_type = scan_typeof_operator(&rcblock, (a_decl_pos_block *)NULL);
@@ -29485,6 +29480,7 @@ handle_trapped_left_paren:
 #endif /* GNU_EXTENSIONS_ALLOWED */
     case tok_typename:
     case tok_decltype:
+    case tok_decltype_construct:
     case tok_underlying_type:
 #if MICROSOFT_EXTENSIONS_ALLOWED || GNU_EXTENSIONS_ALLOWED
 type_start:
@@ -29503,7 +29499,9 @@ type_start:
                              (a_decl_pos_block_ptr)NULL);
         } else if (curr_token == tok_decltype) {
           cast_type = scan_decltype_operator((a_rescan_control_block *)NULL,
-                                             (a_decl_pos_block*)NULL);
+                                             /*might_be_id_start=*/FALSE);
+        } else if (curr_token == tok_decltype_construct) {
+          cast_type = locator_for_curr_id.variant.decltype_type;
         } else if (curr_token == tok_underlying_type) {
           cast_type = scan_underlying_type_operator();
 #if GNU_EXTENSIONS_ALLOWED

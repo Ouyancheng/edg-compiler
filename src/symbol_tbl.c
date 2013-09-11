@@ -15407,6 +15407,7 @@ are handled in symbol_tbl_init.)
   cleared_locator.variant.opname                  = (an_opname_kind)onk_none;
   cleared_locator.variant.conversion_result_type  = NULL;
   cleared_locator.variant.destructor_type         = NULL;
+  cleared_locator.variant.decltype_type           = NULL;
 
   /* Static variables in symbol_tbl.c: */
   ident_buffer = NULL;
