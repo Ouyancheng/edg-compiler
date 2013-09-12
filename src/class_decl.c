@@ -14575,6 +14575,8 @@ token cache that was created.
   a_token_sequence_number	first_tsn;
   a_token_sequence_number	last_tsn;
   a_token_set_array		stop_tokens;
+  a_boolean			saved_in_field_initializer;
+  a_boolean			is_field = symbol_is(sym, sk_field);
 
   /* Initialize a local stop token set to cache everything up to a semicolon
      or a comma (outside braces, etc.). */
@@ -14584,11 +14586,20 @@ token cache that was created.
   incr_token_set_array_element(stop_tokens, tok_semicolon);
   incr_token_set_array_element(stop_tokens, tok_rbrace);
   first_tsn = curr_token_sequence_number;
+  /* Set the in_field_initializer flag while caching the initializer. */
+  if (is_field) {
+    saved_in_field_initializer = scope_stack_top().in_field_initializer;
+    scope_stack_top().in_field_initializer = TRUE;
+  }  /* if */
   /* Cache the initializer tokens. */
   cache_token_stream_coalesce_identifiers(token_cache, stop_tokens);
   terminate_token_cache(token_cache);
   /* The -1 is to exclude the final token from the cache that is created. */
   last_tsn = curr_token_sequence_number - 1;
+  /* Restore the in_field_initializer flag. */
+  if (is_field) {
+    scope_stack_top().in_field_initializer = saved_in_field_initializer;
+  }  /* if */
   if (is_prototype_instantiation_context() &&
       symbol_is(sym, sk_field)) {
     /* This is an initializer in the prototype instantiation of a class
