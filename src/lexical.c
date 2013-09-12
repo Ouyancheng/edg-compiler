@@ -16229,6 +16229,7 @@ Display a name reference, for debugging purposes.
 
 static void make_name_qualifier(a_name_qualifier_ptr	*nqp,
 				a_symbol_ptr		qualifier_sym,
+				a_symbol_ptr		qualifier_template_sym,
 				a_type_ptr		qualifier_type,
 				a_namespace_ptr		qualifier_namespace,
 				a_type_ptr		decltype_type)
@@ -16239,9 +16240,13 @@ qualifier, if any.  If "qualifier_sym" is a type symbol, "qualifier_type"
 is the type referred to, after any typerefs/typedefs have been removed.  If
 "qualifier_sym" is a namespace symbol, "qualifier_namespace" is the
 namespace referred to, after any namespace aliases have been removed.
-If "decltype_type" is not NULL, it is the original type specified by
-a decltype qualifier and is used in place of the type specified by
-"qualifier_sym", which refers to the underlying type in this case.
+"qualifier_template_sym" is non-NULL if the qualifier is a template-id.
+In that case, the name from "qualifier_template_sym" is used in preference
+to the "qualifier_sym" because the two can be different if the template
+is a template template parameter.  If "decltype_type" is not NULL, it is
+the original type specified by a decltype qualifier and is used in place
+of the type specified by "qualifier_sym", which refers to the underlying
+type in this case.
 
 We look for a previously allocated name qualifier entry for classes and
 namespaces.  The list is stored in the class or namespace supplement
@@ -16343,11 +16348,14 @@ original type or namespace that was specified.
   }  /* if */
   /* If no entry was found, create one now. */
   if (new_nqp == NULL) {
+    a_symbol_ptr	sym_to_use = qualifier_template_sym != NULL
+                                                       ? qualifier_template_sym
+                                                       : qualifier_sym;
     new_nqp = alloc_name_qualifier();
     new_nqp->previous_qualifier = prev_nqp;
     new_nqp->is_class = is_type;
     new_nqp->name = copy_string_to_region(file_scope_region_number,
-                                          qualifier_sym->header->identifier);
+                                          sym_to_use->header->identifier);
     if (is_type) {
       new_nqp->qualifier.class_type = new_type;
     } else {
@@ -17193,6 +17201,7 @@ selection operator, in which case it points to the type of the left operand.
   a_boolean			qualified_conversion_operator = FALSE;
   a_boolean			separator_warning_issued = FALSE;
   a_name_qualifier_ptr          name_qualifier = NULL;
+  a_symbol_ptr			qualifier_template_sym = NULL;
 
 /* Macro used to determine whether we are processing the identifier in
    a Microsoft __if_exists or __if_not_exists directive. */
@@ -17584,6 +17593,10 @@ selection operator, in which case it points to the type of the left operand.
          template reference if the symbol points to a class template
          or if the next token is a "<" (which could be a function template
          reference or an error case). */
+      /* Save the original qualifier_sym.  This may be needed later to
+         know the name used in the qualifier if the symbol is a template
+         template parameter. */
+      qualifier_template_sym = qualifier_sym;
       qualifier_sym = coalesce_template_id(qualifier_sym, next_tok, options,
                                            &err);
       specific_sym = locator_for_curr_id.specific_symbol;
@@ -17758,6 +17771,7 @@ selection operator, in which case it points to the type of the left operand.
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
           } else {
             make_name_qualifier(&name_qualifier, qualifier_sym,
+                                qualifier_template_sym,
                                 qualifier_type, qualifier_namespace,
                                 decltype_type);
           }  /* if */
@@ -17767,6 +17781,7 @@ selection operator, in which case it points to the type of the left operand.
            qualifier. */
         (void)get_token();
         (void)get_token();
+        qualifier_template_sym = NULL;
         if (curr_token == tok_template) {
           is_template = TRUE;
           if (((gpp_mode && gnu_version >= 30400) || microsoft_mode) &&
@@ -18065,6 +18080,10 @@ selection operator, in which case it points to the type of the left operand.
           if (qualifier_sym != NULL &&
               (is_class_template_or_injected_template_symbol(qualifier_sym) ||
                next_tok == tok_lt || is_template)) {
+            /* Save the original qualifier_sym.  This may be needed later to
+               know the name used in the qualifier if the symbol is a template
+               template parameter. */
+            qualifier_template_sym = qualifier_sym;
             /* Process a template reference.  This is considered a potential
                template reference if the symbol points to a class template
                or if the next token is a "<" (which could be a function
