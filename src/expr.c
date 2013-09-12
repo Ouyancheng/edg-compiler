@@ -3981,7 +3981,8 @@ call, and rcblock->argument_list to the previously-scanned argument list.
       arg_expr = skip_parens(arg_expr);
       if (is_variable_node(arg_expr)) {
         a_variable_ptr  vp = arg_expr->variant.variable;
-        if (is_potentially_constant_valued_variable(vp) &&
+        if (!vp->source_corresp.is_local_to_function &&
+            is_potentially_constant_valued_variable(vp) &&
             var_constant_value_full(vp, /*copy_for_reuse=*/FALSE,
                                     /*clear_backing_expr=*/FALSE,
                                     /*allow_C_mode_const_var=*/TRUE) != NULL) {
