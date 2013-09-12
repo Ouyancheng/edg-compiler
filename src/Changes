@@ -870,9 +870,9 @@ diagnostic which is now fixed.  For example (with --microsoft --c99):
 7/19/13  [EDGcpfe/14300]
 GNU compatibility: __builtin_constant_p and const variables
 
-In GNU C mode with gnu_version < 40500 and in GNU C++ mode with
-gnu_version >= 40600, and when gcc_const_variables_allowed is TRUE (see the
-Changes entry of 6/25/13 for EDGcpfe/14216), a call of the form
+In GNU C mode (all versions) and in GNU C++ mode with gnu_version >= 40300
+or gnu_version >= 40000 but < 40100, and when gcc_const_variables_allowed is
+TRUE (see the Changes entry of 6/25/13 for EDGcpfe/14216), a call of the form
 __builtin_constant_p(x), where x is the name of a const variable initialized
 with a constant expression, now produces the value 1 (i.e., "true") if the
 call appears in function scope.  For example:

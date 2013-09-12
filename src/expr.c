@@ -3964,8 +3964,9 @@ call, and rcblock->argument_list to the previously-scanned argument list.
     eliminate_unusual_operand_kinds(&arg);
     if (bfk == (a_builtin_function_kind)bfk_constant_p &&
         gcc_const_variables_allowed && innermost_function_scope != NULL &&
-        ((gcc_mode && gnu_version < 40500) ||
-         (gpp_mode && gnu_version >= 40600)) &&
+        (gcc_mode ||
+         (gpp_mode && (gnu_version >= 40300 ||
+                       (gnu_version >= 40000 && gnu_version < 40100)))) &&
         is_expression_operand(&arg)) {
       /* Whether GCC produces a true value for __builtin_constant_p(x) if x is
          an initialized const variable varies on a number of conditions,
