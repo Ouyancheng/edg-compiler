@@ -5,8 +5,8 @@ Spurious exception specification mismatch error on class template destructor
 
 In C++11 mode, the front previously attempted to check the exception
 specification of a destructor of a class template thought to override a
-virtual base class destructor.  However, that check sometimes triggered
-spurious errors because of unknown properties of templates parameters (i.e.,
+base class's virtual destructor.  However, that check sometimes triggered
+spurious errors because of unknown properties of template parameters (i.e.,
 the check cannot be done in general for class templates).  For example:
 
   struct B { virtual ~B() {} };
