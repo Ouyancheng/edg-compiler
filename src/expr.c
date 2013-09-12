@@ -18136,6 +18136,7 @@ called only in C++ mode.
                    (conversion_for_direct_reference_binding_possible(
                                            operand,
                                            type_cast_to,
+                                           conv_context,
                                            /*question_conv=*/FALSE,
                                            &conversion,
                                            &ambiguous,

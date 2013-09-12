@@ -2292,6 +2292,7 @@ xvalues), e.g., an lvalue reference to non-volatile const.
 a_boolean conversion_for_direct_reference_binding_possible(
                                       an_operand               *source_operand,
                                       a_type_ptr               dest_type,
+                                      a_conv_context_set       conv_context,
                                       a_boolean                question_conv,
                                       a_conv_descr             *conversion,
                                       a_boolean                *ambiguous,
@@ -2303,16 +2304,15 @@ to which a reference of type dest_type can be directly bound.  If so, set
 FALSE.  If more than one function matches, set *ambiguous to TRUE and
 return FALSE.  If ambiguity_list is non-NULL in that case, it is set to
 point to a list describing the set of ambiguous functions; the caller
-must free that list.  If question_conv is TRUE, this is being checked as
-part of determining the conversions on the operands of a "?" operator.
-In C++/CLI mode, this routine can be called with source_operand having
-a handle type.  Use is_potential_conv_function_source as the appropriate
-guard function.
+must free that list.   conv_context describes the context of the conversion.
+If question_conv is TRUE, this is being checked as part of determining the
+conversions on the operands of a "?" operator.  In C++/CLI mode, this routine
+can be called with source_operand having a handle type.  Use
+is_potential_conv_function_source as the appropriate guard function.
 */
 {
   a_boolean          okay;
   a_type_ptr         base_dest_type;
-  a_conv_context_set conv_context = CCO_DEFAULT;
   a_boolean          do_ms_quirk;
 
   *ambiguous = FALSE;
@@ -3231,6 +3231,7 @@ copy-initialization).
                (conversion_for_direct_reference_binding_possible(
                                            orig_arg_operand,
                                            orig_param_type,
+                                           conv_context,
                                            /*question_conv=*/FALSE,
                                            &conversion,
                                            &ambiguous,
@@ -20275,6 +20276,7 @@ the conversion.
         if (conversion_for_direct_reference_binding_possible(
                                                       source_operand,
                                                       dest_type,
+                                                      conv_context,
                                                       /*question_conv=*/FALSE,
                                                       &conv_for_direct_binding,
                                                       &ambiguous,
@@ -23419,6 +23421,7 @@ can convert to or from handles.
       if (conversion_for_direct_reference_binding_possible(
                                            op1,
                                            conv_dest_type,
+                                           conv_context,
                                            /*question_conv=*/TRUE,
                                            conv,
                                            &local_ambiguous,

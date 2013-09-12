@@ -1050,6 +1050,7 @@ extern void temp_init_from_operand_full(an_operand *operand,
 extern a_boolean conversion_for_direct_reference_binding_possible(
                                      an_operand               *source_operand,
                                      a_type_ptr               dest_type,
+                                     a_conv_context_set       conv_context,
                                      a_boolean                question_conv,
                                      a_conv_descr             *conversion,
                                      a_boolean                *ambiguous,
@@ -1066,6 +1067,7 @@ extern void determine_arg_match_level(
                                a_boolean            try_user_conversions,
                                a_boolean            allow_expl_conv_funcs,
                                an_arg_match_summary *arg_summary);
+
 extern a_boolean direct_reference_binding_possible(
                                  an_operand         *source_operand,
                                  a_type_ptr         source_type,

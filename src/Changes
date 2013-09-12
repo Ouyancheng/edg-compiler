@@ -1,5 +1,30 @@
 Version 5.0
 
+9/12/13  [EDGcpfe/14411]
+Explicit conversion function allowed on first argument of constructor in
+direct-initialization
+
+Core issue 1087 extends the resolution of Core issue 899 (see the entry of
+3/22/12 for EDGcpfe/11904) to allow the use of an explicit conversion function
+for a direct-initialization with a single argument where the candidate
+initializing constructor has a first argument that is a reference to the
+class to be constructed (Core issue 899 only made that allowance for a true
+copy constructor) and that reference can be bound directly to the result of
+the explicit conversion function.  This is now implemented.  For example:
+
+  struct C {
+    template <class T = int> C(C&, T = 0);
+  };
+  struct A {
+    explicit operator C&() const;
+  };
+  int main() {
+    A a;
+    C c(a); // Now calls the constructor template.  (Previously called the
+  }         // implicitly declared copy constructor, which is a lesser match
+            // since it takes a "C const&" rather than a "C&".)
+
+
 9/11/13  [EDGcpfe/14407]
 Spurious exception specification mismatch error on class template destructor
 
