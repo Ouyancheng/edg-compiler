@@ -21480,10 +21480,10 @@ static void create_template_decl(
 				a_tmpl_decl_state_ptr	decl_state,
 				a_source_position_ptr	template_pos)
 /*
-Allocate a template decl entry and fill in its field.  template_pos is
+Allocate a template decl entry and fill in its fields.  template_pos is
 the position of the "template" keyword in the declaration, and can be
 null_source_position for a synthesized template declaration (i.e., for
-an generated declaration for an inheriting constructor template).
+a generated declaration for an inheriting constructor template).
 */
 {
   a_template_decl_ptr	tdp;
