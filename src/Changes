@@ -60,10 +60,10 @@ direct-initialization
 
 Core issue 899 (see the entry for EDGcpfe/11904 on 3/22/12) allowed use of an
 explicit conversion function for the argument of a copy constructor when the
-context is direct-initialization.  Core issue 1087 extended that resolution
-to apply to any constructor selected for the copy operation in direct
-initialization (provided its first argument is a reference to the copied
-class type), not just "copy constructors" per se.  This is now implemented.
+context is direct-initialization.  Core issue 1087 extends that resolution to
+apply to any constructor whose first parameter is a reference to the
+initialized class type (in contexts with just one explicit argument for that
+constructor), not just a "copy constructor" per se.  This is now implemented.
 
   struct C {
     template <class T = int> C(C&, T = 0);
