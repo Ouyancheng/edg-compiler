@@ -661,7 +661,7 @@ Install the keywords in the symbol table.
     enter_keyword((a_token_kind)tok_signed,    "signed");
     enter_keyword((a_token_kind)tok_volatile,  "volatile");
   }  /* if */
-  if (c99_mode || gcc_mode) {
+  if (c99_bool_is_keyword) {
     /* Enable keywords available in both C99 and GNU C mode. */
     enter_keyword((a_token_kind)tok_c99_bool, "_Bool");
   }  /* if */

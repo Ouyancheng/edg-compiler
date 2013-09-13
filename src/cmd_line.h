@@ -1320,6 +1320,11 @@ EXTERN a_boolean
 			   type of comparisons is bool.  FALSE in C99,
 			   even though there is a _Bool type. */
 
+EXTERN a_boolean
+		c99_bool_is_keyword;
+			/* Indicates whether the C99 _Bool keyword is
+			   enabled. */
+
 #if USER_CONTROL_OF_STRUCT_PACKING
 EXTERN a_targ_alignment
 		default_max_member_alignment;

@@ -1979,6 +1979,21 @@ by a command line option.
       /* Microsoft C never enters tag names in function prototype scopes. */
       func_prototype_tags_enabled = FALSE;
     }  /* if */
+    if (microsoft_version >= 1800) {
+      /* MSVC 12 (aka. Visual C++ 2013) adds a number of C99-based features in
+         its C mode. */
+#if DESIGNATED_INITIALIZER_ENABLING_POSSIBLE
+      if (!(option_kind_used[(int)optk_designators])) {
+        designators_allowed = TRUE;
+      }  /* if */
+#endif /* DESIGNATED_INITIALIZER_ENABLING_POSSIBLE */
+#if COMPOUND_LITERAL_ENABLING_POSSIBLE
+      if (!(option_kind_used[(int)optk_compound_literals])) {
+        compound_literals_allowed = TRUE;
+      }  /* if */
+#endif /* COMPOUND_LITERAL_ENABLING_POSSIBLE */
+      c99_bool_is_keyword = TRUE;
+    }  /* if */
   } else {
     /* Microsoft C++ mode. */
     type_info_in_namespace_std = MICROSOFT_MODE_TYPE_INFO_IN_NAMESPACE_STD;
@@ -2202,6 +2217,16 @@ by a command line option.
     }  /* if */
     if (microsoft_version >= 1800) {
       list_init_enabled = TRUE;
+      if (!option_kind_used[(int)optk_delegating_constructors]) {
+        delegating_constructors_enabled = TRUE;
+      }  /* if */
+      if (!option_kind_used[(int)optk_variadic_templates]) {
+        variadic_templates_enabled = TRUE;
+      }  /* if */
+      deleted_functions_enabled = TRUE;
+      defaulted_special_members_enabled = TRUE;
+      field_initializers_enabled = TRUE;
+      alias_declarations_enabled = TRUE;
     }  /* if */
   }  /* if */
   /* In C++ mode, the Microsoft compiler sometimes finds typedefs when
@@ -2444,6 +2469,7 @@ Set the various flags appropriate to C99 mode.
   mixed_string_concat_enabled = TRUE;
   std_c99_inlining = TRUE;
   gnu_c89_inlining = FALSE;
+  c99_bool_is_keyword = TRUE;
 }  /* set_c99_mode_flags */
 
 
@@ -3822,6 +3848,7 @@ exclude the GNU C mode already.  Hence those are not checked again here.)
     std_c99_inlining = FALSE;
     gnu_c89_inlining = TRUE;
   }  /* if */
+  c99_bool_is_keyword = TRUE;
 }  /* check_and_set_gcc_mode_options */
 
 
@@ -10156,6 +10183,7 @@ variables declared in cmd_line.h.
 #else /* !BOOL_ENABLING_POSSIBLE */
                     FALSE;
 #endif /* BOOL_ENABLING_POSSIBLE */
+  c99_bool_is_keyword = FALSE;
 #if USER_CONTROL_OF_STRUCT_PACKING
   default_max_member_alignment = 0;
 #endif /* USER_CONTROL_OF_STRUCT_PACKING */
