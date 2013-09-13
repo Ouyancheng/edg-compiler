@@ -4885,6 +4885,7 @@ the point of call.  conv_context describes the context of the conversion.
   a_boolean                param_array_expanded_case = FALSE;
   a_type_ptr               param_array_element_type;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+  a_boolean                enum_param_still_needed = FALSE;
 
   *discarded_because_post_decl = FALSE;
   if (proj_function_symbol != NULL) {
@@ -5007,6 +5008,24 @@ the point of call.  conv_context describes the context of the conversion.
          when used to effect direct-initialization, allows conversions by
          way of explicit conversion functions. */
       allow_expl_conv_funcs = TRUE;
+    }  /* if */
+    if (is_overloaded_operator && !function_symbol->is_class_member &&
+        !(gpp_mode && gnu_version < 40800) && !microsoft_mode) {
+      /* For operators applied to arguments that do not have class type,
+         candidate nonmember operators are required to have at least one
+         parameter of enumeration type (or reference to enumeration type). */
+      check_assertion(arg_list != NULL);
+      enum_param_still_needed = TRUE;
+      if (is_expression_component(arg_list) &&
+          is_class_struct_union_type(
+                                  operand_of_arg_list_elem(arg_list)->type)) {
+        enum_param_still_needed = FALSE;
+      } else if (arg_list->next != NULL &&
+                 is_expression_component(arg_list->next) &&
+                 is_class_struct_union_type(
+                            operand_of_arg_list_elem(arg_list->next)->type)) {
+        enum_param_still_needed = FALSE;
+      }  /* if */
     }  /* if */
   } else {
     /* Surrogate function call case.  We have routine_type but not
@@ -5271,6 +5290,15 @@ the point of call.  conv_context describes the context of the conversion.
                                                         allow_udc_on_arguments,
                                     allow_expl_conv_funcs_this_arg,
                                     arg_match);
+          if (enum_param_still_needed) {
+            a_type_ptr  base_param_type = param->type;
+            if (is_reference_type(base_param_type)) {
+              base_param_type = type_pointed_to(base_param_type);
+            }  /* if */
+            if (is_enum_type(base_param_type)) {
+              enum_param_still_needed = FALSE;
+            }  /* if */
+          }  /* if */
         }  /* if */
         if (!first_pass) arg_match->next = saved_arg_match_next;
         /* If no match is possible, go on to the next function. */
@@ -5308,6 +5336,12 @@ next_argument:
     routine_type = skip_typerefs(routine_type);
     rtsp = routine_type->variant.routine.extra_info;
   }  /* for */
+  if (enum_param_still_needed) {
+    /* A use of operator notation with non-class operands and the candidate
+       function did not include at least one enum parameter.  (See
+       [over.match.oper].) */
+    goto reject_function;
+  }  /* if */
   if (param != NULL) {
     if (function_template_case && param_before_deduction->is_parameter_pack) {
       /* The substituted routine type doesn't have the expected number of
@@ -7958,15 +7992,16 @@ end_func_winnow:;
          function, so the problem is undecidable. */
       *undecidable_because_of_error = TRUE;
 #if GNU_EXTENSIONS_ALLOWED
-    } else if (gpp_mode && gnu_version < 40000 &&
+    } else if (gpp_mode && (gnu_version < 40000 || gnu_version >= 40400) &&
                number_in_best_match_set == 0) {
       /* g++ has an "extension" that chooses one function match over
          another if the worst conversion for its arguments is not as bad
          as the worst conversion for another function's arguments.
          This is tested after we've determined that we would get an
          error by the standard rules, so no standard-conforming
-         program is affected.  This extension is still present in g++ 3.4
-         but it's gone in g++ 4.0 (except with -fpermissive). */
+         program is affected.  This extension is still present in g++ versions
+         prior to 4.0 as well as in versions 4.4 and later (it's also present
+         in other versions with -fpermissive). */
       best_cfp = select_best_gpp_candidate(candidates);
       if (best_cfp != NULL) {
         /* There's a single best function under the g++ extension.
