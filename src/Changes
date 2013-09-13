@@ -4,13 +4,12 @@ Version 5.0
 Explicit conversion function allowed on first argument of constructor in
 direct-initialization
 
-Core issue 1087 extends the resolution of Core issue 899 (see the entry of
-3/22/12 for EDGcpfe/11904) to allow the use of an explicit conversion function
-for a direct-initialization with a single argument where the candidate
-initializing constructor has a first argument that is a reference to the
-class to be constructed (Core issue 899 only made that allowance for a true
-copy constructor) and that reference can be bound directly to the result of
-the explicit conversion function.  This is now implemented.  For example:
+Core issue 899 (see the entry for EDGcpfe/11904 on 3/22/12) allowed use of an
+explicit conversion function for the argument of a copy constructor when the
+context is direct-initialization.  Core issue 1087 extended that resolution
+to apply to any constructor selected for the copy operation in direct
+initialization (provided its first argument is a reference to the copied
+class type), not just "copy constructors" per se.  This is now implemented.
 
   struct C {
     template <class T = int> C(C&, T = 0);
@@ -21,7 +20,7 @@ the explicit conversion function.  This is now implemented.  For example:
   int main() {
     A a;
     C c(a); // Now calls the constructor template.  (Previously called the
-  }         // implicitly declared copy constructor, which is a lesser match
+  }         // implicitly declared copy constructor, which is a worse match
             // since it takes a "C const&" rather than a "C&".)
 
 
