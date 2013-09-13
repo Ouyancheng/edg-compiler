@@ -2313,6 +2313,11 @@ EXTERN a_boolean
 			   permitted. */
 
 EXTERN a_boolean
+		raw_string_literals_enabled;
+			/* When TRUE, C++11 raw string literals are
+			   permitted. */
+
+EXTERN a_boolean
 		gcc_const_variables_allowed;
 			/* When TRUE, gcc mode allows use of const integral
 			   variables as constants.  gcc allows this, but only

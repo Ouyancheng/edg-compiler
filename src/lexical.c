@@ -10752,7 +10752,7 @@ the literal kind.  Otherwise, return SCLK_NOT_A_LITERAL.
   }  /* if */
   /* Now look for an R, either as the initial character or following an
      encoding-prefix, indicating that the literal is a C++11 raw string. */
-  if (cpp11_mode && *loc == 'R') {
+  if (raw_string_literals_enabled && *loc == 'R') {
     ++loc;
     kind |= SCLK_RAW_STRING_LITERAL;
   }  /* if */
@@ -12213,7 +12213,7 @@ return_end_of_source_token:
       }  /* if */
       /* This can't fall through into the next case. */
     case 'R':
-      if (cpp11_mode) {
+      if (raw_string_literals_enabled) {
         /* This might be the start of a raw string literal, e.g.,
            R"xyz(...)xyz". */
         goto literal_prefix_scan;

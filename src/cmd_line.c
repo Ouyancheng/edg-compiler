@@ -2892,6 +2892,7 @@ handling).
   if (!option_kind_used[(int)optk_user_defined_literals]) {
     user_defined_literals_enabled = value;
   }  /* if */
+  raw_string_literals_enabled = value;
   std_thread_local_storage_specifier_enabled = value;
 }  /* check_and_set_cpp11_mode_options */
 
@@ -10003,6 +10004,7 @@ variables declared in cmd_line.h.
   inheriting_constructors_enabled = FALSE;
   constexpr_enabled = FALSE;
   user_defined_literals_enabled = FALSE;
+  raw_string_literals_enabled = FALSE;
   rtti_enabled = 
 #if RTTI_ENABLING_POSSIBLE
                  DEFAULT_RTTI_ENABLED;
