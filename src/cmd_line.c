@@ -2216,6 +2216,7 @@ by a command line option.
       explicit_conversion_functions_enabled = TRUE;
     }  /* if */
     if (microsoft_version >= 1800) {
+      raw_string_literals_enabled = TRUE;
       list_init_enabled = TRUE;
       if (!option_kind_used[(int)optk_delegating_constructors]) {
         delegating_constructors_enabled = TRUE;

@@ -1,5 +1,18 @@
 Version 5.0
 
+9/13/13  [EDGcpfe/14494]
+C++11 and C99 features in Microsoft mode with microsoft_version >= 1800
+
+In Microsoft C++ mode with microsoft_version >= 1800 the following C++11
+features are now enabled by default: raw string literals, list initializers,
+delegating constructors, variadic templates, deleted and default functions,
+nonstatic data member initializers (aka. NSDMIs or "field initializers"), and
+alias declarations (including alias template declarations).  Similarly, in
+Microsoft C mode with microsoft_version >= 1800, the following C99 features
+are now enabled by default: designated initializers, compound literals, and
+the _Bool type.
+
+
 9/13/13  [EDGcpfe/14490]
 GNU C++ compatibility: "best worst conversion" in overload resolution
 
