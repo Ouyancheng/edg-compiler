@@ -1980,8 +1980,8 @@ by a command line option.
       func_prototype_tags_enabled = FALSE;
     }  /* if */
     if (microsoft_version >= 1800) {
-      /* MSVC 12 (aka. Visual C++ 2013) adds a number of C99-based features in
-         its C mode. */
+      /* MSVC 12 (part of Visual Studio 2013) adds a number of C99-based
+         features in its C mode. */
 #if DESIGNATED_INITIALIZER_ENABLING_POSSIBLE
       if (!(option_kind_used[(int)optk_designators])) {
         designators_allowed = TRUE;
