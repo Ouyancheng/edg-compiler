@@ -5338,8 +5338,8 @@ next_argument:
   }  /* for */
   if (enum_param_still_needed) {
     /* A use of operator notation with non-class operands and the candidate
-       function did not include at least one enum parameter.  (See
-       [over.match.oper].) */
+       function did not include at least one enum parameter.  See
+       [over.match.oper] in the C++ standard (both C++03 and C++11). */
     goto reject_function;
   }  /* if */
   if (param != NULL) {
@@ -7994,14 +7994,13 @@ end_func_winnow:;
 #if GNU_EXTENSIONS_ALLOWED
     } else if (gpp_mode && (gnu_version < 40000 || gnu_version >= 40400) &&
                number_in_best_match_set == 0) {
-      /* g++ has an "extension" that chooses one function match over
-         another if the worst conversion for its arguments is not as bad
-         as the worst conversion for another function's arguments.
-         This is tested after we've determined that we would get an
-         error by the standard rules, so no standard-conforming
-         program is affected.  This extension is still present in g++ versions
-         prior to 4.0 as well as in versions 4.4 and later (it's also present
-         in other versions with -fpermissive). */
+      /* g++ has an "extension" that chooses one function match over another
+         if the worst conversion for its arguments is not as bad as the worst
+         conversion for another function's arguments.  This is tested after
+         we've determined that we would get an error by the standard rules,
+         so no standard-conforming program is affected.  This extension is
+         present in g++ versions prior to 4.0 as well as in versions 4.4 and
+         later (it's also present in other versions with -fpermissive). */
       best_cfp = select_best_gpp_candidate(candidates);
       if (best_cfp != NULL) {
         /* There's a single best function under the g++ extension.

@@ -19,8 +19,8 @@ GNU C++ compatibility: "best worst conversion" in overload resolution
 In GNU C++ mode with gnu_version < 40000 the front end sometimes prefers a
 builtin operator candidate over a user-declared candidate even though the
 former is not an unambiguously better match than the latter.  Specifically,
-the builtin candidate is selected if its worse argument conversion is better
-than the worse argument conversion needed for the user-declared candidate
+the builtin candidate is selected if its worst argument conversion is better
+than the worst argument conversion needed for the user-declared candidate
 (see the entries of 4/5/05 and 7/20/04).  Now this behavior is also enabled
 when gnu_version >= 40400.  This causes the front end to accept the following
 case:
@@ -35,8 +35,9 @@ case:
                     // user-declared operator requires a user-declared
                     // conversion.
 
-Note that this is the same example as the entry below, but the mechanism
-that makes it acceptable in some GNU modes is different.
+Note that this is the same example as the following entry (below, also for
+EDGcpfe/14490), but the mechanism that makes it acceptable in some GNU modes
+is different.
 
 
 9/13/13  [EDGcpfe/14490]
@@ -61,10 +62,10 @@ user-declared operator== is dropped from consideration because it has no
 parameter of enum (or reference to enum) type and none of the operands has
 class type.
 
-This changes does not apply in Microsoft C++ mode, not in GNU C++ mode when
-gnu_version < 40800 (the corresponding compilers may accept the case above
-for different reasons, but they don't appear to apply the standard rule in
-general).
+This change does not apply in Microsoft C++ mode, nor in GNU C++ mode when
+gnu_version < 40800 (although the corresponding compilers accept the case
+above, it is for different reasons, as they appear not to apply the standard
+rule in general).
 
 
 9/12/13  [EDGcpfe/14411]
