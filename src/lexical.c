@@ -13870,8 +13870,8 @@ the destructor or finalizer is part of a qualified name (e.g., "A::B::~B").
   if (!f_is_generalized_identifier_start(GID_DISALLOW_QUALIFIED_NAME |
 				         GID_DISALLOW_OPERATOR_NAME,
                                          field_sel_type) &&
-      (curr_token != tok_decltype_construct || qualifier_sym != NULL ||
-       is_finalizer)) {
+      (curr_token != tok_decltype_construct || field_sel_type == NULL ||
+       qualifier_sym != NULL || is_finalizer)) {
     /* What follows the "~" or "!" is not an identifier or is something
        like X::~decltype(...).  ~decltype is only allowed as an unqualified
        name. */
