@@ -19949,7 +19949,6 @@ templates from that base template.
                                  TCF_IGNORE_THIS_CLASS_TYPE)) {
         /* Don't inherit constructors templates that match a constructor
            template explicitly declared in the derived class. */
-        /* FIXME: Recycle new_tp and copied parameter list? */
         break;
       }  /* if */
     }  /* for */
@@ -20007,6 +20006,7 @@ templates from that base template.
                                     templ_decl_state.il_template_entry,
                                     &func_info, cdsp, &decl_info);
       if (symbol_is(decl_info.decl_state.sym, sk_function_template)) {
+        a_token_kind   final_token = tok_semicolon;
         a_routine_ptr  new_rp;
         new_tssp = decl_info.decl_state.sym->variant.template_info;
         set_il_template_entry(&templ_decl_state, decl_info.decl_state.sym,
@@ -20017,6 +20017,7 @@ templates from that base template.
         new_rp->compiler_generated = TRUE;
         new_tssp->variant.function.decl_cache.decl_info =
                                                    templ_decl_state.decl_info;
+        templ_decl_state.final_token_ptr = &final_token;
         complete_inheriting_ctor_template(&templ_decl_state, &func_info,
                                           decl_info.decl_state.sym);
       }  /* if */
@@ -20096,7 +20097,6 @@ constructor.
                                  TCF_IGNORE_THIS_CLASS_TYPE)) {
         /* Don't inherit constructors that match a constructor explicitly
            declared in the derived class. */
-        /* FIXME: Recycle new_tp and copied parameter list? */
         break;
       }  /* if */
     }  /* for */
