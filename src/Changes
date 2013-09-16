@@ -1,5 +1,14 @@
 Version 5.0
 
+9/16/13  [EDGcpfe/14154]
+String representation of __is_nothrow_assignable and __is_trivially_assignable
+
+The string representations -- as recorded in builtin_operation_names -- of
+_is_nothrow_assignable and __is_trivially_assignable were accidentally
+interchanged (causing e.g. output by the IL display utility of the
+corresponding operations to be erroneous).  This is now fixed.
+
+
 9/13/13  [EDGcpfe/14494]
 C++11 and C99 features in Microsoft mode with microsoft_version >= 1800
 

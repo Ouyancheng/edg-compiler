@@ -18094,8 +18094,8 @@ EXTERN a_const_char *builtin_operation_names[(int)bok_last+1]
   "__is_destructible",
   "__is_nothrow_destructible",
   "__is_trivially_destructible",
-  "__is_trivially_assignable",
   "__is_nothrow_assignable",
+  "__is_trivially_assignable",
   "last"
 }
 #endif /* VAR_INITIALIZERS */
