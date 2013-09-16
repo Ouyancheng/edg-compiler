@@ -22938,6 +22938,11 @@ that follows.
                     &locator.source_position);
           sym = NULL;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+        } else if ((dps->dso_flags & DSO_THREAD_LOCAL) != 0) {
+          /* "thread_local" is allowed only on specializations of static data
+             members. */
+          pos_error(ec_thread_local_not_allowed, &dps->storage_class_pos);
+          sym = NULL;
         } else {
           /* Okay. */
         }  /* if */
