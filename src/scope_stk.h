@@ -2123,7 +2123,10 @@ extern
 void record_potential_pack_reference(a_symbol_ptr		pack_symbol,
 				     a_source_position_ptr	position);
 
-void restore_default_template_params(a_template_param_ptr  tpp);
+extern void restore_default_template_params(a_template_param_ptr  tpp);
+
+extern
+void update_template_param_symbols_for_param_list(a_template_param_ptr	tpp);
 
 #if GNU_EXTENSIONS_ALLOWED
 extern a_type_ptr get_type_for_bases_operator(

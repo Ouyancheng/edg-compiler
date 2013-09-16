@@ -19987,16 +19987,17 @@ templates from that base template.
       change_class_locator_into_constructor_locator(&loc, &udp->position,
                                                     /*is_static_ctor=*/FALSE);
       init_tmpl_decl_state_for_inheriting_ctor_template(&templ_decl_state);
-      new_tpl = copy_template_param_list(btpl);
       /* The base class constructor may actually be in the process of being
          instantiated, which causes its template parameter symbols to
-         temporarily point to concrete type.  Undo this in the copied template
-         parameter list. */
-      restore_default_template_params(new_tpl);
-      templ_decl_state.decl_info->parameters = new_tpl;
+         temporarily point to concrete types.  Undo this before copying the
+         template parameter list.  The concrete types will be restored by the
+         call to update_template_param_symbols_for_param_list below. */
+      restore_default_template_params(btpl);
       push_template_declaration_scope(
                                   templ_decl_state.decl_info,
                                   /*is_template_template_param_rescan*/FALSE);
+      new_tpl = copy_template_param_list(btpl);
+      templ_decl_state.decl_info->parameters = new_tpl;
       templ_decl_state.number_of_template_decl_scopes += 1;
       /* Save a pointer to the template declaration information in the
          scope stack entry. */
@@ -20021,6 +20022,7 @@ templates from that base template.
       }  /* if */
       pop_scope();
       done_with_func_info(func_info);
+      update_template_param_symbols_for_param_list(btpl);
 #if GENERATE_SOURCE_SEQUENCE_LISTS
       /* Restore the previous state wrt. generating source sequence entries. */
       source_sequence_entries_disallowed =

@@ -30658,11 +30658,15 @@ creating a compiler-generated template.
 */
 {
   a_template_param_ptr  result = NULL, *p_tp = &result, tp;
+  a_symbol_ptr          new_sym;
 
   for (tp = tpl; tp != NULL; tp = tp->next) {
-    *p_tp = alloc_template_param(tp->param_symbol);
+    new_sym = enter_copy_of_symbol(tp->param_symbol, depth_scope_stack,
+                                   /*suppress_error=*/TRUE);
+    *p_tp = alloc_template_param(new_sym);
     **p_tp = *tp;
     (*p_tp)->next = NULL;
+    (*p_tp)->param_symbol = new_sym;
     p_tp = &(*p_tp)->next;
   }  /* for */
   return result;

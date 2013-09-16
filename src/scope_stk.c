@@ -1986,6 +1986,30 @@ values needed for the previous call.
 }  /* update_template_param_symbols */
 
 
+void update_template_param_symbols_for_param_list(a_template_param_ptr	tpp)
+/*
+Search through the scope stack looking for a previous instantiation scope that
+uses the same template parameter list as the one specified by tpp, and update
+the associated template parameter symbols to refer to the arguments from that
+prior instantiation.
+*/
+{
+  a_scope_depth	scope_depth;
+
+  for (scope_depth = depth_scope_stack; scope_depth >= 0; scope_depth--) {
+    if (scope_is(&scope_stack[scope_depth], sck_template_instantiation) &&
+        scope_stack[scope_depth].template_decl_info->parameters == tpp) {
+      break;
+    }  /* if */
+  }  /* for */
+  if (scope_depth != NO_SCOPE_DEPTH) {
+    /* Restore the parameter values from the previous instantiation. */
+    update_template_param_symbols(tpp,
+                                  scope_stack[scope_depth].template_arg_list);
+  }  /* if */
+}  /* update_template_param_symbols_for_param_list */
+
+
 void restore_default_template_params(a_template_param_ptr  tpp)
 /*
 Update the symbol entries for template formal parameters to their
