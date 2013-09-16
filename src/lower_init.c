@@ -15826,6 +15826,10 @@ variables and are typically aliases with a well-known name; calling such
 a routine guarantees the caller that the thread_local variable has been
 properly initialized.  The routine has no definition (the back end emits
 this as an alias for __tls_init in the current translation unit).
+Note that in the case of a template static data member, the storage class
+of var may be sc_extern and later change to sc_unspecified (if the template
+static data member is instantiated in this translation unit) -- this is
+fixed up later (in b_lower_file_scope_dynamic_inits) if necessary.
 */
 {
   a_routine_ptr   init_routine;
@@ -16400,11 +16404,22 @@ enough to cause the back end to invoke the routine at initialization.
            the variable is created and marked as needed (the variable may not
            be used in this translation unit and if it is used in another
            translation unit, it'll invoke this alias). */
+        if (var->init_routine.thread_local.init_routine == NULL) {
+          thread_local_init_routine_for_variable(var);
+        } else {
+          /* In the case of template static data members, it's possible that
+             the static data member's storage class has changed since the init
+             routine was created (i.e., it may be sc_extern during lowering of
+             the routine, but later the static data member has since been
+             instantiated changing the storage class to sc_unspecified).
+             Reflect that potential change in the storage class of the init
+             routine. */
+          var->init_routine.thread_local.init_routine->storage_class =
+                                                            var->storage_class;
+        }  /* if */
 #if MAINTAIN_NEEDED_FLAGS
         set_routine_definition_needed(
-                                  thread_local_init_routine_for_variable(var));
-#else /* !MAINTAIN_NEEDED_FLAGS */
-        thread_local_init_routine_for_variable(var);
+                                  var->init_routine.thread_local.init_routine);
 #endif /* MAINTAIN_NEEDED_FLAGS */
       }  /* if */
 #endif /* USE_LAZY_INITIALIZATION_FOR_THREAD_LOCAL_VARIABLES */
