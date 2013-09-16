@@ -16405,7 +16405,7 @@ enough to cause the back end to invoke the routine at initialization.
            be used in this translation unit and if it is used in another
            translation unit, it'll invoke this alias). */
         if (var->init_routine.thread_local.init_routine == NULL) {
-          thread_local_init_routine_for_variable(var);
+          (void)thread_local_init_routine_for_variable(var);
         } else {
           /* In the case of template static data members, it's possible that
              the static data member's storage class has changed since the init
