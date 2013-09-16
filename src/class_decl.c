@@ -19960,6 +19960,7 @@ templates from that base template.
       a_func_info_block   func_info;
       a_symbol_locator    loc;
       a_tmpl_decl_state   templ_decl_state;
+      a_token_kind        final_token = tok_semicolon;
 #if GENERATE_SOURCE_SEQUENCE_LISTS
       /* Don't issue source sequence entries for generated entities. */
       a_boolean             saved_source_sequence_entries_disallowed;
@@ -19986,6 +19987,7 @@ templates from that base template.
       change_class_locator_into_constructor_locator(&loc, &udp->position,
                                                     /*is_static_ctor=*/FALSE);
       init_tmpl_decl_state_for_inheriting_ctor_template(&templ_decl_state);
+      templ_decl_state.final_token_ptr = &final_token;
       /* The base class constructor may actually be in the process of being
          instantiated, which causes its template parameter symbols to
          temporarily point to concrete types.  Undo this before copying the
@@ -20006,7 +20008,6 @@ templates from that base template.
                                     templ_decl_state.il_template_entry,
                                     &func_info, cdsp, &decl_info);
       if (symbol_is(decl_info.decl_state.sym, sk_function_template)) {
-        a_token_kind   final_token = tok_semicolon;
         a_routine_ptr  new_rp;
         new_tssp = decl_info.decl_state.sym->variant.template_info;
         set_il_template_entry(&templ_decl_state, decl_info.decl_state.sym,
@@ -20017,7 +20018,6 @@ templates from that base template.
         new_rp->compiler_generated = TRUE;
         new_tssp->variant.function.decl_cache.decl_info =
                                                    templ_decl_state.decl_info;
-        templ_decl_state.final_token_ptr = &final_token;
         complete_inheriting_ctor_template(&templ_decl_state, &func_info,
                                           decl_info.decl_state.sym);
       }  /* if */
@@ -27371,7 +27371,7 @@ classes.
                template_directive_or_declaration. */
             a_token_kind                 final_token = tok_semicolon;
             a_template_decl_options_set  td_flags = TDO_NO_OPTIONS;
-            a_source_position	          directive_start_pos = pos_curr_token;
+            a_source_position	         directive_start_pos = pos_curr_token;
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
             if (ms_attributes != NULL) {
