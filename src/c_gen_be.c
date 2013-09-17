@@ -9760,6 +9760,7 @@ if this routine has a body (dump nothing if it has no body).
           rout->storage_class == (a_storage_class)sc_unspecified) {
         set_output_position(&rout->source_corresp.decl_position);
         /* Defined in this translation unit; emit an alias indication. */
+        disable_line_wrapping();
         write_str("__asm__(\".global ");
         dump_routine_name(rout);
         write_str("\");");
@@ -9767,6 +9768,7 @@ if this routine has a body (dump nothing if it has no body).
         write_str("__asm__(\"");
         dump_routine_name(rout);
         write_str(" = __tls_init\");");
+        enable_line_wrapping();
       } else if (rout->storage_class == (a_storage_class)sc_static ||
                  rout->storage_class == (a_storage_class)sc_unspecified) {
         /* If the back end compiler has no aliasing capability, simply
