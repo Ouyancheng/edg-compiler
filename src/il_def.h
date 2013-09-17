@@ -13438,6 +13438,12 @@ typedef struct a_routine {
 			   such as strlen -- that are implicitly aliased to
 			   their __builtin_... counterpart; implicit_alias
 			   is TRUE in such cases.) */
+  a_routine_ptr	inline_partner;
+			/* If a function has both a definition "for inlining
+			   only" (flag definition_for_inlining_only) and a
+			   definition of out-of-line calls, then the routine
+			   entries corresponding to those definitions point to
+			   each other via this pointer.  Otherwise, NULL. */
 #if GNU_INIT_PRIORITY_ATTRIBUTE_ALLOWED
   a_gnu_init_priority
 		ctor_priority;

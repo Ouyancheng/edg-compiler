@@ -8003,6 +8003,8 @@ for use in generating cross-reference output describing this declaration.
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
         new_rp->defined = FALSE;
         new_rp->assoc_scope = NULL_region_number;
+        new_rp->inline_partner = routine_ptr;
+        routine_ptr->inline_partner = new_rp;
         routine_ptr = new_rp;
         routine_ptr->gnu_c89_inline = FALSE;
         old_decl_has_body = FALSE;

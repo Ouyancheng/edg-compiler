@@ -3524,6 +3524,9 @@ Display the indicated routine.
   if (ptr->aliased_routine != NULL) {
     disp_ptr("aliased_routine", (char*)ptr->aliased_routine, iek_routine);
   }  /* if */
+  if (ptr->inline_partner != NULL) {
+    disp_ptr("inline_partner", (char*)ptr->inline_partner, iek_routine);
+  }  /* if */
 #if GNU_INIT_PRIORITY_ATTRIBUTE_ALLOWED
   if (ptr->ctor_priority != 0) {
     disp_unsigned_long("ctor_priority", (unsigned long)ptr->ctor_priority);

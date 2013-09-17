@@ -15325,6 +15325,20 @@ error cases.
 {
   an_expr_node_ptr call_node;
 
+#if GNU_EXTENSIONS_ALLOWED
+  if (gnu_mode && is_routine_node(function_node)) {
+    a_routine_ptr  rout = function_node->variant.routine.ptr;
+    if (rout->inline_partner != NULL &&
+        !rout->definition_for_inlining_only) {
+      /* If this is a call to a function that has both an entry "for inlining
+         only" and "for non-inline uses", record the call as being to the
+         "for inlining only" version so the inliner can have a chance at
+         processing the call. */
+      function_node->variant.routine.ptr = rout->inline_partner;
+      check_assertion(rout->inline_partner->definition_for_inlining_only);
+    }  /* if */
+  }  /* if */
+#endif /* GNU_EXTENSIONS_ALLOWED */
   /* Make the function call expression node. */
   call_node = func_call_expr(function_node, function_type, is_virtual,
                              virtual_suppressed, selector_is_object_pointer,

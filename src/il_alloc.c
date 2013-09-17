@@ -2708,6 +2708,7 @@ to it.  The entry is allocated in the file scope memory region.
 #if GNU_EXTENSIONS_ALLOWED
   rp->section                     = NULL;
   rp->aliased_routine             = NULL;
+  rp->inline_partner              = NULL;
 #if GNU_INIT_PRIORITY_ATTRIBUTE_ALLOWED
   rp->ctor_priority               = 0;
   rp->dtor_priority               = 0;

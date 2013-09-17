@@ -1,5 +1,30 @@
 Version 5.0
 
+9/17/13  [EDGcpfe/14500]
+GCC compatibility: extern __inline function definition replacement
+
+GNU C and C++ mode allow a function definition to be provided both "for
+inlining only", a later declaration or definition can be introduced to be
+used when no inlining occurred.  (See the entry for EDGcpfe/13606 on 2/4/13
+for additional details.)  For example:
+
+  extern __inline void f() {}  // For inlining only.
+  extern void f() __asm("g");  // For other contexts.
+  int main() {
+    f();
+  }
+
+Previously, the second declaration displaced the "for inlining only"
+definition, and if the latter was not otherwise needed in the IL, it was
+subject to the "removal of unneeded entities" process.  This was undesirable
+since it could prevent an inliner in a back end from inlining the call, and
+in some cases that could in turn lead to linker errors (if the program did
+not include a definition for the second declaration).  Now, the front end
+explicitly pairs the two associated routine entries (through a new field
+"inline_partner" in a_routine) and will keep both in the IL tree if either
+ one is needed.
+
+
 9/16/13  [EDGcpfe/14154]
 String representation of __is_nothrow_assignable and __is_trivially_assignable
 

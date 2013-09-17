@@ -1387,6 +1387,10 @@ the file scope, do not process it (but record an orphan in the latter case).
         if (ptr->aliased_routine != NULL) {
           set_proper_routine_definition_needed_flag(ptr->aliased_routine);
         }  /* if */
+        walk_ptr(ptr->inline_partner, a_routine_ptr, iek_routine);
+        if (ptr->inline_partner != NULL) {
+          set_proper_routine_definition_needed_flag(ptr->inline_partner);
+        }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
 #if GNU_EXTENSIONS_ALLOWED || REDEFINE_EXTNAME_PRAGMA_ENABLED
         walk_string_ptr(ptr->asm_name, iek_other_text, 0);
