@@ -20838,11 +20838,11 @@ Scan what is either a using-declaration (possibly introducing one or more
 inheriting constructors), an alias declaration, or (if tok_using is not the
 current token) a deprecated access-adjustment declaration.  The semantics and
 representation of using-declarations (excluding the inheriting constructors
-case) and access-adjustment declarations are identical.
-cdsp describes the class being defined.  (The alias declaration case is almost
-entirely handled by a call to alias_declaration.  The latter call is made in
-this routine because the tok_using token must be consumed to distinguish an
-alias declaration from a using-declaration.)
+case) and access-adjustment declarations are identical.  cdsp describes the
+class being defined.  (The alias declaration case is almost entirely handled
+by a call to alias_declaration.  The latter call is made in this routine
+because the tok_using token must be consumed to distinguish an alias
+declaration from a using-declaration.)
 */
 {
   a_type_ptr           class_type = cdsp->class_type;
@@ -20917,7 +20917,7 @@ alias declaration from a using-declaration.)
     /* If typename appears in the using declaration, the lookup is a bit
        different, and there are some additional error checks.  If an error
        type is returned, an error was reported in the subroutine. */
-	    a_type_ptr   tp;
+    a_type_ptr   tp;
     a_symbol_ptr type_sym;
 
     typename_specifier(&tp, &type_sym, /*within_using_decl=*/TRUE,

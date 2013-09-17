@@ -36734,9 +36734,8 @@ argument expressions.  If the initializer is for a variable declaration,
 when the initializer is a ctor-initializer).  class_type must be a class type
 having at least one constructor.  Build a dynamic initialization or constant
 entry for the initialization, and set *is pointing to it (or set
-is->init_error to TRUE if there is an error).
-If args_supplied is FALSE, the current token is right after the left
-parenthesis of the initialization.
+is->init_error to TRUE if there is an error).  If args_supplied is FALSE, the
+current token is right after the left parenthesis of the initialization.
 This routine is used for constructs like
 
   A a(1, 2, 3);
@@ -36815,8 +36814,8 @@ inherits.
   clear_init_state(&is);
   is.direct_init = TRUE;
   is.force_dynamic_init = TRUE;
-  /* Create inheriting constructor's parameter variables and the corresponding
-     argument list for the constructor call. */
+  /* Create the inheriting constructor's parameter variables and the
+     corresponding argument list for the constructor call. */
   check_assertion(innermost_function_scope != NULL &&
                   ctor->type->kind == (a_type_kind)tk_routine);
   vp = innermost_function_scope->variant.routine.parameters;

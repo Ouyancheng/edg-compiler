@@ -3735,7 +3735,7 @@ be completed here.
       /* This particular template class (not just some other one based on
          the same template) is currently being instantiated. */
     } else if (cssp->being_defined) {
-      /* Scan class definition is already being called for this template class,
+      /* scan_class_definition is already being called for this template class,
          but apparently it's not for an instantiation.  This can happen with
          severe errors. */
       expect_error();
@@ -21476,9 +21476,8 @@ parameter list to be copied to tdp.
 }  /* complete_template_decl */
 
 
-static void create_template_decl(
-				a_tmpl_decl_state_ptr	decl_state,
-				a_source_position_ptr	template_pos)
+static void create_template_decl(a_tmpl_decl_state_ptr	decl_state,
+                                 a_source_position_ptr	template_pos)
 /*
 Allocate a template decl entry and fill in its fields.  template_pos is
 the position of the "template" keyword in the declaration, and can be
@@ -30709,8 +30708,8 @@ void complete_inheriting_ctor_template(a_tmpl_decl_state_ptr  decl_state,
                                        a_symbol_ptr           sym)
 /*
 Complete the data structures representing an inheriting constructor template
-(including the associated IL a_template entry).  sym and function info
-represent the function template, and decl_state tracks its declaration.
+(including the associated IL a_template entry).  sym and func_info represent
+the function template, and decl_state tracks its declaration.
 */
 {
   a_template_symbol_supplement_ptr  tssp;

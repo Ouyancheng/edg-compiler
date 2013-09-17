@@ -2019,7 +2019,7 @@ typedef struct a_name_qualifier {
   a_const_char	*name;
 			/* The string that specifies the identifier used for
 			   this qualifier.  This is usually the same as the
-			   name specified by "qualifier".   But when the
+			   name specified by "qualifier", but when the
 			   qualifier was specified by a template parameter,
 			   the qualifier will be the type of the template
 			   argument, while "name" will be the name of the
@@ -12906,7 +12906,8 @@ typedef struct a_routine {
 			   (which can only be known if the constructor
 			   definition has been seen). */
   a_bit_field	is_inheriting_ctor:1;
-			/* TRUE if this routine is an inherited constructor. */
+			/* TRUE if this routine is an inheriting
+			   constructor. */
 #if ASSIGNMENT_TO_THIS_ALLOWED
   a_bit_field	assignment_to_this_done:1;
 			/* TRUE if an assignment to "this" (an anachronism)
