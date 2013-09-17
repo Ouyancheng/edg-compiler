@@ -5,7 +5,7 @@ String representation of __is_nothrow_assignable and __is_trivially_assignable
 
 The string representations -- as recorded in builtin_operation_names -- of
 _is_nothrow_assignable and __is_trivially_assignable were accidentally
-interchanged (causing e.g. output by the IL display utility of the
+interchanged (causing, e.g., output by the IL display utility of the
 corresponding operations to be erroneous).  This is now fixed.
 
 
