@@ -10076,6 +10076,19 @@ that have bodies.
          so that the superseded external function pointer can be initialized
          to point to the "official" routine. */
       superseded_external_seen = TRUE;
+#if GNU_EXTENSIONS_ALLOWED
+    } else if (routine->inline_partner != NULL &&
+               !routine->definition_for_inlining_only) {
+      /* In GNU modes a routine can have both a definition for inlining only
+         and a declaration or definition for out-of-line calls.  However, the
+         latter cannot precede the definition of the former.  So we don't
+         dump anything if dump_defn is FALSE, and we dump the declaration or
+         the definition when dump_defn is TRUE (since presumable the partner
+         definition will already have been dumped at that time). */
+      if (dump_defn) {
+        dump_routine_decl(routine, routine->assoc_scope != NULL_region_number);
+      }  /* if */
+#endif /* GNU_EXTENSIONS_ALLOWED */
     } else {
       dump_routine_decl(routine, dump_defn);
     }  /* if */
