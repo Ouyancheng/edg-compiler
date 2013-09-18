@@ -13388,7 +13388,14 @@ Generate code for a class member or nonmember using-declaration.
       gen_namespace_qualifier(nsp, GN_NO_OPTIONS, (a_boolean *)NULL);
     }  /* if */
   }  /* if */
-  gen_unqualified_name(scp, entry_kind);
+  if (udp->is_inheriting_ctor) {
+    /* udp->entity.ptr points to the class type from which to "inherit" the
+       constructors, but for something like X<int>, the rendering should be
+       "using X<int>::X;" and not "using X<int>::X<int>;". */
+    gen_bare_name(scp, entry_kind);
+  } else {
+    gen_unqualified_name(scp, entry_kind);
+  }  /* if */
   gen_attributes(udp->attributes, al_postfix, /*primary_only=*/FALSE);
   write_tok_ch(';');
 }  /* gen_using_declaration */
