@@ -20132,12 +20132,21 @@ Do IL lowering of the indicated scope and everything under it.
   lower_asm_entry_list(scope->asm_entries);
   lower_namespace_list(scope->namespaces);
 #if !PRESERVE_SOURCE_SEQUENCE_LISTS_WITH_IL_LOWERING
-  /* Remove using-declarations, because they prevent the removal of otherwise
-     unreferenced routines.  This can be done by just clearing the pointer
-     only because source sequence entries are not maintained when IL lowering
-     is done.  If a back end would like to see using-declarations for some
-     reason, this code can just be removed. */
-  scope->using_decls = NULL;
+  /* Remove using-declarations from the scope list, because they prevent the
+     removal of otherwise unreferenced routines.  It's not sufficient to clear
+     the scope pointer: The "next" pointers must also be cleared because some
+     of the using-declaration entries may be pointed to from inheriting
+     constructor routine entries.  Note also that this relies on the fact that
+     source sequence entries are not maintained when IL lowering is done.  If
+     a back end would like to see using-declarations for some reason, this
+     code can just be removed. */
+  if (scope->using_decls != NULL) { 
+    a_using_decl_ptr  udp = scope->using_decls, next_udp = udp->next;
+    for (; next_udp != NULL; udp = next_udp, next_udp = next_udp->next) {
+      udp->next = NULL;
+    }  /* for */
+    scope->using_decls = NULL;
+  }  /* if */
 #endif /* !PRESERVE_SOURCE_SEQUENCE_LISTS_WITH_IL_LOWERING */
 #if RECORD_HIDDEN_NAMES_IN_IL
   /* Remove the hidden names list.  This list is not maintained during
