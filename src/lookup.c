@@ -547,7 +547,7 @@ decltypes in cases where the member has not yet been declared.
     add_to_types_list(type, DEPTH_OF_FILE_SCOPE);
   }  /* if */
   return proxy_class;
-}  /* proxy_class_for_template_param */
+}  /* create_proxy_class */
 
 
 a_type_ptr proxy_class_for_template_param(a_type_ptr   orig_type)

@@ -13942,7 +13942,12 @@ the destructor or finalizer is part of a qualified name (e.g., "A::B::~B").
         a_type_ptr  decltype_tp = locator_for_curr_id.variant.decltype_type;
         if (acceptable_dtor_or_finalizer_type(field_sel_type, decltype_tp)) {
           dtor_or_finalizer_okay = TRUE;
-          decltype_tp = skip_typerefs(decltype_tp);
+          decltype_tp = skip_typerefs_not_dependent_decltypes(decltype_tp);
+          /* Use the proxy class in place of a dependent decltype.  */
+          if (decltype_tp->kind == (a_type_kind)tk_typeref &&
+              decltype_tp->variant.typeref.is_dependent_type_operator) {
+            decltype_tp = proxy_class_for_template_param(decltype_tp);
+          }  /* if */
           type_sym = symbol_for(decltype_tp);
           curr_token = tok_identifier;
         }  /* if */
