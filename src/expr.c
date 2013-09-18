@@ -28830,6 +28830,12 @@ see expr.h).
     (void)get_token();
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+  if (curr_token == tok_decltype) {
+    /* A decltype could be decltype(x) or decltype(x)::something.  This
+       will coalesce the decltype into a tok_decltype_construct in the
+       first case or a tok_identifier in the latter case. */
+    (void)is_generalized_identifier_start(GID_NO_OPTIONS);
+  }  /* if */
   switch ((int)curr_token) {
     case tok_colon_colon:
       if (curr_expr_kind_is(ek_pp)) {
@@ -29505,6 +29511,9 @@ type_start:
                              /*within_using_decl=*/FALSE,
                              (a_decl_pos_block_ptr)NULL);
         } else if (curr_token == tok_decltype) {
+          /* This should not come up except in error cases as the decltype
+             should have been coalesced before the switch above. */
+          expect_error();
           cast_type = scan_decltype_operator((a_rescan_control_block *)NULL,
                                              /*might_be_id_start=*/FALSE);
         } else if (curr_token == tok_decltype_construct) {
