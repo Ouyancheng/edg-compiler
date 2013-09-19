@@ -1302,6 +1302,8 @@ extern a_boolean is_potentially_constant_valued_variable(a_variable_ptr var);
 
 extern a_ref_entry_ptr copy_ref_entry_list(a_ref_entry_ptr ref_list);
 
+extern void record_operand_ref_entries(an_operand  *operand);
+
 extern void flush_ref_entries_except(a_ref_entry_ptr keep_list1,
                                      a_ref_entry_ptr keep_list2);
 

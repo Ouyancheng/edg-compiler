@@ -8993,6 +8993,12 @@ normal_no_function_matches:
         end_error();
       }  /* if */
     }  /* if */
+    if (template_arg_list != NULL && template_arg_list->arg_operand != NULL) {
+      an_operand  *operand = &template_arg_list->arg_operand->operand;
+      if (operand->ref_entries_list != NULL && expr_error_should_be_issued()) {
+        record_operand_ref_entries(operand);
+      }  /* if */
+    }  /* if */
   } else if (ambiguous) {
     /* More than one function applies and is a best match -- ambiguity. */
 #if DEBUG

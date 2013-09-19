@@ -414,6 +414,21 @@ next_operand_ref field, i.e., the list attached to an operand.
 }  /* on_operand_ref_list */
 
 
+void record_operand_ref_entries(an_operand  *operand)
+/*
+Record the reference entries associated with the given operand.  (Used for
+error recovery purposes to ensure that, e.g., symbol are marked as referenced
+even though the associated expression is discarded.)
+*/
+{
+  a_ref_entry_ptr rep = operand->ref_entries_list;
+
+  for (; rep != NULL; rep = rep->next_operand_ref) {
+    record_reference(rep);
+  }  /* for */
+}  /*  record_operand_ref_entries */
+
+
 void flush_ref_entries_except(a_ref_entry_ptr keep_list1,
                               a_ref_entry_ptr keep_list2)
 /*
