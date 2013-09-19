@@ -35,10 +35,11 @@ This is now fixed: The warning is restored.
 9/17/13  [EDGcpfe/14500]
 GCC compatibility: extern __inline function definition replacement
 
-GNU C and C++ mode allow a function definition to be provided both "for
-inlining only", a later declaration or definition can be introduced to be
-used when no inlining occurred.  (See the entry for EDGcpfe/13606 on 2/4/13
-for additional details.)  For example:
+GNU C and C++ allow a function definition to be provided "for inlining only"
+and also a later declaration or definition for non-inline use.  (Note that
+this differs from the C99 specification, where only one or the other can
+appear in any single translation unit.) (See the entry for EDGcpfe/13606 on
+2/4/13 for additional details.)  For example:
 
   extern __inline void f() {}  // For inlining only.
   extern void f() __asm("g");  // For other contexts.
@@ -54,7 +55,7 @@ in some cases that could in turn lead to linker errors (if the program did
 not include a definition for the second declaration).  Now, the front end
 explicitly pairs the two associated routine entries (through a new field
 "inline_partner" in a_routine) and will keep both in the IL tree if either
- one is needed.
+one is needed.
 
 
 9/16/13  [EDGcpfe/14154]

@@ -10083,7 +10083,7 @@ that have bodies.
          and a declaration or definition for out-of-line calls.  However, the
          latter cannot precede the definition of the former.  So we don't
          dump anything if dump_defn is FALSE, and we dump the declaration or
-         the definition when dump_defn is TRUE (since presumable the partner
+         the definition when dump_defn is TRUE (since presumably the partner
          definition will already have been dumped at that time). */
       if (dump_defn) {
         dump_routine_decl(routine, routine->assoc_scope != NULL_region_number);
