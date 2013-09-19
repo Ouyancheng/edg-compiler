@@ -187,7 +187,7 @@ be restored).
     dps->is_for_init_decl = FALSE;
     dps->range_based_for = FALSE;
     dps->decl_okay_in_constexpr_body = FALSE;
-    dps->is_inheriting_ctor = TRUE;
+    dps->is_inheriting_ctor = FALSE;
     dps->prefix_attributes = NULL;
     dps->specifier_attributes = NULL;
     dps->tag_attributes = NULL;
