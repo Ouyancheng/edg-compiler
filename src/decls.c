@@ -7306,7 +7306,12 @@ use of).
       rp->implicit_alias = FALSE;
     } else if (dps->first_decl && !dps->sym->defined &&
                rtsp->prototyped &&
-               rp->aliased_routine == NULL) {
+               rp->aliased_routine == NULL &&
+               /* Exclude routines with "alias" or "weakref" attributes. */
+               find_attribute(ak_alias, dps->prefix_attributes) == NULL &&
+               find_attribute(ak_alias, dps->id_attributes) == NULL &&
+               find_attribute(ak_weakref, dps->prefix_attributes) == NULL &&
+               find_attribute(ak_weakref, dps->id_attributes) == NULL) {
       a_const_char *name = NULL;
       if (strcmp(rp->source_corresp.name, "strlen") == 0) {
         name = "__builtin_strlen";
