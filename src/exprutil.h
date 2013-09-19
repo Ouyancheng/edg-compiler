@@ -1769,6 +1769,8 @@ extern void make_string_constant_operand(a_constant *constant,
 
 #if DEBUG
 extern void db_operand(an_operand *operand);
+
+extern void db_operand_ref_entries(an_operand *operand);
 #endif /* DEBUG */
 
 extern void clear_operand(an_operand_kind kind,
