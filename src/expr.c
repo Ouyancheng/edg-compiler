@@ -29518,6 +29518,7 @@ type_start:
                                              /*might_be_id_start=*/FALSE);
         } else if (curr_token == tok_decltype_construct) {
           cast_type = locator_for_curr_id.variant.decltype_type;
+          (void)get_token();
         } else if (curr_token == tok_underlying_type) {
           cast_type = scan_underlying_type_operator();
 #if GNU_EXTENSIONS_ALLOWED
