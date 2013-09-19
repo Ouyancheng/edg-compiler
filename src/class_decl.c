@@ -3224,7 +3224,8 @@ translation unit.
 
 
 static void form_exception_specification_for_generated_function(
-                                                            a_routine_ptr  rp);
+                                                         a_routine_ptr  rp,
+                                                         a_symbol_ptr   bctor);
 
 static void complete_defaulted_member_decl(a_type_ptr  class_type)
 /*
@@ -3252,7 +3253,8 @@ Also, if the member is virtual, force its definition to be generated.
         an_exception_specification_ptr  declared_exception_spec
                                               = rtsp->exception_specification;
         rtsp->exception_specification = NULL;
-        form_exception_specification_for_generated_function(rp);
+        form_exception_specification_for_generated_function(
+                                                      rp, (a_symbol_ptr)NULL);
         if (declared_exception_spec != NULL) {
           /* If an exception specification was specified at all, it must be
              equivalent to the generated one. */
@@ -9573,7 +9575,6 @@ p_tp may equal &rp->type.
                always noexcept. */
             add_noexcept_specification(rtsp);
           } else if (special_kind_is(rp, sfk_destructor)) {
-
             /* Generate the exception specification by calling the function
                form_exception_specification_for_generated_function while any
                prior exception specification is moved aside. */
@@ -9581,7 +9582,8 @@ p_tp may equal &rp->type.
             old_rtsp = old_tp->variant.routine.extra_info;
             saved_esp = old_rtsp->exception_specification;
             old_rtsp->exception_specification = NULL;
-            form_exception_specification_for_generated_function(rp);
+            form_exception_specification_for_generated_function(
+                                                      rp, (a_symbol_ptr)NULL);
             if (p_tp == &rp->type) {
               /* We're done: The exception specification was generated in
                  rp->type. */
@@ -10891,7 +10893,8 @@ that member function can throw any exception, return TRUE.
 
 
 static void form_exception_specification_for_generated_function(
-                                                            a_routine_ptr  rp)
+                                                         a_routine_ptr  rp,
+                                                         a_symbol_ptr   bctor)
 /*
 Synthesize an exception specification for the implicitly declared (i.e.,
 compiler-generated) member function rp -- a constructor, destructor, or
@@ -10900,8 +10903,10 @@ all exception specifications for the routines that will be called when the
 definition of the compiler-generated member function is finally put out.  For
 instance, if a destructor is implicitly generated, it is assumed to throw all
 exceptions that any destructor it calls (for a base class or nonstatic data
-member) is able to throw.  This routine is only called in C++ mode and only
-when exception support is enabled.
+member) is able to throw.  bctor is non-NULL only for inheriting constructors:
+It indicates which base constructor generated the inheriting constructor.
+This routine is only called in C++ mode and only when exception support is
+enabled.
 */
 {
   a_special_function_kind  sfkind = rp->special_kind;
@@ -10911,23 +10916,40 @@ when exception support is enabled.
                            rtsp = rout_type->variant.routine.extra_info;
   a_base_class_ptr         bcp;
   a_field_ptr              fp;
-  a_type_ptr               tp;
+  a_type_ptr               tp, generating_base_type;
   a_symbol_ptr             sym;
   a_boolean                throw_any = FALSE;
   a_boolean                ambiguous;
-  a_param_type_ptr         first_param = rtsp->param_type_list;
+  a_param_type_ptr         first_param;
   a_source_position        *pos = &rp->source_corresp.decl_position;
 
   check_assertion(C_dialect == C_dialect_cplusplus && exceptions_enabled);
   check_assertion(rtsp->exception_specification == NULL);
-  /* Go through the base classes looking for matching special functions, and
-     merge the exception specifications. */
+  if (rp->is_inheriting_ctor) {
+    first_param = NULL;
+    check_assertion(rp->generating_using_decl->entity.kind ==
+                                              (a_byte_il_entry_kind)iek_type);
+    generating_base_type = (a_type_ptr)rp->generating_using_decl->entity.ptr;
+  } else {
+    first_param = rtsp->param_type_list;
+    generating_base_type = NULL;
+  }  /* if */
+  /* Go through the direct base classes looking for matching special
+     functions, and merge the exception specifications. */
   bcp = base_classes_of(class_type);
   for (; bcp != NULL; bcp = bcp->next) {
     if (is_template_dependent_type(bcp->type)) {
       /* We cannot tell what dependent bases might end up throwing. */
       throw_any = TRUE;
-    } else if (bcp->direct) {
+    } else if (!bcp->direct) {
+      continue;
+    } else if (generating_base_type != NULL &&
+               identical_types(bcp->type, generating_base_type)) {
+      /* This is the base from which the generated constructor inherited its
+         signature: Merge the exception specification from the constructor
+         that parameters will be forwarded to. */
+      throw_any = merge_exception_specifications(bctor, rout_type);
+    } else {
       sym = special_subobject_function_symbol(bcp->type, sfkind, first_param,
                                               TQ_NONE, pos, &ambiguous);
       if (ambiguous) {
@@ -12885,7 +12907,8 @@ Otherwise, the member is left unchanged.
           rtsp->exception_specification->compiler_generated = TRUE;
           rtsp->assoc_routine = rtn;
         } else {
-          form_exception_specification_for_generated_function(rtn);
+          form_exception_specification_for_generated_function(
+                                                     rtn, (a_symbol_ptr)NULL);
         }  /* if */
       } else if (implicit_noexcept_enabled &&
                  special_kind_is(rtn, sfk_operator) &&
@@ -13575,7 +13598,10 @@ implicitly declared member functions.
                                                     return_type_of(rtn->type));
       }  /* if */
     }  /* if */
-    if (exceptions_enabled) {
+    if (exceptions_enabled && !decl_state->is_inheriting_ctor) {
+      /* Don't attempt to generate an exception specification for an inheriting
+         constructor at this time, since we don't have all the required
+         information in this context. */
       add_generated_exception_spec_if_needed(rtn, class_type);
       if (rtsp->exception_specification != NULL &&
           !rtsp->exception_specification->arg_cached &&
@@ -18310,7 +18336,8 @@ dependency must exist and this routine issues an error accordingly.
   } else {
     ensure_all_field_initializers_scanned(class_type);
     rtsp->exception_specification = NULL;
-    form_exception_specification_for_generated_function(rp);
+    form_exception_specification_for_generated_function(
+                                                      rp, (a_symbol_ptr)NULL);
   }  /*  */
 }  /* form_exception_specification_for_generated_default_ctor */
 
@@ -19870,10 +19897,12 @@ base class constructor has default arguments).
   a_routine_type_supplement_ptr
                     new_rtsp = new_tp->variant.routine.extra_info;
 
-  /* Copy the base constructor type without its parameter list. */
+  /* Copy the base constructor type without its parameter list and without
+     its exception specification. */
   brp->type->variant.routine.extra_info->param_type_list = NULL;
   copy_type(brp->type, new_tp);
   brp->type->variant.routine.extra_info->param_type_list = base_param_list;
+  new_rtsp->exception_specification = NULL;
   /* Now copy the n_params first parameters. */
   new_rtsp->param_type_list = copy_param_type_list(base_param_list,
                                                /*copy_default_args=*/FALSE,
@@ -20130,6 +20159,7 @@ constructor.
       new_rp = decl_info.decl_state.sym->variant.routine.ptr;
       new_rp->generating_using_decl = udp;
       new_rp->is_inheriting_ctor = TRUE;
+      form_exception_specification_for_generated_function(new_rp, bctor);
       done_with_func_info(func_info);
     }  /* if */
   }  /* for */
