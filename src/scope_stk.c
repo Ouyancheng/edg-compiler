@@ -5512,12 +5512,15 @@ curr_routine points to the routine entry; otherwise, it is NULL.
                                 es_warning);
           }  /* if */
         }  /* if */
-      } else if (C_dialect == C_dialect_cplusplus &&
-                 depth_scope_stack == DEPTH_OF_FILE_SCOPE &&
-                 is_const_qualified_type(var_ptr->type) &&
-                 seq_is_in_include_file(sym->decl_position.seq)) {
+      } else if (is_const_qualified_type(var_ptr->type) &&
+                 (sym->referenced ||
+                  (!C_mode() && depth_scope_stack == DEPTH_OF_FILE_SCOPE &&
+                   seq_is_in_include_file(sym->decl_position.seq)))) {
         /* Since a const variable defined in a header is the C++ idiom
-           corresponding to #define, issue no diagnostic on not using it. */
+           corresponding to #define, issue no diagnostic on not using it.
+           Also, a const variable declaration without an initializer is
+           frequently invalid.  So if the variable is referenced at all,
+           don't issue other warnings (like "set but not used"). */
       } else if (var_ptr->is_parameter) {
         if (!sym->referenced) {
           /* An unreferenced parameter.  Warn unless a lint-style "argsused"
