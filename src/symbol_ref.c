@@ -30,6 +30,65 @@ symbol_ref.c - Routines to manage references to symbols.
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 
+#if DEBUG
+
+void db_symbol_ref_kind(a_symbol_reference_kind  kind)
+/*
+Output the flags set in kind to the debug output in a human-readable way.
+*/
+{
+  if (kind & SRK_DECLARATION) {
+    fprintf(f_debug, "declaration ");
+  }  /* if */
+  if (kind & SRK_DEFINITION) {
+    fprintf(f_debug, "definition ");
+  }  /* if */
+  if (kind & SRK_REFERENCE) {
+    fprintf(f_debug, "reference ");
+  }  /* if */
+  if (kind & SRK_USE) {
+    fprintf(f_debug, "use ");
+  }  /* if */
+  if (kind & SRK_MODIFICATION) {
+    fprintf(f_debug, "modification ");
+  }  /* if */
+  if (kind & SRK_ADDRESS_TAKEN) {
+    fprintf(f_debug, "address-taken ");
+  }  /* if */
+  if (kind & SRK_ERROR) {
+    fprintf(f_debug, "error ");
+  }  /* if */
+  if (kind & SRK_FRIEND) {
+    fprintf(f_debug, "friend ");
+  }  /* if */
+  if (kind & SRK_TENTATIVE_DEF) {
+    fprintf(f_debug, "tentative-def ");
+  }  /* if */
+  if (kind & SRK_IMPLICIT_TEMPLATE_ARG) {
+    fprintf(f_debug, "implicit-template-arg ");
+  }  /* if */
+  if (kind & SRK_INITIALIZATION) {
+    fprintf(f_debug, "initialization ");
+  }  /* if */
+  if (kind & SRK_CONST_ADDRESS_TAKEN) {
+    fprintf(f_debug, "const-address-taken ");
+  }  /* if */
+  if (kind & SRK_PROTO_INST_REF) {
+    fprintf(f_debug, "proto-inst-ref ");
+  }  /* if */
+  if (kind & SRK_DEFAULT_ARG_EXPR) {
+    fprintf(f_debug, "default-arg-expr ");
+  }  /* if */
+  if (kind & SRK_TEMPLATE_INSTANTIATION) {
+    fprintf(f_debug, "template-instantiation ");
+  }  /* if */
+  if (kind & SRK_CONST_VALUE_USE) {
+    fprintf(f_debug, "const-value-use ");
+  }  /* if */
+}  /* db_symbol_ref_kind */
+
+#endif /* DEBUG */
+
 static an_il_to_str_output_control_block
 		octl;
 			/* Output control block used to interface to the

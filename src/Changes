@@ -1,5 +1,22 @@
 Version 5.0
 
+9/18/13  [EDGcpfe/14504]
+Missing "set but never used" warning
+
+A change during the rework of initializer processing in version 4.5 of the
+front end (see the entry for EDGcpfe/9170 of 7/11/12) caused it to no longer
+issue a warning when a variable was "set" by taking its address, and assigning
+to the dereferenced result in the same expression, but not using the result
+of that assignment later on.  For example:
+
+  int main() {
+    double d;
+    *(&d) = 3.0;  // Triggered a "set but never used" warning in version 4.4,
+  }               // but not in more recent versions.  That is now restored.
+
+This is now fixed: The warning is restored.
+
+
 9/17/13  [EDGcpfe/14500]
 GCC compatibility: extern __inline function definition replacement
 

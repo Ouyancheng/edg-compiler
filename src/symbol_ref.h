@@ -129,6 +129,7 @@ address of a const and taking the address of a nonconst object).
 			/* All reference kinds that constitute "modification"
 			   of a variable's value in one way or another. */
 
+extern void db_symbol_ref_kind(a_symbol_reference_kind  kind);
 
 /* Record use information (for cross-reference, etc.). */
 extern void record_symbol_declaration(

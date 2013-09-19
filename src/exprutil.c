@@ -796,7 +796,9 @@ out when the expression terminates.
         goto outer_loop;
       }  /* if */
     }  /* for */
-    unexpected_condition_str("detach_ref_entries_from_curr_expr: not found");
+    check_assertion_str(!is_an_lvalue(operand),
+                        "detach_ref_entries_from_curr_expr: not found");
+    operand->ref_entries_list = NULL;
 outer_loop:;
   }  /* for */
   /* Discard any ref entries saved so we can turn an rvalue back into an
@@ -3067,6 +3069,23 @@ Display an expression operand for debugging purposes.
   }  /* switch */
   (void)fprintf(f_debug, "\n");
 }  /* db_operand */
+
+
+void db_operand_ref_entries(an_operand  *operand)
+/*
+Display a summary of the reference chain associated with an operand in the
+debug output.
+*/
+{
+  a_ref_entry_ptr  rep = operand->ref_entries_list;
+
+  for (; rep != NULL; rep = rep->next_operand_ref) {
+    db_symbol_name(rep->symbol);
+    fprintf(f_debug, ":");
+    db_symbol_ref_kind(rep->kind);
+    fprintf(f_debug, "\n");
+  }  /* for */
+}  /* db_operand_ref_entries */
 
 #endif /* DEBUG */
 
@@ -16395,7 +16414,6 @@ explicit "&" operator in the source and *operator_position gives its position.
       /* Change the kind in the reference entries to address-taken. */
       /* This will check for taking the address of a register variable. */
       change_ref_kinds(operand->ref_entries_list, SRK_ADDRESS_TAKEN);
-      if (!is_an_lvalue(operand)) operand->ref_entries_list = NULL;
     }  /* if */
   }  /* if */
   operand->is_simple_string_literal = FALSE;
