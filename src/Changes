@@ -37,9 +37,9 @@ GCC compatibility: extern __inline function definition replacement
 
 GNU C and C++ allow a function definition to be provided "for inlining only"
 and also a later declaration or definition for non-inline use.  (Note that
-this differs from the C99 specification, where only one or the other can
-appear in any single translation unit.) (See the entry for EDGcpfe/13606 on
-2/4/13 for additional details.)  For example:
+this differs from the C99 specification, where only one definition can appear
+in any single translation unit.)  See the entry for EDGcpfe/13606 on 2/4/13
+for additional details.  For example:
 
   extern __inline void f() {}  // For inlining only.
   extern void f() __asm("g");  // For other contexts.
@@ -47,8 +47,8 @@ appear in any single translation unit.) (See the entry for EDGcpfe/13606 on
     f();
   }
 
-Previously, the second declaration displaced the "for inlining only"
-definition, and if the latter was not otherwise needed in the IL, it was
+Previously, in GNU C mode, the second declaration displaced the "for inlining
+only" definition, and if the latter was not otherwise needed in the IL, it was
 subject to the "removal of unneeded entities" process.  This was undesirable
 since it could prevent an inliner in a back end from inlining the call, and
 in some cases that could in turn lead to linker errors (if the program did
