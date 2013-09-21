@@ -7307,6 +7307,9 @@ use of).
     } else if (dps->first_decl && !dps->sym->defined &&
                rtsp->prototyped &&
                rp->aliased_routine == NULL &&
+               /* Exclude routines with an asm alias. */
+               rp->asm_name == NULL &&
+               dps->asm_name == NULL &&
                /* Exclude routines with "alias" or "weakref" attributes. */
                find_attribute(ak_alias, dps->prefix_attributes) == NULL &&
                find_attribute(ak_alias, dps->id_attributes) == NULL &&

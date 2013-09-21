@@ -8,8 +8,8 @@ and optimizes calls to those routines in some cases (see Changes entries for
 EDGcpfe/10328 and EDGcpfe/10179).  This implicit aliasing doesn't work
 when these routines have been given explicit aliases (i.e., when compiling
 glibc itself) and has now been disabled when an "alias" or "weakref"
-attribute is present.  In this example (with --gcc), "abs" had been considered
-an implicit alias for __builtin_abs but isn't any longer:
+attribute, or an "asm name" is present.  In this example (with --gcc), "abs"
+had been considered an implicit alias for __builtin_abs but isn't any longer:
 
   int __abs (int x) { return x; }
   extern __typeof (__abs) abs __attribute__ ((weak, alias ("__abs")));
