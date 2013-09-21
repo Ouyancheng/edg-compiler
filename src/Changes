@@ -20,9 +20,9 @@ Missing "set but never used" warning
 
 A change during the rework of initializer processing in version 4.5 of the
 front end (see the entry for EDGcpfe/9170 of 7/11/12) caused it to no longer
-issue a warning when a variable was "set" by taking its address, and assigning
-to the dereferenced result in the same expression, but not using the result
-of that assignment later on.  For example:
+issue a warning when a variable was "set" by taking its address and assigning
+to the dereferenced result in the same expression, but then not using the
+result of that assignment later on.  For example:
 
   int main() {
     double d;
