@@ -2227,7 +2227,7 @@ Enter the standard predeclared functions for GCC.
 
 #endif /* GNU_EXTENSIONS_ALLOWED */
 
-#if GNU_EXTENSIONS_ALLOWED && GCC_BUILTIN_VARARGS
+#if GNU_EXTENSIONS_ALLOWED
 
 static void enter_predefined_type(a_type_ptr   type,
                                   a_const_char *name)
@@ -2262,7 +2262,7 @@ Enter these in the file scope and return the type entry.
   return result;
 }  /* enter_predefined_typedef */
 
-#endif /* GNU_EXTENSIONS_ALLOWED && GCC_BUILTIN_VARARGS */
+#endif /* GNU_EXTENSIONS_ALLOWED */
 #if MICROSOFT_EXTENSIONS_ALLOWED
 
 static void enter_microsoft_predeclared_functions(void)
