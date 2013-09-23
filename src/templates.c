@@ -13112,7 +13112,7 @@ in_class_specialization is TRUE for a Microsoft mode in-class specialization.
          possible for inheriting constructor templates) because of reactivated
          scopes: Just copy the flag from the prototype instantiation. */
       rp->source_corresp.is_local_to_function = TRUE;
-      check_assertion(rp->is_inheriting_ctor);
+      check_assertion_or_expect_error(rp->is_inheriting_ctor);
     }  /* if */
     set_membership_in_source_corresp(&rp->source_corresp, sym);
     rp->source_corresp.name_linkage = templ_rout->source_corresp.name_linkage;
