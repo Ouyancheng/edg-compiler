@@ -344,7 +344,10 @@ thread_local variable is re-written to call an initialization wrapper routine
 that does the one-time (per-thread) initialization.  All file-scope dynamic
 initialization for objects with thread_local storage are lowered and placed in
 a single __tls_init routine (regardless of the setting of
-SEPARATE_ROUTINES_FOR_FILE_SCOPE_DYNAMIC_INITS).
+SEPARATE_ROUTINES_FOR_FILE_SCOPE_DYNAMIC_INITS).  When using
+one-instantiation-per-object mode, the thread_local initializations
+for each "slice" are placed in separate __tls_init__N routines (where
+N represents the "slice").
 
 If a back end has the means to execute startup code at thread creation,
 the overhead associated with lazy initialization can be avoided.  In that

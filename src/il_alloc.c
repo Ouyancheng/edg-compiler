@@ -2692,6 +2692,7 @@ to it.  The entry is allocated in the file scope memory region.
 #if USE_LAZY_INITIALIZATION_FOR_THREAD_LOCAL_VARIABLES
   rp->is_tls_init_alias           = FALSE;
 #endif /* USE_LAZY_INITIALIZATION_FOR_THREAD_LOCAL_VARIABLES */
+  rp->is_tls_init_routine         = FALSE;
 #if CENTERLINE_CHECKING
   rp->avoid_codecenter_warnings = 0;
 #endif /* CENTERLINE_CHECKING */

@@ -13370,6 +13370,13 @@ typedef struct a_routine {
                            thread_local initialization routine for the
                            translation unit. */
 #endif /* USE_LAZY_INITIALIZATION_FOR_THREAD_LOCAL_VARIABLES */
+  a_bit_field	is_tls_init_routine:1;
+                        /* TRUE if this routine is used to initialize
+                           a thread_local storage variable(s).  Typically
+                           there is at most one such routine per translation
+                           unit, but that's not true when
+                           ONE_INSTANTIATION_PER_OBJECT is TRUE (in which case
+                           there may be one per slice). */
   bitfield_to_avoid_codecenter_warnings()
 #if DECL_MODIFIERS_IN_USE
   a_decl_modifier

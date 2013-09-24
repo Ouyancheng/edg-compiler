@@ -3488,6 +3488,9 @@ Display the indicated routine.
     disp_boolean("is_tls_init_alias", TRUE);
   }  /* if */
 #endif /* USE_LAZY_INITIALIZATION_FOR_THREAD_LOCAL_VARIABLES */
+  if (ptr->is_tls_init_routine) {
+    disp_boolean("is_tls_init_routine", TRUE);
+  }  /* if */
 #if MAINTAIN_NEEDED_FLAGS
   disp_boolean("definition_needed", (a_boolean)ptr->definition_needed);
   /* Note: the keep_definition_in_il flag is not displayed, since it is

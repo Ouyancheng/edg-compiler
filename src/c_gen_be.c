@@ -9694,6 +9694,35 @@ Return TRUE if the routine should be emitted in the current slice.
 
 #endif /* ONE_INSTANTIATION_PER_OBJECT */
 
+static a_const_char *tls_init_name(void)
+/*
+Returns the name of the thread_local storage initialization routine to use.
+Typically this is __tls_init, but when ONE_INSTANTIATION_PER_OBJECT is
+used, each slice has the potential to have its own __tls_init routine and
+these are differentiated by adding the needed flag big number (i.e.,
+__tls_init__N).  __tls_init is used for the primary output file (when
+needed_flag_bit_number == 1).
+*/
+{
+  a_const_char *name = "__tls_init";
+  char         *result;
+
+#if ONE_INSTANTIATION_PER_OBJECT
+  if (needed_flag_bit_number > 1) {
+    char buffer[50];
+    (void)sprintf(buffer, "__%lu", needed_flag_bit_number);
+    result = alloc_il_for_c_gen_be(strlen(name) + strlen(buffer) + 1);
+    (void)memcpy(result, name, strlen(name));
+    (void)strcpy(&result[strlen(name)], buffer);
+  } else
+#endif /* ONE_INSTANTIATION_PER_OBJECT */
+  {
+    result = (char *)name;
+  }  /* if */
+  return (a_const_char*)result;
+}  /* tls_init_name */
+
+
 static void dump_routine_decl(a_routine_ptr rout,
                               a_boolean     dump_defn)
 /*
@@ -9752,10 +9781,16 @@ if this routine has a body (dump nothing if it has no body).
        to dump it only if it has a definition, so do nothing (except for
        the special case of a __tls_init alias below). */
 #if USE_LAZY_INITIALIZATION_FOR_THREAD_LOCAL_VARIABLES
-    if (rout->is_tls_init_alias) {
+    if (rout->is_tls_init_alias
+#if ONE_INSTANTIATION_PER_OBJECT
+        && (needed_flag_bit_number == 0 ||
+            emit_routine_in_slice(rout))
+#endif /* ONE_INSTANTIATION_PER_OBJECT */
+                                                                       ) {
       /* This routine is an "alias" for the thread_local initialization
-         for this translation unit.  If the back end supports it, create
-         an alias, otherwise emit a routine to invoke __tls_init explicitly. */
+         for this translation unit (or slice within the translation unit).
+         If the back end supports it, create an alias, otherwise emit a routine
+         to invoke __tls_init explicitly. */
       if (gcc_is_generated_code_target &&
           rout->storage_class == (a_storage_class)sc_unspecified) {
         set_output_position(&rout->source_corresp.decl_position);
@@ -9767,7 +9802,9 @@ if this routine has a body (dump nothing if it has no body).
         end_output_line();
         write_str("__asm__(\"");
         dump_routine_name(rout);
-        write_str(" = __tls_init\");");
+        write_str(" = ");
+        write_str(tls_init_name());
+        write_str("\");");
         enable_line_wrapping();
       } else if (rout->storage_class == (a_storage_class)sc_static ||
                  rout->storage_class == (a_storage_class)sc_unspecified) {
@@ -10007,7 +10044,9 @@ declare_routine:
       }  /* if */
       if (thread_local_init_case) {
         /* Generate a definition that just calls __tls_init. */
-        write_tok_str(" { __tls_init(); }");
+        write_tok_str(" { ");
+        write_tok_str(tls_init_name());
+        write_tok_str("(); }");
       } else {
         write_tok_ch(';');
       }  /* if */
@@ -10659,9 +10698,14 @@ the C output files for all instantiations.
        rout != NULL;
        rout = rout->next) {
     if (rout->instantiation_needed_bit_number != 0) {
-      /* Ignore generated startup initialization routines and routines
-         whose bodies are present only for inlining purposes. */
+      /* Ignore generated startup initialization routines, thread_local
+         initialization routines and routines whose bodies are present only for
+         inlining purposes. */
       if (!routine_is_init_routine(rout) &&
+          !rout->is_tls_init_routine &&
+#if USE_LAZY_INITIALIZATION_FOR_THREAD_LOCAL_VARIABLES
+          !rout->is_tls_init_alias &&
+#endif /* USE_LAZY_INITIALIZATION_FOR_THREAD_LOCAL_VARIABLES */
           !rout->suppress_inline_body) {
         a_boolean generate_routine = TRUE;
         char      *char_pos = NULL;

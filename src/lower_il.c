@@ -20548,11 +20548,11 @@ translation units (their statics are picked up after copying).
   for (rout = scope->routines;
        rout != NULL;
        rout = rout->next) {
-    if (rout->source_corresp.static_used_by_instantiation
+    if (rout->source_corresp.static_used_by_instantiation &&
 #if DUPLICATE_SPECIAL_STATICS_IN_INSTANTIATION_SLICES
-        && !rout->source_corresp.duplicate_static_in_instantiation_slices
+        !rout->source_corresp.duplicate_static_in_instantiation_slices &&
 #endif /* DUPLICATE_SPECIAL_STATICS_IN_INSTANTIATION_SLICES */
-                                                                         ) {
+        !rout->is_tls_init_routine) {
       if (rout->storage_class == (a_storage_class)sc_static) {
         externalize_source_correspondence(&rout->source_corresp,
                                           /*is_variable=*/FALSE);
