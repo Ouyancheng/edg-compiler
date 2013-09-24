@@ -8,6 +8,9 @@ in some front end configurations when lowering thread_local variables.
 In the Cfront ABI, __THI__ and __THW__ are prefixed to the variable name
 for the thread_local initialization and wrapper routines, respectively.
 
+Also, edg_prelink has been updated to recognize the 'L' symbol type in
+output from "nm" (for thread-local storage on Solaris systems).
+
 
 7/19/13  [EDGcpfe/10662]
 C++11 const-correctness

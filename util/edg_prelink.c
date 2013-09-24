@@ -1857,6 +1857,7 @@ or defined in that object file.
        be recorded. */
     if (type != 'B' &&
         type != 'D' &&
+        type != 'L' &&
         type != 'R' &&
         type != 'S' &&
         type != 'T' &&
@@ -1873,6 +1874,7 @@ or defined in that object file.
       switch (type) {
         case 'B':  /* BSS symbol */
         case 'D':  /* data symbol */
+        case 'L':  /* thread-local symbol */
         case 'R':  /* read-only data symbol */
         case 'S':  /* Uninitialized small object. */
         case 'T':  /* text symbol */
