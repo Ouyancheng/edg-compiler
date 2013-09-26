@@ -264,7 +264,6 @@ dso_handle is NULL.
 {
 #if RUNTIME_DOES_THREAD_LOCAL_DESTRUCTIONS
   /* Do thread_local destructions for the current thread first. */
-  /* FIXME: test this (i.e., does g++ do this?) */
   __finalize_destructions(&__thread_needed_destruction_head, dso_handle);
 #endif /* RUNTIME_DOES_THREAD_LOCAL_DESTRUCTIONS */
   __finalize_destructions(&needed_destruction_head, dso_handle);

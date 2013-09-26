@@ -17230,7 +17230,7 @@ Do one-time initialization of static variables declared in lower_init.c.
       pch_saved_var_array_elem(delete_routine_ptr_type),
       pch_saved_var_array_terminating_elem(),
 #if RUNTIME_SUPPORTS_ARRAY_LENGTH_CHECK && ABI_COMPATIBILITY_VERSION >= 406
-      pch_saved_var_array_elem(throw_bad_array_new_length_routine),
+      pch_saved_var_array_elem(throw_bad_array_new_length_routine)
 #endif /* RUNTIME_SUPPORTS_ARRAY_LENGTH_CHECK && ABI_COMPATIBILITY_VERSION...*/
     };
     register_pch_saved_variables(saved_vars);
