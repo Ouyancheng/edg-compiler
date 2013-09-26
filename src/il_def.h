@@ -14515,7 +14515,10 @@ typedef struct a_new_delete_supplement {
 			/* When is_new is TRUE and type specifies an array
 			   type, number_of_elements is NULL if the array size
 			   is known at compile time; otherwise it contains an
-			   expression for the run-time number of elements. */
+			   expression for the run-time number of elements.
+			   Note that the type of this expression is not
+			   constrained (i.e., it's whatever was in the
+			   source code) and may be signed or unsigned. */
 } a_new_delete_supplement;
 
 

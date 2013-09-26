@@ -9704,7 +9704,9 @@ initialize required temporary variables and must occur before any of the
 temporary values are used (i.e., before any run-time library calls).  Note that
 the caller often discards the first argument that is created herein, so
 make_reusable_copy can't be used (instead, a temporary is explicitly created
-and its initialization put in insert_location).
+and its initialization put in insert_location).  Note that the returned
+expression has an indeterminate integral type (which may be signed or
+unsigned).
 */
 {
   an_expr_node_ptr      number_of_elements, number_of_bytes, temp_node;
@@ -9727,9 +9729,7 @@ and its initialization put in insert_location).
       /* For a multi-dimensional array, the total number of elements is
          determined by multiplying by the number of elements of the
          underlying array (which may itself be multi-dimensional). */
-      temp_node = node_for_host_large_integer(
-                           (a_host_large_integer)num_array_elements(elem_type),
-                           targ_ptrdiff_t_int_kind);
+      an_integer_kind multiply_int_kind;
       if (is_unscoped_enum_type(number_of_elements->type)) {
         /* Use the underlying type for an unscoped enum type. */
         number_of_elements = add_cast(number_of_elements,
@@ -9737,6 +9737,18 @@ and its initialization put in insert_location).
                                                     number_of_elements->type)->
                                                     variant.integer.int_kind));
       }  /* if */
+      /* The expression representing the number of elements may be any
+         integral type (signed or unsigned).  Make sure the multiplication
+         operation is performed on operands with the same type. */
+      multiply_int_kind = is_signed_integral_type(number_of_elements->type) ?
+                                                      targ_ptrdiff_t_int_kind :
+                                                      targ_size_t_int_kind;
+      number_of_elements = add_cast_if_necessary(number_of_elements,
+                                                integer_type(
+                                                           multiply_int_kind));
+      temp_node = node_for_host_large_integer(
+                           (a_host_large_integer)num_array_elements(elem_type),
+                           multiply_int_kind);
       number_of_elements->next = temp_node;
       number_of_elements = make_operator_node(
                                            (an_expr_operator_kind)eok_multiply,

@@ -24836,6 +24836,19 @@ node, and report any failure as an internal error.
       internal_error("wrong result type for *");
     }  /* if */
   }  /* if */
+  if (op == (an_expr_operator_kind)eok_add ||
+      op == (an_expr_operator_kind)eok_subtract ||
+      op == (an_expr_operator_kind)eok_multiply ||
+      op == (an_expr_operator_kind)eok_divide ||
+      op == (an_expr_operator_kind)eok_remainder) {
+    if (!cast_identical_types(operand_1->type, operand_1->next->type)) {
+      /* The types of the two operands must be consistent. */
+#if DEBUG
+      db_expression(expr);
+#endif /* DEBUG */
+      internal_error("types for operation are not consistent");
+    }  /* if */
+  }  /* if */
 #endif /* !STANDALONE_UTILITY_PROGRAM */
 }  /* check_operation_node_consistency */
 

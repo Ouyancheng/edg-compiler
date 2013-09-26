@@ -1,5 +1,26 @@
 Version 5.0
 
+9/26/13  [EDGcpfe/14527]
+Inconsistent lowered IL in arithmetic operations
+
+The types of operands in arithmetic operations in the IL should be
+consistent, and in a couple of cases (involving the computation of the
+number of bytes to allocate for a multi-dimensional array new operation, or
+when lowering a compound assignment operation with an imaginary type) the types
+were not consistent.  Those two cases have been fixed and a consistency check
+has been added.  For example:
+
+  // with --c99:
+  int main() {
+    _Bool b;
+    b *= (_Imaginary long double)0.0;
+  }
+
+  // or with --c++:
+  short s = 5;
+  int (*p)[10] = new int[s][10];
+
+
 9/19/13  [EDGcpfe/14511]
 GNU compatibility: Aliasing of "abs" and "strlen"
 

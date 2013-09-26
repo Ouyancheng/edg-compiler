@@ -11470,6 +11470,10 @@ a temporary will be used, and the code will be something like
       /* Both operands are imaginary: The result will be real. */
       operation_type = float_type(
                            skip_typerefs(operation_type)->variant.float_kind);
+    } else {
+      /* Cast the first operand (as an rvalue) to the operation type. */
+      op1_for_operation = add_lowered_cast_if_necessary(op1_for_operation,
+                                                        operation_type);
     }  /* if */
 #endif /* LOWER_COMPLEX */
 #if LOWER_FIXED_POINT
