@@ -24841,9 +24841,16 @@ node, and report any failure as an internal error.
       op == (an_expr_operator_kind)eok_multiply ||
       op == (an_expr_operator_kind)eok_divide ||
       op == (an_expr_operator_kind)eok_remainder) {
-    if (!is_template_dependent_type(operand_1->type) &&
-        !is_template_dependent_type(operand_1->next->type) &&
-        !cast_identical_types(operand_1->type, operand_1->next->type)) {
+    a_type_ptr op_type_1 = skip_typerefs(operand_1->type);
+    a_type_ptr op_type_2 = skip_typerefs(operand_1->next->type);
+    if (!is_template_dependent_type(op_type_1) &&
+        !is_template_dependent_type(op_type_2) &&
+        /* Real and imaginary types can be intermixed provided their underlying
+           representations are the same. */
+        !(is_floating_type(op_type_1) &&
+          is_floating_type(op_type_2) &&
+          op_type_1->variant.float_kind == op_type_2->variant.float_kind) &&
+        !cast_identical_types(op_type_1, op_type_2)) {
       /* The types of the two operands must be consistent. */
 #if DEBUG
       db_expression(expr);
