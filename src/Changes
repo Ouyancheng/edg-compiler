@@ -390,8 +390,10 @@ LAZY_INITIALIZATION_USES_WEAK_REFERENCES be set to TRUE.
 C-generating back end configurations also require
 USE_LAZY_INITIALIZATION_FOR_THREAD_LOCAL_VARIABLES to be set to TRUE.
 
-If IMPLEMENTATION_SUPPORTS_MULTIPLE_THREADS is set to FALSE, the
-thread_local keyword is parsed and ignored.
+If the new configuration macro IMPLEMENTATION_SUPPORTS_MULTIPLE_THREADS
+is set to FALSE, the thread_local keyword is parsed and ignored.  The
+predefined macro __STDCPP_THREADS__ is defined as 1 when
+IMPLEMENTATION_SUPPORTS_MULTIPLE_THREADS is TRUE.
 
 In all cases, the destructions needed at thread termination time are
 registered with the runtime library by calling __cxa_thread_atexit in the
