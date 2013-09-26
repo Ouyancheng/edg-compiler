@@ -24841,7 +24841,9 @@ node, and report any failure as an internal error.
       op == (an_expr_operator_kind)eok_multiply ||
       op == (an_expr_operator_kind)eok_divide ||
       op == (an_expr_operator_kind)eok_remainder) {
-    if (!cast_identical_types(operand_1->type, operand_1->next->type)) {
+    if (!is_template_dependent_type(operand_1->type) &&
+        !is_template_dependent_type(operand_1->next->type) &&
+        !cast_identical_types(operand_1->type, operand_1->next->type)) {
       /* The types of the two operands must be consistent. */
 #if DEBUG
       db_expression(expr);
