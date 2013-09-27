@@ -88,8 +88,10 @@ Go through the needed destructions lists and perform the required
 destructions (for the current thread as well as the process).
 */
 {
+#if RUNTIME_DOES_THREAD_LOCAL_DESTRUCTIONS
   /* thread_local destructions are performed first. */
   __process_destruction_list(&__thread_needed_destruction_head);
+#endif /* RUNTIME_DOES_THREAD_LOCAL_DESTRUCTIONS */
   __process_destruction_list(&needed_destruction_head);
 }  /* __process_needed_destructions */
 
