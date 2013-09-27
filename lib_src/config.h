@@ -272,6 +272,7 @@ the ordering is incorrect.
 /*
 Determine if the runtime library is responsible for thread_local destructions.
 */
+#ifndef RUNTIME_DOES_THREAD_LOCAL_DESTRUCTIONS
 #if !defined(__EDG_IA64_ABI) || !SYSTEM_RUNTIME_HAS_IA64_SUPPORT || \
     !SYSTEM_RUNTIME_HAS_IA64_THREAD_ATEXIT
 #ifdef __STDCPP_THREADS__
@@ -285,6 +286,7 @@ Determine if the runtime library is responsible for thread_local destructions.
 /* The runtime isn't responsible for thread_local destructions. */
 #define RUNTIME_DOES_THREAD_LOCAL_DESTRUCTIONS FALSE
 #endif /* !defined(__EDG_IA64_ABI) || !SYSTEM_RUNTIME_HAS_IA64_SUPPORT ||... */
+#endif /* ifndef RUNTIME_DOES_THREAD_LOCAL_DESTRUCTIONS */
 
 /*
 The runtime must know when a thread is terminated in order to properly destroy
