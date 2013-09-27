@@ -297,7 +297,12 @@ the appropriate notification on thread termination).
 */
 #if RUNTIME_DOES_THREAD_LOCAL_DESTRUCTIONS
 #ifndef USE_PTHREADS
+#ifdef _WIN32
+/* The pthread library isn't available on vanilla Windows versions. */
+#define USE_PTHREADS FALSE
+#else /* !defined(_WIN32) */
 #define USE_PTHREADS TRUE
+#endif /* ifdef _WIN32 */
 #endif /* ifndef USE_PTHREADS */
 #endif /* RUNTIME_DOES_THREAD_LOCAL_DESTRUCTIONS */
 
