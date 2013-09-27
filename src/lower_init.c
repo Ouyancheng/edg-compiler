@@ -7015,7 +7015,7 @@ location is the insert_location2 value (after the assignment statement).
        initialization is performed only once in this thread). */
     /* Return the block statement created above (since we won't be creating
        the one below). */
-    *block_stmt = outer_then;
+    if (block_stmt != NULL) *block_stmt = outer_then;
   } else {
     /* To support multi-threading, make an inner
          "if (__cxa_guard_acquire(&test_var)) {
