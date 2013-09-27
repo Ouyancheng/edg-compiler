@@ -24843,14 +24843,25 @@ node, and report any failure as an internal error.
       op == (an_expr_operator_kind)eok_remainder) {
     a_type_ptr op_type_1 = skip_typerefs(operand_1->type);
     a_type_ptr op_type_2 = skip_typerefs(operand_1->next->type);
-    if (!is_template_dependent_type(op_type_1) &&
-        !is_template_dependent_type(op_type_2) &&
+    if (!cast_identical_types(op_type_1, op_type_2) &&
         /* Real and imaginary types can be intermixed provided their underlying
-           representations are the same. */
+           representations are the same (this isn't true for mixed
+           addition and subtraction, so those are excluded). */
         !(is_floating_type(op_type_1) &&
           is_floating_type(op_type_2) &&
-          op_type_1->variant.float_kind == op_type_2->variant.float_kind) &&
-        !cast_identical_types(op_type_1, op_type_2)) {
+          op_type_1->variant.float_kind == op_type_2->variant.float_kind &&
+          (op != (an_expr_operator_kind)eok_add &&
+           op != ((an_expr_operator_kind)eok_subtract))) &&
+#if FIXED_POINT_ALLOWED
+        /* Disregard fixed point types (these can be mixed). */
+        !(fixed_point_enabled &&
+          (is_fixed_point_type(op_type_1) ||
+           is_fixed_point_type(op_type_2))) &&
+#endif /* FIXED_POINT_ALLOWED */
+        /* Disregard template dependent operands. */
+        !(is_template_dependent_type(expr->type) ||
+          is_template_dependent_type(op_type_1) ||
+          is_template_dependent_type(op_type_2))) {
       /* The types of the two operands must be consistent. */
 #if DEBUG
       db_expression(expr);
