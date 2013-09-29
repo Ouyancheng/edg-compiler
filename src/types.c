@@ -5731,14 +5731,25 @@ check_typerefs:
             case tptk_member:
               /* Members types are the same if their names are the same
                  and if they are members of identical types. */
-              check_assertion(in_front_end);
               sym_1 = (a_symbol_ptr)type_1->source_corresp.assoc_info;
               sym_2 = (a_symbol_ptr)type_2->source_corresp.assoc_info;
-              check_assertion(sym_1 != NULL && sym_2 != NULL);
-              if (sym_1->header == sym_2->header) {
-                /* The names are the same. */
-                identical = (identical_types(parent_class_of(type_1),
-                                             parent_class_of(type_2)));
+              if (in_front_end) {
+                check_assertion(sym_1 != NULL && sym_2 != NULL);
+                if (sym_1->header == sym_2->header) {
+                  /* The names are the same. */
+                  identical = (identical_types(parent_class_of(type_1),
+                                               parent_class_of(type_2)));
+                }  /* if */
+              } else {
+                check_assertion(prototype_instantiations_in_il);
+                /* We only have a limited ability to compare these types in a
+                   back end where we have no symbol information. */
+                identical = (sym_1 == sym_2);
+              }  /* if */
+              if (identical &&
+                  !identical_types(parent_class_of(type_1),
+                                   parent_class_of(type_2))) {
+                identical = FALSE;
               }  /* if */
               break;
             case tptk_unknown:
