@@ -1128,14 +1128,12 @@ Initialize the option information table.
   add_config_dependent_option_description(
                optk_embedded_c, "no_embedded_c", '\0', /*value=*/FALSE,
                /*arg_required=*/FALSE, pchek_command_line, EMBEDDED_C_ALLOWED);
-#if THREAD_LOCAL_STORAGE_SPECIFIER_ALLOWED
   add_option_description(optk_thread_local_storage, "thread_local_storage",
                          '\0', /*value=*/TRUE, /*arg_required=*/FALSE,
                          pchek_command_line);
   add_option_description(optk_thread_local_storage, "no_thread_local_storage",
                          '\0', /*value=*/FALSE, /*arg_required=*/FALSE,
                          pchek_command_line);
-#endif /* THREAD_LOCAL_STORAGE_SPECIFIER_ALLOWED */
 #if FULLY_RESOLVED_MACRO_POSITIONS
   add_option_description(optk_macro_positions_in_diagnostics,
                          "macro_positions_in_diagnostics",
@@ -2267,6 +2265,10 @@ by a command line option.
        noexcept.  We therefore keep the traditional relaxed semantics for
        destructors and operator delete. */
     implicit_noexcept_enabled = FALSE;
+  }  /* if */
+  if (!(option_kind_used[(int)optk_thread_local_storage])) {
+    /* thread_local is supported in version 1700 and higher. */
+    std_thread_local_storage_specifier_enabled = (microsoft_version >= 1700);
   }  /* if */
 }  /* set_microsoft_mode_flags */
 
@@ -8997,11 +8999,15 @@ enable_microsoft_mode:
         set_C_dialect(C_dialect_ANSI);
         break;
 #endif /* EMBEDDED_C_ALLOWED */
-#if THREAD_LOCAL_STORAGE_SPECIFIER_ALLOWED
       case optk_thread_local_storage:
+        /* Enable (or disable) support for the C++11 thread_local keyword.
+           Also enable (or disable) support for __thread in configurations
+           where that is supported. */
+        std_thread_local_storage_specifier_enabled = opt_value;
+#if THREAD_LOCAL_STORAGE_SPECIFIER_ALLOWED
         thread_local_storage_specifier_enabled = opt_value;
-        break;
 #endif /* THREAD_LOCAL_STORAGE_SPECIFIER_ALLOWED */
+        break;
 #if FULLY_RESOLVED_MACRO_POSITIONS
       case optk_macro_positions_in_diagnostics:
         /* Diagnostics that refer to text in macro expansions should or should
@@ -9616,10 +9622,6 @@ enable_microsoft_mode:
        whenever exceptions are allowed. */
     assignment_to_this_allowed = FALSE;
   }  /* if */
-#if IMPLEMENTATION_SUPPORTS_MULTIPLE_THREADS
-  /* Must enable thread_local if implementation supports multiple threads. */
-  check_assertion(!cpp11_mode || std_thread_local_storage_specifier_enabled);
-#endif /* IMPLEMENTATION_SUPPORTS_MULTIPLE_THREADS */
 #if !ASSIGNMENT_TO_THIS_ALLOWED
   check_assertion(!assignment_to_this_allowed);
 #endif /* !ASSIGNMENT_TO_THIS_ALLOWED */

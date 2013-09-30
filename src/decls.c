@@ -14885,7 +14885,11 @@ declaration modifiers recorded in *dps.
     an_init_kind        init_kind;
     an_initializer_ptr  init;
     get_variable_initializer(var_ptr, (a_scope_ptr)NULL, &init_kind, &init);
-    if (init_kind == (an_init_kind)initk_dynamic) {
+    if (init_kind == (an_init_kind)initk_dynamic &&
+        !((microsoft_mode && microsoft_version > 1300) ||
+          (gnu_mode && gnu_version >= 40800))) {
+      /* Early versions of GNU and Microsoft don't allow dynamic
+         initialization. */
       pos_error(ec_bad_init_for_thread_local, &dps->declarator_pos);
     }  /* if */
   }  /* if */
