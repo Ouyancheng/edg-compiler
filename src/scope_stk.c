@@ -5519,8 +5519,8 @@ curr_routine points to the routine entry; otherwise, it is NULL.
         /* Since a const variable defined in a header is the C++ idiom
            corresponding to #define, issue no diagnostic on not using it.
            Also, a const variable declaration without an initializer is
-           frequently invalid.  So if the variable is referenced at all,
-           don't issue other warnings (like "set but not used"). */
+           frequently invalid.  So don't issue other warnings (like
+           "set but not used") if the variable is referenced at all. */
       } else if (var_ptr->is_parameter) {
         if (!sym->referenced) {
           /* An unreferenced parameter.  Warn unless a lint-style "argsused"
