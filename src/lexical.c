@@ -16251,7 +16251,8 @@ to the "qualifier_sym" because the two can be different if the template
 is a template template parameter.  If "decltype_type" is not NULL, it is
 the original type specified by a decltype qualifier and is used in place
 of the type specified by "qualifier_sym", which refers to the underlying
-type in this case.
+type in this case.  Some types named by decltype have no symbol for the
+underlying type.  "qualifier_sym" is NULL in these cases.
 
 We look for a previously allocated name qualifier entry for classes and
 namespaces.  The list is stored in the class or namespace supplement
@@ -16267,7 +16268,7 @@ original type or namespace that was specified.
   a_type_ptr		new_type = NULL;
   a_namespace_ptr	new_namespace = NULL;
 
-  check_assertion(qualifier_sym != NULL);
+  check_assertion(qualifier_sym != NULL || decltype_type != NULL);
   if (!prototype_instantiations_in_il &&
       is_prototype_instantiation_context() &&
       !scope_stack_top().record_dependent_name_references &&
@@ -16336,16 +16337,25 @@ original type or namespace that was specified.
     for (new_nqp = *qualifier_list; new_nqp != NULL; new_nqp = new_nqp->next) {
       if (is_type == new_nqp->is_class &&
           prev_nqp == new_nqp->previous_qualifier) {
-        const char	*name;
-        name = is_type
-               ? new_nqp->qualifier.class_type->source_corresp.name
-               : new_nqp->qualifier.namespace_ptr->source_corresp.name;
-        name = new_nqp->name;
-        if (is_type ? new_type == new_nqp->qualifier.class_type
-                    : new_namespace == new_nqp->qualifier.namespace_ptr) {
-          if (strcmp(name, qualifier_sym->header->identifier) == 0) {
-            /* We found a matching entry. */
+        if (qualifier_sym == NULL) {
+          /* If there is no qualifier symbol (i.e., for some decltype cases),
+             do the comparison based on the type. */
+          check_assertion(is_type);
+          new_type = new_nqp->qualifier.class_type;
+          if (identical_types(new_nqp->qualifier.class_type,
+                              new_type)) {
             break;
+          }  /* if */
+        } else {
+          const char	*name;
+          name = new_nqp->name;
+          /* When there is a symbol, do the comparison based on name. */
+          if (is_type ? new_type == new_nqp->qualifier.class_type
+                      : new_namespace == new_nqp->qualifier.namespace_ptr) {
+            if (strcmp(name, qualifier_sym->header->identifier) == 0) {
+              /* We found a matching entry. */
+              break;
+            }  /* if */
           }  /* if */
         }  /* if */
       }  /* if */
@@ -16359,8 +16369,10 @@ original type or namespace that was specified.
     new_nqp = alloc_name_qualifier();
     new_nqp->previous_qualifier = prev_nqp;
     new_nqp->is_class = is_type;
-    new_nqp->name = copy_string_to_region(file_scope_region_number,
-                                          sym_to_use->header->identifier);
+    if (sym_to_use != NULL) {
+      new_nqp->name = copy_string_to_region(file_scope_region_number,
+                                            sym_to_use->header->identifier);
+    }  /* if */
     if (is_type) {
       new_nqp->qualifier.class_type = new_type;
     } else {
@@ -17329,8 +17341,16 @@ selection operator, in which case it points to the type of the left operand.
     } else {
       /* The current token is the ")" of the decltype. */
       might_be_qualifier = TRUE;
-      decltype_type = tp;
-      qualifier_type = skip_typerefs(tp);
+      if (tp->kind == (a_type_kind)tk_typeref &&
+          tp->variant.typeref.is_dependent_type_operator) {
+        /* For dependent decltypes, use the proxy class of the decltype. */
+        tp = proxy_class_for_template_param(tp);
+        decltype_type = tp;
+        qualifier_type = tp;
+      } else {
+        decltype_type = tp;
+        qualifier_type = skip_typerefs(tp);
+      }  /* if */
       qualifier_is_type = TRUE;
       qualifier_is_decltype = TRUE;
       /* Get the symbol for the qualifier.  A type that can be used as
@@ -17647,7 +17667,9 @@ selection operator, in which case it points to the type of the left operand.
         a_symbol_ptr	prev_qualifier_sym = qualifier_sym;
         a_boolean	invalid_qualifier_sym = FALSE;
         a_type_ptr      qualifier_sym_type;
-        if (err || (qualifier_sym == NULL && !qualifier_is_super)) {
+        if (err ||
+            (qualifier_sym == NULL && !qualifier_is_super &&
+             !qualifier_is_decltype)) {
           invalid_qualifier_sym = TRUE;
 #if MICROSOFT_EXTENSIONS_ALLOWED
         } else if (qualifier_is_super) {
@@ -17657,7 +17679,6 @@ selection operator, in which case it points to the type of the left operand.
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
         } else if (qualifier_is_decltype) {
           qualifier_is_type = TRUE;
-          qualifier_is_decltype = FALSE;
         } else if (qualifier_sym->is_error) {
           invalid_qualifier_sym = TRUE;
           err = TRUE;
@@ -17754,9 +17775,12 @@ selection operator, in which case it points to the type of the left operand.
         } else if (qualifier_is_super) {
           /* The Microsoft __super qualifier. */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+        } else if (qualifier_is_decltype) {
+          /* A decltype(x):: qualifier that may have no associated symbol. */
         } else {
           /* The qualifier symbol is valid. Record the reference on the
              symbol. */
+          check_assertion(qualifier_sym != NULL);
           mark_referenced(qualifier_sym, &locator_for_curr_id.source_position);
           record_potential_pack_reference(
                           qualifier_sym, &locator_for_curr_id.source_position);
@@ -18112,6 +18136,7 @@ selection operator, in which case it points to the type of the left operand.
         }  /* if */
         type_position = pos_curr_token;
         qualifier_is_super = FALSE;
+        qualifier_is_decltype = FALSE;
       }  /* for */
     }  /* if */
   }  /* if */
