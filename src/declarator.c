@@ -1265,6 +1265,10 @@ given position.
 */
 {
   type_name(&estp->type);
+  /* Decay array and function types, and drop top-level const/volatile type
+     qualifiers (as clarified by the resolution for Core issue 973). */
+  adjust_parameter_type(&estp->type);
+  estp->type = make_unqualified_type(estp->type);
   if (is_error_type(estp->type)) {
     /* Nothing to be done. */
   } else if (strict_ansi_mode && is_rvalue_reference_type(estp->type) &&

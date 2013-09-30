@@ -1,5 +1,23 @@
 Version 5.0
 
+9/30/13  [EDGcpfe/10608]
+Type adjustments in exception specifications
+
+The resolution of Core issue 973 clarified that the types specified in an
+exception specification should be adjusted as follows:
+  - a function type becomes a pointer type to that function type,
+  - a type array of T becomes a pointer to T, and
+  - top-level const/volatile qualifiers are dropped.
+
+This is now implemented.  For example:
+
+  typedef void f();
+  void g() throw(f);
+  void g() throw(f*);         // Previously a redeclaration error; now okay.
+  void h() throw(int);
+  void h() throw(const int);  // Previously a redeclaration error; now okay.
+
+
 9/26/13  [EDGcpfe/14527]
 Inconsistent lowered IL in arithmetic operations
 
