@@ -4425,9 +4425,9 @@ symbol pointer is returned.  This routine is used in both C and C++ mode.
                 /* If a tag symbol is followed by a projection to a
                    different tag, use the first symbol. */
                 check_assertion_or_expect_error(
-                                            inheriting_constructors_enabled ||
                                             tag_symbol == NULL ||
-                                            symbol_is(sym, sk_projection));
+                                            symbol_is(sym, sk_projection) ||
+                                            is_injected_class_symbol(sym));
                 if (tag_symbol == NULL) tag_symbol = sym;
               } else {
                 if (sym->kind == (a_symbol_kind)sk_type) {
