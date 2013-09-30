@@ -3866,7 +3866,7 @@ typedef struct a_symbol_header {
 			   permits a more efficient check in contexts where
 			   CLI operator names are reserved.) */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-  a_bit_field	any_function_referenced_in_dependent_call;
+  a_bit_field	any_function_referenced_in_dependent_call:1;
 			/* TRUE if a dependent function call referenced a
 			   non-member function with the name given by
 			   this header.  This is used to suppress warnings
