@@ -20017,6 +20017,7 @@ templates from that base template.
                                                     /*is_static_ctor=*/FALSE);
       init_tmpl_decl_state_for_inheriting_ctor_template(&templ_decl_state);
       templ_decl_state.final_token_ptr = &final_token;
+      templ_decl_state.is_variadic = btssp->is_variadic;
       /* The base class constructor may actually be in the process of being
          instantiated, which causes its template parameter symbols to
          temporarily point to concrete types.  Undo this before copying the
@@ -20028,6 +20029,8 @@ templates from that base template.
                                   /*is_template_template_param_rescan*/FALSE);
       new_tpl = copy_template_param_list(btpl);
       templ_decl_state.decl_info->parameters = new_tpl;
+      templ_decl_state.decl_info->pack_expansions =
+                btssp->variant.function.decl_cache.decl_info->pack_expansions;
       templ_decl_state.number_of_template_decl_scopes += 1;
       /* Save a pointer to the template declaration information in the
          scope stack entry. */

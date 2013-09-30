@@ -30672,8 +30672,7 @@ creating a compiler-generated template.
   a_symbol_ptr          new_sym;
 
   for (tp = tpl; tp != NULL; tp = tp->next) {
-    new_sym = enter_copy_of_symbol(tp->param_symbol, depth_scope_stack,
-                                   /*suppress_error=*/TRUE);
+    new_sym = tp->param_symbol;
     *p_tp = alloc_template_param(new_sym);
     **p_tp = *tp;
     (*p_tp)->next = NULL;
