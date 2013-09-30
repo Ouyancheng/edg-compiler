@@ -23392,7 +23392,8 @@ that follows.
             decl_state->is_member_decl) {
           dps->storage_class = rp->storage_class;
         } else {
-          check_assertion(gpp_mode || microsoft_mode);
+          check_assertion(gpp_mode || microsoft_mode ||
+                          std_thread_local_storage_specifier_enabled);
           /* Retain the explicitly specified storage class, except when
              specializing a member. */
           if (rp->source_corresp.is_class_member) {
