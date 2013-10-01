@@ -681,6 +681,9 @@ typedef unsigned int an_itf_flag_set;
 #define ITF_EXACT_DOES_NOT_RETURN_MATCH_REQUIRED 0x800
 			/* TRUE if the does_not_return field must match
 			   when comparing function types. */
+#define ITF_LAST ITF_EXACT_DOES_NOT_RETURN_MATCH_REQUIRED
+			/* Last bit in the bit vector that is in use. */
+			/*lint -esym(755,ITF_LAST)*/
 
 #define identical_types(t1, t2) \
   ((t1) == (t2) || f_identical_types((t1), (t2), ITF_NO_FLAGS))
@@ -829,6 +832,9 @@ Bit flags for calls of f_types_are_compatible et al.
 			/* TRUE if the nesting depths of template parameters
 			   should be ignored for purposes of this
 			   comparison. */
+#define TCF_LAST TCF_IGNORE_NESTING_DEPTH
+			/* Last bit in the bit vector that is in use. */
+			/*lint -esym(755,TCF_LAST)*/
 #define TCF_NO_FLAGS 0x0
 typedef int a_type_compat_flags_set;
 

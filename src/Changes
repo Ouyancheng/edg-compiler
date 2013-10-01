@@ -1,5 +1,15 @@
 Version 5.0
 
+10/1/13  [EDGcpfe/14539]
+Add ITF_LAST, TCF_LAST macros
+
+The names ITF_LAST and TCF_LAST have been introduced to identify the last bit
+defined for the bit vectors that pass boolean information into and out of
+identical_types and types_are_compatible.  They can be used as the basis for
+defining additional bits if you want to customize the interfaces to those
+routines.
+
+
 9/30/13  [EDGcpfe/14514]
 Microsoft compatibility: dllimport variables as nontype template arguments
 
