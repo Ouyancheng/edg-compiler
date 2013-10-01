@@ -1,5 +1,17 @@
 Version 5.0
 
+10/1/13  [EDGcpfe/14538]
+constexpr static data member initializers
+
+The front end now accepts more kinds of initializers for constexpr static
+data members, including string literal initializers for character arrays.
+For example:
+
+  struct X {
+    static constexpr const char x[] = "x";  // Previously an error.
+  };                                        // Now okay.
+
+
 10/1/13  [EDGcpfe/14539]
 Add ITF_LAST, TCF_LAST macros
 

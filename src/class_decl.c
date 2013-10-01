@@ -14863,13 +14863,7 @@ specific information about the member declaration, respectively.
   var = make_variable(member_type, (a_storage_class)sc_static, NO_SCOPE_DEPTH);
   if ((decl_state->dso_flags & DSO_CONSTEXPR) != 0) {
     complete_type_is_needed(member_type);
-    if (is_incomplete_type(member_type)) {
-      /* A constexpr static data member cannot have an incomplete type. */
-      pos_ty_error(ec_incomplete_type_for_constexpr_static_data_member,
-                   &locator->source_position, member_type);
-    } else {
-      var->is_constexpr = TRUE;
-    }  /* if */
+    var->is_constexpr = TRUE;
   }  /* if */
   if (decl_state->auto_type_specifier_seen) {
     var->declared_with_auto_type_specifier = TRUE;
@@ -15016,14 +15010,29 @@ specific information about the member declaration, respectively.
          initialized in this way.  C++/CLI also allows in-class initializers
          for initonly static data members. */
       decl_info->decl_pos_block.var_init_range.start = init_pos;
-      /* Scan the constant expression. */
-      scan_member_constant_initializer_expression(decl_state, &constant);
+      if (var->is_constexpr && curr_token != tok_lparen) {
+        /* If this is a constexpr member, more initialization forms are
+           possible: Use the general initializer processing function. */
+        a_boolean   incomplete_type_error_reported = FALSE;
+        a_boolean   is_parenthesized_initializer = FALSE;
+        if (curr_token == tok_lparen) {
+          is_parenthesized_initializer = TRUE;
+          (void)get_token();
+        }  /* if */
+        initializer(decl_state, &locator->source_position, idl_external,
+                    is_parenthesized_initializer,
+                    &incomplete_type_error_reported,
+                    &decl_info->decl_pos_block);
+      } else {
+        /* Scan the constant expression. */
+        scan_member_constant_initializer_expression(decl_state, &constant);
 #if EXTRA_SOURCE_POSITIONS_IN_IL
-      decl_info->decl_pos_block.var_init_range.end =
-                                            curr_construct_end_position;
+        decl_info->decl_pos_block.var_init_range.end =
+                                                  curr_construct_end_position;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
-      var->init_kind = (an_init_kind)initk_static;
-      var->initializer.constant = alloc_unshared_constant(&constant);
+        var->init_kind = (an_init_kind)initk_static;
+        var->initializer.constant = alloc_unshared_constant(&constant);
+      }  /* if */
       check_constant_valued_variable(decl_state);
     } else {
       /* Issue a diagnostic for an invalid member constant type. */
@@ -15195,6 +15204,7 @@ specific information about the member declaration, respectively.
 #endif /* DEBUG */
   db_exit();
 }  /* decl_static_data_member */
+
 
 static a_boolean class_has_nontrivial_copy_assignment(a_type_ptr  class_type)
 /*
