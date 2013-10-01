@@ -13713,7 +13713,8 @@ or thread_local variable does not.
   a_boolean const_addr = var_has_static_storage_duration(variable);
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
-  if (variable->decl_modifiers & DM_DLLIMPORT) {
+  if ((variable->decl_modifiers & DM_DLLIMPORT) != 0 &&
+       !is_array_type(variable->type)) {
     /* A dllimport variable is accessed indirect through a variable
        and therefore does not have a constant address. */
     const_addr = FALSE;
