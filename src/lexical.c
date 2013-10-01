@@ -17327,7 +17327,9 @@ selection operator, in which case it points to the type of the left operand.
     a_type_ptr	tp;
     tp = scan_decltype_operator((a_rescan_control_block *)NULL,
                                 /*might_be_id_start=*/TRUE);
-    if (next_token() != tok_colon_colon) {
+    next_tok = next_two_tokens_if_qualifier_delimiter(tok_colon_colon,
+                                                      &next_tok_2);
+    if (next_tok != tok_colon_colon) {
       locator_for_curr_id = cleared_locator;
       locator_for_curr_id.variant.decltype_type = tp;
       curr_token = tok_decltype_construct;
@@ -17679,6 +17681,13 @@ selection operator, in which case it points to the type of the left operand.
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
         } else if (qualifier_is_decltype) {
           qualifier_is_type = TRUE;
+          qualifier_type_is_class = is_class_struct_union_type(qualifier_type);
+          if (!can_be_vacuous_dtor_or_finalizer &&
+              (qualifier_sym == NULL ||
+               !is_valid_qualifier_symbol(qualifier_sym))) {
+            invalid_qualifier_sym = TRUE;
+            err = TRUE;
+          }  /* if */
         } else if (qualifier_sym->is_error) {
           invalid_qualifier_sym = TRUE;
           err = TRUE;
