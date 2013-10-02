@@ -4869,12 +4869,18 @@ the indicated constant.
 void set_temporary_address_constant(a_constant_ptr constant,
                                     a_constant    *con)
 /*
-Fill in the constant "con" as a ck_address constant for the address of
-a unique temporary containing the value of the indicated constant.
+Fill in the constant "con" as a ck_address constant for the address of a
+unique temporary containing the value of the indicated constant.  If the
+indicated constant is a ck_string (not strictly a "temporary", but handled for
+convenience), *con is set to a ck_address constant of abk_constant variant;
+otherwise, the abk_temporary variant is produced instead.
 */
 {
   clear_constant(con, (a_constant_repr_kind)ck_address);
-  con->variant.address.kind = (an_address_base_kind)abk_temporary;
+  con->variant.address.kind =
+          constant->kind == (a_constant_repr_kind)ck_string ?
+                                          (an_address_base_kind)abk_constant :
+                                          (an_address_base_kind)abk_temporary;
   con->variant.address.variant.constant = constant;
   con->type = make_pointer_type(constant->type);
   check_assertion(!is_incomplete_type(constant->type));
