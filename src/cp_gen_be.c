@@ -2988,14 +2988,13 @@ for the meaning of need_closing_paren.
     write_tok_str("::");
   } else {
 #if PROTOTYPE_INSTANTIATIONS_IN_IL
-    if (class_type->variant.class_struct_union.template_parameter_type !=
-                                                                        NULL) {
+    if (class_type->variant.class_struct_union.proxy_of_type != NULL) {
       /* This qualifier represents a template parameter.  The name of the
          parameter may be different at this point in the code, so use the
          template coordinates to get the correct spelling. */
       a_source_correspondence_ptr scp;
       a_type_ptr                  template_param_type =
-                class_type->variant.class_struct_union.template_parameter_type;
+                          class_type->variant.class_struct_union.proxy_of_type;
       check_assertion(template_param_type->kind ==
                                               (a_type_kind)tk_template_param &&
                       template_param_type->variant.template_param.kind ==
@@ -5248,7 +5247,7 @@ al_tag_name attributes (if any).
 #if PROTOTYPE_INSTANTIATIONS_IN_IL
     if (is_immediate_class_type(type) && (options & GN_FRIEND_DECL) &&
         type->variant.class_struct_union.proxy_class &&
-        type->variant.class_struct_union.template_parameter_type != NULL) {
+        type->variant.class_struct_union.proxy_of_type != NULL) {
       /* This is a proxy class for a template parameter.  Use the C++11
          feature of referring to a template parameter in a friend
          declaration with no class keyword. */

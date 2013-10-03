@@ -13903,6 +13903,7 @@ the destructor or finalizer is part of a qualified name (e.g., "A::B::~B").
       a_boolean		ambiguous = FALSE;
       a_boolean		error_already_issued = FALSE;
       a_type_ptr	qualifier_type = NULL;
+      a_type_ptr	decltype_tp = NULL;
 
       field_sel_type = skip_typerefs(field_sel_type);
       field_sym = (a_symbol_ptr)field_sel_type->source_corresp.assoc_info;
@@ -13939,7 +13940,7 @@ the destructor or finalizer is part of a qualified name (e.g., "A::B::~B").
            normal destructor/finalizer reference. */
         dtor_or_finalizer_okay = TRUE;
       } else if (curr_token == tok_decltype_construct) {
-        a_type_ptr  decltype_tp = locator_for_curr_id.variant.decltype_type;
+        decltype_tp = locator_for_curr_id.variant.decltype_type;
         if (acceptable_dtor_or_finalizer_type(field_sel_type, decltype_tp)) {
           dtor_or_finalizer_okay = TRUE;
           decltype_tp = skip_typerefs_not_dependent_decltypes(decltype_tp);
@@ -14151,7 +14152,11 @@ the destructor or finalizer is part of a qualified name (e.g., "A::B::~B").
         }  /* if */
         make_locator_for_symbol(type_sym, &locator_for_curr_id);
         locator_for_curr_id.source_position = saved_position;
-        if (orig_type_sym != NULL) {
+        if (decltype_tp != NULL) {
+          /* For a dependent ~decltype(), preserve the type from the
+             decltype. */
+          type_for_locator = decltype_tp;
+        } else if (orig_type_sym != NULL) {
           /* Above, for X::~T (or X::!T) we used X as the type for the
              destructor (or finalizer).  We want ~X (or !X) for the destructor
              (or finalizer) locator below, but we want to return T as the

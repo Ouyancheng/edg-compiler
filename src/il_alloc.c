@@ -1728,7 +1728,7 @@ to default values.
       pte->variant.class_struct_union.max_member_alignment = 0;
 #endif /* USER_CONTROL_OF_STRUCT_PACKING */
 #if PROTOTYPE_INSTANTIATIONS_IN_IL
-      pte->variant.class_struct_union.template_parameter_type = NULL;
+      pte->variant.class_struct_union.proxy_of_type = NULL;
 #endif /* PROTOTYPE_INSTANTIATIONS_IN_IL */
       /* Allocate the class type supplement. */
       {

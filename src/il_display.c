@@ -2167,10 +2167,9 @@ Display the indicated type entry.
       }  /* if */
 #endif /* USER_CONTROL_OF_STRUCT_PACKING */
 #if PROTOTYPE_INSTANTIATIONS_IN_IL
-      if (ptr->variant.class_struct_union.template_parameter_type != NULL) {
-        disp_ptr("template_parameter_type",
-                 (char *)ptr->
-                            variant.class_struct_union.template_parameter_type,
+      if (ptr->variant.class_struct_union.proxy_of_type != NULL) {
+        disp_ptr("proxy_of_type",
+                 (char *)ptr->variant.class_struct_union.proxy_of_type,
                  iek_type);
       }  /* if */
 #endif /* PROTOTYPE_INSTANTIATIONS_IN_IL */

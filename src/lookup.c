@@ -550,48 +550,39 @@ decltypes in cases where the member has not yet been declared.
 }  /* create_proxy_class */
 
 
-a_type_ptr proxy_class_for_template_param(a_type_ptr   orig_type)
+a_type_ptr proxy_class_for_template_param(a_type_ptr   type)
 /*
 Return the proxy class associated with the template parameter or dependent
-decltype specified by orig_type.  If one does not already exist, one is
+decltype specified by type.  If one does not already exist, one is
 created.
 */
 {
-  a_symbol_ptr	orig_sym;
   a_type_ptr	*proxy_class;
   a_boolean	is_generic = FALSE;
-  a_type_ptr	templ_param_type;
 
   /* If the original type is a template parameter, get a pointer to the
      template parameter.  In any case, get a pointer to the proxy class
      pointer. */
-  if (orig_type->kind == (a_type_kind)tk_template_param) {
-    templ_param_type = orig_type;
-    proxy_class = &templ_param_type->
-                                 variant.template_param.extra_info->class_type;
-    is_generic = templ_param_type->variant.template_param.is_generic_param;
+  if (type->kind == (a_type_kind)tk_template_param) {
+    proxy_class = &type->variant.template_param.extra_info->class_type;
+    is_generic = type->variant.template_param.is_generic_param;
   } else {
-    templ_param_type = NULL;
-    proxy_class = &orig_type->variant.typeref.extra_info->proxy_class;
+    proxy_class = &type->variant.typeref.extra_info->proxy_class;
   }  /* if */
-  /* Get the symbol pointer, if any,  associated with the original type. */
-  orig_sym = (a_symbol_ptr)orig_type->source_corresp.assoc_info;
   /* If the proxy class does not exist yet, create it now. */
   if (*proxy_class == NULL) {
+    a_symbol_ptr			sym;
     a_class_symbol_supplement_ptr	cssp;
-    *proxy_class = create_proxy_class(orig_sym, &orig_type->source_corresp,
+    /* Get the symbol pointer, if any, associated with the type. */
+    sym = (a_symbol_ptr)type->source_corresp.assoc_info;
+    *proxy_class = create_proxy_class(sym, &type->source_corresp,
                                       is_generic);
     cssp = symbol_supplement_for_class(*proxy_class);
-    cssp->template_param_for_proxy_class = orig_type;
+    cssp->template_param_for_proxy_class = type;
 #if PROTOTYPE_INSTANTIATIONS_IN_IL
-    if (templ_param_type != NULL &&
-        templ_param_type->variant.template_param.kind ==
-                                      (a_template_param_type_kind)tptk_param) {
-      /* Allow users of the proxy class to find the associated template
-         parameter type. */
-      (*proxy_class)->variant.class_struct_union.template_parameter_type =
-                                                              templ_param_type;
-    }  /* if */
+    /* Allow users of the proxy class to find the associated template
+       parameter or decltype type. */
+    (*proxy_class)->variant.class_struct_union.proxy_of_type = type;
 #endif /* PROTOTYPE_INSTANTIATIONS_IN_IL */
   }  /* if */
   return *proxy_class;

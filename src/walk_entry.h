@@ -1082,7 +1082,7 @@ the file scope, do not process it (but record an orphan in the latter case).
                           a_field_ptr, iek_field);
             }  /* if */
 #if PROTOTYPE_INSTANTIATIONS_IN_IL
-            walk_ptr(ptr->variant.class_struct_union.template_parameter_type,
+            walk_ptr(ptr->variant.class_struct_union.proxy_of_type,
                      a_type_ptr, iek_type);
 #endif /* PROTOTYPE_INSTANTIATIONS_IN_IL */
 #if NEEDED_FLAG_WALK || KEEP_IN_IL_WALK
