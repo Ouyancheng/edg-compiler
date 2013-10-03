@@ -2710,8 +2710,8 @@ element.
 void prepend_element_positions(an_element_position_ptr  new_epp,
                                an_element_position_ptr  *p_epp)
 /*
-If new_epp is non-NULL, prepend the list of element positions it points to
-to the list pointed by *p_epp (which might be NULL).
+If new_epp is non-NULL, insert the list of element positions it points to
+in front of the list pointed by *p_epp (which might be NULL).
 */
 {
   if (new_epp != NULL) {
