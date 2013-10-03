@@ -369,6 +369,11 @@ extern void decl_spec_one_time_init(void);
 #define DSO_LAST DSO_THREAD_LOCAL
 			/* Last bit in the bit vector that is in use. */
 			/*lint -esym(755,DSO_LAST)*/
+
+#define DSO_STORAGE_CLASS_SPECIFIERS (DSO_MUTABLE | DSO_THREAD_LOCAL)
+                        /* Set of bits that are lexically considered to
+                           be storage-class-specifiers. */
+
 #endif /* DECL_SPEC_H */
 
 /******************************************************************************

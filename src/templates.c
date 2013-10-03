@@ -22741,31 +22741,42 @@ that follows.
   }  /* if */
   if (decl_state->is_member_decl) {
     dsi_flags |= DSI_IS_MEMBER_DECLARATION;
-    if (microsoft_mode) {
-      /* Microsoft C++ allows storage-class specifiers on in-class
-         specializations. */
-      dsi_flags |= DSI_STORAGE_CLASS_SPECIFIER_ALLOWED;
-    }  /* if */
-  } else if (gpp_mode || microsoft_mode) {
-    /* GNU and Microsoft allow storage class specifiers on nonmember
-       specializations. */
-    dsi_flags |= DSI_STORAGE_CLASS_SPECIFIER_ALLOWED;
   }  /* if */
-  if (std_thread_local_storage_specifier_enabled) {
-    /* Allow the thread_local keyword to be used for explicit specializations
-       of static data members. */
-    dsi_flags |= DSI_STORAGE_CLASS_SPECIFIER_ALLOWED;
-  }  /* if */
+  /* Strictly speaking, storage-class-specifiers are not permitted
+     in specializations, but in practice, certain storage-class-specifiers
+     are allowed in various cases; set the flag to parse them and then give
+     errors below as appropriate. */
+  dsi_flags |= DSI_STORAGE_CLASS_SPECIFIER_ALLOWED;
   decl_specifiers(dsi_flags, dps, &decl_pos_block);
   dso_flags = dps->dso_flags;
-  /* A storage class is not permitted on an explicit specialization, except
-     in GNU and Microsoft modes or when the thread_local keyword is enabled. */
-  check_assertion(decl_state->decl_scope_err ||
-                  dps->storage_class == (a_storage_class)sc_unspecified ||
-                  std_thread_local_storage_specifier_enabled ||
-		  microsoft_mode || (gpp_mode && !decl_state->is_member_decl));
   /* Issue a diagnostic if there are any unapplied pragmas at this point. */
   cannot_bind_to_curr_construct();
+  if (!decl_state->decl_scope_err &&
+      (dps->storage_class != (a_storage_class)sc_unspecified ||
+       dso_flags & (DSO_STORAGE_CLASS_SPECIFIERS))) {
+    /* Some storage-class-specifier was specified; see if it should be
+       allowed. */
+    if (dso_flags & DSO_MUTABLE) {
+      /* mutable is never allowed here. */
+      pos_error(ec_mutable_not_allowed, &dps->storage_class_pos);
+    }  /* if */
+    if (dso_flags & DSO_THREAD_LOCAL) {
+      /* Strictly speaking thread_local (because it's a
+         storage-class-specifier) isn't allowed on a specialization, but
+         existing practice is to allow it (and verify that it matches
+         the previous declaration if applied to a static data member). */
+    }  /* if */
+    if (dps->storage_class != (a_storage_class)sc_unspecified) {
+      /* Storage-class-specifier is non-standard, but allowed in some modes. */
+      an_error_severity	severity = es_discretionary_error;
+      if ((gpp_mode && gnu_version < 40300) || microsoft_mode) {
+        /* Accepted, but worth a remark. */
+        severity = es_remark;
+      }  /* if */
+      pos_diagnostic(severity, ec_storage_class_not_allowed_in_specialization,
+                     &dps->storage_class_pos);
+    }  /* if */
+  }  /* if */
   if (is_error_type(dps->type) && !is_declarator_start()) {
     /* Error of some sort. */
     set_to_error_locator(locator);
@@ -23392,10 +23403,9 @@ that follows.
             decl_state->is_member_decl) {
           dps->storage_class = rp->storage_class;
         } else {
-          check_assertion(gpp_mode || microsoft_mode ||
-                          std_thread_local_storage_specifier_enabled);
           /* Retain the explicitly specified storage class, except when
-             specializing a member. */
+             specializing a member (a diagnostic has been given above,
+             if appropriate). */
           if (rp->source_corresp.is_class_member) {
             if (dps->storage_class == (a_storage_class)sc_static) {
               pos_diagnostic(microsoft_mode ? es_warning : es_error,

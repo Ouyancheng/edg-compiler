@@ -2561,6 +2561,7 @@ ec_inheriting_constructor_is_cpp11;;"inheriting constructors are a C++11 feature
 ec_field_initializers_is_cpp11;;"field initializers are a C++11 feature"
 ec_deleted_functions_is_cpp11;;"deleted functions are a C++11 feature"
 ec_defaulted_functions_is_cpp11;;"defaulted functions are a C++11 feature"
+ec_storage_class_not_allowed_in_specialization;;"a storage class is not allowed in an explicit specialization"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #
