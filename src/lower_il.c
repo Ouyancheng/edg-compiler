@@ -1978,7 +1978,7 @@ void make_instantiation_info_var(a_const_char            *prefix,
 /*
 Create a variable whose name records information on instantiation of some
 entity.  Such variables are used as part of the automatic instantiation scheme.
-source_corresp/kind identifies the entity (variable or routine) for which some
+source_corresp/kind identify the entity (variable or routine) for which some
 information is to be encoded.  The name of the generated variable encodes
 the information about that entity; it consists of the indicated prefix
 (e.g., something like "__DNI__" to indicate "do not instantiate") followed
@@ -14554,8 +14554,7 @@ static void lower_thread_local_variable(an_expr_node_ptr expr)
 /*
 Lower a reference to a thread_local variable by ensuring that the variable,
 if dynamically initialized, or potentially dynamically initialized, has
-had it's dynamic initialization performed before it's first use in the
-thread.
+had its dynamic initialization performed before its first use in the thread.
 */
 {
   a_variable_ptr    var;

@@ -247,17 +247,15 @@ runtime includes the __cxa_atexit function.
 
 /*
 The __cxa_thread_atexit routine was added for C++11 compatibility, so it
-may not be available in older system runtime libraries in which case
+may not be available in older system runtime libraries; if necessary, however,
 this runtime library can supply it (when SYSTEM_RUNTIME_HAS_IA64_THREAD_ATEXIT
 is TRUE).  Note that in the configuration where
 SYSTEM_RUNTIME_HAS_IA64_THREAD_ATEXIT is TRUE and
-SYSTEM_RUNTIME_HAS_IA64_ATEXIT is FALSE the runtime library is not
-standard-compliant because the thread_local destructions are supposed to
-occur before the static and atexit destructions, but, for calls like exit(),
-the system runtime is invoked first and performs the necessary static
-destructions before invoking the atexit destructions (one of which is
-registered by the EDG runtime to invoke the thread_local destructions), so
-the ordering is incorrect.
+SYSTEM_RUNTIME_HAS_IA64_ATEXIT is FALSE the ordering of actions performed by
+the runtime library is not Standard-compliant.  The EDG runtime registers
+thread_local destructions as an atexit action; they are thus performed after
+static destructions, but the Standard requires that thread_local objects be
+destroyed before static objects.
 */
 #ifndef SYSTEM_RUNTIME_HAS_IA64_THREAD_ATEXIT
 /* Assume that systems that have __cxa_atexit also have __cxa_thread_atexit. */

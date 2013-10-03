@@ -7992,7 +7992,7 @@ specifiers have also been consumed.
   } else if (*decl_specifiers_seen & (DS_STORAGE_CLASS | DS_MUTABLE) &&
              first_token != tok_thread_local) {
     /* More than one storage class may not be specified (except for the
-       "thread_local" storage class which may be combined with "extern" or
+       "thread_local" storage class, which may be combined with "extern" or
        "static").  Note that the diagnostic should be issued on the second
        storage class, but since "auto" is processed after all the other
        specifiers, something like "auto register x;" needs special care to get

@@ -104,10 +104,10 @@ In configurations where the EDG runtime library is recording the thread_local
 destructions but the system runtime library maintains the static and
 atexit destructions, the EDG runtime library has no "hook" to initiate
 thread_local destructions when, e.g., a thread calls exit().  In such cases,
-this routine is registered as an atexit handler with the system's library which
-ensures that the thread_local destructions (for the current thread) will take
-place, albeit out-of-sequence (i.e., they should occur before static and other
-atexit destructions).
+this routine is registered as an atexit handler with the system's library,
+which ensures that the thread_local destructions (for the current thread) will
+take place, albeit out-of-sequence (i.e., they should occur before static and
+other atexit destructions).
 */
 {
   __finalize_destructions(&__thread_needed_destruction_head, NULL);

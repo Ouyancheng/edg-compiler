@@ -400,7 +400,7 @@ C++11: Support for thread_local
 
 Changes have been made to support the C++11 thread_local keyword (see N2659).
 Objects declared with thread_local storage duration are unique to each
-thread of execution, can be dynamically initialized and are destroyed
+thread of execution, can be dynamically initialized, and are destroyed
 at thread termination.
 
 Initialization and destruction of objects with thread_local storage
@@ -416,8 +416,8 @@ by setting USE_LAZY_INITIALIZATION_FOR_THREAD_LOCAL_VARIABLES to TRUE.
 In such configurations, each use of a potentially dynamically-initialized
 thread_local variable is re-written to call an initialization wrapper routine
 that does the one-time (per-thread) initialization.  All file-scope dynamic
-initialization for objects with thread_local storage are lowered and placed in
-a single __tls_init routine (regardless of the setting of
+initializations for objects with thread_local storage are lowered and placed
+in a single __tls_init routine (regardless of the setting of
 SEPARATE_ROUTINES_FOR_FILE_SCOPE_DYNAMIC_INITS).  When using
 one-instantiation-per-object mode, the thread_local initializations
 for each "slice" are placed in separate __tls_init__N routines (where
@@ -434,7 +434,7 @@ il_header.thread_local_dynamic_init_routines) at thread creation.
 Additionally, the configuration macro LAZY_INITIALIZATION_USES_WEAK_REFERENCES
 has been added to allow for back ends that do not support "weak" references.
 The default value for this macro is TRUE (as a value of FALSE creates
-NULL initialization routines for thread_local variables with external
+empty initialization routines for thread_local variables with external
 linkage even when they don't have any dynamic initialization).
 
 Note that conformance with the IA-64 ABI requires that

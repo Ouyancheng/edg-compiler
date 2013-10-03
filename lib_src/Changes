@@ -8,7 +8,7 @@ runtime library is required to handle destruction of objects with thread_local
 storage duration at thread termination.  The front end signals that a
 destruction for a thread_local object is necessary by calling
 __cxa_thread_atexit in the IA-64 ABI or __record_needed_thread_destruction
-in the Cfront ABI.  Such destructions requests are queued on thread-specific
+in the Cfront ABI.  Such destruction requests are queued on thread-specific
 lists and invoked in reverse order when the thread is terminated.
 
 In cases where the target system already has an IA-64 compliant library

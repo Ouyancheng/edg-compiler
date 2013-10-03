@@ -9422,8 +9422,8 @@ typedef struct a_variable {
 			   storage class (i.e., variable has thread storage
 			   duration).  Not used for variables declared with
 			   "__thread" (see DM_THREAD).  Only set in C++ (when
-                           IMPLEMENTATION_SUPPORTS_MULTIPLE_THREADS is
-                           TRUE). */
+			   IMPLEMENTATION_SUPPORTS_MULTIPLE_THREADS is
+			   TRUE). */
   an_init_kind	init_kind;
 			/* Kind of initialization, if any.
 			   When init_kind == initk_function_local (local
@@ -9536,8 +9536,8 @@ typedef struct a_variable {
       a_routine_ptr
                 init_routine;
 			/* If non-NULL, a pointer to the initialization routine
-                           (or more likely an alias for routine that does the
-                           actual dynamic initialization) for this thread_local
+			   (or more likely an alias for routine that does the
+			   actual dynamic initialization) for this thread_local
 			   variable. */
       a_routine_ptr
                 wrapper;
@@ -13372,8 +13372,8 @@ typedef struct a_routine {
 #endif /* USE_LAZY_INITIALIZATION_FOR_THREAD_LOCAL_VARIABLES */
   a_bit_field	is_tls_init_routine:1;
                         /* TRUE if this routine is used to initialize
-                           a thread_local storage variable(s).  Typically
-                           there is at most one such routine per translation
+                           thread_local variables.  Typically there is
+                           at most one such routine per translation
                            unit, but that's not true when
                            ONE_INSTANTIATION_PER_OBJECT is TRUE (in which case
                            there may be one per slice). */
@@ -17987,9 +17987,9 @@ typedef struct an_il_header {
 		thread_local_dynamic_init_routines;
 			/* If not NULL, a pointer to a list of routine
 			   entries that specify which routines to call,
-			   in the order they appear on the list, to correctly
-			   initialize thread_local variables in the file scope
-			   that need dynamic initialization (if any). */
+			   in the order they appear on the list, to perform
+			   required dynamic initialization for thread_local
+			   variables in the file scope. */
 #endif /* !USE_LAZY_INITIALIZATION_FOR_THREAD_LOCAL_VARIABLES */
 #endif /* SEPARATE_ROUTINES_FOR_FILE_SCOPE_DYNAMIC_INITS */
 } an_il_header;

@@ -926,7 +926,7 @@ are supported (e.g., in Microsoft 16-bit mode).
 /*
 Flag that is TRUE if a "__thread" specifier (to indicate that a variable should
 be stored in thread-local storage) should be supported.  Note that this is
-different than the C++11 "thread_local" specifier.
+different from the C++11 "thread_local" specifier.
 */
 #ifndef THREAD_LOCAL_STORAGE_SPECIFIER_ALLOWED
 #define THREAD_LOCAL_STORAGE_SPECIFIER_ALLOWED FALSE

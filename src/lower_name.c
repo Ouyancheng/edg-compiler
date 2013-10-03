@@ -11073,7 +11073,7 @@ char *make_prefixed_object_name(a_const_char            *prefix,
                                 a_source_correspondence *scp,
                                 an_il_entry_kind        kind)
 /*
-Allocate (in the file scope) and return a string which incorporates the
+Allocate (in the file scope) and return a string that incorporates the
 given prefix along with the mangled name of the specific entity.
 This is used in cases where a unique (and sometimes well-known) name is
 needed for cases like a guard variable for a local static or the

@@ -231,9 +231,9 @@ int __add_destruction_to_list(a_needed_destruction_ptr *destruction_list,
                               void                     *object,
                               a_dso_handle             dso_handle)
 /*
-Register an action to be taken at a later time (either program termination --
-or DSO unload -- or thread termination) by queuing the action (a call
-to destruction_routine with object as it's argument) on the specified
+Register an action to be taken at a later time (program termination,
+DSO unload, or thread termination) by queuing the action (a call
+to destruction_routine with object as its argument) on the specified
 destruction list.  Return zero if the registration is successful, or non-zero
 otherwise.
 */

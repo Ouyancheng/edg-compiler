@@ -15922,7 +15922,7 @@ a_routine_ptr thread_local_wrapper_for_variable(a_variable_ptr var)
 /*
 Return the wrapper routine for the specified thread_local variable.  The
 wrapper routine is used as a replacement for uses of thread_local variables
-in cases where such variables may have a dynamic-initialization associated
+in cases where such variables may have a dynamic initialization associated
 with them.  The wrapper calls the variable's init routine (if it has one)
 and then returns a pointer to the variable itself.  If the wrapper routine
 has not yet been defined, it is created here.
@@ -15977,8 +15977,8 @@ has not yet been defined, it is created here.
 #endif /* MINIMAL_INLINING */
     } else {
 #if LAZY_INITIALIZATION_USES_WEAK_REFERENCES && GNU_EXTENSIONS_ALLOWED
-      /* Set the "weak" attribute since there may be multiple of these
-         routines defined. */
+      /* Set the "weak" attribute since this routine may be defined in more
+         than one translation unit. */
       wrapper_routine->is_weak = TRUE;
 #else /* !LAZY_INITIALIZATION_USES_WEAK_REFERENCES && GNU_EXTENSIONS_ALLOWED */
       /* Each translation unit that uses this thread_local variable will
@@ -16009,7 +16009,7 @@ has not yet been defined, it is created here.
          }
 
         If weak references are being used and the variable is not
-        dynamically-initialized, there will be no definition of var_init.
+        dynamically initialized, there will be no definition of var_init.
         When weak references are not used, the "if" statement isn't needed --
         a var_init routine is emitted for all thread_local variables with
         external linkage in that case. */
@@ -16112,8 +16112,8 @@ do_single_init is TRUE, *more_matching_inits is set to indicate whether
 there are additional dynamic initializations that match the criteria.
 When do_thread_local is TRUE, only dynamic initializations for thread_local
 variables are considered.  When configured with USE_PATCH_INIT_STARTUP, the
-generated routine is queued on a list of routines to be executed at startup, in
-other cases, the name of the routine (typically with the __sti__ prefix) is
+generated routine is queued on a list of routines to be executed at startup;
+in other cases, the name of the routine (typically with the __sti__ prefix) is
 enough to cause the back end to invoke the routine at initialization.
 */
 {
@@ -16386,7 +16386,7 @@ enough to cause the back end to invoke the routine at initialization.
              the static data member's storage class has changed since the init
              routine was created (i.e., it may be sc_extern during lowering of
              the routine, but later the static data member has since been
-             instantiated changing the storage class to sc_unspecified).
+             instantiated, changing the storage class to sc_unspecified).
              Reflect that potential change in the storage class of the init
              routine. */
           var->init_routine.thread_local.init_routine->storage_class =
