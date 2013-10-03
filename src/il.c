@@ -2639,6 +2639,9 @@ Initialize the fields of the specified decl-pos block.
   decl_pos_block->declarator_range = null_source_range;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   decl_pos_block->var_init_range = null_source_range;
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+  decl_pos_block->extra_positions = NULL;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
 }  /* clear_decl_pos_block */
 
 #if EXTRA_SOURCE_POSITIONS_IN_IL

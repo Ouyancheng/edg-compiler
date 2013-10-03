@@ -684,11 +684,13 @@ typedef struct a_decl_pos_block {
 			/* Start and end positions of initializer.  The end
 			   position is only recorded when
 			   EXTRA_SOURCE_POSITIONS_IN_IL is TRUE. */
+#if EXTRA_SOURCE_POSITIONS_IN_IL
   an_element_position_ptr
 		extra_positions;
 			/* A list of positions for various elements of a
 			   declaration that aren't recorded directly in the
 			   corresponding IL entry. */
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
 } a_decl_pos_block;
 
 extern void clear_decl_pos_block(a_decl_pos_block_ptr  decl_pos_block);
