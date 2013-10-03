@@ -684,6 +684,11 @@ typedef struct a_decl_pos_block {
 			/* Start and end positions of initializer.  The end
 			   position is only recorded when
 			   EXTRA_SOURCE_POSITIONS_IN_IL is TRUE. */
+  an_element_position_ptr
+		extra_positions;
+			/* A list of positions for various elements of a
+			   declaration that aren't recorded directly in the
+			   corresponding IL entry. */
 } a_decl_pos_block;
 
 extern void clear_decl_pos_block(a_decl_pos_block_ptr  decl_pos_block);
@@ -697,6 +702,18 @@ extern a_decl_position_supplement_ptr make_decl_pos_supplement(
 extern void update_decl_pos_info(a_source_correspondence  *scp,
                                  a_decl_pos_block_ptr     decl_pos_block);
 
+extern void f_add_element_position(an_element_position_kind  kind,
+                                   a_source_position         *pos,
+                                   an_element_position_ptr   *p_epp);
+
+#define add_element_position(kind, pos, p_epp)                             \
+  (f_add_element_position((an_element_position_kind)(kind), (pos), (p_epp)))
+
+extern void prepend_element_positions(an_element_position_ptr  new_epp,
+                                      an_element_position_ptr  *p_epp);
+
+#else /* !EXTRA_SOURCE_POSITIONS_IN_IL */
+#define add_element_position(kind, pos, p_epp)  /* Nothing */
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
 
 extern int compare_source_positions(a_source_position  *pos1,

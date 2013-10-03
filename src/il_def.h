@@ -660,6 +660,7 @@ typedef enum /*an_il_entry_kind*/ {
 			/* a_per_instantiation_needed_flags_entry */
 #endif /* ONE_INSTANTIATION_PER_OBJECT */
 #if EXTRA_SOURCE_POSITIONS_IN_IL
+  iek_element_position,	/* an_element_position */
   iek_decl_position_supplement,
 			/* a_decl_position_supplement */
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
@@ -827,6 +828,7 @@ EXTERN a_const_char *il_entry_kind_names[(int)iek_last + 1]
 					"per-instantiation-needed-flags-entry",
 #endif /* ONE_INSTANTIATION_PER_OBJECT */
 #if EXTRA_SOURCE_POSITIONS_IN_IL
+/* iek_element_position */		"element-position",
 /* iek_decl_position_supplement */	"decl-position-supplement",
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
 /* iek_template_decl */			"template-decl",
@@ -1443,6 +1445,34 @@ EXTERN a_source_range
 
 
 #if EXTRA_SOURCE_POSITIONS_IN_IL
+
+enum an_element_position_kind_tag {
+  epk_error = 0,		/* Error representation. */
+  epk_specialization_header,	/* "template" keyword in "template<> ...". */
+  epk_last
+	/*lint -esym(769,an_element_position_kind_tag::epk_last)*/
+};
+
+typedef a_byte an_element_position_kind;
+
+/* Structure to record a single position of an element of a construct
+   (e.g., the "template" keyword in an explicit template specialization). */
+typedef struct an_element_position *an_element_position_ptr;
+typedef struct an_element_position {
+  an_element_position_ptr
+		next;
+			/* Pointer to the next element position entry for the
+			   construct associated with this entry (or NULL, if
+			   there is no additional position entry). */
+  a_source_position
+		position;
+			/* The element's source position. */
+  an_element_position_kind
+		kind;
+			/* The element's kind. */
+} an_element_position;
+
+
 /* Additional source position information relating to the declaration of the
    associated IL entry. */
 typedef struct a_decl_position_supplement *a_decl_position_supplement_ptr;
@@ -1489,6 +1519,10 @@ typedef struct a_decl_position_supplement {
 			   semicolon if the entry represents a namespace
 			   alias). */
   } variant;
+  an_element_position_ptr
+		extra_positions;
+			/* A list of additional positions recorded for a
+			   declaration. */
 } a_decl_position_supplement;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
 
@@ -18224,6 +18258,7 @@ EXTERN sizeof_t	sizeof_il_entry[(int)iek_last+1]
   sizeof(a_per_instantiation_needed_flags_entry),
 #endif /* ONE_INSTANTIATION_PER_OBJECT */
 #if EXTRA_SOURCE_POSITIONS_IN_IL
+  sizeof(an_element_position),
   sizeof(a_decl_position_supplement),
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   sizeof(a_template_decl),

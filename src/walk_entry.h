@@ -2216,8 +2216,22 @@ do_set_proper_definition_needed_flag:
       break;
 #endif /* MACRO_INVOCATION_TREE_IN_IL */
 #if EXTRA_SOURCE_POSITIONS_IN_IL
+    case iek_element_position:
+      {
+#if !DO_SUBTREE_WALK
+        an_element_position_ptr  ptr = (an_element_position_ptr)entry_ptr;
+        remap_next_ptr(ptr->next, an_element_position_ptr,
+                       iek_element_position);
+#endif /* !DO_SUBTREE_WALK */
+      }
+      break;
     case iek_decl_position_supplement:
-      /* No pointers. */
+      {
+        a_decl_position_supplement_ptr
+                              ptr = (a_decl_position_supplement_ptr)entry_ptr;
+        walk_list(ptr->extra_positions, an_element_position_ptr,
+                  iek_element_position);
+      }
       break;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
     case iek_name_qualifier:

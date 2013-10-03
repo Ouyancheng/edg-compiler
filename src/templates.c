@@ -22727,6 +22727,9 @@ that follows.
 
   db_enter(3, "full_specialization");
   clear_decl_pos_block(&decl_pos_block);
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+  decl_pos_block.extra_positions = decl_state->decl_parse.extra_positions;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   /* The pragmas were extracted before the "template <>" was scanned.
      Reactivate them now. */
   reactivate_curr_construct_pragmas(decl_state->pragmas_bound_to_template);
@@ -22785,9 +22788,9 @@ that follows.
                            DSO_ELABORATED_TYPE_SPECIFIER)) &&
              is_immediate_class_type(dps->type) &&
              curr_token == tok_semicolon) {
-    /* The argument is something like class A<int>.  Note that this also
-       permits the class to be a nested class within a template class.  All
-       of the remaining processing is done in class_specifier. */
+    /* The argument is something like class A<int> (i.e., a class template
+       specialization).  Note that this also permits the class to be a nested
+       class within a template class. */
     check_pending_qualifiers_used(dps);
     sym = symbol_for(dps->type);
     check_assertion(sym != NULL);
@@ -22807,6 +22810,13 @@ that follows.
         decl_is_definition = ((dso_flags & DSO_DEFINES_SOMETHING) != 0);
         if (decl_is_definition) {
           dps->type->autonomous_primary_tag_decl = TRUE;
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+          /* Ensure the extra position information is recorded in the entry
+             representing the specialized class. */
+          prepend_element_positions(decl_pos_block.extra_positions,
+                                    &dps->type->source_corresp.decl_pos_info
+                                              ->extra_positions);
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
         } else {
           an_sssd_flag_set  flags = SSSD_AUTONOMOUS_TAG_DECL |
                                     SSSD_SPECIALIZED_WITH_NEW_SYNTAX;
@@ -24632,12 +24642,18 @@ keyword.  is_generic is TRUE if this is a C++/CLI generic declaration.
   a_tmpl_decl_state		decl_state;
   a_def_arg_expr_fixup_ptr	saved_curr_default_args;
   a_scope_depth			orig_depth = depth_scope_stack;
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+  a_source_position             header_pos;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
 
   check_assertion_str2(curr_token == tok_template ||
                        (curr_token == tok_identifier && is_generic),
                        "template_or_specialization_declaration:",
                        "expected tok_template or generic identifier");
   init_templ_decl_state(&decl_state);
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+  header_pos = pos_curr_token;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   /* Note that select_curr_construct_pragmas is called in the caller.
      extract_curr_construct_pragmas is called to save the list of
      pragmas associated with this template declaration.  This pragma
@@ -24790,6 +24806,8 @@ keyword.  is_generic is TRUE if this is a C++/CLI generic declaration.
       /* A full specialization cannot be exported. */
       pos_error(ec_bad_decl_for_export, export_pos);
     }  /* if */
+    add_element_position(epk_specialization_header, &header_pos,
+                         &decl_state.decl_parse.extra_positions);
     full_specialization(&decl_state);
   } else {
     /* The entity being declared is a template. */

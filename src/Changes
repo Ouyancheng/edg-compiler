@@ -1,5 +1,26 @@
 Version 5.0
 
+10/3/13  [EDGcpfe/14530]
+Extra source position information and explicit specializations
+
+Entries of type a_decl_position_supplement (provided when the configuration
+macro EXTRA_SOURCE_POSITIONS_IN_IL is TRUE) now include a pointer to a list of
+entries of type an_element_position that describe the position of various
+elements of the associated construct.  Currently, this is only used to
+describe the position of the "template" keyword in explicit specializations.
+For example:
+
+  template<class T> struct S {};
+  template<> struct S<void>;
+  template<> struct S<int> {};
+
+Here, the secondary source sequence entry for the specialization of S<void>
+(if any) points to a decl-position supplement that now itself points to an
+entry describing the position of the "template" keyword.  In the case of a
+specialization that is a definition (like S<int>), the same information is
+available via the decl-position supplement of the source correspondence entry.
+
+
 10/1/13  [EDGcpfe/14538]
 constexpr static data member initializers
 

@@ -147,6 +147,8 @@ static unsigned long
 #endif /* RECORD_MACRO_INVOCATIONS */
 #if EXTRA_SOURCE_POSITIONS_IN_IL
 static unsigned long
+		num_element_positions_allocated;
+static unsigned long
 		num_decl_position_supplements_allocated;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
 #if ONE_INSTANTIATION_PER_OBJECT
@@ -4513,6 +4515,25 @@ region, initialize the fields, and return a pointer to it.
 #endif /* RECORD_MACRO_INVOCATIONS */
 #if EXTRA_SOURCE_POSITIONS_IN_IL
 
+an_element_position_ptr alloc_element_position(void)
+/*
+Allocate an element-position entry in the current memory region, initialize
+its fields, and return a pointer to it.
+*/
+{
+  an_element_position_ptr  epp;
+
+  epp = (an_element_position_ptr)alloc_cil(sizeof(an_element_position));
+#if DEBUG
+  num_element_positions_allocated++;
+#endif /* DEBUG */
+  epp->next = NULL;
+  epp->position = null_source_position;
+  epp->kind = (an_element_position_kind)epk_error;
+  return epp;
+}  /* alloc_element_position */
+
+
 void clear_decl_position_supplement(a_decl_position_supplement_ptr  dpsp)
 /*
 Clear the fields of the specified decl-position-supplement entry.
@@ -4521,6 +4542,7 @@ Clear the fields of the specified decl-position-supplement entry.
   dpsp->identifier_range = null_source_range;
   dpsp->specifiers_range = null_source_range;
   dpsp->variant.declarator_range = null_source_range;
+  dpsp->extra_positions = NULL;
 }  /* clear_decl_position_supplement */
 
 
@@ -5169,6 +5191,9 @@ Display and return the amount of space used for various IL tables.
                 a_macro_invocation_record_block);
 #endif /* RECORD_MACRO_INVOCATIONS */
 #if EXTRA_SOURCE_POSITIONS_IN_IL
+  db_space_used("element-positions",
+                num_element_positions_allocated,
+                an_element_position);
   db_space_used("decl-position supplement",
                 num_decl_position_supplements_allocated,
                 a_decl_position_supplement);
@@ -5470,6 +5495,7 @@ in il_alloc_init.)
       pch_saved_var_array_elem(num_macro_invocation_record_blocks_allocated),
 #endif /* RECORD_MACRO_INVOCATIONS */
 #if EXTRA_SOURCE_POSITIONS_IN_IL
+      pch_saved_var_array_elem(num_element_positions_allocated),
       pch_saved_var_array_elem(num_decl_position_supplements_allocated),
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
 #if ONE_INSTANTIATION_PER_OBJECT
@@ -5659,6 +5685,7 @@ initializations that are done for each compilation.
                                          = 0;
 #endif /* RECORD_MACRO_INVOCATIONS */
 #if EXTRA_SOURCE_POSITIONS_IN_IL
+  num_element_positions_allocated = 0;
   num_decl_position_supplements_allocated = 0;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
 #if ONE_INSTANTIATION_PER_OBJECT

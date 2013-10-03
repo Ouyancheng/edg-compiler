@@ -629,6 +629,33 @@ Display a_name_qualifier entry.
            iek_name_qualifier);
 }  /* disp_name_qualifier */
 
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+
+static void disp_element_position(an_element_position_ptr  epp)
+/*
+Display the indicated element position entry.
+*/
+{
+  a_const_char  *kind_str;
+
+  switch (epp->kind) {
+    case epk_error:
+      kind_str = "**ERROR ENTRY**";
+      break;
+    case epk_specialization_header:
+      kind_str = "specialization_header";
+      break;
+    default:
+      kind_str = "**BAD ELEMENT POSITION KIND**";
+      break;
+  }  /* switch */
+  disp_name("kind");
+  (void)printf("%s\n", kind_str);
+  disp_source_position("position", &epp->position);
+  disp_ptr("next", (char *)epp->next, iek_element_position);
+}  /* disp_element_position */
+
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
 
 #if !EXTRA_SOURCE_POSITIONS_IN_IL
 /*ARGSUSED*/ /* "kind" is only used to display extra source info. */
@@ -669,6 +696,8 @@ Display the indicated source correspondence entry.
       disp_source_range("  declarator_range",
                         &scp->decl_pos_info->variant.declarator_range);
     }  /* if */
+    disp_ptr("extra_positions", (char*)scp->decl_pos_info->extra_positions,
+             iek_element_position);
   }  /* if */
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   if (scp->name_references != NULL) {
@@ -1378,6 +1407,8 @@ Display a_param_type entry.
                       &ptr->decl_pos_info->specifiers_range);
     disp_source_range("declarator_range",
                       &ptr->decl_pos_info->variant.declarator_range);
+    disp_ptr("extra_positions", (char*)ptr->decl_pos_info->extra_positions,
+             iek_element_position);
   }  /* if */
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   /* pack_expansion_descr is not displayed because it is front end only. */
@@ -6644,6 +6675,8 @@ Display the indicated source sequence secondary declaration entry.
       disp_source_range("declarator_range",
                         &sssdp->decl_pos_info->variant.declarator_range);
     }  /* if */
+    disp_ptr("extra_positions", (char*)sssdp->decl_pos_info->extra_positions,
+             iek_element_position);
   }  /* if */
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   disp_ptr("entity", (char *)sssdp->entity.ptr,
@@ -6742,6 +6775,8 @@ Display the indicated instantiation-directive entry.
                       &idp->decl_pos_info->specifiers_range);
     disp_source_range("declarator_range",
                       &idp->decl_pos_info->variant.declarator_range);
+    disp_ptr("extra_positions", (char*)idp->decl_pos_info->extra_positions,
+             iek_element_position);
   }  /* if */
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
 }  /* disp_instantiation_directive */
@@ -6843,6 +6878,11 @@ This routine is called during IL walking.
       disp_ptr_value(entry_ptr, entry_kind);
       (void)printf("\n");
       switch (entry_kind) {
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+        case iek_element_position:
+          disp_element_position((an_element_position_ptr)entry_ptr);
+          break;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
         case iek_source_file:
           disp_source_file((a_source_file_ptr)entry_ptr);
           break;

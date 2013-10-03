@@ -210,6 +210,9 @@ be restored).
     dps->assoc_func_decl_state = NULL;
     dps->end_of_parse_actions = NULL;
     dps->position_of_this_reference_in_trailing_return = null_source_position;
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+    dps->extra_positions = NULL;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   } else {
     /* Set field values specifically for a secondary declarator. */
     dps->secondary_declarator = TRUE;
