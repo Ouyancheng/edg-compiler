@@ -15013,16 +15013,23 @@ specific information about the member declaration, respectively.
       if (var->is_constexpr && curr_token != tok_lparen) {
         /* If this is a constexpr member, more initialization forms are
            possible: Use the general initializer processing function. */
-        a_boolean   incomplete_type_error_reported = FALSE;
-        a_boolean   is_parenthesized_initializer = FALSE;
+        a_boolean  incomplete_type_error_reported = FALSE;
+        a_boolean  is_parenthesized_initializer = FALSE;
+        a_boolean  saved_auto_type_specifier_seen =
+                                         decl_state->auto_type_specifier_seen;
         if (curr_token == tok_lparen) {
           is_parenthesized_initializer = TRUE;
           (void)get_token();
         }  /* if */
+        /* Temporarily clear the "auto type specifier seen" flag to avoid
+           having the call to "initializer" attempt to prescan the expression
+           again. */
+        decl_state->auto_type_specifier_seen = FALSE;
         initializer(decl_state, &locator->source_position, idl_external,
                     is_parenthesized_initializer,
                     &incomplete_type_error_reported,
                     &decl_info->decl_pos_block);
+        decl_state->auto_type_specifier_seen = saved_auto_type_specifier_seen;
       } else {
         /* Scan the constant expression. */
         scan_member_constant_initializer_expression(decl_state, &constant);
