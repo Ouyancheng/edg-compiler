@@ -3276,6 +3276,11 @@ defined.  Detailed position information is recorded in *decl_pos_block.
       pos_error(ec_ellipsis_not_allowed, &pos_curr_token);
       (void)get_token();
     }  /* if */
+    if (curr_token == tok_decltype) {
+      /* A decltype could be decltype(x) or decltype(x)::something.  In the
+         latter case we need to coalesce it before deciding what it is.  */
+      (void)is_generalized_identifier_start(GID_NO_OPTIONS);
+    }  /* if */
     /* If there is an identifier next, it is a tag.  It can be the declaration
        of a new tag or a reference to an existing tag.  Although it is an
        error, also be on the lookout for a qualified name. */

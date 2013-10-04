@@ -13943,13 +13943,16 @@ the destructor or finalizer is part of a qualified name (e.g., "A::B::~B").
         decltype_tp = locator_for_curr_id.variant.decltype_type;
         if (acceptable_dtor_or_finalizer_type(field_sel_type, decltype_tp)) {
           dtor_or_finalizer_okay = TRUE;
-          decltype_tp = skip_typerefs_not_dependent_decltypes(decltype_tp);
-          /* Use the proxy class in place of a dependent decltype.  */
-          if (decltype_tp->kind == (a_type_kind)tk_typeref &&
-              decltype_tp->variant.typeref.is_dependent_type_operator) {
+          if ((field_sel_type != NULL &&
+               is_template_dependent_type(field_sel_type)) ||
+              is_template_dependent_type(decltype_tp)) {
+            /* Use the proxy class in place of a dependent decltype.  */
             decltype_tp = proxy_class_for_template_param(decltype_tp);
+            type_sym = symbol_for(decltype_tp);
+          } else {
+            decltype_tp = skip_typerefs(decltype_tp);
+            type_sym = symbol_for(decltype_tp);
           }  /* if */
-          type_sym = symbol_for(decltype_tp);
           curr_token = tok_identifier;
         }  /* if */
       } else {
@@ -17337,6 +17340,7 @@ selection operator, in which case it points to the type of the left operand.
     if (next_tok != tok_colon_colon) {
       locator_for_curr_id = cleared_locator;
       locator_for_curr_id.variant.decltype_type = tp;
+      locator_for_curr_id.source_position = pos_curr_token;
       curr_token = tok_decltype_construct;
       /* Since we're returning a pseudo-token, set pos_curr_token. */
       pos_curr_token = start_position;

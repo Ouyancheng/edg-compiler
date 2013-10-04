@@ -139,7 +139,8 @@ Macro to be used in conjunction with is_type_keyword to check for C++11
 extensions.
 */
 #define or_is_cpp11_type_keyword(tok)                                     \
-  || ((tok) == tok_char16_t || (tok) == tok_char32_t)
+  || ((tok) == tok_char16_t || (tok) == tok_char32_t ||			  \
+      (tok) == tok_decltype_construct)
 
 /*
 Macro to be used in conjunction with is_type_keyword to check for fixed-point

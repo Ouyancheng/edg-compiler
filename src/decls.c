@@ -794,6 +794,11 @@ expression is permitted.
 {
   a_boolean    is_start = FALSE;
 
+  if (curr_token == tok_decltype) {
+    /* A decltype could be decltype(x) or decltype(x)::something.  In the
+       latter case we need to coalesce it before deciding what it is.  */
+    (void)is_generalized_identifier_start(GID_NO_OPTIONS);
+  }  /* if */
   if ((is_type_specifier() &&
        !(is_expr_context && list_init_enabled &&
          is_type_keyword(curr_token) && next_token() == tok_lbrace)) ||
