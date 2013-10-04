@@ -1017,6 +1017,12 @@ do_sizeof_cases:
                              ptr->variant.template_param.variant.
                                                         template_ref.arg_list);
       break;
+    case tpck_destructor:
+      (void)printf("tpck_destructor\n");
+      disp_ptr("destructor",
+               (char*)ptr->variant.template_param.variant.destructor.type,
+               iek_type);
+      break;
     default:
       (void)printf("**BAD TEMPLATE PARAM CONSTANT KIND**\n");
       break;

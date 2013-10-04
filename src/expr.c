@@ -5794,7 +5794,7 @@ the "x").
 
 static void scan_selection_second_operand(
                             an_operand        *operand_1,
-                            a_type_ptr        class_struct_union_type,
+                            a_type_ptr        type_1,
                             a_boolean         is_arrow_operator,
                             a_boolean         offsetof_case,
                             a_symbol_locator  *locator,
@@ -5802,9 +5802,8 @@ static void scan_selection_second_operand(
                             a_boolean         *err)
 /*
 Scan and process the second operand of a selection operator, e.g., "x"
-in "p->x".  operand_1 gives the first operand.
-class_struct_union_type gives the type of the first operand (with
-"pointer to" stripped off for the "->" case; in spite of the name, in
+in "p->x".  operand_1 gives the first operand.  type_1 gives the type of
+the first operand (with "pointer to" stripped off for the "->" case; in
 some vacuous destructor cases it may not be a class type, and it might
 be NULL in some error cases.  It does have cv-qualifiers stripped off,
 however.).  The operator is "->" if is_arrow_operator is TRUE.  The
@@ -5815,8 +5814,8 @@ will be set to describe the vacuous destructor name.)  The locator
 describes the result of looking up the name in the first operand's
 class, not just the name in the abstract.  *updated_class_type will be
 returned non-NULL if this routine wants to give the caller a new type
-to use for class_struct_union_type (that's used for some obscure pcc
-mode cases).  Set *err to TRUE if there is an error.
+to use for type_1 (that's used for some obscure pcc mode cases).
+Set *err to TRUE if there is an error.
 */
 {
   an_identifier_options_set
@@ -5850,13 +5849,13 @@ mode cases).  Set *err to TRUE if there is an error.
        and classes without destructors.  For example, p->int::~int(). */
     gid_flags |= GID_VACUOUS_DTOR_RECOGNIZED;
     /* coverity[var_deref_model] */
-    if (*err || !is_class_struct_union_type(class_struct_union_type)) {
+    if (*err || !is_class_struct_union_type(type_1)) {
       /* If the first operand is not a class, the vacuous destructor calls
          can be things like p->~int(). */
       gid_flags |= GID_DTOR_MUST_BE_NONCLASS;
     }  /* if */
   }  /* if */
-  if (f_is_generalized_identifier_start(gid_flags, class_struct_union_type)) {
+  if (f_is_generalized_identifier_start(gid_flags, type_1)) {
     a_symbol_ptr member_sym = NULL;
     a_boolean    local_err;
     /* See if the name following the operator is a C++ qualified name, as
@@ -5892,9 +5891,8 @@ mode cases).  Set *err to TRUE if there is an error.
       /* Not a vacuous destructor case, i.e., normal case. */
       a_boolean need_member_sym_check = TRUE;
       a_boolean operand_1_is_complete_class =
-                           class_struct_union_type != NULL &&
-                           is_immediate_class_type(class_struct_union_type) &&
-                           !is_incomplete_type(class_struct_union_type);
+                          type_1 != NULL && is_immediate_class_type(type_1) &&
+                          !is_incomplete_type(type_1);
       if (!operand_1_is_complete_class &&
           this_in_trailing_return_types_enabled &&
           is_arrow_operator &&
@@ -5915,7 +5913,7 @@ qualified_name_check:
           if (check_valid_qualified_member_in_selection(
                                                    &locator_for_curr_id,
                                                    &qualified_member_position,
-                                                   class_struct_union_type)) {
+                                                   type_1)) {
             member_sym = fundamental_symbol_of(
                                           locator_for_curr_id.specific_symbol);
           } else {
@@ -5924,24 +5922,53 @@ qualified_name_check:
           need_member_sym_check = FALSE;
         } else {
           /* Normal case: not qualified member name. */
-          if (locator_for_curr_id.is_destructor_name &&
-              !is_template_dependent_type(class_struct_union_type)) {
+          if (locator_for_curr_id.is_destructor_name) {
             /* For destructors, don't attempt to look up the destructor name.
                The lookup will have been done, and the type verified earlier.
                If the class has a destructor, this is a real call; otherwise
                it is vacuous.  An exception is made for dependent types.
                In such cases, a lookup is done as a nonreal member may
                be created. */
-            a_class_symbol_supplement_ptr	cssp_for_dtor;
-            cssp_for_dtor =
-                          symbol_supplement_for_class(class_struct_union_type);
-            member_sym = cssp_for_dtor->destructor;
+            a_type_ptr  dtor_type = 
+                                  locator_for_curr_id.variant.destructor_type;
+            a_boolean   dependent_op1, dependent_op2;
+            a_class_symbol_supplement_ptr
+                        cssp_for_dtor;
+            dependent_op1 = is_template_dependent_type(type_1);
+            dependent_op2 = dtor_type != NULL &&
+                            is_template_dependent_type(dtor_type);
+            if (!dependent_op1 && !dependent_op2) {
+              cssp_for_dtor = symbol_supplement_for_class(type_1);
+              member_sym = cssp_for_dtor->destructor;
+            } else if (dependent_op2) {
+              /* The destructor name is dependent (e.g., "~decltype(T())").
+                 It's safe to use a recorded destructor symbol in the proxy
+                 type. */
+              if (dtor_type->kind == (a_type_kind)tk_template_param) {
+                dtor_type = proxy_class_for_template_param(dtor_type);
+              }  /* if */
+              cssp_for_dtor = symbol_supplement_for_class(dtor_type);
+              if (cssp_for_dtor->destructor == NULL) {
+                cssp_for_dtor->destructor =
+                        create_proxy_or_nonreal_class_member_of_kind(
+                                        dtor_type, (a_symbol_kind)sk_constant, 
+                                        IDL_NO_OPTIONS, &locator_for_curr_id);
+              }  /* if */
+              member_sym = cssp_for_dtor->destructor;
+            } else {
+              /* The left operand is dependent (but not the right operand):
+                 Create the destructor representation in the proxy class type
+                 of the left operand, but don't record it since other
+                 destructor expressions may be added there. */
+              member_sym = create_proxy_or_nonreal_class_member_of_kind(
+                                        dtor_type, (a_symbol_kind)sk_constant, 
+                                        IDL_NO_OPTIONS, &locator_for_curr_id);
+            }  /* if */
             locator_for_curr_id.specific_symbol = member_sym;
           } else {
             /* Look up this identifier in the scope of the class, struct, or
                union. */
-            member_sym = look_up_selection_name(&locator_for_curr_id,
-                                                class_struct_union_type);
+            member_sym = look_up_selection_name(&locator_for_curr_id, type_1);
           }  /* if */
           if (member_sym == NULL && locator_for_curr_id.is_destructor_name) {
             /* This is a case like p->~A where the class has no destructor.
@@ -5951,7 +5978,7 @@ qualified_name_check:
                inherited.  The validity of the destructor name was checked
                when the identifier was coalesced. */
             locator_for_curr_id.is_vacuous_destructor_reference = TRUE;
-            locator_for_curr_id.parent.class_type = class_struct_union_type;
+            locator_for_curr_id.parent.class_type = type_1;
             locator_for_curr_id.is_class_member = TRUE;
             need_member_sym_check = FALSE;
           } else if (member_sym != NULL &&
@@ -6009,14 +6036,13 @@ qualified_name_check:
             is_arrow_operator = TRUE;
           }  /* if */
           /* Cast the pointer to a pointer to the proper struct or union. */
-          class_struct_union_type = sym_parent_class(member_sym);
-          *updated_class_type = class_struct_union_type;
-          cast_operand(make_pointer_type(class_struct_union_type),
-                       operand_1,
+          type_1 = sym_parent_class(member_sym);
+          *updated_class_type = type_1;
+          cast_operand(make_pointer_type(type_1), operand_1,
                        /*is_implicit_cast=*/FALSE);
           /* Mark the struct or union type as referenced, since a field
              therein has been referenced. */
-          class_struct_union_type->source_corresp.referenced = TRUE;
+          type_1->source_corresp.referenced = TRUE;
         }  /* if */
       }  /* if */
       if (member_sym == NULL && need_member_sym_check) {
@@ -6035,8 +6061,7 @@ qualified_name_check:
             pos_stsy_error(C_mode() ? ec_not_a_field : ec_not_a_member,
                            &error_position,
                            locator_for_curr_id.symbol_header->identifier,
-                           (a_symbol_ptr)class_struct_union_type->
-                                                    source_corresp.assoc_info);
+                           symbol_for(type_1));
           }  /* if */
           /* Enter an undefined symbol and record a reference against it. */
           { a_symbol_ptr undef_sym_ptr =
@@ -6117,6 +6142,8 @@ list.
   }  /* if */
   check_assertion(con->variant.template_param.kind ==
                         (a_template_param_constant_kind)tpck_member ||
+                  con->variant.template_param.kind ==
+                        (a_template_param_constant_kind)tpck_destructor ||
                   con->variant.template_param.kind ==
                         (a_template_param_constant_kind)tpck_unknown_function);
   options = rcblock->options;
@@ -6335,7 +6362,9 @@ a left parenthesis in the source.
           a_constant_ptr member_con = NULL;
           a_boolean      is_template_ref = FALSE;
           if (con->variant.template_param.kind ==
-                                 (a_template_param_constant_kind)tpck_member) {
+                                 (a_template_param_constant_kind)tpck_member ||
+              con->variant.template_param.kind ==
+                             (a_template_param_constant_kind)tpck_destructor) {
             if (has_name(con) &&
                 unmangled_name_of(&con->source_corresp)[0] == '~') {
               /* For a destructor name, deal with the various cases. */
@@ -35527,6 +35556,7 @@ set accordingly.
         case tpck_address:
         case tpck_unknown_function:
         case tpck_template_ref:
+        case tpck_destructor:
           operator_token = tok_identifier;
           break;
         case tpck_sizeof:

@@ -5476,6 +5476,13 @@ do_sizeof_cases:
           form_typeid_reference(constant, octl);
           if (need_parens) octl->output_str(")", octl);
           break;
+        case tpck_destructor:
+          if (need_parens) octl->output_str("(", octl);
+          octl->output_str("~", octl);
+          form_type(constant->variant.template_param.variant.destructor.type,
+                    octl);
+          if (need_parens) octl->output_str(")", octl);
+          break;
         default:
           octl->output_str("**BAD-TEMPLATE-PARAM-CONSTANT-KIND**", octl);
       }  /* switch */

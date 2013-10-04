@@ -5175,6 +5175,7 @@ that extra work.
                                      (a_constant_repr_kind)ck_template_param &&
            ((kind = node->variant.constant->variant.template_param.kind),
             (kind == (a_template_param_constant_kind)tpck_member ||
+             kind == (a_template_param_constant_kind)tpck_destructor ||
              kind == (a_template_param_constant_kind)tpck_unknown_function ||
              kind == (a_template_param_constant_kind)tpck_address ||
              kind == (a_template_param_constant_kind)tpck_template_ref)))) {
@@ -10481,6 +10482,8 @@ if it is for a nonreal member function, return *is_function TRUE.
       is_nonreal = TRUE;
     } else if (con->variant.template_param.kind ==
                        (a_template_param_constant_kind)tpck_unknown_function ||
+               con->variant.template_param.kind ==
+                       (a_template_param_constant_kind)tpck_destructor ||
                con->variant.template_param.kind ==
                        (a_template_param_constant_kind)tpck_template_ref) {
       is_nonreal = TRUE;

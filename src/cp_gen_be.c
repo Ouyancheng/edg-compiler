@@ -8741,9 +8741,7 @@ indicated by opstr.
   if (gcc_is_generated_code_target && con != NULL && operand_1_type != NULL &&
       con->kind == (a_constant_repr_kind)ck_template_param &&
       con->variant.template_param.kind ==
-                                 (a_template_param_constant_kind)tpck_member &&
-      has_name_before_mangling(con) &&
-      *unmangled_name_of(&con->source_corresp) == '~' &&
+                            (a_template_param_constant_kind)tpck_destructor &&
       innermost_function_scope != NULL) {
     /* This is a call to a dependent destructor.  Check to see if it's
        being called in a member function of its class. */
@@ -8753,7 +8751,7 @@ indicated by opstr.
     if (class_name != NULL && dtor_name != NULL &&
         strcmp(class_name, dtor_name + 1) == 0 &&
         !scope_is_in_name_context_stack(con->source_corresp.parent_scope)) {
-      /* If member function of an instance of a class template explicitly
+      /* If a member function of an instance of a class template explicitly
          calls the destructor of a different instance of the same class
          template, g++ requires that the destructor name have a template
          argument list. */

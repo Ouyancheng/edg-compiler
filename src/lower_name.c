@@ -513,6 +513,9 @@ static void mangled_member_variable_name(a_variable_ptr           variable,
 static a_const_char *mangled_expr_operator_name(an_expr_node_ptr expr,
                                                 a_boolean        *bad_operator,
                                                 a_boolean        *is_cast);
+static void mangled_destructor_name(a_type_ptr               type,
+                                    a_name_reference_ptr     name_reference,
+                                    a_mangling_control_block *mctl);
 
 /*
 Macro for the typical invocation of mangled_encoding_for_expression_full
@@ -4023,6 +4026,12 @@ do_unknown_function:
                          (an_expr_node_ptr)NULL,
                          mctl);
           break;
+        case tpck_destructor:
+          mangled_destructor_name(
+                           con->variant.template_param.variant.destructor.type,
+                           (a_name_reference_ptr)NULL,
+                           mctl);
+          break;
         default:
           unexpected_condition_str(
                             "literal_representation: bad template param kind");
@@ -4972,6 +4981,9 @@ expression that was used to select expr (NULL if no selector was used).
         } else {
           scp = &con->source_corresp;
         }  /* if */
+      } else if (con->variant.template_param.kind ==
+                             (a_template_param_constant_kind)tpck_destructor) {
+        destructor_type = con->variant.template_param.variant.destructor.type;
       } else if (con->variant.template_param.kind ==
                                  (a_template_param_constant_kind)tpck_member) {
         if (con->source_corresp.name != NULL &&

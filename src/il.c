@@ -4596,6 +4596,7 @@ kept.
     a_template_param_constant_kind kind = cp->variant.template_param.kind;
     if (kind == (a_template_param_constant_kind)tpck_param ||
         kind == (a_template_param_constant_kind)tpck_member ||
+        kind == (a_template_param_constant_kind)tpck_destructor ||
         kind == (a_template_param_constant_kind)tpck_unknown_function) {
       /* For certain template constants, keep the information that
          defines the identity of the constant. */
@@ -5561,6 +5562,7 @@ copy_constant_full should be called to start a copy.
       case tpck_param:
       case tpck_member:
       case tpck_unknown_function:
+      case tpck_destructor:
         /* No subtree to copy. */
         break;
       case tpck_expression:
@@ -6846,6 +6848,12 @@ definition of the CC flags in il.h for more information.
                                                          template_ref.arg_list,
                                       ETA_IS_NONREAL_MEMBER);
               break;
+            case tpck_destructor:
+              eq = f_identical_types(
+                         cp1->variant.template_param.variant.destructor.type,
+                         cp2->variant.template_param.variant.destructor.type,
+                         itf_options);
+              break;
             default:
               unexpected_condition_str(
                               "compare_constants: bad templ param const kind");
@@ -7100,6 +7108,7 @@ at the file scope (it would contain a pointer down into a function scope).
         case tpck_member:
         case tpck_unknown_function:
         case tpck_template_ref:
+        case tpck_destructor:
           break;
         case tpck_expression:
           has_nfs_ref= !in_file_scope(cp->variant.template_param.variant.expr);
@@ -15911,6 +15920,8 @@ for the copy/substitution.
   check_assertion(con->kind == (a_constant_repr_kind)ck_template_param &&
                   (con->variant.template_param.kind ==
                        (a_template_param_constant_kind)tpck_member ||
+                   con->variant.template_param.kind ==
+                       (a_template_param_constant_kind)tpck_destructor ||
                    con->variant.template_param.kind ==
                        (a_template_param_constant_kind)tpck_unknown_function));
   if (!con->source_corresp.is_class_member) {

@@ -2772,6 +2772,7 @@ it's the initializer for an aggregate.
           case tpck_param:
           case tpck_member:
           case tpck_unknown_function:
+          case tpck_destructor:
             /* No constants or expressions for these kinds. */
             break;
           default:

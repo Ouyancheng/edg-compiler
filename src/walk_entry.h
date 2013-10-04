@@ -895,6 +895,10 @@ the file scope, do not process it (but record an orphan in the latter case).
                                                          template_ref.arg_list,
                           a_template_arg_ptr, iek_template_arg);
                 break;
+              case tpck_destructor:
+                walk_ptr(ptr->variant.template_param.variant.destructor.type,
+                         a_type_ptr, iek_type);
+                break;
               default:
                 unexpected_condition_str(
                    "walk_entry_and_subtree: bad template param constant kind");

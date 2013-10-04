@@ -1762,8 +1762,10 @@ class.  (E.g., the symbol returned for T::f, where T is a template parameter.
     a_constant_ptr  constant = sym->variant.constant;
     if (constant != NULL &&
         constant->kind == (a_constant_repr_kind)ck_template_param &&
-        constant->variant.template_param.kind ==
-                                (a_template_param_constant_kind)tpck_member) {
+        (constant->variant.template_param.kind ==
+                                (a_template_param_constant_kind)tpck_member ||
+         constant->variant.template_param.kind ==
+                           (a_template_param_constant_kind)tpck_destructor)) {
       result = TRUE;
     }  /* if */
   }  /* if */

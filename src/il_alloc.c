@@ -712,6 +712,9 @@ ck_template_param constant.
       cp->variant.template_param.variant.template_ref.con = NULL;
       cp->variant.template_param.variant.template_ref.arg_list = NULL;
       break;
+    case tpck_destructor:
+      cp->variant.template_param.variant.destructor.type = NULL;
+      break;
     default:
       unexpected_condition_str("set_template_param_constant_kind: bad kind");
   }  /* switch */

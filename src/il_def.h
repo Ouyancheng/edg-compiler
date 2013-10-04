@@ -3573,13 +3573,15 @@ enum a_template_param_constant_kind_tag {
   tpck_noexcept,	/* The template param constant represents the noexcept
 			   operator applied to an expression that
 			   contains a template parameter type. */
-  tpck_template_ref	/* The template param constant provides the address
+  tpck_template_ref,	/* The template param constant provides the address
 			   of an unknown function template, and a set of
 			   explicit template arguments for that template.
 			   Very similar to tpck_unknown_function, and likewise
 			   represents an rvalue for the function, which has
 			   unknown type and might therefore be a pointer or a
 			   pointer to member. */
+  tpck_destructor,	/* The template param constant represents a destructor
+			   of a nonreal class. */
 };
 typedef a_byte a_template_param_constant_kind;
 
@@ -4312,6 +4314,11 @@ typedef struct a_constant {
 			   list is "<>", not the absence of template
 			   arguments. */
         } template_ref;
+        /* When template param constant kind == tpck_destructor: */
+        struct {
+          a_type_ptr
+		type;	/* The nonreal type whose destructor is represented. */
+        } destructor;
       } variant;
     } template_param;
     /* When kind == ck_designator: */

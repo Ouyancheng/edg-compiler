@@ -846,7 +846,7 @@ and the lookup options "options".
 }  /* acceptable_nonreal_class_member_symbol */
 
 
-static a_symbol_ptr create_proxy_or_nonreal_class_member_of_kind(
+a_symbol_ptr create_proxy_or_nonreal_class_member_of_kind(
 				a_type_ptr			class_type,
 				a_symbol_kind			kind,
 				an_id_lookup_options_set	options,
@@ -914,6 +914,18 @@ routine.
         constant->variant.template_param.variant.unknown_function.
                                          opname_kind = locator->variant.opname;
         sym->is_unknown_function = TRUE;
+      } else if (locator->is_destructor_name &&
+                 locator->variant.destructor_type != NULL) {
+        /* Create a tpck_destructor entry. */
+        a_type_ptr  dtor_type = locator->variant.destructor_type; 
+        if (is_proxy_class(dtor_type)) {
+          /* Use the "original" type of a proxy type. */
+          dtor_type = class_symbol_supp(symbol_for(dtor_type))
+                                             ->template_param_for_proxy_class;
+        }  /* if */
+        set_template_param_constant_kind(
+                    constant, (a_template_param_constant_kind)tpck_destructor);
+        constant->variant.template_param.variant.destructor.type = dtor_type;
       } else {
         /* For everything except a conversion function create a generic
            nontype member. */
