@@ -2989,19 +2989,25 @@ for the meaning of need_closing_paren.
   } else {
 #if PROTOTYPE_INSTANTIATIONS_IN_IL
     if (class_type->variant.class_struct_union.proxy_of_type != NULL) {
-      /* This qualifier represents a template parameter.  The name of the
-         parameter may be different at this point in the code, so use the
-         template coordinates to get the correct spelling. */
+      /* This qualifier represents a template parameter or dependent
+         type. */
       a_source_correspondence_ptr scp;
       a_type_ptr                  template_param_type =
                           class_type->variant.class_struct_union.proxy_of_type;
       check_assertion(template_param_type->kind ==
-                                              (a_type_kind)tk_template_param &&
-                      template_param_type->variant.template_param.kind ==
-                                       (a_template_param_type_kind)tptk_param);
-      scp = source_corresp_for_template_param(&template_param_type->
+                                               (a_type_kind)tk_template_param);
+      if (template_param_type->variant.template_param.kind ==
+                                      (a_template_param_type_kind)tptk_param) {
+      /* This is an actual parameter, not just a dependent type.  The name
+         of a parameter may be different at this point in the code, so use
+         the template coordinates to get the correct spelling. */
+        scp = source_corresp_for_template_param(&template_param_type->
                                variant.template_param.extra_info->coordinates);
-      check_assertion(scp != NULL);
+        check_assertion(scp != NULL);
+      } else {
+        /* Use the name of the dependent type directly. */
+        scp = &template_param_type->source_corresp;
+      }  /* if */
       gen_bare_name(scp, iek_template_parameter);
     } else
 #endif /* PROTOTYPE_INSTANTIATIONS_IN_IL */
