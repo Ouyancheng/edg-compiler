@@ -3580,7 +3580,7 @@ enum a_template_param_constant_kind_tag {
 			   represents an rvalue for the function, which has
 			   unknown type and might therefore be a pointer or a
 			   pointer to member. */
-  tpck_destructor,	/* The template param constant represents a destructor
+  tpck_destructor	/* The template param constant represents a destructor
 			   of a nonreal class. */
 };
 typedef a_byte a_template_param_constant_kind;
