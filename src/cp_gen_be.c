@@ -3004,11 +3004,12 @@ for the meaning of need_closing_paren.
         scp = source_corresp_for_template_param(&template_param_type->
                                variant.template_param.extra_info->coordinates);
         check_assertion(scp != NULL);
+        gen_bare_name(scp, iek_template_parameter);
       } else {
         /* Use the name of the dependent type directly. */
-        scp = &template_param_type->source_corresp;
+        gen_name(&class_type->source_corresp, iek_type, options | GN_QUALIFIER,
+                 need_closing_paren);
       }  /* if */
-      gen_bare_name(scp, iek_template_parameter);
     } else
 #endif /* PROTOTYPE_INSTANTIATIONS_IN_IL */
     /* Do not insert code here. */
