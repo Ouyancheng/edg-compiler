@@ -22778,6 +22778,11 @@ that follows.
       }  /* if */
       pos_diagnostic(severity, ec_storage_class_not_allowed_in_specialization,
                      &dps->storage_class_pos);
+      if (is_effective_error(severity,
+                             ec_storage_class_not_allowed_in_specialization)) {
+        /* Ignore any specified storage class. */
+        dps->storage_class = (a_storage_class)sc_unspecified;
+      }  /* if */
     }  /* if */
   }  /* if */
   if (is_error_type(dps->type) && !is_declarator_start()) {
