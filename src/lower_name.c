@@ -10859,7 +10859,8 @@ to the point where the base name appears.
   if ((routine->source_corresp.name_has_been_mangled &&
        !routine->source_corresp.final_name_mangling_pending &&
        (!needs_to_be_externalized || routine->source_corresp.externalized)) ||
-      !function_name_mangling_needed(routine, &suppress_param_encoding)) {
+      (has_name(routine) &&
+       !function_name_mangling_needed(routine, &suppress_param_encoding))) {
     /* The name has already been (completely) mangled, or it doesn't need
        to be mangled, so just return it. */
     mangled_name = (char *)routine->source_corresp.name;
