@@ -5255,10 +5255,16 @@ al_tag_name attributes (if any).
     if (is_immediate_class_type(type) && (options & GN_FRIEND_DECL) &&
         type->variant.class_struct_union.proxy_class &&
         type->variant.class_struct_union.proxy_of_type != NULL) {
-      /* This is a proxy class for a template parameter.  Use the C++11
-         feature of referring to a template parameter in a friend
-         declaration with no class keyword. */
-      tag_kind_str = "";
+      /* This is a dependent type.  See if it's a template parameter. */
+      a_type_ptr proxy_type = type->variant.class_struct_union.proxy_of_type;
+      if (proxy_type->kind == (a_type_kind)tk_template_param &&
+          proxy_type->variant.template_param.kind ==
+                                      (a_template_param_type_kind)tptk_param) {
+        /* This is a proxy class for a template parameter.  Use the C++11
+           feature of referring to a template parameter in a friend
+           declaration with no class keyword. */
+        tag_kind_str = "";
+      }  /* if */
     }  /* if */
 #endif /* PROTOTYPE_INSTANTIATIONS_IN_IL */
     write_tok_str(tag_kind_str);
