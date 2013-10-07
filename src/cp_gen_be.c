@@ -3594,6 +3594,7 @@ GN_PARENS_IF_GLOBAL_QUALIFIER is not set.
     }  /* if */
     if (scp->is_class_member) {
       a_type_ptr class_type = scp_parent_class(scp);
+      a_type_ptr decltype_type = NULL;
       a_boolean  include_base_classes;
       /* Determine if a declaration for the entity is visible with unqualified
          lookup. */
@@ -3634,6 +3635,16 @@ GN_PARENS_IF_GLOBAL_QUALIFIER is not set.
            class must not be treated as being in the name context stack. */
         include_base_classes = FALSE;
       }  /* if */
+      if (class_type->variant.class_struct_union.proxy_class) {
+        /* This is a dependent type.  Check to see if it's a proxy for a
+           decltype construct; if so, we will use that as the qualifier. */
+        a_type_ptr proxy_type =
+                          class_type->variant.class_struct_union.proxy_of_type;
+        if (proxy_type->kind == (a_type_kind)tk_typeref &&
+            proxy_type->variant.typeref.is_decltype) {
+          decltype_type = proxy_type;
+        }  /* if */
+      }  /* if */
       if (!force_qualified_name &&
           if_microsoft_extensions(!scp->member_of_unknown_super &&)
           (!scp->qualification_needed ||
@@ -3643,7 +3654,8 @@ GN_PARENS_IF_GLOBAL_QUALIFIER is not set.
             !(options & GN_QUALIFIER))) &&
           (scp->visible_as_unqualified_name ||
            (class_type->variant.class_struct_union.is_nonreal_class &&
-            !has_name_before_mangling(class_type)) ||
+            !has_name_before_mangling(class_type) &&
+            decltype_type == NULL) ||
            class_is_in_name_context_stack(class_type, include_base_classes))) {
         /* A qualified name is not needed, because we're inside a name context
            for the class and the name is not hidden.  Note a subtle case in
@@ -3679,13 +3691,16 @@ GN_PARENS_IF_GLOBAL_QUALIFIER is not set.
           write_tok_str("::");
         } else {
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-          if (scp->access == (an_access_specifier)as_protected &&
-              (options & GN_FORCE_QUALIFIED_NAME) != 0 &&
-              (options & GN_ALLOW_PROTECTED_BASE_MEMBER_QUALIFIED_NAME) == 0 &&
-              !scp->qualification_needed &&
-              curr_name_context_is_a_class() &&
-              find_base_class_of(curr_name_context_class(),
-                                 scp_parent_class(scp)) != 0) {
+          if (decltype_type != NULL) {
+            qualifier = decltype_type;
+          } else if (scp->access == (an_access_specifier)as_protected &&
+                     (options & GN_FORCE_QUALIFIED_NAME) != 0 &&
+                     (options & GN_ALLOW_PROTECTED_BASE_MEMBER_QUALIFIED_NAME)
+                                                                        == 0 &&
+                     !scp->qualification_needed &&
+                     curr_name_context_is_a_class() &&
+                     find_base_class_of(curr_name_context_class(),
+                                        scp_parent_class(scp)) != 0) {
             /* This is a case where the name is not hidden but is required to
                be qualified by the context (e.g., when forming a pointer to
                member) and the name is a protected member of a base of the
