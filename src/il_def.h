@@ -7698,6 +7698,11 @@ typedef struct an_integer_type_supplement {
 			   If non-NULL, has_explicit_enum_base will be TRUE.
 			   (In C++/CLI mode this can be a value class type
 			   that maps on an integral type.) */
+  a_source_position
+		base_type_position;
+			/* If base_type is non-NULL, the source position at
+			   which the underlying type was explicitly
+			   specified. */
 } an_integer_type_supplement;
 
 

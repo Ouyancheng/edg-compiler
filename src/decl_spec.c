@@ -4641,9 +4641,8 @@ and *p_base_type is left unchanged.
 
 static void set_enum_representation(a_type_ptr         enum_type,
                                     a_source_position  *pos_enum_tag,
-                                    a_boolean          err,
+                                    a_boolean          diag_range,
                                     an_integer_kind    explicit_base_kind,
-                                    a_source_position  *pos_explicit_base,
                                     a_boolean          min_max_set,
                                     a_constant_ptr     min_value,
                                     a_constant_ptr     max_value)
@@ -4656,11 +4655,11 @@ of "char", "signed char", "unsigned char", "short", "unsigned short", and
 enum_types_can_be_larger_than_int (e.g., in strict C++ mode), is there any
 point in trying "unsigned int" and larger integer types.
 In some C++ modes, the underlying integer type can be specified explicitly:
-In that case, explicit_base_kind will indicate the specified integer type, and
-pos_explicit_base is the source position of the explicit type specification.
+In that case, explicit_base_kind will indicate the specified integer type.
 If the range of constants has been determined, min_max_set will be TRUE, and
-the constants *min_value and *max_value will describe that range.  err is TRUE
-if some errors occurred earlier while parsing the enum definition.
+the constants *min_value and *max_value will describe that range.
+diag_range is FALSE if diagnostics about the representation range are likely
+unhelpful due to earlier errors (while parsing the enum definition).
 pos_enum_tag is the position used for diagnostics not related to an explicit
 base specifier.
 */
@@ -4677,7 +4676,8 @@ base specifier.
        represent the range of enumerator constants. */
     if (min_max_set && !in_range_for_integer_kind(min_value, max_value,
                                                   explicit_base_kind)) {
-      pos_ty_error(ec_enum_base_type_too_limited, pos_explicit_base,
+      pos_ty_error(ec_enum_base_type_too_limited,
+                   &integer_type_supp(enum_type)->base_type_position,
                    integer_type(explicit_base_kind));
       explicit_base_kind = (an_integer_kind)ik_none;
     } else {
@@ -4770,7 +4770,7 @@ base specifier.
          We emulate that behavior. */
 #endif /* INT128_EXTENSIONS_ALLOWED */
       enum_type->variant.integer.int_kind = largest_enum_int_kind;
-      if (!err && !scope_stack[depth_scope_stack].in_prototype_instantiation) {
+      if (diag_range && !scope_stack_top().in_prototype_instantiation) {
         pos_diagnostic(strict_ansi_mode ? es_error : es_warning,
                        ec_insufficient_enum_range, pos_enum_tag);
       }  /* if */
@@ -4878,6 +4878,573 @@ integer type and adjust the associated integer values if needed.
 }  /* change_enum_constants_type */
 
 
+void scan_enumerator_list(a_type_ptr             enum_type,
+                          a_decl_parse_state     *dps,
+                          an_ms_attribute_ptr    *p_ms_attributes,
+                          a_type_ptr             class_of_which_a_member,
+                          a_boolean              *declares_something,
+                          a_decl_pos_block       *decl_pos_block)
+/*
+Scan the list of enumerators in an enum type definition, including its
+enclosing braces.  (The current token is the left brace.)  enum_type is the
+type whose definition must be scanned.  *dps describes the declaration
+containing the enum definition (which may include attributes).
+p_ms_attributes describes Microsoft COM-style attributes preceding the enum
+specifier (if any).   class_of_which_a_member specifies the parent type of
+the enum type.  *declares_something is set to TRUE if an unscoped enum
+definition introduces a name in its surrounding scope.  *decl_pos_block is
+updated to reflect relevant positions of this definition.
+*/
+{
+  a_symbol_ptr       tag_sym = symbol_for(enum_type), enum_con_sym;
+  a_boolean          is_scoped_enum =
+                                    enum_type->variant.integer.is_scoped_enum;
+  a_boolean          is_dependent_enum = FALSE;
+  a_boolean          done, min_max_set, diag_range = TRUE;
+  a_constant_ptr     constant_list = NULL, end_of_enum_con_list, enum_con;
+  a_constant         max_value, min_value, constant;
+  a_type_ptr         explicit_base, enum_con_type;
+  an_integer_kind    explicit_base_kind;
+  a_scope_number     reactivated_class_scope_number = NO_SCOPE_DEPTH;
+  a_source_position  definition_pos, end_pos;
+  a_memory_region_number
+                     region_to_switch_back_to;
+
+  check_assertion(curr_token == tok_lbrace);
+  explicit_base = integer_type_supp(enum_type)->base_type;
+  if (explicit_base == NULL) {
+    explicit_base_kind = (an_integer_kind)ik_none;
+  } else if (is_template_dependent_type(explicit_base)) {
+    explicit_base_kind = largest_enum_int_kind;
+  } else {
+    explicit_base_kind =
+                       skip_typerefs(explicit_base)->variant.integer.int_kind;
+  }  /* if */
+  definition_pos = pos_curr_token;
+  /* We associate a curr-construct pragma with this enum type only if this
+     is a definition.  Otherwise this is assumed to be part of a declaration
+     of something else -- to which the pragma should be bound. */
+  if (tag_sym != NULL) {
+    /* Do processing required for any pragmas that are bound to the current
+       declaration. */
+    process_curr_construct_pragmas(tag_sym, (a_statement_ptr)NULL);
+  } else {
+    /* Issue diagnostics on pragmas that are trying to bind to an unnamed
+       enum. */
+    cannot_bind_to_curr_construct();
+  }  /* if */
+  if (constexpr_enabled && innermost_function_scope != NULL && !gpp_mode &&
+      innermost_function_scope->variant.routine.ptr->is_constexpr) {
+    pos_error(ec_tag_defined_in_constexpr_body, &definition_pos);
+  }  /* if */
+  if (scope_is(&scope_stack_top(), sck_class_reactivation)) {
+    reactivated_class_scope_number = scope_stack_top().number;
+  }  /* if */
+  /* Scan the enumeration itself.  Since the enumeration type entry is
+     allocated in the file scope memory region, all its components should
+     also be.  Switch to the file scope memory region here at the start of
+     the definition and switch back when we reach the right brace. */
+  (void)required_token(tok_lbrace, ec_exp_lbrace);
+  if (is_scoped_enum) {
+    enum_type->variant.integer.enum_info.assoc_scope = 
+              push_scope((a_scope_kind)sck_enum, NO_SCOPE_NUMBER, enum_type,
+                         (a_routine_ptr)NULL);
+  }  /* if */
+  integer_type_supp(enum_type)->enumerator_list_seen = TRUE;
+  if (C_dialect == C_dialect_cplusplus || gcc_mode) {
+    /* In C++ the type of an enumerator is the same as that of its
+       enumeration, but that won't actually be known until the definition
+       is complete.  Set the types in the enum constants later.
+       In GNU C mode, the type of an enumerator is an integer type
+       large enough to represent all the enumerator values.  It won't be
+       known until the definition is complete. */
+    enum_con_type = NULL;
+    /* For an enum in a class template the enumerators must be treated as
+       dependent. */
+    is_dependent_enum = tag_sym->corresp_nonreal_or_nested_type != NULL;
+  } else {
+    /* In C the type of the constants is always "int", regardless of
+       the type of the enumerated type (see 3.5.2.2).  However, it is
+       tagged with the enumerated type, so that enum compatibility checking
+       can be done later.  (GNU C mode is different: See above.) */
+    check_assertion(!enum_types_can_be_larger_than_int);
+    enum_con_type = alloc_type((a_type_kind)tk_integer);
+    enum_con_type->variant.integer.int_kind = (an_integer_kind)ik_int;
+    enum_con_type->variant.integer.enum_type = FALSE;
+    enum_con_type->variant.integer.enum_info.affiliated_type = enum_type;
+    set_type_size(enum_con_type);
+  }  /* if */
+  min_max_set = FALSE;
+  if (curr_token == tok_rbrace &&
+      (C_dialect == C_dialect_cplusplus || microsoft_mode)) {
+    /* An enumerator constant list is optional in C++ and Microsoft C. */
+  } else {
+    a_boolean   cppcli_enum_init_error_issued = FALSE;
+    a_type_ptr  fixed_type = explicit_base;
+    /* The underlying type of a C++11 enumeration type is said to be fixed
+       if it is explicitly specified or if the enumeration type is scoped.
+       This is used to scan the enumerator constant definitions as "converted
+       constant expressions". */
+    if (explicit_base == NULL && is_scoped_enum) {
+      fixed_type = integer_type((an_integer_kind)ik_int);
+    }  /* if */
+    add_stop_token(tok_rbrace);
+    end_of_enum_con_list = NULL;
+    /* Scan the list of enumerated constants. */
+    do {
+      a_symbol_locator             locator;
+      a_boolean                    template_param = FALSE, err = FALSE;
+      a_source_position            enum_con_pos, pos_comma;
+      a_source_sequence_entry_ptr  enum_con_ssep = NULL;
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+      a_source_range               enum_id_range, enum_value_range;
+      enum_id_range = null_source_range;
+      enum_value_range = null_source_range;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+      add_stop_token(tok_comma);
+      add_stop_token(tok_assign);
+      enum_con_pos = pos_curr_token;
+      if (curr_token != tok_identifier) {
+        (void)required_token(tok_identifier, ec_exp_identifier);
+        set_to_error_locator(locator);
+      } else {
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+#if DEBUG
+        if (!source_sequence_entries_disallowed &&
+            (debug_level >= 4 || db_flag_is_set("dump_ss_full"))) {
+          fprintf(f_debug, "enum_specifier: empty ss entry for \"%s\":\n",
+                  locator_for_curr_id.symbol_header->identifier);
+        }  /* if */
+#endif /* DEBUG */
+        enum_con_ssep = add_empty_source_sequence_entry();
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+        locator = locator_for_curr_id;
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+        enum_id_range.start = pos_curr_token;
+        enum_id_range.end = end_pos_curr_token;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+        if (cppcli_enabled && curr_token_is_identifier_string("value__")) {
+          pos_error(ec_reserved_enumerator_name, &pos_curr_token);
+        }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+        /* Advance past the identifier. */
+        (void)get_token();
+        /* Set the error position to the identifier position. */
+        copy_source_position(locator.source_position, error_position);
+      }  /* if */
+      /* Note that the enumerator symbol is entered at little later, after
+         the constant expression (if any) has been scanned.  (C standard,
+         3.1.2.1 and 3.5.2.2) */
+      remove_stop_token(tok_assign);
+      /* Forget about expressions scanned in previous constants. */
+      constant.expr = NULL;
+      /* See if "= constant-expression" follows. */
+      if (curr_token == tok_assign) {
+        (void)get_token();
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+        enum_value_range.start = pos_curr_token;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+        /* Scan the constant expression.  (If fixed_type is non-NULL, scan
+           it as a "converted constant expression" for that type in C++11
+           mode.) */
+        scan_fs_integral_constant_expression(fixed_type, /*is_enum=*/TRUE,
+                                             &constant);
+        add_backing_expression_for_named_constant(&constant);
+        /* Even though the constant may just be "0", that property should
+           not be carried into the enumerators derived from it. */
+        constant.is_simple_zero = FALSE;
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+        enum_value_range.end = curr_construct_end_position;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+        if (is_error_constant(&constant)) {
+          err = TRUE;
+        } else if (constant.kind == (a_constant_repr_kind)ck_template_param) {
+          /* We are doing a prototype instantiation and we have a case like
+             this:
+               template <int N> class A { enum e { e1 = 2*N }; };
+          */
+          template_param = TRUE;
+        } else if (is_scoped_enum ||
+                   explicit_base_kind != (an_integer_kind)ik_none) {
+          /* The underlying type is fixed. */
+          check_enum_value_for_fixed_underlying_type(
+                                            &constant, explicit_base_kind,
+                                            /*implicit_value=*/FALSE, &err);
+        } else if (enum_types_can_be_larger_than_int) {
+          /* No need to check, since the largest integer kind will be
+             used if needed. */
+        } else {
+          check_assertion(constant.kind == (a_constant_repr_kind)ck_integer);
+          /* Check the value to see if it is out of range. */
+          if (!in_range_for_integer_kind(&constant, &constant,
+                                         largest_enum_int_kind)) {
+            a_boolean  conversion_allowed = TRUE;
+            if (strict_ansi_mode) {
+              conversion_allowed = strict_ansi_error_severity != es_error;
+            }  /* if */
+            if (conversion_allowed &&
+                f_skip_typerefs(constant.type)->size <= targ_sizeof_int) {
+              /* In non-strict mode, allow unsigned constants that can be
+                 coerced into an int. */
+              a_boolean  did_not_fold = FALSE;
+              type_change_constant(&constant,
+                                   integer_type((an_integer_kind)ik_int),
+                                   /*is_implicit_cast=*/TRUE,
+                                   /*maintain_expression=*/TRUE,
+                                   &did_not_fold,
+                                   &error_position);
+              if (strict_ansi_mode) {
+                warning(ec_enum_value_out_of_int_range);
+              }  /* if */
+            } else {
+              error(ec_enum_value_out_of_int_range);
+              err = TRUE;
+            }  /* if */
+          }  /* if */
+        }  /* if */
+      } else {
+        /* No explicit value. */
+        if (cppcli_enabled && !cppcli_enum_init_error_issued &&
+            explicit_base_kind != (an_integer_kind)ik_none &&
+            is_bool_type(integer_type_supp(enum_type)->base_type)) {
+          /* ECMA-372 (the C++/CLI standard) requires that C++/CLI enum
+             types with an explicit boolean underlying type have explicit
+             values for each of their enumerator constants. */
+          pos_error(ec_cppcli_enumerator_requires_explicit_value,
+                    &enum_con_pos);
+          cppcli_enum_init_error_issued = TRUE;
+        }  /* if */
+        if (end_of_enum_con_list == NULL) {
+          /* This is the first enumerator.  Start with zero. */
+          an_integer_kind  first_kind = (an_integer_kind)ik_int;
+          if (explicit_base_kind != (an_integer_kind)ik_none) {
+            first_kind = explicit_base_kind;
+          }  /* if */
+          set_integer_constant(&constant, (a_host_large_integer)0,
+                               first_kind);
+        } else if (is_error_constant(&constant)) {
+          /* There was a previous error. */
+          err = TRUE;
+        } else {
+          /* Use a value one larger than the previous value. */
+          if (constant.kind == (a_constant_repr_kind)ck_template_param) {
+            /* The previous value was template-dependent.  So we need to
+               create a distinct template-dependent value for this one. */
+            increment_template_dependent_enum_constant(&constant);
+            template_param = TRUE;
+          } else if (is_scoped_enum ||
+                     explicit_base_kind != (an_integer_kind)ik_none) {
+            /* The underlying type is fixed. */
+            check_enum_value_for_fixed_underlying_type(
+                                            &constant, explicit_base_kind,
+                                            /*implicit_value=*/TRUE, &err);
+          } else if (is_max_value_for_integer_kind(&constant,
+                                                   largest_enum_int_kind)) {
+            /* The incremented value would be out of range (3.5.2.2,
+               constraints). */
+            error(ec_enum_value_out_of_int_range);
+            err = TRUE;
+          } else {
+            /* If incrementing the current value requires a larger
+               integer, just use the integer corresponding to
+               largest_enum_int_kind.  It's not specified by the standard
+               what larger integer to use, and it doesn't seem to make
+               much difference. */
+            a_type_ptr  constant_type = skip_typerefs(constant.type);
+            check_assertion(constant_type->kind == (a_type_kind)tk_integer);
+            if (is_max_value_for_integer_kind(
+                                &constant,
+                                constant_type->variant.integer.int_kind)) {
+              constant.type = integer_type(largest_enum_int_kind);
+            }  /* if */
+            incr_integer_value(&constant.variant.integer_value);
+          }  /* if */
+        }  /* if */
+      }  /* if */
+      if (gpp_mode && scope_is(&scope_stack_top(), sck_class_struct_union)) {
+        /* In GNU C++ mode, we remove any synthesized projection symbols
+           before entering a symbol for an enumeration specifier.  This
+           allows examples like
+             struct B { enum { e }; };
+             struct D: B { enum { d = D::e, e = d + 1 }; };
+           (which normally results in an "already declared" error). */
+        a_symbol_ptr  sym;
+        /* Look for existing symbols that would collide with the current
+           name.  The value returned by curr_scope_id_lookup is already
+           stripped of projections, but the original symbol is available
+           in the specific_symbol field of the symbol locator. */
+        (void)curr_scope_id_lookup(&locator, IDL_PROJ_SYMBOL_ALLOWED);
+        sym = locator.specific_symbol;
+        if (sym != NULL && symbol_is(sym, sk_projection) &&
+            !sym->variant.projection.is_using_decl) {
+          remove_symbol(sym);
+        }  /* if */
+      }  /* if */
+      /* Enter the enumeration constant identifier. */
+      if (reactivated_class_scope_number != NO_SCOPE_DEPTH &&
+          !is_scoped_enum) {
+        /* enter_local_symbol cannot be used to add a symbol to a completed
+           class scope.  Use enter_symbol_into_completed_class instead. */
+        enum_con_sym = make_symbol((a_symbol_kind)sk_constant, &locator);
+        enum_con_sym->is_class_member = TRUE;
+        enum_con_sym->decl_scope = reactivated_class_scope_number;
+        enum_con_sym->parent.class_type = class_of_which_a_member;
+        enter_symbol_into_completed_class(enum_con_sym);
+      } else {
+        enum_con_sym = enter_local_symbol((a_symbol_kind)sk_constant, &locator,
+                                          decl_scope_level,
+                                          /*suppress_redecl_error=*/FALSE);
+      }  /* if */
+      if (!is_scoped_enum) {
+        /* An unscoped and unnamed enum type definition that introduces
+           enumerator constants "declares something", but a scoped unnamed
+           enum type does not "declare something" (at least not in its
+           surrounding scope). */
+        *declares_something = TRUE;
+      }  /* if */
+      /* Track the highest and lowest values in the enumeration.  These are
+         used to determine the appropriate representation type. */
+      if (err) {
+        /* There was some kind of error in the value for the enumerator. */
+        set_error_constant(&constant);
+        diag_range = FALSE;
+      } else if (template_param) {
+        /* The expression has a template parameter value, so it has
+           no effect on the size of the enumeration. */
+      } else if (!min_max_set) {
+        max_value = constant;
+        min_value = constant;
+        min_max_set = TRUE;
+      } else if (cmp_integer_constants(&constant, &max_value) > 0) {
+        max_value = constant;
+      } else if (cmp_integer_constants(&constant, &min_value) < 0) {
+        min_value = constant;
+      }  /* if */
+      /* Assign the value to the enumeration constant. */
+      switch_to_file_scope_region(&region_to_switch_back_to);
+      if (constant.kind == (a_constant_repr_kind)ck_template_param ||
+          is_dependent_enum) {
+        /* Add a do-nothing cast to a ck_template_constant so as
+           to avoid problems with using the same constant entry for
+           the enumerator and its value (e.g., class membership
+           information for the value as a tpck_member constant
+           conflicts with the class membership of the enumerator).
+           Also do this for enumerators that must be treated as dependent. */
+        make_template_param_cast_constant(&constant, &constant, constant.type,
+                                          /*is_explicit=*/FALSE);
+      }  /* if */
+      enum_con = alloc_unshared_constant(&constant);
+      enum_con->is_named_constant_definition = TRUE;
+      /* Record the parent scope of the enumerator. */
+      if (reactivated_class_scope_number != NO_SCOPE_DEPTH &&
+          !is_scoped_enum) {
+        enum_con->source_corresp.parent_scope =
+                        class_type_supp(class_of_which_a_member)->assoc_scope;
+      } else {
+        if (scope_stack[decl_scope_level].kind == (a_scope_kind)sck_block ||
+            scope_stack[decl_scope_level].kind ==
+                                           (a_scope_kind)sck_func_prototype) {
+          /* Don't call ensure_il_scope_exists for any scope other than block
+             and function prototype scopes, because it may fail (abort) in
+             some unusual error cases. */
+          (void)ensure_il_scope_exists(&scope_stack[decl_scope_level]);
+        }  /* if */
+        enum_con->source_corresp.parent_scope =
+                                       scope_stack[decl_scope_level].il_scope;
+        if (parent_scope_of(enum_con) == NULL) {
+          /* Only occurs in strange error situations (e.g., an enum defined
+             in a template parameter list). */
+          expect_error();
+        } else if (!in_file_scope(parent_scope_of(enum_con))) {
+          /* A memory region constraint violation: Break the link. */
+          enum_con->source_corresp.parent_scope = NULL;
+        }  /* if */
+      }  /* if */
+      /* Switch back from the file scope memory region to whatever region
+         was current upon entry. */
+      switch_back_to_original_region(region_to_switch_back_to);
+      set_source_corresp(&(enum_con->source_corresp), enum_con_sym);
+      enum_con->source_corresp.name_linkage =
+                                     enum_type->source_corresp.name_linkage;
+      enum_con_sym->variant.constant = enum_con;
+      if (gcc_mode) {
+        /* In GNU C mode, the type of the constants is determined after
+           all the constants have been seen. */
+      } else if (C_mode()) {
+        enum_con->type = enum_con_type;
+      } else {
+        /* In C++ mode leave the type of the constant unchanged for now.
+           The enumerator constants will get the type of the enumeration,
+           but not until after all the constants have been scanned.  (This
+           affects cases in which an enum constant expression involves a
+           previously declared enum constant from the same enumeration.) */
+        if (!is_scoped_enum) {
+          /* In C++ specify membership and access.  That doesn't apply to
+             scoped enum constants; setting parent_scope (done above) is
+             sufficient for those. */
+          if (class_of_which_a_member != NULL) {
+            /* Set the parent class. */
+            set_class_membership(enum_con_sym, &enum_con->source_corresp,
+                                 class_of_which_a_member);
+            enum_con->source_corresp.access = enum_type->source_corresp.access;
+          } else if (sym_is_namespace_member(tag_sym)) {
+            /* Set the parent namespace. */
+            set_namespace_membership(enum_con_sym, &enum_con->source_corresp,
+                                     sym_parent_namespace(tag_sym));
+          }  /* if */
+        }  /* if */
+      }  /* if */
+      record_symbol_declaration(SRK_DECLARATION | SRK_DEFINITION, enum_con_sym,
+                                &locator.source_position, enum_con_ssep);
+      /* Add the enumeration constant to the list under the enumerated
+         type. */
+      if (end_of_enum_con_list == NULL) {
+        constant_list = enum_con;
+        if (is_scoped_enum) {
+          enum_type->variant.integer.enum_info.assoc_scope->constants =
+                                                              constant_list;
+        } else {
+          enum_type->variant.integer.enum_info.constant_list = constant_list;
+        }  /* if */
+      } else {
+        end_of_enum_con_list->next = enum_con;
+      }  /* if */
+      end_of_enum_con_list = enum_con;
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+      { a_decl_position_supplement_ptr  dpsp;
+        dpsp = enum_con->source_corresp.decl_pos_info;
+        if (dpsp != NULL) {
+          dpsp->identifier_range = enum_id_range;
+          dpsp->variant.enum_value_range = enum_value_range;
+        }  /* if */
+      }
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+      /* Keep looping while there are more enumeration constant
+         identifiers. */
+      copy_source_position(pos_curr_token, pos_comma);
+      done = !loop_token(tok_comma);
+      if (!done && curr_token == tok_rbrace) {
+         /* In K&R C, C99, and C++11 modes an extra comma is allowed at the
+            end of the list.  In other C and C++ modes, we allow it as an
+            extension, with a remark or strict ANSI diagnostic, but the
+            diagnostic is omitted altogether for C++11-like scoped enum
+            types and enum types with explicit underlying types.  The gcc
+            compiler source includes cases like this, and that source is
+            part of the SPEC benchmark suite. */
+        done = TRUE;
+        if (C_dialect != C_dialect_pcc && !c99_mode && !cpp11_mode &&
+            !(is_scoped_enum ||
+              explicit_base_kind != (an_integer_kind)ik_none)) {
+          an_error_severity  severity;
+          severity = strict_ansi_mode ? strict_ansi_discretionary_severity :
+                                        es_remark;
+          pos_diagnostic(severity, ec_nonstd_extra_comma, &pos_comma);
+        }  /* if */
+      }  /* if */
+      remove_stop_token(tok_comma);
+    } while (!done);
+    remove_stop_token(tok_rbrace);
+  }  /* if */
+  end_pos = pos_curr_token;
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+  decl_pos_block->specifiers_range.end = pos_curr_token;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+  /* Check for and pass over the closing "}". */
+  (void)required_token(tok_rbrace, ec_exp_rbrace);
+  if (is_scoped_enum) pop_scope();
+  attach_tag_attributes(dps->tag_attributes, enum_type, dps,
+                        /*is_definition=*/TRUE, /*is_forward_decl=*/FALSE,
+                        /*ignore_gnu_attributes=*/FALSE);
+#if GNU_EXTENSIONS_ALLOWED
+  if (gnu_mode && curr_token == tok_attribute) {
+    /* Check for something like "enum E { e } __attribute((packed));".
+       Ordinarily, specifier attributes should be applied after all
+       specifiers have been seen, but in this case some may have to be
+       applied before the type underlying the enumeration is fixed. */
+    an_attribute_ptr  attributes =
+                          scan_gnu_attribute_groups(al_post_tag_definition);
+    if (attributes != NULL) {
+      end_pos = end_position_of_attributes;
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+      if (decl_pos_block != NULL) {
+        /* Update the recorded end position to the end of the attributes
+           specifier. */
+        decl_pos_block->specifiers_range.end = curr_construct_end_position;
+      }  /* if */
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+      attach_postfix_enum_attributes(attributes, enum_type, dps);
+    }  /* if */
+  }  /* if */
+#endif /* GNU_EXTENSIONS_ALLOWED */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  if (p_ms_attributes != NULL && *p_ms_attributes != NULL &&
+      depth_innermost_function_scope == NO_SCOPE_NUMBER &&
+      !inside_local_class) {
+    apply_microsoft_attributes(p_ms_attributes, (char*)enum_type,
+                               (an_il_entry_kind)iek_type, MSAT_ENUM);
+  }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+  /* Add a source sequence entry marking the end of the enum definition. */
+  add_end_of_construct_source_sequence_entry((char *)enum_type,
+                                             (a_byte_il_entry_kind)iek_type);
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+  set_enum_representation(enum_type, &enum_type->source_corresp.decl_position,
+                          diag_range, explicit_base_kind,
+                          min_max_set, &min_value, &max_value);
+#if GNU_EXTENSIONS_ALLOWED
+  if (gnu_mode && explicit_base_kind == (an_integer_kind)ik_none) {
+    an_integer_kind  int_kind = enum_type->variant.integer.int_kind;
+    if (gcc_mode) {
+      /* Unlike standard C, GNU C bases an underlying type on the enumerator
+         values that were encountered. */
+      /* Create the appropriate type for the enumerator constants. */
+      enum_con_type = alloc_type((a_type_kind)tk_integer);
+      enum_con_type->variant.integer.int_kind = int_kind;
+      enum_con_type->variant.integer.enum_type = FALSE;
+      enum_con_type->variant.integer.enum_info.affiliated_type = enum_type;
+      set_type_size(enum_con_type);
+      /* Apply this type to every enumerator constant. */
+      change_enum_constants_type(constant_list, enum_con_type);
+    }  /* if */
+    if (min_max_set && unsigned_int_kind_of[int_kind] != int_kind &&
+        in_range_for_integer_kind(
+                    &min_value, &max_value, unsigned_int_kind_of[int_kind])) {
+      /* GNU C prefers an unsigned underlying type if none of the
+         enumerator constants were negative.  Note that this does not affect
+         the type of the enumerator constants themselves.  GNU C++ also
+         produces the unsigned type when tested with __underlying_type, but
+         does not use that unsigned type for promotion purposes (we cannot
+         change the underlying type in the IL representation since that is
+         what we use for promotion purposes). */
+      if (gcc_mode) {
+        enum_type->variant.integer.int_kind = unsigned_int_kind_of[int_kind];
+      } else {
+        integer_type_supp(enum_type)
+                                 ->underlying_type_should_use_unsigned = TRUE;
+      }  /* if */
+    }  /* if */
+  }  /* if */
+#endif /* GNU_EXTENSIONS_ALLOWED */
+  /* Set the type size (based on the integral type it is mapped onto). */
+  set_type_size(enum_type);
+  enum_type->incomplete = FALSE;
+  if (!C_mode()) {
+    /* In C++ now that we know the type of the enumeration, we can update
+       each constant to share the same type. */
+    change_enum_constants_type(constant_list, enum_type);
+  }  /* if */
+  /* If entities dependent on this enum type were declared before it was
+     defined, they will have been recorded on a fixup list.  Go through
+     the fixup list and complete the declarations. */
+  check_dependent_type_fixup_list(tag_sym);
+  /* Issue a warning if the current token is in a file different from the
+     last token of the enum definition. */
+  check_for_file_with_unterminated_type_definition(&end_pos);
+}  /* scan_enumerator_list */
+
+
 #if !EXTRA_SOURCE_POSITIONS_IN_IL
 /*ARGSUSED*/ /* decl_pos_block is not used unless extra source-position
                 information is being recorded in the IL. */
@@ -4907,16 +5474,8 @@ dsi_flags is the set of input flags passed to decl_specifiers.
   a_symbol_ptr                 tag_sym;
   a_boolean                    tag_id_present;
   a_type_ptr                   enum_type, explicit_base = NULL;
-  a_type_ptr                   enum_con_type;
-  a_symbol_ptr                 enum_sym;
-  a_constant                   constant;
-  a_boolean                    err = FALSE, did_not_fold, template_param;
-  a_constant_ptr               constant_list = NULL, enum_con;
-  a_constant_ptr               end_of_enum_con_list;
+  a_boolean                    err = FALSE;
   a_constant                   max_value, min_value;
-  a_boolean                    done, min_max_set;
-  a_source_position            pos_comma;
-  a_memory_region_number       region_to_switch_back_to;
   a_type_ptr                   class_of_which_a_member;
   an_access_specifier          access;
 #if MICROSOFT_EXTENSIONS_ALLOWED
@@ -4941,7 +5500,6 @@ dsi_flags is the set of input flags passed to decl_specifiers.
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   a_name_reference_ptr         name_ref = NULL;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
-  a_boolean                    is_dependent_enum = FALSE;
   a_boolean                    is_scoped_enum = FALSE;
   a_boolean                    is_opaque_enum_decl = FALSE;
 
@@ -5437,6 +5995,13 @@ dsi_flags is the set of input flags passed to decl_specifiers.
     if (explicit_base != NULL) {
       /* Record the explicit underlying type as it appeared in the source. */
       integer_type_supp(enum_type)->base_type = explicit_base;
+      /* Update the position of the base type if this is the first opaque
+         declaration or if it is the definition. */
+      if (is_definition ||
+          (enum_type->incomplete &&
+           !integer_type_supp(enum_type)->enumerator_list_seen)) {
+        integer_type_supp(enum_type)->base_type_position = pos_explicit_base;
+      }  /* if */
       enum_type->variant.integer.has_explicit_enum_base = TRUE;
       /* If an explicit base is specified, the type is complete at this
          point. */
@@ -5449,528 +6014,9 @@ dsi_flags is the set of input flags passed to decl_specifiers.
     }  /* if */
   }  /* if */
   if (is_definition) {
-    a_source_position  end_pos;
-    /* We associate a curr-construct pragma with this enum type only if this
-       is a definition.  Otherwise this is assumed to be part of a declaration
-       of something else -- to which the pragma should be bound. */
-    if (tag_sym != NULL) {
-      /* Do processing required for any pragmas that are bound to the current
-         declaration. */
-      process_curr_construct_pragmas(tag_sym, (a_statement_ptr)NULL);
-    } else {
-      /* Issue diagnostics on pragmas that are trying to bind to an unnamed
-         enum. */
-      cannot_bind_to_curr_construct();
-    }  /* if */
-    if (constexpr_enabled && innermost_function_scope != NULL && !gpp_mode &&
-        innermost_function_scope->variant.routine.ptr->is_constexpr) {
-      pos_error(ec_tag_defined_in_constexpr_body, &enum_pos);
-    }  /* if */
-    /* Scan the enumeration itself.  Since the enumeration type entry is
-       allocated in the file scope memory region, all its components should
-       also be.  Switch to the file scope memory region here at the start of
-       the definition and switch back when we reach the right brace. */
-    (void)required_token(tok_lbrace, ec_exp_lbrace);
-    if (is_scoped_enum) {
-      enum_type->variant.integer.enum_info.assoc_scope = 
-                push_scope((a_scope_kind)sck_enum, NO_SCOPE_NUMBER, enum_type,
-                           (a_routine_ptr)NULL);
-    }  /* if */
-    integer_type_supp(enum_type)->enumerator_list_seen = TRUE;
-    if (C_dialect == C_dialect_cplusplus || gcc_mode) {
-      /* In C++ the type of an enumerator is the same as that of its
-         enumeration, but that won't actually be known until the definition
-         is complete.  Set the types in the enum constants later.
-         In GNU C mode, the type of an enumerator is an integer type
-         large enough to represent all the enumerator values.  It won't be
-         known until the definition is complete. */
-      enum_con_type = NULL;
-      /* For an enum in a class template the enumerators must be treated as
-         dependent. */
-      is_dependent_enum = tag_sym->corresp_nonreal_or_nested_type != NULL;
-    } else {
-      /* In C the type of the constants is always "int", regardless of
-         the type of the enumerated type (see 3.5.2.2).  However, it is
-         tagged with the enumerated type, so that enum compatibility checking
-         can be done later.  (GNU C mode is different: See above.) */
-      check_assertion(!enum_types_can_be_larger_than_int);
-      enum_con_type = alloc_type((a_type_kind)tk_integer);
-      enum_con_type->variant.integer.int_kind = (an_integer_kind)ik_int;
-      enum_con_type->variant.integer.enum_type = FALSE;
-      enum_con_type->variant.integer.enum_info.affiliated_type = enum_type;
-      set_type_size(enum_con_type);
-    }  /* if */
-    min_max_set = FALSE;
-    if (curr_token == tok_rbrace &&
-        (C_dialect == C_dialect_cplusplus
-#if MICROSOFT_EXTENSIONS_ALLOWED
-                        || microsoft_mode
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-                                         )) {
-      /* An enumerator constant list is optional in C++ and Microsoft C. */
-    } else {
-      a_boolean   cppcli_enum_init_error_issued = FALSE;
-      a_type_ptr  fixed_type = explicit_base;
-      /* The underlying type of a C++11 enumeration type is said to be fixed
-         if it is explicitly specified or if the enumeration type is scoped.
-         This is used to scan the enumerator constant definitions as "converted
-         constant expressions". */
-      if (explicit_base == NULL && is_scoped_enum) {
-        fixed_type = integer_type((an_integer_kind)ik_int);
-      }  /* if */
-      add_stop_token(tok_rbrace);
-      end_of_enum_con_list = NULL;
-      /* Scan the list of enumerated constants. */
-      do {
-        a_source_position            enum_con_pos;
-        a_source_sequence_entry_ptr  enum_con_ssep = NULL;
-#if EXTRA_SOURCE_POSITIONS_IN_IL
-        a_source_range               enum_id_range, enum_value_range;
-        enum_id_range = null_source_range;
-        enum_value_range = null_source_range;
-#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
-        add_stop_token(tok_comma);
-        add_stop_token(tok_assign);
-        enum_con_pos = pos_curr_token;
-        if (curr_token != tok_identifier) {
-          (void)required_token(tok_identifier, ec_exp_identifier);
-          set_to_error_locator(locator);
-        } else {
-#if GENERATE_SOURCE_SEQUENCE_LISTS
-#if DEBUG
-          if (!source_sequence_entries_disallowed &&
-              (debug_level >= 4 || db_flag_is_set("dump_ss_full"))) {
-            fprintf(f_debug, "enum_specifier: empty ss entry for \"%s\":\n",
-                    locator_for_curr_id.symbol_header->identifier);
-          }  /* if */
-#endif /* DEBUG */
-          enum_con_ssep = add_empty_source_sequence_entry();
-#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
-          locator = locator_for_curr_id;
-#if EXTRA_SOURCE_POSITIONS_IN_IL
-          enum_id_range.start = pos_curr_token;
-          enum_id_range.end = end_pos_curr_token;
-#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
-#if MICROSOFT_EXTENSIONS_ALLOWED
-          if (cppcli_enabled && curr_token_is_identifier_string("value__")) {
-            pos_error(ec_reserved_enumerator_name, &pos_curr_token);
-          }  /* if */
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-          /* Advance past the identifier. */
-          (void)get_token();
-          /* Set the error position to the identifier position. */
-          copy_source_position(locator.source_position, error_position);
-        }  /* if */
-        /* Note that the enumerator symbol is entered at little later, after
-           the constant expression (if any) has been scanned.  (C standard,
-           3.1.2.1 and 3.5.2.2) */
-        remove_stop_token(tok_assign);
-        err = FALSE;
-        template_param = FALSE;
-        /* Forget about expressions scanned in previous constants. */
-        constant.expr = NULL;
-        /* See if "= constant-expression" follows. */
-        if (curr_token == tok_assign) {
-          (void)get_token();
-#if EXTRA_SOURCE_POSITIONS_IN_IL
-          enum_value_range.start = pos_curr_token;
-#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
-          /* Scan the constant expression.  (If fixed_type is non-NULL, scan
-             it as a "converted constant expression" for that type in C++11
-             mode.) */
-          scan_fs_integral_constant_expression(fixed_type, /*is_enum=*/TRUE,
-                                               &constant);
-          add_backing_expression_for_named_constant(&constant);
-          /* Even though the constant may just be "0", that property should
-             not be carried into the enumerators derived from it. */
-          constant.is_simple_zero = FALSE;
-#if EXTRA_SOURCE_POSITIONS_IN_IL
-          enum_value_range.end = curr_construct_end_position;
-#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
-          if (is_error_constant(&constant)) {
-            err = TRUE;
-          } else if (constant.kind ==
-                                (a_constant_repr_kind)ck_template_param) {
-            /* We are doing a prototype instantiation and we have a case like
-               this:
-                 template <int N> class A { enum e { e1 = 2*N }; };
-            */
-            template_param = TRUE;
-          } else if (is_scoped_enum ||
-                     explicit_base_kind != (an_integer_kind)ik_none) {
-            /* The underlying type is fixed. */
-            check_enum_value_for_fixed_underlying_type(
-                                              &constant, explicit_base_kind,
-                                              /*implicit_value=*/FALSE, &err);
-          } else if (enum_types_can_be_larger_than_int) {
-            /* No need to check, since the largest integer kind will be
-               used if needed. */
-          } else {
-            check_assertion(constant.kind == (a_constant_repr_kind)ck_integer);
-            /* Check the value to see if it is out of range. */
-            if (!in_range_for_integer_kind(&constant, &constant,
-                                           largest_enum_int_kind)) {
-              a_boolean		conversion_allowed = TRUE;
-              if (strict_ansi_mode) {
-                conversion_allowed = strict_ansi_error_severity != es_error;
-              }  /* if */
-              if (conversion_allowed &&
-                  f_skip_typerefs(constant.type)->size <= targ_sizeof_int) {
-                /* In non-strict mode, allow unsigned constants that can be
-                   coerced into an int. */
-                type_change_constant(&constant,
-                                     integer_type((an_integer_kind)ik_int),
-                                     /*is_implicit_cast=*/TRUE,
-                                     /*maintain_expression=*/TRUE,
-                                     &did_not_fold,
-                                     &error_position);
-                if (strict_ansi_mode) {
-                  warning(ec_enum_value_out_of_int_range);
-                }  /* if */
-              } else {
-                error(ec_enum_value_out_of_int_range);
-                err = TRUE;
-              }  /* if */
-            }  /* if */
-          }  /* if */
-        } else {
-          /* No explicit value. */
-          if (cppcli_enabled && !cppcli_enum_init_error_issued &&
-              explicit_base_kind != (an_integer_kind)ik_none &&
-              is_bool_type(integer_type_supp(enum_type)->base_type)) {
-            /* ECMA-372 (the C++/CLI standard) requires that C++/CLI enum
-               types with an explicit boolean underlying type have explicit
-               values for each of their enumerator constants. */
-            pos_error(ec_cppcli_enumerator_requires_explicit_value,
-                      &enum_con_pos);
-            cppcli_enum_init_error_issued = TRUE;
-          }  /* if */
-          if (end_of_enum_con_list == NULL) {
-            /* This is the first enumerator.  Start with zero. */
-            an_integer_kind  first_kind = (an_integer_kind)ik_int;
-            if (explicit_base_kind != (an_integer_kind)ik_none) {
-              first_kind = explicit_base_kind;
-            }  /* if */
-            set_integer_constant(&constant, (a_host_large_integer)0,
-                                 first_kind);
-          } else if (is_error_constant(&constant)) {
-            /* There was a previous error. */
-            err = TRUE;
-          } else {
-            /* Use a value one larger than the previous value. */
-            if (constant.kind == (a_constant_repr_kind)ck_template_param) {
-              /* The previous value was template-dependent.  So we need to
-                 create a distinct template-dependent value for this one. */
-              increment_template_dependent_enum_constant(&constant);
-              template_param = TRUE;
-            } else if (is_scoped_enum ||
-                       explicit_base_kind != (an_integer_kind)ik_none) {
-              /* The underlying type is fixed. */
-              check_enum_value_for_fixed_underlying_type(
-                                              &constant, explicit_base_kind,
-                                              /*implicit_value=*/TRUE, &err);
-            } else if (is_max_value_for_integer_kind(&constant,
-                                                     largest_enum_int_kind)) {
-              /* The incremented value would be out of range (3.5.2.2,
-                 constraints). */
-              error(ec_enum_value_out_of_int_range);
-              err = TRUE;
-            } else {
-              /* If incrementing the current value requires a larger
-                 integer, just use the integer corresponding to
-                 largest_enum_int_kind.  It's not specified by the standard
-                 what larger integer to use, and it doesn't seem to make
-                 much difference. */
-              a_type_ptr  constant_type = skip_typerefs(constant.type);
-              check_assertion(constant_type->kind == (a_type_kind)tk_integer);
-              if (is_max_value_for_integer_kind(
-                                  &constant,
-                                  constant_type->variant.integer.int_kind)) {
-                constant.type = integer_type(largest_enum_int_kind);
-              }  /* if */
-              incr_integer_value(&constant.variant.integer_value);
-            }  /* if */
-          }  /* if */
-        }  /* if */
-        if (gpp_mode && scope_stack[depth_scope_stack].kind ==
-                                       (a_scope_kind)sck_class_struct_union) {
-          /* In GNU C++ mode, we remove any synthesized projection symbols
-             before entering a symbol for an enumeration specifier.  This
-             allows examples like
-               struct B { enum { e }; };
-               struct D: B { enum { d = D::e, e = d + 1 }; };
-             (which normally results in an "already declared" error). */
-          a_symbol_ptr  sym;
-          /* Look for existing symbols that would collide with the current
-             name.  The value returned by curr_scope_id_lookup is already
-             stripped of projections, but the original symbol is available
-             in the specific_symbol field of the symbol locator. */
-          (void)curr_scope_id_lookup(&locator, IDL_PROJ_SYMBOL_ALLOWED);
-          sym = locator.specific_symbol;
-          if (sym != NULL && sym->kind == (a_symbol_kind)sk_projection &&
-              !sym->variant.projection.is_using_decl) {
-            remove_symbol(sym);
-          }  /* if */
-        }  /* if */
-        /* Enter the enumeration constant identifier. */
-        if (class_reactivation_pushed && !is_scoped_enum) {
-          /* enter_local_symbol cannot be used to add a symbol to a completed
-             class scope.  Use enter_symbol_into_completed_class instead. */
-          enum_sym = make_symbol((a_symbol_kind)sk_constant, &locator);
-          enum_sym->is_class_member = TRUE;
-          enum_sym->decl_scope = reactivated_class_scope_number;
-          enum_sym->parent.class_type = class_of_which_a_member;
-          enter_symbol_into_completed_class(enum_sym);
-        } else {
-          enum_sym = enter_local_symbol((a_symbol_kind)sk_constant, &locator,
-                                        decl_scope_level,
-                                        /*suppress_redecl_error=*/FALSE);
-        }  /* if */
-        if (!is_scoped_enum) {
-          /* An unscoped and unnamed enum type definition that introduces
-             enumerator constants "declares something", but a scoped unnamed
-             enum type does not "declare something" (at least not in its
-             surrounding scope). */
-          *declares_something = TRUE;
-        }  /* if */
-        /* Track the highest and lowest values in the enumeration.  These are
-           used to determine the appropriate representation type. */
-        if (err) {
-          /* There was some kind of error in the value for the enumerator. */
-          set_error_constant(&constant);
-        } else if (template_param) {
-          /* The expression has a template parameter value, so it has
-             no effect on the size of the enumeration. */
-        } else if (!min_max_set) {
-          max_value = constant;
-          min_value = constant;
-          min_max_set = TRUE;
-        } else if (cmp_integer_constants(&constant, &max_value) > 0) {
-          max_value = constant;
-        } else if (cmp_integer_constants(&constant, &min_value) < 0) {
-          min_value = constant;
-        }  /* if */
-        /* Assign the value to the enumeration constant. */
-        switch_to_file_scope_region(&region_to_switch_back_to);
-        if (constant.kind == (a_constant_repr_kind)ck_template_param ||
-            is_dependent_enum) {
-          /* Add a do-nothing cast to a ck_template_constant so as
-             to avoid problems with using the same constant entry for
-             the enumerator and its value (e.g., class membership
-             information for the value as a tpck_member constant
-             conflicts with the class membership of the enumerator).
-             Also do this for enumerators that must be treated as dependent. */
-          make_template_param_cast_constant(&constant, &constant,
-                                            constant.type,
-                                            /*is_explicit=*/FALSE);
-        }  /* if */
-        enum_con = alloc_unshared_constant(&constant);
-        enum_con->is_named_constant_definition = TRUE;
-        /* Record the parent scope of the enumerator. */
-        if (class_reactivation_pushed && !is_scoped_enum) {
-          enum_con->source_corresp.parent_scope =
-                        class_type_supp(class_of_which_a_member)->assoc_scope;
-        } else {
-          if (scope_stack[decl_scope_level].kind == (a_scope_kind)sck_block ||
-              scope_stack[decl_scope_level].kind ==
-                                           (a_scope_kind)sck_func_prototype) {
-            /* Don't call ensure_il_scope_exists for any scope other than block
-               and function prototype scopes, because it may fail (abort) in
-               some unusual error cases. */
-            (void)ensure_il_scope_exists(&scope_stack[decl_scope_level]);
-          }  /* if */
-          enum_con->source_corresp.parent_scope =
-                                       scope_stack[decl_scope_level].il_scope;
-          if (parent_scope_of(enum_con) == NULL) {
-            /* Only occurs in strange error situations (e.g., an enum defined
-               in a template parameter list). */
-            expect_error();
-          } else if (!in_file_scope(parent_scope_of(enum_con))) {
-            /* A memory region constraint violation: Break the link. */
-            enum_con->source_corresp.parent_scope = NULL;
-          }  /* if */
-        }  /* if */
-        /* Switch back from the file scope memory region to whatever region
-           was current upon entry. */
-        switch_back_to_original_region(region_to_switch_back_to);
-        set_source_corresp(&(enum_con->source_corresp), enum_sym);
-        enum_con->source_corresp.name_linkage =
-                                       enum_type->source_corresp.name_linkage;
-        enum_sym->variant.constant = enum_con;
-        if (gcc_mode) {
-          /* In GNU C mode, the type of the constants is determined after
-             all the constants have been seen. */
-        } else if (C_mode()) {
-          enum_con->type = enum_con_type;
-        } else {
-          /* In C++ mode leave the type of the constant unchanged for now.
-             The enumerator constants will get the type of the enumeration,
-             but not until after all the constants have been scanned.  (This
-             affects cases in which an enum constant expression involves a
-             previously declared enum constant from the same enumeration.) */
-          if (!is_scoped_enum) {
-            /* In C++ specify membership and access.  That doesn't apply to
-               scoped enum constants; setting parent_scope (done above) is
-               sufficient for those. */
-            if (class_of_which_a_member != NULL) {
-              /* Set the parent class. */
-              set_class_membership(enum_sym, &enum_con->source_corresp,
-                                   class_of_which_a_member);
-            } else if (sym_is_namespace_member(tag_sym)) {
-              /* Set the parent namespace. */
-              set_namespace_membership(enum_sym, &enum_con->source_corresp,
-                                       sym_parent_namespace(tag_sym));
-            }  /* if */
-            enum_con->source_corresp.access = access;
-          }  /* if */
-        }  /* if */
-        record_symbol_declaration(SRK_DECLARATION | SRK_DEFINITION, enum_sym,
-                                  &locator.source_position, enum_con_ssep);
-        /* Add the enumeration constant to the list under the enumerated
-           type. */
-        if (end_of_enum_con_list == NULL) {
-          constant_list = enum_con;
-          if (is_scoped_enum) {
-            enum_type->variant.integer.enum_info.assoc_scope->constants =
-                                                                constant_list;
-          } else {
-            enum_type->variant.integer.enum_info.constant_list = constant_list;
-          }  /* if */
-        } else {
-          end_of_enum_con_list->next = enum_con;
-        }  /* if */
-        end_of_enum_con_list = enum_con;
-#if EXTRA_SOURCE_POSITIONS_IN_IL
-        { a_decl_position_supplement_ptr  dpsp;
-          dpsp = enum_con->source_corresp.decl_pos_info;
-          if (dpsp != NULL) {
-            dpsp->identifier_range = enum_id_range;
-            dpsp->variant.enum_value_range = enum_value_range;
-          }  /* if */
-        }
-#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
-        /* Keep looping while there are more enumeration constant
-           identifiers. */
-        copy_source_position(pos_curr_token, pos_comma);
-        done = !loop_token(tok_comma);
-        if (!done && curr_token == tok_rbrace) {
-           /* In K&R C, C99, and C++11 modes an extra comma is allowed at the
-              end of the list.  In other C and C++ modes, we allow it as an
-              extension, with a remark or strict ANSI diagnostic, but the
-              diagnostic is omitted altogether for C++11-like scoped enum
-              types and enum types with explicit underlying types.  The gcc
-              compiler source includes cases like this, and that source is
-              part of the SPEC benchmark suite. */
-          done = TRUE;
-          if (C_dialect != C_dialect_pcc && !c99_mode && !cpp11_mode &&
-              !(is_scoped_enum ||
-                explicit_base_kind != (an_integer_kind)ik_none)) {
-            an_error_severity  severity;
-            severity = strict_ansi_mode ? strict_ansi_discretionary_severity :
-                                          es_remark;
-            pos_diagnostic(severity, ec_nonstd_extra_comma, &pos_comma);
-          }  /* if */
-        }  /* if */
-        remove_stop_token(tok_comma);
-      } while (!done);
-      remove_stop_token(tok_rbrace);
-    }  /* if */
-    end_pos = pos_curr_token;
-#if EXTRA_SOURCE_POSITIONS_IN_IL
-    local_decl_pos_block.specifiers_range.end = pos_curr_token;
-#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
-    /* Check for and pass over the closing "}". */
-    (void)required_token(tok_rbrace, ec_exp_rbrace);
-    if (is_scoped_enum) pop_scope();
-    attach_tag_attributes(dps->tag_attributes, enum_type, dps, is_definition,
-                          /*is_forward_decl=*/FALSE,
-                          /*ignore_gnu_attributes=*/FALSE);
-#if GNU_EXTENSIONS_ALLOWED
-    if (gnu_mode && curr_token == tok_attribute) {
-      /* Check for something like "enum E { e } __attribute((packed));".
-         Ordinarily, specifier attributes should be applied after all
-         specifiers have been seen, but in this case some may have to be
-         applied before the type underlying the enumeration is fixed. */
-      an_attribute_ptr  attributes =
-                            scan_gnu_attribute_groups(al_post_tag_definition);
-      if (attributes != NULL) {
-        end_pos = end_position_of_attributes;
-#if EXTRA_SOURCE_POSITIONS_IN_IL
-        if (decl_pos_block != NULL) {
-          /* Update the recorded end position to the end of the attributes
-             specifier. */
-          decl_pos_block->specifiers_range.end = curr_construct_end_position;
-        }  /* if */
-#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
-        attach_postfix_enum_attributes(attributes, enum_type, dps);
-      }  /* if */
-    }  /* if */
-#endif /* GNU_EXTENSIONS_ALLOWED */
-#if MICROSOFT_EXTENSIONS_ALLOWED
-    if (p_ms_attributes != NULL && *p_ms_attributes != NULL &&
-        depth_innermost_function_scope == NO_SCOPE_NUMBER &&
-        !inside_local_class) {
-      apply_microsoft_attributes(p_ms_attributes, (char*)enum_type,
-                                 (an_il_entry_kind)iek_type, MSAT_ENUM);
-    }  /* if */
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-#if GENERATE_SOURCE_SEQUENCE_LISTS
-    /* Add a source sequence entry marking the end of the enum definition. */
-    add_end_of_construct_source_sequence_entry((char *)enum_type,
-                                               (a_byte_il_entry_kind)iek_type);
-#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
-    set_enum_representation(enum_type, &tag_position, err,
-                            explicit_base_kind, &pos_explicit_base,
-                            min_max_set, &min_value, &max_value);
-#if GNU_EXTENSIONS_ALLOWED
-    if (gnu_mode && explicit_base_kind == (an_integer_kind)ik_none) {
-      an_integer_kind  int_kind = enum_type->variant.integer.int_kind;
-      if (gcc_mode) {
-        /* Unlike standard C, GNU C bases an underlying type on the enumerator
-           values that were encountered. */
-        /* Create the appropriate type for the enumerator constants. */
-        enum_con_type = alloc_type((a_type_kind)tk_integer);
-        enum_con_type->variant.integer.int_kind = int_kind;
-        enum_con_type->variant.integer.enum_type = FALSE;
-        enum_con_type->variant.integer.enum_info.affiliated_type = enum_type;
-        set_type_size(enum_con_type);
-        /* Apply this type to every enumerator constant. */
-        change_enum_constants_type(constant_list, enum_con_type);
-      }  /* if */
-      if (min_max_set && unsigned_int_kind_of[int_kind] != int_kind &&
-          in_range_for_integer_kind(
-                    &min_value, &max_value, unsigned_int_kind_of[int_kind])) {
-        /* GNU C prefers an unsigned underlying type if none of the
-           enumerator constants were negative.  Note that this does not affect
-           the type of the enumerator constants themselves.  GNU C++ also
-           produces the unsigned type when tested with __underlying_type, but
-           does not use that unsigned type for promotion purposes (we cannot
-           change the underlying type in the IL representation since that is
-           what we use for promotion purposes). */
-        if (gcc_mode) {
-          enum_type->variant.integer.int_kind = unsigned_int_kind_of[int_kind];
-        } else {
-          integer_type_supp(enum_type)
-                                  ->underlying_type_should_use_unsigned = TRUE;
-        }  /* if */
-      }  /* if */
-    }  /* if */
-#endif /* GNU_EXTENSIONS_ALLOWED */
-    /* Set the type size (based on the integral type it is mapped onto). */
-    set_type_size(enum_type);
-    enum_type->incomplete = FALSE;
-    if (!C_mode()) {
-      /* In C++ now that we know the type of the enumeration, we can update
-         each constant to share the same type. */
-      change_enum_constants_type(constant_list, enum_type);
-    }  /* if */
-    /* If entities dependent on this enum type were declared before it was
-       defined, they will have been recorded on a fixup list.  Go through
-       the fixup list and complete the declarations. */
-    check_dependent_type_fixup_list(tag_sym);
-    /* Issue a warning if the current token is in a file different from the
-       last token of the enum definition. */
-    check_for_file_with_unterminated_type_definition(&end_pos);
+    scan_enumerator_list(enum_type, dps, p_ms_attributes,
+                         class_of_which_a_member,
+                         declares_something, &local_decl_pos_block);
   } else {
     /* No brace-enclosed list follows. */
     attach_tag_attributes(dps->tag_attributes, enum_type, dps, is_definition,
@@ -5978,8 +6024,8 @@ dsi_flags is the set of input flags passed to decl_specifiers.
                             (curr_token == tok_semicolon && !strict_ansi_mode),
                           /*ignore_gnu_attributes=*/TRUE);
     if (is_opaque_enum_decl) {
-      set_enum_representation(enum_type, &tag_position, err,
-                              explicit_base_kind, &pos_explicit_base,
+      set_enum_representation(enum_type, &tag_position, !err,
+                              explicit_base_kind,
                               /*min_max_set=*/FALSE, &min_value, &max_value);
       enum_type->incomplete = FALSE;
       set_type_size(enum_type);

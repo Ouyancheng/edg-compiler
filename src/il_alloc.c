@@ -1241,6 +1241,7 @@ a pointer to it.
 #endif /* DO_IL_LOWERING */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   itsp->base_type = NULL;
+  itsp->base_type_position = null_source_position;
   return itsp;
 }  /* alloc_integer_type_supplement */
 

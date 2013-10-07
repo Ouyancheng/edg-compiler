@@ -1712,6 +1712,7 @@ Display the indicated integer type supplement.
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   if (ptr->base_type != NULL) {
     disp_ptr("base_type", (char *)ptr->base_type, iek_type);
+    disp_source_position("base_type_position", &ptr->base_type_position);
   }  /* if */
 }  /* disp_integer_type_supplement */
 
