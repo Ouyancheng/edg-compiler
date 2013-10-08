@@ -4886,14 +4886,14 @@ void scan_enumerator_list(a_type_ptr             enum_type,
                           a_decl_pos_block       *decl_pos_block)
 /*
 Scan the list of enumerators in an enum type definition, including its
-enclosing braces.  (The current token is the left brace.)  enum_type is the
-type whose definition must be scanned.  *dps describes the declaration
-containing the enum definition (which may include attributes).
-p_ms_attributes describes Microsoft COM-style attributes preceding the enum
-specifier (if any).   class_of_which_a_member specifies the parent type of
-the enum type.  *declares_something is set to TRUE if an unscoped enum
-definition introduces a name in its surrounding scope.  *decl_pos_block is
-updated to reflect relevant positions of this definition.
+enclosing braces.  (The current token is the left brace, except perhaps in
+error cases.)  enum_type is the type whose definition must be scanned.  *dps
+describes the declaration containing the enum definition (which may include
+attributes).  p_ms_attributes describes Microsoft COM-style attributes
+preceding the enum specifier (if any).   class_of_which_a_member specifies the
+parent type of the enum type.  *declares_something is set to TRUE if an
+unscoped enum definition introduces a name in its surrounding scope.
+*decl_pos_block is updated to reflect relevant positions of this definition.
 */
 {
   a_symbol_ptr       tag_sym = symbol_for(enum_type), enum_con_sym;
@@ -4910,7 +4910,7 @@ updated to reflect relevant positions of this definition.
   a_memory_region_number
                      region_to_switch_back_to;
 
-  check_assertion(curr_token == tok_lbrace);
+  check_assertion_or_expect_error(curr_token == tok_lbrace);
   explicit_base = integer_type_supp(enum_type)->base_type;
   if (explicit_base == NULL) {
     explicit_base_kind = (an_integer_kind)ik_none;
