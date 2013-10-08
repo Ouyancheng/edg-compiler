@@ -2692,12 +2692,12 @@ correspondence entry.
 }  /* update_decl_pos_info */
 
 
-void f_add_element_position(an_element_position_kind        kind,
-                                   a_source_position        *pos,
-                                   an_element_position_ptr  *p_epp)
+void f_add_element_position(an_element_position_kind  kind,
+                            a_source_position         *pos,
+                            an_element_position_ptr   *p_epp)
 /*
 Append to the list pointed to by *p_epp an element position entry of the given
-kind and for the given position.  Upon return *p_epp is points to the added
+kind and for the given position.  Upon return *p_epp points to the added
 element.
 */
 {
