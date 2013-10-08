@@ -4878,6 +4878,10 @@ integer type and adjust the associated integer values if needed.
 }  /* change_enum_constants_type */
 
 
+#if !EXTRA_SOURCE_POSITIONS_IN_IL || !MICROSOFT_EXTENSIONS_ALLOWED
+/*ARGSUSED*/ /* decl_pos_block and p_ms_attributes are not used in some
+                configurations. */
+#endif /* !EXTRA_SOURCE_POSITIONS_IN_IL || !MICROSOFT_EXTENSIONS_ALLOWED */
 void scan_enumerator_list(a_type_ptr             enum_type,
                           a_decl_parse_state     *dps,
                           an_ms_attribute_ptr    *p_ms_attributes,
