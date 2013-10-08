@@ -14,11 +14,12 @@ For example:
   template<> struct S<void>;
   template<> struct S<int> {};
 
-Here, the secondary source sequence entry for the specialization of S<void>
-(if any) points to a decl-position supplement that now itself points to an
-entry describing the position of the "template" keyword.  In the case of a
-specialization that is a definition (like S<int>), the same information is
-available via the decl-position supplement of the source correspondence entry.
+When GENERATE_SOURCE_SEQUENCE_LISTS is TRUE, the secondary source sequence
+entry for the specialization of S<void> points to a decl-position supplement
+that now itself points to an entry describing the position of the "template"
+keyword.  In the case of a specialization that is a definition (like S<int>),
+the same information is available via the decl-position supplement of the
+source correspondence entry.
 
 
 10/1/13  [EDGcpfe/14538]
