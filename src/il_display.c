@@ -2204,13 +2204,6 @@ Display the indicated type entry.
                                                         max_member_alignment);
       }  /* if */
 #endif /* USER_CONTROL_OF_STRUCT_PACKING */
-#if PROTOTYPE_INSTANTIATIONS_IN_IL
-      if (ptr->variant.class_struct_union.proxy_of_type != NULL) {
-        disp_ptr("proxy_of_type",
-                 (char *)ptr->variant.class_struct_union.proxy_of_type,
-                 iek_type);
-      }  /* if */
-#endif /* PROTOTYPE_INSTANTIATIONS_IN_IL */
       break;
     case tk_typeref:
       disp_ptr("typeref_type", (char *)ptr->variant.typeref.type,
@@ -6522,6 +6515,11 @@ Display the indicated class type supplement entry.
     disp_ptr("invocation_type", (char*)ptr->invocation_type, iek_type);
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+#if PROTOTYPE_INSTANTIATIONS_IN_IL
+  if (ptr->proxy_of_type != NULL) {
+    disp_ptr("proxy_of_type", (char *)ptr->proxy_of_type, iek_type);
+  }  /* if */
+#endif /* PROTOTYPE_INSTANTIATIONS_IN_IL */
 }  /* disp_class_type_supplement */
 
 

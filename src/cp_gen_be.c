@@ -2966,8 +2966,8 @@ for the meaning of need_closing_paren.
 */
 {
   /* Ignore anonymous union levels. */
-  while (class_type->variant.class_struct_union.extra_info
-                   ->anonymous_union_kind == (an_anonymous_union_kind)auk_field
+  while (class_type_supp(class_type)->anonymous_union_kind ==
+                                             (an_anonymous_union_kind)auk_field
 #if ALLOW_NONSTANDARD_ANONYMOUS_UNIONS
          || class_type
                    ->variant.class_struct_union.is_nonstd_anonymous_union_type
@@ -2975,7 +2975,7 @@ for the meaning of need_closing_paren.
                                                                             ) {
     class_type = parent_class_of(class_type);
   }  /* while */
-  if (class_type->variant.class_struct_union.extra_info->anonymous_union_kind
+  if (class_type_supp(class_type)->anonymous_union_kind
                                     == (an_anonymous_union_kind)auk_variable) {
     /* Put out no name for the topmost level in a non-field anonymous union. */
   } else if (!has_name_before_mangling(class_type) &&
@@ -2988,12 +2988,11 @@ for the meaning of need_closing_paren.
     write_tok_str("::");
   } else {
 #if PROTOTYPE_INSTANTIATIONS_IN_IL
-    if (class_type->variant.class_struct_union.proxy_of_type != NULL) {
-      /* This qualifier represents a template parameter or dependent
-         type. */
+    if (class_type_supp(class_type)->proxy_of_type != NULL) {
+      /* This qualifier represents a template parameter or dependent type. */
       a_source_correspondence_ptr scp;
       a_type_ptr                  template_param_type =
-                          class_type->variant.class_struct_union.proxy_of_type;
+                                    class_type_supp(class_type)->proxy_of_type;
       check_assertion(template_param_type->kind ==
                                                (a_type_kind)tk_template_param);
       if (template_param_type->variant.template_param.kind ==
@@ -3641,8 +3640,7 @@ GN_PARENS_IF_GLOBAL_QUALIFIER is not set.
       if (class_type->variant.class_struct_union.proxy_class) {
         /* This is a dependent type.  Check to see if it's a proxy for a
            decltype construct; if so, we will use that as the qualifier. */
-        a_type_ptr proxy_type =
-                          class_type->variant.class_struct_union.proxy_of_type;
+        a_type_ptr proxy_type = class_type_supp(class_type)->proxy_of_type;
         if (proxy_type->kind == (a_type_kind)tk_typeref &&
             proxy_type->variant.typeref.is_decltype) {
           decltype_type = proxy_type;
@@ -5278,11 +5276,11 @@ al_tag_name attributes (if any).
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if PROTOTYPE_INSTANTIATIONS_IN_IL
     if (is_immediate_class_type(type) && (options & GN_FRIEND_DECL) &&
-        type->variant.class_struct_union.proxy_class &&
-        type->variant.class_struct_union.proxy_of_type != NULL) {
+        type->variant.class_struct_union.proxy_class) {
       /* This is a dependent type.  See if it's a template parameter. */
-      a_type_ptr proxy_type = type->variant.class_struct_union.proxy_of_type;
-      if (proxy_type->kind == (a_type_kind)tk_template_param &&
+      a_type_ptr proxy_type = class_type_supp(type)->proxy_of_type;
+      if (proxy_type != NULL &&
+          proxy_type->kind == (a_type_kind)tk_template_param &&
           proxy_type->variant.template_param.kind ==
                                       (a_template_param_type_kind)tptk_param) {
         /* This is a proxy class for a template parameter.  Use the C++11

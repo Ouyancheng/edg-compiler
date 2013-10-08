@@ -7486,6 +7486,14 @@ typedef struct a_class_type_supplement {
 			   a type that doesn't include a "this" parameter.
 			   NULL if this entry isn't for a delegate class. */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+#if PROTOTYPE_INSTANTIATIONS_IN_IL
+  a_type_ptr
+		proxy_of_type;
+			/* For nonreal classes that directly represent a
+			   proxy class, this points back to the template
+			   parameter or decltype type for which the proxy
+			   class was created; otherwise, NULL. */
+#endif /* PROTOTYPE_INSTANTIATIONS_IN_IL */
 } a_class_type_supplement;
 
 enum a_template_param_type_kind_tag {
@@ -8651,14 +8659,6 @@ typedef struct a_type {
 			   nonstatic data member's alignment is based solely
 			   on its type.) */
 #endif /* USER_CONTROL_OF_STRUCT_PACKING */
-#if PROTOTYPE_INSTANTIATIONS_IN_IL
-      a_type_ptr
-		proxy_of_type;
-			/* For nonreal classes that directly represent a
-			   proxy class, this points back to the template
-			   parameter or decltype type for which the proxy
-			   class was created; otherwise, NULL. */
-#endif /* PROTOTYPE_INSTANTIATIONS_IN_IL */
     } class_struct_union;
     /* When kind == tk_typeref: */
     struct {

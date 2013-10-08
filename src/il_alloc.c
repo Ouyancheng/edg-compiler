@@ -1566,6 +1566,9 @@ Give an pointer to a class-type-supplement entry, initialize its fields.
   ctsp->base_object_finalize_routine      = NULL;
   ctsp->invocation_type                   = NULL;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+#if PROTOTYPE_INSTANTIATIONS_IN_IL
+  ctsp->proxy_of_type                     = NULL;
+#endif /* PROTOTYPE_INSTANTIATIONS_IN_IL */
 }  /* clear_class_type_supplement */
 
 
@@ -1733,9 +1736,6 @@ to default values.
 #if USER_CONTROL_OF_STRUCT_PACKING
       pte->variant.class_struct_union.max_member_alignment = 0;
 #endif /* USER_CONTROL_OF_STRUCT_PACKING */
-#if PROTOTYPE_INSTANTIATIONS_IN_IL
-      pte->variant.class_struct_union.proxy_of_type = NULL;
-#endif /* PROTOTYPE_INSTANTIATIONS_IN_IL */
       /* Allocate the class type supplement. */
       {
         a_class_type_supplement_ptr  ctsp;

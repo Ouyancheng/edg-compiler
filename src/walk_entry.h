@@ -1085,10 +1085,6 @@ the file scope, do not process it (but record an orphan in the latter case).
                 walk_list(ptr->variant.class_struct_union.field_list,
                           a_field_ptr, iek_field);
             }  /* if */
-#if PROTOTYPE_INSTANTIATIONS_IN_IL
-            walk_ptr(ptr->variant.class_struct_union.proxy_of_type,
-                     a_type_ptr, iek_type);
-#endif /* PROTOTYPE_INSTANTIATIONS_IN_IL */
 #if NEEDED_FLAG_WALK || KEEP_IN_IL_WALK
             /* Handle the class type supplement inline, because we need
                to have a pointer to the class to decide whether or not to
@@ -3031,6 +3027,9 @@ after_entry_from_class:
                             iek_routine);
         walk_ptr(ptr->invocation_type, a_type_ptr, iek_type);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+#if PROTOTYPE_INSTANTIATIONS_IN_IL
+        walk_ptr(ptr->proxy_of_type, a_type_ptr, iek_type);
+#endif /* PROTOTYPE_INSTANTIATIONS_IN_IL */
       }
       break;
     case iek_template_param_type_supplement:

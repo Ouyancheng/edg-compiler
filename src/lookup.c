@@ -582,7 +582,7 @@ created.
 #if PROTOTYPE_INSTANTIATIONS_IN_IL
     /* Allow users of the proxy class to find the associated template
        parameter or decltype type. */
-    (*proxy_class)->variant.class_struct_union.proxy_of_type = type;
+    class_type_supp(*proxy_class)->proxy_of_type = type;
 #endif /* PROTOTYPE_INSTANTIATIONS_IN_IL */
   }  /* if */
   return *proxy_class;
