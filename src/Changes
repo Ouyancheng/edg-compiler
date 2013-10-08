@@ -1,5 +1,19 @@
 Version 5.0
 
+10/8/13  [EDGcpfe/14545]
+Abort on braced initializer for complex variable in GNU C++11 mode
+
+In GNU C++11 mode, a braced initializer for a _Complex variable could result
+in an abort (during the execution of conv_float_to_integer when called from
+is_narrowing_conversion).  For example:
+
+  int main() { 
+    _Complex double x = {0};  // Previously triggered an abort
+  }                           // in GNU C++11 mode.
+
+This is now fixed.
+
+
 10/3/13  [EDGcpfe/14530]
 Extra source position information and explicit specializations
 

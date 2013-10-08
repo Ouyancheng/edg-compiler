@@ -4115,14 +4115,27 @@ for source and destination type).
 #endif /* C99_IL_EXTENSIONS_SUPPORTED */
          ) {
         a_constant fp_constant;
+        a_boolean  complex_dest = is_complex_type(dest_type);
         con_check_done = TRUE;
-        clear_constant(&fp_constant, (a_constant_repr_kind)ck_float);
-        fp_constant.type = dest_type;
-        conv_integer_value_to_float(&source_constant->variant.integer_value,
-                                    int_constant_is_signed(source_constant),
-                                    &fp_constant.variant.float_value,
-                                    dest_type->variant.float_kind,
-                                    &err);
+        if (complex_dest) { 
+          clear_constant(&fp_constant, (a_constant_repr_kind)ck_complex); 
+        } else { 
+          clear_constant(&fp_constant, (a_constant_repr_kind)ck_float); 
+        } 
+        fp_constant.type = dest_type; 
+        if (complex_dest) { 
+          conv_integer_value_to_float(&source_constant->variant.integer_value, 
+                                      int_constant_is_signed(source_constant), 
+                                      &fp_constant.variant.complex_value->real,
+                                      dest_type->variant.float_kind, 
+                                      &err); 
+        } else { 
+          conv_integer_value_to_float(&source_constant->variant.integer_value, 
+                                      int_constant_is_signed(source_constant), 
+                                      &fp_constant.variant.float_value, 
+                                      dest_type->variant.float_kind, 
+                                      &err); 
+        }  /* if */
         if (!err) {
           /* Convert back to the original integral type to see if we lost
              anything due to precision issues. */
