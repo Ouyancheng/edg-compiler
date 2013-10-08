@@ -15750,10 +15750,10 @@ options is a set of name lookup options.
       expr_copy = copy_expr_tree(expr, CE_NO_OPTIONS);
       break;
     case enk_temp_init:
-      /* A functional-notation cast with empty parentheses, e.g., T(), can
-         become a constant here if T is now a scalar type.  Expression
-         rescanning handles fancier cases, but this is all we need here
-         for the old-style SFINAE handling. */
+      /* A functional-notation cast with empty parentheses or braces, e.g.,
+         T(), can become a constant here if T is now a scalar type (or, in
+         C++11, literal type).  Expression rescanning handles fancier cases,
+         but this is all we need here for the old-style SFINAE handling. */
       { a_dynamic_init_ptr dip = expr->variant.init.dynamic_init;
         if (dip->kind == (a_dynamic_init_kind)dik_zero) {
           a_type_ptr new_type = copy_type_with_substitution(
@@ -15769,10 +15769,10 @@ options is a set of name lookup options.
             goto end_of_routine;
           }  /* if */
         } else if (dip->kind == (a_dynamic_init_kind)dik_constant) {
-          /* Even with new-style SFINAE, a cast to an rvalue reference can
-             create a temporary initialized with a constant.  Use the
-             underlying constant. */
-          check_assertion_or_expect_error(is_generated_dynamic_init(dip));
+          /* Even with new-style SFINAE we may end up here with a temporary
+             initialized with a constant (e.g., a cast to an rvalue reference
+             can create a temporary initialized with a constant; other cases
+             are possible too).  Use the underlying constant. */
           *alloc_con = copy_template_param_con(dip->variant.constant,
                                                template_arg_list,
                                                template_param_list,
