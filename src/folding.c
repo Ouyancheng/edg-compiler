@@ -5746,6 +5746,13 @@ constexpr expansion, and the block provides context information.
         ptr_con.kind  == (a_constant_repr_kind)ck_template_param) {
       /* At least one constant is a template parameter, so we're not going
          to fold this to a constant address. */
+    } else if (is_error_constant(&ptr_con) ||
+               is_error_constant(int_con_ptr)) {
+      /* At least one constant is an error.  Set the result to be an
+         error constant as well and indicate that the expression is a
+         constant to reduce error cascades. */
+      set_error_constant(con);
+      is_constant = TRUE;
     } else {
       do_padd(&ptr_con, expr->variant.operation.kind, int_con_ptr, con,
               &did_not_fold, &err_code, &err_severity);
