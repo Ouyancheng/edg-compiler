@@ -9551,7 +9551,7 @@ void update_routine_type_exception_specification_if_needed(
                                                          a_type_ptr     *p_tp)
 /*
 rp represents a function and *p_tp a type with which that function was
-declared.  If represents a destructor or operator delete and *p_tp does not
+declared.  If rp represents a destructor or operator delete and *p_tp does not
 include an exception specification, record in *p_tp the implied exception
 specification (for a destructor, the one that would be generated for a
 synthesized destructor if rp had not been declared explicitly).
@@ -13558,9 +13558,15 @@ implicitly declared member functions.
         cssp->has_operator_array_new = TRUE;
       } else if (rtn->variant.opname_kind == (an_opname_kind)onk_delete) {
         cssp->has_operator_delete = TRUE;
+        /* In C++11, operator delete is implicitly noexcept. */
+        update_routine_type_exception_specification_if_needed(
+                                                       rtn, &decl_state->type);
       } else if (rtn->variant.opname_kind == 
                                             (an_opname_kind)onk_array_delete) {
         cssp->has_operator_array_delete = TRUE;
+        /* In C++11, operator delete is implicitly noexcept. */
+        update_routine_type_exception_specification_if_needed(
+                                                       rtn, &decl_state->type);
       }  /* if */
     } else if (locator->is_conversion_name) {
       /* User-defined conversion function. */
@@ -14006,9 +14012,15 @@ decl_member_function, which handles in-class member function declarations.)
           break;
         case onk_delete:
           cssp->has_operator_delete = TRUE;
+          /* In C++11, operator delete is implicitly noexcept. */
+          update_routine_type_exception_specification_if_needed(
+                                                             rtn, &dps->type);
           break;
         case onk_array_delete:
           cssp->has_operator_array_delete = TRUE;
+          /* In C++11, operator delete is implicitly noexcept. */
+          update_routine_type_exception_specification_if_needed(
+                                                             rtn, &dps->type);
           break;
         default:;
       }  /* switch */

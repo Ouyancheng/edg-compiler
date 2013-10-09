@@ -1,5 +1,25 @@
 Version 5.0
 
+10/9/13  [EDGcpfe/14554]
+Spurious exception specification mismatch error on operator delete members
+
+In C++11, deallocation operators ("operator delete" and "operator delete[]")
+are implicitly noexcept if they are not declared with an explicit exception
+specification (see also the entry of 1/8/13 for EDGcpfe/13566).  Previously,
+the front end sometimes failed to apply this rule to in-class declarations of
+member deallocation functions.  This resulted in spurious errors.  For
+example:
+
+  template<typename> struct S {
+    static void operator delete(void*, __EDG_SIZE_TYPE__);
+  };
+  template<typename T> void S<T>::operator delete(void*, __EDG_SIZE_TYPE__) {}
+    // Previously triggered a spurious error regarding incompatible
+    // exception specification in C++11 modes.
+
+This is now fixed.
+
+
 10/8/13  [EDGcpfe/14545]
 Abort on braced initializer for complex variable in GNU C++11 mode
 
