@@ -4115,20 +4115,27 @@ for source and destination type).
 #endif /* C99_IL_EXTENSIONS_SUPPORTED */
          ) {
         a_constant fp_constant;
-        a_boolean  complex_dest = is_complex_type(dest_type);
+        a_boolean  complex_dest = FALSE;
+#if C99_IL_EXTENSIONS_SUPPORTED
+        complex_dest = is_complex_type(dest_type);
+#endif /* C99_IL_EXTENSIONS_SUPPORTED */
         con_check_done = TRUE;
         if (complex_dest) { 
+#if C99_IL_EXTENSIONS_SUPPORTED
           clear_constant(&fp_constant, (a_constant_repr_kind)ck_complex); 
+#endif /* C99_IL_EXTENSIONS_SUPPORTED */
         } else { 
           clear_constant(&fp_constant, (a_constant_repr_kind)ck_float); 
         } 
         fp_constant.type = dest_type; 
         if (complex_dest) { 
+#if C99_IL_EXTENSIONS_SUPPORTED
           conv_integer_value_to_float(&source_constant->variant.integer_value, 
                                       int_constant_is_signed(source_constant), 
                                       &fp_constant.variant.complex_value->real,
                                       dest_type->variant.float_kind, 
                                       &err); 
+#endif /* C99_IL_EXTENSIONS_SUPPORTED */
         } else { 
           conv_integer_value_to_float(&source_constant->variant.integer_value, 
                                       int_constant_is_signed(source_constant), 
