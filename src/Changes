@@ -1,5 +1,22 @@
 Version 5.0
 
+10/9/13  [EDGcpfe/14552]
+Lambda closure types given same mangled name
+
+In cases where a lambda is used as an initializer for a namespace object
+but is defined outside of the namespace definition, a non-unique discriminator
+may have been assigned to the lambda closure type, possibly resulting in
+a mangled name collision.  A change was made (when ABI_COMPATIBILITY_VERSION
+>= 408) to ensure the discriminators are unique.  For example (with --c++11):
+
+  namespace N {
+    extern int i;
+    extern int j;
+  }
+  int N::i([]() -> int {return 123; }());
+  int N::j([]() -> int {return 123; }());
+
+
 10/9/13  [EDGcpfe/14554]
 Spurious exception specification mismatch error on operator delete members
 

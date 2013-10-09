@@ -688,7 +688,7 @@ unnamed type ends up being an "anonymous union".
     /* Local scope entities use a "collision table". */
     compute_local_name_collision_discriminator(sym, scope_depth);
   } else if (sym->kind == (a_symbol_kind)sk_class_or_struct_tag &&
-      class_type_supp(sym->variant.class_struct_union.type) 
+             class_type_supp(sym->variant.class_struct_union.type)
                                                   ->is_lambda_closure_class) {
     /* Closure types have their own numbering convention. */
     a_class_symbol_supplement_ptr
@@ -3286,7 +3286,11 @@ the scope being pushed.
               ssep->depth_innermost_namespace_scope = depth_scope_stack;
       }  /* if */
 #if NEED_NAME_MANGLING
-      if (kind == (a_scope_kind)sck_namespace_extension) {
+      if (kind == (a_scope_kind)sck_namespace_extension
+#if ABI_COMPATIBILITY_VERSION >= 408
+          || kind == (a_scope_kind)sck_namespace_reactivation
+#endif /* ABI_COMPATIBILITY_VERSION >= 408 */
+                                                             ) {
         /* Restore the discriminator counters. */
         ssep->name_discr.last_unnamed_type_number =
                                                nssp->last_unnamed_type_number;
@@ -8155,6 +8159,9 @@ being popped.
       curr_object_lifetime = ssep->saved_curr_object_lifetime;
 #if NEED_NAME_MANGLING
     } else if (kind == (a_scope_kind)sck_namespace ||
+#if ABI_COMPATIBILITY_VERSION >= 408
+               kind == (a_scope_kind)sck_namespace_reactivation ||
+#endif /* ABI_COMPATIBILITY_VERSION >= 408 */
                kind == (a_scope_kind)sck_namespace_extension) {
       /* Save the discriminator counters. */
       a_symbol_ptr  ns_sym = symbol_for(ssep->assoc_namespace);
