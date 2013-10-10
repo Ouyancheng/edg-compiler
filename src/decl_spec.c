@@ -5985,9 +5985,10 @@ dsi_flags is the set of input flags passed to decl_specifiers.
     }  /* if */
     if (tag_sym->is_error) {
       /* Suppress the template processing below in error cases. */
-    } else if (is_cli_generic_definition_context() ||
-               is_cli_generic_instantiation_context()) {
-      /* Suppress the template processing for C++/CLI generics. */
+    } else if (class_of_which_a_member == NULL) {
+      /* Only member enumerations need special template processing. */
+    } else if (is_managed_class_type(class_of_which_a_member)) {
+      /* Suppress the template processing for C++/CLI generics and classes. */
     } else if (curr_scope_is_class_template_definition()) {
       a_template_symbol_supplement_ptr	tssp;
       an_enum_symbol_supplement_ptr	essp;
