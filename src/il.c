@@ -15772,7 +15772,7 @@ options is a set of name lookup options.
           /* Even with new-style SFINAE we may end up here with a temporary
              initialized with a constant (e.g., a cast to an rvalue reference
              can create a temporary initialized with a constant; other cases
-             are possible too).  Use the underlying constant. */
+             are also possible).  Use the underlying constant. */
           *alloc_con = copy_template_param_con(dip->variant.constant,
                                                template_arg_list,
                                                template_param_list,
