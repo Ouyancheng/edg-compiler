@@ -7338,7 +7338,7 @@ template.
       /* FIXME: What should be done for enum instantiations? */
       saved_sses_disallowed = source_sequence_entries_disallowed;
 #if CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
-      source_sequence_entries_disallowed = TRUE;
+      source_sequence_entries_disallowed = FALSE;
 #else /* !CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
       source_sequence_entries_disallowed =
                                          enum_type->variant.integer.is_nonreal;
