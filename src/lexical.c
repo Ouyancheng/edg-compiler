@@ -17695,7 +17695,10 @@ selection operator, in which case it points to the type of the left operand.
               (qualifier_sym == NULL ||
                !is_valid_qualifier_symbol(qualifier_sym))) {
             invalid_qualifier_sym = TRUE;
-            pos_ty_error(ec_not_class_or_enum, &type_position, decltype_type);
+            if (!is_or_contains_error_type(decltype_type)) {
+              pos_ty_error(ec_not_class_or_enum, &type_position,
+                           decltype_type);
+            }  /* if */
             err = TRUE;
           }  /* if */
         } else if (qualifier_sym->is_error) {
