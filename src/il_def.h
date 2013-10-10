@@ -11162,6 +11162,7 @@ enum a_builtin_function_kind_tag {
   bfk_ia32_pfrcpit2,            /* __builtin_ia32_pfrcpit2 */
   bfk_ia32_pfrsqrt,             /* __builtin_ia32_pfrsqrt */
   bfk_ia32_pfrsqrtit1,          /* __builtin_ia32_pfrsqrtit1 */
+  bfk_ia32_pfrsqit1,            /* __builtin_ia32_pfrsqit1 */
   bfk_ia32_pfsub,               /* __builtin_ia32_pfsub */
   bfk_ia32_pfsubr,              /* __builtin_ia32_pfsubr */
   bfk_ia32_pi2fd,               /* __builtin_ia32_pi2fd */
@@ -11227,6 +11228,10 @@ enum a_builtin_function_kind_tag {
   bfk_ia32_pause,               /* __builtin_ia32_pause */
   bfk_ia32_addcarryx_u32,       /* __builtin_ia32_addcarryx_u32 */
   bfk_ia32_addcarryx_u64,       /* __builtin_ia32_addcarryx_u64 */
+  bfk_ia32_pshufw,              /* __builtin_ia32_pshufw */
+  bfk_ia32_vec_set_v4hi,        /* __builtin_ia32_vec_set_v4hi */
+  bfk_ia32_vec_ext_v8hi,        /* __builtin_ia32_vec_ext_v8hi */
+  bfk_ia32_vec_set_v8hi,        /* __builtin_ia32_vec_set_v8hi */
 #endif /* GNU_BUILTIN_IA32_VECTOR_FUNCTIONS_ALLOWED */
 #if GCC_BUILTIN_VARARGS
   bfk_va_start,			/* __builtin_va_start */
@@ -12588,6 +12593,7 @@ EXTERN a_const_char *builtin_function_kind_names[(int)bfk_last + 1]
   /* bfk_ia32_pfrcpit2 */            "__builtin_ia32_pfrcpit2",
   /* bfk_ia32_pfrsqrt */             "__builtin_ia32_pfrsqrt",
   /* bfk_ia32_pfrsqrtit1 */          "__builtin_ia32_pfrsqrtit1",
+  /* bfk_ia32_pfrsqit1 */            "__builtin_ia32_pfrsqit1",
   /* bfk_ia32_pfsub */               "__builtin_ia32_pfsub",
   /* bfk_ia32_pfsubr */              "__builtin_ia32_pfsubr",
   /* bfk_ia32_pi2fd */               "__builtin_ia32_pi2fd",
@@ -12653,6 +12659,10 @@ EXTERN a_const_char *builtin_function_kind_names[(int)bfk_last + 1]
   /* bfk_ia32_pause */               "__builtin_ia32_pause",
   /* bfk_ia32_addcarryx_u32 */       "__builtin_ia32_addcarryx_u32",
   /* bfk_ia32_addcarryx_u64 */       "__builtin_ia32_addcarryx_u64",
+  /* bfk_ia32_pshufw */              "__builtin_ia32_pshufw",
+  /* bfk_ia32_vec_set_v4hi */        "__builtin_ia32_vec_set_v4hi",
+  /* bfk_ia32_vec_ext_v8hi */        "__builtin_ia32_vec_ext_v8hi",
+  /* bfk_ia32_vec_set_v8hi */        "__builtin_ia32_vec_set_v8hi",
 #endif /* GNU_BUILTIN_IA32_VECTOR_FUNCTIONS_ALLOWED */
 #if GCC_BUILTIN_VARARGS
   /* bfk_va_start */                 "__builtin_va_start",

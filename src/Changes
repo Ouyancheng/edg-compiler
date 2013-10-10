@@ -1,5 +1,28 @@
 Version 5.0
 
+10/10/13 [EDGcpfe/14528,EDGcpfe/14557]
+GNU compatibility: Better __builtin support
+
+The front end has been modified to include updated function signatures (mostly
+changes in the return type) for various GNU __builtin functions.  The following
+routines now have different signatures when gnu_version >= 40400:
+__builtin_ia32_psadbw, __builtin_ia32_cmp*ps, __builtin_ia32_cmp*ss,
+__builtin_ia32_cmp*pd, __builtin_ia32_cmp*sd, __builtin_ia32_packsswb128,
+__builtin_ia32_packssdw128, __builtin_ia32_packuswb128,
+__builtin_ia32_packusdw128, __builtin_ia32_pmuludq, __builtin_ia32_pmuludq128,
+__builtin_ia32_palignr, __builtin_ia32_pmaddubsw, and
+__builtin_ia32_pmaddubsw128.
+
+Additionally, these builtin functions now have updated signatures when
+gnu_version >= 40500: __builtin_ia32_vec_ext_v16qi and
+__builtin_ia32_vec_set_v16qi.
+
+Undocumented builtin functions __builtin_ia32_pshufhw,
+__builtin_ia32_vec_set_v4hi, __builtin_ia32_vec_ext_v8hi,
+__builtin_ia32_vec_set_v8hi, and __builtin_ia32_pfrsqit1 have also been
+implemented.
+
+
 10/9/13  [EDGcpfe/14552]
 Lambda closure types given same mangled name
 
