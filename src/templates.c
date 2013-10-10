@@ -7335,10 +7335,18 @@ template.
                                               /*push_lex_state=*/TRUE,
                                               ps_options);
 #if GENERATE_SOURCE_SEQUENCE_LISTS
-      /* FIXME: What should be done for enum instantiations? */
+      /* FIXME: We probably need something like the saved_sse_insertion_point
+         treatment for non-autonomous nested class instantiations (see
+         f_instantiate_template_class). */
       saved_sses_disallowed = source_sequence_entries_disallowed;
 #if CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
       source_sequence_entries_disallowed = FALSE;
+      add_source_sequence_entry_for_partial_instantiation(
+                                       (char*)enum_type, iek_type, enum_type);
+      /* A template instantiation is considered to always be "autonomous",
+         even if its instantiation happens to be triggered by a reference
+         in the declaration of another entity. */
+      enum_type->autonomous_primary_tag_decl = TRUE;
 #else /* !CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
       source_sequence_entries_disallowed =
                                          enum_type->variant.integer.is_nonreal;
@@ -22235,7 +22243,7 @@ any non-empty template parameter lists that were scanned.
     tssp = template_supplement_for_symbol(sym);
     /* Save a pointer to the token cache for the enum definition. */
     p_template_body_cache = &tssp->cache.tokens;
-#endif
+#endif /* 0 */
   } else {
     /* Not a class template declaration or alias template.  Check for a
        function template declaration or a static data member template
