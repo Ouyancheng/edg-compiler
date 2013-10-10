@@ -1242,6 +1242,7 @@ a pointer to it.
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   itsp->base_type = NULL;
   itsp->base_type_position = null_source_position;
+  itsp->assoc_template = NULL;
   return itsp;
 }  /* alloc_integer_type_supplement */
 
@@ -1606,7 +1607,10 @@ to default values.
       pte->variant.integer.char32_t_type = FALSE;
       pte->variant.integer.bool_type = FALSE;
       pte->variant.integer.originally_unnamed = FALSE;
+      pte->variant.integer.is_template_enum = FALSE;
+      pte->variant.integer.is_prototype_instantiation = FALSE;
       pte->variant.integer.is_nonreal = FALSE;
+      pte->variant.integer.is_specialized = FALSE;
 #if MICROSOFT_EXTENSIONS_ALLOWED
       pte->variant.integer.microsoft_sized_int_type = FALSE;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */

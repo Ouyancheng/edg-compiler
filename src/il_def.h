@@ -7711,6 +7711,11 @@ typedef struct an_integer_type_supplement {
 			/* If base_type is non-NULL, the source position at
 			   which the underlying type was explicitly
 			   specified. */
+  a_template_ptr
+		assoc_template;
+			/* For member opaque enumerations of class templates
+			   this points to the template from which they
+			   were generated; otherwise, this is NULL. */
 } an_integer_type_supplement;
 
 
@@ -8115,9 +8120,22 @@ typedef struct a_type {
 			   pointer is non-NULL, since a name may be acquired
 			   from a typedef name. */
       a_bit_field
+		is_template_enum:1;
+			/* TRUE for enum types declared in instantiated
+			   template classes.  This is TRUE even if the
+			   instance has been explicitly specialized. */
+      a_bit_field
+		is_prototype_instantiation:1;
+			/* TRUE when this enum is a nonreal type that
+		 	   is the prototype instantiation. */
+      a_bit_field
 		is_nonreal:1;
 			/* TRUE for enum types declared in a prototype
 			   instantiation. */
+      a_bit_field
+		is_specialized:1;
+			/* TRUE for enum instances where were explicitly
+			   specialized. */
       bitfield_to_avoid_codecenter_warnings()
       union {
         /* When enum_type is TRUE, but is_scoped_enum is FALSE: */

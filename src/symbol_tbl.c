@@ -3455,6 +3455,7 @@ and return a pointer to it.
     case sk_class_template:
     case sk_class_or_struct_tag:
     case sk_union_tag:
+    case sk_enum_tag:
       tssp->variant.class_template.instantiations = NULL;
       tssp->variant.class_template.type_kind = (a_type_kind)tk_error;
       tssp->variant.class_template.prototype_instantiation = NULL;
@@ -3608,6 +3609,9 @@ state.
 #if NEED_NAME_MANGLING
         essp->discriminator = 0;
 #endif /* NEED_NAME_MANGLING */
+        essp->template_sym = NULL;
+        essp->template_info = NULL;
+        essp->instantiated = FALSE;
 #if MICROSOFT_EXTENSIONS_ALLOWED
         essp->replaced_enum_symbol = FALSE;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */

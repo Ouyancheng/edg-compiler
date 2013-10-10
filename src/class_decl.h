@@ -275,6 +275,10 @@ extern void add_to_deferred_friend_function_fixup_list(
 
 extern void process_deferred_friend_fixup_list(void);
 
+extern a_boolean curr_scope_is_class_template_definition(void);
+
+extern a_boolean curr_scope_is_class_instantiation(void);
+
 /*
 Macro to consume and ignore certain right parentheses in declarations.  This
 is used to emulate a strange bug in some versions of the Microsoft compiler.

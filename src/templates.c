@@ -3191,10 +3191,11 @@ enclosing template.
       if (instance_sym != NULL) break;
     }  /* if */
   }  /* for */
-  if (instance_sym == NULL || instance_sym->kind == (a_symbol_kind)sk_type) {
+  if (instance_sym == NULL || symbol_is(instance_sym, sk_type) ||
+      symbol_is(instance_sym, sk_enum_tag)) {
     /* Either no instantiation scopes, only instantiation scopes
-       with NULL instance symbols, or an instantiation of an alias template.
-       Just use the innermost namespace scope. */
+       with NULL instance symbols, or an instantiation of an alias or
+       enum template.  Just use the innermost namespace scope. */
     result = scope_stack[depth_innermost_namespace_scope].assoc_namespace;
   } else if (is_class_struct_union_symbol(instance_sym)) {
     /* The entity is a class.  Get the referencing namespace from the
@@ -4453,6 +4454,7 @@ and a list of the unprocessed entries is returned to the caller.
           break;
         case sk_class_or_struct_tag:
         case sk_union_tag:
+        case sk_enum_tag:
           /* Do not remove the body of anonymous unions. */
           if (!is_unnamed_tag_symbol(tcsp->symbol)) {
             a_cached_token_ptr	first_token = tcsp->before_first_token->next;
@@ -7255,6 +7257,157 @@ error type is used.
   if (trans_unit_pushed) pop_translation_unit_stack();
   return instance_sym;
 }  /* instantiate_template_alias */
+
+
+void instantiate_template_enum(a_type_ptr		enum_type)
+/*
+Instantiate the enum template instance specified by enum_type.  This is
+an enum type declared in a class template or a nested class of a class
+template.
+*/
+{
+  a_template_symbol_supplement_ptr	tssp;
+  a_boolean				trans_unit_pushed;
+  a_type_ptr				parent_class = NULL;
+  a_symbol_ptr				instance_sym;
+  a_symbol_ptr				template_sym;
+  an_enum_symbol_supplement_ptr		essp;
+  an_integer_type_supplement_ptr	itsp;
+
+  instance_sym = symbol_for(enum_type);
+  check_assertion(instance_sym != NULL &&
+                  symbol_is(instance_sym, sk_enum_tag));
+  essp = instance_sym->variant.enumeration.extra_info;
+  essp->instantiated = TRUE;
+  template_sym = essp->template_sym;
+  tssp = template_sym->variant.enumeration.extra_info->template_info;
+  itsp = enum_type->variant.integer.extra_info;
+  /* Switch to the translation unit containing the template, if needed. */
+  trans_unit_pushed = push_translation_unit_if_needed(template_sym);
+  instance_sym = symbol_for(enum_type);
+  check_assertion(instance_sym->is_class_member);
+  parent_class = sym_parent_class(instance_sym);
+  /* If the enclosing class is nonreal, then any instances of the enum
+     must also be nonreal.  This should only happen for Microsoft
+     nonreal instantiations and in-class specializations. */
+  if (parent_class->variant.class_struct_union.is_nonreal_class) {
+      enum_type->variant.integer.is_nonreal = TRUE;
+  }  /* if */
+  itsp->assoc_template = tssp->il_template_entry;
+  {
+    a_template_cache_ptr	body_cache;
+
+    /* The instantiation process may rescan various things and invalidate the
+       current token positions as a result.  Save these positions so that they
+       may be restored when we are done. */
+    a_source_position           saved_pos_curr_token, saved_error_position;
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+    a_source_position           saved_curr_construct_end_position;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+    saved_pos_curr_token = pos_curr_token;
+    saved_error_position = error_position;
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+    saved_curr_construct_end_position = curr_construct_end_position;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+    body_cache = cache_for_template(tssp);
+    if (body_cache->tokens.first_token == NULL) {
+      /* The template definition is missing.  This should only occur in error
+         cases. */
+      check_assertion(total_errors != 0);
+    } else {
+      a_decl_parse_state	dps;
+      a_push_scope_options_set	ps_options = PS_DEDUCTION_CONTEXT;
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+      a_boolean                 saved_sses_disallowed;
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+      if (enum_type->variant.integer.is_nonreal) {
+        /* If this is a nonreal alias instantiation, mark the instantiation
+           scope as nonreal. */
+        ps_options |= PS_NONREAL_INSTANTIATION;
+      }  /* if */
+      init_decl_parse_state(&dps);
+      /* Push the template instantiation scope for the instantiation. */
+      (void)push_template_instantiation_scope(body_cache->decl_info,
+					      (a_type_ptr)NULL,
+					      (a_routine_ptr)NULL,
+					      instance_sym, template_sym,
+					      (a_template_arg_ptr)NULL,
+                                              /*push_lex_state=*/TRUE,
+                                              ps_options);
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+      /* FIXME: What should be done for enum instantiations? */
+      saved_sses_disallowed = source_sequence_entries_disallowed;
+      source_sequence_entries_disallowed = TRUE;
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+      /* Reactivate any pragmas that should be bound to the generated
+         instance. */
+      reactivate_curr_construct_pragmas(tssp->pragmas_bound_to_template);
+      /* Rescan the tokens of the alias. */
+      rescan_reusable_cache(&body_cache->tokens);
+      record_symbol_declaration(SRK_DEFINITION | SRK_TEMPLATE_INSTANTIATION,
+                                instance_sym, &instance_sym->decl_position,
+                                (a_source_sequence_entry_ptr)NULL);
+      { a_boolean		declares_something = FALSE;
+        a_decl_pos_block	decl_pos_block;
+        clear_decl_pos_block(&decl_pos_block);
+        scan_enumerator_list(enum_type, &dps, (an_ms_attribute_ptr*)NULL,
+                             parent_class, &declares_something,
+                             &decl_pos_block);
+      }
+      if (enum_type->variant.integer.is_nonreal) {
+        /* Discard pragmas on nonreal aliases. */
+        discard_curr_construct_pragmas();
+      } else {
+        /* Process any pragmas that are to be bound to this instance. */
+        process_curr_construct_pragmas(instance_sym, (a_statement_ptr)NULL);
+      }  /* if */
+      /* Apply any attributes to the alias. */
+      if (tssp->attributes != NULL) {
+        dps.id_attributes = copy_of_attributes_with_substitution(
+                                   tssp->attributes, /*primary_only=*/FALSE,
+                                   template_sym,
+                                   (a_template_param_ptr)NULL,
+                                   (a_template_arg_ptr)NULL,
+                                   parent_class,
+                                   (a_boolean*)NULL);
+        attach_decl_attributes(&dps, /*primary_decl=*/TRUE);
+      }  /* if */
+      /* In the normal case the current token should be end_of_source,
+         which was inserted to mark the end of the cached token stream.
+         If necessary, keep flushing until end-of-source is found. */
+      if (curr_token != tok_end_of_source) {
+        pos_error(ec_exp_semicolon, &pos_curr_token);
+      }  /* if */
+      flush_past_token_cache_terminator();
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+      /* Restore the previous state wrt. the generation of source sequence
+         entries. */
+      source_sequence_entries_disallowed = saved_sses_disallowed;
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+      /* Pop the template instantiation scope. */
+      pop_template_instantiation_scope();
+    }  /* if */
+    /* Restore the saved position information. */
+    error_position = saved_error_position;
+    pos_curr_token = saved_pos_curr_token;
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+    curr_construct_end_position = saved_curr_construct_end_position;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+  }  /* if */
+#if DEBUG
+  if (db_sym_trace("instantiations", instance_sym)) {
+    fprintf(f_debug, "Instantiation of enum: ");
+    db_symbol_name_trans_unit(instance_sym);
+    fprintf(f_debug, " based on ");
+    db_symbol_name_trans_unit(template_sym);
+    fprintf(f_debug, " type is ");
+    db_type(enum_type);
+    fprintf(f_debug, "\n");
+  }  /* if */
+#endif /* DEBUG */
+  /* If the translation unit stack was pushed above, pop it now. */
+  if (trans_unit_pushed) pop_translation_unit_stack();
+}  /* instantiate_template_enum */
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
 
@@ -14255,6 +14408,72 @@ this routine has no effect.
     }  /* if */
   }  /* if */
 }  /* find_alias_member */
+
+
+void find_enum_member(a_symbol_ptr		enum_sym,
+		      a_type_ptr		parent_class,
+		      a_token_sequence_number	token_sequence_number)
+/*
+enum_sym is a symbol representing a enum template member of a real
+class.  parent_class is type of the enclosing class.  Find the symbol
+for an enumeration from the prototype instantiation (it serves as
+the template for the real enum), and record it in the symbol supplement
+associated with enum_sym.  token_sequence_number is used to match the enum
+in the real class with the corresponding entry in the prototype instantiation
+Note that if parent_class is not an instantiation, this routine has no effect.
+*/
+{
+  a_type_ptr			corresp_prototype_type;
+  a_symbol_ptr			corresp_prototype_tag_sym;
+  a_symbol_ptr			parent_class_sym;
+  a_class_symbol_supplement_ptr	cssp;
+  an_enum_symbol_supplement_ptr	essp;
+
+  essp = enum_sym->variant.enumeration.extra_info;
+  /* Get the prototype instantiation symbol that corresponds to the parent
+     class of this member template. */
+  parent_class_sym = symbol_for(parent_class);
+  corresp_prototype_tag_sym =
+                         corresp_prototype_for_class_symbol(parent_class_sym);
+  if (corresp_prototype_tag_sym != NULL) {
+    a_scope_ptr		prototype_scope;
+    /* Find an enum symbol belonging to the prototype instantiation
+       and corresponding to enum_sym. */
+    corresp_prototype_type = type_symbol_type(corresp_prototype_tag_sym);
+    /* Get the scope in which the members of the class represented by
+       corresp_prototype_tag_sym were declared. */
+    prototype_scope = corresp_prototype_type->
+                            variant.class_struct_union.extra_info->assoc_scope;
+    if (prototype_scope == NULL) {
+      /* In some error cases the prototype instantiation type does not have
+         a definition. */
+      expect_error();
+    } else {
+      a_symbol_ptr			proto_sym;
+      a_template_symbol_supplement_ptr	proto_tssp;
+      cssp = corresp_prototype_tag_sym->variant.class_struct_union.extra_info;
+      for (proto_sym = find_symbol_list_in_table(&cssp->pointers_block,
+                                                 enum_sym->header);
+           proto_sym != NULL;
+           proto_sym = proto_sym->next_in_lookup_table) {
+        if (symbol_is(proto_sym, sk_enum_tag)) {
+          proto_tssp = proto_sym->
+                                 variant.enumeration.extra_info->template_info;
+          if (proto_tssp->token_sequence_number == token_sequence_number) {
+            break;
+          }  /* if */
+        }  /* if */
+      }  /* for */
+      check_assertion_or_expect_error_str2(
+                                        proto_sym != NULL || total_errors != 0,
+                                        "find_enum_member:",
+                                        "no corresponding template");
+      if (proto_sym != NULL) {
+        essp->template_sym = proto_sym;
+      }  /* if */
+    }  /* if */
+  }  /* if */
+}  /* find_enum_member */
 
 
 a_symbol_ptr find_template_function(
@@ -22004,6 +22223,14 @@ any non-empty template parameter lists that were scanned.
     tssp = template_supplement_for_symbol(sym);
     /* Save a pointer to the token cache for the alias definition. */
     p_template_body_cache = &tssp->cache.tokens;
+#if 0
+  } else if (opaque_enum_decls_enabled && curr_token == tok_enum) {
+    /* An enum template declaration. */
+    sym = enum_template_declaration(decl_state);
+    tssp = template_supplement_for_symbol(sym);
+    /* Save a pointer to the token cache for the enum definition. */
+    p_template_body_cache = &tssp->cache.tokens;
+#endif
   } else {
     /* Not a class template declaration or alias template.  Check for a
        function template declaration or a static data member template

@@ -3895,8 +3895,9 @@ be NULL if we don't yet know which instance we are dealing with.
     a_class_symbol_supplement_ptr	cssp;
     cssp = instance_sym->variant.class_struct_union.extra_info;
     nsp = cssp->referencing_namespace;
-  } else if (instance_sym->kind == (a_symbol_kind)sk_type) {
-    /* The instance points to a type for a template alias.  Use the
+  } else if (symbol_is(instance_sym, sk_type) || 
+             symbol_is(instance_sym, sk_enum_tag)) {
+    /* The instance points to a type for a template alias or enum.  Use the
        current innermost namespace. */
     nsp = scope_stack[depth_innermost_namespace_scope].assoc_namespace;
   } else {

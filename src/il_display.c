@@ -1714,6 +1714,9 @@ Display the indicated integer type supplement.
     disp_ptr("base_type", (char *)ptr->base_type, iek_type);
     disp_source_position("base_type_position", &ptr->base_type_position);
   }  /* if */
+  if (ptr->assoc_template != NULL) {
+    disp_ptr("assoc_template", (char*)ptr->assoc_template, iek_template);
+  }  /* if */
 }  /* disp_integer_type_supplement */
 
 
@@ -1916,8 +1919,17 @@ Display the indicated type entry.
         if (ptr->variant.integer.originally_unnamed) {
           disp_boolean("originally_unnamed", TRUE);
         }  /* if */
+        if (ptr->variant.integer.is_template_enum) {
+          disp_boolean("is_template_enum", TRUE);
+        }  /* if */
+        if (ptr->variant.integer.is_prototype_instantiation) {
+          disp_boolean("is_prototype_instantiation", TRUE);
+        }  /* if */
         if (ptr->variant.integer.is_nonreal) {
           disp_boolean("is_nonreal", TRUE);
+        }  /* if */
+        if (ptr->variant.integer.is_specialized) {
+          disp_boolean("is_specialized", TRUE);
         }  /* if */
         if (integer_type_is_scoped_enum(ptr)) {
           disp_ptr("enum_info.assoc_scope",

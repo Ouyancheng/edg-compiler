@@ -630,12 +630,18 @@ extern void find_inclass_initializer_for_instance(
 				a_symbol_ptr	field_sym,
 				a_symbol_ptr	corresp_prototype_tag_sym);
 
+extern void find_enum_member(a_symbol_ptr		alias_sym,
+                              a_type_ptr		parent_class,
+			      a_token_sequence_number	token_sequence_number);
+
 extern void check_for_uninstantiated_template_class(a_type_ptr  type);
 
 extern
 void complete_template_static_data_member_type_is_needed(a_variable_ptr vp);
 
 extern void f_instantiate_template_class(a_type_ptr  type);
+
+extern void instantiate_template_enum(a_type_ptr		enum_type);
 
 extern void init_ctws_state(a_ctws_state_ptr	csp);
 

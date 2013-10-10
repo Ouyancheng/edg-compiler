@@ -4913,9 +4913,14 @@ unscoped enum definition introduces a name in its surrounding scope.
   a_source_position  definition_pos, end_pos;
   a_memory_region_number
                      region_to_switch_back_to;
+  a_template_cache_segment_ptr
+                     tcsp = NULL;
+  an_enum_symbol_supplement_ptr
+                     essp;
 
   check_assertion_or_expect_error(curr_token == tok_lbrace);
   explicit_base = integer_type_supp(enum_type)->base_type;
+  essp = tag_sym->variant.enumeration.extra_info;
   if (explicit_base == NULL) {
     explicit_base_kind = (an_integer_kind)ik_none;
   } else if (is_template_dependent_type(explicit_base)) {
@@ -4943,6 +4948,18 @@ unscoped enum definition introduces a name in its surrounding scope.
   }  /* if */
   if (scope_is(&scope_stack_top(), sck_class_reactivation)) {
     reactivated_class_scope_number = scope_stack_top().number;
+  }  /* if */
+  if (is_scoped_enum &&
+      !enum_type->variant.integer.originally_unnamed &&
+      curr_scope_is_class_template_definition()) {
+    /* This is a scoped enumeration defined in a class template.  We
+       need to create a cache for the enum definition. */
+    a_template_symbol_supplement_ptr	tssp;
+    tssp = tag_sym->variant.enumeration.extra_info->template_info;
+    tcsp = alloc_template_cache_segment(tag_sym, tssp);
+    tcsp->first_token_number = curr_token_sequence_number;
+    /* Start background caching of the tokens of the definition. */
+    begin_caching_fetched_tokens(/*include_curr_token=*/TRUE);
   }  /* if */
   /* Scan the enumeration itself.  Since the enumeration type entry is
      allocated in the file scope memory region, all its components should
@@ -5354,6 +5371,29 @@ unscoped enum definition introduces a name in its surrounding scope.
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   decl_pos_block->specifiers_range.end = pos_curr_token;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+  /* For a scoped enum in a class template, tcsp will have been set above.
+     Save the ending position of the tokens to be included in the
+     definition cache of the template. */
+  if (tcsp != NULL) {
+    a_template_symbol_supplement_ptr tssp;
+    a_template_symbol_supplement_ptr class_tssp;
+    a_type_ptr                       parent_class;
+    check_assertion(tag_sym->is_class_member);
+    parent_class = tag_sym->parent.class_type;
+    class_tssp = symbol_supplement_for_class(parent_class)->template_info;
+    tssp = essp->template_info;
+    tcsp->last_token_number = curr_token_sequence_number;
+    end_caching_fetched_tokens();
+    copy_tokens_from_cache(curr_lexical_state_cache(),
+                           tcsp->first_token_number,
+                           curr_token_sequence_number,
+                           /*include_last_token=*/TRUE,
+                           &tssp->cache.tokens);
+    terminate_token_cache(&tssp->cache.tokens);
+    /* Update the template decl info based on the parent class. */
+    set_template_cache_info(&tssp->cache, (a_token_cache_ptr)NULL,
+                            class_tssp->cache.decl_info);
+  }  /* if */
   /* Check for and pass over the closing "}". */
   (void)required_token(tok_rbrace, ec_exp_rbrace);
   if (is_scoped_enum) pop_scope();
@@ -5505,6 +5545,8 @@ dsi_flags is the set of input flags passed to decl_specifiers.
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   a_boolean                    is_scoped_enum = FALSE;
   a_boolean                    is_opaque_enum_decl = FALSE;
+  a_token_sequence_number      tsn_for_enum;
+  a_boolean                    unnamed = FALSE;
 
   db_enter(3, "enum_specifier");
 
@@ -5526,6 +5568,7 @@ dsi_flags is the set of input flags passed to decl_specifiers.
   }  /* if */
   clear_decl_pos_block(&local_decl_pos_block);
   enum_pos = pos_curr_token;
+  tsn_for_enum = curr_token_sequence_number;
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   local_decl_pos_block.specifiers_range.start = pos_curr_token;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
@@ -5723,6 +5766,12 @@ dsi_flags is the set of input flags passed to decl_specifiers.
     }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   }  /* if */
+  if (curr_token == tok_removed_template_body) {
+    /* A scoped enum in a class template will have its enumerator list
+       replaced with a tok_removed_template_body token and thus treated
+       as an opaque enumerator declaration. */
+    (void)get_token();
+  }  /* if */
   if (opaque_enum_decls_enabled &&
       (is_scoped_enum || explicit_base_kind != (an_integer_kind)ik_none) &&
       curr_token == tok_semicolon) {
@@ -5898,6 +5947,7 @@ dsi_flags is the set of input flags passed to decl_specifiers.
       enum_type->source_corresp.referenced = FALSE;
       enum_type->source_corresp.decl_position = locator.source_position;
       enum_type->variant.integer.originally_unnamed = TRUE;
+      unnamed = TRUE;
     }  /* if */
 #if NEED_NAME_MANGLING
     /* The mangled names of local types and unnamed types in namespace scope
@@ -5931,6 +5981,21 @@ dsi_flags is the set of input flags passed to decl_specifiers.
         /* Enum declaration is not local to a function. */
         set_name_linkage_for_type(enum_type);
       }  /* if */
+    }  /* if */
+    if (curr_scope_is_class_template_definition()) {
+      a_template_symbol_supplement_ptr	tssp;
+      an_enum_symbol_supplement_ptr	essp;
+      essp = tag_sym->variant.enumeration.extra_info;
+      tssp = alloc_template_symbol_supplement((a_symbol_kind)sk_enum_tag);
+      essp->template_info = tssp;
+      enum_type->variant.integer.is_prototype_instantiation = TRUE;
+      tssp->token_sequence_number = tsn_for_enum;
+      enum_type->variant.integer.is_template_enum = TRUE;
+    } else if (!unnamed && curr_scope_is_class_instantiation()) {
+      enum_type->variant.integer.is_template_enum = TRUE;
+      /* Find the enum declaration from the prototype instantiation
+         (if any). */
+      find_enum_member(tag_sym, sym_parent_class(tag_sym), tsn_for_enum);
     }  /* if */
     /* When an enumeration is defined within a class definition, its access
        should be set based on the access recorded in the current scope stack

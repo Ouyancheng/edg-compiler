@@ -14602,6 +14602,43 @@ general information about the class.
 }  /* in_class_instantiation */
 
 
+a_boolean curr_scope_is_class_template_definition(void)
+/*
+Return TRUE if we are in the prototype instantiation of a class template
+or a nested class of a class template.  Also TRUE for C++/CLI generic
+definitions.
+*/
+{
+  a_boolean			result = FALSE;
+  a_scope_stack_entry_ptr	ssep;
+
+  ssep = &scope_stack_top();
+  if (scope_is(ssep, sck_class_struct_union)) {
+    result = in_class_template_definition(ssep->class_def_state);
+  }  /* if */
+  return result;
+}  /* curr_scope_is_class_template_definition */
+
+
+a_boolean curr_scope_is_class_instantiation(void)
+/*
+Return TRUE if we are in the instantiation of a class template or
+nested class of a class template.  Also TRUE for instantiations of C++/CLI
+generics.  class_state points to a block of information tracking
+general information about the class.
+*/
+{
+  a_boolean			result = FALSE;
+  a_scope_stack_entry_ptr	ssep;
+
+  ssep = &scope_stack_top();
+  if (scope_is(ssep, sck_class_struct_union)) {
+    result = in_class_instantiation(ssep->class_def_state);
+  }  /* if */
+  return result;
+}  /* curr_scope_is_class_template_definition */
+
+
 static a_token_cache_ptr cache_inclass_initializer(a_symbol_ptr	sym)
 /*
 Cache the tokens that make up an in-class initializer for the static or

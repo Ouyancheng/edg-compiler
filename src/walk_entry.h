@@ -3500,6 +3500,7 @@ after_entry_from_class:
 #endif /* DO_IL_LOWERING */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
         walk_ptr(ptr->base_type, a_type_ptr, iek_type);
+        remap_ptr(ptr->assoc_template, a_template_ptr, iek_template);
       }
       break;
 #if MICROSOFT_EXTENSIONS_ALLOWED

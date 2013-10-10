@@ -1369,6 +1369,25 @@ typedef struct an_enum_symbol_supplement {
 			   to distinguish unnamed enum types (in both ABIs).
 			   Zero if not needed. */
 #endif /* NEED_NAME_MANGLING */
+  a_symbol_ptr	template_sym;
+			/* Pointer to the symbol for the prototype
+			   instantiation of the enumeration.  This is set
+			   regardless of whether the actual list of enumeration
+			   elements has been seen yet (i.e., for an enum
+			   where the enumerators are provided in an
+			   out-of-class declaration. */
+  a_template_symbol_supplement_ptr
+		template_info;
+			/* Pointer to associated template information when
+			   the associated enum is a prototype instantiation
+			   of a scoped enumeration declared in a class
+			   template or a nested class of a class template.
+			   NULL for other enum types. */
+  a_bit_field	instantiated:1;
+			/* TRUE for an enumeration that is a member of a
+			   class template (or nested class thereof) for which
+			   an instantiation of the enumerators has been
+			   done. */
 #if MICROSOFT_EXTENSIONS_ALLOWED
   a_bit_field	replaced_enum_symbol:1;
 			/* TRUE for an enumeration type in Microsoft mode that
@@ -2367,14 +2386,13 @@ typedef struct a_template_symbol_supplement {
 			   to each instance generated from this template. */
   a_token_sequence_number
 		token_sequence_number;
-			/* This is used for member functions, member
-			   function templates, and static data members
- 			   to match the declarations of the prototype
- 			   instantiation (to which the template symbol
- 			   supplement is attached) to declarations
- 			   found inside real instantiations.  This
- 			   field contains the token sequence number of
- 			   a certain token within the declaration. */
+			/* This is used for class members to match the
+			   declarations of the prototype instantiation
+			   (to which the template symbol supplement is
+			   attached) to declarations found inside real
+			   instantiations.  This field contains the token
+			   sequence number of a certain token within the
+			   declaration. */
   a_class_list_entry_ptr
                 befriending_classes;
                         /* A linked list of entries identifying classes
@@ -2463,8 +2481,8 @@ typedef struct a_template_symbol_supplement {
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   bitfield_to_avoid_codecenter_warnings()
   union {
-    /* When symbol kind = sk_class_template (note that this symbol kind is used
-       for class templates and alias templates): */
+    /* For class templates, nested classes of class templates, enumerations
+       of those, and for alias templates. */
     struct {
       a_symbol_list_entry_ptr
                 instantiations;
@@ -2474,7 +2492,8 @@ typedef struct a_template_symbol_supplement {
 			   included in this list, but prototype instantiations
 			   are not.  For class templates, the symbols on the
 			   list are classes.  For alias templates, the
-			   symbols are types. */
+			   symbols are types.  This is not used for
+			   enumerations. */
       a_type_kind
 		type_kind;
 			/* The kind (tk_class, tk_struct, or tk_union) which
@@ -2484,7 +2503,8 @@ typedef struct a_template_symbol_supplement {
 		prototype_instantiation;
 			/* Points to the symbol representing the prototype
 			   instantiation.  For class templates, this is a
-			   class.  For alias templates, this is a type. */
+			   class.  For alias templates, this is a type.  For
+			   an enumeration, this is an enum type. */
       a_symbol_ptr
 		partial_specializations;
 			/* A list of class template symbols for partial
@@ -5868,6 +5888,9 @@ supplement.
   /* } else if */ (sym)->kind ==					\
 			 (a_symbol_kind)sk_static_data_member ? /* { */	\
     (sym)->variant.static_data_member.instance_ptr->template_info :	\
+  /* } else if */ (sym)->kind ==					\
+			 (a_symbol_kind)sk_enum_tag ? /* { */		\
+    (sym)->variant.enumeration.extra_info->template_info :		\
   /* } else { */							\
     ((a_template_symbol_supplement_ptr)NULL)				\
   /* } */)
