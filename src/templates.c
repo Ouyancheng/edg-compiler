@@ -22982,7 +22982,7 @@ that follows.
   /* Issue a diagnostic if there are any unapplied pragmas at this point. */
   cannot_bind_to_curr_construct();
   if (!decl_state->decl_scope_err &&
-      (dps->storage_class != (a_storage_class)sc_unspecified ||
+      (dps->declared_storage_class != (a_storage_class)sc_unspecified ||
        dso_flags & (DSO_STORAGE_CLASS_SPECIFIERS))) {
     /* Some storage-class-specifier was specified; see if it should be
        allowed. */
@@ -22996,7 +22996,7 @@ that follows.
          existing practice is to allow it (and verify that it matches
          the previous declaration if applied to a static data member). */
     }  /* if */
-    if (dps->storage_class != (a_storage_class)sc_unspecified) {
+    if (dps->declared_storage_class != (a_storage_class)sc_unspecified) {
       /* Storage-class-specifier is non-standard, but allowed in some modes. */
       an_error_severity	severity = es_discretionary_error;
       if ((gpp_mode && gnu_version < 40300) || microsoft_mode) {
