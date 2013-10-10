@@ -4951,6 +4951,7 @@ unscoped enum definition introduces a name in its surrounding scope.
   }  /* if */
   if (is_scoped_enum &&
       !enum_type->variant.integer.originally_unnamed &&
+      enum_type->variant.integer.is_template_enum &&
       curr_scope_is_class_template_definition()) {
     /* This is a scoped enumeration defined in a class template.  We
        need to create a cache for the enum definition. */
@@ -5982,7 +5983,12 @@ dsi_flags is the set of input flags passed to decl_specifiers.
         set_name_linkage_for_type(enum_type);
       }  /* if */
     }  /* if */
-    if (curr_scope_is_class_template_definition()) {
+    if (tag_sym->is_error) {
+      /* Suppress the template processing below in error cases. */
+    } else if (is_cli_generic_definition_context() ||
+               is_cli_generic_instantiation_context()) {
+      /* Suppress the template processing for C++/CLI generics. */
+    } else if (curr_scope_is_class_template_definition()) {
       a_template_symbol_supplement_ptr	tssp;
       an_enum_symbol_supplement_ptr	essp;
       essp = tag_sym->variant.enumeration.extra_info;

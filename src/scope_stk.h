@@ -1600,6 +1600,17 @@ TRUE if we are in a C++/CLI generic definition context.
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 /*
+TRUE if we are in a C++/CLI generic instantiation context.
+*/
+#if MICROSOFT_EXTENSIONS_ALLOWED
+#define is_cli_generic_instantiation_context()				\
+  (depth_scope_stack != NO_SCOPE_DEPTH &&		\
+   scope_stack[depth_scope_stack].in_generic_instantiation)
+#else  /* !MICROSOFT_EXTENSIONS_ALLOWED */
+#define is_cli_generic_instantiation_context() /*lint --e(506)*/FALSE
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+
+/*
 Return TRUE if the symbol is a prototype instantiation or C++/CLI generic
 class definition.
 */
