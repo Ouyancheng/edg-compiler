@@ -7337,7 +7337,12 @@ template.
 #if GENERATE_SOURCE_SEQUENCE_LISTS
       /* FIXME: What should be done for enum instantiations? */
       saved_sses_disallowed = source_sequence_entries_disallowed;
+#if CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
       source_sequence_entries_disallowed = TRUE;
+#else /* !CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
+      source_sequence_entries_disallowed =
+                                         enum_type->variant.integer.is_nonreal;
+#endif /* CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
       /* Reactivate any pragmas that should be bound to the generated
          instance. */
