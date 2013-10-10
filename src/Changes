@@ -4,7 +4,7 @@ Version 5.0
 Lambda closure types given same mangled name
 
 In cases where a lambda is used as an initializer for an object that is defined
-outside its namespace , a non-unique discriminator may have been assigned to
+outside its namespace, a non-unique discriminator may have been assigned to
 the lambda closure type, possibly resulting in a mangled name collision.
 A change was made (when ABI_COMPATIBILITY_VERSION >= 408) to ensure the
 discriminators are unique.  For example (with --c++11):
