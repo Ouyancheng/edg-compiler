@@ -14794,6 +14794,15 @@ typedef struct an_expr_node {
 			   source.  Set only on enk_temp_init nodes and on
 			   eok_cast and eok_XXX_cast enk_operation nodes;
 			   will be FALSE everywhere else. */
+  a_bit_field
+		is_functional_notation_cast:1;
+			/* TRUE if this node represents a cast using functional
+			   notation in the source (e.g., "double(x)" or
+			   "double{x}"). */
+  a_bit_field
+		is_brace_notation_cast:1;
+			/* TRUE if this node represents a cast using brace
+			   notation in the source (e.g., "double{x}"). */
   a_bit_field	is_objectless_nonstatic_data_mem_ref:1;
 			/* TRUE if this node represents a reference to a
 			   nonstatic data member without an object, as is

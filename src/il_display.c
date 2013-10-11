@@ -4004,6 +4004,12 @@ Display the indicated expression node.
   if (ptr->is_static_cast) {
     disp_boolean("is_static_cast", TRUE);
   }  /* if */
+  if (ptr->is_functional_notation_cast) {
+    disp_boolean("is_functional_notation_cast", TRUE);
+  }  /* if */
+  if (ptr->is_brace_notation_cast) {
+    disp_boolean("is_brace_notation_cast", TRUE);
+  }  /* if */
   if (ptr->is_objectless_nonstatic_data_mem_ref) {
     disp_boolean("is_objectless_nonstatic_data_mem_ref", TRUE);
   }  /* if */

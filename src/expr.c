@@ -21016,6 +21016,14 @@ previously-scanned braced initializer.
                         /*make_lvalue_temp=*/FALSE,
                         result, (an_init_state *)NULL,
                         (an_arg_match_summary *)NULL);
+  if (is_expression_operand(result)) {
+    result->variant.expression->is_brace_notation_cast = TRUE;
+  } else if (is_constant_operand(result)) {
+    an_expr_node_ptr  backing_expr = result->variant.constant.expr;
+    if (backing_expr != NULL) {
+      backing_expr->is_brace_notation_cast = TRUE;
+    }  /* if */
+  }  /* if */
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   curr_construct_end_position = *init_component_end_pos(icp);
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
@@ -21500,6 +21508,14 @@ non_ctor_case_after_expr_scan:
     }  /* if */
   }  /* if */
 have_result:
+  if (is_expression_operand(result)) {
+    result->variant.expression->is_functional_notation_cast = TRUE;
+  } else if (is_constant_operand(result)) {
+    an_expr_node_ptr  backing_expr = result->variant.constant.expr;
+    if (backing_expr != NULL) {
+      backing_expr->is_functional_notation_cast = TRUE;
+    }  /* if */
+  }  /* if */
   set_operand_position(result, start_position, &end_position, start_position);
   record_cast_position_in_rescan_info(result,
                                       orig_operand_expression,

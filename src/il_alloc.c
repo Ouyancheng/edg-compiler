@@ -3169,6 +3169,8 @@ its kind to the indicated kind.
   node->marked_as_gnu_extension = FALSE;
 #endif /* GNU_EXTENSIONS_ALLOWED */
   node->is_static_cast = FALSE;
+  node->is_functional_notation_cast = FALSE;
+  node->is_brace_notation_cast = FALSE;
   node->is_objectless_nonstatic_data_mem_ref = FALSE;
   node->is_pack_expansion = FALSE;
 #if MICROSOFT_EXTENSIONS_ALLOWED
