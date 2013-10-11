@@ -2217,6 +2217,13 @@ template).
         flush_until_matching_token_full(/*limit_flush=*/FALSE);
         if (curr_token == tok_rparen) (void)get_token();
       }  /* if */
+    } else if (curr_token == tok_alignas) {
+      /* Skip over alignas attributes. */
+      (void)get_token();
+      if (curr_token == tok_lparen) {
+        flush_until_matching_token_full(/*limit_flush=*/FALSE);
+        if (curr_token == tok_rparen) (void)get_token();
+      }  /* if */
     } else {
       break;
     }  /* if */
