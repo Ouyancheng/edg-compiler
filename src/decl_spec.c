@@ -4884,6 +4884,7 @@ integer type and adjust the associated integer values if needed.
 #endif /* !EXTRA_SOURCE_POSITIONS_IN_IL || !MICROSOFT_EXTENSIONS_ALLOWED */
 void scan_enumerator_list(a_type_ptr             enum_type,
                           a_decl_parse_state     *dps,
+                          a_decl_flag_set        dsi_flags,
                           an_ms_attribute_ptr    *p_ms_attributes,
                           a_type_ptr             class_of_which_a_member,
                           a_boolean              *declares_something,
@@ -4893,11 +4894,12 @@ Scan the list of enumerators in an enum type definition, including its
 enclosing braces.  (The current token is the left brace, except perhaps in
 error cases.)  enum_type is the type whose definition must be scanned.  *dps
 describes the declaration containing the enum definition (which may include
-attributes).  p_ms_attributes describes Microsoft COM-style attributes
-preceding the enum specifier (if any).   class_of_which_a_member specifies the
-parent type of the enum type.  *declares_something is set to TRUE if an
-unscoped enum definition introduces a name in its surrounding scope.
-*decl_pos_block is updated to reflect relevant positions of this definition.
+attributes).  dsi_flags is the set of input flags passed to decl_specifiers.
+p_ms_attributes describes Microsoft COM-style attributes preceding the enum
+specifier (if any).   class_of_which_a_member specifies the parent type of
+the enum type.  *declares_something is set to TRUE if an unscoped enum
+definition introduces a name in its surrounding scope.  *decl_pos_block
+is updated to reflect relevant positions of this definition.
 */
 {
   a_symbol_ptr       tag_sym = symbol_for(enum_type), enum_con_sym;
@@ -4917,7 +4919,27 @@ unscoped enum definition introduces a name in its surrounding scope.
                      tcsp = NULL;
   an_enum_symbol_supplement_ptr
                      essp;
+  a_boolean          is_enum_template_definition = FALSE;
 
+  /* Determine whether this is the definition of a member enum that can be
+     instantiated.  A scoped enum declared in a class template is such an
+     enum (whether defined in the class or later outside of the class).
+     An unscoped enum can also be instantiated if it is declared in the
+     class as an opaque enumeration and defined later outside of the class. */
+  if (class_of_which_a_member != NULL &&
+      enum_type->variant.integer.is_template_enum &&
+      !enum_type->variant.integer.originally_unnamed &&
+      class_of_which_a_member->
+                       variant.class_struct_union.is_prototype_instantiation) {
+    if (is_scoped_enum && curr_scope_is_class_template_definition()) {
+      /* A scoped enum defined in the class template. */
+      is_enum_template_definition = TRUE;
+    } else if ((dsi_flags & DSI_IS_TEMPLATE_DECLARATION) != 0) {
+      /* A scoped or unscoped enum that is being defined outside of the
+         class. */
+      is_enum_template_definition = TRUE;
+    }  /* if */
+  }  /* if */
   check_assertion_or_expect_error(curr_token == tok_lbrace);
   explicit_base = integer_type_supp(enum_type)->base_type;
   essp = tag_sym->variant.enumeration.extra_info;
@@ -4949,12 +4971,10 @@ unscoped enum definition introduces a name in its surrounding scope.
   if (scope_is(&scope_stack_top(), sck_class_reactivation)) {
     reactivated_class_scope_number = scope_stack_top().number;
   }  /* if */
-  if (is_scoped_enum &&
-      !enum_type->variant.integer.originally_unnamed &&
-      enum_type->variant.integer.is_template_enum &&
-      curr_scope_is_class_template_definition()) {
-    /* This is a scoped enumeration defined in a class template.  We
-       need to create a cache for the enum definition. */
+  if (is_enum_template_definition) {
+    /* This is an enumeration declared in a class template that can be
+       separately instantiated.  We need to create a cache for the enum
+       definition. */
     a_template_symbol_supplement_ptr	tssp;
     tssp = tag_sym->variant.enumeration.extra_info->template_info;
     tcsp = alloc_template_cache_segment(tag_sym, tssp);
@@ -5372,7 +5392,7 @@ unscoped enum definition introduces a name in its surrounding scope.
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   decl_pos_block->specifiers_range.end = pos_curr_token;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
-  /* For a scoped enum in a class template, tcsp will have been set above.
+  /* For an enum in a class template, tcsp will have been set above.
      Save the ending position of the tokens to be included in the
      definition cache of the template. */
   if (tcsp != NULL) {
@@ -5390,7 +5410,14 @@ unscoped enum definition introduces a name in its surrounding scope.
                            curr_token_sequence_number,
                            /*include_last_token=*/TRUE,
                            &tssp->cache.tokens);
-    terminate_token_cache(&tssp->cache.tokens);
+    if (is_scoped_enum) {
+      /* Scoped enums are instantiated when needed.  Unscoped enums are
+         instantiated when their declaration is encountered in the
+         instantiation of the enclosing class.  For the latter case we
+         don't add a cache terminator as the tokens will appear to occur
+         as part of the enum declaration in class instantiations. */
+      terminate_token_cache(&tssp->cache.tokens);
+    }  /* if */
     /* Update the template decl info based on the parent class. */
     set_template_cache_info(&tssp->cache, (a_token_cache_ptr)NULL,
                             class_tssp->cache.decl_info);
@@ -5494,14 +5521,15 @@ unscoped enum definition introduces a name in its surrounding scope.
 /*ARGSUSED*/ /* decl_pos_block is not used unless extra source-position
                 information is being recorded in the IL. */
 #endif /* !EXTRA_SOURCE_POSITIONS_IN_IL */
-static void enum_specifier(a_decl_parse_state   *dps,
-                           a_decl_flag_set      dsi_flags,
-                           a_boolean            vacuous_decl_allowed,
-                           a_type_ptr           *type_ptr,
-                           an_ms_attribute_ptr  *p_ms_attributes,
-                           a_boolean            *declares_something,
-                           a_boolean            *defines_something,
-                           a_decl_pos_block     *decl_pos_block)
+void enum_specifier(a_decl_parse_state   *dps,
+                    a_decl_flag_set      dsi_flags,
+                    a_boolean            vacuous_decl_allowed,
+                    a_boolean            is_enum_template_definition,
+                    a_type_ptr           *type_ptr,
+                    an_ms_attribute_ptr  *p_ms_attributes,
+                    a_boolean            *declares_something,
+                    a_boolean            *defines_something,
+                    a_decl_pos_block     *decl_pos_block)
 /*
 Scan an enumeration specifier (i.e., the definition of an enumeration type) or
 an elaborated name for an enumeration type (e.g., "enum E").  C++11 scoped
@@ -5511,7 +5539,8 @@ The type is returned in *type_ptr.  *declares_something is set to indicate
 whether or not this specifier declares something.  If defines_something is
 non-NULL, *defines_something is set to indicate whether an enumeration is
 actually defined.  p_ms_attributes describes Microsoft attributes preceding
-the enum specifier (if any).
+the enum specifier (if any).  is_enum_template_definition is TRUE if
+this is called for an out-of-class definition of an enum template.
 dsi_flags is the set of input flags passed to decl_specifiers.
 */
 {
@@ -5616,8 +5645,18 @@ dsi_flags is the set of input flags passed to decl_specifiers.
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   /* If there is an identifier next, it is a tag.  It can be the declaration
-     of a new tag or a reference to an existing tag. */
-  tag_id_present = is_expr_qualified_name_start();
+     of a new tag or a reference to an existing tag.  The "expr context"
+     flag is used to improve error recovery (specifically to avoid a
+     diagnostic like "E is not a class template" when an enum type is followed
+     by a "<"). */
+  { an_identifier_options_set gid_options = GID_IS_EXPR_CONTEXT;
+    if (is_enum_template_definition) {
+      /* For template declarations, find a member of the prototype
+         instantiation for something like A<T>::E. */
+      gid_options |= GID_USE_PROTOTYPE_NOT_NONREAL;
+    }  /* if */
+    tag_id_present = is_generalized_identifier_start(gid_options);
+  }
   if (tag_id_present) {
     a_boolean   tag_resolution;
     a_boolean   is_friend_decl = FALSE;
@@ -5639,6 +5678,11 @@ dsi_flags is the set of input flags passed to decl_specifiers.
                                  curr_token, (a_symbol_kind)sk_enum_tag,
                                  (dsi_flags & DSI_IS_NEW_TYPE_NAME) != 0,
                                  (dsi_flags & DSI_NO_TAG_DEFINITION) != 0);
+    if (tag_sym != NULL && is_enum_template_definition) {
+      /* This is the definition of an enum template.   Use the enum symbol,
+         not the nonreal one. */
+      tag_sym = nested_prototype_type_for_nonreal_type(tag_sym);
+    }  /* if */
     if (tag_resolution) {                            
       /* Resolution of a previous incomplete declaration. */
       if (effective_decl_level != decl_scope_level) {
@@ -5892,7 +5936,9 @@ dsi_flags is the set of input flags passed to decl_specifiers.
     }  /* if */
   }  /* if */
   if (tag_sym == NULL) {
-    a_scope_ptr  parent_scope = scope_stack[effective_decl_level].il_scope;
+    an_enum_symbol_supplement_ptr	essp;
+    a_scope_ptr				parent_scope;
+    parent_scope = scope_stack[effective_decl_level].il_scope;
     /* Create a new enumerated type.  All enumeration type entries are
        allocated in the file scope memory region. */
     enum_type = alloc_type((a_type_kind)tk_integer);
@@ -5950,6 +5996,7 @@ dsi_flags is the set of input flags passed to decl_specifiers.
       enum_type->variant.integer.originally_unnamed = TRUE;
       unnamed = TRUE;
     }  /* if */
+    essp = tag_sym->variant.enumeration.extra_info;
 #if NEED_NAME_MANGLING
     /* The mangled names of local types and unnamed types in namespace scope
        are distinguished using a unique number ("discriminator").  Compute this
@@ -5994,18 +6041,32 @@ dsi_flags is the set of input flags passed to decl_specifiers.
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     } else if (curr_scope_is_class_template_definition()) {
       a_template_symbol_supplement_ptr	tssp;
-      an_enum_symbol_supplement_ptr	essp;
-      essp = tag_sym->variant.enumeration.extra_info;
       tssp = alloc_template_symbol_supplement((a_symbol_kind)sk_enum_tag);
       essp->template_info = tssp;
       enum_type->variant.integer.is_prototype_instantiation = TRUE;
       tssp->token_sequence_number = tsn_for_enum;
       enum_type->variant.integer.is_template_enum = TRUE;
+      tssp->variant.class_template.prototype_instantiation = tag_sym;
     } else if (!unnamed && curr_scope_is_class_instantiation()) {
       enum_type->variant.integer.is_template_enum = TRUE;
       /* Find the enum declaration from the prototype instantiation
          (if any). */
       find_enum_member(tag_sym, sym_parent_class(tag_sym), tsn_for_enum);
+      if (!is_scoped_enum) {
+        /* For a non-scoped enum that was defined outside of its class,
+           rescan the tokens of the enumerator list where they would appear
+           if the enumeration were defined inside the class. */
+        a_template_symbol_supplement_ptr	tssp;
+        a_symbol_ptr				template_sym;
+        a_template_cache_ptr			tcp;
+        template_sym = essp->template_sym;
+        tssp = template_sym->variant.enumeration.extra_info->template_info;
+        tcp = cache_for_template(tssp);
+        if (tcp->tokens.first_token != NULL) {
+          rescan_reusable_cache(&tcp->tokens);
+          is_definition = TRUE;
+        }  /* if */
+      }  /* if */
     }  /* if */
     /* When an enumeration is defined within a class definition, its access
        should be set based on the access recorded in the current scope stack
@@ -6091,7 +6152,7 @@ dsi_flags is the set of input flags passed to decl_specifiers.
     }  /* if */
   }  /* if */
   if (is_definition) {
-    scan_enumerator_list(enum_type, dps, p_ms_attributes,
+    scan_enumerator_list(enum_type, dps, dsi_flags, p_ms_attributes,
                          class_of_which_a_member,
                          declares_something, &local_decl_pos_block);
   } else {
@@ -9673,7 +9734,8 @@ process_enum_specifier:
           err = TRUE;
         } else {
           if (basic_type == bt_none) {
-            enum_specifier(state, input_flags, vacuous_decl_allowed, type_ptr,
+            enum_specifier(state, input_flags, vacuous_decl_allowed,
+                           /*is_enum_template_definition=*/FALSE, type_ptr,
                            &state->ms_attributes,
                            &declares_something, &defines_something,
                            decl_pos_block);
@@ -9694,6 +9756,7 @@ process_enum_specifier:
             error(ec_bad_combination_of_type_specifiers);
             /* Scan the specifier anyway, but throw it away. */
             enum_specifier(state, input_flags, /*vacuous_decl_allowed=*/FALSE,
+                           /*is_enum_template_definition=*/FALSE,
                            &dummy_type, (an_ms_attribute_ptr*)NULL,
                            &dummy_flag, /*defines_something=*/NULL,
                            decl_pos_block);

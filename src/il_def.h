@@ -16645,6 +16645,8 @@ enum a_template_kind_tag {
 			/* Static data member template. */
   templk_member_class,
 			/* A class nested within a class template. */
+  templk_member_enum,
+			/* Enumeration member template. */
   templk_template_template_param
 			/* The template associated with a template template
 			   parameter. */
@@ -16753,7 +16755,8 @@ typedef struct a_template {
     /* When kind == templk_class or templk_member_class: */
     a_type_ptr	type;
 			/* A pointer to the prototype instantiation of the
-			   class or member class template. */
+			   class, member class template, or member enum
+			   template. */
     /* When kind == templk_static_data_member: */
     a_variable_ptr
 		variable;

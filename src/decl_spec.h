@@ -108,10 +108,21 @@ extern void add_flags_from_dll_attributes(a_decl_modifier   *p_flags,
 
 extern void scan_enumerator_list(a_type_ptr           enum_type,
                                  a_decl_parse_state   *dps,
+                                 a_decl_flag_set      dsi_flags,
                                  an_ms_attribute_ptr  *p_ms_attributes,
                                  a_type_ptr           class_of_which_a_member,
                                  a_boolean            *declares_something,
                                  a_decl_pos_block     *decl_pos_block);
+
+extern void enum_specifier(a_decl_parse_state   *dps,
+                           a_decl_flag_set      dsi_flags,
+                           a_boolean            vacuous_decl_allowed,
+                           a_boolean            is_enum_template_definition,
+                           a_type_ptr           *type_ptr,
+                           an_ms_attribute_ptr  *p_ms_attributes,
+                           a_boolean            *declares_something,
+                           a_boolean            *defines_something,
+                           a_decl_pos_block     *decl_pos_block);
 
 extern void typename_specifier(a_type_ptr            *type_ptr,
 			       a_symbol_ptr	     *type_sym,

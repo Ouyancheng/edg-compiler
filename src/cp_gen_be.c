@@ -1892,6 +1892,8 @@ associated a_template entry.
        "type". */
     check_assertion(((is_immediate_class_type(type) &&
                       is_prototype_instantiation_or_cli_generic_type(type)) ||
+                     (type->kind == (a_type_kind)tk_enum &&
+                      type->variant.integer.is_prototype_instantiation) ||
                      (type->kind == (a_type_kind)tk_typeref &&
                       type->variant.typeref.is_prototype_instantiation)) &&
                     ss_entry_ptr(curr_source_sequence_entry, a_template_ptr)
@@ -13073,6 +13075,7 @@ instantiation is available.
       break;
     case templk_class:
     case templk_member_class:
+    case templk_member_enum:
       if (tp->prototype_instantiation.type != NULL) {
         gen_type_decl(/*suppress_specifiers=*/FALSE,
                       &another_decl_in_comma_list);

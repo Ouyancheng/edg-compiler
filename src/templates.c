@@ -7363,7 +7363,8 @@ template.
       { a_boolean		declares_something = FALSE;
         a_decl_pos_block	decl_pos_block;
         clear_decl_pos_block(&decl_pos_block);
-        scan_enumerator_list(enum_type, &dps, (an_ms_attribute_ptr*)NULL,
+        scan_enumerator_list(enum_type, &dps, DSI_NO_INPUT_FLAGS,
+                             (an_ms_attribute_ptr*)NULL,
                              parent_class, &declares_something,
                              &decl_pos_block);
       }
@@ -20298,6 +20299,21 @@ set, and its source sequence entry, if any, has been put out.)
           il_template_entry->canonical_template->definition_template =
                                                             il_template_entry;
           break;
+        case sk_enum_tag:
+          il_template_entry->kind = (a_template_kind)templk_member_enum;
+          if (prototype_instantiations_in_il) {
+            il_template_entry->prototype_instantiation.type =
+                                                 sym->variant.enumeration.type;
+          } else {
+            il_template_entry->prototype_instantiation.type = NULL;
+          }  /* if */
+          /* An out-of-class enum member declaration is always a definition. */
+          il_template_entry->canonical_template =
+                     sym->variant.enumeration.type->
+                                    variant.integer.extra_info->assoc_template;
+          il_template_entry->canonical_template->definition_template =
+                                                            il_template_entry;
+          break;
         case sk_class_or_struct_tag:
         case sk_union_tag:
           check_assertion(sym->is_class_member);
@@ -22165,6 +22181,112 @@ alias
 }  /* alias_template_declaration */
 
 
+static a_symbol_ptr enum_template_declaration(
+					a_tmpl_decl_state_ptr decl_state)
+/*
+Scan a declaration for an out-of-class definition of en enumeration
+member of a class template or nested class of a class template.
+Such a declaration has the form:
+
+  template <template-parameter-list> enum A<T>::E : base_type { ... };
+  template <template-parameter-list> enum class A<T>::E : base_type { ... };
+
+The template parameter clause has already been scanned at the time this
+routine has been called, and the current token is the tok_enum of the
+enum declaration.
+
+Return a pointer to the enum symbol that is a member of the prototype
+instantiation of the containing class.
+*/
+{
+  a_symbol_locator			locator;
+  a_symbol_ptr				sym = NULL;
+  a_template_symbol_supplement_ptr	tssp;
+  a_boolean				declares_something;
+  a_boolean				defines_something;
+  a_boolean				err = FALSE;
+#if 0
+  /* FIXME: Is this needed? */
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+  a_boolean				saved_sses_disallowed;
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+#endif
+  a_decl_parse_state			dps;
+  a_type_ptr				enum_type;
+  an_integer_type_supplement_ptr	itsp;
+
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+  decl_state->decl_pos_block.specifiers_range.start = pos_curr_token;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+  /* All out-of-class enum declarations must be definitions. */
+  decl_state->defines_something = TRUE;
+  /* Skip past the "using" (or "__internal_alias_decl" when e.g. processing
+     the internal declaration of C++/CLI's cli::interior_ptr). */
+  check_assertion(curr_token == tok_enum);
+  init_decl_parse_state(&dps);
+  enum_specifier(&dps, DSI_IS_TEMPLATE_DECLARATION,
+                 /*vacuous_decl_allowed=*/FALSE,
+                 /*is_enum_template_definition=*/TRUE,
+                 &enum_type, (an_ms_attribute_ptr*)NULL, &declares_something,
+                 &defines_something, &decl_state->decl_pos_block);
+  sym = symbol_for(enum_type);
+  if (sym == NULL) {
+    expect_error();
+    tssp = NULL;
+    err = TRUE;
+  } else {
+    itsp = enum_type->variant.integer.extra_info;
+    tssp = sym->variant.enumeration.extra_info->template_info;
+    set_il_template_entry(decl_state, sym, tssp);
+    itsp->assoc_template = tssp->il_template_entry;
+  }  /* if */
+#if 0
+  /* FIXME: Is this needed? */
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+  if (prototype_instantiations_in_il) {
+    /* Prevent the generation of a source sequence entry for the a_template
+       entry since we have one for the recorded prototype instantiation. */
+    saved_sses_disallowed = source_sequence_entries_disallowed;
+    source_sequence_entries_disallowed = TRUE;
+  }  /* if */
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+#endif
+  if (!err) {
+    mark_defined(sym, &locator.source_position);
+    /* Make sure the template parameter list matches the enclosing class. */
+    if (!member_template_param_list_matches_class(
+                           decl_state, sym,
+                           /*allow_missing_member_constraint=*/FALSE,
+                           &sym->decl_position)) {
+      err = TRUE;
+    }  /* if */
+  }  /* if */
+#if 0
+  /* FIXME: Is this needed? */
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+  if (prototype_instantiations_in_il) {
+    /* Restore the previous state wrt. the generation of source sequence
+       entries. */
+    source_sequence_entries_disallowed = saved_sses_disallowed;
+  }  /* if */
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+#endif
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+  if (!err) {
+    update_decl_pos_info(
+           &tssp->variant.class_template.prototype_instantiation->
+                                              variant.type.ptr->source_corresp,
+                       &decl_state->decl_pos_block);
+   }  /* if */
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+  if (err) {
+    /* If an error occurred earlier, return a NULL symbol. */
+    sym = NULL;
+  } /* if */
+  return sym;
+}  /* enum_template_declaration */
+
+
 static
 void template_declaration(a_tmpl_decl_state_ptr	decl_state)
 /*
@@ -22236,14 +22358,12 @@ any non-empty template parameter lists that were scanned.
     tssp = template_supplement_for_symbol(sym);
     /* Save a pointer to the token cache for the alias definition. */
     p_template_body_cache = &tssp->cache.tokens;
-#if 0
   } else if (opaque_enum_decls_enabled && curr_token == tok_enum) {
     /* An enum template declaration. */
     sym = enum_template_declaration(decl_state);
-    tssp = template_supplement_for_symbol(sym);
+    tssp = sym != NULL ? template_supplement_for_symbol(sym) : NULL;
     /* Save a pointer to the token cache for the enum definition. */
     p_template_body_cache = &tssp->cache.tokens;
-#endif /* 0 */
   } else {
     /* Not a class template declaration or alias template.  Check for a
        function template declaration or a static data member template
@@ -22507,6 +22627,10 @@ any non-empty template parameter lists that were scanned.
         tssp->variant.class_template.prototype_instantiation_complete = TRUE;
       }  /* if */
     }  /* if */
+  } else if (sym != NULL && symbol_is(sym, sk_enum_tag)) {
+    /* A template definition of an enum declared in a class template.
+       The prototype instantiation is done while scanning the enum
+       declaration. */
   } else if (sym != NULL) {
     if (is_function_or_template_symbol(sym) &&
         prototype_instantiation_should_be_done_for_function(sym)) {
@@ -22825,6 +22949,7 @@ issued.
       is_template = TRUE;
       break;
     case sk_static_data_member:
+    case sk_enum_tag:
       break;
     default:
       unexpected_condition_str("check_template_nesting_depth: bad sym kind");
@@ -23031,7 +23156,8 @@ that follows.
   } else if ((dso_flags & (DSO_DEFINES_SOMETHING |
                            DSO_DECLARES_SOMETHING |
                            DSO_ELABORATED_TYPE_SPECIFIER)) &&
-             is_immediate_class_type(dps->type) &&
+             (is_immediate_class_type(dps->type) ||
+              is_immediate_enum_type(dps->type)) &&
              curr_token == tok_semicolon) {
     /* The argument is something like class A<int> (i.e., a class template
        specialization).  Note that this also permits the class to be a nested

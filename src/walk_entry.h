@@ -2157,6 +2157,7 @@ do_set_proper_definition_needed_flag:
             break;
           case templk_class:
           case templk_member_class:
+          case templk_member_enum:
             remap_ptr(ptr->prototype_instantiation.type, a_type_ptr,
                       iek_type);
             break;

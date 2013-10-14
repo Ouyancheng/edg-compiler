@@ -241,6 +241,8 @@ typedef enum /* an_identifier_lookup_mode */ {
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   ilm_template_friend,	/* Uses IDL_FRIEND_LOOKUP to do the lookup, create
 			   nonreal members as templates. */
+  ilm_template_tag,	/* Uses find tag names and find members of the
+			   prototype instantiation, not nonreal members. */
   ilm_last
 } an_identifier_lookup_mode;
 

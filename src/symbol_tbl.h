@@ -5021,6 +5021,16 @@ otherwise return the original symbol.
                : sym)
 
 /*
+If a symbol is a nonreal type with a corresponding nested type, return the
+nested type, otherwise return the original symbol.
+*/
+#define nested_prototype_type_for_nonreal_type(sym)			\
+  (((sym)->corresp_nonreal_or_nested_type != NULL &&			\
+    (sym)->is_nonreal_nested_type)					\
+               ? (sym)->corresp_nonreal_or_nested_type			\
+               : sym)
+
+/*
 If symbol is a projection symbol, change it to the fundamental symbol pointed
 to by the projection.
 */

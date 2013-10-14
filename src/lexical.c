@@ -701,6 +701,8 @@ static an_id_lookup_options_set idl_options_for_lookup_mode[(int)ilm_last+1]= {
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   /* ilm_template_friend */	IDL_FRIEND_LOOKUP | IDL_TREAT_AS_TEMPLATE_ID |
 				IDL_USE_PROTOTYPE_NOT_NONREAL,
+  /* ilm_template_tag */	IDL_MUST_BE_TAG | IDL_TREAT_AS_TEMPLATE_ID |
+				IDL_USE_PROTOTYPE_NOT_NONREAL,
   /* ilm_last */		IDL_NO_OPTIONS
 };
 
@@ -18857,7 +18859,7 @@ See also coalesce_and_lookup_generalized_identifier.
                   /* Issue one of several difference messages depending on the
                      kind of symbol we are looking for. */
                   a_symbol_ptr  err_sym;
-                  if (ilm == ilm_tag) {
+                  if (ilm == ilm_tag || ilm == ilm_template_tag) {
                     error_code = ec_not_a_tag_member;
                   } else if (ilm == ilm_class ||
                              ilm == ilm_qualified_ctor_initializer_name) {
