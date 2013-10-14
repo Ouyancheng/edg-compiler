@@ -7501,7 +7501,7 @@ The parameter input_flags is the same value that was passed to decl_specifiers
 }  /* report_bad_type_name */
 
 
-static a_type_ptr  enclosing_class_type(a_decl_flag_set  input_flags)
+static a_type_ptr enclosing_class_type(a_decl_flag_set  input_flags)
 /*
 Called from decl_specifiers to determine the type of the class for which a
 member is being scanned.  See decl_specifier for the meaning of input_flags.
