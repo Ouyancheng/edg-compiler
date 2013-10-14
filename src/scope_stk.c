@@ -10480,15 +10480,15 @@ be NULL if suppress_packs is FALSE.
   }  /* if */
   ssep = &scope_stack_top();
   *saved_in_disambiguation = ssep->in_disambiguation;
+  ssep->in_disambiguation = TRUE;
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   *saved_source_sequence_entries_disallowed =
                                             source_sequence_entries_disallowed;
   check_assertion(source_sequence_entries_disallowed ==
                   ssep->source_sequence_entries_disallowed);
-#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
-  ssep->in_disambiguation = TRUE;
   ssep->source_sequence_entries_disallowed = TRUE;
   source_sequence_entries_disallowed = TRUE;
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 }  /* begin_prescan_context */
 
 
