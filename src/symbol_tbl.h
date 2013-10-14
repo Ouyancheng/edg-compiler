@@ -1383,6 +1383,11 @@ typedef struct an_enum_symbol_supplement {
 			   of a scoped enumeration declared in a class
 			   template or a nested class of a class template.
 			   NULL for other enum types. */
+  a_source_position
+		instantiation_position;
+			/* For a nonspecialized template enum that has been
+			   instantiated, this is the position of the
+			   reference that caused the instantiation. */
   a_bit_field	instantiated:1;
 			/* TRUE for an enumeration that is a member of a
 			   class template (or nested class thereof) for which
@@ -5607,6 +5612,11 @@ Macro wrapper for f_symbol_is_pack to avoid calls in most contexts.
   (is_real_class_symbol(sym) &&						\
    (sym)->variant.class_struct_union.type->                             \
                         variant.class_struct_union.is_specialized)
+
+/* Return TRUE if the symbol is a template enum symbol. */
+#define is_any_template_enum_symbol(sym)		\
+  ((sym)->kind == (a_symbol_kind)sk_enum_tag &&			\
+   (sym)->variant.enumeration.type->variant.integer.is_template_enum)
 
 /* Return the template argument list associated with a given template class
    or template alias symbol. */

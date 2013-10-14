@@ -3611,6 +3611,7 @@ state.
 #endif /* NEED_NAME_MANGLING */
         essp->template_sym = NULL;
         essp->template_info = NULL;
+        essp->instantiation_position = null_source_position;
         essp->instantiated = FALSE;
 #if MICROSOFT_EXTENSIONS_ALLOWED
         essp->replaced_enum_symbol = FALSE;

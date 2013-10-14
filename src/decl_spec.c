@@ -5577,6 +5577,8 @@ dsi_flags is the set of input flags passed to decl_specifiers.
   a_boolean                    is_opaque_enum_decl = FALSE;
   a_token_sequence_number      tsn_for_enum;
   a_boolean                    unnamed = FALSE;
+  a_boolean                    is_template_specialization =
+                                     (dsi_flags & DSI_IS_SPECIALIZATION) != 0;
 
   db_enter(3, "enum_specifier");
 
@@ -5657,6 +5659,8 @@ dsi_flags is the set of input flags passed to decl_specifiers.
     }  /* if */
     tag_id_present = is_generalized_identifier_start(gid_options);
   }
+  tag_position = pos_curr_token;
+  error_position = tag_position;
   if (tag_id_present) {
     a_boolean   tag_resolution;
     a_boolean   is_friend_decl = FALSE;
@@ -5664,7 +5668,6 @@ dsi_flags is the set of input flags passed to decl_specifiers.
        tag, even if it just repeats a previous name.  At least, there's
        a Plum Hall test that implies that. */
     *declares_something = TRUE;
-    tag_position = pos_curr_token;
 #if EXTRA_SOURCE_POSITIONS_IN_IL
     local_decl_pos_block.identifier_range.start = pos_curr_token;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
@@ -5828,7 +5831,24 @@ dsi_flags is the set of input flags passed to decl_specifiers.
   }  /* if */
   if (is_definition && tag_sym != NULL && tag_sym->defined) {
     /* Catch errors like "enum A { e }; enum ::A { f };". */
-    pos_sy_error(ec_redefinition, &locator.source_position, tag_sym);
+    enum_type = type_symbol_type(tag_sym);
+    if (is_template_specialization &&
+        !enum_type->variant.integer.is_specialized) {
+      an_enum_symbol_supplement_ptr	essp;
+      essp = tag_sym->variant.enumeration.extra_info;
+      if (is_scoped_enum) {
+        pos2_sy_diagnostic(es_error,
+                           ec_specialization_of_referenced_entity_pos,
+                           &tag_position, &essp->instantiation_position,
+                           tag_sym);
+      } else {
+        pos_diagnostic(es_error,
+                       ec_specialization_of_unscoped_enum,
+                       &tag_position);
+      }  /* if */
+    } else {
+      pos_sy_error(ec_redefinition, &tag_position, tag_sym);
+    }  /* if */
     set_to_error_locator(locator);
     tag_sym = NULL;
   }  /* if */
@@ -6051,20 +6071,23 @@ dsi_flags is the set of input flags passed to decl_specifiers.
       enum_type->variant.integer.is_template_enum = TRUE;
       /* Find the enum declaration from the prototype instantiation
          (if any). */
+      a_template_symbol_supplement_ptr	tssp;
+      a_symbol_ptr			template_sym;
       find_enum_member(tag_sym, sym_parent_class(tag_sym), tsn_for_enum);
+      template_sym = essp->template_sym;
+      tssp = template_sym->variant.enumeration.extra_info->template_info;
       if (!is_scoped_enum) {
         /* For a non-scoped enum that was defined outside of its class,
            rescan the tokens of the enumerator list where they would appear
            if the enumeration were defined inside the class. */
-        a_template_symbol_supplement_ptr	tssp;
-        a_symbol_ptr				template_sym;
         a_template_cache_ptr			tcp;
-        template_sym = essp->template_sym;
-        tssp = template_sym->variant.enumeration.extra_info->template_info;
         tcp = cache_for_template(tssp);
         if (tcp->tokens.first_token != NULL) {
           rescan_reusable_cache(&tcp->tokens);
           is_definition = TRUE;
+          /* Save the position of the reference that caused the
+             instantiation. */
+          essp->instantiation_position = pos_curr_token;
         }  /* if */
       }  /* if */
     }  /* if */
@@ -6147,9 +6170,9 @@ dsi_flags is the set of input flags passed to decl_specifiers.
       enum_type->size = skip_typerefs(explicit_base)->size;
       enum_type->alignment = alignment_of_type(explicit_base);
     }  /* if */
-    if (is_scoped_enum) {
-      enum_type->variant.integer.is_scoped_enum = TRUE;
-    }  /* if */
+  }  /* if */
+  if (is_scoped_enum) {
+    enum_type->variant.integer.is_scoped_enum = TRUE;
   }  /* if */
   if (is_definition) {
     scan_enumerator_list(enum_type, dps, dsi_flags, p_ms_attributes,

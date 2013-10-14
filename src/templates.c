@@ -7294,6 +7294,8 @@ template.
       enum_type->variant.integer.is_nonreal = TRUE;
   }  /* if */
   itsp->assoc_template = tssp->il_template_entry;
+  /* Save the position of the reference that caused the instantiation. */
+  essp->instantiation_position = pos_curr_token;
   {
     a_template_cache_ptr	body_cache;
 
@@ -22199,7 +22201,6 @@ Return a pointer to the enum symbol that is a member of the prototype
 instantiation of the containing class.
 */
 {
-  a_symbol_locator			locator;
   a_symbol_ptr				sym = NULL;
   a_template_symbol_supplement_ptr	tssp;
   a_boolean				declares_something;
@@ -22230,7 +22231,7 @@ instantiation of the containing class.
                  &enum_type, (an_ms_attribute_ptr*)NULL, &declares_something,
                  &defines_something, &decl_state->decl_pos_block);
   sym = symbol_for(enum_type);
-  if (sym == NULL) {
+  if (sym == NULL || sym->is_error) {
     expect_error();
     tssp = NULL;
     err = TRUE;
@@ -22252,7 +22253,6 @@ instantiation of the containing class.
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 #endif
   if (!err) {
-    mark_defined(sym, &locator.source_position);
     /* Make sure the template parameter list matches the enclosing class. */
     if (!member_template_param_list_matches_class(
                            decl_state, sym,
@@ -23162,19 +23162,25 @@ that follows.
     /* The argument is something like class A<int> (i.e., a class template
        specialization).  Note that this also permits the class to be a nested
        class within a template class. */
+    a_boolean	is_class = is_immediate_class_type(dps->type);
     check_pending_qualifiers_used(dps);
     sym = symbol_for(dps->type);
     check_assertion(sym != NULL);
-    if (!is_any_template_instance_class_symbol(sym)) {
+    if (!is_any_template_instance_class_symbol(sym) &&
+        !is_any_template_enum_symbol(sym)) {
       /* Not a template instance. */
-      sym_error(ec_entity_cannot_be_specialized, sym);
+      if (!sym->is_error) sym_error(ec_entity_cannot_be_specialized, sym);
       sym = NULL;
       set_to_error_locator(locator);
     } else {
       /* Make sure that this declaration has the correct number of
          "template <>" clauses. */
       check_template_nesting_depth(sym, &dps->specifiers_pos, decl_state);
-      dps->type->variant.class_struct_union.is_specialized = TRUE;
+      if (is_class) {
+        dps->type->variant.class_struct_union.is_specialized = TRUE;
+      } else {
+        dps->type->variant.integer.is_specialized = TRUE;
+      }  /* if */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
       { a_boolean	decl_is_definition;
         /* The specialization should be marked as an autonomous declaration. */
@@ -23199,7 +23205,8 @@ that follows.
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
       /* Check whether this template can be specialized.  Generics and
          certain templates cannot be partially specialized. */
-      { a_symbol_ptr                     class_template_sym;
+      if (is_class) {
+        a_symbol_ptr                     class_template_sym;
         a_template_symbol_supplement_ptr tssp;
 
         class_template_sym =
