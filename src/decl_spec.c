@@ -4921,12 +4921,14 @@ is updated to reflect relevant positions of this definition.
                      essp;
   a_boolean          is_enum_template_definition = FALSE;
 
+  explicit_base = integer_type_supp(enum_type)->base_type;
   /* Determine whether this is the definition of a member enum that can be
      instantiated.  A scoped enum declared in a class template is such an
      enum (whether defined in the class or later outside of the class).
      An unscoped enum can also be instantiated if it is declared in the
      class as an opaque enumeration and defined later outside of the class. */
   if (class_of_which_a_member != NULL &&
+      (is_scoped_enum || explicit_base != NULL) &&
       enum_type->variant.integer.is_template_enum &&
       !enum_type->variant.integer.originally_unnamed &&
       class_of_which_a_member->
@@ -4941,7 +4943,6 @@ is updated to reflect relevant positions of this definition.
     }  /* if */
   }  /* if */
   check_assertion_or_expect_error(curr_token == tok_lbrace);
-  explicit_base = integer_type_supp(enum_type)->base_type;
   essp = tag_sym->variant.enumeration.extra_info;
   if (explicit_base == NULL) {
     explicit_base_kind = (an_integer_kind)ik_none;
@@ -5975,7 +5976,8 @@ dsi_flags is the set of input flags passed to decl_specifiers.
       enum_type->source_corresp.parent_scope = parent_scope;
     }  /* if */
     is_redeclaration = FALSE;
-    if (strict_ansi_mode && !(is_definition || is_opaque_enum_decl) &&
+    if (strict_ansi_mode &&
+        !(is_definition || is_scoped_enum || is_opaque_enum_decl) &&
         !is_error_locator(locator)) {
       /* Since tag_sym was not found, this is either a vacuous declaration or a
          reference to an incomplete (because not yet declared) type.  In either
@@ -6059,6 +6061,8 @@ dsi_flags is the set of input flags passed to decl_specifiers.
                is_managed_class_type(class_of_which_a_member)) {
       /* Suppress the template processing for C++/CLI generics and classes. */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+    } else if (!opaque_enum_decls_enabled) {
+      /* Suppress template processing if opaque enums are not allowed. */
     } else if (curr_scope_is_class_template_definition()) {
       a_template_symbol_supplement_ptr	tssp;
       tssp = alloc_template_symbol_supplement((a_symbol_kind)sk_enum_tag);
@@ -6075,8 +6079,11 @@ dsi_flags is the set of input flags passed to decl_specifiers.
       enum_type->variant.integer.is_template_enum = TRUE;
       find_enum_member(tag_sym, sym_parent_class(tag_sym), tsn_for_enum);
       template_sym = essp->template_sym;
-      tssp = template_sym->variant.enumeration.extra_info->template_info;
-      if (!is_scoped_enum) {
+      tssp = template_sym == NULL
+                ? NULL
+                : template_sym->variant.enumeration.extra_info->template_info;
+      check_assertion_or_expect_error(tssp != NULL);
+      if (tssp != NULL && !is_scoped_enum) {
         /* For a non-scoped enum that was defined outside of its class,
            rescan the tokens of the enumerator list where they would appear
            if the enumeration were defined inside the class. */
@@ -6174,7 +6181,11 @@ dsi_flags is the set of input flags passed to decl_specifiers.
   if (is_scoped_enum) {
     enum_type->variant.integer.is_scoped_enum = TRUE;
   }  /* if */
-  if (is_definition) {
+  if (is_definition &&
+      (curr_token == tok_lbrace ||
+       enum_type->variant.integer.is_prototype_instantiation)) {
+    /* The enumerator list will be missing for the definition of an enumeration
+       defined in a class template, except for the prototype instantiation. */
     scan_enumerator_list(enum_type, dps, dsi_flags, p_ms_attributes,
                          class_of_which_a_member,
                          declares_something, &local_decl_pos_block);
