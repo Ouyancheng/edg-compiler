@@ -696,12 +696,18 @@ already on the list, or new ones added by this call) return TRUE;
 otherwise return FALSE.
 */
 {
-  a_pending_pragma_ptr		list_start;
+  a_pending_pragma_ptr		list_start = NULL;
   a_pending_pragma_ptr		list_end;
   a_pending_pragma_ptr		ppp;
   a_pending_pragma_ptr		prev_ppp;
 
   db_enter(4, "select_curr_construct_pragmas");
+  if (scope_stack_top().in_disambiguation) {
+    /* The current construct is only being prescanned: Don't select pending
+       pragmas for the resulting (throw-away) IL.  They will be selected
+       instead during the subsequent actual scan. */
+    goto done;
+  }  /* if */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   /* Create source sequence entries for any pragmas that don't yet have
      them. */
@@ -779,6 +785,7 @@ otherwise return FALSE.
      ensures that any immediate pragmas will be processed before any
      next construct pragmas found at the same point. */
   if (curr_token_pragmas != NULL) process_curr_token_pragmas();
+done:
   db_exit();
   /* Return TRUE if there are any entrys of the list. */
   return list_start != NULL;
@@ -1301,6 +1308,12 @@ the pragmas.
   db_enter(4, "process_curr_construct_pragmas");
   check_assertion_str((sym == NULL) == (sp != NULL),
                       "process_pragmas_bound...: invalid arguments");
+  if (scope_stack_top().in_disambiguation) {
+    /* The current construct has only been prescanned: Don't apply pending
+       pragmas to the resulting (throw-away) IL.  They will be applied again
+       during the actual scan. */
+    goto done;
+  }  /* if */
   /* Go though the pragmas that are meant to apply to the current
      declaration or statement. */
   ppp = *curr_list_of_curr_construct_pragmas();
@@ -1350,6 +1363,7 @@ the pragmas.
   if (list_start != NULL) {
     free_pending_pragma_list(list_start);
   }  /* if */
+done:
   db_exit();
 }  /* process_curr_construct_pragmas */
 

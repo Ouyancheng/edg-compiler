@@ -10445,19 +10445,23 @@ will be NULL outside of template dependent contexts.
 
 
 void begin_prescan_context(
-	a_boolean				suppress_packs,
-	a_boolean				*packs_suppressed,
-	a_pack_expansion_stack_entry_ptr	*pack_expansion_stack_entry,
-	a_boolean				*saved_in_disambiguation)
+	a_boolean		suppress_packs,
+	a_boolean		*packs_suppressed,
+	a_pack_expansion_stack_entry_ptr
+				*pack_expansion_stack_entry,
+	a_boolean		*saved_in_disambiguation,
+	a_boolean
+				*saved_source_sequence_entries_disallowed)
 /*
 Update the scope stack to indicate that we are in a prescan or
 disambiguation context.  suppress_packs is TRUE if a pack suppression
 context should be pushed if we are in a variadic prototype instantiation.
 *packs_suppressed is set to TRUE if a variadic pack suppression was pushed.
-*saved_in_disambiguation is used to record the previous value of the
-scope stack in_disambiguation flag.  pack_expansion_stack_entry points to the
-location used for the pack expansion stack entry pointer returned if a pack
-suppression needs to pushed, and can be NULL if suppress_packs is FALSE.
+*saved_in_disambiguation and *saved_source_sequence_entries_disallowed are
+used to record the previous value of the corresponding scope stack flags.
+pack_expansion_stack_entry points to the location used for the pack expansion
+stack entry pointer returned if a pack suppression needs to pushed, and can
+be NULL if suppress_packs is FALSE.
 */
 {
   a_scope_stack_entry_ptr	ssep;
@@ -10472,19 +10476,28 @@ suppression needs to pushed, and can be NULL if suppress_packs is FALSE.
   }  /* if */
   ssep = &scope_stack_top();
   *saved_in_disambiguation = ssep->in_disambiguation;
+  *saved_source_sequence_entries_disallowed =
+                                            source_sequence_entries_disallowed;
+  check_assertion(source_sequence_entries_disallowed ==
+                  ssep->source_sequence_entries_disallowed);
   ssep->in_disambiguation = TRUE;
+  ssep->source_sequence_entries_disallowed = TRUE;
+  source_sequence_entries_disallowed = TRUE;
 }  /* begin_prescan_context */
 
 
 void end_prescan_context(
-	a_boolean				packs_suppressed,
-	a_pack_expansion_stack_entry_ptr	pack_expansion_stack_entry,
-	a_boolean				saved_in_disambiguation)
+	a_boolean		packs_suppressed,
+	a_pack_expansion_stack_entry_ptr
+				pack_expansion_stack_entry,
+	a_boolean		saved_in_disambiguation,
+	a_boolean
+				saved_source_sequence_entries_disallowed)
 /*
 Update the scope stack to indicate that we are no longer in a prescan or
-disambiguation context.  packs_suppressed, pack_expansion_stack_entry, and
-saved_in_disambiguation are the values returned by the begin_prescan_context
-call.
+disambiguation context.  packs_suppressed, pack_expansion_stack_entry,
+saved_in_disambiguation, and saved_source_sequence_entried_disallowed are
+the values returned by the begin_prescan_context call.
 */
 {
   if (packs_suppressed) {
@@ -10492,6 +10505,10 @@ call.
     pop_expansion_suppression(pack_expansion_stack_entry);
   }  /* if */
   scope_stack_top().in_disambiguation = saved_in_disambiguation;
+  scope_stack_top().source_sequence_entries_disallowed =
+                                      saved_source_sequence_entries_disallowed;
+  source_sequence_entries_disallowed =
+                                      saved_source_sequence_entries_disallowed;
 }  /* end_prescan_context */
 
 

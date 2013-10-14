@@ -2078,15 +2078,21 @@ extern void pop_expansion_suppression(
 			a_pack_expansion_stack_entry_ptr	pesep);
 
 extern void begin_prescan_context(
-	a_boolean				suppress_packs,
-	a_boolean				*packs_suppressed,
-	a_pack_expansion_stack_entry_ptr	*pack_expansion_stack_entry,
-	a_boolean				*saved_in_disambiguation);
+	a_boolean		suppress_packs,
+	a_boolean		*packs_suppressed,
+	a_pack_expansion_stack_entry_ptr
+				*pack_expansion_stack_entry,
+	a_boolean		*saved_in_disambiguation,
+	a_boolean
+				*saved_source_sequence_entries_disallowed);
 
 extern void end_prescan_context(
-	a_boolean				packs_suppressed,
-	a_pack_expansion_stack_entry_ptr	pack_expansion_stack_entry,
-	a_boolean				saved_in_disambiguation);
+	a_boolean		packs_suppressed,
+	a_pack_expansion_stack_entry_ptr
+				pack_expansion_stack_entry,
+	a_boolean		saved_in_disambiguation,
+	a_boolean
+				saved_source_sequence_entries_disallowed);
 
 extern a_boolean begin_potential_pack_expansion_context_full(
 		a_pack_expansion_stack_entry_ptr	*p_pesep,
