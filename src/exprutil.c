@@ -13335,6 +13335,10 @@ question_position and colon_position give the position of the "?" and ":".
                is_constant_operand(operand_3)) {
       /* Fold if the second and third operands are constants. */
       do_folding = TRUE;
+    } else if (class_rvalue_case) {
+      /* Don't fold when the result is a class rvalue, because a copy
+         is required. */
+      do_folding = FALSE;
     } else if (gnu_mode &&
                is_expression_operand(discarded_operand) &&
                has_statement_expression(
@@ -13348,10 +13352,6 @@ question_position and colon_position give the position of the "?" and ":".
          This deals with cases like 1 ? 1 : 1/0, in which the last operand
          would not be in constant form because it couldn't be folded. */
       do_folding = TRUE;
-    } else if (class_rvalue_case) {
-      /* Don't fold when the result is a class rvalue, because a copy
-         is required. */
-      do_folding = FALSE;
     } else if (!strict_ansi_mode && expr_stack->favor_constant_result) {
       /* If we'd prefer a constant result, fold. */
       do_folding = TRUE;

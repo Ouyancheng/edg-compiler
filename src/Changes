@@ -1,5 +1,25 @@
 Version 5.0
 
+10/14/13 [EDGcpfe/14567]
+Abort on lowering of conditional expression with constant condition
+
+When support for constexpr is enabled (i.e., in C++11 mode), the front end
+previously aborted with an internal error in make_init_entity_node (in
+lower_init.c) when lowering a conditional expression with a constant
+condition and a result that is an rvalue of a class type with a nontrivial
+destructor.  For example:
+
+  struct S {
+    ~S();
+    S(char const*);
+  };
+  void f(S s) {
+    f(1 ? s : "");  // Previously triggered an internal error.
+  }
+
+This is now fixed.
+
+
 10/11/13 [EDGcpfe/14535]
 Distinguishing C-style casts from functional notation casts
 
