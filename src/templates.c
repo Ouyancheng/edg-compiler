@@ -7342,7 +7342,12 @@ template.
          f_instantiate_template_class). */
       saved_sses_disallowed = source_sequence_entries_disallowed;
 #if CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
-      source_sequence_entries_disallowed = FALSE;
+      /* Create source sequence entries representing real instantiations: They
+         will be rendered by the C++-generating back end as explicit
+         specializations.  The is_nonreal condition guards against the
+         possibility of Microsoft-mode nonreal instantiations. */
+      source_sequence_entries_disallowed =
+                                         enum_type.variant.integer.is_nonreal;
       add_source_sequence_entry_for_partial_instantiation(
                                        (char*)enum_type, iek_type, enum_type);
       /* A template instantiation is considered to always be "autonomous",
@@ -7350,8 +7355,7 @@ template.
          in the declaration of another entity. */
       enum_type->autonomous_primary_tag_decl = TRUE;
 #else /* !CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
-      source_sequence_entries_disallowed =
-                                         enum_type->variant.integer.is_nonreal;
+      source_sequence_entries_disallowed = TRUE;
 #endif /* CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
       /* Reactivate any pragmas that should be bound to the generated
