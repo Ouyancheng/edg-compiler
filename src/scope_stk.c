@@ -10444,6 +10444,10 @@ will be NULL outside of template dependent contexts.
 }  /* push_pack_suppression */
 
 
+#if !GENERATE_SOURCE_SEQUENCE_LISTS
+/*ARGSUSED*/ /* saved_source_sequence_entries_disallowed is not used in some
+                configurations. */
+#endif /* !GENERATE_SOURCE_SEQUENCE_LISTS */
 void begin_prescan_context(
 	a_boolean		suppress_packs,
 	a_boolean		*packs_suppressed,
@@ -10476,16 +10480,22 @@ be NULL if suppress_packs is FALSE.
   }  /* if */
   ssep = &scope_stack_top();
   *saved_in_disambiguation = ssep->in_disambiguation;
+#if GENERATE_SOURCE_SEQUENCE_LISTS
   *saved_source_sequence_entries_disallowed =
                                             source_sequence_entries_disallowed;
   check_assertion(source_sequence_entries_disallowed ==
                   ssep->source_sequence_entries_disallowed);
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   ssep->in_disambiguation = TRUE;
   ssep->source_sequence_entries_disallowed = TRUE;
   source_sequence_entries_disallowed = TRUE;
 }  /* begin_prescan_context */
 
 
+#if !GENERATE_SOURCE_SEQUENCE_LISTS
+/*ARGSUSED*/ /* saved_source_sequence_entries_disallowed is not used in some
+                configurations. */
+#endif /* !GENERATE_SOURCE_SEQUENCE_LISTS */
 void end_prescan_context(
 	a_boolean		packs_suppressed,
 	a_pack_expansion_stack_entry_ptr
@@ -10505,10 +10515,12 @@ the values returned by the begin_prescan_context call.
     pop_expansion_suppression(pack_expansion_stack_entry);
   }  /* if */
   scope_stack_top().in_disambiguation = saved_in_disambiguation;
+#if GENERATE_SOURCE_SEQUENCE_LISTS
   scope_stack_top().source_sequence_entries_disallowed =
                                       saved_source_sequence_entries_disallowed;
   source_sequence_entries_disallowed =
                                       saved_source_sequence_entries_disallowed;
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 }  /* end_prescan_context */
 
 
