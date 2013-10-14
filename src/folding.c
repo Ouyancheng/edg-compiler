@@ -8972,8 +8972,7 @@ be an lvalue or rvalue; it doesn't matter.
         copy_constant(&crp->constant_value, result_con);
       }  /* if */
     }  /* if */
-  } else if (var->is_constexpr &&
-             (!want_addr || variable_has_constant_address(var))) {
+  } else if (var->is_constexpr) {
     a_constant_ptr valcon = var_constant_value_full(
                                              var,
                                              /*copy_for_reuse=*/TRUE,
@@ -9810,8 +9809,17 @@ ceblock gives context information for the evaluation.
     /* The expression has a constant address. */
     folded = TRUE;
   } else if (is_variable_node(expr)) {
-    if (fold_variable_reference(expr, ceblock, /*want_addr=*/TRUE,
-                                result_con)) {
+    a_variable_ptr var = expr->variant.variable;
+    if (var->is_constexpr) {
+      /* An lvalue variable node for a constexpr variable can be replaced
+         by the constant address of the variable -- it points to the
+         constant value.  Consider even non-static constexpr variables to
+         have a "constant" address for this purpose. */
+      folded = TRUE;
+      set_variable_address_constant(var, result_con,
+                                    /*set_address_taken_flag=*/FALSE);
+    } else if (fold_variable_reference(expr, ceblock, /*want_addr=*/TRUE,
+                                       result_con)) {
       /* An lvalue variable node for a parameter can be replaced by the
          address of a temporary containing the constant argument value. */
       folded = TRUE;

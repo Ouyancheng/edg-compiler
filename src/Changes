@@ -1,19 +1,5 @@
 Version 5.0
 
-10/11/13 [EDGcpfe/14501]
-Missing error on binding a constexpr reference to a local constexpr variable
-
-In C++11 mode, the front end previously failed to diagnose an attempt to bind
-a constexpr reference variable to a local constexpr variable.  For example:
-
-  void g() {
-    constexpr int i = 5;
-    constexpr const int& r = i;  // Previously accepted; now an error.
-  }
-
-This is now fixed (i.e., an error is now issued).
-
-
 10/11/13 [EDGcpfe/14535]
 Distinguishing C-style casts from functional notation casts
 
