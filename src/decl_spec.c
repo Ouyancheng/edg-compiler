@@ -6068,11 +6068,11 @@ dsi_flags is the set of input flags passed to decl_specifiers.
       enum_type->variant.integer.is_template_enum = TRUE;
       tssp->variant.class_template.prototype_instantiation = tag_sym;
     } else if (!unnamed && curr_scope_is_class_instantiation()) {
-      enum_type->variant.integer.is_template_enum = TRUE;
       /* Find the enum declaration from the prototype instantiation
          (if any). */
       a_template_symbol_supplement_ptr	tssp;
       a_symbol_ptr			template_sym;
+      enum_type->variant.integer.is_template_enum = TRUE;
       find_enum_member(tag_sym, sym_parent_class(tag_sym), tsn_for_enum);
       template_sym = essp->template_sym;
       tssp = template_sym->variant.enumeration.extra_info->template_info;
