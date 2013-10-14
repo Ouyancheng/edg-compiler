@@ -20996,6 +20996,7 @@ previously-scanned braced initializer.
   an_init_component_ptr icp;
   a_conv_context_set    conv_context = CCO_CAST;
   a_boolean             error_on_narrowing = strict_ansi_mode;
+  an_expr_node_ptr      expr;
 
   check_assertion(list_init_enabled);
   if (source_form == csf_functional) conv_context |= CCO_FUNC_NOTATION_CAST;
@@ -21016,14 +21017,8 @@ previously-scanned braced initializer.
                         /*make_lvalue_temp=*/FALSE,
                         result, (an_init_state *)NULL,
                         (an_arg_match_summary *)NULL);
-  if (is_expression_operand(result)) {
-    result->variant.expression->is_brace_notation_cast = TRUE;
-  } else if (is_constant_operand(result)) {
-    an_expr_node_ptr  backing_expr = result->variant.constant.expr;
-    if (backing_expr != NULL) {
-      backing_expr->is_brace_notation_cast = TRUE;
-    }  /* if */
-  }  /* if */
+  expr = expr_node_from_operand(result);
+  if (expr != NULL) expr->is_brace_notation_cast = TRUE;
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   curr_construct_end_position = *init_component_end_pos(icp);
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
@@ -21071,6 +21066,7 @@ freed by this routine.
   a_ruled_out_expr_kind_set     ruled_out_expr_kinds = ROEK_NONE;
   a_dynamic_init_ptr            dip;
   an_expr_node_ptr              temp_init_node, orig_operand_expression = NULL;
+  an_expr_node_ptr              expr;
   a_source_position             local_start_position, type_position;
   a_boolean                     expr_not_present = FALSE;
   a_boolean                     scanning_source = (rcblock == NULL &&
@@ -21508,14 +21504,8 @@ non_ctor_case_after_expr_scan:
     }  /* if */
   }  /* if */
 have_result:
-  if (is_expression_operand(result)) {
-    result->variant.expression->is_functional_notation_cast = TRUE;
-  } else if (is_constant_operand(result)) {
-    an_expr_node_ptr  backing_expr = result->variant.constant.expr;
-    if (backing_expr != NULL) {
-      backing_expr->is_functional_notation_cast = TRUE;
-    }  /* if */
-  }  /* if */
+  expr = expr_node_from_operand(result);
+  if (expr != NULL) expr->is_functional_notation_cast = TRUE;
   set_operand_position(result, start_position, &end_position, start_position);
   record_cast_position_in_rescan_info(result,
                                       orig_operand_expression,

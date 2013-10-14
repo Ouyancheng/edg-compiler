@@ -19,7 +19,7 @@ Distinguishing C-style casts from functional notation casts
 
 The front end now distinguishes expression nodes representing C-style casts
 and functional notation casts by setting the flag is_functional_notation_cast
-to TRUE for the latter.  An additional brace is_brace_notation_cast further
+to TRUE for the latter.  An additional flag is_brace_notation_cast further
 distinguishes casts like "double(x)" from the C++11 alternative "double{x}".
 
 
