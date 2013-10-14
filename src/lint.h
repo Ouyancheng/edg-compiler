@@ -1074,11 +1074,6 @@ extern int fileno(FILE *);
 /*lint -esym(755,var_has_static_storage_duration)*/
 #endif /* !THREAD_LOCAL_STORAGE_SPECIFIER_ALLOWED */
 
-#if /*FIXME*/1
-/*lint -esym(714,scan_enumerator_list)*/
-/*lint -esym(759,scan_enumerator_list)*/
-/*lint -esym(765,scan_enumerator_list)*/
-#endif /* FIXME */
 #endif /* ifndef LINT_H */
 
 /******************************************************************************
