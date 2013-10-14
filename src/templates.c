@@ -7347,7 +7347,7 @@ template.
          specializations.  The is_nonreal condition guards against the
          possibility of Microsoft-mode nonreal instantiations. */
       source_sequence_entries_disallowed =
-                                         enum_type.variant.integer.is_nonreal;
+                                        enum_type->variant.integer.is_nonreal;
       add_source_sequence_entry_for_partial_instantiation(
                                        (char*)enum_type, iek_type, enum_type);
       /* A template instantiation is considered to always be "autonomous",
