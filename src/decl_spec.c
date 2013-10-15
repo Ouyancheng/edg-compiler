@@ -2953,13 +2953,13 @@ and move the remaining attributes to dps->specifier_attributes.
 #endif /* GNU_EXTENSIONS_ALLOWED */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
 
-static void update_sse_for_first_class_declaration(
-                                              a_type_ptr        class_type,
+static void update_sse_for_first_tag_declaration(
+                                              a_type_ptr        tag_type,
                                               a_symbol_locator  *locator,
                                               a_boolean         is_definition,
                                               a_boolean         gnu_extension)
 /*
-class_type is being declared for the first time (and defined if is_definition
+tag_type is being declared for the first time (and defined if is_definition
 is TRUE).  The name used in the source is described by *locator.  A source
 sequence entry was already created for it: Update that source sequence entry
 if needed (as well as an associated name reference entry if appropriate).
@@ -2970,8 +2970,7 @@ __extension__.
   a_name_reference_ptr  name_ref = NULL;
 
   if (record_name_references_in_context()) {
-    name_ref = qualifiable_name_reference(locator,
-                                          &class_type->source_corresp);
+    name_ref = qualifiable_name_reference(locator, &tag_type->source_corresp);
   }  /* if */
   if (!is_definition) {
     /* Set the first_declaration flag in the associated source-sequence
@@ -2997,7 +2996,7 @@ __extension__.
          We also record that this was originally a non-autonomous definition
          to ensure that source sequence entries of a later full instance are
          inserted at the right location. */
-      check_assertion(class_type->source_corresp.is_class_member);
+      check_assertion(tag_type->source_corresp.is_class_member);
       flags |= SSSD_AUTONOMOUS_TAG_DECL |
                SSSD_ORIGINALLY_NONAUTONOMOUS_DEFINITION;
     }  /* if */
@@ -3007,17 +3006,17 @@ __extension__.
       flags |= SSSD_MARKED_AS_GNU_EXTENSION;
     }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
-    (void)set_src_seq_secondary_decl_fields((char*)class_type, (a_type*)NULL,
+    (void)set_src_seq_secondary_decl_fields((char*)tag_type, (a_type*)NULL,
                                             name_ref, flags);
 #if GNU_EXTENSIONS_ALLOWED
   } else {
     if (name_ref != NULL) {
       name_ref->used_in_primary_declarator = TRUE;
     }  /* if */
-    class_type->source_corresp.marked_as_gnu_extension = gnu_extension;
+    tag_type->source_corresp.marked_as_gnu_extension = gnu_extension;
 #endif /* GNU_EXTENSIONS_ALLOWED */
   }  /* if */
-}  /* update_sse_for_first_class_declaration */
+}  /* update_sse_for_first_tag_declaration */
 
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 
@@ -4042,9 +4041,9 @@ defined.  Detailed position information is recorded in *decl_pos_block.
        the associated stmk_decl statement. */
     record_entity_in_decl_stmt_if_needed(tag_sym);
 #if GENERATE_SOURCE_SEQUENCE_LISTS
-    update_sse_for_first_class_declaration(class_type, &locator,
-                                           is_class_definition,
-                                           marked_as_gnu_extension);
+    update_sse_for_first_tag_declaration(class_type, &locator,
+                                         is_class_definition,
+                                         marked_as_gnu_extension);
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   } else if (tag_sym->kind == (a_symbol_kind)sk_type) {
     if (tag_sym->variant.type.ptr->kind == (a_type_kind)tk_template_param) {
@@ -5571,9 +5570,6 @@ dsi_flags is the set of input flags passed to decl_specifiers.
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   an_integer_kind              explicit_base_kind = (an_integer_kind)ik_none;
   a_source_position            pos_explicit_base;
-#if GENERATE_SOURCE_SEQUENCE_LISTS
-  a_name_reference_ptr         name_ref = NULL;
-#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   a_boolean                    is_scoped_enum = FALSE;
   a_boolean                    is_opaque_enum_decl = FALSE;
   a_token_sequence_number      tsn_for_enum;
@@ -5815,15 +5811,10 @@ dsi_flags is the set of input flags passed to decl_specifiers.
     }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   }  /* if */
-  if (curr_token == tok_removed_template_body) {
-    /* A scoped enum in a class template will have its enumerator list
-       replaced with a tok_removed_template_body token and thus treated
-       as an opaque enumerator declaration. */
-    (void)get_token();
-  }  /* if */
   if (opaque_enum_decls_enabled &&
       (is_scoped_enum || explicit_base_kind != (an_integer_kind)ik_none) &&
-      curr_token == tok_semicolon) {
+      (curr_token == tok_semicolon ||
+       curr_token == tok_removed_template_body)) {
     /* An opaque enum declaration.  I.e., an enum declaration that fixes the
        size of the type (i.e., it is "complete") without defining the
        associated enumeration constants. */
@@ -6113,18 +6104,12 @@ dsi_flags is the set of input flags passed to decl_specifiers.
         mark_defined(tag_sym, &locator.source_position);
       } else {
         mark_declared(tag_sym, &locator.source_position);
-#if GENERATE_SOURCE_SEQUENCE_LISTS
-        /* Set the first_declaration flag in the associated source-sequence
-           secondary declaration entry. */
-        if (record_name_references_in_context()) {
-          name_ref = qualifiable_name_reference(&locator,
-                                                &enum_type->source_corresp);
-        }  /* if */
-        (void)set_src_seq_secondary_decl_fields((char *)enum_type,
-                                                (a_type_ptr)NULL, name_ref,
-                                                SSSD_FIRST_DECLARATION);
-#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
       }  /* if */
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+      update_sse_for_first_tag_declaration(enum_type, &locator,
+                                           is_definition,
+                                           /*marked_as_gnu_extension=*/FALSE);
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
     } else {
 #if GENERATE_SOURCE_SEQUENCE_LISTS
       if (is_definition) {
@@ -6153,6 +6138,12 @@ dsi_flags is the set of input flags passed to decl_specifiers.
     /* Wait to add the type to the types list; it should not be added
        until the closing brace of the full definition appears, to get the
        IL list in the right order. */
+  }  /* if */
+  if (curr_token == tok_removed_template_body) {
+    /* A scoped enum defined in a class template has its enumerator list
+       replaced with a tok_removed_template_body token (it is thus treated as
+       an opaque enumerator declaration).  Skip over the placeholder token. */
+    (void)get_token();
   }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
   if (cppcli_enabled) {

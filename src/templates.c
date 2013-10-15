@@ -7340,9 +7340,6 @@ template.
                                               /*push_lex_state=*/TRUE,
                                               ps_options);
 #if GENERATE_SOURCE_SEQUENCE_LISTS
-      /* FIXME: We probably need something like the saved_sse_insertion_point
-         treatment for non-autonomous nested class instantiations (see
-         f_instantiate_template_class). */
       saved_sses_disallowed = source_sequence_entries_disallowed;
 #if CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
       /* Create source sequence entries representing real instantiations: They
