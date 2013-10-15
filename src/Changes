@@ -1,5 +1,26 @@
 Version 5.0
 
+10/15/13 [EDGcpfe/10610,EDGcpfe/13616]
+C++11: decltype allowed in nested-name-specifiers and destructor calls
+
+The resolutions of core issues 743 and 950, described in n3049, allowing
+decltype(expr) to be used in a nested-name-specifier or following "~"
+in destructor name are now implemented.
+
+  template <class T> struct A {
+    struct B {};
+  };
+  template <class T> inline void f(T t) {
+    typename decltype(t)::B b;
+    T *p = new T();
+    p->~decltype(t)();
+  }
+  int main() {
+    A<int> a;
+    f(a);
+  }
+
+
 10/15/13 [EDGcpfe/14532]
 GNU C++ compatibility: reinterpret_cast in C++11 constant expressions
 
