@@ -5539,9 +5539,9 @@ The type is returned in *type_ptr.  *declares_something is set to indicate
 whether or not this specifier declares something.  If defines_something is
 non-NULL, *defines_something is set to indicate whether an enumeration is
 actually defined.  p_ms_attributes describes Microsoft attributes preceding
-the enum specifier (if any).  is_enum_template_definition is TRUE if
-this is called for an out-of-class definition of an enum template.
-dsi_flags is the set of input flags passed to decl_specifiers.
+the enum specifier (if any).  is_enum_template_definition is TRUE if this is
+called for an out-of-class definition (or opaque declaration) of an enum
+template.  dsi_flags is the set of input flags passed to decl_specifiers.
 */
 {
   a_symbol_locator             locator;

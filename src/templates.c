@@ -22245,6 +22245,19 @@ instantiation of the containing class.
     }  /* if */
     set_il_template_entry(decl_state, sym, tssp);
     itsp->assoc_template = tssp->il_template_entry;
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+    if (!source_sequence_entries_disallowed) {
+      if (defines_something) {
+        enum_type->autonomous_primary_tag_decl = TRUE;
+      } else {
+        /* Turn the source sequence entry for the a_template entry into a
+           secondary source sequence entry. */
+        a_src_seq_secondary_decl_ptr sssdp = secondary_src_seq_for_template(
+                                               decl_state->il_template_entry);
+        sssdp->autonomous_tag_decl = TRUE;
+      }  /* if */
+    }  /* if */
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   }  /* if */
 #if 0
   /* FIXME: Is this needed? */

@@ -7935,8 +7935,8 @@ this one is such a continuation.
     marked_as_gnu_extension = type->source_corresp.marked_as_gnu_extension;
 #endif /* GNU_EXTENSIONS_ALLOWED */
     is_specialization = FALSE;
+    /* See if the "template<>" specialization prefix should be put out. */
     if (is_immediate_class_type(type)) {
-      /* See if the "template<>" specialization prefix should be put out. */
       if (type->variant.class_struct_union.is_specialized) {
         is_specialization =
                  !type->variant.class_struct_union.specialized_with_old_syntax;
@@ -7948,6 +7948,10 @@ this one is such a continuation.
         /* A generated instance.  Use the "template<>" prefix if
            appropriate. */
         is_specialization = !old_specializations_for_generated_instances;
+      }  /* if */
+    } else if (is_immediate_enum_type(type)) {
+      if (type->variant.integer.is_specialized) {
+        is_specialization = TRUE;
       }  /* if */
     }  /* if */
   }  /* if */
@@ -7972,8 +7976,7 @@ this one is such a continuation.
 #endif /* GNU_EXTENSIONS_ALLOWED */
     check_assertion(!is_immediate_class_type(type) ||
                     !type->variant.class_struct_union.is_template_class ||
-                    type->variant.class_struct_union.extra_info
-                                                    ->assoc_template != NULL);
+                    class_type_supp(type)->assoc_template != NULL);
     if (template_decl != NULL) {
       if (friend_decl) {
         /* Make sure that any template parameter name mappings that are
@@ -8126,6 +8129,16 @@ this one is such a continuation.
       }  /* if */
     } else if (kind == (a_type_kind)tk_enum) {
       /* An enum type definition. */
+      if (template_decl != NULL) {
+        /* Advance past the entry for the template representation.  An entry
+           for the enumeration type should be next. */
+        adv_curr_source_sequence_entry();
+        check_assertion(curr_source_sequence_entry != NULL &&
+                        ss_entry_kind(curr_source_sequence_entry) ==
+                                                  iek_type &&
+                        ss_entry_ptr(curr_source_sequence_entry, a_type_ptr)
+                                                                     == type);
+      }  /* if */
       gen_enum_definition(type);
     } else {
       check_assertion_str(is_class_type_kind(kind),
@@ -13114,8 +13127,20 @@ instantiation is available.
     case templk_member_class:
     case templk_member_enum:
       if (tp->prototype_instantiation.type != NULL) {
+        a_boolean  skip_enum_entry = FALSE;
+        if (tp->kind == (a_template_kind)templk_member_enum) {
+          a_src_seq_secondary_decl_ptr  sec_decl;
+          if (curr_src_seq_entry_is_secondary_decl(&sec_decl)) {
+            /* For out-of-class template declarations of member enum types, a
+               secondary source sequence entry is emitted both for the
+               template and for the enum type.  Skip over the latter after
+               the type has been rendered. */
+           skip_enum_entry = TRUE;
+          }  /* if */
+        }  /* if */
         gen_type_decl(/*suppress_specifiers=*/FALSE,
                       &another_decl_in_comma_list);
+        if (skip_enum_entry) adv_curr_source_sequence_entry();
         result = TRUE;
       }  /* if */
       break;
