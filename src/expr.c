@@ -20059,7 +20059,8 @@ indication in *rcblock).
                            result)) {
     err = TRUE;
   } else {
-    if (operator_not_allowed_in_cpp11_constant_expr(&start_position)) {
+    if (!(gpp_mode && gnu_version >= 40600) &&
+        operator_not_allowed_in_cpp11_constant_expr(&start_position)) {
       /* reinterpret_cast is not allowed in C++11 constant expressions. */
       err = TRUE;
     }  /* if */
