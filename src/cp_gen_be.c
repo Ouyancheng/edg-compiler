@@ -3399,6 +3399,32 @@ name of the property or event as a qualifier.
 
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
+#if PROTOTYPE_INSTANTIATIONS_IN_IL
+
+static a_type_ptr decltype_typeref_from_proxy(a_type_ptr class_type)
+/*
+If class_type (which must be a class/struct/union type) is a proxy for a
+decltype construct, return the decltype's tk_typeref type; otherwise,
+return NULL.
+*/
+{
+  a_type_ptr decltype_type = NULL;
+
+  check_assertion(is_immediate_class_type(class_type));
+  if (class_type->variant.class_struct_union.proxy_class) {
+    /* This is a dependent type.  Check to see if it's a proxy for a
+       decltype construct; if so, return it. */
+    a_type_ptr proxy_type = class_type_supp(class_type)->proxy_of_type;
+    if (proxy_type->kind == (a_type_kind)tk_typeref &&
+        proxy_type->variant.typeref.is_decltype) {
+      decltype_type = proxy_type;
+    }  /* if */
+  }  /* if */
+  return decltype_type;
+}  /* decltype_typeref_from_proxy */
+
+#endif /* PROTOTYPE_INSTANTIATIONS_IN_IL */
+
 static void gen_name(a_source_correspondence *scp,
                      an_il_entry_kind        entry_kind,
                      a_gen_name_options_set  options,
@@ -3639,15 +3665,7 @@ GN_PARENS_IF_GLOBAL_QUALIFIER is not set.
         include_base_classes = FALSE;
       }  /* if */
 #if PROTOTYPE_INSTANTIATIONS_IN_IL
-      if (class_type->variant.class_struct_union.proxy_class) {
-        /* This is a dependent type.  Check to see if it's a proxy for a
-           decltype construct; if so, we will use that as the qualifier. */
-        a_type_ptr proxy_type = class_type_supp(class_type)->proxy_of_type;
-        if (proxy_type->kind == (a_type_kind)tk_typeref &&
-            proxy_type->variant.typeref.is_decltype) {
-          decltype_type = proxy_type;
-        }  /* if */
-      }  /* if */
+      decltype_type = decltype_typeref_from_proxy(class_type);
 #endif /* PROTOTYPE_INSTANTIATIONS_IN_IL */
       if (!force_qualified_name &&
           if_microsoft_extensions(!scp->member_of_unknown_super &&)
@@ -3698,12 +3716,6 @@ GN_PARENS_IF_GLOBAL_QUALIFIER is not set.
           write_tok_str("::");
         } else {
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-#if PROTOTYPE_INSTANTIATIONS_IN_IL
-          if (decltype_type != NULL) {
-            qualifier = decltype_type;
-          } else 
-#endif /* PROTOTYPE_INSTANTIATIONS_IN_IL */
-          /* Do not insert code here. */
           if (scp->access == (an_access_specifier)as_protected &&
               (options & GN_FORCE_QUALIFIED_NAME) != 0 &&
               (options & GN_ALLOW_PROTECTED_BASE_MEMBER_QUALIFIED_NAME) == 0 &&
@@ -3721,8 +3733,19 @@ GN_PARENS_IF_GLOBAL_QUALIFIER is not set.
           } else {
             qualifier = class_type;
           }  /* if */
-          gen_class_qualifier(qualifier, qualifier_options,
-                              need_closing_paren);
+#if PROTOTYPE_INSTANTIATIONS_IN_IL
+          if (decltype_type != NULL) {
+            /* A decltype operator is the qualifier. */
+            gen_type_operator(decltype_type);
+            write_tok_str("::");
+          } else
+#endif /* PROTOTYPE_INSTANTIATIONS_IN_IL */
+          /* Do not insert code here. */
+          {
+            /* A normal class qualifier. */
+            gen_class_qualifier(qualifier, qualifier_options,
+                                need_closing_paren);
+          }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
         }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
@@ -3920,6 +3943,9 @@ put out nothing.
       a_type_ptr                  class_type = nqp->qualifier.class_type;
       a_source_correspondence_ptr scp;
       an_il_entry_kind            kind;
+#if PROTOTYPE_INSTANTIATIONS_IN_IL
+      a_type_ptr                  decltype_type = NULL;
+#endif /* PROTOTYPE_INSTANTIATIONS_IN_IL */
       scp = &class_type->source_corresp;
       kind = (an_il_entry_kind)iek_type;
       if (is_immediate_class_type(class_type) &&
@@ -3945,9 +3971,20 @@ put out nothing.
                                variant.template_param.extra_info->coordinates);
         check_assertion(scp != NULL);
         kind = (an_il_entry_kind)iek_template_parameter;
+      } else if (is_immediate_class_type(class_type)) {
+        decltype_type = decltype_typeref_from_proxy(class_type);
 #endif /* PROTOTYPE_INSTANTIATIONS_IN_IL */
       }  /* if */
-      gen_unqualified_name(scp, kind);
+#if PROTOTYPE_INSTANTIATIONS_IN_IL
+      if (decltype_type != NULL) {
+        /* A decltype operator is the qualifier. */
+        gen_type_operator(decltype_type);
+      } else
+#endif /* PROTOTYPE_INSTANTIATIONS_IN_IL */
+      /* Do not insert code here. */
+      {
+        gen_unqualified_name(scp, kind);
+      }  /* if */
     } else {
       /* A namespace qualifier. */
       gen_unqualified_name(&nqp->qualifier.namespace_ptr->source_corresp,
