@@ -7172,6 +7172,7 @@ error type is used.
          templates. */
       saved_sses_disallowed = source_sequence_entries_disallowed;
       source_sequence_entries_disallowed = TRUE;
+      scope_stack_top().source_sequence_entries_disallowed = TRUE;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
       /* Reactivate any pragmas that should be bound to the generated
          instance. */
@@ -7222,6 +7223,8 @@ error type is used.
       /* Restore the previous state wrt. the generation of source sequence
          entries. */
       source_sequence_entries_disallowed = saved_sses_disallowed;
+      scope_stack_top().source_sequence_entries_disallowed =
+                                                        saved_sses_disallowed;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
       /* Pop the template instantiation scope. */
       pop_template_instantiation_scope();
