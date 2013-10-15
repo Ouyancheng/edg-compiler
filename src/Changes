@@ -1,5 +1,22 @@
 Version 5.0
 
+10/15/13 [EDGcpfe/12929]
+C++11: template support for opaque enum templates
+
+Version 4.5 added support for opaque enumerations (see 6/20/12 entry),
+but this did not include the definition of enumerations of class
+templates outside of their class, or explicit specialization of such
+enumerations.  These features are now supported.
+
+  template <class T> struct A {
+    enum E : T;
+    enum class S : T;
+  };
+  template <> enum A<int>::E : int { eint };
+  template <> enum class A<int>::S : int { sint };
+  template <class T> enum class A<T>::S : T { sT };
+
+
 10/15/13 [EDGcpfe/10610,EDGcpfe/13616]
 C++11: decltype allowed in nested-name-specifiers and destructor calls
 
