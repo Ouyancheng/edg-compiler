@@ -20307,18 +20307,19 @@ set, and its source sequence entry, if any, has been put out.)
           break;
         case sk_enum_tag:
           il_template_entry->kind = (a_template_kind)templk_member_enum;
+          if (il_template_entry->canonical_template == NULL) {
+            il_template_entry->canonical_template = il_template_entry;
+          }  /* if */
+          if (decl_state->defines_something) {
+            il_template_entry->canonical_template->definition_template =
+                                                             il_template_entry;
+          }  /* if */
           if (prototype_instantiations_in_il) {
             il_template_entry->prototype_instantiation.type =
-                                                 sym->variant.enumeration.type;
+                                               sym->variant.enumeration.type;
           } else {
             il_template_entry->prototype_instantiation.type = NULL;
           }  /* if */
-          /* An out-of-class enum member declaration is always a definition. */
-          il_template_entry->canonical_template =
-                     sym->variant.enumeration.type->
-                                    variant.integer.extra_info->assoc_template;
-          il_template_entry->canonical_template->definition_template =
-                                                            il_template_entry;
           break;
         case sk_class_or_struct_tag:
         case sk_union_tag:
@@ -22223,10 +22224,6 @@ instantiation of the containing class.
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   decl_state->decl_pos_block.specifiers_range.start = pos_curr_token;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
-  /* All out-of-class enum declarations must be definitions. */
-  decl_state->defines_something = TRUE;
-  /* Skip past the "using" (or "__internal_alias_decl" when e.g. processing
-     the internal declaration of C++/CLI's cli::interior_ptr). */
   check_assertion(curr_token == tok_enum);
   init_decl_parse_state(&dps);
   enum_specifier(&dps, DSI_IS_TEMPLATE_DECLARATION,
@@ -22242,6 +22239,10 @@ instantiation of the containing class.
   } else {
     itsp = enum_type->variant.integer.extra_info;
     tssp = sym->variant.enumeration.extra_info->template_info;
+    if (defines_something) {
+      /* If a cache is provided, this must be a definition. */
+      decl_state->defines_something = TRUE;
+    }  /* if */
     set_il_template_entry(decl_state, sym, tssp);
     itsp->assoc_template = tssp->il_template_entry;
   }  /* if */
