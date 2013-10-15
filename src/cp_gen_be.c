@@ -7997,8 +7997,12 @@ this one is such a continuation.
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     } else if (is_specialization) {
       /* A specialization. */
-      template_arg_list = type->variant.class_struct_union.
-                                                 extra_info->template_arg_list;
+      a_boolean  is_in_class_specialization = FALSE;
+      if (is_immediate_class_type(type)) {
+        template_arg_list = class_type_supp(type)->template_arg_list;
+        is_in_class_specialization =
+                 type->variant.class_struct_union.is_in_class_specialization;
+      }  /* if */
       adjust_namespace_state_for_specialization(&type->source_corresp,
                                                 &common_scope, &orig_scope,
                                                 (a_name_reference_ptr)NULL);
@@ -8013,13 +8017,14 @@ this one is such a continuation.
         }  /* if */
       }  /* if */
 #if USER_CONTROL_OF_STRUCT_PACKING
-      construct_pragma_pack_if_needed(type);
+      if (is_immediate_class_type(type)) {
+        construct_pragma_pack_if_needed(type);
+      }  /* if */
 #endif /* USER_CONTROL_OF_STRUCT_PACKING */
       /* Put out "template<>" at the beginning. */
-      gen_template_specialization_header(
-                   &type->source_corresp,
-                   type->variant.class_struct_union.is_in_class_specialization,
-                   template_arg_list);
+      gen_template_specialization_header(&type->source_corresp,
+                                         is_in_class_specialization,
+                                         template_arg_list);
     }  /* if */
     if (friend_decl && !is_immediate_class_type(type)) {
       /* Handle nonstandard friend declarations (such as "friend int;" and
