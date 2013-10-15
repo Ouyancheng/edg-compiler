@@ -5840,15 +5840,16 @@ dsi_flags is the set of input flags passed to decl_specifiers.
       if (is_scoped_enum) {
         pos2_sy_diagnostic(es_error,
                            ec_specialization_of_referenced_entity_pos,
-                           &tag_position, &essp->instantiation_position,
+                           &locator.source_position,
+                           &essp->instantiation_position,
                            tag_sym);
       } else {
         pos_diagnostic(es_error,
                        ec_specialization_of_unscoped_enum,
-                       &tag_position);
+                       &locator.source_position);
       }  /* if */
     } else {
-      pos_sy_error(ec_redefinition, &tag_position, tag_sym);
+      pos_sy_error(ec_redefinition, &locator.source_position, tag_sym);
     }  /* if */
     set_to_error_locator(locator);
     tag_sym = NULL;
