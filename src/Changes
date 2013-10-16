@@ -17,12 +17,26 @@ enumerations.  These features are now supported.
   template <class T> enum class A<T>::S : T { sT };
 
 
+10/15/13 [EDGcpfe/10611,EDGcpfe/13463,EDGcpfe/14117]
+C++11: decltype allowed as a base class or mem-initializer-id
+
+The resolution of core issue 950, described in n3049, allowing decltype(expr)
+to be used as a base class or mem-initializer-id is now implemented.
+
+
+  struct A {} a;
+  struct B : decltype(a) {      // base class
+    B() : decltype(a)() {}      // base class initializer
+    B(int) : decltype(B())() {} // delegating constructor
+  };
+
+
 10/15/13 [EDGcpfe/10610,EDGcpfe/13616]
 C++11: decltype allowed in nested-name-specifiers and destructor calls
 
-The resolutions of core issues 743 and 950, described in n3049, allowing
-decltype(expr) to be used in a nested-name-specifier or following "~"
-in destructor name are now implemented.
+The resolution of core issue 743, described in n3049, allowing decltype(expr)
+to be used in a nested-name-specifier or following "~" in destructor name is
+now implemented.
 
   template <class T> struct A {
     struct B {};
