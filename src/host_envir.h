@@ -143,6 +143,17 @@ be a multiple of 64K.
 #define HOST_ALLOCATION_INCREMENT 65536
 #endif /* EDG_MSDOS  */
 #endif /* ifndef HOST_ALLOCATION_INCREMENT */
+
+/*
+Flag that is TRUE if memory regions should be freed early when they're no
+longer needed (in part because the IL they contain has been written to file).
+This flag is set to FALSE by default because it is expected that memory regions
+will be phased out in the future: Any advantage gained by freeing them early is
+therefore likely of limited scope.
+*/
+#ifndef FREE_MEMORY_REGIONS_EARLY
+#define FREE_MEMORY_REGIONS_EARLY FALSE
+#endif /* ifndef FREE_MEMORY_REGIONS_EARLY */
 				   
 /*
 The number of include files that may be opened at any given time.

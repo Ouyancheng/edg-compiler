@@ -1416,6 +1416,14 @@ memory or with an IL file.
   rout = (scope->kind == (a_scope_kind)sck_function) ?
                                       scope->variant.routine.ptr : NULL;
   keep_memory = FALSE;
+#if !FREE_MEMORY_REGIONS_EARLY
+  if (region_number != file_scope_region_number) {
+    /* Function scope memory regions are not freed early: Keep the memory
+       until all memory regions are freed. */
+    keep_memory = TRUE;
+  } else
+#endif /* !FREE_MEMORY_REGIONS_EARLY */
+  /* Do not insert code here. */
   if (may_be_building_new_pch()) {
     /* We are still considering whether to build a PCH file, so keep this
        region around so we can use it in generating the PCH file.

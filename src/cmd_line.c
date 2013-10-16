@@ -5800,6 +5800,11 @@ file.
 #else /* !defined(FORCE_VARIABLE_DEFINITION_VIA_ZEROING) */
   comment_undefined_macro_name(FORCE_VARIABLE_DEFINITION_VIA_ZEROING);
 #endif /* defined(FORCE_VARIABLE_DEFINITION_VIA_ZEROING) */
+#if defined(FREE_MEMORY_REGIONS_EARLY)
+  define_numeric_valued_macro(FREE_MEMORY_REGIONS_EARLY);
+#else /* !defined(FREE_MEMORY_REGIONS_EARLY) */
+  comment_undefined_macro_name(FREE_MEMORY_REGIONS_EARLY);
+#endif /* defined(FREE_MEMORY_REGIONS_EARLY) */
 #if defined(FRIEND_AND_MEMBER_DEFINITIONS_MAY_BE_MOVED_OUT_OF_CLASS)
   define_numeric_valued_macro(
                       FRIEND_AND_MEMBER_DEFINITIONS_MAY_BE_MOVED_OUT_OF_CLASS);

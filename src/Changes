@@ -1,5 +1,19 @@
 Version 5.0
 
+10/15/13 [EDGcpfe/14577]
+Freeing memory regions
+
+When IL_SHOULD_BE_WRITTEN_TO_FILE is TRUE, the front end previously freed the
+memory for function scope memory regions upon completion of the function
+definition if the IL for that definition was no longer needed (it could, e.g.,
+still be needed for inlining or to be written to a precompiled header file).
+Now, this behavior is inhibited by default: All memory regions are freed (and
+written out) when the compilation is completed.  This is a preliminary step in
+anticipation of phasing out memory regions altogether in future versions of
+the front end.  For now, the previous behavior can be restored by setting the
+configuration macro FREE_MEMORY_REGIONS_EARLY to TRUE.
+
+
 10/15/13 [EDGcpfe/12929]
 C++11: template support for opaque enum templates
 
