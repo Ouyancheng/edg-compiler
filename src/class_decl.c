@@ -8570,7 +8570,7 @@ can only contain CLI interfaces.
       }  /* if */
 #endif /* TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
-      /* Test for identifier, decltype or "::" next.  tok_decltype_construct
+      /* Test for identifier, decltype, or "::" next.  tok_decltype_construct
          is used for a decltype that has been coalesced and the type stored
          in the locator. */
       if (!is_generalized_identifier_start(GID_IS_BASE_CLASS) &&

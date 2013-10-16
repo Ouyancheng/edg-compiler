@@ -5107,7 +5107,7 @@ typedef struct a_ctor_init_block {
                            consideration as a base class initializer. */
   a_source_position
                 pending_decltype_pos;
-                        /* When pending_decltype_initializer_type is non-NULL
+                        /* When pending_decltype_initializer_type is non-NULL,
                            contains the starting source position of the
                            decltype-specifier. */
   a_boolean	has_explicit_init;
@@ -6269,8 +6269,9 @@ The current token is the one following a colon (":") presumably introducing
 mem-initializers for the given constructor.  If what follows is a
 mem-initializer for a delegating constructor, return TRUE and update *cibp to
 reflect the initialization.  Otherwise, return FALSE.
+
 In cases where a decltype-specifier is the next token in the stream, the
-decltype-specifier is consumed here and if found not to be a delegating
+decltype-specifier is consumed here and, if found not to be a delegating
 constructor, the scanned type is stored for later use.
 */
 {
@@ -6529,7 +6530,7 @@ initialized.  These are addressed in the course of the processing.
        ordinary subobject initializers). */
     /* Note that a decltype-specifier may be used to denote either a delegating
        constructor or a base class specifier; if a decltype-specifier is
-       present it is scanned by delegating_ctor_initializer and if it is
+       present, it is scanned by delegating_ctor_initializer and, if it is
        found not to be a delegating constructor, the resulting type is
        saved (in cib.pending_decltype_initializer_type) for later consideration
        by scan_mem_initializer_id. */
