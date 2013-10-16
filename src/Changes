@@ -35,7 +35,7 @@ to be used as a base class or mem-initializer-id is now implemented.
 C++11: decltype allowed in nested-name-specifiers and destructor calls
 
 The resolution of core issue 743, described in n3049, allowing decltype(expr)
-to be used in a nested-name-specifier or following "~" in destructor name is
+to be used in a nested-name-specifier or following "~" in a destructor name is
 now implemented.
 
   template <class T> struct A {

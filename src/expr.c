@@ -25192,6 +25192,7 @@ Return TRUE if the indicated token is one that could start an expression.
   switch (tok) {
     case tok_colon_colon:
     case tok_identifier:
+    case tok_decltype:
     case tok_operator:
     case tok_this:
     case tok_float_constant:

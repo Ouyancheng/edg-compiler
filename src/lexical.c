@@ -16359,7 +16359,7 @@ original type or namespace that was specified.
         } else {
           const char	*name;
           name = new_nqp->name;
-          /* When there is a symbol, do the comparison based on name. */
+          /* When there is a symbol, do the comparison based on the name. */
           if (is_type ? new_type == new_nqp->qualifier.class_type
                       : new_namespace == new_nqp->qualifier.namespace_ptr) {
             if (strcmp(name, qualifier_sym->header->identifier) == 0) {
@@ -17330,7 +17330,7 @@ selection operator, in which case it points to the type of the left operand.
       qualifier_separator = tok_period;
     }  /* if */
   } else if (curr_token == tok_decltype && !is_global_qualified_name) {
-    /* This is most likely just a decltype specifiers (e.g., "decltype(expr)"),
+    /* This is most likely just a decltype specifier (e.g., "decltype(expr)"),
        but could also be a qualifier in a qualified name (e.g.,
        "decltype(expr)::something").  The former is not treated as an
        identifier, while the latter is. */
