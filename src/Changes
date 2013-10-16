@@ -65,21 +65,6 @@ now implemented.
   }
 
 
-10/15/13 [EDGcpfe/14532]
-GNU C++ compatibility: reinterpret_cast in C++11 constant expressions
-
-The C++11 Standard does not allow reinterpret_cast to appear in constant
-expressions.  Beginning with version 4.6, however, g++ does not enforce
-this restriction, so the front end has been changed to relax the rule in
-C++11 g++ mode with gnu_version >= 40600.  For example:
-
-  struct S {
-    int m;
-  };
-  // No longer an error with --g++ --gnu_version=40600 --c++11:
-  static_assert(&reinterpret_cast<char&>((((S *)0)->m)) == 0, "xxx");
-
-
 10/14/13 [EDGcpfe/14567]
 Abort on lowering of conditional expression with constant condition
 

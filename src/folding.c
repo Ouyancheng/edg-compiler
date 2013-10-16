@@ -6072,16 +6072,13 @@ handle_pm_field_selection:
           case eok_ref_cast:
           case eok_lvalue_adjust:
             /* These operations are used to adjust the type of a glvalue. */
-            if ((!(cpp11_mode &&
-                   expr->variant.operation.is_reinterpret_cast) ||
-                 (gpp_mode && gnu_version >= 40600)) &&
+            if (!(cpp11_mode && expr->variant.operation.is_reinterpret_cast) &&
                 constant_glvalue_address_full(op1, ceblock, &conaddr1,
                                               address_escapes,
                                               options, template_constant)) {
               /* The address of the operand is constant.  Adjust its type
-                 and it is also the address of the result glvalue.
-                 (Recent g++ versions allow reinterpret_cast in C++11 mode,
-                 but otherwise it cannot be part of a C++11 constant
+                 and it is also the address of the result glvalue.  (A
+                 reinterpret_cast cannot be part of a C++11 constant
                  expression.) */
               a_type_ptr new_type = make_pointer_type(expr->type);
               if (is_template_dependent_type(expr->type) ||
