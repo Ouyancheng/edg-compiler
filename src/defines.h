@@ -76,6 +76,10 @@ of the host system.
 #define __sparc 1
 #endif /* __CENTERLINE__ */
 
+/* Used for union-as-struct testing mode. */
+#ifdef UNION_AS_STRUCT
+#define union struct
+#endif /* UNION_AS_STRUCT */
 
 /*
 Set the test version flags to FALSE for demo versions.
