@@ -12332,7 +12332,7 @@ outside of a template-dependent context.
               !could_be_dependent_class_type(op1->type) &&
               !is_error_type(op1->type)) {
             /* Casts other than those involving unknown dependent classes
-               have known value category. */
+               have known value categories. */
             uncertain = FALSE;
           }  /* if */
           break;
@@ -12445,10 +12445,10 @@ void prep_generic_operand_full(an_operand *operand,
 The indicated operand is about to be used as the operand of an expression
 involving template parameter types.  lvalue_expected is TRUE to indicate
 that an lvalue is expected/required, and rvalue_expected is TRUE to indicate
-that an rvalue is expected/required.  If neither is TRUE, either an rvalue
-or an lvalue is acceptable in the context where the expression will be used.
-(Or an xvalue.)  An eok_lvalue node will be inserted if necessary to adjust
-the value category of the expression.
+that an rvalue is expected/required.  If neither is TRUE, any value category
+is acceptable in the context where the expression will be used.  An eok_lvalue
+node will be inserted if necessary to adjust the value category of the
+expression.
 */
 {
   an_expr_node_ptr expr;
