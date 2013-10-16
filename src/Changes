@@ -23,7 +23,6 @@ C++11: decltype allowed as a base class or mem-initializer-id
 The resolution of core issue 950, described in n3049, allowing decltype(expr)
 to be used as a base class or mem-initializer-id is now implemented.
 
-
   struct A {} a;
   struct B : decltype(a) {      // base class
     B() : decltype(a)() {}      // base class initializer
