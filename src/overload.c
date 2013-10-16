@@ -3038,10 +3038,7 @@ copy-initialization).
          pointer, reference, or pointer-to-member type.  For the
          pointer and pointer-to-member cases, the operand can be a function
          designator or pointer to function; for the (non-const) reference
-         case it must be a function designator.  For an rvalue reference
-         to function parameter, the operand can be a function designator;
-         case it must be a function designator.  For an rvalue reference
-         parameter, only an rvalue pointer to function will do. */
+         case it must be a function designator. */
       a_symbol_ptr chosen_function;
       a_boolean    unknown_dependent_function;
       if ((chosen_function =

@@ -10763,7 +10763,7 @@ a_type_ptr make_unqualified_type(a_type_ptr type)
 Return a type that is the unqualified version of the type given by type.
 This differs from skip_typerefs in that it preserves typedefs where possible.
 Note that this is not the routine to use to drop qualifiers when changing
-to an rvalue type, except possibly for C-mode-only code; see prvalue_type
+to a prvalue type, except possibly for C-mode-only code; see prvalue_type
 instead.
 */
 {
@@ -18047,8 +18047,8 @@ an_expr_node_ptr xvalue_expr_for_lvalue(an_expr_node_ptr expr)
 /*
 Perform any changes needed to convert expr from an lvalue to an xvalue.
 Return the xvalue expression.  This is designed for simple compiler-generated
-expressions and might have to be enhanced if it had to deal with
-complex expressions.
+expressions and might have to be enhanced if it had to deal with complex
+expressions.
 */
 {
   check_assertion(expr->is_lvalue);
@@ -18791,9 +18791,10 @@ already indicates the load.
           case eok_base_class_cast:     /* Ditto. */
           case eok_derived_class_cast:  /* Ditto. */
           case eok_unbox:        /* Not rvalueable: the version with is_lvalue
-          case_eok_unbox_lvalue:    FALSE does a fetch, but it's an inherent
+                                    FALSE does a fetch, but it's an inherent
                                     part of the operation, not an implicit
                                     lvalue-to-rvalue conversion at the end. */
+          case eok_unbox_lvalue:  /* Ditto. */
           default:
             break;
         }  /* switch */

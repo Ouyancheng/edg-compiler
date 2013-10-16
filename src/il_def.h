@@ -14727,7 +14727,7 @@ typedef struct an_expr_node {
                            were dropped in the prvalue type).  Also set for
                            casts to reference type (is_reference_cast is TRUE),
                            to indicate the underlying type of the cast.  NULL
-                           otherwise. Note that this field will also be NULL
+                           otherwise.  Note that this field will also be NULL
                            for expressions that were created during the
                            lowering process. */
   an_expr_node_ptr

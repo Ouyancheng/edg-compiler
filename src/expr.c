@@ -11596,7 +11596,7 @@ Determine the type resulting from a decltype(<expr>) construct where operand
 represents <expr>.
 
 In the general case, the result is the type of the expression if the
-expression is an rvalue, or a reference to that type if it's an lvalue
+expression is a prvalue, or a reference to that type if it's an lvalue
 or xvalue.  However, different rules apply for non-parenthesized
 id-expressions, for non-parenthesized class member access expressions,
 and for calls.

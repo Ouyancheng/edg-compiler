@@ -10058,7 +10058,7 @@ a_boolean fold_constexpr_expr(an_expr_node_ptr  expr,
 Attempt to fold the expression "expr" to a constant as part of a
 constexpr evaluation.  If the expression folds to a constant, place
 the constant in *result_con and return TRUE; otherwise, return FALSE.
-The expression can be an lvalue, xvalue, or rvalue.  If treat_as_object
+The expression can be an lvalue, xvalue, or prvalue.  If treat_as_object
 is TRUE, treat the expression as an object (class or array) and
 look for and return a constant address for the object.  pos gives
 the source position of the evaluation.
