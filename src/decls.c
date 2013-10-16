@@ -10109,8 +10109,7 @@ the symbol through dps->sym and its linkage (which is always "none") through
                                      ec_non_thread_local_follows_thread_local :
                                      ec_thread_local_follows_non_thread_local,
                            &locator->source_position,
-                           &sym->variant.variable.ptr->
-                                                  source_corresp.decl_position,
+                           &var->source_corresp.decl_position,
                            sym);
       }  /* if */
       /* Set the IL referenced flag since, as an externally visible variable,
