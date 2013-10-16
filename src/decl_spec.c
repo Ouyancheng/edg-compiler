@@ -5948,7 +5948,12 @@ template.  dsi_flags is the set of input flags passed to decl_specifiers.
       *declares_something = FALSE;
     }  /* if */
   }  /* if */
-  if (tag_sym == NULL) {
+  if (tag_sym == NULL && is_enum_template_definition) {
+    /* A template declaration must always refer to an enumeration declared
+       in a class template. */
+    pos_error(ec_nonmember_enum_template, &locator.source_position);
+    enum_type = error_type();
+  } else if (tag_sym == NULL) {
     an_enum_symbol_supplement_ptr	essp;
     a_scope_ptr				parent_scope;
     parent_scope = scope_stack[effective_decl_level].il_scope;

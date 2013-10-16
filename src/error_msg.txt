@@ -2564,6 +2564,7 @@ ec_defaulted_functions_is_cpp11;;"defaulted functions are a C++11 feature"
 ec_storage_class_not_allowed_in_specialization;;"a storage class is not allowed in an explicit specialization"
 ec_not_class_or_enum;;"%t is not a class or scoped enumeration"
 ec_specialization_of_unscoped_enum;;"an unscoped enumeration must be opaque in order to be specialized"
+ec_nonmember_enum_template;;"an enumeration template declaration must refer to a previously declared member of a class template"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #
