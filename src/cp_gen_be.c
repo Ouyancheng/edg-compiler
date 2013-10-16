@@ -466,7 +466,6 @@ static void gen_pending_pragma_pack(void);
 static void gen_template_header(a_template_decl_ptr tdp,
                                 a_type_ptr          parent_class,
                                 a_boolean           is_cppcli_generic);
-static void gen_template(void);
 static a_boolean strip_lvalue_cast_sequence(an_expr_node_ptr *expr);
 static void gen_initializer_constant(a_constant_ptr constant,
                                      a_type_ptr     type,
@@ -13293,7 +13292,8 @@ is the one associated with the template.
       /* Advance past the source sequence entry for the template. */
       if (is_definition &&
           (tp->kind == (a_template_kind)templk_class ||
-           tp->kind == (a_template_kind)templk_member_class) &&
+           tp->kind == (a_template_kind)templk_member_class ||
+           tp->kind == (a_template_kind)templk_member_enum) &&
           tp->prototype_instantiation.type != NULL) {
         /* Source sequence entries were recorded for a class template prototype
            instantiation, but we won't use those to regenerate the template

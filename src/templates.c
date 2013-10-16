@@ -22211,12 +22211,6 @@ instantiation of the containing class.
   a_boolean				declares_something;
   a_boolean				defines_something;
   a_boolean				err = FALSE;
-#if 0
-  /* FIXME: Is this needed? */
-#if GENERATE_SOURCE_SEQUENCE_LISTS
-  a_boolean				saved_sses_disallowed;
-#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
-#endif
   a_decl_parse_state			dps;
   a_type_ptr				enum_type;
   an_integer_type_supplement_ptr	itsp;
@@ -22259,17 +22253,6 @@ instantiation of the containing class.
     }  /* if */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   }  /* if */
-#if 0
-  /* FIXME: Is this needed? */
-#if GENERATE_SOURCE_SEQUENCE_LISTS
-  if (prototype_instantiations_in_il) {
-    /* Prevent the generation of a source sequence entry for the a_template
-       entry since we have one for the recorded prototype instantiation. */
-    saved_sses_disallowed = source_sequence_entries_disallowed;
-    source_sequence_entries_disallowed = TRUE;
-  }  /* if */
-#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
-#endif
   if (!err) {
     /* Make sure the template parameter list matches the enclosing class. */
     if (!member_template_param_list_matches_class(
@@ -22279,16 +22262,6 @@ instantiation of the containing class.
       err = TRUE;
     }  /* if */
   }  /* if */
-#if 0
-  /* FIXME: Is this needed? */
-#if GENERATE_SOURCE_SEQUENCE_LISTS
-  if (prototype_instantiations_in_il) {
-    /* Restore the previous state wrt. the generation of source sequence
-       entries. */
-    source_sequence_entries_disallowed = saved_sses_disallowed;
-  }  /* if */
-#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
-#endif
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   if (!err) {
     update_decl_pos_info(
