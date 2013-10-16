@@ -17,10 +17,11 @@ configuration macro FREE_MEMORY_REGIONS_EARLY to TRUE.
 10/15/13 [EDGcpfe/12929]
 C++11: template support for opaque enum templates
 
-Version 4.5 added support for opaque enumerations (see 6/20/12 entry),
-but this did not include the definition of enumerations of class
-templates outside of their class, or explicit specialization of such
-enumerations.  These features are now supported.
+Support for opaque enumerations was added to the front end in version 4.5
+(see the 6/20/12 entry for EDGcpfe/9250, et al.).  This did not include
+support for the definition of enumerations of class templates outside of
+their class, or explicit specialization of such enumerations.  These
+features are now supported.
 
   template <class T> struct A {
     enum E : T;

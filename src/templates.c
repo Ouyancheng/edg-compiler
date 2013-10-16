@@ -7392,7 +7392,7 @@ template.
                                    (a_boolean*)NULL);
         attach_decl_attributes(&dps, /*primary_decl=*/TRUE);
       }  /* if */
-      /* In the normal case the current token should be end_of_source,
+      /* In the normal case the current token should be tok_end_of_source,
          which was inserted to mark the end of the cached token stream.
          If necessary, keep flushing until end-of-source is found. */
       if (curr_token != tok_end_of_source) {
@@ -14435,11 +14435,11 @@ void find_enum_member(a_symbol_ptr		enum_sym,
 		      a_token_sequence_number	token_sequence_number)
 /*
 enum_sym is a symbol representing a enum template member of a real
-class.  parent_class is type of the enclosing class.  Find the symbol
+class.  parent_class is the type of the enclosing class.  Find the symbol
 for an enumeration from the prototype instantiation (it serves as
 the template for the real enum), and record it in the symbol supplement
 associated with enum_sym.  token_sequence_number is used to match the enum
-in the real class with the corresponding entry in the prototype instantiation
+in the real class with the corresponding entry in the prototype instantiation.
 Note that if parent_class is not an instantiation, this routine has no effect.
 */
 {
@@ -22006,7 +22006,7 @@ alias
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   /* All alias declarations are considered definitions. */
   decl_state->defines_something = TRUE;
-  /* Skip past the "using" (or "__internal_alias_decl" when e.g. processing
+  /* Skip past the "using" (or "__internal_alias_decl" when processing
      the internal declaration of C++/CLI's cli::interior_ptr). */
   check_assertion(curr_token == tok_using ||
                   curr_token == tok_internal_alias_decl);
@@ -22191,7 +22191,7 @@ alias
 static a_symbol_ptr enum_template_declaration(
 					a_tmpl_decl_state_ptr decl_state)
 /*
-Scan a declaration for an out-of-class definition of en enumeration
+Scan a declaration for an out-of-class definition of an enumeration
 member of a class template or nested class of a class template.
 Such a declaration has the form:
 
@@ -22199,8 +22199,8 @@ Such a declaration has the form:
   template <template-parameter-list> enum class A<T>::E : base_type { ... };
 
 The template parameter clause has already been scanned at the time this
-routine has been called, and the current token is the tok_enum of the
-enum declaration.
+routine is called, and the current token is the tok_enum of the enum
+declaration.
 
 Return a pointer to the enum symbol that is a member of the prototype
 instantiation of the containing class.

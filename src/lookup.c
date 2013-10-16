@@ -4997,7 +4997,7 @@ is found is returned, or NULL if no matching symbol is found.
   if (enum_type->variant.integer.is_template_enum &&
       enum_type->variant.integer.is_scoped_enum && !essp->instantiated) {
     /* A template-based scoped enum that has not yet been instantiated.
-       instantiate it now. */
+       Instantiate it now. */
     instantiate_template_enum(enum_type);
   }  /* if */
   if (is_error_locator(*locator)) {

@@ -2486,8 +2486,8 @@ typedef struct a_template_symbol_supplement {
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   bitfield_to_avoid_codecenter_warnings()
   union {
-    /* For class templates, nested classes of class templates, enumerations
-       of those, and for alias templates. */
+    /* For class templates, nested classes of class templates, member
+       enumerations of those, and for alias templates. */
     struct {
       a_symbol_list_entry_ptr
                 instantiations;

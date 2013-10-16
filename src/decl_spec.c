@@ -5075,7 +5075,7 @@ is updated to reflect relevant positions of this definition.
         /* Set the error position to the identifier position. */
         copy_source_position(locator.source_position, error_position);
       }  /* if */
-      /* Note that the enumerator symbol is entered at little later, after
+      /* Note that the enumerator symbol is entered a little later, after
          the constant expression (if any) has been scanned.  (C standard,
          3.1.2.1 and 3.5.2.2) */
       remove_stop_token(tok_assign);

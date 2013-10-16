@@ -8134,7 +8134,7 @@ typedef struct a_type {
 			   instantiation. */
       a_bit_field
 		is_specialized:1;
-			/* TRUE for enum instances where were explicitly
+			/* TRUE for enum instances that were explicitly
 			   specialized. */
       bitfield_to_avoid_codecenter_warnings()
       union {
