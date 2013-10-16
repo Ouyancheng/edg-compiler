@@ -5948,10 +5948,14 @@ template.  dsi_flags is the set of input flags passed to decl_specifiers.
       *declares_something = FALSE;
     }  /* if */
   }  /* if */
-  if (tag_sym == NULL && is_enum_template_definition && !locator.is_error) {
+  if ((tag_sym == NULL || !tag_sym->is_class_member ||
+       !sym_parent_class(tag_sym)->
+                     variant.class_struct_union.is_prototype_instantiation) &&
+      is_enum_template_definition && !locator.is_error) {
     /* A template declaration must always refer to an enumeration declared
        in a class template. */
     pos_error(ec_nonmember_enum_template, &locator.source_position);
+    tag_sym = NULL;
     set_to_error_locator(locator);
   }  /* if */
   if (tag_sym == NULL) {
