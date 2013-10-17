@@ -617,7 +617,6 @@ extern void set_il_template_entry(
 			a_symbol_ptr				sym,
 			a_template_symbol_supplement_ptr	tssp);
 
-
 extern void find_member_function_template(
                                     a_symbol_ptr  rout_sym,
                                     a_symbol_ptr  corresp_prototype_tag_sym);
