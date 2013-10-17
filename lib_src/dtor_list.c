@@ -113,8 +113,9 @@ Add ndp to the list pointed to by *destruction_list.
 */
 {
   /* If the entry has already been put on the list, terminate the execution. */
-  if (ndp->next != NULL ||
-      ndp == *destruction_list) __already_marked_for_destruction();
+  if (ndp->next != NULL || ndp == *destruction_list) {
+    __already_marked_for_destruction();
+  }  /* if */
   ndp->next = *destruction_list;
   *destruction_list = ndp;
 }  /* __record_destruction_on_list */

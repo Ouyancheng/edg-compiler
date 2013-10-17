@@ -531,7 +531,7 @@ macro is FALSE, lowering of thread_local is moot).
 
 /*
 The IA-64 ABI implementation of lazy initialization for thread_local
-variables relies on the back end supporting weak references.  For back ends
+variables works best when the back end supports weak references.  For back ends
 that don't support weak references, this configuration macro can be
 set to TRUE and a do-nothing initialization routine will be emitted for every
 thread_local with external linkage.

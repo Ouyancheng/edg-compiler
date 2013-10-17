@@ -2266,10 +2266,6 @@ by a command line option.
        destructors and operator delete. */
     implicit_noexcept_enabled = FALSE;
   }  /* if */
-  if (!(option_kind_used[(int)optk_thread_local_storage])) {
-    /* thread_local is supported in version 1700 and higher. */
-    std_thread_local_storage_specifier_enabled = (microsoft_version >= 1700);
-  }  /* if */
 }  /* set_microsoft_mode_flags */
 
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */

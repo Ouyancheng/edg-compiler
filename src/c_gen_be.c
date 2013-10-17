@@ -7881,8 +7881,7 @@ parameters.
       }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       if (variable->is_thread_local) {
-        /* Emit an indication that this variable is thread-local.  For back
-           ends that support C11, _Thread_local should be used. */
+        /* Emit an indication that this variable is thread-local. */
         if (microsoft_dialect_is_generated_code_target) {
           write_tok_str("__declspec(thread) ");
         } else {
@@ -7891,7 +7890,7 @@ parameters.
 #if DECL_MODIFIERS_IN_USE && \
     (MICROSOFT_EXTENSIONS_ALLOWED || THREAD_LOCAL_STORAGE_SPECIFIER_ALLOWED)
       } else if (!microsoft_dialect_is_generated_code_target &&
-          (variable->decl_modifiers & DM_THREAD)) {
+                 (variable->decl_modifiers & DM_THREAD)) {
         /* Non-Microsoft dialects usually include a "__thread" keyword to
            indicate thread-local storage.  (The Microsoft syntax will have
            been emitted by the call to dump_microsoft_decl_modifiers.) */
