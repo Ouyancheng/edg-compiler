@@ -1951,10 +1951,10 @@ a_variable_ptr make_global_var_with_prefixed_name(
                                       an_il_entry_kind        kind)
 /*
 Create a global variable whose name is the concatenation of the indicated
-prefix and the mangled name of the entity whose source correspondence
-is given by source_corresp.  The variable has the integral type indicated
-by ikind.  This is used, for example, for variables that record information
-about potential template instantiations.
+prefix and the mangled name of the entity (as identified by source_corresp
+and kind).  The variable has the integral type indicated by ikind.  This is
+used, for example, for variables that record information about potential
+template instantiations.
 */
 {
   a_variable_ptr var;

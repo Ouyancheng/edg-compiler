@@ -15851,7 +15851,7 @@ if one is present.
        or variable declarations erroneously using a qualified-id), not
        specifying a storage class implies "auto" storage. */
     if (depth_innermost_function_scope != NO_SCOPE_DEPTH ||
-         state->param_id != NULL) {
+        state->param_id != NULL) {
       /* We are inside a function body or this is an old-style parameter
          declaration, so an unspecified storage class means "auto", unless
          thread_local was specified, in which case "static" is implied. */
