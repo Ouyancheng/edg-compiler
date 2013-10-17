@@ -5955,7 +5955,7 @@ qualified_name_check:
                                         IDL_NO_OPTIONS, &locator_for_curr_id);
               }  /* if */
               member_sym = cssp_for_dtor->destructor;
-            } else if (dtor_type != NULL) {
+            } else if (dtor_type != NULL && !is_incomplete_type(dtor_type)) {
               /* The left operand is dependent (but not the right operand):
                  Create the destructor representation in the proxy class type
                  of the left operand, but don't record it since other
