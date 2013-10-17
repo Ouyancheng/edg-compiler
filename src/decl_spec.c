@@ -6183,11 +6183,7 @@ template.  dsi_flags is the set of input flags passed to decl_specifiers.
   if (is_scoped_enum) {
     enum_type->variant.integer.is_scoped_enum = TRUE;
   }  /* if */
-  if (is_definition &&
-      (curr_token == tok_lbrace ||
-       enum_type->variant.integer.is_prototype_instantiation)) {
-    /* The enumerator list will be missing for the definition of an enumeration
-       defined in a class template, except for the prototype instantiation. */
+  if (is_definition) {
     scan_enumerator_list(enum_type, dps, dsi_flags, p_ms_attributes,
                          class_of_which_a_member,
                          declares_something, &local_decl_pos_block);
