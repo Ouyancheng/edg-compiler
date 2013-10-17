@@ -8705,9 +8705,11 @@ command line -D options.
 #if IMPLEMENTATION_SUPPORTS_MULTIPLE_THREADS
   /* Enter a predefined macro that can be used to determine that this
      implementation allows multiple threads. */
-  (void)enter_predef_macro("1", "__STDCPP_THREADS__",
-                           /*cannot_be_redefined=*/TRUE,
-                           /*ref_suppresses_pch_file=*/FALSE);
+  if (std_thread_local_storage_specifier_enabled) {
+    (void)enter_predef_macro("1", "__STDCPP_THREADS__",
+                             /*cannot_be_redefined=*/TRUE,
+                             /*ref_suppresses_pch_file=*/FALSE);
+  }  /* if */
 #endif /* IMPLEMENTATION_SUPPORTS_MULTIPLE_THREADS */
   if (constexpr_enabled) {
     /* Define a fixed macro (not configurable since it is used by the
