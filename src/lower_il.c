@@ -14562,9 +14562,9 @@ had its dynamic initialization performed before its first use in the thread.
   check_assertion(var_has_thread_storage_duration(var));
   if (var->storage_class == (a_storage_class)sc_extern ||
       ((var->storage_class == (a_storage_class)sc_unspecified ||
-        (var->storage_class == (a_storage_class)sc_static &&
-         !(var->source_corresp.is_local_to_function ||
-           var->promoted_local_static))) &&
+        var->storage_class == (a_storage_class)sc_static) &&
+       !(var->source_corresp.is_local_to_function ||
+         var->promoted_local_static) &&
        (var->init_kind == (an_init_kind)initk_dynamic ||
         var->initialization_rewritten_as_assignment))) {
     /* A reference to a thread_local variable that is not defined in this
