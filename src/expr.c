@@ -5955,17 +5955,14 @@ qualified_name_check:
                                         IDL_NO_OPTIONS, &locator_for_curr_id);
               }  /* if */
               member_sym = cssp_for_dtor->destructor;
-            } else if (dtor_type != NULL && !is_incomplete_type(dtor_type)) {
+            } else {
               /* The left operand is dependent (but not the right operand):
                  Create the destructor representation in the proxy class type
                  of the left operand, but don't record it since other
                  destructor expressions may be added there. */
               member_sym = create_proxy_or_nonreal_class_member_of_kind(
-                                        dtor_type, (a_symbol_kind)sk_constant, 
+                                        type_1, (a_symbol_kind)sk_constant, 
                                         IDL_NO_OPTIONS, &locator_for_curr_id);
-            } else {
-              expect_error();
-              member_sym = NULL;
             }  /* if */
             locator_for_curr_id.specific_symbol = member_sym;
           } else {
