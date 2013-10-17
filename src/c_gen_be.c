@@ -104,12 +104,13 @@ instead of K&R C.
             with the IA-64 ABI
 #endif /* TARG_REUSE_TAIL_PADDING && !IA64_ABI */
 
-#if !USE_LAZY_INITIALIZATION_FOR_THREAD_LOCAL_VARIABLES
+#if IMPLEMENTATION_SUPPORTS_MULTIPLE_THREADS && \
+    !USE_LAZY_INITIALIZATION_FOR_THREAD_LOCAL_VARIABLES
 /* The C-generating back end doesn't know when threads are created, so it
    can't invoke the thread_local initializations at the proper time. */
  #error -- The C-generating back end requires lazy initialization for \
             thread_local variables
-#endif /* !USE_LAZY_INITIALIZATION_FOR_THREAD_LOCAL_VARIABLES */
+#endif /* IMPLEMENTATION_SUPPORTS_MULTIPLE_THREADS && !USE_LAZY_INIT... */
 
 /*
 See if the target is the SunPro C compiler.
@@ -9844,7 +9845,9 @@ if this routine has a body (dump nothing if it has no body).
                                          (a_boolean *)NULL)) {
     /* Unreferenced routine. */
   } else {
+#if USE_LAZY_INITIALIZATION_FOR_THREAD_LOCAL_VARIABLES
 declare_routine:
+#endif /* USE_LAZY_INITIALIZATION_FOR_THREAD_LOCAL_VARIABLES */
     is_definition = (has_defn && dump_defn);
 #if SGIC
     /* The SGI compiler uses a pragma to indicate "inline". */

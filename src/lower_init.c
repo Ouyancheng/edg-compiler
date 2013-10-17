@@ -5960,6 +5960,9 @@ can easily access them.
 #endif /* SEPARATE_ROUTINES_FOR_FILE_SCOPE_DYNAMIC_INITS */
 
   if (do_thread_local) {
+#if !IMPLEMENTATION_SUPPORTS_MULTIPLE_THREADS
+    unexpected_condition();
+#endif /* !IMPLEMENTATION_SUPPORTS_MULTIPLE_THREADS */
 #if USE_LAZY_INITIALIZATION_FOR_THREAD_LOCAL_VARIABLES || \
     !SEPARATE_ROUTINES_FOR_FILE_SCOPE_DYNAMIC_INITS
     /* Create a static __tls_init routine to contain all of the thread_local
@@ -16553,6 +16556,7 @@ code to cause the generated initialization routine to be called at startup.
 {
   a_scope_ptr file_scope = il_header.primary_scope;
 
+#if IMPLEMENTATION_SUPPORTS_MULTIPLE_THREADS
   if (std_thread_local_storage_specifier_enabled &&
       !one_instantiation_per_object) {
 #if USE_LAZY_INITIALIZATION_FOR_THREAD_LOCAL_VARIABLES || \
@@ -16576,6 +16580,7 @@ code to cause the generated initialization routine to be called at startup.
     } while (more_matching_inits);
 #endif /* USE_LAZY_INITIALIZATION_FOR_THREAD_LOCAL_VARIABLES || ... */
   }  /* if */
+#endif /* IMPLEMENTATION_SUPPORTS_MULTIPLE_THREADS */
 #if ONE_INSTANTIATION_PER_OBJECT
   if (one_instantiation_per_object) {
     /* When generating one instantiation per object, each instantiation gets
@@ -16588,11 +16593,13 @@ code to cause the generated initialization routine to be called at startup.
          needed_bit_number <
                  (il_header.number_of_external_nonclass_template_entities+1)*2;
          needed_bit_number += 2) {
+#if IMPLEMENTATION_SUPPORTS_MULTIPLE_THREADS
       if (std_thread_local_storage_specifier_enabled) {
         /* Do any thread_local initializations for this slice separately. */
         p_lower_file_scope_dynamic_inits(needed_bit_number,
                                          /*do_thread_local=*/TRUE);
       }  /* if */
+#endif /* IMPLEMENTATION_SUPPORTS_MULTIPLE_THREADS */
       p_lower_file_scope_dynamic_inits(needed_bit_number,
                                        /*do_thread_local=*/FALSE);
     }  /* for */

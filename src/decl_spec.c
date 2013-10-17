@@ -8084,7 +8084,6 @@ done:
   return result;
 }  /* process_nontype_identifier */
 
-#if IMPLEMENTATION_SUPPORTS_MULTIPLE_THREADS
 
 static void check_use_of_thread_local(a_decl_parse_state  *dps)
 /*
@@ -8141,7 +8140,6 @@ and ensure the IL reflects the presence of the specifier otherwise.
   }  /* if */
 }  /* check_use_of_thread_local */
 
-#endif /* IMPLEMENTATION_SUPPORTS_MULTIPLE_THREADS */
 
 static void process_storage_class_specifier(
                                   a_token_kind           first_token,
@@ -8281,7 +8279,6 @@ specifiers have also been consumed.
       }  /* if */
     }  /* if */
   } else if (first_token == tok_thread_local) {
-#if IMPLEMENTATION_SUPPORTS_MULTIPLE_THREADS
     /* Do some checking for the "thread_local" specifier. */
     if (input_flags & DSI_IS_CONDITION_DECL) {
       pos_error(ec_storage_class_not_allowed, &pos_first_token);
@@ -8306,7 +8303,6 @@ specifiers have also been consumed.
       add_end_of_parse_action(check_use_of_thread_local, state,
                               /*secondary_decls=*/TRUE);
     }  /* if */
-#endif /* IMPLEMENTATION_SUPPORTS_MULTIPLE_THREADS */
   } else if ((*decl_specifiers_seen & DS_FRIEND) &&
              !microsoft_mode && !sun_mode) {
     /* Note: in Microsoft and Sun modes a friend function can
