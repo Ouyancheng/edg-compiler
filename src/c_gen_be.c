@@ -7881,12 +7881,14 @@ parameters.
       }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       if (variable->is_thread_local) {
+#if IMPLEMENTATION_SUPPORTS_MULTIPLE_THREADS
         /* Emit an indication that this variable is thread-local. */
         if (microsoft_dialect_is_generated_code_target) {
           write_tok_str("__declspec(thread) ");
         } else {
           write_tok_str("__thread ");
         }  /* if */
+#endif /* IMPLEMENTATION_SUPPORTS_MULTIPLE_THREADS */
 #if DECL_MODIFIERS_IN_USE && \
     (MICROSOFT_EXTENSIONS_ALLOWED || THREAD_LOCAL_STORAGE_SPECIFIER_ALLOWED)
       } else if (!microsoft_dialect_is_generated_code_target &&

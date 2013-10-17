@@ -6572,20 +6572,16 @@ for use in generating cross-reference output describing this declaration.
                                &linkage, &storage_class,
                                &locator->source_position,
                                /*suppress_diagnostic=*/linked_redecl_error);
-    if (redeclaration &&
-        symbol_is(linked_symbol, sk_variable) &&
-        variable_ptr->is_thread_local !=
+    if (variable_ptr->is_thread_local !=
         ((dps->dso_flags & DSO_THREAD_LOCAL) == DSO_THREAD_LOCAL)) {
       /* If "thread_local" is specified on one declaration, it must be
          specified on all. */
-      pos2_sy_diagnostic(es_error,
-                         variable_ptr->is_thread_local ?
+      pos2_diagnostic(es_error,
+                      variable_ptr->is_thread_local ?
                                      ec_non_thread_local_follows_thread_local :
                                      ec_thread_local_follows_non_thread_local,
-                         &locator->source_position,
-                         &linked_symbol->variant.variable.ptr->
-                                                  source_corresp.decl_position,
-                         linked_symbol);
+                      &locator->source_position,
+                      &variable_ptr->source_corresp.decl_position);
     }  /* if */
     if (linkage != idlb.linkage) {
       /* The linkage has been changed, so change the "name linkage", too. */
@@ -10104,13 +10100,12 @@ the symbol through dps->sym and its linkage (which is always "none") through
           ((dps->dso_flags & DSO_THREAD_LOCAL) == DSO_THREAD_LOCAL)) {
         /* If "thread_local" is specified on one declaration, it must be
            specified on all. */
-        pos2_sy_diagnostic(es_error,
-                           var->is_thread_local ?
+        pos2_diagnostic(es_error,
+                        var->is_thread_local ?
                                      ec_non_thread_local_follows_thread_local :
                                      ec_thread_local_follows_non_thread_local,
-                           &locator->source_position,
-                           &var->source_corresp.decl_position,
-                           sym);
+                        &locator->source_position,
+                        &var->source_corresp.decl_position);
       }  /* if */
       /* Set the IL referenced flag since, as an externally visible variable,
          it could be referenced from another translation unit. */
