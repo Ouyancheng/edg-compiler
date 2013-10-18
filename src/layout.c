@@ -3771,7 +3771,7 @@ base classes, direct and indirect, and allocate pointers as needed for them.
                                  (a_base_class_ptr)NULL);
   if (!bcp->pointer_offset_is_set) {
     /* Allocate a pointer to its data section.  The offset of the pointer will
-       be recored in *bcp. */
+       be recorded in *bcp. */
     pointer_offset_for_virtual_base_class(lob, bcp);
     tp = base_class->type; 
     if (tp->variant.class_struct_union.any_virtual_base_classes) {

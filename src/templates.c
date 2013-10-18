@@ -16167,7 +16167,7 @@ subordinate templates.
       a_template_symbol_supplement_ptr	instance_tssp;
       an_error_severity			severity = es_error;
       /* The GNU and Microsoft compilers do not diagnose these infractions.
-         Reduce the diagnostic to a warning in GNU and MIcrosoft modes. */
+         Reduce the diagnostic to a warning in GNU and Microsoft modes. */
       if (microsoft_mode || gpp_mode) severity = es_warning;
       /* Get the class template symbol that was used to generate this
          instance. */

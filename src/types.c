@@ -10804,7 +10804,7 @@ make_new_comp_type:
           end_of_list->next = new_ptp;
         }  /* if */
         end_of_list = new_ptp;
-        /* Advance to the next param-type enties.  Both lists will be of
+        /* Advance to the next param-type entries.  Both lists will be of
            equal length. */
         ptp1 = ptp1->next;
         ptp2 = ptp2->next;

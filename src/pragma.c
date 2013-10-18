@@ -787,7 +787,7 @@ otherwise return FALSE.
   if (curr_token_pragmas != NULL) process_curr_token_pragmas();
 done:
   db_exit();
-  /* Return TRUE if there are any entrys of the list. */
+  /* Return TRUE if there are any entries of the list. */
   return list_start != NULL;
 }  /* select_curr_construct_pragmas */
 

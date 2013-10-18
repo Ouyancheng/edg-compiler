@@ -4005,7 +4005,7 @@ EXTERN a_symbol_header_ptr
 
 /*
 Entry describing a fixup that is required for a VLA that appears in a
-function prototype paramenter declaration.  There are two sorts of fixup that
+function prototype parameter declaration.  There are two sorts of fixup that
 happen once the function scope and its associated memory region are created:
 (1) Parameter variable fixup -- If the dimension expression refers to a
     parameter name, the expression will have been scanned before the param

@@ -5340,7 +5340,7 @@ overriding.
          struct C1: B {};
          struct C2: B {};
          struct D: C1, C2 {
-           void C1::f(); // Overides f in both base subobjects.
+           void C1::f(); // Overrides f in both base subobjects.
            void C2::f(); // Error: Redeclaration.
          };
     */
@@ -15522,7 +15522,7 @@ promotion is for a nonstandard anonymous union.
          anonymous to the standard anonymous union (which leaves the
          accessibility as public), but it is not adjusted during the second
          promotion from the union to class C (the end result is that C::i is
-         publically accessible). */
+         publicly accessible). */
       /* The field should normally already have public access, but to avoid
          repeated errors on private members of nested anonymous unions, we
          force access to be public here. */

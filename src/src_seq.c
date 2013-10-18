@@ -1098,7 +1098,7 @@ start and end of the list, which may still be embedded in another list) into
 the source sequence list of the specified scope stack depth.  When
 scope_depth is NO_SCOPE_DEPTH, insert the entries into the list associated
 with the file IL scope.  If insert_before is NULL, append the list to the
-end; otherwise, insert it immediatedly before insert_before.
+end; otherwise, insert it immediately before insert_before.
 */
 {
   a_source_sequence_entry_ptr  insert_after;

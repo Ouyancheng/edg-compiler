@@ -916,7 +916,7 @@ static void report_corresp_error(char                   *entity1,
 /*
 The given IL node has a source correspondence and an associated symbol.  It
 conflicts in some way with an entity declared at pos2.  If the two conflicting
-IL indentities result from the same source construct (e.g., because the same
+IL identities result from the same source construct (e.g., because the same
 header file was included in two translation units), use the message associated
 with same_src_error; otherwise, use distinct_src_error.
 */
@@ -3603,7 +3603,7 @@ type is in fact valid.
       }
       /* Traverse member using declarations. */
       {
-        /* Member using declaration enties do not have a correspondence
+        /* Member using declaration entries do not have a correspondence
            pointer set.  However, they must match across translation units. */
         a_using_decl_ptr  ud = scope->using_decls;
         a_using_decl_ptr  corresp_ud = corresp_scope->using_decls;

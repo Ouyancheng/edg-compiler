@@ -15382,7 +15382,7 @@ proceed after the call.
       func_info->declarator_ssep = state->source_sequence_entry;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 #if USER_CONTROL_OF_STRUCT_PACKING
-      /* Recored the current setting of the maximum alignment for local
+      /* Record the current setting of the maximum alignment for local
          class members (an adjustment may be required for packing). */
       func_info->max_member_alignment =
                          current_max_alignment_for_class_members();

@@ -2958,7 +2958,7 @@ the scope being pushed.
                                        (ssep-1)->record_form_of_name_reference;
   }  /* if */
 #if GENERATE_MICROSOFT_IF_EXISTS_ENTRIES
-  /* Determine whether Microsoft __if_exist enties and associated source
+  /* Determine whether Microsoft __if_exist entries and associated source
      sequence entries should be created for this scope.  Such entries are
      created in class scopes.  The flag is also set for function prototype
      scopes within class scopes, so that a diagnostic may be issued for
