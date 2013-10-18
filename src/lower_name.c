@@ -513,9 +513,6 @@ static void mangled_member_variable_name(a_variable_ptr           variable,
 static a_const_char *mangled_expr_operator_name(an_expr_node_ptr expr,
                                                 a_boolean        *bad_operator,
                                                 a_boolean        *is_cast);
-static void mangled_destructor_name(a_type_ptr               type,
-                                    a_name_reference_ptr     name_reference,
-                                    a_mangling_control_block *mctl);
 
 /*
 Macro for the typical invocation of mangled_encoding_for_expression_full
@@ -4027,11 +4024,6 @@ do_unknown_function:
                          mctl);
           break;
         case tpck_destructor:
-          mangled_destructor_name(
-                           con->variant.template_param.variant.destructor.type,
-                           (a_name_reference_ptr)NULL,
-                           mctl);
-          break;
         default:
           unexpected_condition_str(
                             "literal_representation: bad template param kind");
