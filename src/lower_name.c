@@ -3068,6 +3068,7 @@ appear in mangled names).
 }  /* unmangled_or_fabricated_name_of_variable */
 
 #endif /* DO_IL_LOWERING || !IA64_ABI */
+#if ABI_COMPATIBILITY_VERSION >= 402
 
 static a_boolean is_unresolved_type(a_type_ptr type)
 /*
@@ -3289,6 +3290,7 @@ qualifiers seen so far (and is typically set to one by the initial caller).
   }  /* if */
 }  /* mangled_scope_resolution */
 
+#endif /* ABI_COMPATIBILITY_VERSION >= 402 */
 #if IA64_ABI
 
 /*
