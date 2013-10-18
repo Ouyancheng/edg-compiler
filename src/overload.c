@@ -15572,7 +15572,7 @@ operand when initializer lists are enabled.
           arg_list2 = NULL;
         } else {
           if (is_braced_init_list_operand(operand_2)) {
-            /* Use the arg list encapsuled in operand_2 instead of allocating
+            /* Use the arg list pointed to by operand_2 instead of allocating
                a new one. */
             arg_list2 = operand_2->variant.braced_init_list;
           } else {
