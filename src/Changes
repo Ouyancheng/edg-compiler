@@ -1,5 +1,23 @@
 Version 4.9
 
+10/21/13 [EDGcpfe/14507]
+C++-generating back end: incorrect qualification of dependent operator names
+
+In configurations with PROTOTYPE_INSTANTIATIONS_IN_IL set to TRUE, the
+C++-generating back end unnecessarily (and, depending on the type of the
+qualifier, possibly incorrectly) qualified the name of a dependent operator
+function, sometimes resulting in code that could not be compiled.  This is
+now fixed.  For example:
+
+  template<typename T> struct S { typedef T& type; };
+  template <typename T> struct X {
+    static typename S<T>::type s;
+    static const int i = sizeof(s.operator-()); // Previously generated as
+                                                // s.S<T>::type::operator-
+  };
+  struct Y { int operator-(); };
+  X<Y> xi;
+
 ------------------------------------------------------------------------------
 Version 4.8, October 18, 2013
 

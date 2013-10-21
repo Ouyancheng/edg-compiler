@@ -8738,17 +8738,6 @@ indicated by opstr.
   }  /* if */
   gen_expr(operand_1, !is_expl_ctor_or_value_init(operand_1),
            /*obj_expr_of_mfunc_operator=*/FALSE);
-  if (is_glvalue_node(operand_1) &&
-      is_template_param_or_nonreal_class_type(operand_1_type)) {
-    /* Watch out for prototype instantiations. */
-    operand_1_type = NULL;
-  }  /* if */
-  if (operand_1_type != NULL && opstr[0] != '.') {
-    /* Watch out for prototype instantiations. */
-    if (is_template_param_or_nonreal_class_type(operand_1_type)) {
-      operand_1_type = NULL;
-    }  /* if */
-  }  /* if */
   /* If the second operand has been turned into a constant (i.e., it
      was a const-valued variable), use a comma operator in the output
      to avoid generating something like "x.2". */
