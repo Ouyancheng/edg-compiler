@@ -1,5 +1,20 @@
 Version 4.9
 
+10/22/13 [EDGcpfe/14555]
+C++-generating back end: operator< template-id with empty argument list
+
+In configurations with PROTOTYPE_INSTANTIATIONS_IN_IL set to TRUE, the
+C++-generating back end sometimes failed to put a space between the name
+of an operator< template and an empty template argument list, resulting in
+incorrect code.  This is now fixed.  For example:
+
+  template<typename T> bool operator<(T& t1, int);
+  template<typename T> struct S {
+    friend bool operator< <>(T& t1, int);  // Previously generated as
+                                           // operator<<>(T& t1, int)
+  };
+
+
 10/21/13 [EDGcpfe/14507]
 C++-generating back end: incorrect qualification of dependent operator names
 

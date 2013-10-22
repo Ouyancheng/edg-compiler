@@ -2740,12 +2740,13 @@ argument list and to FALSE otherwise.
     if (rout->expl_template_arg_list_used) {
       tap = rout->template_arg_list;
       result = TRUE;
-      if (insert_space != NULL && tap != NULL &&
+      if (insert_space != NULL &&
           rout->special_kind == (a_special_function_kind)sfk_operator) {
-        /* For operator functions with a template argument list, put a space
-           between the operator and the "<" of the template arguments.
-           This is necessary for operator< and operator<<, to avoid
-           mis-tokenizing the operator. */
+        /* For operator functions with a template argument list, put a
+           space between the operator and the "<" of the template
+           arguments.  This is necessary for operator<, to avoid
+           mis-tokenizing the operator, and improves readability for the
+           other operators. */
         *insert_space = TRUE;
       }  /* if */
     }  /* if */
