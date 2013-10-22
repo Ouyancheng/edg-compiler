@@ -24596,8 +24596,10 @@ passed via template_decl.
   a_boolean            is_member_template_rescan;
   a_type_qualifier_set saved_qualifiers;
   a_source_position    saved_qualifiers_pos;
+  a_symbol_locator     locator;
 
   db_enter(3, "class_member_declaration");
+  clear_locator(&locator, &null_source_position);
   *skip_semicolon_check = FALSE;
   initialize_member_decl_info(&decl_info, &pos_curr_token);
   is_member_template_rescan = (scope_stack[depth_scope_stack].kind ==
@@ -24815,7 +24817,6 @@ passed via template_decl.
   specifiers_type = decl_state->type;
   /* A declarator list should be present.  Scan it. */
   do {
-    a_symbol_locator                  locator;
     a_func_info_block                 func_info;
     a_template_symbol_supplement_ptr  tssp;
     a_source_position                 declarator_start_pos;
@@ -25352,8 +25353,7 @@ next_declaration:;
     } else if (!(dso_flags & DSO_FRIEND) &&
                (decl_info.is_constructor ||
                 (explicit_conversion_functions_enabled &&
-                 decl_state->sym != NULL &&
-                 is_conversion_function_symbol(decl_state->sym)))) {
+                 locator.is_conversion_name))) {
       /* Okay. */
     } else {
       pos_error(ec_explicit_not_allowed, &decl_state->start_pos);
