@@ -825,10 +825,20 @@ of the whole initialization (*is) as appropriate.
                    gtype->variant.class_struct_union.is_nonreal_class) ||
                   (gpp_mode && is_prototype_instantiation_context()) ||
                   is_error_type(gtype));
-  if (is->check_validity_only && !designators_allowed) {
+  if (is_designator_component(icp)) {
+    /* We don't permit designators in templates because we cannot represent a
+       field designator in the IL if we don't actually have a field entry to
+       point to. */
+    is->init_error = TRUE;
+    *init_con = NULL;
+    if (!is->check_validity_only && !is_error_type(gtype)) {
+      pos_error(ec_designator_for_template_dependent_type,
+                init_component_pos(icp));
+    }  /* if */
+  } else if (is->check_validity_only) {
     /* Except for designators, this routine always "succeeds" without
-       diagnostics.  So if no IL should be produced, there is nothing to be
-       done. */
+       diagnostics.  So if no IL should be produced, there is nothing more to
+       be done. */
     *init_con = NULL;
   } else if (is_expression_component(icp)) {
     /* A simple expression: No more recursion is needed. */
@@ -854,16 +864,6 @@ of the whole initialization (*is) as appropriate.
       } else {
         check_assertion(is->init_error);
       }  /* if */
-    }  /* if */
-  } else if (is_designator_component(icp)) {
-    /* We don't permit designators in templates because we cannot represent a
-       field designator in the IL if we don't actually have a field entry to
-       point to. */
-    is->init_error = TRUE;
-    *init_con = NULL;
-    if (!is->check_validity_only && !is_error_type(gtype)) {
-      pos_error(ec_designator_for_template_dependent_type,
-                init_component_pos(icp));
     }  /* if */
   } else {
     unexpected_condition();

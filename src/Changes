@@ -1,5 +1,25 @@
 Version 4.9
 
+10/22/13 [EDGcpfe/14591]
+GNU-mode abort on call with brace-enclosed argument to overloaded function
+
+In GNU C++11 mode, a call with a brace-enclosed argument to an overloaded
+function sometimes resulted in an internal error (in aggr_init_generic_element
+in decl_inits.c).  For example:
+
+  struct S { union { int i; } };
+  void f(S const&);
+  void f(S &&);
+  template<class T> void g(int i) {
+    f({{i}});  // Previously triggered an abort during instantiation of
+  }            // g<int>(int).
+  int main() {
+    g<int>(0);
+  }
+
+This is now fixed.
+
+
 10/22/13 [EDGcpfe/14564,EDGcpfe/14601]
 Spurious error on "explicit" keyword used in template conversion function
 
