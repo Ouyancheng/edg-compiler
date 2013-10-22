@@ -27056,7 +27056,16 @@ do_selection:
                   check_assertion(node != NULL);
                   node = strip_ref_indirect(node, /*parens_also=*/TRUE);
                   check_assertion(is_operation_node(node) &&
-                                  node_operator_is(node, eok_points_to_field));
+                                  (node_operator_is(node, eok_points_to_field)
+#if ALLOW_NONSTANDARD_ANONYMOUS_UNIONS
+                                   /* A reference to a member of a
+                                      nonstandard anonymous struct will
+                                      have been adjusted to a "." operator
+                                      applied to the anonymous member
+                                      subobject. */
+                                   || node_operator_is(node, eok_dot_field)
+#endif /* ALLOW_NONSTANDARD_ANONYMOUS_UNIONS */
+                                                                           ));
                   node->is_objectless_nonstatic_data_mem_ref = TRUE;
                 }  /* if */
               } else {
