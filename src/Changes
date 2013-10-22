@@ -25,7 +25,7 @@ In GNU C++11 mode, a call with a brace-enclosed argument to an overloaded
 function sometimes resulted in an internal error (in aggr_init_generic_element
 in decl_inits.c).  For example:
 
-  struct S { union { int i; } };
+  struct S { union { int i; }; };
   void f(S const&);
   void f(S &&);
   template<class T> void g(int i) {
