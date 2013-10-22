@@ -16,7 +16,7 @@ now fixed.  For example:
                                                 // s.S<T>::type::operator-
   };
   struct Y { int operator-(); };
-  X<Y> xi;
+  X<Y> xy;
 
 ------------------------------------------------------------------------------
 Version 4.8, October 18, 2013
