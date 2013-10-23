@@ -1,5 +1,22 @@
 Version 4.9
 
+10/23/13 [EDGcpfe/14585]
+GNU C++11 compatibility: Conversion from lambda to function pointer
+
+In standard C++11, a closure type includes a conversion function to a pointer
+to function if the associated lambda is introduced with "[]" (see the entry of
+1/17/12).  GNU compilers, however, also add that member if the lambda
+includes a "capture default" (i.e., "[=]" or "[&]") but no actual capture
+occurs.  For example:
+
+  int i;
+  struct S { S(void (*pf)()); };
+  S s([&]{ i = 0; });  // Lambda captures nothing: Implicit conversion to
+                       // function type is possible in GNU C++11 mode.
+
+This behavior is now emulated in GNU C++11 mode.
+
+
 10/22/13 [EDGcpfe/14584]
 Objectless reference to member of nonstandard anonymous struct
 
