@@ -39,10 +39,10 @@ This is now fixed.
 
 
 10/22/13 [EDGcpfe/14564,EDGcpfe/14601]
-Spurious error on "explicit" keyword used in template conversion function
+Spurious error on "explicit" keyword used in conversion function template
 
 The front end had issued a spurious error when the "explicit" keyword was
-applied to a template conversion function.  Now fixed.  For example
+applied to a conversion function template.  Now fixed.  For example
 (with --c++11):
 
   template<typename T> struct A { };
