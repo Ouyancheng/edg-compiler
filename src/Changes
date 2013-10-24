@@ -1,5 +1,25 @@
 Version 4.9
 
+10/24/13 [EDGcpfe/14588]
+Backing expressions for implicitly converted constants
+
+When a constant value is implicitly converted to a constant of another type,
+the front end previously always attempted to represent that implicit conversion
+in the backing expression.  For example:
+
+  char a[] = { 0x31, 0x32, 0x00 };
+
+Here, the initializer constants are of type int, but they are implicitly
+converted to type char.  In cases like this, each a_constant entry representing
+an element of the initializer additionally pointed to an expression tree
+consisting of two expression nodes and the unconverted a_constant entry.  That
+overhead turns out to be excessive for some very large aggregate initializers
+that occasionally show up (e.g., hundreds of thousands of elements).  The front
+end therefore now records an "original type" (new field a_constant::orig_type)
+for constants that are converted in this way, and does not record the backing
+expression in those cases.
+
+
 10/23/13 [EDGcpfe/14585]
 GNU C++11 compatibility: Conversion from lambda to function pointer
 

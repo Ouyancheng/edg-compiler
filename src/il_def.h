@@ -3755,11 +3755,18 @@ typedef struct a_constant {
                         /* The type of the constant.  Will be compatible
                            with the representation below.  A ck_init_repeat or
                            ck_designator entry has a NULL type pointer. */
+  a_type_ptr	orig_type;
+			/* If the constant is implicitly converted to a
+			   different type (using the same representation),
+			   this is the constant's original type. */
   an_expr_node_ptr
                 expr;
                         /* If the constant is not just a literal this points
                            to an expression node representing that constant.
-                           Otherwise, NULL. */
+                           Otherwise, NULL.  (Note that for some implicitly
+			   converted constants, this field is NULL and the
+			   conversion's original type is recorded in
+			   orig_type instead.) */
   an_expr_rescan_info_entry_ptr
 		rescan_info;
 			/* For constants (particularly for nontype template

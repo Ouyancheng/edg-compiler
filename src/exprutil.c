@@ -7975,8 +7975,7 @@ user-defined conversions.
           if (curr_expr_kind_is_one_in_which_const_exprs_are_recorded()) {
             an_expr_node_ptr orig_expr = operand->variant.constant.expr;
             local_constant.expr = orig_expr;
-            if (!is_implicit_cast ||
-                !cast_identical_types(operand->type, new_type)) {
+            if (!is_implicit_cast) {
               /* Record a cast expression for the constant (inhibit normal
                  diagnostics during that process, since they were already
                  issued). */
@@ -8019,6 +8018,16 @@ user-defined conversions.
               }
               expr_stack->suppress_diagnostics = saved_suppress;
               expr_stack->any_suppressed_error = saved_any_error;
+            } else if (!cast_identical_types(operand->type, new_type)) {
+              /* A nontrivial implicit cast.  Save the original type if needed.
+                 This lighter-weight representation is used instead of the
+                 backing expression because its not entirely uncommon to have
+                 aggregate initializers with thousands of element constants
+                 such that allocating the expression tree representing each
+                 implicit cast would be prohibitive. */
+              if (local_constant.orig_type == NULL) {
+                local_constant.orig_type = operand->type;
+              }  /* if */
             }  /* if */
           }  /* if */
           make_constant_operand(&local_constant, operand);

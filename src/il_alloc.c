@@ -847,6 +847,7 @@ associated variant fields to default values.
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   cp->next           = NULL;
   cp->type           = NULL;
+  cp->orig_type      = NULL;
   cp->expr           = NULL;
   cp->rescan_info    = NULL;
 #if DO_IL_LOWERING

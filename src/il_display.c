@@ -1044,6 +1044,9 @@ Display the indicated constant entry.
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   disp_ptr("next", (char *)ptr->next, iek_constant);
   disp_ptr("type", (char *)ptr->type, iek_type);
+  if (ptr->orig_type != NULL) {
+    disp_ptr("orig_type", (char *)ptr->orig_type, iek_type);
+  }  /* if */
   if (ptr->expr != NULL) {
     disp_ptr("expr", (char *)ptr->expr, iek_expr_node);
   }  /* if */
