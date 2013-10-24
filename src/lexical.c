@@ -11033,30 +11033,40 @@ tok_ud_literal; otherwise, return tok_string_literal.
 static void check_for_invalid_macro_concatenation()
 /*
 Issue a diagnostic if the current token indicates that a concatenation
-operation in a macro expansion ("a ## b") did not result in a valid token.
+operation in a macro expansion ("a ## b") did not result in a single valid
+token.
 */
 {
-  /* Check to see if the current token begins at a point where a
-     concatenation was done and thus represents an attempt to create an
-     invalid token. */
   a_source_line_modif_ptr slmp =
                         assoc_source_line_modif_full(start_of_curr_token,
                                                      /*failure_allowed=*/TRUE);
+
   if (slmp != NULL) {
     while (slmp->concatenations != NULL &&
            slmp->concatenations->line_loc <= end_of_curr_token) {
+      /* There are two cases in which a concatenation can fail to result in
+         a single valid token.  The first is when the right operand of the
+         ## begins a new token in its own right; we detect that when the
+         current token starts at the location recorded for a concatenation.
+         The second is when the concatenated token ends before the first
+         token of the right operand did.  We can detect this case because
+         the tokens in the replacement text are terminated by lexical
+         escapes, typically LE_END_OF_TOKEN; if this token is the result of
+         a concatenation but the next character following it is not
+         LE_ESCAPE, the combined token does not encompass the entire first
+         token of the right operand.  In this case, the current token might
+         be the result of several concatenations (i.e., several
+         concatenation records might point within the current token), so we
+         only report a diagnostic for the last one; we also suppress the
+         last one if the next concatenation record points to the character
+         following the end of the current token, since the next token will
+         satisfy the first case and result in its own diagnostic. */
       if (slmp->concatenations->line_loc == start_of_curr_token ||
-          *(end_of_curr_token + 1) != LE_ESCAPE) {
-        /* Either the right operand of the concatenation formed a new token
-           instead of becoming part of the one at the end of the left
-           operand or the newly-formed token ends before the end of
-           preprocessor token that was the right operand of the
-           concatenation (the tokens in a macro expansion are terminated by
-           lexical escapes -- LE_END_OF_TOKEN, etc. -- which is missing
-           following the current end of token, indicating that the
-           concatenated token ends "early").  This is undefined behavior
-           according to the language standards.  Issue a diagnostic of the
-           appropriate severity. */
+          ((slmp->concatenations->next == NULL ||
+            (slmp->concatenations->next->line_loc > end_of_curr_token &&
+             slmp->concatenations->next->line_loc != end_of_curr_token + 1)) &&
+           *(end_of_curr_token + 1) != LE_ESCAPE)) {
+        /* Issue a diagnostic of the appropriate severity. */
         pos_stsy_diagnostic(strict_ansi_mode ?
                                strict_ansi_discretionary_severity : es_warning,
                             ec_concat_yields_invalid_token, &pos_curr_token,

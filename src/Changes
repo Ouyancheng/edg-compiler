@@ -1,5 +1,22 @@
 Version 4.9
 
+10/24/13 [EDGcpfe/14531]
+Multiple diagnostics for invalid token concatenation
+
+When instructed to do so via the DEFAULT_CHECK_CONCATENATIONS configuration
+option or the --check_concatenations command-line argument, the front end
+issues a diagnostic when the result of the ## preprocessing operator does
+not combine two preprocessor tokens into a single valid token.  In cases
+where the token preceding an invalid concatenation is the result of one or
+more valid concatenations, the change (in version 4.5) for EDGcpfe/12839
+below incorrectly resulted in spurious diagnostics for those valid
+concatenations in addition to the intended diagnostic.  This is now fixed.
+For example:
+
+  #define CAT(a, b) a ## _ ## b
+  extern void CAT(x, ());  // Previously caused two diagnostics
+
+
 10/24/13 [EDGcpfe/14588]
 Backing expressions for implicitly converted constants
 
