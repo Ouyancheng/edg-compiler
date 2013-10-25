@@ -8,8 +8,8 @@ option or the --check_concatenations command-line argument, the front end
 issues a diagnostic when the result of the ## preprocessing operator does
 not combine two preprocessor tokens into a single valid token.  In cases
 where the token preceding an invalid concatenation is the result of one or
-more valid concatenations, the change (in version 4.5) for EDGcpfe/12839
-below incorrectly resulted in spurious diagnostics for those valid
+more valid concatenations, a change in version 4.5 (see the entry for
+EDGcpfe/12839) incorrectly resulted in spurious diagnostics for those valid
 concatenations in addition to the intended diagnostic.  This is now fixed.
 For example:
 
