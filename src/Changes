@@ -33,8 +33,8 @@ consisting of two expression nodes and the unconverted a_constant entry.  That
 overhead turns out to be excessive for some very large aggregate initializers
 that occasionally show up (e.g., hundreds of thousands of elements).  The front
 end therefore now records an "original type" (new field a_constant::orig_type)
-for constants that are converted in this way, and does not record the backing
-expression in those cases.
+for constants that are converted in this way in certain initialization
+contexts, and does not record the backing expression in those cases.
 
 
 10/23/13 [EDGcpfe/14585]
