@@ -7982,7 +7982,7 @@ user-defined conversions.
               /* A nontrivial implicit cast on top of a simple constant (i.e.,
                  one with no name and no backing expression) that is a top-
                  level initializer expression for an entity with static storage
-                 duration.  This includes values in aggregate initializer that
+                 duration.  This includes values in aggregate initializers that
                  can sometimes include many thousands of such values, such that
                  allocating the expression tree representing each implicit cast
                  would be prohibitive.  Just record the original type instead.
