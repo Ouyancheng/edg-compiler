@@ -5402,11 +5402,20 @@ return_types_are_override_compatible.
   a_type_ptr              class_type = class_state->class_type;
   a_routine_ptr           rout = overrider_sym->variant.routine.ptr;
   a_routine_ptr           rp = overridden_sym->variant.routine.ptr;
+  a_routine_type_supplement_ptr
+                          rtsp = NULL;
 
   /* Compiler-generated members have no declarator.  Use the associated
      symbol's "decl_position" for diagnostics. */
   if (rout->compiler_generated) source_pos = &overrider_sym->decl_position;
   rout->is_virtual = TRUE;
+  if (rout->type->kind == (a_type_kind)tk_routine) {
+    rtsp = rout->type->variant.routine.extra_info;
+    if (rtsp->exception_specification != NULL &&
+        rtsp->exception_specification->indeterminate) {
+      resolve_indeterminate_exception_specification(rout);
+    }  /* if */
+  }  /* if */
   /* Check the exception specification relationship between the overriding and
      overridden members. */
   if (rout->is_prototype_instantiation) {
@@ -5414,9 +5423,7 @@ return_types_are_override_compatible.
   } else if ((rout->is_defaulted ||
               (implicit_noexcept_enabled &&
                special_kind_is(rout, sfk_destructor))) &&
-             rout->type->kind == (a_type_kind)tk_routine &&
-             rout->type->variant.routine.extra_info
-                       ->exception_specification == NULL) {
+             rtsp != NULL && rtsp->exception_specification == NULL) {
     /* For destructors and defaulted members, the exception specification may
        not be known until the complete class has been seen.  Delay the check
        until then. */
@@ -12892,16 +12899,19 @@ Otherwise, the member is left unchanged.
            any subobject function the generated function will call. */
         a_class_symbol_supplement_ptr  cssp;
         cssp = symbol_for(class_type)->variant.class_struct_union.extra_info;
-        if (special_kind_is(rtn, sfk_constructor) &&
-            rtsp->param_type_list == NULL &&
-            (cssp->has_instantiatable_field_initializers ||
-             cssp->has_initializer_fixups)) {
+        if (gpp_mode ||
+            (special_kind_is(rtn, sfk_constructor) &&
+             rtsp->param_type_list == NULL &&
+             (cssp->has_instantiatable_field_initializers ||
+              cssp->has_initializer_fixups))) {
           /* The exception specification of a generated default constructor
              depends on the exceptions thrown by the field initializer.
              However, field initializers have generally not been parsed yet
              when the generated default constructor is being declared.  For
              now, record an "indeterminate" exception specification, which
-             will be replaced later on. */
+             will be replaced later on.  In GNU C++ mode, use this mechanism
+             for all generated special members: This may delay certain
+             template instantiations, thereby avoiding errors. */
           rtsp->exception_specification = alloc_exception_specification();
           rtsp->exception_specification->indeterminate = TRUE;
           rtsp->exception_specification->compiler_generated = TRUE;
@@ -18378,34 +18388,39 @@ must be initialized.  In all cases, the initializers must also be constants.
 }  /* fields_initialized_for_constexpr_constructor */
 
 
-void form_exception_specification_for_generated_default_ctor(a_routine_ptr  rp)
+void resolve_indeterminate_exception_specification(a_routine_ptr  rp)
 /*
-The given generated default constructor has an indeterminate exception
-specification. Determine the actual exception specification now and update the
-routine type accordingly.  If a field initializer is being scanned, a circular
-dependency must exist and this routine issues an error accordingly.
+The given generated special member function has an indeterminate exception
+specification.  Determine the actual exception specification now and update
+the routine type accordingly.  In the case of a default constructor, a
+circular dependency must exist if a field initializer is being scanned: This
+routine issues an error accordingly when that happens.
 */
 {
   a_type_ptr  class_type = parent_class_of(rp);
   a_routine_type_supplement_ptr
               rtsp = rp->type->variant.routine.extra_info;
-  a_class_symbol_supplement_ptr
-              cssp;
 
-  cssp = symbol_for(class_type)->variant.class_struct_union.extra_info;
-  if (class_type->incomplete) {
-    expect_error();
-  } else if (cssp->scanning_field_initializer) {
-    pos_error(ec_generated_default_ctor_exception_spec_circularity,
-              &error_position);
-    rtsp->exception_specification = NULL;
-  } else {
-    ensure_all_field_initializers_scanned(class_type);
+  check_assertion(rp->compiler_generated &&
+                  rtsp->exception_specification->indeterminate);
+  if (special_kind_is(rp, sfk_constructor) && rtsp->param_type_list == NULL) {
+    /* In the case of a default constructor, we may have to scan all the field
+       initializers. */
+    if (class_symbol_supp(symbol_for(class_type))
+                                               ->scanning_field_initializer) {
+      pos_error(ec_generated_default_ctor_exception_spec_circularity,
+                &error_position);
+      rtsp->exception_specification = NULL;
+    } else {
+      ensure_all_field_initializers_scanned(class_type);
+    }  /* if*/
+  }  /* if */
+  if (rtsp->exception_specification != NULL) {
     rtsp->exception_specification = NULL;
     form_exception_specification_for_generated_function(
                                                       rp, (a_symbol_ptr)NULL);
-  }  /*  */
-}  /* form_exception_specification_for_generated_default_ctor */
+  }  /* if */
+}  /* resolve_indeterminate_exception_specification */
 
 
 static a_boolean bases_initialized_for_constexpr_constructor(

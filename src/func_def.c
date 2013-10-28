@@ -2828,10 +2828,10 @@ empty statement block.
     if (rtsp->exception_specification != NULL &&
         rtsp->exception_specification->indeterminate) {
       /* A default constructor whose exception specification hasn't been
-         determined yet because it depended on field initializers. */
-      check_assertion(special_kind_is(rout_ptr, sfk_constructor) &&
-                      rtsp->param_type_list == NULL);
-      form_exception_specification_for_generated_default_ctor(rout_ptr);
+         determined yet because it depended on field initializers.  In GNU C++
+         mode, all special member functions have their exception specification
+         delayed this way. */
+      resolve_indeterminate_exception_specification(rout_ptr);
     }  /* if */
     if (rtsp->this_class != NULL) {
       scope->variant.routine.this_param_variable =

@@ -1,5 +1,31 @@
 Version 4.9
 
+10/28/13 [EDGcpfe/13735]
+GNU compatibility: Exception specifications of generated special members
+
+In GNU C++ mode, the front end now delays the generation of exception
+specifications for generated special member functions until the exception
+specification is needed (if at all).  A special member function with an
+indeterminate exception specification has an exception specification with
+the flag "indeterminate" set to TRUE (this mechanism was already used for
+certain generated default constructors in the presence of field initializers).
+Delaying the generation of exception specifications in this way avoid
+triggering instantiation errors in some cases.  For example:
+
+  template<typename T> struct E { typedef typename T::error type; };
+  struct A {
+    A& operator=(const A&);
+    template <class U> typename E<U>::type operator=(U&);
+  };
+  struct B : A { };
+
+Previously, in GNU C++11 mode, the front end instantiated E<A> while
+determining the exception specification for the generated copy assignment
+operator of B.  That in turn triggered an error because A::type does not
+exist.  Now the case is accepted because the exception specification is not
+needed in this example.
+
+
 10/27/13 [EDGcpfe/14590]
 Spurious error on "<" following variable in for-init expression
 

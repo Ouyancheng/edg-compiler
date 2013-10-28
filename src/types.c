@@ -7111,8 +7111,7 @@ specification and no indeterminate specification.
     a_routine_type_supplement_ptr   rtsp = type->variant.routine.extra_info;
     an_exception_specification_ptr  esp = rtsp->exception_specification;
     if (esp != NULL && esp->indeterminate) {
-      form_exception_specification_for_generated_default_ctor(
-                                                         rtsp->assoc_routine);
+      resolve_indeterminate_exception_specification(rtsp->assoc_routine);
       esp = rtsp->exception_specification;
     }  /* if */
     if (esp == NULL) {
