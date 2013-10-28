@@ -17199,6 +17199,7 @@ selection operator, in which case it points to the type of the left operand.
   a_boolean             	is_ptr_to_member = FALSE;
   a_boolean			is_identifier = FALSE;
   a_symbol_ptr			qualifier_sym = NULL;
+  a_symbol_ptr			fund_qualifier_sym;
   a_symbol_ptr			specific_sym = NULL;
   a_source_position		start_position;
   a_source_position		orig_error_position;
@@ -17631,11 +17632,14 @@ selection operator, in which case it points to the type of the left operand.
     }  /* if */
     /* If the class symbol is for a class template, process the argument
        list. */
+    fund_qualifier_sym = qualifier_sym == NULL
+                                        ? NULL
+                                        : fundamental_symbol_of(qualifier_sym);
     if ((qualifier_sym != NULL &&
          is_class_template_or_injected_template_symbol(qualifier_sym)) ||
         (next_tok == tok_lt &&
          (qualifier_sym == NULL ||
-          !symbol_cannot_be_template(qualifier_sym))) ||
+          !symbol_cannot_be_template(fund_qualifier_sym))) ||
         follows_template) {
       /* Process a template reference.  This is considered a potential
          template reference if the symbol points to a class template

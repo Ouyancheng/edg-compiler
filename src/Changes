@@ -1,5 +1,16 @@
 Version 4.9
 
+10/27/13 [EDGcpfe/14590]
+Spurious error on "<" following variable in for-init expression
+
+Starting with version 4.5, spurious errors could be issued in C++11 mode
+if a variable in a for-init expression was followed by a "<".  Now fixed.
+
+int main() {
+  for (i < 10; ;);
+}
+
+
 10/24/13 [EDGcpfe/14531]
 Multiple diagnostics for invalid token concatenation
 

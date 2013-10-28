@@ -5688,14 +5688,25 @@ coalesced as a template for error recovery purposes.  In general, a
 constant cannot be followed by a template argument list, but an exception
 is made for tpck_member constants that can be found in some modes as a result
 of the ability to name members assumed to exist in dependent base classes
-using unqualified names.
+using unqualified names.  Types and function templates are considered to
+be possible templates here so that a "<" that follows one will result
+in a "template argument list not allowed" diagnostic.  Undefined symbols
+are possible templates in Sun mode and some older g++ modes.
 */
 #define symbol_cannot_be_template(sym)					\
-  ((sym)->kind == (a_symbol_kind)sk_constant &&			\
-   ((sym)->variant.constant->kind !=					\
+  ((!symbol_is(sym, sk_class_or_struct_tag) &&				\
+    !symbol_is(sym, sk_union_tag) &&					\
+    !symbol_is(sym, sk_overloaded_function) &&				\
+    !symbol_is(sym, sk_class_template) &&				\
+    !symbol_is(sym, sk_function_template) &&				\
+    !((sun_mode || (gnu_mode || gnu_version < 30400)) &&		\
+      symbol_is(sym, sk_undefined)) &&					\
+    !symbol_is(sym, sk_type)) &&					\
+   (!symbol_is((sym), sk_constant) ||					\
+    ((sym)->variant.constant->kind !=					\
                           (a_constant_repr_kind)ck_template_param ||	\
-    (sym)->variant.constant->variant.template_param.kind !=		\
-                    (a_template_param_constant_kind)tpck_member))
+     (sym)->variant.constant->variant.template_param.kind !=		\
+                    (a_template_param_constant_kind)tpck_member)))
 
 /* Return TRUE if a symbol is a class or function template symbol or an
    overload set containing a function template symbol */
