@@ -5701,9 +5701,8 @@ older g++ modes.
     !symbol_is(sym, sk_overloaded_function) &&				\
     !symbol_is(sym, sk_class_template) &&				\
     !symbol_is(sym, sk_function_template) &&				\
-    !((sun_mode || (gnu_mode || gnu_version < 30400)) &&		\
-      symbol_is(sym, sk_undefined)) &&					\
-    !symbol_is(sym, sk_type)) &&					\
+    !symbol_is(sym, sk_type) &&					\
+    !symbol_is(sym, sk_undefined)) &&					\
    (!symbol_is((sym), sk_constant) ||					\
     ((sym)->variant.constant->kind !=					\
                           (a_constant_repr_kind)ck_template_param ||	\
