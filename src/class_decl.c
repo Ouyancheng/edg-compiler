@@ -27170,7 +27170,7 @@ classes.
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if MICROSOFT_EXTENSIONS_ALLOWED
     /* Constraints in base-specifiers cannot be checked until the complete
-       set of base classes is know. */
+       set of base classes is known. */
     begin_deferral_of_constraint_checks();
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     if (curr_token == tok_colon) {
