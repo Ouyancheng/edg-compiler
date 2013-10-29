@@ -18954,6 +18954,11 @@ deleted, disable bitwise copying.
                                 /*include_move_ctors=*/TRUE,
                                 /*is_declarative_context=*/TRUE)) {
           is_move = copy_ctor_is_move_ctor(rp);
+#if NEAR_AND_FAR_ALLOWED
+          if (near_and_far_enabled()) {
+            tqs &= ~(a_type_qualifier_set)TQ_FAR;
+          }  /* if */
+#endif /* NEAR_AND_FAR_ALLOWED */
           if (!cli_class &&
               tqs != (is_move ? TQ_NONE : gsfd->copy_ctor_qualifiers)) {
             /* If the declared parameter type doesn't match what would have
@@ -18973,6 +18978,11 @@ deleted, disable bitwise copying.
                    (cli_class ||
                     routine_is_copy_or_move_assign_operator(rp, &tqs,
                                                             &is_move))) {
+#if NEAR_AND_FAR_ALLOWED
+          if (near_and_far_enabled()) {
+            tqs &= ~(a_type_qualifier_set)TQ_FAR;
+          }  /* if */
+#endif /* NEAR_AND_FAR_ALLOWED */
           if (!cli_class &&
               tqs != (is_move ? TQ_NONE : gsfd->copy_assign_qualifiers)) {
             /* If the declared parameter type doesn't match what would have
