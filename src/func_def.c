@@ -2823,16 +2823,15 @@ empty statement block.
     if (rout_ptr->storage_class == (a_storage_class)sc_extern) {
       rout_ptr->storage_class = (a_storage_class)sc_unspecified;
     }  /* if */
-    rtsp = skip_typerefs(rout_ptr->type)->variant.routine.extra_info;
-    rtsp->assoc_routine = rout_ptr;
-    if (rtsp->exception_specification != NULL &&
-        rtsp->exception_specification->indeterminate) {
+    if (has_indeterminate_exception_spec(rout_ptr)) {
       /* A default constructor whose exception specification hasn't been
          determined yet because it depended on field initializers.  In GNU C++
          mode, all special member functions have their exception specification
          delayed this way. */
       resolve_indeterminate_exception_specification(rout_ptr);
     }  /* if */
+    rtsp = skip_typerefs(rout_ptr->type)->variant.routine.extra_info;
+    rtsp->assoc_routine = rout_ptr;
     if (rtsp->this_class != NULL) {
       scope->variant.routine.this_param_variable =
                             make_implicit_this_param_variable(rout_ptr->type);

@@ -5411,8 +5411,7 @@ return_types_are_override_compatible.
   rout->is_virtual = TRUE;
   if (rout->type->kind == (a_type_kind)tk_routine) {
     rtsp = rout->type->variant.routine.extra_info;
-    if (rtsp->exception_specification != NULL &&
-        rtsp->exception_specification->indeterminate) {
+    if (has_indeterminate_exception_spec(rout)) {
       resolve_indeterminate_exception_specification(rout);
     }  /* if */
   }  /* if */
@@ -18402,7 +18401,7 @@ routine issues an error accordingly when that happens.
               rtsp = rp->type->variant.routine.extra_info;
 
   check_assertion(rp->compiler_generated &&
-                  rtsp->exception_specification->indeterminate);
+                  has_indeterminate_exception_spec(rp));
   if (special_kind_is(rp, sfk_constructor) && rtsp->param_type_list == NULL) {
     /* In the case of a default constructor, we may have to scan all the field
        initializers. */

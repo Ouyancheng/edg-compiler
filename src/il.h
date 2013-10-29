@@ -1242,6 +1242,15 @@ defined with "= default;".
 #define move_operations_can_be_defaulted()                                  \
   (generate_move_operations || (gpp_mode && gnu_version >= 40500))
 
+/*
+Macro that is TRUE for functions with an indeterminate exception specification.
+*/
+#define has_indeterminate_exception_spec(rp)                                  \
+  ((rp)->type->kind == (a_type_kind)tk_routine &&                             \
+   (rp)->type->variant.routine.extra_info->exception_specification != NULL && \
+   (rp)->type->variant.routine.extra_info->exception_specification            \
+                                         ->indeterminate)
+
 #if DO_IL_LOWERING
 extern a_boolean special_member_is_user_provided(a_routine_ptr  rp);
 #endif /* DO_IL_LOWERING */

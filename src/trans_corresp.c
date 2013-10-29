@@ -427,6 +427,8 @@ importance):
    (a) Is the entity's parent canonical?
    (b) Is the entity in the primary IL?
    (c) Does the entity have an explicit initializer? (variables only)
+       Does the entity have a determined exception specification?
+                                                     (routines only)
    (d) Is the entity a template specialization?
    (e) Is the entity a definition?
    (f) Is the entity a non-weak definition?
@@ -467,6 +469,9 @@ The given entity should have a source correspondence.
          removed the "defined" flag in the symbol is not cleared.  If this
          is a prototype instantiation, follow the template instead. */
       { a_routine_ptr  routine = (a_routine_ptr)entity;
+        if (!has_indeterminate_exception_spec(routine)) {
+          rank += 4;
+        }  /* if */
         if (routine->assoc_scope != NULL_region_number ||
             (routine->is_prototype_instantiation &&
              assoc_sym_defined(routine->assoc_template))) {
@@ -2881,6 +2886,35 @@ set_corresp_for_routines).  Issue diagnostics as appropriate.
 }  /* verify_corresp_for_default_arg_entities */
 
 
+static a_boolean compatible_exception_spec(a_routine_ptr  rp1,
+                                           a_routine_ptr  rp2)
+/*
+Return TRUE if the given routines have matching exception specifications, or
+if either one has an indeterminate exception specification.
+*/
+{
+  a_boolean  result = same_exception_spec(rp1->type, rp2->type);
+
+  if (!result) {
+    if (rp1->type->kind == (a_type_kind)tk_routine) {
+      an_exception_specification_ptr
+         esp = rp1->type->variant.routine.extra_info->exception_specification;
+      if (esp != NULL && esp->indeterminate) {
+        result = TRUE;
+      }  /* if */
+    }  /* if */
+    if (rp2->type->kind == (a_type_kind)tk_routine) {
+      an_exception_specification_ptr
+         esp = rp2->type->variant.routine.extra_info->exception_specification;
+      if (esp != NULL && esp->indeterminate) {
+        result = TRUE;
+      }  /* if */
+    }  /* if */
+  }  /* if */
+  return result;
+}  /* compatible_exception_spec */
+
+
 static a_boolean verify_routine_correspondence(a_routine_ptr  routine)
 /*
 Check that the recorded translation unit correspondence for the given routine
@@ -2920,7 +2954,7 @@ is in fact valid.
                                  TCF_ERROR_TYPE_COMPATIBLE_WITH_ANYTHING) ||
          (!is_generated_new_or_delete_operator(routine) &&
           !is_generated_new_or_delete_operator(corresp_routine) &&
-          (!same_exception_spec(routine->type, corresp_routine->type) ||
+          (!compatible_exception_spec(routine, corresp_routine) ||
            routine->compiler_generated !=
                                        corresp_routine->compiler_generated)) ||
          routine->is_virtual != corresp_routine->is_virtual ||
