@@ -5692,8 +5692,8 @@ using unqualified names.  Types are considered to be possible templates
 here so that a "<" that follows one will not result in a "template argument
 list not allowed" diagnostic.  An overloaded set of functions might include
 one or more function templates, so it is also considered to be a possible
-template.  Undefined symbols are possible templates in Sun mode and some
-older g++ modes.
+template.  Undefined symbols are possible templates, which generally
+results in better error recovery.
 */
 #define symbol_cannot_be_template(sym)					\
   ((!symbol_is(sym, sk_class_or_struct_tag) &&				\
