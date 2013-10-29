@@ -5688,10 +5688,12 @@ coalesced as a template for error recovery purposes.  In general, a
 constant cannot be followed by a template argument list, but an exception
 is made for tpck_member constants that can be found in some modes as a result
 of the ability to name members assumed to exist in dependent base classes
-using unqualified names.  Types and function templates are considered to
-be possible templates here so that a "<" that follows one will not result
-in a "template argument list not allowed" diagnostic.  Undefined symbols
-are possible templates in Sun mode and some older g++ modes.
+using unqualified names.  Types are considered to be possible templates
+here so that a "<" that follows one will not result in a "template argument
+list not allowed" diagnostic.  An overloaded set of functions might include
+one or more function templates, so it is also considered to be a possible
+template.  Undefined symbols are possible templates in Sun mode and some
+older g++ modes.
 */
 #define symbol_cannot_be_template(sym)					\
   ((!symbol_is(sym, sk_class_or_struct_tag) &&				\
