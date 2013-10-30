@@ -4472,9 +4472,24 @@ do_argument_again:
                                           any_white_space_skipped,
                                           map->raw_text+map->raw_len);
             map->raw_len += token_text_len;
-            need_end_of_token_marker = FALSE;
-            /* Suppress end-of-token markers in pcc mode. */
-            if (!pcc_preprocessing_mode) need_end_of_token_marker = TRUE;
+            if (pcc_preprocessing_mode) {
+              /* Suppress end-of-token markers in pcc mode. */
+              need_end_of_token_marker = FALSE;
+            } else if (microsoft_bugs &&
+                       (start_of_curr_token[0] == '+' ||
+                        start_of_curr_token[0] == '-') &&
+                       isdigit((unsigned char)start_of_curr_token[1])) {
+              /* Suppress end-of-token markers between a sign character and
+                 a digit in Microsoft bugs mode.  This emulates the
+                 behavior of the Microsoft preprocessor that enables
+                 something like "1e" and "-1" to be concatenated into the
+                 single token "1e-1", as opposed to the Standard-conforming
+                 behavior that produces the erroneous token "1e-" and the
+                 separate token "1". */
+              need_end_of_token_marker = FALSE;
+            } else {
+              need_end_of_token_marker = TRUE;
+            }  /* if */
             /* Generate a remark on an invalid token. */
             if (curr_token == tok_error) {
               remark(err_code_for_error_token);
@@ -4708,7 +4723,21 @@ scan_expanded_tokens:
                                           any_white_space_skipped,
                                          map->expanded_text+map->expanded_len);
             map->expanded_len += token_text_len;
-            need_end_of_token_marker = TRUE;
+            if (microsoft_bugs &&
+                (start_of_curr_token[0] == '+' ||
+                 start_of_curr_token[0] == '-') &&
+                isdigit((unsigned char)start_of_curr_token[1])) {
+              /* Suppress end-of-token markers between a sign character and
+                 a digit in Microsoft bugs mode.  This emulates the
+                 behavior of the Microsoft preprocessor that enables
+                 something like "1e" and "-1" to be concatenated into the
+                 single token "1e-1", as opposed to the Standard-conforming
+                 behavior that produces the erroneous token "1e-" and the
+                 separate token "1". */
+              need_end_of_token_marker = FALSE;
+            } else {
+              need_end_of_token_marker = TRUE;
+            }  /* if */
             (void)arg_get_token(&any_white_space_skipped);
           }  /* while */
           if (scanning_text_not_in_primary_source_line) {

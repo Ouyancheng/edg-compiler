@@ -1,5 +1,23 @@
 Version 4.9
 
+10/29/13 [EDGcpfe/14621]
+Microsoft compatibility: token concatenation with signed integers
+
+According to the C and C++ Standards, a signed integer literal is two
+tokens, the sign and the numeric literal, and not a single token.  This
+distinction comes into play when a signed integer literal is the right
+operand of the ## concatenation operator: only the sign character is
+concatenated with the last token of the left operand, and the numeric
+literal remains a separate token.  The Microsoft preprocessor does not obey
+this rule, however, allowing a valid floating-point literal to be formed by
+concatenating a signed integer literal as the exponent portion.  The front
+end now emulates this nonstandard behavior in microsoft_bugs mode.  For
+example:
+
+  #define M(n) 1e##n
+  double d = M(-1);   // Now accepted in microsoft_bugs mode
+
+
 10/29/13 [EDGcpfe/14612]
 Spurious error on union member when near/far qualifiers are enabled
 
