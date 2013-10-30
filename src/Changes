@@ -3,9 +3,9 @@ Version 4.9
 10/29/13 [EDGcpfe/14621]
 Microsoft compatibility: token concatenation with signed integers
 
-According to the C and C++ Standards, a signed integer literal is two
+According to the C and C++ Standards, a signed numeric literal is two
 tokens, the sign and the numeric literal, and not a single token.  This
-distinction comes into play when a signed integer literal is the right
+distinction comes into play when a signed numeric literal is the right
 operand of the ## concatenation operator: only the sign character is
 concatenated with the last token of the left operand, and the numeric
 literal remains a separate token.  The Microsoft preprocessor does not obey
