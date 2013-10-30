@@ -4068,6 +4068,13 @@ members), and does not enter those.
             /* Template parameter types can be orphans even if they are
                named. */
             do_source_corresp_check = FALSE;
+          } else if (type->kind == (a_type_kind)tk_routine) {
+            if (type->variant.routine.extra_info->assoc_routine != NULL) {
+              /* A routine type entry associated with a specific routine cannot
+                 be an orphan since the routine entry will be in file scope
+                 memory also. */
+              could_be_orphan = FALSE;
+            }  /* if */
           }  /* if */
         }
         break;
