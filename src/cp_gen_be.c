@@ -4015,15 +4015,17 @@ indicate that the name reference was successfully emitted.
   a_boolean            use_name_reference = TRUE;
   a_name_qualifier_ptr qual;
 
-  if (octl.processing_nontype_template_argument) {
+  if (octl.output_name_reference == NULL) {
     /* Name references in template arguments are captured from the first
        use of the instance.  If that use was nested inside a class or
        namespace, the names may have been unqualified or partially
        qualified references to members of that class or namespace or its
-       parents.  However, the instance can be used outside that context,
-       in which case the names in template arguments would need to be
-       fully qualified.  For safety's sake, we ignore name references in
-       expressions in template arguments so that gen_name will provide
+       parents.  However, the instance can be used outside that context, in
+       which case the names in template arguments would need to be fully
+       qualified.  For safety's sake, we ignore name references in
+       expressions in template arguments (form_template_args sets
+       octl.output_name_reference to NULL to indicate that we are in the
+       context of a template argument list) so that gen_name will provide
        qualification as needed in the current context. */
   } else if (nrp != NULL) {
 #if TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS

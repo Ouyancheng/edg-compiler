@@ -1,5 +1,26 @@
 Version 4.9
 
+10/31/13 [EDGcpfe/14624]
+Omitted qualification of names in type template arguments
+
+In some cases, the front end failed to use a qualified name in a type
+template argument, even though the reference appears in a context in which
+the name is not visible and thus requires qualification.  This is now
+fixed.  For example:
+
+  template<typename T> struct X { };
+  template<typename T> struct A {
+    static T* f(T*);
+    typedef X<decltype(f((T*)0))> xcp;
+  };
+  struct S {
+    struct I { };
+    typedef X<decltype(A<I>::f((I*)0))> xcp; // Template argument previously
+                                             // generated as "f((I*)0)",
+                                             // omitting "A<I>::"
+  };
+
+
 10/29/13 [EDGcpfe/14621]
 Microsoft compatibility: token concatenation with signed integers
 
