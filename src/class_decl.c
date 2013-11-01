@@ -12898,7 +12898,7 @@ Otherwise, the member is left unchanged.
            any subobject function the generated function will call. */
         a_class_symbol_supplement_ptr  cssp;
         cssp = symbol_for(class_type)->variant.class_struct_union.extra_info;
-        if (gpp_mode ||
+        if (!strict_ansi_mode ||
             (special_kind_is(rtn, sfk_constructor) &&
              rtsp->param_type_list == NULL &&
              (cssp->has_instantiatable_field_initializers ||
@@ -12908,9 +12908,9 @@ Otherwise, the member is left unchanged.
              However, field initializers have generally not been parsed yet
              when the generated default constructor is being declared.  For
              now, record an "indeterminate" exception specification, which
-             will be replaced later on.  In GNU C++ mode, use this mechanism
-             for all generated special members: This may delay certain
-             template instantiations, thereby avoiding errors. */
+             will be replaced later on.  In nonstrict modes, use this
+             mechanism for all generated special members: This may delay
+             certain template instantiations, thereby avoiding errors. */
           rtsp->exception_specification = alloc_exception_specification();
           rtsp->exception_specification->indeterminate = TRUE;
           rtsp->exception_specification->compiler_generated = TRUE;

@@ -78,9 +78,9 @@ This is now fixed.
 
 
 10/28/13 [EDGcpfe/13735]
-GNU compatibility: Exception specifications of generated special members
+Exception specifications of generated special members
 
-In GNU C++ mode, the front end now delays the generation of exception
+In nonstrict C++ modes, the front end now delays the generation of exception
 specifications for generated special member functions until the exception
 specification is needed (if at all).  A special member function with an
 indeterminate exception specification has an exception specification with
@@ -96,7 +96,7 @@ triggering instantiation errors in some cases.  For example:
   };
   struct B : A { };
 
-Previously, in GNU C++11 mode, the front end instantiated E<A> while doing
+Previously, in C++11 mode, the front end instantiated E<A> while doing
 overload resolution on A::operator= to determine the exception specification
 for the generated copy assignment operator of B.  That in turn triggered an
 error because A::error does not exist.  Now the case is accepted because the
