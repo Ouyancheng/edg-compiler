@@ -776,6 +776,7 @@ check_abbreviation()
 --no_pch_messages
 --no_pch_verbose
 --no_preproc_only
+--no_preserve_lvalues_with_same_type_casts
 --no_remove_unneeded_entities
 --no_restrict
 --no_rtti
@@ -840,6 +841,7 @@ check_abbreviation()
 --prelink_local_only
 --prelink_objects
 --preprocess
+--preserve_lvalues_with_same_type_casts
 --preusing
 --purify
 --quantify
@@ -1464,6 +1466,8 @@ process_option()
          --no_lossy_conversion_warning | \
          --user_defined_literals | \
          --no_user_defined_literals | \
+         --preserve_lvalues_with_same_type_casts | \
+         --no_preserve_lvalues_with_same_type_casts | \
          --force_vtbl)
       feoptions=$feoptions" $curr_arg"
 #     Options that require additional processing

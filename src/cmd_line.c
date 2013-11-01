@@ -1395,6 +1395,14 @@ Initialize the option information table.
   add_option_description(optk_user_defined_literals,
                          "no_user_defined_literals", '\0', /*value=*/FALSE,
                          /*arg_required=*/FALSE, pchek_command_line);
+  add_option_description(optk_preserve_lvalues_with_same_type_casts,
+                         "preserve_lvalues_with_same_type_casts", '\0',
+                         /*value=*/TRUE, /*arg_required=*/FALSE,
+                         pchek_command_line);
+  add_option_description(optk_preserve_lvalues_with_same_type_casts,
+                         "no_preserve_lvalues_with_same_type_casts", '\0',
+                         /*value=*/FALSE, /*arg_required=*/FALSE,
+                         pchek_command_line);
 }  /* initialize_option_descriptions */
 
 
@@ -2265,6 +2273,13 @@ by a command line option.
        noexcept.  We therefore keep the traditional relaxed semantics for
        destructors and operator delete. */
     implicit_noexcept_enabled = FALSE;
+  }  /* if */
+  /* Microsoft compilers by default treat same-type casts as no-ops, thereby
+     preserving lvalueness of the operand.  (Recent versions of the compiler
+     have an option -- /Zc:rvalueCast -- to enable the standard behavior
+     instead, but that option only applies to C++ mode.) */
+  if (!option_kind_used[(int)optk_preserve_lvalues_with_same_type_casts]) {
+    preserve_lvalues_with_same_type_casts = TRUE;
   }  /* if */
 }  /* set_microsoft_mode_flags */
 
@@ -3691,6 +3706,9 @@ checked again here.)
     /* Keep the traditional relaxed semantics for destructors and
        operator delete. */
     implicit_noexcept_enabled = FALSE;
+  }  /* if */
+  if (!option_kind_used[(int)optk_preserve_lvalues_with_same_type_casts]) {
+    preserve_lvalues_with_same_type_casts = TRUE;
   }  /* if */
 }  /* check_and_set_sun_mode_options */
 
@@ -9204,6 +9222,9 @@ enable_microsoft_mode:
       case optk_user_defined_literals:
         user_defined_literals_enabled = opt_value;
         break;
+      case optk_preserve_lvalues_with_same_type_casts:
+        preserve_lvalues_with_same_type_casts = opt_value;
+        break;
       default:
         /* It should not be possible to get here. */
         unexpected_condition();
@@ -10420,6 +10441,7 @@ variables declared in cmd_line.h.
   warning_on_lossy_conversion = DEFAULT_WARNING_ON_LOSSY_CONVERSION;
   gcc_const_variables_allowed = DEFAULT_GCC_CONST_VARIABLES_ALLOWED;
   gnu_bases_operators_enabled = FALSE;
+  preserve_lvalues_with_same_type_casts = FALSE;
 }  /* cmd_line_static_var_init */
 
 

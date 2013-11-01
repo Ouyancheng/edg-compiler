@@ -301,6 +301,7 @@ typedef enum /*an_option_kind*/ {
   optk_lossy_warning,
   optk_deprecated_string_conv,
   optk_user_defined_literals,
+  optk_preserve_lvalues_with_same_type_casts,
   optk_last		/* Must be last. */
 } an_option_kind;
 
@@ -1995,6 +1996,12 @@ EXTERN a_boolean
 			   a conversion occurs from one arithmetic type to
 			   a smaller one or from a floating to an integral
 			   type. */
+
+EXTERN a_boolean
+		preserve_lvalues_with_same_type_casts;
+			/* TRUE if a cast of an lvalue to its own type should
+			   result in an lvalue (rather than a prvalue, as
+			   required by the standard). */
 
 /* Process the command line arguments. */
 extern void proc_command_line(int argc, char *argv[]);

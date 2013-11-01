@@ -1,5 +1,27 @@
 Version 4.9
 
+11/1/13  [EDGcpfe/14628]
+Preserving lvalue-ness on same-type casts
+
+When casting an lvalue to the type of that lvalue, the result is normally an
+rvalue of that type.  In Microsoft modes, however, the lvalue-ness is
+preserved.  In Sun C++ mode, the lvalue-ness was previously preserved only if
+the "static_cast" form was used, but now it is preserved with C-style casts
+and functional notation casts as well.  For example:
+
+  int* void g(int *p) {
+    return &(int)(*p);  // Accepted in Microsoft and Sun modes.
+  }
+
+Furthermore, this feature is now controlled by a separate global variable
+(preserve_lvalues_with_same_type_casts) that can be controlled by the new
+command line option "--[no_]preserve_lvalues_with_same_type_casts".
+So with "--microsoft --no_preserve_lvalues_with_same_type_casts" the front
+end now rejects the example above (a similar effect to the command-line
+option "/Zc:rvalueCast" provided by very recent Microsoft compilers, but the
+Microsoft option only applies to its C++ mode).
+
+
 11/1/13  [EDGcpfe/14607]
 Microsoft mode unbounded recursion on elided copy constructor
 

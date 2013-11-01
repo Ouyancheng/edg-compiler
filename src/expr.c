@@ -18920,15 +18920,17 @@ indicates which.
         } else if (cast_to_void) {
           /* Cast to (possibly cv-qualified) void. */
           cast_operand_to_void(operand, type_cast_to);
-        } else if (microsoft_bugs && is_an_lvalue(operand) &&
+        } else if (preserve_lvalues_with_same_type_casts &&
+                   is_an_lvalue(operand) &&
                    identical_types_ignoring_qualifiers(source_type,
                                                        type_cast_to) &&
                    (value_of_constant_var_lvalue_operand(operand) == NULL ||
                     !is_integral_type(source_type)) &&
                    !is_bit_field_operand(operand)) {
-          /* In Microsoft mode, a cast of an lvalue to the same type
-             is just ignored, and the operand stays an lvalue.  Note that
-             this applies in C++ as well as C. */
+          /* In Microsoft mode, a cast of an lvalue to the same type is just
+             ignored (unless that behavior is overridden by a command-line
+             option), and the operand stays an lvalue.  Note that this applies
+             in C++ as well as C. */
           /* The cast can add or drop cv-qualifiers.  If it does, we
              have to add a cast. */
           microsoft_lvalue_cv_qual_adjustment(operand, type_cast_to,
@@ -19453,7 +19455,7 @@ if it's not valid).
   } else {
     /* In some modes, a do-nothing cast is thrown away (and the operand
        stays an lvalue if it is one). */
-    if ((microsoft_bugs || sun_mode) &&
+    if (preserve_lvalues_with_same_type_casts &&
         identical_types(type_cast_to, operand->type)) {
       /* When the operand is a prvalue, there's no harm in keeping the cast.
          But ignore casts to array types, since they would be invalid if
