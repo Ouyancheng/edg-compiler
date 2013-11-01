@@ -15,9 +15,8 @@ fixed.  For example:
   };
   struct S {
     struct I { };
-    typedef X<decltype(A<I>::f((I*)0))> xcp; // Template argument previously
-                                             // generated as "f((I*)0)",
-                                             // omitting "A<I>::"
+    typedef X<decltype(A<I>::f((I*)0))> xcp; // Previously generated as
+                                             // "f((I*)0)", omitting "A<I>::"
   };
 
 
