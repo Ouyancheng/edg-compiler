@@ -256,6 +256,9 @@ typedef int a_conv_context_set;
 			   be left as an object (see parameter on
 			   prep_reference_initializer_operand).  Implied
 			   by CCO_CAST. */
+#define CCO_ARG_VIA_COPY_CTOR ((a_conv_context_set)0x10000)
+			/* Used when passing an argument operand via copy
+			   constructor. */
 
 /*
 Data structure used by set_up_overload_set_traversal et al. to control the

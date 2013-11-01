@@ -2541,7 +2541,7 @@ constructor.
 {
   a_boolean    copy_can_be_done = FALSE;
   a_symbol_ptr cctor_sym;
-  a_boolean    class_bitwise_copy, ambiguous;
+  a_boolean    class_bitwise_copy, ambiguous, uncallable;
 
   check_assertion(arg_operand != NULL &&
                   is_class_struct_union_type(param_type));
@@ -2555,11 +2555,16 @@ constructor.
                                       is_an_rvalue(arg_operand),
                                       &arg_operand->position,
                                       &ambiguous,
-                                      /*uncallable=*/(a_boolean *)NULL,
+                                      &uncallable,
                                       /*inaccessible_match=*/(a_symbol **)NULL,
                                       &class_bitwise_copy);
-    if (class_bitwise_copy || ambiguous || cctor_sym != NULL) {
-      /* A copy constructor can be used. */
+    if (class_bitwise_copy || ambiguous ||
+        (cctor_sym != NULL &&
+         (!uncallable ||
+          (microsoft_bugs && is_an_rvalue(arg_operand))))) {
+      /* A copy constructor can be used.  Microsoft compilers appear to
+         consider constructors whose reference parameter cannot take an rvalue
+         argument (which will presumably be elided). */
       copy_can_be_done = TRUE;
     }  /* if */
   }  /* if */
@@ -2968,7 +2973,7 @@ copy-initialization).
       if (!param_is_reference && param_is_class_type) {
         /* The argument and parameter are the same class type, so this
            qualifies as a class copy. */
-        if (!try_user_conversions && !microsoft_bugs) {
+        if (!try_user_conversions) {
           /* User-defined conversions are not allowed.  Copying a class to
              its own type doesn't count as a conversion if a copy
              constructor is used, but does if some trick of using an
@@ -5369,9 +5374,24 @@ next_argument:
 #endif /* CHECKING */
   /* All the arguments can be made to match the parameters. */
   /* See if the "this" parameter, if any, matches. */
-  /* Do not process the "this" parameter for constructors in a conversion
-     case. */
-  if (!ctor_conversion_case) {
+  if (ctor_conversion_case) {
+    /* Do not process the "this" parameter for constructors in a conversion
+       case. */
+    if (microsoft_mode && arg_list != NULL &&
+        is_expression_component(arg_list) &&
+        operand_is_temp_init(operand_of_arg_list_elem(arg_list)) &&
+        (conv_context & (CCO_ARG_VIA_COPY_CTOR |
+                         CCO_INITIALIZING_RETURN_VALUE)) != 0 &&
+        arg_match_list->anachronism_used) {
+      /* In Microsoft mode, an rvalue can be bound to a non-lvalue reference
+         parameter, but by default that makes the binding worse than other
+         conversions (including user-defined conversions).  However, for
+         constructor conversion cases where the rvalue is passed as an
+         argument or a return value (and the copy will therefore be elided),
+         that penalty is apparently not considered. */
+      arg_match_list->anachronism_used = FALSE;
+    }  /* if */
+  } else {
     a_boolean function_is_nonstatic_member_function =
                        routine_type_is_nonstatic_member_function(routine_type);
     if (have_selector) {
@@ -18558,26 +18578,25 @@ cases.
   if (!is_error_type(source_type)) {
     check_assertion(is_immediate_class_type(class_type));
     if (elided_cctor != NULL) {
-      cctor_sym = symbol_for(elided_cctor);
-      if (!ref_to_const_volatile_binding_to_rvalue_disallowed_in_ovl_res()) {
-        /* A copy constructor with a parameter of type (lvalue) reference to
-           const volatile cannot copy an rvalue.  Due to a standards quirk
-           this is not checked for in overload resolution in some modes,
-           but it still makes the copy constructor uncallable.  In the
-           modes where this is allowed past overload resolution, do the
-           check now. */
-        a_param_type_ptr ptp = elided_cctor->type->
-                                   variant.routine.extra_info->param_type_list;
-        check_assertion(ptp != NULL && is_any_reference_type(ptp->type));
-        if (is_lvalue_reference_type(ptp->type)) {
-          a_type_ptr           under_type = type_pointed_to(ptp->type);
-          a_type_qualifier_set qualifiers = get_type_qualifiers(under_type);
-          if ((qualifiers & (TQ_CONST | TQ_VOLATILE)) ==
-                            (TQ_CONST | TQ_VOLATILE)) {
-            uncallable = TRUE;
-          }  /* if */
+      a_param_type_ptr ptp = function_type_params(elided_cctor->type);
+      check_assertion(ptp != NULL && is_any_reference_type(ptp->type));
+      if (is_lvalue_reference_type(ptp->type)) {
+        a_type_ptr            under_type = type_pointed_to(ptp->type);
+        a_type_qualifier_set  tqs = get_type_qualifiers(under_type);
+        if (!ref_to_const_volatile_binding_to_rvalue_disallowed_in_ovl_res() &&
+            (tqs & (TQ_CONST | TQ_VOLATILE)) == (TQ_CONST | TQ_VOLATILE)) {
+          /* A copy constructor with a parameter of type (lvalue) reference to
+             const volatile cannot copy an rvalue.  Due to a standards quirk
+             this is not checked for in overload resolution in some modes, but
+             it still makes the copy constructor uncallable.  In the modes
+             where this is allowed past overload resolution, do the check
+             now. */
+          uncallable = TRUE;
+        } else if ((tqs & TQ_CONST) == 0) {
+          uncallable = TRUE;
         }  /* if */
       }  /* if */
+      cctor_sym = symbol_for(elided_cctor);
     } else {
       cctor_sym = select_overloaded_copy_constructor(
                                       class_type,
@@ -22928,7 +22947,7 @@ found to be acceptable, and *conversion describes it.
                                     /*orig_is_copy_initialization=*/TRUE,
                                     /*ref_binding_type=*/(a_type*)NULL,
                                     /*is_direct_binding=*/FALSE,
-                                    CCO_DEFAULT,
+                                    CCO_ARG_VIA_COPY_CTOR,
                                     err_code, &source_operand->position,
                                     &conversion,
                                     &local_conversion)) {
