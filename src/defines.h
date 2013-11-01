@@ -617,6 +617,9 @@ Flags to be set for any version that uses the C++ generating back end.
 #ifndef GNU_VECTOR_TYPES_ALLOWED
 #define GNU_VECTOR_TYPES_ALLOWED 1
 #endif /* ifndef GNU_VECTOR_TYPES_ALLOWED */
+#ifndef GNU_BUILTIN_SYNC_FUNCTIONS_ALLOWED
+#define GNU_BUILTIN_SYNC_FUNCTIONS_ALLOWED 1
+#endif /* ifndef GNU_BUILTIN_SYNC_FUNCTIONS_ALLOWED */
 #define DEFAULT_USE_PREDEFINED_MACRO_FILE 1
 #ifndef IA64_ABI
 #define IA64_ABI 1
