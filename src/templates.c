@@ -24968,9 +24968,12 @@ instantiations of any template default arguments now.
      may need to be updated. */
   if (decl_state->is_template_friend) {
     if (decl_state->friend_depth_known) {
-      /* We previously saw "friend class ::X".  Reset the depth to zero
-         so that it will be recomputed properly below. */
-      decl_state->nesting_depth = decl_state->friend_depth - 1;
+      /* We previously saw a qualified friend friend class declaration.  Reset
+         the depth to the depth of the friend entity found, but subtract out
+         the number of template parameter clauses so that the depth will be
+         recomputed properly below. */
+      decl_state->nesting_depth = decl_state->friend_depth -
+                                  decl_state->number_of_template_param_clauses;
       update_nesting_depths = TRUE;
     } else if (!is_nonreal_instantiation_context()) {
       decl_state->nesting_depth = decl_state->friend_depth;
