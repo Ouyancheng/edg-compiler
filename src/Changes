@@ -9,7 +9,7 @@ g++ mode.  Now fixed.
 
   template <class T> struct A {
     template <class U> class B;
-     template <class V> template <class U> friend class A<V>::B; 
+    template <class V> template <class U> friend class A<V>::B; 
   };
   template <class V> template <class U> class A<V>::B {}; 
   int main() {

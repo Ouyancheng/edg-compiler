@@ -24968,8 +24968,8 @@ instantiations of any template default arguments now.
      may need to be updated. */
   if (decl_state->is_template_friend) {
     if (decl_state->friend_depth_known) {
-      /* We previously saw a qualified friend friend class declaration.  Reset
-         the depth to the depth of the friend entity found, but subtract out
+      /* We previously saw a qualified friend class declaration.  Reset the
+         depth to the depth of the friend entity found, but subtract out
          the number of template parameter clauses so that the depth will be
          recomputed properly below. */
       decl_state->nesting_depth = decl_state->friend_depth -
