@@ -44,7 +44,7 @@ Microsoft mode unbounded recursion on elided copy constructor
 
 The changes for EDGcpfe/14150 introduced a regression in Microsoft bugs mode
 that caused the front to abort due to unbounded recursion in some cases
-involving an elided copy constructor and class that convert to each other.
+involving an elided copy constructor and classes that convert to each other.
 For example:
 
   struct A;

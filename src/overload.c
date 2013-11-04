@@ -5383,9 +5383,9 @@ next_argument:
         (conv_context & (CCO_ARG_VIA_COPY_CTOR |
                          CCO_INITIALIZING_RETURN_VALUE)) != 0 &&
         arg_match_list->anachronism_used) {
-      /* In Microsoft mode, an rvalue can be bound to a non-lvalue reference
-         parameter, but by default that makes the binding worse than other
-         conversions (including user-defined conversions).  However, for
+      /* In Microsoft mode, an rvalue can be bound to an "lvalue reference to
+         non-const" parameter, but by default that makes the binding worse than
+         other conversions (including user-defined conversions).  However, for
          constructor conversion cases where the rvalue is passed as an
          argument or a return value (and the copy will therefore be elided),
          that penalty is apparently not considered. */
