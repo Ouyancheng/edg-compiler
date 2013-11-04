@@ -11030,39 +11030,45 @@ tok_ud_literal; otherwise, return tok_string_literal.
 }  /* concat_adjacent_string_literals */
 
 
-static void check_for_invalid_macro_concatenation()
+static void check_for_invalid_macro_concatenation(a_boolean end_token_is_valid)
 /*
 Issue a diagnostic if the current token indicates that a concatenation
 operation in a macro expansion ("a ## b") did not result in a single valid
-token.
+token.  If end_token_is_valid is TRUE, end_of_curr_token has been set and
+can be used in the test; otherwise, only start_of_curr_token is valid.
 */
 {
   a_source_line_modif_ptr slmp =
                         assoc_source_line_modif_full(start_of_curr_token,
                                                      /*failure_allowed=*/TRUE);
+  a_const_char            *end_range;
 
+  end_range = end_token_is_valid ? end_of_curr_token
+                                 : start_of_curr_token;
   if (slmp != NULL) {
     while (slmp->concatenations != NULL &&
-           slmp->concatenations->line_loc <= end_of_curr_token) {
+           slmp->concatenations->line_loc <= end_range) {
       /* There are two cases in which a concatenation can fail to result in
          a single valid token.  The first is when the right operand of the
          ## begins a new token in its own right; we detect that when the
          current token starts at the location recorded for a concatenation.
          The second is when the concatenated token ends before the first
-         token of the right operand did.  We can detect this case because
-         the tokens in the replacement text are terminated by lexical
-         escapes, typically LE_END_OF_TOKEN; if this token is the result of
-         a concatenation but the next character following it is not
-         LE_ESCAPE, the combined token does not encompass the entire first
-         token of the right operand.  In this case, the current token might
-         be the result of several concatenations (i.e., several
-         concatenation records might point within the current token), so we
-         only report a diagnostic for the last one; we also suppress the
-         last one if the next concatenation record points to the character
-         following the end of the current token, since the next token will
-         satisfy the first case and result in its own diagnostic. */
+         token of the right operand did.  We can detect this case (when
+         end_token_is_valid is TRUE) because the tokens in the replacement
+         text are terminated by lexical escapes, typically LE_END_OF_TOKEN;
+         if this token is the result of a concatenation but the next
+         character following it is not LE_ESCAPE, the combined token does
+         not encompass the entire first token of the right operand.  In
+         this case, the current token might be the result of several
+         concatenations (i.e., several concatenation records might point
+         within the current token), so we only report a diagnostic for the
+         last one; we also suppress the last one if the next concatenation
+         record points to the character following the end of the current
+         token, since the next token will satisfy the first case and result
+         in its own diagnostic. */
       if (slmp->concatenations->line_loc == start_of_curr_token ||
-          ((slmp->concatenations->next == NULL ||
+          (end_token_is_valid &&
+           (slmp->concatenations->next == NULL ||
             (slmp->concatenations->next->line_loc > end_of_curr_token &&
              slmp->concatenations->next->line_loc != end_of_curr_token + 1)) &&
            *(end_of_curr_token + 1) != LE_ESCAPE)) {
@@ -11238,11 +11244,11 @@ function call if no check is needed, i.e., calls only if concatenation
 checking is in effect and the current token is in a source line
 modification and thus might have been the result of concatenation.
 */
-#define check_for_invalid_macro_concatenation_if_needed() \
-  { if (check_concatenations &&                           \
-        !within_curr_source_line(start_of_curr_token)) {  \
-      check_for_invalid_macro_concatenation();            \
-    }  /* if */                                           \
+#define check_for_invalid_macro_concatenation_if_needed(end_token_is_valid) \
+  { if (check_concatenations &&                                             \
+        !within_curr_source_line(start_of_curr_token)) {                    \
+      check_for_invalid_macro_concatenation((end_token_is_valid));          \
+    }  /* if */                                                             \
   }
 
 
@@ -12248,7 +12254,8 @@ literal_prefix_scan:
         /* Check for invalid concatenation here, as string literal
            concatenation can destroy the address correspondence needed for
            the test. */
-        check_for_invalid_macro_concatenation_if_needed();
+        check_for_invalid_macro_concatenation_if_needed(
+                                                 /*end_token_is_valid=*/FALSE);
         ctoken = scan_string_literal(lit_kind);
         goto concatenate_adjacent_string_literals;
       }  /* if */
@@ -12396,7 +12403,8 @@ id_scan:
                  name can be overwritten (which will cause the "next token"
                  to be at a different address from the saved concatenation
                  point). */
-              check_for_invalid_macro_concatenation_if_needed();
+              check_for_invalid_macro_concatenation_if_needed(
+                                                  /*end_token_is_valid=*/TRUE);
               ctoken = macro_invocation(assoc_symbol, &rescan);
               /* In the usual case, we rescan the expanded form of the
                  macro. */
@@ -12532,7 +12540,8 @@ end_id_scan:
         /* Check for invalid concatenation here, as string literal
            concatenation can destroy the address correspondence needed for
            the test. */
-        check_for_invalid_macro_concatenation_if_needed();
+        check_for_invalid_macro_concatenation_if_needed(
+                                                 /*end_token_is_valid=*/FALSE);
         ctoken = scan_string_literal(SCLK_ORDINARY_STRING_LITERAL);
         goto concatenate_adjacent_string_literals;
       }  /* if */
@@ -12708,7 +12717,8 @@ return_from_token_scan:
          tokens, not a tok_paste, but should not be diagnosed as an invalid
          concatenation; some other tok_error tokens will have their own
          diagnostics. */
-      check_for_invalid_macro_concatenation_if_needed();
+      check_for_invalid_macro_concatenation_if_needed(
+                                                  /*end_token_is_valid=*/TRUE);
     }  /* if */
     len_of_curr_token = end_of_curr_token - start_of_curr_token + 1;
   }  /* if */

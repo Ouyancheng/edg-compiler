@@ -1,5 +1,17 @@
 Version 4.9
 
+11/4/13  [EDGcpfe/14619]
+Spurious "invalid token" diagnostic concatenating prefix with string
+
+The front end sometimes issued an incorrect diagnostic stating that a
+concatenation in a macro expansion does not create a valid token when a
+string prefix is concatenated with a string literal.  This is now fixed.
+For example:
+
+  #define M(pfx, str) pfx ## str
+  wchar_t *p = M(L, "x");  // Sometimes caused a spurious diagnostic
+
+
 11/2/13  [EDGcpfe/14474]
 GNU C++ compatibility: qualified friend class template regression
 
