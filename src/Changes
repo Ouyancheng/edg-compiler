@@ -65,7 +65,8 @@ in all C++ modes.)
 
 
 10/31/13 [EDGcpfe/14624]
-Omitted qualification of names in type template arguments
+C++-generating back end: omitted qualification of names in type template
+arguments
 
 In some cases, the front end failed to use a qualified name in a type
 template argument, even though the reference appears in a context in which
