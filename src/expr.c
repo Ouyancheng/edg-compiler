@@ -9152,11 +9152,11 @@ are TRUE, the operand is first read from and then written to.
   }  /* if */
   if (!processed) {
     /* Non-class (i.e., normal) case. */
-    a_transformation_options_set options = 
-                                 TOPT_SUPPRESS_ARRAY_TO_POINTER_CONVERSION |
-                                 TOPT_SUPPRESS_FUNCTION_TO_POINTER_CONVERSION;
+    a_transformation_options_set options = TOPT_NO_OPTIONS;
     if (output) {
-      options |= TOPT_SUPPRESS_LVALUE_TO_RVALUE_CONVERSION;
+      options |= TOPT_SUPPRESS_LVALUE_TO_RVALUE_CONVERSION |
+                 TOPT_SUPPRESS_ARRAY_TO_POINTER_CONVERSION |
+                 TOPT_SUPPRESS_FUNCTION_TO_POINTER_CONVERSION;
     }  /* if */
     do_operand_transformations(&result, options);
   }  /* if */

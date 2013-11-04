@@ -1,5 +1,18 @@
 Version 4.9
 
+11/3/13  [EDGcpfe/14620]
+GNU asm input operand transformations
+
+Previously, the IL for GNU asm input-only operands did not reflect implicit
+array-to-pointer and function-to-pointer conversions.  Now it does.
+For example:
+
+  struct S { int x[5]; };
+  void g(struct S *p) {
+    asm("" : : "r"(p->x));  // Previously, p->x had type "array of 5 int"
+  }                         // in this context; now it is "pointer to int".
+
+
 11/4/13  [EDGcpfe/14619]
 Spurious "invalid token" diagnostic concatenating prefix with string
 
