@@ -237,8 +237,7 @@ chosen except that it was inaccessible because of hide-by-sig lookup.
   if (cppcli_enabled) {
     a_hide_by_sig_list_entry_ptr list;
     if (sym->is_class_member) {
-      if (sym_parent_class(sym)->variant.class_struct_union.extra_info
-                                                            ->is_hide_by_sig) {
+      if (class_type_supp(sym_parent_class(sym))->is_hide_by_sig) {
         /* The symbol is a member of a class that uses hide-by-sig lookup,
            so inaccessible functions should be ignored.  This can be true
            even if hide-by-sig lookup does not apply to the specific symbol
@@ -24172,10 +24171,18 @@ assignment operator.
       *bitwise_assign = TRUE;
     }  /* if */
   } else {
-    /* Examine each operator= of this class. */
+    /* Examine each operator= of this class in two passes.  Start with the
+       nontemplates noting an "exact match".  The second pass considers
+       member templates, but if an exact match was found in the first pass,
+       some templates that could not possibly result in a match are discarded
+       without performing complete deduction.  This can avoid instantiation
+       errors in some cases (which more closely approximates the behavior of
+       GNU and Microsoft compilers). */
+    a_boolean  select_templates = FALSE, have_perfect_match = FALSE;
     overloaded_sym = opname_member_function_symbol((an_opname_kind)onk_assign,
                                                    class_type);
     candidate_functions = NULL;
+traversal_start:
     for (sym = ((overloaded_sym == NULL) ? NULL :
                 set_up_overload_set_traversal(overloaded_sym,
                                               &candidate_functions,
@@ -24185,6 +24192,23 @@ assignment operator.
          sym = next_symbol_in_overload_set(&ostblock)) {
       an_operand selector;
       a_boolean  local_uncallable;
+      if (select_templates != symbol_is(sym, sk_function_template)) {
+        /* sym should not be considered in this pass. */
+        goto next_function;
+      } else if (have_perfect_match && symbol_is(sym, sk_function_template)) {
+        /* Rule out templates that cannot match better than a nontemplate
+           "exact match" we have already found.  We do this to avoid partially
+           instantiating these templates, thereby avoiding potential errors
+           resulting from those instantiations. */
+        a_routine_ptr     rp = sym->variant.template_info
+                                  ->variant.function.routine;
+        a_param_type_ptr  ptp = function_type_params(rp->type);
+        if (ptp != NULL &&
+            (is_lvalue_reference_type(ptp->type) ||
+             (!source_is_rvalue && is_rvalue_reference_type(ptp->type)))) {
+          goto next_function;
+        }  /* if */
+      }  /* if */
 #if DEBUG
       if (debug_level >= 4 || db_flag_is_set("overload")) {
         db_display_overload_level();
@@ -24220,10 +24244,10 @@ assignment operator.
         /* This assignment operator cannot be used. */
         goto reject_function;
       }  /* if */
-      /* sym represents a suitable assignment operator.  Add it to the
-         list of viable functions. */
+      /* sym represents a suitable assignment operator.  Add it to the list of
+         viable functions. */
       selector_match->next = arg_match;
-      if (sym->kind == (a_symbol_kind)sk_function_template) {
+      if (symbol_is(sym, sk_function_template)) {
         /* The symbol is a function template. */
         add_function_template_to_candidate_functions_list(
                                          sym,
@@ -24238,6 +24262,17 @@ assignment operator.
                                                  overloaded_sym,
                                                  selector_match,
                                                  &candidate_functions);
+        if (selector_match->match_level == aml_exact &&
+            selector_match->conversion.std.type_qualifiers_added == TQ_NONE &&
+            arg_match->match_level == aml_exact &&
+            arg_match->conversion.std.type_qualifiers_added == TQ_NONE &&
+            is_reference_type(arg_match->param_type)) {
+          /* Remember that we found an "perfect match" among the ordinary
+             member (i.e., nontemplate) operators with a reference parameter.
+             We may use that to avoid unneeded partial instantiations of member
+             operator templates in the second pass. */
+          have_perfect_match = TRUE;
+        }  /* if */
       }  /* if */
       goto next_function;
 reject_function:
@@ -24250,6 +24285,12 @@ reject_function:
 next_function:;
       /* Keep looping to try all the functions in the overload set. */
     }  /* for */
+    if (!select_templates) {
+      /* We're done with the first pass (ordinary member operators).  Now
+         repeat the traversal for member operator templates (if any). */
+      select_templates = TRUE;
+      goto traversal_start;
+    }  /* if */
     /* Pick the best assignment operator. */
     select_best_candidate_functions(&candidate_functions, pos,
                                     undecidable_because_of_error, ambiguous);
