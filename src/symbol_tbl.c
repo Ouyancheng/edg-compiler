@@ -14557,9 +14557,9 @@ the corresponding literal-operator-id.
            literal (before the suffix), so replace const_for_curr_token
            with a ck_string constant containing the required text. */
         a_targ_size_t token_len =
-                       (a_targ_size_t)(end_of_curr_token -
-                                       start_of_curr_token + 2) /*lint !e571*/;
-                                                                /*lint !e776*/
+                    (a_targ_size_t)(end_of_curr_token -
+                                    start_of_curr_token + 2) /*lint --e(571)*/;
+                                                             /*lint --e(776)*/
         char          *str;
         str = copy_string_of_length_to_region(file_scope_region_number,
                                               start_of_curr_token,
