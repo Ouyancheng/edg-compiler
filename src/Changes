@@ -1,5 +1,22 @@
 Version 4.9
 
+11/5/13  [EDGcpfe/14639]
+Abort on binding a compound literal to a reference in some C++ modes
+
+In C++ modes that accept compound literals but not constexpr functions (e.g.,
+GNU C++03 mode) the front end sometimes aborted with an internal error in
+take_reference_to_operand (in exprutil.c) when attempting to bind a compound
+literal to a reference.  For example:
+
+  struct S {};
+  struct R { R(S const&); };
+  R sa[] = { (S){} };  // Previously triggered an internal error while
+                       // binding "(S){}" to the reference parameter of
+                       // R::R(S const&).
+
+This is now fixed.
+
+
 11/5/13  [EDGcpfe/14640]
 Warnings when building the front end on 64-bit Windows
 
