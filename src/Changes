@@ -1,5 +1,13 @@
 Version 4.9
 
+11/5/13  [EDGcpfe/14640]
+Warnings when building the front end on 64-bit Windows
+
+Several of the changes for version 4.8 resulted in warnings when building
+the front end on a 64-bit Windows platform.  These warnings have now been
+eliminated.
+
+
 11/5/13  [EDGcpfe/13735]
 Instantiation errors during the generation of special members
 

@@ -2027,7 +2027,7 @@ the resulting string and length.
   hdr_ptr->identifier = new_string;
   hdr_ptr->identifier_length = length;
 #if DEBUG
-  symbol_name_string_space += length + 1;
+  symbol_name_string_space += (unsigned long)(length + 1);
 #endif /* DEBUG */
 }  /* set_identifier_for_symbol_header */
 
@@ -8414,7 +8414,7 @@ is reserved.
 
 #if CPPCLI_ENABLING_POSSIBLE && EDG_WIN32
 
-static a_symbol_header_ptr find_cli_operator_header(char *identifier)
+static a_symbol_header_ptr find_cli_operator_header(a_const_char *identifier)
 /*
 Return the symbol header for the specified identifier if it has the same name
 as a CLI operator.
@@ -8432,7 +8432,7 @@ as a CLI operator.
 }  /* find_cli_operator_header */
 
 
-a_cli_operator_kind find_cli_operator_kind(char *identifier)
+a_cli_operator_kind find_cli_operator_kind(a_const_char *identifier)
 /*
 Return the CLI operator kind corresponding to the specified identifier if it
 has the same name as a CLI operator, or cok_none if it doesn't.
@@ -14556,9 +14556,9 @@ the corresponding literal-operator-id.
            operator template.  These operate on the spelling of the
            literal (before the suffix), so replace const_for_curr_token
            with a ck_string constant containing the required text. */
-        sizeof_t token_len =
-                       (sizeof_t)(end_of_curr_token - start_of_curr_token + 2);
-        char     *str;
+        a_targ_size_t token_len =
+                  (a_targ_size_t)(end_of_curr_token - start_of_curr_token + 2);
+        char          *str;
         str = copy_string_of_length_to_region(file_scope_region_number,
                                               start_of_curr_token,
                                               token_len);
@@ -14570,7 +14570,7 @@ the corresponding literal-operator-id.
         const_for_curr_token.variant.string.value = str;
         const_for_curr_token.type =
                                 string_literal_type((a_character_kind)chk_char,
-                                                    (a_targ_size_t)token_len);
+                                                    token_len);
       }  /* if */
     }  /* if */
   }  /* if */

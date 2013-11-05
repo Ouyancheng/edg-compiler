@@ -9690,8 +9690,8 @@ kind or tok_error.  The token can be a normal or wide string literal.
       /* curr_char_loc now points immediately following the left
          parenthesis that terminates the delimiter.  Calculate the length
          of the delimiter (not counting the left parenthesis). */
-      raw_string_delimiter_len = curr_char_loc -
-                                             start_of_raw_string_delimiter - 1;
+      raw_string_delimiter_len = (int)(curr_char_loc -
+                                            start_of_raw_string_delimiter - 1);
       start_of_string_value = curr_char_loc;
     } else {
       /* Clear the raw string indicator in lit_kind, since we're treating

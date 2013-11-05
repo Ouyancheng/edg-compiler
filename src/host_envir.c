@@ -4949,7 +4949,7 @@ is the length of the dir_name buffer.
 }  /* get_clr_runtime_directory */
 
 
-char *com_error_to_str(void)
+a_const_char *com_error_to_str(void)
 /*
 Use the com facility GetErrorInfo to get a description of the last com failure,
 returning "unknown error" if no description is available.  In some cases
@@ -4957,10 +4957,10 @@ this routine returns a pointer to a temporary buffer, in which case the result
 must be used before the buffer (temp_text_buffer) is overwritten.
 */
 {
-  HRESULT    hr;
-  IErrorInfo *error_info = NULL;
-  char       *result = NULL;
-  BSTR       description = NULL;
+  HRESULT      hr;
+  IErrorInfo   *error_info = NULL;
+  a_const_char *result = NULL;
+  BSTR         description = NULL;
 
   hr = GetErrorInfo(0, &error_info);
   /* According to MSDN, GetErrorInfo returns either S_OK or S_FALSE. */
