@@ -1,5 +1,32 @@
 Version 4.9
 
+11/5/13  [EDGcpfe/14603]
+Ignored carriage returns in raw string literals
+
+According to the C++ Standard, environment-specific line terminations are
+mapped to single newline characters in translation phase 1.  On a system
+like Windows, where the line termination is typically a carriage return
+followed by a linefeed (CRLF), the front end implements this transformation
+by dropping CRs when configured with IGNORE_CARRIAGE_RETURN_IN_SOURCE set
+to TRUE.  In general, the source transformations applied in translation
+phases 1 and 2, including line splices and translation of trigraphs, are
+reverted inside raw string literals.  However, the 2011 C++ Standard is not
+clear whether that reversion also applies to line terminations.
+
+The initial implementation of raw string literals in the front end in
+version 4.7 reverted the transformation of line terminations inside raw
+string literals, preserving CRLFs, on the assumption that one use of raw
+string literals could be to wrap arbitrary binary data; in that usage
+scenario, replacing CRLFs with newlines would corrupt the data.  However,
+we also opened core language issue 1655 to clarify the intent of the
+Standard on this point, and the Committee has now determined that line
+terminations are to be represented as newlines within raw string literals.
+The front end has now been changed accordingly.  For example:
+
+  const char *p = R"(
+  )";   // Previously equivalent to "\r\n" on Windows, now "\n"
+
+
 11/3/13  [EDGcpfe/14620]
 GNU asm input operand transformations
 

@@ -570,14 +570,6 @@ static sizeof_t	offset_of_nonsplice_backslash;
 			   curr_source_line is reallocated between calls
 			   to read_logical_source_line. */
 
-#if IGNORE_CARRIAGE_RETURN_IN_SOURCE
-static sizeof_t	num_ignored_carriage_returns;
-			/* Number of carriage returns that were discarded
-			   preceding the newline that terminates the
-			   current line.  Used to reinsert them in raw
-			   string literals. */
-#endif /* IGNORE_CARRIAGE_RETURN_IN_SOURCE */
-
 static a_text_buffer_ptr
 		ud_lit_suffix_buffer;
 			/* Text buffer used for the ud-suffix of a
@@ -2523,10 +2515,7 @@ original source line because of trigraphs and line splices.
       break;
     case olm_line_splice:
     case olm_multiline_string_splice:
-#if IGNORE_CARRIAGE_RETURN_IN_SOURCE
-      olmp->variant.splice.num_ignored_carriage_returns = 0;
-#endif /* IGNORE_CARRIAGE_RETURN_IN_SOURCE */
-      olmp->variant.splice.seq_number = 0;  /* To be neat. */
+      olmp->variant.line_splice_seq_number = 0;  /* To be neat. */
       break;
     case olm_null:
       /* No variant fields. */
@@ -5996,7 +5985,7 @@ macro_line_loc_to_source_pos should be used when speed is critical.
         if (olmp->kind == olm_multiline_string_splice) {
           start_of_curr_phys_line += 2;
         }  /* if */
-        seq_number              = olmp->variant.splice.seq_number;
+        seq_number              = olmp->variant.line_splice_seq_number;
         column_adjustment       = 0;
       } else if (adj_loc_in_line == olmp->line_loc) {
         /* This position matches the position in the current entry, so
@@ -6327,9 +6316,6 @@ literals in C++11.
   /* This routine handles translation phases 1 (trigraphs, newlines) and
      2 (line splices) from the description of translation phases in
      2.1.1.2 of the standard. */
-#if IGNORE_CARRIAGE_RETURN_IN_SOURCE
-  num_ignored_carriage_returns = 0;
-#endif /* IGNORE_CARRIAGE_RETURN_IN_SOURCE */
 #if !FULLY_RESOLVED_MACRO_POSITIONS
   /* Make sure a macro position is not inadvertently used. */
   pos_of_macro_invocation = null_source_position;
@@ -6543,7 +6529,6 @@ literals in C++11.
              lines, and that backslash has to be taken as a line
              splice). */
           while (*(loc_in_line-1) == '\r') {
-            ++num_ignored_carriage_returns;
             loc_in_line--;
             /* Avoid the line splice test if the line is empty except for
                the carriage return. */
@@ -6670,11 +6655,11 @@ simple_return:
               break;
             case olm_line_splice:
               fprintf(f_debug, "line splice: seq = %lu\n",
-                      (unsigned long)olmp->variant.splice.seq_number);
+                      (unsigned long)olmp->variant.line_splice_seq_number);
               break;
             case olm_multiline_string_splice:
               fprintf(f_debug, "multiline string splice: seq = %lu\n",
-                      (unsigned long)olmp->variant.splice.seq_number);
+                      (unsigned long)olmp->variant.line_splice_seq_number);
               break;
             case olm_null:
               fprintf(f_debug, "null\n");
@@ -6889,7 +6874,6 @@ entry_for_expand_buffer:
            they are present (there are Microsoft header files that have
            this). */
         while (*(loc_in_line-1) == '\r') {
-          ++num_ignored_carriage_returns;
           loc_in_line--;
           curr_column--;
           /* Avoid the line splice test if the line is empty except for the
@@ -6965,12 +6949,7 @@ entry_for_line_splice:
         /* Add a modification entry recording the position of the line
            splice. */
         olmp = add_orig_line_modif(olm_line_splice, loc_in_line);
-#if IGNORE_CARRIAGE_RETURN_IN_SOURCE
-        olmp->variant.splice.num_ignored_carriage_returns =
-                                                  num_ignored_carriage_returns;
-        num_ignored_carriage_returns = 0;
-#endif /* IGNORE_CARRIAGE_RETURN_IN_SOURCE */
-        olmp->variant.splice.seq_number = seq_number_last_read+1;
+        olmp->variant.line_splice_seq_number = seq_number_last_read+1;
         /* Begin reading the next line.  It is an error if end of file is
            encountered. */
         ch = getc_curr_input_stream();
@@ -9224,13 +9203,9 @@ caller is responsible for issuing error messages.
         case olm_line_splice:
           /* A '\' and a newline were replaced by nothing. */
           nchars += 2;
-#if IGNORE_CARRIAGE_RETURN_IN_SOURCE
-          /* Count ignored carriage returns, also. */
-          nchars += olmp->variant.splice.num_ignored_carriage_returns;
-#endif /* IGNORE_CARRIAGE_RETURN_IN_SOURCE */
           break;
         case olm_multiline_string_splice:
-          /* A newline was replaced by '\' and 'n'. */
+          /* A newline was replaced by '\' and '\n'. */
           ++nchars;
           curr_char_loc += 2;
           break;
@@ -9538,29 +9513,6 @@ start_of_raw_string_delimiter is not used.
   is_raw_string = (literal_kind & SCLK_RAW_STRING_LITERAL) != 0;
   while (curr_char_loc[0] == LE_ESCAPE &&
          curr_char_loc[1] == LE_NEWLINE) {
-    /* Inject the characters \ n (or \ r if the line was terminated by a
-       carriage return) on top of the NEWLINE escape and add an entry to
-       the orig_line_modif_list so that this can be undone. */
-#if IGNORE_CARRIAGE_RETURN_IN_SOURCE
-    if (is_raw_string && num_ignored_carriage_returns > 0) {
-      /* This is a raw string literal and read_logical_source_line
-         discarded some carriage return characters preceding the newline.
-         Restore them before adding the newline. */
-      sizeof_t count;
-      if (curr_char_loc + num_ignored_carriage_returns + 2 >=
-                                               after_end_of_curr_source_line) {
-        /* The carriage returns and the \ followed by n or r will not fit
-           in the current buffer. */
-        sizeof_t curr_offset = curr_char_loc - curr_source_line;
-        expand_curr_source_line();
-        curr_char_loc = curr_source_line + curr_offset;
-      }  /* if */
-      for (count = 0; count < num_ignored_carriage_returns; ++count) {
-        *(char *)curr_char_loc++ = '\r';
-      }  /* for */
-      *num_chars += num_ignored_carriage_returns;
-    }  /* if */
-#endif /* IGNORE_CARRIAGE_RETURN_IN_SOURCE */
     if (is_raw_string && end_orig_line_modif_list != NULL &&
         end_orig_line_modif_list->line_loc == curr_char_loc &&
         end_orig_line_modif_list->kind == olm_line_splice) {
@@ -9577,28 +9529,16 @@ start_of_raw_string_delimiter is not used.
         if (olmp->line_loc == curr_char_loc && olmp->kind == olm_line_splice) {
           check_assertion(*num_chars >= 2);
           *num_chars -= 2;
-#if IGNORE_CARRIAGE_RETURN_IN_SOURCE
-          /* Also remove any ignored carriage returns from the count. */
-          *num_chars -= olmp->variant.splice.num_ignored_carriage_returns;
-#endif /* IGNORE_CARRIAGE_RETURN_IN_SOURCE */
         }  /* if */
       }  /* for */
     }  /* if */
+    /* Inject the characters \ n on top of the NEWLINE escape, and add an
+       entry to the orig_line_modif_list so that this can be undone. */
     olmp = add_orig_line_modif(olm_multiline_string_splice,
                                curr_char_loc);
-    olmp->variant.splice.seq_number = seq_number_last_read + 1;
+    olmp->variant.line_splice_seq_number = seq_number_last_read + 1;
     *(char *)curr_char_loc++ = '\\';
-#if ACCEPT_GNU_CARRIAGE_RETURN_LINE_TERMINATOR
-    if (curr_ise->prev_line_terminator_was_carriage_return) {
-      /* The line ended with a carriage return, so we need to insert \ r
-         instead of \ n. */
-      *(char *)curr_char_loc++ = 'r';
-    } else
-#endif /* ACCEPT_GNU_CARRIAGE_RETURN_LINE_TERMINATOR */
-    /* Do not insert code here. */
-    {
-      *(char *)curr_char_loc++ = 'n';
-    }  /* if */
+    *(char *)curr_char_loc++ = 'n';
     /* Read the next line of the input file, extending the current
        logical source line. */
     if (read_logical_source_line(/*do_pop_on_end_of_file=*/FALSE,
@@ -21092,9 +21032,6 @@ done to determine whether a precompiled header may be used.
 #endif /* ASM_SUPPORT_NEEDED */
   pending_nonsplice_backslash = FALSE;
   offset_of_nonsplice_backslash = 0;
-#if IGNORE_CARRIAGE_RETURN_IN_SOURCE
-  num_ignored_carriage_returns = 0;
-#endif /* IGNORE_CARRIAGE_RETURN_IN_SOURCE */
   (void)memzero((char *)source_line_modif_hash_table,
                 sizeof(source_line_modif_hash_table));
 }  /* lexical_reset */
