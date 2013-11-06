@@ -21058,7 +21058,7 @@ freed by this routine.
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   a_boolean                     err = FALSE;
   a_symbol_ptr                  ctor_sym;
-  a_boolean                     ctor_case = FALSE;
+  a_boolean                     ctor_case = FALSE, force_dependent = FALSE;
   a_class_symbol_supplement_ptr cssp;
   an_operand                    local_bound_function_selector;
   a_boolean                     allow_ms_array = microsoft_bugs && !C_mode();
@@ -21180,7 +21180,13 @@ freed by this routine.
     /* Check for a left parenthesis. */
     (void)required_token(tok_lparen, ec_exp_lparen);
   }  /* if */
-  if (ctor_case) {
+  if (gpp_mode && is_template_dependent_context()) {
+    /* The GNU compiler seems to treat functional notation casts as dependent
+       in all template-dependent contexts, even if the type cast to isn't
+       actually dependent. */
+    force_dependent = TRUE;
+  }  /* if */
+  if (ctor_case && !force_dependent) {
     /* Converting to a class type.  The contents of the parentheses are
        arguments for a constructor call. */
     a_constant_ptr    folded_con;
@@ -21232,7 +21238,7 @@ freed by this routine.
       }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     }  /* if */
-  } else if (could_be_dependent_class_type(type_cast_to)) {
+  } else if (could_be_dependent_class_type(type_cast_to) || force_dependent) {
     /* A cast to a template parameter type (which might be a class) or a
        nonreal class in a prototype instantiation.  This is handled specially
        because it may have more than one argument or zero arguments. */
@@ -26584,6 +26590,7 @@ if rescan_is_template_id is TRUE, and return the result in *operand
     }  /* if */
   } else {
     /* Normal, non-rescan, processing. */
+    a_token_sequence_number paren_tok_seq_number;
     start_position = pos_curr_token;
     /* If the identifier is the start of a C++ qualified name, get the whole
        name.  If not, look the name up as a normal identifier.  This routine
@@ -26595,50 +26602,48 @@ if rescan_is_template_id is TRUE, and return the result in *operand
 #if EXTRA_SOURCE_POSITIONS_IN_IL
     end_position = end_pos_curr_token;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
-    { a_token_sequence_number paren_tok_seq_number;
-      name_followed_by_left_paren =
-             (next_token_with_seq_number(&paren_tok_seq_number) == tok_lparen);
-      if (do_dependent_name_processing &&
-          is_nonspecialized_instantiation_context() &&
-          !is_template_dependent_context() &&
-          arg_dependent_lookup_enabled &&
-          !locator.is_qualified_name &&
-          name_followed_by_left_paren) {
-        a_nondependent_call_info_ptr ndcall_info =
-                      get_nondependent_call_info(paren_tok_seq_number,
-                                                 (a_nondependent_call_depth)0);
-        if (ndcall_info != NULL) {
-          /* This is a nondependent call in a real (not prototype)
-             instantiation, so we know which function was selected. */
-          if (ndcall_info->symbol != NULL &&
-              !locator.do_not_clear_specific_symbol) {
-            locator.specific_symbol = ndcall_info->symbol;
-            sym_ptr = fundamental_symbol_of(locator.specific_symbol);
-          }  /* if */
-#if GNU_EXTENSIONS_ALLOWED
-        } else if (gpp_mode && gnu_version >= 30400 &&
-                   (gnu_version < 40100 || sym_ptr == NULL)) {
-          a_symbol_ptr	new_sym;
-          /* This is a dependent call in a real (not prototype) instantiation.
-             g++ 3.4 has a bug with dependent name lookup -- it does not
-             ignore entities declared later in the compilation.  Redo the
-             lookup, suppressing that part of the processing.  Starting
-             with g++ 4.1, entities declared later are only considered if
-             the lookup of things earlier in the compilation did not produce
-             a result. */
-          clear_specific_symbol(locator);
-          new_sym = normal_id_lookup(&locator,
-                                     IDL_IS_EXPR_CONTEXT |
-                                     IDL_SUPPRESS_DECL_SEQ_CHECK);
-          if (new_sym != NULL && !is_class_template_symbol(new_sym)){
-            /* Most symbols found by this lookup are acceptable.  Don't accept
-               a class template as it would have had to have been coalesced. */
-            sym_ptr = new_sym;
-          }  /* if */
-#endif /* GNU_EXTENSIONS_ALLOWED */
+    ntoken = next_token_with_seq_number(&paren_tok_seq_number);
+    name_followed_by_left_paren = (ntoken == tok_lparen);
+    if (do_dependent_name_processing &&
+        is_nonspecialized_instantiation_context() &&
+        !is_template_dependent_context() &&
+        arg_dependent_lookup_enabled &&
+        !locator.is_qualified_name &&
+        name_followed_by_left_paren) {
+      a_nondependent_call_info_ptr ndcall_info =
+                    get_nondependent_call_info(paren_tok_seq_number,
+                                               (a_nondependent_call_depth)0);
+      if (ndcall_info != NULL) {
+        /* This is a nondependent call in a real (not prototype)
+           instantiation, so we know which function was selected. */
+        if (ndcall_info->symbol != NULL &&
+            !locator.do_not_clear_specific_symbol) {
+          locator.specific_symbol = ndcall_info->symbol;
+          sym_ptr = fundamental_symbol_of(locator.specific_symbol);
         }  /* if */
+#if GNU_EXTENSIONS_ALLOWED
+      } else if (gpp_mode && gnu_version >= 30400 &&
+                 (gnu_version < 40100 || sym_ptr == NULL)) {
+        a_symbol_ptr	new_sym;
+        /* This is a dependent call in a real (not prototype) instantiation.
+           g++ 3.4 has a bug with dependent name lookup -- it does not
+           ignore entities declared later in the compilation.  Redo the
+           lookup, suppressing that part of the processing.  Starting
+           with g++ 4.1, entities declared later are only considered if
+           the lookup of things earlier in the compilation did not produce
+           a result. */
+        clear_specific_symbol(locator);
+        new_sym = normal_id_lookup(&locator,
+                                   IDL_IS_EXPR_CONTEXT |
+                                   IDL_SUPPRESS_DECL_SEQ_CHECK);
+        if (new_sym != NULL && !is_class_template_symbol(new_sym)){
+          /* Most symbols found by this lookup are acceptable.  Don't accept
+             a class template as it would have had to have been coalesced. */
+          sym_ptr = new_sym;
+        }  /* if */
+#endif /* GNU_EXTENSIONS_ALLOWED */
       }  /* if */
-    }
+    }  /* if */
     if (microsoft_mode && sym_ptr != NULL && is_constructor_symbol(sym_ptr) &&
         name_followed_by_left_paren) {
       /* In Microsoft mode, treat the name of a constructor as the name
@@ -27200,7 +27205,7 @@ overloaded_function:
         case sk_enum_tag:
           /* The identifier is a type identifier. */
           if (!C_mode() && rcblock == NULL &&
-              ((ntoken = next_token()) == tok_lparen ||
+              (name_followed_by_left_paren ||
                (list_init_enabled && ntoken == tok_lbrace))) {
             /* In C++, a functional-notation type conversion. */
             a_type_ptr cast_type = type_symbol_type(sym_ptr);
