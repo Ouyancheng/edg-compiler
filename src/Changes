@@ -96,7 +96,7 @@ The front end has now been changed accordingly.  For example:
   )";   // Previously equivalent to "\r\n" on Windows, now "\n"
 
 
-11/3/13  [EDGcpfe/14620]
+11/4/13  [EDGcpfe/14620]
 GNU asm input operand transformations
 
 Previously, the IL for GNU asm input-only operands did not reflect implicit
