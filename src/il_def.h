@@ -16754,12 +16754,13 @@ typedef struct a_template {
 			   that case. */
   /* Information about the prototype instantiation of this template: */
   union {
+    /* When kind == templk_template_template_param, no variant fields. */
     /* When kind == templk_function or templk_member_function: */
     a_routine_ptr
 		routine;
 			/* A pointer to the prototype instantiation of the
 			   function or member function template. */
-    /* When kind == templk_class or templk_member_class: */
+    /* When kind == templk_class, templk_member_class or templk_member_enum: */
     a_type_ptr	type;
 			/* A pointer to the prototype instantiation of the
 			   class, member class template, or member enum
