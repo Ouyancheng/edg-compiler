@@ -1,5 +1,20 @@
 Version 4.9
 
+11/6/13  [EDGcpfe/14638]
+GNU compatibility: Less checking of default arguments in templates
+
+In GNU C++ mode, the front end no longer attempts to bind default function
+call arguments to their corresponding parameter in templates.  This inhibits
+certain (justified) errors that are otherwise emitted.  For example:
+
+  template<class T> void g(int & = 1);
+    // Previously an error in GNU modes that parse default arguments of
+    // templates; now accepted in those modes.
+
+(Note that such cases were already accepted in modes that don't parse default
+arguments of templates in their generic form.)
+
+
 11/5/13  [EDGcpfe/14639]
 Abort on binding a compound literal to a reference in some C++ modes
 

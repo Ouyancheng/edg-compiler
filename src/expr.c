@@ -33823,12 +33823,15 @@ TRUE if the function being declared is a class member or friend.
                     ec_bad_default_arg_type,
                     &result);
       free_init_component_list(icp);
-    } else if (gpp_mode && gnu_version >= 30400 && gnu_version < 40000 &&
-               is_member_or_friend &&
+    } else if (gpp_mode &&
+               ((gnu_version >= 30400 && gnu_version < 40000 &&
+                 is_member_or_friend) ||
+                is_template_dependent_context()) &&
                (is_expression_operand(&result) ||
                 is_constant_operand(&result))) {
       /* g++ 3.4 leaves the final conversion to be done at the point of
-         reference for member functions and friends. */
+         reference for member functions and friends.  Furthermore, g++ appears
+         not to check the conversion while parsing templates. */
     } else {
       prep_argument_operand(&result, ptp,
                             (a_conv_descr_ptr)NULL,
