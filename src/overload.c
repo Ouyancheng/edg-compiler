@@ -24267,9 +24267,9 @@ traversal_start:
             arg_match->match_level == aml_exact &&
             arg_match->conversion.std.type_qualifiers_added == TQ_NONE &&
             is_reference_type(arg_match->param_type)) {
-          /* Remember that we found an "perfect match" among the ordinary
-             member (i.e., nontemplate) operators with a reference parameter.
-             We may use that to avoid unneeded partial instantiations of member
+          /* Remember that we found a "perfect match" among the ordinary member
+             (i.e., nontemplate) operators with a reference parameter.  We may
+             use that to avoid unneeded partial instantiations of member
              operator templates in the second pass. */
           have_perfect_match = TRUE;
         }  /* if */

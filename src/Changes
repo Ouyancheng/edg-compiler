@@ -31,7 +31,7 @@ Instantiation errors during the generation of special members
 When generating the declarations of special member functions of a class (e.g.,
 copy constructors or copy assignment operators) the front end may trigger
 instantiation errors even if the special member isn't used.  In particular,
-the corresponding corresponding special members of subobjects are examined to
+the corresponding special members of subobjects are examined to
   - determine the exception specification of the newly generated member, and
   - determine if the newly generated member should be "deleted" (or, in some
     Microsoft modes, inhibited altogether).
