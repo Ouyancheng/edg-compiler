@@ -9205,7 +9205,7 @@ caller is responsible for issuing error messages.
           nchars += 2;
           break;
         case olm_multiline_string_splice:
-          /* A newline was replaced by '\' and '\n'. */
+          /* A newline was replaced by '\' and 'n'. */
           ++nchars;
           curr_char_loc += 2;
           break;
