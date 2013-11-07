@@ -1,5 +1,19 @@
 Version 4.9
 
+11/7/13  [EDGcpfe/14652]
+Assertion failure on raw string literal with null character in delimiter
+
+A null character (zero byte) appearing in the delimiter portion of a raw
+string literal is an error.  The front end previously did not recover
+gracefully from this error, however; it issued two diagnostics for the null
+character and then aborted with an assertion failure in
+conv_string_literal.  This is now fixed.  For example, with "^@"
+representing a null character:
+
+  const char *p=R"^@(x)^@";  // Previously aborted, now issues a single
+                             // diagnostic
+
+
 11/6/13  [EDGcpfe/14648]
 upc_block_size moved from a_type to a_typeref_type_supplement (IL CHANGE)
 

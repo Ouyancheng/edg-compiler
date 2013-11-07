@@ -8922,13 +8922,13 @@ lower case and any multibyte characters are converted to canonical form.
 static a_boolean is_closing_raw_string_delimiter(
                                    a_const_char *start_of_raw_string_delimiter,
                                    int          raw_string_delimiter_len,
-                                   int          *trigraph_adjustment)
+                                   int          *olm_adjustment)
 /*
 Return TRUE if the string immediately preceding curr_char_loc is the
 corresponding closing delimiter of the indicated raw string delimiter.  Set
-*trigraph_adjustment to the number of characters that should be subtracted
-from the string character count as a result of having reverted trigraphs in
-the closing delimiter.
+*olm_adjustment to the number of characters that should be subtracted from
+the string character count as a result of having reverted trigraphs and
+null characters in the closing delimiter.
 */
 {
   a_boolean              result = FALSE;
@@ -8942,7 +8942,7 @@ the closing delimiter.
        characters preceding curr_char_loc must both be '?'. */
     right_delim_len += 2;
   }  /* if */
-  *trigraph_adjustment = 0;
+  *olm_adjustment = 0;
   if (curr_char_loc - start_of_raw_string_delimiter >=
                               raw_string_delimiter_len + right_delim_len + 2) {
     /* The total string is long enough to contain both copies of the
@@ -8972,7 +8972,7 @@ the closing delimiter.
                   curr_char_loc - right_delim_len,
                   raw_string_delimiter_len) == 0) {
         /* The strings compare equal.  Now we need to make sure that they
-           both have the same set of trigraphs, if any. */
+           both have the same set of modifications, if any. */
         an_orig_line_modif_ptr left_olmp;
         an_orig_line_modif_ptr right_olmp;
         /* Find the first modification, if any, in the left prefix. */
@@ -8996,37 +8996,43 @@ the closing delimiter.
           right_olmp = NULL;
         }  /* if */
         if ((left_olmp == NULL) != (right_olmp == NULL)) {
-          /* There are trigraphs in one but not the other, so the strings
-             do not match. */
+          /* There are modifications in one but not the other, so the
+             strings do not match. */
         } else if (left_olmp == NULL && right_olmp == NULL) {
-          /* There are no trigraphs in either, so the strings match. */
+          /* There are no modifications in either, so the strings match. */
           result = TRUE;
         } else {
           /* We have to compare to make sure the strings each have the
-             same trigraphs in the same location. */
-          a_boolean trigraphs_match = TRUE;
-          while (trigraphs_match &&
+             same modifications in the same location. */
+          a_boolean modifications_match = TRUE;
+          while (modifications_match &&
                  left_olmp->line_loc <
                     start_of_raw_string_delimiter + raw_string_delimiter_len &&
                  right_olmp != NULL &&
                  right_olmp->line_loc < curr_char_loc) {
-            /* We don't need to check the kind of trigraph, as mismatched
-               kinds would have failed the string comparison above, just
-               the locations. */
+            /* We don't need to check the kinds of the modifications, as
+               mismatched kinds would have failed the string comparison
+               above, just the locations. */
             if (left_olmp->line_loc - start_of_raw_string_delimiter !=
                     right_olmp->line_loc - (curr_char_loc - right_delim_len)) {
-              trigraphs_match = FALSE;
+              modifications_match = FALSE;
             }  /* if */
+            /* A trigraph was counted as 3 characters in the overall string
+               length, but the delimiter length that will be subtracted was
+               calculated using the substituted single character.
+               Similarly, a null character (which is an error but must be
+               handled for error recovery) was counted as one character but
+               the delimiter length included both characters of the LE_NULL
+               lexical escape.  Update *olm_adjustment so the correct length
+               can be calculated. */
+            *olm_adjustment +=
+                        (left_olmp->kind == (an_orig_line_modif_kind)olm_null)
+                                                            ? 1 - LE_ESCAPE_LEN
+                                                            : 2;
             left_olmp = left_olmp->next;
             right_olmp = right_olmp->next;
-            /* The trigraph was counted as 3 characters in the overall
-               string length, but the delimiter length that will be
-               subtracted was calculated using the substituted single
-               character.  Update the trigraph adjustment so the correct
-               length can be calculated. */
-            *trigraph_adjustment += 2;
           }  /* while */
-          if (trigraphs_match) {
+          if (modifications_match) {
             /* Make sure we traversed all the modifications in each
                prefix. */
             result = (left_olmp->line_loc >= start_of_raw_string_delimiter +
@@ -9040,7 +9046,7 @@ the closing delimiter.
              delimiter are both '?'. */
           result = curr_char_loc[-2] == '?' && curr_char_loc[-1] == '?';
           /* Add the extra terminator length to the adjustment, too. */
-          *trigraph_adjustment += 2;
+          *olm_adjustment += 2;
         }  /* if */
       }  /* if */
     }  /* if */
@@ -9087,7 +9093,7 @@ caller is responsible for issuing error messages.
   unsigned long          nchars;
   a_boolean              unterminated = FALSE;
   an_orig_line_modif_ptr olmp = NULL;
-  int                    trigraph_delim_len_adjustment;
+  int                    delim_len_adjustment;
   a_boolean              is_raw_string;
   a_boolean              is_string_literal;
 
@@ -9115,7 +9121,7 @@ caller is responsible for issuing error messages.
          (is_raw_string &&
           !is_closing_raw_string_delimiter(start_of_raw_string_delimiter,
                                            raw_string_delimiter_len,
-                                           &trigraph_delim_len_adjustment))) {
+                                           &delim_len_adjustment))) {
     if (ch == '\\' && !is_header_name && !is_raw_string) {
       /* Backslash, escapes the next character.  If followed by "0" or
          "x", an octal or hexadecimal value must be scanned.  We recognize
@@ -9333,8 +9339,7 @@ return_point:
   } else if (!is_raw_string) {
     *num_chars += nchars;
   } else {
-    *num_chars += nchars - raw_string_delimiter_len -
-                                             trigraph_delim_len_adjustment - 1;
+    *num_chars += nchars - raw_string_delimiter_len - delim_len_adjustment - 1;
   }  /* if */
   return unterminated;
 }  /* accum_quoted_string */
@@ -9630,7 +9635,12 @@ and return FALSE.
           invalid_char_seen[c - CHAR_MIN] = FALSE;
         }
       }  /* if */
-      if (!invalid_char_seen[invalid_char - CHAR_MIN]) {
+      if (num_invalid_chars_seen > 0 &&
+          *invalid_char_loc[num_invalid_chars_seen - 1] == LE_ESCAPE &&
+          p == invalid_char_loc[num_invalid_chars_seen - 1] + 1) {
+        /* Do not report the second character of a lexical escape as a
+           separate invalid character. */
+      } else if (!invalid_char_seen[invalid_char - CHAR_MIN]) {
         invalid_char_seen[invalid_char - CHAR_MIN] = TRUE;
         invalid_char_loc[num_invalid_chars_seen++] = p;
       }  /* if */
