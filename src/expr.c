@@ -21059,7 +21059,8 @@ freed by this routine.
   a_boolean                     err = FALSE;
   a_symbol_ptr                  ctor_sym;
   a_boolean                     ctor_case = FALSE, force_dependent = FALSE;
-  a_class_symbol_supplement_ptr cssp;
+  a_boolean                     could_be_dependent = FALSE;
+  a_class_symbol_supplement_ptr cssp = NULL;
   an_operand                    local_bound_function_selector;
   a_boolean                     allow_ms_array = microsoft_bugs && !C_mode();
   a_ruled_out_expr_kind_set     ruled_out_expr_kinds = ROEK_NONE;
@@ -21180,12 +21181,15 @@ freed by this routine.
     /* Check for a left parenthesis. */
     (void)required_token(tok_lparen, ec_exp_lparen);
   }  /* if */
-  if (gpp_mode && is_template_dependent_context() &&
-      !is_reference_type(type_cast_to)) {
-    /* The GNU compiler appears to treat functional notation casts as dependent
-       in all template-dependent contexts, even if the type cast to isn't
-       actually dependent. */
-    force_dependent = TRUE;
+  could_be_dependent = could_be_dependent_class_type(type_cast_to);
+  if (!could_be_dependent && is_prototype_instantiation_context()) {
+    if (gpp_mode && !is_reference_type(type_cast_to)) {
+      /* The GNU compiler performs limited checking for functional notation
+         casts in all template-dependent contexts, even if the type cast
+         to isn't actually dependent.  We approximate this by treating the
+         cast as dependent. */
+      force_dependent = TRUE;
+    }  /* if */
   }  /* if */
   if (ctor_case && !force_dependent) {
     /* Converting to a class type.  The contents of the parentheses are
@@ -21239,7 +21243,7 @@ freed by this routine.
       }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     }  /* if */
-  } else if (could_be_dependent_class_type(type_cast_to) || force_dependent) {
+  } else if (could_be_dependent || force_dependent) {
     /* A cast to a template parameter type (which might be a class) or a
        nonreal class in a prototype instantiation.  This is handled specially
        because it may have more than one argument or zero arguments. */
@@ -21334,7 +21338,7 @@ empty_parentheses:
         } else if (is_void_type(type_cast_to)) {
           /* void(). */
           cast_operand_to_void(result, type_cast_to);
-        } else if (is_class_struct_union_type(type_cast_to)) {
+        } else if (cssp != NULL) {
           /* A class with no constructor, followed by (), e.g., "A()".
              This is value-initialization, but we know the class has
              no non-trivial constructor, so it's effectively
