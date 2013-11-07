@@ -9638,7 +9638,7 @@ and return FALSE.
       if (num_invalid_chars_seen > 0 &&
           *invalid_char_loc[num_invalid_chars_seen - 1] == LE_ESCAPE &&
           p == invalid_char_loc[num_invalid_chars_seen - 1] + 1
-                                                            /*lint -e(530)*/) {
+                                                           /*lint --e(530)*/) {
         /* Do not report the second character of a lexical escape as a
            separate invalid character. */
       } else if (!invalid_char_seen[invalid_char - CHAR_MIN]) {
