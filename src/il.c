@@ -1114,12 +1114,15 @@ including the associated block size.
 */
 {
   if (tp->variant.typeref.qualifiers & TQ_UPC_SHARED) {
-    if (tp->variant.typeref.upc_block_size == UPC_BLOCK_SIZE_NONE) {
+    if (tp->variant.typeref.extra_info->upc_block_size ==
+                                                        UPC_BLOCK_SIZE_NONE) {
       fprintf(f_debug, "shared ");
-    } else if (tp->variant.typeref.upc_block_size == UPC_BLOCK_SIZE_BLOCK) {
+    } else if (tp->variant.typeref.extra_info->upc_block_size ==
+                                                       UPC_BLOCK_SIZE_BLOCK) {
       fprintf(f_debug, "shared [*] ");
     } else {
-      fprintf(f_debug, "shared [%ld] ", tp->variant.typeref.upc_block_size);
+      fprintf(f_debug, "shared [%ld] ",
+              tp->variant.typeref.extra_info->upc_block_size);
     }  /* if */
   }  /* if */
 } /* db_shared_block_size */
@@ -9667,7 +9670,8 @@ frequently-asked-for based types at the front of the list.
                                                   != expl_mem_attr_implicit
 #endif /* NEAR_AND_FAR_ALLOWED */
 #if UPC_EXTENSIONS_ALLOWED
-                  || tp->variant.typeref.upc_block_size != upc_block_size
+                  || tp->variant.typeref.extra_info->upc_block_size !=
+                                                            upc_block_size
 #endif /* UPC_EXTENSIONS_ALLOWED */
                                                                           )) {
         /* Qualifiers do not match -- keep looking. */
@@ -10709,7 +10713,7 @@ are not already present.
 #endif /* NEAR_AND_FAR_ALLOWED */
 #if UPC_EXTENSIONS_ALLOWED
       if ((qualifiers_to_add & TQ_UPC_SHARED) != TQ_NONE) {
-        ptr->variant.typeref.upc_block_size = upc_block_size;
+        ptr->variant.typeref.extra_info->upc_block_size = upc_block_size;
       }  /* if */
 #endif /* UPC_EXTENSIONS_ALLOWED */
       /* Remember the existence of this typeref type by putting a pointer

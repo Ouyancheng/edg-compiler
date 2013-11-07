@@ -7598,6 +7598,19 @@ typedef struct a_template_param_type_supplement {
 } a_template_param_type_supplement;
 
 
+/* Type used for the internal representation of UPC block sizes. */
+typedef long a_upc_block_size;
+#define UPC_BLOCK_SIZE_NONE ((a_upc_block_size)(-1))
+
+#if UPC_EXTENSIONS_ALLOWED
+
+/* Coded values for UPC block size specifications. */
+#define UPC_BLOCK_SIZE_INDEFINITE ((a_upc_block_size)(0))
+#define UPC_BLOCK_SIZE_BLOCK ((a_upc_block_size)(-2))
+
+#endif /* UPC_EXTENSIONS_ALLOWED */
+
+
 /*
 Entry containing additional information about a typeref type.
 */
@@ -7628,12 +7641,11 @@ typedef struct a_typeref_type_supplement {
 			   as expression arguments are not allowed.  The
 			   function decltype_arg can be used to fetch the
 			   expression (if there is one) in all cases.*/
-  int32_t	min_template_arguments;
-			/* The minimum number of template arguments used to
-			   refer to this instance in the source (using
-			   default arguments); -1 for non-template types
-			   and for template aliases in which all template
-			   arguments were always explicitly specified. */
+#if UPC_EXTENSIONS_ALLOWED
+  a_upc_block_size
+		upc_block_size;
+			/* Block size for UPC shared data types. */
+#endif /* UPC_EXTENSIONS_ALLOWED */
   a_type_ptr	proxy_class;
 			/* If this is the typeref for a dependent decltype
 			   this points to the corresponding "proxy" class.
@@ -7647,6 +7659,12 @@ typedef struct a_typeref_type_supplement {
 			/* The type that originally appeared as the argument
 			   to the __underlying_type, typeof, __bases or
 			   __direct_bases operator. */
+  int32_t	min_template_arguments;
+			/* The minimum number of template arguments used to
+			   refer to this instance in the source (using
+			   default arguments); -1 for non-template types
+			   and for template aliases in which all template
+			   arguments were always explicitly specified. */
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   a_source_range
 		type_id_range;
@@ -7813,19 +7831,6 @@ Definitions of the bits in bit sets of type a_pointer_modifier_set.
 #define PM_UPTR		((a_pointer_modifier_set)(1 << (int)pmt_uptr))
 			/* This bit is set to represent __uptr. */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-
-
-/* Type used for the internal representation of UPC block sizes. */
-typedef long a_upc_block_size;
-#define UPC_BLOCK_SIZE_NONE ((a_upc_block_size)(-1))
-
-#if UPC_EXTENSIONS_ALLOWED
-
-/* Coded values for UPC block size specifications. */
-#define UPC_BLOCK_SIZE_INDEFINITE ((a_upc_block_size)(0))
-#define UPC_BLOCK_SIZE_BLOCK ((a_upc_block_size)(-2))
-
-#endif /* UPC_EXTENSIONS_ALLOWED */
 
 
 typedef struct a_type {
@@ -8704,11 +8709,6 @@ typedef struct a_type {
 			   otherwise.  For internal use in IL lowering
 			   only. */
 #endif /* DO_IL_LOWERING */
-#if UPC_EXTENSIONS_ALLOWED
-      a_upc_block_size
-		upc_block_size;
-			/* Block size for UPC shared data types. */
-#endif /* UPC_EXTENSIONS_ALLOWED */
       a_bit_field
 		qualifiers:NUM_BITS_FOR_TYPE_QUALIFIER_SET;
 			/* Bit set with bits set to indicate the presence

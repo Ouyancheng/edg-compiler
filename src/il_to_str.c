@@ -2197,7 +2197,7 @@ if FTO_SUPPRESS_SPECIFIERS is TRUE, suppress generation of the type specifiers
       }  /* if */
 #if UPC_EXTENSIONS_ALLOWED
       if (type->variant.typeref.qualifiers & TQ_UPC_SHARED) {
-        upc_block_size = type->variant.typeref.upc_block_size;
+        upc_block_size = type->variant.typeref.extra_info->upc_block_size;
       }  /* if */
 #endif /* UPC_EXTENSIONS_ALLOWED */
       if (type->variant.typeref.for_type_attributes) {

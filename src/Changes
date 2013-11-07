@@ -1,5 +1,14 @@
 Version 4.9
 
+11/6/13  [EDGcpfe/14648]
+upc_block_size moved from a_type to a_typeref_type_supplement (IL CHANGE)
+
+The upc_block_size field of the typeref variant in a_type entries (defined
+when UPC_EXTENSIONS_ALLOWED is TRUE) has been moved to the
+a_typeref_type_supplement structure.  This potentially reduces the size of
+a_type entries.
+
+
 11/6/13  [EDGcpfe/14647]
 GNU compatibility: Less checking of functional notation casts in templates
 

@@ -2641,7 +2641,7 @@ directly.
     if (tp->kind == (a_type_kind)tk_typeref) {
       /* May be a typedef or a qualification. */
       if (typeref_is_shared_qualified(tp)) {
-        result = tp->variant.typeref.upc_block_size;
+        result = tp->variant.typeref.extra_info->upc_block_size;
         break;
       } else {
         tp = tp->variant.typeref.type;
@@ -2772,7 +2772,7 @@ based (through array and pointer constructs only).
          is too large. */
       bad_block_size = upc_block_size_too_large(
                                          (a_host_large_unsigned)num_elements);
-      elem_type->variant.typeref.upc_block_size =
+      elem_type->variant.typeref.extra_info->upc_block_size =
                                      (long)(bad_block_size ? 1 : num_elements);
     }  /* if */
   }  /* if */

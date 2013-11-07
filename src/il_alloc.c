@@ -1200,12 +1200,15 @@ a pointer to it.
 #if DEBUG
   num_typeref_type_supplements_allocated++;
 #endif /* DEBUG */
-  ttsp->min_template_arguments = -1;
+#if UPC_EXTENSIONS_ALLOWED
+  ttsp->upc_block_size = UPC_BLOCK_SIZE_NONE;
+#endif /* UPC_EXTENSIONS_ALLOWED */
   ttsp->expr = NULL;
   ttsp->template_arg_list = NULL;
   ttsp->assoc_template = NULL;
   ttsp->proxy_class = NULL;
   ttsp->operator_type_arg = NULL;
+  ttsp->min_template_arguments = -1;
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   ttsp->type_id_range = null_source_range;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
@@ -1815,9 +1818,6 @@ to default values.
 #if DO_IL_LOWERING
       pte->variant.typeref.orig_type   = NULL;
 #endif /* DO_IL_LOWERING */
-#if UPC_EXTENSIONS_ALLOWED
-      pte->variant.typeref.upc_block_size = UPC_BLOCK_SIZE_NONE;
-#endif /* UPC_EXTENSIONS_ALLOWED */
       pte->variant.typeref.qualifiers  = TQ_NONE;
       pte->variant.typeref.predeclared = FALSE;
 #if NEAR_AND_FAR_ALLOWED
