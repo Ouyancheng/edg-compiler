@@ -21180,8 +21180,9 @@ freed by this routine.
     /* Check for a left parenthesis. */
     (void)required_token(tok_lparen, ec_exp_lparen);
   }  /* if */
-  if (gpp_mode && is_template_dependent_context()) {
-    /* The GNU compiler seems to treat functional notation casts as dependent
+  if (gpp_mode && is_template_dependent_context() &&
+      !is_reference_type(type_cast_to)) {
+    /* The GNU compiler appears to treat functional notation casts as dependent
        in all template-dependent contexts, even if the type cast to isn't
        actually dependent. */
     force_dependent = TRUE;
@@ -21253,7 +21254,7 @@ freed by this routine.
                            /*is_implicit_cast=*/FALSE);
     } else if (dip->kind == (a_dynamic_init_kind)dik_constructor &&
                dip->variant.constructor.args == NULL &&
-               is_template_param_type(type_cast_to)) {
+               (is_template_param_type(type_cast_to) || force_dependent)) {
       /* T() case -- no arguments.  Could be a non-class type, so could
          be a constant.  Note that nonreal class cases are excluded. */
       temp_init_node = alloc_empty_parens_func_cast(
