@@ -690,9 +690,10 @@ typedef struct a_scope_stack_entry {
 			   class template.  Also true for scopes nested within
 			   a prototype instantiation. */
   a_bit_field	in_nonreal_instantiation:1;
-			/* TRUE for instantiations based on template dependent
-			   template arguments.  This is only true for certain
-			   default template argument cases. */
+			/* TRUE for instantiations based on template-dependent
+			   template arguments and for rescan operations (to
+			   implement C++11 SFINAE rules) where template-
+			   dependent constructs may arise. */
   a_bit_field	in_generic_definition:1;
 			/* TRUE if kind is sck_template_instantiation and
 			   what is being instantiated is the definition of a
@@ -1549,7 +1550,7 @@ associated scope is a file or namespace scope.
 TRUE if we are in a context in which template dependent types need to
 be handled in contexts such as expressions.  Typically, this is in
 a prototype instantiation, but can also occur in template declaration
-scopes.  It is also TRUE when is_nonreal_instantiation is TRUE.
+scopes.  It is also TRUE when in_nonreal_instantiation is TRUE.
 */
 #define is_template_dependent_context()					\
   (depth_template_declaration_scope != NO_SCOPE_DEPTH ||		\
