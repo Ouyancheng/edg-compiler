@@ -21182,14 +21182,16 @@ freed by this routine.
     (void)required_token(tok_lparen, ec_exp_lparen);
   }  /* if */
   could_be_dependent = could_be_dependent_class_type(type_cast_to);
-  if (!could_be_dependent && is_prototype_instantiation_context()) {
-    if (gpp_mode && !is_reference_type(type_cast_to)) {
-      /* The GNU compiler performs limited checking for functional notation
-         casts in all template-dependent contexts, even if the type cast
-         to isn't actually dependent.  We approximate this by treating the
-         cast as dependent. */
-      force_dependent = TRUE;
-    }  /* if */
+  if (gpp_mode && !could_be_dependent &&
+      is_prototype_instantiation_context() &&
+      !expr_stack->possible_rescan_context &&
+      !is_reference_type(type_cast_to)) {
+    /* The GNU compiler performs limited checking for functional notation
+       casts in all template-dependent contexts, even if the type cast to
+       isn't actually dependent.  We approximate this by treating the cast
+       as dependent.  We don't do this in function signatures though, since
+       it can affect deduction and/or mangling. */
+    force_dependent = TRUE;
   }  /* if */
   if (ctor_case && !force_dependent) {
     /* Converting to a class type.  The contents of the parentheses are
