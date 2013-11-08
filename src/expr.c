@@ -12091,7 +12091,9 @@ expression-processing routines.
   }  /* if */
   pop_expr_stack();
   pop_expr_rescan_context_if_necessary(&saved_context);
-  if (rcblock.error_detected) *copy_error = TRUE;
+  if (rcblock.error_detected || is_error_type(new_type)) {
+    *copy_error = TRUE;
+  }  /* if */
   return new_type;
 }  /* decltype_of_expr_with_substitution */
 

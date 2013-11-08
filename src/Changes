@@ -1,5 +1,26 @@
 Version 4.9
 
+11/8/13  [EDGcpfe/14661]
+Abort or incorrect result with invalid decltype in template argument
+
+In some unusual cases, processing a decltype construct in a template deduction
+context was erroneously handled if the decltype operand was invalid due to the
+use of a deleted special member function.  For example:
+
+  template<typename T, typename = decltype(T{})> char f(int);
+  template<typename T>                           long f(...);
+  struct S { S() = delete; };
+  static_assert(sizeof(f<S[1]>(0)) != 1, "Unexpected!");
+
+Assuming sizeof(long)>1, the static_assert should succeed because deduction
+for the first template should fail for T == S since T{} is invalid due to the
+deleted default constructor.  Prior to the changes for EDGcpfe/14222, the
+front end would instead select that first template, and the static_assert
+construct would fail.  After the changes for EDGcpfe/14222 (i.e., in version
+4.8), the front end instead aborted with an internal error.  This is now
+fixed.
+
+
 11/8/13  [EDGcpfe/13873,EDGcpfe/13958,EDGcpfe/14067,EDGcpfe/14272,
           EDGcpfe/14446,EDGcpfe/14496]
 GNU C++ compatibility: regression on use of injected class name
