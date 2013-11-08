@@ -1,5 +1,22 @@
 Version 4.9
 
+11/8/13  [EDGcpfe/14565]
+constexpr applied to array of dependent type
+
+The front end had emitted a spurious error when the constexpr keyword is
+applied to a variable whose type is an array of template-dependent elements.
+For example (with --c++11):
+
+  template <class T> struct A {
+    static void f() {
+      constexpr T x[] = { 0 };
+    }
+  };
+  void f() {
+    A<int>::f();
+  }
+
+
 11/7/13  [EDGcpfe/14652]
 Assertion failure on raw string literal with null character in delimiter
 
