@@ -55,7 +55,7 @@ a solution can be found that does not have adverse consequences.
   }
 
 
-11/8/13  [EDGcpfe/14336,EDGcpfe/14631,EDGcpfe/14649]
+11/8/13  [EDGcpfe/14336,EDGcpfe/14414,EDGcpfe/14631,EDGcpfe/14649]
 Overload resolution when binding a function lvalue to an rvalue reference
 
 Previously, the front end preferred binding an rvalue reference to a function
