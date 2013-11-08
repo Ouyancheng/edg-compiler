@@ -4318,9 +4318,8 @@ namespace projection symbols.
       sym2->kind == (a_symbol_kind)sk_namespace_projection) {
     sym1 = fundamental_symbol_of(sym1);
     sym2 = fundamental_symbol_of(sym2);
-    if (sym1->kind == (a_symbol_kind)sk_type &&
-        sym2->kind == (a_symbol_kind)sk_type) {
-      if (identical_types(sym1->variant.type.ptr, sym2->variant.type.ptr)) {
+    if (is_type_symbol(sym1) && is_type_symbol(sym2)) {
+      if (identical_types(type_symbol_type(sym1), type_symbol_type(sym2))) {
         result = TRUE;
       }  /* if */
     }  /* if */
