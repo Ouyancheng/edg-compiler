@@ -1,5 +1,23 @@
 Version 4.9
 
+11/8/13  [EDGcpfe/13873,EDGcpfe/13958,EDGcpfe/14067,EDGcpfe/14272,
+          EDGcpfe/14446,EDGcpfe/14496]
+GNU C++ compatibility: regression on use of injected class name
+
+A change made in 4.7 caused regressions in g++ mode when gnu_version < 40500
+for certain uses of the injected class name of class templates (see entry
+for EDGcpfe/13446 on 12/3/12).  This change has been backed out until
+a solution can be found that does not have adverse consequences.
+
+  template <typename T> struct X {
+    X();
+  };
+  int main() {
+    // Incorrectly rejected as a result of EDGcpfe/13446
+    X<int> x = X<int>::X();
+  }
+
+
 11/8/13  [EDGcpfe/14336,EDGcpfe/14631,EDGcpfe/14649]
 Overload resolution when binding a function lvalue to an rvalue reference
 

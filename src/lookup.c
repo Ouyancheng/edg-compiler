@@ -2722,6 +2722,12 @@ that do normal id lookup processing.
             sym = NULL;
           }  /* if */
         }  /* if */
+      } else if (gpp_mode && gnu_version < 40500) {
+        /* g++ ignores inherited injected class names from template classes. */
+        if (!lookup_state->must_be_class_or_namespace &&
+            is_injected_template_symbol(fund_sym)) {
+          sym = NULL;
+        }  /* if */
       }  /* if */
     }  /* if */
   } else {
@@ -4500,14 +4506,7 @@ bypass_normal_search:
         } else
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
         /* Do not insert code here. */
-        if (gpp_mode && gnu_version < 40500 && is_typename_lookup &&
-            class_name_injection_enabled &&
-            class_type->variant.class_struct_union.is_template_class) {
-          /* This is a construct such as "typename A<int>::A".  g++ does
-             not create an injected template name prior to 4.5, so return
-             the class symbol for a typename lookup. */
-          sym = class_symbol;
-        } else {
+        {
           sym = cssp->constructor;
         }  /* if */
         if (sym != NULL) {
