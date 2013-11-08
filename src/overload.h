@@ -389,11 +389,6 @@ typedef struct an_arg_match_summary {
 		is_match_for_this_param;
 			/* TRUE if this entry describes the match for the
 			   "this" parameter. */
-  a_ref_qualifier_kind
-		ref_qualifier;
-			/* When is_match_for_this_param is TRUE, this gives
-			   the ref-qualifier value ("&", "&&", or none)
-			   for the called function. */
   a_byte_boolean
 		arg_is_constant;
 			/* TRUE if the corresponding argument is a constant.
@@ -410,6 +405,17 @@ typedef struct an_arg_match_summary {
 			   we wanted a conversion to a pointer type but were
 			   willing to accept any cv-qualification on the
 			   underlying type. */
+  a_byte_boolean
+		function_lvalue_bound_to_rvalue_ref;
+			/* TRUE if a function lvalue is bound to an rvalue
+			   reference (which is allowed in standard C++, but a
+			   lesser match than the same lvalue bound to an lvalue
+			   reference). */
+  a_ref_qualifier_kind
+		ref_qualifier;
+			/* When is_match_for_this_param is TRUE, this gives
+			   the ref-qualifier value ("&", "&&", or none)
+			   for the called function. */
   uint32_t	param_num;
 			/* The parameter number of the parameter matched
 			   against the argument.  Zero for the "this"

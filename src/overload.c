@@ -1265,6 +1265,7 @@ values.
   amsp->arg_is_constant            = FALSE;
   amsp->lvalue_to_rvalue_conversion_used = FALSE;
   amsp->on_conv_allow_any_cv_qual_on_ptr = FALSE;
+  amsp->function_lvalue_bound_to_rvalue_ref = FALSE;
   amsp->param_num                  = 0;
   amsp->param_type                 = NULL;
   amsp->guide_type                 = NULL;
@@ -1351,6 +1352,9 @@ Print an argument match summary for debug purposes.
   }  /* if */
   if (amsp->lvalue_to_rvalue_conversion_used) {
     fprintf(f_debug, " (lvalue-to-rvalue conv)");
+  }  /* if */
+  if (amsp->function_lvalue_bound_to_rvalue_ref) {
+    fprintf(f_debug, " (function-lvalue-bound-to-rvalue-ref)");
   }  /* if */
   if (amsp->conversion.std.type_qualifiers_added) {
     fprintf(f_debug, " (type qualifiers added)");
@@ -3391,6 +3395,7 @@ have_level:;
         if (is_function_type(param_type) &&
             rvalue_ref_can_be_bound_to_function_lvalue()) {
           /* Okay to bind to a function lvalue. */
+          arg_summary->function_lvalue_bound_to_rvalue_ref = TRUE;
         } else if (ref_type_qualifiers_dropped) {
           /* If type qualifiers are being dropped, don't allow binding to
              an lvalue in any mode. */
@@ -6409,32 +6414,37 @@ reference match and the other is an lvalue reference match, and return
   -1 if arg_match1 is a worse match than arg_match2.
 
 Binding an rvalue reference to an argument is better than binding an
-lvalue reference to that argument.
+lvalue reference to that argument, except that binding a lvalue reference to
+a function lvalue is better than binding an rvalue reference to that function
+lvalue.
 */
 {
   int        cmp = 0;
-  a_type_ptr arg_type1 = arg_match1->param_type;
-  a_type_ptr arg_type2 = arg_match2->param_type;
+  a_type_ptr tp1 = arg_match1->param_type;
+  a_type_ptr tp2 = arg_match2->param_type;
 
-  if (arg_type1 != NULL && arg_type2 != NULL &&
-      is_reference_type(arg_type1) &&
-      is_reference_type(arg_type2) &&
+  if (tp1 != NULL && tp2 != NULL &&
+      is_reference_type(tp1) && is_reference_type(tp2) &&
       /* This comparison does not apply if either binding is for the
          "this" parameter with a default ref-qualifier. */
       !(arg_match1->is_match_for_this_param &&
         arg_match1->ref_qualifier == (a_ref_qualifier_kind)rqk_default) &&
       !(arg_match2->is_match_for_this_param &&
-        arg_match2->ref_qualifier == (a_ref_qualifier_kind)rqk_default) &&
-      (is_rvalue_reference_type(arg_type1) !=
-                                        is_rvalue_reference_type(arg_type2))) {
-    if (is_rvalue_reference_type(arg_type1)) {
-      /* arg_match1 is an rvalue reference binding and arg_match2 is an lvalue
-         reference binding, so arg_match1 is better. */
-      cmp = 1;
-    } else {
-      /* arg_match1 is an lvalue reference binding and arg_match2 is an rvalue
-         reference binding, so arg_match2 is better. */
-      cmp = -1;
+        arg_match2->ref_qualifier == (a_ref_qualifier_kind)rqk_default)) {
+    a_boolean  tp1_is_rvalue_ref = is_rvalue_reference_type(tp1);
+    a_boolean  tp2_is_rvalue_ref = is_rvalue_reference_type(tp2);
+    if (tp1_is_rvalue_ref != tp2_is_rvalue_ref) {
+      if (tp1_is_rvalue_ref) {
+        /* arg_match1 is an rvalue reference binding and arg_match2 is an
+           lvalue reference binding, so arg_match1 is better (except for the
+           case of a reference to a function). */
+        cmp = arg_match1->function_lvalue_bound_to_rvalue_ref ? -1 : 1;
+      } else {
+        /* arg_match1 is an lvalue reference binding and arg_match2 is an
+           rvalue reference binding, so arg_match2 is better (except for the
+           case of a reference to a function). */
+        cmp = arg_match2->function_lvalue_bound_to_rvalue_ref ? 1 : -1;
+      }  /* if */
     }  /* if */
   }  /* if */
   return cmp;

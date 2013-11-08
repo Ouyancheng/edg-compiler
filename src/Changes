@@ -1,5 +1,20 @@
 Version 4.9
 
+11/8/13  [EDGcpfe/14336,EDGcpfe/14631,EDGcpfe/14649]
+Overload resolution when binding a function lvalue to an rvalue reference
+
+Previously, the front end preferred binding an rvalue reference to a function
+lvalue over binding an lvalue reference to that function lvalue.  Now it is
+the other way around (as required by the C++11 standard).  For example:
+
+  int g(void (&&)());  // (1)
+  int g(void (&)());   // (2)
+  void x() {}
+  int z = g(x);  // Previously select (1); now selects (2).
+
+(This matches the C++ standards committee Core issue 1238.)
+
+
 11/8/13  [EDGcpfe/14565]
 constexpr applied to array of dependent type
 
