@@ -21185,6 +21185,7 @@ freed by this routine.
   if (gpp_mode && !could_be_dependent &&
       is_prototype_instantiation_context() &&
       !expr_stack->possible_rescan_context &&
+      !scope_is(&scope_stack_top(), sck_template_declaration) &&
       !is_reference_type(type_cast_to)) {
     /* The GNU compiler performs limited checking for functional notation
        casts in all template-dependent contexts, even if the type cast to
