@@ -1,9 +1,9 @@
 Version 4.9
 
 11/8/13  [EDGcpfe/14636]
-Spurious error on duplicate using-directive for class or enum name
+Spurious error on duplicate using-declarations for class or enum name
 
-The front previously rejected duplicate using-directives in local scopes for
+The front previously rejected duplicate using-declarations in local scopes for
 equivalent types (specifically, when it was for a class or enum type).  For
 example:
 
