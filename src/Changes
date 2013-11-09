@@ -1,5 +1,21 @@
 Version 4.9
 
+11/9/13  [EDGcpfe/14532,EDGcpfe/14578]
+GNU and Microsoft compatibility: reinterpret_cast in constant expressions
+
+The reinterpret_cast operator (including C-style and function-style casts
+with reinterpret_cast semantics) is not allowed in a constant expression by
+the C++11 Standard.  MSVC and, beginning with version 4.6, g++ do not
+enforce this restriction, however, so the front end's Microsoft and g++
+modes have been changed accordingly.  For example:
+
+  struct S {
+    int m;
+  };
+  // The following is now accepted with --g++ --gnu_version=40600 --c++11:
+  static_assert(&reinterpret_cast<char&>(((S *)0)->m) == 0, "error");
+
+
 11/8/13  [EDGcpfe/14636]
 Spurious error on duplicate using-declarations for class or enum name
 

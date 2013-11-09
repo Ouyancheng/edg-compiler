@@ -19041,9 +19041,13 @@ indicates which.
                                               /*is_implicit_cast=*/FALSE,
                                               reinterpret_semantics);
             }  /* if */
-            if (reinterpret_semantics) {
+            if (reinterpret_semantics &&
+                !(cast_to_reference &&
+                  (microsoft_mode || (gpp_mode && gnu_version >= 40600)))) {
               /* A reinterpret_cast is not allowed in C++11 constant
-                 expressions, including when hidden inside other casts. */
+                 expressions, including when hidden inside other casts,
+                 except for a cast to reference type when emulating MSVC or
+                 g++ versions 4.6 and newer. */
               if (!strict_ansi_mode &&
                   ((is_pointer_type(type_cast_to) &&
                     is_pointer_type(operand->type)) ||
@@ -20060,8 +20064,10 @@ indication in *rcblock).
                            result)) {
     err = TRUE;
   } else {
-    if (operator_not_allowed_in_cpp11_constant_expr(&start_position)) {
-      /* reinterpret_cast is not allowed in C++11 constant expressions. */
+    if (!(microsoft_mode || (gpp_mode && gnu_version >= 40600)) &&
+        operator_not_allowed_in_cpp11_constant_expr(&start_position)) {
+      /* reinterpret_cast is not allowed in C++11 constant expressions
+         except in MSVC and recent versions of g++. */
       err = TRUE;
     }  /* if */
     operand_expression = expr_node_from_operand(result);
