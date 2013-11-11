@@ -4319,7 +4319,10 @@ namespace projection symbols.
     sym1 = fundamental_symbol_of(sym1);
     sym2 = fundamental_symbol_of(sym2);
     if (is_type_symbol(sym1) && is_type_symbol(sym2)) {
-      if (identical_types(type_symbol_type(sym1), type_symbol_type(sym2))) {
+      /* Two type symbols.  Note that if one of these symbols is in the process
+         of being declared, its associated IL entry may still be NULL. */
+      a_type_ptr  tp1 = type_symbol_type(sym1), tp2 = type_symbol_type(sym2);
+      if (tp1 != NULL && tp2 != NULL && identical_types(tp1, tp2)) {
         result = TRUE;
       }  /* if */
     }  /* if */
