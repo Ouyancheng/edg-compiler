@@ -1,5 +1,29 @@
 Version 4.9
 
+11/11/13 [EDGcpfe/13138]
+Additional change to GNU-compatible overload resolution tie-breaker
+
+In GNU C++ mode, when overload resolution would normally conclude with an
+ambiguity, the front end often considers the additional tie-breaking rule that
+the candidate with the best "worst conversion on an argument" is preferred (if
+indeed one viable candidate stands out in this way): See the Changes entry of
+7/20/04.  Previously, however, that rule was always limited to cases where the
+resulting candidate was a built-in operator (see the entry of 4/5/05).  Now,
+the latter condition only applies when gnu_version < 40000.  Since the
+tie-breaker in general does not apply when emulating GCC versions 4.0.x
+through 4.3.x (see the entry of 9/13/13), this effectively means that for
+gnu_version >= 40400, the tie-breaker rule now applies even when the resulting
+selected candidate is not a built-in operator.  For example:
+
+  struct S {
+    S();
+    operator char*() const;
+    int operator!=(char const*);
+  };
+  int r = S() != (char*)0;  // Now accepted in GNU C++ mode with
+                            // gnu_version >= 40400.
+
+
 11/9/13  [EDGcpfe/14532,EDGcpfe/14578]
 GNU and Microsoft compatibility: reinterpret_cast in constant expressions
 

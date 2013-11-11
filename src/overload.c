@@ -7458,11 +7458,10 @@ its candidate function entry.  Otherwise, return NULL.
       best_cfp = NULL;
     }  /* if */
   }  /* for */
-  if (best_cfp != NULL) {
-    /* When the candidate selected is not a built-in operator, g++ (3.2
-       through 3.4, at least) gives an error, which is equivalent to
-       considering the case ambiguous.  Built-in operators do take
-       advantage of this extension. */
+  if (best_cfp != NULL && gnu_version < 40000) {
+    /* When the candidate selected is not a built-in operator, g++ versions
+       prior to 4.0 give an error, which is equivalent to considering the case
+       ambiguous.  Built-in operators do take advantage of this extension. */
     if (best_cfp->operand_type_pattern == NULL) best_cfp = NULL;
   }  /* if */
   return best_cfp;
