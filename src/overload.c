@@ -1843,6 +1843,8 @@ for overload resolution.
 			/* ptrdiff_t. */
 #define ENUM_TYPE_CODE 'E'
 			/* Enumerated type. */
+#define SCOPED_ENUM_TYPE_CODE 'S'
+			/* Scoped enumeration type. */
 #define PROMOTED_ARITH_TYPE_CODE 'A'
 			/* Promoted arithmetic type. */
 #define ARITH_TYPE_CODE 'a'
@@ -1916,6 +1918,9 @@ the type set when the set indicates multiple types, return "built-in".
     case BTK_UNSCOPED_ENUM:
       result = "unscoped enum";
       break;
+    case BTK_SCOPED_ENUM:
+      result = "scoped enum";
+      break;
     case BTK_PTRDIFF_T:
       result = "ptrdiff_t";
       break;
@@ -1953,6 +1958,9 @@ Return a printable string describing a type code.
       break;
     case ENUM_TYPE_CODE:
       str = "enum";
+      break;
+    case SCOPED_ENUM_TYPE_CODE:
+      str = "scoped enum";
       break;
     case ARITH_TYPE_CODE:
     case PROMOTED_ARITH_TYPE_CODE:
@@ -12631,6 +12639,8 @@ builtin_types.
                              is_enum_type(type)) ||
       ((builtin_types & BTK_UNSCOPED_ENUM) &&
                              is_unscoped_enum_type(type)) ||
+      ((builtin_types & BTK_SCOPED_ENUM) &&
+                             is_scoped_enum_type(type)) ||
       ((builtin_types & BTK_BOOL) &&
                              is_bool_type(type)) ||
       ((builtin_types & BTK_FLOATING) &&
@@ -13763,11 +13773,12 @@ as its first operand.
         operand_type_pattern = "Lai;Oi";
         break;
       case onk_question:
-        /* "?" (which shows up here as a two-operand operator) takes
-           two operands (really the second and third) of arithmetic,
-           pointer, or pointer-to-member type (the class and void cases,
-           and C++/CLI handle cases, are handled outside of this routine). */
-        operand_type_pattern = "AA;=PP;=MM";
+        /* "?" (which shows up here as a two-operand operator) takes two
+           operands (really the second and third) of promoted arithmetic,
+           pointer, pointer-to-member, or scope enum type (the class and void
+           cases, and C++/CLI handle cases, are handled outside of this
+           routine). */
+        operand_type_pattern = "AA;=PP;=MM;=SS";
         break;
       case onk_arrow_star:
         /* "->*" takes a pointer to class and a pointer to member to the
@@ -13845,6 +13856,9 @@ it fits that type description or can be converted to it.
     case ENUM_TYPE_CODE:
       matches = is_enum_type(type);
       break;
+    case SCOPED_ENUM_TYPE_CODE:
+      matches = is_scoped_enum_type(type);
+      break;
     case ARITH_TYPE_CODE:
       matches = is_arithmetic_type(type);
       break;
@@ -13912,6 +13926,9 @@ type_code.
       break;
     case ENUM_TYPE_CODE:
       builtin_types_allowed = BTK_ENUM;
+      break;
+    case SCOPED_ENUM_TYPE_CODE:
+      builtin_types_allowed = BTK_SCOPED_ENUM;
       break;
     case ARITH_TYPE_CODE:
     case PROMOTED_ARITH_TYPE_CODE:
@@ -15247,6 +15264,15 @@ Adjust the operand type to match the type requirement.
         user_convert_operand(operand, /*dest_type=*/(a_type_ptr)NULL,
                              &arg_match->conversion, (a_conv_descr *)NULL,
                              /*force_copy_to_temp=*/FALSE);
+        if (inside_conditional) {
+          /* operand is the second or third operand of a conditional operator
+             (inside_condition is also TRUE for the second operand of a || or
+             && operator, but in that case specific_type will not be NULL):
+             If the operand type is an arithmetic type, promote it. */
+          if (is_arithmetic_or_unscoped_enum_type(operand->type)) {
+            arg_default_promote_operand(operand, /*is_ellipsis=*/FALSE);
+          }  /* if */
+        }  /* if */
       } else {
         /* The conversion is not usable, e.g., because the conversion
            is ambiguous.  Redo the analysis of the conversion to get

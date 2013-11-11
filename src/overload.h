@@ -173,15 +173,17 @@ conversion_from_class_possible.
 			   integral). */
 #define BTK_UNSCOPED_ENUM 0x100
 			/* Unscoped enumeration types in C++. */
-#define BTK_PTRDIFF_T 0x200
+#define BTK_SCOPED_ENUM 0x200
+			/* Scoped enumeration types in C++. */
+#define BTK_PTRDIFF_T 0x400
 			/* ptrdiff_t */
 #if MICROSOFT_EXTENSIONS_ALLOWED
-#define BTK_HANDLE 0x400
+#define BTK_HANDLE 0x800
 			/* Any C++/CLI handle type. */
-#define BTK_HANDLE_TO_CLI_ARRAY 0x800
+#define BTK_HANDLE_TO_CLI_ARRAY 0x1000
 			/* Handle to a CLI array type. */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-#define BTK_NULLPTR_T 0x1000
+#define BTK_NULLPTR_T 0x2000
 			/* decltype(nullptr), aka. std::nullptr_t. */
 #define BTK_NONE 0
 typedef int a_builtin_type_kind_set;
