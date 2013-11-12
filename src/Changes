@@ -11,7 +11,7 @@ C++11 std::is_empty template.
 11/12/13 [EDGcpfe/14650]
 __is_pod and void types
 
-The type traits helper __is_pod now return a false value when its operand is
+The type traits helper __is_pod now returns a false value when its operand is
 a (possibly qualified) void type.
 
 
