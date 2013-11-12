@@ -1,5 +1,42 @@
 Version 4.9
 
+11/11/13 [EDGcpfe/14632]
+User-defined conversions to enum types in conditional operators
+
+Consider:
+
+  enum class E { e };
+  struct S1 { operator E(); };
+  struct S2 { operator E(); };
+  E g(bool b, S1 s1, S2 s2) {
+    return b ? s1 : s2;  // Now okay.  (Previously a spurious error.)
+  }
+
+Previously, the front end issued a spurious error about s1 and s2 being
+incompatible as operands for the conditional operator.  The C++11 standard,
+however, indicates that in a conditional operator the second and third
+operand could potentially be converted to a common scoped enumeration type,
+and since that conversion is not ambiguous in this example, the case is valid.
+The front end now correctly accepts such cases.
+
+If the unscoped enum type is replaced by a scope enum type, the outcome is
+very different:
+
+  enum E { e };
+  struct S1 { operator E(); };
+  struct S2 { operator E(); };
+  E g(bool b, S1 s1, S2 s2) {
+    return b ? s1 : s2;  // Now an error.  (Previously erroneously accepted.)
+  }
+
+Previously, the front accepted this case.  However, the standard indicates
+that the common type for the second and third operand of the conditional
+operator should be derived from the promoted type of the unscoped enum type
+(which is int, in this case).  The expression b ? s1 : s2 therefore has type
+int, and that is not implicitly convertible to the return type E.  The front
+end now correctly diagnoses such cases.
+
+
 11/11/13 [EDGcpfe/13138]
 Additional change to GNU-compatible overload resolution tie-breaker
 
