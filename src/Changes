@@ -1,5 +1,13 @@
 Version 4.9
 
+11/12/13 [EDGcpfe/14651]
+__is_empty and union types
+
+In non-Microsoft modes, the type traits helper __is_empty now returns a false
+value when its operand is a union type.  This matches the description of the
+C++11 std::is_empty template.
+
+
 11/12/13 [EDGcpfe/14650]
 __is_pod and void types
 

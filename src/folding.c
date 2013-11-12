@@ -7533,7 +7533,8 @@ constant will be set as well.
                               && cli_class_type_kind_is(type, cctk_standard));
         break;
       case bok_is_empty:
-        result = is_empty_class_type(type);
+        result = (microsoft_mode || !is_union_type(type)) &&
+                 is_empty_class_type(type);
         break;
       case bok_is_enum:
         result = FALSE;
