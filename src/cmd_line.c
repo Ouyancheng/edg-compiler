@@ -2146,7 +2146,8 @@ by a command line option.
        microsoft_version < 1400, an error is issued if the enumeration is not
        a class member. */
     enum_qualifiers_enabled = TRUE;
-    explicit_enum_base_enabled = (microsoft_version >= 1400) || cppcli_enabled;
+    explicit_enum_base_enabled = (microsoft_version >= 1400) ||
+                                 cppcli_enabled || cpp11_mode;
     if (microsoft_version >= 1700) {
       opaque_enum_decls_enabled = TRUE;
     }  /* if */

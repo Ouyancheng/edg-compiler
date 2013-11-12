@@ -1,5 +1,18 @@
 Version 4.9
 
+11/12/13 [EDGcpfe/14610]
+Abort with opaque enum template with --microsoft_version=1300
+
+An abort could occur (in enum_template_declaration) on the declaration of a
+specialization of an opaque enumeration of a class template when C++11 mode
+is combined with Microsoft mode and microsoft_version < 1400.  Now fixed.
+
+  template <class T> struct A {
+    enum class S : T;
+  };
+  template <> enum class A<int>::S : int { sint };
+
+
 11/12/13 [EDGcpfe/14651]
 __is_empty and union types
 
