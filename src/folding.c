@@ -7345,6 +7345,10 @@ constant will be set as well.
                aren't considered PODs.  They aren't really "copyable"
                either. */
             result = FALSE;
+          } else if (is_void_type(type)) {
+            /* Type "void" (with or without qualifiers) isn't considered a
+               POD. */
+            result = FALSE;
           } else {
             result = TRUE;
           }  /* if */
