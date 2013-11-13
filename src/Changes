@@ -15,7 +15,7 @@ For example, consider:
   };
 
 This example was accepted in all Microsoft modes prior to the changes for
-EDGcpfe/137141, but after those changes (i.e., in version 4.8) an error was
+EDGcpfe/13741, but after those changes (i.e., in version 4.8) an error was
 issued when C++11 mode is also enabled or when microsoft_version >= 1800.
 This is now accepted again because the prototype instantiation of the default
 argument is no longer done in those modes.  The cases of EDGcpfe/13741 are
