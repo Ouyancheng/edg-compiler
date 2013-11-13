@@ -1,5 +1,27 @@
 Version 4.9
 
+11/13/13 [EDGcpfe/14637]
+Too-strict checking of default argument of function templates in some modes
+
+The changes for EDGcpfe/13741 (see entry of 3/13/13) caused the front end to
+perform a "prototype instantiation" of default function call arguments for
+some cases where that was previously not done.  This generic instantiation
+could then lead to errors that might otherwise not have been reported.
+For example, consider:
+
+  struct S {
+    template<typename T1, typename T2>
+      static void g(T1 &x, T2 & = x.f());
+  };
+
+This example was accepted in all Microsoft modes prior to the changes for
+EDGcpfe/137141, but after those changes (i.e., in version 4.8) an error was
+issued when C++11 mode is also enabled or when microsoft_version >= 1800.
+This is now accepted again because the prototype instantiation of the default
+argument is no longer done in those modes.  The cases of EDGcpfe/13741 are
+also still accepted, albeit using a different mechanism.
+
+
 11/12/13 [EDGcpfe/14610]
 Abort with opaque enum template with --microsoft_version=1300
 

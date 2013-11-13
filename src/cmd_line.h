@@ -678,12 +678,6 @@ EXTERN a_boolean
 			   prerequisite. */
 
 EXTERN a_boolean
-		some_nonclass_prototype_instantiations;
-			/* TRUE if some nonclass prototype instantiations
-			   may be performed.  For example, variadic templates
-			   have prototype instantiations done in all cases. */
-
-EXTERN a_boolean
 		defer_function_prototype_instantiations;
 			/* TRUE if the prototype instantiation of a function
 			   should be deferred until the first use of the

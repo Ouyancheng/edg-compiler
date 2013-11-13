@@ -12012,6 +12012,14 @@ list checking (e.g., for the presence of too few arguments).
         /* A C++/CLI parameter array.  This can be satisfied by a zero-length
            parameter array in this case. */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+      } else if (!strict_ansi_mode && ptp->has_default_arg &&
+                 is_template_dependent_context()) {
+        /* We're in a prototype instantiation context, but the prototype
+           instantiation of the default argument was not done.  This is
+           possible in some nonstrict modes.  We don't want to force the
+           prototype instantiations to avoid triggering undesired errors.
+           Just proceed with the assumption that the default argument would be
+           fine. */
       } else {
         /* No default arguments. */
         /* Error: too few actual arguments. */
