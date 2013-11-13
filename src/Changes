@@ -69,7 +69,7 @@ operand could potentially be converted to a common scoped enumeration type,
 and since that conversion is not ambiguous in this example, the case is valid.
 The front end now correctly accepts such cases.
 
-If the unscoped enum type is replaced by a scope enum type, the outcome is
+If the scoped enum type is replaced by an unscoped enum type, the outcome is
 very different:
 
   enum E { e };

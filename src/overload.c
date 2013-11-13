@@ -13783,7 +13783,7 @@ as its first operand.
       case onk_question:
         /* "?" (which shows up here as a two-operand operator) takes two
            operands (really the second and third) of promoted arithmetic,
-           pointer, pointer-to-member, or scope enum type (the class and void
+           pointer, pointer-to-member, or scoped enum type (the class and void
            cases, and C++/CLI handle cases, are handled outside of this
            routine). */
         operand_type_pattern = "AA;=PP;=MM;=SS";
@@ -15274,8 +15274,8 @@ Adjust the operand type to match the type requirement.
                              /*force_copy_to_temp=*/FALSE);
         if (inside_conditional) {
           /* operand is the second or third operand of a conditional operator
-             (inside_condition is also TRUE for the second operand of a || or
-             && operator, but in that case specific_type will not be NULL):
+             (inside_conditional is also TRUE for the second operand of a ||
+             or && operator, but in that case specific_type will not be NULL):
              If the operand type is an arithmetic type, promote it. */
           if (is_arithmetic_or_unscoped_enum_type(operand->type)) {
             arg_default_promote_operand(operand, /*is_ellipsis=*/FALSE);
