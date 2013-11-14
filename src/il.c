@@ -13677,9 +13677,11 @@ tk_unknown is returned.
     case eok_subscript:
       result = (a_type_kind)tk_pointer;
       break;
+#if GNU_VECTOR_TYPES_ALLOWED
     case eok_vector_subscript:
       result = (a_type_kind)tk_vector;
       break;
+#endif /* GNU_VECTOR_TYPES_ALLOWED */
     case eok_cli_subscript:
     case eok_dot_field:
     case eok_points_to_field:
@@ -18948,12 +18950,14 @@ process_ptr_to_member_selection:
               does_fetch = TRUE;
               fetched_type = type_pointed_to(op1->type);
               break;
+#dif GNU_VECTOR_TYPES_ALLOWED
             case eok_vector_subscript:
               if (!is_vector_type(op1->type)) break;
               does_fetch = TRUE;
               fetched_type = skip_typerefs(op1->type)
                                                 ->variant.vector.element_type;
               break;
+#endif /* GNU_VECTOR_TYPES_ALLOWED */
 #if MICROSOFT_EXTENSIONS_ALLOWED
             case eok_cli_subscript:
               /* C++/CLI array subscript operator. */
