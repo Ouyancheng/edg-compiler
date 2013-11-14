@@ -18950,7 +18950,7 @@ process_ptr_to_member_selection:
               does_fetch = TRUE;
               fetched_type = type_pointed_to(op1->type);
               break;
-#dif GNU_VECTOR_TYPES_ALLOWED
+#if GNU_VECTOR_TYPES_ALLOWED
             case eok_vector_subscript:
               if (!is_vector_type(op1->type)) break;
               does_fetch = TRUE;
