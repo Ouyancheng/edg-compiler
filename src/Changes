@@ -211,7 +211,7 @@ the other way around (as required by the C++11 standard).  For example:
   void x() {}
   int z = g(x);  // Previously select (1); now selects (2).
 
-(This matches the C++ standards committee's Core issue 1238.)
+(This matches the C++ standards committee Core issue 1238.)
 
 
 11/8/13  [EDGcpfe/14565]
