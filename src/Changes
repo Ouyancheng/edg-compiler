@@ -157,7 +157,7 @@ example:
 Such cases are now accepted.  (It is not actually entirely clear that such
 duplicate local using-declarations are valid C++, but existing practice is
 to accept them and the front end now does also.  This is also the C++
-standards committee Core issue 36.)
+standards committee's Core issue 36.)
 
 
 11/8/13  [EDGcpfe/14661]
