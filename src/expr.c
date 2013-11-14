@@ -1497,14 +1497,14 @@ constructs, in which case offsetof_case is TRUE.
     if (!processed && gnu_mode && gnu_version >= 40600 &&
         is_vector_type(operand_1->type)) {
       /* GNU vector types can be subscripted using the "x[n]" notation. */
-      a_type_ptr        result_type;
+      a_type_ptr        el_type;
       an_expr_node_ptr  subsc_node;
       an_expr_node_ptr  op1_node = make_node_from_operand(operand_1);
       op1_node->next = make_node_from_operand(&operand_2);
-      result_type = skip_typerefs(op1_node->type)->variant.vector.element_type;
+      el_type = skip_typerefs(op1_node->type)->variant.vector.element_type;
       subsc_node = make_operator_node(
                                   (an_expr_operator_kind)eok_vector_subscript,
-                                  result_type, op1_node);
+                                  el_type, op1_node);
       if (op1_node->is_lvalue) subsc_node->is_lvalue = TRUE;
       make_lvalue_or_rvalue_expression_operand(subsc_node, result);
       processed = TRUE;
