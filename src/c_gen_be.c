@@ -5808,6 +5808,12 @@ process_assignment:
             write_tok_ch(']');
           }  /* if */
           goto done_with_binary_operation;
+        case eok_vector_subscript:
+          dump_expr_with_parens(operand_1);
+          write_tok_ch('[');
+          dump_expr_with_parens(operand_2);
+          write_tok_ch(']');
+          goto done_with_binary_operation;
         case eok_dot_field:
         case eok_points_to_field:
 #if !C_GEN_BE_GENERATES_ANSI_C

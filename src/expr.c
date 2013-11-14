@@ -1493,6 +1493,23 @@ constructs, in which case offsetof_case is TRUE.
         }  /* if */
       }  /* if */
     }  /* if */
+#if GNU_VECTOR_TYPES_ALLOWED
+    if (!processed && gnu_mode && gnu_version >= 40600 &&
+        is_vector_type(operand_1->type)) {
+      /* GNU vector types can be subscripted using the "x[n]" notation. */
+      a_type_ptr        result_type;
+      an_expr_node_ptr  subsc_node;
+      an_expr_node_ptr  op1_node = make_node_from_operand(operand_1);
+      op1_node->next = make_node_from_operand(&operand_2);
+      result_type = skip_typerefs(op1_node->type)->variant.vector.element_type;
+      subsc_node = make_operator_node(
+                                  (an_expr_operator_kind)eok_vector_subscript,
+                                  result_type, op1_node);
+      if (op1_node->is_lvalue) subsc_node->is_lvalue = TRUE;
+      make_lvalue_or_rvalue_expression_operand(subsc_node, result);
+      processed = TRUE;
+    }  /* if */
+#endif /* GNU_VECTOR_TYPES_ALLOWED */
     if (!processed) {
       /* Non-operator-function cases. */
       do_operand_transformations(operand_1, TOPT_NO_OPTIONS);
@@ -1585,90 +1602,90 @@ constructs, in which case offsetof_case is TRUE.
                                       result_type, op1_node);
           make_glvalue_expression_operand(subsc_node, result);
         }  /* if */
-      } else
+        processed = TRUE;
+      }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-      /* Do not insert code here. */
-      {
-        /* Normal case, not C++/CLI array. */
-        an_operand    *pointer_operand, *integer_operand;
-        a_boolean     pointer_operand_is_second = FALSE;
-        an_error_code err_code = ec_expr_not_pointer_to_object;
+    }  /* if */
+    if (!processed) {
+      /* Normal case; not a C++/CLI array or GNU vector. */
+      an_operand    *pointer_operand, *integer_operand;
+      a_boolean     pointer_operand_is_second = FALSE;
+      an_error_code err_code = ec_expr_not_pointer_to_object;
 #if MICROSOFT_EXTENSIONS_ALLOWED
-        if (cppcli_enabled) err_code = ec_expr_not_pointer_or_array_handle;
+      if (cppcli_enabled) err_code = ec_expr_not_pointer_or_array_handle;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-        if (subscript_is_expr_list) {
-          /* If the contents of the [...] were scanned as an expression list,
-             but this did not turn out to be a CLI array case, turn an
-             expression list containing a single expression into just an
-             expression, but issue an error for a list containing multiple
-             expressions. */
-          if (operand_2_list->next == NULL) {
-            copy_operand(operand_of_arg_list_elem(operand_2_list), &operand_2);
-          } else {
-            expr_pos_error(ec_comma_operator_in_cli_subscript,
-                           init_component_pos(operand_2_list));
-            make_error_operand(&operand_2);
-          }  /* if */
-          subscript_is_expr_list = FALSE;
-          free_arg_list(operand_2_list);
-          operand_2_list = NULL;
-        }  /* if */
-        do_operand_transformations(&operand_2, TOPT_NO_OPTIONS);
-        /* One of the operands must have type "pointer to object type" and the 
-           other must be an integral expression. */
-        pointer_operand = operand_1;
-        integer_operand = &operand_2;
-        if (is_integral_or_enum_type(operand_1->type)) {
-          /* The subscript value is outside the brackets and the pointer value
-             is inside the brackets.  Swap them for the type checking. */
-          pointer_operand_is_second = TRUE;
-          pointer_operand = &operand_2;
-          integer_operand = operand_1;
-        }  /* if */
-
-        if (gcc_mode &&
-            is_pointer_type(pointer_operand->type) &&
-            is_void_type(type_pointed_to(pointer_operand->type))) {
-          /* GNU C allows a pointer to "void" to be subscripted. */
-          expr_pos_warning(ec_nonobject_pointer_arithmetic,
-                           &operator_position);
-          result_type = type_pointed_to(pointer_operand->type);
-        } else if (
-                   /* One operand must be a pointer to object. */
-#if PTR_TO_INCOMP_ARRAY_ARITHMETIC_ALLOWED
-                   /* Pointer to incomplete array is also allowed. */
-                   check_object_or_incomp_array_pointer_operand(
-                                                 pointer_operand,
-                                                 err_code,
-                                                 integer_operand)
-#else /* !PTR_TO_INCOMP_ARRAY_ARITHMETIC_ALLOWED */
-                   check_object_pointer_operand(pointer_operand,
-                                                err_code)
-#endif /* PTR_TO_INCOMP_ARRAY_ARITHMETIC_ALLOWED */
-                                                         ) {
-          result_type = type_pointed_to(pointer_operand->type);
+      if (subscript_is_expr_list) {
+        /* If the contents of the [...] were scanned as an expression list,
+           but this did not turn out to be a CLI array case, turn an
+           expression list containing a single expression into just an
+           expression, but issue an error for a list containing multiple
+           expressions. */
+        if (operand_2_list->next == NULL) {
+          copy_operand(operand_of_arg_list_elem(operand_2_list), &operand_2);
         } else {
-          result_type = error_type();
+          expr_pos_error(ec_comma_operator_in_cli_subscript,
+                         init_component_pos(operand_2_list));
+          make_error_operand(&operand_2);
         }  /* if */
+        subscript_is_expr_list = FALSE;
+        free_arg_list(operand_2_list);
+        operand_2_list = NULL;
+      }  /* if */
+      do_operand_transformations(&operand_2, TOPT_NO_OPTIONS);
+      /* One of the operands must have type "pointer to object type" and the 
+         other must be an integral expression. */
+      pointer_operand = operand_1;
+      integer_operand = &operand_2;
+      if (is_integral_or_enum_type(operand_1->type)) {
+        /* The subscript value is outside the brackets and the pointer value
+           is inside the brackets.  Swap them for the type checking. */
+        pointer_operand_is_second = TRUE;
+        pointer_operand = &operand_2;
+        integer_operand = operand_1;
+      }  /* if */
 
-        /* The other operand must be integral or enum. */
-        (void)check_integral_or_enum_operand(integer_operand);
-        /* Build the expression. */
-        /* Note that the integral promotions are NOT done on the subscript;
-           this is as the standard wants it. */
-        do_binary_operation_full((an_expr_operator_kind)eok_subscript,
-                                 operand_1, &operand_2, result_type,
-                                 /*result_is_lvalue=*/TRUE, result,
-                                 &operator_position, operator_tok_seq_number,
-                                 &closing_bracket_position);
-        if (!is_error_operand(result)) {
-          if (pointer_operand_is_second) {
-            set_pointer_operand_is_second_flag(result);
-          }  /* if */
-          /* Preserve the reference entries from the pointer operand (the
-             array) because the result is an lvalue. */
-          result->ref_entries_list = pointer_operand->ref_entries_list;
+      if (gcc_mode &&
+          is_pointer_type(pointer_operand->type) &&
+          is_void_type(type_pointed_to(pointer_operand->type))) {
+        /* GNU C allows a pointer to "void" to be subscripted. */
+        expr_pos_warning(ec_nonobject_pointer_arithmetic,
+                         &operator_position);
+        result_type = type_pointed_to(pointer_operand->type);
+      } else if (
+                 /* One operand must be a pointer to object. */
+#if PTR_TO_INCOMP_ARRAY_ARITHMETIC_ALLOWED
+                 /* Pointer to incomplete array is also allowed. */
+                 check_object_or_incomp_array_pointer_operand(
+                                               pointer_operand,
+                                               err_code,
+                                               integer_operand)
+#else /* !PTR_TO_INCOMP_ARRAY_ARITHMETIC_ALLOWED */
+                 check_object_pointer_operand(pointer_operand,
+                                              err_code)
+#endif /* PTR_TO_INCOMP_ARRAY_ARITHMETIC_ALLOWED */
+                                                       ) {
+        result_type = type_pointed_to(pointer_operand->type);
+      } else {
+        result_type = error_type();
+      }  /* if */
+
+      /* The other operand must be integral or enum. */
+      (void)check_integral_or_enum_operand(integer_operand);
+      /* Build the expression. */
+      /* Note that the integral promotions are NOT done on the subscript;
+         this is as the standard wants it. */
+      do_binary_operation_full((an_expr_operator_kind)eok_subscript,
+                               operand_1, &operand_2, result_type,
+                               /*result_is_lvalue=*/TRUE, result,
+                               &operator_position, operator_tok_seq_number,
+                               &closing_bracket_position);
+      if (!is_error_operand(result)) {
+        if (pointer_operand_is_second) {
+          set_pointer_operand_is_second_flag(result);
         }  /* if */
+        /* Preserve the reference entries from the pointer operand (the
+           array) because the result is an lvalue. */
+        result->ref_entries_list = pointer_operand->ref_entries_list;
       }  /* if */
     }  /* if */
   }  /* if */

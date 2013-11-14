@@ -674,6 +674,7 @@ static a_byte generated_precedence[(int)eok_last+1] = {
   PREC_OR_OR,		/* eok_lor */
   PREC_COMMA,		/* eok_comma */
   PREC_POSTFIX,		/* eok_subscript */
+  PREC_POSTFIX,		/* eok_vector_subscript */
   PREC_POSTFIX,		/* eok_dot_field */
   PREC_POSTFIX,		/* eok_points_to_field */
   PREC_PTR_TO_MEMBER,	/* eok_pm_field */
@@ -11822,6 +11823,7 @@ gen_expr that might end up generating this expr as a temporary.
           unexpected_condition_str("gen_expr: eok_bassign");
           break;
         case eok_subscript:
+        case eok_vector_subscript:
           gen_expr_with_parens(operand_1);
           gen_array_subscript(operand_2);
           goto done_with_operation;

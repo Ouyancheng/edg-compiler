@@ -1,5 +1,19 @@
 Version 4.9
 
+11/13/13 [EDGcpfe/14580]
+GNU compatibility: Subscripting vectors
+
+In GNU modes with gnu_version >= 40600, the front end now accepts expressions
+using the subscript notation on GNU vectors.  For example:
+
+  typedef __attribute((vector_size(16))) int V4I;
+  V4I v = { 1, 2, 3, 4 };
+  int i = v[2];  // Now accepted in some GNU C++ modes.
+
+This new subscripting operation is represented using a distinct (and new)
+operation code eok_vector_subscript.
+
+
 11/13/13 [EDGcpfe/14637]
 Too-strict checking of default argument of function templates in some modes
 

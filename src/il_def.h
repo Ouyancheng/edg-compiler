@@ -14201,6 +14201,9 @@ enum an_expr_operator_kind_tag {
   eok_subscript,	/* Subscripting operation.  The operands are the
 			   pointer to the first element of the array and the
 			   integral subscript value, in either order. */
+  eok_vector_subscript,	/* GNU vector subscripting operation.  The first
+			   operand is the GNU vector, and the second in the
+			   integral subscript value. */
   eok_dot_field,	/* Selection of a nonstatic data member of a class,
 			   source form x.y.  The first operand is an lvalue
 			   or rvalue of class type.  The second operand is
@@ -18134,7 +18137,7 @@ EXTERN a_const_char *db_operator_names[(int)eok_last+1]
    "p+=", "p-=",
    "b=",
    "&&", "||", ",",
-   "[]", ".", "->", ".*", "->*",
+   "[]", "vec[]", ".", "->", ".*", "->*",
    ".* func ptr",
    "->* func ptr",
    ".static", "->static",

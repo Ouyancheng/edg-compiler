@@ -13677,6 +13677,9 @@ tk_unknown is returned.
     case eok_subscript:
       result = (a_type_kind)tk_pointer;
       break;
+    case eok_vector_subscript:
+      result = (a_type_kind)tk_vector;
+      break;
     case eok_cli_subscript:
     case eok_dot_field:
     case eok_points_to_field:
@@ -18779,6 +18782,7 @@ already indicates the load.
           case eok_points_to_field:
           case eok_pm_points_to_field:
           case eok_subscript:
+          case eok_vector_subscript:
           case eok_cli_subscript:
           case eok_indirect:
           case eok_ref_indirect:
@@ -18943,6 +18947,12 @@ process_ptr_to_member_selection:
               if (!is_pointer_type(op1->type)) break;
               does_fetch = TRUE;
               fetched_type = type_pointed_to(op1->type);
+              break;
+            case eok_vector_subscript:
+              if (!is_vector_type(op1->type)) break;
+              does_fetch = TRUE;
+              fetched_type = skip_typerefs(op1->type)
+                                                ->variant.vector.element_type;
               break;
 #if MICROSOFT_EXTENSIONS_ALLOWED
             case eok_cli_subscript:
@@ -19482,7 +19492,8 @@ treat_as_potential_prvalue should always be FALSE when called during lowering
           /* Likewise for a->b and *a. */
           is_invariant = is_invariant_expr(op1, vars_can_change,
                                        /*treat_as_potential_prvalue=*/FALSE);
-        } else if (node_operator_is(expr, eok_subscript)) {
+        } else if (node_operator_is(expr, eok_subscript) ||
+                   node_operator_is(expr, eok_vector_subscript)) {
           /* An lvalue a[b] is invariant if a and b are invariant. */
           is_invariant = is_invariant_expr(op1, vars_can_change,
                                        /*treat_as_potential_prvalue=*/FALSE) &&
@@ -24519,6 +24530,7 @@ static a_byte lvalue_rvalue_test[(int)eok_last+1] = {
   /* eok_comma: */			LVRV_OPND2_IS_GLVALUE_IF_EXPR_IS,
   /* eok_subscript: */			LVRV_OPND1_IS_PRVALUE |
 					LVRV_OPND2_IS_PRVALUE,
+  /* eok_vector_subscript: */		LVRV_OPND2_IS_PRVALUE,
   /* eok_dot_field: */			LVRV_OPND1_IS_GLVALUE_IF_EXPR_IS,
   /* eok_points_to_field: */		LVRV_OPND1_IS_PRVALUE,
   /* eok_pm_field: */			LVRV_OPND1_IS_GLVALUE_IF_EXPR_IS |
