@@ -1,5 +1,24 @@
 Version 4.9
 
+11/15/13 [EDGcpfe/14569]
+GNU mode implicit routine aliasing
+
+In GNU C mode, the front end sometimes implicitly aliases functions that match
+standard C library functions to their __builtin_... counterparts (see the
+entries for EDGcpfe/10179, EDGcpfe/10328, and EDGcpfe/14348).  This implicit
+aliasing is now also recorded in GNU C++ modes.  For example:
+
+  extern "C" int abs(int);  // Now an implicit alias for __builtin_abs
+
+Previously, calls to such aliases were folded by the front end and could
+appear in constant-expression contexts.  This is not the case in GNU C++ mode,
+and is also no longer the case in GNU C mode with gnu_version >= 40500.
+For example, with the declaration above:
+
+  double z[abs(-3)];  // Now only accepted in GNU C mode with
+                      // gnu_version < 40500.
+
+
 11/15/13 [EDGcpfe/7624,EDGcpfe/13759,EDGcpfe/14520,EDGcpfe/14497]
 Lookup should include dependent base classes in specializations of templates
 

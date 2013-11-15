@@ -7297,7 +7297,7 @@ use of).
 *dps describes the declaration of a function.
 */
 {
-  check_assertion(gcc_mode);
+  check_assertion(gnu_mode);
   if (is_simple_function_symbol(dps->sym) &&
       !sym_is_class_or_namespace_member(dps->sym)) {
     a_routine_ptr  rp = dps->sym->variant.routine.ptr;
@@ -7311,6 +7311,8 @@ use of).
     } else if (dps->first_decl && !dps->sym->defined &&
                rtsp->prototyped &&
                rp->aliased_routine == NULL &&
+               rp->source_corresp.name_linkage ==
+                                         (a_name_linkage_kind)nlk_external &&
                /* Exclude routines with an asm alias. */
                rp->asm_name == NULL &&
                dps->asm_name == NULL &&
@@ -8945,11 +8947,9 @@ skip_overloading:;
                    routine_ptr, dps->asm_name, &dps->asm_name_pos,
                    routine_has_been_defined(routine_ptr) && !is_function_def);
     }  /* if */
-    if (gcc_mode) {
-      /* Some user-declarations are implicitly aliased to built-in functions.
-         Check for such cases. */
-      check_implicit_routine_alias(dps);
-    }  /* if */
+    /* Some user-declarations are implicitly aliased to built-in functions.
+       Check for such cases. */
+    check_implicit_routine_alias(dps);
   }  /* if */
 #if GNU_VISIBILITY_ATTRIBUTE_ALLOWED
   /* Update the ELF visibility if applicable. */
