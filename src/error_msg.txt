@@ -2565,6 +2565,10 @@ ec_storage_class_not_allowed_in_specialization;;"a storage class is not allowed 
 ec_not_class_or_enum;;"%t is not a class or scoped enumeration"
 ec_specialization_of_unscoped_enum;;"an unscoped enumeration must be opaque in order to be specialized"
 ec_nonmember_enum_template;;"an enumeration template declaration must refer to a previously declared member of a class template"
+ec_operand_must_be_vector;;"expected a vector operand"
+ec_incompatible_shuffle_source_operands;;"shuffle source operands have incompatible types %t1 and %t2"
+ec_nonintegral_shuffle_mask;;"shuffle mask (type %t) is not a vector of integers"
+ec_incompatible_shuffle_mask;;"shuffle mask (type %t1) has a length different from the source operand (type %t2)"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

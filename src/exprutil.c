@@ -4379,7 +4379,9 @@ being done, e.g., the template argument list being tried.
   an_expr_rescan_info_entry_ptr eriep;
   an_expr_rescan_info_entry     rescan_info;
 
-  check_assertion(expr != NULL && is_operation_node(expr));
+  check_assertion(expr != NULL &&
+                  (is_operation_node(expr) ||
+                   expr->kind == (an_expr_node_kind)enk_builtin_operation));
   eriep = get_expr_rescan_info(expr, &rescan_info);
   op1 = expr->variant.operation.operands;
   if (operand_1 != NULL) {
@@ -4396,6 +4398,7 @@ being done, e.g., the template argument list being tried.
     op3 = op2->next;
     if (op3 != NULL) {
       if (operand_3 != NULL) make_rescan_operand(op3, rcblock, operand_3);
+      check_assertion(op3->next == NULL);
     }  /* if */
   }  /* if */
   get_rescan_operator_positions(eriep, operator_position,

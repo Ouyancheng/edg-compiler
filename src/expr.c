@@ -11528,6 +11528,224 @@ is returned through *result.
 }  /* scan_builtin_types_compatible */
 
 #endif /* GNU_EXTENSIONS_ALLOWED */
+#if GNU_VECTOR_TYPES_ALLOWED
+
+static a_boolean check_operand_is_vector(a_rescan_control_block  *rcblock,
+                                         an_operand              *operand,
+                                         a_boolean               *dependent)
+/*
+Return TRUE if the given operand is a nondependent vector.  Otherwise, return
+FALSE and, if appropriate, issue an error or set rcblock->error_detected to
+TRUE.  Return in *dependent whether operand->type is template-dependent.
+*/
+{
+  a_boolean  result = FALSE;
+
+  if (is_template_dependent_context() &&
+      is_template_dependent_type(operand->type)) {
+    *dependent = TRUE;
+  } else if (is_error_type(operand->type)) {
+    check_assertion_or_expect_error(rcblock != NULL &&
+                                    rcblock->error_detected);
+    *dependent = FALSE;
+  } else if (!is_vector_type(operand->type)) {
+    if (rcblock == NULL) {
+      pos_error(ec_operand_must_be_vector, &operand->position);
+    } else {
+      rcblock->error_detected = TRUE;
+    }  /* if */
+    *dependent = FALSE;
+  } else {
+    result = TRUE;
+    *dependent = FALSE;
+  }  /* if */
+  return result;
+}  /* check_operand_is_vector */
+
+
+static void scan_builtin_shuffle(a_rescan_control_block  *rcblock,
+                                 an_operand              *result)
+/*
+Scan the GNU __builtin_shuffle construct and represent it in *result.
+
+This construct has the form:
+
+	__builtin_shuffle(v1, [v2,] vmask)
+
+All operands must be GNU vectors.  vmask must be a vector of integer elements.
+The optional vector operand v2 must have the same type as the first vector
+operand v1.  The result is an rvalue of vector type with the same element type
+as v1 and the same number of elements as vmask.
+
+If rcblock is non-NULL, redo semantic analysis on a previously-scanned GNU
+__builtin_shuffle construct.
+*/
+{
+  an_operand         op1, op2, op3;
+  an_operand         *p_op1, *p_op2, *p_op3;
+  a_type_ptr         result_type = NULL;
+  a_source_position  start_pos;
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+  a_source_position  end_pos;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+  a_token_sequence_number
+                     start_tok_seq_number;
+  a_boolean          op1_is_vector, op2_is_vector, op3_is_vector;
+  a_boolean          op1_is_dependent, op2_is_dependent, op3_is_dependent;
+
+  /* First obtain the two or three operands, either from the token stream or
+     from the "rescan" structures. */
+  if (rcblock != NULL) {
+    /* Redoing semantic analysis on a previously-scanned expression. */
+    an_expr_node_ptr              expr = rcblock->expr, arg_list;
+    an_expr_rescan_info_entry_ptr eriep;
+    check_assertion(expr->kind == (an_expr_node_kind)enk_builtin_operation &&
+                    expr->variant.builtin_operation.kind ==
+                                (a_builtin_operation_kind)bok_builtin_shuffle);
+    eriep = get_expr_rescan_info(expr, (an_expr_rescan_info_entry *)NULL);
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+    end_pos = expr->expr_range.end;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+    make_rescan_operands(rcblock, &op1, &op2, &op3, &start_pos,
+                         &start_tok_seq_number, (a_source_position *)NULL);
+    p_op1 = &op1;
+    arg_list = expr->variant.builtin_operation.operands;
+    if (arg_list->next->next != NULL) {
+      /* 3-operand form. */
+      p_op2 = &op2;
+      p_op3 = &op3;
+    } else {
+      /* 2-operand form. */
+      p_op2 = NULL;
+      p_op3 = &op2;
+    }  /* if */
+  } else {
+    /* Normal, non-rescan, processing. */
+    /* Pass over the __builtin_shuffle token. */
+    check_assertion(curr_token == tok_builtin_shuffle);
+    (void)get_token();
+    /* Check for and pass over the left parenthesis. */
+    (void)required_token(tok_lparen, ec_exp_lparen);
+    add_matching_stop_token(tok_rparen);
+    add_stop_token(tok_comma);
+    p_op1 = &op1;
+    scan_expr(p_op1, PREC_LOWEST, EOPT_DISALLOW_COMMA_OPERATOR);
+    
+    (void)required_token(tok_comma, ec_exp_comma);
+    scan_expr(&op2, PREC_LOWEST, EOPT_DISALLOW_COMMA_OPERATOR);
+    remove_stop_token(tok_comma);
+    if (curr_token == tok_comma) {
+      /* The three-operand form. */
+      p_op2 = &op2;
+      p_op3 = &op3;
+      (void)get_token();
+      scan_expr(p_op3, PREC_LOWEST, EOPT_DISALLOW_COMMA_OPERATOR);
+    } else {
+      p_op2 = NULL;
+      p_op3 = &op2;
+    }  /* if */
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+    end_pos = end_pos_curr_token;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+    (void)required_token(tok_rparen, ec_exp_rparen);
+    remove_matching_stop_token(tok_rparen);
+  }  /* if */
+  /* Check that the first operand has a vector type (or an unknown type). */
+  op1_is_vector = check_operand_is_vector(rcblock, p_op1, &op1_is_dependent);
+  if (!op1_is_vector && !op1_is_dependent) result_type = error_type();
+  /* Check the type of the second operand (if any). */
+  if (p_op2 != NULL) {
+    op2_is_vector = check_operand_is_vector(rcblock, p_op2, &op2_is_dependent);
+    /* In non-dependent, non-error cases the two operands must have the same
+       type. */
+    if (op1_is_vector && op2_is_vector &&
+        !identical_types(p_op1->type, p_op2->type)) {
+      if (rcblock == NULL) {
+        pos_ty2_error(ec_incompatible_shuffle_source_operands,
+                      &p_op1->position, p_op1->type, p_op2->type);
+      } else {
+        rcblock->error_detected = TRUE;
+      }  /* if */
+      result_type = error_type();
+    } else if (!op2_is_vector && !op2_is_dependent) {
+      if (result_type == NULL) result_type = error_type();
+    }  /* if */
+  }  /* if */
+  op3_is_vector = check_operand_is_vector(rcblock, p_op3, &op3_is_dependent);
+  if (op3_is_vector) {
+    a_type_ptr  mask_type = skip_typerefs(p_op3->type);
+    if (!is_integral_type(mask_type->variant.vector.element_type)) {
+      if (rcblock == NULL) {
+        pos_ty_error(ec_nonintegral_shuffle_mask, &p_op3->position,
+                     p_op3->type);
+      } else {
+        rcblock->error_detected = TRUE;
+      }  /* if */
+      if (result_type == NULL) result_type = error_type();
+    }  /* if */
+    if (op1_is_vector && (p_op2 == NULL || op2_is_vector) &&
+        result_type == NULL &&
+        num_vector_elements(p_op1->type) != num_vector_elements(p_op3->type)) {
+      if (rcblock == NULL) {
+        pos_ty2_error(ec_incompatible_shuffle_mask, &p_op3->position,
+                      p_op3->type, p_op1->type);
+      } else {
+        rcblock->error_detected = TRUE;
+      }  /* if */
+      if (result_type == NULL) result_type = error_type();
+    }  /* if */
+  } else if (!op3_is_dependent) {
+    if (result_type == NULL) result_type = error_type();
+  }  /* if */
+  if (result_type == NULL) {
+    /* No errors: Create the representation. */
+    an_expr_node_ptr  expr, arg_list, *p_arg3;
+    if (op1_is_dependent) {
+      prep_generic_operand(p_op1);
+      result_type = type_of_unknown_templ_param_nontype;
+    } else {
+      do_operand_transformations(p_op1, TOPT_NO_OPTIONS);
+    }  /* if */
+    arg_list = make_node_from_operand(p_op1);
+    if (p_op2 != NULL) {
+      if (op2_is_dependent) {
+        prep_generic_operand(p_op2);
+        result_type = type_of_unknown_templ_param_nontype;
+      } else {
+        do_operand_transformations(p_op2, TOPT_NO_OPTIONS);
+      }  /* if */
+      arg_list->next = make_node_from_operand(p_op2);
+      p_arg3 = &arg_list->next->next;
+    } else {
+      p_arg3 = &arg_list->next;
+    }  /* if */
+    if (op3_is_dependent) {
+      prep_generic_operand(p_op3);
+      result_type = type_of_unknown_templ_param_nontype;
+    } else {
+      do_operand_transformations(p_op3, TOPT_NO_OPTIONS);
+    }  /* if */
+    *p_arg3 = make_node_from_operand(p_op3);
+    if (result_type == NULL) {
+      /* No operand was template-dependent (and none was an error).  The
+         result type is that of the first operand. */
+      result_type = p_op1->type;
+    }  /* if */
+    expr = alloc_expr_node((an_expr_node_kind)enk_builtin_operation);
+    expr->type = result_type;
+    expr->variant.builtin_operation.kind =
+                                 (a_builtin_operation_kind)bok_builtin_shuffle;
+    expr->variant.builtin_operation.operands = arg_list;
+    record_position_in_expr_for_rescan(expr, &start_pos,
+                                       end_position_or_null(&end_pos));
+    make_expression_operand(expr, result);
+  } else {
+    make_error_operand(result);
+  }  /* if */
+  set_operand_position(result, &start_pos, &end_pos, &start_pos);
+}  /* scan_builtin_shuffle */
+
+#endif /* GNU_VECTOR_TYPES_ALLOWED */
 
 static a_type_ptr type_of_call(an_expr_node_ptr  expr)
 /*
@@ -25263,6 +25481,9 @@ Return TRUE if the indicated token is one that could start an expression.
     case tok_gnu_real:
     case tok_gnu_imag:
 #endif /* GNU_EXTENSIONS_ALLOWED */
+#if GNU_VECTOR_TYPES_ALLOWED
+    case tok_builtin_shuffle:
+#endif /* GNU_VECTOR_TYPES_ALLOWED */
 #if MICROSOFT_EXTENSIONS_ALLOWED
     case tok_uuidof:
     case tok_microsoft_lprefix:
@@ -29665,6 +29886,12 @@ type_start:
       check_assertion(user_defined_literals_enabled);
       scan_ud_literal(&local_result);
       break;
+
+#if GNU_VECTOR_TYPES_ALLOWED
+    case tok_builtin_shuffle:
+      scan_builtin_shuffle((a_rescan_control_block *)NULL, &local_result);
+      break;
+#endif /* GNU_VECTOR_TYPES_ALLOWED */
 
     default:
 bad_start_of_primary:
@@ -35723,6 +35950,11 @@ set accordingly.
       case bok_is_nothrow_constructible:
         operator_token = tok_is_nothrow_constructible;
         break;
+#if GNU_VECTOR_TYPES_ALLOWED
+      case bok_builtin_shuffle:
+        operator_token = tok_builtin_shuffle;
+        break;
+#endif /* GNU_VECTOR_TYPES_ALLOWED */
       default:
         operator_token = tok_has_assign;  /* Representing the generic case
                                              with a single type operand. */
@@ -36013,6 +36245,11 @@ alternative callable from outside, see rescan_expr_with_substitution.
         scan_complex_projection(rcblock, result);
         break;
 #endif /* GNU_COMPLEX_EXTENSIONS_ALLOWED */
+#if GNU_VECTOR_TYPES_ALLOWED
+      case tok_builtin_shuffle:
+        scan_builtin_shuffle(rcblock, result);
+        break;
+#endif /* GNU_VECTOR_TYPES_ALLOWED */
       default:
         unexpected_condition();
     }  /* switch */

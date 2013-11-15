@@ -1247,6 +1247,9 @@ typedef enum /*a_token_kind*/ {
   tok_bases,
   tok_direct_bases,
 #endif /* GNU_EXTENSIONS_ALLOWED */
+#if GNU_VECTOR_TYPES_ALLOWED
+  tok_builtin_shuffle,
+#endif /* GNU_VECTOR_TYPES_ALLOWED */
   /* Place-holder for last position in enumeration. */
   tok_last
 } a_token_kind;
@@ -1403,6 +1406,9 @@ EXTERN a_const_char
    "__bases",
    "__direct_bases",
 #endif /* GNU_EXTENSIONS_ALLOWED */
+#if GNU_VECTOR_TYPES_ALLOWED
+   "__builtin_shuffle",
+#endif /* GNU_VECTOR_TYPES_ALLOWED */
    "last" /* used to check that initialization is right. */
   }
 #endif /* VAR_INITIALIZERS */
@@ -14444,6 +14450,9 @@ typedef enum a_builtin_operation_kind_tag {
 			/* __is_nothrow_assignable.  Two type operands. */
   bok_is_trivially_assignable,
 			/* __is_trivially_assignable.  Two type operands. */
+  bok_builtin_shuffle,
+			/* GNU's __builtin_shuffle operator.  Two or three GNU
+			   vector operands. */
   bok_last              /* Marks the end of the list. */
 } a_builtin_operation_kind_tag;
 /* Define as "a_byte" to explicitly control storage size. */
@@ -18210,6 +18219,7 @@ EXTERN a_const_char *builtin_operation_names[(int)bok_last+1]
   "__is_trivially_destructible",
   "__is_nothrow_assignable",
   "__is_trivially_assignable",
+  "__builtin_shuffle",
   "last"
 }
 #endif /* VAR_INITIALIZERS */
