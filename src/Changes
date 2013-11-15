@@ -1,6 +1,6 @@
 Version 4.9
 
-11/15/13 [EDGcpfe/7624,EDGcpfe/13759,EDGcpfe/14520]
+11/15/13 [EDGcpfe/7624,EDGcpfe/13759,EDGcpfe/14520,EDGcpfe/14497]
 Lookup should include dependent base classes in specializations of templates
 
 As clarified by core issue 544, in an explicit specialization, lookup
