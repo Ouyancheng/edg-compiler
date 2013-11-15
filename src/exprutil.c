@@ -4364,29 +4364,31 @@ void make_rescan_operands(a_rescan_control_block  *rcblock,
 /*
 As part of redoing semantic analysis on an expression while doing template
 deduction, extract the operands of the expression given by rcblock->expr
-(an operation node) and return them as operand_1, operand_2, and
-operand_3 (unneeded operands are set to NULL; the caller can use that
-also to rescan only selected operands, e.g., skip operand 1 but rescan
-operands 2 and 3).  Also return the operator position and operator
-token sequence number in *operator_position and
-*operator_tok_seq_number.  If operator_position_2 is non-NULL, return
-a secondary operator position (if any) in *operator_position_2.
-rcblock also gives context information for the template deduction
-being done, e.g., the template argument list being tried.
+(an enk_operation or enk_builtin_operation node) and return them as operand_1,
+operand_2, and operand_3 (unneeded operands are set to NULL; the caller can use
+that also to rescan only selected operands, e.g., skip operand 1 but rescan
+operands 2 and 3).  Also return the operator position and operator token
+sequence number in *operator_position and *operator_tok_seq_number.  If
+operator_position_2 is non-NULL, return a secondary operator position (if any)
+in *operator_position_2.  rcblock also gives context information for the
+template deduction being done, e.g., the template argument list being tried.
 */
 {
   an_expr_node_ptr              expr = rcblock->expr, op1, op2, op3;
   an_expr_rescan_info_entry_ptr eriep;
   an_expr_rescan_info_entry     rescan_info;
+  a_boolean                     is_operation;
 
-  check_assertion(expr != NULL &&
-                  (is_operation_node(expr) ||
-                   expr->kind == (an_expr_node_kind)enk_builtin_operation));
+  check_assertion(expr != NULL);
+  is_operation = is_operation_node(expr);
+  check_assertion(is_operation ||
+                  expr->kind == (an_expr_node_kind)enk_builtin_operation);
   eriep = get_expr_rescan_info(expr, &rescan_info);
-  op1 = expr->variant.operation.operands;
+  op1 = is_operation ? expr->variant.operation.operands
+                     : expr->variant.builtin_operation.operands;
   if (operand_1 != NULL) {
     a_local_expr_options_set local_options = EOPT_NO_OPTIONS;
-    if (node_operator_is(expr, eok_address_of)) {
+    if (is_operation && node_operator_is(expr, eok_address_of)) {
       local_options |= EOPT_OPERAND_OF_ADDRESS_OF;
     }  /* if */
     make_rescan_operand_full(op1, rcblock, local_options,
