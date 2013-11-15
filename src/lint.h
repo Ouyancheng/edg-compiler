@@ -727,6 +727,10 @@ extern int fileno(FILE *);
 /*lint -esym(769,ec_vector_size_attribute_on_enum_type)*/
 /*lint -esym(769,ec_incompatible_vectors_conversion)*/
 /*lint -esym(769,ec_vector_template_parameter)*/
+/*lint -esym(769,ec_operand_must_be_vector)*/
+/*lint -esym(769,ec_incompatible_shuffle_source_operands)*/
+/*lint -esym(769,ec_nonintegral_shuffle_mask)*/
+/*lint -esym(769,ec_incompatible_shuffle_mask)*/
 /*lint -esym(769,a_builtin_operation_kind_tag::bok_builtin_shuffle)*/
 #endif /* !GNU_VECTOR_TYPES_ALLOWED */
 /*lint -esym(759,find_local_scope)*/
