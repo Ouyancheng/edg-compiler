@@ -1,5 +1,24 @@
 Version 4.9
 
+11/15/13 [EDGcpfe/7624,EDGcpfe/13759,EDGcpfe/14520]
+Lookup should include dependent base classes in specializations of templates
+
+As clarified by core issue 544, in an explicit specialization, lookup
+should include dependent base classes.  This is now implemented for
+full specializations.  It is not yet implemented for specializations
+of member templates.
+
+  template <class C> struct A : public C {
+    int f();
+  };
+  struct D {
+    int i;
+  };
+  template <> int A<D>::f() {
+    return i;
+  }
+
+
 11/15/13 [EDGcpfe/14580]
 GNU compatibility: __builtin_shuffle
 
