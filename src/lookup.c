@@ -2428,9 +2428,10 @@ lookup processing.
        are generated from templates. */
     lookup_state->look_for_projected_symbol = TRUE;
     lookup_state->look_in_dependent_bases =
-                       depth_innermost_instantiation_scope == NO_SCOPE_DEPTH ||
-                       lookup_state->force_lookup_in_dependent_bases ||
-                       !is_unspecialized_template_class(ssep->assoc_type);
+                      (depth_innermost_instantiation_scope == NO_SCOPE_DEPTH &&
+                       depth_template_declaration_scope == NO_SCOPE_DEPTH) ||
+                      lookup_state->force_lookup_in_dependent_bases ||
+                      !is_unspecialized_template_class(ssep->assoc_type);
 #if MICROSOFT_EXTENSIONS_ALLOWED
     /* If lookup begins in a C++/CLI class, base interface classes are not
        considered. */
@@ -2598,9 +2599,10 @@ that do normal id lookup processing.
            a generated template class. */
         lookup_state->look_for_projected_symbol = TRUE;
         lookup_state->look_in_dependent_bases =
-                       depth_innermost_instantiation_scope == NO_SCOPE_DEPTH ||
-                       lookup_state->force_lookup_in_dependent_bases ||
-                       !is_unspecialized_template_class(ssep->assoc_type);
+                      (depth_innermost_instantiation_scope == NO_SCOPE_DEPTH &&
+                       depth_template_declaration_scope == NO_SCOPE_DEPTH) ||
+                      lookup_state->force_lookup_in_dependent_bases ||
+                      !is_unspecialized_template_class(ssep->assoc_type);
 #if MICROSOFT_EXTENSIONS_ALLOWED
         /* If lookup begins in a C++/CLI class, base interface classes are not
            considered. */
