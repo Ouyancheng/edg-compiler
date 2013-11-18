@@ -26685,11 +26685,14 @@ bits of information that were acquired while parsing.
     /* Check to see if a remark should be issued on direct base classes
        with nonvirtual destructors. */
     check_base_class_destructors(class_state);
-    /* Create compiler-generated default constructor, copy constructor,
-       destructor, and assignment operator, if any is needed. */
-    check_special_member_functions(class_type, class_state);
-    if (class_state->has_inheriting_constructors) {
-      generate_inheriting_constructors(class_state);
+    if (!class_type->variant.class_struct_union.
+                                           is_ms_instantiated_nonreal_class) {
+      /* Create compiler-generated default constructor, copy constructor,
+         destructor, and assignment operator, if any is needed. */
+      check_special_member_functions(class_type, class_state);
+      if (class_state->has_inheriting_constructors) {
+        generate_inheriting_constructors(class_state);
+      }  /* if */
     }  /* if */
     if (cssp->is_class_aggregate && !class_state->POD_ruled_out) {
       /* It was intentional to wait until check_special_member_functions

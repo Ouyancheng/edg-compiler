@@ -1,5 +1,39 @@
 Version 4.9
 
+11/17/13 [EDGcpfe/14683]
+Microsoft compatibility: regression on template friend function declarations
+
+Version 4.7 fixed a problem with template friend declarations in nonreal
+classes used as base classes in Microsoft mode.  That change introduced
+a regression when there were multiple friend function template declarations
+with the same name.
+
+  template <typename T> class A {
+    template <typename U> friend void f(U);
+    template <typename U> friend void f(U*);
+  };
+  template <typename T> class B : public A<T> {};
+
+
+11/17/13 [EDGcpfe/14683]
+Microsoft compatibility: regression on using declaration in Microsoft nonreal
+class
+
+Version 4.5 introduced a change that caused certain nonreal classes
+used as base classes to be have actual instantiations done on them
+in Microsoft mode.  This could result in spurious "has already been
+declared" errors in Microsoft mode when a class instantiated in that
+way contained using-declaration of an implicitly declared operator=.
+Now fixed.
+
+  template <typename T> class A;
+  template <typename T> class B : public A<T> {
+    typedef A<T> Base;
+    using Base::operator =;
+  };
+  template <typename T> class C : public B<T> { };
+
+
 11/15/13 [EDGcpfe/14569]
 GNU mode implicit routine aliasing
 

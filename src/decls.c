@@ -9142,7 +9142,8 @@ definition of a member function of a class template.
   a_memory_region_number            region_to_switch_back_to;
   a_boolean                         changed_to_inline = FALSE;
   a_boolean                         set_invisible = FALSE;
-  a_boolean			    in_prototype_instantiation;
+  a_boolean			    in_template_dependent_context;
+  a_boolean			    in_nonreal_instantiation;
   a_boolean			    redeclaration = FALSE;
   an_id_linkage_block               idlb;
   a_boolean                         microsoft_out_of_class_redecl;
@@ -9171,9 +9172,11 @@ definition of a member function of a class template.
   idlb.type = type_ptr;
   idlb.locator = locator;
   set_linkage_environment(&idlb, orig_decl_level);
-  in_prototype_instantiation =
+  in_nonreal_instantiation =
+               scope_stack[idlb.effective_decl_level].in_nonreal_instantiation;
+  in_template_dependent_context =
           scope_stack[idlb.effective_decl_level].in_prototype_instantiation ||
-          scope_stack[idlb.effective_decl_level].in_nonreal_instantiation ||
+          in_nonreal_instantiation ||
           scope_stack[idlb.effective_decl_level].in_generic_definition;
   if (idlb.is_friend_decl && !friend_function_injection_enabled &&
       (!gpp_mode || locator->is_operator_name)) {
@@ -9194,7 +9197,7 @@ definition of a member function of a class template.
       pos_error(ec_inherited_member_not_allowed, &locator->source_position);
       sym = NULL;
       set_to_error_locator(*locator);
-    } else if (in_prototype_instantiation) {
+    } else if (in_template_dependent_context) {
       /* Don't attempt to match a friend declaration while processing
          a prototype instantiation. */
       if (!idlb.is_friend_decl) {
@@ -9336,7 +9339,7 @@ definition of a member function of a class template.
       pos_sy_error(ec_bad_scope_for_definition,
                    &locator->source_position, locator->specific_symbol);
     } else if (idlb.is_friend_decl &&
-               (!func_info->is_definition || in_prototype_instantiation)) {
+               (!func_info->is_definition || in_template_dependent_context)) {
       /* Don't check the scope if this is a friend declaration unless it
          is a definition during a real instantiation. */
     } else if (!namespace_is_enclosed_by_scope(sym,
@@ -9361,7 +9364,7 @@ definition of a member function of a class template.
        Furthermore, for definitions of namespace-qualified names, be sure
        this is a valid scope for the definition (7.3.1.4). */
     /* Look up the name. */
-    if (in_prototype_instantiation) {
+    if (in_template_dependent_context) {
       /* Don't try to find a matching qualified name for a friend declaration
          in a prototype instantiation. */
     } else {
@@ -9444,8 +9447,8 @@ definition of a member function of a class template.
         /* Avoid overloading. */
         homonym_symbol = NULL;
       }  /* if */
-      if (proxy_member_friend ||
-          (in_prototype_instantiation && locator->is_qualified_name)) {
+      if (proxy_member_friend || in_nonreal_instantiation ||
+          (in_template_dependent_context && locator->is_qualified_name)) {
         /* A member template of a (dependent) proxy class was named as a
            friend or a qualified friend declaration in a prototype
            instantiation.  Create a dummy symbol for it (it will not be
