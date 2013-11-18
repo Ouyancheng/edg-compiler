@@ -1544,7 +1544,7 @@ template instances.
     a_type_ptr tp = (a_type_ptr)scp;
     a_boolean  skipping_unnamed_types = TRUE;
     while (skipping_unnamed_types) {
-      tp = skip_typerefs_not_typedefs(tp);
+      tp = skip_typerefs_not_typedefs_or_type_operators(tp);
       if (tp->kind == (a_type_kind)tk_pointer) {
         tp = tp->variant.pointer.type;
       } else if (tp->kind == (a_type_kind)tk_array) {
@@ -1556,7 +1556,13 @@ template instances.
     scp = &tp->source_corresp;
   }  /* if */
   parent_class= scp->is_class_member ? scp_parent_class(scp) : NULL;
-  if (scp->access == (an_access_specifier)as_public) {
+  if (kind == iek_type && ((a_type_ptr)scp)->kind == (a_type_kind)tk_typeref &&
+      typeref_is_type_operator((a_type_ptr)scp)) {
+    /* Rather than trying to deal with all the complexities of expression
+       operands of type operators, for safety's sake treat all type
+       operators as inaccessible. */
+    is_accessible = FALSE;
+  } else if (scp->access == (an_access_specifier)as_public) {
     /* Either a public class member or a non-member. */
     is_accessible = TRUE;
   } else if (!ignore_context) {
@@ -3301,7 +3307,8 @@ is called.
        the long typedef member name.  However, we must be careful to keep a
        typedef that is needed for accessibility or where it supplies a
        linkage specification. */
-    a_type_ptr underlying_type = skip_typerefs(type);
+    a_type_ptr underlying_type =
+      skip_typerefs_not_typedefs_or_type_operators(type->variant.typeref.type);
 
     invisible = TRUE;
     if (type_involves_non_cplusplus_function(underlying_type)) {
@@ -3320,23 +3327,6 @@ is called.
       /* The typedef refers to a vector type and should be used. */
       invisible = FALSE;
 #endif /* GNU_VECTOR_TYPES_ALLOWED */
-    } else {
-      for (underlying_type = type->variant.typeref.type;
-           underlying_type != NULL &&
-                              underlying_type->kind == (a_type_kind)tk_typeref;
-           underlying_type = underlying_type->variant.typeref.type) {
-        if (typeref_is_type_operator(underlying_type)) {
-          /* The operand or result of a decltype, __underlying_type, or typeof
-             can refer to inaccessible names, so we should just use the
-             original typedef. */
-          invisible = FALSE;
-          break;
-        } else if (typeref_is_typedef(underlying_type)) {
-          /* We've reached another typedef; use it (leave the current one
-             as invisible). */
-          break;
-        }  /* if */
-      }  /* for */
     }  /* if */
   }  /* if */
   return invisible;

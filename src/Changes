@@ -1,5 +1,29 @@
 Version 4.9
 
+11/18/13 [EDGcpfe/14681]
+C++-generating back end: private typedefs in template arguments
+
+In cases in which a publicly-accessible typedef refers to an inaccessible
+typedef and the public typedef is used as a template argument, the
+C++-generating back end sometimes generated the template argument using
+inaccessible names.  This is now fixed.  For example:
+
+  template<typename T> struct A { };
+  template<typename T> class B {
+    static T* f(T*);
+    typedef decltype(f((T*)0)) P0;
+    typedef P0 P1;
+  public:
+    typedef P1 P2;
+  };
+  struct C {
+    struct D { };
+    typedef B<D>::P2 P3;
+    typedef A<P3> AP3;    // Previously generated as
+                          // A<decltype(B<D>::f(D*)0)>, now as A<B<D>::P2>
+  };
+
+
 11/18/13 [EDGcpfe/14674]
 Spurious error on uninitialized subobject in GNU SFINAE context
 
