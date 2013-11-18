@@ -884,7 +884,7 @@ Install the keywords in the symbol table.
     enter_gnu_keyword((a_token_kind)tok_volatile, "__volatile");
     enter_keyword((a_token_kind)tok_ext_alignof, "__alignof");
 #if GNU_VECTOR_TYPES_ALLOWED
-    if (gnu_version >= (gcc_mode ? 40700 : 40800)) {
+    if (gnu_version >= (unsigned long)(gcc_mode ? 40700 : 40800)) {
       enter_keyword((a_token_kind)tok_builtin_shuffle, "__builtin_shuffle");
     }  /* if */
 #endif /* GNU_VECTOR_TYPES_ALLOWED */

@@ -11598,12 +11598,10 @@ __builtin_shuffle construct.
      from the "rescan" structures. */
   if (rcblock != NULL) {
     /* Redoing semantic analysis on a previously-scanned expression. */
-    an_expr_node_ptr              expr = rcblock->expr, arg_list;
-    an_expr_rescan_info_entry_ptr eriep;
+    an_expr_node_ptr  expr = rcblock->expr, arg_list;
     check_assertion(expr->kind == (an_expr_node_kind)enk_builtin_operation &&
                     expr->variant.builtin_operation.kind ==
                                 (a_builtin_operation_kind)bok_builtin_shuffle);
-    eriep = get_expr_rescan_info(expr, (an_expr_rescan_info_entry *)NULL);
 #if EXTRA_SOURCE_POSITIONS_IN_IL
     end_pos = expr->expr_range.end;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
