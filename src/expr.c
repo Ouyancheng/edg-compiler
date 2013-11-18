@@ -3611,9 +3611,10 @@ This routine may also diagnose certain invalid uses of special GNU functions
   a_routine_ptr rp = routine_from_function_operand(op);
 
   if (rp != NULL && rp->implicit_alias && gcc_mode && gnu_version < 40500) {
-    /* This is a user-defined routine that is implicitly assumed equivalent to
-       a built-in function (recorded in rp->aliased_routine).  GNU C 4.4.x and
-       earlier (but not GNU C++) folds calls to such routines early. */
+    /* This is a user-defined routine that is implicitly assumed equivalent
+       to a built-in function (recorded in rp->aliased_routine).  Versions of
+       GNU C (but not GNU C++) prior to 4.5 fold calls to such routines
+       early. */
     rp = rp->aliased_routine;
   }  /* if */
   *foldable = *pseudo_call = FALSE;
