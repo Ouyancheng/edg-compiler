@@ -32,14 +32,14 @@ with the same name.
 
 
 11/17/13 [EDGcpfe/14683]
-Microsoft compatibility: regression on using declaration in Microsoft nonreal
+Microsoft compatibility: regression on using-declaration in Microsoft nonreal
 class
 
 Version 4.5 introduced a change that caused certain nonreal classes
-used as base classes to be have actual instantiations done on them
+used as base classes to have actual instantiations done on them
 in Microsoft mode.  This could result in spurious "has already been
 declared" errors in Microsoft mode when a class instantiated in that
-way contained using-declaration of an implicitly declared operator=.
+way contained a using-declaration of an implicitly declared operator=.
 Now fixed.
 
   template <typename T> class A;
