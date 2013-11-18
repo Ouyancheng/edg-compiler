@@ -17951,7 +17951,10 @@ selection operator, in which case it points to the type of the left operand.
                  argument list. */
               lookup_options |= IDL_TYPENAME_LOOKUP;
               if ((next_tok == tok_lt || is_template) &&
-                  use_implicit_typename()) {
+                  (gpp_mode || use_implicit_typename())) {
+                /* When implicit typename is used, and in g++ mode, in a
+                   name prefixed by "typename", treat a "<" as the start
+                   of a template argument list. */
                 lookup_options |= IDL_TREAT_AS_TEMPLATE_ID;
               }  /* if */
             } else if ((use_implicit_typename() ||

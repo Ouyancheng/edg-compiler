@@ -1,5 +1,21 @@
 Version 4.9
 
+11/18/13 [EDGcpfe/13075,EDGcpfe/14641]
+GNU C++ compatibility: treat "<" as start of template argument list in
+typename contexts
+
+Some of the g++ 4.8 headers contain code similar to the example below
+in which a "template" keyword is missing before B<U> in the alias
+template declaration.  We now accept this in g++ mode.
+
+  template<typename T> struct A {
+    template<typename U> class B {};
+  };
+  template<typename T> struct A<T*> {
+    template<typename U> using my_B = typename A<T>::B<U>;
+  };
+
+
 11/17/13 [EDGcpfe/14683]
 Microsoft compatibility: regression on template friend function declarations
 
