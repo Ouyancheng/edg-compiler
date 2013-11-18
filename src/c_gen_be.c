@@ -5321,8 +5321,10 @@ there's some possibility of precedence confusion and need_parens is TRUE.
       check_assertion(expr->variant.operation.type_kind !=
                                                 (a_type_kind)tk_ptr_to_member);
 #if LOWER_COMPLEX
-      check_assertion(expr->variant.operation.type_kind != 
-                                                      (a_type_kind)tk_complex);
+      check_assertion(expr->variant.operation.type_kind !=
+                                                     (a_type_kind)tk_complex &&
+                      expr->variant.operation.type_kind !=
+                                                    (a_type_kind)tk_imaginary);
 #endif /* LOWER_COMPLEX */
 #if LOWER_FIXED_POINT
       check_assertion(expr->variant.operation.type_kind != 
@@ -5953,9 +5955,9 @@ process_assignment:
                   internal_error("dump_expr: unwidened integer argument");
                 }  /* if */
               } else if (arg_type->kind == (a_type_kind)tk_float
-#if C99_IL_EXTENSIONS_SUPPORTED
+#if C99_IL_EXTENSIONS_SUPPORTED && !LOWER_COMPLEX
                          || arg_type->kind == (a_type_kind)tk_imaginary
-#endif /* C99_IL_EXTENSIONS_SUPPORTED */
+#endif /* C99_IL_EXTENSIONS_SUPPORTED && !LOWER_COMPLEX */
                                                                        ) {
                 a_float_kind fkind = arg_type->variant.float_kind;
                 if (fkind == (a_float_kind)fk_float) {

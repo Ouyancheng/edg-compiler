@@ -13286,6 +13286,10 @@ Lower the type_kind of the operation node as appropriate.
       /* Complex assignment becomes structure assignment. */
       expr->variant.operation.type_kind = (a_type_kind)tk_struct;
       break;
+    case tk_imaginary:
+      /* Imaginary types are lowered to float types. */
+      expr->variant.operation.type_kind = (a_type_kind)tk_float;
+      break;
 #endif /* LOWER_COMPLEX */
     case tk_ptr_to_member:
       /* Pointer-to-member assignment turns into integer assignment for

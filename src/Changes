@@ -1,5 +1,19 @@
 Version 4.9
 
+11/18/13 [EDGcpfe/14670]
+Lowering of expressions with tk_imaginary type
+
+When LOWER_COMPLEX is TRUE, the types of imaginary expressions are lowered
+to a typedef for the appropriate floating-point type, but the type_kind field
+associated with the lowered expressions had remained tk_imaginary (see
+EDGcpfe/9097).  A change has been made to lower the type_kind to tk_float.
+For example (with --c99):
+
+  _Complex float f(float r, float i) {
+    return r + (i * __I__);
+  }
+
+
 11/18/13 [EDGcpfe/14681]
 C++-generating back end: private typedefs in template arguments
 
