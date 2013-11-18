@@ -13916,8 +13916,7 @@ the destructor or finalizer is part of a qualified name (e.g., "A::B::~B").
         decltype_tp = locator_for_curr_id.variant.decltype_type;
         if (acceptable_dtor_or_finalizer_type(field_sel_type, decltype_tp)) {
           dtor_or_finalizer_okay = TRUE;
-          if ((field_sel_type != NULL &&
-               is_template_dependent_type(field_sel_type)) ||
+          if (is_template_dependent_type(field_sel_type) ||
               is_template_dependent_type(decltype_tp)) {
             /* Use the proxy class in place of a dependent decltype.  */
             decltype_tp = proxy_class_for_template_param(decltype_tp);
