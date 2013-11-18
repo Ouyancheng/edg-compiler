@@ -16672,7 +16672,19 @@ expression, and return the result in *result (or an error indication in
       /* A non-class type or a POD class with no user-declared constructor.
          Check for error cases like const entities not being initialized
          (since there is no initializer). */
-      if (!err) check_for_missing_initializer((a_symbol_ptr)NULL, new_type);
+      if (!err) {
+        a_boolean  *p_err = NULL;
+        if (expr_stack->suppress_diagnostics) {
+          /* Don't issue diagnostics in SFINAE contexts. */
+          p_err = &err;
+        }  /* if */
+        check_for_missing_initializer_full((a_symbol_ptr)NULL, new_type,
+                                           /*explicitly_internal=*/FALSE,
+                                           p_err);
+        if (err) {
+          expr_stack->any_suppressed_error = TRUE;
+        }  /* if */
+      }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
       if (is_gcnew) {
         /* Check to see if this is a fundamental, value, or cli enum type

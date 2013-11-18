@@ -73,11 +73,13 @@ extern a_constructor_init_ptr dtor_initializer(a_routine_ptr  dtor_rout);
 extern void check_for_missing_initializer_full(
                                            a_symbol_ptr  sym,
                                            a_type_ptr    type,
-                                           a_boolean     explicitly_internal);
+                                           a_boolean     explicitly_internal,
+                                           a_boolean     *err);
 
 #define check_for_missing_initializer(sym, type)                             \
   (check_for_missing_initializer_full(sym, type,                             \
-                                      /*explicitly_internal=*/FALSE))
+                                      /*explicitly_internal=*/FALSE,         \
+                                      (a_boolean*)NULL))
 
 extern
 void scan_compound_literal_initializer(a_decl_parse_state  *dps,

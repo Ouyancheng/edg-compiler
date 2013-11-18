@@ -7596,16 +7596,18 @@ past_subobject_destructions:
 
 void check_for_missing_initializer_full(a_symbol_ptr  sym,
                                         a_type_ptr    type,
-                                        a_boolean     explicitly_internal)
+                                        a_boolean     explicitly_internal,
+                                        a_boolean     *err)
 /*
 This routine is called when no explicit, value, or default initialization has
-occurred.  It determines whether an initializer should have been provided
-and issues a diagnostic if appropriate.  It is used both for variable
-declarations (when sym represents the variable) and for unnamed objects that
-are created by a new expression (in which case sym is NULL).  In both cases
-"type" points to the type of the object.  explicitly_internal is TRUE in the
-case of a variable declaration that has internal linkage because of the
-explicit presence of a "static" storage class specifier. 
+occurred.  It determines whether an initializer should have been provided and,
+if so, sets *err to TRUE if err is non-NULL or issues a diagnostic otherwise.
+It is used both for variable declarations (when sym represents the variable)
+and for unnamed objects that are created by a new-expression or a functional
+notation cast (in which case sym is NULL).  In both cases "type" points to the
+type of the object.  explicitly_internal is TRUE in the case of a variable
+declaration that has internal linkage because of the explicit presence of a
+"static" storage class specifier. 
 */
 {
   a_variable_ptr       vp;
@@ -7620,10 +7622,12 @@ explicit presence of a "static" storage class specifier.
     /* This must be a variable or static data member declaration. */
     check_assertion(sym->kind == (a_symbol_kind)sk_variable ||
                     sym->kind == (a_symbol_kind)sk_static_data_member);
+    /* For such declarations, diagnostics should always be enabled. */
+    check_assertion(err == NULL);
     vp = (sym->kind == (a_symbol_kind)sk_variable) ? 
           sym->variant.variable.ptr : sym->variant.static_data_member.variable;
   } else {
-    /* This must be a "new" expression. */
+    /* This must be a "new" expression or functional-notation cast. */
     vp = NULL;
   }  /* if */
   if (is_any_reference_type(type)) {
@@ -7745,12 +7749,27 @@ explicit presence of a "static" storage class specifier.
              a user-declared default constructor must be present (WP 5.3.4
              [expr.new]). */
           check_assertion(!type_has_user_provided_default_constructor(type));
-          pos_ty_diagnostic(es_discretionary_error,
-                            ec_missing_default_constructor_on_unnamed_const,
-                            &error_position, skip_typerefs(type));
+          if (err != NULL) {
+            if (is_effective_error(
+                              ec_missing_default_constructor_on_unnamed_const,
+                              es_discretionary_error)) {
+              *err = TRUE;
+            }  /* if */
+          } else {
+            pos_ty_diagnostic(es_discretionary_error,
+                              ec_missing_default_constructor_on_unnamed_const,
+                              &error_position, skip_typerefs(type));
+          }  /* if */
         } else {
-          diagnostic(es_discretionary_error,
-                     ec_missing_initializer_on_unnamed_const);
+          if (err != NULL) {
+            if (is_effective_error(ec_missing_initializer_on_unnamed_const,
+                                   es_discretionary_error)) {
+              *err = TRUE;
+            }  /* if */
+          } else {
+            diagnostic(es_discretionary_error,
+                       ec_missing_initializer_on_unnamed_const);
+          }  /* if */
         }  /* if */
       }  /* if */
     }  /* if */
@@ -7807,8 +7826,15 @@ explicit presence of a "static" storage class specifier.
           pos_sy_diagnostic(severity, code, &sym->decl_position, sym);
         } else {
           /* New object -- there's no name to display. (C++ only.) */
-          diagnostic(es_discretionary_error,
-                     ec_unnamed_object_with_uninitialized_field);
+          if (err != NULL) {
+            if (is_effective_error(ec_missing_initializer_on_unnamed_const,
+                                   es_discretionary_error)) {
+              *err = TRUE;
+            }  /* if */
+          } else {
+            diagnostic(es_discretionary_error,
+                       ec_unnamed_object_with_uninitialized_field);
+          }  /* if */
         }  /* if */
       }  /* if */
     }  /* if */

@@ -5836,7 +5836,7 @@ any_suppressed_error flag in the expression stack.
 
 a_boolean expr_error_should_be_issued(void)
 /*
-Return TRUE if an error with the indicated severity should be issued.
+Return TRUE unless errors are suppressed because we're in SFINAE rescanning.
 Should not be called for access errors.
 */
 {

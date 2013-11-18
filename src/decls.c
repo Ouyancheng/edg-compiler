@@ -16208,7 +16208,8 @@ if one is present.
                                        state->declared_storage_class ==
                                                    (a_storage_class)sc_static;
       check_for_missing_initializer_full(state->sym, state->type,
-                                         explicitly_internal);
+                                         explicitly_internal,
+                                         (a_boolean*)NULL);
       if (symbol_is(state->sym, sk_variable)) {
         if (!var_ptr->source_corresp.is_local_to_function ||
             var_ptr->storage_class == (a_storage_class)sc_static ||
