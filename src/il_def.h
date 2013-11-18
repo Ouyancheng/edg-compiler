@@ -14208,7 +14208,7 @@ enum an_expr_operator_kind_tag {
 			   pointer to the first element of the array and the
 			   integral subscript value, in either order. */
   eok_vector_subscript,	/* GNU vector subscripting operation.  The first
-			   operand is the GNU vector, and the second in the
+			   operand is the GNU vector, and the second is the
 			   integral subscript value. */
   eok_dot_field,	/* Selection of a nonstatic data member of a class,
 			   source form x.y.  The first operand is an lvalue

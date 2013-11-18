@@ -158,8 +158,10 @@ In GNU modes with gnu_version >= 40600, the front end now accepts expressions
 using the subscript notation on GNU vectors.  For example:
 
   typedef __attribute((vector_size(16))) int V4I;
-  V4I v = { 1, 2, 3, 4 };
-  int i = v[2];  // Now accepted in some GNU C++ modes.
+  int g() {
+    V4I v = { 1, 2, 3, 4 };
+    return v[2];  // Now accepted in some GNU modes.
+  }
 
 This new subscripting operation is represented using a distinct (and new)
 operation code eok_vector_subscript.
