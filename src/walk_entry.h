@@ -1191,9 +1191,9 @@ the file scope, do not process it (but record an orphan in the latter case).
 #endif /* SEPARATE_ROUTINES_FOR_FILE_SCOPE_DYNAMIC_INITS */
 #if USE_LAZY_INITIALIZATION_FOR_THREAD_LOCAL_VARIABLES
         if (ptr->is_thread_local) {
-          remap_ptr(ptr->init_routine.thread_local.init_routine,
+          remap_ptr(ptr->init_routine.thread.init_routine,
                     a_routine_ptr, iek_routine);
-          remap_ptr(ptr->init_routine.thread_local.wrapper,
+          remap_ptr(ptr->init_routine.thread.wrapper,
                     a_routine_ptr, iek_routine);
         }  /* if */
 #endif /* USE_LAZY_INITIALIZATION_FOR_THREAD_LOCAL_VARIABLES */

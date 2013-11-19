@@ -1,5 +1,12 @@
 Version 4.9
 
+11/19/13 [EDGcpfe/14689]
+Remove use of "thread_local" as an identifier
+
+"thread_local" had been used as an identifier in the front end, and has now
+been renamed to avoid conflicts with the "thread_local" keyword.
+
+
 11/18/13 [EDGcpfe/14670]
 Lowering of expressions with tk_imaginary type
 

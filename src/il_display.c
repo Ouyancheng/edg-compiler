@@ -2847,15 +2847,15 @@ Display the indicated variable.
 #endif /* SEPARATE_ROUTINES_FOR_FILE_SCOPE_DYNAMIC_INITS */
 #if USE_LAZY_INITIALIZATION_FOR_THREAD_LOCAL_VARIABLES
   if (ptr->is_thread_local &&
-      ptr->init_routine.thread_local.init_routine != NULL) {
+      ptr->init_routine.thread.init_routine != NULL) {
     disp_ptr("init_routine",
-             (char *)ptr->init_routine.thread_local.init_routine,
+             (char *)ptr->init_routine.thread.init_routine,
              iek_routine);
   }  /* if */
   if (ptr->is_thread_local &&
-      ptr->init_routine.thread_local.wrapper != NULL) {
+      ptr->init_routine.thread.wrapper != NULL) {
     disp_ptr("wrapper",
-             (char *)ptr->init_routine.thread_local.wrapper,
+             (char *)ptr->init_routine.thread.wrapper,
              iek_routine);
   }  /* if */
 #endif /* USE_LAZY_INITIALIZATION_FOR_THREAD_LOCAL_VARIABLES */

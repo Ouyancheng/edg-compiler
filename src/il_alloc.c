@@ -2309,8 +2309,8 @@ Clear the fields of the given variable to default values.
   vp->init_routine.dynamic_init_routine = NULL;
 #endif /* SEPARATE_ROUTINES_FOR_FILE_SCOPE_DYNAMIC_INITS */
 #if USE_LAZY_INITIALIZATION_FOR_THREAD_LOCAL_VARIABLES
-  vp->init_routine.thread_local.init_routine = NULL;
-  vp->init_routine.thread_local.wrapper = NULL;
+  vp->init_routine.thread.init_routine = NULL;
+  vp->init_routine.thread.wrapper = NULL;
 #endif /* USE_LAZY_INITIALIZATION_FOR_THREAD_LOCAL_VARIABLES */
 }  /* clear_variable */
 

@@ -9621,7 +9621,7 @@ typedef struct a_variable {
 			/* If non-NULL, a pointer to the wrapper routine to
 			   call for dynamic initialization of this
 			   thread_local variable. */
-    } thread_local;
+    } thread;
 #endif /* USE_LAZY_INITIALIZATION_FOR_THREAD_LOCAL_VARIABLES */
   } init_routine;
 #endif /* SEPARATE_ROUTINES_FOR_FILE_SCOPE_DYNAMIC_INITS || USE_LAZY_... */

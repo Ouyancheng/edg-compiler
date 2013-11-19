@@ -15860,7 +15860,7 @@ data member is instantiated in this translation unit) -- this is fixed up later
   a_routine_ptr   init_routine;
   a_const_char    *init_name;
 
-  if (var->init_routine.thread_local.init_routine == NULL) {
+  if (var->init_routine.thread.init_routine == NULL) {
     /* This routine is an alias for the __tls_init routine. */
     init_name = make_prefixed_object_name(
 #if IA64_ABI
@@ -15882,9 +15882,9 @@ data member is instantiated in this translation unit) -- this is fixed up later
       init_routine->is_weak = TRUE;
     }  /* if */
 #endif /* LAZY_INITIALIZATION_USES_WEAK_REFERENCES && GNU_EXTENSIONS_ALLOWED */
-    var->init_routine.thread_local.init_routine = init_routine;
+    var->init_routine.thread.init_routine = init_routine;
   }  /* if */
-  return var->init_routine.thread_local.init_routine;
+  return var->init_routine.thread.init_routine;
 }  /* thread_local_init_routine_for_variable */
 
 #if !LAZY_INITIALIZATION_USES_WEAK_REFERENCES
@@ -15904,7 +15904,7 @@ does nothing.  This routine creates the do-nothing routine for such cases.
   a_memory_region_number
                   region_number;
 
-  check_assertion(var->init_routine.thread_local.init_routine == NULL);
+  check_assertion(var->init_routine.thread.init_routine == NULL);
   routine = thread_local_init_routine_for_variable(var);
   /* Make a memory region, scope, and block for the routine definition. */
   scope = make_routine_definition(routine, /*make_return=*/TRUE,
@@ -15945,7 +15945,7 @@ has not yet been defined, it is created here.
   an_insert_location     if_insert_location;
 #endif /* LAZY_INITIALIZATION_USES_WEAK_REFERENCES */
 
-  if (var->init_routine.thread_local.wrapper == NULL) {
+  if (var->init_routine.thread.wrapper == NULL) {
     /* Create the routine and give it a well-known name (based on the
        variable's name). */
     wrapper_name = make_prefixed_object_name(
@@ -16041,9 +16041,9 @@ has not yet been defined, it is created here.
     add_to_return_memo_list(return_stmt);
     /* Finish up. */
     pop_generated_routine_context(scope, region_number, &grcontext);
-    var->init_routine.thread_local.wrapper = wrapper_routine;
+    var->init_routine.thread.wrapper = wrapper_routine;
   }  /* if */
-  return var->init_routine.thread_local.wrapper;
+  return var->init_routine.thread.wrapper;
 }  /* thread_local_wrapper_for_variable */
 
 #endif /* USE_LAZY_INITIALIZATION_FOR_THREAD_LOCAL_VARIABLES */
@@ -16382,7 +16382,7 @@ enough to cause the back end to invoke the routine at initialization.
            the variable is created and marked as needed (the variable may not
            be used in this translation unit and if it is used in another
            translation unit, it'll invoke this alias). */
-        if (var->init_routine.thread_local.init_routine == NULL) {
+        if (var->init_routine.thread.init_routine == NULL) {
           (void)thread_local_init_routine_for_variable(var);
         } else {
           /* In the case of template static data members, it's possible that
@@ -16392,17 +16392,16 @@ enough to cause the back end to invoke the routine at initialization.
              instantiated, changing the storage class to sc_unspecified).
              Reflect that potential change in the storage class of the init
              routine. */
-          var->init_routine.thread_local.init_routine->storage_class =
+          var->init_routine.thread.init_routine->storage_class =
                                                             var->storage_class;
         }  /* if */
 #if ONE_INSTANTIATION_PER_OBJECT
-        var->init_routine.thread_local.init_routine->
+        var->init_routine.thread.init_routine->
                     instantiation_needed_bit_number =
                                           var->instantiation_needed_bit_number;
 #endif /* ONE_INSTANTIATION_PER_OBJECT */
 #if MAINTAIN_NEEDED_FLAGS
-        set_routine_definition_needed(
-                                  var->init_routine.thread_local.init_routine);
+        set_routine_definition_needed(var->init_routine.thread.init_routine);
 #endif /* MAINTAIN_NEEDED_FLAGS */
       }  /* if */
 #endif /* USE_LAZY_INITIALIZATION_FOR_THREAD_LOCAL_VARIABLES */
