@@ -1,5 +1,25 @@
 Version 4.9
 
+11/19/13 [EDGcpfe/14678]
+C++-generating back end: regression generating explicit invocation of
+dependent destructor
+
+In configurations with PROTOTYPE_INSTANTIATIONS_IN_IL set to TRUE, a change
+in version 4.8 inadvertently caused the C++-generating back end to generate
+incorrect code for an explicit call of a dependent destructor named using a
+typedef.  This is now fixed.  For example:
+
+  template<typename T> struct A {
+    typedef T type;
+  };
+  template<typename T> struct B {
+    typedef typename A<T>::type type;
+    void f(type *p) {
+      p->~type();   // Previously generated as "p->~typename A<T>::type()"
+    }
+  };
+
+
 11/19/13 [EDGcpfe/14689]
 Remove use of "thread_local" as an identifier
 

@@ -12119,8 +12119,10 @@ done_with_operation_after_parens:
       { a_constant_ptr constant = expr->variant.constant;
         if ((is_enum_constant(constant) ||
              (constant->kind == (a_constant_repr_kind)ck_template_param &&
-              constant->variant.template_param.kind ==
-                               (a_template_param_constant_kind)tpck_member)) &&
+              (constant->variant.template_param.kind ==
+                               (a_template_param_constant_kind)tpck_member ||
+               constant->variant.template_param.kind ==
+                          (a_template_param_constant_kind)tpck_destructor))) &&
             has_name_before_mangling(constant) &&
             gen_name_from_name_reference(expr->name_reference,
                                          &constant->source_corresp,
