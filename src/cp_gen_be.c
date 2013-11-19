@@ -1559,7 +1559,7 @@ template instances.
   if (kind == iek_type && ((a_type_ptr)scp)->kind == (a_type_kind)tk_typeref &&
       typeref_is_type_operator((a_type_ptr)scp)) {
     /* Rather than trying to deal with all the complexities of expression
-       operands of type operators, for safety's sake treat all type
+       operands of type operators, for safety's sake we treat all type
        operators as inaccessible. */
     is_accessible = FALSE;
   } else if (scp->access == (an_access_specifier)as_public) {
