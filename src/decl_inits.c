@@ -6880,8 +6880,8 @@ initialized.  These are addressed in the course of the processing.
         is_ref = TRUE;
       }  /* if */
       object_class_type = tp;
-      if (is_class_struct_union_type(tp)) {
-        cssp = symbol_supplement_for_class(tp);
+      if (is_immediate_class_type(tp)) {
+        cssp = class_symbol_supp(symbol_for(tp));
       }  /* if */
       if (!user_defined) {
         err_pos = cip->variant.field->source_corresp.decl_position;
@@ -6889,7 +6889,7 @@ initialized.  These are addressed in the course of the processing.
     } else {
       /* Get the type of the base class. */
       tp = cip->variant.base_class->type;
-      cssp = symbol_supplement_for_class(tp);
+      cssp = class_symbol_supp(symbol_for(tp));
       object_class_type = class_type;
       if (!user_defined) err_pos = cip->variant.base_class->decl_position;
     }  /* if */
@@ -7195,7 +7195,7 @@ initialized.  These are addressed in the course of the processing.
     /* Do processing for both implicitly and explicitly initialized members
        when exception handling is enabled. */
     if (exceptions_enabled) {
-      if (cssp != NULL) {
+      if (cssp != NULL && !tp->variant.class_struct_union.is_nonreal_class) {
         /* Since an exception could be thrown after this subobject is
            constructed but before construction of the entire object is
            complete, record the destructor in the dynamic-init entry. */

@@ -5967,13 +5967,13 @@ qualified_name_check:
                 dtor_type = proxy_class_for_template_param(dtor_type);
               }  /* if */
               cssp_for_dtor = symbol_supplement_for_class(dtor_type);
-              if (cssp_for_dtor->destructor == NULL) {
-                cssp_for_dtor->destructor =
-                        create_proxy_or_nonreal_class_member_of_kind(
+              if (cssp_for_dtor->destructor != NULL) {
+                member_sym = cssp_for_dtor->destructor;
+              } else {
+                member_sym = create_proxy_or_nonreal_class_member_of_kind(
                                         dtor_type, (a_symbol_kind)sk_constant, 
                                         IDL_NO_OPTIONS, &locator_for_curr_id);
               }  /* if */
-              member_sym = cssp_for_dtor->destructor;
             } else {
               /* The left operand is dependent (but not the right operand):
                  Create the destructor representation in the proxy class type

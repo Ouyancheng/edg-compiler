@@ -1,5 +1,15 @@
 Version 4.9
 
+11/20/13 [EDGcpfe/14693]
+Abort during call to reference_to_implicitly_invoked_function in complex
+template code
+
+In complex template code, version 4.8 of the front end sometimes aborted with
+an internal error in reference_to_implicitly_invoked_function (symbol_ref.c)
+called from select_destructor_full (symbol_tbl.c).  This regression (introduced
+by the changes for EDGcpfe/10610) is now fixed.
+
+
 11/20/13 [EDGcpfe/13676]
 Microsoft compatibility: resolution of ambiguous qualifier in a class member
 access
