@@ -1,5 +1,13 @@
 Version 4.9
 
+11/20/13 [EDGcpfe/14643,EDGcpfe/14646,EDGcpfe/14688]
+GNU compatibility: __builtin_ia32_pshufw and __builtin_ia32_vec_ext_v8hi
+
+The recently added builtins __builtin_ia32_pshufw and
+__builtin_ia32_vec_ext_v8hi (see EDGcpfe/14528,EDGcpfe/14557) had incorrect
+function signatures which have now been corrected.
+
+
 11/20/13 [EDGcpfe/14682]
 Definition of "standard layout"
 
@@ -1052,7 +1060,7 @@ Additionally, these builtin functions now have updated signatures when
 gnu_version >= 40500: __builtin_ia32_vec_ext_v16qi and
 __builtin_ia32_vec_set_v16qi.
 
-Undocumented builtin functions __builtin_ia32_pshufhw,
+Undocumented builtin functions __builtin_ia32_pshufw,
 __builtin_ia32_vec_set_v4hi, __builtin_ia32_vec_ext_v8hi,
 __builtin_ia32_vec_set_v8hi, and __builtin_ia32_pfrsqit1 have also been
 implemented.

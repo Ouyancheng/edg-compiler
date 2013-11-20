@@ -1751,9 +1751,9 @@ extensions.)
   enter_gnu_builtin_func4(_ia32_addcarryx_u64, unsigned_char,
                           unsigned_char, unsigned_long, unsigned_long,
                           unsigned_long_long_star);
-  enter_gnu_builtin_func2(_ia32_pshufw, v8hi, v8hi, int);
+  enter_gnu_builtin_func2(_ia32_pshufw, v4hi, v4hi, int);
   enter_gnu_builtin_func3(_ia32_vec_set_v4hi, v4hi, v4hi, hi, int);
-  enter_gnu_builtin_func2(_ia32_vec_ext_v8hi, hi, v8hi, si);
+  enter_gnu_builtin_func2(_ia32_vec_ext_v8hi, hi, v8hi, int);
   enter_gnu_builtin_func3(_ia32_vec_set_v8hi, v8hi, v8hi, hi, int);
 }  /* enter_builtin_ia32_vector_functions */
 
