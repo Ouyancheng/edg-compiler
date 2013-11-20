@@ -12935,7 +12935,7 @@ static void set_member_function_name_linkage(a_symbol_ptr       sym,
                                              a_source_position  *diag_pos)
 /*
 Record and check the name linkage for a declaration of the given member
-function (this is the name linkage of the function; not of its type).
+function (this is the name linkage of the function, not of its type).
 is_inline is TRUE for inline member functions.  Any diagnostics should be
 issued at the given position.
 */
@@ -13539,7 +13539,7 @@ implicitly declared member functions.
       if (!decl_info->is_trivial_default_constructor) {
         /* Although it is not a template, it is an instantiatable function
            and hence we create a placeholder a_template entry for it.  (Trivial
-           default constructors are not linked in the IL and hence do no need
+           default constructors are not linked in the IL and hence do not need
            that information.) */
         a_template_ptr  templ = alloc_template();
         templ->kind = (a_template_kind)templk_member_function;
