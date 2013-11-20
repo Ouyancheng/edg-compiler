@@ -12930,6 +12930,51 @@ Otherwise, the member is left unchanged.
 }  /* add_generated_exception_spec_if_needed */
 
 
+static void set_member_function_name_linkage(a_symbol_ptr       sym,
+                                             a_boolean          is_inline,
+                                             a_source_position  *diag_pos)
+/*
+Record and check the name linkage for a declaration of the given member
+function (this is the name linkage of the function; not of its type).
+is_inline is TRUE for inline member functions.  Any diagnostics should be
+issued at the given position.
+*/
+{
+  a_name_linkage_kind  def_name_linkage;
+  a_routine_ptr        rtn = sym->variant.routine.ptr;
+  a_type_ptr           class_type = sym->parent.class_type;
+
+  /* Member functions should have the same name linkage as the class of
+     which they are members.  (In cfront mode that may mean internal
+     linkage -- if and when its linkage is promoted to C++, the linkage of
+     the member functions will also be changed. */
+  def_name_linkage = class_type->source_corresp.name_linkage;
+  if (def_name_linkage == (a_name_linkage_kind)nlk_none ||
+      def_name_linkage == (a_name_linkage_kind)nlk_internal) {
+    /* Either this is a local class (nlk_none) or a cfront-compatible
+       declaration (nlk_internal). */
+    rtn->source_corresp.name_linkage = def_name_linkage;
+    /* storage_class is already set to sc_static. */
+  } else if (is_inline && !extern_inline_allowed) {
+    rtn->source_corresp.name_linkage = (a_name_linkage_kind)nlk_internal;
+    rtn->storage_class = (a_storage_class)sc_static;
+  } else {
+    /* Except for special cases, class member functions have C++ linkage
+       whatever the default name linkage may be.  That is, member functions
+       of a class have C++ name linkage even if the class definition is
+       wrapped in (for example) an extern "C" declaration. */
+    rtn->source_corresp.name_linkage =
+                               (a_name_linkage_kind)nlk_cplusplus_external;
+    /* The storage class will be changed to sc_unspecified if a definition is
+       seen. */
+    rtn->storage_class = (a_storage_class)sc_extern;
+    /* Check whether any types without linkage are used in the declaration. */
+    check_constituent_types_have_linkage(sym, diag_pos,
+                                         /*is_declaration=*/TRUE);
+  }  /* if */
+}  /* set_member_function_name_linkage */
+
+
 static void decl_member_function(a_symbol_locator        *locator,
                                  a_func_info_block_ptr   func_info,
                                  a_class_def_state_ptr   class_state,
@@ -12959,7 +13004,6 @@ implicitly declared member functions.
   a_type_ptr                    tp;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   a_source_sequence_entry_ptr   declarator_ssep = NULL;
-  a_name_linkage_kind           def_name_linkage;
   a_routine_type_supplement_ptr rtsp;
   a_symbol_ptr                  overridden_function = NULL;
 #if MICROSOFT_EXTENSIONS_ALLOWED
@@ -13235,34 +13279,8 @@ implicitly declared member functions.
   /* The routine name linkage on the function type is also required to be
      C++ no matter what the name linkage of the routine turns out to be. */
   rtsp->routine_name_linkage = (a_name_linkage_kind)nlk_cplusplus_external;
-  /* Member functions should have the same name linkage as the class of
-     which they are members.  (In cfront mode that may mean internal
-     linkage -- if and when its linkage is promoted to C++, the linkage of
-     the member functions will also be changed. */
-  def_name_linkage = class_type->source_corresp.name_linkage;
-  if (def_name_linkage == (a_name_linkage_kind)nlk_none ||
-      def_name_linkage == (a_name_linkage_kind)nlk_internal) {
-    /* Either this is a local class (nlk_none) or a cfront-compatible
-       declaration (nlk_internal). */
-    rtn->source_corresp.name_linkage = def_name_linkage;
-    /* storage_class is already set to sc_static. */
-  } else if (func_info->is_inline && !extern_inline_allowed) {
-    rtn->source_corresp.name_linkage = (a_name_linkage_kind)nlk_internal;
-    /* storage_class is already set to sc_static. */
-  } else {
-    /* Except for special cases, class member functions have C++ linkage
-       whatever the default name linkage may be.  That is, member functions
-       of a class have C++ name linkage even if the class definition is
-       wrapped in (for example) an extern "C" declaration. */
-    rtn->source_corresp.name_linkage =
-                               (a_name_linkage_kind)nlk_cplusplus_external;
-    /* The storage class will be changed to sc_unspecified if a definition is
-       seen. */
-    rtn->storage_class = (a_storage_class)sc_extern;
-    /* Check whether any types without linkage are used in the declaration. */
-    check_constituent_types_have_linkage(sym, &locator->source_position,
-                                         /*is_declaration=*/TRUE);
-  }  /* if */
+  set_member_function_name_linkage(sym, func_info->is_inline,
+                                   &locator->source_position);
 #if BACK_END_IS_CP_GEN_BE
   if (func_info->is_definition &&
       scope_stack[decl_scope_level].default_name_linkage ==
@@ -13519,10 +13537,10 @@ implicitly declared member functions.
       tip->prototype_scope_symbols = func_info->prototype_scope_symbols;
       func_info->keep_param_id_list = TRUE;
       if (!decl_info->is_trivial_default_constructor) {
-      /* Although it is not a template, it is an instantiatable function
-         and hence we create a placeholder a_template entry for it.  (Trivial
-         default constructors are not linked in the IL and hence do no need
-         that information.) */
+        /* Although it is not a template, it is an instantiatable function
+           and hence we create a placeholder a_template entry for it.  (Trivial
+           default constructors are not linked in the IL and hence do no need
+           that information.) */
         a_template_ptr  templ = alloc_template();
         templ->kind = (a_template_kind)templk_member_function;
         set_source_corresp(&templ->source_corresp, sym);
@@ -17633,8 +17651,7 @@ operator should be created.  No routine body is generated at this time.
     /* When inline functions are instantiated like templates, add the function
        to the list of inline functions if it is inline.  (Members of prototype
        instantiations don't need to be treated that way, of course.) */
-    add_to_inline_function_list(
-                              decl_info->decl_state.sym->variant.routine.ptr);
+    add_to_inline_function_list(routine);
   }  /* if */
   db_exit();
 }  /* generate_special_function */
@@ -18913,6 +18930,61 @@ some Microsoft modes, record that the body cannot be generated).
     mark_special_member_suppressed(decl_info.decl_state.sym);
   }  /* if */
 }  /* generate_destructor */
+
+
+void add_trivial_dtor_representation(a_type_ptr  class_type)
+/*
+Add an explicit routine entry and associated symbol to represent a trivial
+destructor after the normal special member generation has taken place.  This 
+is needed to handle cases like:
+
+	struct S { void f() { S::~S(); } };
+
+Here, the call to the destructor happens after S is completed, and the
+destructor name is scanned by "scan_identifier", which expects to obtain a
+symbol for a called member function.
+*/
+{
+  a_symbol_ptr                   class_sym = symbol_for(class_type);
+  a_class_symbol_supplement_ptr  cssp = class_symbol_supp(class_sym);
+
+  if (cssp->destructor == NULL && cssp->has_trivial_destructor) {
+    a_type_ptr                     rtp = alloc_type((a_type_kind)tk_routine);
+    a_routine_type_supplement_ptr  rtsp = rtp->variant.routine.extra_info;
+    a_routine_ptr                  rp;
+    a_symbol_ptr                   sym;
+    a_symbol_locator               loc;
+    rtp->variant.routine.return_type = void_type();
+    rtsp->routine_name_linkage = (a_name_linkage_kind)nlk_cplusplus_external;
+    rtsp->this_class = class_type;
+    rtsp->prototyped = TRUE;
+    rtsp->assoc_routine_is_dtor = TRUE;
+    set_routine_calling_method_flag(rtp, &null_source_position);
+    rp = make_routine(rtp, (a_storage_class)sc_static, NO_SCOPE_DEPTH);
+    set_routine_special_kind(rp, (a_special_function_kind)sfk_destructor);
+    rp->is_trivial_destructor = TRUE;
+    rp->compiler_generated = TRUE;
+    set_inline_flag(rp, TRUE);
+    make_locator_for_symbol(class_sym, &loc);
+    tildize_locator(&loc);
+    sym = make_symbol(sk_member_function, &loc);
+    sym->decl_scope = cssp->member_decl_scope;
+    sym->is_class_member = TRUE;
+    sym->parent.class_type = class_type;
+    sym->variant.routine.ptr = rp;
+    set_source_corresp(&rp->source_corresp, sym);
+    set_class_membership(sym, &rp->source_corresp, class_type);
+    set_member_function_name_linkage(sym, /*is_inline=*/TRUE, &error_position);
+    enter_symbol_into_completed_class(sym);
+    add_to_routines_list(rp, NO_SCOPE_DEPTH);
+    if (instantiate_extern_inline) {
+      /* When inline functions are instantiated like templates, add the
+         function to the list of inline functions. */
+      add_to_inline_function_list(rp);
+    }  /* if */
+    cssp->destructor = sym;
+  }  /* if */
+}  /* add_trivial_dtor_representation */
 
 
 static void mark_trivial_special_members(

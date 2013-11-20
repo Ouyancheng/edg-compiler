@@ -9621,9 +9621,8 @@ and do not issue any diagnostics (including warnings).
         dtor_routine = dtor_sym->variant.routine.ptr;
       }  /* if */
       if (cssp->has_trivial_destructor) {
-        /* A defaulted trivial destructor.  Treat it as an implicitly-declared
-           destructor (i.e., return NULL). */
-        check_assertion(dtor_routine->is_defaulted);
+        /* A trivial destructor (e.g., a defaulted destructor).  Treat it as
+           an implicitly-declared destructor (i.e., return NULL). */
         dtor_routine = NULL;
       }  /* if */
     } else if (class_type->variant.class_struct_union.dtor_decl_suppressed &&

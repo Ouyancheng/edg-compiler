@@ -26857,13 +26857,14 @@ if rescan_is_template_id is TRUE, and return the result in *operand
   } else {
     /* Normal, non-rescan, processing. */
     a_token_sequence_number paren_tok_seq_number;
+    an_identifier_options_set  gid_options = GID_IS_EXPR_CONTEXT |
+                                             GID_DTOR_RECOGNIZED;
     start_position = pos_curr_token;
     /* If the identifier is the start of a C++ qualified name, get the whole
        name.  If not, look the name up as a normal identifier.  This routine
        also handles operator names. */
-    sym_ptr = coalesce_and_lookup_generalized_identifier
-                                              (GID_IS_EXPR_CONTEXT,
-                                               ilm_expr, &err);
+    sym_ptr = coalesce_and_lookup_generalized_identifier(gid_options, ilm_expr,
+                                                         &err);
     locator = locator_for_curr_id;
 #if EXTRA_SOURCE_POSITIONS_IN_IL
     end_position = end_pos_curr_token;

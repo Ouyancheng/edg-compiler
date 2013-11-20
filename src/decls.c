@@ -814,8 +814,10 @@ expression is permitted.
     }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   } else {
-    an_identifier_options_set
-         gid_options = is_expr_context ? GID_IS_EXPR_CONTEXT : GID_NO_OPTIONS;
+    an_identifier_options_set  gid_options = GID_NO_OPTIONS;
+    if (is_expr_context) {
+      gid_options |= GID_IS_EXPR_CONTEXT;
+    }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
     if (microsoft_bugs) {
       /* Microsoft treats Q::X as just X if Q denotes the class currently

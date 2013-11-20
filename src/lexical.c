@@ -34,6 +34,7 @@ and parsing of them into tokens.
 #include "fe_init.h"
 #include "literals.h"
 #include "macro.h"
+#include "overload.h"
 #include "pch.h"
 #include "pragma.h"
 #include "preproc.h"
@@ -13786,11 +13787,14 @@ the type of "p".  field_sel_type is the type of the object being destroyed.
 static void get_destructor_or_finalizer_name(
                                     a_type_ptr   field_sel_type,
                                     a_boolean    is_file_scope_qualified_name,
-                                    a_symbol_ptr qualifier_sym)
+                                    a_symbol_ptr qualifier_sym,
+                                    a_boolean    is_expr_context)
 /*
 The current token is the "~" at the start of a destructor name, or the "!" at
 the start of a C++/CLI finalizer name.  Scan the name and build a locator for
-the destructor or finalizer name in locator_for_curr_id.
+the destructor or finalizer name in locator_for_curr_id.  is_expr_context is
+TRUE if this call is for a reference to a destructor or finalizer in an
+expression context (as opposed to a declarator).
 
 A destructor or finalizer declaration can only use the true name of the class.
 A destructor or finalizer reference (in a field selection operation), on the
@@ -13855,6 +13859,36 @@ the destructor or finalizer is part of a qualified name (e.g., "A::B::~B").
     make_specific_symbol_error_locator(&locator_for_curr_id);
   } else {
     /* "~identifier" or "!identifier" is present. */
+    a_symbol_ptr  specific_sym = NULL;
+    /* In Microsoft bugs mode, use the qualifier type as the field
+       selection type if no field selection type was specified.  This
+       permits a destructor/finalizer to be defined as "X::~X" or
+       "X::!X", respectively, where X is a typedef name. */
+    if (microsoft_bugs && field_sel_type == NULL && qualifier_sym != NULL &&
+       is_type_symbol(qualifier_sym)) {
+      field_sel_type = type_symbol_type(qualifier_sym);
+    }  /* if */
+    if (field_sel_type == NULL) {
+      a_type_ptr  this_type;
+      if (is_destructor && is_expr_context &&
+          variable_this_exists((a_variable_ptr*)NULL, &this_type)) {
+        /* If no field selection type was specified, we're presumably
+           dealing with an implicit "this->" selection. */
+        this_type = type_pointed_to(this_type);
+        this_type = skip_typerefs(this_type);
+        if (is_immediate_class_type(this_type) && !this_type->incomplete) {
+          a_class_symbol_supplement_ptr
+                              cssp = class_symbol_supp(symbol_for(this_type));
+          if (cssp->destructor == NULL && cssp->has_trivial_destructor) {
+            /* Represent the destructor explicitly so a forthcoming lookup
+               can find it. */
+            add_trivial_dtor_representation(this_type);
+            specific_sym = cssp->destructor;
+            field_sel_type = this_type;
+          }  /* if */
+        }  /* if */
+      }  /* if */
+    }  /* if */
     if (field_sel_type == NULL ||
         !is_class_struct_union_type(field_sel_type)) {
       /* Either no field type was provided, or the type provided is not a
@@ -13879,7 +13913,7 @@ the destructor or finalizer is part of a qualified name (e.g., "A::B::~B").
       a_type_ptr	decltype_tp = NULL;
 
       field_sel_type = skip_typerefs(field_sel_type);
-      field_sym = (a_symbol_ptr)field_sel_type->source_corresp.assoc_info;
+      field_sym = symbol_for(field_sel_type);
       check_assertion_str2(field_sym != NULL,
                            "get_destructor_or_finalizer_name:",
                            "NULL assoc_info");
@@ -14147,6 +14181,9 @@ the destructor or finalizer is part of a qualified name (e.g., "A::B::~B").
       change_to_destructor_or_finalizer_locator(
                                           &locator_for_curr_id, is_finalizer);
       locator_for_curr_id.variant.destructor_type = type_for_locator;
+      if (specific_sym != NULL) {
+        locator_for_curr_id.specific_symbol = specific_sym;
+      }  /* if */
     }  /* if */
   }  /* if */
 }  /* get_destructor_or_finalizer_name */
@@ -18435,17 +18472,13 @@ selection operator, in which case it points to the type of the left operand.
       /* The name can be a destructor name like "~A" or a C++/CLI finalizer
          name like "!A". */
       if (is_dtor_or_finalizer_token(curr_token)) {
-        /* In Microsoft bugs mode, use the qualifier type as the field
-           selection type if no field selection type was specified.  This
-           permits a destructor/finalizer to be defined as "X::~X" or
-           "X::!X", respectively, where X is a typedef name. */
-        a_type_ptr	temp_field_sel_type = field_sel_type;
-        if (microsoft_bugs && field_sel_type == NULL) {
-          temp_field_sel_type = qualifier_type;
-        }  /* if */
-        get_destructor_or_finalizer_name(temp_field_sel_type,
+        get_destructor_or_finalizer_name(field_sel_type,
                                          is_file_scope_qualified_name,
-                                         qualifier_sym);
+                                         qualifier_sym,
+                                         (options & GID_IS_EXPR_CONTEXT) != 0);
+        if (locator_for_curr_id.specific_symbol != NULL) {
+          is_vacuous_dtor_or_finalizer = FALSE;
+        }  /* if */
       }  /* if */
     }  /* if */
     if (is_dtor_like_locator(locator_for_curr_id)) {

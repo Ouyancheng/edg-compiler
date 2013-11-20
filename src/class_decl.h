@@ -169,6 +169,8 @@ extern void check_defaulted_or_deleted_function(a_decl_parse_state  *dps,
                                                 a_func_info_block   *func_info,
                                                 a_source_position   *diag_pos);
 
+extern void add_trivial_dtor_representation(a_type_ptr  class_type);
+
 extern
 a_lambda_capture_ptr lambda_capture_for_variable(a_variable_ptr		vp,
 						 a_source_position_ptr	pos);
