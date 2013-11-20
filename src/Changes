@@ -1,5 +1,33 @@
 Version 4.9
 
+11/20/13 [EDGcpfe/13676]
+Microsoft compatibility: resolution of ambiguous qualifier in a class member
+access
+
+The C++98/C++03 standards specify that a name followed by :: in a class
+member access is looked up in both the class of the member access and in
+in the current context, and if it is found in both places the program
+is ill-formed.  The Microsoft compiler silently uses the entity found
+in the class of the member access.  We now emulate this behavior in
+Microsoft mode.  Formerly, we resolved the ambiguity by issuing a
+warning and using the entity found in the current context, resulting
+in an error on the example below.
+
+  struct A {
+    friend struct B;
+    void f();
+    typedef A some_type;
+  };
+  struct C {};
+  struct B {
+    A *ap;
+    typedef C some_type;
+    void f() {
+      ap->some_type::f();  // Now accepted
+    }
+  };
+
+
 11/19/13 [EDGcpfe/14127]
 Spurious error on calls to implicitly-declared trivial destructor
 

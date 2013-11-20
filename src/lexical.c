@@ -16719,11 +16719,11 @@ a field selection.
       equiv_symbols = TRUE;
     } else if (is_type_symbol(normal_fund_sym) &&
                is_type_symbol(class_fund_sym)) {
-      if (gpp_mode && gnu_version >= 30300) {
-        /* g++ (versions 3.3 and newer) prefers the class symbol over the
-           normal lookup symbol.  The symbols are not really equivalent, but
-           we use that flag to indicate that this case should be diagnosed
-           below. */
+      if (microsoft_mode || (gpp_mode && gnu_version >= 30300)) {
+        /* Microsoft and g++ (versions 3.3 and newer) prefer the class symbol
+           over the normal lookup symbol.  The symbols are not really
+           equivalent, but we use that flag to indicate whether this case
+           should be diagnosed below. */
         equiv_symbols = TRUE;
         use_normal_if_equiv = FALSE;
       } else {
