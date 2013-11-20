@@ -26289,7 +26289,7 @@ from TRUE to FALSE.
     for (; bcp != NULL; bcp = bcp->next) {
       a_class_symbol_supplement_ptr  bcssp = symbol_for(bcp->type)
                                       ->variant.class_struct_union.extra_info;
-      if (bcssp->any_nonstatic_data_members) {
+      if (bcp->direct && bcssp->any_nonstatic_data_members) {
         if (first_field != NULL || bcp_with_data != NULL) {
           /* If the derivation includes nonstatic data members, a base class
              cannot.  Otherwise, at most one base class can do so. */
