@@ -1,5 +1,32 @@
 Version 4.9
 
+11/20/13 [EDGcpfe/14589]
+Copy/move behavior in GNU C++11 4.6.x mode
+
+When emulating GNU C++11 4.6.x (gnu_version >= 40600 but < 40700) the front end
+does not generate a deleted copy constructor or copy assignment operator in
+the presence of a user-declared move constructor or move assignment operator
+(as the C++11 standard required).  Instead, no copy constructor or copy
+assignment operator is generated at all in such cases.  However, if the user-
+declared move constructor or move assignment operator was defaulted, the front
+end sometimes erroneously recorded the class as bitwise copyable, which could
+lead to odd errors later on.  For example:
+
+  struct M { M(); M(M&&); };  // Move-only type.
+  struct B {
+  protected:
+    B(B&&) = default;  // In GNU C++11 4.6.x mode, no copy constructor is
+  };                   // generated at all.
+  struct D : B {
+    M m;
+  };
+  D f(), d(f());  // Requires the definition of the implicit move constructor
+                  // of D.  Previously this implicit definition triggered a
+                  // spurious error for the protected move constructor of B.
+
+This is now fixed.
+
+
 11/20/13 [EDGcpfe/14643,EDGcpfe/14646,EDGcpfe/14688]
 GNU compatibility: __builtin_ia32_pshufw and __builtin_ia32_vec_ext_v8hi
 

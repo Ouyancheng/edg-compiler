@@ -19752,6 +19752,7 @@ The routine body is not generated until it is known to be needed.
           /* GCC 4.6 doesn't delete a generated copy constructor in this
              case, but simply doesn't declare it at all if there is a move
              constructor (achieved using a separate test below). */
+          class_state->rule_out_bitwise_copy_for_deleted_ctor = TRUE;
         } else {
           gsfd.suppress_copy_ctor = TRUE;
         }  /* if */
@@ -19764,6 +19765,7 @@ The routine body is not generated until it is known to be needed.
           /* GCC 4.6 doesn't delete a generated assignment operator in this
              case, but simply doesn't declare it at all if there is a move
              assignment operator (achieved using a separate test below). */
+          class_state->rule_out_bitwise_assign_for_deleted_operator = TRUE;
         } else {
           gsfd.suppress_copy_assign = TRUE;
         }  /* if */
@@ -19986,13 +19988,13 @@ The routine body is not generated until it is known to be needed.
      nontrivial. */
   if (cssp->has_user_provided_copy_constructor ||
       cssp->has_user_provided_move_constructor ||
-      class_state->rule_out_bitwise_copy_for_deleted_ctor  ||
+      class_state->rule_out_bitwise_copy_for_deleted_ctor ||
       class_state->rule_out_bitwise_copy_for_volatile_class_field) {
     cssp->construction_by_bitwise_copy_allowed = FALSE;
   }  /* if */
   if (user_provided_copy_assignment_op ||
       cssp->has_user_provided_move_assign_operator ||
-      class_state->rule_out_bitwise_assign_for_deleted_operator  ||
+      class_state->rule_out_bitwise_assign_for_deleted_operator ||
       class_state->rule_out_bitwise_assign_for_volatile_class_field) {
     cssp->assignment_by_bitwise_copy_allowed = FALSE;
   }  /* if */
