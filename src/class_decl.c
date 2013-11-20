@@ -18954,20 +18954,24 @@ symbol for a called member function.
     a_routine_ptr                  rp;
     a_symbol_ptr                   sym;
     a_symbol_locator               loc;
+    /* Create the routine type. */
     rtp->variant.routine.return_type = void_type();
     rtsp->routine_name_linkage = (a_name_linkage_kind)nlk_cplusplus_external;
     rtsp->this_class = class_type;
     rtsp->prototyped = TRUE;
     rtsp->assoc_routine_is_dtor = TRUE;
     set_routine_calling_method_flag(rtp, &null_source_position);
+    /* Create the routine entry (it will be added to the routines list
+       later on). */
     rp = make_routine(rtp, (a_storage_class)sc_static, NO_SCOPE_DEPTH);
     set_routine_special_kind(rp, (a_special_function_kind)sfk_destructor);
     rp->is_trivial_destructor = TRUE;
     rp->compiler_generated = TRUE;
     set_inline_flag(rp, TRUE);
+    /* Create the symbol and link it to the routine. */
     make_locator_for_symbol(class_sym, &loc);
     tildize_locator(&loc);
-    sym = make_symbol(sk_member_function, &loc);
+    sym = make_symbol((a_symbol_kind)sk_member_function, &loc);
     sym->decl_scope = cssp->member_decl_scope;
     sym->is_class_member = TRUE;
     sym->parent.class_type = class_type;
@@ -18975,6 +18979,7 @@ symbol for a called member function.
     set_source_corresp(&rp->source_corresp, sym);
     set_class_membership(sym, &rp->source_corresp, class_type);
     set_member_function_name_linkage(sym, /*is_inline=*/TRUE, &error_position);
+    /* Add the symbol and IL entry to the appropriate lists. */
     enter_symbol_into_completed_class(sym);
     add_to_routines_list(rp, NO_SCOPE_DEPTH);
     if (instantiate_extern_inline) {
