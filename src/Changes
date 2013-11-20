@@ -38,8 +38,8 @@ typedef.  This is now fixed.  For example:
 11/19/13 [EDGcpfe/14689]
 Remove use of "thread_local" as an identifier
 
-"thread_local" had been used as an identifier in the front end, and has now
-been renamed to avoid conflicts with the "thread_local" keyword.
+The "thread_local" field in a_variable has been renamed to avoid conflicting
+with the C++11 "thread_local" keyword.
 
 
 11/18/13 [EDGcpfe/14670]
