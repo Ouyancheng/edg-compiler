@@ -81,7 +81,7 @@ with the C++11 "thread_local" keyword.
 
 
 11/18/13 [EDGcpfe/14670]
-Lowering of expressions with tk_imaginary type
+Lowering of expressions with tk_imaginary type (IL CHANGE)
 
 When LOWER_COMPLEX is TRUE, the types of imaginary expressions are lowered
 to a typedef for the appropriate floating-point type, but the type_kind field
