@@ -765,6 +765,7 @@ check_abbreviation()
 --no_namespaces
 --no_lossy_conversion_warning
 --no_nonconst_ref_anachronism
+--no_nonstd_anonymous_unions
 --no_nonstd_default_arg_deduction
 --no_nonstd_gnu_keywords
 --no_nonstd_instantiation_lookup
@@ -809,6 +810,7 @@ check_abbreviation()
 --no_wchar_t_keyword
 --no_wrap_diagnostics
 --nonconst_ref_anachronism
+--nonstd_anonymous_unions
 --nonstd_default_arg_deduction
 --nonstd_gnu_keywords
 --nonstd_instantiation_lookup
@@ -1468,6 +1470,8 @@ process_option()
          --no_user_defined_literals | \
          --preserve_lvalues_with_same_type_casts | \
          --no_preserve_lvalues_with_same_type_casts | \
+         --nonstd_anonymous_unions | \
+         --no_nonstd_anonymous_unions | \
          --force_vtbl)
       feoptions=$feoptions" $curr_arg"
 #     Options that require additional processing

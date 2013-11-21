@@ -302,6 +302,9 @@ typedef enum /*an_option_kind*/ {
   optk_deprecated_string_conv,
   optk_user_defined_literals,
   optk_preserve_lvalues_with_same_type_casts,
+#if ALLOW_NONSTANDARD_ANONYMOUS_UNIONS
+  optk_nonstd_anonymous_unions,
+#endif /* ALLOW_NONSTANDARD_ANONYMOUS_UNIONS */
   optk_last		/* Must be last. */
 } an_option_kind;
 

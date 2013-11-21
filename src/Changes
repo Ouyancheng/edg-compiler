@@ -1,5 +1,20 @@
 Version 4.9
 
+10/20/13 [EDGcpfe/14684]
+Nonstandard anonymous unions and command-line options
+
+In configurations with ALLOW_NONSTANDARD_ANONYMOUS_UNIONS set to TRUE, the
+front end may accept certain extensions to standard anonymous unions (see the
+entry of 9/1/94).  Previously, this extension was accepted in GNU and Microsoft
+modes, but if the macro DEFAULT_ALLOW_NONSTANDARD_ANONYMOUS_UNIONS is TRUE,
+they were also accepted in all other modes, including strict C and C++ modes.
+
+Now, nonstandard anonymous unions are disabled in strict modes by default even
+when the macro DEFAULT_ALLOW_NONSTANDARD_ANONYMOUS_UNIONS is TRUE.
+Furthermore, a new command-line option --[no_]nonstd_anonymous_unions can now
+override the default behavior of any mode.
+
+
 10/20/13 [EDGcpfe/14186]
 Internal error on use of explicitly specialized scoped enumeration
 

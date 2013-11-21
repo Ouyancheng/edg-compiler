@@ -1403,6 +1403,14 @@ Initialize the option information table.
                          "no_preserve_lvalues_with_same_type_casts", '\0',
                          /*value=*/FALSE, /*arg_required=*/FALSE,
                          pchek_command_line);
+  add_option_description(optk_nonstd_anonymous_unions,
+                         "nonstd_anonymous_unions", '\0',
+                         /*value=*/TRUE, /*arg_required=*/FALSE,
+                         pchek_command_line);
+  add_option_description(optk_nonstd_anonymous_unions,
+                         "no_nonstd_anonymous_unions", '\0',
+                         /*value=*/FALSE, /*arg_required=*/FALSE,
+                         pchek_command_line);
 }  /* initialize_option_descriptions */
 
 
@@ -3603,6 +3611,11 @@ conflicts with the ANSI mode and set various unmentioned settings as needed.
   }  /* if */
   /* This should be FALSE in C mode and all strict C++ modes. */
   inexact_ptr_to_member_deduction_enabled = FALSE;
+#if ALLOW_NONSTANDARD_ANONYMOUS_UNIONS
+  if (!option_kind_used[(int)optk_nonstd_anonymous_unions]) {
+    allow_nonstandard_anonymous_unions = FALSE;
+  }  /* if */
+#endif /* ALLOW_NONSTANDARD_ANONYMOUS_UNIONS */
 }  /* check_and_set_ansi_mode_options */
 
 
@@ -3617,7 +3630,7 @@ checked again here.)
   if (!option_kind_used[(int)optk_exception_handling]) {
     exceptions_enabled = TRUE;
   }  /* if */
-  if (!(option_kind_used[(int)optk_guiding_decls])) {
+  if (!option_kind_used[(int)optk_guiding_decls]) {
     /* If guiding_decls_allowed was not set on the command line, turn it
        off now. */
     guiding_decls_allowed = FALSE;
@@ -9225,6 +9238,9 @@ enable_microsoft_mode:
         break;
       case optk_preserve_lvalues_with_same_type_casts:
         preserve_lvalues_with_same_type_casts = opt_value;
+        break;
+      case optk_nonstd_anonymous_unions:
+        allow_nonstandard_anonymous_unions = opt_value;
         break;
       default:
         /* It should not be possible to get here. */
