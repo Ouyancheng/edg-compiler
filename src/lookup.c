@@ -4998,6 +4998,7 @@ is found is returned, or NULL if no matching symbol is found.
   check_assertion(enum_sym != NULL && symbol_is(enum_sym, sk_enum_tag));
   essp = enum_sym->variant.enumeration.extra_info;
   if (enum_type->variant.integer.is_template_enum &&
+      !enum_type->variant.integer.is_specialized &&
       enum_type->variant.integer.is_scoped_enum && !essp->instantiated) {
     /* A template-based scoped enum that has not yet been instantiated.
        Instantiate it now. */

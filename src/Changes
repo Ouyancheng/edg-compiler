@@ -1,5 +1,20 @@
 Version 4.9
 
+10/20/13 [EDGcpfe/14186]
+Internal error on use of explicitly specialized scoped enumeration
+
+An internal error could occur (in instantiate_template_enum) on the use
+of an explicitly specialized scoped enumeration.  Now fixed.
+
+  template <class T> struct A {
+    enum class B : T;
+  };
+  template <> enum class A<int>::B : int { e0, e1 };
+  int main() {
+    return (int)A<int>::B::e1;
+  }
+
+
 11/20/13 [EDGcpfe/14589]
 Copy/move behavior in GNU C++11 4.6.x mode
 
