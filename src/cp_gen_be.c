@@ -4005,6 +4005,8 @@ indicate that the name reference was successfully emitted.
   a_boolean            name_generated = FALSE;
   a_boolean            use_name_reference = TRUE;
   a_name_qualifier_ptr qual;
+  a_constant_ptr       cp = (entry_kind == iek_constant) ? (a_constant_ptr)scp
+                                                         : NULL;
 
   if (octl.output_name_reference == NULL) {
     /* Name references in template arguments are captured from the first
@@ -4106,6 +4108,20 @@ indicate that the name reference was successfully emitted.
         if (nrp->is_template_id) {
           gen_template_arguments(scp, entry_kind, nrp->num_template_arguments);
         }  /* if */
+      } else if (cp != NULL &&
+                 cp->kind == (a_constant_repr_kind)ck_template_param &&
+                 cp->variant.template_param.kind ==
+                             (a_template_param_constant_kind)tpck_destructor) {
+        /* Treat dependent destructors specially, to allow for cases like
+           ~decltype(...), which have the name "~<unnamed>".  We've already
+           put out the qualifiers from the name reference, so make
+           form_constant put out the unqualified form of the name. */
+        a_boolean saved_unqualified =
+                     cp->variant.template_param.variant.destructor.unqualified;
+        cp->variant.template_param.variant.destructor.unqualified = TRUE;
+        gen_constant(cp, /*need_parens=*/FALSE);
+        cp->variant.template_param.variant.destructor.unqualified =
+                                                             saved_unqualified;
       } else {
         /* Not a routine name. */
         gen_unqualified_name(scp, entry_kind);
