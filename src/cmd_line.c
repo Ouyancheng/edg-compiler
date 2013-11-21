@@ -1403,6 +1403,7 @@ Initialize the option information table.
                          "no_preserve_lvalues_with_same_type_casts", '\0',
                          /*value=*/FALSE, /*arg_required=*/FALSE,
                          pchek_command_line);
+#if ALLOW_NONSTANDARD_ANONYMOUS_UNIONS
   add_option_description(optk_nonstd_anonymous_unions,
                          "nonstd_anonymous_unions", '\0',
                          /*value=*/TRUE, /*arg_required=*/FALSE,
@@ -1411,6 +1412,7 @@ Initialize the option information table.
                          "no_nonstd_anonymous_unions", '\0',
                          /*value=*/FALSE, /*arg_required=*/FALSE,
                          pchek_command_line);
+#endif /* ALLOW_NONSTANDARD_ANONYMOUS_UNIONS */
 }  /* initialize_option_descriptions */
 
 
@@ -9239,9 +9241,11 @@ enable_microsoft_mode:
       case optk_preserve_lvalues_with_same_type_casts:
         preserve_lvalues_with_same_type_casts = opt_value;
         break;
+#if ALLOW_NONSTANDARD_ANONYMOUS_UNIONS
       case optk_nonstd_anonymous_unions:
         allow_nonstandard_anonymous_unions = opt_value;
         break;
+#endif /* ALLOW_NONSTANDARD_ANONYMOUS_UNIONS */
       default:
         /* It should not be possible to get here. */
         unexpected_condition();
