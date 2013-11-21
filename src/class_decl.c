@@ -19752,7 +19752,6 @@ The routine body is not generated until it is known to be needed.
           /* GCC 4.6 doesn't delete a generated copy constructor in this
              case, but simply doesn't declare it at all if there is a move
              constructor (achieved using a separate test below). */
-          class_state->rule_out_bitwise_copy_for_deleted_ctor = TRUE;
         } else {
           gsfd.suppress_copy_ctor = TRUE;
         }  /* if */
@@ -19765,7 +19764,6 @@ The routine body is not generated until it is known to be needed.
           /* GCC 4.6 doesn't delete a generated assignment operator in this
              case, but simply doesn't declare it at all if there is a move
              assignment operator (achieved using a separate test below). */
-          class_state->rule_out_bitwise_assign_for_deleted_operator = TRUE;
         } else {
           gsfd.suppress_copy_assign = TRUE;
         }  /* if */
@@ -19922,6 +19920,7 @@ The routine body is not generated until it is known to be needed.
                cssp->has_user_declared_move_constructor) {
       /* GCC 4.6 does not generate a copy constructor if there is a
          user-declared move constructor. */
+      class_state->rule_out_bitwise_copy_for_deleted_ctor = TRUE;
     } else {
       generate_copy_constructor(class_state, gsfd.suppress_copy_ctor,
                                 gsfd.copy_ctor_qualifiers);
@@ -19968,6 +19967,7 @@ The routine body is not generated until it is known to be needed.
                cssp->has_user_declared_move_assign_operator) {
       /* GCC 4.6 does not generate a copy assignment operator if there is a
          user-declared move assignment operator. */
+      class_state->rule_out_bitwise_assign_for_deleted_operator = TRUE;
     } else {
       /* Add the implicit declaration of the copy assignment operator. */
       generate_copy_assignment_operator(class_state, gsfd.suppress_copy_assign,
