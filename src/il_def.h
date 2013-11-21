@@ -4331,6 +4331,10 @@ typedef struct a_constant {
         struct {
           a_type_ptr
 		type;	/* The nonreal type whose destructor is represented. */
+          a_bit_field
+		unqualified:1;
+			/* TRUE if the destructor was named without a qualifier
+			   (e.g., TRUE in p->~T(), but not in p->~T::T()). */
         } destructor;
       } variant;
     } template_param;

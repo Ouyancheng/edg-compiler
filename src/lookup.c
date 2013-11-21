@@ -926,6 +926,8 @@ routine.
         set_template_param_constant_kind(
                     constant, (a_template_param_constant_kind)tpck_destructor);
         constant->variant.template_param.variant.destructor.type = dtor_type;
+        constant->variant.template_param.variant.destructor.unqualified =
+                                                   !locator->is_qualified_name;
       } else {
         /* For everything except a conversion function create a generic
            nontype member. */

@@ -5477,11 +5477,25 @@ do_sizeof_cases:
           if (need_parens) octl->output_str(")", octl);
           break;
         case tpck_destructor:
-          if (need_parens) octl->output_str("(", octl);
-          octl->output_str("~", octl);
-          form_type(constant->variant.template_param.variant.destructor.type,
-                    octl);
-          if (need_parens) octl->output_str(")", octl);
+          { a_type_ptr dtor_type =
+                     constant->variant.template_param.variant.destructor.type;
+            if (need_parens) octl->output_str("(", octl);
+            octl->output_str("~", octl);
+            if (has_name(dtor_type) &&
+                constant
+                    ->variant.template_param.variant.destructor.unqualified) {
+              /* Render the type with an unqualified name (form_type has
+                 insufficient information to determine this, so we handle that
+                 case at this level).  Note that an unqualified destructor
+                 invocation like p->~decltype(...) should still go through
+                 form_type (hence the "has_name" test above). */
+              form_unqualified_name(&dtor_type->source_corresp, iek_type,
+                                    octl);
+            } else {
+              form_type(dtor_type, octl);
+            }  /* if */
+            if (need_parens) octl->output_str(")", octl);
+          }
           break;
         default:
           octl->output_str("**BAD-TEMPLATE-PARAM-CONSTANT-KIND**", octl);

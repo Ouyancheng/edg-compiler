@@ -1022,6 +1022,8 @@ do_sizeof_cases:
       disp_ptr("destructor",
                (char*)ptr->variant.template_param.variant.destructor.type,
                iek_type);
+      disp_boolean("unqualified",
+                   ptr->variant.template_param.variant.destructor.unqualified);
       break;
     default:
       (void)printf("**BAD TEMPLATE PARAM CONSTANT KIND**\n");

@@ -714,6 +714,7 @@ ck_template_param constant.
       break;
     case tpck_destructor:
       cp->variant.template_param.variant.destructor.type = NULL;
+      cp->variant.template_param.variant.destructor.unqualified = FALSE;
       break;
     default:
       unexpected_condition_str("set_template_param_constant_kind: bad kind");
