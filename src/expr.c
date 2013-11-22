@@ -21440,13 +21440,16 @@ freed by this routine.
   if (gpp_mode && !could_be_dependent &&
       is_prototype_instantiation_context() &&
       !expr_stack->possible_rescan_context &&
-      !scope_is(&scope_stack_top(), sck_template_declaration) &&
+      (is_local_scope_kind(scope_stack_top().kind) ||
+       scope_is(&scope_stack_top(), sck_func_prototype)) &&
       !is_reference_type(type_cast_to)) {
     /* The GNU compiler performs limited checking for functional notation
-       casts in all template-dependent contexts, even if the type cast to
+       casts in most template-dependent contexts, even if the type cast to
        isn't actually dependent.  We approximate this by treating the cast
-       as dependent.  We don't do this in function signatures though, since
-       it can affect deduction and/or mangling. */
+       as dependent in local scopes and in function prototype scopes.
+       However, we exclude rescan contexts since those can affect deduction
+       and/or mangling (i.e., in function prototype scopes only default call
+       arguments get this treatment). */
     force_dependent = TRUE;
   }  /* if */
   if (ctor_case && !force_dependent) {
