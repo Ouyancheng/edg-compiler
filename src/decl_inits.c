@@ -588,11 +588,16 @@ static void aggr_init_chained_designator(an_init_component_ptr  *p_icp,
                                          an_init_state          *is,
                                          a_constant_ptr         *result);
 
-static void aggr_init_element(an_init_component_ptr  *p_icp,
-                              a_type_ptr             etype,
-                              an_init_state          *is,
-                              a_source_position      *diag_pos,
-                              a_constant_ptr         *init_con);
+static void aggr_init_element_full(an_init_component_ptr  *p_icp,
+                                   a_type_ptr             etype,
+                                   a_field_ptr            field,
+                                   an_init_state          *is,
+                                   a_source_position      *diag_pos,
+                                   a_constant_ptr         *init_con);
+
+#define aggr_init_element(p_icp, etype, is, diag_pos, init_con)              \
+  (aggr_init_element_full((p_icp), (etype), (a_field_ptr)NULL, (is),         \
+                          (diag_pos), (init_con)))
 
 
 static an_init_component_ptr skip_designators(an_init_component_ptr  icp)
@@ -2386,7 +2391,7 @@ position is available).
     /* A flexible array member. */
     check_flexible_array_init(icp, fp, is);
   }  /* if */
-  aggr_init_element(p_icp, dtype, is, diag_pos, &elem_con);
+  aggr_init_element_full(p_icp, dtype, fp, is, diag_pos, &elem_con);
   if (ms_enum_bit_field) {
     /* A Microsoft enum bit field being initialized with an integer.
        Implicitly cast the result back to the enumeration type.
@@ -2855,20 +2860,58 @@ components follow at the current level).
 }  /* aggr_init_chained_designator */
 
 
-static void aggr_init_element(an_init_component_ptr  *p_icp,
-                              a_type_ptr             etype,
-                              an_init_state          *is,
-                              a_source_position      *diag_pos,
-                              a_constant_ptr         *init_con)
+static void check_address_constant_init(a_constant_ptr     constant,
+                                        a_type_ptr         dtype,
+                                        a_field_ptr        fp,
+                                        an_init_state      *is,
+                                        a_source_position  *diag_pos)
+/*
+The given constant initializes an entity of type dtype.  (In the case of a
+field, fp points to its representation; otherwise, fp is NULL.)  Check that
+the initialization is valid (particularly in the static initialization case)
+and issue an error at the given position if it is not.  is describes the
+initialization as a whole.
+*/
+{
+  if (is->initializer_must_be_constant && is->static_lifetime_init &&
+      constant->kind == (a_constant_repr_kind)ck_address) {
+    /* In some modes (e.g., GNU C), an address constant (i.e., a pointer
+       value) can initialize a destination of a different type.  However, a
+       linker can only handle that if the destination is the same size as
+       the pointer value.  In the case of bit fields, the bit field width
+       rather than its type's size is what matters. */
+    a_boolean      bit_field_case = fp != NULL && fp->is_bit_field;
+    a_type_ptr     tp = constant->orig_type != NULL ? constant->orig_type
+                                                    : constant->type;
+    a_targ_size_t  valsize = skip_typerefs(tp)->size;
+    check_assertion(!is->no_diagnostics);
+    if (bit_field_case ? valsize*targ_char_bit != fp->bit_size
+                       : valsize != skip_typerefs(dtype)->size) {
+      pos_error(ec_bad_size_for_static_address_init, diag_pos);
+    }  /* if */
+  }  /* if */
+}  /* check_address_constant_init */
+
+
+static void aggr_init_element_full(an_init_component_ptr  *p_icp,
+                                   a_type_ptr             etype,
+                                   a_field_ptr            field,
+                                   an_init_state          *is,
+                                   a_source_position      *diag_pos,
+                                   a_constant_ptr         *init_con)
 /*
 Handle the initialization of an element of type etype of an aggregate by the
 component *p_icp (and potentially, the components that follow *p_icp); return
 in *p_icp the next item not used for this initialization (NULL if there are no
-more such items).  Return the result in *init_con.  *is describes the
-initialization as a whole, and diag_pos indicates the position at which
-diagnostics should be issued if no more specific position is available. 
-If this element is itself an aggregate, then this routine recurses into
-aggr_init_array or aggr_init_class, to produce a ck_aggregate constant.
+more such items).  If this is the initialization of a field, the given field
+pointer will point to its representation; otherwise, it will be NULL.  Return
+the result in *init_con.  *is describes the initialization as a whole, and
+diag_pos indicates the position at which diagnostics should be issued if no
+more specific position is available.  If this element is itself an aggregate,
+then this routine recurses into aggr_init_array or aggr_init_class, to produce
+a ck_aggregate constant.
+
+(This routine is usually called through the macro aggr_init_element.)
 */
 {
   an_init_component_ptr  icp = *p_icp;
@@ -2961,6 +3004,10 @@ aggr_init_array or aggr_init_class, to produce a ck_aggregate constant.
   } else {
     /* Use the single value in *p_icp to initialize one element. */
     aggr_init_simple_element(p_icp, etype, is, init_con);
+    if (*init_con != NULL) {
+      check_address_constant_init(*init_con, etype, field, is,
+                                  init_component_pos(icp));
+    }  /* if */
   }  /* if */
   if (!is->check_validity_only) {
     check_assertion(*init_con != NULL);
@@ -3742,6 +3789,11 @@ to use for diagnostics by default.
   } else {
     convert_initializer(expr_icp, dps->type, /*is_var_init=*/TRUE,
                         /*fill_in_dtor=*/TRUE, &dps->init_state);
+    if (dps->init_state.init_con != NULL) {
+      check_address_constant_init(dps->init_state.init_con, dps->type,
+                                  (a_field_ptr)NULL, &dps->init_state,
+                                  init_component_pos(expr_icp));
+    }  /* if */
   }  /* if */
   free_init_component_list(expr_icp);
 }  /* expr_init_scalar_variable */

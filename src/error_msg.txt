@@ -2569,6 +2569,7 @@ ec_operand_must_be_vector;;"expected a vector operand"
 ec_incompatible_shuffle_source_operands;;"shuffle source operands have incompatible types %t1 and %t2"
 ec_nonintegral_shuffle_mask;;"shuffle mask (type %t) is not a vector of integers"
 ec_incompatible_shuffle_mask;;"shuffle mask (type %t1) has a length different from the source operand (type %t2)"
+ec_bad_size_for_static_address_init;;"static initialization with an address value requires a destination of the same size as the address"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

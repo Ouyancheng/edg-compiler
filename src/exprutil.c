@@ -7980,6 +7980,10 @@ user-defined conversions.
           if (curr_expr_kind_is_one_in_which_const_exprs_are_recorded()) {
             an_expr_node_ptr orig_expr = operand->variant.constant.expr;
             local_constant.expr = orig_expr;
+            if (local_constant.orig_type == NULL &&
+                !cast_identical_types(operand->type, new_type)) {
+              local_constant.orig_type = operand->type;
+            }  /* if */
             if (is_implicit_cast && expr_stack->in_static_initializer &&
                 expr_stack->prev == NULL &&
                 !(orig_expr != NULL || has_name(&operand->variant.constant)) &&
@@ -7990,14 +7994,10 @@ user-defined conversions.
                  duration.  This includes values in aggregate initializers that
                  can sometimes include many thousands of such values, such that
                  allocating the expression tree representing each implicit cast
-                 would be prohibitive.  Just record the original type instead.
-                 (Note that in many other contexts -- e.g., in function
-                 template signatures -- this approach is not viable because
-                 the original source form must be recorded.) */
-              if (local_constant.orig_type == NULL &&
-                  !cast_identical_types(operand->type, new_type)) {
-                local_constant.orig_type = operand->type;
-              }  /* if */
+                 would be prohibitive.  If needed, the original type has been
+                 recorded above.  (Note that in many other contexts -- e.g., in
+                 function template signatures -- this approach is not viable
+                 because the original source form must be recorded.) */
             } else if (!is_implicit_cast ||
                        !cast_identical_types(operand->type, new_type)) {
               /* Record a cast expression for the constant (inhibit normal
