@@ -7977,13 +7977,14 @@ user-defined conversions.
              is.  Don't clear the flag once it gets set (an implicit cast
              after a reinterpret_cast still counts as a reinterpret_cast). */
           local_constant.is_reinterpret_cast |= is_reinterpret_cast;
+          /* Record the original type if it materially changed. */
+          if (local_constant.orig_type == NULL &&
+              !cast_identical_types(operand->type, new_type)) {
+            local_constant.orig_type = operand->type;
+          }  /* if */
           if (curr_expr_kind_is_one_in_which_const_exprs_are_recorded()) {
             an_expr_node_ptr orig_expr = operand->variant.constant.expr;
             local_constant.expr = orig_expr;
-            if (local_constant.orig_type == NULL &&
-                !cast_identical_types(operand->type, new_type)) {
-              local_constant.orig_type = operand->type;
-            }  /* if */
             if (is_implicit_cast && expr_stack->in_static_initializer &&
                 expr_stack->prev == NULL &&
                 !(orig_expr != NULL || has_name(&operand->variant.constant)) &&
