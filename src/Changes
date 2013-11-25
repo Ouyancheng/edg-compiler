@@ -14,7 +14,7 @@ account.  For example:
     // Now an error in C modes.
 
 
-10/20/13 [EDGcpfe/14684]
+11/20/13 [EDGcpfe/14684]
 Nonstandard anonymous unions and command-line options
 
 In configurations with ALLOW_NONSTANDARD_ANONYMOUS_UNIONS set to TRUE, the
