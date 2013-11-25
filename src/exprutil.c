@@ -7284,14 +7284,14 @@ is_literal_convertible_to_cli_string is TRUE.
 
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
-static void add_cast_to_node(an_expr_node_ptr  *p_node,
-                             a_type_ptr        new_type,
-                             a_boolean         check_cast_access,
-                             a_boolean         check_ambiguity,
-                             a_boolean         is_implicit_cast,
-                             a_boolean         is_reinterpret_cast,
-                             a_boolean         reinterpret_semantics,
-                             a_source_position *err_pos)
+void add_cast_to_node(an_expr_node_ptr  *p_node,
+                      a_type_ptr        new_type,
+                      a_boolean         check_cast_access,
+                      a_boolean         check_ambiguity,
+                      a_boolean         is_implicit_cast,
+                      a_boolean         is_reinterpret_cast,
+                      a_boolean         reinterpret_semantics,
+                      a_source_position *err_pos)
 /*
 Add a cast node to the expression tree pointed to by *p_node, and update
 *p_node to point to the cast node.  The old node is cast to the type new_type.

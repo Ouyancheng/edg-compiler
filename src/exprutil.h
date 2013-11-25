@@ -1598,6 +1598,15 @@ extern void adjust_constant_operand_info_for_microsoft_null_pointer_test(
 extern void convert_operand_to_handle_to_cli_string(an_operand_ptr op);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
+extern void add_cast_to_node(an_expr_node_ptr  *p_node,
+                             a_type_ptr        new_type,
+                             a_boolean         check_cast_access,
+                             a_boolean         check_ambiguity,
+                             a_boolean         is_implicit_cast,
+                             a_boolean         is_reinterpret_cast,
+                             a_boolean         reinterpret_semantics,
+                             a_source_position *err_pos);
+
 extern a_boolean operand_is_function(an_operand *operand);
 
 extern a_boolean check_compatibility_of_pointer_operands(

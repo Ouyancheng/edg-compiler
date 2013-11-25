@@ -37311,13 +37311,37 @@ selector type.
 #if MICROSOFT_EXTENSIONS_ALLOWED
   if (microsoft_mode && !constexpr_enabled) {
     /* MSVC++ allows things like (void *)1 as case label constants. */
-    a_boolean did_not_fold;
+    a_boolean  did_not_fold;
+    a_constant orig_constant;
     scan_microsoft_case_label_constant_expression(&constant);
+    copy_constant(&constant, &orig_constant);
     type_change_constant(&constant, switch_type,
                          /*is_implicit_cast=*/TRUE,
                          /*maintain_expression=*/TRUE,
                          &did_not_fold, &label_position);
     check_assertion(!did_not_fold);
+    if (!cast_identical_types(orig_constant.type, switch_type) &&
+        !(constant.expr != NULL &&
+          is_cast_operation_node(constant.expr))) {
+      /* Create a cast node to use as a backing expression for the
+         constant.  Inhibit normal diagnostics during that process, since
+         they will already have been issued. */
+      a_boolean saved_suppress = expr_stack->suppress_diagnostics;
+      a_boolean saved_any_error = expr_stack->any_suppressed_error;
+      expr_stack->suppress_diagnostics = TRUE;
+      if (constant.expr == NULL) {
+        /* Make a node that can be used as the operand of the cast. */
+        constant.expr = alloc_node_for_constant(&orig_constant);
+      }  /* if */
+      break_constant_source_corresp(&constant);
+      add_cast_to_node(&constant.expr, switch_type,
+                       /*check_cast_access=*/FALSE, /*check_ambiguity=*/FALSE,
+                       /*is_implicit_cast=*/TRUE,
+                       /*is_reinterpret_cast=*/FALSE,
+                       /*reintepret_semantics=*/FALSE, &label_position);
+      expr_stack->suppress_diagnostics = saved_suppress;
+      expr_stack->any_suppressed_error = saved_any_error;
+    }  /* if */
 #if EXTRA_SOURCE_POSITIONS_IN_IL
     end_position = curr_construct_end_position;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */

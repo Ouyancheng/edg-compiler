@@ -1,5 +1,28 @@
 Version 4.9
 
+11/25/13 [EDGcpfe/14611,EDGcpfe/14692]
+Missing information about the original form of case label constants
+
+When the type of the constant given in a case label is different from the
+promoted type of the expression in the switch statement, the a_constant IL
+entry designated by the case_value field of the corresponding
+a_switch_case_entry struct should have a backing expression: an eok_cast
+node converting the case label constant to the required type, allowing the
+original constant to be identified.  Because of a change in version 4.6,
+this backing expression was missing in Microsoft mode.  This is now fixed.
+For example:
+
+  enum E { e0 };
+  void foo(unsigned char c) {
+    switch (c) {
+      case e0:   // Now has a backing expression in Microsoft mode
+        break;
+      case 5u:   // Now has a backing expression in Microsoft mode
+        break;
+    }
+  }
+
+
 11/22/13 [EDGcpfe/8542,EDGcpfe/14697]
 Static initialization with address constants
 
