@@ -1,5 +1,26 @@
 Version 4.9
 
+11/25/13 [EDGcpfe/14559]
+C++-generating back end, Microsoft compatibility: parenthesized function
+declarator with explicit calling convention
+
+A change in version 4.6 corrected the erroneous omission of parentheses
+needed to separate a globally-qualified function declarator from its return
+type in the output of the C++-generating back end (see the entry for
+EDGcpfe/13478).  However, these parentheses are not needed when the
+declarator is separated from the return type by a specifier for the
+function's calling convention, and, in fact, the Microsoft compiler issues
+an error for a parenthesized declarator following a calling convention
+specifier.  The C++-generating back end has now been changed to suppress
+the unneeded parentheses in this case.  For example:
+
+  int __stdcall f();
+  struct S {
+    friend int __stdcall ::f();  // Previously generated as
+                                 // "friend int __stdcall (::f)()"
+  };
+
+
 11/25/13 [EDGcpfe/14611,EDGcpfe/14692]
 Missing information about the original form of case label constants
 

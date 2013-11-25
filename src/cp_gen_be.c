@@ -3987,19 +3987,23 @@ put out nothing.
 
 
 static a_boolean gen_name_from_name_reference(
-                                        a_name_reference_ptr    nrp,
-                                        a_source_correspondence *scp,
-                                        an_il_entry_kind        entry_kind,
-                                        a_boolean               is_declaration)
+                            a_name_reference_ptr    nrp,
+                            a_source_correspondence *scp,
+                            an_il_entry_kind        entry_kind,
+                            a_boolean               is_declaration,
+                            a_boolean               suppress_declarator_parens)
 /*
 Generate a name reference for the entity with source correspondence scp and
 kind entry_kind using the name-reference information in *nrp.
 is_declaration is TRUE if the name is the declarator-id in a declaration,
-FALSE if the name reference appears as part of an expression.  If nrp is
-NULL, or if the reference represents an unqualified reference to a class
-member in a non-class context, or if the name appears inside an expression
-in a non-type template argument, return FALSE; otherwise, return TRUE to
-indicate that the name reference was successfully emitted.
+FALSE if the name reference appears as part of an expression.
+suppress_declarator_parens is TRUE if a declarator-id that would otherwise
+be enclosed in parentheses because of a leading "::" should be put out
+without the parentheses.  If nrp is NULL, or if the reference represents an
+unqualified reference to a class member in a non-class context, or if the
+name appears inside an expression in a non-type template argument, return
+FALSE; otherwise, return TRUE to indicate that the name reference was
+successfully emitted.
 */
 {
   a_boolean            name_generated = FALSE;
@@ -4073,11 +4077,13 @@ indicate that the name reference was successfully emitted.
       name_generated = TRUE;
       if (nrp->is_global_qualified_name) {
         /* The name starts with a leading "::". */
-        if (is_declaration) {
+        if (is_declaration && !suppress_declarator_parens) {
           /* This name is the declarator-id in a declaration.  We need to
              add parentheses to prevent the type specifier from being
              interpreted as a qualifier, e.g., "T (::x)" instead of "T
-             ::x". */
+             ::x".  (suppress_declarator_parens is TRUE when an explicit
+             calling convention is supplied in Microsoft mode, because MSVC
+             issues an error when parentheses are used in that case.) */
           write_tok_ch('(');
           need_closing_paren = TRUE;
         }  /* if */
@@ -4149,7 +4155,8 @@ qualified is TRUE, force the generation of a qualified name.
 
   check_assertion(rout != NULL);
   if (gen_name_from_name_reference(node->name_reference, &rout->source_corresp,
-                                   iek_routine, /*is_declaration=*/FALSE)) {
+                                   iek_routine, /*is_declaration=*/FALSE,
+                                   /*suppress_declarator_parens=*/FALSE)) {
     /* We have information on the exact form of reference and used that
        to generate the name. */
   } else if (only_found_by_adl) {
@@ -4606,7 +4613,8 @@ Generate the name of a variable from an enk_variable node.
   check_assertion(is_variable_node(node));
   var = node->variant.variable;
   if (gen_name_from_name_reference(node->name_reference, &var->source_corresp,
-                                   iek_variable, /*is_declaration=*/FALSE)) {
+                                   iek_variable, /*is_declaration=*/FALSE,
+                                   /*suppress_declarator_parens=*/FALSE)) {
     /* We have information on the exact form of reference and used that
        to generate the name. */
   } else {
@@ -6543,7 +6551,8 @@ recorded).
     }  /* if */
     /* Write the name. */
     if (gen_name_from_name_reference(name_ref, scp, entry_kind,
-                                     /*is_declaration=*/TRUE)) {
+                                     /*is_declaration=*/TRUE,
+                                     /*suppress_declarator_parens=*/FALSE)) {
       /* We generated the name reference in its source form. */
     } else if (options & GDO_FUNCTION_FRIEND_DECL) {
       /* Friend declaration (using typedef type).  The rules for using
@@ -9779,7 +9788,8 @@ function reference.
   } else {
     if (gen_name_from_name_reference(func_expr->name_reference,
                                      &rout->source_corresp, iek_routine,
-                                     /*is_declaration=*/FALSE)) {
+                                     /*is_declaration=*/FALSE,
+                                     /*suppress_declarator_parens=*/FALSE)) {
       /* We have the form of the name reference in the original source and
          used it to generate the name. */
     } else {
@@ -12140,10 +12150,11 @@ done_with_operation_after_parens:
                constant->variant.template_param.kind ==
                           (a_template_param_constant_kind)tpck_destructor))) &&
             has_name_before_mangling(constant) &&
-            gen_name_from_name_reference(expr->name_reference,
-                                         &constant->source_corresp,
-                                         iek_constant,
-                                         /*is_declaration=*/FALSE)) {
+            gen_name_from_name_reference(
+                                       expr->name_reference,
+                                       &constant->source_corresp, iek_constant,
+                                       /*is_declaration=*/FALSE,
+                                       /*suppress_declarator_parens=*/FALSE)) {
           /* We generated the name in its source form. */
         } else if (constant->kind == (a_constant_repr_kind)ck_aggregate &&
                    il_header.source_language == sl_C) {
@@ -13751,7 +13762,8 @@ the __if_exist appears between top-level declarations of the class.
     if (gen_name_from_name_reference(msiep->name_reference,
                                      (a_source_correspondence*)entity,
                                      (an_il_entry_kind)msiep->entity.kind,
-                                     /*is_declaration=*/FALSE)) {
+                                     /*is_declaration=*/FALSE,
+                                     /*suppress_declarator_parens=*/FALSE)) {
       /* We have information on the exact form of reference and used that
          to generate the name. */
     } else {
@@ -15958,9 +15970,10 @@ declarator (or NULL if it wasn't recorded).
        (a) function definitions use information from the function parameter
        variables, and (b) we need to suppress return types on constructors,
        destructors, etc. */
-    a_boolean                  return_type_needed = TRUE;
-    a_type_ptr                 saved_routine_type = rout->type;
-    a_routine_type_supplement  *rtsp = rout_type->variant.routine.extra_info;
+    a_boolean                 return_type_needed = TRUE;
+    a_type_ptr                saved_routine_type = rout->type;
+    a_routine_type_supplement *rtsp = rout_type->variant.routine.extra_info;
+    a_boolean                 suppress_declarator_parens = FALSE;
     if (special_kind_is(rout, sfk_constructor) ||
         special_kind_is(rout, sfk_destructor) ||
 #if MICROSOFT_EXTENSIONS_ALLOWED
@@ -15995,10 +16008,21 @@ declarator (or NULL if it wasn't recorded).
                                                  FTO_NO_OPTIONS,
                            &octl);
 #if MICROSOFT_EXTENSIONS_ALLOWED
+      if (microsoft_dialect_is_generated_code_target &&
+          rtsp->calling_convention != (a_calling_convention)cc_default) {
+        /* form_type_first_part will have put out a calling convention
+           specifier, and the Microsoft compiler issues an error when a
+           calling convention specifier is followed by a parenthesized
+           declarator. */
+        suppress_declarator_parens = TRUE;
+      }  /* if */
     } else if (rtsp->explicit_calling_convention) {
       /* Even if there is no explicit return type, we may still need to
          emit the calling convention. */
       form_calling_convention(rtsp->calling_convention, &octl);
+      /* Suppress the parentheses around the declarator-id if a calling
+         convention specifier was put out. */
+      suppress_declarator_parens = microsoft_dialect_is_generated_code_target;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     }  /* if */
     if (!instantiation_directive) {
@@ -16007,7 +16031,8 @@ declarator (or NULL if it wasn't recorded).
     }  /* if */
     /* Write the routine name. */
     if (gen_name_from_name_reference(name_ref, scp, iek_routine,
-                                     /*is_declaration=*/TRUE)) {
+                                     /*is_declaration=*/TRUE,
+                                     suppress_declarator_parens)) {
       /* We generated the name in source form. */
     } else if (friend_decl) {
       /* Friend declaration.  The rules for using qualified names are

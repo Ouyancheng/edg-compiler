@@ -3374,7 +3374,8 @@ Do the output in the way described by octl.
                      octl->output_name_reference(
                                 constant->variant.ptr_to_member.name_reference,
                                 scp, entry_kind,
-                                /*is_declaration=*/FALSE));
+                                /*is_declaration=*/FALSE,
+                                /*suppress_declarator_parens=*/FALSE));
       }
     } else {
       /* There's no name reference available; use a qualified name. */
