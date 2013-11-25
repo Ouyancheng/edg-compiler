@@ -29,7 +29,7 @@ Furthermore, a new command-line option --[no_]nonstd_anonymous_unions can now
 override the default behavior of any mode.
 
 
-10/20/13 [EDGcpfe/14186]
+11/20/13 [EDGcpfe/14186]
 Internal error on use of explicitly specialized scoped enumeration
 
 An internal error could occur (in instantiate_template_enum) on the use
