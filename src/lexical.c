@@ -13864,10 +13864,6 @@ the destructor or finalizer is part of a qualified name (e.g., "A::B::~B").
        selection type if no field selection type was specified.  This
        permits a destructor/finalizer to be defined as "X::~X" or
        "X::!X", respectively, where X is a typedef name. */
-    if (microsoft_bugs && field_sel_type == NULL && qualifier_sym != NULL &&
-       is_type_symbol(qualifier_sym)) {
-      field_sel_type = type_symbol_type(qualifier_sym);
-    }  /* if */
     if (field_sel_type == NULL) {
       a_type_ptr  this_type;
       if (is_destructor && is_expr_context &&
@@ -13888,6 +13884,10 @@ the destructor or finalizer is part of a qualified name (e.g., "A::B::~B").
           }  /* if */
         }  /* if */
       }  /* if */
+    }  /* if */
+    if (microsoft_bugs && field_sel_type == NULL && qualifier_sym != NULL &&
+       is_type_symbol(qualifier_sym)) {
+      field_sel_type = type_symbol_type(qualifier_sym);
     }  /* if */
     if (field_sel_type == NULL ||
         !is_class_struct_union_type(field_sel_type)) {
