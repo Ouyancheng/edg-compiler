@@ -13860,10 +13860,6 @@ the destructor or finalizer is part of a qualified name (e.g., "A::B::~B").
   } else {
     /* "~identifier" or "!identifier" is present. */
     a_symbol_ptr  specific_sym = NULL;
-    /* In Microsoft bugs mode, use the qualifier type as the field
-       selection type if no field selection type was specified.  This
-       permits a destructor/finalizer to be defined as "X::~X" or
-       "X::!X", respectively, where X is a typedef name. */
     if (field_sel_type == NULL) {
       a_type_ptr  this_type;
       if (is_destructor && is_expr_context &&
@@ -13887,6 +13883,10 @@ the destructor or finalizer is part of a qualified name (e.g., "A::B::~B").
     }  /* if */
     if (microsoft_bugs && field_sel_type == NULL && qualifier_sym != NULL &&
        is_type_symbol(qualifier_sym)) {
+      /* In Microsoft bugs mode, use the qualifier type as the field
+         selection type if no field selection type was specified.  This
+         permits a destructor/finalizer to be defined as "X::~X" or
+         "X::!X", respectively, where X is a typedef name. */
       field_sel_type = type_symbol_type(qualifier_sym);
     }  /* if */
     if (field_sel_type == NULL ||
