@@ -145,6 +145,8 @@ Included from basic_hdrs.h in every compilation.
 /*lint -esym(714,make_prefixed_object_name)*/
 /*lint -esym(759,make_prefixed_object_name)*/
 /*lint -esym(765,make_prefixed_object_name)*/
+/*lint -esym(759,add_cast_to_node)*/
+/*lint -esym(765,add_cast_to_node)*/
 #if !RECORD_MACRO_INVOCATIONS
 /*lint -esym(755,copy_simple_position_to_full_position)*/
 #endif /* !RECORD_MACRO_INVOCATIONS */
@@ -178,7 +180,7 @@ Included from basic_hdrs.h in every compilation.
 #if !COMPILE_MULTIPLE_SOURCE_FILES
 /*lint -esym(769,ec_cl_output_file_incompatible_with_multiple_inputs)*/
 /*lint -esym(769,ec_cl_pch_incompatible_with_multiple_inputs)*/
-/*lint -esym(769,ec_cl_ii_file_name_incompatible_with_multiple_inputs)*/
+ >/*lint -esym(769,ec_cl_ii_file_name_incompatible_with_multiple_inputs)*/
 /*lint -esym(769,
        ec_cl_one_instantiation_per_object_incompatible_with_multiple_inputs)*/
 #endif /* !COMPILE_MULTIPLE_SOURCE_FILES */
