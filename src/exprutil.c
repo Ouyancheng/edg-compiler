@@ -7980,7 +7980,8 @@ user-defined conversions.
           /* Record the original type if it materially changed. */
           if (local_constant.orig_type == NULL &&
               !cast_identical_types(operand->type, new_type)) {
-            local_constant.orig_type = operand->type;
+            local_constant.orig_type =
+                                    strip_routine_default_args(operand->type);
           }  /* if */
           if (curr_expr_kind_is_one_in_which_const_exprs_are_recorded()) {
             an_expr_node_ptr orig_expr = operand->variant.constant.expr;
