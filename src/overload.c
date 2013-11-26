@@ -2660,7 +2660,7 @@ standard applies that on the result of the conversions).
 */
 {
   return rvalue_references_enabled &&
-         microsoft_mode && microsoft_version < 1800;
+         microsoft_mode && microsoft_version < 1700;
 }  /* current_mode_requires_early_rvalue_ref_lvalue_test */
 
 

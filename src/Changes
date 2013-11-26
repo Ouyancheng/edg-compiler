@@ -1,5 +1,21 @@
 Version 4.9
 
+11/26/13 [EDGcpfe/14708]
+Microsoft compatibility: Binding an rvalue reference to a converted lvalue
+
+The changes for EDGcpfe/14284 enabled some standard C++11 behavior with
+respect to binding a rvalue reference to a converted lvalue in Microsoft C++
+modes with microsoft_version >= 1800.  This is now instead done when
+microsoft_version >= 1700.  For example:
+
+  struct S { S(int const&); };
+  void f(S&&) {}
+  void g(int x) {
+    f(x);  // Now accepted in Microsoft C++ mode with
+  }        // microsoft_version >= 1700 (previously required
+           // microsoft_version >= 1800).
+
+
 11/25/13 [EDGcpfe/14559]
 C++-generating back end, Microsoft compatibility: parenthesized function
 declarator with explicit calling convention
