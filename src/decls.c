@@ -1247,6 +1247,8 @@ diagnostics.
             scope_stack[depth_scope_stack-1].function_partial_instantiation &&
             (gpp_mode ||
              (microsoft_mode && rvalue_references_enabled &&
+              dps->assoc_func_decl_state != NULL &&
+              dps->assoc_func_decl_state->is_top_level_declaration &&
               is_special_rvalue_ref_generic_parameter_at_pos(
                                 scope_stack[depth_scope_stack-1].template_sym,
                                 param_num)))) {
