@@ -9649,11 +9649,13 @@ and return FALSE.
     }  /* if */
   }  /* for */
   if (found_end) {
-    int i;
+    int               i;
+    an_error_severity severity =
+                              currently_in_pp_if_skip ? es_remark
+                                                      : es_discretionary_error;
     /* Put out any pending "invalid character" diagnostics. */
     for (i = 0; i < num_invalid_chars_seen; ++i) {
-      diagnostic_at_line_pos(es_discretionary_error,
-                             ec_bad_raw_string_delim_char,
+      diagnostic_at_line_pos(severity, ec_bad_raw_string_delim_char,
                              invalid_char_loc[i]);
     }  /* for */
     /* Advance curr_char_loc to point after the '(' or '[' that terminates

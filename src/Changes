@@ -1,5 +1,25 @@
 Version 4.9
 
+11/26/13 [EDGcpfe/14645]
+Invalid character in raw string delimiter in unselected #if branch
+
+According to the C++11 Standard, the unselected branch of a #if consists of
+preprocessing tokens, and a character sequence beginning with the two
+characters 'R"' "shall be" a valid raw string literal preprocessing token;
+this "shall be" formulation requires a diagnostic for a violation of the
+rule.  Nevertheless, it is a common expectation that any text whatsoever
+can appear in the unselected branch of a #if without eliciting error
+messages.  The front end has now been changed to put out a remark instead
+of a discretionary error for an invalid character in the delimiter portion
+of a putative raw string literal that appears in the unselected branch of a
+#if.  For example:
+
+  #if 0
+  const char *p = R"@(xyz)@";  // Previously a discretionary error, now a
+                               // remark
+  #endif
+
+
 11/26/13 [EDGcpfe/14709]
 Microsoft-mode abort in is_special_rvalue_ref_generic_parameter_at_pos
 
