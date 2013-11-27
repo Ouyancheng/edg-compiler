@@ -10897,6 +10897,9 @@ that member function can throw any exception, return TRUE.
 }  /* merge_exception_specifications */
 
 
+static void ensure_all_field_initializers_scanned(a_type_ptr  class_type);
+
+
 static void form_exception_specification_for_generated_function(
                                                          a_routine_ptr  rp,
                                                          a_symbol_ptr   bctor)
@@ -10988,8 +10991,13 @@ enabled.
           sfkind == (a_special_function_kind)sfk_constructor &&
           first_param == NULL) {
         /* We're handling the default constructor and this is a field with an
-           in-class initializer.  We shouldn't get here until field
-           initializers have been scanned. */
+           in-class initializer.  Ensure field initializers have been
+           scanned. */
+        if (fp->initializer == NULL &&
+            !class_symbol_supp(symbol_for(class_type))
+                                               ->scanning_field_initializer) {
+          ensure_all_field_initializers_scanned(class_type);
+        }  /* if */
         if (fp->initializer == NULL) {
           /* This can happen when a field initializer depends on a generated
              default constructor that depends itself on the field

@@ -1,5 +1,23 @@
 Version 4.9
 
+11/27/13 [EDGcpfe/14710]
+Spurious "circular dependency" error on some class templates
+
+In some cases, the front end issued a spurious "circular dependency" error
+on class templates with a defaulted default constructor and a nonstatic data
+member initializer.  For example:
+
+  template<typename T>
+  struct S {
+    S() = default;
+    int i = 0;
+  };
+  S<int> bar;  // Default constructor generation previously triggered 
+               // spurious error.
+
+This is now fixed.
+
+
 11/26/13 [EDGcpfe/14711]
 Deleted member function causes error rather than deduction failure (SFINAE)
 
