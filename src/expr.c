@@ -1507,6 +1507,9 @@ constructs, in which case offsetof_case is TRUE.
                                   el_type, op1_node);
       if (op1_node->is_lvalue) subsc_node->is_lvalue = TRUE;
       make_lvalue_or_rvalue_expression_operand(subsc_node, result);
+      if (op1_node->is_lvalue) {
+        result->ref_entries_list = operand_1->ref_entries_list;
+      }  /* if */
       processed = TRUE;
     }  /* if */
 #endif /* GNU_VECTOR_TYPES_ALLOWED */
