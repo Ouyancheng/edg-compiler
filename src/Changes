@@ -1,5 +1,25 @@
 Version 4.9
 
+11/26/13 [EDGcpfe/14711]
+Deleted member function causes error rather than deduction failure (SFINAE)
+
+A call of a non-overloaded deleted member function in a SFINAE context often
+erroneously triggered an immediate error rather than just disqualifying the
+candidate template associated with the SFINAE context.  For example:
+
+  template <class U> struct DT{ U u; };
+  template <class> char dt(...);                                       // (1)
+  template <class T, class = decltype(DT<T>().~DT<T>())> int dt(int);  // (2)
+  struct DD { ~DD() = delete; };
+  static_assert(sizeof(dt<DD>(0)) == 1, "Unexpected");
+
+Here, in the call of dt<DD>, candidate (2) should be disqualified because the
+call to the destructor in the default template argument is invalid (since that
+destructor is deleted), and candidate (1) should be selected instead.
+However, the front end erroneously reported an error for the attempted use of
+the deleted destructor.  This is now fixed.
+
+
 11/26/13 [EDGcpfe/14645]
 Invalid character in raw string delimiter in unselected #if branch
 

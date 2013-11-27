@@ -7043,6 +7043,10 @@ case).
     } else if (symbol_is(member_sym, sk_property_set)) {
       rep = NULL;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+    } else if (rcblock != NULL && is_simple_function_symbol(member_sym) &&
+               member_sym->variant.routine.ptr->is_deleted) {
+      rcblock->error_detected = TRUE;
+      set_to_error_locator(locator);
     } else {
       rep = ref_entry(member_sym, &member_position);
     }  /* if */
