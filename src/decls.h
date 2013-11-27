@@ -680,6 +680,10 @@ typedef struct a_decl_parse_state {
 			   could contribute to creating a "variably modified
 			   type"). */
   a_bit_field
+		function_declarator_seen:1;
+			/* TRUE after a top-level function declarator has been
+			   been scanned. */
+  a_bit_field
 		unused_qualifiers:1;
 			/* TRUE if there are pending qualifiers that have
 			   not had an effect on the current declaration.

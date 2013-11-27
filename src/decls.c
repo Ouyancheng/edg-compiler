@@ -240,6 +240,7 @@ be restored).
   dps->has_pack_ellipsis = FALSE;
   dps->is_pack_element = FALSE;
   dps->nested_ptr_or_ref_seen = FALSE;
+  dps->function_declarator_seen = FALSE;
   dps->has_initializer = FALSE;
   dps->has_direct_initializer = FALSE;
   dps->first_decl = FALSE;
@@ -1247,8 +1248,10 @@ diagnostics.
             scope_stack[depth_scope_stack-1].function_partial_instantiation &&
             (gpp_mode ||
              (microsoft_mode && rvalue_references_enabled &&
-              dps->assoc_func_decl_state != NULL &&
-              dps->assoc_func_decl_state->is_top_level_declaration &&
+              /* Ignore nested function declarators and function declarators
+                 in return types. */
+              dps->assoc_func_decl_state->assoc_func_decl_state == NULL &&
+              !dps->assoc_func_decl_state->function_declarator_seen &&
               is_special_rvalue_ref_generic_parameter_at_pos(
                                 scope_stack[depth_scope_stack-1].template_sym,
                                 param_num)))) {

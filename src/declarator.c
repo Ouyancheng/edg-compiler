@@ -3440,6 +3440,7 @@ an error if a default argument expression is encountered.
     done_with_func_info(local_func_info_block);
   }  /* if */
   copy_source_position(start_pos, error_position);
+  state->function_declarator_seen = TRUE;
   db_exit();
 }  /* function_declarator */
 
