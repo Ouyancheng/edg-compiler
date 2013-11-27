@@ -296,8 +296,9 @@ static void validate_symbolic_operand_and_label_references(
 /*
 Traverse the asm string for the given asm_entry and validate any symbolic
 operand references of the form "%[<name>]" it contains against the list of
-operands.  Check the string also for any references to labels, either by
-symbolic reference (e.g., "%l[label]) or by argument number (e.g., "%l0).
+operands.  For an asm goto also check the string for any references to labels,
+either by symbolic reference (e.g., "%l[label]) or by argument number
+(e.g., "%l0).
 */
 {
   a_constant_ptr      asm_string = asm_entry->asm_string;
@@ -324,10 +325,14 @@ symbolic reference (e.g., "%l[label]) or by argument number (e.g., "%l0).
             is_label = TRUE;
           }  /* if */
           ++pc;
-        } /* if */
+        }  /* if */
         (void)find_symbolic_operand(&pc, asm_entry->operands,
                                     asm_entry->labels, is_label, diag_pos);
-      } else if (pc[0] == '%' && pc[1] == 'l') {
+      } else if (pc[0] == '%' && pc[1] == '%') {
+        /* Found "%%" which indicates a register that begins with a '%'; just
+           skip over it. */
+        pc += 2;
+      } else if (pc[0] == '%' && pc[1] == 'l' && asm_entry->is_asm_goto) {
         /* Found "%l" (but not "%l["); what follows should be a decimal number
            that corresponds to a valid label argument number. */
         pc += 2;

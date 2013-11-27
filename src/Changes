@@ -1,5 +1,18 @@
 Version 4.9
 
+11/27/13 [EDGcpfe/14664,EDGcpfe/14712]
+GNU compatibility: spurious error with asm registers with leading %l
+
+As a result of the changes for asm goto (EDGcpfe/12441, et al.), a register
+whose name begins with the string "%l" had caused spurious errors when used
+in the first argument to an asm declaration.  That has now been fixed.  For
+example (with --gcc --gnu_version 40500):
+
+  void f(int x) {
+    asm volatile("op %0, %%lreg;" : "=r"(x));
+  }
+
+
 11/27/13 [EDGcpfe/14710]
 Spurious "circular dependency" error on some class templates
 
