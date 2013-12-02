@@ -646,9 +646,10 @@ example:
     using N::S;  // Previously triggered an error; now accepted.
   }
 
-Such cases are now accepted.  (It is not actually entirely clear that such
-duplicate local using-declarations are valid C++, but existing practice is
-to accept them and the front end now does also.  This is also the C++
+Such cases are now accepted, and so are similar cases involving using-
+declarations for class templates.  (It is not actually entirely clear that
+such duplicate local using-declarations are valid C++, but existing practice
+is to accept them and the front end now does also.  This is also the C++
 standards committee's Core issue 36.)
 
 

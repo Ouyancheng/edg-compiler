@@ -4325,6 +4325,10 @@ namespace projection symbols.
       if (tp1 != NULL && tp2 != NULL && identical_types(tp1, tp2)) {
         result = TRUE;
       }  /* if */
+    } else if (is_class_template_symbol(sym1) &&
+               is_class_template_symbol(sym2)) {
+      result = same_entities(sym1->variant.template_info->il_template_entry,
+                             sym2->variant.template_info->il_template_entry);
     }  /* if */
   }  /* if */
   return result;
@@ -4503,12 +4507,11 @@ this is not allowed, an error will be issued by the caller.
       /* The old symbol is an injected class-name.  It is hidden by the
          current declaration. */
       err = FALSE;
-    } else if (!strict_ansi_mode &&
-               is_using_decl_to_same_type(new_sym, old_sym)) {
+    } else if (is_using_decl_to_same_type(new_sym, old_sym)) {
       /* At least one of the symbols is a namespace projection that points
-         to the same type as the other symbol.  Enter the new symbol.  The
-         insert point is not changed, so the newly entered symbol will be
-         used. */
+         to the same type (or class template) as the other symbol.  Enter the
+         new symbol.  The insert point is not changed, so the newly entered
+         symbol will be used. */
       err = FALSE;
     } else if (gpp_mode &&
                old_sym->kind == (a_symbol_kind)sk_variable &&
