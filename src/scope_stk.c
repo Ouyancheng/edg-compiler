@@ -10337,7 +10337,7 @@ and can be NULL only if create_if_not_found is FALSE.
     result_tap = alloc_template_arg(
               templ_arg_kind_for_symbol_kind(templ_param->param_symbol->kind));
     if (is_rescan) {
-      /* In error cases, including rescan errors, which are may not result
+      /* In error cases, including rescan errors, which may not result
          in actually compilation errors, we may not find an argument.
          Create an error argument. */
       set_template_arg_to_error(result_tap);
