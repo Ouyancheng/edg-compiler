@@ -5749,7 +5749,7 @@ typedef struct an_exception_specification {
   a_bit_field
 		arg_cached:1;
 			/* TRUE while the parenthesized argument tokens of the
-			   expected specification are cached for later
+			   exception specification are cached for later
 			   rescanning.  In the case of members of class
 			   templates, this rescanning may never occur if the
 			   member is never used. */
