@@ -1,5 +1,22 @@
 Version 4.9
 
+12/3/13  [EDGcpfe/14665]
+C++-generating back end: parenthesized non-constant array bound in
+new-expression
+
+The type in a new-expression can be written in one of two forms, either
+parenthesized or unparenthesized.  The form without parentheses allows the
+major bound in an array type to be non-constant; however, the type in
+parentheses is a type-id, in which all array bounds must be constant.  The
+C++-generating back end previously put out some array types with
+non-constant array bounds using the parenthesized form.  This is now fixed.
+For example:
+
+  extern unsigned i;
+  const int *p = new const int[i]();  // Previously put out as
+                                      // "new (const int [i])()"
+
+
 12/03/13 [EDGcpfe/14707]
 Cached noexcept specifiers
 

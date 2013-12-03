@@ -9510,6 +9510,12 @@ Generate code for a new or delete operation.
            typeref_is_typedef(temp_type))) {
         /* Simple cases that don't need parentheses. */
         need_type_parens = FALSE;
+      } else if (is_array_type(type) && ndsp->number_of_elements != NULL) {
+        /* A parenthesized type in a new-expression is a type-id, which
+           must have a constant bound.  The fact that number_of_elements is
+           non-NULL indicates that the bound is not constant, so
+           parentheses must not be used. */
+        need_type_parens = FALSE;
       }  /* if */
     }
     if (need_type_parens) write_tok_ch('(');
