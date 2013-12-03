@@ -1,5 +1,17 @@
 Version 4.9
 
+12/02/13 [EDGcpfe/14717]
+Microsoft compatibility: __is_pod
+
+Previously, the front end always produced a false value for __is_pod applied
+to non-class types in Microsoft modes.  Now, this behavior is restricted to
+Microsoft modes with microsoft_version < 1800.  For example:
+
+  static_assert(__is_pod(int), "Surprising");
+    // This assertion now succeeds in Microsoft mode with
+    // microsoft_version == 1800.
+
+
 11/27/13 [EDGcpfe/14664,EDGcpfe/14712]
 GNU compatibility: spurious error with asm registers with leading %l
 
