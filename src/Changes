@@ -17,7 +17,7 @@ For example:
                                       // "new (const int [i])()"
 
 
-12/03/13 [EDGcpfe/14707]
+12/3/13  [EDGcpfe/14707]
 Cached noexcept specifiers
 
 A noexcept specifier of a member of a class template instance isn't parsed
