@@ -1,5 +1,28 @@
 Version 4.9
 
+12/03/13 [EDGcpfe/14707]
+Cached noexcept specifiers
+
+A noexcept specifier of a member of a class template instance isn't parsed
+until the member is used in some way.  While it isn't parsed, a flag named
+"arg_cached" is TRUE in the IL entry representing the noexcept specifier.
+Previously, il_def.h erroneously indicated that this flag could only
+temporarily be TRUE, when in fact it may remain TRUE for a member that is
+never used.  That is now fixed.  Furthermore, the front end did not always
+"instantiate" a cached noexcept specifier when the associated member was
+used.  For example:
+
+  template<class T> struct S {
+    void f() noexcept(true);
+  };
+  void g() {
+    S<int> x;
+    x.f();  // Previously this did not trigger the parsing of the noexcept
+  }         // argument of S<int>::f; now it does.
+
+That is now fixed too.
+
+
 12/02/13 [EDGcpfe/14717]
 Microsoft compatibility: __is_pod
 

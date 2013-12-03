@@ -5750,8 +5750,9 @@ typedef struct an_exception_specification {
 		arg_cached:1;
 			/* TRUE while the parenthesized argument tokens of the
 			   expected specification are cached for later
-			   rescanning.  This is a temporary state during front
-			   end processing. */
+			   rescanning.  In the case of members of class
+			   templates, this rescanning may never occur if the
+			   member is never used. */
   union {
     /* When arg_cached is TRUE. */
     struct a_token_cache

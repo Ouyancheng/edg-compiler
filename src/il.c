@@ -20370,12 +20370,18 @@ routine as actually referenced.
       if (!curr_routine->is_inline) instantiate = FALSE;
     }  /* if */
   }  /* if */
-  /* If the function is an instance of a function template, mark it
-     as requiring an instantiation.  This is also done for extern inline
-     functions when inline functions are instantiated using a
-     mechanism like the template instantiation mechanism. */
-  assoc_sym = (a_symbol_ptr)routine->source_corresp.assoc_info;
+  /* If the function is an instance of a function template, mark it as
+     requiring an instantiation.  This is also done for extern inline functions
+     when inline functions are instantiated using a mechanism like the template
+     instantiation mechanism. */
+  assoc_sym = symbol_for(routine);
   if (instantiate && assoc_sym != NULL) {
+    if (assoc_sym->is_class_member) {
+      /* Members of class templates may have their exception specification left
+         in an "unparsed state".  At the point of use, however, we ensure the
+         actual exception specification is known. */
+      instantiate_exception_spec_if_needed(assoc_sym);
+    }  /* if */
     set_instance_required(assoc_sym, TRUE, SIR_NONE);
   }  /* if */
 }  /* mark_routine_referenced_full */
