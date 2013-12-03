@@ -7338,8 +7338,7 @@ constant will be set as well.
         case bok_has_trivial_constructor:
         case bok_is_trivially_copyable:
           if (microsoft_mode && microsoft_version < 1800) {
-            /* Early versions of MSVC always returns FALSE for nonclass
-               types. */
+            /* Early versions of MSVC returned FALSE for nonclass types. */
             result = FALSE;
           } else if (is_reference_type(type) || is_function_type(type)) {
             /* References and functions cannot be default-initialized and
