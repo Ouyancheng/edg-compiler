@@ -40,7 +40,7 @@ used.  For example:
 That is now fixed too.
 
 
-12/02/13 [EDGcpfe/14717]
+12/2/13  [EDGcpfe/14717]
 Microsoft compatibility: __is_pod
 
 Previously, the front end always produced a false value for __is_pod applied
