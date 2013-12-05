@@ -25,8 +25,6 @@ lookup.c - Name lookup routines.
 #pragma hdrstop
 #endif /* ifdef PCH_PRAGMA_GUARD */
 
-#include "trans_corresp.h"
-
 
 static a_symbol_ptr find_nested_type_symbol(a_symbol_locator *locator)
 /*
@@ -5986,9 +5984,18 @@ associated namespaces and classes to "namespace_list" and "class_list".
            implementation treats unions and classes equivalently. */
         /* Add the class itself to the lookup list. */
         add_class_to_lookup_lists(type, namespace_list, class_list);
-        if (!gpp_mode && (!microsoft_mode || microsoft_version >= 1500)) {
-          /* If this is a template, make sure it is instantiated.  This is not
-             done by the Microsoft (before version 1500) and g++ compilers. */
+        /* If this is a template, make sure it is instantiated.  In some modes
+           this is not always done. */
+        if (gpp_mode) {
+          /* GCC appears not to instantiate the class type in this case. */
+        } else if (microsoft_mode &&
+                   (microsoft_version < 1500 ||
+                    ms_does_not_complete_class_for_candidate_decl())) {
+          /* Early Microsoft compilers don't instantiate the class type in this
+             case either.  Newer versions do, but not always: The contexts
+             where instantiation doesn't happen are not entirely clear, but
+             they seem to include decltype rescan contexts. */
+        } else {
           complete_class_type_is_needed(type);
         }  /* if */
         /* Add its base classes. */

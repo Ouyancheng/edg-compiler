@@ -12090,6 +12090,9 @@ name.  We do not advance to the token after the decltype in this case.
   expr_stack->unevaluated_expr_will_be_kept_in_il = TRUE;
   expr_stack->is_type_operator_arg_expression = TRUE;
   expr_stack->allow_call_with_incomplete_return_type = TRUE;
+  /* Indicate that we are in the context of a decltype expression. */
+  saved_in_decltype_context = scope_stack_top().in_decltype_context;
+  scope_stack_top().in_decltype_context = TRUE;
   if (rcblock != NULL) {
     /* This call is done late because we need the expression stack to be pushed
        already. */
@@ -12109,13 +12112,10 @@ name.  We do not advance to the token after the decltype in this case.
     /* This call is done late because we need the expression stack to be pushed
        already. */
     add_matching_stop_token(tok_rparen);
-    /* Indicate that we are in the context of a decltype expression. */
-    saved_in_decltype_context = scope_stack_top().in_decltype_context;
-    scope_stack_top().in_decltype_context = TRUE;
     /* Scan the argument expression. */
     scan_expr(&operand, PREC_LOWEST, EOPT_NO_OPTIONS);
-    scope_stack_top().in_decltype_context = saved_in_decltype_context;
   }  /* if */
+  scope_stack_top().in_decltype_context = saved_in_decltype_context;
   /* Give an error on an indefinite function. */
   eliminate_unusual_operand_kinds(&operand);
   result = operand.type;

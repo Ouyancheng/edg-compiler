@@ -2199,6 +2199,17 @@ Return TRUE if we are in a pack expansion context that is not a suppression.
 #define in_pack_expansion()					\
   (pack_expansion_stack != NULL && !pack_expansion_stack->is_suppression)
 
+/*
+Return TRUE if we are in a context where Microsoft compilers do not appear to
+instantiate a class template to ensure that candidate functions (friend
+functions or member operators) are seen.  (This is a conservative
+approximation; the actual behavior of Microsoft compilers is unclear.)
+*/
+#define ms_does_not_complete_class_for_candidate_decl()                      \
+  (scope_stack_top().in_decltype_context &&                                  \
+   (scope_stack_top().is_rescan ||                                           \
+    scope_stack_top().function_partial_instantiation))
+
 #endif /* ifndef SCOPE_STK_H */
 
 /******************************************************************************

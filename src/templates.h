@@ -316,7 +316,7 @@ typedef int an_equiv_templ_param_options_set;
 			   parameter packs). */
 
 /*
-Flags used to specify options to set_instance_requried and
+Flags used to specify options to set_instance_required and
 update_instantiation_required_flag.
 */
 typedef int a_set_instance_required_options_set;

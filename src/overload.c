@@ -15718,7 +15718,13 @@ operand when initializer lists are enabled.
         if (operand_1_is_class) {
           /* Instantiate the type if it is a template class.  This ensures that
              member operator functions that could apply are declared. */
-          instantiate_template_class(eff_operand_1_type);
+          if (microsoft_mode &&
+              ms_does_not_complete_class_for_candidate_decl()) {
+            /* Microsoft compilers appear not to do this in some
+               circumstances. */
+          } else {
+            instantiate_template_class(eff_operand_1_type);
+          }  /* if */
           member_functions_symbol = opname_member_function_symbol(kind,
                                             skip_typerefs(eff_operand_1_type));
           if (member_functions_symbol != NULL) {
