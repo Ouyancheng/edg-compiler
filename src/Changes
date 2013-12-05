@@ -1,5 +1,27 @@
 Version 4.9
 
+12/5/13  [EDGcpfe/14675]
+C++-generating back end, GNU C++ compatibility: dependent destructor name
+
+g++ has a bug that causes it to issue a spurious error when the name of a
+dependent destructor that is not a member of the current instantiation is
+referenced without a template argument list.  (The template argument list
+is implicit in the type of the object for which the destructor is being
+invoked.)  A change in version 4.8 resulted in the C++-generating back end
+omitting this unnecessary template argument list, triggering the g++ bug
+when compiling the generated code.  The C++-generating back end has now
+been changed to put out the template argument list in such cases when
+gcc_is_generated_code_target is TRUE.  For example:
+
+  template<typename T1, typename T2 = int> struct S {
+    S<T2> *m;
+    ~S() {
+      m->~S<T2>();  // Previously generated as "m->~S()"
+    }
+  };
+  S<float, double> v;
+
+
 12/3/13  [EDGcpfe/14665]
 C++-generating back end: parenthesized non-constant array bound in
 new-expression

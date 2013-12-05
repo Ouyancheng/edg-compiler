@@ -1135,12 +1135,15 @@ NULL if there is none.
 
 
 static a_boolean class_is_in_name_context_stack(
-                                               a_type_ptr class_type,
-                                               a_boolean  include_base_classes)
+                                   a_type_ptr class_type,
+                                   a_boolean  include_base_classes,
+                                   a_boolean  ignore_field_selection_contexts)
 /*
 Return TRUE if the indicated class is currently on the name context stack.
 If include_base_classes is TRUE, bases of classes in the name context stack
-are also considered to be on the stack.
+are also considered to be on the stack.  If ignore_field_slection_contexts
+is TRUE, entries that were pushed for field selection purposes are not
+considered.
 */
 {
   a_boolean          class_in_stack = FALSE;
@@ -1149,7 +1152,8 @@ are also considered to be on the stack.
   for (ncp = curr_name_context; ncp != NULL && !class_in_stack;
        ncp = ncp->next) {
     if (ncp->class_type == class_type) {
-      class_in_stack = TRUE;
+      class_in_stack = !(ncp->field_selection_context &&
+                         ignore_field_selection_contexts);
     } else if (include_base_classes &&
                ncp->class_type != NULL &&
                find_base_class_of(ncp->class_type, class_type) != NULL) {
@@ -1568,8 +1572,8 @@ template instances.
   } else if (!ignore_context) {
     /* Check to see if the containing class is in the context stack. */
     is_accessible = (class_is_in_name_context_stack(
-                                             parent_class,
-                                             /*include_base_classes=*/FALSE) ||
+                                  parent_class, /*include_base_classes=*/FALSE,
+                                  /*ignore_field_selection_contexts=*/FALSE) ||
                      (curr_name_context != NULL &&
                       curr_name_context->class_type_for_access_not_naming ==
                                                                 parent_class));
@@ -2937,6 +2941,32 @@ entity is a template class, add the template arguments.
   /* The bare name is the unqualified name without the template arguments: */
   gen_bare_name(scp, entry_kind);
   if (il_header.source_language == sl_Cplusplus) {
+    if (entry_kind == (an_il_entry_kind)iek_constant &&
+        gcc_is_generated_code_target) {
+      a_constant_ptr cp = (a_constant_ptr)scp;
+      a_const_char   *name = unmangled_name_of(scp);
+      if (cp->kind == (a_constant_repr_kind)ck_template_param &&
+          cp->variant.template_param.kind ==
+                                 (a_template_param_constant_kind)tpck_member &&
+          name != NULL && name[0] == '~') {
+        /* This is a dependent destructor.  Check to see if it is a member
+           of the current instantiation, i.e., if its parent class is in
+           the name context stack as other than a field selection
+           context. */
+        a_type_ptr parent_class = scp_parent_class(scp);
+        if (!class_is_in_name_context_stack(
+                                   parent_class,
+                                   /*include_base_classes=*/FALSE,
+                                   /*ignore_field_selection_contexts=*/TRUE)) {
+          /* g++ has a bug that causes it to report an error for a
+             dependent destructor name that is not a member of the current
+             instantiation if it does not have a template argument list.
+             Use the destructor's parent class's template argument list. */
+          scp = &parent_class->source_corresp;
+          entry_kind = (an_il_entry_kind)iek_type;
+        }  /* if */
+      }  /* if */
+    }  /* if */
     gen_template_arguments(scp, entry_kind, -1L);
   }  /* if */
 }  /* gen_unqualified_name */
@@ -3672,7 +3702,9 @@ GN_PARENS_IF_GLOBAL_QUALIFIER is not set.
             && decltype_type == NULL
 #endif /* PROTOTYPE_INSTANTATIONS_IN_IL */
                                     ) ||
-           class_is_in_name_context_stack(class_type, include_base_classes))) {
+           class_is_in_name_context_stack(
+                                 class_type, include_base_classes,
+                                 /*ignore_field_selection_contexts=*/FALSE))) {
         /* A qualified name is not needed, because we're inside a name context
            for the class and the name is not hidden.  Note a subtle case in
            Microsoft mode: if the hiding symbol was an injected class, the
@@ -4027,8 +4059,10 @@ successfully emitted.
   } else if (nrp != NULL) {
 #if TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
     if (nrp->qualifier == NULL && scp->is_class_member && !is_declaration &&
-        !class_is_in_name_context_stack(scp_parent_class(scp),
-                                        /*include_base_classes=*/TRUE)) {
+        !class_is_in_name_context_stack(
+                                  scp_parent_class(scp),
+                                  /*include_base_classes=*/TRUE,
+                                  /*ignore_field_selection_contexts=*/FALSE)) {
       /* In TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS mode, friend
          functions defined inside classes are moved outside, where names
          from the class are no longer in scope.  For unqualified references
@@ -4044,8 +4078,10 @@ successfully emitted.
       qual_class = qual->qualifier.class_type;
       if (qual->previous_qualifier == NULL &&
           ((qual_class->source_corresp.is_class_member &&
-            !class_is_in_name_context_stack(parent_class_of(qual_class),
-                                            /*include_base_classes=*/TRUE)) ||
+            !class_is_in_name_context_stack(
+                                 parent_class_of(qual_class),
+                                 /*include_base_classes=*/TRUE,
+                                 /*ignore_field_selection_contexts=*/FALSE)) ||
            (is_namespace_member(qual_class) &&
             !scope_is_in_name_context_stack(qual_class->
                                               source_corresp.parent_scope)))) {
@@ -4684,8 +4720,9 @@ a definition.
            microsoft_dialect_is_generated_code_target to decide whether to
            allow qualification in this case. */
         a_type_ptr  parent_class = scp_parent_class(scp);
-        if (!class_is_in_name_context_stack(parent_class,
-                                            /*include_base_classes=*/FALSE)) {
+        if (!class_is_in_name_context_stack(
+                                  parent_class, /*include_base_classes=*/FALSE,
+                                  /*ignore_field_selection_contexts=*/FALSE)) {
           /* Avoid qualification inside the virtual function's class. */
           options |= GN_FORCE_QUALIFIED_NAME;
         }  /* if */
@@ -5582,8 +5619,9 @@ A reference is not the definition.
          referred to by an elaborated-type-specifier. */
       type->has_been_declared = TRUE;
       if (type_is_prototype_instantiation(type) &&
-          class_is_in_name_context_stack(type,
-                                         /*include_base_classes=*/TRUE)) {
+          class_is_in_name_context_stack(
+                                  type, /*include_base_classes=*/TRUE,
+                                  /*ignore_field_selection_contexts=*/FALSE)) {
         a_boolean need_qual;
         if (type->source_corresp.qualification_needed) {
           need_qual = TRUE;
@@ -5591,8 +5629,9 @@ A reference is not the definition.
           need_qual = FALSE;
         } else if (type->source_corresp.is_class_member &&
                    !class_is_in_name_context_stack(
-                                              parent_class_of(type),
-                                              /*include_base_classes=*/TRUE)) {
+                                  parent_class_of(type),
+                                  /*include_base_classes=*/TRUE,
+                                  /*ignore_field_selection_contexts=*/FALSE)) {
           need_qual = TRUE;
         } else {
           need_qual = FALSE;
@@ -5683,8 +5722,10 @@ Routine to be called by the il_to_str routines to output a name.
         scp->is_class_member &&
         scp_parent_class(scp)->
                        variant.class_struct_union.is_prototype_instantiation &&
-        class_is_in_name_context_stack(scp_parent_class(scp),
-                                       /*include_base_classes=*/FALSE)) {
+        class_is_in_name_context_stack(
+                                  scp_parent_class(scp),
+                                  /*include_base_classes=*/FALSE,
+                                  /*ignore_field_selection_contexts=*/FALSE)) {
       /* g++ has a bug that requires use of a qualified name when a member
          function of a class template is used as a nontype template argument
          within the scope of the class template. */
