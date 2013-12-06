@@ -109,7 +109,8 @@ typedef struct a_tmpl_decl_state {
   a_boolean	is_variadic;
 			/* TRUE if any of the template parameters are
 			   parameter packs.  Also TRUE in GNU mode when
-			   GNU bases operators are enabled. */
+			   GNU variadic operators, such as __bases, are
+			   enabled. */
   a_bit_field	has_variadic_template_params;
 			/* TRUE if this is an actual variadic template and
 			   not simply treated as variadic in GNU mode (see
