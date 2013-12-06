@@ -506,6 +506,7 @@ Initialize a template declaration state block.
   /* Because the __bases and __direct_bases use the variadic mechanism,
      all template declaration contexts must be considered variadic. */
   tdsp->is_variadic = gnu_bases_operators_enabled;
+  tdsp->has_variadic_template_params = FALSE;
   tdsp->is_generic = FALSE;
   tdsp->is_delegate = FALSE;
   tdsp->generic_constraints_pending = FALSE;
@@ -2677,12 +2678,13 @@ the count of parameters to be compared when entire_type is FALSE.
        if the first is a pack. */
     result = -1;
   } else {
-    if (tssp1->is_variadic && tssp2->is_variadic) {
+    if (tssp1->has_variadic_template_params &&
+        tssp2->has_variadic_template_params) {
       result = compare_variadic_template_arg_lists(dummy_arg_list1,
                                                    dummy_arg_list2);
-    } else if (tssp2->is_variadic) {
+    } else if (tssp2->has_variadic_template_params) {
       result = 1;
-    } else if (tssp1->is_variadic) {
+    } else if (tssp1->has_variadic_template_params) {
       result = -1;
     } else {
       result = 0;
@@ -2940,7 +2942,8 @@ should be preferred over templ_sym2.
     /* They are unordered by deduction.  Compare the template argument
        lists to see if one should be preferred based on the use of
        variadic parameters. */
-    if (tssp1->is_variadic && tssp2->is_variadic) {
+    if (tssp1->has_variadic_template_params &&
+        tssp2->has_variadic_template_params) {
       a_class_type_supplement_ptr		ctsp1;
       a_class_type_supplement_ptr		ctsp2;
       ctsp1 = prototype_sym1->variant.class_struct_union.type->
@@ -2949,9 +2952,9 @@ should be preferred over templ_sym2.
                                         variant.class_struct_union.extra_info;
       result = compare_variadic_template_arg_lists(ctsp1->template_arg_list,
                                                    ctsp2->template_arg_list);
-    } else if (tssp2->is_variadic) {
+    } else if (tssp2->has_variadic_template_params) {
       result = 1;
-    } else if (tssp1->is_variadic) {
+    } else if (tssp1->has_variadic_template_params) {
       result = -1;
     } else {
       result = 0;
@@ -17900,6 +17903,8 @@ friend_template_checks_done:
     }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     tssp->is_variadic = decl_state->is_variadic;
+    tssp->has_variadic_template_params =
+                                      decl_state->has_variadic_template_params;
     /* Set the name-linkage for this template -- it will be propagated
        into the instances. */
     /* Normally, a template has C++ linkage. */
@@ -18751,6 +18756,7 @@ template parameter list.  sym is the template parameter symbol.
   sym->is_pack_element = TRUE;
   tpp->is_pack = TRUE;
   decl_state->is_variadic = TRUE;
+  decl_state->has_variadic_template_params = TRUE;
   scope_stack[depth_scope_stack].in_variadic_template = TRUE;
 }  /* template_param_is_variadic */
 
@@ -19284,6 +19290,8 @@ depends on a another template parameter.
   tssp->il_template_entry = templ_ptr;
   tssp->variant.class_template.argument_template = sym;
   tssp->is_variadic = local_decl_state.is_variadic;
+  tssp->has_variadic_template_params =
+                                 local_decl_state.has_variadic_template_params;
   set_template_cache_info(&tssp->cache,
                           (a_token_cache_ptr)NULL,
                           local_decl_state.decl_info);
@@ -21212,6 +21220,8 @@ caller.
        entry. */
     tssp->variant.function.routine->assoc_template = tssp->il_template_entry;
     tssp->is_variadic = decl_state->is_variadic;
+    tssp->has_variadic_template_params =
+                                      decl_state->has_variadic_template_params;
     if (decl_state->is_specialization && !decl_state->is_template_friend) {
       /* This template is a specialization of a member template.  Update the
          template information to reflect this. */
@@ -22087,6 +22097,8 @@ alias
   tssp->variant.class_template.is_alias_template = TRUE;
   tssp->attributes = attributes;
   tssp->is_variadic = decl_state->is_variadic;
+  tssp->has_variadic_template_params =
+                                      decl_state->has_variadic_template_params;
   if (ssep->kind == (a_scope_kind)sck_namespace ||
       ssep->kind == (a_scope_kind)sck_namespace_extension) {
     set_namespace_membership(sym, (a_source_correspondence *)NULL,

@@ -1,5 +1,22 @@
 Version 4.9
 
+12/5/13  [EDGcpfe/14724]
+GNU C++ compatibility: spurious ambiguity when using variadic functions
+
+A spurious ambiguity could occur in g++ mode when gnu_version >= 40700
+when an overload set contained a variadic and a non-variadic function
+template.  Now fixed.
+
+  struct A {
+    template <typename T> A(T&& seq , void* = 0 ); // #1
+    template <typename First, typename ...T> A(First&& first, T&&... t); // #2
+  };
+  int main() {
+    int i;
+    A a(i);  // Should call #1
+  }
+
+
 12/5/13  [EDGcpfe/14716]
 Microsoft compatibility: Instantiating templates to find candidates
 

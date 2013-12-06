@@ -108,7 +108,12 @@ typedef struct a_tmpl_decl_state {
 			   parameters. */
   a_boolean	is_variadic;
 			/* TRUE if any of the template parameters are
-			   parameter packs. */
+			   parameter packs.  Also TRUE in GNU mode when
+			   GNU bases operators are enabled. */
+  a_bit_field	has_variadic_template_params;
+			/* TRUE if this is an actual variadic template and
+			   not simply treated as variadic in GNU mode (see
+			   is_variadic above. */
   a_boolean	is_generic;
 			/* TRUE if this a C++/CLI generic declaration. */
   a_boolean	is_delegate;

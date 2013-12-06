@@ -3442,6 +3442,7 @@ and return a pointer to it.
   tssp->is_nonreal_member = FALSE;
   tssp->is_error = FALSE;
   tssp->is_variadic = FALSE;
+  tssp->has_variadic_template_params = FALSE;
   tssp->is_generic = FALSE;
 #if MICROSOFT_EXTENSIONS_ALLOWED
   tssp->is_delegate = FALSE;

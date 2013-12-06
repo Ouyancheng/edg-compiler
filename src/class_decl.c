@@ -20194,6 +20194,8 @@ templates from that base template.
       init_tmpl_decl_state_for_inheriting_ctor_template(&templ_decl_state);
       templ_decl_state.final_token_ptr = &final_token;
       templ_decl_state.is_variadic = btssp->is_variadic;
+      templ_decl_state.has_variadic_template_params =
+                                           btssp->has_variadic_template_params;
       /* The base class constructor may actually be in the process of being
          instantiated, which causes its template parameter symbols to
          temporarily point to concrete types.  Undo this before copying the
