@@ -1,5 +1,25 @@
 Version 4.9
 
+12/10/13 [EDGcpfe/14454]
+Overly-aggressive folding of ?: expressions with constant first operand
+
+The front end attempts to fold conditional expressions in which the first
+operand is a compile-time constant.  Under some circumstances, the front
+end folded such expressions even when the selected operand is not a
+constant, making it impossible to recover the original form of the
+expression from the IL.  The front end will now fold conditional
+expressions only when the selected operand is also a constant, allowing the
+original form of the expression to be recorded as the constant's backing
+expression.  For example:
+
+  int f() {
+    int i = 1;
+    int j = 2;
+    return true ? i : j;  // Previously folded to an enk_variable node
+                          // referencing "i", now not folded
+  }
+
+
 12/10/13 [EDGcpfe/14629]
 Spurious error on decltype of parameter in function template declaration
 

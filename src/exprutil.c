@@ -13336,7 +13336,12 @@ question_position and colon_position give the position of the "?" and ":".
       preserved_operand = operand_2;
       discarded_operand = operand_3;
     }  /* if */
-    if (template_case) {
+    if (!is_constant_operand(preserved_operand)) {
+      /* Only fold if we can produce a constant.  Otherwise, there'll be
+         no way to preserve the original form of the expression as a
+         backing expression. */
+      do_folding = FALSE;
+    } else if (template_case) {
       /* Don't fold template-dependent cases.  If the operation is constant
          the expression will be placed under a ck_template_param constant
          below. */
