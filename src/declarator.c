@@ -5925,6 +5925,26 @@ locator->specific_symbol to point to the correct symbol entry.
 }  /* process_conversion_function_declarator */
 
 
+static a_boolean must_be_function_declarator(a_decl_flag_set input_flags)
+/*
+Return TRUE if, from the input_flags and the current context, we can
+determine that a declaration must be a function declaration and, as a
+result, disambiguation is not necessary.
+*/
+{
+  a_boolean	result = FALSE;
+
+  if ((input_flags & DI_IS_TEMPLATE_DECLARATION) != 0 &&
+      scope_stack_top().templ_member_class_sym == NULL) {
+    /* A template declaration that is not a qualified name.  This can
+       only be a function declaration (until variable templates are
+       implemented). */
+    result = TRUE;
+  }  /* if */
+  return result;
+}  /* must_be_function_declarator */
+
+
 #if !MICROSOFT_EXTENSIONS_ALLOWED || !NEAR_AND_FAR_ALLOWED
 /*ARGSUSED*/  /* <-- because p_left_call_conv et al. are used only in
                      Microsoft mode, and p_left_qualifiers is used only when
@@ -6483,8 +6503,9 @@ etc.).
         if ((!any_args && pedp != NULL && !pedp->is_function_declarator) ||
             (not_a_function_declarator && use_implicit_typename() &&
              is_template_dependent_context()) ||
-            !is_decl_not_expr(DFS_ABSTRACT_DECLARATOR_ALLOWED |
-                              DFS_REAL_DECLARATOR_ALLOWED)) {
+            (!must_be_function_declarator(input_flags) &&
+             !is_decl_not_expr(DFS_ABSTRACT_DECLARATOR_ALLOWED |
+                              DFS_REAL_DECLARATOR_ALLOWED))) {
           a_boolean  is_function_decl = FALSE;
           /* This appears to be a parenthesized initializer.  However, it
              might also be a function definition with an old-style parameter

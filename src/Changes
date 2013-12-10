@@ -1,5 +1,15 @@
 Version 4.9
 
+12/10/13 [EDGcpfe/14629]
+Spurious error on decltype of parameter in function template declaration
+
+Version 4.8 introduced a regression that resulted a spurious undefined
+identifier error when a function template used a parameter name in
+a decltype expression.  Now fixed.
+
+  template <class T> void f(void (*p)(T x, decltype(x()) y)) {}
+
+
 12/5/13  [EDGcpfe/14724]
 GNU C++ compatibility: spurious ambiguity when using variadic functions
 
