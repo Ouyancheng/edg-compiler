@@ -5934,12 +5934,16 @@ result, disambiguation is not necessary.
 {
   a_boolean	result = FALSE;
 
-  if ((input_flags & DI_IS_TEMPLATE_DECLARATION) != 0 &&
-      scope_stack_top().templ_member_class_sym == NULL) {
-    /* A template declaration that is not a qualified name.  This can
-       only be a function declaration (until variable templates are
-       implemented). */
-    result = TRUE;
+  if ((input_flags & DI_IS_TEMPLATE_DECLARATION) != 0) {
+    a_scope_stack_entry_ptr	ssep;
+    check_assertion(depth_template_declaration_scope != NO_SCOPE_DEPTH);
+    ssep = &scope_stack[depth_template_declaration_scope];
+    if (ssep->templ_member_class_sym == NULL) {
+      /* A template declaration that is not a qualified name.  This can
+         only be a function declaration (until variable templates are
+         implemented). */
+      result = TRUE;
+    }  /* if */
   }  /* if */
   return result;
 }  /* must_be_function_declarator */
