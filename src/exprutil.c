@@ -714,9 +714,7 @@ arg_list to error references.
 {
   an_arg_list_elem_ptr alep;
 
-  for (alep = arg_list;
-       alep != NULL;
-       alep = alep->next) {
+  for (alep = arg_list; alep != NULL; alep = next_elem(alep)) {
     if (is_expression_component(alep)) {
       change_operand_refs_to_error(operand_of_arg_list_elem(alep));
     } else {
@@ -930,6 +928,9 @@ variant fields to default values.
       icp->variant.designator.last_element_index = 0;
       icp->variant.designator.position = null_source_position;
       break;
+    case ick_continued:
+      icp->variant.continuation.state = NULL;
+      break;
     default:
       unexpected_condition_str("set_init_component_kind: bad kind");
   }  /* switch */
@@ -1022,6 +1023,9 @@ subtree of entries, free those as well.
       break;
     case ick_designator:
       icp->variant.designator.field_name = NULL;
+      break;
+    case ick_continued:
+      icp->variant.continuation.state = NULL;
       break;
     default:
       unexpected_condition_str("free_init_component: bad entry kind");
@@ -1196,6 +1200,9 @@ Display an init component for debugging purposes.
                       (unsigned long)icp->variant.designator.element_index);
       }  /* if */
       break;
+    case ick_continued:
+      (void)fprintf(f_debug, "Pending initializer elements...\n");
+      break;
     default:
       (void)fprintf(f_debug, "Bad init component kind\n");
       break;
@@ -1283,15 +1290,15 @@ if to_front is TRUE).
 {
   if (to_front) {
     /* Add to the front of the queue. */
-    icp->next = cache->first_init;
+    append_elem(icp, cache->first_init);
     cache->first_init = icp;
-    if (icp->next == NULL) cache->last_init = icp;
+    if (is_last_elem(icp)) cache->last_init = icp;
   } else {
     /* Add to the end of the queue. */
     if (cache->first_init == NULL) {
       cache->first_init = icp;
     } else {
-      cache->last_init->next = icp;
+      append_elem(cache->last_init, icp);
     }  /* if */
     cache->last_init = icp;
   }  /* if */
@@ -1344,11 +1351,11 @@ the cache is empty, return NULL.
   if (cache != NULL) {
     icp = cache->first_init;
     if (icp != NULL) {
-      cache->first_init = icp->next;
+      cache->first_init = next_elem(icp);
       if (cache->first_init == NULL) {
         cache->last_init = NULL;
       }  /* if */
-      icp->next = NULL;
+      split_tail_elems(icp);
     }  /* if */
   }  /* if */
   return icp;
@@ -3602,7 +3609,7 @@ lowering (as value category is known at that time).
       { an_arg_list_elem_ptr alep, last_clone_alep = NULL;
         for (alep = operand->variant.property_ref.subscripts;
              alep != NULL;
-             alep = alep->next) {
+             alep = next_elem(alep)) {
           a_boolean            local_temp_init_used;
           an_arg_list_elem_ptr alep_clone =
                   alloc_init_component((an_init_component_kind)ick_expression);
@@ -3619,7 +3626,7 @@ lowering (as value category is known at that time).
           if (last_clone_alep == NULL) {
             operand_clone->variant.property_ref.subscripts = alep_clone;
           } else {
-            last_clone_alep->next = alep_clone;
+            append_elem(last_clone_alep, alep_clone);
           }  /* if */
           last_clone_alep = alep_clone;
         }  /* for */
@@ -5003,7 +5010,7 @@ list, not an argument list, so it may include designators.
   an_init_component_ptr copy_list_icp = NULL, end_copy_list_icp = NULL;
   an_init_component_ptr icp, copy_icp;
 
-  for (icp = list_icp; icp != NULL; icp = icp->next) {
+  for (icp = list_icp; icp != NULL; icp = next_elem(icp)) {
     if (is_designator_component(icp)) {
       /* A designator just gets copied.  Because the field designation is
          in terms of a name (symbol header pointer) it doesn't need to
@@ -5020,7 +5027,7 @@ list, not an argument list, so it may include designators.
     if (copy_list_icp == NULL) {
       copy_list_icp = copy_icp;
     } else {
-      end_copy_list_icp->next = copy_icp;
+      append_elem(end_copy_list_icp, copy_icp);
     }  /* if */
     end_copy_list_icp = copy_icp;
   }  /* for */
@@ -6097,7 +6104,7 @@ cleanup required.  The list is not freed.
 {
   an_arg_list_elem_ptr alep;
 
-  for (alep = operand_list; alep != NULL; alep = alep->next) {
+  for (alep = operand_list; alep != NULL; alep = next_elem(alep)) {
     arg_list_elem_will_not_be_used_because_of_error(alep);
   }  /* for */
 }  /* arg_list_will_not_be_used_because_of_error */
@@ -12724,7 +12731,7 @@ instantiation for which we do not know the actual function to be called.
 {
   an_arg_list_elem_ptr arg;
 
-  for (arg = arg_list; arg != NULL; arg = arg->next) {
+  for (arg = arg_list; arg != NULL; arg = next_elem(arg)) {
     prep_generic_argument(arg);
   } /* for */
 }  /* prep_generic_argument_list */
@@ -12739,7 +12746,7 @@ as permanently allocated.
 {
   an_init_component_ptr icp;
 
-  for (icp = list_icp; icp != NULL; icp = icp->next) {
+  for (icp = list_icp; icp != NULL; icp = next_elem(icp)) {
     mark_init_component_as_permanently_allocated(icp);
   }  /* for */
 }  /* mark_init_component_list_as_permanently_allocated */
@@ -12854,7 +12861,7 @@ arguments may be brace-enclosed lists, in prototype instantiations.
 
   prev_expr = NULL;
   expr_list = NULL;
-  for (arg = arg_list; arg != NULL; arg = arg->next) {
+  for (arg = arg_list; arg != NULL; arg = next_elem(arg)) {
     expr = make_expr_from_argument(arg);
     /* Add this expression to the end of the expression-form list
        being built up. */
@@ -19177,10 +19184,10 @@ If get_routine is non-NULL, *get_routine is set to a pointer to the
         arg_list = put_arg;
       } else {
         an_arg_list_elem_ptr end_arg_list = arg_list;
-        while (end_arg_list->next != NULL) {
-          end_arg_list = end_arg_list->next;
+        while (!is_last_elem(end_arg_list)) {
+          end_arg_list = next_elem(end_arg_list);
         }  /* if */
-        end_arg_list->next = put_arg;
+        append_elem(end_arg_list, put_arg);
       }  /* if */
     }  /* if */
     /* Do overload resolution to determine the function to call. */

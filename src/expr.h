@@ -84,8 +84,11 @@ an_init_component.
 enum an_init_component_kind_tag {
   ick_expression,	/* An expression. */
   ick_braced,		/* A brace-enclosed list. */
-  ick_designator	/* A designator (for C99-style or GNU-style
+  ick_designator,	/* A designator (for C99-style or GNU-style
 			   designated initializers). */
+  ick_continued		/* A placeholder component indicating that more
+			   elements of a brace-enclosed list should be
+			   parsed. */
 };
 /* Define as "a_byte" to explicitly control storage size. */
 typedef a_byte an_init_component_kind;
@@ -213,11 +216,47 @@ typedef struct an_init_component {
 		position;
 			/* The source position of the designator. */
     } designator;
+    /* When kind == ick_continued: */
+    struct {
+      void	*state;
+			/* An opaque pointer to state information that must be
+			   restored to permit the continued parsing of an
+			   braced initializer list. */
+    } continuation;
   } variant;
 } an_init_component;
 typedef an_init_component an_arg_list_elem;
 typedef an_arg_list_elem *an_arg_list_elem_ptr;
 
+an_init_component_ptr get_continued_elem(an_init_component_ptr  icp);
+
+void complete_braced_init_list_parsing(an_init_component_ptr  icp_tree);
+
+/*
+Macros to manage to the next initialization component.
+*/
+#define is_last_elem(icp)                                                    \
+  ((icp)->next == NULL)
+
+#define is_continuation_elem(icp)                                            \
+  ((icp)->kind == (an_init_component_kind)ick_continued)
+
+#define next_elem(icp)                                                       \
+  (is_last_elem(icp)                 ? (an_init_component_ptr) NULL :        \
+   is_continuation_elem((icp)->next) ? get_continued_elem(icp) :             \
+                                       (icp)->next)
+
+#define p_next_elem(icp)                                                     \
+  (&(icp)->next)
+
+#define is_single_elem(icp)                                                  \
+  ((icp) != NULL && (icp)->next == NULL)
+
+#define split_tail_elems(icp)                                                \
+  ((icp)->next = NULL)
+
+#define append_elem(icp, tail)                                               \
+  ((icp)->next = tail)
 
 /*
 Macro to identify initialization components that are expressions.

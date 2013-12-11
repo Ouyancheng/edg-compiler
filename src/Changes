@@ -1,5 +1,24 @@
 Version 4.9
 
+12/11/13 [EDGcpfe/14721,EDGcpfe/14726]
+Memory requirements for very large aggregate initializers
+
+The changes to support initializer lists in version 4.5 of the front end (see
+the entry of 8/26/12 for EDGcpfe/9170) caused the front end to record extensive
+information for every element in an initializer list at once.  This is needed
+when dealing with certain C++11 features (e.g., passing an initializer list as
+a function call argument).  However, compared to the prior treatment of
+(traditional) initializer lists, it consumes much more front end memory, which
+could be problematic for very large initializer lists (e.g., with millions of
+elements).  The management of large initializer lists in the front end has
+therefore been reworked to reduce memory requirements for large traditional
+aggregate initializers to something close to those of version 4.4 of the front
+end.
+
+See also the entry for EDGcpfe/14588, which reduces IL memory usage (as opposed
+to front end memory consumption) for large initializers in some configurations.
+
+
 12/10/13 [EDGcpfe/14454]
 Overly-aggressive folding of ?: expressions with constant first operand
 

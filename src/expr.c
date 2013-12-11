@@ -53,7 +53,7 @@ static a_boolean cast_type_pre_check(
 static an_init_component_ptr scan_expr_or_braced_init_list(
                                                 a_boolean bundle,
                                                 a_boolean always_allow_braced);
-static an_init_component_ptr scan_braced_init_list_internal(a_boolean bundle);
+static an_init_component_ptr parse_braced_init_list(a_boolean bundle);
 static void scan_braced_init_list_as_operand(an_operand *operand);
 static
 an_init_component_ptr scan_init_component_with_potential_pack_expansion(
@@ -964,7 +964,7 @@ overloadable.
   a_boolean            is_overloadable = FALSE;
   an_arg_list_elem_ptr alep;
 
-  for (alep = arg_list; alep != NULL; alep = alep->next) {
+  for (alep = arg_list; alep != NULL; alep = next_elem(alep)) {
     if (is_expression_component(alep) &&
         is_overloadable_type_operand(operand_of_arg_list_elem(alep))) {
       is_overloadable = TRUE;
@@ -1370,8 +1370,8 @@ constructs, in which case offsetof_case is TRUE.
     /* Find the end of the existing subscript list. */
     last_subscript = operand_1->variant.property_ref.subscripts;
     if (last_subscript != NULL) {
-      while (last_subscript->next != NULL) {
-        last_subscript = last_subscript->next;
+      while (!is_last_elem(last_subscript)) {
+        last_subscript = next_elem(last_subscript);
       }  /* while */
     }  /* if */
     /* There should be at least one subscript expression. */
@@ -1381,7 +1381,7 @@ constructs, in which case offsetof_case is TRUE.
       if (last_subscript == NULL) {
         operand_1->variant.property_ref.subscripts = operand_2_list;
       } else {
-        last_subscript->next = operand_2_list;
+        append_elem(last_subscript, operand_2_list);
       }  /* if */
       operand_2_list = NULL;
     } else {
@@ -1390,7 +1390,7 @@ constructs, in which case offsetof_case is TRUE.
       if (last_subscript == NULL) {
         operand_1->variant.property_ref.subscripts = subsc;
       } else {
-        last_subscript->next = subsc;
+        append_elem(last_subscript, subsc);
       }  /* if */
     }  /* if */
     copy_operand(operand_1, result);
@@ -1447,7 +1447,7 @@ constructs, in which case offsetof_case is TRUE.
            so we can check for conversions to a handle to CLI array. */
         an_arg_list_elem_ptr alep = operand_2_list;
         check_assertion(alep != NULL);
-        while (alep->next != NULL) alep = alep->next;
+        while (!is_last_elem(alep)) alep = next_elem(alep);
         check_arg_list_elem_is_expression(alep);
         copy_operand(operand_of_arg_list_elem(alep), &operand_2);
       }  /* if */
@@ -1480,8 +1480,7 @@ constructs, in which case offsetof_case is TRUE.
           expr_pos_error(ec_no_overloaded_subscript_with_offsetof,
                          &operator_position);
           conv_to_error_operand(result);
-        } else if (subscript_is_expr_list &&
-                   operand_2_list->next != NULL) {
+        } else if (subscript_is_expr_list && !is_last_elem(operand_2_list)) {
           /* If an operand[] was selected, and an expression list containing
              more than one expression was scanned, give an error.  See comment
              above about not wanting to convert the expression list to a
@@ -1554,7 +1553,7 @@ constructs, in which case offsetof_case is TRUE.
           end_subsc_expr_list = subsc_expr;
           subsc_count++;
           if (!subscript_is_expr_list) break;
-          alep = alep->next;
+          alep = next_elem(alep);
           if (alep == NULL) break;
         }  /* for */
         /* The first operand must be a handle to a C++/CLI array. */
@@ -1623,7 +1622,7 @@ constructs, in which case offsetof_case is TRUE.
            expression list containing a single expression into just an
            expression, but issue an error for a list containing multiple
            expressions. */
-        if (operand_2_list->next == NULL) {
+        if (is_last_elem(operand_2_list)) {
           copy_operand(operand_of_arg_list_elem(operand_2_list), &operand_2);
         } else {
           expr_pos_error(ec_comma_operator_in_cli_subscript,
@@ -1825,7 +1824,7 @@ list is returned.
         a_pack_expansion_descr_ptr pedep;
         if (curr_token == tok_lbrace && list_init_enabled) {
           /* A brace-enclosed list. */
-          alep = scan_braced_init_list_internal(/*bundle=*/FALSE);
+          alep = parse_braced_init_list(/*bundle=*/FALSE);
         } else {
           /* An expression. */
           alep = scan_expr_into_new_init_component(options);
@@ -1834,7 +1833,7 @@ list is returned.
         if (expr_list == NULL) {
           expr_list = alep;
         } else {
-          end_expr_list->next = alep;
+          append_elem(end_expr_list, alep);
         }  /* if */
         end_expr_list = alep;
         /* If this is a pack expansion, swallow the trailing "..." and
@@ -1975,7 +1974,7 @@ done.
     if (*expr_list == NULL) {
       *expr_list = alep;
     } else {
-      (*end_expr_list)->next = alep;
+      append_elem(*end_expr_list, alep);
     }  /* if */
     *end_expr_list = alep;
     (void)end_potential_pack_expansion_context(pesep,
@@ -2013,7 +2012,7 @@ template pack expansions into multiple expressions as necessary.
       if (expr_list == NULL) {
         expr_list = alep;
       } else {
-        end_expr_list->next = alep;
+        append_elem(end_expr_list, alep);
       }  /* if */
       end_expr_list = alep;
     } while (cached_initializer_present());
@@ -2033,7 +2032,7 @@ template pack expansions into multiple expressions as necessary.
         if (expr_list == NULL) {
           expr_list = alep;
         } else {
-          end_expr_list->next = alep;
+          append_elem(end_expr_list, alep);
         }  /* if */
         end_expr_list = alep;
       }  /* if */
@@ -2238,8 +2237,7 @@ to TRUE.
       *closing_paren_position = pos_curr_token;
     }  /* if */
   }  /* if */
-  if (single_operand != NULL &&
-      arg_list != NULL && arg_list->next == NULL &&
+  if (single_operand != NULL && is_single_elem(arg_list) &&
       is_expression_component(arg_list)) {
     /* Return a single operand through *single_operand. */
     copy_operand(operand_of_arg_list_elem(arg_list), single_operand);
@@ -2686,8 +2684,7 @@ will be equal to init_list_ctor_arg_list->variant.braced.list.
   }  /* if */
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
-  if (unboxing_conv_should_be_tried &&
-      arg_list != NULL && arg_list->next == NULL &&
+  if (unboxing_conv_should_be_tried && is_single_elem(arg_list) &&
       is_expression_component(arg_list) &&
       unboxing_conversion_possible(operand_of_arg_list_elem(arg_list)->type,
                                    class_type,
@@ -2697,8 +2694,7 @@ will be equal to init_list_ctor_arg_list->variant.braced.list.
     *unboxing_conv = TRUE;
     copy_operand(operand_of_arg_list_elem(arg_list), simple_result);
     goto end_of_routine;
-  } else if (string_ctor_skip != NULL &&
-             arg_list != NULL && arg_list->next == NULL &&
+  } else if (string_ctor_skip != NULL && is_single_elem(arg_list) &&
              is_expression_component(arg_list) &&
              (f_identical_types(operand_of_arg_list_elem(arg_list)->type,
                                 make_handle_to_system_string(),
@@ -2776,8 +2772,7 @@ will be equal to init_list_ctor_arg_list->variant.braced.list.
                                    /*include_move_ctors=*/TRUE,
                                    /*is_declarative_context=*/FALSE) &&
                /* Avoid problems with specified arguments with defaults: */
-               eff_arg_list != NULL &&
-               eff_arg_list->next == NULL &&
+               is_single_elem(eff_arg_list) &&
                (check_assertion(overloaded_function_case), /* Forced above. */
                 (arg_match = arg_match_list->next),
                 /* Watch out for an ambiguous conversion. */
@@ -4287,7 +4282,6 @@ left it NULL; in either case, it is returned non-NULL to indicate
 that the final call needs to be cast to the indicated type.
 */
 {
-  int                      k;
   a_routine_ptr            rout;
   a_builtin_function_kind  bfk;
   a_source_position        first_arg_pos;
@@ -4309,13 +4303,15 @@ that the final call needs to be cast to the indicated type.
     conv_to_error_operand(target);
     err = TRUE;
   } else {
+    int                  k = 0;
     an_arg_list_elem_ptr *arg = &args;
     first_arg_pos = *init_component_pos(args);
     /* Truncate the argument list to the length expected by the concrete
        function.  Issue a warning on excess arguments.  Issue an error on
        too few arguments. */
-    for (k = 0; k < n_args && *arg != NULL; ++k, arg = &(*arg)->next) {
-      /* Empty. */
+    while (k < n_args && *arg != NULL) {
+      k += 1;
+      arg = p_next_elem(*arg);
     }  /* for */
     if (*arg != NULL) {
       /* *arg points to the first excess argument. */
@@ -4452,7 +4448,7 @@ that the final call needs to be cast to the indicated type.
         ptp = skip_typerefs(rout->type)->variant.routine.extra_info
                                        ->param_type_list;
       }  /* if */
-      for (ap = args; ap != NULL; ap = ap->next) {
+      for (ap = args; ap != NULL; ap = next_elem(ap)) {
         an_expr_node_ptr expr_arg;
         an_operand       *operand;
         check_arg_list_elem_is_expression(ap);
@@ -7792,9 +7788,8 @@ happen for a C++/CLI static property reference).
     }  /* if */
   }  /* if */
   /* Add any subscript operands. */
-  for (alep = operand->variant.property_ref.subscripts;
-       alep != NULL;
-       alep = alep->next) {
+  alep = operand->variant.property_ref.subscripts;
+  for (; alep != NULL; alep = next_elem(alep)) {
     an_expr_node_ptr sub_expr;
     check_arg_list_elem_is_expression(alep);
     sub_expr = make_node_from_operand(operand_of_arg_list_elem(alep));
@@ -15300,21 +15295,24 @@ delegate initializer, given by rcblock->argument_list.
   /* Check for the right number of arguments. */
   /* The subroutine should not allow zero arguments. */
   check_assertion(operand_list != NULL);
-  if (operand_list->next == NULL) {
+  if (is_last_elem(operand_list)) {
     /* One operand, presumably the function. */
     check_arg_list_elem_is_expression(operand_list);
     function_operand = operand_of_arg_list_elem(operand_list);
     object_operand = NULL;
-  } else if (operand_list->next->next == NULL) {
-    /* Two operands, presumably object followed by function. */
-    check_arg_list_elem_is_expression(operand_list);
-    object_operand = operand_of_arg_list_elem(operand_list);
-    check_arg_list_elem_is_expression(operand_list->next);
-    function_operand = operand_of_arg_list_elem(operand_list->next);
   } else {
-    /* More than two operands -- error. */
-    expr_pos_error(ec_bad_delegate_init_list, &start_position);
-    err = TRUE;
+    an_arg_list_elem_ptr next_alep = next_elem(operand_list);
+    if (is_last_elem(next_alep)) {
+      /* Two operands, presumably object followed by function. */
+      check_arg_list_elem_is_expression(operand_list);
+      object_operand = operand_of_arg_list_elem(operand_list);
+      check_arg_list_elem_is_expression(next_alep);
+      function_operand = operand_of_arg_list_elem(next_alep);
+    } else {
+      /* More than two operands -- error. */
+      expr_pos_error(ec_bad_delegate_init_list, &start_position);
+      err = TRUE;
+    }  /* if */
   }  /* if */
   /* Check the function operand. */
   if (!err && is_a_function_designator(function_operand)) {
@@ -16290,7 +16288,7 @@ expression, and return the result in *result (or an error indication in
        (if any) from the "placement" option.  This gives the full set
        of arguments for the "new" function call. */
     sizeof_alep = alloc_arg_list_elem_for_operand(&sizeof_operand);
-    sizeof_alep->next = arg_list;
+    append_elem(sizeof_alep, arg_list);
     arg_list = sizeof_alep;
     /* Select the proper "new" routine.  If the type is a class type and
        the class has a "new" operator, use it.  However, if "::" preceded
@@ -16726,7 +16724,7 @@ expression, and return the result in *result (or an error indication in
       alep = braced_init_list;
     } else {
       /* Scan from source. */
-      alep = scan_braced_init_list_internal(/*bundle=*/FALSE);
+      alep = parse_braced_init_list(/*bundle=*/FALSE);
     }  /* if */
 #if EXTRA_SOURCE_POSITIONS_IN_IL
     end_position = *init_component_end_pos(alep);
@@ -17000,7 +16998,7 @@ handle_empty_parens_new_initializer:
         }  /* if */
         for (arg_ptr = init_raw_args, count = 1;
              arg_ptr != NULL;
-             arg_ptr = arg_ptr->next, ++count) {
+             arg_ptr = next_elem(arg_ptr), ++count) {
           an_operand_ptr operand;
           check_arg_list_elem_is_expression(arg_ptr);
           operand = operand_of_arg_list_elem(arg_ptr);
@@ -21264,7 +21262,7 @@ previously-scanned braced initializer.
   if (rescan_icp != NULL) {
     icp = rescan_icp;
   } else {
-    icp = scan_braced_init_list_internal(/*bundle=*/FALSE);
+    icp = parse_braced_init_list(/*bundle=*/FALSE);
   }  /* if */
   check_assertion(result != NULL);  /* For lint. */
   prep_list_initializer(icp, type_cast_to,
@@ -21693,10 +21691,10 @@ empty_parentheses:
       if (arg_list_supplied) {
         /* Using an argument list passed by the caller. */
         check_assertion(supplied_arg_list != NULL);
-        if (supplied_arg_list->next != NULL) {
+        if (!is_last_elem(supplied_arg_list)) {
           /* Multiple operand expressions in a cast that can only take one. */
           expr_pos_error(ec_too_many_cast_operands,
-                         init_component_pos(supplied_arg_list->next));
+                         init_component_pos(next_elem(supplied_arg_list)));
           make_error_operand(result);
         } else {
           check_assertion(is_expression_component(supplied_arg_list));
@@ -21771,9 +21769,9 @@ non_ctor_case_after_expr_scan:
 #if EXTRA_SOURCE_POSITIONS_IN_IL
     } else if (arg_list_supplied) {
       /* Determine the end position on the last operand. */
-      an_arg_list_elem_ptr arg;
-      if (supplied_arg_list != NULL) {
-        for (arg = supplied_arg_list; arg->next != NULL; arg = arg->next) {}
+      an_arg_list_elem_ptr arg = supplied_arg_list;
+      if (arg != NULL) {
+        while (!is_last_elem(arg)) arg = next_elem(arg);
         end_position = *init_component_pos(arg);
       } else {
         end_position = *start_position;
@@ -28948,7 +28946,7 @@ passed).
        the constant to be passed to the literal operator. */
     a_routine_ptr     rp = ud_lit_op_sym_for_curr_token->variant.routine.ptr;
     a_type_ptr        rtp = skip_typerefs(rp->type);
-    an_arg_list_elem  *op_list;
+    an_arg_list_elem  *op_list, *op2;
     an_operand        *operand;
     /* Create a one- or two-element operand list. */
     op_list = alloc_init_component((an_init_component_kind)ick_expression);
@@ -28964,9 +28962,9 @@ passed).
       a_character_kind  char_kind = const_for_curr_token.character_kind;
       a_targ_size_t     length = const_for_curr_token.variant.string.length,
                         char_size = character_size[char_kind];
-      op_list->next = alloc_init_component(
-                                      (an_init_component_kind)ick_expression);
-      operand = operand_of_arg_list_elem(op_list->next);
+      op2 = alloc_init_component((an_init_component_kind)ick_expression);
+      append_elem(op_list, op2);
+      operand = operand_of_arg_list_elem(op2);
       /* Adjust the length for the character size and the terminating null
          character. */
       length = (length/char_size)-1;
@@ -30735,7 +30733,7 @@ restoration and further processing.
   } else if (curr_token == tok_lbrace &&
              (always_allow_braced || list_init_enabled)) {
     /* A brace-enclosed list. */
-    icp = scan_braced_init_list_internal(bundle);
+    icp = parse_braced_init_list(bundle);
   } else {
     /* An expression. */
     icp = scan_expr_as_init_component(bundle);
@@ -30946,7 +30944,7 @@ Both C99-style and GNU-style designators are handled here.
       if (*p_last_icp == NULL) {
         braced_icp->variant.braced.list = designator;
       } else {
-        (*p_last_icp)->next = designator;
+        append_elem(*p_last_icp, designator);
       }  /* if */
       *p_last_icp = designator;
       braced_icp->contains_designator = TRUE;
@@ -30992,95 +30990,370 @@ Both C99-style and GNU-style designators are handled here.
   return designator_seen;
 }  /* scan_designators */
 
-                
-static an_init_component_ptr scan_braced_init_list_internal(a_boolean bundle)
+
 /*
-Scan a brace-enclosed initializer list, from source and not a cache,
-and return a structure describing it.  The current token on entry must
-be the opening "{".  On return, the current token will be the token
-following the closing "}".  bundle is TRUE if expressions should be
-"bundled," meaning packaged with related information so they can be
-saved off to the side (e.g., in an initializer cache) for later
-restoration and further processing.  This is the "internal" version of
-the routine, to be called only from inside the expression routines,
-with the expression stack already set.
+Data structure used by parse_braced_init_list_full (defined below) to suspend
+and resume parsing of long braced initializer lists.
+*/
+typedef struct a_braced_list_continuation *a_braced_list_continuation_ptr;
+typedef struct a_braced_list_continuation {
+  a_braced_list_continuation_ptr
+		next;
+			/* If parsing the braced list was suspended in a
+			   nested list, a pointer to the state for the next
+			   level of nested braces.  Otherwise, NULL. */
+  an_init_component_ptr
+		parent_icp;
+			/* The braced initializer list whose parsing must be
+			   continued at this level. */
+  an_init_component_ptr
+		end_icp;
+			/* The last element parsed for the braced initializer
+			   list of this level.  (Will be followed by an
+			   ick_continued component.) */
+  a_decl_parse_state
+		*decl_parse_state;
+			/* The declaration parse state associated with the
+			   initializer that was suspended.  Only recorded for
+			   the outermost list level (where it is always
+			   non-NULL because only initializers for variable
+			   declarations can by suspended and resumed). */
+  an_object_lifetime_ptr
+		object_lifetime;
+			/* The current object lifetime prior to the call to
+			   scan_braced_init_list that initiated the suspended
+			   parse.  Only recorded for the outermost list
+			   level. */
+  a_bit_field
+		resumable:1;
+			/* TRUE if a continued parse can be suspended and
+			   resumed again.  Only significant for the outermost
+			   list level. */
+} a_braced_list_continuation;
+
+
+static a_braced_list_continuation_ptr alloc_braced_list_continuation(void)
+/*
+Allocate and initialize an entry describing the information needed to resume
+a suspended parse of a braced initializer list.
 */
 {
-  an_init_component_ptr icp =
-                      alloc_init_component((an_init_component_kind)ick_braced);
+  a_braced_list_continuation_ptr  ptr = alloc_fe_of_type(
+                                                   a_braced_list_continuation);
+  ptr->next = NULL;
+  ptr->parent_icp = NULL;
+  ptr->end_icp = NULL;
+  ptr->decl_parse_state = NULL;
+  ptr->object_lifetime = NULL;
+  ptr->resumable = TRUE;
+  return ptr;
+}  /* alloc_braced_list_continuation */
 
-  /* Note that the code here is very similar to scan_expr_list. */
-  check_assertion(!cached_initializer_present());
-  /* Advance past the opening brace. */
-  check_assertion(curr_token == tok_lbrace);
-  icp->variant.braced.start_pos = pos_curr_token;
-  (void)get_token();
-  add_matching_stop_token(tok_rbrace);
-  /* Check for an empty list. */
-  if (curr_token != tok_rbrace) {
-    /* Loop to scan a list of expressions or brace-enclosed lists. */
-    an_init_component_ptr elem_icp, end_icp = NULL;
-    a_boolean             elem_seen = FALSE;
-    do {
-      a_pack_expansion_stack_entry_ptr pesep;
-      a_boolean                        any_more;
-      if (elem_seen && curr_token == tok_rbrace) {
-        /* The syntax allows an extra comma at the end of the list.
-           The end_icp test disallows that on the first iteration. */
-        break;
-      }  /* if */
-      if (designators_allowed && scan_designators(icp, &end_icp)) {
-        elem_seen = FALSE;
-      }  /* if */
-      /* An element of the list might be a pack expansion in some modes
-         and contexts. */
-      any_more = begin_potential_pack_expansion_context(&pesep);
-      while (any_more) {
-        a_pack_expansion_descr_ptr pedep;
-        elem_icp = scan_expr_or_braced_init_list(bundle,
-                                                 /*always_allow_braced=*/TRUE);
-        elem_seen = TRUE;
-        /* Add the entry to the end of the list. */
-        if (end_icp == NULL) {
-          icp->variant.braced.list = elem_icp;
-        } else {
-          end_icp->next = elem_icp;
-        }  /* if */
-        end_icp = elem_icp;
-        /* If this is a pack expansion, swallow the trailing "..." and
-           loop for the next iteration of the expansion. */
-        pedep = end_potential_pack_expansion_context(pesep,
-                                                     /*is_declarator=*/FALSE);
-        if (pedep != NULL) {
-          /* This element is a variadic template pack expansion, i.e.,
-             it's followed by "...".  Furthermore, we're in the prototype
-             instantiation, so we record the expansion information on the
-             element. */
-          mark_arg_list_elem_as_pack_expansion(elem_icp, pedep);
-        }  /* if */
-        any_more = advance_to_next_pack_element(pesep);
-      }  /* while */
-      /* A comma or a closing brace should be next.  If not, we recover
-         assuming a closing brace is missing by default.  However, if the next
-         tokens look like the beginning of another initializer component,
-         treat this as a missing comma. */
-      if (curr_token != tok_comma && curr_token != tok_rbrace &&
-          (is_expr_start_token(curr_token) || curr_token == tok_period ||
-           (curr_token == tok_lbrace && next_token() != tok_semicolon &&
-            next_token() != tok_comma))) {
-        add_stop_token(tok_comma);
-        (void)required_token_no_advance(tok_comma, ec_exp_comma);
-        remove_stop_token(tok_comma);
-      }  /* if */
-    } while (loop_token(tok_comma));
+
+/*
+Macro describing the minimum number of elements that should be parsed before
+suspending a call to parse_braced_init_list_full.
+*/
+#define MIN_BRACED_INIT_PARSE_ELEMENT_COUNT 1000
+
+static an_init_component_ptr parse_braced_init_list_full(
+                              a_boolean                       bundle,
+                              a_braced_list_continuation_ptr  *p_continuation)
+/*
+Scan a brace-enclosed initializer list, from source and not a cache, and return
+a structure describing it.  bundle is TRUE if expressions should be "bundled,"
+meaning packaged with related information so they can be saved off to the side
+(e.g., in an initializer cache) for later restoration and further processing. 
+
+The parameter p_continuation allows this routine to parse the initializer list
+in parts.  If p_continuation is NULL, the whole initializer list is parsed in
+one call (which, for long lists, may require much front end memory).  If it is
+non-NULL, parsing may be suspended after sufficient elements have been scanned
+and *p_continuation can be used to resume parsing later on (i.e., the value
+returned by the call can be passed in again for resumption).  Note that in that
+case the returned init component is an ick_continued element that represents
+the point at which elements are still pending; the top-level ick_braced
+component can be retrieved from the returned *p_continuation.  Note that a
+resumed parse may be suspended again.
+
+If p_continuation or *p_continuation is NULL, the current token on entry must
+be the opening "{".  Otherwise, the current token must be the one that was
+current upon return from the prior call to this routine (the one that produced
+the *p_continuation state).
+
+If the complete initializer has been parsed (p_continuation is NULL or
+*p_continuation is returned NULL), the current token will be the token
+following the closing "}" on return.
+
+This is the "internal" version of the routine, to be called only from inside
+the expression routines, with the expression stack already set up.  The
+corresponding "external" routines are scan_braced_init_list (for starting a
+parse) and get_continued_elem (for resuming a suspended parse).
+*/
+{
+  an_init_component_ptr            icp, end_icp, elem_icp, continuation_icp;
+  a_boolean                        elem_seen;
+  unsigned int                     elems_scanned = 0;
+  a_braced_list_continuation       *continuation = NULL;
+  a_pack_expansion_stack_entry_ptr pesep;
+  a_boolean                        any_more;
+
+  if (p_continuation != NULL) {
+    continuation = *p_continuation;
+    *p_continuation = NULL;
   }  /* if */
+  /* Note that the code here is somewhat similar to scan_expr_list. */
+  add_matching_stop_token(tok_rbrace);
+  if (continuation == NULL) {
+    /* The normal case: We parsing a brace-enclosed list from its initial
+       left brace. */
+    icp = alloc_init_component((an_init_component_kind)ick_braced);
+    icp->bundled = bundle;
+    check_assertion(!cached_initializer_present());
+    /* Advance past the opening brace. */
+    check_assertion(curr_token == tok_lbrace);
+    icp->variant.braced.start_pos = pos_curr_token;
+    (void)get_token();
+    /* Check for an empty list. */
+    if (curr_token == tok_rbrace) goto check_for_rbrace;
+    end_icp = NULL;
+    continuation_icp = NULL;
+    elem_seen = FALSE;
+  } else {
+    /* We're resuming a previously suspended parse.  If a nested level must be
+       resumed too, do that now.  Then, if appropriate, continue parsing at
+       this level. */
+    check_assertion(!is_variadic_template_context());
+    icp = continuation->parent_icp;
+    end_icp = continuation->end_icp;
+    continuation_icp = end_icp->next;
+    elem_seen = TRUE;
+    if (continuation->next != NULL) {
+      elem_icp = parse_braced_init_list_full(bundle, &continuation->next);
+      if (is_continuation_elem(elem_icp)) {
+        /* The nested brace construct was suspended again.  This level cannot
+           proceed yet. */
+        *p_continuation = continuation;
+        goto done;
+      } else {
+        split_tail_elems(end_icp);
+        free_init_component_list(continuation_icp);
+        append_elem(end_icp, elem_icp);
+        end_icp = elem_icp;
+        /* Jump into the loop below to proceed as if we had just processed an
+           uninterrupted nested list. */
+        goto check_for_comma;
+      }  /* if */
+    } else {
+      split_tail_elems(end_icp);
+      free_init_component_list(continuation_icp);
+    }  /* if */
+  }  /* if */
+  do {
+    if (elem_seen) {
+      if (curr_token == tok_rbrace) {
+        /* The syntax allows an extra comma at the end of the list. */
+        break;
+      } else if (elems_scanned > MIN_BRACED_INIT_PARSE_ELEMENT_COUNT &&
+                 p_continuation != NULL &&
+                 (continuation == NULL || continuation->resumable)) {
+        /* We're in a context that permits interrupting the list of elements
+           (so they can be converted and reused, thereby reducing memory use).
+           Append a continuation marker associated with the parsing state
+           needed to resume parsing later on. */
+        *p_continuation = alloc_braced_list_continuation();
+        (*p_continuation)->parent_icp = icp;
+        (*p_continuation)->end_icp = end_icp;
+        elem_icp = alloc_init_component((an_init_component_kind)ick_continued);
+        elem_icp->variant.continuation.state = (void*)(*p_continuation);
+        append_elem(end_icp, elem_icp);
+        /* Temporarily record the end position as being equal to the start
+           position.  (For the somewhat unlikely case of a diagnostic referring
+           to the braced list by its end position.) */
+        icp->variant.braced.end_pos = icp->variant.braced.start_pos;
+        /* Return the continuation marker. */
+        icp = elem_icp;
+        goto done;
+      }  /* if */
+    }  /* if */
+    if (designators_allowed && scan_designators(icp, &end_icp)) {
+      elem_seen = FALSE;
+    }  /* if */
+    /* An element of the list might be a pack expansion in some modes
+       and contexts. */
+    any_more = begin_potential_pack_expansion_context(&pesep);
+    while (any_more) {
+      a_pack_expansion_descr_ptr pedep;
+      elem_icp = scan_expr_or_braced_init_list(bundle,
+                                               /*always_allow_braced=*/TRUE);
+      /* Add the entry to the end of the list. */
+      if (end_icp == NULL) {
+        icp->variant.braced.list = elem_icp;
+      } else {
+        append_elem(end_icp, elem_icp);
+      }  /* if */
+      if (is_continuation_elem(elem_icp)) {
+        /* Add restoration state and suspend parsing for now. */
+        if (continuation == NULL) {
+          continuation = alloc_braced_list_continuation();
+        }  /* if */
+        continuation->next =
+             (a_braced_list_continuation*)elem_icp->variant.continuation.state;
+        continuation->parent_icp = icp;
+        continuation->end_icp = end_icp;
+        elem_icp->variant.continuation.state = continuation;
+        *p_continuation = continuation;
+        goto done;
+      }  /* if */
+      end_icp = elem_icp;
+      elems_scanned += 1;
+      elem_seen = TRUE;
+      /* If this is a pack expansion, swallow the trailing "..." and
+         loop for the next iteration of the expansion. */
+      pedep = end_potential_pack_expansion_context(pesep,
+                                                   /*is_declarator=*/FALSE);
+      if (pedep != NULL) {
+        /* This element is a variadic template pack expansion, i.e.,
+           it's followed by "...".  Furthermore, we're in the prototype
+           instantiation, so we record the expansion information on the
+           element. */
+        mark_arg_list_elem_as_pack_expansion(elem_icp, pedep);
+      }  /* if */
+      any_more = advance_to_next_pack_element(pesep);
+    }  /* while */
+check_for_comma:
+    /* A comma or a closing brace should be next.  If not, we recover
+       assuming a closing brace is missing by default.  However, if the next
+       tokens look like the beginning of another initializer component,
+       treat this as a missing comma. */
+    if (curr_token != tok_comma && curr_token != tok_rbrace &&
+        (is_expr_start_token(curr_token) || curr_token == tok_period ||
+         (curr_token == tok_lbrace && next_token() != tok_semicolon &&
+          next_token() != tok_comma))) {
+      add_stop_token(tok_comma);
+      (void)required_token_no_advance(tok_comma, ec_exp_comma);
+      remove_stop_token(tok_comma);
+    }  /* if */
+  } while (loop_token(tok_comma));
+check_for_rbrace:
   /* Check for and advance past the closing "}". */
   icp->variant.braced.end_pos = pos_curr_token;
   (void)required_token(tok_rbrace, ec_exp_rbrace);
+done:
   remove_matching_stop_token(tok_rbrace);
-  icp->bundled = bundle;
   return icp;
-}  /* scan_braced_init_list_internal */
+}  /* parse_braced_init_list_full */
+
+
+static an_init_component_ptr parse_braced_init_list(a_boolean bundle)
+/*
+Parse a braced initializer list.  The current token must be a left brace and
+the caller is responsible for ensuring an appropriate expression stack is set
+up.  A corresponding ick_braced component is returned, and the initializer is
+completely parsed (i.e., the returned component will not contain an
+ick_continued element).  This is a convenience function for called the more
+general parse_braced_init_list_full.
+*/
+{
+  return parse_braced_init_list_full(bundle,
+                                     (a_braced_list_continuation_ptr*)NULL);
+}  /* parse_braced_init_list */
+
+
+
+an_init_component_ptr get_continued_elem(an_init_component_ptr  prev_icp)
+/*
+prev_icp is the last parsed component in a long braced initializer list.  The
+parsing of that list was suspended to limit memory consumption, and must now
+be resumed.  prev_icp->next points to a placeholder component that has the
+needed information to re-start parsing.  Resume the parsing and return the
+element following prev_icp (which will no longer be the placeholder component).
+Also free the components prior to prev_icp.
+*/
+{
+  an_init_component_ptr       icp0, icp_tail, icp;
+  a_decl_parse_state          *dps;
+  a_braced_list_continuation  *continuation, *bottom_continuation;
+  an_expr_stack_entry         *saved_expr_stack;
+  an_expr_stack_entry         expr_stack_entry;
+  an_object_lifetime          *saved_object_lifetime = curr_object_lifetime;
+
+  check_assertion(is_continuation_elem(prev_icp->next));
+  continuation = (a_braced_list_continuation*)
+                                   prev_icp->next->variant.continuation.state;
+  dps = continuation->decl_parse_state;
+  check_assertion(dps != NULL && dps->init_state.pending_elements);
+  if (continuation->resumable) {
+    /* Free most init components preceding prev_icp, but keep the first one in
+       case it is useful for diagnostic purposes. */
+    /* Only elements in the innermost incomplete braced list are freed. */
+    bottom_continuation = continuation;
+    while (bottom_continuation->next != NULL) {
+      bottom_continuation = bottom_continuation->next;
+    }  /* if */
+    check_assertion(is_braced_init_component(bottom_continuation->parent_icp));
+    /* Separate the list of components between the first element and prev_icp.
+       This requires a search for the element prior to prev_icp. */
+    icp0 = bottom_continuation->parent_icp->variant.braced.list;
+    check_assertion(icp0 != NULL && icp0->next != NULL);
+    icp_tail = icp0->next;
+    split_tail_elems(icp0);
+    for (icp = icp_tail; icp->next != prev_icp; icp = icp->next) /* Nothing */;
+    split_tail_elems(icp);
+    /* Free the unneeded initializer components so they can be reused.  For
+       very long initializer lists, this can result in substantial memory
+       savings. */
+    free_init_component_list(icp_tail);
+    append_elem(icp0, prev_icp);
+  }  /* if */
+  /* Restore an expression stack and object lifetime corresponding to that of
+     the original parse. */
+  curr_object_lifetime = continuation->object_lifetime;
+  push_expr_stack_for_initializer(&expr_stack_entry, &saved_expr_stack,
+                                  (an_expression_kind)ek_normal,
+                                  /*is_full_expr=*/TRUE,
+                                  dps, (an_init_state *)NULL);
+  (void)parse_braced_init_list_full(/*bundle=*/TRUE, &continuation);
+  pop_expr_stack_for_initializer(saved_expr_stack, /*is_full_expr=*/TRUE,
+                                 dps, (an_init_state *)NULL);
+  if (continuation != NULL) {
+    /* Parsing was suspended again.  Record additional state information to
+       enable a subsequent call to this function. */
+    check_assertion(continuation->resumable);
+    continuation->decl_parse_state = dps;
+    continuation->object_lifetime = curr_object_lifetime;
+  } else {
+    /* Parsing is now completed. */
+    dps->init_state.pending_elements = FALSE;
+  }  /* if */
+  curr_object_lifetime = saved_object_lifetime;
+  return prev_icp->next;
+}  /* get_continued_elem */
+
+
+void complete_braced_init_list_parsing(an_init_component_ptr  icp_tree)
+/*
+icp_tree is a braced initializer component whose parsing was suspended.
+Complete that parsing.  This 
+*/
+{
+  an_init_component_ptr       icp;
+  a_braced_list_continuation  *continuation;
+
+  check_assertion(is_braced_init_component(icp_tree));
+  icp = icp_tree->variant.braced.list;
+  /* Find the continuation element: It points to the needed continuation
+     state. */
+  check_assertion(icp != NULL && icp->next != NULL);
+  while (!is_continuation_elem(icp->next)) {
+    icp = icp->next;
+    check_assertion(icp->next != NULL);
+  }  /* while */
+  continuation = (a_braced_list_continuation*)icp->variant.continuation.state;
+  /* Resume parsing, but don't permit another suspension. */
+  continuation->resumable = FALSE;
+  (void)get_continued_elem(icp);
+}  /* complete_braced_init_list_parsing */
 
 
 an_init_component_ptr scan_braced_init_list(a_boolean          is_full_expr,
@@ -31096,9 +31369,10 @@ else (so, for example, is_full_expr would be FALSE for a call for
 a new-initializer).
 */
 {
-  an_expr_stack_entry   *saved_expr_stack;
-  an_expr_stack_entry   expr_stack_entry;
-  an_init_component_ptr icp;
+  an_expr_stack_entry             *saved_expr_stack;
+  an_expr_stack_entry             expr_stack_entry;
+  an_init_component_ptr           icp;
+  a_braced_list_continuation_ptr  continuation = NULL, *p_continuation = NULL;
 
   push_expr_stack_for_initializer(&expr_stack_entry, &saved_expr_stack,
                                   (an_expression_kind)ek_normal,
@@ -31113,11 +31387,29 @@ a new-initializer).
                     !cached_initializer_present());
   } else {
     /* Scan the braced-init-list from source. */
-    icp = scan_braced_init_list_internal(/*bundle=*/is_full_expr);
+    if (dps != NULL && dps->init_state.resumable) {
+      /* In contexts where parsing can be suspended and resumed (to avoid
+         keeping to many components allocated at the same time), provide a
+         pointer to record continuation state if needed.  This is only done
+         for traditional C-style aggregate initialization, where elements are
+         treated as full expressions. */
+      p_continuation = &continuation;
+      check_assertion(is_full_expr);
+    }  /* if */
+    icp = parse_braced_init_list_full(/*bundle=*/is_full_expr, p_continuation);
   }  /* if */
   pop_expr_stack_for_initializer(saved_expr_stack,
                                  is_full_expr,
                                  dps, (an_init_state *)NULL);
+  if (is_continuation_elem(icp)) {
+    /* Parsing was suspended.  Return the root element recorded in the
+       continuation state. */
+    check_assertion(continuation != NULL);
+    dps->init_state.pending_elements = TRUE;
+    continuation->decl_parse_state = dps;
+    continuation->object_lifetime = curr_object_lifetime;
+    icp = continuation->parent_icp;
+  }  /* if */
   return icp;
 }  /* scan_braced_init_list */
 
@@ -31132,7 +31424,7 @@ Return a special kind of operand representing the braced-init-list.
   an_arg_list_elem_ptr alep;
 
   check_assertion(list_init_enabled && curr_token == tok_lbrace);
-  alep = scan_braced_init_list_internal(/*bundle=*/FALSE);
+  alep = parse_braced_init_list(/*bundle=*/FALSE);
   make_braced_init_list_operand(alep, operand);
 }  /* scan_braced_init_list_as_operand */
 
@@ -33989,7 +34281,7 @@ Sets *expr_position to the beginning position of the range expression.
     a_type_ptr           auto_type, deduced_type, deduced_auto_type;
     a_boolean            still_dependent;
     an_arg_list_elem_ptr alep;
-    alep = scan_braced_init_list_internal(/*bundle=*/FALSE);
+    alep = parse_braced_init_list(/*bundle=*/FALSE);
     auto_type = make_auto_type(init_component_pos(alep));
     /* Deduce the underlying type of the list. */
     if (!deduce_auto_type(auto_type, auto_type,
@@ -34544,7 +34836,7 @@ required_type will be void if the expression should have void type
       expr_pos_warning(ec_list_initializer_nonstandard_in_current_mode,
                        &pos_curr_token);
     }  /* if */
-    icp = scan_braced_init_list_internal(/*bundle=*/FALSE);
+    icp = parse_braced_init_list(/*bundle=*/FALSE);
     if (lambda_implicit_return_case) {
       /* A braced-init-list cannot be used for a lambda with an implicit
          return type, as it does not provide a type. */
@@ -37198,7 +37490,7 @@ inherits.
     process_static_cast(tp, operand, &error_position, &error_position,
                         /*is_safe_cast=*/FALSE, &ruled_out_expr_kinds);
     pop_expr_stack();
-    p_alep = &(*p_alep)->next;
+    p_alep = p_next_elem(*p_alep);
   }  /* for */
   scan_class_parenthesized_initializer(class_type, class_type, &udp->position,
                                        /*fill_in_dtor=*/exceptions_enabled,
@@ -38277,7 +38569,7 @@ empty) list of type operands args, and returns TRUE if so.
       if (arg_list == NULL) {
         arg_list = alep;
       } else {
-        end_arg_list->next = alep;
+        append_elem(end_arg_list, alep);
       }  /* if */
       end_arg_list = alep;
     }  /* for */
@@ -38412,7 +38704,8 @@ kind is bok_is_nothrow_assignable or bok_is_trivially_assignable.
       result = FALSE;
       goto have_result;
     }  /* if */
-    src_op = arg_list->next = make_declval_arg(src_type);
+    src_op = make_declval_arg(src_type);
+    append_elem(arg_list, src_op);
     if (src_op == NULL) {
       /* The value creation expression is ill-formed: Return a "false"
          result. */

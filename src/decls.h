@@ -465,6 +465,16 @@ typedef struct an_init_state {
 			   constant-expressions (for example, reinterpret_cast
 			   may be folded, but standard C++ does not permit it
 			   in a constant-expression). */
+  a_bit_field	resumable:1;
+			/* TRUE if the initializer is a traditional aggregate
+			   initializer whose parsing can be suspended and
+			   resumed.  This is useful to convert very large
+			   initializers part by part, which reduces memory
+			   consumption. */
+  a_bit_field	pending_elements:1;
+			/* TRUE if resumable is TRUE and parsing is currently
+			   suspended (which implies that additional elements
+			   are pending). */
 } an_init_state;
 
 

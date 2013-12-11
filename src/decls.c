@@ -119,6 +119,8 @@ Clear the fields of *is.
   is->potentially_evaluated = TRUE;
   is->traditional_const_expr_required = FALSE;
   is->constant_expr_ruled_out = FALSE;
+  is->resumable = FALSE;
+  is->pending_elements = FALSE;
 }  /* clear_init_state_fields */
 
 

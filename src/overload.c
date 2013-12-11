@@ -1711,9 +1711,8 @@ to class type (or an error type).
 }  /* display_object_type */
 
 
-static void display_argument_list_types(
-                                   a_type_ptr           object_type,
-                                   an_arg_list_elem_ptr arg_list)
+static void display_argument_list_types(a_type_ptr           object_type,
+                                        an_arg_list_elem_ptr arg_list)
 /*
 Output a diagnostic line that displays the types of the arguments in
 arg_list, as part of producing a diagnostic for an overload
@@ -1730,11 +1729,9 @@ This routine does not call end_error.
   /* Display nothing if the argument list is empty. */
   if (arg_list != NULL) {
     set_up_for_argument_type_formatting();
-    for (alep = arg_list;
-         alep != NULL;
-         alep = alep->next) {
+    for (alep = arg_list; alep != NULL; alep = next_elem(alep)) {
       format_arg_list_elem_type_for_display(alep);
-      if (alep->next != NULL) {
+      if (!is_last_elem(alep)) {
         /* This is not the last argument, so put a comma after it. */
         put_str_to_temp_text_buffer(", ");
       }  /* if */
@@ -1783,7 +1780,7 @@ call end_error.
                kind == (an_opname_kind)onk_arrow ||
                kind == (an_opname_kind)onk_delete ||
                kind == (an_opname_kind)onk_array_delete);
-  unary_operator = (!list_form && operand_list->next == NULL);
+  unary_operator = (!list_form && is_last_elem(operand_list));
   if (unary_operator) {
     /* Unary operator precedes the operand. */
     put_str_to_temp_text_buffer(opname);
@@ -1791,11 +1788,11 @@ call end_error.
   }  /* if */
   for (alep = operand_list, num = 1;
        alep != NULL;
-       alep = alep->next, num++) {
+       alep = next_elem(alep), num++) {
     format_arg_list_elem_type_for_display(alep);
     if (list_form) {
       /* List form.  Comma after each operand except the last. */
-      if (alep->next != NULL) {
+      if (!is_last_elem(alep)) {
         put_str_to_temp_text_buffer(", ");
       }  /* if */
     } else if (num == 1) {
@@ -4165,7 +4162,7 @@ type will be std::initializer_list<template-arg-list>.
 
   for (elem = alep->variant.braced.list;
        elem != NULL;
-       elem = elem->next) {
+       elem = next_elem(elem)) {
     a_type_ptr elem_arg_type;
     a_type_ptr elem_param_type = elem_type;
     an_operand *elem_operand;
@@ -4252,7 +4249,7 @@ succeeds, FALSE if it fails.
         deduction_okay = FALSE;
       }  /* if */
     } else {
-      if (arg != NULL) arg = arg->next;
+      if (arg != NULL) arg = next_elem(arg);
     }  /* if */
     goto end_of_routine;
   }  /* if */
@@ -4328,7 +4325,7 @@ succeeds, FALSE if it fails.
                          template_arg_list, templ_params);
     if (!deduction_okay) break;
 next_iteration:
-    if (arg != NULL) arg = arg->next;
+    if (arg != NULL) arg = next_elem(arg);
     /* Only once through the loop for non-parameter-pack cases. */
     if (pesep == NULL) break;
     /* Parameter pack cases. */
@@ -4400,7 +4397,7 @@ template arguments, or NULL if deduction failed.
       suppress_param_advance = TRUE;
       if (!processing_param_array_expanded_case) {
         processing_param_array_expanded_case = TRUE; /* Assume */
-        if (alep->next == NULL) {
+        if (is_last_elem(alep)) {
           /* The number of arguments matches the number of parameters.
              Check if we can successfully deduce the handle-to-CLI-array
              parameter type.  Do a "tentative" match first so as not to
@@ -4509,16 +4506,16 @@ template arguments, or NULL if deduction failed.
           identical_types_ignoring_qualifiers(ptp->type,
                                               parent_class_of(routine))) {
         /* After deduction, this is a constructor that looks like
-             X(X);
-           That is, it takes its own type as its first parameter.
-           This should be treated as a deduction failure. */
+             X(X ...);
+           That is, it takes its own type as its first parameter.  This should
+           be treated as a deduction failure if there is only one argument. */
         if (ptp->next == NULL) {
           /* Just one parameter.  Fail. */
           updated_routine_type = NULL;
         } else {
           /* More than one parameter.  Okay, except if we're defaulting all
              the parameters after the first. */
-          if (arg_list != NULL && arg_list->next == NULL) {
+          if (is_single_elem(arg_list)) {
             /* Exactly one argument, and more than one parameter, so we're
                defaulting those after the first.  Fail. */
             updated_routine_type = NULL;
@@ -5012,8 +5009,8 @@ the point of call.  conv_context describes the context of the conversion.
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     if (explicit_conversion_functions_enabled &&
         (conv_context & CCO_DIRECT_INITIALIZATION) &&
-        arg_list != NULL && arg_list->next == NULL && /* Exactly one arg */
-        routine->special_kind == (a_special_function_kind)sfk_constructor &&
+        is_single_elem(arg_list) &&
+        special_kind_is(routine, sfk_constructor) &&
         is_copy_constructor(routine, (a_type_ptr)NULL,
                             (a_type_qualifier_set *)NULL,
                             /*include_move_ctors=*/TRUE,
@@ -5034,11 +5031,12 @@ the point of call.  conv_context describes the context of the conversion.
           is_class_struct_union_type(
                                   operand_of_arg_list_elem(arg_list)->type)) {
         enum_param_still_needed = FALSE;
-      } else if (arg_list->next != NULL &&
-                 is_expression_component(arg_list->next) &&
-                 is_class_struct_union_type(
-                            operand_of_arg_list_elem(arg_list->next)->type)) {
-        enum_param_still_needed = FALSE;
+      } else {
+        an_arg_list_elem_ptr arg2 = next_elem(arg_list);
+        if (arg2 != NULL && is_expression_component(arg2) &&
+            is_class_struct_union_type(operand_of_arg_list_elem(arg2)->type)) {
+          enum_param_still_needed = FALSE;
+        }  /* if */
       }  /* if */
     }  /* if */
   } else {
@@ -5061,7 +5059,7 @@ the point of call.  conv_context describes the context of the conversion.
   first_param_before_deduction = param;
   for (arg_list_elem = arg_list;
        arg_list_elem != NULL;
-       arg_list_elem = arg_list_elem->next) {
+       arg_list_elem = next_elem(arg_list_elem)) {
     /* See if the parameter list is exhausted. */
     if (param == NULL) {
       /* More arguments than required.  No match unless there is an
@@ -5076,7 +5074,7 @@ the point of call.  conv_context describes the context of the conversion.
 #if MICROSOFT_EXTENSIONS_ALLOWED
     } else if (cppcli_enabled && param->is_cli_param_array) {
       /* A C++/CLI parameter array can match all the remaining arguments. */
-      if (arg_list_elem->next != NULL) {
+      if (!is_last_elem(arg_list_elem)) {
         /* There are more arguments after the one that lines up with the
            parameter array parameter, so this is an expanded case where
            several arguments will be wrapped into one parameter array. */
@@ -5146,7 +5144,7 @@ the point of call.  conv_context describes the context of the conversion.
 #endif /* DEBUG */
     for (arg_list_elem = arg_list;
          arg_list_elem != NULL;
-         arg_list_elem = arg_list_elem->next) {
+         arg_list_elem = next_elem(arg_list_elem)) {
       /* Explicit conversion functions, if permitted, are allowed only on the
          first argument. */
       a_boolean allow_expl_conv_funcs_this_arg = (allow_expl_conv_funcs &&
@@ -5776,8 +5774,7 @@ retry2:
       eff_arg_list = init_list_ctor_arg_list;
       /* [over.best.ics]p4 says no UDCs are allowed in this case. */
       eff_allow_udc_on_arguments = FALSE;
-    } else if (init_list_ctor_arg_list != NULL &&
-               arg_list != NULL && arg_list->next == NULL) {
+    } else if (init_list_ctor_arg_list != NULL && is_single_elem(arg_list)) {
       /* [over.best.ics]p4 says that no user-defined conversions are allowed
          on the single member of an initializer list on the first argument
          of (roughly) a copy or move constructor. */
@@ -8292,7 +8289,7 @@ Specifically, this means type-dependent rather than value-dependent.
   a_boolean            is_dependent = FALSE;
   an_arg_list_elem_ptr alep;
 
-  for (alep = arg_list; alep != NULL; alep = alep->next) {
+  for (alep = arg_list; alep != NULL; alep = next_elem(alep)) {
     if (is_expression_component(alep)) {
       if (operand_is_dependent(operand_of_arg_list_elem(alep))) {
         is_dependent = TRUE;
@@ -8641,7 +8638,7 @@ and return NULL.  This routine is called only in C++ mode.
        (i.e., has arguments of dependent types). */
     for (arg_list_elem = arg_list;
          arg_list_elem != NULL;
-         arg_list_elem = arg_list_elem->next) {
+         arg_list_elem = next_elem(arg_list_elem)) {
       an_expr_node_ptr expr;
       an_operand       *arg = NULL;
       if (is_expression_component(arg_list_elem)) {
@@ -8830,7 +8827,7 @@ in_instantiation:
       /* Accumulate the types used in the arguments. */
       for (arg_list_elem = arg_list;
            arg_list_elem != NULL;
-           arg_list_elem = arg_list_elem->next) {
+           arg_list_elem = next_elem(arg_list_elem)) {
         if (is_expression_component(arg_list_elem)) {
           add_operand_to_arg_dependent_lookup_list(
                                        operand_of_arg_list_elem(arg_list_elem),
@@ -11691,7 +11688,7 @@ next parameter.
        array (and this is not the first element of the array, which is handled
        by the code following). */
   } else if (ptp->is_cli_param_array &&
-             (arg_list_elem->next != NULL ||
+             (!is_last_elem(arg_list_elem) ||
               !arg_can_be_passed_as_param_array(arg_list_elem,
                                                 ptp,
                                                /*param_type_is_deduced=*/FALSE,
@@ -11776,7 +11773,7 @@ next parameter.
     a_boolean  ellipsis_next = (arg_block->have_param_info && 
                                 arg_block->curr_param_type == NULL);
     if (ellipsis_next) {
-      arg_block->printf_scanf_args = arg_list_elem->next;
+      arg_block->printf_scanf_args = next_elem(arg_list_elem);
     }  /* if */
 #if GNU_EXTENSIONS_ALLOWED
     if (arg_block->fmt_arg != 0) {
@@ -11807,7 +11804,7 @@ described by *arg_block (or NULL if there is no n-th ellipsis argument).
   int                  k;
 
   for (k = 1; k < n && alep != NULL; ++k) {
-    alep = alep->next;
+    alep = next_elem(alep);
   }  /* for */
   return alep;
 }  /* nth_printf_scanf_arg */
@@ -11894,7 +11891,7 @@ arguments).
     }  /* if */
     check_printf_scanf_arg(operand_of_arg_list_elem(arg), type, alt_type,
                            indirect, weakly_typed, weak_pointer_to_integral);
-    arg = arg->next;
+    arg = next_elem(arg);
   }  /* while */
 }  /* check_printf_scanf_arg_list */
 
@@ -11945,7 +11942,7 @@ is a constant null pointer.
     a_boolean            valid_sentinel_value;
     /* Skip to the operand that should be the sentinel. */
     while (k--) {
-      sentinel = sentinel->next;
+      sentinel = next_elem(sentinel);
       if (param != NULL) param = param->next;
     }  /* while */
     check_assertion(sentinel != NULL);
@@ -12060,7 +12057,7 @@ pointing to the last node in the returned expression list.
   /* Convert the operand list to an expression list. */
   for (alep = arg_list, expr_node = &result;
        alep != NULL;
-       alep = alep->next, expr_node = &(*expr_node)->next) {
+       alep = next_elem(alep), expr_node = &(*expr_node)->next) {
     check_arg_list_elem_is_expression(alep);
     local_expr_tail = *expr_node = make_node_from_operand_for_expr_list(
                                                operand_of_arg_list_elem(alep));
@@ -12085,7 +12082,7 @@ original list is not freed).  Some state information is recorded in *arg_block
 {
   an_arg_list_elem_ptr alep;
 
-  for (alep = arg_list; alep != NULL; alep = alep->next) {
+  for (alep = arg_list; alep != NULL; alep = next_elem(alep)) {
     process_call_argument(alep, arg_block);
   }  /* for */
   if (arg_block->fmt_string != NULL) {
@@ -12337,7 +12334,7 @@ overloaded operator cases.
       /* Advance to the next argument unless we've run out (additional
          arguments will come from default argument values). */
       if (arg_list_elem != NULL) {
-        arg_list_elem = arg_list_elem->next;
+        arg_list_elem = next_elem(arg_list_elem);
         arg_match = arg_match->next;
       }  /* if */
       /* Advance to the next parameter unless we've run out (additional
@@ -14200,7 +14197,7 @@ the target type to be used).
   for (type_pattern_position = operand_type_pattern, alep = operand_list;
        alep != NULL;
        type_pattern_position++, need_lvalue_result = FALSE,
-                                                           alep = alep->next) {
+                                alep = next_elem(alep)) {
 #if CHECKING
     if (*type_pattern_position == ';' ||
         *type_pattern_position == '\0') {
@@ -14243,18 +14240,17 @@ the target type to be used).
         a_type_ptr other_operand_type;
         /* Get the type of the other operand.  This is used to guide selection
            of template conversion functions if it's an appropriate type. */
-        if (operand_list->next == NULL) {
+        if (is_last_elem(operand_list)) {
           /* No other type for unary operators. */
           other_operand_type = NULL;
         } else {
+          an_arg_list_elem_ptr  op2 = next_elem(operand_list);
           if (alep == operand_list) {
-            check_assertion(is_expression_component(operand_list->next));
-            other_operand_type =
-                           operand_of_arg_list_elem(operand_list->next)->type;
+            check_assertion(is_expression_component(op2));
+            other_operand_type = operand_of_arg_list_elem(op2)->type;
           } else {
             check_assertion(is_expression_component(operand_list));
-            other_operand_type =
-                           operand_of_arg_list_elem(operand_list)->type;
+            other_operand_type = operand_of_arg_list_elem(operand_list)->type;
           }  /* if */
           if (!type_matches_type_code(other_operand_type, type_code)) {
             /* The other operand type is not a builtin type that could be
@@ -14780,7 +14776,7 @@ in some way, e.g., two pointers that must have the same type.
   previous_specific_type_considered = NULL;
   for (type_pattern_position = operand_type_pattern, alep = operand_list;
        alep != NULL;
-       type_pattern_position++, alep = alep->next) {
+       type_pattern_position++, alep = next_elem(alep)) {
     /* Because braced-init-lists are not allowed as operands of operators,
        the entry here must be for an expression. */
     check_assertion(is_expression_component(alep));
@@ -14865,9 +14861,9 @@ in some way, e.g., two pointers that must have the same type.
         specific_type = operand_type;
         /* Get the type of the other operand. */
         if (alep == operand_list) {
-          check_assertion(is_expression_component(operand_list->next));
-          other_operand_type =
-                         operand_of_arg_list_elem(operand_list->next)->type;
+          an_arg_list_elem_ptr  op2 = next_elem(operand_list);
+          check_assertion(is_expression_component(op2));
+          other_operand_type = operand_of_arg_list_elem(op2)->type;
         } else {
           check_assertion(is_expression_component(operand_list));
           other_operand_type =
@@ -15640,7 +15636,7 @@ operand when initializer lists are enabled.
           } else {
             arg_list2 = alloc_arg_list_elem_for_operand(operand_2);
           }  /* if */
-          arg_list->next = arg_list2;
+          append_elem(arg_list, arg_list2);
         }  /* if */
         /* candidate_functions will contain the list of viable functions. */
         candidate_functions = NULL;
@@ -16295,7 +16291,7 @@ no_applicable_operator_function:
                                            arg_match,
                                            &bound_function_selector->position);
               /* The "real" argument list starts with the second argument. */
-              arg_list_elem = arg_list_elem->next;
+              arg_list_elem = next_elem(arg_list_elem);
               arg_match = arg_match->next;
             }  /* if */
             param = routine_type->variant.routine.extra_info->param_type_list;
@@ -16369,7 +16365,7 @@ no_applicable_operator_function:
                  operand. */
               arg_expr_list = end_arg_expr_list = NULL;
               for (; arg_list_elem != NULL;
-                   arg_list_elem = arg_list_elem->next,
+                   arg_list_elem = next_elem(arg_list_elem),
                         arg_match = arg_match->next) {
                 arg = node_for_arg_of_overloaded_function_call(
                                        arg_list_elem,
@@ -16443,7 +16439,7 @@ no_applicable_operator_function:
           /* The second item on the list was borrowed from operand_2 and
              should not be freed at this level. */
           check_assertion(arg_list2 == operand_2->variant.braced_init_list);
-          arg_list->next = NULL;
+          split_tail_elems(arg_list);
         }  /* if */
         free_arg_list(arg_list);
       }  /* if */
@@ -21420,7 +21416,7 @@ errors should be suppressed (i.e., SFINAE mode).
      constant for each element in the list. */
   for (elem_icp = list_icp->variant.braced.list;
        elem_icp != NULL;
-       elem_icp = elem_icp->next) {
+       elem_icp = next_elem(elem_icp)) {
     an_init_state        init_state;
     an_arg_match_summary local_arg_match;
     a_boolean            check_narrowing = TRUE, saved_check_narrowing;
@@ -21677,7 +21673,7 @@ as an argument list.
 {
   an_init_component_ptr icp;
 
-  for (icp = list; icp != NULL; icp = icp->next) {
+  for (icp = list; icp != NULL; icp = next_elem(icp)) {
     unbundle_init_component_expressions(icp);
   }  /* for */
 }  /* unbundle_init_component_list_expressions */
@@ -21777,7 +21773,7 @@ set, e.g., value FALSE clears the flags.
 {
   an_init_component_ptr icp;
 
-  for (icp = list; icp != NULL; icp = icp->next) {
+  for (icp = list; icp != NULL; icp = next_elem(icp)) {
     icp->check_narrowing = value;
   }  /* for */
 }  /* force_narrowing_check_on_arg_list_members */
@@ -21879,11 +21875,11 @@ will be an lvalue instead of the usual prvalue.
   a_dynamic_init_ptr   dip_to_mark = NULL;
   an_expr_node_ptr     preserved_temp_init = NULL;
   an_init_component_ptr
-                       icp_next = icp->next;
+                       icp_next = next_elem(icp);
 
   /* If icp is on a list, break it off as a single element.  The next
      pointer will be restored below. */
-  icp->next = NULL;
+  split_tail_elems(icp);
   /* The basic modes are:
                       issue_errors   generate_il
        Normal init    yes            yes
@@ -21989,7 +21985,7 @@ will be an lvalue instead of the usual prvalue.
       an_init_component_ptr eicp = icp->variant.braced.list;
       if (generate_il) arg_list_will_not_be_used_because_of_error(eicp);
       while (!is_designator_component(eicp)) {
-        eicp = eicp->next;
+        eicp = next_elem(eicp);
         check_assertion(eicp != NULL);
       }  /* if */
       if (expr_error_should_be_issued()) {
@@ -22120,7 +22116,7 @@ will be an lvalue instead of the usual prvalue.
     a_type_ptr            singleton_expr_type = NULL;
     if (list == NULL) {
       /* Empty list: No special processing here. */
-    } else if (list->next == NULL) {
+    } else if (is_last_elem(list)) {
       /* Singleton list: Check for the case of a single expression. */
       if (list->pack_expansion_descr == NULL &&
           is_expression_component(list)) {
@@ -22458,12 +22454,11 @@ will be an lvalue instead of the usual prvalue.
         }  /* if */
       }  /* if */
       fill_in_dtor = FALSE;
-    } else if (list != NULL && list->next == NULL &&
+    } else if (is_single_elem(list) &&
                (!is_any_reference_type(dest_type) ||
                 (singleton_expr_type != NULL &&
                  are_reference_related(type_pointed_to(dest_type),
-                                       singleton_expr_type))
-               )) {
+                                       singleton_expr_type)))) {
       /* A list containing just one member.  Drop the {} and do a recursive
          call.  Reference cases also go here if the underlying type is
          reference-related to the element expression type. */
@@ -22483,8 +22478,10 @@ will be an lvalue instead of the usual prvalue.
           /* Drop the extra braces as long as they contain a single
              element. */
           an_init_component_ptr new_list = list->variant.braced.list;
-          if (new_list == NULL || new_list->next != NULL ||
-              new_list->pack_expansion_descr != NULL) break;
+          if (!is_single_elem(new_list) ||
+              new_list->pack_expansion_descr != NULL) {
+            break;
+          }  /* if */
           list = new_list;
         }  /* while */
       }  /* if */
@@ -22602,14 +22599,15 @@ will be an lvalue instead of the usual prvalue.
         arg_match_err = TRUE;
       } else if (gcc_mode) {
         /* gcc (but not g++) issues a warning and ignores the excess values. */
+        an_init_component_ptr  icp2 = next_elem(list);
         check_assertion(generate_il);
+        split_tail_elems(list);
         expr_pos_warning(ec_excess_initializers_ignored,
-                         init_component_pos(list->next));
+                         init_component_pos(icp2));
         /* Throw away the elements after the first and redo the
            initialization. */
-        arg_list_will_not_be_used_because_of_error(list->next);
-        free_init_component_list(list->next);
-        list->next = NULL;
+        arg_list_will_not_be_used_because_of_error(icp2);
+        free_init_component_list(icp2);
         init_handled_at_this_level = FALSE;
         prep_list_initializer(icp,
                               dest_type,
@@ -22635,7 +22633,7 @@ will be an lvalue instead of the usual prvalue.
         arg_list_will_not_be_used_because_of_error(list);
         unbundle_init_component_list_expressions(list);
         expr_pos_error(ec_too_many_initializer_values,
-                       init_component_pos(list->next));
+                       init_component_pos(next_elem(list)));
         make_error_operand(&operand);
       }  /* if */
     }  /* if */
@@ -22899,7 +22897,7 @@ will be an lvalue instead of the usual prvalue.
       expr_stack->any_suppressed_error = saved_any_suppressed_error;
     }  /* if */
   }  /* if */
-  icp->next = icp_next;
+  append_elem(icp, icp_next);
 }  /* prep_list_initializer */
 
 

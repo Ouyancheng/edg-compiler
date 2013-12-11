@@ -607,7 +607,7 @@ NULL if there is no such component).
 */
 {
   while (icp != NULL && is_designator_component(icp)) {
-    icp = icp->next;
+    icp = next_elem(icp);
   }  /* while */
   return icp;
 }  /* skip_designators */
@@ -621,7 +621,7 @@ issue an error and return TRUE.  Otherwise, return FALSE.
 {
   a_boolean  result = FALSE;
 
-  for (; icp != NULL && !result; icp = icp->next) {
+  for (; icp != NULL && !result; icp = next_elem(icp)) {
     if (is_braced_init_component(icp)) {
       if (icp->variant.braced.list == NULL) {
         pos_error(ec_invalid_empty_initializer_list, init_component_pos(icp));
@@ -689,8 +689,11 @@ remove_any_extraneous_braces:
       next_icp = skip_designators(icp);
       if (next_icp == NULL) {
         expect_error();
-      } else if (next_icp->next != NULL) {
-        excess_init_pos = init_component_pos(next_icp->next);
+      } else {
+        next_icp = next_elem(next_icp);
+        if (next_icp != NULL) {
+          excess_init_pos = init_component_pos(next_icp);
+        }  /* if */
       }  /* if */
       if (!C_mode()) {
         /* A single level of braces is standard in C, but not in C++. */
@@ -713,8 +716,11 @@ remove_any_extraneous_braces:
           next_icp = skip_designators(icp);
           if (next_icp == NULL) {
             expect_error();
-          } else if (next_icp->next != NULL) {
-            excess_init_pos = init_component_pos(next_icp->next);
+          } else {
+            next_icp = next_elem(next_icp);
+            if (next_icp != NULL) {
+              excess_init_pos = init_component_pos(next_icp);
+            }  /* if */
           }  /* if */
         } while (is_braced_init_component(icp) &&
                  icp->variant.braced.list != NULL);
@@ -728,7 +734,7 @@ remove_any_extraneous_braces:
         if (gcc_mode) {
           /* GCC accepts excess initializers here with a warning, unless one
              of those initializers contains "{}". */
-          if (!diagnose_empty_braced_component(icp->next)) {
+          if (!diagnose_empty_braced_component(next_elem(icp))) {
             pos_warning(ec_excess_initializers_ignored, excess_init_pos);
           }  /* if */
         } else {
@@ -806,10 +812,10 @@ remove_any_extraneous_braces:
   }  /* if */
   if (braced) {
     /* Proceed with the component after the braces. */
-    *p_icp = orig_icp->next;
+    *p_icp = next_elem(orig_icp);
   } else {
     /* Proceed with the next component in the sequence. */
-    *p_icp = icp->next;
+    *p_icp = next_elem(icp);
   }  /* if */
 }  /* aggr_init_simple_element */
 
@@ -861,7 +867,8 @@ of the whole initialization (*is) as appropriate.
     }  /* if */
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
     (*init_con)->explicit_braces_on_aggregate = TRUE;
-    for (icp = icp->variant.braced.list; icp != NULL; icp = icp->next) {
+    icp = icp->variant.braced.list;
+    for (; icp != NULL; icp = next_elem(icp)) {
       a_constant_ptr  elem_con;
       aggr_init_generic_element(icp, dest_type, is, &elem_con);
       if (elem_con != NULL) {
@@ -992,7 +999,7 @@ diagnostics.
     if (braced) {
       /* The caller should move on to the component that follows the braced
          list (if any). */
-      *p_icp = (*p_icp)->next;
+      *p_icp = next_elem(*p_icp);
       if (icp != NULL) {
         /* Extraneous elements: Issue a diagnostic (an error in GNU C++ mode; a
            warning otherwise). */
@@ -1057,7 +1064,7 @@ braced initializer (or NULL if there is none) is returned through *p_icp.
   ftype = float_type(ftype->variant.float_kind);
   /* Convert the real and complex parts in turn. */
   icp = icp->variant.braced.list;
-  check_assertion(icp != NULL && icp->next != NULL);
+  check_assertion(icp != NULL && next_elem(icp) != NULL);
   aggr_init_element(&icp, ftype, is, diag_pos, &elem_con);
   if (!is->check_validity_only) {
     add_constant_to_aggregate(elem_con, *init_con);
@@ -1071,7 +1078,7 @@ braced initializer (or NULL if there is none) is returned through *p_icp.
     pos_error(ec_too_many_initializer_values, init_component_pos(icp));
   }  /* if */
   /* Move to the next element after the braces. */
-  *p_icp = (*p_icp)->next;
+  *p_icp = next_elem(*p_icp);
 }  /* aggr_init_complex */
 
 #endif /* C99_IL_EXTENSIONS_SUPPORTED */
@@ -1376,8 +1383,7 @@ size.
     /* Permit an extra level of braces (but only if the braces enclose a
        single element). */
     if (is_braced_init_component(icp) &&
-        icp->variant.braced.list != NULL &&
-        icp->variant.braced.list->next == NULL) {
+        is_single_elem(icp->variant.braced.list)) {
       icp = icp->variant.braced.list;
     }  /* if */
     if (icp != NULL && is_string_literal_component(icp, &string_constant)) {
@@ -1656,7 +1662,7 @@ available.
       pos_error(ec_designator_for_non_POD, init_component_pos(icp));
     }  /* if */
   }  /* if */
-  icp = icp->next;
+  icp = next_elem(icp);
   if (okay) {
     /* Designators complicate the determination of whether an aggregate
        initializer completely covers the target entity.  Assume partial
@@ -1751,14 +1757,14 @@ initialization).  *is describes the initialization as a whole.
   check_assertion(atype->kind == (a_type_kind)tk_array);
   if (try_string_literal_init(icp, p_array_type, is, init_con)) {
     /* A string literal initializer.  Nothing more to be done. */
-    *p_icp = icp->next;
+    *p_icp = next_elem(icp);
   } else if (is_expression_component(icp) &&
              try_whole_array_init(icp, atype, init_con)) {
     /* Whole-array initialization.  Currently, this is only possible in GNU C
        mode with compound literals.  For example:
          struct X { int i[3]; } x = { (int[3]){1, 2, 3} };
     */
-    *p_icp = icp->next;
+    *p_icp = next_elem(icp);
   } else {
     /* Ordinary element-by-element array initialization. */
     a_targ_size_t  ecount, idx = 0, icount = 0;
@@ -1930,7 +1936,7 @@ initialization).  *is describes the initialization as a whole.
     if (braced) {
       /* The caller should move on to the component that follows the braced
          list (if any). */
-      *p_icp = (*p_icp)->next;
+      *p_icp = next_elem(*p_icp);
       if (icp != NULL && (!no_bound || zero_sized_element)) {
         /* Initializers remain at this level, but no elements. */
         an_error_severity  sev = gcc_mode ? es_warning : es_error;
@@ -2035,7 +2041,7 @@ dims[rank].  Produce an aggregate constant representing this initialization in
         /* Another CLI array level: Recurse. */
         aggr_init_cli_array_level(icp, etype, is, rank-1, dims, deduce_dims,
                                   &elem_con);
-        icp = icp->next;
+        icp = next_elem(icp);
       } else {
         /* Element-level initializers. */
         aggr_init_element(&icp, etype, is, init_component_pos(icp), &elem_con);
@@ -2596,7 +2602,7 @@ specific position is available.
        there is a sequence of consecutive designators.) */
     pos_error(ec_designator_for_non_POD, init_component_pos(icp));
   }  /* if */
-  icp = icp->next;
+  icp = next_elem(icp);
   if (okay) {
     /* Designators complicate the determination of whether an aggregate
        initializer completely covers the target entity.  Assume partial
@@ -2779,7 +2785,7 @@ issued if no more specific position is available.
     if (braced) {
       /* The caller should move on to the component that follows the braced
          list (if any). */
-      *p_icp = (*p_icp)->next;
+      *p_icp = next_elem(*p_icp);
       if (icp != NULL) {
         /* Initializers remain at this level, but no fields. */
         check_assertion(fp == NULL);
@@ -2953,7 +2959,7 @@ a ck_aggregate constant.
     is->non_top_level_aggregate = TRUE;
     is->arg_match = NULL;
     aggr_init_generic_element(icp, etype, is, init_con);
-    *p_icp = icp->next;
+    *p_icp = next_elem(icp);
 #if GNU_VECTOR_TYPES_ALLOWED
   } else if (etype_kind == (a_type_kind)tk_vector &&
              (gpp_mode || (gcc_mode && gnu_version >= 40500) ||
@@ -2970,7 +2976,7 @@ a ck_aggregate constant.
              etype_kind == (a_type_kind)tk_complex &&
              is_braced_init_component(icp) &&
              icp->variant.braced.list != NULL &&
-             icp->variant.braced.list->next) {
+             !is_last_elem(icp->variant.braced.list)) {
     /* g++ 4.7 introduced the possibility of initializing the real and
        imaginary components of a built-in "complex" object with aggregate
        initialization syntax.  Cases with empty braces or singleton braces
@@ -2999,7 +3005,7 @@ a ck_aggregate constant.
       }  /* if */
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
     }  /* if */
-    *p_icp = icp->next;
+    *p_icp = next_elem(icp);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   } else {
     /* Use the single value in *p_icp to initialize one element. */
@@ -3015,7 +3021,7 @@ a ck_aggregate constant.
   }  /* if */
   is->non_top_level_aggregate = saved_non_top_level_aggregate;
   is->arg_match = saved_arg_match;
-}  /* aggr_init_element */
+}  /* aggr_init_element_full */
 
 
 static void prep_initializer_result(an_init_state  *is,
@@ -3168,7 +3174,7 @@ the type pointed to is opaque to declaration processing.
     case tk_complex:
       if (gpp_mode && gnu_version >= 40700 &&
           icp->variant.braced.list != NULL &&
-          icp->variant.braced.list->next) {
+          !is_last_elem(icp->variant.braced.list)) {
         /* g++ 4.7 introduced the possibility of initializing the real and
            imaginary components of a built-in "complex" object with aggregate
            initialization syntax.  Cases with empty braces or singleton
@@ -3224,13 +3230,13 @@ variable initialization.
         pos_error(ec_exp_primary_expr, &icp->variant.braced.end_pos);
       }  /* if */
     } else if (microsoft_bugs && microsoft_version < 1310 && is_var_init &&
-               icp->variant.braced.list->next != NULL) {
+               !is_last_elem(icp->variant.braced.list)) {
       /* Earlier microsoft compilers accept e.g.  "int x = { f(), { 3 } }".
          The last value replaces previous ones (though side-effects take
          place), unless they're both constants and x is not automatic. */
       icp = icp->variant.braced.list;
-      icp2 = icp->next;
-      icp->next = NULL;
+      icp2 = next_elem(icp);
+      split_tail_elems(icp);
     }  /* if */
   }  /* if */
   /* The following initialization of saved_is is done unconditionally to avoid
@@ -3240,8 +3246,8 @@ variable initialization.
   while (icp2 != NULL) {
     /* If there are more components following the second one, detach them:
        They'll be handled in subsequent iterations. */
-    icp3 = icp2->next;
-    icp2->next = NULL;
+    icp3 = next_elem(icp2);
+    split_tail_elems(icp2);
     /* Handle the extra components recursively. */
     is2 = saved_is;
     process_simple_init_component(icp2, dtype, &is2, is_var_init);
@@ -3272,7 +3278,7 @@ variable initialization.
       check_assertion(is->init_con != NULL || is->init_dip != NULL);
     }  /* if */
     /* Restore the component chain so it can be freed by the caller. */
-    icp->next = icp2;
+    append_elem(icp, icp2);
     /* Move to the next component (if any). */
     icp = icp2;
     icp2 = icp3;
@@ -3411,7 +3417,7 @@ initializer, already copied and substituted.
     case tk_complex:
       if (gpp_mode && gnu_version >= 40700 &&
           icp->variant.braced.list != NULL &&
-          icp->variant.braced.list->next) {
+          !is_last_elem(icp->variant.braced.list)) {
         /* g++ 4.7 introduced the possibility of initializing the real and
            imaginary components of a built-in "complex" object with aggregate
            initialization syntax.  Cases with empty braces or singleton
@@ -3438,7 +3444,15 @@ initializer, already copied and substituted.
     curr_construct_end_position = *init_component_end_pos(icp_tree);
   }  /* if */
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
-  if (need_to_free_icp_tree) free_init_component_list(icp_tree);
+  if (need_to_free_icp_tree) {
+    if (is->pending_elements) {
+      /* We have apparently suspended parsing of initializer elements and not
+         completed that parsing.  This can happen when the remaining elements
+         are in excess.  Complete parsing now. */
+      complete_braced_init_list_parsing(icp_tree);
+    }  /* if */
+    free_init_component_list(icp_tree);
+  }  /* if */
   is->force_dynamic_init = saved_force_dynamic_init;
   if ((is_aggregate && !is->init_error) || is->force_dynamic_init) {
     /* The routines for aggregate initialization produce a constant entry, but
@@ -3522,6 +3536,19 @@ is part of.  diag_pos is the position to be used by default for diagnostics
     }  /* if */
   }  /* if */
   if (vp != NULL) vp->has_direct_braced_initializer = direct;
+  if (C_mode() ||
+      (!is_variadic_template_context() && is_aggregate_type(dps->type))) {
+    /* For aggregate initializations (always the case in C mode when we get
+       here) enable the suspension and resumption of initializer list parsing.
+       This mechanism allows processing a very large initializer without
+       ingesting the initializer all at once (thereby substantially reducing
+       memory consumption).  This is not always feasible for non-aggregate
+       initializations (because the whole initializer is needed as a list of
+       init components for overload resolution), and would be more complicated
+       in variadic template contexts.  Fortunately, huge initializers don't
+       appear in such contexts in practice. */
+    dps->init_state.resumable = TRUE;
+  }  /* if */
   braced_initializer(dps->type, (an_init_component *)NULL,
                      &dps->init_state, dps, (an_init_component **)NULL,
                      diag_pos);
@@ -3589,7 +3616,7 @@ position is available.
     value_init_variable_or_member(dps->type, is, diag_pos);
   } else {
     a_boolean  saved_force_dynamic_init = is->force_dynamic_init;
-    check_assertion(expr_icp->next == NULL);
+    check_assertion(is_last_elem(expr_icp));
     is_pack_expansion = expr_icp->pack_expansion_descr != NULL;
     if (is_error_component(expr_icp)) {
       /* An error occurred earlier.  Continue with an error constant. */
@@ -3690,7 +3717,7 @@ to use for diagnostics by default.
                                          dps,
                                          /*parenthesized=*/FALSE,
                                          /*allow_empty_pack_expansion=*/FALSE);
-  check_assertion(expr_icp->next == NULL);
+  check_assertion(is_last_elem(expr_icp));
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   if (decl_pos_block != NULL) {
     decl_pos_block->var_init_range.end = *init_component_end_pos(expr_icp);

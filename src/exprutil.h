@@ -1338,6 +1338,8 @@ extern an_init_component_ptr alloc_init_component(an_init_component_kind kind);
 extern
 an_arg_list_elem_ptr alloc_arg_list_elem_for_operand(an_operand *operand);
 
+extern void trim_init_component(an_init_component_ptr icp);
+
 extern void free_init_component_list(an_init_component_ptr icp);
 #define free_arg_list(icp) free_init_component_list(icp)
 
