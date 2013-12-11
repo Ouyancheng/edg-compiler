@@ -31161,9 +31161,13 @@ parse) and get_continued_elem (for resuming a suspended parse).
            (so they can be converted and reused, thereby reducing memory use).
            Append a continuation marker associated with the parsing state
            needed to resume parsing later on. */
-        *p_continuation = alloc_braced_list_continuation();
-        (*p_continuation)->parent_icp = icp;
-        (*p_continuation)->end_icp = end_icp;
+        if (continuation == NULL) {
+          continuation = alloc_braced_list_continuation();
+        }  /* if */
+        continuation->next = NULL;
+        continuation->parent_icp = icp;
+        continuation->end_icp = end_icp;
+        *p_continuation = continuation;
         elem_icp = alloc_init_component((an_init_component_kind)ick_continued);
         elem_icp->variant.continuation.state = (void*)(*p_continuation);
         append_elem(end_icp, elem_icp);
