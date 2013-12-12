@@ -1,5 +1,20 @@
 Version 4.9
 
+12/12/13 [EDGcpfe/14727]
+Microsoft compatibility: Partial ordering of lvalue vs. rvalue references
+
+In Microsoft mode with microsoft_version >= 1800 the standard C++11 rule that
+treats an lvalue reference parameter as more specialized than a corresponding
+rvalue reference parameter is now applicable.  For example:
+
+  template<typename T> int f(T&);
+  template<typename T> int f(T&&);
+  int x, y = f(x);  // Previously ambiguous in all Microsoft C++ modes; now
+                    // okay (and calls f(T&)) when microsoft_version >= 1800.
+
+See also the entry for EDGcpfe/11270 of 1/14/11.
+
+
 12/12/13 [EDGcpfe/14730]
 Spurious error on function template instance passed to T&& parameter
 
