@@ -3918,7 +3918,7 @@ modes to introduce knowledge from previous arguments; in the standard case,
 it is always NULL.
 */
 {
-  a_boolean   adjustment_okay = FALSE, indefinite_function_case = FALSE;
+  a_boolean   adjustment_okay = FALSE, indefinite_function_designator = FALSE;
   a_type_ptr  param_type = *p_param_type;
   a_type_ptr  arg_type = *p_arg_type;
 
@@ -3929,7 +3929,7 @@ it is always NULL.
   if (arg_operand != NULL && is_indefinite_function_operand(arg_operand)) {
     /* For an overloaded function, each possibility must be tried.
        Only one is allowed to match. */
-    indefinite_function_case = TRUE;
+    indefinite_function_designator = is_a_function_designator(arg_operand);
     if (!indefinite_function_can_be_template_arg(arg_operand,
                                                  param_type,
                                                  &arg_type,
@@ -3973,7 +3973,7 @@ it is always NULL.
         ((arg_operand != NULL &&
           (is_an_lvalue(arg_operand) ||
            is_a_function_designator(arg_operand))) ||
-         indefinite_function_case)) {
+         indefinite_function_designator)) {
       /* A special case ([temp.deduct.call] paragraph 3): If the parameter
          type is an rvalue reference to a template parameter (with no
          cv-qualifiers), and the argument is an lvalue, use
