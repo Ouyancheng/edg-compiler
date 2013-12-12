@@ -7000,9 +7000,15 @@ e.g., ({ ... }).
       if ((curr_token != tok_identifier || next_token() != tok_colon) &&
           is_decl_start(IDS_EXPR_CONTEXT |
                         IDS_REAL_DECLARATOR_ALLOWED)) {
-        /* Scan a declaration.  In C89, these must all be at the
-           beginning of the block. */
-        if (!(c99_mode || gcc_mode) && any_statements) {
+        /* Scan a declaration.  In C89, but not in C99, these must all be at
+           the beginning of the block.   GCC has always been permissive about
+           this (even in its non-C99 mode).  Newer versions of the Microsoft
+           compiler also implement the C99 rule. */
+        a_boolean  alloc_decl_after_stmt = c99_mode;
+        if (gcc_mode || (microsoft_mode && microsoft_version >= 1800)) {
+          alloc_decl_after_stmt = TRUE;
+        }  /* if */
+        if (!alloc_decl_after_stmt && any_statements) {
           error(ec_declaration_after_statements);
           /* Special error-recovery trick: this tries to deal with mismatched
              braces, in the case where a "}" is missing and thus there appears
