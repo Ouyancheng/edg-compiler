@@ -10,7 +10,7 @@ as a zero-length array).  For example:
 
   double f(int n) {
     double x[n];
-    for (double d: x) d = 1.0;  // Previously this loop had no effect.
+    for (double &d: x) d = 1.0;  // Previously this loop had no effect.
     return x[n-1];
   }
 
