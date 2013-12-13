@@ -33866,7 +33866,7 @@ an error and returns FALSE.
 {
   a_type_ptr          expr_type;
   a_type_ptr          element_type;
-  an_operand          operand, size_operand;
+  an_operand          operand, size_operand, elem_size_operand;
   a_constant          size_constant;
   a_variable_ptr      begin_var, end_var;
   an_expr_stack_entry expr_stack_entry;
@@ -33913,11 +33913,26 @@ an error and returns FALSE.
     make_enhanced_for_expression_operand(rbflp->range, &operand);
     /* Convert the array to a decayed rvalue pointer. */
     conv_array_operand_to_pointer_operand(&operand);
-    set_integer_constant(&size_constant,
-                         (a_host_large_integer)skip_typerefs(expr_type)->
+    /* In some modes the array may have a variable length. */
+    if (is_vla_type(expr_type)) {
+      /* Build a node representing sizeof(array)/sizeof(element). */
+      (void)make_sizeof_expr(/*is_alignof=*/FALSE, /*is_type=*/TRUE, expr_type,
+                             (an_operand*)NULL, &size_operand);
+      set_integer_constant(&size_constant,
+                           (a_host_large_integer)
+                                            skip_typerefs(element_type)->size,
+                           targ_size_t_int_kind);
+      make_constant_operand(&size_constant, &elem_size_operand);
+      build_binary_result_operand(&size_operand, &elem_size_operand,
+                                  (an_expr_operator_kind)eok_divide,
+                                  size_operand.type, &size_operand);
+    } else {
+      set_integer_constant(&size_constant,
+                           (a_host_large_integer)skip_typerefs(expr_type)->
                                       variant.array.variant.number_of_elements,
-                         targ_size_t_int_kind);
-    make_constant_operand(&size_constant, &size_operand);
+                           targ_size_t_int_kind);
+      make_constant_operand(&size_constant, &size_operand);
+    }  /* if */
     build_binary_result_operand(&operand, &size_operand,
                                 (an_expr_operator_kind)eok_padd,
                                 operand.type, &operand);

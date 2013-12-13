@@ -1,5 +1,22 @@
 Version 4.9
 
+12/13/13 [EDGcpfe/14561]
+C++11 range-based "for" statements and variable-length arrays
+
+In GNU C++11 mode the front end supports both range-based "for" statements and
+variable-length arrays (VLAs), but it failed to correctly count the elements of
+a VLA when implementing a range-based "for" loop (effectively treating the VLA
+as a zero-length array).  For example:
+
+  double f(int n) {
+    double x[n];
+    for (double d: x) d = 1.0;  // Previously this loop had no effect.
+    return x[n-1];
+  }
+
+This is now fixed.
+
+
 12/12/13 [EDGcpfe/14618]
 Microsoft compatibility: Declarations after statements in C mode
 
