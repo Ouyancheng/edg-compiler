@@ -27,7 +27,7 @@ rvalue reference parameter is now applicable.  For example:
 See also the entry for EDGcpfe/11270 of 1/14/11.
 
 
-12/12/13 [EDGcpfe/14730]
+12/12/13 [EDGcpfe/14413,EDGcpfe/14730]
 Spurious error on function template instance passed to T&& parameter
 
 The front end previously failed to deduce a call to a function template with a
