@@ -220,8 +220,8 @@ typedef struct an_init_component {
     struct {
       void	*state;
 			/* An opaque pointer to state information that must be
-			   restored to permit the continued parsing of an
-			   braced initializer list. */
+			   restored to permit the continued parsing of a braced
+			   initializer list. */
     } continuation;
   } variant;
 } an_init_component;

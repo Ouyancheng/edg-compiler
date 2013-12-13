@@ -31105,7 +31105,7 @@ parse) and get_continued_elem (for resuming a suspended parse).
   /* Note that the code here is somewhat similar to scan_expr_list. */
   add_matching_stop_token(tok_rbrace);
   if (continuation == NULL) {
-    /* The normal case: We parsing a brace-enclosed list from its initial
+    /* The normal case: We're parsing a brace-enclosed list from its initial
        left brace. */
     icp = alloc_init_component((an_init_component_kind)ick_braced);
     icp->bundled = bundle;
@@ -31172,8 +31172,8 @@ parse) and get_continued_elem (for resuming a suspended parse).
         elem_icp->variant.continuation.state = (void*)(*p_continuation);
         append_elem(end_icp, elem_icp);
         /* Temporarily record the end position as being equal to the start
-           position.  (For the somewhat unlikely case of a diagnostic referring
-           to the braced list by its end position.) */
+           position (for the somewhat unlikely case of a diagnostic referring
+           to the braced list by its end position). */
         icp->variant.braced.end_pos = icp->variant.braced.start_pos;
         /* Return the continuation marker. */
         icp = elem_icp;
@@ -31255,7 +31255,7 @@ Parse a braced initializer list.  The current token must be a left brace and
 the caller is responsible for ensuring an appropriate expression stack is set
 up.  A corresponding ick_braced component is returned, and the initializer is
 completely parsed (i.e., the returned component will not contain an
-ick_continued element).  This is a convenience function for called the more
+ick_continued element).  This is a convenience function for calling the more
 general parse_braced_init_list_full.
 */
 {
@@ -31268,11 +31268,11 @@ general parse_braced_init_list_full.
 an_init_component_ptr get_continued_elem(an_init_component_ptr  prev_icp)
 /*
 prev_icp is the last parsed component in a long braced initializer list.  The
-parsing of that list was suspended to limit memory consumption, and must now
-be resumed.  prev_icp->next points to a placeholder component that has the
-needed information to re-start parsing.  Resume the parsing and return the
-element following prev_icp (which will no longer be the placeholder component).
-Also free the components prior to prev_icp.
+parsing of that list was suspended to limit memory consumption and must now be
+resumed.  prev_icp->next points to a placeholder component that has the needed
+information to re-start parsing.  Resume the parsing and return the element
+following prev_icp (which will no longer be the placeholder component).  Also
+free the components prior to prev_icp.
 */
 {
   an_init_component_ptr       icp0, icp_tail, icp;
@@ -31338,7 +31338,7 @@ Also free the components prior to prev_icp.
 void complete_braced_init_list_parsing(an_init_component_ptr  icp_tree)
 /*
 icp_tree is a braced initializer component whose parsing was suspended.
-Complete that parsing.  This 
+Complete that parsing.
 */
 {
   an_init_component_ptr       icp;
@@ -31393,7 +31393,7 @@ a new-initializer).
     /* Scan the braced-init-list from source. */
     if (dps != NULL && dps->init_state.resumable) {
       /* In contexts where parsing can be suspended and resumed (to avoid
-         keeping to many components allocated at the same time), provide a
+         keeping too many components allocated at the same time), provide a
          pointer to record continuation state if needed.  This is only done
          for traditional C-style aggregate initialization, where elements are
          treated as full expressions. */
