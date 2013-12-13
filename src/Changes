@@ -4,11 +4,11 @@ Version 4.9
 Microsoft compatibility: Declarations after statements in C mode
 
 In Microsoft C mode with microsoft_version >= 1800, declarations can now appear
-immediately after statements in C mode.  For example:
+after statements in the same block.  For example:
 
   void f(int p) {
     if (p == 0) return;
-    int q = p+2;  // Previously an error in Microsoft C modes; now okay if.
+    int q = p+2;  // Previously an error in Microsoft C modes; now okay if
   }               // microsoft_version >= 1800.
 
 
