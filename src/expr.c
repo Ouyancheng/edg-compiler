@@ -2497,9 +2497,11 @@ indication in *rcblock).
         clear_token_cache(&cache, /*reusable=*/FALSE);
         cache_curr_token(&cache);
         (void)get_token();
-        if (!begin_potential_pack_expansion_context(&pesep)) {
-          (void)end_potential_pack_expansion_context(pesep,
-                                                     /*is_declarator=*/FALSE);
+        /* Begin the potential pack expansion just to check for an empty
+           expansion. */
+        if (begin_potential_pack_expansion_context(&pesep)) {
+          abandon_potential_pack_expansion_context(pesep);
+          rescan_cached_tokens(&cache);
         }  /* if */ 
       }  /* if */
       check_closing_paren_after_expr_list();
