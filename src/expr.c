@@ -2487,6 +2487,21 @@ indication in *rcblock).
 #if EXTRA_SOURCE_POSITIONS_IN_IL
       end_position = end_pos_curr_token;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+      if ((gpp_mode || microsoft_mode) && curr_token == tok_comma &&
+          is_variadic_template_context()) {
+        /* GNU and Microsoft compilers don't diagnose empty pack expansions at
+           this point.  I.e., something like "X, Y..." where "Y..." results in
+           an empty expansion is accepted. */
+        a_pack_expansion_stack_entry_ptr  pesep;
+        a_token_cache                     cache;
+        clear_token_cache(&cache, /*reusable=*/FALSE);
+        cache_curr_token(&cache);
+        (void)get_token();
+        if (!begin_potential_pack_expansion_context(&pesep)) {
+          (void)end_potential_pack_expansion_context(pesep,
+                                                     /*is_declarator=*/FALSE);
+        }  /* if */ 
+      }  /* if */
       check_closing_paren_after_expr_list();
 #if EXTRA_SOURCE_POSITIONS_IN_IL
       curr_construct_end_position = end_position;
@@ -16311,6 +16326,12 @@ expression, and return the result in *result (or an error indication in
            are usually treated as nondependent). */
         force_dependent = TRUE;
       }  /* if */
+    } else if (microsoft_mode && is_template_dependent_context()) {
+      /* Microsoft compilers do very limited processing of templates in
+         general.  If we perform prototype instantiations in Microsoft mode,
+         we treat this case as dependent to reduce the amount of checking
+         performed in generic code. */
+      unknown_dependent_new = TRUE;
     }  /* if */
     if (!use_global_new && (array_new_and_delete_enabled || !array_new)) {
       /* Check for a member "operator new" or "operator new[]". */

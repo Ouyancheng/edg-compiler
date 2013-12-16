@@ -1,5 +1,26 @@
 Version 4.9
 
+12/16/13 [EDGcpfe/14733]
+GNU and Microsoft compatibility: Empty pack expansions in new-initializers
+
+A case like the following is now accepted in GNU and Microsoft C++11 modes:
+
+  template<int ... I> int* g() {
+    return new int(1, I...);  // An empty expansion of I... is now accepted
+  }                           // in GNU and Microsoft C++11 modes.
+  int main() {
+    int *r = g<>();
+  }
+
+(In other modes this is an error because the variadic template's only valid
+expansion is for an empty argument list.)
+
+Furthermore, in a prototype instantiation performed in Microsoft mode, a
+new-initializer like "new int(x, y, z)" is now treated as dependent and
+therefore does not elicit an error per se (this was already the case in GNU
+C++ modes).
+
+
 12/13/13 [EDGcpfe/14561]
 C++11 range-based "for" statements and variable-length arrays
 
