@@ -25,8 +25,8 @@ C++ modes).
 C++11 range-based "for" statements and variable-length arrays
 
 In GNU C++11 mode the front end supports both range-based "for" statements and
-variable-length arrays (VLAs), but but a range-based "for" loop applied to a
-VLA effectively treated the VLA as a zero-length array.  For example:
+variable-length arrays (VLAs), but a range-based "for" loop applied to a VLA
+effectively treated the VLA as a zero-length array.  For example:
 
   double f(int n) {
     double x[n];
