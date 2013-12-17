@@ -79,7 +79,7 @@ that the routine specified by name failed.
   }
 
 
-static wstring char_string_to_wstring(char* str)
+static wstring char_string_to_wstring(a_const_char* str)
 /*
 Convert a char* to a std::wstring.
 */
@@ -7290,7 +7290,7 @@ public:
 
 
   an_assembly_index import_assembly(
-                                char                      *full_assembly_path,
+                                a_const_char              *full_assembly_path,
                                 a_cpp_cli_import_flag_set import_flags,
                                 bool                      *is_duplicated);
   void import_class_definition(ostringstream           &buffer,
@@ -7299,7 +7299,7 @@ public:
                                bool                    class_body_only);
   bool initialize();
   void cleanup();
-  bool trans_unit_init(char *trans_unit_file_name);
+  bool trans_unit_init(a_const_char *trans_unit_file_name);
   void trans_unit_wrapup();
 
   HRESULT create_assembly_name_object(IAssemblyName **assembly_name_object,
@@ -7858,7 +7858,7 @@ interfaces.
 }  /* a_metadata_reader::initialize */
 
 
-bool a_metadata_reader::trans_unit_init(char *trans_unit_file_name)
+bool a_metadata_reader::trans_unit_init(a_const_char *trans_unit_file_name)
 /*
 Do per-translation unit initialization.  This resets the assembly
 index, sets the name of the translation unit, and retrieves a file token for
@@ -7913,7 +7913,7 @@ Clean up and tear down the interface that were created.
 
 
 an_assembly_index a_metadata_reader::import_assembly(
-                                char                      *full_assembly_path,
+                                a_const_char              *full_assembly_path,
                                 a_cpp_cli_import_flag_set import_flags,
                                 bool                      *is_duplicated)
 /*
@@ -8262,7 +8262,7 @@ assembly_name determines the file name for the generated portable assembly.
 
 EXTERN_C_IN_CPP_FILE
 an_assembly_index import_metadata_file(
-                                char                      *full_assembly_path,
+                                a_const_char              *full_assembly_path,
                                 a_cpp_cli_import_flag_set import_flags,
                                 a_boolean                 *is_duplicated)
 /*
@@ -8375,7 +8375,7 @@ list.  The namespace scopes and class head are omitted.
 
 
 EXTERN_C_IN_CPP_FILE
-void ms_metadata_trans_unit_init(char *trans_unit_file_name)
+void ms_metadata_trans_unit_init(a_const_char *trans_unit_file_name)
 /*
 Reset the metadata reader for reading metadata for the next translation unit.
 */

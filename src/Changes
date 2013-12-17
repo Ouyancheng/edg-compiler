@@ -1,5 +1,14 @@
 Version 4.9
 
+12/17/13 [EDGcpfe/14736]
+Build failure with ms_metadata.cpp
+
+Some changes to the file ms_metadata.cpp needed for const-correctness
+of C++11 string literals (see the entry of 7/19/13 for EDGcpfe/10662) were
+inadvertently omitted, resulting in errors when that file was compiled on
+Windows platforms.  These changes have now been made.
+
+
 12/16/13 [EDGcpfe/14733]
 GNU and Microsoft compatibility: Empty pack expansions in new-initializers
 
