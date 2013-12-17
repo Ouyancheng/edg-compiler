@@ -5944,6 +5944,14 @@ result, disambiguation is not necessary.
          implemented). */
       result = TRUE;
     }  /* if */
+  } else if (is_real_instantiation_context()) {
+    a_scope_stack_entry_ptr	ssep;
+    ssep = &scope_stack[depth_innermost_instantiation_scope];
+    if (ssep->function_partial_instantiation) {
+      /* We are rescanning a function declarator to create the partial
+         instantiation of a function template. */
+      result = TRUE;
+    }  /* if */
   }  /* if */
   return result;
 }  /* must_be_function_declarator */
