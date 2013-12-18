@@ -4339,7 +4339,7 @@ order of development of this front end, and is inconsistent and strange.
   for (pass = 0; pass <= 1; pass++) {
 #if SUN_EXTENSIONS_ALLOWED
     if (sun_mode &&
-        (DEFAULT_SUN_COMPATIBILITY != 0) == pass) {
+        (int)(DEFAULT_SUN_COMPATIBILITY != 0) == pass) {
       /* Issue an error for specifying any other language mode.  Strict mode
          has already been checked for. */
       exclude_microsoft_mode(ec_cl_incompatible_language_modes);
@@ -4349,7 +4349,7 @@ order of development of this front end, and is inconsistent and strange.
 #endif /* SUN_EXTENSIONS_ALLOWED */
 #if MICROSOFT_EXTENSIONS_ALLOWED
     if (microsoft_mode &&
-        (DEFAULT_MICROSOFT_MODE != 0) == pass) {
+        (int)(DEFAULT_MICROSOFT_MODE != 0) == pass) {
       /* Issue an error for specifying any other language mode.  Strict mode,
          K&R mode, and cfront mode have already been checked for. */
       exclude_SVR4_C_mode(ec_cl_incompatible_language_modes);
@@ -4358,7 +4358,7 @@ order of development of this front end, and is inconsistent and strange.
       exclude_sun_mode(ec_cl_incompatible_language_modes);
     }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-    if (gnu_mode && (DEFAULT_GNU_COMPATIBILITY != 0) == pass) {
+    if (gnu_mode && (int)(DEFAULT_GNU_COMPATIBILITY != 0) == pass) {
       /* Issue an error for specifying any other language mode.  Strict mode,
          K&R mode, and cfront mode have already been checked for. */
       exclude_SVR4_C_mode(ec_cl_incompatible_language_modes);
