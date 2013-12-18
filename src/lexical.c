@@ -14038,7 +14038,7 @@ the destructor or finalizer is part of a qualified name (e.g., "A::B::~B").
           }  /* if */
         }  /* if */
       }  /* if */
-      if (!dtor_or_finalizer_okay && microsoft_mode) {
+      if (!dtor_or_finalizer_okay && microsoft_mode && decltype_tp == NULL) {
         /* If, in Microsoft mode, we haven't found a valid destructor or
            finalizer, look for a variable or data member (static or nonstatic)
            with a type that matches the destructor/finalizer type. */
@@ -14069,7 +14069,8 @@ the destructor or finalizer is part of a qualified name (e.g., "A::B::~B").
           }  /* if */
         }  /* if */
       }  /* if */
-      if (!dtor_or_finalizer_okay && !error_already_issued) {
+      if (!dtor_or_finalizer_okay && !error_already_issued &&
+          decltype_tp == NULL) {
         /* None of the lookups match the field selection class.  Determine
            whether any of them match a base class.  If either of the
            previous lookups do match a base class, the symbol will still be

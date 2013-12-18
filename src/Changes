@@ -1,5 +1,19 @@
 Version 4.9
 
+12/18/13 [EDGcpfe/14735]
+Microsoft compatibility: abort on invalid decltype type in destructor call
+
+An abort could occur (in normal_id_lookup) in Microsoft mode if a destructor
+type was specified using decltype, and the type was invalid for the object
+being destroyed.  Now fixed.
+
+  struct A {};
+  int main() {
+    A *p;
+    p->~decltype(p)();
+  }
+
+
 12/17/13 [EDGcpfe/14736]
 Build failure with ms_metadata.cpp
 
