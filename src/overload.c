@@ -16606,7 +16606,7 @@ error.  conv_context describes the context of the conversion.
 #if MICROSOFT_EXTENSIONS_ALLOWED
     /* __unaligned can be dropped. */
     if (microsoft_mode) {
-      //source_qualifiers &= ~TQ_UNALIGNED;
+      source_qualifiers &= ~TQ_UNALIGNED;
     }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     source_type = skip_typerefs(source_type);
