@@ -8385,12 +8385,28 @@ lookup should be suppressed.
     /* Argument-dependent lookup is suppressed for a block extern.
        This is core issue 239.  Note that local using-declarations
        are excluded. */
-    if (gpp_mode || sun_mode ||
-        (microsoft_mode && microsoft_version == 1310)) {
-      /* Sun, g++, and Microsoft 7.1 do not suppress the argument-dependent
-         lookup for a block extern.  Microsoft 6.0 and 7.0 appear to suppress
-         this, but that's actually because they do not do argument-dependent
-         lookup at all. */
+    if (gpp_mode) {
+      /* g++'s behavior depends on its version, the symbol kind, and the
+         context (template instantiation or not). */
+      if (gnu_version < 30400) {
+        /* Very early versions of g++ appear to unconditionally perform
+           argument-dependent lookup for a block-extern declaration. */
+      } else if (sym->header->variant.opname != (an_opname_kind)onk_none) {
+        /* All versions appear to perform argument-dependent lookup for
+           block-extern operator declarations. */
+      } else if (gnu_version < 40500 && !is_template_context()) {
+        /* Versions from 3.4 through 4.4.x appear to perform argument-dependent
+           lookup for non-operator block-extern declarations only in
+           non-template contexts. */
+      } else {
+        /* Follow standard behavior and suppress argument-dependent lookup. */
+        suppress = TRUE;
+      }  /* if */
+    } else if (sun_mode || (microsoft_mode && microsoft_version == 1310)) {
+      /* Sun and Microsoft 7.1 do not suppress the argument-dependent lookup
+         for a block extern.  Microsoft 6.0 and 7.0 appear to suppress this,
+         but that's actually because they do not do argument-dependent lookup
+         at all. */
     } else {
       suppress = TRUE;
     }  /* if */

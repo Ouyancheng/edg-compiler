@@ -1,5 +1,31 @@
 Version 4.9
 
+12/18/13 [EDGcpfe/14544]
+GNU compatibility: Argument-dependent lookup for block-extern declarations
+
+The C++ standard specifies that argument-dependent lookup is suppressed if
+a block-extern declaration is found during normal lookup.  Previously, this
+rule was entirely ignored in GNU C++ modes.  Now, rules are more subtle.
+Specifically, the standard rule applies for non-operator functions when
+gnu_version >= 40500, or in template contexts when gnu_version >= 30400.
+For example:
+
+  struct S {} s;
+  void g(S const&);
+  template<class T> void f1() {
+    extern void g(S);
+    g(s);  // Ambiguity error when instantiated with gnu_version < 30400.
+  }
+  void f2() {
+    extern void g(S);
+    g(s);  // Ambiguity error with gnu_version < 40500.
+  }
+  int main() {
+    f1<void>();
+    f2();
+  }
+
+
 12/18/13 [EDGcpfe/14735]
 Microsoft compatibility: abort on invalid decltype type in destructor call
 
