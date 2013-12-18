@@ -16603,6 +16603,12 @@ error.  conv_context describes the context of the conversion.
     /* Normal case, an expression as source_operand. */
     source_type = source_operand->type;
     source_qualifiers = get_type_qualifiers(source_type);
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    /* __unaligned can be dropped. */
+    if (microsoft_mode) {
+      //source_qualifiers &= ~TQ_UNALIGNED;
+    }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     source_type = skip_typerefs(source_type);
     /* Look for a relationship between the source and destination type. */
     type_is_same = identical_types(source_type, class_type);

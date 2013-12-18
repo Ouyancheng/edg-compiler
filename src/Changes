@@ -1,6 +1,22 @@
 Version 4.9
 
 12/18/13 [EDGcpfe/14544]
+Microsoft compatibility: Bitwise copying and __unaligned
+
+The changes for EDGcpfe/9157 included permitting conversions that drop the
+__unaligned specifier.  However, the case where the conversion amounts to a
+bitwise class copy was accidentally omitted, and still caused spurious errors.
+For example:
+
+  struct S { int x; };
+  void g(S __unaligned *p) {
+    S x = *p;  // Previously an error; now okay.
+  }
+
+This is now fixed.
+
+
+12/18/13 [EDGcpfe/14544]
 GNU compatibility: Argument-dependent lookup for block-extern declarations
 
 The C++ standard specifies that argument-dependent lookup is suppressed if
