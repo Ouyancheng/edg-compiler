@@ -17085,7 +17085,7 @@ handle_empty_parens_new_initializer:
              will serve as compile-time bound checks for each array
              dimension. */
           an_init_component_ptr  icp_tree;
-          icp_tree = scan_braced_init_list(/*is_full_expr=*/FALSE, &dps);
+          icp_tree = get_braced_init_list(/*is_full_expr=*/FALSE, &dps);
           aggr_init_cli_array(icp_tree, temp_type, &dps.init_state, &dip, 
                               &cli_array_new_init_args);
           free_init_component_list(icp_tree);
@@ -31018,7 +31018,6 @@ Both C99-style and GNU-style designators are handled here.
 Data structure used by parse_braced_init_list_full (defined below) to suspend
 and resume parsing of long braced initializer lists.
 */
-typedef struct a_braced_list_continuation *a_braced_list_continuation_ptr;
 typedef struct a_braced_list_continuation {
   a_braced_list_continuation_ptr
 		next;
@@ -31044,7 +31043,7 @@ typedef struct a_braced_list_continuation {
   an_object_lifetime_ptr
 		object_lifetime;
 			/* The current object lifetime prior to the call to
-			   scan_braced_init_list that initiated the suspended
+			   get_braced_init_list that initiated the suspended
 			   parse.  Only recorded for the outermost list
 			   level. */
   a_bit_field
@@ -31110,7 +31109,7 @@ following the closing "}" on return.
 
 This is the "internal" version of the routine, to be called only from inside
 the expression routines, with the expression stack already set up.  The
-corresponding "external" routines are scan_braced_init_list (for starting a
+corresponding "external" routines are get_braced_init_list (for starting a
 parse) and get_continued_elem (for resuming a suspended parse).
 */
 {
@@ -31192,7 +31191,7 @@ parse) and get_continued_elem (for resuming a suspended parse).
         continuation->end_icp = end_icp;
         *p_continuation = continuation;
         elem_icp = alloc_init_component((an_init_component_kind)ick_continued);
-        elem_icp->variant.continuation.state = (void*)(*p_continuation);
+        elem_icp->variant.continuation.state = *p_continuation;
         append_elem(end_icp, elem_icp);
         /* Temporarily record the end position as being equal to the start
            position (for the somewhat unlikely case of a diagnostic referring
@@ -31224,8 +31223,7 @@ parse) and get_continued_elem (for resuming a suspended parse).
         if (continuation == NULL) {
           continuation = alloc_braced_list_continuation();
         }  /* if */
-        continuation->next =
-             (a_braced_list_continuation*)elem_icp->variant.continuation.state;
+        continuation->next = elem_icp->variant.continuation.state;
         continuation->parent_icp = icp;
         continuation->end_icp = end_icp;
         elem_icp->variant.continuation.state = continuation;
@@ -31279,7 +31277,10 @@ the caller is responsible for ensuring an appropriate expression stack is set
 up.  A corresponding ick_braced component is returned, and the initializer is
 completely parsed (i.e., the returned component will not contain an
 ick_continued element).  This is a convenience function for calling the more
-general parse_braced_init_list_full.
+general parse_braced_init_list_full.  The caller must set up the expression
+stack as appropriate (see e.g. get_braced_init_list, which is mostly a wrapper
+for this function, but sets up the expression stack, and handles cached
+initializers).
 */
 {
   return parse_braced_init_list_full(bundle,
@@ -31306,8 +31307,7 @@ free the components prior to prev_icp.
   an_object_lifetime          *saved_object_lifetime = curr_object_lifetime;
 
   check_assertion(is_continuation_elem(prev_icp->next));
-  continuation = (a_braced_list_continuation*)
-                                   prev_icp->next->variant.continuation.state;
+  continuation = prev_icp->next->variant.continuation.state;
   dps = continuation->decl_parse_state;
   check_assertion(dps != NULL && dps->init_state.pending_elements);
   if (continuation->resumable) {
@@ -31376,15 +31376,15 @@ Complete that parsing.
     icp = icp->next;
     check_assertion(icp->next != NULL);
   }  /* while */
-  continuation = (a_braced_list_continuation*)icp->variant.continuation.state;
+  continuation = icp->variant.continuation.state;
   /* Resume parsing, but don't permit another suspension. */
   continuation->resumable = FALSE;
   (void)get_continued_elem(icp);
 }  /* complete_braced_init_list_parsing */
 
 
-an_init_component_ptr scan_braced_init_list(a_boolean          is_full_expr,
-                                            a_decl_parse_state *dps)
+an_init_component_ptr get_braced_init_list(a_boolean          is_full_expr,
+                                           a_decl_parse_state *dps)
 /*
 Scan a brace-enclosed initializer list and return a structure describing it.
 The current token on entry must be the opening "{".  On return, the current
@@ -31438,7 +31438,7 @@ a new-initializer).
     icp = continuation->parent_icp;
   }  /* if */
   return icp;
-}  /* scan_braced_init_list */
+}  /* get_braced_init_list */
 
 
 static void scan_braced_init_list_as_operand(an_operand *operand)

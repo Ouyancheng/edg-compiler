@@ -93,6 +93,14 @@ enum an_init_component_kind_tag {
 /* Define as "a_byte" to explicitly control storage size. */
 typedef a_byte an_init_component_kind;
 
+
+/*
+An opaque type to point to state information needed to suspend/resume the
+parsing of braced initializer lists.
+*/
+typedef struct a_braced_list_continuation *a_braced_list_continuation_ptr;
+
+
 /*
 Entry describing a value in an initializer, which is either an expression
 or a brace-enclosed list.  In the C++11 standard, the corresponding syntax
@@ -218,7 +226,8 @@ typedef struct an_init_component {
     } designator;
     /* When kind == ick_continued: */
     struct {
-      void	*state;
+      a_braced_list_continuation_ptr
+		state;
 			/* An opaque pointer to state information that must be
 			   restored to permit the continued parsing of a braced
 			   initializer list. */
@@ -582,8 +591,8 @@ extern void conv_nontype_template_arg_to_param_type(
 
 #if !STANDALONE_UTILITY_PROGRAM
 extern
-an_init_component_ptr scan_braced_init_list(a_boolean          is_full_expr,
-                                            a_decl_parse_state *dps);
+an_init_component_ptr get_braced_init_list(a_boolean          is_full_expr,
+                                           a_decl_parse_state *dps);
 
 extern an_init_component_ptr scan_full_initializer_expr_as_component(
                                      a_decl_parse_state *dps,

@@ -3327,7 +3327,7 @@ initializer, already copied and substituted.
   } else {
     /* Parse the list structure (which may be nested and therefore really a
        tree structure). */
-    icp_tree = scan_braced_init_list(is->elements_are_full_expressions, dps);
+    icp_tree = get_braced_init_list(is->elements_are_full_expressions, dps);
     need_to_free_icp_tree = TRUE;
   }  /* if */
   icp = icp_tree;
@@ -4258,7 +4258,7 @@ returned set to TRUE.
                                                  type_pointed_to(vp_type))))) {
     /* A C++/CLI array initializer. */
     an_init_component_ptr  icp_tree;
-    icp_tree = scan_braced_init_list(/*is_full_expr=*/TRUE, dps);
+    icp_tree = get_braced_init_list(/*is_full_expr=*/TRUE, dps);
     aggr_init_cli_array_with_alloc(icp_tree, vp_type, &dps->init_state,
                                    &init_dip);
     free_init_component_list(icp_tree);
