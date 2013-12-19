@@ -31278,9 +31278,9 @@ up.  A corresponding ick_braced component is returned, and the initializer is
 completely parsed (i.e., the returned component will not contain an
 ick_continued element).  This is a convenience function for calling the more
 general parse_braced_init_list_full.  The caller must set up the expression
-stack as appropriate (see e.g. get_braced_init_list, which is mostly a wrapper
-for this function, but sets up the expression stack, and handles cached
-initializers).
+stack as appropriate (see, e.g., get_braced_init_list, which is mostly a
+wrapper for this function, but sets up the expression stack, and handles
+cached initializers).
 */
 {
   return parse_braced_init_list_full(bundle,
