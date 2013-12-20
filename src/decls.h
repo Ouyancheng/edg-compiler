@@ -849,8 +849,6 @@ typedef struct a_decl_parse_state {
   a_bit_field	vla_field_treated_as_zero_length_array:1;
 			/* TRUE if this declaration is an explicit
 			   instantiation directive. */
-  a_bit_field	is_for_init_decl:1;
-			/* TRUE if this is a for-init declaration. */
   a_bit_field	range_based_for:1;
 			/* TRUE if this is a for-init declaration and the
 			   colon indicating a range-based "for" loop has been

@@ -1876,7 +1876,6 @@ body of a constexpr function or constructor.
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   init_decl_parse_state(&dps);
   dps.marked_as_gnu_extension = marked_as_gnu_extension;
-  dps.is_for_init_decl = sssep->for_init;
   scan_nonmember_declaration(&dps, (a_source_range *)NULL);
   if (p_okay_in_constexpr_body != NULL) {
     *p_okay_in_constexpr_body = dps.decl_okay_in_constexpr_body;

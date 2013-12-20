@@ -1,5 +1,12 @@
 Version 4.9
 
+12/20/13 [EDGcpfe/14751]
+Remove unused is_for_init_decl field
+
+The is_for_init_decl field in a_decl_parse_state is unused and has been
+removed (the changes for EDGcpfe/12748,EDGcpfe/12805 removed the last use).
+
+
 12/18/13 [EDGcpfe/13751,EDGcpfe/14719]
 Microsoft compatibility: Bitwise copying and __unaligned
 

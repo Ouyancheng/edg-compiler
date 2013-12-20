@@ -186,7 +186,6 @@ be restored).
     dps->has_cli_literal_keyword = FALSE;
     dps->initializer_is_single_expr = FALSE;
     dps->is_explicit_instantiation = FALSE;
-    dps->is_for_init_decl = FALSE;
     dps->range_based_for = FALSE;
     dps->decl_okay_in_constexpr_body = FALSE;
     dps->is_inheriting_ctor = FALSE;
