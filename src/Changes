@@ -1,6 +1,6 @@
 Version 4.9
 
-12/18/13 [EDGcpfe/14719]
+12/18/13 [EDGcpfe/13751,EDGcpfe/14719]
 Microsoft compatibility: Bitwise copying and __unaligned
 
 The changes for EDGcpfe/9157 included permitting conversions that drop the
