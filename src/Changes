@@ -1,5 +1,34 @@
 Version 4.9
 
+12/23/13 [EDGcpfe/14695]
+Assertion failure: make_handle_for_entity: non-simple indirection
+
+In configurations where DO_IL_LOWERING is TRUE but DO_FULL_PORTABLE_EH_LOWERING
+is FALSE, the example that follows had resulted in an assertion failure
+(make_handle_for_entity: non-simple indirection).  A change has been made in
+cases where the RDF_INDIRECT flag is specified in a region description entry;
+previously when the RDF_INDIRECT flag was set, the accompanying ck_stack_offset
+constant had an offset of zero.  Now it's possible for the offset to be
+non-zero.  Strictly speaking, this isn't an IL CHANGE, but back ends should be
+prepared for a non-zero offset in this case.  For example (with --c++11):
+
+  template<typename _Tp> struct A {
+    A(const A& __a) { }
+    ~A() { while(0); }
+  };
+  struct B {
+    A<char> m;
+    B(const char* __s);
+  };
+  struct C {
+    B b;
+    int x;
+  };
+  C f() {
+    return {"foo", 42};
+  }
+
+
 12/20/13 [EDGcpfe/14751]
 Remove unused is_for_init_decl field
 

@@ -3118,12 +3118,12 @@ needs to be generated to establish that handle, insert the code at
       handle->offset = offset_for_init_modifiers(ipdp->modifiers);
       /* variable stays NULL. */
     } else {
-      /* Simple indirection through a variable. */
-      check_assertion_str(ipdp->modifiers == NULL,
-                          "make_handle_for_entity: non-simple indirection");
+      /* Indirection through a variable (with or without an offset). */
       handle->flags |= RDF_INDIRECT;
       handle->variable = ipdp->variable;
-      /* offset stays zero. */
+      if (ipdp->modifiers != NULL) {
+        handle->offset = offset_for_init_modifiers(ipdp->modifiers);
+      }  /* if */
     }  /* if */
   } else {
     /* Not indirect. */
