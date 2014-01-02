@@ -358,6 +358,8 @@ extern int fileno(FILE *);
 /*lint -esym(769,ec_invalid_empty_initializer_list)*/
 /*lint -esym(759,constant_prvalue_pointer_full)*/
 /*lint -esym(765,constant_prvalue_pointer_full)*/
+/*lint -esym(552,clang_version)*/
+/*line -esym(769,ec_cl_clang_mode_inly_in_cplusplus)*/
 #if TARG_DUAL_ALIGNMENTS_FOR_BUILTIN_TYPES
 /*lint -esym(759,field_alignment_for)*/
 /*lint -esym(765,field_alignment_for)*/
