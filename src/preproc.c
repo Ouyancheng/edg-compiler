@@ -1138,7 +1138,7 @@ When UNICODE_SOURCE_SUPPORTED is TRUE, this can also involve the
 translation of certain characters to UTF-8.
 */
 {
-  a_const_char            *name_start_pos, *in_pos;
+  a_const_char            *in_pos;
   sizeof_t                name_len, i;
   unsigned long           ch;
   unsigned long           centity_mask;

@@ -8060,7 +8060,7 @@ pointer to the symbol entry is returned.
       /* The macro takes a single, macro-expanded argument. */
       mdp->object_like = FALSE;
       mdp->param_list = alloc_macro_param();
-      mdp->param_list->name = "";
+      mdp->param_list->name = (char *)"";
       mdp->param_list->need_expanded_form = TRUE;
     } else {
       /* The macro is object-like, taking no argument list. */
