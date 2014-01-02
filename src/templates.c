@@ -3136,18 +3136,30 @@ with that partial specialization; otherwise return NULL.
   a_symbol_ptr				ps_sym;
   a_class_type_supplement_ptr		ctsp;
   a_partial_order_candidate_ptr		candidate_list = NULL;
+  a_decl_sequence_number		eff_decl_seq = NO_DECL_SEQUENCE_NUMBER;
 
   db_enter(3, "check_partial_specializations");
   tssp = template_sym->variant.template_info;
   /* Get the template argument list with respect to the primary template. */
   ctsp = class_type->variant.class_struct_union.extra_info;
+  if (defer_function_prototype_instantiations) {
+    eff_decl_seq = get_effective_decl_seq();
+  }  /* if */
   for (ps_sym = tssp->variant.class_template.partial_specializations;
        ps_sym != NULL; ps_sym = ps_sym->next) {
     a_template_arg_ptr	ps_arg_list = NULL;
-    if (matches_partial_specialization(ps_sym, instance_sym,
-                                       &ps_arg_list)) {
-      add_to_partial_order_candidates_list(&candidate_list,
-                                           ps_sym, ps_arg_list);
+    /* When we are deferring function prototype instantiations, only
+       consider partial specializations that were declared prior to the
+       definition of the template. */
+    if (!defer_function_prototype_instantiations ||
+        (eff_decl_seq == NO_DECL_SEQUENCE_NUMBER ||
+         eff_decl_seq >= ps_sym->decl_seq ||
+         !is_prototype_instantiation_context())) {
+      if (matches_partial_specialization(ps_sym, instance_sym,
+                                         &ps_arg_list)) {
+        add_to_partial_order_candidates_list(&candidate_list,
+                                             ps_sym, ps_arg_list);
+      }  /* if */
     }  /* if */
   }  /* for */
   if (candidate_list != NULL) {

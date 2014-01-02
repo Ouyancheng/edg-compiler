@@ -1492,7 +1492,13 @@ Return TRUE if we are in the partial instantiation of a function template.
   (depth_innermost_instantiation_scope != NO_SCOPE_DEPTH &&		\
    scope_stack[depth_innermost_instantiation_scope].			\
                                              function_partial_instantiation)
-
+/*
+Return TRUE if we are in the instantiation of a function template or
+a member function of a class template.
+*/
+#define is_function_template_instantiation_context()		\
+  (depth_innermost_instantiation_scope != NO_SCOPE_DEPTH &&		\
+   scope_stack[depth_innermost_instantiation_scope].assoc_routine != NULL)
 
 
 /*

@@ -1,5 +1,28 @@
 Version 4.9
 
+1/2/14   [EDGcpfe/14599]
+Spurious partial specialization ambiguity when deferring function prototype
+instantiations
+
+When the prototype instantiation of functions is deferred until their
+first use (i.e., in g++ mode in many configurations) a spurious ambiguity
+could result when determining which partial specialization of a class
+template is to be used, because partial specializations declared after
+the point at which the function template was defined were incorrectly
+being considered.  Now fixed.
+
+  template <class T1, class T2> struct A;
+  template <class T1, class T2> struct A<T1*,T2> { static int i; };
+  template <class T> int f(T) {
+    A<int*,int*> a;  // Formerly spurious ambiguity
+    return a.i;
+  }
+  template <class T1, class T2> struct A<T1,T2*> { };
+  int main() {
+    f(1);
+  }
+
+
 12/23/13 [EDGcpfe/14695]
 Assertion failure: make_handle_for_entity: non-simple indirection
 
