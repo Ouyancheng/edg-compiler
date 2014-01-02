@@ -4029,7 +4029,7 @@ The following table (sorted for use with bsearch) has one entry for each
 type trait helper function for which support can be tested using the clang
 __has_extension macro.  This list reflects clang version 3.5.
 */
-a_const_char *clang_type_traits_helpers[] = {
+static a_const_char *clang_type_traits_helpers[] = {
   "has_nothrow_assign",
   "has_nothrow_constructor",
   "has_nothrow_copy",
@@ -5600,9 +5600,9 @@ end_arg_expansion:;
       /* The clang __has_builtin macro.  Has the value 1 if the named
          builtin function is available in the current execution of the
          front end and 0 otherwise. */
+#if GNU_EXTENSIONS_ALLOWED
       a_const_char *builtin_name = clang_feature_test_id(map->expanded_text,
                                                          &arg_position);
-#if GNU_EXTENSIONS_ALLOWED
       if (builtin_name != NULL &&
           gnu_builtin_func_by_name(builtin_name) != NULL) {
         strcpy(repl_text, "1");
@@ -5610,6 +5610,9 @@ end_arg_expansion:;
         strcpy(repl_text, "0");
       }  /* if */
 #else /* !GNU_EXTENSIONS_ALLOWED */
+      /* There are no GNU builtin functions.  Just check the argument for
+         correctness and give the value 0. */
+      (void)clang_feature_test_id(map->expanded_text, &arg_position);
       strcpy(repl_text, "0");
 #endif /* GNU_EXTENSIONS_ALLOWED */
     } else {
@@ -8030,11 +8033,12 @@ repl_text_length is not NULL.
 }  /* make_repl_text */
 
 
-a_symbol_ptr enter_predef_macro_full(a_const_char *macro_value,
-                                     a_const_char *macro_name,
-                                     a_boolean    cannot_be_redefined,
-                                     a_boolean    ref_suppresses_pch_file,
-                                     a_boolean    function_like)
+static a_symbol_ptr enter_predef_macro_full(
+                                          a_const_char *macro_value,
+                                          a_const_char *macro_name,
+                                          a_boolean    cannot_be_redefined,
+                                          a_boolean    ref_suppresses_pch_file,
+                                          a_boolean    function_like)
 /*
 Enter a predefined macro.  macro_name is the name, macro_value the
 replacement text string (or NULL for a special macro).  cannot_be_redefined

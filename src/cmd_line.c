@@ -4292,7 +4292,7 @@ order of development of this front end, and is inconsistent and strange.
                       option_kind_used[(int)optk_gnu_version] ||
                       option_kind_used[(int)optk_gnu_c89_inlining] ||
                       option_kind_used[(int)optk_clang_mode] ||
-                      option_kind_used[(int)optk_clang_version];
+                      option_kind_used[(int)optk_clang_version]; /*lint !e506*/
     if (enable_gnu_mode) {
       if (C_dialect == C_dialect_cplusplus) {
         gpp_mode = TRUE;
