@@ -2003,7 +2003,6 @@ the associated variant fields to default values.
   switch (kind) {
     case dik_none:
     case dik_zero:
-    case dik_bitwise_copy:
       break;
     case dik_constant:
     case dik_nonconstant_aggregate:
@@ -2023,6 +2022,9 @@ the associated variant fields to default values.
 #if CENTERLINE_CHECKING
       dip->variant.constructor.avoid_codecenter_warnings = 0;
 #endif /* CENTERLINE_CHECKING */
+      break;
+    case dik_bitwise_copy:
+      dip->variant.bitwise_copy.source = NULL;
       break;
     default:
       unexpected_condition_str("set_dynamic_init_kind: bad kind");

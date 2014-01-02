@@ -18160,10 +18160,16 @@ is_explicit_cast is TRUE if this node represents an explicit cast.
   a_dynamic_init_kind kind = (a_dynamic_init_kind)dik_expression;
 
   if (temp_type == NULL) temp_type = operand->type;
-  conv_glvalue_to_prvalue(operand);
-  if (constexpr_enabled && curr_expr_kind_is_const()) {
-    force_operand_to_constant_if_possible(operand);
-    if (is_constant_operand(operand)) kind = (a_dynamic_init_kind)dik_constant;
+  if (is_array_type(temp_type)) {
+    kind = (a_dynamic_init_kind)dik_bitwise_copy;
+  } else {
+    conv_glvalue_to_prvalue(operand);
+    if (constexpr_enabled && curr_expr_kind_is_const()) {
+      force_operand_to_constant_if_possible(operand);
+      if (is_constant_operand(operand)) {
+        kind = (a_dynamic_init_kind)dik_constant;
+      }  /* if */
+    }  /* if */
   }  /* if */
   /* Allocate the dynamic initialization entry and the enk_temp_init node. */
   temp_init_node = create_expr_temporary(temp_type,
@@ -18175,6 +18181,8 @@ is_explicit_cast is TRUE if this node represents an explicit cast.
                                          &dip);
   if (kind == (a_dynamic_init_kind)dik_expression) {
     dip->variant.expression = make_node_from_operand(operand);
+  } else if (kind == (a_dynamic_init_kind)dik_bitwise_copy) {
+    dip->variant.bitwise_copy.source = make_node_from_operand(operand);
   } else {
     a_constant con;
     extract_constant_from_operand(operand, &con);
@@ -23140,14 +23148,16 @@ to be acceptable (as far as overload resolution checks that), and
       if (is_const_qualified_type(underlying_type) &&
           identical_types_ignoring_qualifiers(underlying_type,
                                               source_operand->type) &&
+          skip_typerefs(underlying_type)->alignment != 1 &&
           (!is_class_struct_union_type(underlying_type) ||
            symbol_supplement_for_class(underlying_type)->is_POD)) {
-        a_boolean err;
-        convert_operand_into_temp(source_operand,
-                                  underlying_type,
-                                  param_type,
-                                  (a_conv_descr *)NULL,
-                                  ec_bad_cast, &err);
+        an_operand  orig_operand;
+        orig_operand = *source_operand;
+        temp_init_by_bitwise_copy_from_operand(source_operand, underlying_type,
+                                               /*result_is_lvalue=*/TRUE,
+                                               /*is_explicit_cast=*/FALSE);
+        /* Restore the original source position, etc. */
+        restore_operand_details(source_operand, &orig_operand);
       }  /* if */
     } else if (gpp_mode && gnu_version >= 40200 &&
                is_volatile_qualified_type(source_operand->type) &&

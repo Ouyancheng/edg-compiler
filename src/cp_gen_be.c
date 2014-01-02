@@ -14735,7 +14735,7 @@ when possible.
 */
 {
   a_constant_ptr   con;
-  an_expr_node_ptr expr;
+  an_expr_node_ptr expr = NULL;
   int              closing_parens_needed = 0;
   a_boolean        unnamed_type_case = FALSE;
   a_boolean        braced_init;
@@ -15020,12 +15020,18 @@ output_functional_notation_cast_arguments:
                                /*transparent_case=*/FALSE,
                                /*suppress_braces=*/FALSE);
       break;
+    case dik_bitwise_copy:
+      /* A bitwise copy.  Only the cases with an explicit source expression
+         should get here. */
+      expr = dip->variant.bitwise_copy.source;
+      check_assertion(expr != NULL);
+      /*FALLTHROUGH*/
     case dik_expression:
     case dik_call_returning_class_via_cctor:
       /* Expression. */
       /* Process any tags declared within the expression (e.g., in casts). */
       skip_embedded_declarations();
-      expr = dip->variant.expression;
+      if (expr == NULL) expr = dip->variant.expression;
       if (avoid_top_level_comma && closing_parens_needed == 0 &&
           expr_has_comma_operation(expr)) {
         /* Protect a top-level comma with extra parentheses. */

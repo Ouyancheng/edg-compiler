@@ -4579,7 +4579,12 @@ for debug output).
       octl->output_str("<zero-init>", octl);
       break;
     case dik_bitwise_copy:
-      octl->output_str("<bitwise-copy>", octl);
+      if (dip->variant.bitwise_copy.source != NULL) {
+        octl->output_str("bitwise copy of: ", octl);
+        form_expression(dip->variant.bitwise_copy.source, octl);
+      } else {
+        octl->output_str("<bitwise-copy>", octl);
+      }  /* if */
       break;
     case dik_constant:
     case dik_nonconstant_aggregate:

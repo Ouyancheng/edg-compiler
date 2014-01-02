@@ -2247,7 +2247,12 @@ destructor_on_next_line:
       db_constructor_initializer(dip, level);
       break;
     case dik_bitwise_copy:
-      fputs("<bitwise copy>", f_debug);
+      fputs("<bitwise copy>, source = ", f_debug);
+      if (dip->variant.bitwise_copy.source == NULL) {
+        fputs("implicit", f_debug);
+      } else {
+        db_expr_node(dip->variant.bitwise_copy.source, level);
+      }  /* if */
       goto destructor_on_this_line;
     case dik_none:
       fputs("<none>", f_debug);
@@ -12449,7 +12454,6 @@ options for the copy.  cblock is a control block for the copy.
   switch (dip->kind) {
     case dik_none:
     case dik_zero:
-    case dik_bitwise_copy:
       break;
     case dik_expression:
     case dik_call_returning_class_via_cctor:
@@ -12480,6 +12484,13 @@ options for the copy.  cblock is a control block for the copy.
                                                          options_unshared,
                                                          cblock);
       }
+      break;
+    case dik_bitwise_copy:
+      if (dip->variant.bitwise_copy.source != NULL) {
+        new_dip->variant.expression =
+                           i_copy_expr_tree(dip->variant.bitwise_copy.source,
+                                            options, cblock);
+      }  /* if */
       break;
     default:
       unexpected_condition_str("i_copy_dynamic_init: bad kind");

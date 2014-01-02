@@ -4727,9 +4727,15 @@ top_of_routine:
         dip = con->variant.init_repeat.constant->variant.dynamic_init;
         goto top_of_routine;
       }  /* if */
-      /*FALLTHROUGH*/
-    case dik_constant:
+      unexpected_condition_str("unexpected dynamic init kind");
     case dik_bitwise_copy:
+      if (dip->variant.bitwise_copy.source != NULL) {
+        args = dip->variant.bitwise_copy.source;
+      } else {
+        unexpected_condition_str("unexpected dynamic init kind");
+      }  /* if */
+      break;
+    case dik_constant:
     default:
       unexpected_condition_str("unexpected dynamic init kind");
   }  /* switch */

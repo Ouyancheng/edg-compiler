@@ -1,5 +1,34 @@
 Version 4.9
 
+1/2/14   [EDGcpfe/14508]
+GNU C++ compatibility: Passing a packed array member to reference to const
+(IL CHANGE)
+
+In g++ modes, when passing a field of a packed type to a parameter of
+reference to const type, the front end normally copies the field to a
+suitably aligned temporary, unless the field is of a non-POD class type (see
+the Changes entry for EDGcpfe/8366).  Previously, however, this failed when
+the field was an array: A spurious conversion error was issued.  For example:
+
+  void g(const int (&p)[1]);
+  struct  __attribute__ ((packed)) Packed {
+    char c;
+    int i[1];
+  };
+  Packed p = {0, 1};
+  int main () {
+    g(p.i);  // Previously an error.  Now accepted.
+  }
+
+This is now fixed.  The fix involves slight IL CHANGE: Dynamic init entries
+of kind dik_bitwise_copy now sometimes include a pointer to a source
+expression (previously, all such entries had an implicit source).
+
+In addition to the fix above, the copy to an aligned temporary is now
+inhibited if the destination type is single-byte aligned (the copy is
+unneeded in such cases since the member itself is not unaligned).
+
+
 1/2/14   [EDGcpfe/14634]
 Feature-test macros
 
@@ -30718,10 +30747,10 @@ regression has now been fixed.
 
 
 8/25/09  [EDGcpfe/8366]
-GNU C++ compatibility: passing packed field to reference to nonconst
+GNU C++ compatibility: passing packed field to reference to const parameter
 
 g++, from version 3.4 on, uses a temporary when a reference to a field
-declared "packed" is passed to a parameter that is a reference to nonconst.
+declared "packed" is passed to a parameter that is a reference to const type.
 This ensures that the reference is not an unaligned pointer and mostly
 preserves the standard semantics.  Now, in g++ mode we do the same.
 Reference bindings outside of calls are unaffected.
@@ -30736,6 +30765,9 @@ Reference bindings outside of calls are unaffected.
   int main () {
     ConstRef (p.i);  // Copies p.i to a temporary and passes that
   }
+
+[ Update: Original wording said "reference to nonconst" instead of "reference
+to const".  See also the more recent entry for EDGcpfe/14508. ]
 
 
 8/25/09  [EDGcpfe/9163]

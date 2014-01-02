@@ -2834,6 +2834,9 @@ routines as specified in the control block.
       traverse_constant(dip->variant.constant, tblock);
       break;
     case dik_bitwise_copy:
+      if (dip->variant.bitwise_copy.source != NULL) {
+        traverse_expr(dip->variant.bitwise_copy.source, tblock);
+      }  /* if */
       break;
     default:
       unexpected_condition_str("traverse_dynamic_init: bad kind");

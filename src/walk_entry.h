@@ -2698,7 +2698,6 @@ do_set_proper_definition_needed_flag:
         switch (ptr->kind) {
           case dik_none:
           case dik_zero:
-          case dik_bitwise_copy:
             /* No pointers. */
             break;
           case dik_constant:
@@ -2718,6 +2717,10 @@ do_set_proper_definition_needed_flag:
             }  /* if */
             walk_list(ptr->variant.constructor.args, an_expr_node_ptr,
                       iek_expr_node);
+            break;
+          case dik_bitwise_copy:
+            walk_ptr(ptr->variant.bitwise_copy.source, an_expr_node_ptr,
+                     iek_expr_node);
             break;
           default:
             unexpected_condition_str(

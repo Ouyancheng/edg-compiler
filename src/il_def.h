@@ -3388,9 +3388,6 @@ typedef struct a_dynamic_init {
   bitfield_to_avoid_codecenter_warnings()
   union {
     /* When kind == dik_none or dik_zero: no variant fields. */
-    /* When kind == dik_bitwise_copy: no variant fields.  The source for the
-       copy is implied by context (e.g., a field or base class to be copied
-       is given in the constructor init entry that points to this entry). */
     /* When kind == dik_constant or dik_nonconstant_aggregate: */
     a_constant_ptr
 		constant;
@@ -3463,6 +3460,19 @@ typedef struct a_dynamic_init {
 			   list for a constructor. */
       bitfield_to_avoid_codecenter_warnings()
     } constructor;
+    /* When kind == dik_bitwise_copy: */
+    struct {
+      an_expr_node_ptr
+		source;
+			/* If non-NULL, the lvalue to be copied.  NULL if the
+			   source is implied from context, which is frequently
+			   the case.  For example, in a constructor init entry
+			   representing a field or base class to be copied, the
+			   source is pointed to by the constructor init entry
+			   itself.  Another example is the initialization of a
+			   handler parameter when handling an exception: In
+			   that case the source is only known at run-time. */
+    } bitwise_copy;
   } variant;
 #if DO_IL_LOWERING
   struct a_destructible_entity_descr

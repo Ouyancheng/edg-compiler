@@ -1870,27 +1870,24 @@ for an array initialization in GNU C++ mode).
 
 
 static void add_bitwise_copy(an_init_pos_descr_ptr  dest,
-                             an_implied_copy_source *source_desc,
+                             an_expr_node_ptr       source_node,
                              a_boolean              have_complete_object,
                              an_insert_location_ptr insert_location)
 /*
-Generate code to implement an initialization by bitwise copy.  dest
-describes the destination of the move.  source_desc describes the implied
-source of the bitwise copy (e.g., a constructor initialization entry).
-have_complete_object is TRUE if we are copying a complete object, FALSE if we
-are copying a base class subobject.  If dest->array_element_sequence is TRUE,
-the initialization is for a sequence of array elements (but only an entire
-array initialization is currently handled here).  Insert the statement at
-*insert_location and update *insert_location.
+Generate code to implement an initialization by bitwise copy.  dest describes
+the destination of the move.  source_node describes the implied source of the
+bitwise copy (e.g., a constructor initialization entry).  have_complete_object
+is TRUE if we are copying a complete object, FALSE if we are copying a base
+class subobject.  If dest->array_element_sequence is TRUE, the initialization
+is for a sequence of array elements (but only an entire array initialization
+is currently handled here).  Insert the statement at *insert_location and
+update *insert_location.
 */
 {
-  an_expr_node_ptr      source_node, dest_node, assign_node;
+  an_expr_node_ptr      dest_node, assign_node;
   a_type_ptr            type;
   an_expr_operator_kind op;
 
-  /* Make an rvalue expression for the source entity. */
-  source_node = implied_source_of_copy(source_desc, dest,
-                                       /*result_is_lvalue=*/FALSE);
   type = source_node->type;
   if (!have_complete_object &&
       is_class_struct_union_type(type) &&
@@ -1901,21 +1898,11 @@ array initialization is currently handled here).  Insert the statement at
       /* Replace a reference type by a pointer type. */
       type = make_pointer_type(type_pointed_to(type));
     }  /* if */
-    /* Make an assignment statement. */
-    /* Choose the operation.  For simple types use the built-in operator.
-       For other types use a block copy. */
-    if (is_arithmetic_or_enum_type(type) ||
-        is_pointer_type(type) ||
-        is_class_struct_union_type(type) ||
-        is_ptr_to_member_type(type)) {
+    /* Make an assignment statement.  For lvalue copies, use a block copy. */
+    if (!source_node->is_lvalue) {
       op = (an_expr_operator_kind)eok_assign;
     } else {
-      /* For other kinds, use a block move. */
       op = (an_expr_operator_kind)eok_bassign;
-      /* The eok_bassign operator takes an lvalue as its source, so
-         overwrite the current rvalue source_node with an lvalue version. */
-      source_node = implied_source_of_copy(source_desc, dest,
-                                           /*result_is_lvalue=*/TRUE);
     }  /* if */
     /* Make an expression for the destination entity. */
     if (dest->array_element_sequence) {
@@ -9184,13 +9171,26 @@ do_assignment:;
       }  /* if */
       break;
     case dik_bitwise_copy:
-      /* Bitwise copy of a value.  The source location is implied.
-         This is used for copying members of classes in ctor-initializers
-         of copy constructors, for the parameter of catch clauses, for
-         captured lambda parameters, etc.  ctor_init is non-NULL for the first
-         of those cases. */
-      add_bitwise_copy(ipdp, source_desc, have_complete_object,
-                       eff_insert_location);
+      /* Bitwise copy of a value. */
+      { an_expr_node_ptr  source_node;
+        if (dip->variant.bitwise_copy.source != NULL) {
+          source_node = dip->variant.bitwise_copy.source;
+        } else {
+          /* The source location is implied.  This is used for copying members
+             of classes in ctor-initializers of copy constructors, for the
+             parameter of catch clauses, for captured lambda parameters, etc.
+             ctor_init is non-NULL for the first of those cases. */
+          /* Make an rvalue expression for the source entity. */
+          source_node = implied_source_of_copy(source_desc, ipdp,
+                                               /*result_is_lvalue=*/FALSE);
+          if (is_array_type(source_node->type)) {
+            source_node = implied_source_of_copy(source_desc, ipdp,
+                                                 /*result_is_lvalue=*/TRUE);
+          }  /* if */
+        }  /* if */
+        add_bitwise_copy(ipdp, source_node, have_complete_object,
+                         eff_insert_location);
+      }  /* if */
       break;
     default:
       unexpected_condition_str("lower_dynamic_init: bad kind");

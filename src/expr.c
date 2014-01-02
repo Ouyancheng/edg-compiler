@@ -28638,7 +28638,7 @@ fields of the closure object.  Return a pointer to the dynamic init entry.
       array_case = FALSE;
     } else if (do_bitwise_copy) {
       /* The copy is a bitwise copy.  Use a dik_bitwise_copy dynamic init
-         entry.  The source is implied (always, for dik_bitwise_copy). */
+         entry.  The source is implied. */
       dip = alloc_expr_dynamic_init((a_dynamic_init_kind)dik_bitwise_copy);
       /* For arrays, the bitwise copy can handle the whole array so no
          ck_init_repeat is needed. */

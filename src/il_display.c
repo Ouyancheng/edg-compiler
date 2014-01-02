@@ -6122,6 +6122,10 @@ do_constant:
       break;
     case dik_bitwise_copy:
       (void)printf("dik_bitwise_copy\n");
+      if (ptr->variant.bitwise_copy.source != NULL) {
+        disp_ptr("source", (char *)ptr->variant.bitwise_copy.source,
+                 iek_expr_node);
+      }  /* if */
       break;
     default:
       (void)printf("**BAD DYNAMIC INIT KIND**\n");
