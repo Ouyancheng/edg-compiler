@@ -4004,6 +4004,10 @@ static a_feature_support feature_support_list[] = {
 
 #define NUM_FEATURES (sizeof(feature_support_list) / sizeof(a_feature_support))
 
+#if BSEARCH_QSORT_FUNCTION_IS_EXTERN_C
+BEGIN_EXTERN_C_BLOCK
+#endif /* BSEARCH_QSORT_FUNCTION_IS_EXTERN_C */
+
 static int compare_feature_names(a_const_void_ptr id_ptr,
                                  a_const_void_ptr feature_ptr)
 /*
@@ -4016,6 +4020,9 @@ with the clang_name of the feature to which feature_ptr points.
   return result;
 }  /* compare_feature_names */
 
+#if BSEARCH_QSORT_FUNCTION_IS_EXTERN_C
+END_EXTERN_C_BLOCK
+#endif /* BSEARCH_QSORT_FUNCTION_IS_EXTERN_C */
 
 /*
 The following table (sorted for use with bsearch) has one entry for each
@@ -4056,6 +4063,10 @@ a_const_char *clang_type_traits_helpers[] = {
 #define NUM_CLANG_TYPE_TRAITS \
   (sizeof(clang_type_traits_helpers) / sizeof(a_const_char *))
 
+#if BSEARCH_QSORT_FUNCTION_IS_EXTERN_C
+BEGIN_EXTERN_C_BLOCK
+#endif /* BSEARCH_QSORT_FUNCTION_IS_EXTERN_C */
+
 static int compare_type_traits_helper_names(a_const_void_ptr id_ptr,
                                             a_const_void_ptr helper_ptr)
 /*
@@ -4067,6 +4078,9 @@ with the type traits helper name to which helper_ptr points.
   return result;
 }  /* compare_type_traits_helper_names */
 
+#if BSEARCH_QSORT_FUNCTION_IS_EXTERN_C
+END_EXTERN_C_BLOCK
+#endif /* BSEARCH_QSORT_FUNCTION_IS_EXTERN_C */
 
 static a_const_char *clang_feature_test_id(a_const_char      *expanded_arg,
                                            a_source_position *error_pos)
@@ -5588,12 +5602,16 @@ end_arg_expansion:;
          front end and 0 otherwise. */
       a_const_char *builtin_name = clang_feature_test_id(map->expanded_text,
                                                          &arg_position);
+#if GNU_EXTENSIONS_ALLOWED
       if (builtin_name != NULL &&
           gnu_builtin_func_by_name(builtin_name) != NULL) {
         strcpy(repl_text, "1");
       } else {
         strcpy(repl_text, "0");
       }  /* if */
+#else /* !GNU_EXTENSIONS_ALLOWED */
+      strcpy(repl_text, "0");
+#endif /* GNU_EXTENSIONS_ALLOWED */
     } else {
       internal_error("macro_invocation: unknown special predefined macro");
     }  /* if */
@@ -9192,7 +9210,7 @@ command line -D options.
 #if DEFINE_PORTABLE_FEATURE_TEST_MACROS
     /* Add definitions as described by WG21 SG10 SD-6 for the features that
        are enabled in the current execution of the front end. */
-    for (i = 0; i < NUM_FEATURES; ++i) {
+    for (i = 0; i < (int)NUM_FEATURES; ++i) {
       if (feature_support_list[i].macro_name != NULL &&
           feature_support_list[i].enabled != NULL &&
           *feature_support_list[i].enabled) {
