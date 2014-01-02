@@ -4242,7 +4242,7 @@ will be called to check and adjust the argument types.
 }  /* is_gnu_sync_call */
 
 
-static a_symbol_ptr gnu_builtin_func_by_name(char *name)
+a_symbol_ptr gnu_builtin_func_by_name(a_const_char *name)
 /*
 Return the symbol for the GNU __builtin_... function identified by the given
 string, or NULL if there is no such function.

@@ -1448,7 +1448,9 @@ source file's compilation.
 #if GNU_EXTENSIONS_ALLOWED
   il_header.gcc_mode = gcc_mode;
   il_header.gpp_mode = gpp_mode;
+  il_header.clang_mode = clang_mode;
   il_header.gnu_version = gnu_version;
+  il_header.clang_version = clang_version;
   /* il_header.short_enums and il_header.default_nocommon are initialized
      during command-line processing. */
 #endif /* GNU_EXTENSIONS_ALLOWED */

@@ -253,6 +253,15 @@ extern a_boolean compare_for_asm_name_map(a_void_ptr  entry,
                                           a_void_ptr  key);
 #endif /* GNU_EXTENSIONS_ALLOWED */
 
+/*
+Opaque pointer to the result of looking up an attribute name.
+*/
+typedef struct an_attr_name_map_entry *an_attr_name_map_entry_ptr;
+
+extern an_attr_name_map_entry_ptr *lookup_attribute_name(
+                                                   a_const_char        *name,
+                                                   an_attribute_family family);
+
 extern void attribute_one_time_init(void);
 
 extern void attribute_trans_unit_init(void);

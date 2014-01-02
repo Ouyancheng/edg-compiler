@@ -139,6 +139,13 @@ extern void enter_assert_predicate(a_const_char *value,
 /* Scan a reference to an #assert predicate */
 extern void scan_assert_predicate_reference(a_boolean *rescan);
 
+extern a_symbol_ptr enter_predef_macro_full(
+                                          a_const_char *repl_text,
+                                          a_const_char *macro_name,
+                                          a_boolean    cannot_be_redefined,
+                                          a_boolean    ref_suppresses_pch_file,
+                                          a_boolean    function_like);
+
 extern a_symbol_ptr enter_predef_macro(a_const_char *repl_text,
 			               a_const_char *macro_name,
                                        a_boolean    cannot_be_redefined,

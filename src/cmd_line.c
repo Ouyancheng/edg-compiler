@@ -1048,8 +1048,15 @@ Initialize the option information table.
                          "no_g++",
                          '\0', /*value=*/FALSE, /*arg_required=*/FALSE,
                          pchek_command_line);
+  add_option_description(optk_clang_mode, "clang", '\0', /*value=*/TRUE,
+                         /*arg_required=*/FALSE, pchek_command_line);
+  add_option_description(optk_clang_mode, "no_clang", '\0', /*value=*/FALSE,
+                         /*arg_required=*/FALSE, pchek_command_line);
   add_option_description(optk_gnu_version, "gnu_version",
                          '\0', /*value=*/FALSE, /*arg_required=*/TRUE,
+                         pchek_command_line);
+  add_option_description(optk_clang_version, "clang_version", '\0',
+                         /*value=*/FALSE, /*arg_required=*/TRUE,
                          pchek_command_line);
   add_option_description(optk_report_gnu_extensions, "report_gnu_extensions",
                          '\0', /*value=*/TRUE, /*arg_required=*/FALSE,
@@ -3255,7 +3262,9 @@ an otherwise implicitly enabled GNU C++ mode.
 {
 #if GNU_EXTENSIONS_ALLOWED
   if (gpp_mode) {
-    if (option_kind_used[(int)optk_gpp_mode]) {
+    if (option_kind_used[(int)optk_gpp_mode] ||
+        option_kind_used[(int)optk_clang_mode] ||
+        option_kind_used[(int)optk_clang_version]) {
       /* GNU C++ mode was enabled by a command line option. */
       command_line_error(error_code);
     } else {
@@ -4239,6 +4248,7 @@ command line switches.
       16-bit mode       il_header.near_and_far_allowed   --microsoft_16
     sun mode            sun_mode                         --sun
     GNU C++             gpp_mode                         --g++
+    clang C++           gpp_mode && clang_mode           --clang
     C++11               cpp11_mode                       --c++11
     "normal"
       strict            strict_ansi_mode                 -A, -a, etc.
@@ -4258,6 +4268,10 @@ is still C_dialect_ANSI, but C99 is permitted to be used in conjunction with
 Microsoft mode.  Likewise for --c++11 which implicitly sets the dialect
 to C_dialect_cplusplus and also sets cpp11_mode.
 
+clang mode is a variant of g++ mode.  Specifying --clang or --clang_version
+will implicitly set gpp_mode.  Note that there is no "clang C mode;" an
+attempt to specify that is diagnosed as a command line error.
+
 Although not recommended, some conflicting language modes can be
 specified on the command line with the last option being effective
 (e.g., --c89 --c99 results in C99 mode).
@@ -4273,13 +4287,20 @@ order of development of this front end, and is inconsistent and strange.
   /* Set the default values of gcc_mode and gpp_mode if necessary. */
   if (!option_kind_used[(int)optk_gcc_mode] &&
       !option_kind_used[(int)optk_gpp_mode]) {
-    a_boolean  enable_gnu_mode = (DEFAULT_GNU_COMPATIBILITY) ||
-                                 option_kind_used[(int)optk_gnu_version] ||
-                                 option_kind_used[(int)optk_gnu_c89_inlining];
+    a_boolean  enable_gnu_mode;
+    enable_gnu_mode = (DEFAULT_GNU_COMPATIBILITY) ||
+                      option_kind_used[(int)optk_gnu_version] ||
+                      option_kind_used[(int)optk_gnu_c89_inlining] ||
+                      option_kind_used[(int)optk_clang_mode] ||
+                      option_kind_used[(int)optk_clang_version];
     if (enable_gnu_mode) {
       if (C_dialect == C_dialect_cplusplus) {
         gpp_mode = TRUE;
       } else {
+        if (option_kind_used[(int)optk_clang_mode] ||
+            option_kind_used[(int)optk_clang_version]) {
+          command_line_error(ec_cl_clang_mode_only_in_cplusplus);
+        }  /* if */
         gcc_mode = TRUE;
       }  /* if */
     }  /* if */
@@ -4956,6 +4977,16 @@ file.
 #else /* !defined(DEFAULT_CHECK_PRINTF_SCANF_POSITIONAL_ARGS) */
   comment_undefined_macro_name(DEFAULT_CHECK_PRINTF_SCANF_POSITIONAL_ARGS);
 #endif /* defined(DEFAULT_CHECK_PRINTF_SCANF_POSITIONAL_ARGS) */
+#if defined(DEFAULT_CLANG_COMPATIBILITY)
+  define_numeric_valued_macro(DEFAULT_CLANG_COMPATIBILITY);
+#else /* !defined(DEFAULT_CLANG_COMPATIBILITY) */
+  comment_undefined_macro_name(DEFAULT_CLANG_COMPATIBILITY);
+#endif /* defined(DEFAULT_CLANG_COMPATIBILITY) */
+#if defined(DEFAULT_CLANG_VERSION)
+  define_numeric_valued_macro(DEFAULT_CLANG_VERSION);
+#else /* !defined(DEFAULT_CLANG_VERSION) */
+  comment_undefined_macro_name(DEFAULT_CLANG_VERSION);
+#endif /* defined(DEFAULT_CLANG_VERSION) */
 #if defined(DEFAULT_CLASS_NAME_INJECTION)
   define_numeric_valued_macro(DEFAULT_CLASS_NAME_INJECTION);
 #else /* !defined(DEFAULT_CLASS_NAME_INJECTION) */
@@ -5633,6 +5664,11 @@ file.
 #else /* !defined(DEFINE_MACRO_WHEN_WCHAR_T_IS_KEYWORD) */
   comment_undefined_macro_name(DEFINE_MACRO_WHEN_WCHAR_T_IS_KEYWORD);
 #endif /* defined(DEFINE_MACRO_WHEN_WCHAR_T_IS_KEYWORD) */
+#if defined(DEFINE_PORTABLE_FEATURE_TEST_MACROS)
+  define_numeric_valued_macro(DEFINE_PORTABLE_FEATURE_TEST_MACROS);
+#else /* !defined(DEFINE_PORTABLE_FEATURE_TEST_MACROS) */
+  comment_undefined_macro_name(DEFINE_PORTABLE_FEATURE_TEST_MACROS);
+#endif /* defined(DEFINE_PORTABLE_FEATURE_TEST_MACROS) */
 #if defined(DEFINE_STDC_IN_MICROSOFT_MODE)
   define_numeric_valued_macro(DEFINE_STDC_IN_MICROSOFT_MODE);
 #else /* !defined(DEFINE_STDC_IN_MICROSOFT_MODE) */
@@ -8926,11 +8962,23 @@ enable_microsoft_mode:
         /* GNU C++ mode should or should not be used.  This option implies
            C++ mode, even in the "--no_g++" form. In other words,
            --[no_]g++ is short for --c++ --[no_]g++.  See --sun, --c99 and
-           --svr4 for similar behavior. */
+           --svr4 for similar behavior.  The clang dialect will be selected
+           if DEFAULT_CLANG_COMPATIBILITY is TRUE. */
         gpp_mode = opt_value;
+        if (gpp_mode) {
+          clang_mode = DEFAULT_CLANG_COMPATIBILITY;
+        }  /* if */
         set_C_dialect(C_dialect_cplusplus);
         break;
-     case optk_gnu_version:
+      case optk_clang_mode:
+        /* clang mode is a dialect of g++ mode.  gpp_mode will be set by
+           check_dialect_and_language_modes as a consequence of
+           optk_clang_mode having been used.  Just set the global variable
+           for the dialect here. */
+        clang_mode = opt_value;
+        set_C_dialect(C_dialect_cplusplus);
+        break;
+      case optk_gnu_version:
         /* The version of the GNU compiler being emulated.  If specified
            without one of the options --gcc, --no_gcc, --g++, or --no_g++,
            then --gcc is implied if --c is specified, and --g++ is implied
@@ -8939,6 +8987,17 @@ enable_microsoft_mode:
         if (gnu_version < MIN_GNU_VERSION || gnu_version > 999999) {
           str_command_line_error(ec_cl_invalid_gnu_version, opt_arg);
         }  /* if */
+        break;
+      case optk_clang_version:
+        /* The version of clang being emulated.  Currently, there are no
+           version dependencies for clang mode, so the version number is
+           not checked or restricted here.  Implies the clang dialect of
+           g++.  gpp_mode will be set by check_dialect_and_language_modes
+           as a consequence of optk_clang_version having been used.  Just
+           set the version and the dialect flag here. */
+        clang_version = scan_opt_arg_number(opt_arg);
+        clang_mode = TRUE;
+        set_C_dialect(C_dialect_cplusplus);
         break;
       case optk_report_gnu_extensions:
         /* An option to request that the use of GNU extensions outside system
@@ -10393,6 +10452,7 @@ variables declared in cmd_line.h.
   gpp_mode = FALSE;
 #endif /* GNU_EXTENSIONS_ALLOWED || defined(_lint) */
   gnu_version = DEFAULT_GNU_VERSION;
+  clang_version = DEFAULT_CLANG_VERSION;
 #if MICROSOFT_EXTENSIONS_ALLOWED
   microsoft_mode = DEFAULT_MICROSOFT_MODE;
   microsoft_bugs = DEFAULT_MICROSOFT_BUGS && microsoft_mode;  /*lint !e506*/

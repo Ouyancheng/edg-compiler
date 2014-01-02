@@ -213,6 +213,8 @@ typedef enum /*an_option_kind*/ {
   optk_gnu_version,
   optk_report_gnu_extensions,
   optk_short_enums,
+  optk_clang_mode,
+  optk_clang_version,
 #endif /* GNU_EXTENSIONS_ALLOWED */
 #if DEBUG
   optk_debug_name,

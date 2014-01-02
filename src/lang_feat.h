@@ -492,6 +492,15 @@ line options --gcc, --no_gcc, --g++, and --no_g++.
 #endif /* ifndef DEFAULT_GNU_COMPATIBILITY */
 
 /*
+Flag that is TRUE if the clang version of GNU C++ compatibility should be
+enabled by default.  This will only be effective if GNU C++ compatibility
+is selected by default or via command-line options.
+*/
+#ifndef DEFAULT_CLANG_COMPATIBILITY
+#define DEFAULT_CLANG_COMPATIBILITY FALSE
+#endif /* ifndef DEFAULT_CLANG_COMPATIBILITY */
+
+/*
 The configuration macros GCC_VERSION and GCC_MINOR_VERSION are now obsolete.
 If they were defined, the newer macro DEFAULT_GNU_VERSION should not also be
 defined and instead the older (obsolete) macros will determine the value of
@@ -721,6 +730,15 @@ like Intel's MMX or AMD's 3DNow!.)
  #error -- GNU_BUILTIN_IA32_VECTOR_FUNCTIONS_ALLOWED requires \
            GNU_VECTOR_TYPES_ALLOWED
 #endif /* GNU_BUILTIN_IA32_VECTOR_FUNCTIONS_ALLOWED && !GNU_VECTOR_TYPES_... */
+
+/*
+Macro that determines which version of the clang C++ compiler should be
+emulated by default.  Version x.y.z of the clang compiler is represented by
+the value x*10000+y*100+z.
+*/
+#ifndef DEFAULT_CLANG_VERSION
+#define DEFAULT_CLANG_VERSION 30500
+#endif /* ifndef DEFAULT_GNU_VERSION */
 
 /*
 Flag that is TRUE if a set of Microsoft C/C++ compatibility features
@@ -1044,19 +1062,24 @@ EXTERN a_boolean
 #endif /* GNU_EXTENSIONS_ALLOWED || defined(_lint) */
 
 /*
-The global variable gpp_mode is defined here (rather than in cmd_line.h) so
-that it can be available to standalone utilities.
+The global variables gpp_mode and clang_mode are defined here (rather than
+in cmd_line.h) so that they can be available to standalone utilities.
 */
 #if GNU_EXTENSIONS_ALLOWED || defined(_lint)
 EXTERN a_boolean
                 gpp_mode;
                         /* Accept C++ language features supported by GNU C++
                            compilers. */
+EXTERN a_boolean
+		clang_mode;
+			/* Accept C++ language_features supported by GNU
+			   and clang C++ compilers. */
 #else /* !(GNU_EXTENSIONS_ALLOWED || defined(_lint)) */
-/* Make gpp_mode a constant-expression so some code can be optimized away.
-   Since lint would warn about such code, we do not do this when processed
-   by lint. */
+/* Make gpp_mode and clang_mode constant-expressions so some code can be
+   optimized away.  Since lint would warn about such code, we do not do
+   this when processed by lint. */
 #define gpp_mode FALSE
+#define clang_mode FALSE
 #endif /* GNU_EXTENSIONS_ALLOWED || defined(_lint) */
 
 /*
@@ -1071,6 +1094,14 @@ EXTERN unsigned long
 			   compatibility is desired.  GNU C/C++ version x.y.z
 			   is represented by the value x*10000+y*100+z.  (E.g.,
 			   GNU C/C++ 3.4.1 is represented by 30401.) */
+
+EXTERN unsigned long
+		clang_version;
+			/* The version of the clang C++ compiler with which
+			   compatibility is desired.  clang version x.y.z
+			   is represented by the value x*10000+y*100+z.
+			   For example, clang 3.0.2 is represented by
+			   30002. */
 
 /*
 Global variables related to Microsoft compatibility mode are defined here
@@ -2332,6 +2363,14 @@ of the flag in Microsoft, GNU, and Sun modes.
 #ifndef DEFAULT_VARIADIC_TEMPLATES_ENABLED
 #define DEFAULT_VARIADIC_TEMPLATES_ENABLED FALSE
 #endif /* DEFAULT_VARIADIC_TEMPLATES_ENABLED */
+
+/*
+Flag that determines whether the front end will define the appropriate
+feature test macros described in document WG21 SG10 SD-6.
+*/
+#ifndef DEFINE_PORTABLE_FEATURE_TEST_MACROS
+#define DEFINE_PORTABLE_FEATURE_TEST_MACROS TRUE
+#endif /* ifndef DEFINE_PORTABLE_FEATURE_TEST_MACROS */
 
 /*
 Check that no mutually exclusive dialect emulations are simultaneously

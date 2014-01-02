@@ -406,6 +406,8 @@ extern
 a_type_ptr set_implicit_lambda_return_type(a_type_ptr        return_type,
                                            a_source_position *err_pos);
 
+extern a_symbol_ptr gnu_builtin_func_by_name(a_const_char *name);
+
 extern
 void transfer_arg_operand_for_template_arg(a_template_arg_ptr tap,
                                            a_template_arg_ptr orig_tap);

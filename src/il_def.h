@@ -17962,12 +17962,21 @@ typedef struct an_il_header {
 		gpp_mode;
 			/* TRUE if the source program was compiled in
 			   GNU C++ mode. */
+  a_byte_boolean
+		clang_mode;
+			/* TRUE if the source program was compiled in the
+			   clang variant of GNU C++ mode (i.e., will never
+			   be TRUE unless gpp_mode is TRUE). */
   unsigned long
 		gnu_version;
 			/* When gcc_mode or gpp_mode is TRUE, the version of
 			   the GNU compiler with which compatibility is
 			   desired; corresponds to the global variable
-			   microsoft_version. */
+			   gnu_version. */
+  unsigned long	clang_version;
+			/* When clang_mode is TRUE, the version of clang
+			   with which compatibility is desired; corresponds
+			   to the global variable clang_version. */
   a_byte_boolean
 		short_enums;
 			/* TRUE if all enumeration types should be considered

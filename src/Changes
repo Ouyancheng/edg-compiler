@@ -1,5 +1,43 @@
 Version 4.9
 
+1/2/14   [EDGcpfe/14634]
+Feature-test macros
+
+The feature-test macros, such as __cpp_rvalue_references and
+__cpp_raw_strings, from document WG21 SG10 SD-6, have been implemented.
+These macros have a non-zero value (indicating the year and month in which
+the feature was adopted by the C++ Standard Committee) if the corresponding
+feature is enabled in the current execution of the front end.  The
+__has_include macro described in that document has also been implemented,
+having the value 1 if the named header file is found and 0 otherwise.
+These macros are defined if DEFINE_PORTABLE_FEATURE_TEST_MACROS is set to
+TRUE (the default value).
+
+As part of this change, a rudimentary clang mode has been added, with
+--clang and --clang_version command-line options and corresponding
+DEFAULT_CLANG_COMPATIBILITY and DEFAULT_CLANG_VERSION configuration macros.
+clang mode is viewed as a dialect of g++ mode, so that --clang, --no_clang,
+and --clang_version implicitly set gpp_mode to TRUE.  Currently the only
+effect of setting clang_mode to TRUE is to enable the clang feature-test
+macros __has_feature, __has_extension, __has_attribute, and __has_builtin,
+as well as the __has_include macro described above.  The value specified
+for --clang_version currently has no effect and is ignored.
+
+For example, assuming --clang and a configuration in which
+DEFINE_PORTABLE_FEATURE_TEST_MACROS is TRUE:
+
+  // a has value 200410 if static_assert is enabled, 0 otherwise:
+  int a
+  #ifdef __cpp_static_assert
+    = __cpp_static_assert;
+  #endif
+  ;
+  // b has value 1 if rvalue references are enabled, 0 otherwise:
+  int b = __has_feature(cxx_rvalue_references);
+  // c has value 1 if #include <x.h> will succeed, 0 otherwise:
+  int c = __has_include(<x.h>);
+
+
 1/2/14   [EDGcpfe/14599]
 Spurious partial specialization ambiguity when deferring function prototype
 instantiations

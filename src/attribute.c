@@ -927,7 +927,6 @@ static a_hash_table_ptr
 /*
 Bucket type for attr_name_map.
 */
-typedef struct an_attr_name_map_entry *an_attr_name_map_entry_ptr;
 typedef struct an_attr_name_map_entry {
   an_attr_name_map_entry_ptr
 		next;
@@ -1078,6 +1077,40 @@ static int attr_family_seen[(int)ak_last];
 			   attributes. */
 
 
+an_attr_name_map_entry_ptr *lookup_attribute_name(
+                                                a_const_char        *name,
+                                                an_attribute_family family)
+/*
+Look up name in the attr_name_map hash table (which is initialized if this
+is its first use).  If family is af_gnu, the optional leading and trailing
+"__" is stripped before looking up the name.  Return the result of the
+lookup.
+*/
+{
+  char buf[MAX_ATTRIBUTE_NAME_LENGTH + 1];
+
+  if (family == af_gnu && name[0] == '_' && name[1] == '_') {
+    /* Strip leading and trailing "__" if the result would be neither empty
+       nor too long. */
+    sizeof_t len = strlen(name);
+    if (len > 4 && name[len - 1] == '_' && name[len - 2] == '_') {
+      len -= 4;
+      if (len <= MAX_ATTRIBUTE_NAME_LENGTH) {
+        (void)strncpy(buf, name + 2, size_t_arg(len));
+        buf[len] = '\0';
+        name = buf;
+      }  /* if */
+    }  /* if */
+  }  /* if */
+  if (attr_name_map == NULL) {
+    init_attr_name_map();
+  }  /* if */
+  return (an_attr_name_map_entry_ptr *)hash_find(attr_name_map,
+                                                 (a_void_ptr)name,
+                                                 /*create=*/FALSE);
+}  /* lookup_attribute_name */
+
+
 static an_attr_descr_ptr get_attr_descr_for_attribute(an_attribute_ptr  ap)
 /*
 The given attribute has a determined family, name (and namespace name, if
@@ -1088,7 +1121,6 @@ there is an applicable one; otherwise, return NULL.
   an_attr_descr_ptr           result = NULL;
   an_attr_name_map_entry_ptr  *p_ep, ep = NULL;
   a_const_char                *name = ap->name;
-  char                        buf[MAX_ATTRIBUTE_NAME_LENGTH+1];
   a_byte_attribute_family     family = ap->family;
 
   if (gnu_mode && gnu_version >= 40800 &&
@@ -1100,29 +1132,7 @@ there is an applicable one; otherwise, return NULL.
        attribute names with added underscores (see below). */
     family = (a_byte_attribute_family)af_gnu;
   }  /* if */
-  if (family == (a_byte_attribute_family)af_gnu) {
-    /* GNU attribute names are optionally prefixed and suffixed by double
-       underscores.  Ensure "name" points to a string without such
-       underscores. */
-    if (name[0] == '_' && name[1] == '_') {
-      sizeof_t  len;
-      len = strlen(name);
-      /* Strip the prefix and suffix underscores if present, but only if that
-         leaves at least one character in the name. */
-      if (len > 4 && name[len-1] == '_' && name[len-2] == '_') {
-        len -= 4;
-        if (len > MAX_ATTRIBUTE_NAME_LENGTH) goto search_done;
-        name += 2;
-        (void)strncpy(buf, name, size_t_arg(len));
-        buf[len] = '\0';
-        name = buf;
-      }  /* if */
-    }  /* if */
-  }  /*  if */
-  if (attr_name_map == NULL) init_attr_name_map();
-  p_ep = (an_attr_name_map_entry_ptr*)hash_find(attr_name_map,
-                                                (a_void_ptr)name,
-                                                /*create=*/FALSE);
+  p_ep = lookup_attribute_name(name, (an_attribute_family)family);
   if (p_ep != NULL) {
     check_assertion(*p_ep != NULL);
     for (ep = *p_ep; ep != NULL; ep = ep->next) {

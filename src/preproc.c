@@ -214,7 +214,7 @@ refer to the new short_name.
 
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
-static a_const_char *check_for_include_alias(void)
+a_const_char *check_for_include_alias(void)
 /*
 Check whether the current header name token refers to a file name for
 which an include_alias pragma has been seen.
@@ -1002,12 +1002,12 @@ Scan and process an #undef directive.
 }  /* proc_undef */
 
 
-static a_boolean get_header_name(void)
+a_boolean get_header_name(void)
 /*
-Scan a header name for a directive like a #include.  Return with
-the current token variables set to indicate the complete header name
-as a pseudo-token.  If the next token is not a header name, return
-FALSE.
+Scan a header name for a directive like a #include or for the __has_include
+macro.  Return with the current token variables set to indicate the
+complete header name as a pseudo-token.  If the next token is not a header
+name, return FALSE.
 */
 {
   a_const_char      *p;
@@ -1125,10 +1125,14 @@ E.g., "    stdio   " becomes "stdio" with trim_leading_blanks TRUE.
 }  /* trim_leading_and_trailing_blanks_from_header_name */
 
 
-static a_const_char *copy_header_name(a_boolean process_escapes)
+a_const_char *extract_header_name(a_boolean process_escapes,
+                                  sizeof_t  *result_length)
 /*
-Allocate and copy the file name from the current token (a header name).
-Escapes in the string are processed only if process_escapes is TRUE.
+Extract the file name from the current token (a header name) and return a
+pointer to the string, setting *result_length to the length of the string.
+Escapes in the string are processed only if process_escapes is TRUE.  The
+result is contained in a temporary string buffer, so it should be processed
+or copied immediately.
 
 When UNICODE_SOURCE_SUPPORTED is TRUE, this can also involve the
 translation of certain characters to UTF-8.
@@ -1140,7 +1144,7 @@ translation of certain characters to UTF-8.
   unsigned long           centity_mask;
   a_text_buffer_ptr       buf = header_name_buffer;
   char                    *result;
-  sizeof_t                result_length;
+  sizeof_t                len;
   a_char_conversion_state conv_state;
 
   /* Build a mask used to mask individual characters. */
@@ -1190,24 +1194,43 @@ translation of certain characters to UTF-8.
   add_char_to_text_buffer(buf, '\0');
   result = buf->buffer;
   /* The length should not include the null terminator. */
-  result_length = buf->size - 1;
+  len = buf->size - 1;
 #if NATIVE_MULTIBYTE_CHARS_SUPPORTED_WITH_UNICODE
   if (curr_file_unicode_source_kind == usk_none) {
     /* Convert the string that resulted from the copy above from a
        non-Unicode multibyte encoding into UTF-8. */
     a_boolean	err;
-    result = multibyte_chars_to_utf8(result, &result_length, &err);
+    result = multibyte_chars_to_utf8(result, &len, &err);
     if (err) {
       pos_warning(ec_non_unicode_char_in_header, &pos_curr_token);
     }  /* if */
   }  /* if */
 #endif /* NATIVE_MULTIBYTE_CHARS_SUPPORTED_WITH_UNICODE */
   /* Increment the length to include the null terminator. */
-  result_length++;
+  *result_length = len + 1;
+  return result;
+}  /* extract_header_name */
+
+
+static a_const_char *copy_header_name(a_boolean process_escapes)
+/*
+Allocate and copy the file name from the current token (a header name).
+Escapes in the string are processed only if process_escapes is TRUE.
+
+When UNICODE_SOURCE_SUPPORTED is TRUE, this can also involve the
+translation of certain characters to UTF-8.
+*/
+{
+  a_const_char *filename;
+  a_const_char *result;
+  sizeof_t     result_length;
+
+  /* Extract the file name from the header token. */
+  filename = extract_header_name(process_escapes, &result_length);
   /* Copy the name from the text buffer. */
-  name_start_pos = alloc_primary_file_scope_il(result_length);
-  (void)memcpy((char *)name_start_pos, result, result_length);
-  return name_start_pos;
+  result = alloc_primary_file_scope_il(result_length);
+  (void)memcpy((char *)result, filename, result_length);
+  return result;
 }  /* copy_header_name */
 
 
@@ -1334,7 +1357,7 @@ pass_stdarg_references_to_generated_code.
          (!C_mode() &&
           ((is_cstdarg = (strcmp(name_start_pos, "cstdarg") == 0),
 	   is_cstdarg))))) {
-      /* Instead or reading the <stdarg.h> or <cstdarg> header file, create
+      /* Instead of reading the <stdarg.h> or <cstdarg> header file, create
          builtin definitions for the things it's known to define. */
       proc_stdarg_include(is_cstdarg);
       actual_include_was_suppressed = TRUE;

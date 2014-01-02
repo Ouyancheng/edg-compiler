@@ -4735,7 +4735,8 @@ static a_boolean search_for_input_file(
 			a_boolean			*suppress_include,
 			an_open_file_result		*open_result,
                         a_unicode_source_kind           *unicode_source_kind,
-			a_directory_name_entry_ptr	*dir_entry)
+			a_directory_name_entry_ptr	*dir_entry,
+                        a_boolean                       suppress_diagnostics)
 /*
 Look for file_name in the list of directories specified by search path.
 is_implicit_include is TRUE when searching for a source file for implicit
@@ -4756,7 +4757,9 @@ If the include is to be suppressed because the file was already
 included, TRUE is returned in suppress_include.  *unicode_source_kind
 is set to indicate the Unicode encoding form for the file, or usk_none
 if the file is not Unicode.  *open_result stores information about why
-the file could not be opened if the open fails.
+the file could not be opened if the open fails.  Unless suppress_diagnostics
+is TRUE, a catastrophe is reported if the file is not found, use_search_path
+is TRUE, and search_path is empty.
 */
 {
   a_file_suffix_ptr		fsp;
@@ -4810,7 +4813,7 @@ the file could not be opened if the open fails.
   if (file_found || !use_search_path) {
     /* Don't search any further if the file was found or if we should not use
        the search path. */
-  } else if (search_path == NULL) {
+  } else if (search_path == NULL && !suppress_diagnostics) {
     /* No search path, so file can't be found.  Issue a catastrophic error.
        Use special message to make it clearer, since problem may be that
        there are no -I options on the command line. */
@@ -4951,6 +4954,38 @@ the file could not be opened if the open fails.
 }  /* search_for_input_file */
 
 
+a_boolean header_can_be_found(a_const_char *filename,
+                              a_boolean    is_system_include)
+/*
+Return TRUE if filename can be opened as a header file using the search
+paths corresponding to the value of is_system_include and FALSE otherwise.
+*/
+{
+  a_boolean                  result;
+  a_const_char               *temp_file_name;
+  FILE                       *fp;
+  a_boolean                  suppress_include;
+  an_open_file_result        open_result;
+  a_unicode_source_kind      unicode_source_kind;
+  a_directory_name_entry_ptr dir_entry;
+
+  result = search_for_input_file(filename, /*use_search_path=*/TRUE,
+                                 is_system_include ? sys_incl_search_path
+                                                   : incl_search_path,
+                                 include_file_suffix_list,
+                                 /*is_implicit_include=*/FALSE,
+                                 is_system_include, /*is_preinclude=*/FALSE,
+                                 &temp_file_name, &fp, &suppress_include,
+                                 &open_result, &unicode_source_kind,
+                                 &dir_entry, /*suppress_diagnostics=*/TRUE);
+  if (fp != NULL) {
+    /* If the file was opened, close it. */
+    fclose(fp);
+  }  /* if */
+  return result;
+}  /* header_can_be_found */
+
+
 #if !INSTANTIATION_BY_IMPLICIT_INCLUSION
 /*ARGSUSED*/ /* <-- is_implicit_include is used only if instantiation may use
                     implicit inclusion. */
@@ -5046,7 +5081,8 @@ a catastrophic error is not issued, FALSE is returned.
                                        is_preinclude, &temp_file_name,
                                        new_input_file, suppress_include,
                                        &open_result, unicode_source_kind,
-                                       dir_entry);
+                                       dir_entry,
+                                       /*suppress_diagnostics=*/FALSE);
 #endif /* INSTANTIATION_BY_IMPLICIT_INCLUSION */
   } else {
     file_found = search_for_input_file(file_name, use_search_path, search_path,
@@ -5056,7 +5092,8 @@ a catastrophic error is not issued, FALSE is returned.
                                        is_preinclude, &temp_file_name,
                                        new_input_file, suppress_include,
                                        &open_result, unicode_source_kind,
-                                       dir_entry);
+                                       dir_entry,
+                                       /*suppress_diagnostics=*/FALSE);
     if (!file_found) {
       /* The file could not be opened.  This is normally a catastrophic error
          unless continue_on_open_failure is TRUE. */

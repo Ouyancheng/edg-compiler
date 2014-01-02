@@ -325,6 +325,13 @@ extern void once_pragma(a_pending_pragma_ptr ppp);
 
 extern void hdrstop_or_no_pch_pragma(a_pending_pragma_ptr ppp);
 
+extern a_boolean get_header_name(void);
+
+extern a_const_char *check_for_include_alias(void);
+
+extern a_const_char *extract_header_name(a_boolean process_escapes,
+                                         sizeof_t  *result_length);
+
 extern void preproc_one_time_init(void);
 
 extern void preproc_trans_unit_init(void);

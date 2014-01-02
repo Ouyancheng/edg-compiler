@@ -2570,6 +2570,8 @@ ec_incompatible_shuffle_source_operands;;"shuffle source operands have incompati
 ec_nonintegral_shuffle_mask;;"shuffle mask (type %t) is not a vector of integers"
 ec_incompatible_shuffle_mask;;"shuffle mask (type %t1) has a length different from the source operand (type %t2)"
 ec_bad_size_for_static_address_init;;"static initialization with an address value requires a destination of the same size as the address"
+ec_cl_clang_mode_only_in_cplusplus;;"clang mode is only allowed when compiling C++"
+ec_feature_test_macro_req_id;;"the argument to a feature-test macro must be a simple identifier"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #
