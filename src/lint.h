@@ -359,7 +359,6 @@ extern int fileno(FILE *);
 /*lint -esym(759,constant_prvalue_pointer_full)*/
 /*lint -esym(765,constant_prvalue_pointer_full)*/
 /*lint -esym(552,clang_version)*/
-/*line -esym(769,ec_cl_clang_mode_inly_in_cplusplus)*/
 #if TARG_DUAL_ALIGNMENTS_FOR_BUILTIN_TYPES
 /*lint -esym(759,field_alignment_for)*/
 /*lint -esym(765,field_alignment_for)*/
@@ -643,6 +642,7 @@ extern int fileno(FILE *);
 /*lint -esym(769,ec_field_initializers_is_cpp11)*/
 /*lint -esym(769,ec_deleted_functions_is_cpp11)*/
 /*lint -esym(769,ec_defaulted_functions_is_cpp11)*/
+/*lint -esym(769,ec_cl_clang_mode_only_in_cplusplus)*/
 #endif /* !GNU_EXTENSIONS_ALLOWED */
 /*lint -esym(759,is_wide_string_constant)*/
 /*lint -esym(765,is_wide_string_constant)*/

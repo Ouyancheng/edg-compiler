@@ -4241,6 +4241,7 @@ will be called to check and adjust the argument types.
   return (*n_args != 0);
 }  /* is_gnu_sync_call */
 
+#endif /* GNU_BUILTIN_SYNC_FUNCTIONS_ALLOWED */
 
 a_symbol_ptr gnu_builtin_func_by_name(a_const_char *name)
 /*
@@ -4269,6 +4270,7 @@ string, or NULL if there is no such function.
   return sym;
 }  /* gnu_builtin_func_by_name */
 
+#if GNU_BUILTIN_SYNC_FUNCTIONS_ALLOWED
 
 static a_routine_ptr adjust_gnu_sync_call(
                                   an_operand           *target,
