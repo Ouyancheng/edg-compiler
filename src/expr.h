@@ -406,8 +406,6 @@ extern
 a_type_ptr set_implicit_lambda_return_type(a_type_ptr        return_type,
                                            a_source_position *err_pos);
 
-extern a_symbol_ptr gnu_builtin_func_by_name(a_const_char *name);
-
 extern
 void transfer_arg_operand_for_template_arg(a_template_arg_ptr tap,
                                            a_template_arg_ptr orig_tap);
@@ -528,6 +526,8 @@ void process_simple_assignment(an_operand_ptr          operand_1,
 #if GNU_EXTENSIONS_ALLOWED
 an_expr_node_ptr scan_asm_operand_expression(a_boolean output,
                                              a_boolean input);
+extern a_symbol_ptr gnu_builtin_func_by_name(a_const_char *name);
+
 #endif /* GNU_EXTENSIONS_ALLOWED */
 
 #if !STANDALONE_UTILITY_PROGRAM

@@ -4288,11 +4288,11 @@ order of development of this front end, and is inconsistent and strange.
   if (!option_kind_used[(int)optk_gcc_mode] &&
       !option_kind_used[(int)optk_gpp_mode]) {
     a_boolean  enable_gnu_mode;
-    enable_gnu_mode = (DEFAULT_GNU_COMPATIBILITY) ||
+    enable_gnu_mode = (DEFAULT_GNU_COMPATIBILITY) /*lint !e506*/ ||
                       option_kind_used[(int)optk_gnu_version] ||
                       option_kind_used[(int)optk_gnu_c89_inlining] ||
                       option_kind_used[(int)optk_clang_mode] ||
-                      option_kind_used[(int)optk_clang_version]; /*lint !e506*/
+                      option_kind_used[(int)optk_clang_version];
     if (enable_gnu_mode) {
       if (C_dialect == C_dialect_cplusplus) {
         gpp_mode = TRUE;
@@ -10450,6 +10450,7 @@ variables declared in cmd_line.h.
 #if GNU_EXTENSIONS_ALLOWED || defined(_lint)
   gcc_mode = FALSE;
   gpp_mode = FALSE;
+  clang_mode = FALSE;
 #endif /* GNU_EXTENSIONS_ALLOWED || defined(_lint) */
   gnu_version = DEFAULT_GNU_VERSION;
   clang_version = DEFAULT_CLANG_VERSION;
