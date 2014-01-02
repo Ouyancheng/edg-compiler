@@ -596,6 +596,8 @@ check_abbreviation()
 --cfront_2.1
 --cfront_3.0
 --check_concatenations
+--clang
+--clang_version
 --class_name_injection
 --clear_flag
 --clr
@@ -718,6 +720,7 @@ check_abbreviation()
 --no_c++11_sfinae_ignore_access
 --no_c++cli
 --no_check_concatenations
+--no_clang
 --no_class_name_injection
 --no_code_gen
 --no_compound_literals
@@ -1389,6 +1392,8 @@ process_option()
          --no_gcc | \
          --g++ | \
          --no_g++ | \
+         --clang | \
+         --no_clang | \
          --report_gnu_extensions | \
          --dep_name | \
          --no_dep_name | \
@@ -1485,7 +1490,8 @@ process_option()
           fi
           ;;
         -b | --c++ | --c++11 | --no_c++11 | --cfront_2.1 | --cfront_3.0 | \
-	--c++0x | --no_c++0x | --g++ | --no_g++ | --c++03)
+	--c++0x | --no_c++0x | --g++ | --no_g++ | --c++03 | --clang | \
+	--no_clang)
           c_mode=0
           ;;
 	--no_preproc_only)
@@ -1552,6 +1558,7 @@ process_option()
          --microsoft_version | \
          --mmap_address | \
          --gnu_version | \
+         --clang_version | \
 	 --definition_list_file | \
          --pending_instantiations | \
          --preinclude | \
@@ -1635,6 +1642,7 @@ process_option()
           --microsoft_build_number=* | \
           --microsoft_version=* | \
           --gnu_version=* | \
+          --clang_version=* | \
           --pending_instantiations=* | \
           --preinclude=* | \
           --preinclude_macros=* | \
