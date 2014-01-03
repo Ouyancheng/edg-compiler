@@ -3817,12 +3817,6 @@ static a_boolean
 			   Used to support
 			   __has_feature(cxx_contextual_conversions). */
 
-static a_boolean
-		override_control;
-			/* TRUE if the override control keywords of C++11
-			   are recognized.  Used to support
-			   __has_feature(cxx_override_control). */
-
 /*
 The following array describes all the clang __has_feature strings and WG21
 SG10 feature-test macros.  (The clang __has_extension macro also uses this
@@ -3956,7 +3950,7 @@ static a_feature_support feature_support_list[] = {
     NULL,
     NULL },
   { "cxx_override_control",
-    &override_control,
+    &std_override_modifiers_enabled,
     NULL,
     NULL },
   { "cxx_range_for",
@@ -9246,7 +9240,6 @@ command line -D options.
        macros. */
     access_control_sfinae = cpp11_mode && !cpp11_sfinae_ignore_access;
     contextual_conversions = TRUE;
-    override_control = cpp11_mode;
 #if DEFINE_PORTABLE_FEATURE_TEST_MACROS
     /* Add definitions as described by WG21 SG10 SD-6 for the features that
        are enabled in the current execution of the front end. */

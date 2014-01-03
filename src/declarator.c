@@ -1781,17 +1781,15 @@ accepted by some Microsoft compilers in their non-CLI modes; "new" is only
 accepted in C++/CLI mode.)  "final" is accepted in later Microsoft modes.
 */
 {
-  a_boolean  accept_std_modifiers = cpp11_mode ||
-                                    (gpp_mode && gnu_version >= 40700);
   a_boolean  accept_ms_modifiers = microsoft_mode &&
                                    (cppcli_enabled ||
                                     microsoft_version >= 1400);
   a_boolean  accept_ms_final_modifier = (microsoft_mode &&
                                          microsoft_version >= 1700);
 
-  if (accept_std_modifiers || accept_ms_modifiers) {
+  if (std_override_modifiers_enabled || accept_ms_modifiers) {
     for (;;) {
-      if ((accept_std_modifiers || accept_ms_modifiers) &&
+      if ((std_override_modifiers_enabled || accept_ms_modifiers) &&
           check_context_sensitive_keyword(tok_override, "override")) {
         if (func_info->override) {
           error(ec_duplicate_function_modifier);
@@ -1807,7 +1805,8 @@ accepted in C++/CLI mode.)  "final" is accepted in later Microsoft modes.
           }  /* if */
           func_info->override = TRUE;
         }  /* if */
-      } else if ((accept_std_modifiers || accept_ms_final_modifier) &&
+      } else if ((std_override_modifiers_enabled ||
+                  accept_ms_final_modifier) &&
                  check_context_sensitive_keyword(tok_final, "final")) {
         if (func_info->final) {
           error(ec_duplicate_function_modifier);

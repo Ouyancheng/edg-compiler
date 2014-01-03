@@ -2926,6 +2926,7 @@ handling).
   }  /* if */
   raw_string_literals_enabled = value;
   std_thread_local_storage_specifier_enabled = value;
+  std_override_modifiers_enabled = value;
 }  /* check_and_set_cpp11_mode_options */
 
 
@@ -4115,6 +4116,7 @@ exclude the GNU C++ mode already.  Hence those are not checked again here.)
         delegating_constructors_enabled = TRUE;
       }  /* if */
       field_initializers_enabled = TRUE;
+      std_override_modifiers_enabled = TRUE;
     }  /* if */
     if (gnu_version >= 40800) {
       if (!option_kind_used[(int)optk_rvalue_references]) {

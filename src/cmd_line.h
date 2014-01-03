@@ -1194,6 +1194,11 @@ EXTERN a_boolean
 			   valid.) */
 
 EXTERN a_boolean
+		std_override_modifiers_enabled;
+			/* TRUE if the C++11 "override" and "final" modifiers
+			   are enabled (as context-sensitive keywords). */
+
+EXTERN a_boolean
 		inline_namespaces_enabled;
 			/* TRUE if C++11 inline namespaces are accepted.
 			   Note that when this is FALSE, g++ mode strong
