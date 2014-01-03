@@ -3795,6 +3795,35 @@ typedef struct a_feature_support {
 } a_feature_support;
 
 /*
+The following variables are needed because they represent features that
+have feature-test macros but for which there is no corresponding global
+flag to which the "enabled" member can point.  The feature_support_list
+initializer below will point to these local variables, and
+init_predefined_macros will give them the appropriate values before
+creating the WG21 SG10 feature-test macros.
+*/
+
+static a_boolean
+		access_control_sfinae;
+			/* TRUE if lack of access is considered to cause a
+			   deduction failure as it does in standard C++11.
+			   Used to support
+			   __has_feature(cxx_access_control_sfinae). */
+
+static a_boolean
+		contextual_conversions;
+			/* TRUE if the rules in paper WG21 N3323 for
+			   contextual implicit conversions are obeyed.
+			   Used to support
+			   __has_feature(cxx_contextual_conversions). */
+
+static a_boolean
+		override_control;
+			/* TRUE if the override control keywords of C++11
+			   are recognized.  Used to support
+			   __has_feature(cxx_override_control). */
+
+/*
 The following array describes all the clang __has_feature strings and WG21
 SG10 feature-test macros.  (The clang __has_extension macro also uses this
 table, in addition to testing the supported type traits pseudo-functions.)
@@ -3809,7 +3838,7 @@ static a_feature_support feature_support_list[] = {
     "__cpp_unicode_characters",
     "200704" },
   { "cxx_access_control_sfinae",
-    &cpp11_mode,
+    &access_control_sfinae,
     NULL,
     NULL },
   { "cxx_aggregate_nsdmi",
@@ -3843,7 +3872,7 @@ static a_feature_support feature_support_list[] = {
 			   depending on the level of constexpr support. */
     NULL },
   { "cxx_contextual_conversions",
-    &cpp11_mode,
+    &contextual_conversions,
     NULL,
     NULL },
   { "cxx_decltype",
@@ -3927,7 +3956,7 @@ static a_feature_support feature_support_list[] = {
     NULL,
     NULL },
   { "cxx_override_control",
-    &cpp11_mode,
+    &override_control,
     NULL,
     NULL },
   { "cxx_range_for",
@@ -9211,6 +9240,13 @@ command line -D options.
                              /*ref_suppresses_pch_file=*/FALSE);
 #endif /* IA64_ABI_USE_INT_STATIC_INIT_GUARD */
 #endif /* IA64_ABI */
+    /* Initialize the local feature-test "enabled" flags.  This is done
+       unconditionally, as the feature_support_list table is used for both
+       the WG21 SG10 feature-test macros and the clang feature-test
+       macros. */
+    access_control_sfinae = cpp11_mode && !cpp11_sfinae_ignore_access;
+    contextual_conversions = TRUE;
+    override_control = cpp11_mode;
 #if DEFINE_PORTABLE_FEATURE_TEST_MACROS
     /* Add definitions as described by WG21 SG10 SD-6 for the features that
        are enabled in the current execution of the front end. */
