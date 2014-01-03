@@ -1,5 +1,23 @@
 Version 4.9
 
+1/3/14   [EDGcpfe/7498,EDGcpfe/7967,EDGcpfe/13752,EDGcpfe/14758]
+Microsoft compatibility: default nontype template arguments not evaluated
+unless used
+
+The Microsoft compiler does not evaluated nontype template default
+arguments unless they are used.  As a result, the Microsoft compiler
+accepts default arguments that are invalid and default arguments that
+reference an entity that was declared after the point where the
+default argument was specified.  We now emulate this behavior in
+Microsoft mode when nonclass prototype instantiations have not been
+requested.
+
+  template <int X = Y> class C { };
+  C<1> c1;
+  const int Y = 2;
+  C<>  c2;  // The default argument Y is evaluated at this point
+
+
 1/2/14   [EDGcpfe/14508]
 GNU C++ compatibility: Passing a packed array member to reference to const
 (IL CHANGE)

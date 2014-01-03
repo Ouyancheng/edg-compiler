@@ -15021,11 +15021,14 @@ error_severity is the severity at which any diagnostics should be issued.
                                     from_tpp->def_arg_involves_template_param;
         to_tpp->def_arg_involves_template_param =
                                               def_arg_involves_template_param;
+        to_tpp->def_arg_has_not_been_scanned =
+                                        from_tpp->def_arg_has_not_been_scanned;
         if (new_tpp->param_symbol->kind == (a_symbol_kind)sk_constant) {
           to_tpp->variant.constant.type_involves_template_param =
                       from_tpp->variant.constant.type_involves_template_param;
         }  /* if */
-        if (def_arg_involves_template_param) {
+        if (def_arg_involves_template_param ||
+            to_tpp->def_arg_has_not_been_scanned) {
           to_tpp->default_arg_cache = from_tpp->default_arg_cache;
         }  /* if */
         { a_symbol_kind	new_sym_kind = new_tpp->param_symbol->kind;
@@ -19095,7 +19098,7 @@ depends on a template parameter.
          indicates that the default argument contains a template parameter. */
      template_param->def_arg_involves_template_param = TRUE;
     }  /* if */
-    if (!const_type_involves_template_param ||
+    if ((!const_type_involves_template_param && !microsoft_mode) ||
         decl_state->is_template_template_param ||
         nonclass_prototype_instantiations) {
       /* Indicate that a prototype instantiation of this default argument
@@ -19104,7 +19107,10 @@ depends on a template parameter.
          type is not template dependent.  This is done because, prior to
          nonclass prototype instantiations, such default arguments were
          scanned in all cases.  This is also done for default arguments of
-         template parameters of template template parameters. */
+         template parameters of template template parameters.  This is
+         not done in Microsoft mode unless nonclass prototype instantiations
+         are being done because the Microsoft compiler allows invalid
+         default arguments. */
       template_param->do_prototype_instantiation = TRUE;
       if (decl_state->is_template_template_param) {
         /* Default arguments of template template parameters need to be
@@ -19532,7 +19538,6 @@ the resulting constant is stored in the pointer pointed to by "constant".
     /* If the default argument has not yet been scanned, this is the
        initial scan and should be treated as a prototype instantiation. */
     ps_options |= PS_PROTOTYPE_INSTANTIATION | PS_DEDUCTION_CONTEXT;;
-    param_ptr->def_arg_has_not_been_scanned = FALSE;
   } else if (dependent_arg_list) {
     /* If the argument list is dependent, flag this as a nonreal
        instantiation. */
@@ -19582,7 +19587,9 @@ the resulting constant is stored in the pointer pointed to by "constant".
     /* This parameter has a default argument whose value is to be used. */
     /* Determine whether the template argument list depends on a template
        parameter type.  */
-    if (constant_involves_template_param) {
+    if (constant_involves_template_param ||
+        param_ptr->def_arg_has_not_been_scanned) {
+      param_ptr->def_arg_has_not_been_scanned = FALSE;
       if (pending_nontype_param_instantiations == max_pending_instantiations) {
         error(ec_recursive_inst_of_templ_default_arg);
         *constant = alloc_error_constant();
@@ -19619,6 +19626,7 @@ the resulting constant is stored in the pointer pointed to by "constant".
       }  /* if */
     } else {
       *constant = param_ptr->default_arg.constant;
+      check_assertion(*constant != NULL);
     }  /* if */
   }  /* if */
   error_position = saved_error_position;
