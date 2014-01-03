@@ -10535,6 +10535,7 @@ variables declared in cmd_line.h.
   gcc_const_variables_allowed = DEFAULT_GCC_CONST_VARIABLES_ALLOWED;
   gnu_bases_operators_enabled = FALSE;
   preserve_lvalues_with_same_type_casts = FALSE;
+  std_override_modifiers_enabled = FALSE;
 }  /* cmd_line_static_var_init */
 
 
