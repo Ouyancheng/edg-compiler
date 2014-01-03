@@ -2454,11 +2454,12 @@ static int	argc_file_list;
           COMPILE_MULTIPLE_TRANSLATION_UNITS */
 
 
-static void set_c99_mode_flags(void)
+static void check_and_set_new_c_mode_options(void)
 /*
-Set the various flags appropriate to C99 mode.
+Set the various flags appropriate to C99 mode or later standard modes.
 */
 {
+  check_assertion(std_version >= 199901);
 #if VLA_ALLOWED
   if (!(option_kind_used[(int)optk_vla])) {
     /* Support for VLAs is turned on by default in C99 mode. */
@@ -2511,7 +2512,10 @@ Set the various flags appropriate to C99 mode.
   std_c99_inlining = TRUE;
   gnu_c89_inlining = FALSE;
   c99_bool_is_keyword = TRUE;
-}  /* set_c99_mode_flags */
+  if (c11_mode) {
+    static_assert_enabled = TRUE;
+  }  /* if */
+}  /* check_and_set_new_c_mode_options */
 
 
 static void set_c_mode_flags(void)
@@ -2582,8 +2586,8 @@ process.
     address_of_ellipsis_allowed = TRUE;
     allow_ellipsis_only_param_in_C_mode = TRUE;
   } else if (c99_mode) {
-    /* Turn on features implied by C99 mode. */
-    set_c99_mode_flags();
+    /* Turn on features implied by C99 mode and later C standard modes. */
+    check_and_set_new_c_mode_options();
   } /* if */
   elab_type_lookup_finds_typedefs = FALSE;
   if (option_kind_used[(int)optk_type_traits_helpers]) {
@@ -3410,7 +3414,7 @@ conflicts with the ANSI mode and set various unmentioned settings as needed.
       alternative_tokens_allowed = TRUE;
     }  /* if */
     /* Features enabled in C99 but not in older C are handled in
-       set_c99_mode_flags. */
+       check_and_set_new_c_mode_options. */
     if (!c99_mode) {
       /* Features listed here are those that can be turned on in pre-C99 C
          mode but not in C++ mode. */
@@ -3898,6 +3902,9 @@ exclude the GNU C mode already.  Hence those are not checked again here.)
     gnu_c89_inlining = TRUE;
   }  /* if */
   c99_bool_is_keyword = TRUE;
+  if (gnu_version >= 40600) {
+    static_assert_enabled = TRUE;
+  }  /* if */
 }  /* check_and_set_gcc_mode_options */
 
 

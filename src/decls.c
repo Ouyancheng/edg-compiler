@@ -16391,7 +16391,11 @@ processing should proceed after the call.
     }  /* if */
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-  if (C_dialect == C_dialect_cplusplus) {
+  if (curr_token == tok_static_assert) {
+    static_assert_declaration(/*leave_semicolon=*/TRUE);
+    state->decl_okay_in_constexpr_body = TRUE;
+    end_of_decl_action = eoda_check_semicolon;
+  } else if (C_dialect == C_dialect_cplusplus) {
     a_boolean	is_generic = FALSE;
     if (curr_token == tok_extern && next_token() == tok_string_literal) {
       /* This looks like a C++ linkage specification, which is "extern"
@@ -16506,10 +16510,6 @@ processing should proceed after the call.
          issue diagnostics on pragmas that are trying to bind to an overload
          declaration. */
       cannot_bind_to_curr_construct();
-      end_of_decl_action = eoda_check_semicolon;
-    } else if (curr_token == tok_static_assert) {
-      static_assert_declaration(/*leave_semicolon=*/TRUE);
-      state->decl_okay_in_constexpr_body = TRUE;
       end_of_decl_action = eoda_check_semicolon;
 #if MICROSOFT_EXTENSIONS_ALLOWED
     } else if (cppcli_enabled &&

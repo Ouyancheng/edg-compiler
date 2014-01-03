@@ -696,6 +696,10 @@ Install the keywords in the symbol table.
     /* "__generic" is used in the implementation of type-generic functions. */
     enter_keyword((a_token_kind)tok_generic, "__generic");
   }  /* if */
+  if (C_mode() && static_assert_enabled) {
+    /* Enable keywords required in C11 mode. */
+    enter_keyword((a_token_kind)tok_static_assert, "_Static_assert");
+  }  /* if */
 #if TARG_HAS_IEEE_FLOATING_POINT
   /* EDG-specific token for Not-a-Number constant. */
   enter_keyword((a_token_kind)tok_nan, "__NAN__");
