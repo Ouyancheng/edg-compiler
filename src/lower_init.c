@@ -9173,8 +9173,10 @@ do_assignment:;
     case dik_bitwise_copy:
       /* Bitwise copy of a value. */
       if (dip->variant.bitwise_copy.source != NULL) {
+        /* The source location is specified explicitly by the front end. */
+        check_assertion(!C_mode());
+        lower_expr(dip->variant.bitwise_copy.source);
         source_node = dip->variant.bitwise_copy.source;
-        /* FIXME: Lower the source node expressions? */
       } else {
         /* The source location is implied.  This is used for copying members
            of classes in ctor-initializers of copy constructors, for the
@@ -9184,6 +9186,8 @@ do_assignment:;
         source_node = implied_source_of_copy(source_desc, ipdp,
                                              /*result_is_lvalue=*/FALSE);
         if (is_array_type(source_node->type)) {
+          /* For source locations with array type, an lvalue is required;
+             get an lvalue representation for the implied source. */
           source_node = implied_source_of_copy(source_desc, ipdp,
                                                /*result_is_lvalue=*/TRUE);
         }  /* if */
