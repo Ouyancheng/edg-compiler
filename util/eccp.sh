@@ -582,11 +582,13 @@ check_abbreviation()
 --brief_diagnostics
 --building_runtime
 --c
+--c11
 --c89
 --c99
 --c++
 --c++0x
 --c++11
+--c++14
 --c++11_sfinae
 --c++11_sfinae_ignore_access
 --c++03
@@ -1259,8 +1261,10 @@ process_option()
          --c++ | \
          --c++0x | \
          --c++11 | \
+         --c++14 | \
          --c89 | \
          --c99 | \
+         --c11 | \
          --no_c99 | \
          --no_c++0x | \
          --no_c++11 | \

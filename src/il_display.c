@@ -3457,7 +3457,8 @@ Display the indicated routine.
   if (ptr->need_out_of_line_copy) {
     disp_boolean("need_out_of_line_copy", TRUE);
   }  /* if */
-  if (il_header.c99_mode) {
+  if (il_header.source_language == (a_source_language)sl_C &&
+      il_header.std_version >= 199901) {
     if (ptr->fp_contract != (a_stdc_pragma_value)stdc_pv_default) {
       disp_stdc_pragma_value("fp_contract", ptr->fp_contract);
     }  /* if */

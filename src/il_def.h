@@ -17901,6 +17901,18 @@ typedef struct an_il_header {
                 source_language;
                         /* Code for the language in which the source program
                            is written. */
+  int32_t
+		std_version;
+			/* A number of the form YYYYmm indicating the version
+			   of the language standard (for C or C++) in effect.
+			   For C++, this corresponds to the value of the
+			   __cplusplus macro and for C to the __STDC_VERSION__
+			   macro (except for C89/C90 where it is 199000 since
+			   that standard has no corresponding macro).  For
+			   standards in development YYYY represents the year
+			   in which the standard is expected to be ratified
+			   (e.g., it might be 2022 for an anticipated C++22
+			   mode) and mm is 00. */
 #if MICROSOFT_EXTENSIONS_ALLOWED
   a_cli_metadata_file_ptr
 		cli_metadata_files;
@@ -17916,9 +17928,6 @@ typedef struct an_il_header {
 		pcc_compatibility_mode;
 			/* TRUE if the source program was compiled as old-style
 			   (pcc-compatible) C. */
-  a_byte_boolean
-		c99_mode;
-			/* TRUE if the source program was compiled as C99. */
   a_byte_boolean
 		enum_type_is_integral;
 			/* Records whether enum types are considered to be

@@ -997,6 +997,11 @@ Initialize the option information table.
                          "no_c99",
                          '\0', /*value=*/FALSE, /*arg_required=*/FALSE,
                          pchek_command_line);
+  /* C11 is a successor of C99, and hence also requires C99 IL extensions. */
+  add_option_description(optk_c11_mode,
+                         "c11",
+                         '\0', /*value=*/TRUE, /*arg_required=*/FALSE,
+                         pchek_command_line);
 #endif /* C99_IL_EXTENSIONS_SUPPORTED */
   /* Usually, C89 is the default C mode.  However, in configurations that
      enable another ANSI-based dialect by default (e.g., C99 or SVR4 C), the
@@ -1282,6 +1287,10 @@ Initialize the option information table.
                          "no_variadic_templates", '\0',
                          /*value=*/FALSE, /*arg_required=*/FALSE,
                          pchek_command_line);
+  /* C++14 is a successor of C++11, and hence also requires C++11 IL
+     extensions. */
+  add_option_description(optk_cpp14_mode, "c++14", '\0', /*value=*/TRUE,
+                         /*arg_required=*/FALSE, pchek_command_line);
 #endif /* CPP11_IL_EXTENSIONS_SUPPORTED */
   add_option_description(optk_list_macros, "list_macros", '\0',
                          /*value=*/TRUE, /*arg_required=*/FALSE, pchek_none);
@@ -2618,6 +2627,15 @@ setting is used, and to set various unmentioned settings as needed.
 */
 {
   check_assertion(C_mode());
+  if (std_version == 0) {
+    /* No specific version of C has been established yet: Use the appropriate
+       default. */
+#if DEFAULT_C99_MODE
+    std_version = 199901;
+#else /* !DEFAULT_C99_MODE */
+    std_version = 199000;
+#endif /* DEFAULT_C99_MODE */
+  }  /* if */
   if (option_kind_used[(int)optk_cplusplus_anachronisms]) {
     command_line_error(ec_cl_anachronism_option_only_in_cplusplus);
   }  /* if */
@@ -3010,11 +3028,18 @@ setting is used, and to set various unmentioned settings as needed.
 */
 {
   check_assertion(!C_mode());
+  if (std_version == 0) {
+    /* No specific version of C++ has been established yet: Use the appropriate
+       default. */
+#if DEFAULT_CPP11_MODE
+    std_version = 201103;
+#else /* !DEFAULT_CPP11_MODE */
+    std_version = 199711;
+#endif /* DEFAULT_CPP11_MODE */
+  }  /* if */
   /* Reset the SVR4 C compatibility flag just in case it is set by
      default. */
   SVR4_C_mode = FALSE;
-  /* Likewise for C99 mode. */
-  c99_mode = FALSE;
   /* Set global flags having to do with potential size of enum types. */
   enum_types_can_be_smaller_than_int =
                           targ_enum_types_can_be_smaller_than_int;
@@ -3077,6 +3102,7 @@ setting is used, and to set various unmentioned settings as needed.
       !microsoft_mode && !sun_mode) {
     variadic_templates_enabled = DEFAULT_VARIADIC_TEMPLATES_ENABLED;
   }  /* if */
+//FIXME
   if (cpp11_mode) {
     /* Enable C++11 extensions. */
     check_and_set_cpp11_mode_options(/*value=*/TRUE);
@@ -3207,21 +3233,18 @@ an otherwise implicitly enabled SVR4-C mode.
 }  /* exclude_SVR4_C_mode */
 
 
-static void exclude_c99_mode(an_error_code  error_code)
+static void exclude_c99_mode(void)
 /*
-C99 mode is incompatible with other settings.  Either issue the given
-diagnostic (error_code) if the conflict is explicit, or silently turn off
-an otherwise implicitly enabled C99 mode.
+C99 mode is incompatible with other settings: Issue a command-line error if it
+was enabled explicitly.  Since C11 mode implies C99 mode, also issue an error
+if C11 mode was enabled explicitly.
 */
 {
   if (c99_mode) {
-    if (option_kind_used[(int)optk_c99_mode]) {
+    if (option_kind_used[(int)optk_c99_mode] ||
+        option_kind_used[(int)optk_c11_mode]) {
       /* C99 mode was enabled by a command line option. */
-      command_line_error(error_code);
-    } else {
-      /* C99 mode was enabled by default.  Silently disable it since an
-         explicit mode setting on the command line overrides it. */
-      c99_mode = FALSE;
+      command_line_error(ec_cl_incompatible_language_modes);
     }  /* if */
   }  /* if */
 }  /* exclude_c99_mode */
@@ -3278,37 +3301,19 @@ an otherwise implicitly enabled GNU C++ mode.
 }  /* exclude_gpp_mode */
 
 
-static void exclude_cpp11_mode(an_error_code  error_code)
+static void exclude_cpp_mode(void)
 /*
-C++11 mode is incompatible with other settings.  Either issue the given
-diagnostic (error_code) if the conflict is explicit, or silently turn off
-an otherwise implicitly enabled C++11 mode.
+C++ mode is incompatible with other settings.  Issue a command-line error if
+the conflict is explicit.
 */
 {
-  if (cpp11_mode) {
-    if (option_kind_used[(int)optk_cpp11_mode]) {
-      /* C++11 mode was enabled by a command line option. */
-      command_line_error(error_code);
-    } else {
-      /* C++11 mode was enabled by default.  Silently disable it since an
-         explicit mode setting on the command line overrides it. */
-      cpp11_mode = FALSE;
-    }  /* if */
+  if (option_kind_used[(int)optk_cpp03_mode] ||
+      option_kind_used[(int)optk_cpp11_mode] ||
+      option_kind_used[(int)optk_cpp14_mode]) {
+    /* C++ mode was enabled by a command line option. */
+    command_line_error(ec_cl_incompatible_language_modes);
   }  /* if */
-}  /* exclude_cpp11_mode */
-
-
-static void exclude_cpp03_mode(an_error_code  error_code)
-/*
-C++03 mode is incompatible with other settings.  Issue the given
-diagnostic (error_code) if the conflict is explicit.
-*/
-{
-  if (option_kind_used[(int)optk_cpp03_mode]) {
-    /* C++03 mode was enabled by a command line option. */
-    command_line_error(error_code);
-  }  /* if */
-}  /* exclude_cpp03_mode */
+}  /* exclude_cpp_mode */
 
 
 static void check_and_set_ansi_mode_options(void)
@@ -4251,7 +4256,8 @@ command line switches.
     sun mode            sun_mode                         --sun
     GNU C++             gpp_mode                         --g++
     clang C++           gpp_mode && clang_mode           --clang
-    C++11               cpp11_mode                       --c++11
+    C++11               std_version >= 201103            --c++11
+    C++14               std_version >= 201400            --c++14
     "normal"
       strict            strict_ansi_mode                 -A, -a, etc.
 
@@ -4268,7 +4274,7 @@ C code by default).
 C99 mode is in some ways considered both a dialect and a mode.  C_dialect
 is still C_dialect_ANSI, but C99 is permitted to be used in conjunction with
 Microsoft mode.  Likewise for --c++11 which implicitly sets the dialect
-to C_dialect_cplusplus and also sets cpp11_mode.
+to C_dialect_cplusplus and also sets std_version.
 
 clang mode is a variant of g++ mode.  Specifying --clang or --clang_version
 will implicitly set gpp_mode.  Note that there is no "clang C mode;" an
@@ -4312,12 +4318,12 @@ order of development of this front end, and is inconsistent and strange.
     /* Issue an error for specifying a language mode that is valid only
        when the dialect is ANSI C. */
     exclude_SVR4_C_mode(ec_cl_SVR4_C_option_only_in_ansi_C);
-    exclude_c99_mode(ec_cl_incompatible_language_modes);
+    exclude_c99_mode();
     exclude_gcc_mode(ec_cl_incompatible_language_modes);
   } else {
     /* C99 and SVR4 C modes are mutually exclusive. */
     if (c99_mode) exclude_SVR4_C_mode(ec_cl_incompatible_language_modes);
-    if (SVR4_C_mode) exclude_c99_mode(ec_cl_incompatible_language_modes);
+    if (SVR4_C_mode) exclude_c99_mode();
     check_embedded_c_options();
   }  /* if */
   if (C_dialect != C_dialect_cplusplus) {
@@ -4326,8 +4332,7 @@ order of development of this front end, and is inconsistent and strange.
     exclude_cfront_mode(ec_cl_incompatible_language_modes);
     exclude_sun_mode(ec_cl_sun_mode_only_in_cplusplus);
     exclude_gpp_mode(ec_cl_incompatible_language_modes);
-    exclude_cpp11_mode(ec_cl_incompatible_language_modes);
-    exclude_cpp03_mode(ec_cl_incompatible_language_modes);
+    exclude_cpp_mode();
   }  /* if */
   if (C_dialect == C_dialect_pcc) {
     /* Issue an error for specifying a language mode that is valid only
@@ -8916,19 +8921,25 @@ enable_microsoft_mode:
         /* Enable prototype instantiation of nonclass templates. */
         nonclass_prototype_instantiations = opt_value;
         break;
+      case optk_c11_mode:
+        /* Enable C11 mode.  This option implies ANSI C mode. */
+        check_assertion(opt_value == TRUE);
+        std_version = 201112;
+        set_C_dialect(C_dialect_ANSI);
+        break;
       case optk_c99_mode:
         /* C99 mode should or should not be used.  This option implies
            ANSI C mode, even in the "--no_c99" form. In other words,
            --[no_]c99 is short for --c --[no_]c99.  See --svr4 and --sun
            for similar behavior. */
-        c99_mode = opt_value;
+        std_version = 199901;
         set_C_dialect(C_dialect_ANSI);
         break;
       case optk_c89_mode:
         /* Compile ANSI C89/ISO C90 code.  This option is convenient if
            another ANSI C dialect (SVR4 C or C99) is selected by default. */
         check_assertion(opt_value == TRUE);
-        c99_mode = FALSE;
+        std_version = 199000;
         SVR4_C_mode = FALSE;
         set_C_dialect(C_dialect_ANSI);
         break;
@@ -9166,16 +9177,21 @@ enable_microsoft_mode:
         /* Enable or disable __is_union, __has_virtual_destructor, etc. */
         type_traits_helpers_enabled = opt_value;
         break;
+      case optk_cpp14_mode:
+        /* Enable C++ features added as part of C++14. */
+        std_version = 201400;
+        set_C_dialect(C_dialect_cplusplus);
+        break;
       case optk_cpp11_mode:
         /* Enable or disable C++ features added as part of C++11. */
-        cpp11_mode = opt_value;
+        std_version = opt_value ? 201103 : 199711;
         set_C_dialect(C_dialect_cplusplus);
         break;
       case optk_cpp03_mode:
         /* Compile ISO/IEC 14882:2003 C++ code.  This option explicitly
            disables all C++11 extensions. */
         check_assertion(opt_value == TRUE);
-        cpp11_mode = FALSE;
+        std_version = 199711;
         set_C_dialect(C_dialect_cplusplus);
         break;
       case optk_list_macros:
@@ -10483,11 +10499,10 @@ variables declared in cmd_line.h.
   use_cppcli_fill_ins = TRUE;
   microsoft_version = DEFAULT_MICROSOFT_VERSION;
   microsoft_build_number = 99999;
-  c99_mode = DEFAULT_C99_MODE;
+  std_version = 0;
   uliterals_enabled = DEFAULT_ULITERALS_ENABLED;
   char16_t_and_char32_t_are_keywords = DEFAULT_ULITERALS_ENABLED;
   type_traits_helpers_enabled = DEFAULT_TYPE_TRAITS_HELPERS_ENABLED;
-  cpp11_mode = DEFAULT_CPP11_MODE;
   right_shift_can_be_angle_brackets = FALSE;
   extended_friends_enabled = FALSE;
   mixed_string_concat_enabled = FALSE;

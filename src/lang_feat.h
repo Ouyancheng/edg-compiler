@@ -1637,10 +1637,17 @@ value of which may be modified using command line options.
  #error -- C99 and SVR4 C modes are mutually exclusive
 #endif /* DEFAULT_C99_MODE && DEFAULT_SVR4_C_MODE */
 
-EXTERN a_boolean
-		c99_mode;
-			/* When TRUE accept language features defined by the
-			   C99 standard. */
+/*
+Macro that is TRUE when the front end should accept language features defined
+by the C99 standard or later C standards.
+*/
+#define c99_mode (C_mode() && std_version >= 199901)
+
+/*
+Macro that is TRUE when the front end should accept language features defined
+by the C11 standard or later C standards.
+*/
+#define c11_mode (C_mode() && std_version >= 201112)
 
 /*
 Flag that is TRUE if the C99 and C++ (beginning with C++11) predefined
@@ -2229,14 +2236,30 @@ for some expressions that gcc without -O1 would return FALSE for.
 #define DEFAULT_GCC_CONST_VARIABLES_ALLOWED TRUE
 #endif /* ifndef DEFAULT_GCC_CONST_VARIABLES_ALLOWED */
 
-EXTERN a_boolean
-		cpp11_mode;
-			/* When TRUE accept language features defined by the
-			   C++11 standard. */
+EXTERN int32_t
+		std_version;
+			/* A number of the form YYYYmm indicating the version
+			   of the language standard (for C or C++) in effect.
+			   For C++, this corresponds to the value of the
+			   __cplusplus macro and for C to the __STDC_VERSION__
+			   macro (except for C89/C90 where it is 199000 since
+			   that standard has no corresponding macro).  For
+			   standards in development YYYY represents the year
+			   in which the standard is expected to be ratified
+			   (e.g., it might be 2022 for an anticipated C++22
+			   mode) and mm is 00. */
 
+/*
+Macro that is TRUE when the front end should accept language features defined
+by the C++11 standard or later C++ standards.
+*/
+#define cpp11_mode (!C_mode() && std_version >= 201103)
+
+/*
+A macro synonymous with cpp11_mode to enhance compatibility with older versions
+of the front end.
+*/
 #define cpp0x_mode cpp11_mode
-			/* Macro provided so that customer code that uses the
-			   old variable name will continue to work. */
 
 EXTERN a_boolean
 		right_shift_can_be_angle_brackets;

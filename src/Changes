@@ -1,5 +1,16 @@
 Version 4.9
 
+1/4/14   [EDGcpfe/14762]
+C++14 and C11 modes
+
+Command-line options "--c++14" and "--c11" have been added to the front end.
+When features of the C++14 or C11 standards are implemented in the front end,
+they will be enabled by these options.  Internally, a new global variable
+std_version now reflects which C or C++ standard is in effect, and global
+variables like cpp11_mode and c99_mode are now macros whose values depend on
+the value of std_version.
+
+
 1/3/14   [EDGcpfe/14482]
 Unintended reuse of nonreal instantiations yielding incorrect behavior
 with variadic template parameters

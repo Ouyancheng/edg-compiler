@@ -307,6 +307,8 @@ typedef enum /*an_option_kind*/ {
 #if ALLOW_NONSTANDARD_ANONYMOUS_UNIONS
   optk_nonstd_anonymous_unions,
 #endif /* ALLOW_NONSTANDARD_ANONYMOUS_UNIONS */
+  optk_cpp14_mode,
+  optk_c11_mode,
   optk_last		/* Must be last. */
 } an_option_kind;
 
