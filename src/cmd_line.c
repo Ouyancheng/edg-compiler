@@ -3106,7 +3106,6 @@ setting is used, and to set various unmentioned settings as needed.
       !microsoft_mode && !sun_mode) {
     variadic_templates_enabled = DEFAULT_VARIADIC_TEMPLATES_ENABLED;
   }  /* if */
-//FIXME
   if (cpp11_mode) {
     /* Enable C++11 extensions. */
     check_and_set_cpp11_mode_options(/*value=*/TRUE);
