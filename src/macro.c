@@ -4671,10 +4671,9 @@ end_scan_for_macro_modifs:;
         delete_source_from_loc = save_delete_source_from_loc;
         --macro_depth;
         strcpy(repl_text, file_found ? "1" : "0");
-#if CHECKING
       } else {
-        internal_error("macro_invocation: unknown special predefined macro");
-#endif /* CHECKING */
+        unexpected_condition_str(
+                         "macro_invocation: unknown special predefined macro");
       }  /* if */
 #if FULLY_RESOLVED_MACRO_POSITIONS
       if (invocation_slmp != NULL) {
@@ -5616,7 +5615,8 @@ end_arg_expansion:;
       strcpy(repl_text, "0");
 #endif /* GNU_EXTENSIONS_ALLOWED */
     } else {
-      internal_error("macro_invocation: unknown special predefined macro");
+      unexpected_condition_str(
+                         "macro_invocation: unknown special predefined macro");
     }  /* if */
 #if FULLY_RESOLVED_MACRO_POSITIONS
     if (invocation_slmp != NULL) {
