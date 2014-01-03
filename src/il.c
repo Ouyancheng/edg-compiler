@@ -6215,6 +6215,25 @@ are done.
 }  /* compare_dynamic_inits */
 
 
+static an_itf_flag_set itf_flags_for_cc_options(
+                              a_compare_constants_options_set options)
+/*
+Return the appropriate type comparison flags for a given set of
+constant comparison options.
+*/
+{
+  an_itf_flag_set itf_options = ITF_NO_FLAGS;
+  if ((options & CC_EXACT_TEMPLATE_PARAM_TYPE_REQUIRED) != 0 ||
+      (options & CC_STRICTLY_IDENTICAL) != 0) {
+    itf_options |= ITF_EXACT_TEMPLATE_PARAM_TYPE_REQUIRED;
+  }  /* if */
+  if (options & CC_EXACT_DECLTYPE_EXPR_MATCH_REQUIRED) {
+    itf_options |= ITF_EXACT_DECLTYPE_EXPR_MATCH_REQUIRED;
+  }  /* if */
+  return itf_options;
+}  /* itf_flags_for_cc_options */
+
+
 a_boolean compare_expressions(an_expr_node_ptr                node1,
                               an_expr_node_ptr                node2,
                               a_compare_constants_options_set options)
@@ -6224,8 +6243,10 @@ options is a set of flags that control the way in which certain comparisons
 are done.
 */
 {
-  a_boolean eq = FALSE;
+  a_boolean        eq = FALSE;
+  an_itf_flag_set itf_options;
 
+  itf_options = itf_flags_for_cc_options(options);
   if (node1 != NULL) node1 = skip_parens(node1);
   if (node2 != NULL) node2 = skip_parens(node2);
   if (node1 == NULL && node2 == NULL) {
@@ -6298,7 +6319,7 @@ are done.
           eq = (ndsp1->is_new == ndsp2->is_new &&
                 ndsp1->placement_new == ndsp2->placement_new &&
                 ndsp1->array_delete == ndsp2->array_delete &&
-                identical_types(ndsp1->type, ndsp2->type) &&
+                identical_types_full(ndsp1->type, ndsp2->type, itf_options) &&
                 same_entities(ndsp1->routine, ndsp2->routine) &&
                 compare_expression_lists(ndsp1->arg, ndsp2->arg, options) &&
                 compare_dynamic_inits(ndsp1->dynamic_init,
@@ -6318,7 +6339,7 @@ are done.
                 !(gsp1->is_cli_array &&
                   gsp1->has_new_initializer != gsp2->has_new_initializer) &&
                 gsp1->compiler_generated == gsp2->compiler_generated &&
-                identical_types(gsp1->type, gsp2->type) &&
+                identical_types_full(gsp1->type, gsp2->type, itf_options) &&
                 compare_expression_lists(gsp1->cli_array_dimension_lengths,
                                          gsp2->cli_array_dimension_lengths,
                                          options) &&
@@ -6340,7 +6361,7 @@ are done.
           } else if (tsp1 == NULL || tsp2 == NULL) {
             eq = FALSE;
           } else {
-            eq = (identical_types(tsp1->type, tsp2->type) &&
+            eq = (identical_types_full(tsp1->type, tsp2->type, itf_options) &&
                   compare_dynamic_inits(tsp1->dynamic_init,
                                         tsp2->dynamic_init,
                                         options));
@@ -6353,8 +6374,9 @@ are done.
                                  options);
         break;
       case enk_typeid:
-        eq = (identical_types(node1->variant.typeid_info.type,
-                              node2->variant.typeid_info.type) &&
+        eq = (identical_types_full(node1->variant.typeid_info.type,
+                                   node2->variant.typeid_info.type,
+                                   itf_options) &&
               compare_expressions(node1->variant.typeid_info.expr,
                                   node2->variant.typeid_info.expr,
                                   options));
@@ -6364,8 +6386,9 @@ are done.
         eq = (node1->variant.sizeof_info.is_type ==
               node2->variant.sizeof_info.is_type &&
               (node1->variant.sizeof_info.is_type ?
-                 identical_types(node1->variant.sizeof_info.variant.type,
-                                 node2->variant.sizeof_info.variant.type) :
+                 identical_types_full(node1->variant.sizeof_info.variant.type,
+                                      node2->variant.sizeof_info.variant.type,
+                                 itf_options) :
                  compare_expressions(
                                  node1->variant.sizeof_info.variant.expr,
                                  node2->variant.sizeof_info.variant.expr,
@@ -6380,8 +6403,10 @@ are done.
                 (node1->variant.sizeof_pack.variant.templ ==
                  node2->variant.sizeof_pack.variant.templ) :
                 (node1->variant.sizeof_pack.is_type ?
-                   identical_types(node1->variant.sizeof_pack.variant.type,
-                                   node2->variant.sizeof_pack.variant.type) :
+                   identical_types_full(
+                                     node1->variant.sizeof_pack.variant.type,
+                                     node2->variant.sizeof_pack.variant.type,
+                                     itf_options) :
                    compare_expressions(
                                    node1->variant.sizeof_pack.variant.expr,
                                    node2->variant.sizeof_pack.variant.expr,
@@ -6403,8 +6428,9 @@ are done.
         break;
 #endif /* GNU_EXTENSIONS_ALLOWED */
       case enk_type_operand:
-        eq = identical_types(node1->variant.type_operand.type,
-                             node2->variant.type_operand.type);
+        eq = identical_types_full(node1->variant.type_operand.type,
+                                  node2->variant.type_operand.type,
+                                  itf_options);
         break;
       case enk_builtin_operation:
         if (node1->variant.builtin_operation.kind ==
@@ -6440,14 +6466,7 @@ are done.
         unexpected_condition_str("compare_expressions: bad expr kind");
     }  /* switch */
     if (eq && do_type_comparison) {
-      an_itf_flag_set itf_options = ITF_NO_FLAGS;
-      if (options & CC_EXACT_TEMPLATE_PARAM_TYPE_REQUIRED) {
-        itf_options |= ITF_EXACT_TEMPLATE_PARAM_TYPE_REQUIRED;
-      }  /* if */
-      if (options & CC_EXACT_DECLTYPE_EXPR_MATCH_REQUIRED) {
-        itf_options |= ITF_EXACT_DECLTYPE_EXPR_MATCH_REQUIRED;
-      }  /* if */
-      if (!f_identical_types(node1->type, node2->type, itf_options)) {
+      if (!identical_types_full(node1->type, node2->type, itf_options)) {
         eq = FALSE;
       }  /* if */
     }  /* if */
@@ -6508,9 +6527,7 @@ definition of the CC flags in il.h for more information.
            (options & CC_EXACT_TEMPLATE_CONSTANT_IDENTITY_MATCH_REQUIRED) != 0;
   an_itf_flag_set itf_options;
 
-  itf_options = strict_template_constant_identity
-                                       ? ITF_EXACT_TEMPLATE_PARAM_TYPE_REQUIRED
-                                       : ITF_NO_FLAGS;
+  itf_options = itf_flags_for_cc_options(options);
   if (cp1 == cp2) {
     eq = TRUE;
     goto end_of_routine;
@@ -6553,7 +6570,7 @@ definition of the CC flags in il.h for more information.
     /* The types must be pointer-identical. */
     same_types = same_entities(cp1_type, cp2_type);
     if (!same_types && cp1->kind == (a_constant_repr_kind)ck_string &&
-        identical_types(cp1_type, cp2_type)) {
+        identical_types_full(cp1_type, cp2_type, itf_options)) {
       /* ... except that for string constants we allow type equivalence,
          because for strings with length greater than
          MAX_TRACKED_STRING_TYPE_LENGTH a different array type is created
@@ -6679,8 +6696,9 @@ definition of the CC flags in il.h for more information.
               break;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
             case abk_typeid:
-              eq = identical_types(cp1->variant.address.variant.type,
-                                   cp2->variant.address.variant.type);
+              eq = identical_types_full(cp1->variant.address.variant.type,
+                                        cp2->variant.address.variant.type,
+                                        itf_options);
               break;
 	    case abk_label:
 	      eq = (cp1->variant.address.variant.label == 
@@ -6804,7 +6822,7 @@ definition of the CC flags in il.h for more information.
                                               unknown_function.conversion_type;
                 eq = TRUE;
                 if (tp1 != NULL && tp2 != NULL) {
-                  if (!identical_types(tp1, tp2)) eq = FALSE;
+                  if (!identical_types_full(tp1, tp2, itf_options)) eq = FALSE;
                 } else if (!(tp1 == NULL && tp2 == NULL)) {
                   eq = FALSE;
 #if MICROSOFT_EXTENSIONS_ALLOWED
@@ -6834,7 +6852,7 @@ definition of the CC flags in il.h for more information.
             case tpck_uuidof:
             case tpck_typeid:
             case tpck_noexcept:
-              eq = f_identical_types(
+              eq = identical_types_full(
                          cp1->variant.template_param.variant.templ_sizeof.type,
                          cp2->variant.template_param.variant.templ_sizeof.type,
                          itf_options);
@@ -6864,7 +6882,7 @@ definition of the CC flags in il.h for more information.
                                       ETA_IS_NONREAL_MEMBER);
               break;
             case tpck_destructor:
-              eq = f_identical_types(
+              eq = identical_types_full(
                          cp1->variant.template_param.variant.destructor.type,
                          cp2->variant.template_param.variant.destructor.type,
                          itf_options);

@@ -1,5 +1,38 @@
 Version 4.9
 
+1/3/14   [EDGcpfe/14482]
+Unintended reuse of nonreal instantiations yielding incorrect behavior
+with variadic template parameters
+
+The way in which dependent nontype argument expressions were compared
+could result in the failure to properly substitute a variadic template
+argument.  This could potentially result in a variety of incorrect behavior.
+In the example below, this resulted in a failure to use the correct
+operator= function.  The problem would arise when a given template was
+instantiated on similar dependent nontype expressions that should be
+considered distinct because they used different template parameters, but
+incorrectly reused a previously created instance (A<sizeof...(U) ==
+sizeof...(T)> in the example below).
+
+  template <bool, typename T = void> struct A {};
+  template <typename T> struct A<true, T> { typedef T type; };
+  template <typename... T> struct B {
+    template <typename... U,
+              typename = typename A<sizeof...(U) == sizeof...(T)>::type >
+    explicit B(U&&...);
+
+    template <typename... U,
+              typename = typename A<sizeof...(U) == sizeof...(T)>::type>
+    B& operator=(const B<U...>&);
+  };
+  template <typename... T> B<T&...> g(T&...);
+  B<int> f();
+  int main() {
+    int a;
+    g(a) = f();
+  }
+
+
 1/3/14   [EDGcpfe/7498,EDGcpfe/7967,EDGcpfe/13752,EDGcpfe/14758]
 Microsoft compatibility: default nontype template arguments not evaluated
 unless used

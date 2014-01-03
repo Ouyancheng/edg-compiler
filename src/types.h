@@ -687,6 +687,8 @@ typedef unsigned int an_itf_flag_set;
 
 #define identical_types(t1, t2) \
   ((t1) == (t2) || f_identical_types((t1), (t2), ITF_NO_FLAGS))
+#define identical_types_full(t1, t2, options) \
+  ((t1) == (t2) || f_identical_types((t1), (t2), (options)))
 #define il_identical_types(t1, t2) \
   ((t1) == (t2) || f_identical_types((t1), (t2), ITF_IL_IDENTICAL))
 #define identical_types_ignoring_qualifiers(t1, t2) \
