@@ -9172,25 +9172,24 @@ do_assignment:;
       break;
     case dik_bitwise_copy:
       /* Bitwise copy of a value. */
-      { an_expr_node_ptr  source_node;
-        if (dip->variant.bitwise_copy.source != NULL) {
-          source_node = dip->variant.bitwise_copy.source;
-        } else {
-          /* The source location is implied.  This is used for copying members
-             of classes in ctor-initializers of copy constructors, for the
-             parameter of catch clauses, for captured lambda parameters, etc.
-             ctor_init is non-NULL for the first of those cases. */
-          /* Make an rvalue expression for the source entity. */
+      if (dip->variant.bitwise_copy.source != NULL) {
+        source_node = dip->variant.bitwise_copy.source;
+        /* FIXME: Lower the source node expressions? */
+      } else {
+        /* The source location is implied.  This is used for copying members
+           of classes in ctor-initializers of copy constructors, for the
+           parameter of catch clauses, for captured lambda parameters, etc.
+           ctor_init is non-NULL for the first of those cases. */
+        /* Make an rvalue expression for the source entity. */
+        source_node = implied_source_of_copy(source_desc, ipdp,
+                                             /*result_is_lvalue=*/FALSE);
+        if (is_array_type(source_node->type)) {
           source_node = implied_source_of_copy(source_desc, ipdp,
-                                               /*result_is_lvalue=*/FALSE);
-          if (is_array_type(source_node->type)) {
-            source_node = implied_source_of_copy(source_desc, ipdp,
-                                                 /*result_is_lvalue=*/TRUE);
-          }  /* if */
+                                               /*result_is_lvalue=*/TRUE);
         }  /* if */
-        add_bitwise_copy(ipdp, source_node, have_complete_object,
-                         eff_insert_location);
       }  /* if */
+      add_bitwise_copy(ipdp, source_node, have_complete_object,
+                       eff_insert_location);
       break;
     default:
       unexpected_condition_str("lower_dynamic_init: bad kind");
