@@ -105,15 +105,20 @@ unneeded in such cases since the member itself is not unaligned).
 1/2/14   [EDGcpfe/14634]
 Feature-test macros
 
-The feature-test macros, such as __cpp_rvalue_references and
-__cpp_raw_strings, from document WG21 SG10 SD-6, have been implemented.
-These macros have a non-zero value (indicating the year and month in which
-the feature was adopted by the C++ Standard Committee) if the corresponding
-feature is enabled in the current execution of the front end.  The
-__has_include macro described in that document has also been implemented,
-having the value 1 if the named header file is found and 0 otherwise.
-These macros are defined if DEFINE_PORTABLE_FEATURE_TEST_MACROS is set to
-TRUE (the default value).
+The feature-test macros from document WG21 SG10 SD-6 have been implemented:
+__cpp_aggregate_nsdmi, __cpp_attributes, __cpp_binary_literals,
+__cpp_constexpr, __cpp_decltype, __cpp_decltype_auto,
+__cpp_generic_lambdas, __cpp_init_captures, __cpp_lambdas,
+__cpp_raw_strings, __cpp_return_type_deduction, __cpp_runtime_arrays,
+__cpp_rvalue_references, __cpp_static_assert, __cpp_unicode_characters,
+__cpp_unicode_literals, __cpp_user_defined_literals,
+__cpp_variable_templates, and __cpp_variadic_templates.  These macros have
+a non-zero value (indicating the year and month in which the feature was
+adopted by the C++ Standard Committee) if the corresponding feature is
+enabled in the current execution of the front end.  The __has_include macro
+described in that document has also been implemented, having the value 1 if
+the named header file is found and 0 otherwise.  These macros are defined
+if DEFINE_PORTABLE_FEATURE_TEST_MACROS is set to TRUE (the default value).
 
 As part of this change, a rudimentary clang mode has been added, with
 --clang and --clang_version command-line options and corresponding

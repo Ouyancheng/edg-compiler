@@ -4283,7 +4283,7 @@ Microsoft mode.  Likewise for --c++11 which implicitly sets the dialect
 to C_dialect_cplusplus and also sets std_version.
 
 clang mode is a variant of g++ mode.  Specifying --clang or --clang_version
-will implicitly set gpp_mode.  Note that there is no "clang C mode;" an
+will implicitly set gpp_mode.  Note that there is no "clang C mode"; an
 attempt to specify that is diagnosed as a command line error.
 
 Although not recommended, some conflicting language modes can be
@@ -9010,10 +9010,10 @@ enable_microsoft_mode:
       case optk_clang_version:
         /* The version of clang being emulated.  Currently, there are no
            version dependencies for clang mode, so the version number is
-           not checked or restricted here.  Implies the clang dialect of
-           g++.  gpp_mode will be set by check_dialect_and_language_modes
-           as a consequence of optk_clang_version having been used.  Just
-           set the version and the dialect flag here. */
+           not restricted here.  Implies the clang dialect of g++.
+           gpp_mode will be set by check_dialect_and_language_modes as a
+           consequence of optk_clang_version having been used.  Just set
+           the version and the dialect flag here. */
         clang_version = scan_opt_arg_number(opt_arg);
         clang_mode = TRUE;
         set_C_dialect(C_dialect_cplusplus);

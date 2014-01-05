@@ -5541,8 +5541,7 @@ end_arg_expansion:;
     repl_text[0] = '\0';
   }  /* if */
   if (repl_text == NULL) {
-    /* This is a predefined macro like the clang feature-test macros whose
-       value must be computed. */
+    /* This is a predefined macro whose value must be computed. */
     /* Use a special a_macro_arg entry as the expansion text buffer.  Put
        it on the list of macro args so it can be found if the buffers are
        resized. */
