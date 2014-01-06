@@ -22,7 +22,7 @@ argument/parameter mismatches in the generated code.  For example:
   }
 
 
-1/3/14   [EDGcpfe/14685]
+1/6/14   [EDGcpfe/14685]
 C++14: [[deprecated]]
 
 In C++14 mode, the front end now recognizes the standard-notation attribute
