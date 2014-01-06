@@ -1035,8 +1035,8 @@ namespace (if any) matches the modes and namespace encoded in that string.
   a_boolean  match = FALSE;
 
   if (cond[0] == 'c' && cond[1] == '+') {
-    match = TRUE;
     sizeof_t  pos_version = 2;
+    match = TRUE;
     /* First check for a [<namespace>] that matches ap->namespace_name, if
        any */
     if (ap->namespace_name != NULL) {
