@@ -2810,9 +2810,9 @@ setting is used, and to set various unmentioned settings as needed.
 static void check_and_set_cpp11_mode_options(a_boolean value)
 /*
 Explicitly enable (when value is TRUE) or disable (when value is FALSE) any
-features specific to C++11.  In addition, enable or disable some pre-C++11
-standard features that are not always enabled in default mode (e.g., exception
-handling).
+features specific to C++11 and later C++ standards.  In addition, enable or
+disable some pre-C++11 standard features that are not always enabled in
+default mode (e.g., exception handling).
 */
 {
   if (!option_kind_used[(int)optk_exception_handling]) {
