@@ -59,7 +59,7 @@ sizeof...(T)> in the example below).
 Microsoft compatibility: default nontype template arguments not evaluated
 unless used
 
-The Microsoft compiler does not evaluated nontype template default
+The Microsoft compiler does not evaluate nontype template default
 arguments unless they are used.  As a result, the Microsoft compiler
 accepts default arguments that are invalid and default arguments that
 reference an entity that was declared after the point where the
