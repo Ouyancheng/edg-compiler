@@ -1,5 +1,21 @@
 Version 4.9
 
+1/6/14  [EDGcpfe/14753]
+Microsoft compatibility: Conditional operator with xvalues
+
+In C++11, a conditional operator whose second and third operands are xvalues
+of identical types produces an xvalue.  Microsoft compilers do not appear to
+implement that standard behavior yet, and the front end now matches those
+compilers in Microsoft mode (an rvalue is produced instead).  (GNU mode
+already made a similar exception.)  For example:
+
+  struct Z {} v;
+  Z&& z() { return static_cast<Z&&>(v); }
+  int main() {
+    (1 ? z(): z());  // This expression is an xvalue in C++11 mode, but an
+  }                  // rvalue in Microsoft and GNU C++ modes.
+
+
 1/6/14:  [EDGcpfe/14731]
 C++-generating back end, GNU compatibility: __sync_... and __atomic_... names
 and arguments
