@@ -6244,7 +6244,7 @@ are done.
 */
 {
   a_boolean        eq = FALSE;
-  an_itf_flag_set itf_options;
+  an_itf_flag_set  itf_options;
 
   itf_options = itf_flags_for_cc_options(options);
   if (node1 != NULL) node1 = skip_parens(node1);
