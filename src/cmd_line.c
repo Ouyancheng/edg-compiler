@@ -4256,7 +4256,8 @@ command line switches.
       microsoft mode    microsoft_mode                   --microsoft
         bugs mode       microsoft_bugs                   --microsoft_bugs
         16-bit mode     il_header.near_and_far_allowed   --microsoft_16
-      C99               c99_mode                         --c99
+      C99               std_version >= 199901            --c99
+      C11               std_version >= 201112            --c11
         strict          strict_ansi_mode                 -A, -a, etc.
       "normal"            
         strict          strict_ansi_mode                 -A, -a, etc.
@@ -4273,6 +4274,7 @@ command line switches.
     sun mode            sun_mode                         --sun
     GNU C++             gpp_mode                         --g++
     clang C++           gpp_mode && clang_mode           --clang
+    C++03               std_version >= 199711            --c++03
     C++11               std_version >= 201103            --c++11
     C++14               std_version >= 201400            --c++14
     "normal"
@@ -4288,21 +4290,22 @@ with command-line options to select a C mode, but otherwise it implies C++ mode
 (even in the somewhat unusual event that the front end were modified to compile
 C code by default).
 
-C99 mode is in some ways considered both a dialect and a mode.  C_dialect
-is still C_dialect_ANSI, but C99 is permitted to be used in conjunction with
-Microsoft mode.  Likewise for --c++11 which implicitly sets the dialect
-to C_dialect_cplusplus and also sets std_version.
+A modes for a newer standard (like C99 or C++11) is in some ways considered
+both a dialect and a mode.  For example, with --c99 C_dialect is still
+C_dialect_ANSI, but it can also be used in conjunction with Microsoft mode.
+Likewise for --c++11 which implicitly sets the dialect to C_dialect_cplusplus
+and also sets std_version.
 
 clang mode is a variant of GNU mode.  Specifying --clang or --clang_version
 will implicitly set gcc_mode or gpp_mode.
 
-Although not recommended, some conflicting language modes can be
-specified on the command line with the last option being effective
-(e.g., --c89 --c99 results in C99 mode).
+Although not recommended, some conflicting language modes can be specified on
+the command line with the last option being effective (e.g., --c89 --c99
+results in C99 mode).
 
-Note that the fact that K&R C is its own major dialect, rather than
-being a minor dialect under C mode, is a historical accident of the
-order of development of this front end, and is inconsistent and strange.
+Note that the fact that K&R C is its own major dialect, rather than being a
+minor dialect under C mode, is a historical accident of the order of
+development of this front end, and is inconsistent and strange.
 */
 {
   int	pass;
