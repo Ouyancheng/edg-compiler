@@ -1,5 +1,27 @@
 Version 4.9
 
+1/6/14:  [EDGcpfe/14731]
+C++-generating back end, GNU compatibility: __sync_... and __atomic_... names
+and arguments
+
+In configurations in which GNU_BUILTIN_SYNC_FUNCTIONS_ALLOWED is TRUE, the
+front end transforms a call using a generic builtin function name to the
+appropriate concrete version (see the entries of 7/31/07 and 6/26/12), and
+the C++-generating back end put out these calls using the transformed name.
+This caused problems compiling the generated code because the parameter
+types of the generic and concrete versions are different, and the cast
+nodes for mapping the arguments to the concrete parameter types are marked
+as compiler-generated, suppressing them from the C++-generating back end
+output.  The C++-generating back end has now been changed to restore the
+original generic name in such function calls, avoiding the
+argument/parameter mismatches in the generated code.  For example:
+
+  void *f(void *volatile *x, void *y, void *z) {
+    return __sync_val_compare_and_swap(x, y, z);
+    // Previously generated as __sync_val_compare_and_swap_4(x, y, z)
+  }
+
+
 1/3/14   [EDGcpfe/14685]
 C++14: [[deprecated]]
 

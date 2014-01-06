@@ -3710,6 +3710,13 @@ enum a_special_function_kind_tag {
   sfk_event_raise,	/* A "raise" accessor function of a C++/CLI event. */
   sfk_last_accessor = sfk_event_raise,
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+#if GNU_BUILTIN_SYNC_FUNCTIONS_ALLOWED
+  sfk_gnu_sync_concrete_function,
+			/* The concrete version of a GNU __sync_... or
+			   __atomic_... builtin function.  Used only in
+			   enk_routine expression nodes, never as the
+			   special_kind in an a_routine entry. */
+#endif /* GNU_BUILTIN_SYNC_FUNCTIONS_ALLOWED */
   sfk_last		/* Must be last. */
 };
 /* Define as "a_byte" to explicitly control storage size. */
@@ -3731,6 +3738,9 @@ EXTERN a_const_char *db_special_function_kinds[(int)sfk_last + 1]
    "property getter", "property setter",
    "event add", "event remove", "event raise",
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+#if GNU_BUILTIN_SYNC_FUNCTIONS_ALLOWED
+   "gnu sync concrete function",
+#endif /* GNU_BUILTIN_SYNC_FUNCTIONS_ALLOWED */
    "last" /* used to check that initialization is right. */
 }
 #endif /* VAR_INITIALIZERS */
@@ -15081,6 +15091,9 @@ typedef struct an_expr_node {
 			   was rewritten from a reference to a property
 			   field, this points to the descriptor for that
 			   property.  It is otherwise NULL. */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED && !DO_IL_LOWERING */
+#if (MICROSOFT_EXTENSIONS_ALLOWED && !DO_IL_LOWERING) || \
+    GNU_BUILTIN_SYNC_FUNCTIONS_ALLOWED
       a_special_function_kind
 		special_kind;
 			/* If this node is part of a call to a Microsoft
@@ -15088,8 +15101,11 @@ typedef struct an_expr_node {
 			   was rewritten from a reference to a property
 			   field, this is set to either sfk_property_set or
 			   sfk_property_get to reflect the kind of access;
-			   it is sfk_none otherwise. */
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED && !DO_IL_LOWERING */
+			   it is sfk_gnu_sync_concrete_function if this
+			   node designates the concrete version of a GNU
+			   __sync_... or __atomic_... builtin function;
+			   otherwise, it is sfk_none. */
+#endif /* (MICROSOFT_EXTENSIONS_ALLOWED && !DO_IL_LOWERING) || ... */
     } routine;
     /* When kind == enk_field: */
     a_field_ptr field;

@@ -4435,6 +4435,10 @@ that the final call needs to be cast to the indicated type.
                                        &orig_operand.position,
                                        end_position_of_operand(&orig_operand),
                                        target->ref_entries_list, target);
+      check_assertion(is_expression_operand(target) &&
+                      is_routine_node(target->variant.expression));
+      target->variant.expression->variant.routine.special_kind =
+                       (a_special_function_kind)sfk_gnu_sync_concrete_function;
       conv_function_designator_to_ptr_to_function(target,
                                                   (a_source_position *)NULL,
                                                   /*allow_ctor=*/FALSE,
