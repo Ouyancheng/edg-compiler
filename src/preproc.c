@@ -1147,6 +1147,7 @@ translation of certain characters to UTF-8.
   sizeof_t                len;
   a_char_conversion_state conv_state;
 
+  check_assertion(curr_token == tok_header_name);
   /* Build a mask used to mask individual characters. */
   centity_mask = (unsigned long)1 << (targ_host_string_char_bit-1);
   centity_mask = centity_mask | (centity_mask-1);

@@ -492,9 +492,9 @@ line options --gcc, --no_gcc, --g++, and --no_g++.
 #endif /* ifndef DEFAULT_GNU_COMPATIBILITY */
 
 /*
-Flag that is TRUE if the clang version of GNU C++ compatibility should be
-enabled by default.  This will only be effective if GNU C++ compatibility
-is selected by default or via command-line options.
+Flag that is TRUE if the clang version of GNU compatibility should be
+enabled by default.  This will only be effective if GNU compatibility is
+selected by default or via command-line options.
 */
 #ifndef DEFAULT_CLANG_COMPATIBILITY
 #define DEFAULT_CLANG_COMPATIBILITY FALSE
@@ -732,7 +732,7 @@ like Intel's MMX or AMD's 3DNow!.)
 #endif /* GNU_BUILTIN_IA32_VECTOR_FUNCTIONS_ALLOWED && !GNU_VECTOR_TYPES_... */
 
 /*
-Macro that determines which version of the clang C++ compiler should be
+Macro that determines which version of the clang compiler should be
 emulated by default.  Version x.y.z of the clang compiler is represented by
 the value x*10000+y*100+z.
 */
@@ -1046,45 +1046,35 @@ EXTERN a_boolean
 #endif /* SUN_EXTENSIONS_ALLOWED */
 
 /*
-The global variable gcc_mode is defined here (rather than in cmd_line.h) so
-that it can be available to standalone utilities.
+The global variables gcc_mode, gpp_mode, and clang_mode are defined here
+(rather than in cmd_line.h) so that they can be available to standalone
+utilities.
 */
 #if GNU_EXTENSIONS_ALLOWED || defined(_lint)
 EXTERN a_boolean
                 gcc_mode;
                         /* Accept C language features supported by GNU C
                            compilers. */
-#else /* !(GNU_EXTENSIONS_ALLOWED || defined(_lint)) */
-/* Make gcc_mode a constant-expression so some code can be optimized away.
-   Since lint would warn about such code, we do not do this when processed
-   by lint. */
-#define gcc_mode FALSE
-#endif /* GNU_EXTENSIONS_ALLOWED || defined(_lint) */
-
-/*
-The global variables gpp_mode and clang_mode are defined here (rather than
-in cmd_line.h) so that they can be available to standalone utilities.
-*/
-#if GNU_EXTENSIONS_ALLOWED || defined(_lint)
 EXTERN a_boolean
                 gpp_mode;
                         /* Accept C++ language features supported by GNU C++
                            compilers. */
 EXTERN a_boolean
 		clang_mode;
-			/* Accept C++ language_features supported by GNU
-			   and clang C++ compilers. */
+			/* Accept language_features supported by GNU and
+			   clang compilers. */
 #else /* !(GNU_EXTENSIONS_ALLOWED || defined(_lint)) */
-/* Make gpp_mode and clang_mode constant-expressions so some code can be
-   optimized away.  Since lint would warn about such code, we do not do
-   this when processed by lint. */
+/* Make gcc_mode, gpp_mode, and clang_mode constant-expressions so some
+   code can be optimized away.  Since lint would warn about such code, we
+   do not do this when processed by lint. */
+#define gcc_mode FALSE
 #define gpp_mode FALSE
 #define clang_mode FALSE
 #endif /* GNU_EXTENSIONS_ALLOWED || defined(_lint) */
 
 /*
 Convenience macro that evaluates to TRUE when either GNU C or GNU C++ mode
-is enabled.
+(or the clang dialect thereof) is enabled.
 */
 #define gnu_mode (gcc_mode || gpp_mode)
 
@@ -1097,7 +1087,7 @@ EXTERN unsigned long
 
 EXTERN unsigned long
 		clang_version;
-			/* The version of the clang C++ compiler with which
+			/* The version of the clang compiler with which
 			   compatibility is desired.  clang version x.y.z
 			   is represented by the value x*10000+y*100+z.
 			   For example, clang 3.0.2 is represented by

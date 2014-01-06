@@ -123,12 +123,12 @@ if DEFINE_PORTABLE_FEATURE_TEST_MACROS is set to TRUE (the default value).
 As part of this change, a rudimentary clang mode has been added, with
 --clang and --clang_version command-line options and corresponding
 DEFAULT_CLANG_COMPATIBILITY and DEFAULT_CLANG_VERSION configuration macros.
-clang mode is viewed as a dialect of g++ mode, so that --clang, --no_clang,
-and --clang_version implicitly set gpp_mode to TRUE.  Currently the only
-effect of setting clang_mode to TRUE is to enable the clang feature-test
-macros __has_feature, __has_extension, __has_attribute, and __has_builtin,
-as well as the __has_include macro described above.  The value specified
-for --clang_version currently has no effect and is ignored.
+clang mode is viewed as a dialect of GNU mode, so that --clang, --no_clang,
+and --clang_version implicitly set gcc_mode or gpp_mode to TRUE.  Currently
+the only effect of setting clang_mode to TRUE is to enable the clang
+feature-test macros __has_feature, __has_extension, __has_attribute, and
+__has_builtin, as well as the __has_include macro described above.  The
+value specified for --clang_version currently has no effect and is ignored.
 
 For example, assuming --clang and a configuration in which
 DEFINE_PORTABLE_FEATURE_TEST_MACROS is TRUE:

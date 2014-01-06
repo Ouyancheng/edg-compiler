@@ -5593,9 +5593,9 @@ end_arg_expansion:;
                                       compare_feature_names);
         if (feature != NULL) {
           extension_supported = *feature->enabled;
-        } else {
+        } else if (C_dialect == C_dialect_cplusplus) {
           /* The identifier is not the name of a feature, so check it
-             against the list of supported type-traits helpers. */
+             against the list of supported C++ type-traits helpers. */
           extension_supported =
                         (bsearch((a_bsearch_arg_type)extension_name,
                                  (a_bsearch_arg_type)clang_type_traits_helpers,
@@ -9485,7 +9485,7 @@ command line -D options.
                                             /*cannot_be_redefined=*/TRUE,
                                             /*ref_suppresses_pch_file=*/FALSE);
 #if DEFINE_PORTABLE_FEATURE_TEST_MACROS
-  } else {
+  } else if (C_dialect == C_dialect_cplusplus) {
     /* __has_include is a WG21 SG10 recommendation and must be defined even
        if we are not in clang mode. */
     has_include_symbol = enter_predef_macro((char *)NULL, "__has_include",
@@ -9732,6 +9732,8 @@ after this function.
   depth_of_curr_macro_invocation_record = 0;
   ckpt_depth_of_curr_macro_invocation_record = 0;
 #endif /* RECORD_MACRO_INVOCATIONS */
+  access_control_sfinae = FALSE;
+  contextual_conversions = FALSE;
 }  /* macro_trans_unit_init */
 
 

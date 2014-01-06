@@ -4734,9 +4734,9 @@ static a_boolean search_for_input_file(
 			FILE				**new_input_file,
 			a_boolean			*suppress_include,
 			an_open_file_result		*open_result,
-                        a_unicode_source_kind           *unicode_source_kind,
+			a_unicode_source_kind           *unicode_source_kind,
 			a_directory_name_entry_ptr	*dir_entry,
-                        a_boolean                       suppress_diagnostics)
+			a_boolean                       suppress_diagnostics)
 /*
 Look for file_name in the list of directories specified by search path.
 is_implicit_include is TRUE when searching for a source file for implicit

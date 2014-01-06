@@ -17984,8 +17984,9 @@ typedef struct an_il_header {
   a_byte_boolean
 		clang_mode;
 			/* TRUE if the source program was compiled in the
-			   clang variant of GNU C++ mode (i.e., will never
-			   be TRUE unless gpp_mode is TRUE). */
+			   clang variant of GNU mode (i.e., will never be
+			   TRUE unless either gcc_mode or gpp_mode is
+			   TRUE). */
   unsigned long
 		gnu_version;
 			/* When gcc_mode or gpp_mode is TRUE, the version of
