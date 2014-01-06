@@ -3868,10 +3868,12 @@ exclude the GNU modes already.  Hence those are not checked again here.)
 #endif /* INT128_EXTENSIONS_ALLOWED */
   carriage_return_is_line_terminator =
                                     ACCEPT_GNU_CARRIAGE_RETURN_LINE_TERMINATOR;
+#if GNU_EXTENSIONS_ALLOWED
   if (!option_kind_used[(int)optk_clang_mode] &&
       !option_kind_used[(int)optk_clang_version]) {
     clang_mode = DEFAULT_CLANG_COMPATIBILITY;
   }  /* if */
+#endif /* GNU_EXTENSIONS_ALLOWED */
 }  /* check_and_set_gnu_mode_options */
 
 
