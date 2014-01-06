@@ -455,6 +455,7 @@ typedef struct an_attr_appl_descr {
 static an_attr_application_fn apply_align_attr;
 static an_attr_application_fn apply_base_check_attr;
 static an_attr_application_fn apply_carries_dependency_attr;
+static an_attr_application_fn apply_deprecated_attr;
 static an_attr_application_fn apply_final_attr;
 static an_attr_application_fn apply_hiding_attr;
 static an_attr_application_fn apply_noreturn_attr;
@@ -463,7 +464,6 @@ static an_attr_application_fn apply_override_attr;
 #if GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED
 /* Application functions for nonstandard attributes available in both GNU and
    Microsoft configurations. */
-static an_attr_application_fn apply_deprecated_attr;
 #if GNU_NAKED_ATTRIBUTE_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED
 static an_attr_application_fn apply_naked_attr;
 #endif /* GNU_NAKED_ATTRIBUTE_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED */
