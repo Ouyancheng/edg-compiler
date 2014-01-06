@@ -779,11 +779,9 @@ Display the indicated source correspondence entry.
     disp_boolean("marked_as_gnu_extension", TRUE);
   }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED && GENERATE_SOURCE_SEQUENCE_LISTS */
-#if GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED
   if (scp->is_deprecated) { 
     disp_boolean("is_deprecated", TRUE);
   }  /* if */
-#endif /* GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED */
   if (scp->externalized) {
     disp_boolean("externalized", TRUE);
   }  /* if */

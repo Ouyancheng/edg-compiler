@@ -570,14 +570,14 @@ static an_attr_appl_descr known_attr_appl_table[(int)ak_last+1] = {
   { ak_align, "", apply_align_attr },
   { ak_base_check, "c:+d", apply_base_check_attr },
   { ak_carries_dependency, "r|p", apply_carries_dependency_attr },
+  { ak_deprecated, "t|p|c|e|r|v|d", apply_deprecated_attr },
   { ak_final, "r:+v!|c:+d!", apply_final_attr },
   { ak_hiding, "t|c|e|r:+m!|v|d", apply_hiding_attr },
   { ak_noreturn, "t|p|r|v|d", apply_noreturn_attr },
   { ak_override, "r:+v!", apply_override_attr },
-#if GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED
   /* Nonstandard attributes available in both GNU and Microsoft
      configurations. */
-  { ak_deprecated, "t|p|c|e|r|v|d", apply_deprecated_attr },
+#if GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED
 #if GNU_NAKED_ATTRIBUTE_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED
   { ak_naked, "r", apply_naked_attr },
 #endif /* GNU_NAKED_ATTRIBUTE_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED */
@@ -3971,6 +3971,85 @@ The given entity must be a parameter or a routine.  Apply the
 }  /* apply_carries_dependency_attr */
 
 
+static char* apply_deprecated_attr(an_attribute_ptr  ap,
+                                   char              *entity,
+                                   an_il_entry_kind  entity_kind)
+/*
+The given entity must be a variable, routine, type, or field.  Apply the
+"deprecated" attribute to it, and return the entity.
+*/
+{
+  check_assertion(entity_kind == iek_routine || entity_kind == iek_variable ||
+                  entity_kind == iek_field || entity_kind == iek_type ||
+                  entity_kind == iek_param_type);
+  if (entity_kind == iek_type) {
+    /* Only user-defined types can be deprecated. */
+    a_type_ptr  tp = (a_type_ptr)entity;
+    if (!(is_tag_type(tp) || type_is_typedef(tp))) {
+      report_bad_attribute_target(es_warning, ap);
+    } else if (ap->family == (a_byte_attribute_family)af_ms_declspec &&
+               ap->syntactic_location ==
+                                     (a_byte_attribute_location)al_tag_name) {
+      /* Microsoft compilers ignore the attribute on enum types and on
+         unnamed classes. */
+      if (is_immediate_enum_type(tp)) {
+        pos_warning(ec_extended_modifier_ignored_on_enum, &ap->position);
+        make_attr_unrecognized(ap);
+      } else if (tp->variant.class_struct_union.originally_unnamed) {
+        pos_st_warning(ec_attribute_ignored_on_unnamed_type,
+                       &ap->position, ap->name);
+        make_attr_unrecognized(ap);
+      }  /* if */
+    }  /* if */
+  } else if (entity_kind == iek_param_type) {
+    /* Note that when the entity is a parameter type, the attribute is later
+       transferred to the corresponding parameter variable. */
+    if (ap->family == (a_byte_attribute_family)af_ms_declspec) {
+      /* Microsoft appears to accept and then discard the attribute. */
+      make_attr_unrecognized(ap);
+    }  /* if */
+  }  /* if */
+  if (!is_unrecognized_attr(ap)) {
+    a_source_correspondence *scp = source_corresp_for_il_entry(entity,
+                                                               entity_kind);
+    if (ap->arguments != NULL) {
+      an_attribute_arg_ptr  aap = ap->arguments;
+      a_constant_ptr        cp;
+      check_assertion(aap->next == NULL &&
+                      aap->kind == (an_attribute_arg_kind)aak_constant);
+      cp = aap->variant.constant;
+      check_assertion(cp->kind == (a_constant_repr_kind)ck_string);
+      check_assertion(
+               cp->variant.string.value[cp->variant.string.length-1] == '\0');
+      if ((ap->family == (a_byte_attribute_family)af_ms_declspec &&
+           microsoft_mode && microsoft_version < 1400) ||
+          (ap->family == (a_byte_attribute_family)af_gnu &&
+           gnu_mode && gnu_version < 40500)) {
+        /* Only Microsoft and GNU compilers of recent vintage allow an
+           optional string argument. */
+        report_bad_attribute_arg(aap, ap);
+      } else if (scp != NULL) {
+        an_attribute_ptr  prev_ap = deprecation_arg_attr_for(scp);
+        if (prev_ap != NULL) {
+          if (!eq_constants(prev_ap->arguments->variant.constant, cp)) {
+            /* Note that if multiple deprecated attributes were recorded,
+               deprecation_arg_attr_for will return the first. */
+            pos_remark(ec_decl_modifiers_incompatible_with_previous_decl,
+                       &aap->position);
+          }  /* if */
+        } else if (!is_ordinary_string_constant(cp)) {
+          pos_remark(ec_wide_deprecation_string, &aap->position);
+        }  /* if */
+      }  /* if */
+    }  /* if */
+    if (scp != NULL) {
+      scp->is_deprecated = TRUE;
+    }  /* if */
+  }  /* if */
+  return entity;
+}  /* apply_deprecated_attr */
+ 
+
 static char* apply_final_attr(an_attribute_ptr  ap,
                               char              *entity,
                               an_il_entry_kind  entity_kind)
@@ -4149,86 +4228,6 @@ standard, but is not part of the C++11 standard.
 }  /* apply_override_attr */
 
 #if GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED
-
-/*ARGSUSED*/  /* ap is unused (but required by the callback type). */
-static char* apply_deprecated_attr(an_attribute_ptr  ap,
-                                   char              *entity,
-                                   an_il_entry_kind  entity_kind)
-/*
-The given entity must be a variable, routine, type, or field.  Apply the
-"deprecated" attribute to it, and return the entity.
-*/
-{
-  check_assertion(entity_kind == iek_routine || entity_kind == iek_variable ||
-                  entity_kind == iek_field || entity_kind == iek_type ||
-                  entity_kind == iek_param_type);
-  if (entity_kind == iek_type) {
-    /* Only user-defined types can be deprecated. */
-    a_type_ptr  tp = (a_type_ptr)entity;
-    if (!(is_tag_type(tp) || type_is_typedef(tp))) {
-      report_bad_attribute_target(es_warning, ap);
-    } else if (ap->family == (a_byte_attribute_family)af_ms_declspec &&
-               ap->syntactic_location ==
-                                     (a_byte_attribute_location)al_tag_name) {
-      /* Microsoft compilers ignore the attribute on enum types and on
-         unnamed classes. */
-      if (is_immediate_enum_type(tp)) {
-        pos_warning(ec_extended_modifier_ignored_on_enum, &ap->position);
-        make_attr_unrecognized(ap);
-      } else if (tp->variant.class_struct_union.originally_unnamed) {
-        pos_st_warning(ec_attribute_ignored_on_unnamed_type,
-                       &ap->position, ap->name);
-        make_attr_unrecognized(ap);
-      }  /* if */
-    }  /* if */
-  } else if (entity_kind == iek_param_type) {
-    /* Note that when the entity is a parameter type, the attribute is later
-       transferred to the corresponding parameter variable. */
-    if (ap->family == (a_byte_attribute_family)af_ms_declspec) {
-      /* Microsoft appears to accept and then discard the attribute. */
-      make_attr_unrecognized(ap);
-    }  /* if */
-  }  /* if */
-  if (!is_unrecognized_attr(ap)) {
-    a_source_correspondence *scp = source_corresp_for_il_entry(entity,
-                                                               entity_kind);
-    if (ap->arguments != NULL) {
-      an_attribute_arg_ptr  aap = ap->arguments;
-      a_constant_ptr        cp;
-      check_assertion(aap->next == NULL &&
-                      aap->kind == (an_attribute_arg_kind)aak_constant);
-      cp = aap->variant.constant;
-      check_assertion(cp->kind == (a_constant_repr_kind)ck_string);
-      check_assertion(
-               cp->variant.string.value[cp->variant.string.length-1] == '\0');
-      if ((ap->family == (a_byte_attribute_family)af_ms_declspec &&
-           microsoft_mode && microsoft_version < 1400) ||
-          (ap->family == (a_byte_attribute_family)af_gnu &&
-           gnu_mode && gnu_version < 40500)) {
-        /* Only Microsoft and GNU compilers of recent vintage allow an
-           optional string argument. */
-        report_bad_attribute_arg(aap, ap);
-      } else if (scp != NULL) {
-        an_attribute_ptr  prev_ap = deprecation_arg_attr_for(scp);
-        if (prev_ap != NULL) {
-          if (!eq_constants(prev_ap->arguments->variant.constant, cp)) {
-            /* Note that if multiple deprecated attributes were recorded,
-               deprecation_arg_attr_for will return the first. */
-            pos_remark(ec_decl_modifiers_incompatible_with_previous_decl,
-                       &aap->position);
-          }  /* if */
-        } else if (!is_ordinary_string_constant(cp)) {
-          pos_remark(ec_wide_deprecation_string, &aap->position);
-        }  /* if */
-      }  /* if */
-    }  /* if */
-    if (scp != NULL) {
-      scp->is_deprecated = TRUE;
-    }  /* if */
-  }  /* if */
-  return entity;
-}  /* apply_deprecated_attr */
- 
 #if GNU_NAKED_ATTRIBUTE_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED
 
 /*ARGSUSED*/  /* ap is unused (but required by the callback type). */

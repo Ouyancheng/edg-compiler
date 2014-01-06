@@ -2312,6 +2312,7 @@ typedef enum an_attribute_kind_tag {
   ak_base_check,	/* "base_check" (std). */
   ak_carries_dependency,
 			/* "carries_dependency" (std). */
+  ak_deprecated,	/* "deprecated" (std, gnu, ms). */
   ak_final,		/* "final" (std). */
   ak_hiding,		/* "hiding" (std). */
   ak_noreturn,		/* "noreturn" (std, gnu, ms) or "volatile" (gnu). */
@@ -2320,7 +2321,6 @@ typedef enum an_attribute_kind_tag {
 #if GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED
   /* Nonstandard attributes available in both GNU and Microsoft
      configurations. */
-  ak_deprecated,	/* "deprecated" (gnu, ms). */
 #if GNU_NAKED_ATTRIBUTE_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED
   ak_naked,		/* "naked" (gnu, ms). */
 #endif /* GNU_NAKED_ATTRIBUTE_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED */
@@ -2794,12 +2794,9 @@ typedef struct a_source_correspondence {
 			   a similar flag is present in the corresponding
 			   secondary source sequence entry.) */
 #endif /* GNU_EXTENSIONS_ALLOWED && GENERATE_SOURCE_SEQUENCE_LISTS */
-#if GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED
   a_bit_field   is_deprecated:1;
 			/* TRUE if this entity was marked as deprecated
-			   (using a GNU attribute or a Microsoft __declspec
-			   specifier). */
-#endif /* GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED */
+			   (using an attribute). */
   a_bit_field	externalized:1;
 			/* TRUE if this is a variable or routine that was
 			   originally static and has been made external, e.g.,
