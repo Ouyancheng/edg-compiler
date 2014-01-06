@@ -6388,7 +6388,7 @@ are done.
               (node1->variant.sizeof_info.is_type ?
                  identical_types_full(node1->variant.sizeof_info.variant.type,
                                       node2->variant.sizeof_info.variant.type,
-                                 itf_options) :
+                                      itf_options) :
                  compare_expressions(
                                  node1->variant.sizeof_info.variant.expr,
                                  node2->variant.sizeof_info.variant.expr,
