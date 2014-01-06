@@ -1035,6 +1035,7 @@ namespace (if any) matches the modes and namespace encoded in that string.
   a_boolean  match = FALSE;
 
   if (cond[0] == 'c' && cond[1] == '+') {
+    match = TRUE;
     sizeof_t  pos_version = 2;
     /* First check for a [<namespace>] that matches ap->namespace_name, if
        any */
@@ -1046,12 +1047,14 @@ namespace (if any) matches the modes and namespace encoded in that string.
         pos_version = len+4;
       } else {
         /* Not a match. */
+        match = FALSE;
         goto done;
       }  /* if */
     } else {
       /* No namespace. */
       if (cond[2] == '[') {
         /* Not a match. */
+        match = FALSE;
         goto done;
       }  /* if */
     }  /* if */
