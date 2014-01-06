@@ -13723,13 +13723,11 @@ implicitly declared member functions.
                                   (a_boolean)func_info->is_definition,
                                   (a_boolean)func_info->is_inline);
     if (!compiler_generated) {
-#if GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED
       if (!rtn->source_corresp.is_deprecated) {
         /* Check if a deprecated type was involved in this declaration. */
         warn_about_use_of_deprecated_type(member_type,
                                           &locator->source_position);
       }  /* if */
-#endif /* GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED */
     }  /* if */
     if (!is_static_member) {
       /* Non-static member declarations implicitly reference the parent class
@@ -15275,12 +15273,10 @@ specific information about the member declaration, respectively.
 #if USER_CONTROL_OF_STRUCT_PACKING
   record_std_alignment_attr(decl_state);
 #endif /* USER_CONTROL_OF_STRUCT_PACKING */
-#if GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED
   if (!var->source_corresp.is_deprecated) {
     /* Check if a deprecated type was involved in this declaration. */
     warn_about_use_of_deprecated_type(member_type, &locator->source_position);
   }  /* if */
-#endif /* GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED */
   /* Check for the case in which the type is or contains a routine type for
      which default arguments have been specified. */
   if (curr_routine_fixup != NULL &&
@@ -17143,12 +17139,14 @@ be entered.
   attach_field_attributes(decl_state, field);
   /* An error during attribute application may modify the field type. */
   member_type = field->type;
+  /* Check if a deprecated type was involved in this declaration.
+     Unlike other similar cases, the warning is issued even when the field
+     itself is marked as deprecated in GNU mode. */
+  if (!field->source_corresp.is_deprecated || gnu_mode) {
+    warn_about_use_of_deprecated_type(member_type, &locator->source_position);
+  }  /* if */
 #if GNU_EXTENSIONS_ALLOWED
   if (gnu_mode) {
-    /* Check if a deprecated type was involved in this declaration.
-       Unlike other similar cases, the warning is issued even when the field
-       itself is marked as deprecated. */
-    warn_about_use_of_deprecated_type(member_type, &locator->source_position);
     /* An asm name is not allowed on a field. */
     if (decl_state->asm_name != NULL) {
       pos_error(ec_field_with_asm_name_not_allowed, &decl_state->asm_name_pos);

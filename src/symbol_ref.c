@@ -1998,7 +1998,6 @@ created for this entity; otherwise, it is NULL.
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 }  /* record_symbol_declaration */
 
-#if GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED
 
 void check_use_of_deprecated_entity(a_source_correspondence_ptr  scp,
                                     a_source_position            *pos)
@@ -2021,7 +2020,6 @@ specifier.
   }  /* if */
 }  /* check_use_of_deprecated_entity */
 
-#endif /* GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED */
 
 void check_use_of_deleted_function(a_symbol_ptr      rout_sym,
                                    a_boolean         elided_ref,
@@ -2105,8 +2103,8 @@ IL entry in place of whatever is pointed to by the symbol.
   a_source_correspondence *scptr;
   a_symbol_kind           sym_kind = sym_ptr->kind;
  
-  check_assertion_str(sym_ptr->kind != (a_symbol_kind)sk_projection &&
-                      sym_ptr->kind != (a_symbol_kind)sk_namespace_projection,
+  check_assertion_str(sym_kind != (a_symbol_kind)sk_projection &&
+                      sym_kind != (a_symbol_kind)sk_namespace_projection,
                       "record_symbol_reference_full: projection symbol");
   /* Don't record references during disambiguation.  They will be recorded
      during the normal processing, so recording them here would result in
@@ -2418,12 +2416,11 @@ check_label_decl_seq:
       mark_static_data_member_value_set(sym_ptr);
     }  /* if */
   }  /* if */
-#if GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED
-  if ((gnu_mode || microsoft_mode) && scptr != NULL &&
-      !(sym_ptr->kind == (a_symbol_kind)sk_type || is_tag_symbol(sym_ptr))) {
+  if ((gnu_mode || microsoft_mode || (!C_mode() && std_version >= 201400)) &&
+      scptr != NULL &&
+      !(sym_kind == (a_symbol_kind)sk_type || is_tag_symbol_kind(sym_kind))) {
     check_use_of_deprecated_entity(scptr, source_position);
   }  /* if */
-#endif /* GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED */
   if (is_simple_function_symbol(sym_ptr)) {
     check_use_of_deleted_function(sym_ptr, /*elided_ref=*/FALSE,
                                   source_position);

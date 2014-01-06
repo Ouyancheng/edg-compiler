@@ -173,7 +173,10 @@ typedef struct an_attr_descr {
 			   gnu_version < 40000.  Either end of the range can
 			   be dropped; e.g., "mc(1400-)" means the attribute
 			   is valid in Microsoft C mode with microsoft_version
-			   >= 1400.
+			   >= 1400.  For standard-notation attributes, a range
+			   of values for std_version can also be provided (it
+			   should appear after the bracketed namespace name, if
+			   any).
 			   A prefix "1" means the attribute can appear at most
 			   once per attribute group.  E.g., "1c+" indicates a
 			   standard C++ attribute that can appear at most once
@@ -200,6 +203,7 @@ static an_attr_descr known_attr_table[] = {
 #endif /* USER_CONTROL_OF_STRUCT_PACKING */
   { "base_check", "", "1c+", ak_base_check },
   { "carries_dependency", "", "1c+", ak_carries_dependency },
+  { "deprecated", "?(sx)", "1c+(201400-)", ak_deprecated },
   { "final", "", "1c+", ak_final },
   { "hiding", "", "1c+", ak_hiding },
   { "noreturn", "", "1c+", ak_noreturn },
@@ -1020,6 +1024,47 @@ version lies in the indicated range.
 }  /* in_attr_cond_range */
 
 
+static a_boolean cond_matches_std_attr_mode(a_const_char      *cond,
+                                            an_attribute_ptr  ap)
+/*
+cond is the "cond" field of an attribute description entry for the given
+standard-syntax attribute.  Return TRUE if the current mode and the attributes
+namespace (if any) matches the modes and namespace encoded in that string.
+*/
+{
+  a_boolean  match = FALSE;
+
+  if (cond[0] == 'c' && cond[1] == '+') {
+    sizeof_t  pos_version = 2;
+    /* First check for a [<namespace>] that matches ap->namespace_name, if
+       any */
+    if (ap->namespace_name != NULL) {
+      sizeof_t  len = strlen(ap->namespace_name);
+      if (cond[2] == '[' &&
+          strncmp(ap->namespace_name, cond+3, len) == 0 &&
+          cond[len+3] == ']') {
+        pos_version = len+4;
+      } else {
+        /* Not a match. */
+        goto done;
+      }  /* if */
+    } else {
+      /* No namespace. */
+      if (cond[2] == '[') {
+        /* Not a match. */
+        goto done;
+      }  /* if */
+    }  /* if */
+    /* Next check for a version constraint, if any. */
+    if (cond[pos_version] == '(') {
+      match = in_attr_cond_range(std_version, cond+pos_version, ap);
+    }  /* if */
+  }  /* if */
+done:
+  return match;
+}  /* cond_matches_std_attr_mode */
+
+
 static a_boolean cond_matches_gnu_attr_mode(a_const_char      *cond,
                                             an_attribute_ptr  ap)
 /*
@@ -1142,20 +1187,7 @@ there is an applicable one; otherwise, return NULL.
       if (cond[0] == '1') ++cond;
       switch (family) {
         case af_std:
-          if (cond[0] == 'c' && cond[1] == '+') {
-            if (ap->namespace_name != NULL) {
-              /* Check for [<namespace>] that matches ap->namespace_name */
-              sizeof_t  len = strlen(ap->namespace_name);
-              if (cond[2] == '[' &&
-                  strncmp(ap->namespace_name, cond+3, len) == 0 &&
-                  cond[len+3] == ']') {
-                goto search_done;
-              }  /* if */
-            } else {
-              /* No namespace. */
-              if (cond[2] != '[') goto search_done;
-            }  /* if */
-          }  /* if */
+          if (cond_matches_std_attr_mode(cond, ap)) goto search_done;
           break;
         case af_gnu:
           if (cond_matches_gnu_attr_mode(cond, ap)) goto search_done;
@@ -4134,9 +4166,8 @@ The given entity must be a variable, routine, type, or field.  Apply the
     /* Only user-defined types can be deprecated. */
     a_type_ptr  tp = (a_type_ptr)entity;
     if (!(is_tag_type(tp) || type_is_typedef(tp))) {
-      check_assertion(gnu_mode);
       report_bad_attribute_target(es_warning, ap);
-    } else if (microsoft_mode &&
+    } else if (ap->family == (a_byte_attribute_family)af_ms_declspec &&
                ap->syntactic_location ==
                                      (a_byte_attribute_location)al_tag_name) {
       /* Microsoft compilers ignore the attribute on enum types and on
@@ -4153,7 +4184,7 @@ The given entity must be a variable, routine, type, or field.  Apply the
   } else if (entity_kind == iek_param_type) {
     /* Note that when the entity is a parameter type, the attribute is later
        transferred to the corresponding parameter variable. */
-    if (microsoft_mode) {
+    if (ap->family == (a_byte_attribute_family)af_ms_declspec) {
       /* Microsoft appears to accept and then discard the attribute. */
       make_attr_unrecognized(ap);
     }  /* if */
@@ -4170,8 +4201,10 @@ The given entity must be a variable, routine, type, or field.  Apply the
       check_assertion(cp->kind == (a_constant_repr_kind)ck_string);
       check_assertion(
                cp->variant.string.value[cp->variant.string.length-1] == '\0');
-      if ((microsoft_mode && microsoft_version < 1400) ||
-          (gnu_mode && gnu_version < 40500)) {
+      if ((ap->family == (a_byte_attribute_family)af_ms_declspec &&
+           microsoft_mode && microsoft_version < 1400) ||
+          (ap->family == (a_byte_attribute_family)af_gnu &&
+           gnu_mode && gnu_version < 40500)) {
         /* Only Microsoft and GNU compilers of recent vintage allow an
            optional string argument. */
         report_bad_attribute_arg(aap, ap);

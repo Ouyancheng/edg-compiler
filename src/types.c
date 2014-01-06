@@ -11886,8 +11886,6 @@ If type_ptr is a VLA type, lower its dimension expression.
 
 #endif /* DO_IL_LOWERING */
 
-#if GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED
-
 static a_boolean ttt_warn_about_use_of_deprecated_type(
                                           a_type_ptr  type_ptr,
                                           a_boolean   *force_end_of_traversal)
@@ -11934,7 +11932,6 @@ the given position.
   error_position = saved_pos;
 }  /* warn_about_use_of_deprecated_type */
 
-#endif /* GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED */
 #endif /* !STANDALONE_UTILITY_PROGRAM */
 
 

@@ -6747,12 +6747,10 @@ for use in generating cross-reference output describing this declaration.
                    &locator->source_position);
   /* Copy the decl-modifiers into the variable entry. */
   update_variable_decl_modifiers(dps);
-#if GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED
   if (!variable_ptr->source_corresp.is_deprecated) {
     /* Check if a deprecated type was involved in this declaration. */
     warn_about_use_of_deprecated_type(type_ptr, &locator->source_position);
   }  /* if */
-#endif /* GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED */
   /* If cross-reference information is being issued, update the output.  If
      source sequence entries are being generated, update the source sequence
      entry for this declaration (this may cause the allocation of a new source
@@ -8967,13 +8965,11 @@ skip_overloading:;
   }
 #endif /* GNU_VISIBILITY_ATTRIBUTE_ALLOWED */
 #endif /* GNU_EXTENSIONS_ALLOWED */
-#if GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED
   if (!routine_ptr->source_corresp.is_deprecated &&
       !routine_ptr->compiler_generated) {
     /* Check if a deprecated type was involved in this declaration. */
     warn_about_use_of_deprecated_type(type_ptr, &locator->source_position);
   }  /* if */
-#endif /* GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED */
 #if MICROSOFT_EXTENSIONS_ALLOWED
   if (dps->ms_attributes != NULL && !idlb.is_block_extern_decl) {
     apply_microsoft_attributes(&dps->ms_attributes, (char*)routine_ptr,
@@ -9912,12 +9908,10 @@ definition of a member function of a class template.
       pop_namespace_extension_scope();
     }  /* if */
   }  /* if */
-#if GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED
   if (!rout_ptr->source_corresp.is_deprecated) {
     /* Check if a deprecated type was involved in this declaration. */
     warn_about_use_of_deprecated_type(type_ptr, &locator->source_position);
   }  /* if */
-#endif /* GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED */
   if (special_kind_is(rout_ptr, sfk_udl_operator)) {
     (void)check_udl_operator_template(sym, &locator->source_position);
   }  /* if */
@@ -10893,14 +10887,12 @@ symbol entry, and return a pointer to it in state->sym.
   /* Return the type name symbol to the caller. */
   state->sym = sym;
   attach_decl_attributes(state, /*primary_decl=*/!is_redecl);
-#if GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED
-  if ((gnu_mode || microsoft_mode) && !is_redecl && !is_error_type(type_ptr)) {
+  if (!is_redecl && !is_error_type(type_ptr)) {
     if (!tp->source_corresp.is_deprecated) {
       /* Check if a deprecated type was involved in this declaration. */
       warn_about_use_of_deprecated_type(type_ptr, &locator->source_position);
     }  /* if */
   }  /* if */
-#endif /* GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED */
 #if MICROSOFT_EXTENSIONS_ALLOWED
   if (microsoft_mode && !is_error_type(type_ptr)) {
     if (state->ms_attributes != NULL) {
