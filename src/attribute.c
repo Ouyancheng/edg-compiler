@@ -1028,7 +1028,7 @@ static a_boolean cond_matches_std_attr_mode(a_const_char      *cond,
                                             an_attribute_ptr  ap)
 /*
 cond is the "cond" field of an attribute description entry for the given
-standard-syntax attribute.  Return TRUE if the current mode and the attributes
+standard-syntax attribute.  Return TRUE if the current mode and the attribute's
 namespace (if any) matches the modes and namespace encoded in that string.
 */
 {
