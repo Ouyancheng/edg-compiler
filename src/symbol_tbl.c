@@ -13584,7 +13584,6 @@ declaration modifiers.
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 }  /* clear_decl_modifiers_block */
 
-#if GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED
 
 an_attribute_ptr deprecation_arg_attr_for(a_source_correspondence_ptr  scp)
 /*
@@ -13629,7 +13628,6 @@ attribute (if any) applied to the entity associated with scp.
   return result;
 }  /* deprecation_string_for */
 
-#endif /* GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED */
 
 void add_to_dependent_type_fixup_list(a_type_ptr                   type_ptr,
                                       a_dependent_type_fixup_kind  fixup_kind,

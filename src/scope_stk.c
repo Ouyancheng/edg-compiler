@@ -11441,7 +11441,6 @@ end_potential_pack_expansion_context).
   (void)get_token();
 }  /* record_pack_expansion_ellipsis */
 
-#if GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED
 
 a_boolean in_deprecated_definition(void)
 /*
@@ -11482,7 +11481,6 @@ done:
   return result;
 }  /* in_deprecated_definition */
 
-#endif /* GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED */
 
 a_boolean in_ms_nonreal_class_instantiation(void)
 /*

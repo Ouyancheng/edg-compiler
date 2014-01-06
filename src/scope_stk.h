@@ -2144,11 +2144,7 @@ extern a_type_ptr get_type_for_bases_operator(
 
 extern void record_pack_expansion_ellipsis(void);
 
-#if GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED
-
 extern a_boolean in_deprecated_definition(void);
-
-#endif /* GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED */
 
 extern a_boolean in_ms_nonreal_class_instantiation(void);
 

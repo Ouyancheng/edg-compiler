@@ -2290,9 +2290,6 @@ turned into an ak_unrecognized attribute.
   make_attr_unrecognized(ap);
 }  /* report_bad_attribute_target */
 
-#if USER_CONTROL_OF_STRUCT_PACKING || GNU_EXTENSIONS_ALLOWED || \
-    MICROSOFT_EXTENSIONS_ALLOWED
-
 static void report_bad_attribute_arg(an_attribute_arg_ptr  aap,
                                      an_attribute_ptr      ap)
 /*
@@ -2304,7 +2301,6 @@ the given attribute into an ak_unrecognized attribute.
   make_attr_unrecognized(ap);
 }  /* report_bad_attribute_arg */
 
-#endif /* USER_CONTROL_OF_STRUCT_PACKING || GNU_EXTENSIONS_ALLOWED || ... */
 
 static void check_simple_type_constraints(a_const_char      *constr,
                                           an_attribute_ptr  ap,
