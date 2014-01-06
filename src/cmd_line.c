@@ -4290,7 +4290,7 @@ with command-line options to select a C mode, but otherwise it implies C++ mode
 (even in the somewhat unusual event that the front end were modified to compile
 C code by default).
 
-A modes for a newer standard (like C99 or C++11) is in some ways considered
+A mode for a newer standard (like C99 or C++11) is in some ways considered
 both a dialect and a mode.  For example, with --c99 C_dialect is still
 C_dialect_ANSI, but it can also be used in conjunction with Microsoft mode.
 Likewise for --c++11 which implicitly sets the dialect to C_dialect_cplusplus
