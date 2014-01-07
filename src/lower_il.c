@@ -21131,4 +21131,3 @@ for each compilation.
 * Copyright 1988-2013 Edison Design Group Inc.                   [_]          *
 *                                                                             *
 ******************************************************************************/
-foo /* break base */
