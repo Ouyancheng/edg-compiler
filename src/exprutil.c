@@ -15334,7 +15334,13 @@ error cases.
 #endif /* BACK_END_IS_CP_GEN_BE */
   call_node->variant.operation.call_uses_operator_syntax =
                                                           uses_operator_syntax;
+  /* If the return value must be constructed, create the necessary temporary
+     to hold the result.  For unknown dependent functions we assume this is
+     not needed, and for certain decltype operands (identified with the flag
+     allow_call_with_incomplete_return_type) the language specifies that no
+     temporary object is created. */
   if (!unknown_dependent_function &&
+      !expr_stack->allow_call_with_incomplete_return_type &&
       function_type->variant.routine.extra_info->value_returned_by_cctor) {
     /* An error was already issued for a function returning an abstract
        class type, so do not issue another on a call of such a function. */

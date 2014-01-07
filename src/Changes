@@ -1,5 +1,22 @@
 Version 4.9
 
+1/7/14   [EDGcpfe/14756]
+C++11: Destructors for return values and decltype
+
+When a function call is the immediate operand of a decltype construct, the
+call does not produce a temporary, and therefore an inaccessible or deleted
+destructor associated with the return type does not make the call invalid.
+This rule is now implemented.  For example:
+
+  struct R { ~R() = delete; };
+  R g();
+  typedef decltype(g()) TR;  // Previously an error because the destructor
+                             // is deleted.  Now accepted in C++11 modes.
+
+This change to the C++ language was introduced by the committee's paper N3276.
+(See also the entry for EDGcpfe/11740 and EDGcpfe/14277 of 7/19/13.)
+
+
 1/6/14   [EDGcpfe/14753]
 Microsoft compatibility: Conditional operator with xvalues
 
