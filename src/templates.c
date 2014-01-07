@@ -3095,7 +3095,7 @@ to TRUE.
        any partial specializations that were declared after the point of
        definition of the template.  This approach is used (rather than
        ignoring the partial specializations earlier) because it is not
-       possibly to predict which instantiations will be done by g++ during
+       possible to predict which instantiations will be done by g++ during
        the initial parsing of the template. */
     a_decl_sequence_number	eff_decl_seq = NO_DECL_SEQUENCE_NUMBER;
     eff_decl_seq = get_effective_decl_seq();
