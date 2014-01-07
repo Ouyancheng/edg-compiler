@@ -11808,11 +11808,22 @@ if necessary).
 }  /* type_of_call */
 
 
-static void check_for_incomplete_call_return(an_operand  *operand)
+static void catch_up_on_checks_for_calls_in_decltype(an_operand  *operand)
 /*
-If the given operand represents a call expression (or a comma expression that
-has a call in its right hand operand), check that the called function's return
-type is complete (and issue an error if appropriate).
+The given operand is the left operand of a comma expression appearing in a
+decltype construct.  When the operand was scanned, we had to assume that it
+might be the only operand of the decltype construct, or perhaps the right
+operand of a comma expression in such a construct.  Two checks were therefore
+disabled: (a) the completeness of the return type, and (b) the creation of a
+temporary to hold the result of the return.
+
+Perform the disabled checks now that we know that this is the left operand of
+a comma expression.  If the given operand represents a call expression (or a
+comma expression that has a call in its right hand operand (which would also
+have had the checks disabled), check that the called function's return
+type is complete and, if appropriate, add the required IL to represent the
+temporary holding the return value.  (This is similar to work done by
+func_call_expr.)  Issue diagnostics if needed.
 */
 {
   if (is_expression_operand(operand)) {
@@ -11839,11 +11850,23 @@ type is complete (and issue an error if appropriate).
                                                    callee);
           }  /* if */
           rtsp->suppress_diagnostic_on_incomplete_return_type = TRUE;
+          if (rtsp->value_returned_by_cctor) {
+            /* Create (and check) the temporary holding the return value. */
+            a_dynamic_init_ptr  dip;
+            an_expr_node_ptr    call_node = copy_node(expr);
+            *expr = *create_expr_temporary(
+                       return_type, /*is_lvalue=*/FALSE,
+                       /*is_explicit_cast=*/FALSE,
+                       /*suppress_abstract_test=*/TRUE,
+                       (a_dynamic_init_kind)dik_call_returning_class_via_cctor,
+                       diag_pos, &dip);
+            dip->variant.expression = call_node;
+          }  /* if */
         }  /* if */
       }  /* if */
     }  /* if */
   }  /* if */
-}  /* check_for_incomplete_call_return */
+}  /* catch_up_on_checks_for_calls_in_decltype */
 
 
 static a_type_ptr decltype_from_operand(an_operand *operand,
@@ -25928,7 +25951,7 @@ expression, and return the result in *result (or an error indication in
     /* The allowance for incomplete return types on top-level calls extends to
        the right hand operands of comma expressions but not to their left
        hand operands. */
-    check_for_incomplete_call_return(operand_1);
+    catch_up_on_checks_for_calls_in_decltype(operand_1);
   }  /* if */
   if (c99_mode && !curr_expr_is_evaluated()) {
     /* C99 allows a comma expression in a constant expression if it's
