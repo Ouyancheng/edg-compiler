@@ -4240,16 +4240,16 @@ qualified is TRUE, force the generation of a qualified name.
     if (is_routine_node(node) &&
         node->variant.routine.special_kind ==
                      (a_special_function_kind)sfk_gnu_sync_concrete_function) {
-      /* This is a concrete __sync_... or __atomic_... builtin function that
-         was transformed from the generic name.  We need to restore the
-         generic name here because the types of the parameters differ between
-         the concrete and generic forms, and the cast expressions mapping to
-         the concrete parameters are marked as compiler-generated, which
-         prevents them from appearing in the generated code.  The generic
-         form of the name is simply the concrete form after dropping the
-         trailing "_" and digit(s).  For example, we need to put out
-         __sync_val_compare_and_swap in place of the concrete name
-         __sync_val_compare_and_swap_4. */
+      /* This is a concrete __sync_... or __atomic_... builtin function
+         that was transformed from the generic name.  We need to restore
+         the generic name here because the types of the parameters differ
+         between the concrete and generic forms, and the cast nodes mapping
+         the arguments to the concrete parameter types are marked as
+         compiler-generated, which prevents them from appearing in the
+         generated code.  The generic form of the name is simply the
+         concrete form after dropping the trailing "_" and digit(s).  For
+         example, we need to put out __sync_val_compare_and_swap in place
+         of the concrete name __sync_val_compare_and_swap_4. */
       sizeof_t     i;
       a_const_char *name = unmangled_name_of(&rout->source_corresp);
       check_assertion(name != NULL);
