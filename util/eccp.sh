@@ -1485,17 +1485,18 @@ process_option()
       feoptions=$feoptions" $curr_arg"
 #     Options that require additional processing
       case $arg in
-        -m | --c | --c99 | --no_c99 | -K | --old_c | --svr4 | --no_svr4 | \
-	--c89 | --gcc | --no_gcc | --upc | --no_upc)
+        -m | --c | --c89 | --c99 | --no_c99 | --c11 | \
+	-K | --old_c | --svr4 | --no_svr4 | \
+	--gcc | --no_gcc | --upc | --no_upc)
           c_mode=1
-          if [ $arg = "--c99" -a \
+          if [ ( $arg = "--c99" -o $arg = "--c11" ) -a \
                "$EDG_C_TO_OBJ_C99_OPTIONS" != "" ] ; then
             cc_command=$cc_command" "$EDG_C_TO_OBJ_C99_OPTIONS
           fi
           ;;
-        -b | --c++ | --c++11 | --no_c++11 | --cfront_2.1 | --cfront_3.0 | \
-	--c++0x | --no_c++0x | --g++ | --no_g++ | --c++03 | --clang | \
-	--no_clang)
+        -b | --c++ | \
+	--c++03 | --c++0x | --no_c++0x | --c++11 | --no_c++11 | --c++14 | \
+	--cfront_2.1 | --cfront_3.0 | --g++ | --no_g++ | --clang | --no_clang)
           c_mode=0
           ;;
 	--no_preproc_only)
