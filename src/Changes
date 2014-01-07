@@ -1,6 +1,6 @@
 Version 4.9
 
-1/6/14  [EDGcpfe/14753]
+1/6/14   [EDGcpfe/14753]
 Microsoft compatibility: Conditional operator with xvalues
 
 In C++11, a conditional operator whose second and third operands are xvalues
