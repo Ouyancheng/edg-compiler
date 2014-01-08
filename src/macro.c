@@ -246,6 +246,12 @@ static a_symbol_ptr
 			   are enabled. */
 
 static a_symbol_ptr
+		clang_has_include_next_symbol;
+			/* Pointer to the symbol entry for the special
+			   macro "__has_include_next", which is used in
+			   clang mode. */
+
+static a_symbol_ptr
 		clang_has_attribute_symbol;
 			/* Pointer to the symbol entry for the special
 			   macro "__has_attribute", which is used in clang
@@ -4142,6 +4148,57 @@ otherwise, report an error at error_pos and return NULL.
 }  /* clang_feature_test_id */
 
 
+static a_boolean scan_has_include(a_boolean is_include_next)
+/*
+Process the clang and WG21 SG10 __has_include macro or the clang-only
+__has_include_next macro, depending on the value of is_include_next.  Return
+TRUE if the named header can be found, FALSE otherwise.  Issue a warning if
+__has_include_next appears in the primary source file and treat it as if it
+were __has_include.
+*/
+{
+  a_boolean file_found = FALSE;
+
+  if (is_include_next && processing_primary_source_file()) {
+    /* Issue a warning and treat this as __has_include. */
+    warning(ec_has_include_next_in_primary_source_file);
+    is_include_next = FALSE;
+  }  /* if */
+  if (get_token() != tok_lparen) {
+    error(ec_exp_lparen);
+  } else if (!get_header_name()) {
+    error(ec_exp_file_name);
+  } else {
+    /* The header name is now the current token.  Get the file name from
+       the token. */
+    a_boolean    is_system_include = (*start_of_curr_token == '<');
+    a_const_char *filename = check_for_include_alias();
+    if (filename == NULL) {
+      /* If a Microsoft-style include_alias pragma for the file has been
+         seen, check_for_include_alias will return a pointer to the
+         associated file name.  Otherwise, we must extract the file name
+         from the header name token.  Note that Microsoft compatibility
+         requires ignoring escapes because of the use of '\' as a directory
+         separator in file names; however, this can be changed if
+         desired. */
+      sizeof_t name_len;
+      filename = extract_header_name(/*process_escapes=*/FALSE, &name_len);
+    }  /* if */
+    if (get_token() != tok_rparen) {
+      error(ec_exp_rparen);
+    } else {
+      if (is_include_next && is_absolute_file_name(filename)) {
+        /* An absolute file name in __has_include_next makes no sense. */
+        warning(ec_absolute_file_name_in_has_include_next);
+      }  /* if */
+      file_found = header_can_be_found(filename, is_system_include,
+                                       is_include_next);
+    }  /* if */
+  }  /* if */
+  return file_found;
+}  /* scan_has_include */
+
+
 a_token_kind macro_invocation(a_symbol_ptr  macro_symbol,
                               a_boolean     *rescan)
 /*
@@ -4656,41 +4713,18 @@ end_scan_for_macro_modifs:;
         /* "+3" in the following is for the two quotes and the null. */
         ensure_arg_raw_text_space(length+3, special_macro_arg);
         sprintf(repl_text, "\"%s\"", time_str);
-      } else if (macro_symbol == has_include_symbol) {
-        /* The clang and WG21 SG10 __has_include macro.  Has the value 1 if
-           the named header file would be found by #include, 0
-           otherwise. */
-        a_boolean file_found = FALSE;
+      } else if (macro_symbol == has_include_symbol ||
+                 macro_symbol == clang_has_include_next_symbol) {
+        /* The clang and WG21 SG10 __has_include macro or the clang-only
+           has_include_next macro.  Has the value 1 if the named header
+           file would be found by #include or #include_next, respectively,
+           and 0 otherwise. */
+        a_boolean file_found;
         ++macro_depth;
         save_delete_source_from_loc = delete_source_from_loc;
         delete_source_from_loc = NULL;
-        if (get_token() != tok_lparen) {
-          error(ec_exp_lparen);
-        } else if (!get_header_name()) {
-          error(ec_exp_file_name);
-        } else {
-          /* The header name is now the current token.  Get the file name
-             from the token. */
-          a_boolean    is_system_include = (*start_of_curr_token == '<');
-          a_const_char *filename = check_for_include_alias();
-          if (filename == NULL) {
-            /* If a Microsoft-style include_alias pragma for the file has
-               been seen, check_for_include_alias will return a pointer to
-               the associated file name.  Otherwise, we must extract the
-               file name from the header name token.  Note that Microsoft
-               compatibility requires ignoring escapes because of the use
-               of '\' as a directory separator in file names; however, this
-               can be changed if desired. */
-            sizeof_t name_len;
-            filename = extract_header_name(/*process_escapes=*/FALSE,
-                                           &name_len);
-          }  /* if */
-          if (get_token() != tok_rparen) {
-            error(ec_exp_rparen);
-          } else {
-            file_found = header_can_be_found(filename, is_system_include);
-          }  /* if */
-        }  /* if */
+        file_found =
+               scan_has_include(macro_symbol == clang_has_include_next_symbol);
         delete_source_from_loc = save_delete_source_from_loc;
         --macro_depth;
         strcpy(repl_text, file_found ? "1" : "0");
@@ -9481,6 +9515,10 @@ command line -D options.
                                              /*cannot_be_redefined=*/TRUE,
                                              /*ref_suppresses_pch_file=*/FALSE,
                                              /*function_like=*/TRUE);
+    clang_has_include_next_symbol = enter_predef_macro(
+                                            (char *)NULL, "__has_include_next",
+                                            /*cannot_be_redefined=*/TRUE,
+                                            /*ref_suppresses_pch_file=*/FALSE);
     has_include_symbol = enter_predef_macro((char *)NULL, "__has_include",
                                             /*cannot_be_redefined=*/TRUE,
                                             /*ref_suppresses_pch_file=*/FALSE);
@@ -9637,6 +9675,7 @@ Do one-time initialization of variables related to macro processing.
       pch_saved_var_array_elem(clang_has_feature_symbol),
       pch_saved_var_array_elem(clang_has_extension_symbol),
       pch_saved_var_array_elem(has_include_symbol),
+      pch_saved_var_array_elem(clang_has_include_next_symbol),
       pch_saved_var_array_elem(clang_has_attribute_symbol),
       pch_saved_var_array_elem(clang_has_builtin_symbol),
 #if ATT_PREPROCESSING_EXTENSIONS_ALLOWED
@@ -9674,6 +9713,7 @@ Do one-time initialization of variables related to macro processing.
   register_trans_unit_variable(clang_has_feature_symbol);
   register_trans_unit_variable(clang_has_extension_symbol);
   register_trans_unit_variable(has_include_symbol);
+  register_trans_unit_variable(clang_has_include_next_symbol);
   register_trans_unit_variable(clang_has_attribute_symbol);
   register_trans_unit_variable(clang_has_builtin_symbol);
 #if ATT_PREPROCESSING_EXTENSIONS_ALLOWED
@@ -9715,6 +9755,7 @@ after this function.
   clang_has_feature_symbol = NULL;
   clang_has_extension_symbol = NULL;
   has_include_symbol = NULL;
+  clang_has_include_next_symbol = NULL;
   clang_has_attribute_symbol = NULL;
   clang_has_builtin_symbol = NULL;
 #if ATT_PREPROCESSING_EXTENSIONS_ALLOWED

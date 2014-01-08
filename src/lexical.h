@@ -2467,7 +2467,8 @@ extern a_boolean open_file_for_input(
 		a_directory_name_entry_ptr	*dir_entry);
 
 extern a_boolean header_can_be_found(a_const_char *filename,
-                                     a_boolean    is_system_include);
+                                     a_boolean    is_system_include,
+                                     a_boolean    is_include_next);
 
 extern void push_input_stack(
 			FILE			    *new_input_file,

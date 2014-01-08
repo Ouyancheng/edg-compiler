@@ -4955,10 +4955,13 @@ is TRUE, and search_path is empty.
 
 
 a_boolean header_can_be_found(a_const_char *filename,
-                              a_boolean    is_system_include)
+                              a_boolean    is_system_include,
+                              a_boolean    is_include_next)
 /*
-Return TRUE if filename can be opened as a header file using the search
-paths corresponding to the value of is_system_include and FALSE otherwise.
+Return TRUE if filename can be opened as a header file,  If is_include_next
+is TRUE, the search path is the remainder of the list by which the current
+file was found; otherwise, the search path is the one appropriate to the
+value of is_system_include.
 */
 {
   a_boolean                  result;
@@ -4967,12 +4970,21 @@ paths corresponding to the value of is_system_include and FALSE otherwise.
   a_boolean                  suppress_include;
   an_open_file_result        open_result;
   a_unicode_source_kind      unicode_source_kind;
+  a_directory_name_entry_ptr search_path;
   a_directory_name_entry_ptr dir_entry;
 
+  if (is_include_next) {
+    /* Search for the file using the search path by which the current file
+       was found, beginning with the directory entry following that of the
+       current file. */
+    search_path = curr_ise->dir_entry->next;
+  } else {
+    /* Use the full search path selected by is_system_include. */
+    search_path = is_system_include ? sys_incl_search_path
+                                    : incl_search_path;
+  }  /* if */
   result = search_for_input_file(filename, /*use_search_path=*/TRUE,
-                                 is_system_include ? sys_incl_search_path
-                                                   : incl_search_path,
-                                 include_file_suffix_list,
+                                 search_path, include_file_suffix_list,
                                  /*is_implicit_include=*/FALSE,
                                  is_system_include, /*is_preinclude=*/FALSE,
                                  &temp_file_name, &fp, &suppress_include,

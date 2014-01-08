@@ -1,5 +1,18 @@
 Version 4.9
 
+1/8/14   [EDGcpfe/14766]
+clang compatibility: __has_include_next macro
+
+The front end now supports the __has_include_next macro in clang mode (see
+the entry for EDGcpfe/14634).  Its value is 1 if #include_next with the
+named header file would succeed and 0 otherwise.  For example:
+
+  // file f.h:
+  #if __has_include_next(<f.h>)
+  #include_next <f.h>  // will not result in a catastrophic error
+  #endif
+
+
 1/8/14   [EDGcpfe/14763]
 Microsoft compatibility: __is_convertible_to and rvalue references
 
