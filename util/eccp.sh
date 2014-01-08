@@ -1489,9 +1489,10 @@ process_option()
 	-K | --old_c | --svr4 | --no_svr4 | \
 	--gcc | --no_gcc | --upc | --no_upc)
           c_mode=1
-          if [ ( $arg = "--c99" -o $arg = "--c11" ) -a \
-               "$EDG_C_TO_OBJ_C99_OPTIONS" != "" ] ; then
-            cc_command=$cc_command" "$EDG_C_TO_OBJ_C99_OPTIONS
+          if [ $arg = "--c99" -o $arg = "--c11" ] ; then
+            if [ "$EDG_C_TO_OBJ_C99_OPTIONS" != "" ] ; then
+              cc_command=$cc_command" "$EDG_C_TO_OBJ_C99_OPTIONS
+            fi
           fi
           ;;
         -b | --c++ | \
