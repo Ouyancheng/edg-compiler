@@ -4385,8 +4385,15 @@ template deduction being done, e.g., the template argument list being tried.
   an_expr_rescan_info_entry_ptr eriep;
   an_expr_rescan_info_entry     rescan_info;
   a_boolean                     is_operation;
+  a_boolean                     allow_call_with_incomplete_return_type;
 
   check_assertion(expr != NULL);
+  /* If a call is embedded in an operation, it cannot be allowed to have an
+     incomplete return type, unless that operation is a comma operation and
+     call is the second operand (see below). */
+  allow_call_with_incomplete_return_type = 
+                           expr_stack->allow_call_with_incomplete_return_type;
+  expr_stack->allow_call_with_incomplete_return_type = FALSE;
   is_operation = is_operation_node(expr);
   check_assertion(is_operation ||
                   expr->kind == (an_expr_node_kind)enk_builtin_operation);
@@ -4403,7 +4410,12 @@ template deduction being done, e.g., the template argument list being tried.
   }  /* if */
   op2 = op1->next;
   if (op2 != NULL) {
+    if (is_operation && node_operator_is(expr, eok_comma) &&
+        allow_call_with_incomplete_return_type) {
+      expr_stack->allow_call_with_incomplete_return_type = TRUE;
+    }  /* if */
     if (operand_2 != NULL) make_rescan_operand(op2, rcblock, operand_2);
+    expr_stack->allow_call_with_incomplete_return_type = FALSE;
     op3 = op2->next;
     if (op3 != NULL) {
       if (operand_3 != NULL) make_rescan_operand(op3, rcblock, operand_3);
