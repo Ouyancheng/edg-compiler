@@ -6806,21 +6806,23 @@ constant will be set as well.
   } else {
     a_boolean  result;
     if (microsoft_mode) {
-      a_boolean   is_rvalue_ref1 = is_rvalue_reference_type(type1), 
-                  is_rvalue_ref2 = is_rvalue_reference_type(type2);
-      /* The Microsoft compiler appears to treat rvalue reference types a
-         little strangely.  If both the source and destination type are rvalue
-         reference types, the result is always false.  Otherwise, an rvalue
-         reference on the source type appears to be treated like an lvalue
-         reference, and an rvalue reference on the destination type is treated
-         as the underlying type without a reference. */
-      if (is_rvalue_ref1 && is_rvalue_ref2) {
-        result = FALSE;
-        goto result_known;
-      } else if (is_rvalue_ref1) {
-        type1 = make_reference_type(type_pointed_to(type1));
-      } else if (is_rvalue_ref2) {
-        type2 = type_pointed_to(type2);
+      if (microsoft_version < 1800) {
+        a_boolean   is_rvalue_ref1 = is_rvalue_reference_type(type1), 
+                    is_rvalue_ref2 = is_rvalue_reference_type(type2);
+        /* MSVC 11 and earlier appear to treat rvalue reference types a little
+           strangely.  If both the source and destination type are rvalue
+           reference types, the result is always false.  Otherwise, an rvalue
+           reference on the source type appears to be treated like an lvalue
+           reference, and an rvalue reference on the destination type is
+           treated as the underlying type without a reference. */
+        if (is_rvalue_ref1 && is_rvalue_ref2) {
+          result = FALSE;
+          goto result_known;
+        } else if (is_rvalue_ref1) {
+          type1 = make_reference_type(type_pointed_to(type1));
+        } else if (is_rvalue_ref2) {
+          type2 = type_pointed_to(type2);
+        }  /* if */
       }  /* if */
       if (is_function_type(type1) || is_array_type(type1)) {
         /* Microsoft appears to treat conversions from functions and arrays as
