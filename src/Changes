@@ -1,5 +1,15 @@
 Version 4.9
 
+1/9/14   [EDGcpfe/14765]
+Spurious error on designated initializer when lambdas are enabled
+
+In modes in which both designated initializers and lambdas are enabled,
+certain designators were incorrectly being parsed as lambdas, resulting in
+spurious errors.  Now fixed.
+
+  int x[10] = { [2] = 1 };
+
+
 1/8/14   [EDGcpfe/14766]
 clang compatibility: __has_include_next macro
 
