@@ -14,7 +14,7 @@ For example:
 This is now fixed.
 
 
-1/9/14   [EDGcpfe/14769]
+1/9/14   [EDGcpfe/13672,EDGcpfe/14769]
 Binding an rvalue reference to a converted lvalue during overload resolution
 
 The changes for EDGcpfe/12427 in response to Core Issue 1138 failed to extend
