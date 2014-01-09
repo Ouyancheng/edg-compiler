@@ -1,6 +1,6 @@
 Version 4.9
 
-1/9/14   [EDGcpfe/14771]
+1/9/14   [EDGcpfe/14635,EDGcpfe/14771]
 alignas in local declaration contexts
 
 The front end failed to recognize the keyword "alignas" (see EDGcpfe/8527) as
