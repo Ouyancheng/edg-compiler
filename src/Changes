@@ -1,5 +1,19 @@
 Version 4.9
 
+1/9/14   [EDGcpfe/14771]
+alignas in local declaration contexts
+
+The front end failed to recognize the keyword "alignas" (see EDGcpfe/8527) as
+a possible start of a local declaration, leading to spurious errors.
+For example:
+
+  int main() {
+    alignas(int) char x[3];  // Previously a spurious error; now accepted.
+  }
+
+This is now fixed.
+
+
 1/9/14   [EDGcpfe/14769]
 Binding an rvalue reference to a converted lvalue during overload resolution
 

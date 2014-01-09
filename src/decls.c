@@ -891,6 +891,9 @@ of declarations that are permitted.
       is_start = TRUE;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     }  /* if */
+  } else if (curr_token == tok_alignas) {
+    /* "alignas(...)" is really just a funny attribute syntax. */
+    is_start = TRUE;
 #if GNU_EXTENSIONS_ALLOWED
   } else if (curr_token == tok_attribute) {
     /* An attribute can start a declaration. */
