@@ -6485,7 +6485,7 @@ rescan_statement:
     start_pos = pos_curr_token;
     struct_stmt_stack_top().p_start_pos = &start_pos;
   }  /* if */
-  if (std_attribute_tokens_next()) {
+  if (std_attribute_tokens_next() || curr_token == tok_alignas) {
     a_struct_stmt_stack_entry_ptr
                    sssep = &struct_stmt_stack[depth_stmt_stack];
     /* Scan leading standard attributes. */
