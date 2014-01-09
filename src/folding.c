@@ -6820,7 +6820,7 @@ constant will be set as well.
           goto result_known;
         } else if (is_rvalue_ref1) {
           type1 = make_reference_type(type_pointed_to(type1));
-        } else if (is_rvalue_ref2) {
+        } else if (is_rvalue_ref2 && !is_reference_type(type1)) {
           type2 = type_pointed_to(type2);
         }  /* if */
       }  /* if */
