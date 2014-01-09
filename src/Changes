@@ -1,5 +1,23 @@
 Version 4.9
 
+1/9/14   [EDGcpfe/14769]
+Binding an rvalue reference to a converted lvalue during overload resolution
+
+The changes for EDGcpfe/12427 in response to Core Issue 1138 failed to extend
+the ability to bind an rvalue reference to a converted lvalue to overload
+resolution contexts.  For example:
+
+  extern "C" int printf(char const*, ...);
+  void f(double const&) { printf("lvalue\n"); }
+  void f(double&&) { printf("rvalue\n"); }
+  int main() {
+    int i = 42;
+    f(i);  // Previously printed "lvalue"; now prints "rvalue".  (Note the
+  }        // type mismatch, which requires an lvalue-to-rvalue conversion.)
+
+This is now fixed.
+
+
 1/9/14   [EDGcpfe/14765]
 Spurious error on designated initializer when lambdas are enabled
 
