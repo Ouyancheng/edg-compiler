@@ -4958,7 +4958,7 @@ a_boolean header_can_be_found(a_const_char *filename,
                               a_boolean    is_system_include,
                               a_boolean    is_include_next)
 /*
-Return TRUE if filename can be opened as a header file,  If is_include_next
+Return TRUE if filename can be opened as a header file.  If is_include_next
 is TRUE, the search path is the remainder of the list by which the current
 file was found; otherwise, the search path is the one appropriate to the
 value of is_system_include.
@@ -4973,10 +4973,12 @@ value of is_system_include.
   a_directory_name_entry_ptr search_path;
   a_directory_name_entry_ptr dir_entry;
 
-  if (is_include_next) {
-    /* Search for the file using the search path by which the current file
-       was found, beginning with the directory entry following that of the
-       current file. */
+  if (is_include_next && curr_ise->dir_entry != NULL) {
+    /* If this is for __has_include_next and the current file was found
+       using a search path, search for the named file using that path,
+       beginning with the directory entry following that of the current
+       file.  If the current file was not found using a search path (i.e.,
+       it was specified with an absolute path), ignore is_include_next. */
     search_path = curr_ise->dir_entry->next;
   } else {
     /* Use the full search path selected by is_system_include. */
