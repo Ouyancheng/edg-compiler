@@ -17765,7 +17765,8 @@ usual nature.
 {
   an_expr_node_ptr lvalue_cast_node;
 
-  check_assertion_str(C_mode() || gpp_mode || microsoft_mode,
+  check_assertion_str(C_mode() || gpp_mode ||
+                      preserve_lvalues_with_same_type_casts,
                       "make_lvalue_cast_node: lvalue cast in C++ mode");
   check_assertion(source_expr->is_lvalue || is_error_node(source_expr));
   lvalue_cast_node = make_lvalue_operator_node(
@@ -17788,7 +17789,8 @@ The cast is compiler-generated if compiler_generated is TRUE.
   an_expr_node_ptr temp_node;
   a_ref_entry_ptr  ref_entry_list = result->ref_entries_list;
 
-  check_assertion_str(C_mode() || gpp_mode || microsoft_mode,
+  check_assertion_str(C_mode() || gpp_mode ||
+                      preserve_lvalues_with_same_type_casts,
                       "lvalue_cast: lvalue cast in unexpected mode");
   /* Build an expression node for the lvalue cast. */
   temp_node = make_lvalue_cast_node(make_node_from_operand(result),
