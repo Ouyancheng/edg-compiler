@@ -12213,7 +12213,8 @@ specific function being called.
     } else {
       check_assertion(is_expression_component(alep));
       if (alep->check_narrowing) {
-        a_boolean  treat_as_warning, error_on_narrowing = !gpp_mode;
+        a_boolean  treat_as_warning,
+                   error_on_narrowing = !(gpp_mode || microsoft_mode);
 retry_narrowing_diagnostic:
         check_narrowing_conversion(operand_of_arg_list_elem(alep),
                                    param->type, error_on_narrowing,
