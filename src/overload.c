@@ -3555,26 +3555,14 @@ argument-passing is copy-initialization).
       goto handle_braced_init_list;
     }  /* if */
     /* The argument is an expression. */
-    if (alep->check_narrowing &&
-        check_narrowing_conversion(operand,
-                                   param_type,
-                                   /*error_on_narrowing=*/FALSE,
-                                   /*warning_on_narrowing=*/FALSE,
-                                   (a_boolean *)NULL)) {
-      /* This requires a narrowing conversion, which is an error
-         in this context. */
-      clear_arg_match_summary(arg_summary);
-      arg_summary->match_level = aml_none;
-    } else {
-      determine_arg_match_level(operand,
-                                (a_type *)NULL,
-                                param_type,
-                                ptp,
-                                param_type_is_deduced,
-                                try_user_conversions,
-                                allow_expl_conv_funcs,
-                                arg_summary);
-    }  /* if */
+    determine_arg_match_level(operand,
+                              (a_type *)NULL,
+                              param_type,
+                              ptp,
+                              param_type_is_deduced,
+                              try_user_conversions,
+                              allow_expl_conv_funcs,
+                              arg_summary);
   } else {
     /* The argument is a braced-init-list. */
     a_conv_context_set conv_context;
@@ -12224,6 +12212,17 @@ specific function being called.
       }  /* if */
     } else {
       check_assertion(is_expression_component(alep));
+      if (alep->check_narrowing) {
+        a_boolean  treat_as_warning, error_on_narrowing = !gpp_mode;
+retry_narrowing_diagnostic:
+        check_narrowing_conversion(operand_of_arg_list_elem(alep),
+                                   param->type, error_on_narrowing,
+                                   !error_on_narrowing, &treat_as_warning);
+        if (error_on_narrowing && treat_as_warning) {
+          error_on_narrowing = FALSE;
+          goto retry_narrowing_diagnostic;
+        }  /* if */
+      }  /* if */
       /* Cast the argument to the right type. */
       prep_possible_ellipsis_argument_operand(operand_of_arg_list_elem(alep),
                                               param,

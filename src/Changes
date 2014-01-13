@@ -1,5 +1,27 @@
 Version 4.9
 
+1/13/14  [EDGcpfe/14768]
+Overload resolution with narrowing conversions in braced initializers
+
+The front end previously treated a narrowing conversion in a braced initializer
+as a reason to discard a candidate during overload resolution.  Now, such
+narrowing conversions are only checked (and diagnosed) after overload
+resolution has resolved the call.  For example:
+
+  struct S {
+    S(int);
+    S(...);
+  };
+  S g() {
+    return { 1.2 };
+  }                 
+
+Previously the ellipsis constructor was selected because the S(int) candidate
+was discarded due to the narrowing conversion.  Now, the S(int) candidate is
+selected for the call, and a diagnostic is issued because the call requires a
+narrowing conversion.
+
+
 1/9/14   [EDGcpfe/14635,EDGcpfe/14771]
 alignas in local declaration contexts
 
