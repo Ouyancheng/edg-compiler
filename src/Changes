@@ -1,5 +1,19 @@
 Version 4.9
 
+1/14/14  [EDGcpfe/14784]
+Abort on C++11-style GNU attribute applied to invalid entity
+
+In some unusual cases, the front end could abort (in form_type_first_part,
+il_to_str.c) while attempting to issue a diagnostic for a C++11-style (i.e.,
+doubly bracketed) GNU attribute applied to an invalid entity.  For example:
+
+  struct S {};
+  typedef void (S::* [[gnu::const]] PMF)(int, int);
+    // Previously triggered an abort in GNU C++11 mode.
+
+This is now fixed.
+
+
 1/14/14  [EDGcpfe/14783]
 Inheriting constructors and exception handling
 

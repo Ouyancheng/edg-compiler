@@ -2444,7 +2444,6 @@ modified member type.
 }  /* check_for_vla_in_pointer_to_member */
 
 #endif /* !STANDALONE_UTILITY_PROGRAM */
-#if BACK_END_IS_CP_GEN_BE
 
 a_type_ptr type_specifier_of_type(a_type_ptr type)
 /*
@@ -2453,16 +2452,12 @@ it.  For example, from "array[3] of pointer to const int" one gets back
 "const int".
 */
 {
-  a_type_ptr return_type;
+  a_type_ptr return_type = type;
 
-  for (;;) {
-    return_type = type;
+  while (type != NULL) {
     /* Remove type qualifiers to see what is underneath.  If what is underneath
        is a derived type we keep going. */
-    while (type->kind == (a_type_kind)tk_typeref &&
-           !typeref_is_typedef(type)) {
-      type = type->variant.typeref.type;
-    }  /* while */
+    type = skip_typerefs_not_typedefs(type);
     switch (type->kind) {
       case tk_pointer:  /* Includes C++ reference too. */
       case tk_ptr_to_member:
@@ -2474,12 +2469,11 @@ it.  For example, from "array[3] of pointer to const int" one gets back
       default:
         goto found_specifier_type;
     }  /* switch */
-  }  /* for */
+    return_type = type;
+  }  /* while */
 found_specifier_type:
   return return_type;
 }  /* type_specifier_of_type */
-
-#endif /* BACK_END_IS_CP_GEN_BE */
 
 #if USER_CONTROL_OF_STRUCT_PACKING && \
     (GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED)

@@ -3626,8 +3626,15 @@ Otherwise, return NULL and issue a diagnostic if appropriate.
   } else {
     /* Either an invalid type, or a template case. */
     if (!is_template_dependent_type(type)) {
-      pos_stty_warning(ec_attr_requires_func_type, &ap->position, ap->name,
-                       type);
+      if (type_specifier_of_type(type) == NULL) {
+        /* In some cases, the type may still be under construction: It should
+           therefore not be used in the diagnostic. */
+        pos_st_warning(ec_attr_not_applied_to_function_type, &ap->position,
+                       ap->name);
+      } else {
+        pos_stty_warning(ec_attr_requires_func_type, &ap->position, ap->name,
+                         type);
+      }  /* if */
       make_attr_unrecognized(ap);
     }  /* if */
     func_type = NULL;

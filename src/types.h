@@ -251,9 +251,7 @@ extern a_type_ptr f_underlying_type_of_derived_type(
 extern a_boolean check_for_vla_in_pointer_to_member(a_type_ptr         type,
                                                     a_source_position  *pos);
 
-#if BACK_END_IS_CP_GEN_BE
 extern a_type_ptr type_specifier_of_type(a_type_ptr type);
-#endif /* BACK_END_IS_CP_GEN_BE */
 
 /*
 Return TRUE if a type is a direct class type (i.e., not a typeref on
