@@ -2573,6 +2573,7 @@ ec_bad_size_for_static_address_init;;"static initialization with an address valu
 ec_feature_test_macro_req_id;;"the argument to a feature-test macro must be a simple identifier"
 ec_has_include_next_in_primary_source_file;;"__has_include_next cannot be used in the primary source file"
 ec_absolute_file_name_in_has_include_next;;"absolute file name used in __has_include_next"
+ec_attr_not_applied_to_function_type;;"attribute %sq must be applied to a function type"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #
