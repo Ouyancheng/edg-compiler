@@ -1,5 +1,19 @@
 Version 4.9
 
+1/14/14  [EDGcpfe/14783]
+Inheriting constructors and exception handling
+
+In modes disabling exception handling, the front end previously aborted with an
+internal error in form_exception_specification_for_generated_function when
+processing inheriting constructors.  For example:
+
+  struct B { B(int); };
+  struct D: B { using B::B; };  // Previously triggered an internal error
+                                // if exception handling is disabled.
+
+This is now fixed.
+
+
 1/13/14  [EDGcpfe/14768]
 Overload resolution with narrowing conversions in braced initializers
 

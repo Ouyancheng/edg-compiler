@@ -20338,7 +20338,9 @@ constructor.
       new_rp = decl_info.decl_state.sym->variant.routine.ptr;
       new_rp->generating_using_decl = udp;
       new_rp->is_inheriting_ctor = TRUE;
-      form_exception_specification_for_generated_function(new_rp, bctor);
+      if (exceptions_enabled) {
+        form_exception_specification_for_generated_function(new_rp, bctor);
+      }  /* if */
       done_with_func_info(func_info);
     }  /* if */
   }  /* for */
