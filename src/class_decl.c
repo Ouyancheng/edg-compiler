@@ -28372,7 +28372,7 @@ where we don't attempt ABI emulation).
   if (call_conv != (a_calling_convention)cc_default) {
     /* Create a calling-convention-specific suffix for the entry point name. */
     check_assertion(microsoft_mode);
-    sprintf(name_buf, "_FUN%s\n", calling_convention_names[(int)call_conv]);
+    sprintf(name_buf, "_FUN%s", calling_convention_names[(int)call_conv]);
     name = name_buf;
     name_len = strlen(name);
   }  /* if */

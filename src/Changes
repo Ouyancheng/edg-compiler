@@ -1,5 +1,17 @@
 Version 4.9
 
+1/17/14  [EDGcpfe/14788]
+Lambdas and calling conventions
+
+Closure types for lambda expressions that do not capture anything have a static
+member function implementing an alternative entry point to the body of the
+lambda.  In modes permitting multiple calling conventions (Microsoft mode in
+particular) such alternative entry points are generated for every relevant
+calling convention, and each entry point is given a different name.
+Previously, those names could accidentally include a "new-line" character: This
+is now fixed.
+
+
 1/17/14  [EDGcpfe/14787]
 Accessing of members of objects of the class type being defined
 
