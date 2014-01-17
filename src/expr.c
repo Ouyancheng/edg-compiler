@@ -5833,6 +5833,25 @@ the "x").
 }  /* check_valid_qualified_member_in_selection */
 
 
+static a_boolean field_selection_class_can_be_incomplete(
+                            an_operand        *operand_1,
+                            a_type_ptr        type_1,
+                            a_boolean         is_arrow_operator)
+/*
+Return TRUE if a member access operation where the first operand is *operand_1
+(whose type after skipping typerefs is type_1) is valid even when the class
+type whose member being accessed is incomplete.
+*/
+{
+  return this_in_trailing_return_types_enabled &&
+          ((is_arrow_operator &&
+            is_this_parameter_operand(operand_1, (a_variable_ptr *)NULL)) ||
+           (!strict_ansi_mode &&
+            type_1 != NULL && is_immediate_class_type(type_1) &&
+            class_symbol_supp(symbol_for(type_1))->being_defined));
+}  /* field_selection_class_can_be_incomplete */
+
+
 static void scan_selection_second_operand(
                             an_operand        *operand_1,
                             a_type_ptr        type_1,
@@ -5935,9 +5954,8 @@ Set *err to TRUE if there is an error.
                           type_1 != NULL && is_immediate_class_type(type_1) &&
                           !is_incomplete_type(type_1);
       if (!operand_1_is_complete_class &&
-          this_in_trailing_return_types_enabled &&
-          is_arrow_operator &&
-          is_this_parameter_operand(operand_1, (a_variable_ptr *)NULL)) {
+          field_selection_class_can_be_incomplete(operand_1, type_1,
+                                                  is_arrow_operator)) {
         /* In C++11, "this" can be used in a late-specified return type, when
            the class of "this" is not complete. */
         operand_1_is_complete_class = TRUE;
@@ -6919,39 +6937,41 @@ case).
     }  /* if */
   }  /* if */
 
-  if (need_operand_1_type_check &&
-      (!is_class_struct_union_type(class_struct_union_type) ||
-       is_incomplete_type(class_struct_union_type))) {
-    /* The first operand is not (a pointer to) a complete class, struct,
-       or union.  This check was delayed to this point so that we could
-       allow things like vacuous destructor references. */
-    if (this_in_trailing_return_types_enabled &&
-        is_arrow_operator &&
-        is_this_parameter_operand(operand_1, (a_variable_ptr *)NULL)) {
-      /* In C++11, "this" can be used in a late-specified return type, when
-         the class of "this" is not complete. */
-    } else {
-      if (!is_error_type(class_struct_union_type)) {
-        an_error_code err_code;
-        /* If the problem is that the class is incomplete, use a different
-           error message. */
-        if (is_incomplete_type(class_struct_union_type) &&
-            is_class_struct_union_type(class_struct_union_type)) {
-          err_code = is_arrow_operator ?
+  if (need_operand_1_type_check) {
+    a_type_ptr  tp = skip_typerefs(class_struct_union_type);
+    a_boolean   is_class_type = is_immediate_class_type(tp);
+    if (!is_class_type || is_incomplete_type(tp)) {
+      /* The first operand is not (a pointer to) a complete class, struct,
+         or union.  This check was delayed to this point so that we could
+         allow things like vacuous destructor references. */
+      if (is_class_type &&
+          field_selection_class_can_be_incomplete(operand_1, tp,
+                                                  is_arrow_operator)) {
+        /* In C++11, "this" can be used in a late-specified return type, when
+           the class of "this" is not complete. */
+      } else {
+        if (!is_error_type(class_struct_union_type)) {
+          an_error_code err_code;
+          /* If the problem is that the class is incomplete, use a different
+             error message. */
+          if (is_incomplete_type(class_struct_union_type) &&
+              is_class_struct_union_type(class_struct_union_type)) {
+            err_code = is_arrow_operator ?
                                   ec_ptr_to_incomplete_class_type_not_allowed :
   				  ec_incomplete_type_not_allowed;
-        } else {
-          if (C_dialect == C_dialect_cplusplus) {
-            err_code = is_arrow_operator ? ec_expr_not_ptr_to_class :
-                                           ec_expr_not_class;
           } else {
-            err_code = is_arrow_operator ? ec_expr_not_ptr_to_struct_or_union :
-                                           ec_expr_not_struct_or_union;
+            if (C_dialect == C_dialect_cplusplus) {
+              err_code = is_arrow_operator ? ec_expr_not_ptr_to_class :
+                                             ec_expr_not_class;
+            } else {
+              err_code = is_arrow_operator ? ec_expr_not_ptr_to_struct_or_union
+                                           : ec_expr_not_struct_or_union;
+            }  /* if */
           }  /* if */
+          error_in_operand(err_code, operand_1);
         }  /* if */
-        error_in_operand(err_code, operand_1);
+        err = TRUE;
       }  /* if */
-      err = TRUE;
     }  /* if */
   }  /* if */
 
