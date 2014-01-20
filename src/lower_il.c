@@ -14599,6 +14599,74 @@ had its dynamic initialization performed before its first use in the thread.
 }  /* lower_thread_local_variable */
 
 #endif /* USE_LAZY_INITIALIZATION_FOR_THREAD_LOCAL_VARIABLES */
+#if GNU_EXTENSIONS_ALLOWED
+
+static void lower_gnu_statement_expression(an_expr_node_ptr  expr)
+/*
+Lower the given enk_statement expression node (which represents a GNU statement
+expression).
+*/
+{
+#if MINIMAL_INLINING
+  a_boolean saved_inlining_enabled;
+#endif /* MINIMAL_INLINING */
+  a_statement_ptr  block = expr->variant.statement;
+  a_statement_ptr  last, result_stmt = NULL;
+  a_variable_ptr   result_var = NULL;
+
+  check_assertion(block->kind == (a_statement_kind)stmk_block);
+  last = last_statement_in_block(block);
+  if (last != NULL && last->is_statement_expression_result) {
+    result_stmt = last;
+  }  /* if */
+#if MINIMAL_INLINING
+  saved_inlining_enabled = inlining_enabled;
+  /* Turn off inlining, because the last statement creates a
+     value that gets returned, and it needs to be an expression
+     statement to get returned (inlining would turn it into a
+     block statement). */
+  inlining_enabled = FALSE;
+#endif /* MINIMAL_INLINING */
+  lower_statement(block);
+#if MINIMAL_INLINING
+  inlining_enabled = saved_inlining_enabled;
+#endif /* MINIMAL_INLINING */
+  if (result_stmt != NULL) {
+    if (result_stmt->kind == (a_statement_kind)stmk_block) {
+      /* Lowering changed the result statement into a block.  Change it into a
+         statement expression so it will produce a value. */
+      change_block_into_statement_expression(result_stmt);
+    }  /* if */
+    if (result_stmt->next != NULL) {
+      /* Statements have been added by lowering after the result statement.
+         Since the C-generating back end will render the statement expression
+         as a (lowered) statement expression, it is necessary for the result
+         statement to be the last.  So transform:
+              <result-stmt>; <additional-stmts>
+         into
+              tmp = <result-expr>; <additional-stmts>; tmp */
+      a_scope_ptr         scope = block->variant.block.extra_info->assoc_scope;
+      an_insert_location  insert_location;
+      check_assertion(scope != NULL);
+      check_assertion(result_stmt->kind == (a_statement_kind)stmk_expr);
+      result_var = make_temporary_in_scope(result_stmt->expr->type, scope,
+                                           /*force_static=*/FALSE,
+                                           /*promote_if_necessary=*/FALSE);
+      result_stmt->expr =
+                      make_var_assignment_expr(result_var, result_stmt->expr);
+      result_stmt->expr->result_is_not_used = TRUE;
+      result_stmt->is_statement_expression_result = FALSE;
+      last = last_statement_in_block(block);
+      set_insert_location(last, &insert_location);
+      result_stmt = alloc_statement((a_statement_kind)stmk_expr);
+      result_stmt->expr = var_rvalue_expr(result_var);
+      result_stmt->is_statement_expression_result = TRUE;
+      insert_statement(result_stmt, &insert_location);
+    }  /* if */
+  }  /* if */
+}  /* lower_gnu_statement_expression */
+
+#endif /* GNU_EXTENSIONS_ALLOWED */
 
 void lower_expr_full(an_expr_node_ptr expr,
                      a_boolean        assume_expr_is_non_null)
@@ -15298,38 +15366,7 @@ cast.  See lower_expr for typical invocation.
 #if GNU_EXTENSIONS_ALLOWED
     case enk_statement:
       /* GNU statement expression, ({ ... }). */
-      {
-#if MINIMAL_INLINING
-        a_boolean saved_inlining_enabled;
-#endif /* MINIMAL_INLINING */
-        a_statement_ptr  block = expr->variant.statement;
-        a_statement_ptr  last;
-        a_boolean        original_statement_was_expr = FALSE;
-        check_assertion(block->kind == (a_statement_kind)stmk_block);
-        last = last_statement_in_block(block);
-        if (last != NULL && last->kind == (a_statement_kind)stmk_expr) {
-          original_statement_was_expr = TRUE;
-        }  /* if */
-#if MINIMAL_INLINING
-        saved_inlining_enabled = inlining_enabled;
-        /* Turn off inlining, because the last statement creates a
-           value that gets returned, and it needs to be an expression
-           statement to get returned (inlining would turn it into a
-           block statement). */
-        inlining_enabled = FALSE;
-#endif /* MINIMAL_INLINING */
-        lower_statement(block);
-#if MINIMAL_INLINING
-        inlining_enabled = saved_inlining_enabled;
-#endif /* MINIMAL_INLINING */
-        last = last_statement_in_block(block);
-        if (original_statement_was_expr && 
-            last != NULL && last->kind == (a_statement_kind)stmk_block) {
-          /* Lowering changed the last statement into a block.  Change it
-             into a statement expression so it will produce a value. */
-          change_block_into_statement_expression(last);
-        }  /* if */
-      }
+      lower_gnu_statement_expression(expr);
       break;
 #endif /* GNU_EXTENSIONS_ALLOWED */
     case enk_reuse_value:
@@ -16874,8 +16911,7 @@ static void push_block_statement_context(
                                   a_context          *context,
                                   a_boolean          *context_pushed,
                                   a_boolean          *new_lifetime,
-                                  a_dynamic_init_ptr *saved_curr_cleanup_state,
-                                  a_context          **saved_curr_context)
+                                  a_dynamic_init_ptr *saved_curr_cleanup_state)
 /*
 Push a context and start an object lifetime, if necessary, for the
 indicated block statement.  If a context is pushed, context (a local
@@ -16883,9 +16919,6 @@ variable in the caller) is used as the stack entry and *context_pushed
 is returned TRUE.  *new_lifetime is returned TRUE if a new object lifetime
 is begun.  The value of curr_context->curr_cleanup_state is saved in
 *saved_curr_cleanup_state so it can be restored at the end of the block.
-If the block is a GNU statement expression, *saved_curr_context
-will be set to the saved current context (a new context will be pushed);
-otherwise it will be set to NULL.
 */
 {
   a_block_ptr            block = block_statement->variant.block.extra_info;
@@ -16895,37 +16928,23 @@ otherwise it will be set to NULL.
   *context_pushed = FALSE;
   *new_lifetime = FALSE;
   *saved_curr_cleanup_state = curr_context->curr_cleanup_state;
-  *saved_curr_context = NULL;
-#if GNU_EXTENSIONS_ALLOWED
-  if (block->is_statement_expression) {
-    /* Make sure a new context is pushed for a statement expression (so
-       full expressions aren't nested and temporaries aren't reused
-       before the end of the enclosing full expression). */
-    save_and_push_context(context, scope, lifetime, saved_curr_context);
-    *new_lifetime = (lifetime != NULL);
+  if (scope != NULL || lifetime != NULL) {
+    push_context(context, scope, lifetime);
     *context_pushed = TRUE;
-  } else
-#endif /* GNU_EXTENSIONS_ALLOWED */
-  /* Do not insert code here. */
-  {
-    if (scope != NULL || lifetime != NULL) {
-      push_context(context, scope, lifetime);
-      *context_pushed = TRUE;
-      *new_lifetime = curr_context->new_lifetime;
-      if (scope != NULL) lifetime = scope->lifetime;
-    } else if (block_statement == innermost_function_scope->assoc_block) {
-      /* For the topmost block in a function, assoc_scope is NULL, so
-         no push_context is done.  That's correct, because the caller has
-         done the push_context already.  A new lifetime may begin here,
-         however. */
-      scope = innermost_function_scope;
-      lifetime = scope->lifetime;
-      *new_lifetime = (lifetime != NULL);
-    } else {
-      /* Keep track of compound statements without scopes that we are inside
-         of, so they can be used to allocate temporaries. */
-      push_scopeless_compound_stmt(block_statement);
-    }  /* if */
+    *new_lifetime = curr_context->new_lifetime;
+    if (scope != NULL) lifetime = scope->lifetime;
+  } else if (block_statement == innermost_function_scope->assoc_block) {
+    /* For the topmost block in a function, assoc_scope is NULL, so
+       no push_context is done.  That's correct, because the caller has
+       done the push_context already.  A new lifetime may begin here,
+       however. */
+    scope = innermost_function_scope;
+    lifetime = scope->lifetime;
+    *new_lifetime = (lifetime != NULL);
+  } else {
+    /* Keep track of compound statements without scopes that we are inside
+       of, so they can be used to allocate temporaries. */
+    push_scopeless_compound_stmt(block_statement);
   }  /* if */
   if (*new_lifetime) {
     /* A new lifetime was pushed. */
@@ -16967,8 +16986,7 @@ static void pop_block_statement_context(
                                    a_statement_ptr    last_statement,
                                    a_boolean          context_pushed,
                                    a_boolean          new_lifetime,
-                                   a_dynamic_init_ptr saved_curr_cleanup_state,
-                                   a_context          *saved_curr_context)
+                                   a_dynamic_init_ptr saved_curr_cleanup_state)
 /*
 Pop a context and end an object lifetime, if necessary, for the
 indicated block statement.  context_pushed indicates whether or
@@ -16981,8 +16999,6 @@ in the block or to ask this routine to find the last statement itself.
 Any cleanup code inserted is placed after the last statement.
 *saved_curr_cleanup_state contains the value that
 curr_context->curr_cleanup_state had at the start of the block.
-*saved_curr_context contains the saved context that should be restored in
-cases where the block is a GNU statement expression.
 */
 {
   a_block_ptr block = block_statement->variant.block.extra_info;
@@ -17042,17 +17058,7 @@ cases where the block is a GNU statement expression.
   }  /* if */
   if (context_pushed) {
     /* Pop the context pushed by push_block_statement_context. */
-#if GNU_EXTENSIONS_ALLOWED
-    if (block->is_statement_expression) {
-      /* Restore previously saved context stack. */
-      check_assertion(saved_curr_context != NULL);
-      restore_saved_context(saved_curr_context);
-    } else
-#endif /* GNU_EXTENSIONS_ALLOWED */
-    /* Do not insert code here. */
-    {
-      pop_context();
-    }  /* if */
+    pop_context();
   } else if (block_statement == innermost_function_scope->assoc_block) {
     /* This is the top-most block in a function. */
   } else {
@@ -17081,7 +17087,7 @@ in the block, or NULL if there are no statements in the block.
   a_boolean          context_pushed, new_lifetime;
   a_dynamic_init_ptr saved_curr_cleanup_state;
   a_block_ptr        block;
-  a_context          context, *saved_curr_context;
+  a_context          context;
   a_scope_ptr        scope;
 
   set_position_from_stmt_source_position(code_pos_for_lowering,
@@ -17094,7 +17100,7 @@ in the block, or NULL if there are no statements in the block.
      or an object lifetime. */
   push_block_statement_context(statement, &context,
                                &context_pushed, &new_lifetime,
-                               &saved_curr_cleanup_state, &saved_curr_context);
+                               &saved_curr_cleanup_state);
   block = statement->variant.block.extra_info;
   scope = block->assoc_scope;
   if (scope != NULL) {
@@ -17111,7 +17117,7 @@ in the block, or NULL if there are no statements in the block.
   /* Generate any cleanup actions and pop the context. */
   pop_block_statement_context(statement, last_statement,
                               context_pushed, new_lifetime,
-                              saved_curr_cleanup_state, saved_curr_context);
+                              saved_curr_cleanup_state);
   if (p_last_statement != NULL) {
     /* Return a pointer to the last statement to the caller.  Advance
        if necessary in case pop_block_statement_context added some

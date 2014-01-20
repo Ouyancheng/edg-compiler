@@ -627,10 +627,7 @@ static void dump_statement_list(a_statement_ptr statement,
 static void dump_prescan_temps(a_statement_ptr statement);
 static void set_up_prescan_traversal_block(
                                    an_expr_or_stmt_traversal_block_ptr tblock);
-static void dump_statement_full(a_statement_ptr statement,
-                                a_boolean       last_in_statement_expr);
-#define dump_statement(stmt) \
-  dump_statement_full((stmt), /*last_in_statement_expr=*/FALSE)
+static void dump_statement(a_statement_ptr statement);
 static void dump_block(a_statement_ptr statement,
                        a_boolean       is_statement_expr);
 
@@ -8682,15 +8679,9 @@ statement which therefore should not be put out.
 }  /* is_implicit_return */
 
 
-#if !CHECKING
-/*ARGSUSED*/  /* <-- last_in_statement_expr is not used in that case. */
-#endif /* !CHECKING */
-static void dump_statement_full(a_statement_ptr statement,
-                                a_boolean       last_in_statement_expr)
+static void dump_statement(a_statement_ptr statement)
 /*
-Generate C for a statement.  If last_in_statement_expr is TRUE, the
-statement is the last in the top-level statement list in a GNU C
-statement expression, i.e., ({...}).
+Generate C for a statement.
 */
 {
   a_statement_ptr  init_stmt, else_stmt;
@@ -8722,7 +8713,7 @@ statement expression, i.e., ({...}).
       break;
     case stmk_expr:
 #if CHECKING
-      if (!last_in_statement_expr) {
+      if (!statement->is_statement_expression_result) {
         check_result_not_used_flag(statement->expr);
       }  /* if */
 #endif /* CHECKING */
@@ -8862,7 +8853,7 @@ statement expression, i.e., ({...}).
       break;
     case stmk_return:
       check_assertion_str(statement->variant.return_dynamic_init == NULL,
-                          "dump_statement_full: return with dyn init");
+                          "dump_statement: return with dyn init");
       if (master_routine_scope != NULL &&
           innermost_function_scope == master_routine_scope) {
         /* We're "inlining" a master routine within an alternate entry routine
@@ -9060,9 +9051,9 @@ statement expression, i.e., ({...}).
       break;
 #endif /* UPC_EXTENSIONS_ALLOWED */
     default:
-      unexpected_condition_str("dump_statement_full: bad statement kind");
+      unexpected_condition_str("dump_statement: bad statement kind");
   }  /* switch */
-}  /* dump_statement_full */
+}  /* dump_statement */
 
 
 static void dump_statement_list(a_statement_ptr statement,
@@ -9074,7 +9065,6 @@ top-level list in a GNU C statement expression if is_statement_expr is TRUE.
 {
   a_boolean     exec_stmt_put_out = FALSE;
   uint32_t      num_closing_braces_needed = 0;
-  a_boolean     last_in_statement_expr = FALSE;
 
   for (; statement != NULL; statement = statement->next) {
     /* Put out extra braces before declarative statements that would
@@ -9089,11 +9079,7 @@ top-level list in a GNU C statement expression if is_statement_expr is TRUE.
       num_closing_braces_needed++;
       exec_stmt_put_out = FALSE;
     }  /* if */
-    if (is_statement_expr) {
-      /* See whether this statement is the last in a statement expression. */
-      if (statement->next == NULL) last_in_statement_expr = TRUE;
-    }  /* if */
-    dump_statement_full(statement, last_in_statement_expr);
+    dump_statement(statement);
     if (is_exec_stmt) exec_stmt_put_out = TRUE;
   }  /* for */
   while (num_closing_braces_needed-- > 0) write_tok_ch('}');

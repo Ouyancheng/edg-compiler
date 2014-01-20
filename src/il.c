@@ -21492,8 +21492,13 @@ entry is needed.)
   if (kind == (an_object_lifetime_kind)olk_global_static) {
     /* No parent pointer. */
   } else {
+    /* Ordinarily, an object lifetime cannot be the child of a lifetime for a
+       temporary.  The one exception are the lifetimes embedded in GNU
+       statement expressions. */
     check_assertion_str2(curr_object_lifetime->kind !=
-                                  (an_object_lifetime_kind)olk_expr_temporary,
+                                (an_object_lifetime_kind)olk_expr_temporary ||
+                         (gpp_mode &&
+                          (an_il_entry_kind)entity_kind == iek_scope),
                          "push_or_repush_object_lifetime:",
                          "pushing on top of olk_expr_temporary not allowed");
     /* Link the new entry into the object lifetime tree. */
@@ -21658,6 +21663,15 @@ with it.  Entries associated with scopes must also have no child entries.
             do_child_check = FALSE;
 #endif /* NEW_CAN_BE_FOLDED_INTO_CTOR */
 #endif /* DO_IL_LOWERING */
+          } else if (olp->parent_lifetime != NULL &&
+                     olp->parent_lifetime->kind ==
+                                (an_object_lifetime_kind)olk_expr_temporary &&
+                     olp->block_lifetime_with_label_or_goto) {
+            /* A block lifetime for a GNU statement expression that contains a
+               label or goto statement: Keep it to avoid having to promote a
+               non-block lifetime to be a child of an olk_expr_temporary
+               lifetime. */
+            do_child_check = FALSE;
           } else if (olp->child_lifetime == NULL) {
             /* No children, no destructions. */
             is_useless = TRUE;
@@ -21908,7 +21922,13 @@ be done when there were errors.
     }  /* for */
     olp->child_lifetime = NULL;
   }
-  check_assertion_str(is_useless_object_lifetime(olp),
+  /* Check that the object lifetime is indeed useless.  (However, the block
+     lifetime associated with a GNU statement expression is not always treated
+     as useless because we want to avoid promoting a non-block lifetime to
+     become the child of an olk_expr_temporary lifetime.) */
+  check_assertion_str(is_useless_object_lifetime(olp) ||
+                      olp->parent_lifetime->kind ==
+                                  (an_object_lifetime_kind)olk_expr_temporary,
                       "failed to mark object lifetime as useless");
 }  /* mark_object_lifetime_as_useless */
 

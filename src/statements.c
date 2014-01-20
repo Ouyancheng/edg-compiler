@@ -1161,6 +1161,15 @@ the label are promoted to the lifetime of the function scope.
        block -- if required. */
     if (block_cfdp->variant.block.goto_count != 0 ||
         block_cfdp->variant.block.any_labels) {
+      block_olp->block_lifetime_with_label_or_goto = TRUE;
+      if (block_olp->parent_lifetime->kind ==
+                                (an_object_lifetime_kind)olk_expr_temporary) {
+        /* We can get here with GNU statement expressions.  However, we do not
+           want to promote a lifetime for a goto or label statement to be a
+           child of an olk_expr_temporary lifetime since that would complicate
+           things elsewhere. */
+        keep_block_object_lifetime = TRUE;
+      }  /* if */
       if (!keep_block_object_lifetime &&
           is_useless_object_lifetime(block_olp)) {
         promote_to = block_olp->parent_lifetime;
@@ -3284,9 +3293,12 @@ Do processing to finish a block or compound statement.  block_stmt points to
 the block statement.
 */
 {
-  a_scope_ptr scope_ptr;
   a_block_ptr block = block_stmt->variant.block.extra_info;
+  a_boolean   is_statement_expression = FALSE;
 
+#if GNU_EXTENSIONS_ALLOWED
+  is_statement_expression = block->is_statement_expression;
+#endif /* GNU_EXTENSIONS_ALLOWED */
   /* Remember whether or not the end of the block is reachable.  This
      is helpful in IL lowering. */
   block->end_of_block_reachable = curr_reachability.reachable;
@@ -3306,7 +3318,17 @@ the block statement.
   } else {
     /* Store the IL scope pointer in the block.  This is usually NULL for
        blocks with no declarations. */
-    scope_ptr = scope_stack[decl_scope_level].il_scope;
+    a_scope_ptr              scope_ptr;
+    a_scope_stack_entry_ptr  ssep = &scope_stack[decl_scope_level];
+    if (is_statement_expression &&
+        ssep->curr_scope_object_lifetime != NULL &&
+        ssep->curr_scope_object_lifetime->block_lifetime_with_label_or_goto) {
+      /* For statement expressions containing a label or goto, we want to be
+         sure scope is represented in the IL so the block object lifetime can
+         be bound to it. */
+      ensure_il_scope_exists(ssep);
+    }  /* if */
+    scope_ptr = ssep->il_scope;
     if (scope_ptr != NULL) {
       block->assoc_scope = scope_ptr;
       scope_ptr->assoc_block = block_stmt;
@@ -3316,9 +3338,12 @@ the block statement.
   }  /* if */
   /* If a label appeared in the context of the block that was just
      terminated, it may be appropriate to push a new object lifetime for
-     the scope being resumed. */
+     the scope being resumed.  This is not the case for GNU statement
+     expressions since we cannot jump into their associated block. */
   if (depth_stmt_stack >= 0) {
-    reset_curr_block_object_lifetime(block_stmt);
+    if (!is_statement_expression) {
+      reset_curr_block_object_lifetime(block_stmt);
+    }  /* if */
   }  /* if */
 }  /* finish_block_statement */
 
@@ -5460,7 +5485,7 @@ give the starting and ending positions of the break statement.
   sp->variant.label.ptr = dest_label;
   if (!C_mode()) {
     /* Set the object lifetime.  It is a provisional setting and may be
-       changed based on the lifetime of the continue label itself. */
+       changed based on the lifetime of the break label itself. */
     sp->variant.label.lifetime =
                         innermost_block_object_lifetime(curr_object_lifetime);
   }  /* if */

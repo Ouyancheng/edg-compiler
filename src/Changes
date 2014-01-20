@@ -1,5 +1,33 @@
 Version 4.9
 
+1/20/14  [EDGcpfe/7317,EDGcpfe/9032,EDGcpfe/9156,EDGcpfe/9684,EDGcpfe/10566,
+          EDGcpfe/13920,EDGcpfe/13930]
+Destructible entities in GNU statement expressions
+
+In GNU C++ modes, the front end now accepts destructible entities in GNU
+statement expressions.  For example:
+
+  struct D { ~D(); };
+  int g() {
+    return ({ D d; 42; });  // Now accepted in GNU C++ modes.
+  }
+
+A remaining limitation is that the result of a GNU statement expression can
+not be of a class type requiring nontrivial copy construction or nontrivial
+destruction.  Such cases are now more consistently diagnosed; previously,
+they sometimes resulted in an internal error in assign_expr_to_temp during
+IL lowering (in lower_il.c).  For example:
+
+  struct D { D(D const&); };
+  D g(D d) {
+    return ({ d; });  // Previously triggered an internal error when lowered;
+  }                   // now an ordinary error because d has a nontrivial copy
+                      // constructor.
+
+As a result of these changes, it is now possible for an olk_expr_temporary
+lifetime to have an olk_block child lifetime.
+
+
 1/17/14  [EDGcpfe/14788]
 Lambdas and calling conventions
 

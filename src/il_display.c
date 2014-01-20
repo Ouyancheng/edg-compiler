@@ -4688,6 +4688,12 @@ Display the indicated statement.
   if (ptr->is_initialization_guard) {
     disp_boolean("is_initialization_guard", TRUE);
   }  /* if */
+  if (ptr->is_lowering_boilerplate) {
+    disp_boolean("is_lowering_boilerplate", TRUE);
+  }  /* if */
+  if (ptr->is_statement_expression_result) {
+    disp_boolean("is_statement_expression_result", TRUE);
+  }  /* if */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   if (ptr->source_sequence_entry != NULL) {
     disp_ptr("source_sequence_entry", (char *)ptr->source_sequence_entry,

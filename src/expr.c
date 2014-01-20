@@ -20788,20 +20788,10 @@ already been consumed.
        statements are not part of any expression we may currently be
        inside of.  Likewise the object lifetime stack. */
     an_expr_stack_entry_ptr saved_expr_stack;
-    an_object_lifetime_ptr  saved_curr_object_lifetime;
 #if GENERATE_SOURCE_SEQUENCE_LISTS
     a_boolean               saved_sses_disallowed;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
     save_expr_stack(&saved_expr_stack);
-    saved_curr_object_lifetime = curr_object_lifetime;
-    /* We can't push object lifetimes on top of a temporary object
-       lifetime (which is likely to be on the top of the object lifetime
-       stack), so traverse upward until we find one we can use. */
-    while (curr_object_lifetime != NULL &&
-           curr_object_lifetime->kind ==
-                             (an_object_lifetime_kind)olk_expr_temporary) {
-      curr_object_lifetime = curr_object_lifetime->parent_lifetime;
-    }  /* while */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
     saved_sses_disallowed = source_sequence_entries_disallowed;
     if (!saved_expr_stack->potentially_evaluated &&
@@ -20818,22 +20808,11 @@ already been consumed.
                             /*is_catch_clause=*/FALSE,
                             /*is_statement_expr=*/TRUE);
     restore_expr_stack(saved_expr_stack);
-    curr_object_lifetime = saved_curr_object_lifetime;
 #if GENERATE_SOURCE_SEQUENCE_LISTS
     source_sequence_entries_disallowed = saved_sses_disallowed;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
-    if (!C_mode()) {
-      /* Check that no destructible entities were declared in the
-         statement. */
-      if (sp->variant.block.extra_info->assoc_scope != NULL &&
-          sp->variant.block.extra_info->assoc_scope->lifetime != NULL) {
-        expr_pos_error(ec_destr_in_statement_expr, &left_brace_position);
-      }  /* if */
-    }  /* if */
   }  /* if */
-  if (err) {
-    make_error_operand(result);
-  } else {
+  if (!err) {
     a_statement_ptr  stmt, last_stmt;
     a_type_ptr       expr_type;
     an_expr_node_ptr expr;
@@ -20850,16 +20829,37 @@ already been consumed.
     }  /* for */
     if (last_stmt != NULL && last_stmt->kind == (a_statement_kind)stmk_expr) {
       expr_type = last_stmt->expr->type;
+      if (is_void_type(expr_type)) {
+        set_expr_result_not_used(last_stmt->expr);
+      } else {
+        last_stmt->is_statement_expression_result = TRUE;
+        if (is_class_struct_union_type(expr_type)) {
+          /* We don't currently handle result types whose copy construction or
+             destruction semantics are nontrivial. */
+          a_class_symbol_supplement_ptr
+                                cssp = symbol_supplement_for_class(expr_type);
+          if (!cssp->has_trivial_destructor ||
+              !cssp->construction_by_bitwise_copy_allowed) {
+            if (expr_error_should_be_issued()) {
+              pos_ty_error(ec_nontrivial_statement_expr_result_type,
+                           &pos_curr_token, expr_type);
+            }  /* if */
+            make_error_operand(result);
+            err = TRUE;
+          }  /* if */
+        } else if (is_variably_modified_type(expr_type)) {
+          /* Do not allow a statement expression to have a variably-modified
+             type.  (It's an unlikely case that would cause undue difficulties
+             during IL lowering.) */
+          expr_pos_error(ec_statement_expr_with_vla_type,
+                         &left_brace_position);
+          err = TRUE;
+        }  /* if */
+      }  /* if */
     } else {
       expr_type = void_type();
     }  /* if */
-    if (is_variably_modified_type(expr_type)) {
-      /* Do not allow a statement expression to have a variably-modified type.
-         (It's an unlikely case that would cause undue difficulties during IL
-         lowering.) */
-      expr_pos_error(ec_statement_expr_with_vla_type, &left_brace_position);
-      make_error_operand(result);
-    } else {
+    if (!err) {
       expr = alloc_expr_node((an_expr_node_kind)enk_statement);
       expr->variant.statement = sp;
       expr->type = expr_type;
@@ -20868,6 +20868,9 @@ already been consumed.
       report_gnu_extension_if_needed(&left_brace_position,
                                      ec_statement_expression_is_gnu_extension);
     }  /* if */
+  }  /* if */
+  if (err) {
+    make_error_operand(result);
   }  /* if */
   set_operand_position(result, start_position, &pos_curr_token,
                        start_position);
