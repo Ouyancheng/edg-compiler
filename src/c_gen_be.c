@@ -622,14 +622,12 @@ static void dump_enum_definition(a_type_ptr type,
                                  a_boolean  output_final_semi);
 static void dump_struct_union_definition(a_type_ptr type,
                                          a_boolean  output_final_semi);
-static void dump_statement_list(a_statement_ptr statement,
-                                a_boolean       is_statement_expr);
+static void dump_statement_list(a_statement_ptr statement);
 static void dump_prescan_temps(a_statement_ptr statement);
 static void set_up_prescan_traversal_block(
                                    an_expr_or_stmt_traversal_block_ptr tblock);
 static void dump_statement(a_statement_ptr statement);
-static void dump_block(a_statement_ptr statement,
-                       a_boolean       is_statement_expr);
+static void dump_block(a_statement_ptr statement);
 
 
 static void dump_expr(an_expr_node_ptr expr,
@@ -6196,8 +6194,7 @@ sizeof_cases:
     case enk_statement:
       /* GNU C statement expression, ({...}). */
       write_tok_str("({");
-      dump_block(expr->variant.statement,
-                 /*is_statement_expr=*/TRUE);
+      dump_block(expr->variant.statement);
       write_tok_str("})");
       break;
 #endif /* GNU_EXTENSIONS_ALLOWED */
@@ -8425,12 +8422,9 @@ Dump out the declarations (if any) for a block.
 }  /* dump_block_declarations */
 
 
-static void dump_block(a_statement_ptr statement,
-                       a_boolean       is_statement_expr)
+static void dump_block(a_statement_ptr statement)
 /*
 Dump out the contents of a block (but not the surrounding { and }).
-The block is the one in a GNU C statement expression if is_statement_expr
-is TRUE.
 */
 {
   /* curr_scope is saved and restored by this routine.  It is set to the
@@ -8459,7 +8453,7 @@ is TRUE.
   wide_string_constants_to_unbind_at_end_of_scope =
                                                   &wide_string_constant_marker;
   dump_block_declarations(statement);
-  dump_statement_list(statement->variant.block.statements, is_statement_expr);
+  dump_statement_list(statement->variant.block.statements);
   curr_scope = saved_curr_scope;
   unbind_wide_string_constants(
                         saved_wide_string_constants_to_unbind_at_end_of_scope);
@@ -8895,7 +8889,7 @@ Generate C for a statement.
     case stmk_block:
       write_tok_ch('{');
       indent += 2;
-      dump_block(statement, /*is_statement_expr=*/FALSE);
+      dump_block(statement);
       indent -= 2;
       set_output_position_for_stmt(
                          &statement->variant.block.extra_info->final_position);
@@ -9056,11 +9050,9 @@ Generate C for a statement.
 }  /* dump_statement */
 
 
-static void dump_statement_list(a_statement_ptr statement,
-                                a_boolean       is_statement_expr)
+static void dump_statement_list(a_statement_ptr statement)
 /*
-Generate code for the indicated list of statements.  The list is the
-top-level list in a GNU C statement expression if is_statement_expr is TRUE.
+Generate code for the indicated list of statements.
 */
 {
   a_boolean     exec_stmt_put_out = FALSE;

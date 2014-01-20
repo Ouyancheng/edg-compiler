@@ -1277,7 +1277,7 @@ ec_branch_into_statement_expr;;"transfer of control into a statement expression 
 REMOVED;ec_branch_out_of_statement_expr;;"transfer of control out of a statement expression is not allowed"
 ec_bad_statement_in_statement_expr;;"this statement is not allowed inside of a statement expression"
 ec_class_def_in_statement_expr;;"a non-POD class definition is not allowed inside of a statement expression"
-ec_destr_in_statement_expr;;"destructible entities are not allowed inside of a statement expression"
+REMOVED;ec_destr_in_statement_expr;;"destructible entities are not allowed inside of a statement expression"
 ec_dyn_local_static_in_statement_expr;;"a dynamically-initialized local static variable is not allowed inside of a statement expression"
 ec_vla_in_statement_expr;;"a variable-length array is not allowed inside of a statement expression"
 ec_statement_expr_in_default_arg;;"a statement expression is not allowed inside of a default argument"

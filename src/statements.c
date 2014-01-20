@@ -3326,7 +3326,7 @@ the block statement.
       /* For statement expressions containing a label or goto, we want to be
          sure scope is represented in the IL so the block object lifetime can
          be bound to it. */
-      ensure_il_scope_exists(ssep);
+      (void)ensure_il_scope_exists(ssep);
     }  /* if */
     scope_ptr = ssep->il_scope;
     if (scope_ptr != NULL) {
