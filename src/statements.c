@@ -6915,8 +6915,13 @@ e.g., ({ ... }).
   } else {
     /* Block nested within a function.  Link it onto the current statement
        sequence. */
-    if (depth_stmt_stack == 0 &&
-        struct_stmt_stack[0].kind == (a_struct_stmt_kind)ssk_try_block) {
+    if (is_statement_expr) {
+      if (depth_stmt_stack < 0) {
+        /* A statement expression in a ctor-initializer is reachable. */
+        set_reachable(curr_reachability);
+      }  /* if */
+    } else if (depth_stmt_stack == 0 && struct_stmt_stack[0].kind ==
+                                          (a_struct_stmt_kind)ssk_try_block) {
       /* Since the top-level entry on the structured statement stack is a
          try block (rather than a block), this must be a function try block.
          In most ways this has to be treated just like an ordinary top-level
@@ -6940,10 +6945,6 @@ e.g., ({ ... }).
                         curr_object_lifetime->kind ==
                                        (an_object_lifetime_kind)olk_try_block);
       }  /* if */
-    }  /* if */
-    if (is_statement_expr && depth_stmt_stack < 0) {
-      /* A statement expression in a ctor-initializer is reachable. */
-      set_reachable(curr_reachability);
     }  /* if */
     /* Note that there is no check for unreachable code.  It's probably too
        draconian to warn about an unreachable open brace if (say) there
