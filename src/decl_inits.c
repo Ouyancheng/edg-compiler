@@ -2535,7 +2535,6 @@ specific position is available.
       class_to_look_in = parent_class_of(class_to_look_in);
       ctsp = class_type_supp(class_to_look_in);
     }  /* while */
-#if ALLOW_NONSTANDARD_ANONYMOUS_UNIONS
   } else if (class_to_look_in
                  ->variant.class_struct_union.is_nonstd_anonymous_union_type) {
     /* Nonstandard anonymous-union-like constructs are possible in some C
@@ -2543,7 +2542,6 @@ specific position is available.
        *is therefore records the last traversed class that is not a nonstandard
        anonymous union type. */
     class_to_look_in = is->class_to_look_in;
-#endif /* ALLOW_NONSTANDARD_ANONYMOUS_UNIONS */
   }  /* if */
   if (icp->variant.designator.field_name == NULL) {
     /* This is not a field designator, but we're in a class initializer.
@@ -2685,13 +2683,11 @@ issued if no more specific position is available.
     a_field_ptr  fp = class_type->variant.class_struct_union.field_list;
     a_boolean    braced = is_braced_init_component(icp),
                  saved_pack_expansion_handled;
-#if ALLOW_NONSTANDARD_ANONYMOUS_UNIONS
     a_type_ptr   saved_class_to_look_in = is->class_to_look_in;
     if (!class_type
                  ->variant.class_struct_union.is_nonstd_anonymous_union_type) {
       is->class_to_look_in = class_type;
     }  /* if */
-#endif /* ALLOW_NONSTANDARD_ANONYMOUS_UNIONS */
     /* Skip unnamed bit fields. */ 
     fp = next_initializable_field(fp);
     if (is->check_validity_only) {
@@ -2806,9 +2802,7 @@ issued if no more specific position is available.
          aggregate elements that follow those consumed here. */
       *p_icp = icp;
     }  /* if */
-#if ALLOW_NONSTANDARD_ANONYMOUS_UNIONS
     is->class_to_look_in = saved_class_to_look_in;
-#endif /* ALLOW_NONSTANDARD_ANONYMOUS_UNIONS */
   }  /* if */
 }  /* aggr_init_class */
 

@@ -304,9 +304,7 @@ typedef enum /*an_option_kind*/ {
   optk_deprecated_string_conv,
   optk_user_defined_literals,
   optk_preserve_lvalues_with_same_type_casts,
-#if ALLOW_NONSTANDARD_ANONYMOUS_UNIONS
   optk_nonstd_anonymous_unions,
-#endif /* ALLOW_NONSTANDARD_ANONYMOUS_UNIONS */
   optk_cpp14_mode,
   optk_c11_mode,
   optk_last		/* Must be last. */
@@ -1286,7 +1284,6 @@ EXTERN a_boolean
 			   should be used in place of the Microsoft mode
 			   emulation that instantiates nonreal base classes. */
 
-#if ALLOW_NONSTANDARD_ANONYMOUS_UNIONS
 EXTERN a_boolean
 		allow_nonstandard_anonymous_unions;
 			/* If TRUE, a set of extensions is supported that
@@ -1296,7 +1293,14 @@ EXTERN a_boolean
 			   functionality emulates an extension provided by
 			   Microsoft and GNU compilers (in both C and C++
 			   modes). */
-#endif /* ALLOW_NONSTANDARD_ANONYMOUS_UNIONS */
+
+EXTERN a_boolean
+		allow_c11_anonymous_unions;
+			/* If TRUE, C11-style anonymous structures and unions
+			   are supported.  This is similar to the extension
+			   accepted when allow_nonstandard_anonymous_unions is
+			   TRUE, but the case where a typedef name is used to
+			   introduce the anonymous member is excluded. */
 
 EXTERN a_boolean
 		uliterals_enabled;

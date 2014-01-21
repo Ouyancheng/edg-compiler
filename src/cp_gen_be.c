@@ -3006,12 +3006,9 @@ for the meaning of need_closing_paren.
 {
   /* Ignore anonymous union levels. */
   while (class_type_supp(class_type)->anonymous_union_kind ==
-                                             (an_anonymous_union_kind)auk_field
-#if ALLOW_NONSTANDARD_ANONYMOUS_UNIONS
-         || class_type
-                   ->variant.class_struct_union.is_nonstd_anonymous_union_type
-#endif /* ALLOW_NONSTANDARD_ANONYMOUS_UNIONS */
-                                                                            ) {
+                                          (an_anonymous_union_kind)auk_field ||
+         class_type
+                 ->variant.class_struct_union.is_nonstd_anonymous_union_type) {
     class_type = parent_class_of(class_type);
   }  /* while */
   if (class_type_supp(class_type)->anonymous_union_kind
@@ -6036,12 +6033,9 @@ nothing if the current access is already set to that value.
            assembly_access != curr_name_context->assembly_access)
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */    
                                                                  ) &&
-      !(ctsp->anonymous_union_kind == (an_anonymous_union_kind)auk_field
-#if ALLOW_NONSTANDARD_ANONYMOUS_UNIONS
-        || class_type->
-                      variant.class_struct_union.is_nonstd_anonymous_union_type
-#endif /* ALLOW_NONSTANDARD_ANONYMOUS_UNIONS */
-        )) {
+      !(ctsp->anonymous_union_kind == (an_anonymous_union_kind)auk_field ||
+        class_type->variant.class_struct_union
+                           .is_nonstd_anonymous_union_type)) {
     /* The desired access is not the current access, so put out an access
        specifier, e.g., "public:".  (We avoid putting access labels into
        anonymous unions: only public members are allowed in anonymous unions,
@@ -7483,11 +7477,9 @@ is the one associated with the definition of the class.
   /* Write the name of the class. */
   if (ctsp->anonymous_union_kind != (an_anonymous_union_kind)auk_none) {
     /* The type is an anonymous union, so suppress the name. */
-#if ALLOW_NONSTANDARD_ANONYMOUS_UNIONS
   } else if (type->variant.class_struct_union.is_nonstd_anonymous_union_type) {
     /* The type is a nonstandard anonymous union or struct, so suppress
        the name. */
-#endif /* ALLOW_NONSTANDARD_ANONYMOUS_UNIONS */
   } else if (type->variant.class_struct_union.originally_unnamed) {
     /* The type was unnamed, so suppress the name here.  This includes
        the case where an unnamed class gets a name from a typedef.
@@ -7543,7 +7535,6 @@ is the one associated with the definition of the class.
     curr_name_context->assembly_access = (an_access_specifier)as_public;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     if (type->kind == (a_type_kind)tk_class) {
-#if ALLOW_NONSTANDARD_ANONYMOUS_UNIONS
       if (type->variant.class_struct_union.is_nonstd_anonymous_union_type) {
         /* Private members are not allowed in a nonstandard anonymous union,
            so we unconditionally emit "public:" here.  We cannot rely on the
@@ -7554,10 +7545,7 @@ is the one associated with the definition of the class.
         gen_access_specifier((an_access_specifier)as_public);
         write_tok_ch(':');
         write_space();
-      } else
-#endif /* ALLOW_NONSTANDARD_ANONYOUS_UNIONS */
-      /* Do not insert code here. */
-      {
+      } else {
         curr_name_context->access = (an_access_specifier)as_private;
 #if MICROSOFT_EXTENSIONS_ALLOWED
         curr_name_context->assembly_access = (an_access_specifier)as_private;
@@ -8401,7 +8389,6 @@ Generate the name of the field from the indicated node (an enk_field node).
   }  /* if */
 }  /* gen_field_reference */
 
-#if ALLOW_NONSTANDARD_ANONYMOUS_UNIONS
 
 static an_expr_node_ptr remove_nonstandard_anonymous_union_field_selections(
                                              an_expr_node_ptr      object_expr,
@@ -8435,7 +8422,6 @@ set *op to the operator used in that selection.
   return object_expr;
 }  /* remove_nonstandard_anonymous_union_field_selections */
 
-#endif /* ALLOW_NONSTANDARD_ANONYMOUS_UNIONS */
 
 static a_boolean is_operator_syntax_arrow(an_expr_node_ptr expr)
 /*
@@ -8533,10 +8519,8 @@ the expression reflects an implicit member access ("this->y"), so the
       naming_class = parent_class_of(field_expr->variant.field);
     }  /* if */
   }  /* if */
-#if ALLOW_NONSTANDARD_ANONYMOUS_UNIONS
   object_expr=remove_nonstandard_anonymous_union_field_selections(object_expr,
                                                                   &op);
-#endif /* ALLOW_NONSTANDARD_ANONYMOUS_UNIONS */
   if (strip_lvalue_cast_sequence(&object_expr)) {
     /* We removed an implicit conversion from an lvalue to a pointer;
        change the operator correspondingly. */
@@ -11044,9 +11028,7 @@ handled through recursion.
          to allow the addition of cv-qualification or base casts); the
          operation and operand are re-normalized to "." by
          strip_lvalue_cast_sequence. */
-#if ALLOW_NONSTANDARD_ANONYMOUS_UNIONS
       arg1 = remove_nonstandard_anonymous_union_field_selections(arg1, &op);
-#endif /* ALLOW_NONSTANDARD_ANONYMOUS_UNIONS */
       /* Skip over any (implicit) cast operations in the object
          expression. */
       while (is_operation_node(arg1) &&

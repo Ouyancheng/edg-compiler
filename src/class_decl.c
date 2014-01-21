@@ -1332,12 +1332,8 @@ typedef struct a_member_decl_info {
   a_bit_field	is_anonymous_union:1;
 			/* TRUE if the declaration is an anonymous union. */
   a_bit_field	is_nonstd_anonymous_union:1;
-#if ALLOW_NONSTANDARD_ANONYMOUS_UNIONS
 			/* TRUE if is_anonymous_union is TRUE but it is not
 			   a standard-conforming construct. */
-#else /* !ALLOW_NONSTANDARD_ANONYMOUS_UNIONS */
-			/* Always FALSE. */
-#endif /* ALLOW_NONSTANDARD_ANONYMOUS_UNIONS */
   a_bit_field	return_type_def_err:1;
 			/* TRUE if an error has issued on defining a class or
 			   enum in a member function return type (used to
@@ -15407,7 +15403,6 @@ for the union type (class_type).
   return (severity != es_error);
 }  /* check_valid_union_field */
 
-#if ALLOW_NONSTANDARD_ANONYMOUS_UNIONS
 
 static a_symbol_ptr find_anonymous_parent_object_symbol_clone(
                                                a_symbol_ptr  apo_sym,
@@ -15468,11 +15463,7 @@ be the last in the anonymous-union-parent chain.
   return new_apo_sym;
 }  /* find_anonymous_parent_object_symbol_clone */
 
-#endif /* ALLOW_NONSTANDARD_ANONYMOUS_UNIONS */
 
-#if !ALLOW_NONSTANDARD_ANONYMOUS_UNIONS
-/*ARGSUSED*/ /* new_apo_syms is not used in some configurations. */
-#endif /* !ALLOW_NONSTANDARD_ANONYMOUS_UNIONS */
 static void promote_anonymous_union_field_symbol(
                                          a_symbol_ptr         sym,
                                          a_type_ptr           class_type,
@@ -15516,7 +15507,6 @@ promotion is for a nonstandard anonymous union.
     remove_anonymous_union_member_from_inactive_symbols_list(sym);
       /* Enter the symbol back into the current scope. */
     reenter_symbol(sym, depth_scope_stack, suppress_error);
-#if ALLOW_NONSTANDARD_ANONYMOUS_UNIONS
   } else {
     /* The symbol has to be kept bound to the type, since the latter
        may be used again.  Therefore, we have to clone the symbol,
@@ -15532,7 +15522,6 @@ promotion is for a nonstandard anonymous union.
     sym = enter_local_symbol(sym->kind, &loc, depth_scope_stack,
                              /*suppress_error=*/gcc_mode);
     sym->variant.field.ptr = field;
-#endif /* ALLOW_NONSTANDARD_ANONYMOUS_UNIONS */
   }  /* if */
   /* Set parent information in the symbol but not in the IL entry.  The
      symbol is promoted, but the type remains nested. */
@@ -15589,7 +15578,6 @@ promotion is for a nonstandard anonymous union.
       /* Advance up the chain. */
       apo_sym = apo_sym->variant.field.anonymous_parent_object;
     }  /* while */
-#if ALLOW_NONSTANDARD_ANONYMOUS_UNIONS
   } else {
     /* Just as the original anonymous union member symbol had to be
        cloned, so too must its parent chain be cloned.  Go through the
@@ -15599,7 +15587,6 @@ promotion is for a nonstandard anonymous union.
                  find_anonymous_parent_object_symbol_clone(apo_sym,
                                                            new_apo_syms,
                                                            assoc_object_sym);
-#endif /* ALLOW_NONSTANDARD_ANONYMOUS_UNIONS */
   }  /* if */
 }  /* promote_anonymous_union_field_symbol */
 
@@ -15614,7 +15601,7 @@ anonymous union: make a pass over all its members, perform some error
 checking, and promote each field from the anonymous union to its containing
 scope.  The scope to which the symbols are promoted is decl_scope_level.
 
-If ALLOW_NONSTANDARD_ANONYMOUS_UNIONS, then, when assoc_object_sym refers
+If extended anonymous unions are accepted, then, when assoc_object_sym refers
 to a field, its type may also be an unnamed struct or class, or a typedef
 referring to an unnamed class, struct, or union.  If the type is a typedef,
 or a named struct or class, the symbols are not promoted, but rather new
@@ -15667,16 +15654,12 @@ nonstandard anonymous unions is_nonstd is TRUE.
         pos_error(ec_no_mutable_allowed_on_anonymous_union,
                   &assoc_object_sym->decl_position);
       }  /* if */
-#if ALLOW_NONSTANDARD_ANONYMOUS_UNIONS
       check_assertion(is_class_struct_union_type(assoc_object_type));
       if (assoc_object_type->kind == (a_type_kind)tk_typeref ||
           has_name(assoc_object_type)) {
         check_assertion(C_mode() || (gpp_mode && gnu_version < 30400));
         reuse_symbol = FALSE;
       }  /* if */
-#else /* !ALLOW_NONSTANDARD_ANONYMOUS_UNIONS */
-      check_assertion(assoc_object_type->kind == (a_type_kind)tk_union);
-#endif /* ALLOW_NONSTANDARD_ANONYMOUS_UNIONS */
       break;
     default:
       unexpected_condition_str(
@@ -15784,7 +15767,6 @@ nonstandard anonymous unions is_nonstd is TRUE.
         sym->is_class_member = FALSE;
         sym->parent.class_type = NULL;
       }  /* if */
-#if ALLOW_NONSTANDARD_ANONYMOUS_UNIONS
     } else {
 #if DEBUG
       if (debug_level >= 4) {
@@ -15805,7 +15787,6 @@ nonstandard anonymous unions is_nonstd is TRUE.
                       sym->variant.overloaded_function.symbols
                          ->variant.routine.ptr->compiler_generated),
                      "check_anonymous_union_symbols: unexpected symbol kind");
-#endif /* ALLOW_NONSTANDARD_ANONYMOUS_UNIONS */
     }  /* if */
     /* Private and protected members are not allowed in an anonymous union
        (ARM 9.5). */
@@ -15935,14 +15916,12 @@ nonstandard anonymous unions is_nonstd is TRUE.
     }  /* if */
 #endif /* DEBUG */
   }  /* for */
-#if ALLOW_NONSTANDARD_ANONYMOUS_UNIONS
   /* Just to be safe, clear the next pointers on any anonymous union parent
      symbols created in this routine. */
   for (sym = new_apo_sym_list; sym != NULL; sym = next_sym) {
     next_sym = sym->next;
     sym->next = NULL;
   }  /* for */
-#endif /* ALLOW_NONSTANDARD_ANONYMOUS_UNIONS */
   if (!(C_mode() || microsoft_mode || sun_mode || any_cfront_mode())) {
     /* Types should normally not be declared inside an anonymous union. */
     a_scope_ptr  scope = skip_typerefs(assoc_object_type)
@@ -15955,12 +15934,11 @@ nonstandard anonymous unions is_nonstd is TRUE.
           /* Some test suites commonly declare anonymous types in anonymous
              unions.  Since these tests must run in strict mode, a flag is
              provided to inhibit this particular diagnostic. */
-#if ALLOW_NONSTANDARD_ANONYMOUS_UNIONS
-        } else if (allow_nonstandard_anonymous_unions &&
+        } else if ((allow_nonstandard_anonymous_unions ||
+                    allow_c11_anonymous_unions) &&
                    !has_name(nested_type)) {
           /* Similarly, nonstandard anonymous unions can contain nested
              anonymous types. */
-#endif /* ALLOW_NONSTANDARD_ANONYMOUS_UNIONS */
         } else {
           pos_diagnostic(strict_ansi_mode ?
                          strict_ansi_discretionary_severity : es_warning,
@@ -16042,7 +16020,6 @@ nonstandard anonymous unions is_nonstd is TRUE.
   db_exit();
 }  /* check_anonymous_union_symbols */
 
-#if ALLOW_NONSTANDARD_ANONYMOUS_UNIONS
 
 static a_boolean is_compiler_generated_member_function(a_symbol_ptr  sym)
 /*
@@ -16072,20 +16049,21 @@ function or an overload set of compiler generated member functions.
   return result;
 }  /* is_compiler_generated_member_function */
 
-#endif /* ALLOW_NONSTANDARD_ANONYMOUS_UNIONS */
 
 static a_boolean is_anonymous_union_decl(a_member_decl_info_ptr  decl_info)
 /*
 A declaration has appeared in which there is no declarator.  Return TRUE if
-it is an anonymous union declaration.  If ALLOW_NONSTANDARD_ANONYMOUS_UNIONS
-is TRUE and this is not a standard C++ anonymous union, return TRUE and
-also set the is_nonstd_anonymous_union flag in the member-decl-info block.
+it is an anonymous union or anonymous structure declaration (in a mode that
+accepts such a feature).  If this is not a standard C++ anonymous union,
+return TRUE and also set the is_nonstd_anonymous_union flag in the
+member-decl-info block.
 */
 {
   a_type_ptr       member_type = decl_info->decl_state.type;
   a_decl_flag_set  dso_flags = decl_info->decl_state.dso_flags;
 
   if (!C_mode() && member_type->kind == (a_type_kind)tk_union) {
+    /* Consider the standard C++-mode feature first. */
     if (member_type->source_corresp.name != NULL ||
         !(dso_flags & DSO_DEFINES_SOMETHING)) {
       /* This union was named and/or is a reference to a previously defined
@@ -16095,10 +16073,9 @@ also set the is_nonstd_anonymous_union flag in the member-decl-info block.
     } else {
       decl_info->is_anonymous_union = TRUE;
     }  /* if */
-#if ALLOW_NONSTANDARD_ANONYMOUS_UNIONS
-  } else if (!allow_nonstandard_anonymous_unions) {
-    /* This compilation is not configured to support this extension -- e.g.,
-       this is not a Microsoft or GNU mode. */
+  } else if (!allow_nonstandard_anonymous_unions &&
+             !allow_c11_anonymous_unions) {
+    /* Not a mode that would accept an anonymous union/struct feature. */
   } else if (!is_class_struct_union_type(member_type)) {
     /* Not a pseudo-anonymous-union -- it's not a class, struct,
        or union type. */
@@ -16116,16 +16093,16 @@ also set the is_nonstd_anonymous_union flag in the member-decl-info block.
     if (tp->kind == (a_type_kind)tk_typeref) {
       a_boolean  typedef_used = skip_typerefs_not_typedefs(tp)->kind ==
                                                     (a_type_kind)tk_typeref;
-      if (typedef_used && !C_mode()) {
+      if (typedef_used && (!C_mode() || !allow_nonstandard_anonymous_unions)) {
         /* The anonymous-union-like construct was expressed through a typedef.
            E.g.:  typedef union { int i; } U;
                   struct S { U; };
            That form is not allowed in C++ modes (GNU and Microsoft compilers
            don't accept it; disallowing this in C++ also simplifies lowering
-           later on). */
+           later on).  C11 doesn't permit this form either. */
       } else if ((microsoft_mode || gnu_mode)) {
-        /* In Microsoft and GNU modes, cv-qualifiers are allowed are allowed on
-           anonymous-union-like constructs not expressed through a typedef.  In
+        /* In Microsoft and GNU modes, cv-qualifiers are allowed on anonymous-
+           union-like constructs not expressed through a typedef.  In
            Microsoft C mode, cv-qualifiers are also allowed on anonymous-union-
            like constructs expressed through a typedef (the C++-mode case was
            already handled above). */
@@ -16203,7 +16180,6 @@ also set the is_nonstd_anonymous_union flag in the member-decl-info block.
         }  /* if */
       }  /* if */
     }  /* if */
-#endif /* ALLOW_NONSTANDARD_ANONYMOUS_UNIONS */
   }  /* if */
   return decl_info->is_anonymous_union;
 }  /* is_anonymous_union_decl */
@@ -21938,7 +21914,6 @@ routine.
        decl_info->is_anonymous_union will have been set to TRUE by the call
        to is_anonymous_union_decl. */
     a_type_ptr  au_type = skip_typerefs_not_typedefs(member_type);
-#if ALLOW_NONSTANDARD_ANONYMOUS_UNIONS
     /* It might also be an anonymous-union-like construct in C or C++, namely
        an unnamed class/struct/union type, possibly represented by a typedef
        name, whose subfields are to be visible as though they were fields of
@@ -21966,7 +21941,6 @@ routine.
                                   err_pos, (a_source_sequence_entry_ptr)NULL);
       }  /* if */
     }  /* if */
-#endif /* ALLOW_NONSTANDARD_ANONYMOUS_UNIONS */
     /* Set the IL referenced flag for the anonymous union type. */
     au_type->source_corresp.referenced = TRUE;
     if (strict_ansi_mode && !C_mode() &&

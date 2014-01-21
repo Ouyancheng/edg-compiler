@@ -1,5 +1,29 @@
 Version 4.9
 
+1/21/14  [EDGcpfe/14745]
+C11: Anonymous unions and anonymous structs
+
+In C11 mode, the front end now accepts anonymous unions and anonymous structs
+as specified in the C11 standard.  For example:
+
+  struct S {
+    union {
+      struct { int i, j; };
+      struct { float x, y; };
+    };
+  } s;
+  int printf(char const*, ...);
+  int main() {
+    printf("%d\n", (char*)&s.j - (char*)&s.y);  // Prints "0".
+    return 0;
+  }
+
+Also, the configuration macro ALLOW_NONSTANDARD_ANONYMOUS_UNIONS has been
+removed.  The effect is as if the macro had been defined to be TRUE;
+configurations that set it to FALSE now elicit a compilation error (to avoid
+a silent change).
+
+
 1/20/14  [EDGcpfe/7317,EDGcpfe/9032,EDGcpfe/9156,EDGcpfe/9684,EDGcpfe/10566,
           EDGcpfe/13920,EDGcpfe/13930]
 Destructible entities in GNU statement expressions

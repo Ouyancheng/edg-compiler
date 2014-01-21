@@ -1162,21 +1162,23 @@ EXTERN unsigned long
 			   mode. */
 
 /*
-Flag that is TRUE if a set of extensions is supported that permits features
-similar to C++ anonymous unions (1) in C mode and (2) with structs (in both
-C and C++) and classes (in C++) as well.  This functionality emulates an
-extension provided by Microsoft and GNU compilers.
+Previously, a macro ALLOW_NONSTANDARD_ANONYMOUS_UNIONS controlled whether the
+front end was capable of accepting non-standard anonymous unions.  Since C11
+has added them as a standard feature, that macro is no longer used and the
+effect is as if it were TRUE.  Report an error if it is configured FALSE to
+avoid silent surprises.
 */
-#ifndef ALLOW_NONSTANDARD_ANONYMOUS_UNIONS
-#define ALLOW_NONSTANDARD_ANONYMOUS_UNIONS (MICROSOFT_EXTENSIONS_ALLOWED || \
-                                            GNU_EXTENSIONS_ALLOWED)
+#ifdef ALLOW_NONSTANDARD_ANONYMOUS_UNIONS
+#if !ALLOW_NONSTANDARD_ANONYMOUS_UNIONS
+ #error -- ALLOW_NONSTANDARD_ANONYMOUS_UNIONS has been removed since the \
+	corresponding feature is standard C11
+#endif /* !ALLOW_NONSTANDARD_ANONYMOUS_UNIONS */
 #endif /* ifndef ALLOW_NONSTANDARD_ANONYMOUS_UNIONS */
 
 /*
 Default value to which global variable allow_nonstandard_anonymous_unions
-is set when ALLOW_NONSTANDARD_ANONYMOUS_UNIONS is TRUE.
+is set.
 */
-#if ALLOW_NONSTANDARD_ANONYMOUS_UNIONS
 #ifndef DEFAULT_ALLOW_NONSTANDARD_ANONYMOUS_UNIONS
 #if MICROSOFT_EXTENSIONS_ALLOWED
 #define DEFAULT_ALLOW_NONSTANDARD_ANONYMOUS_UNIONS DEFAULT_MICROSOFT_MODE
@@ -1184,7 +1186,6 @@ is set when ALLOW_NONSTANDARD_ANONYMOUS_UNIONS is TRUE.
 #define DEFAULT_ALLOW_NONSTANDARD_ANONYMOUS_UNIONS FALSE
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #endif /* ifndef DEFAULT_ALLOW_NONSTANDARD_ANONYMOUS_UNIONS */
-#endif /* ALLOW_NONSTANDARD_ANONYMOUS_UNIONS */
 
 /*
 Flag that is TRUE if comments appearing within the text of an asm function

@@ -1419,7 +1419,6 @@ Initialize the option information table.
                          "no_preserve_lvalues_with_same_type_casts", '\0',
                          /*value=*/FALSE, /*arg_required=*/FALSE,
                          pchek_command_line);
-#if ALLOW_NONSTANDARD_ANONYMOUS_UNIONS
   add_option_description(optk_nonstd_anonymous_unions,
                          "nonstd_anonymous_unions", '\0',
                          /*value=*/TRUE, /*arg_required=*/FALSE,
@@ -1428,7 +1427,6 @@ Initialize the option information table.
                          "no_nonstd_anonymous_unions", '\0',
                          /*value=*/FALSE, /*arg_required=*/FALSE,
                          pchek_command_line);
-#endif /* ALLOW_NONSTANDARD_ANONYMOUS_UNIONS */
 }  /* initialize_option_descriptions */
 
 
@@ -1984,9 +1982,7 @@ by a command line option.
   enum_types_can_be_larger_than_int = FALSE;
   stack_referenced_include_directories = TRUE;
   defer_friend_instantiation = TRUE;
-#if ALLOW_NONSTANDARD_ANONYMOUS_UNIONS
   allow_nonstandard_anonymous_unions = TRUE;
-#endif /* ALLOW_NONSTANDARD_ANONYMOUS_UNIONS */
   if (!option_kind_used[(int)optk_allow_dollar_in_id_chars]) {
     allow_dollar_in_id_chars = TRUE;
   }  /* if */
@@ -2514,6 +2510,7 @@ Set the various flags appropriate to C99 mode or later standard modes.
   c99_bool_is_keyword = TRUE;
   if (c11_mode) {
     static_assert_enabled = TRUE;
+    allow_c11_anonymous_unions = TRUE;
   }  /* if */
 }  /* check_and_set_new_c_mode_options */
 
@@ -3635,11 +3632,9 @@ conflicts with the ANSI mode and set various unmentioned settings as needed.
   }  /* if */
   /* This should be FALSE in C mode and all strict C++ modes. */
   inexact_ptr_to_member_deduction_enabled = FALSE;
-#if ALLOW_NONSTANDARD_ANONYMOUS_UNIONS
   if (!option_kind_used[(int)optk_nonstd_anonymous_unions]) {
     allow_nonstandard_anonymous_unions = FALSE;
   }  /* if */
-#endif /* ALLOW_NONSTANDARD_ANONYMOUS_UNIONS */
 }  /* check_and_set_ansi_mode_options */
 
 
@@ -3835,9 +3830,7 @@ exclude the GNU modes already.  Hence those are not checked again here.)
   /* Binary literals are allowed for gnu_version 40300 and above. */
   binary_literals_allowed = gnu_version >= 40300;
   null_chars_allowed_in_source = TRUE;
-#if ALLOW_NONSTANDARD_ANONYMOUS_UNIONS
   allow_nonstandard_anonymous_unions = TRUE;
-#endif /* ALLOW_NONSTANDARD_ANONYMOUS_UNIONS */
   /* Late template test for g++ 3.2, 3.3, and 3.4. */
   late_template_ovl_res_tiebreaker = FALSE;
   /* In some configurations, special processing is done for references
@@ -4624,11 +4617,6 @@ file.
   comment_undefined_macro_name(
                          ALLOW_HOST_FP_TOO_SMALL_FOR_LARGEST_FIXED_POINT_TYPE);
 #endif /* defined(ALLOW_HOST_FP_TOO_SMALL_FOR_LARGEST_FIXED_POINT_TYPE) */
-#if defined(ALLOW_NONSTANDARD_ANONYMOUS_UNIONS)
-  define_numeric_valued_macro(ALLOW_NONSTANDARD_ANONYMOUS_UNIONS);
-#else /* !defined(ALLOW_NONSTANDARD_ANONYMOUS_UNIONS) */
-  comment_undefined_macro_name(ALLOW_NONSTANDARD_ANONYMOUS_UNIONS);
-#endif /* defined(ALLOW_NONSTANDARD_ANONYMOUS_UNIONS) */
 #if defined(ALLOW_NON_INT_BIT_FIELD_BASE_TYPE_IN_GENERATED_C)
   define_numeric_valued_macro(
                              ALLOW_NON_INT_BIT_FIELD_BASE_TYPE_IN_GENERATED_C);
@@ -9330,11 +9318,9 @@ enable_microsoft_mode:
       case optk_preserve_lvalues_with_same_type_casts:
         preserve_lvalues_with_same_type_casts = opt_value;
         break;
-#if ALLOW_NONSTANDARD_ANONYMOUS_UNIONS
       case optk_nonstd_anonymous_unions:
         allow_nonstandard_anonymous_unions = opt_value;
         break;
-#endif /* ALLOW_NONSTANDARD_ANONYMOUS_UNIONS */
       default:
         /* It should not be possible to get here. */
         unexpected_condition();
@@ -10298,10 +10284,9 @@ variables declared in cmd_line.h.
   microsoft_64bit_pointer_extensions_enabled =
                             DEFAULT_MICROSOFT_64BIT_POINTER_EXTENSIONS_ENABLED;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-#if ALLOW_NONSTANDARD_ANONYMOUS_UNIONS
   allow_nonstandard_anonymous_unions =
                                     DEFAULT_ALLOW_NONSTANDARD_ANONYMOUS_UNIONS;
-#endif /* ALLOW_NONSTANDARD_ANONYMOUS_UNIONS */
+  allow_c11_anonymous_unions = FALSE;
   wchar_t_is_keyword =
 #if WCHAR_T_ENABLING_POSSIBLE
                        DEFAULT_WCHAR_T_IS_KEYWORD;

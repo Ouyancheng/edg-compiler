@@ -2296,7 +2296,6 @@ may do fixup on entities pointed to by source-sequence entries it removes.
           check_assertion(sssdp->entity.kind ==
                                           (a_byte_il_entry_kind)iek_type);
           tp = (a_type_ptr)sssdp->entity.ptr;
-#if ALLOW_NONSTANDARD_ANONYMOUS_UNIONS
           if (tp->kind == (a_type_kind)tk_typeref) {
             check_assertion(is_class_struct_union_type(tp));
             /* No need to keep this entry in the IL.  This is a nonstandard
@@ -2310,7 +2309,6 @@ may do fixup on entities pointed to by source-sequence entries it removes.
             ssep = ssep->next;
             continue;
           }  /* if */
-#endif /* ALLOW_NONSTANDARD_ANONYMOUS_UNIONS */
         }  /* if */
         check_assertion_str(is_tag_type(tp),
                             "drop_tag_def_from_src_seq_list: bad type kind");

@@ -340,14 +340,12 @@ typedef struct an_init_state {
 			   an aggregate initializer.  When the initialization
 			   is not that of a variable (e.g., for a temporary or
 			   in a mem-initializer), NULL. */
-#if ALLOW_NONSTANDARD_ANONYMOUS_UNIONS
   a_type_ptr	class_to_look_in;
 			/* While traversing an aggregate initializer, the class
 			   type in which field designators should be looked up.
 			   This is only really needed when dealing with
 			   nonstandard anonymous unions (whose parents cannot
 			   otherwise be identified). */
-#endif /* ALLOW_NONSTANDARD_ANONYMOUS_UNIONS */
   struct an_arg_match_summary
 		*arg_match;
 			/* Used by expression processing to track the worst

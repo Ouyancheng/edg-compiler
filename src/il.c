@@ -18414,7 +18414,6 @@ anonymous unions (either standard or nonstandard).
   return node;
 }  /* field_rvalue_selection_expr */
 
-#if ALLOW_NONSTANDARD_ANONYMOUS_UNIONS || DO_IL_LOWERING
 
 void adjust_anonymous_union_field_selection(an_expr_node_ptr node,
                                             a_field_ptr      au_field)
@@ -18475,8 +18474,6 @@ rest.
   node->variant.operation.kind = (an_expr_operator_kind)eok_dot_field;
 }  /* adjust_anonymous_union_field_selection */
 
-#endif /* ALLOW_NONSTANDARD_ANONYMOUS_UNIONS || DO_IL_LOWERING */
-#if ALLOW_NONSTANDARD_ANONYMOUS_UNIONS
 
 void adjust_nonstandard_anonymous_object_field_references(
                                                     an_expr_node_ptr node,
@@ -18547,7 +18544,6 @@ symbols.
   }  /* for */
 }  /* adjust_nonstandard_anonymous_object_field_references */
 
-#endif /* ALLOW_NONSTANDARD_ANONYMOUS_UNIONS */
 
 an_expr_node_ptr fe_field_lvalue_selection_expr(an_expr_node_ptr node,
                                                 a_field_ptr      field)
@@ -18560,12 +18556,8 @@ IL lowering).
 */
 {
   node = field_lvalue_selection_expr(node, field);
-#if ALLOW_NONSTANDARD_ANONYMOUS_UNIONS
-  { a_symbol_ptr field_sym = (a_symbol_ptr)field->source_corresp.assoc_info;
-    adjust_nonstandard_anonymous_object_field_references(node, field_sym,
-                                                         /*std_also=*/FALSE);
-  }
-#endif /* ALLOW_NONSTANDARD_ANONYMOUS_UNIONS */
+  adjust_nonstandard_anonymous_object_field_references(node, symbol_for(field),
+                                                       /*std_also=*/FALSE);
   return node;
 }  /* fe_field_lvalue_selection_expr */
 

@@ -8521,7 +8521,6 @@ typedef struct a_type {
 			   C++ may be TRUE even when the source-corresp name
 			   pointer is non-NULL, since a name may be acquired
 			   from a typedef name (ARM 7.1.3). */
-#if ALLOW_NONSTANDARD_ANONYMOUS_UNIONS
       a_bit_field
 		is_nonstd_anonymous_union_type:1;
 			/* TRUE if this is the type of an anonymous-union-like
@@ -8529,7 +8528,6 @@ typedef struct a_type {
 			   not one represented by a typedef name, whose
 			   subfields are to be visible as though they were
 			   fields of the enclosing class). */
-#endif /* ALLOW_NONSTANDARD_ANONYMOUS_UNIONS */
       a_bit_field
 		is_template_class:1;
 			/* TRUE if the class is an instance of a class template

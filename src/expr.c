@@ -5358,10 +5358,8 @@ give the starting and ending source positions for the field reference
   if (compiler_generated) {
     result->variant.expression->variant.operation.compiler_generated = TRUE;
   }  /* if */
-#if ALLOW_NONSTANDARD_ANONYMOUS_UNIONS
-  /* When nonstandard anonymous unions are allowed, look for
-     fields of such anonymous parents and insert the elided field
-     selections. */
+  /* With nonstandard anonymous unions are allowed, look for fields of the
+     anonymous parents and insert the elided field selections. */
   if (field_sym->variant.field.anonymous_parent_object != NULL) {
     an_expr_node_ptr orig_node = result->variant.expression;
     adjust_nonstandard_anonymous_object_field_references(orig_node,
@@ -5369,7 +5367,6 @@ give the starting and ending source positions for the field reference
                                                          /*std_also=*/FALSE);
     make_lvalue_or_rvalue_expression_operand(orig_node, result);
   }  /* if */
-#endif /* ALLOW_NONSTANDARD_ANONYMOUS_UNIONS */
   if (!is_lvalue && constexpr_enabled) {
     /* See if the field selection folds to a constant (usually this happens
        on the glvalue-to-prvalue conversion, but in this case we're building

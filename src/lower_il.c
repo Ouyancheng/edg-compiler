@@ -126,7 +126,6 @@ constant, and return information about it in *delta.
       a_type_ptr                   field_class = parent_class_of(field);
       a_class_type_supplement_ptr  ctsp = class_type_supp(field_class);
       offset += (a_targ_ptrdiff_t)field->offset;
-#if ALLOW_NONSTANDARD_ANONYMOUS_UNIONS
       if (field_class->
                    variant.class_struct_union.is_nonstd_anonymous_union_type) {
         /* A non-standard anonymous union or anonymous struct.  In either
@@ -140,10 +139,7 @@ constant, and return information about it in *delta.
                         field_sym->kind == (a_symbol_kind)sk_field);
         field = field_sym->variant.field.ptr;
         continue;
-      } else
-#endif /* ALLOW_NONSTANDARD_ANONYMOUS_UNIONS */
-      /* Do not insert code here. */
-      {
+      } else {
         if (ctsp->anonymous_union_kind != (an_anonymous_union_kind)auk_field) {
           break;
         }  /* if */
@@ -2182,18 +2178,13 @@ of anonymous unions by adding the necessary intermediate field selections.
        because C mode has the cases where more than one field symbol can
        point to a given IL field, which makes it much harder to put
        in the missing field selections if all you have is the IL. */
-#if ALLOW_NONSTANDARD_ANONYMOUS_UNIONS
-    { a_symbol_ptr field_sym = (a_symbol_ptr)field->source_corresp.assoc_info;
-      /* Avoid problems with the anonymous parent fields themselves, as
-         opposed to their members. */
-      if (field_sym != NULL) {
-        adjust_nonstandard_anonymous_object_field_references(node, field_sym,
-                                                            /*std_also=*/TRUE);
-      }  /* if */
-    }
-#else /* !ALLOW_NONSTANDARD_ANONYMOUS_UNIONS */
-    adjust_field_selection_for_anonymous_union_references(node);
-#endif /* ALLOW_NONSTANDARD_ANONYMOUS_UNIONS */
+    a_symbol_ptr field_sym = symbol_for(field);
+    /* Avoid problems with the anonymous parent fields themselves, as
+       opposed to their members. */
+    if (field_sym != NULL) {
+      adjust_nonstandard_anonymous_object_field_references(node, field_sym,
+                                                          /*std_also=*/TRUE);
+    }  /* if */
   }  /* if */
   return node;
 }  /* au_field_lvalue_selection_expr */

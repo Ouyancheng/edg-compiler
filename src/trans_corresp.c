@@ -3718,10 +3718,8 @@ type is in fact valid.
           class_info.any_virtual_functions_including_in_base_classes !=
                 corresp_info.any_virtual_functions_including_in_base_classes ||
           class_info.originally_unnamed != corresp_info.originally_unnamed ||
-#if ALLOW_NONSTANDARD_ANONYMOUS_UNIONS
           class_info.is_nonstd_anonymous_union_type !=
                                  corresp_info.is_nonstd_anonymous_union_type ||
-#endif /* ALLOW_NONSTANDARD_ANONYMOUS_UNIONS */
           class_info.contains_flexible_array_member !=
                                  corresp_info.contains_flexible_array_member ||
 #if USER_CONTROL_OF_STRUCT_PACKING
