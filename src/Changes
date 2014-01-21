@@ -50,7 +50,7 @@ the standard as also allowing member access on other expressions of a class
 type that is being defined.  The front end now uses this broader interpretation
 in its nonstrict C++11 modes.  For example:
 
-  struct S {
+  template<class T> struct S {
     auto f()->int;
     auto g(S &b)->decltype(b.f());  // Previously an error (b has incomplete
   };                                // type); now accepted in nonstrict C++11
