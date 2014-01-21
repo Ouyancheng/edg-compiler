@@ -16061,6 +16061,7 @@ member-decl-info block.
 {
   a_type_ptr       member_type = decl_info->decl_state.type;
   a_decl_flag_set  dso_flags = decl_info->decl_state.dso_flags;
+  a_boolean        c11_case = c11_mode;
 
   if (!C_mode() && member_type->kind == (a_type_kind)tk_union) {
     /* Consider the standard C++-mode feature first. */
@@ -16093,6 +16094,7 @@ member-decl-info block.
     if (tp->kind == (a_type_kind)tk_typeref) {
       a_boolean  typedef_used = skip_typerefs_not_typedefs(tp)->kind ==
                                                     (a_type_kind)tk_typeref;
+      c11_case = FALSE;
       if (typedef_used && (!C_mode() || !allow_nonstandard_anonymous_unions)) {
         /* The anonymous-union-like construct was expressed through a typedef.
            E.g.:  typedef union { int i; } U;
@@ -16167,8 +16169,10 @@ member-decl-info block.
       if (decl_info->is_anonymous_union) {
         /* Set the nonstandard flag. */
         decl_info->is_nonstd_anonymous_union = TRUE;
-        if (strict_ansi_mode) {
-          /* Issue a diagnostic that this is an extension. */
+        /* If appropriate, issue a diagnostic that this is an extension. */
+        if (c11_case) {
+          /* Don't issue diagnostic for standard C11 cases in C11 mode. */
+        } else if (strict_ansi_mode) {
           pos_diagnostic(strict_ansi_error_severity, 
                          C_mode() ? ec_nonstd_unnamed_field :
                                     ec_nonstd_unnamed_member,
