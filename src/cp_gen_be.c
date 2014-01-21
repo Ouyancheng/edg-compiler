@@ -16702,6 +16702,13 @@ handle_as_definition:
     gen_storage_class(storage_class);
     /* Generate other leading specifiers. */
     gen_sun_link_scope_specifiers(rout->decl_modifiers);
+    if (c11_mode && routine_does_not_return(rout) &&
+        find_attribute(ak_noreturn, attributes) == NULL) {
+      /* The routine is marked as not returning, but does not have a "noreturn"
+         attribute.  In C11, that can be indicated with the _Noreturn specifier
+         instead. */
+      write_tok_str("_Noreturn ");
+    }  /* if */
     if (rout->is_constexpr) {
       /* Put out the "constexpr" keyword.  Since a constexpr function is
          implicitly inline, we suppress the "inline" keyword in this case.

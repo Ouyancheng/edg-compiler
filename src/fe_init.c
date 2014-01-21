@@ -697,8 +697,12 @@ Install the keywords in the symbol table.
     enter_keyword((a_token_kind)tok_generic, "__generic");
   }  /* if */
   if (C_mode() && static_assert_enabled) {
-    /* Enable keywords required in C11 mode. */
+    /* Enter the C version of "static_assert". */
     enter_keyword((a_token_kind)tok_static_assert, "_Static_assert");
+  }  /* if */
+  if (c11_mode) {
+    /* Enable keywords required in C11 mode. */
+    enter_keyword((a_token_kind)tok_noreturn, "_Noreturn");
   }  /* if */
 #if TARG_HAS_IEEE_FLOATING_POINT
   /* EDG-specific token for Not-a-Number constant. */

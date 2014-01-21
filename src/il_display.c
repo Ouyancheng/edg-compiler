@@ -645,6 +645,9 @@ Display the indicated element position entry.
     case epk_specialization_header:
       kind_str = "specialization_header";
       break;
+    case epk_noreturn:
+      kind_str = "noreturn";
+      break;
     default:
       kind_str = "**BAD ELEMENT POSITION KIND**";
       break;

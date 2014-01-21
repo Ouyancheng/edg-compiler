@@ -7557,6 +7557,8 @@ typedef long a_decl_specifiers_set;
 			/* "constexpr" was scanned. */
 #define DS_THREAD_LOCAL (a_decl_specifiers_set)(0x2000)
 			/* "thread_local" was scanned. */
+#define DS_NORETURN (a_decl_specifiers_set)(0x4000)
+			/* "_Noreturn" was scanned. */
 
 
 static void report_bad_type_name(a_decl_flag_set  input_flags)
@@ -8749,6 +8751,51 @@ the constexpr specifier.  Issue an error if the specifier is not applicable.
 }  /* check_use_of_constexpr */
 
 
+static void apply_c11_noreturn(a_decl_parse_state  *dps)
+/*
+Callback routine called at the end of processing for a declaration containing
+the C11 _Noreturn specifier.  Record the _Noreturn property if needed.
+*/
+{
+  an_element_position_ptr  *eppp = &dps->extra_positions, epp;
+
+  while ((*eppp)->kind != (an_element_position_kind)epk_noreturn) {
+    eppp = &(*eppp)->next;
+  }  /* if */
+  epp = *eppp;
+  *eppp = epp->next;
+  if (dps->sym == NULL || !symbol_is(dps->sym, sk_routine)) {
+    pos_error(ec_bad_c11_noreturn, &epp->position);
+  } else {
+    a_routine_ptr  rp = dps->sym->variant.routine.ptr;
+    if (rp->type->kind == (a_type_kind)tk_routine) {
+      rp->type->variant.routine.extra_info->does_not_return = TRUE;
+    }  /* if */
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+    /* If appropriate, record the _Noreturn position in the IL. */
+    if (dps->is_definition) {
+      prepend_element_positions(epp, &rp->source_corresp.decl_pos_info
+                                        ->extra_positions);
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+    } else if (!source_sequence_entries_disallowed) {
+      /* If a source sequence entry was recorded (which would necessarily be a
+         secondary entry, since this is not a definition), record the position
+         in that entry. */
+      a_source_sequence_entry_ptr
+                        ssep = last_matching_source_sequence_entry((char*)rp);
+      if (ssep != NULL) {
+        a_src_seq_secondary_decl_ptr  sssdp;
+        check_assertion(ss_entry_kind(ssep) == iek_src_seq_secondary_decl);
+        sssdp = ss_entry_ptr(ssep, a_src_seq_secondary_decl_ptr);
+        prepend_element_positions(epp, &sssdp->decl_pos_info->extra_positions);
+      }  /* if */
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+    }  /* if */
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+  }  /* if */
+}  /* apply_c11_noreturn */
+
+
 void decl_specifiers(a_decl_flag_set       input_flags,
                      a_decl_parse_state    *state,
                      a_decl_pos_block_ptr  decl_pos_block)
@@ -9372,6 +9419,21 @@ storage_class_specifier:
           add_end_of_parse_action(check_use_of_constexpr, state,
                                   /*secondary_decls=*/TRUE);
         }  /* if */
+        break;
+      case tok_noreturn:
+        if (decl_specifiers_seen & DS_NORETURN) {
+          pos_warning(ec_dupl_decl_specifier, &pos_curr_token);
+        } else if (is_parameter) {
+          /* "_Noreturn" may not appear in a function parameter declaration. */
+          error(ec_bad_param_specifier);
+          err = TRUE;
+        } else {
+          add_element_position(epk_noreturn, &pos_curr_token,
+                                             &state->extra_positions);
+          add_end_of_parse_action(apply_c11_noreturn, state,
+                                  /*secondary_decls=*/TRUE);
+        }  /* if */
+        decl_specifiers_seen |= DS_NORETURN;
         break;
       case tok_inline:
         if (is_parameter) {

@@ -1003,13 +1003,11 @@ typedef struct a_decl_parse_state {
 			   therefore whether or not "this" can be used.
 			   Checked later in a callback routine to issue an
 			   error. */
-#if EXTRA_SOURCE_POSITIONS_IN_IL
   an_element_position_ptr
 		extra_positions;
 			/* A list of positions for various elements of a
 			   declaration that aren't recorded directly in the
 			   corresponding IL entry. */
-#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
 } a_decl_parse_state;
 
 

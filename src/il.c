@@ -2652,6 +2652,24 @@ Initialize the fields of the specified decl-pos block.
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
 }  /* clear_decl_pos_block */
 
+
+void f_add_element_position(an_element_position_kind  kind,
+                            a_source_position         *pos,
+                            an_element_position_ptr   *p_epp)
+/*
+Append to the list pointed to by *p_epp an element position entry of the given
+kind and for the given position.  Upon return *p_epp points to the added
+element.
+*/
+{
+  an_element_position_ptr  new_epp = alloc_element_position();
+
+  new_epp->kind = kind;
+  new_epp->position = *pos;
+  while (*p_epp != NULL) p_epp = &(*p_epp)->next;
+  *p_epp = new_epp;
+}  /* f_add_element_position */
+
 #if EXTRA_SOURCE_POSITIONS_IN_IL
 
 a_decl_position_supplement_ptr make_decl_pos_supplement(
@@ -2698,24 +2716,6 @@ correspondence entry.
     }  /* if */
   }  /* if */
 }  /* update_decl_pos_info */
-
-
-void f_add_element_position(an_element_position_kind  kind,
-                            a_source_position         *pos,
-                            an_element_position_ptr   *p_epp)
-/*
-Append to the list pointed to by *p_epp an element position entry of the given
-kind and for the given position.  Upon return *p_epp points to the added
-element.
-*/
-{
-  an_element_position_ptr  new_epp = alloc_element_position();
-
-  new_epp->kind = kind;
-  new_epp->position = *pos;
-  while (*p_epp != NULL) p_epp = &(*p_epp)->next;
-  *p_epp = new_epp;
-}  /* f_add_element_position */
 
 
 void prepend_element_positions(an_element_position_ptr  new_epp,

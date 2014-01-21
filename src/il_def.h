@@ -1250,6 +1250,7 @@ typedef enum /*a_token_kind*/ {
 #if GNU_VECTOR_TYPES_ALLOWED
   tok_builtin_shuffle,
 #endif /* GNU_VECTOR_TYPES_ALLOWED */
+  tok_noreturn,
   /* Place-holder for last position in enumeration. */
   tok_last
 } a_token_kind;
@@ -1409,6 +1410,7 @@ EXTERN a_const_char
 #if GNU_VECTOR_TYPES_ALLOWED
    "__builtin_shuffle",
 #endif /* GNU_VECTOR_TYPES_ALLOWED */
+   "_Noreturn",
    "last" /* used to check that initialization is right. */
   }
 #endif /* VAR_INITIALIZERS */
@@ -1450,11 +1452,11 @@ EXTERN a_source_range
 			/* NULL source range, for initialization. */
 
 
-#if EXTRA_SOURCE_POSITIONS_IN_IL
 
 enum an_element_position_kind_tag {
   epk_error = 0,		/* Error representation. */
   epk_specialization_header,	/* "template" keyword in "template<> ...". */
+  epk_noreturn,			/* C11 "_Noreturn" position. */
   epk_last
 	/*lint -esym(769,an_element_position_kind_tag::epk_last)*/
 };
@@ -1478,6 +1480,7 @@ typedef struct an_element_position {
 			/* The element's kind. */
 } an_element_position;
 
+#if EXTRA_SOURCE_POSITIONS_IN_IL
 
 /* Additional source position information relating to the declaration of the
    associated IL entry. */

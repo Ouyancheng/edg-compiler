@@ -81,7 +81,7 @@ specifier.
 */
 #define is_function_specifier()                                      \
   (curr_token == tok_inline   || curr_token == tok_virtual ||        \
-   curr_token == tok_explicit)
+   curr_token == tok_explicit || curr_token == tok_noreturn)
 
 
 static void clear_init_state_fields(an_init_state  *is)

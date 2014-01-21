@@ -1,5 +1,12 @@
 Version 4.9
 
+1/21/14  [EDGcpfe/12778]
+C11: _Noreturn
+
+In C11 mode, the front end now accepts the _Noreturn specifier (which is
+similar to the C++11 [[noreturn]] attribute).
+
+
 1/21/14  [EDGcpfe/14745]
 C11: Anonymous unions and anonymous structs
 
