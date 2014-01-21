@@ -591,7 +591,7 @@ file.
   character_size[(int)chk_char16_t] = targ_sizeof_char16_t;
   character_size[(int)chk_char32_t] = targ_sizeof_char32_t;
 #if CHECKING
-  // FIXME check_target_configuration();
+  check_target_configuration();
 #endif /* CHECKING */
 }  /* target_one_time_init */
 
