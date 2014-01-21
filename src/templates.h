@@ -7,7 +7,6 @@
 * Copyright 1988-2013 Edison Design Group Inc.                   [_]          *
 *                                                                             *
 ******************************************************************************/
-/* test */
 /*
 
 templates.h -- Declarations relating to templates.c (template support)
