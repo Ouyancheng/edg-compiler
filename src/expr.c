@@ -5358,8 +5358,9 @@ give the starting and ending source positions for the field reference
   if (compiler_generated) {
     result->variant.expression->variant.operation.compiler_generated = TRUE;
   }  /* if */
-  /* With nonstandard anonymous unions are allowed, look for fields of the
-     anonymous parents and insert the elided field selections. */
+  /* When nonstandard anonymous unions are allowed (including C11 anonymous
+     unions and anonymous structs), look for fields of the anonymous parents
+     and insert the elided field selections. */
   if (field_sym->variant.field.anonymous_parent_object != NULL) {
     an_expr_node_ptr orig_node = result->variant.expression;
     adjust_nonstandard_anonymous_object_field_references(orig_node,

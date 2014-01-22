@@ -8530,7 +8530,10 @@ typedef struct a_type {
 			   construct (an unnamed class/struct/union type, but
 			   not one represented by a typedef name, whose
 			   subfields are to be visible as though they were
-			   fields of the enclosing class). */
+			   fields of the enclosing class).  Despite the name,
+			   this flag is also TRUE for C11-style anonymous
+			   unions and anonymous structures (which are now
+			   "standard", but this flag predates C11). */
       a_bit_field
 		is_template_class:1;
 			/* TRUE if the class is an instance of a class template

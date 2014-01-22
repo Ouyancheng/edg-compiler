@@ -1333,7 +1333,9 @@ typedef struct a_member_decl_info {
 			/* TRUE if the declaration is an anonymous union. */
   a_bit_field	is_nonstd_anonymous_union:1;
 			/* TRUE if is_anonymous_union is TRUE but it is not
-			   a standard-conforming construct. */
+			   a standard C++ construct.  For historical reasons,
+			   this flag is also TRUE for C11 anonymous unions and
+			   anonymous structs. */
   a_bit_field	return_type_def_err:1;
 			/* TRUE if an error has issued on defining a class or
 			   enum in a member function return type (used to
@@ -16056,7 +16058,9 @@ A declaration has appeared in which there is no declarator.  Return TRUE if
 it is an anonymous union or anonymous structure declaration (in a mode that
 accepts such a feature).  If this is not a standard C++ anonymous union,
 return TRUE and also set the is_nonstd_anonymous_union flag in the
-member-decl-info block.
+member-decl-info block.  (Note that, for historical reasons, C11 anonymous
+unions and anonymous structs use the "nonstandard" terminology in this
+context.)
 */
 {
   a_type_ptr       member_type = decl_info->decl_state.type;

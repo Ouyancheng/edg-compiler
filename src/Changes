@@ -21,8 +21,8 @@ as specified in the C11 standard.  For example:
   } s;
   int printf(char const*, ...);
   int main() {
-    printf("%d\n", (char*)&s.j - (char*)&s.y);  // Prints "0".
-    return 0;
+    printf("%d\n", (char*)&s.j - (char*)&s.y);  // Prints "0" on common
+    return 0;                                   // platforms.
   }
 
 Also, the configuration macro ALLOW_NONSTANDARD_ANONYMOUS_UNIONS has been
