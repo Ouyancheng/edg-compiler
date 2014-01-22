@@ -2603,8 +2603,7 @@ process_side_effect:
       break;
 #if GNU_EXTENSIONS_ALLOWED
     case enk_statement:
-      /* There aren't any destructible entities in a statement expression,
-         so there's no need to visit the subtree. */
+      /* GNU statement expressions are much like function calls. */
       tblock->suppress_subtree_walk = TRUE;
       break;
 #endif /* GNU_EXTENSIONS_ALLOWED */

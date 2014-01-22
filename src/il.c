@@ -21881,8 +21881,7 @@ unlink_expr_destructions.
 #if GNU_EXTENSIONS_ALLOWED
   } else if (expr->kind == (an_expr_node_kind)enk_statement) {
     /* Save time by not visiting the subtree for a statement expression,
-       because we've ensured that there are no destructible entities
-       therein. */
+       because their destructions are self-contained. */
     tblock->suppress_subtree_walk = TRUE;
 #endif /* GNU_EXTENSIONS_ALLOWED */
   }  /* if */
