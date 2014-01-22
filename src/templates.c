@@ -25228,8 +25228,10 @@ keyword.  is_generic is TRUE if this is a C++/CLI generic declaration.
       /* A full specialization cannot be exported. */
       pos_error(ec_bad_decl_for_export, export_pos);
     }  /* if */
+#if EXTRA_SOURCE_POSITIONS_IN_IL
     add_element_position(epk_specialization_header, &header_pos,
                          &decl_state.decl_parse.extra_positions);
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
     full_specialization(&decl_state);
   } else {
     /* The entity being declared is a template. */
