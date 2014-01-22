@@ -5426,6 +5426,7 @@ be passed down.
 #endif /* DO_FULL_PORTABLE_EH_LOWERING */
   lower_block_statement(dependent_stmt,
                         is_function_try_block,
+                        /*is_block_of_stmt_expr=*/FALSE,
                         dtor_info,
                         &last_statement);
   if (is_function_try_block && dtor_info != NULL) {

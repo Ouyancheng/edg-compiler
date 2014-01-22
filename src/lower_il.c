@@ -14618,7 +14618,11 @@ expression).
      block statement). */
   inlining_enabled = FALSE;
 #endif /* MINIMAL_INLINING */
-  lower_statement(block);
+  lower_block_statement(block,
+                        /*is_block_of_function_try=*/FALSE,
+                        /*is_block_of_stmt_expr=*/TRUE,
+                        (a_destructor_wrapper_info_block_ptr)NULL,
+                        (a_statement_ptr *)NULL);
 #if MINIMAL_INLINING
   inlining_enabled = saved_inlining_enabled;
 #endif /* MINIMAL_INLINING */
@@ -16899,17 +16903,19 @@ such statements attached to the current entry on the context stack.
 
 static void push_block_statement_context(
                                   a_statement_ptr    block_statement,
+                                  a_boolean          force_context_push,
                                   a_context          *context,
                                   a_boolean          *context_pushed,
                                   a_boolean          *new_lifetime,
                                   a_dynamic_init_ptr *saved_curr_cleanup_state)
 /*
-Push a context and start an object lifetime, if necessary, for the
-indicated block statement.  If a context is pushed, context (a local
-variable in the caller) is used as the stack entry and *context_pushed
-is returned TRUE.  *new_lifetime is returned TRUE if a new object lifetime
-is begun.  The value of curr_context->curr_cleanup_state is saved in
-*saved_curr_cleanup_state so it can be restored at the end of the block.
+Push a context and start an object lifetime, if necessary (or if
+force_context_push is TRUE), for the indicated block statement.  If a context
+is pushed, context (a local variable in the caller) is used as the stack entry
+and *context_pushed is returned TRUE.  *new_lifetime is returned TRUE if a new
+object lifetime is begun.  The value of curr_context->curr_cleanup_state is
+saved in *saved_curr_cleanup_state so it can be restored at the end of the
+block.
 */
 {
   a_block_ptr            block = block_statement->variant.block.extra_info;
@@ -16919,7 +16925,7 @@ is begun.  The value of curr_context->curr_cleanup_state is saved in
   *context_pushed = FALSE;
   *new_lifetime = FALSE;
   *saved_curr_cleanup_state = curr_context->curr_cleanup_state;
-  if (scope != NULL || lifetime != NULL) {
+  if (scope != NULL || lifetime != NULL || force_context_push) {
     push_context(context, scope, lifetime);
     *context_pushed = TRUE;
     *new_lifetime = curr_context->new_lifetime;
@@ -17063,15 +17069,17 @@ curr_context->curr_cleanup_state had at the start of the block.
 void lower_block_statement(
                       a_statement_ptr                 statement,
                       a_boolean                       is_block_of_function_try,
+                      a_boolean                       is_block_of_stmt_expr,
                       a_destructor_wrapper_info_block *dtor_info,
                       a_statement_ptr                 *p_last_statement)
 /*
 Lower an stmk_block statement.  is_block_of_function_try is TRUE if the
 block is the dependent block of a function-try-block in a constructor
-or destructor.  *dtor_info provides extra information for the
-destructor case; dtor_info is NULL otherwise.  If p_last_statement
-is non-NULL, *p_last_statement is set to point to the last statement
-in the block, or NULL if there are no statements in the block.
+or destructor.  is_block_of_stmt_expr is TRUE if the block is the block
+statement for a GNU statement expression.  *dtor_info provides extra
+information for the destructor case; dtor_info is NULL otherwise.  If
+p_last_statement is non-NULL, *p_last_statement is set to point to the last
+statement in the block, or NULL if there are no statements in the block.
 */
 {
   a_statement_ptr    statement_list, last_statement;
@@ -17088,9 +17096,11 @@ in the block, or NULL if there are no statements in the block.
      to initialize conditional flags or the catch handler parameter. */
   statement_list = statement->variant.block.statements;
   /* Push a context around the processing of the block if it has a scope
-     or an object lifetime. */
-  push_block_statement_context(statement, &context,
-                               &context_pushed, &new_lifetime,
+     or an object lifetime or if it is the block of a GNU statement
+     expression. */
+  push_block_statement_context(statement,
+                               /*force_context_push=*/is_block_of_stmt_expr,
+                               &context, &context_pushed, &new_lifetime,
                                &saved_curr_cleanup_state);
   block = statement->variant.block.extra_info;
   scope = block->assoc_scope;
@@ -18135,6 +18145,7 @@ Do IL lowering of the indicated statement and everything under it.
       case stmk_block:
         lower_block_statement(statement,
                               /*is_block_of_function_try=*/FALSE,
+                              /*is_block_of_stmt_expr=*/FALSE,
                               (a_destructor_wrapper_info_block_ptr)NULL,
                               (a_statement_ptr *)NULL);
         break;

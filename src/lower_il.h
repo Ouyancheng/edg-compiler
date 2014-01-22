@@ -1243,6 +1243,7 @@ extern void lower_statement_list(a_statement_ptr statement_list,
 extern void lower_block_statement(
                       a_statement_ptr                 statement,
                       a_boolean                       is_block_of_function_try,
+                      a_boolean                       is_block_of_stmt_expr,
                       a_destructor_wrapper_info_block *dtor_info,
                       a_statement_ptr                 *last_statement);
 
