@@ -8764,7 +8764,8 @@ the C11 _Noreturn specifier.  Record the _Noreturn property if needed.
   }  /* if */
   epp = *eppp;
   *eppp = epp->next;
-  if (dps->sym == NULL || !symbol_is(dps->sym, sk_routine)) {
+  if (dps->sym == NULL || !symbol_is(dps->sym, sk_routine) ||
+      is_main_function(dps->sym->variant.routine.ptr)) {
     pos_error(ec_bad_c11_noreturn, &epp->position);
   } else {
     a_routine_ptr  rp = dps->sym->variant.routine.ptr;

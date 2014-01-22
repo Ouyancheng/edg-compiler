@@ -4197,23 +4197,6 @@ given enum type.
 }  /* establish_trans_unit_correspondences_for_enum */
 
 
-static a_boolean is_main_function(a_routine_ptr  routine)
-/*
-Return TRUE if and only if the given entry describes a global scope "main"
-routine.
-*/
-{
-  a_boolean                    result = FALSE;
-  a_source_correspondence_ptr  scp = &routine->source_corresp;
-  a_symbol_ptr                 sym = (a_symbol_ptr)scp->assoc_info;
-
-  if (sym != NULL && !scp_is_class_or_namespace_member(scp)) {
-    result = (strcmp(sym->header->identifier, "main") == 0);
-  }  /* if */
-  return result;
-}  /* is_main_function */
-
-
 static void set_corresp_for_associated_templates(a_symbol_ptr  sym,
                                                  a_symbol_ptr  corresp_sym)
 /*

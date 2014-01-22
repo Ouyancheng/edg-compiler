@@ -2575,7 +2575,7 @@ ec_has_include_next_in_primary_source_file;;"__has_include_next cannot be used i
 ec_absolute_file_name_in_has_include_next;;"absolute file name used in __has_include_next"
 ec_attr_not_applied_to_function_type;;"attribute %sq must be applied to a function type"
 ec_nontrivial_statement_expr_result_type;;"a statement expression with a result type (%t) that requires nontrivial copy construction or nontrivial destruction is not permitted"
-ec_bad_c11_noreturn;;"invalid use of _Noreturn"
+ec_bad_c11_noreturn;;"_Noreturn is not allowed here"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

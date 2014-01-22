@@ -1253,6 +1253,8 @@ Macro that is TRUE for functions with an indeterminate exception specification.
 extern a_boolean special_member_is_user_provided(a_routine_ptr  rp);
 #endif /* DO_IL_LOWERING */
 
+extern a_boolean is_main_function(a_routine_ptr  routine);
+
 extern void switch_il_region(a_memory_region_number region_number);
 
 extern void switch_to_file_scope_region(

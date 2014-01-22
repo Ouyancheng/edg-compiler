@@ -12266,6 +12266,23 @@ user-declared, and not defaulted on its first declaration.
 
 #endif /* DO_IL_LOWERING */
 
+a_boolean is_main_function(a_routine_ptr  routine)
+/*
+Return TRUE if and only if the given entry describes a global scope "main"
+routine.
+*/
+{
+  a_boolean                    result = FALSE;
+  a_source_correspondence_ptr  scp = &routine->source_corresp;
+  a_symbol_ptr                 sym = (a_symbol_ptr)scp->assoc_info;
+
+  if (sym != NULL && !scp_is_class_or_namespace_member(scp)) {
+    result = (strcmp(sym->header->identifier, "main") == 0);
+  }  /* if */
+  return result;
+}  /* is_main_function */
+
+
 static void instantiate_il_entity(a_source_correspondence *scp)
 /*
 Call set_instance_required on the IL entity with the indicated source
