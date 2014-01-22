@@ -696,6 +696,11 @@ Install the keywords in the symbol table.
     /* "__generic" is used in the implementation of type-generic functions. */
     enter_keyword((a_token_kind)tok_generic, "__generic");
   }  /* if */
+#if C99_IL_EXTENSIONS_SUPPORTED
+  if (c99_mode || gnu_mode) {
+    enter_keyword((a_token_kind)tok_builtin_complex, "__builtin_complex");
+  }  /* if */
+#endif /* C99_IL_EXTENSIONS_SUPPORTED */
   if (C_mode() && static_assert_enabled) {
     /* Enter the C version of "static_assert". */
     enter_keyword((a_token_kind)tok_static_assert, "_Static_assert");

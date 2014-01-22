@@ -2966,7 +2966,7 @@ a ck_aggregate constant.
     aggr_init_vector(p_icp, etype, is, diag_pos, init_con);
 #endif /* GNU_VECTOR_TYPES_ALLOWED */
 #if C99_IL_EXTENSIONS_SUPPORTED
-  } else if (gpp_mode && gnu_version >= 40700 &&
+  } else if (((gpp_mode && gnu_version >= 40700) || clang_mode) &&
              etype_kind == (a_type_kind)tk_complex &&
              is_braced_init_component(icp) &&
              icp->variant.braced.list != NULL &&
@@ -2975,7 +2975,7 @@ a ck_aggregate constant.
        imaginary components of a built-in "complex" object with aggregate
        initialization syntax.  Cases with empty braces or singleton braces
        remain simple initializations and therefore fall through to the
-       default case). */
+       default case).  This is also accepted in all clang modes. */
     aggr_init_complex(p_icp, etype, is, init_con);
 #endif /* C99_IL_EXTENSIONS_SUPPORTED */
 #if MICROSOFT_EXTENSIONS_ALLOWED
@@ -3166,14 +3166,14 @@ the type pointed to is opaque to declaration processing.
       break;
 #if C99_IL_EXTENSIONS_SUPPORTED
     case tk_complex:
-      if (gpp_mode && gnu_version >= 40700 &&
+      if (((gpp_mode && gnu_version >= 40700) || clang_mode) &&
           icp->variant.braced.list != NULL &&
           !is_last_elem(icp->variant.braced.list)) {
         /* g++ 4.7 introduced the possibility of initializing the real and
            imaginary components of a built-in "complex" object with aggregate
            initialization syntax.  Cases with empty braces or singleton
            braces remain simple initializations and therefore fall through
-           to the default case). */
+           to the default case).  This is also accepted in all clang modes. */
         aggr_init_complex(&icp, dtype, is, &is->init_con);
         break;
       }  /* if */
@@ -3409,14 +3409,14 @@ initializer, already copied and substituted.
       break;
 #if C99_IL_EXTENSIONS_SUPPORTED
     case tk_complex:
-      if (gpp_mode && gnu_version >= 40700 &&
+      if (((gpp_mode && gnu_version >= 40700) || clang_mode) &&
           icp->variant.braced.list != NULL &&
           !is_last_elem(icp->variant.braced.list)) {
         /* g++ 4.7 introduced the possibility of initializing the real and
            imaginary components of a built-in "complex" object with aggregate
            initialization syntax.  Cases with empty braces or singleton
            braces remain simple initializations and therefore fall through
-           to the default case). */
+           to the default case).  This is also accepted in all clang modes. */
         is_aggregate = TRUE;
         aggr_init_complex(&icp, dtype, is, &is->init_con);
         break;

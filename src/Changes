@@ -1,5 +1,29 @@
 Version 4.9
 
+1/22/14  [EDGcpfe/12780]
+__builtin_complex
+
+In modes that support built-in complex floating-point types (e.g., C99 mode
+or GNU modes), the front end now supports the __builtin_complex construct to
+create a complex value from its real and imaginary parts.  Given two constants
+it produces a constant.  For example:
+
+  _Complex double z = __builtin_complex(1.0, 2.0);  // Now accepted in C99
+                                                    // mode.
+
+This is useful to implement the CMPLX, CMPLXF, and CMPLXL macros mandated by
+the C11 standard.
+
+Furthermore, in clang modes, complex types can be initialized using aggregate
+initialization syntax.  For example:
+
+  _Complex float z = { 1.0, 2.0 };  // Now accepted in clang C99 mode.
+
+The clang implementation uses this feature to implement to C11 macros listed
+above.  (See also the entry of 11/28/12 for EDGcpfe/13347 for the identical
+feature supported in some GNU C++ modes.)
+
+
 1/22/14  [EDGcpfe/12779]
 C11: _Alignof and _Alignas
 

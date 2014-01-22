@@ -1251,6 +1251,7 @@ typedef enum /*a_token_kind*/ {
   tok_builtin_shuffle,
 #endif /* GNU_VECTOR_TYPES_ALLOWED */
   tok_noreturn,
+  tok_builtin_complex,
   /* Place-holder for last position in enumeration. */
   tok_last
 } a_token_kind;
@@ -1411,6 +1412,7 @@ EXTERN a_const_char
    "__builtin_shuffle",
 #endif /* GNU_VECTOR_TYPES_ALLOWED */
    "_Noreturn",
+   "__builtin_complex",
    "last" /* used to check that initialization is right. */
   }
 #endif /* VAR_INITIALIZERS */
@@ -14481,6 +14483,8 @@ typedef enum a_builtin_operation_kind_tag {
   bok_builtin_shuffle,
 			/* GNU's __builtin_shuffle operator.  Two or three GNU
 			   vector operands. */
+  bok_builtin_complex,	/* __builtin_complex.  Two real floating-point
+			   operands of identical type. */
   bok_last              /* Marks the end of the list. */
 } a_builtin_operation_kind_tag;
 /* Define as "a_byte" to explicitly control storage size. */
@@ -18285,6 +18289,7 @@ EXTERN a_const_char *builtin_operation_names[(int)bok_last+1]
   "__is_nothrow_assignable",
   "__is_trivially_assignable",
   "__builtin_shuffle",
+  "__builtin_complex",
   "last"
 }
 #endif /* VAR_INITIALIZERS */

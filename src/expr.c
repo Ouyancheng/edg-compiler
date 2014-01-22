@@ -11787,6 +11787,180 @@ __builtin_shuffle construct.
 }  /* scan_builtin_shuffle */
 
 #endif /* GNU_VECTOR_TYPES_ALLOWED */
+#if C99_IL_EXTENSIONS_SUPPORTED
+
+static a_boolean check_operand_has_real_floating_type(
+                                           a_rescan_control_block  *rcblock,
+                                           an_operand              *operand,
+                                           a_boolean               *dependent)
+/*
+Return TRUE if the given operand is a nondependent value of a real
+floating-point type.  Otherwise, return FALSE and, if appropriate, issue an
+error or set rcblock->error_detected to TRUE.  Return in *dependent whether
+operand->type is template-dependent.
+*/
+{
+  a_boolean  result = FALSE;
+
+  if (is_template_dependent_context() &&
+      is_template_dependent_type(operand->type)) {
+    *dependent = TRUE;
+  } else if (is_error_type(operand->type)) {
+    check_assertion_or_expect_error(rcblock != NULL &&
+                                    rcblock->error_detected);
+    *dependent = FALSE;
+  } else if (!is_real_floating_type(operand->type)) {
+    if (rcblock == NULL) {
+      pos_ty_error(ec_operand_must_be_real_floating_value, &operand->position,
+                   operand->type);
+    } else {
+      rcblock->error_detected = TRUE;
+    }  /* if */
+    *dependent = FALSE;
+  } else {
+    result = TRUE;
+    *dependent = FALSE;
+  }  /* if */
+  return result;
+}  /* check_operand_has_real_floating_type */
+
+
+static void scan_builtin_complex(a_rescan_control_block  *rcblock,
+                                 an_operand              *result)
+/*
+Scan the __builtin_complex construct and represent it in *result.
+
+This construct has the form:
+
+	__builtin_complex(real_value, imag_value)
+
+Both operands must be real floating-point expressions of identical types.
+The result is an rvalue of complex type built from the operands.
+
+If rcblock is non-NULL, redo semantic analysis on a previously-scanned
+__builtin_complex construct.
+*/
+{
+  an_operand         op1, op2;
+  an_expr_node_ptr   node1, node2;
+  a_type_ptr         result_type = NULL;
+  a_source_position  start_pos;
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+  a_source_position  end_pos;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+  a_token_sequence_number
+                     start_tok_seq_number;
+  a_boolean          op1_is_real, op2_is_real;
+  a_boolean          op1_is_dependent, op2_is_dependent;
+
+  /* First obtain the two operands, either from the token stream or from the
+     "rescan" structures. */
+  if (rcblock != NULL) {
+    /* Redoing semantic analysis on a previously-scanned expression. */
+    an_expr_node_ptr  expr = rcblock->expr;
+    check_assertion(expr->kind == (an_expr_node_kind)enk_builtin_operation &&
+                    expr->variant.builtin_operation.kind ==
+                                (a_builtin_operation_kind)bok_builtin_complex);
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+    end_pos = expr->expr_range.end;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+    make_rescan_operands(rcblock, &op1, &op2, (an_operand*)NULL, &start_pos,
+                         &start_tok_seq_number, (a_source_position*)NULL);
+  } else {
+    /* Normal, non-rescan, processing. */
+    start_pos = pos_curr_token;
+    /* Pass over the __builtin_complex token. */
+    check_assertion(curr_token == tok_builtin_complex);
+    (void)get_token();
+    /* Check for and pass over the left parenthesis. */
+    (void)required_token(tok_lparen, ec_exp_lparen);
+    add_matching_stop_token(tok_rparen);
+    add_stop_token(tok_comma);
+    scan_expr(&op1, PREC_LOWEST, EOPT_DISALLOW_COMMA_OPERATOR);
+    (void)required_token(tok_comma, ec_exp_comma);
+    scan_expr(&op2, PREC_LOWEST, EOPT_DISALLOW_COMMA_OPERATOR);
+    remove_stop_token(tok_comma);
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+    end_pos = end_pos_curr_token;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+    (void)required_token(tok_rparen, ec_exp_rparen);
+    remove_matching_stop_token(tok_rparen);
+  }  /* if */
+  /* Check that each operand has a real floating-point type (or an unknown
+     type). */
+  op1_is_real = check_operand_has_real_floating_type(rcblock, &op1,
+                                                     &op1_is_dependent);
+  if (!op1_is_real && !op1_is_dependent) result_type = error_type();
+  op2_is_real = check_operand_has_real_floating_type(rcblock, &op2,
+                                                     &op2_is_dependent);
+  if (!op2_is_real && !op2_is_dependent) result_type = error_type();
+  /* That the operands have compatible types. */
+  if (op1_is_real && op2_is_real &&
+      !types_are_compatible(op1.type, op2.type)) {
+    if (rcblock == NULL) {
+      pos_ty2_error(ec_incompatible_builtin_complex_types, &start_pos,
+                    op1.type, op2.type);
+    } else {
+      rcblock->error_detected = TRUE;
+    }  /* if */
+    result_type = error_type();
+  }  /* if */
+  if (result_type == NULL) {
+    /* No errors: Create the representation. */
+    an_expr_node_ptr  expr, arg_list;
+    if (op1_is_dependent) {
+      prep_generic_operand(&op1);
+      result_type = type_of_unknown_templ_param_nontype;
+    } else {
+      do_operand_transformations(&op1, TOPT_NO_OPTIONS);
+    }  /* if */
+    node1 = make_node_from_operand(&op1);
+    arg_list = node1;
+    if (op2_is_dependent) {
+      prep_generic_operand(&op2);
+      result_type = type_of_unknown_templ_param_nontype;
+    } else {
+      do_operand_transformations(&op2, TOPT_NO_OPTIONS);
+    }  /* if */
+    node2 = make_node_from_operand(&op2);
+    arg_list->next =  node2;
+    if (result_type == NULL) {
+      /* No operand was template-dependent (and none was an error).  The
+         result type is a complex floating-point type corresponding to the
+         floating-point type of the operands. */
+      check_assertion(op1_is_real && op2_is_real);
+      result_type = complex_type(skip_typerefs(op1.type)->variant.float_kind);
+    }  /* if */
+    expr = alloc_expr_node((an_expr_node_kind)enk_builtin_operation);
+    expr->type = result_type;
+    expr->variant.builtin_operation.kind =
+                                (a_builtin_operation_kind)bok_builtin_complex;
+    expr->variant.builtin_operation.operands = arg_list;
+    if (op1_is_real && is_constant_node(node1) &&
+        op2_is_real && is_constant_node(node2)) {
+      /* __builtin_complex is applied to two constant values: Produce a
+         constant result. */
+      a_constant  result_con;
+      set_constant_kind(&result_con, (a_constant_repr_kind)ck_complex);
+      result_con.type = result_type;
+      result_con.variant.complex_value->real = node1->variant.constant
+                                                    ->variant.float_value;
+      result_con.variant.complex_value->imag = node2->variant.constant
+                                                    ->variant.float_value;
+      result_con.expr = expr;
+      make_constant_operand(&result_con, result);
+    } else {
+      record_position_in_expr_for_rescan(expr, &start_pos,
+                                         end_position_or_null(&end_pos));
+      make_expression_operand(expr, result);
+    }  /* if */
+  } else {
+    make_error_operand(result);
+  }  /* if */
+  set_operand_position(result, &start_pos, &end_pos, &start_pos);
+}  /* scan_builtin_complex */
+
+#endif /* C99_IL_EXTENSIONS_SUPPORTED */
 
 static a_type_ptr type_of_call(an_expr_node_ptr  expr)
 /*
@@ -25578,6 +25752,9 @@ Return TRUE if the indicated token is one that could start an expression.
 #if GNU_VECTOR_TYPES_ALLOWED
     case tok_builtin_shuffle:
 #endif /* GNU_VECTOR_TYPES_ALLOWED */
+#if C99_IL_EXTENSIONS_SUPPORTED
+    case tok_builtin_complex:
+#endif /* C99_IL_EXTENSIONS_SUPPORTED */
 #if MICROSOFT_EXTENSIONS_ALLOWED
     case tok_uuidof:
     case tok_microsoft_lprefix:
@@ -29987,6 +30164,12 @@ type_start:
       scan_builtin_shuffle((a_rescan_control_block *)NULL, &local_result);
       break;
 #endif /* GNU_VECTOR_TYPES_ALLOWED */
+
+#if C99_IL_EXTENSIONS_SUPPORTED
+    case tok_builtin_complex:
+      scan_builtin_complex((a_rescan_control_block *)NULL, &local_result);
+      break;
+#endif /* C99_IL_EXTENSIONS_SUPPORTED */
 
     default:
 bad_start_of_primary:
@@ -36658,6 +36841,11 @@ alternative callable from outside, see rescan_expr_with_substitution.
         scan_builtin_shuffle(rcblock, result);
         break;
 #endif /* GNU_VECTOR_TYPES_ALLOWED */
+#if C99_IL_EXTENSIONS_SUPPORTED
+      case tok_builtin_complex:
+        scan_builtin_complex(rcblock, result);
+        break;
+#endif /* C99_IL_EXTENSIONS_SUPPORTED */
       default:
         unexpected_condition();
     }  /* switch */
