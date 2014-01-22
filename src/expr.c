@@ -10800,14 +10800,12 @@ of rescan information.
     /* Get rescan information recorded for this expression by going by way
        of an operand. */
     an_operand       operand;
-#if CHECKING
     an_expr_node_ptr result;
-#endif /* CHECKING */
     make_expression_operand(node, &operand);
     set_operand_position(&operand, start_position, end_position,
                          &null_source_position);
-#if CHECKING
     result = make_node_from_operand(&operand);
+#if CHECKING
     /* We should get the same expression back when we extract it, because
        we haven't really done anything. */
     check_assertion(result == node);

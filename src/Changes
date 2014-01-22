@@ -1,5 +1,20 @@
 Version 4.9
 
+1/22/14  [EDGcpfe/14789]
+Abort when rescanning a type operand
+
+The front end could previously abort when "rescanning" a call-like built-in
+operation like __is_convertible_to (during the execution of clear_operand).
+For example:
+
+  template<bool> struct R {};
+  template<typename T> R<__is_convertible_to(T, int)> g();
+  int main() { g<int>(); }  // Previously triggered an abort while
+                            // rescanning the __is_convertible_to expression.
+
+This is now fixed.
+
+
 1/21/14  [EDGcpfe/12778]
 C11: _Noreturn
 
