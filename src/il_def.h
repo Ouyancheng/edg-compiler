@@ -1455,7 +1455,9 @@ EXTERN a_source_range
 
 enum an_element_position_kind_tag {
   epk_error = 0,		/* Error representation. */
+#if EXTRA_SOURCE_POSITIONS_IN_IL
   epk_specialization_header,	/* "template" keyword in "template<> ...". */
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   epk_noreturn,			/* C11 "_Noreturn" position. */
   epk_last
 	/*lint -esym(769,an_element_position_kind_tag::epk_last)*/
