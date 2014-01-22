@@ -15249,7 +15249,7 @@ proceed after the call.
   if (!is_error_locator(*locator) &&
       locator->symbol_header->identifier != NULL &&
       (strcmp(locator->symbol_header->identifier, "main") == 0)) {
-    a_boolean  is_main_function = FALSE;
+    a_boolean  is_main_func = FALSE;
     /* Recognizing a declaration of function "main" is more than checking
        the identifier. */
     if (C_mode()) {
@@ -15257,7 +15257,7 @@ proceed after the call.
           state->declared_storage_class == (a_storage_class)sc_extern) {
         /* Not a static function named "main".  This is not an option
            in C++ (ARM 3.4). */
-        func_info->is_main_function = is_main_function = TRUE;
+        func_info->is_main_function = is_main_func = TRUE;
       }  /* if */
     } else {
       /* C++ mode. */
@@ -15271,10 +15271,10 @@ proceed after the call.
         check_assertion(locator->specific_symbol == NULL ||
                         (!locator->specific_symbol->is_class_member &&
                          sym_is_namespace_member(locator->specific_symbol)));
-        func_info->is_main_function = is_main_function = TRUE;
+        func_info->is_main_function = is_main_func = TRUE;
       }  /* if */
     }  /* if */
-    if (is_main_function) {
+    if (is_main_func) {
       check_main_function(func_info, type, state, &inline_specified,
                           &locator->source_position);
     }  /* if */
