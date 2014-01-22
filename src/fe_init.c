@@ -703,6 +703,12 @@ Install the keywords in the symbol table.
   if (c11_mode) {
     /* Enable keywords required in C11 mode. */
     enter_keyword((a_token_kind)tok_noreturn, "_Noreturn");
+    if (alignas_enabled) {
+      enter_keyword((a_token_kind)tok_alignas, "_Alignas");
+    }  /* if */
+    if (alignof_enabled) {
+      enter_keyword((a_token_kind)tok_alignof, "_Alignof");
+    }  /* if */
   }  /* if */
 #if TARG_HAS_IEEE_FLOATING_POINT
   /* EDG-specific token for Not-a-Number constant. */

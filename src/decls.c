@@ -16563,9 +16563,11 @@ processing should proceed after the call.
         if (state->is_linkage_spec_decl) {
           /* Something like: ``extern "C";'' -- Issue an error. */
           diagnostic(es_discretionary_error, ec_exp_declaration);
-        } else if (strict_ansi_mode) {
+        } else if (strict_ansi_mode || state->prefix_attributes != NULL) {
           /* An empty declaration is ignored (as an extension in ANSI mode). */
-          diagnostic(strict_ansi_discretionary_severity, ec_extra_semicolon);
+          diagnostic(strict_ansi_discretionary_severity,
+                     (state->prefix_attributes != NULL) ? ec_exp_declaration
+                                                        : ec_extra_semicolon);
         } else {
           remark(ec_extra_semicolon);
         }  /* if */

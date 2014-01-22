@@ -9056,6 +9056,7 @@ storage_class_specifier:
           goto no_get_token;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
         }  /* if */
+      case tok_alignas:
 #if GNU_EXTENSIONS_ALLOWED
         /*FALLTHROUGH*/
       case tok_attribute:

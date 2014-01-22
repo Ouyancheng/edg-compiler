@@ -2511,6 +2511,8 @@ Set the various flags appropriate to C99 mode or later standard modes.
   if (c11_mode) {
     static_assert_enabled = TRUE;
     allow_c11_anonymous_unions = TRUE;
+    alignas_enabled = TRUE;
+    alignof_enabled = TRUE;
   }  /* if */
 }  /* check_and_set_new_c_mode_options */
 
