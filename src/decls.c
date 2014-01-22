@@ -11179,7 +11179,7 @@ void report_missing_type_specifier(a_source_position  *err_pos,
                                    a_type_ptr         type,
                                    a_boolean          is_function,
                                    a_boolean          is_function_def,
-                                   a_boolean          is_main_function,
+                                   a_boolean          is_main_func,
                                    a_boolean          any_decl_specifiers)
 /*
 No type was explicitly specified for the current declaration.  Issue the
@@ -11187,7 +11187,7 @@ appropriate diagnostic at the source position given by *err_pos.
 type points to the type, which may have derived type levels on
 top of the underlying implicitly-generated type.  is_function is TRUE
 if this is a function declaration; is_function_def is TRUE if it is
-a function declaration that is also a definition; is_main_function is TRUE
+a function declaration that is also a definition; is_main_func is TRUE
 if it is a declaration of global scope "main".  any_decl_specifiers is
 TRUE if at least one decl-specifier was seen (e.g., a storage class or
 cv-qualifier).
@@ -11209,7 +11209,7 @@ Note that this routine determines whether the "implicit int" rule applies.
      all, but the global function "main" is handled with a different error
      code (in case discretionary-error control for "main" should be
      independent of that for other functions). */
-  error_code = is_main_function    ? ec_implicit_int_on_main :
+  error_code = is_main_func        ? ec_implicit_int_on_main :
                any_decl_specifiers ? ec_missing_type_specifier :
                                      ec_missing_decl_specifiers;
   if (C_dialect == C_dialect_pcc) {
@@ -11230,7 +11230,7 @@ Note that this routine determines whether the "implicit int" rule applies.
        mode either. */
     if (is_function) {
       /* The "main" function is silently accepted without any specifiers. */
-      if (!is_main_function) {
+      if (!is_main_func) {
         if (!any_decl_specifiers && !is_function_def) {
           /* Something like "f();". */
           severity = strict_ansi_mode ?
@@ -11263,7 +11263,7 @@ Note that this routine determines whether the "implicit int" rule applies.
        permissive and allow "implicit int" in most cases.  However, if "auto"
        may appear as a type specifier, we fall back on the standard
        constraints. */
-    if (is_main_function) {
+    if (is_main_func) {
       severity = es_remark;
     } else if (is_function) {
       severity = any_cfront_mode() ? es_remark : es_warning;
@@ -11279,7 +11279,7 @@ Note that this routine determines whether the "implicit int" rule applies.
        accepted, but some allowances are made in nonstrict modes for "main".
        If "auto" may appear as a type specifier, diagnostics are emitted as if
        we were in strict mode. */
-    if (is_main_function) {
+    if (is_main_func) {
       severity = (strict_ansi_mode || auto_type_specifier_enabled) ?
                     strict_ansi_discretionary_severity : es_remark;
     } else {
@@ -15097,11 +15097,11 @@ is non-NULL only if this is called for a function declaration.
         state->storage_class == (a_storage_class)sc_typedef) &&
 #endif /* GNU_EXTENSIONS_ALLOWED */
       !locator->is_error && !locator->is_conversion_name) {
-    a_boolean  is_main_function = (func_info != NULL &&
-                                   func_info->is_main_function);
+    a_boolean  is_main_func = (func_info != NULL &&
+                               func_info->is_main_function);
     report_missing_type_specifier(&state->declarator_start_pos, state->type,
                                   (func_info != NULL),
-                                  /*is_function_def=*/FALSE, is_main_function,
+                                  /*is_function_def=*/FALSE, is_main_func,
                                   !state->decl_specifiers_omitted);
   }  /* if */
 }  /* check_missing_type_specifiers_in_decl */
