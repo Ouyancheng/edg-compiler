@@ -1,6 +1,6 @@
 Version 4.9
 
-1/22/14  [EDGcpfe/12780]
+1/22/14  [EDGcpfe/12780,EDGcpfe/14747]
 __builtin_complex
 
 In modes that support built-in complex floating-point types (e.g., C99 mode
