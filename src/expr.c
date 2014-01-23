@@ -11894,7 +11894,7 @@ __builtin_complex construct.
   op2_is_real = check_operand_has_real_floating_type(rcblock, &op2,
                                                      &op2_is_dependent);
   if (!op2_is_real && !op2_is_dependent) result_type = error_type();
-  /* That the operands have compatible types. */
+  /* Check that the operands have compatible types. */
   if (op1_is_real && op2_is_real &&
       !types_are_compatible(op1.type, op2.type)) {
     if (rcblock == NULL) {

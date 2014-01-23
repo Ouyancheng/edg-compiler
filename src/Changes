@@ -19,7 +19,7 @@ initialization syntax.  For example:
 
   _Complex float z = { 1.0, 2.0 };  // Now accepted in clang C99 mode.
 
-The clang implementation uses this feature to implement to C11 macros listed
+The clang implementation uses this feature to implement the C11 macros listed
 above.  (See also the entry of 11/28/12 for EDGcpfe/13347 for the identical
 feature supported in some GNU C++ modes.)
 
