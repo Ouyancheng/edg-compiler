@@ -11842,7 +11842,7 @@ __builtin_complex construct.
 */
 {
   an_operand         op1, op2;
-  an_expr_node_ptr   node1, node2;
+  an_expr_node_ptr   node1, node2, expr;
   a_type_ptr         result_type = NULL;
   a_source_position  start_pos;
 #if EXTRA_SOURCE_POSITIONS_IN_IL
@@ -11857,7 +11857,7 @@ __builtin_complex construct.
      "rescan" structures. */
   if (rcblock != NULL) {
     /* Redoing semantic analysis on a previously-scanned expression. */
-    an_expr_node_ptr  expr = rcblock->expr;
+    expr = rcblock->expr;
     check_assertion(expr->kind == (an_expr_node_kind)enk_builtin_operation &&
                     expr->variant.builtin_operation.kind ==
                                 (a_builtin_operation_kind)bok_builtin_complex);
@@ -11907,7 +11907,7 @@ __builtin_complex construct.
   }  /* if */
   if (result_type == NULL) {
     /* No errors: Create the representation. */
-    an_expr_node_ptr  expr, arg_list;
+    an_expr_node_ptr  arg_list;
     if (op1_is_dependent) {
       prep_generic_operand(&op1);
       result_type = type_of_unknown_templ_param_nontype;
