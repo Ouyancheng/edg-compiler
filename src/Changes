@@ -100,11 +100,11 @@ statement expressions.  For example:
     return ({ D d; 42; });  // Now accepted in GNU C++ modes.
   }
 
-A remaining limitation is that the result of a GNU statement expression can
-not be of a class type requiring nontrivial copy construction or nontrivial
-destruction.  Such cases are now more consistently diagnosed; previously,
-they sometimes resulted in an internal error in assign_expr_to_temp during
-IL lowering (in lower_il.c).  For example:
+A remaining limitation is that the result of a GNU statement expression cannot
+be of a class type requiring nontrivial copy construction or nontrivial
+destruction.  Such cases are now more consistently diagnosed; previously, they
+sometimes resulted in an internal error in assign_expr_to_temp during IL
+lowering (in lower_il.c).  For example:
 
   struct D { D(D const&); };
   D g(D d) {

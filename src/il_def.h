@@ -16048,7 +16048,7 @@ typedef struct a_statement {
                            destructor has an actual effect (it's present
                            in all constructors or destructors). */
   a_bit_field  is_statement_expression_result:1;
-                        /* TRUE if this statement is an expression statement
+			/* TRUE if this statement is an expression statement
 			   producing a non-void result for a GNU statement
 			   expression. */
   bitfield_to_avoid_codecenter_warnings()

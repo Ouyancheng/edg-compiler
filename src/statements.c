@@ -3324,8 +3324,8 @@ the block statement.
         ssep->curr_scope_object_lifetime != NULL &&
         ssep->curr_scope_object_lifetime->block_lifetime_with_label_or_goto) {
       /* For statement expressions containing a label or goto, we want to be
-         sure scope is represented in the IL so the block object lifetime can
-         be bound to it. */
+         sure the scope is represented in the IL so the block object lifetime
+         can be bound to it. */
       (void)ensure_il_scope_exists(ssep);
     }  /* if */
     scope_ptr = ssep->il_scope;

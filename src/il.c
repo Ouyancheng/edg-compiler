@@ -21502,8 +21502,8 @@ entry is needed.)
     /* No parent pointer. */
   } else {
     /* Ordinarily, an object lifetime cannot be the child of a lifetime for a
-       temporary.  The one exception are the lifetimes embedded in GNU
-       statement expressions. */
+       temporary.  The one exception is a lifetime embedded in a GNU statement
+       expressions. */
     check_assertion_str2(curr_object_lifetime->kind !=
                                 (an_object_lifetime_kind)olk_expr_temporary ||
                          (gpp_mode &&
@@ -21881,7 +21881,7 @@ unlink_expr_destructions.
 #if GNU_EXTENSIONS_ALLOWED
   } else if (expr->kind == (an_expr_node_kind)enk_statement) {
     /* Save time by not visiting the subtree for a statement expression,
-       because their destructions are self-contained. */
+       because its destructions are self-contained. */
     tblock->suppress_subtree_walk = TRUE;
 #endif /* GNU_EXTENSIONS_ALLOWED */
   }  /* if */
