@@ -46,6 +46,7 @@ Abort when rescanning a type operand
 
 The front end could previously abort when "rescanning" a call-like built-in
 operation like __is_convertible_to (during the execution of clear_operand).
+The problem only occurred in configuration that set CHECKING to FALSE.
 For example:
 
   template<bool> struct R {};
