@@ -21503,7 +21503,7 @@ entry is needed.)
   } else {
     /* Ordinarily, an object lifetime cannot be the child of a lifetime for a
        temporary.  The one exception is a lifetime embedded in a GNU statement
-       expressions. */
+       expression. */
     check_assertion_str2(curr_object_lifetime->kind !=
                                 (an_object_lifetime_kind)olk_expr_temporary ||
                          (gpp_mode &&
