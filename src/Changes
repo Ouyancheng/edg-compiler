@@ -1,5 +1,16 @@
 Version 4.9
 
+1/24/14  [EDGcpfe/14746]
+C11: __STDC_NO_ATOMICS__ and __STDC_NO_VLA__
+
+The front end currently does not implement the optional C11 feature known as
+"atomic types", and accordingly predefines the macro __STDC_NO_ATOMICS__ to 1,
+a required by the C11 standard.  Furthermore, in modes that disable support
+for variable-length arrays, the front end similarly predefines the macro
+__STDC_NO_VLA__.  Although these are requirements of the C11 standard, this
+behavior has also been extended to plain C99 modes.
+
+
 1/24/14  [EDGcpfe/14743]
 C11: _Generic
 

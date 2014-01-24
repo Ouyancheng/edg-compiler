@@ -8580,6 +8580,17 @@ Enter symbols for the C99 predefined macros.
                            /*cannot_be_redefined=*/TRUE,
                            /*ref_suppresses_pch_file=*/FALSE);
 #endif /* STDC_MB_MIGHT_NEQ_WC */
+  /* The following macros are described by the C11 standard, but it is valid
+     and useful to define them in plain C99 mode as well. */
+  if (!vla_enabled) {
+    (void)enter_predef_macro("1", "__STDC_NO_VLA__",
+                             /*cannot_be_redefined=*/TRUE,
+                             /*ref_suppresses_pch_file=*/FALSE);
+  }  /*if */
+  /* Atomic types are currently not supported by the front end. */
+  (void)enter_predef_macro("1", "__STDC_NO_ATOMICS__",
+                           /*cannot_be_redefined=*/TRUE,
+                           /*ref_suppresses_pch_file=*/FALSE);
 }  /* init_c99_predefined_macros */
 
 
