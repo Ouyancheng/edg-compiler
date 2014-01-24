@@ -11136,6 +11136,30 @@ Most cases fit a simple pattern, but some require special handling.
 }  /* gen_builtin_operation */
 
 
+static void gen_c11_generic(an_expr_node_ptr  expr)
+/*
+Render a C11 _Generic construct.
+*/
+{
+  write_tok_str("_Generic(");
+  expr = expr->variant.c11_generic.operands;
+  gen_expression(expr);
+  write_tok_str(", ");
+  expr = expr->next;
+  while (expr != NULL){
+    check_assertion(expr->kind == (an_expr_node_kind)enk_type_operand);
+    gen_expression(expr);
+    write_tok_str(": ");
+    expr = expr->next;
+    check_assertion(expr != NULL);
+    gen_expression(expr);
+    expr = expr->next;
+    if (expr != NULL) write_tok_str(", ");
+  }  /* for */
+  write_tok_str(")");
+}  /* gen_c11_generic */
+
+
 static void gen_lambda_captures(a_lambda_ptr  lambda)
 /*
 Render the list of lambda captures, including the delimiting brackets.
@@ -12444,6 +12468,9 @@ sizeof_cases:
                                   (a_type_ptr)NULL,
                                   /*skip_num=*/0);
       write_tok_ch('}');
+      break;
+    case enk_c11_generic:
+      gen_c11_generic(expr);
       break;
     default:
       unexpected_condition_str("gen_expr: bad expr node kind");

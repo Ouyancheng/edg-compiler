@@ -4386,6 +4386,14 @@ cleanup_state_common:
       disp_ptr("braced_init_list", (char *)ptr->variant.braced_init_list,
                iek_expr_node);
       break;
+    case enk_c11_generic:
+      (void)printf("enk_c11_generic\n");
+      disp_ptr("c11_generic.operands",
+               (char *)ptr->variant.c11_generic.operands,
+               iek_expr_node);
+      disp_ptr("c11_generic.result", (char *)ptr->variant.c11_generic.result,
+               iek_expr_node);
+      break;
     default:
       (void)printf("**BAD EXPR NODE KIND**\n");
   }  /* switch */

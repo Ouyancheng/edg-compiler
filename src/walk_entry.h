@@ -1737,6 +1737,12 @@ do_set_proper_definition_needed_flag:
             walk_list(ptr->variant.braced_init_list,
                       an_expr_node_ptr, iek_expr_node);
             break;
+          case enk_c11_generic:
+            walk_list(ptr->variant.c11_generic.operands,
+                      an_expr_node_ptr, iek_expr_node);
+            remap_ptr(ptr->variant.c11_generic.result,
+                      an_expr_node_ptr, iek_expr_node);
+            break;
           default:
             unexpected_condition_str(
                                  "walk_entry_and_subtree: bad expr node kind");

@@ -694,7 +694,7 @@ Install the keywords in the symbol table.
     /* Enable keywords required in C99 mode. */
     enter_keyword((a_token_kind)tok_inline, "inline");
     /* "__generic" is used in the implementation of type-generic functions. */
-    enter_keyword((a_token_kind)tok_generic, "__generic");
+    enter_keyword((a_token_kind)tok_c99_generic, "__generic");
   }  /* if */
 #if C99_IL_EXTENSIONS_SUPPORTED
   if (c99_mode || gnu_mode) {
@@ -707,6 +707,7 @@ Install the keywords in the symbol table.
   }  /* if */
   if (c11_mode) {
     /* Enable keywords required in C11 mode. */
+    enter_keyword((a_token_kind)tok_c11_generic, "_Generic");
     enter_keyword((a_token_kind)tok_noreturn, "_Noreturn");
     if (alignas_enabled) {
       enter_keyword((a_token_kind)tok_alignas, "_Alignas");
@@ -729,7 +730,7 @@ Install the keywords in the symbol table.
     if (c99_mode) {
       /* "__genericfx" is used in the implementation of type-generic functions
          for fixed-point types. */
-      enter_keyword((a_token_kind)tok_genericfx, "__genericfx");
+      enter_keyword((a_token_kind)tok_c99_genericfx, "__genericfx");
     }  /* if */
   }  /* if */
 #endif /* FIXED_POINT_ALLOWED */

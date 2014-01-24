@@ -3147,6 +3147,10 @@ fields to default values.
     case enk_braced_init_list:
       node->variant.braced_init_list = NULL;
       break;
+    case enk_c11_generic:
+      node->variant.c11_generic.operands = NULL;
+      node->variant.c11_generic.result = NULL;
+      break;
     default:
       unexpected_condition_str("set_expr_node_kind: bad kind");
   }  /* switch */

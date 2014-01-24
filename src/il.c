@@ -1970,6 +1970,18 @@ sizeof_cases:
         operand = operand->next;
       }  /* while */
       break;
+    case enk_c11_generic:
+      fputs("c11-generic:\n", f_debug);
+      operand = node->variant.c11_generic.operands;
+      while (operand != NULL) {
+        if (operand == node->variant.c11_generic.result) {
+          for (a = 0; a < level; a++) fputs(" ", f_debug);
+          fprintf(f_debug, "<result> =\n");
+        }  /* if */
+        db_expr_node(operand, level + 2);
+        operand = operand->next;
+      }  /* while */
+      break;
     case enk_error:
       fputs("error node\n", f_debug);
       break;
@@ -6454,6 +6466,10 @@ are done.
         eq = compare_expression_lists(node1->variant.braced_init_list,
                                       node2->variant.braced_init_list,
                                       options);
+        break;
+      case enk_c11_generic:
+        eq = compare_expressions(node1->variant.c11_generic.result,
+                                 node2->variant.c11_generic.result, options);
         break;
       case enk_error:
         /* Nonequivalence is assumed. */
@@ -15903,8 +15919,7 @@ options is a set of name lookup options.
       *copy_error = TRUE;
       break;
     default:
-      /* Other kinds of expressions can come up when copying a non-constant
-         expression under a sizeof. */
+      /* Other kinds of expressions cannot come up in this context. */
       check_assertion_str(non_constant_expr,
                           "copy_template_param_expr: bad expression kind");
       *copy_error = TRUE;
@@ -17506,6 +17521,20 @@ be called to start a copy.
       expr_copy->variant.braced_init_list =
            i_copy_list_of_expr_trees(expr->variant.braced_init_list,
                                      options, cblock);
+      break;
+    case enk_c11_generic:
+      expr_copy->variant.c11_generic.operands =
+                 i_copy_list_of_expr_trees(expr->variant.c11_generic.operands,
+                                           options, cblock);
+      /* Update the variant.c11_generic_operands.result pointer in the copy. */
+      { an_expr_node_ptr  node1 = expr->variant.c11_generic.operands,
+                          node2 = expr_copy->variant.c11_generic.operands;
+        while (node1 != expr->variant.c11_generic.result) {
+          node1 = node1->next;
+          node2 = node2->next;
+        }  /* while */
+        expr_copy->variant.c11_generic.result = node2;
+      }
       break;
 #if GNU_EXTENSIONS_ALLOWED
     case enk_statement:

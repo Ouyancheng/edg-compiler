@@ -13418,6 +13418,239 @@ Function names may be omitted.
 
 #endif /* FIXED_POINT_ALLOWED */
 
+static void cache_one_argument(a_token_cache  *cache)
+/*
+Cache an expression starting at the current token up to but not including a
+zero-level comma or right parenthesis.  This routine doesn't coalesce ids while
+caching and so doesn't work reliably with template references.
+*/
+{
+  a_token_set_array  stop_tokens;
+
+  clear_token_set_array(stop_tokens);
+  incr_token_set_array_element(stop_tokens, tok_comma);
+  incr_token_set_array_element(stop_tokens, tok_rparen);
+  cache_token_stream(cache, stop_tokens);
+}  /* cache_one_argument */
+
+
+static void process_cached_generic_selection_arg(a_token_cache     *cache,
+                                                 an_expr_node_ptr  type_arg)
+/*
+The given cache contains the tokens for an expression associated with the
+given type operand in a C11 _Generic construct.  Scan the expression now and
+insert the resulting node after the type_arg node.
+*/
+{
+  an_operand        operand;
+  an_expr_node_ptr  expr_arg;
+
+  check_assertion(type_arg->kind == (an_expr_node_kind)enk_type_operand);
+  rescan_cached_tokens(cache);
+  scan_expr(&operand, PREC_LOWEST, EOPT_DISALLOW_COMMA_OPERATOR);
+  eliminate_unusual_operand_kinds(&operand);
+  expr_arg = make_node_from_operand(&operand);
+  expr_arg->next = type_arg->next;
+  type_arg->next = expr_arg;
+}  /* process_cached_generic_selection_arg */
+
+
+static void scan_c11_generic_selection(an_operand *result)
+/*
+Scan a C11 _Generic construct of the from:
+
+	_Generic ( <selector-expr>,
+	           <typename-or-default-1> : <expr-1>,
+		   ...
+	           <typename-or-default-N> : <expr-N>)
+
+where <typename-or-default> is either a type name or the keyword "default".
+*/
+{
+  an_expr_stack_entry  expr_stack_entry;
+  an_expr_node_ptr     result_expr, type_arg, arg_list, match_type_arg = NULL;
+  an_expr_node_ptr     *p_end;
+  an_operand           operand;
+  a_type_ptr           selector_type = NULL, type;
+  a_boolean            err = FALSE, default_seen = FALSE;
+  a_source_position    start_pos, type_pos;
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+  a_source_position    end_pos;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+  a_token_cache        cache;
+
+  check_assertion(C_mode() && curr_token == tok_c11_generic);
+  clear_token_cache(&cache, /*reusable=*/FALSE);
+  start_pos = pos_curr_token;
+  /* Pass over the _Generic token. */
+  (void)get_token();
+  /* Check for and pass over the left parenthesis. */
+  (void)required_token(tok_lparen, ec_exp_lparen);
+  add_matching_stop_token(tok_rparen);
+  add_stop_token(tok_comma);
+  /* Except perhaps for the selected expression (which will be cached and
+     scanned later on), the operand expressions of the _Generic construct are
+     not evaluated. */
+  push_expr_stack((an_expression_kind)ek_sizeof, &expr_stack_entry,
+                  /*force_object_lifetime=*/FALSE,
+                  /*suppress_object_lifetime=*/FALSE);
+  /* Scan the selector expression (not evaluated). */
+  scan_expr(&operand, PREC_LOWEST, EOPT_DISALLOW_COMMA_OPERATOR);
+  eliminate_unusual_operand_kinds(&operand);
+  if (is_error_operand(&operand)) {
+    err = TRUE;
+    selector_type = error_type();
+  } else {
+    selector_type = operand.type;
+  }  /* if */
+  arg_list = make_node_from_operand(&operand);
+  /* Scan over the required first comma. */
+  if (!required_token(tok_comma, ec_exp_comma)) err = TRUE;
+  /* Now scan the <typename-or-default-N> : <expr-N> pairs. */
+  p_end = &arg_list->next;
+  do {
+    a_boolean  cache_expr = FALSE;
+    add_stop_token(tok_colon);
+    /* If this is the "default:" case, scan it; otherwise, scan a type name. */
+    if (microsoft_mode && microsoft_version >= 1400) {
+      /* "default" is a context-sensitive keyword in some Microsoft modes. */
+      (void)check_context_sensitive_keyword(tok_default, "default");
+    }  /* if */
+    if (curr_token == tok_default) {
+      /* The "default:" case. */
+      if (default_seen) {
+        pos_error(ec_default_association_appears_more_than_once,
+                  &pos_curr_token);
+        err = TRUE;
+      } else {
+        default_seen = TRUE;
+        if (match_type_arg == NULL) {
+          /* This is a potential match.  Cache it for now.  We may scan it
+             early if an explicit match is encountered later on. */
+          cache_expr = TRUE;
+        }  /* if */
+      }  /* if */
+      type = NULL;
+      (void)get_token();
+    } else {
+      /* A specific type case.  Scan the type an verify its validity. */
+      type_pos = pos_curr_token;
+      type_name(&type);
+      if (is_error_type(type)) {
+        err = TRUE;
+      } else if (!is_object_type(type)) {
+        pos_error(ec_type_must_be_object_type, &type_pos);
+        err = TRUE;
+      } else if (is_incomplete_type(type)) {
+        pos_error(ec_incomplete_type_not_allowed, &type_pos);
+        err = TRUE;
+      } else if (is_variably_modified_type(type)) {
+        pos_error(ec_variably_modified_type_not_allowed_here, &type_pos);
+        err = TRUE;
+      } else {
+        /* Check that a compatible type didn't appear earlier on. */
+        an_expr_node_ptr  ep = arg_list->next;
+        for (; ep != NULL; ep = ep->next) {
+          if (ep->kind == (an_expr_node_kind)enk_type_operand &&
+              ep->variant.type_operand.type != NULL &&
+              types_are_compatible(type, ep->variant.type_operand.type)) {
+            pos_ty_error(ec_duplicate_type_in_c11_generic, &type_pos, type);
+            err = TRUE;
+            break;
+          }  /* if */
+        }  /* for */
+        if (!err && types_are_compatible(selector_type, type)) {
+          if (match_type_arg != NULL) {
+            /* We already had a match, which is presumably for a "default:"
+               case.  This specific match supersedes the default one: scan the
+               previously cached tokens as an unevaluated expression. */
+            check_assertion(default_seen);
+            process_cached_generic_selection_arg(&cache, match_type_arg);
+            match_type_arg = NULL;
+          }  /* if */
+          cache_expr = TRUE;
+        }  /* if */
+      }  /* if */
+    }  /* if */
+    /* Create a type operand for this type (the default case is represented
+       with a null type). */
+    type_arg = alloc_expr_node((an_expr_node_kind)enk_type_operand);
+    type_arg->type = void_type();
+    type_arg->variant.type_operand.type = type;
+    *p_end = type_arg;
+    p_end = &type_arg->next;
+    /* Check for and skip over the required colon token. */
+    remove_stop_token(tok_colon);
+    if (!required_token(tok_colon, ec_exp_colon)) err = TRUE;
+    if (cache_expr && !err) {
+      /* This might be the result expression.  Cache the tokens so that we
+         can rescan this as an evaluated expression later on if needed. */
+      check_assertion(match_type_arg == NULL);
+      cache_one_argument(&cache);
+      match_type_arg = type_arg;
+    } else {
+      /* The type we just scanned is not a match (or we've run into errors so
+         that we won't select a matching expression).  Scan and record the
+         expression. */
+      scan_expr(&operand, PREC_LOWEST, EOPT_DISALLOW_COMMA_OPERATOR);
+      eliminate_unusual_operand_kinds(&operand);
+      *p_end = make_node_from_operand(&operand);
+      p_end = &(*p_end)->next;
+    }  /* if */
+  }  while (loop_token(tok_comma));
+  if (err) {
+    if (match_type_arg != NULL) {
+      /* A match was found but errors were also encountered.  Scan the matching
+         expression in an unevaluated context. */
+      process_cached_generic_selection_arg(&cache, match_type_arg);
+      match_type_arg = NULL;
+    } 
+  } else if (match_type_arg == NULL) {
+    /* No type association matched: Issue an error. */
+    pos_ty_error(ec_no_match_in_c11_generic, &start_pos, selector_type);
+    err = TRUE;
+  }  /* if */
+  /* Check for and pass over the right parenthesis. */
+  remove_stop_token(tok_comma);
+  remove_matching_stop_token(tok_rparen);
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+  end_pos = end_pos_curr_token;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+  (void)required_token(tok_rparen, ec_exp_rparen);
+  pop_expr_stack();
+  if (!err) {
+    /* The selected expression is now cached and match_type_arg has the
+       associated type operand.  Process it in the current expression
+       context. */
+    check_assertion(match_type_arg != NULL);
+    process_cached_generic_selection_arg(&cache, match_type_arg);
+    check_assertion(match_type_arg->next != NULL);
+#if REPRESENT_C11_GENERIC_CONSTRUCT_IN_IL
+    /* Create an enk_c11_generic node to represent the construct explicitly in
+       the IL. */
+    result_expr = alloc_expr_node((an_expr_node_kind)enk_c11_generic);
+    result_expr->type = match_type_arg->next->type;
+    result_expr->variant.c11_generic.operands = arg_list;
+    result_expr->variant.c11_generic.result = match_type_arg->next;
+#else /* REPRESENT_C11_GENERIC_CONSTRUCT_IN_IL */
+    result_expr = match_type_arg->next;
+    result_expr->next = NULL;
+#endif /* REPRESENT_C11_GENERIC_CONSTRUCT_IN_IL */
+    if (is_constant_node(match_type_arg->next)) {
+      /* If the selected expression is a constant, the _Generic construct
+         should also produce a constant. */
+      make_constant_operand(match_type_arg->next->variant.constant, result);
+      result->variant.constant.expr = result_expr;
+    } else {
+      make_expression_operand(result_expr, result);
+    }  /* if */
+  } else {
+    make_error_operand(result);
+  }  /* if */
+  set_operand_position(result, &start_pos, &end_pos, &start_pos);
+}  /* scan_c11_generic_selection */
+
+
 static void scan_noexcept_operator(a_rescan_control_block *rcblock,
                                    an_operand             *result)
 /*
@@ -21444,9 +21677,8 @@ number of arguments of the conversion.  If the conversion has exactly
 one argument, return TRUE; otherwise, return FALSE.
 */
 {
-  a_boolean          one_arg = FALSE;
-  a_token_cache      cache;
-  a_token_set_array  stop_tokens;
+  a_boolean      one_arg = FALSE;
+  a_token_cache  cache;
 
   clear_token_cache(&cache, /*reusable=*/FALSE);
   if (curr_token == tok_lparen) {
@@ -21456,21 +21688,16 @@ one argument, return TRUE; otherwise, return FALSE.
     if (curr_token == tok_rparen) {
       /* The argument list is "()", i.e., zero arguments. */
     } else {
-      /* One or more arguments. */
-      /* Scan forward looking for a zero-level comma or right parenthesis. */
-      /* Initialize a local stop token set. */
-      clear_token_set_array(stop_tokens);
-      incr_token_set_array_element(stop_tokens, tok_comma);
-      incr_token_set_array_element(stop_tokens, tok_rparen);
-      /* Note that this really should use the version of cache_token_stream
-         that coalesces ids, to get the right answer with template
-         references.  That's hard to do, because you have to have a 
-         cache pre-built containing the right tokens.  But this routine
-         is now used only in some corner cases in some corner modes
-         (e.g., cfront), so this answer is good enough.  (Before this
-         was relegated to use in corner modes, it was in use for years,
-         and we got no bug reports about it.) */
-      cache_token_stream(&cache, stop_tokens);
+      /* One or more arguments.  Cache the tokens of the first argument to see
+         if it is followed by additional ones. */
+      /* Note that cache_one_argument doesn't work reliable with template
+         references because it doesn't ids (which would be hard to do, because
+         you have to have a cache pre-built containing the right tokens).  But
+         this routine is now used only in some corner cases in some corner
+         modes (e.g., cfront), so this answer is good enough.  (Before this
+         was relegated to use in corner modes, it was in use for years, and we
+         got no bug reports about it.) */
+      cache_one_argument(&cache);
       /* If we stopped on a right parenthesis, the argument list has exactly
          one argument. */
       if (curr_token == tok_rparen) one_arg = TRUE;
@@ -25818,8 +26045,9 @@ Return TRUE if the indicated token is one that could start an expression.
     case tok_lparen:
     case tok_typename:
     case tok_throw:
-    case tok_generic:
-    case tok_genericfx:
+    case tok_c11_generic:
+    case tok_c99_generic:
+    case tok_c99_genericfx:
     case tok_null:
     case tok_func_name:
     case tok_function_name:
@@ -29863,13 +30091,18 @@ handle_identifier:
       break;
 #endif /* GNU_COMPLEX_EXTENSIONS_ALLOWED */
 
-    case tok_generic:
+    case tok_c11_generic:
+      /* C11 _Generic expression. */
+      scan_c11_generic_selection(&local_result);
+      break;
+
+    case tok_c99_generic:
       /* __generic operation, implementing type-generic functions in C99. */
       scan_type_generic_operator(&local_result);
       break;
 
 #if FIXED_POINT_ALLOWED
-    case tok_genericfx:
+    case tok_c99_genericfx:
       /* __genericfx operation, implementing type-generic functions for
          fixed-point types. */
       scan_fixed_point_type_generic_operator(&local_result);

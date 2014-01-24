@@ -996,8 +996,8 @@ typedef enum /*a_token_kind*/ {
   tok_volatile,
   tok_while,
   /* Specific to C99 mode. */
-  tok_generic,
-  tok_genericfx,
+  tok_c99_generic,
+  tok_c99_genericfx,
   /* Extensions.  __ALIGNOF__ (and __alignof__, __alignof, or __builtin_alignof
      in some modes) is similar to sizeof, but slightly different from the C++11
      alignof (tok_alignof).  __INTADDR__ is used to scan an integer address
@@ -1252,6 +1252,7 @@ typedef enum /*a_token_kind*/ {
 #endif /* GNU_VECTOR_TYPES_ALLOWED */
   tok_noreturn,
   tok_builtin_complex,
+  tok_c11_generic,
   /* Place-holder for last position in enumeration. */
   tok_last
 } a_token_kind;
@@ -1413,6 +1414,7 @@ EXTERN a_const_char
 #endif /* GNU_VECTOR_TYPES_ALLOWED */
    "_Noreturn",
    "__builtin_complex",
+   "_Generic",
    "last" /* used to check that initialization is right. */
   }
 #endif /* VAR_INITIALIZERS */
@@ -13869,7 +13871,8 @@ enum an_expr_node_kind_tag {
                            running destructors). */
 #endif /* VLA_DEALLOCATIONS_IN_IL */
   enk_type_operand,	/* Used to represent types in certain expression
-			   constructs. */
+			   constructs.  Also used to represent the "default:"
+			   case in a C11 _Generic construct. */
   enk_builtin_operation,
 			/* Used to represent a variety of builtin
 			   operations. */
@@ -13881,6 +13884,8 @@ enum an_expr_node_kind_tag {
 			   of "a" in the decltype construct is represented
 			   with an enk_param_ref node. */
   enk_braced_init_list,	/* A C++11 brace-enclosed initializer list. */
+  enk_c11_generic,	/* Used to represent a C11 _Generic expression
+			   selection. */
   enk_last		/*lint -esym(769,an_expr_node_kind_tag::enk_last)*/
 };
 /* Define as "a_byte" to explicitly control storage size. */
@@ -15331,7 +15336,9 @@ typedef struct an_expr_node {
     /* When kind == enk_type_operand: */
     struct {
       a_type_ptr
-		type;	/* The type represented by the operand. */
+		type;	/* The type represented by the operand.  NULL for an
+			   entry representing the "default:" case of a C11
+			   _Generic construct. */
       a_bit_field
 		definition_needed:1;
 			/* A flag indicating that the type definition must be
@@ -15382,6 +15389,20 @@ typedef struct an_expr_node {
 			   instantiations, because in other contexts
 			   initializer lists are always resolved to something
 			   else (e.g., a constructor call). */
+    /* When kind == enk_c11_generic: */
+    struct {
+      an_expr_node_ptr
+		operands;
+			/* The list of operands in the _Generic(...) construct
+			   in order of appearance.  Types are represented by
+			   enk_type_operand nodes, and the "default:" case is
+			   represented by an enk_type_operand that has a NULL
+			   pointer for its variant.type_operand.type field. */
+      an_expr_node_ptr
+		result;
+			/* The selected expression.  This points to a node in
+			   the operands list. */
+    } c11_generic;
   } variant;
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   a_source_range

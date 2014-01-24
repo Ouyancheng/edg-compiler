@@ -4779,6 +4779,13 @@ on every expression.
           }  /* if */
         }  /* if */
         break;
+      case enk_type_operand:
+        if (expr->variant.type_operand.type != NULL) {
+          form_type(expr->variant.type_operand.type, octl);
+        } else {
+          octl->output_str("<default>", octl);
+        }  /* if */
+        break;
       case enk_builtin_operation:
 #if DEBUG
         if (octl->debug_output) {
@@ -4828,6 +4835,32 @@ on every expression.
         break;
       case enk_braced_init_list:
         octl->output_str("{ ... }", octl);
+        break;
+      case enk_c11_generic:
+#if DEBUG
+        if (octl->debug_output) {
+          an_expr_node_ptr  operand = expr->variant.c11_generic.operands;
+          octl->output_str("_Generic", octl);
+          octl->output_str("(", octl);
+          form_expression(operand, octl);
+          octl->output_str(", ", octl);
+          while (operand != NULL) {
+            form_expression(operand, octl);
+            octl->output_str(": ", octl);
+            operand = operand->next;
+            if (operand != NULL) {
+              form_expression(operand, octl);
+              operand = operand->next;
+              if (operand != NULL) octl->output_str(", ", octl);
+            }  /* if */
+          }  /* while */
+          octl->output_str(")", octl);
+        } else
+#endif /* DEBUG */
+        /* Do not insert code here. */
+        {
+          octl->output_str("<expression>", octl);
+        }  /* if */
         break;
       default:
         octl->output_str("<expression>", octl);

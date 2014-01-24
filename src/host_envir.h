@@ -1170,6 +1170,18 @@ relaxation of certain checks dependent on the capabilities of the target ABI.
 #endif /* DOING_SOURCE_ANALYSIS && DO_IL_LOWERING */
 
 /*
+Flag that is TRUE if a C11 _Generic construct should be completely represented
+in the IL.  If FALSE, only the selected expression is represented.
+*/
+#ifndef REPRESENT_C11_GENERIC_CONSTRUCT_IN_IL
+#if DO_IL_LOWERING
+#define REPRESENT_C11_GENERIC_CONSTRUCT_IN_IL FALSE
+#else /* !DO_IL_LOWERING */
+#define REPRESENT_C11_GENERIC_CONSTRUCT_IN_IL TRUE
+#endif /* DO_IL_LOWERING */
+#endif /* REPRESENT_C11_GENERIC_CONSTRUCT_IN_IL */
+
+/*
 Flag that is TRUE to indicate that backing expressions for constants
 should be recorded even though IL lowering is done.  Generally, they are
 not in that case because they're not useful (IL lowering doesn't maintain

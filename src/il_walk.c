@@ -3313,6 +3313,9 @@ as specified in the control block.
     case enk_braced_init_list:
       traverse_expr_list(expr->variant.braced_init_list, tblock);
       break;
+    case enk_c11_generic:
+      traverse_expr_list(expr->variant.c11_generic.operands, tblock);
+      break;
     default:
       unexpected_condition_str("traverse_expr: bad expr kind");
   }  /* switch */

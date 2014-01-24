@@ -3882,6 +3882,11 @@ second parameter.
       check_assertion(expr->variant.param_ref.param_num != 0 &&
                       expr->variant.param_ref.levels_up == 1);
       break;
+    case enk_c11_generic:
+      *expr = *expr->variant.c11_generic.result;
+      expr->next = NULL;
+      lower_c99_expr_full(expr, statement);
+      break;
     default:
       unexpected_condition_str("Invalid C99 IL expression kind");
       break;

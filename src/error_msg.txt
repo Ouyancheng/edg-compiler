@@ -2578,6 +2578,10 @@ ec_nontrivial_statement_expr_result_type;;"a statement expression with a result 
 ec_bad_c11_noreturn;;"_Noreturn is not allowed here"
 ec_operand_must_be_real_floating_value;;"expected an operand of real floating-point type (not %t)"
 ec_incompatible_builtin_complex_types;;"__builtin_complex requires operands of compatible types (unlike %t1 and %t2)"
+ec_default_association_appears_more_than_once;;"a default association already appeared in this _Generic selection"
+ec_variably_modified_type_not_allowed_here;;"a type involving a variable length array is not allowed here"
+ec_duplicate_type_in_c11_generic;;"duplicate association type (%t) in _Generic selection"
+ec_no_match_in_c11_generic;;"no association matches the selector type %t"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

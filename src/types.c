@@ -4351,6 +4351,7 @@ object or a prvalue that is a pointer (or C++/CLI handle) to an object.
 #if VLA_DEALLOCATIONS_IN_IL
       case enk_vla_dealloc:
 #endif /* VLA_DEALLOCATIONS_IN_IL */
+      case enk_c11_generic:
       default:
         unexpected_condition_str(
                  "examine_expr_for_complete_object_type: bad expression kind");
@@ -4519,6 +4520,7 @@ object or a prvalue that is a pointer (or C++/CLI handle) to an object.
 #if VLA_DEALLOCATIONS_IN_IL
       case enk_vla_dealloc:
 #endif /* VLA_DEALLOCATIONS_IN_IL */
+      case enk_c11_generic:
       default:
         unexpected_condition_str(
                  "examine_expr_for_complete_object_type: bad expression kind");

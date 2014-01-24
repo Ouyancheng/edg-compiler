@@ -390,8 +390,8 @@ EXTERN an_opname_kind opname_kind_for_token[(int)tok_last+1]
    (an_opname_kind)onk_none,          /* tok_void */
    (an_opname_kind)onk_none,          /* tok_volatile */
    (an_opname_kind)onk_none,          /* tok_while */
-   (an_opname_kind)onk_none,          /* tok_generic */
-   (an_opname_kind)onk_none,          /* tok_genericfx */
+   (an_opname_kind)onk_none,          /* tok_c99_generic */
+   (an_opname_kind)onk_none,          /* tok_c99_genericfx */
    (an_opname_kind)onk_none,          /* tok_ext_alignof */
    (an_opname_kind)onk_none,          /* tok_intaddr */
    (an_opname_kind)onk_none,          /* tok_va_start */
@@ -619,6 +619,7 @@ EXTERN an_opname_kind opname_kind_for_token[(int)tok_last+1]
 #endif /* GNU_VECTOR_TYPES_ALLOWED */
    (an_opname_kind)onk_none,          /* tok_noreturn */
    (an_opname_kind)onk_none,          /* tok_builtin_complex */
+   (an_opname_kind)onk_none,          /* tok_c11_generic */
    (an_opname_kind)onk_last           /* tok_last */
   }
 #endif /* VAR_INITIALIZERS */
