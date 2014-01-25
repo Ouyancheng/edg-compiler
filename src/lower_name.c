@@ -4891,7 +4891,7 @@ expression that was used to select expr (NULL if no selector was used).
   a_boolean                   needs_qualification = FALSE;
   a_boolean                   suppress_qualification = FALSE;
   a_name_reference_ptr        name_reference;
-  an_opname_kind              opname;
+  an_opname_kind              opname = (an_opname_kind)onk_none;
   a_const_char                *ud_suffix = NULL;
   a_type_ptr                  conversion_type = NULL, destructor_type = NULL;
 #if IA64_ABI
@@ -7984,7 +7984,7 @@ static data member is used as the parent entity for mangling purposes.
 {
   a_type_ptr              type = NULL;
   a_class_type_supplement_ptr
-                          ctsp;
+                          ctsp = NULL;
   a_source_correspondence *parent_scp;
   an_il_entry_kind        parent_kind;
   a_boolean               more_levels;

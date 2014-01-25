@@ -2870,7 +2870,7 @@ in lower case.
       unexpected_condition_str("write_diag_to_raw_listing: bad severity");
   }  /* switch */
   if (diag_kind == dck_list || diag_kind == dck_context_primary) {
-     severity_char = tolower(severity_char);
+    severity_char = tolower((int)severity_char);
   }  /* if */
   (void)putc(severity_char, f_raw_listing);
   (void)fputc(' ', f_raw_listing);

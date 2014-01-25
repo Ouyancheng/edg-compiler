@@ -853,7 +853,7 @@ is found, a diagnostic is issued (an error in C++, a warning otherwise), and
 *err is set to TRUE.
 */
 {
-  a_control_flow_descr_ptr  cfdp, next_cfdp, parent;
+  a_control_flow_descr_ptr  cfdp, next_cfdp = NULL, parent;
   a_variable_ptr            vp;
   a_boolean                 done;
   an_error_severity         severity;

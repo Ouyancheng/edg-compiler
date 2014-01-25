@@ -137,7 +137,7 @@ Lower the expression in a VLA dimension entry.
 
   if (expr != NULL) {
     a_context    context;
-    a_scope_ptr  saved_innermost_function_scope;
+    a_scope_ptr  saved_innermost_function_scope = NULL;
     a_context    *saved_curr_context;
     a_scope_ptr  scope = NULL;
     if (vdp->in_prototype_scope) {
@@ -3914,7 +3914,7 @@ Do C99 lowering on the indicated expression.
 */
 {
 #if DEBUG
-  unsigned long         checksum;
+  unsigned long         checksum = 0;
 #endif /* DEBUG */
 
 #if DEBUG
@@ -4128,7 +4128,7 @@ Do C99 lowering on the indicated statement.
 */
 {
 #if DEBUG
-  unsigned long      checksum;
+  unsigned long      checksum = 0;
 #endif /* DEBUG */
 
   if (statement != NULL) {

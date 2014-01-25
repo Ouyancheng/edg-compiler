@@ -10516,7 +10516,8 @@ unique to each type (e.g., by calling disentangle_default_args).
   a_boolean                      return_type1_as_comp_type = TRUE;
   a_boolean                      return_type2_as_comp_type = TRUE;
 #if MICROSOFT_EXTENSIONS_ALLOWED
-  a_calling_convention           comp_calling_convention;
+  a_calling_convention           comp_calling_convention =
+                                              (a_calling_convention)cc_default;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
   rtsp1 = rout_type1->variant.routine.extra_info;

@@ -2141,7 +2141,7 @@ if FTO_SUPPRESS_SPECIFIERS is TRUE, suppress generation of the type specifiers
 #if NEAR_AND_FAR_ALLOWED
   a_type_qualifier_set
               near_and_far_qualifiers;
-  a_boolean   near_and_far_need_trailing_space;
+  a_boolean   near_and_far_need_trailing_space = FALSE;
 #endif /* NEAR_AND_FAR_ALLOWED */
   a_upc_block_size
               upc_block_size = UPC_BLOCK_SIZE_NONE;
@@ -2958,7 +2958,7 @@ precedence confusion.  Do the output in the way described by octl.
   a_type_ptr      con_type = skip_typerefs(constant->type);
   a_boolean       integer_type_constant =
                                    (con_type->kind == (a_type_kind)tk_integer);
-  an_integer_kind ikind;
+  an_integer_kind ikind = (an_integer_kind)ik_none;
   a_boolean       signed_constant = FALSE;
   char            *literal_form;
 

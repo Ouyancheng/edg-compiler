@@ -2361,7 +2361,7 @@ an error if a default argument expression is encountered.
   a_param_type_ptr        last_param_type;
   a_param_id_ptr          last_param_id;
   a_symbol_locator        param_locator;
-  a_boolean               done, any_params;
+  a_boolean               done = FALSE, any_params;
 #if MICROSOFT_EXTENSIONS_ALLOWED
   a_boolean               param_array_next = FALSE;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
@@ -3596,7 +3596,7 @@ whether the dimension expression can be a multiple of the special UPC THREADS
 constant.
 */
 {
-  a_targ_size_t           num_of_elements;
+  a_targ_size_t           num_of_elements = 0;
   a_constant              constant;
   a_boolean               is_constant_bound = FALSE;
   a_boolean               err = FALSE;

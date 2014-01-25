@@ -2482,7 +2482,7 @@ there's no overflow TRUE is returned.
 */
 {
   a_type_ptr                  field_type;
-  a_targ_alignment            field_alignment;
+  a_targ_alignment            field_alignment = 0;
   a_boolean                   overflow = FALSE;
   a_targ_size_t               save_byte_offset;
   an_unnormalized_bit_offset  save_bit_offset;
@@ -4801,7 +4801,7 @@ for handling virtual bases and functions.
   a_targ_alignment  alignment = 0;
 #endif /* USER_CONTROL_OF_STRUCT_PACKING */
 #if IA64_ABI
-  a_boolean         is_POD;
+  a_boolean         is_POD = FALSE;
 #endif /* IA64_ABI */
 
   db_enter(3, "do_class_layout");

@@ -1312,7 +1312,7 @@ This is useful in cases where iterative inlining can create huge routines.
           }  /* if */
         }  /* if */
         if (is_expr_insert_location(insert_location)) {
-          an_expr_node_ptr then_expr, else_expr;
+          an_expr_node_ptr then_expr = NULL, else_expr;
           /* Expression insert location.  Turn an "if" into a "?" operator. */
           if (!result_is_else) {
             /* Copy the "then" statement. */
@@ -1369,7 +1369,7 @@ This is useful in cases where iterative inlining can create huge routines.
             insert_expr(expr, insert_location);
           }  /* if */
         } else {
-          a_statement_ptr then_stmt, else_stmt;
+          a_statement_ptr then_stmt = NULL, else_stmt;
           /* Statement insert location. */
           if (!result_is_else) {
             /* Copy the "then" statement. */

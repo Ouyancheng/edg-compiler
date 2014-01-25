@@ -2006,7 +2006,7 @@ is non-NULL, in which case that is the function scope.
 {
   a_routine_type_supplement_ptr rtsp = type->variant.routine.extra_info;
   a_param_type_ptr              param;
-  a_variable_ptr                param_var;
+  a_variable_ptr                param_var = NULL;
   a_boolean                     saved_gen_vla_array_as_asterisk_bound_array =
                                     octl.gen_vla_array_as_asterisk_bound_array;
   a_func_prototype_stack_entry  fpse;
@@ -5274,8 +5274,8 @@ there's some possibility of precedence confusion and need_parens is TRUE.
   an_expr_node_ptr               operand_1, operand_2, operand_3;
   a_type_ptr                     expr_type;
   a_boolean                      pointer_comparison = FALSE;
-  a_const_char                   *pointer_comparison_cast;
-  uint32_t                       comma_column;
+  a_const_char                   *pointer_comparison_cast = "";
+  uint32_t                       comma_column = 0;
 #if !C_GEN_BE_GENERATES_ANSI_C
   a_field_ptr                    field;
 #endif /* !C_GEN_BE_GENERATES_ANSI_C */
@@ -7094,7 +7094,7 @@ block with state information for the processing.
   a_gen_init_pos_descr ipd, *ipdp = &ipd;
   a_constant_ptr       elem_con;
   a_type_ptr           elem_type;
-  a_targ_size_t        element_count;
+  a_targ_size_t        element_count = 0;
   a_boolean            need_close_brace = FALSE;
   a_boolean            is_aggregate;
   a_boolean            suppress_brace_for_base_class_subobject = FALSE;

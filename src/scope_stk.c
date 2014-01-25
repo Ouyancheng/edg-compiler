@@ -1472,7 +1472,7 @@ directive.  This is done by going back through the scope stack, starting
 with ssep, looking for namespace scopes.
 */
 {
-  a_scope_depth	depth;
+  a_scope_depth	depth = NO_SCOPE_DEPTH;
   /* Compute the scope depth associated with the scope stack entry pointer
      passed by the caller. */
   for (; ssep != NULL; ssep = previous_scope_of(ssep)) {

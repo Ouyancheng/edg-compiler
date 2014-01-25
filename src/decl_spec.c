@@ -116,7 +116,7 @@ otherwise, set *pstr to NULL.
     *pstr = dst;
     for (; count != 0; count--) {
       char ch = *src++;
-      if (isalpha((unsigned char)ch)) ch = tolower(ch);
+      if (isalpha((unsigned char)ch)) ch = tolower((int)ch);
       *dst++ = ch;
     }  /* for */
     *dst = '\0';
@@ -3119,13 +3119,13 @@ defined.  Detailed position information is recorded in *decl_pos_block.
   a_symbol_ptr            tag_sym, error_tag_sym = NULL;
   a_symbol_ptr            parent_sym;
   a_boolean               tag_id_present;
-  a_type_ptr              class_type;
+  a_type_ptr              class_type = NULL;
   a_boolean               is_local_class = FALSE, class_key_is_missing = FALSE;
   a_boolean               is_abstract = FALSE, is_final = FALSE,
                           is_sealed = FALSE;
 #if MICROSOFT_EXTENSIONS_ALLOWED
   a_boolean               is_interface = FALSE;
-  an_assembly_visibility  cli_visibility;
+  an_assembly_visibility  cli_visibility = (an_assembly_visibility)av_none;
   a_cli_class_type_kind   cli_type_kind = (a_cli_class_type_kind)cctk_standard;
   a_source_position       cli_visibility_pos;        
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
@@ -5565,7 +5565,8 @@ template.  dsi_flags is the set of input flags passed to decl_specifiers.
   a_boolean                    is_predeclared_type_decl = FALSE;
 #if MICROSOFT_EXTENSIONS_ALLOWED
   an_extended_decl_info_block  extended_decl_info;
-  an_assembly_visibility       cli_visibility;
+  an_assembly_visibility       cli_visibility =
+                                               (an_assembly_visibility)av_none;
   a_source_position            cli_visibility_pos;        
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   an_integer_kind              explicit_base_kind = (an_integer_kind)ik_none;

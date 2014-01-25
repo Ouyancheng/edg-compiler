@@ -1793,7 +1793,7 @@ so no checking is done.
   char			digit_string[50];
   int			digits = 0;
   a_boolean		decimal_present = FALSE;
-  int			digits_before_decimal;
+  int			digits_before_decimal = 0;
   char			*digit_pos = digit_string;
   a_const_char		*curr_pos = float_str;
   a_boolean		is_negative = FALSE;

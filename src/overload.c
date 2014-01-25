@@ -4359,7 +4359,7 @@ template arguments, or NULL if deduction failed.
   a_boolean            suppress_param_advance = FALSE;
 #if MICROSOFT_EXTENSIONS_ALLOWED
   a_boolean            processing_param_array_expanded_case = FALSE;
-  a_type_ptr           cli_param_array_element_type;
+  a_type_ptr           cli_param_array_element_type = NULL;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
   db_enter(4, "function_template_call_argument_deduction");
@@ -4865,8 +4865,8 @@ if the function was not viable (at least) because it is declared after
 the point of call.  conv_context describes the context of the conversion.
 */
 {
-  a_symbol_ptr             function_symbol;
-  a_routine_ptr            routine;
+  a_symbol_ptr             function_symbol = NULL;
+  a_routine_ptr            routine = NULL;
   a_routine_type_supplement_ptr
                            rtsp;
   an_arg_list_elem_ptr     arg_list_elem;
@@ -4886,7 +4886,7 @@ the point of call.  conv_context describes the context of the conversion.
   a_boolean                allow_expl_conv_funcs = FALSE;
 #if MICROSOFT_EXTENSIONS_ALLOWED
   a_boolean                param_array_expanded_case = FALSE;
-  a_type_ptr               param_array_element_type;
+  a_type_ptr               param_array_element_type = NULL;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   a_boolean                enum_param_still_needed = FALSE;
 
@@ -12801,7 +12801,7 @@ binding is to an rvalue reference.
   a_boolean                 boolean_converted_case = FALSE;
   a_template_arg_ptr        template_arg_list;
   a_template_symbol_supplement_ptr
-                            tssp;
+                            tssp = NULL;
 
   db_enter(4, "try_conversion_function_match_full");
   /* This routine is similar to try_overloaded_function_match. */
@@ -17396,8 +17396,9 @@ that case).
 {
   a_boolean                okay = FALSE, ambiguous;
   a_boolean                single_type_message = FALSE;
-  a_type_ptr               source_type, diag_dest_type = dest_type, class_type;
-  an_error_code            err_code;
+  a_type_ptr               source_type, diag_dest_type = dest_type;
+  a_type_ptr               class_type = NULL;
+  an_error_code            err_code = ec_no_error;
   a_candidate_function_ptr ambiguity_list;
 
   *failed = FALSE;
@@ -20645,7 +20646,7 @@ the conversion.
   } else if ((direct_binding_possible ||
               (dropping_qualifiers && !is_rvalue_ref)) &&
              is_class_struct_union_type(base_dest_type)) {
-    a_boolean operand_was_temp_init;
+    a_boolean operand_was_temp_init = FALSE;
     if (any_cfront_mode()) {
       operand_was_temp_init = operand_is_temp_init(source_operand);
     }  /* if */
@@ -21376,14 +21377,14 @@ errors should be suppressed (i.e., SFINAE mode).
   a_targ_size_t      num_elements = 0;
   a_boolean          unknown_num_elements = FALSE;     
   a_boolean          any_nonconstant = FALSE;
-  a_constant_ptr     aggr_constant;
+  a_constant_ptr     aggr_constant = NULL;
   an_init_component_ptr
                      elem_icp;
   a_dynamic_init_ptr dip;
   a_constant_ptr     con;
   a_type_ptr         array_type;
   a_type_ptr         param1_type, param2_type;
-  an_expr_node_ptr   expr, arg1, arg2;
+  an_expr_node_ptr   expr = NULL, arg1, arg2;
   a_boolean          arg_match_err = FALSE;
   a_boolean          static_lifetime = (conv_context & CCO_STATIC_LIFETIME)!=0;
   a_boolean          initializing_var = (conv_context &
@@ -21892,8 +21893,8 @@ will be an lvalue instead of the usual prvalue.
   an_operand           operand;
   a_boolean            dest_type_is_class =
                                          is_class_struct_union_type(dest_type);
-  a_boolean            saved_suppress_diagnostics;
-  a_boolean            saved_any_suppressed_error;
+  a_boolean            saved_suppress_diagnostics = FALSE;
+  a_boolean            saved_any_suppressed_error = FALSE;
   a_boolean            issue_errors = TRUE;
   a_boolean            generate_il = TRUE;
   a_boolean            *p_error_detected;

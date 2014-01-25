@@ -14763,7 +14763,7 @@ some error (e.g., an operand type is not integral), *copy_error is set
 to TRUE.  *source_pos gives the source position for errors.
 */
 {
-  a_type_ptr type_1, type_2, type_3;
+  a_type_ptr type_1, type_2 = NULL, type_3 = NULL;
   a_type_ptr result_type = *operation_type, promoted_type_2;
   a_boolean  do_promotion, do_usual_arith_conversions;
   a_boolean  bad_types = FALSE;

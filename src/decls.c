@@ -3889,7 +3889,7 @@ created; the caller must set it.
   a_boolean                  err = FALSE;
   a_boolean                  use_existing_il_entry = FALSE;
   a_type_ptr                 preexisting_type;
-  a_boolean                  is_implicit_declaration;
+  a_boolean                  is_implicit_declaration = FALSE;
   a_boolean                  is_function;
   an_error_severity          incomp_severity = es_error;
   a_name_linkage_kind        name_linkage = idlbp->name_linkage;
@@ -5238,8 +5238,8 @@ flag when is_declaration is TRUE.
   a_source_correspondence_ptr  scp;
   a_boolean                    uses_local_type = FALSE;
   a_boolean                    uses_type_without_linkage = FALSE;
-  a_routine_ptr	               rp;
-  a_variable_ptr	       vp;
+  a_routine_ptr	               rp = NULL;
+  a_variable_ptr	       vp = NULL;
   a_boolean                    type_without_linkage_flag_set;
 
   is_function = sym->kind == (a_symbol_kind)sk_routine ||
@@ -5541,7 +5541,7 @@ namespace-extension scope.
   a_storage_class  storage_class;
   a_symbol_locator *locator = idlbp->locator;
   a_namespace_ptr  nsp = qualifier_namespace_ptr(*locator);
-  a_scope_depth    orig_effective_decl_level;
+  a_scope_depth    orig_effective_decl_level = NO_SCOPE_DEPTH;
 
   db_enter(3, "qualified_name_redecl_sym");
   if (!idlbp->is_definition && !idlbp->is_friend_decl && strict_ansi_mode) {

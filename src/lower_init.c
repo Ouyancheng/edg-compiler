@@ -3898,7 +3898,7 @@ is TRUE, the original constructor initializers are removed from from_scope.
        ctor_init = ctor_init->next) {
     if (ctor_init->kind == kind) {
       /* Found a ctor init of the proper kind. */
-      a_dynamic_init_ptr  save_dip;
+      a_dynamic_init_ptr  save_dip = NULL;
       check_assertion(ctor_init->initializer != NULL);
       if (from_routine->special_kind ==
                                      (a_special_function_kind)sfk_destructor) {
@@ -4081,7 +4081,7 @@ operator of a no-capture lambda.
                    insert_location;
   a_memory_region_number
                    new_routine_il_region;
-  a_variable_ptr   this_param_var, param_var, last_param_var;
+  a_variable_ptr   this_param_var = NULL, param_var, last_param_var;
   an_expr_node_ptr this_arg, pass_through_arg, first_arg;
   a_statement_ptr  return_stmt;
   a_generated_routine_context
@@ -4094,7 +4094,7 @@ operator of a no-capture lambda.
   a_boolean        remove_originals;
   a_boolean        construct_virtual_bases = FALSE;
   a_boolean        destroy_virtual_bases = FALSE;
-  a_variable_ptr   construction_vtbls_var;
+  a_variable_ptr   construction_vtbls_var = NULL;
   a_type_ptr       class_type = parent_class_of(routine);
   an_insert_location     
                    prologue_insert_location;
@@ -7435,7 +7435,8 @@ of the array.
   a_generated_routine_context   context;
   a_variable_ptr                model_var, entity_var, count_var;
   a_statement_ptr               loop_stmt, copy_stmt;
-  an_expr_node_ptr              entity_expr, ctor_entity_expr, copy_expr;
+  an_expr_node_ptr              entity_expr, ctor_entity_expr = NULL;
+  an_expr_node_ptr              copy_expr;
   an_expr_node_ptr              source_expr;
   a_param_type_ptr              *last_param_type;
   a_param_type_ptr              count_param_type, model_param_type;
@@ -8522,7 +8523,7 @@ C99 mode for the same reason.
   a_boolean          do_simple_constant_init_opt = FALSE;
   a_boolean          simple_constant_init_opt_ruled_out = FALSE;
   a_boolean          local_static_that_requires_dynamic_init = FALSE;
-  a_dynamic_init_ptr latest_initialization_on_entry;
+  a_dynamic_init_ptr latest_initialization_on_entry = NULL;
   a_boolean          have_complete_object = TRUE;
   a_routine_ptr      ctor_routine;
 #if GNU_VECTOR_TYPES_ALLOWED
@@ -9925,10 +9926,10 @@ arrays with class elements.
   a_dynamic_init_ptr          dip = ndsp->dynamic_init, elem_dip;
   a_routine_ptr               new_routine = ndsp->routine;
   a_type_ptr                  array_type, elem_type, ptr_elem_type;
-  an_expr_node_ptr            entity_node, new_node, test_node;
+  an_expr_node_ptr            entity_node, new_node, test_node = NULL;
   an_expr_node_ptr            assign_node, num_elem_node, vec_new_node;
   a_constant                  null_constant;
-  a_variable_ptr              temp_var, new_temp_var;
+  a_variable_ptr              temp_var, new_temp_var = NULL;
   an_expr_node_ptr            size_node;
   a_routine_ptr               ctor_routine, dtor_routine, delete_routine;
   an_insert_location          insert_location, pre_call_insert_location;
@@ -10883,7 +10884,7 @@ tricks.
 */
 {
   an_expr_node_ptr ptr_node_test, call_node, temp_assign_node = NULL;
-  an_expr_node_ptr ptr_node_delete;
+  an_expr_node_ptr ptr_node_delete = NULL;
   a_type_ptr       class_type;
   a_routine_ptr    dtor_routine = dip->destructor;
   a_boolean        need_null_ptr_test = FALSE;
@@ -16142,8 +16143,8 @@ enough to cause the back end to invoke the routine at initialization.
   a_boolean          processing_partial_list = FALSE;
   a_dynamic_init_ptr process_list, end_process_list;
   a_dynamic_init_ptr dtor_process_list, end_dtor_process_list;
-  a_dynamic_init_ptr delay_list, end_delay_list;
-  a_dynamic_init_ptr dtor_delay_list, end_dtor_delay_list;
+  a_dynamic_init_ptr delay_list = NULL, end_delay_list;
+  a_dynamic_init_ptr dtor_delay_list = NULL, end_dtor_delay_list;
 #if SEPARATE_ROUTINES_FOR_FILE_SCOPE_DYNAMIC_INITS || MAINTAIN_NEEDED_FLAGS ||\
     USE_PATCH_INIT_STARTUP
   a_routine_ptr      init_rout;

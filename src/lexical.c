@@ -2194,7 +2194,7 @@ debugging purposes.  This routine may only be used for reusable token caches.
 */
 {
   a_cached_token_ptr		ctp;
-  a_cached_token_ptr		last_ctp;
+  a_cached_token_ptr		last_ctp = NULL;
 
   check_assertion_str2(from_cache->is_reusable && to_cache->is_reusable,
                        "move_cached_tokens:",
@@ -4062,7 +4062,7 @@ a pointer to an include file history entry.
     /* Convert any uppercase characters to lower for hashing purposes.  The
        actual file name comparison may or may not be case sensitive. */
     char	ch = *str;
-    if (isupper((unsigned char)ch)) ch = tolower(ch);
+    if (isupper((unsigned char)ch)) ch = tolower((int)ch);
     value = (value * 31) + value + ch;
   }  /* for */
   return value;
@@ -6350,7 +6350,7 @@ literals in C++11.
 #if MBC_CHECKING_NEEDED_IN_LINE_READING
   unsigned long   mbc_offset = 0;
 #endif /* MBC_CHECKING_NEEDED_IN_LINE_READING */
-  int             next_ch;
+  int             next_ch = 0;
   a_boolean       char_is_trapped = FALSE;
   an_orig_line_modif_ptr
 		  olmp;
@@ -11378,7 +11378,7 @@ modification will be added to restore the first token to the current line.
   a_seq_number             start_seq_number = curr_seq_number;
   a_const_char             *orig_loc = start_of_curr_token;
   a_const_char             *saved_curr_char_loc = curr_char_loc;
-  a_boolean                saved_do_not_advance_past_end_of_file;
+  a_boolean                saved_do_not_advance_past_end_of_file = FALSE;
   a_whitespace_keyword_ptr kwd;
   a_source_line_modif_ptr  slmp;
 

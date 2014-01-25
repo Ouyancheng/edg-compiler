@@ -1098,7 +1098,7 @@ given position, unless is->no_diagnostics is TRUE.
 */
 {
   a_constant_ptr      result = NULL;
-  a_dynamic_init_ptr  dip;
+  a_dynamic_init_ptr  dip = NULL;
   a_routine_ptr       ctor_rp, dtor_rp = NULL;
   a_boolean           err = FALSE, *p_err = NULL;
 
@@ -1238,7 +1238,7 @@ is->no_diagnostics is TRUE.
     }  /* for */
     if (fp != NULL) {
       a_dynamic_init_ptr  dip;
-      a_constant_ptr      des_con, elem_con;
+      a_constant_ptr      des_con, elem_con = NULL;
       a_constant          folded_value;
       scan_field_initializer_if_needed(fp, tp);
       dip = fp->initializer;
@@ -1767,7 +1767,7 @@ initialization).  *is describes the initialization as a whole.
     *p_icp = next_elem(icp);
   } else {
     /* Ordinary element-by-element array initialization. */
-    a_targ_size_t  ecount, idx = 0, icount = 0;
+    a_targ_size_t  ecount = 0, idx = 0, icount = 0;
     a_type_ptr     etype = atype->variant.array.element_type;
     a_boolean      no_bound = FALSE, braced = is_braced_init_component(icp),
                    zero_sized_element = FALSE, incomplete_array = FALSE;
@@ -6563,7 +6563,7 @@ initialized.  These are addressed in the course of the processing.
   a_boolean                     has_explicit_field_init = FALSE;
   a_boolean                     is_generated_cctor, is_generated_mctor;
   a_type_qualifier_set          required_qualifiers, object_qualifiers;
-  a_type_ptr                    class_type, tp, array_type;
+  a_type_ptr                    class_type, tp = NULL, array_type;
   a_symbol_ptr                  sym, class_sym;
   a_ctor_init_block             cib;
   a_constructor_init_ptr        cip, prev_cip, next_cip;
@@ -6869,7 +6869,7 @@ initialized.  These are addressed in the course of the processing.
        the same as the field type.  This is needed to check protected
        member access. */
     a_type_ptr         object_class_type;
-    a_symbol_ptr       field_sym;
+    a_symbol_ptr       field_sym = NULL;
     next_cip = cip->next;
     if (cip->kind == (a_constructor_init_kind)cik_field) {
       field_sym = symbol_for(cip->variant.field);

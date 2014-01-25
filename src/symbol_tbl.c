@@ -2517,9 +2517,9 @@ static method.  The list is returned in *p_hide_by_sig_list.
 */
 {
   a_hide_by_sig_list_entry_ptr		result_list = NULL;
-  a_type_ptr				parent_type;
-  a_class_type_supplement_ptr		parent_ctsp;
-  a_boolean				is_class;
+  a_type_ptr				parent_type = NULL;
+  a_class_type_supplement_ptr		parent_ctsp = NULL;
+  a_boolean				is_class = FALSE;
   a_boolean				result = FALSE;
   a_symbol				*fund_sym;
 
@@ -6491,7 +6491,7 @@ describes the property or event, and depth is the scope stack depth
 corresponding to the enclosing class definition.
 */
 {
-  a_symbol_ptr    sym;
+  a_symbol_ptr    sym = NULL;
   a_symbol_ptr    prop_sym = NULL;
 
   check_assertion(

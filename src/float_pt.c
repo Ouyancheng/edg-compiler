@@ -858,7 +858,7 @@ that case set *unknown to TRUE.  Otherwise, return FALSE.
   } else {
     /* Check if the exponent is encoded as zeros.  The location of the zeros
        depends on the precision (i.e., the IEEE encoding format). */
-    long  biased_exp;
+    long  biased_exp = 0;
     if (get_biased_exponent_if_possible(value, kind, &biased_exp)) {
       result = (biased_exp > 0);
     } else {

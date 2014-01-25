@@ -533,9 +533,9 @@ the value is already known to be too large.  Set *err on overflow.  Set
 *inexact if any bits are lost because of scaling or rounding.
 */
 {
-  int		nonfract_bits;
-  int		value_bits;
-  int		shift_count;
+  int		nonfract_bits = 0;
+  int		value_bits = 0;
+  int		shift_count = 0;
   int		mantissa_bits = 0;
   int		sign_bits = 0;
 

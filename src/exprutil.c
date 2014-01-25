@@ -4785,7 +4785,7 @@ If actual_dip != NULL, *actual_dip is set to point to the actual
 dynamic init that underlies the cast, or NULL if there isn't one.
 */
 {
-  an_expr_node_ptr              op1;
+  an_expr_node_ptr              op1 = NULL;
   an_expr_rescan_info_entry_ptr eriep;
   a_token_sequence_number       operator_tok_seq_number;
 
@@ -10759,7 +10759,7 @@ when gnu_version would ordinarily indicate they should not be.
       a_boolean             casts_removed = FALSE;
       a_type_ptr            type_cast_to = NULL, type_before_cast = NULL;
       an_expr_node_ptr      expr = skip_parens(operand->variant.expression);
-      an_expr_operator_kind op;
+      an_expr_operator_kind op = (an_expr_operator_kind)eok_error;
       a_boolean             same_size_cast_case = FALSE;
       if (gpp_mode && gnu_version < 40000 &&
           is_operation_node(expr) &&

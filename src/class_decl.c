@@ -5625,7 +5625,7 @@ information about the function declarator.
   a_symbol_ptr                    matching_interface_member = NULL;
   a_boolean                       new_okay = FALSE, rout_is_member_generic;
   a_symbol_ptr                    rout_templ = NULL, rp_templ = NULL;
-  a_boolean                       constraints_inheritable;
+  a_boolean                       constraints_inheritable = FALSE;
   a_symbol_list_entry_ptr         b_constr_check_list = NULL,
                                   d_constr_check_list = NULL;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
@@ -8446,7 +8446,7 @@ can only contain CLI interfaces.
   a_const_char                  *default_access_str;
   a_symbol_ptr                  sym;
   a_type_ptr                    base_class_type;
-  a_type_ptr                    orig_base_class_type;
+  a_type_ptr                    orig_base_class_type = NULL;
   a_boolean                     ambiguous;
   a_class_symbol_supplement_ptr cssp;
   a_source_position             base_class_decl_pos;
@@ -15613,7 +15613,7 @@ nonstandard anonymous unions is_nonstd is TRUE.
 {
   a_symbol_ptr                   sym, next_sym, mf_sym, last_prev_sym = NULL;
   a_type_ptr                     class_type;
-  a_class_symbol_supplement_ptr  cssp, parent_cssp;
+  a_class_symbol_supplement_ptr  cssp, parent_cssp = NULL;
   a_class_type_supplement_ptr    ctsp;
   an_access_specifier            access, assoc_object_access;
   a_boolean                      access_error_already_issued = FALSE;
@@ -21042,9 +21042,9 @@ declaration from a using-declaration.)
 {
   a_type_ptr           class_type = cdsp->class_type;
   an_access_specifier  access = cdsp->access;
-  a_symbol_ptr         sym, declared_sym;
+  a_symbol_ptr         sym, declared_sym = NULL;
   a_symbol_ptr         other_sym, fund_sym;
-  a_base_class_ptr     bcp;
+  a_base_class_ptr     bcp = NULL;
   a_boolean            err = FALSE, bcp_is_dummy = FALSE, no_il_entry = FALSE;
   a_boolean            is_overloaded;
   a_symbol_locator     locator;
@@ -21596,7 +21596,7 @@ In C++/CLI mode we also check for the extended forms of access specifiers:
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
          curr_token == tok_protected) {
 #if MICROSOFT_EXTENSIONS_ALLOWED
-    a_token_kind       next_tok;
+    a_token_kind       next_tok = tok_error;
     a_source_position  pos_access;
     pos_access = pos_curr_token;
     if (cppcli_enabled) {
@@ -27003,7 +27003,7 @@ classes.
   a_scope_ptr                      scope_ptr;
   a_class_symbol_supplement_ptr    cssp;
   a_class_type_supplement_ptr      ctsp = class_type_supp(class_type);
-  a_routine_fixup_ptr              saved_routine_fixup;
+  a_routine_fixup_ptr              saved_routine_fixup = NULL;
   a_template_symbol_supplement_ptr class_tssp;
   a_token_sequence_number          last_token_number_of_definition;
   a_class_def_state                class_state;

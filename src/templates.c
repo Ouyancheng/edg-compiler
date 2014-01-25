@@ -3792,7 +3792,7 @@ be completed here.
       /* We proceed with the instantiation. */
       a_class_symbol_supplement_ptr	prototype_cssp;
       a_class_type_supplement_ptr	ctsp;
-      a_decl_sequence_number		saved_decl_seq_counter;
+      a_decl_sequence_number		saved_decl_seq_counter = 0;
 #if GENERATE_SOURCE_SEQUENCE_LISTS
 #if CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
       a_source_sequence_entry_ptr       orig_ssep = NULL;
@@ -4308,7 +4308,7 @@ repl_token_kind, add repl_token_kind to the cache.
   a_cached_token_ptr	first_token = before_first_token->next;
   a_cached_token_ptr	last_token = tcsp->last_token;
   a_cached_token_ptr	ctp;
-  a_cached_token_ptr	body_repl_token;
+  a_cached_token_ptr	body_repl_token = NULL;
 
   /* See if the last token in the cache is followed by an optional
      repl_token_kind token.  Only insert one if there is not already one
@@ -17210,7 +17210,7 @@ declaration of a partial specialization declared outside of its class.
   a_boolean                         is_definition, is_redecl = FALSE;
   a_symbol_locator                  locator;
   a_symbol_ptr                      sym = NULL;
-  a_template_symbol_supplement_ptr  tssp;
+  a_template_symbol_supplement_ptr  tssp = NULL;
   a_token_cache                     local_token_cache;
   a_type_kind                       type_kind;
   a_token_set_array                 stop_tokens;
@@ -28101,8 +28101,8 @@ be processed.
   for (mip = master_instantiations_list; mip != NULL; mip = mip->next) {
     a_template_instance_ptr	tip = mip->instance;
     a_symbol_ptr		instance_sym = tip->instance_sym;
-    a_routine_ptr		routine;
-    a_variable_ptr		variable;
+    a_routine_ptr		routine = NULL;
+    a_variable_ptr		variable = NULL;
     a_boolean			can_be_instantiated;
     a_boolean			do_not_instantiate;
     a_boolean			instance_required;

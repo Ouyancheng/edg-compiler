@@ -1429,7 +1429,7 @@ types separated by commas (when single_type_required is FALSE).
 
 */
 {
-  a_boolean	      prev_do_not_clear_specific_symbol;
+  a_boolean	      prev_do_not_clear_specific_symbol = FALSE;
   a_disambig_state    state;
   a_boolean	      result = TRUE;
   a_boolean	      is_implicit_template_type;

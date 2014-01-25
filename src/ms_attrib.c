@@ -1303,7 +1303,7 @@ is set to TRUE.  Note that "err" is not TRUE for an unexpected token kind.
         ch = (char)extract_character_from_string(src,
                                                  (unsigned int)char_size);
       }  /* if */
-      if (is_id_char[ch-CHAR_MIN]) ch = tolower(ch);
+      if (is_id_char[ch-CHAR_MIN]) ch = tolower((int)ch);
       add_char_to_text_buffer(ms_attr_buffer, ch);
     }  /* for */
     /* Add a null terminator. */

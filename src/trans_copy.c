@@ -1978,8 +1978,8 @@ the secondary translation unit IL).
   a_boolean saved_definition_needed = primary_rout->definition_needed;
 #endif /* MAINTAIN_NEEDED_FLAGS */
 #if IA64_ABI && DO_IL_LOWERING
-  a_routine_list_entry_ptr saved_alternate_entry_points;
-  a_ctor_or_dtor_kind saved_ctor_dtor_kind;
+  a_routine_list_entry_ptr saved_alternate_entry_points = NULL;
+  a_ctor_or_dtor_kind saved_ctor_dtor_kind = (a_ctor_or_dtor_kind)cdk_none;
 #endif /* IA64_ABI && DO_IL_LOWERING */
   a_symbol_ptr sym = (a_symbol_ptr)(rout->source_corresp.assoc_info);
   do_saves_for_overwrite(primary_rout, a_routine_ptr);

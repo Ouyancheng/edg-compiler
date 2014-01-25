@@ -439,7 +439,7 @@ string literals were implemented).
 #endif /* ABI_CHANGES_FOR_RTTI */
   a_type_ptr    *type_ptr;
 #if IA64_ABI
-  a_targ_size_t num_bases = 0, array_num_bases;
+  a_targ_size_t num_bases = 0, array_num_bases = 0;
 #endif /* IA64_ABI */
           
 #if !IA64_ABI
@@ -2336,7 +2336,7 @@ conversion in cases where their value is not used.
   a_constant       null_constant;
 #if IA64_ABI
   an_expr_node_ptr minus_one_expr, bad_typeid_expr;
-  a_boolean        non_null, save_assume_references_cannot_be_null;
+  a_boolean        non_null, save_assume_references_cannot_be_null = FALSE;
 #else /* !IA64_ABI */
   an_expr_node_ptr question_node;
 #endif /* !IA64_ABI */
@@ -5889,7 +5889,7 @@ Lower an enk_throw expression node.
 #if DO_FULL_PORTABLE_EH_LOWERING
   a_type_ptr         ptr_throw_type;
   a_variable_ptr     temp_var, typeinfo_var, ptr_flags_var;
-  an_expr_node_ptr   call_node, typeinfo_node, size_node, flags_node;
+  an_expr_node_ptr   call_node, typeinfo_node, size_node, flags_node = NULL;
   an_expr_node_ptr   assign_node;
   an_eh_type_flags_set
                      flags_value;

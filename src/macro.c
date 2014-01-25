@@ -2218,7 +2218,7 @@ so a hanging delete is in effect).
                 slmp,
                 slmp2;
   unsigned long sequence_id;
-  a_boolean     saved_do_not_advance_past_end_of_file;
+  a_boolean     saved_do_not_advance_past_end_of_file = FALSE;
 
   old_seq_number = curr_seq_number;
   orig_loc = start_of_curr_token;
@@ -3002,7 +3002,7 @@ in Microsoft mode; in that case, token pasting off the end is not allowed.
 {
   a_boolean     save_fetch_pp_tokens = fetch_pp_tokens;
   a_boolean	save_treat_newline_as_token = treat_newline_as_token;
-  a_boolean     any_white_space_skipped;
+  a_boolean     any_white_space_skipped = FALSE;
   unsigned long sequence_id;
   a_source_line_modif_ptr
 		slmp,
@@ -4211,7 +4211,7 @@ associated global variables will also have been set).
 */
 {
   a_macro_def_ptr mdp;
-  sizeof_t	  repl_text_len;
+  sizeof_t	  repl_text_len = 0;
   sizeof_t        space_for_end_of_top_level_expansion_escape;
   a_boolean       repl_text_len_precomputed = FALSE;
   a_token_kind	  ctoken = tok_error;
@@ -4265,8 +4265,8 @@ associated global variables will also have been set).
 #if FULLY_RESOLVED_MACRO_POSITIONS
   a_text_map_position_tracker
                   tracker;
-  sizeof_t        src_offset;
-  sizeof_t        src_token_len;
+  sizeof_t        src_offset = 0;
+  sizeof_t        src_token_len = 0;
   a_simple_source_position
                   src_pos;
   sizeof_t        next_targ_offset;
@@ -4347,6 +4347,8 @@ associated global variables will also have been set).
                      macro_symbol->header->identifier);
   }  /* if */
 #endif /* DEBUG */
+  src_pos.seq = 0;
+  src_pos.column = 0;
   /* One we begin rescanning a macro, don't allow a PCH to be generated
      at this point. */
   num_macro_invocations_in_process++;
@@ -4821,7 +4823,7 @@ end_scan_for_macro_modifs:;
         do {
           sizeof_t                token_text_len;
           a_source_line_modif_ptr locked_slmp;
-          a_boolean               saved_slm_lock;
+          a_boolean               saved_slm_lock = FALSE;
           a_boolean               need_expanded_form;
           a_boolean               scanning_text_not_in_primary_source_line;
           /* Scan one argument value.  The argument value ends with a
@@ -6771,7 +6773,7 @@ Scan and process a #define directive.
   a_boolean       any_white_space_skipped;
   sizeof_t	  param_num;
   sizeof_t	  save_param_num;
-  sizeof_t	  n_params;
+  sizeof_t	  n_params = 0;
   a_macro_param_ptr
 		  param_ptr,
 		  save_param_ptr,

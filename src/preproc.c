@@ -2728,7 +2728,7 @@ pragmas, and by translation_unit for pragmas that appear in the file scope.
   a_boolean		err = FALSE, accept_on_off = FALSE;
   a_boolean		accept_sat = FALSE;
   a_const_char		*str;
-  a_stdc_pragma_value	*state_var_ptr;
+  a_stdc_pragma_value	*state_var_ptr = NULL;
 
   begin_rescan_of_pragma_tokens(ppp);
   if (curr_token == tok_identifier) {

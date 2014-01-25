@@ -2767,8 +2767,8 @@ will be equal to init_list_ctor_arg_list->variant.braced.list.
   }  /* if */
   if (constructor_sym != NULL) {
     /* No error; we know which constructor is to be called. */
-    an_arg_match_summary_ptr arg_match;
-    a_type_ptr               param_type, source_type;
+    an_arg_match_summary_ptr arg_match = NULL;
+    a_type_ptr               param_type, source_type = NULL;
     /* If we matched an initializer-list constructor, the effective argument
        list is just the single braced-init-list. */
     if (init_list_ctor_case) eff_arg_list = init_list_ctor_arg_list;
@@ -4447,7 +4447,7 @@ that the final call needs to be cast to the indicated type.
     }  /* if */
     if (!err) {
       an_arg_list_elem_ptr ap;
-      a_param_type_ptr     ptp;
+      a_param_type_ptr     ptp = NULL;
       an_expr_node_ptr     end_arg_list = NULL;
       if (is_generic) {
         /* For generic __atomic_... functions, the size of the operand
@@ -6353,7 +6353,7 @@ a left parenthesis in the source.
   a_template_arg_ptr            expl_templ_arg_list;
   an_expr_operator_kind         op;
   a_boolean                     need_member_sym_check = TRUE;
-  a_source_position             *qualified_member_position;
+  a_source_position             *qualified_member_position = NULL;
 
   *followed_by_left_paren = FALSE;
   if (class_struct_union_type == NULL) {
@@ -6636,7 +6636,7 @@ case).
 {
   a_boolean             is_arrow_operator;
   a_type_ptr            class_struct_union_type = NULL;
-  a_type_ptr            orig_class_struct_union_type;
+  a_type_ptr            orig_class_struct_union_type = NULL;
   a_boolean             err = FALSE;
   a_boolean             need_operand_1_type_check = FALSE;
   a_boolean             allow_constant_selection = FALSE;
@@ -11633,7 +11633,7 @@ __builtin_shuffle construct.
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   a_token_sequence_number
                      start_tok_seq_number;
-  a_boolean          op1_is_vector, op2_is_vector, op3_is_vector;
+  a_boolean          op1_is_vector, op2_is_vector = FALSE, op3_is_vector;
   a_boolean          op1_is_dependent, op2_is_dependent, op3_is_dependent;
 
   /* First obtain the two or three operands, either from the token stream or
@@ -12679,8 +12679,8 @@ the expression-processing routines.
   an_operand                  operand;
   a_boolean                   is_parenthesized = FALSE, is_type = FALSE;
   a_source_position           lparen_position;
-  an_expr_stack_entry_ptr     saved_expr_stack;
-  a_scope_depth               expr_scope_depth;
+  an_expr_stack_entry_ptr     saved_expr_stack = NULL;
+  a_scope_depth               expr_scope_depth = NO_SCOPE_DEPTH;
   a_memory_region_number      region_to_switch_back_to;
   an_object_lifetime_ptr      saved_object_lifetime;
 #if GENERATE_SOURCE_SEQUENCE_LISTS
@@ -14877,7 +14877,7 @@ indication in *rcblock).
   a_source_position start_position, type_position, end_position;
   an_operand        operand;
   a_type_ptr        cast_type, underlying_cast_type, operand_type;
-  a_type_ptr        underlying_operand_type;
+  a_type_ptr        underlying_operand_type = NULL;
   a_boolean         cast_type_okay, operand_type_okay;
   a_boolean         reference_case = FALSE, err = FALSE;
   a_boolean         rvalue_reference_case = FALSE;
@@ -16095,7 +16095,7 @@ expression, and return the result in *result (or an error indication in
   an_expr_node_ptr  new_array_dimension, sizeof_node;
   an_operand        sizeof_operand;
   a_boolean         use_global_new = FALSE;
-  a_symbol_ptr      operator_new_symbol, function_symbol, ctor_sym;
+  a_symbol_ptr      operator_new_symbol = NULL, function_symbol, ctor_sym;
   a_symbol_ptr      proj_function_symbol;
   a_routine_ptr     delete_routine = NULL;
   a_boolean         delete_ambiguous = FALSE;
@@ -17465,7 +17465,7 @@ handle_empty_parens_new_initializer:
         a_boolean             too_many_args = FALSE;
         a_source_position     too_many_position;
         a_boolean             rank_unknown = TRUE;
-        a_host_large_unsigned rank;
+        a_host_large_unsigned rank = 0;
         a_host_large_unsigned count;
 
         if (is_cli_array_type(new_type)) {
@@ -17860,7 +17860,8 @@ in *rcblock).
   a_source_position  start_position, delete_position;
   a_type_ptr         delete_type, ptr_delete_type, base_delete_type;
   an_expr_node_ptr   ptr_node, delete_node;
-  a_boolean          use_global_delete = FALSE, is_constant, array_delete;
+  a_boolean          use_global_delete = FALSE, is_constant;
+  a_boolean          array_delete = FALSE;
   a_boolean          err = FALSE, processed = FALSE, template_case = FALSE;
   a_routine_ptr      delete_routine = NULL, dtor_routine = NULL;
   an_operand         operand;
@@ -21791,7 +21792,7 @@ freed by this routine.
   a_source_position             end_position;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   a_boolean                     err = FALSE;
-  a_symbol_ptr                  ctor_sym;
+  a_symbol_ptr                  ctor_sym = NULL;
   a_boolean                     ctor_case = FALSE, force_dependent = FALSE;
   a_boolean                     could_be_dependent = FALSE;
   a_class_symbol_supplement_ptr cssp = NULL;
@@ -24286,7 +24287,7 @@ that case.
   a_type_ptr            operation_type_underlying_class;
   a_boolean             operand_2_is_ptr_to_member = FALSE;
   a_boolean             operand_3_is_ptr_to_member = FALSE;
-  a_boolean             saved_cpp11_constant_expr_ruled_out;
+  a_boolean             saved_cpp11_constant_expr_ruled_out = FALSE;
   a_boolean             cpp11_constant_expr_ruled_out_in_operand_2 = FALSE;
   a_boolean             saved_evaluated = curr_expr_is_evaluated();
   a_boolean             expr2_evaluated, expr3_evaluated;
@@ -27266,7 +27267,7 @@ if rescan_is_template_id is TRUE, and return the result in *operand
   a_variable_ptr     var_ptr;
   a_routine_ptr      routine_ptr;
   a_source_position  start_position;
-  a_token_kind       ntoken;
+  a_token_kind       ntoken = tok_error;
   a_ref_entry_ptr    rep;
   an_operand         this_pointer_operand;
   a_type_ptr         qual_class_type;

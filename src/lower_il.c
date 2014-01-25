@@ -4825,7 +4825,7 @@ in the aggregate have not been lowered (and aren't lowered here).
        class_type->variant.class_struct_union.
                             any_virtual_functions_including_in_base_classes)) {
     a_constant                  addr_constant;
-    a_constant_ptr              aggr_con, vptr_con, prev_con = NULL;
+    a_constant_ptr              aggr_con, vptr_con = NULL, prev_con = NULL;
     a_field_ptr                 field;
     a_base_class_ptr            bcp;
     a_class_type_supplement_ptr ctsp = class_type_supp(class_type);
@@ -11005,7 +11005,7 @@ has already been lowered.
 #else /* IA64_ABI */
   an_expr_node_ptr hint_expr;
 #endif /* IA64_ABI */
-  an_expr_node_ptr null_constant_node, test_node;
+  an_expr_node_ptr null_constant_node, test_node = NULL;
   an_expr_node_ptr desired_type_node, static_type_node, call_node;
   a_type_ptr       cast_type, src_type, ptr_type;
   a_constant       constant;
@@ -14761,7 +14761,7 @@ cast.  See lower_expr for typical invocation.
   an_expr_node_ptr      temp_init_node;
   a_variable_ptr        var, temp_var;
 #if DEBUG
-  unsigned long         checksum;
+  unsigned long         checksum = 0;
 #endif /* DEBUG */
 
   mark_as_visited(expr);
@@ -17528,7 +17528,7 @@ statements don't contain an enk_condition).
     a_statement_ptr    block_stmt, dep_statement;
     a_context          context;
     an_init_pos_descr  ipd;
-    a_label_ptr        break_label;
+    a_label_ptr        break_label = NULL;
     a_boolean          created_break_label = FALSE;
     a_boolean          is_loop_stmt = 
                              (statement_kind == (a_statement_kind)stmk_while ||
@@ -18160,7 +18160,7 @@ Do IL lowering of the indicated statement and everything under it.
   an_expr_node_ptr   stmt_expr;
   a_source_position  saved_error_position, saved_code_pos;
 #if DEBUG
-  unsigned long      checksum;
+  unsigned long      checksum = 0;
 #endif /* DEBUG */
 
   if (statement != NULL) {
@@ -19104,7 +19104,7 @@ so they are left in the scope.
     /* Promote local types to file scope.  When promoting out of a member
        function, promote the types to the end of the promoted_local_types
        list of the class. */
-    a_type_ptr last_class_type;
+    a_type_ptr last_class_type = NULL;
     a_type_ptr routine_class = NULL;
 
     if (routine->source_corresp.is_class_member &&
@@ -20052,7 +20052,7 @@ Do IL lowering of the indicated scope and everything under it.
 */
 {
   a_context        context;
-  a_routine_ptr    routine;
+  a_routine_ptr    routine = NULL;
   a_type_ptr       routine_type, return_type;
   a_variable_ptr   param_var, var;
   a_routine_type_supplement_ptr
