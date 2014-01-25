@@ -3813,6 +3813,13 @@ second parameter.
       /* Although enk_routine nodes are not lowered here, they may be
          adjusted (in match_routine_type_in_call) when processing call
          nodes. */
+#if LOWER_IFUNC
+      if (expr->variant.routine.ptr->is_ifunc) {
+        /* Re-write the node to avoid calling the wrapper. */
+        lower_ifunc_expr(expr);
+      }  /* if */
+#endif /* LOWER_IFUNC */
+      break;
     case enk_field:
     case enk_address_of_ellipsis:
       /* Nothing to be done. */
@@ -4405,6 +4412,12 @@ Do C99 lowering on the indicated routine (the header, not the body).
     record_vla_component_types_for_lowering(routine->type);
   }  /* if */
 #endif /* LOWER_VARIABLE_LENGTH_ARRAYS */
+#if LOWER_IFUNC
+  if (routine->is_ifunc) {
+    /* Lower the ifunc routine. */
+    lower_ifunc_routine(routine);
+  }  /* if */
+#endif /* LOWER_IFUNC */
 }  /* lower_c99_routine */
 
 

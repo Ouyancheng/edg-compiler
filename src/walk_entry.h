@@ -1400,6 +1400,9 @@ the file scope, do not process it (but record an orphan in the latter case).
         walk_ptr(ptr->generating_using_decl, a_using_decl_ptr,
                  iek_using_decl);
 #endif /* !NEEDED_FLAG_WALK */
+#if LOWER_IFUNC
+        remap_ptr_not_needed(ptr->resolver_var, a_variable_ptr, iek_variable);
+#endif /* LOWER_IFUNC */
       }
       break;
     case iek_label:

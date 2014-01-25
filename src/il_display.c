@@ -3378,6 +3378,9 @@ Display the indicated routine.
   if (ptr->is_gnu_alias) { 
     disp_boolean("is_gnu_alias", TRUE);
   }  /* if */
+  if (ptr->is_ifunc) {
+    disp_boolean("is_ifunc", TRUE);
+  }  /* if */
   if (ptr->has_gnu_unused_attribute) { 
     disp_boolean("has_gnu_unused_attribute", TRUE);
   }  /* if */
@@ -3574,6 +3577,11 @@ Display the indicated routine.
   if (ptr->aliased_routine != NULL) {
     disp_ptr("aliased_routine", (char*)ptr->aliased_routine, iek_routine);
   }  /* if */
+#if LOWER_IFUNC
+  if (ptr->resolver_var != NULL) {
+    disp_ptr("resolver_var", (char *)ptr->resolver_var, iek_variable);
+  }  /* if */
+#endif /* LOWER_IFUNC */
   if (ptr->inline_partner != NULL) {
     disp_ptr("inline_partner", (char*)ptr->inline_partner, iek_routine);
   }  /* if */
@@ -5296,6 +5304,7 @@ Display the indicated attribute entry.
     case ak_stdcall:             kind_name = "stdcall";             break;
 #endif /* GNU_X86_ATTRIBUTES_ALLOWED && !USE_X86_64 */
     case ak_strong:              kind_name = "strong";              break;
+    case ak_ifunc:               kind_name = "ifunc";               break;
 #if THREAD_LOCAL_STORAGE_SPECIFIER_ALLOWED
     case ak_tls_model:           kind_name = "tls_model";           break;
 #endif /* THREAD_LOCAL_STORAGE_SPECIFIER_ALLOWED */

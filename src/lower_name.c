@@ -11085,6 +11085,7 @@ This is used in cases where a unique (and sometimes well-known) name is
 needed for cases like a guard variable for a local static or the
 wrapper functions for a thread_local variable.  This is also used to create
 names for instantiation flag variables in some template instantiation modes.
+Can be used in C mode (though that's not typical).
 */
 {
   a_const_char              *mangled_name;
@@ -11092,45 +11093,49 @@ names for instantiation flag variables in some template instantiation modes.
   sizeof_t                  mangled_name_length, info_name_length;
   sizeof_t                  prefix_length, alloc_length;
 #if IA64_ABI
-  a_boolean                has_z_prefix = TRUE;
-  a_mangling_control_block mctl;
+  a_mangling_control_block  mctl;
 #endif /* IA64_ABI */
 
-  if (scp->name_has_been_mangled) {
+  if (scp->name_has_been_mangled || C_mode()) {
     /* In many cases the object's name has already been mangled (e.g.,
-       for a local static variable that has been promoted). */
+       for a local static variable that has been promoted).  In C mode,
+       there's no mangling, so just use the existing name. */
     mangled_name = scp->name;
   } else {
-    check_assertion(kind == (an_il_entry_kind)iek_variable);
-    if (scp_is_class_or_namespace_member(scp)) {
-      /* A static data member or member of a namespace needs to be
-         appropriately qualified. */
-      mangled_name = get_mangled_member_variable_name((a_variable_ptr)scp);
-    } else {
-      /* A file-scope variable needs no qualification, so provide the
-         appropriate mangled encoding for the variable name here. */
-      check_assertion(!scp->is_local_to_function &&
-                      in_file_scope(scp) &&
-                      scp->name != NULL);
+    if (kind == (an_il_entry_kind)iek_variable) {
+      if (scp_is_class_or_namespace_member(scp)) {
+        /* A static data member or member of a namespace needs to be
+           appropriately qualified. */
+        mangled_name = get_mangled_member_variable_name((a_variable_ptr)scp);
+      } else {
+        /* A file-scope variable needs no qualification, so provide the
+           appropriate mangled encoding for the variable name here. */
+        check_assertion(!scp->is_local_to_function &&
+                        in_file_scope(scp) &&
+                        scp->name != NULL);
 #if IA64_ABI
-      /* Just the variable's name with a preceding length */
-      start_mangling(&mctl);
-      mangled_name_with_length(scp->name, &mctl);
-      mangled_name = end_mangling(/*final=*/TRUE, &mctl);
-      has_z_prefix = FALSE;
+        /* Just the variable's name with a preceding length */
+        start_mangling(&mctl);
+        mangled_name_with_length(scp->name, &mctl);
+        mangled_name = end_mangling(/*final=*/TRUE, &mctl);
 #else /* !IA64_ABI */
-      /* Just the variable's name. */
-      mangled_name = scp->name;
+        /* Just the variable's name. */
+        mangled_name = scp->name;
 #endif /* IA64_ABI */
+      }  /* if */
+    } else if (kind == (an_il_entry_kind)iek_routine) {
+      mangled_name = get_mangled_function_name((a_routine_ptr)scp);
+    } else {
+      unexpected_condition();
     }  /* if */
   }  /* if */
 #if IA64_ABI
-  if (has_z_prefix) {
+  if (mangled_name[0] == '_' && mangled_name[1] == 'Z') {
     /* Skip the '_Z' prefix. */
-    check_assertion(mangled_name[0] == '_' && mangled_name[1] == 'Z');
     mangled_name += 2;
   }  /* if */
 #endif /* IA64_ABI */
+  check_assertion(mangled_name != NULL);
   mangled_name_length = strlen(mangled_name);
   prefix_length = strlen(prefix);
   info_name_length = prefix_length + mangled_name_length;

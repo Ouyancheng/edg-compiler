@@ -2364,6 +2364,7 @@ typedef enum an_attribute_kind_tag {
   ak_format_arg,	/* "format_arg" (gnu). */
   ak_gnu_inline,	/* "gnu_inline" (gnu). */
   ak_hot,		/* "hot" (gnu). */
+  ak_ifunc,		/* "ifunc" (gnu). */
 #if GNU_INIT_PRIORITY_ATTRIBUTE_ALLOWED
   ak_init_priority,	/* "init_priority" (gnu). */
 #endif /* GNU_INIT_PRIORITY_ATTRIBUTE_ALLOWED */
@@ -13159,6 +13160,14 @@ typedef struct a_routine {
   a_bit_field	is_gnu_alias:1;
 			/* TRUE if this routine was declared with the
 			   alias attribute. */
+  a_bit_field	is_ifunc:1;
+			/* TRUE if this routine was declared with the
+			   ifunc attribute.  When TRUE, aliased_routine points
+			   to the resolver function. */
+#if LOWER_IFUNC
+			/* is_ifunc (and aliased_routine) stay set even when
+			   the routine has been lowered. */
+#endif /* LOWER_IFUNC */
   a_bit_field   has_gnu_unused_attribute:1;
 			/* TRUE if this routine was declared with the
 			   GNU "unused" attribute. */
@@ -13563,7 +13572,18 @@ typedef struct a_routine {
 			   "weakref".  Also used for certain routines --
 			   such as strlen -- that are implicitly aliased to
 			   their __builtin_... counterpart; implicit_alias
-			   is TRUE in such cases.) */
+			   is TRUE in such cases.)  Also used for the
+			   ifunc attribute (in which case is_ifunc is TRUE).
+			   In that case, the function signatures are different
+			   (as the resolver routine returns a pointer to
+			   the type returned by the ifunc routine). */
+#if LOWER_IFUNC
+  a_variable_ptr
+                resolver_var;
+                        /* A variable that "caches" the result of calling the
+                           ifunc resolver routine so that subsequent
+                           calls don't need to invoke the resolver. */
+#endif /* LOWER_IFUNC */
   a_routine_ptr	inline_partner;
 			/* If a function has both a definition "for inlining
 			   only" (flag definition_for_inlining_only) and a

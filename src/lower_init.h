@@ -305,6 +305,10 @@ extern void make_vtbl_address_constant(a_variable_ptr   var,
                                        a_base_class_ptr bcp,
                                        a_constant       *addr_constant);
 
+#if LOWER_IFUNC
+extern void lower_ifunc_routine(a_routine_ptr routine);
+#endif /* LOWER_IFUNC */
+
 extern void init_lower_one_time_init(void);
 
 extern void init_lower_trans_unit_init(void);

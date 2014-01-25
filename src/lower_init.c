@@ -3616,6 +3616,7 @@ IL lowering is fabricating a routine that didn't exist in the source program.
 Push appropriate context for the generation.  scope is the function scope
 for the routine; region number is the memory region number for the routine.
 grcontext is a local variable used to save state for later restoration.
+Can also be used when lowering C to generate a routine context.
 */
 {
   grcontext->region_to_switch_back_to = curr_il_region_number;
@@ -3637,8 +3638,10 @@ grcontext is a local variable used to save state for later restoration.
   promoted_local_static_variable_inits = NULL;
   grcontext->pending_stmk_init_statements = pending_stmk_init_statements;
   pending_stmk_init_statements = NULL;
-  save_eh_lowering_context(&grcontext->ehcontext);
-  add_object_lifetime_to_function_scope(scope);
+  if (!C_mode()) {
+    save_eh_lowering_context(&grcontext->ehcontext);
+    add_object_lifetime_to_function_scope(scope);
+  }  /* if */
   push_context(&grcontext->context, scope, (an_object_lifetime_ptr)NULL);
   /* Initialize for lowering a function. */
   function_lower_init();
@@ -3669,23 +3672,25 @@ Pop function corresponding to push_generated_routine_context.
      the original instance is finished later, because the EH lowering
      has a pointer to the original instance and is unaware that it has
      been moved. */
-  (void)pop_object_lifetime();
-  clean_up_all_object_lifetimes(scope);
-  if (exceptions_enabled
+  if (!C_mode()) {
+    (void)pop_object_lifetime();
+    clean_up_all_object_lifetimes(scope);
+    if (exceptions_enabled
 #if ABI_CHANGES_FOR_COVARIANT_VIRTUAL_FUNC_RETURN
-      /* Don't add EH code to thunks. */
-      && rout->overriding_function_for_wrapper == NULL
+        /* Don't add EH code to thunks. */
+        && rout->overriding_function_for_wrapper == NULL
 #endif /* ABI_CHANGES_FOR_COVARIANT_VIRTUAL_FUNC_RETURN */
 #if IA64_ABI && !HANDLE_VIRTUAL_BASES_IN_COMPLETE_CTOR_DTORS
-      /* Don't add EH code to alternate entry points, unless the complete
-         ctor/dtor contains exception handling code. */
-      && rout->primary_ctor_or_dtor == NULL
+        /* Don't add EH code to alternate entry points, unless the complete
+           ctor/dtor contains exception handling code. */
+        && rout->primary_ctor_or_dtor == NULL
 #endif /* IA64_ABI && !HANDLE_VIRTUAL_BASES_IN_COMPLETE_CTOR_DTORS */
-                                           ) {
-    /* Add prologue/epilogue code for exceptions if needed.  This is done
-       after the object lifetime is popped so we can tell whether any
-       EH processing is really needed. */
-    add_eh_function_prologue(scope);
+                                             ) {
+      /* Add prologue/epilogue code for exceptions if needed.  This is done
+         after the object lifetime is popped so we can tell whether any
+         EH processing is really needed. */
+      add_eh_function_prologue(scope);
+    }  /* if */
   }  /* if */
   pop_context();
 #if SCOPE_ORPHANED_LIST_PROCESSING_NEEDED
@@ -3704,7 +3709,9 @@ Pop function corresponding to push_generated_routine_context.
   }  /* if */
 #endif /* MAINTAIN_NEEDED_FLAGS */
   set_routine_defined(rout);
-  restore_eh_lowering_context(&grcontext->ehcontext);
+  if (!C_mode()) {
+    restore_eh_lowering_context(&grcontext->ehcontext);
+  }  /* if */
   promoted_local_static_variable_inits =
                                grcontext->promoted_local_static_variable_inits;
   free_return_memo_list(return_memo_list);
@@ -17177,6 +17184,132 @@ with the value of their corresponding captured variables.
   check_assertion(source_desc.capture == NULL);
 }  /* lower_lambda */
 
+#if LOWER_IFUNC
+
+void lower_ifunc_routine(a_routine_ptr routine)
+/*
+Lower an ifunc routine by turning it into a "wrapper" routine that
+invokes the resolver routine, saves it's value and then invokes the
+resolved routine and returns it's value (if non-void).  For example:
+
+  extern int (*resolved_f)();  // pointer to "resolved" f for the target
+  int f(args...) {
+    if (resolved_f == f) {
+      resolved_f = resolver(); // one time invocation of resolver
+    }
+    return (*resolved_f)(args...);  // value returned only for non-void "f"
+  }
+  int (*resolved_f)() = f;     // initialized to wrapper function
+
+Lowering also re-writes calls to this routine to be indirect through the
+resolver variable (so the overhead of doing the resolving is only
+incurred once).
+
+Note: this is called when lowering C and C++.
+*/
+{
+  a_generated_routine_context grcontext;
+  a_statement_ptr  return_stmt;
+  a_variable_ptr   resolver_var;
+  a_type_ptr       routine_type = routine->type;
+  an_expr_node_ptr arg_list = NULL, end_arg_list = NULL, assign_node;
+  an_expr_node_ptr call_node, call_args, test_node, pass_through_arg;
+  a_scope_ptr      scope;
+  a_param_type_ptr first_actual_param_type;
+  a_param_type_ptr param_type;
+  an_insert_location
+                   insert_location, then_insert_location;
+  a_memory_region_number
+                   il_region;
+  a_routine_type_supplement_ptr
+                   rtsp = routine_type->variant.routine.extra_info;
+  a_variable_ptr   param_var, last_param_var;
+  a_constant_ptr   function_constant;
+  a_routine_ptr    resolver = routine->aliased_routine;
+
+  check_assertion(routine->is_ifunc && routine->aliased_routine != NULL);
+  /* Make a memory region, scope, and block for the routine definition. */
+  scope = make_routine_definition(routine,
+                                  /*make_return=*/FALSE,
+                                  &il_region);
+  set_block_start_insert_location(scope->assoc_block, &insert_location);
+  push_generated_routine_context(scope, il_region, &grcontext);
+  /* Create the parameters for this function, and while doing that,
+     create a list of the arguments (to be used when calling the
+     eventual target function).  Make sure the type has been lowered first. */
+  check_assertion(visited_yet(routine_type) || C_mode());
+  last_param_var = NULL;
+  first_actual_param_type = rtsp->param_type_list;
+  for (param_type = first_actual_param_type;
+       param_type != NULL;
+       param_type = param_type->next) {
+    param_var = make_lowered_param_variable(param_type->type);
+    param_var->assoc_param_type = param_type;
+    if (last_param_var == NULL) {
+      scope->variant.routine.parameters = param_var;
+    } else {
+      last_param_var->next = param_var;
+    }  /* if */
+    /* Add a reference to the parameter to the argument list to be used
+       to call the function. */
+    pass_through_arg = var_rvalue_expr(param_var);
+    if (arg_list == NULL) {
+      arg_list = pass_through_arg;
+    } else {
+      end_arg_list->next = pass_through_arg;
+    }  /* if */
+    end_arg_list = pass_through_arg;
+    last_param_var = param_var;
+  }  /* for */
+  resolver_var = make_ifunc_resolver_var(routine);
+  /* Create "if (resolver_var == f) {}" to prevent the need to determine
+     the resolver function more than once (since all calls to this routine
+     are supposed to be through the resolver variable, that should happen
+     automatically, but in some cases, e.g., pointer-to-member constants,
+     the resolver may be called multiple times). */
+  test_node = var_rvalue_expr(resolver_var);
+  function_constant = alloc_constant((a_constant_repr_kind)ck_address);
+  set_routine_address_constant(routine, function_constant,
+                               /*set_address_taken_flag=*/TRUE);
+  test_node->next = alloc_node_for_allocated_constant(function_constant);
+  test_node = make_operator_node((an_expr_operator_kind)eok_eq,
+                                 integer_type((an_integer_kind)ik_int),
+                                 test_node);
+  test_node = boolean_controlling_expr(test_node);
+  insert_if_statement(test_node, /*is_initialization_guard=*/FALSE,
+                      &insert_location, (a_statement_ptr *)NULL,
+                      &then_insert_location, (an_insert_location *)NULL);
+  /* Insert code to call the resolver and store its value in resolver_var
+     (i.e., "resolver_var = (decltype(resolver_var))resolver()"). */
+  assign_node = make_call_node(resolver, (an_expr_node_ptr)NULL);
+  assign_node = add_cast(assign_node, resolver_var->type);
+  insert_var_assignment_statement(resolver_var, assign_node,
+                                  &then_insert_location);
+  /* Make a call node that calls through *resolver_var. */
+  call_args = var_rvalue_expr(resolver_var);
+  call_args->next = arg_list;
+  call_node = make_operator_node((an_expr_operator_kind)eok_call,
+                                 lowered_return_type_of(routine_type),
+                                 call_args);
+  /* If the routine has a void type, insert a statement for the call
+     followed by a return statement.  Otherwise, attach the call directly
+     to the return. */
+  if (is_void_type(lowered_return_type_of(routine_type))) {
+    /* The call will be inserted as a separate statement. */
+    (void)insert_expr_statement(call_node, &insert_location);
+    call_node = NULL;
+  }  /* if */
+  /* Add the return statement. */
+  return_stmt = alloc_statement((a_statement_kind)stmk_return);
+  return_stmt->expr = call_node;
+  insert_statement(return_stmt, &insert_location);
+  add_to_return_memo_list(return_stmt);
+  routine->compiler_generated = TRUE;
+  pop_generated_routine_context(scope, il_region, &grcontext);
+  return;
+}  /* lower_ifunc_routine */
+
+#endif /* LOWER_IFUNC */
 
 void init_lower_one_time_init(void)
 /*

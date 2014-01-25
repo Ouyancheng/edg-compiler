@@ -244,6 +244,7 @@ static an_attr_descr known_attr_table[] = {
   { "format_arg", "(ci)", "gx", ak_format_arg },
   { "gnu_inline", "", "gx", ak_gnu_inline },
   { "hot", "", "gx(40300-)", ak_hot },
+  { "ifunc", "(sn)", "gx", ak_ifunc },
 #if GNU_INIT_PRIORITY_ATTRIBUTE_ALLOWED
   { "init_priority", "(ci)", "g+", ak_init_priority },
 #endif /* GNU_INIT_PRIORITY_ATTRIBUTE_ALLOWED */
@@ -491,6 +492,7 @@ static an_attr_application_fn apply_fastcall_attr;
 static an_attr_application_fn apply_format_attr;
 static an_attr_application_fn apply_format_arg_attr;
 static an_attr_application_fn apply_gnu_inline_attr;
+static an_attr_application_fn apply_ifunc_attr;
 #if GNU_INIT_PRIORITY_ATTRIBUTE_ALLOWED
 static an_attr_application_fn apply_init_priority_attr;
 #endif /* GNU_INIT_PRIORITY_ATTRIBUTE_ALLOWED */
@@ -610,6 +612,7 @@ static an_attr_appl_descr known_attr_appl_table[(int)ak_last+1] = {
   { ak_format_arg, "r", apply_format_arg_attr },
   { ak_gnu_inline, "r", apply_gnu_inline_attr },
   { ak_hot, "r", NO_APPL_FN },
+  { ak_ifunc, "r", apply_ifunc_attr },
 #if GNU_INIT_PRIORITY_ATTRIBUTE_ALLOWED
   { ak_init_priority, "v:-l", apply_init_priority_attr },
 #endif /* GNU_INIT_PRIORITY_ATTRIBUTE_ALLOWED */
@@ -4388,12 +4391,17 @@ return the routine or variable.  This function may also be called for the
       make_attr_unrecognized(ap);
     } else {
       a_routine_ptr  rp = (a_routine_ptr)entity;
-      rp->implicit_alias = FALSE;
-      if (ap->kind == (a_byte_attribute_kind)ak_alias) {
-        rp->is_gnu_alias = TRUE;
+      if (rp->is_ifunc) {
+        /* Can't be both an alias and an ifunc. */
+        pos_error(ec_ifunc_cant_be_alias, &ap->position);
+      } else {
+        rp->implicit_alias = FALSE;
+        if (ap->kind == (a_byte_attribute_kind)ak_alias) {
+          rp->is_gnu_alias = TRUE;
+        }  /* if */
+        add_alias_fixup(symbol_for(rp), (char*)NULL, arg->variant.string.value,
+                        &ap->position);
       }  /* if */
-      add_alias_fixup(symbol_for(rp), (char*)NULL, arg->variant.string.value,
-                      &ap->position);
     }  /* if */
   } else if (entity_kind == iek_variable) {
     a_variable_ptr  vp = (a_variable_ptr)entity;
@@ -4993,6 +5001,37 @@ it and return the entity.
   }  /* if */
   return entity;
 }  /* apply_gnu_inline_attr */
+
+
+static char* apply_ifunc_attr(an_attribute_ptr  ap,
+                              char              *entity,
+                              an_il_entry_kind  entity_kind)
+/*
+The "ifunc" attribute is being applied to a routine of some kind.  Apply the
+attribute to it and return the entity.
+*/
+{
+  a_routine_ptr   rp = (a_routine_ptr)entity;
+  a_constant_ptr  arg;
+
+  check_assertion(entity_kind == iek_routine &&
+                  ap->arguments != NULL && ap->arguments->next == NULL &&
+                  ap->arguments->kind == (an_attribute_arg_kind)aak_constant);
+  arg = ap->arguments->variant.constant;
+  check_assertion(arg->kind == (a_constant_repr_kind)ck_string);
+  if (rp->is_gnu_alias) {
+    /* Can't be both an alias and an ifunc. */
+    pos_error(ec_ifunc_cant_be_alias, &ap->position);
+  } else if (rp->is_weak) {
+    /* ifunc can't be weak. */
+    pos_error(ec_ifunc_cant_be_weak, &ap->position);
+  } else {
+    rp->is_ifunc = TRUE;
+    add_alias_fixup(symbol_for(rp), (char*)NULL, arg->variant.string.value,
+                    &ap->position);
+  }  /* if */
+  return entity;
+}  /* apply_ifunc_attr */
 
 #if GNU_INIT_PRIORITY_ATTRIBUTE_ALLOWED
 
@@ -6191,7 +6230,12 @@ Apply the GNU "weak" attribute to the given entity and return that entity.
   if (entity_kind == iek_variable) {
     ((a_variable*)entity)->is_weak = TRUE;
   } else if (entity_kind == iek_routine) {
-    ((a_routine*)entity)->is_weak = TRUE;
+    if (((a_routine*)entity)->is_ifunc) {
+      /* ifunc can't be weak. */
+      pos_error(ec_ifunc_cant_be_weak, &ap->position);
+    } else {
+      ((a_routine*)entity)->is_weak = TRUE;
+    }  /* if */
   } else {
     unexpected_condition();
   }  /* if */
@@ -7090,6 +7134,7 @@ attribute refers to that name).
 void process_alias_fixup_list(void)
 /*
 Traverse the list of alias fixups and set the alias fields as needed.
+Also used for the GNU ifunc attribute.
 */
 {
   an_alias_fixup_ptr  entries = alias_fixup_list, entry;
@@ -7116,7 +7161,9 @@ Traverse the list of alias fixups and set the alias fields as needed.
                                                   (an_init_kind)initk_none)) {
         /* An entity cannot have a definition and simultaneously be an alias
            for another entity.  An exception is made for weakref attributes on
-           variables: They are defined, but they cannot have an initializer. */
+           variables: They are defined, but they cannot have an initializer.
+           GNU also allows ifunc attributes to have a definition (but only
+           in C mode); it causes problems later on, so we give an error. */
         pos_error(ec_alias_cannot_have_definition, pos);
       }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
@@ -7220,7 +7267,11 @@ Traverse the list of alias fixups and set the alias fields as needed.
           is_weakref = entry->alias->variant.variable.ptr->is_weakref;
           break;
         default:
-          unexpected_condition();
+          /* Can happen for member functions with ifunc attributes when
+             the resolver isn't found (which is likely if a nested mangled
+             name is specified). */
+          check_assertion(entry->alias->variant.routine.ptr->is_ifunc &&
+                          is_function_or_template_symbol(entry->alias));
       }  /* switch */
       if (!is_weakref) {
         pos_st_diagnostic(gnu_version < 40000 ? es_warning
@@ -7233,9 +7284,25 @@ Traverse the list of alias fixups and set the alias fields as needed.
                    &entry->alias->decl_position, aliased_sym);
     } else {
       /* Usual case: An entity declared in this translation unit is aliased
-         using the GNU "alias" (or "weakref") attribute. */
+         using the GNU "alias" (or "weakref" or "ifunc") attribute. */
       switch (entry->alias->kind) {
         case sk_routine:
+          if (entry->alias->variant.routine.ptr->is_ifunc) {
+            /* Give a warning if the resolver routine doesn't have the
+               correct type; it should take no arguments and return
+               a function pointer. */
+            a_type_ptr routine_type = aliased_sym->variant.routine.ptr->type;
+            a_type_ptr return_type = routine_type->variant.routine.return_type;
+            a_routine_type_supplement_ptr
+                       rtsp = routine_type->variant.routine.extra_info;
+            if (!(is_pointer_type(return_type) &&
+                  is_function_type(type_pointed_to(return_type))) ||
+                rtsp->param_type_list != NULL) {
+              pos_syty_warning(ec_incompatible_ifunc_resolver_type,
+                               &entry->alias_position, aliased_sym,
+                               routine_type);
+            }  /* if */
+          }  /* if */
           entry->alias->variant.routine.ptr->aliased_routine =
                                               aliased_sym->variant.routine.ptr;
           report_any_alias_loop(entry);

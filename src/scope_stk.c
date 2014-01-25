@@ -6518,10 +6518,10 @@ about the scope being popped.
   if (is_namespace_wrapup) {
 #if GNU_EXTENSIONS_ALLOWED || REDEFINE_EXTNAME_PRAGMA_ENABLED
     if (kind == (a_scope_kind)sck_file) {
-      /* The GNU alias attribute can refer to names of entities before those
-         entities are declared.  The actual IL connection is therefore set up
-         when all the entities in a translation unit have been seen.  This must
-         occur before unneeded entities are determined. */
+      /* The GNU alias or ifunc attribute can refer to names of entities before
+         those entities are declared.  The actual IL connection is therefore
+         set up when all the entities in a translation unit have been seen.
+         This must occur before unneeded entities are determined. */
       process_alias_fixup_list();
     }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED || REDEFINE_EXTNAME_PRAGMA_ENABLED */

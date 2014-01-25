@@ -9779,6 +9779,83 @@ elsewhere.
 
 #endif /* LOWER_EXTERN_INLINE */
 
+#if LOWER_IFUNC
+
+a_variable_ptr make_ifunc_resolver_var(a_routine_ptr rp)
+/*
+Returns the resolver_var associated with the specified ifunc routine;
+if one has not yet been created, it is created now.  The variable is
+statically initialized to the ifunc routine itself (which becomes a wrapper
+to invoke the resolver and then the resolved routine).
+*/
+{
+  check_assertion(rp->is_ifunc);
+  if (rp->resolver_var == NULL) {
+    a_constant_ptr   function_constant;
+    a_memory_region_number region_to_switch_back_to;
+    a_storage_class  storage_class;
+    char             *var_name;
+
+    /* Allocate the variable and initializing constant in the file scope. */
+    switch_to_file_scope_region(&region_to_switch_back_to);
+    /* Make the resolver variable static if the routine is. */
+    storage_class = rp->storage_class == (a_storage_class)sc_static ?
+                                                                sc_static :
+                                                                sc_unspecified;
+    /* Give the variable a unique name (based on the ifunc routine's name). */
+    var_name = make_prefixed_object_name("__IFV__", &rp->source_corresp,
+                                         iek_routine);
+    rp->resolver_var = make_lowered_variable(var_name,
+                                             /*already_il_name=*/TRUE,
+                                             make_pointer_type(rp->type),
+                                             storage_class);
+    rp->resolver_var->source_corresp.name_has_been_mangled = TRUE;
+    if (storage_class == (a_storage_class)sc_unspecified) {
+      /* Only want one version in the final executable. */
+      if (!rp->is_inline) rp->is_weak = TRUE;
+#if IA64_ABI
+      put_variable_into_comdat_group(rp->resolver_var);
+#endif /* IA64_ABI */
+    }  /* if */
+    /* Statically initialize the variable to point to the ifunc routine. */
+    function_constant = alloc_constant((a_constant_repr_kind)ck_address);
+    set_routine_address_constant(rp, function_constant,
+                                 /*set_address_taken_flag=*/TRUE);
+    rp->resolver_var->initializer.constant = function_constant;
+    rp->resolver_var->init_kind = (an_init_kind)initk_static;
+    switch_back_to_original_region(region_to_switch_back_to);
+  }  /* if */
+  return rp->resolver_var;
+}  /* make_ifunc_resolver_var */
+
+
+void lower_ifunc_expr(an_expr_node_ptr expr)
+/*
+Re-write the expression (which is an enk_routine that refers to an ifunc
+routine) as an indirect call through the resolver variable as an optimization
+(if the lowering isn't performed, the wrapper routine will be invoked and
+the resolved routine will be invoked there).
+*/
+{
+  an_expr_node_ptr new_expr;
+  a_variable_ptr   resolver_var =
+                            make_ifunc_resolver_var(expr->variant.routine.ptr);
+
+  check_assertion(expr->kind == (an_expr_node_kind)enk_routine);
+  new_expr = add_indirection_to_node(var_rvalue_expr(resolver_var));
+  if (!expr->is_lvalue) {
+    /* Original expression was an rvalue, make sure the new expression is as
+       well. */
+    new_expr = rvalue_expr_for_lvalue(new_expr);
+  }  /* if */
+  check_assertion(il_identical_types(new_expr->type, expr->type) &&
+                  new_expr->is_lvalue == expr->is_lvalue);
+  overwrite_node(expr, new_expr);
+  return;
+}  /* lower_ifunc_expr */
+
+#endif /* LOWER_IFUNC */
+
 static void lower_routine(a_routine_ptr routine)
 /*
 Do IL lowering of the indicated routine and everything under it.  This does
@@ -9903,6 +9980,12 @@ not include the function scope memory region, if any.
       define_default_version_of_routine(routine->variant.lambda_call_operator,
                                         routine, (an_expr_node_ptr)NULL);
     }  /* if */
+#if LOWER_IFUNC
+    if (routine->is_ifunc) {
+      /* Lower the ifunc routine. */
+      lower_ifunc_routine(routine);
+    }  /* if */
+#endif /* LOWER_IFUNC */
   }  /* if */
 }  /* lower_routine */
 
@@ -14720,10 +14803,17 @@ cast.  See lower_expr for typical invocation.
      rvalues retain their type qualifiers, but in C they do not. */
   remove_qualifiers_from_expr_type_if_needed(expr);
   switch (expr->kind) {
-    case enk_routine:
     case enk_field:
     case enk_address_of_ellipsis:
       /* No processing required. */
+      break;
+    case enk_routine:
+#if LOWER_IFUNC
+      if (expr->variant.routine.ptr->is_ifunc) {
+        /* Re-write the node to avoid calling the wrapper routine. */
+        lower_ifunc_expr(expr);
+      }  /* if */
+#endif /* LOWER_IFUNC */
       break;
     case enk_variable:
 #if MINIMAL_INLINING

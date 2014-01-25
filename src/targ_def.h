@@ -2921,6 +2921,83 @@ generate code for a GNU compiler (gcc or g++).
 #endif /* ifndef GCC_IS_GENERATED_CODE_TARGET */
 
 /*
+Flag that is TRUE if the GNU "ifunc" dispatch mechanism is to be lowered.
+The "ifunc" attribute maps to the STT_GNU_IFUNC symbol type in the ELF
+standard and is not available on many architectures.  The STT_GNU_IFUNC allows
+a routine's symbol to be determined dynamically at load time.  At load time,
+the routine specified as the resolver (in the ifunc attribute) is invoked
+(once) and returns a pointer to the routine that shall be used to resolve all
+instances of that symbol for that execution of the executable.  This provides
+a very low overhead mechanism to select between a family of functions
+(typically based on the underlying CPU architecture).  Here's an example:
+
+  int printf(const char *,...);
+  void target() {
+    printf("Here\n");
+  }
+  static void (*resolver(void))(void) {
+    return (void(*)(void))&target;
+  }
+  void source() __attribute__ ((ifunc ("resolver")));
+  int main() {
+    source();   // Prints "Here"
+  }
+
+For back ends that don't support the STT_GNU_IFUNC symbol, an approximation
+of the run-time behavior can be achieved by setting LOWER_IFUNC to TRUE.
+In that case, lowering will convert the routine with the ifunc attribute
+into a "wrapper" routine as such:
+
+  decltype(source) resolver_result = source;
+  source(args...) {
+    if (resolver_result == source) {
+      resolver_result = (decltype(source))resolver();
+    }
+    return *resolver_result(args...);
+  }
+
+This has the effect of invoking the resolver only once (though at run time
+rather than at load time).  Invocations of "source" incur an extra function
+call and indirection, but lowering re-writes references to "source" so
+they are dispatched through the resolver variable whenever possible (in which
+case the only overhead is an extra indirection).
+
+Note that there are a few caveats:
+
+- The re-writing of calls to avoid the wrapper routine only occurs once the
+declaration with the ifunc attribute has been seen; any reference prior
+to that point will be unlowered (and will hence invoke the wrapper).  That
+can be an issue if, for example, the declaration with the ifunc attribute is
+only in a library's implementation (and not in the shared header file).  In
+that case, code that is compiled with the shared header file will contain
+references to the wrapper routine.
+
+- Constants (i.e., ck_address/abk_routine) that refer to the ifunc are not
+re-written in lowering, so they'll always point to the wrapper routine.
+
+*/
+#ifndef LOWER_IFUNC
+#if DO_IL_LOWERING && GNU_EXTENSIONS_ALLOWED
+#if BACK_END_IS_C_GEN_BE && GCC_IS_GENERATED_CODE_TARGET
+#define LOWER_IFUNC FALSE
+#else /* !(BACK_END_IS_C_GEN_BE && GCC_IS_GENERATED_CODE_TARGET) */
+#define LOWER_IFUNC TRUE
+#endif /* BACK_END_IS_C_GEN_BE && GCC_IS_GENERATED_CODE_TARGET */
+#else /* !DO_IL_LOWERING && GNU_EXTENSIONS_ALLOWED) */
+#define LOWER_IFUNC FALSE
+#endif /* DO_IL_LOWERING && GNU_EXTENSIONS_ALLOWED */
+#endif /* defined(LOWER_IFUNC) */
+
+#if BACK_END_IS_C_GEN_BE && !GCC_IS_GENERATED_CODE_TARGET && !LOWER_IFUNC
+ #error -- LOWER_IFUNC must be TRUE if using BACK_END_IS_C_GEN_BE with a \
+           non-gcc back end
+#endif /* BACK_END_IS_C_GEN_BE && !GCC_IS_GENERATED_CODE_TARGET && !LOWER_...*/
+#if LOWER_IFUNC && !(DO_IL_LOWERING && GNU_EXTENSIONS_ALLOWED)
+ #error -- LOWER_IFUNC can only be TRUE when both DO_IL_LOWERING and \
+           GNU_EXTENSIONS_ALLOWED are TRUE
+#endif /* LOWER_IFUNC && !(DO_IL_LOWERING && GNU_EXTENSIONS_ALLOWED) */
+    
+/*
 Flag that is TRUE if uses of __builtin_constant_p should always be folded in
 the front end.  In GNU compilers this is not always the case: Instead some
 calls are folded by the back end (and the result may depend on the

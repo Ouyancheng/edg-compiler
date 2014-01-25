@@ -1296,6 +1296,12 @@ extern a_variable_ptr assoc_var_for_constant(a_constant_ptr constant);
 
 extern void prelower_aggregate_constant(a_constant_ptr constant);
 
+#if LOWER_IFUNC
+extern a_variable_ptr make_ifunc_resolver_var(a_routine_ptr rp);
+
+extern void lower_ifunc_expr(an_expr_node_ptr expr);
+#endif /* LOWER_IFUNC */
+
 /*
 Macro that returns TRUE if the type specified by tp contains a function type
 with a parameter type that is passed via a copy constructor.  Such parameter

@@ -2582,6 +2582,9 @@ ec_default_association_appears_more_than_once;;"a default association already ap
 ec_variably_modified_type_not_allowed_here;;"a type involving a variable length array is not allowed here"
 ec_duplicate_type_in_c11_generic;;"duplicate association type (%t) in _Generic selection"
 ec_no_match_in_c11_generic;;"no association matches the selector type %t"
+ec_incompatible_ifunc_resolver_type;;"the type of %n (%t) is incompatible with an ifunc resolver type"
+ec_ifunc_cant_be_alias;;"a function cannot have both ifunc and alias attributes"
+ec_ifunc_cant_be_weak;;"a function cannot have both ifunc and weak attributes"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

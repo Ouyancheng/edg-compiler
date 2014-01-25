@@ -9990,6 +9990,18 @@ declare_routine:
         write_tok_str("__inline__ ");
       }  /* if */
     }  /* if */
+#if GNU_EXTENSIONS_ALLOWED && !LOWER_IFUNC
+    if (rout->is_ifunc) {
+      /* A routine with an un-lowered GNU ifunc attribute; emit the appropriate
+         ifunc attribute in the generated C code.  This is only supported by
+         GNU compilers (and possibly only on Linux). */
+      check_assertion(gcc_is_generated_code_target &&
+                      rout->aliased_routine != NULL);
+      write_tok_str("__attribute__((ifunc(\"");
+      dump_routine_name(rout->aliased_routine);
+      write_tok_str("\"))) ");
+    }  /* if */
+#endif /* GNU_EXTENSIONS_ALLOWED && !LOWER_IFUNC */
     if (!is_definition) {
       /* A declaration of the routine. */
       dump_general_declaration_using_type(rout->type, &rout->source_corresp,

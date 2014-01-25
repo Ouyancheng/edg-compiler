@@ -1,5 +1,41 @@
 Version 4.9
 
+1/24/14  [EDGcpfe/13424]
+GNU "ifunc" attribute
+
+Support has been added for the GNU "ifunc" attribute.  The ifunc attribute
+specifies the name of a user-provided "resolver" function which is called once
+at load time to determine dynamically the address to be used for the function
+with the ifunc attribute.
+
+As not all back ends support the STT_GNU_IFUNC ELF feature on which this
+is based, a new configuration macro, LOWER_IFUNC, is introduced which,
+when TRUE, will turn the ifunc routine into a wrapper function that
+invokes the resolver (just once), caches the result and then dispatches
+to the function returned by the resolver.  In certain cases, the call through
+the wrapper function can be replaced by an indirect function call (see
+the definition of LOWER_FUNC for more information).
+
+One caveat: as is the case with the GNU "alias" attribute, the name specified
+by the "ifunc" attribute must be an unmangled name (g++ requires a mangled
+name).  There is no such restriction when using C mode (as there are no
+mangled names).  We hope to ease this restriction in the future.
+
+For example (with --gcc --gnu_version 40600):
+
+  int printf(const char *,...);
+  void target(void) {
+    printf("Here\n");
+  }
+  static void (*resolver(void))(void) {
+    return &target;
+  }
+  void source() __attribute__ ((ifunc ("resolver")));
+  int main() {
+    source();   // Prints "Here"
+  }
+
+
 1/24/14  [EDGcpfe/14746]
 C11: __STDC_NO_ATOMICS__ and __STDC_NO_VLA__
 

@@ -6322,6 +6322,11 @@ file.
 #else /* !defined(LOWER_FIXED_POINT) */
   comment_undefined_macro_name(LOWER_FIXED_POINT);
 #endif /* defined(LOWER_FIXED_POINT) */
+#if defined(LOWER_IFUNC)
+  define_numeric_valued_macro(LOWER_IFUNC);
+#else /* !defined(LOWER_IFUNC) */
+  comment_undefined_macro_name(LOWER_IFUNC);
+#endif /* defined(LOWER_IFUNC) */
 #if defined(LOWER_LVALUE_RETURNING_OPERATIONS)
   define_numeric_valued_macro(LOWER_LVALUE_RETURNING_OPERATIONS);
 #else /* !defined(LOWER_LVALUE_RETURNING_OPERATIONS) */

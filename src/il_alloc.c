@@ -2605,6 +2605,7 @@ to it.  The entry is allocated in the file scope memory region.
   rp->is_weak                     = FALSE;
   rp->is_weakref                  = FALSE;
   rp->is_gnu_alias                = FALSE;
+  rp->is_ifunc                    = FALSE;
   rp->has_gnu_unused_attribute    = FALSE;
   rp->has_gnu_used_attribute      = FALSE;
   rp->allocates_memory            = FALSE;
@@ -2721,6 +2722,9 @@ to it.  The entry is allocated in the file scope memory region.
 #if GNU_EXTENSIONS_ALLOWED
   rp->section                     = NULL;
   rp->aliased_routine             = NULL;
+#if LOWER_IFUNC
+  rp->resolver_var                = NULL;
+#endif /* LOWER_IFUNC */
   rp->inline_partner              = NULL;
 #if GNU_INIT_PRIORITY_ATTRIBUTE_ALLOWED
   rp->ctor_priority               = 0;
