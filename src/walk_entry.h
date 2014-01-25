@@ -1388,6 +1388,9 @@ the file scope, do not process it (but record an orphan in the latter case).
         if (ptr->aliased_routine != NULL) {
           set_proper_routine_definition_needed_flag(ptr->aliased_routine);
         }  /* if */
+#if LOWER_IFUNC
+        remap_ptr_not_needed(ptr->resolver_var, a_variable_ptr, iek_variable);
+#endif /* LOWER_IFUNC */
         walk_ptr(ptr->inline_partner, a_routine_ptr, iek_routine);
         if (ptr->inline_partner != NULL) {
           set_proper_routine_definition_needed_flag(ptr->inline_partner);
@@ -1400,9 +1403,6 @@ the file scope, do not process it (but record an orphan in the latter case).
         walk_ptr(ptr->generating_using_decl, a_using_decl_ptr,
                  iek_using_decl);
 #endif /* !NEEDED_FLAG_WALK */
-#if LOWER_IFUNC
-        remap_ptr_not_needed(ptr->resolver_var, a_variable_ptr, iek_variable);
-#endif /* LOWER_IFUNC */
       }
       break;
     case iek_label:
