@@ -9800,8 +9800,8 @@ to invoke the resolver and then the resolved routine).
     switch_to_file_scope_region(&region_to_switch_back_to);
     /* Make the resolver variable static if the routine is. */
     storage_class = rp->storage_class == (a_storage_class)sc_static ?
-                                                                sc_static :
-                                                                sc_unspecified;
+                                               (a_storage_class)sc_static :
+                                               (a_storage_class)sc_unspecified;
     /* Give the variable a unique name (based on the ifunc routine's name). */
     var_name = make_prefixed_object_name("__IFV__", &rp->source_corresp,
                                          iek_routine);

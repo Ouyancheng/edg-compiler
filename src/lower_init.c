@@ -17283,8 +17283,8 @@ Note: this is called when lowering C and C++.
      (i.e., "resolver_var = (decltype(resolver_var))resolver()"). */
   assign_node = make_call_node(resolver, (an_expr_node_ptr)NULL);
   assign_node = add_cast(assign_node, resolver_var->type);
-  insert_var_assignment_statement(resolver_var, assign_node,
-                                  &then_insert_location);
+  (void)insert_var_assignment_statement(resolver_var, assign_node,
+                                        &then_insert_location);
   /* Make a call node that calls through *resolver_var. */
   call_args = var_rvalue_expr(resolver_var);
   call_args->next = arg_list;
