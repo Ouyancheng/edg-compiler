@@ -14,7 +14,9 @@ when TRUE, will turn the ifunc routine into a wrapper function that
 invokes the resolver (just once), caches the result and then dispatches
 to the function returned by the resolver.  In certain cases, the call through
 the wrapper function can be replaced by an indirect function call (see
-the definition of LOWER_FUNC for more information).
+the definition of LOWER_IFUNC for more information).  In most configurations
+with lowering, LOWER_IFUNC defaults to TRUE (and FALSE when lowering isn't
+used).
 
 One caveat: as is the case with the GNU "alias" attribute, the name specified
 by the "ifunc" attribute must be an unmangled name (g++ requires a mangled
