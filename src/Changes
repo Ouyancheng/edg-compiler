@@ -1,5 +1,13 @@
 Version 4.9
 
+1/25/14  [EDGcpfe/14808]
+GNU: Add support for __builtin_cpu_init, __builtin_cpu_is,
+     __builtin_cpu_supports
+
+When gnu_version >= 40800, support has been added for the __builtin_cpu_init,
+__builtin_cpu_is, and __builtin_cpu_supports GNU builtins.
+
+
 1/24/14  [EDGcpfe/13424]
 GNU "ifunc" attribute
 

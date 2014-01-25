@@ -9975,6 +9975,9 @@ enum a_builtin_function_kind_tag {
   bfk_cimagf,                   /* "__builtin_cimagf" */
   bfk_cimagl,                   /* "__builtin_cimagl" */
   bfk_classify_type,            /* "__builtin_classify_type" */
+  bfk_cpu_supports,             /* "__builtin_cpu_supports" */
+  bfk_cpu_is,                   /* "__builtin_cpu_is" */
+  bfk_cpu_init,                 /* "__builtin_cpu_init" */
   bfk_clog,                     /* "__builtin_clog" */
   bfk_clogf,                    /* "__builtin_clogf" */
   bfk_clogl,                    /* "__builtin_clogl" */
@@ -11406,6 +11409,9 @@ EXTERN a_const_char *builtin_function_kind_names[(int)bfk_last + 1]
   /* bfk_cimagf */                   "__builtin_cimagf",
   /* bfk_cimagl */                   "__builtin_cimagl",
   /* bfk_classify_type */            "__builtin_classify_type",
+  /* bfk_cpu_supports */             "__builtin_cpu_supports",
+  /* bfk_cpu_is */                   "__builtin_cpu_is",
+  /* bfk_cpu_init */                 "__builtin_cpu_init",
   /* bfk_clog */                     "__builtin_clog",
   /* bfk_clogf */                    "__builtin_clogf",
   /* bfk_clogl */                    "__builtin_clogl",

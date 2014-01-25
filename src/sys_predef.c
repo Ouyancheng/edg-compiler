@@ -2286,6 +2286,11 @@ Enter the standard predeclared functions for GCC.
     enter_gnu_builtin_vararg_func2(_assume_aligned, void_star,
                                    const_void_star, size_t);
   }  /* if */
+  if (gnu_version >= 40800) {
+    enter_gnu_builtin_func1(_cpu_supports, int, const_char_star);
+    enter_gnu_builtin_func1(_cpu_is, int, const_char_star);
+    enter_gnu_builtin_func0(_cpu_init, no_return);
+  }  /* if */
   enter_gnu_builtin_func0(_unreachable, no_return);
 
 #if GNU_BUILTIN_SYNC_FUNCTIONS_ALLOWED

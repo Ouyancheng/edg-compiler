@@ -2585,6 +2585,7 @@ ec_no_match_in_c11_generic;;"no association matches the selector type %t"
 ec_incompatible_ifunc_resolver_type;;"the type of %n (%t) is incompatible with an ifunc resolver type"
 ec_ifunc_cant_be_alias;;"a function cannot have both ifunc and alias attributes"
 ec_ifunc_cant_be_weak;;"a function cannot have both ifunc and weak attributes"
+ec_call_requires_string_literal;;"call requires a string literal operand"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

@@ -7899,7 +7899,14 @@ pseudo_call can be NULL if that information is not needed.
       case bfk_atomic_always_lock_free:
       case bfk_atomic_is_lock_free:
 #endif /* GNU_BUILTIN_SYNC_FUNCTIONS_ALLOWED */
+        result = TRUE;
+        break;
       case bfk_assume_aligned:
+      case bfk_cpu_supports:
+      case bfk_cpu_is:
+        /* These are never actually "folded", but the "folding" mechanism
+           allows for error checking of arguments (in
+           fold_gnu_builtin_function_call_if_possible). */
         result = TRUE;
         break;
       default:
@@ -8270,6 +8277,8 @@ Otherwise, return FALSE.  If there's an error, set *err_code to the
 error code and return FALSE.  Otherwise, *err_code is set to
 ec_no_error.  call_expr is the original call node, which may be
 used to create a ck_template_param result for a dependent case.
+Note that in some cases, the builtin function is never folded;
+the folding mechanism is used as a way to validate argument values.
 */
 {
   a_boolean  folded = FALSE;
@@ -8561,6 +8570,18 @@ used to create a ck_template_param result for a dependent case.
           } else if (!is_integral_type(args2->next->type)) {
             *err_code = ec_3rd_arg_of_assume_aligned_must_be_integral;
           }  /* if */
+        }  /* if */
+        folded = FALSE;
+        break;
+      case bfk_cpu_supports:
+      case bfk_cpu_is:
+        /* These aren't actually folded, rather the "folding" mechanism is used
+           to perform a check that the argument is a string literal.  Note
+           that the value of the string literal is not checked here (that is
+           left to the back end). */
+        if (args == NULL ||
+            !expr_is_pointer_to_string_literal(args, (a_constant **)NULL)) {
+          *err_code = ec_call_requires_string_literal;
         }  /* if */
         folded = FALSE;
         break;
