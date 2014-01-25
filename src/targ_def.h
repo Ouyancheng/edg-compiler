@@ -2988,10 +2988,11 @@ re-written in lowering, so they'll always point to the wrapper routine.
 #endif /* DO_IL_LOWERING && GNU_EXTENSIONS_ALLOWED */
 #endif /* defined(LOWER_IFUNC) */
 
-#if BACK_END_IS_C_GEN_BE && !GCC_IS_GENERATED_CODE_TARGET && !LOWER_IFUNC
+#if BACK_END_IS_C_GEN_BE && !GCC_IS_GENERATED_CODE_TARGET && \
+    GNU_EXTENSIONS_ALLOWED && !LOWER_IFUNC
  #error -- LOWER_IFUNC must be TRUE if using BACK_END_IS_C_GEN_BE with a \
            non-gcc back end
-#endif /* BACK_END_IS_C_GEN_BE && !GCC_IS_GENERATED_CODE_TARGET && !LOWER_...*/
+#endif /* BACK_END_IS_C_GEN_BE && !GCC_IS_GENERATED_CODE_TARGET && ... */
 #if LOWER_IFUNC && !(DO_IL_LOWERING && GNU_EXTENSIONS_ALLOWED)
  #error -- LOWER_IFUNC can only be TRUE when both DO_IL_LOWERING and \
            GNU_EXTENSIONS_ALLOWED are TRUE
