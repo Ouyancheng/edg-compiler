@@ -4347,8 +4347,10 @@ associated global variables will also have been set).
                      macro_symbol->header->identifier);
   }  /* if */
 #endif /* DEBUG */
+#if FULLY_RESOLVED_MACRO_POSITIONS
   src_pos.seq = 0;
   src_pos.column = 0;
+#endif /* FULLY_RESOLVED_MACRO_POSITIONS */
   /* One we begin rescanning a macro, don't allow a PCH to be generated
      at this point. */
   num_macro_invocations_in_process++;

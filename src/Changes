@@ -1,5 +1,13 @@
 Version 4.9
 
+1/25/14  [EDGcpfe/14794]
+Warnings when building the front end with gcc
+
+Building the front end using gcc with certain compilation options (notably
+"-O2 -funroll-loops -Wall") resulted in compiler warnings.  These warnings
+have now been eliminated.
+
+
 1/25/14  [EDGcpfe/14808]
 GNU: Add support for __builtin_cpu_init, __builtin_cpu_is,
      __builtin_cpu_supports
