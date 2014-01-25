@@ -644,6 +644,9 @@ extern int fileno(FILE *);
 /*lint -esym(769,ec_defaulted_functions_is_cpp11)*/
 /*lint -esym(769,ec_cl_clang_mode_only_in_cplusplus)*/
 /*lint -esym(769,ec_nontrivial_statement_expr_result_type)*/
+/*lint -esym(769,ec_incompatible_ifunc_resolver_type)*/
+/*lint -esym(769,ec_ifunc_cant_be_alias)*/
+/*lint -esym(769,ec_ifunc_cant_be_weak)*/
 #endif /* !GNU_EXTENSIONS_ALLOWED */
 /*lint -esym(759,is_wide_string_constant)*/
 /*lint -esym(765,is_wide_string_constant)*/
