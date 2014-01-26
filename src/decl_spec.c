@@ -7272,7 +7272,7 @@ by *type_ptr.  This function is called from decl_specifiers only.
 
   if (qualifiers != TQ_NONE) {
 #if UPC_EXTENSIONS_ALLOWED
-    a_type_qualifier_set  new_upc_access, old_upc_access;
+    a_type_qualifier_set  new_upc_access = TQ_NONE, old_upc_access = TQ_NONE;
     if (upc_mode) {
       /* Retrieve the UPC strict/relax qualifiers for possible later
          checking. */
@@ -8835,7 +8835,7 @@ corresponding change in prescan_decl_specifiers (in disambig.c).
   a_boolean                  type_specifier_allowed, auto_type_allowed;
   a_boolean                  dangling_type_specifier = FALSE;
   a_boolean                  is_elaborated_type_specifier = FALSE;
-  an_error_severity          es;
+  an_error_severity          es = es_none;
   a_basic_type               basic_type = bt_none;
 #if GNU_EXTENSIONS_ALLOWED
   an_error_code              delayed_error = ec_no_error;
@@ -8851,7 +8851,7 @@ corresponding change in prescan_decl_specifiers (in disambig.c).
   a_boolean                  marked_as_gnu_extension =
                                   (input_flags & DSI_MARKED_AS_GNU_EXTENSION);
 #if UPC_EXTENSIONS_ALLOWED
-  a_upc_block_size           saved_block_size;
+  a_upc_block_size           saved_block_size = UPC_BLOCK_SIZE_INDEFINITE;
   a_boolean                  multiple_shared_seen = FALSE;
 #endif /* UPC_EXTENSIONS_ALLOWED */
 #if MICROSOFT_EXTENSIONS_ALLOWED

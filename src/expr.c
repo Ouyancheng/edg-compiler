@@ -10030,7 +10030,7 @@ previously-scanned sizeof expression, and return the result in *result
   a_upc_block_size      block_size;
   a_boolean             multiply_by_threads_needed = FALSE;
   a_boolean             use_special_upc_size = FALSE;
-  a_upc_block_size      special_upc_size;
+  a_upc_block_size      special_upc_size = UPC_BLOCK_SIZE_INDEFINITE;
   a_boolean             err = FALSE;
 #endif /* UPC_EXTENSIONS_ALLOWED */
   a_boolean             operand_was_created = FALSE, operand_was_used = FALSE;

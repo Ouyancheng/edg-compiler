@@ -477,7 +477,7 @@ depending on the type of the first argument (see adjust_gnu_sync_call).
   a_type_ptr       u1_type, u2_type, u4_type, u8_type;
 #if INT128_EXTENSIONS_ALLOWED
   an_integer_kind  u16_kind;
-  a_type_ptr       u16_type;
+  a_type_ptr       u16_type = NULL;
 #endif /* INT128_EXTENSIONS_ALLOWED */
   a_type_ptr       no_return_type, boolean_type;
   a_type_ptr       void_volatile_star_type, void_const_volatile_star_type;

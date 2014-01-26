@@ -1283,11 +1283,11 @@ are done with op_1.
   an_int_value_part	temp_product[WORK_AREA_PARTS];
   an_int_value_part	normalization_factor;
   int			i;
-  int			wa_first_part;
-  int			wa_parts;
+  int			wa_first_part = 0;
+  int			wa_parts = 0;
   int			j;
-  int			op_2_first_part;
-  int			op_2_parts;
+  int			op_2_first_part = 0;
+  int			op_2_parts = 0;
   a_boolean		overflow = FALSE;
   a_host_large_unsigned	v1;
 
@@ -1601,7 +1601,7 @@ buffer.  If an arithmetic value is negative, it is preceded by a "-".
   static char buffer[50];
   char        *result = buffer;
   int         num_hex_digits_in_repr = ((int)size * targ_char_bit) / 4;
-  int         num_hex_digits_printed;
+  int         num_hex_digits_printed = 0;
 
 #if INTEGER_VALUE_REPR_IS_A_HOST_INTEGER
   if (non_arithmetic && *p_value != 0) {
