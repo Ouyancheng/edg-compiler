@@ -1,5 +1,19 @@
 Version 4.9
 
+1/27/14  [EDGcpfe/14809]
+Constant folding with string constant values
+
+The front end previously miscalculated the ending point of a string
+initializer for a constexpr character array, so that accessing the array
+element immediately following the string's terminating '\0' retrieved a
+garbage value instead of the '\0' to which the array element is implicitly
+initialized.  This is now fixed.  For example:
+
+  constexpr char c[2] = "";
+  constexpr char x = c[1];
+  static_assert(x == 0, "Bug");   // Previously might fail
+
+
 1/27/14  [EDGcpfe/14812]
 Assertion failure in copy_type_full
 

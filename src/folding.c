@@ -9163,7 +9163,7 @@ evaluation (e.g., parameter values).
              within the constant or a character beyond the length of the
              initializer that was implicitly value-initialized. */
           found_value = TRUE;
-          if (offset > (a_targ_ptrdiff_t)(cum_offset + curr_type->size)) {
+          if (offset >= (a_targ_ptrdiff_t)(cum_offset + curr_type->size)) {
             /* Return a value-initialized constant of the element type. */
             result_con = NULL;
           }  /* if */
@@ -9320,7 +9320,7 @@ evaluation (e.g., parameter values).
           /* The requested type is not the string element type, probably
              as the result of a cast to reference type or the like. */
           type_mismatch = TRUE;
-        } else if (offset > (a_targ_ptrdiff_t)(cum_offset +
+        } else if (offset >= (a_targ_ptrdiff_t)(cum_offset +
                                         result_con->variant.string.length)) {
           /* The requested character is beyond the length of the constant,
              i.e., was implicitly value-initialized.  set result_con to NULL
