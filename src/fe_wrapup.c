@@ -159,7 +159,7 @@ It's a static entity that may be referenced from exported templates.
 {
   a_boolean                is_variable = (kind == iek_variable);
   a_variable_ptr           var;
-  a_routine_ptr            rout;
+  a_routine_ptr            rout = NULL;
   a_trans_unit_corresp_ptr tucp;
 
 #if DEBUG

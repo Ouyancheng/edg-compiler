@@ -436,7 +436,9 @@ operands points to the operands created so far.
   an_asm_operand_modifier        modifiers;
   a_boolean                      error_occurred = FALSE;
   a_const_char                   *p;
+#if !ACCEPT_UNRECOGNIZED_GNU_ASM_OPERANDS
   char                           errletter[2];
+#endif /* !ACCEPT_UNRECOGNIZED_GNU_ASM_OPERANDS */
 
   operand->constraints = NULL;
   if (cstring == NULL || expr == NULL) {
@@ -445,7 +447,9 @@ operands points to the operands created so far.
        still possible and useful to validate the constraint string. */
     goto error_return;
   }  /* if */
+#if !ACCEPT_UNRECOGNIZED_GNU_ASM_OPERANDS
   errletter[1] = '\0';
+#endif /* !ACCEPT_UNRECOGNIZED_GNU_ASM_OPERANDS */
   /* Compute modifiers. */
   modifiers = (an_asm_operand_modifier)aom_invalid;
   for (p = cstring; *p != '\0'; p++) {
@@ -456,8 +460,8 @@ operands points to the operands created so far.
       case '&': modifiers |= (an_asm_operand_modifier)aom_earlyclobber; break;
       /* Modifiers ignored in asm(): */
       case '%':  case '*':  case '#':  case '?':  case '!':
-        errletter[0] = *p;
 #if !ACCEPT_UNRECOGNIZED_GNU_ASM_OPERANDS
+        errletter[0] = *p;
         pos_st_warning(ec_asm_modifier_ignored, &operand->position, errletter);
 #endif /* !ACCEPT_UNRECOGNIZED_GNU_ASM_OPERANDS */
         break;
@@ -644,8 +648,8 @@ done_with_modifiers:
         break;
 #endif /* GNU_X86_ASM_EXTENSIONS_ALLOWED */
       default:
-        errletter[0] = *p;
 #if !ACCEPT_UNRECOGNIZED_GNU_ASM_OPERANDS
+        errletter[0] = *p;
         pos_st_error(ispunct((unsigned char)*p) ? 
                      ec_bad_asm_constraint_modifier : 
                      ec_bad_asm_constraint_letter,

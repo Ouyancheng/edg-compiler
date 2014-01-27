@@ -761,7 +761,7 @@ the source position of token_part_start.  force_new_region is TRUE if a new
 text map entry must be created.
 */
 {
-  sizeof_t     rel_src_offset;
+  sizeof_t     rel_src_offset = 0;
   sizeof_t     rel_targ_offset;
   a_boolean    new_region_required = FALSE;
   a_const_char *adj_start_of_curr_token = start_of_curr_token;
@@ -7299,7 +7299,7 @@ Scan and process a #define directive.
       a_boolean         defs_are_same = TRUE;
       a_boolean         discard_new_definition;
       an_error_severity severity;
-      an_error_code     code;
+      an_error_code     code = ec_no_error;
       a_const_char      *saved_macro_def = curr_cmd_line_or_predef_macro_def;
       if (curr_cmd_line_or_predef_macro_def == NULL ||
           processing_predefined_macro ||
@@ -7720,8 +7720,8 @@ which is true if one of the asserted values of #name is the indicated
 token-list.
 */
 {
-  an_assert_predicate_ptr predicate_entry;
-  char                    *token_str;
+  an_assert_predicate_ptr predicate_entry = NULL;
+  char                    *token_str = NULL;
   a_boolean               err = FALSE;
 
   db_enter(3, "proc_assert");
@@ -7771,9 +7771,9 @@ or
 
 */
 {
-  an_assert_predicate_ptr predicate_entry, prev_app;
+  an_assert_predicate_ptr predicate_entry = NULL, prev_app;
   an_assert_value_ptr     predicate_value, prev_avp;
-  char                    *token_str;
+  char                    *token_str = NULL;
   a_boolean               err = FALSE;
 
   db_enter(3, "proc_unassert");

@@ -4703,7 +4703,7 @@ given type.
     /* Correspondence checking is inhibited after errors are encountered. */
   } else {
     a_type_ptr  canon = (a_type_ptr)canonical_il_entry_of(type);
-    a_boolean   new_canon = FALSE, match;
+    a_boolean   new_canon = FALSE, match = FALSE;
     check_assertion(!is_incomplete_type(type));
     if (canon == type) {
       /* This is presumably the first class body instantiation. */

@@ -847,7 +847,7 @@ to be issued; otherwise set err_code to ec_no_error.
   a_type_ptr		float_tp = skip_typerefs(new_constant->type);
   a_float_kind		float_kind = float_tp->variant.float_kind;
   an_internal_float_value
-			*float_value;
+			*float_value = NULL;
   a_boolean		skip_conversion = FALSE;
   a_constant_repr_kind	constant_kind = (a_constant_repr_kind)ck_float;
 

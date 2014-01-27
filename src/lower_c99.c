@@ -1571,7 +1571,8 @@ is used for the increment/decrement).
 {
   an_expr_operator_kind op = expr->variant.operation.kind;
   an_expr_node_ptr      op1 = expr->variant.operation.operands;
-  an_expr_node_ptr      op1_for_argument, op1_for_assign, op_node, op2_node;
+  an_expr_node_ptr      op1_for_argument, op1_for_assign, op_node;
+  an_expr_node_ptr      op2_node = NULL;
   an_expr_node_ptr      con_node;
   a_variable_ptr        temp_var = NULL;
   a_boolean             is_post_op, temp_init_used;

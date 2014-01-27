@@ -3677,8 +3677,8 @@ message appears by itself on a separate line.
 */
 {
   a_boolean		result = FALSE;
-  a_symbol_ptr		sym;
-  an_error_code		error_code;
+  a_symbol_ptr		sym = NULL;
+  an_error_code		error_code = ec_no_error;
   a_source_position	*pos = NULL;
 
   if (ssep->exclude_from_context_output) {

@@ -3118,7 +3118,7 @@ defined.  Detailed position information is recorded in *decl_pos_block.
   a_symbol_locator        locator;
   a_symbol_ptr            tag_sym, error_tag_sym = NULL;
   a_symbol_ptr            parent_sym;
-  a_boolean               tag_id_present;
+  a_boolean               tag_id_present = FALSE;
   a_type_ptr              class_type = NULL;
   a_boolean               is_local_class = FALSE, class_key_is_missing = FALSE;
   a_boolean               is_abstract = FALSE, is_final = FALSE,
@@ -5547,7 +5547,7 @@ template.  dsi_flags is the set of input flags passed to decl_specifiers.
   a_symbol_locator             locator;
   a_symbol_ptr                 tag_sym;
   a_boolean                    tag_id_present;
-  a_type_ptr                   enum_type, explicit_base = NULL;
+  a_type_ptr                   enum_type = NULL, explicit_base = NULL;
   a_boolean                    err = FALSE;
   a_constant                   max_value, min_value;
   a_type_ptr                   class_of_which_a_member;
@@ -5557,7 +5557,7 @@ template.  dsi_flags is the set of input flags passed to decl_specifiers.
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   a_scope_depth                effective_decl_level = decl_scope_level;
   a_boolean                    inside_class_definition;
-  a_boolean                    is_redeclaration, is_definition = FALSE;
+  a_boolean                    is_redeclaration = FALSE, is_definition = FALSE;
   a_boolean                    namespace_extension_pushed = FALSE;
   a_boolean                    class_reactivation_pushed = FALSE;
   a_source_position            enum_pos, tag_position;
@@ -7148,7 +7148,8 @@ _Sat was specified.
     case bt_fract:
     case bt_accum:
       { /* Create a fixed-point type according to specification. */
-        a_fixed_point_precision  precision;
+        a_fixed_point_precision  precision =
+                                          (a_fixed_point_precision)fpp_default;
         switch (size) {
           case size_none:
             /* Default precision. */
@@ -8868,7 +8869,7 @@ corresponding change in prescan_decl_specifiers (in disambig.c).
   a_decl_flag_set            *output_flags = &state->dso_flags;
   a_boolean                  auto_is_first = FALSE;
 #if EXTRA_SOURCE_POSITIONS_IN_IL
-  a_source_position          id_start_pos;
+  a_source_position          id_start_pos = null_source_position;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
  
   db_enter(3, "decl_specifiers");

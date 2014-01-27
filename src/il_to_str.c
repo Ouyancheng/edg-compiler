@@ -3315,7 +3315,7 @@ Do the output in the way described by octl.
            the base class and the member type, so add an extra cast to
            adjust the member type, if necessary. */
         a_type_ptr new_member_type = pm_member_type(con_type);
-        a_type_ptr member_type = NULL, member_class;
+        a_type_ptr member_type = NULL, member_class = NULL;
         if (function_case) {
           a_routine_ptr rout = constant->variant.ptr_to_member.variant.routine;
           if (rout != NULL) {
@@ -3706,7 +3706,7 @@ parentheses are not needed.
   a_type_ptr              type, orig_type;
   a_constant_ptr          con = NULL;
   a_source_correspondence *entity_scp = NULL;
-  an_il_entry_kind        entity_kind;
+  an_il_entry_kind        entity_kind = iek_none;
   a_field_ptr             field;
   a_boolean               proper_type = FALSE;
   a_boolean               local_type_decay_used;

@@ -4764,7 +4764,7 @@ is TRUE, and search_path is empty.
 {
   a_file_suffix_ptr		fsp;
   a_directory_name_entry_ptr	curr_directory_name_entry;
-  a_const_char			*name_to_try;
+  a_const_char			*name_to_try = NULL;
   a_boolean			file_found = FALSE;
   a_const_char			*prev_dir_name = NULL;
   a_text_buffer_ptr		buffer = NULL;
@@ -5911,10 +5911,10 @@ macro_line_loc_to_source_pos should be used when speed is critical.
   int                     column_adjustment        = 0;
 #if FULLY_RESOLVED_MACRO_POSITIONS
   a_boolean               use_orig_position = FALSE;
-  a_seq_number            orig_seq;
-  a_column_number         orig_column;
+  a_seq_number            orig_seq = 0;
+  a_column_number         orig_column = 0;
   a_macro_invocation_record_index
-                          macro_context;
+                          macro_context = NO_PARENT_MACRO_INVOCATION;
 #endif /* FULLY_RESOLVED_MACRO_POSITIONS */
 
 #ifdef __COVERITY__
@@ -7359,7 +7359,7 @@ source text (end of token, start of expansion, end of expansion).
   a_const_char       *delete_to;
   a_source_line_modif_ptr
 		     slmp;
-  a_boolean          delete_only_for_comment;
+  a_boolean          delete_only_for_comment = FALSE;
 
 /* Macro used later to test if comments must be deleted.  Except for the
    keep_comments_in_pp_output switch, this is basically a time optimization --
@@ -9145,7 +9145,7 @@ caller is responsible for issuing error messages.
   unsigned long          nchars;
   a_boolean              unterminated = FALSE;
   an_orig_line_modif_ptr olmp = NULL;
-  int                    delim_len_adjustment;
+  int                    delim_len_adjustment = 0;
   a_boolean              is_raw_string;
   a_boolean              is_string_literal;
 
@@ -9647,7 +9647,7 @@ and return FALSE.
   for (p = curr_char_loc; !found_end && p <= max_delim - trigraph_len_offset;
        ++p) {
     a_boolean char_is_invalid = FALSE;
-    char      invalid_char;
+    char      invalid_char = '\0';
     if (*p == '(') {
       /* This is the terminator for the delimiter */
       found_end = TRUE;
@@ -13593,7 +13593,7 @@ cannot be used when fetching raw preprocessing tokens.
 */
 {
   a_token_cache 	cache;
-  a_token_kind		ntoken;
+  a_token_kind		ntoken = tok_error;
   a_cached_token_ptr	ctp = NULL;
   a_boolean		tokens_found = FALSE;
 
@@ -14722,7 +14722,7 @@ all arguments were explicit.
   a_symbol_ptr                     sym;
   a_type_ptr                       argument_type;
   a_constant_ptr                   constant;
-  a_template_arg_ptr               arg_ptr;
+  a_template_arg_ptr               arg_ptr = NULL;
   a_template_arg_ptr               arg_list = NULL;
   a_template_arg_ptr               last_arg = NULL;
   a_templ_arg_kind		   arg_kind;
@@ -17252,7 +17252,7 @@ selection operator, in which case it points to the type of the left operand.
   a_symbol_ptr			specific_sym = NULL;
   a_source_position		start_position;
   a_source_position		orig_error_position;
-  a_token_kind			next_tok;
+  a_token_kind			next_tok = tok_error;
   a_token_kind			next_tok_2;
   a_boolean			result = FALSE;
   a_boolean			err = FALSE;
@@ -20318,7 +20318,7 @@ C++/CLI delegate class types.)
   a_template_decl_info_ptr	tdip;
   a_boolean			define_class = FALSE;
   an_assembly_scope_index	assembly_scope_index = 0;
-  a_cpp_cli_token		metadata_type_def_token;
+  a_cpp_cli_token		metadata_type_def_token = 0;
   sizeof_t			size = 0;
   a_type_ptr			class_type_for_context = class_type;
   a_source_position             position_for_tokens;
@@ -20330,7 +20330,7 @@ C++/CLI delegate class types.)
   a_boolean			is_delegate;
   a_boolean			is_generic_definition;
   a_class_type_supplement_ptr	ctsp = class_type_supp(class_type);
-  an_assembly_index             assembly_index;
+  an_assembly_index             assembly_index = 0;
   an_assembly_index             saved_assembly_index = curr_assembly_index;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 

@@ -1252,7 +1252,7 @@ is set to TRUE.  Note that "err" is not TRUE for an unexpected token kind.
   a_boolean	    valid_token = TRUE;
   char		    *result = NULL;
   a_character_kind  char_kind = (a_character_kind)chk_char;
-  a_targ_size_t	    len, pos, char_size = 1;
+  a_targ_size_t	    len = 0, pos, char_size = 1;
 
   *err = FALSE;
   /* Copy the characters into a buffer, converting any upper case characters

@@ -9849,7 +9849,7 @@ possibility.
   a_decl_parse_state           *state = &decl_info->decl_state;
   a_type_ptr                   class_type = class_state->class_type;
   a_type_ptr                   function_type = state->type;
-  a_symbol_ptr                 sym, ext_sym;
+  a_symbol_ptr                 sym = NULL, ext_sym;
   an_id_linkage_kind           linkage;
   a_type_ptr                   old_type;
   a_symbol_reference_kind      srk_flags;
@@ -14680,7 +14680,7 @@ token cache that was created.
   a_token_sequence_number	first_tsn;
   a_token_sequence_number	last_tsn;
   a_token_set_array		stop_tokens;
-  a_boolean			saved_in_field_initializer;
+  a_boolean			saved_in_field_initializer = FALSE;
   a_boolean			is_field = symbol_is(sym, sk_field);
 
   /* Initialize a local stop token set to cache everything up to a semicolon
@@ -25596,8 +25596,8 @@ in the class designated by tag_sym.
   a_type_ptr                     class_type;
   a_symbol_ptr                   new_sym, del_sym;
   a_boolean                      array_pass, ambiguous;
-  an_opname_kind                 new_kind;
-  an_opname_kind                 del_kind;
+  an_opname_kind                 new_kind = (an_opname_kind)onk_none;
+  an_opname_kind                 del_kind = (an_opname_kind)onk_none;
 
   cssp = tag_sym->variant.class_struct_union.extra_info;
   class_type = tag_sym->variant.class_struct_union.type;
@@ -26012,7 +26012,7 @@ named XYZ.
 
   for (; sym != NULL; sym = sym->next_in_scope) {
     a_const_char *mem_id = sym->header->identifier, *pname = NULL;
-    a_boolean    property_case;
+    a_boolean    property_case = FALSE;
     if (symbol_is(sym, sk_type) && sym->variant.type.is_injected_class_name) {
       /* The injected class name is not considered. */
       continue;

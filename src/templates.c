@@ -10662,7 +10662,7 @@ given T, A<T> contains no member named B.  Other cases include putting
 a pointer over a reference type or creating an array of references.
 */
 {
-  a_type_ptr			new_type;
+  a_type_ptr			new_type = NULL;
   a_type_ptr			tp;
   a_type_ptr			tp2;
   int				reusable_param_types;
@@ -11665,9 +11665,9 @@ accordingly.
 {
   a_routine_ptr                     rp;
   a_template_instance_ptr           tip;
-  a_template_symbol_supplement_ptr  tssp;
+  a_template_symbol_supplement_ptr  tssp = NULL;
   an_exception_specification_ptr    esp = NULL;
-  a_symbol_ptr                      template_sym;
+  a_symbol_ptr                      template_sym = NULL;
   
   check_assertion(is_simple_function_symbol(sym));
   rp = sym->variant.routine.ptr;
@@ -14430,7 +14430,7 @@ this routine has no effect.
     } else {
       a_symbol_ptr			proto_sym;
       a_template_symbol_supplement_ptr	alias_tssp;
-      a_template_symbol_supplement_ptr	proto_tssp;
+      a_template_symbol_supplement_ptr	proto_tssp = NULL;
       cssp = corresp_prototype_tag_sym->variant.class_struct_union.extra_info;
       for (proto_sym = find_symbol_list_in_table(&cssp->pointers_block,
                                            alias_sym->header);
@@ -16892,7 +16892,7 @@ delegate.
   a_symbol_ptr				sym = NULL;
   a_template_symbol_supplement_ptr	tssp;
 #if GENERATE_SOURCE_SEQUENCE_LISTS
-  a_boolean				saved_sses_disallowed;
+  a_boolean				saved_sses_disallowed = FALSE;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   a_func_info_block			func_info;
   a_type_ptr				prototype_type;
@@ -17235,7 +17235,7 @@ declaration of a partial specialization declared outside of its class.
                                     is_sealed = FALSE;
   an_attribute_ptr                  attributes = NULL;
 #if GENERATE_SOURCE_SEQUENCE_LISTS
-  a_boolean                         saved_sses_disallowed;
+  a_boolean                         saved_sses_disallowed = FALSE;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 
   db_enter(3, "class_template_declaration");
@@ -22041,7 +22041,7 @@ alias
   an_attribute_ptr			attributes;
   an_attribute_ptr			*p_attributes = &attributes;
 #if GENERATE_SOURCE_SEQUENCE_LISTS
-  a_boolean				saved_sses_disallowed;
+  a_boolean				saved_sses_disallowed = FALSE;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   a_boolean				keep_token_cache = TRUE;
   a_boolean				internal_alias;
@@ -29349,7 +29349,7 @@ applying a Microsoft dllimport or dllexport attribute to a template instance.
     unexpected_condition();
   }  /* if */
   if (tip != NULL) {
-    a_boolean	instantiation_required_flag;
+    a_boolean	instantiation_required_flag = FALSE;
     a_boolean	is_inline;
     is_inline = is_inline_template_function(tip, /*in_class=*/FALSE);
     if (!(is_pragma || is_dll_directive) && tip->explicit_instantiation) {
@@ -29787,7 +29787,7 @@ instantiation.
   a_func_info_block            func_info;
   a_decl_pos_block             decl_pos_block;
 #if GENERATE_SOURCE_SEQUENCE_LISTS
-  a_source_sequence_entry_ptr  ssep;
+  a_source_sequence_entry_ptr  ssep = NULL;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   an_error_severity            severity_if_not_found = es_error;
   a_boolean                    accept_static = FALSE, accept_extern = FALSE;
@@ -30421,8 +30421,10 @@ directive_start_pos points to the beginning of the directive or declaration
        This is a template declaration or a specialization using the new
        specialization syntax. */
     a_scope_stack_entry_ptr  ssep = &scope_stack[depth_scope_stack];
-    a_name_linkage_kind      saved_name_linkage;
-    a_boolean                err = FALSE, saved_name_linkage_is_explicit;
+    a_name_linkage_kind      saved_name_linkage =
+                                                 (a_name_linkage_kind)nlk_none;
+    a_boolean                err = FALSE;
+    a_boolean                saved_name_linkage_is_explicit = FALSE;
 
     if ((options & TDO_EXTERN) != 0) {
       /* An "extern" storage class is only permitted on an explicit

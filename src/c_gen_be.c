@@ -4713,7 +4713,7 @@ output with parentheses if needed.
       write_tok_ch('.');
     }  /* if */
   } else {
-    a_type_ptr unqual_underlying_type;
+    a_type_ptr unqual_underlying_type = NULL;
     /* Look for a field selection of a mutable field from a const
        structure.  (This cannot occur in the rvalue case above because
        lowering of class rvalues removes cv-qualification.)  A cast to

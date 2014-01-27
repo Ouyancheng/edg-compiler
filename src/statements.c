@@ -2022,7 +2022,7 @@ by traversing the control-flow list backwards from *start to *end.
 */
 {
   a_control_flow_descr_ptr  cfdp, parent, end_parent, stop_at;
-  a_statement_ptr           dealloc_stmt, first = NULL, last;
+  a_statement_ptr           dealloc_stmt, first = NULL, last = NULL;
   a_boolean                 done;
 
   db_enter(4, "collect_vla_dealloc_stmts");
@@ -2503,7 +2503,7 @@ headed by goto_cfdp.
 */
 {
   an_object_lifetime_ptr    label_olp, *goto_olp_addr;
-  a_control_flow_descr_ptr  cfdp;
+  a_control_flow_descr_ptr  cfdp = NULL;
 
   define_label(label);
   if (!C_mode() || vla_enabled) {
@@ -3356,7 +3356,7 @@ statement implicitly defines a local scope.
 */
 {
   a_boolean         block_added;
-  a_statement_ptr   block;
+  a_statement_ptr   block = NULL;
 
   db_enter(3, "dependent_statement");
   /* In C++ and C99, add a block (and potential scope).  Do not do so, however,
@@ -4499,11 +4499,11 @@ The affinity can be an expression or the keyword "continue".
   a_boolean                  is_range_based_for = FALSE;
 #if UPC_EXTENSIONS_ALLOWED
   an_expr_node_ptr           affinity_expr = NULL;
-  a_statement_ptr            saved_innermost_forall_loop;
+  a_statement_ptr            saved_innermost_forall_loop = NULL;
 #endif /* UPC_EXTENSIONS_ALLOWED */
   a_source_position          stmt_pos, range_pos;
   a_token_sequence_number    expr_tok_seq_number;
-  a_range_based_for_loop_ptr rbflp;
+  a_range_based_for_loop_ptr rbflp = NULL;
   a_scope_pointers_block     iterator_pointers_block, middle_pointers_block;
   a_symbol_ptr               iterator_sym = NULL;
 
@@ -5613,7 +5613,7 @@ in which such a return is undefined.
   a_routine_ptr     rout;
   a_type_ptr        rout_type, tp;
   a_boolean         issue_no_value_returned_diag = FALSE;
-  an_error_severity no_returned_value_severity;
+  an_error_severity no_returned_value_severity = es_none;
 
   *return_expr = NULL;
   /* Disable return value optimization in a function that contains a void

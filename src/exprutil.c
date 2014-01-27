@@ -2161,7 +2161,7 @@ expression.
     result = lspvep;
     while (lspvep != NULL && rspvep != NULL) {
       /* The two lists are sorted using the variable's name as a key. */
-      int       ret;
+      int       ret = 0;
       a_boolean found = FALSE;
       if (lspvep->variable == rspvep->variable) {
         /* This variable is common to both lists; merge the two lists of
@@ -4244,7 +4244,7 @@ in *bound_function_selector.
 */
 {
   an_expr_node_ptr              orig_expr = expr;
-  an_expr_node_ptr              expr_copy;
+  an_expr_node_ptr              expr_copy = NULL;
   a_boolean                     copy_error = FALSE, rescanned_case = FALSE;
   a_ctws_state                  ctws_state;
   a_constant                    constant;
@@ -9488,7 +9488,7 @@ a source position for any errors.
   a_type_ptr    type_1 = skip_typerefs(operand_1->type),
                 type_2 = skip_typerefs(operand_2->type);
   a_float_kind  fkind_1, fkind_2;
-  a_float_kind  fkind_result;
+  a_float_kind  fkind_result = (a_float_kind)fk_float;
   a_boolean     is_compound_assignment = FALSE;
 
   switch (op_token) {
@@ -9829,7 +9829,7 @@ used only in strict ANSI mode.  Return FALSE if there is an error.
   a_boolean        okay = FALSE;
   a_type_ptr       operand_1_type = operand_1->type;
   a_type_ptr       operand_2_type = operand_2->type;
-  a_type_ptr       local_operation_type;
+  a_type_ptr       local_operation_type = NULL;
   a_boolean        operand_1_is_pointer = is_pointer_type(operand_1_type);
   a_boolean        operand_2_is_pointer = is_pointer_type(operand_2_type);
   a_boolean        suppress_extensions;
@@ -9976,7 +9976,8 @@ used only in strict ANSI mode.  Return FALSE if there is an error.
            of pointers to "void *", are not standard in the present case. */
         nonstd_case = TRUE;
       } else {
-        a_type_ptr operand_1_type_pointed_to, operand_2_type_pointed_to;
+        a_type_ptr operand_1_type_pointed_to = NULL;
+        a_type_ptr operand_2_type_pointed_to = NULL;
         /* Fetch the types pointed to by the pointer operands. */
         if (operand_1_is_pointer) {
           operand_1_type_pointed_to = type_pointed_to(operand_1_type);
@@ -10063,7 +10064,7 @@ FALSE if there is an error.
   a_boolean        okay = FALSE;
   a_type_ptr       operand_1_type = operand_1->type;
   a_type_ptr       operand_2_type = operand_2->type;
-  a_type_ptr       local_operation_type;
+  a_type_ptr       local_operation_type = NULL;
   a_boolean        operand_1_is_handle = is_handle_type(operand_1_type);
   a_boolean        operand_2_is_handle = is_handle_type(operand_2_type);
 
@@ -10413,7 +10414,7 @@ adding an integer to fixed-point type.)
                                        tp2->variant.fixed_point.is_unsigned) {
       /* One of the two operands needs to be converted to a signed type. */
       an_operand  *operand_to_adjust;
-      a_type_ptr  type;
+      a_type_ptr  type = NULL;
       if (tp1->variant.fixed_point.is_unsigned) {
         if (is_compound_assignment_operator(op)) {
           /* The first operand of a compound assignment operation cannot be
@@ -13317,7 +13318,7 @@ question_position and colon_position give the position of the "?" and ":".
   a_boolean  class_rvalue_cctor_case = FALSE;
   a_boolean  optimizable = FALSE;
   a_dynamic_init_ptr
-             dip_2, dip_3;
+             dip_2 = NULL, dip_3 = NULL;
   an_operand *preserved_operand = NULL, *discarded_operand = NULL;
 
   operation_type = result_type;
@@ -16629,7 +16630,7 @@ result type for the lvalue operation.
 */
 {
   a_boolean  okay = FALSE;
-  a_type_ptr res_type, type2, type3;
+  a_type_ptr res_type = NULL, type2, type3;
   a_boolean  op2_possible, op3_possible;
 
   /* Note that by the time a "?" operation gets here, it has

@@ -642,8 +642,8 @@ destination type (this comes up in a Microsoft-mode extension).
   a_boolean        is_ref_to_const = FALSE, is_rvalue_ref = FALSE;
   a_boolean        sym_is_list, need_templates_pass;
   a_boolean        dest_type_has_type_qualifiers = FALSE;
-  a_type_ptr       routine_type, dest_class, ptr_routine_type;
-  a_type_ptr       dest_underlying_type;
+  a_type_ptr       routine_type, dest_class = NULL, ptr_routine_type;
+  a_type_ptr       dest_underlying_type = NULL;
   a_symbol_ptr     sym, proj_sym, match_sym = NULL;
   unsigned long    number_of_matches = 0;
   a_std_conv_descr std_conversion;
@@ -1164,7 +1164,7 @@ from previous arguments; in the standard case, it is always NULL.
     for (proj_sym = set_up_overload_set_traversal_simple(sym, &ostblock);
          proj_sym != NULL;
          proj_sym = next_symbol_in_overload_set(&ostblock)) {
-      a_type_ptr routine_type = NULL, ptr_routine_type;
+      a_type_ptr routine_type = NULL, ptr_routine_type = NULL;
       a_boolean  matches = FALSE;
       /* Remove projections for namespaces, if any. */
       sym = fundamental_symbol_of(proj_sym);
@@ -2319,7 +2319,7 @@ can be called with source_operand having a handle type.  Use
 is_potential_conv_function_source as the appropriate guard function.
 */
 {
-  a_boolean          okay;
+  a_boolean          okay = FALSE;
   a_type_ptr         base_dest_type;
   a_boolean          do_ms_quirk;
 
@@ -2719,8 +2719,9 @@ copy-initialization).
   an_operand        *orig_arg_operand;
   a_boolean         param_is_reference, param_is_rvalue_reference;
   a_boolean         source_can_be_rvalue = TRUE;
-  a_boolean         param_is_class_type, arg_is_class_type;
-  a_boolean         ref_type_qualifiers_dropped, ref_type_qualifiers_added;
+  a_boolean         param_is_class_type = FALSE, arg_is_class_type;
+  a_boolean         ref_type_qualifiers_dropped = FALSE;
+  a_boolean         ref_type_qualifiers_added = FALSE;
   a_boolean         ref_qualifiers_dropped_related_type;
   a_boolean         uses_type_qualifiers_dropped_anachronism = FALSE;
   a_std_conv_descr  std_conversion;
@@ -4877,7 +4878,7 @@ the point of call.  conv_context describes the context of the conversion.
 #endif /* DEBUG */
   a_boolean                suppress_param_advance, first_pass;
   an_arg_match_summary_ptr this_match, this_match_next;
-  an_arg_match_summary_ptr arg_match = NULL, saved_arg_match_next;
+  an_arg_match_summary_ptr arg_match = NULL, saved_arg_match_next = NULL;
   an_arg_match_summary_ptr arg_match_list = NULL;
   an_arg_match_summary_ptr end_arg_match_list = NULL;
   a_boolean                function_template_case = FALSE;
@@ -6636,7 +6637,7 @@ apply that would make one better than the other, and return
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
           if (cmp == 0) {
             a_boolean do_comparison = FALSE;
-            a_boolean added1, added2;
+            a_boolean added1 = FALSE, added2 = FALSE;
             if (types_are_both_pointers_or_both_handles(param_type1,
                                                         param_type2)) {
               /* Check for adding cv-qualifiers under a pointer or handle.
@@ -9682,7 +9683,7 @@ or whether it is static or nonstatic.
 */
 {
   a_boolean        is_dependent = FALSE, is_selection = FALSE;
-  a_boolean        is_arrow_operator;
+  a_boolean        is_arrow_operator = FALSE;
   an_expr_node_ptr op1;
 
   if (is_operation_node(sel_expr)) {
@@ -15260,7 +15261,7 @@ Adjust the operand type to match the type requirement.
     /* Non-class operands need not be adjusted here; the built-in operator
        processing will do it. */
   } else {
-    a_boolean saved_inside_conditional_expression;
+    a_boolean saved_inside_conditional_expression = FALSE;
     if (inside_conditional) {
       /* If this operand is under a conditional operator, make sure
          inside_conditional_expression is set in the expression stack so
@@ -18938,7 +18939,7 @@ happen only in C++ mode.
   a_boolean          class_bitwise_copy, elision_applies = FALSE;
   a_routine_ptr      elided_cctor = NULL;
   a_type_ptr         class_type = skip_typerefs(dest_type);
-  a_type_ptr         elision_source_type;
+  a_type_ptr         elision_source_type = NULL;
   a_boolean          saved_make_access_errors_warnings =
                                  scope_stack_top().make_access_errors_warnings;
   a_boolean          need_make_access_errors_warnings_restore = FALSE;
@@ -21455,7 +21456,7 @@ errors should be suppressed (i.e., SFINAE mode).
        elem_icp = next_elem(elem_icp)) {
     an_init_state        init_state;
     an_arg_match_summary local_arg_match;
-    a_boolean            check_narrowing = TRUE, saved_check_narrowing;
+    a_boolean            check_narrowing = TRUE, saved_check_narrowing = FALSE;
     a_boolean            will_need_partial_aggregate_destructor = FALSE;
     a_conv_context_set   econv_context = conv_context &
                              (CCO_INITIALIZING_VARIABLE | CCO_STATIC_LIFETIME |

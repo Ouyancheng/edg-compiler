@@ -649,7 +649,7 @@ assembler code.
 {
   if (gnu_mode && curr_token == tok_asm) {
     a_const_char       *asm_name = NULL;
-    a_source_position  asm_start_pos, asm_name_pos;
+    a_source_position  asm_start_pos, asm_name_pos = null_source_position;
     asm_start_pos = pos_curr_token;
     report_gnu_extension_if_needed(&pos_curr_token,
                                    ec_asm_name_is_gnu_extension);
@@ -1649,7 +1649,7 @@ is issued mark *locator as an error locator.
 */
 {
   an_error_code      error_code = ec_no_error;
-  an_error_severity  severity;
+  an_error_severity  severity = es_none;
 
   if (locator->is_operator_name && !locator->is_class_member &&
       (is_new_operator(locator->variant.opname) ||
@@ -3881,14 +3881,14 @@ created; the caller must set it.
 */
 {
   a_symbol_ptr               ext_sym;
-  an_extern_symbol_descr_ptr esdp;
+  an_extern_symbol_descr_ptr esdp = NULL;
   a_const_char               *old_name, *new_name;
   a_symbol_kind              ext_sym_kind;
   a_symbol_locator           ext_locator;
   a_func_info_block_ptr      func_info = idlbp->func_info;
   a_boolean                  err = FALSE;
   a_boolean                  use_existing_il_entry = FALSE;
-  a_type_ptr                 preexisting_type;
+  a_type_ptr                 preexisting_type = NULL;
   a_boolean                  is_implicit_declaration = FALSE;
   a_boolean                  is_function;
   an_error_severity          incomp_severity = es_error;
@@ -4050,7 +4050,7 @@ created; the caller must set it.
       if (!C_mode() && !is_function) {
         /* Check for external name conflicts between two variables. */
         an_error_severity  sev = es_none;
-        an_error_code      diag; 
+        an_error_code      diag = ec_no_error; 
         if ((a_name_linkage_kind)scp->name_linkage != name_linkage &&
             ((a_name_linkage_kind)scp->name_linkage ==
                                            (a_name_linkage_kind)nlk_external ||
@@ -10366,7 +10366,7 @@ class_type identifies the class of which it is a member.  Create and enter a
 symbol entry, and return a pointer to it in state->sym.
 */
 {
-  a_type_ptr               tp, type_ptr = state->type;
+  a_type_ptr               tp = NULL, type_ptr = state->type;
   a_symbol_ptr             sym = NULL;
   a_boolean                is_redecl = FALSE;
   a_boolean                suppress_redecl_error = FALSE;

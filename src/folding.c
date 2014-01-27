@@ -3471,7 +3471,7 @@ static void do_land(a_constant    *constant_1,
 Do the logical "and" (&&) operation on integers, floats, and pointers.
 */
 {
-  int res;
+  int res = 0;
 
   *did_not_fold = FALSE;
   /* Fold the operation.  If either constant is a link-time constant, it
@@ -3510,7 +3510,7 @@ static void do_lor(a_constant    *constant_1,
 Do the logical "or" (||) operation on integers, floats, and pointers.
 */
 {
-  int res;
+  int res = 0;
 
   *did_not_fold = FALSE;
   /* Fold the operation.  If either constant is a link-time constant, it
@@ -5853,7 +5853,7 @@ a constexpr expansion, and the block provides context information.
              has a static address when it's a local variable.  In that case,
              the caller should make sure not to save the resulting
              constant.) */
-          a_storage_class sc;
+          a_storage_class sc = (a_storage_class)sc_unspecified;
           a_boolean       auto_case = (var->storage_class ==
                                                      (a_storage_class)sc_auto);
           if (auto_case) {
@@ -9515,7 +9515,7 @@ ceblock gives context information for the evaluation.
         op1_folded = fold_expr(op1, ceblock, &op1_constant);
         if (op1_folded &&
             constant_bool_value_known_at_compile_time(&op1_constant)) {
-          a_boolean result;
+          a_boolean result = FALSE;
           if (op == (an_expr_operator_kind)eok_land) {
             /* && operator. */
             if (is_false_constant(&op1_constant)) {
@@ -10173,7 +10173,7 @@ there is some kind of failure.
                                           &crp->constant_value);
     } else {
       a_dynamic_init_ptr top_temp_dip = NULL;
-      a_boolean          saved_flag;
+      a_boolean          saved_flag = FALSE;
       if (ptp != NULL && is_any_reference_type(ptp->type) &&
           is_operation_node(arg) && node_operator_is(arg, eok_reference_to)) {
         /* The temporary bound to a reference parameter gets special

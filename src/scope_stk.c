@@ -1786,7 +1786,7 @@ template with no current instantiation or definition, we return FALSE.
   a_scope_depth  depth;
   a_boolean      found = TRUE;
   a_boolean      is_instantiation_scope;
-  a_symbol_ptr   instance_sym;
+  a_symbol_ptr   instance_sym = NULL;
 
   if (is_injected_template_symbol(*sym)) {
     /* The symbol is the injected name of a class template.  Substitute
@@ -4605,13 +4605,13 @@ In such cases, template_sym and instance_sym point to the symbol of the
 class to be defined.
 */
 {
-  a_namespace_ptr		parent_nsp;
+  a_namespace_ptr		parent_nsp = NULL;
   a_type_ptr			parent_class;
-  a_scope_depth			common_depth;
-  a_scope_depth			new_innermost_namespace_scope;
-  a_scope_depth			context_depth;
-  a_scope_depth			definition_depth;
-  a_scope_depth			after_definition_depth;
+  a_scope_depth			common_depth = NO_SCOPE_DEPTH;
+  a_scope_depth			new_innermost_namespace_scope = NO_SCOPE_DEPTH;
+  a_scope_depth			context_depth = NO_SCOPE_DEPTH;
+  a_scope_depth			definition_depth = NO_SCOPE_DEPTH;
+  a_scope_depth			after_definition_depth = NO_SCOPE_DEPTH;
   a_scope_depth			orig_depth = depth_scope_stack;
   a_scope_depth			saved_innermost_scope_that_affects_access;
   a_namespace_ptr		reference_nsp;

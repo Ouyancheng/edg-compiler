@@ -3493,7 +3493,7 @@ When NATIVE_MULTIBYTE_CHARS_SUPPORTED_WITH_UNICODE is FALSE, native characters
 are assumed to be Latin-1.
 */
 {
-  int len;
+  int len = 0;
 
   if (err != NULL) *err = FALSE;
 #if USE_OWN_SJIS_MULTIBYTE_CHAR_PROCESSING
@@ -3650,7 +3650,7 @@ When NATIVE_MULTIBYTE_CHARS_SUPPORTED_WITH_UNICODE is FALSE, native characters
 are assumed to be Latin-1.
 */
 {
-  int       numch;
+  int       numch = 0;
   a_boolean local_err = FALSE;
 
 #if USE_OWN_SJIS_MULTIBYTE_CHAR_PROCESSING || \
@@ -4353,11 +4353,11 @@ file names are not known to be relative to the current directory.
   a_const_char	*start2 = file2;
   a_const_char	*file_start1;
   a_const_char	*file_start2;
-  char		*end1;
-  char		*end2;
+  char		*end1 = NULL;
+  char		*end2 = NULL;
   a_boolean	match = FALSE;
-  char		saved_delim1;
-  char		saved_delim2;
+  char		saved_delim1 = '\0';
+  char		saved_delim2 = '\0';
 
   /* If we are ignoring delimiters, temporarily replace the trailing
      delimiter with a null. */

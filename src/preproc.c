@@ -2426,10 +2426,10 @@ Output a pragma directive to the preprocessed output file.  Turn on
 expansion of macros if necessary for this kind of pragma.
 */
 {
-  a_boolean	save_expand_macros;
-  a_boolean	save_do_string_literal_concatenation;
-  a_boolean	save_fetch_pp_tokens;
-  a_boolean     save_recognize_keywords_in_pragma;
+  a_boolean	save_expand_macros = FALSE;
+  a_boolean	save_do_string_literal_concatenation = FALSE;
+  a_boolean	save_fetch_pp_tokens = FALSE;
+  a_boolean     save_recognize_keywords_in_pragma = FALSE;
 
   if (pkdp != NULL) {
     /* Save the current value of the lexical scanning mode flags. */
@@ -2663,7 +2663,7 @@ where <string> is a quoted character string (not wide chars).
 */
 {
   a_boolean               err = FALSE;
-  a_constant_ptr          cp;
+  a_constant_ptr          cp = NULL;
   a_memory_region_number  region_to_switch_back_to;
 
   begin_rescan_of_pragma_tokens(ppp);
@@ -3343,7 +3343,8 @@ executable file.
 */
 {
   a_boolean                       err = FALSE;
-  a_microsoft_pragma_comment_type kind;
+  a_microsoft_pragma_comment_type kind =
+                                (a_microsoft_pragma_comment_type)mpct_compiler;
   a_constant_ptr                  cp = NULL;
 
   begin_rescan_of_pragma_tokens(ppp);

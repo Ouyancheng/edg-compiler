@@ -9818,7 +9818,7 @@ set to iek_none.
 */
 {
   char             *entry_ptr = NULL;
-  an_il_entry_kind lkind;
+  an_il_entry_kind lkind = iek_none;
 
   switch (sym->kind) {
     case sk_macro:
@@ -10448,7 +10448,7 @@ might be a projection symbol as well).  See have_access_across_path
 for a description of virtual_step_stack.
 */
 {
-  an_access_specifier access;
+  an_access_specifier access = (an_access_specifier)as_public;
   a_symbol_ptr        fund_proj_sym, step_proj_sym;
   a_boolean           need_to_compute_access;
 
@@ -10569,8 +10569,8 @@ this one.
 {
   a_boolean             have_access = FALSE, base_class_accessible;
   an_access_specifier   access, base_class_deriv;
-  a_boolean             have_member_access, determined_member_access;
-  a_boolean             have_protected_member_access;
+  a_boolean             have_member_access = FALSE, determined_member_access;
+  a_boolean             have_protected_member_access = FALSE;
   a_boolean             determined_protected_member_access;
   a_base_class_ptr      bcp;
   a_virtual_step_stack_entry
@@ -11158,7 +11158,7 @@ a context where deferral of errors applies.
 */
 {
   a_boolean			defer_access_checks = FALSE;
-  a_scope_stack_entry_ptr	ssep;
+  a_scope_stack_entry_ptr	ssep = NULL;
   a_boolean			in_template_arg_list;
 
   if (scope_stack_top().make_access_errors_warnings) {

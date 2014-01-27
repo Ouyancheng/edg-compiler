@@ -931,7 +931,7 @@ diagnostics.
        initializes the whole vector. */
   } else {
     a_targ_size_t      ecount, icount = 0;
-    a_boolean          no_bound = FALSE, saved_pack_expansion_handled;
+    a_boolean          no_bound = FALSE, saved_pack_expansion_handled = FALSE;
     a_boolean          braced = is_braced_init_component(icp);
     a_type_ptr         etype;
     ecount = num_vector_elements(vtype);
@@ -1683,8 +1683,8 @@ available.
          designator (i.e., a "chained" designator), special care must be taken
          to go down a level in the aggregate structure. */
       a_constant_ptr     next_con;
-      a_boolean          saved_has_dynamic_init_component;
-      a_source_position  *pos;
+      a_boolean          saved_has_dynamic_init_component = FALSE;
+      a_source_position  *pos = NULL;
       if (repeat_count > 1) {
         /* Temporarily clear the has_dynamic_init_component flag so we can
            find out if the designated element has a dynamic component. */
@@ -1771,7 +1771,7 @@ initialization).  *is describes the initialization as a whole.
     a_type_ptr     etype = atype->variant.array.element_type;
     a_boolean      no_bound = FALSE, braced = is_braced_init_component(icp),
                    zero_sized_element = FALSE, incomplete_array = FALSE;
-    a_boolean      saved_pack_expansion_handled;
+    a_boolean      saved_pack_expansion_handled = FALSE;
     if (is->check_validity_only) {
       *init_con = NULL;
     } else {
@@ -2682,7 +2682,7 @@ issued if no more specific position is available.
   } else {
     a_field_ptr  fp = class_type->variant.class_struct_union.field_list;
     a_boolean    braced = is_braced_init_component(icp),
-                 saved_pack_expansion_handled;
+                 saved_pack_expansion_handled = FALSE;
     a_type_ptr   saved_class_to_look_in = is->class_to_look_in;
     if (!class_type
                  ->variant.class_struct_union.is_nonstd_anonymous_union_type) {
@@ -6373,8 +6373,8 @@ constructor, the scanned type is stored for later use.
   check_assertion(cibp->pending_decltype_initializer_type == NULL);
   if (cibp->has_explicit_init &&
       (is_decl_qualified_name_start() || is_decltype_mem_initializer(cibp))) {
-    a_type_ptr    tp, orig_type = NULL, decltype_type;
-    a_symbol_ptr  sym;
+    a_type_ptr    tp, orig_type = NULL, decltype_type = NULL;
+    a_symbol_ptr  sym = NULL;
     if (is_decltype_mem_initializer(cibp)) {
       /* decltype can be used to denote a delegating constructor in C++11
          modes; scan the decltype operator and see if the underlying type
@@ -6570,7 +6570,7 @@ initialized.  These are addressed in the course of the processing.
   a_base_class_ptr              bcp;
   a_class_type_supplement_ptr   ctsp;
   a_class_symbol_supplement_ptr cssp;
-  a_routine_ptr                 rp;
+  a_routine_ptr                 rp = NULL;
   a_dynamic_init_ptr            dip;
   a_constructor_init_ptr        uninit_list = NULL, end_of_uninit_list = NULL;
   a_boolean                     any_ref_member_on_uninit_list = FALSE;

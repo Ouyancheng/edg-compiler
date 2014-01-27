@@ -4785,7 +4785,7 @@ statement if necessary.
   an_expr_node_ptr          func_frame_function_array_table;
   an_expr_node_ptr          func_frame_function_saved_region_number;
   a_boolean                 need_throw_epilogue = FALSE;
-  an_eh_stack_entry_kind    eh_stack_kind;
+  an_eh_stack_entry_kind    eh_stack_kind = ehsek_old_try_block;
 #endif /* DO_FULL_PORTABLE_EH_LOWERING */
 
   saved_code_pos = code_pos_for_lowering;

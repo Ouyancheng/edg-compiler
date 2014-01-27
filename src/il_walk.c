@@ -1905,7 +1905,7 @@ routine modifies some entry that might be earlier on the list, set
       a_src_seq_secondary_decl_ptr   sec_decl = NULL;
       a_src_seq_end_of_construct_ptr ecp = NULL;
       an_instantiation_directive_ptr idp = NULL;
-      a_boolean                      keep_in_il;
+      a_boolean                      keep_in_il = FALSE;
 
       if (ss_entry_kind(ssep) == iek_src_seq_secondary_decl) {
         /* This is a secondary declaration. */

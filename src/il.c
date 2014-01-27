@@ -11387,7 +11387,7 @@ field in the new parameter types will be NULL.
 */
 {
   a_type_kind                   from_kind;
-  a_routine_type_supplement_ptr extra_info;
+  a_routine_type_supplement_ptr extra_info = NULL;
   a_type_ptr                    next_ptr, tp;
   a_dependent_type_fixup_kind   dtf_kind;
 
@@ -15115,7 +15115,7 @@ this routine does not have the constant-value parameters that are usual
 in these template-parameter-substitution routines.
 */
 {
-  an_expr_node_ptr expr_copy;
+  an_expr_node_ptr expr_copy = NULL;
 
   if (is_error_node(expr)) {
     expr_copy = error_node();
@@ -17113,12 +17113,12 @@ Allocate a copy of an expression node and return a pointer to it.
 {
   an_expr_node_ptr              expr_copy;
   an_expr_node_kind             kind = expr->kind;
-  a_new_delete_supplement_ptr   copy_new_delete;
+  a_new_delete_supplement_ptr   copy_new_delete = NULL;
 #if MICROSOFT_EXTENSIONS_ALLOWED
-  a_gcnew_supplement_ptr        copy_gcnew;
+  a_gcnew_supplement_ptr        copy_gcnew = NULL;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-  a_throw_supplement_ptr        copy_throw_info;
-  a_condition_supplement_ptr    copy_condition;
+  a_throw_supplement_ptr        copy_throw_info = NULL;
+  a_condition_supplement_ptr    copy_condition = NULL;
 #if DO_IL_LOWERING && !DO_FULL_PORTABLE_EH_LOWERING
   an_eh_prologue_supplement_ptr copy_prologue_info = NULL;
 #endif /* DO_IL_LOWERING && !DO_FULL_PORTABLE_EH_LOWERING */
@@ -17618,7 +17618,7 @@ scope memory region.
 */
 {
   an_object_lifetime_ptr lifetime = NULL,
-                         saved_curr_object_lifetime;
+                         saved_curr_object_lifetime = NULL;
   a_memory_region_number region_to_switch_back_to;
 
   switch_to_file_scope_region(&region_to_switch_back_to);
@@ -22186,7 +22186,7 @@ as well.
 {
   a_type_ptr type;
   int        n;
-  a_boolean  secondary;
+  a_boolean  secondary = FALSE;
 
   if (type_list != NULL) secondary = in_secondary_trans_unit(type_list);
   for (type = type_list; type != NULL; type = type->next) {

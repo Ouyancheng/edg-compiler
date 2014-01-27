@@ -634,7 +634,7 @@ that an insertion will be made.
       a_constant_ptr   con = NULL;
       an_expr_node_ptr first_op = node->variant.operation.operands;
       an_expr_node_ptr second_op = first_op->next;
-      an_expr_node_ptr other_op;
+      an_expr_node_ptr other_op = NULL;
       if (first_op->kind == (an_expr_node_kind)enk_constant) {
         con = first_op->variant.constant;
         other_op = second_op;
@@ -8123,7 +8123,8 @@ class_type if any are needed.
   a_base_class_ptr            bcp;
 #endif /* !IA64_ABI */
   a_boolean                   need_determined = FALSE;
-  a_boolean                   definition_needed, force_static, optional;
+  a_boolean                   definition_needed = FALSE, force_static;
+  a_boolean                   optional;
   a_routine_ptr               first_virtual;
 
   /* Make sure the class type has been pre-lowered. */
@@ -19095,7 +19096,7 @@ so they are left in the scope.
   unsigned long  n_promoted_source_types = 0;
   a_type_ptr     type, next_type;
 #if !LOWER_VARIABLE_LENGTH_ARRAYS
-  a_type_ptr     last_vla_typedef, vla_typedefs = NULL;
+  a_type_ptr     last_vla_typedef = NULL, vla_typedefs = NULL;
 #endif /* !LOWER_VARIABLE_LENGTH_ARRAYS */
 
   /* See if there are types to promote. */

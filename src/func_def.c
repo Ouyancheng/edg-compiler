@@ -1532,7 +1532,7 @@ member declaration (allowed in some Microsoft modes only).
   a_boolean            microsoft_out_of_class_redecl = microsoft_mode &&
                                                   locator->is_class_member &&
                                                   curr_token == tok_semicolon;
-  a_source_position    orig_pos, saved_pos;
+  a_source_position    orig_pos = null_source_position, saved_pos;
 
   db_enter(3, "define_member_function");
   if (!is_member_function_symbol(sym)) {

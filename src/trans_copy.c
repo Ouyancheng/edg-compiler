@@ -1870,9 +1870,9 @@ the secondary translation unit IL).
 */
 {
   a_boolean                   is_class = is_immediate_class_type(type);
-  a_class_list_entry_ptr      saved_befriending_classes;
+  a_class_list_entry_ptr      saved_befriending_classes = NULL;
 #if MAINTAIN_NEEDED_FLAGS
-  a_boolean                   saved_definition_needed;
+  a_boolean                   saved_definition_needed = FALSE;
 #endif /* MAINTAIN_NEEDED_FLAGS */
   a_class_type_supplement_ptr primary_ctsp;
   a_symbol_ptr                sym =

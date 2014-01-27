@@ -1445,7 +1445,7 @@ whether a substitution is available; do not put it out.
   a_substitution_ptr   sp;
   a_substitution_index idx;
   a_boolean            result = FALSE;
-  a_const_char         *str;
+  a_const_char         *str = NULL;
 
   /* Nothing to do if substitution processing is temporarily suspended. */
   if (mctl->suppress_substitutions != 0) goto end_of_routine;
@@ -3696,7 +3696,7 @@ specification in the mangling for lengths of literals.
   }  /* if */
 #else /* IA64_ABI */
   a_source_correspondence *scp = NULL;
-  an_il_entry_kind        kind;
+  an_il_entry_kind        kind = iek_none;
   a_routine_ptr           rout = NULL;
   a_field_ptr             field = NULL;
 
@@ -7069,7 +7069,7 @@ last argument in the list).
       a_constant_ptr con = tap->variant.constant;
 #if IA64_ABI
       a_boolean      is_expression = FALSE;
-      sizeof_t       save_location;
+      sizeof_t       save_location = 0;
 #endif /* IA64_ABI */
       check_assertion_str2(!tap->is_array_bound_of_unknown_type,
                            "mangled_template_arguments_or_parameter_pack:",
@@ -8586,7 +8586,7 @@ potential performance improvement, allowing re-use of a mangled name).
   a_boolean                   need_nested_name_close = FALSE;
 #else /* !IA64_ABI */
   a_length_reservation        length_reservation;
-  sizeof_t                    encoding_start = 0, save_num_leftover_spaces;
+  sizeof_t                    encoding_start = 0, save_num_leftover_spaces = 0;
   a_boolean                   reusable_form;
 #endif /* IA64_ABI */
 
@@ -9846,7 +9846,7 @@ returned string to an appropriate buffer before this routine is invoked again.
 */
 {
   a_const_char   *name = NULL;
-  an_opname_kind opkind;
+  an_opname_kind opkind = (an_opname_kind)onk_none;
   unsigned int   num_operands = 2;
 
   *bad_operator = FALSE;
@@ -12602,7 +12602,7 @@ correspondence entry for the entity whose name this is.
     sizeof_t start_of_compressed_name = mangling_text_buffer->size;
     sizeof_t src_pos = 0;
     a_compressible_string_pos_ptr
-             cspp;
+             cspp = NULL;
     sizeof_t size_of_mangled_name = mctl->length; /* Including final null. */
     sizeof_t size_of_compressed_name, prefix_length;
     sizeof_t i;
@@ -12628,7 +12628,7 @@ correspondence entry for the entity whose name this is.
       } else {
         /* A digit.  This may be the start of a compressible string. */
         sizeof_t      num_digits = 1;
-        sizeof_t      digit, length, hash_value;
+        sizeof_t      digit, length = 0, hash_value = 0;
         unsigned long value = (ch - '0');
         a_boolean     ovflo = FALSE, valid, compressed = FALSE;
         /* Determine the number of digits in the digit string and accumulate

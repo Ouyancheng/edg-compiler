@@ -6140,7 +6140,7 @@ that entry is excluded from the new list.  Return the new list.
 
   for (nlep = orig_namespace_list; nlep != NULL; nlep = nlep->next) {
     a_namespace_list_entry_ptr	new_nlep;
-    a_namespace_ptr		new_nsp;
+    a_namespace_ptr		new_nsp = NULL;
     a_boolean			add_to_list = TRUE;
     if (nlep->ptr == NULL) {
       /* A NULL namespace pointer refers to the file scope.  An entry

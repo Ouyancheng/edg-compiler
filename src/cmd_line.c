@@ -1441,7 +1441,7 @@ points to the keyword string, otherwise the character that optchar points
 to is the option letter. 
 */
 {
-  an_option_description_ptr	odp;
+  an_option_description_ptr	odp = NULL;
   a_boolean			match = FALSE;
   a_boolean			ambiguous = FALSE;
   int				n;

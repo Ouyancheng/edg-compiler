@@ -8360,7 +8360,7 @@ that information is not needed.  Doesn't cover boxing conversions
 */
 {
   a_boolean        okay = FALSE;
-  a_type_ptr       dest_type_pointed_to, source_type_pointed_to;
+  a_type_ptr       dest_type_pointed_to, source_type_pointed_to = NULL;
   a_type_ptr       unqual_dest_type_pointed_to, unqual_source_type_pointed_to;
   a_base_class_ptr bcp;
   a_boolean        qualifiers_checked = FALSE;
@@ -9525,7 +9525,7 @@ exception specifications are not checked.
 {
   a_boolean        okay = FALSE, baseward_cast, related_class_case = FALSE;
   a_base_class_ptr bcp;
-  a_type_ptr       source_type_pointed_to, dest_type_pointed_to;
+  a_type_ptr       source_type_pointed_to = NULL, dest_type_pointed_to = NULL;
   a_boolean        qualifiers_added;
 
   clear_std_conv_descr(std_conv);
@@ -10339,8 +10339,8 @@ as the composite type; if either could be returned as the composite type,
 preference is given to the first.
 */
 {
-  a_type_ptr    comp_type, comp_elem;
-  a_targ_size_t num_elems;
+  a_type_ptr    comp_type = NULL, comp_elem = NULL;
+  a_targ_size_t num_elems = 0;
   a_boolean     comp_has_nonconst_dimension = FALSE;
 
   /* When VLAs (variable length arrays) appear, "array[const]" is

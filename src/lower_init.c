@@ -2524,7 +2524,7 @@ all dimensions.
   } else {
     /* Not a VLA. */
     a_boolean        is_array = FALSE;
-    a_targ_ptrdiff_t array_element_count;
+    a_targ_ptrdiff_t array_element_count = 0;
     if (ipdp->array_element_sequence) {
       /* Accessing a sequence of array elements. */
       is_array = TRUE;
@@ -4447,7 +4447,7 @@ operator of a no-capture lambda.
     }  /* if */
     if (insert_as_statement) {
       /* The call will be inserted as a separate statement. */
-      a_variable_ptr temp_var;
+      a_variable_ptr temp_var = NULL;
       /* If the routine has a non-void return, put the value in a temporary
          and then return the temporary later. */
       if (!void_return) {
@@ -7433,13 +7433,14 @@ of the array.
   a_scope_ptr                   scope;
   an_insert_location            insert_location;
   a_generated_routine_context   context;
-  a_variable_ptr                model_var, entity_var, count_var;
-  a_statement_ptr               loop_stmt, copy_stmt;
+  a_variable_ptr                model_var, entity_var, count_var = NULL;
+  a_statement_ptr               loop_stmt = NULL, copy_stmt;
   an_expr_node_ptr              entity_expr, ctor_entity_expr = NULL;
   an_expr_node_ptr              copy_expr;
   an_expr_node_ptr              source_expr;
   a_param_type_ptr              *last_param_type;
-  a_param_type_ptr              count_param_type, model_param_type;
+  a_param_type_ptr              count_param_type = NULL;
+  a_param_type_ptr              model_param_type = NULL;
   a_variable_ptr                *last_param;
   
   /* Build the routine entry.  It has one, two, or three parameters
@@ -8502,7 +8503,7 @@ C99 mode for the same reason.
   an_expr_node_ptr   entity_node, source_node;
   a_variable_ptr     variable;
   a_boolean          simple_constant_init = FALSE, keep_constant;
-  a_constant_ptr     simple_constant;
+  a_constant_ptr     simple_constant = NULL;
   a_source_position  saved_error_position, saved_code_pos;
   a_statement_ptr    block_stmt = NULL;
   a_type_ptr         ctor_routine_type;
@@ -10883,7 +10884,7 @@ virtual, it is called as a virtual function, which involves some special
 tricks.
 */
 {
-  an_expr_node_ptr ptr_node_test, call_node, temp_assign_node = NULL;
+  an_expr_node_ptr ptr_node_test = NULL, call_node, temp_assign_node = NULL;
   an_expr_node_ptr ptr_node_delete = NULL;
   a_type_ptr       class_type;
   a_routine_ptr    dtor_routine = dip->destructor;

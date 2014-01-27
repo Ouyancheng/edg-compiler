@@ -2220,7 +2220,7 @@ may do fixup on entities pointed to by source-sequence entries it removes.
 {
   a_type_ptr                   type_ptr = (a_type_ptr)ssep->entity.ptr;
   a_source_sequence_entry_ptr  prev_ssep, *prev_link_addr;
-  a_src_seq_secondary_decl_ptr sssdp;
+  a_src_seq_secondary_decl_ptr sssdp = NULL;
 
   db_enter(4, "drop_tag_def_from_src_seq_list");
   type_ptr = ss_entry_ptr(ssep, a_type_ptr);
@@ -3331,7 +3331,7 @@ scope that are not really needed in the IL.
 */
 {
   /* Remove unneeded source-sequence entries. */
-  a_source_sequence_entry_ptr     ssep, next_ssep;
+  a_source_sequence_entry_ptr     ssep, next_ssep = NULL;
   a_src_seq_secondary_decl_ptr    sssdp;
   a_boolean                       adjust_secondary_declarator = FALSE;
 

@@ -680,7 +680,7 @@ current expression (used to decide how a comma should be treated).
 {
   a_boolean done;
   a_boolean new_assoc;
-  int       new_prec;
+  int       new_prec = 0;
 
   done = FALSE;
   new_assoc = LEFT_ASSOC;  /* More common case. */
@@ -1205,7 +1205,7 @@ constructs, in which case offsetof_case is TRUE.
 {
   an_operand           local_operand_1, operand_2;
   an_arg_list_elem_ptr operand_2_list = NULL;
-  a_type_ptr           result_type;
+  a_type_ptr           result_type = NULL;
   a_source_position    operator_position, closing_bracket_position;
   a_token_sequence_number
                        operator_tok_seq_number;
@@ -2297,7 +2297,7 @@ specified, and return *dip set to NULL.
 {
   an_expr_node_ptr  expr_arg_list;
 #if EXTRA_SOURCE_POSITIONS_IN_IL
-  a_source_position end_position;
+  a_source_position end_position = null_source_position;
   a_boolean         scanning_source = (rcblock == NULL &&
                                        !arg_list_supplied);
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
@@ -4587,14 +4587,15 @@ are expected to be NULL in that case.
 #if MICROSOFT_EXTENSIONS_ALLOWED
   a_boolean         implicit_delegate_invocation = FALSE;
   a_boolean         ignore_call = FALSE;
-  a_boolean         saved_evaluated, saved_potentially_evaluated;
+  a_boolean         saved_evaluated = FALSE;
+  a_boolean         saved_potentially_evaluated = FALSE;
   an_expr_node_ptr  castexp;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   a_boolean         call_folded_to_constant = FALSE;
 #if GNU_EXTENSIONS_ALLOWED
 #if GNU_BUILTIN_SYNC_FUNCTIONS_ALLOWED
   a_type_ptr        sync_result_type = NULL;
-  int               sync_n_args;
+  int               sync_n_args = 0;
 #endif /* GNU_BUILTIN_SYNC_FUNCTIONS_ALLOWED */
 #endif /* GNU_EXTENSIONS_ALLOWED */
   a_boolean         call_may_be_folded = FALSE;
@@ -5041,7 +5042,7 @@ are expected to be NULL in that case.
   if (overloaded_function_case) {
     an_operand        orig_operand;
     a_boolean         name_reference_was_saved = FALSE;
-    a_name_reference  saved_name_reference;
+    a_name_reference  saved_name_reference = {};
     orig_operand = *operand;
     if (operand->name_reference_set) {
       /* We have recorded the form of reference of the function name.  Save
@@ -7413,7 +7414,7 @@ the selection, not an operator token for the call.
   a_token_kind      operator_token;
   a_boolean         is_arrow_operator;
   a_boolean         err = FALSE, processed = FALSE;
-  a_type_ptr        operand_1_type, qual_operand_1_type;
+  a_type_ptr        operand_1_type = NULL, qual_operand_1_type = NULL;
   a_type_ptr        operand_2_type, qual_operand_2_type;
   a_type_ptr        operand_2_class, result_type;
   an_operand        local_operand_1, operand_2;
@@ -8164,7 +8165,7 @@ case.
   an_expr_operator_kind op;
   a_token_kind          operator_token;
   a_boolean             is_increment;
-  a_type_ptr            result_type;
+  a_type_ptr            result_type = NULL;
   a_boolean             err = FALSE, processed = FALSE;
   an_operand            local_operand, zero_operand;
   an_opname_kind        opname_kind;
@@ -8502,7 +8503,7 @@ and return the result in *result (or an error indication in *rcblock).
                         operator_tok_seq_number;
   an_expr_operator_kind op;
   a_boolean             is_increment;
-  a_type_ptr            orig_result_type, result_type;
+  a_type_ptr            orig_result_type = NULL, result_type = NULL;
   a_boolean             err = FALSE, processed = FALSE;
   a_boolean             property_ref_case = FALSE;
 #if MICROSOFT_EXTENSIONS_ALLOWED
@@ -9107,7 +9108,7 @@ the address (as a void *) of the label.  The "&&" operator is the
 current token on entry.
 */
 {
-  a_label_ptr	    label;
+  a_label_ptr	    label = NULL;
   a_constant        constant;
   a_source_position start_position;
 #if EXTRA_SOURCE_POSITIONS_IN_IL
@@ -9493,7 +9494,7 @@ analysis on a previously-scanned expression, and return the result in
   a_source_position     operator_position;
   a_token_sequence_number
                         operator_tok_seq_number;
-  a_type_ptr            result_type;
+  a_type_ptr            result_type = NULL;
   a_boolean             do_promotion, processed = FALSE;
 
   db_enter(4, "scan_arith_prefix_operator");
@@ -10858,7 +10859,7 @@ indication in *rcblock).
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   a_boolean           valid_type;
   an_operand          operand, local_result;
-  an_expr_node_ptr    node, args, rescan_op2;
+  an_expr_node_ptr    node, args, rescan_op2 = NULL;
   an_expr_stack_entry expr_stack_entry;
 
   if (rcblock != NULL) {
@@ -12678,7 +12679,7 @@ the expression-processing routines.
   an_expr_node_ptr            expr = NULL;
   an_operand                  operand;
   a_boolean                   is_parenthesized = FALSE, is_type = FALSE;
-  a_source_position           lparen_position;
+  a_source_position           lparen_position = null_source_position;
   an_expr_stack_entry_ptr     saved_expr_stack = NULL;
   a_scope_depth               expr_scope_depth = NO_SCOPE_DEPTH;
   a_memory_region_number      region_to_switch_back_to;
@@ -14876,7 +14877,7 @@ indication in *rcblock).
 {
   a_source_position start_position, type_position, end_position;
   an_operand        operand;
-  a_type_ptr        cast_type, underlying_cast_type, operand_type;
+  a_type_ptr        cast_type, underlying_cast_type = NULL, operand_type;
   a_type_ptr        underlying_operand_type = NULL;
   a_boolean         cast_type_okay, operand_type_okay;
   a_boolean         reference_case = FALSE, err = FALSE;
@@ -15279,7 +15280,7 @@ Microsoft, Sun) allow extended forms of integer constants.
 {
   an_expr_stack_entry expr_stack_entry;
   a_constant          con;
-  an_expr_stack_entry *saved_expr_stack;
+  an_expr_stack_entry *saved_expr_stack = NULL;
 
   db_enter(4, "scan_extended_integral_constant_expression");
   if (constant == NULL) {
@@ -15349,7 +15350,7 @@ indication in *rcblock).
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   a_source_position end_position;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
-  an_expr_node_ptr  expr;
+  an_expr_node_ptr  expr = NULL;
   a_type_ptr        result_type;
   an_operand        operand;
   a_boolean         template_constant = FALSE;
@@ -15739,7 +15740,7 @@ delegate initializer, given by rcblock->argument_list.
 */
 {
   an_arg_list_elem_ptr operand_list;
-  an_operand           *function_operand, *object_operand;
+  an_operand           *function_operand = NULL, *object_operand = NULL;
   a_type_ptr           class_type = NULL;
   a_type_ptr           type, needed_type = NULL;
   a_boolean            err = FALSE;
@@ -16088,7 +16089,7 @@ expression, and return the result in *result (or an error indication in
   a_source_position end_position;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   a_source_position new_position;
-  a_type_ptr        new_type, base_new_type, ptr_new_type, element_type;
+  a_type_ptr        new_type, base_new_type, ptr_new_type, element_type = NULL;
   a_type_ptr        unqual_new_type, unqual_base_new_type;
   a_class_symbol_supplement_ptr
                     cssp = NULL;
@@ -19896,7 +19897,7 @@ indication in *rcblock).
 {
   a_source_position start_position, type_position, end_position;
   an_operand        operand;
-  a_type_ptr        cast_type, underlying_cast_type, operand_type;
+  a_type_ptr        cast_type, underlying_cast_type = NULL, operand_type;
   a_type_ptr        operation_type;
   a_boolean         cast_type_okay, template_param_case = FALSE;
   a_boolean         reference_case = FALSE, err = FALSE;
@@ -20526,7 +20527,7 @@ is start_position.  The source form of the cast is given by source_form.
   a_boolean        might_be_runtime_checked = FALSE;
   a_boolean        requires_boxing = FALSE;
   a_type_ptr       source_type = operand->type, dest_type = type_cast_to;
-  a_base_class_ptr bcp;
+  a_base_class_ptr bcp = NULL;
 
   if (is_handle_type(dest_type) && is_boxable_type(source_type)) {
     /* If the source is a value type, consider it boxed. */
@@ -21150,7 +21151,7 @@ already been consumed.
 */
 {
   a_boolean         err = FALSE;
-  a_statement_ptr   sp;
+  a_statement_ptr   sp = NULL;
   a_source_position left_brace_position;
 
   left_brace_position = pos_curr_token;
@@ -23252,7 +23253,7 @@ right pointer type).
 */
 {
   a_boolean         ops_not_equal = FALSE;
-  a_source_position *pos;
+  a_source_position *pos = NULL;
 
   if (is_pointer_type(operand_1->type) &&
       op_is_null_pointer_value(operand_2) &&
@@ -23829,7 +23830,7 @@ that case.
   a_token_sequence_number
                         operator_tok_seq_number;
   a_boolean             operand_1_is_false = FALSE;
-  a_host_large_integer  local_result;
+  a_host_large_integer  local_result = 0;
   a_boolean             known_result       = FALSE;
   a_token_kind          operator_token;
   a_type_ptr            result_type;
@@ -28643,7 +28644,7 @@ which of the various keywords was used.
 {
   a_boolean                is_string;
   a_variable_ptr           name_var;
-  a_variable_ptr           *name_var_ptr;
+  a_variable_ptr           *name_var_ptr = NULL;
   a_generated_entity_block *gen_entity_block;
   a_constant_ptr           name_string;
   a_token_kind             func_name_token = curr_token;
@@ -33352,7 +33353,7 @@ created, needed to reactivate that scope.
   an_operand          movenext_call_operand;
   an_operand          current_get_call_operand;
   an_expr_node_ptr    movenext_call_expr = NULL;
-  a_variable_ptr      temp_var;
+  a_variable_ptr      temp_var = NULL;
   a_boolean           passed = TRUE;
   an_expr_stack_entry expr_stack_entry;
 

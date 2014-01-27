@@ -5131,7 +5131,7 @@ pos.
   an_integer_kind  ikind;
   a_float_kind     fkind;
   a_type_kind      type_kind;
-  a_targ_size_t    size;
+  a_targ_size_t    size = 0;
 
   switch (mode) {
     case tmk_QI:
@@ -7345,7 +7345,7 @@ process_alias_fixup_list.
 */
 {
   a_const_char *src_name = NULL, *asm_name = NULL;
-  sizeof_t     src_name_len, asm_name_len;
+  sizeof_t     src_name_len = 0, asm_name_len = 0;
   a_boolean    err = FALSE;
 
   begin_rescan_of_pragma_tokens(ppp);

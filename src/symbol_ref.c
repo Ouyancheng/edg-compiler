@@ -1110,7 +1110,7 @@ C++-generating back end.
     a_type_ptr    tp = skip_typerefs(type_symbol_type(sym_ptr));
     a_scope_depth init_depth = depth_scope_stack;
     a_boolean     redo_lookup = FALSE;
-    a_boolean     pushed_class_scope;
+    a_boolean     pushed_class_scope = FALSE;
 
     tag_sym = (a_symbol_ptr)tp->source_corresp.assoc_info;
     if (tag_sym != NULL && symbols_are_equivalent(old_sym_ptr, tag_sym)) {

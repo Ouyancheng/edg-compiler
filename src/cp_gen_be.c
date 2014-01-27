@@ -5004,8 +5004,8 @@ field designator.
 */
 {
   a_constant_ptr sub_con;
-  a_type_ptr     sub_type;
-  a_field_ptr    field;
+  a_type_ptr     sub_type = NULL;
+  a_field_ptr    field = NULL;
 
   if (constant_should_be_put_out_as_expr(constant)) {
     /* The constant resulted from a recorded constant-expression: Render it in
@@ -5501,7 +5501,7 @@ source sequence entries associated with the argument should be reactivated in
 such cases.
 */
 {
-  a_source_sequence_scan_state  saved_state;
+  a_source_sequence_scan_state  saved_state = {};
   a_boolean                     is_decltype = tp->variant.typeref.is_decltype;
   a_boolean                     is_bases = tp->variant.typeref.is_bases;
   a_boolean                     direct_bases =
@@ -6247,7 +6247,7 @@ default arguments should be suppressed (needed for template specializations).
 {
   a_routine_type_supplement_ptr rtsp = type->variant.routine.extra_info;
   a_param_type_ptr              param;
-  a_variable_ptr                param_var;
+  a_variable_ptr                param_var = NULL;
   a_func_prototype_stack_entry  fpse;
   a_boolean                     saved_in_parameter_pack_declaration =
                                                  in_parameter_pack_declaration;
@@ -6987,8 +6987,8 @@ preceding declaration by a semicolon in such cases.
   /* See if the next source sequence entry is for a declaration, and if so,
      determine its kind and associated source correspondence. */
   if (ssep != NULL) {
-    a_source_correspondence_ptr  next_scp;
-    an_il_entry_kind             next_entry_kind;
+    a_source_correspondence_ptr  next_scp = NULL;
+    an_il_entry_kind             next_entry_kind = iek_none;
     if (ss_entry_kind(ssep) == iek_src_seq_secondary_decl) {
       a_src_seq_secondary_decl_ptr  sssdp =
                              ss_entry_ptr(ssep, a_src_seq_secondary_decl_ptr);
@@ -7966,7 +7966,7 @@ this one is such a continuation.
   a_scope_ptr                  common_scope, orig_scope = NULL;
   a_boolean                    need_extern_C_closing_brace = FALSE;
   a_template_decl_ptr          template_decl = NULL;
-  a_template_ptr               assoc_template;
+  a_template_ptr               assoc_template = NULL;
   a_boolean                    template_param_mappings_saved = FALSE;
 #if GNU_EXTENSIONS_ALLOWED
   a_boolean                    marked_as_gnu_extension = FALSE;
@@ -8489,7 +8489,7 @@ the expression reflects an implicit member access ("this->y"), so the
   an_expr_node_ptr      object_expr;
   an_expr_node_ptr      field_expr;
   an_expr_operator_kind op;
-  a_type_ptr            naming_class, selection_class;
+  a_type_ptr            naming_class, selection_class = NULL;
   a_name_context_ptr    new_name_context = NULL;
 
   check_assertion(is_operation_node(expr) &&
@@ -9576,7 +9576,7 @@ Generate code for a new or delete operation.
     if (!is_incomplete_type(unqual_type)) {
       /* Normal case. */
       a_routine_type_supplement_ptr  rtsp = NULL;
-      an_exception_specification_ptr saved_exception_specification;
+      an_exception_specification_ptr saved_exception_specification = NULL;
       if (is_pointer_type(type) &&
           type_pointed_to(type)->kind == (a_type_kind)tk_routine) {
         /* Make sure not to include an exception specification when putting
@@ -15475,7 +15475,7 @@ this one is such a continuation.
   a_boolean                    force_unqualified_name;
   a_scope_ptr                  common_scope, orig_scope = NULL;
   a_template_decl_ptr          template_decl = NULL;
-  a_template_ptr	       assoc_template;
+  a_template_ptr	       assoc_template = NULL;
 #if GNU_EXTENSIONS_ALLOWED
   a_boolean                    marked_as_gnu_extension = FALSE;
 #endif /* GNU_EXTENSIONS_ALLOWED */
@@ -16309,12 +16309,12 @@ TRUE if the declaration following this one is such a continuation.
   a_storage_class               storage_class;
   a_scope_ptr                   scope = NULL;
 #if IL_SHOULD_BE_WRITTEN_TO_FILE
-  a_memory_region_number        scope_region_number;
+  a_memory_region_number        scope_region_number = NULL_region_number;
 #endif /* IL_SHOULD_BE_WRITTEN_TO_FILE */
   a_source_sequence_scan_state  saved_state;
   a_routine_type_supplement_ptr rtsp;
   a_boolean                     is_specialization;
-  a_function_state              state;
+  a_function_state              state = {};
   a_boolean                     decl_within_function =
                                             (innermost_function_scope != NULL);
   a_boolean                     suppress_inline_kwd = FALSE;
@@ -16325,7 +16325,7 @@ TRUE if the declaration following this one is such a continuation.
   a_boolean                     brace_form_linkage_spec = FALSE;
   a_boolean                     out_of_class_redecl = FALSE;
   a_template_decl_ptr           template_decl = NULL;
-  a_template_ptr                assoc_template;
+  a_template_ptr                assoc_template = NULL;
 #if GNU_EXTENSIONS_ALLOWED
   a_boolean                     marked_as_gnu_extension = FALSE;
 #endif /* GNU_EXTENSIONS_ALLOWED */
