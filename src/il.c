@@ -11637,7 +11637,8 @@ unchanged.
       /* A copy of the original type is required, because the default arg
          expression has to be stripped off. */
       tp = alloc_type((a_type_kind)tk_routine);
-      copy_type_full(orig_type, tp, /*copy_default_args=*/FALSE);
+      copy_type_full(skip_typerefs(orig_type), tp,
+                     /*copy_default_args=*/FALSE);
       break;
     }  /* if */
   }  /* for */

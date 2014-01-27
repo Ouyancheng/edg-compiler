@@ -1,5 +1,18 @@
 Version 4.9
 
+1/27/14  [EDGcpfe/14812]
+Assertion failure in copy_type_full
+
+When using a function with default arguments as the argument to decltype or
+__typeof, an assertion failure in copy_type_full had resulted in some cases
+and is now fixed.  For example (with --c++11):
+
+  int f(int i = 1);
+  void g() {
+    decltype(f) x;
+  }
+
+
 1/25/14  [EDGcpfe/14794]
 Warnings when building the front end with gcc
 
