@@ -5042,7 +5042,7 @@ are expected to be NULL in that case.
   if (overloaded_function_case) {
     an_operand        orig_operand;
     a_boolean         name_reference_was_saved = FALSE;
-    a_name_reference  saved_name_reference = {};
+    a_name_reference  saved_name_reference = null_name_reference;
     orig_operand = *operand;
     if (operand->name_reference_set) {
       /* We have recorded the form of reference of the function name.  Save

@@ -4764,7 +4764,7 @@ is TRUE, and search_path is empty.
 {
   a_file_suffix_ptr		fsp;
   a_directory_name_entry_ptr	curr_directory_name_entry;
-  a_const_char			*name_to_try = NULL;
+  a_const_char			*name_to_try = "";
   a_boolean			file_found = FALSE;
   a_const_char			*prev_dir_name = NULL;
   a_text_buffer_ptr		buffer = NULL;

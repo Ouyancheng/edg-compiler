@@ -1405,6 +1405,10 @@ typedef struct a_function_state {
   a_scope_ptr	innermost_function_scope;
 } a_function_state;
 
+static a_function_state null_function_state = {
+  NULL
+};
+
 
 static void save_function_state(a_function_state *state)
 /*
@@ -1437,6 +1441,10 @@ typedef struct a_source_sequence_scan_state {
   a_source_sequence_entry_ptr
 		sublist_parent_source_sequence_entry;
 } a_source_sequence_scan_state;
+
+static a_source_sequence_scan_state null_source_sequence_scan_state = {
+  NULL, NULL
+};
 
 
 static void save_source_sequence_scan_state(
@@ -5501,7 +5509,7 @@ source sequence entries associated with the argument should be reactivated in
 such cases.
 */
 {
-  a_source_sequence_scan_state  saved_state = {};
+  a_source_sequence_scan_state  saved_state = null_source_sequence_scan_state;
   a_boolean                     is_decltype = tp->variant.typeref.is_decltype;
   a_boolean                     is_bases = tp->variant.typeref.is_bases;
   a_boolean                     direct_bases =
@@ -16314,7 +16322,7 @@ TRUE if the declaration following this one is such a continuation.
   a_source_sequence_scan_state  saved_state;
   a_routine_type_supplement_ptr rtsp;
   a_boolean                     is_specialization;
-  a_function_state              state = {};
+  a_function_state              state = null_function_state;
   a_boolean                     decl_within_function =
                                             (innermost_function_scope != NULL);
   a_boolean                     suppress_inline_kwd = FALSE;
