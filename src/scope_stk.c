@@ -11236,11 +11236,9 @@ references and we are in a template definition context.
 
 
 static void copy_packs_from_enclosing_template(
-				a_scope_stack_entry_ptr	ssep,
-				a_symbol_ptr		pack_symbol)
+				a_scope_stack_entry_ptr	ssep)
 /*
-We are in the instantiation of an alias template in a template declaration
-context and pack_symbol is a template parameter of the alias template.
+We are in the instantiation of an alias template in a template declaration.
 Find the template arguments from ssep (which is the template instantiation
 scope of the alias template instantiation) and copy the pack references
 (if any) from that template argument to the current context.
@@ -11292,10 +11290,10 @@ form.
     a_scope_stack_entry_ptr		ssep;
     ssep = get_outermost_template_dependent_context();
     /* If this is an alias instantiation in a template declaration,
-       copy the packs referenced by the associated template argument. */
+       copy the packs referenced by the template arguments. */
     if (pack_symbol != NULL && ssep->alias_in_template_decl &&
         ssep->number == pack_symbol->decl_scope) {
-      copy_packs_from_enclosing_template(ssep, pack_symbol);
+      copy_packs_from_enclosing_template(ssep);
       goto done;
     }  /* if */
     if (bases_type != NULL || symbol_is_pack(pack_symbol)) {
