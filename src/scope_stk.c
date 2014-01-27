@@ -2678,6 +2678,7 @@ the scope being pushed.
   ssep->in_prototype_instantiation = FALSE;
   ssep->in_nonreal_instantiation = FALSE;
   ssep->in_generic_definition    = FALSE;
+  ssep->alias_in_template_decl   = (options & PS_ALIAS_IN_TEMPLATE_DECL) != 0;
 #if MICROSOFT_EXTENSIONS_ALLOWED
   ssep->instantiation_from_metadata = FALSE;
   ssep->in_generic_instantiation = FALSE;
@@ -11234,6 +11235,35 @@ references and we are in a template definition context.
 }  /* any_packs_referenced */
 
 
+static void copy_packs_from_enclosing_template(
+				a_scope_stack_entry_ptr	ssep,
+				a_symbol_ptr		pack_symbol)
+/*
+We are in the instantiation of an alias template in a template declaration
+context and pack_symbol is a template parameter of the alias template.
+Find the template arguments from ssep (which is the template instantiation
+scope of the alias template instantiation) and copy the pack references
+(if any) from that template argument to the current context.
+*/
+{
+  a_template_arg_ptr	tap;
+
+  /* Find the template argument that in the position indicated by the
+     template parameter.  Note that there may not be such an argument
+     (e.g., if the parameter is pack). */
+  for (tap = ssep->template_arg_list; tap != NULL; tap = tap->next) {
+    if (tap->pack_expansion_descr != NULL) {
+      /* We found and argument and it is a pack expansion. */
+      a_pack_reference_ptr	prp;
+      prp = tap->pack_expansion_descr->packs_referenced;
+      for (; prp != NULL; prp = prp->next) {
+        record_potential_pack_reference(prp->symbol, &prp->position);
+      }  /* for */
+    }  /* if */
+  }  /* for */
+}  /* copy_packs_from_enclosing_template */
+
+
 static void record_potential_pack_reference_full(
 				a_symbol_ptr		pack_symbol,
 				a_source_position_ptr	position,
@@ -11259,11 +11289,19 @@ form.
   if (is_prototype_instantiation_context() &&
       (pack_expansion_stack == NULL || !pack_expansion_stack->is_rescan ||
        pack_expansion_stack->is_suppression)) {
+    a_scope_stack_entry_ptr		ssep;
+    ssep = get_outermost_template_dependent_context();
+    /* If this is an alias instantiation in a template declaration,
+       copy the packs referenced by the associated template argument. */
+    if (pack_symbol != NULL && ssep->alias_in_template_decl &&
+        ssep->number == pack_symbol->decl_scope) {
+      copy_packs_from_enclosing_template(ssep, pack_symbol);
+      goto done;
+    }  /* if */
     if (bases_type != NULL || symbol_is_pack(pack_symbol)) {
       /* Add this pack symbol to the list of packs in the scope stack
          entry. */
       a_pack_reference_ptr		prp;
-      a_scope_stack_entry_ptr		ssep;
       a_pack_reference_ptr		*p_prp;
       if (pack_symbol != NULL && !pack_symbol->is_template_param &&
           pack_symbol->kind == (a_symbol_kind)sk_type) {
@@ -11275,7 +11313,6 @@ form.
         pack_symbol = symbol_for(tp);
         check_assertion(pack_symbol != NULL);
       }  /* if */
-      ssep = get_outermost_template_dependent_context();
       p_prp = &ssep->packs_referenced;
       /* Look for an existing expansion of this symbol or type at this
          location. */
@@ -11345,6 +11382,7 @@ form.
       }  /* if */
     }  /* if */
   }  /* if */
+done:;
 }  /* record_potential_pack_reference_full */
 
 

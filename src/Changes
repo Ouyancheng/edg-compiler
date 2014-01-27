@@ -1,5 +1,25 @@
 Version 4.9
 
+1/27/14  [EDGcpfe/13815,EDGcpfe/13847,EDGcpfe/14553,EDGcpfe/14764,
+          EDGcpfe/14805]
+Pack expansions in alias templates used in template declaration contexts
+
+If an pack expansion was used in an alias template definition and that
+alias template was instantiated with a pack expansion in a template
+declaration context, the pack was not expanded properly when the template
+declaration was instantiated or used in a deduction or partial ordering
+context.  This caused compilation errors when using the GNU 4.8 future
+header.  Now fixed.
+
+  template <typename T, T... I> struct A { };
+  template <int... K> using B = A<int, K...>;
+  template <int... I> void f(B<I...> i) {}
+  int main() {
+    B<1,2,3> i3;
+    f(i3);
+  }
+
+
 1/27/14  [EDGcpfe/14809]
 Constant folding with string constant values
 

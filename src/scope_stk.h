@@ -104,6 +104,11 @@ typedef int a_push_scope_options_set;
 			   enclosing scope was the file scope).  This means
 			   that depth_innermost_instantiation_scope will be
 			   NO_SCOPE_DEPTH, for example. */
+#define PS_ALIAS_IN_TEMPLATE_DECL	0x100000
+			/* TRUE when an alias template is instantiated in
+			   a template declaration scope and any pack
+			   expansions need to be recorded in the enclosing
+			   template declaration scope. */
 #define SIZE_FUNCTION_SHAREABLE_CONSTANTS_TABLE 31
 			/* Size of the shareable constants hash table for
 			   a function. */
@@ -699,6 +704,12 @@ typedef struct a_scope_stack_entry {
 			   what is being instantiated is the definition of a
 			   C++/CLI generic.  Also TRUE for scopes nested within
 			   a generic definition. */
+  a_bit_field	alias_in_template_decl:1;
+			/* TRUE if kind is sck_template_instantiation and this
+			   when this is an alias template being instantiated
+			   in a template declaration scope.  In such cases
+			   any pack expansions need to be recorded in the
+			   enclosing template declaration scope. */
   a_bit_field	exception_specification:1;
 			/* TRUE if this is a scope within the instantiation
 			   of an exception specification. */
@@ -1653,6 +1664,14 @@ is_template_dependent_context, but excludes nonreal instantiations.
 #define is_prototype_instantiation_context()				\
   (depth_template_declaration_scope != NO_SCOPE_DEPTH ||		\
    scope_stack[depth_scope_stack].in_prototype_instantiation)
+
+/*
+TRUE if we are in a context of a template declaration.  This is TRUE when
+processing the declaration of a template entity, but not the body of such
+an entity, which is a prototype instantiation context.
+*/
+#define is_template_declaration_context()				\
+  (depth_template_declaration_scope != NO_SCOPE_DEPTH)
 
 /*
 TRUE if we are in a template prototype instantiation context but not
