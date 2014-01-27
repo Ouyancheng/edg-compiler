@@ -1978,7 +1978,7 @@ and for member functions of template classes.
 #if GENERATE_SOURCE_SEQUENCE_LISTS
 #if TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
   a_scope_depth                     scope_depth = NO_SCOPE_DEPTH;
-  a_source_sequence_entry_ptr       orig_insert_point;
+  a_source_sequence_entry_ptr       orig_insert_point = NULL;
 #endif /* TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 
@@ -2344,7 +2344,7 @@ specializations.
 #if GENERATE_SOURCE_SEQUENCE_LISTS
 #if NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
   a_scope_depth                scope_depth = NO_SCOPE_DEPTH;
-  a_source_sequence_entry_ptr  insert_point;
+  a_source_sequence_entry_ptr  insert_point = NULL;
 #endif /* NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 

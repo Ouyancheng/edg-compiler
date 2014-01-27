@@ -14512,7 +14512,7 @@ constructor scope, and also lower the user code.
                      ctsp = class_type_supp(class_type);
   a_routine_ptr      new_routine = ctsp->assoc_operator_new_routine;
   a_variable_ptr     this_param_var = scope->variant.routine.parameters;
-  an_expr_node_ptr   if_node;
+  an_expr_node_ptr   if_node = NULL;
 #if GENERATE_EH_TABLES
   a_destructible_entity_descr_ptr
                      dedp = NULL;
