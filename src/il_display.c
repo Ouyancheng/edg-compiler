@@ -5284,6 +5284,7 @@ Display the indicated attribute entry.
     case ak_format_arg:          kind_name = "format_arg";          break;
     case ak_gnu_inline:          kind_name = "gnu_inline";          break;
     case ak_hot:                 kind_name = "hot";                 break;
+    case ak_ifunc:               kind_name = "ifunc";               break;
 #if GNU_INIT_PRIORITY_ATTRIBUTE_ALLOWED
     case ak_init_priority:       kind_name = "init_priority";       break;
 #endif /* GNU_INIT_PRIORITY_ATTRIBUTE_ALLOWED */
@@ -5304,7 +5305,6 @@ Display the indicated attribute entry.
     case ak_stdcall:             kind_name = "stdcall";             break;
 #endif /* GNU_X86_ATTRIBUTES_ALLOWED && !USE_X86_64 */
     case ak_strong:              kind_name = "strong";              break;
-    case ak_ifunc:               kind_name = "ifunc";               break;
 #if THREAD_LOCAL_STORAGE_SPECIFIER_ALLOWED
     case ak_tls_model:           kind_name = "tls_model";           break;
 #endif /* THREAD_LOCAL_STORAGE_SPECIFIER_ALLOWED */
