@@ -2678,7 +2678,6 @@ the scope being pushed.
   ssep->in_prototype_instantiation = FALSE;
   ssep->in_nonreal_instantiation = FALSE;
   ssep->in_generic_definition    = FALSE;
-  ssep->alias_in_template_decl   = (options & PS_ALIAS_IN_TEMPLATE_DECL) != 0;
 #if MICROSOFT_EXTENSIONS_ALLOWED
   ssep->instantiation_from_metadata = FALSE;
   ssep->in_generic_instantiation = FALSE;
@@ -9246,15 +9245,11 @@ scope or template instantiation scope for a prototype instantiation.
 */
 {
   a_scope_stack_entry_ptr	ssep;
-  a_scope_depth			depth_to_use = NO_SCOPE_DEPTH;
+  a_scope_depth			depth_to_use;
 
   /* Start with the innermost template declaration or template instantiation
      scope. */
-  if (depth_innermost_instantiation_scope != NO_SCOPE_DEPTH &&
-      scope_stack_entry_for(depth_innermost_instantiation_scope)->
-                                                  in_prototype_instantiation) {
-    depth_to_use = depth_innermost_instantiation_scope;
-  }  /* if */
+  depth_to_use = depth_innermost_instantiation_scope;
   if (depth_to_use < depth_template_declaration_scope) {
     depth_to_use = depth_template_declaration_scope;
   }  /* if */
@@ -11239,31 +11234,6 @@ references and we are in a template definition context.
 }  /* any_packs_referenced */
 
 
-static void copy_packs_from_enclosing_template(
-				a_scope_stack_entry_ptr	ssep)
-/*
-We are in the instantiation of an alias template in a template declaration.
-Find the template arguments from ssep (which is the template instantiation
-scope of the alias template instantiation) and copy the pack references
-(if any) from that template argument to the current context.
-*/
-{
-  a_template_arg_ptr	tap;
-
-  /* Go through the template arguments of the specified scope stack entry
-     and copy any pack references to the current context. */
-  for (tap = ssep->template_arg_list; tap != NULL; tap = tap->next) {
-    if (tap->pack_expansion_descr != NULL) {
-      a_pack_reference_ptr	prp;
-      prp = tap->pack_expansion_descr->packs_referenced;
-      for (; prp != NULL; prp = prp->next) {
-        record_potential_pack_reference(prp->symbol, &prp->position);
-      }  /* for */
-    }  /* if */
-  }  /* for */
-}  /* copy_packs_from_enclosing_template */
-
-
 static void record_potential_pack_reference_full(
 				a_symbol_ptr		pack_symbol,
 				a_source_position_ptr	position,
@@ -11289,19 +11259,11 @@ form.
   if (is_prototype_instantiation_context() &&
       (pack_expansion_stack == NULL || !pack_expansion_stack->is_rescan ||
        pack_expansion_stack->is_suppression)) {
-    a_scope_stack_entry_ptr		ssep;
-    ssep = get_outermost_template_dependent_context();
-    /* If this is an alias instantiation in a template declaration,
-       copy the packs referenced by the template arguments. */
-    if (pack_symbol != NULL && ssep->alias_in_template_decl &&
-        ssep->number == pack_symbol->decl_scope) {
-      copy_packs_from_enclosing_template(ssep);
-      goto done;
-    }  /* if */
     if (bases_type != NULL || symbol_is_pack(pack_symbol)) {
       /* Add this pack symbol to the list of packs in the scope stack
          entry. */
       a_pack_reference_ptr		prp;
+      a_scope_stack_entry_ptr		ssep;
       a_pack_reference_ptr		*p_prp;
       if (pack_symbol != NULL && !pack_symbol->is_template_param &&
           pack_symbol->kind == (a_symbol_kind)sk_type) {
@@ -11313,6 +11275,7 @@ form.
         pack_symbol = symbol_for(tp);
         check_assertion(pack_symbol != NULL);
       }  /* if */
+      ssep = get_outermost_template_dependent_context();
       p_prp = &ssep->packs_referenced;
       /* Look for an existing expansion of this symbol or type at this
          location. */
@@ -11382,7 +11345,6 @@ form.
       }  /* if */
     }  /* if */
   }  /* if */
-done:;
 }  /* record_potential_pack_reference_full */
 
 

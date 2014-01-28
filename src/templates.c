@@ -7184,18 +7184,9 @@ error type is used.
       a_boolean                 saved_sses_disallowed;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
       if (type->variant.typeref.is_nonreal) {
-        if (is_template_declaration_context()) {
-          /* When an alias is instantiated in a template declaration, it
-             is treated as a prototype instantiation so that any pack
-             expansions will be recorded in the enclosing template
-             declaration scope. */
-          ps_options |= PS_PROTOTYPE_INSTANTIATION |
-                        PS_ALIAS_IN_TEMPLATE_DECL;
-        } else {
-          /* If this is a nonreal alias instantiation, mark the instantiation
-             scope as nonreal. */
-          ps_options |= PS_NONREAL_INSTANTIATION;
-        }  /* if */
+        /* If this is a nonreal alias instantiation, mark the instantiation
+           scope as nonreal. */
+        ps_options |= PS_NONREAL_INSTANTIATION;
       }  /* if */
       init_decl_parse_state(&dps);
       dps.is_alias_template_type = TRUE;
