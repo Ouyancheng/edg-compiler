@@ -11114,7 +11114,7 @@ Can be used in C mode (though that's not typical).
                         in_file_scope(scp) &&
                         scp->name != NULL);
 #if IA64_ABI
-        /* Just the variable's name with a preceding length */
+        /* Just the variable's name with a preceding length. */
         start_mangling(&mctl);
         mangled_name_with_length(scp->name, &mctl);
         mangled_name = end_mangling(/*final=*/TRUE, &mctl);

@@ -2926,7 +2926,7 @@ The "ifunc" attribute maps to the STT_GNU_IFUNC symbol type in the ELF
 standard and is not available on many architectures.  The STT_GNU_IFUNC allows
 a routine's symbol to be determined dynamically at load time.  At load time,
 the routine specified as the resolver (in the ifunc attribute) is invoked
-(once) and returns a pointer to the routine that shall be used to resolve all
+(once) and returns a pointer to the routine that will be used to resolve all
 instances of that symbol for that execution of the executable.  This provides
 a very low overhead mechanism to select between a family of functions
 (typically based on the underlying CPU architecture).  Here's an example:

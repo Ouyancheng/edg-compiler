@@ -17191,8 +17191,8 @@ with the value of their corresponding captured variables.
 void lower_ifunc_routine(a_routine_ptr routine)
 /*
 Lower an ifunc routine by turning it into a "wrapper" routine that
-invokes the resolver routine, saves it's value and then invokes the
-resolved routine and returns it's value (if non-void).  For example:
+invokes the resolver routine, saves its value and then invokes the
+resolved routine and returns its value (if non-void).  For example:
 
   extern int (*resolved_f)();  // pointer to "resolved" f for the target
   int f(args...) {
