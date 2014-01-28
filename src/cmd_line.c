@@ -6830,6 +6830,11 @@ file.
 #else /* !defined(REDEFINE_EXTNAME_PRAGMA_ENABLED) */
   comment_undefined_macro_name(REDEFINE_EXTNAME_PRAGMA_ENABLED);
 #endif /* defined(REDEFINE_EXTNAME_PRAGMA_ENABLED) */
+#if defined(REPRESENT_C11_GENERIC_CONSTRUCT_IN_IL)
+  define_numeric_valued_macro(REPRESENT_C11_GENERIC_CONSTRUCT_IN_IL);
+#else /* !defined(REPRESENT_C11_GENERIC_CONSTRUCT_IN_IL) */
+  comment_undefined_macro_name(REPRESENT_C11_GENERIC_CONSTRUCT_IN_IL);
+#endif /* defined(REPRESENT_C11_GENERIC_CONSTRUCT_IN_IL) */
 #if defined(REWRITE_UCN_ESCAPE_CHAR_IN_LOWERING)
   define_numeric_valued_macro(REWRITE_UCN_ESCAPE_CHAR_IN_LOWERING);
 #else /* !defined(REWRITE_UCN_ESCAPE_CHAR_IN_LOWERING) */
