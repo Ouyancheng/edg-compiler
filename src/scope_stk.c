@@ -9246,11 +9246,15 @@ scope or template instantiation scope for a prototype instantiation.
 */
 {
   a_scope_stack_entry_ptr	ssep;
-  a_scope_depth			depth_to_use;
+  a_scope_depth			depth_to_use = NO_SCOPE_DEPTH;
 
   /* Start with the innermost template declaration or template instantiation
      scope. */
-  depth_to_use = depth_innermost_instantiation_scope;
+  if (depth_innermost_instantiation_scope != NO_SCOPE_DEPTH &&
+      scope_stack_entry_for(depth_innermost_instantiation_scope)->
+                                                  in_prototype_instantiation) {
+    depth_to_use = depth_innermost_instantiation_scope;
+  }  /* if */
   if (depth_to_use < depth_template_declaration_scope) {
     depth_to_use = depth_template_declaration_scope;
   }  /* if */
