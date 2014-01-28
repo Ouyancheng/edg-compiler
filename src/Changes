@@ -8,7 +8,7 @@ If an pack expansion was used in an alias template definition and that
 alias template was instantiated with a pack expansion in a template
 declaration context, the pack was not expanded properly when the template
 declaration was instantiated or used in a deduction or partial ordering
-context.  This caused compilation errors when using the GNU 4.8 future
+context.  This caused compilation errors when using the GNU 4.8 <future>
 header.  Now fixed.
 
   template <typename T, T... I> struct A { };

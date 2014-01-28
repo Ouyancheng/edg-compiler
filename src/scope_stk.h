@@ -706,9 +706,9 @@ typedef struct a_scope_stack_entry {
 			   a generic definition. */
   a_bit_field	alias_in_template_decl:1;
 			/* TRUE if kind is sck_template_instantiation and this
-			   when this is an alias template being instantiated
-			   in a template declaration scope.  In such cases
-			   any pack expansions need to be recorded in the
+			   is an alias template being instantiated in a
+			   template declaration scope.  In such cases any
+			   pack expansions need to be recorded in the
 			   enclosing template declaration scope. */
   a_bit_field	exception_specification:1;
 			/* TRUE if this is a scope within the instantiation
@@ -1666,7 +1666,7 @@ is_template_dependent_context, but excludes nonreal instantiations.
    scope_stack[depth_scope_stack].in_prototype_instantiation)
 
 /*
-TRUE if we are in a context of a template declaration.  This is TRUE when
+TRUE if we are in the context of a template declaration.  This is TRUE when
 processing the declaration of a template entity, but not the body of such
 an entity, which is a prototype instantiation context.
 */

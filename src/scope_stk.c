@@ -11250,12 +11250,10 @@ scope of the alias template instantiation) and copy the pack references
 {
   a_template_arg_ptr	tap;
 
-  /* Find the template argument that in the position indicated by the
-     template parameter.  Note that there may not be such an argument
-     (e.g., if the parameter is pack). */
+  /* Go through the template arguments of the specified scope stack entry
+     and copy any pack references to the current context. */
   for (tap = ssep->template_arg_list; tap != NULL; tap = tap->next) {
     if (tap->pack_expansion_descr != NULL) {
-      /* We found and argument and it is a pack expansion. */
       a_pack_reference_ptr	prp;
       prp = tap->pack_expansion_descr->packs_referenced;
       for (; prp != NULL; prp = prp->next) {
