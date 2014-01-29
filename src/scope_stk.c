@@ -7170,6 +7170,13 @@ discarded right after they have been generated.
       /* ... but keep inline functions so we can inline from them. */
       discard = FALSE;
     }  /* if */
+#if GNU_EXTENSIONS_ALLOWED
+  } else if (routine->is_ifunc) {
+    /* Routines that use the "ifunc" dispatch mechanism should not have a
+       definition (they may have unwittingly obtained an empty one if they are
+       instantiated). */
+    discard = TRUE;
+#endif /* GNU_EXTENSIONS_ALLOWED */
   }  /* if */
   if (!discard && routine->source_corresp.is_local_to_function) {
     /* Member functions of local classes must be discarded if the surrounding
