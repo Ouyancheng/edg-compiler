@@ -1,5 +1,15 @@
 Version 4.9
 
+1/29/14  [EDGcpfe/14818]
+Unbounded recursion in verify_template_correspondence with friend template
+
+When simultaneously compiling multiple translation units the front end
+sometimes entered an unbounded recursion sequence when attempting the verify
+the correspondence of a friend class template across translation units.
+(Unfortunately, known examples of this behavior are complex; so none is
+included here.)  That problem is now fixed.
+
+
 1/29/14  [EDGcpfe/14811]
 Microsoft bugs mode abort on invalid typename specifier
 

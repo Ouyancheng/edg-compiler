@@ -4001,6 +4001,12 @@ is in fact valid.
              ETA_NO_OPTIONS)) {
           match = FALSE;
           process_bad_trans_unit_corresp(iek_template, templ, corresp_templ);
+        } else if (templ->is_friend_template && proto_sym->defined) {
+          /* If this is a friend class template, checking its inner structure
+             could lead to unbounded recursion since the class template may be
+             an enclosing template.  However, since it is defined, there must
+             be another template entry for it, and the checking can be done
+             for that one. */
         } else {
           /* First process the prototype instantiation. */
           match = verify_type_correspondence(proto);
