@@ -127,6 +127,7 @@ extern void enum_specifier(a_decl_parse_state   *dps,
 extern void typename_specifier(a_type_ptr            *type_ptr,
 			       a_symbol_ptr	     *type_sym,
                                a_boolean             within_using_decl,
+                               a_boolean             is_decl_specifier,
                                a_decl_pos_block_ptr  decl_pos_block);
 
 extern a_boolean is_constructor_decl(a_type_ptr          class_type,

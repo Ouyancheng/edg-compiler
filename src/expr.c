@@ -30320,6 +30320,7 @@ type_start:
           a_symbol_ptr	type_sym;
           typename_specifier(&cast_type, &type_sym,
                              /*within_using_decl=*/FALSE,
+                             /*is_decl_specifier=*/FALSE,
                              (a_decl_pos_block_ptr)NULL);
         } else if (curr_token == tok_decltype) {
           /* This should not come up except in error cases as the decltype

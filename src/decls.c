@@ -14149,6 +14149,7 @@ current scope.
          specifier. */
       a_type_ptr  tp;
       typename_specifier(&tp, &sym, /*within_using_decl=*/TRUE,
+                         /*is_decl_specifier=*/FALSE,
                          (a_decl_pos_block_ptr)NULL);
       /* An error type will be returned if an error was detected by
          typename_specifier. */

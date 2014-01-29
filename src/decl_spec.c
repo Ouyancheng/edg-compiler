@@ -6285,6 +6285,7 @@ return_point:;
 void typename_specifier(a_type_ptr            *type_ptr,
                         a_symbol_ptr	      *type_sym,
                         a_boolean             within_using_decl,
+                        a_boolean             is_decl_specifier,
                         a_decl_pos_block_ptr  decl_pos_block)
 /*
 Scan a typename specifier.  Typename is an elaborated type specifier.
@@ -6301,6 +6302,9 @@ within_using_decl is TRUE in a class member using declaration that
 starts with "using typename".  decl_pos_block is a possibly NULL
 pointer to a block of source position information when the context is
 a declaration.
+If is_decl_specifier is TRUE, this routine is called from decl_specifiers; in
+that case, this routine may return NULL is some Microsoft modes if the tokens
+following the keyword "typename" do not actually start a type name.
 */
 {
   a_type_ptr	tp = NULL;
@@ -6325,7 +6329,7 @@ a declaration.
   /* The Microsoft compiler allows the typename specifier to be repeated. */
   while (microsoft_bugs && curr_token == tok_typename) (void)get_token();
   (void)is_generalized_identifier_start(GID_IS_TYPENAME);
-  if (microsoft_bugs &&
+  if (microsoft_bugs && is_decl_specifier &&
       (curr_token != tok_identifier ||
        !locator_for_curr_id.is_qualified_name ||
        locator_for_curr_id.is_file_scope_qualified_name)) {
@@ -9896,7 +9900,7 @@ process_enum_specifier:
         } else {
           a_symbol_ptr	type_sym;
           typename_specifier(type_ptr, &type_sym, /*within_using_decl=*/FALSE,
-                             decl_pos_block);
+                             /*is_decl_specifier=*/TRUE, decl_pos_block);
           if (*type_ptr == NULL) {
             /* In Microsoft mode a NULL type is returned for a nonstandard
                typename specifier in which the typename keyword is followed by
