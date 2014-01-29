@@ -22087,6 +22087,10 @@ will be an lvalue instead of the usual prvalue.
                                          &elision_done, &dip);
         if (dip == NULL) {
           /* There was an error. */
+          if (issue_errors) {
+            pos_ty2_error(ec_no_constructor_for_conversion, &operand.position,
+                          operand.type, dest_type);
+          }  /* if */
           conv_to_error_operand(&operand);
         } else {
           if (elision_done) {
