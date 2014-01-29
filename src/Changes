@@ -15,7 +15,7 @@ This is now fixed.
 1/29/14  [EDGcpfe/14814]
 Internal error in GNU C++ mode on invalid compound literal
 
-In some GNU C++ mode cases involving a attempt to initialize an empty class
+In some GNU C++ mode cases involving an attempt to initialize an empty class
 type with an incompatible expression as part of a compound literal construct,
 the front end aborted with an internal error in aggr_init_class (decl_inits.c).
 For example:
