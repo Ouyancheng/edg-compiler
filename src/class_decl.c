@@ -21116,6 +21116,7 @@ declaration from a using-declaration.)
     a_symbol_ptr type_sym;
 
     typename_specifier(&tp, &type_sym, /*within_using_decl=*/TRUE,
+                       /*is_decl_specifier=*/FALSE,
                        (a_decl_pos_block_ptr)NULL);
     if (is_error_type(tp)) {
       err = TRUE;
