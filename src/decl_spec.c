@@ -6294,16 +6294,17 @@ The syntax is
 	typename ::    nested-name-specifier identifier
                    opt
 
-The identifier that follows the typename keyword must be a type name,
-otherwise a diagnostic is issued.  The type is returned in *type_ptr.
-The type symbol is returned in *type_sym.  On return, the current
-token is the one following the final identifier above.
-within_using_decl is TRUE in a class member using declaration that
-starts with "using typename".  decl_pos_block is a possibly NULL
-pointer to a block of source position information when the context is
-a declaration.
+The identifier that follows the typename keyword must be a type name, otherwise
+a diagnostic is issued.  The type is returned in *type_ptr.  The type symbol is
+returned in *type_sym.  On return, the current token is the one following the
+final identifier above.
+
+within_using_decl is TRUE in a class member using declaration that starts with
+"using typename".  decl_pos_block is a possibly NULL pointer to a block of
+source position information when the context is a declaration.
+
 If is_decl_specifier is TRUE, this routine is called from decl_specifiers; in
-that case, this routine may return NULL is some Microsoft modes if the tokens
+that case, this routine may return NULL in some Microsoft modes if the tokens
 following the keyword "typename" do not actually start a type name.
 */
 {
