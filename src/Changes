@@ -1,5 +1,19 @@
 Version 4.9
 
+1/30/14  [EDGcpfe/14825]
+Spurious error on scoped enum declaration then definition in class template
+
+A spurious "declaration does not declare anything" error was issued if
+a class template contained an opaque enumeration declaration followed
+by a definition that was also within the class.  Now fixed.
+
+  template <class T> struct X {
+    enum class ID:T;
+    enum class ID:T { i1, i2 };
+  };
+  int i = (int)X<int>::ID::i2;
+
+
 1/30/14  [EDGcpfe/14616]
 GNU C++ compatibility: Partial ordering of nonstatic members. vs non-members
 

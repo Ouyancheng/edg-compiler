@@ -5940,7 +5940,8 @@ template.  dsi_flags is the set of input flags passed to decl_specifiers.
           enum_type->source_corresp.access = access;
         }  /* if */
       }  /* if */
-    } else if (curr_token == tok_semicolon &&
+    } else if ((curr_token == tok_semicolon ||
+                curr_token == tok_removed_template_body) &&
                (!strict_ansi_mode || is_opaque_enum_decl)) {
       /* A useless redeclaration of an enum tag. */
       mark_declared(tag_sym, &locator.source_position);
