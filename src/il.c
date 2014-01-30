@@ -20472,11 +20472,10 @@ related to "needed" flags.
 */
 {
   if (!rout->defined) {
-#if GNU_EXTENSIONS_ALLOWED
+#if GNU_EXTENSIONS_ALLOWED && !LOWER_IFUNC
     /* An ifunc shouldn't have a definition (unless lowering gives it one). */
-    check_assertion(!rout->is_ifunc || total_errors != 0 ||
-                    il_lowering_underway);
-#endif /* GNU_EXTENSIONS_ALLOWED */
+    check_assertion(!rout->is_ifunc || total_errors != 0);
+#endif /* GNU_EXTENSIONS_ALLOWED && !LOWER_IFUNC */
     rout->defined = TRUE;
 #if MAINTAIN_NEEDED_FLAGS
 #if DEBUG
