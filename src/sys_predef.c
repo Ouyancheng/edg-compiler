@@ -1794,6 +1794,7 @@ Enter the standard predeclared functions for GCC.
   a_type_ptr  double_star_type;
   a_type_ptr  long_double_star_type;
   a_type_ptr  va_list_type;
+  a_type_ptr  file_star_type;
   an_integer_kind
               u2_kind, u4_kind, u8_kind;
   a_type_ptr  u2_type, u4_type, u8_type;
@@ -1857,6 +1858,19 @@ Enter the standard predeclared functions for GCC.
 #else /* !GCC_BUILTIN_VARARGS */
     va_list_type = void_star_type;
 #endif /* GCC_BUILTIN_VARARGS */
+  }  /* if */
+  /* FILE* parameters were originally replaced by void* parameters in functions
+     like __builtin_fprintf, but starting with GCC 4.0, an underlying type
+     _IO_FILE is predeclared.  (clang does not have a predeclared _IO_FILE
+     type.) */
+  if (gnu_version >= 40000 && !clang_mode) {
+    file_star_type = init_predeclared_class((a_type_kind)tk_struct,
+                                            "_IO_FILE");
+    enter_predeclared_class(file_star_type, DEPTH_OF_FILE_SCOPE,
+                            &null_source_position);
+    file_star_type = make_pointer_type(file_star_type);
+  } else {
+    file_star_type = void_star_type;
   }  /* if */
   u2_kind = int_kind_for_bit_size(2*CHAR_BIT, /*is_signed=*/FALSE);
   u4_kind = int_kind_for_bit_size(4*CHAR_BIT, /*is_signed=*/FALSE);
@@ -2019,23 +2033,23 @@ Enter the standard predeclared functions for GCC.
   enter_gnu_builtin_real_math_funcs2(_fmax);
   enter_gnu_builtin_real_math_funcs2(_fmin);
   enter_gnu_builtin_real_math_funcs2(_fmod);
-  enter_gnu_builtin_vararg_func2(_fprintf, int, void_star, const_char_star);
+  enter_gnu_builtin_vararg_func2(_fprintf, int, file_star, const_char_star);
   enter_gnu_builtin_vararg_func2(_fprintf_unlocked, int,
-                                 void_star, const_char_star);
-  enter_gnu_builtin_func2(_fputc, int, int, void_star);
-  enter_gnu_builtin_func2(_fputc_unlocked, int, int, void_star);
-  enter_gnu_builtin_func2(_fputs, int, const_char_star, void_star);
-  enter_gnu_builtin_func2(_fputs_unlocked, int, const_char_star, void_star);
+                                 file_star, const_char_star);
+  enter_gnu_builtin_func2(_fputc, int, int, file_star);
+  enter_gnu_builtin_func2(_fputc_unlocked, int, int, file_star);
+  enter_gnu_builtin_func2(_fputs, int, const_char_star, file_star);
+  enter_gnu_builtin_func2(_fputs_unlocked, int, const_char_star, file_star);
   enter_gnu_builtin_func1(_frame_address, void_star, unsigned);
   enter_gnu_builtin_func2(_frexp, double, double, int_star);
   enter_gnu_builtin_func2(_frexpf, floating, floating, int_star);
   enter_gnu_builtin_func2(_frexpl, long_double, long_double, int_star);
   enter_gnu_builtin_func1(_frob_return_addr, void_star, void_star);
-  enter_gnu_builtin_vararg_func2(_fscanf, int, void_star, const_char_star);
+  enter_gnu_builtin_vararg_func2(_fscanf, int, file_star, const_char_star);
   enter_gnu_builtin_func4(_fwrite, size_t,
-                          const_void_star, size_t, size_t, void_star);
+                          const_void_star, size_t, size_t, file_star);
   enter_gnu_builtin_func4(_fwrite_unlocked, size_t,
-                          const_void_star, size_t, size_t, void_star);
+                          const_void_star, size_t, size_t, file_star);
   enter_gnu_builtin_real_math_funcs1(_gamma);
   enter_gnu_builtin_func1(_gettext, char_star, const_char_star);
   enter_gnu_builtin_real_math_funcs0(_huge_val);
@@ -2238,9 +2252,9 @@ Enter the standard predeclared functions for GCC.
   enter_gnu_builtin_real_math_funcs1(_trunc);
   enter_gnu_builtin_func0(_unwind_init, no_return);
   enter_gnu_builtin_func3(_vfprintf, int,
-                          void_star, const_char_star, va_list);
+                          file_star, const_char_star, va_list);
   enter_gnu_builtin_func3(_vfscanf, int,
-                          void_star, const_char_star, va_list);
+                          file_star, const_char_star, va_list);
   enter_gnu_builtin_func2(_vprintf, int, const_char_star, va_list);
   enter_gnu_builtin_func2(_vscanf, int, const_char_star, va_list);
   enter_gnu_builtin_func4(_vsnprintf, int,

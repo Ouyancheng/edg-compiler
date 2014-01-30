@@ -1,5 +1,19 @@
 Version 4.9
 
+1/29/14  [EDGcpfe/14820]
+GNU compatibility: Predeclared _IO_FILE type
+
+When emulating GCC 4.0 or later (C or C++ modes), the front end now predeclares
+a struct type _IO_FILE (in global scope), which corresponds to the C standard
+library's FILE type.  Furthermore, when that type is predeclared, the following
+predeclared functions include a parameter of type _IO_FILE* instead of void*:
+__builtin_fprintf, __builtin_fprintf_unlocked, __builtin_fputc,
+__builtin_fputc_unlocked, __builtin_fputs, __builtin_fputs_unlocked,
+__builtin_fscanf, __builtin_fwrite, __builtin_fwrite_unlocked,
+__builtin_vfprintf, and __builtin_vfscanf.  (Note that none of this affects
+clang mode.)
+
+
 1/29/14  [EDGcpfe/14818]
 Unbounded recursion in verify_template_correspondence with friend template
 
