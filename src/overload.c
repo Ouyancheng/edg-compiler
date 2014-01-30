@@ -22088,8 +22088,12 @@ will be an lvalue instead of the usual prvalue.
         if (dip == NULL) {
           /* There was an error. */
           if (issue_errors) {
-            pos_ty2_error(ec_no_constructor_for_conversion, &operand.position,
-                          operand.type, dest_type);
+            if (!is_error_type(operand.type)) {
+              pos_ty2_error(ec_no_constructor_for_conversion,
+                            &operand.position, operand.type, dest_type);
+            } else {
+              expect_error();
+            }  /* if */
           }  /* if */
           conv_to_error_operand(&operand);
         } else {
