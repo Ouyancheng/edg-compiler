@@ -2532,6 +2532,8 @@ is put at the start of either ptp1 or ptp2.
   if (!cpp11_mode) {
     /* The ability to order nonstatic vs. nonmember functions was added
        as part of C++11 (core issue 532). */
+  } else if (gpp_mode && !clang_mode) {
+    /* g++ (as of 4.8.2) does not implement core issue 532. */
   } else if (rout_1_is_nonstatic == rout_2_is_nonstatic) {
     /* They are both static/nonmember or nonstatic functions.  Nothing
        needs to be done. */

@@ -1,5 +1,23 @@
 Version 4.9
 
+1/30/14  [EDGcpfe/14616]
+GNU C++ compatibility: Partial ordering of nonstatic members. vs non-members
+
+g++ does not seem to implement the partial ordering of members and non-members
+as described in core issue 532 (see entry for EDGcpfe/10974 on 5/9/13). We
+now disable this ordering in C++11 g++ mode (causing the example below
+to be accepted).
+
+  template <typename T> struct A {
+    template <typename U> void operator*=(U); // #1
+  };
+  template <typename T> void operator*=(A<T> &, const int &) { } // #2
+  int main() {
+    A<int> a;
+    a *= 2;  // should call #2 in g++ mode
+  }
+
+
 1/29/14  [EDGcpfe/14820]
 GNU compatibility: Predeclared _IO_FILE type
 
