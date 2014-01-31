@@ -1,5 +1,19 @@
 Version 4.9
 
+1/31/14  [EDGcpfe/14827]
+Spurious "no default constructor" error with a trivial default constructor
+
+In some cases involving a user-defaulted special members, the front end
+failed to represent a trivial default constructor, which in turn triggered
+spurious errors about missing default constructors.  For example:
+
+  struct D {
+    D& operator=(D&&) = default;
+  } d;  // Previously a spurious error "no default constructor"; now okay.
+
+This is now fixed.
+
+
 1/31/14  [EDGcpfe/14826]
 Trivially copyable class types
 

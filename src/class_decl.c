@@ -18794,13 +18794,15 @@ record that fact in *gsfd.
         !class_state->rule_out_bitwise_copy_for_volatile_class_field &&
         !(deleted_functions_enabled && !gpp_mode &&
           class_state->any_const_or_ref_fields) &&
+        !(deleted_functions_enabled &&
+          (gsfd->suppress_copy_ctor || gsfd->suppress_move_ctor)) &&
         !class_state->has_inheriting_constructors) {
-      /* This is a POD class with trivial copy semantics (a POD class may have
-         nontrivial copy semantics if it has a volatile field) and no fields
-         that require special initialization (references and const fields) to
-         prevent the generated constructor from being deleted in C++11 mode
-         (GCC does not appear to enforce this).
-         Its implicitly-declared default constructor need not actually be
+      /* This is a POD class with trivial non-deleted copy/move semantics (a
+         POD class may have nontrivial copy semantics if it has a volatile
+         field) and no fields that require special initialization (references
+         and const fields) to prevent the generated constructor from being
+         deleted in C++11 mode (GCC does not appear to enforce this).  Its
+         implicitly-declared default constructor need not actually be
          generated. */
     } else if (class_type_supp(class_type)->is_lambda_closure_class) {
       /* A deleted constructor was already declared (but not recorded in
