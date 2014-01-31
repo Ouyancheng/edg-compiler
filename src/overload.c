@@ -6966,7 +6966,7 @@ Compare two candidate functions in Microsoft bugs mode and return
    0 if cfp1 and cfp2 are equally good, or
   -1 if cfp1 is worse than cfp2
 
-on the basis that MSVC++ prefers copy constructors over other functions.
+on the basis that MSVC++ prefers copy/move constructors over other functions.
 */
 {
   int          cmp = 0;
@@ -6989,13 +6989,13 @@ on the basis that MSVC++ prefers copy constructors over other functions.
                                     (a_special_function_kind)sfk_constructor &&
                  is_copy_constructor(rout1, (a_type_ptr)NULL,
                                      (a_type_qualifier_set *)NULL,
-                                     /*include_move_ctors=*/FALSE,
+                                     /*include_move_ctors=*/TRUE,
                                      /*is_declarative_context=*/FALSE));
     is_cctor2 = (rout2->special_kind ==
                                     (a_special_function_kind)sfk_constructor &&
                  is_copy_constructor(rout2, (a_type_ptr)NULL,
                                      (a_type_qualifier_set *)NULL,
-                                     /*include_move_ctors=*/FALSE,
+                                     /*include_move_ctors=*/TRUE,
                                      /*is_declarative_context=*/FALSE));
     if (is_cctor1 && !is_cctor2) {
       cmp = 1;
@@ -7275,7 +7275,7 @@ other.  Return
     cmp = 1;
   } else if ((microsoft_bugs || sun_mode) &&
              (cmp = compare_copy_constructors_for_microsoft(cfp1, cfp2)) != 0){
-    /* MSVC++ favors copy constructors over other functions, as a way
+    /* MSVC++ favors copy/move constructors over other functions, as a way
        of making their funny "copy-initialization is direct-initialization"
        rules work. */
   } else if (cfp1->uses_microsoft_explicit_anachronism !=
