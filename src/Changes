@@ -16,8 +16,10 @@ rule is now extended to include move constructors.  For example:
     operator int();
   };
   S g();
-  D d(g());  // Now accepted in all Microsoft modes.  (An ambiguity in default
-             // and strict modes.)
+  D d(g());  // Now accepted in all Microsoft modes.  The D(D&&) constructor
+             // is selected.  (An ambiguity error is issued in default and
+             // strict modes.)
+
 
 1/30/14  [EDGcpfe/14825]
 Spurious error on scoped enum declaration then definition in class template
