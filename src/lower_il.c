@@ -9812,10 +9812,10 @@ to invoke the resolver and then the resolved routine).
                                              storage_class);
     rp->resolver_var->source_corresp.name_has_been_mangled = TRUE;
     if (storage_class == (a_storage_class)sc_unspecified) {
-      /* Only want one version in the final executable. */
-      if (!rp->is_inline) rp->is_weak = TRUE;
 #if IA64_ABI
       put_variable_into_comdat_group(rp->resolver_var);
+#else /* !IA64_ABI */
+      rp->resolver_var->is_weak = TRUE;
 #endif /* IA64_ABI */
     }  /* if */
     /* Statically initialize the variable to point to the ifunc routine. */
