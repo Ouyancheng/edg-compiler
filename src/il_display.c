@@ -6491,6 +6491,9 @@ Display the indicated class type supplement entry.
   if (ptr->defined_in_parent_class) {
     disp_boolean("defined_in_parent_class", TRUE);
   }  /* if */
+  if (ptr->trivially_copyable) {
+    disp_boolean("trivially_copyable", TRUE);
+  }  /* if */
   if (ptr->befriending_classes != NULL) {
     disp_class_list("befriending_classes", ptr->befriending_classes);
   }  /* if */

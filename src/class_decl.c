@@ -19975,17 +19975,28 @@ The routine body is not generated until it is known to be needed.
      call to mark_trivial_special_members.  Similarly, a field of volatile
      class type where the unqualified class is bitwise copyable disables
      bitwise copying of the parent class without making the copy functions
-     nontrivial. */
+     nontrivial.  A class is trivially copyable if it has a trivial destructor,
+     and it is bitwise copyable/assignable, except perhaps for deleted copy
+     functions. */
   if (cssp->has_user_provided_copy_constructor ||
       cssp->has_user_provided_move_constructor ||
-      class_state->rule_out_bitwise_copy_for_deleted_ctor ||
       class_state->rule_out_bitwise_copy_for_volatile_class_field) {
     cssp->construction_by_bitwise_copy_allowed = FALSE;
   }  /* if */
   if (user_provided_copy_assignment_op ||
       cssp->has_user_provided_move_assign_operator ||
-      class_state->rule_out_bitwise_assign_for_deleted_operator ||
       class_state->rule_out_bitwise_assign_for_volatile_class_field) {
+    cssp->assignment_by_bitwise_copy_allowed = FALSE;
+  }  /* if */
+  if (cssp->assignment_by_bitwise_copy_allowed &&
+      cssp->construction_by_bitwise_copy_allowed &&
+      cssp->has_trivial_destructor) {
+    ctsp->trivially_copyable = TRUE;
+  }  /* if */
+  if (class_state->rule_out_bitwise_copy_for_deleted_ctor) {
+    cssp->construction_by_bitwise_copy_allowed = FALSE;
+  }  /* if */
+  if (class_state->rule_out_bitwise_assign_for_deleted_operator) {
     cssp->assignment_by_bitwise_copy_allowed = FALSE;
   }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED

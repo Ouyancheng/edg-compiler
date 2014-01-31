@@ -1636,10 +1636,7 @@ Return TRUE if the given type is trivially copyable.
   if (is_scalar(tp)) {
     result = TRUE;
   } else if (is_immediate_class_type(tp)) {
-    a_class_symbol_supplement_ptr  cssp = symbol_supplement_for_class(tp);
-    result = cssp->has_trivial_destructor &&
-             cssp->construction_by_bitwise_copy_allowed &&
-             cssp->assignment_by_bitwise_copy_allowed;
+    result = class_type_supp(tp)->trivially_copyable;
   } else {
     result = FALSE;
   }  /* if */

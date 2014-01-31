@@ -1,5 +1,24 @@
 Version 4.9
 
+1/31/14  [EDGcpfe/14826]
+Trivially copyable class types
+
+A trivially copyable class type is a class type that has a trivial destructor
+and whose copy/move functions (constructors, assignment operators) are all
+trivial.  Previously, the front end considered the presence of a deleted
+copy/move function to make a class type not trivially copyable, which was
+erroneous.  This resulted in wrong outcomes for the type traits helpers
+__is_trivially_copyable and __is_trivial.  For example:
+
+  struct TC {
+    TC(TC&&) = default;  // The explicit declaration of this trivial move
+  };                     // makes the implicitly-declared copy constructor
+                         // "deleted", but it remains "trivial".
+  static_assert(__is_trivially_copyable(TC), "Error");
+
+This is now fixed.
+
+
 1/31/14  [EDGcpfe/14831]
 Microsoft C compatibility: C99-style for-statements
 

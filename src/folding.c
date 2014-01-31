@@ -7559,9 +7559,7 @@ constant will be set as well.
       case bok_is_trivial:
         check_assertion(cssp != NULL);  /* For Coverity. */
         result = has_trivial_default_constructor(cssp) &&
-                 cssp->has_trivial_destructor &&
-                 cssp->construction_by_bitwise_copy_allowed &&
-                 cssp->assignment_by_bitwise_copy_allowed;
+                 is_trivially_copyable_type(type);
         break;
       case bok_is_standard_layout:
         check_assertion(cssp != NULL);  /* For Coverity. */
