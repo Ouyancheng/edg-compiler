@@ -6530,7 +6530,7 @@ for use in generating cross-reference output describing this declaration.
         check_assertion(total_errors != 0);
         alloc_at_file_scope = TRUE;
 #if MICROSOFT_EXTENSIONS_ALLOWED
-      } else if (microsoft_mode && microsoft_version >= 1310 &&
+      } else if (microsoft_mode && microsoft_version >= 1310 && !C_mode() &&
                  scope_stack[decl_scope_level].is_for_init_block) {
         /* A for-init variable may need to be placed in the surrounding scope
            to emulate MSVC++ 7.1 behavior.  effective_decl_level (which

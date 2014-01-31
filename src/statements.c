@@ -3526,7 +3526,7 @@ scope.  This routine is called at the beginning of such statements,
 and pushes a generated block statement.
 */
 {
-  if (c99_mode) {
+  if (c99_mode || (C_mode() && microsoft_mode && microsoft_version >= 1800)) {
     (void)start_block_statement(/*generated_statement=*/TRUE,
                                 /*is_statement_expr=*/FALSE,
                                 (an_object_lifetime_ptr)NULL);
@@ -3548,9 +3548,10 @@ static void pop_c99_statement_scope(void)
 In C99, iteration and selection statements are surrounded by an implicit
 scope.  This routine is called at the end of such statements, and pops
 the generated block statement pushed by push_c99_statement_scope.
+Starting with version 18.00, the Microsoft compiler follows the C99 rules.
 */
 {
-  if (c99_mode) {
+  if (c99_mode || (C_mode() && microsoft_mode && microsoft_version >= 1800)) {
     a_statement_ptr block_stmt = struct_stmt_stack[depth_stmt_stack].statement;
     finish_block_statement(block_stmt);
   }  /* if */
@@ -4430,12 +4431,13 @@ can be NULL.
      attached in the right place. */
   sssep->for_init = TRUE;
   if ((!C_mode() && is_decl_not_expr(DFS_REAL_DECLARATOR_ALLOWED)) ||
-      (c99_mode &&
+      ((c99_mode ||
+        (C_mode() && microsoft_mode && microsoft_version >= 1800)) &&
        is_decl_start(IDS_EXPR_CONTEXT | IDS_REAL_DECLARATOR_ALLOWED))) {
     /* Scan a declaration (C++ or C99). */
     /* In C99, a scope is pushed around all iteration and selection
        statements, so it is not necessary to push another scope here. */
-    if (!c99_mode) {
+    if (!C_mode()) {
       /* C++. */
       /* Unless the old-style scoping is required, push a block scope to
          contain the for-init declaration.  (Old-style scoping means the
