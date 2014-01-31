@@ -3519,43 +3519,39 @@ in C++.
 }  /* scan_condition */
 
 
-static void push_c99_statement_scope(void)
+static void push_statement_scope(void)
 /*
 In C99, iteration and selection statements are surrounded by an implicit
 scope.  This routine is called at the beginning of such statements,
 and pushes a generated block statement.
 */
 {
-  if (c99_mode || (C_mode() && microsoft_mode && microsoft_version >= 1800)) {
-    (void)start_block_statement(/*generated_statement=*/TRUE,
-                                /*is_statement_expr=*/FALSE,
-                                (an_object_lifetime_ptr)NULL);
-    /* Move any pragmas for the statement (previously selected in
-       "statement") to the new level in the scope stack. */
-    scope_stack[depth_scope_stack].curr_construct_pragmas =
+  (void)start_block_statement(/*generated_statement=*/TRUE,
+                              /*is_statement_expr=*/FALSE,
+                              (an_object_lifetime_ptr)NULL);
+  /* Move any pragmas for the statement (previously selected in
+     "statement") to the new level in the scope stack. */
+  scope_stack[depth_scope_stack].curr_construct_pragmas =
                        scope_stack[depth_scope_stack-1].curr_construct_pragmas;
-    /* Propagate the position of the iteration or selection statement that is
-       being wrapped in an implicit block to the new stack entry. */
-    struct_stmt_stack_top().p_start_pos =
+  /* Propagate the position of the iteration or selection statement that is
+     being wrapped in an implicit block to the new stack entry. */
+  struct_stmt_stack_top().p_start_pos =
                                      (&struct_stmt_stack_top()-1)->p_start_pos;
-    scope_stack[depth_scope_stack-1].curr_construct_pragmas = NULL;
-  }  /* if */
-}  /* push_c99_statement_scope */
+  scope_stack[depth_scope_stack-1].curr_construct_pragmas = NULL;
+}  /* push_statement_scope */
 
 
-static void pop_c99_statement_scope(void)
+static void pop_statement_scope(void)
 /*
 In C99, iteration and selection statements are surrounded by an implicit
 scope.  This routine is called at the end of such statements, and pops
-the generated block statement pushed by push_c99_statement_scope.
-Starting with version 18.00, the Microsoft compiler follows the C99 rules.
+the generated block statement pushed by push_statement_scope.
 */
 {
-  if (c99_mode || (C_mode() && microsoft_mode && microsoft_version >= 1800)) {
-    a_statement_ptr block_stmt = struct_stmt_stack[depth_stmt_stack].statement;
-    finish_block_statement(block_stmt);
-  }  /* if */
-}  /* pop_c99_statement_scope */
+  a_statement_ptr block_stmt = struct_stmt_stack[depth_stmt_stack].statement;
+
+  finish_block_statement(block_stmt);
+}  /* pop_statement_scope */
 
 
 static void if_statement(void)
@@ -3578,7 +3574,7 @@ See also 3.6.4.1.
 
   check_for_unreachable_code();
   /* Push a scope in C99 mode. */
-  push_c99_statement_scope();
+  if (c99_mode) push_statement_scope();
   /* Allocate the statement. */
   sp = add_statement((a_statement_kind)stmk_if);
   stmt_update_source_sequence_list(sp);
@@ -3643,7 +3639,7 @@ See also 3.6.4.1.
   set_stmt_source_position(sp->end_position, curr_construct_end_position);
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   /* Pop a scope in C99 mode. */
-  pop_c99_statement_scope();
+  if (c99_mode) pop_statement_scope();
 
   db_exit();
 }  /* if_statement */
@@ -3668,7 +3664,7 @@ See also 3.6.4.2.
 
   check_for_unreachable_code();
   /* Push a scope in C99 mode. */
-  push_c99_statement_scope();
+  if (c99_mode) push_statement_scope();
   /* Allocate the statement. */
   sp = add_statement((a_statement_kind)stmk_switch);
   stmt_update_source_sequence_list(sp);
@@ -3739,7 +3735,7 @@ See also 3.6.4.2.
   set_stmt_source_position(sp->end_position, curr_construct_end_position);
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   /* Pop a scope in C99 mode. */
-  pop_c99_statement_scope();
+  if (c99_mode) pop_statement_scope();
 
   db_exit();
 }  /* switch_statement */
@@ -3783,7 +3779,7 @@ See also 3.6.5.1.
   assume_loop_reachable = curr_reachability.reachable ||
                           curr_reachability.suppress_unreachable_warning;
   /* Push a scope in C99 mode. */
-  push_c99_statement_scope();
+  if (c99_mode) push_statement_scope();
   /* Allocate the statement. */
   sp = add_statement((a_statement_kind)stmk_while);
   stmt_update_source_sequence_list(sp);
@@ -3824,7 +3820,7 @@ See also 3.6.5.1.
   set_stmt_source_position(sp->end_position, curr_construct_end_position);
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   /* Pop a scope in C99 mode. */
-  pop_c99_statement_scope();
+  if (c99_mode) pop_statement_scope();
   db_exit();
 }  /* while_statement */
 
@@ -3853,7 +3849,7 @@ See also 3.6.5.2.
   assume_loop_reachable = curr_reachability.reachable ||
                           curr_reachability.suppress_unreachable_warning;
   /* Push a scope in C99 mode. */
-  push_c99_statement_scope();
+  if (c99_mode) push_statement_scope();
   /* Allocate the statement. */
   sp = add_statement((a_statement_kind)stmk_end_test_while);
   stmt_update_source_sequence_list(sp);
@@ -3923,7 +3919,7 @@ See also 3.6.5.2.
      the scope being resumed. */
   reset_curr_block_object_lifetime(sp);
   /* Pop a scope in C99 mode. */
-  pop_c99_statement_scope();
+  if (c99_mode) pop_statement_scope();
 
   db_exit();
 }  /* do_statement */
@@ -4499,6 +4495,7 @@ The affinity can be an expression or the keyword "continue".
   a_boolean                  is_condition_decl = FALSE;
   a_boolean                  processing_upc_forall = FALSE;
   a_boolean                  is_range_based_for = FALSE;
+  a_boolean                  need_c99_stmt_scope = FALSE;
 #if UPC_EXTENSIONS_ALLOWED
   an_expr_node_ptr           affinity_expr = NULL;
   a_statement_ptr            saved_innermost_forall_loop = NULL;
@@ -4514,8 +4511,11 @@ The affinity can be an expression or the keyword "continue".
   stmt_pos = pos_curr_token;
   assume_loop_reachable = curr_reachability.reachable ||
                           curr_reachability.suppress_unreachable_warning;
-  /* Push a scope in C99 mode. */
-  push_c99_statement_scope();
+  /* In C99, the statement itself has an associated scope.  Microsoft C also
+     implements this starting with version 18.00. */
+  need_c99_stmt_scope = c99_mode || (C_mode() && microsoft_mode &&
+                                     microsoft_version >= 1800);
+  if (need_c99_stmt_scope) push_statement_scope();
   /* Allocate the for statement. */
 #if UPC_EXTENSIONS_ALLOWED
   if (curr_token == tok_upc_forall) {
@@ -4707,7 +4707,7 @@ The affinity can be an expression or the keyword "continue".
   set_stmt_source_position(sp->end_position, curr_construct_end_position);
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   /* Pop a scope in C99 mode. */
-  pop_c99_statement_scope();
+  if (need_c99_stmt_scope) pop_statement_scope();
   if (microsoft_mode && !is_range_based_for) {
     /* Microsoft compilers allow declarations in loop scopes to conflict
        with associated condition-scope and for-init-scope declarations when
