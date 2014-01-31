@@ -36,7 +36,7 @@ by a definition that was also within the class.  Now fixed.
 
 
 1/30/14  [EDGcpfe/14616]
-GNU C++ compatibility: Partial ordering of nonstatic members. vs non-members
+GNU C++ compatibility: Partial ordering of nonstatic members vs non-members
 
 g++ does not seem to implement the partial ordering of members and non-members
 as described in core issue 532 (see entry for EDGcpfe/10974 on 5/9/13). We
