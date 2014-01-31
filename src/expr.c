@@ -35991,8 +35991,7 @@ If we're in C++11 mode, set the traditional_const_expr_required flag in the
 expression stack appropriately.  param_type can be NULL if it's not known.
 */
 {
-  check_assertion(expr_stack->expression_kind ==
-                                          (an_expression_kind)ek_template_arg);
+  check_assertion(curr_expr_kind_is(ek_template_arg));
   expr_stack->traditional_const_expr_required = TRUE;
   if (constexpr_enabled && param_type != NULL && !microsoft_mode &&
       is_integral_or_unscoped_enum_type(param_type)) {

@@ -13691,6 +13691,7 @@ if is_lvalue is TRUE.  Return NULL if the expression cannot be generated.
          bounds in lambdas and local classes). */
       check_assertion(curr_expr_kind_is_const() ||
                       curr_expr_kind_is(ek_sizeof) ||
+                      curr_expr_kind_is(ek_template_arg) ||
                       expr_stack->is_vla_dimension_expression);
     } else if (variable->is_compound_literal) {
       /* The constant for this variable is the variable's initializer, so

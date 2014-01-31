@@ -1,5 +1,21 @@
 Version 4.9
 
+1/31/14  [EDGcpfe/14817]
+Abort in GNU mode on template argument referring to a local variable
+
+In GNU C++ mode a template argument referring to a local variable could
+sometimes lead to an internal error in expr_to_record_for_variable with
+configurations that record backing expressions for constants.  For example:
+
+  template<int I> struct X {};
+  void g() {
+    unsigned const N = 0;
+    X<(N<2) ? 1 : (N<4) ? 2 : 0> x;  // Previously triggered an assertion
+  }                                  // failure in some modes/configurations.
+
+This is now fixed.
+
+
 1/30/14  [EDGcpfe/14755]
 Microsoft compatibility: Preferring move constructors in overload resolution
 
