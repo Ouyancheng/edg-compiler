@@ -3864,6 +3864,9 @@ length returned the second time will be correct).
   } else if (start_of_id_is("__THI__", id, dctl)) {
     write_id_str("thread_local initialization routine for ", dctl);
     end_ptr = demangle_identifier(id+7, dctl);
+  } else if (start_of_id_is("__IFV__", id, dctl)) {
+    write_id_str("ifunc variable for ", dctl);
+    end_ptr = demangle_identifier(id+7, dctl);
   } else if (start_of_id_is("__TWR__", id, dctl)) {
     write_id_str("thread_local wrapper for ", dctl);
     end_ptr = demangle_identifier(id+7, dctl);
