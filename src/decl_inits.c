@@ -831,9 +831,7 @@ through *init_con (unless is->check_validity_only is TRUE).  Update the state
 of the whole initialization (*is) as appropriate.
 */
 {
-  check_assertion(is_template_param_type(gtype) ||
-                  (is_immediate_class_type(gtype) &&
-                   gtype->variant.class_struct_union.is_nonreal_class) ||
+  check_assertion(is_template_param_or_nonreal_class_type(gtype) ||
                   (gpp_mode && is_prototype_instantiation_context()) ||
                   is_error_type(gtype));
   if (is_designator_component(icp)) {
@@ -2946,7 +2944,7 @@ a ck_aggregate constant.
     is->non_top_level_aggregate = TRUE;
     is->arg_match = NULL;
     aggr_init_class(p_icp, etype, is, diag_pos, init_con);
-  } else if (etype_kind == (a_type_kind)tk_template_param ||
+  } else if (is_template_param_or_nonreal_class_type(etype) ||
              etype_kind == (a_type_kind)tk_error) {
     /* Create a constant that matches the initializer structure (since the
        element structure is not a priori known). */

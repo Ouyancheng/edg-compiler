@@ -1,5 +1,20 @@
 Version 4.9
 
+2/3/14   [EDGcpfe/14834]
+Spurious error on aggregate initialization in prototype instantiation
+
+When performing prototype instantiations of function templates in non-C++11
+modes (e.g., strict  C++03 mode), the front end sometimes issued a spurious
+error on a braced initializer.  For example:
+
+  template<typename T> struct S { int i; };
+  template<typename T> void g() {
+    static S<T> sa[] = { { 1 }, { 2 } };  // Previously a spurious error in
+  }                                       // some modes; now okay.
+
+This is now fixed.
+
+
 1/31/14  [EDGcpfe/14827]
 Spurious "no default constructor" error with a trivial default constructor
 
