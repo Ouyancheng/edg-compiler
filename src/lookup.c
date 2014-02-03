@@ -4171,16 +4171,17 @@ type.
           strcmp(locator->name_qualifier->name,
                  locator->symbol_header->identifier) == 0) {
         type = skip_typerefs(type);
-        /* If the type is a class type, return its constructor.
-           If it is not a class type, return the type and set the
-           is_nonclass_inheriting_ctor flag. */
+        /* If the type is a class type with a constructor symbol, return that
+           constructor.  Otherwise, return the type symbol.  Either way, set
+           the is_inheriting_ctor flag. */
         if (is_immediate_class_type(type)) {
           a_class_symbol_supplement_ptr	cssp;
           cssp = symbol_supplement_for_class(type);
           sym = cssp->constructor;
-        } else {
+        }  /* if */
+        if (sym == NULL) {
           sym = type_sym;
-          locator->is_nonclass_inheriting_ctor = TRUE;
+          locator->is_inheriting_ctor = TRUE;
         }  /* if */
       }  /* if */
     }  /* if */

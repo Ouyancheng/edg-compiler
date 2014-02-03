@@ -21193,11 +21193,13 @@ declaration from a using-declaration.)
       error(ec_template_id_not_allowed);
       err = TRUE;
     } else {
+      /* Check for the form "using B::B;" where B is a base class type.  That
+         denotes inheriting constructors. */
       a_boolean  is_ctor =  is_constructor_symbol(declared_sym);
       if (inheriting_constructors_enabled &&
-          (is_ctor || locator_for_curr_id.is_nonclass_inheriting_ctor ||
+          (is_ctor || locator_for_curr_id.is_inheriting_ctor ||
            is_injected_class_symbol(declared_sym))) {
-        /* The is_inheriting_ctor flag will be set when the symbol names a
+        /* The is_inheriting_ctor flag is set when no
            nonclass type (such as a template parameter). */
         record_inheriting_ctor_using_decl(cdsp, &using_pos);
         goto done;

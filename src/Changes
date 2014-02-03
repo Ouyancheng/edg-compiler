@@ -1,5 +1,20 @@
 Version 4.9
 
+2/3/14   [EDGcpfe/14835]
+Spurious error on inheriting constructor using typedef in class template
+
+When an inheriting constructor in a template is expressed using a typedef
+name, the front end previously issued a spurious error.  For example:
+
+  template<typename T> struct B {};
+  template<typename T> struct D : B<T> {
+    typedef B<T> Base;
+    using Base::Base;  // Previously triggered an error about "Base" already
+  };                   // being declared in this scope.  Now okay.
+
+This is now fixed.
+
+
 2/3/14   [EDGcpfe/14834]
 Spurious error on aggregate initialization in prototype instantiation
 
