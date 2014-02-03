@@ -2928,7 +2928,7 @@ a routine's symbol to be determined dynamically at load time.  At load time,
 the routine specified as the resolver (in the ifunc attribute) is invoked
 (once) and returns a pointer to the routine that will be used to resolve all
 instances of that symbol for that execution of the executable.  This provides
-a very low overhead mechanism to select between a family of functions
+a very low overhead mechanism to select one of a family of functions
 (typically based on the underlying CPU architecture).  Here's an example:
 
   int printf(const char *,...);
