@@ -19,7 +19,7 @@ This is now fixed.
 Spurious error on aggregate initialization in prototype instantiation
 
 When performing prototype instantiations of function templates in non-C++11
-modes (e.g., strict  C++03 mode), the front end sometimes issued a spurious
+modes (e.g., strict C++03 mode), the front end sometimes issued a spurious
 error on a braced initializer.  For example:
 
   template<typename T> struct S { int i; };
