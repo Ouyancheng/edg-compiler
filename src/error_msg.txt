@@ -2586,6 +2586,7 @@ ec_incompatible_ifunc_resolver_type;;"the type of %n (%t) is incompatible with a
 ec_ifunc_cant_be_alias;;"a function cannot have both ifunc and alias attributes"
 ec_ifunc_cant_be_weak;;"a function cannot have both ifunc and weak attributes"
 ec_call_requires_string_literal;;"call requires a string literal operand"
+ec_duplicate_inheriting_constructor;;"duplicate inheriting constructor declaration (previous %p)"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

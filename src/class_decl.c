@@ -1373,12 +1373,6 @@ typedef struct a_member_decl_info {
 			   pragmas appear.  (Used in for C++/CLI properties
 			   and events.) */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-  a_using_decl_ptr
-		inheriting_ctor_using_decl;
-			/* For an inheriting constructor (always compiler-
-			   generated), the using-declaration representation
-			   that resulted in that constructor.  (NULL in other
-			   cases.) */
 } a_member_decl_info;
 
 
@@ -1428,7 +1422,6 @@ a class member declaration as it appears.
   mdip->named_overrides = NULL;
   mdip->suspended_pragmas = NULL;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-  mdip->inheriting_ctor_using_decl = NULL;
 }  /* initialize_member_decl_info */
 
 
@@ -21019,21 +21012,34 @@ declared).
               &locator_for_curr_id.source_position);
     discard_curr_construct_pragmas();
   } else {
-    a_using_decl_ptr  udp = alloc_using_decl();
-    udp->is_inheriting_ctor = TRUE;
-    udp->is_class_member = TRUE;
-    udp->qualifier.class_type = parent_class;
-    udp->entity.kind = (a_byte_il_entry_kind)iek_type;
-    udp->entity.ptr = (char*)parent_class;
-    udp->position = *pos;
-    add_to_using_decls_list(udp, depth_scope_stack);
+    a_using_decl_ptr  udp = scope_stack_top().il_scope->using_decls;
+    for (; udp != NULL; udp = udp->next) {
+      if (udp->is_inheriting_ctor &&
+          identical_types(udp->qualifier.class_type, parent_class)) {
+        break;
+      }  /* if */
+    }  /* for */
+    if (udp != NULL) {
+      pos2_diagnostic(es_error, ec_duplicate_inheriting_constructor, pos,
+                      &udp->position);
+    } else {
+      udp = alloc_using_decl();
+      udp->is_inheriting_ctor = TRUE;
+      udp->is_class_member = TRUE;
+      udp->qualifier.class_type = parent_class;
+      udp->entity.kind = (a_byte_il_entry_kind)iek_type;
+      udp->entity.ptr = (char*)parent_class;
+      udp->position = *pos;
+      add_to_using_decls_list(udp, depth_scope_stack);
 #if GENERATE_SOURCE_SEQUENCE_LISTS
-    add_to_source_sequence_list((char*)udp, (an_il_entry_kind)iek_using_decl);
+      add_to_source_sequence_list((char*)udp,
+                                  (an_il_entry_kind)iek_using_decl);
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
-    cdsp->has_inheriting_constructors = TRUE;
-    cannot_bind_to_curr_construct();
-    report_gnu_cpp11_extension_if_needed(
+      cdsp->has_inheriting_constructors = TRUE;
+      cannot_bind_to_curr_construct();
+      report_gnu_cpp11_extension_if_needed(
                                      pos, ec_inheriting_constructor_is_cpp11);
+    }  /* if */
   }  /* if */
   /* Bypass the identifier. */
   (void)get_token();
