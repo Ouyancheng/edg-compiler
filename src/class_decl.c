@@ -21205,8 +21205,7 @@ declaration from a using-declaration.)
       if (inheriting_constructors_enabled &&
           (is_ctor || locator_for_curr_id.is_inheriting_ctor ||
            is_injected_class_symbol(declared_sym))) {
-        /* The is_inheriting_ctor flag is set when no
-           nonclass type (such as a template parameter). */
+        /* A using-declaration for inheriting constructors. */
         record_inheriting_ctor_using_decl(cdsp, &using_pos);
         goto done;
       } else if (is_ctor || is_destructor_symbol(declared_sym)) {
