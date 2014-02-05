@@ -1,5 +1,27 @@
 Version 4.9
 
+2/5/14   [EDGcpfe/14836]
+Spurious ambiguity in partial ordering involving nondeduced nontype parameter
+
+A spurious partial ordering ambiguity could be issued when a more-specialized
+function template makes use of a nontype template argument in a non-deduced
+context.  Now fixed.
+
+  template <int I> struct A {};
+  template <typename T> struct B;
+  template <class T> struct C {};
+  template <> struct B<C<int> > {
+    static const int n = 10;
+  };
+  template <class T> void f(A<B<C<T > >::n>, C<T>);
+  template <class T, int I> void f(A<I>, T);
+  int main() {
+    A<10> a10;
+    C<int> ci;
+    f(a10, ci);
+  }
+
+
 2/3/14   [EDGcpfe/14835]
 Spurious error on inheriting constructor using typedef in class template
 

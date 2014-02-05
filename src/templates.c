@@ -8442,10 +8442,12 @@ list of a template function.  Returns TRUE if a match is found.
         /* Note that the type of the constant does not participate in
            type deduction.  Once all of the arguments have been deduced
            the types of the nontype parameters are compared with the
-           types in the template parameter list. */
+           types in the template parameter list.  If the constant types
+           are not dependent, we can check them now. */
         if (!tpp->variant.constant.type_involves_template_param) {
           if (!identical_types(constant->type,
-                               templ_constant->type)) {
+                               templ_constant->type) &&
+              !is_template_dependent_type(constant->type)) {
              match = FALSE;
           }  /* if */
         }  /* if */
@@ -8473,8 +8475,7 @@ list of a template function.  Returns TRUE if a match is found.
          In this example, when templ_constant is (T)1 and constant is "I",
          it is important that deduction fail so that partial ordering
          produces the desired result. */
-    } else if (!is_deducible_constant_param(&constant,
-                                            /*remove_impl_cast=*/FALSE)) {
+    } else {
       /* A template parameter constant in an expression context.  Check
          for the special case of a constant cast to a template parameter
          type.  This is needed, for examples such as this:
@@ -8495,14 +8496,15 @@ list of a template function.  Returns TRUE if a match is found.
          constant.  We pass remove_impl_cast as FALSE so that the code below
          will use the original constant, not the constant under an implicit
          cast. */
+      match = TRUE;
       if (templ_constant->variant.template_param.kind ==
                              (a_template_param_constant_kind)tpck_cast) {
+        a_constant_ptr	tcp; 
+        tcp = templ_constant->variant.template_param.variant.constant;
         if (is_integral_type(constant->type) &&
             matches_template_type(constant->type, templ_constant->type,
                                   templ_arg_list, templ_param_list,
                                   MTT_NO_FLAGS)) {
-          a_constant_ptr	tcp; 
-          tcp = templ_constant->variant.template_param.variant.constant;
           /* Make sure the constant under the cast is not a ck_template_param
              constant.  Such constants cannot be converted. */
           if (tcp->kind != (a_constant_repr_kind)ck_template_param) {
@@ -8517,25 +8519,26 @@ list of a template function.  Returns TRUE if a match is found.
                     matches_template_constant(constant, &new_templ_constant,
                                               templ_arg_list,
                                               templ_param_list);
+            /* If a match of a non-template constant fails, don't assume
+               a non-deduced match below. */
           } else {
             /* The constant under the cast is a template parameter.  Attempt
-               to use that parameter for deduction. */
-            match = matches_template_constant(constant, tcp,
-                                              templ_arg_list,
-                                              templ_param_list);
+               to use that parameter for deduction.  Don't update match
+               because even if this fails we could use a value deduced
+               elsewhere.  This process is necessary though, because it
+               permits a template parameter to be deduced from this context
+               (which is important if it is the only reference to the
+               template parameter from which it can be deduced). */
+            (void)matches_template_constant(constant, tcp,
+                                            templ_arg_list,
+                                            templ_param_list);
           }  /* if */
+        } else if (tcp->kind != (a_constant_repr_kind)ck_template_param) {
+          match = matches_template_constant(constant, tcp,
+                                            templ_arg_list,
+                                            templ_param_list);
         }  /* if */
       }  /* if */
-      /* A expression involving nontype parameters is a "nondeduced" context.
-         This means that template parameters do not have their values deduced
-         from this context, but instead use values deduced elsewhere.  The
-         code above is still necessary though, because it permits a template
-         parameter to be deduced from that context (which is important if
-         that is the only reference to the template parameter from which
-         it can be deduced).  Whether or not that succeeded, consider this
-         a match for the time being. */
-      /*lint --e(838)*/
-      match = TRUE;
     }  /* if */
   } else {
     /* The template constant does not involve a template parameter.
