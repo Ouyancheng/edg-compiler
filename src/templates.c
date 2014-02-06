@@ -8525,7 +8525,7 @@ list of a template function.  Returns TRUE if a match is found.
             /* The constant under the cast is a template parameter.  Attempt
                to use that parameter for deduction.  Don't update match
                because even if this fails we could use a value deduced
-               elsewhere.  This process is necessary though, because it
+               elsewhere.  This process is necessary, though, because it
                permits a template parameter to be deduced from this context
                (which is important if it is the only reference to the
                template parameter from which it can be deduced). */

@@ -14,7 +14,7 @@ variable declarations.  For example:
 2/5/14   [EDGcpfe/14836]
 Spurious ambiguity in partial ordering involving nondeduced nontype parameter
 
-A spurious partial ordering ambiguity could be issued when a more-specialized
+A spurious ambiguity diagnostic could be issued when a more-specialized
 function template makes use of a nontype template argument in a non-deduced
 context.  Now fixed.
 
