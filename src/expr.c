@@ -34871,9 +34871,9 @@ Sets *expr_position to the beginning position of the range expression.
     auto_type = make_auto_type(init_component_pos(alep),
                                /*is_decltype_auto=*/FALSE);
     /* Deduce the underlying type of the list. */
-    if (deduce_auto_type(auto_type, auto_type, (an_operand *)NULL, alep,
-                         init_component_pos(alep), &deduced_type,
-                         &deduced_auto_type, &still_dependent) &&
+    if (!deduce_auto_type(auto_type, auto_type, (an_operand *)NULL, alep,
+                          init_component_pos(alep), &deduced_type,
+                          &deduced_auto_type, &still_dependent) &&
         !still_dependent) {
       /* Deduction failed. */
       expr_pos_error(rbflp->iterator->declared_with_decltype_auto ?
