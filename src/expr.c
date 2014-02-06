@@ -4490,6 +4490,7 @@ that the final call needs to be cast to the indicated type.
       an_operand    orig_operand;
       char          name[100];
       sizeof_t      name_len = strlen(builtin_function_kind_names[bfk]);
+      a_boolean     nongeneric_atomic = FALSE;
       /* Construct the concrete routine's name: */
       check_assertion(name_len < 90);
       strcpy(name, builtin_function_kind_names[bfk]);
@@ -4500,6 +4501,7 @@ that the final call needs to be cast to the indicated type.
         /* Remove the trailing "_n" suffix. */
         name_len -= 2;
         name[name_len] = '\0';
+        nongeneric_atomic = TRUE;
       }  /* if */
       /* Append _1, _2, _4, _8, or _16. */
       (void)sprintf(name+name_len, "_%u", (unsigned)dispatch_type->size);
@@ -4515,8 +4517,13 @@ that the final call needs to be cast to the indicated type.
                                        target->ref_entries_list, target);
       check_assertion(is_expression_operand(target) &&
                       is_routine_node(target->variant.expression));
-      target->variant.expression->variant.routine.special_kind =
+      if (nongeneric_atomic) {
+        target->variant.expression->variant.routine.special_kind =
+                   (a_special_function_kind)sfk_gnu_atomic_nongeneric_function;
+      } else {
+        target->variant.expression->variant.routine.special_kind =
                        (a_special_function_kind)sfk_gnu_sync_concrete_function;
+      }  /* if */
       conv_function_designator_to_ptr_to_function(target,
                                                   (a_source_position *)NULL,
                                                   /*allow_ctor=*/FALSE,

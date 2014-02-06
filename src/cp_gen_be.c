@@ -4243,18 +4243,22 @@ qualified is TRUE, force the generation of a qualified name.
     }  /* if */
 #if GNU_BUILTIN_SYNC_FUNCTIONS_ALLOWED
     if (is_routine_node(node) &&
-        node->variant.routine.special_kind ==
-                     (a_special_function_kind)sfk_gnu_sync_concrete_function) {
+        (node->variant.routine.special_kind ==
+                     (a_special_function_kind)sfk_gnu_sync_concrete_function ||
+         node->variant.routine.special_kind ==
+                (a_special_function_kind)sfk_gnu_atomic_nongeneric_function)) {
       /* This is a concrete __sync_... or __atomic_... builtin function
-         that was transformed from the generic name.  We need to restore
-         the generic name here because the types of the parameters differ
-         between the concrete and generic forms, and the cast nodes mapping
-         the arguments to the concrete parameter types are marked as
-         compiler-generated, which prevents them from appearing in the
-         generated code.  The generic form of the name is simply the
-         concrete form after dropping the trailing "_" and digit(s).  For
-         example, we need to put out __sync_val_compare_and_swap in place
-         of the concrete name __sync_val_compare_and_swap_4. */
+         that was transformed from the name that appeared in the source.
+         We need to restore the original name here because the concrete
+         versions have different parameter types, and the cast nodes
+         converting the arguments to the concrete parameter types are
+         marked as compiler-generated, preventing them from appearing in
+         the generated code.  The original form of the name is simply the
+         concrete form after dropping the trailing "_" and digit(s) and,
+         for the non-generic atomic functions like __atomic_load_n,
+         appending "_n".  For example, we need to put out
+         __sync_val_compare_and_swap in place of the concrete name
+         __sync_val_compare_and_swap_4. */
       sizeof_t     i;
       a_const_char *name = unmangled_name_of(&rout->source_corresp);
       check_assertion(name != NULL);
@@ -4262,9 +4266,22 @@ qualified is TRUE, force the generation of a qualified name.
            i > 0 && isdigit((unsigned char)name[i]);
            --i) {}
       check_assertion(name[i] == '_');
-      *(char *)(name + i) = '\0';
-      write_tok_str(name);
-      *(char *)(name + i) = '_';
+      if (node->variant.routine.special_kind ==
+                 (a_special_function_kind)sfk_gnu_atomic_nongeneric_function) {
+        /* The digit(s) must be replaced with 'n'. */
+        char c1 = name[i + 1];
+        char c2 = name[i + 2];
+        *(char *)(name + i + 1) = 'n';
+        *(char *)(name + i + 2) = '\0';
+        write_tok_str(name);
+        *(char *)(name + i + 1) = c1;
+        *(char *)(name + i + 2) = c2;
+      } else {
+        /* The name must be truncated at the '_'. */
+        *(char *)(name + i) = '\0';
+        write_tok_str(name);
+        *(char *)(name + i) = '_';
+      }  /* if */
     } else
 #endif /* GNU_BUILTIN_SYNC_FUNCTIONS_ALLOWED */
     /* Do not insert code here. */

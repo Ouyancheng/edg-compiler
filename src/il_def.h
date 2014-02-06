@@ -3744,9 +3744,16 @@ enum a_special_function_kind_tag {
 #if GNU_BUILTIN_SYNC_FUNCTIONS_ALLOWED
   sfk_gnu_sync_concrete_function,
 			/* The concrete version of a GNU __sync_... or
-			   __atomic_... builtin function.  Used only in
-			   enk_routine expression nodes, never as the
+			   __atomic_... builtin function, except the
+			   __atomic_..._n functions (see next).  Used only
+			   in enk_routine expression nodes, never as the
 			   special_kind in an a_routine entry. */
+  sfk_gnu_atomic_nongeneric_function,
+			/* Like sfk_gnu_sync_concrete_function except
+			   representing a GNU __atomic_..._n function
+			   (__atomic_load_n, etc.).  These are treated
+			   separately to allow the original source form to
+			   be accurately determined. */
 #endif /* GNU_BUILTIN_SYNC_FUNCTIONS_ALLOWED */
   sfk_last		/* Must be last. */
 };
@@ -3771,6 +3778,7 @@ EXTERN a_const_char *db_special_function_kinds[(int)sfk_last + 1]
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if GNU_BUILTIN_SYNC_FUNCTIONS_ALLOWED
    "gnu sync concrete function",
+   "gnu atomic nongeneric function",
 #endif /* GNU_BUILTIN_SYNC_FUNCTIONS_ALLOWED */
    "last" /* used to check that initialization is right. */
 }
