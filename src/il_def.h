@@ -3636,7 +3636,18 @@ typedef int32_t a_template_nesting_depth;
 			   template parameters. */
 #define AUTO_TYPE_NESTING_DEPTH	-1
 			/* Depth used to indicate that the template parameter
-			   really represents an "auto" type specifier. */
+			   really represents an "auto" or "decltype(auto) type
+			   specifier. */
+#define PLAIN_AUTO_TYPE_POS_NUMBER 1
+			/* When a template parameter nesting depth is
+			   AUTO_TYPE_NESTING_DEPTH, and its position number is
+			   this value, it represents a plain "auto" type
+			   specifier. */
+#define DECLTYPE_AUTO_POS_NUMBER 2
+			/* When a template parameter nesting depth is
+			   AUTO_TYPE_NESTING_DEPTH, and its position number is
+			   this value, it represents a "decltype(auto)" type
+			   specifier. */
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
 typedef int32_t a_generic_param_seq_number;

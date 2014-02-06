@@ -2215,12 +2215,21 @@ extern a_boolean con_is_exact_addr_of_variable(
 Macro that returns TRUE if a constant entry is the exact address of
 a routine.
 */
-#define con_is_exact_addr_of_routine(con)                            \
+#define con_is_exact_addr_of_routine(con)                             \
   ((con)->kind == (a_constant_repr_kind)ck_address &&                 \
    (con)->variant.address.kind == (an_address_base_kind)abk_routine &&\
    (con)->variant.address.offset == 0 && !(con)->implicit_cast)
 
-extern a_type_ptr make_auto_type(a_source_position *pos);
+extern a_type_ptr make_auto_type(a_source_position *pos,
+                                 a_boolean         is_decltype_auto);
+
+/*
+Macro that produces TRUE if the given variable is declared with a placeholder
+type.
+*/
+#define var_declared_with_placeholder_type(var)                              \
+  ((var)->declared_with_auto_type_specifier ||                               \
+   (var)->declared_with_decltype_auto)
 
 extern a_base_class_derivation_ptr preferred_virtual_derivation_of(
                                                       a_base_class_ptr  bcp);

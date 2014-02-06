@@ -1892,8 +1892,14 @@ by octl.
     case tk_template_param:
       {
         if (is_auto_type(type)) {
-          /* A type entry representing the "auto" type specifier. */
-          octl->output_str("auto", octl);
+          /* A type entry representing an "auto" or "decltype(auto)" type
+             specifier. */
+          if (type->variant.template_param.extra_info
+                  ->coordinates.position == DECLTYPE_AUTO_POS_NUMBER) {
+            octl->output_str("decltype(auto)", octl);
+          } else {
+            octl->output_str("auto", octl);
+          }  /* if */
         } else {
           a_source_correspondence_ptr scp = &type->source_corresp;
           an_il_entry_kind            scp_kind = iek_type;

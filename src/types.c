@@ -2117,8 +2117,9 @@ Return TRUE if the given type is a class type with virtual functions
 
 a_boolean is_auto_type(a_type_ptr tp)
 /*
-Return TRUE if the indicated type is the special template parameter type
-used to represent "auto".  No typerefs are stripped before checking for that.
+Return TRUE if the indicated type is a special template parameter type used to
+represent "auto" or "decltype(auto)".  No typerefs are stripped before
+checking for that.
 */
 {
   a_boolean result = FALSE;

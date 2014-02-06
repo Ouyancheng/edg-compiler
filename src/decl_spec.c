@@ -8499,10 +8499,12 @@ specifier.  *err is set to TRUE if an error is issued.
       *type_ptr = error_type();
       *err = TRUE;
       state->auto_type_specifier_seen = FALSE;
-      state->auto_type_specifier_seen = FALSE;
+      state->decltype_auto_specifier_seen = FALSE;
     } else {
       *basic_type = bt_auto;
-      *type_ptr = state->auto_type = make_auto_type(&state->auto_pos);
+      state->auto_type = make_auto_type(&state->auto_pos,
+                                        state->decltype_auto_specifier_seen);
+      *type_ptr = state->auto_type;
     }  /* if */
     *decl_specifiers_seen |= DS_TYPE;
   } else {

@@ -26821,7 +26821,7 @@ where the use of "x" within its own declaration is invalid.
 */
 {
   a_boolean auto_decl_underway =
-                              (var_ptr->declared_with_auto_type_specifier &&
+                              (var_declared_with_placeholder_type(var_ptr) &&
                                var_ptr->init_kind == (an_init_kind)initk_none);
   if (auto_decl_underway && var_ptr->is_enhanced_for_iterator &&
       symbol_for(var_ptr)->value_has_been_set) {
@@ -32586,8 +32586,7 @@ type of element_operand and sets the variable type to the deduced type.
   a_type_ptr deduced_auto_type;
   a_boolean  still_dependent;
 
-  if (iterator != NULL &&
-      iterator->declared_with_auto_type_specifier) {
+  if (iterator != NULL && var_declared_with_placeholder_type(iterator)) {
     /* The iterator variable is declared with "auto".  Perform the type
        deduction. */
     if (deduce_placeholder_type(iterator->declared_with_decltype_auto,
@@ -34200,10 +34199,11 @@ previously created, needed to reactivate that scope.
   }  /* if */
   if (!felp->uses_prev_decl_iterator &&
       felp->iterator.variable != NULL &&
-      felp->iterator.variable->declared_with_auto_type_specifier &&
+      var_declared_with_placeholder_type(felp->iterator.variable) &&
       is_auto_type(find_bottom_of_type(felp->iterator.variable->type))) {
-    /* We failed to resolve the auto type of the iterator variable, so
-       make it an error type (or an unknown dependent type). */
+    /* We failed to resolve the auto (or "decltype(auto)") type of the
+       iterator variable, so make it an error type (or an unknown dependent
+       type). */
     felp->iterator.variable->type = dependent_case ?
                                       type_of_unknown_templ_param_nontype :
                                       error_type();
@@ -34816,10 +34816,11 @@ and can have the following forms (see [stmt.ranged] for specifics):
 
   }  /* if */
   if (rbflp->iterator != NULL) {
-    if (rbflp->iterator->declared_with_auto_type_specifier &&
+    if (var_declared_with_placeholder_type(rbflp->iterator) &&
         is_auto_type(find_bottom_of_type(rbflp->iterator->type))) {
-      /* We failed to resolve the auto type of the iterator variable, so
-         make it an error type (or an unknown dependent type). */
+      /* We failed to resolve the auto (or "decltype(auto)") type of the
+         iterator variable, so make it an error type (or an unknown dependent
+         type). */
       check_assertion(!passed);
       rbflp->iterator->type = dependent_case ?
                                 type_of_unknown_templ_param_nontype :
@@ -34867,13 +34868,12 @@ Sets *expr_position to the beginning position of the range expression.
     a_boolean            still_dependent;
     an_arg_list_elem_ptr alep;
     alep = parse_braced_init_list(/*bundle=*/FALSE);
-    auto_type = make_auto_type(init_component_pos(alep));
+    auto_type = make_auto_type(init_component_pos(alep),
+                               /*is_decltype_auto=*/FALSE);
     /* Deduce the underlying type of the list. */
-    if (!deduce_placeholder_type(rbflp->iterator->declared_with_decltype_auto,
-                                 auto_type, auto_type, (an_operand *)NULL,
-                                 alep, init_component_pos(alep),
-                                 &deduced_type, &deduced_auto_type,
-                                 &still_dependent) &&
+    if (deduce_auto_type(auto_type, auto_type, (an_operand *)NULL, alep,
+                         init_component_pos(alep), &deduced_type,
+                         &deduced_auto_type, &still_dependent) &&
         !still_dependent) {
       /* Deduction failed. */
       expr_pos_error(rbflp->iterator->declared_with_decltype_auto ?
