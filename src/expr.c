@@ -341,15 +341,17 @@ TRUE and FALSE is returned.
               is_braced_init_component(initializer_alep));
     if (result) {
       a_boolean   no_parens_matters;
-      an_operand  local_operand;
+      an_operand  local_operand, *p_operand;
       if (initializer_alep != NULL) {
         check_assertion(is_expression_component(initializer_alep));
         extract_operand_from_expression_component(initializer_alep,
                                                   &local_operand,
                                                   /*free_icp=*/FALSE);
-        initializer_operand = &local_operand;
+        p_operand = &local_operand;
+      } else {
+        p_operand = initializer_operand;
       }  /* if */
-      *type_after_deduction = decltype_from_operand(initializer_operand,
+      *type_after_deduction = decltype_from_operand(p_operand,
                                                     &no_parens_matters);
       *deduced_auto_type = *type_after_deduction;
       if (is_template_dependent_type(*type_after_deduction)) {
