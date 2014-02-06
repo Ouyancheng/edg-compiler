@@ -360,6 +360,8 @@ TRUE and FALSE is returned.
       } else {
         *still_dependent = TRUE;
       }  /* if */
+    } else {
+      *still_dependent = FALSE;
     }  /* if */
   }  /* if */
   return result;
