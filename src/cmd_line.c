@@ -2948,6 +2948,9 @@ default mode (e.g., exception handling).
   raw_string_literals_enabled = value;
   std_thread_local_storage_specifier_enabled = value;
   std_override_modifiers_enabled = value;
+  if (cpp14_mode && auto_type_specifier_enabled) {
+    decltype_auto_enabled = TRUE;
+  }  /* if */
 }  /* check_and_set_cpp11_mode_options */
 
 
@@ -10519,6 +10522,7 @@ variables declared in cmd_line.h.
   auto_type_specifier_enabled = DEFAULT_AUTO_TYPE_SPECIFIER_ENABLED;
   auto_storage_class_specifier_enabled =
                                  DEFAULT_AUTO_STORAGE_CLASS_SPECIFIER_ENABLED;
+  decltype_auto_enabled = FALSE;
   extern_template_allowed = FALSE;
   inline_template_allowed = FALSE;
   standard_form_of_extern_template = FALSE;

@@ -8457,11 +8457,11 @@ static void process_auto_specifier(
                                  a_type_ptr             *type_ptr,
                                  a_boolean              *err)
 /*
-Process the "auto" specifier.  Depending on the mode, it can be a storage
-class specifier, a type specifier, or both.  If it can be both, we cannot
-determine which it is until all specifiers have been seen, and this routine is
-called late (i.e., after all specifiers have been seen).  If it cannot be
-both, this routine is called early because in
+Process the "auto" or "decltype(auto)" specifier.  Depending on the mode,
+"auto" can be a storage class specifier, a type specifier, or both.  If it can
+be both, we cannot determine which it is until all specifiers have been seen,
+and this routine is called late (i.e., after all specifiers have been seen).
+If it cannot be both, this routine is called early because in
     typedef int T; T x;
     void f() { auto T(x); }
 we must know that a type specifier ("auto") was seen to avoid treating T as a
@@ -8469,21 +8469,23 @@ type specifier (here, it is a declarator-id).
 auto_type_allowed is TRUE if the current context allows "auto" as a type
 specifier.  auto_is_first is TRUE if "auto" was the first specifier other than
 "inline" or "friend".  input_flags are the flags passed to decl_specifier (for
-which this is a helper routine).  *state and *decl_pos_block tracks various
+which this is a helper routine).  *state and *decl_pos_block track various
 properties of the current declaration parsing state; they may be updated by
 this routine.  *decl_specifiers_seen records the kind of specifiers seen (and
 may be updated).  *basic_type and *type_ptr describe the type specified by
-the specifiers and are updated if "auto" is treated as a type specifier.  *err
-is set to TRUE if an error is issued.
+the specifiers and are updated if "auto"/"decltype(auto)" is treated as a type
+specifier.  *err is set to TRUE if an error is issued.
 */
 {
   if (auto_type_specifier_enabled &&
       (!auto_storage_class_specifier_enabled ||
+       state->decltype_auto_specifier_seen ||
        (!(*decl_specifiers_seen & DS_TYPE) &&
         (input_flags & DSI_TYPE_SPECIFIER_ALLOWED)))) {
-    /* "auto" can be a type specifier in this mode.  It cannot be a storage
-       class specifier either because this mode doesn't allow it or because
-       no other type specifier was seen. */
+    /* This is "decltype(auto)" or "auto" can be a type specifier in this mode.
+       In the "auto" case, it cannot be a storage class specifier either
+       because this mode doesn't allow it or because no other type specifier
+       was seen. */
     if (!auto_type_allowed || (*decl_specifiers_seen & DS_TYPE) != 0) {
       /* If the current mode supports "auto" as a type specifier, but the
          current context does not (e.g., a typedef declaration), issue an
@@ -8496,6 +8498,7 @@ is set to TRUE if an error is issued.
       *basic_type = bt_error;
       *type_ptr = error_type();
       *err = TRUE;
+      state->auto_type_specifier_seen = FALSE;
       state->auto_type_specifier_seen = FALSE;
     } else {
       *basic_type = bt_auto;
@@ -9985,9 +9988,41 @@ process_enum_specifier:
           goto no_get_token;
         }
 #endif /* GNU_EXTENSIONS_ALLOWED */
+      case tok_decltype:
+        /* This could be decltype(auto), decltype(...)::... or just a plain
+           decltype specifier.  The first case is handled here, and the others
+           in the fall-through path. */
+        if (decltype_auto_enabled && decltype_auto_tokens_next()) {
+          check_assertion(auto_type_specifier_enabled);
+          if (state->auto_type_specifier_seen) {
+            pos_error(ec_bad_combination_of_type_specifiers, &pos_curr_token);
+          } else {
+            auto_is_first = !(decl_specifiers_seen & ~(DS_INLINE | DS_FRIEND));
+            state->auto_pos = pos_curr_token;
+            state->auto_type_specifier_seen = TRUE;
+            if (state->is_new_expr_type) {
+              /* The grammar in the working paper for C++14 allows something
+                 like "new decltype(auto)(x);", but doesn't say what it means.
+                 For now, we just disallow it. */
+              pos_error(ec_decltype_auto_not_allowed_here, &pos_curr_token);
+            } else {
+              state->decltype_auto_specifier_seen = TRUE;
+            }  /* if */
+            process_auto_specifier(
+                    decltype_auto_enabled, auto_is_first, input_flags, state,
+                    decl_pos_block, &decl_specifiers_seen, &basic_type,
+                    type_ptr, &err);
+          }  /* if */
+          /* Consume the four tokens of "decltype(auto)". */
+          (void)get_token();
+          (void)get_token();
+          (void)get_token();
+          (void)get_token();
+          goto no_get_token;
+        }  /* if */
+        /*FALLTHROUGH*/
       case tok_identifier:  /* Identifier or "::". */
       case tok_colon_colon:
-      case tok_decltype:
 #if MICROSOFT_EXTENSIONS_ALLOWED
       case tok_super:
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */

@@ -296,22 +296,90 @@ parameters match the corresponding ones for push_expr_stack_for_initializer.
 }  /* pop_expr_stack_for_initializer */
 
 
+static a_type_ptr decltype_from_operand(an_operand *operand,
+                                        a_boolean  *no_parens_matters);
+
+static a_boolean deduce_placeholder_type(
+                                      a_boolean         is_decltype_auto,
+                                      a_type_ptr        orig_type,
+                                      a_type_ptr        auto_type,
+                                      an_operand        *initializer_operand,
+                                      an_arg_list_elem  *initializer_alep,
+                                      a_source_position *source_pos,
+                                      a_type_ptr        *type_after_deduction,
+                                      a_type_ptr        *deduced_auto_type,
+                                      a_boolean         *still_dependent)
+/*
+Do type deduction for a use of "auto" or "decltype(auto)" in a declaration or
+similar construct.  If the call is for a "decltype(auto)" construct, the flag
+is_decltype_auto is TRUE. orig_type is the type of the declared entity, with
+"auto" embedded in it.  auto_type is the "auto" type that's embedded (a
+template parameter type); it can be NULL, in which case this routine will find
+it inside orig_type.  initializer_operand is the initializer, whose type is
+used to do the deduction.  Alternatively, initializer_alep can be used to
+specify the initializer in init-component form; if it's non-NULL it is used
+instead of initializer_operand.  source_pos is the source position of the
+declaration.  If the deduction succeeds, *type_after_deduction is set to the
+deduced version of orig_type, *deduced_auto_type is set to the type deduced
+for "auto" itself, and TRUE is returned.  If an error is detected, FALSE is
+returned (but no diagnostic is issued).  If the deduction was not attempted
+because the types involved are still dependent, *still_dependent is returned
+TRUE and FALSE is returned.
+*/
+{
+  a_boolean  result;
+
+  if (!is_decltype_auto) {
+    result = deduce_auto_type(orig_type, auto_type, initializer_operand,
+                              initializer_alep, source_pos,
+                              type_after_deduction, deduced_auto_type,
+                              still_dependent);
+  } else {
+    /* decltype(auto) succeeds unless the initializer is a braced initializer
+       list. */
+    result = !(initializer_alep != NULL &&
+              is_braced_init_component(initializer_alep));
+    if (result) {
+      a_boolean   no_parens_matters;
+      an_operand  local_operand;
+      if (initializer_alep != NULL) {
+        check_assertion(is_expression_component(initializer_alep));
+        extract_operand_from_expression_component(initializer_alep,
+                                                  &local_operand,
+                                                  /*free_icp=*/FALSE);
+        initializer_operand = &local_operand;
+      }  /* if */
+      *type_after_deduction = decltype_from_operand(initializer_operand,
+                                                    &no_parens_matters);
+      *deduced_auto_type = *type_after_deduction;
+      if (is_template_dependent_type(*type_after_deduction)) {
+        *still_dependent = TRUE;
+        result = FALSE;
+      } else {
+        *still_dependent = TRUE;
+      }  /* if */
+    }  /* if */
+  }  /* if */
+  return result;
+}  /* deduce_placeholder_type */ 
+
+
 void prescan_initializer_for_auto_type_deduction(
                                          a_decl_parse_state *dps,
                                          a_boolean          parenthesized_init)
 /*
-Prescan an initializer expression for an "auto" type variable declaration and
-deduce the type of the variable.  The operand resulting from the scan is
-recorded in *dps for later consumption.  On return, dps->deduced_auto_type is
-the type to which the "auto" was deduced, and dps->type is the type of the
-entity to initialize.  dps->auto_type_specifier_seen (which must be TRUE
-on entry) is cleared to FALSE if there was a deduction error, and
-dps->deduced_auto_type is returned NULL if deduction was not done because
-the type or initializer is still dependent.  The prescanned operand
-can later be accessed using set_up_initializer_rescan.  The
-initializer is parenthesized if parenthesized_init is TRUE (and the
-opening parenthesis has already been swallowed); otherwise, it's
-"="-form or "{...}" form.
+Prescan an initializer expression for an "auto"/"decltype(auto)" type variable
+declaration and deduce the type of the variable.  The operand resulting from
+the scan is recorded in *dps for later consumption.  On return,
+dps->deduced_auto_type is the type to which the "auto" was deduced, and
+dps->type is the type of the entity to initialize.  
+dps->auto_type_specifier_seen (which must be TRUE on entry) is cleared to
+FALSE if there was a deduction error, and dps->deduced_auto_type is returned
+NULL if deduction was not done because the type or initializer is still
+dependent.  The prescanned operand can later be accessed using
+set_up_initializer_rescan.  The initializer is parenthesized if
+parenthesized_init is TRUE (and the opening parenthesis has already been
+swallowed); otherwise, it's "="-form or "{...}" form.
 */
 {
   an_expr_stack_entry   expr_stack_entry;
@@ -367,28 +435,34 @@ opening parenthesis has already been swallowed); otherwise, it's
   /* Do type deduction. */
   undeduced_type = dps->declared_type;
   if ((dps->dso_flags & DSO_CONSTEXPR) != 0 &&
+      !dps->decltype_auto_specifier_seen &&
       !is_const_qualified_type(undeduced_type)) {
     /* constexpr variables are implicitly const. */
     undeduced_type = make_qualified_type(undeduced_type,
                                          (a_type_qualifier_set)TQ_CONST);
   }  /* if */
-  if (!deduce_auto_type(undeduced_type,
-                        dps->auto_type,
-                        (an_operand *)NULL,
-                        icp,
-                        &dps->declarator_pos,
-                        &dps->type,
-                        &deduced_auto_type,
-                        &still_dependent)) {
+  if (!deduce_placeholder_type(dps->decltype_auto_specifier_seen,
+                               undeduced_type,
+                               dps->auto_type,
+                               (an_operand *)NULL,
+                               icp,
+                               &dps->declarator_pos,
+                               &dps->type,
+                               &deduced_auto_type,
+                               &still_dependent)) {
     if (still_dependent) {
       /* Deduction was not done because the types are still dependent. */
       dps->type = undeduced_type;
       dps->deduced_auto_type = NULL;
     } else {
       /* Deduction failed. */
-      expr_pos_error(ec_cannot_deduce_auto_type, &dps->auto_pos);
+      expr_pos_error(dps->decltype_auto_specifier_seen ?
+                       ec_cannot_deduce_decltype_auto_type :
+                       ec_cannot_deduce_auto_type,
+                     &dps->auto_pos);
       dps->specifiers_type = dps->deduced_auto_type = dps->type = error_type();
       dps->auto_type_specifier_seen = FALSE;
+      dps->decltype_auto_specifier_seen = FALSE;
     }  /* if */
   } else {
     /* Deduction succeeded. */
@@ -16384,11 +16458,8 @@ expression, and return the result in *result (or an error indication in
       }  /* if */
       /* Deduce the type. */
       if (deduce_auto_type(new_type, /*auto_type=*/(a_type_ptr)NULL,
-                           &auto_operand,
-                           auto_alep,
-                           &type_position,
-                           &deduced_new_type,
-                           &deduced_auto_type,
+                           &auto_operand, auto_alep, &type_position,
+                           &deduced_new_type, &deduced_auto_type,
                            &still_dependent)) {
         /* Deduction succeeded. */
         new_type = deduced_new_type;
@@ -32517,14 +32588,12 @@ type of element_operand and sets the variable type to the deduced type.
       iterator->declared_with_auto_type_specifier) {
     /* The iterator variable is declared with "auto".  Perform the type
        deduction. */
-    if (deduce_auto_type(iterator->type,
-                         /*auto_type=*/(a_type_ptr)NULL,
-                         element_operand,
-                         (an_arg_list_elem_ptr)NULL,
-                         &iterator->source_corresp.decl_position,
-                         &deduced_type,
-                         &deduced_auto_type,
-                         &still_dependent)) {
+    if (deduce_placeholder_type(iterator->declared_with_decltype_auto,
+                                iterator->type, /*auto_type=*/(a_type_ptr)NULL,
+                                element_operand, (an_arg_list_elem_ptr)NULL,
+                                &iterator->source_corresp.decl_position,
+                                &deduced_type, &deduced_auto_type,
+                                &still_dependent)) {
       /* Deduction succeeded. */
       iterator->type = deduced_type;
     } else if (still_dependent) {
@@ -32532,7 +32601,9 @@ type of element_operand and sets the variable type to the deduced type.
          type as it is. */
     } else {
       /* Deduction failed. */
-      pos_error(ec_cannot_deduce_auto_type,
+      pos_error(iterator->declared_with_decltype_auto ?
+                  ec_cannot_deduce_decltype_auto_type :
+                  ec_cannot_deduce_auto_type,
                 &iterator->source_corresp.decl_position);
       iterator->type = error_type();
     }  /* if */
@@ -34796,16 +34867,17 @@ Sets *expr_position to the beginning position of the range expression.
     alep = parse_braced_init_list(/*bundle=*/FALSE);
     auto_type = make_auto_type(init_component_pos(alep));
     /* Deduce the underlying type of the list. */
-    if (!deduce_auto_type(auto_type, auto_type,
-                          (an_operand *)NULL,
-                          alep,
-                          init_component_pos(alep),
-                          &deduced_type,
-                          &deduced_auto_type,
-                          &still_dependent) &&
+    if (!deduce_placeholder_type(rbflp->iterator->declared_with_decltype_auto,
+                                 auto_type, auto_type, (an_operand *)NULL,
+                                 alep, init_component_pos(alep),
+                                 &deduced_type, &deduced_auto_type,
+                                 &still_dependent) &&
         !still_dependent) {
       /* Deduction failed. */
-      expr_pos_error(ec_cannot_deduce_auto_type, init_component_pos(alep));
+      expr_pos_error(rbflp->iterator->declared_with_decltype_auto ?
+                       ec_cannot_deduce_decltype_auto_type :
+                       ec_cannot_deduce_auto_type,
+                     init_component_pos(alep));
       conv_braced_init_component_to_error_expression(alep);
       copy_operand(operand_of_arg_list_elem(alep), &result);
     } else {

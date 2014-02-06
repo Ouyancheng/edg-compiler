@@ -1,5 +1,16 @@
 Version 4.9
 
+2/5/14   [EDGcpfe/14383]
+C++14: decltype(auto)
+
+In C++14 mode, the front end now accepts the decltype(auto) construct for
+variable declarations.  For example:
+
+  decltype(auto) i1 = 1;     // deduces i1 to be int (i.e., decltype(1)).
+  decltype(auto) i2 = (i1);  // deduces i2 to be int& (i.e., decltype((i1))).
+  decltype(auto) i3 = i1;    // deduces i3 to be int (i.e., decltype(i1)).
+
+
 2/5/14   [EDGcpfe/14836]
 Spurious ambiguity in partial ordering involving nondeduced nontype parameter
 

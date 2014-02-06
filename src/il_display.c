@@ -2828,6 +2828,9 @@ Display the indicated variable.
   if (ptr->declared_with_auto_type_specifier) {
     disp_boolean("declared_with_auto_type_specifier", TRUE);
   }  /* if */
+  if (ptr->declared_with_decltype_auto) {
+    disp_boolean("declared_with_decltype_auto", TRUE);
+  }  /* if */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   disp_ptr("declared_type", (char *)ptr->declared_type, iek_type);
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */

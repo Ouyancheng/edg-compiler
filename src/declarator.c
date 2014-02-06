@@ -1945,8 +1945,9 @@ lambda declarator.
   check_assertion(curr_token == tok_arrow);
   if (func_info->lambda != NULL) {
     /* No special syntax checks are needed. */
-  } else if (!dps->auto_type_specifier_seen) {
-    /* Something like "int ()->int". */
+  } else if (!dps->auto_type_specifier_seen ||
+             dps->decltype_auto_specifier_seen) {
+    /* Something like "int ()->int" or "decltype(auto) f()->void". */
     error(ec_trailing_return_type_requires_auto);
     err = TRUE;
   } else if (dps->in_nested_declarator) {

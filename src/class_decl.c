@@ -14937,7 +14937,9 @@ specific information about the member declaration, respectively.
     complete_type_is_needed(member_type);
     var->is_constexpr = TRUE;
   }  /* if */
-  if (decl_state->auto_type_specifier_seen) {
+  if (decl_state->decltype_auto_specifier_seen) {
+    var->declared_with_decltype_auto = TRUE;
+  } else if (decl_state->auto_type_specifier_seen) {
     var->declared_with_auto_type_specifier = TRUE;
   }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED

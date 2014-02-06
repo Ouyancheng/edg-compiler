@@ -17389,7 +17389,8 @@ selection operator, in which case it points to the type of the left operand.
       might_be_qualifier = TRUE;
       qualifier_separator = tok_period;
     }  /* if */
-  } else if (curr_token == tok_decltype && !is_global_qualified_name) {
+  } else if (curr_token == tok_decltype && !is_global_qualified_name &&
+             !decltype_auto_tokens_next()) {
     /* This is most likely just a decltype specifier (e.g., "decltype(expr)"),
        but could also be a qualifier in a qualified name (e.g.,
        "decltype(expr)::something").  The former is not treated as an

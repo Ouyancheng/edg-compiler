@@ -2247,6 +2247,12 @@ by the C++11 standard or later C++ standards.
 #define cpp11_mode (!C_mode() && std_version >= 201103)
 
 /*
+Macro that is TRUE when the front end should accept language features defined
+by the C++14 standard or later C++ standards.
+*/
+#define cpp14_mode (!C_mode() && std_version >= 201400)
+
+/*
 A macro synonymous with cpp11_mode to enhance compatibility with older versions
 of the front end.
 */
@@ -2303,6 +2309,12 @@ EXTERN a_boolean
 		decltype_enabled;
 			/* When TRUE, the C++11 construct decltype is
 			   supported. */
+
+EXTERN a_boolean
+		decltype_auto_enabled;
+			/* When TRUE, the C++14 "decltype(auto)" construct is
+			   enabled.  auto_type_specifier_enabled must also be
+			   TRUE in that case. */
 
 EXTERN a_boolean
 		enable_underscore_decltype_only;

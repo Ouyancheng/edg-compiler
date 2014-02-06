@@ -162,6 +162,7 @@ be restored).
     dps->unused_qualifiers = FALSE;
     dps->auto_type_allowed = FALSE;
     dps->auto_type_specifier_seen = FALSE;
+    dps->decltype_auto_specifier_seen = FALSE;
     dps->is_asm_function = FALSE;
     dps->function_definition_allowed = FALSE;
     dps->is_old_style_param_decl = FALSE;
@@ -12946,7 +12947,9 @@ Return a pointer to the variable that is declared.
   vp = make_variable(state.type, state.storage_class, decl_scope_level);
   sym->variant.variable.ptr = vp;
   set_source_corresp(&vp->source_corresp, sym);
-  if (state.auto_type_specifier_seen) {
+  if (state.decltype_auto_specifier_seen) {
+    vp->declared_with_decltype_auto = TRUE;
+  } else if (state.auto_type_specifier_seen) {
     vp->declared_with_auto_type_specifier = TRUE;
   }  /* if */
   if (state.dso_flags & DSO_CONSTEXPR) {
@@ -15188,6 +15191,36 @@ routine also works in Microsoft modes that do not have a keyword "default".
 }  /* deleted_or_defaulted_def_next */
 
 
+a_boolean decltype_auto_tokens_next(void)
+/*
+Return TRUE if the upcoming tokens in the token stream are "decltype(auto)".
+The caller already ensured the current token is "decltype".
+*/
+{
+  a_boolean      result = FALSE;
+  a_token_cache  cache;
+
+  check_assertion(curr_token == tok_decltype);
+  clear_token_cache(&cache, /*reusable=*/FALSE);
+  cache_curr_token(&cache);
+  (void)get_token();
+  if (curr_token == tok_lparen) {
+    cache_curr_token(&cache);
+    (void)get_token();
+    if (curr_token == tok_auto) {
+      cache_curr_token(&cache);
+      (void)get_token();
+      if (curr_token == tok_rparen) {
+        result = TRUE;
+      }  /* if */
+    }  /* if */
+  }  /* if */
+  /* Restore the token state. */
+  rescan_cached_tokens(&cache);
+  return result;
+}  /* decltype_auto_tokens_next */
+
+
 static an_end_of_decl_action function_declaration(
                                           a_decl_parse_state  *state,
                                           a_func_info_block   *func_info,
@@ -16052,8 +16085,12 @@ if one is present.
       mark_symbol_to_suppress_warnings(state->sym);
     }  /* if */
   }  /* if */
-  if (state->auto_type_specifier_seen && var_ptr != NULL) {
-    var_ptr->declared_with_auto_type_specifier = TRUE;
+  if (var_ptr != NULL) {
+    if (state->decltype_auto_specifier_seen) {
+      var_ptr->declared_with_decltype_auto = TRUE;
+    } else if (state->auto_type_specifier_seen) {
+      var_ptr->declared_with_auto_type_specifier = TRUE;
+    }  /* if */
   }  /* if */
   if (is_variable_def || is_tentative_def) {
     /* In C++ mode, check whether a template class type needs to be
@@ -16880,42 +16917,65 @@ a diagnostic if that isn't the case.
 
 void check_use_of_auto_type(a_decl_parse_state  *dps)
 /*
-Check that if the "auto" type specifier was used in the current declaration,
-an initializer enabled the deduction of an actual type.  Issue an error if
-that was not the case and set dps->specifiers_type to an error type to avoid
-repeating the diagnostic if additional declarators follow.  Also diagnose
-invalid uses of "auto" in other contexts (e.g., casts).  This does not apply
-to the "auto" type specifier used to introduce a trailing return type.
+Check that if the "auto" or "decltype(auto)" type specifier was used in the
+current declaration, an initializer enabled the deduction of an actual type.
+Issue an error if that was not the case and set dps->specifiers_type to an
+error type to avoid repeating the diagnostic if additional declarators follow.
+Also diagnose invalid uses of "auto" and "decltype(auto)" in other contexts
+(e.g., casts).  This does not apply to "auto"/"decltype(auto)" used to
+introduce a trailing return type.
 */
 {
-  if (dps->auto_type_specifier_seen && !dps->has_trailing_return_type &&
-      !dps->range_based_for &&
-      (!dps->has_initializer || !dps->auto_type_allowed) &&
-      !(dps->type != NULL && is_error_type(dps->type))) {
-    /* The "auto" type specifier was seen, but we never saw an initializer
-       and no other error was recorded in the declaration's type. */
+  a_boolean  err = FALSE;
+
+  if (!dps->auto_type_specifier_seen || dps->has_trailing_return_type) {
+    /* Not a declaration that requires this checking. */
+  } else if (dps->type != NULL && is_error_type(dps->type)) {
+    /* Some error already occurred.  Additional diagnostics are unlikely to
+       be helpful. */
+    expect_error();
+  } else if (!dps->range_based_for &&
+             (!dps->has_initializer || !dps->auto_type_allowed)) {
+    /* "auto"/"decltype(auto)" was seen, but we never saw an initializer or
+       the specifier is not allowed at all in this context. */
+    err = TRUE;
     if (!dps->auto_type_allowed) {
       /* A context where an "auto" type is simply not allowed.  (E.g., a
          parameter declaration.) */
-      pos_error(ec_auto_not_allowed_here, &dps->auto_pos);
+      pos_error(dps->decltype_auto_specifier_seen ?
+                  ec_decltype_auto_not_allowed_here : ec_auto_not_allowed_here,
+                &dps->auto_pos);
     } else if (dps->sym != NULL && !dps->sym->is_error) {
       /* A named entity was declared: Issue the error on the declarator (there
          could be more than one sharing the same auto specifier). */
-      pos_error(ec_auto_type_requires_initializer, &dps->declarator_pos);
+      pos_error(dps->decltype_auto_specifier_seen ?
+                  ec_decltype_auto_type_requires_initializer :
+                  ec_auto_type_requires_initializer,
+                &dps->declarator_pos);
     } else {
       /* An unnamed entity (e.g., bit field) or a severe syntax error.
          Issuing the error on the auto specifier is usually more helpful. */
-      pos_error(ec_auto_type_requires_initializer, &dps->auto_pos);
+      pos_error(dps->decltype_auto_specifier_seen ?
+                  ec_decltype_auto_type_requires_initializer :
+                  ec_auto_type_requires_initializer,
+                &dps->auto_pos);
     }  /* if */
+  } else if (dps->decltype_auto_specifier_seen &&
+             !identical_types(dps->declared_type, dps->auto_type)) {
+    /* "decltype(auto)" was seen, but that type is modified in some way; e.g.,
+       "decltype(auto) *p = &x;".  That is not permitted. */
+    pos_error(ec_modified_decltype_auto_type, &dps->auto_pos);
+  }  /* if */
+  if (err) {
     dps->auto_type_specifier_seen = FALSE;
     dps->auto_type = NULL;
     invalidate_type(dps);
     if (dps->sym != NULL) {
-      /* Update the IL entry.  Normally it should be a variable or static
-         data member, but erroneous uses of "auto" can get here for other
-         entities (e.g., fields) as well.  Recording an error type in the
-         IL entry avoids error cascades later on and prevents aborts in
-         code that isn't expecting a template parameter type. */
+      /* Update the IL entry.  Normally it should be a variable or static data
+         member, but erroneous uses of "auto"/"decltype(auto)" can get here for
+         other entities (e.g., fields) as well.  Recording an error type in the
+         IL entry avoids error cascades later on and prevents aborts in code
+         that isn't expecting a template parameter type. */
       a_variable_ptr  vp = NULL;
       a_type_ptr      *p_type = NULL;
       switch (dps->sym->kind) {
@@ -16945,6 +17005,7 @@ to the "auto" type specifier used to introduce a trailing return type.
       }  /* if */
       if (vp != NULL) {
         vp->declared_with_auto_type_specifier = FALSE;
+        vp->declared_with_decltype_auto = FALSE;
       }  /* if */
     }  /* if */
   }  /* if */

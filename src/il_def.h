@@ -9490,6 +9490,9 @@ typedef struct a_variable {
 			/* TRUE if the variable's declaration contains the
 			   type specifier (not the storage class specifier)
 			   "auto". */
+  a_bit_field	declared_with_decltype_auto:1;
+			/* TRUE if the variable declaration contains the
+			   decltype(auto) specifier. */
 #if BACK_END_IS_CP_GEN_BE
   a_bit_field	definition_has_been_put_out:1;
 			/* Used in the C++-generating back end to control

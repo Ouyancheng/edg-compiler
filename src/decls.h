@@ -702,7 +702,11 @@ typedef struct a_decl_parse_state {
 			   appear as a type specifier. */
   a_bit_field
 		auto_type_specifier_seen:1;
-			/* TRUE if "auto" appeared as a type specifier. */
+			/* TRUE if "auto" or "decltype(auto)" appeared as a
+			   type specifier. */
+  a_bit_field
+		decltype_auto_specifier_seen:1;
+			/* TRUE if "decltype(auto)" appeared as a specifier. */
   a_bit_field
 		is_asm_function:1;
 			/* TRUE if the current declaration is for an asm
@@ -1374,6 +1378,8 @@ extern void check_default_args_for_param_type(a_param_type_ptr  ptp,
                                               a_source_position *pos);
 
 extern a_boolean deleted_or_defaulted_def_next(a_boolean  *defaulted);
+
+extern a_boolean decltype_auto_tokens_next(void);
 
 extern void check_nonfunction_declaration_errors(a_decl_parse_state  *state,
                                                  a_symbol_locator    *locator);
