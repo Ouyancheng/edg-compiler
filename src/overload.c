@@ -23890,9 +23890,10 @@ deduced template argument list if needed, and *eff_routine_type to the
 routine type (after deduction if it's a template).  If sym is a
 constructor, the match is rejected if it isn't a copy or move
 constructor; otherwise, it's rejected if it isn't a copy or move
-assignment operator.  Return *uncallable TRUE if sym would have been
-callable except that the type of reference parameter can't bind to an
-lvalue or rvalue as indicated by source_is_rvalue.
+assignment operator.  If uncallable is non-NULL, return *uncallable TRUE
+if sym would have been callable except that the type of reference
+parameter can't bind to an lvalue or rvalue as indicated by
+source_is_rvalue.
 */
 {
   a_routine_ptr                   routine;
@@ -23905,7 +23906,7 @@ lvalue or rvalue as indicated by source_is_rvalue.
 
   *template_arg_list = NULL;
   *eff_routine_type = NULL;
-  *uncallable = FALSE;
+  if (uncallable != NULL) *uncallable = FALSE;
   arg_type = make_qualified_type(class_type, source_cv_qualifiers);
   reduce_projection_symbol_to_fundamental_symbol(sym);
   if (sym->kind == (a_symbol_kind)sk_function_template) {
@@ -23913,6 +23914,18 @@ lvalue or rvalue as indicated by source_is_rvalue.
     routine = sym->variant.template_info->variant.function.routine;
     routine_type = skip_typerefs(routine->type);
     rtsp = routine_type->variant.routine.extra_info;
+    if (uncallable == NULL &&
+        copy_function_not_callable_because_of_arg_value_category(
+                                                           routine_type,
+                                                           source_is_rvalue)) {
+      /* If the parameter has a reference type that cannot match the source
+         value category, discard the candidate right away to avoid
+         instantiation errors that other compilers do not issue.  Don't
+         do this if the caller wants to determine whether this was the
+         only criterion disqualifying the candidate (i.e., when uncallable
+         is non-NULL). */
+      goto reject_function;
+    }  /* if */
     ptp = rtsp->param_type_list;
     if (ptp == NULL /* Error recovery */ ||
         !deduce_one_parameter(ptp, (a_type_ptr)NULL,
@@ -23983,7 +23996,8 @@ lvalue or rvalue as indicated by source_is_rvalue.
     /* This function cannot be used. */
     goto reject_function;
   }  /* if */
-  if (copy_function_not_callable_because_of_arg_value_category(
+  if (uncallable != NULL &&
+      copy_function_not_callable_because_of_arg_value_category(
                                                            routine_type,
                                                            source_is_rvalue)) {
     /* The parameter reference type cannot bind to the argument because of
@@ -24285,7 +24299,6 @@ traversal_start:
          sym != NULL;
          sym = next_symbol_in_overload_set(&ostblock)) {
       an_operand selector;
-      a_boolean  local_uncallable;
       if (select_templates != symbol_is(sym, sk_function_template)) {
         /* sym should not be considered in this pass. */
         goto next_function;
@@ -24317,7 +24330,7 @@ traversal_start:
       determine_copy_param_match(sym, class_type,
                                  source_cv_qualifiers, source_is_rvalue,
                                  arg_match, &template_arg_list,
-                                 &routine_type, &local_uncallable);
+                                 &routine_type, (a_boolean*)NULL);
       if (arg_match->match_level == aml_none) {
         /* This assignment operator cannot be used. */
         goto reject_function;
