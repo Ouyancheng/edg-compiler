@@ -16922,8 +16922,9 @@ current declaration, an initializer enabled the deduction of an actual type.
 Issue an error if that was not the case and set dps->specifiers_type to an
 error type to avoid repeating the diagnostic if additional declarators follow.
 Also diagnose invalid uses of "auto" and "decltype(auto)" in other contexts
-(e.g., casts).  This does not apply to "auto"/"decltype(auto)" used to
-introduce a trailing return type.
+(e.g., casts).  This does not apply to the placeholder used to introduce a
+trailing return type (including invalid cases like "decltype(auto) f()->int",
+which are diagnosed elsewhere).
 */
 {
   a_boolean  err = FALSE;
@@ -16937,7 +16938,7 @@ introduce a trailing return type.
   } else if (!dps->range_based_for &&
              (!dps->has_initializer || !dps->auto_type_allowed)) {
     /* "auto"/"decltype(auto)" was seen, but we never saw an initializer or
-       the specifier is not allowed at all in this context. */
+       else the specifier is not allowed at all in this context. */
     err = TRUE;
     if (!dps->auto_type_allowed) {
       /* A context where an "auto" type is simply not allowed.  (E.g., a

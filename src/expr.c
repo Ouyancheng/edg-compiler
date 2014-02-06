@@ -312,7 +312,7 @@ static a_boolean deduce_placeholder_type(
 /*
 Do type deduction for a use of "auto" or "decltype(auto)" in a declaration or
 similar construct.  If the call is for a "decltype(auto)" construct, the flag
-is_decltype_auto is TRUE. orig_type is the type of the declared entity, with
+is_decltype_auto is TRUE.  orig_type is the type of the declared entity, with
 "auto" embedded in it.  auto_type is the "auto" type that's embedded (a
 template parameter type); it can be NULL, in which case this routine will find
 it inside orig_type.  initializer_operand is the initializer, whose type is
@@ -358,7 +358,7 @@ TRUE and FALSE is returned.
         *still_dependent = TRUE;
         result = FALSE;
       } else {
-        *still_dependent = TRUE;
+        *still_dependent = FALSE;
       }  /* if */
     } else {
       *still_dependent = FALSE;
@@ -375,8 +375,8 @@ void prescan_initializer_for_auto_type_deduction(
 Prescan an initializer expression for an "auto"/"decltype(auto)" type variable
 declaration and deduce the type of the variable.  The operand resulting from
 the scan is recorded in *dps for later consumption.  On return,
-dps->deduced_auto_type is the type to which the "auto" was deduced, and
-dps->type is the type of the entity to initialize.  
+dps->deduced_auto_type is the type to which the "auto"/"decltype(auto)" was
+deduced, and dps->type is the type of the entity to initialize.  
 dps->auto_type_specifier_seen (which must be TRUE on entry) is cleared to
 FALSE if there was a deduction error, and dps->deduced_auto_type is returned
 NULL if deduction was not done because the type or initializer is still

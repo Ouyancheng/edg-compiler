@@ -3880,7 +3880,7 @@ static a_feature_support feature_support_list[] = {
     "__cpp_decltype",
     "200707" },
   { "cxx_decltype_auto",
-    NULL,
+    &decltype_auto_enabled,
     "__cpp_decltype_auto",
     "201304" },
   { "cxx_decltype_incomplete_return_types",

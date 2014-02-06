@@ -8448,7 +8448,7 @@ done:;
 
 static void process_auto_specifier(
                                  a_boolean              auto_type_allowed,
-                                 a_boolean              auto_is_first,
+                                 a_boolean              first_specifier,
                                  a_decl_flag_set        input_flags,
                                  a_decl_parse_state     *state,
                                  a_decl_pos_block_ptr   decl_pos_block,
@@ -8467,14 +8467,15 @@ If it cannot be both, this routine is called early because in
 we must know that a type specifier ("auto") was seen to avoid treating T as a
 type specifier (here, it is a declarator-id).
 auto_type_allowed is TRUE if the current context allows "auto" as a type
-specifier.  auto_is_first is TRUE if "auto" was the first specifier other than
-"inline" or "friend".  input_flags are the flags passed to decl_specifier (for
-which this is a helper routine).  *state and *decl_pos_block track various
-properties of the current declaration parsing state; they may be updated by
-this routine.  *decl_specifiers_seen records the kind of specifiers seen (and
-may be updated).  *basic_type and *type_ptr describe the type specified by
-the specifiers and are updated if "auto"/"decltype(auto)" is treated as a type
-specifier.  *err is set to TRUE if an error is issued.
+specifier.  first_specifier is TRUE if "auto"/"decltype(auto)" was the first
+specifier other than "inline" or "friend".  input_flags are the flags passed
+to decl_specifier (for which this is a helper routine).  *state and
+*decl_pos_block track various properties of the current declaration parsing
+state; they may be updated by this routine.  *decl_specifiers_seen records the
+kind of specifiers seen (and may be updated).  *basic_type and *type_ptr
+describe the type specified by the specifiers and are updated if
+"auto"/"decltype(auto)" is treated as a type specifier.  *err is set to TRUE
+if an error is issued.
 */
 {
   if (auto_type_specifier_enabled &&
@@ -8482,10 +8483,10 @@ specifier.  *err is set to TRUE if an error is issued.
        state->decltype_auto_specifier_seen ||
        (!(*decl_specifiers_seen & DS_TYPE) &&
         (input_flags & DSI_TYPE_SPECIFIER_ALLOWED)))) {
-    /* This is "decltype(auto)" or "auto" can be a type specifier in this mode.
-       In the "auto" case, it cannot be a storage class specifier either
-       because this mode doesn't allow it or because no other type specifier
-       was seen. */
+    /* Either this is "decltype(auto)" or else it is "auto" in a mode where
+       "auto" can be a type specifier.  In the "auto" case, it cannot be a
+       storage class specifier because this mode doesn't allow it or because
+       no other type specifier was seen. */
     if (!auto_type_allowed || (*decl_specifiers_seen & DS_TYPE) != 0) {
       /* If the current mode supports "auto" as a type specifier, but the
          current context does not (e.g., a typedef declaration), issue an
@@ -8512,7 +8513,7 @@ specifier.  *err is set to TRUE if an error is issued.
     state->auto_type_specifier_seen = FALSE;
     process_storage_class_specifier(
                                tok_auto, input_flags, state, decl_pos_block,
-                               auto_is_first, decl_specifiers_seen, err);
+                               first_specifier, decl_specifiers_seen, err);
   }  /* if */
 }  /* process_auto_specifier */
 
