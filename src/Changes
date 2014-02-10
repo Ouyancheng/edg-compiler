@@ -1,5 +1,42 @@
 Version 4.9
 
+2/10/14  [EDGcpfe/14816]
+Issue with virtual function call dispatch in the IA-64 ABI
+
+In cases where a class shares a virtual function pointer with a virtual base
+class, it had been possible for the shared virtual function pointer to have
+been set (to a construction vtable entry) during virtual base initialization
+and then used before it was re-set to point to the derived class, causing
+unpredictable results.  In the example below, the implicit dynamic cast of
+"this" to "IB *" had been performed with an incorrect virtual function pointer,
+leading to an incorrect computation for the result, which, in some cases, had
+resulted in calling "foo" rather than "bar".  A change has been made (in IA-64
+ABI configurations) to re-set the virtual function pointer in cases where a
+virtual base initialization shares a virtual function pointer with a derived
+class.
+
+  extern "C" int printf(const char*,...);
+  struct IA {
+    virtual void foo() = 0;
+  };
+  struct IB {
+    virtual void bar() = 0;
+  };
+  struct A : virtual IA {
+    A(IB* bp) : m_bp(bp) {}
+    void foo() { printf("foo\n"); }
+    IB* m_bp;
+  };
+  struct B : virtual IB, A {
+    B() : A(this) {}
+    void bar() { printf("bar\n"); }
+  };
+  int main() {
+    B b;
+    b.m_bp->bar();
+  }
+
+
 2/10/14  [EDGcpfe/14744]
 C11: _Thread_local
 

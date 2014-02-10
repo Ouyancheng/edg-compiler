@@ -14051,6 +14051,19 @@ initialization code.
     lower_ctor_init(ctor_init, this_param_var,
                     /*base_of_complete_object=*/TRUE,
                     construction_vtbls_var, insert_location);
+#if IA64_ABI
+    if (class_type_supp(class_type)->virtual_function_info_base_class ==
+                                               ctor_init->variant.base_class &&
+        ctor_init->variant.base_class != NULL) {
+      /* If the virtual base constructor that has just been lowered
+         shares a vptr with the class for which we're creating a constructor,
+         then re-initialize the vptr to ensure that it points to the
+         proper location. */
+      insert_primary_vtbl_assignment(class_type, this_param_var,
+                                     construction_vtbls_var,
+                                     insert_location);
+    }  /* if */
+#endif /* IA64_ABI */
   }  /* for */
 }  /* add_virtual_base_init_code */
 
