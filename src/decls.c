@@ -53,14 +53,18 @@ specifier.  Includes an "||" at the beginning.
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 /*
-Macro to test for "__thread" or "thread_local" storage specifier.
+Macro to test for "__thread", "thread_local", or "_Thread_local" storage
+specifier.
 */
 #if THREAD_LOCAL_STORAGE_SPECIFIER_ALLOWED
 #define or_is_thread_local_storage_specifier() ||                     \
-  (curr_token == tok_thread_local) || (curr_token == tok_thread)
+  ((curr_token == tok_thread_local) ||                                \
+   (curr_token == tok_c11_thread_local) ||                            \
+   (curr_token == tok_thread))
 #else /* !THREAD_LOCAL_STORAGE_SPECIFIER_ALLOWED */
 #define or_is_thread_local_storage_specifier() ||                     \
-  (curr_token == tok_thread_local)
+  ((curr_token == tok_thread_local) ||                                \
+   (curr_token == tok_c11_thread_local))
 #endif /* THREAD_LOCAL_STORAGE_SPECIFIER_ALLOWED */
 
 /*

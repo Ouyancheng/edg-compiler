@@ -7530,8 +7530,8 @@ typedef long a_decl_specifiers_set;
 			/* No decl-specifiers have been scanned. */
 #define DS_STORAGE_CLASS (a_decl_specifiers_set)(0x1)
 			/* A storage class has been scanned (this doesn't
-			   include "mutable" and "thread_local" which are
-			   storage-class-specifiers, but have no
+			   include "mutable" and "thread_local/_Thread_local"
+			   which are storage-class-specifiers, but have no
 			   a_storage_class value). */
 #define DS_TYPE_QUALIFIER (a_decl_specifiers_set)(0x2)
 			/* A type qualifier (including "restrict" and the
@@ -7563,7 +7563,7 @@ typedef long a_decl_specifiers_set;
 #define DS_CONSTEXPR (a_decl_specifiers_set)(0x1000)
 			/* "constexpr" was scanned. */
 #define DS_THREAD_LOCAL (a_decl_specifiers_set)(0x2000)
-			/* "thread_local" was scanned. */
+			/* "thread_local/_Thread_local" was scanned. */
 #define DS_NORETURN (a_decl_specifiers_set)(0x4000)
 			/* "_Noreturn" was scanned. */
 
@@ -7804,8 +7804,8 @@ there are several such specifiers on the current declaration or if the
 specifiers appear on a parameter declaration.  input_flags is the flag set
 passed to the call to decl_specifiers.
 
-Note that the "thread_local" keyword isn't handled here (it's handled in
-process_storage_class_specifier).
+Note that the "thread_local/_Thread_local" keyword isn't handled here (it's
+handled in process_storage_class_specifier).
 */
 {
   if (input_flags & DSI_IS_PARAMETER) {
@@ -8093,14 +8093,16 @@ done:
 static void check_use_of_thread_local(a_decl_parse_state  *dps)
 /*
 Callback routine called at the end of processing for a declaration containing
-the thread_local specifier.  Issue an error if the specifier is not applicable
-and ensure the IL reflects the presence of the specifier otherwise.
+the thread_local/_Thread_local specifier.  Issue an error if the specifier is
+not applicable and ensure the IL reflects the presence of the specifier
+otherwise.
 */
 {
   a_symbol_ptr  sym = dps->sym;
 
   if (sym == NULL) {
-    /* No declaration is associated with "thread_local": Issue an error. */
+    /* No declaration is associated with "thread_local/_Thread_local":
+       Issue an error. */
     pos_error(ec_thread_local_not_allowed, &dps->storage_class_pos);
   } else if (sym->is_error ||
              (dps->type != NULL && is_error_type(dps->type))) {
@@ -8109,27 +8111,28 @@ and ensure the IL reflects the presence of the specifier otherwise.
     expect_error();
   } else if (symbol_is(sym, sk_variable) ||
              symbol_is(sym, sk_static_data_member)) {
-    /* "thread_local" is only allowed on variables and static data members. */
+    /* "thread_local/_Thread_local" is only allowed on variables and static
+       data members. */
     a_variable_ptr  vp = var_for_symbol(sym);
 #if THREAD_LOCAL_STORAGE_SPECIFIER_ALLOWED
     if (dps->decl_modifiers.flags & DM_THREAD) {
-      /* Can't combine "__thread" and "thread_local". */
+      /* Can't combine "__thread" and "thread_local/_Thread_local". */
       pos_error(ec_multiple_thread_local_storage_specifiers,
                 &dps->storage_class_pos);
     }  /* if */
 #endif /* THREAD_LOCAL_STORAGE_SPECIFIER_ALLOWED */
     if (!is_static_or_thread_storage_duration_storage_class(
                                                 dps->declared_storage_class)) {
-      /* If a storage class was specified with "thread_local", it must be
-         "extern" or "static". */
+      /* If a storage class was specified with "thread_local/_Thread_local",
+         it must be "extern" or "static". */
       pos_error(ec_cannot_use_thread_local_storage, &dps->storage_class_pos);
     }  /* if */
 #if GNU_INIT_PRIORITY_ATTRIBUTE_ALLOWED
     if (vp->source_corresp.attributes != NULL) {
-      /* Issue a warning for any attributes that conflict with thread_local
-         (this is done here rather than in attribute processing because
-         is_thread_local is not set at the time attributes are being
-         processed). */
+      /* Issue a warning for any attributes that conflict with
+         "thread_local/_Thread_local" (this is done here rather than in
+         attribute processing because is_thread_local is not set at the time
+         attributes are being processed). */
       an_attribute_ptr ap;
       for (ap = vp->source_corresp.attributes; ap != NULL; ap = ap->next) {
         if (ap->kind == (a_byte_attribute_kind)ak_init_priority) {
@@ -8138,6 +8141,16 @@ and ensure the IL reflects the presence of the specifier otherwise.
       }  /* for */
     }  /* if */
 #endif /* GNU_INIT_PRIORITY_ATTRIBUTE_ALLOWED */
+    if (C_mode() &&
+        depth_innermost_function_scope != NO_SCOPE_NUMBER &&
+        !(dps->declared_storage_class == (a_storage_class)sc_static ||
+          dps->declared_storage_class == (a_storage_class)sc_extern)) {
+      /* In the declaration of an object with block scope, if the declaration
+         specifiers include _Thread_local, they shall also include either
+         static or extern. */
+      pos_error(ec_thread_local_must_include_static_or_extern,
+                &dps->storage_class_pos);
+    }  /* if */
     vp->is_thread_local = TRUE;
     check_assertion_or_expect_error(var_has_thread_storage_duration(vp));
   } else {
@@ -8161,12 +8174,12 @@ syntactically similar).  (first_token is usually also the only token of the
 storage class specifier; the only exception are named-register storage class
 specifiers.)  input_flags, state, and decl_pos_block are parameters forwarded
 from decl_specifiers.  If first_specifier is TRUE, the storage specifier token
-was the first decl-specifier (ignoring "friend", "inline", and "thread_local");
-a warning may be issued if that is not the case.  *decl_specifiers_seen is
-updated with an indication of the specifiers that were consumed.  *err is set
-to TRUE if an error is issued.  All the storage class specifier tokens are
-consumed by this routine, except for "auto" which is processed after any other
-specifiers have also been consumed.
+was the first decl-specifier (ignoring "friend", "inline", and
+"thread_local/_Thread_local"); a warning may be issued if that is not the
+case.  *decl_specifiers_seen is updated with an indication of the specifiers
+that were consumed.  *err is set to TRUE if an error is issued.  All the
+storage class specifier tokens are consumed by this routine, except for "auto"
+which is processed after any other specifiers have also been consumed.
 */
 {
   a_boolean          is_parameter = (input_flags & DSI_IS_PARAMETER);
@@ -8218,13 +8231,14 @@ specifiers have also been consumed.
     *err = TRUE;
 #endif /* ASM_FUNCTION_ALLOWED */
   } else if (*decl_specifiers_seen & (DS_STORAGE_CLASS | DS_MUTABLE) &&
-             first_token != tok_thread_local) {
+             !(first_token == tok_thread_local ||
+               first_token == tok_c11_thread_local)) {
     /* More than one storage class may not be specified (except for the
-       "thread_local" storage class, which may be combined with "extern" or
-       "static").  Note that the diagnostic should be issued on the second
-       storage class, but since "auto" is processed after all the other
-       specifiers, something like "auto register x;" needs special care to get
-       the position of the "register" keyword. */
+       "thread_local/_Thread_local" storage class, which may be combined with
+       "extern" or "static").  Note that the diagnostic should be issued on
+       the second storage class, but since "auto" is processed after all the
+       other specifiers, something like "auto register x;" needs special care
+       to get the position of the "register" keyword. */
     a_source_position  *diag_pos = &pos_first_token;
     if (first_token == tok_auto) {
       if (cmp_source_positions(state->storage_class_pos,
@@ -8283,8 +8297,9 @@ specifiers have also been consumed.
         state->storage_class_pos = pos_first_token;
       }  /* if */
     }  /* if */
-  } else if (first_token == tok_thread_local) {
-    /* Do some checking for the "thread_local" specifier. */
+  } else if (first_token == tok_thread_local ||
+             first_token == tok_c11_thread_local) {
+    /* Do some checking for the "thread_local/_Thread_local" specifier. */
     if (input_flags & DSI_IS_CONDITION_DECL) {
       pos_error(ec_storage_class_not_allowed, &pos_first_token);
       *err = TRUE;
@@ -8292,12 +8307,12 @@ specifiers have also been consumed.
       pos_error(ec_thread_local_not_allowed, &pos_first_token);
       *err = TRUE;
     } else if (*decl_specifiers_seen & DS_THREAD_LOCAL) {
-      /* Duplicate "thread_local" specifiers. */
+      /* Duplicate "thread_local/_Thread_local" specifiers. */
       error(ec_dupl_decl_specifier);
     } else {
-      /* Mark that we've seen "thread_local" and register a callback
-         routine to perform additional checks once the declaration has
-         been scanned. */
+      /* Mark that we've seen "thread_local/_Thread_local" and register a
+         callback routine to perform additional checks once the declaration
+         has been scanned. */
       *decl_specifiers_seen |= DS_THREAD_LOCAL;
       state->dso_flags |= DSO_THREAD_LOCAL;
       if ((*decl_specifiers_seen & DS_STORAGE_CLASS) == 0) {
@@ -8400,7 +8415,8 @@ specifiers have also been consumed.
     if (C_dialect != C_dialect_pcc && !*err) {
       if (!first_specifier) {
         /* Issue a diagnostic if the storage class is not the first
-           specifier (except for "inline", "friend", or "thread_local"). */
+           specifier (except for "inline", "friend", or
+           "thread_local/_Thread_local"). */
         pos_diagnostic(strict_ansi_mode ? es_warning : es_remark,
                        ec_storage_class_not_first, &pos_first_token);
       }  /* if */
@@ -8986,6 +9002,7 @@ corresponding change in prescan_decl_specifiers (in disambig.c).
       case tok_register:
       case tok_mutable:
       case tok_thread_local:
+      case tok_c11_thread_local:
         /* A storage class specifier (3.5.1). */
 storage_class_specifier:
         process_storage_class_specifier(
@@ -8998,7 +9015,7 @@ storage_class_specifier:
       case tok_thread:
         /* A "__thread" storage specifier allowed in certain modes
            (can be combined with "extern" or "static").  Note that this does
-           not process "thread_local". */
+           not process "thread_local/_Thread_local". */
         scan_thread_local_storage_specifier(input_flags,
                                             &state->decl_modifiers);
         break;

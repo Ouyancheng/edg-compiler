@@ -9419,8 +9419,14 @@ command line -D options.
 #if IMPLEMENTATION_SUPPORTS_MULTIPLE_THREADS
   /* Enter a predefined macro that can be used to determine that this
      implementation allows multiple threads. */
-  if (std_thread_local_storage_specifier_enabled) {
+  if (std_thread_local_storage_specifier_enabled && !C_mode()) {
     (void)enter_predef_macro("1", "__STDCPP_THREADS__",
+                             /*cannot_be_redefined=*/TRUE,
+                             /*ref_suppresses_pch_file=*/FALSE);
+  }  /* if */
+#else /* !IMPLEMENTATION_SUPPORTS_MULTIPLE_THREADS */
+  if (C_mode()) {
+    (void)enter_predef_macro("1", "__STDC_NO_THREADS__",
                              /*cannot_be_redefined=*/TRUE,
                              /*ref_suppresses_pch_file=*/FALSE);
   }  /* if */

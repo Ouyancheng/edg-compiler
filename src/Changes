@@ -1,5 +1,17 @@
 Version 4.9
 
+2/10/14  [EDGcpfe/14744]
+C11: _Thread_local
+
+The front end now supports the _Thread_local storage class specifier in C11
+mode.  Support for _Thread_local is nearly identical to the C++11 thread_local
+storage class specifier (see the 8/28/13 Changes entry), except that there
+is no dynamic initialization (or destruction).
+
+In configurations where IMPLEMENTATION_SUPPORTS_MULTIPLE_THREADS is FALSE,
+the __STDC_NO_THREADS__ macro is defined to 1 (in C mode).
+
+
 2/6/14   [EDGcpfe/14843]
 Instantiations during copy/move assignment operator generation
 

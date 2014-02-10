@@ -1165,6 +1165,7 @@ typedef enum /*a_token_kind*/ {
 #endif /* SUN_EXTENSIONS_ALLOWED */
   tok_thread,
   tok_thread_local,
+  tok_c11_thread_local,
 #if UPC_EXTENSIONS_ALLOWED
   /* Recognized in UPC mode only. */
   tok_upc_strict,
@@ -1341,6 +1342,7 @@ EXTERN a_const_char
 #endif /* SUN_EXTENSIONS_ALLOWED */
    "__thread",
    "thread_local",
+   "_Thread_local",
 #if UPC_EXTENSIONS_ALLOWED
    "strict", "relaxed", "shared", "upc_forall", "upc_barrier", "upc_notify",
    "upc_wait", "upc_fence", "THREADS", "MYTHREAD", "upc_blocksizeof",
@@ -9566,11 +9568,11 @@ typedef struct a_variable {
 			   Only set in C++. */
   a_bit_field	is_thread_local:1;
 			/* TRUE for variables declared with the "thread_local"
-			   storage class (i.e., variable has thread storage
-			   duration).  Not used for variables declared with
-			   "__thread" (see DM_THREAD).  Only set in C++ (when
-			   IMPLEMENTATION_SUPPORTS_MULTIPLE_THREADS is
-			   TRUE). */
+			   (or "_Thread_local in C mode) storage class (i.e.,
+			   variable has thread storage duration).  Not used for
+			   variables declared with "__thread" (see DM_THREAD).
+			   Only set when
+			   IMPLEMENTATION_SUPPORTS_MULTIPLE_THREADS is TRUE. */
   an_init_kind	init_kind;
 			/* Kind of initialization, if any.
 			   When init_kind == initk_function_local (local

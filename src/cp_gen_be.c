@@ -15724,8 +15724,13 @@ this one is such a continuation.
       write_tok_str("constexpr ");
     }  /* if */
     if (var->is_thread_local) {
-      /* Put out the "thread_local" keyword. */
-      write_tok_str("thread_local ");
+      if (C_mode()) {
+        /* Put out the "_Thread_local" keyword. */
+        write_tok_str("_Thread_local ");
+      } else {
+        /* Put out the "thread_local" keyword. */
+        write_tok_str("thread_local ");
+      }  /* if */
 #if DECL_MODIFIERS_IN_USE && \
     (MICROSOFT_EXTENSIONS_ALLOWED || THREAD_LOCAL_STORAGE_SPECIFIER_ALLOWED)
     } else if (!microsoft_dialect_is_generated_code_target &&

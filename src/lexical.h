@@ -534,6 +534,7 @@ EXTERN an_opname_kind opname_kind_for_token[(int)tok_last+1]
 #endif /* SUN_EXTENSIONS_ALLOWED */
    (an_opname_kind)onk_none,          /* tok_thread */
    (an_opname_kind)onk_none,          /* tok_thread_local */
+   (an_opname_kind)onk_none,          /* tok_c11_thread_local */
 #if UPC_EXTENSIONS_ALLOWED
    (an_opname_kind)onk_none,          /* tok_upc_strict */
    (an_opname_kind)onk_none,          /* tok_upc_relaxed */

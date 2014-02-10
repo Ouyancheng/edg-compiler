@@ -2591,6 +2591,7 @@ ec_modified_decltype_auto_type;;"\"decltype(auto)\" must be a placeholder for th
 ec_decltype_auto_not_allowed_here;;"decltype(auto) is not allowed here"
 ec_decltype_auto_type_requires_initializer;;"cannot deduce \"decltype(auto)\" (initializer required)"
 ec_cannot_deduce_decltype_auto_type;;"cannot deduce \"decltype(auto)\" type"
+ec_thread_local_must_include_static_or_extern;;"a block-scope thread_local declaration must include static or extern"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

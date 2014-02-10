@@ -2513,6 +2513,7 @@ Set the various flags appropriate to C99 mode or later standard modes.
     allow_c11_anonymous_unions = TRUE;
     alignas_enabled = TRUE;
     alignof_enabled = TRUE;
+    std_thread_local_storage_specifier_enabled = TRUE;
   }  /* if */
 }  /* check_and_set_new_c_mode_options */
 
@@ -9122,9 +9123,9 @@ enable_microsoft_mode:
         break;
 #endif /* EMBEDDED_C_ALLOWED */
       case optk_thread_local_storage:
-        /* Enable (or disable) support for the C++11 thread_local keyword.
-           Also enable (or disable) support for __thread in configurations
-           where that is supported. */
+        /* Enable (or disable) support for the C++11 thread_local or C11
+           _Thread_local keyword.  Also enable (or disable) support for
+           __thread in configurations where that is supported. */
         std_thread_local_storage_specifier_enabled = opt_value;
 #if THREAD_LOCAL_STORAGE_SPECIFIER_ALLOWED
         thread_local_storage_specifier_enabled = opt_value;

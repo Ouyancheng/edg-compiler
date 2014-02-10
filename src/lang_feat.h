@@ -1556,10 +1556,12 @@ TRUE.
 
 /*
 Flag that is TRUE if the implementation supports having more than one
-thread of execution.  When TRUE, the predefined macro __STDCPP_THREADS__ is set
-to 1.  When FALSE, if enabled (by std_thread_local_storage_specifier_enabled),
-the thread_local keyword is parsed (and semantically checked), but ignored
-during the lowering phase.
+thread of execution.  When TRUE, the predefined macro __STDCPP_THREADS__
+(in C++ mode) is set to 1.  When FALSE, in C mode, the macro
+__STDC_NO_THREADS__ is set to 1.  When this configuration macro is FALSE but
+std_thread_local_storage_specifier_enabled is TRUE, the thread_local
+keyword is parsed (and semantically checked), but ignored during the lowering
+phase.
 */
 #ifndef IMPLEMENTATION_SUPPORTS_MULTIPLE_THREADS
 #define IMPLEMENTATION_SUPPORTS_MULTIPLE_THREADS TRUE

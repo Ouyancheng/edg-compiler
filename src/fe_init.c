@@ -715,6 +715,9 @@ Install the keywords in the symbol table.
     if (alignof_enabled) {
       enter_keyword((a_token_kind)tok_alignof, "_Alignof");
     }  /* if */
+    if (std_thread_local_storage_specifier_enabled) {
+      enter_keyword((a_token_kind)tok_c11_thread_local, "_Thread_local");
+    }  /* if */
   }  /* if */
 #if TARG_HAS_IEEE_FLOATING_POINT
   /* EDG-specific token for Not-a-Number constant. */
@@ -1097,7 +1100,7 @@ Install the keywords in the symbol table.
   if (thread_local_storage_specifier_enabled) {
     enter_keyword((a_token_kind)tok_thread, "__thread");
   }  /* if */
-  if (std_thread_local_storage_specifier_enabled) {
+  if (!C_mode() && std_thread_local_storage_specifier_enabled) {
     enter_keyword((a_token_kind)tok_thread_local, "thread_local");
   }  /* if */
 #if UPC_EXTENSIONS_ALLOWED
