@@ -2708,6 +2708,10 @@ to it.  The entry is allocated in the file scope memory region.
   rp->is_tls_init_alias           = FALSE;
 #endif /* USE_LAZY_INITIALIZATION_FOR_THREAD_LOCAL_VARIABLES */
   rp->is_tls_init_routine         = FALSE;
+#if GNU_INIT_PRIORITY_ATTRIBUTE_ALLOWED
+  rp->has_ctor_priority           = FALSE;
+  rp->has_dtor_priority           = FALSE;
+#endif /* GNU_INIT_PRIORITY_ATTRIBUTE_ALLOWED */
 #if CENTERLINE_CHECKING
   rp->avoid_codecenter_warnings = 0;
 #endif /* CENTERLINE_CHECKING */

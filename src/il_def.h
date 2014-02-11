@@ -13550,6 +13550,20 @@ typedef struct a_routine {
                            unit, but that's not true when
                            ONE_INSTANTIATION_PER_OBJECT is TRUE (in which case
                            there may be one per slice). */
+#if GNU_INIT_PRIORITY_ATTRIBUTE_ALLOWED
+  a_bit_field   has_ctor_priority:1;
+                        /* TRUE if the GNU "constructor" attribute has been
+                           used to assign a numeric priority to the routine.
+                           The ctor_priority field contains the priority.
+                           FALSE if the attribute was not specified, or if the
+                           attribute was specified without an argument. */
+  a_bit_field   has_dtor_priority:1;
+                        /* TRUE if the GNU "destructor" attribute has been
+                           used to assign a numeric priority to the routine.
+                           The dtor_priority field contains the priority.
+                           FALSE if the attribute was not specified, or if the
+                           attribute was specified without an argument. */
+#endif /* GNU_INIT_PRIORITY_ATTRIBUTE_ALLOWED */
   bitfield_to_avoid_codecenter_warnings()
 #if DECL_MODIFIERS_IN_USE
   a_decl_modifier
@@ -13639,14 +13653,13 @@ typedef struct a_routine {
   a_gnu_init_priority
 		ctor_priority;
 			/* The priority (if any) specified by the GNU attribute
-			   "constructor" (if any).  This value should lie
-			   between 101 and 65535 inclusive, or should be zero
-			   if the attribute was not specified, or if the
-			   attribute was specified without an argument. */
+			  "constructor" (if any).  Valid only when
+			  has_ctor_priority is TRUE. */
   a_gnu_init_priority
 		dtor_priority;
-			/* Same as ctor_priority, but for the "destructor"
-			   attribute. */
+			/* The priority (if any) specified by the GNU attribute
+			  "destructor" (if any).  Valid only when
+			  has_dtor_priority is TRUE. */
 #endif /* GNU_INIT_PRIORITY_ATTRIBUTE_ALLOWED */
 #endif /* GNU_EXTENSIONS_ALLOWED */
 #if GNU_EXTENSIONS_ALLOWED || REDEFINE_EXTNAME_PRAGMA_ENABLED

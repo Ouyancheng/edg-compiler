@@ -3589,10 +3589,10 @@ Display the indicated routine.
     disp_ptr("inline_partner", (char*)ptr->inline_partner, iek_routine);
   }  /* if */
 #if GNU_INIT_PRIORITY_ATTRIBUTE_ALLOWED
-  if (ptr->ctor_priority != 0) {
+  if (ptr->has_ctor_priority) {
     disp_unsigned_long("ctor_priority", (unsigned long)ptr->ctor_priority);
   }  /* if */
-  if (ptr->dtor_priority != 0) {
+  if (ptr->has_dtor_priority) {
     disp_unsigned_long("dtor_priority", (unsigned long)ptr->dtor_priority);
   }  /* if */
 #endif /* GNU_INIT_PRIORITY_ATTRIBUTE_ALLOWED */

@@ -4657,28 +4657,31 @@ Apply the GNU "const" attribute to the given entity and return that entity.
 
 #if GNU_INIT_PRIORITY_ATTRIBUTE_ALLOWED
 
-static a_gnu_init_priority get_priority(an_attribute_ptr  ap)
+static a_boolean get_priority(an_attribute_ptr    ap,
+                              a_gnu_init_priority min_priority,
+                              a_gnu_init_priority *priority)
 /*
-If the given attribute has arguments, return the GNU initialization priority
-represented by the first argument.  Otherwise, return zero.  If the argument
-is template-dependent or in error cases return zero (in error cases, also set
-ap->kind to ak_unrecognized).
+If the given attribute has arguments, sets *priority to the specified priority
+and returns TRUE.  The minimum valid priority value for the attribute is
+specified by min_priority.  If the argument is template-dependent or in error
+cases return zero (in error cases, also set ap->kind to ak_unrecognized).
 */
 {
   an_attribute_arg_ptr  aap = ap->arguments;
-  a_gnu_init_priority   result = 0;
-  a_host_large_integer  priority;
+  a_boolean             result = FALSE;
+  a_host_large_integer  attr_priority;
 
   if (aap != NULL &&
-      get_attr_arg_integer(aap, ap, 1, 65535, &priority)) {
-    if (priority < 101) {
-      /* Priorities 1 through 100 are reserved for internal use. */
+      get_attr_arg_integer(aap, ap, min_priority, 65535, &attr_priority)) {
+    if (attr_priority < 101) {
+      /* Priorities less than 101 are reserved for internal use. */
       pos_warning(ap->kind == (a_byte_attribute_kind)ak_init_priority ?
                         ec_init_priority_reserved :
                         ec_ctor_dtor_priority_reserved,
                   &ap->position);
     }  /* if */
-    result = (a_gnu_init_priority)priority;
+    *priority = (a_gnu_init_priority)attr_priority;
+    result = TRUE;
   }  /* if */
   return result;
 }  /* get_priority */
@@ -4703,9 +4706,11 @@ it and return the entity.
                    &ap->position, ap->name);
   } else {
 #if GNU_INIT_PRIORITY_ATTRIBUTE_ALLOWED
-    /* Retrieve the priority value.  In error cases, the value will be zero and
-       ap->kind will be set to ak_unrecognized. */
-    rp->ctor_priority = get_priority(ap);
+    /* Retrieve the priority value.  In error cases, ap->kind will be set to
+       ak_unrecognized. */
+    if (get_priority(ap, 0, &rp->ctor_priority)) {
+      rp->has_ctor_priority = TRUE;
+    }  /* if */
 #endif /* GNU_INIT_PRIORITY_ATTRIBUTE_ALLOWED */
     if (!is_unrecognized_attr(ap)) {
       rp->is_initialization_routine = TRUE;
@@ -4734,9 +4739,11 @@ it and return the entity.
                    &ap->position, ap->name);
   } else {
 #if GNU_INIT_PRIORITY_ATTRIBUTE_ALLOWED
-    /* Retrieve the priority value.  In error cases, the value will be zero and
-       ap->kind will be set to ak_unrecognized. */
-    rp->dtor_priority = get_priority(ap);
+    /* Retrieve the priority value.  In error cases, ap->kind will be set to
+       ak_unrecognized. */
+    if (get_priority(ap, 0, &rp->dtor_priority)) {
+      rp->has_dtor_priority = TRUE;
+    }  /* if */
 #endif /* GNU_INIT_PRIORITY_ATTRIBUTE_ALLOWED */
     if (!is_unrecognized_attr(ap)) {
       rp->is_finalization_routine = TRUE;
@@ -5057,7 +5064,7 @@ variable) and return entity.
   if (is_class_struct_union_type(tp) && dps->is_definition &&
       (is_file_or_namespace_scope(&scope_stack_top()) ||
        vp->source_corresp.is_class_member)) {
-    vp->init_priority = get_priority(ap);
+    (void)get_priority(ap, 1, &vp->init_priority);
   } else {
     pos_error(ec_bad_variable_for_init_priority, &ap->position);
   }  /* if */
