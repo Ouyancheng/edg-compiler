@@ -1743,6 +1743,14 @@ typedef struct a_ctws_state {
 			   substitution. */
   int32_t	routine_type_levels;
 			/* The level of nesting of routine types. */
+  a_boolean
+		preserve_deduced_packs;
+			/* TRUE if a deduced parameter pack should be
+			   retained in the substituted type.  This is used
+			   during the initial substitution of explicitly
+			   supplied template arguments so that the resulting
+			   type will still be usable to deduce the remaining
+			   pack elements. */
 } a_ctws_state;
 
 

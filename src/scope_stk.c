@@ -2010,34 +2010,45 @@ prior instantiation.
 }  /* update_template_param_symbols_for_param_list */
 
 
+static void restore_default_template_param(a_template_param_ptr tpp)
+/*
+Update the symbol entry for the template parameter specified by tpp to its
+"resting value".  This is the initial value supplied when the template
+declaration was scanned and is used as a placeholder between instantiations
+and also during rescans for template parameter packs that should be
+preserved in the substituted type.
+*/
+{
+  a_symbol_ptr	param_symbol = tpp->param_symbol;
+  
+  if (param_symbol->kind == (a_symbol_kind)sk_type) {
+    param_symbol->variant.type.ptr = tpp->variant.type;
+  } else if (param_symbol->kind == (a_symbol_kind)sk_constant) {
+      param_symbol->variant.constant = tpp->variant.constant.ptr;
+  } else {
+    a_template_symbol_supplement_ptr	param_tssp;
+    check_assertion(param_symbol->kind == (a_symbol_kind)sk_class_template);
+    param_tssp = param_symbol->variant.template_info;
+    param_tssp->variant.class_template.argument_template = param_symbol;
+    param_tssp->variant.class_template.substituted_param_template = NULL;
+  }  /* if */
+  param_symbol->template_param_not_visible = FALSE;
+}  /* restore_default_template_param */
+
+
 void restore_default_template_params(a_template_param_ptr  tpp)
 /*
-Update the symbol entries for template formal parameters to their
-"resting values".  These are the initial values supplied when the template
-declaration is scanned and are used as placeholders between instantiations.
+Update the symbol entries for the template parameter list specified by tpp
+to their "resting values".
 */
 {
   db_enter(4, "restore_default_template_params");
-  /* Loop through the parameters and set them to either the original
-     template type or the original template constant (as specified by the
-     type or constant field). */
-  while (tpp != NULL) {
-    register a_symbol_ptr  param_symbol = tpp->param_symbol;
-    if (param_symbol->kind == (a_symbol_kind)sk_type) {
-      param_symbol->variant.type.ptr = tpp->variant.type;
-    } else if (param_symbol->kind == (a_symbol_kind)sk_constant) {
-      param_symbol->variant.constant = tpp->variant.constant.ptr;
-    } else {
-      a_template_symbol_supplement_ptr	param_tssp;
-      check_assertion(param_symbol->kind == (a_symbol_kind)sk_class_template);
-      param_tssp = param_symbol->variant.template_info;
-      param_tssp->variant.class_template.argument_template = param_symbol;
-      param_tssp->variant.class_template.substituted_param_template = NULL;
-    }  /* if */
-    param_symbol->template_param_not_visible = FALSE;
-    tpp = tpp->next;
-  }  /* while */
- db_exit();
+  /* Loop through the parameters and set them to the original dependent
+     type, constant, or template value. */
+  for (; tpp != NULL; tpp = tpp->next) {
+    restore_default_template_param(tpp);
+  }  /* for */
+  db_exit();
 }  /* restore_default_template_params */
 
 
@@ -9333,9 +9344,10 @@ in such cases.
   prp->position = null_source_position;
   prp->token_sequence_number = NO_TOKEN_SEQUENCE_NUMBER;
   prp->primary_var_or_param_symbol = NULL;
+  prp->function_scopes_to_skip = 0;
   prp->param_info = NULL;
   prp->coordinates = NULL;
-  prp->function_scopes_to_skip = 0;
+  prp->template_param = NULL;
   switch (kind) {
     case prk_variable:       prp->curr_argument.variable = NULL;     break;
     case prk_template_param:
@@ -9489,6 +9501,7 @@ to it.
   pesep->expansion_with_no_packs_diagnostic_issued = FALSE;
   pesep->is_lookahead = FALSE;
   pesep->enclosing_packs_reset = FALSE;
+  pesep->preserve_deduced_packs = FALSE;
   return pesep;
 }  /* alloc_pack_expansion_stack_entry */
 
@@ -9733,13 +9746,16 @@ static a_template_arg_ptr find_template_arg_for_pack(
 				a_template_arg_ptr	templ_arg_list,
 				a_symbol_ptr		sym,
 				uint32_t		*elements,
+				a_template_param_ptr	*template_param,
 				a_boolean		is_rescan,
 				a_boolean		is_deduction)
 /*
 Find the initial template argument (from templ_arg_list) associated
 with the pack specified by sym, which is a template parameter symbol
 from templ_param_list.  If there are no actual arguments for the pack,
-return NULL.  Return the number of actual arguments in *elements.
+return NULL.  Return the associated template parameter in *template_param.
+This is returned even when NULL the function returns NULL.  Return the
+number of actual arguments in *elements.
 
 is_deduction is TRUE if the pack instantiation is being created as
 part of the deduction of the pack argument values.  is_rescan is TRUE
@@ -9753,6 +9769,7 @@ rescan.
   a_boolean		found = FALSE;
 
   *elements = 0;
+  *template_param = NULL;
   begin_template_arg_list_traversal(templ_param_list, templ_arg_list,
                                     &tpp, &tap);
   for (; tap != NULL; advance_to_next_template_arg(&tpp, &tap)) {
@@ -9760,6 +9777,7 @@ rescan.
                                                   sym->token_sequence_number) {
       check_assertion(tpp->param_symbol->header == sym->header);
       result_tap = tap;
+      *template_param = tpp;
       found = TRUE;
       /* Compute the number of pack elements. */
       for (; tap != NULL && tap->is_pack_element; tap = tap->next) {
@@ -9775,8 +9793,8 @@ rescan.
                                            &templ_arg_list);
     if (templ_arg_list != NULL) {
       result_tap = find_template_arg_for_pack(templ_param_list, templ_arg_list,
-                                              sym, elements, is_rescan,
-                                              is_deduction);
+                                              sym, elements, template_param,
+                                              is_rescan, is_deduction);
     }  /* if */
   }  /* if */
   return result_tap;
@@ -10107,19 +10125,23 @@ lengths) *err is set to TRUE, FALSE otherwise.
         }  /* if */
       } else if (prp->kind == prk_template_param) {
         a_template_arg_ptr	tap;
+        a_template_param_ptr	tpp;
         tap = find_template_arg_for_pack(templ_param_list, templ_arg_list,
                                          prp->symbol, &elements_for_pack,
-                                         is_rescan, is_deduction);
+                                         &tpp, is_rescan, is_deduction);
         new_prp->curr_argument.template_arg = tap;
+        new_prp->template_param = tpp;
       } else if (prp->kind == prk_bases) {
         /* A g++ __bases or __direct_bases operator. */
         a_template_arg_ptr	tap;
+        a_template_param_ptr	tpp;
         tap = find_template_arg_for_pack(templ_param_list, templ_arg_list,
                                          prp->symbol, &elements_for_pack,
-                                         is_rescan, is_deduction);
+                                         &tpp, is_rescan, is_deduction);
         new_prp->curr_argument.template_arg =
                 make_base_class_arg_list(tap->variant.type, prp->direct_bases,
                                          &elements_for_pack);
+        new_prp->template_param = tpp;
       } else {
         check_assertion(prp->kind == prk_parameter);
         /* A parameter from a function prototype scope. */
@@ -10157,7 +10179,10 @@ lengths) *err is set to TRUE, FALSE otherwise.
                         prp->symbol->header->identifier,
                         pedp->packs_referenced->symbol->header->identifier);
         }  /* if */
-        any_errors = TRUE;
+        /* A pack length mismatch is not an error when preserve_deduced_packs
+           is TRUE (i.e., in rescan contexts for the first pass of
+           substitution when deduction is still to be done). */
+        any_errors = !is_rescan || !ctws_state->preserve_deduced_packs;
       }  /* if */
     }  /* if */
   }  /* for */
@@ -10219,6 +10244,12 @@ pack expansion stack entry for which the symbols are to be updated.
       if (arg_prp->curr_argument.template_arg != NULL) {
         /* A template argument. */
         update_template_param_symbol(sym, arg_prp->curr_argument.template_arg);
+      } else if (pesep->is_rescan && pesep->preserve_deduced_packs &&
+                 !arg_prp->uses_enclosing_pack) {
+        /* In a rescan context, if deduced packs should be preserved,
+           set the template parameter symbol to point back to the template
+           parameter value. */
+        restore_default_template_param(arg_prp->template_param);
       } else {
         /* There is no argument -- set the symbol to an error value. */
         set_template_param_symbol_to_error(sym);
@@ -10394,6 +10425,8 @@ lengths) *err is set to TRUE, FALSE otherwise.
     pesep->is_deduction = is_deduction;
     pesep->expansion_descr = pedp;
     pesep->instantiation_descr = pidp;
+    pesep->preserve_deduced_packs = ctws_state != NULL &&
+                                    ctws_state->preserve_deduced_packs;
     if (!is_rescan && !is_deduction) {
       /* Set the parameter pack symbols to the first element of each
          pack. */
@@ -11128,12 +11161,31 @@ TRUE is returned if there are any more elements in the pack.  FALSE otherwise.
       } else if (param_prp->kind == prk_template_param) {
         /* A template argument. */
         a_template_arg_ptr	tap = arg_prp->curr_argument.template_arg;
+        a_template_arg_ptr	orig_tap = tap;
         /* Advance to the next argument, if any.  If the argument is not
            part of the pack, we are done with this expansion. */
-        tap = tap->next;
-        arg_prp->curr_argument.template_arg = tap;
+        if (tap != NULL) {
+          tap = tap->next;
+          arg_prp->curr_argument.template_arg = tap;
+        }  /* if */
         if (tap == NULL || !tap->is_pack_element) {
-          done = TRUE;
+          /* Normally, we are done now.  But if we are preserving
+             deduced packs, we are only done if this is the only
+             pack being expanded. */
+          a_boolean	is_preserved_pack_context;
+          is_preserved_pack_context = pesep->is_rescan &&
+                                      pesep->preserve_deduced_packs &&
+                                      !arg_prp->uses_enclosing_pack;
+          if (tap != NULL || !is_preserved_pack_context ||
+              (arg_prp == pesep->instantiation_descr->pack_status &&
+               arg_prp->next == NULL)) {
+            done = TRUE;
+          }  /* if */
+          if (tap == NULL && orig_tap != NULL && is_preserved_pack_context) {
+            /* We got to the end of substituted arguments.  Update the
+               template parameter to point back to its original value. */
+            restore_default_template_param(arg_prp->template_param);
+          }  /* if */
         } else {
           if (!pesep->is_rescan && !pesep->is_deduction) {
             /* The symbols only need to be updated in actual instantiation

@@ -1,5 +1,22 @@
 Version 4.9
 
+2/13/14  [EDGcpfe/13985,EDGcpfe/14725]
+Deduction in pack contexts that contain explicit template arguments
+
+If a pack expansion used both an a template parameter pack that had
+explicitly specified template arguments pack a template parameter pack
+that is to be deduced, deduction could fail, resulting in spurious errors
+or the incorrect function being called.  Now fixed.
+
+  template <typename T1, typename T2> struct A {};
+  template <typename... T> struct B {};
+  template <typename... P1, typename... P2>
+  B<A<P1, P2>...>* f(P2...) {return nullptr; }
+  int main() {
+    f<int,char>(1, 'x');
+  }
+
+
 2/11/14  [EDGcpfe/10093]
 GNU: Allow zero as a valid "constructor" or "destructor" attribute value
 

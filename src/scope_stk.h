@@ -344,9 +344,13 @@ typedef struct a_pack_reference {
 			   it is not possible to refer to the parameter
 			   (e.g., deduction contexts). */
   a_template_param_coordinate_ptr
-	coordinates;
+		coordinates;
 			/* When kind == prk_template_param, this points to
 			   the coordinates of the parameter. */
+  a_template_param_ptr
+		template_param;
+			/* When kind == prk_template_param, this points to
+			   the to the template parameter. */
   union {
     a_variable_ptr
 		variable;
@@ -537,6 +541,10 @@ typedef struct a_pack_expansion_stack_entry {
 			   reset_enclosing_pack_values in
 			   begin_potential_pack_expansion_context_full for
 			   more information). */
+  a_boolean
+		preserve_deduced_packs;
+			/* TRUE if is_rescan is TRUE and deduced parameter
+			   pack should be retained in the substituted type. */
 } a_pack_expansion_stack_entry;
 
 

@@ -568,6 +568,7 @@ Initialize a template argument substitution state block.
   csp->variadic_param_info = NULL;
   csp->variadic_param_info_tail = NULL;
   csp->routine_type_levels = -1;
+  csp->preserve_deduced_packs = FALSE;
 }  /* init_ctws_state */
 
 
@@ -11537,6 +11538,7 @@ during wrapup processing by compare_function_templates.
   a_template_symbol_supplement_ptr	tssp;
   a_type_ptr				templ_rout_type = NULL;
   a_ctws_options_set			ctws_options = CTWS_NO_OPTIONS;
+  a_boolean				preserve_deduced_packs = FALSE;
 
   tssp = template_supplement_for_symbol(templ_sym);
   if (templ_param_list == NULL) {
@@ -11567,6 +11569,7 @@ during wrapup processing by compare_function_templates.
       /* This is a preliminary substitution.   Keep any deduced packs for which
          we may not yet have arguments. */
       ctws_options |= CTWS_PRESERVE_DEDUCED_PACKS;
+      preserve_deduced_packs = TRUE;
     }  /* if */
   }  /* if */
   if (templ_arg_list != NULL) {
@@ -11574,7 +11577,7 @@ during wrapup processing by compare_function_templates.
        this template argument list.  If so, simply return the type
        already created.  Don't do this when preserving deduced packs as
        that flag causes a different type to be returned below. */
-    if ((ctws_options & CTWS_PRESERVE_DEDUCED_PACKS) == 0) {
+    if (!preserve_deduced_packs) {
       templ_rout_type = find_substituted_type(tssp, templ_arg_list);
     }  /* if */
     if (templ_rout_type == NULL) {
@@ -11582,6 +11585,7 @@ during wrapup processing by compare_function_templates.
          template argument list.  Create a new type. */
       a_ctws_state	ctws_state;
       init_ctws_state(&ctws_state);
+      ctws_state.preserve_deduced_packs = preserve_deduced_packs;
       if (is_partial_order_check) ctws_options |= CTWS_IS_PARTIAL_ORDER_CHECK;
       templ_rout_type = skip_typerefs(tssp->variant.function.routine->type);
       ++(tssp->variant.function.pending_deductions);
