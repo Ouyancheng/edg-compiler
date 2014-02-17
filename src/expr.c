@@ -21320,7 +21320,7 @@ already been consumed.
         set_expr_result_not_used(last_stmt->expr);
       } else {
         last_stmt->is_statement_expression_result = TRUE;
-        if (is_class_struct_union_type(expr_type)) {
+        if (!C_mode() && is_class_struct_union_type(expr_type)) {
           /* We don't currently handle result types whose copy construction or
              destruction semantics are nontrivial. */
           a_class_symbol_supplement_ptr
