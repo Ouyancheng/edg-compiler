@@ -10732,10 +10732,10 @@ in C99 mode).  See C89 standard, 3.8.1.
 
 a_string_or_char_literal_kind scan_encoding_prefix(a_const_char *loc)
 /*
-loc points to a character that could be the start of a C++11
-encoding-prefix, i.e., one of 'u', 'U', 'L', or 'R'.  If it is the start of
-a valid string literal or the start of a valid character literal, return
-the literal kind.  Otherwise, return SCLK_NOT_A_LITERAL.
+loc points to a character that could be the start of a C++11 or C11
+encoding-prefix, i.e., one of 'u', 'U', 'L', or (for C++11 only) 'R'.  If
+it is the start of a valid string literal or the start of a valid character
+literal, return the literal kind.  Otherwise, return SCLK_NOT_A_LITERAL.
 */
 {
   a_string_or_char_literal_kind kind = SCLK_ORDINARY_LITERAL;
@@ -12226,10 +12226,11 @@ return_end_of_source_token:
     case 'U':
     case 'u':
       if (uliterals_enabled) {
-        /* The C committee's TR 19769 introduces character and string literals
-           of the forms u'...', U'...', u"...", and U"...".  These are
-           similar to wide literals, but potentially involve different
-           character types and encodings. */
+        /* The C committee's TR 19769 (also adopted by C++11 and C11)
+           introduced character and string literals of the forms u'...',
+           U'...', u"...", and U"...".  These are similar to wide literals,
+           but potentially involve different character types and
+           encodings. */
         goto literal_prefix_scan;
       } else {
         goto id_scan;

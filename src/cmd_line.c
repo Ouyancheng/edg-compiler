@@ -2514,6 +2514,11 @@ Set the various flags appropriate to C99 mode or later standard modes.
     alignas_enabled = TRUE;
     alignof_enabled = TRUE;
     std_thread_local_storage_specifier_enabled = TRUE;
+    if (!option_kind_used[(int)optk_uliterals]) {
+      /* Unicode literals are supported in C11 mode unless explicitly
+         suppressed. */
+      uliterals_enabled = TRUE;
+    }  /* if */
   }  /* if */
 }  /* check_and_set_new_c_mode_options */
 
@@ -3386,9 +3391,9 @@ conflicts with the ANSI mode and set various unmentioned settings as needed.
        strict mode. */
     allow_dollar_in_id_chars = FALSE;
   }  /* if */
-  if (!option_kind_used[(int)optk_uliterals] && !cpp11_mode) {
+  if (!option_kind_used[(int)optk_uliterals] && !cpp11_mode && !c11_mode) {
     /* Support for U-literals (U... and u...) is off by default in strict
-       mode (but not in strict C++11 mode). */
+       mode (but not in strict C++11 or C11 mode). */
     uliterals_enabled = FALSE;
   }  /* if */
   if (!option_kind_used[(int)optk_check_concatenations]) {
@@ -9160,7 +9165,7 @@ enable_microsoft_mode:
       case optk_uliterals:
         /* U... and u... literals should or should not be allowed.  This also
            has the effect of enabling or disabling char16_t/char32_t
-           keywords. */
+           keywords (C++ only). */
         uliterals_enabled = opt_value;
         break;
 #if MICROSOFT_EXTENSIONS_ALLOWED

@@ -8550,9 +8550,9 @@ TRUE) and "-U" (when process_undefs is TRUE) options on the command line.
 }  /* process_command_line_macro_definitions */
 
 
-static void init_c99_predefined_macros(void)
+static void init_new_c_predefined_macros(void)
 /*
-Enter symbols for the C99 predefined macros.
+Enter symbols for the predefined macros in C99 and later revisions.
 */
 {
   /* Predefine the C99 __STDC_HOSTED__ macro based on the STDC_HOSTED
@@ -8595,7 +8595,17 @@ Enter symbols for the C99 predefined macros.
   (void)enter_predef_macro("1", "__STDC_NO_ATOMICS__",
                            /*cannot_be_redefined=*/TRUE,
                            /*ref_suppresses_pch_file=*/FALSE);
-}  /* init_c99_predefined_macros */
+  if (uliterals_enabled) {
+    /* Indicate that char16_t and char32_t literals are encoded in UTF-16
+       and UTF-32, respectively. */
+    (void)enter_predef_macro("1", "__STDC_UTF_16__",
+                             /*cannot_be_redefined=*/TRUE,
+                             /*ref_suppresses_pch_file=*/FALSE);
+    (void)enter_predef_macro("1", "__STDC_UTF_32__",
+                             /*cannot_be_redefined=*/TRUE,
+                             /*ref_suppresses_pch_file=*/FALSE);
+  }  /* if */
+}  /* init_new_c_predefined_macros */
 
 
 static char* expanded_gnu_version_string(void)
@@ -9086,7 +9096,8 @@ command line -D options.
                                /*ref_suppresses_pch_file=*/FALSE);
     }  /* if */
     if (c99_mode) {
-      init_c99_predefined_macros();
+      /* Includes C11 mode. */
+      init_new_c_predefined_macros();
     }  /* if */
 #if UPC_EXTENSIONS_ALLOWED
     if (upc_mode) {

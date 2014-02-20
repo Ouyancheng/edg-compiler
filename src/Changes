@@ -1,5 +1,21 @@
 Version 4.9
 
+2/20/14  [EDGcpfe/12777]
+C11: UTF-8, char16_t, and char32_t literals
+
+In C11 mode the front end now accepts character constants prefixed with u or
+U and string literals prefixed with u8, u, or U to indicate UTF-8, UTF-16,
+or UTF-32 encoding of the value.  This is essentially identical to the C++11
+implementation of this feature, except for two points: first, in C++11,
+char16_t and char32_t are reserved words denoting unique types for UTF-16
+and UTF-32 characters, while in C11 they are not predeclared and not unique.
+Also, the macros __STDC_UTF_16__ and __STDC_UTF_32__ are predefined in C11
+mode with the value 1 to indicate that the encoding of char16_t and char32_t
+characters is UTF-16 and UTF-32, respectively; those macros are not defined
+in C++11 mode.  These literal forms can be enabled or disabled by the
+command-line option --[no_]uliterals.
+
+
 2/13/14  [EDGcpfe/13985,EDGcpfe/14725]
 Deduction in pack contexts that contain explicit template arguments
 

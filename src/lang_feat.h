@@ -2181,15 +2181,15 @@ initial value of the global variable check_concatenations.
 #endif /* ifndef DEFAULT_CHECK_CONCATENATIONS */
 
 /*
-Flag that is TRUE if U-literals (as specified by ISO/IEC TR 19769 and C++11)
-should be accepted by default (i.e., it's the initial value of the global
-variable uliterals_enabled).  The flag is also the default value for
+Flag that is TRUE if U-literals (as specified by ISO/IEC TR 19769, C++11,
+and C11) should be accepted by default (i.e., it's the initial value of the
+global variable uliterals_enabled).  The flag is also the default value for
 char16_t_and_char32_t_are_keywords which specifies whether, in C++ mode,
-char16_t and char32_t are keywords.  In C++ mode, it's likely that these global
-variables will have the same value (though they need not).  In C mode,
-char16_t_and_char32_t_are_keywords is always FALSE.  These options are both
-enabled in C++11 mode.  The default can be overridden using the
---[no_]uliterals command line options.
+char16_t and char32_t are keywords.  In C++ mode, it's likely that these
+global variables will have the same value (though they need not).  In C
+mode, char16_t_and_char32_t_are_keywords is always FALSE.  These options
+are both enabled in C++11 mode; uliterals_enabled is TRUE in C11 mode.  The
+default can be overridden using the --[no_]uliterals command line options.
 */
 #ifndef DEFAULT_ULITERALS_ENABLED
 #define DEFAULT_ULITERALS_ENABLED FALSE
