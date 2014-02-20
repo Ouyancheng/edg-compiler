@@ -9089,8 +9089,10 @@ command line -D options.
     if (!microsoft_mode && (!gcc_mode || c99_mode)) {
       /* __STDC_VERSION__ is defined based on the version of C being used.
          The Microsoft compiler does not define this macro; the GNU compiler
-         does so only for C99 ("std=c99"). */
-      char *stdc_version = c99_mode ? (char *)"199901L" : (char *)"199409L";
+         does so only for C99 ("std=c99") and C11 ("std=c11"). */
+      a_const_char *stdc_version = c11_mode ? "201112L"
+                                 : c99_mode ? "199901L"
+                                            : "199409L";
       (void)enter_predef_macro(stdc_version, "__STDC_VERSION__",
                                /*cannot_be_redefined=*/TRUE,
                                /*ref_suppresses_pch_file=*/FALSE);

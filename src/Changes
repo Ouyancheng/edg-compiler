@@ -1,5 +1,12 @@
 Version 4.9
 
+2/20/14  [EDGcpfe/14873]
+C11: value of __STDC_VERSION__ macro
+
+In C11 mode, the value of the predefined macro is now 201112L, as required
+by the C11 Standard.
+
+
 2/20/14  [EDGcpfe/12777]
 C11: UTF-8, char16_t, and char32_t literals
 
