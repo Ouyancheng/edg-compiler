@@ -106,6 +106,7 @@ Clear an output control block to default values.
   octl->suppress_line_breaking    = FALSE;
   octl->suppress_cast_on_short_integral_const = FALSE;
   octl->suppress_name_in_template_cast_enum_const = FALSE;
+  octl->render_auto_deduction_typerefs = FALSE;
 #if GNU_VECTOR_TYPES_ALLOWED
   octl->defer_vector_attribute    = FALSE;
 #endif /* GNU_VECTOR_TYPES_ALLOWED */
@@ -490,10 +491,14 @@ source.
 */
 {
   a_type_ptr type = rout->type;
+  a_boolean  saved_render_auto_deduction_typerefs =
+                                         octl->render_auto_deduction_typerefs;
 
   octl->output_str("operator ", octl);
   type = skip_typerefs(type);
+  octl->render_auto_deduction_typerefs = TRUE;
   type = type->variant.routine.return_type;
+  octl->render_auto_deduction_typerefs = saved_render_auto_deduction_typerefs;
   form_type(type, octl);
 }  /* form_conversion_function_name */
 
@@ -2118,6 +2123,7 @@ available or not portable).
       }  /* if */
     }  /* if */
   } else if (!octl->c_generating_back_end &&
+             octl->render_auto_deduction_typerefs &&
              (type->variant.typeref.is_deduced_decltype_auto ||
               type->variant.typeref.is_deduced_auto)) {
     /* "auto" and "decltype(auto)" should only appear in declarative
@@ -4630,6 +4636,12 @@ for debug output), and it doesn't have to provide detailed information
 on every expression.
 */
 {
+  a_boolean  saved_render_auto_deduction_typerefs =
+                                         octl->render_auto_deduction_typerefs;
+
+  /* Don't form "auto" or "decltype(auto)" instead of the deduced types when
+     in expression contexts. */
+  octl->render_auto_deduction_typerefs = FALSE;
   if (octl->output_expression != NULL) {
     /* Output the expression using a special routine. */
     octl->output_expression(expr, /*suppress_parens=*/FALSE);
@@ -4883,6 +4895,7 @@ on every expression.
     }  /* switch */
     if (expr->is_pack_expansion) octl->output_str("...", octl);
   }  /* if */
+  octl->render_auto_deduction_typerefs = saved_render_auto_deduction_typerefs;
 }  /* form_expression */
 
 

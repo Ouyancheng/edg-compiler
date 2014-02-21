@@ -16093,6 +16093,9 @@ declarator (or NULL if it wasn't recorded).
     a_type_ptr                saved_routine_type = rout->type;
     a_routine_type_supplement *rtsp = rout_type->variant.routine.extra_info;
     a_boolean                 suppress_declarator_parens = FALSE;
+    a_boolean                 saved_render_auto_deduction_typerefs =
+                                          octl.render_auto_deduction_typerefs;
+    octl.render_auto_deduction_typerefs = TRUE;
     if (special_kind_is(rout, sfk_constructor) ||
         special_kind_is(rout, sfk_destructor) ||
 #if MICROSOFT_EXTENSIONS_ALLOWED
@@ -16243,6 +16246,7 @@ declarator (or NULL if it wasn't recorded).
     }  /* if */
     /* Restore the routine type in case it was changed above. */
     rout->type = saved_routine_type;
+    octl.render_auto_deduction_typerefs = saved_render_auto_deduction_typerefs;
   }  /* if */
   if (name_context_for_access_reset != NULL) {
     name_context_for_access_reset->class_type_for_access_not_naming = NULL;

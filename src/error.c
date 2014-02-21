@@ -1098,6 +1098,8 @@ declaration position to eliminate redundant file names in a diagnostic.
   a_template_instance_ptr	tip = NULL;
   a_symbol_ptr			sym_to_display;
   a_boolean			saved_remove_template_typedefs;
+  a_boolean  saved_render_auto_deduction_typerefs =
+                                octl.render_auto_deduction_typerefs;
 
   curr_output_msg_segment = seg_ptr;
   /* Determine the fundamental symbol of this symbol. */
@@ -1525,6 +1527,7 @@ symbol_name:
       add_string_to_segment(")", seg_ptr);
     }  /* if */
   }  /* if */
+  octl.render_auto_deduction_typerefs = saved_render_auto_deduction_typerefs;
 }  /* form_symbol_summary */
 
 #endif /* !STANDALONE_UTILITY_PROGRAM */
