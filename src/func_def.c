@@ -1407,7 +1407,8 @@ of lambda expressions.
     restore_pack_alignment_state(&saved_pack_alignment_state);
   }  /* if */
 #endif /* USER_CONTROL_OF_STRUCT_PACKING */
-  if (rout_ptr->has_deducible_return_type) {
+  if (rout_ptr->has_deducible_return_type &&
+      !rout_ptr->is_prototype_instantiation) {
     /* We're completing the body of a function with a deducible return type.
        Ensure that a type is established at this point. */
     check_deduced_return_type(rout_ptr, &body_pos);
