@@ -708,6 +708,10 @@ typedef struct a_decl_parse_state {
 		decltype_auto_specifier_seen:1;
 			/* TRUE if "decltype(auto)" appeared as a specifier. */
   a_bit_field
+		has_deducible_return_type:1;
+			/* TRUE if this is a declaration of a function whose
+			   return type must be deduced. */
+  a_bit_field
 		is_asm_function:1;
 			/* TRUE if the current declaration is for an asm
 			   function.  (An extension available only when

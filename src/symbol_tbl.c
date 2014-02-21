@@ -3700,6 +3700,7 @@ state.
         cssp->has_user_provided_move_assign_operator = FALSE;
         cssp->assignment_by_bitwise_copy_allowed = FALSE;
         cssp->construction_by_bitwise_copy_allowed = FALSE;
+        cssp->has_auto_conversion_function = FALSE;
         cssp->target_of_conversion_function = FALSE;
         cssp->any_ref_member = FALSE;
         /* The is_class_aggregate flag is initialized to TRUE when we are not

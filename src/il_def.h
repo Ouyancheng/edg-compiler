@@ -8812,7 +8812,16 @@ typedef struct a_type {
 #endif /* BACK_END_IS_CP_GEN_BE */
       a_bit_field
 		is_decltype:1;
-			/* The type was created by a decltype operator. */
+			/* The type was created by a decltype(<expr>)
+			   operator. */
+      a_bit_field
+		is_deduced_decltype_auto:1;
+			/* The type resulted from deducing a "decltype(auto)"
+			   specifier. */
+      a_bit_field
+		is_deduced_auto:1;
+			/* The type resulted from deducing an "auto" type
+			   specifier. */
       a_bit_field
 		decltype_expr_not_parenthesized:1;
 			/* This is a decltype entry and its argument
@@ -13564,6 +13573,14 @@ typedef struct a_routine {
                            FALSE if the attribute was not specified, or if the
                            attribute was specified without an argument. */
 #endif /* GNU_INIT_PRIORITY_ATTRIBUTE_ALLOWED */
+  a_bit_field	has_deducible_return_type:1;
+			/* TRUE if the return type of this function contains
+			   "auto" or "decltype(auto)" (this excludes the "auto"
+			   specifier followed by a matching trailing return
+			   type). */
+  a_bit_field	has_deduced_return_type:1;
+			/* TRUE if has_deducible_return_type is TRUE and the
+			   actual return type has been deduced. */
   bitfield_to_avoid_codecenter_warnings()
 #if DECL_MODIFIERS_IN_USE
   a_decl_modifier

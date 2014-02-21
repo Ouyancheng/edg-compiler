@@ -1829,6 +1829,8 @@ to default values.
                                        = (a_name_linkage_kind)nlk_none;
 #endif /* BACK_END_IS_CP_GEN_BE */
       pte->variant.typeref.is_decltype = FALSE;
+      pte->variant.typeref.is_deduced_decltype_auto = FALSE;
+      pte->variant.typeref.is_deduced_auto = FALSE;
       pte->variant.typeref.decltype_expr_not_parenthesized = FALSE;
       pte->variant.typeref.is_underlying_type = FALSE;
 #if GNU_EXTENSIONS_ALLOWED
@@ -2712,6 +2714,8 @@ to it.  The entry is allocated in the file scope memory region.
   rp->has_ctor_priority           = FALSE;
   rp->has_dtor_priority           = FALSE;
 #endif /* GNU_INIT_PRIORITY_ATTRIBUTE_ALLOWED */
+  rp->has_deducible_return_type   = FALSE;
+  rp->has_deduced_return_type     = FALSE;
 #if CENTERLINE_CHECKING
   rp->avoid_codecenter_warnings = 0;
 #endif /* CENTERLINE_CHECKING */

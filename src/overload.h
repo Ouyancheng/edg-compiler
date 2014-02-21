@@ -1213,6 +1213,7 @@ extern a_symbol_ptr select_overloaded_assignment_operator(
 
 extern a_boolean deduce_auto_type(a_type_ptr        orig_type,
                                   a_type_ptr        auto_type,
+                                  a_boolean         keep_placeholder,
                                   an_operand        *initializer_operand,
                                   an_arg_list_elem  *initializer_alep,
                                   a_source_position *source_pos,

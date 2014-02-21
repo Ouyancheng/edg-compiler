@@ -785,6 +785,9 @@ extern
 void update_nested_template_class_symbol_info(a_symbol_ptr       sym,
                                               a_type_kind	 type_kind);
 
+extern void finalize_deduced_return_type(a_routine_ptr      rp,
+                                         a_source_position  *diag_pos);
+
 extern
 void set_instance_required(a_symbol_ptr				sym,
 			   a_boolean				value,
@@ -808,7 +811,7 @@ extern void template_and_inline_function_processing_for_pch(void);
 
 extern void template_and_inline_function_wrapup(void);
 
-extern void remove_unneeded_static_data_member_instantiations(void);
+extern void remove_unneeded_instantiations(void);
 
 extern void record_cache_checksum(
 	       a_template_symbol_supplement_ptr	tssp,

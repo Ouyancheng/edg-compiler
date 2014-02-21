@@ -402,9 +402,10 @@ extern void record_start_of_lambda_header(a_lambda_ptr lambda);
 
 extern void record_end_of_lambda_header(a_lambda_ptr lambda);
 
-extern
-a_type_ptr set_implicit_lambda_return_type(a_type_ptr        return_type,
-                                           a_source_position *err_pos);
+extern void deduce_return_type_from_void_operand(
+                                          a_routine_ptr      rp,
+                                          a_boolean          keep_placeholder,
+                                          a_source_position  *diag_pos);
 
 extern
 void transfer_arg_operand_for_template_arg(a_template_arg_ptr tap,

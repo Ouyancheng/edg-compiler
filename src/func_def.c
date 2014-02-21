@@ -793,28 +793,28 @@ specializations and lambdas.  rout_ptr is the routine being defined.
 }  /* advance_param_id_and_param_type */
 
 
-static void check_implicit_lambda_return_type(a_lambda_ptr       lambda,
-                                              a_source_position  *diag_pos)
+static void check_deduced_return_type(a_routine_ptr      rp,
+                                      a_source_position  *diag_pos)
 /*
-The given lambda did not include an explicitly specified return type.  If a
+The given routine did not include an explicitly specified return type.  If a
 value-returning statement was encountered, the return type was set accordingly;
-otherwise, this routine will set it to void.  If the return type is non-void,
-check that the body had the simple form
+otherwise, this routine will set it to void.  If the return type is non-void
+and this is a C11-style lambda body, check that the body had the simple form
       { return <expression> ; }
 and issue a diagnostic if that was not the case.
 */
 {
-  a_routine_ptr  rp = lambda->lambda_routine;
-  a_type_ptr     rtp;
+  a_type_ptr  rtp;
 
   check_assertion(rp->type->kind == (a_type_kind)tk_routine);
   rtp = rp->type->variant.routine.return_type;
-  if (is_unknown_type(rtp)) {
-    /* No return type was specified on the lambda construct, and no return
-       type was deduced from a return statement: The return type is therefore
-       "void". */
-    rp->type->variant.routine.return_type = void_type();
-  } else if (!multiple_returns_allowed_in_implicit_return_type_lambda &&
+  if (!rp->has_deduced_return_type) {
+    /* No return type was specified, and no return type was deduced from a
+       return statement.  Determine the return type as if "return (void)0;"
+       had appeared. */
+    deduce_return_type_from_void_operand(rp, !rp->is_lambda_body, diag_pos);
+  } else if (rp->is_lambda_body &&
+             !multiple_returns_allowed_in_implicit_return_type_lambda &&
              !is_void_type(rtp) && !is_error_type(rtp) &&
              !is_template_param_type(rtp)) {
     /* A return type was deduced from a non-void return.  Check that that
@@ -829,7 +829,7 @@ and issue a diagnostic if that was not the case.
       pos_error(ec_lambda_return_must_be_only_construct, diag_pos);
     }  /* if */
   }  /* if */
-}  /* check_implicit_lambda_return_type */
+}  /* check_deduced_return_type */
 
 
 static void set_routine_constexpr_info(a_scope_ptr scope,
@@ -1407,10 +1407,10 @@ of lambda expressions.
     restore_pack_alignment_state(&saved_pack_alignment_state);
   }  /* if */
 #endif /* USER_CONTROL_OF_STRUCT_PACKING */
-  if (func_info->lambda != NULL && !func_info->lambda->explicit_return_type) {
-    /* We're completing the body of a lambda with no explicit return type.
+  if (rout_ptr->has_deducible_return_type) {
+    /* We're completing the body of a function with a deducible return type.
        Ensure that a type is established at this point. */
-    check_implicit_lambda_return_type(func_info->lambda, &body_pos);
+    check_deduced_return_type(rout_ptr, &body_pos);
   }  /* if */
   /* Pop the function scope. */
   pop_scope();
@@ -1600,6 +1600,12 @@ member declaration (allowed in some Microsoft modes only).
                         ec_no_match_for_type_of_overloaded_function :
                         ec_not_compatible_with_previous_decl,
                    &locator->source_position, locator->specific_symbol);
+      }  /* if */
+      if (dps->has_deducible_return_type) {
+        /* The mismatch was possibly due to this declaration having an "auto"
+           or "decltype(auto)" return type.  For error recovery purposes,
+           proceed with an error return type. */
+        rout_type->variant.routine.return_type = error_type();
       }  /* if */
     } else if (sym->kind == (a_symbol_kind)sk_function_template) {
       /* A case like this:

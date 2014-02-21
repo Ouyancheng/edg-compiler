@@ -1134,6 +1134,10 @@ typedef struct a_class_symbol_supplement {
 			/* TRUE if copy construction can be performed by a
 			   bitwise copy rather than by calling a copy
 			   constructor function. */
+  a_bit_field	has_auto_conversion_function:1;
+			/* TRUE if this class has at least one conversion
+			   function member whose type involves the "auto" or
+			   "decltype(auto)" type specifiers. */
   a_bit_field	target_of_conversion_function:1;
 			/* TRUE if this class is the target of a user-defined
 			   conversion function (for conversion from another

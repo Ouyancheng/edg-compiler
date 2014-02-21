@@ -2254,6 +2254,12 @@ Display the indicated type entry.
       if (ptr->variant.typeref.is_decltype) {
         disp_boolean("is_decltype", TRUE);
       }  /* if */
+      if (ptr->variant.typeref.is_deduced_decltype_auto) {
+        disp_boolean("is_deduced_decltype_auto", TRUE);
+      }  /* if */
+      if (ptr->variant.typeref.is_deduced_auto) {
+        disp_boolean("is_deduced_auto", TRUE);
+      }  /* if */
       if (ptr->variant.typeref.decltype_expr_not_parenthesized) {
         disp_boolean("decltype_expr_not_parenthesized", TRUE);
       }  /* if */
@@ -3543,6 +3549,12 @@ Display the indicated routine.
 #endif /* USE_LAZY_INITIALIZATION_FOR_THREAD_LOCAL_VARIABLES */
   if (ptr->is_tls_init_routine) {
     disp_boolean("is_tls_init_routine", TRUE);
+  }  /* if */
+  if (ptr->has_deducible_return_type) {
+    disp_boolean("has_deducible_return_type", TRUE);
+  }  /* if */
+  if (ptr->has_deduced_return_type) {
+    disp_boolean("has_deduced_return_type", TRUE);
   }  /* if */
 #if MAINTAIN_NEEDED_FLAGS
   disp_boolean("definition_needed", (a_boolean)ptr->definition_needed);

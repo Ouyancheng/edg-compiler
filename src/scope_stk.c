@@ -2882,6 +2882,7 @@ the scope being pushed.
   ssep->class_fixup_header.fixup_list = NULL;
   ssep->class_fixup_header.fixup_list_tail = NULL;
   ssep->param_id_list = NULL;
+  ssep->orig_return_type = NULL;
   if (sp != NULL) {
     if (new_il_scope) {
       /* Set the parent scope. */

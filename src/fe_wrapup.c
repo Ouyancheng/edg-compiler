@@ -513,9 +513,10 @@ already been copied over.
 */
 {
   if (is_primary_translation_unit) {
-    /* Remove the definitions of any static data members instantiated only for
-       the purpose of determining their size. */
-    remove_unneeded_static_data_member_instantiations();
+    /* Remove the definitions of any functions instantiated only to determine
+       their return types or static data members instantiated only to
+       determine their size. */
+    remove_unneeded_instantiations();
 #if DO_IL_LOWERING
     /* Lower the file scope. */
     lower_il_memory_region(file_scope_region_number);

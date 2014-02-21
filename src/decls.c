@@ -167,6 +167,7 @@ be restored).
     dps->auto_type_allowed = FALSE;
     dps->auto_type_specifier_seen = FALSE;
     dps->decltype_auto_specifier_seen = FALSE;
+    dps->has_deducible_return_type = FALSE;
     dps->is_asm_function = FALSE;
     dps->function_definition_allowed = FALSE;
     dps->is_old_style_param_decl = FALSE;
@@ -2717,11 +2718,11 @@ internal linkage).
 }  /* compute_name_linkage */
 
 
-static void find_linked_symbol(an_id_linkage_block *idlbp)
+static void find_linked_symbol(an_id_linkage_block  *idlbp)
 /*
-Find and return a symbol representing the potential prior declaration of the
-variable or routine named by the specified symbol locator.  This deals with
-two kinds of cases:
+Find and return a symbol idlbp->linked_symbol representing the potential prior
+declaration of the variable, routine, or function template declaration
+described by *idlbp.  Two distinct cases are handled here:
   -- redeclaration in the same scope:
         void f();
         void f() { }        // the other "f" is returned as linked symbol
@@ -2733,55 +2734,48 @@ two kinds of cases:
           friend g();       // the other "g" is returned as linked symbol
         };
 
-It also returns two other sorts of symbols.  (1) *prior_decl is the same as
-the linked symbol in the cases listed above, but a symbol may also be returned
-as *prior_decl even when the linked symbol is NULL, e.g.,
-  -- block extern declaration
+It also returns other sorts of symbols:
+(1) idlbp->prior_decl_in_enclosing_scope is a visible linked declaration in a
+prior scope.  For example, with a block extern declaration:
         int j;
         void f() {
-          extern int j;     // linked_symbol is NULL but the other "j" is
-        }                   //   returned as *prior_decl
-(Note, however, that the file-scope symbol is returned as *prior_decl only
-when it is "visible", e.g.,
+          extern int j;     // No linked symbol but the other "j" is returned
+        }                   // via idlbp->prior_decl_in_enclosing_scope.
+(Note, however, that this is only the case for "visible" prior declarations.
+E.g.,
         static int k;
         void f() {
           int k;            // ::k is no longer visible
-          { extern int k; } // both linked_symbol and *prior_decl are NULL
+          { extern int k; } // idlbp->prior_decl_in_enclosing_scope is NULL.
         }
 This behavior affects how id_linkage determines the linkage of block-extern
 declared k; the latter gets external linkage, which results in a linkage
 conflict that is reported in strict mode.)
 
-And (2), in C++ only, when type is a routine type, *overload_symbol is
-returned when a name match was found with another function declaration,
-whether or not a type match was also found.  (In C++ mode the types must
-match for either linked_symbol or *prior_decl to be set for a routine.)  For
-instance,
+(2) In C++ only, for function and function template declarations,
+idlbp->overload_symbol is returned when a name match was found with another
+function or function template declaration, whether or not a type match was
+also found. For instance,
   -- redeclaration in the same scope:
        void f(int);
-       void f(int,int);     // both linked_symbol and *prior_decl are NULL,
-                            //   but f(int) is returned as *overload_symbol
-  -- friend declaration
+       void f(int,int);  // idlbp->prior_decl_in_enclosing_scope and
+                         // idlbp->linked_symbol are both NULL, but "f(int)"
+                         // is returned via idlbp->overload_symbol.
+  -- friend declaration:
        void f(int);
        class A {
-         friend f(int,int);  // both linked_symbol and *prior_decl are NULL,
-       };                    //   but f(int) is returned as *overload_symbol
+         friend f(int,int);  // ditto.
+       };
   -- block extern
        void f(int);
        void g() {
-         extern f(int,int);  // Both linked_symbol and *prior_decl are NULL,
-       }                     //   but f(int) is returned as *overload_symbol
-The logic described here is also extended to take function templates
-into account, since they also participate in overload sets.
+         extern f(int,int);  // ditto.
+       }
 
 Besides the type, required for function matching in C++, and the locator, the
-input parameters include effective_decl_level, the scope at which the entity
-is to be entered into the symbol table; is_main, TRUE when the current
-declaration is global "main"; is_friend_decl, TRUE when the declaration is a
-friend declaration within a class; and is_function_template, TRUE when the
-declaration is a function template declaration.  templ_param_list is the
-template parameter list for the function template.  This function is only
-called by id_linkage.
+input parameters include idlbp->effective_decl_level, the scope at which the
+entity is to be entered into the symbol table, and idlbp->is_friend_decl, TRUE
+when the declaration is a friend declaration within a class.
 */
 {
   a_boolean     decls_at_same_scope;
@@ -2810,7 +2804,7 @@ called by id_linkage.
        a symbol for an inline namespace member it is not a valid
        declarator and should be ignored. */
     if (!other_decl->synthesized_namespace_projection &&
-        other_decl->kind == (a_symbol_kind)sk_namespace_projection) {
+        symbol_is(other_decl, sk_namespace_projection)) {
       other_decl = NULL;
     }  /* if */
   } else {
@@ -2865,7 +2859,7 @@ called by id_linkage.
       if ((!gpp_mode &&
            source_corresp_entry_for_symbol(fund_other_decl)->name_linkage ==
                                           (a_name_linkage_kind)nlk_external) ||
-          fund_other_decl->kind == (a_symbol_kind)sk_variable) {
+          symbol_is(fund_other_decl, sk_variable)) {
         kind = fund_other_decl->kind;
       }  /* if */
     }  /* if */
@@ -2879,9 +2873,8 @@ called by id_linkage.
          a projection symbol. */
     } else {
       if (!C_mode() && kind == (a_symbol_kind)sk_namespace_projection) {
-        a_symbol_kind  fund_kind = fundamental_symbol_of(other_decl)->kind;
-        if (fund_kind == (a_symbol_kind)sk_routine ||
-            fund_kind == (a_symbol_kind)sk_function_template) {
+        if (symbol_is(fund_other_decl, sk_routine) ||
+            symbol_is(fund_other_decl, sk_function_template)) {
           /* In a case like:
                namespace N { void f(int); }
                using N::f;
@@ -2890,7 +2883,7 @@ called by id_linkage.
           if (decls_at_same_scope) {
             idlbp->homonym_symbol = other_decl;
           }  /* if */
-        } else if (fund_kind == (a_symbol_kind)sk_variable &&
+        } else if (symbol_is(fund_other_decl, sk_variable) &&
                    depth_innermost_function_scope == NO_SCOPE_DEPTH) {
           /* This is a variable declaration at file/namespace scope.  We need
              to deal with a case like this:
@@ -2902,8 +2895,7 @@ called by id_linkage.
              We know the other declaration was in fact a using-declaration,
              so check whether both declarations refer to extern "C"
              variables of the same type. */
-          a_variable_ptr  vp = fundamental_symbol_of(other_decl)->
-                                                  variant.variable.ptr;
+          a_variable_ptr  vp = fund_other_decl->variant.variable.ptr;
           if (vp->source_corresp.name_linkage ==
                                     (a_name_linkage_kind)nlk_external &&
               scope_stack[depth_scope_stack].default_name_linkage ==
@@ -2915,8 +2907,7 @@ called by id_linkage.
           }  /* if */
         }  /* if */
       }  /* if */
-      if ((idlbp->is_block_extern_decl ||
-           idlbp->is_local_class_friend_decl) &&
+      if ((idlbp->is_block_extern_decl || idlbp->is_local_class_friend_decl) &&
           other_decl->decl_scope != scope_stack[depth_scope_stack].number) {
         /* This is a friend or block-extern declaration and a declaration
            that cannot possibly match it was found in an enclosing scope.
@@ -2932,9 +2923,9 @@ called by id_linkage.
        was an sk_overloaded_function symbol, we need to look for a type
        match amongst the instances of the name.  Even if it was an
        sk_routine symbol, we may want to overload the two functions. */
-    if (C_dialect == C_dialect_cplusplus && is_function &&
-        kind != (a_symbol_kind)sk_variable) {
-      /* C++ function -- type compatibility check is required. */
+    if (!C_mode() && is_function && kind != (a_symbol_kind)sk_variable) {
+      /* C++ function or function template -- type compatibility check is
+         required. */
       if (decls_at_same_scope) {
         /* *overload_symbol is set for cases in which the current symbol
            may be added to an overload list.  Note that overloading across
@@ -2942,7 +2933,7 @@ called by id_linkage.
            cleared later. */
         idlbp->homonym_symbol = other_decl;
       }  /* if */
-      if (other_decl->kind == (a_symbol_kind)sk_overloaded_function) {
+      if (symbol_is(other_decl, sk_overloaded_function)) {
         if (decls_at_same_scope) idlbp->overload_symbol = other_decl;
         other_decl = other_decl->variant.overloaded_function.symbols;
         is_list = TRUE;
@@ -2956,13 +2947,12 @@ called by id_linkage.
       /*lint --e{446} other_decl modified in loop (LINTBUG) */
       for (; other_decl != NULL;
              other_decl = is_list ? other_decl->next : NULL) {
-        a_type_ptr  tp;
-        a_symbol_ptr	fund_other_decl;
-        a_boolean	function_from_inline_namespace;
-        fund_other_decl = fundamental_symbol_of(other_decl);
-        function_from_inline_namespace = !other_decl->ambiguous &&
+        a_routine_ptr  rp;
+        a_symbol_ptr   fund_other_decl = fundamental_symbol_of(other_decl);
+        a_boolean      function_from_inline_namespace = 
+                              !other_decl->ambiguous &&
                               is_symbol_from_inline_namespace(fund_other_decl);
-        if (other_decl->kind == (a_symbol_kind)sk_namespace_projection &&
+        if (symbol_is(other_decl, sk_namespace_projection) &&
             !function_from_inline_namespace &&
             !locator->is_template_id &&
             (qualifier_namespace_ptr(*locator) !=
@@ -2970,7 +2960,7 @@ called by id_linkage.
             !((sun_mode || microsoft_mode) &&
               (source_corresp_entry_for_symbol(fund_other_decl)->name_linkage
                                       == (a_name_linkage_kind)nlk_external ||
-               fund_other_decl->kind == (a_symbol_kind)sk_variable))) {
+               symbol_is(fund_other_decl, sk_variable)))) {
           /* Ignore namespace projection symbols that may have gotten into
              this overload set by a using declaration -- e.g.,
                namespace N { void f(int); }
@@ -2980,22 +2970,21 @@ called by id_linkage.
              (except in Sun and Microsoft modes.)  Symbols from inline
              namespaces are made visible by synthesized namespace projection
              symbols.  Those are allowed. */
-        } else if (fund_other_decl->kind ==
-                                         (a_symbol_kind)sk_function_template) {
+        } else if (symbol_is(fund_other_decl, sk_function_template)) {
           a_template_symbol_supplement_ptr  tssp;
           tssp = fund_other_decl->variant.template_info;
           if (idlbp->is_function_template) {
             a_template_param_ptr	other_templ_param_list;
-            tp = tssp->variant.function.routine->type;
+            rp = tssp->variant.function.routine;
             other_templ_param_list =
-                       tssp->variant.function.decl_cache.decl_info->parameters;
+                      tssp->variant.function.decl_cache.decl_info->parameters;
             if (equiv_template_param_lists(other_templ_param_list,
                                            idlbp->templ_param_list,
                                            /*issue_errors=*/FALSE,
 	                                   ETP_NO_OPTIONS,
                                            (a_source_position*)NULL,
                                            es_error) &&
-                routine_types_are_redecl_compatible(tp, idlbp->type,
+                routine_types_are_redecl_compatible(rp->type, idlbp->type,
                                                     TCF_NO_FLAGS)) {
               /* The other_decl template function matches the current
                  declaration. */
@@ -3017,13 +3006,10 @@ called by id_linkage.
                covered by going back to the original template below. */
           } else {
             /* Compare the routine type of the current declaration with that
-               of the previous declaration.  other_decl may be a namespace
-               projection symbol, so fundamental_symbol_of is called. */
-            check_assertion(
-                  fund_other_decl->kind == (a_symbol_kind)sk_routine ||
-                  fund_other_decl->kind == (a_symbol_kind)sk_member_function);
-            tp = fund_other_decl->variant.routine.ptr->type;
-            if (routine_types_are_redecl_compatible(tp, idlbp->type,
+               of the previous declaration. */
+            check_assertion(is_simple_function_symbol(fund_other_decl));
+            rp = fund_other_decl->variant.routine.ptr;
+            if (routine_types_are_redecl_compatible(rp->type, idlbp->type,
                                                     TCF_NO_FLAGS)) {
               /* Other_decl matches the current declaration.  Null out
                  *overload_symbol in case it was set. */
@@ -3061,7 +3047,7 @@ called by id_linkage.
                scope can't serve as guiding declarations for them. */
             fund_other_decl = other_decl;
           }  /* if */
-          if (fund_other_decl->kind == (a_symbol_kind)sk_function_template) {
+          if (symbol_is(fund_other_decl, sk_function_template)) {
             /* Look for a match on the list of instantiations. */
             if (has_matching_template_function(fund_other_decl, idlbp->type,
                                                locator->template_arg_list,
@@ -3122,8 +3108,8 @@ called by id_linkage.
         } else if (is_function_symbol(other_decl)) {
           /* Functions always have linkage. */
           idlbp->linked_symbol = other_decl;
-        } else if (!other_decl->variant.variable.ptr->
-                           source_corresp.is_local_to_function) {
+        } else if (!other_decl->variant.variable.ptr
+                              ->source_corresp.is_local_to_function) {
           /* Variables at file scope always have linkage.  Automatic,
              register, and static variables in local scopes do not. */
           idlbp->linked_symbol = other_decl;
@@ -3135,8 +3121,7 @@ called by id_linkage.
     if (idlbp->linked_symbol != NULL) {
       /* Find out whether the linked symbol was made visible because it
          is a member of an inline namespace. */
-      a_symbol_ptr	sym = idlbp->linked_symbol;
-      a_symbol_ptr	fund_sym = fundamental_symbol_of(sym);
+      a_symbol_ptr  fund_sym = fundamental_symbol_of(idlbp->linked_symbol);
       idlbp->from_inline_namespace = is_symbol_from_inline_namespace(fund_sym);
     }  /* if */
     if (other_decl != NULL &&
@@ -3151,8 +3136,8 @@ called by id_linkage.
         /* Special case -- return both linked_symbol and homonym_symbol, to
            form an overload set down the line. */
         check_assertion(idlbp->homonym_symbol != NULL &&
-                        idlbp->homonym_symbol->kind ==
-                                  (a_symbol_kind)sk_function_template);
+                        symbol_is(idlbp->homonym_symbol,
+                                  sk_function_template));
       } else {
         idlbp->homonym_symbol = NULL;
       }  /* if */
@@ -5520,25 +5505,15 @@ redeclaration).
 
 static void qualified_name_redecl_sym(an_id_linkage_block  *idlbp)
 /*
-This routine is called from decl_variable and decl_routine for either
-of two cases: (1) when is_friend_decl is FALSE, a namespace-qualified
-identifier is being redeclared outside of the namespace of which it is
-a member -- this will be a definition in a well-formed program; and
-(2) when is_friend_decl is TRUE, a namespace- or file-scope-qualified
-name is being declared in a friend declaration.  *locator will point
-to a specific symbol, as well as to a namespace parent in most cases.
-effective_decl_level will have computed by the caller.  type_ptr is
-the declared type, used for looking up symbols in an overload set.
-is_definition is usually TRUE unless is_friend_decl is TRUE.
-templ_param_list points to the template parameter list when the entity
-declared is a function template.  When the symbol is a member of an
-overloaded function set, *overload_symbol is returned with a pointer
-to the sk_overloaded_function symbol.  *linkage is returned with a
-value reflecting the linkage of the original symbol.
-*namespace_reactivated is returned TRUE when the caller needs to pop
-the namespace scope, which for friend declarations is a
-namespace-reactivation scope and for other declarations is a
-namespace-extension scope.
+This routine is called from decl_variable, decl_routine, and
+decl_function_template for either of two cases:
+    (1) when idlbp->is_friend_decl is FALSE, a namespace-qualified identifier
+        is being redeclared outside of the namespace of which it is a member
+        -- this will be a definition in a well-formed program; and
+    (2) when idlbp->is_friend_decl is TRUE, a namespace- or file-scope-
+        qualified name is being declared in a friend declaration.
+*idlbp describes the declaration being processed; it is updated by this
+function.
 */
 {
   a_symbol_ptr     linked_symbol;
@@ -8116,6 +8091,11 @@ for use in generating cross-reference output describing this declaration.
           /* Error -- routine-name-linkages are not compatible. */
           routines_compat = FALSE;
           error_code = ec_incompatible_linkage_specifier;
+        } else if (routine_ptr->has_deducible_return_type !=
+                                             dps->has_deducible_return_type) {
+          /* One declaration used "auto" or "decltype(auto)" as a deduced
+             return type and the other did not. */
+          routines_compat = FALSE;
         }  /* if */
         if (!routines_compat) {
           /* The old and new declarations are incompatible.  There is special
@@ -8595,11 +8575,12 @@ skip_overloading:;
         microsoft_specialization_redef) {
       scope_depth = NO_SCOPE_DEPTH;
     } else if ((linkage == idl_external || sun_mode) &&
-               scope_stack[depth_scope_stack].default_name_linkage ==
+               scope_stack_top().default_name_linkage ==
                                           (a_name_linkage_kind)nlk_external) {
       scope_depth = DEPTH_OF_FILE_SCOPE;
     }  /* if */
     routine_ptr = make_routine(type_ptr, storage_class, scope_depth);
+    routine_ptr->has_deducible_return_type = dps->has_deducible_return_type;
     if (C_dialect == C_dialect_cplusplus) {
       if (locator->is_operator_name) {
         set_routine_special_kind(routine_ptr,
@@ -9608,6 +9589,7 @@ definition of a member function of a class template.
       rout_ptr->declared_storage_class = dps->declared_storage_class;
     }  /* if */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+    rout_ptr->has_deducible_return_type = dps->has_deducible_return_type;
     if (func_info->is_inline) set_inline_flag(rout_ptr, TRUE);
     if (dps->dso_flags & DSO_CONSTEXPR) {
       rout_ptr->is_declared_constexpr = TRUE;
@@ -9861,7 +9843,7 @@ definition of a member function of a class template.
            (i.e., it didn't appear in the search of the overload set) and
            it was referenced. */
         rp = ext_sym->variant.extern_symbol_descr->variant.routine.ptr;
-        rout_sym = (a_symbol_ptr)rp->source_corresp.assoc_info;
+        rout_sym = symbol_for(rp);
         if (rp->source_corresp.referenced &&
             rout_sym->variant.routine.instance_ptr == NULL) {
           /* This must be a block-extern declaration.  Check whether it is
@@ -9869,13 +9851,11 @@ definition of a member function of a class template.
           a_type_ptr          tp = skip_typerefs(rp->type);
           a_template_arg_ptr  templ_arg_list;
           a_symbol_ptr        dummy;
-
           if (is_match_for_function_template(sym, tp, &templ_arg_list, &dummy,
                                              idlb.templ_param_list,
                                              (a_template_arg_ptr)NULL,
                                              /*is_decl_context=*/TRUE)) {
-            sym_error(ec_template_instance_already_used,
-                      (a_symbol_ptr)rp->source_corresp.assoc_info);
+            sym_error(ec_template_instance_already_used, rout_sym);
           }  /* if */
         }  /* if */
       }  /* if */
@@ -11853,6 +11833,9 @@ selection operation associated with this operator function reference.
                   DSI_NO_TAG_DEFINITION;
     if (std_attributes_enabled) input_flags |= DSI_STD_ATTRIBUTES_ALLOWED;
     if (gnu_attributes_enabled) input_flags |= DSI_GNU_ATTRIBUTES_ALLOWED;
+    if (deduced_return_types_enabled) {
+      state.auto_type_allowed = TRUE;
+    }  /* if */
     decl_specifiers(input_flags, &state, &decl_pos_block);
     if (state.dso_flags & DSO_DEFINES_SOMETHING) {
       /* Definition of a class, struct, union, or enum type is not allowed. */
@@ -16933,7 +16916,10 @@ which are diagnosed elsewhere).
 {
   a_boolean  err = FALSE;
 
-  if (!dps->auto_type_specifier_seen || dps->has_trailing_return_type) {
+  if (!dps->auto_type_specifier_seen || dps->has_trailing_return_type ||
+      (deduced_return_types_enabled &&
+       ((dps->type != NULL && dps->type->kind == (a_type_kind)tk_routine) ||
+        dps->is_trailing_return_type))) {
     /* Not a declaration that requires this checking. */
   } else if (dps->type != NULL && is_error_type(dps->type)) {
     /* Some error already occurred.  Additional diagnostics are unlikely to

@@ -5346,6 +5346,32 @@ specified as array types with template-dependent bounds, set *type1 and
 }  /* set_up_array_param_type_comparison */
 
 
+static a_boolean is_placeholder_deduction_match(a_type_ptr  type_1,
+                                                a_type_ptr  type_2)
+/*
+Return TRUE if type_1 is a tk_typeref entry for a deduced "decltype(auto)" or
+"auto" placeholder, and type_2 is a tk_template_param entry for the
+corresponding placeholder.
+*/
+{
+  a_boolean  result = FALSE;
+
+  if (type_1->kind == (a_type_kind)tk_typeref && is_template_param(type_2) &&
+      type_2->variant.template_param.kind ==
+                                     (a_template_param_type_kind)tptk_param &&
+      type_2->variant.template_param.extra_info->coordinates.depth ==
+                                                    AUTO_TYPE_NESTING_DEPTH) {
+    if (type_2->variant.template_param.extra_info->coordinates.position
+                                              == PLAIN_AUTO_TYPE_POS_NUMBER) {
+      result = type_1->variant.typeref.is_deduced_auto;
+    } else {
+      result = type_1->variant.typeref.is_deduced_decltype_auto;
+    }  /* if */
+  }  /* if */
+  return result;
+}  /* is_placeholder_deduction_match */
+
+
 a_boolean f_identical_types(a_type_ptr      type_1,
                             a_type_ptr      type_2,
                             an_itf_flag_set flags)
@@ -5385,7 +5411,20 @@ check_typerefs:
       /* identical = FALSE;  -- Already set. */
       goto done;
     }  /* if */
-    if ((flags & ITF_CHECKING_DEDUCTION_RESULT) &&
+    if ((flags & ITF_CHECK_DEDUCED_PLACEHOLDER_MATCH) != 0 &&
+        (is_placeholder_deduction_match(type_1, type_2) ||
+         is_placeholder_deduction_match(type_2, type_1))) {
+      /* If we are checking the top-level return type of a specialization
+         and either type is a placeholder type ("auto" or "decltype(auto)"),
+         then a corresponding tk_typeref entry is always considered a match.
+         For example:
+             template<typename T> auto f(T t) { return t; }  // 
+             extern template auto f(int);  // "Identical" in this context.
+         Note that the tk_typeref entry cannot appear under another
+         tk_typeref entry in such cases. */
+      identical = TRUE;
+      goto done;
+    } else if ((flags & ITF_CHECKING_DEDUCTION_RESULT) &&
         adjust_comparison_types_for_decltype(&type_1, &type_2)) {
       /* When checking a deduction result, we have to allow some slight
          differences around a typeref for a decltype.  The decltype might
@@ -5566,9 +5605,10 @@ check_typerefs:
         break;
       case tk_routine:
         {
-          a_boolean	this_class_matches = FALSE;
-          a_type_ptr	this1;
-          a_type_ptr	this2;
+          a_boolean	   this_class_matches = FALSE;
+          a_type_ptr	   this1;
+          a_type_ptr	   this2;
+          an_itf_flag_set  rt_flags = flags;
           rtsp1 = type_1->variant.routine.extra_info;
           rtsp2 = type_2->variant.routine.extra_info;
           this1 = rtsp1->this_class;
@@ -5599,10 +5639,14 @@ check_typerefs:
           /* For functions, the return types must be identical, the
              parameter lists must be identical, and the implicit "this"
              parameter type (if any) must be identical. */
+          if (deduced_return_types_enabled &&
+              (flags & ITF_CHECKING_DEDUCTION_RESULT) != 0) {
+            rt_flags |= ITF_CHECK_DEDUCED_PLACEHOLDER_MATCH;
+          }  /* if */
           if (this_class_matches &&
               f_identical_types(type_1->variant.routine.return_type,
                                 type_2->variant.routine.return_type,
-                                flags) &&
+                                rt_flags) &&
               rtsp1->prototyped == rtsp2->prototyped &&
               rtsp1->has_ellipsis == rtsp2->has_ellipsis &&
               routine_linkages_are_identical(
@@ -6110,7 +6154,21 @@ check_typerefs:
       /* Except for potential qualifier mismatches, typeref entries can
          usually be skipped, but some care must be taken with decltype/typeof
          entries. */
-      if ((flags & TCF_CHECKING_DEDUCTION_RESULT) &&
+      if ((flags & TCF_CHECK_DEDUCED_PLACEHOLDER_MATCH) != 0 &&
+          (is_placeholder_deduction_match(type_1, type_2) ||
+           is_placeholder_deduction_match(type_2, type_1))) {
+        /* If we are checking the top-level return type of a redeclaration
+           and either type is a placeholder type ("auto" or "decltype(auto)"),
+           then a corresponding tk_typeref entry is always considered a match.
+           For example:
+               auto f() { return 1; }  // Deduces an "int" return type.
+               auto f();  // "auto" is compatible with the deduced "int",
+                          // which will have a special tk_typeref marker.
+           Note that the tk_typeref entry cannot appear under another
+           tk_typeref entry in such cases. */
+        compat = TRUE;
+        goto done;
+      } else if ((flags & TCF_CHECKING_DEDUCTION_RESULT) &&
           adjust_comparison_types_for_decltype(&type_1, &type_2)) {
         /* When checking a deduction result, we have to allow some slight
            differences around a typeref for a decltype.  The decltype might
@@ -6118,11 +6176,12 @@ check_typerefs:
            other, and therefore have an extra "reference to" on it.
            Go back and check the cv-qualifiers again after the adjustment. */
         goto check_typerefs;
-      } else if ((flags & TCF_EXACT_DECLTYPE_EXPR_MATCH_REQUIRED) &&
-                 distinct_dependent_decltypes(type_1, type_2, ITF_NO_FLAGS)) {
-        /* There's a difference due to a dependent decltype expression, and
-           we've been asked to check those. */
-        goto done;
+      } else if ((flags & TCF_EXACT_DECLTYPE_EXPR_MATCH_REQUIRED)) {
+        if (distinct_dependent_decltypes(type_1, type_2, ITF_NO_FLAGS)) {
+          /* There's a difference due to a dependent decltype expression, and
+             we've been asked to check those. */
+          goto done;
+        }  /* if */
       }  /* if */
       type_1 = skip_typerefs(type_1);
       type_2 = skip_typerefs(type_2);
@@ -6339,6 +6398,9 @@ check_typerefs:
               rt_flags = flags | TCF_IGNORE_TYPE_QUALIFIERS;
             } else {
               rt_flags = flags;
+            }  /* if */
+            if (deduced_return_types_enabled) {
+              rt_flags |= TCF_CHECK_DEDUCED_PLACEHOLDER_MATCH;
             }  /* if */
             if (f_types_are_compatible_full(
                                           type_1->variant.routine.return_type,
@@ -10872,6 +10934,15 @@ calling disentangle_default_args).
     /* If the types are identical (the most common case), the composite type
        is the same thing. */
     comp_type = type_1;
+  } else if (deduced_return_types_enabled &&
+             is_placeholder_deduction_match(type_1, type_2)) {
+    /* A placeholder type (type_2) and its deduced counterpart (type_1): The
+       composite is the deduced version. */
+    comp_type = type_1;
+  } else if (deduced_return_types_enabled &&
+             is_placeholder_deduction_match(type_2, type_1)) {
+    /* Same as the previous situation, but with reversed types. */
+    comp_type = type_2;
   } else {
     /* Remove extra typerefs and type qualifiers. */
     base_type_1 = skip_typerefs(type_1);

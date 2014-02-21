@@ -2954,8 +2954,14 @@ default mode (e.g., exception handling).
   raw_string_literals_enabled = value;
   std_thread_local_storage_specifier_enabled = value;
   std_override_modifiers_enabled = value;
-  if (cpp14_mode && auto_type_specifier_enabled) {
-    decltype_auto_enabled = TRUE;
+  if (cpp14_mode) {
+    if (auto_type_specifier_enabled) {
+      decltype_auto_enabled = TRUE;
+    }  /* if */
+    if (lambdas_enabled) {
+      multiple_returns_allowed_in_implicit_return_type_lambda = TRUE;
+    }  /* if */
+    deduced_return_types_enabled = TRUE;
   }  /* if */
 }  /* check_and_set_cpp11_mode_options */
 

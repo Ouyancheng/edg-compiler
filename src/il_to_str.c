@@ -1883,6 +1883,10 @@ by octl.
           octl->output_str(")", octl);
         } /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
+      } else if (type->variant.typeref.is_deduced_decltype_auto) {
+        octl->output_str("decltype(auto)", octl);
+      } else if (type->variant.typeref.is_deduced_auto) {
+        octl->output_str("auto", octl);
       } else {
         check_assertion_str(typeref_is_typedef(type),
                             "form_type_specifier: typeref is not typedef");
@@ -2085,8 +2089,7 @@ available or not portable).
 
   if (typeref_is_type_operator(type)) {
     if (octl->c_generating_back_end) {
-      /* Never render a decltype, __underlying_type, or typeof in the
-         C-generating back end. */
+      /* Never render a type operator in the C-generating back end. */
       render = FALSE;
     } else if (type->variant.typeref.is_underlying_type ||
                type->variant.typeref.is_bases ||
@@ -2114,6 +2117,12 @@ available or not portable).
         render = TRUE;
       }  /* if */
     }  /* if */
+  } else if (!octl->c_generating_back_end &&
+             (type->variant.typeref.is_deduced_decltype_auto ||
+              type->variant.typeref.is_deduced_auto)) {
+    /* "auto" and "decltype(auto)" should only appear in declarative
+       contexts, and should be rendered there. */
+    render = TRUE;
   }  /* if */
   return render;
 }  /* is_type_operator_to_be_rendered */

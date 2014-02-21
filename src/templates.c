@@ -9131,10 +9131,14 @@ points to the template parameter list.
                              (a_template_param_type_kind)tptk_param) {
         if (depth_of_template !=
             templ_type->variant.template_param.extra_info->coordinates.depth) {
-          /* Template parameters from a different nesting depth.  This should
-             only happen if templ_type is a type from a prototype instantiation
-             that includes a template parameter type in the parent class. */
-          match = identical_types(type, templ_type);
+          /* Template parameters from a different nesting depth.  This can
+             happen for "auto"/"decltype(auto)", which have a dedicated depth
+             and are always treated as a match at this point.  Otherwise, this
+             should only happen if templ_type is a type from a prototype
+             instantiation that includes a template parameter type in the
+             parent class. */
+          match = is_auto_type(templ_type) ||
+                  identical_types(type, templ_type);
         } else {
           a_template_param_coordinate_ptr	coordinates;
           /* This is a template parameter from the original source program
@@ -12593,6 +12597,9 @@ information.
   state->is_template_declaration = TRUE;
   state->is_template_rescan = !is_initial_decl;
   state->prefix_attributes = scan_attributes(al_prefix);
+  if (deduced_return_types_enabled) {
+    state->auto_type_allowed = TRUE;
+  }  /* if */
   if (gpp_mode) {
     dsi_flags |= DSI_GNU_ATTRIBUTES_ALLOWED;
   }  /* if */
@@ -12781,10 +12788,12 @@ where the class declared an incomplete array type.
 }  /* rescan_static_data_member_declaration */
 
 
-void remove_unneeded_static_data_member_instantiations(void)
+void remove_unneeded_instantiations(void)
 /*
 Static data members are sometimes instantiated simply so that their
-size can be known.  Remove any such instantiations from the IL.
+size can be known.  Similarly, routines with deduced return types may
+be instantiated simply to know their return type.  Remove any such
+instantiations from the IL.
 */
 {
 #if GENERATE_SOURCE_SEQUENCE_LISTS && \
@@ -12799,15 +12808,19 @@ size can be known.  Remove any such instantiations from the IL.
      specialization of S<int>, and it must therefore also render a definition
      of A<int>::i to make the sizeof expression valid. */
 #else /* !(GENERATE_SOURCE_SEQUENCE_LISTS && NONCLASS_TEMPLATE_INST...) */
-  a_master_instance_ptr	mip;
+  a_template_instance_ptr	tip;
 
-  for (mip = master_instantiations_list; mip != NULL; mip = mip->next) {
+  for (tip = instantiations_required; tip != NULL; tip = tip->next) {
     a_symbol_ptr		instance_sym;
-    instance_sym = mip->instance->instance_sym;
-    /* Only consider static data members. */
-    if (instance_sym->kind == (a_symbol_kind)sk_static_data_member) {
-      if (mip->already_instantiated && mip->instance_required_count == 0 &&
-          !mip->automatically_instantiated) {
+    a_master_instance_ptr	mip;
+
+    instance_sym = tip->instance_sym;
+    mip = master_instance_of(tip);
+    if (mip->already_instantiated &&
+        (mip->instance_required_count == 0 ||
+         tip->explicit_do_not_instantiate) &&
+        !mip->automatically_instantiated) {
+      if (symbol_is(instance_sym, sk_static_data_member)) {
         /* The static data member has been instantiated but no instantiation
            is needed. */
         a_variable_ptr	vp = instance_sym->variant.static_data_member.variable;
@@ -12815,11 +12828,21 @@ size can be known.  Remove any such instantiations from the IL.
         if (vp->storage_class == (a_storage_class)sc_unspecified) {
           clear_variable_definition(vp);
 	}  /* if */
+      } else {
+        a_routine_ptr	rp;
+        a_scope_ptr	rp_scope;
+        /* A routine was instantiated but no instantiation is needed.  This
+           typically occurs for routines with deduced return types. */
+        check_assertion(symbol_is(instance_sym, sk_routine) ||
+                        symbol_is(instance_sym, sk_member_function));
+        rp = instance_sym->variant.routine.ptr;
+        rp_scope = scope_for_routine(rp);
+        clear_function_body(rp_scope);
       }  /* if */
     }  /* if */
   }  /* for */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS && NONCLASS_TEMPLATE_INST... */
-}  /* remove_unneeded_static_data_member_instantiations */
+}  /* remove_unneeded_instantiations */
 
 
 static a_type_ptr scan_member_declaration(
@@ -13306,6 +13329,7 @@ in_class_specialization is TRUE for a Microsoft mode in-class specialization.
     rp->variant = templ_rout->variant;
     rp->is_deleted = templ_rout->is_deleted;
     rp->is_defaulted = templ_rout->is_defaulted;
+    rp->has_deducible_return_type = templ_rout->has_deducible_return_type;
     if (templ_rout->is_declared_constexpr) {
       rp->is_declared_constexpr = TRUE;
       rp->is_constexpr = TRUE;
@@ -13573,18 +13597,18 @@ a_boolean is_match_for_function_template(
 			a_symbol_ptr		templ_sym,
 			a_type_ptr		curr_type,
 			a_template_arg_ptr	*templ_arg_list,
-			a_symbol_ptr		*instance_sym,
+			a_symbol_ptr		*p_instance_sym,
 			a_template_param_ptr	templ_param_list,
 			a_template_arg_ptr	explicit_arg_list,
 			a_boolean		is_decl_context)
 /*
-Search for a template function based on the function template represented
-by templ_sym and the type pointed to by curr_type.  If such a template
-function exists, return its symbol.  Otherwise, try to generate a template
-arg list to serve as the basis for creating one.  If either a symbol can
-be found or a template arg list can be created, return TRUE; otherwise,
-return FALSE.  explicit_arg_list is non-NULL if an explicitly specified
-template argument list was provided.
+Search for a template function based on the function template represented by
+templ_sym and the type pointed to by curr_type.  If such a template function
+exists, return its symbol through *instance_sym.  Otherwise, try to generate
+a template arg list to serve as the basis for creating one.  If either a
+symbol can be found or a template arg list can be created, return TRUE;
+otherwise, return FALSE.  explicit_arg_list is non-NULL if an explicitly
+specified template argument list was provided.
 
 is_decl_context is TRUE if this routine is called to match a declaration with
 a template instance.  In such cases it is not known whether or not the
@@ -13600,6 +13624,7 @@ matching process.
   a_routine_type_supplement_ptr	    templ_rtsp;
   an_mtt_flag_set                   mtt_flags;
   a_boolean                         rescan_scope_pushed = FALSE;
+  a_symbol_ptr                      instance_sym;
 
   db_enter(3, "is_match_for_function_template");
   curr_type = skip_typerefs(curr_type);
@@ -13609,7 +13634,7 @@ matching process.
     internal_error("is_match_for_function_template: expected routine type");
   }  /* if */
 #endif /* CHECKING */
-  *instance_sym = NULL;
+  instance_sym = NULL;
   /* sym is the symbol for a template function to be returned.  Returning NULL
      means no template function could be found or created. */
   if (templ_sym->kind == (a_symbol_kind)sk_member_function) {
@@ -13683,6 +13708,22 @@ matching process.
                                 /*is_partial_order_check=*/FALSE);
     match = FALSE;
     if (new_type != NULL) {
+      a_routine_ptr  proto_rp = tssp->variant.function.routine;
+      if (proto_rp->has_deducible_return_type) {
+        /* For functions with deducible return types, ensure that the type
+           has been deduced before comparing the routine type. */
+        a_routine_ptr  instance_rp;
+        instance_sym = find_template_function(templ_sym, templ_arg_list,
+                                              explicit_arg_list != NULL,
+                                              &error_position);
+        instance_rp = instance_sym->variant.routine.ptr;
+        if (instance_rp->has_deducible_return_type) {
+          finalize_deduced_return_type(instance_rp, &error_position);
+        } else {
+          expect_error();
+        }  /* if */
+        new_type = instance_rp->type;
+      }  /* if */
       if (is_decl_context) {
         /* In declaration contexts we do not yet know whether the type
            has a this class type.  Consequently, a NULL this class
@@ -13704,7 +13745,7 @@ matching process.
       }  /* if */
     }  /* if */
   }  /* if */
-  if (match) {
+  if (match && instance_sym == NULL) {
     /* Look for a previously created instance with a matching set of template
        arguments. */
     a_template_instance_ptr           tip;
@@ -13727,10 +13768,12 @@ matching process.
                                    eta_options)) {
         /* The template argument lists match.  Return the symbol for this
            template. */
-        *instance_sym = sym;
+        instance_sym = sym;
         break;
       }  /* if */
     }  /* for */
+  } else if (!match) {
+    instance_sym = NULL;
   }  /* if */
 done:
   /* If we pushed an instantiation rescan scope above, pop it now. */
@@ -13741,6 +13784,7 @@ done:
     free_template_arg_list(*templ_arg_list);
     *templ_arg_list = NULL;
   }  /* if */
+  *p_instance_sym = instance_sym;
   db_exit();
   return match;
 }  /* is_match_for_function_template */
@@ -27405,6 +27449,61 @@ incremented.
 }  /* db_instance_count */
 
 #endif /* DEBUG */
+
+
+static void force_instantiation_to_deduce_return_type(a_routine_ptr	rp)
+/*
+rp is a routine declared with a return type of "auto" indicating that the
+return type should be deduced from the return statement(s) in the function
+body.  If possible, instantiate the routine.
+*/
+{
+  a_symbol_ptr			sym;
+  a_template_instance_ptr	tip;
+  a_master_instance_ptr		mip;
+
+  sym = symbol_for(rp);
+  check_assertion(sym != NULL);
+  check_assertion(is_simple_function_symbol(sym));
+  tip = sym->variant.routine.instance_ptr;
+  mip = master_instance_of(tip);
+  check_assertion(mip != NULL);
+  /* If the entity is not already instantiated and can be instantiated,
+     generate the instantiation now.  Note that the instantiation required
+     flag is not set.  It will be set if and when the routine is
+     referenced. */
+  if (!mip->already_instantiated &&
+      entity_can_be_instantiated(tip, /*implicit_inclusion_okay=*/FALSE)) {
+    instantiate_entity(tip);
+  }  /* if */
+}  /* force_instantiation_to_deduce_return_type */
+
+
+void finalize_deduced_return_type(a_routine_ptr      rp,
+                                  a_source_position  *diag_pos)
+/*
+The given routine has a deducible return type.  Ensure that the return type has
+indeed been deduced (which may require instantiation).  If no definition is
+available, issue an error at the give position.
+*/
+{
+  check_assertion(rp->has_deducible_return_type);
+  if (!rp->has_deduced_return_type) {
+    if (rp->is_template_function && !routine_has_been_defined(rp)) {
+      force_instantiation_to_deduce_return_type(rp);
+    }  /* if */
+    if (!rp->has_deduced_return_type) {
+      check_assertion(!routine_has_been_defined(rp) &&
+                      rp->type->kind == (a_type_kind)tk_routine);
+      pos_sy_error(ec_use_of_undefined_function_with_deduced_return_type,
+                   diag_pos, symbol_for(rp));
+      rp->type->variant.routine.return_type = error_type();
+      rp->has_deducible_return_type = FALSE;
+      rp->has_deduced_return_type = FALSE;
+    }  /* if */
+  }  /* if */
+}  /* finalize_deduced_return_type */
+
 
 static void update_instantiation_required_flag(
 			a_template_instance_ptr			tip,

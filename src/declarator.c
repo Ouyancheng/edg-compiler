@@ -1926,6 +1926,61 @@ the parameter symbols in that scope to is_invisible.
 }  /* make_param_syms_invisible */
 
 
+static void check_type_with_auto_specifier(a_decl_parse_state  *state)
+/*
+*state describes a declaration parsing state involving a complete declarator
+that builds a type on top of an "auto" or "decltype(auto)" type specifier.
+Check that the resulting type is not an array type, and, if C++14-style
+deduced return types are not enabled, that it is not a function type without a
+trailing return type.  Also, if this is a secondary declarator, diagnose cases
+such as
+    auto f()->int, x = 0;
+where "auto" is used both to deduce a type from an initializer and to announce
+a trailing return type.
+*/
+{
+  a_boolean  err = FALSE;
+
+  check_assertion(state->auto_type_specifier_seen);
+  if (is_array_type(state->declared_type)) {
+    pos_error(ec_auto_type_in_array_type, &state->auto_pos);
+    err = TRUE;
+  } else if (!state->has_trailing_return_type &&
+             is_function_type(state->declared_type)) {
+    if (deduced_return_types_enabled) {
+      /* Something like "auto g() { return 0; }", which is permitted in
+         C++14. */
+      state->has_deducible_return_type = TRUE;
+    } else {
+      if (is_error_type(state->specifiers_type)) {
+        /* A diagnostic has been issued already. */
+        expect_error();
+      } else {
+        pos_error(trailing_return_types_enabled ?
+                    ec_missing_trailing_return_type :
+                    ec_auto_type_in_function_type,
+                  &state->auto_pos);
+      }  /* if */
+      err = TRUE;
+    }  /* if */
+  }  /* if */
+  if (err) {
+    *state->auto_type = *error_type();
+    state->auto_type = NULL;
+    state->auto_type_specifier_seen = FALSE;
+  } else if (state->secondary_declarator) {
+    /* Check that "auto" is not used both to announce a trailing return type
+       and as a deducible type specifier. */
+    if ((state->deduced_auto_type == NULL) !=
+                                            state->has_trailing_return_type) {
+      pos_diagnostic(strict_ansi_mode ? strict_ansi_discretionary_severity
+                                      : es_warning,
+                     ec_auto_used_two_ways, &state->auto_pos);
+    }  /* if */
+  }  /* if */
+}  /* check_type_with_auto_specifier */
+
+
 static void scan_trailing_return_type(a_decl_parse_state  *dps,
                                       a_func_info_block   *func_info,
                                       a_type_ptr          rout_type)
@@ -1966,6 +2021,9 @@ lambda declarator.
   init_decl_parse_state(&trt_dps);
   trt_dps.is_trailing_return_type = TRUE;
   trt_dps.trailing_return_type_allowed = trailing_return_types_enabled;
+  if (deduced_return_types_enabled) {
+    trt_dps.auto_type_allowed = TRUE;
+  }  /* if */
   if (parameters_visible_late) {
   /* In some GNU C++ modes, parameter symbols are marked invisible until a
      definition (if any) is seen.  The corresponding GCC compilers do not
@@ -1986,6 +2044,10 @@ lambda declarator.
     dps->has_trailing_return_type = TRUE;
     dps->specifiers_type = dps->declared_type = dps->type = trt_dps.type;
     rout_type->variant.routine.extra_info->trailing_return_type = TRUE;
+    if (trt_dps.auto_type_specifier_seen) {
+      check_type_with_auto_specifier(&trt_dps);
+      dps->has_deducible_return_type = TRUE;
+    }  /* if */
   }  /* if */
 }  /* scan_trailing_return_type */
 
@@ -3491,7 +3553,10 @@ the left parenthesis introducing the declarator-like construct.
     }  /* if */
   } else if (!is_error_type(func_type)) {
     check_assertion(is_function_type(func_type));
-    func_type->variant.routine.return_type = unknown_type();
+    func_type->variant.routine.return_type =
+                                   make_auto_type(&null_source_position,
+                                                  /*is_decltype_auto=*/FALSE);
+    dps->has_deducible_return_type = TRUE;
   }  /* if */
   dps->type = func_type;
 }  /* scan_lambda_declarator */
@@ -7142,52 +7207,6 @@ function_lparen:
 }  /* r_declarator */
 
 
-static void check_type_with_auto_specifier(a_decl_parse_state  *state)
-/*
-*state describes a declaration parsing state involving a complete declarator
-that builds a type on top of an "auto" type specifier.  Check that the
-resulting type is neither an array type nor a function type without a trailing
-return type.  Also, if this is a secondary declarator, diagnose cases such as
-    auto f()->int, x = 0;
-where "auto" is used both to deduce a type from an initializer and to
-announce a trailing return type.
-*/
-{
-  a_boolean  err = FALSE;
-
-  check_assertion(state->auto_type_specifier_seen);
-  if (is_array_type(state->declared_type)) {
-    pos_error(ec_auto_type_in_array_type, &state->auto_pos);
-    err = TRUE;
-  } else if (!state->has_trailing_return_type &&
-             is_function_type(state->declared_type)) {
-    if (is_error_type(state->specifiers_type)) {
-      /* A diagnostic has been issued already. */
-      expect_error();
-    } else {
-      pos_error(trailing_return_types_enabled ? ec_missing_trailing_return_type
-                                              : ec_auto_type_in_function_type,
-                &state->auto_pos);
-    }  /* if */
-    err = TRUE;
-  }  /* if */
-  if (err) {
-    *state->auto_type = *error_type();
-    state->auto_type = NULL;
-    state->auto_type_specifier_seen = FALSE;
-  } else if (state->secondary_declarator) {
-    /* Check that "auto" is not used both to announce a trailing return type
-       and as a deducible type specifier. */
-    if ((state->deduced_auto_type == NULL) !=
-                                            state->has_trailing_return_type) {
-      pos_diagnostic(strict_ansi_mode ? strict_ansi_discretionary_severity
-                                      : es_warning,
-                     ec_auto_used_two_ways, &state->auto_pos);
-    }  /* if */
-  }  /* if */
-}  /* check_type_with_auto_specifier */
-
-
 static void use_nonreal_type_for_nested_prototype_type(
 						a_decl_parse_state	*state)
 /*
@@ -7322,6 +7341,12 @@ the parameters.
   check_pending_qualifiers_used(state);
   if (state->auto_type_specifier_seen) {
     check_type_with_auto_specifier(state);
+  } else if (locator != NULL && locator->is_conversion_name) {
+    /* Check if the conversion type involves "auto" or "decltype(auto)", and
+       if so update *state to reflect this. */
+    if (deduced_return_types_enabled && is_auto_type(bottom_derived_type)) {
+      state->has_deducible_return_type = TRUE;
+    }  /* if */
   }  /* if */
   /* r_declarator will have set error_position to the position of the
      declarator-id if this is a real declarator and the first token of the

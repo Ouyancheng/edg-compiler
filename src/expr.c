@@ -303,6 +303,7 @@ static a_boolean deduce_placeholder_type(
                                       a_boolean         is_decltype_auto,
                                       a_type_ptr        orig_type,
                                       a_type_ptr        auto_type,
+                                      a_boolean         keep_placeholder,
                                       an_operand        *initializer_operand,
                                       an_arg_list_elem  *initializer_alep,
                                       a_source_position *source_pos,
@@ -321,19 +322,20 @@ specify the initializer in init-component form; if it's non-NULL it is used
 instead of initializer_operand.  source_pos is the source position of the
 declaration.  If the deduction succeeds, *type_after_deduction is set to the
 deduced version of orig_type, *deduced_auto_type is set to the type deduced
-for "auto" itself, and TRUE is returned.  If an error is detected, FALSE is
-returned (but no diagnostic is issued).  If the deduction was not attempted
-because the types involved are still dependent, *still_dependent is returned
-TRUE and FALSE is returned.
+for "auto" itself, and TRUE is returned. In that case, if keep_placeholder is
+TRUE, a tk_typeref is added on top of *deduced_auto_type.    If an error is
+detected, FALSE is returned (but no diagnostic is issued).  If the deduction
+was not attempted because the types involved are still dependent,
+*still_dependent is returned TRUE and FALSE is returned.
 */
 {
   a_boolean  result;
 
   if (!is_decltype_auto) {
-    result = deduce_auto_type(orig_type, auto_type, initializer_operand,
-                              initializer_alep, source_pos,
-                              type_after_deduction, deduced_auto_type,
-                              still_dependent);
+    result = deduce_auto_type(orig_type, auto_type, keep_placeholder,
+                              initializer_operand, initializer_alep,
+                              source_pos, type_after_deduction,
+                              deduced_auto_type, still_dependent);
   } else {
     /* decltype(auto) succeeds unless the initializer is a braced initializer
        list. */
@@ -351,9 +353,16 @@ TRUE and FALSE is returned.
       } else {
         p_operand = initializer_operand;
       }  /* if */
-      *type_after_deduction = decltype_from_operand(p_operand,
-                                                    &no_parens_matters);
-      *deduced_auto_type = *type_after_deduction;
+      *deduced_auto_type = decltype_from_operand(p_operand,
+                                                 &no_parens_matters);
+      if (keep_placeholder) {
+        a_type_ptr  type = alloc_type((a_type_kind)tk_typeref);
+        type->variant.typeref.type = *deduced_auto_type;
+        type->variant.typeref.is_deduced_auto = TRUE;
+        *type_after_deduction = type;
+      } else {
+        *type_after_deduction = *deduced_auto_type;
+      }  /* if */
       if (is_template_dependent_type(*type_after_deduction)) {
         *still_dependent = TRUE;
         result = FALSE;
@@ -448,6 +457,7 @@ swallowed); otherwise, it's "="-form or "{...}" form.
   if (!deduce_placeholder_type(dps->decltype_auto_specifier_seen,
                                undeduced_type,
                                dps->auto_type,
+                               /*keep_placeholder=*/FALSE,
                                (an_operand *)NULL,
                                icp,
                                &dps->declarator_pos,
@@ -16469,9 +16479,9 @@ expression, and return the result in *result (or an error indication in
       }  /* if */
       /* Deduce the type. */
       if (deduce_auto_type(new_type, /*auto_type=*/(a_type_ptr)NULL,
-                           &auto_operand, auto_alep, &type_position,
-                           &deduced_new_type, &deduced_auto_type,
-                           &still_dependent)) {
+                           /*keep_placeholder=*/FALSE, &auto_operand,
+                           auto_alep, &type_position, &deduced_new_type,
+                           &deduced_auto_type, &still_dependent)) {
         /* Deduction succeeded. */
         new_type = deduced_new_type;
         new_type_involves_auto = FALSE;
@@ -32600,6 +32610,7 @@ type of element_operand and sets the variable type to the deduced type.
        deduction. */
     if (deduce_placeholder_type(iterator->declared_with_decltype_auto,
                                 iterator->type, /*auto_type=*/(a_type_ptr)NULL,
+                                /*keep_placeholder=*/FALSE,
                                 element_operand, (an_arg_list_elem_ptr)NULL,
                                 &iterator->source_corresp.decl_position,
                                 &deduced_type, &deduced_auto_type,
@@ -34880,9 +34891,10 @@ Sets *expr_position to the beginning position of the range expression.
     auto_type = make_auto_type(init_component_pos(alep),
                                /*is_decltype_auto=*/FALSE);
     /* Deduce the underlying type of the list. */
-    if (!deduce_auto_type(auto_type, auto_type, (an_operand *)NULL, alep,
-                          init_component_pos(alep), &deduced_type,
-                          &deduced_auto_type, &still_dependent) &&
+    if (!deduce_auto_type(
+          auto_type, auto_type, /*keep_placeholder=*/FALSE, (an_operand *)NULL,
+          alep, init_component_pos(alep), &deduced_type, &deduced_auto_type,
+          &still_dependent) &&
         !still_dependent) {
       /* Deduction failed. */
       expr_pos_error(rbflp->iterator->declared_with_decltype_auto ?
@@ -35294,27 +35306,24 @@ a warning if the value returned is the address of a local variable.
 }  /* check_for_return_of_address_of_local_variable */
 
 
-a_type_ptr set_implicit_lambda_return_type(a_type_ptr        return_type,
-                                           a_source_position *err_pos)
+static void set_deduced_return_type(a_type_ptr        return_type,
+                                    a_source_position *err_pos)
 /*
-We're currently in a lambda with an implicit return type, and we've
-encountered a return statement which implies the given return_type
-(the type is void for a return without an expression).  Set the lambda
-return type, issuing an error if this return type conflicts with a
-previously-established type.  Return the lambda return type,
-possibly adjusted to some other type (e.g., an error type).
+We're currently in a function with a deduced return type (a C++11 lambda body
+or a C++14 function with an auto/decltype(auto) return type), and we've
+encountered a return statement which implies the given return_type (the type
+is void for a return without an expression).  Set the lambda return type,
+issuing an error if this return type conflicts with a previously-established
+type.
 */
 {
-  a_lambda_ptr  lambda = get_current_lambda();
-  a_routine_ptr rout;
-  a_type_ptr    rout_type, curr_return_type;
+  a_routine_ptr  rout = current_routine_entry();
+  a_type_ptr     rout_type, curr_return_type;
 
-  check_assertion(lambda != NULL && !lambda->explicit_return_type);
-  rout = lambda->lambda_routine;
   rout_type = skip_typerefs(rout->type);
   check_assertion(rout_type->kind == (a_type_kind)tk_routine);
   curr_return_type = rout_type->variant.routine.return_type;
-  if (is_unknown_type(curr_return_type)) {
+  if (!rout->has_deduced_return_type) {
     /* The return type has not been established yet, so set it. */
     if (check_return_type(return_type, (a_decl_parse_state*)NULL, err_pos)) {
       /* Type is okay. */
@@ -35323,18 +35332,21 @@ possibly adjusted to some other type (e.g., an error type).
     } else {
       return_type = error_type();
     }  /* if */
+    scope_stack[depth_innermost_function_scope].orig_return_type =
+                                                             curr_return_type;
+    rout->has_deduced_return_type = TRUE;
   } else if (!identical_types(return_type, curr_return_type)) {
     /* Multiple returns with different types.  That might be a problem. */
     if (is_error_type(return_type) || is_error_type(curr_return_type)) {
       /* At least one of the types is an error type, so consider them
-         compatible, and the return type of the lambda is an error type. */
+         compatible, and the return type is an error type. */
       return_type = error_type();
     } else if (is_template_dependent_context() &&
                (is_template_dependent_type(return_type) ||
                 is_template_dependent_type(curr_return_type))) {
       /* At least one of the types is template-dependent, so assume they are
-         compatible.  The return type becomes the non-dependent type if
-         we have one, otherwise an unknown dependent type. */
+         compatible.  The return type becomes the non-dependent type if we
+         have one, otherwise an unknown dependent type. */
       if (!is_template_dependent_type(curr_return_type)) {
         return_type = curr_return_type;
       } else if (!is_template_dependent_type(return_type)) {
@@ -35344,34 +35356,117 @@ possibly adjusted to some other type (e.g., an error type).
       }  /* if */
     } else {
       /* Two returns have different types. */
-      expr_pos_error(ec_lambda_returns_with_diff_types, err_pos);
+      if (expr_error_should_be_issued()) {
+        pos_ty2_error(ec_deduced_return_type_conflict, err_pos, return_type,
+                      curr_return_type);
+      }  /* if */
       return_type = error_type();
     }  /* if */
   }  /* if */
   /* Put the return type back in case it was changed above. */
   rout_type->variant.routine.return_type = return_type;
-  return return_type;
-}  /* set_implicit_lambda_return_type */
+}  /* set_deduced_return_type */
 
 
-static void check_and_adjust_lambda_return_type_if_needed(
+void deduce_return_type_from_void_operand(a_routine_ptr      rp,
+                                          a_boolean          keep_placeholder,
+                                          a_source_position  *diag_pos)
+/*
+Deduce the deducible return type of rp as if
+	return (void)0;
+had been encountered.  (This is the case, for example, when a function with a
+deducible return type has no return statement.)  If keep_placeholder is TRUE,
+place a tk_typeref on top of the deduced type indicating that it is the result
+of a placeholder deduction.  Issue diagnostics at the given position.
+*/
+{
+  a_type_ptr  declared_return_type, deduced_return_type;
+
+  check_assertion(depth_innermost_function_scope != NO_SCOPE_DEPTH &&
+                  rp->type->kind == (a_type_kind)tk_routine &&
+                  rp->has_deducible_return_type);
+  if (rp->has_deduced_return_type) {
+    declared_return_type = 
+                 scope_stack[depth_innermost_function_scope].orig_return_type;
+  } else {
+    declared_return_type = rp->type->variant.routine.return_type;
+  }  /* if */
+  if (is_auto_type(skip_typerefs(declared_return_type))) {
+    deduced_return_type = void_type();
+  } else {
+    pos_error(ec_cannot_deduce_auto_type, diag_pos);
+    deduced_return_type = error_type();
+  }  /* if */
+  if (keep_placeholder) {
+    a_type_ptr  type = alloc_type((a_type_kind)tk_typeref);
+    type->variant.typeref.type = deduced_return_type;
+    type->variant.typeref.is_deduced_auto = TRUE;
+    deduced_return_type = type;
+  }  /* if */
+  set_deduced_return_type(deduced_return_type, diag_pos);
+}  /* deduce_return_type_from_void_operand */
+
+
+static void check_and_adjust_deduced_return_type_if_needed(
+                                                 a_routine_ptr   curr_routine,
                                                  an_operand_ptr  return_op,
                                                  a_type_ptr      *return_type)
 /*
-return_op represents the expression in the return statement of a lambda
-whose return type is to be set from such an expression, and *return_type
-is the type currently thought of as the lambda's return type (it's a
-copy of the return type from the routine).  Update it and the routine
+return_op represents the expression in the return statement of the current
+function (curr_routine) whose return type is to be set from such an expression.
+*return_type is the type currently thought of as that function's return type
+(it's a copy of the return type from the routine).  Update it and the routine
 type to be the type of return_op.
 */
 {
+  a_type_ptr  rout_type, orig_type, auto_type, deduced_type, deduced_auto_type;
+  a_boolean   is_decltype_auto, still_dependent;
+  a_boolean   is_lambda = curr_routine->is_lambda_body;
+
+  check_assertion(curr_routine->has_deducible_return_type);
+  rout_type = skip_typerefs(curr_routine->type);
+  check_assertion(rout_type->kind == (a_type_kind)tk_routine);
   /* Make sure array-to-pointer and function-to-pointer decay are done before
      we use the type as the return type. */
   do_operand_transformations(return_op,
                              TOPT_SUPPRESS_LVALUE_TO_RVALUE_CONVERSION);
-  *return_type = set_implicit_lambda_return_type(prvalue_type(return_op->type),
-                                                 &return_op->position);
-}  /* check_and_adjust_lambda_return_type_if_needed */
+  if (!curr_routine->has_deduced_return_type) {
+    /* This is the first time we deduce the return type.  Record the original
+       in case we must perform the deduction again for another return statement
+       in this function. */
+    orig_type = rout_type->variant.routine.return_type;
+  } else {
+    orig_type = scope_stack[depth_innermost_function_scope].orig_return_type;
+    check_assertion(orig_type != NULL);
+  }  /* if */
+  auto_type = find_bottom_of_type(orig_type);
+  is_decltype_auto = is_auto_type(orig_type) &&
+                     orig_type->variant.template_param.extra_info
+                              ->coordinates.position ==
+                                                     DECLTYPE_AUTO_POS_NUMBER;
+  if (is_void_type(return_op->type)) {
+    deduce_return_type_from_void_operand(curr_routine,
+                                         /*keep_placeholder=*/!is_lambda,
+                                         &return_op->position);
+    *return_type = rout_type->variant.routine.return_type;
+  } else if (deduce_placeholder_type(is_decltype_auto, orig_type, auto_type,
+                                     /*keep_placeholder=*/!is_lambda,
+                                     return_op, /*initializer_alep=*/NULL,
+                                     &return_op->position, &deduced_type,
+                                     &deduced_auto_type, &still_dependent)) {
+    set_deduced_return_type(deduced_type, &return_op->position);
+    *return_type = rout_type->variant.routine.return_type;
+  } else if (still_dependent) {
+    /* The type is still dependent, so leave the return type as it is. */
+  } else {
+    /* Deduction failed. */
+    pos_error(is_decltype_auto ? ec_cannot_deduce_decltype_auto_type
+                               : ec_cannot_deduce_auto_type,
+              &return_op->position);
+    *return_type = error_type();
+    rout_type->variant.routine.return_type = *return_type;
+  }  /* if */
+}  /* check_and_adjust_deduced_return_type_if_needed */
 
 
 an_expr_node_ptr scan_return_expression(a_type_ptr         required_type,
@@ -35394,7 +35489,7 @@ required_type will be void if the expression should have void type
   an_expr_stack_entry *saved_expr_stack;
   an_expr_stack_entry expr_stack_entry;
   a_boolean           return_by_cctor_case = FALSE, void_return_case = FALSE;
-  a_boolean           lambda_implicit_return_case = FALSE;
+  a_boolean           deduced_return_type = FALSE;
   an_init_component_ptr
                       icp = NULL;
   an_init_state       init_state;
@@ -35413,26 +35508,22 @@ required_type will be void if the expression should have void type
     /* The current routine returns its value via a copy constructor. */
     return_by_cctor_case = TRUE;
     expr_stack->in_cctor_elision_initializer = TRUE;
-  } else if (in_lambda_body()) {
-    a_lambda_ptr lambda = get_current_lambda();
-    if (!lambda->explicit_return_type) {
-      /* This is a return in a lambda where the return type will be set
-         from the returned expression's type.  Suppress addition of
-         a destructor on any dynamic initialization until we know
-         whether it's going to be optimized away. */
+  } else if (curr_routine->has_deducible_return_type &&
+             !curr_routine->is_prototype_instantiation) {
+      /* The return type will be set from the returned expression's type.
+         Suppress addition of a destructor on any dynamic initialization until
+         we know whether it's going to be optimized away. */
+      deduced_return_type = TRUE;
       expr_stack->in_cctor_elision_initializer = TRUE;
-      lambda_implicit_return_case = TRUE;
-    }  /* if */
   }  /* if */
-  if (curr_token == tok_lbrace &&
-      (gpp_mode || list_init_enabled)) {
+  if (curr_token == tok_lbrace && (gpp_mode || list_init_enabled)) {
     /* A C++11 list initializer. */
     if (!list_init_enabled) {
       expr_pos_warning(ec_list_initializer_nonstandard_in_current_mode,
                        &pos_curr_token);
     }  /* if */
     icp = parse_braced_init_list(/*bundle=*/FALSE);
-    if (lambda_implicit_return_case) {
+    if (deduced_return_type) {
       /* A braced-init-list cannot be used for a lambda with an implicit
          return type, as it does not provide a type. */
       make_error_operand(&result);
@@ -35445,7 +35536,7 @@ required_type will be void if the expression should have void type
       arg_list_will_not_be_used_because_of_error(icp);
       free_init_component_list(icp);
       icp = NULL;
-      goto handle_implicit_lambda_return_type;
+      goto handle_deduced_return_type;
     }  /* if */
     expr_clear_init_state(&init_state);
     /* init_state.elements_are_full_expressions is not set to TRUE because
@@ -35469,10 +35560,11 @@ required_type will be void if the expression should have void type
   } else {
     /* Normal case: Scan the expression. */
     scan_expr(&result, PREC_LOWEST, EOPT_NO_OPTIONS);
-    if (lambda_implicit_return_case) {
+    if (deduced_return_type) {
       /* Set the lambda return type from the expression type. */
-handle_implicit_lambda_return_type:
-      check_and_adjust_lambda_return_type_if_needed(&result, &required_type);
+handle_deduced_return_type:
+      check_and_adjust_deduced_return_type_if_needed(curr_routine, &result,
+                                                     &required_type);
       if (routine_type->variant.routine.extra_info->value_returned_by_cctor) {
         /* The routine is now known to return its value via copy
            constructor. */

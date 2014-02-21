@@ -3995,7 +3995,7 @@ it is always NULL.
     arg_type = do_implicit_type_transformations(arg_type, arg_operand);
     /* The argument will be passed by copying it, so its cv-qualifiers
        are not significant. */
-    arg_type = skip_typerefs(arg_type);
+    arg_type = make_unqualified_type(arg_type);
     /* Top-level type qualifiers on the parameter type are also not
        significant. */
     param_type = skip_typerefs_not_dependent_decltypes(param_type);
@@ -12958,7 +12958,6 @@ not_direct_binding_case:
          and cause the overload resolution to be ambiguous. */
       goto accept_function;
     }  /* if */
-    conv_routine_type = conversion_routine->type;
     if (conversion_routine->is_explicit_conversion_function) {
       /* A conversion function marked "explicit" can be used only when
            (a) invoked for direct-initialization, or
@@ -12976,6 +12975,7 @@ not_direct_binding_case:
         goto reject_function;
       }  /* if */
     }  /* if */
+    conv_routine_type = conversion_routine->type;
     if (function_template_case) {
       a_type_ptr eff_dest_type = requested_type;
       a_boolean  weird_gpp_case = FALSE;
@@ -13073,6 +13073,12 @@ not_direct_binding_case:
            a conversion function is never implicitly called, e.g.,
            T to T&, so discard it. */
         goto reject_function;
+      }  /* if */
+    } else {
+      /* Not a template case.  Check for cases like "operator auto()". */
+      if (conversion_routine->has_deducible_return_type &&
+          !conversion_routine->has_deduced_return_type) {
+        finalize_deduced_return_type(conversion_routine, &error_position);
       }  /* if */
     }  /* if */
     /* Is the type returned by this routine a type we want? */
@@ -13531,6 +13537,7 @@ type conversion.  conv_context describes the context of the conversion.
         a_class_symbol_supplement_ptr cssp =
                              symbol_supplement_for_class(underlying_dest_type);
         if (cssp->target_of_conversion_function ||
+            cssp->has_auto_conversion_function ||
             cssp->conversion_template_list != NULL) {
           /* Try a conversion from some other type to the class type, or
              a handle or reference (or both) to the class type. */
@@ -16789,10 +16796,12 @@ error.  conv_context describes the context of the conversion.
       if (source_is_class) {
         /* If the source type is a template class, instantiate it to make its
            conversion functions visible. */
+        a_class_symbol_supplement_ptr  src_cssp;
         instantiate_template_class(source_type);
+        src_cssp = symbol_supplement_for_class(source_type);
         if (cssp->target_of_conversion_function ||
-            symbol_supplement_for_class(source_type)
-                                          ->conversion_template_list != NULL) {
+            src_cssp->has_auto_conversion_function ||
+            src_cssp->conversion_template_list != NULL) {
           /* There is at least one conversion function that converts some other
              class into the destination class, or the source class has template
              conversion functions.  See if there is a conversion function that
@@ -24431,6 +24440,7 @@ next_function:;
 
 a_boolean deduce_auto_type(a_type_ptr        orig_type,
                            a_type_ptr        auto_type,
+                           a_boolean         keep_placeholder,
                            an_operand        *initializer_operand,
                            an_arg_list_elem  *initializer_alep,
                            a_source_position *source_pos,
@@ -24438,21 +24448,21 @@ a_boolean deduce_auto_type(a_type_ptr        orig_type,
                            a_type_ptr        *deduced_auto_type,
                            a_boolean         *still_dependent)
 /*
-Do type deduction for a use of "auto" in a declaration or similar
-construct.  orig_type is the type of the declared entity, with "auto"
-embedded in it.  auto_type is the "auto" type that's embedded (a
-template parameter type); it can be NULL, in which case this routine
-will find it inside orig_type.  initializer_operand is the initializer,
-whose type is used to do the deduction.  Alternatively,
-initializer_alep can be used to specify the initializer in
-init-component form; if it's non-NULL it is used instead of
-initializer_operand.  source_pos is the source position of the
-declaration.  If the deduction succeeds, *type_after_deduction is set
-to the deduced version of orig_type, *deduced_auto_type is set to the
-type deduced for "auto" itself, and TRUE is returned.  If an error is
-detected, FALSE is returned (but no diagnostic is issued).  If the
-deduction was not attempted because the types involved are still
-dependent, *still_dependent is returned TRUE and FALSE is returned.
+Do type deduction for a use of "auto" in a declaration or similar construct.
+orig_type is the type of the declared entity, with "auto" embedded in it.
+auto_type is the "auto" type that's embedded (a template parameter type); it
+can be NULL, in which case this routine will find it inside orig_type.
+initializer_operand is the initializer, whose type is used to do the
+deduction.  Alternatively, initializer_alep can be used to specify the
+initializer in init-component form; if it's non-NULL it is used instead of
+initializer_operand.  source_pos is the source position of the declaration.
+If the deduction succeeds, *type_after_deduction is set to the deduced version
+of orig_type, *deduced_auto_type is set to the type deduced for "auto" itself,
+and TRUE is returned.  In that case, if keep_placeholder is TRUE, a tk_typeref
+is added on top of *deduced_auto_type.  If an error is detected, FALSE is
+returned (but no diagnostic is issued).  If the deduction was not attempted
+because the types involved are still dependent, *still_dependent is set to
+TRUE and FALSE is returned.
 */
 {
   a_boolean             okay = TRUE;
@@ -24601,6 +24611,14 @@ dependent, *still_dependent is returned TRUE and FALSE is returned.
         }  /* if */
       }  /* if */
       *deduced_auto_type = templ_arg->variant.type;
+      if (keep_placeholder) {
+        /* Add a tk_typeref on top of the deduced type so we can tell where
+           "auto" appeared originally.  This matters for redeclaration
+           processing in return types. */
+        templ_arg->variant.type = alloc_type((a_type_kind)tk_typeref);
+        templ_arg->variant.type->variant.typeref.type = *deduced_auto_type;
+        templ_arg->variant.type->variant.typeref.is_deduced_auto = TRUE;
+      }  /* if */
       /* Substitute the deduced type to obtain the actual type for the current
          declaration. */
       init_ctws_state(&ctws_state);

@@ -5636,13 +5636,13 @@ in which such a return is undefined.
     /* Constructors and destructors have no return value. */
   } else {
     /* Get the routine return type. */
-    a_lambda_ptr lambda = get_current_lambda();
-    tp = rout_type->variant.routine.return_type;
-    if (lambda != NULL && !lambda->explicit_return_type) {
-      /* We're in a lambda with an implicit return type, so this return
-         implies a return type of "void". */
-      tp = set_implicit_lambda_return_type(void_type(), &error_position);
+    if (rout->has_deducible_return_type && !rout->has_deduced_return_type) {
+      deduce_return_type_from_void_operand(
+                                   rout,
+                                   /*keep_placeholder=*/!rout->is_lambda_body,
+                                   &error_position);
     }  /* if */
+    tp = rout_type->variant.routine.return_type;
     if (is_void_type(tp) || is_template_param_type(tp) || is_error_type(tp)) {
       /* A void return in a void function is okay.  Unknown template-dependent
          return type must be assumed to be okay.  Similarly, when recovering
@@ -5769,7 +5769,6 @@ See also 3.6.6.4.
   a_source_sequence_entry_ptr
                      src_seq_entry = NULL;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
-  a_lambda_ptr       lambda = get_current_lambda();
 
   db_enter(3, "return_statement");
   check_for_unreachable_code();
@@ -5886,11 +5885,9 @@ See also 3.6.6.4.
     return_expr = scan_return_expression(return_type,
                                          ec_bad_return_value_type,
                                          &dip);
-    if (lambda != NULL && !lambda->explicit_return_type) {
-      /* scan_return_type may have updated the routine type. */
-      return_type = lambda->lambda_routine->type->variant.routine.return_type;
-    }  /* if */
   }  /* if */
+  /* The return type might have been deduced.  Reload it. */
+  return_type = rout_type->variant.routine.return_type;
 #if VLA_DEALLOCATIONS_IN_IL
   if (vla_dealloc_stmts != NULL) {
     /* Insert the deallocation statements, but the return expression must be

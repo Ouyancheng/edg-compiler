@@ -1469,6 +1469,11 @@ a_type_list_entry_ptr
 		param_id_list;
 			/* In function prototype scopes, this points to the
 			   param_id_list for the function, if any. */
+  a_type_ptr
+		orig_return_type;
+			/* The original return type of the function (when kind
+			   is sck_function).  The final return type can change
+			   (e.g., because of "auto" deduction). */
 } a_scope_stack_entry;
 
 /*

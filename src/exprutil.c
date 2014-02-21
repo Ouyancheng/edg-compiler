@@ -14856,6 +14856,10 @@ even though calls actually always use the prvalue form.
       routine = con->variant.address.variant.routine;
     }  /* if */
   }  /* if */
+  if (routine != NULL && routine->has_deducible_return_type &&
+      !routine->has_deduced_return_type) {
+    finalize_deduced_return_type(routine, &operand->position);
+  }  /* if */
   return routine;
 }  /* routine_from_function_operand */
 

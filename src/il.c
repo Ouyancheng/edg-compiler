@@ -18081,6 +18081,9 @@ and return a pointer to it.
 {
   an_expr_node_ptr node;
 
+  if (rout->has_deducible_return_type && !rout->has_deduced_return_type) {
+    finalize_deduced_return_type(rout, &error_position);
+  }  /* if */
   node = alloc_expr_node((an_expr_node_kind)enk_routine);
   node->type = rout->type;
   node->variant.routine.ptr = rout;
@@ -18099,6 +18102,9 @@ flag is not set.
 {
   an_expr_node_ptr node;
 
+  if (rout->has_deducible_return_type && !rout->has_deduced_return_type) {
+    finalize_deduced_return_type(rout, &error_position);
+  }  /* if */
   node = alloc_expr_node((an_expr_node_kind)enk_routine);
   node->type = make_pointer_type(rout->type);
   node->variant.routine.ptr = rout;

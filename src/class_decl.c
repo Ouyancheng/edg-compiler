@@ -6208,6 +6208,14 @@ done:
       rout->is_constexpr = FALSE;
       dps->dso_flags &= ~(a_decl_flag_set)DSO_CONSTEXPR;
     }  /* if */
+    if (rout->has_deducible_return_type) {
+      pos_error(ec_virtual_function_cannot_have_deduced_return_type,
+                source_pos);
+      check_assertion(rout->type->kind == (a_type_kind)tk_routine);
+      rout->type->variant.routine.return_type = error_type();
+      rout->has_deducible_return_type = FALSE;
+      dps->has_deducible_return_type = FALSE;
+    }  /* if */
   }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
   if (rout_templ != NULL) {
@@ -9720,6 +9728,7 @@ instantiations are recorded in the IL.
   rp = make_routine(function_type, (a_storage_class)sc_extern,
                     prototype_instantiations_in_il ?
                             depth_innermost_namespace_scope : NO_SCOPE_DEPTH);
+  rp->has_deducible_return_type = dps->has_deducible_return_type;
   /* Treat this as a prototype instantiation so that it doesn't end up in
      the IL if prototype_instantiations_in_il is FALSE.  (Note that even
      though is_prototype_instantiation is TRUE, is_template_function is FALSE
@@ -13143,6 +13152,7 @@ implicitly declared member functions.
   rtn = make_routine(member_type, (a_storage_class)sc_static,
                      decl_info->is_trivial_default_constructor ?
                                   NO_SCOPE_DEPTH : scope_depth);
+  rtn->has_deducible_return_type = decl_state->has_deducible_return_type;
   sym->variant.routine.ptr = rtn;
   /* Set the source correspondence, including the access specifier. */
   set_source_corresp(&rtn->source_corresp, sym);
@@ -13194,6 +13204,9 @@ implicitly declared member functions.
   } else if (locator->is_conversion_name) {
     /* User-defined conversion function. */
     set_routine_special_kind(rtn, (a_special_function_kind)sfk_conversion);
+    if (decl_state->has_deducible_return_type) {
+      cssp->has_auto_conversion_function = TRUE;
+    }  /* if */
   } else if (decl_info->is_constructor) {
     set_routine_special_kind(rtn, (a_special_function_kind)sfk_constructor);
     if (list_init_enabled) {
@@ -13931,6 +13944,7 @@ decl_member_function, which handles in-class member function declarations.)
   rtn = make_routine(member_type, (a_storage_class)sc_unspecified,
                      prototype_instantiations_in_il && !sym->is_error
                                      ? effective_decl_level : NO_SCOPE_DEPTH);
+  rtn->has_deducible_return_type = dps->has_deducible_return_type;
   tssp = template_supplement_for_symbol(sym);
 #if MICROSOFT_EXTENSIONS_ALLOWED
   tssp->is_generic = dps->is_generic_declaration;
@@ -28142,16 +28156,20 @@ implied call operator in *func_info and *decl_info (both are initialized here).
     remove_stop_token(tok_lbrace);
   } else {
     /* The parameter list was omitted: Treat this as if the declarator-like
-       construct was just an empty parameter list.  This also means that the
-       return type is unknown at this point. */
-    a_routine_type_supplement_ptr  rtsp;
-    dps->type = make_routine_type(unknown_type(), /*param1_type=*/NULL,
+       construct was just an empty parameter list and the return type is
+       "auto" (in the C++14 sense). */
+    a_type_ptr  return_type = make_auto_type(&null_source_position,
+                                             /*is_decltype_auto=*/FALSE);
+    a_routine_type_supplement_ptr
+                rtsp;
+    dps->type = make_routine_type(return_type, /*param1_type=*/NULL,
                                   /*param2_type=*/NULL, /*param3_type=*/NULL,
                                   /*param4_type=*/NULL);
     rtsp = dps->type->variant.routine.extra_info;
     rtsp->this_class = lambda->closure_class;
     rtsp->qualifiers = TQ_CONST;
     dps->declared_type = dps->type;
+    dps->has_deducible_return_type = TRUE;
 #if GENERATE_SOURCE_SEQUENCE_LISTS
     func_info->declared_type = dps->type;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
