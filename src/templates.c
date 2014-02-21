@@ -13709,21 +13709,6 @@ matching process.
     match = FALSE;
     if (new_type != NULL) {
       a_routine_ptr  proto_rp = tssp->variant.function.routine;
-      if (proto_rp->has_deducible_return_type) {
-        /* For functions with deducible return types, ensure that the type
-           has been deduced before comparing the routine type. */
-        a_routine_ptr  instance_rp;
-        instance_sym = find_template_function(templ_sym, templ_arg_list,
-                                              explicit_arg_list != NULL,
-                                              &error_position);
-        instance_rp = instance_sym->variant.routine.ptr;
-        if (instance_rp->has_deducible_return_type) {
-          finalize_deduced_return_type(instance_rp, &error_position);
-        } else {
-          expect_error();
-        }  /* if */
-        new_type = instance_rp->type;
-      }  /* if */
       if (is_decl_context) {
         /* In declaration contexts we do not yet know whether the type
            has a this class type.  Consequently, a NULL this class
@@ -13738,6 +13723,21 @@ matching process.
            match exactly.  types_are_compatible is used so that a conversion
            from a C++ linkage function to C linkage can be permitted in
 	   some modes. */
+        if (proto_rp->has_deducible_return_type) {
+          /* For functions with deducible return types, ensure that the type
+             has been deduced before comparing the routine type. */
+          a_routine_ptr  instance_rp;
+          instance_sym = find_template_function(templ_sym, templ_arg_list,
+                                                explicit_arg_list != NULL,
+                                                &error_position);
+          instance_rp = instance_sym->variant.routine.ptr;
+          if (instance_rp->has_deducible_return_type) {
+            finalize_deduced_return_type(instance_rp, &error_position);
+          } else {
+            expect_error();
+          }  /* if */
+          new_type = instance_rp->type;
+        }  /* if */
         match = f_types_are_compatible(curr_type, new_type,
                                        TCF_IMPLICIT_CONVERSION |
                                        TCF_ALLOW_BASE_DERIVED_THIS_MATCH |
@@ -25905,14 +25905,17 @@ function.
 
 static a_boolean f_entity_can_be_instantiated(
 			a_template_instance_ptr	tip,
-			a_boolean		implicit_inclusion_okay)
+			a_boolean		implicit_inclusion_okay,
+			a_boolean		for_return_type_deduction)
 /*
 Determines whether this compilation is capable of generating an
 instantiation of a given template instance.
 
 implicit_inclusion_okay is TRUE if the compiler should attempt to include
 a template definition file to provide definitions for externally linked
-template entities.
+template entities.  for_return_type_deduction is TRUE if this is called to
+test whether we can instantiate a function body to determine its return type;
+this overrides an "extern template" directive.
 */
 {
   a_boolean		result = TRUE;
@@ -25972,7 +25975,8 @@ template entities.
 #endif /* INSTANTIATION_BY_IMPLICIT_INCLUSION */
   }  /* if */
   result = template_def && !specialized && !mip->already_instantiated &&
-           !tip->suppress_instantiation && !tip->explicit_do_not_instantiate;
+           !tip->suppress_instantiation &&
+           (!tip->explicit_do_not_instantiate || for_return_type_deduction);
   tip->can_be_instantiated = result;
   return result;
 }  /* f_entity_can_be_instantiated */
@@ -25983,10 +25987,12 @@ Macro that calls f_entity_can_be_instantiated.  If we have already determined
 that the entity can be instantiated, the call is suppressed and the
 previously computed value is returned.
 */
-#define entity_can_be_instantiated(tip, implicit_inclusion_okay)	\
-  ((tip)->can_be_instantiated						\
-		? (tip)->can_be_instantiated				\
-		: f_entity_can_be_instantiated(tip, implicit_inclusion_okay))
+#define entity_can_be_instantiated(tip, implicit_inclusion_okay)        \
+  ((tip)->can_be_instantiated                                           \
+                ? (tip)->can_be_instantiated                            \
+                : f_entity_can_be_instantiated(                         \
+                           tip, implicit_inclusion_okay,                \
+                           /*for_return_type_deduction=*/FALSE))
 
 
 a_boolean will_be_instantiated(a_symbol_ptr	sym)
@@ -27473,7 +27479,9 @@ body.  If possible, instantiate the routine.
      flag is not set.  It will be set if and when the routine is
      referenced. */
   if (!mip->already_instantiated &&
-      entity_can_be_instantiated(tip, /*implicit_inclusion_okay=*/FALSE)) {
+      f_entity_can_be_instantiated(tip,
+                                   /*implicit_inclusion_okay=*/FALSE,
+                                   /*for_return_type_deduction=*/TRUE)) {
     instantiate_entity(tip);
   }  /* if */
 }  /* force_instantiation_to_deduce_return_type */
