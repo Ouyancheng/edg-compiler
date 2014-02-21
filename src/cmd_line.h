@@ -1952,7 +1952,7 @@ EXTERN a_boolean
 
 EXTERN a_boolean
 		std_thread_local_storage_specifier_enabled;
-			/* TRUE if the C++11 "thread_local", or C11
+			/* TRUE if the C++11 "thread_local" or C11
 			  "_Thread_local" specifier should be accepted to
 			  indicate that a variable should reside in
 			  thread-local storage. */
