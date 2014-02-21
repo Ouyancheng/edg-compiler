@@ -35421,7 +35421,7 @@ type to be the type of return_op.
 {
   a_type_ptr  rout_type, orig_type, auto_type, deduced_type, deduced_auto_type;
   a_boolean   is_decltype_auto, still_dependent;
-  a_boolean   is_lambda = curr_routine->is_lambda_body;
+  a_boolean   lambda_case = curr_routine->is_lambda_body;
 
   check_assertion(curr_routine->has_deducible_return_type);
   rout_type = skip_typerefs(curr_routine->type);
@@ -35446,11 +35446,11 @@ type to be the type of return_op.
                                                      DECLTYPE_AUTO_POS_NUMBER;
   if (is_void_type(return_op->type)) {
     deduce_return_type_from_void_operand(curr_routine,
-                                         /*keep_placeholder=*/!is_lambda,
+                                         /*keep_placeholder=*/!lambda_case,
                                          &return_op->position);
     *return_type = rout_type->variant.routine.return_type;
   } else if (deduce_placeholder_type(is_decltype_auto, orig_type, auto_type,
-                                     /*keep_placeholder=*/!is_lambda,
+                                     /*keep_placeholder=*/!lambda_case,
                                      return_op, /*initializer_alep=*/NULL,
                                      &return_op->position, &deduced_type,
                                      &deduced_auto_type, &still_dependent)) {
