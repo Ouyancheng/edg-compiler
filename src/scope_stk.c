@@ -9755,7 +9755,7 @@ Find the initial template argument (from templ_arg_list) associated
 with the pack specified by sym, which is a template parameter symbol
 from templ_param_list.  If there are no actual arguments for the pack,
 return NULL.  Return the associated template parameter in *template_param.
-This is returned even when function returns NULL.  Return the number of
+This is returned even when the function returns NULL.  Return the number of
 actual arguments in *elements.
 
 is_deduction is TRUE if the pack instantiation is being created as
