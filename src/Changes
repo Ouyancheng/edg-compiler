@@ -1,5 +1,17 @@
 Version 4.9
 
+2/22/14  [EDGcpfe/14625]
+Microsoft compatibility: floating-point literals in constant expressions
+
+The changes for constexpr support in version 4.6 inadvertently caused a
+regression preventing the use of floating-point literals in constant
+expressions in Microsoft mode.  This is now fixed.  For example:
+
+  void f() {
+    static_assert(1.0 < 2.0, "err");  // Previously an error in Microsoft mode
+  }
+
+
 2/21/14  [EDGcpfe/14144,EDGcpfe/14633]
 C++14: Deduced return types
 

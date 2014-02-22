@@ -29848,10 +29848,10 @@ handle_identifier:
         if (constexpr_enabled && !curr_expr_kind_is_traditional_const()) {
           /* Cast issues are irrelevant when C++11 constexpr is enabled. */
           float_con_allowed_in_integral_const_expr = TRUE;
-        } else if (gnu_mode && !curr_expr_kind_is(ek_pp)) {
-          /* GCC appears to accept floating-point literals in all contexts
-             expecting integral constant expressions, except in preprocessing
-             expressions. */
+        } else if ((gnu_mode || microsoft_mode) && !curr_expr_kind_is(ek_pp)) {
+          /* GCC and MSVC appear to accept floating-point literals in all
+             contexts expecting integral constant expressions, except in
+             preprocessing expressions. */
           float_con_allowed_in_integral_const_expr = TRUE;
         } else if ((local_options & EOPT_OPERAND_OF_CAST) &&
                    curr_token == tok_float_constant &&
