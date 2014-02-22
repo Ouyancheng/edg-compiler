@@ -40,9 +40,9 @@ command-line option --[no_]uliterals.
 2/13/14  [EDGcpfe/13985,EDGcpfe/14725]
 Deduction in pack contexts that contain explicit template arguments
 
-If a pack expansion used both an a template parameter pack that had
-explicitly specified template arguments pack a template parameter pack
-that is to be deduced, deduction could fail, resulting in spurious errors
+If a pack expansion made use of both a template parameter pack for which
+the template arguments were explicitly specified, and a template parameter
+pack that was deduced, deduction could fail resulting in spurious errors
 or the incorrect function being called.  Now fixed.
 
   template <typename T1, typename T2> struct A {};

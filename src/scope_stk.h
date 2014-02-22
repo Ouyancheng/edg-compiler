@@ -350,7 +350,7 @@ typedef struct a_pack_reference {
   a_template_param_ptr
 		template_param;
 			/* When kind == prk_template_param, this points to
-			   the to the template parameter. */
+			   the template parameter. */
   union {
     a_variable_ptr
 		variable;
@@ -544,7 +544,7 @@ typedef struct a_pack_expansion_stack_entry {
   a_boolean
 		preserve_deduced_packs;
 			/* TRUE if is_rescan is TRUE and deduced parameter
-			   pack should be retained in the substituted type. */
+			   packs should be retained in the substituted type. */
 } a_pack_expansion_stack_entry;
 
 
