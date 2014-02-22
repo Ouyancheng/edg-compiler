@@ -1,5 +1,22 @@
 Version 4.9
 
+2/22/14  [EDGcpfe/14842]
+Incorrect source positions in dependent constant expressions
+
+In configurations with PROTOTYPE_INSTANTIATIONS_IN_IL and PARENS_IN_IL set
+to TRUE, the IL contained missing or incorrect source position information
+in constant expressions that depend on nontype template parameters.  For
+example, given
+
+  template<int N> void f() {
+    int i = (N-1);
+  }
+
+the eok_parens node in the initializer for "i" had no source position
+information, while the expr_range and operator_position of the eok_subtract
+node reflected the position of the parentheses.  This is now fixed.
+
+
 2/22/14  [EDGcpfe/14625]
 Microsoft compatibility: floating-point literals in constant expressions
 

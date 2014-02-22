@@ -620,14 +620,20 @@ the address of null_source_position.
 
 
 /*
-Get the expression node, if any, associated with an operand.  This just
-fetches an existing expression node, or returns NULL; it never creates one.
+Get the expression node, if any, associated with an operand.  A direct
+backing expression in a constant operand is given preference over a
+template parameter expression if the constant is a ck_template_param
+constant.  This just fetches an existing expression node, or returns NULL;
+it never creates one.
 */
-#define expr_node_from_operand(operand)                                    \
-  (is_expression_operand(operand) ? (operand)->variant.expression :        \
-   is_template_param_expression_constant_operand(operand) ?                \
-         (operand)->variant.constant.variant.template_param.variant.expr : \
-   is_constant_operand(operand) ? (operand)->variant.constant.expr : NULL)
+#define expr_node_from_operand(operand)                                       \
+  (is_expression_operand(operand) ?                                           \
+     (operand)->variant.expression :                                          \
+   is_constant_operand(operand) && (operand)->variant.constant.expr != NULL ? \
+     (operand)->variant.constant.expr :                                       \
+   is_template_param_expression_constant_operand(operand) ?                   \
+     (operand)->variant.constant.variant.template_param.variant.expr :        \
+     NULL)
 
 
 /*
