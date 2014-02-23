@@ -12079,17 +12079,27 @@ return_end_of_source_token:
         ctoken = tok_lbrace;
 	goto two_char_token;
       } else if (ch == ':' && digraphs_allowed()) {
-        ctoken = tok_lbracket;
-        if (*(curr_char_loc+2) == ':' && *(curr_char_loc+3) != ':'
-            && *(curr_char_loc+3) != '>' && !C_mode()) {
-          /* We have a construct like "<::I", which is invalid if we
-             interpret "<:" as a digraph.  Issue a warning.  The warning
-             is issued in C++ mode when you have a "<::" and the next
-             character is not ":" or ">".  These last cases make sure you
-             don't warn on valid sequences like "<:::i" or "<::>". */
-          warning(ec_probable_inadvertent_lbracket_digraph);
+        a_boolean is_digraph = TRUE;
+        if (curr_char_loc[2] == ':' && curr_char_loc[3] != ':' &&
+            curr_char_loc[3] != '>') {
+          /* In C++11, the <: digraph is not recognized in cases when the
+             ':' is likely the start of the :: global scope operator, which
+             the preceding condition detects.  (The exceptions allow for
+             things like "<:::X" ("[::X") and "<::>" ("[]"), where the
+             digraph is likely intended.)  (g++ only implemented this rule
+             in its C++11 mode beginning with version 4.8.0.) */
+          if (cpp11_mode && !(gnu_mode && gnu_version < 40800)) {
+            is_digraph = FALSE;
+          } else if (!C_mode()) {
+            /* In other C++ modes, issue a warning that the digraph may not
+               have been intended. */
+            warning(ec_probable_inadvertent_lbracket_digraph);
+          }  /* if */
         }  /* if */
-	goto two_char_token;
+        if (is_digraph) {
+          ctoken = tok_lbracket;
+          goto two_char_token;
+        }  /* if */
 #if GNU_EXTENSIONS_ALLOWED
       } else if (ch == '?' && gpp_mode) {
         ctoken = tok_gnu_min;

@@ -1,5 +1,21 @@
 Version 4.9
 
+2/22/14  [EDGcpfe/11636,EDGcpfe/14412,EDGcpfe/14705,EDGcpfe/14856]
+<: digraph in C++11 mode
+
+The C++11 Standard changed the treatment of the <: digraph (equivalent to
+the "[" token) so that it is not recognized when the ":" is likely meant as
+the first character of the :: global scope operator.  The front end now
+implements this rule in C++11 mode.  With --c++11 --g++, the new rule is
+applied only for gnu_version >= 40800, since earlier versions of g++ always
+treat <: as a digraph, even with -std=c++11.  For example:
+
+  int i;
+  int f() {
+    return 0<::i;  // Previously interpreted as "0[:i", now as "0 < ::i"
+  }
+
+
 2/22/14  [EDGcpfe/14842]
 Incorrect source positions in dependent constant expressions
 
