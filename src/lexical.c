@@ -12089,7 +12089,7 @@ return_end_of_source_token:
              digraph is likely intended.)  (g++ only implemented this rule
              in its C++11 mode beginning with version 4.8.0.) */
           if (cpp11_mode && !(gnu_mode && !clang_mode &&
-			      gnu_version < 40800)) {
+                              gnu_version < 40800)) {
             is_digraph = FALSE;
           } else if (!C_mode()) {
             /* In other C++ modes, issue a warning that the digraph may not
