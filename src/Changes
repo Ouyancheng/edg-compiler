@@ -30,7 +30,7 @@ example, given
 
 the eok_parens node in the initializer for "i" had no source position
 information, while the expr_range and operator_position of the eok_subtract
-node reflected the position of the parentheses.  This is now fixed.
+node reflected the positions of the parentheses.  This is now fixed.
 
 
 2/22/14  [EDGcpfe/14625]
