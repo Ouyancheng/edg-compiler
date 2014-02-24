@@ -5418,10 +5418,13 @@ check_typerefs:
          and either type is a placeholder type ("auto" or "decltype(auto)"),
          then a corresponding tk_typeref entry is always considered a match.
          For example:
-             template<typename T> auto f(T t) { return t; }  // 
-             extern template auto f(int);  // "Identical" in this context.
-         Note that the tk_typeref entry cannot appear under another
-         tk_typeref entry in such cases. */
+             template<typename T> auto f(T t) { return t; }
+             extern template auto f(int);
+         Here, the explicit instantiation will cause "auto" to be deduced to
+         "int" producing a deduced function type "int (int)", and when
+         checking the deduced type against "auto (int)", we want the
+         comparison to succeed.  Note that the tk_typeref entry cannot appear
+         under another tk_typeref entry in such cases. */
       identical = TRUE;
       goto done;
     } else if ((flags & ITF_CHECKING_DEDUCTION_RESULT) &&

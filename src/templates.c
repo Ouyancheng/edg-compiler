@@ -27492,7 +27492,7 @@ void finalize_deduced_return_type(a_routine_ptr      rp,
 /*
 The given routine has a deducible return type.  Ensure that the return type has
 indeed been deduced (which may require instantiation).  If no definition is
-available, issue an error at the give position.
+available, issue an error at the given position.
 */
 {
   check_assertion(rp->has_deducible_return_type);

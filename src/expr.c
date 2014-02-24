@@ -322,8 +322,8 @@ specify the initializer in init-component form; if it's non-NULL it is used
 instead of initializer_operand.  source_pos is the source position of the
 declaration.  If the deduction succeeds, *type_after_deduction is set to the
 deduced version of orig_type, *deduced_auto_type is set to the type deduced
-for "auto" itself, and TRUE is returned. In that case, if keep_placeholder is
-TRUE, a tk_typeref is added on top of *deduced_auto_type.    If an error is
+for "auto" itself, and TRUE is returned.  In that case, if keep_placeholder is
+TRUE, a tk_typeref is added on top of *deduced_auto_type.  If an error is
 detected, FALSE is returned (but no diagnostic is issued).  If the deduction
 was not attempted because the types involved are still dependent,
 *still_dependent is returned TRUE and FALSE is returned.
@@ -35311,8 +35311,8 @@ static void set_deduced_return_type(a_type_ptr        return_type,
 /*
 We're currently in a function with a deduced return type (a C++11 lambda body
 or a C++14 function with an auto/decltype(auto) return type), and we've
-encountered a return statement which implies the given return_type (the type
-is void for a return without an expression).  Set the lambda return type,
+encountered a return statement that implies the given return_type (the type
+is void for a return without an expression).  Set the function return type,
 issuing an error if this return type conflicts with a previously-established
 type.
 */
@@ -35416,7 +35416,7 @@ return_op represents the expression in the return statement of the current
 function (curr_routine) whose return type is to be set from such an expression.
 *return_type is the type currently thought of as that function's return type
 (it's a copy of the return type from the routine).  Update it and the routine
-type to be the type of return_op.
+type with the type of return_op.
 */
 {
   a_type_ptr  rout_type, orig_type, auto_type, deduced_type, deduced_auto_type;

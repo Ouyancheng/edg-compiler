@@ -799,7 +799,7 @@ static void check_deduced_return_type(a_routine_ptr      rp,
 The given routine did not include an explicitly specified return type.  If a
 value-returning statement was encountered, the return type was set accordingly;
 otherwise, this routine will set it to void.  If the return type is non-void
-and this is a C11-style lambda body, check that the body had the simple form
+and this is a C++11-style lambda body, check that the body had the simple form
       { return <expression> ; }
 and issue a diagnostic if that was not the case.
 */

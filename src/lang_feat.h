@@ -2322,7 +2322,7 @@ EXTERN a_boolean
 		deduced_return_types_enabled;
 			/* When TRUE, C++14-style deduction of function return
 			   types from their definitions is enabled.  E.g.,
-			       auto f() { return 2.0 } // returns double
+			       auto f() { return 2.0; } // returns double
 			   */
 EXTERN a_boolean
 		enable_underscore_decltype_only;
