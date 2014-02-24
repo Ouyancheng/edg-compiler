@@ -1,5 +1,38 @@
 Version 4.9
 
+2/23/14  [EDGcpfe/14857]
+GNU compatibility: macro names vs C++11 user-defined literal suffixes
+
+C99 defines macros such as PRId64 whose definitions are string literals
+containing printf formatting controls.  They are intended to be
+concatenated with other string literals to provide portable formatting for
+implementation-defined numeric types.  One programming style places these
+formatting controls adjacent to the surrounding string literals with no
+intervening white space, for example:
+
+  void f() {
+    int64_t i = 0;
+    printf("%"PRId64"\n", i);
+  }
+
+This usage is not permitted in C++11 because the macro name is parsed as
+a user-defined literal suffix and not as an identifier token, making it
+unavailable for macro expansion and attempting to invoke a nonexistent
+literal operator.  Beginning with version 4.8, however, g++ accepts such
+code, and the front end has now been changed to do so as well in g++ mode
+with gnu_version >= 40800, although the mechanism is different: the C99
+macro names are not valid user-defined literal suffixes because they do not
+begin with an underscore, and g++ puts out a warning for such cases and
+makes the failing suffix a separate token.  This technique is not upwardly
+compatible with potential future standard suffixes that do not begin with
+an underscore, so the front end keys on the presence of a macro definition,
+not on the form of the name, in determining whether to treat the identifier
+as a literal suffix or not.
+
+This behavior is controlled by the global variable macro_preempts_udl_suffix
+to allow it to be enabled, if desired, for modes other than the default.
+
+
 2/22/14  [EDGcpfe/11636,EDGcpfe/14412,EDGcpfe/14705,EDGcpfe/14856]
 <: digraph in C++11 mode
 

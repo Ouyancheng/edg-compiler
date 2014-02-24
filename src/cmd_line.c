@@ -4021,6 +4021,7 @@ exclude the GNU C++ mode already.  Hence those are not checked again here.)
   if (!option_kind_used[(int)optk_user_defined_literals]) {
     user_defined_literals_enabled = (cpp11_mode && gnu_version >= 40700);
   }  /* if */
+  macro_preempts_udl_suffix = (gnu_version >= 40800 && !clang_mode);
   if (!option_kind_used[(int)optk_type_traits_helpers]) {
     /* g++ supports type traits in versions 4.3 and later.  Earlier versions
        use those identifiers in system headers, so type_traits_helpers_enabled
@@ -10147,6 +10148,7 @@ variables declared in cmd_line.h.
   inheriting_constructors_enabled = FALSE;
   constexpr_enabled = FALSE;
   user_defined_literals_enabled = FALSE;
+  macro_preempts_udl_suffix = FALSE;
   raw_string_literals_enabled = FALSE;
   rtti_enabled = 
 #if RTTI_ENABLING_POSSIBLE

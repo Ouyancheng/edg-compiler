@@ -2379,6 +2379,21 @@ EXTERN a_boolean
 			   permitted. */
 
 EXTERN a_boolean
+		macro_preempts_udl_suffix;
+			/* When TRUE, an identifier that would otherwise be
+			   the suffix for a user-defined string literal is
+			   kept as a separate token if there is a
+			   corresponding macro definition.  This is used to
+			   support the programming style that places the
+			   C99 format specifier macros adjacent to the
+			   preceding string with no intervening white
+			   space, e.g., "%"PRId64"\n" instead of "%" PRId64
+			   "\n".  Meaningful only when
+			   user_defined_literals_enabled is TRUE.  TRUE by
+			   default in gpp_mode (but not clang_mode) with
+			   gnu_version >= 40800, FALSE otherwise. */
+
+EXTERN a_boolean
 		raw_string_literals_enabled;
 			/* When TRUE, C++11 raw string literals are
 			   permitted. */

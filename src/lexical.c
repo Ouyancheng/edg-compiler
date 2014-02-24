@@ -10779,6 +10779,29 @@ literal, return the literal kind.  Otherwise, return SCLK_NOT_A_LITERAL.
 }  /* scan_encoding_prefix */
 
 
+static a_boolean id_is_macro_name(a_const_char *id_ptr,
+                                  sizeof_t     id_len)
+/*
+Return TRUE if the string defined by id_ptr and id_len is the name of a
+macro, FALSE otherwise.
+*/
+{
+  a_symbol_locator    locator;
+  a_symbol_header_ptr sym_hdr;
+  a_symbol_ptr        sym = NULL;
+
+  sym_hdr = find_symbol_header(id_ptr, id_len, &locator);
+  if (sym_hdr != NULL) {
+    /* Scan the list of symbols with the given spelling, looking for a
+       macro name. */
+    for (sym = symbol_list_for_file_scope_symbols(sym_hdr);
+         sym != NULL && sym->kind != (a_symbol_kind)sk_macro;
+         sym = sym->next) {}
+  }  /* if */
+  return (sym != NULL);
+}  /* id_is_macro_name */
+
+
 a_token_kind concat_adjacent_string_literals(a_boolean function_name_case)
 /*
 The current token (not in curr_token yet, but in const_for_curr_token) is a
@@ -10855,7 +10878,14 @@ tok_ud_literal; otherwise, return tok_string_literal.
         sizeof_t     suffix_len = (sizeof_t)(curr_char_loc - id_start);
         a_const_char *canonical_id =
                               make_canonical_identifier(id_start, &suffix_len);
-        if (ud_lit_suffix_buffer->size == 0) {
+        if (macro_preempts_udl_suffix &&
+            id_is_macro_name(canonical_id, suffix_len)) {
+          /* In some programming styles the C99 format macros are placed
+             adjacent to the preceding string with no intervening white
+             space, e.g., "%"PRId64"\n".  If so requested, do not treat
+             such a macro as a literal suffix but as a separate token. */
+          curr_char_loc = id_start;
+        } else if (ud_lit_suffix_buffer->size == 0) {
           /* This is the first one -- copy the identifier. */
           (void)add_to_text_buffer(ud_lit_suffix_buffer, canonical_id,
                                    suffix_len);
