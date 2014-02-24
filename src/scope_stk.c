@@ -10387,7 +10387,7 @@ and can be NULL only if create_if_not_found is FALSE.
 }  /* get_curr_variadic_arg_for_param */
 
 
-a_pack_expansion_descr_ptr get_curr_pack_expansion_descr_for_param(
+static a_pack_expansion_descr_ptr get_curr_pack_expansion_descr_for_param(
 				a_pack_expansion_stack_entry_ptr	pesep)
 /*
 If we are in the instantiation of an alias template based on a pack expansion

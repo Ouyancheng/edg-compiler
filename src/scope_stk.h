@@ -2076,9 +2076,6 @@ void wrapup_scope(a_scope_ptr			scope_ptr,
 
 extern a_type_ptr get_curr_variadic_param_type(an_expr_node_ptr	expr);
 
-extern a_pack_expansion_descr_ptr get_curr_pack_expansion_descr_for_param(
-				a_pack_expansion_stack_entry_ptr	pesep);
-
 extern
 a_template_decl_info_ptr get_specified_template_decl_info(
 					a_boolean	innermost);
