@@ -2021,7 +2021,7 @@ lambda declarator.
   init_decl_parse_state(&trt_dps);
   trt_dps.is_trailing_return_type = TRUE;
   trt_dps.trailing_return_type_allowed = trailing_return_types_enabled;
-  if (deduced_return_types_enabled) {
+  if (deduced_return_types_enabled && dps->auto_type_allowed) {
     trt_dps.auto_type_allowed = TRUE;
   }  /* if */
   if (parameters_visible_late) {
@@ -2044,7 +2044,9 @@ lambda declarator.
     dps->has_trailing_return_type = TRUE;
     dps->specifiers_type = dps->declared_type = dps->type = trt_dps.type;
     rout_type->variant.routine.extra_info->trailing_return_type = TRUE;
-    if (trt_dps.auto_type_specifier_seen) {
+    if (trt_dps.auto_type_specifier_seen &&
+        (!trt_dps.has_trailing_return_type ||
+         trt_dps.has_deducible_return_type)) {
       check_type_with_auto_specifier(&trt_dps);
       dps->has_deducible_return_type = TRUE;
     }  /* if */
