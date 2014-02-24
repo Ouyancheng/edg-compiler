@@ -2689,6 +2689,7 @@ the scope being pushed.
   ssep->in_prototype_instantiation = FALSE;
   ssep->in_nonreal_instantiation = FALSE;
   ssep->in_generic_definition    = FALSE;
+  ssep->alias_in_template_decl   = (options & PS_ALIAS_IN_TEMPLATE_DECL) != 0;
 #if MICROSOFT_EXTENSIONS_ALLOWED
   ssep->instantiation_from_metadata = FALSE;
   ssep->in_generic_instantiation = FALSE;
@@ -10386,6 +10387,48 @@ and can be NULL only if create_if_not_found is FALSE.
 }  /* get_curr_variadic_arg_for_param */
 
 
+a_pack_expansion_descr_ptr get_curr_pack_expansion_descr_for_param(
+				a_pack_expansion_stack_entry_ptr	pesep)
+/*
+If we are in the instantiation of an alias template based on a pack expansion
+from a template declaration context, go through the pack references in the
+instantiation descriptor for pesep (if any).  If there is exactly one
+template parameter pack, and if the template parameter pack points to a
+template parameter value, return the pack expansion descriptor of its
+associated template argument.  Otherwise, return NULL.
+*/
+{
+  a_pack_expansion_descr_ptr	result_pedp = NULL;
+  a_pack_reference_ptr		arg_prp = NULL;
+  a_scope_stack_entry_ptr	instantiation_ssep;
+
+  instantiation_ssep =
+                    scope_stack_entry_for(depth_innermost_instantiation_scope);
+  if (pesep != NULL && !pesep->is_suppression &&
+      pesep->instantiation_descr != NULL && instantiation_ssep != NULL &&
+      instantiation_ssep->alias_in_template_decl) {
+    arg_prp = pesep->instantiation_descr->pack_status;
+  }  /* if */
+  for (; arg_prp != NULL; arg_prp = arg_prp->next) {
+    a_template_arg_ptr	tap;
+    /* Only process pack references for template parameters. */
+    if (arg_prp->kind != prk_template_param) continue;
+    tap = arg_prp->curr_argument.template_arg;
+    if (tap != NULL && tap->pack_expansion_descr != NULL) {
+      if (result_pedp == NULL) {
+        result_pedp = tap->pack_expansion_descr;
+      } else {
+        /* If there is more than one pack expansion descriptor, this should be
+           a context in which deduction can't be done.  Return NULL. */
+        result_pedp = NULL;
+        break;
+      }  /* if */
+    }  /* if */
+  }  /* for */
+  return result_pedp;
+}  /* get_curr_pack_expansion_descr_for_param */
+
+
 static a_pack_expansion_stack_entry_ptr push_pack_instantiation(
 		a_pack_expansion_descr_ptr		pedp,
 		a_template_param_ptr			templ_param_list,
@@ -11093,6 +11136,10 @@ effect and returns NULL.
         pesep->expansion_descr = NULL;
         pesep = NULL;
       }  /* if */
+    } else {
+      /* Look for a pack expansion descriptor for this argument that should
+         be inherited from an enclosing template declaration context. */
+      result_pedp = get_curr_pack_expansion_descr_for_param(pesep);
     }  /* if */
   }  /* if */
   if (pesep != NULL) {
