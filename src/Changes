@@ -17,7 +17,7 @@ program applied to the resulting IL file.  This is now fixed.  For example:
           EDGcpfe/14805]
 Pack expansions in alias templates used in template declaration contexts
 
-If an pack expansion was used in an alias template definition and that
+If a pack expansion was used in an alias template definition and that
 alias template was instantiated with a pack expansion in a template
 declaration context, the pack was not expanded properly when the template
 declaration was instantiated or used in a deduction or partial ordering
