@@ -4649,7 +4649,13 @@ on every expression.
     /* No routine to do the expression output.  Do default
        non-compilable output. */
     check_assertion(!octl->gen_compilable_code);
-    switch (expr->kind) {
+    if (expr == NULL) {
+      /* This can occur in array bound constants in which the expression
+         involves a local variable and is thus represented via the local
+         expr node reference mechanism instead of as a direct expression
+         node. */
+      octl->output_str("<NULL expression>", octl);
+    } else switch (expr->kind) {
       case enk_error:
         octl->output_str("<error>", octl);
         break;
@@ -4893,7 +4899,9 @@ on every expression.
         octl->output_str("<expression>", octl);
         break;
     }  /* switch */
-    if (expr->is_pack_expansion) octl->output_str("...", octl);
+    if (expr != NULL && expr->is_pack_expansion) {
+      octl->output_str("...", octl);
+    }  /* if */
   }  /* if */
   octl->render_auto_deduction_typerefs = saved_render_auto_deduction_typerefs;
 }  /* form_expression */

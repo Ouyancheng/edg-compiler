@@ -1,5 +1,18 @@
 Version 4.9
 
+2/24/14  [EDGcpfe/14858]
+Segfault displaying IL for array type with dependent bound expression
+
+In configurations with PROTOTYPE_INSTANTIATIONS_IN_IL set to TRUE, an array
+type with a dependent bound expression involving a local variable could
+result in a segfault (in form_expression, il_to_str.c) in the IL display
+program applied to the resulting IL file.  This is now fixed.  For example:
+
+  template <typename T> void f(T out) {
+    typedef int y[sizeof(out) + 1];  // could segfault in edgcpdisp
+  }
+
+
 2/24/14  [EDGcpfe/13815,EDGcpfe/13847,EDGcpfe/14553,EDGcpfe/14764,
           EDGcpfe/14805]
 Pack expansions in alias templates used in template declaration contexts
