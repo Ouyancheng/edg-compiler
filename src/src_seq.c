@@ -2825,7 +2825,8 @@ associated with the indicated sck_function scope.
 
   rp = sp->variant.routine.ptr;
   ssep = rp->source_corresp.source_sequence_entry;
-  if (ssep != NULL) {
+  if (ssep != NULL &&
+      ss_entry_kind(ssep) != (an_il_entry_kind)iek_src_seq_secondary_decl) {
     a_source_correspondence  *scp = &rp->source_corresp;
     a_memory_region_number   region_to_switch_back_to;
     switch_to_file_scope_region(&region_to_switch_back_to);
