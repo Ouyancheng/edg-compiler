@@ -2748,6 +2748,7 @@ reference is done.
 
 
 void reference_to_trivial_copy_constructor(a_type_ptr        class_type,
+                                           a_type_ptr        access_class,
                                            a_source_position *pos,
                                            a_boolean         check_access,
                                            a_boolean         elided_reference,
@@ -2762,7 +2763,8 @@ possible to have a user-declared defaulted trivial copy constructor
 that is nonpublic.  If elided_reference is TRUE, the reference to the
 copy constructor has been elided.  If error_detected is non-NULL, return
 *error_detected set to TRUE if there was an error, and do not issue
-any diagnostics (including warnings).
+any diagnostics (including warnings).  The access check is done using
+access_class as the class in which the reference is done.
 */
 {
   a_class_symbol_supplement_ptr cssp;
@@ -2780,7 +2782,7 @@ any diagnostics (including warnings).
       if (is_simple_function_symbol(sym) &&
           sym->variant.routine.ptr->is_trivial_copy_function) {
         /* Found a trivial copy constructor. */
-        reference_to_implicitly_invoked_function(sym, pos, class_type,
+        reference_to_implicitly_invoked_function(sym, pos, access_class,
                                                  /*honor_virtual=*/FALSE,
                                                  /*evaluated=*/FALSE,
                                                  /*instantiate=*/FALSE,

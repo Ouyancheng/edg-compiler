@@ -1567,7 +1567,7 @@ from values on the expression stack.
   /* If errors are suppressed, get a returned variable instead of issuing
      any error. */
   if (expr_stack->suppress_diagnostics) p_error_detected = &error_detected;
-  reference_to_trivial_copy_constructor(class_type, pos,
+  reference_to_trivial_copy_constructor(class_type, class_type, pos,
                                         expr_access_checking_should_be_done(),
                                         elided_reference,
                                         p_error_detected);

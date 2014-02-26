@@ -196,6 +196,7 @@ extern a_boolean reference_to_trivial_default_constructor(
 
 extern
 void reference_to_trivial_copy_constructor(a_type_ptr        class_type,
+                                           a_type_ptr        access_class,
                                            a_source_position *pos,
                                            a_boolean         check_access,
                                            a_boolean         elided_reference,

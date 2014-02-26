@@ -9724,8 +9724,8 @@ and do not issue any diagnostics (including warnings).
                                     class_bitwise_copy);
   if (*class_bitwise_copy) {
     /* A bitwise copy is allowed. */
-    reference_to_trivial_copy_constructor(class_type, err_pos,
-                                          check_access,
+    reference_to_trivial_copy_constructor(class_type, object_class_type,
+                                          err_pos, check_access,
                                           /*elided_reference=*/FALSE,
                                           error_detected);
   } else if (ambiguous) {

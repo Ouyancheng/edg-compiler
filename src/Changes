@@ -1,5 +1,28 @@
 Version 4.9
 
+2/26/14  [EDGcpfe/14589]
+Spurious access error for protected trivial (defaulted) copy constructor
+
+When checking access to a protected defaulted copy constructor that is also a
+trivial copy constructor, the front end did not correctly consider the origin
+of the access.  This could result in spurious access errors.  For example:
+
+  struct N { N(N const&); };
+  class P {
+  protected:
+    P(P const&) = default; // Trivial copy constructor.
+  };
+  struct D : public P {
+    D();
+    N n;
+  } d;
+  D copy(d);  // Requires the generation of the copy constructor of D, which
+              // in turn requires access to the trivial copy constructor of P.
+              // Previously, that triggered an protected member access error.
+
+This problem is now fixed.
+
+
 2/24/14  [EDGcpfe/14858]
 Segfault displaying IL for array type with dependent bound expression
 
