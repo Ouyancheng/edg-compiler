@@ -34,12 +34,12 @@ This is now fixed.
 
 
 2/26/14  [EDGcpfe/14888]
-Braced Initializers for static data members of class templates
+Braced initializers for static data members of class templates
 
 The front end previously accidentally treated "direct" list initialization
 of static data members of class templates as "copy" list initialization (the
 "direct" syntax omits the "=" sign of the "copy" syntax).  This could result
-in spurious errors (e.g., because copy-list initialization doesn't consider
+in spurious errors (e.g., because copy-list-initialization doesn't consider
 explicit constructors).  For example:
 
   template<typename T> struct X {
