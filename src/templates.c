@@ -5754,6 +5754,7 @@ and the class instantiation will detect the runaway case.
     a_boolean           incomplete_type_error_reported;
     a_boolean           has_parenthesized_initializer;
 
+    init_decl_parse_state(&dps);
     rescan_reusable_cache(&tssp->cache.tokens);
     /* If the first token is an equals sign or a left brace then this is
        not a parenthesized initializer.   Initializers that begin with an
@@ -5761,8 +5762,12 @@ and the class instantiation will detect the runaway case.
     has_parenthesized_initializer = (curr_token != tok_assign &&
                                      curr_token != tok_lbrace);
     /* Bypass the "=" or "(". */
-    if (curr_token != tok_lbrace) (void)get_token();
-    init_decl_parse_state(&dps);
+    if (curr_token == tok_lbrace) {
+      dps.has_direct_initializer = TRUE;
+    } else {
+      dps.has_direct_initializer = has_parenthesized_initializer;
+      (void)get_token();
+    }  /* if */
     dps.sym = static_data_member_sym;
     initializer(&dps, &tip->template_sym->decl_position, idl_external,
                 has_parenthesized_initializer, &incomplete_type_error_reported,
