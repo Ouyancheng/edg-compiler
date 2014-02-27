@@ -1790,6 +1790,9 @@ track end positions).
        won't work in cases where SUPPRESS_RESTRICT_IN_GENERATED_CODE is TRUE,
        so handle that as a special case here. */
     ap->name = copy_string_to_region(file_scope_region_number, "restrict");
+  } else if (ap->family == (an_attribute_family)af_alignas && C_mode()) { 
+    /* In C mode, the "alignas" attribute is spelled "_Alignas". */
+    ap->name = copy_string_to_region(file_scope_region_number, "_Alignas");
   } else {
     /* Record the attribute name as an IL string. */
     ap->name = il_string_for_curr_token();
@@ -2054,8 +2057,8 @@ af_alignas and the attribute name is "alignas".
   a_source_position  group_pos;
 
   check_assertion(curr_token == tok_alignas);
-  record_attribute_name(ap);
   ap->kind = (a_byte_attribute_kind)ak_align;
+  record_attribute_name(ap);
   ap->syntactic_location = (a_byte_attribute_location)loc;
   group_pos = pos_curr_token;
   /* Skip over "alignas". */
