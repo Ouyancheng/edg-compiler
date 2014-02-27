@@ -1,5 +1,18 @@
 Version 4.9
 
+2/26/14  [EDGcpfe/14879]
+Abort on __is_convertible_to testing convertibility from reference type
+
+In modes that support the __is_convertible_to type trait helper, the front
+end aborted when evaluating the helper for a source type that is a reference
+to an incomplete type.  For example:
+
+  static_assert(!__is_convertible_to(char(&)[], char*), "Unexpected");
+    // Previously aborted in C++11 (and other) modes.
+
+This is now fixed.
+
+
 2/26/14  [EDGcpfe/14888]
 Braced Initializers for static data members of class templates
 

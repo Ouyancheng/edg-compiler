@@ -39197,13 +39197,19 @@ destination types in Microsoft mode.
        generating any errors.  It also handles destination types that are
        references. */
     src_val = make_declval_arg(src_type);
-    determine_arg_match_level(operand_of_arg_list_elem(src_val),
-                              (a_type_ptr)NULL, dst_type,
-                              (a_param_type_ptr)NULL,
-                              /*param_type_is_deduced=*/FALSE,
-                              /*try_user_conversions=*/TRUE,
-                              /*allow_expl_conv_funcs=*/FALSE,
-                              &arg_match);
+    if (src_val != NULL) {
+      determine_arg_match_level(operand_of_arg_list_elem(src_val),
+                                (a_type_ptr)NULL, dst_type,
+                                (a_param_type_ptr)NULL,
+                                /*param_type_is_deduced=*/FALSE,
+                                /*try_user_conversions=*/TRUE,
+                                /*allow_expl_conv_funcs=*/FALSE,
+                                &arg_match);
+    } else {
+      /* This can occur with references to incomplete types. */
+      check_assertion(is_any_reference_type(src_type));
+      result = FALSE;
+    }  /* if */
     free_init_component_list(src_val);
     result = (arg_match.match_level != aml_none);
   }  /* if */
