@@ -18611,8 +18611,8 @@ current mode -- just do it.
   orig_operand = *operand;
   expr = make_node_from_operand(operand);
   if (gnu_mode && !is_glvalue_node(expr) &&
-      is_constant_node(skip_parens(expr)) /*&&
-      !curr_expr_kind_is_const()*/) {
+      is_constant_node(skip_parens(expr)) &&
+      !curr_expr_kind_is_const()) {
     /* In GNU mode, some compound literals are taken as array prvalue
        constants.  Convert such a constant to an lvalue for a temporary
        containing the constant, so we can do array decay on that.  Don't do
