@@ -39205,13 +39205,13 @@ destination types in Microsoft mode.
                                 /*try_user_conversions=*/TRUE,
                                 /*allow_expl_conv_funcs=*/FALSE,
                                 &arg_match);
+      free_init_component_list(src_val);
+      result = (arg_match.match_level != aml_none);
     } else {
       /* This can occur with references to incomplete types. */
       check_assertion(is_any_reference_type(src_type));
       result = FALSE;
     }  /* if */
-    free_init_component_list(src_val);
-    result = (arg_match.match_level != aml_none);
   }  /* if */
   pop_expr_stack();
   restore_expr_stack(saved_expr_stack);
