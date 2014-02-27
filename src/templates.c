@@ -7195,7 +7195,7 @@ error type is used.
         /* If this is a nonreal alias instantiation, mark the instantiation
            scope as nonreal. */
         ps_options |= PS_NONREAL_INSTANTIATION;
-        if (is_template_declaration_context()) {
+        if (is_prototype_instantiation_context()) {
           /* When an alias is instantiated in a template declaration,
              it is sometimes necessary to copy pack expansion information
              from an enclosing template declaration. */

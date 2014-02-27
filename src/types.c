@@ -13827,9 +13827,11 @@ to the caller.  If no modification is done return the original type.
     }  /* if */
     /* See if the type is local to a function. */
     is_local = type->source_corresp.is_local_to_function;
-    /* Check for a nonreal template alias. */
-    is_nonreal = type->variant.typeref.is_nonreal;
-    if (!is_local && !is_nonreal) {
+    if (!prototype_instantiations_in_il) {
+      /* Check for a nonreal template alias. */
+      is_nonreal = type->variant.typeref.is_nonreal;
+    }  /* if */
+    if (!is_local && !is_nonreal && !prototype_instantiations_in_il) {
       /* See if the type was defined in a prototype instantiation. */
       if (type->source_corresp.is_class_member) {
         a_symbol_ptr cowam_sym = symbol_for(parent_class_of(type));

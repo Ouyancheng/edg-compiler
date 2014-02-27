@@ -1,5 +1,25 @@
 Version 4.9
 
+2/27/14  [EDGcpfe/14839]
+C++-generating back end: incorrect construction of alias instantiation
+
+An alias template instantiated with dependent template arguments was sometimes
+not constructed properly in the C++-generating back end output when the
+output was generated from IL (i.e., with PROTOTYPE_INSTANTIATION_IN_IL).
+Specifically, pack expansion information in the alias instantiation (e.g.,
+the definition of the alias C in the example below) could be missing.
+Now fixed.
+
+  template<typename T> T f();
+  template<typename T> struct Z { };
+  template<typename R, typename... A> struct S {
+    template<typename F> using I = decltype(F()(f<A>()...));
+    template<typename F> using C = Z<I<F>>;
+    // Formerly emitted as:
+    //   template< class F> using C = Z< decltype((F()(f<A>())))> ;
+  };
+
+
 2/26/14  [EDGcpfe/14879]
 Abort on __is_convertible_to testing convertibility from reference type
 
