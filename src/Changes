@@ -29,7 +29,7 @@ C++-generating back end: incorrect construction of alias instantiation
 
 An alias template instantiated with dependent template arguments was sometimes
 not constructed properly in the C++-generating back end output when the
-output was generated from IL (i.e., with PROTOTYPE_INSTANTIATION_IN_IL).
+output was generated from IL (i.e., with PROTOTYPE_INSTANTIATIONS_IN_IL).
 Specifically, pack expansion information in the alias instantiation (e.g.,
 the definition of the alias C in the example below) could be missing.
 Now fixed.

@@ -1677,14 +1677,6 @@ is_template_dependent_context, but excludes nonreal instantiations.
    scope_stack[depth_scope_stack].in_prototype_instantiation)
 
 /*
-TRUE if we are in the context of a template declaration.  This is TRUE when
-processing the declaration of a template entity, but not the body of such
-an entity, which is a prototype instantiation context.
-*/
-#define is_template_declaration_context()				\
-  (depth_template_declaration_scope != NO_SCOPE_DEPTH)
-
-/*
 TRUE if we are in a template prototype instantiation context but not
 in the context of a class specialization.  This excludes Microsoft
 in-class specializations within prototype instantiations.  Note that
