@@ -1790,7 +1790,7 @@ track end positions).
        won't work in cases where SUPPRESS_RESTRICT_IN_GENERATED_CODE is TRUE,
        so handle that as a special case here. */
     ap->name = copy_string_to_region(file_scope_region_number, "restrict");
-  } else if (ap->family == (an_attribute_family)af_alignas && C_mode()) { 
+  } else if (ap->family == (a_byte_attribute_family)af_alignas && C_mode()) { 
     /* In C mode, the "alignas" attribute is spelled "_Alignas". */
     ap->name = copy_string_to_region(file_scope_region_number, "_Alignas");
   } else {
