@@ -54,7 +54,7 @@ explicit constructors).  For example:
 This problem is now fixed.
 
 
-2/26/14  [EDGcpfe/14589]
+2/26/14  [EDGcpfe/14849]
 Spurious access error for protected trivial (defaulted) copy constructor
 
 When checking access to a protected defaulted copy constructor that is also a
@@ -72,7 +72,7 @@ of the access.  This could result in spurious access errors.  For example:
   } d;
   D copy(d);  // Requires the generation of the copy constructor of D, which
               // in turn requires access to the trivial copy constructor of P.
-              // Previously, that triggered an protected member access error.
+              // Previously, that triggered a protected member access error.
 
 This problem is now fixed.
 
