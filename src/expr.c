@@ -29790,6 +29790,17 @@ handle_identifier:
           curr_token = tok_safe_cast;
           goto handle_safe_cast;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+        } else if (clang_mode && !locator_for_curr_id.is_qualified_name) {
+          if ((locator_for_curr_id.symbol_header == is_pod_symbol_header ||
+               locator_for_curr_id.symbol_header == is_empty_symbol_header) &&
+              next_token() == tok_lparen) {
+            if (locator_for_curr_id.symbol_header == is_pod_symbol_header) {
+              curr_token = tok_is_pod;
+            } else {
+              curr_token = tok_is_empty;
+            }  /* if */
+            goto handle_unary_type_trait_helper;
+          }  /* if */
         }  /* if */
         scan_identifier(&local_result, local_options, prec_level,
                         (a_rescan_control_block *)NULL, (a_symbol *)NULL,
@@ -30112,6 +30123,7 @@ handle_identifier:
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     case tok_is_final:
       /* Various single-type unary traits helpers. */
+handle_unary_type_trait_helper:
       scan_unary_type_trait_helper((a_rescan_control_block *)NULL,
                                     &local_result);
       break;

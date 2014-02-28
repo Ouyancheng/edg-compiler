@@ -12498,21 +12498,26 @@ id_scan:
               /* Check for a keyword that is not yet implemented.  If one is
                  found, issue a diagnostic and treat the keyword as an
 		 identifier. */
-#if SUN_EXTENSIONS_ALLOWED
               if (assoc_symbol->is_invisible) {
                 /* Some keywords (currently, the Sun linker scope specifiers)
                    may be disabled and enabled using pragma directives. */
                 ctoken = tok_identifier;
-              } else
-#endif /* SUN_EXTENSIONS_ALLOWED */
-              /* Do not insert code here. */
-              if (ctoken == tok_unimplemented) {
+              } else if (ctoken == tok_unimplemented) {
                 unimplemented_keyword_diagnostic(assoc_symbol);
                 ctoken = tok_identifier;
 	      } else if (ctoken == tok_false || ctoken == tok_true) {
                 /* A C++ boolean constant. */
 		scan_boolean_constant(ctoken);
                 goto end_id_scan;
+              } else if (clang_mode && curr_token == tok_struct &&
+                         (ctoken == tok_is_pod || ctoken == tok_is_empty)) {
+                /* The clang compiler treats the keywords  "__is_empty" and
+                   "__is_pod" context-sensitively once it appears after the
+                   "struct" keyword. */
+                pos_sy_warning(ec_keyword_dropped, &pos_curr_token,
+                               assoc_symbol);
+                assoc_symbol->is_invisible = TRUE;
+                ctoken = tok_identifier;
               } else {
 #if MICROSOFT_EXTENSIONS_ALLOWED
                 /* The words that can potentially start a white-space keyword

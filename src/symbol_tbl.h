@@ -4010,6 +4010,14 @@ EXTERN a_symbol_header_ptr
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 /*
+Headers for the contextual keywords "__is_pod" and "__is_empty" (used in
+clang mode).
+*/
+EXTERN a_symbol_header_ptr
+		is_pod_symbol_header, is_empty_symbol_header;
+
+
+/*
 Entry describing a fixup that is required for a VLA that appears in a
 function prototype parameter declaration.  There are two sorts of fixup that
 happen once the function scope and its associated memory region are created:

@@ -2595,6 +2595,7 @@ ec_thread_local_must_include_static_or_extern;;"a block-scope thread-local decla
 ec_deduced_return_type_conflict;;"deduced return type %t1 conflicts with previously deduced type %t2"
 ec_use_of_undefined_function_with_deduced_return_type;;"cannot deduce the return type of %nd; it has not been defined"
 ec_virtual_function_cannot_have_deduced_return_type;;"a virtual function cannot have a deduced return type"
+ec_keyword_dropped;;"%n will be treated as a context-sensitive keyword from this point"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #
