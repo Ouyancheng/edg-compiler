@@ -1082,7 +1082,7 @@ extern int fileno(FILE *);
 /*lint -esym(552,ud_lit_op_sym_for_curr_token)*/
 /*lint -esym(552,encoding_prefix_for_curr_token)*/
 /*lint -esym(552,user_defined_literals_enabled)*/
-/*lint -esym(552, macro_preempts_udl_suffix)*/
+/*lint -esym(552,macro_preempts_udl_suffix)*/
 /*lint -esym(552,raw_string_literals_enabled)*/
 /*lint -esym(755,ud_suffix_from_literal_operator_id)*/
 #if !THREAD_LOCAL_STORAGE_SPECIFIER_ALLOWED
