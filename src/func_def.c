@@ -813,21 +813,6 @@ and issue a diagnostic if that was not the case.
        return statement.  Determine the return type as if "return (void)0;"
        had appeared. */
     deduce_return_type_from_void_operand(rp, !rp->is_lambda_body, diag_pos);
-  } else if (rp->is_lambda_body &&
-             !multiple_returns_allowed_in_implicit_return_type_lambda &&
-             !is_void_type(rtp) && !is_error_type(rtp) &&
-             !is_template_param_type(rtp)) {
-    /* A return type was deduced from a non-void return.  Check that that
-       return statement was the only statement in the function body.
-       Some dialects allow multiple statements/returns (e.g., Microsoft). */
-    a_statement_ptr  sp = scope_for_routine(rp)->assoc_block;
-    check_assertion(sp->kind == (a_statement_kind)stmk_block &&
-                    sp->next == NULL);
-    sp = sp->variant.block.statements;
-    if (sp->kind != (a_statement_kind)stmk_return ||
-        sp->next != NULL) {
-      pos_error(ec_lambda_return_must_be_only_construct, diag_pos);
-    }  /* if */
   }  /* if */
 }  /* check_deduced_return_type */
 

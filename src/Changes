@@ -1,5 +1,19 @@
 Version 4.9
 
+2/28/14  [EDGcpfe/14874]
+Relaxed lambda forms with deduced return types
+
+In the original C++11 standard, lambdas with deduced return types had to
+consist of a single return statement.  The committee relaxed this constraint,
+and the front end now accepts the more general case in all modes that support
+lambda expressions.  Technically, the relaxation came via the committee's
+paper N3638 (see the entry for EDGcpfe/14144,EDGcpfe/14633) which introduces
+C++14 features, but the development of that aspect of it was in response to
+Core Issue 975 and had originally been approved by the Core Working Group as
+a C++11 defect resolution.  Treating it as a C++11 defect resolution also
+matches the resolution of other major implementations.
+
+
 2/27/14  [EDGcpfe/14876]
 clang compatibility: __is_pod and __is_empty
 

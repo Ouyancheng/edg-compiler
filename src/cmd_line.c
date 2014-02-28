@@ -2213,7 +2213,6 @@ by a command line option.
       static_assert_enabled = TRUE;
       if (!option_kind_used[(int)optk_lambdas]) {
         lambdas_enabled = TRUE;
-        multiple_returns_allowed_in_implicit_return_type_lambda = TRUE;
       }  /* if */
       if (!option_kind_used[(int)optk_rvalue_references]) {
         rvalue_references_enabled = TRUE;
@@ -2957,9 +2956,6 @@ default mode (e.g., exception handling).
   if (cpp14_mode) {
     if (auto_type_specifier_enabled) {
       decltype_auto_enabled = TRUE;
-    }  /* if */
-    if (lambdas_enabled) {
-      multiple_returns_allowed_in_implicit_return_type_lambda = TRUE;
     }  /* if */
     deduced_return_types_enabled = TRUE;
   }  /* if */
@@ -4121,12 +4117,6 @@ exclude the GNU C++ mode already.  Hence those are not checked again here.)
     }  /* if */
   }  /* if */
 #endif /* FUNCTION_PROTOTYPE_INSTANTIATION_DEFERRAL_ALLOWED */
-  if (lambdas_enabled && gnu_version >= 40500) {
-    /* Starting with version 4.5, GCC no longer imposes the C++11 constraint
-       that lambdas with an implicit non-void return type have a body of
-       (essentially) the form "{ return <expr>; }". */
-    multiple_returns_allowed_in_implicit_return_type_lambda = TRUE;
-  }  /* if */
   if (exceptions_enabled && noexcept_enabled &&
       !option_kind_used[(int)optk_implicit_noexcept]) {
     /* GCC 4.8 and later implement the C++11 rules that make a destructor or
@@ -10556,7 +10546,6 @@ variables declared in cmd_line.h.
   packing_applies_to_base_classes =
                      TARG_USER_CONTROL_OF_STRUCT_PACKING_AFFECTS_BASE_CLASSES;
   range_based_for_enabled = DEFAULT_RANGE_BASED_FOR_ENABLED;
-  multiple_returns_allowed_in_implicit_return_type_lambda = FALSE;
   carriage_return_is_line_terminator = FALSE;
   warning_on_lossy_conversion = DEFAULT_WARNING_ON_LOSSY_CONVERSION;
   gcc_const_variables_allowed = DEFAULT_GCC_CONST_VARIABLES_ALLOWED;

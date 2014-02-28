@@ -2363,12 +2363,6 @@ EXTERN a_boolean
 			   is enabled. */
 
 EXTERN a_boolean
-		multiple_returns_allowed_in_implicit_return_type_lambda;
-			/* When TRUE, lambdas with an implicit return type
-			   are allowed to have multiple returns as long as
-			   they all give the same type. */
-
-EXTERN a_boolean
 		deprecated_string_literal_conv_allowed;
 			/* When TRUE, the deprecated conversion from string
 			   literal to char * is allowed in C++ mode. */

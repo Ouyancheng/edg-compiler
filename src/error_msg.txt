@@ -1785,7 +1785,7 @@ ec_not_captured_local_var_in_lambda;;"an enclosing-function local variable canno
 ec_bad_local_var_in_lambda;;"invalid reference to an outer-scope local variable in a lambda body"
 ec_captured_local_var_not_in_innermost_function;;"a local variable outside the current function scope cannot be captured"
 ec_not_captured_this_in_lambda;;"the enclosing-function \"this\" cannot be referenced in a lambda body unless it is in the capture list"
-ec_lambda_return_must_be_only_construct;;"the body of a value-returning lambda with no explicit return type must be a single return statement"
+REMOVED;ec_lambda_return_must_be_only_construct;;"the body of a value-returning lambda with no explicit return type must be a single return statement"
 ec_captured_var_type_not_copyable;;"lambda captured variable of type %t1 cannot be copied to closure class field of type %t2"
 ec_cl_invalid_template_directory;;"invalid template directory: "
 ec_wrapup_error;INTERNAL;"error"
