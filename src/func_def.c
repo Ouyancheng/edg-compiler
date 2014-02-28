@@ -804,10 +804,6 @@ and this is a C++11-style lambda body, check that the body had the simple form
 and issue a diagnostic if that was not the case.
 */
 {
-  a_type_ptr  rtp;
-
-  check_assertion(rp->type->kind == (a_type_kind)tk_routine);
-  rtp = rp->type->variant.routine.return_type;
   if (!rp->has_deduced_return_type) {
     /* No return type was specified, and no return type was deduced from a
        return statement.  Determine the return type as if "return (void)0;"
