@@ -13814,7 +13814,16 @@ to the caller.  If no modification is done return the original type.
 */
 {
   a_boolean  type_operator_stripped = FALSE;
+  a_boolean  force_strip_nonreal = FALSE;
 
+  /* If the underlying type is not dependent, make sure we strip off any
+     nonreal typerefs. */
+  if (type->kind == (a_type_kind)tk_typeref &&
+      prototype_instantiations_in_il) {
+    if (!is_template_dependent_type(type)) {
+      force_strip_nonreal = TRUE;
+    }  /* if */
+  }  /* if */
   while (type->kind == (a_type_kind)tk_typeref) {
     a_boolean  is_nonreal = FALSE;
     a_boolean  is_local;
@@ -13827,11 +13836,12 @@ to the caller.  If no modification is done return the original type.
     }  /* if */
     /* See if the type is local to a function. */
     is_local = type->source_corresp.is_local_to_function;
-    if (!prototype_instantiations_in_il) {
+    if (!prototype_instantiations_in_il || force_strip_nonreal) {
       /* Check for a nonreal template alias. */
       is_nonreal = type->variant.typeref.is_nonreal;
     }  /* if */
-    if (!is_local && !is_nonreal && !prototype_instantiations_in_il) {
+    if (!is_local && !is_nonreal &&
+        (!prototype_instantiations_in_il || force_strip_nonreal)) {
       /* See if the type was defined in a prototype instantiation. */
       if (type->source_corresp.is_class_member) {
         a_symbol_ptr cowam_sym = symbol_for(parent_class_of(type));
