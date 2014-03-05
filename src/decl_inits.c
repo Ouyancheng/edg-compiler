@@ -2289,7 +2289,7 @@ position for which diagnostics should be issued.
                                                            ftp, is, diag_pos);
             if (atp != NULL && !is->check_validity_only) {
               /* The field is an array.  Wrap its initializer in an aggregate
-                 constant entry (but add an ck_init_repeat if needed). */
+                 constant entry (but add a ck_init_repeat if needed). */
               init_con = repeat_constant_for_array_init(init_con, atp);
             }  /* if */
           }  /* if */
