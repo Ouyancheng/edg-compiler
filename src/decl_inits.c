@@ -1186,6 +1186,62 @@ given position, unless is->no_diagnostics is TRUE.
 }  /* default_nontrivial_init_constant_for_aggr_member */
 
 
+static a_constant_ptr aggr_init_constant_from_field_initializer(
+                                                 a_field_ptr        fp,
+                                                 a_type_ptr         aggr_type,
+                                                 an_init_state      *is,
+                                                 a_source_position  *diag_pos)
+/*
+The given field (member of the given aggregate class type) has a field
+initializer.  Return a constant corresponding to that initializer for
+insertion in an aggregate initialization described by *is.  Issue any
+diagnostics at the given position.
+*/
+{
+  a_dynamic_init_ptr  dip;
+  a_constant_ptr      elem_con = NULL;
+  a_constant          folded_value;
+
+  check_assertion(fp->has_initializer);
+  scan_field_initializer_if_needed(fp, aggr_type);
+  dip = fp->initializer;
+  if (dip == NULL) {
+    /* This can happen when a field initializer depends on a generated
+       default constructor that depends itself on the field initializer. */
+    is->init_error = TRUE;
+    if (!is->no_diagnostics) {
+      pos_ty_error(
+               ec_generated_default_constructor_used_in_field_initializer,
+               diag_pos, sym_parent_class(symbol_for(fp)));
+    }  /* if */
+    if (!is->check_validity_only) {
+      dip = make_error_constant_dynamic_init();
+    }  /* if */
+  }  /* if */
+  if (dip == NULL) {
+    /* This can happen in error cases: Don't attempt operations on *dip. */
+    check_assertion(is->init_error && is->check_validity_only);
+  } else if (fold_constexpr_dynamic_init(dip, fp->type, diag_pos,
+                                         &folded_value)) {
+    /* Append a copy of the constant. */
+    if (!is->check_validity_only) {
+      elem_con = alloc_unshared_constant(&folded_value);
+    }  /* if */
+  } else {
+    if (!is->check_validity_only) {
+      /* Copy the initializer and place the copy under a ck_dynamic_init
+         constant. */
+      dip = copy_dynamic_init(dip, CE_COPIED_CONSTANTS_MAY_BE_SHARED);
+      elem_con = alloc_constant((a_constant_repr_kind)ck_dynamic_init);
+      elem_con->variant.dynamic_init = dip;
+      elem_con->type = fp->type;
+    }  /* if */
+    is->has_dynamic_init_component = TRUE;
+  }  /* if */
+  return elem_con;
+}  /* aggr_init_constant_from_field_initializer */
+
+
 static a_constant_ptr implicit_init_anonymous_union_member(
                                                  a_type_ptr         tp,
                                                  an_init_state      *is,
@@ -1235,53 +1291,20 @@ is->no_diagnostics is TRUE.
       if (fp->has_initializer) break;
     }  /* for */
     if (fp != NULL) {
-      a_dynamic_init_ptr  dip;
-      a_constant_ptr      des_con, elem_con = NULL;
-      a_constant          folded_value;
-      scan_field_initializer_if_needed(fp, tp);
-      dip = fp->initializer;
-      if (dip == NULL) {
-        /* This can happen when a field initializer depends on a generated
-           default constructor that depends itself on the field initializer. */
-        is->init_error = TRUE;
-        if (!is->no_diagnostics) {
-          pos_ty_error(
-                   ec_generated_default_constructor_used_in_field_initializer,
-                   diag_pos, sym_parent_class(symbol_for(fp)));
-        }  /* if */
-        if (!is->check_validity_only) {
-          dip = make_error_constant_dynamic_init();
-        }  /* if */
-      }  /* if */
-      if (fp != first_field && !is->check_validity_only) {
-        /* Add a designator to indicate the field to initialize. */
-        des_con = alloc_constant((a_constant_repr_kind)ck_designator);
-        des_con->variant.designator.field = fp;
-        add_constant_to_aggregate(des_con, result);
-      }  /* if */
-      if (dip == NULL) {
-        /* This can happen in error cases: Don't attempt operations on *dip. */
-        check_assertion(is->init_error);
-      } else if (fold_constexpr_dynamic_init(dip, fp->type, diag_pos,
-                                             &folded_value)) {
-        /* Append a copy of the constant. */
-        if (!is->check_validity_only) {
-          elem_con = alloc_unshared_constant(&folded_value);
-        }  /* if */
-      } else {
-        if (!is->check_validity_only) {
-          /* Copy the initializer and place the copy under a ck_dynamic_init
-             constant. */
-          dip = copy_dynamic_init(dip, CE_COPIED_CONSTANTS_MAY_BE_SHARED);
-          elem_con = alloc_constant((a_constant_repr_kind)ck_dynamic_init);
-          elem_con->variant.dynamic_init = dip;
-          elem_con->type = fp->type;
-        }  /* if */
-        is->has_dynamic_init_component = TRUE;
-      }  /* if */
+      /* A field with an initializer was found.  Make an initializer element
+         from the field initializer. */
+      a_constant_ptr  con;
+      con = aggr_init_constant_from_field_initializer(fp, tp, is, diag_pos);
       if (!is->check_validity_only) {
-        elem_con->implicit_aggr_element = TRUE;
-        add_constant_to_aggregate(elem_con, result);
+        if (fp != first_field) {
+          /* Add a designator to indicate the field to initialize. */
+          a_constant_ptr
+                des_con = alloc_constant((a_constant_repr_kind)ck_designator);
+          des_con->variant.designator.field = fp;
+          add_constant_to_aggregate(des_con, result);
+        }  /* if */
+        con->implicit_aggr_element = TRUE;
+        add_constant_to_aggregate(con, result);
       }  /* if */
     } else {
       /* A traditional (POD) union.  Just keep the empty aggregate constant. */
@@ -1295,7 +1318,8 @@ static a_boolean implicit_init_involves_ref_init(a_type_ptr tp)
 /*
 Return TRUE if the given type is:
   - a reference type, or
-  - an aggregate type (in the C++ sense) with a member of such a type.
+  - an aggregate type (in the C++ sense) with a member of such a type that
+    does not have a default initializer.
 */
 {
   a_boolean   result = FALSE;
@@ -1313,6 +1337,7 @@ Return TRUE if the given type is:
         a_symbol_ptr  sym = cssp->symbols;
         for (; sym != NULL; sym = sym->next_in_scope) {
           if (symbol_is(sym, sk_field) &&
+              !sym->variant.field.ptr->has_initializer &&
               implicit_init_involves_ref_init(sym->variant.field.ptr->type)) {
             result = TRUE;
             break;
@@ -2132,6 +2157,7 @@ for use in an enk_gcnew node.  (dim_exprs itself must be non-NULL.)
 
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
+
 static a_boolean try_whole_aggr_class_init(an_init_component_ptr  *p_icp,
                                            a_type_ptr             class_type,
                                            an_init_state          *is,
@@ -2192,7 +2218,10 @@ position for which diagnostics should be issued.
      nontrivial default initialization.  Keep track of the last such field. */
   for (fp = next_field; fp != NULL; fp = next_initializable_field(fp->next)) {
     a_type_ptr  ftp = fp->type;
-    if (implicit_init_involves_ref_init(ftp)) {
+    if (fp->has_initializer) {
+      /* The field initializer must be used to initialize this field. */
+      last_dyn_field = fp;
+    } else if (implicit_init_involves_ref_init(ftp)) {
       /* An uninitialized reference will likely result in a diagnostic. */
       is->any_uninitialized_const_or_ref_member = TRUE;
     } else {
@@ -2233,30 +2262,36 @@ position for which diagnostics should be issued.
          fp = next_initializable_field(fp->next)) {
       a_type_ptr      ftp = skip_typerefs(fp->type), atp = NULL;
       a_constant_ptr  init_con = NULL;
-      if (ftp->kind == (a_type_kind)tk_array) {
-        atp = ftp;
-        ftp = underlying_array_element_type(ftp);
-        ftp = skip_typerefs(ftp);
-      }  /* if */
-      if (is_real_class_type(ftp)) {
-        /* A field of class type (or array thereof): A constructor or
-           destructor may be involved. */
-        a_class_symbol_supplement_ptr  cssp = symbol_supplement_for_class(ftp);
-        if (class_type_supp(ftp)->anonymous_union_kind ==
+      if (fp->has_initializer) {
+        init_con = aggr_init_constant_from_field_initializer(
+                                                 fp, aggr_type, is, diag_pos);
+      } else {
+        if (ftp->kind == (a_type_kind)tk_array) {
+          atp = ftp;
+          ftp = underlying_array_element_type(ftp);
+          ftp = skip_typerefs(ftp);
+        }  /* if */
+        if (is_real_class_type(ftp)) {
+          /* A field of class type (or array thereof): A constructor or
+             destructor may be involved. */
+          a_class_symbol_supplement_ptr
+                                      cssp = symbol_supplement_for_class(ftp);
+          if (class_type_supp(ftp)->anonymous_union_kind ==
                                          (an_anonymous_union_kind)auk_field) {
-          /* Anonymous union types don't have their own constructors or
-             destructors, but if they include a field with an initializer,
-             their initialization is not simply value initialization. */
-          init_con = implicit_init_anonymous_union_member(ftp, is, diag_pos);
-        } else if (!has_trivial_default_constructor(cssp) ||
-                   (exceptions_enabled && !cssp->has_trivial_destructor)) {
-          /* Nontrivial initialization/destruction. */
-          init_con = default_nontrivial_init_constant_for_aggr_member(
+            /* Anonymous union types don't have their own constructors or
+               destructors, but if they include a field with an initializer,
+               their initialization is not simply value initialization. */
+            init_con = implicit_init_anonymous_union_member(ftp, is, diag_pos);
+          } else if (!has_trivial_default_constructor(cssp) ||
+                     (exceptions_enabled && !cssp->has_trivial_destructor)) {
+            /* Nontrivial initialization/destruction. */
+            init_con = default_nontrivial_init_constant_for_aggr_member(
                                                            ftp, is, diag_pos);
-          if (atp != NULL && !is->check_validity_only) {
-            /* The field is an array.  Wrap its initializer in an aggregate
-               constant entry (but add an ck_init_repeat if needed). */
-            init_con = repeat_constant_for_array_init(init_con, atp);
+            if (atp != NULL && !is->check_validity_only) {
+              /* The field is an array.  Wrap its initializer in an aggregate
+                 constant entry (but add an ck_init_repeat if needed). */
+              init_con = repeat_constant_for_array_init(init_con, atp);
+            }  /* if */
           }  /* if */
         }  /* if */
       }  /* if */
@@ -2265,6 +2300,7 @@ position for which diagnostics should be issued.
           /* Default initialization doesn't involve a constructor or destructor
              call.  Use a zero-valued constant for scalar types, and an empty
              aggregate for aggregate types. */
+          check_assertion(!fp->has_initializer);
           init_con = alloc_constant((a_constant_repr_kind)ck_aggregate);
           if (is_scalar_type(ftp) && atp == NULL) {
             make_zero_of_proper_type(ftp, init_con);

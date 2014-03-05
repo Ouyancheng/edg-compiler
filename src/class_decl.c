@@ -15815,10 +15815,12 @@ nonstandard anonymous unions is_nonstd is TRUE.
         promote_anonymous_union_field_symbol(
                          sym, class_type, &new_apo_sym_list, assoc_object_sym,
                          assoc_object_access, reuse_symbol, is_nonstd);
-        if (sym->variant.field.ptr->has_initializer && class_type != NULL) {
+        if (sym->variant.field.ptr->has_initializer && class_type != NULL &&
+            !cpp14_mode) {
           /* Class types with data members that have field initializers aren't
-             aggregate types.  We take the view here that promoted fields
-             also make the parent class a non-aggregate. */
+             aggregate types in C++11 (but they are in C++14).  We take the
+             view here that promoted fields also make the parent class a
+             non-aggregate. */
           a_class_def_state_ptr  cdsp = scope_stack_top().class_def_state;
           check_assertion(cdsp != NULL);
           cdsp->class_aggregate_ruled_out = TRUE;
@@ -17529,10 +17531,12 @@ information about the member declaration, respectively.
                              &pos_curr_token, ec_field_initializers_is_cpp11);
         record_inclass_initializer_fixup(class_state, dps);
       }  /* if */
-      /* Field initializers make the class a non-POD and a non-aggregate.
-         Also, it makes the default constructor nontrivial. */
+      /* Field initializers make the class a non-POD and, prior to C++14, a
+         non-aggregate.  Also, it makes the default constructor nontrivial. */
       class_state->POD_ruled_out = TRUE;
-      class_state->class_aggregate_ruled_out = TRUE;
+      if (!cpp14_mode) {
+        class_state->class_aggregate_ruled_out = TRUE;
+      }  /* if */
       class_state->default_ctor_is_nontrivial = TRUE;
     }  /* if */
   }  /* if */

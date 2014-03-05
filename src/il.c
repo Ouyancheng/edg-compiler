@@ -19091,9 +19091,9 @@ process_ptr_to_member_selection:
         }
         break;
       case enk_param_ref:
-        /* An rvalue parameter reference is conceptually a "fetch", but since
-           such nodes only appear in arguments of decltype, sizeof, etc., no
-           actual fetching is involved. */
+        /* An rvalue parameter reference is conceptually a "fetch", but in the
+           common case where such nodes appear in arguments of decltype,
+           sizeof, etc., no actual fetching is involved. */
         does_fetch = TRUE;
         fetched_type = node->type;
         break;
