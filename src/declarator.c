@@ -4983,7 +4983,9 @@ Microsoft extended decl modifiers are also scanned, but they are ignored
         if (complete_type != NULL && !check_pm_member_type(complete_type)) {
           complete_type = error_type();
         }  /* if */
-        if (gpp_mode || microsoft_mode) {
+        if (gpp_mode ||
+            (microsoft_mode && scope_is(&scope_stack_top(),
+                                        sck_template_instantiation))) {
           /* In Microsoft and GNU modes, qualifiers on the class type that
              appear through template rescanning (and, in GNU mode, through
              substitution) are transferred to the member type if that member

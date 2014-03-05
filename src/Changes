@@ -1,5 +1,28 @@
 Version 4.9
 
+3/5/14   [EDGcpfe/14903]
+Microsoft compatibility: Qualified class types and pointer-to-member types
+
+In Microsoft C++ modes, when rescanning a template, a dependent pointer-to-
+member-function type maybe have a "const/volatile" member function type if
+the substituted parent class type is const/volatile (see the Changes entry of
+1/18/12 for EDGcpfe/12214).  However, it appears that this is not always done
+by the Microsoft compiler and in particular if the pointer-to-member type
+appears in a non-template member of a class template.  The front end now more
+closely emulates that Microsoft behavior.  For example:
+
+  struct S { void f() const; };
+  template<class C> struct D {
+    typedef void (C::*pmf)();
+  };
+  template<class C> void b(C*, typename D<C>::pmf);
+  void g() {
+    S const *cp = 0;
+    b(cp, &S::f);  // Previously accepted in Microsoft mode; now an error
+  }                // because the "const" in the deduced type for parameter
+                   // C no longer transfers to the member function type.
+
+
 3/5/14   [EDGcpfe/14146]
 C++14: Aggregate class types with nonstatic data member initializers
 
