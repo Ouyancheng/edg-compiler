@@ -67,6 +67,29 @@ EXTERN a_statement_ptr
 			   them) when control returns to the statement
 			   level. */
 
+EXTERN an_init_pos_descr_ptr
+                aggregate_this_stack;
+                        /* When non-NULL, points to the head of a stack of
+                           initialization position descriptors that represent
+                           the values of the "this" pointer for each nested
+                           aggregate.  This is used to lower enk_param_ref
+                           nodes that represent implicit uses of "this"
+                           in aggregates.  For example:
+                             struct S {
+                               int a;
+                               struct N { int b; } n = { a };
+                             } s = { 42 };
+                           In this case, there would be two "this" pointers
+                           on the stack: "S::N" and "S".  */
+
+EXTERN a_variable_ptr
+                ctor_init_this;
+                        /* When non-NULL, points to the "this" parameter of the
+                           constructor init that is being lowered.  Used
+                           during the lowering of field initializers that
+                           have an implied "this" pointer, e.g.:
+                           "struct A { int i = 0; int j = i; };". */
+
 extern void do_ptr_to_data_member_arg_promotion_on_node(an_expr_node_ptr expr);
 
 extern void do_default_arg_promotions_on_node(an_expr_node_ptr expr);

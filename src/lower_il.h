@@ -173,6 +173,12 @@ typedef struct an_init_pos_descr {
   /* An initialization position description.  Starts with a variable (the
      variable itself or what it points to).  That base entity may be
      modified by a modifiers list. */
+  an_init_pos_descr_ptr
+                next;   /* When non-NULL, the next initialization position
+                           description on a list.  Used to create a stack of
+                           descriptions that describe the initial positions of
+                           each entity in a nested aggregate (see
+                           aggregate_this_stack). */
   a_variable_ptr
 		variable;
 			/* The base variable. */

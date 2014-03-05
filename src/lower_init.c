@@ -1030,6 +1030,7 @@ static void clear_init_pos_descr(an_init_pos_descr_ptr ipdp)
 Clear an initialization position description entry to default values.
 */
 {
+  ipdp->next                      = NULL;
   ipdp->variable                  = NULL;
 #if !DO_FULL_PORTABLE_EH_LOWERING
   ipdp->thrown_object_address     = FALSE;
@@ -5433,6 +5434,35 @@ expression).
 }  /* lower_ck_dynamic_init */
 
 
+static void push_aggregate_this(an_init_pos_descr_ptr  ipdp)
+/*
+Push the initialization description position that represents the beginning
+of an aggregate (and thus a potential "this" pointer) onto the
+aggregate_this_stack.
+*/
+{
+  check_assertion(ipdp->next == NULL);
+  if (aggregate_this_stack != NULL) {
+    ipdp->next = aggregate_this_stack;
+  }  /* if */
+  aggregate_this_stack = ipdp;
+}  /* push_aggregate_this */
+
+
+static void pop_aggregate_this()
+/*
+Pop the top entry from aggregate_this_stack.
+*/
+{
+  an_init_pos_descr_ptr  ipdp;
+
+  check_assertion(aggregate_this_stack != NULL);
+  ipdp = aggregate_this_stack;
+  aggregate_this_stack = aggregate_this_stack->next;
+  ipdp->next = NULL;
+}  /* pop_aggregate_this */
+
+
 static void lower_dynamic_init_aggregate_constant(
                           a_constant_ptr         aggr_const,
                           an_init_pos_descr_ptr  ipdp,
@@ -5534,6 +5564,13 @@ expression).
     prelower_aggregate_constant(aggr_const);
     ipmp->curr_field = next_initializable_field(
                              aggr_type->variant.class_struct_union.field_list);
+  }  /* if */
+  if (!array_or_vector) {
+    /* If this aggregate constant is a class type, push a pointer to the
+       beginning of the constant in case a reference to "this" is needed
+       later (see lower_param_ref). */
+    check_assertion(is_immediate_class_type(aggr_type));
+    push_aggregate_this(ipdp);
   }  /* if */
   con_ptr = aggr_const->variant.aggregate.first_constant;
   /* Work through the list of constants, pairing each one with a member of
@@ -5748,6 +5785,7 @@ expression).
     }  /* if */
     /* Loop while there are more constants. */
   }  /* for */
+  if (!array_or_vector) pop_aggregate_this();
 }  /* lower_dynamic_init_aggregate_constant */
 
 #if USE_PATCH_INIT_STARTUP
@@ -13838,7 +13876,10 @@ are inserted at *insert_location, and *insert_location is updated.
   an_implied_copy_source source_desc;
 
   dip = ctor_init->initializer;
-  check_assertion(dip != NULL);
+  check_assertion(dip != NULL && ctor_init_this == NULL);
+  /* Remember the "this" pointer for the ctor_init (ctor_inits can't be
+     nested). */
+  ctor_init_this = this_param_var;
   /* Develop a position description for the entity to initialize. */
   develop_ctor_init_pos_descr(ctor_init, this_param_var, &ipd, &ipm);
   if (base_of_complete_object) ipd.base_of_complete_object = TRUE;
@@ -13873,6 +13914,7 @@ are inserted at *insert_location, and *insert_location is updated.
     /* Insert any generated stmk_inits at the previously marked location. */
     insert_pending_stmk_init_statements_at_mark(insert_location);
   }  /* if */
+  ctor_init_this = NULL;
 }  /* lower_ctor_init */
 
 
@@ -17518,6 +17560,8 @@ for each translation unit.
   throw_bad_array_new_length_routine = NULL;
 #endif /* RUNTIME_SUPPORTS_ARRAY_LENGTH_CHECK && ABI_COMPATIBILITY_VERSION...*/
   delete_routine_ptr_type = NULL;
+  aggregate_this_stack = NULL;
+  ctor_init_this = NULL;
 }  /* init_lower_trans_unit_init */
 
 

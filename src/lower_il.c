@@ -14605,31 +14605,55 @@ lowering).  Note that eok_class_rvalue_adjust operations are not modified here
 
 static void lower_param_ref(an_expr_node_ptr expr)
 /*
-enk_param_refs are generally not seen by lowering except in the case where
-the front end uses them to represent "this" in some instances (e.g.,
-the implicit use in a case like "struct A { int i = 0; int j = i; };").
-Replace the enk_param_ref with an enk_variable node for the parameter that
-represents "this" in the member function.  Note that the method used to
-find "this" assumes that the expression is being lowered in the context of a
-member function (i.e., as a constructor init) and doesn't work in cases
-where an enk_param_ref is found in a constant or non-constant aggregate
-(currently not enabled in the front end).
+The front end uses enk_param_refs to represent "this" in two particular
+instances: for an implicit use of "this" in a field initializer that is
+lowered by a constructor init, e.g., a case like:
+
+  struct A { int i = 0; int j = i; };
+
+and in a non-constant aggregate initialization, e.g.:
+
+  struct S {
+    int a;
+    struct N { int b; } n = {a};
+  } s = { 42 };
+
+Replace the enk_param_ref with an enk_variable node that represents "this" in
+each case.
 */
 {
-  a_variable_ptr   param;
-
   check_assertion(expr->kind == (an_expr_node_kind)enk_param_ref &&
                   expr->variant.param_ref.param_num == 0);
-  for (param = innermost_function_scope->variant.routine.parameters;
-       param != NULL;
-       param = param->next) {
-    if (param->is_this_parameter) break;
-  }  /* for */
-  check_assertion(param != NULL &&
-                  identical_types_ignoring_qualifiers(param->type,
-                                                      expr->type));
-  set_expr_node_kind(expr, (an_expr_node_kind)enk_variable);
-  expr->variant.variable = param;
+  if (ctor_init_this != NULL) {
+    /* We're lowering a constructor init; use the "this" parameter for
+       the function. */
+    check_assertion(identical_types_ignoring_qualifiers(ctor_init_this->type,
+                                                        expr->type));
+    set_expr_node_kind(expr, (an_expr_node_kind)enk_variable);
+    expr->variant.variable = ctor_init_this;
+  } else {
+    /* We must be lowering an aggregate constant; go backwards through the
+       stack of nested potential "this" pointers looking for one that matches
+       the type of the enk_param_ref node (there can only be one) and
+       create an expression that points to the beginning of that aggregate.
+       Note that the code below is inefficient in that it creates an
+       expression representation for the initialization position description
+       just to find out its type (and discards expression trees that don't
+       match), but the type is difficult to determine (because of potential
+       modifiers) and this case doesn't occur frequently. */
+    an_expr_node_ptr      new_expr;
+    an_init_pos_descr_ptr ipdp;
+    check_assertion(aggregate_this_stack != NULL);
+    for (ipdp = aggregate_this_stack; ipdp != NULL; ipdp = ipdp->next) {
+      new_expr = make_address_of_init_entity_node(ipdp,
+                                                  /*using_as_dest=*/FALSE);
+      if (identical_types_ignoring_qualifiers(expr->type, new_expr->type)) {
+        break;
+      }  /* if */
+    }  /* for */
+    check_assertion(ipdp != NULL);
+    overwrite_node(expr, new_expr);
+  }  /* if */
 }  /* lower_param_ref */
 
 #if USE_LAZY_INITIALIZATION_FOR_THREAD_LOCAL_VARIABLES
