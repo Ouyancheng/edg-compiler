@@ -8091,7 +8091,7 @@ context.
   }  /* if */
   if (tpp->is_pack) {
     tap = get_curr_variadic_arg_for_param(coordinates, is_rescan, tpp,
-                                          /*create_if_not_found=*/TRUE);
+                                          /*create_if_not_found=*/!is_rescan);
   }  /* if */
   return tap;
 }  /* get_template_arg_by_list_pos */

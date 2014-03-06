@@ -10339,11 +10339,15 @@ and can be NULL only if create_if_not_found is FALSE.
   a_pack_expansion_stack_entry_ptr	pesep = pack_expansion_stack;
   a_template_arg_ptr			result_tap = NULL;
 
-  /* The pack expansion stack could be NULL in certain error cases. */
+  /* The pack expansion stack could be NULL in certain error cases, or we
+     could be in a suppression context. */
   if (pesep != NULL && !pesep->is_suppression &&
       pesep->instantiation_descr != NULL) {
     param_prp = pesep->expansion_descr->packs_referenced;
     arg_prp = pesep->instantiation_descr->pack_status;
+  } else {
+    /* In cases where we can't find an argument, create one. */
+    create_if_not_found = TRUE;
   }  /* if */
   for (; param_prp != NULL;
        param_prp = param_prp->next, arg_prp = arg_prp->next) {
