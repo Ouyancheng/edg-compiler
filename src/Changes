@@ -1,5 +1,21 @@
 Version 4.9
 
+3/6/14   [EDGcpfe/14911]
+Deducing auto&& from an initializer list
+
+The front end previously incorrectly handled deduction of a variable declared
+with "auto&&" and initialized with a braced initializer containing lvalues.
+This resulted in spurious errors.  For example:
+
+  #include <initializer_list>
+  int main() {
+    int i = 42;
+    auto &&r = { i, i };  // Previously triggered spurious errors; now okay.
+  }
+
+This is now fixed.
+
+
 3/6/14   [EDGcpfe/14914]
 Spurious error on indirect field with volatile member in union
 

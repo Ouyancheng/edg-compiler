@@ -24558,7 +24558,7 @@ TRUE and FALSE is returned.
     } else {
       /* Deduce from a braced-init-list. */
       if (!deduce_from_braced_init_list(initializer_alep,
-                                        type,
+                                        auto_type,
                                         templ_param,
                                         &templ_arg)) {
         okay = FALSE;
