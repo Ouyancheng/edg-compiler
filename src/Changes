@@ -24,10 +24,11 @@ has now been restored.  For example:
 Assertion failure in lower_array_new
 
 The example below had failed an assertion check in lower_array_new in
-configurations where NEW_AND_DELETE_FOR_ARRAY_CAN_BE_FOLDED_INTO_RUNTIME_ROUTINE
-is FALSE because lowering of the member function B::f (which had been delayed
-because of the presence of a static variable and the lack of a module id)
-was mistakenly lowered after then file scope had been popped.  Now fixed.
+configurations where
+NEW_AND_DELETE_FOR_ARRAY_CAN_BE_FOLDED_INTO_RUNTIME_ROUTINE is FALSE because
+lowering of the member function B::f (which had been delayed because of the
+presence of a static variable and the lack of a module id) was mistakenly
+lowered after then file scope had been popped.  Now fixed.
 For example (with --c++11 --no_exceptions):
 
   struct A {
