@@ -1607,7 +1607,8 @@ initialization (when ipdp->array_element_sequence is TRUE).
                     dip->kind == (a_dynamic_init_kind)dik_constant);
     /* Use (or create) the temporary variable associated with this constant. */
     init_val_node = add_address_of_to_node(var_lvalue_expr(
-                                                 assoc_var_for_constant(con)));
+                                                 assoc_var_for_constant(con,
+                                                       /*const_okay=*/FALSE)));
     if (ipdp->array_element_count == 0) {
       num_elem_node = num_elem_node_if_array(ipdp);
     }  /* if */

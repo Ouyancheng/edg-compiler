@@ -4096,10 +4096,13 @@ Do IL lowering of a pointer-to-member constant.
 }  /* lower_ptr_to_member_constant */
 
 
-a_variable_ptr assoc_var_for_constant(a_constant_ptr constant)
+a_variable_ptr assoc_var_for_constant(a_constant_ptr constant,
+                                      a_boolean      const_okay)
 /*
 Returns the associated variable for a constant if one already exists, otherwise
-it creates an associated variable for the constant and returns that.
+it creates an associated variable for the constant and returns that.  If
+const_okay is TRUE, the temporary variable should be created with a "const"
+qualification.
 */
 {
   a_variable_ptr  assoc_var;
@@ -4108,6 +4111,7 @@ it creates an associated variable for the constant and returns that.
     assoc_var = constant->assoc_var;
   } else {
     a_type_ptr var_type = constant->type;
+    if (const_okay) var_type = make_qualified_type(var_type, TQ_CONST);
     /* The variable must be allocated. */
     if (in_file_scope((char *)constant)) {
       /* The constant is in the file scope, so use a file-scope variable.
@@ -4194,7 +4198,7 @@ constant is being assigned, e.g.,
     /* See if the variable has been allocated already.  If so, a pointer to
        the variable will have been stored in the constant; otherwise one
        will be created. */
-    assoc_var = assoc_var_for_constant(constant);
+    assoc_var = assoc_var_for_constant(constant, /*const_okay=*/TRUE);
   }  /* if */
   *temp_var = assoc_var;
   return troublesome;
@@ -5133,7 +5137,8 @@ Do IL lowering of the indicated constant and everything under it.
             check_assertion(addressed_con->kind !=
                                               (a_constant_repr_kind)ck_string);
             lower_os_constant(addressed_con);
-            temp_var = assoc_var_for_constant(addressed_con);
+            temp_var = assoc_var_for_constant(addressed_con,
+                                              /*const_okay=*/FALSE);
             set_variable_address_constant_preserving_implicit_cast(
                                               temp_var,
                                               constant,

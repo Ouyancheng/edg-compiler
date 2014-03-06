@@ -1,5 +1,25 @@
 Version 4.9
 
+3/6/14   [EDGcpfe/14910]
+Const-qualification on temporary for lowered pointer-to-member constant
+
+The temporary created during lowering to point to the lowered pointer-to-member
+constant had been const-qualified and, as an unintended consequence of the
+changes for the C++11 constexpr feature (see the Changes entry for
+EDGcpfe/8523), had that const-qualification stripped.  The const-qualification
+has now been restored.  For example:
+
+ struct A;
+ struct B {
+   typedef void (A::*pmf)(B*);
+   B(pmf);
+ };
+ struct A {
+   void f(B*) {}
+ };
+ B obj = B(&A::f);
+
+
 3/6/14   [EDGcpfe/14885]
 Assertion failure in lower_array_new
 
