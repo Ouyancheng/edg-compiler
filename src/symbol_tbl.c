@@ -15551,7 +15551,9 @@ are handled in symbol_tbl_init.)
 #endif /* NAMED_REGISTERS_ALLOWED */
       pch_saved_var_array_elem(is_pod_symbol_header),
       pch_saved_var_array_elem(is_empty_symbol_header),
+#if MICROSOFT_EXTENSIONS_ALLOWED
       pch_saved_var_array_elem(safe_cast_symbol_header),
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if DEBUG
       pch_saved_var_array_elem(db_symbol_buffer_pointer),
       pch_saved_var_array_elem(num_access_error_descrs_allocated),
@@ -15743,7 +15745,9 @@ of the front end.
   ptr_to_const_char_type = NULL;
   is_pod_symbol_header = NULL;
   is_empty_symbol_header = NULL;
+#if MICROSOFT_EXTENSIONS_ALLOWED
   safe_cast_symbol_header = NULL;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if DEBUG
   num_symbols_allocated                         = 0;
   num_symbol_headers_allocated                  = 0;
