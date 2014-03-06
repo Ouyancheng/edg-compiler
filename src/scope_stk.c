@@ -8543,6 +8543,7 @@ being popped.
 #if !STANDALONE_UTILITY_PROGRAM && DO_IL_LOWERING
   if (innermost_function_scope == NULL &&
       waiting_for_module_id_list_head != NULL &&
+      ssep->kind != sck_file &&
       get_module_id() != NULL) {
     /* There may be functions whose lowering has previously been delayed
        because a suitable module id had not yet been created until now.  If so,
