@@ -2490,6 +2490,22 @@ be called by using the macro alignment_of_type.
   return tp->alignment;
 }  /* f_alignment_of_type */
 
+#if MICROSOFT_EXTENSIONS_ALLOWED
+
+a_boolean type_explicitly_aligned(a_type_ptr  tp)
+/*
+Return TRUE if the given type is explicitly aligned, including possibly through
+a typedef.
+*/
+{
+  while (!tp->alignment_set_explicitly &&
+         tp->kind == (a_type_kind)tk_typeref) {
+    tp = tp->variant.typeref.type;
+  }  /* while */
+  return tp->alignment_set_explicitly;
+}  /* type_explicitly_aligned */
+
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #endif /* USER_CONTROL_OF_STRUCT_PACKING && ... */
 
 a_type_qualifier_set f_get_type_qualifiers(a_type_ptr  tp,

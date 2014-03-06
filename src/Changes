@@ -1,5 +1,31 @@
 Version 4.9
 
+3/6/14   [EDGcpfe/14913]
+Microsoft-mode alignment on intermediate typedefs
+
+In Microsoft mode (as in GNU modes) the front end allows a typedef to have an
+alignment different from its underlying type.  However, when such a typedef was
+itself underlying another type, the front end frequently failed to take the
+explicit alignment into account.  For example:
+
+  #define OFFSET(s, m) \
+     (unsigned long)(&reinterpret_cast<char&>((((s *)0)->m)) )
+  typedef __declspec(align(16)) float AlignedFloat;
+  typedef AlignedFloat AF;
+  struct S {
+    float t;
+    AF v;
+  };
+  static_assert(OFFSET(S, v) == 16, "Unexpected");  // Previously failed in
+                                                    // some cases; now okay.
+
+When compiled with "--microsoft_version --pack_alignment=8" the front end
+should discard the request to align the struct on an 8-byte boundary because
+the type AF is explicitly aligned on a 16-byte boundary.  Previously, the
+front end failed to see this due to the multiple typedef levels.  That is now
+fixed.
+
+
 3/6/14   [EDGcpfe/14910]
 Const-qualification on temporary for lowered pointer-to-member constant
 

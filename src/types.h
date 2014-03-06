@@ -390,6 +390,8 @@ extern a_targ_alignment f_alignment_of_type(a_type_ptr  tp);
   ((tp)->alignment_set_explicitly ? (tp)->alignment :                 \
    (tp)->kind != (a_type_kind)tk_typeref ? (tp)->alignment :          \
                                            f_alignment_of_type((tp)))
+
+extern a_boolean type_explicitly_aligned(a_type_ptr  tp);
 #else /* !(USER_CONTROL_OF_STRUCT_PACKING && ...) */
 #define alignment_of_type(tp)  (skip_typerefs(tp)->alignment)
 #endif /* USER_CONTROL_OF_STRUCT_PACKING && ... */
