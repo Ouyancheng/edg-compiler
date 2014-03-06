@@ -3700,6 +3700,8 @@ state.
         cssp->has_user_provided_move_assign_operator = FALSE;
         cssp->assignment_by_bitwise_copy_allowed = FALSE;
         cssp->construction_by_bitwise_copy_allowed = FALSE;
+        cssp->makes_copy_construction_nontrivial = FALSE;
+        cssp->makes_copy_assignment_nontrivial = FALSE;
         cssp->has_auto_conversion_function = FALSE;
         cssp->target_of_conversion_function = FALSE;
         cssp->any_ref_member = FALSE;

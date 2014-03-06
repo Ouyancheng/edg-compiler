@@ -6196,8 +6196,8 @@ done:
          by bitwise copying. */
       a_class_symbol_supplement_ptr
                                cssp = symbol_supplement_for_class(class_type);
-      cssp->construction_by_bitwise_copy_allowed = FALSE;
-      cssp->assignment_by_bitwise_copy_allowed = FALSE;
+      cssp->makes_copy_construction_nontrivial = TRUE;
+      cssp->makes_copy_assignment_nontrivial = TRUE;
       /* Classes with virtual functions require nontrivial default
          constructors. */
       class_state->default_ctor_is_nontrivial = TRUE;
@@ -8222,15 +8222,15 @@ to FALSE before returning).
      base class.  (If the base class is nonreal, assume its type does not
      affect bitwise copyability.) */
   if (is_virtual) {
-    cssp->construction_by_bitwise_copy_allowed = FALSE;
-    cssp->assignment_by_bitwise_copy_allowed = FALSE;
+    cssp->makes_copy_construction_nontrivial = TRUE;
+    cssp->makes_copy_assignment_nontrivial = TRUE;
   } else if (!bcp_type->variant.class_struct_union.is_nonreal_class &&
              !is_value_class) {
-    if (!bcp_cssp->construction_by_bitwise_copy_allowed) {
-      cssp->construction_by_bitwise_copy_allowed = FALSE;
+    if (bcp_cssp->makes_copy_construction_nontrivial) {
+      cssp->makes_copy_construction_nontrivial = TRUE;
     }  /* if */
-    if (!bcp_cssp->assignment_by_bitwise_copy_allowed) {
-      cssp->assignment_by_bitwise_copy_allowed = FALSE;
+    if (bcp_cssp->makes_copy_assignment_nontrivial) {
+      cssp->makes_copy_assignment_nontrivial = TRUE;
     }  /* if */
   }  /* if */
   if (bcp_cssp->any_nonstatic_data_members) {
@@ -15367,13 +15367,13 @@ for the union type (class_type).
         if (cssp->has_nontrivial_default_constructor) {
           parent_cssp->variant_member_with_nontrivial_default_ctor = TRUE;
         }  /* if */
-        if (!cssp->construction_by_bitwise_copy_allowed) {
+        if (cssp->makes_copy_construction_nontrivial) {
           parent_cssp->variant_member_with_nontrivial_copy_ctor = TRUE;
         }  /* if */
         if (has_nontrivial_destructor(cssp)) {
           parent_cssp->variant_member_with_nontrivial_dtor = TRUE;
         }  /* if */
-        if (!cssp->assignment_by_bitwise_copy_allowed) {
+        if (cssp->makes_copy_assignment_nontrivial) {
           parent_cssp->variant_member_with_nontrivial_copy_assign = TRUE;
         }  /* if */
       }  /* if */
@@ -15383,7 +15383,7 @@ for the union type (class_type).
         /* A union member's (underlying) type cannot be a class with a
            nontrivial constructor or destructor. */
         severity = es_error;
-      } else if (!cssp->assignment_by_bitwise_copy_allowed &&
+      } else if (cssp->makes_copy_assignment_nontrivial &&
                  class_has_nontrivial_copy_assignment(tp)) {
         /* Memberwise assignment of the union would require calling a
            nontrivial assignment operator, but that involves knowing which
@@ -15751,6 +15751,8 @@ nonstandard anonymous unions is_nonstd is TRUE.
       cssp->has_trivial_destructor = FALSE;
       cssp->assignment_by_bitwise_copy_allowed = TRUE;
       cssp->construction_by_bitwise_copy_allowed = TRUE;
+      cssp->makes_copy_construction_nontrivial = FALSE;
+      cssp->makes_copy_assignment_nontrivial = FALSE;
     }  /* if */
   }  /* if */
   /* Go through each of the symbols on the list. */
@@ -16989,6 +16991,7 @@ be entered.
          copied. */
       field->is_initonly = TRUE;
       cssp->assignment_by_bitwise_copy_allowed = FALSE;
+      cssp->makes_copy_assignment_nontrivial = FALSE;
     } else if (decl_state->has_cli_property_keyword ||
                decl_state->has_cli_event_keyword) {
       /* A nonstatic property or event is represented via a nonstatic data
@@ -17185,6 +17188,7 @@ be entered.
       /* Assignment by bitwise copy is not allowed when a class has reference
          type members. */
       cssp->assignment_by_bitwise_copy_allowed = FALSE;
+      cssp->makes_copy_assignment_nontrivial = TRUE;
     }  /* if */
     /* Record that there is at least one nonstatic data member in the class. */
     cssp->any_nonstatic_data_members = TRUE;
@@ -17248,6 +17252,7 @@ be entered.
         /* Assignment by bitwise copy is not allowed when a class has const
            qualified members. */
         cssp->assignment_by_bitwise_copy_allowed = FALSE;
+        cssp->makes_copy_assignment_nontrivial = TRUE;
       }  /* if */
     }  /* if */
   }
@@ -17306,8 +17311,8 @@ be entered.
         if (!tp->variant.class_struct_union.is_nonreal_class) {
           if (!cssp->construction_by_bitwise_copy_allowed) {
             /* Bitwise copy construction has already been ruled out. */
-          } else if (!member_cssp->construction_by_bitwise_copy_allowed) {
-            cssp->construction_by_bitwise_copy_allowed = FALSE;
+          } else if (member_cssp->makes_copy_construction_nontrivial) {
+            cssp->makes_copy_construction_nontrivial = TRUE;
           } else if (any_qualifier_in_set_missing(TQ_CONST, quals)) {
             /* A trivially copyable class type is not copyable if it is
                volatile (because the constructor's parameter type is
@@ -17320,8 +17325,8 @@ be entered.
           }  /* if */
           if (!cssp->assignment_by_bitwise_copy_allowed) {
             /* Bitwise copy assignment has already been ruled out. */
-          } else if (!member_cssp->assignment_by_bitwise_copy_allowed) {
-            cssp->assignment_by_bitwise_copy_allowed = FALSE;
+          } else if (member_cssp->makes_copy_assignment_nontrivial) {
+            cssp->makes_copy_assignment_nontrivial = TRUE;
           } else if (any_qualifier_in_set_missing(TQ_CONST, quals)) {
             /* A trivially copyable class type is not copyable if it is
                volatile (because the constructor's parameter type is
@@ -19019,8 +19024,8 @@ deleted, disable bitwise copying.
      e.g. virtual function table pointers are not bitwise copyable).  The
      flags do not yet reflect the presence of user-provided copy constructors
      or user-provided copy assignment operators. */
-  if (cssp->assignment_by_bitwise_copy_allowed ||
-      cssp->construction_by_bitwise_copy_allowed) {
+  if (!cssp->makes_copy_construction_nontrivial ||
+      !cssp->makes_copy_assignment_nontrivial) {
     /* Trivial copying is possible: Traverse the member to find defaulted or
        compiler-generated copy/move constructors and copy/move assignment
        operators. */
@@ -19047,10 +19052,10 @@ deleted, disable bitwise copying.
                classes from this because they follow different copy
                semantics.) */
             rp->is_trivial_copy_function = FALSE;
-            cssp->construction_by_bitwise_copy_allowed = FALSE;
+            cssp->makes_copy_construction_nontrivial = TRUE;
           } else if (!rp->is_deleted) {
             rp->is_trivial_copy_function =
-                                   cssp->construction_by_bitwise_copy_allowed;
+                                    !cssp->makes_copy_construction_nontrivial;
           } else {
             class_state->rule_out_bitwise_copy_for_deleted_ctor = TRUE;
           }  /* if */
@@ -19071,10 +19076,10 @@ deleted, disable bitwise copying.
                classes from this because they follow different copy
                semantics.) */
             rp->is_trivial_copy_function = FALSE;
-            cssp->assignment_by_bitwise_copy_allowed = FALSE;
+            cssp->makes_copy_assignment_nontrivial = TRUE;
           } else if (!rp->is_deleted) {
             rp->is_trivial_copy_function =
-                                     cssp->assignment_by_bitwise_copy_allowed;
+                                      !cssp->makes_copy_assignment_nontrivial;
           } else {
             class_state->rule_out_bitwise_assign_for_deleted_operator = TRUE;
           }  /* if */
@@ -19814,7 +19819,7 @@ The routine body is not generated until it is known to be needed.
                        cssp->constructor != NULL ||
                        class_state->default_ctor_is_nontrivial ||
                        class_state->has_inheriting_constructors ||
-                       !cssp->construction_by_bitwise_copy_allowed ||
+                       cssp->makes_copy_construction_nontrivial ||
                        class_state
                             ->rule_out_bitwise_copy_for_volatile_class_field);
   declare_move_ctor = generate_move_operations &&
@@ -19827,7 +19832,7 @@ The routine body is not generated until it is known to be needed.
                        cssp->constructor != NULL ||
                        class_state->default_ctor_is_nontrivial ||
                        class_state->has_inheriting_constructors ||
-                       !cssp->construction_by_bitwise_copy_allowed ||
+                       cssp->makes_copy_construction_nontrivial ||
                        class_state
                             ->rule_out_bitwise_copy_for_volatile_class_field);
 #if MICROSOFT_EXTENSIONS_ALLOWED
@@ -19994,12 +19999,18 @@ The routine body is not generated until it is known to be needed.
      and it is bitwise copyable/assignable, except perhaps for deleted copy
      functions. */
   if (cssp->has_user_provided_copy_constructor ||
-      cssp->has_user_provided_move_constructor ||
+      cssp->has_user_provided_move_constructor) {
+    cssp->makes_copy_construction_nontrivial = TRUE;
+  }  /* if */
+  if (cssp->makes_copy_construction_nontrivial ||
       class_state->rule_out_bitwise_copy_for_volatile_class_field) {
     cssp->construction_by_bitwise_copy_allowed = FALSE;
   }  /* if */
   if (user_provided_copy_assignment_op ||
-      cssp->has_user_provided_move_assign_operator ||
+      cssp->has_user_provided_move_assign_operator) {
+    cssp->makes_copy_assignment_nontrivial = TRUE;
+  }  /* if */
+  if (cssp->makes_copy_assignment_nontrivial ||
       class_state->rule_out_bitwise_assign_for_volatile_class_field) {
     cssp->assignment_by_bitwise_copy_allowed = FALSE;
   }  /* if */
@@ -26772,7 +26783,9 @@ bits of information that were acquired while parsing.
          "by fiat". */
       cssp->is_class_aggregate = TRUE;
       cssp->construction_by_bitwise_copy_allowed = TRUE;
+      cssp->makes_copy_construction_nontrivial = FALSE;
       cssp->assignment_by_bitwise_copy_allowed = TRUE;
+      cssp->makes_copy_assignment_nontrivial = FALSE;
     } else 
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     /* Do not insert code here. */

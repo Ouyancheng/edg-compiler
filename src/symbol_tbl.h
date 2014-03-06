@@ -1134,6 +1134,18 @@ typedef struct a_class_symbol_supplement {
 			/* TRUE if copy construction can be performed by a
 			   bitwise copy rather than by calling a copy
 			   constructor function. */
+  a_bit_field	makes_copy_construction_nontrivial:1;
+  a_bit_field	makes_copy_assignment_nontrivial:1;
+			/* TRUE if having this class as a subobject (field or
+			   base) makes the generated copy constructor or
+			   generated copy assignment operator nontrivial.  This
+			   can be FALSE even when the corresponding
+			   ...by_bitwise_copy flag is TRUE because in C++03 a
+			   volatile class field cannot be bitwise-copied
+			   (because the corresponding constructor signature
+			   has a "const&" type, and that doesn't admit a
+			   volatile argument), but it doesn't make the copy
+			   function nontrivial either. */
   a_bit_field	has_auto_conversion_function:1;
 			/* TRUE if this class has at least one conversion
 			   function member whose type involves the "auto" or
