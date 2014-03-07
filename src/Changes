@@ -1,5 +1,19 @@
 Version 4.9
 
+3/6/14   [EDGcpfe/14916]
+C++-generating back end: typedef for dependent decltype as qualifier
+
+The changes to support decltype as a qualifier in version 4.8 (see the entry
+for EDGcpfe/10610) caused an assertion failure in gen_class_qualifier when
+a typedef whose underlying type is a dependent decltype is used as the
+nested-name-specifier in a qualified name.  This is now fixed.  For example:
+
+  template<typename T> struct S {
+    typedef decltype(T::x) TX;
+    typedef typename TX::z TXZ;  // Previously caused an assertion failure
+  };
+
+
 3/6/14   [EDGcpfe/14913]
 Microsoft-mode alignment on intermediate typedefs
 
