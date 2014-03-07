@@ -6196,6 +6196,8 @@ done:
          by bitwise copying. */
       a_class_symbol_supplement_ptr
                                cssp = symbol_supplement_for_class(class_type);
+      cssp->construction_by_bitwise_copy_allowed = FALSE;
+      cssp->assignment_by_bitwise_copy_allowed = FALSE;
       cssp->makes_copy_construction_nontrivial = TRUE;
       cssp->makes_copy_assignment_nontrivial = TRUE;
       /* Classes with virtual functions require nontrivial default
@@ -8222,12 +8224,20 @@ to FALSE before returning).
      base class.  (If the base class is nonreal, assume its type does not
      affect bitwise copyability.) */
   if (is_virtual) {
+    cssp->construction_by_bitwise_copy_allowed = FALSE;
+    cssp->assignment_by_bitwise_copy_allowed = FALSE;
     cssp->makes_copy_construction_nontrivial = TRUE;
     cssp->makes_copy_assignment_nontrivial = TRUE;
   } else if (!bcp_type->variant.class_struct_union.is_nonreal_class &&
              !is_value_class) {
+    if (!bcp_cssp->construction_by_bitwise_copy_allowed) {
+      cssp->construction_by_bitwise_copy_allowed = FALSE;
+    }  /* if */
     if (bcp_cssp->makes_copy_construction_nontrivial) {
       cssp->makes_copy_construction_nontrivial = TRUE;
+    }  /* if */
+    if (!bcp_cssp->assignment_by_bitwise_copy_allowed) {
+      cssp->assignment_by_bitwise_copy_allowed = FALSE;
     }  /* if */
     if (bcp_cssp->makes_copy_assignment_nontrivial) {
       cssp->makes_copy_assignment_nontrivial = TRUE;
@@ -17311,8 +17321,8 @@ be entered.
         if (!tp->variant.class_struct_union.is_nonreal_class) {
           if (!cssp->construction_by_bitwise_copy_allowed) {
             /* Bitwise copy construction has already been ruled out. */
-          } else if (member_cssp->makes_copy_construction_nontrivial) {
-            cssp->makes_copy_construction_nontrivial = TRUE;
+          } else if (!member_cssp->construction_by_bitwise_copy_allowed) {
+            cssp->construction_by_bitwise_copy_allowed = FALSE;
           } else if (any_qualifier_in_set_missing(TQ_CONST, quals)) {
             /* A trivially copyable class type is not copyable if it is
                volatile (because the constructor's parameter type is
@@ -17323,10 +17333,13 @@ be entered.
             class_state
                       ->rule_out_bitwise_copy_for_volatile_class_field = TRUE;
           }  /* if */
+          if (member_cssp->makes_copy_construction_nontrivial) {
+            cssp->makes_copy_construction_nontrivial = TRUE;
+          }  /* if */
           if (!cssp->assignment_by_bitwise_copy_allowed) {
             /* Bitwise copy assignment has already been ruled out. */
-          } else if (member_cssp->makes_copy_assignment_nontrivial) {
-            cssp->makes_copy_assignment_nontrivial = TRUE;
+          } else if (!member_cssp->assignment_by_bitwise_copy_allowed) {
+            cssp->assignment_by_bitwise_copy_allowed = FALSE;
           } else if (any_qualifier_in_set_missing(TQ_CONST, quals)) {
             /* A trivially copyable class type is not copyable if it is
                volatile (because the constructor's parameter type is
@@ -17336,6 +17349,9 @@ be entered.
                after the generation of special members). */
             class_state
                     ->rule_out_bitwise_assign_for_volatile_class_field = TRUE;
+          }  /* if */
+          if (member_cssp->makes_copy_assignment_nontrivial) {
+            cssp->makes_copy_assignment_nontrivial = TRUE;
           }  /* if */
         }  /* if */
         /* If the member type has mutable members, set the flag in the parent
@@ -19689,6 +19705,7 @@ The routine body is not generated until it is known to be needed.
   a_boolean                     declare_copy_asgn_op, declare_move_asgn_op;
   a_boolean                     declare_copy_ctor, declare_move_ctor;
   a_boolean                     declare_default_ctor, declare_dtor;
+  a_boolean                     no_bit_copy;
 #if MICROSOFT_EXTENSIONS_ALLOWED
   a_source_position             *pos;
   a_boolean                     declare_static_ctor;
@@ -19813,15 +19830,16 @@ The routine body is not generated until it is known to be needed.
      provided there are no other constructors (in which case the trivial copy
      constructor must be represented so it can compete in overload resolution)
      and the class is not a closure type. */
+  no_bit_copy = cssp->makes_copy_construction_nontrivial ||
+                !cssp->construction_by_bitwise_copy_allowed ||
+                class_state->rule_out_bitwise_copy_for_volatile_class_field;
   declare_copy_ctor = !cssp->has_copy_constructor &&
                       (gsfd.suppress_copy_ctor ||
                        ctsp->is_lambda_closure_class ||
                        cssp->constructor != NULL ||
                        class_state->default_ctor_is_nontrivial ||
                        class_state->has_inheriting_constructors ||
-                       cssp->makes_copy_construction_nontrivial ||
-                       class_state
-                            ->rule_out_bitwise_copy_for_volatile_class_field);
+                       no_bit_copy);
   declare_move_ctor = generate_move_operations &&
                       !cssp->has_copy_constructor &&
                       !cssp->has_user_declared_move_constructor &&
@@ -19832,9 +19850,7 @@ The routine body is not generated until it is known to be needed.
                        cssp->constructor != NULL ||
                        class_state->default_ctor_is_nontrivial ||
                        class_state->has_inheriting_constructors ||
-                       cssp->makes_copy_construction_nontrivial ||
-                       class_state
-                            ->rule_out_bitwise_copy_for_volatile_class_field);
+                       no_bit_copy);
 #if MICROSOFT_EXTENSIONS_ALLOWED
   declare_copy_asgn_op = declare_copy_asgn_op &&
                          !(cli_class_type_kind_is(class_type, cctk_ref) ||
