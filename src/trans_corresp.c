@@ -430,8 +430,8 @@ importance):
        Does the entity have a determined exception specification?
                                                      (routines only)
    (d) Is the entity a template specialization?
-   (e) Is the entity a definition?
-   (f) Is the entity a non-weak definition?
+   (e) Is the entity defined?
+   (f) Is the entity a non-weak definition or (for a type) complete?
 The entity with the highest ranking in a correspondence set should be the
 canonical entry.  (See also corresp_ranking in trans_copy.c for a reduced
 version of this function.)
@@ -504,6 +504,9 @@ The given entity should have a source correspondence.
     case iek_type:
       { a_type_ptr  type = (a_type_ptr)entity;
         if (type_has_definition(type)) {
+          if (!type->incomplete) {
+            rank += 32;
+          }  /* if */
           rank += 16;
         }  /* if */
         if (is_immediate_class_type(type) &&
