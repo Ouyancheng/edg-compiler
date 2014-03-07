@@ -1140,7 +1140,7 @@ typedef struct a_class_symbol_supplement {
 			   base) makes the generated copy constructor or
 			   generated copy assignment operator nontrivial.  This
 			   can be FALSE even when the corresponding
-			   ...by_bitwise_copy flag is TRUE because in C++03 a
+			   ...by_bitwise_copy flag is FALSE because in C++03 a
 			   volatile class field cannot be bitwise-copied
 			   (because the corresponding constructor signature
 			   has a "const&" type, and that doesn't admit a
