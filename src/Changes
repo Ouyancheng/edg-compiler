@@ -1,5 +1,25 @@
 Version 4.9
 
+3/8/14   [EDGcpfe/14920]
+Qualified names for scoped and member enumerators
+
+In some configurations, the name of a scoped or member enumerator
+incorrectly appeared in the output of il_to_str (e.g., in diagnostic
+messages) as an unqualified name.  This has now been fixed.  For example:
+
+  enum class E { e0 };
+
+  template<E T> struct X {
+  };
+
+  int f(int);
+  int f(double);
+
+  int g() {
+    return f(X<E::e0>());  // Error message previously referred to "X<e0>"
+  }
+
+
 3/7/14   [EDGcpfe/14819]
 Internal error in f_set_no_trans_unit_corresp
 

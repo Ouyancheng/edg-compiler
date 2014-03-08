@@ -5091,9 +5091,29 @@ precedence confusion.  Do the output in the way described by octl.
         /* A named enum constant.  The original constant entry used to
            represent the enumerator constant declaration can always just be
            rendered.  However, for copies of that entry (used in expression
-           contexts), only the unmangled name is available, which may not be
-           appropriate when generating code in the C-generating back end. */
+           contexts), only the unmangled name is available, which may not
+           be appropriate when generating code in the C-generating back
+           end. */
+        a_scope_ptr orig_parent_scope = constant->source_corresp.parent_scope;
+        if (orig_parent_scope == NULL) {
+          /* The parent scope can be lost when copying an enumerator
+             constant.  Temporarily set the enumerator's parent scope as
+             determined by its type (the enumeration's parent scope or, for
+             a scoped enumeration, the associated scope of the type itself)
+             so that the name's qualification will be correct. */
+          a_type_ptr tp = constant->type;
+          if (tp->variant.integer.is_scoped_enum) {
+            constant->source_corresp.parent_scope =
+                                     tp->variant.integer.enum_info.assoc_scope;
+          } else {
+            constant->source_corresp.parent_scope =
+                                               tp->source_corresp.parent_scope;
+          }  /* if */
+        }  /* if */
         form_name(&constant->source_corresp, iek_constant, octl);
+        /* Restore the enumerator's parent scope in case it was overwritten
+           above. */
+        constant->source_corresp.parent_scope = orig_parent_scope;
       } else if (is_enum && il_header.source_language == sl_Cplusplus &&
 #if DEBUG
                  !octl->debug_output &&
