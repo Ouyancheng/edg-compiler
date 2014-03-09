@@ -5095,6 +5095,8 @@ precedence confusion.  Do the output in the way described by octl.
            be appropriate when generating code in the C-generating back
            end. */
         a_scope_ptr orig_parent_scope = constant->source_corresp.parent_scope;
+        a_boolean   orig_class_member =
+                                      constant->source_corresp.is_class_member;
         if (orig_parent_scope == NULL) {
           /* The parent scope can be lost when copying an enumerator
              constant.  Temporarily set the enumerator's parent scope as
@@ -5108,12 +5110,15 @@ precedence confusion.  Do the output in the way described by octl.
           } else {
             constant->source_corresp.parent_scope =
                                                tp->source_corresp.parent_scope;
+            constant->source_corresp.is_class_member =
+                                            tp->source_corresp.is_class_member;
           }  /* if */
         }  /* if */
         form_name(&constant->source_corresp, iek_constant, octl);
-        /* Restore the enumerator's parent scope in case it was overwritten
-           above. */
+        /* Restore the enumerator's parent scope information in case it was
+           overwritten above. */
         constant->source_corresp.parent_scope = orig_parent_scope;
+        constant->source_corresp.is_class_member = orig_class_member;
       } else if (is_enum && il_header.source_language == sl_Cplusplus &&
 #if DEBUG
                  !octl->debug_output &&
