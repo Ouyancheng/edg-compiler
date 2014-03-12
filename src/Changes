@@ -1,5 +1,20 @@
 Version 4.9
 
+3/12/14  [EDGcpfe/14904]
+Folding of initializers with references to previously-initialized fields
+
+The front end incorrectly treated as non-constant an initialization in
+which the initializer for a non-static data member referred to a
+previously-initialized member's value.  This is now fixed.  For example:
+
+  struct F {
+    constexpr F(): x(3) {}
+    int x;
+    int y = x;
+  };
+  double d[F().y];  // Previously an error, now accepted.
+
+
 3/8/14   [EDGcpfe/14920]
 Qualified names for scoped and member enumerators
 
