@@ -1354,7 +1354,7 @@ the actual number of converted characters may be less than num_chars.  */
       case chk_char16_t:
         conv_single_wide_char(&conv_state, /*process_escapes=*/TRUE, &ch,
                               centity_mask);
-        if (i != 0) {
+        if (i != 0 && !C_mode()) {
           too_many_chars = TRUE;
         } else {
           unsigned short char16_t_vals[MAX_CHAR16_T_ENCODING_LENGTH];
@@ -1372,11 +1372,18 @@ the actual number of converted characters may be less than num_chars.  */
       case chk_char32_t:
         conv_single_wide_char(&conv_state, /*process_escapes=*/TRUE, &ch,
                               centity_mask);
-        if (i != 0) too_many_chars = TRUE;
+        if (i != 0 && !C_mode()) {
+          too_many_chars = TRUE;
+        }  /* if */
         break;
       default:
         unexpected_condition();
     }  /* switch */
+    if (i != 0 && (character_kind == chk_char16_t ||
+                   character_kind == chk_char32_t)) {
+      /* Ignore any preceding characters and just take the last one. */
+      set_unsigned_integer_value(&number, (a_host_large_unsigned)0);
+    }  /* if */
     /* Put the character in the right place. */
     set_unsigned_integer_value(&ch_int_val, (a_host_large_unsigned)ch);
     if (targ_char_constant_first_char_most_significant) {
