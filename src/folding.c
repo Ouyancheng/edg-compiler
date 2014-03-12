@@ -6203,6 +6203,76 @@ somewhere (if in doubt, the safe value is TRUE).
 }  /* constant_glvalue_address */
 
 
+/*
+Top of the stack of aggregate constants being initialized.
+*/
+static an_aggr_init_con_elem_ptr curr_init_aggr_con;
+
+
+void push_aggr_init_constant(a_constant_ptr            aggr_con,
+                             an_aggr_init_con_elem_ptr aggr_init_con_elem)
+/*
+Update *aggr_init_con_elem to link to the current top of the stack of
+aggregate constants, making it the new top of the stack, and setting it to
+point to aggr_con as the associated aggregate constant being initialized.
+*/
+{
+  aggr_init_con_elem->next = curr_init_aggr_con;
+  curr_init_aggr_con = aggr_init_con_elem;
+  aggr_init_con_elem->constant = aggr_con;
+}  /* push_aggr_init_constant */
+
+
+void pop_aggr_init_constant(an_aggr_init_con_elem_ptr aggr_init_con_elem)
+/*
+Pop aggr_init_con_elem from the stack of aggregate constants being
+initialized.
+*/
+{
+  curr_init_aggr_con = aggr_init_con_elem->next;
+}  /* pop_aggr_init_constant */
+
+
+static a_boolean is_obj_expr_of_stacked_aggr_con(an_expr_node_ptr expr,
+                                                 a_constant_ptr   con)
+/*
+If expr (an enk_param_ref node) is the object expression for a field member
+access in an aggregate initializer and the parent class of the field is
+represented in the aggregate initialization stack, set *con to be an
+address constant designating the appropriate aggregate constant from the
+stack and return TRUE.  Otherwise, return FALSE.
+*/
+{
+  a_boolean result = FALSE;
+
+  check_assertion(expr->kind == (an_expr_node_kind)enk_param_ref);
+  if (curr_init_aggr_con != NULL && expr->variant.param_ref.param_num == 0 &&
+      expr->next != NULL && is_field_node(expr->next)) {
+    /* The enk_param_ref is used as the object expression for a field
+       member access expression in an aggregate initializer.  Search the
+       stack of aggregate constants being initialized for a constant whose
+       type is the direct or indirect parent of the field. */
+    a_type_ptr                parent_class;
+    an_aggr_init_con_elem_ptr init_con;
+    for (parent_class = parent_class_or_null(expr->next->variant.field);
+         !result && parent_class != NULL;
+         parent_class = parent_class_or_null(parent_class)) {
+      for (init_con = curr_init_aggr_con; !result && init_con != NULL;
+           init_con = init_con->next) {
+        if (init_con->constant->type == parent_class) {
+          /* We've found an aggregate containing the field in the member
+             access expression.  Create an address constant in *con that
+             points to that aggregate and return TRUE. */
+          set_constant_address_constant(init_con->constant, con);
+          result = TRUE;
+        }  /* if */
+      }  /* for */
+    }  /* for */
+  }  /* if */
+  return result;
+}  /* is_obj_expr_of_stacked_aggr_con */
+
+
 a_boolean constant_prvalue_pointer_full(
                              an_expr_node_ptr              expr,
                              a_constexpr_evaluation_block  *ceblock,
@@ -6270,7 +6340,18 @@ context information.
       }  /* if */
       break;
     case enk_param_ref:
-      /* A reference to a parameter cannot be a pointer constant. */
+      /* An enk_param_ref can be used in the initializer expression of a
+         class member to refer to the value of an already-initialized
+         member.  In that case, the enk_param_ref is encoded as a "this"
+         pointer (param_num == 0) and designates the aggregate constant
+         currently being initialized; the result should be an address
+         constant for that aggregate constant.  Otherwise, an enk_param_ref
+         designates a function parameter and thus cannot be a pointer
+         constant. */
+      if (constexpr_enabled &&
+          is_obj_expr_of_stacked_aggr_con(expr, con)) {
+        is_constant_ptr = TRUE;
+      }  /* if */
       break;
     case enk_routine:
       /* An rvalue for a function.  That's a function pointer, which can
@@ -8782,10 +8863,12 @@ in *result_con and return TRUE; otherwise, return FALSE.
     /* The constant is not (or may not be) fully initialized, so
        folding fails. */
   } else {
+    an_aggr_init_con_elem aggr_init_con;
     new_aggr = result_con;
     clear_constant(new_aggr, (a_constant_repr_kind)ck_aggregate);
     new_aggr->type = aggr->type;
     folded = TRUE;
+    push_aggr_init_constant(new_aggr, &aggr_init_con);
     /* Loop through the elements of the aggregate and copy each one.
        Dynamic constants get parameter substitution. */
     for (elem_con = aggr->variant.aggregate.first_constant;
@@ -8843,6 +8926,7 @@ in *result_con and return TRUE; otherwise, return FALSE.
       }  /* if */
       add_constant_to_aggregate(new_elem_con, new_aggr);
     }  /* for */
+    pop_aggr_init_constant(&aggr_init_con);
   }  /* if */
   return folding_result(folded);
 }  /* fold_aggregate_constant */
@@ -10472,10 +10556,12 @@ prevents folding.  ceblock gives context information for the evaluation.
   a_constructor_init_ptr ctor_init = *p_ctor_init_list;
   a_field_ptr            field;
   a_boolean              okay = TRUE;
+  an_aggr_init_con_elem  aggr_init_con;
 
   check_assertion(is_immediate_class_type(class_type));
   check_assertion(aggr_con->kind == (a_constant_repr_kind)ck_aggregate &&
                   aggr_con->type == class_type);
+  push_aggr_init_constant(aggr_con, &aggr_init_con);
   /* Create an initializer for each member of the class. */
   /*lint --e{850} field modified in loop */
   for (field = next_non_generated_initializable_field(
@@ -10585,6 +10671,7 @@ prevents folding.  ceblock gives context information for the evaluation.
     if (is_union_type(class_type)) break;
   }  /* for */
   *p_ctor_init_list = ctor_init;
+  pop_aggr_init_constant(&aggr_init_con);
   return okay;
 }  /* init_class_aggr_con_from_ctor_init_list */
 
@@ -11083,6 +11170,7 @@ of the front end.
   num_constexpr_remaps_allocated = 0;
 #endif /* DEBUG */
   avail_constexpr_remaps = NULL;
+  curr_init_aggr_con = NULL;
 }  /* folding_init */
 
 

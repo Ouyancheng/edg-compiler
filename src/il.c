@@ -4933,6 +4933,7 @@ the indicated constant.
   con->variant.address.variant.constant = constant;
   con->type = make_pointer_type(constant->type);
   check_assertion(constant->kind == (a_constant_repr_kind)ck_string ||
+                  constant->kind == (a_constant_repr_kind)ck_aggregate ||
                   constant->kind == (a_constant_repr_kind)ck_error);
 }  /* set_constant_address_constant */
 
@@ -7181,6 +7182,31 @@ at the file scope (it would contain a pointer down into a function scope).
           unexpected_condition_str(
                          "has_non_file_scope_ref: bad template constant kind");
       }  /* switch */
+      break;
+    case ck_dynamic_init:
+      { a_dynamic_init_ptr dip = cp->variant.dynamic_init;
+        switch (dip->kind) {
+          case dik_none:
+          case dik_zero:
+            break;
+          case dik_constant:
+            has_nfs_ref = has_non_file_scope_ref(dip->variant.constant);
+            break;
+          case dik_expression:
+          case dik_call_returning_class_via_cctor:
+            has_nfs_ref = !in_file_scope(dip->variant.expression);
+            break;
+          case dik_constructor:
+            has_nfs_ref = !in_file_scope(dip->variant.constructor.args);
+            break;
+          case dik_bitwise_copy:
+            has_nfs_ref = !in_file_scope(dip->variant.bitwise_copy.source);
+            break;
+          default:
+            unexpected_condition_str(
+                              "has_non_file_scope_ref: bad dynamic init kind");
+        }  /* switch */
+      }
       break;
     default:
       unexpected_condition_str("has_non_file_scope_ref: bad constant kind");

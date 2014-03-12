@@ -21,6 +21,33 @@ folding.h -- Declarations relating to folding operations.
 #include "symbol_tbl.h"
 #endif /* ifndef SYMBOL_TBL_H */
 
+/*
+The following struct holds a pointer to a class aggregate constant
+currently being initialized.  That pointer is used to provide an assumed
+value for an enk_param_ref node in an initializer expression for a
+subobject that refers to a preceding member of the class object being
+initialized.
+*/
+typedef struct an_aggr_init_con_elem *an_aggr_init_con_elem_ptr;
+typedef struct an_aggr_init_con_elem {
+  an_aggr_init_con_elem_ptr
+		next;	/* When a nested aggregate is being initialized,
+			   points to the element for the containing
+			   aggregate; NULL otherwise. */
+  a_constant_ptr
+		constant;
+			/* Points to the aggregate constant currently being
+			   initialized. */
+} an_aggr_init_con_elem;
+
+
+extern void push_aggr_init_constant(
+                                 a_constant_ptr            aggr_con,
+                                 an_aggr_init_con_elem_ptr aggr_init_con_elem);
+
+extern void pop_aggr_init_constant(
+                                 an_aggr_init_con_elem_ptr aggr_init_con_elem);
+
 extern a_boolean variable_has_non_null_address(a_variable_ptr vp);
 
 extern a_boolean routine_has_non_null_address(a_routine_ptr rp);

@@ -2211,8 +2211,15 @@ is FALSE (if it is TRUE, aggr_con will be NULL).
 position for which diagnostics should be issued.
 */
 {
-  a_field_ptr  fp, last_dyn_field = NULL;
+  a_field_ptr           fp, last_dyn_field = NULL;
+  an_aggr_init_con_elem aggr_init_con;
 
+  /* Register aggr_con as currently being initialized, in case a member
+     initializer refers to a previously-initialized member.  That is
+     represented by a member access expression using an enk_param_ref node
+     that stands for the current aggregate, and this call enables that
+     association to be made. */
+  push_aggr_init_constant(aggr_con, &aggr_init_con);
   next_field = next_initializable_field(next_field);
   /* Run a first pass through the remaining fields to see if any requires
      nontrivial default initialization.  Keep track of the last such field. */
@@ -2340,6 +2347,7 @@ position for which diagnostics should be issued.
       aggr_con->is_partially_initialized = TRUE;
     }  /* if */
   }  /* if */
+  pop_aggr_init_constant(&aggr_init_con);
 }  /* aggr_init_class_remainder_if_needed */
 
 
