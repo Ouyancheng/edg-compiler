@@ -1379,8 +1379,8 @@ the actual number of converted characters may be less than num_chars.  */
       default:
         unexpected_condition();
     }  /* switch */
-    if (i != 0 && (character_kind == chk_char16_t ||
-                   character_kind == chk_char32_t)) {
+    if (i != 0 && (character_kind == (a_character_kind)chk_char16_t ||
+                   character_kind == (a_character_kind)chk_char32_t)) {
       /* Ignore any preceding characters and just take the last one. */
       set_unsigned_integer_value(&number, (a_host_large_unsigned)0);
     }  /* if */
