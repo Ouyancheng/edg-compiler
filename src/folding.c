@@ -5934,7 +5934,7 @@ a constexpr expansion, and the block provides context information.
                  selection, p->*y.  If the left operand is a constant
                  address, we can develop an address for the field. */
               local_options = options | CAO_IS_OBJECT_POINTER;
-              if (is_glvalue_node(expr)) {
+              if (expr->is_lvalue) {
                 local_options |= CAO_FOR_LVALUE_MEMBER_ACCESS;
               }  /* if */
               if (is_pointer_type(op1->type) &&
