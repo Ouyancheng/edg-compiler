@@ -5929,20 +5929,25 @@ a constexpr expansion, and the block provides context information.
             break;
           case eok_points_to_field:
           case eok_pm_points_to_field:
-            /* Field selection, p->y, or pointer-to-member field selection,
-               p->*y.  If the left operand is a constant address, we can
-               develop an address for the field. */
-            if (is_pointer_type(op1->type) &&
-                constant_prvalue_pointer_full(op1, ceblock, &conaddr1,
-                                              address_escapes,
-                                              options | CAO_IS_OBJECT_POINTER,
-                                              template_constant)) {
-              if (op == (an_expr_operator_kind)eok_points_to_field) {
-                goto handle_field_selection;
-              } else {
-                goto handle_pm_field_selection;
+            { a_constant_address_option_set local_options;
+              /* Field selection, p->y, or pointer-to-member field
+                 selection, p->*y.  If the left operand is a constant
+                 address, we can develop an address for the field. */
+              local_options = options | CAO_IS_OBJECT_POINTER;
+              if (is_glvalue_node(expr)) {
+                local_options |= CAO_FOR_LVALUE_MEMBER_ACCESS;
               }  /* if */
-            }  /* if */
+              if (is_pointer_type(op1->type) &&
+                  constant_prvalue_pointer_full(op1, ceblock, &conaddr1,
+                                                address_escapes, local_options,
+                                                template_constant)) {
+                if (op == (an_expr_operator_kind)eok_points_to_field) {
+                  goto handle_field_selection;
+                } else {
+                  goto handle_pm_field_selection;
+                }  /* if */
+              }  /* if */
+            }
             break;
 handle_field_selection:
             { a_field_ptr field;
@@ -6344,11 +6349,14 @@ context information.
          class member to refer to the value of an already-initialized
          member.  In that case, the enk_param_ref is encoded as a "this"
          pointer (param_num == 0) and designates the aggregate constant
-         currently being initialized; the result should be an address
-         constant for that aggregate constant.  Otherwise, an enk_param_ref
-         designates a function parameter and thus cannot be a pointer
-         constant. */
-      if (constexpr_enabled &&
+         currently being initialized.  If the member access expression is
+         in an lvalue context (e.g., to initialize a reference), this is
+         not a constant address.  In a prvalue context, where only the
+         value from the aggregate is needed, the result should be an
+         address constant for that aggregate constant.  Otherwise, an
+         enk_param_ref designates a function parameter and thus cannot be a
+         pointer constant. */
+      if (constexpr_enabled && !(options & CAO_FOR_LVALUE_MEMBER_ACCESS) &&
           is_obj_expr_of_stacked_aggr_con(expr, con)) {
         is_constant_ptr = TRUE;
       }  /* if */

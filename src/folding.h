@@ -262,6 +262,11 @@ typedef int a_constant_address_option_set;
 			   folding offsetof, where a zero pointer should be
 			   considered an object pointer and not a null pointer
 			   constant. */
+#define CAO_FOR_LVALUE_MEMBER_ACCESS \
+                            ((a_constant_address_option_set)0x4)
+			/* The value being processed is the pointer in a
+			   member access expression that is used as an
+			   lvalue. */
 
 extern a_boolean constant_glvalue_address(an_expr_node_ptr expr,
                                           a_constant       *con,
