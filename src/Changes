@@ -65,14 +65,14 @@ messages) as an unqualified name.  This has now been fixed.  For example:
 Internal error in f_set_no_trans_unit_corresp
 
 When simultaneously compiling multiple translation units, the front end tracks
-for each entity declared in multiple translation units a "canonical entry": The
-entry that will eventually be kept in the merged IL tree.  Among other things,
-an IL entry for a class type is preferred as a choice for a "canonical entry"
-if the entry corresponds to a definition, but the front end previously failed
-to distinguish a complete definition from one that is still being completed.
-In some complex multi-translation unit cases, this could result in an internal
-error in f_set_no_trans_unit_corresp (in trans_corresp.c; with message
-"correspondence busy").  That problem is now fixed.
+for each entity declared in multiple translation units a "canonical entry"
+(the entry that will eventually be kept in the merged IL tree).  Among other
+criteria, an IL entry for a class type is preferred as a choice for a
+"canonical entry" if the entry corresponds to a definition, but the front end
+previously failed to distinguish a complete definition from one that is still
+being completed.  In some complex multi-translation unit cases, this could
+result in an internal error in f_set_no_trans_unit_corresp (in trans_corresp.c;
+with message "correspondence busy").  That problem is now fixed.
 
 
 3/6/14   [EDGcpfe/14916]
