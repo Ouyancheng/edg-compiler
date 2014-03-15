@@ -7122,6 +7122,11 @@ only within the lexical input routines.
           llen = mbc_to_wide_char(ptr, &ch, &err, /*is_native=*/FALSE);
           if (err) ch = 0;  /* Forces FALSE result. */
 #if NATIVE_MULTIBYTE_CHARS_SUPPORTED_WITH_UNICODE
+        } else if (!multibyte_chars_in_source_enabled) {
+          /* This is a single character -- use the lookup table. */
+          is_id = is_id_char[*ptr-CHAR_MIN] &&
+            (!is_identifier_start || !isdigit((unsigned char)*ptr));
+          goto is_id_known;
         } else {
           /* Convert the native multibyte sequence to a single Unicode
              code point. */
@@ -21004,7 +21009,14 @@ are handled in lexical_init.)
       } else {
         is_id_char_no_mbc[uc] = FALSE;
       }  /* if */
-      is_id_char[c-CHAR_MIN] = FALSE;
+      if (multibyte_chars_in_source_enabled) {
+        /* If multibyte characters are supported, assume any character
+           above 0x7f is part of a multibyte character and thus not an
+           identifier character.  Otherwise, do not change the table, as it
+           accurately reflects the interpretation of the single-byte
+           characters under the current locale. */
+        is_id_char[c-CHAR_MIN] = FALSE;
+      }  /* if */
     }  /* if */
   }  /* for */
 #endif /* UNICODE_SOURCE_SUPPORTED */

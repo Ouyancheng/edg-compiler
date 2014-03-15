@@ -1,5 +1,19 @@
 Version 4.9
 
+3/15/14  [EDGcpfe/14838]
+NATIVE_MULTIBYTE_CHARS_SUPPORTED_WITH_UNICODE and --no_multibyte_chars
+
+In a configuration with NATIVE_MULTIBYTE_CHARS_SUPPORTED_WITH_UNICODE set
+to TRUE, the --no_multibyte_chars command-line option had no effect:
+byte sequences that are valid multibyte characters in the current locale
+were still accepted as such although --no_multibyte_chars should have
+disabled that processing.  This is now fixed.  For example:
+
+  int дв = 1;  // Valid identifier in EUC-JP locale with multibyte
+                     // characters, now diagnosed as "unrecognized token"
+                     // with --no_multibyte_chars
+
+
 3/12/14  [EDGcpfe/14904]
 Folding of initializers with references to previously-initialized fields
 
