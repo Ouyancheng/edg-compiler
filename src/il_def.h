@@ -92,6 +92,10 @@ typedef struct a_new_delete_supplement
 typedef struct a_gcnew_supplement
                               *a_gcnew_supplement_ptr;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+#if GNU_EXTENSIONS_ALLOWED || REDEFINE_EXTNAME_PRAGMA_ENABLED
+typedef struct a_gnu_routine_extension
+                              *a_gnu_routine_extension_ptr;
+#endif /* GNU_EXTENSIONS_ALLOWED || REDEFINE_EXTNAME_PRAGMA_ENABLED */
 
 
 /* Opaque type definition for an_arg_operand (used in the expression
@@ -712,6 +716,10 @@ typedef enum /*an_il_entry_kind*/ {
   iek_cli_metadata_file,
 			/* a_cli_metadata_file */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+#if GNU_EXTENSIONS_ALLOWED || REDEFINE_EXTNAME_PRAGMA_ENABLED
+  iek_gnu_routine_extension,
+                        /* a_gnu_routine_extension */
+#endif /* GNU_EXTENSIONS_ALLOWED || REDEFINE_EXTNAME_PRAGMA_ENABLED */
   iek_last		/* Marks the end of the list. */
 } an_il_entry_kind;
 
@@ -866,6 +874,9 @@ EXTERN a_const_char *il_entry_kind_names[(int)iek_last + 1]
 #if MICROSOFT_EXTENSIONS_ALLOWED
 /* iek_cli_metadata_file */		"CLI metadata file",
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+#if GNU_EXTENSIONS_ALLOWED || REDEFINE_EXTNAME_PRAGMA_ENABLED
+/* iek_gnu_routine_extension */         "gnu-routine-extension",
+#endif /* GNU_EXTENSIONS_ALLOWED || REDEFINE_EXTNAME_PRAGMA_ENABLED */
 /* iek_last */				"last"
 } /* il_entry_kind_names */
 #endif /* VAR_INITIALIZERS */
@@ -13216,11 +13227,11 @@ typedef struct a_routine {
 			   alias attribute. */
   a_bit_field	is_ifunc:1;
 			/* TRUE if this routine was declared with the
-			   ifunc attribute.  When TRUE, aliased_routine points
-			   to the resolver function. */
+			   ifunc attribute.  When TRUE, gnu->aliased_routine
+			   points to the resolver function. */
 #if LOWER_IFUNC
-			/* is_ifunc (and aliased_routine) stay set even when
-			   the routine has been lowered. */
+			/* is_ifunc (and gnu->aliased_routine) stay set even
+			   when the routine has been lowered. */
 #endif /* LOWER_IFUNC */
   a_bit_field   has_gnu_unused_attribute:1;
 			/* TRUE if this routine was declared with the
@@ -13249,7 +13260,7 @@ typedef struct a_routine {
 			   the GNU attribute "gnu_inline". */
   a_bit_field	implicit_alias:1;
 			/* TRUE if this routine is implicitly an alias for
-			   another routine (indicated by aliased_routine).
+			   another routine (indicated by gnu->aliased_routine).
 			   (E.g., a "strlen" declaration may be implicitly
 			   treated as an alias for "__builtin_strlen".) */
 #if GNU_COMPLEX_EXTENSIONS_ALLOWED && LOWER_COMPLEX && BACK_END_IS_C_GEN_BE
@@ -13563,13 +13574,13 @@ typedef struct a_routine {
   a_bit_field   has_ctor_priority:1;
                         /* TRUE if the GNU "constructor" attribute has been
                            used to assign a numeric priority to the routine.
-                           The ctor_priority field contains the priority.
+                           The gnu->ctor_priority field contains the priority.
                            FALSE if the attribute was not specified, or if the
                            attribute was specified without an argument. */
   a_bit_field   has_dtor_priority:1;
                         /* TRUE if the GNU "destructor" attribute has been
                            used to assign a numeric priority to the routine.
-                           The dtor_priority field contains the priority.
+                           The gnu->dtor_priority field contains the priority.
                            FALSE if the attribute was not specified, or if the
                            attribute was specified without an argument. */
 #endif /* GNU_INIT_PRIORITY_ATTRIBUTE_ALLOWED */
@@ -13639,51 +13650,10 @@ typedef struct a_routine {
 			   the template from which they were generated;
 			   otherwise, this is NULL. */
 #if GNU_EXTENSIONS_ALLOWED
-  a_const_char	*section;
-			/* If non-NULL, the section in which this
-			   routine should be placed. */
-  a_routine_ptr	aliased_routine; 
-			/* If non-NULL, the routine for which this routine
-			   is an alias.  (Used for attributes "alias" and
-			   "weakref".  Also used for certain routines --
-			   such as strlen -- that are implicitly aliased to
-			   their __builtin_... counterpart; implicit_alias
-			   is TRUE in such cases.)  Also used for the
-			   ifunc attribute (in which case is_ifunc is TRUE).
-			   In that case, the function signatures are different
-			   (as the resolver routine returns a pointer to
-			   the type returned by the ifunc routine). */
-#if LOWER_IFUNC
-  a_variable_ptr
-                resolver_var;
-                        /* A variable that "caches" the result of calling the
-                           ifunc resolver routine so that subsequent
-                           calls don't need to invoke the resolver. */
-#endif /* LOWER_IFUNC */
-  a_routine_ptr	inline_partner;
-			/* If a function has both a definition "for inlining
-			   only" (flag definition_for_inlining_only) and a
-			   definition of out-of-line calls, then the routine
-			   entries corresponding to those definitions point to
-			   each other via this pointer.  Otherwise, NULL. */
-#if GNU_INIT_PRIORITY_ATTRIBUTE_ALLOWED
-  a_gnu_init_priority
-		ctor_priority;
-			/* The priority (if any) specified by the GNU attribute
-			  "constructor" (if any).  Valid only when
-			  has_ctor_priority is TRUE. */
-  a_gnu_init_priority
-		dtor_priority;
-			/* The priority (if any) specified by the GNU attribute
-			  "destructor" (if any).  Valid only when
-			  has_dtor_priority is TRUE. */
-#endif /* GNU_INIT_PRIORITY_ATTRIBUTE_ALLOWED */
+  a_gnu_routine_extension_ptr
+                gnu;    /* GNU-specific a_routine fields.  Moved to a separate
+                           routine to save space for non-GNU cases. */
 #endif /* GNU_EXTENSIONS_ALLOWED */
-#if GNU_EXTENSIONS_ALLOWED || REDEFINE_EXTNAME_PRAGMA_ENABLED
-  a_const_char	*asm_name;
-			/* If non-NULL, the name to be used as an assembly
-			   language level symbol for this routine. */
-#endif /* GNU_EXTENSIONS_ALLOWED || REDEFINE_EXTNAME_PRAGMA_ENABLED */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   a_type_ptr	declared_type;
 			/* The type as it actually appears in the declaration
@@ -13764,6 +13734,60 @@ typedef struct a_routine {
 			   using-declaration that generated it. */
 } a_routine;
 
+#if GNU_EXTENSIONS_ALLOWED || REDEFINE_EXTNAME_PRAGMA_ENABLED
+
+/*
+A logical extension of a_routine for GNU-specific fields that are rarely used.
+This extension is allocated only when necessary (i.e., if one or more of the
+fields does not have its default value).  GNU-specific bitfields are left in
+a_routine.
+*/
+typedef struct a_gnu_routine_extension {
+  a_const_char	*section;
+			/* If non-NULL, the section in which this
+			   routine should be placed. */
+  a_routine_ptr	aliased_routine;
+			/* If non-NULL, the routine for which this routine
+			   is an alias.  (Used for attributes "alias" and
+			   "weakref".  Also used for certain routines --
+			   such as strlen -- that are implicitly aliased to
+			   their __builtin_... counterpart; implicit_alias
+			   is TRUE in such cases.)  Also used for the
+			   ifunc attribute (in which case is_ifunc is TRUE).
+			   In that case, the function signatures are different
+			   (as the resolver routine returns a pointer to
+			   the type returned by the ifunc routine). */
+#if LOWER_IFUNC
+  a_variable_ptr
+                resolver_var;
+                        /* A variable that "caches" the result of calling the
+                           ifunc resolver routine so that subsequent
+                           calls don't need to invoke the resolver. */
+#endif /* LOWER_IFUNC */
+  a_routine_ptr	inline_partner;
+			/* If a function has both a definition "for inlining
+			   only" (flag definition_for_inlining_only) and a
+			   definition of out-of-line calls, then the routine
+			   entries corresponding to those definitions point to
+			   each other via this pointer.  Otherwise, NULL. */
+#if GNU_INIT_PRIORITY_ATTRIBUTE_ALLOWED
+  a_gnu_init_priority
+		ctor_priority;
+			/* The priority (if any) specified by the GNU attribute
+			  "constructor" (if any).  Valid only when
+			  has_ctor_priority is TRUE. */
+  a_gnu_init_priority
+		dtor_priority;
+			/* The priority (if any) specified by the GNU attribute
+			  "destructor" (if any).  Valid only when
+			  has_dtor_priority is TRUE. */
+#endif /* GNU_INIT_PRIORITY_ATTRIBUTE_ALLOWED */
+  a_const_char	*asm_name;
+			/* If non-NULL, the name to be used as an assembly
+			   language level symbol for this routine. */
+} a_gnu_routine_extension;
+
+#endif /* GNU_EXTENSIONS_ALLOWED || REDEFINE_EXTNAME_PRAGMA_ENABLED */
 
 typedef struct an_asm_entry *an_asm_entry_ptr;
 typedef struct an_asm_entry {
@@ -18555,6 +18579,9 @@ EXTERN sizeof_t	sizeof_il_entry[(int)iek_last+1]
 #if MICROSOFT_EXTENSIONS_ALLOWED
   sizeof(a_cli_metadata_file),
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+#if GNU_EXTENSIONS_ALLOWED || REDEFINE_EXTNAME_PRAGMA_ENABLED
+  sizeof(a_gnu_routine_extension),
+#endif /* GNU_EXTENSIONS_ALLOWED || REDEFINE_EXTNAME_PRAGMA_ENABLED */
   IEK_LAST_CHECK_SIZE /* iek_last */
 }
 #endif /* VAR_INITIALIZERS */

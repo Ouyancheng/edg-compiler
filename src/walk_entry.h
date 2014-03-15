@@ -1382,7 +1382,21 @@ the file scope, do not process it (but record an orphan in the latter case).
                   ptr->overridden_function_for_wrapper,
                   a_routine_ptr, iek_routine);
 #endif /* DO_IL_LOWERING && ABI_CHANGES_FOR_COVARIANT_VIRTUAL_FUNC_RETURN */
-#if GNU_EXTENSIONS_ALLOWED
+#if GNU_EXTENSIONS_ALLOWED || REDEFINE_EXTNAME_PRAGMA_ENABLED
+        walk_ptr(ptr->gnu, a_gnu_routine_extension_ptr,
+                 iek_gnu_routine_extension);
+#endif /* GNU_EXTENSIONS_ALLOWED || REDEFINE_EXTNAME_PRAGMA_ENABLED */
+#if !NEEDED_FLAG_WALK
+        walk_ptr(ptr->generating_using_decl, a_using_decl_ptr,
+                 iek_using_decl);
+#endif /* !NEEDED_FLAG_WALK */
+      }
+      break;
+#if GNU_EXTENSIONS_ALLOWED || REDEFINE_EXTNAME_PRAGMA_ENABLED
+    case iek_gnu_routine_extension:
+      {
+        a_gnu_routine_extension_ptr ptr =
+                                        (a_gnu_routine_extension_ptr)entry_ptr;
         walk_string_ptr(ptr->section, iek_other_text, 0);
         walk_ptr(ptr->aliased_routine, a_routine_ptr, iek_routine);
         if (ptr->aliased_routine != NULL) {
@@ -1395,16 +1409,10 @@ the file scope, do not process it (but record an orphan in the latter case).
         if (ptr->inline_partner != NULL) {
           set_proper_routine_definition_needed_flag(ptr->inline_partner);
         }  /* if */
-#endif /* GNU_EXTENSIONS_ALLOWED */
-#if GNU_EXTENSIONS_ALLOWED || REDEFINE_EXTNAME_PRAGMA_ENABLED
         walk_string_ptr(ptr->asm_name, iek_other_text, 0);
-#endif /* GNU_EXTENSIONS_ALLOWED || REDEFINE_EXTNAME_PRAGMA_ENABLED */
-#if !NEEDED_FLAG_WALK
-        walk_ptr(ptr->generating_using_decl, a_using_decl_ptr,
-                 iek_using_decl);
-#endif /* !NEEDED_FLAG_WALK */
       }
       break;
+#endif /* GNU_EXTENSIONS_ALLOWED || REDEFINE_EXTNAME_PRAGMA_ENABLED */
     case iek_label:
       {
         a_label_ptr ptr = (a_label_ptr)entry_ptr;

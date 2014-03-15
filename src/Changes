@@ -1,5 +1,17 @@
 Version 4.9
 
+3/15/14  [EDGcpfe/14931]
+Save space in a_routine (IL CHANGE)
+
+A number of infrequently-used GNU-specific fields have been moved from
+a_routine into a new IL entry, a_gnu_routine_extension, and a pointer to
+that IL entry is now dynamically allocated when any one of those fields
+has a non-default value.  The fields that were moved are: section,
+aliased_routine, resolver_var, inline_partner, ctor_priority, dtor_priority,
+and asm_name.  The new field in a_routine is "gnu" (so, e.g., rp->section
+now becomes rp->gnu->section).  This is an IL CHANGE.
+
+
 3/15/14  [EDGcpfe/14838]
 NATIVE_MULTIBYTE_CHARS_SUPPORTED_WITH_UNICODE and --no_multibyte_chars
 

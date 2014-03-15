@@ -2729,20 +2729,8 @@ to it.  The entry is allocated in the file scope memory region.
   rp->befriending_classes         = NULL;
   rp->template_arg_list           = NULL;
   rp->assoc_template              = NULL;
-#if GNU_EXTENSIONS_ALLOWED
-  rp->section                     = NULL;
-  rp->aliased_routine             = NULL;
-#if LOWER_IFUNC
-  rp->resolver_var                = NULL;
-#endif /* LOWER_IFUNC */
-  rp->inline_partner              = NULL;
-#if GNU_INIT_PRIORITY_ATTRIBUTE_ALLOWED
-  rp->ctor_priority               = 0;
-  rp->dtor_priority               = 0;
-#endif /* GNU_INIT_PRIORITY_ATTRIBUTE_ALLOWED */
-#endif /* GNU_EXTENSIONS_ALLOWED */
 #if GNU_EXTENSIONS_ALLOWED || REDEFINE_EXTNAME_PRAGMA_ENABLED
-  rp->asm_name                    = NULL;
+  rp->gnu                         = NULL;
 #endif /* GNU_EXTENSIONS_ALLOWED || REDEFINE_EXTNAME_PRAGMA_ENABLED */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   rp->declared_type               = NULL;
@@ -2772,6 +2760,34 @@ to it.  The entry is allocated in the file scope memory region.
   return rp;
 }  /* alloc_routine */
 
+#if GNU_EXTENSIONS_ALLOWED || REDEFINE_EXTNAME_PRAGMA_ENABLED
+
+void alloc_gnu_extension_for_routine(a_routine_ptr rp)
+/*
+Allocate a_gnu_routine_extension structure for rp if it doesn't already
+have one.  The structure is not allocated when a_routine is allocated and is
+populated only when a need for the structure arises.  The entry is allocated
+in the file scope memory region.
+*/
+{
+  if (rp->gnu == NULL) {
+    rp->gnu = (a_gnu_routine_extension_ptr)
+                                     alloc_il(sizeof(a_gnu_routine_extension));
+    rp->gnu->section              = NULL;
+    rp->gnu->aliased_routine      = NULL;
+#if LOWER_IFUNC
+    rp->gnu->resolver_var         = NULL;
+#endif /* LOWER_IFUNC */
+    rp->gnu->inline_partner       = NULL;
+#if GNU_INIT_PRIORITY_ATTRIBUTE_ALLOWED
+    rp->gnu->ctor_priority        = 0;
+    rp->gnu->dtor_priority        = 0;
+#endif /* GNU_INIT_PRIORITY_ATTRIBUTE_ALLOWED */
+    rp->gnu->asm_name             = NULL;
+  }  /* if */
+}  /* alloc_gnu_extension_for_routine */
+
+#endif /* GNU_EXTENSIONS_ALLOWED || REDEFINE_EXTNAME_PRAGMA_ENABLED */
 
 an_asm_entry_ptr alloc_asm_entry(void)
 /*

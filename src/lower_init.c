@@ -4880,7 +4880,10 @@ routine will be the same as the one passed in.
 #endif /* GNU_VISIBILITY_ATTRIBUTE_ALLOWED */
       new_routine->is_weak = routine->is_weak;
       new_routine->is_weakref = routine->is_weakref;
-      new_routine->section = routine->section;
+      if (routine->gnu != NULL) {
+        alloc_gnu_extension_for_routine(new_routine);
+        new_routine->gnu->section = routine->gnu->section;
+      }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
 #if DECL_MODIFIERS_IN_USE && MICROSOFT_EXTENSIONS_ALLOWED
       new_routine->decl_modifiers = (routine->decl_modifiers & DM_DLLFLAGS);
@@ -17283,9 +17286,11 @@ Note: this is called when lowering C and C++.
                    rtsp = routine_type->variant.routine.extra_info;
   a_variable_ptr   param_var, last_param_var;
   a_constant_ptr   function_constant;
-  a_routine_ptr    resolver = routine->aliased_routine;
+  a_routine_ptr    resolver;
 
-  check_assertion(routine->is_ifunc && routine->aliased_routine != NULL);
+  check_assertion(routine->is_ifunc && routine->gnu != NULL &&
+                  routine->gnu->aliased_routine != NULL);
+  resolver = routine->gnu->aliased_routine;
   /* Make a memory region, scope, and block for the routine definition. */
   scope = make_routine_definition(routine,
                                   /*make_return=*/FALSE,
