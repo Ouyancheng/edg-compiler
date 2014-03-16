@@ -23412,9 +23412,9 @@ that follows.
                            fund_sym, parent_namespace->variant.assoc_scope))) {
           /* This is a symbol made visible by an inline namespace. */
         } else {
-          pos_stsy_error(ec_not_an_actual_member, &locator.source_position,
-                         locator.symbol_header->identifier,
-                         symbol_for(parent_namespace));
+          /* Issue an error that the namespace has no direct member of the
+             specified name. */
+          namespace_has_no_actual_member_error(&locator);
         }  /* if */
         sym = fund_sym;
       }  /* if */
@@ -30087,7 +30087,10 @@ instantiation.
      been looked up. */
   sym = locator.specific_symbol;
   if (sym == NULL) {
-    sym = normal_id_lookup(&locator, IDL_LINKAGE_LOOKUP);
+    (void)normal_id_lookup(&locator, IDL_LINKAGE_LOOKUP);
+    /* Get the symbol from the locator so that a projection symbol, if any,
+       will not have been removed. */
+    sym = locator.specific_symbol;
   }  /* if */
   check_for_declaration_errors(&state, &locator);
   if (sym == NULL) {
@@ -30109,6 +30112,13 @@ instantiation.
          directive is disallowed. */
       pos_error(ec_inherited_member_not_allowed, &locator.source_position);
       reduce_projection_symbol_to_fundamental_symbol(sym);
+    } else if (symbol_is(sym, sk_namespace_projection)) {
+      /* A namespace projection symbol is not allowed unless it names a
+         symbol from an inline namespace. */
+      sym = fundamental_symbol_of(sym);
+      if (!is_symbol_from_inline_namespace(sym)) {
+        sym_error(ec_bad_scope_for_explicit_instantiation, sym);
+      }  /* if */
     }  /* if */
     if (sym->kind == (a_symbol_kind)sk_static_data_member) {
       if (sym->variant.static_data_member.instance_ptr != NULL) {

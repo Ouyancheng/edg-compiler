@@ -2258,6 +2258,11 @@ of the lookup is returned to the caller.
      any of them contain symbols that match the lookup options. */
   for (audp = ssep->using_directives_that_apply_here;
        audp != NULL; audp = audp->next_that_applies_at_depth) {
+    if (lookup_state->is_linkage_lookup && !audp->entry->inline_namespace) {
+      /* Ignore namespaces made visible by a using-directive unless it refers
+         to an inline namespace. */
+      continue;
+    }  /* if */
     /* Search for a symbol in the lookup table for the namespace. */
     nssp = audp->namespace_supplement;
     for (new_sym = find_symbol_list_in_table(&nssp->pointers_block,
@@ -2412,7 +2417,6 @@ lookup processing.
     if ((kind == (a_scope_kind)sck_file ||
         kind == (a_scope_kind)sck_namespace) &&
         ssep->using_directives_that_apply_here != NULL &&
-        !lookup_state->is_linkage_lookup &&
         (!lookup_state->is_friend_lookup ||
          (friend_class_decl_can_find_using_dir &&
           (!gpp_mode || gnu_version < 40000 || sym == NULL)))) {

@@ -6189,6 +6189,8 @@ void db_hash_statistics(a_hash_table_ptr	table);
 
 extern a_hash_value hash_source_string(a_void_ptr  key);
 
+void namespace_has_no_actual_member_error(a_symbol_locator	*locator);
+
 #if MICROSOFT_EXTENSIONS_ALLOWED
 extern a_hash_value hash_prop_or_event_accessor_header_lookup(
 						       a_void_ptr	key);

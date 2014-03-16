@@ -15155,6 +15155,27 @@ characters).
 }  /* hash_source_string */
 
 
+void namespace_has_no_actual_member_error(a_symbol_locator	*locator)
+/*
+Issue an error that the parent namespace from locator has no actual member
+of the name specified by locator.  If the parent namespace is NULL, issue
+a special version of the message that refers to the global namespace.
+*/
+{
+  a_namespace_ptr	parent_namespace = qualifier_namespace_ptr(*locator);
+
+  if (parent_namespace != NULL) {
+    pos_stsy_error(ec_not_an_actual_member, &locator->source_position,
+                   locator->symbol_header->identifier,
+                   symbol_for(parent_namespace));
+  } else {
+    pos_st_error(ec_global_ns_has_no_actual_member,
+                 &locator->source_position,
+                 locator->symbol_header->identifier);
+  }  /* if */
+}  /* namespace_has_no_actual_member_error */
+
+
 #if DEBUG
 unsigned long show_symbol_space_used(void)
 /*
