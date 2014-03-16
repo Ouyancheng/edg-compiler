@@ -1,7 +1,7 @@
 Version 4.9
 
 3/15/14  [EDGcpfe/14931]
-Save space in a_routine (IL CHANGE)
+Move infrequently-used GNU-specific fields out of a_routine (IL CHANGE)
 
 A number of infrequently-used GNU-specific fields have been moved from
 a_routine into a new IL entry, a_gnu_routine_extension, and a pointer to
