@@ -33,9 +33,10 @@ byte sequences that are valid multibyte characters in the current locale
 were still accepted as such although --no_multibyte_chars should have
 disabled that processing.  This is now fixed.  For example:
 
-  int дв = 1;  // Valid identifier in EUC-JP locale with multibyte
-                     // characters, now diagnosed as "unrecognized token"
-                     // with --no_multibyte_chars
+  // The following is a valid identifier in EUC-JP locale with multibyte
+  // characters but is now diagnosed as "unrecognized token" with
+  // --no_multibyte_chars:
+  int дв = 1;
 
 
 3/12/14  [EDGcpfe/14904]
