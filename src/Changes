@@ -3,7 +3,7 @@ Version 4.9
 3/16/14  [EDGcpfe/14919]
 Error on explicit instantiation of function template from inline namespace
 
-A spurious error was issued if an function template declared in an inline
+A spurious error was issued if a function template declared in an inline
 namespace was explicitly instantiated using an unqualified name.  Now fixed.
 
   inline namespace {
