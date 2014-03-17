@@ -4814,7 +4814,7 @@ Microsoft extended decl modifiers are also scanned, but they are ignored
         a_type_ptr    temp_type;
         a_symbol_ptr  sym;
         a_boolean     is_member_function_typedef = FALSE;
-        temp_type = skip_typerefs(complete_type);
+        temp_type = skip_typerefs_not_dependent_decltypes(complete_type);
         if (!same_entities(temp_type, complete_type)) {
           if (any_cfront_mode()) {
             /* Check for a special form of member function typedef that is
@@ -4861,7 +4861,11 @@ Microsoft extended decl modifiers are also scanned, but they are ignored
           /* Make sure this was not preceded by __based. */
           based_not_allowed_here(pending_ptr_mods.based_var,
                                  pending_ptr_mods.based_pos);
-          if (is_any_reference_type(temp_type)) {
+          /* Check for the reference-to-reference case, but beware of a
+             reference that would result from a dependent decltype (typerefs
+             other than dependent decltypes were stripped above). */
+          if (temp_type->kind != (a_type_kind)tk_typeref &&
+              is_any_reference_type(temp_type)) {
             if (ref_to_ref_allowed) {
               a_source_position_ptr  qual_pos =
                    (state->qualifiers == TQ_RESTRICT) ? &state->restrict_pos
