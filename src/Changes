@@ -9,8 +9,8 @@ surrogate pair, resulting in incorrect data and potential aborts.  This is
 now fixed: a warning is issued and the value is truncated to a single
 char16_t character.  For example:
 
-  char16_t c5[] = u"\x10000\x10000";  // Previously aborted in
-                                      // conv_string_literal
+  char16_t str[] = u"\x10000\x10000";  // Previously aborted in
+                                       // conv_string_literal
 
 
 3/16/14  [EDGcpfe/14919]
