@@ -1134,7 +1134,7 @@ range_check:
        implementation, there can be "holes" in the middle of wide character
        constants, and those holes shouldn't contain any "1" bits. */
     if ((targ_ch & ~centity_mask) != 0) {
-      if (state->create_surrogate_pairs) {
+      if (state->create_surrogate_pairs && !numeric_escape) {
         /* The target character type is such that an overflow should be
            handled by creating a UTF-16 surrogate pair rather than as a
            warning or error. */
@@ -1648,6 +1648,7 @@ the string.
     }  /* switch */
   }  /* for */
   /* Add the final null. */
+  check_assertion(pstr < str_start + constant_size);
   switch (character_kind) {
     case chk_char:
       /* Normal string literal. */
