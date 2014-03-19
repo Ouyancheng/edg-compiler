@@ -954,12 +954,17 @@ get_another:
       /* Determine the size of the multibyte character sequence that begins at
          the current character.  Since we're returning one character on this
          call, the remaining count is one less than the size. */
-      a_boolean err;
-      state->remaining_char_count = lex_mbc_length(lptr, &err) - 1;
+      a_boolean     err;
+      unsigned long wc;
+      int           numch = lex_mbc_to_wide_char(lptr, &wc, &err);
       if (err) {
-        /* Invalid multibyte character sequence. */
+        /* Invalid multibyte character sequence.  Report the error, skip
+           over the invalid sequence, and return a single (null)
+           character. */
         conv_line_loc_to_source_pos(lptr, &error_position);
         diagnostic(es_discretionary_error, ec_bad_multibyte_char);
+        lptr += numch - 1;
+        targ_ch = 0;
 #if NATIVE_MULTIBYTE_CHARS_SUPPORTED_WITH_UNICODE
       } else if (curr_file_unicode_source_kind != usk_none &&
                  state->translate_utf8_to_mbc) {
@@ -969,10 +974,9 @@ get_another:
            conv_unicode_literal_char, which will convert the Unicode
            to the appropriate character set and set up the conversion state
            to return subsequent bytes of the multibyte character. */
-        unsigned  long uc;
-        (void)mbc_to_wide_char(lptr, &uc, (a_boolean *)NULL,
+        (void)mbc_to_wide_char(lptr, &wc, (a_boolean *)NULL,
                                /*is_native=*/FALSE);
-        lptr += state->remaining_char_count;
+        lptr += numch - 1;
         targ_ch = conv_unicode_literal_char(state, uc, /*utf8_literal=*/FALSE);
 #endif /* NATIVE_MULTIBYTE_CHARS_SUPPORTED_WITH_UNICODE */
       } else if (utf8_literal) {
@@ -980,11 +984,8 @@ get_another:
            multibyte character, either UTF-8 or a native character set:
            convert it to Unicode and then to UTF-8, returning the first (or
            only) byte. */
-        (void)lex_mbc_to_wide_char(lptr, &targ_ch, &err);
-        check_assertion(!err);
-        lptr += state->remaining_char_count;
-        targ_ch = conv_unicode_literal_char(state, targ_ch,
-                                            /*utf8_literal=*/TRUE);
+        lptr += numch - 1;
+        targ_ch = conv_unicode_literal_char(state, wc, /*utf8_literal=*/TRUE);
       }  /* if */
     } else
 #endif /* MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED */

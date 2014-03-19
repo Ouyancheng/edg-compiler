@@ -1,5 +1,18 @@
 Version 4.9
 
+3/19/14  [EDGcpfe/14900]
+Invalid UTF-8 characters in character string literals
+
+The front end previously incorrectly recovered from the occurrence of
+invalid UTF-8 characters in character string literals, resulting in
+incorrect data and potential aborts.  This is now fixed.  For example,
+assuming the --unicode_source_kind=UTF-8 command-line option, the following
+invalid UTF-8 character sequence resulted in an abort in
+conv_string_literal:
+
+  char str[] = "€€€€€€€€";
+
+
 3/19/14  [EDGcpfe/14933]
 Microsoft compatibility: incomplete type error on nonreal instantiation
 
