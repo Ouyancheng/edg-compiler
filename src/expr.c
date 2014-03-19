@@ -23957,7 +23957,7 @@ that case.
   /* There is a potential sequence point after the first operand. */
   potential_sequence_point_after_operand(operand_1);
 
-  if (C_dialect == C_dialect_cplusplus &&
+  if (C_dialect == C_dialect_cplusplus && !curr_expr_kind_is(ek_pp) &&
       (!curr_expr_kind_is_const() || constexpr_enabled) &&
       any_opname_function_symbol(opname_kind_for_token[(int)operator_token])) {
     /* We are in C++ mode, and there is an operator function that overloads

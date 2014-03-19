@@ -1,5 +1,20 @@
 Version 4.9
 
+3/19/14  [EDGcpfe/14824]
+Spurious remark for unevaluated use of undefined symbol in #if
+
+In C++11 mode when the && or || operator is overloaded, the front end
+issued a spurious remark about an "undefined preprocessing identifier"
+appearing in an unevaluated right-hand operand of that operator in the
+expression of a #if directive.  This is now fixed.  For example:
+
+  struct S { };
+  bool operator&&(const S&, const S&);
+  // "X" is not defined here
+  #if defined(X) && X  // Previously caused a remark for use of X after &&
+  #endif
+
+
 3/19/14  [EDGcpfe/14900]
 Invalid UTF-8 characters in character string literals
 
