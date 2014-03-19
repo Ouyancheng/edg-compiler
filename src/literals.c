@@ -809,9 +809,9 @@ return the first; otherwise, return ch and leave *state unmodified.
   if (num_code_units == 2) {
     /* The character was valid Unicode and resulted in a surrogate pair.
        Return the first code unit now and set up to return the second one
-       on the next call.  (If the value was invalid, an error was already
-       reported when the character was scanned, so we just return the
-       original value.) */
+       as the next character.  (If the value was invalid, an error was
+       already reported when the character was scanned, so we just return
+       the original value.) */
     state->pending_surrogate_pair = encoding[1];
     state->next_mbc_char = NULL;
     state->remaining_char_count = 1;
