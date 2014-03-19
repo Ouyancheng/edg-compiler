@@ -1,5 +1,23 @@
 Version 4.9
 
+3/19/14  [EDGcpfe/14933]
+Microsoft compatibility: incomplete type error on nonreal instantiation
+
+A change made in version 4.5 (see EDGcpfe/12786 on 5/14/12) could result
+in an incomplete type error in Microsoft mode when a real class is used as
+a base class of an instantiated nonreal class.  Now fixed.
+
+  template <class T> class A : T { };
+  template <size_t sz>  class B;
+  typedef A<B<sizeof(long)> > AB;
+  template<class T, class U> class C : U { };
+  // The following caused the instantiation of C<T*, AB>, which resulted in
+  // the incomplete type referred to by AB to be used as a base class of C.
+  template <typename T> class D : public C<T*, AB> {
+    typedef C<T*,  AB> base;
+  };
+
+
 3/19/14  [EDGcpfe/14899]
 Extended characters and surrogate pairs in char16_t string literals
 

@@ -7934,7 +7934,14 @@ issue an error and return FALSE.
   } else {
     /* Force instantiation if the base class is a template class. */
     check_assertion(is_class_struct_union_type(base_class_type));
-    complete_class_type_is_needed(base_class_type);
+    if (microsoft_mode && is_immediate_class_type(type) &&
+        type->variant.class_struct_union.is_ms_instantiated_nonreal_class &&
+        !base_class_type->variant.class_struct_union.is_nonreal_class) {
+      /* Don't force the instantiation of base classes of Microsoft
+         instantiated nonreal base classes. */
+    } else {
+      complete_class_type_is_needed(base_class_type);
+    }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
     if (microsoft_mode) {
       if (is_immediate_managed_class_type(type)) {
