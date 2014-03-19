@@ -1,5 +1,24 @@
 Version 4.9
 
+3/19/14  [EDGcpfe/14899]
+Extended characters and surrogate pairs in char16_t string literals
+
+An extended character appearing directly (i.e., not as a
+universal-character-name) in a char16_t string literal was incorrectly
+handled by the front end when the character requires a surrogate pair in
+its UTF-16 encoding.  Rather than producing the corresponding surrogate
+pair, the front end previously truncated the character's code point to its
+low-order 16 bits.  This is now fixed.  For example, assuming the
+--unicode_source_kind=UTF-8 command-line option, the following two strings
+should be (and now are) equivalent, containing the two char16_t code units
+of the character's surrogate pair and the terminating null character.  The
+front end previously created a four-byte value for the second, with both
+char16_t characters being the null character:
+
+  char16_t c1[] = u"\U00010000";
+  char16_t c2[] = u"𐀀";
+
+
 3/18/14  [EDGcpfe/14898]
 char16_t literals and out-of-range numeric escape sequences
 

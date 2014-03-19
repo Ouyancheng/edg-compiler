@@ -794,6 +794,33 @@ to a Latin-1 byte.
 }  /* conv_unicode_literal_char */
 
 
+static unsigned long create_surrogate_pair(unsigned long               ch,
+                                           a_char_conversion_state_ptr state)
+/*
+If ch is a valid Unicode character requiring a surrogate pair in its UTF-16
+encoding, set up *state to buffer the second code unit of the pair and
+return the first; otherwise, return ch and leave *state unmodified.
+*/
+{
+  unsigned short encoding[2];
+  int            num_code_units;
+
+  num_code_units = ucn_to_utf16(ch, encoding);
+  if (num_code_units == 2) {
+    /* The character was valid Unicode and resulted in a surrogate pair.
+       Return the first code unit now and set up to return the second one
+       on the next call.  (If the value was invalid, an error was already
+       reported when the character was scanned, so we just return the
+       original value.) */
+    state->pending_surrogate_pair = encoding[1];
+    state->next_mbc_char = NULL;
+    state->remaining_char_count = 1;
+    ch = encoding[0];
+  }  /* if */
+  return ch;
+}  /* create_surrogate_pair */
+
+
 void conv_single_char(a_char_conversion_state_ptr state,
                       a_boolean                   process_escapes,
                       unsigned long               *ch,
@@ -1138,20 +1165,7 @@ range_check:
         /* The target character type is such that an overflow should be
            handled by creating a UTF-16 surrogate pair rather than as a
            warning or error. */
-        unsigned short encoding[2];
-        int            num_code_units;
-        num_code_units = ucn_to_utf16(targ_ch, encoding);
-        if (num_code_units == 2) {
-          /* The character was valid Unicode and resulted in a surrogate
-             pair.  Return the first code unit now and set up to return the
-             second one on the next call.  (If the value was invalid, an
-             error was already reported when the character was scanned, so
-             we will just return the masked value.) */
-          state->pending_surrogate_pair = encoding[1];
-          state->next_mbc_char = NULL;
-          state->remaining_char_count = 1;
-          targ_ch = encoding[0];
-        }  /* if */
+        targ_ch = create_surrogate_pair(targ_ch, state);
       } else {
         range_error = TRUE;
       }  /* if */
@@ -1216,6 +1230,12 @@ defines the size of character.
       conv_line_loc_to_source_pos(*state->next_token_char, &error_position);
       diagnostic(es_discretionary_error, ec_bad_multibyte_char);
       wc = 0;
+    }  /* if */
+    if ((wc & ~centity_mask) != 0 && state->create_surrogate_pairs) {
+      /* The character does not fit into a single code unit.  Create a
+         UTF-16 surrogate pair, buffering the second code unit in *state
+         and returning the first as the result of this call. */
+      wc = create_surrogate_pair(wc, state);
     }  /* if */
     *ch = wc;
     *state->next_token_char += numch;
