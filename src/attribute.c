@@ -6994,12 +6994,12 @@ cycle of aliased entities.  Break the cycle if that is the case.
   switch (sym->kind) {
     case sk_routine:
       { a_routine_ptr  orig_rp = sym->variant.routine.ptr, rp;
-        check_assertion(orig_rp->gnu != NULL);
-        rp = orig_rp->gnu->aliased_routine;
-        for (; rp != NULL && rp->gnu != NULL; rp = rp->gnu->aliased_routine) {
+        rp = get_gnu_ext(orig_rp)->aliased_routine;
+        for (; rp != NULL && has_gnu_ext(rp);
+               rp = get_gnu_ext(rp)->aliased_routine) {
           if (same_entities(rp, orig_rp)) {
             alias_loop = TRUE;
-            orig_rp->gnu->aliased_routine = NULL;
+            ensure_gnu_ext(orig_rp)->aliased_routine = NULL;
             orig_rp->implicit_alias = FALSE;
             break;
           }  /* if */
@@ -7097,8 +7097,7 @@ equal.
       str = sym->variant.variable.ptr->asm_name_or_reg.name;
       break;
     case sk_routine:
-      check_assertion(sym->variant.routine.ptr->gnu != NULL);
-      str = sym->variant.routine.ptr->gnu->asm_name;
+      str = get_gnu_ext(sym->variant.routine.ptr)->asm_name;
       break;
     default:
       unexpected_condition();
@@ -7124,8 +7123,7 @@ attribute refers to that name).
       }  /* if */
       break;
     case sk_routine:
-      check_assertion(sym->variant.routine.ptr->gnu != NULL);
-      str = sym->variant.routine.ptr->gnu->asm_name;
+      str = get_gnu_ext(sym->variant.routine.ptr)->asm_name;
       break;
     default:
       unexpected_condition();
