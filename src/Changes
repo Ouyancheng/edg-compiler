@@ -43,8 +43,8 @@ low-order 16 bits.  This is now fixed.  For example, assuming the
 --unicode_source_kind=UTF-8 command-line option, the following two strings
 should be (and now are) equivalent, containing the two char16_t code units
 of the character's surrogate pair and the terminating null character.  The
-front end previously created a four-byte value for the second, with both
-char16_t characters being the null character:
+front end previously created a four-byte value for the second string, with
+both char16_t characters being the null character:
 
   char16_t c1[] = u"\U00010000";
   char16_t c2[] = u"𐀀";
