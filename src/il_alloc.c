@@ -2762,29 +2762,30 @@ to it.  The entry is allocated in the file scope memory region.
 
 #if GNU_EXTENSIONS_ALLOWED || REDEFINE_EXTNAME_PRAGMA_ENABLED
 
-void alloc_gnu_extension_for_routine(a_routine_ptr rp)
+a_gnu_routine_extension_ptr alloc_gnu_extension_for_routine(a_routine_ptr rp)
 /*
-Allocate a_gnu_routine_extension structure for rp if it doesn't already
-have one.  The structure is not allocated when a_routine is allocated and is
-populated only when a need for the structure arises.  The entry is allocated
-in the file scope memory region.
+Allocate and return a_gnu_routine_extension structure for rp (which should not
+already already have one).  The structure is not allocated when a_routine is
+allocated and is populated only when a need for the structure arises.  The
+entry is allocated in the file scope memory region.  See ensure_gnu_ext for
+the typical invocation.
 */
 {
-  if (rp->gnu == NULL) {
-    rp->gnu = (a_gnu_routine_extension_ptr)
+  check_assertion(rp->gnu == NULL);
+  rp->gnu = (a_gnu_routine_extension_ptr)
                                      alloc_il(sizeof(a_gnu_routine_extension));
-    rp->gnu->section              = NULL;
-    rp->gnu->aliased_routine      = NULL;
+  rp->gnu->section              = NULL;
+  rp->gnu->aliased_routine      = NULL;
 #if LOWER_IFUNC
-    rp->gnu->resolver_var         = NULL;
+  rp->gnu->resolver_var         = NULL;
 #endif /* LOWER_IFUNC */
-    rp->gnu->inline_partner       = NULL;
+  rp->gnu->inline_partner       = NULL;
 #if GNU_INIT_PRIORITY_ATTRIBUTE_ALLOWED
-    rp->gnu->ctor_priority        = 0;
-    rp->gnu->dtor_priority        = 0;
+  rp->gnu->ctor_priority        = 0;
+  rp->gnu->dtor_priority        = 0;
 #endif /* GNU_INIT_PRIORITY_ATTRIBUTE_ALLOWED */
-    rp->gnu->asm_name             = NULL;
-  }  /* if */
+  rp->gnu->asm_name             = NULL;
+  return rp->gnu;
 }  /* alloc_gnu_extension_for_routine */
 
 #endif /* GNU_EXTENSIONS_ALLOWED || REDEFINE_EXTNAME_PRAGMA_ENABLED */

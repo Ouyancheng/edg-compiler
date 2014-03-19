@@ -6984,9 +6984,9 @@ yet.
   entry_routine->ELF_visibility = overriding_function->ELF_visibility;
 #endif /* GNU_VISIBILITY_ATTRIBUTE_ALLOWED */
   entry_routine->is_weak = overriding_function->is_weak;
-  if (overriding_function->gnu != NULL) {
-    alloc_gnu_extension_for_routine(entry_routine);
-    entry_routine->gnu->section = overriding_function->gnu->section;
+  if (has_gnu_ext(overriding_function)) {
+    ensure_gnu_ext(entry_routine)->section =
+                                     get_gnu_ext(overriding_function)->section;
   }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
 #if SUN_EXTENSIONS_ALLOWED
@@ -9800,8 +9800,7 @@ to invoke the resolver and then the resolved routine).
 */
 {
   check_assertion(rp->is_ifunc);
-  alloc_gnu_extension_for_routine(rp);
-  if (rp->gnu->resolver_var == NULL) {
+  if (!has_gnu_ext(rp) || get_gnu_ext(rp)->resolver_var == NULL) {
     a_constant_ptr   function_constant;
     a_memory_region_number region_to_switch_back_to;
     a_storage_class  storage_class;
@@ -9816,27 +9815,28 @@ to invoke the resolver and then the resolved routine).
     /* Give the variable a unique name (based on the ifunc routine's name). */
     var_name = make_prefixed_object_name("__IFV__", &rp->source_corresp,
                                          iek_routine);
-    rp->gnu->resolver_var = make_lowered_variable(var_name,
+    ensure_gnu_ext(rp)->resolver_var = make_lowered_variable(var_name,
                                                   /*already_il_name=*/TRUE,
                                                   make_pointer_type(rp->type),
                                                   storage_class);
-    rp->gnu->resolver_var->source_corresp.name_has_been_mangled = TRUE;
+    ensure_gnu_ext(rp)->resolver_var->source_corresp.name_has_been_mangled =
+                                                                          TRUE;
     if (storage_class == (a_storage_class)sc_unspecified) {
 #if IA64_ABI
-      put_variable_into_comdat_group(rp->gnu->resolver_var);
+      put_variable_into_comdat_group(get_gnu_ext(rp)->resolver_var);
 #else /* !IA64_ABI */
-      rp->gnu->resolver_var->is_weak = TRUE;
+      ensure_gnu_ext(rp)->resolver_var->is_weak = TRUE;
 #endif /* IA64_ABI */
     }  /* if */
     /* Statically initialize the variable to point to the ifunc routine. */
     function_constant = alloc_constant((a_constant_repr_kind)ck_address);
     set_routine_address_constant(rp, function_constant,
                                  /*set_address_taken_flag=*/TRUE);
-    rp->gnu->resolver_var->initializer.constant = function_constant;
-    rp->gnu->resolver_var->init_kind = (an_init_kind)initk_static;
+    ensure_gnu_ext(rp)->resolver_var->initializer.constant = function_constant;
+    ensure_gnu_ext(rp)->resolver_var->init_kind = (an_init_kind)initk_static;
     switch_back_to_original_region(region_to_switch_back_to);
   }  /* if */
-  return rp->gnu->resolver_var;
+  return get_gnu_ext(rp)->resolver_var;
 }  /* make_ifunc_resolver_var */
 
 

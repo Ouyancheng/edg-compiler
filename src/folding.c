@@ -8375,8 +8375,7 @@ the folding mechanism is used as a way to validate argument values.
   if (rp->implicit_alias) {
     /* A call to a user-defined routine that is implicitly assumed equivalent
        to a built-in function (recorded in rp->gnu->aliased_routine). */
-    check_assertion(rp->gnu != NULL);
-    rp = rp->gnu->aliased_routine;
+    rp = get_gnu_ext(rp)->aliased_routine;
   }  /* if */
   if (is_gnu_builtin_function(rp)) {
     a_type_ptr       result_type = f_skip_typerefs(return_type_of(rp->type));
@@ -10388,8 +10387,7 @@ called instead.
         /* A call to a user-defined routine that is implicitly assumed
            equivalent to a built-in function (recorded in
            routine->gnu->aliased_routine). */
-        check_assertion(routine->gnu != NULL);
-        routine = routine->gnu->aliased_routine;
+        routine = get_gnu_ext(routine)->aliased_routine;
       }  /* if */
       if (is_foldable_gnu_builtin_function(routine, (a_boolean *)NULL)) {
         /* Try to fold a call of a GNU builtin function. */

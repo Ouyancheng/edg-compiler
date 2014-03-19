@@ -13787,6 +13787,24 @@ typedef struct a_gnu_routine_extension {
 			   language level symbol for this routine. */
 } a_gnu_routine_extension;
 
+/*
+As the "gnu" (aka a_gnu_routine_extension) field of a_routine is "optional"
+(i.e., only allocated when necessary), these macros are intended to ease the
+use of fields in a_gnu_routine_extension.  ensure_gnu_ext is used when
+assigning to a field in a_gnu_routine_extension to ensure that the extension
+has been allocated (i.e., in an lvalue context).  has_gnu_ext is used to test
+whether or not the field has been allocated.  get_gnu_ext is used when
+referring to a field (i.e., in an rvalue context).
+*/
+#define ensure_gnu_ext(rp) \
+  (((rp)->gnu) == NULL ? alloc_gnu_extension_for_routine(rp) : (rp)->gnu)
+#define has_gnu_ext(rp) ((rp)->gnu != NULL)
+#if CHECKING
+#define get_gnu_ext(rp) (check_assertion(has_gnu_ext(rp)), (rp)->gnu)
+#else /* !CHECKING */
+#define get_gnu_ext(rp) ((rp)->gnu)
+#endif /* CHECKING */
+
 #endif /* GNU_EXTENSIONS_ALLOWED || REDEFINE_EXTNAME_PRAGMA_ENABLED */
 
 typedef struct an_asm_entry *an_asm_entry_ptr;

@@ -13723,8 +13723,7 @@ implicitly declared member functions.
       copy_gnu_class_properties_to_routine(class_type, rtn);
       /* Record the assembly name. */
       if (decl_state->asm_name != NULL) {
-        alloc_gnu_extension_for_routine(rtn);
-        rtn->gnu->asm_name = decl_state->asm_name;
+        ensure_gnu_ext(rtn)->asm_name = decl_state->asm_name;
       }  /* if */
     }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */

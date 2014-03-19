@@ -4355,8 +4355,7 @@ or Microsoft "allocate" attribute to it and return the entity.
       ((a_variable_ptr)entity)->section = str;
 #if GNU_EXTENSIONS_ALLOWED
     } else {
-      alloc_gnu_extension_for_routine(((a_routine_ptr)entity));
-      ((a_routine_ptr)entity)->gnu->section = str;
+      ensure_gnu_ext(((a_routine_ptr)entity))->section = str;
 #endif /* GNU_EXTENSIONS_ALLOWED */
     }  /* if */
   }  /* if */
@@ -4712,8 +4711,7 @@ it and return the entity.
 #if GNU_INIT_PRIORITY_ATTRIBUTE_ALLOWED
     /* Retrieve the priority value.  In error cases, ap->kind will be set to
        ak_unrecognized. */
-    alloc_gnu_extension_for_routine(rp);
-    if (get_priority(ap, 0, &rp->gnu->ctor_priority)) {
+    if (get_priority(ap, 0, &ensure_gnu_ext(rp)->ctor_priority)) {
       rp->has_ctor_priority = TRUE;
     }  /* if */
 #endif /* GNU_INIT_PRIORITY_ATTRIBUTE_ALLOWED */
@@ -4746,8 +4744,7 @@ it and return the entity.
 #if GNU_INIT_PRIORITY_ATTRIBUTE_ALLOWED
     /* Retrieve the priority value.  In error cases, ap->kind will be set to
        ak_unrecognized. */
-    alloc_gnu_extension_for_routine(rp);
-    if (get_priority(ap, 0, &rp->gnu->dtor_priority)) {
+    if (get_priority(ap, 0, &ensure_gnu_ext(rp)->dtor_priority)) {
       rp->has_dtor_priority = TRUE;
     }  /* if */
 #endif /* GNU_INIT_PRIORITY_ATTRIBUTE_ALLOWED */
@@ -7219,8 +7216,7 @@ Also used for the GNU ifunc attribute.
           if (ext_sym->kind == (a_symbol_kind)sk_extern_routine) {
             a_routine_ptr rp =
                      ext_sym->variant.extern_symbol_descr->variant.routine.ptr;
-            alloc_gnu_extension_for_routine(rp);
-            rp->gnu->asm_name = entry->alias_name;
+            ensure_gnu_ext(rp)->asm_name = entry->alias_name;
             break;
           } else if (ext_sym->kind == (a_symbol_kind)sk_extern_variable) {
             ext_sym->variant.extern_symbol_descr->variant.variable->
@@ -7235,8 +7231,7 @@ Also used for the GNU ifunc attribute.
         a_source_correspondence_ptr  scp = NULL;
         switch (aliased_sym->kind) {
           case sk_routine:
-            alloc_gnu_extension_for_routine(aliased_sym->variant.routine.ptr);
-            aliased_sym->variant.routine.ptr->gnu->asm_name =
+            ensure_gnu_ext(aliased_sym->variant.routine.ptr)->asm_name =
                                                              entry->alias_name;
             scp = &aliased_sym->variant.routine.ptr->source_corresp;
             break;
@@ -7323,8 +7318,7 @@ Also used for the GNU ifunc attribute.
                                routine_type);
             }  /* if */
           }  /* if */
-          alloc_gnu_extension_for_routine(entry->alias->variant.routine.ptr);
-          entry->alias->variant.routine.ptr->gnu->aliased_routine =
+          ensure_gnu_ext(entry->alias->variant.routine.ptr)->aliased_routine =
                                               aliased_sym->variant.routine.ptr;
           report_any_alias_loop(entry);
           break;

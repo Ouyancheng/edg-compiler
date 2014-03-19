@@ -3718,8 +3718,7 @@ This routine may also diagnose certain invalid uses of special GNU functions
        to a built-in function (recorded in rp->gnu->aliased_routine).  Versions
        of GNU C (but not GNU C++) prior to 4.5 fold calls to such routines
        early. */
-    check_assertion(rp->gnu != NULL);
-    rp = rp->gnu->aliased_routine;
+    rp = get_gnu_ext(rp)->aliased_routine;
   }  /* if */
   *foldable = *pseudo_call = FALSE;
   if (rp != NULL && is_gnu_builtin_function(rp)) {
