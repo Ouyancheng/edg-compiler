@@ -956,14 +956,15 @@ get_another:
          call, the remaining count is one less than the size. */
       a_boolean     err;
       unsigned long wc;
-      int           numch = lex_mbc_to_wide_char(lptr, &wc, &err);
+      state->remaining_char_count = lex_mbc_to_wide_char(lptr, &wc, &err) - 1;
       if (err) {
         /* Invalid multibyte character sequence.  Report the error, skip
            over the invalid sequence, and return a single (null)
            character. */
         conv_line_loc_to_source_pos(lptr, &error_position);
         diagnostic(es_discretionary_error, ec_bad_multibyte_char);
-        lptr += numch - 1;
+        lptr += state->remaining_char_count;
+        state->remaining_char_count = 0;
         targ_ch = 0;
 #if NATIVE_MULTIBYTE_CHARS_SUPPORTED_WITH_UNICODE
       } else if (curr_file_unicode_source_kind != usk_none &&
@@ -976,7 +977,7 @@ get_another:
            to return subsequent bytes of the multibyte character. */
         (void)mbc_to_wide_char(lptr, &wc, (a_boolean *)NULL,
                                /*is_native=*/FALSE);
-        lptr += numch - 1;
+        lptr += state->remaining_char_count;
         targ_ch = conv_unicode_literal_char(state, uc, /*utf8_literal=*/FALSE);
 #endif /* NATIVE_MULTIBYTE_CHARS_SUPPORTED_WITH_UNICODE */
       } else if (utf8_literal) {
@@ -984,7 +985,7 @@ get_another:
            multibyte character, either UTF-8 or a native character set:
            convert it to Unicode and then to UTF-8, returning the first (or
            only) byte. */
-        lptr += numch - 1;
+        lptr += state->remaining_char_count;
         targ_ch = conv_unicode_literal_char(state, wc, /*utf8_literal=*/TRUE);
       }  /* if */
     } else
