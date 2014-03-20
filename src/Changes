@@ -1,5 +1,33 @@
 Version 4.9
 
+3/20/14  [EDGcpfe/14226]
+Microsoft compatibility: Errors using certain C++/CLI assemblies
+
+Certain assemblies (such as System.Windows.Forms.dll) were not handled
+properly in C++/CLI, resulting in spurious errors when importing the
+assembly.  Now fixed.
+
+  #using <System.dll>
+  #using <System.Drawing.dll>
+  #using <System.Windows.Forms.dll>
+  using namespace System;
+  using namespace System::Runtime::CompilerServices;
+  using namespace System::Drawing;
+  using namespace System::Windows::Forms;
+  namespace N {
+    public ref class Button : Control {
+      EventHandler^ action;
+    public:
+      event EventHandler^ Click {
+        void add(EventHandler^ d) { }
+        void remove(EventHandler^ d) {}
+        void raise(Object^ sender, EventArgs^ e) {}
+      }
+    };
+  }
+
+
+
 3/19/14  [EDGcpfe/14824]
 Spurious remark for unevaluated use of undefined symbol in #if
 

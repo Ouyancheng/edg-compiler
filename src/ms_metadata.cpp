@@ -853,6 +853,11 @@ public:
     other.swap(*this);
   }  /* Move constructor. */
 
+  static a_type_wrapper_ptr create(a_kind kind)
+  {
+    return make_shared<a_type_wrapper>(kind);
+  }  /* create */
+
   virtual ~a_type_wrapper()
   {
   }  /* Destructor. */
@@ -874,6 +879,7 @@ public:
   a_kind kind() const { return kind_; }
   void set_kind(a_kind kind) { kind_ = kind; }
   bool is_of_kind(a_kind kind) const { return kind_ == kind; }
+  bool is_invalid() const { return kind_ == twk_invalid; }
 
   a_qualifier_flag_set qualifier_flags() const { return qualifier_flags_; }
   void set_qualifier_flags(a_qualifier_flag_set qualifier_flags) {
@@ -1065,6 +1071,13 @@ public:
     return make_shared<a_class_type_wrapper>(ck_class, move(qualified_name));
   }  /* create_system_class*/
 
+  a_class_type_wrapper()
+    : a_type_wrapper(twk_invalid)
+    , class_kind_(ck_invalid)
+    , token_(mdTokenNil)
+  {
+  }  /* Constructor. */
+
   a_class_type_wrapper(a_class_kind     kind,
                        a_qualified_name name,
                        an_import_scope  *import_scope = nullptr,
@@ -1158,13 +1171,13 @@ public:
   }  /* is_unresolved_type */
 
   virtual a_class_type_wrapper_ptr as_class() {
-    check_assertion(is_of_kind(twk_class));
+    check_assertion(is_of_kind(twk_class) || is_invalid());
     return shared_from_this();
   }  /* as_class */
 
   virtual a_const_class_type_wrapper_ptr as_class() const
   {
-    check_assertion(is_of_kind(twk_class));
+    check_assertion(is_of_kind(twk_class) || is_invalid());
     return shared_from_this();
   }  /* as_class */
 
@@ -1504,37 +1517,21 @@ The representation of a single method parameter.
 class a_method_parameter {
 public:
   a_method_parameter()
-    : token_(mdParamDefNil)
+    : type_(a_type_wrapper::create(a_type_wrapper::twk_invalid))
+    , token_(mdParamDefNil)
     , attributes_(0)
   {
   }  /* Default constructor. */
 
   a_method_parameter(const an_import_scope &import_scope,
-                     a_type_wrapper_ptr type, mdParamDef token);
-
-  a_method_parameter(a_method_parameter&& other)
-    : token_(mdParamDefNil)
-    , attributes_(0)
-  {
-    other.swap(*this);
-  }  /* Move constructor. */
-
-  a_method_parameter& operator=(a_method_parameter other) {
-    other.swap(*this);
-    return *this;
-  }  /* Assignment operator. */
-
-  void swap(a_method_parameter& other) {
-    std::swap(type_, other.type_);
-    std::swap(token_, other.token_);
-    std::swap(name_, other.name_);
-    std::swap(attributes_, other.attributes_);
-  }  /* swap */
+                     a_type_wrapper_ptr    type,
+                     mdParamDef            token);
 
   wstring get_string(bool expand_unresolved_types) const {
     return type_->get_string(name_, expand_unresolved_types);
   }  /* get_string */
 
+  void set_type(a_type_wrapper_ptr type) { type_ = move(type); }
   a_type_wrapper_ptr       type() { return type_; }
   a_const_type_wrapper_ptr type() const { return type_; }
   mdParamDef token() const { return token_; }
@@ -1562,6 +1559,13 @@ class a_function_type_wrapper
   , public enable_shared_from_this<a_function_type_wrapper>
 {
 public:
+  a_function_type_wrapper()
+    : a_type_wrapper(twk_invalid)
+    , generic_arity_(0)
+    , calling_convention_(0)
+  {
+  }  /* Constructor. */
+
   a_function_type_wrapper(BYTE                    generic_arity,
                           BYTE                    calling_convention,
                           a_type_wrapper_ptr      return_type,
@@ -1629,12 +1633,12 @@ public:
   }  /* parameter_list */
 
   virtual a_function_type_wrapper_ptr as_function() {
-    check_assertion(is_of_kind(twk_function));
+    check_assertion(is_of_kind(twk_function) || is_invalid());
     return shared_from_this();
   }  /* as_function */
 
   virtual a_const_function_type_wrapper_ptr as_function() const {
-    check_assertion(is_of_kind(twk_function));
+    check_assertion(is_of_kind(twk_function) || is_invalid());
     return shared_from_this();
   }  /* as_function */
 
@@ -1932,7 +1936,7 @@ private:
 
 class an_attribute_argument;
 typedef const an_attribute_argument a_const_attribute_argument;
-typedef vector<a_const_attribute_argument> an_attribute_argument_list;
+typedef vector<an_attribute_argument> an_attribute_argument_list;
 typedef const an_attribute_argument_list a_const_attribute_argument_list;
 typedef std::shared_ptr<an_attribute_argument_list>
                                                an_attribute_argument_list_ptr;
@@ -2096,7 +2100,7 @@ private:
 
 
 class a_custom_attribute;
-typedef vector<const a_custom_attribute> a_custom_attribute_list;
+typedef vector<a_custom_attribute> a_custom_attribute_list;
 typedef const a_custom_attribute_list a_const_custom_attribute_list;
 
 /*
@@ -2918,6 +2922,7 @@ void a_class_type_wrapper::write_first_part(
       write_qualifiers(buffer);
       buffer << L' ';
     }  /* if */
+#if 0
     /* Emit the "__unresolved_type" construct if requested. */
     if (is_of_class_kind(ck_unresolved) && expand_unresolved_types &&
         (import_scope_->containing_assembly().import_flags()
@@ -2930,6 +2935,9 @@ void a_class_type_wrapper::write_first_part(
     } else {
       buffer << name_.as_string();
     }  /* if */
+#else /* 0 */
+    buffer << name_.as_string();
+#endif /* 0 */
   } else {
     unexpected_condition();
     buffer << L"__error_type";
@@ -3040,31 +3048,19 @@ public:
     return decoder.decode_type();
   }  /* decode_field */
 
-  static a_type_wrapper_ptr decode_return_type(
+  static a_function_type_wrapper_ptr decode_method(
                            const a_signature_decoder_scope &scope,
                            mdToken                         token,
                            PCCOR_SIGNATURE                 signature,
                            ULONG                           bytes_in_signature)
   {
     a_signature_decoder decoder(scope, signature, bytes_in_signature);
-    return decode_method(decoder, token, /*return_type_only=*/true);
-  }  /* decode_return_type */
+    return decode_method(decoder, token);
+  }  /* decode_method */
 
   static a_function_type_wrapper_ptr decode_method(
-                    const a_signature_decoder_scope &scope,
-                    mdToken                         token,
-                    PCCOR_SIGNATURE                 signature,
-                    ULONG                           bytes_in_signature)
-  {
-    a_signature_decoder decoder(scope, signature, bytes_in_signature);
-    auto type = decode_method(decoder, token, /*return_type_only=*/false);
-    return (type != nullptr) ? type->as_function() : nullptr;
-  }  /* decode_return_type */
-
-  static a_type_wrapper_ptr decode_method(
-                                a_signature_decoder &decoder,
-                                mdToken             token,
-                                bool                return_type_only = false);
+                                                 a_signature_decoder &decoder,
+                                                 mdToken             token);
 
 private:
   a_signature_decoder(const a_signature_decoder_scope &scope,
@@ -3537,7 +3533,7 @@ class an_accessibility
 {
 public:
   an_accessibility()
-    : access_(access_none)
+    : access_(access_unknown)
     , enclosing_type_is_accessible_(false)
   {
   }  /* Constructor. */
@@ -3551,6 +3547,7 @@ public:
   {
     wstring result;
     switch (access_) {
+      case access_unknown:
       case access_none:
         /* We should not be emitting this accessibility. */
         unexpected_condition();
@@ -3602,6 +3599,11 @@ public:
     return result;
   }  /* get_string */
 
+  bool is_unknown() const
+  {
+    return access_ == access_unknown;
+  }  /* is_invalid */
+
   bool is_accessible() const
   {
     return enclosing_type_is_accessible_ &&
@@ -3642,6 +3644,8 @@ private:
   bool enclosing_type_is_accessible_;
 
   enum access_kind {
+    access_unknown,                    /* A special value that represents an
+                                          uninitialized access_kind. */
                                        /* within assembly  outside assembly */
     access_none,                       /* none             none             */
     access_private,                    /* private          private          */
@@ -3731,7 +3735,7 @@ public:
     , kind_(tdk_unknown)
     , is_system_string_scope_(false)
     , enclosing_type_(nullptr)
-    , method_impls_initialized_(false)
+    , named_overrides_initialized_(false)
   {
   }  /* Constructor. */
 
@@ -3741,7 +3745,7 @@ public:
     , kind_(tdk_unknown)
     , is_system_string_scope_(false)
     , enclosing_type_(nullptr)
-    , method_impls_initialized_(false)
+    , named_overrides_initialized_(false)
   {
     HRESULT hr = import_interface()->GetTypeDefProps(token,
                                                      &attributes_,
@@ -3905,12 +3909,13 @@ public:
 
   bool is_named_override(mdToken method_token) const
   /*
-  Returns TRUE if the method is a named override for a method from a base
-  class or interface.
+  Returns TRUE if the method is a named override for an accessible method from
+  a base class or interface.
   */
   {
-     auto method_impls_range = method_impls_.equal_range(method_token);
-     return method_impls_range.first != method_impls_range.second;
+    const auto &named_overrides = get_named_overrides();
+    auto named_override_iter = named_overrides.find(method_token);
+    return named_override_iter != named_overrides.end();
   }  /* is_named_override */
 
 private:
@@ -4042,20 +4047,19 @@ private:
                 kind_;  /* The type's kind. */
   bool          is_system_string_scope_;
                         /* Indicates that the type is System::String. */
-  mutable bool  method_impls_initialized_;
-                        /* Indicates that method_impls_ has been
+
+  typedef map<mdToken, wstring> a_named_override_map;
+  typedef const a_named_override_map &a_const_named_override_map_ref;
+  a_const_named_override_map_ref get_named_overrides() const;
+  mutable bool  named_overrides_initialized_;
+                        /* Indicates that named_overrides_ has been
                            initialized. */
-  mutable multimap<mdToken, mdToken>
-                method_impls_;
-                        /* If this type definition is a class, this maps
-                           a method body token (mdMethodDef or mdMemberRef)
-                           for a virtual member function in this class to a
-                           method declaration token (mdMethodDef or
-                           mdMemberRef) for a virtual member function in a
-                           base class.  It is used to indicate that the named
-                           override syntax should be used in the
-                           declaration of that method. */
-  typedef multimap<mdToken, mdToken>::value_type a_method_impl_entry;
+  mutable a_named_override_map
+                named_overrides_;
+                        /* If this type definition is a class, this maps a
+                           virtual function in this class to the list of
+                           accessible base class virtual functions that it
+                           explicitly overrides. */
 };  /* a_type_definition */
 
 
@@ -4295,36 +4299,70 @@ public:
     , event_or_property_token_(mdTokenNil)
     , cli_operator_kind_(cok_none)
   {
-    HRESULT             hr;
-    mdTypeDef           parent_token;
-    PCCOR_SIGNATURE     signature;
-    ULONG               bytes_in_signature;
+    HRESULT    hr;
+    mdTypeDef  parent_token;
 
-    hr = import_interface()->GetMethodProps(token,
+    hr = import_interface()->GetMethodProps(token_,
                                             &parent_token,
-                                            name_,
                                             &attributes_,
-                                            &signature,
-                                            &bytes_in_signature,
+                                            /*ppvSigBlob=*/nullptr,
+                                            /*pcbSigBlob=*/nullptr,
                                             /*pulCodeRVA=*/nullptr,
                                             /*pdwImplFlags=*/nullptr);
     CHECK_API_RESULT(hr, GetMethodProps);
     if (!IsNilToken(parent_token)) {
-      enclosing_type_ = &import_scope.get_type_definition(parent_token);
+      enclosing_type_ = &import_scope_.get_type_definition(parent_token);
     }  /* if */
-    accessibility_ = an_accessibility(import_scope, token, attributes_,
-                                      enclosing_type_);
-    if (accessibility_.is_accessible()) {
-      function_type_ = a_signature_decoder::decode_method(*this, token,
+  }  /* Constructor. */
+
+  DWORD attributes() const
+  {
+    return attributes_;
+  }  /* attributes */
+
+  const wstring &name() const
+  {
+    /* Ensure the function type has been determined. */
+    (void)function_type();
+    return name_;
+  }  /* attributes */
+
+  const an_accessibility &accessibility() const
+  {
+    if (accessibility_.is_unknown()) {
+      accessibility_ = an_accessibility(import_scope_, token_, attributes_,
+                                        enclosing_type_);
+      check_assertion(!accessibility_.is_unknown());
+    }  /* if */
+    return accessibility_;
+  }  /* accessibility */
+
+  a_const_function_type_wrapper_ptr function_type() const
+  {
+    if (function_type_ == nullptr) {
+      HRESULT             hr;
+      PCCOR_SIGNATURE     signature;
+      ULONG               bytes_in_signature;
+
+      hr = import_interface()->GetMethodProps(token_,
+                                              /*pClass=*/nullptr,
+                                              name_,
+                                              /*pdwAttr=*/nullptr,
+                                              &signature,
+                                              &bytes_in_signature,
+                                              /*pulCodeRVA=*/nullptr,
+                                              /*pdwImplFlags=*/nullptr);
+      CHECK_API_RESULT(hr, GetMethodProps);
+      function_type_ = a_signature_decoder::decode_method(*this, token_,
                                                           signature,
                                                           bytes_in_signature);
-      if (function_type_ == nullptr) {
+      if (function_type_->is_invalid()) {
         /* The method was not successfully decoded.  It will not be
            imported. */
       } else if (enclosing_type_ == nullptr) {
         escape_invalid_identifier(name_);
       } else {
-        const wstring &type_name = enclosing_type_->type_name();
+        auto &type_name = enclosing_type_->type_name();
         if (IsMdInstanceInitializerW(attributes_, name_.c_str()) ||
             IsMdClassConstructorW(attributes_, name_.c_str())) {
           name_ = type_name;
@@ -4336,12 +4374,12 @@ public:
         } else {
           /* Determine if this is an event or property accessor method. */
           event_or_property_token_ = import_scope_.
-                                      get_associated_event_or_property(token);
+                                      get_associated_event_or_property(token_);
           if (!IsNilToken(event_or_property_token_)) {
             /* This method is associated with an event or property. */
             DWORD method_semantics;
             hr = import_interface()->GetMethodSemantics(
-                                                     token,
+                                                     token_,
                                                      event_or_property_token_,
                                                      &method_semantics);
             CHECK_API_RESULT(hr, GetMethodSemantics);
@@ -4360,11 +4398,8 @@ public:
                        cli_operator_kind_ == cok_explicit) {
               /* The method is a user-defined conversion operator. */
               auto return_type = function_type_->return_type();
-              if (return_type != nullptr) {
-                name_ = L"operator " + return_type->get_string();
-              } else {
-                name_ = L"operator __error_type";
-              }  /* if */
+              check_assertion(return_type != nullptr);
+              name_ = L"operator " + return_type->get_string();
               /* Conversion operators don't have a return type. */
               function_type_->omit_return_type();
             }  /* if */
@@ -4372,40 +4407,25 @@ public:
         }  /* if  */
       }  /* if */
     }  /* if */
-  }  /* Constructor. */
-
-  DWORD attributes() const
-  {
-    return attributes_;
-  }  /* attributes */
-
-  const wstring &name() const
-  {
-    return name_;
-  }  /* attributes */
-
-  const an_accessibility &accessibility() const
-  {
-    return accessibility_;
-  }  /* accessibility */
-
-  a_const_function_type_wrapper_ptr function_type() const
-  {
     return function_type_;
-  }  /* class_type */
+  }  /* function_type */
 
   a_boolean is_event_or_property_accessor() const
   {
-    return !IsNilToken(event_or_property_token_);
+    return !IsNilToken(event_or_property_token());
   }  /* event_or_property_token */
 
   mdToken event_or_property_token() const
   {
+    /* Ensure the function type has been determined. */
+    (void)function_type();
     return event_or_property_token_;
   }  /* event_or_property_token */
 
   a_cli_operator_kind cli_operator_kind() const
   {
+    /* Ensure the function type has been determined. */
+    (void)function_type();
     return cli_operator_kind_;
   }  /* cli_operator_kind */
 
@@ -4490,27 +4510,29 @@ private:
     for (auto param_iter = generic_parameters_.begin();
          param_iter != generic_parameters_.end();
          ++param_iter) {
-      a_generic_parameter &parameter = *param_iter;
-      if (find_if(enclosing_type_parameters.begin(),
-                  enclosing_type_parameters.end(),
-                  [&](const a_generic_parameter &other) {
-                    return parameter.name() == other.name();
-                  }) != enclosing_type_parameters.end()) {
-        wstring param_name = parameter.name();
-        param_name += L"__method_param";
-        parameter.set_name(move(param_name));
-      }  /* if */
+      a_generic_parameter &method_parameter = *param_iter;
+      for (auto encl_param_iter = enclosing_type_parameters.begin();
+           encl_param_iter != enclosing_type_parameters.end();
+           ++encl_param_iter) {
+        a_generic_parameter &enclosing_type_parameter = *encl_param_iter;
+        if (method_parameter.name() == enclosing_type_parameter.name()) {
+          wstring param_name = method_parameter.name();
+          param_name += L"__method_param";
+          method_parameter.set_name(move(param_name));
+          break;
+        }  /* if */
+      }  /* for */
     }  /* for */
   }  /* fixup_parameter_names */
 
 private:
-  DWORD                       attributes_;
-  wstring                     name_;
-  const a_type_definition     *enclosing_type_;
-  an_accessibility            accessibility_;
-  a_function_type_wrapper_ptr function_type_;
-  mdToken                     event_or_property_token_;
-  a_cli_operator_kind         cli_operator_kind_;
+  DWORD                                attributes_;
+  const a_type_definition              *enclosing_type_;
+  mutable wstring                      name_;
+  mutable an_accessibility             accessibility_;
+  mutable a_function_type_wrapper_ptr  function_type_;
+  mutable mdToken                      event_or_property_token_;
+  mutable a_cli_operator_kind          cli_operator_kind_;
 };  /* a_method_definition */
 
 
@@ -4782,7 +4804,7 @@ void a_custom_attribute::decode_fixed_args() const
                                              a_global_scope(*import_scope_),
                                              ctor_token_,
                                              signature_, bytes_in_signature_);
-    if (type != nullptr) {
+    if (!type->is_invalid()) {
       a_function_type_wrapper_ptr ctor_type = type->as_function();
       check_assertion(ctor_type != nullptr);
       auto parameter_list = ctor_type->parameter_list();
@@ -4874,7 +4896,7 @@ Get all the pertinent information associated with this assembly.
 */
 {
   HRESULT hr;
-  DWORD   dwOpenFlags;
+  DWORD   dwOpenFlags = 0;
   IALink2 *alink2_interface = nullptr;
 
   hr = alink_interface_->QueryInterface(&alink2_interface);
@@ -5156,7 +5178,7 @@ the Invoke method - which every delegate must have.
     auto method_definition = import_scope_.get_method_definition(methods[0]);
     check_assertion(method_definition->name() == L"Invoke");
     auto function_type = method_definition->function_type();
-    if (function_type != nullptr) {
+    if (!function_type->is_invalid()) {
       buffer << method_definition->generic_header()
              << function_type->get_string(type_name_) << ';'
              << END_OF_LINE;
@@ -5336,63 +5358,53 @@ void a_type_definition::import_one_method(
 Import a single member of a type.
 */
 {
-  auto method_type = method_definition.function_type();
-  if (method_type != nullptr) {
-    auto method_attributes = method_definition.attributes();
-    buffer << method_definition.accessibility().get_string() << ": ";
-    buffer << method_definition.generic_header();
-    write_method_decl_specifiers(buffer, method_definition.token(),
-                                 method_attributes);
-    if (method_definition.cli_operator_kind() == cok_explicit) {
-      /* Emit an explicit user-defined conversion operator. */
-      buffer << "explicit ";
-    }  /* if */
-    buffer << method_type->get_string(method_definition.name());
-    if (IsMdFinal(method_attributes)) {
-      buffer << " sealed";
-    }  /* if */
-    if (IsMdNewSlot(method_attributes)) {
-      if (kind() != tdk_interface_class) {
-        buffer << " new";
+  if (method_definition.accessibility().is_accessible()) {
+    auto method_type = method_definition.function_type();
+    if (!method_type->is_invalid()) {
+      auto method_attributes = method_definition.attributes();
+      buffer << method_definition.accessibility().get_string() << ": ";
+      buffer << method_definition.generic_header();
+      write_method_decl_specifiers(buffer, method_definition.token(),
+                                   method_attributes);
+      if (method_definition.cli_operator_kind() == cok_explicit) {
+        /* Emit an explicit user-defined conversion operator. */
+        buffer << "explicit ";
       }  /* if */
-    } else if (IsMdVirtual(method_attributes)) {
-      buffer << " override";
-    }  /* if */
-    /* Emit any named overrides. */
-    if (IsMdVirtual(method_attributes)) {
-      bool is_first = true;
-      auto method_impls_range = method_impls_.equal_range(
-                                                   method_definition.token());
-      for (auto method_impls_iterator = method_impls_range.first;
-           method_impls_iterator != method_impls_range.second;
-           ++method_impls_iterator) {
-        wstring overridden_name = import_scope_.get_overridden_name(
-                                               method_definition,
-                                               method_impls_iterator->second);
-        if (!overridden_name.empty()) {
-          if (is_first) {
-            is_first = false;
-            buffer << " = ";
-          } else {
-            buffer << ", ";
-          }  /* if */
-          buffer << overridden_name;
+      buffer << method_type->get_string(method_definition.name());
+      if (IsMdFinal(method_attributes)) {
+        buffer << " sealed";
+      }  /* if */
+      if (IsMdNewSlot(method_attributes)) {
+        if (kind() != tdk_interface_class) {
+          buffer << " new";
         }  /* if */
-      }  /* for */
+      } else if (IsMdVirtual(method_attributes)) {
+        buffer << " override";
+      }  /* if */
+      /* Emit any named overrides. */
+      if (IsMdVirtual(method_attributes)) {
+        const auto &named_overrides = get_named_overrides();
+        auto named_override_iter = named_overrides.find(
+                                                   method_definition.token());
+        if (named_override_iter != named_overrides.end()) {
+          buffer << named_override_iter->second;
+        }  /* if */
+      }  /* if */
+      buffer << ';' << END_OF_LINE;
     }  /* if */
-    buffer << ';' << END_OF_LINE;
   }  /* if */
 }  /* a_type_definition::import_one_method */
 
 
-void a_type_definition::get_method_impls() const
+a_type_definition::a_const_named_override_map_ref
+a_type_definition::get_named_overrides() const
 /*
-Initialize method_impls_, which is used to determine any virtual member
-functions that should use the named override syntax in its declaration to
-indicate that it implements a base class virtual member function.
+Initialize named_overrides_, which maps a virtual function in this class to
+the list of accessible base class virtual functions that it explicitly
+overrides.
 */
 {
-  if (!method_impls_initialized_) {
+  if (!named_overrides_initialized_) {
     HRESULT            hr;
     HCORENUM           enum_method_impls = NULL;
     static const ULONG max_method_impls = 64;
@@ -5412,8 +5424,24 @@ indicate that it implements a base class virtual member function.
                                                    &count_method_impls);
           CHECK_API_RESULT(hr, EnumMethodImpls);
           for (ULONG i = 0; i < count_method_impls; ++i) {
-            method_impls_.insert(a_method_impl_entry(method_bodies[i],
-                                                     method_decls[i]));
+            /* FIXME: The MethodImpl table in the metadata is permitted to use
+               an mdtMemberRef token to refer to the method in this class that
+               is a named override.  This is currently not supported.  Adding
+               such support would require doing something similar to
+               get_overridden_name to map an mdtMemberRef to an
+               mdtMethodDef. */
+            check_assertion(TypeFromToken(method_bodies[i]) == mdtMethodDef);
+            auto method_definition = import_scope_.get_method_definition(
+                                                            method_bodies[i]);
+            wstring overridden_name = import_scope_.get_overridden_name(
+                                                           *method_definition,
+                                                           method_decls[i]);
+            if (!overridden_name.empty()) {
+              auto &overridden_name_list = named_overrides_[method_bodies[i]];
+              overridden_name_list += overridden_name_list.empty() ? L" = "
+                                                                   : L", ";
+              overridden_name_list += overridden_name;
+            }  /* if */
           }  /* for */
         } while (count_method_impls > 0);
         import_interface()->CloseEnum(enum_method_impls);
@@ -5421,9 +5449,10 @@ indicate that it implements a base class virtual member function.
       default:
         break;
     }  /* switch */
-    method_impls_initialized_ = true;
+    named_overrides_initialized_ = true;
   }  /* if */
-}  /* a_type_definition::get_method_impls */
+  return named_overrides_;
+}  /* a_type_definition::get_named_overrides */
 
 
 void a_type_definition::import_all_methods(ostringstream &buffer) const
@@ -5444,10 +5473,9 @@ Import all the members associated with a single type.
     for (ULONG i = 0; i < count_of_methods; ++i) {
       auto method_definition = import_scope_.get_method_definition(
                                                                   methods[i]);
-      /* Skip inaccessible methods and property/event accessor methods, as
-         they are imported by the corresponding property/event. */
-      if (method_definition->accessibility().is_accessible() &&
-          !method_definition->is_event_or_property_accessor()) {
+      /* Skip property/event accessor methods, as they are imported by the
+         corresponding property/event. */
+      if (!method_definition->is_event_or_property_accessor()) {
         import_one_method(buffer, *method_definition);
       }  /* if */
     }  /* for */
@@ -5622,7 +5650,7 @@ itself and its associated accessor methods.
                                                    property_token,
                                                    signature,
                                                    bytes_in_signature);
-    if (type != nullptr && type->return_type() != nullptr) {
+    if (!type->is_invalid()) {
       buffer << accessibility.get_string() << ": ";
       write_method_decl_specifiers(buffer, property_token, method_attributes);
       /* Modify the name of this property if it is the default-indexed
@@ -5839,7 +5867,6 @@ void a_type_definition::import_definition(ostringstream &buffer) const
 Create the definition for the current type.
 */
 {
-  get_method_impls();
   if (IsTdAbstract(attributes_)) {
     buffer << " abstract";
   }  /* if */
@@ -6173,7 +6200,7 @@ an override specifier.
                                          event_or_property_token,
                                          property_signature,
                                          bytes_in_property_signature);
-                if (type != nullptr && !type->parameter_list().empty()) {
+                if (!type->is_invalid() && !type->parameter_list().empty()) {
                   /* The property is an indexed property, determine if it is
                      the default-indexed property. */
                   auto processor = get_custom_attribute_processor(
@@ -6217,14 +6244,14 @@ an override specifier.
             /* Obtain the method's return type to handle user-defined
                conversion operators. */
             auto function_type = method_definition->function_type();
-            if (function_type == nullptr) {
+            if (function_type->is_invalid()) {
               /* The function was not successfully decoded.  Return an empty
                  name, which will result in the method not being added to the
                  named override list. */
               goto done;
             } else {
               auto return_type = function_type->return_type();
-              if (return_type == nullptr) {
+              if (return_type->is_invalid()) {
                 /* The return type was not successfully decoded.  Return an
                    empty name, which will result in the method not being added
                    to the named override list. */
@@ -6284,7 +6311,7 @@ an override specifier.
                                                           signature,
                                                           bytes_in_signature);
           }  /* if */
-          if (function_type == nullptr) {
+          if (function_type->is_invalid()) {
             /* The function was not successfully decoded.  Return an empty
                name, which will result in the method not being added to the
                named override list. */
@@ -6329,7 +6356,7 @@ an override specifier.
                 /* Find a method in the class with the same generic arity and
                    number of parameters. */
                 auto other_function_type = method_definition->function_type();
-                if (other_function_type != nullptr &&
+                if (!other_function_type->is_invalid() &&
                     function_type->generic_arity() ==
                                        other_function_type->generic_arity() &&
                     function_type->parameter_list().size() ==
@@ -6584,7 +6611,9 @@ Decode a type signature that is modified with a custom type modifier.
   }  /* for */
   /* Decode the modified type. */
   type = decode_type();
-  if (type == nullptr) goto done;
+  if (type->is_invalid()) {
+    goto done;
+  }  /* if */
   /* Apply the modifiers to the decoded type. */
   if ((modifier_flags & tmf_is_boxed) != 0) {
     check_assertion(boxed_type);
@@ -7004,8 +7033,7 @@ Decode a type signature and return it as a std::wstring.
               we only want "char", so we don't recursively call decode_type
               in this case. */
           (void)get_element_type();
-          underlying_type = make_shared<a_type_wrapper>(
-                                                    a_type_wrapper::twk_char);
+          underlying_type = a_type_wrapper::create(a_type_wrapper::twk_char);
           underlying_type->add_qualifier_flags(a_type_wrapper::qf_const);
         } else if (is_system_string_member &&
                    peek_element_type() == ELEMENT_TYPE_CHAR) {
@@ -7014,7 +7042,7 @@ Decode a type signature and return it as a std::wstring.
         } else {
           underlying_type = decode_type();
         }  /* if */
-        if (underlying_type != nullptr) {
+        if (!underlying_type->is_invalid()) {
           type = make_shared<a_type_indirection>(
                                               a_type_indirection::tik_pointer,
                                               move(underlying_type));
@@ -7023,7 +7051,7 @@ Decode a type signature and return it as a std::wstring.
       }
     case ELEMENT_TYPE_BYREF:
       { a_type_wrapper_ptr underlying_type = decode_type();
-        if (underlying_type != nullptr) {
+        if (!underlying_type->is_invalid()) {
           type = make_shared<a_type_indirection>(
                                    a_type_indirection::tik_tracking_reference,
                                    move(underlying_type));
@@ -7076,7 +7104,7 @@ Decode a type signature and return it as a std::wstring.
       }
     case ELEMENT_TYPE_SZARRAY:
       { a_type_wrapper_ptr underlying_type = decode_type();
-        if (underlying_type != nullptr) {
+        if (!underlying_type->is_invalid()) {
           type = an_array_type_wrapper::create_handle_to_array(
                                                              underlying_type);
         }  /* if */
@@ -7085,7 +7113,7 @@ Decode a type signature and return it as a std::wstring.
     case ELEMENT_TYPE_ARRAY:
       { /* Get the underlying type. */
         a_type_wrapper_ptr underlying_type = decode_type();
-        if (underlying_type != nullptr) {
+        if (!underlying_type->is_invalid()) {
           /* Get the Rank of the array. */
           ULONG rank, num_of_sizes, num_of_lower_bounds;
           rank = read_four_bytes();
@@ -7119,7 +7147,7 @@ Decode a type signature and return it as a std::wstring.
       break;
     case ELEMENT_TYPE_FNPTR:
       { auto function_type = decode_method(*this, mdTokenNil);
-        if (function_type != nullptr) {
+        if (!function_type->is_invalid()) {
           type = make_shared<a_type_indirection>(
                                               a_type_indirection::tik_pointer,
                                               move(function_type));
@@ -7130,14 +7158,16 @@ Decode a type signature and return it as a std::wstring.
       unexpected_condition();
       break;
   }  /* switch */
+  if (type == nullptr) {
+    type = a_type_wrapper::create(a_type_wrapper::twk_invalid);
+  }  /* if */
   return type;
 }  /* a_signature_decoder::decode_type */
 
 
-a_type_wrapper_ptr a_signature_decoder::decode_method(
-                                         a_signature_decoder &decoder,
-                                         mdToken             token,
-                                         bool                return_type_only)
+a_function_type_wrapper_ptr a_signature_decoder::decode_method(
+                                                 a_signature_decoder &decoder,
+                                                 mdToken             token)
 /*
 Decode a function signature and then combine the various elements along with
 the name of the function to create a declaration which we return as an
@@ -7145,9 +7175,10 @@ a_function_type_wrapper_ptr.  Note: this function also handles decoding a
 property signature which is almost the same as a method signature.
 */
 {
-  an_import_scope         &import_scope = decoder.scope_.import_scope();
-  an_import_interface     *import_interface= import_scope.import_interface();
-  a_type_wrapper_ptr      type;
+  auto                    &import_scope = decoder.scope_.import_scope();
+  auto                    import_interface = import_scope.import_interface();
+  a_function_type_wrapper_ptr
+                          type;
   a_type_wrapper_ptr      return_type;
   a_method_parameter_list parameter_list;
   BYTE                    first_byte;
@@ -7172,7 +7203,7 @@ property signature which is almost the same as a method signature.
   parameter_list.reserve(number_of_parameters);
   /* Decode the return type. */
   return_type = decoder.decode_type();
-  if (return_type != nullptr) {
+  if (!return_type->is_invalid()) {
     if (return_type->is_of_kind(a_type_wrapper::twk_copy_ctor)) {
       /* Legacy encodings of the copy constructor encoded it as a regular
          function (not a .ctor) with a void return type marked with the
@@ -7191,8 +7222,7 @@ property signature which is almost the same as a method signature.
       if (number_of_parameters > 0) {
         ++param_index;
         a_type_wrapper_ptr param_type = decoder.decode_type();
-        if (param_type == nullptr) {
-          type.reset();
+        if (param_type->is_invalid()) {
           goto done;
         }  /* if */
         auto indirection = param_type->as_indirection();
@@ -7220,19 +7250,23 @@ property signature which is almost the same as a method signature.
         }  /* if */
       }  /* if */
       unexpected_condition();
-      type.reset();
       goto done;
     }  /* if */
 have_return_type:
-    if (return_type_only) {
-      type = move(return_type);
-      goto done;
+    /* Add the return type to the parameter list. */
+    mdParamDef return_param_token = mdParamDefNil;
+    if (is_method_def) {
+      /* If the method's return value has any custom attributes, they will be
+         attached to the parameter at index 0. */
+      import_interface->GetParamForMethodIndex(token, 0, &return_param_token);
     }  /* if */
+    a_method_parameter return_value(import_scope, return_type,
+                                    return_param_token);
+    /* Add the real parameters to the parameter list. */
     for (; param_index <= number_of_parameters; ++param_index) {
       mdParamDef         param_token = mdParamDefNil;
       a_type_wrapper_ptr param_type = decoder.decode_type();
-      if (param_type == nullptr) {
-        type.reset();
+      if (param_type->is_invalid()) {
         goto done;
       }  /* if */
       if (is_method_def) {
@@ -7247,7 +7281,7 @@ have_return_type:
     }  /* for */
     /* Mark the last parameter as a parameter array if appropriate. */
     if (!parameter_list.empty()) {
-      auto last_parameter = parameter_list.back();
+      auto &last_parameter = parameter_list.back();
       auto array_type = last_parameter.type()->as_handle_to_array();
       if (array_type != nullptr &&
           last_parameter.is_parameter_array(import_scope)) {
@@ -7256,10 +7290,13 @@ have_return_type:
     }  /* if */
     type = make_shared<a_function_type_wrapper>(generic_arity,
                                                 calling_convention,
-                                                move(return_type),
+                                                return_value.type(),
                                                 move(parameter_list));
   }  /* if */
 done:
+  if (type == nullptr) {
+    type = make_shared<a_function_type_wrapper>();
+  }  /* if */
   return type;
 }  /* a_signature_decoder::decode_method */
 
@@ -7782,7 +7819,9 @@ Resolve the type given by the token and return its qualified name.
         a_type_wrapper_ptr type = a_signature_decoder::decode_type(
                                              scope,
                                              signature, bytes_in_signature);
-        if (type->is_of_kind(a_type_wrapper::twk_class)) {
+        if (type->is_invalid()) {
+          class_type = make_shared<a_class_type_wrapper>();
+        } else if (type->is_of_kind(a_type_wrapper::twk_class)) {
           class_type = type->as_class();
         } else if (type->is_of_kind(a_type_wrapper::twk_indirection)) {
           /* Ref class types are decoded as handle types, so we must get the
