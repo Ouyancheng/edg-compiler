@@ -976,7 +976,7 @@ get_another:
         (void)mbc_to_wide_char(lptr, &wc, (a_boolean *)NULL,
                                /*is_native=*/FALSE);
         lptr += numch - 1;
-        targ_ch = conv_unicode_literal_char(state, uc, /*utf8_literal=*/FALSE);
+        targ_ch = conv_unicode_literal_char(state, wc, /*utf8_literal=*/FALSE);
 #endif /* NATIVE_MULTIBYTE_CHARS_SUPPORTED_WITH_UNICODE */
       } else if (utf8_literal) {
         /* This is a character in a UTF-8 literal, which could be a
