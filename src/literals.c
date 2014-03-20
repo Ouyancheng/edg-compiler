@@ -952,19 +952,17 @@ get_another:
 #if MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED
     if (multibyte_chars_in_source_enabled) {
       /* Determine the size of the multibyte character sequence that begins at
-         the current character.  Since we're returning one character on this
-         call, the remaining count is one less than the size. */
+         the current character. */
       a_boolean     err;
       unsigned long wc;
-      state->remaining_char_count = lex_mbc_to_wide_char(lptr, &wc, &err) - 1;
+      int           numch = lex_mbc_to_wide_char(lptr, &wc, &err);
       if (err) {
         /* Invalid multibyte character sequence.  Report the error, skip
            over the invalid sequence, and return a single (null)
            character. */
         conv_line_loc_to_source_pos(lptr, &error_position);
         diagnostic(es_discretionary_error, ec_bad_multibyte_char);
-        lptr += state->remaining_char_count;
-        state->remaining_char_count = 0;
+        lptr += numch - 1;
         targ_ch = 0;
 #if NATIVE_MULTIBYTE_CHARS_SUPPORTED_WITH_UNICODE
       } else if (curr_file_unicode_source_kind != usk_none &&
@@ -977,7 +975,7 @@ get_another:
            to return subsequent bytes of the multibyte character. */
         (void)mbc_to_wide_char(lptr, &wc, (a_boolean *)NULL,
                                /*is_native=*/FALSE);
-        lptr += state->remaining_char_count;
+        lptr += numch - 1;
         targ_ch = conv_unicode_literal_char(state, uc, /*utf8_literal=*/FALSE);
 #endif /* NATIVE_MULTIBYTE_CHARS_SUPPORTED_WITH_UNICODE */
       } else if (utf8_literal) {
@@ -985,8 +983,12 @@ get_another:
            multibyte character, either UTF-8 or a native character set:
            convert it to Unicode and then to UTF-8, returning the first (or
            only) byte. */
-        lptr += state->remaining_char_count;
+        lptr += numch - 1;
         targ_ch = conv_unicode_literal_char(state, wc, /*utf8_literal=*/TRUE);
+      } else {
+        /* No translation required, just set up *state to return the bytes
+           of the character one at a time directly from the input. */
+        state->remaining_char_count = numch - 1;
       }  /* if */
     } else
 #endif /* MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED */
