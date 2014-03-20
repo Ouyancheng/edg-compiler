@@ -117,7 +117,7 @@ extern void set_routine_special_kind(a_routine_ptr           rp,
 extern a_routine_ptr alloc_routine(void);
 
 #if GNU_EXTENSIONS_ALLOWED || REDEFINE_EXTNAME_PRAGMA_ENABLED
-extern a_gnu_routine_extension_ptr alloc_gnu_extension_for_routine(
+extern a_gnu_routine_supplement_ptr alloc_gnu_supplement_for_routine(
                                                              a_routine_ptr rp);
 #endif /* GNU_EXTENSIONS_ALLOWED || REDEFINE_EXTNAME_PRAGMA_ENABLED */
 

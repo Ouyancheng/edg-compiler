@@ -7018,17 +7018,18 @@ TRUE if a definition preceded the current declaration.
     */
     /* Don't warn if the construct is identical to one that applied to the
        definition. */
-    if (!has_gnu_ext(routine) ||
-        get_gnu_ext(routine)->asm_name == NULL ||
-        strcmp(get_gnu_ext(routine)->asm_name, asm_name) != 0) {
+    if (!has_gnu_routine_supp(routine) ||
+        gnu_routine_supp(routine)->asm_name == NULL ||
+        strcmp(gnu_routine_supp(routine)->asm_name, asm_name) != 0) {
       pos_warning(ec_asm_name_after_definition, diag_pos);
     }  /* if */
-  } else if (!has_gnu_ext(routine) || get_gnu_ext(routine)->asm_name == NULL) {
+  } else if (!has_gnu_routine_supp(routine) ||
+             gnu_routine_supp(routine)->asm_name == NULL) {
     /* This is the first declaration of this routine with an "asm name"
        construct. */
-    ensure_gnu_ext(routine)->asm_name = asm_name;
+    ensure_gnu_routine_supp(routine)->asm_name = asm_name;
     record_asm_name_for_lookup(symbol_for(routine));
-  } else if (strcmp(get_gnu_ext(routine)->asm_name, asm_name) != 0) {
+  } else if (strcmp(gnu_routine_supp(routine)->asm_name, asm_name) != 0) {
     /* The current declaration has an "asm name" that is different from
        one specified on a previous declaration.  Issue a warning and
        ignore the specification on the current declaration. */
@@ -7294,15 +7295,17 @@ use of).
     if (rp->implicit_alias && dps->is_definition) {
       /* If a definition is seen after a declaration that was implicitly
          aliased, the alias is cleared. */
-      ensure_gnu_ext(rp)->aliased_routine = NULL;
+      ensure_gnu_routine_supp(rp)->aliased_routine = NULL;
       rp->implicit_alias = FALSE;
     } else if (dps->first_decl && !dps->sym->defined &&
                rtsp->prototyped &&
-               (!has_gnu_ext(rp) || get_gnu_ext(rp)->aliased_routine == NULL)&&
+               (!has_gnu_routine_supp(rp) ||
+                gnu_routine_supp(rp)->aliased_routine == NULL) &&
                rp->source_corresp.name_linkage ==
                                          (a_name_linkage_kind)nlk_external &&
                /* Exclude routines with an asm alias. */
-               (!has_gnu_ext(rp) || get_gnu_ext(rp)->asm_name == NULL) &&
+               (!has_gnu_routine_supp(rp) ||
+                 gnu_routine_supp(rp)->asm_name == NULL) &&
                dps->asm_name == NULL &&
                /* Exclude routines with "alias" or "weakref" attributes. */
                find_attribute(ak_alias, dps->prefix_attributes) == NULL &&
@@ -7327,7 +7330,7 @@ use of).
             brtsp = skip_typerefs(brp->type)->variant.routine.extra_info;
             if (brtsp->prototyped &&
                 types_are_redecl_compatible(rp->type, brp->type)) {
-              ensure_gnu_ext(rp)->aliased_routine = brp;
+              ensure_gnu_routine_supp(rp)->aliased_routine = brp;
               rp->implicit_alias = TRUE;
               break;
             }  /* if */
@@ -8006,8 +8009,8 @@ for use in generating cross-reference output describing this declaration.
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
         new_rp->defined = FALSE;
         new_rp->assoc_scope = NULL_region_number;
-        ensure_gnu_ext(new_rp)->inline_partner = routine_ptr;
-        ensure_gnu_ext(routine_ptr)->inline_partner = new_rp;
+        ensure_gnu_routine_supp(new_rp)->inline_partner = routine_ptr;
+        ensure_gnu_routine_supp(routine_ptr)->inline_partner = new_rp;
         routine_ptr = new_rp;
         routine_ptr->gnu_c89_inline = FALSE;
         old_decl_has_body = FALSE;

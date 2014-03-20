@@ -93,8 +93,8 @@ typedef struct a_gcnew_supplement
                               *a_gcnew_supplement_ptr;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if GNU_EXTENSIONS_ALLOWED || REDEFINE_EXTNAME_PRAGMA_ENABLED
-typedef struct a_gnu_routine_extension
-                              *a_gnu_routine_extension_ptr;
+typedef struct a_gnu_routine_supplement
+                              *a_gnu_routine_supplement_ptr;
 #endif /* GNU_EXTENSIONS_ALLOWED || REDEFINE_EXTNAME_PRAGMA_ENABLED */
 
 
@@ -717,8 +717,8 @@ typedef enum /*an_il_entry_kind*/ {
 			/* a_cli_metadata_file */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if GNU_EXTENSIONS_ALLOWED || REDEFINE_EXTNAME_PRAGMA_ENABLED
-  iek_gnu_routine_extension,
-                        /* a_gnu_routine_extension */
+  iek_gnu_routine_supplement,
+                        /* a_gnu_routine_supplement */
 #endif /* GNU_EXTENSIONS_ALLOWED || REDEFINE_EXTNAME_PRAGMA_ENABLED */
   iek_last		/* Marks the end of the list. */
 } an_il_entry_kind;
@@ -875,7 +875,7 @@ EXTERN a_const_char *il_entry_kind_names[(int)iek_last + 1]
 /* iek_cli_metadata_file */		"CLI metadata file",
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if GNU_EXTENSIONS_ALLOWED || REDEFINE_EXTNAME_PRAGMA_ENABLED
-/* iek_gnu_routine_extension */         "gnu-routine-extension",
+/* iek_gnu_routine_supplement */        "gnu-routine-supplement",
 #endif /* GNU_EXTENSIONS_ALLOWED || REDEFINE_EXTNAME_PRAGMA_ENABLED */
 /* iek_last */				"last"
 } /* il_entry_kind_names */
@@ -13649,11 +13649,13 @@ typedef struct a_routine {
 			/* For instantiated entities, this points to the
 			   the template from which they were generated;
 			   otherwise, this is NULL. */
-#if GNU_EXTENSIONS_ALLOWED
-  a_gnu_routine_extension_ptr
-                gnu;    /* GNU-specific a_routine fields.  Moved to a separate
-                           routine to save space for non-GNU cases. */
-#endif /* GNU_EXTENSIONS_ALLOWED */
+#if GNU_EXTENSIONS_ALLOWED || REDEFINE_EXTNAME_PRAGMA_ENABLED
+  a_gnu_routine_supplement_ptr
+		gnu;	/* GNU-specific a_routine fields.  Moved to a separate
+			   supplement to save space for non-GNU cases (as well
+			   as GNU cases where all of the fields have their
+			   default values). */
+#endif /* GNU_EXTENSIONS_ALLOWED || REDEFINE_EXTNAME_PRAGMA_ENABLED */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   a_type_ptr	declared_type;
 			/* The type as it actually appears in the declaration
@@ -13742,7 +13744,7 @@ This extension is allocated only when necessary (i.e., if one or more of the
 fields does not have its default value).  GNU-specific bitfields are left in
 a_routine.
 */
-typedef struct a_gnu_routine_extension {
+typedef struct a_gnu_routine_supplement {
   a_const_char	*section;
 			/* If non-NULL, the section in which this
 			   routine should be placed. */
@@ -13785,24 +13787,26 @@ typedef struct a_gnu_routine_extension {
   a_const_char	*asm_name;
 			/* If non-NULL, the name to be used as an assembly
 			   language level symbol for this routine. */
-} a_gnu_routine_extension;
+} a_gnu_routine_supplement;
 
 /*
-As the "gnu" (aka a_gnu_routine_extension) field of a_routine is "optional"
+As the "gnu" (aka a_gnu_routine_supplement) field of a_routine is "optional"
 (i.e., only allocated when necessary), these macros are intended to ease the
-use of fields in a_gnu_routine_extension.  ensure_gnu_ext is used when
-assigning to a field in a_gnu_routine_extension to ensure that the extension
-has been allocated (i.e., in an lvalue context).  has_gnu_ext is used to test
-whether or not the field has been allocated.  get_gnu_ext is used when
-referring to a field (i.e., in an rvalue context).
+use of fields in a_gnu_routine_supplement.  ensure_gnu_routine_supp is used
+when assigning to a field in a_gnu_routine_supplement to ensure that the
+extension has been allocated (i.e., in an lvalue context).
+has_gnu_routine_supp is used to test whether or not the field has been
+allocated.  gnu_routine_supp is used when referring to a field (i.e., in an
+rvalue context) when it expected that "gnu" is non-NULL.
 */
-#define ensure_gnu_ext(rp) \
-  (((rp)->gnu) == NULL ? alloc_gnu_extension_for_routine(rp) : (rp)->gnu)
-#define has_gnu_ext(rp) ((rp)->gnu != NULL)
+#define ensure_gnu_routine_supp(rp) \
+  (((rp)->gnu) == NULL ? alloc_gnu_supplement_for_routine(rp) : (rp)->gnu)
+#define has_gnu_routine_supp(rp) ((rp)->gnu != NULL)
 #if CHECKING
-#define get_gnu_ext(rp) (check_assertion(has_gnu_ext(rp)), (rp)->gnu)
+#define gnu_routine_supp(rp) \
+  (check_assertion(has_gnu_routine_supp(rp)), (rp)->gnu)
 #else /* !CHECKING */
-#define get_gnu_ext(rp) ((rp)->gnu)
+#define gnu_routine_supp(rp) ((rp)->gnu)
 #endif /* CHECKING */
 
 #endif /* GNU_EXTENSIONS_ALLOWED || REDEFINE_EXTNAME_PRAGMA_ENABLED */
@@ -18598,7 +18602,7 @@ EXTERN sizeof_t	sizeof_il_entry[(int)iek_last+1]
   sizeof(a_cli_metadata_file),
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if GNU_EXTENSIONS_ALLOWED || REDEFINE_EXTNAME_PRAGMA_ENABLED
-  sizeof(a_gnu_routine_extension),
+  sizeof(a_gnu_routine_supplement),
 #endif /* GNU_EXTENSIONS_ALLOWED || REDEFINE_EXTNAME_PRAGMA_ENABLED */
   IEK_LAST_CHECK_SIZE /* iek_last */
 }

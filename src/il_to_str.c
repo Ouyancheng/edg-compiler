@@ -6231,7 +6231,7 @@ Do the output in the way described by octl.
       if (rout->has_ctor_priority) {
         form_unsigned_argument_attribute(
                "__constructor__",
-               (a_host_large_unsigned)get_gnu_ext(rout)->ctor_priority,
+               (a_host_large_unsigned)gnu_routine_supp(rout)->ctor_priority,
                &need_leading_space, octl);
       } else
 #endif /* GNU_INIT_PRIORITY_ATTRIBUTE_ALLOWED */
@@ -6245,7 +6245,7 @@ Do the output in the way described by octl.
       if (rout->has_dtor_priority) {
         form_unsigned_argument_attribute(
                "__destructor__",
-               (a_host_large_unsigned)get_gnu_ext(rout)->dtor_priority,
+               (a_host_large_unsigned)gnu_routine_supp(rout)->dtor_priority,
                &need_leading_space, octl);
       } else
 #endif /* GNU_INIT_PRIORITY_ATTRIBUTE_ALLOWED */
@@ -6312,8 +6312,10 @@ Do the output in the way described by octl.
          routine type attributes. */
       form_routine_type_attributes(rout->type, &need_leading_space, octl);
     }  /* if */
-    if (has_gnu_ext(rout) && get_gnu_ext(rout)->section != NULL) {
-      form_string_argument_attribute("__section__", get_gnu_ext(rout)->section,
+    if (has_gnu_routine_supp(rout) &&
+        gnu_routine_supp(rout)->section != NULL) {
+      form_string_argument_attribute("__section__",
+                                     gnu_routine_supp(rout)->section,
                                      &need_leading_space, octl);
     }  /* if */
     if (rout->is_gnu_alias) {

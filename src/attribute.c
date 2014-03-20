@@ -4355,7 +4355,7 @@ or Microsoft "allocate" attribute to it and return the entity.
       ((a_variable_ptr)entity)->section = str;
 #if GNU_EXTENSIONS_ALLOWED
     } else {
-      ensure_gnu_ext(((a_routine_ptr)entity))->section = str;
+      ensure_gnu_routine_supp(((a_routine_ptr)entity))->section = str;
 #endif /* GNU_EXTENSIONS_ALLOWED */
     }  /* if */
   }  /* if */
@@ -4711,7 +4711,7 @@ it and return the entity.
 #if GNU_INIT_PRIORITY_ATTRIBUTE_ALLOWED
     /* Retrieve the priority value.  In error cases, ap->kind will be set to
        ak_unrecognized. */
-    if (get_priority(ap, 0, &ensure_gnu_ext(rp)->ctor_priority)) {
+    if (get_priority(ap, 0, &ensure_gnu_routine_supp(rp)->ctor_priority)) {
       rp->has_ctor_priority = TRUE;
     }  /* if */
 #endif /* GNU_INIT_PRIORITY_ATTRIBUTE_ALLOWED */
@@ -4744,7 +4744,7 @@ it and return the entity.
 #if GNU_INIT_PRIORITY_ATTRIBUTE_ALLOWED
     /* Retrieve the priority value.  In error cases, ap->kind will be set to
        ak_unrecognized. */
-    if (get_priority(ap, 0, &ensure_gnu_ext(rp)->dtor_priority)) {
+    if (get_priority(ap, 0, &ensure_gnu_routine_supp(rp)->dtor_priority)) {
       rp->has_dtor_priority = TRUE;
     }  /* if */
 #endif /* GNU_INIT_PRIORITY_ATTRIBUTE_ALLOWED */
@@ -6994,12 +6994,12 @@ cycle of aliased entities.  Break the cycle if that is the case.
   switch (sym->kind) {
     case sk_routine:
       { a_routine_ptr  orig_rp = sym->variant.routine.ptr, rp;
-        rp = get_gnu_ext(orig_rp)->aliased_routine;
-        for (; rp != NULL && has_gnu_ext(rp);
-               rp = get_gnu_ext(rp)->aliased_routine) {
+        rp = gnu_routine_supp(orig_rp)->aliased_routine;
+        for (; rp != NULL && has_gnu_routine_supp(rp);
+               rp = gnu_routine_supp(rp)->aliased_routine) {
           if (same_entities(rp, orig_rp)) {
             alias_loop = TRUE;
-            ensure_gnu_ext(orig_rp)->aliased_routine = NULL;
+            ensure_gnu_routine_supp(orig_rp)->aliased_routine = NULL;
             orig_rp->implicit_alias = FALSE;
             break;
           }  /* if */
@@ -7097,7 +7097,7 @@ equal.
       str = sym->variant.variable.ptr->asm_name_or_reg.name;
       break;
     case sk_routine:
-      str = get_gnu_ext(sym->variant.routine.ptr)->asm_name;
+      str = gnu_routine_supp(sym->variant.routine.ptr)->asm_name;
       break;
     default:
       unexpected_condition();
@@ -7123,7 +7123,7 @@ attribute refers to that name).
       }  /* if */
       break;
     case sk_routine:
-      str = get_gnu_ext(sym->variant.routine.ptr)->asm_name;
+      str = gnu_routine_supp(sym->variant.routine.ptr)->asm_name;
       break;
     default:
       unexpected_condition();
@@ -7214,7 +7214,7 @@ Also used for the GNU ifunc attribute.
           if (ext_sym->kind == (a_symbol_kind)sk_extern_routine) {
             a_routine_ptr rp =
                      ext_sym->variant.extern_symbol_descr->variant.routine.ptr;
-            ensure_gnu_ext(rp)->asm_name = entry->alias_name;
+            ensure_gnu_routine_supp(rp)->asm_name = entry->alias_name;
             break;
           } else if (ext_sym->kind == (a_symbol_kind)sk_extern_variable) {
             ext_sym->variant.extern_symbol_descr->variant.variable->
@@ -7229,8 +7229,8 @@ Also used for the GNU ifunc attribute.
         a_source_correspondence_ptr  scp = NULL;
         switch (aliased_sym->kind) {
           case sk_routine:
-            ensure_gnu_ext(aliased_sym->variant.routine.ptr)->asm_name =
-                                                             entry->alias_name;
+            ensure_gnu_routine_supp(aliased_sym->variant.routine.ptr)->
+                                                  asm_name = entry->alias_name;
             scp = &aliased_sym->variant.routine.ptr->source_corresp;
             break;
           case sk_variable:
@@ -7316,8 +7316,8 @@ Also used for the GNU ifunc attribute.
                                routine_type);
             }  /* if */
           }  /* if */
-          ensure_gnu_ext(entry->alias->variant.routine.ptr)->aliased_routine =
-                                              aliased_sym->variant.routine.ptr;
+          ensure_gnu_routine_supp(entry->alias->variant.routine.ptr)->
+                            aliased_routine = aliased_sym->variant.routine.ptr;
           report_any_alias_loop(entry);
           break;
         case sk_variable:

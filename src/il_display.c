@@ -3586,38 +3586,32 @@ Display the indicated routine.
     disp_template_arg_list("template_arg_list", ptr->template_arg_list);
   }  /* if */
 #if GNU_EXTENSIONS_ALLOWED || REDEFINE_EXTNAME_PRAGMA_ENABLED
-  if (has_gnu_ext(ptr)) {
-    if (get_gnu_ext(ptr)->section != NULL) {
-      disp_string_ptr("section", get_gnu_ext(ptr)->section, iek_other_text,
-                      (sizeof_t)0);
+  if (has_gnu_routine_supp(ptr)) {
+    a_gnu_routine_supplement_ptr grsp = gnu_routine_supp(ptr);
+    if (grsp->section != NULL) {
+      disp_string_ptr("section", grsp->section, iek_other_text, (sizeof_t)0);
     }  /* if */
-    if (get_gnu_ext(ptr)->aliased_routine != NULL) {
-      disp_ptr("aliased_routine", (char*)get_gnu_ext(ptr)->aliased_routine,
-               iek_routine);
+    if (grsp->aliased_routine != NULL) {
+      disp_ptr("aliased_routine", (char*)grsp->aliased_routine, iek_routine);
     }  /* if */
 #if LOWER_IFUNC
-    if (get_gnu_ext(ptr)->resolver_var != NULL) {
-      disp_ptr("resolver_var", (char *)get_gnu_ext(ptr)->resolver_var,
-               iek_variable);
+    if (grsp->resolver_var != NULL) {
+      disp_ptr("resolver_var", (char *)grsp->resolver_var, iek_variable);
     }  /* if */
 #endif /* LOWER_IFUNC */
-    if (get_gnu_ext(ptr)->inline_partner != NULL) {
-      disp_ptr("inline_partner", (char*)get_gnu_ext(ptr)->inline_partner,
-               iek_routine);
+    if (grsp->inline_partner != NULL) {
+      disp_ptr("inline_partner", (char*)grsp->inline_partner, iek_routine);
     }  /* if */
 #if GNU_INIT_PRIORITY_ATTRIBUTE_ALLOWED
     if (ptr->has_ctor_priority) {
-      disp_unsigned_long("ctor_priority",
-                         (unsigned long)get_gnu_ext(ptr)->ctor_priority);
+      disp_unsigned_long("ctor_priority", (unsigned long)grsp->ctor_priority);
     }  /* if */
     if (ptr->has_dtor_priority) {
-      disp_unsigned_long("dtor_priority",
-                         (unsigned long)get_gnu_ext(ptr)->dtor_priority);
+      disp_unsigned_long("dtor_priority", (unsigned long)grsp->dtor_priority);
     }  /* if */
 #endif /* GNU_INIT_PRIORITY_ATTRIBUTE_ALLOWED */
-    if (get_gnu_ext(ptr)->asm_name != NULL) {
-      disp_string_ptr("asm_name", get_gnu_ext(ptr)->asm_name, iek_other_text,
-                      (sizeof_t)0);
+    if (grsp->asm_name != NULL) {
+      disp_string_ptr("asm_name", grsp->asm_name, iek_other_text, (sizeof_t)0);
     }  /* if */
   }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED || REDEFINE_EXTNAME_PRAGMA_ENABLED */

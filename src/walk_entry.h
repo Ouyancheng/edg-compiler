@@ -1383,8 +1383,8 @@ the file scope, do not process it (but record an orphan in the latter case).
                   a_routine_ptr, iek_routine);
 #endif /* DO_IL_LOWERING && ABI_CHANGES_FOR_COVARIANT_VIRTUAL_FUNC_RETURN */
 #if GNU_EXTENSIONS_ALLOWED || REDEFINE_EXTNAME_PRAGMA_ENABLED
-        walk_ptr(ptr->gnu, a_gnu_routine_extension_ptr,
-                 iek_gnu_routine_extension);
+        walk_ptr(ptr->gnu, a_gnu_routine_supplement_ptr,
+                 iek_gnu_routine_supplement);
 #endif /* GNU_EXTENSIONS_ALLOWED || REDEFINE_EXTNAME_PRAGMA_ENABLED */
 #if !NEEDED_FLAG_WALK
         walk_ptr(ptr->generating_using_decl, a_using_decl_ptr,
@@ -1393,10 +1393,10 @@ the file scope, do not process it (but record an orphan in the latter case).
       }
       break;
 #if GNU_EXTENSIONS_ALLOWED || REDEFINE_EXTNAME_PRAGMA_ENABLED
-    case iek_gnu_routine_extension:
+    case iek_gnu_routine_supplement:
       {
-        a_gnu_routine_extension_ptr ptr =
-                                        (a_gnu_routine_extension_ptr)entry_ptr;
+        a_gnu_routine_supplement_ptr ptr =
+                                       (a_gnu_routine_supplement_ptr)entry_ptr;
         walk_string_ptr(ptr->section, iek_other_text, 0);
         walk_ptr(ptr->aliased_routine, a_routine_ptr, iek_routine);
         if (ptr->aliased_routine != NULL) {

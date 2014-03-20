@@ -2762,18 +2762,18 @@ to it.  The entry is allocated in the file scope memory region.
 
 #if GNU_EXTENSIONS_ALLOWED || REDEFINE_EXTNAME_PRAGMA_ENABLED
 
-a_gnu_routine_extension_ptr alloc_gnu_extension_for_routine(a_routine_ptr rp)
+a_gnu_routine_supplement_ptr alloc_gnu_supplement_for_routine(a_routine_ptr rp)
 /*
-Allocate and return a_gnu_routine_extension structure for rp (which should not
+Allocate and return a_gnu_routine_supplement structure for rp (which should not
 already already have one).  The structure is not allocated when a_routine is
 allocated and is populated only when a need for the structure arises.  The
-entry is allocated in the file scope memory region.  See ensure_gnu_ext for
-the typical invocation.
+entry is allocated in the file scope memory region.  See
+ensure_gnu_routine_supp for the typical invocation.
 */
 {
   check_assertion(rp->gnu == NULL);
-  rp->gnu = (a_gnu_routine_extension_ptr)
-                                     alloc_il(sizeof(a_gnu_routine_extension));
+  rp->gnu = (a_gnu_routine_supplement_ptr)
+                                    alloc_il(sizeof(a_gnu_routine_supplement));
   rp->gnu->section              = NULL;
   rp->gnu->aliased_routine      = NULL;
 #if LOWER_IFUNC
@@ -2786,7 +2786,7 @@ the typical invocation.
 #endif /* GNU_INIT_PRIORITY_ATTRIBUTE_ALLOWED */
   rp->gnu->asm_name             = NULL;
   return rp->gnu;
-}  /* alloc_gnu_extension_for_routine */
+}  /* alloc_gnu_supplement_for_routine */
 
 #endif /* GNU_EXTENSIONS_ALLOWED || REDEFINE_EXTNAME_PRAGMA_ENABLED */
 

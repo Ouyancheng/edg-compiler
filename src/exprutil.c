@@ -15432,14 +15432,16 @@ error cases.
 #if GNU_EXTENSIONS_ALLOWED
   if (gnu_mode && is_routine_node(function_node)) {
     a_routine_ptr  rout = function_node->variant.routine.ptr;
-    if (has_gnu_ext(rout) && get_gnu_ext(rout)->inline_partner != NULL &&
+    if (has_gnu_routine_supp(rout) &&
+        gnu_routine_supp(rout)->inline_partner != NULL &&
         !rout->definition_for_inlining_only) {
       /* If this is a call to a function that has both an entry "for inlining
          only" and "for non-inline uses", record the call as being to the
          "for inlining only" version so the inliner can have a chance at
          processing the call. */
-      function_node->variant.routine.ptr = get_gnu_ext(rout)->inline_partner;
-      check_assertion(get_gnu_ext(rout)->
+      function_node->variant.routine.ptr =
+                                        gnu_routine_supp(rout)->inline_partner;
+      check_assertion(gnu_routine_supp(rout)->
                                  inline_partner->definition_for_inlining_only);
     }  /* if */
   }  /* if */

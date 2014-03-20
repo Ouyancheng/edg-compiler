@@ -6984,9 +6984,9 @@ yet.
   entry_routine->ELF_visibility = overriding_function->ELF_visibility;
 #endif /* GNU_VISIBILITY_ATTRIBUTE_ALLOWED */
   entry_routine->is_weak = overriding_function->is_weak;
-  if (has_gnu_ext(overriding_function)) {
-    ensure_gnu_ext(entry_routine)->section =
-                                     get_gnu_ext(overriding_function)->section;
+  if (has_gnu_routine_supp(overriding_function)) {
+    ensure_gnu_routine_supp(entry_routine)->section =
+                                gnu_routine_supp(overriding_function)->section;
   }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
 #if SUN_EXTENSIONS_ALLOWED
@@ -9799,8 +9799,12 @@ statically initialized to the ifunc routine itself (which becomes a wrapper
 to invoke the resolver and then the resolved routine).
 */
 {
+  a_gnu_routine_supplement_ptr grsp;
+
   check_assertion(rp->is_ifunc);
-  if (!has_gnu_ext(rp) || get_gnu_ext(rp)->resolver_var == NULL) {
+  ensure_gnu_routine_supplement(rp);
+  grsp = get_gnu_routine_supplement(rp);
+  if (grsp->resolver_var == NULL) {
     a_constant_ptr   function_constant;
     a_memory_region_number region_to_switch_back_to;
     a_storage_class  storage_class;
@@ -9815,28 +9819,27 @@ to invoke the resolver and then the resolved routine).
     /* Give the variable a unique name (based on the ifunc routine's name). */
     var_name = make_prefixed_object_name("__IFV__", &rp->source_corresp,
                                          iek_routine);
-    ensure_gnu_ext(rp)->resolver_var = make_lowered_variable(var_name,
-                                                  /*already_il_name=*/TRUE,
-                                                  make_pointer_type(rp->type),
-                                                  storage_class);
-    ensure_gnu_ext(rp)->resolver_var->source_corresp.name_has_been_mangled =
-                                                                          TRUE;
+    grsp->resolver_var = make_lowered_variable(var_name,
+                                               /*already_il_name=*/TRUE,
+                                               make_pointer_type(rp->type),
+                                               storage_class);
+    grsp->resolver_var->source_corresp.name_has_been_mangled = TRUE;
     if (storage_class == (a_storage_class)sc_unspecified) {
 #if IA64_ABI
-      put_variable_into_comdat_group(get_gnu_ext(rp)->resolver_var);
+      put_variable_into_comdat_group(grsp->resolver_var);
 #else /* !IA64_ABI */
-      ensure_gnu_ext(rp)->resolver_var->is_weak = TRUE;
+      grsp->resolver_var->is_weak = TRUE;
 #endif /* IA64_ABI */
     }  /* if */
     /* Statically initialize the variable to point to the ifunc routine. */
     function_constant = alloc_constant((a_constant_repr_kind)ck_address);
     set_routine_address_constant(rp, function_constant,
                                  /*set_address_taken_flag=*/TRUE);
-    ensure_gnu_ext(rp)->resolver_var->initializer.constant = function_constant;
-    ensure_gnu_ext(rp)->resolver_var->init_kind = (an_init_kind)initk_static;
+    grsp->resolver_var->initializer.constant = function_constant;
+    grsp->resolver_var->init_kind = (an_init_kind)initk_static;
     switch_back_to_original_region(region_to_switch_back_to);
   }  /* if */
-  return get_gnu_ext(rp)->resolver_var;
+  return grsp->resolver_var;
 }  /* make_ifunc_resolver_var */
 
 
