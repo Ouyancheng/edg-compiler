@@ -1,5 +1,17 @@
 Version 4.9
 
+3/20/14  [EDGcpfe/14943]
+Override of a virtual destructor in a class with a template base class
+
+A spurious error had been issued when the virtual destructor declared in a
+class with a template base class specified the "override" function modifier.
+Now fixed.  For example (with --c++11):
+
+  template <class T> struct A : T {
+    virtual ~A() override;
+  };
+
+
 3/20/14  [EDGcpfe/14226]
 Microsoft compatibility: Errors using certain C++/CLI assemblies
 

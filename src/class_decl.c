@@ -5678,15 +5678,20 @@ next_named_override:
       /* Special processing is required for destructors, since a virtual
          destructor in a base class is not overridden in the derived class
          by a function of the same name. */
-      sym = (symbol_supplement_for_class(bcp->type))->destructor;
-      if (sym != NULL) {
-        /* Base class does have a destructor. */
-        rp = sym->variant.routine.ptr;
-        if (rp->is_virtual) {
-          /* Base class destructor is virtual. */
-          check_virtual_function_override(class_state, decl_info, sym, bcp,
-                                          (a_base_class_ptr)NULL);
-          dps->override_okay = real_override = TRUE;
+      if (bcp->type->variant.class_struct_union.is_nonreal_class) {
+        /* Allow override when there is a nonreal base class. */
+        dps->override_okay = TRUE;
+      } else {
+        sym = (symbol_supplement_for_class(bcp->type))->destructor;
+        if (sym != NULL) {
+          /* Base class does have a destructor. */
+          rp = sym->variant.routine.ptr;
+          if (rp->is_virtual) {
+            /* Base class destructor is virtual. */
+            check_virtual_function_override(class_state, decl_info, sym, bcp,
+                                            (a_base_class_ptr)NULL);
+            dps->override_okay = real_override = TRUE;
+          }  /* if */
         }  /* if */
       }  /* if */
     } else {
