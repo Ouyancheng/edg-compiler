@@ -27583,14 +27583,6 @@ if rescan_is_template_id is TRUE, and return the result in *operand
       force_indefinite_function = TRUE;
       rep = NULL;
 #if MICROSOFT_EXTENSIONS_ALLOWED
-    } else if (microsoft_mode &&
-               sym_ptr->is_class_member &&
-               sym_parent_class(sym_ptr)->variant.class_struct_union
-                                           .is_ms_instantiated_nonreal_class) {
-      /* In Microsoft mode, symbols found in dependent base classes should
-         be considered placeholders until the real instantiation. */
-      force_indefinite_function = TRUE;
-      rep = NULL;
     } else if (cppcli_enabled && name_followed_by_left_paren &&
                hide_by_sig_lookup_applies(locator.specific_symbol)) {
       /* In C++/CLI mode, a symbol for which hide-by-sig lookup applies

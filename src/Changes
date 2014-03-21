@@ -1,5 +1,19 @@
 Version 4.9
 
+3/21/14  [EDGcpfe/14948]
+Microsoft compatibility: error on use of member function in instantiated base
+
+A change was made in version 4.6 that could result in spurious errors
+in Microsoft mode when a member function was used without arguments
+in a decltype context.  Now fixed.
+
+  template <class T> class A {
+    static int Foo_t(void);
+    typedef decltype(Foo_t)* Foo;
+  };
+  template <class C> class B: public A<C> { };
+
+
 3/20/14  [EDGcpfe/14943]
 Override of a virtual destructor in a class with a template base class
 
