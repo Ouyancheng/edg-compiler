@@ -12515,9 +12515,13 @@ id_scan:
 		scan_boolean_constant(ctoken);
                 goto end_id_scan;
               } else if (clang_mode && curr_token == tok_struct &&
-                         (ctoken == tok_is_pod || ctoken == tok_is_empty)) {
-                /* The clang compiler treats the keywords  "__is_empty" and
-                   "__is_pod" context-sensitively once it appears after the
+                         token_names[ctoken][0] == '_' &&
+                         token_names[ctoken][1] == '_' &&
+                         token_names[ctoken][2] == 'i' &&
+                         token_names[ctoken][3] == 's' &&
+                         token_names[ctoken][4] == '_') {
+                /* The clang compiler treats keywords that start with "__is_"
+                   context-sensitively once they appear immediately after the
                    "struct" keyword. */
                 pos_sy_warning(ec_keyword_dropped, &pos_curr_token,
                                assoc_symbol);

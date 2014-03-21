@@ -608,17 +608,6 @@ modes.
                 "__is_simple_value_class");
   enter_keyword((a_token_kind)tok_is_value_class, "__is_value_class");
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-  if (clang_mode) {
-    a_symbol_locator locator;
-    /* __is_pod and __is_empty contextual keywords in clang mode. */
-    clear_locator(&locator, &null_source_position);
-    is_pod_symbol_header = find_symbol_header("__is_pod", sizeof("__is_pod")-1,
-                                              &locator);
-    clear_locator(&locator, &null_source_position);
-    is_empty_symbol_header = find_symbol_header("__is_empty",
-                                                sizeof("__is_empty")-1,
-                                                &locator);
-  }  /* if */
 }  /* enter_type_traits_helpers */
 
 

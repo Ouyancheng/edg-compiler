@@ -29783,15 +29783,29 @@ handle_identifier:
           goto handle_safe_cast;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
         } else if (clang_mode && !locator_for_curr_id.is_qualified_name) {
-          if ((locator_for_curr_id.symbol_header == is_pod_symbol_header ||
-               locator_for_curr_id.symbol_header == is_empty_symbol_header) &&
+          /* clang treats keywords that start with "__is_" specially.  If they
+             appear just after the keyword "struct", the keyword becomes an
+             identifier from there on... except if it is followed by a left
+             parenthesis in an expression context.  The lexer makes the
+             keyword "invisible" when it appears just after the keyword
+             "struct".  Here we resurrect the keyword status for this instance
+             if needed. */
+          a_symbol_header_ptr  sym_hdr = locator_for_curr_id.symbol_header;
+          a_const_char         *name = sym_hdr->identifier;
+          if (name[0] == '_' && name[1] == '_' &&
+              name[2] == 'i' && name[3] == 's' && name[4] == '_' &&
               next_token() == tok_lparen) {
-            if (locator_for_curr_id.symbol_header == is_pod_symbol_header) {
-              curr_token = tok_is_pod;
-            } else {
-              curr_token = tok_is_empty;
-            }  /* if */
-            goto handle_unary_type_trait_helper;
+            /* An identifier that starts with "__is_" and is followed by a
+               left parenthesis.  See if it is associated with an invisible
+               keyword. */
+            a_symbol_ptr  key_sym = sym_hdr->symbol;
+            for (; key_sym != NULL; key_sym = key_sym->next) {
+              if (symbol_is(key_sym, sk_keyword)) {
+                check_assertion(key_sym->is_invisible);
+                curr_token = key_sym->variant.keyword.token;
+                goto handle_unary_type_trait_helper;
+              }  /* if */
+            }  /* for */
           }  /* if */
         }  /* if */
         scan_identifier(&local_result, local_options, prec_level,
