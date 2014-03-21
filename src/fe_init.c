@@ -702,8 +702,15 @@ Install the keywords in the symbol table.
   }  /* if */
 #endif /* C99_IL_EXTENSIONS_SUPPORTED */
   if (C_mode() && static_assert_enabled) {
-    /* Enter the C version of "static_assert". */
-    enter_keyword((a_token_kind)tok_static_assert, "_Static_assert");
+    /* Enter the C version of "static_assert", except in non-C11 Microsoft
+       modes. */
+    if (!(microsoft_mode && !c11_mode)) {
+      enter_keyword((a_token_kind)tok_static_assert, "_Static_assert");
+    }  /* if */
+    /* In some Microsoft modes, the C++ version is also enabled in C mode. */
+    if (microsoft_mode && microsoft_version >= 1600) {
+      enter_keyword((a_token_kind)tok_static_assert, "static_assert");
+    }  /* if */
   }  /* if */
   if (c11_mode) {
     /* Enable keywords required in C11 mode. */

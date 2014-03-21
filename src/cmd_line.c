@@ -2007,6 +2007,9 @@ by a command line option.
       /* Microsoft C never enters tag names in function prototype scopes. */
       func_prototype_tags_enabled = FALSE;
     }  /* if */
+    /* Recent Microsoft C compilers enable the C++ spelling of static_assert
+       (i.e., not _Static_assert). */
+    static_assert_enabled = microsoft_version >= 1600;
     if (microsoft_version >= 1800) {
       /* MSVC 12 (part of Visual Studio 2013) adds a number of C99-based
          features in its C mode. */

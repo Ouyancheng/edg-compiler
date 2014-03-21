@@ -1,5 +1,13 @@
 Version 4.9
 
+3/21/14  [EDGcpfe/14947]
+Microsoft C compatibility: static_assert
+
+In Microsoft C mode with microsoft_version >= 1600, the front end now enables
+static_assert with the C++ spelling of the keyword (i.e., "static_assert"
+instead of "_Static_assert").
+
+
 3/21/14  [EDGcpfe/14937]
 Dependent static member constant matched to pointer parameter in GNU mode
 
