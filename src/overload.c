@@ -23488,11 +23488,26 @@ if so.
   compatible = (arg_summary.match_level != aml_none);
   if (compatible) {
     /* Some conversions are not allowed on a nontype template argument. */
+    a_boolean       source_is_constant = is_constant_operand(operand);
+    a_constant_ptr  con = NULL;
+    a_variable_ptr  var;
+    if (source_is_constant) {
+      con = &operand->variant.constant;
+    } else if (is_integral_or_enum_type(param_type) &&
+               operand_is_lvalue_for_variable(operand, &var) &&
+               is_potentially_constant_valued_variable(var)) {
+      /* An lvalue variable won't have been folded since it could bind to a
+         reference parameter.  However, if the parameter has integer or enum
+         type, we should identify the constant case to deal with narrowing
+         conversions. */
+      con = var_constant_value(var);
+      if (con != NULL) source_is_constant = TRUE;
+    }  /* if */
     if (!conversion_allowed_for_nontype_template_argument(
                                                 &arg_summary.conversion.std,
                                                 operand->type,
-                                                is_constant_operand(operand),
-                                                &operand->variant.constant,
+                                                source_is_constant,
+                                                con,
                                                 param_type,
                                                 (an_error_code *)NULL)) {
       compatible = FALSE;
