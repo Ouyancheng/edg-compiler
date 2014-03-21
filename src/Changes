@@ -60,7 +60,7 @@ same entity in differing translation units.  For example:
   // File2.cpp
   void f(char*);
 
-Previously, simultaneous compiling both files above resulted in an error
+Previously, simultaneously compiling both files above resulted in an error
 (attribute "nonnull" is missing in another translation unit).  Now no error
 is issued.
 
