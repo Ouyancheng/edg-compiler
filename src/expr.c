@@ -29802,7 +29802,7 @@ handle_identifier:
             for (; key_sym != NULL; key_sym = key_sym->next) {
               if (symbol_is(key_sym, sk_keyword)) {
                 check_assertion(key_sym->is_invisible);
-                curr_token = key_sym->variant.keyword.token;
+                curr_token = (a_token_kind)key_sym->variant.keyword.token;
                 goto handle_unary_type_trait_helper;
               }  /* if */
             }  /* for */
