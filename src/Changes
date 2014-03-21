@@ -13,7 +13,7 @@ keyword.  Now fixed.
   A<int> a;
 
 
-3/21/14  [EDGcpfe/14944]
+3/21/14  [EDGcpfe/14946]
 Microsoft and GNU compatibility: Elaborated specifiers for scoped enum types
 
 In C++11 mode, a scoped enum type can be referred to using a so-called
