@@ -39256,6 +39256,7 @@ empty) list of type operands args, and returns TRUE if so.
     an_arg_list_elem_ptr alep;
     an_operand           operand;
     an_expr_node_ptr     argn;
+    a_boolean            saved_defer_access_checks;
     for (argn = args; argn != NULL; argn = argn->next) {
       a_type_ptr typen;
       check_assertion(argn->kind == (an_expr_node_kind)enk_type_operand);
@@ -39276,6 +39277,8 @@ empty) list of type operands args, and returns TRUE if so.
     }  /* for */
     expr_stack->suppress_diagnostics = TRUE;
     expr_stack->suppress_constexpr_call_folding = TRUE;
+    saved_defer_access_checks = scope_stack_top().defer_access_checks;
+    scope_stack_top().defer_access_checks = FALSE;
     /* Model the initialization as a functional-notation cast, with
        error suppressed. */
     scan_functional_notation_type_conversion((a_rescan_control_block *)NULL,
@@ -39296,6 +39299,7 @@ empty) list of type operands args, and returns TRUE if so.
         result = !expr_calls_nontrivial_function(expr);
       }  /* if */
     }  /* if */
+    scope_stack_top().defer_access_checks = saved_defer_access_checks;
   }  /* if */
 have_result:
   free_init_component_list(arg_list);
@@ -39332,6 +39336,7 @@ invoked destructor is trivial).
       result = TRUE;
     } else {
       a_routine_ptr  dtor;
+      a_boolean      saved_defer_access_checks;
       /* Even though this is not an expression scan, make sure the expr_stack
          has something on it.  If there is already something on the stack,
          save it, clear the stack, and restore it later. */
@@ -39342,6 +39347,8 @@ invoked destructor is trivial).
       expr_stack->suppress_diagnostics = TRUE;
       expr_stack_entry.evaluated = FALSE;
       expr_stack_entry.potentially_evaluated = FALSE;
+      saved_defer_access_checks = scope_stack_top().defer_access_checks;
+      scope_stack_top().defer_access_checks = FALSE;
       dtor = expr_select_destructor(type, type, &pos_curr_token,
                                     /*honor_virtual=*/TRUE);
       result = !expr_stack->any_suppressed_error;
@@ -39357,6 +39364,7 @@ invoked destructor is trivial).
           result = dtor->is_trivial_destructor;
         }  /* if */
       }  /* if */
+      scope_stack_top().defer_access_checks = saved_defer_access_checks;
       pop_expr_stack();
       restore_expr_stack(saved_expr_stack);
     }  /* if */
@@ -39398,6 +39406,7 @@ kind is bok_is_nothrow_assignable or bok_is_trivially_assignable.
     /* Make a pair of expressions of the required types. */
     an_arg_list_elem_ptr  dst_op, src_op;
     an_operand            result_op;
+    a_boolean             saved_defer_access_checks;
     dst_op = arg_list = make_declval_arg(dst_type);
     if (dst_op == NULL) {
       /* The value creation expression is ill-formed: Return a "false"
@@ -39416,6 +39425,8 @@ kind is bok_is_nothrow_assignable or bok_is_trivially_assignable.
     /* Check the validity of the assignment. */
     expr_stack->suppress_diagnostics = TRUE;
     expr_stack->suppress_constexpr_call_folding = TRUE;
+    saved_defer_access_checks = scope_stack_top().defer_access_checks;
+    scope_stack_top().defer_access_checks = FALSE;
     process_simple_assignment(operand_of_arg_list_elem(dst_op),
                               operand_of_arg_list_elem(src_op),
                               &pos_curr_token,
@@ -39441,6 +39452,7 @@ kind is bok_is_nothrow_assignable or bok_is_trivially_assignable.
         }  /* if */
       }  /* if */
     }  /* if */
+    scope_stack_top().defer_access_checks = saved_defer_access_checks;
   }  /* if */
 have_result:
   free_init_component_list(arg_list);
