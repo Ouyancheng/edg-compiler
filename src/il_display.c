@@ -3587,7 +3587,7 @@ Display the indicated routine.
   }  /* if */
 #if GNU_EXTENSIONS_ALLOWED || REDEFINE_EXTNAME_PRAGMA_ENABLED
   if (has_gnu_routine_supp(ptr)) {
-    a_gnu_routine_supplement_ptr grsp = gnu_routine_supp(ptr);
+    a_gnu_routine_supplement_ptr grsp = ptr->gnu;
     if (grsp->section != NULL) {
       disp_string_ptr("section", grsp->section, iek_other_text, (sizeof_t)0);
     }  /* if */

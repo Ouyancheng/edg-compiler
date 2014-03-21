@@ -5138,9 +5138,9 @@ associated template.
     result = cache_for_template(tssp)->tokens.first_token != NULL;
 #if GNU_EXTENSIONS_ALLOWED
   } else if (has_gnu_routine_supp(rp) &&
-             gnu_routine_supp(rp)->aliased_routine != NULL) {
+             rp->gnu->aliased_routine != NULL) {
     /* Consider an alias defined if the entity it aliases is defined. */
-    result = routine_defined(gnu_routine_supp(rp)->aliased_routine);
+    result = routine_defined(rp->gnu->aliased_routine);
 #endif /* GNU_EXTENSIONS_ALLOWED */
   } else if (routine_has_been_defined(rp)) {
     result = TRUE;
@@ -6000,7 +6000,7 @@ curr_routine points to the routine entry; otherwise, it is NULL.
 #if GNU_EXTENSIONS_ALLOWED
           if (rout_ptr->is_weakref ||
               (has_gnu_routine_supp(rout_ptr) &&
-               gnu_routine_supp(rout_ptr)->aliased_routine != NULL)) {
+               rout_ptr->gnu->aliased_routine != NULL)) {
             /* GNU weakref entities have no definition.  Static routine
                aliases may alias extern routines, which are presumably
                defined in other translation units.  (If they alias another
@@ -6980,8 +6980,7 @@ been completed.
   for (rp = scope->routines; rp != NULL; rp = rp->next) {
     a_boolean saved_defined = rp->defined;
 #if GNU_EXTENSIONS_ALLOWED
-    if ((has_gnu_routine_supp(rp) &&
-         gnu_routine_supp(rp)->aliased_routine != NULL) &&
+    if ((has_gnu_routine_supp(rp) && rp->gnu->aliased_routine != NULL) &&
         !rp->implicit_alias &&
         rp->storage_class != (a_storage_class)sc_static) {
       /* Routine aliases are needed because they may be accessed from other

@@ -2765,7 +2765,7 @@ to it.  The entry is allocated in the file scope memory region.
 a_gnu_routine_supplement_ptr alloc_gnu_supplement_for_routine(a_routine_ptr rp)
 /*
 Allocate and return a_gnu_routine_supplement structure for rp (which should not
-already already have one).  The structure is not allocated when a_routine is
+already have one).  The structure is not allocated when a_routine is
 allocated and is populated only when a need for the structure arises.  The
 entry is allocated in the file scope memory region.  See
 ensure_gnu_routine_supp for the typical invocation.

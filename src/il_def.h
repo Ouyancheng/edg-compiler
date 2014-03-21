@@ -13651,9 +13651,9 @@ typedef struct a_routine {
 			   otherwise, this is NULL. */
 #if GNU_EXTENSIONS_ALLOWED || REDEFINE_EXTNAME_PRAGMA_ENABLED
   a_gnu_routine_supplement_ptr
-		gnu;	/* GNU-specific a_routine fields.  Moved to a separate
-			   supplement to save space for non-GNU cases (as well
-			   as GNU cases where all of the fields have their
+		gnu;	/* Supplementary GNU-specific information, in a
+			   separate block to save space for non-GNU cases (as
+			   well as GNU cases where all of the fields have their
 			   default values). */
 #endif /* GNU_EXTENSIONS_ALLOWED || REDEFINE_EXTNAME_PRAGMA_ENABLED */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
@@ -13761,10 +13761,10 @@ typedef struct a_gnu_routine_supplement {
 			   the type returned by the ifunc routine). */
 #if LOWER_IFUNC
   a_variable_ptr
-                resolver_var;
-                        /* A variable that "caches" the result of calling the
-                           ifunc resolver routine so that subsequent
-                           calls don't need to invoke the resolver. */
+		resolver_var;
+			/* A variable that "caches" the result of calling the
+			   ifunc resolver routine so that subsequent
+			   calls don't need to invoke the resolver. */
 #endif /* LOWER_IFUNC */
   a_routine_ptr	inline_partner;
 			/* If a function has both a definition "for inlining
@@ -13776,13 +13776,13 @@ typedef struct a_gnu_routine_supplement {
   a_gnu_init_priority
 		ctor_priority;
 			/* The priority (if any) specified by the GNU attribute
-			  "constructor" (if any).  Valid only when
-			  has_ctor_priority is TRUE. */
+			   "constructor" (if any).  Valid only when
+			   has_ctor_priority is TRUE. */
   a_gnu_init_priority
 		dtor_priority;
 			/* The priority (if any) specified by the GNU attribute
-			  "destructor" (if any).  Valid only when
-			  has_dtor_priority is TRUE. */
+			   "destructor" (if any).  Valid only when
+			   has_dtor_priority is TRUE. */
 #endif /* GNU_INIT_PRIORITY_ATTRIBUTE_ALLOWED */
   a_const_char	*asm_name;
 			/* If non-NULL, the name to be used as an assembly
@@ -13790,14 +13790,28 @@ typedef struct a_gnu_routine_supplement {
 } a_gnu_routine_supplement;
 
 /*
-As the "gnu" (aka a_gnu_routine_supplement) field of a_routine is "optional"
-(i.e., only allocated when necessary), these macros are intended to ease the
-use of fields in a_gnu_routine_supplement.  ensure_gnu_routine_supp is used
-when assigning to a field in a_gnu_routine_supplement to ensure that the
-extension has been allocated (i.e., in an lvalue context).
+As the "gnu" (aka a_gnu_routine_supplement) field of a_routine is allocated
+on an as-needed basis, the following macros are intended to hide some of the
+mechanics of allocating the supplement when using fields in
+a_gnu_routine_supplement.  Each macro takes an a_routine_ptr argument.
+
+ensure_gnu_routine_supp can be used when assigning a value to a field in the
+"gnu" supplement and it is not known if the supplement has been previously
+allocated (the supplement is then allocated in this case).  For example:
+
+  ensure_gnu_routine_supp(routine)->asm_name = "foo";
+
+gnu_routine_supp can be used when accessing a field in the supplement and,
+based on external information, it is assumed that the "gnu" field has
+previously been allocated.  For example, if routine->has_ctor_priority is TRUE,
+then the following expression can be used to return the value of ctor_priority
+(and an assertion will be generated -- when CHECKING is TRUE -- if the "gnu"
+field has not been allocated):
+
+  priority = gnu_routine_supp(routine)->ctor_priority;
+
 has_gnu_routine_supp is used to test whether or not the field has been
-allocated.  gnu_routine_supp is used when referring to a field (i.e., in an
-rvalue context) when it expected that "gnu" is non-NULL.
+allocated.
 */
 #define ensure_gnu_routine_supp(rp) \
   (((rp)->gnu) == NULL ? alloc_gnu_supplement_for_routine(rp) : (rp)->gnu)

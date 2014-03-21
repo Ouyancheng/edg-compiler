@@ -9996,10 +9996,9 @@ declare_routine:
          ifunc attribute in the generated C code.  This is only supported by
          GNU compilers (and possibly only on Linux). */
       check_assertion(gcc_is_generated_code_target &&
-                      has_gnu_routine_supp(rout) &&
                       gnu_routine_supp(rout)->aliased_routine != NULL);
       write_tok_str("__attribute__((ifunc(\"");
-      dump_routine_name(gnu_routine_supp(rout)->aliased_routine);
+      dump_routine_name(rout->gnu->aliased_routine);
       write_tok_str("\"))) ");
     }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED && !LOWER_IFUNC */
@@ -10012,7 +10011,7 @@ declare_routine:
                                           NO_COUNTER);
 #if GNU_EXTENSIONS_ALLOWED
       if (has_gnu_routine_supp(rout)) {
-        form_asm_name(gnu_routine_supp(rout)->asm_name, &octl);
+        form_asm_name(rout->gnu->asm_name, &octl);
       }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
 #if !SEPARATE_ROUTINES_FOR_FILE_SCOPE_DYNAMIC_INITS
@@ -10122,7 +10121,7 @@ that have bodies.
       superseded_external_seen = TRUE;
 #if GNU_EXTENSIONS_ALLOWED
     } else if (has_gnu_routine_supp(routine) &&
-               gnu_routine_supp(routine)->inline_partner != NULL &&
+               routine->gnu->inline_partner != NULL &&
                !routine->definition_for_inlining_only) {
       /* In GNU modes a routine can have both a definition for inlining only
          and a declaration or definition for out-of-line calls.  However, the
