@@ -8418,10 +8418,10 @@ an argument of a call in gpp mode even though the standard says it's not.
 {
   a_boolean result = FALSE;
 
-  /* The cases we care about are "this->x" and "*(this->x)".  g++ sees
-     those as dependent even if the type of x is known.  Also a call
-     of a member function of the current class even if the return type
-     is known. */
+  /* The cases we care about are "this->x", "*(this->x)", and references to
+     static data members of a prototype instantiation.  g++ sees those as
+     dependent even if the type of the member is known.  Also a call of a
+     member function of the current class even if the return type is known. */
   if (is_expression_operand(operand)) {
     an_expr_node_ptr expr = skip_parens(operand->variant.expression);
     if (is_operation_node(expr) &&
@@ -8453,6 +8453,12 @@ an argument of a call in gpp mode even though the standard says it's not.
       if (potential_this != NULL &&
           is_variable_node(potential_this) &&
           potential_this->variant.variable->is_this_parameter) {
+        result = TRUE;
+      }  /* if */
+    } else if (is_variable_node(expr)) {
+      a_variable_ptr  var = expr->variant.variable;
+      if (var->is_template_static_data_member &&
+          var->is_prototype_instantiation) {
         result = TRUE;
       }  /* if */
     }  /* if */
