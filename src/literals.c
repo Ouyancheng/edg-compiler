@@ -958,12 +958,12 @@ get_another:
       int           numch = lex_mbc_to_wide_char(lptr, &wc, &err);
       if (err) {
         /* Invalid multibyte character sequence.  Report the error, skip
-           over the invalid sequence, and return a single (null)
+           over the invalid sequence, and return '?' in place of the bad
            character. */
         conv_line_loc_to_source_pos(lptr, &error_position);
         diagnostic(es_discretionary_error, ec_bad_multibyte_char);
         lptr += numch - 1;
-        targ_ch = 0;
+        targ_ch = '?';
 #if NATIVE_MULTIBYTE_CHARS_SUPPORTED_WITH_UNICODE
       } else if (curr_file_unicode_source_kind != usk_none &&
                  state->translate_utf8_to_mbc) {
@@ -1230,10 +1230,11 @@ defines the size of character.
     /* Convert a multibyte character sequence to a wide character. */
     numch = lex_mbc_to_wide_char(*state->next_token_char, &wc, &err);
     if (err) {
-      /* Invalid multibyte character sequence. */
+      /* Invalid multibyte character sequence.  Report an error and replace
+         the character with '?'. */
       conv_line_loc_to_source_pos(*state->next_token_char, &error_position);
       diagnostic(es_discretionary_error, ec_bad_multibyte_char);
-      wc = 0;
+      wc = L'?';
     }  /* if */
     if ((wc & ~centity_mask) != 0 && state->create_surrogate_pairs) {
       /* The character does not fit into a single code unit.  Create a
