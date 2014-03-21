@@ -2597,6 +2597,7 @@ ec_use_of_undefined_function_with_deduced_return_type;;"cannot deduce the return
 ec_virtual_function_cannot_have_deduced_return_type;;"a virtual function cannot have a deduced return type"
 ec_keyword_dropped;;"%n will be treated as a context-sensitive keyword from this point"
 ec_global_ns_has_no_actual_member;;"the global namespace has no actual member %sq"
+ec_different_enum_comparison;;"comparison between two different enum types (%t1 and %t2)"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

@@ -1,5 +1,16 @@
 Version 4.9
 
+3/21/14  [EDGcpfe/14926]
+Comparing different enumeration types
+
+The front end now issues a remark for comparisons between two different enum
+types.  For example:
+
+  enum E { e };
+  enum F { f };
+  int v = e<f;  /* Now triggers a remark. */
+
+
 3/21/14  [EDGcpfe/14947]
 Microsoft C compatibility: static_assert
 

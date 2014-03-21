@@ -23105,6 +23105,39 @@ of an error), return FALSE.
 }  /* get_sign_for_constant_in_unsigned_operation */
 
 
+static void diagnose_comparison_if_different_enum_types(
+                                                    a_type_ptr         type_1,
+                                                    a_type_ptr         type_2,
+                                                    a_source_position  *pos)
+/*
+The two given types are the types of operands involved in a comparison (e.g.,
+"==" or "<").  Issue a remark if the two types are different enum types (or,
+in C, have different affiliated enum types).
+*/
+{
+  if (type_1->kind == (a_type_kind)tk_integer &&
+      type_2->kind == (a_type_kind)tk_integer) {
+    if (C_mode() &&
+        underlying_enum_type(type_1) != NULL &&
+        underlying_enum_type(type_2) != NULL) {
+      type_1 = underlying_enum_type(type_1);
+      type_2 = underlying_enum_type(type_2);
+    }  /* if */
+    if (is_immediate_enum_type(type_1) &&
+        is_immediate_enum_type(type_2) &&
+        !same_entities(type_1, type_2)) {
+      /* Issue a remark if comparing two different enum types (which is
+         rarely intentional). */
+      if (expr_diagnostic_should_be_issued(
+                            es_remark, ec_different_enum_comparison)) {
+        pos_ty2_diagnostic(es_remark, ec_different_enum_comparison, pos,
+                           type_1, type_2);
+      }  /* if */
+    }  /* if */
+  }  /* if */
+}  /* diagnose_comparison_if_different_enum_types */
+
+
 static void scan_rel_operator(an_operand             *operand_1,
                               a_rescan_control_block *rcblock,
                               an_operand             *result)
@@ -23263,23 +23296,27 @@ that case.
         }  /* if */
         operation_type = determine_arithmetic_conversions(operand_1,
                                                           &operand_2);
-        if (is_integral_or_enum_type(operation_type) &&
-            !int_kind_is_signed[(int)(skip_typerefs(operation_type)->
-                                                  variant.integer.int_kind)]) {
-          /* Issue a remark if a signed operand is converted to an unsigned
-             type, which can produce surprising results with negative
-             values.  (Note that a sign change for a constant is detected
-             separately, hence the exclusion of constant operands below.) */
+        if (is_integral_or_enum_type(operation_type)) {
           a_type_ptr type_1 = skip_typerefs(operand_1->type);
           a_type_ptr type_2 = skip_typerefs(operand_2.type);
-          if ((type_1->kind == (a_type_kind)tk_integer &&
-               int_kind_is_signed[(int)type_1->variant.integer.int_kind] &&
-               !is_constant_operand(operand_1)) ||
-              (type_2->kind == (a_type_kind)tk_integer &&
-               int_kind_is_signed[(int)type_2->variant.integer.int_kind] &&
-               !is_constant_operand(&operand_2))) {
-            expr_pos_diagnostic(es_remark, ec_signed_unsigned_comparison,
-                                &operator_position);
+          if (!int_kind_is_signed[(int)(skip_typerefs(operation_type)->
+                                                  variant.integer.int_kind)]) {
+            /* Issue a remark if a signed operand is converted to an unsigned
+               type, which can produce surprising results with negative
+               values.  (Note that a sign change for a constant is detected
+               separately, hence the exclusion of constant operands below.) */
+            if ((type_1->kind == (a_type_kind)tk_integer &&
+                 int_kind_is_signed[(int)type_1->variant.integer.int_kind] &&
+                 !is_constant_operand(operand_1)) ||
+                (type_2->kind == (a_type_kind)tk_integer &&
+                 int_kind_is_signed[(int)type_2->variant.integer.int_kind] &&
+                 !is_constant_operand(&operand_2))) {
+              expr_pos_diagnostic(es_remark, ec_signed_unsigned_comparison,
+                                  &operator_position);
+            }  /* if */
+          } else {
+            diagnose_comparison_if_different_enum_types(type_1, type_2,
+                                                        &operator_position);
           }  /* if */
         }  /* if */
       }  /* if */
@@ -23526,12 +23563,16 @@ that case.
            the pointer cases above).  We also know already that operand_1 is
            arithmetic or enum. */
         if (check_arithmetic_or_enum_operand(&operand_2)) {
+          a_type_ptr type_1 = skip_typerefs(operand_1->type);
+          a_type_ptr type_2 = skip_typerefs(operand_2.type);
           /* Check for comparisons like "unsignedvar == -1", which are true
              only in surprising cases. */
           funny_unsigned_comparison = is_comparison_of_unsigned_with_constant(
                                                           operand_1,
                                                           &operand_2,
                                                           &second_is_constant);
+          diagnose_comparison_if_different_enum_types(type_1, type_2,
+                                                      &operator_position);
         }  /* if */
         operation_type = determine_arithmetic_conversions(operand_1,
                                                           &operand_2);
