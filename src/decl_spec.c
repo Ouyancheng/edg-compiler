@@ -5882,8 +5882,25 @@ template.  dsi_flags is the set of input flags passed to decl_specifiers.
       } else if (opaque_enum_decls_enabled && is_scoped_enum) {
         /* "enum struct" or "enum class" cannot be used for an elaborated
            specifier, even if the original declaration is for a scoped enum. */
-        pos_error(ec_invalid_scoped_enum_elaboration,
-                  &locator.source_position);
+        an_error_severity  sev = es_error;
+        if (enum_type->variant.integer.is_scoped_enum) {
+          /* Microsoft and GNU compilers accept the "enum class" and
+             "enum struct" forms if the enumeration is known to be scoped. */
+          if (microsoft_mode) {
+            sev = es_none;
+          } else if (gpp_mode && !clang_mode) {
+            sev = es_warning;
+          } else {
+            sev = es_discretionary_error;
+          }  /* if */
+        }  /* if */
+        if (sev != es_none) {
+          pos_diagnostic((gpp_mode && !clang_mode) ? es_warning
+                                                   : es_discretionary_error,
+                         ec_invalid_scoped_enum_elaboration,
+                         &locator.source_position);
+        }  /* if */
+        is_scoped_enum = FALSE;
       }  /* if */
       /* If explicit base type specifiers are involved, ensure that the
          underlying types are compatible. */

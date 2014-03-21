@@ -14,6 +14,22 @@ keyword.  Now fixed.
 
 
 3/21/14  [EDGcpfe/14944]
+Microsoft and GNU compatibility: Elaborated specifiers for scoped enum types
+
+In C++11 mode, a scoped enum type can be referred to using a so-called
+"elaborated type specifier" of the form "enum <name>".  The standard does not
+permit the forms "enum class <name>" or "enum struct <name>" for such type
+specifiers.  Microsoft and GNU compilers, however, do accept those forms, and
+the front end now emulates that in Microsoft and GNU modes (with a warning in
+GNU mode, to match GCC's behavior).  For example:
+
+  enum class E { e };
+  enum class E x = E::e;  // Now accepted in GNU and Microsoft modes.
+
+In other modes, the error has been made discretionary.
+
+
+3/21/14  [EDGcpfe/14944]
 Microsoft and clang compatibility: Opaque enum declarations
 
 C++11 allows an enum type to be declared with an explicit underlying type but
