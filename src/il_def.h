@@ -13651,10 +13651,11 @@ typedef struct a_routine {
 			   otherwise, this is NULL. */
 #if GNU_EXTENSIONS_ALLOWED || REDEFINE_EXTNAME_PRAGMA_ENABLED
   a_gnu_routine_supplement_ptr
-		gnu;	/* Supplementary GNU-specific information, in a
+		gnu_extra_info;
+			/* Supplementary GNU-specific information, in a
 			   separate block to save space for non-GNU cases (as
 			   well as GNU cases where all of the fields have their
-			   default values). */
+			   default values).  Allocated only when needed. */
 #endif /* GNU_EXTENSIONS_ALLOWED || REDEFINE_EXTNAME_PRAGMA_ENABLED */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   a_type_ptr	declared_type;
@@ -13790,33 +13791,39 @@ typedef struct a_gnu_routine_supplement {
 } a_gnu_routine_supplement;
 
 /*
-As the "gnu" (aka a_gnu_routine_supplement) field of a_routine is allocated
-on an as-needed basis, the following macros are intended to hide some of the
-mechanics of allocating the supplement when using fields in
+As the "gnu_extra_info" (aka a_gnu_routine_supplement) field of a_routine is
+allocated on an as-needed basis, the following macros are intended to hide some
+of the mechanics of allocating the supplement when using fields in
 a_gnu_routine_supplement.  Each macro takes an a_routine_ptr argument.
 
 ensure_gnu_routine_supp can be used when assigning a value to a field in the
-"gnu" supplement and it is not known if the supplement has been previously
-allocated (the supplement is then allocated in this case).  For example:
+"gnu_extra_info" supplement and it is not known if the supplement has been
+previously allocated (the supplement is then allocated in this case).
+For example:
 
   ensure_gnu_routine_supp(routine)->asm_name = "foo";
 
 gnu_routine_supp can be used when accessing a field in the supplement and,
-based on external information, it is assumed that the "gnu" field has
-previously been allocated.  For example, if routine->has_ctor_priority is TRUE,
-then the following expression can be used to return the value of ctor_priority
-(and an assertion will be generated -- when CHECKING is TRUE -- if the "gnu"
-field has not been allocated):
+based on external information, it is assumed that the "gnu_extra_info" field
+has previously been allocated.  For example, if routine->has_ctor_priority is
+TRUE, then the following expression can be used to return the value of
+ctor_priority (and an assertion will be generated -- when CHECKING is TRUE --
+if the "gnu_extra_info" field has not been allocated):
 
   priority = gnu_routine_supp(routine)->ctor_priority;
+
+has_gnu_routine_supp is used to test whether or not the field has been
+allocated.
 */
 #define ensure_gnu_routine_supp(rp) \
-  (((rp)->gnu) == NULL ? alloc_gnu_supplement_for_routine(rp) : (rp)->gnu)
+  (((rp)->gnu_extra_info) == NULL ? alloc_gnu_supplement_for_routine(rp) : \
+                                    (rp)->gnu_extra_info)
+#define has_gnu_routine_supp(rp) ((rp)->gnu_extra_info != NULL)
 #if CHECKING
 #define gnu_routine_supp(rp) \
-  (check_assertion((rp)->gnu != NULL), (rp)->gnu)
+  (check_assertion(has_gnu_routine_supp(rp)), (rp)->gnu_extra_info)
 #else /* !CHECKING */
-#define gnu_routine_supp(rp) ((rp)->gnu)
+#define gnu_routine_supp(rp) ((rp)->gnu_extra_info)
 #endif /* CHECKING */
 
 #endif /* GNU_EXTENSIONS_ALLOWED || REDEFINE_EXTNAME_PRAGMA_ENABLED */

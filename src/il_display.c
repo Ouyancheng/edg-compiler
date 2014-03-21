@@ -3586,8 +3586,8 @@ Display the indicated routine.
     disp_template_arg_list("template_arg_list", ptr->template_arg_list);
   }  /* if */
 #if GNU_EXTENSIONS_ALLOWED || REDEFINE_EXTNAME_PRAGMA_ENABLED
-  if (ptr->gnu != NULL) {
-    a_gnu_routine_supplement_ptr grsp = ptr->gnu;
+  if (has_gnu_routine_supp(ptr)) {
+    a_gnu_routine_supplement_ptr grsp = gnu_routine_supp(ptr);
     if (grsp->section != NULL) {
       disp_string_ptr("section", grsp->section, iek_other_text, (sizeof_t)0);
     }  /* if */

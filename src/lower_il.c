@@ -6984,9 +6984,9 @@ yet.
   entry_routine->ELF_visibility = overriding_function->ELF_visibility;
 #endif /* GNU_VISIBILITY_ATTRIBUTE_ALLOWED */
   entry_routine->is_weak = overriding_function->is_weak;
-  if (overriding_function->gnu != NULL) {
+  if (has_gnu_routine_supp(overriding_function)) {
     ensure_gnu_routine_supp(entry_routine)->section =
-                                             overriding_function->gnu->section;
+                                gnu_routine_supp(overriding_function)->section;
   }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
 #if SUN_EXTENSIONS_ALLOWED
@@ -9802,7 +9802,8 @@ to invoke the resolver and then the resolved routine).
   a_gnu_routine_supplement_ptr grsp;
 
   check_assertion(rp->is_ifunc);
-  grsp = ensure_gnu_routine_supp(rp);
+  (void)ensure_gnu_routine_supp(rp);
+  grsp = gnu_routine_supp(rp);
   if (grsp->resolver_var == NULL) {
     a_constant_ptr   function_constant;
     a_memory_region_number region_to_switch_back_to;

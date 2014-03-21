@@ -9998,7 +9998,7 @@ declare_routine:
       check_assertion(gcc_is_generated_code_target &&
                       gnu_routine_supp(rout)->aliased_routine != NULL);
       write_tok_str("__attribute__((ifunc(\"");
-      dump_routine_name(rout->gnu->aliased_routine);
+      dump_routine_name(gnu_routine_supp(rout)->aliased_routine);
       write_tok_str("\"))) ");
     }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED && !LOWER_IFUNC */
@@ -10010,7 +10010,9 @@ declare_routine:
                                           /*suppress_const=*/FALSE,
                                           NO_COUNTER);
 #if GNU_EXTENSIONS_ALLOWED
-      if (rout->gnu != NULL) form_asm_name(rout->gnu->asm_name, &octl);
+      if (has_gnu_routine_supp(rout)) {
+        form_asm_name(gnu_routine_supp(rout)->asm_name, &octl);
+      }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
 #if !SEPARATE_ROUTINES_FOR_FILE_SCOPE_DYNAMIC_INITS
 #if !USE_INIT_SECTION_IN_GENERATED_C
@@ -10118,8 +10120,8 @@ that have bodies.
          to point to the "official" routine. */
       superseded_external_seen = TRUE;
 #if GNU_EXTENSIONS_ALLOWED
-    } else if (routine->gnu != NULL &&
-               routine->gnu->inline_partner != NULL &&
+    } else if (has_gnu_routine_supp(routine) &&
+               gnu_routine_supp(routine)->inline_partner != NULL &&
                !routine->definition_for_inlining_only) {
       /* In GNU modes a routine can have both a definition for inlining only
          and a declaration or definition for out-of-line calls.  However, the

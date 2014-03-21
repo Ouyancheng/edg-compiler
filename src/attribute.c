@@ -6995,11 +6995,11 @@ cycle of aliased entities.  Break the cycle if that is the case.
     case sk_routine:
       { a_routine_ptr  orig_rp = sym->variant.routine.ptr, rp;
         rp = gnu_routine_supp(orig_rp)->aliased_routine;
-        for (; rp != NULL && rp->gnu != NULL;
-               rp = rp->gnu->aliased_routine) {
+        for (; rp != NULL && has_gnu_routine_supp(rp);
+               rp = gnu_routine_supp(rp)->aliased_routine) {
           if (same_entities(rp, orig_rp)) {
             alias_loop = TRUE;
-            orig_rp->gnu->aliased_routine = NULL;
+            ensure_gnu_routine_supp(orig_rp)->aliased_routine = NULL;
             orig_rp->implicit_alias = FALSE;
             break;
           }  /* if */

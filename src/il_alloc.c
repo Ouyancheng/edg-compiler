@@ -2730,7 +2730,7 @@ to it.  The entry is allocated in the file scope memory region.
   rp->template_arg_list           = NULL;
   rp->assoc_template              = NULL;
 #if GNU_EXTENSIONS_ALLOWED || REDEFINE_EXTNAME_PRAGMA_ENABLED
-  rp->gnu                         = NULL;
+  rp->gnu_extra_info              = NULL;
 #endif /* GNU_EXTENSIONS_ALLOWED || REDEFINE_EXTNAME_PRAGMA_ENABLED */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   rp->declared_type               = NULL;
@@ -2771,21 +2771,22 @@ entry is allocated in the file scope memory region.  See
 ensure_gnu_routine_supp for the typical invocation.
 */
 {
-  check_assertion(rp->gnu == NULL);
-  rp->gnu = (a_gnu_routine_supplement_ptr)
+  a_gnu_routine_supplement_ptr grsp;
+  check_assertion(rp->gnu_extra_info == NULL);
+  rp->gnu_extra_info = grsp = (a_gnu_routine_supplement_ptr)
                                     alloc_il(sizeof(a_gnu_routine_supplement));
-  rp->gnu->section              = NULL;
-  rp->gnu->aliased_routine      = NULL;
+  grsp->section              = NULL;
+  grsp->aliased_routine      = NULL;
 #if LOWER_IFUNC
-  rp->gnu->resolver_var         = NULL;
+  grsp->resolver_var         = NULL;
 #endif /* LOWER_IFUNC */
-  rp->gnu->inline_partner       = NULL;
+  grsp->inline_partner       = NULL;
 #if GNU_INIT_PRIORITY_ATTRIBUTE_ALLOWED
-  rp->gnu->ctor_priority        = 0;
-  rp->gnu->dtor_priority        = 0;
+  grsp->ctor_priority        = 0;
+  grsp->dtor_priority        = 0;
 #endif /* GNU_INIT_PRIORITY_ATTRIBUTE_ALLOWED */
-  rp->gnu->asm_name             = NULL;
-  return rp->gnu;
+  grsp->asm_name             = NULL;
+  return rp->gnu_extra_info;
 }  /* alloc_gnu_supplement_for_routine */
 
 #endif /* GNU_EXTENSIONS_ALLOWED || REDEFINE_EXTNAME_PRAGMA_ENABLED */

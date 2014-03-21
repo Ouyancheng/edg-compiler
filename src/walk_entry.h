@@ -1383,7 +1383,7 @@ the file scope, do not process it (but record an orphan in the latter case).
                   a_routine_ptr, iek_routine);
 #endif /* DO_IL_LOWERING && ABI_CHANGES_FOR_COVARIANT_VIRTUAL_FUNC_RETURN */
 #if GNU_EXTENSIONS_ALLOWED || REDEFINE_EXTNAME_PRAGMA_ENABLED
-        walk_ptr(ptr->gnu, a_gnu_routine_supplement_ptr,
+        walk_ptr(ptr->gnu_extra_info, a_gnu_routine_supplement_ptr,
                  iek_gnu_routine_supplement);
 #endif /* GNU_EXTENSIONS_ALLOWED || REDEFINE_EXTNAME_PRAGMA_ENABLED */
 #if !NEEDED_FLAG_WALK
