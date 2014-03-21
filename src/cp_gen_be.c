@@ -5348,6 +5348,7 @@ al_tag_name attributes (if any).
 */
 {
   a_source_sequence_scan_state saved_state;
+  a_boolean                    already_declared = type->has_been_declared;
 
   type = orig_type_if_nonreal_prototype_type(type);
   if (type->definition_delayed) {
@@ -5395,7 +5396,7 @@ al_tag_name attributes (if any).
         /* Part of the point of the following test is to preserve
            __interface. */
         type->kind != class_type_supp(type)->orig_type_kind &&
-        !type->has_been_declared) {
+        !already_declared) {
       tag_kind_str = tag_kind(class_type_supp(type)->orig_type_kind);
     }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
@@ -5429,7 +5430,7 @@ al_tag_name attributes (if any).
     write_space();
 #if MICROSOFT_EXTENSIONS_ALLOWED
     if (microsoft_dialect_is_generated_code_target &&
-        (!type->has_been_declared ||
+        (!already_declared ||
          type->emit_microsoft_class_decl_modifiers)) {
       if (il_header.source_language == sl_Cplusplus) {
         if (type->kind != (a_type_kind)tk_enum) {
@@ -5447,7 +5448,7 @@ al_tag_name attributes (if any).
          by the "typename" keyword. */
       options |= GN_DEPENDENT;
     }  /* if */
-    if (!type->has_been_declared && (options & GN_DEPENDENT) == 0) {
+    if (!already_declared && (options & GN_DEPENDENT) == 0) {
       /* The initial declaration of a tag cannot use a qualified name. */
       if (type_is_prototype_instantiation(type)) {
         /* No template arguments on a prototype instantiation. */
@@ -5490,7 +5491,8 @@ al_tag_name attributes (if any).
       gen_name(&type->source_corresp, iek_type, options, (a_boolean *)NULL);
     }  /* if */
   }  /* if */
-  if (is_immediate_enum_type(type) && (options & GN_DECLARATION) != 0 &&
+  if (is_immediate_enum_type(type) &&
+      ((options & GN_DECLARATION) != 0 || !already_declared) &&
       integer_type_supp(type)->base_type != NULL) {
     /* Presumably an opaque enum declaration with an explicit base type. */
     write_tok_str(": ");

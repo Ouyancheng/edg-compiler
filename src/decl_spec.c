@@ -5815,10 +5815,17 @@ template.  dsi_flags is the set of input flags passed to decl_specifiers.
   if (opaque_enum_decls_enabled &&
       (is_scoped_enum || explicit_base_kind != (an_integer_kind)ik_none) &&
       (curr_token == tok_semicolon ||
-       curr_token == tok_removed_template_body)) {
+       curr_token == tok_removed_template_body ||
+       ((microsoft_mode || clang_mode) && curr_token != tok_lbrace))) {
     /* An opaque enum declaration.  I.e., an enum declaration that fixes the
        size of the type (i.e., it is "complete") without defining the
-       associated enumeration constants. */
+       associated enumeration constants.  The standard requires this to be
+       followed by a semicolon, and in the case of an enum definition whose
+       body has been separated for template instantiation purposes, we also
+       treat the left-over declaration as being an opaque enum declaration.
+       Microsoft and clang, however, allow code like the following:
+         enum E: int x;
+       I.e., non-autonomous opaque enum declarations. */
     is_opaque_enum_decl = TRUE;
     is_definition = FALSE;
   }  /* if */

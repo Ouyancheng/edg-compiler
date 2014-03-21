@@ -1,5 +1,24 @@
 Version 4.9
 
+3/21/14  [EDGcpfe/14944]
+Microsoft and clang compatibility: Opaque enum declarations
+
+C++11 allows an enum type to be declared with an explicit underlying type but
+without actually providing a definition.  This is known as an "opaque enum
+declaration" (see the entry of 6/20/12 for EDGcpfe/9250 et al.) For example:
+
+  enum E: int;
+
+The standard requires such declarations to stand on their own (i.e., to be
+followed by a semicolon), but clang and Microsoft compilers permit them to
+be part of other declarations.  For example:
+
+  enum E: int x;  // Now accepted in come clang and Microsoft modes.
+
+The front end now emulates that behavior in Microsoft and clang modes that
+accept opaque enum declarations.
+
+
 3/21/14  [EDGcpfe/14948]
 Microsoft compatibility: error on use of member function in instantiated base
 
