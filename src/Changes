@@ -1,5 +1,23 @@
 Version 4.9
 
+3/21/14  [EDGcpfe/14921]
+Attribute nonnull matching across translation units
+
+When simultaneously compiling multiple translation units, the front end now
+allows a difference in the GNU attribute "nonnull" for declarations of the
+same entity in differing translation units.  For example:
+
+  // File1.cpp
+  void f(char*) __attribute((nonnull(1)));
+
+  // File2.cpp
+  void f(char*);
+
+Previously, simultaneous compiling both files above resulted in an error
+(attribute "nonnull" is missing in another translation unit).  Now no error
+is issued.
+
+
 3/21/14  [EDGcpfe/14876,EDGcpfe/14934]
 clang compatibility: __is_... keywords
 

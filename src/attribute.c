@@ -742,6 +742,7 @@ static an_attr_corresp_descr attr_corresp_table[] = {
 #endif /* GNU_INIT_PRIORITY_ATTRIBUTE_ALLOWED */
   { ak_mode, af_gnu, iek_last, ACF_MATCH_OPTIONAL, NO_CHECKING_FN },
   { ak_nocommon, af_gnu, iek_last, ACF_MATCH_OPTIONAL, NO_CHECKING_FN },
+  { ak_nonnull, af_gnu, iek_last, ACF_MATCH_OPTIONAL, NO_CHECKING_FN },
   { ak_unused, af_gnu, iek_last, ACF_MATCH_OPTIONAL, NO_CHECKING_FN },
   { ak_used, af_gnu, iek_last, ACF_MATCH_OPTIONAL, NO_CHECKING_FN },
 #if GNU_VECTOR_TYPES_ALLOWED
