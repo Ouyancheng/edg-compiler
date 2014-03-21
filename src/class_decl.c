@@ -27671,6 +27671,10 @@ classes.
               /* In some variadic rescan cases, the terminating
                  tok_end_of_source can end up being the current token. */
               (void)get_token();
+            } else if (curr_token == tok_removed_template_body) {
+              /* A member class template will have been replaced with a
+                 tok_removed_template_body. */
+              (void)get_token();
             }  /* if */
             if (final_token == tok_semicolon) {
               (void)required_token_no_advance(tok_semicolon, ec_exp_semicolon);

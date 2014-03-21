@@ -4475,7 +4475,11 @@ and a list of the unprocessed entries is returned to the caller.
              member functions and member templates.  Just free the
              tokens that were removed from the original cache. */
           { a_cached_token_ptr	first_token = tcsp->before_first_token->next;
-            remove_body_from_cache(tcsp, tok_semicolon);
+            a_token_kind	repl_token = tok_semicolon;
+            if (symbol_is(tcsp->symbol, sk_class_template)) {
+              repl_token = tok_removed_template_body;
+            }  /* if */
+            remove_body_from_cache(tcsp, repl_token);
             free_tokens_from_reusable_cache(first_token, &tcp->tokens);
 #if RECORD_TEMPLATE_STRINGS
             if (symbol_is(tcsp->symbol, sk_member_function)) {
@@ -21687,7 +21691,7 @@ in which case the is_delegate flag of decl_state is updated.
       next_tok = curr_token;
     }  /* if */
     result = (next_tok == tok_colon || next_tok == tok_end_of_source ||
-              next_tok == tok_lbrace);
+              next_tok == tok_lbrace || next_tok == tok_removed_template_body);
 #if MICROSOFT_EXTENSIONS_ALLOWED
   } else if (cppcli_enabled) {
     if (check_for_cli_delegate_definition()) {

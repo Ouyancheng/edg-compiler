@@ -1,5 +1,18 @@
 Version 4.9
 
+3/21/14  [EDGcpfe/14952]
+Spurious error on use of "final" on member class template
+
+A spurious error was issued during the instantiation of a class template
+that contained a nested class template that made use of the "final"
+keyword.  Now fixed.
+
+  template <class T> class A {
+    template <class U> class B final {};
+  };
+  A<int> a;
+
+
 3/21/14  [EDGcpfe/14944]
 Microsoft and clang compatibility: Opaque enum declarations
 
