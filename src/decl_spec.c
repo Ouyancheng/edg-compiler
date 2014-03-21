@@ -5895,9 +5895,7 @@ template.  dsi_flags is the set of input flags passed to decl_specifiers.
           }  /* if */
         }  /* if */
         if (sev != es_none) {
-          pos_diagnostic((gpp_mode && !clang_mode) ? es_warning
-                                                   : es_discretionary_error,
-                         ec_invalid_scoped_enum_elaboration,
+          pos_diagnostic(sev, ec_invalid_scoped_enum_elaboration,
                          &locator.source_position);
         }  /* if */
         is_scoped_enum = FALSE;
