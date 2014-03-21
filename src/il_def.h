@@ -13809,16 +13809,12 @@ then the following expression can be used to return the value of ctor_priority
 field has not been allocated):
 
   priority = gnu_routine_supp(routine)->ctor_priority;
-
-has_gnu_routine_supp is used to test whether or not the field has been
-allocated.
 */
 #define ensure_gnu_routine_supp(rp) \
   (((rp)->gnu) == NULL ? alloc_gnu_supplement_for_routine(rp) : (rp)->gnu)
-#define has_gnu_routine_supp(rp) ((rp)->gnu != NULL)
 #if CHECKING
 #define gnu_routine_supp(rp) \
-  (check_assertion(has_gnu_routine_supp(rp)), (rp)->gnu)
+  (check_assertion((rp)->gnu != NULL), (rp)->gnu)
 #else /* !CHECKING */
 #define gnu_routine_supp(rp) ((rp)->gnu)
 #endif /* CHECKING */

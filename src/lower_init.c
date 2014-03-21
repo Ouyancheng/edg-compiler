@@ -4880,7 +4880,7 @@ routine will be the same as the one passed in.
 #endif /* GNU_VISIBILITY_ATTRIBUTE_ALLOWED */
       new_routine->is_weak = routine->is_weak;
       new_routine->is_weakref = routine->is_weakref;
-      if (has_gnu_routine_supp(routine)) {
+      if (routine->gnu != NULL) {
         ensure_gnu_routine_supp(new_routine)->section = routine->gnu->section;
       }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */

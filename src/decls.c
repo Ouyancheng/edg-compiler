@@ -7018,12 +7018,12 @@ TRUE if a definition preceded the current declaration.
     */
     /* Don't warn if the construct is identical to one that applied to the
        definition. */
-    if (!has_gnu_routine_supp(routine) ||
+    if (routine->gnu == NULL ||
         routine->gnu->asm_name == NULL ||
         strcmp(routine->gnu->asm_name, asm_name) != 0) {
       pos_warning(ec_asm_name_after_definition, diag_pos);
     }  /* if */
-  } else if (!has_gnu_routine_supp(routine) ||
+  } else if (routine->gnu == NULL ||
              routine->gnu->asm_name == NULL) {
     /* This is the first declaration of this routine with an "asm name"
        construct. */
@@ -7299,12 +7299,11 @@ use of).
       rp->implicit_alias = FALSE;
     } else if (dps->first_decl && !dps->sym->defined &&
                rtsp->prototyped &&
-               (!has_gnu_routine_supp(rp) ||
-                rp->gnu->aliased_routine == NULL) &&
+               (rp->gnu == NULL || rp->gnu->aliased_routine == NULL) &&
                rp->source_corresp.name_linkage ==
                                          (a_name_linkage_kind)nlk_external &&
                /* Exclude routines with an asm alias. */
-               (!has_gnu_routine_supp(rp) || rp->gnu->asm_name == NULL) &&
+               (rp->gnu == NULL || rp->gnu->asm_name == NULL) &&
                dps->asm_name == NULL &&
                /* Exclude routines with "alias" or "weakref" attributes. */
                find_attribute(ak_alias, dps->prefix_attributes) == NULL &&

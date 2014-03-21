@@ -6984,7 +6984,7 @@ yet.
   entry_routine->ELF_visibility = overriding_function->ELF_visibility;
 #endif /* GNU_VISIBILITY_ATTRIBUTE_ALLOWED */
   entry_routine->is_weak = overriding_function->is_weak;
-  if (has_gnu_routine_supp(overriding_function)) {
+  if (overriding_function->gnu != NULL) {
     ensure_gnu_routine_supp(entry_routine)->section =
                                              overriding_function->gnu->section;
   }  /* if */

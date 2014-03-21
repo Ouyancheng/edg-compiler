@@ -139,9 +139,9 @@ that IL entry is now dynamically allocated when any one of those fields
 has a non-default value.  The fields that were moved are: section,
 aliased_routine, resolver_var, inline_partner, ctor_priority, dtor_priority,
 and asm_name.  The new field in a_routine is "gnu" (so, e.g., rp->section
-now becomes rp->gnu->section).  Three new macros, gnu_routine_supp,
-ensure_gnu_routine_supp, and has_gnu_routine_supp have been added to assist in
-accessing these fields.  This is an IL CHANGE.
+now becomes rp->gnu->section).  Two new macros, gnu_routine_supp and
+ensure_gnu_routine_supp, have been added to assist in accessing these fields.
+This is an IL CHANGE.
 
 
 3/15/14  [EDGcpfe/14838]

@@ -10010,9 +10010,7 @@ declare_routine:
                                           /*suppress_const=*/FALSE,
                                           NO_COUNTER);
 #if GNU_EXTENSIONS_ALLOWED
-      if (has_gnu_routine_supp(rout)) {
-        form_asm_name(rout->gnu->asm_name, &octl);
-      }  /* if */
+      if (rout->gnu != NULL) form_asm_name(rout->gnu->asm_name, &octl);
 #endif /* GNU_EXTENSIONS_ALLOWED */
 #if !SEPARATE_ROUTINES_FOR_FILE_SCOPE_DYNAMIC_INITS
 #if !USE_INIT_SECTION_IN_GENERATED_C
@@ -10120,7 +10118,7 @@ that have bodies.
          to point to the "official" routine. */
       superseded_external_seen = TRUE;
 #if GNU_EXTENSIONS_ALLOWED
-    } else if (has_gnu_routine_supp(routine) &&
+    } else if (routine->gnu != NULL &&
                routine->gnu->inline_partner != NULL &&
                !routine->definition_for_inlining_only) {
       /* In GNU modes a routine can have both a definition for inlining only

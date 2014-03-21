@@ -6312,8 +6312,7 @@ Do the output in the way described by octl.
          routine type attributes. */
       form_routine_type_attributes(rout->type, &need_leading_space, octl);
     }  /* if */
-    if (has_gnu_routine_supp(rout) &&
-        rout->gnu->section != NULL) {
+    if (rout->gnu != NULL && rout->gnu->section != NULL) {
       form_string_argument_attribute("__section__", rout->gnu->section,
                                      &need_leading_space, octl);
     }  /* if */

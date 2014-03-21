@@ -16894,7 +16894,7 @@ handle_as_definition:
     /* A declaration of the routine. */
 #if GNU_EXTENSIONS_ALLOWED
     /* Emit any user-specified assembly symbol for this routine. */
-    if (has_gnu_routine_supp(rout)) form_asm_name(rout->gnu->asm_name, &octl);
+    if (rout->gnu != NULL) form_asm_name(rout->gnu->asm_name, &octl);
 #endif /* GNU_EXTENSIONS_ALLOWED */
     gen_attributes(attributes, al_postfix, is_definition);
     /* "Id-equivalent attributes" are best rendered at the end of a
