@@ -10387,7 +10387,7 @@ called instead.
       if (routine->implicit_alias) {
         /* A call to a user-defined routine that is implicitly assumed
            equivalent to a built-in function (recorded in
-           routine->gnu->aliased_routine). */
+           routine->gnu_extra_info->aliased_routine). */
         routine = gnu_routine_supp(routine)->aliased_routine;
       }  /* if */
       if (is_foldable_gnu_builtin_function(routine, (a_boolean *)NULL)) {
