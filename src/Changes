@@ -132,8 +132,8 @@ is a pointer or reference to an array of unknown bound.  For example:
   void f(int (*)[]);  // Now accepted in GNU and clang C++ modes.
 
 Note that GCC only accepts such constructs in some template instantiation
-contexts, whereas the front end accepts it unconditionally (as does the clang
-compiler).
+contexts, whereas the front end accepts them unconditionally (as does the
+clang compiler).
 
 See also the Changes entry of 6/24/97 for the similar feature in Microsoft
 mode.
