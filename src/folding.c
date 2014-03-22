@@ -8374,7 +8374,8 @@ the folding mechanism is used as a way to validate argument values.
   *err_code = ec_no_error;
   if (rp->implicit_alias) {
     /* A call to a user-defined routine that is implicitly assumed equivalent
-       to a built-in function (recorded in rp->gnu->aliased_routine). */
+       to a built-in function (recorded in
+       rp->gnu_extra_info->aliased_routine). */
     rp = gnu_routine_supp(rp)->aliased_routine;
   }  /* if */
   if (is_gnu_builtin_function(rp)) {
