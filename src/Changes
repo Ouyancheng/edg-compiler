@@ -124,10 +124,10 @@ This is now fixed.
 
 
 3/21/14  [EDGcpfe/14940]
-GNU/clang compatibility: Pointer to array of unknown bound parameter
+GNU/clang compatibility: Pointer/reference to array of unknown bound parameter
 
-In GNU and clang C++ modes, the front end now accepts parameter type that is
-a pointer to an array of unknown bound.  For example:
+In GNU and clang C++ modes, the front end now accepts a parameter type that
+is a pointer or reference to an array of unknown bound.  For example:
 
   void f(int (*)[]);  // Now accepted in GNU and clang C++ modes.
 
@@ -135,8 +135,8 @@ Note that GCC only accepts such constructs in some template instantiation
 contexts, whereas the front end accepts it unconditionally (as does the clang
 compiler).
 
-This was already permitted in Microsoft C++ modes; see the Changes entry of
-6/24/97.
+See also the Changes entry of 6/24/97 for the similar feature in Microsoft
+mode.
 
 
 3/21/14  [EDGcpfe/14952]

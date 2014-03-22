@@ -4157,6 +4157,7 @@ exclude the GNU C++ mode already.  Hence those are not checked again here.)
     }  /* if */
   }  /* if */
   ptr_to_unknown_bound_array_allowed_in_param_type = TRUE;
+  ref_to_unknown_bound_array_allowed_in_param_type = TRUE;
 }  /* check_and_set_gpp_mode_options */
 
 
