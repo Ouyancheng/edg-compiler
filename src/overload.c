@@ -8420,8 +8420,9 @@ an argument of a call in gpp mode even though the standard says it's not.
 
   /* The cases we care about are "this->x", "*(this->x)", and references to
      static data members of a prototype instantiation.  g++ sees those as
-     dependent even if the type of the member is known.  Also a call of a
-     member function of the current class even if the return type is known. */
+     dependent even if the type of the member is known.  The same is true of a
+     call of a member function of the current class even if the return type is
+     known. */
   if (is_expression_operand(operand)) {
     an_expr_node_ptr expr = skip_parens(operand->variant.expression);
     if (is_operation_node(expr) &&
