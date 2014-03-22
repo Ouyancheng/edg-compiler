@@ -13227,11 +13227,12 @@ typedef struct a_routine {
 			   alias attribute. */
   a_bit_field	is_ifunc:1;
 			/* TRUE if this routine was declared with the
-			   ifunc attribute.  When TRUE, gnu->aliased_routine
-			   points to the resolver function. */
+			   ifunc attribute.  When TRUE,
+			   gnu_extra_info->aliased_routine points to the
+			   resolver function. */
 #if LOWER_IFUNC
-			/* is_ifunc (and gnu->aliased_routine) stay set even
-			   when the routine has been lowered. */
+			/* is_ifunc (and gnu_extra_info->aliased_routine) stay
+			   set even when the routine has been lowered. */
 #endif /* LOWER_IFUNC */
   a_bit_field   has_gnu_unused_attribute:1;
 			/* TRUE if this routine was declared with the
@@ -13260,7 +13261,8 @@ typedef struct a_routine {
 			   the GNU attribute "gnu_inline". */
   a_bit_field	implicit_alias:1;
 			/* TRUE if this routine is implicitly an alias for
-			   another routine (indicated by gnu->aliased_routine).
+			   another routine (indicated by
+			   gnu_extra_info->aliased_routine).
 			   (E.g., a "strlen" declaration may be implicitly
 			   treated as an alias for "__builtin_strlen".) */
 #if GNU_COMPLEX_EXTENSIONS_ALLOWED && LOWER_COMPLEX && BACK_END_IS_C_GEN_BE
@@ -13574,15 +13576,17 @@ typedef struct a_routine {
   a_bit_field   has_ctor_priority:1;
                         /* TRUE if the GNU "constructor" attribute has been
                            used to assign a numeric priority to the routine.
-                           The gnu->ctor_priority field contains the priority.
-                           FALSE if the attribute was not specified, or if the
-                           attribute was specified without an argument. */
+                           The gnu_extra_info->ctor_priority field contains the
+                           priority.  FALSE if the attribute was not specified,
+                           or if the attribute was specified without an
+                           argument. */
   a_bit_field   has_dtor_priority:1;
                         /* TRUE if the GNU "destructor" attribute has been
                            used to assign a numeric priority to the routine.
-                           The gnu->dtor_priority field contains the priority.
-                           FALSE if the attribute was not specified, or if the
-                           attribute was specified without an argument. */
+                           The gnu_extra_info->dtor_priority field contains the
+                           priority.  FALSE if the attribute was not specified,
+                           or if the attribute was specified without an
+                           argument. */
 #endif /* GNU_INIT_PRIORITY_ATTRIBUTE_ALLOWED */
   a_bit_field	has_deducible_return_type:1;
 			/* TRUE if the return type of this function contains

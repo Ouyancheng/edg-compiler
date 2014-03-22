@@ -9802,8 +9802,7 @@ to invoke the resolver and then the resolved routine).
   a_gnu_routine_supplement_ptr grsp;
 
   check_assertion(rp->is_ifunc);
-  (void)ensure_gnu_routine_supp(rp);
-  grsp = gnu_routine_supp(rp);
+  grsp = ensure_gnu_routine_supp(rp);
   if (grsp->resolver_var == NULL) {
     a_constant_ptr   function_constant;
     a_memory_region_number region_to_switch_back_to;
