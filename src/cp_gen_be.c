@@ -5490,13 +5490,13 @@ al_tag_name attributes (if any).
       }  /* if */
       gen_name(&type->source_corresp, iek_type, options, (a_boolean *)NULL);
     }  /* if */
-  }  /* if */
-  if (is_immediate_enum_type(type) &&
-      ((options & GN_DECLARATION) != 0 || !already_declared) &&
-      integer_type_supp(type)->base_type != NULL) {
-    /* Presumably an opaque enum declaration with an explicit base type. */
-    write_tok_str(": ");
-    gen_type(integer_type_supp(type)->base_type);
+    if (is_immediate_enum_type(type) &&
+        ((options & GN_DECLARATION) != 0 || !already_declared) &&
+        integer_type_supp(type)->base_type != NULL) {
+      /* Presumably an opaque enum declaration with an explicit base type. */
+      write_tok_str(": ");
+      gen_type(integer_type_supp(type)->base_type);
+    }  /* if */
   }  /* if */
 }  /* gen_tag_reference */
 
