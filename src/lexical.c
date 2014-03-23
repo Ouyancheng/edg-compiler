@@ -20255,7 +20255,13 @@ and < end_tsn are included in the string.
       }  /* if */
     } else {
       /* A normal token (including, possibly, a pp-token). */
-      add_token_to_string(ctp);
+      if (ctp->token == (a_small_token_kind)tok_removed_template_body) {
+        /* If a removed template body token is re-cached, it may not have
+           the extra info.  Replace it with a semicolon. */
+        put_ch_to_temp_text_buffer(';');
+      } else {
+        add_token_to_string(ctp);
+      }  /* if */
     }  /* if */
     if (teik_kind == (a_token_extra_info_kind)teik_asm_string) {
       /* A Microsoft asm string.  Add the asm string to the buffer. */
