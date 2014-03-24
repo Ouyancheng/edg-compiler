@@ -579,25 +579,6 @@ a C++11 defect resolution.  Treating it as a C++11 defect resolution also
 matches the resolution of other major implementations.
 
 
-2/27/14  [EDGcpfe/14876]
-clang compatibility: __is_pod and __is_empty
-
-In clang mode, the front end now approximates the unusual behavior of clang
-compilers when dealing with the __is_pod and __is_empty keywords.  Ordinarily,
-these are indeed just keywords, but if they appear immediately after the
-keyword "struct", a warning is issued and from there on they are treated as
-keywords only in expression contexts when they are immediately followed by a
-left parenthesis.  For example:
-
-  // int __is_pod;     // Would be an error at this point.
-  struct __is_pod {};  // Now accepted with a warning in clang mode.
-  int __is_pod;        // Also accepted.
-  static_assert(__is_pod(int), "!");  // __is_pod is a keyword here.
-
-This is known not to be a perfect emulation of the clang behavior, but it is
-expected to be sufficient for normal code.
-
-
 2/27/14  [EDGcpfe/14890]
 GNU C++11-mode IL corruption with array rvalue in constexpr context
 
