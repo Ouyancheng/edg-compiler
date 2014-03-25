@@ -2592,7 +2592,7 @@ public:
                         size_t *buffer_size);
 
 #if WRITE_CPPCLI_PORTABLE_ASSEMBLIES
-  void create_portable_assembly(char *assembly_name);
+  void create_portable_assembly(a_const_char *assembly_name);
 #endif /* WRITE_CPPCLI_PORTABLE_ASSEMBLIES */
 
   const an_assembly_name &assembly_name()
@@ -8151,7 +8151,7 @@ static a_text_buffer_ptr
 		metadata_string_buffer = nullptr;
 			/* Text buffer used by create_portable_assembly. */
 
-void an_assembly::create_portable_assembly(char *assembly_name)
+void an_assembly::create_portable_assembly(a_const_char *assembly_name)
 /*
 Create a "portable assembly" for this assembly.  A portable assembly contains
 all of the metadata information contained by the assembly, but in string
