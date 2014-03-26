@@ -15288,17 +15288,44 @@ and the output of the type name.
          (the surrounding parentheses or braces were put out above). */
       { a_routine_ptr    ctor = dip->variant.constructor.ptr;
         an_expr_node_ptr args = dip->variant.constructor.args;
-        if (is_var_init && paren_form &&
-            args != NULL && args->next == NULL &&
-            !args->generated_default_arg &&
-            expr_may_look_like_type(args)) {
-          /* We need an extra level of parentheses to avoid the
-             declaration/expression ambiguity. */
-          write_tok_ch('(');
-          need_disambiguation_close_paren = TRUE;
+        a_boolean        no_args = FALSE;
+        if (is_var_init && paren_form) {
+          if (args == NULL || args->generated_default_arg) {
+            /* The only way to get this situation -- a parenthesized
+               variable initializer that invokes the default constructor --
+               is with a C++11-style empty braced-init-list, e.g.,
+               something like "T x(T{})".  (Although this is technically an
+               invocation of T's copy/move constructor with a
+               value-initialized temporary, the copy/move is elided, so it
+               is represented in the IL as directly initializing the
+               variable.)  Put out this form as a special case, in order to
+               avoid generating "T x()" (which declares a function, not a
+               variable), and suppress the argument list. */
+            check_assertion(il_header.std_version >= 201103);
+            if (ctor != NULL) {
+              /* If the class is known and named, put out "T{}" to avoid
+                 possible ambiguities with other constructors.  Otherwise,
+                 just put out "{}". */
+              a_type_ptr class_type = parent_class_or_null(ctor);
+              if (class_type != NULL && has_name_before_mangling(class_type)) {
+                gen_type_reference(class_type);
+              }  /* if */
+            }  /* if */
+            write_tok_str("{}");
+            no_args = TRUE;
+          } else if (args != NULL && args->next == NULL &&
+                     !args->generated_default_arg &&
+                     expr_may_look_like_type(args)) {
+            /* We need an extra level of parentheses to avoid the
+               declaration/expression ambiguity. */
+            write_tok_ch('(');
+            need_disambiguation_close_paren = TRUE;
+          }  /* if */
         }  /* if */
-        gen_argument_list_no_parens(args, (ctor == NULL) ? NULL : ctor->type,
-                                    /*skip_num=*/0);
+        if (!no_args) {
+          gen_argument_list_no_parens(args, (ctor == NULL) ? NULL : ctor->type,
+                                      /*skip_num=*/0);
+        }  /* if */
       }
       break;
     default:

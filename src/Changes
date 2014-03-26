@@ -1,5 +1,34 @@
 Version 4.9
 
+3/26/14  [EDGcpfe/14963]
+C++-generating back end: omitted braces in parenthesized direct value
+initialization
+
+The strict interpretation of a C++11 example like
+
+  struct S {
+    S();
+  };
+  void f() {
+    S s({});
+  }
+
+is that a temporary S object is constructed using S::S() and the result is
+moved into s by S's generated move constructor.  However, the Standard
+permits eliding the move operation, so the IL for the initializer of s in
+this example reflects calling the default constructor directly for s.  The
+C++-generating back end consequently incorrectly generated the declaration
+of s as
+
+  S s();
+
+which declares a function, not a variable.  This has now been fixed; the
+C++-generating back end detects this special case and generates the
+declaration as
+
+  S s(S{});
+
+
 3/21/14  [EDGcpfe/14926]
 Comparing different enumeration types
 
