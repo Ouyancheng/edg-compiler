@@ -5570,9 +5570,15 @@ curr_routine points to the routine entry; otherwise, it is NULL.
                through a GNU attribute. */
 #endif /* GNU_EXTENSIONS_ALLOWED */
           } else {
-            /* Unreferenced parameter. */
-            report_unreferenced(sym, ec_unreferenced_function_param,
-                                es_remark);
+            a_param_type_ptr	ptp = var_ptr->assoc_param_type;
+            if (ptp != NULL && ptp->is_pack_element && sym->is_invisible) {
+              /* Non-initial pack element parameter variables are marked as
+                 invisible.  Such symbols are never marked as referenced. */
+            } else {
+              /* Unreferenced parameter. */
+              report_unreferenced(sym, ec_unreferenced_function_param,
+                                  es_remark);
+            }  /* if */
           }  /* if */
         } else if (var_ptr->param_value_has_been_changed &&
                    !sym->variant.variable.used) {
@@ -5678,13 +5684,16 @@ curr_routine points to the routine entry; otherwise, it is NULL.
         check_constituent_types_have_linkage(sym, &sym->decl_position,
                                              /*is_declaration=*/FALSE);
       }  /* if */
-      if (symbol_for(var_ptr) != sym) {
+      if (symbol_for(var_ptr) != sym && !sym->is_pack_element) {
         /* If the symbol was referenced, ensure that the "primary symbol" for
            the variable is similarly marked as referenced.  This matters for
            code like the following:
              static int i;  // Referenced through a block-extern declaration.
              int f() { extern int i; return i; }
-        */
+           A symbol for a parameter pack variable may point to a variable
+           that does not point back to the symbol (it may point to a different
+           variable of the pack).  Such cases should not mark the primary
+           symbol as referenced. */
         a_symbol_ptr	primary_sym = symbol_for(var_ptr);
         if (primary_sym != NULL) {
           if (sym->referenced) primary_sym->referenced = TRUE;

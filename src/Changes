@@ -1,5 +1,20 @@
 Version 4.9
 
+3/26/14  [EDGcpfe/14966]
+Spurious "never referenced" diagnostic on variadic function parameter
+
+A spurious "never referenced" diagnostic (a remark, by default) could be
+issued for non-initial elements of a pack expansion of a variadic template.
+Now fixed.
+
+  template <typename... Args> inline int f(Args... args) {
+    return sizeof...(args);
+  }
+  int main(void) {
+    f(1,2,3,4);
+  }
+
+
 3/26/14  [EDGcpfe/14963]
 C++-generating back end: omitted braces in parenthesized direct value
 initialization
