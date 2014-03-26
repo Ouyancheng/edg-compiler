@@ -14141,6 +14141,10 @@ indication in *rcblock).
   a_boolean         potentially_unevaluated_lambda_seen = FALSE;
   a_source_position potentially_unevaluated_lambda_pos;
   a_boolean         saved_cpp11_constant_expr_ruled_out;
+  a_boolean         expr_needed_for_cp_gen_be = FALSE;
+#if BACK_END_IS_CP_GEN_BE
+  a_type_ptr        underlying_typeid_type;
+#endif /* BACK_END_IS_CP_GEN_BE */
 
   db_enter(4, "scan_typeid_operator");
   if (rcblock != NULL) {
@@ -14336,13 +14340,24 @@ indication in *rcblock).
       }  /* if */
       runtime_case = FALSE;
     }  /* if */
-    if (runtime_case ||
+#if BACK_END_IS_CP_GEN_BE
+    underlying_typeid_type = skip_typerefs(typeid_type);
+    if (is_tag_type(underlying_typeid_type) &&
+        type_is_unnamed(underlying_typeid_type)) {
+      /* We need to keep the expression because the C++-generating back end
+         can't refer to an unnamed type in a typeid expression and thus
+         must put out the expression-operand form. */
+      expr_needed_for_cp_gen_be = TRUE;
+    }  /* if */
+#endif /* BACK_END_IS_CP_GEN_BE */
+    if (runtime_case || expr_needed_for_cp_gen_be ||
         (is_template_dependent_context() &&
          (is_template_dependent_type(typeid_type) ||
           is_instantiation_dependent_type(typeid_type)))) {
-      /* Keep the expression in the typeid, either because the type must be
-         determined at runtime or because we need the expression to be
-         able to rescan a template-dependent case. */
+      /* Keep the expression in the typeid if required: because the type
+         must be determined at runtime, because the C++-generating back end
+         will need it, or because we need the expression to be able to
+         rescan a template-dependent case. */
       expr = make_node_from_operand(&operand);
     } else {
       /* We're not keeping the expression in the IL. */

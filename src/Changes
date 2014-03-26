@@ -1,5 +1,20 @@
 Version 4.9
 
+3/26/14  [EDGcpfe/14951]
+C++-generating back end: incorrect typeid expression with unnamed type
+
+The C++-generating back end previously generated a reference to an
+undeclared temporary type name when the operand of a typeid operator is
+an expression whose type is an unnamed class or enumeration.  This is now
+fixed.  For example:
+
+  #include <typeinfo>
+  struct { } x;
+  void f() {
+    typeid(x);  // Previously generated as "typeid(__T12345678)"
+  }
+
+
 3/26/14  [EDGcpfe/14966]
 Spurious "never referenced" diagnostic on variadic function parameter
 
