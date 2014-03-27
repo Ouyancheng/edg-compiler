@@ -9388,6 +9388,12 @@ command line -D options.
                                /*cannot_be_redefined=*/TRUE,
                                /*ref_suppresses_pch_file=*/FALSE);
     }  /* if */
+    if (cppcli_enabled) {
+      /* Define _MANAGED when C++/CLI is enabled. */
+      (void)enter_predef_macro("1", "_MANAGED",
+                               /*cannot_be_redefined=*/TRUE,
+                               /*ref_suppresses_pch_file=*/FALSE);
+    }  /* if */
     /* Enter a macro for the maximum size of an integral value. */
     { unsigned long int_max_size;
 #if LONG_LONG_ALLOWED

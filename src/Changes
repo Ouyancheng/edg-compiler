@@ -1,5 +1,17 @@
 Version 4.9
 
+3/27/14  [EDGcpfe/14981]
+Microsoft compatibility: define _MANAGED macro in C++/CLI mode
+
+The Microsoft compiler defines the macro _MANAGED when the /clr
+command-line option is given.  The front end now defines that macro when
+cppcli_enabled is TRUE.  For example:
+
+  #if !defined(_MANAGED)
+  #error Requires --cppcli  // No longer an error with --cppcli
+  #endif
+
+
 3/27/14  [EDGcpfe/14979]
 Default template parameters on member class template of non-template class
 
