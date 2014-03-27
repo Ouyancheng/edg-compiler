@@ -17929,6 +17929,16 @@ friend_template_checks_done:
           a_boolean	default_allowed;
           default_allowed = !sym->is_class_member ||
                             decl_state->class_declared_in != NULL;
+          if (!default_allowed && sym->is_class_member) {
+            a_type_ptr	parent_class = sym_parent_class(sym);
+            if (!parent_class->variant.class_struct_union.is_template_class ||
+                !parent_class->
+                       variant.class_struct_union.is_prototype_instantiation) {
+              /* A default argument is allowed on an out-of-class definition
+                 of a member of a class that is not a class template. */
+              default_allowed = TRUE;
+            }  /* if */
+          }  /* if */
           if (microsoft_bugs && microsoft_version < 1310 && sym->defined) {
             /* The Microsoft compiler (prior to version 7.1) does not check
                the parameter list of a template that is redeclared after
