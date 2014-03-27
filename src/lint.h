@@ -1088,6 +1088,11 @@ extern int fileno(FILE *);
 #if !THREAD_LOCAL_STORAGE_SPECIFIER_ALLOWED
 /*lint -esym(755,var_has_static_storage_duration)*/
 #endif /* !THREAD_LOCAL_STORAGE_SPECIFIER_ALLOWED */
+#if !GNU_FUNCTION_MULTIVERSIONING
+/*lint -esym(769,ec_unrecognized_target_attribute)*/
+/*lint -esym(769,ec_gnu_mv_default_missing)*/
+/*lint -esym(769,ec_gnu_mv_only_one_arch)*/
+#endif /* !GNU_FUNCTION_MULTIVERSIONING */
 
 #endif /* ifndef LINT_H */
 

@@ -2737,104 +2737,6 @@ static a_target_attribute_map target_attribute_map[] = {
   { NULL,               mv_last }             /* Must be last. */
 };
 
-#endif /* USE_X86_FUNCTION_MULTIVERSIONING */
-
-void validate_target_argument(a_const_char         *str,
-                              size_t               str_len,
-                              an_attribute_arg_ptr aap,
-                              a_routine_ptr        routine,
-                              a_boolean            *error_issued)
-/*
-Validates the "target" attribute pointed to by str whose length is
-str_len.  The attribute argument is pointed to by aap and is being
-applied to routine.  If any errors are issued, *error_issued is set to TRUE.
-str may not be NULL terminated (e.g., it may have a trailing comma), so
-str_len should be used to determine the end of the argument.
-*/
-{
-#if USE_X86_FUNCTION_MULTIVERSIONING
-  /* When using x86 function multiversioning, additional checking is
-     performed to ensure that only one CPU architecture is specified and
-     the mv_target_bitset for the routine is updated to reflect the
-     target argument. */
-  a_target_attribute_map  *ptr;
-  a_boolean               found = FALSE;
-
-  for (ptr = target_attribute_map; ptr->attr != NULL; ptr++) {
-    if (strlen(ptr->attr) == str_len &&
-        strncmp(str, ptr->attr, str_len) == 0) {
-      found = TRUE;
-      if (C_mode()) {
-        /* The presence of the argument is sufficient. */
-      } else if (skip_typerefs(routine->type)->
-            variant.routine.extra_info->routine_name_linkage ==
-                                           (a_name_linkage_kind)nlk_external) {
-        /* An extern "C" routine; silently accept the argument. */
-      } else {
-        a_gnu_routine_supplement_ptr grsp = gnu_routine_supp(routine);
-        check_assertion(grsp->is_specific_target_version);
-        if (is_mv_arch(ptr->value) &&
-            is_any_mv_arch_bit_set(
-                               grsp->mv_info.targeted_version.target_bitset)) {
-          /* Can't specify more than one CPU architecture. */
-          pos_error(ec_gnu_mv_only_one_arch, &aap->position);
-          *error_issued = TRUE;
-        } else {
-          /* Add this CPU/ISA architecture to the list of specific-target
-             versions that this routine supports. */
-          grsp->mv_info.targeted_version.target_bitset |= 1 << ptr->value;
-        }  /* if */
-      }  /* if */
-      break;
-    }  /* if */
-  }  /* for */
-  if (!found) {
-    if (C_mode()) {
-      /* Since we're not doing anything special with the attributes in C mode,
-         just issue a warning (the back end may know what to do with these). */
-      pos_warning(ec_unrecognized_target_attribute, &aap->position);
-    } else {
-      pos_error(ec_unrecognized_target_attribute, &aap->position);
-      *error_issued = TRUE;
-    }  /* if */
-  }  /* if */
-#endif /* USE_X86_FUNCTION_MULTIVERSIONING */
-}  /* validate_target_argument */
-
-
-a_routine_ptr find_existing_mv_routine(a_routine_ptr representative,
-                                       a_routine_ptr candidate)
-/*
-Returns a pointer to a specific-target version routine with the same
-"target" attributes as "candidate" or NULL if none is found.
-representative is the representative routine for the specific group of
-multiversion functions.  Called during attribute processing to check for
-re-declarations.
-*/
-{
-  a_routine_ptr            result = NULL;
-#if USE_X86_FUNCTION_MULTIVERSIONING
-  a_routine_list_entry_ptr rlep;
-
-  /* Two specific-target routines are deemed equivalent if their
-     mv_target_bitset values are the same. */
-  for (rlep = gnu_routine_supp(representative)->
-                                      mv_info.representative.targeted_versions;
-       rlep != NULL;
-       rlep = rlep->next) {
-    a_routine_ptr rp = rlep->routine;
-    if (gnu_routine_supp(candidate)->mv_info.targeted_version.target_bitset ==
-                gnu_routine_supp(rp)->mv_info.targeted_version.target_bitset) {
-      result = rp;
-      break;
-    }  /* if */
-  }  /* for */
-#endif /* USE_X86_FUNCTION_MULTIVERSIONING */
-  return result;
-}  /* find_existing_mv_routine */
-
-
-#if USE_X86_FUNCTION_MULTIVERSIONING
 
 /* FIXME: merge these tables. */
 /* This table is used for matching target attribute strings in the source. */
@@ -3229,7 +3131,108 @@ result to an allocated area.
 #undef BUFFER_SIZE
 }  /* mangled_mv_identifier_for_routine */
 
+
+#if !USE_X86_FUNCTION_MULTIVERSIONING
+/*ARGSUSED*/ /* No arguments are used in this case. */
+#endif /* !USE_X86_FUNCTION_MULTIVERSIONING */
+a_routine_ptr find_existing_mv_routine(a_routine_ptr representative,
+                                       a_routine_ptr candidate)
+/*
+Returns a pointer to a specific-target version routine with the same
+"target" attributes as "candidate" or NULL if none is found.
+representative is the representative routine for the specific group of
+multiversion functions.  Called during attribute processing to check for
+re-declarations.
+*/
+{
+  a_routine_ptr            result = NULL;
+#if USE_X86_FUNCTION_MULTIVERSIONING
+  a_routine_list_entry_ptr rlep;
+
+  /* Two specific-target routines are deemed equivalent if their
+     mv_target_bitset values are the same. */
+  for (rlep = gnu_routine_supp(representative)->
+                                      mv_info.representative.targeted_versions;
+       rlep != NULL;
+       rlep = rlep->next) {
+    a_routine_ptr rp = rlep->routine;
+    if (gnu_routine_supp(candidate)->mv_info.targeted_version.target_bitset ==
+                gnu_routine_supp(rp)->mv_info.targeted_version.target_bitset) {
+      result = rp;
+      break;
+    }  /* if */
+  }  /* for */
+#endif /* USE_X86_FUNCTION_MULTIVERSIONING */
+  return result;
+}  /* find_existing_mv_routine */
+
 #endif /* GNU_FUNCTION_MULTIVERSIONING */
+
+#if !USE_X86_FUNCTION_MULTIVERSIONING
+/*ARGSUSED*/ /* No arguments are used in this case. */
+#endif /* !USE_X86_FUNCTION_MULTIVERSIONING */
+void validate_target_argument(a_const_char         *str,
+                              size_t               str_len,
+                              an_attribute_arg_ptr aap,
+                              a_routine_ptr        routine,
+                              a_boolean            *error_issued)
+/*
+Validates the "target" attribute pointed to by str whose length is
+str_len.  The attribute argument is pointed to by aap and is being
+applied to routine.  If any errors are issued, *error_issued is set to TRUE.
+str may not be NULL terminated (e.g., it may have a trailing comma), so
+str_len should be used to determine the end of the argument.
+*/
+{
+#if USE_X86_FUNCTION_MULTIVERSIONING
+  /* When using x86 function multiversioning, additional checking is
+     performed to ensure that only one CPU architecture is specified and
+     the mv_target_bitset for the routine is updated to reflect the
+     target argument. */
+  a_target_attribute_map  *ptr;
+  a_boolean               found = FALSE;
+
+  for (ptr = target_attribute_map; ptr->attr != NULL; ptr++) {
+    if (strlen(ptr->attr) == str_len &&
+        strncmp(str, ptr->attr, str_len) == 0) {
+      found = TRUE;
+      if (C_mode()) {
+        /* The presence of the argument is sufficient. */
+      } else if (skip_typerefs(routine->type)->
+            variant.routine.extra_info->routine_name_linkage ==
+                                           (a_name_linkage_kind)nlk_external) {
+        /* An extern "C" routine; silently accept the argument. */
+      } else {
+        a_gnu_routine_supplement_ptr grsp = gnu_routine_supp(routine);
+        check_assertion(grsp->is_specific_target_version);
+        if (is_mv_arch(ptr->value) &&
+            is_any_mv_arch_bit_set(
+                               grsp->mv_info.targeted_version.target_bitset)) {
+          /* Can't specify more than one CPU architecture. */
+          pos_error(ec_gnu_mv_only_one_arch, &aap->position);
+          *error_issued = TRUE;
+        } else {
+          /* Add this CPU/ISA architecture to the list of specific-target
+             versions that this routine supports. */
+          grsp->mv_info.targeted_version.target_bitset |= 1 << ptr->value;
+        }  /* if */
+      }  /* if */
+      break;
+    }  /* if */
+  }  /* for */
+  if (!found) {
+    if (C_mode()) {
+      /* Since we're not doing anything special with the attributes in C mode,
+         just issue a warning (the back end may know what to do with these). */
+      pos_warning(ec_unrecognized_target_attribute, &aap->position);
+    } else {
+      pos_error(ec_unrecognized_target_attribute, &aap->position);
+      *error_issued = TRUE;
+    }  /* if */
+  }  /* if */
+#endif /* USE_X86_FUNCTION_MULTIVERSIONING */
+}  /* validate_target_argument */
+
 #endif /* GNU_EXTENSIONS_ALLOWED */
 
 void sys_predef_one_time_init(void)
