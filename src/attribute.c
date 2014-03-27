@@ -89,6 +89,7 @@ since attributes usually do not create new entries).
 #if GNU_EXTENSIONS_ALLOWED
 #include "il_walk.h"
 #include "layout.h"
+#include "sys_predef.h"
 #endif /* GNU_EXTENSIONS_ALLOWED */
 
 #include "templates.h"
@@ -271,6 +272,7 @@ static an_attr_descr known_attr_table[] = {
   { "stdcall", "", "gx", ak_stdcall },
 #endif /* GNU_X86_ATTRIBUTES_ALLOWED && !USE_X86_64 */
   { "strong", "", "gx", ak_strong },
+  { "target", "(*)", "gx", ak_target },
 #if THREAD_LOCAL_STORAGE_SPECIFIER_ALLOWED
   { "tls_model", "(sn)", "gx(30300-)", ak_tls_model },
 #endif /* THREAD_LOCAL_STORAGE_SPECIFIER_ALLOWED */
@@ -510,6 +512,7 @@ static an_attr_application_fn apply_sentinel_attr;
 static an_attr_application_fn apply_stdcall_attr;
 #endif /* GNU_X86_ATTRIBUTES_ALLOWED && !USE_X86_64 */
 static an_attr_application_fn apply_strong_attr;
+static an_attr_application_fn apply_target_attr;
 #if THREAD_LOCAL_STORAGE_SPECIFIER_ALLOWED
 static an_attr_application_fn apply_tls_model_attr;
 #endif /* THREAD_LOCAL_STORAGE_SPECIFIER_ALLOWED */
@@ -630,6 +633,7 @@ static an_attr_appl_descr known_attr_appl_table[(int)ak_last+1] = {
   { ak_stdcall, "t|r|v|d|p", apply_stdcall_attr },
 #endif /* GNU_X86_ATTRIBUTES_ALLOWED && !USE_X86_64 */
   { ak_strong, "u", apply_strong_attr },
+  { ak_target, "r", apply_target_attr },
 #if THREAD_LOCAL_STORAGE_SPECIFIER_ALLOWED
   { ak_tls_model, "v|Wr|Wd|Wp", apply_tls_model_attr },
 #endif /* THREAD_LOCAL_STORAGE_SPECIFIER_ALLOWED */
@@ -5642,6 +5646,259 @@ attribute to it and return the entity.
   }  /* if */
   return entity;
 }  /* apply_strong_attr */
+
+
+static void next_target_argument(a_const_char         **target_arg,
+                                 a_const_char         *str_end,
+                                 an_attribute_arg_ptr aap,
+                                 a_routine_ptr        routine,
+                                 a_boolean            *error_issued)
+/*
+This function is used to iterate through a GNU "target" attribute string.
+On input, *target_arg points to the string to parse and *target_arg is
+updated to point to the next argument (if one exists).  str_end denotes
+the final valid character in the string (which may be a comma or quote
+character).  aap specifies the attribute argument pointer and routine
+specifies the routine to which this argument is being applied.  If an
+error is issued, *error_issued is set to TRUE.
+*/
+{
+  int                 str_len = 0;
+  a_const_char        *ptr = *target_arg;
+
+  /* Search for comma delimiter or end-of-string. */
+  while (ptr < str_end && *ptr != ',') {
+    check_assertion(*ptr != '\0');
+    ++ptr; ++str_len;
+  }  /* while */
+  if (str_len > 0) {
+    validate_target_argument(*target_arg, str_len, aap, routine, error_issued);
+    if (*ptr == ',') {
+      *target_arg = ++ptr;
+    } else {
+      *target_arg = ptr;
+    }  /* if */
+  }  /* if */
+}  /* next_target_argument */
+
+
+static void validate_target_argument_string(
+                                           an_attribute_arg_ptr  aap,
+                                           a_routine_ptr         routine,
+                                           a_boolean             *error_issued)
+/*
+Validate the entire argument string (in aap) given to the "target" attribute.
+The attribute is being applied to "routine".  If an error is issued,
+*error_issued is set to TRUE.
+*/
+{
+  a_const_char          *target_name;
+  int                   length;
+
+  for (; aap != NULL &&
+         aap->kind == (an_attribute_arg_kind)aak_raw_token &&
+         !*error_issued;
+       aap = aap->next) {
+    target_name = aap->variant.token;
+    length = strlen(target_name);
+    if (*target_name == ',' && length == 1) {
+      /* It's a comma list, keep going. */
+    } else if (*target_name == '"' && length >= 2) {
+      /* Validate the argument string. */
+      a_const_char *target_str = &target_name[1];
+      while (target_str < &target_name[length-1]) {
+        /* Loop through each component of the string. */
+        next_target_argument(&target_str, &target_name[length-1],
+                             aap, routine, error_issued);
+      }  /* while */
+      if (*error_issued) {
+        break;
+      }  /* if */
+    } else {
+      pos_error(ec_exp_string_literal, &aap->position);
+      *error_issued = TRUE;
+      break;
+    }  /* if */
+  }  /* for */
+}  /* validate_target_argument_string */
+
+#if GNU_FUNCTION_MULTIVERSIONING
+
+a_boolean check_target_attr(an_attribute_ptr    ap,
+                            a_decl_parse_state  *dps)
+/*
+Check that the GNU target attribute is okay (returns TRUE if no errors are
+reported).  Also do the processing associated with the target attribute, i.e.,
+creating a new routine and a new symbol when appropriate.  This function is
+called directly from decl_routine and decl_member_function and not via
+the normal attribute processing mechanism.
+
+The first time that a routine with a target attribute is encountered two
+routines are created -- an extra routine is created which will be used as the
+"representative" routine, and has is_representative set to TRUE.  The other
+routine node will have is_specific_target_version set to TRUE, and its
+mv_target_bitset will reflect the specific architecture(s).  Only the
+is_representative routine is available from the symbol table; the
+specialized routines are pointed to from the representative routine.
+
+Additional symbols for specific target versioned routines are suppressed
+so as not to appear as overloaded functions.
+
+Only invoked in C++ mode (normal attribute processing takes care of "target"
+attribute in C mode).
+*/
+{
+  an_attribute_arg_ptr  aap = ap->arguments;
+  a_boolean             error = FALSE;
+  a_routine_ptr         representative, target_routine = NULL;
+  a_routine_ptr         existing;
+  a_symbol_locator      loc;
+  a_symbol_ptr          new_sym;
+
+  /* First token must be a string literal. */
+  check_assertion(!C_mode() &&
+                  aap->kind == (an_attribute_arg_kind)aak_raw_token &&
+                  aap->variant.token[0] == '"');
+  if (scope_stack_top().default_name_linkage ==
+                                          (a_name_linkage_kind)nlk_external) {
+    /* For function multiversioning purposes, a "target" attribute in an
+       extern "C" block is ignored (it'll be recorded later).  No error is
+       reported, but the routine returns FALSE (to prevent multiversioning
+       code from being executed). */
+    error = TRUE;
+    goto done;
+  }  /* if */
+  if (dps->mv_representative_routine == NULL) {
+    /* This is the first instance of a "target" version; one routine will
+       be the representative function and a second routine will be used for
+       the target-specific version. */
+    representative = dps->mv_routine_ptr;
+    ensure_gnu_routine_supp(representative)->is_representative = TRUE;
+    /* Use the "ifunc" mechanism for the representative function. */
+    representative->is_ifunc = TRUE;
+  } else {
+    /* The representative routine has already been created. */
+    representative = dps->mv_representative_routine;
+    check_assertion(gnu_routine_supp(representative)->is_representative);
+    if (dps->sym->kind == (a_symbol_kind)sk_member_function) {
+      /* In the member function case, the specific-target routine has already
+         been created (no need to create a new one). */
+      target_routine = dps->mv_routine_ptr;
+    }  /* if */
+  }  /* if */
+  /* Allocate (if necessary) and configure the specific-target version
+     routine pointer (based on the representative routine). */
+  if (target_routine == NULL) {
+    target_routine = make_routine(dps->type,
+                                  representative->storage_class,
+                                  dps->mv_scope_depth);
+  }  /* if */
+  /* Create a new symbol for this routine.  This symbol won't be entered
+     in the symbol table. */
+  make_locator_for_symbol(dps->sym,  &loc);
+  new_sym = make_symbol(dps->sym->kind, &loc);
+  /* Copy the original symbol, then reset any pointers. */
+  *new_sym = *dps->sym;
+  new_sym->next = NULL;
+  new_sym->next_in_scope = NULL;
+  new_sym->prev_in_scope = NULL;
+  /* New symbol points to the new routine and vice versa. */
+  new_sym->variant.routine.ptr = target_routine;
+  set_source_corresp(&target_routine->source_corresp, new_sym);
+  /* Fill in information about the specific-target version routine. */
+  target_routine->defined = dps->is_definition;
+  ensure_gnu_routine_supp(target_routine)->is_specific_target_version = TRUE;
+  if (representative->is_inline) {
+    /* Transfer the setting of "is_inline". */
+    set_inline_flag(target_routine, TRUE);
+    if (instantiate_extern_inline &&
+        !representative->on_inline_function_list) {
+      /* When inline functions are instantiated like templates, add the
+         function to the list of inline functions if it is inline (the
+         specific target versions will be on the list, but not the
+         representative function -- which, in some configurations becomes a
+         lowered ifunc and this prevents it from being multiply-defined). */
+      add_to_inline_function_list(representative);
+    }  /* if */
+  }  /* if */
+  if (gnu_routine_supp(representative)->mv_resolver_required) {
+    /* If it has already been determined that a resolver routine is required,
+       note that in this new target-specific routine. */
+    ensure_gnu_routine_supp(target_routine)->mv_resolver_required = TRUE;
+  }  /* if */
+  /* Validate the argument string. */
+  validate_target_argument_string(aap, target_routine, &error);
+  /* Check to see if the new routine is compatible with those already
+     declared (if any). */
+  existing = find_existing_mv_routine(representative, target_routine);
+  if (existing != NULL) {
+    /* A routine has been previously declared (or defined) with the same
+       set of target attributes; give an error if there are two
+       definitions. */
+    if (dps->is_definition && existing->defined) {
+      sym_error(ec_function_redefinition, dps->sym);
+      error = TRUE;
+    } else {
+      /* Use the previously declared routine. */
+      dps->mv_routine_ptr = existing;
+      goto done;
+    }  /* if */
+  } else {
+    /* Hang the new specific-target routine on the list. */
+    add_to_specific_version_list(representative, target_routine);
+  }  /* if */
+  /* Make the specific-target version routine available to the caller. */
+  dps->mv_routine_ptr = target_routine;
+done:
+  return !error;
+#undef MAX_TARGET_PAIR_LEN
+}  /* check_target_attr */
+
+#endif /* GNU_FUNCTION_MULTIVERSIONING */
+
+static char *apply_target_attr(an_attribute_ptr  ap,
+                               char              *entity,
+                               an_il_entry_kind  entity_kind)
+/*
+In C++ mode, most of the work for applying the "target" attributes has already
+been done in check_target_attr (because "target" is also used for function
+multiversioning).  This routine handles the cases where multiversioning isn't
+applicable.
+*/
+{
+  an_attribute_arg_ptr  aap = ap->arguments;
+  char                  *result = entity;
+
+  /* First token must be a string literal. */
+  if (aap->kind == (an_attribute_arg_kind)aak_raw_token &&
+      aap->variant.token[0] != '"') {
+    pos_error(ec_exp_string_literal, &aap->position);
+    make_attr_unrecognized(ap);
+  } else {
+    check_assertion(entity_kind == iek_routine);
+    if (C_mode()
+#if GNU_FUNCTION_MULTIVERSIONING
+        || scope_stack_top().default_name_linkage ==
+                                              (a_name_linkage_kind)nlk_external
+#endif /* GNU_FUNCTION_MULTIVERSIONING */
+                                                                            ) {
+      /* Validate the "target" argument string in C mode and in cases where
+         function multiversioning doesn't check (i.e., extern "C" blocks). */
+      a_boolean err = FALSE;
+      validate_target_argument_string(aap, (a_routine_ptr)entity, &err);
+      if (err) {
+        make_attr_unrecognized(ap);
+      }  /* if */
+    }  /* if */
+  }  /* if */
+#if DEBUG
+  if (db_flag_is_set("trace_attributes")) {
+    (void)fprintf(f_debug, "apply_target_attr: target=%s\n",
+                  aap->variant.token);
+  }  /* if */
+#endif /* DEBUG */
+  return result;
+}  /* apply_target_attr */
 
 #if THREAD_LOCAL_STORAGE_SPECIFIER_ALLOWED
 

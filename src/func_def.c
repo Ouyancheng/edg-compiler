@@ -2224,6 +2224,13 @@ member declaration (allowed in Microsoft mode only).
                  &linkage, &old_type, &ext_sym, decl_pos_block);
   }  /* if */
   routine_ptr = dps->sym->variant.routine.ptr;
+#if GNU_FUNCTION_MULTIVERSIONING
+  if (is_multiversion_representative(routine_ptr)) {
+    /* Replace the representative version with the specific target version
+       routine from the dps. */
+    routine_ptr = dps->mv_routine_ptr;
+  }  /* if */
+#endif /* GNU_FUNCTION_MULTIVERSIONING */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   wrapup_sse_for_simple_decl(dps);
   routine_ptr->declared_storage_class = dps->declared_storage_class;

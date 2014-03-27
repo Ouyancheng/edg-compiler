@@ -2598,6 +2598,9 @@ ec_virtual_function_cannot_have_deduced_return_type;;"a virtual function cannot 
 ec_keyword_dropped;;"%n will be treated as a context-sensitive keyword from this point"
 ec_global_ns_has_no_actual_member;;"the global namespace has no actual member %sq"
 ec_different_enum_comparison;;"comparison between two different enum types (%t1 and %t2)"
+ec_unrecognized_target_attribute;;"target attribute not recognized"
+ec_gnu_mv_default_missing;;"missing \"default\" target function"
+ec_gnu_mv_only_one_arch;;"only one arch= target may be specified"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

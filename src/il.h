@@ -789,6 +789,7 @@ extern void set_constant_address_constant(a_constant_ptr constant,
 extern void set_temporary_address_constant(a_constant_ptr constant,
                                            a_constant    *con);
 
+
 #if GNU_EXTENSIONS_ALLOWED
 extern a_boolean is_gnu_builtin_function(a_routine_ptr  rp);
 
@@ -2513,6 +2514,11 @@ extern an_attribute_ptr f_find_attribute(a_byte_attribute_kind  kind,
 #define find_attribute(kind, attributes)                                     \
   (f_find_attribute((a_byte_attribute_kind)(kind), (attributes)))
 
+#if GNU_FUNCTION_MULTIVERSIONING
+extern an_attribute_ptr find_last_target_attribute(
+                                                  an_attribute_ptr attributes);
+#endif /* GNU_FUNCTION_MULTIVERSIONING */
+
 #define routine_does_not_return(rp)                                          \
   (skip_typerefs(rp->type)->variant.routine.extra_info->does_not_return)
 
@@ -2636,6 +2642,16 @@ literal-operator-id (operator ""suffix).
 #define ud_suffix_from_literal_operator_id(name) \
   ((name) + LENGTH_CANONICAL_LITERAL_OPERATOR_INTRO)
 
+#if GNU_FUNCTION_MULTIVERSIONING
+/*
+Utility that returns TRUE if the routine is a GNU function multiversion
+"representative" function.
+*/
+#define is_multiversion_representative(routine) \
+ (has_gnu_routine_supp(routine) && \
+  (routine)->gnu_extra_info->is_representative)
+
+#endif /* GNU_FUNCTION_MULTIVERSIONING */
 #endif /* ifndef IL_H */
 
 /******************************************************************************

@@ -1410,6 +1410,13 @@ the file scope, do not process it (but record an orphan in the latter case).
           set_proper_routine_definition_needed_flag(ptr->inline_partner);
         }  /* if */
         walk_string_ptr(ptr->asm_name, iek_other_text, 0);
+#if GNU_FUNCTION_MULTIVERSIONING
+        if (ptr->is_representative) {
+          walk_list_not_needed(ptr->mv_info.representative.targeted_versions,
+                               a_routine_list_entry_ptr,
+                               iek_routine_list_entry);
+        }  /* if */
+#endif /* GNU_FUNCTION_MULTIVERSIONING */
       }
       break;
 #endif /* GNU_EXTENSIONS_ALLOWED || REDEFINE_EXTNAME_PRAGMA_ENABLED */

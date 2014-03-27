@@ -2407,6 +2407,7 @@ typedef enum an_attribute_kind_tag {
   ak_stdcall,		/* "stdcall" (gnu). */
 #endif /* GNU_X86_ATTRIBUTES_ALLOWED && !USE_X86_64 */
   ak_strong,		/* "strong" (gnu). */
+  ak_target,		/* "target" (gnu) function multiversioning. */
 #if THREAD_LOCAL_STORAGE_SPECIFIER_ALLOWED
   ak_tls_model,		/* "tls_model" (gnu). */
 #endif /* THREAD_LOCAL_STORAGE_SPECIFIER_ALLOWED */
@@ -13743,6 +13744,14 @@ typedef struct a_routine {
 
 #if GNU_EXTENSIONS_ALLOWED || REDEFINE_EXTNAME_PRAGMA_ENABLED
 
+#if USE_X86_FUNCTION_MULTIVERSIONING
+/*
+GNU multiversion target set; this is a bitset where the bit positions
+correspond to a_mv_arch_isa enumeration values.
+*/
+typedef uint32_t a_mv_target_bitset;
+#endif /* USE_X86_FUNCTION_MULTIVERSIONING */
+
 /*
 A logical extension of a_routine for GNU-specific fields that are rarely used.
 This extension is allocated only when necessary (i.e., if one or more of the
@@ -13792,6 +13801,57 @@ typedef struct a_gnu_routine_supplement {
   a_const_char	*asm_name;
 			/* If non-NULL, the name to be used as an assembly
 			   language level symbol for this routine. */
+#if GNU_FUNCTION_MULTIVERSIONING
+  a_bit_field	is_representative:1;
+			/* TRUE if the routine is a multiversion function and
+			   the routine is the representative for all versions.
+			   This version of the routine is in the symbol table
+			   and on the appropriate scope routine list.
+			   tv_info.list contains a list of routines (each with
+			   is_specific_target_version set to TRUE) which are
+			   architecture-specific. */
+  a_bit_field	is_specific_target_version:1;
+			/* TRUE if the routine is a multiversion function
+			   for a specific architecture (as specified by
+			   the "target" attribute).  Not entered into the
+			   symbol table or on a scope's routines list. */
+  /* FIXME: remove this altogether? */
+  /* FIXME: should this be specific to USE_X86_FUNCTION_MULTIVERSIONING? */
+  a_bit_field	mv_resolver_required:1;
+                        /* TRUE if it has been determined that a resolver
+                           routine is necessary.  In some cases (e.g.,
+                           only one target routine), a resolver routine isn't
+                           needed.  */
+  bitfield_to_avoid_codecenter_warnings()
+  union {
+    /* For GNU function multiversioning. */
+    /* When is_representative is TRUE: */
+    struct {
+      a_routine_list_entry_ptr
+                targeted_versions;
+                        /* List of multiversion functions with a "target"
+                           attribute.  These routines are not in the symbol
+                           table (or on a scope list) as the is_representative
+                           routine acts as the surrogate for the entire
+                           set of routines. */
+#if USE_X86_FUNCTION_MULTIVERSIONING
+                        /* The list is maintained in dispatch priority order
+                           (with the exception that the default routine appears
+                           first). */
+#endif /* USE_X86_FUNCTION_MULTIVERSIONING */
+    } representative;
+    /* When is_specific_target_version is TRUE: */
+    struct {
+#if USE_X86_FUNCTION_MULTIVERSIONING
+      a_mv_target_bitset
+                target_bitset;
+                        /* A bitmask of CPU and instruction set architectures
+                           that have been applied (through the "target"
+                           attribute) to this routine. */
+#endif /* USE_X86_FUNCTION_MULTIVERSIONING */
+    } targeted_version;
+  } mv_info;
+#endif /* GNU_FUNCTION_MULTIVERSIONING */
 } a_gnu_routine_supplement;
 
 /*

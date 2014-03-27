@@ -150,6 +150,11 @@ be restored).
     dps->virtual_pos = null_source_position;
     dps->auto_pos = null_source_position;
     dps->constexpr_pos = null_source_position;
+#if GNU_FUNCTION_MULTIVERSIONING
+    dps->mv_representative_routine = NULL;
+    dps->mv_routine_ptr = NULL;
+    dps->mv_scope_depth = NO_SCOPE_DEPTH;
+#endif /* GNU_FUNCTION_MULTIVERSIONING */
     dps->in_class_scope = FALSE;
     dps->secondary_declarator = FALSE;
     dps->is_template_declaration = FALSE;
@@ -7684,6 +7689,9 @@ for use in generating cross-reference output describing this declaration.
   a_type_ptr               orig_type = dps->type;
   a_boolean                use_gnu_c89_inlining = gnu_c89_inlining;
 #endif /* GNU_EXTENSIONS_ALLOWED */
+#if GNU_FUNCTION_MULTIVERSIONING
+  a_boolean                requires_gnu_target_attr = FALSE;
+#endif /* GNU_FUNCTION_MULTIVERSIONING */
   a_boolean                use_std_c99_inlining = std_c99_inlining;
 #if DECL_MODIFIERS_IN_USE || BACK_END_IS_CP_GEN_BE || \
     (GNU_EXTENSIONS_ALLOWED && GENERATE_SOURCE_SEQUENCE_LISTS)
@@ -7823,6 +7831,12 @@ for use in generating cross-reference output describing this declaration.
       /* This declaration triggered the creation of a new template instance. */
       dps->first_decl = TRUE;
     }  /* if */
+#if GNU_FUNCTION_MULTIVERSIONING
+    if (linked_symbol != NULL && is_function_def &&
+        is_multiversion_representative(linked_symbol->variant.routine.ptr)) {
+      requires_gnu_target_attr = TRUE;
+    }  /* if */
+#endif /* GNU_FUNCTION_MULTIVERSIONING */
   }  /* if */
   if (gpp_mode && idlb.is_block_extern_decl &&
       depth_innermost_namespace_scope != DEPTH_OF_FILE_SCOPE) {
@@ -7954,34 +7968,43 @@ for use in generating cross-reference output describing this declaration.
       dps->prev_type = routine_ptr->type;
       check_assertion_str(routine_ptr != NULL,
                           "decl_routine: linked symbol routine is missing");
-      if (routine_has_been_defined(routine_ptr)
+#if GNU_FUNCTION_MULTIVERSIONING
+      if (is_multiversion_representative(routine_ptr)) {
+        /* The current routine will not be recorded in the symbol table
+           instead, we'll hang the routine on the multiversion list. */
+      } else
+#endif /* GNU_FUNCTION_MULTIVERSIONING */
+      /* Do not insert code here. */
+      {
+        if (routine_has_been_defined(routine_ptr)
 #if ASM_FUNCTION_ALLOWED
-          || routine_ptr->storage_class == (a_storage_class)sc_asm
+            || routine_ptr->storage_class == (a_storage_class)sc_asm
 #endif /* ASM_FUNCTION_ALLOWED */
-                                                        ) {
-        /* Previous declaration was a definition.  (We check assoc_scope
-           rather than the defined flag in the routine, because in pcc mode
-           it is possible to have a nested redeclaration -- e.g.,
-             int f() { int f(); ... };
-           -- but the flag isn't set till the definition is complete.) */
-        old_decl_has_body = TRUE;
-      } else if (sym->defined) {
-        /* In C++ the defined flag in the symbol may have been set without
-           the body having been scanned and bound to the routine yet (e.g.,
-           inline friend function or a dllimport function). */
+                                                          ) {
+          /* Previous declaration was a definition.  (We check assoc_scope
+             rather than the defined flag in the routine, because in pcc mode
+             it is possible to have a nested redeclaration -- e.g.,
+               int f() { int f(); ... };
+             -- but the flag isn't set till the definition is complete.) */
+          old_decl_has_body = TRUE;
+        } else if (sym->defined) {
+          /* In C++ the defined flag in the symbol may have been set without
+             the body having been scanned and bound to the routine yet (e.g.,
+             inline friend function or a dllimport function). */
 #if MICROSOFT_EXTENSIONS_ALLOWED
-        check_assertion_str((routine_ptr->decl_modifiers & DM_DLLIMPORT) ||
-                            routine_ptr->defined_in_friend_decl ||
-                            scope_stack[decl_scope_level].kind ==
-                                        (a_scope_kind)sck_class_struct_union,
-                            "decl_routine: defined flag is set wrong");
+          check_assertion_str((routine_ptr->decl_modifiers & DM_DLLIMPORT) ||
+                              routine_ptr->defined_in_friend_decl ||
+                              scope_stack[decl_scope_level].kind ==
+                                          (a_scope_kind)sck_class_struct_union,
+                              "decl_routine: defined flag is set wrong");
 #else /* !MICROSOFT_EXTENSIONS_ALLOWED */
-        check_assertion_str(routine_ptr->defined_in_friend_decl ||
-                            scope_stack[decl_scope_level].kind ==
-                                        (a_scope_kind)sck_class_struct_union,
-                            "decl_routine: defined flag is set wrong");
+          check_assertion_str(routine_ptr->defined_in_friend_decl ||
+                              scope_stack[decl_scope_level].kind ==
+                                          (a_scope_kind)sck_class_struct_union,
+                              "decl_routine: defined flag is set wrong");
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-        old_decl_has_body = TRUE;
+          old_decl_has_body = TRUE;
+        }  /* if */
       }  /* if */
 #if GNU_EXTENSIONS_ALLOWED
       if (use_gnu_c89_inlining && old_decl_has_body &&
@@ -8904,6 +8927,56 @@ skip_overloading:;
     /* constexpr implies inline. */
     if (!routine_ptr->is_inline) set_inline_flag(routine_ptr, TRUE);
   }  /* if */
+#if GNU_FUNCTION_MULTIVERSIONING
+  if (gpp_mode) {
+    an_attribute_ptr  target_ap;
+    /* This information is passed via dps into the attribute processing
+       for the GNU multiversion "target" attribute. */
+    if (redeclaration && linked_symbol != NULL) {
+      /* There is a redeclaration of some sort. */
+      a_routine_ptr prev_routine = linked_symbol->variant.routine.ptr;
+      if (!is_multiversion_representative(prev_routine)) {
+        /* This is the first time we've seen the function with a target
+           attribute.  There is a previous instance, but it didn't have a
+           target attribute.  For example:
+             void foo(); // previous instance is definition without target
+             void foo() __attribute__((target("default"))); // this instance
+           prev_routine will become the representative routine.
+         */
+        dps->mv_representative_routine = NULL;
+        dps->mv_routine_ptr = prev_routine;
+      } else {
+        /* We already have a representative routine. */
+        dps->mv_representative_routine = prev_routine;
+        dps->mv_routine_ptr = routine_ptr;
+      }  /* if */
+    } else {
+      /* No representative routine yet; routine_ptr will become one. */
+      dps->mv_representative_routine = NULL;
+      dps->mv_routine_ptr = routine_ptr;
+    }  /* if */
+    dps->mv_scope_depth = DEPTH_OF_FILE_SCOPE;
+    /* GNU accepts "target" attributes in two locations in the declaration,
+       but it only acts on the last one. */
+    target_ap = find_last_target_attribute(dps->id_attributes);
+    if (target_ap == NULL) {
+      target_ap = find_last_target_attribute(dps->prefix_attributes);
+    }  /* if */
+    if (target_ap != NULL) {
+      (void)check_target_attr(target_ap, dps);
+      /* Use the specific-target version for the remainder of the
+         declaration. */
+      routine_ptr = dps->mv_routine_ptr;
+      sym = symbol_for(routine_ptr);
+      dps->sym = sym;
+    }  /* if */
+  }  /* if */
+  if (requires_gnu_target_attr &&
+      (!has_gnu_routine_supp(dps->mv_routine_ptr) ||
+       !gnu_routine_supp(dps->mv_routine_ptr)->is_specific_target_version)) {
+    pos_sy_error(ec_function_redefinition, &locator->source_position, sym);
+  }  /* if */
+#endif /* GNU_FUNCTION_MULTIVERSIONING */
   attach_decl_attributes(dps, is_function_def);
 #if MICROSOFT_EXTENSIONS_ALLOWED
   if (microsoft_mode) {

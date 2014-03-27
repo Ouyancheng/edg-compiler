@@ -6003,6 +6003,11 @@ file.
 #else /* !defined(GNU_EXTENSIONS_ALLOWED) */
   comment_undefined_macro_name(GNU_EXTENSIONS_ALLOWED);
 #endif /* defined(GNU_EXTENSIONS_ALLOWED) */
+#if defined(GNU_FUNCTION_MULTIVERSIONING)
+  define_numeric_valued_macro(GNU_FUNCTION_MULTIVERSIONING);
+#else /* !defined(GNU_FUNCTION_MULTIVERSIONING) */
+  comment_undefined_macro_name(GNU_FUNCTION_MULTIVERSIONING);
+#endif /* defined(GNU_FUNCTION_MULTIVERSIONING) */
 #if defined(GNU_INIT_PRIORITY_ATTRIBUTE_ALLOWED)
   define_numeric_valued_macro(GNU_INIT_PRIORITY_ATTRIBUTE_ALLOWED);
 #else /* !defined(GNU_INIT_PRIORITY_ATTRIBUTE_ALLOWED) */
@@ -7940,6 +7945,11 @@ file.
 #else /* !defined(USE_X86_64) */
   comment_undefined_macro_name(USE_X86_64);
 #endif /* defined(USE_X86_64) */
+#if defined(USE_X86_FUNCTION_MULTIVERSIONING)
+  define_numeric_valued_macro(USE_X86_FUNCTION_MULTIVERSIONING);
+#else /* !defined(USE_X86_FUNCTION_MULTIVERSIONING) */
+  comment_undefined_macro_name(USE_X86_FUNCTION_MULTIVERSIONING);
+#endif /* defined(USE_X86_FUNCTION_MULTIVERSIONING) */
 #if defined(USING_DECLARATIONS_IN_GENERATED_CODE)
   define_numeric_valued_macro(USING_DECLARATIONS_IN_GENERATED_CODE);
 #else /* !defined(USING_DECLARATIONS_IN_GENERATED_CODE) */

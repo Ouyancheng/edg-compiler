@@ -253,6 +253,11 @@ extern a_boolean compare_for_asm_name_map(a_void_ptr  entry,
                                           a_void_ptr  key);
 #endif /* GNU_EXTENSIONS_ALLOWED */
 
+#if GNU_FUNCTION_MULTIVERSIONING
+extern a_boolean check_target_attr(an_attribute_ptr    ap,
+                                   a_decl_parse_state  *dps);
+#endif /* GNU_FUNCTION_MULTIVERSIONING */
+
 /*
 Opaque pointer to the result of looking up an attribute name.
 */

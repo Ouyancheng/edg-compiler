@@ -103,6 +103,11 @@ incorporated:
 /* Variables set on the basis of command line options. */
 #include "cmd_line.h"
 
+#if GNU_FUNCTION_MULTIVERSIONING
+/* Declarations (required by attribute.h). */
+#include "decls.h"
+#endif /* GNU_FUNCTION_MULTIVERSIONING */
+
 /* Attributes. */
 #include "attribute.h"
 

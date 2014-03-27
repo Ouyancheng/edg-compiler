@@ -346,6 +346,10 @@ extern void make_null_thread_local_init_routine_for_variable(
 #endif /* !LAZY_INITIALIZATION_USES_WEAK_REFERENCES */
 #endif /* USE_LAZY_INITIALIZATION_FOR_THREAD_LOCAL_VARIABLES */
 
+#if GNU_FUNCTION_MULTIVERSIONING
+extern void create_mv_resolver(a_routine_ptr representative);
+#endif /* GNU_FUNCTION_MULTIVERSIONING */
+
 #endif /* DO_IL_LOWERING */
 #endif /* ifndef LOWER_INIT_H */
 

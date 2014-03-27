@@ -3613,6 +3613,19 @@ Display the indicated routine.
     if (grsp->asm_name != NULL) {
       disp_string_ptr("asm_name", grsp->asm_name, iek_other_text, (sizeof_t)0);
     }  /* if */
+#if GNU_FUNCTION_MULTIVERSIONING
+    if (grsp->is_specific_target_version) {
+      disp_boolean("is_specific_target_version", TRUE);
+    }  /* if */
+    if (grsp->mv_resolver_required) {
+      disp_boolean("mv_resolver_required", TRUE);
+    }  /* if */
+    if (grsp->is_representative) {
+      disp_boolean("is_representative", TRUE);
+      disp_routine_list("targeted_versions",
+                        grsp->mv_info.representative.targeted_versions);
+    }  /* if */
+#endif /* GNU_FUNCTION_MULTIVERSIONING */
   }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED || REDEFINE_EXTNAME_PRAGMA_ENABLED */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
@@ -5321,6 +5334,7 @@ Display the indicated attribute entry.
     case ak_stdcall:             kind_name = "stdcall";             break;
 #endif /* GNU_X86_ATTRIBUTES_ALLOWED && !USE_X86_64 */
     case ak_strong:              kind_name = "strong";              break;
+    case ak_target:              kind_name = "target";              break;
 #if THREAD_LOCAL_STORAGE_SPECIFIER_ALLOWED
     case ak_tls_model:           kind_name = "tls_model";           break;
 #endif /* THREAD_LOCAL_STORAGE_SPECIFIER_ALLOWED */

@@ -34,6 +34,9 @@ lower_name.c -- Do name mangling for IL lowering.
 #include "templates.h"
 #endif /* IA64_ABI */
 #include "exprutil.h"
+#if GNU_FUNCTION_MULTIVERSIONING
+#include "sys_predef.h"
+#endif /* GNU_FUNCTION_MULTIVERSIONING */
 
 #if IA64_ABI
 /* IA-64 name mangling codes. */
@@ -318,6 +321,24 @@ differs (see the IA-64 ABI spec for details).
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 #endif /* IA64_ABI */
+
+#if GNU_FUNCTION_MULTIVERSIONING
+/*
+Strictly speaking, these aren't for "mangling"; they're to re-create the
+names that GNU gives to various function multiversioning symbols.  Note that
+the "." can't be used in configurations that use a C-generating back end
+*/
+#if BACK_END_IS_C_GEN_BE
+#define MANGLING_SEPARATOR_FOR_MV_FUNC "_"
+#else /* !BACK_END_IS_C_GEN_BE */
+#define MANGLING_SEPARATOR_FOR_MV_FUNC "."
+#endif /* BACK_END_IS_C_GEN_BE */
+#if IA64_ABI
+#define MANGLING_STRING_FOR_MV_IFUNC "ifunc"
+#else /* !IA64_ABI */
+#define MANGLING_STRING_FOR_MV_IFUNC "_MVI_"
+#endif /* IA64_ABI */
+#endif /* GNU_FUNCTION_MULTIVERSIONING */
 
 #if IA64_ABI
 
@@ -10261,6 +10282,53 @@ literal operator.
   }  /* if */
 }  /* mangled_function_base_name */
 
+#if GNU_FUNCTION_MULTIVERSIONING
+
+static void add_mv_distinction(a_routine_ptr            routine,
+                               a_mangling_control_block *mctl)
+/*
+If the specified routine is part of a GNU function multiversion group,
+add an appropriate string to the current mangled name to identify it.
+*/
+{
+  /* FIXME: check demangling for all of these cases. */
+  a_gnu_routine_supplement_ptr grsp = gnu_routine_supp(routine);
+  if (grsp->is_specific_target_version) {
+    /* All specific-target versions share the same unmangled name and must be
+       differentiated somehow.  For compatibility reasons, we use the same
+       naming scheme as g++ (though that's not possible when using the
+       C-generating back end because the names contain "."). */
+    if (is_mv_default_routine(routine) ||
+        (!grsp->mv_resolver_required &&
+         (routine->called || routine->address_taken))) {
+      /* FIXME: find a way to get a count (can't get to is_representative) */
+      /* No suffix is added for the "default" routine or if it is the only
+         target-specific routine (to match GNU's behavior). */
+    } else {
+      /* Add a target-specific suffix at this point (note that the name
+         that is created here cannot be demangled). */
+#if !IA64_ABI
+      /* FIXME: check this */
+      /* Ensure name begins with "__". */
+      add_to_mangled_name('_', mctl);
+#endif /* !IA64_ABI */
+      add_str_to_mangled_name(MANGLING_SEPARATOR_FOR_MV_FUNC, mctl);
+      add_str_to_mangled_name(mangled_mv_identifier_for_routine(routine),
+                              mctl);
+#if !IA64_ABI
+      /* Separate prefix from name. */
+      add_to_mangled_name('_', mctl);
+#endif /* !IA64_ABI */
+    }  /* if */
+  } else if (grsp->is_representative && grsp->mv_resolver_required) {
+    /* FIXME: or only one... */
+    check_assertion(routine->is_ifunc);
+    add_str_to_mangled_name(MANGLING_SEPARATOR_FOR_MV_FUNC, mctl);
+    add_str_to_mangled_name(MANGLING_STRING_FOR_MV_IFUNC, mctl);
+  }  /* if */
+}  /* add_mv_distinction */
+
+#endif /* GNU_FUNCTION_MULTIVERSIONING */
 
 #if !IA64_ABI
 /*ARGSUSED*/  /* <-- force_primary_name is not used in that case.
@@ -10402,6 +10470,9 @@ determination is made by the callee.
     *base_name_offset = mctl->length;
   }  /* if */
 #endif /* IA64_ABI && DO_IL_LOWERING */
+#if GNU_FUNCTION_MULTIVERSIONING && !IA64_ABI
+  if (has_gnu_routine_supp(routine)) add_mv_distinction(routine, mctl);
+#endif /* GNU_FUNCTION_MULTIVERSIONING && !IA64_ABI */
   mangled_function_base_name(&routine->source_corresp, routine->special_kind,
                              opname_kind, ctor_dtor_kind,
                              num_operands, conversion_type,
@@ -10534,6 +10605,9 @@ mangle_template:
 #endif /* IA64_ABI */
                                        mctl);
   }  /* if */
+#if GNU_FUNCTION_MULTIVERSIONING && IA64_ABI
+  if (has_gnu_routine_supp(routine)) add_mv_distinction(routine, mctl);
+#endif /* GNU_FUNCTION_MULTIVERSIONING && IA64_ABI */
 }  /* mangled_function_name */
 
 

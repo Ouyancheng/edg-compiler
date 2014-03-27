@@ -2786,6 +2786,15 @@ ensure_gnu_routine_supp for the typical invocation.
   grsp->dtor_priority        = 0;
 #endif /* GNU_INIT_PRIORITY_ATTRIBUTE_ALLOWED */
   grsp->asm_name             = NULL;
+#if GNU_FUNCTION_MULTIVERSIONING
+  grsp->is_representative    = FALSE;
+  grsp->is_specific_target_version  = FALSE;
+  grsp->mv_resolver_required = FALSE;
+  grsp->mv_info.representative.targeted_versions = NULL;
+#if USE_X86_FUNCTION_MULTIVERSIONING
+  grsp->mv_info.targeted_version.target_bitset = 0;
+#endif /* USE_X86_FUNCTION_MULTIVERSIONING */
+#endif /* GNU_FUNCTION_MULTIVERSIONING */
   return rp->gnu_extra_info;
 }  /* alloc_gnu_supplement_for_routine */
 

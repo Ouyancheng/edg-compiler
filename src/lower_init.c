@@ -35,6 +35,9 @@ lower_init.c -- IL lowering: initializations and new/delete.
 #include "expr.h"
 #include "exprutil.h"
 #include "il_walk.h"
+#if USE_X86_FUNCTION_MULTIVERSIONING
+#include "sys_predef.h"
+#endif /* USE_X86_FUNCTION_MULTIVERSIONING */
 
 
 /* Declarations needed because of forward references: */
@@ -3552,6 +3555,7 @@ doesn't already have one.
 static a_boolean generated_routine_needed_even_if_unreferenced(
                                                             a_routine_ptr rout)
 /*
+   FIXME: shouldn't need resolver if ifunc isn't needed (but no ptr to ifunc)
 rout is a generated routine with a definition.  Return TRUE if it should be
 considered needed even if it is not referenced, e.g., because it's an external
 definition.
@@ -17373,6 +17377,269 @@ Note: this is called when lowering C and C++.
 }  /* lower_ifunc_routine */
 
 #endif /* LOWER_IFUNC */
+#if GNU_FUNCTION_MULTIVERSIONING
+
+static an_expr_node_ptr make_expr_for_string_literal(a_const_char *string)
+/*
+Construct and return an expression node for the string literal.  The string
+is copied into the file scope IL region (though the constant and expression
+nodes are allocated in the current IL region).
+*/
+{
+  a_constant_ptr   con;
+  char             *str;
+  sizeof_t         target_str_len;
+
+  con = alloc_constant((a_constant_repr_kind)ck_string);
+  /* Allocate space for the target string (plus a null terminator) and
+     copy the string there. */
+  target_str_len = strlen(string) + 1;
+  str = alloc_text_of_string_literal(target_str_len);
+  (void)strcpy(str, string);
+  con->type = string_literal_type((a_character_kind)chk_char,
+                                                (a_targ_size_t)target_str_len);
+  con->variant.string.length = (a_targ_size_t)target_str_len;
+  con->variant.string.value = str;
+  con->character_kind = (a_character_kind)chk_char;
+  return alloc_node_for_constant(con);
+}  /* make_expr_for_string_literal */
+
+
+/*
+Pointers to builtin routines used in the lowering of a resolver routine.
+*/
+static a_routine_ptr
+                builtin_cpu_init_routine,
+                builtin_cpu_is_routine,
+                builtin_cpu_supports_routine;
+
+
+static void create_builtin_cpu_routines()
+/*
+Initialize the builtin_cpu_*_routine variables (if necessary).
+*/
+{
+  if (builtin_cpu_init_routine == NULL) {
+    a_type_ptr         rout_type;
+    rout_type = make_function_type(void_type(), (a_type_ptr)NULL,
+                                   (a_type_ptr)NULL);
+    builtin_cpu_init_routine = find_existing_runtime_routine(
+                                                          "__builtin_cpu_init",
+                                                          rout_type);
+    rout_type = make_function_type(integer_type((an_integer_kind)ik_int),
+                                   make_pointer_type(make_qualified_type(
+                                        integer_type((an_integer_kind)ik_char),
+                                        TQ_CONST)),
+                                   (a_type_ptr)NULL);
+    builtin_cpu_is_routine = find_existing_runtime_routine("__builtin_cpu_is",
+                                                           rout_type);
+    builtin_cpu_supports_routine = find_existing_runtime_routine(
+                                                      "__builtin_cpu_supports",
+                                                      rout_type);
+  }  /* if */
+  check_assertion(builtin_cpu_init_routine != NULL &&
+                  builtin_cpu_is_routine != NULL &&
+                  builtin_cpu_supports_routine != NULL);
+}  /* create_builtin_cpu_routines */
+
+
+static an_expr_node_ptr make_mv_target_specific_expr(a_routine_ptr routine)
+/*
+Create and return a boolean expression which returns TRUE at run-time if the
+CPU on which the code is run matches the target-specific criteria for the
+specified routine.  Uses the GNU __builtin_cpu_supports and __builtin_cpu_is
+builtin functions to determine the underlying CPU characteristics.
+*/
+{
+  int                i;
+  a_mv_target_bitset bs;
+  an_expr_node_ptr   result = NULL;
+
+  check_assertion(gnu_routine_supp(routine)->is_specific_target_version &&
+                  builtin_cpu_supports_routine != NULL &&
+                  builtin_cpu_is_routine != NULL);
+  bs = gnu_routine_supp(routine)->mv_info.targeted_version.target_bitset;
+  /* First do the CPU architecture check. */
+  for (i = mv_lowest_arch; i <= mv_highest_arch; i++) {
+    if (bs & (1<<i)) {
+      /* Note: At most one CPU architecture per target bitset.  This is a
+         restriction which has already been checked. */
+      result = make_call_node(builtin_cpu_is_routine,
+                              make_expr_for_string_literal(
+                                                  source_mv_isa_arch_name(i)));
+      break;
+    }  /* if */
+  }  /* for */
+  /* After architecture check, check for particular features. */
+  for (i = 0; i < mv_display_count(); i++) {
+    int arch = mv_display_order(i);
+    if (bs & (1<<arch)) {
+      an_expr_node_ptr this_check;
+      if (is_mv_arch(arch)) {
+        /* CPU architecture is already handled in preceding loop. */
+      } else {
+        this_check = make_call_node(builtin_cpu_supports_routine, 
+                                    make_expr_for_string_literal(
+                                               source_mv_isa_arch_name(arch)));
+        if (result == NULL) {
+          result = this_check;
+        } else {
+          an_expr_node_ptr and_node;
+          result->next = this_check;
+          and_node = make_operator_node((an_expr_operator_kind)eok_land,
+                                        integer_type((an_integer_kind)ik_int),
+                                        result);
+          result = and_node;
+        }  /* if */
+      }  /* if */
+    }  /* if */
+  }  /* for */
+  return boolean_controlling_expr(result);
+}  /* make_mv_target_specific_expr */
+
+
+static void assign_function_constant(a_routine_ptr          routine,
+                                     a_variable_ptr         var,
+                                     an_insert_location_ptr insert_location)
+/*
+Create and insert (at insert_location) an assignment expression to copy the
+address of the routine into the variable.  A cast is added if necessary.
+*/
+{
+  a_constant_ptr   function_constant;
+  an_expr_node_ptr assign_node, comp_expr;
+
+  function_constant = alloc_constant((a_constant_repr_kind)ck_address);
+  /* Build a pointer-to-function constant. */
+  set_routine_address_constant(routine, function_constant,
+                               /*set_address_taken_flag=*/TRUE);
+  /* Make an expression for the constant. */
+  comp_expr = alloc_node_for_constant(function_constant);
+  /* Add a cast to the type of the variable. */
+  comp_expr = add_cast_if_necessary(comp_expr, var->type);
+  assign_node = make_var_assignment_expr(var, comp_expr);
+  (void)insert_expr_statement(assign_node, insert_location);
+}  /* assign_function_constant */
+
+
+void create_mv_resolver(a_routine_ptr representative)
+/*
+   FIXME: this is x86-specific.
+Create a "resolver" routine that will be the resolver for the given target
+versioned routine.  The compiler-generated resolver routine determines at
+run-time which of a set of routines should be used (based on the "target"
+attributes and the architecture CPU on which the executable is being executed).
+
+For example:
+
+  static void *resolver(void) {
+    auto void (*temp_var)();
+    __builtin_cpu_init();
+    if (__builtin_cpu_supports("popcnt")) {
+      temp_var = ((void (*)())_Z3foov_popcnt);
+    } else {
+      temp_var = ((void (*)())_Z3foov);
+    }
+    return temp_var;
+  }
+
+The "ifunc" mechanism is used to associate the resolver routine with
+"representative".
+*/
+{
+  a_routine_ptr               resolver_routine, default_routine;
+  a_generated_routine_context grcontext;
+  a_statement_ptr             return_stmt;
+  an_insert_location          block_insert_location, *insert_location;
+  an_insert_location          then_insert_location, else_insert_location;
+  a_scope_ptr                 scope;
+  a_memory_region_number      new_routine_il_region;
+  a_variable_ptr              temp_var;
+  an_expr_node_ptr            temp_var_node;
+  a_mv_target_bitset          previous_bitset;
+  a_routine_list_entry_ptr    rlep, sorted_list;
+  char                        *res_name;
+
+  check_assertion(is_multiversion_representative(representative) &&
+                  representative->is_ifunc);
+  /* Give the resolver a name based on the "ifunc" symbol's name, but that
+     won't conflict with other names.  Note that this name isn't the same
+     name that g++ gives to its resolver functions, but that shouldn't
+     matter. */
+  res_name = make_prefixed_object_name("__RES__",
+                                       &representative->source_corresp,
+                                       (an_il_entry_kind)iek_routine);
+  /* Create a "void (*f)(void)" routine type for the resolver (that's the
+     signature for all ifunc resolver functions). */
+  resolver_routine = make_rout_entry(res_name,
+                                     (a_storage_class)sc_unspecified,
+                                     make_pointer_type(void_type()),
+                                     NULL);
+  /* Make a memory region, scope, and block for the routine definition. */
+  scope = make_routine_definition(resolver_routine, /*make_return=*/TRUE,
+                                  &new_routine_il_region);
+  push_generated_routine_context(scope, new_routine_il_region, &grcontext);
+  /* Create a temporary variable that is used to return the result. */
+  temp_var = make_lowered_temporary(make_vptp_type());
+  set_block_start_insert_location(scope->assoc_block, &block_insert_location);
+  /* Iterate through the list of target-specific routines, in priority order,
+     building up an if-then-else statement starting with the highest priority
+     ISA and ending with the default routine.  The "default" routine (required)
+     is always at head of list. */
+  sorted_list = gnu_routine_supp(representative)->
+                                      mv_info.representative.targeted_versions;
+  default_routine = sorted_list->routine;
+  check_assertion(is_mv_default_routine(default_routine));
+  previous_bitset = gnu_routine_supp(default_routine)->
+                                        mv_info.targeted_version.target_bitset;
+  /* Ensure that __builtin_cpu_init is invoked before calling
+     __builtin_cpu_{is,supports} (which are generated in the loop below). */
+  create_builtin_cpu_routines();
+  check_assertion(builtin_cpu_init_routine != NULL);
+  make_call_statement(builtin_cpu_init_routine, (an_expr_node_ptr)NULL,
+                      (an_expr_node_ptr)NULL, &block_insert_location);
+  insert_location = &block_insert_location;
+  for (rlep = sorted_list->next; rlep != NULL; rlep = rlep->next) {
+    /* Since there may be both definitions and declarations in this list,
+       emit only one check for each unique bitset.  (Could verify that
+       matching pairs are actually re-declaration.) */
+    if (previous_bitset != gnu_routine_supp(rlep->routine)->
+                                      mv_info.targeted_version.target_bitset) {
+      an_expr_node_ptr if_node = make_mv_target_specific_expr(rlep->routine);
+      insert_if_statement(if_node, /*is_initialization_guard=*/FALSE,
+                          insert_location,
+                          (a_statement_ptr *)NULL,
+                          &then_insert_location,
+                          &else_insert_location);
+      assign_function_constant(rlep->routine, temp_var, &then_insert_location);
+      insert_location = &else_insert_location;
+    }  /* if */
+    previous_bitset = gnu_routine_supp(rlep->routine)->
+                                        mv_info.targeted_version.target_bitset;
+  }  /* for */
+  /* Add the "default" routine case. */
+  assign_function_constant(default_routine, temp_var, insert_location);
+  /* Add the return statement. */
+  temp_var_node = var_rvalue_expr(temp_var);
+  return_stmt = alloc_statement((a_statement_kind)stmk_return);
+  return_stmt->expr = temp_var_node;
+  insert_statement(return_stmt, &block_insert_location);
+  add_to_return_memo_list(return_stmt);
+  pop_generated_routine_context(scope, new_routine_il_region, &grcontext);
+  /* Associate this resolver routine with its associated ifunc routine. */
+  ensure_gnu_routine_supp(representative)->aliased_routine = resolver_routine;
+#if GNU_EXTENSIONS_ALLOWED
+  resolver_routine->is_weak = TRUE;
+#endif /* GNU_EXTENSIONS_ALLOWED */
+#if IA64_ABI
+  /* Place the resolver function into comdat group since more than
+     one compilation unit may contain the resolver definition. */
+  put_routine_into_comdat_group(resolver_routine);
+#endif /* IA64_ABI */
+  return;
+}  /* create_mv_resolver */
+
+#endif /* GNU_FUNCTION_MULTIVERSIONING */
 
 void init_lower_one_time_init(void)
 /*
@@ -17436,10 +17703,15 @@ Do one-time initialization of static variables declared in lower_init.c.
       pch_saved_var_array_elem(cctor_ptr_type),
       pch_saved_var_array_elem(new_routine_ptr_type),
       pch_saved_var_array_elem(delete_routine_ptr_type),
-      pch_saved_var_array_terminating_elem(),
 #if RUNTIME_SUPPORTS_ARRAY_LENGTH_CHECK && ABI_COMPATIBILITY_VERSION >= 406
-      pch_saved_var_array_elem(throw_bad_array_new_length_routine)
+      pch_saved_var_array_elem(throw_bad_array_new_length_routine),
 #endif /* RUNTIME_SUPPORTS_ARRAY_LENGTH_CHECK && ABI_COMPATIBILITY_VERSION...*/
+#if GNU_FUNCTION_MULTIVERSIONING
+      pch_saved_var_array_elem(builtin_cpu_init_routine),
+      pch_saved_var_array_elem(builtin_cpu_is_routine),
+      pch_saved_var_array_elem(builtin_cpu_supports_routine),
+#endif /* GNU_FUNCTION_MULTIVERSIONING */
+      pch_saved_var_array_terminating_elem()
     };
     register_pch_saved_variables(saved_vars);
   }  /* if */
@@ -17501,6 +17773,11 @@ Do one-time initialization of static variables declared in lower_init.c.
 #if RUNTIME_SUPPORTS_ARRAY_LENGTH_CHECK && ABI_COMPATIBILITY_VERSION >= 406
   register_trans_unit_variable(throw_bad_array_new_length_routine);
 #endif /* RUNTIME_SUPPORTS_ARRAY_LENGTH_CHECK && ABI_COMPATIBILITY_VERSION...*/
+#if GNU_FUNCTION_MULTIVERSIONING
+  register_trans_unit_variable(builtin_cpu_init_routine);
+  register_trans_unit_variable(builtin_cpu_is_routine);
+  register_trans_unit_variable(builtin_cpu_supports_routine);
+#endif /* GNU_FUNCTION_MULTIVERSIONING */
 }  /* init_lower_one_time_init */
 
 
@@ -17568,6 +17845,11 @@ for each translation unit.
   delete_routine_ptr_type = NULL;
   aggregate_this_stack = NULL;
   ctor_init_this = NULL;
+#if GNU_FUNCTION_MULTIVERSIONING
+  builtin_cpu_init_routine = NULL;
+  builtin_cpu_is_routine = NULL;
+  builtin_cpu_supports_routine = NULL;
+#endif /* GNU_FUNCTION_MULTIVERSIONING */
 }  /* init_lower_trans_unit_init */
 
 

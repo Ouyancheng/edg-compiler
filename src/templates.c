@@ -5353,13 +5353,15 @@ static a_type_ptr create_error_routine_type(a_routine_ptr	templ_rout,
 					    a_type_ptr		parent_class);
 
 
-static void instantiate_template_function(a_template_instance_ptr  tip)
+static void f_instantiate_template_function(a_template_instance_ptr  tip,
+                                            a_routine_ptr rout_ptr)
+
 /*
 Instantiate the body of the template function associated with tip.
 */
 {
   a_symbol_ptr                      rout_sym;
-  a_routine_ptr                     rout_ptr, proto_rout_ptr;
+  a_routine_ptr                     proto_rout_ptr;
   a_template_symbol_supplement_ptr  tssp, proto_tssp;
   a_symbol_ptr                      template_sym, proto_sym;
   a_template_cache_ptr		    tcp;
@@ -5371,9 +5373,8 @@ Instantiate the body of the template function associated with tip.
 #endif /* TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 
-  db_enter(3, "instantiate_template_function");
+  db_enter(3, "f_instantiate_template_function");
   rout_sym = tip->instance_sym;
-  rout_ptr = rout_sym->variant.routine.ptr;
   template_sym = tip->template_sym;
   tssp = template_supplement_for_symbol(template_sym);
   func_info_ptr = func_info_for_template(tssp);
@@ -5618,6 +5619,38 @@ done:;
 #endif /* TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   db_exit();
+}  /* f_instantiate_template_function */
+
+
+static void instantiate_template_function(a_template_instance_ptr  tip)
+/*
+Instantiate the body of the template function associated with tip.
+*/
+{
+  a_routine_ptr routine = tip->instance_sym->variant.routine.ptr;
+
+#if GNU_FUNCTION_MULTIVERSIONING
+  /* For a GNU multiversion target-versioned function, instantiate all of the
+     target-specific functions instead. */
+  if (is_multiversion_representative(routine)) {
+    a_routine_list_entry_ptr rlep;
+    for (rlep = gnu_routine_supp(routine)->
+                                      mv_info.representative.targeted_versions;
+         rlep != NULL;
+         rlep = rlep->next) {
+      a_symbol_ptr            r_sym = symbol_for(rlep->routine);
+      a_template_instance_ptr tip;
+      check_assertion(r_sym->kind == (a_symbol_kind)sk_member_function);
+      tip = template_instance_for_symbol(r_sym);
+      check_assertion(tip != NULL);
+      rlep->routine->is_template_function = TRUE;
+      f_instantiate_template_function(tip, rlep->routine);
+    }  /* for */
+  } else
+#endif /* GNU_FUNCTION_MULTIVERSIONING */
+  {
+    f_instantiate_template_function(tip, routine);
+  }  /* if */
 }  /* instantiate_template_function */
 
 #if ONE_INSTANTIATION_PER_OBJECT
@@ -14250,12 +14283,38 @@ and create a function instantiation entry to bind the two symbols together.
        instantiation.  If the symbol is not an overloaded function, make
        sure that it matches the rout_sym.  Note that there can be multiple
        C++/CLI property methods with a given name and that these are separate
-       entries on the list and not an overload set. */
+       entries on the list and not an overload set.
+       In the case of GNU multiversion functions, do the same thing, except
+       searching through the list of target_specific functions for the
+       matching token sequence number. */
     for (; sym != NULL;
          sym = is_list ? sym->next : sym->next_in_lookup_table) {
+#if GNU_FUNCTION_MULTIVERSIONING
       if (sym->kind == (a_symbol_kind)sk_member_function &&
-          sym->variant.routine.instance_ptr != NULL) {
-        if (sym->kind == (a_symbol_kind)sk_member_function) {
+          is_multiversion_representative(sym->variant.routine.ptr)) {
+        /* In GNU multiversion case, search the target specific functions. */
+        a_routine_ptr            tv_routine = sym->variant.routine.ptr;
+        a_routine_list_entry_ptr rlep;
+        for (rlep = gnu_routine_supp(tv_routine)->
+                                      mv_info.representative.targeted_versions;
+             rlep != NULL;
+             rlep = rlep->next) {
+          a_symbol_ptr r_sym = symbol_for(rlep->routine);
+          if (r_sym->kind == (a_symbol_kind)sk_member_function) {
+            a_template_symbol_supplement_ptr	tssp;
+            tssp = r_sym->variant.routine.instance_ptr->template_info;
+            if (tssp->token_sequence_number == curr_token_sequence_number) {
+              sym = r_sym;
+              goto found_sym;
+            }  /* if */
+          }  /* if */
+        }  /* for */
+      } else
+#endif /* GNU_FUNCTION_MULTIVERSIONING */
+      /* Do not insert code here. */
+      {
+        if (sym->kind == (a_symbol_kind)sk_member_function &&
+            sym->variant.routine.instance_ptr != NULL) {
           a_template_symbol_supplement_ptr	tssp;
           tssp = sym->variant.routine.instance_ptr->template_info;
           if (tssp->token_sequence_number == curr_token_sequence_number) {
@@ -14266,6 +14325,9 @@ and create a function instantiation entry to bind the two symbols together.
       }  /* if */
     }  /* for */
   }  /* if */
+#if GNU_FUNCTION_MULTIVERSIONING
+found_sym:
+#endif /* GNU_FUNCTION_MULTIVERSIONING */
   if (sym == NULL && sym_from_prototype != NULL) {
     /* If we haven't found a match, see if there is a symbol from the
        prototype instantiation with the same name as the function
@@ -27823,6 +27885,25 @@ Does nothing if called in C mode.
     if (tip != NULL) {
       update_instantiation_required_flag(tip, value, options);
     }  /* if */
+#if GNU_FUNCTION_MULTIVERSIONING
+    /* In case of GNU function multiversioning, update the instantiation
+       required flag for all the target-specific functions. */
+    if (sym->kind == (a_symbol_kind)sk_member_function &&
+        is_multiversion_representative(sym->variant.routine.ptr)) {
+      a_routine_ptr tv_routine = sym->variant.routine.ptr;
+      a_routine_list_entry_ptr rlep ;
+      for (rlep = gnu_routine_supp(tv_routine)->
+                                      mv_info.representative.targeted_versions;
+           rlep != NULL;
+           rlep = rlep->next) {
+        a_symbol_ptr r_sym = symbol_for(rlep->routine);
+        tip = r_sym->variant.routine.instance_ptr;
+        if (tip != NULL) {
+          update_instantiation_required_flag(tip, value, options);
+        }  /* if */
+      }  /* for */
+    }  /* if */
+#endif /* GNU_FUNCTION_MULTIVERSIONING */
 #if INSTANTIATE_EXTERN_INLINE
     /* The inline instance required flag is set for all functions (even
        those that are not inline).  A function can be declared inline after
@@ -27835,6 +27916,18 @@ Does nothing if called in C mode.
         /* If value is FALSE, only reset the flag if the SIR_CLEAR_VALUE
            option was specified. */
         rp->inline_instance_required = value;
+#if GNU_FUNCTION_MULTIVERSIONING
+        if (is_multiversion_representative(rp)) {
+          /* Propagate the value to the target-versioned functions. */
+          a_routine_list_entry_ptr rlep;
+          for (rlep = gnu_routine_supp(rp)->
+                                      mv_info.representative.targeted_versions;
+               rlep != NULL;
+               rlep = rlep->next) {
+            rlep->routine->inline_instance_required = value;
+          }  /* for */
+        }  /* if */
+#endif /* GNU_FUNCTION_MULTIVERSIONING */
       }  /* if */
     }  /* if */
 #endif /* INSTANTIATE_EXTERN_INLINE */
@@ -28873,6 +28966,11 @@ emitted in this translation unit.
     /* A compiler generated routine, but not a trivial default constructor and
        not a deleted member. */
     body_can_be_generated = TRUE;
+#if GNU_EXTENSIONS_ALLOWED
+  } else if (rout_ptr->is_ifunc) {
+    /* An ifunc function won't have a body, but treat it as though it does. */
+    body_can_be_generated = TRUE;
+#endif /* GNU_EXTENSIONS_ALLOWED */
   }  /* if */
   if (!body_can_be_generated) {
     /* We can't emit the body if one can't be generated. */

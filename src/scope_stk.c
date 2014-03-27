@@ -5228,6 +5228,9 @@ body.  Only called in C++ mode.
                        !(microsoft_mode &&
                          (rp->decl_modifiers & DM_DLLIMPORT)) &&
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+#if GNU_FUNCTION_MULTIVERSIONING
+                       !is_multiversion_representative(rp) &&
+#endif /* GNU_FUNCTION_MULTIVERSIONING */
                        (rp->is_inline ||
                         rp->storage_class != (a_storage_class)sc_extern)) {
               /* A referenced but undefined member function that is either

@@ -2700,6 +2700,557 @@ Define system-specific predefined macros and builtin #assert predicates
 #endif /* ifdef __linux__ */
 }  /* enter_system_specific_predefined_macros_and_assertions */
 
+#if GNU_EXTENSIONS_ALLOWED
+#if USE_X86_FUNCTION_MULTIVERSIONING
+
+typedef struct a_target_attribute_map {
+  /* Create a mapping from a valid "target" attribute to its corresponding
+     a_mv_arch_isa value. */
+  a_const_char  *attr;  /* Valid value for "target" attribute. */
+  a_mv_arch_isa_kind
+                value;  /* Corresponding value. */
+} a_target_attribute_map;
+
+/*
+Mapping of "target" attribute to a_mv_arch_isa_kind.  Note that this is
+a many-to-one mapping and that the order of entries is not important.
+*/
+static a_target_attribute_map target_attribute_map[] = {
+  { "arch=bdver1",      mv_arch_bdver1 },
+  { "arch=bdver2",      mv_arch_bdver2 },
+  { "arch=corei7",      mv_arch_corei7 },
+  { "arch=amdfam10",    mv_arch_amdfam10h },
+  { "arch=core2",       mv_arch_core2 },
+  { "arch=atom",        mv_arch_atom },
+  { "default",          mv_default_target },
+  { "mmx",              mv_isa_mmx },
+  { "sse",              mv_isa_sse },
+  { "sse2",             mv_isa_sse2 },
+  { "sse3",             mv_isa_sse3 },
+  { "ssse3",            mv_isa_ssse3 },
+  { "sse4",             mv_isa_sse4_1 },      /* Use sse4.1. */
+  { "sse4.1",           mv_isa_sse4_1 },
+  { "sse4.2",           mv_isa_sse4_2 },
+  { "popcnt",           mv_isa_popcnt },
+  { "avx",              mv_isa_avx },
+  { "avx2",             mv_isa_avx2 },
+  { NULL,               mv_last }             /* Must be last. */
+};
+
+#endif /* USE_X86_FUNCTION_MULTIVERSIONING */
+
+void validate_target_argument(a_const_char         *str,
+                              size_t               str_len,
+                              an_attribute_arg_ptr aap,
+                              a_routine_ptr        routine,
+                              a_boolean            *error_issued)
+/*
+Validates the "target" attribute pointed to by str whose length is
+str_len.  The attribute argument is pointed to by aap and is being
+applied to routine.  If any errors are issued, *error_issued is set to TRUE.
+str may not be NULL terminated (e.g., it may have a trailing comma), so
+str_len should be used to determine the end of the argument.
+*/
+{
+#if USE_X86_FUNCTION_MULTIVERSIONING
+  /* When using x86 function multiversioning, additional checking is
+     performed to ensure that only one CPU architecture is specified and
+     the mv_target_bitset for the routine is updated to reflect the
+     target argument. */
+  a_target_attribute_map  *ptr;
+  a_boolean               found = FALSE;
+
+  for (ptr = target_attribute_map; ptr->attr != NULL; ptr++) {
+    if (strlen(ptr->attr) == str_len &&
+        strncmp(str, ptr->attr, str_len) == 0) {
+      found = TRUE;
+      if (C_mode()) {
+        /* The presence of the argument is sufficient. */
+      } else if (skip_typerefs(routine->type)->
+            variant.routine.extra_info->routine_name_linkage ==
+                                           (a_name_linkage_kind)nlk_external) {
+        /* An extern "C" routine; silently accept the argument. */
+      } else {
+        a_gnu_routine_supplement_ptr grsp = gnu_routine_supp(routine);
+        check_assertion(grsp->is_specific_target_version);
+        if (is_mv_arch(ptr->value) &&
+            is_any_mv_arch_bit_set(
+                               grsp->mv_info.targeted_version.target_bitset)) {
+          /* Can't specify more than one CPU architecture. */
+          pos_error(ec_gnu_mv_only_one_arch, &aap->position);
+          *error_issued = TRUE;
+        } else {
+          /* Add this CPU/ISA architecture to the list of specific-target
+             versions that this routine supports. */
+          grsp->mv_info.targeted_version.target_bitset |= 1 << ptr->value;
+        }  /* if */
+      }  /* if */
+      break;
+    }  /* if */
+  }  /* for */
+  if (!found) {
+    if (C_mode()) {
+      /* Since we're not doing anything special with the attributes in C mode,
+         just issue a warning (the back end may know what to do with these). */
+      pos_warning(ec_unrecognized_target_attribute, &aap->position);
+    } else {
+      pos_error(ec_unrecognized_target_attribute, &aap->position);
+      *error_issued = TRUE;
+    }  /* if */
+  }  /* if */
+#endif /* USE_X86_FUNCTION_MULTIVERSIONING */
+}  /* validate_target_argument */
+
+
+a_routine_ptr find_existing_mv_routine(a_routine_ptr representative,
+                                       a_routine_ptr candidate)
+/*
+Returns a pointer to a specific-target version routine with the same
+"target" attributes as "candidate" or NULL if none is found.
+representative is the representative routine for the specific group of
+multiversion functions.  Called during attribute processing to check for
+re-declarations.
+*/
+{
+  a_routine_ptr            result = NULL;
+#if USE_X86_FUNCTION_MULTIVERSIONING
+  a_routine_list_entry_ptr rlep;
+
+  /* Two specific-target routines are deemed equivalent if their
+     mv_target_bitset values are the same. */
+  for (rlep = gnu_routine_supp(representative)->
+                                      mv_info.representative.targeted_versions;
+       rlep != NULL;
+       rlep = rlep->next) {
+    a_routine_ptr rp = rlep->routine;
+    if (gnu_routine_supp(candidate)->mv_info.targeted_version.target_bitset ==
+                gnu_routine_supp(rp)->mv_info.targeted_version.target_bitset) {
+      result = rp;
+      break;
+    }  /* if */
+  }  /* for */
+#endif /* USE_X86_FUNCTION_MULTIVERSIONING */
+  return result;
+}  /* find_existing_mv_routine */
+
+
+#if USE_X86_FUNCTION_MULTIVERSIONING
+
+/* FIXME: merge these tables. */
+/* This table is used for matching target attribute strings in the source. */
+static a_const_char *mv_arch_name[] = {
+  "bdver1",           /* mv_arch_bdver1 */
+  "bdver2",           /* mv_arch_bdver2 */
+  "corei7",           /* mv_arch_corei7 */
+  "amdfam10h",        /* mv_arch_amdfam10h */
+  "core2",            /* mv_arch_core2 */
+  "atom",             /* mv_arch_atom */
+  "default",          /* mv_default_target */
+  "mmx",              /* mv_isa_mmx */
+  "sse",              /* mv_isa_sse */
+  "sse2",             /* mv_isa_sse2 */
+  "sse3",             /* mv_isa_sse3 */
+  "ssse3",            /* mv_isa_ssse3 */
+  "sse4.1",           /* mv_isa_sse4_1 */
+  "sse4.2",           /* mv_isa_sse4_2 */
+  "popcnt",           /* mv_isa_popcnt */
+  "avx",              /* mv_isa_avx */
+  "avx2"              /* mv_isa_avx2 */
+};
+
+#define num_mv_target_strings (sizeof(mv_arch_name)/sizeof(mv_arch_name[0]))
+
+/* FIXME: is this needed? */
+a_const_char *source_mv_isa_arch_name(int idx)
+/*
+Support for GNU function multiversioning.
+This function is passed an index (idx) which is in the range a_mv_arch_isa
+and it returns the string corresponding to that multiversion instruction
+set.  This is used for matching strings in the user code.
+*/
+{
+  return mv_arch_name[idx];
+}  /* source_mv_isa_arch_name */
+
+
+static a_mv_arch_isa display_order[] = {
+  mv_isa_avx,
+  mv_isa_avx2,
+  mv_isa_mmx,
+  mv_isa_popcnt,
+  mv_isa_sse,
+  mv_isa_sse2,
+  mv_isa_sse3,
+  mv_isa_sse4_1,
+  mv_isa_sse4_2,
+  mv_isa_ssse3
+};
+
+int mv_display_order(int i)
+/*
+Sometimes it's useful to be able to iterate through the multiversion
+ISAs in an alternate order, for example when building the
+target specific function linkage names.  To use the alternate order,
+iterate from 0 .. mv_display_count(), and use the ISA value at
+mv_display_order(i).
+*/
+{
+  return display_order[i];
+}  /* mv_display_order */
+
+int mv_display_count(void)
+/*
+Return the size of the display_order table.
+This is intended to be used with mv_display_order when you want to
+iterate through the multiversion ISAs in an alternate order.
+*/
+{
+  return sizeof(display_order)/sizeof(display_order[0]);
+}  /* mv_display_count */
+
+
+/*
+This table provides the GNU-compatible naming scheme for the multiversion
+architecture and isa.  The index values are a_mv_arch_isa.
+*/
+a_const_char *mv_arch_name_string_table[] = {
+  "arch_bdver1",     /* mv_arch_bdver1 */
+  "arch_bdver2",     /* mv_arch_bdver2 */
+  "arch_corei7",     /* mv_arch_corei7 */
+  "arch_amdfam10h",  /* mv_arch_amdfam10h */
+  "arch_core2",      /* mv_arch_core2 */
+  "arch_atom",       /* mv_arch_atom */
+  "default",         /* mv_default_target */
+  "mmx",             /* mv_isa_mmx */
+  "sse",             /* mv_isa_sse */
+  "sse2",            /* mv_isa_sse2 */
+  "sse3",            /* mv_isa_sse3 */
+  "ssse3",           /* mv_isa_ssse3 */
+#if USE_PERIOD_FOR_MV_NAME_SEPARATOR
+  "sse4.1",          /* mv_isa_sse4_1 */
+  "sse4.2",          /* mv_isa_sse4_2 */
+#else /* !USE_PERIOD_FOR_MV_NAME_SEPARATOR */
+  "sse4_1",          /* mv_isa_sse4_1 */
+  "sse4_2",          /* mv_isa_sse4_2 */
+#endif /* USE_PERIOD_FOR_MV_NAME_SEPARATOR */
+  "popcnt",          /* mv_isa_popcnt */
+  "avx",             /* mv_isa_avx */
+  "avx2"             /* mv_isa_avx2 */
+};
+
+
+static a_mv_arch_isa highest_isa(a_mv_target_bitset bitset,
+                                 a_mv_arch_isa      *cpu_arch)
+/*
+Return the highest (i.e., most capable) Instruction Set Architecture
+capability of the specified bitset.  If a CPU architecture is specified
+in the bitset, then map that to the corresponding ISA architecture before
+determining the highest.  Set *cpu_arch to the CPU architecture (there can
+be at most one) if one is found (and to mv_invalid otherwise).
+*/
+{
+  a_mv_arch_isa_kind  i;
+  a_mv_arch_isa       result_isa = mv_lowest_isa;
+
+  *cpu_arch = mv_invalid;
+  /* First, check if there's a CPU architecture specified in the bitset.
+     If there is, get the highest architecture supported by the arch. */
+  for (i = (a_mv_arch_isa_kind)mv_lowest_arch;
+       i <= (a_mv_arch_isa_kind)mv_highest_arch;
+       i++) {
+    a_mv_arch_isa arch_isa;
+    switch (i) {
+      case mv_arch_bdver1:
+      case mv_arch_bdver2:
+        arch_isa = mv_isa_avx2;
+        break;
+      case mv_arch_corei7:
+        arch_isa = mv_isa_popcnt;
+        break;
+      case mv_arch_amdfam10h:
+        arch_isa = mv_isa_ssse3;
+        break;
+      case mv_arch_core2:
+      case mv_arch_atom:
+        arch_isa = mv_isa_ssse3;
+        break;
+      default:
+        unexpected_condition();
+    }  /* switch */
+    if (bitset & (1<<i)) {
+      result_isa = arch_isa;
+      *cpu_arch = i;
+      break;
+    }  /* if */
+  }  /* for */
+  /* Check all the ISAs specified in the bitset, and choose the highest. */
+  for (i = mv_lowest_isa; i <= mv_highest_isa; i++) {
+    if ((bitset & (1<<i)) && result_isa < i) {
+      result_isa = i;
+    }  /* if */
+  }  /* for */
+  return result_isa;
+}  /* highest_isa */
+
+
+static int compare_target_priority(a_mv_target_bitset left,
+                                   a_mv_target_bitset right)
+/*
+Compares the target information in left and right using the rules
+in the GNU Function MultiVersioning wiki and returns the usual -1, 0, or 1
+for less, equal, or greater.  "default" always compares "less than" (which
+keeps it at the head of a sorted list).
+*/
+{
+  int           result;
+  a_mv_arch_isa left_isa, right_isa;
+  a_mv_arch_isa left_cpu_arch, right_cpu_arch;
+
+  if (is_default_targ_bitset(left) && is_default_targ_bitset(right)) {
+    result = 0;
+  } else if (is_default_targ_bitset(left)) {
+    result = -1;
+  } else if (is_default_targ_bitset(right)) {
+    result = 1;
+  } else {
+    left_isa = highest_isa(left, &left_cpu_arch);
+    right_isa = highest_isa(right, &right_cpu_arch);
+    if (left_isa < right_isa) result = 1;
+    else if (left_isa > right_isa) result = -1;
+    else {
+      if (left_cpu_arch != mv_invalid && right_cpu_arch != mv_invalid) {
+        if (left_cpu_arch == right_cpu_arch) result = 0;
+        else if (left_cpu_arch == mv_arch_bdver1 &&
+                 right_cpu_arch == mv_arch_bdver2)
+          result = 1;
+        else if (left_cpu_arch == mv_arch_bdver2 &&
+                 right_cpu_arch == mv_arch_bdver1)
+          result = -1;
+        else
+          result = 0;
+      } else if (left_cpu_arch == right_cpu_arch) result = 0;
+      else if (right_cpu_arch != mv_invalid) result = 1;
+      else result = -1;
+    }  /* if */
+  }  /* if */
+  return result;
+}  /* compare_target_priority */
+
+
+a_routine_ptr get_mv_default_routine(a_routine_ptr routine)
+/*
+Returns the "default" routine for the specified GNU function multiversioned
+representative routine or NULL if none exists.
+*/
+{
+  a_routine_ptr     result = NULL;
+  a_routine_list_entry_ptr targeted_versions;
+
+  check_assertion(is_multiversion_representative(routine));
+  targeted_versions =
+           gnu_routine_supp(routine)->mv_info.representative.targeted_versions;
+  if (targeted_versions->routine != NULL &&
+      is_mv_default_routine(targeted_versions->routine)) {
+    result = targeted_versions->routine;
+  }  /* if */
+  return result;
+}  /* get_mv_default_routine */
+
+
+int mv_target_count(a_routine_ptr routine)
+/*
+Returns a count of the number of specific-target versions that are pointed
+to by the representative routine.
+*/
+{
+  a_routine_list_entry_ptr rlep;
+  int                      count = 0;
+
+  check_assertion(is_multiversion_representative(routine));
+  for (rlep = gnu_routine_supp(routine)->
+                                      mv_info.representative.targeted_versions;
+       rlep != NULL;
+       rlep = rlep->next) {
+    count++;
+  }  /* for */
+  return count;
+}  /* get_mv_target_count */
+
+
+a_routine_ptr find_mv_match_for_surrounding_routine(
+                                             a_routine_ptr routine,
+                                             a_routine_ptr surrounding_routine)
+/*
+Returns a specific target version (of the set of routines represented by
+"routine") that matches the target architecture of surrounding_routine, if one
+exists (otherwise returns NULL).  Note that it is possible for more than one
+specific target version to match, but this routine only returns the first
+(which seems to match GNU's behavior).
+*/
+{
+  a_routine_list_entry_ptr rlep;
+  a_mv_target_bitset       surrounding_bitset, bs;
+  a_routine_ptr            result = NULL;
+
+  check_assertion(is_multiversion_representative(routine) &&
+                  surrounding_routine != NULL);
+  if (has_gnu_routine_supp(surrounding_routine) &&
+      gnu_routine_supp(surrounding_routine)->is_specific_target_version) {
+    surrounding_bitset = gnu_routine_supp(surrounding_routine)->
+                                        mv_info.targeted_version.target_bitset;
+    for (rlep =
+           gnu_routine_supp(routine)->mv_info.representative.targeted_versions;
+         rlep != NULL;
+         rlep = rlep->next) {
+      bs =
+       gnu_routine_supp(rlep->routine)->mv_info.targeted_version.target_bitset;
+      if ((bs & surrounding_bitset) != 0) {
+        result = rlep->routine;
+        break;
+      }  /* if */
+    }  /* for */
+  }  /* if */
+  return result;
+}  /* find_mv_match_for_surrounding_routine */
+
+#endif /* USE_X86_FUNCTION_MULTIVERSIONING */
+#if GNU_FUNCTION_MULTIVERSIONING
+
+void add_to_specific_version_list(a_routine_ptr representative,
+                                  a_routine_ptr target_routine)
+/*
+This function inserts target_routine into the list of target-versioned routines
+that are pointed to by representative.
+*/
+{
+  a_routine_list_entry_ptr new_rlep, *headp =
+   &gnu_routine_supp(representative)->mv_info.representative.targeted_versions;
+
+  new_rlep = alloc_list_entry_for_routine();
+  new_rlep->routine = target_routine;
+#if USE_X86_FUNCTION_MULTIVERSIONING
+  {
+    /* The list of specific-target version functions is kept in priority
+       order -- highest priority first -- which makes generating the resolver
+       function easier (among other things).  The one exception is that the
+       "default" priority routine is always at a special location at the head
+       of the list. */
+    a_routine_list_entry_ptr head = *headp;
+    if (head == NULL) {
+      *headp = new_rlep;
+    } else {
+      a_routine_list_entry_ptr previous = NULL;
+      a_routine_list_entry_ptr rlep;
+      a_mv_target_bitset target_bs = gnu_routine_supp(target_routine)->
+                                        mv_info.targeted_version.target_bitset;
+      for (rlep = head; rlep != NULL; rlep = rlep->next) {
+        a_mv_target_bitset rlep_bs = gnu_routine_supp(rlep->routine)->
+                                        mv_info.targeted_version.target_bitset;
+        check_assertion(target_bs != rlep_bs);
+        if (compare_target_priority(target_bs, rlep_bs) < 0) {
+          /* Found the insertion point. */
+          break;
+        }  /* if */
+        previous = rlep;
+      }  /* for */
+      if (previous == NULL) {
+        /* Insert at head of list. */
+        new_rlep->next = head;
+        *headp = new_rlep;
+      } else {
+        new_rlep->next = previous->next;
+        previous->next = new_rlep;
+      }  /* if */
+    }  /* if */
+  }
+#else /* !USE_X86_FUNCTION_MULTIVERSIONING */
+  /* Ordering doesn't matter; add it to the head. */
+  new_rlep->next = *headp;
+  *headp = new_rlep;
+#endif /* USE_X86_FUNCTION_MULTIVERSIONING */
+}  /* add_to_specific_version_list */
+
+
+a_const_char *mangled_mv_identifier_for_routine(a_routine_ptr routine)
+/*
+   FIXME
+Return a string that is used in the mangled name for routine to differentiate
+this specific-target routine from other specific-target routines.  The
+pointer that is returned is to a static buffer so the caller should copy the
+result to an allocated area.
+*/
+{
+#define BUFFER_SIZE 1000
+  static char        buffer[BUFFER_SIZE]; /* FIXME: use a static buffer? */
+#if USE_X86_FUNCTION_MULTIVERSIONING
+  int                i;
+  int                buff_idx = 0;
+  a_boolean          is_first = TRUE;
+  a_mv_target_bitset bs =
+             gnu_routine_supp(routine)->mv_info.targeted_version.target_bitset;
+
+  /* This loop adds the CPU architecture name (if any). */
+  for (i = 0; i <= mv_highest_arch; i++) {
+    if (bs & (1<<i)) {
+      a_const_char *arch_name = mv_arch_name_string_table[i];
+      if (is_first) {
+        is_first = FALSE;
+      } else {
+        check_assertion(buff_idx + 1 < BUFFER_SIZE);
+        buffer[buff_idx++] = '_';
+      }  /* if */
+      check_assertion((buff_idx + strlen(arch_name)) < BUFFER_SIZE);
+      (void)strcpy(&buffer[buff_idx], arch_name);
+      buff_idx += strlen(arch_name);
+      break;
+    }  /* if */
+  }  /* for */
+  /* This loop adds the ISA architecture name(s), if any. */
+  for (i = 0; i < mv_display_count(); i++) {
+    int arch = mv_display_order(i);
+    if (bs & (1<<arch)) {
+      a_const_char * arch_name = mv_arch_name_string_table[arch];
+      if (is_first) {
+        is_first = FALSE;
+      } else {
+        check_assertion(buff_idx + 1 < BUFFER_SIZE);
+        buffer[buff_idx++] = '_';
+      }  /* if */
+      check_assertion((buff_idx + strlen(arch_name)) < BUFFER_SIZE);
+      (void)strcpy(&buffer[buff_idx], arch_name);
+      buff_idx += strlen(arch_name);
+    }  /* if */
+  }  /* for */
+  if (buff_idx <= 0) buffer[0] = '\0';
+#else /* !USE_X86_FUNCTION_MULTIVERSIONING */
+  /* FIXME: just use target string? */
+#endif /* USE_X86_FUNCTION_MULTIVERSIONING */
+  return buffer;
+#undef BUFFER_SIZE
+}  /* mangled_mv_identifier_for_routine */
+
+#endif /* GNU_FUNCTION_MULTIVERSIONING */
+#endif /* GNU_EXTENSIONS_ALLOWED */
+
+void sys_predef_one_time_init(void)
+/*
+Do one-time initialization for data structures used in this file.
+*/
+{
+#if USE_X86_FUNCTION_MULTIVERSIONING
+  /* Perform some configuration checks. */
+  if (sizeof(a_mv_target_bitset)*8 < mv_last) {
+    internal_error("undersized a_mv_target_bitset");
+  }  /* if */
+  if (num_mv_target_strings != mv_last) {
+    internal_error("mv_arch_name table must have mv_last elements");
+  }  /* if */
+  check_assertion_str((sizeof(mv_arch_name_string_table)/
+                       sizeof(mv_arch_name_string_table[0])) == mv_last,
+                 "mv_arch_name_string_table table must have mv_last elements");
+#endif /* USE_X86_FUNCTION_MULTIVERSIONING */
+}  /* sys_predef_one_time_init */
+
 
 /******************************************************************************
 *                                                             \  ___  /       *

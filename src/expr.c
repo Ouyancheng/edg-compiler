@@ -5276,6 +5276,32 @@ are expected to be NULL in that case.
        the function is unknown because the call is dependent. */
     a_boolean uses_operator_syntax = FALSE;
     routine = routine_from_function_operand(operand);
+#if GNU_FUNCTION_MULTIVERSIONING
+    if (routine != NULL && is_multiversion_representative(routine)) {
+      /* We're about to call a GNU multiversion function; see if the target
+         is known (so we don't have to call the resolver). */
+      a_routine_ptr specific_target_routine;
+      specific_target_routine = find_specific_mv_routine(routine,
+                                                         &call_position);
+      if (specific_target_routine != NULL) {
+        /* This target of this call refers to a specific target-version
+           that is known at compile time (i.e., and doesn't require a run-time
+           resolver routine).  Replace the routine in the operand. */
+        routine = specific_target_routine;
+        if (is_expression_operand(operand)) {
+          check_assertion(is_routine_node(operand->variant.expression));
+          operand->variant.expression->variant.routine.ptr = routine;
+        } else {
+          check_assertion(is_constant_operand(operand) &&
+                          operand->variant.constant.kind ==
+                                            (a_constant_repr_kind)ck_address &&
+                          operand->variant.constant.variant.address.kind ==
+                                            (an_address_base_kind)abk_routine);
+          operand->variant.constant.variant.address.variant.routine = routine;
+        }  /* if */
+      }  /* if */
+    }  /* if */
+#endif /* GNU_FUNCTION_MULTIVERSIONING */
     if (has_overloaded_call_operator) {
       if (routine != NULL &&
           routine->special_kind == (a_special_function_kind)sfk_operator &&

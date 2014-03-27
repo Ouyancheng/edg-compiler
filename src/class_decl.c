@@ -76,6 +76,11 @@ typedef struct a_routine_fixup {
   a_token_cache function_body_token_cache;
 			/* A pointer to the token cache that describes the
 			   function body. */
+#if GNU_FUNCTION_MULTIVERSIONING
+  a_routine_ptr	specific_target_routine;
+			/* For GNU multiversioned routines, save the
+			   specific target version routine for fixup. */
+#endif /* GNU_FUNCTION_MULTIVERSIONING */
   a_byte_boolean
 		is_specialization;
 			/* TRUE if this entry is for a Microsoft mode
@@ -219,6 +224,9 @@ initialize it.
   rfp->class_type = class_type;
   rfp->def_arg_expr_fixup_list = NULL;
   rfp->prototype_scope_symbols = NULL;
+#if GNU_FUNCTION_MULTIVERSIONING
+  rfp->specific_target_routine = NULL;
+#endif /* GNU_FUNCTION_MULTIVERSIONING */
   rfp->is_specialization = FALSE;
 #if GENERATE_SOURCE_SEQUENCE_LISTS
 #if NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
@@ -2743,6 +2751,13 @@ nested class.
         } else {
           /* Normal case. */
           a_routine_ptr  rp = rfp->symbol->variant.routine.ptr;
+#if GNU_FUNCTION_MULTIVERSIONING
+          /* FIXME: is this fixup needed? */
+          if (rfp->specific_target_routine != NULL) {
+            /* Get the correct routine pointer from rfp. */
+            rp = rfp->specific_target_routine;
+          }  /* if */
+#endif /* GNU_FUNCTION_MULTIVERSIONING */
 
 #if GENERATE_SOURCE_SEQUENCE_LISTS
 #if TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
@@ -12961,17 +12976,18 @@ Otherwise, the member is left unchanged.
 
 
 static void set_member_function_name_linkage(a_symbol_ptr       sym,
+                                             a_routine_ptr      rtn,
                                              a_boolean          is_inline,
                                              a_source_position  *diag_pos)
 /*
 Record and check the name linkage for a declaration of the given member
 function (this is the name linkage of the function, not of its type).
-is_inline is TRUE for inline member functions.  Any diagnostics should be
-issued at the given position.
+rtn is the routine pointer for the member function (sym->variant.routine.ptr
+except for GNU function multiversions).  is_inline is TRUE for inline member
+functions.  Any diagnostics should be issued at the given position.
 */
 {
   a_name_linkage_kind  def_name_linkage;
-  a_routine_ptr        rtn = sym->variant.routine.ptr;
   a_type_ptr           class_type = sym->parent.class_type;
 
   /* Member functions should have the same name linkage as the class of
@@ -13040,6 +13056,9 @@ implicitly declared member functions.
   a_property_or_event_descr_ptr pdp = class_state->property_or_event_descr;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   a_boolean                     is_static_member;
+#if GNU_FUNCTION_MULTIVERSIONING
+  a_boolean                     requires_gnu_target_attr = FALSE;
+#endif /* GNU_FUNCTION_MULTIVERSIONING */
 
   db_enter(3, "decl_member_function");
   is_static_member = decl_state->storage_class == (a_storage_class)sc_static;
@@ -13146,21 +13165,35 @@ implicitly declared member functions.
     sym = symbol_for_member_function(locator, class_type, overridden_function,
                                      decl_info, &overload_sym);
     if (sym->variant.routine.ptr != NULL) {
-      /* symbol_for_member_function has returned a symbol that has already been
-         declared.  Issue an error on trying to redeclare a member function. */
-      if (decl_state->is_inheriting_ctor &&
-          sym->variant.routine.ptr->is_inheriting_ctor) {
-        pos_syty_error(ec_inheriting_ctor_conflict, &locator->source_position,
-                       sym, sym->variant.routine.ptr->generating_using_decl
-                                                    ->qualifier.class_type);
-      } else {
-        pos_sy_error(ec_member_function_redeclaration,
-                     &locator->source_position, sym);
+#if GNU_FUNCTION_MULTIVERSIONING
+      if (is_multiversion_representative(sym->variant.routine.ptr)) {
+        /* A GNU function multiversion representative function was found;
+           this declaration must have a "target" attribute (in order for
+           this not to be a redeclaration error). */
+        requires_gnu_target_attr = TRUE;
+        decl_state->mv_representative_routine = sym->variant.routine.ptr;
+      }  else
+#endif /* GNU_FUNCTION_MULTIVERSIONING */
+      /* Do not insert code here. */
+      {
+        /* symbol_for_member_function has returned a symbol that has already 
+           been declared.  Issue an error on trying to redeclare a
+           member function. */
+        if (decl_state->is_inheriting_ctor &&
+            sym->variant.routine.ptr->is_inheriting_ctor) {
+          pos_syty_error(ec_inheriting_ctor_conflict,
+                         &locator->source_position,
+                         sym, sym->variant.routine.ptr->generating_using_decl
+                                                      ->qualifier.class_type);
+        } else {
+          pos_sy_error(ec_member_function_redeclaration,
+                       &locator->source_position, sym);
+        }  /* if */
+        set_to_named_error_locator(*locator);
+        sym = enter_local_symbol((a_symbol_kind)sk_member_function, locator,
+                                 decl_scope_level,
+                                 /*suppress_redecl_error=*/TRUE);
       }  /* if */
-      set_to_named_error_locator(*locator);
-      sym = enter_local_symbol((a_symbol_kind)sk_member_function, locator,
-                               decl_scope_level,
-                               /*suppress_redecl_error=*/TRUE);
     }  /* if */
   }  /* if */
   decl_state->sym = sym;
@@ -13175,7 +13208,16 @@ implicitly declared member functions.
                      decl_info->is_trivial_default_constructor ?
                                   NO_SCOPE_DEPTH : scope_depth);
   rtn->has_deducible_return_type = decl_state->has_deducible_return_type;
-  sym->variant.routine.ptr = rtn;
+#if GNU_FUNCTION_MULTIVERSIONING
+  if (sym->variant.routine.ptr != NULL &&
+      is_multiversion_representative(sym->variant.routine.ptr)) {
+    /* Do not modify sym entry; keep it with target version sym. */
+  } else
+#endif /* GNU_FUNCTION_MULTIVERSIONING */
+  /* Do not insert code here. */
+  {
+    sym->variant.routine.ptr = rtn;
+  }  /* if */
   /* Set the source correspondence, including the access specifier. */
   set_source_corresp(&rtn->source_corresp, sym);
   set_class_membership(sym, &rtn->source_corresp, class_type);
@@ -13313,7 +13355,7 @@ implicitly declared member functions.
   /* The routine name linkage on the function type is also required to be
      C++ no matter what the name linkage of the routine turns out to be. */
   rtsp->routine_name_linkage = (a_name_linkage_kind)nlk_cplusplus_external;
-  set_member_function_name_linkage(sym, func_info->is_inline,
+  set_member_function_name_linkage(sym, rtn, func_info->is_inline,
                                    &locator->source_position);
 #if BACK_END_IS_CP_GEN_BE
   if (func_info->is_definition &&
@@ -13351,6 +13393,43 @@ implicitly declared member functions.
     decl_state->ms_attributes = NULL;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   }  /* if */
+#if GNU_FUNCTION_MULTIVERSIONING
+  if (gpp_mode) {
+    /* Pre-apply the GNU multiversion target attribute, if any.  This is
+       required because applying the attribute through the normal mechanism
+       would be too late. */
+    an_attribute_ptr  target_ap;
+    target_ap = find_last_target_attribute(decl_state->prefix_attributes);
+    if (target_ap != NULL) {
+      /* This information is passed via dps into the attribute processing
+         for GNU multiversion target attribute. */
+      decl_state->mv_routine_ptr = rtn;
+      decl_state->mv_scope_depth = scope_depth;
+      if (check_target_attr(target_ap, decl_state)) {
+        /* When a target attribute is found, check_target_attr
+           creates a new symbol and a new routine, but the symbol isn't
+           entered in the symbol table. */
+        a_symbol_ptr new_sym = symbol_for(decl_state->mv_routine_ptr);
+        if (overload_sym != NULL) {
+          /* Replace the head of overloaded symbols with new_sym. */
+          a_symbol_ptr overloads =
+                             overload_sym->variant.overloaded_function.symbols;
+          check_assertion(sym == overloads);
+          new_sym->next = overloads->next;
+          overloads->next = NULL;
+          overload_sym->variant.overloaded_function.symbols = new_sym;
+        }  /* if */
+        /* Set class membership for the new symbol. */
+        set_class_membership(new_sym,
+                             &decl_state->mv_routine_ptr->source_corresp,
+                             class_type);
+        /* Use the specific-target version routine and symbol. */
+        decl_state->sym = sym = new_sym;
+        rtn = decl_state->mv_routine_ptr;
+      }  /* if */
+    }  /* if */
+  }  /* if */
+#endif /* GNU_FUNCTION_MULTIVERSIONING */
   if (!compiler_generated) {
     a_symbol_reference_kind  srk_flags = SRK_DECLARATION;
     if (func_info->is_definition) srk_flags |= SRK_DEFINITION;
@@ -13510,8 +13589,11 @@ implicitly declared member functions.
       /* Since this is a definition, record the current lint argsused and
          varargs-count state in the routine type. That will suppress any
          warnings about unused parameters or variable arguments. */
+      /* FIXME: sym and sym->variant.routine.ptr differ: */
       record_lint_argsused_and_varargs_state(sym);
     }  /* if */
+  }  /* if */
+  if (!compiler_generated) {
     /* Do processing required for any pragmas that are bound to the current
        declaration. */
     process_curr_construct_pragmas(sym, (a_statement_ptr)NULL);
@@ -13721,6 +13803,14 @@ implicitly declared member functions.
 #endif /* BACK_END_IS_CP_GEN_BE */
     attach_decl_attributes(decl_state,
                            /*is_primary_decl=*/func_info->is_definition);
+#if GNU_FUNCTION_MULTIVERSIONING
+    if (requires_gnu_target_attr &&
+        (!has_gnu_routine_supp(rtn) ||
+         !gnu_routine_supp(rtn)->is_specific_target_version)) {
+      pos_sy_error(ec_function_redefinition, &locator->source_position, sym);
+      set_to_error_locator(*locator);
+    }  /* if */
+#endif /* GNU_FUNCTION_MULTIVERSIONING */
 #if GNU_EXTENSIONS_ALLOWED
     if (gpp_mode) {
       /* Propagate any class attributes that also apply to its member
@@ -19016,7 +19106,8 @@ symbol for a called member function.
     sym->variant.routine.ptr = rp;
     set_source_corresp(&rp->source_corresp, sym);
     set_class_membership(sym, &rp->source_corresp, class_type);
-    set_member_function_name_linkage(sym, /*is_inline=*/TRUE, &error_position);
+    set_member_function_name_linkage(sym, rp, /*is_inline=*/TRUE,
+                                     &error_position);
     /* Add the symbol and IL entry to the appropriate lists. */
     enter_symbol_into_completed_class(sym);
     add_to_routines_list(rp, NO_SCOPE_DEPTH);

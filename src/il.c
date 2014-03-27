@@ -4844,6 +4844,19 @@ because the constant might be used in a way that doesn't really take
 the address of the routine, e.g., a call).
 */
 {
+#if GNU_FUNCTION_MULTIVERSIONING
+  if (is_multiversion_representative(routine)) {
+    /* Replace a reference to the GNU multiversion representative routine
+       with a specific-target version if one is known. */
+    a_routine_ptr specific_target_routine;
+    specific_target_routine = find_specific_mv_routine(routine,
+                                                     (a_source_position*)NULL);
+    if (specific_target_routine != NULL) {
+      /* Replace the reference with the specific target version. */
+      routine = specific_target_routine;
+    }  /* if */
+  }  /* if */
+#endif /* GNU_FUNCTION_MULTIVERSIONING */
   clear_constant(con, (a_constant_repr_kind)ck_address);
   con->variant.address.kind = (an_address_base_kind)abk_routine;
   con->variant.address.variant.routine = routine;
@@ -5045,6 +5058,19 @@ nonstatic member function indicated by routine.
   a_type_ptr   member_class;
   a_symbol_ptr member_sym;
 
+#if GNU_FUNCTION_MULTIVERSIONING
+  if (is_multiversion_representative(routine)) {
+    /* Replace a reference to the GNU multiversion representative routine
+       with a specific-target version if one is known. */
+    a_routine_ptr specific_target_routine;
+    specific_target_routine = find_specific_mv_routine(routine,
+                                                     (a_source_position*)NULL);
+    if (specific_target_routine != NULL) {
+      /* Replace the reference with the specific target version. */
+      routine = specific_target_routine;
+    }  /* if */
+  }  /* if */
+#endif /* GNU_FUNCTION_MULTIVERSIONING */
   clear_constant(con, (a_constant_repr_kind)ck_ptr_to_member);
   con->variant.ptr_to_member.is_function_ptr = TRUE;
   con->variant.ptr_to_member.variant.routine = routine;
@@ -24508,6 +24534,32 @@ explicit cast to a_byte_attribute_kind.)
   return ap;
 }  /* f_find_attribute */
 
+#if GNU_FUNCTION_MULTIVERSIONING
+
+an_attribute_ptr find_last_target_attribute(an_attribute_ptr attributes)
+/*
+Return the last "target" attribute in the given list of attributes; this seems
+to match the GNU behavior (it only acts on the last "target" attribute in
+a set).  As this call is typically made before attribute checking has occurred,
+only consider string attributes (diagnostics will be issued when the
+attributes are later processed for the non-string cases).
+*/
+{
+  an_attribute_ptr  ap, last = NULL;
+
+  for (ap = attributes; ap != NULL; ap = ap->next) {
+    if (ap->kind == (a_byte_attribute_kind)ak_target) {
+      an_attribute_arg_ptr  aap = ap->arguments;
+      if (aap->kind == (an_attribute_arg_kind)aak_raw_token &&
+          aap->variant.token[0] == '"') {
+        last = ap;
+      }  /* if */
+    }  /* if */
+  }  /* for */
+  return last;
+}  /* find_last_target_attribute */
+
+#endif /* GNU_FUNCTION_MULTIVERSIONING */
 
 #if CHECKING
 #if !(STANDALONE_UTILITY_PROGRAM && PROTOTYPE_INSTANTIATIONS_IN_IL)
@@ -25489,6 +25541,14 @@ be used, but there are exceptions.
           /* Make sure the routine is not an individuated entity nor
              contains an individuated entity as part of its type.
              (otherwise its mangled name would involve the module id). */
+#if GNU_FUNCTION_MULTIVERSIONING
+        } else if (has_gnu_routine_supp(routine) &&
+                   (gnu_routine_supp(routine)->is_representative ||
+                    gnu_routine_supp(routine)->is_specific_target_version)) {
+          /* Skip GNU function multiversion routines (the mangling for these
+             can depend on their use making them poor candidates for basing
+             a module id on). */
+#endif /* GNU_FUNCTION_MULTIVERSIONING */
         } else {
           /* This routine definition fits the bill.  Get the appropriate
              name. */

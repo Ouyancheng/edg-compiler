@@ -9788,7 +9788,30 @@ elsewhere.
 } /* lower_extern_inline_routine */
 
 #endif /* LOWER_EXTERN_INLINE */
+#if GNU_FUNCTION_MULTIVERSIONING
 
+static void lower_mv_routine(a_routine_ptr routine)
+/*
+This is the representative routine for a family of GNU function multiversions;
+create a resolver routine if needed.
+*/
+{
+  check_assertion(is_multiversion_representative(routine) &&
+                  gnu_routine_supp(routine)->
+                    mv_info.representative.targeted_versions->routine != NULL);
+
+  /* Note that a resolver routine is created only if the representative
+     routine has been referenced in some way (this seems to match g++). */
+  if (gnu_routine_supp(routine)->mv_resolver_required) {
+    /* Create a resolver routine and associate it with this ifunc routine. */
+    create_mv_resolver(routine);
+  } else {
+    /* Clear the "ifunc" attribute (since we have no resolver routine). */
+    routine->is_ifunc = FALSE;
+  }  /* if */
+}  /* lower_mv_routine */
+
+#endif /* GNU_FUNCTION_MULTIVERSIONING */
 #if LOWER_IFUNC
 
 a_variable_ptr make_ifunc_resolver_var(a_routine_ptr rp)
@@ -9993,6 +10016,14 @@ not include the function scope memory region, if any.
       define_default_version_of_routine(routine->variant.lambda_call_operator,
                                         routine, (an_expr_node_ptr)NULL);
     }  /* if */
+#if GNU_FUNCTION_MULTIVERSIONING
+    if (is_multiversion_representative(routine)) {
+      /* Create a resolver routine, if necessary, for this versioned routine;
+         do this before lowering ifunc (as it'll need to be lowered if ifuncs
+         are being lowered). */
+      lower_mv_routine(routine);
+    }  /* if */
+#endif /* GNU_FUNCTION_MULTIVERSIONING */
 #if LOWER_IFUNC
     if (routine->is_ifunc) {
       /* Lower the ifunc routine. */

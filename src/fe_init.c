@@ -1330,6 +1330,7 @@ after the command-line processing has been done.
 #if MICROSOFT_EXTENSIONS_ALLOWED
   ms_attrib_one_time_init();
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+  sys_predef_one_time_init();
 #if CHECKING
   /* Verify that the type used to store a function pointer index is
      large enough. */

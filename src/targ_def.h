@@ -4957,6 +4957,84 @@ should be so treated.
 #define FAVOR_CONSTANT_RESULT_FOR_NONSTATIC_INIT (!BACK_END_IS_CP_GEN_BE)
 #endif /* ifndef FAVOR_CONSTANT_RESULT_FOR_NONSTATIC_INIT */
 
+/*
+GNU supports function multiversioning in version 4.8 and later, via
+the "target" attribute.  Detailed documentation is available here:
+http://gcc.gnu.org/wiki/FunctionMultiVersioning.
+The "target" attribute allows multiple versions of a function
+definition to be supplied, and the choice of which version
+to call is determined at run time based on characteristics
+of the machine where the program is running.  The choice is made by a
+compiler-generated (when lowering is enabled) "resolver" routine that
+selects the best routine from the specific target versions.  The resolver
+routine is executed once at load time (because it is associated with an "ifunc"
+routine) to determine which target-specific routine to use for the particular
+CPU.  For back ends that don't support "ifunc", see LOWER_IFUNC.
+
+For example (assuming USE_X86_FUNCTION_MULTIVERSIONING is TRUE):
+
+  __attribute__ ((target("default")))     int foo () { return 222; }
+  __attribute__ ((target("arch=corei7"))) int foo () { return 777; }
+  __attribute__ ((target("avx")))         int foo () { return 333; }
+  int main () {
+    int (*fp)() = foo;
+    return fp() != foo();
+  }
+
+Would generate (when lowered), pseudo-code like this:
+
+  int foo_default () { return 222; }  // "default" foo
+  int foo_corei7 () { return 777; }   // "corei7" foo
+  int foo_avx () { return 333; }      // "avx" foo
+  // Resolver function returns address of specific function
+  static (int *foo.resolver()) { // lowering-generated resolver function
+    resolved_foo = // one of foo_default, foo_corei7, foo_avx as appropriate
+    return resolved_foo;
+  }
+  int foo.ifunc() __attribute__((ifunc("foo.resolver"));
+  int main () {
+    int (*fp)() = foo.ifunc;       // &foo lowered to &foo.ifunc
+                                   // dynamic loader invoke foo.resolver
+                                   // to select which specific foo.
+                                   // foo.ifunc is invoked once during
+                                   // startup.
+    return fp() != foo.ifunc();    // call of foo is lowered to foo.ifunc
+  }
+
+When GNU_FUNCTION_MULTIVERSIONING is TRUE, the front end does the necessary
+processing to produce a resolver routine.  When it is FALSE, or in C mode,
+the "target" attribute is accepted and included in the IL but no additional
+processing is performed.
+*/
+#ifndef GNU_FUNCTION_MULTIVERSIONING
+#define GNU_FUNCTION_MULTIVERSIONING FALSE
+#endif /* !defined(GNU_FUNCTION_MULTIVERSIONING) */
+
+#if GNU_FUNCTION_MULTIVERSIONING && !GNU_EXTENSIONS_ALLOWED
+  #error GNU_FUNCTION_MULTIVERSIONING requires GNU_EXTENSIONS_ALLOWED
+#endif /* GNU_FUNCTION_MULTIVERSIONING && !GNU_EXTENSIONS_ALLOWED */
+
+/*
+This flag controls whether the front end implements GNU function
+multiversioning that is specific to the x86 family of processors.  When TRUE,
+the various CPU and Instruction Set Architectures (ISAs) that are specified
+in the GNU Function Multiversioning wiki
+(http://gcc.gnu.org/wiki/FunctionMultiVersioning) are recognized and, when
+using lowering, a resolver function is created to implement the decision
+making process at run-time.  When this flag is FALSE (and
+GNU_FUNCTION_MULTIVERSIONING is TRUE), routines with a "target" attribute
+are treated as multiversion routines, but no checking of the attributes
+is performed, and an empty resolver function is created (when lowering).
+In this case, a back end must provide the appropriate resolving.
+*/
+#ifndef USE_X86_FUNCTION_MULTIVERSIONING
+#define USE_X86_FUNCTION_MULTIVERSIONING GNU_FUNCTION_MULTIVERSIONING
+#endif /* !defined(USE_X86_FUNCTION_MULTIVERSIONING) */
+
+#if USE_X86_FUNCTION_MULTIVERSIONING && !GNU_FUNCTION_MULTIVERSIONING
+  #error USE_X86_FUNCTION_MULTIVERSIONING requires GNU_FUNCTION_MULTIVERSIONING
+#endif /* USE_X86_FUNCTION_MULTIVERSIONING && !GNU_FUNCTION_MULTIVERSIONING */
+
 #endif /* !defined(TARG_DEF_H) */
 
 

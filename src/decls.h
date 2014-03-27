@@ -597,6 +597,24 @@ typedef struct a_decl_parse_state {
 		constexpr_pos;
 			/* The position of the "constexpr" specifier (if
 			   any). */
+#if GNU_FUNCTION_MULTIVERSIONING
+			/* These fields are added to support GNU "target"
+			   attributes, i.e., GNU function multiversioning.
+			   They're used to pass information to/from
+			   check_target_attr. */
+  a_routine_ptr
+		mv_representative_routine;
+			/* The representative routine if there is one,
+			   otherwise NULL. */
+  a_routine_ptr
+		mv_routine_ptr;
+			/* On input to check_target_attr, represents the
+			   routine being declared, on output, it represents
+			   the specific target version routine. */
+  a_scope_depth
+		mv_scope_depth;
+			/* The scope depth for new multiversion routines. */
+#endif /* GNU_FUNCTION_MULTIVERSIONING */
   a_bit_field
 		in_class_scope:1;
 			/* TRUE if the current declaration appears in class
@@ -1401,6 +1419,11 @@ extern void decls_init(void);
 #if DEBUG
 unsigned long show_decl_space_used(void);
 #endif /* DEBUG */
+
+#if GNU_FUNCTION_MULTIVERSIONING && GENERATE_SOURCE_SEQUENCE_LISTS
+extern void fix_mv_source_sequence_entry(a_source_sequence_entry_ptr ssep,
+                                         a_routine_ptr               routine);
+#endif /* GNU_FUNCTION_MULTIVERSIONING && GENERATE_SOURCE_SEQUENCE_LISTS */
 
 #endif /* DECLS_H */
 
