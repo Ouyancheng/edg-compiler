@@ -1,5 +1,35 @@
 Version 4.9
 
+3/26/14  [EDGcpfe/14937]
+Dependent static member constant matched to pointer parameter in GNU mode
+
+A constant whose value is template-dependent and whose type is a non-dependent
+integral type is normally not considered a potential null pointer constant
+when matching the constant to a pointer type parameter.  However, in GNU mode
+that rule was disabled because calls with such constants were expected to be
+treated as "template-dependent" and resolved at template instantiation time
+when the value of the constant is known.  (See the entry for EDGcpfe/9380 on
+12/15/08.)  However, not all calls with such constants as arguments are
+"template-dependent" in GNU C++ mode; when they aren't, the normal rule of not
+matching the constant with a pointer parameter now applies.  For example:
+
+  void g(char*);
+  void g(char);
+  template<typename T> struct S {
+    void f() {
+      g(N);  // Previously triggered an ambiguity error in GNU C++ mode.
+    }        // Now okay.
+    static char unsigned const N = T::k;
+  };
+  struct X { static unsigned const k = 3; };
+  template struct S<X>;  // To force a prototype instantiation of S<T>::f.
+
+During the prototype instantiation of f, the call g(N) is nondependent even
+in GNU C++ mode.  Previously, however, N was considered a potential match for
+the char* parameter of g(char*), which resulted in an ambiguity.  Now, only
+g(char) is a viable candidate (and hence there is no ambiguity).
+
+
 3/26/14  [EDGcpfe/14951]
 C++-generating back end: incorrect typeid expression with unnamed type
 
@@ -76,34 +106,6 @@ Microsoft C compatibility: static_assert
 In Microsoft C mode with microsoft_version >= 1600, the front end now enables
 static_assert with the C++ spelling of the keyword (i.e., "static_assert"
 instead of "_Static_assert").
-
-
-3/21/14  [EDGcpfe/14937]
-Dependent static member constant matched to pointer parameter in GNU mode
-
-In GNU C++ mode, the front end handles a value-dependent constant argument in
-a special way when considering whether it could be a null pointer constant
-match for a pointer parameter (see the entry for EDGcpfe/9380 on 12/15/08).
-However, our emulation of the GNU behavior fell short when the value-dependent
-constant was expressed through a static data member constant.  For example:
-
-  void g(char*);
-  void g(char);
-  template<typename T> struct S {
-    void f() {
-      g(N);  // Previously triggered an ambiguity error.
-    }
-    static char unsigned const N = T::k;
-  };
-  struct X { static unsigned const k = 3; };
-  template struct S<X>;  // To force a prototype instantiation of S<T>::f.
-
-Previously, during the prototype instantiation of f, the front end treated the
-g(N) as nondependent and a match for both functions g in GNU C++ mode.  Now
-the argument N is treated as dependent in GNU mode because it is a static
-member of a prototype instantiation.  (In non-GNU modes the argument is
-non-dependent but it is not considered a match for a pointer parameter either
-and so no ambiguity ensues.)
 
 
 3/21/14  [EDGcpfe/14921]

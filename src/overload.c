@@ -3110,13 +3110,10 @@ copy-initialization).
           !arg_operand->is_cfront_null_pointer_constant) &&
         /* In prototype instantiation calls, assume that a value-dependent
            integral value can't be treated as a null pointer constant even
-           if it might have the value zero in some instantiations.
-           g++ does this differently; we treat the call as dependent in g++
-           mode. */
+           if it might have the value zero in some instantiations. */
         !(arg_operand_is_constant &&
           is_possible_dependent_null_pointer_constant(arg_operand_constant) &&
-          is_pointer_type(param_type) &&
-          !gpp_mode)) {
+          is_pointer_type(param_type))) {
       /* Match with standard conversions. */
       arg_summary->match_level = aml_std_conversion;
       arg_summary->conversion.std = std_conversion;
@@ -8418,11 +8415,10 @@ an argument of a call in gpp mode even though the standard says it's not.
 {
   a_boolean result = FALSE;
 
-  /* The cases we care about are "this->x", "*(this->x)", and references to
-     static data members of a prototype instantiation.  g++ sees those as
-     dependent even if the type of the member is known.  The same is true of a
-     call of a member function of the current class even if the return type is
-     known. */
+  /* The cases we care about are "this->x" and "*(this->x)".  g++ sees
+     those as dependent even if the type of x is known.  Also a call
+     of a member function of the current class even if the return type
+     is known. */
   if (is_expression_operand(operand)) {
     an_expr_node_ptr expr = skip_parens(operand->variant.expression);
     if (is_operation_node(expr) &&
@@ -8454,12 +8450,6 @@ an argument of a call in gpp mode even though the standard says it's not.
       if (potential_this != NULL &&
           is_variable_node(potential_this) &&
           potential_this->variant.variable->is_this_parameter) {
-        result = TRUE;
-      }  /* if */
-    } else if (is_variable_node(expr)) {
-      a_variable_ptr  var = expr->variant.variable;
-      if (var->is_template_static_data_member &&
-          var->is_prototype_instantiation) {
         result = TRUE;
       }  /* if */
     }  /* if */
