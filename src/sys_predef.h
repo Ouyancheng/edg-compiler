@@ -100,12 +100,7 @@ extern a_routine_ptr get_mv_default_routine(a_routine_ptr routine);
 extern int mv_target_count(a_routine_ptr routine);
 #endif /* USE_X86_FUNCTION_MULTIVERSIONING */
 
-extern void validate_target_argument(a_const_char         *str,
-                                     size_t               str_len,
-                                     an_attribute_arg_ptr aap,
-                                     a_routine_ptr        routine,
-                                     a_boolean            *error_issued);
-
+#if GNU_FUNCTION_MULTIVERSIONING
 extern a_routine_ptr find_existing_mv_routine(
                                        a_routine_ptr representative_routine,
                                        a_routine_ptr candidate);
@@ -114,6 +109,13 @@ extern void add_to_specific_version_list(a_routine_ptr representative_routine,
                                          a_routine_ptr target_routine);
 
 extern a_const_char *mangled_mv_identifier_for_routine(a_routine_ptr routine);
+#endif /* GNU_FUNCTION_MULTIVERSIONING */
+
+extern void validate_target_argument(a_const_char         *str,
+                                     size_t               str_len,
+                                     an_attribute_arg_ptr aap,
+                                     a_routine_ptr        routine,
+                                     a_boolean            *error_issued);
 
 #endif /* GNU_EXTENSIONS_ALLOWED */
 
