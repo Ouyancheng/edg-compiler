@@ -23329,10 +23329,9 @@ that case.
               expr_pos_diagnostic(es_remark, ec_signed_unsigned_comparison,
                                   &operator_position);
             }  /* if */
-          } else {
-            diagnose_comparison_if_different_enum_types(type_1, type_2,
-                                                        &operator_position);
           }  /* if */
+          diagnose_comparison_if_different_enum_types(type_1, type_2,
+                                                      &operator_position);
         }  /* if */
       }  /* if */
     }  /* if */
