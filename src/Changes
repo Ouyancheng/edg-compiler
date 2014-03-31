@@ -1,5 +1,16 @@
 Version 4.9
 
+3/31/14  [EDGcpfe/14989]
+Off-by-one error when writing C++/CLI portable assemblies
+
+In configurations that use portable assemblies to emulate C++/CLI DLLs,
+there was an off-by-one error when generating a portable assembly which had
+caused the last entry not to be written to the portable assembly, potentially
+causing an assertion failure in import_class_definition if that last entry
+was ever referenced.  Now fixed.  Any portable assemblies should be
+re-generated.
+
+
 3/27/14  [EDGcpfe/14981]
 Microsoft compatibility: define _MANAGED macro in C++/CLI mode
 

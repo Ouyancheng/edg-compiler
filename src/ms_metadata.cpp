@@ -8224,7 +8224,6 @@ assembly_name determines the file name for the generated portable assembly.
     pa_table[0].offset = ftell(f_pa);
     pa_table[0].size = buffer->size;
     (void)fwrite((a_stdio_arg)buffer->buffer, 1, buffer->size, f_pa);
-    cur_entry_no++;
     /* For each typedef in the assembly, get its definition (in case we ever
        need it) and write it to the portable assembly. */
     for (auto import_scope_iter = imported_scopes_.begin();
@@ -8276,6 +8275,8 @@ assembly_name determines the file name for the generated portable assembly.
       } while (count_of_typedefs > 0);
       import_interface->CloseEnum(enum_typedefs);
     }  /* for */
+    /* Increment to account for zeroth entry. */
+    cur_entry_no++;
     /* Initialize the header now that we know the proper information. */
     header.magic = PORTABLE_ASSEMBLY_MAGIC_NUMBER;
     header.num_entries = cur_entry_no;
