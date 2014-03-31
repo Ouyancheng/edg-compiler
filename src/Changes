@@ -13,12 +13,12 @@ cppcli_enabled is TRUE.  For example:
 
 
 3/27/14  [EDGcpfe/14979]
-Default template parameters on member class template of non-template class
+Default template arguments on member class template of non-template class
 
-The front end issued a spurious error on an out-of-class definition of
-a class template member of a non-template class.  Such usage is prohibited
-for members of class templates, but not for members of non-template
-classes.  Now fixed.
+The front end issued a spurious error if an out-of-class definition of
+a class template member of a non-template class specified a default
+template argument.  Such usage is prohibited for members of class templates,
+but not for members of non-template classes.  Now fixed.
 
   struct A {
     template <typename T> class B;
