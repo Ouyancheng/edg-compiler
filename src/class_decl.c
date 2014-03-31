@@ -76,11 +76,6 @@ typedef struct a_routine_fixup {
   a_token_cache function_body_token_cache;
 			/* A pointer to the token cache that describes the
 			   function body. */
-#if GNU_FUNCTION_MULTIVERSIONING
-  a_routine_ptr	specific_target_routine;
-			/* For GNU multiversioned routines, save the
-			   specific target version routine for fixup. */
-#endif /* GNU_FUNCTION_MULTIVERSIONING */
   a_byte_boolean
 		is_specialization;
 			/* TRUE if this entry is for a Microsoft mode
@@ -224,9 +219,6 @@ initialize it.
   rfp->class_type = class_type;
   rfp->def_arg_expr_fixup_list = NULL;
   rfp->prototype_scope_symbols = NULL;
-#if GNU_FUNCTION_MULTIVERSIONING
-  rfp->specific_target_routine = NULL;
-#endif /* GNU_FUNCTION_MULTIVERSIONING */
   rfp->is_specialization = FALSE;
 #if GENERATE_SOURCE_SEQUENCE_LISTS
 #if NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
@@ -2751,13 +2743,6 @@ nested class.
         } else {
           /* Normal case. */
           a_routine_ptr  rp = rfp->symbol->variant.routine.ptr;
-#if GNU_FUNCTION_MULTIVERSIONING
-          /* FIXME: is this fixup needed? */
-          if (rfp->specific_target_routine != NULL) {
-            /* Get the correct routine pointer from rfp. */
-            rp = rfp->specific_target_routine;
-          }  /* if */
-#endif /* GNU_FUNCTION_MULTIVERSIONING */
 
 #if GENERATE_SOURCE_SEQUENCE_LISTS
 #if TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
