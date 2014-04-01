@@ -9478,20 +9478,30 @@ When templates_only is TRUE, only function templates members are considered.
     if (new_function_is_qualified) {
       /* Both routines are qualified.  Use the "this" param type as part
          of the compatibility check. */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+      if (dps->is_explicit_override) {
+        /* This is an explicit override case (where both functions have
+           qualifiers).  The types of the "this" parameters are guaranteed
+           to differ, so exclude them from consideration, but check that
+           the qualifiers are the same (done after the match below). */
+        tcf_flags |= TCF_IGNORE_THIS_CLASS_TYPE;
+      }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     } else {
-      /* Neither routine is qualified.  Save away the "this" param types,
-         do the compatibility check without them, and then restore them. */
-      new_rts->this_class = NULL;
-      orig_rts->this_class = NULL;
+      /* Neither routine is qualified; no need to check the compatibility
+         of the "this" param type. */
+      tcf_flags |= TCF_IGNORE_THIS_CLASS_TYPE;
     }  /* if */
     match = routine_types_are_redecl_compatible(orig_type, new_type,
                                                 tcf_flags);
-    if (!new_function_is_qualified) {
-      /* Restore the implicit "this" parameter types in orig_type and
-         new_type. */
-      new_rts->this_class = new_this_class;
-      orig_rts->this_class = orig_this_class;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    if (match && new_function_is_qualified && dps->is_explicit_override &&
+        new_quals != orig_rts->qualifiers) {
+      /* Check that the qualifiers of an explicit override case are the
+         same. */
+      match = FALSE;
     }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     if (match) {
       /* If a match was found by types_are_compatible, break out of the loop.
          An exception is made if the match we found is a selective overrider
@@ -11546,6 +11556,7 @@ NULL if none can be found.
     if (sym != NULL) {
       if (is_member_function_symbol(sym)) {
         /* The qualified declarator identified a known member function. */
+        dps->is_explicit_override = TRUE;
         sym = member_function_redecl_sym_with_template_flag(
                                                     sym, dps,
                                                     (a_template_param_ptr)NULL,

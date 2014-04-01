@@ -883,6 +883,9 @@ typedef struct a_decl_parse_state {
   a_bit_field	is_inheriting_ctor:1;
 			/* TRUE if this is the declaration of an inheriting
 			   constructor. */
+  a_bit_field	is_explicit_override:1;
+			/* TRUE if this is the declaration of an explicit
+			   overrider (Microsoft mode only). */
   an_init_state
 		init_state;
 			/* Information about the initializer (if any)
