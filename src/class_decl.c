@@ -13394,8 +13394,10 @@ implicitly declared member functions.
     /* Pre-apply the GNU multiversion target attribute, if any.  This is
        required because applying the attribute through the normal mechanism
        would be too late. */
-    an_attribute_ptr  target_ap;
-    target_ap = find_last_target_attribute(decl_state->prefix_attributes);
+    an_attribute_ptr  target_ap = NULL;
+    if (decl_state->prefix_attributes != NULL) {
+      target_ap = find_last_target_attribute(decl_state->prefix_attributes);
+    }  /* if */
     if (target_ap != NULL) {
       /* This information is passed via dps into the attribute processing
          for GNU multiversion target attribute. */

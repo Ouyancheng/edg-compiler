@@ -8930,7 +8930,7 @@ skip_overloading:;
   }  /* if */
 #if GNU_FUNCTION_MULTIVERSIONING
   if (gpp_mode) {
-    an_attribute_ptr  target_ap;
+    an_attribute_ptr  target_ap = NULL;
     /* This information is passed via dps into the attribute processing
        for the GNU multiversion "target" attribute. */
     if (redeclaration && linked_symbol != NULL) {
@@ -8959,8 +8959,10 @@ skip_overloading:;
     dps->mv_scope_depth = DEPTH_OF_FILE_SCOPE;
     /* GNU accepts "target" attributes in two locations in the declaration,
        but it only acts on the last one. */
-    target_ap = find_last_target_attribute(dps->id_attributes);
-    if (target_ap == NULL) {
+    if (dps->id_attributes != NULL) {
+      target_ap = find_last_target_attribute(dps->id_attributes);
+    }  /* if */
+    if (target_ap == NULL && dps->prefix_attributes != NULL) {
       target_ap = find_last_target_attribute(dps->prefix_attributes);
     }  /* if */
     if (target_ap != NULL) {
