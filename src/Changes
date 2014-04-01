@@ -1,5 +1,19 @@
 Version 4.9
 
+4/1/14   [EDGcpfe/14886]
+Microsoft compatibility: spurious error on template template default argument
+
+A spurious error could be issued in Microsoft mode on the use of a
+template template argument for a template template parameter that has
+a default argument specified.  Now fixed.
+
+  template <class T> class A {};
+  template <template <class = int> class D = A> struct C {
+    void f();
+  };
+  template <template <class> class D> void C<D>::f() { }
+
+
 4/1/14   [EDGcpfe/14980]
 Microsoft compatibility: member function qualification for explicit override
 

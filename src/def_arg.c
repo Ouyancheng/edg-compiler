@@ -181,8 +181,15 @@ when either is_function_template or is_template_param are FALSE.
   last_tsn = curr_token_sequence_number;
   if (!is_template_param) last_tsn--;
   if (is_template_param) {
+    /* Normally the last token of the cache (usually a comma or the ">" that
+       ends the template parameter list) is not included.  But if we are
+       rescanning the default argument from a cache and hit the
+       tok_end_of_source terminator (which will not be in the cache),
+       we want to include the last token that is in the cache. */
     copy_tokens_from_cache(curr_lexical_state_cache(), first_tsn, last_tsn,
-                           /*include_last_token=*/FALSE, token_cache);
+                           /*include_last_token=*/
+                                               curr_token == tok_end_of_source,
+                           token_cache);
     /* Normally tokens are cached directly into a reusable cache or are
        moved from one reusable cache to another.  In this case, however,
        the tokens are being copied from one reusable cache to another.
