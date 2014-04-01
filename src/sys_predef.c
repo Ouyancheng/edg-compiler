@@ -2979,25 +2979,34 @@ to by the representative routine.
 }  /* get_mv_target_count */
 
 
-a_routine_ptr find_mv_match_for_surrounding_routine(
+a_routine_ptr find_mv_specific_target_routine(
                                              a_routine_ptr routine,
                                              a_routine_ptr surrounding_routine)
 /*
-Returns a specific target version (of the set of routines represented by
-"routine") that matches the target architecture of surrounding_routine, if one
-exists (otherwise returns NULL).  Note that it is possible for more than one
-specific target version to match, but this routine only returns the first
-(which seems to match GNU's behavior).
+Returns a specific-target version (of the set of routines represented by
+"routine") that can be substituted for "routine", in the context of
+surrounding_routine, if one exists (otherwise returns NULL).  This is basically
+an optimization to circumvent the use of a resolver routine when possible.
+If the routine is referenced in a function, surrounding_routine points to
+that function (and is NULL otherwise).
 */
 {
   a_routine_list_entry_ptr rlep;
   a_mv_target_bitset       surrounding_bitset, bs;
   a_routine_ptr            result = NULL;
 
-  check_assertion(is_multiversion_representative(routine) &&
-                  surrounding_routine != NULL);
-  if (has_gnu_routine_supp(surrounding_routine) &&
-      gnu_routine_supp(surrounding_routine)->is_specific_target_version) {
+  check_assertion(is_multiversion_representative(routine));
+  if (mv_target_count(routine) == 1) {
+    /* There's only one target-specific routine.  Return that routine (no
+       resolver function is needed). */
+    result = gnu_routine_supp(routine)->
+                             mv_info.representative.targeted_versions->routine;
+  } else if (surrounding_routine != NULL &&
+             has_gnu_routine_supp(surrounding_routine) &&
+             gnu_routine_supp(surrounding_routine)->
+                                                  is_specific_target_version) {
+    /* If the surrounding routine is target-specific, see if we can find
+       a match on the list of specific-target routines for that target. */
     surrounding_bitset = gnu_routine_supp(surrounding_routine)->
                                         mv_info.targeted_version.target_bitset;
     for (rlep =
@@ -3008,12 +3017,14 @@ specific target version to match, but this routine only returns the first
        gnu_routine_supp(rlep->routine)->mv_info.targeted_version.target_bitset;
       if ((bs & surrounding_bitset) != 0) {
         result = rlep->routine;
+        /* Note that it is possible for more than one specific target version
+           to match, but GNU seems to use the first. */
         break;
       }  /* if */
     }  /* for */
   }  /* if */
   return result;
-}  /* find_mv_match_for_surrounding_routine */
+}  /* find_mv_specific_target_routine */
 
 #endif /* USE_X86_FUNCTION_MULTIVERSIONING */
 #if GNU_FUNCTION_MULTIVERSIONING

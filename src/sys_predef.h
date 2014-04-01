@@ -91,7 +91,7 @@ extern int mv_display_order(int i);
   is_default_targ_bitset( \
             (routine)->gnu_extra_info->mv_info.targeted_version.target_bitset))
 
-extern a_routine_ptr find_mv_match_for_surrounding_routine(
+extern a_routine_ptr find_mv_specific_target_routine(
                                             a_routine_ptr routine,
                                             a_routine_ptr surrounding_routine);
 

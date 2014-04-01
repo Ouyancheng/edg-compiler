@@ -4846,15 +4846,7 @@ the address of the routine, e.g., a call).
 {
 #if GNU_FUNCTION_MULTIVERSIONING
   if (is_multiversion_representative(routine)) {
-    /* Replace a reference to the GNU multiversion representative routine
-       with a specific-target version if one is known. */
-    a_routine_ptr specific_target_routine;
-    specific_target_routine = find_specific_mv_routine(routine,
-                                                     (a_source_position*)NULL);
-    if (specific_target_routine != NULL) {
-      /* Replace the reference with the specific target version. */
-      routine = specific_target_routine;
-    }  /* if */
+    find_specific_mv_routine(routine, (a_source_position*)NULL);
   }  /* if */
 #endif /* GNU_FUNCTION_MULTIVERSIONING */
   clear_constant(con, (a_constant_repr_kind)ck_address);
@@ -5060,15 +5052,7 @@ nonstatic member function indicated by routine.
 
 #if GNU_FUNCTION_MULTIVERSIONING
   if (is_multiversion_representative(routine)) {
-    /* Replace a reference to the GNU multiversion representative routine
-       with a specific-target version if one is known. */
-    a_routine_ptr specific_target_routine;
-    specific_target_routine = find_specific_mv_routine(routine,
-                                                     (a_source_position*)NULL);
-    if (specific_target_routine != NULL) {
-      /* Replace the reference with the specific target version. */
-      routine = specific_target_routine;
-    }  /* if */
+    find_specific_mv_routine(routine, (a_source_position*)NULL);
   }  /* if */
 #endif /* GNU_FUNCTION_MULTIVERSIONING */
   clear_constant(con, (a_constant_repr_kind)ck_ptr_to_member);

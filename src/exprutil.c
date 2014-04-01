@@ -18925,9 +18925,9 @@ by an "&" operator and *ampersand_position gives its position.
 #if GNU_FUNCTION_MULTIVERSIONING
 
 /* FIXME: this is x86 specific. */
-/* FIXME: can this be moved to lowering? */
-a_routine_ptr find_specific_mv_routine(a_routine_ptr      routine,
-                                       a_source_position  *error_pos)
+/* FIXME: rename this: */
+void find_specific_mv_routine(a_routine_ptr      routine,
+                              a_source_position  *error_pos)
 /*
 A reference to routine (a GNU function multiversion routine) is being made;
 see if the reference should be to a specific target version routine -- if so
@@ -18936,23 +18936,20 @@ if the reference violates the GNU function multiversioning rules (error_pos can
 be NULL in which case no error is generated).
 */
 {
-  a_routine_ptr   result = NULL;
+  a_routine_ptr   surrounding_routine = NULL;
   a_gnu_routine_supplement_ptr
                   grsp = gnu_routine_supp(routine);
 
-  if (depth_innermost_function_scope != NO_SCOPE_DEPTH &&
-      (result = find_mv_match_for_surrounding_routine(routine,
-         scope_stack[depth_innermost_function_scope].assoc_routine)) != NULL) {
-    /* Special case: calling a target-specific routine within a target-specific
-       routine.  In this case, no resolver is needed: "result" is set to
-       the target-specific routine. */
-  } else if (mv_target_count(routine) == 1) {
-    /* Special case: there's only one target-specific routine.  Return that
-       routine (no resolver function is needed). */
-    result = grsp->mv_info.representative.targeted_versions->routine;
-  } else if (grsp->mv_resolver_required) {
-    /* We've previously determined that a resolver is required; return NULL
-       since we didn't find a candidate above. */
+  if (depth_innermost_function_scope != NO_SCOPE_DEPTH) {
+    surrounding_routine =
+                     scope_stack[depth_innermost_function_scope].assoc_routine;
+  }  /* if */
+  if (grsp->mv_resolver_required) {
+    /* We've previously determined that a resolver is required. */
+  } else if (find_mv_specific_target_routine(routine, surrounding_routine)
+                                                                     != NULL) {
+    /* This routine can be replaced by a reference to a specific-target
+       version routine: no resolver is needed. */
   } else if (get_mv_default_routine(routine) != NULL) {
     /* Normal case: a resolver routine is required.  Record the fact that
        a resolver is needed (on all routines since it's not possible to
@@ -18969,7 +18966,7 @@ be NULL in which case no error is generated).
     /* A "default" version is needed but not provided. */
     expr_pos_error(ec_gnu_mv_default_missing, error_pos);
   }  /* if */
-  return result;
+  return;
 }  /* find_specific_mv_routine */
 
 #endif /* GNU_FUNCTION_MULTIVERSIONING */
@@ -19070,13 +19067,7 @@ used in generating the function-identifying operand in a call.
           /* Issue any errors that are specific to a GNU function multiversion
              routine. */
           /* FIXME: Can we do this earlier? */
-          a_routine_ptr specific_target_routine;
-          specific_target_routine = find_specific_mv_routine(rout,
-                                                           ampersand_position);
-          if (specific_target_routine != NULL) {
-            /* Replace the reference with the specific target version. */
-            expr->variant.routine.ptr = specific_target_routine;
-          }  /* if */
+          find_specific_mv_routine(rout, ampersand_position);
         }  /* if */
       }  /* if */
     }

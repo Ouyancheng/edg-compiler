@@ -10300,6 +10300,7 @@ add an appropriate string to the current mangled name to identify it.
        C-generating back end because the names contain "."). */
     if (is_mv_default_routine(routine) ||
         (!grsp->mv_resolver_required &&
+         /* FIXME: can we get away from called and address_taken here? */
          (routine->called || routine->address_taken))) {
       /* FIXME: find a way to get a count (can't get to is_representative) */
       /* No suffix is added for the "default" routine or if it is the only

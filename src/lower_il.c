@@ -33,6 +33,9 @@ lower_il.c -- Lower C++ intermediate language to C intermediate language.
 #include "class_decl.h"
 #include "layout.h"
 #include "il_walk.h"
+#if GNU_FUNCTION_MULTIVERSIONING
+#include "sys_predef.h"
+#endif /* GNU_FUNCTION_MULTIVERSIONING */
 
 #if PARENS_IN_IL
 /* IL lowering doesn't check for and skip over eok_parens nodes, so
@@ -506,6 +509,9 @@ static void promote_static_variable_out_of_function(
                                                a_variable_ptr variable,
                                                a_scope_ptr    scope,
                                                a_routine_ptr  routine);
+#if GNU_FUNCTION_MULTIVERSIONING
+static a_routine_ptr lowered_mv_routine(a_routine_ptr routine);
+#endif /* GNU_FUNCTION_MULTIVERSIONING */
 
 
 static void clear_insert_location(an_insert_location      *insert_location,
@@ -4037,6 +4043,11 @@ Do IL lowering of a pointer-to-member constant.
        has that type.  In the IA-64 ABI, this is the first field. */
     func_con = alloc_constant((a_constant_repr_kind)ck_address);
     if (routine != NULL) {
+#if GNU_FUNCTION_MULTIVERSIONING
+      if (is_multiversion_representative(routine)) {
+        routine = lowered_mv_routine(routine);
+      }  /* if */
+#endif /* GNU_FUNCTION_MULTIVERSIONING */
       /* For a non-virtual function, a pointer to the routine. */
       set_routine_address_constant(routine, func_con,
                                    /*set_address_taken_flag=*/TRUE);
@@ -5085,11 +5096,20 @@ Do IL lowering of the indicated constant and everything under it.
 #endif /* C99_IL_EXTENSIONS_SUPPORTED */
       case ck_address:
         switch (constant->variant.address.kind) {
-          case abk_routine:
           case abk_variable:
           case abk_label:
-            /* Variables, routines, and labels will have appeared on
+            /* Variables and labels will have appeared on
                lists attached to some scope. */
+            break;
+          case abk_routine:
+#if GNU_FUNCTION_MULTIVERSIONING
+            { a_routine_ptr rp = constant->variant.address.variant.routine;
+              if (is_multiversion_representative(rp)) {
+                constant->variant.address.variant.routine =
+                                                        lowered_mv_routine(rp);
+              }  /* if */
+            }
+#endif /* GNU_FUNCTION_MULTIVERSIONING */
             break;
           case abk_constant:
             addressed_con = constant->variant.address.variant.constant;
@@ -9810,6 +9830,43 @@ create a resolver routine if needed.
     routine->is_ifunc = FALSE;
   }  /* if */
 }  /* lower_mv_routine */
+
+
+static a_routine_ptr lowered_mv_routine(a_routine_ptr routine)
+/*
+A reference of some sort is being made to routine (which is a GNU
+multiversion representative).  If the routine can be replaced by
+a specific-target version routine (i.e., no resolver is necessary), return
+that routine (otherwise return NULL).
+*/
+{
+  a_routine_ptr result = routine;
+#if USE_X86_FUNCTION_MULTIVERSIONING
+  a_routine_ptr surrounding_routine = NULL;
+
+  check_assertion(is_multiversion_representative(routine));
+  if (innermost_function_scope != NULL) {
+    surrounding_routine = innermost_function_scope->variant.routine.ptr;
+  }  /* if */
+  result = find_mv_specific_target_routine(routine, surrounding_routine);
+  if (result == NULL) {
+    result = routine;
+  } else {
+    /* Replace the reference to the representative routine with a direct
+       reference to a specific-target version.  Transfer some of the relevant
+       state information from the representative function to the
+       specific-target version. */
+    result->called = routine->called;
+    result->address_taken = routine->address_taken;
+    result->source_corresp.referenced = routine->source_corresp.referenced;
+#if MAINTAIN_NEEDED_FLAGS
+    mark_as_needed_like((char *)result, iek_routine, &routine->source_corresp,
+                        /*set_class_defn_needed=*/FALSE);
+#endif /* MAINTAIN_NEEDED_FLAGS */
+  }  /* if */
+#endif /* USE_X86_FUNCTION_MULTIVERSIONING */
+  return result;
+}  /* lowered_mv_routine */
 
 #endif /* GNU_FUNCTION_MULTIVERSIONING */
 #if LOWER_IFUNC
@@ -14876,6 +14933,12 @@ cast.  See lower_expr for typical invocation.
       /* No processing required. */
       break;
     case enk_routine:
+#if GNU_FUNCTION_MULTIVERSIONING
+      if (is_multiversion_representative(expr->variant.routine.ptr)) {
+        expr->variant.routine.ptr =
+                                 lowered_mv_routine(expr->variant.routine.ptr);
+      }  /* if */
+#endif /* GNU_FUNCTION_MULTIVERSIONING */
 #if LOWER_IFUNC
       if (expr->variant.routine.ptr->is_ifunc) {
         /* Re-write the node to avoid calling the wrapper routine. */

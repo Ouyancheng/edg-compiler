@@ -13585,7 +13585,6 @@ implicitly declared member functions.
       /* Since this is a definition, record the current lint argsused and
          varargs-count state in the routine type. That will suppress any
          warnings about unused parameters or variable arguments. */
-      /* FIXME: sym and sym->variant.routine.ptr differ: */
       record_lint_argsused_and_varargs_state(sym);
     }  /* if */
   }  /* if */
