@@ -5639,12 +5639,12 @@ Instantiate the body of the template function associated with tip.
          rlep != NULL;
          rlep = rlep->next) {
       a_symbol_ptr            r_sym = symbol_for(rlep->routine);
-      a_template_instance_ptr tip;
+      a_template_instance_ptr r_tip;
       check_assertion(r_sym->kind == (a_symbol_kind)sk_member_function);
-      tip = template_instance_for_symbol(r_sym);
-      check_assertion(tip != NULL);
+      r_tip = template_instance_for_symbol(r_sym);
+      check_assertion(r_tip != NULL);
       rlep->routine->is_template_function = TRUE;
-      f_instantiate_template_function(tip, rlep->routine);
+      f_instantiate_template_function(r_tip, rlep->routine);
     }  /* for */
   } else
 #endif /* GNU_FUNCTION_MULTIVERSIONING */

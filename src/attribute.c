@@ -5749,7 +5749,7 @@ attribute in C mode).
 */
 {
   an_attribute_arg_ptr  aap = ap->arguments;
-  a_boolean             error = FALSE;
+  a_boolean             err = FALSE;
   a_routine_ptr         representative, target_routine = NULL;
   a_routine_ptr         existing;
   a_symbol_locator      loc;
@@ -5765,7 +5765,7 @@ attribute in C mode).
        extern "C" block is ignored (it'll be recorded later).  No error is
        reported, but the routine returns FALSE (to prevent multiversioning
        code from being executed). */
-    error = TRUE;
+    err = TRUE;
     goto done;
   }  /* if */
   if (dps->mv_representative_routine == NULL) {
@@ -5827,7 +5827,7 @@ attribute in C mode).
     ensure_gnu_routine_supp(target_routine)->mv_resolver_required = TRUE;
   }  /* if */
   /* Validate the argument string. */
-  validate_target_argument_string(aap, target_routine, &error);
+  validate_target_argument_string(aap, target_routine, &err);
   /* Check to see if the new routine is compatible with those already
      declared (if any). */
   existing = find_existing_mv_routine(representative, target_routine);
@@ -5837,7 +5837,7 @@ attribute in C mode).
        definitions. */
     if (dps->is_definition && existing->defined) {
       sym_error(ec_function_redefinition, dps->sym);
-      error = TRUE;
+      err = TRUE;
     } else {
       /* Use the previously declared routine. */
       dps->mv_routine_ptr = existing;
@@ -5850,7 +5850,7 @@ attribute in C mode).
   /* Make the specific-target version routine available to the caller. */
   dps->mv_routine_ptr = target_routine;
 done:
-  return !error;
+  return !err;
 #undef MAX_TARGET_PAIR_LEN
 }  /* check_target_attr */
 

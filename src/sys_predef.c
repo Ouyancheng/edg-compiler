@@ -2831,13 +2831,13 @@ a_const_char *mv_arch_name_string_table[] = {
   "sse2",            /* mv_isa_sse2 */
   "sse3",            /* mv_isa_sse3 */
   "ssse3",           /* mv_isa_ssse3 */
-#if USE_PERIOD_FOR_MV_NAME_SEPARATOR
-  "sse4.1",          /* mv_isa_sse4_1 */
-  "sse4.2",          /* mv_isa_sse4_2 */
-#else /* !USE_PERIOD_FOR_MV_NAME_SEPARATOR */
+#if BACK_END_IS_C_GEN_BE
   "sse4_1",          /* mv_isa_sse4_1 */
   "sse4_2",          /* mv_isa_sse4_2 */
-#endif /* USE_PERIOD_FOR_MV_NAME_SEPARATOR */
+#else /* !BACK_END_IS_C_GEN_BE */
+  "sse4.1",          /* mv_isa_sse4_1 */
+  "sse4.2",          /* mv_isa_sse4_2 */
+#endif /* BACK_END_IS_C_GEN_BE */
   "popcnt",          /* mv_isa_popcnt */
   "avx",             /* mv_isa_avx */
   "avx2"             /* mv_isa_avx2 */
