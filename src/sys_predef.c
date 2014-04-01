@@ -28,6 +28,9 @@ sys_predef.c -- System dependent predefined macros and assertions.
 #endif /* USE_X86_64 */
 #include "macro.h"
 #include "sys_predef.h"
+#if USE_X86_FUNCTION_MULTIVERSIONING
+#include "exprutil.h"
+#endif /* USE_X86_FUNCTION_MULTIVERSIONING */
 
 #ifdef __linux__
 
@@ -3025,6 +3028,50 @@ that function (and is NULL otherwise).
   }  /* if */
   return result;
 }  /* find_mv_specific_target_routine */
+
+
+void reference_to_mv_routine(a_routine_ptr      routine,
+                             a_source_position  *error_pos)
+/*
+A reference to routine (a GNU function multiversion representative routine) is
+being made.  Two things are done here: a decision is made as to whether or not
+a resolver routine will be needed, and an error is given (at *error_pos) if a
+resolver routine is needed and no "default" routine is provided.
+*/
+{
+  a_routine_ptr   surrounding_routine = NULL;
+  a_gnu_routine_supplement_ptr
+                  grsp = gnu_routine_supp(routine);
+
+  check_assertion(is_multiversion_representative(routine));
+  if (depth_innermost_function_scope != NO_SCOPE_DEPTH) {
+    surrounding_routine =
+                     scope_stack[depth_innermost_function_scope].assoc_routine;
+  }  /* if */
+  if (grsp->mv_resolver_required) {
+    /* It has previously been determined that a resolver is required. */
+  } else if (find_mv_specific_target_routine(routine, surrounding_routine)
+                                                                     != NULL) {
+    /* This routine can be replaced by a reference to a specific-target
+       version routine: no resolver is needed. */
+  } else if (get_mv_default_routine(routine) != NULL) {
+    /* Normal case: a resolver routine is required.  Record the fact that
+       a resolver is needed (on all routines since it's not possible to
+       get from target-specific routines to the is_representative routine --
+       useful when mangling specific-target versions). */
+    a_routine_list_entry_ptr rlep;
+    grsp->mv_resolver_required = TRUE;
+    for (rlep = grsp->mv_info.representative.targeted_versions;
+         rlep != NULL;
+         rlep = rlep->next) {
+      ensure_gnu_routine_supp(rlep->routine)->mv_resolver_required = TRUE;
+    }  /* for */
+  } else if (error_pos != NULL) {
+    /* A "default" version is needed but not provided. */
+    expr_pos_error(ec_gnu_mv_default_missing, error_pos);
+  }  /* if */
+  return;
+}  /* reference_to_mv_routine */
 
 #endif /* USE_X86_FUNCTION_MULTIVERSIONING */
 #if GNU_FUNCTION_MULTIVERSIONING

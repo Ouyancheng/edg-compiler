@@ -5276,11 +5276,6 @@ are expected to be NULL in that case.
        the function is unknown because the call is dependent. */
     a_boolean uses_operator_syntax = FALSE;
     routine = routine_from_function_operand(operand);
-#if GNU_FUNCTION_MULTIVERSIONING
-    if (routine != NULL && is_multiversion_representative(routine)) {
-      find_specific_mv_routine(routine, &call_position);
-    }  /* if */
-#endif /* GNU_FUNCTION_MULTIVERSIONING */
     if (has_overloaded_call_operator) {
       if (routine != NULL &&
           routine->special_kind == (a_special_function_kind)sfk_operator &&

@@ -4844,11 +4844,6 @@ because the constant might be used in a way that doesn't really take
 the address of the routine, e.g., a call).
 */
 {
-#if GNU_FUNCTION_MULTIVERSIONING
-  if (is_multiversion_representative(routine)) {
-    find_specific_mv_routine(routine, (a_source_position*)NULL);
-  }  /* if */
-#endif /* GNU_FUNCTION_MULTIVERSIONING */
   clear_constant(con, (a_constant_repr_kind)ck_address);
   con->variant.address.kind = (an_address_base_kind)abk_routine;
   con->variant.address.variant.routine = routine;
@@ -5050,11 +5045,6 @@ nonstatic member function indicated by routine.
   a_type_ptr   member_class;
   a_symbol_ptr member_sym;
 
-#if GNU_FUNCTION_MULTIVERSIONING
-  if (is_multiversion_representative(routine)) {
-    find_specific_mv_routine(routine, (a_source_position*)NULL);
-  }  /* if */
-#endif /* GNU_FUNCTION_MULTIVERSIONING */
   clear_constant(con, (a_constant_repr_kind)ck_ptr_to_member);
   con->variant.ptr_to_member.is_function_ptr = TRUE;
   con->variant.ptr_to_member.variant.routine = routine;
