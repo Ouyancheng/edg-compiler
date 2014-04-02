@@ -3288,6 +3288,10 @@ str_len should be used to determine the end of the argument.
       *error_issued = TRUE;
     }  /* if */
   }  /* if */
+#else /* !USE_X86_FUNCTION_MULTIVERSIONING */
+  /* Issue a warning that we're not doing anything with the attribute in
+     this configuration. */
+  pos_warning(ec_unrecognized_target_attribute, &aap->position);
 #endif /* USE_X86_FUNCTION_MULTIVERSIONING */
 }  /* validate_target_argument */
 

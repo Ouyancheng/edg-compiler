@@ -10291,6 +10291,7 @@ If the specified routine is part of a GNU function multiversion group,
 add an appropriate string to the current mangled name to identify it.
 */
 {
+#if USE_X86_FUNCTION_MULTIVERSIONING
   /* FIXME: check demangling for all of these cases. */
   a_gnu_routine_supplement_ptr grsp = gnu_routine_supp(routine);
   if (grsp->is_specific_target_version) {
@@ -10327,6 +10328,7 @@ add an appropriate string to the current mangled name to identify it.
     add_str_to_mangled_name(MANGLING_SEPARATOR_FOR_MV_FUNC, mctl);
     add_str_to_mangled_name(MANGLING_STRING_FOR_MV_IFUNC, mctl);
   }  /* if */
+#endif /* USE_X86_FUNCTION_MULTIVERSIONING */
 }  /* add_mv_distinction */
 
 #endif /* GNU_FUNCTION_MULTIVERSIONING */
