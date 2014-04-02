@@ -90,6 +90,16 @@ extern int mv_display_order(int i);
  (has_gnu_routine_supp(routine) && \
   is_default_targ_bitset( \
             (routine)->gnu_extra_info->mv_info.targeted_version.target_bitset))
+/*
+Macro that takes a representative routine and returns TRUE in the special
+case when there is exactly one target-specific routine on the list.
+*/
+#define has_exactly_one_target_specific_routine(routine) \
+  (has_gnu_routine_supp(routine) && \
+   (routine)->gnu_extra_info->mv_info.representative.targeted_versions \
+                                                                   != NULL && \
+   (routine)->gnu_extra_info->mv_info.representative.targeted_versions->next \
+                                                                      == NULL)
 
 extern void reference_to_mv_routine(a_routine_ptr      routine,
                                     a_source_position  *error_pos);
@@ -100,7 +110,6 @@ extern a_routine_ptr find_mv_target_specific_routine(
 
 extern a_routine_ptr get_mv_default_routine(a_routine_ptr routine);
 
-extern int mv_target_count(a_routine_ptr routine);
 #endif /* USE_X86_FUNCTION_MULTIVERSIONING */
 
 #if GNU_FUNCTION_MULTIVERSIONING

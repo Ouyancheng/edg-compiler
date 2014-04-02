@@ -2962,26 +2962,6 @@ representative routine or NULL if none exists.
 }  /* get_mv_default_routine */
 
 
-int mv_target_count(a_routine_ptr routine)
-/*
-Returns a count of the number of target-specific versions that are pointed
-to by the representative routine.
-*/
-{
-  a_routine_list_entry_ptr rlep;
-  int                      count = 0;
-
-  check_assertion(is_multiversion_representative(routine));
-  for (rlep = gnu_routine_supp(routine)->
-                                      mv_info.representative.targeted_versions;
-       rlep != NULL;
-       rlep = rlep->next) {
-    count++;
-  }  /* for */
-  return count;
-}  /* get_mv_target_count */
-
-
 a_routine_ptr find_mv_target_specific_routine(
                                              a_routine_ptr routine,
                                              a_routine_ptr surrounding_routine)
@@ -2999,7 +2979,7 @@ that function (and is NULL otherwise).
   a_routine_ptr            result = NULL;
 
   check_assertion(is_multiversion_representative(routine));
-  if (mv_target_count(routine) == 1) {
+  if (has_exactly_one_target_specific_routine(routine)) {
     /* There's only one target-specific routine.  Return that routine (no
        resolver function is needed). */
     result = gnu_routine_supp(routine)->

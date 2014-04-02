@@ -10301,8 +10301,8 @@ add an appropriate string to the current mangled name to identify it.
        C-generating back end because the names contain "."). */
     if (is_mv_default_routine(routine)) {
       /* No suffix is added for the "default" routine. */
-    } else if (mv_target_count(grsp->mv_info.targeted_version.representative)
-                                                                        == 1) {
+    } else if (has_exactly_one_target_specific_routine(
+                              grsp->mv_info.targeted_version.representative)) {
       /* No suffix is added if there is only a single target-specific
          routine. */
     } else {
