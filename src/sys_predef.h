@@ -94,7 +94,7 @@ extern int mv_display_order(int i);
 extern void reference_to_mv_routine(a_routine_ptr      routine,
                                     a_source_position  *error_pos);
 
-extern a_routine_ptr find_mv_specific_target_routine(
+extern a_routine_ptr find_mv_target_specific_routine(
                                             a_routine_ptr routine,
                                             a_routine_ptr surrounding_routine);
 

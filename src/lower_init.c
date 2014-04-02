@@ -17454,7 +17454,7 @@ builtin functions to determine the underlying CPU characteristics.
   a_mv_target_bitset bs;
   an_expr_node_ptr   result = NULL;
 
-  check_assertion(gnu_routine_supp(routine)->is_specific_target_version &&
+  check_assertion(gnu_routine_supp(routine)->is_target_specific_version &&
                   builtin_cpu_supports_routine != NULL &&
                   builtin_cpu_is_routine != NULL);
   bs = gnu_routine_supp(routine)->mv_info.targeted_version.target_bitset;

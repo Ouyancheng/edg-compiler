@@ -13430,7 +13430,7 @@ implicitly declared member functions.
         set_class_membership(new_sym,
                              &decl_state->mv_routine_ptr->source_corresp,
                              class_type);
-        /* Use the specific-target version routine and symbol. */
+        /* Use the target-specific version routine and symbol. */
         decl_state->sym = sym = new_sym;
         rtn = decl_state->mv_routine_ptr;
       }  /* if */
@@ -13812,7 +13812,7 @@ implicitly declared member functions.
 #if GNU_FUNCTION_MULTIVERSIONING
     if (requires_gnu_target_attr &&
         (!has_gnu_routine_supp(rtn) ||
-         !gnu_routine_supp(rtn)->is_specific_target_version)) {
+         !gnu_routine_supp(rtn)->is_target_specific_version)) {
       pos_sy_error(ec_function_redefinition, &locator->source_position, sym);
       set_to_error_locator(*locator);
     }  /* if */

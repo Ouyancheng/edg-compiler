@@ -2964,7 +2964,7 @@ representative routine or NULL if none exists.
 
 int mv_target_count(a_routine_ptr routine)
 /*
-Returns a count of the number of specific-target versions that are pointed
+Returns a count of the number of target-specific versions that are pointed
 to by the representative routine.
 */
 {
@@ -2982,11 +2982,11 @@ to by the representative routine.
 }  /* get_mv_target_count */
 
 
-a_routine_ptr find_mv_specific_target_routine(
+a_routine_ptr find_mv_target_specific_routine(
                                              a_routine_ptr routine,
                                              a_routine_ptr surrounding_routine)
 /*
-Returns a specific-target version (of the set of routines represented by
+Returns a target-specific version (of the set of routines represented by
 "routine") that can be substituted for "routine", in the context of
 surrounding_routine, if one exists (otherwise returns NULL).  This is basically
 an optimization to circumvent the use of a resolver routine when possible.
@@ -3007,9 +3007,9 @@ that function (and is NULL otherwise).
   } else if (surrounding_routine != NULL &&
              has_gnu_routine_supp(surrounding_routine) &&
              gnu_routine_supp(surrounding_routine)->
-                                                  is_specific_target_version) {
+                                                  is_target_specific_version) {
     /* If the surrounding routine is target-specific, see if we can find
-       a match on the list of specific-target routines for that target. */
+       a match on the list of target-specific routines for that target. */
     surrounding_bitset = gnu_routine_supp(surrounding_routine)->
                                         mv_info.targeted_version.target_bitset;
     for (rlep =
@@ -3020,14 +3020,14 @@ that function (and is NULL otherwise).
        gnu_routine_supp(rlep->routine)->mv_info.targeted_version.target_bitset;
       if ((bs & surrounding_bitset) != 0) {
         result = rlep->routine;
-        /* Note that it is possible for more than one specific target version
+        /* Note that it is possible for more than one target-specific version
            to match, but GNU seems to use the first. */
         break;
       }  /* if */
     }  /* for */
   }  /* if */
   return result;
-}  /* find_mv_specific_target_routine */
+}  /* find_mv_target_specific_routine */
 
 
 void reference_to_mv_routine(a_routine_ptr      routine,
@@ -3050,15 +3050,15 @@ resolver routine is needed and no "default" routine is provided.
   }  /* if */
   if (grsp->mv_resolver_required) {
     /* It has previously been determined that a resolver is required. */
-  } else if (find_mv_specific_target_routine(routine, surrounding_routine)
+  } else if (find_mv_target_specific_routine(routine, surrounding_routine)
                                                                      != NULL) {
-    /* This routine can be replaced by a reference to a specific-target
+    /* This routine can be replaced by a reference to a target-specific
        version routine: no resolver is needed. */
   } else if (get_mv_default_routine(routine) != NULL) {
     /* Normal case: a resolver routine is required.  Record the fact that
        a resolver is needed (on all routines since it's not possible to
        get from target-specific routines to the is_representative routine --
-       useful when mangling specific-target versions). */
+       useful when mangling target-specific versions). */
     a_routine_list_entry_ptr rlep;
     grsp->mv_resolver_required = TRUE;
     for (rlep = grsp->mv_info.representative.targeted_versions;
@@ -3090,7 +3090,7 @@ that are pointed to by representative.
   new_rlep->routine = target_routine;
 #if USE_X86_FUNCTION_MULTIVERSIONING
   {
-    /* The list of specific-target version functions is kept in priority
+    /* The list of target-specific version functions is kept in priority
        order -- highest priority first -- which makes generating the resolver
        function easier (among other things).  The one exception is that the
        "default" priority routine is always at a special location at the head
@@ -3135,7 +3135,7 @@ a_const_char *mangled_mv_identifier_for_routine(a_routine_ptr routine)
 /*
    FIXME
 Return a string that is used in the mangled name for routine to differentiate
-this specific-target routine from other specific-target routines.  The
+this target-specific routine from other target-specific routines.  The
 pointer that is returned is to a static buffer so the caller should copy the
 result to an allocated area.
 */
@@ -3196,7 +3196,7 @@ result to an allocated area.
 a_routine_ptr find_existing_mv_routine(a_routine_ptr representative,
                                        a_routine_ptr candidate)
 /*
-Returns a pointer to a specific-target version routine with the same
+Returns a pointer to a target-specific version routine with the same
 "target" attributes as "candidate" or NULL if none is found.
 representative is the representative routine for the specific group of
 multiversion functions.  Called during attribute processing to check for
@@ -3207,7 +3207,7 @@ re-declarations.
 #if USE_X86_FUNCTION_MULTIVERSIONING
   a_routine_list_entry_ptr rlep;
 
-  /* Two specific-target routines are deemed equivalent if their
+  /* Two target-specific routines are deemed equivalent if their
      mv_target_bitset values are the same. */
   for (rlep = gnu_routine_supp(representative)->
                                       mv_info.representative.targeted_versions;
@@ -3262,7 +3262,7 @@ str_len should be used to determine the end of the argument.
         /* An extern "C" routine; silently accept the argument. */
       } else {
         a_gnu_routine_supplement_ptr grsp = gnu_routine_supp(routine);
-        check_assertion(grsp->is_specific_target_version);
+        check_assertion(grsp->is_target_specific_version);
         if (is_mv_arch(ptr->value) &&
             is_any_mv_arch_bit_set(
                                grsp->mv_info.targeted_version.target_bitset)) {
@@ -3270,7 +3270,7 @@ str_len should be used to determine the end of the argument.
           pos_error(ec_gnu_mv_only_one_arch, &aap->position);
           *error_issued = TRUE;
         } else {
-          /* Add this CPU/ISA architecture to the list of specific-target
+          /* Add this CPU/ISA architecture to the list of target-specific
              versions that this routine supports. */
           grsp->mv_info.targeted_version.target_bitset |= 1 << ptr->value;
         }  /* if */

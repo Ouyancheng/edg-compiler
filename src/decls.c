@@ -8967,7 +8967,7 @@ skip_overloading:;
     }  /* if */
     if (target_ap != NULL) {
       (void)check_target_attr(target_ap, dps);
-      /* Use the specific-target version for the remainder of the
+      /* Use the target-specific version for the remainder of the
          declaration. */
       routine_ptr = dps->mv_routine_ptr;
       sym = symbol_for(routine_ptr);
@@ -8976,7 +8976,7 @@ skip_overloading:;
   }  /* if */
   if (requires_gnu_target_attr &&
       (!has_gnu_routine_supp(dps->mv_routine_ptr) ||
-       !gnu_routine_supp(dps->mv_routine_ptr)->is_specific_target_version)) {
+       !gnu_routine_supp(dps->mv_routine_ptr)->is_target_specific_version)) {
     pos_sy_error(ec_function_redefinition, &locator->source_position, sym);
   }  /* if */
 #endif /* GNU_FUNCTION_MULTIVERSIONING */

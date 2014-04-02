@@ -10294,8 +10294,8 @@ add an appropriate string to the current mangled name to identify it.
 #if USE_X86_FUNCTION_MULTIVERSIONING
   /* FIXME: check demangling for all of these cases. */
   a_gnu_routine_supplement_ptr grsp = gnu_routine_supp(routine);
-  if (grsp->is_specific_target_version) {
-    /* All specific-target versions share the same unmangled name and must be
+  if (grsp->is_target_specific_version) {
+    /* All target-specific versions share the same unmangled name and must be
        differentiated somehow.  For compatibility reasons, we use the same
        naming scheme as g++ (though that's not possible when using the
        C-generating back end because the names contain "."). */

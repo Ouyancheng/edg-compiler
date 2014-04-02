@@ -3614,8 +3614,8 @@ Display the indicated routine.
       disp_string_ptr("asm_name", grsp->asm_name, iek_other_text, (sizeof_t)0);
     }  /* if */
 #if GNU_FUNCTION_MULTIVERSIONING
-    if (grsp->is_specific_target_version) {
-      disp_boolean("is_specific_target_version", TRUE);
+    if (grsp->is_target_specific_version) {
+      disp_boolean("is_target_specific_version", TRUE);
     }  /* if */
     if (grsp->mv_resolver_required) {
       disp_boolean("mv_resolver_required", TRUE);

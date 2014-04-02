@@ -610,7 +610,7 @@ typedef struct a_decl_parse_state {
 		mv_routine_ptr;
 			/* On input to check_target_attr, represents the
 			   routine being declared, on output, it represents
-			   the specific target version routine. */
+			   the target-specific version routine. */
   a_scope_depth
 		mv_scope_depth;
 			/* The scope depth for new multiversion routines. */

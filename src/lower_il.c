@@ -4045,7 +4045,7 @@ Do IL lowering of a pointer-to-member constant.
     if (routine != NULL) {
 #if GNU_FUNCTION_MULTIVERSIONING
       if (is_multiversion_representative(routine)) {
-        /* Replace a representative routine with a specific-target version
+        /* Replace a representative routine with a target-specific version
            if one is available. */
         routine = lowered_mv_routine(routine);
       }  /* if */
@@ -5107,7 +5107,7 @@ Do IL lowering of the indicated constant and everything under it.
 #if GNU_FUNCTION_MULTIVERSIONING
             { a_routine_ptr rp = constant->variant.address.variant.routine;
               if (is_multiversion_representative(rp)) {
-                /* Replace a representative routine with a specific-target
+                /* Replace a representative routine with a target-specific
                    version if one is available. */
                 constant->variant.address.variant.routine =
                                                         lowered_mv_routine(rp);
@@ -9846,7 +9846,7 @@ static a_routine_ptr lowered_mv_routine(a_routine_ptr routine)
 /*
 A reference of some sort is being made to routine (which is a GNU
 multiversion representative).  If the routine can be replaced by
-a specific-target version routine (i.e., no resolver is necessary), return
+a target-specific version routine (i.e., no resolver is necessary), return
 that routine (otherwise return NULL).
 */
 {
@@ -9858,14 +9858,14 @@ that routine (otherwise return NULL).
   if (innermost_function_scope != NULL) {
     surrounding_routine = innermost_function_scope->variant.routine.ptr;
   }  /* if */
-  result = find_mv_specific_target_routine(routine, surrounding_routine);
+  result = find_mv_target_specific_routine(routine, surrounding_routine);
   if (result == NULL) {
     result = routine;
   } else {
     /* Replace the reference to the representative routine with a direct
-       reference to a specific-target version.  Transfer some of the relevant
+       reference to a target-specific version.  Transfer some of the relevant
        state information from the representative function to the
-       specific-target version. */
+       target-specific version. */
     result->called = routine->called;
     result->address_taken = routine->address_taken;
     result->source_corresp.referenced = routine->source_corresp.referenced;
@@ -14945,7 +14945,7 @@ cast.  See lower_expr for typical invocation.
     case enk_routine:
 #if GNU_FUNCTION_MULTIVERSIONING
       if (is_multiversion_representative(expr->variant.routine.ptr)) {
-        /* Replace a representative routine with a specific-target version
+        /* Replace a representative routine with a target-specific version
            if one is available. */
         expr->variant.routine.ptr =
                                  lowered_mv_routine(expr->variant.routine.ptr);

@@ -25518,7 +25518,7 @@ be used, but there are exceptions.
 #if GNU_FUNCTION_MULTIVERSIONING
         } else if (has_gnu_routine_supp(routine) &&
                    (gnu_routine_supp(routine)->is_representative ||
-                    gnu_routine_supp(routine)->is_specific_target_version)) {
+                    gnu_routine_supp(routine)->is_target_specific_version)) {
           /* Skip GNU function multiversion routines (the mangling for these
              can depend on their use making them poor candidates for basing
              a module id on). */

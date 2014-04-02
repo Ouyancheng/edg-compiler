@@ -4966,7 +4966,7 @@ definition to be supplied, and the choice of which version
 to call is determined at run time based on characteristics
 of the machine where the program is running.  The choice is made by a
 compiler-generated (when lowering is enabled) "resolver" routine that
-selects the best routine from the specific target versions.  The resolver
+selects the best routine from the target-specific versions.  The resolver
 routine is executed once at load time (because it is associated with an "ifunc"
 routine) to determine which target-specific routine to use for the particular
 CPU.  For back ends that don't support "ifunc", see LOWER_IFUNC.

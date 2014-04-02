@@ -5736,12 +5736,12 @@ the normal attribute processing mechanism.
 The first time that a routine with a target attribute is encountered two
 routines are created -- an extra routine is created which will be used as the
 "representative" routine, and has is_representative set to TRUE.  The other
-routine node will have is_specific_target_version set to TRUE, and its
+routine node will have is_target_specific_version set to TRUE, and its
 mv_target_bitset will reflect the specific architecture(s).  Only the
 is_representative routine is available from the symbol table; the
 specialized routines are pointed to from the representative routine.
 
-Additional symbols for specific target versioned routines are suppressed
+Additional symbols for target-specific versioned routines are suppressed
 so as not to appear as overloaded functions.
 
 Only invoked in C++ mode (normal attribute processing takes care of "target"
@@ -5781,12 +5781,12 @@ attribute in C mode).
     representative = dps->mv_representative_routine;
     check_assertion(gnu_routine_supp(representative)->is_representative);
     if (dps->sym->kind == (a_symbol_kind)sk_member_function) {
-      /* In the member function case, the specific-target routine has already
+      /* In the member function case, the target-specific routine has already
          been created (no need to create a new one). */
       target_routine = dps->mv_routine_ptr;
     }  /* if */
   }  /* if */
-  /* Allocate (if necessary) and configure the specific-target version
+  /* Allocate (if necessary) and configure the target-specific version
      routine pointer (based on the representative routine). */
   if (target_routine == NULL) {
     target_routine = make_routine(dps->type,
@@ -5807,9 +5807,9 @@ attribute in C mode).
   /* New symbol points to the new routine and vice versa. */
   new_sym->variant.routine.ptr = target_routine;
   set_source_corresp(&target_routine->source_corresp, new_sym);
-  /* Fill in information about the specific-target version routine. */
+  /* Fill in information about the target-specific version routine. */
   target_routine->defined = dps->is_definition;
-  ensure_gnu_routine_supp(target_routine)->is_specific_target_version = TRUE;
+  ensure_gnu_routine_supp(target_routine)->is_target_specific_version = TRUE;
   if (representative->is_inline) {
     /* Transfer the setting of "is_inline". */
     set_inline_flag(target_routine, TRUE);
@@ -5817,7 +5817,7 @@ attribute in C mode).
         !representative->on_inline_function_list) {
       /* When inline functions are instantiated like templates, add the
          function to the list of inline functions if it is inline (the
-         specific target versions will be on the list, but not the
+         target-specific versions will be on the list, but not the
          representative function -- which, in some configurations becomes a
          lowered ifunc and this prevents it from being multiply-defined). */
       add_to_inline_function_list(representative);
@@ -5846,7 +5846,7 @@ attribute in C mode).
       goto done;
     }  /* if */
   } else {
-    /* Hang the new specific-target routine on the list. */
+    /* Hang the new target-specific routine on the list. */
     add_to_specific_version_list(representative, target_routine);
   }  /* if */
   /* Make both versions of routines available to the caller. */

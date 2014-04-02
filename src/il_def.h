@@ -13808,9 +13808,9 @@ typedef struct a_gnu_routine_supplement {
 			   This version of the routine is in the symbol table
 			   and on the appropriate scope routine list.
 			   tv_info.list contains a list of routines (each with
-			   is_specific_target_version set to TRUE) which are
+			   is_target_specific_version set to TRUE) which are
 			   architecture-specific. */
-  a_bit_field	is_specific_target_version:1;
+  a_bit_field	is_target_specific_version:1;
 			/* TRUE if the routine is a multiversion function
 			   for a specific architecture (as specified by
 			   the "target" attribute).  Not entered into the
@@ -13840,7 +13840,7 @@ typedef struct a_gnu_routine_supplement {
                            first). */
 #endif /* USE_X86_FUNCTION_MULTIVERSIONING */
     } representative;
-    /* When is_specific_target_version is TRUE: */
+    /* When is_target_specific_version is TRUE: */
     struct {
 #if USE_X86_FUNCTION_MULTIVERSIONING
       a_mv_target_bitset

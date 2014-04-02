@@ -2788,7 +2788,7 @@ ensure_gnu_routine_supp for the typical invocation.
   grsp->asm_name             = NULL;
 #if GNU_FUNCTION_MULTIVERSIONING
   grsp->is_representative    = FALSE;
-  grsp->is_specific_target_version  = FALSE;
+  grsp->is_target_specific_version  = FALSE;
   grsp->mv_resolver_required = FALSE;
   grsp->mv_info.representative.targeted_versions = NULL;
 #if USE_X86_FUNCTION_MULTIVERSIONING
