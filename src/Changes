@@ -15,10 +15,10 @@ a default argument specified.  Now fixed.
 
 
 4/1/14   [EDGcpfe/14980]
-Microsoft compatibility: member function qualification for explicit override
+Microsoft compatibility: explicit override of a cv-qualified member function
 
 A spurious error had been reported when using the Microsoft explicit override
-mechanism to override a member function that had a qualified type.  Now fixed.
+mechanism to override a cv-qualified member function.  Now fixed.
 For example (with --microsoft):
 
   struct A {

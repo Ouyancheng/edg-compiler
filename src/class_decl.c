@@ -9348,6 +9348,7 @@ When templates_only is TRUE, only function templates members are considered.
   a_boolean                      orig_function_is_qualified;
   a_boolean                      new_function_is_qualified;
   a_boolean                      new_may_be_implicitly_const;
+  a_boolean                      restore_this_param;
   a_type_qualifier_set           new_quals;
 
   if (other_match != NULL) *other_match = NULL;
@@ -9475,33 +9476,39 @@ When templates_only is TRUE, only function templates members are considered.
         continue;
       }  /* if */
     }  /* if */
-    if (new_function_is_qualified) {
+    if (new_function_is_qualified && !dps->is_explicit_override) {
       /* Both routines are qualified.  Use the "this" param type as part
          of the compatibility check. */
-#if MICROSOFT_EXTENSIONS_ALLOWED
-      if (dps->is_explicit_override) {
-        /* This is an explicit override case (where both functions have
-           qualifiers).  The types of the "this" parameters are guaranteed
-           to differ, so exclude them from consideration, but check that
-           the qualifiers are the same (done after the match below). */
-        tcf_flags |= TCF_IGNORE_THIS_CLASS_TYPE;
-      }  /* if */
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+      restore_this_param = FALSE;
     } else {
-      /* Neither routine is qualified; no need to check the compatibility
-         of the "this" param type. */
-      tcf_flags |= TCF_IGNORE_THIS_CLASS_TYPE;
+      /* Neither routine is qualified or this is an explicit override (in
+         Microsoft mode only).  Save away the "this" param types,
+         do the compatibility check without them, and then restore them.
+         Note that this method is used (rather than specifying the
+         TCF_IGNORE_THIS_CLASS_TYPE flag) in order that only the "this" param
+         of the top-level type is ignored (and not the "this" param types
+         of any other parameter types). */
+      new_rts->this_class = NULL;
+      orig_rts->this_class = NULL;
+      restore_this_param = TRUE;
     }  /* if */
     match = routine_types_are_redecl_compatible(orig_type, new_type,
                                                 tcf_flags);
+    if (restore_this_param) {
+      /* Restore the implicit "this" parameter types in orig_type and
+         new_type. */
+      new_rts->this_class = new_this_class;
+      orig_rts->this_class = orig_this_class;
 #if MICROSOFT_EXTENSIONS_ALLOWED
-    if (match && new_function_is_qualified && dps->is_explicit_override &&
-        new_quals != orig_rts->qualifiers) {
-      /* Check that the qualifiers of an explicit override case are the
-         same. */
-      match = FALSE;
-    }  /* if */
+      if (match &&
+          dps->is_explicit_override &&
+          new_quals != orig_rts->qualifiers) {
+        /* Check that the qualifiers of an explicit override case are the
+           same. */
+        match = FALSE;
+      }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+    }  /* if */
     if (match) {
       /* If a match was found by types_are_compatible, break out of the loop.
          An exception is made if the match we found is a selective overrider
