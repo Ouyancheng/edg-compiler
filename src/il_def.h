@@ -13842,6 +13842,9 @@ typedef struct a_gnu_routine_supplement {
     } representative;
     /* When is_target_specific_version is TRUE: */
     struct {
+      a_routine_ptr
+                representative;
+                        /* A pointer to the representative routine. */
 #if USE_X86_FUNCTION_MULTIVERSIONING
       a_mv_target_bitset
                 target_bitset;

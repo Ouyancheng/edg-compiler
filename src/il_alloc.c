@@ -2791,6 +2791,7 @@ ensure_gnu_routine_supp for the typical invocation.
   grsp->is_target_specific_version  = FALSE;
   grsp->mv_resolver_required = FALSE;
   grsp->mv_info.representative.targeted_versions = NULL;
+  grsp->mv_info.targeted_version.representative = NULL;
 #if USE_X86_FUNCTION_MULTIVERSIONING
   grsp->mv_info.targeted_version.target_bitset = 0;
 #endif /* USE_X86_FUNCTION_MULTIVERSIONING */

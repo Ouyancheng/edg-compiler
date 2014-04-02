@@ -5842,8 +5842,11 @@ attribute in C mode).
       err = TRUE;
     } else {
       /* Use the previously declared routine. */
-      dps->mv_routine_ptr = existing;
-      goto done;
+      ensure_gnu_routine_supp(target_routine)->is_target_specific_version =
+                                                                         FALSE;
+      check_assertion(gnu_routine_supp(target_routine)->
+                              mv_info.targeted_version.representative == NULL);
+      target_routine = existing;
     }  /* if */
   } else {
     /* Hang the new target-specific routine on the list. */

@@ -3088,6 +3088,8 @@ that are pointed to by representative.
 
   new_rlep = alloc_list_entry_for_routine();
   new_rlep->routine = target_routine;
+  ensure_gnu_routine_supp(target_routine)->
+                      mv_info.targeted_version.representative = representative;
 #if USE_X86_FUNCTION_MULTIVERSIONING
   {
     /* The list of target-specific version functions is kept in priority
