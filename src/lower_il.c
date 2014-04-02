@@ -9827,8 +9827,14 @@ create a resolver routine if needed.
   /* Note that a resolver routine is created only if the representative
      routine has been referenced in some way (this seems to match g++). */
   if (gnu_routine_supp(routine)->mv_resolver_required) {
+#if USE_X86_FUNCTION_MULTIVERSIONING
     /* Create a resolver routine and associate it with this ifunc routine. */
     create_mv_resolver(routine);
+#else /* !USE_X86_FUNCTION_MULTIVERSIONING */
+    /* Without knowing the specifics of the target architecture, a resolver
+       routine cannot be created. */
+    unexpected_condition_str("GNU function multiversion resolver required");
+#endif /* USE_X86_FUNCTION_MULTIVERSIONING */
   } else {
     /* Clear the "ifunc" attribute (since we have no resolver routine). */
     routine->is_ifunc = FALSE;

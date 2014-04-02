@@ -17376,7 +17376,7 @@ Note: this is called when lowering C and C++.
 }  /* lower_ifunc_routine */
 
 #endif /* LOWER_IFUNC */
-#if GNU_FUNCTION_MULTIVERSIONING
+#if USE_X86_FUNCTION_MULTIVERSIONING
 
 static an_expr_node_ptr make_expr_for_string_literal(a_const_char *string)
 /*
@@ -17523,7 +17523,6 @@ address of the routine into the variable.  A cast is added if necessary.
 
 void create_mv_resolver(a_routine_ptr representative)
 /*
-   FIXME: this is x86-specific.
 Create a "resolver" routine that will be the resolver for the given target
 versioned routine.  The compiler-generated resolver routine determines at
 run-time which of a set of routines should be used (based on the "target"
@@ -17638,7 +17637,7 @@ The "ifunc" mechanism is used to associate the resolver routine with
   return;
 }  /* create_mv_resolver */
 
-#endif /* GNU_FUNCTION_MULTIVERSIONING */
+#endif /* USE_X86_FUNCTION_MULTIVERSIONING */
 
 void init_lower_one_time_init(void)
 /*
@@ -17705,11 +17704,11 @@ Do one-time initialization of static variables declared in lower_init.c.
 #if RUNTIME_SUPPORTS_ARRAY_LENGTH_CHECK && ABI_COMPATIBILITY_VERSION >= 406
       pch_saved_var_array_elem(throw_bad_array_new_length_routine),
 #endif /* RUNTIME_SUPPORTS_ARRAY_LENGTH_CHECK && ABI_COMPATIBILITY_VERSION...*/
-#if GNU_FUNCTION_MULTIVERSIONING
+#if USE_X86_FUNCTION_MULTIVERSIONING
       pch_saved_var_array_elem(builtin_cpu_init_routine),
       pch_saved_var_array_elem(builtin_cpu_is_routine),
       pch_saved_var_array_elem(builtin_cpu_supports_routine),
-#endif /* GNU_FUNCTION_MULTIVERSIONING */
+#endif /* USE_X86_FUNCTION_MULTIVERSIONING */
       pch_saved_var_array_terminating_elem()
     };
     register_pch_saved_variables(saved_vars);
@@ -17772,11 +17771,11 @@ Do one-time initialization of static variables declared in lower_init.c.
 #if RUNTIME_SUPPORTS_ARRAY_LENGTH_CHECK && ABI_COMPATIBILITY_VERSION >= 406
   register_trans_unit_variable(throw_bad_array_new_length_routine);
 #endif /* RUNTIME_SUPPORTS_ARRAY_LENGTH_CHECK && ABI_COMPATIBILITY_VERSION...*/
-#if GNU_FUNCTION_MULTIVERSIONING
+#if USE_X86_FUNCTION_MULTIVERSIONING
   register_trans_unit_variable(builtin_cpu_init_routine);
   register_trans_unit_variable(builtin_cpu_is_routine);
   register_trans_unit_variable(builtin_cpu_supports_routine);
-#endif /* GNU_FUNCTION_MULTIVERSIONING */
+#endif /* USE_X86_FUNCTION_MULTIVERSIONING */
 }  /* init_lower_one_time_init */
 
 
@@ -17844,11 +17843,11 @@ for each translation unit.
   delete_routine_ptr_type = NULL;
   aggregate_this_stack = NULL;
   ctor_init_this = NULL;
-#if GNU_FUNCTION_MULTIVERSIONING
+#if USE_X86_FUNCTION_MULTIVERSIONING
   builtin_cpu_init_routine = NULL;
   builtin_cpu_is_routine = NULL;
   builtin_cpu_supports_routine = NULL;
-#endif /* GNU_FUNCTION_MULTIVERSIONING */
+#endif /* USE_X86_FUNCTION_MULTIVERSIONING */
 }  /* init_lower_trans_unit_init */
 
 
