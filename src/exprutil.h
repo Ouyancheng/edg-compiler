@@ -2650,11 +2650,6 @@ extern unsigned long show_expr_space_used(void);
 extern void check_all_init_component_entries_freed(void);
 #endif /* CHECKING && DEBUG */
 
-#if GNU_FUNCTION_MULTIVERSIONING
-extern void find_specific_mv_routine(a_routine_ptr      routine,
-                                     a_source_position  *error_pos);
-#endif /* GNU_FUNCTION_MULTIVERSIONING */
-
 extern void expr_one_time_init(void);
 
 extern void expr_trans_unit_init(void);

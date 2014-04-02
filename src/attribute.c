@@ -89,7 +89,9 @@ since attributes usually do not create new entries).
 #if GNU_EXTENSIONS_ALLOWED
 #include "il_walk.h"
 #include "layout.h"
+#if GNU_FUNCTION_MULTIVERSIONING
 #include "sys_predef.h"
+#endif /* GNU_FUNCTION_MULTIVERSIONING */
 #endif /* GNU_EXTENSIONS_ALLOWED */
 
 #include "templates.h"

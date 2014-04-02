@@ -34,7 +34,7 @@ exprutil.c -- Expression scanning utility routines.
 #include "lower_il.h"
 #endif /* DO_IL_LOWERING */
 #if USE_X86_FUNCTION_MULTIVERSIONING
-#include "sys_predef.h"   /* FIXME: hopefully not needed */
+#include "sys_predef.h"
 #endif /* USE_X86_FUNCTION_MULTIVERSIONING */
 
 /* Declarations needed because of forward references: */

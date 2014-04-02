@@ -33,9 +33,9 @@ lower_il.c -- Lower C++ intermediate language to C intermediate language.
 #include "class_decl.h"
 #include "layout.h"
 #include "il_walk.h"
-#if GNU_FUNCTION_MULTIVERSIONING
+#if USE_X86_FUNCTION_MULTIVERSIONING
 #include "sys_predef.h"
-#endif /* GNU_FUNCTION_MULTIVERSIONING */
+#endif /* USE_X86_FUNCTION_MULTIVERSIONING */
 
 #if PARENS_IN_IL
 /* IL lowering doesn't check for and skip over eok_parens nodes, so
@@ -4045,6 +4045,8 @@ Do IL lowering of a pointer-to-member constant.
     if (routine != NULL) {
 #if GNU_FUNCTION_MULTIVERSIONING
       if (is_multiversion_representative(routine)) {
+        /* Replace a representative routine with a specific-target version
+           if one is available. */
         routine = lowered_mv_routine(routine);
       }  /* if */
 #endif /* GNU_FUNCTION_MULTIVERSIONING */
@@ -5105,6 +5107,8 @@ Do IL lowering of the indicated constant and everything under it.
 #if GNU_FUNCTION_MULTIVERSIONING
             { a_routine_ptr rp = constant->variant.address.variant.routine;
               if (is_multiversion_representative(rp)) {
+                /* Replace a representative routine with a specific-target
+                   version if one is available. */
                 constant->variant.address.variant.routine =
                                                         lowered_mv_routine(rp);
               }  /* if */
@@ -14935,6 +14939,8 @@ cast.  See lower_expr for typical invocation.
     case enk_routine:
 #if GNU_FUNCTION_MULTIVERSIONING
       if (is_multiversion_representative(expr->variant.routine.ptr)) {
+        /* Replace a representative routine with a specific-target version
+           if one is available. */
         expr->variant.routine.ptr =
                                  lowered_mv_routine(expr->variant.routine.ptr);
       }  /* if */

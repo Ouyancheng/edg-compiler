@@ -3555,7 +3555,6 @@ doesn't already have one.
 static a_boolean generated_routine_needed_even_if_unreferenced(
                                                             a_routine_ptr rout)
 /*
-   FIXME: shouldn't need resolver if ifunc isn't needed (but no ptr to ifunc)
 rout is a generated routine with a definition.  Return TRUE if it should be
 considered needed even if it is not referenced, e.g., because it's an external
 definition.
