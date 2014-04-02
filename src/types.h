@@ -290,11 +290,14 @@ Return a pointer to the associated class type supplement.
 #define class_type_supp(tp)                                           \
   ((tp)->variant.class_struct_union.extra_info)
 
+#if MICROSOFT_EXTENSIONS_ALLOWED
 /*
 Return TRUE if tp is a partial class.
 */
 #define is_partial_class(tp)                                          \
   (is_class_or_struct((tp)) && class_type_supp((tp))->is_partial)
+
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 /*
 Return a pointer to the associated integer type supplement.
@@ -1228,6 +1231,7 @@ extern a_boolean is_or_contains_type_with_no_name_linkage(
 extern a_boolean is_or_contains_trans_unit_specific_type(a_type_ptr  type_ptr);
 #if MICROSOFT_EXTENSIONS_ALLOWED
 extern a_boolean function_type_has_clrcall_component(a_type_ptr  type_ptr);
+extern a_boolean is_or_contains_cli_generic_param(a_type_ptr  type_ptr);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 extern a_boolean is_invalid_template_arg_type(a_type_ptr  type_ptr,
                                               a_boolean   *is_unnamed,
@@ -1241,7 +1245,6 @@ extern a_boolean is_instantiation_dependent_type(a_type_ptr  type_ptr);
 extern a_boolean is_instantiation_dependent_type_or_cli_generic_param(
 							a_type_ptr  type_ptr);
 extern a_boolean is_or_contains_template_param(a_type_ptr  type_ptr);
-extern a_boolean is_or_contains_cli_generic_param(a_type_ptr  type_ptr);
 extern void set_parameter_list_template_param_flags(a_type_ptr  rout_type);
 extern
 a_boolean is_or_contains_specific_template_param(a_type_ptr  type_ptr,

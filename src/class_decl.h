@@ -77,6 +77,10 @@ extern void ensure_inclass_static_member_constant_initializer_is_scanned(
 
 extern void merge_dll_flags_from_parent_class(a_type_ptr          class_type,
                                               a_decl_parse_state  *dps);
+
+extern a_symbol_ptr make_and_enter_abi_member_function_symbol(
+                                                a_symbol_locator  *loc,
+                                                a_type_ptr        class_type);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 extern void resolve_indeterminate_exception_specification(a_routine_ptr  rp);
@@ -336,10 +340,6 @@ extern void db_base_class_list(a_type_ptr tp);
 
 extern void db_all_virtual_function_override_lists(a_type_ptr  class_type);
 #endif /* DEBUG */
-
-extern a_symbol_ptr make_and_enter_abi_member_function_symbol(
-                                                a_symbol_locator  *loc,
-                                                a_type_ptr        class_type);
 
 #endif /* CLASS_DECL_H */
 

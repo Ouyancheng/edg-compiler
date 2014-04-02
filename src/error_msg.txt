@@ -2613,7 +2613,6 @@ ec_field_target_on_nontrivial_property_or_event;;"the 'field' attribute target c
 ec_invalid_attribute_target_for_standalone_ms_attr;;"invalid attribute target for a standalone attribute"
 ec_invalid_attribute_target_for_ms_attr;;"invalid attribute target for this context"
 ec_invalid_use_of_custom_ms_attr;;"%t attribute cannot be used here"
-ec_cli_invalid_use_of_attribute_usage_attribute;;"%t can only be used on a %[C++/CLI] attribute class"
 ec_cli_param_array_attribute_deprecated;;"%t is deprecated; use '...' to specify a parameter array"
 ec_namespace_default_cannot_be_extended;;"the default namespace cannot be extended"
 ec_cppcx_box_invalid_type;;"the boxed type must be a value class or enum"

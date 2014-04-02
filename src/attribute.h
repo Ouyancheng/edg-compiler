@@ -65,12 +65,15 @@ Return TRUE if the upcoming tokens introduce standard attributes.
   (curr_token == tok_lbracket && std_attributes_enabled &&                   \
    next_token() == tok_lbracket)
 
+#if MICROSOFT_EXTENSIONS_ALLOWED
 /*
 Return TRUE if the upcoming tokens introduce Microsoft attributes.
 */
 #define microsoft_attribute_tokens_next()                                    \
   (microsoft_mode && curr_token == tok_lbracket &&                           \
    !std_attribute_tokens_next())
+
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 /*
 Return TRUE if the given attribute is unrecognized or an empty attribute.

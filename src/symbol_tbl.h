@@ -4969,8 +4969,10 @@ extern void change_class_locator_into_constructor_locator(
                                             a_source_position  *pos,
                                             a_boolean          is_static_ctor);
 
+#if MICROSOFT_EXTENSIONS_ALLOWED
 extern void change_ms_attr_locator_into_alt_name_locator(
                                                   a_symbol_locator  *locator);
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 extern void make_opname_locator(an_opname_kind    opname,
                                 a_symbol_locator  *locator,
@@ -6421,20 +6423,21 @@ extern a_boolean compare_prop_or_event_accessor_header_lookup(
 						       a_void_ptr	key);
 
 extern a_boolean is_cppcx_externally_visible_symbol(a_symbol_ptr sym);
+
+extern a_boolean is_unnamed_virtual_function_symbol(a_symbol_ptr sym);
+
+extern void make_unnamed_virtual_function_locator(a_symbol_locator *loc);
+
+#define is_cppcx_externally_visible_assembly_access(assembly_access)  \
+  ((assembly_access) == (an_access_specifier)as_protected ||          \
+   (assembly_access) == (an_access_specifier)as_public)
+
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 extern a_hash_value hash_symbol_header_lookup_entry(a_void_ptr	key);
 
 extern a_boolean compare_symbol_header_lookup_entry(a_void_ptr	entry,
                                                     a_void_ptr	key);
-
-#define is_cppcx_externally_visible_assembly_access(assembly_access)  \
-  ((assembly_access) == (an_access_specifier)as_protected ||          \
-   (assembly_access) == (an_access_specifier)as_public)
-
-extern void make_unnamed_virtual_function_locator(a_symbol_locator *loc);
-
-extern a_boolean is_unnamed_virtual_function_symbol(a_symbol_ptr sym);
 
 #endif /* ifndef SYMBOL_TBL_H */
 

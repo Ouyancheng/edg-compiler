@@ -7214,6 +7214,7 @@ into the symbol table.  Each unnamed symbol is given a unique symbol header.
   return sym;
 }  /* make_unnamed_symbol */
 
+#if MICROSOFT_EXTENSIONS_ALLOWED
 
 void make_unnamed_virtual_function_locator(a_symbol_locator *loc)
 /*
@@ -7240,6 +7241,7 @@ Return TRUE if sym represents an unnamed virtual function symbol.
   return sym->header == unnamed_virtual_function_symbol_header;
 }  /* is_unnamed_virtual_function_symbol */
 
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 a_symbol_ptr make_anonymous_parent_object_symbol(a_symbol_kind      kind,
                                                  a_source_position  *pos,

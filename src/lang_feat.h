@@ -1165,6 +1165,8 @@ EXTERN a_boolean
 		cppcli_enabled;
 EXTERN a_boolean
 		cppcx_enabled;
+EXTERN a_boolean
+		cli_or_cx_enabled;
 EXTERN a_boolean 
 		scanning_generated_code_from_metadata;
 #else /* !defined(_lint) */

@@ -2519,6 +2519,10 @@ otherwise, issue any appropriate diagnostics and return FALSE.
                      &msap->position, attribute_type);
         result = FALSE;
       }  /* if */
+/* In error_msg.txt:
+ec_cli_invalid_use_of_attribute_usage_attribute;;
+"%t can only be used on a %[C++/CLI] attribute class"
+*/
 #endif /* 0 */
     } else if (cppcx_enabled &&
                is_cli_type_of_kind(
