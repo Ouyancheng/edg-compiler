@@ -5792,6 +5792,8 @@ attribute in C mode).
     target_routine = make_routine(dps->type,
                                   representative->storage_class,
                                   dps->mv_scope_depth);
+    target_routine->source_corresp.name_linkage =
+                                   representative->source_corresp.name_linkage;
   }  /* if */
   /* Create a new symbol for this routine.  This symbol won't be entered
      in the symbol table. */
@@ -5847,8 +5849,9 @@ attribute in C mode).
     /* Hang the new specific-target routine on the list. */
     add_to_specific_version_list(representative, target_routine);
   }  /* if */
-  /* Make the specific-target version routine available to the caller. */
+  /* Make both versions of routines available to the caller. */
   dps->mv_routine_ptr = target_routine;
+  dps->mv_representative_routine = representative;
 done:
   return !err;
 #undef MAX_TARGET_PAIR_LEN

@@ -13411,20 +13411,22 @@ implicitly declared member functions.
       decl_state->mv_routine_ptr = rtn;
       decl_state->mv_scope_depth = scope_depth;
       if (check_target_attr(target_ap, decl_state)) {
-        /* When a target attribute is found, check_target_attr
-           creates a new symbol and a new routine, but the symbol isn't
-           entered in the symbol table. */
+        /* The routine and symbol that had been used to this point have
+           been re-classified as either a representative routine or a
+           target-specific routine.  Use the target-specific routine for the
+           remainder of this declaration and use the representative routine
+           for overload purposes. */
         a_symbol_ptr new_sym = symbol_for(decl_state->mv_routine_ptr);
         if (overload_sym != NULL) {
-          /* Replace the head of overloaded symbols with new_sym. */
-          a_symbol_ptr overloads =
-                             overload_sym->variant.overloaded_function.symbols;
-          check_assertion(sym == overloads);
-          new_sym->next = overloads->next;
-          overloads->next = NULL;
-          overload_sym->variant.overloaded_function.symbols = new_sym;
+          /* Use the representative routine in the overload set. */
+          a_symbol_ptr repr_sym =
+                             symbol_for(decl_state->mv_representative_routine);
+          check_assertion(sym ==
+                            overload_sym->variant.overloaded_function.symbols);
+          repr_sym->next = sym->next;
+          overload_sym->variant.overloaded_function.symbols = repr_sym;
         }  /* if */
-        /* Set class membership for the new symbol. */
+        /* Set class membership for the target-specific symbol. */
         set_class_membership(new_sym,
                              &decl_state->mv_routine_ptr->source_corresp,
                              class_type);
