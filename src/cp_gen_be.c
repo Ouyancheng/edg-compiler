@@ -7236,12 +7236,23 @@ declaration following this one is such a continuation.
                  /*primary_only=*/FALSE);
   if (field->has_initializer && field->initializer != NULL) {
     /* The field was defined with an initializer (a C++11 feature). */
-    a_boolean  braced_init = field->has_direct_braced_initializer;
-    write_tok_str(braced_init ? (char*)"{" : (char*)" = ");
+    a_boolean need_closing_brace = FALSE;
+    if (!field->has_direct_braced_initializer) {
+      write_tok_str(" = ");
+    } else if (!(field->initializer->is_braced_initializer &&
+                 field->initializer->kind ==
+                                       (a_dynamic_init_kind)dik_constructor)) {
+      /* gen_dynamic_init will supply the braces for a braced constructor
+         call. */
+      write_tok_ch('{');
+      need_closing_brace = TRUE;
+    }  /* if */
     gen_dynamic_init(field->initializer, field->type, (an_expr_node_ptr)NULL,
                      /*avoid_top_level_comma=*/TRUE,
                      /*obj_expr_of_mfunc_operator=*/FALSE);
-    if (braced_init) write_tok_ch('}');
+    if (need_closing_brace) {
+      write_tok_ch('}');
+    }  /* if */
   }  /* if */
   /* See if there are comma-separated declarations attached to this one. */
   *another_decl_in_comma_list = another_declaration_in_comma_list_follows(

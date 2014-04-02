@@ -1,5 +1,21 @@
 Version 4.9
 
+4/2/14   [EDGcpfe/14992]
+C++-generating back end: braced constructor arguments in field initializers
+
+In a non-static data member initializer (field initializer) where the
+initializer is a brace-enclosed list of arguments for the member's
+constructor, the C++-generating back end incorrectly added an extra layer
+of braces in the generated output.  This is now fixed.  For example:
+
+  struct A {
+    A(int, int);
+  };
+  struct B {
+    A a{1,1};    // Previously generated as "a{{1, 1}}"
+  };
+
+
 4/1/14   [EDGcpfe/14886]
 Microsoft compatibility: spurious error on template template default argument
 
