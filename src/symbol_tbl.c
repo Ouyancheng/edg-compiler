@@ -3543,7 +3543,7 @@ and return a pointer to it.
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
 
-extern a_boolean is_cppcx_externally_visible_symbol(a_symbol_ptr sym)
+a_boolean is_cppcx_externally_visible_symbol(a_symbol_ptr sym)
 /*
 Returns TRUE if this symbol is considered externally visible (i.e. it will be
 emitted into metadata) in C++/CX mode.
@@ -7498,8 +7498,31 @@ Don't put its symbol into the symbol table yet.
 #endif /* IA64_ABI */
 #if MICROSOFT_EXTENSIONS_ALLOWED
 
+static a_symbol_ptr look_up_name_string_in_namespace(
+                                        a_const_char             *symbol_name,
+                                        a_namespace_ptr          ns_ptr,
+                                        an_id_lookup_options_set options)
+/*
+Look up symbol_name in the specified namespace (or file scope if ns_ptr is
+NULL).  Return the symbol found, if any.
+*/
+{
+  a_symbol_locator loc;
+  a_symbol_ptr     sym;
 
-a_namespace_ptr f_cli_namespace_ptr_for(a_cli_symbol_kind kind)
+  clear_locator(&loc, &null_source_position);
+  (void)find_symbol(symbol_name, (sizeof_t)strlen(symbol_name), &loc);
+  if (ns_ptr == NULL) {
+    sym = file_scope_id_lookup(il_header.primary_scope, &loc, options);
+  } else {
+    sym = namespace_qualified_id_lookup(&loc, ns_ptr, options);
+  }  /* if */
+  return sym;
+}  /* look_up_name_string_in_namespace */
+
+static void init_cli_symbol(a_cli_symbol_kind  csk);
+
+static a_namespace_ptr f_cli_namespace_ptr_for(a_cli_symbol_kind kind)
 /*
 The given C++/CLI symbol kind must designate a one of the C++/CLI namespaces
 known to the front end (like "System" or "cli").  Return the IL entry for that
@@ -7524,6 +7547,56 @@ namespace.
   }  /* if */
   return result;
 }  /* f_cli_namespace_ptr_for */
+
+#define cli_namespace_ptr_for(csk)                                           \
+  (f_cli_namespace_ptr_for((a_cli_symbol_kind)(csk)))
+
+
+static void init_cli_symbol(a_cli_symbol_kind  csk)
+/*
+Look up the C++/CLI namespace or type specified by csk and cache it in the
+cli_symbols array.  This function assumes that mscorlib.dll has been imported.
+*/
+{
+  a_const_char      *name;
+  a_cli_symbol_kind ns_kind;
+
+  check_assertion((int)csk >= (int)csk_first && (int)csk < (int)csk_last);
+  name = cli_symbol_names[csk].name;
+  ns_kind = (a_cli_symbol_kind)cli_symbol_names[csk].namespace_kind;
+  if (cppcx_enabled) {
+    if (cli_symbol_names[csk].cppcx_name != NULL) {
+      name = cli_symbol_names[csk].cppcx_name;
+    }  /* if */
+    if (cli_symbol_names[csk].cppcx_namespace_kind != csk_none) {
+      ns_kind = (a_cli_symbol_kind)cli_symbol_names[csk].cppcx_namespace_kind;
+    }  /* if */
+  }  /* if */
+  if (name != NULL) {
+    a_namespace_ptr          ns_ptr = NULL;
+    an_id_lookup_options_set options = IDL_DIRECT_NAMESPACE_MEMBERS_ONLY;
+    a_boolean                required = cli_symbol_is_required(csk);
+    check_assertion(*name != '\0');
+    if ((int)csk >= (int)csk_first_namespace &&
+        (int)csk <= (int)csk_last_namespace) {
+      options |= IDL_MUST_BE_NAMESPACE;
+    }  /* if */
+    if (ns_kind != (a_cli_symbol_kind)csk_none) {
+      ns_ptr = cli_namespace_ptr_for(ns_kind);
+      if (ns_ptr == NULL) {
+        if (!required) goto done;
+        /* The parent namespace wasn't found. */
+        str_catastrophe(ec_cli_entity_not_loaded, name);
+      }  /* if */
+    }  /* if */
+    cli_symbols[csk] = look_up_name_string_in_namespace(name, ns_ptr, options);
+    if (required && cli_symbols[csk] == NULL) {
+      /* The symbol wasn't found in the parent namespace. */
+      str_catastrophe(ec_cli_entity_not_loaded, name);
+    }  /* if */
+  }  /* if */
+done:;
+}  /* init_cli_symbol */
 
 
 a_type_ptr f_cli_class_type_for(a_cli_symbol_kind kind)
@@ -7562,29 +7635,6 @@ Predeclare namespace "cli".  This namespace is used in C++/CLI mode.
   enter_symbol_for_namespace(symbol, &locator);
   cli_symbols[(int)csk_cli_namespace] = symbol;
 }  /* make_symbol_for_namespace_cli */
-
-
-static a_symbol_ptr look_up_name_string_in_namespace(
-                                        a_const_char             *symbol_name,
-                                        a_namespace_ptr          ns_ptr,
-                                        an_id_lookup_options_set options)
-/*
-Look up symbol_name in the specified namespace (or file scope if ns_ptr is
-NULL).  Return the symbol found, if any.
-*/
-{
-  a_symbol_locator loc;
-  a_symbol_ptr     sym;
-
-  clear_locator(&loc, &null_source_position);
-  (void)find_symbol(symbol_name, (sizeof_t)strlen(symbol_name), &loc);
-  if (ns_ptr == NULL) {
-    sym = file_scope_id_lookup(il_header.primary_scope, &loc, options);
-  } else {
-    sym = namespace_qualified_id_lookup(&loc, ns_ptr, options);
-  }  /* if */
-  return sym;
-}  /* look_up_name_string_in_namespace */
 
 
 static a_symbol_ptr make_cli_internal_template(
@@ -7926,53 +7976,6 @@ Create symbols for the builtin System::String operators.
                                                            (a_type_ptr)NULL,
                                                            (a_type_ptr)NULL));
 }  /* make_symbols_for_system_string_operators */
-
-
-void init_cli_symbol(a_cli_symbol_kind  csk)
-/*
-Look up the C++/CLI namespace or type specified by csk and cache it in the
-cli_symbols array.  This function assumes that mscorlib.dll has been imported.
-*/
-{
-  a_const_char      *name;
-  a_cli_symbol_kind ns_kind;
-
-  check_assertion((int)csk >= (int)csk_first && (int)csk < (int)csk_last);
-  name = cli_symbol_names[csk].name;
-  ns_kind = (a_cli_symbol_kind)cli_symbol_names[csk].namespace_kind;
-  if (cppcx_enabled) {
-    if (cli_symbol_names[csk].cppcx_name != NULL) {
-      name = cli_symbol_names[csk].cppcx_name;
-    }  /* if */
-    if (cli_symbol_names[csk].cppcx_namespace_kind != csk_none) {
-      ns_kind = (a_cli_symbol_kind)cli_symbol_names[csk].cppcx_namespace_kind;
-    }  /* if */
-  }  /* if */
-  if (name != NULL) {
-    a_namespace_ptr          ns_ptr = NULL;
-    an_id_lookup_options_set options = IDL_DIRECT_NAMESPACE_MEMBERS_ONLY;
-    a_boolean                required = cli_symbol_is_required(csk);
-    check_assertion(*name != '\0');
-    if ((int)csk >= (int)csk_first_namespace &&
-        (int)csk <= (int)csk_last_namespace) {
-      options |= IDL_MUST_BE_NAMESPACE;
-    }  /* if */
-    if (ns_kind != (a_cli_symbol_kind)csk_none) {
-      ns_ptr = cli_namespace_ptr_for(ns_kind);
-      if (ns_ptr == NULL) {
-        if (!required) goto done;
-        /* The parent namespace wasn't found. */
-        str_catastrophe(ec_cli_entity_not_loaded, name);
-      }  /* if */
-    }  /* if */
-    cli_symbols[csk] = look_up_name_string_in_namespace(name, ns_ptr, options);
-    if (required && cli_symbols[csk] == NULL) {
-      /* The symbol wasn't found in the parent namespace. */
-      str_catastrophe(ec_cli_entity_not_loaded, name);
-    }  /* if */
-  }  /* if */
-done:;
-}  /* init_cli_symbol */
 
 
 void init_cli_symbols()

@@ -2456,8 +2456,10 @@ an error if a default argument expression is encountered.
   a_symbol_locator        param_locator;
   a_boolean               done = FALSE, any_params;
 #if MICROSOFT_EXTENSIONS_ALLOWED
-  a_boolean               param_array_next = FALSE,
-                          param_array_ellipsis = FALSE;
+  a_boolean               param_array_next = FALSE;
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+  a_boolean               param_array_ellipsis = FALSE;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   a_source_position       start_pos, param_type_pos, ellipsis_pos;
   a_routine_type_supplement_ptr
@@ -2567,8 +2569,10 @@ an error if a default argument expression is encountered.
     } else if (cppcli_enabled && is_type_start(/*is_expr_context=*/FALSE)) {
       /* Presumably a C++/CLI parameter array (not allowed in C++/CX). */
       param_array_next = TRUE;
-      param_array_ellipsis = TRUE;
       any_params = TRUE;
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+      param_array_ellipsis = TRUE;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     } else {
       /* In C++ f(...) is legal, though it is not recommended since it is not

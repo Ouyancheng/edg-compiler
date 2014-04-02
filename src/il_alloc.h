@@ -128,8 +128,6 @@ extern char *alloc_asm_function_body(sizeof_t  len);
 #endif /* ASM_SUPPORT_NEEDED */
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
-extern void clear_ms_attribute_usage(an_ms_attribute_usage_ptr msaup);
-
 extern an_ms_attribute_ptr alloc_ms_attribute(an_ms_attribute_kind kind);
 
 extern

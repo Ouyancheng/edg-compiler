@@ -1045,6 +1045,7 @@ extern int fileno(FILE *);
 /*lint -esym(769,ec_bad_assembly_index)*/
 /*lint -esym(769,ec_attribute_conflict)*/
 /*lint -esym(769,ec_cl_unrestricted_unions_in_microsoft_mode)*/
+/*lint -esym(769,ec_cli_invalid_use_of_attribute_usage_attribute)*/
 /*lint -esym(759,free_attachments_to_operand)*/
 /*lint -esym(765,free_attachments_to_operand)*/
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */

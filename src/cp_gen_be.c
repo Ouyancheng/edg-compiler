@@ -6910,9 +6910,11 @@ is the one associated with the definition of the enum.
            is_zero_constant(enum_con->variant.template_param.variant.constant);
     }  /* if */
     for (;;) {
+#if MICROSOFT_EXTENSIONS_ALLOWED
       /* Output any Microsoft attributes, along with any preprocessing
          directives preceding the enum definition. */
       (void)gen_ms_attribute_block_from_ss_list();
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       /* The source sequence entry for the enum constant should be next. */
       check_for_and_take_source_seq_entry(
                                enum_con->source_corresp.source_sequence_entry);

@@ -1545,7 +1545,7 @@ incomplete (which affects the recorded size and alignment).
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
 
-void clear_ms_attribute_usage(an_ms_attribute_usage_ptr msaup)
+static void clear_ms_attribute_usage(an_ms_attribute_usage_ptr msaup)
 /*
 Initialize the given Microsoft attribute usage descriptor.
 */

@@ -138,10 +138,7 @@ extern a_boolean is_interior_ptr_type(a_type_ptr tp);
 extern a_boolean is_pin_ptr_type(a_type_ptr tp);
 extern a_boolean is_handle_to_cli_array_type(a_type_ptr tp);
 extern a_boolean is_cli_array_type(a_type_ptr tp);
-extern a_boolean is_cppcx_write_only_array_type(a_type_ptr tp);
-extern a_boolean is_handle_to_cppcx_write_only_array_type(a_type_ptr tp);
 extern a_boolean is_handle_to_nonconst_cppcx_plain_array_type(a_type_ptr tp);
-extern a_boolean is_cppcx_box_type(a_type_ptr tp);
 extern a_boolean is_cli_value_type(a_type_ptr tp);
 extern a_boolean is_boxable_type(a_type_ptr tp);
 extern a_type_ptr boxed_type_for(a_type_ptr unboxed_type);
@@ -173,9 +170,6 @@ extern a_boolean cli_type_has_public_default_constructor(a_type_ptr tp);
 #define is_immediate_managed_class_type(tp)                                  \
   (is_immediate_class_type(tp) &&                                            \
    !cli_class_type_kind_is((tp), cctk_standard))
-#define is_immediate_cli_value_class_type(tp)                                \
-  (is_immediate_class_type(tp) &&                                            \
-   cli_class_type_kind_is((tp), cctk_value))
 #define is_immediate_cli_ref_class_type(tp)                                  \
   (is_immediate_class_type(tp) &&                                            \
    cli_class_type_kind_is((tp), cctk_ref))

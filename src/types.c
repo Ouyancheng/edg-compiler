@@ -1163,28 +1163,6 @@ Return TRUE if the given type is a handle to a C++/CLI array type.
 }  /* is_handle_to_cli_array_type */
 
 
-a_boolean is_cppcx_write_only_array_type(a_type_ptr tp)
-/*
-Return TRUE if the given type is a C++/CX write-only array type.
-*/
-{
-  tp = skip_typerefs(tp);
-  return is_immediate_class_type(tp) &&
-         class_type_supp(tp)->is_cppcx_write_only_array;
-}  /* is_cppcx_write_only_array_type */
-
-
-a_boolean is_handle_to_cppcx_write_only_array_type(a_type_ptr tp)
-/*
-Return TRUE if the given type is a handle to a C++/CX write-only array
-type.
-*/
-{
-  return is_handle_type(tp) &&
-         is_cppcx_write_only_array_type(type_pointed_to(tp));
-}  /* is_handle_to_cppcx_write_only_array_type */
-
-
 a_boolean is_handle_to_nonconst_cppcx_plain_array_type(a_type_ptr tp)
 /*
 Return TRUE if the given type is a handle to a non-const Platform::Array
@@ -1209,14 +1187,14 @@ instance (C++/CX mode).
 }  /* is_handle_to_nonconst_cppcx_array_type */
 
 
-a_boolean is_cppcx_box_type(a_type_ptr tp)
+static a_boolean is_cppcx_box_type(a_type_ptr tp)
 /*
 Return TRUE if the given type is a C++/CX Platform::Box<T> type.
 */
 {
   tp = skip_typerefs(tp);
   return is_immediate_class_type(tp) && class_type_supp(tp)->is_cppcx_box;
-}  /* is_cli_array_type */
+}  /* is_cppcx_box_type */
 
 
 a_type_ptr cli_array_element_type(a_type_ptr tp)

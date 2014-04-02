@@ -4619,15 +4619,6 @@ C++/CX mode.
 ;
 
 
-enum a_cli_symbol_init_flag
-{
-  cisf_default           = 0x00,
-  cisf_optional          = 0x01,
-  cisf_cli_metadata      = 0x02,
-  cisf_platform_metadata = 0x04,
-  cisf_windows_metadata  = 0x08
-};
-
 /*
 A bit set type to describes the initialization of predeclared C++/CLI and
 C++/CX symbols.
@@ -4636,7 +4627,7 @@ typedef a_byte a_cli_symbol_init_flag_set;
 
 #define CISF_DEFAULT       ((a_cli_symbol_init_flag_set)0x00)
 			/* The symbol is loaded on startup.  This implies
-			   cisf_cli_metadata | cisf_platform_metadata. */
+			   CISF_CLI_METADATA | CISF_PLATFORM_METADATA. */
 #define CISF_OPTIONAL      ((a_cli_symbol_init_flag_set)0x01)
 			/* The symbol is not required to be found. */
 #define CISF_CLI_METADATA  ((a_cli_symbol_init_flag_set)0x02)
@@ -4841,8 +4832,7 @@ EXTERN a_cli_symbol_name
 ;
 
 #define cli_symbol_is_required(csk)                                          \
-  ((cli_symbol_names[(int)(csk)].init_flags &                                \
-                              (a_cli_symbol_init_flag_set)cisf_optional) == 0)
+  ((cli_symbol_names[(int)(csk)].init_flags & CISF_OPTIONAL) == 0)
 
 /*
 The following macros convert an_integer_kind/a_float_kind respectively into
@@ -4864,12 +4854,8 @@ a_cli_symbol_kind_tag/an_integer_kind/a_float_kind respectively.
 #define cli_symbol_from_float_kind(fk)                                \
   (cli_symbol_from_kind(float_kind_to_cli_symbol_kind((fk))))
 
-extern a_namespace_ptr f_cli_namespace_ptr_for(a_cli_symbol_kind kind);
 extern a_type_ptr f_cli_class_type_for(a_cli_symbol_kind kind);
 extern a_symbol_ptr f_cli_symbol_from_kind_or_null(a_cli_symbol_kind kind);
-
-#define cli_namespace_ptr_for(csk)                                           \
-  (f_cli_namespace_ptr_for((a_cli_symbol_kind)(csk)))
 
 #define cli_class_type_for(csk)                                              \
   (f_cli_class_type_for((a_cli_symbol_kind)(csk)))
@@ -4897,7 +4883,6 @@ extern void make_symbol_for_namespace_cli(void);
 extern void init_cli_symbols(void);
 extern a_boolean is_generic_cli_ienumerable_type(a_type_ptr type,
                                                  a_type_ptr elem_type);
-extern void init_cli_symbol(a_cli_symbol_kind  csk);
 
 extern void make_symbol_for_cppcx_box(void);
 extern void make_symbol_for_abi_hstring(void);
@@ -6186,14 +6171,6 @@ supplement.
   /* } else { */							\
     ((a_template_symbol_supplement_ptr)NULL)				\
   /* } */)
-
-/* Return a routine from a sk_function_template. */
-#define routine_for_function_template_symbol(sym)                   \
-  (sym)->variant.template_info->variant.function.routine
-
-/* Return a type from a sk_function_template. */
-#define type_for_function_template_symbol(sym)                      \
-  routine_for_function_template_symbol(sym)->type
 
 /* If sym is a template template parameter, return the symbol for the template
    argument, otherwise return the original symbol. */
