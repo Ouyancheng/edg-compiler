@@ -13815,13 +13815,13 @@ typedef struct a_gnu_routine_supplement {
 			   for a specific architecture (as specified by
 			   the "target" attribute).  Not entered into the
 			   symbol table or on a scope's routines list. */
-  /* FIXME: remove this altogether? */
-  /* FIXME: should this be specific to USE_X86_FUNCTION_MULTIVERSIONING? */
+#if USE_X86_FUNCTION_MULTIVERSIONING
   a_bit_field	mv_resolver_required:1;
                         /* TRUE if it has been determined that a resolver
                            routine is necessary.  In some cases (e.g.,
                            only one target routine), a resolver routine isn't
-                           needed.  */
+                           needed.  Set only on the representative routine. */
+#endif /* USE_X86_FUNCTION_MULTIVERSIONING */
   bitfield_to_avoid_codecenter_warnings()
   union {
     /* For GNU function multiversioning. */

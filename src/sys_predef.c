@@ -3056,16 +3056,8 @@ resolver routine is needed and no "default" routine is provided.
        version routine: no resolver is needed. */
   } else if (get_mv_default_routine(routine) != NULL) {
     /* Normal case: a resolver routine is required.  Record the fact that
-       a resolver is needed (on all routines since it's not possible to
-       get from target-specific routines to the is_representative routine --
-       useful when mangling target-specific versions). */
-    a_routine_list_entry_ptr rlep;
+       a resolver is needed. */
     grsp->mv_resolver_required = TRUE;
-    for (rlep = grsp->mv_info.representative.targeted_versions;
-         rlep != NULL;
-         rlep = rlep->next) {
-      ensure_gnu_routine_supp(rlep->routine)->mv_resolver_required = TRUE;
-    }  /* for */
   } else if (error_pos != NULL) {
     /* A "default" version is needed but not provided. */
     expr_pos_error(ec_gnu_mv_default_missing, error_pos);

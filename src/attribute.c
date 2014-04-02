@@ -5823,11 +5823,6 @@ attribute in C mode).
       add_to_inline_function_list(representative);
     }  /* if */
   }  /* if */
-  if (gnu_routine_supp(representative)->mv_resolver_required) {
-    /* If it has already been determined that a resolver routine is required,
-       note that in this new target-specific routine. */
-    ensure_gnu_routine_supp(target_routine)->mv_resolver_required = TRUE;
-  }  /* if */
   /* Validate the argument string. */
   validate_target_argument_string(aap, target_routine, &err);
   /* Check to see if the new routine is compatible with those already

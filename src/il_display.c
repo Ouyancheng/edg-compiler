@@ -3617,9 +3617,11 @@ Display the indicated routine.
     if (grsp->is_target_specific_version) {
       disp_boolean("is_target_specific_version", TRUE);
     }  /* if */
+#if USE_X86_FUNCTION_MULTIVERSIONING
     if (grsp->mv_resolver_required) {
       disp_boolean("mv_resolver_required", TRUE);
     }  /* if */
+#endif /* USE_X86_FUNCTION_MULTIVERSIONING */
     if (grsp->is_representative) {
       disp_boolean("is_representative", TRUE);
       disp_routine_list("targeted_versions",

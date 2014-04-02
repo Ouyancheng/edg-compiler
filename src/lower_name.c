@@ -10299,11 +10299,12 @@ add an appropriate string to the current mangled name to identify it.
        differentiated somehow.  For compatibility reasons, we use the same
        naming scheme as g++ (though that's not possible when using the
        C-generating back end because the names contain "."). */
-    if (is_mv_default_routine(routine) ||
-        mv_target_count(grsp->mv_info.targeted_version.representative) == 1) {
-      /* FIXME: find a way to get a count (can't get to is_representative) */
-      /* No suffix is added for the "default" routine or if it is the only
-         target-specific routine (to match GNU's behavior). */
+    if (is_mv_default_routine(routine)) {
+      /* No suffix is added for the "default" routine. */
+    } else if (mv_target_count(grsp->mv_info.targeted_version.representative)
+                                                                        == 1) {
+      /* No suffix is added if there is only a single target-specific
+         routine. */
     } else {
       /* Add a target-specific suffix at this point (note that the name
          that is created here cannot be demangled). */
@@ -10320,7 +10321,7 @@ add an appropriate string to the current mangled name to identify it.
       add_to_mangled_name('_', mctl);
 #endif /* !IA64_ABI */
     }  /* if */
-  } else if (grsp->is_representative && grsp->mv_resolver_required) {
+  } else if (grsp->mv_resolver_required) {
     /* FIXME: or only one... */
     check_assertion(routine->is_ifunc);
     add_str_to_mangled_name(MANGLING_SEPARATOR_FOR_MV_FUNC, mctl);
