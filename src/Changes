@@ -18,8 +18,8 @@ a default argument specified.  Now fixed.
 Microsoft compatibility: explicit override of a cv-qualified member function
 
 A spurious error had been reported when using the Microsoft explicit override
-mechanism to override a cv-qualified member function.  Now fixed.
-For example (with --microsoft):
+mechanism to override a cv-qualified member function.  Now fixed.  For example
+(with --microsoft):
 
   struct A {
     virtual void f(void) const = 0;
