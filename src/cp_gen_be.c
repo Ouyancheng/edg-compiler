@@ -3859,7 +3859,7 @@ GN_PARENS_IF_GLOBAL_QUALIFIER is not set.
   }  /* if */
 unqualified_part:
 #if MICROSOFT_EXTENSIONS_ALLOWED
-  if (cppcli_enabled &&
+  if (cli_or_cx_enabled &&
       (((options & GN_DECLARATION) == 0) || used_qualified_name)) {
     add_property_or_event_name_as_qualifier(scp, entry_kind);
   }  /* if */
@@ -6039,7 +6039,7 @@ nothing if the current access is already set to that value.
 
   if ((access != curr_name_context->access
 #if MICROSOFT_EXTENSIONS_ALLOWED
-       || (cppcli_enabled && 
+       || (cli_or_cx_enabled && 
            assembly_access != curr_name_context->assembly_access)
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */    
                                                                  ) &&
@@ -6054,7 +6054,7 @@ nothing if the current access is already set to that value.
        more-restrictive access was inherited from the larger context and not
        because an access label appeared in the source.) */
 #if MICROSOFT_EXTENSIONS_ALLOWED
-    if (cppcli_enabled) {
+    if (cli_or_cx_enabled) {
       if ((access == (an_access_specifier)as_protected &&
            assembly_access == (an_access_specifier)as_private) ||
           (access == (an_access_specifier)as_public &&
@@ -6109,6 +6109,43 @@ current access mode in the class.  Otherwise, do nothing.
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
 
+static void gen_temp_init(an_expr_node_ptr expr,
+                          a_boolean        obj_expr_of_mfunc_operator);
+
+static a_boolean gen_argument_list_no_parens(an_expr_node_ptr arg,
+                                             a_type_ptr       rout_type,
+                                             int              skip_num);
+
+static void gen_custom_ms_attribute(an_ms_attribute_ptr msap)
+/*
+Generate a single custom Microsoft attribute from the given description.
+*/
+{
+  a_custom_ms_attribute_arg_ptr named_arg;
+  a_boolean                     any_arg_put_out;
+
+  check_assertion(msap->kind == (an_ms_attribute_kind)msak_custom);
+  gen_type_reference(msap->variant.custom_info.type);
+  write_tok_ch('(');
+  any_arg_put_out = gen_argument_list_no_parens(
+                                  msap->variant.custom_info.args,
+                                  msap->variant.custom_info.constructor->type,
+                                  /*skip_num=*/0);
+  for (named_arg = msap->variant.custom_info.named_args;
+       named_arg != NULL;
+       named_arg = named_arg->next) {
+    if (any_arg_put_out) write_tok_str(", ");
+    any_arg_put_out = TRUE;
+    gen_unqualified_name(&named_arg->field->source_corresp, iek_field);
+    write_tok_str(" = ");
+    gen_initializer_expr(named_arg->expression, named_arg->field->type,
+                         expr_has_comma_operation(named_arg->expression),
+                         /*mbr_fcn_default_arg_expr=*/FALSE);
+  }  /* for */
+  write_tok_ch(')');
+}  /* gen_custom_ms_attribute */
+
+
 static void gen_ms_attribute(an_ms_attribute_ptr msap,
                              a_boolean           *first)
 /*
@@ -6124,7 +6161,38 @@ appropriately.
     write_tok_ch('[');
     *first = FALSE;
   }  /* if */
-  write_tok_str(msap->string);
+  switch (msap->target) {
+    case msat_none:                                                  break;
+    case msat_assembly:         write_tok_str("assembly: ");         break;
+    case msat_module:           write_tok_str("module: ");           break;
+    case msat_class:            write_tok_str("class: ");            break;
+    case msat_struct:           write_tok_str("struct: ");           break;
+    case msat_enum:             write_tok_str("enum: ");             break;
+    case msat_constructor:      write_tok_str("constructor: ");      break;
+    case msat_method:           write_tok_str("method: ");           break;
+    case msat_property:         write_tok_str("property: ");         break;
+    case msat_field:            write_tok_str("field: ");            break;
+    case msat_event:            write_tok_str("event: ");            break;
+    case msat_interface:        write_tok_str("interface: ");        break;
+    case msat_parameter:        write_tok_str("parameter: ");        break;
+    case msat_delegate:         write_tok_str("delegate: ");         break;
+    case msat_returnvalue:      write_tok_str("returnvalue: ");      break;
+    case msat_genericparameter: write_tok_str("genericparameter: "); break;
+    case msat_typedef:          write_tok_str("typedef: ");          break;
+    /* The following targets cannot be explicitly expressed in source. */
+    case msat_union:
+    case msat_variable:
+    case msat_routine:
+    case msat_interfaceimpl:
+    default:
+      unexpected_condition();
+      break;
+  }  /* switch */
+  if (msap->kind == (an_ms_attribute_kind)msak_custom) {
+    gen_custom_ms_attribute(msap);
+  } else {
+    write_tok_str(msap->variant.info.string);
+  }  /* if */
   if (msap->next_in_block != NULL) {
     /* There is another attribute following in the same block. */
     write_tok_str(", ");
@@ -6842,8 +6910,9 @@ is the one associated with the definition of the enum.
            is_zero_constant(enum_con->variant.template_param.variant.constant);
     }  /* if */
     for (;;) {
-      /* Process macros, etc. */
-      (void)process_preprocessing_directives();
+      /* Output any Microsoft attributes, along with any preprocessing
+         directives preceding the enum definition. */
+      (void)gen_ms_attribute_block_from_ss_list();
       /* The source sequence entry for the enum constant should be next. */
       check_for_and_take_source_seq_entry(
                                enum_con->source_corresp.source_sequence_entry);
@@ -6868,7 +6937,7 @@ is the one associated with the definition of the enum.
           explicit_enum_expr =
                    next_value_calc_overflowed ||
                    (cmp_integer_constants(enum_con, &next_enum_value) != 0) ||
-                   (cppcli_enabled && base_type != NULL &&
+                   (cli_or_cx_enabled && base_type != NULL &&
                     is_bool_type(base_type));
         } else {
           /* The previous constant involved a template parameter, so an
@@ -7075,7 +7144,7 @@ if the declaration following this one is such a continuation.
   set_output_position(&constant->source_corresp.decl_position);
   gen_member_access_specifier_for_decl_of(&constant->source_corresp);
 #if MICROSOFT_EXTENSIONS_ALLOWED
-  if (constant->is_literal_field && cppcli_enabled) {
+  if (constant->is_literal_field && cli_or_cx_enabled) {
     if (!suppress_specifiers) write_tok_str("literal ");
   } else
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
@@ -7429,11 +7498,13 @@ Render the given delegate type as a C++/CLI delegate definition.  E.g.:
 	delegate void Ping(int);
 */
 {
-  /* Advance past the source sequence entry for the class itself. */
-  check_and_take_source_seq_entry_for_type(type);
   /* Position the output file to the definition position. */
   set_output_position(&type->source_corresp.decl_position);
+  /* Output any Microsoft attributes, along with any preprocessing
+     directives preceding the delegate definition. */
   (void)gen_ms_attribute_block_from_ss_list();
+  /* Advance past the source sequence entry for the class itself. */
+  check_and_take_source_seq_entry_for_type(type);
   gen_assembly_visibility_for_type(type);
   write_tok_str("delegate ");
   gen_general_declaration_using_type(delegate_invocation_type(type),
@@ -9457,9 +9528,9 @@ function call, notation.
 }  /* gen_argument */
 
 
-static void gen_argument_list_no_parens(an_expr_node_ptr arg,
-                                        a_type_ptr       rout_type,
-                                        int              skip_num)
+static a_boolean gen_argument_list_no_parens(an_expr_node_ptr arg,
+                                             a_type_ptr       rout_type,
+                                             int              skip_num)
 /*
 Write out an argument list without surrounding parentheses.  If
 rout_type is non-NULL, it is the type of the routine being called and
@@ -9468,7 +9539,8 @@ parameters appropriately.  If rout_type is NULL, the argument
 expressions are put out "as is".  If skip_num is non-zero, it
 indicates the number of leading argument expressions not to put out
 (they're on the arg list and the parameter list, and they're passed
-over, but nothing is put out for them).
+over, but nothing is put out for them).  Returns TRUE if any arguments were
+emitted; otherwise returns FALSE.
 */
 {
   a_param_type_ptr              param;
@@ -9503,6 +9575,7 @@ over, but nothing is put out for them).
     arg = arg->next;
     if (param != NULL) param = param->next;
   }  /* for */
+  return any_arg_put_out;
 }  /* gen_argument_list_no_parens */
 
 
@@ -9521,7 +9594,7 @@ over, but nothing is put out for them).
 */
 {
  write_tok_ch('(');
- gen_argument_list_no_parens(arg, rout_type, skip_num);
+ (void)gen_argument_list_no_parens(arg, rout_type, skip_num);
  write_tok_ch(')');
 }  /* gen_argument_list */
 
@@ -9668,7 +9741,11 @@ Generate code for a gcnew expression.
   a_dynamic_init_ptr     dip  = gsp->dynamic_init;
 
   if (!gsp->compiler_generated) {
-    write_tok_str("gcnew ");
+    if (cppcx_enabled) {
+      write_tok_str("ref new ");
+    } else {
+      write_tok_str("gcnew ");
+    }  /* if */
     /* In contrast to the gen_new_delete case, the types allowed
        with gcnew should not require parentheses because we do not allow
        native array syntax, etc. */
@@ -9676,7 +9753,10 @@ Generate code for a gcnew expression.
   }  /* if */
   if (gsp->is_cli_array) {
     /* gcnew of a CLI array. */
-    if (gsp->has_new_initializer) {
+    /* In C++/CX mode, if cli_array_dimension_lengths is NULL, then the
+       new-init is represented by the dynamic_init. */
+    if (gsp->has_new_initializer &&
+        !(cppcx_enabled && gsp->cli_array_dimension_lengths == NULL)) {
       /* Emit the array length expressions as the new-initializer */
       an_expr_node_ptr curr;
       write_tok_str("(");
@@ -9689,6 +9769,8 @@ Generate code for a gcnew expression.
       write_tok_str(")");
     }  /* if */
     if (dip != NULL) {
+      a_boolean  array_init_present = dip->is_braced_initializer;
+      if (!array_init_present)  goto regular_gcnew_init;
       /* Put out the brace-enclosed initializer for the array's elements. */
       check_assertion(dip->is_braced_initializer);
       gen_paren_or_brace_dynamic_init(dip, gcnew_expr->type,
@@ -9696,6 +9778,7 @@ Generate code for a gcnew expression.
                                       /*is_var_init=*/FALSE);
     }  /* if */
   } else if (gsp->has_new_initializer) {
+regular_gcnew_init:
     /* Output the initializer for a non-array case. */
     gen_paren_or_brace_dynamic_init(dip, type, /*paren_form=*/TRUE,
                                     /*is_var_init=*/FALSE);
@@ -12485,9 +12568,9 @@ sizeof_cases:
          prototype instantiations of templates. */
       check_assertion(prototype_instantiations_in_il);
       write_tok_ch('{');
-      gen_argument_list_no_parens(expr->variant.braced_init_list,
-                                  (a_type_ptr)NULL,
-                                  /*skip_num=*/0);
+      (void)gen_argument_list_no_parens(expr->variant.braced_init_list,
+                                        (a_type_ptr)NULL,
+                                        /*skip_num=*/0);
       write_tok_ch('}');
       break;
     case enk_c11_generic:
@@ -15147,8 +15230,9 @@ output_functional_notation_cast_arguments:
             closing_parens_needed++;
           }  /* if */
         }  /* if */
-        gen_argument_list_no_parens(args, (ctor == NULL) ? NULL : ctor->type,
-                                    /*skip_num=*/0);
+        (void)gen_argument_list_no_parens(args,
+                                          (ctor == NULL) ? NULL : ctor->type,
+                                          /*skip_num=*/0);
         if (brace_list_case) {
           write_tok_ch('}');
         }  /* if */
@@ -15334,8 +15418,8 @@ and the output of the type name.
           }  /* if */
         }  /* if */
         if (!no_args) {
-          gen_argument_list_no_parens(args, (ctor == NULL) ? NULL : ctor->type,
-                                      /*skip_num=*/0);
+          (void)gen_argument_list_no_parens(
+                    args, (ctor == NULL) ? NULL : ctor->type, /*skip_num=*/0);
         }  /* if */
       }
       break;

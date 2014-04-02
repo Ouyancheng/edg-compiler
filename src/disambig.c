@@ -597,7 +597,7 @@ finalizer definition.  The locator must refer to a qualified name.
       /* This is a destructor name. */
       result = TRUE;
 #if MICROSOFT_EXTENSIONS_ALLOWED
-    } else if (cppcli_enabled && locator_for_curr_id.is_finalizer_name) {
+    } else if (cli_or_cx_enabled && locator_for_curr_id.is_finalizer_name) {
       /* This is a finalizer name. */
       result = TRUE;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
@@ -794,6 +794,8 @@ Scan and cache the tokens that comprise a list of decl_specifiers.
       case tok_interface_class:
       case tok_enum_class:
       case tok_enum_struct:
+      case tok_partial_ref_struct:
+      case tok_partial_ref_class:
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
         /* This could be an elaborated type specifier or the start of
            a enum or class specifier.  The prescanning routines can't

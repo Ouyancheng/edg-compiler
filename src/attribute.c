@@ -96,7 +96,7 @@ since attributes usually do not create new entries).
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
 #define assert_not_handle_or_tracking_reference(tp)                         \
-  check_assertion(!cppcli_enabled ||                                        \
+  check_assertion(!cli_or_cx_enabled ||                                     \
                   (!is_handle_type(tp) && !is_tracking_reference_type(tp)))
 #else /* !MICROSOFT_EXTENSIONS_ALLOWED */
 #define assert_not_handle_or_tracking_reference(tp)  /* Nothing */
@@ -322,6 +322,13 @@ static an_attr_descr known_attr_table[] = {
   { "thread", "", "mx", ak_thread },
 #endif /* THREAD_LOCAL_STORAGE_SPECIFIER_ALLOWED */
   { "uuid", "(sn)", "m+", ak_uuid },
+  { "layout_as_external", "", "m+", ak_layout_as_external },
+  { "no_empty_identity_interface", "", "m+", ak_no_empty_identity_interface },
+  { "no_ftm", "", "m+", ak_no_ftm },
+  { "no_refcount", "", "m+", ak_no_refcount },
+  { "no_release_return", "", "m+", ak_no_release_return },
+  { "no_weakreferencesource", "", "m+", ak_no_weakreferencesource },
+  { "one_phase_constructed", "", "m+", ak_one_phase_constructed },
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 #if SUN_EXTENSIONS_ALLOWED && GNU_EXTENSIONS_ALLOWED
@@ -674,6 +681,13 @@ static an_attr_appl_descr known_attr_appl_table[(int)ak_last+1] = {
   { ak_thread, "v|Wt|Wp", apply_thread_attr },
 #endif /* THREAD_LOCAL_STORAGE_SPECIFIER_ALLOWED */
   { ak_uuid, "c|e|Wr|Wv|Wt|Wp|Wd", apply_uuid_attr },
+  { ak_layout_as_external, "t|p|r|v|d", NO_APPL_FN },
+  { ak_no_empty_identity_interface, "t|p|r|v|d", NO_APPL_FN },
+  { ak_no_ftm, "t|p|r|v|d", NO_APPL_FN },
+  { ak_no_refcount, "t|p|r|v|d", NO_APPL_FN },
+  { ak_no_release_return, "t|p|r|v|d", NO_APPL_FN },
+  { ak_no_weakreferencesource, "t|p|r|v|d", NO_APPL_FN },
+  { ak_one_phase_constructed, "t|p|r|v|d", NO_APPL_FN },
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 #if INCLUDE_EDG_TEST_ATTRIBUTES
@@ -3711,7 +3725,7 @@ return that entity.
     constr = "c|e|t|v|d|r";
   }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
-  if (cppcli_enabled) {
+  if (cli_or_cx_enabled) {
     /* The alignment attribute cannot be combined with certain other
        attributes. */
     exclude_prior_attribute_kind(ak_appdomain, ap, entity, entity_kind);
@@ -6552,7 +6566,7 @@ Apply the Microsoft __declspec(appdomain) attribute to the given entity
 (and return that entity).
 */
 {
-  if (!cppcli_enabled) {
+  if (!cli_or_cx_enabled) {
     pos_st_error(ec_cppcli_attribute_only, &ap->position, ap->name);
     make_attr_unrecognized(ap);
   } else {
@@ -6778,7 +6792,7 @@ Apply the Microsoft __declspec(jitintrinsic) attribute to the given entity
 (and return that entity).
 */
 {
-  if (!cppcli_enabled) {
+  if (!cli_or_cx_enabled) {
     pos_st_error(ec_cppcli_attribute_only, &ap->position, ap->name);
     make_attr_unrecognized(ap);
   }  /* if */
@@ -6841,7 +6855,7 @@ Apply the Microsoft __declspec(process) attribute to the given entity
 (and return that entity).
 */
 {
-  if (!cppcli_enabled) {
+  if (!cli_or_cx_enabled) {
     pos_st_error(ec_cppcli_attribute_only, &ap->position, ap->name);
     make_attr_unrecognized(ap);
   }  /* if */
@@ -6861,7 +6875,7 @@ stream.
 {
   if (entity_kind != iek_field) {
     report_bad_attribute_target(es_warning, ap);
-  } else if (cppcli_enabled &&
+  } else if (cli_or_cx_enabled &&
              is_managed_class_type(parent_class_of((a_field*)entity))) {
     /* __declspec(property(...)) is not allowed on members of managed class
        types. */

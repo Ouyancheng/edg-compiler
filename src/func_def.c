@@ -915,7 +915,7 @@ of lambda expressions.
   if (rout_ptr->source_corresp.is_class_member) {
     class_type = parent_class_of(rout_ptr);
 #if MICROSOFT_EXTENSIONS_ALLOWED
-    if (cppcli_enabled) {
+    if (cli_or_cx_enabled) {
       /* Issue errors when attempting to define a abstract member of a C++/CLI
          managed class (a more specific message is used for a member of an
          interface class). */
@@ -1439,7 +1439,7 @@ of lambda expressions.
     add_to_inline_function_list(rout_ptr);
   }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
-  if (cppcli_enabled && special_kind_is(rout_ptr, sfk_static_constructor)) {
+  if (cli_or_cx_enabled && special_kind_is(rout_ptr, sfk_static_constructor)) {
     /* If this is the static constructor definition, ensure that the initonly
        static members have been initialized. */
     check_initonly_members(class_type, /*static_ctor_def_seen=*/TRUE);
@@ -1903,8 +1903,7 @@ member declaration (allowed in some Microsoft modes only).
     attach_decl_attributes(dps, func_info->is_definition);
 #if MICROSOFT_EXTENSIONS_ALLOWED
     if (dps->ms_attributes != NULL) {
-      apply_microsoft_attributes(&dps->ms_attributes, (char*)rp,
-                                 (an_il_entry_kind)iek_routine, MSAT_METHOD);
+      apply_microsoft_attributes_to_routine(&dps->ms_attributes, rp);
     }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     /* Temporarily restore the position of the original declaration in the
@@ -2902,7 +2901,8 @@ is considered already defined), force the definition now.
              can be generated once the field initializers have been parsed. */
           cssp->default_ctor_body_delayed = TRUE;
 #if MICROSOFT_EXTENSIONS_ALLOWED
-        } else if (cppcli_enabled && is_immediate_delegate_type(parent_type) &&
+        } else if (cli_or_cx_enabled &&
+                   is_immediate_delegate_type(parent_type) &&
                    skind == (a_special_function_kind)sfk_constructor) {
           /* The generated constructor declaration of a delegate class type
              is not one whose body can be generated. */

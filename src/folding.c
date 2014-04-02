@@ -858,10 +858,14 @@ it points to the variable, routine, or constant entry.
         break;
       case abk_uuidof:
       case abk_typeid:
-        /* Use the address constant as the "base object" for a __uuidof or
-           typeid construct.  It's weird, but we need to return a non-NULL
-           base object for this case, and the constant seems like the best of
-           the possibilities. */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+      case abk_cli_typeid:
+      case abk_cli_array:
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+        /* Use the address constant as the "base object" for a __uuidof,
+           typeid, or C++/CLI constant array construct.  It's weird, but we
+           need to return a non-NULL base object for this case, and the
+           constant seems like the best of the possibilities. */
         object = (char *)constant;
         break;
       case abk_label:
@@ -1764,12 +1768,16 @@ diagnostic is issued, do so with source position *err_pos.  Set
 }  /* issue_folding_diagnostic */
 
 
+#if !MICROSOFT_EXTENSIONS_ALLOWED
+/*ARGSUSED*/ /* <-- is_cli_attr_arg_expression is not used in that case. */
+#endif /* !MICROSOFT_EXTENSIONS_ALLOWED */
 void type_change_constant_full(a_constant        *constant,
                                a_type_ptr        new_type,
                                a_boolean         is_implicit_cast,
                                a_boolean         constant_context,
                                a_boolean         evaluated_context,
                                a_boolean         fold_constant_addr_exprs,
+                               a_boolean         is_cli_attr_arg_expression,
                                a_boolean         check_cast_access,
                                a_boolean         check_ambiguity,
                                a_boolean         is_reinterpret_cast,
@@ -1880,12 +1888,45 @@ for any diagnostics issued.
     goto exit;
   }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
-  if (cppcli_enabled && is_handle_type(new_type) &&
-      boxing_conversion_possible(constant_type, new_type,
-                                  (a_std_conv_descr *)NULL)) {
-    /* A C++/CLI boxing conversion cannot be folded to a constant. */
-    *did_not_fold = TRUE;
-    goto exit;
+  if (cli_or_cx_enabled && is_handle_type(new_type)) {
+    a_type_ptr  underlying_new_type;
+    underlying_new_type = type_pointed_to(new_type);
+    underlying_new_type = skip_typerefs(underlying_new_type);
+    if (is_cli_attr_arg_expression && is_nullptr_type(constant_type) &&
+        !is_valid_cli_attribute_parameter_type(new_type)) {
+      /* Within the context of a C++/CLI attribute argument expression,
+         values of nullptr types can only be converted to valid attribute
+         parameter types. */
+      err_code = ec_cli_attribute_invalid_argument;
+      err_severity = es_error;
+      *did_not_fold = TRUE;
+      goto exit;
+    } else if (boxing_conversion_possible(constant_type, new_type,
+                                          (a_std_conv_descr *)NULL)) {
+      if (is_cli_attr_arg_expression &&
+          is_valid_cli_attribute_parameter_type(constant_type)) {
+        /* Within the context of a C++/CLI attribute argument expression,
+           boxing conversions from a valid attribute parameter type are
+           folded to a constant. */
+        copy_constant(constant, &new_constant);
+        implicit_or_explicit_cast(&new_constant, new_type, is_implicit_cast);
+      } else {
+        /* A C++/CLI boxing conversion cannot be folded to a constant. */
+        *did_not_fold = TRUE;
+      }  /* if */
+      goto exit;
+    } else if (is_cli_attr_arg_expression) {
+      if (impl_handle_conversion(constant_type, new_type,
+                                 /*allow_qualifier_or_eh_mismatch=*/FALSE,
+                                 (a_std_conv_descr *)NULL)) {
+        copy_constant(constant, &new_constant);
+        implicit_or_explicit_cast(&new_constant, new_type, is_implicit_cast);
+        goto exit;
+      } else if (is_handle_type(constant_type)) {
+        *did_not_fold = TRUE;
+        goto exit;
+      }  /* if */
+    }  /* if */
   }  /* if */
 #endif /*MICROSOFT_EXTENSIONS_ALLOWED */
   if (vla_enabled && !is_implicit_cast &&
@@ -2263,6 +2304,7 @@ description of the parameters.
                             /*constant_context=*/TRUE,
                             /*evaluated_context=*/TRUE,
                             /*fold_constant_addr_exprs=*/TRUE,
+                            /*is_cli_attr_arg_expression=*/FALSE,
                             /*check_cast_access=*/is_implicit_cast,
                             /*check_ambiguity=*/TRUE,
                             /*is_reinterpret_cast=*/FALSE,
@@ -4507,7 +4549,12 @@ checking.
         object_size = tp->size;
         break;
       case abk_typeid:
-        /* The object is std::type_info or a class derived from it.  So we
+#if MICROSOFT_EXTENSIONS_ALLOWED
+      case abk_cli_typeid:
+      case abk_cli_array:
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+        /* The object is std::type_info or a class derived from it, or a
+           handle to a C++/CLI System::String or System::Array.  Therefore, we
            don't really know the actual size. */
         break;
       default:
@@ -5896,11 +5943,16 @@ a constexpr expansion, and the block provides context information.
       }
       break;
     case enk_typeid:
-      if (expr->variant.typeid_info.expr == NULL) {
+      if (expr->variant.typeid_info.expr == NULL
+#if MICROSOFT_EXTENSIONS_ALLOWED
+          && !expr->variant.typeid_info.is_cli_typeid
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+          ) {
         /* The type is known at compile time, so the address of the
            std::type_info object is a compile-time constant. */
         is_constant_addr = TRUE;
-        make_typeid_constant(expr->variant.typeid_info.type, con);
+        make_typeid_constant(expr->variant.typeid_info.type,
+                             /*is_cli_typeid*/FALSE, con);
       }  /* if */
       break;
     case enk_operation:
@@ -6164,7 +6216,7 @@ handle_pm_field_selection:
   }  /* switch */
 have_result:
 #if MICROSOFT_EXTENSIONS_ALLOWED
-  if (cppcli_enabled && is_constant_addr) {
+  if (cli_or_cx_enabled && is_constant_addr) {
     /* A C++/CLI gc-lvalue should not ever be treated as a constant address,
        as its address might change if the garbage collector moves the
        underlying object. */
@@ -7339,6 +7391,30 @@ are known not to throw exceptions, or if it is an array of such a class type.
   return result;
 }  /* has_nothrow_move_assign */
 
+#if /*FIXME*/0
+static void fold_is_cppcx_type(an_expr_node_ptr   expr,
+                               a_constant_ptr     constant,
+                               a_boolean          maintain_expression,
+                               a_source_position  *pos,
+                               a_boolean          complete_class_property)
+/*
+*/
+{
+  en_expr_node_ptr  arg = expr->variant.builtin_operation.operands;
+  a_boolean result = TRUE;
+
+  if (is_template_dependent_type(type)) {
+    clear_constant(constant, (a_constant_repr_kind)ck_template_param);
+    set_template_param_constant_kind(
+                   constant, (a_template_param_constant_kind)tpck_expression);
+    constant->variant.template_param.variant.expr = expr;
+  } else {
+    a_boolean  result = TRUE;
+
+
+  }  /* if */
+}
+#endif /* 0 */
 
 static void fold_unary_type_trait_helper(
                                     an_expr_node_ptr   expr,
@@ -7391,7 +7467,7 @@ constant will be set as well.
     }  /* if */
     type = skip_typerefs(type);
 #if MICROSOFT_EXTENSIONS_ALLOWED
-    if (cppcli_enabled &&
+    if (cli_or_cx_enabled &&
         (kind == (a_builtin_operation_kind)bok_is_sealed ||
          kind == (a_builtin_operation_kind)bok_is_simple_value_class ||
          kind == (a_builtin_operation_kind)bok_is_value_class)) {
@@ -7483,8 +7559,13 @@ constant will be set as well.
           /* Microsoft compilers appear to use the boxed type when there is
              one (see above).  However, in non-C++/CLI modes, they also report
              enumerations as value classes. */
-          check_assertion(!(cppcli_enabled && is_immediate_enum_type(type)));
+          check_assertion(!(cli_or_cx_enabled &&
+                            is_immediate_enum_type(type)));
           result = is_immediate_enum_type(type);
+          break;
+        case bok_is_valid_winrt_type:
+          /* FIXME (daveed): Is this really always TRUE? */
+          result = TRUE;
           break;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
         case bok_is_enum:
@@ -7675,13 +7756,17 @@ constant will be set as well.
         result = cssp->finalizer != NULL;
         break;
       case bok_is_delegate:
-        if (cppcli_enabled) {
+        if (cli_or_cx_enabled) {
           a_type_ptr  delegate_tp = cli_class_type_for(csk_system_delegate);
-          a_type_ptr  multicast_delegate_tp =
+          a_type_ptr  multicast_delegate_tp = NULL;
+          if (!cppcx_enabled) {
+            multicast_delegate_tp =
                             cli_class_type_for(csk_system_multicast_delegate);
+          }  /* if */
           result = (type->variant.class_struct_union.is_delegate_class ||
                     identical_types(type, delegate_tp) ||
-                    identical_types(type, multicast_delegate_tp));
+                    (multicast_delegate_tp != NULL &&
+                     identical_types(type, multicast_delegate_tp)));
         }  else {
           result = FALSE;
         }  /* if */
@@ -7693,7 +7778,7 @@ constant will be set as well.
         /* System::Array isn't technically a ref array, but it supports the
            subscript operator, and ref arrays all derive from it, so it is
            considered a ref array. */
-        if (cppcli_enabled) {
+        if (cli_or_cx_enabled) {
           a_type_ptr  array_tp = cli_class_type_for(csk_system_array);
           result = class_type_supp(type)->is_cli_array ||
                    identical_types(type, array_tp);
@@ -7713,6 +7798,10 @@ constant will be set as well.
         break;
       case bok_is_value_class:
         result = cli_class_type_kind_is(type, cctk_value);
+        break;
+      case bok_is_valid_winrt_type:
+        /* FIXME (daveed): Is this really always TRUE? */
+        result = TRUE;
         break;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       case bok_is_final:
@@ -7872,6 +7961,7 @@ constant is set as well.
       case bok_is_ref_array:
       case bok_is_ref_class:
       case bok_is_value_class:
+      case bok_is_valid_winrt_type:
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
         /* Various type trait helpers that take a single argument. */
         fold_unary_type_trait_helper(expr, constant, maintain_expression, pos,
@@ -7897,6 +7987,7 @@ constant is set as well.
       case bok_is_trivially_assignable:
         fold_is_assignable(expr, constant, maintain_expression);
         break;
+
       default:
         unexpected_condition();
     }  /* switch */

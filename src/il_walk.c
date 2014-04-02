@@ -2721,7 +2721,12 @@ it's the initializer for an aggregate.
     case ck_address:
       if (tblock->process_type != NULL) {
         if (constant->variant.address.kind==(an_address_base_kind)abk_uuidof ||
-            constant->variant.address.kind==(an_address_base_kind)abk_typeid) {
+            constant->variant.address.kind==(an_address_base_kind)abk_typeid
+#if MICROSOFT_EXTENSIONS_ALLOWED
+            || constant->variant.address.kind ==
+                                          (an_address_base_kind)abk_cli_typeid
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+            ) {
           tblock->process_type(constant->variant.address.variant.type,
                                tblock);
           if (tblock->terminate) goto end_of_routine;

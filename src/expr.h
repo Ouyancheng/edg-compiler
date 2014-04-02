@@ -353,6 +353,7 @@ void scan_ctor_arguments(a_symbol_ptr             constructor_sym,
                          a_type_ptr               dest_type,
                          a_boolean                fill_in_dtor,
                          a_boolean                elision_allowed,
+                         a_boolean                is_custom_ms_attr_arg_list,
                          a_rescan_control_block   *rcblock,
                          a_boolean                arg_list_supplied,
                          an_arg_list_elem_ptr     supplied_arg_list,
@@ -367,11 +368,12 @@ void scan_ctor_arguments(a_symbol_ptr             constructor_sym,
                          a_source_position        *closing_paren_position);
 
 extern void scan_dependent_parenthesized_initializer(
-                                    a_rescan_control_block   *rcblock,
-                                    a_boolean                arg_list_supplied,
-                                    an_arg_list_elem_ptr     supplied_arg_list,
-                                    an_operand_ptr           single_operand,
-                                    a_dynamic_init_ptr       *dip);
+                          a_rescan_control_block   *rcblock,
+                          a_boolean                arg_list_supplied,
+                          an_arg_list_elem_ptr     supplied_arg_list,
+                          a_boolean                is_custom_ms_attr_arg_list,
+                          an_operand_ptr           single_operand,
+                          a_dynamic_init_ptr       *dip);
 
 extern a_type_ptr new_delete_base_type_from_operation_type(a_type_ptr type);
 
@@ -875,6 +877,8 @@ extern an_expr_node_ptr make_cli_array_length_nodes(
 			/* Default value representing an unspecified length
 			   for an array dimension.  This is dictated by the
 			   ECMA-372 standard (24.6). */
+
+extern a_boolean scan_custom_ms_attribute_arg_list(an_ms_attribute_ptr attr);
 
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 

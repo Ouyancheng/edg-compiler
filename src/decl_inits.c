@@ -2457,6 +2457,7 @@ position is available).
                                 /*constant_context=*/FALSE,
                                 /*evaluated_context=*/TRUE,
                                 /*fold_constant_addr_exprs=*/FALSE,
+                                /*is_cli_attr_arg_expression=*/FALSE,
                                 /*check_cast_access=*/FALSE,
                                 /*check_ambiguity=*/FALSE,
                                 /*is_reinterpret_cast=*/FALSE,
@@ -3021,7 +3022,7 @@ a ck_aggregate constant.
     aggr_init_complex(p_icp, etype, is, init_con);
 #endif /* C99_IL_EXTENSIONS_SUPPORTED */
 #if MICROSOFT_EXTENSIONS_ALLOWED
-  } else if (cppcli_enabled && is_braced_init_component(icp) &&
+  } else if (cli_or_cx_enabled && is_braced_init_component(icp) &&
              is_handle_type(etype) &&
              (is_cli_array_type(type_pointed_to(etype)) ||
               is_template_param_or_nonreal_class_type(
@@ -3413,7 +3414,7 @@ initializer, already copied and substituted.
     case tk_struct:
     case tk_union:
 #if MICROSOFT_EXTENSIONS_ALLOWED
-      if (cppcli_enabled && is_value_class_type(dtype) &&
+      if (cli_or_cx_enabled && is_value_class_type(dtype) &&
           is_cli_generic_definition_argument_type(dtype)) {
         /* A constraint type can be a value class type, but should not be
            treated as an aggregate type since its subobject structure is not
@@ -4273,7 +4274,7 @@ returned set to TRUE.
       }  /* if */
     }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
-  } else if (cppcli_enabled && is_value_class_type(vp_type) &&
+  } else if (cli_or_cx_enabled && is_value_class_type(vp_type) &&
              is_cli_generic_definition_argument_type(vp_type)) {
     /* A constraint type can be a value class type, but should not be treated
        as an aggregate type since its subobject structure is not known.  E.g.:
@@ -4286,7 +4287,7 @@ returned set to TRUE.
     init_err = dps->init_state.init_error;
     init_con = dps->init_state.init_con;
     init_dip = dps->init_state.init_dip;
-  } else if (cppcli_enabled && first_token == tok_lbrace &&
+  } else if (cli_or_cx_enabled && first_token == tok_lbrace &&
              !dps->has_direct_initializer &&
              (is_handle_to_cli_array_type(vp_type) ||
               (is_handle_type(vp_type) &&
@@ -5926,7 +5927,7 @@ cases, array_type is NULL).
         /* Error.  A reference type may not be default-initialized. */
 #if MICROSOFT_EXTENSIONS_ALLOWED
         /* Fields cannot be tracking references. */
-        check_assertion(!cppcli_enabled ||
+        check_assertion(!cli_or_cx_enabled ||
                         !is_tracking_reference_type(init_type));
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
         error(ec_default_init_of_reference);
@@ -6275,6 +6276,7 @@ to.
 */
 static a_hash_table_ptr
 	ctor_delegation_map;
+
 
 /*
 Type of the data items pointed to by the delegation map.
@@ -7019,7 +7021,7 @@ initialized.  These are addressed in the course of the processing.
         if (cssp == NULL) {
           bitwise_copy = TRUE;
 #if MICROSOFT_EXTENSIONS_ALLOWED
-        } else if (cppcli_enabled &&
+        } else if (cli_or_cx_enabled &&
                    cli_class_type_kind_is(class_type, cctk_value) &&
                    cip->kind != (a_constructor_init_kind)cik_field) {
           /* Value class types are bit-copyable even though they derive from
@@ -7390,7 +7392,8 @@ initialized.  These are addressed in the course of the processing.
         } else if (is_any_reference_type(cip->variant.field->type)) {
 #if MICROSOFT_EXTENSIONS_ALLOWED
           /* Fields cannot be tracking references. */
-          check_assertion(!cppcli_enabled || !is_tracking_reference_type(tp));
+          check_assertion(!cli_or_cx_enabled ||
+                          !is_tracking_reference_type(tp));
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
           sym_add_diag_info(ec_reference_member, field_sym);
         } else {

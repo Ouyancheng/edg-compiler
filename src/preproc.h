@@ -261,6 +261,11 @@ EXTERN a_boolean
 			   included. */
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
+EXTERN a_boolean
+		processing_vccorlib_header;
+			/* TRUE if currently processing vccorlib.h as part of
+			   C++/CX initialization. */
+
 EXTERN an_assembly_index
 		curr_assembly_index;
 			/* When scanning imported metadata this is the index

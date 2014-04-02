@@ -1068,7 +1068,7 @@ changed.
 {
   write_list_of_file_timestamps(il_header.primary_source_file);
 #if MICROSOFT_EXTENSIONS_ALLOWED
-  if (cppcli_enabled) {
+  if (cli_or_cx_enabled) {
     write_list_of_metadata_file_timestamps(il_header.cli_metadata_files);
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */

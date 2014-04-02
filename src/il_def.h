@@ -676,6 +676,8 @@ typedef enum /*an_il_entry_kind*/ {
 #if MICROSOFT_EXTENSIONS_ALLOWED
   iek_ms_attribute,	/* an_ms_attribute */
   iek_ms_attribute_arg,	/* an_ms_attribute_arg */
+  iek_custom_ms_attribute_arg,
+			/* an_ms_attribute_arg */
   iek_property_index_type,
 			/* a_property_index_type */
   iek_property_or_event_descr,
@@ -846,6 +848,7 @@ EXTERN a_const_char *il_entry_kind_names[(int)iek_last + 1]
 #if MICROSOFT_EXTENSIONS_ALLOWED
 /* iek_ms_attribute */			"ms-attribute",
 /* iek_ms_attribute_arg */		"ms-attribute-arg",
+/* iek_custom_ms_attribute_arg */	"custom-ms-attribute-arg",
 /* iek_property_index_type */		"property-index-type",
 /* iek_property_descr */		"property-descr",
 /* iek_generic_constraint_clause */	"generic-constraint-clause",
@@ -1045,6 +1048,7 @@ typedef enum /*a_token_kind*/ {
   tok_fastcall,
   tok_stdcall,
   tok_thiscall,
+  tok_vectorcall,
   tok_clrcall,
   tok_microsoft_inline,
   tok_forceinline,
@@ -1096,6 +1100,9 @@ typedef enum /*a_token_kind*/ {
   tok_enum_struct,
   tok_interface_class,
   tok_interface_struct,
+  tok_ref_new,
+  tok_partial_ref_class,
+  tok_partial_ref_struct,
   /* Tokens for the first words of whitespace tokens (never returned by
      get_token()). */
   tok_prefix_ref,
@@ -1105,7 +1112,8 @@ typedef enum /*a_token_kind*/ {
      because the scan for the second word moved to a new source line. */
   tok_prefix_for,
   tok_prefix_enum,
-  tok_last_whitespace_token = tok_prefix_enum,
+  tok_prefix_partial,
+  tok_last_whitespace_token = tok_prefix_partial,
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   tok_microsoft_asm,
   /* Special constants for various versions of the name of the current
@@ -1228,6 +1236,7 @@ typedef enum /*a_token_kind*/ {
   tok_is_trivially_destructible,
   tok_is_nothrow_assignable,
   tok_is_trivially_assignable,
+  tok_is_valid_winrt_type,
   tok_underlying_type,
 #if MICROSOFT_EXTENSIONS_ALLOWED
   tok_has_finalizer,
@@ -1310,8 +1319,8 @@ EXTERN a_const_char
    "_Fract", "_Accum", "_Sat", "__declspec",
 #if MICROSOFT_EXTENSIONS_ALLOWED
    "abstract", "sealed",
-   "__cdecl", "__fastcall", "__stdcall", "__thiscall", "__clrcall",
-   "__inline", "__forceinline",
+   "__cdecl", "__fastcall", "__stdcall", "__thiscall", "__vectorcall",
+   "__clrcall", "__inline", "__forceinline",
    "__unaligned", "__try", "__finally", "__leave", "__except",
    "__int8", "__int16", "__int32", "__int64", "__based",
    "__uuidof", "__assume", "#@", "__if_exists", "__if_not_exists",
@@ -1325,7 +1334,8 @@ EXTERN a_const_char
    "__implements", "__unresolved_type",
    "for each", "ref class", "ref struct", "value class", "value struct",
    "enum class", "enum struct", "interface class", "interface struct",
-   "ref", "value", "interface", "for", "enum",
+   "ref new", "partial ref class", "partial ref struct",
+   "ref", "value", "interface", "for", "enum", "partial",
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
    "__asm",
    "__func__",
@@ -1394,6 +1404,7 @@ EXTERN a_const_char
    "__is_trivially_destructible",
    "__is_nothrow_assignable",
    "__is_trivially_assignable",
+   "__is_valid_winrt_type",
    "__underlying_type",
 #if MICROSOFT_EXTENSIONS_ALLOWED
    "__has_finalizer",
@@ -2452,6 +2463,16 @@ typedef enum an_attribute_kind_tag {
   ak_thread,		/* "thread" (ms). */
 #endif /* THREAD_LOCAL_STORAGE_SPECIFIER_ALLOWED */
   ak_uuid,		/* "uuid" (ms). */
+  ak_layout_as_external,/* "layout_as_external" (ms). */
+  ak_no_empty_identity_interface,
+			/* "no_empty_identity_interface" (ms). */
+  ak_no_ftm,		/* "no_ftm" (ms). */
+  ak_no_refcount,	/* "no_refcount" (ms). */
+  ak_no_release_return,	/* "no_release_return" (ms). */
+  ak_no_weakreferencesource,
+			/* "no_weakreferencesource" (ms). */
+  ak_one_phase_constructed,
+			/* "one_phase_constructed" (ms). */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 #if INCLUDE_EDG_TEST_ATTRIBUTES
@@ -2936,6 +2957,14 @@ enum an_address_base_kind_tag {
 			   Microsoft mode when typeid appears in a template
 			   argument list and for C++11 address constants
 			   designating type_info objects. */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  abk_cli_typeid,	/* Handle to a C++/CLI System::Type object.  Used for
+			   C++/CLI T::typeid constants. */
+  abk_cli_array,	/* Handle to a C++/CLI System::Array object.  Used for
+			   C++/CLI "gcnew" expressions in custom attribute
+			   arguments where the array is treated as a
+			   constant. */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   abk_label,            /* Pointer to a label.  This is used for the
 			   GNU address-of-label extension. */
   abk_last
@@ -4031,6 +4060,9 @@ typedef struct a_constant {
                         /* The kind of representation for the constant. */
   union {
     /* When kind == ck_error, no variant fields. */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    /* When kind == abk_cli_array, no variant fields. */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if UPC_EXTENSIONS_ALLOWED
     /* Likewise when kind == ck_upc_mythread. */
 #endif /* UPC_EXTENSIONS_ALLOWED */
@@ -4141,7 +4173,7 @@ typedef struct a_constant {
 			/* The constant whose address is taken (abk_constant),
 			   or whose value is placed in the temporary
 			   (abk_temporary). */
-        /* When kind == abk_uuidof or abk_typeid: */
+        /* When kind == abk_uuidof or abk_typeid or abk_cli_typeid: */
         a_type_ptr
 		type;	/* For abk_uuidof, the value of the constant is the
 			   address of a structure representing the uuid_string
@@ -4149,8 +4181,10 @@ typedef struct a_constant {
 			   address of a structure representing a zero GUID).
 			   For abk_typeid, the value of the constant is the
 			   address of the std::type_info structure associated
-			   with the given type. */
-	/* When kind == abk_label: */
+			   with the given type.  For abk_cli_typeid, the value
+			   of the constant is a handle to the System::Type
+			   object associated with the given type. */
+        /* When kind == abk_label: */
 	a_label_ptr
 		label;
       } variant;
@@ -5056,7 +5090,6 @@ to represent a type qualifier set.
 */
 #define NUM_BITS_FOR_TYPE_QUALIFIER_SET ((int)tqt_last)
 
-
 #if UPC_EXTENSIONS_ALLOWED
 
 /*
@@ -5868,6 +5901,7 @@ enum a_calling_convention_tag {
   cc_fastcall,		/* __fastcall calling convention. */
   cc_stdcall,		/* __stdcall calling convention. */
   cc_thiscall,		/* __thiscall calling convention. */
+  cc_vectorcall,		/* __vectorcall calling convention. */
   cc_clrcall,		/* __clrcall calling convention. */
   cc_last		/* Must be last. */
 };
@@ -5883,7 +5917,7 @@ typedef a_byte a_calling_convention;
 EXTERN a_const_char *calling_convention_names[(int)cc_last]
 #if VAR_INITIALIZERS
 = { "<default>", "__cdecl", "__fastcall", "__stdcall", "__thiscall",
-    "__clrcall" }
+    "__vectorcall", "__clrcall" }
 #endif /* VAR_INITIALIZERS */
 ;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED || GNU_X86_ATTRIBUTES_ALLOWED */
@@ -7135,6 +7169,114 @@ typedef struct a_vcall_offset_entry {
 
 #endif /* DO_IL_LOWERING && IA64_ABI */
 
+#if MICROSOFT_EXTENSIONS_ALLOWED
+
+/*
+Entry describing a single C++/CX partial class body.
+*/
+typedef struct a_partial_class_body  *a_partial_class_body_ptr;
+typedef struct a_partial_class_body
+{
+  a_partial_class_body_ptr
+		next;
+			/* Pointer to the next partial body in this linked
+			   list. */
+  a_source_position
+		start_position;
+			/* The start position of this partial class body
+			   (either the ':' or '{' token). */
+  a_source_position
+		end_position;
+			/* The end position of this partial class body
+			   (the '}' token). */
+  struct a_token_cache
+		*body_cache;
+			/* The tokens comprising the body of this
+			   partial declaration (between the '{' and '}'
+			   tokens). */
+  struct a_token_cache
+		*base_cache;
+			/* The tokens comprising the base list of this
+			   partial declaration (between the ':' and '{'
+			   tokens).  NULL if a base list is not present. */
+} a_partial_class_body;
+
+
+/* Type of a set of Microsoft attribute targets. */
+typedef unsigned int an_ms_attribute_target;
+
+/*
+Values that identify a target for a Microsoft attribute.
+*/
+#define msat_invalid          ((an_ms_attribute_target)0x00000000)
+			/* Not a valid target. */
+#define msat_none             ((an_ms_attribute_target)0x00000001)
+			/* A target was not or cannot be explicitly
+			   specified. */
+#define msat_assembly         ((an_ms_attribute_target)0x00000002)
+			/* Applies to an assembly as a whole. */
+#define msat_module           ((an_ms_attribute_target)0x00000004)
+			/* Applies to a module as a whole. */
+#define msat_class            ((an_ms_attribute_target)0x00000008)
+			/* Applies to a class. */
+#define msat_struct           ((an_ms_attribute_target)0x00000010)
+			/* Applies to a struct. */
+#define msat_union            ((an_ms_attribute_target)0x00000020)
+			/* Applies to a union. */
+#define msat_enum             ((an_ms_attribute_target)0x00000040)
+			/* Applies to an enum. */
+#define msat_constructor      ((an_ms_attribute_target)0x00000080)
+			/* Applies to a constructor. */
+#define msat_method           ((an_ms_attribute_target)0x00000100)
+			/* Applies to a member function.  When specified on an
+			   attribute of a property, applies to the accessor
+			   functions. */
+#define msat_property         ((an_ms_attribute_target)0x00000200)
+			/* Applies to a property. */
+#define msat_field            ((an_ms_attribute_target)0x00000400)
+			/* Applies to a field. */
+#define msat_event            ((an_ms_attribute_target)0x00000800)
+			/* Applies to an event. */
+#define msat_interface        ((an_ms_attribute_target)0x00001000)
+			/* Applies to an interface. */
+#define msat_parameter        ((an_ms_attribute_target)0x00002000)
+			/* Applies to a parameter. */
+#define msat_delegate         ((an_ms_attribute_target)0x00004000)
+			/* Applies to a delegate. */
+#define msat_returnvalue      ((an_ms_attribute_target)0x00008000)
+			/* Applies to a method's return value, not the
+			   method. */
+#define msat_genericparameter ((an_ms_attribute_target)0x00010000)
+			/* Applies to a generic parameter. */
+#define msat_typedef          ((an_ms_attribute_target)0x00020000)
+			/* Applies to a typedef. */
+#define msat_variable         ((an_ms_attribute_target)0x00040000)
+			/* Applies to a variable. */
+#define msat_routine          ((an_ms_attribute_target)0x00080000)
+			/* Applies to a nonmember function. */
+#define msat_interfaceimpl    ((an_ms_attribute_target)0x00100000)
+			/* Applies to an implementation of an interface. */
+#define msat_any              ((an_ms_attribute_target)0x001FFFFF)
+			/* Applies to any target. */
+
+/* Entry describing additional information for custom Microsoft attributes. */
+typedef struct an_ms_attribute_usage *an_ms_attribute_usage_ptr;
+typedef struct an_ms_attribute_usage
+{
+  an_ms_attribute_target
+		valid_on;
+			/* Identifies the kinds of entities to which the
+			   attribute may apply. */
+  a_bit_field	allow_multiple:1;
+			/* TRUE if the attribute can be applied to the same
+			   entity multiple times. */
+  a_bit_field	inherited:1;
+			/* TRUE if the attribute can be inherited by derived
+			   classes and overriding members. */
+} an_ms_attribute_usage;
+
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+
 /* Entry containing additional information about a class type (tk_class,
    tk_struct, or tk_union).  The list of nonstatic data members (i.e.,
    "fields") is kept in the type entry. */
@@ -7281,6 +7423,16 @@ typedef struct a_class_type_supplement {
 			   case for managed class types). */
   a_bit_field	is_cli_array:1;
 			/* TRUE if this represents a C++/CLI array type. */
+  a_bit_field	is_cli_attribute:1;
+			/* TRUE if this represents a C++/CLI attribute type. */
+  a_bit_field	is_cppcx_write_only_array:1;
+			/* TRUE if this represents a C++/CX write-only array
+			   type. */
+  a_bit_field	is_cppcx_box:1;
+			/* TRUE if this represents a C++/CX Platform::Box<T>
+			   type. */
+  a_bit_field	is_partial:1;
+			/* TRUE if this is a partial class. */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if GNU_EXTENSIONS_ALLOWED
 #if GNU_VISIBILITY_ATTRIBUTE_ALLOWED
@@ -7442,6 +7594,12 @@ typedef struct a_class_type_supplement {
 			   specialization.  This is NULL for ordinary classes
 			   and for classes generated from the primary template
 			   (i.e., not from a partial specialization). */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  a_partial_class_body_ptr
+		partial_class_bodies;
+			/* if is_partial is TRUE, a list of partial class
+			   bodies that comprise this partial class type. */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if NEW_CAN_BE_FOLDED_INTO_CTOR
   a_routine_ptr	assoc_operator_new_routine;
 			/* The operator new() routine to be used for the class.
@@ -7578,6 +7736,13 @@ typedef struct a_class_type_supplement {
 			   type with which the delegate was declared.  This is
 			   a type that doesn't include a "this" parameter.
 			   NULL if this entry isn't for a delegate class. */
+  an_ms_attribute_usage
+		attribute_usage;
+			/* If is_cli_attribute is TRUE, identifies the kinds
+			   of entities to which this attribute may apply.
+			   If the valid_on member is msat_invalid, it has yet
+			   to be initialized by
+			   set_attribute_usage_for_attribute_type. */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if PROTOTYPE_INSTANTIATIONS_IN_IL
   a_type_ptr
@@ -7856,6 +8021,7 @@ enum a_based_type_kind_tag {
   btk_tracking_ref,	/* C++/CLI tracking reference. */
   btk_interior_ptr,	/* C++/CLI interior_ptr. */
   btk_pin_ptr,		/* C++/CLI pin_ptr. */
+  btk_cppcx_box,	/* C++/CX boxed value type; Platform::Box<T>. */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   btk_pointer		/* Pointer to the type. */
 };
@@ -14715,6 +14881,8 @@ typedef enum a_builtin_operation_kind_tag {
 			   vector operands. */
   bok_builtin_complex,	/* __builtin_complex.  Two real floating-point
 			   operands of identical type. */
+  bok_is_valid_winrt_type,
+			/* __is_valid_winrt_type.  One type operand. */
   bok_last              /* Marks the end of the list. */
 } a_builtin_operation_kind_tag;
 /* Define as "a_byte" to explicitly control storage size. */
@@ -14900,11 +15068,15 @@ typedef struct a_gcnew_supplement {
 			   expression list was scanned from source in the
 			   array's new-init.  If has_new_initializer is FALSE,
 			   the expression list contains constant integers
-			   representing the length of each dimension
-			   of the array inferred from the array-init.
-			   For prototype instantiations,
-			   cli_array_dimension_lengths may be NULL if a
-			   new-init is not present. */
+			   representing the length of each dimension of the
+			   array inferred from the array-init.  For prototype
+			   instantiations, cli_array_dimension_lengths may be
+			   NULL if a new-init is not present.  In C++/CX
+			   mode, if is_cli_array is TRUE and dynamic_init is a
+			   dik_constructor entry, cli_array_dimension_lengths
+			   is NULL because the dynamic_init entry describes
+			   the initialization.  This may also be NULL in error
+			   cases. */
   a_dynamic_init_ptr
 		dynamic_init;
 			/* If non-NULL, points to a dynamic initialization
@@ -14912,13 +15084,17 @@ typedef struct a_gcnew_supplement {
 			   If is_cli_array is TRUE, and dynamic_init is NULL,
 			   an array initializer was not present.  Otherwise, if
 			   is_cli_array is TRUE and dynamic_init is non-NULL,
-			   dynamic_init will point to a
-			   dik_nonconstant_aggregate that describes the
-			   array-init.  Unlike native arrays, the aggregate for
-			   a CLI array does not specify the initialization for
-			   elements that do not have initializers in the
-			   source; the elements (either value types or handles)
-			   are assumed to all be initialized to zero. */
+			   this points to a dik_nonconstant_aggregate that
+			   describes the array-init.  Unlike native arrays, the
+			   aggregate for a CLI array does not specify the
+			   initialization for elements that do not have
+			   initializers in the source; the elements (either
+			   value types or handles) are assumed to all be
+			   initialized to zero.  In C++/CX mode, this may
+			   point to a dik_constructor entry when is_cli_array
+			   is TRUE.  In that case the dik_constructor entry
+			   describes the initialization and
+			   cli_array_dimension_lengths is NULL. */
 } a_gcnew_supplement;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
@@ -17424,6 +17600,7 @@ enum an_ms_attribute_kind_tag {
   msak_misc,		/* Used for predefined attributes that don't require
 			   special processing. */
   msak_uuid,		/* The [uuid(...)] attribute. */
+  msak_custom,		/* Used to represent custom attributes. */
 #if INCLUDE_EDG_TEST_ATTRIBUTES
   msak_edg_test,
 #endif /* INCLUDE_EDG_TEST_ATTRIBUTES */
@@ -17496,13 +17673,29 @@ typedef struct an_ms_attribute_arg {
 } an_ms_attribute_arg;
 
 /*
+Entry used to describe a named argument for a custom Microsoft attribute.
+*/
+typedef struct a_custom_ms_attribute_arg *a_custom_ms_attribute_arg_ptr;
+typedef struct a_custom_ms_attribute_arg {
+  a_custom_ms_attribute_arg_ptr
+		next;
+			/* Pointer to the next argument in the list, or NULL
+			   for the last argument. */
+  a_field_ptr	field;
+			/* The field associated with the named argument. */
+  an_expr_node_ptr
+		expression;
+			/* The initialization expression. */
+} a_custom_ms_attribute_arg;
+
+/*
 Entry used to describe a use of a given attribute.
 */
 typedef struct an_ms_attribute {
   an_ms_attribute_ptr
 		next;
-                        /* Pointer to the next attribute in a given scope.
-                           NULL if this the last attribute in the scope. */
+			/* Pointer to the next attribute in a given scope.
+			   NULL if this the last attribute in the scope. */
   an_ms_attribute_ptr
 		next_in_block;
 			/* Pointer to the next attribute in an attribute
@@ -17515,18 +17708,46 @@ typedef struct an_ms_attribute {
 			/* Information about the entity to which the
 			   attribute applies.  If there is no associated
 			   entity, entity.ptr will be NULL. */
-  a_const_char	*name;
+  union {
+    /* When kind != msak_custom: */
+    struct {
+      struct an_ms_attribute_kind_descr
+		*kind_descr;
+			/* Pointer to an entry that describes the attribute
+			   being used.  Used in the front end only; cannot be
+			   used in back ends. */
+      a_const_char
+		*name;
 			/* The name of the attribute. */
-  a_const_char	*string;
+      a_const_char
+		*string;
 			/* A textual representation of the attribute.  This is
 			   a null-terminated string.  Note that this represents
 			   a single attribute and not an attribute block
 			   (see next_in_block), so the string does not contain
 			   the opening or closing brackets. */
-  an_ms_attribute_arg_ptr
+      an_ms_attribute_arg_ptr
 		arg_list;
 			/* The arguments, if any, specified for this
 			   attribute. */
+    } info;
+    /* When kind == msak_custom: */
+    struct {
+      a_type_ptr
+		type;
+			/* The custom attribute class type. */
+      a_routine_ptr
+		constructor;
+			/* The constructor for the custom attribute. */
+      an_expr_node_ptr
+		args;   /* The arguments with which the custom attribute
+			   constructor should be called. */
+      a_custom_ms_attribute_arg_ptr
+		named_args;
+			/* The named arguments specified for this
+			   custom attribute. */
+    } custom_info;
+  } variant;
   a_source_position
 		position;
 			/* Source position of the attribute name. */
@@ -17538,13 +17759,12 @@ typedef struct an_ms_attribute {
 			   file or function scope relative to other
 			   declarations, statements, comments, etc. */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
-  struct an_ms_attribute_kind_descr
-		*kind_descr;
-			/* Pointer to an entry that describes the attribute
-			   being used.  Used in the front end only; cannot be
-			   used in back ends. */
   an_ms_attribute_kind
 		kind;	/* The kind of attribute used. */
+  an_ms_attribute_target
+		target;
+			/* Indicates the entity to which the attribute
+			   applies. */
 } an_ms_attribute;
 
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
@@ -18238,6 +18458,10 @@ typedef struct an_il_header {
 		cppcli_enabled;
 			/* TRUE if C++/CLI extensions are accepted;
 			   corresponds to global variable cppcli_enabled. */
+  a_byte_boolean
+		cppcx_enabled;
+			/* TRUE if C++/CX extensions are accepted;
+			   corresponds to global variable cppcx_enabled. */
   unsigned long
 		microsoft_version;
 			/* When microsoft_mode is TRUE, the version of the
@@ -18536,6 +18760,7 @@ EXTERN a_const_char *builtin_operation_names[(int)bok_last+1]
   "__is_trivially_assignable",
   "__builtin_shuffle",
   "__builtin_complex",
+  "__is_valid_winrt_type",
   "last"
 }
 #endif /* VAR_INITIALIZERS */
@@ -18657,6 +18882,7 @@ EXTERN sizeof_t	sizeof_il_entry[(int)iek_last+1]
 #if MICROSOFT_EXTENSIONS_ALLOWED
   sizeof(an_ms_attribute),
   sizeof(an_ms_attribute_arg),
+  sizeof(a_custom_ms_attribute_arg),
   sizeof(a_property_index_type),
   sizeof(a_property_or_event_descr),
   sizeof(a_generic_constraint_clause),

@@ -4969,7 +4969,7 @@ expression that was used to select expr (NULL if no selector was used).
 #endif /* IA64_ABI */
         if (sym != NULL && sym->header != NULL &&
 #if MICROSOFT_EXTENSIONS_ALLOWED
-            !(cppcli_enabled && sym->header->is_cli_operator) &&
+            !(cli_or_cx_enabled && sym->header->is_cli_operator) &&
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
             sym->header->variant.opname != (an_opname_kind)onk_none) {
           /* In some cases, e.g., "operator+(p1,p1)", the type of operation

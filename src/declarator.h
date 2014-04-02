@@ -33,6 +33,7 @@ calling convention.
     (tok) == tok_fastcall ||                                          \
     (tok) == tok_stdcall ||                                           \
     (tok) == tok_thiscall ||                                          \
+    (tok) == tok_vectorcall ||                                        \
     (tok) == tok_clrcall))
 #else /* MICROSOFT_EXTENSIONS_ALLOWED */
 /* When Microsoft keywords are not allowed simply return FALSE. */
@@ -70,7 +71,7 @@ is_declarator_start and is_abstract_declarator_start.
 #define or_is_microsoft_declarator_keyword(tok) ||                     \
   (is_microsoft_calling_convention(tok) || (tok) == tok_based)
 #define or_is_cli_declarator_operator(tok)                             \
-  || (cppcli_enabled &&                                                \
+  || (cli_or_cx_enabled &&                                             \
       ((tok) == tok_excl_or || (tok) == tok_remainder))
 #else /* !MICROSOFT_EXTENSIONS_ALLOWED */
 #define or_is_microsoft_declarator_keyword(tok) /* Nothing */

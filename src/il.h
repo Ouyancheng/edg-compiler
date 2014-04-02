@@ -992,14 +992,18 @@ extern a_type_ptr make_interior_ptr_type(a_type_ptr pointed_to_type);
 
 extern a_type_ptr make_pin_ptr_type(a_type_ptr pointed_to_type);
 
+extern a_type_ptr make_cppcx_box_type(a_type_ptr boxed_type);
+
 extern a_routine_ptr get_idisposable_dispose_routine(void);
 
 extern a_routine_ptr get_object_finalize_routine(void);
 
 extern void f_set_clrcall_convention_if_needed(a_type_ptr  rtp);
 
-#define set_clrcall_convention_if_needed(rtp)               \
-  if (cppcli_enabled) f_set_clrcall_convention_if_needed(rtp)
+#define set_clrcall_convention_if_needed(rtp)                                \
+  if (cppcli_enabled) {                                                      \
+    f_set_clrcall_convention_if_needed(rtp);                                 \
+  }  /* if */
 
 #if TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
 extern a_boolean f_is_member_of_namespace_cli(a_source_correspondence  *scp);
@@ -1475,8 +1479,16 @@ extern a_boolean make_value_initialized_constant(a_type_ptr type,
 extern void make_uuidof_constant(a_type_ptr     uuidof_type,
                                  a_constant_ptr uuidof_con);
 
+extern a_type_ptr typeid_constant_type(a_boolean is_cli_typeid);
+
 extern void make_typeid_constant(a_type_ptr     typeid_type,
+                                 a_boolean      is_cli_typeid,
                                  a_constant_ptr typeid_con);
+
+#if MICROSOFT_EXTENSIONS_ALLOWED
+void make_cli_array_constant(an_expr_node_ptr gcnew_expr,
+                             a_constant_ptr   array_con);
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 extern
 a_constructor_init_ptr copy_ctor_init(a_constructor_init_ptr   ctor_init,
@@ -1935,6 +1947,14 @@ extern void add_to_ms_attributes_list(an_ms_attribute_ptr	msap,
 extern a_routine_ptr selectively_overridden_function(a_routine_ptr  rp);
 
 extern an_assembly_visibility get_assembly_visibility_of(a_type_ptr  type);
+
+#define class_has_public_assembly_visibility(tp)                             \
+  (class_type_supp(tp)->assembly_visibility ==                               \
+                                      (an_assembly_visibility)av_public)
+
+#define is_nonpublic_nested_class(tp)                                        \
+  (tp->source_corresp.is_class_member &&                                     \
+   tp->source_corresp.access != (an_access_specifier)as_public)
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 #if GENERATE_MICROSOFT_IF_EXISTS_ENTRIES
@@ -2337,6 +2357,8 @@ extern void db_entity_info(char             *entry,
                            an_il_entry_kind kind);
 
 extern void db_access_control(an_access_specifier as);
+
+extern void db_field(a_field_ptr fp, int depth);
 
 extern void db_class_list(a_class_list_entry_ptr list);
 

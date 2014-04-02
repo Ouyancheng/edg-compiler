@@ -128,10 +128,14 @@ extern char *alloc_asm_function_body(sizeof_t  len);
 #endif /* ASM_SUPPORT_NEEDED */
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
-extern an_ms_attribute_ptr alloc_ms_attribute(void);
+extern void clear_ms_attribute_usage(an_ms_attribute_usage_ptr msaup);
+
+extern an_ms_attribute_ptr alloc_ms_attribute(an_ms_attribute_kind kind);
 
 extern
 an_ms_attribute_arg_ptr alloc_ms_attribute_arg(an_ms_attribute_arg_kind	kind);
+
+extern a_custom_ms_attribute_arg_ptr alloc_custom_ms_attribute_arg(void);
 
 extern a_property_index_type_ptr alloc_property_index_type(void);
 
@@ -144,6 +148,8 @@ extern
 void clear_generic_constraint_clause(a_generic_constraint_clause_ptr gccp);
 
 extern a_generic_constraint_clause_ptr alloc_generic_constraint_clause(void);
+
+extern a_partial_class_body_ptr alloc_partial_class_body(void);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if GENERATE_MICROSOFT_IF_EXISTS_ENTRIES
 extern an_ms_if_exists_ptr alloc_ms_if_exists(void);

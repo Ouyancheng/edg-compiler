@@ -18,6 +18,7 @@ ms_attrib.c -- Microsoft attribute processing.
 #include "fe_common.h"
 /* Header files used by files involved in declaration processing. */
 #include "decl_hdrs.h"
+#include "expr.h"
 
 
 #ifdef PCH_PRAGMA_GUARD
@@ -62,6 +63,11 @@ static an_ms_attribute_kind_descr_ptr
 			   an unrecognized attribute.  This is used even when
 			   unrecognized attributes are not accepted, for
 			   error recovery purposes. */
+
+static an_ms_attribute_kind_descr_ptr
+		custom_attribute;
+			/* A special attribute kind entry that represents
+			   a custom attribute. */
 
 static an_ms_attribute_kind_descr_ptr
 		curr_attribute_descr;
@@ -185,7 +191,7 @@ return a pointer to the entry.
   num_ms_attribute_kind_descrs_allocated++;
 #endif /* DEBUG */
   msakdp->kind = (an_ms_attribute_kind)msak_none;
-  msakdp->target = MSAT_NONE;
+  msakdp->target = msat_invalid;
   msakdp->name = NULL;
   msakdp->name_length = 0;
   msakdp->initialization_style_arg_allowed = FALSE;
@@ -216,7 +222,7 @@ when specifying the parameters associated with an attribute.
     /* When scanning miscellaneous attributes as unrecognized, override
        the specified kind and use the unrecognized kind instead. */
     msakdp->kind = (an_ms_attribute_kind)msak_unrecognized;
-    msakdp->target = MSAT_ANY;
+    msakdp->target = msat_any;
   } else {
     msakdp->kind = kind;
     msakdp->target = target;
@@ -337,13 +343,17 @@ are accepted.
 */
 {
   make_attribute_description((an_ms_attribute_kind)msak_unrecognized,
-                             "<unrecognized>", MSAT_ANY);
+                             "<unrecognized>", msat_any);
   /* Save a pointer to the special "unrecognized" attribute kind. */
   unrecognized_attribute = curr_attribute_descr;
 #if RECOGNIZE_MICROSOFT_ATTRIBUTES
+  make_attribute_description((an_ms_attribute_kind)msak_custom,
+                             "<custom>", msat_invalid);
+  /* Save a pointer to the special "custom" attribute kind. */
+  custom_attribute = curr_attribute_descr;
   /* [aggregatable] */
   make_attribute_description((an_ms_attribute_kind)msak_misc,
-			     "aggregatable", MSAT_CLASS | MSAT_STRUCT);
+                             "aggregatable", (msat_class | msat_struct));
   add_attribute_parameter((an_ms_attribute_arg_kind)msaak_enumeration,
                           "value", /*is_unnamed=*/FALSE,
                           "never,allowed,always");
@@ -352,47 +362,48 @@ are accepted.
      "variable_name", but this does not actually seem to be accepted
      by the Microsoft compiler (7.1). */
   make_attribute_description((an_ms_attribute_kind)msak_misc,
-			     "aggregates", MSAT_CLASS | MSAT_STRUCT);
+                             "aggregates", (msat_class | msat_struct));
   add_attribute_parameter((an_ms_attribute_arg_kind)msaak_uuid,
                           "clsid", /*is_unnamed=*/FALSE, (char*)NULL);
   /* [appobject] */
   make_attribute_description((an_ms_attribute_kind)msak_misc,
-			     "appobject", MSAT_CLASS | MSAT_STRUCT);
+                             "appobject", (msat_class | msat_struct));
   /* [as_expression] */
   make_attribute_description((an_ms_attribute_kind)msak_unrecognized,
-                             "as_expression", MSAT_ANY);
+                             "as_expression", msat_any);
   /* [as_string] */
   make_attribute_description((an_ms_attribute_kind)msak_unrecognized,
-                             "as_string", MSAT_ANY);
+                             "as_string", msat_any);
   /* [async_uuid] */
   make_attribute_description((an_ms_attribute_kind)msak_misc,
-			     "async_uuid", MSAT_INTERFACE);
+                             "async_uuid", msat_interface);
   set_initialization_style_arg_allowed();
   add_attribute_parameter((an_ms_attribute_arg_kind)msaak_uuid,
                           "uuid", /*is_unnamed=*/TRUE, (char*)NULL);
   /* [attribute] */
   make_attribute_description((an_ms_attribute_kind)msak_unrecognized,
-                             "attribute", MSAT_ANY);
+                             "attribute", msat_any);
   /* [bindable] */
   make_attribute_description((an_ms_attribute_kind)msak_misc,
-			     "bindable", MSAT_METHOD);
+                             "bindable", msat_method);
   /* [call_as] */
   make_attribute_description((an_ms_attribute_kind)msak_misc,
-			     "call_as", MSAT_METHOD | MSAT_ROUTINE);
+                             "call_as", (msat_method | msat_routine));
   set_initialization_style_arg_allowed();
   add_attribute_parameter((an_ms_attribute_arg_kind)msaak_string,
                           "function", /*is_unnamed=*/TRUE, (char*)NULL);
   /* [case] */
   make_attribute_description((an_ms_attribute_kind)msak_misc,
-			     "case", MSAT_DATA_MEMBER);
+                             "case", msat_field);
   add_attribute_parameter((an_ms_attribute_arg_kind)msaak_other,
                           "value", /*is_unnamed=*/FALSE, (char*)NULL);
   /* [coclass] */
   make_attribute_description((an_ms_attribute_kind)msak_misc,
-			     "coclass", MSAT_CLASS | MSAT_STRUCT);
+                             "coclass", (msat_class | msat_struct));
   /* [com_interface_entry] */
   make_attribute_description((an_ms_attribute_kind)msak_misc,
-			     "com_interface_entry", MSAT_CLASS | MSAT_STRUCT);
+                             "com_interface_entry", 
+                             (msat_class | msat_struct));
   set_initialization_style_arg_allowed();
   add_attribute_parameter((an_ms_attribute_arg_kind)msaak_string,
                           "entry",
@@ -400,70 +411,70 @@ are accepted.
                           (char*)NULL);
   /* [control] */
   make_attribute_description((an_ms_attribute_kind)msak_misc,
-			     "control", MSAT_CLASS | MSAT_STRUCT);
+                             "control", (msat_class | msat_struct));
   /* [cpp_quote] */
   make_attribute_description((an_ms_attribute_kind)msak_misc,
-			     "cpp_quote", MSAT_ANY);
+                             "cpp_quote", msat_any);
   add_attribute_parameter((an_ms_attribute_arg_kind)msaak_string,
                           "statement", /*is_unnamed=*/TRUE, (char*)NULL);
   /* [custom] */
   make_attribute_description((an_ms_attribute_kind)msak_unrecognized,
-                             "custom", MSAT_ANY);
+                             "custom", msat_any);
   /* [db_accessor] */
   make_attribute_description((an_ms_attribute_kind)msak_unrecognized,
-			     "db_accessor", MSAT_ANY);
+                             "db_accessor", msat_any);
   /* [db_column] */
   make_attribute_description((an_ms_attribute_kind)msak_unrecognized,
-			     "db_column", MSAT_ANY);
+                             "db_column", msat_any);
   /* [db_command] */
   make_attribute_description((an_ms_attribute_kind)msak_unrecognized,
-			     "db_command", MSAT_ANY);
+                             "db_command", msat_any);
   /* [db_param] */
   make_attribute_description((an_ms_attribute_kind)msak_unrecognized,
-			     "db_param", MSAT_ANY);
+                             "db_param", msat_any);
   /* [db_source] */
   make_attribute_description((an_ms_attribute_kind)msak_unrecognized,
-			     "db_source", MSAT_ANY);
+                             "db_source", msat_any);
   /* [db_table] */
   make_attribute_description((an_ms_attribute_kind)msak_unrecognized,
-			     "db_table", MSAT_ANY);
+                             "db_table", msat_any);
   /* [default] */
   make_attribute_description((an_ms_attribute_kind)msak_misc,
-			     "default",
-                             MSAT_CLASS | MSAT_STRUCT | MSAT_DATA_MEMBER);
+                             "default", 
+                             (msat_class | msat_struct | msat_field));
   add_attribute_parameter((an_ms_attribute_arg_kind)msaak_string,
                           "interface1", /*is_unnamed=*/FALSE, (char*)NULL);
   add_attribute_parameter((an_ms_attribute_arg_kind)msaak_string,
                           "interface2", /*is_unnamed=*/FALSE, (char*)NULL);
   /* [defaultbind] */
   make_attribute_description((an_ms_attribute_kind)msak_unrecognized,
-			     "defaultbind", MSAT_METHOD);
+                             "defaultbind", msat_method);
   /* [defaultcollelem] */
   make_attribute_description((an_ms_attribute_kind)msak_misc,
-			     "defaultcollelem", MSAT_METHOD);
+                             "defaultcollelem", msat_method);
   /* [default_value] */
   make_attribute_description((an_ms_attribute_kind)msak_unrecognized,
-                             "default_value", MSAT_ANY);
+                             "default_value", msat_any);
   /* [defaultvalue] */
   make_attribute_description((an_ms_attribute_kind)msak_misc,
-			     "defaultvalue", MSAT_PARAMETER);
+                             "defaultvalue", msat_parameter);
   add_attribute_parameter((an_ms_attribute_arg_kind)msaak_string,
                           "value", /*is_unnamed=*/FALSE, (char*)NULL);
   /* [defaultvtable] */
   make_attribute_description((an_ms_attribute_kind)msak_unrecognized,
-                             "defaultvtable", MSAT_ANY);
+                             "defaultvtable", msat_any);
   /* [dispinterface] */
   make_attribute_description((an_ms_attribute_kind)msak_misc,
-			     "dispinterface", MSAT_INTERFACE);
+                             "dispinterface", msat_interface);
   /* [displaybind] */
   make_attribute_description((an_ms_attribute_kind)msak_unrecognized,
-			     "displaybind", MSAT_METHOD);
+                             "displaybind", msat_method);
   /* [dual] */
   make_attribute_description((an_ms_attribute_kind)msak_misc,
-			     "dual", MSAT_INTERFACE);
+                             "dual", msat_interface);
   /* [emitidl] */
   make_attribute_description((an_ms_attribute_kind)msak_misc,
-			     "emitidl", MSAT_STANDALONE);
+                             "emitidl", msat_none);
   add_attribute_parameter((an_ms_attribute_arg_kind)msaak_enumeration,
                           "mode",
                           /*is_unnamed=*/TRUE,
@@ -474,12 +485,12 @@ are accepted.
                           (char*)NULL);
   /* [entry] */
   make_attribute_description((an_ms_attribute_kind)msak_misc,
-			     "entry", MSAT_ANY);
+                             "entry", msat_any);
   add_attribute_parameter((an_ms_attribute_arg_kind)msaak_integer,
                           "id", /*is_unnamed=*/TRUE, (char*)NULL);
   /* [event_receiver] */
   make_attribute_description((an_ms_attribute_kind)msak_misc,
-			     "event_receiver", MSAT_CLASS | MSAT_STRUCT);
+                             "event_receiver", (msat_class | msat_struct));
   add_attribute_parameter((an_ms_attribute_arg_kind)msaak_enumeration,
                           "type", /*is_unnamed=*/TRUE,
                           "native,com,managed");
@@ -488,7 +499,7 @@ are accepted.
                           (char*)NULL);
   /* [event_source] */
   make_attribute_description((an_ms_attribute_kind)msak_misc,
-			     "event_source", MSAT_CLASS | MSAT_STRUCT);
+                             "event_source", (msat_class | msat_struct));
   add_attribute_parameter((an_ms_attribute_arg_kind)msaak_enumeration,
                           "type", /*is_unnamed=*/TRUE,
                           "native,com,managed");
@@ -499,70 +510,70 @@ are accepted.
                           "decorate", /*is_unnamed=*/FALSE, (char*)NULL);
   /* [export] */
   make_attribute_description((an_ms_attribute_kind)msak_misc,
-			     "export",
-                             MSAT_INTERFACE | MSAT_STRUCT | MSAT_UNION |
-                             MSAT_ENUM | MSAT_TYPEDEF);
+                             "export", 
+                             (msat_interface | msat_struct | msat_union |
+                              msat_enum | msat_typedef));
   /* [first_is] */
   make_attribute_description((an_ms_attribute_kind)msak_misc,
-			     "first_is",
-                             MSAT_DATA_MEMBER | MSAT_METHOD | MSAT_PARAMETER);
+                             "first_is", 
+                             (msat_field | msat_method | msat_parameter));
   add_attribute_parameter((an_ms_attribute_arg_kind)msaak_other,
                           "value", /*is_unnamed=*/TRUE, (char*)NULL);
   /* [helpcontext] */
   make_attribute_description((an_ms_attribute_kind)msak_misc,
-			     "helpcontext",
-                             MSAT_INTERFACE | MSAT_CLASS | MSAT_TYPEDEF |
-                             MSAT_METHOD);
+                             "helpcontext", 
+                             (msat_interface | msat_class | msat_typedef |
+                              msat_method));
   add_attribute_parameter((an_ms_attribute_arg_kind)msaak_integer,
                           "id", /*is_unnamed=*/TRUE, (char*)NULL);
   /* [helpfile] */
   make_attribute_description((an_ms_attribute_kind)msak_misc,
-			     "helpfile",
-                             MSAT_INTERFACE | MSAT_CLASS | MSAT_TYPEDEF |
-                             MSAT_METHOD);
+                             "helpfile", 
+                             (msat_interface | msat_class | msat_typedef |
+                              msat_method));
   add_attribute_parameter((an_ms_attribute_arg_kind)msaak_integer,
                           "filename", /*is_unnamed=*/TRUE, (char*)NULL);
   /* [help_string] */
   make_attribute_description((an_ms_attribute_kind)msak_unrecognized,
-                             "help_string", MSAT_ANY);
+                             "help_string", msat_any);
   /* [helpstring] */
   make_attribute_description((an_ms_attribute_kind)msak_misc,
-			     "helpstring",
-                             MSAT_INTERFACE | MSAT_CLASS | MSAT_TYPEDEF |
-                             MSAT_METHOD);
+                             "helpstring", 
+                             (msat_interface | msat_class | msat_typedef |
+                              msat_method));
   add_attribute_parameter((an_ms_attribute_arg_kind)msaak_string,
                           "string", /*is_unnamed=*/TRUE, (char*)NULL);
   /* [helpstringcontext] */
   make_attribute_description((an_ms_attribute_kind)msak_misc,
-			     "helpstringcontext",
-                             MSAT_INTERFACE | MSAT_CLASS | MSAT_TYPEDEF |
-                             MSAT_METHOD);
+                             "helpstringcontext", 
+                             (msat_interface | msat_class | msat_typedef |
+                              msat_method));
   add_attribute_parameter((an_ms_attribute_arg_kind)msaak_integer,
                           "contextID", /*is_unnamed=*/TRUE, (char*)NULL);
   /* [helpstringdll] */
   make_attribute_description((an_ms_attribute_kind)msak_misc,
-			     "helpstringdll",
-                             MSAT_INTERFACE | MSAT_CLASS | MSAT_TYPEDEF |
-                             MSAT_METHOD);
+                             "helpstringdll", 
+                             (msat_interface | msat_class | msat_typedef |
+                              msat_method));
   add_attribute_parameter((an_ms_attribute_arg_kind)msaak_string,
                           "string", /*is_unnamed=*/TRUE, (char*)NULL);
   /* [hidden] */
   make_attribute_description((an_ms_attribute_kind)msak_misc,
-			     "hidden",
-                              MSAT_METHOD | MSAT_INTERFACE |
-                              MSAT_CLASS | MSAT_STRUCT);
+                             "hidden", 
+                             (msat_method | msat_interface | msat_class |
+                              msat_struct));
   /* [hook] */
   make_attribute_description((an_ms_attribute_kind)msak_unrecognized,
-                             "hook", MSAT_ANY);
+                             "hook", msat_any);
   /* [id] */
   make_attribute_description((an_ms_attribute_kind)msak_misc,
-			     "id", MSAT_METHOD);
+                             "id", msat_method);
   set_initialization_style_arg_allowed();
   add_attribute_parameter((an_ms_attribute_arg_kind)msaak_integer,
                           "id", /*is_unnamed=*/TRUE, (char*)NULL);
   /* [idl_module] */
   make_attribute_description((an_ms_attribute_kind)msak_misc,
-			     "idl_module", MSAT_ANY);
+                             "idl_module", msat_any);
   add_attribute_parameter((an_ms_attribute_arg_kind)msaak_string,
                           "name", /*is_unnamed=*/FALSE, (char*)NULL);
   add_attribute_parameter((an_ms_attribute_arg_kind)msaak_string,
@@ -584,21 +595,21 @@ are accepted.
                          "restricted", /*is_unnamed=*/FALSE, (char*)NULL);
   /* [idl_quote] */
   make_attribute_description((an_ms_attribute_kind)msak_misc,
-			     "idl_quote", MSAT_ANY);
+                             "idl_quote", msat_any);
   add_attribute_parameter((an_ms_attribute_arg_kind)msaak_string,
                           "text", /*is_unnamed=*/TRUE, (char*)NULL);
   /* [iid_is] */
   make_attribute_description((an_ms_attribute_kind)msak_misc,
-			     "iid_is",
-                             MSAT_DATA_MEMBER | MSAT_METHOD | MSAT_PARAMETER);
+                             "iid_is", 
+                             (msat_field | msat_method | msat_parameter));
   add_attribute_parameter((an_ms_attribute_arg_kind)msaak_other,
                           "value", /*is_unnamed=*/TRUE, (char*)NULL);
   /* [immediatebind] */
   make_attribute_description((an_ms_attribute_kind)msak_unrecognized,
-			     "immediatebind", MSAT_METHOD);
+                             "immediatebind", msat_method);
   /* [implements] */
   make_attribute_description((an_ms_attribute_kind)msak_misc,
-			     "implements", MSAT_CLASS | MSAT_STRUCT);
+                             "implements", (msat_class | msat_struct));
   add_attribute_parameter((an_ms_attribute_arg_kind)msaak_other,
                           "interfaces", /*is_unnamed=*/FALSE, (char*)NULL);
   add_attribute_parameter((an_ms_attribute_arg_kind)msaak_other,
@@ -607,72 +618,73 @@ are accepted.
   /* This is documented as taking a UUID, but this does not seem to be
      the case. */
   make_attribute_description((an_ms_attribute_kind)msak_misc,
-			     "implements_category", MSAT_CLASS | MSAT_STRUCT);
+                             "implements_category", 
+                             (msat_class | msat_struct));
   set_initialization_style_arg_allowed();
   add_attribute_parameter((an_ms_attribute_arg_kind)msaak_string,
                           "implements_category", /*is_unnamed=*/FALSE,
                           (char*)NULL);
   /* [import] */
   make_attribute_description((an_ms_attribute_kind)msak_misc,
-			     "import", MSAT_ANY);
+                             "import", msat_any);
   add_attribute_parameter((an_ms_attribute_arg_kind)msaak_other,
                           "idl_file", /*is_unnamed=*/TRUE, (char*)NULL);
   /* [importidl] */
   make_attribute_description((an_ms_attribute_kind)msak_misc,
-			     "importidl", MSAT_ANY);
+                             "importidl", msat_any);
   add_attribute_parameter((an_ms_attribute_arg_kind)msaak_string,
                           "idl_file", /*is_unnamed=*/TRUE, (char*)NULL);
   /* [importlib] */
   make_attribute_description((an_ms_attribute_kind)msak_misc,
-			     "importlib", MSAT_ANY);
+                             "importlib", msat_any);
   add_attribute_parameter((an_ms_attribute_arg_kind)msaak_string,
                           "tlb_file", /*is_unnamed=*/TRUE, (char*)NULL);
   /* [in] */
   make_attribute_description((an_ms_attribute_kind)msak_misc,
-			     "in", MSAT_PARAMETER);
+                             "in", msat_parameter);
   /* [include] */
   make_attribute_description((an_ms_attribute_kind)msak_misc,
-			     "include", MSAT_ANY);
+                             "include", msat_any);
   add_attribute_parameter((an_ms_attribute_arg_kind)msaak_other,
                           "header_file", /*is_unnamed=*/TRUE, (char*)NULL);
   /* [includelib] */
   make_attribute_description((an_ms_attribute_kind)msak_misc,
-			     "includelib", MSAT_ANY);
+                             "includelib", msat_any);
   add_attribute_parameter((an_ms_attribute_arg_kind)msaak_string,
                           "name.idl", /*is_unnamed=*/TRUE, (char*)NULL);
   /* [last_is] */
   make_attribute_description((an_ms_attribute_kind)msak_misc,
-			     "last_is",
-                             MSAT_DATA_MEMBER | MSAT_METHOD | MSAT_PARAMETER);
+                             "last_is", 
+                             (msat_field | msat_method | msat_parameter));
   add_attribute_parameter((an_ms_attribute_arg_kind)msaak_other,
                           "value", /*is_unnamed=*/TRUE, (char*)NULL);
   /* [lcid] */
   make_attribute_description((an_ms_attribute_kind)msak_misc,
-			     "lcid", MSAT_PARAMETER);
+                             "lcid", msat_parameter);
   /* [length_is] */
   make_attribute_description((an_ms_attribute_kind)msak_misc,
-			     "length_is",
-                             MSAT_DATA_MEMBER | MSAT_METHOD | MSAT_PARAMETER);
+                             "length_is", 
+                             (msat_field | msat_method | msat_parameter));
   add_attribute_parameter((an_ms_attribute_arg_kind)msaak_other,
                           "value", /*is_unnamed=*/TRUE, (char*)NULL);
   /* [library_block] */
   make_attribute_description((an_ms_attribute_kind)msak_misc,
-			     "library_block", MSAT_ANY);
+                             "library_block", msat_any);
   /* [licensed] */
   make_attribute_description((an_ms_attribute_kind)msak_misc,
-			     "licensed", MSAT_CLASS | MSAT_STRUCT);
+                             "licensed", (msat_class | msat_struct));
   /* [local] */
   make_attribute_description((an_ms_attribute_kind)msak_misc,
-			     "local", MSAT_METHOD | MSAT_INTERFACE);
+                             "local", (msat_method | msat_interface));
   /* [max_is] */
   make_attribute_description((an_ms_attribute_kind)msak_misc,
-			     "max_is",
-                             MSAT_DATA_MEMBER | MSAT_METHOD | MSAT_PARAMETER);
+                             "max_is", 
+                             (msat_field | msat_method | msat_parameter));
   add_attribute_parameter((an_ms_attribute_arg_kind)msaak_other,
                           "value", /*is_unnamed=*/TRUE, (char*)NULL);
   /* [module] */
   make_attribute_description((an_ms_attribute_kind)msak_misc,
-			     "module", MSAT_STANDALONE | MSAT_CLASS);
+                             "module", (msat_none | msat_class));
   add_attribute_parameter((an_ms_attribute_arg_kind)msaak_enumeration,
                           "type", /*is_unnamed=*/FALSE, "dll,exe,service");
   add_attribute_parameter((an_ms_attribute_arg_kind)msaak_string,
@@ -706,53 +718,53 @@ are accepted.
                          "resource_name", /*is_unnamed=*/FALSE, (char*)NULL);
   /* [ms_union] */
   make_attribute_description((an_ms_attribute_kind)msak_misc,
-			     "ms_union",
-                             MSAT_CLASS | MSAT_STRUCT | MSAT_INTERFACE);
+                             "ms_union", 
+                             (msat_class | msat_struct | msat_interface));
   /* [multi_value] */
   make_attribute_description((an_ms_attribute_kind)msak_unrecognized,
-                             "multi_value", MSAT_ANY);
+                             "multi_value", msat_any);
   /* [no_injected_text] */
   make_attribute_description((an_ms_attribute_kind)msak_misc,
-			     "no_injected_text", MSAT_ANY);
+                             "no_injected_text", msat_any);
   add_attribute_parameter((an_ms_attribute_arg_kind)msaak_boolean,
                           "value", /*is_unnamed=*/TRUE, (char*)NULL);
   /* [nonbrowsable] */
   make_attribute_description((an_ms_attribute_kind)msak_misc,
-			     "nonbrowsable", MSAT_METHOD);
+                             "nonbrowsable", msat_method);
   /* [noncreatable] */
   make_attribute_description((an_ms_attribute_kind)msak_misc,
-			     "noncreatable", MSAT_CLASS | MSAT_STRUCT);
+                             "noncreatable", (msat_class | msat_struct));
   /* [nonextensible] */
   make_attribute_description((an_ms_attribute_kind)msak_misc,
-			     "nonextensible", MSAT_INTERFACE);
+                             "nonextensible", msat_interface);
   /* [notify_atlprov] */
   make_attribute_description((an_ms_attribute_kind)msak_unrecognized,
-                             "notify_atlprov", MSAT_ANY);
+                             "notify_atlprov", msat_any);
   /* [odl] */
   make_attribute_description((an_ms_attribute_kind)msak_misc,
-			     "odl", MSAT_INTERFACE);
+                             "odl", msat_interface);
   /* [object] */
   make_attribute_description((an_ms_attribute_kind)msak_misc,
-			     "object", MSAT_INTERFACE);
+                             "object", msat_interface);
   /* [oleautomation] */
   make_attribute_description((an_ms_attribute_kind)msak_misc,
-			     "oleautomation", MSAT_INTERFACE);
+                             "oleautomation", msat_interface);
   /* [optional] */
   make_attribute_description((an_ms_attribute_kind)msak_unrecognized,
-                             "optional", MSAT_ANY);
+                             "optional", msat_any);
   /* [out] */
   make_attribute_description((an_ms_attribute_kind)msak_misc,
-			     "out", MSAT_PARAMETER);
+                             "out", msat_parameter);
   /* [perfmon] */
   make_attribute_description((an_ms_attribute_kind)msak_misc,
-			     "perfmon", MSAT_CLASS | MSAT_STRUCT);
+                             "perfmon", (msat_class | msat_struct));
   add_attribute_parameter((an_ms_attribute_arg_kind)msaak_string,
                           "name", /*is_unnamed=*/FALSE, (char*)NULL);
   add_attribute_parameter((an_ms_attribute_arg_kind)msaak_boolean,
                           "register", /*is_unnamed=*/FALSE, (char*)NULL);
   /* [perf_counter] */
   make_attribute_description((an_ms_attribute_kind)msak_misc,
-			     "perf_counter", MSAT_DATA_MEMBER);
+                             "perf_counter", msat_field);
   add_attribute_parameter((an_ms_attribute_arg_kind)msaak_string,
                           "namestring", /*is_unnamed=*/FALSE, (char*)NULL);
   add_attribute_parameter((an_ms_attribute_arg_kind)msaak_string,
@@ -773,7 +785,7 @@ are accepted.
                           "detail", /*is_unnamed=*/FALSE, (char*)NULL);
   /* [perf_object] */
   make_attribute_description((an_ms_attribute_kind)msak_misc,
-			     "perf_object", MSAT_CLASS | MSAT_STRUCT);
+                             "perf_object", (msat_class | msat_struct));
   add_attribute_parameter((an_ms_attribute_arg_kind)msaak_integer,
                           "name_res", /*is_unnamed=*/FALSE, (char*)NULL);
   add_attribute_parameter((an_ms_attribute_arg_kind)msaak_integer,
@@ -792,194 +804,195 @@ are accepted.
                           "maxinstnamelen", /*is_unnamed=*/FALSE, (char*)NULL);
   /* [pointer_default] */
   make_attribute_description((an_ms_attribute_kind)msak_misc,
-			     "pointer_default", MSAT_INTERFACE);
+                             "pointer_default", msat_interface);
   add_attribute_parameter((an_ms_attribute_arg_kind)msaak_string,
                           "value", /*is_unnamed=*/FALSE, (char*)NULL);
   /* [pragma] */
   make_attribute_description((an_ms_attribute_kind)msak_misc,
-			     "pragma", MSAT_ANY);
+                             "pragma", msat_any);
   add_attribute_parameter((an_ms_attribute_arg_kind)msaak_other,
                           "pragma_statement", /*is_unnamed=*/TRUE,
                           (char*)NULL);
   /* [process_early] */
   make_attribute_description((an_ms_attribute_kind)msak_unrecognized,
-                             "process_early", MSAT_ANY);
+                             "process_early", msat_any);
   /* [progid] */
   make_attribute_description((an_ms_attribute_kind)msak_unrecognized,
-			     "progid", MSAT_CLASS | MSAT_STRUCT);
+                             "progid", (msat_class | msat_struct));
   set_initialization_style_arg_allowed();
   add_attribute_parameter((an_ms_attribute_arg_kind)msaak_string,
                           "name", /*is_unnamed=*/FALSE, (char*)NULL);
   /* [ptr] */
   make_attribute_description((an_ms_attribute_kind)msak_misc,
-			     "ptr",
-                              MSAT_PARAMETER | MSAT_METHOD |
-                              MSAT_ROUTINE | MSAT_TYPEDEF);
+                             "ptr", 
+                             (msat_parameter | msat_method | msat_routine |
+                              msat_typedef));
   /* [propget] */
   make_attribute_description((an_ms_attribute_kind)msak_unrecognized,
-			     "propget", MSAT_METHOD | MSAT_ROUTINE);
+                             "propget", (msat_method | msat_routine));
   /* [propput] */
   make_attribute_description((an_ms_attribute_kind)msak_unrecognized,
-			     "propput", MSAT_METHOD | MSAT_ROUTINE);
+                             "propput", (msat_method | msat_routine));
   /* [propputref] */
   make_attribute_description((an_ms_attribute_kind)msak_unrecognized,
-			     "propputref", MSAT_METHOD | MSAT_ROUTINE);
+                             "propputref", (msat_method | msat_routine));
   /* [provider] */
   make_attribute_description((an_ms_attribute_kind)msak_misc,
-			     "provider", MSAT_STANDALONE);
+                             "provider", msat_none);
   add_attribute_parameter((an_ms_attribute_arg_kind)msaak_string,
                           "name", /*is_unnamed=*/FALSE, (char*)NULL);
   add_attribute_parameter((an_ms_attribute_arg_kind)msaak_uuid,
                           "uuid", /*is_unnamed=*/FALSE, (char*)NULL);
   /* [public] */
   make_attribute_description((an_ms_attribute_kind)msak_misc,
-			     "public", MSAT_TYPEDEF);
+                             "public", msat_typedef);
   /* [range] */
   make_attribute_description((an_ms_attribute_kind)msak_unrecognized,
-			     "range", MSAT_METHOD | MSAT_PARAMETER);
+                             "range", (msat_method | msat_parameter));
   add_attribute_parameter((an_ms_attribute_arg_kind)msaak_integer,
                           "low", /*is_unnamed=*/TRUE, (char*)NULL);
   add_attribute_parameter((an_ms_attribute_arg_kind)msaak_integer,
                           "high", /*is_unnamed=*/TRUE, (char*)NULL);
   /* [rdx] */
   make_attribute_description((an_ms_attribute_kind)msak_unrecognized,
-			     "rdx", MSAT_DATA_MEMBER);
+                             "rdx", msat_field);
   /* [readonly] */
   make_attribute_description((an_ms_attribute_kind)msak_misc,
-			     "readonly", MSAT_METHOD);
+                             "readonly", msat_method);
   /* [ref] */
   make_attribute_description((an_ms_attribute_kind)msak_misc,
-			     "ref",
-                              MSAT_PARAMETER | MSAT_METHOD |
-                              MSAT_ROUTINE | MSAT_TYPEDEF);
+                             "ref", 
+                             (msat_parameter | msat_method | msat_routine |
+                              msat_typedef));
   /* [registration_script] */
   make_attribute_description((an_ms_attribute_kind)msak_unrecognized,
-			     "registration_script", MSAT_CLASS | MSAT_STRUCT);
+                             "registration_script", 
+                             (msat_class | msat_struct));
   add_attribute_parameter((an_ms_attribute_arg_kind)msaak_string,
                           "script", /*is_unnamed=*/FALSE, (char*)NULL);
   /* [repeatable] */
   make_attribute_description((an_ms_attribute_kind)msak_unrecognized,
-                             "repeatable", MSAT_ANY);
+                             "repeatable", msat_any);
   /* [requestedit] */
   make_attribute_description((an_ms_attribute_kind)msak_unrecognized,
-			     "requestedit", MSAT_METHOD);
+                             "requestedit", msat_method);
   /* [request_handler] */
   make_attribute_description((an_ms_attribute_kind)msak_misc,
-			     "request_handler", MSAT_CLASS | MSAT_STRUCT);
+                             "request_handler", (msat_class | msat_struct));
   add_attribute_parameter((an_ms_attribute_arg_kind)msaak_string,
                           "name", /*is_unnamed=*/FALSE, (char*)NULL);
   add_attribute_parameter((an_ms_attribute_arg_kind)msaak_string,
                           "sdl", /*is_unnamed=*/FALSE, (char*)NULL);
   /* [requires_category] */
   make_attribute_description((an_ms_attribute_kind)msak_unrecognized,
-			     "requires_category", MSAT_CLASS | MSAT_STRUCT);
+                             "requires_category", (msat_class | msat_struct));
   set_initialization_style_arg_allowed();
   add_attribute_parameter((an_ms_attribute_arg_kind)msaak_string,
                           "requires_category", /*is_unnamed=*/FALSE,
                           (char*)NULL);
   /* [requires_value] */
   make_attribute_description((an_ms_attribute_kind)msak_unrecognized,
-                             "requires_value", MSAT_ANY);
+                             "requires_value", msat_any);
   /* [restricted] */
   make_attribute_description((an_ms_attribute_kind)msak_misc,
-			     "restricted",
-                              MSAT_METHOD | MSAT_INTERFACE |
-                              MSAT_CLASS | MSAT_STRUCT);
+                             "restricted", 
+                             (msat_method | msat_interface | msat_class |
+                              msat_struct));
   add_attribute_parameter((an_ms_attribute_arg_kind)msaak_other,
                           "interfaces", /*is_unnamed=*/FALSE, (char*)NULL);
   /* [retval] */
   make_attribute_description((an_ms_attribute_kind)msak_misc,
-			     "retval", MSAT_PARAMETER);
+                             "retval", msat_parameter);
   /* [satype] */
   make_attribute_description((an_ms_attribute_kind)msak_misc,
-			     "satype", MSAT_PARAMETER);
+                             "satype", msat_parameter);
   add_attribute_parameter((an_ms_attribute_arg_kind)msaak_string,
                           "data_type", /*is_unnamed=*/FALSE, (char*)NULL);
   /* Source Annotation attributes. */
   /* [FormatString] */
   if (!C_mode()) {
     make_attribute_description((an_ms_attribute_kind)msak_unrecognized,
-                               "FormatString", MSAT_ANY);
+                               "FormatString", msat_any);
   }  /* if */
   /* [SA_FormatString] */
   make_attribute_description((an_ms_attribute_kind)msak_unrecognized,
-                             "SA_FormatString", MSAT_ANY);
+                             "SA_FormatString", msat_any);
   /* [InvalidCheck] */
   if (!C_mode()) {
     make_attribute_description((an_ms_attribute_kind)msak_unrecognized,
-                               "InvalidCheck", MSAT_ANY);
+                               "InvalidCheck", msat_any);
   }  /* if */
   /* [SA_InvalidCheck] */
   make_attribute_description((an_ms_attribute_kind)msak_unrecognized,
-                             "SA_InvalidCheck", MSAT_ANY);
+                             "SA_InvalidCheck", msat_any);
   /* [Post] */
   if (!C_mode()) {
     make_attribute_description((an_ms_attribute_kind)msak_unrecognized,
-                               "Post", MSAT_ANY);
+                               "Post", msat_any);
   }  /* if */
   /* [SA_Post] */
   make_attribute_description((an_ms_attribute_kind)msak_unrecognized,
-                             "SA_Post", MSAT_ANY);
+                             "SA_Post", msat_any);
   /* [Pre] */
   if (!C_mode()) {
     make_attribute_description((an_ms_attribute_kind)msak_unrecognized,
-                               "Pre", MSAT_ANY);
+                               "Pre", msat_any);
   }  /* if */
   /* [SA_Pre] */
   make_attribute_description((an_ms_attribute_kind)msak_unrecognized,
-                             "SA_Pre", MSAT_ANY);
+                             "SA_Pre", msat_any);
   /* [PostBound] */
   if (!C_mode()) {
     make_attribute_description((an_ms_attribute_kind)msak_unrecognized,
-                               "PostBound", MSAT_ANY);
+                               "PostBound", msat_any);
   }  /* if */
   /* [SA_PostBound] */
   make_attribute_description((an_ms_attribute_kind)msak_unrecognized,
-                             "SA_PostBound", MSAT_ANY);
+                             "SA_PostBound", msat_any);
   /* [PostRange] */
   if (!C_mode()) {
     make_attribute_description((an_ms_attribute_kind)msak_unrecognized,
-                               "PostRange", MSAT_ANY);
+                               "PostRange", msat_any);
   }  /* if */
   /* [SA_PostRange] */
   make_attribute_description((an_ms_attribute_kind)msak_unrecognized,
-                             "SA_PostRange", MSAT_ANY);
+                             "SA_PostRange", msat_any);
   /* [PreBound] */
   if (!C_mode()) {
     make_attribute_description((an_ms_attribute_kind)msak_unrecognized,
-                               "PreBound", MSAT_ANY);
+                               "PreBound", msat_any);
   }  /* if */
   /* [SA_PreBound] */
   make_attribute_description((an_ms_attribute_kind)msak_unrecognized,
-                             "SA_PreBound", MSAT_ANY);
+                             "SA_PreBound", msat_any);
   /* [SA_PreRange] */
   make_attribute_description((an_ms_attribute_kind)msak_unrecognized,
-                             "SA_PreRange", MSAT_ANY);
+                             "SA_PreRange", msat_any);
   /* [PreRange] */
   if (!C_mode()) {
     make_attribute_description((an_ms_attribute_kind)msak_unrecognized,
-                               "PreRange", MSAT_ANY);
+                               "PreRange", msat_any);
   }  /* if */
   /* [Success] */
   if (!C_mode()) {
     make_attribute_description((an_ms_attribute_kind)msak_unrecognized,
-                               "Success", MSAT_ANY);
+                               "Success", msat_any);
   }  /* if */
   /* [SA_Success] */
   make_attribute_description((an_ms_attribute_kind)msak_unrecognized,
-                             "SA_Success", MSAT_ANY);
+                             "SA_Success", msat_any);
   /* [source_annotation_attribute] */
   make_attribute_description((an_ms_attribute_kind)msak_unrecognized,
-                             "source_annotation_attribute", MSAT_ANY);
+                             "source_annotation_attribute", msat_any);
   /* [size_is] */
   make_attribute_description((an_ms_attribute_kind)msak_misc,
-			     "size_is",
-                             MSAT_DATA_MEMBER | MSAT_METHOD | MSAT_PARAMETER);
+                             "size_is", 
+                             (msat_field | msat_method | msat_parameter));
   add_attribute_parameter((an_ms_attribute_arg_kind)msaak_other,
                           "value", /*is_unnamed=*/TRUE, (char*)NULL);
   /* [soap_handler] */
   make_attribute_description((an_ms_attribute_kind)msak_misc,
-			     "soap_handler", MSAT_CLASS | MSAT_STRUCT);
+                             "soap_handler", (msat_class | msat_struct));
   add_attribute_parameter((an_ms_attribute_arg_kind)msaak_string,
                           "name", /*is_unnamed=*/FALSE, (char*)NULL);
   add_attribute_parameter((an_ms_attribute_arg_kind)msaak_string,
@@ -992,7 +1005,7 @@ are accepted.
                           "use", /*is_unnamed=*/FALSE, (char*)NULL);
   /* [soap_header] */
   make_attribute_description((an_ms_attribute_kind)msak_misc,
-			     "soap_header", MSAT_METHOD);
+                             "soap_header", msat_method);
   add_attribute_parameter((an_ms_attribute_arg_kind)msaak_string,
                           "value", /*is_unnamed=*/FALSE, (char*)NULL);
   add_attribute_parameter((an_ms_attribute_arg_kind)msaak_boolean,
@@ -1003,25 +1016,29 @@ are accepted.
                           "out", /*is_unnamed=*/FALSE, (char*)NULL);
   /* [soap_method] */
   make_attribute_description((an_ms_attribute_kind)msak_misc,
-			     "soap_method", MSAT_METHOD);
+                             "soap_method",
+                             msat_method);
   add_attribute_parameter((an_ms_attribute_arg_kind)msaak_string,
                           "name", /*is_unnamed=*/FALSE, (char*)NULL);
   /* [soap_namespace] */
   make_attribute_description((an_ms_attribute_kind)msak_unrecognized,
-                             "soap_namespace", MSAT_ANY);
+                             "soap_namespace",
+                             msat_any);
   /* [source] */
   make_attribute_description((an_ms_attribute_kind)msak_misc,
-			     "source",
-                             MSAT_CLASS | MSAT_STRUCT | MSAT_INTERFACE);
+                             "source", 
+                             (msat_class | msat_struct | msat_interface));
   add_attribute_parameter((an_ms_attribute_arg_kind)msaak_string,
                           "interfaces", /*is_unnamed=*/TRUE, (char*)NULL);
   /* [string] */
   /* The Microsoft documentation does not have the correct target. */
   make_attribute_description((an_ms_attribute_kind)msak_misc,
-			     "string", MSAT_ANY);
+                             "string",
+                             msat_any);
   /* [support_error_info] */
   make_attribute_description((an_ms_attribute_kind)msak_misc,
-			     "support_error_info", MSAT_CLASS);
+                             "support_error_info",
+                             msat_class);
   /* The documentation describes this parameter as a UUID, but it appears
      to actually be a string. */
   add_attribute_parameter((an_ms_attribute_arg_kind)msaak_string,
@@ -1031,94 +1048,96 @@ are accepted.
   /* The Microsoft documentation does not describe the field argument and
      does not have the correct target. */
   make_attribute_description((an_ms_attribute_kind)msak_misc,
-			     "switch_type", MSAT_UNION);
+                             "switch_type",
+                             msat_union);
   add_attribute_parameter((an_ms_attribute_arg_kind)msaak_string,
                           "field", /*is_unnamed=*/TRUE, (char*)NULL);
   /* [switch_is] */
   /* The Microsoft documentation does not describe the type argument and
      does not have the correct target. */
   make_attribute_description((an_ms_attribute_kind)msak_misc,
-			     "switch_is", MSAT_UNION);
+                             "switch_is",
+                             msat_union);
   add_attribute_parameter((an_ms_attribute_arg_kind)msaak_string,
                           "type", /*is_unnamed=*/TRUE, (char*)NULL);
   /* [synchronize] */
   make_attribute_description((an_ms_attribute_kind)msak_misc,
-			     "synchronize", MSAT_METHOD | MSAT_ROUTINE);
+                             "synchronize", 
+                             (msat_method | msat_routine));
   /* [tag_name] */
   make_attribute_description((an_ms_attribute_kind)msak_misc,
-			     "tag_name", MSAT_METHOD);
+                             "tag_name", msat_method);
   add_attribute_parameter((an_ms_attribute_arg_kind)msaak_string,
                           "name", /*is_unnamed=*/FALSE, (char*)NULL);
   add_attribute_parameter((an_ms_attribute_arg_kind)msaak_string,
                           "parse_func", /*is_unnamed=*/FALSE, (char*)NULL);
   /* [threading] */
   make_attribute_description((an_ms_attribute_kind)msak_misc,
-			     "threading", MSAT_CLASS | MSAT_STRUCT);
+                             "threading", (msat_class | msat_struct));
   add_attribute_parameter((an_ms_attribute_arg_kind)msaak_string,
                           "model", /*is_unnamed=*/FALSE,
                           "apartment,neutral,single,free,both");
   /* [transmit_as] */
   make_attribute_description((an_ms_attribute_kind)msak_misc,
-			     "transmit_as", MSAT_TYPEDEF);
+                             "transmit_as", msat_typedef);
   add_attribute_parameter((an_ms_attribute_arg_kind)msaak_other,
                           "type", /*is_unnamed=*/FALSE, (char*)NULL);
   /* [uidefault] */
   make_attribute_description((an_ms_attribute_kind)msak_misc,
-			     "uidefault", MSAT_METHOD);
+                             "uidefault", msat_method);
   /* [unhook] */
   make_attribute_description((an_ms_attribute_kind)msak_unrecognized,
-                             "unhook", MSAT_ANY);
+                             "unhook", msat_any);
   /* [unique] */
   make_attribute_description((an_ms_attribute_kind)msak_misc,
-			     "unique",
-                              MSAT_PARAMETER | MSAT_METHOD |
-                              MSAT_ROUTINE | MSAT_TYPEDEF);
+                             "unique", 
+                             (msat_parameter | msat_method | msat_routine |
+                              msat_typedef));
   /* [usage] */
   make_attribute_description((an_ms_attribute_kind)msak_unrecognized,
-                             "usage", MSAT_ANY);
+                             "usage", msat_any);
   /* [usesgetlasterror] */
   make_attribute_description((an_ms_attribute_kind)msak_misc,
-			     "usesgetlasterror", MSAT_ANY);
+                             "usesgetlasterror", msat_any);
   /* [uuid] */
   if (!C_mode()) {
     make_attribute_description((an_ms_attribute_kind)msak_uuid,
-                               "uuid",
-                               MSAT_CLASS | MSAT_STRUCT | MSAT_INTERFACE);
+                               "uuid", 
+                               (msat_class | msat_struct | msat_interface));
     set_initialization_style_arg_allowed();
     add_attribute_parameter((an_ms_attribute_arg_kind)msaak_uuid,
                             "uuid", /*is_unnamed=*/FALSE, (char*)NULL);
   }  /* if */
   /* [v1_alttype] */
   make_attribute_description((an_ms_attribute_kind)msak_unrecognized,
-                             "v1_alttype", MSAT_ANY);
+                             "v1_alttype", msat_any);
   /* [v1_early] */
   make_attribute_description((an_ms_attribute_kind)msak_unrecognized,
-                             "v1_early", MSAT_ANY);
+                             "v1_early", msat_any);
   /* [v1_enum] */
   make_attribute_description((an_ms_attribute_kind)msak_misc,
-			     "v1_enum", MSAT_ENUM);
+                             "v1_enum", msat_enum);
   /* [v1_name] */
   make_attribute_description((an_ms_attribute_kind)msak_unrecognized,
-                             "v1_name", MSAT_ANY);
+                             "v1_name", msat_any);
   /* [vararg] */
   make_attribute_description((an_ms_attribute_kind)msak_misc,
-			     "vararg", MSAT_METHOD);
+                             "vararg", msat_method);
   /* [version] */
   make_attribute_description((an_ms_attribute_kind)msak_misc,
-			     "version",
-                             MSAT_CLASS | MSAT_STRUCT);
+                             "version", (msat_class | msat_struct));
   add_attribute_parameter((an_ms_attribute_arg_kind)msaak_string,
                           "version", /*is_unnamed=*/TRUE, (char*)NULL);
   /* [vi_progid] */
   make_attribute_description((an_ms_attribute_kind)msak_unrecognized,
-			     "vi_progid", MSAT_CLASS | MSAT_STRUCT);
+                             "vi_progid", (msat_class | msat_struct));
   set_initialization_style_arg_allowed();
   add_attribute_parameter((an_ms_attribute_arg_kind)msaak_string,
                           "name", /*is_unnamed=*/FALSE, (char*)NULL);
   /* [wire_marshal] */
   /* The Microsoft documentation does not describe the type argument. */
   make_attribute_description((an_ms_attribute_kind)msak_misc,
-			     "wire_marshal", MSAT_TYPEDEF);
+                             "wire_marshal", msat_typedef);
   add_attribute_parameter((an_ms_attribute_arg_kind)msaak_other,
                           "type", /*is_unnamed=*/FALSE, (char*)NULL);
 #endif /* RECOGNIZE_MICROSOFT_ATTRIBUTES */
@@ -1126,7 +1145,7 @@ are accepted.
   /* These are special attributes included for testing purposes. */
   /* [edg_test_1] */
   make_attribute_description((an_ms_attribute_kind)msak_edg_test,
-			     "edg_test_1", MSAT_STANDALONE);
+                             "edg_test_1", msat_none);
   add_attribute_parameter((an_ms_attribute_arg_kind)msaak_integer,
                           "arg1", /*is_unnamed=*/FALSE, (char*)NULL);
   add_attribute_parameter((an_ms_attribute_arg_kind)msaak_boolean,
@@ -1139,10 +1158,10 @@ are accepted.
                           "arg5", /*is_unnamed=*/FALSE, "a,b,c,aa,bb,cc");
   /* [edg_test_2] */
   make_attribute_description((an_ms_attribute_kind)msak_edg_test,
-			     "edg_test_2", MSAT_STANDALONE);
+                             "edg_test_2", msat_none);
   /* [edg_test_3] */
   make_attribute_description((an_ms_attribute_kind)msak_edg_test,
-			     "edg_test_3", MSAT_ANY);
+                             "edg_test_3", msat_any);
   add_attribute_parameter((an_ms_attribute_arg_kind)msaak_integer,
                           "arg1", /*is_unnamed=*/FALSE, (char*)NULL);
   add_attribute_parameter((an_ms_attribute_arg_kind)msaak_boolean,
@@ -1181,7 +1200,12 @@ cache containing all of the tokens of the attribute block.
   expand_macros = TRUE;
   do_string_literal_concatenation = TRUE;
   fetch_pp_tokens = FALSE;
+  /* FIXME: Keyword recognition cannot be suppressed while scanning
+     C++/CLI custom attributes.  However, this still needs to be done when
+     scanning the arguments for non-custom attributes.
   suppress_keyword_recognition = TRUE;
+     FIXME (daveed): Perhaps fixed now.
+  */
   in_microsoft_attribute = TRUE;
   clear_token_cache(&attribute_cache, /*reusable=*/TRUE);
   /* Cache the current token and advance past it. */
@@ -1208,32 +1232,365 @@ cache containing all of the tokens of the attribute block.
 }  /* cache_attribute_block */
 
 
-static an_ms_attribute_kind_descr_ptr look_up_attribute(void)
+static a_type_ptr ms_attribute_type_from_symbol(a_symbol_ptr sym)
 /*
-Look up the identifier that names the attribute to be processed. 
+If sym is a type symbol that meets the requirements of a C++/CLI custom
+attribute type, returns the type; otherwise returns NULL.
 */
 {
-  an_ms_attribute_kind_descr_ptr	attr_descr = NULL;
+  a_type_ptr  type = NULL;
 
-  if (curr_token != tok_identifier) {
+  if (sym != NULL && is_type_symbol(sym)) {
+    type = type_symbol_type(sym);
+    if (!is_template_param_type_symbol(sym) && !is_cli_attribute_type(type)) {
+      type = NULL;
+    }  /* if */
+  }  /* if */
+  return type;
+}  /* ms_attribute_type_from_symbol */
+
+
+static an_ms_attribute_kind_descr_ptr look_up_attribute(
+                                            a_type_ptr *custom_attribute_type)
+/*
+Look up the identifier that names the attribute to be processed.
+*/
+{
+  an_ms_attribute_kind_descr_ptr  attr_descr = NULL;
+
+  check_assertion(custom_attribute_type != NULL);
+  *custom_attribute_type = NULL;
+  if (!is_generalized_identifier_start(GID_NO_OPTIONS)) {
     /* An identifier that names the attribute was expected. */
     pos_error(ec_exp_attribute_name, &pos_curr_token);
-    /* Discard the rest of this attribute. */
-    flush_tokens();
-  } else {
-    a_symbol_header_ptr	sym_hdr = locator_for_curr_id.symbol_header;
-    attr_descr = find_attribute_kind(sym_hdr->identifier,
-                                     (sizeof_t)strlen(sym_hdr->identifier));
-    if (attr_descr == NULL) {
-      /* An unknown attribute -- issue a diagnostic. */
-      pos_warning(ec_unrecognized_ms_attr, &pos_curr_token);
-    }  /* if */
+  } else if (cppcx_enabled) {
+    /* FIXME: C++/CX custom attributes are not yet supported.  The primary
+       blocking issue is that attribute processing needs to be deferred until
+       the class definition is complete in order for name lookup to function
+       correctly. */
+    attr_descr = unrecognized_attribute;
     /* Bypass the identifier. */
     (void)get_token();
+  } else {
+    a_symbol_ptr  sym;
+    a_type_ptr    type = NULL, alternate_type = NULL;
+    a_boolean     err = FALSE;
+    sym = coalesce_and_lookup_generalized_identifier(
+                                    GID_NO_OPTIONS, ilm_tentative_type, &err);
+    type = ms_attribute_type_from_symbol(sym);
+    if (!err && !locator_for_curr_id.is_template_id &&
+        (sym == NULL || !is_template_param_type_symbol(sym))) {
+      a_symbol_locator  orig_locator;
+      a_symbol_ptr      alternate_sym = NULL;
+      a_boolean         alt_name_err = FALSE;
+      orig_locator = locator_for_curr_id;
+      change_ms_attr_locator_into_alt_name_locator(&locator_for_curr_id);
+      alternate_sym = coalesce_and_lookup_generalized_identifier(
+                           GID_NO_OPTIONS, ilm_tentative_type, &alt_name_err);
+      locator_for_curr_id = orig_locator;
+      alternate_type = ms_attribute_type_from_symbol(alternate_sym);
+    }  /* if */
+    if (type == NULL && alternate_type == NULL) {
+      if (!locator_for_curr_id.is_qualified_name) {
+        a_symbol_header_ptr  sym_hdr = locator_for_curr_id.symbol_header;
+        attr_descr = find_attribute_kind(
+                                       sym_hdr->identifier,
+                                       (sizeof_t)strlen(sym_hdr->identifier));
+      }  /* if */
+      if (attr_descr == NULL) {
+        attr_descr = unrecognized_attribute;
+        /* An unknown attribute -- issue a diagnostic. */
+        pos_warning(ec_unrecognized_ms_attr, &pos_curr_token);
+      }  /* if */
+    } else if (type != NULL && alternate_type != NULL) {
+      /* Ambiguous attribute -- issue a diagnostic. */
+      pos_ty2_error(ec_ambiguous_ms_attribute, &pos_curr_token,
+                    type, alternate_type);
+    } else {
+      attr_descr = custom_attribute;
+      *custom_attribute_type = (type != NULL) ? type : alternate_type;
+    }  /* if */
+    if (attr_descr != NULL) {
+      /* Bypass the identifier. */
+      (void)get_token();
+    }  /* if */
   }  /* if */
-  if (attr_descr == NULL) attr_descr = unrecognized_attribute;
+  if (attr_descr == NULL) {
+    /* An error was encountered; discard the rest of this attribute. */
+    flush_tokens();
+  }  /* if */
   return attr_descr;
 }  /* look_up_attribute */
+
+
+/*
+Values for the enumerators in the C++/CLI System::AttributeTarget enum.
+*/
+#define cliat_assembly         0x0001
+			/* Applies to an assembly as a whole. */
+#define cliat_module           0x0002
+			/* Applies to a module as a whole. */
+#define cliat_class            0x0004
+			/* Applies to a C++/CLI ref class. */
+#define cliat_struct           0x0008
+			/* Applies to a C++/CLI value type that is not an
+			   enum. */
+#define cliat_enum             0x0010
+			/* Applies to a C++/CLI enum. */
+#define cliat_constructor      0x0020
+			/* Applies to a constructor. */
+#define cliat_method           0x0040
+			/* Applies to a function. */
+#define cliat_property         0x0080
+			/* Applies to a C++/CLI property. */
+#define cliat_field            0x0100
+			/* Applies to a data member. */
+#define cliat_event            0x0200
+			/* Applies to an event. */
+#define cliat_interface        0x0400
+			/* Applies to a C++/CLI interface class. */
+#define cliat_parameter        0x0800
+			/* Applies to a parameter. */
+#define cliat_delegate         0x1000
+			/* Applies to a delegate. */
+#define cliat_returnvalue      0x2000
+			/* Applies to a method's return value. */
+#define cliat_genericparameter 0x4000
+			/* Applies to a generic parameter. */
+#define cliat_all              0x7FFF
+
+typedef unsigned int a_cli_attribute_target;
+
+
+static an_ms_attribute_target msat_from_cliat(a_cli_attribute_target cliat)
+{
+  unsigned               i;
+  an_ms_attribute_target msat = msat_invalid;
+  static const struct an_enumerator_map {
+    a_cli_attribute_target cliat;
+    an_ms_attribute_target msat;
+  } enumerator_map[] = {
+    { cliat_all,               msat_assembly | msat_module |
+                               msat_class | msat_struct | msat_enum |
+                               msat_constructor | msat_method |
+                               msat_property | msat_field |
+                               msat_event | msat_interface |
+                               msat_parameter | msat_delegate |
+                               msat_returnvalue },
+    { cliat_assembly,          msat_assembly },
+    { cliat_module,            msat_module },
+    { cliat_class,             msat_class },
+    { cliat_struct,            msat_struct },
+    { cliat_enum,              msat_enum },
+    { cliat_constructor,       msat_constructor },
+    { cliat_method,            msat_method },
+    { cliat_property,          msat_property },
+    { cliat_field,             msat_field },
+    { cliat_event,             msat_event },
+    { cliat_interface,         msat_interface },
+    { cliat_parameter,         msat_parameter },
+    { cliat_delegate,          msat_delegate },
+    { cliat_returnvalue,       msat_returnvalue },
+    { cliat_genericparameter,  msat_genericparameter }
+  };
+
+  for (i = 0;
+       cliat != 0 && i < sizeof(enumerator_map)/sizeof(enumerator_map[0]);
+       ++i) {
+    if ((cliat & enumerator_map[i].cliat) == enumerator_map[i].cliat) {
+      cliat &= ~enumerator_map[i].cliat;
+      msat |= enumerator_map[i].msat;
+    }  /* if */
+  }  /* for */
+  check_assertion(msat != msat_invalid);
+  return msat;
+}  /* msat_from_cliat */
+
+
+/*
+Values for the enumerators in the C++/CX
+Windows::Foundation::Metadata::AttributeTargets enum.
+*/
+#define cppcxat_delegate       0x00000001
+			/* Applies to a delegate. */
+#define cppcxat_enum           0x00000002
+			/* Applies to a C++/CX enum. */
+#define cppcxat_event          0x00000004
+			/* Applies to an event. */
+#define cppcxat_field          0x00000008
+			/* Applies to a field. */
+#define cppcxat_interface      0x00000010
+			/* Applies to a C++/CX interface. */
+#define cppcxat_method         0x00000040
+			/* Applies to a function. */
+#define cppcxat_parameter      0x00000080
+			/* Applies to a parameter. */
+#define cppcxat_property       0x00000100
+			/* Applies to a property. */
+#define cppcxat_runtimeclass   0x00000200
+			/* Applies to a C++/CX ref class. */
+#define cppcxat_struct         0x00000400
+			/* Applies to a C++/CX value type that is not an
+			   enum. */
+#define cppcxat_interfaceimpl  0x00000800
+			/* Applies to an implementation of an interface. */
+#define cppcxat_all            0xFFFFFFFF
+
+typedef unsigned int a_cppcx_attribute_target;
+
+static an_ms_attribute_target msat_from_cppcxat(
+                                             a_cppcx_attribute_target cppcxat)
+{
+  unsigned               i;
+  an_ms_attribute_target msat = msat_invalid;
+  static const struct an_enumerator_map {
+    a_cppcx_attribute_target cppcxat;
+    an_ms_attribute_target   msat;
+  } enumerator_map[] = {
+    { cppcxat_all,           msat_delegate | msat_enum | msat_event |
+                             msat_field | msat_interface |
+                             msat_method | msat_parameter |
+                             msat_property | msat_class |
+                             msat_struct | msat_interfaceimpl },
+    { cppcxat_delegate,      msat_delegate },
+    { cppcxat_enum,          msat_enum },
+    { cppcxat_event,         msat_event },
+    { cppcxat_field,         msat_field },
+    { cppcxat_interface,     msat_interface },
+    { cppcxat_method,        msat_method },
+    { cppcxat_parameter,     msat_parameter },
+    { cppcxat_property,      msat_property },
+    { cppcxat_runtimeclass,  msat_class },
+    { cppcxat_struct,        msat_struct },
+    { cppcxat_interfaceimpl, msat_interfaceimpl }
+  };
+
+  for (i = 0;
+       cppcxat != 0 && i < sizeof(enumerator_map)/sizeof(enumerator_map[0]);
+       ++i) {
+    if ((cppcxat & enumerator_map[i].cppcxat) == enumerator_map[i].cppcxat) {
+      cppcxat &= ~enumerator_map[i].cppcxat;
+      msat |= enumerator_map[i].msat;
+    }  /* if */
+  }  /* for */
+  check_assertion(msat != msat_invalid);
+  return msat;
+}  /* msat_from_cppcxat */
+
+
+static void set_attribute_usage_from_attribute(
+                                    an_ms_attribute_usage_ptr attribute_usage,
+                                    an_ms_attribute_ptr       msap)
+{
+  a_type_ptr                    attribute_type;
+  a_custom_ms_attribute_arg_ptr named_arg;
+  a_boolean                     ovflo;
+  a_constant_ptr                con;
+
+  check_assertion(msap->kind == (an_ms_attribute_kind)msak_custom);
+  attribute_type = msap->variant.custom_info.type;
+  check_assertion(is_cli_type_of_kind(attribute_type,
+                                      csk_system_attribute_usage_attribute));
+  if (msap->variant.custom_info.args != NULL &&
+      msap->variant.custom_info.args->next == NULL &&
+      is_constant_node(msap->variant.custom_info.args) &&
+      is_cli_type_of_kind(msap->variant.custom_info.args->type,
+                          csk_system_attribute_targets)) {
+    con = msap->variant.custom_info.args->variant.constant;
+    if (cppcx_enabled) {
+      if (!int_constant_is_signed(con)) {
+        a_cppcx_attribute_target cppcxat;
+        cppcxat = (a_cppcx_attribute_target)
+                              unsigned_value_of_integer_constant(con, &ovflo);
+        check_assertion(!ovflo);
+        attribute_usage->valid_on = msat_from_cppcxat(cppcxat);
+      } else {
+        unexpected_condition();
+      }  /* if */
+    } else
+    /* Do not insert code here. */
+    if (int_constant_is_signed(con)) {
+      a_cli_attribute_target cliat;
+      cliat = (a_cli_attribute_target)value_of_integer_constant(con, &ovflo);
+      check_assertion(!ovflo);
+      attribute_usage->valid_on = msat_from_cliat(cliat);
+    } else {
+      unexpected_condition();
+    }  /* if */
+  } else {
+    unexpected_condition();
+  }  /* if */
+  /* The C++/CX AttributeUsageAttribute does not have the "AllowMultiple" or
+     "Inherited" properties.  "AllowMultiple" can be specified by applying the
+     AllowMultipleAttribute to the attribute type. */
+  if (!cppcx_enabled)
+  /* Do not insert code here. */
+  for (named_arg = msap->variant.custom_info.named_args;
+       named_arg != NULL;
+       named_arg = named_arg->next) {
+    a_const_char *name = unmangled_name_of(&named_arg->field->source_corresp);
+    check_assertion(name != NULL && is_constant_node(named_arg->expression));
+    con = named_arg->expression->variant.constant;
+    if (is_bool_type(con->type) && strcmp(name, "AllowMultiple") == 0) {
+      check_assertion(int_constant_is_signed(con));
+      attribute_usage->allow_multiple =
+                                  value_of_integer_constant(con, &ovflo) != 0;
+      check_assertion(!ovflo);
+    } else if (is_bool_type(con->type) && strcmp(name, "Inherited") == 0) {
+      check_assertion(int_constant_is_signed(con));
+      attribute_usage->inherited =
+                                  value_of_integer_constant(con, &ovflo) != 0;
+      check_assertion(!ovflo);
+    } else {
+      unexpected_condition();
+    }  /* if */
+  }  /* for */
+}  /* set_attribute_usage_from_attribute */
+
+
+static an_ms_attribute_usage_ptr attribute_usage_for_attribute_type(
+                                                              a_type_ptr type)
+{
+  an_ms_attribute_usage_ptr attribute_usage = NULL;
+  if (is_class_struct_type(type)) {
+    attribute_usage = &class_type_supp(type)->attribute_usage;
+    if (attribute_usage->valid_on == msat_invalid) {
+      /* Determine the default attribute usage for the attribute type. */
+      if (cppcx_enabled) {
+        /* C++/CX attribute types must be sealed, so the default attribute
+           usage is always the same. */
+        attribute_usage->valid_on = msat_from_cppcxat(cppcxat_all);
+        attribute_usage->allow_multiple = FALSE;
+        attribute_usage->inherited = FALSE;
+      } else if (is_cli_type_of_kind(type, csk_system_attribute)) {
+        attribute_usage->valid_on = msat_from_cliat(cliat_all);
+        attribute_usage->allow_multiple = FALSE;
+        attribute_usage->inherited = TRUE;
+      } else {
+        /* FIXME: Attribute processing needs to be deferred until the class
+           definition is complete in order to be able to inherit the
+           attribute usage from the base class. */
+#if /*FIXME*/0
+        check_assertion(is_cli_attribute_type(type));
+        a_base_class_ptr  bcp = base_classes_of(type);
+        for (; bcp != NULL; bcp = bcp->next) {
+          if (bcp->direct && is_cli_attribute_type(bcp->type)) {
+            /* Inherit the attribute usage from the base class. */
+            *attribute_usage = *attribute_usage_for_attribute_type(bcp->type);
+            break;
+          }  /* if */
+        }  /* for */
+#else /* !0 */
+        attribute_usage->valid_on = msat_from_cliat(cliat_all);
+        attribute_usage->allow_multiple = FALSE;
+        attribute_usage->inherited = TRUE;
+#endif /* 0 */
+      }  /* if */
+      check_assertion(attribute_usage->valid_on != msat_invalid);
+    }  /* if */
+  }  /* if */
+  return attribute_usage;
+}  /* attribute_usage_for_attribute_type */
 
 
 static char *get_string_value_for_token(a_boolean	*err)
@@ -1541,25 +1898,15 @@ returned for invalid arguments.
     /* A string literal or an unquoted UUID string.  Scan it as a GUID
        string. */
     result = scan_GUID_string();
+  } else if (curr_token == tok_uuidof) {
+    /* Scan the __uuidof operator.  It is of the form __uuidof(operand). */
+    /* Skip over the __uuidof token before calling scan_uuidof_operand. */
+    (void)get_token();
+    result = scan_uuidof_operand();
   } else {
-    /* Something else.  The only other valid argument is a __uuidof operator.
-       Keywords are not recognized within attributes, so check for an
-       identifier named __uuidof. */
-    a_boolean	is_uuidof = FALSE;
-    if (curr_token == tok_identifier) {
-      char	*identifier;
-      a_boolean	err;
-      identifier = get_string_value_for_token(&err);
-      is_uuidof = identifier != NULL && strcmp(identifier, "__uuidof") == 0;
-    }  /* if */
-    if (!is_uuidof) {
-      /* An invalid value.  Issue a diagnostic. */
-      pos_st_error(ec_invalid_ms_attr_uuid_value, &arg_pos, param->name);
-      flush_tokens();
-    } else {
-      /* Scan the __uuidof operator.  It is of the form __uuidof(operand). */
-      result = scan_uuidof_operand();
-    }  /* if */
+    /* An invalid value.  Issue a diagnostic. */
+    pos_st_error(ec_invalid_ms_attr_uuid_value, &arg_pos, param->name);
+    flush_tokens();
   }  /* if */
   return result;
 }  /* scan_ms_attribute_uuid_arg */
@@ -1708,14 +2055,15 @@ or NULL if the argument list is invalid.
       /* Arguments may be specified either positionally or with names.
          A named argument is of the form "name=value".  Check for a named
          argument. */
-      if (curr_token == tok_identifier && next_token() == tok_assign) {
+      if ((curr_token == tok_identifier || is_keyword_token(curr_token)) &&
+          next_token() == tok_assign) {
         param = get_named_parameter(attr_descr, arg_list);
         any_named_args = TRUE;
         if (param == NULL) {
           /* An invalid named parameter.  Flush to the next argument. */
           flush_tokens();
           continue;
-        }   /* if */
+        }  /* if */
       } else if (any_named_args) {
         /* A positional argument cannot follow a named one. */
         if (!any_errors) error(ec_positional_after_named);
@@ -1728,7 +2076,7 @@ or NULL if the argument list is invalid.
         flush_tokens();
         any_errors = TRUE;
         continue;
-      }   /* if */
+      }  /* if */
       arg = scan_ms_attribute_arg(param);
       if (arg_list == NULL) {
         arg_list = arg;
@@ -1773,6 +2121,121 @@ until the end of the attribute is found.
 }  /* scan_unrecognized_ms_attribute_arg_list */
 
 
+static an_ms_attribute_target scan_ms_attribute_target()
+/*
+Look for an optional attribute target and return a value indicating which
+target, if any, was found.
+*/
+{
+  an_ms_attribute_target  target = msat_none;
+
+  if (next_token() == tok_colon) {
+    a_const_char *invalid_target_identifier;
+    if (curr_token == tok_identifier) {
+      a_symbol_header_ptr  sym_hdr = locator_for_curr_id.symbol_header;
+      switch (sym_hdr->identifier[0]) {
+      case 'a':
+        if (symbol_header_is_for_identifier_string(sym_hdr, "assembly")) {
+          target = msat_assembly;
+        }  /* if */
+        break;
+      case 'c':
+        if (symbol_header_is_for_identifier_string(sym_hdr, "constructor")) {
+          target = msat_constructor;
+        }  /* if */
+        break;
+      case 'd':
+        if (symbol_header_is_for_identifier_string(sym_hdr, "delegate")) {
+          target = msat_delegate;
+        }  /* if */
+        break;
+      case 'e':
+        if (symbol_header_is_for_identifier_string(sym_hdr, "event")) {
+          target = msat_event;
+        }  /* if */
+        break;
+      case 'f':
+        if (symbol_header_is_for_identifier_string(sym_hdr, "field")) {
+          target = msat_field;
+        }  /* if */
+        break;
+      case 'g':
+        if (symbol_header_is_for_identifier_string(sym_hdr,
+                                                   "genericparameter")) {
+          target = msat_genericparameter;
+        }  /* if */
+        break;
+      case 'i':
+        if (symbol_header_is_for_identifier_string(sym_hdr, "interface")) {
+          target = msat_interface;
+        }  /* if */
+        break;
+      case 'm':
+        if (symbol_header_is_for_identifier_string(sym_hdr, "method")) {
+          target = msat_method;
+        } else if (symbol_header_is_for_identifier_string(sym_hdr,
+                                                          "module")) {
+          target = msat_module;
+        }  /* if */
+        break;
+      case 'p':
+        if (symbol_header_is_for_identifier_string(sym_hdr, "parameter")) {
+          target = msat_parameter;
+        } else if (symbol_header_is_for_identifier_string(sym_hdr,
+                                                          "property")) {
+          target = msat_property;
+        }  /* if */
+        break;
+      case 'r':
+        if (symbol_header_is_for_identifier_string(sym_hdr, "returnvalue")) {
+          target = msat_returnvalue;
+        }  /* if */
+        break;
+      default:
+        /* Nothing to do. */
+        break;
+      }  /* switch */
+      if (target == msat_none) {
+        /* The identifier is not a valid attribute target. */
+        target = msat_invalid;
+        invalid_target_identifier = sym_hdr->identifier;
+      }  /* if */
+    } else if (curr_token == tok_class) {
+      target = msat_class;
+    } else if (curr_token == tok_struct) {
+      target = msat_struct;
+    } else if (curr_token == tok_enum) {
+      target = msat_enum;
+    } else if (curr_token == tok_typedef) {
+      target = msat_typedef;
+    } else {
+      /* Although the next token is a colon, the current token is not a valid
+         attribute target.  If the token is a keyword, issue an error
+         indicating the invalid target; otherwise, treat this as if no
+         target was specified and allow further scanning to issue
+         appropriate diagnostics. */
+      if (is_keyword_token(curr_token)) {
+        target = msat_invalid;
+        invalid_target_identifier = token_names[(int)curr_token];
+      } else {
+        target = msat_none;
+      }  /* if */
+    }  /* if */
+    if (target == msat_invalid) {
+      pos_st_error(ec_invalid_ms_attribute_target, &pos_curr_token,
+                   invalid_target_identifier);
+      /* Discard the rest of this attribute. */
+      flush_tokens();
+    } else if (target != msat_none) {
+      /* Skip past the target and the colon. */
+      (void)get_token();
+      (void)get_token();
+    }  /* if */
+  }  /* if */
+  return target;
+}  /* scan_ms_attribute_target */
+
+
 #if !GENERATE_SOURCE_SEQUENCE_LISTS
 /*ARGSUSED*/ /* is_parameter is only used in some configurations. */
 #endif /* !GENERATE_SOURCE_SEQUENCE_LISTS */
@@ -1786,55 +2249,36 @@ is_parameter is TRUE if the attribute is part of a function parameter
 declaration.
 */
 {
-  an_ms_attribute_kind_descr_ptr	attr_descr = NULL;
-  a_token_sequence_number		first_token;
-  a_token_sequence_number		last_token;
-  a_source_position			start_position;
-  an_ms_attribute_ptr			attr = NULL;
-  a_token_kind				next_tok;
+  an_ms_attribute_target         target;
+  an_ms_attribute_kind_descr_ptr attr_descr = NULL;
+  a_token_sequence_number        first_token;
+  a_token_sequence_number        last_token;
+  a_source_position              start_position;
+  an_ms_attribute_ptr            attr = NULL;
+  a_type_ptr                     custom_attribute_type;
 
   /* Save the token sequence number of the first token of this attribute. */
   first_token = curr_token_sequence_number;
   start_position = pos_curr_token;
-  /* Look for a target specifier before the attribute name (for example,
-     "returnvalue:SA_Post").  Microsoft added these when they restructured
-     the attribute support for C++/CLI.  They are also used for source
-     annotation attributes.  These are similar in purpose but have different
-     values than the an_ms_attribute_target values in the front end.
-     At this time, the values are ignored. */
-  next_tok = next_token();
-  if ((curr_token == tok_identifier || is_keyword_token(curr_token)) &&
-      next_tok == tok_colon) {
-    /* Skip past the target value and the colon. */
-    (void)get_token();
-    (void)get_token();
-    next_tok = next_token();
-  }  /* if */
-  if (curr_token == tok_colon_colon ||
-      (next_tok == tok_colon_colon || next_tok == tok_lt)) {
-    /* The attribute name is a qualified identifier.  For now, just coalesce
-       the name and treat it is an "unrecognized" attribute without a
-       diagnostic. */
-    (void)is_generalized_identifier_start(GID_NO_OPTIONS);
-    /* Skip to the token after the identifier. */
-    (void)get_token();
-    attr_descr = unrecognized_attribute;
-  }  /* if */
-  /* Look up the attribute identifier.  If the identifier is unknown,
-     the "unrecognized" attribute will be returned.  In error cases, such
-     as a missing attribute name, a NULL attribute description is returned. */
-  if (attr_descr == NULL) {
-    attr_descr = look_up_attribute();
+  /* Look for an optional attribute target before the attribute name. */
+  target = scan_ms_attribute_target();
+  if (target != msat_invalid) {
+    if (is_keyword_token(curr_token)) {
+      /* Turn keywords back into identifiers in this context. */
+      replace_curr_token(tok_identifier);
+    }  /* if */
+    /* Look up the attribute identifier.  If the identifier is unknown,
+       the "unrecognized" attribute will be returned.  In error cases, such as
+       a missing attribute name, a NULL attribute description is returned. */
+    if (attr_descr == NULL) {
+      attr_descr = look_up_attribute(&custom_attribute_type);
+    }  /* if */
   }  /* if */
   if (attr_descr != NULL) {
-    a_boolean	arg_list_present = curr_token == tok_assign ||
-                                   curr_token == tok_lparen;
     /* Allocate an entry to represent this attribute. */
-    attr = alloc_ms_attribute();
-    attr->kind = attr_descr->kind;
-    attr->name = attr_descr->name;
-    attr->kind_descr = attr_descr;
+    attr = alloc_ms_attribute(attr_descr->kind);
     attr->position = start_position;
+    attr->target = target;
 #if GENERATE_SOURCE_SEQUENCE_LISTS
     /* Create a source sequence entry for the attribute.  This is not done
        for parameter attributes as they appear within a declaration. */
@@ -1844,55 +2288,72 @@ declaration.
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
     /* Look for an argument list.  We do this even for attributes without
        parameters, for error recovery purposes. */
-    if (arg_list_present || attr_descr->parameters != NULL) {
-      if (attr->kind == (an_ms_attribute_kind)msak_unrecognized) {
-        if (arg_list_present) {
-          /* We are scanning an unrecognized attribute, so we don't know the
-             form of the expected parameters. */
-          scan_unrecognized_ms_attribute_arg_list();
+    if (attr_descr->kind == (an_ms_attribute_kind)msak_custom) {
+      attr->variant.custom_info.type = custom_attribute_type;
+      if (!scan_custom_ms_attribute_arg_list(attr)) {
+        /* An error occurred while scanning the argument list.  Set attr to
+           NULL to discard the attribute. */
+        attr = NULL;
+      }  /* if */
+    } else {
+      a_boolean arg_list_present = curr_token == tok_assign ||
+                                   curr_token == tok_lparen;
+      attr->variant.info.kind_descr = attr_descr;
+      attr->variant.info.name = attr_descr->name;
+      if (arg_list_present || attr_descr->parameters != NULL) {
+        if (attr->kind == (an_ms_attribute_kind)msak_unrecognized) {
+          if (arg_list_present) {
+            /* We are scanning an unrecognized attribute, so we don't know the
+               form of the expected parameters. */
+            scan_unrecognized_ms_attribute_arg_list();
+          }  /* if */
+        } else {
+          /* The attribute is of a known kind.  The argument list can be
+             scanned with knowledge of the associated parameters. */
+          attr->variant.info.arg_list =scan_ms_attribute_arg_list(attr_descr);
+          if (attr->variant.info.arg_list == NULL) {
+            /* A NULL arg_list is returned if an error occurred while scanning
+               the argument list.  Set attr to NULL to discard the
+               attribute. */
+            attr = NULL;
+          }  /* if */
         }  /* if */
-      } else {
-        /* The attribute is of a known kind.  The argument list can be
-           scanned with knowledge of the associated parameters. */
-        attr->arg_list = scan_ms_attribute_arg_list(attr_descr);
-        if (attr->arg_list == NULL) {
-          /* A NULL arg_list is returned if an error occurred while scanning
-             the argument list.  Set attr to NULL to discard the attribute. */
+      } else if (curr_token != tok_comma && curr_token != tok_rbracket) {
+        /* The attribute name was not followed by anything that looks like
+           an argument, nor was it followed by anything that looks like an
+           attribute separator or end of an attribute list. */
+        if (attr->kind == (an_ms_attribute_kind)msak_unrecognized) {
+          /* There are forms of Microsoft attributes that we don't currently
+             support.  Don't attempt to diagnose a missing argument list as
+             we probably got lost earlier on. */
+          flush_tokens();
+        } else {
+          /* No parameters were expected.  Complain of a missing "," or
+             "]". */
+          syntax_error(ec_exp_comma_or_rbracket);
+          /* The attribute is ill-formed, so discard it. */
           attr = NULL;
         }  /* if */
       }  /* if */
-    } else if (curr_token != tok_comma && curr_token != tok_rbracket) {
-      /* The attribute name was not followed by anything that looks like
-         an argument, nor was it followed by anything that looks like an
-         attribute separator or end of an attribute list. */
-      if (attr->kind == (an_ms_attribute_kind)msak_unrecognized) {
-        /* There are forms of Microsoft attributes that we don't currently
-           support.  Don't attempt to diagnose a missing argument list as
-           we probably got lost earlier on. */
-        flush_tokens();
-      } else {
-        /* No parameters were expected.  Complain of a missing "," or "]". */
-        syntax_error(ec_exp_comma_or_rbracket);
-        /* The attribute is ill-formed, so discard it. */
-        attr = NULL;
+      /* Save the position of the token following the attribute. */
+      last_token = curr_token_sequence_number;
+      /* Create the string version of the attribute. */
+      /* Don't allow wrapping keyword-like identifiers inside
+         __identifier(...). */
+      init_token_string(&start_position, /*keep_spacing=*/FALSE,
+                        /*suppress_identifier_wrapping=*/TRUE);
+      add_token_cache_segment_to_string(&attribute_cache, first_token,
+                                        last_token);
+      /* Copy the string to IL memory. */
+      if (attr != NULL) {
+        attr->variant.info.string = make_copy_of_token_string();
       }  /* if */
+  #if DEBUG
+      if (db_flag_is_set("msattr")) {
+        if (attr != NULL) db_microsoft_attribute(attr);
+      }  /* if */
+  #endif /* DEBUG */
     }  /* if */
-    /* Save the position of the token following the attribute. */
-    last_token = curr_token_sequence_number;
-    /* Create the string version of the attribute. */
-    /* Don't allow wrapping keyword-like identifiers inside
-       __identifier(...). */
-    init_token_string(&start_position, /*keep_spacing=*/FALSE,
-                      /*suppress_identifier_wrapping=*/TRUE);
-    add_token_cache_segment_to_string(&attribute_cache, first_token,
-                                      last_token);
-    /* Copy the string to IL memory. */
-    if (attr != NULL) attr->string = make_copy_of_token_string();
-#if DEBUG
-    if (db_flag_is_set("msattr")) {
-      if (attr != NULL) db_microsoft_attribute(attr);
-    }  /* if */
-#endif /* DEBUG */
   }  /* if */
   return attr;
 }  /* scan_ms_attribute */
@@ -1924,9 +2385,9 @@ parameter declaration.
   add_stop_token(tok_rbracket);
   add_stop_token(tok_comma);
   /* The current token is expected to be the opening "[". */
-  check_assertion(curr_token == tok_lbracket);
+  check_assertion(microsoft_attribute_tokens_next());
   /* There can be multiple attribute blocks.  Scan all of them. */
-  while (curr_token == tok_lbracket) {
+  while (microsoft_attribute_tokens_next()) {
     cache_attribute_block();
     /* Bypass the "[". */
     (void)get_token();
@@ -2011,41 +2472,151 @@ Otherwise, complete the source sequence entry.
 
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 
-static void process_ms_attr_uuid(an_ms_attribute_ptr  msap)
+static a_boolean process_ms_attr_uuid(an_ms_attribute_ptr  msap)
 /*
 The given Microsoft attribute represents the "uuid" attribute applied to a
 class type.  Record the associated uuid string in the class type.
 */
 {
-  check_assertion(
-                msap->entity.kind == (a_byte_il_entry_kind)iek_type &&
-                is_immediate_class_type((a_type_ptr)msap->entity.ptr) &&
-                msap->arg_list != NULL &&
-                msap->arg_list->kind == (an_ms_attribute_arg_kind)msaak_uuid);
-  record_uuid_for_class((a_type_ptr)msap->entity.ptr,
-                        msap->arg_list->variant.uuid_string,
-                        &msap->position);
+  check_assertion(msap->entity.kind == (a_byte_il_entry_kind)iek_type &&
+                  is_immediate_class_type((a_type_ptr)msap->entity.ptr) &&
+                  msap->variant.info.arg_list != NULL &&
+                  msap->variant.info.arg_list->kind ==
+                                        (an_ms_attribute_arg_kind)msaak_uuid);
+  return record_uuid_for_class(
+                             (a_type_ptr)msap->entity.ptr,
+                             msap->variant.info.arg_list->variant.uuid_string,
+                             &msap->position);
 }  /* process_ms_attr_uuid */
 
 
-static void process_microsoft_attribute(an_ms_attribute_ptr  msap)
+static a_boolean process_ms_attr_custom(an_ms_attribute_ptr  msap,
+                                        char                 *entity,
+                                        an_il_entry_kind     kind)
 /*
-The given attribute requires special processing (e.g., updating the IL entry
-it is bound to): Perform that processing.
+Process a custom attribute.  Return TRUE if the processing was successful;
+otherwise, issue any appropriate diagnostics and return FALSE.
 */
 {
+  a_boolean  result = cli_or_cx_enabled;
+  a_type_ptr attribute_type;
+  a_boolean  is_attribute_usage_attribute = FALSE;
+  a_boolean  is_allow_multiple_attribute = FALSE;
+
+  check_assertion(msap->kind == (an_ms_attribute_kind)msak_custom);
+  if (result) {
+    attribute_type = msap->variant.custom_info.type;
+    if (is_cli_type_of_kind(attribute_type,
+                            csk_system_attribute_usage_attribute)) {
+      check_assertion(kind == iek_type &&
+                      is_immediate_class_type((a_type_ptr)entity));
+      is_attribute_usage_attribute = TRUE;
+#if 0
+      /* FIXME: Attribute processing needs to be deferred until the class
+         definition is complete in order to be able to issue this error. */
+      if (!is_cli_attribute_type((a_type_ptr)entity)) {
+        pos_ty_error(ec_cli_invalid_use_of_attribute_usage_attribute,
+                     &msap->position, attribute_type);
+        result = FALSE;
+      }  /* if */
+#endif /* 0 */
+    } else if (cppcx_enabled &&
+               is_cli_type_of_kind(
+                  attribute_type,
+                  csk_windows_foundation_metadata_allow_multiple_attribute)) {
+      is_allow_multiple_attribute = TRUE;
+      check_assertion(kind == iek_type &&
+                      is_immediate_class_type((a_type_ptr)entity));
+#if 0
+      /* FIXME: Attribute processing needs to be deferred until the class
+         definition is complete in order to be able to issue this error. */
+      if (!is_cli_attribute_type((a_type_ptr)entity)) {
+        pos_ty_error(ec_cli_invalid_use_of_attribute_usage_attribute,
+                     &msap->position, attribute_type);
+        result = FALSE;
+      }  /* if */
+#endif /* 0 */
+    } else if (!cppcx_enabled &&
+               is_cli_type_of_kind(attribute_type,
+                                   csk_system_param_array_attribute)) {
+      pos_ty_warning(ec_cli_param_array_attribute_deprecated,
+                     &msap->position, attribute_type);
+    }  /* if */
+  }  /* if */
+  if (result) {
+    an_ms_attribute_usage_ptr attribute_usage;
+    attribute_usage = attribute_usage_for_attribute_type(attribute_type);
+    if (attribute_usage == NULL) {
+      /* The attribute usage is unknown because it is a template-dependent
+         or error type; assume allow_multiple is TRUE. */
+    } else if (!attribute_usage->allow_multiple) {
+      /* FIXME: Issue an error if an attribute of the same type and target was
+         previously applied to this entity.  Definitions must contain a
+         superset of the attributes applied to an earlier declaration. */
+    }  /* if */
+  }  /* if */
+  if (result) {
+    /* The attribute is valid. */
+    if (is_attribute_usage_attribute) {
+      an_ms_attribute_usage_ptr attribute_usage;
+      attribute_usage = attribute_usage_for_attribute_type((a_type_ptr)entity);
+      if (attribute_usage != NULL) {
+        set_attribute_usage_from_attribute(attribute_usage, msap);
+      }  /* if */
+    } else if (is_cli_type_of_kind(attribute_type,
+                                   csk_system_obsolete_attribute)) {
+      /* FIXME: Record the use of the System::ObsoleteAttribute in the entity
+         and issue a warning if that entity is used. */
+    } else if (is_cli_type_of_kind(attribute_type,
+                                   csk_system_flags_attribute)) {
+      /* FIXME: Record the use of the System::FlagsAttribute in the enum
+         type. */
+    } else if (is_allow_multiple_attribute) {
+      an_ms_attribute_usage_ptr attribute_usage;
+      attribute_usage = attribute_usage_for_attribute_type((a_type_ptr)entity);
+      if (attribute_usage != NULL) {
+        attribute_usage->allow_multiple = TRUE;
+      }  /* if */
+    } else if (cppcx_enabled &&
+               is_cli_type_of_kind(
+                      attribute_type,
+                      csk_windows_foundation_metadata_deprecated_attribute)) {
+      /* FIXME: Record the use of the DeprecatedAttribute in the entity
+         and issue a warning if that entity is used. */
+    }  /* if */
+  }  /* if */
+  return result;
+}  /* process_ms_attr_custom */
+
+
+static a_boolean process_microsoft_attribute(an_ms_attribute_ptr  msap,
+                                             char                 *entity,
+                                             an_il_entry_kind     kind)
+/*
+The given attribute requires special processing (e.g., updating the IL entry
+it is bound to): Perform that processing.  Return TRUE if the processing was
+successful; otherwise, issue any appropriate diagnostics and return FALSE.
+*/
+{
+  a_boolean result = FALSE;
+
   switch (msap->kind) {
     case msak_uuid:
-      process_ms_attr_uuid(msap);
+      result = process_ms_attr_uuid(msap);
+      break;
+    case msak_custom:
+      result = process_ms_attr_custom(msap, entity, kind);
       break;
 #if INCLUDE_EDG_TEST_ATTRIBUTES
     case msak_edg_test:
       /* Nothing to be done. */
+      result = TRUE;
       break;
 #endif /* INCLUDE_EDG_TEST_ATTRIBUTES */
     default:
       unexpected_condition();
   }  /* switch */
+  return result;
 }  /* process_microsoft_attribute */
 
 
@@ -2089,17 +2660,37 @@ data member of a prototype instantiation.
 }  /* entity_is_prototype_instantiation */
 
 
+static an_ms_attribute_target standalone_ms_attribute_targets()
+/*
+Return the kinds of targets a standalone attribute (like "[XXX];") can apply
+to in the current mode.
+*/
+{
+  an_ms_attribute_target attr_target;
+
+  if (cppcli_enabled) {
+    attr_target = (msat_none | msat_assembly | msat_module);
+  } else {
+    attr_target = msat_none;
+  }  /* if */
+  return attr_target;
+}  /* standalone_ms_attribute_targets */
+
+
 void apply_microsoft_attributes(an_ms_attribute_ptr	*attributes,
-				char			*entity,
-				an_il_entry_kind	kind,
-				an_ms_attribute_target	target)
+                                char			*entity,
+                                an_il_entry_kind	kind,
+                                an_ms_attribute_target	target,
+                                an_ms_attribute_target	cli_target)
 /*
 This routine is used to indicate that the list of Microsoft attributes
 specified by "attributes" should apply to the entity specified by "entity".
-The attributes must apply to the entity kind specified by "target".  The
-entity is updated to reflect the attributes that apply, and the attributes
-are added to the appropriate IL list (either the scope list or a list
-in the param_type entry).
+The attributes must be applicable to the entity kind specified by "target"
+or to an child entity of that entity that is explicitly targeted by the
+attribute.  The appropriate entity is updated to reflect the attributes that
+apply, and the attributes are added to the appropriate IL list (either the
+scope list or a list in the param_type entry).  If "target" is msat_invalid,
+no attribute can be applied to the entity.
 */
 {
   an_ms_attribute_ptr		msap;
@@ -2118,28 +2709,96 @@ in the param_type entry).
   }  /* if */
   /* Check whether the attributes have the appropriate target. */
   for (msap = *attributes; msap != NULL; msap = next_msap) {
-#if GENERATE_SOURCE_SEQUENCE_LISTS
-    a_boolean	is_error = FALSE;
-#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+    an_ms_attribute_target explicit_target = msap->target;
+    an_ms_attribute_target applicable_targets;
+    a_boolean              is_error = FALSE;
     next_msap = msap->next;
-    if ((msap->kind_descr->target & target) == 0 &&
-        msap->kind_descr->target != MSAT_ANY) {
-#if GENERATE_SOURCE_SEQUENCE_LISTS
-       is_error = TRUE;
-#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
-       if (msap->kind_descr->target == MSAT_STANDALONE) {
-         pos_st_error(ec_invalid_use_of_standalone_ms_attr, &msap->position,
-                      msap->name);
-       } else {
-         pos_st_error(ec_invalid_use_of_ms_attr, &msap->position, msap->name);
-       }  /* if */
-#if DEBUG
-       if (db_flag_is_set("msattr")) {
-         fprintf(f_debug, "Attribute target: allowed=%x, context=%x\n",
-                 (int)msap->kind_descr->target, (int)target);
-       }  /* if */
-#endif /* DEBUG */
+    if (cli_or_cx_enabled && msap->kind == (an_ms_attribute_kind)msak_custom) {
+      applicable_targets = cli_target;
     } else {
+      applicable_targets = target;
+    }  /* if */
+    if ((applicable_targets &
+                         (msat_method | msat_routine | msat_delegate)) != 0) {
+      applicable_targets |= msat_returnvalue;
+    } else if ((applicable_targets &
+                      (msat_constructor | msat_property | msat_event)) != 0) {
+      applicable_targets |= msat_method;
+    }  /* if */
+    if (cli_or_cx_enabled && explicit_target == msat_field &&
+        (applicable_targets & (msat_property | msat_event)) != 0) {
+      a_boolean is_trivial;
+      if (kind == (an_il_entry_kind)iek_field) {
+        a_field_ptr field = (a_field_ptr)entity;
+        is_trivial = field->property_or_event_descr->is_trivial;
+      } else if (kind == (an_il_entry_kind)iek_variable) {
+        a_variable_ptr variable = (a_variable_ptr)entity;
+        is_trivial = variable->property_or_event_descr->is_trivial;
+      } else {
+        unexpected_condition();
+      }  /* if */
+      if (is_trivial) {
+        applicable_targets |= msat_field;
+      } else {
+        is_error = TRUE;
+        pos_error(ec_field_target_on_nontrivial_property_or_event,
+                  &msap->position);
+      }  /* if */
+    }  /* if */
+    if (!is_error && explicit_target != msat_none &&
+        (applicable_targets & explicit_target) == 0) {
+      /* The explicitly specified target is not an applicable target. */
+      is_error = TRUE;
+      pos_error(ec_invalid_attribute_target_for_ms_attr, &msap->position);
+    }  /* if */
+    if (!is_error) {
+      a_type_ptr             attribute_type;
+      an_ms_attribute_target valid_targets;
+      if (msap->kind == (an_ms_attribute_kind)msak_custom) {
+        an_ms_attribute_usage_ptr attribute_usage;
+        attribute_type = msap->variant.custom_info.type;
+        attribute_usage = attribute_usage_for_attribute_type(attribute_type);
+        if (attribute_usage == NULL) {
+          /* The attribute usage is unknown because it is a template-dependent
+             or an error type; assume all targets are valid. */
+          valid_targets = cppcx_enabled ?
+                              msat_from_cppcxat(cppcxat_all) :
+                              msat_from_cliat(cliat_all);
+        } else {
+          valid_targets = attribute_usage->valid_on;
+        }  /* if */
+      } else {
+        valid_targets = msap->variant.info.kind_descr->target;
+      }  /* if */
+      check_assertion(valid_targets != msat_invalid);
+      if ((valid_targets & ~standalone_ms_attribute_targets()) == 0) {
+        /* The attribute can only be used as a standalone attribute. */
+        is_error = TRUE;
+        if (msap->kind == (an_ms_attribute_kind)msak_custom) {
+          pos_ty_error(ec_invalid_use_of_standalone_custom_ms_attr,
+                       &msap->position, attribute_type);
+        } else if (valid_targets == msat_none) {
+          pos_st_error(ec_invalid_use_of_standalone_ms_attr, &msap->position,
+                       msap->variant.info.name);
+        }  /* if */
+      } else if ((valid_targets & applicable_targets) == 0) {
+         is_error = TRUE;
+         if (msap->kind == (an_ms_attribute_kind)msak_custom) {
+           pos_ty_error(ec_invalid_use_of_custom_ms_attr, &msap->position,
+                        attribute_type);
+         } else {
+           pos_st_error(ec_invalid_use_of_ms_attr, &msap->position,
+                        msap->variant.info.name);
+         }  /* if */
+#if DEBUG
+         if (db_flag_is_set("msattr")) {
+           fprintf(f_debug, "Attribute target: valid=%x, applicable=%x\n",
+                   (int)valid_targets, (int)applicable_targets);
+         }  /* if */
+#endif /* DEBUG */
+      }  /* if */
+    }  /* if */
+    if (!is_error) {
       /* A valid attribute.  Add it to the new list. */
       if (new_list == NULL) {
         new_list = msap;
@@ -2151,6 +2810,10 @@ in the param_type entry).
         /* Update the entity pointer in the attribute. */
         msap->entity.kind = (a_byte_il_entry_kind)kind;
         msap->entity.ptr = entity;
+        if (msap->kind > (an_ms_attribute_kind)msak_misc && !is_error) {
+          /* An attribute for which special processing is neededed. */
+          is_error = !process_microsoft_attribute(msap, entity, kind);
+        }  /* if */
       }  /* if */
       /* Except for parameter entries, add the attribute to the scope list. */
       if (kind != (an_il_entry_kind)iek_param_type) {
@@ -2163,10 +2826,6 @@ in the param_type entry).
       finalize_ms_attribute_source_sequence_entry(msap, is_error);
     }  /* if */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
-    if (msap->kind > (an_ms_attribute_kind)msak_misc) {
-      /* An attribute for which special processing is neededed. */
-      process_microsoft_attribute(msap);
-    }  /* if */
   }  /* for */
   /* All entities except for param_type entries are expected to have
      source correspondences. */
@@ -2184,6 +2843,148 @@ in the param_type entry).
 }  /* apply_microsoft_attributes */
 
 
+void apply_microsoft_attributes_to_type(an_ms_attribute_ptr *attributes,
+                                        a_type_ptr          type)
+/*
+A wrapper around apply_microsoft_attributes to be used when applying
+attributes to a type.
+*/
+{
+  an_ms_attribute_target attr_target;
+  an_ms_attribute_target cli_attr_target;
+
+  attr_target = msat_invalid;
+  cli_attr_target = msat_invalid;
+  if (type_is_typedef(type)) {
+    attr_target = msat_typedef;
+  } else if (is_immediate_enum_type(type)) {
+    attr_target = msat_enum;
+    /* C++/CLI allows attributes on all enum types, but C++/CX only allows
+       them on enum types with a declared assembly visibility. */
+    if (!cppcx_enabled || is_cli_enum_type(type)) {
+      cli_attr_target = msat_enum;
+    }  /* if */
+  } else if (cli_or_cx_enabled && is_immediate_delegate_type(type)) {
+    cli_attr_target = msat_delegate;
+  } else if (cppcli_enabled && is_cli_generic_param_type(type)) {
+    cli_attr_target = msat_genericparameter;
+  } else if (is_immediate_class_type(type)) {
+    if (type->variant.class_struct_union.is_interface) {
+      attr_target = msat_interface;
+    } else if (type->kind == (a_type_kind)tk_class) {
+      attr_target = msat_class;
+    } else if (type->kind == (a_type_kind)tk_struct) {
+      attr_target = msat_struct;
+    } else if (type->kind == (a_type_kind)tk_union) {
+      attr_target = msat_union;
+    }  /* if */
+    if (cli_or_cx_enabled) {
+      if (is_immediate_cli_interface_type(type)) {
+        cli_attr_target = msat_interface;
+      } else if (is_immediate_cli_ref_class_type(type)) {
+        cli_attr_target = msat_class;
+      } else {
+        cli_attr_target = msat_struct;
+      }  /* if */
+    }  /* if */
+  }  /* if */
+  apply_microsoft_attributes(attributes, (char*)type,
+                             (an_il_entry_kind)iek_type,
+                             attr_target, cli_attr_target);
+}  /* apply_microsoft_attributes_to_type */
+
+
+void apply_microsoft_attributes_to_field(an_ms_attribute_ptr *attributes,
+                                         a_field_ptr         field)
+/*
+A wrapper around apply_microsoft_attributes to be used when applying
+attributes to a field.
+*/
+{
+  an_ms_attribute_target attr_target;
+  an_ms_attribute_target cli_attr_target;
+
+  attr_target = msat_field;
+  cli_attr_target = msat_invalid;
+  if (cli_or_cx_enabled) {
+    if (field_is_property_or_event(field) &&
+        property_or_event_kind_is(field, pek_cli_property)) {
+      cli_attr_target = msat_property;
+    } else if (field_is_property_or_event(field) &&
+               property_or_event_kind_is(field, pek_cli_event)) {
+      cli_attr_target = msat_event;
+    } else {
+      cli_attr_target = msat_field;
+    }  /* if */
+  }  /* if */
+  apply_microsoft_attributes(attributes, (char*)field,
+                             (an_il_entry_kind)iek_field,
+                             attr_target, cli_attr_target);
+}  /* apply_microsoft_attributes_to_field */
+
+
+void apply_microsoft_attributes_to_variable(an_ms_attribute_ptr *attributes,
+                                            a_variable_ptr      variable)
+/*
+A wrapper around apply_microsoft_attributes to be used when applying
+attributes to a variable.
+*/
+{
+  an_ms_attribute_target attr_target;
+  an_ms_attribute_target cli_attr_target;
+
+  cli_attr_target = msat_invalid;
+  if (variable->source_corresp.is_class_member) {
+    attr_target = msat_field;
+    if (cli_or_cx_enabled) {
+      if (var_is_property_or_event(variable) &&
+          property_or_event_kind_is(variable, pek_cli_property)) {
+        cli_attr_target = msat_property;
+      } else if (var_is_property_or_event(variable) &&
+                 property_or_event_kind_is(variable, pek_cli_event)) {
+        cli_attr_target = msat_event;
+      } else {
+        cli_attr_target = msat_field;
+      }  /* if */
+    } /* if */
+  } else {
+    attr_target = msat_variable;
+  }  /* if */
+  apply_microsoft_attributes(attributes, (char*)variable,
+                             (an_il_entry_kind)iek_variable,
+                             attr_target, cli_attr_target);
+}  /* apply_microsoft_attributes_to_variable */
+
+
+void apply_microsoft_attributes_to_routine(an_ms_attribute_ptr *attributes,
+                                           a_routine_ptr       routine)
+/*
+A wrapper around apply_microsoft_attributes to be used when applying
+attributes to a routine.
+*/
+{
+  an_ms_attribute_target attr_target;
+  an_ms_attribute_target cli_attr_target;
+
+  if (routine->source_corresp.is_class_member) {
+    if (routine->special_kind == (a_special_function_kind)sfk_constructor ||
+        routine->special_kind ==
+        (a_special_function_kind)sfk_static_constructor) {
+      attr_target = msat_constructor;
+    } else {
+      attr_target = msat_method;
+    }  /* if */
+    cli_attr_target = attr_target;
+  } else {
+    attr_target = msat_routine;
+    cli_attr_target = msat_method;
+  }  /* if */
+  apply_microsoft_attributes(attributes, (char*)routine,
+                             (an_il_entry_kind)iek_routine,
+                             attr_target, cli_attr_target);
+}  /* apply_microsoft_attributes_to_routine */
+
+
 void verify_standalone_attributes(an_ms_attribute_ptr	*attributes)
 /*
 This routine is used to verify that the list of Microsoft attributes
@@ -2195,17 +2996,45 @@ attributes are added to the appropriate IL list.
   an_ms_attribute_ptr	next_msap;
 
   for (msap = *attributes; msap != NULL; msap = next_msap) {
-#if GENERATE_SOURCE_SEQUENCE_LISTS
-    a_boolean	is_error = FALSE;
-#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+    an_ms_attribute_target explicit_target = msap->target;
+    an_ms_attribute_target valid_targets;
+    a_type_ptr             attribute_type;
+    a_boolean              is_error = FALSE;
     next_msap = msap->next;
-    if ((msap->kind_descr->target & MSAT_STANDALONE) == 0 &&
-        (msap->kind_descr->target & MSAT_ANY) == 0) {
-#if GENERATE_SOURCE_SEQUENCE_LISTS
-       is_error = TRUE;
-#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
-       pos_st_error(ec_invalid_use_of_ms_attr, &msap->position, msap->name);
+    if ((explicit_target & standalone_ms_attribute_targets()) == 0) {
+      /* An explicit attribute target is not a standalone attribute
+         target. */
+      is_error = TRUE;
+      pos_error(ec_invalid_attribute_target_for_standalone_ms_attr,
+                &msap->position);
+    } else if (msap->kind == (an_ms_attribute_kind)msak_custom) {
+      an_ms_attribute_usage_ptr attribute_usage;
+      attribute_type = msap->variant.custom_info.type;
+      attribute_usage = attribute_usage_for_attribute_type(attribute_type);
+      if (attribute_usage == NULL) {
+        /* The attribute usage is unknown because it is a template-dependent
+           or an error type; assume all targets are valid. */
+        valid_targets = cppcx_enabled ?
+                            msat_from_cppcxat(cppcxat_all) :
+                            msat_from_cliat(cliat_all);
+      } else {
+        valid_targets = attribute_usage->valid_on;
+      }  /* if */
     } else {
+      valid_targets = msap->variant.info.kind_descr->target;
+    }  /* if */
+    if (!is_error &&
+        (valid_targets & standalone_ms_attribute_targets()) == 0) {
+      is_error = TRUE;
+      if (msap->kind == (an_ms_attribute_kind)msak_custom) {
+        pos_ty_error(ec_invalid_use_of_custom_ms_attr, &msap->position,
+                     attribute_type);
+      } else {
+        pos_st_error(ec_invalid_use_of_ms_attr, &msap->position,
+                     msap->variant.info.name);
+      }  /* if */
+    }  /* if */
+    if (!is_error) {
       /* Add the attribute to the IL. */
       add_to_ms_attributes_list(msap, decl_scope_level);
     }  /* if */
@@ -2264,6 +3093,24 @@ Return a duplicate of the given list of attribute arguments.
 }  /* duplicate_ms_attribute_args */
 
 
+static a_custom_ms_attribute_arg_ptr duplicate_custom_ms_attribute_args(
+                                          a_custom_ms_attribute_arg_ptr  orig)
+/*
+Return a duplicate of the given list of custom attribute arguments.
+*/
+{
+  a_custom_ms_attribute_arg_ptr  result = NULL, *p_msaap = &result;
+
+  while (orig != NULL) {
+    *p_msaap = alloc_custom_ms_attribute_arg();
+    **p_msaap = *orig;
+    orig = orig->next;
+    p_msaap = &((*p_msaap)->next);
+  }  /* while */
+  return result;
+}  /* duplicate_custom_ms_attribute_args */
+
+
 an_ms_attribute_ptr duplicate_ms_attributes(an_ms_attribute_ptr  orig,
                                             char                 *new_entity)
 /*
@@ -2276,13 +3123,23 @@ of the attribute to refer to new_entity.
   an_ms_attribute_ptr  result = NULL, *p_msap = &result, prev_msap = NULL;
 
   while (orig != NULL) {
-    *p_msap = alloc_ms_attribute();
+    *p_msap = alloc_ms_attribute(orig->kind);
     **p_msap = *orig;
     (*p_msap)->entity.ptr = new_entity;
     if (prev_msap != NULL) {
       prev_msap->next = *p_msap;
     }  /* if */
-    (*p_msap)->arg_list = duplicate_ms_attribute_args(orig->arg_list);
+    if (orig->kind == (an_ms_attribute_kind)msak_custom) {
+      (*p_msap)->variant.custom_info.args =
+                   copy_list_of_expr_trees(orig->variant.custom_info.args,
+                                           CE_COPIED_CONSTANTS_MAY_BE_SHARED);
+      (*p_msap)->variant.custom_info.named_args =
+                                      duplicate_custom_ms_attribute_args(
+                                        orig->variant.custom_info.named_args);
+    } else {
+      (*p_msap)->variant.info.arg_list = duplicate_ms_attribute_args(
+                                                 orig->variant.info.arg_list);
+    }  /* if */
     prev_msap = *p_msap;
     orig = orig->next_in_block;
     p_msap = &((*p_msap)->next_in_block);
@@ -2339,40 +3196,87 @@ void db_microsoft_attribute(an_ms_attribute_ptr	msap)
 Display a Microsoft attribute entry, for debugging purposes.
 */
 {
-  an_ms_attribute_arg_ptr	arg;
-  int				arg_number = 0;
+  int arg_number = 0;
 
-  fprintf(f_debug, "Microsoft attribute '%s' at %p (%lu/%d):\n",
-          msap->name == NULL ? "NULL" : msap->name, (void *)msap,
-          (unsigned long)msap->position.seq, msap->position.column);
-  fprintf(f_debug, "  attribute string: %s\n", msap->string);
-  for (arg = msap->arg_list; arg != NULL; arg = arg->next) {
-    fprintf(f_debug, "  argument %d (%s): ", arg_number++, arg->param_name);
-    switch (arg->kind) {
-      case msaak_integer:
-        fprintf(f_debug, "%ld", (long)arg->variant.integer_value);
-        break;
-      case msaak_boolean:
-        fprintf(f_debug, "%s", arg->variant.integer_value ? "true" : "false");
-        break;
-      case msaak_string:
-        db_constant(arg->variant.string_constant);
-        break;
-      case msaak_other:
-        fprintf(f_debug, "%s", arg->variant.other_string);
-        break;
-      case msaak_uuid:
-        fprintf(f_debug, "%s", arg->variant.uuid_string);
-        break;
-      case msaak_enumeration:
-        fprintf(f_debug, "%d", arg->variant.enum_value);
-        break;
-      default:
-        unexpected_condition();
-        break;
-    }  /* switch */
-    fprintf(f_debug, "\n");
+  fprintf(f_debug, "Microsoft attribute at %p (%lu/%d):\n  target: ",
+          (void *)msap, (unsigned long)msap->position.seq,
+          msap->position.column);
+  switch (msap->target) {
+    case msat_none:             fprintf(f_debug, "<none>\n");           break;
+    case msat_assembly:         fprintf(f_debug, "assembly\n");         break;
+    case msat_module:           fprintf(f_debug, "module\n");           break;
+    case msat_class:            fprintf(f_debug, "class\n");            break;
+    case msat_struct:           fprintf(f_debug, "struct\n");           break;
+    case msat_union:            fprintf(f_debug, "union\n");            break;
+    case msat_enum:             fprintf(f_debug, "enum\n");             break;
+    case msat_constructor:      fprintf(f_debug, "constructor\n");      break;
+    case msat_method:           fprintf(f_debug, "method\n");           break;
+    case msat_property:         fprintf(f_debug, "property\n");         break;
+    case msat_field:            fprintf(f_debug, "field\n");            break;
+    case msat_event:            fprintf(f_debug, "event\n");            break;
+    case msat_interface:        fprintf(f_debug, "interface\n");        break;
+    case msat_parameter:        fprintf(f_debug, "parameter\n");        break;
+    case msat_delegate:         fprintf(f_debug, "delegate\n");         break;
+    case msat_returnvalue:      fprintf(f_debug, "returnvalue\n");      break;
+    case msat_genericparameter: fprintf(f_debug, "genericparameter\n"); break;
+    case msat_typedef:          fprintf(f_debug, "typedef\n");          break;
+    case msat_variable:         fprintf(f_debug, "variable\n");         break;
+    case msat_routine:          fprintf(f_debug, "routine\n");          break;
+    case msat_interfaceimpl:    fprintf(f_debug, "interfaceimpl\n");    break;
+    default:                    unexpected_condition();                 break;
+  }  /* switch */
+  if (msap->kind == (an_ms_attribute_kind)msak_custom) {
+    an_expr_node_ptr              arg;
+    a_custom_ms_attribute_arg_ptr named_arg;
+    fprintf(f_debug, "  attribute constructor: ");
+    db_name_full(&msap->variant.custom_info.constructor->source_corresp,
+                 iek_routine);
+    fputs("\n", f_debug);
+    for (arg = msap->variant.custom_info.args; arg != NULL; arg = arg->next) {
+      fprintf(f_debug, "  arg %d:\n", arg_number++);
+      db_expression(arg);
+    }  /* if */
+    for (arg_number = 0, named_arg = msap->variant.custom_info.named_args;
+         named_arg != NULL; named_arg = named_arg->next) {
+      fprintf(f_debug, "  named arg %d:\n", arg_number++);
+      db_field(named_arg->field, 4);
+      fputs("\n", f_debug);
+      db_expression(named_arg->expression);
+    }  /* if */
+  } else {
+    an_ms_attribute_arg_ptr arg;
+    fprintf(f_debug, "  name: '%s'\n",
+            msap->variant.info.name == NULL ? "NULL":msap->variant.info.name);
+    fprintf(f_debug, "  attribute string: %s\n", msap->variant.info.string);
+    for (arg = msap->variant.info.arg_list; arg != NULL; arg = arg->next) {
+      fprintf(f_debug, "  argument %d (%s): ", arg_number++, arg->param_name);
+      switch (arg->kind) {
+        case msaak_integer:
+          fprintf(f_debug, "%ld", (long)arg->variant.integer_value);
+          break;
+        case msaak_boolean:
+          fprintf(f_debug, "%s",
+                  arg->variant.integer_value ? "true" : "false");
+          break;
+        case msaak_string:
+          db_constant(arg->variant.string_constant);
+          break;
+        case msaak_other:
+          fprintf(f_debug, "%s", arg->variant.other_string);
+          break;
+        case msaak_uuid:
+          fprintf(f_debug, "%s", arg->variant.uuid_string);
+          break;
+        case msaak_enumeration:
+          fprintf(f_debug, "%d", arg->variant.enum_value);
+          break;
+        default:
+          unexpected_condition();
+          break;
+      }  /* switch */
+    }  /* if */
   }  /* for */
+  fprintf(f_debug, "\n");
 }  /* db_microsoft_attribute */
 
 
@@ -2409,6 +3313,7 @@ One-time initialization for ms_attrib.c static variables.
     static a_pch_saved_variable saved_vars[] = {
       pch_array_saved_var_array_elem(attribute_lookup_table),
       pch_saved_var_array_elem(unrecognized_attribute),
+      pch_saved_var_array_elem(custom_attribute),
 #if DEBUG
       pch_saved_var_array_elem(num_ms_attribute_kind_descrs_allocated),
       pch_saved_var_array_elem(num_ms_attribute_params_allocated),
@@ -2431,6 +3336,7 @@ Microsoft attribute processing.
   scan_misc_attributes_as_unrecognized =
                                        SUPPRESS_MICROSOFT_ATTRIBUTE_PROCESSING;
   unrecognized_attribute = NULL;
+  custom_attribute = NULL;
 #if DEBUG
   num_ms_attribute_kind_descrs_allocated = 0;
   num_ms_attribute_params_allocated = 0;

@@ -1,3 +1,4 @@
+
 /******************************************************************************
 *                                                             \  ___  /       *
 *                                                               /   \         *
@@ -137,6 +138,10 @@ extern a_boolean is_interior_ptr_type(a_type_ptr tp);
 extern a_boolean is_pin_ptr_type(a_type_ptr tp);
 extern a_boolean is_handle_to_cli_array_type(a_type_ptr tp);
 extern a_boolean is_cli_array_type(a_type_ptr tp);
+extern a_boolean is_cppcx_write_only_array_type(a_type_ptr tp);
+extern a_boolean is_handle_to_cppcx_write_only_array_type(a_type_ptr tp);
+extern a_boolean is_handle_to_nonconst_cppcx_plain_array_type(a_type_ptr tp);
+extern a_boolean is_cppcx_box_type(a_type_ptr tp);
 extern a_boolean is_cli_value_type(a_type_ptr tp);
 extern a_boolean is_boxable_type(a_type_ptr tp);
 extern a_type_ptr boxed_type_for(a_type_ptr unboxed_type);
@@ -168,6 +173,12 @@ extern a_boolean cli_type_has_public_default_constructor(a_type_ptr tp);
 #define is_immediate_managed_class_type(tp)                                  \
   (is_immediate_class_type(tp) &&                                            \
    !cli_class_type_kind_is((tp), cctk_standard))
+#define is_immediate_cli_value_class_type(tp)                                \
+  (is_immediate_class_type(tp) &&                                            \
+   cli_class_type_kind_is((tp), cctk_value))
+#define is_immediate_cli_ref_class_type(tp)                                  \
+  (is_immediate_class_type(tp) &&                                            \
+   cli_class_type_kind_is((tp), cctk_ref))
 #define is_immediate_cli_interface_type(tp)                                  \
   (is_immediate_class_type(tp) &&                                            \
    cli_class_type_kind_is((tp), cctk_interface))
@@ -179,8 +190,18 @@ extern a_routine_ptr delegate_invocation_function(a_type_ptr delegate_type);
 extern a_boolean is_delegate_invocation_function(a_routine_ptr rp);
 extern a_type_ptr delegate_invocation_type(a_type_ptr delegate_type);
 #if !STANDALONE_UTILITY_PROGRAM
-extern a_boolean is_cli_system_object_type(a_type_ptr tp);
-extern a_boolean is_cli_system_string_type(a_type_ptr  tp);
+extern a_boolean f_is_cli_type_of_kind(a_type_ptr        tp,
+                                       a_cli_symbol_kind csk);
+#define is_cli_type_of_kind(tp, csk)                                         \
+  (f_is_cli_type_of_kind((tp), (a_cli_symbol_kind)(csk)))
+#define is_cli_system_object_type(tp)                                        \
+  (is_cli_type_of_kind((tp), csk_system_object))
+#define is_cli_system_string_type(tp)                                        \
+  (is_cli_type_of_kind((tp), csk_system_string))
+#define is_cli_system_type_type(tp)                                          \
+  (is_cli_type_of_kind((tp), csk_system_type))
+extern a_boolean is_cli_attribute_type(a_type_ptr tp);
+extern a_boolean is_valid_cli_attribute_parameter_type(a_type_ptr tp);
 extern a_boolean class_is_instance_of_generic_from_metadata(
                                                       a_type_ptr  class_type);
 /* Macro that produces TRUE if the given class type entry is a class loaded
@@ -274,6 +295,12 @@ Return a pointer to the associated class type supplement.
 */
 #define class_type_supp(tp)                                           \
   ((tp)->variant.class_struct_union.extra_info)
+
+/*
+Return TRUE if tp is a partial class.
+*/
+#define is_partial_class(tp)                                          \
+  (is_class_or_struct((tp)) && class_type_supp((tp))->is_partial)
 
 /*
 Return a pointer to the associated integer type supplement.
@@ -420,6 +447,7 @@ on the underlying element type of an array.
   ((get_type_qualifiers(tp) & TQ_CONST) != 0)
 #define is_volatile_qualified_type(tp)                                \
   ((get_type_qualifiers(tp) & TQ_VOLATILE) != 0)
+
 
 #if NAMED_ADDRESS_SPACES_ALLOWED
 /*
@@ -835,11 +863,11 @@ Bit flags for calls of f_types_are_compatible et al.
 			   can be a base class of the first.  This is used
 			   to allow a base/derived mismatch in template
 			   function matching. */
-#define TCF_IGNORE_NESTING_DEPTH 0x10000
+#define TCF_IGNORE_NESTING_DEPTH 0x20000
 			/* TRUE if the nesting depths of template parameters
 			   should be ignored for purposes of this
 			   comparison. */
-#define TCF_CHECK_DEDUCED_PLACEHOLDER_MATCH 0x20000
+#define TCF_CHECK_DEDUCED_PLACEHOLDER_MATCH 0x40000
 			/* TRUE if an undeduced "auto"/"decltype(auto)"
 			   placeholder should be considered compatible with
 			   a tk_typeref entry indicating a deduced type for
@@ -1219,6 +1247,7 @@ extern a_boolean is_instantiation_dependent_type(a_type_ptr  type_ptr);
 extern a_boolean is_instantiation_dependent_type_or_cli_generic_param(
 							a_type_ptr  type_ptr);
 extern a_boolean is_or_contains_template_param(a_type_ptr  type_ptr);
+extern a_boolean is_or_contains_cli_generic_param(a_type_ptr  type_ptr);
 extern void set_parameter_list_template_param_flags(a_type_ptr  rout_type);
 extern
 a_boolean is_or_contains_specific_template_param(a_type_ptr  type_ptr,
@@ -1545,6 +1574,11 @@ extern a_boolean is_value_class_or_fundamental_type(a_type_ptr tp);
 extern a_boolean is_cli_enum_type(a_type_ptr tp);
 
 extern a_boolean is_cli_param_array_routine_type(a_type_ptr tp);
+
+extern void error_if_cppcx_public_global_type(
+                                             a_type_ptr            tp,
+                                             a_source_position_ptr error_pos);
+
 
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 

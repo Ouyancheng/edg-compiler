@@ -404,9 +404,15 @@ enter_system_specific_predeclared_symbols; see sys_predef.c.)
     } else {
       /* Add a symbol for predeclared size_t (C++ mode only). */
       make_predeclared_size_t_symbol();
-      if (cppcli_enabled) {
+      if (cli_or_cx_enabled) {
         /* Add symbol for ::cli namespace. */
-        make_symbol_for_namespace_cli();
+        if (cppcx_enabled) {
+          /* In C++/CX mode, the counterpart to the "cli" namesapce is the 
+             "default" namespace, which is located within platform.winmd, so
+             it is not created explicitly here. */
+        } else {
+          make_symbol_for_namespace_cli();
+        }  /* if */
       }  /* if */
     }  /* if */
     if (bool_is_keyword && microsoft_version < 1310) {
@@ -544,6 +550,20 @@ modes.
     enter_keyword((a_token_kind)tok_has_copy, "__has_copy");
     enter_keyword((a_token_kind)tok_has_user_destructor,
                   "__has_user_destructor");
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    enter_keyword((a_token_kind)tok_has_finalizer, "__has_finalizer");
+    enter_keyword((a_token_kind)tok_is_delegate, "__is_delegate");
+    enter_keyword((a_token_kind)tok_is_interface_class,
+                  "__is_interface_class");
+    enter_keyword((a_token_kind)tok_is_ref_array, "__is_ref_array");
+    enter_keyword((a_token_kind)tok_is_ref_class, "__is_ref_class");
+    enter_keyword((a_token_kind)tok_is_sealed, "__is_sealed");
+    enter_keyword((a_token_kind)tok_is_simple_value_class,
+                  "__is_simple_value_class");
+    enter_keyword((a_token_kind)tok_is_value_class, "__is_value_class");
+    enter_keyword((a_token_kind)tok_is_valid_winrt_type,
+                  "__is_valid_winrt_type");
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   }  /* if */
   enter_keyword((a_token_kind)tok_has_nothrow_assign,
                 "__has_nothrow_assign");
@@ -597,17 +617,6 @@ modes.
                 "__is_trivially_assignable");
   enter_keyword((a_token_kind)tok_underlying_type, "__underlying_type");
   enter_keyword((a_token_kind)tok_is_final, "__is_final");
-#if MICROSOFT_EXTENSIONS_ALLOWED
-  enter_keyword((a_token_kind)tok_has_finalizer, "__has_finalizer");
-  enter_keyword((a_token_kind)tok_is_delegate, "__is_delegate");
-  enter_keyword((a_token_kind)tok_is_interface_class, "__is_interface_class");
-  enter_keyword((a_token_kind)tok_is_ref_array, "__is_ref_array");
-  enter_keyword((a_token_kind)tok_is_ref_class, "__is_ref_class");
-  enter_keyword((a_token_kind)tok_is_sealed, "__is_sealed");
-  enter_keyword((a_token_kind)tok_is_simple_value_class,
-                "__is_simple_value_class");
-  enter_keyword((a_token_kind)tok_is_value_class, "__is_value_class");
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 }  /* enter_type_traits_helpers */
 
 
@@ -779,6 +788,7 @@ Install the keywords in the symbol table.
     enter_underscore_keywords((a_token_kind)tok_fastcall, "__fastcall");
     enter_underscore_keywords((a_token_kind)tok_stdcall, "__stdcall");
     enter_keyword((a_token_kind)tok_thiscall, "__thiscall");
+    enter_underscore_keywords((a_token_kind)tok_vectorcall, "__vectorcall");
     enter_keyword((a_token_kind)tok_clrcall, "__clrcall");
     enter_underscore_keywords((a_token_kind)tok_microsoft_inline, "__inline");
     enter_underscore_keywords((a_token_kind)tok_forceinline, "__forceinline");
@@ -841,7 +851,7 @@ Install the keywords in the symbol table.
     }  /* if */
   }  /* if */
   init_whitespace_keywords();
-  if (cppcli_enabled) {
+  if (cli_or_cx_enabled) {
     /* Keywords that can be the first word of a whitespace keyword.  They
        are never returned by get_token() but are transformed either into
        the associated whitespace keyword or are treated as ordinary
@@ -854,7 +864,13 @@ Install the keywords in the symbol table.
        to the appropriate tk_pointer entry. */
     enter_keyword((a_token_kind)tok_internal_alias_decl,
                   "__internal_alias_decl");
-    enter_keyword((a_token_kind)tok_gcnew, "gcnew");
+    if (cppcx_enabled) {
+      /* "partial" can be the first word of a whitespace keyword. */
+      enter_keyword((a_token_kind)tok_prefix_partial, "partial");
+    } else {
+      /* "gcnew" is only available in true C++/CLI mode; not C++/CX mode. */
+      enter_keyword((a_token_kind)tok_gcnew, "gcnew");
+    }  /* if */
     { a_symbol_locator locator;
       /* safe_cast is a contextual keyword. */
       clear_locator(&locator, &null_source_position);
@@ -1474,6 +1490,7 @@ source file's compilation.
 #if MICROSOFT_EXTENSIONS_ALLOWED
   il_header.microsoft_mode = microsoft_mode;
   il_header.cppcli_enabled = cppcli_enabled;
+  il_header.cppcx_enabled = cppcx_enabled;
   il_header.microsoft_version = microsoft_version;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if GNU_EXTENSIONS_ALLOWED
@@ -1570,7 +1587,7 @@ scan of a file to build the PCH prefix information.
   curr_translation_unit->source_file = curr_ise->assoc_actual_il_file;
   if (!pch_prefix_scan && !using_a_pch_file) {
 #if MICROSOFT_EXTENSIONS_ALLOWED
-    if (cppcli_enabled) {
+    if (cli_or_cx_enabled) {
       /* If there were any preusing directives to implicitly #using one
          or more assemblies, process them now.  Note, #using do not
          depend on macro states.  Thus, they can be processed before the
@@ -1693,7 +1710,7 @@ when it is a secondary file.
 #endif /* DO_C99_IL_LOWERING */
 #endif /* DO_IL_LOWERING */
 #if CPPCLI_ENABLING_POSSIBLE
-  if (cppcli_enabled) {
+  if (cli_or_cx_enabled) {
     ms_metadata_trans_unit_init(trans_unit_file_name);
   }  /* if */
 #endif /* CPPCLI_ENABLING_POSSIBLE */

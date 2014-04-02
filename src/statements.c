@@ -32,6 +32,7 @@ statements.c -- Scanning of statements.
 #include "pch.h"
 #include "pragma.h"
 #include "statements.h"
+#include "macro.h"
 
 
 static a_struct_stmt_stack_entry_ptr
@@ -4029,7 +4030,7 @@ declared with an explicit return type.
   catch_pos = pos_curr_token;
   /* If C++/CLI mode is not enabled, catch is required here.  Otherwise,
      it can be omitted provided there is a "finally". */
-  if (!cppcli_enabled) {
+  if (!cli_or_cx_enabled) {
     catch_exists = required_token(tok_catch, ec_missing_handler);
   } else {
     catch_exists = curr_token == tok_catch;
@@ -4048,7 +4049,7 @@ declared with an explicit return type.
     } while (loop_token(tok_catch));
   }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
-  if (cppcli_enabled) {
+  if (cli_or_cx_enabled) {
     if (curr_token == tok_finally ||
         (curr_token == tok_identifier &&
          curr_token_is_identifier_string("finally") &&
@@ -4138,7 +4139,7 @@ statement.  Its form is
     /* Check for and skip the closing parenthesis. */
     (void)required_token(tok_rparen, ec_exp_rparen);
     remove_stop_token(tok_rparen);
-  } else if (cppcli_enabled &&
+  } else if (cli_or_cx_enabled &&
              (curr_token == tok_identifier &&
               curr_token_is_identifier_string("finally") &&
               next_token() == tok_lbrace)) {
@@ -5363,7 +5364,7 @@ represented by *sssep.
 {
   a_boolean result = FALSE;
 
-  check_assertion(cppcli_enabled);
+  check_assertion(cli_or_cx_enabled);
   while (sssep != &struct_stmt_stack[depth_stmt_stack]) {
     if (sssep->parsing_finally_clause) {
       result = TRUE;
@@ -5384,7 +5385,7 @@ clause.
   int       depth;
   a_boolean result = FALSE;
 
-  check_assertion(cppcli_enabled);
+  check_assertion(cli_or_cx_enabled);
   /* Note that we look at entry [0] because we have to consider function
      try-blocks. */
   for (depth = depth_stmt_stack; depth >= 0; depth--) {
@@ -5422,7 +5423,7 @@ See also 3.6.6.2.
     /* No appropriate structured statement was found. */
     error(ec_continue_must_be_in_loop);
 #if MICROSOFT_EXTENSIONS_ALLOWED
-  } else if (cppcli_enabled && has_nested_finally_clause(sssep)) {
+  } else if (cli_or_cx_enabled && has_nested_finally_clause(sssep)) {
     /* A continue statement cannot be inside a C++/CLI finally clause. */
     error(ec_continue_cannot_be_in_finally_block);
     sssep = NULL;
@@ -5558,7 +5559,7 @@ See also 3.6.6.3.
     /* No appropriate structured statement was found. */
     error(ec_break_must_be_in_loop_or_switch);
 #if MICROSOFT_EXTENSIONS_ALLOWED
-  } else if (cppcli_enabled && has_nested_finally_clause(sssep)) {
+  } else if (cli_or_cx_enabled && has_nested_finally_clause(sssep)) {
     /* A break statement cannot be inside a C++/CLI finally clause. */
     error(ec_break_cannot_be_in_finally_block);
     sssep = NULL;
@@ -5811,7 +5812,7 @@ See also 3.6.6.4.
     return_type = error_type();
     return_stmt_allowed = FALSE;
 #if MICROSOFT_EXTENSIONS_ALLOWED
-  } else if (cppcli_enabled && inside_finally_clause()) {
+  } else if (cli_or_cx_enabled && inside_finally_clause()) {
     /* This is a return statement inside of a finally block. */
     pos_error(ec_return_from_finally, &return_pos);
     discard_curr_construct_pragmas();
@@ -5825,12 +5826,40 @@ See also 3.6.6.4.
       check_void_return_okay(/*is_implicit_return=*/FALSE, &return_expr);
     } else {
       /* The expression is present. */
-      if (rout->special_kind == (a_special_function_kind)sfk_constructor ||
+      a_boolean  return_type_checked = FALSE;
 #if MICROSOFT_EXTENSIONS_ALLOWED
-          rout->special_kind ==
-                             (a_special_function_kind)sfk_static_constructor ||
+      if (cppcx_enabled && special_kind_is(rout, sfk_constructor)) {
+         /* While processing vccorlib.h, constructors are allowed to return
+            a pointer to their class type or a handle to their class type for
+            ref classes, though this not required. */
+        a_line_number      dummy_line;
+        a_boolean          dummy_bool;
+        a_source_file_ptr  constructor_file = source_file_for_seq(
+                                      rout->source_corresp.decl_position.seq,
+                                      &dummy_line,
+                                      &dummy_bool,
+                                      /*physical_line=*/TRUE);
+/*FIXME (daveed).  I cleaned this up a bit, but the constructor_file approach
+  is messy.  Also, setting return_type to an error type in a non-error case
+  seems suspect. */
+        if (processing_vccorlib_header ||
+            (constructor_file != NULL &&
+             strstr(constructor_file->full_name, "vccorlib.h") != NULL)) {
+          /* When processing vccorlib.h (or instantiations of types defined in
+             that file), do not emit diagnostics for the type of the return
+             expression (or its presence/absence) in a constructor. */
+          return_type = error_type();
+          return_type_checked = TRUE;
+        }  /* if */
+      }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-          rout->special_kind == (a_special_function_kind)sfk_destructor) {
+      if (return_type_checked) {
+        /* We already handled this case above. */
+      } else if (special_kind_is(rout, sfk_constructor) ||
+#if MICROSOFT_EXTENSIONS_ALLOWED
+                 special_kind_is(rout, sfk_static_constructor) ||
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+                 special_kind_is(rout, sfk_destructor)) {
         /* Constructors and destructors may not return a value (ARM 6.6.3). */
         error(ec_value_returned_in_constructor);
         return_type = error_type();
@@ -6719,7 +6748,7 @@ expr_statement:
       if (!C_mode() &&
 #if MICROSOFT_EXTENSIONS_ALLOWED
           /* In C++/CLI, a construct like int:: begins an expression. */
-          !(cppcli_enabled && is_type_keyword(curr_token) &&
+          !(cli_or_cx_enabled && is_type_keyword(curr_token) &&
             next_token() == tok_colon_colon) &&
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
           (curr_token == tok_using || curr_token == tok_namespace ||

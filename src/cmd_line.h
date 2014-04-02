@@ -285,6 +285,7 @@ typedef enum /*an_option_kind*/ {
   optk_variadic_templates,
 #if MICROSOFT_EXTENSIONS_ALLOWED
   optk_cppcli,
+  optk_cppcx,
   optk_preusing,
   optk_assembly_using_dir,
   optk_using_framework_directory,
@@ -942,7 +943,6 @@ EXTERN a_boolean
 		display_error_number;
 			/* Should the diagnostic message output include the
 		           error number. */
-
 
 #if BACK_END_IS_C_GEN_BE || BACK_END_IS_CP_GEN_BE
 EXTERN a_const_char

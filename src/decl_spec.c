@@ -511,15 +511,16 @@ template class, its DLL interface may need to be adjusted implicitly.
 }  /* update_dll_info_for_class */
 
 
-void record_uuid_for_class(a_type_ptr         class_type,
-                           a_const_char       *uuid_string,
-                           a_source_position  *err_pos)
+a_boolean record_uuid_for_class(a_type_ptr         class_type,
+                                a_const_char       *uuid_string,
+                                a_source_position  *err_pos)
 /*
 Record the given uuid string in the given class type.  If the class type
 already had an associated uuid string, do not record the new value but
 issue an error at the given source position.
 */
 {
+  a_boolean                    result = TRUE;  /* Assume. */
   a_class_type_supplement_ptr  ctsp = class_type_supp(class_type);
 
   if (ctsp->uuid_string != NULL) {
@@ -529,10 +530,12 @@ issue an error at the given source position.
       pos_diagnostic(es_discretionary_error,
                      ec_decl_modifiers_incompatible_with_previous_decl,
                      err_pos);
+      result = FALSE;
     }  /* if */
   } else {
     ctsp->uuid_string = uuid_string;
   }  /* if */
+  return result;
 }  /* record_uuid_for_class */
 
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
@@ -630,9 +633,10 @@ of class_type.  err_pos is a pointer to a source position used for diagnostics.
       }  /* if */
     }  /* if */
     if (extended_decl_info->decl_modifiers.uuid_string != NULL) {
-      record_uuid_for_class(class_type,
-                            extended_decl_info->decl_modifiers.uuid_string,
-                            err_pos);
+      (void)record_uuid_for_class(
+                               class_type,
+                               extended_decl_info->decl_modifiers.uuid_string,
+                               err_pos);
     }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   }  /* if */
@@ -871,7 +875,7 @@ normal case, and tok_end_of_source during template prescanning.
         valid = TRUE;
 #if MICROSOFT_EXTENSIONS_ALLOWED
       } else if (microsoft_mode &&
-                 (microsoft_version >= 1400 || cppcli_enabled) &&
+                 (microsoft_version >= 1400 || cli_or_cx_enabled) &&
                  (check_context_sensitive_keyword(tok_abstract, "abstract") ||
                   check_context_sensitive_keyword(tok_sealed, "sealed"))) {
         cache_curr_token(&transformed_token_cache);
@@ -1597,8 +1601,7 @@ caution when modifying this routine.
         if (any_cfront_mode()) {
           /* In Cfront mode, such a declaration is seen as a declaration of
              the enclosing class. */
-          tag_sym = (a_symbol_ptr)(type_symbol_type(tag_sym)
-                                                  ->source_corresp.assoc_info);
+          tag_sym = symbol_for(type_symbol_type(tag_sym));
         } else {
           tag_sym = NULL;
         }  /* if */
@@ -1614,11 +1617,14 @@ caution when modifying this routine.
              sure that an incomplete type is not in the process of being
              defined. */
           *tag_resolution = TRUE;
-        } else if (tag_kind != (a_symbol_kind)sk_enum_tag) {
+        } else if (tag_kind != (a_symbol_kind)sk_enum_tag
+                   if_microsoft_extensions(
+                           && !is_partial_class(type_symbol_type(tag_sym)))) {
           /* Redefinition of a class tag that has already been defined.  Set
-             tag_sym to NULL and let enter_symbol issue an error.  (Don't do
+             tag_sym to NULL and let enter_symbol issue an error.  Don't do
              this for enum types since we may be dealing with an opaque enum
-             declaration.) */
+             declaration.  Also, if we're dealing with C++/CX partial class
+             definitions, multiple "definitions" are not actually errors. */
           tag_sym = NULL;
         }  /* if */
       }  /* if */
@@ -2509,7 +2515,7 @@ only.)
 {
   an_assembly_visibility  vis = (an_assembly_visibility)av_private;
 
-  check_assertion(cppcli_enabled);
+  check_assertion(cli_or_cx_enabled);
   if (declared_visibility != (an_assembly_visibility)av_none) {
     /* An explicitly specified visibility: Ensure this is a top-level
        definition. */
@@ -2755,7 +2761,7 @@ may be emitted at the given position.
            member of the reactivated class. */
         { a_type_ptr  parent = scope_stack[decl_level].assoc_type;
           check_assertion(class_type_supp(class_type)->
-                                                      is_lambda_closure_class);
+                                                     is_lambda_closure_class);
           set_class_membership(tag_sym, &class_type->source_corresp, parent);
           class_type->source_corresp.access = (an_access_specifier)as_public;
         }
@@ -2797,9 +2803,11 @@ may be emitted at the given position.
       check_assertion(ssep != NULL && ssep->assoc_routine != NULL);
 #endif /* CHECKING */
 #if MICROSOFT_EXTENSIONS_ALLOWED
-      if (cppcli_enabled && depth_innermost_function_scope != NO_SCOPE_DEPTH &&
+      if (cppcli_enabled &&
+          depth_innermost_function_scope != NO_SCOPE_DEPTH &&
           !is_immediate_managed_class_type(class_type)) {
-        /* Local class types are not allowed in members of managed classes. */
+        /* Local class types are not allowed in members of managed classes.
+           (But C++/CX member functions can have local classes and lambdas.) */
         a_routine_ptr  rp = innermost_function_scope->variant.routine.ptr;
         check_assertion(rp != NULL);
         if (rp->source_corresp.is_class_member) {
@@ -3143,6 +3151,7 @@ defined.  Detailed position information is recorded in *decl_pos_block.
   a_boolean               is_redeclaration = FALSE;
   a_boolean               is_template_specific_decl = FALSE;
   a_boolean               is_predeclared_type_decl = FALSE;
+  a_boolean               def_or_vacuous_decl;
   a_decl_pos_block        local_decl_pos_block;
   a_boolean		  previously_invisible = FALSE;
 #if MICROSOFT_EXTENSIONS_ALLOWED || SUN_EXTENSIONS_ALLOWED || \
@@ -3164,6 +3173,12 @@ defined.  Detailed position information is recorded in *decl_pos_block.
                              (dsi_flags & DSI_IS_EXPLICIT_INSTANTIATION) != 0;
   a_boolean               is_template_specialization =
                                      (dsi_flags & DSI_IS_SPECIALIZATION) != 0;
+  /* When is_partial is TRUE, is_class_definition is TRUE to preserve behavior
+     associated with parsing class bodies even though a partial class
+     declaration is not a definition; however, at certain points, !is_partial
+     checks prevent leaking the notion of a "definition" outside of
+     class_specifier (e.g., SRK_DEFINITION is not set). */
+  a_boolean               is_partial = FALSE;
 
   db_enter(3, "class_specifier");
   *declares_something = FALSE;
@@ -3180,7 +3195,7 @@ defined.  Detailed position information is recorded in *decl_pos_block.
   /* Determine whether this is a template class instantiation or a local
      class (one being declared within a function scope). */
 #if MICROSOFT_EXTENSIONS_ALLOWED
-  if (cppcli_enabled) {
+  if (cli_or_cx_enabled) {
     cli_visibility = scan_cli_visibility_specifier_if_any(&cli_visibility_pos);
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
@@ -3220,6 +3235,16 @@ defined.  Detailed position information is recorded in *decl_pos_block.
     case tok_ref_class:
       type_kind     = (a_type_kind)tk_class;
       cli_type_kind = (a_cli_class_type_kind)cctk_ref;
+      break;
+    case tok_partial_ref_struct:
+      type_kind     = (a_type_kind)tk_struct;
+      cli_type_kind = (a_cli_class_type_kind)cctk_ref;     
+      is_partial = TRUE;
+      break;
+    case tok_partial_ref_class:
+      type_kind     = (a_type_kind)tk_class;
+      cli_type_kind = (a_cli_class_type_kind)cctk_ref;
+      is_partial = TRUE;
       break;
     case tok_interface_struct:
       type_kind     = (a_type_kind)tk_struct;
@@ -3593,7 +3618,8 @@ defined.  Detailed position information is recorded in *decl_pos_block.
            issue an error. */
         tag_sym = NULL;
       }  /* if */
-    } else if (is_class_definition && tag_sym->defined) {
+    } else if (is_class_definition && tag_sym->defined
+               if_microsoft_extensions(&& !is_partial_class(class_type))) {
       /* This class has already been defined.  If this is a template
          specialization declaration (and the entity has not already
          been defined as a specialization), indicate that the entity being
@@ -3890,6 +3916,10 @@ defined.  Detailed position information is recorded in *decl_pos_block.
       }  /* if */
     }  /* if */
   }  /* if */
+  def_or_vacuous_decl = (is_class_definition ||
+                         curr_token == tok_removed_template_body ||
+                         (vacuous_decl_allowed &&
+                          curr_token == tok_semicolon));
   if (tag_sym == NULL) {
     /* Create a new class, struct, or union type.  All such types are
        allocated in the file scope memory region, though local types will be
@@ -4011,13 +4041,8 @@ defined.  Detailed position information is recorded in *decl_pos_block.
     }  /* if */
     /* Set parent class or namespace pointers, if appropriate, and adjust
        related fields (e.g., name linkage). */
-    { a_boolean  def_or_vacuous_decl =
-                      (is_class_definition ||
-                       curr_token == tok_removed_template_body ||
-                       (vacuous_decl_allowed && curr_token == tok_semicolon));
-      update_membership_of_class(tag_sym, def_or_vacuous_decl,
-                                 effective_decl_level, &decl_start_pos);
-    }
+    update_membership_of_class(tag_sym, def_or_vacuous_decl,
+                               effective_decl_level, &decl_start_pos);
     if (is_friend_decl && tag_id_present &&
         secondary_translation_unit_seen()) {
       /* This class type entry might have been generated during the
@@ -4033,7 +4058,7 @@ defined.  Detailed position information is recorded in *decl_pos_block.
       set_nested_template_class_symbol_info(tag_sym, type_kind);
     }  /* if */
     srk_flags = SRK_DECLARATION;
-    if (is_class_definition) srk_flags |= SRK_DEFINITION;
+    if (is_class_definition && !is_partial) srk_flags |= SRK_DEFINITION;
     if (is_friend_decl) srk_flags |= SRK_FRIEND;
     record_symbol_declaration(srk_flags, tag_sym, &locator.source_position,
                               (a_source_sequence_entry_ptr)NULL);
@@ -4146,7 +4171,7 @@ defined.  Detailed position information is recorded in *decl_pos_block.
       srk_flags = SRK_DECLARATION;
       if (is_friend_decl) srk_flags |= SRK_FRIEND;
       if (is_class_definition) {
-        if (!is_template_class_instantiation) {
+        if (!is_template_class_instantiation && !is_partial) {
           srk_flags |= SRK_DEFINITION;
         }  /* if */
       } else {
@@ -4206,9 +4231,13 @@ defined.  Detailed position information is recorded in *decl_pos_block.
     }  /* if */
   }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
-  if (cppcli_enabled) {
+  if (cli_or_cx_enabled) {
     set_cli_visibility(class_type, cli_visibility, &cli_visibility_pos,
-                       is_class_definition || definition_removed);
+                       (is_class_definition || definition_removed) &&
+                       !is_partial);
+    if (cppcx_enabled && (is_class_definition || definition_removed)) {
+      error_if_cppcx_public_global_type(class_type, &cli_visibility_pos);
+    }  /* if */
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   if (err ||
@@ -4313,13 +4342,7 @@ defined.  Detailed position information is recorded in *decl_pos_block.
            do not apply to the class type, but to the entity associated with
            the declarator. */
       } else {
-        an_ms_attribute_target  attr_target =
-                      is_interface                          ? MSAT_INTERFACE :
-                      (type_kind == (a_type_kind)tk_struct) ? MSAT_STRUCT :
-                      (type_kind == (a_type_kind)tk_class)  ? MSAT_CLASS :
-                                                              MSAT_UNION;
-        apply_microsoft_attributes(&dps->ms_attributes, (char*)class_type,
-                                   (an_il_entry_kind)iek_type, attr_target);
+        apply_microsoft_attributes_to_type(&dps->ms_attributes, class_type);
       }  /* if */
     }  /* if */
   }  /* if */
@@ -4350,12 +4373,13 @@ defined.  Detailed position information is recorded in *decl_pos_block.
 #endif /* SUN_EXTENSIONS_ALLOWED */
   if (is_class_definition) {
     if (scan_class_definition(class_type, dps, effective_decl_level,
+                              is_partial,
                               is_local_class, delayed_nested_class_def,
                               /*is_template_instantiation=*/FALSE,
                               is_template_specialization,
                               (a_template_ptr)NULL,
                               &local_decl_pos_block)) {
-      *defines_something = TRUE;
+      if (!is_partial) *defines_something = TRUE;
     } else {
       err = TRUE;
     }  /* if */
@@ -4428,6 +4452,31 @@ defined.  Detailed position information is recorded in *decl_pos_block.
         check_inheritance_kind(class_type, ctsp->inheritance_kind,
                                &locator.source_position);
       }  /* if */
+    }  /* if */
+  }  /* if */
+  if (cppcx_enabled) {
+    if (is_partial &&
+        (class_type->source_corresp.is_class_member || !def_or_vacuous_decl)) {
+      /* The membership of a nested class has been set and def_or_vacuous_decl
+         indicates whether the class_type was just declared (or defined) as
+         part of this specifier.  Ensure that a partial class is not nested in
+         C++/CX or is part of a class specifier that is not a declaration nor
+         definition. */
+      pos_error(ec_partial_class_incorrect_type_or_location,
+                &decl_start_pos);
+    } else if (def_or_vacuous_decl &&
+               class_type->source_corresp.is_class_member &&
+               is_cppcx_externally_visible_symbol(symbol_for(class_type)) &&
+               !in_code_generated_from_metadata()) {
+      /* Externally visible nested types are not allowed in C++/CX. */
+      /* Platform::String has a native nested type, so don't enforce this
+         check in code generated from metadata. */
+      pos_error(ec_public_nested_type_in_cppcx_type, &decl_start_pos);
+    } else if (def_or_vacuous_decl &&
+               !is_managed_class_type(class_type) &&
+               is_cppcx_externally_visible_symbol(symbol_for(class_type))) {
+      /* Externally visible native types are not allowed in C++/CX. */
+      pos_error(ec_cppcx_public_native_type, &decl_start_pos);
     }  /* if */
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
@@ -4550,7 +4599,9 @@ typerefs are dropped from *p_base_type.
     /* A C++/CLI enum base type must have a corresponding System::xxx value
        class type.  (This cannot be tested while loading the System::...
        metadata.) */
-    pos_error(ec_cli_enum_base_has_no_system_counterpart, pos_type);
+    pos_error(cppcx_enabled ? ec_cppcx_enum_base_has_no_platform_counterpart
+                               : ec_cli_enum_base_has_no_system_counterpart,
+              pos_type);
   } else {
     valid = TRUE;
     *p_base_type = base_type;
@@ -4610,14 +4661,14 @@ and *p_base_type is left unchanged.
            integer kind. */
         result = largest_enum_int_kind;
 #if MICROSOFT_EXTENSIONS_ALLOWED
-      } else if (cppcli_enabled) {
+      } else if (cli_or_cx_enabled) {
         /* C++/CLI allows a specific list of integral types and is therefore
            handled separately. */
         if (!validate_cppcli_enum_base_type(&base_type, pos_type)) {
           base_type = NULL;
         }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-      } else if (!cppcli_enabled && !is_integral_type(base_type)) {
+      } else if (!cli_or_cx_enabled && !is_integral_type(base_type)) {
         pos_error(ec_enum_base_type_must_be_integral, pos_type);
         base_type = NULL;
       } else if (microsoft_mode && !cpp11_mode && is_bool_type(base_type)) {
@@ -5038,6 +5089,9 @@ is updated to reflect relevant positions of this definition.
       a_boolean                    template_param = FALSE, err = FALSE;
       a_source_position            enum_con_pos, pos_comma;
       a_source_sequence_entry_ptr  enum_con_ssep = NULL;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+      an_ms_attribute_ptr          ms_attributes = NULL;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if EXTRA_SOURCE_POSITIONS_IN_IL
       a_source_range               enum_id_range, enum_value_range;
       enum_id_range = null_source_range;
@@ -5045,6 +5099,13 @@ is updated to reflect relevant positions of this definition.
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
       add_stop_token(tok_comma);
       add_stop_token(tok_assign);
+#if MICROSOFT_EXTENSIONS_ALLOWED
+      if (cli_or_cx_enabled && microsoft_attribute_tokens_next()) {
+        /* In C++/CLI mode, attributes can be applied to individual
+           enumeration values. */
+        ms_attributes = scan_microsoft_attributes(/*is_parameter=*/FALSE);
+      }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       enum_con_pos = pos_curr_token;
       if (curr_token != tok_identifier) {
         (void)required_token(tok_identifier, ec_exp_identifier);
@@ -5066,7 +5127,7 @@ is updated to reflect relevant positions of this definition.
         enum_id_range.end = end_pos_curr_token;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
 #if MICROSOFT_EXTENSIONS_ALLOWED
-        if (cppcli_enabled && curr_token_is_identifier_string("value__")) {
+        if (cli_or_cx_enabled && curr_token_is_identifier_string("value__")) {
           pos_error(ec_reserved_enumerator_name, &pos_curr_token);
         }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
@@ -5147,7 +5208,7 @@ is updated to reflect relevant positions of this definition.
         }  /* if */
       } else {
         /* No explicit value. */
-        if (cppcli_enabled && !cppcli_enum_init_error_issued &&
+        if (cli_or_cx_enabled && !cppcli_enum_init_error_issued &&
             explicit_base_kind != (an_integer_kind)ik_none &&
             is_bool_type(integer_type_supp(enum_type)->base_type)) {
           /* ECMA-372 (the C++/CLI standard) requires that C++/CLI enum
@@ -5353,6 +5414,14 @@ is updated to reflect relevant positions of this definition.
         end_of_enum_con_list->next = enum_con;
       }  /* if */
       end_of_enum_con_list = enum_con;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+      if (ms_attributes != NULL) {
+        apply_microsoft_attributes(&ms_attributes, (char*)enum_con,
+                                   (an_il_entry_kind)iek_constant,
+                                   (an_ms_attribute_target)msat_field,
+                                   (an_ms_attribute_target)msat_field);
+      }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if EXTRA_SOURCE_POSITIONS_IN_IL
       { a_decl_position_supplement_ptr  dpsp;
         dpsp = enum_con->source_corresp.decl_pos_info;
@@ -5453,8 +5522,7 @@ is updated to reflect relevant positions of this definition.
   if (p_ms_attributes != NULL && *p_ms_attributes != NULL &&
       depth_innermost_function_scope == NO_SCOPE_NUMBER &&
       !inside_local_class) {
-    apply_microsoft_attributes(p_ms_attributes, (char*)enum_type,
-                               (an_il_entry_kind)iek_type, MSAT_ENUM);
+    apply_microsoft_attributes_to_type(p_ms_attributes, enum_type);
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
@@ -5603,14 +5671,14 @@ template.  dsi_flags is the set of input flags passed to decl_specifiers.
   local_decl_pos_block.specifiers_range.start = pos_curr_token;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
 #if MICROSOFT_EXTENSIONS_ALLOWED
-  if (cppcli_enabled) {
+  if (cli_or_cx_enabled) {
     cli_visibility = scan_cli_visibility_specifier_if_any(&cli_visibility_pos);
   }  /* if */
   if (curr_token == tok_enum_class || curr_token == tok_enum_struct) {
     /* In C++/CLI mode and in Microsoft modes with microsoft_version >=1700,
        "enum struct" and "enum class" is scanned as a single token with
        embedded white space. */
-    check_assertion(cppcli_enabled ||
+    check_assertion(cli_or_cx_enabled ||
                     (microsoft_mode && microsoft_version >= 1700));
     is_scoped_enum = TRUE;
   } else {
@@ -5865,8 +5933,8 @@ template.  dsi_flags is the set of input flags passed to decl_specifiers.
          and definitions, but for elaborated enum specifiers only "enum" is
          allowed (the latter rule came along with the introduction of opaque
          enum declarations into the language). */
-      if (cppcli_enabled || (opaque_enum_decls_enabled &&
-                             (is_definition || is_opaque_enum_decl))) {
+      if (cli_or_cx_enabled || (opaque_enum_decls_enabled &&
+                                (is_definition || is_opaque_enum_decl))) {
         if (is_scoped_enum != integer_type_is_scoped_enum(enum_type)) {
           pos_sy_error(ec_incompatible_enum_kinds, &locator.source_position,
                        tag_sym);
@@ -6084,7 +6152,7 @@ template.  dsi_flags is the set of input flags passed to decl_specifiers.
     } else if (class_of_which_a_member == NULL) {
       /* Only member enumerations need special template processing. */
 #if MICROSOFT_EXTENSIONS_ALLOWED
-    } else if (cppcli_enabled &&
+    } else if (cli_or_cx_enabled &&
                is_managed_class_type(class_of_which_a_member)) {
       /* Suppress the template processing for C++/CLI generics and classes. */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
@@ -6181,7 +6249,7 @@ template.  dsi_flags is the set of input flags passed to decl_specifiers.
     (void)get_token();
   }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
-  if (cppcli_enabled) {
+  if (cli_or_cx_enabled) {
     set_cli_visibility(enum_type, cli_visibility, &cli_visibility_pos,
                        is_definition);
   }  /* if */
@@ -6226,6 +6294,11 @@ template.  dsi_flags is the set of input flags passed to decl_specifiers.
       set_type_size(enum_type);
     }  /* if */
   }  /* if */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  if (cppcx_enabled && is_definition) {
+    error_if_cppcx_public_global_type(enum_type, &cli_visibility_pos);
+  }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   if (decl_pos_block != NULL) {
     /* Copy the end specifiers end position into decl_pos_block. */
@@ -6369,7 +6442,7 @@ position information when the context is a declaration.
 
     ilm = within_using_decl ? ilm_using_typename : ilm_typename;
     if (!coalesce_and_lookup_qualified_name(GID_NO_OPTIONS, ilm, &err) ||
-        (!cppcli_enabled &&
+        (!cli_or_cx_enabled &&
          (!locator_for_curr_id.is_qualified_name ||
           (locator_for_curr_id.is_file_scope_qualified_name &&
            (locator_for_curr_id.is_global_qualified_name &&
@@ -6449,7 +6522,7 @@ overload set).
   an_id_lookup_options_set  idl_options = IDL_DIRECT_CLASS_MEMBERS_ONLY;
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
-  if (cppcli_enabled &&
+  if (cli_or_cx_enabled &&
       dps->declared_storage_class == (a_storage_class)sc_static) {
     idl_options |= IDL_IS_STATIC_DECL;
   }  /* if */
@@ -6649,7 +6722,7 @@ constructor).
           if (is_constructor_symbol(sym)) {
             /* Okay. */
 #if MICROSOFT_EXTENSIONS_ALLOWED
-          } else if (cppcli_enabled && is_static_constructor_symbol(sym)) {
+          } else if (cli_or_cx_enabled && is_static_constructor_symbol(sym)) {
             /* Okay. */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
           } else if (sym->kind == (a_symbol_kind)sk_type &&
@@ -6671,7 +6744,7 @@ constructor).
       }  /* if */
       pos = locator_for_curr_id.source_position;
 #if MICROSOFT_EXTENSIONS_ALLOWED
-      if (cppcli_enabled &&
+      if (cli_or_cx_enabled &&
           dps->declared_storage_class == (a_storage_class)sc_static) {
         is_cli_static_ctor = TRUE;
       }  /* if */
@@ -8023,7 +8096,9 @@ of a declarator or a syntax error) return TRUE; otherwise return FALSE.
         a_boolean   is_static_ctor = FALSE;
         if (class_type != NULL) {
 #if MICROSOFT_EXTENSIONS_ALLOWED
-          if (cppcli_enabled && is_immediate_managed_class_type(class_type) &&
+          /* Static constructors are not supported in C++/CX mode. */
+          if (cppcli_enabled &&
+              is_immediate_managed_class_type(class_type) &&
               dps->declared_storage_class == (a_storage_class)sc_static) {
             is_static_ctor = TRUE;
           }  /* if */
@@ -8474,8 +8549,7 @@ which is processed after any other specifiers have also been consumed.
     }  /* switch */
   }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
-  if (microsoft_mode && first_token == tok_typedef &&
-      curr_token == tok_lbracket) {
+  if (first_token == tok_typedef && microsoft_attribute_tokens_next()) {
     /* Microsoft attributes can follow the typedef keyword. */
     scan_and_append_microsoft_attributes(&state->ms_attributes,
                                          /*is_parameter=*/FALSE);
@@ -9808,6 +9882,8 @@ storage_class_specifier:
       case tok_ref_class:
       case tok_interface_struct:
       case tok_interface_class:
+      case tok_partial_ref_struct:
+      case tok_partial_ref_class:
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 process_class_specifier:
         /* A struct or union specifier (3.5.2.1). */
@@ -9912,7 +9988,7 @@ process_enum_specifier:
         break;
 #if MICROSOFT_EXTENSIONS_ALLOWED
       case tok_unresolved_type:
-        check_assertion(cppcli_enabled);
+        check_assertion(cli_or_cx_enabled);
         *type_ptr = scan_unresolved_metadata_type();
         if (!is_error_type(*type_ptr)) {
           check_assertion(is_immediate_class_type(*type_ptr));
@@ -10108,7 +10184,7 @@ process_enum_specifier:
              among the specifiers is a C++/CLI context-sensitive keyword.
              Since the state already reflects this specifier, it can now be
              skipped. */
-          check_assertion(cppcli_enabled && curr_token == tok_identifier);
+          check_assertion(cli_or_cx_enabled && curr_token == tok_identifier);
           context_specific_keyword_expected = FALSE;
           break;
         } else
@@ -10531,7 +10607,7 @@ operator_or_conversion_name:
 #if MICROSOFT_EXTENSIONS_ALLOWED
       case tok_public:
       case tok_private:
-        if (cppcli_enabled) {
+        if (cli_or_cx_enabled) {
           /* C++/CLI allows something like "public class X {};" or
              "private enum E: int {};". */
           a_token_kind  next_tok = next_token();
@@ -10554,6 +10630,7 @@ operator_or_conversion_name:
         }  /* if */
       case tok_not:
 finalizer_name:
+        /* Finalizers are not allowed in C++/CX. */
         if (cppcli_enabled && is_member_decl) {
           auto_type_allowed = FALSE;
           if (!any_decl_specifiers_seen) {
@@ -10832,7 +10909,7 @@ exit_loop:
         err = TRUE;
       } else {
 #if MICROSOFT_EXTENSIONS_ALLOWED
-        if (cppcli_enabled && *type_ptr != NULL &&
+        if (cli_or_cx_enabled && *type_ptr != NULL &&
             is_immediate_class_type(*type_ptr) &&
             cli_class_type_kind_is(*type_ptr, cctk_value)) {
           /* Naming a special value class like System::Int32 is equivalent to

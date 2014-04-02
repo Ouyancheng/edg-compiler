@@ -420,6 +420,7 @@ EXTERN an_opname_kind opname_kind_for_token[(int)tok_last+1]
    (an_opname_kind)onk_none,          /* tok_fastcall */
    (an_opname_kind)onk_none,          /* tok_stdcall */
    (an_opname_kind)onk_none,          /* tok_thiscall */
+   (an_opname_kind)onk_none,          /* tok_vectorcall */
    (an_opname_kind)onk_none,          /* tok_clrcall */
    (an_opname_kind)onk_none,          /* tok_microsoft_inline */
    (an_opname_kind)onk_none,          /* tok_forceinline */
@@ -466,11 +467,15 @@ EXTERN an_opname_kind opname_kind_for_token[(int)tok_last+1]
    (an_opname_kind)onk_none,          /* tok_enum_struct */
    (an_opname_kind)onk_none,          /* tok_interface_class */
    (an_opname_kind)onk_none,          /* tok_interface_struct */
+   (an_opname_kind)onk_none,          /* tok_ref_new */
+   (an_opname_kind)onk_none,          /* tok_partial_ref_class */
+   (an_opname_kind)onk_none,          /* tok_partial_ref_struct */
    (an_opname_kind)onk_none,          /* tok_prefix_ref */
    (an_opname_kind)onk_none,          /* tok_prefix_value */
    (an_opname_kind)onk_none,          /* tok_prefix_interface */
    (an_opname_kind)onk_none,          /* tok_prefix_for */
    (an_opname_kind)onk_none,          /* tok_prefix_enum */
+   (an_opname_kind)onk_none,          /* tok_prefix_partial */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
    (an_opname_kind)onk_none,          /* tok_microsoft_asm */
    (an_opname_kind)onk_none,          /* tok_func_name */
@@ -585,6 +590,7 @@ EXTERN an_opname_kind opname_kind_for_token[(int)tok_last+1]
    (an_opname_kind)onk_none,          /* tok_is_trivially_destructible */
    (an_opname_kind)onk_none,          /* tok_is_nothrow_assignable */
    (an_opname_kind)onk_none,          /* tok_is_trivially_assignable */
+   (an_opname_kind)onk_none,          /* tok_is_valid_winrt_type */
    (an_opname_kind)onk_none,          /* tok_underlying_type */
 #if MICROSOFT_EXTENSIONS_ALLOWED
    (an_opname_kind)onk_none,          /* tok_has_finalizer */
@@ -2784,6 +2790,15 @@ extern a_boolean compare_include_file_history(a_void_ptr	entry,
 extern a_hash_value hash_include_search_result(a_void_ptr	key);
 extern a_boolean compare_include_search_result(a_void_ptr	entry,
                                                a_void_ptr	key);
+
+#if MICROSOFT_EXTENSIONS_ALLOWED
+extern a_partial_class_body_ptr cache_partial_class_body(
+                                                       a_type_ptr class_type);
+
+extern void replace_curr_token(a_token_kind  new_token);
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+
+
 
 #endif /* ifndef LEXICAL_H */
 

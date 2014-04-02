@@ -185,7 +185,7 @@ C++/CLI.
 */
 #if MICROSOFT_EXTENSIONS_ALLOWED
 #define is_cli_assembly_visibility_specifier(tok)                        \
-  (cppcli_enabled && ((tok) == tok_public || (tok) == tok_private))
+  (cli_or_cx_enabled && ((tok) == tok_public || (tok) == tok_private))
 #define or_is_cli_assembly_visibility_specifier(tok)                     \
   || is_cli_assembly_visibility_specifier(tok)
 #else /* !MICROSOFT_EXTENSIONS_ALLOWED */
@@ -209,12 +209,25 @@ they contain white space).
 */
 #if MICROSOFT_EXTENSIONS_ALLOWED
 #define or_is_cli_class_type_keyword(tok)                                 \
-  || (cppcli_enabled &&                                                   \
+  || (cli_or_cx_enabled &&                                                \
       ((tok) == tok_interface_class  || (tok) == tok_interface_struct ||  \
        (tok) == tok_ref_class        || (tok) == tok_ref_struct       ||  \
        (tok) == tok_value_class      || (tok) == tok_value_struct))
 #else /* !MICROSOFT_EXTENSIONS_ALLOWED */
 #define or_is_cli_class_type_keyword(tok) /* Nothing */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+
+/*
+Macros to test for C++/CX keywords that introduce partial class definitions.
+*/
+#if MICROSOFT_EXTENSIONS_ALLOWED
+#define is_partial_class_type_keyword(tok)                                 \
+      (cppcx_enabled &&                                                 \
+       ((tok) == tok_partial_ref_class || (tok) == tok_partial_ref_struct))
+#define or_is_cppcx_class_type_keyword(tok) \
+      || is_partial_class_type_keyword(tok)
+#else /* !MICROSOFT_EXTENSIONS_ALLOWED */
+#define or_is_cppcx_class_type_keyword(tok) /* Nothing */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 /*
@@ -224,7 +237,7 @@ specifier.
 #define is_class_type_keyword(tok)                                    \
   ((tok) == tok_struct || (tok) == tok_union ||                       \
    (tok) == tok_class  or_is_interface_keyword(tok)                   \
-   or_is_cli_class_type_keyword(tok))
+   or_is_cli_class_type_keyword(tok) or_is_cppcx_class_type_keyword(tok))
 
 /*
 Macro that is TRUE if the given token can introduce an elaborated enum type

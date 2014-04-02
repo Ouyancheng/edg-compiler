@@ -3475,13 +3475,13 @@ static a_boolean is_microsoft_function_name_paste(a_macro_arg_ptr map,
                                                   a_const_char    **post_end)
 /*
 We are in Microsoft mode and we are doing a token paste in a macro
-expansion.  Return TRUE if the paste operation is pasting "L" to one
-of the Microsoft function-name keywords like __FUNCTION__.  
-The raw value of the macro argument map is the text following
-the "##", and prev_text (of length prev_len) is the text preceding
-the ##.  If TRUE is returned, *post_end is set to the character
-position after the end of the function-name keyword.
-*/
+expansion.  Return TRUE if the paste operation is pasting "L" to one of the
+Microsoft function-name keywords like __FUNCTION__.  prev_text (of length
+prev_len) is the text preceding the "##".  If the last token of that text
+is "L", map->expanded_text is the text following the "##" (because the
+Microsoft preprocessor expands macro arguments that are pasted to the end
+of a preceding identifier).  If TRUE is returned, *post_end is set to the
+character position after the end of the function-name keyword.  */
 {
   a_boolean result = FALSE;
 
@@ -3494,26 +3494,28 @@ position after the end of the function-name keyword.
          prev_text[prev_len-LE_ESCAPE_LEN-1] == LE_ESCAPE &&
          prev_text[prev_len-LE_ESCAPE_LEN  ] == LE_END_OF_TOKEN)) {
       /* The preceding text ends with a token that is "L". */
-      if (map->raw_len >= 3 &&
-          map->raw_text[0] == '_' &&
-          map->raw_text[1] == '_') {
-        /* Compare the raw_text of map against the function-name tokens. */
+      if (map->expanded_len >= 3 &&
+          map->expanded_text[0] == '_' &&
+          map->expanded_text[1] == '_') {
+        /* Compare the expanded_text of map against the function-name
+           tokens. */
         unsigned int i;
         for (i = 0; i < sizeof(func_name_token)/sizeof(a_token_kind); i++) {
           a_const_char *tok =
                           spelling_for_function_name_token(func_name_token[i]);
           sizeof_t     tok_len = strlen(tok);
-          if (map->raw_len >= tok_len &&
-              strncmp(map->raw_text, tok, size_t_arg(tok_len)) == 0) {
-            /* The beginning of the raw text matches the token.  See if the
-               text ends at that point or there is an end-of-token marker. */
-            if (map->raw_len == tok_len ||
-                (map->raw_len >= tok_len + LE_ESCAPE_LEN &&
-                 map->raw_text[tok_len  ] == LE_ESCAPE &&
-                 map->raw_text[tok_len+1] == LE_END_OF_TOKEN)) {
+          if (map->expanded_len >= tok_len &&
+              strncmp(map->expanded_text, tok, size_t_arg(tok_len)) == 0) {
+            /* The beginning of the expanded text matches the token.  See
+               if the text ends at that point or there is an end-of-token
+               marker. */
+            if (map->expanded_len == tok_len ||
+                (map->expanded_len >= tok_len + LE_ESCAPE_LEN &&
+                 map->expanded_text[tok_len  ] == LE_ESCAPE &&
+                 map->expanded_text[tok_len+1] == LE_END_OF_TOKEN)) {
               /* Yes, everything is as required. */
               result = TRUE;
-              *post_end = map->raw_text + tok_len;
+              *post_end = map->expanded_text + tok_len;
               break;
             }  /* if */
           }  /* if */
@@ -3673,19 +3675,6 @@ hence its name should not be changed.
               map->raw_text[0] == LE_ESCAPE &&
               map->raw_text[1] == LE_INERT_MACRO) sect_len -= LE_ESCAPE_LEN;
 #if MICROSOFT_EXTENSIONS_ALLOWED
-          { a_const_char *post_end;
-            /* coverity[var_deref_model] */
-            if (microsoft_mode && prev_section_is_paste &&
-                is_microsoft_function_name_paste(map,
-                                                 prev_text,
-                                                 prev_len,
-                                                 &post_end)) {
-              /* This is token pasting of L##__FUNCTION__ or the like, which
-                 will be replaced by __LPREFIX(__FUNCTION__).  The "L" is
-                 also removed. */
-              result += strlen(token_names[(int)tok_microsoft_lprefix])+2-1;
-            }  /* if */
-          }
           prev_text = map->raw_text;
           prev_len = map->raw_len;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
@@ -3709,6 +3698,33 @@ hence its name should not be changed.
           break;
         case rt_argument:
           sect_len = map->expanded_len;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+          /* The Microsoft preprocessor expands macro arguments pasted to
+             a preceding identifier, so paste operations can come here as
+             well as the rt_raw_argument case. */
+          /* Don't count an LE_INERT_MACRO escape at the beginning if present,
+             since it will be removed. */
+          if (prev_section_is_paste &&
+              map->expanded_text[0] == LE_ESCAPE &&
+              map->expanded_text[1] == LE_INERT_MACRO) {
+            sect_len -= LE_ESCAPE_LEN;
+          }  /* if */
+          { a_const_char *post_end;
+            /* coverity[var_deref_model] */
+            if (microsoft_mode && prev_section_is_paste &&
+                is_microsoft_function_name_paste(map,
+                                                 prev_text,
+                                                 prev_len,
+                                                 &post_end)) {
+              /* This is token pasting of L##__FUNCTION__ or the like, which
+                 will be replaced by __LPREFIX(__FUNCTION__).  The "L" is
+                 also removed. */
+              result += strlen(token_names[(int)tok_microsoft_lprefix])+2-1;
+            }  /* if */
+          }
+          prev_text = map->raw_text;
+          prev_len = map->raw_len;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
           break;
         default:
           unexpected_condition_str2("length_of_replacement_text:",
@@ -5824,47 +5840,6 @@ end_arg_expansion:;
                  because we want to have the identifier text abut the preceding
                  token. */
             }  /* if */
-#if MICROSOFT_EXTENSIONS_ALLOWED
-            { a_const_char *post_end;
-              if (microsoft_mode && prev_section_is_paste &&
-                  is_microsoft_function_name_paste(map,
-                                                   rescan_loc,
-                                                   (sizeof_t)(src_loc-
-                                                              rescan_loc),
-                                                   &post_end)) {
-                /* This is token pasting of L##__FUNCTION__ or the like, which
-                   is replaced by __LPREFIX(__FUNCTION__).  Note that
-                   length_of_replacement_text has to do the right length
-                   computation for this. */
-                a_const_char *tok = token_names[(int)tok_microsoft_lprefix];
-                sizeof_t     tok_len = strlen(tok);
-                sizeof_t     fnk_len;
-                src_loc--;  /* Back up to remove the "L". */
-                /* Add "__LPREFIX(". */
-                (void)memcpy(src_loc, tok, size_t_arg(tok_len));
-                src_loc += tok_len;
-                *src_loc++ = '(';
-                /* Copy the function-name keyword. */
-                fnk_len = post_end - map->raw_text;
-#if FULLY_RESOLVED_MACRO_POSITIONS
-                /* Copy the map entry for the function keyword. */
-                clone_macro_text_map_entries(&map->raw_text_map,
-                                             /*starting_src_offset=*/0,
-                                             fnk_len - 1,
-                                             &macro_text_map,
-                                             (sizeof_t)(src_loc - rescan_loc),
-                                             this_macro_invocation_record);
-#endif /* FULLY_RESOLVED_MACRO_POSITIONS */
-                (void)memcpy(src_loc, text_loc, size_t_arg(fnk_len));
-                src_loc += fnk_len;
-                /* Add the closing parenthesis. */
-                *src_loc++ = ')';
-                /* Anything after the keyword is copied below. */
-                text_loc += fnk_len;
-                sect_len -= fnk_len;
-              }  /* if */
-            }  /* if */
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
             { char *final_inert_escape =
                                    find_final_inert_escape(text_loc, sect_len);
               if (final_inert_escape != NULL) {
@@ -5968,6 +5943,62 @@ end_arg_expansion:;
             is_va_arg_substitution = (mdp->variadic && rts_number == n_params);
             sect_len = map->expanded_len;
             text_loc = map->expanded_text;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+            /* The Microsoft preprocessor expands macro arguments that are
+               pasted to preceding identifiers, so paste operations can
+               come here as well as to the rt_raw_argument case above. */
+            if (prev_section_is_paste &&
+                map->expanded_text[0] == LE_ESCAPE &&
+                map->expanded_text[1] == LE_INERT_MACRO) {
+              sect_len -= LE_ESCAPE_LEN;
+              text_loc += LE_ESCAPE_LEN;
+              /* Note that length_of_replacement_text did the same test and
+                 reduced the overall repl_text_len for this case.  It's
+                 important to actually remove the inert-macro escape (rather
+                 than replacing it with an end-of-token escape, as below)
+                 because we want to have the identifier text abut the preceding
+                 token. */
+            }  /* if */
+            { a_const_char *post_end;
+              if (microsoft_mode && prev_section_is_paste &&
+                  is_microsoft_function_name_paste(map,
+                                                   rescan_loc,
+                                                   (sizeof_t)(src_loc-
+                                                              rescan_loc),
+                                                   &post_end)) {
+                /* This is token pasting of L##__FUNCTION__ or the like, which
+                   is replaced by __LPREFIX(__FUNCTION__).  Note that
+                   length_of_replacement_text has to do the right length
+                   computation for this. */
+                a_const_char *tok = token_names[(int)tok_microsoft_lprefix];
+                sizeof_t tok_len = strlen(tok);
+                sizeof_t fnk_len;
+                src_loc--;  /* Back up to remove the "L". */
+                /* Add "__LPREFIX(". */
+                (void)memcpy(src_loc, tok, size_t_arg(tok_len));
+                src_loc += tok_len;
+                *src_loc++ = '(';
+                /* Copy the function-name keyword. */
+                fnk_len = post_end - map->expanded_text;
+#if FULLY_RESOLVED_MACRO_POSITIONS
+                /* Copy the map entry for the function keyword. */
+                clone_macro_text_map_entries(&map->exp_text_map,
+                                             /*starting_src_offset=*/0,
+                                             fnk_len - 1,
+                                             &macro_text_map,
+                                             (sizeof_t)(src_loc - rescan_loc),
+                                             this_macro_invocation_record);
+#endif /* FULLY_RESOLVED_MACRO_POSITIONS */
+                (void)memcpy(src_loc, text_loc, size_t_arg(fnk_len));
+                src_loc += fnk_len;
+                /* Add the closing parenthesis. */
+                *src_loc++ = ')';
+                /* Anything after the keyword is copied below. */
+                text_loc += fnk_len;
+                sect_len -= fnk_len;
+              }  /* if */
+            }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if FULLY_RESOLVED_MACRO_POSITIONS
             /* Copy the expanded text map entries, using
                NO_PARENT_MACRO_INVOCATION as the macro context to preserve
@@ -9572,10 +9603,16 @@ command line -D options.
 #endif /* DEFINE_PORTABLE_FEATURE_TEST_MACROS */
   }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
-  if (cppcli_enabled) {
+  if (cppcx_enabled) {
+    /* Define a macro that indicates that C++/CX is enabled. */
+    (void)enter_predef_macro("201009L", "__cplusplus_winrt",
+                             /*cannot_be_redefined=*/TRUE,
+                             /*ref_suppresses_pch_file=*/FALSE);
+  } else if (cli_or_cx_enabled) {
     /* Define a macro that indicates that C++/CLI is enabled. */
-    /* Note that the ECMA-372 standard requires a value of 200509L, but
-       VC10 uses 200406L. */
+    /* Note that the ECMA-372 standard requires a value of 200509L, but the
+       Microsoft compiler uses 200406L (checked for microsoft_versions
+       1600-1800). */
     (void)enter_predef_macro("200406L", "__cplusplus_cli",
                              /*cannot_be_redefined=*/TRUE,
                              /*ref_suppresses_pch_file=*/FALSE);

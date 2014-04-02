@@ -40,6 +40,7 @@ symbol_tbl.c - Symbol table management routines.
 #include "folding.h"
 #include "sys_predef.h"
 
+
 /* The multiplier used in the hash algorithm that generates an index
    in the hash table from an identifier name string.  Do not change
    without investigating the hash table performance that results.
@@ -55,6 +56,7 @@ static a_symbol_header_ptr
 		unnamed_tag_symbol_header,
 		anonymous_parent_object_symbol_header,
 		unnamed_field_symbol_header,
+		unnamed_virtual_function_symbol_header,
 		unnamed_namespace_symbol_header;
 
 static a_symbol_ptr
@@ -141,6 +143,7 @@ static unsigned long
 		num_hide_by_sig_list_entries_allocated,
 		num_property_set_symbol_supplements_allocated,
 		num_prop_or_event_accessor_header_lookups_allocated,
+		num_ms_attr_alt_name_entries_allocated,
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 		num_exception_spec_error_descrs_allocated;
 #endif /* DEBUG */
@@ -522,7 +525,7 @@ identifying which property or event it is for.
 {
   if (symbol_is(sym, sk_member_function)) {
 #if MICROSOFT_EXTENSIONS_ALLOWED
-    if (cppcli_enabled) {
+    if (cli_or_cx_enabled) {
       a_routine_ptr  rp = sym->variant.routine.ptr;
       if (rout_is_cli_accessor(rp)) {
         /* A property or event accessor: Display the property or event name. */
@@ -2778,7 +2781,7 @@ and implicit return types).
     /* Misdeclared destructors may not be marked as class members: */
     a_const_char *name = loc->symbol_header->identifier;
     if (name != NULL &&
-        (name[0] == '~' || (cppcli_enabled && name[0] == '!'))) {
+        (name[0] == '~' || (cli_or_cx_enabled && name[0] == '!'))) {
       answer = TRUE;
     }  /* if */
   }  /* if */
@@ -3539,6 +3542,26 @@ and return a pointer to it.
 }  /* alloc_template_symbol_supplement */
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
+
+extern a_boolean is_cppcx_externally_visible_symbol(a_symbol_ptr sym)
+/*
+Returns TRUE if this symbol is considered externally visible (i.e. it will be
+emitted into metadata) in C++/CX mode.
+*/
+{
+  a_boolean             result = FALSE;  /* Assume. */
+  
+  check_assertion(cppcx_enabled);
+  if (sym->is_class_member && is_managed_class_type(sym->parent.class_type)) {
+    /* Any member inside a C++/CX type with declared a assembly access of
+      "public" or "protected" is considered externally visible. */
+    an_access_specifier  assembly_access;
+    assembly_access = source_corresp_entry_for_symbol(sym)->assembly_access;
+    result = is_cppcx_externally_visible_assembly_access(assembly_access);
+  }  /* if */
+  return result;
+}  /* is_cppcx_externally_visible_symbol */
+
 
 static
 a_property_set_symbol_supplement_ptr alloc_property_set_symbol_supplement(void)
@@ -4612,7 +4635,7 @@ this is not allowed, an error will be issued by the caller.
           }  /* if */
         }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
-      } else if (cppcli_enabled &&
+      } else if (cli_or_cx_enabled &&
                  (is_cli_generic_class_symbol(fund_new_sym) &&
                   is_class_struct_union_symbol(fund_old_sym)) &&
                  (generic_arity_overload_allowed ||
@@ -4626,7 +4649,7 @@ this is not allowed, an error will be issued by the caller.
         /* Record the non-generic symbol in the information about the
            generic. */
         non_generic_class_for_cli_generic(fund_new_sym) = fund_old_sym;
-      } else if (cppcli_enabled &&
+      } else if (cli_or_cx_enabled &&
                  (is_cli_generic_class_symbol(fund_old_sym) &&
                   is_class_struct_union_symbol(fund_new_sym)) &&
                  (generic_arity_overload_allowed ||
@@ -4641,7 +4664,7 @@ this is not allowed, an error will be issued by the caller.
         /* Record the non-generic symbol in the information about the
            generic. */
         non_generic_class_for_cli_generic(fund_old_sym) = fund_new_sym;
-      } else if (cppcli_enabled && old_sym->is_invisible &&
+      } else if (cli_or_cx_enabled && old_sym->is_invisible &&
                  symbol_is_for_cli_accessor(old_sym)) {
         /* Property and event accessors don't conflict with members that
            happen to have the same name. */
@@ -6198,9 +6221,8 @@ the file scope is used.
   a_symbol_ptr        overload_sym, prev_sym_ptr;
   a_symbol_header_ptr hdr_ptr;
   a_scope_stack_entry *ssep;
-  a_scope_pointers_block_ptr  pointers_block;
+  a_scope_pointers_block_ptr  pointers_block = NULL;
 
-  
   if (other_sym->kind == (a_symbol_kind)sk_overloaded_function) {
     overload_sym = other_sym;
     other_sym = overload_sym->variant.overloaded_function.symbols;
@@ -7193,6 +7215,32 @@ into the symbol table.  Each unnamed symbol is given a unique symbol header.
 }  /* make_unnamed_symbol */
 
 
+void make_unnamed_virtual_function_locator(a_symbol_locator *loc)
+/*
+Initialize a locator, *loc, for an unnamed virtual function.
+*/
+{
+  check_assertion(cppcx_enabled);
+  clear_locator(loc, &null_source_position);
+  if (unnamed_virtual_function_symbol_header == NULL) {
+    unnamed_virtual_function_symbol_header = alloc_symbol_header();
+    set_identifier_for_symbol_header(unnamed_virtual_function_symbol_header,
+                                     "<unnamed>", 9);
+  }  /* if */
+  loc->symbol_header = unnamed_virtual_function_symbol_header;
+}  /* make_unnamed_virtual_function_locator */
+
+
+a_boolean is_unnamed_virtual_function_symbol(a_symbol_ptr sym)
+/*
+Return TRUE if sym represents an unnamed virtual function symbol.
+*/
+{
+  check_assertion(sym->header != NULL);
+  return sym->header == unnamed_virtual_function_symbol_header;
+}  /* is_unnamed_virtual_function_symbol */
+
+
 a_symbol_ptr make_anonymous_parent_object_symbol(a_symbol_kind      kind,
                                                  a_source_position  *pos,
                                                  a_scope_number     decl_scope)
@@ -7450,17 +7498,16 @@ Don't put its symbol into the symbol table yet.
 #endif /* IA64_ABI */
 #if MICROSOFT_EXTENSIONS_ALLOWED
 
-/* Forward declaration. */
-static void init_cli_symbol(a_cli_symbol_kind  csk);
 
-static a_namespace_ptr f_cli_namespace_ptr_for(a_cli_symbol_kind kind)
+a_namespace_ptr f_cli_namespace_ptr_for(a_cli_symbol_kind kind)
 /*
 The given C++/CLI symbol kind must designate a one of the C++/CLI namespaces
 known to the front end (like "System" or "cli").  Return the IL entry for that
 namespace.
 */
 {
-  a_symbol_ptr sym;
+  a_symbol_ptr     sym;
+  a_namespace_ptr  result;
 
   check_assertion((int)kind >= (int)csk_first_namespace &&
                   (int)kind <= (int)csk_last_namespace);
@@ -7469,12 +7516,14 @@ namespace.
     init_cli_symbol(kind);
     sym = cli_symbol_from_kind(kind);
   }  /* if */
-  check_assertion(sym != NULL && is_namespace_symbol(sym));
-  return sym->variant.namespace_info.ptr;
+  if (!cli_symbol_is_required(kind) && sym == NULL) {
+    result = NULL;
+  } else {
+    check_assertion(sym != NULL && is_namespace_symbol(sym));
+    result = sym->variant.namespace_info.ptr;
+  }  /* if */
+  return result;
 }  /* f_cli_namespace_ptr_for */
-
-#define cli_namespace_ptr_for(csk)                                           \
-  (f_cli_namespace_ptr_for((a_cli_symbol_kind)(csk)))
 
 
 a_type_ptr f_cli_class_type_for(a_cli_symbol_kind kind)
@@ -7484,18 +7533,19 @@ known to the front end (e.g., "System::Float", but not e.g. "cli::array",
 which is a template).  Return the IL entry for that class type.
 */
 {
-  a_symbol_ptr sym;
+  a_type_ptr              type;
+  a_symbol_ptr            sym;
 
   check_assertion((int)kind >= (int)csk_first_type &&
                   (int)kind <= (int)csk_last_type);
   sym = cli_symbol_from_kind(kind);
   if (sym == NULL) {
-    init_cli_symbol((a_cli_symbol_kind)kind);
+    init_cli_symbol(kind);
     sym = cli_symbol_from_kind(kind);
   }  /* if */
-  check_assertion(sym != NULL &&
-                  sym->kind == (a_symbol_kind)sk_class_or_struct_tag);
-  return sym->variant.class_struct_union.type;
+  type = (sym != NULL && is_type_symbol(sym)) ? type_symbol_type(sym) : NULL;
+  check_assertion(!cli_symbol_is_required(kind) || type != NULL);
+  return type;
 }  /* f_cli_class_type_for */
 
 
@@ -7537,27 +7587,27 @@ NULL).  Return the symbol found, if any.
 }  /* look_up_name_string_in_namespace */
 
 
-static a_symbol_ptr make_cli_internal_template(a_const_char *symbol_name,
-                                               a_const_char *definition_string)
+static a_symbol_ptr make_cli_internal_template(
+                                           a_const_char    *symbol_name,
+                                           a_const_char    *definition_string,
+                                           a_namespace_ptr ns_ptr)
 /*
 Declare and define the template specified by symbol_name and return the symbol
 associated with it.  The definition is provided by definition_string.
-These templates are generated internally to implement C++/CLI features like
-cli::array or cli::interior_ptr.
+These templates are generated internally to implement C++/CLI and C++/CX
+features like cli::interior_ptr or Platform::WriteOnlyArray.
 */
 {
-  a_namespace_ptr                  ns_ptr;
   a_template_symbol_supplement_ptr tssp;
   a_symbol_ptr                     result_sym;
 
   scan_top_level_metadata_declarations(definition_string,
                                        (an_assembly_index)0);
-  ns_ptr = cli_namespace_ptr_for(csk_cli_namespace);
   result_sym = look_up_name_string_in_namespace(
                                            symbol_name, ns_ptr,
                                            IDL_DIRECT_NAMESPACE_MEMBERS_ONLY);
   check_assertion(result_sym != NULL &&
-                  result_sym->kind == (a_symbol_kind)sk_class_template);
+                  symbol_is(result_sym, sk_class_template));
   tssp = result_sym->variant.template_info;
   tssp->variant.class_template.cannot_be_specialized = TRUE;
   return result_sym;
@@ -7566,8 +7616,8 @@ cli::array or cli::interior_ptr.
 
 static void make_symbol_for_cli_array(void)
 /*
-Declare and define the C++/CLI type "cli::array".  (The definition is lifted
-from ECMA-372, subsection 8.2.3.)
+In C++/CLI mode, declare and define the C++/CLI type "cli::array".  (The
+definition is lifted from ECMA-372, subsection 8.2.3.)
 */
 {
  /* Create cli::array in two parts.  First, declare the template without
@@ -7575,22 +7625,22 @@ from ECMA-372, subsection 8.2.3.)
     prototype instantiation of cli::array is done.  Then complete the
     definition. */
   cli_symbols[(int)csk_cli_array] = make_cli_internal_template("array",
-     "namespace cli {"
-     "  template <typename T, int rank = 1>"
-     "  ref class array;"
-     "}"
-   );
+      "namespace cli {"
+      "  template <typename T, int rank = 1>"
+      "  ref class array;"
+      "}",
+      cli_namespace_ptr_for(csk_cli_namespace));
   cli_symbols[(int)csk_cli_array]
       ->variant.template_info
       ->variant.class_template.prototype_instantiation
       ->variant.class_struct_union.type
       ->variant.class_struct_union.extra_info->is_cli_array = TRUE;
   scan_top_level_metadata_declarations(
-     "namespace cli {"
-     "  template <typename T, int rank>"
-     "  ref class array sealed : System::Array {};"
-     "}",
-     (an_assembly_index)0);
+      "namespace cli {"
+      "  template <typename T, int rank>"
+      "  ref class array sealed : System::Array {};"
+      "}",
+      (an_assembly_index)0);
 }  /* make_symbol_for_cli_array */
 
 
@@ -7605,8 +7655,8 @@ Declare and define the C++/CLI type "cli::interior_ptr".
       "  template <typename Type>"
       "  __internal_alias_decl interior_ptr ="
       "              __declspec(__edg_interior_ptr_alias) Type;"
-      "}"
-    );
+      "}",
+      cli_namespace_ptr_for(csk_cli_namespace));
 }  /* make_symbol_for_cli_interior_ptr */
 
 
@@ -7620,9 +7670,105 @@ Declare and define the C++/CLI type "cli::pin_ptr".
       "  template <typename Type>"
       "  __internal_alias_decl pin_ptr ="
       "              __declspec(__edg_pin_ptr_alias) Type;"
-      "}"
-    );
+      "}",
+      cli_namespace_ptr_for(csk_cli_namespace));
 }  /* make_symbol_for_cli_pin_ptr */
+
+
+static void make_symbols_for_cppcx_arrays(void)
+/*
+Declare (but do not define) the C++/CX templates Platform::WriteOnlyArray
+and Platform::Array (the definition is come from the vccorlib.h header).  This
+routine should only be called in C++/CX mode.
+
+Predeclaring these template is convenient for at least two reasons:
+    1) We need to set is_cli_array to TRUE.
+    2) If in the future changes are made such that we need the array type
+       while importing windows.foundation.winmd (or platform.winmd for that
+       matter), we need to have this type pre-declared.
+Don't put default template arguments since those will be specified in the
+vccorlib.h header.
+*/
+{
+  check_assertion(cppcx_enabled);
+  cli_symbols[(int)csk_cli_array] = make_cli_internal_template(
+        "Array",
+          "namespace Platform {"
+          "  template <typename T, unsigned int dimension>"
+          "  ref class Array;"
+          "}",
+        cli_namespace_ptr_for(csk_system_namespace));
+  cli_symbols[(int)csk_cli_array]
+      ->variant.template_info
+      ->variant.class_template.prototype_instantiation
+      ->variant.class_struct_union.type
+      ->variant.class_struct_union.extra_info->is_cli_array = TRUE;
+  cli_symbols[(int)csk_platform_write_only_array] = make_cli_internal_template(
+        "WriteOnlyArray",
+          "namespace Platform {"
+          "  template <typename T, unsigned int dimension>"
+          "  ref class WriteOnlyArray;"
+          "}",
+        cli_namespace_ptr_for(csk_system_namespace));
+  cli_symbols[(int)csk_platform_write_only_array]
+        ->variant.template_info
+        ->variant.class_template.prototype_instantiation
+        ->variant.class_struct_union.type
+        ->variant.class_struct_union.extra_info->is_cli_array = TRUE;
+  cli_symbols[(int)csk_platform_write_only_array]
+        ->variant.template_info
+        ->variant.class_template.prototype_instantiation
+        ->variant.class_struct_union.type
+        ->variant.class_struct_union.extra_info
+        ->is_cppcx_write_only_array = TRUE;
+  /* make_cli_internal_template disables specialization of the class template.
+     However, C++/CX defines specializations for single-dimension
+     WriteOnlyArray and Array instantiations.  Enable specializations for
+     those templates here (they will be disabled again once we have scanned
+     them). */
+  cli_symbols[(int)csk_platform_write_only_array]->variant.template_info
+                       ->variant.class_template.cannot_be_specialized = FALSE;
+  cli_symbols[(int)csk_cli_array]->variant.template_info->variant
+                                .class_template.cannot_be_specialized = FALSE;
+}  /* make_symbols_for_cppcx_arrays */
+
+
+void make_symbol_for_cppcx_box(void)
+/*
+Declare and define the C++/CX type "Platform::Box".
+*/
+{
+  /* Declare Platform::Box<T> without defining it to ensure
+     cli_symbols[csk_cppcx_box] is set before the
+     prototype instantiation of Platform::Box is done when we encounter
+     the definition in vccorlib.h. */
+  cli_symbols[(int)csk_cppcx_box] = make_cli_internal_template(
+    "Box",
+      "namespace Platform {"
+      "  template <typename T>"
+      "  ref class Box;"
+      "}",
+    cli_namespace_ptr_for(csk_system_namespace));
+  cli_symbols[(int)csk_cppcx_box]
+                 ->variant.template_info
+                 ->variant.class_template.prototype_instantiation
+                 ->variant.class_struct_union.type
+                 ->variant.class_struct_union.extra_info->is_cppcx_box = TRUE;
+}  /* make_symbol_for_cppcx_box */
+
+
+void make_symbol_for_abi_hstring(void)
+/*
+C++/CX symbol for the __abi_HSTRING type.  This will be used to inject the
+special Platform::String constructor that accepts an argument of the
+__abi_HSTRING type in C++/CX mode.
+*/
+{
+  check_assertion (cppcx_enabled);
+  scan_top_level_metadata_declarations(
+     "struct HSTRING__;", (an_assembly_index)0);
+  init_cli_symbol((a_cli_symbol_kind)csk_abi_hstring);
+}  /* make_symbol_for_abi_hstring */
 
 
 static void init_cli_symbols_corresponding_to_fundamental_types(void)
@@ -7692,14 +7838,50 @@ cli_float_kinds arrays therefore list only the preferred basic types.
                                              corresponding_basic_type == NULL);
   class_type_supp(type_symbol_type(cli_symbol))->
                                      corresponding_basic_type = wchar_t_type();
-  /* Map System::Void to void. */
-  cli_symbol = cli_symbol_from_kind(csk_system_void);
-  check_assertion(cli_symbol != NULL);
-  check_assertion(class_type_supp(type_symbol_type(cli_symbol))->
+  if (cppcx_enabled) {
+    /* Map Platform::SizeT to size_t. */
+    cli_symbol = cli_symbol_from_kind(csk_size_t);
+    check_assertion(cli_symbol != NULL);
+    check_assertion(class_type_supp(type_symbol_type(cli_symbol))->
                                              corresponding_basic_type == NULL);
-  class_type_supp(type_symbol_type(cli_symbol))->
+    class_type_supp(type_symbol_type(cli_symbol))->corresponding_basic_type =
+                                   type_symbol_type(predeclared_size_t_symbol);
+    /* Map Platform::Details::_GUID to const _GUID&. */
+    cli_symbol = cli_symbol_from_kind(csk_platform_details_guid);
+    check_assertion(cli_symbol != NULL);
+    check_assertion(class_type_supp(type_symbol_type(cli_symbol))->
+                                             corresponding_basic_type == NULL);
+    class_type_supp(type_symbol_type(cli_symbol))->corresponding_basic_type =
+             make_reference_type(make_qualified_type(type_of_guid, TQ_CONST));
+  } else {
+    /* Map System::Void to void.  (There is no C++/CX counterpart for this
+       one.) */
+    cli_symbol = cli_symbol_from_kind(csk_system_void);
+    check_assertion(cli_symbol != NULL);
+    check_assertion(class_type_supp(type_symbol_type(cli_symbol))->
+                                             corresponding_basic_type == NULL);
+    class_type_supp(type_symbol_type(cli_symbol))->
                                         corresponding_basic_type = void_type();
+  }  /* if */
 }  /* init_cli_symbols_corresponding_to_fundamental_types */
+
+
+a_symbol_ptr f_cli_symbol_from_kind_or_null(a_cli_symbol_kind kind)
+/*
+Return the symbol associated with kind, and if it is not initialized, attempt
+to initialize the symbol.  If the symbol cannot be initialized, return NULL.
+This function is often more conveniently called through the corresponding
+macro cli_symbol_from_kind_or_null.
+*/
+{
+  a_symbol_ptr sym = cli_symbol_from_kind(kind);
+
+  if (sym == NULL) {
+    init_cli_symbol(kind);
+    sym = cli_symbol_from_kind(kind);
+  }  /* if */
+  return sym;
+}  /* f_cli_symbol_from_kind_or_null */
 
 
 static void make_symbols_for_system_string_operators(void)
@@ -7746,7 +7928,7 @@ Create symbols for the builtin System::String operators.
 }  /* make_symbols_for_system_string_operators */
 
 
-static void init_cli_symbol(a_cli_symbol_kind  csk)
+void init_cli_symbol(a_cli_symbol_kind  csk)
 /*
 Look up the C++/CLI namespace or type specified by csk and cache it in the
 cli_symbols array.  This function assumes that mscorlib.dll has been imported.
@@ -7758,9 +7940,18 @@ cli_symbols array.  This function assumes that mscorlib.dll has been imported.
   check_assertion((int)csk >= (int)csk_first && (int)csk < (int)csk_last);
   name = cli_symbol_names[csk].name;
   ns_kind = (a_cli_symbol_kind)cli_symbol_names[csk].namespace_kind;
+  if (cppcx_enabled) {
+    if (cli_symbol_names[csk].cppcx_name != NULL) {
+      name = cli_symbol_names[csk].cppcx_name;
+    }  /* if */
+    if (cli_symbol_names[csk].cppcx_namespace_kind != csk_none) {
+      ns_kind = (a_cli_symbol_kind)cli_symbol_names[csk].cppcx_namespace_kind;
+    }  /* if */
+  }  /* if */
   if (name != NULL) {
     a_namespace_ptr          ns_ptr = NULL;
     an_id_lookup_options_set options = IDL_DIRECT_NAMESPACE_MEMBERS_ONLY;
+    a_boolean                required = cli_symbol_is_required(csk);
     check_assertion(*name != '\0');
     if ((int)csk >= (int)csk_first_namespace &&
         (int)csk <= (int)csk_last_namespace) {
@@ -7768,17 +7959,23 @@ cli_symbols array.  This function assumes that mscorlib.dll has been imported.
     }  /* if */
     if (ns_kind != (a_cli_symbol_kind)csk_none) {
       ns_ptr = cli_namespace_ptr_for(ns_kind);
+      if (ns_ptr == NULL) {
+        if (!required) goto done;
+        /* The parent namespace wasn't found. */
+        str_catastrophe(ec_cli_entity_not_loaded, name);
+      }  /* if */
     }  /* if */
     cli_symbols[csk] = look_up_name_string_in_namespace(name, ns_ptr, options);
-    if (cli_symbols[csk] == NULL) {
+    if (required && cli_symbols[csk] == NULL) {
       /* The symbol wasn't found in the parent namespace. */
       str_catastrophe(ec_cli_entity_not_loaded, name);
     }  /* if */
   }  /* if */
+done:;
 }  /* init_cli_symbol */
 
 
-void init_cli_symbols(void)
+void init_cli_symbols()
 /*
 Initialize symbols for various C++/CLI core library entities that the front
 end knows about (this function assumes that mscorlib.dll has been imported).
@@ -7805,7 +8002,11 @@ Many of these symbols will be accessible through the cli_symbols array.
 #endif /* CHECKING */
   /* Initialize the symbols in the cli_symbols array. */
   for (csk = (int)csk_first_type; csk <= (int)csk_last_type; csk++) {
-    if (cli_symbols[csk] == NULL) {
+    a_cli_symbol_init_flag_set  init_mask;
+    init_mask = cppcx_enabled ?  CISF_PLATFORM_METADATA : CISF_CLI_METADATA;
+    if (cli_symbols[csk] == NULL &&
+        (cli_symbol_names[csk].init_flags == CISF_DEFAULT ||
+         (cli_symbol_names[csk].init_flags & init_mask) != 0)) {
       init_cli_symbol((a_cli_symbol_kind)csk);
     }  /* if */
   }  /* for */
@@ -7818,10 +8019,33 @@ Many of these symbols will be accessible through the cli_symbols array.
   init_cli_symbols_corresponding_to_fundamental_types();
   make_symbols_for_system_string_operators();
   /* Make the symbol associated with some C++/CLI internal templates. */
-  make_symbol_for_cli_array();
-  make_symbol_for_cli_interior_ptr();
-  make_symbol_for_cli_pin_ptr();
+  if (cppcx_enabled) {
+    make_symbols_for_cppcx_arrays();
+  } else {
+    make_symbol_for_cli_array();
+    make_symbol_for_cli_interior_ptr();
+    make_symbol_for_cli_pin_ptr();
+  }  /* if */
 }  /* init_cli_symbols */
+
+
+void init_windows_metadata_symbols(void)
+/*
+Look up various C++/CX types (and the namespaces in which they are located)
+and cache them in the cli_symbols array.  This function assumes that
+Windows.winmd has been imported.
+*/
+{
+  int csk;
+
+  /* Initialize the symbols in the cli_symbols array. */
+  for (csk = (int)csk_first_type; csk <= (int)csk_last_type; csk++) {
+    if (cli_symbols[csk] == NULL &&
+        (cli_symbol_names[csk].init_flags & CISF_WINDOWS_METADATA) != 0) {
+      init_cli_symbol((a_cli_symbol_kind)csk);
+    }  /* if */
+  }  /* for */
+}  /* init_windows_metadata_symbols */
 
 
 a_boolean is_generic_cli_ienumerable_type(a_type_ptr type,
@@ -8546,7 +8770,7 @@ the front.  This is used for destructor names and C++/CLI finalizer names.
   clear_locator(locator, &position);
 #if MICROSOFT_EXTENSIONS_ALLOWED
   if (finalizer) {
-    check_assertion(cppcli_enabled);
+    check_assertion(cli_or_cx_enabled);
     locator->is_finalizer_name = TRUE;
   } else
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
@@ -8631,7 +8855,7 @@ static constructor.  This routine is only used in C++ mode.
     internal_error(
        "change_class_locator_into_constructor_locator: locator not for class");
   }  /* if */
-  check_assertion(!is_static_ctor || cppcli_enabled);
+  check_assertion(!is_static_ctor || cli_or_cx_enabled);
 #endif /* CHECKING */
   if (locator->symbol_header == unnamed_tag_symbol_header
 #if MICROSOFT_EXTENSIONS_ALLOWED
@@ -8666,6 +8890,138 @@ static constructor.  This routine is only used in C++ mode.
   locator->symbol_header = hdr_ptr;
 }  /* change_class_locator_into_constructor_locator */
 
+#if MICROSOFT_EXTENSIONS_ALLOWED
+
+typedef struct an_ms_attr_alt_name_entry *an_ms_attr_alt_name_entry_ptr;
+typedef struct an_ms_attr_alt_name_entry {
+  /*  */
+  an_ms_attr_alt_name_entry_ptr
+		next;
+			/* Next in a linked list of Microsoft attribute
+			   alternate name header entries; NULL for the last
+			   entry on the list. */
+  a_symbol_header_ptr
+		original_header;
+			/* Pointer to the symbol header without the
+			   "Attribute" suffix. */
+  a_symbol_header_ptr
+		alt_name_header;
+			/* Pointer to the symbol header with the "Attribute"
+			   suffix. */
+} an_ms_attr_alt_name_entry;
+
+
+/*
+List of symbol header entries that are used to lookup Microsoft attributes
+with an alternate name that includes an "Attribute" suffix.
+*/
+static an_ms_attr_alt_name_entry_ptr
+		ms_attr_alt_name_entry_list;
+
+
+static an_ms_attr_alt_name_entry_ptr alloc_ms_attr_alt_name_entry(void)
+/*
+Allocate a new alternate name entry and return a pointer to it.
+*/
+{
+  register an_ms_attr_alt_name_entry_ptr ptr;
+
+  db_enter(5, "alloc_ms_attr_alt_name_entry");
+  ptr = (an_ms_attr_alt_name_entry_ptr)alloc_fe(
+                                           sizeof(an_ms_attr_alt_name_entry));
+#if DEBUG
+  num_ms_attr_alt_name_entries_allocated++;
+#endif /* DEBUG */
+  ptr->next            = NULL;
+  ptr->original_header = NULL;
+  ptr->alt_name_header = NULL;
+
+  db_exit();
+  return ptr;
+}  /* alloc_ms_attr_alt_name_entry */
+
+
+static a_symbol_header_ptr find_ms_attr_alt_name_header(
+                                                   a_symbol_header_ptr header)
+/*
+Look up the alternate name symbol header for a given symbol header.  If there
+is none, create a new one.
+*/
+{
+  an_ms_attr_alt_name_entry_ptr alt_name_entry;
+  an_ms_attr_alt_name_entry_ptr prev_alt_name_entry;
+
+  /* Search the alternate name entry list for an entry matching the given
+     symbol header.  If one is found, it is moved to the front of the list. */
+  prev_alt_name_entry = NULL;
+  alt_name_entry = ms_attr_alt_name_entry_list;
+  for (; alt_name_entry != NULL; alt_name_entry = alt_name_entry->next) {
+    if (alt_name_entry->original_header == header) {
+      /* Found it.  Move it to the front of the list. */
+      if (prev_alt_name_entry != NULL) {
+        prev_alt_name_entry->next = alt_name_entry->next;
+        alt_name_entry->next = ms_attr_alt_name_entry_list;
+        ms_attr_alt_name_entry_list = alt_name_entry;
+      }  /* if */
+      break;
+    }  /* if */
+    prev_alt_name_entry = alt_name_entry;
+  }  /* if */
+  /* alt_name_entry is NULL if no entry already exists on the list for the
+     specified symbol header. */
+  if (alt_name_entry == NULL) {
+    a_symbol_header_ptr alt_name_header;
+    char                attribute_suffix[] = "Attribute";
+    char*               alternate_name;
+    sizeof_t            length;
+    a_symbol_locator    locator;
+    /* Create a symbol header for the alternate name of a Microsoft attribute,
+       which includes an "Attribute" suffix. */
+    length = header->identifier_length + sizeof(attribute_suffix) - 1;
+    alternate_name = alloc_primary_file_scope_il((sizeof_t)(length + 1));
+    /* Copy the identifier from the original header. */
+    (void)strncpy(alternate_name, header->identifier,
+                  header->identifier_length);
+    /* Append "Attribute" to the identifier. */
+    (void)strcpy(alternate_name + header->identifier_length,
+                 attribute_suffix);
+    /* Terminate the string. */
+    alternate_name[length] = '\0';
+#if DEBUG
+    symbol_name_string_space += (unsigned long)(length + 1);
+#endif /* DEBUG */
+    /* Find the symbol header for the alternate name. */
+    clear_locator(&locator, &null_source_position);
+    alt_name_header = find_symbol_header(alternate_name, length,
+                                         &locator);
+    /* Create a new alternate name entry and add it to the front of the
+       list. */
+    alt_name_entry = alloc_ms_attr_alt_name_entry();
+    alt_name_entry->next = ms_attr_alt_name_entry_list;
+    alt_name_entry->original_header = header;
+    alt_name_entry->alt_name_header = alt_name_header;
+    ms_attr_alt_name_entry_list = alt_name_entry;
+  }  /* if */
+  return alt_name_entry->alt_name_header;
+}  /* find_ms_attr_alt_name_header */
+
+
+void change_ms_attr_locator_into_alt_name_locator(a_symbol_locator *locator)
+/*
+Change the symbol header in locator to reference the alternate name symbol
+header.
+*/
+{
+  a_symbol_header_ptr hdr_ptr;
+
+  check_assertion(!is_error_locator(*locator) &&
+                  !locator->do_not_clear_specific_symbol);
+  clear_specific_symbol(*locator);
+  hdr_ptr = find_ms_attr_alt_name_header(locator->symbol_header);
+  locator->symbol_header = hdr_ptr;
+}  /* change_locator_into_ms_attribute_alternate_name_locator */
+
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 void make_opname_locator(an_opname_kind     opname,
                          a_symbol_locator   *locator,
@@ -9431,7 +9787,7 @@ the function.
 */
 {
   if (sym != NULL) {
-    check_assertion(cppcli_enabled);
+    check_assertion(cli_or_cx_enabled);
     sym_add_diag_info(ec_skipped_inaccessible_function, sym);
   }  /* if */
 }  /* add_on_diag_for_skipped_inaccessible_function */
@@ -9987,7 +10343,7 @@ It cannot be used for checking access (see have_access_to_symbol).
     check_assertion(scp != NULL);
     access = scp->access;
 #if MICROSOFT_EXTENSIONS_ALLOWED
-    if (cppcli_enabled && 
+    if (cli_or_cx_enabled && 
         sym_ptr->parent.class_type != NULL &&
         assembly_index_from_assembly_scope_index(
          class_type_supp(sym_ptr->parent.class_type)->assembly_scope_index) !=
@@ -12271,7 +12627,7 @@ check_rout_type:
       case sk_property_set:
         /* Property sets only appear in C++/CLI managed classes, which don't
            permit multiple base subobjects of the same type. */
-        check_assertion(cppcli_enabled);
+        check_assertion(cli_or_cx_enabled);
         equiv = TRUE;
         break;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
@@ -12597,7 +12953,7 @@ interface classes.
     /* Traverse the set of progenitors that was collected, and remove any
        that come from an interface base. */
     a_progenitor_ptr  *p_progenitor = &progenitor_set;
-    check_assertion(cppcli_enabled);
+    check_assertion(cli_or_cx_enabled);
     while (*p_progenitor != NULL) {
       a_symbol_ptr  sym = fundamental_symbol_of((*p_progenitor)->sym);
       a_type_ptr    sym_parent = sym_parent_class(sym);
@@ -15285,6 +15641,9 @@ for space tracking purposes.
                 num_prop_or_event_accessor_header_lookups_allocated,
                 a_prop_or_event_accessor_header_lookup);
   grand_total = db_show_ms_attrib_space_used(grand_total);
+  db_space_used("ms attribute alternate name entries",
+                 num_ms_attr_alt_name_entries_allocated,
+                 an_ms_attr_alt_name_entry);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   grand_total = db_show_pch_space_used(grand_total);
   grand_total = db_show_scope_stack_space_used(grand_total);
@@ -15514,6 +15873,9 @@ are handled in symbol_tbl_init.)
   if (precompiled_header_processing_required) {
     static a_pch_saved_variable saved_vars[] = {
       pch_saved_var_array_elem(conversion_header_list),
+#if MICROSOFT_EXTENSIONS_ALLOWED
+      pch_saved_var_array_elem(ms_attr_alt_name_entry_list),
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       pch_saved_var_array_elem(decl_seq_counter),
       pch_array_saved_var_array_elem(opname_symbol_table),
       /* In effect, only the first element of the scope stack entry is
@@ -15542,6 +15904,7 @@ are handled in symbol_tbl_init.)
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       pch_saved_var_array_elem(error_symbol_header),
       pch_saved_var_array_elem(unnamed_tag_symbol_header),
+      pch_saved_var_array_elem(unnamed_virtual_function_symbol_header),
       pch_saved_var_array_elem(unnamed_namespace_symbol_header),
       pch_saved_var_array_elem(anonymous_parent_object_symbol_header),
       pch_saved_var_array_elem(unnamed_field_symbol_header),
@@ -15618,6 +15981,7 @@ are handled in symbol_tbl_init.)
       pch_saved_var_array_elem(num_property_set_symbol_supplements_allocated),
       pch_saved_var_array_elem(
                          num_prop_or_event_accessor_header_lookups_allocated),
+      pch_saved_var_array_elem(num_ms_attr_alt_name_entries_allocated),
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #endif /* if DEBUG */
       pch_saved_var_array_terminating_elem()
@@ -15642,6 +16006,7 @@ are handled in symbol_tbl_init.)
   register_trans_unit_variable(file_scope_symbols_are_on_inactive_list);
 #if MICROSOFT_EXTENSIONS_ALLOWED
   register_trans_unit_variable(predeclared_size_t_symbol);
+  register_trans_unit_variable(ms_attr_alt_name_entry_list);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   register_trans_unit_variable(conversion_header_list);
   register_trans_unit_variable(decl_seq_counter);
@@ -15685,6 +16050,7 @@ given translation unit.
   file_scope_symbols_are_on_inactive_list = FALSE;
 #if MICROSOFT_EXTENSIONS_ALLOWED
   predeclared_size_t_symbol = NULL;
+  ms_attr_alt_name_entry_list = NULL;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   /* Initialize the conversion header list. */
   conversion_header_list = NULL;
@@ -15756,6 +16122,7 @@ of the front end.
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   error_symbol_header = NULL;
   unnamed_tag_symbol_header = NULL;
+  unnamed_virtual_function_symbol_header = NULL;
   unnamed_namespace_symbol_header = NULL;
   anonymous_parent_object_symbol_header = NULL;
   unnamed_field_symbol_header = NULL;
@@ -15811,6 +16178,7 @@ of the front end.
   num_property_set_symbol_supplements_allocated = 0;
   num_prop_or_event_accessor_header_lookups_allocated
                                                 = 0;
+  num_ms_attr_alt_name_entries_allocated        = 0;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #endif /* DEBUG */
 }  /* symbol_tbl_init */

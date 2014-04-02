@@ -1443,10 +1443,10 @@ simply include that.
                                    /*is_include_file=*/TRUE,
                                    /*is_system_include=*/FALSE,
                                    /*is_preinclude=*/FALSE,
-			           /*preinclude_macros=*/FALSE,
+                                   /*preinclude_macros=*/FALSE,
                                    /*is_implicit_include=*/FALSE,
                                    /*is_include_next=*/FALSE,
-				   /*continue_on_open_failure=*/FALSE,
+                                   /*continue_on_open_failure=*/FALSE,
                                    (a_boolean*)NULL);
   }  /* if */
 }  /* proc_import */
@@ -1486,7 +1486,6 @@ are being generated, the directive is added to that list as well.
     }  /* while */
     cli_metadata_files_tail->next = cmfp;
   }  /* if */
-#if MICROSOFT_EXTENSIONS_ALLOWED
   /* Create a record of this source file, and map a source position to be
      used for all tokens read from this file. */
   record_inclusion_of_assembly_source_file(full_name,
@@ -1496,7 +1495,6 @@ are being generated, the directive is added to that list as well.
                                            is_system_include,
                                            referenced_by_preusing,
                                            &cmfp->inserted_position);
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   add_to_source_sequence_list((char*)cmfp, iek_cli_metadata_file);
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
@@ -1621,6 +1619,104 @@ in the metadata file.
 }  /* import_metadata */
 
 
+static void entering_vccorlib()
+/*
+Perform any necessary actions that must occur before vccorlib.h is parsed.
+*/
+{
+  /* In order to parse vccorlib.h successfully, several definitions that
+     are predefined in the Microsoft compiler must be defined. */
+  scan_top_level_metadata_declarations(
+     "struct __s_GUID {"
+     "unsigned long Data1;"
+     "unsigned short Data2;"
+     "unsigned short Data3;"
+     "unsigned char Data4[8];"
+     "};"
+     "typedef const struct _GUID &__rcGUID_t;",
+     (an_assembly_index)0);
+  /* The symbol for __abi_HSTRING__ must be available before vccorlib.h
+     processing as well. */
+  make_symbol_for_abi_hstring();
+}  /* entering_vccorlib */
+
+
+static void leaving_vccorlib()
+/*
+Perform any necessary actions that should occur after vccorlib.h is parsed.
+*/
+{
+  /* Wrapup Platform::Array initialization. */
+  cli_symbols[(int)csk_platform_write_only_array]->variant.template_info
+                        ->variant.class_template.cannot_be_specialized = TRUE;
+  cli_symbols[(int)csk_cli_array]->variant.template_info->variant
+                                 .class_template.cannot_be_specialized = TRUE;
+  class_type_supp(type_symbol_type(cli_symbols[csk_platform_details_guid]))
+                        ->corresponding_basic_type = NULL;
+}  /* leaving_vccorlib */
+
+
+static void process_vccorlib_header()
+/*
+Push vccorlib.h onto the input stack and parse the file.  vccorlib.h is a
+unique preinclude file that is processed in the middle of preusing processing.
+vccorlib.h is processed through the normal preinclude mechanism to avoid code
+duplication.  However, care must be taken to preserve the preinclude state
+potential additional preincluded headers (e.g. just because preinclude
+processing is suddenly suspended here, the preinclude state should not look
+as if we are at the end of the preinclude list, etc.).
+*/
+{
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+  a_boolean         saved_source_sequence_entries_disallowed;
+
+  /* Don't generate source sequence entries for vccorlib.h. */ 
+  saved_source_sequence_entries_disallowed =
+                                           source_sequence_entries_disallowed;
+  source_sequence_entries_disallowed = TRUE;
+  scope_stack_top().source_sequence_entries_disallowed = TRUE;
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+  processing_vccorlib_header = TRUE;
+  /* Push vccorlib.h onto the input stack. */
+  next_preinclude_file = preinclude_file_list;
+  push_next_preinclude_file();
+  /* If vccorlib.h fails to open, it is a catastrophic error.  Otherwise,
+     vccorlib.h is on top of the input stack. */
+  check_assertion(strcmp(start_of_file_name(curr_ise->full_name),
+                         "vccorlib.h") == 0);
+  /* Do not read past the end of the file.  This ensures that the lexer
+     will not pop the input stack and will return tok_end_of_source. */
+  curr_ise->do_not_advance_past_end_of_file = TRUE;
+  /* Perform any necessary initialization before parsing vccorlib.h. */
+  entering_vccorlib();
+  (void)read_logical_source_line(/*do_pop_on_end_of_file=*/FALSE,
+                                 /*extend_current_line=*/FALSE);
+  /* Pull in the first token of vccorlib.h and parse the file. */
+  (void)get_token();
+  while (curr_token != tok_end_of_source) {
+    declaration(/*function_definition_allowed=*/TRUE,
+                /*is_old_style_param_decl=*/FALSE,
+                /*is_top_level_declaration=*/TRUE,
+                /*marked_as_gnu_extension=*/FALSE,
+                (a_param_id_ptr)NULL, (a_source_range *)NULL);
+  }  /* while */
+  /* We must manually pop the input stack since do_not_advance_past_end_of_file
+     was specified. */
+  pop_input_stack();
+  leaving_vccorlib();
+  /* next_preinclude_file must be set to NULL before leaving this function
+     so that normal preinclude processing is undisturbed. */
+  next_preinclude_file = NULL;
+  processing_vccorlib_header = FALSE;
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+  source_sequence_entries_disallowed =
+                                      saved_source_sequence_entries_disallowed;
+  scope_stack_top().source_sequence_entries_disallowed =
+                                      saved_source_sequence_entries_disallowed;
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+}  /* process_vccorlib_header */
+
+
 void process_preusings(void)
 /*
 Import mscorlib.dll or the file to be used in place of mscorlib to define
@@ -1636,14 +1732,31 @@ system types.  Then import any other metadata files specified via --preusing.
   if (mscorlib_file_name != NULL) {
     mscorlib = mscorlib_file_name;
   } else {
-    mscorlib = "mscorlib.dll";
-  }  /* if */    
+    mscorlib = cppcx_enabled ? "platform.winmd" : "mscorlib.dll";
+  }  /* if */
   il_mscorlib = alloc_il(strlen(mscorlib) + 1);
   strcpy(il_mscorlib, mscorlib);
   import_metadata(il_mscorlib, /*as_friend=*/FALSE, /*is_system_include=*/TRUE,
                   /*referenced_by_preusing=*/TRUE,
                   &preinclude_source_position);
   init_cli_symbols();
+  if (cppcx_enabled) {
+    /* Import Windows.winmd. */
+    a_const_char *windows_winmd = "Windows.winmd";
+    char         *il_windows_winmd;
+    il_windows_winmd = alloc_il(strlen(windows_winmd) + 1);
+    strcpy(il_windows_winmd, windows_winmd);
+    import_metadata(il_windows_winmd, /*as_friend=*/FALSE,
+                    /*is_system_include=*/TRUE,
+                    /*referenced_by_preusing=*/TRUE,
+                    &preinclude_source_position);
+    /* Create Platform::Box<T> symbol. */
+    make_symbol_for_cppcx_box();
+    process_vccorlib_header();
+    /* Initialize the symbols for the namespaces and types found in
+       Windows.winmd. */
+    init_windows_metadata_symbols();
+  }  /* if */
   while (preusing_file_list != NULL) {
     name = alloc_il(strlen(preusing_file_list->file_name) + 1);
     strcpy(name, preusing_file_list->file_name);
@@ -1691,9 +1804,12 @@ referenced.
     }  /* if */
     /* Ignore trailing comments on the line. */
     ignore_harmless_trailing_comment();
-    if (!cppcli_enabled) {
-      /* C++/CLI is not enabled.  Skip processing the #using. */
-      str_error(ec_cppcli_not_enabled, "#using");
+    if (!cli_or_cx_enabled) {
+      /* Neither C++/CLI nor C++/CX are enabled.  Skip processing the
+         #using. */
+      str_error(cppcx_enabled ? ec_cppcx_not_enabled
+                              : ec_cppcli_not_enabled,
+                "#using");
     } else if (depth_scope_stack != DEPTH_OF_FILE_SCOPE) {
       /* #using must occur at file scope. */
       error(ec_using_not_at_file_scope);
@@ -4179,6 +4295,7 @@ One-time initialization for preproc.c and preproc.h variables.
   register_trans_unit_variable(upc_coherence_stack);
 #endif /* UPC_EXTENSIONS_ALLOWED */
 #if MICROSOFT_EXTENSIONS_ALLOWED
+  processing_vccorlib_header = FALSE;
   register_trans_unit_variable(forScope_stack);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 }  /* preproc_one_time_init */

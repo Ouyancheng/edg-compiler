@@ -1001,7 +1001,7 @@ checked later.
 */
 #define begin_deferral_of_constraint_checks()				\
 {									\
-  if (cppcli_enabled) {							\
+  if (cli_or_cx_enabled) {						\
     scope_stack[depth_scope_stack].defer_constraint_checks = TRUE;	\
   }  /* if */								\
 }
@@ -1014,10 +1014,10 @@ constraint checks were done.
 */
 #define end_deferral_of_constraint_checks(scope_depth)			\
 {									\
-  if (cppcli_enabled) {							\
-    check_assertion(scope_stack[(scope_depth)].defer_constraint_checks); \
-    scope_stack[(scope_depth)].defer_constraint_checks = FALSE;  \
-    if (scope_stack[(scope_depth)].deferred_constraint_checks != NULL) { \
+  if (cli_or_cx_enabled) {						\
+    check_assertion(scope_stack[(scope_depth)].defer_constraint_checks);\
+    scope_stack[(scope_depth)].defer_constraint_checks = FALSE;		\
+    if (scope_stack[(scope_depth)].deferred_constraint_checks != NULL) {\
       /* Only make this call if there are entries on the list. */	\
       perform_deferred_constraint_checks(scope_depth);			\
     }  /* if */								\

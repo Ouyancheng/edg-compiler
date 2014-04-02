@@ -2992,7 +2992,8 @@ type must be complete.
   a_class_symbol_supplement_ptr  cssp;
   an_initializer_fixup_ptr       fixup_list, ifp, next_ifp;
 
-  if (class_type->incomplete) {
+  if (class_type->incomplete
+      if_microsoft_extensions(&& !is_partial_class(class_type))) {
     /* We can end up here with unusual error cases involving template
        declarations (deferred class fixups are processed at the end of a
        template declaration). */
@@ -3061,7 +3062,7 @@ type must be complete.
          initializer processing delayed using a fixup entry. */
       a_decl_pos_block  decl_pos_block;
       a_variable_ptr    var;
-      check_assertion(cppcli_enabled && is_managed_class_type(parent_type));
+      check_assertion(cli_or_cx_enabled && is_managed_class_type(parent_type));
       clear_decl_pos_block(&decl_pos_block);
       var = dps.sym->variant.static_data_member.variable;
       dps.type = dps.declared_type = var->type;
@@ -3327,7 +3328,7 @@ after a class instantiation.
     defer_instantiations--;
     if (cfhp->defer_inline_function_fixups == 0) {
       /* Fix up in-class initializers and in-class inline function bodies. */
-      if (field_initializers_enabled || cppcli_enabled) {
+      if (field_initializers_enabled || cli_or_cx_enabled) {
         for (cfp = fixup_list; cfp != NULL; cfp = cfp->next) {
           /* Make sure we are in the right translation unit. */
           check_trans_unit_for_fixup(cfp, &trans_unit_pushed);
@@ -3374,7 +3375,7 @@ after a class instantiation.
   a_class_fixup_header_ptr	cfhp;
 
   cfhp = curr_class_fixup_header(for_instantiation);
-  if (cfhp->pending_class_definitions == 0 &&
+  if (cfhp->pending_class_definitions == 0 &&   
       cfhp->defer_inline_function_fixups == 0) {
     process_deferred_class_fixups(for_instantiation);
     if (defer_instantiations == 0) {
@@ -4038,7 +4039,7 @@ implement an interface member.
        pure). */
     check_abstract = !class_type->variant.class_struct_union.abstract;
 #if MICROSOFT_EXTENSIONS_ALLOWED
-    check_interfaces = cppcli_enabled &&
+    check_interfaces = cli_or_cx_enabled &&
                        (cli_class_type_kind_is(class_type, cctk_ref) ||
                         cli_class_type_kind_is(class_type, cctk_value));
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
@@ -4319,6 +4320,7 @@ and it meets the requirements of the "CLI Dispose pattern", set
   a_symbol_locator locator;
   a_symbol_ptr     sym;
 
+  check_assertion(!cppcx_enabled);
   check_assertion(p_is_object_finalize != NULL); 
   *p_is_object_finalize = FALSE;
   clear_locator(&locator, &class_type->source_corresp.decl_position);
@@ -4400,7 +4402,7 @@ appears on a linked list pointed to from base_class.
            overriding_func->overridden_functions != NULL)) {
         a_boolean  replace_override = FALSE;
         check_assertion(microsoft_mode);
-        if (cppcli_enabled && 
+        if (cli_or_cx_enabled && 
             cli_class_type_kind_is(base_class->type, cctk_interface)) {
           /* When overriding C++/CLI interface members, named overriding
              trumps ordinary (unnamed) overriding. */
@@ -4657,7 +4659,7 @@ the overridden symbol.
                         ec_different_return_type_on_virtual_function_override;
 #endif /* ABI_CHANGES_FOR_COVARIANT_VIRTUAL_FUNC_RETURN */
 #if MICROSOFT_EXTENSIONS_ALLOWED
-    if (cppcli_enabled &&
+    if (cli_or_cx_enabled &&
         is_managed_class_type(sym_parent_class(overridden_sym))) {
       /* Do not suggest a potential covariant match in the diagnostic for a
          managed class type, since covariant return types are not accepted in
@@ -4874,7 +4876,7 @@ overridden, the corresponding entry is removed from the registry.
 #if MICROSOFT_EXTENSIONS_ALLOWED
     reduce_to_underlying_generic_definition_symbol_if_needed(
                                                            nonoverriding_sym);
-    if (cppcli_enabled &&
+    if (cli_or_cx_enabled &&
         nonoverriding_sym->variant.routine.ptr->overridden_functions != NULL) {
       /* The non-overriding derived class declaration selectively overrides
          specific functions.  It is therefore likely that it intentionally
@@ -5449,7 +5451,7 @@ return_types_are_override_compatible.
          later. */
       rout->covariant_return_virtual_override = TRUE;
 #if MICROSOFT_EXTENSIONS_ALLOWED
-      if (cppcli_enabled && is_managed_class_type(class_type)) {
+      if (cli_or_cx_enabled && is_managed_class_type(class_type)) {
         pos_error(ec_covariant_override_in_managed_class, source_pos);
       }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
@@ -5653,7 +5655,7 @@ information about the function declarator.
   if (rout->compiler_generated) source_pos = &rout_sym->decl_position;
   registry_ptr = &class_state->override_registry;
 #if MICROSOFT_EXTENSIONS_ALLOWED
-  if (cppcli_enabled && decl_info->is_destructor &&
+  if (cli_or_cx_enabled && decl_info->is_destructor &&
       is_immediate_managed_class_type(class_type)) {
     /* A destructor of a managed type is never virtual even when "virtual" is
        specified.  (A "virtual"-like behavior is instead achieved through the
@@ -5664,7 +5666,7 @@ information about the function declarator.
     goto done;
   }  /* if */
 next_named_override:
-  if (cppcli_enabled && named_override != NULL) {
+  if (cli_or_cx_enabled && named_override != NULL) {
     decl_info->is_named_override = TRUE;
     named_override_sym = named_override->symbol;
     sym_header_to_search = named_override_sym->header;
@@ -5766,7 +5768,7 @@ next_named_override:
                  an overload set) keep looking. */
               continue;
 #if MICROSOFT_EXTENSIONS_ALLOWED
-            } else if (cppcli_enabled &&
+            } else if (cli_or_cx_enabled &&
                        is_immediate_managed_class_type(class_type)) {
               if (!matching_cli_accessors(rout, rp, named_override_sym)) {
                 /* One or both routines is a property accessor and the other
@@ -5815,7 +5817,7 @@ next_named_override:
                   continue;
                 }  /* if */
               }  /* if */
-              if (cppcli_enabled &&
+              if (cli_or_cx_enabled &&
                   is_immediate_managed_class_type(class_type)) {
                 /* Check for C++/CLI-style named overriding. */
                 if (named_override != NULL &&
@@ -5863,7 +5865,7 @@ next_named_override:
               continue;
             }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
-            if (cppcli_enabled) {
+            if (cli_or_cx_enabled) {
               if (cli_class_type_kind_is(bcp->type, cctk_interface)) {
                 /* Interface implementations that don't use a named override
                    specifier must be public (the class itself may be
@@ -5907,7 +5909,7 @@ next_named_override:
               goto next_base_class;                                       
             }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
-            if (cppcli_enabled) {
+            if (cli_or_cx_enabled) {
               /* Check that required modifiers are specified. */
               if (!cli_class_type_kind_is(class_type, cctk_interface) &&
                   !func_info->override && !func_info->new_member &&
@@ -6025,7 +6027,7 @@ next_named_override:
                                             return_adjustment_bcp);
             real_override = TRUE;
 #if MICROSOFT_EXTENSIONS_ALLOWED
-            if (cppcli_enabled &&
+            if (cli_or_cx_enabled &&
                 cli_class_type_kind_is(bcp->type, cctk_interface)) {
               /* The "override" modifier cannot be specified to indicate that
                  an interface member is overridden. */
@@ -6052,7 +6054,7 @@ next_named_override:
                                      rout_sym, bcp);
           }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
-          if (cppcli_enabled && rout_is_cli_accessor(rout)) {
+          if (cli_or_cx_enabled && rout_is_cli_accessor(rout)) {
             /* Accessors for different properties or events may share the same
                symbol header.  So having a found a mismatched symbol in the
                base class' scope does not mean there cannot be another one. */
@@ -6113,7 +6115,7 @@ done:
        that doesn't override.  This is usually an error, except in some
        Microsoft-mode cases. */
 #if MICROSOFT_EXTENSIONS_ALLOWED
-    if (cppcli_enabled && in_code_generated_from_metadata()) {
+    if (cli_or_cx_enabled && in_code_generated_from_metadata()) {
       /* The class was loaded from an assembly file.  Because of limitations
          of the metadata, the code generated from such a file can contain
          extraneous "override" modifiers; these should just be silently
@@ -6134,7 +6136,7 @@ done:
     }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
   } else if (func_info->new_member && !new_okay) {
-    if (cppcli_enabled && in_code_generated_from_metadata()) {
+    if (cli_or_cx_enabled && in_code_generated_from_metadata()) {
       /* The class was loaded from an assembly file.  Because of limitations
          of the metadata, the code generated from such a file can contain
          extraneous "new" modifiers; these should just be silently ignored. */
@@ -6152,7 +6154,7 @@ done:
                  any_virtual_functions_including_in_base_classes = TRUE;
     class_state->POD_ruled_out = TRUE;
 #if MICROSOFT_EXTENSIONS_ALLOWED
-    if (cppcli_enabled) {
+    if (cli_or_cx_enabled) {
       if (virtual_specified) {
         if (class_state->access == (an_access_specifier)as_private &&
             is_immediate_managed_class_type(class_type) &&
@@ -6621,7 +6623,7 @@ with class_state.
          possible if this function is called for a late base class addition
          (which happens in C++/CLI mode); in such cases, the scope for the
          class definition must have been pushed. */
-      check_assertion(cppcli_enabled &&
+      check_assertion(cli_or_cx_enabled &&
                       class_type_supp(class_state->class_type)->assoc_scope
                                                                      != NULL);
     } else if (ovfp->base_class != base_class) {
@@ -7270,7 +7272,7 @@ associated with T and its base classes.
 #if MICROSOFT_EXTENSIONS_ALLOWED
   /* In C++/CLI mode, drop a "handle" layer (any qualifiers on top will also
      be dropped). */
-  if (cppcli_enabled && is_handle_type(tp)) {
+  if (cli_or_cx_enabled && is_handle_type(tp)) {
     tp = type_pointed_to(tp);
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
@@ -7789,7 +7791,7 @@ explicit specifier is seen, set *explicit_access to TRUE).  Issue any
 diagnostics that can be emitted based on this information.
 */
 {
-  a_boolean  access_already_specified = FALSE;
+  a_boolean  access_already_specified = FALSE, skip_get_token = FALSE;
 
   *is_virtual = FALSE;
   for (;;) {
@@ -7833,11 +7835,30 @@ diagnostics that can be emitted based on this information.
         }  /* if */
         access_already_specified = TRUE;
       }  /* if */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    } else if (cppcx_enabled && microsoft_attribute_tokens_next()) {
+      /* FIXME: actually apply the attributes using msat_interfaceimpl
+         as the target; the question remains which entity these should be
+         attached to. */
+      an_ms_attribute_ptr attributes;
+      /* Scan any microsoft attributes and discard them.  This is to support
+         parsing attributes applied to base class specifiers in C++/CX mode. */
+      attributes = scan_microsoft_attributes(/*is_parameter=*/FALSE);
+      dispose_of_unapplied_attributes(&attributes, ec_no_error);
+      /* scan_microsoft_attributes reads past the final "]", so the current
+         token is one past the attribute block.  Suppress getting the next
+         token for this loop iteration. */
+      skip_get_token = TRUE;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     } else {
       /* Leave the loop and scan the class name. */
       break;
     }  /* if */
-    (void)get_token();
+    if (skip_get_token) {
+      skip_get_token = FALSE;
+    } else {
+      (void)get_token();
+    }  /* if */
   }  /* for */
   *explicit_access = access_already_specified;
 }  /* scan_inheritance_kind */
@@ -7855,7 +7876,12 @@ given by base_type.  Issue a diagnostic if not.
      interface classes can only derive from interface classes.  Ref classes
      can derive from at most one other ref class; other base classes must be
      interface classes. */
-  if (!cli_class_type_kind_is(base_type, cctk_interface)) {
+  if (cppcx_enabled && is_value_class_type(type) &&
+      cli_class_type_kind_is(base_type, cctk_interface)) {
+    /* Value types are not allowed to implement interfaces in C++/CX mode. */
+    pos_error(ec_cppcx_value_type_deriving_from_interface,
+              &error_position);
+  } else if (!cli_class_type_kind_is(base_type, cctk_interface)) {
     switch (class_type_supp(type)->cli_class_type_kind) {
       case cctk_ref:
         if (cli_class_type_kind_is(base_type, cctk_ref)) {
@@ -7875,19 +7901,39 @@ given by base_type.  Issue a diagnostic if not.
           if (class_type_supp(type)->assembly_scope_index == 0 &&
               class_type_supp(base_type)->assembly_scope_index != 0 &&
               ((!class_type_supp(type)->is_cli_array &&
+                /* C++/CX does not have a System::Array counterpart. */
+                !cppcx_enabled &&
                 f_same_entities(base_type,
                                 cli_class_type_for(csk_system_array))) ||
                f_same_entities(base_type,
                                cli_class_type_for(csk_system_delegate)) ||
+               (/* C++/CX does not have a System::MulticastDelegate
+                    counterpart. */
+                !cppcx_enabled &&
                f_same_entities(
                          base_type,
-                         cli_class_type_for(csk_system_multicast_delegate)) ||
+                         cli_class_type_for(csk_system_multicast_delegate))) ||
+               /* A ref class type cannot derive from the C++/CX
+                  Platform::Box<T> type, but it itself is required to
+                  derive from Platform::Enum or Platform::ValueType. */
+               /* This test is disabled entirely while parsing
+                  vccorlib.h.  In vccorlib.h, ref classes are permitted
+                  to derive from Platform::Enum and
+                  Platform::ValueType. */
+               (!processing_vccorlib_header &&
+                (class_type_supp(base_type)->is_cppcx_box ||
+                 (!class_type_supp(type)->is_cppcx_box && (
                f_same_entities(base_type,
                                cli_class_type_for(csk_system_enum)) ||
-               f_same_entities(base_type, cli_system_value_type()))) {
+               f_same_entities(base_type, cli_system_value_type()))))))) {
             pos_ty_error(ec_invalid_specific_ref_class_base, &error_position,
                          base_type);
             break;
+          } else if (is_cli_generic_definition_type(type) &&
+                     is_cli_attribute_type(base_type)) {
+            /* A generic class cannot be a custom attribute. */
+            pos_error(ec_generic_class_cannot_be_custom_attribute,
+                      &error_position);
           }  /* if */
         } else {
           pos_error(ec_invalid_ref_class_base, &error_position);
@@ -7952,7 +7998,7 @@ issue an error and return FALSE.
       if (is_immediate_managed_class_type(type)) {
         check_base_class_type_of_managed_class(type, base_class_type);
       } else {
-        if (cppcli_enabled &&
+        if (cli_or_cx_enabled &&
             is_immediate_managed_class_type(base_class_type)) {
           pos_error(ec_managed_base_for_standard_class, &error_position);
           if (cli_class_type_kind_is(base_class_type, cctk_interface)) {
@@ -8540,7 +8586,7 @@ can only contain CLI interfaces.
          implemented by the current class will be specified in the class'
          body.  (This is needed because some CLI-based languages allow a class
          to implement its own nested interface.) */
-      check_assertion(cppcli_enabled);
+      check_assertion(cli_or_cx_enabled);
       (void)get_token();
       if (required_token(tok_ellipsis, ec_exp_ellipsis)) {
         class_state->interfaces_pending = TRUE;
@@ -8914,7 +8960,7 @@ Add a public direct base of the given type to the class described by cdsp.
   complete_type_is_needed(new_direct_bcp->type);
   new_direct_bcp->derived_class = cdsp->class_type;
   new_direct_bcp->direct = TRUE;
-  if (cppcli_enabled && is_immediate_class_type(new_direct_bcp->type) &&
+  if (cli_or_cx_enabled && is_immediate_class_type(new_direct_bcp->type) &&
       (cli_class_type_kind_is(new_direct_bcp->type, cctk_interface) ||
        (cli_class_type_kind_is(new_direct_bcp->type, cctk_ref) &&
         is_cli_system_object_type(new_direct_bcp->type)))) {
@@ -9143,7 +9189,7 @@ of a C++ class, struct, or union or a C struct or union.
                 curr_token == tok_private || curr_token == tok_protected ||
                 curr_token == tok_public || curr_token == tok_compl
 #if MICROSOFT_EXTENSIONS_ALLOWED
-                || (cppcli_enabled && curr_token == tok_not)
+                || (cli_or_cx_enabled && curr_token == tok_not)
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
                                                             );
   }  /* if */
@@ -9929,7 +9975,7 @@ possibility.
          found, look it up now. */
       an_id_lookup_options_set  idl_options = IDL_FRIEND_LOOKUP;
 #if MICROSOFT_EXTENSIONS_ALLOWED
-      if (cppcli_enabled &&
+      if (cli_or_cx_enabled &&
           state->declared_storage_class == (a_storage_class)sc_static) {
         idl_options |= IDL_IS_STATIC_DECL;
       }  /* if */
@@ -10816,30 +10862,30 @@ If there is more than one matching function, set *ambiguous to TRUE.
         break;
 #if MICROSOFT_EXTENSIONS_ALLOWED
       case sfk_static_constructor:
-        check_assertion(cppcli_enabled);
+        check_assertion(cli_or_cx_enabled);
         sym = cssp->static_constructor;
         break;
       case sfk_finalizer:
         /* C++/CLI finalizer. */
-        check_assertion(cppcli_enabled);
+        check_assertion(cli_or_cx_enabled);
         sym = cssp->finalizer;
         break;
       case sfk_idisposable_dispose:
         /* C++/CLI dispose pattern IDisposable::Dispose() member. */
-        check_assertion(cppcli_enabled);
+        check_assertion(cli_or_cx_enabled);
         sym = cssp->has_dispose_pattern_idisposable_dispose ?
                                              cssp->idisposable_dispose : NULL;
         break;
       case sfk_dispose_bool:
         /* C++/CLI dispose pattern Dispose(bool) member. */
-        check_assertion(cppcli_enabled);
+        check_assertion(cli_or_cx_enabled);
         sym = (cssp->has_dispose_pattern_idisposable_dispose ||
                cssp->has_dispose_pattern_object_finalize) ?
                                                     cssp->dispose_bool : NULL;
         break;
       case sfk_object_finalize:
         /* C++/CLI dispose pattern Finalize() member. */
-        check_assertion(cppcli_enabled);
+        check_assertion(cli_or_cx_enabled);
         sym = cssp->has_dispose_pattern_object_finalize ?
                                                  cssp->object_finalize : NULL;
         break;
@@ -12156,6 +12202,31 @@ with and issue diagnostics as needed.
       } else if (ptp->next != NULL) {
         pos_error(ec_extra_property_accessor_parameters, &dps->declarator_pos);
         err = TRUE;
+      } else if (cppcx_enabled &&
+                 is_handle_to_nonconst_cppcx_plain_array_type(prop_type)) {
+        /* The property is of type "Platform::Array<T>^". */
+        a_type_ptr const_array_prop_type = NULL,
+                   pointed_to_prop_type = type_pointed_to(prop_type);
+        const_array_prop_type = make_handle_type(
+                                  make_qualified_type(
+                                              pointed_to_prop_type, TQ_CONST));
+        if (!types_are_compatible_ignoring_qualifiers(ptp->type,
+                                                      const_array_prop_type)) {
+          /* For externally-visible setters, the parameter type must be
+             "const Platform::Array<T>^". For non-externally-visible setters,
+             the parameter type can be either "Platform::Array<T>^" or
+             "const Platform::Array<T>^". */
+          if (is_cppcx_externally_visible_symbol(symbol_for(rp))) {
+            pos_error(ec_cppcx_invalid_array_property_set_value_parameter,
+                      &dps->declarator_pos);
+            err = TRUE;
+          } else if (!types_are_compatible_ignoring_qualifiers(ptp->type,
+                                                               prop_type)) {
+            pos_error(ec_property_set_value_parameter_mismatch,
+                      &dps->declarator_pos);
+            err = TRUE;
+          }  /* if */
+        }  /* if */
       } else if (!types_are_compatible_ignoring_qualifiers(ptp->type,
                                                            prop_type)) {
         pos_error(ec_property_set_value_parameter_mismatch,
@@ -12171,7 +12242,9 @@ with and issue diagnostics as needed.
     }  /* if */
   }  /* if */
   if (!err) {
-    if (rtsp->qualifiers != TQ_NONE) {
+    if (rtsp->qualifiers != TQ_NONE &&
+        /* Qualifiers are permitted on accessor methods in C++/CX mode. */
+        !cppcx_enabled) {
       pos_error(ec_qualified_cli_accessor, &dps->declarator_pos);
       err = TRUE;
     } else if (rtsp->has_ellipsis) {
@@ -12265,8 +12338,64 @@ with and issue diagnostics as needed.
   if (err) {
     /* Further error checks are unlikely to be helpful. */
     expect_error();
-  } else if (rp->special_kind == (a_special_function_kind)sfk_event_add ||
-             rp->special_kind == (a_special_function_kind)sfk_event_remove) {
+  } else if (cppcx_enabled && special_kind_is(rp, sfk_event_add)) {
+    a_type_ptr event_registration_token_type = cli_class_type_for(
+                             csk_windows_foundation_event_registration_token);
+    /* First check the return type. */
+    if (!identical_types(rtp->variant.routine.return_type,
+                         event_registration_token_type)) {
+      /* The return type of a C++/CX event "add" accessor must be
+         Windows::Foundation::EventRegistrationToken. */
+      if (!is_error_type(rtp->variant.routine.return_type)) {
+        pos_error(ec_bad_cppcx_event_add_return, &dps->start_pos);
+      }  /* if */
+      err = TRUE;
+    } else {
+      /* Check that the "add" accessor has exactly one parameter that
+         corresponds to the delegate type. */
+      if (ptp == NULL) {
+        pos_error(ec_event_accessor_missing_value_parameter,
+                  &dps->declarator_pos);
+        err = TRUE;
+      } else if (ptp->next != NULL) {
+        pos_error(ec_extra_event_accessor_parameters, &dps->declarator_pos);
+        err = TRUE;
+      } else if (!types_are_compatible(ptp->type, prop_type)) {
+        pos_ty2_diagnostic(es_error,
+                           ec_event_accessor_value_parameter_mismatch,
+                           &dps->declarator_pos, ptp->type, prop_type);
+        err = TRUE;
+      }  /* if */
+    }  /* if */
+  } else if (cppcx_enabled && special_kind_is(rp, sfk_event_remove)) {
+    /* First check the return type. */
+    if (!is_void_type(rtp->variant.routine.return_type) ||
+        is_qualified_type(rtp->variant.routine.return_type)) {
+      /* The return type of a C++/CX event "remove" accessor must be void;
+         "void const" is not acceptable. */
+      if (!is_error_type(rtp->variant.routine.return_type)) {
+        pos_error(ec_bad_cppcx_event_remove_return, &dps->start_pos);
+      }  /* if */
+      err = TRUE;
+    } else {
+      a_type_ptr event_registration_token_type = cli_class_type_for(
+                             csk_windows_foundation_event_registration_token);
+      /* Check that the "remove" accessor has exactly one parameter
+         that is of type Windows::Foundation::EventRegistrationToken. */
+      if (ptp == NULL) {
+        pos_error(ec_event_accessor_missing_value_parameter,
+                  &dps->declarator_pos);
+        err = TRUE;
+      } else if (ptp->next != NULL) {
+        pos_error(ec_extra_event_accessor_parameters, &dps->declarator_pos);
+        err = TRUE;
+      } else if (!identical_types(ptp->type, event_registration_token_type)) {
+        pos_error(ec_bad_cppcx_event_remove_parameter, &dps->declarator_pos);
+        err = TRUE;
+      }  /* if */
+    }  /* if */
+  } else if (special_kind_is(rp, sfk_event_add) ||
+             special_kind_is(rp, sfk_event_remove)) {
     /* First check the return type. */
     if (!is_void_type(rtp->variant.routine.return_type) ||
         is_qualified_type(rtp->variant.routine.return_type)) {
@@ -12313,7 +12442,9 @@ with and issue diagnostics as needed.
     }  /* if */
   }  /* if */
   if (!err) {
-    if (rtsp->qualifiers != TQ_NONE) {
+    if (cppcli_enabled && rtsp->qualifiers != TQ_NONE) {
+      /* Qualifiers are not permitted on accessor methods in C++/CLI mode
+         (but they are okay in C++/CX mode). */
       pos_error(ec_qualified_cli_accessor, &dps->declarator_pos);
       err = TRUE;
     } else if (rtsp->has_ellipsis) {
@@ -12439,7 +12570,7 @@ If a specific override was specified using a qualified member declarator
   } else if (decl_info->named_overrides != NULL) {
     an_il_entity_list_entry_ptr  *p_entry = &rp->overridden_functions;
     a_symbol_list_entry_ptr      sym_entry = decl_info->named_overrides;
-    check_assertion(cppcli_enabled && *p_entry == NULL);
+    check_assertion(cli_or_cx_enabled && *p_entry == NULL);
     for (; sym_entry != NULL; sym_entry = sym_entry->next) {
       *p_entry = make_overridden_functions_entry(sym_entry->symbol);
       p_entry = &(*p_entry)->next;
@@ -12537,10 +12668,12 @@ otherwise, it is NULL.
       cssp->idisposable_dispose = sym;
       break;
     case sfk_dispose_bool:
+      check_assertion(!cppcx_enabled);
       check_assertion(cssp->dispose_bool == NULL);
       cssp->dispose_bool = sym;
       break;
     case sfk_object_finalize:
+      check_assertion(!cppcx_enabled);
       check_assertion(cssp->object_finalize == NULL);
       cssp->object_finalize = sym;
       break;
@@ -12596,7 +12729,8 @@ Microsoft C++/CLI static reverse conversion function.
   rtsp = rout_type->variant.routine.extra_info;
   class_type = rtsp->this_class;
 #if MICROSOFT_EXTENSIONS_ALLOWED
-  if (cppcli_enabled && class_type == NULL && rtsp->param_type_list != NULL) {
+  if (cli_or_cx_enabled && class_type == NULL &&
+      rtsp->param_type_list != NULL) {
     /* A C++/CLI managed class type can contain a "static conversion function".
        Use the explicit parameter instead of a "this" parameter. */
     class_type = rtsp->param_type_list->type;
@@ -12633,7 +12767,7 @@ Microsoft C++/CLI static reverse conversion function.
     /* Conversion to (possibly qualified) void type is not allowed. */
     is_implicitly_callable = FALSE;
 #if MICROSOFT_EXTENSIONS_ALLOWED
-  } else if (cppcli_enabled) {
+  } else if (cli_or_cx_enabled) {
     if (boxing_conversion_possible(class_type, ret_type,
                                    (a_std_conv_descr *)NULL)) {
       /* A conversion function that does a C++/CLI boxing conversion
@@ -12689,9 +12823,13 @@ an error at the given position.
 
   switch (rtn->special_kind) {
     case sfk_constructor:
-      if (is_copy_constructor(rtn, class_type, &tqs,
-                              /*include_move_ctors=*/TRUE,
-                              /*is_declarative_context=*/TRUE)) {
+      if (cppcx_enabled &&
+          class_has_public_assembly_visibility(class_type) &&
+          !is_nonpublic_nested_class(class_type)) {
+        err_code = ec_cppcx_public_value_class_constructor;
+      } else if (is_copy_constructor(rtn, class_type, &tqs,
+                                     /*include_move_ctors=*/TRUE,
+                                     /*is_declarative_context=*/TRUE)) {
         err_code = ec_copy_constructor_in_value_class_type;
       } else if (is_simple_default_constructor(rtn)) {
         /* Value class types do not allow default constructors.  However,
@@ -12702,7 +12840,11 @@ an error at the given position.
              int main() { V v; }
            is accepted, but v is initialized using the generated constructor
            rather than the user-declared constructor. */
-        err_code = ec_default_constructor_in_value_class_type;
+        /* Default constructors for value types are allowed to be defined
+           while processing vccorlib.h. */
+        if (!processing_vccorlib_header) {
+          err_code = ec_default_constructor_in_value_class_type;
+        }  /* if */
       }  /* if */
       break;
     case sfk_destructor:
@@ -12748,7 +12890,7 @@ member being declared in a managed class (such a member is reserved for the
 C++/CLI dispose pattern).
 */
 {
-  check_assertion(cppcli_enabled);
+  check_assertion(cli_or_cx_enabled);
   if (is_managed_class_type(class_type) &&
       !class_is_from_metadata(class_type) &&
       locator->symbol_header != NULL) {
@@ -12757,6 +12899,8 @@ C++/CLI dispose pattern).
     a_boolean  is_finalize = !is_dispose &&
                              symbol_header_is_for_identifier_string(
                                            locator->symbol_header, "Finalize");
+    /* "Finalize" is not reserved in C++/CX mode. */
+    is_finalize = is_finalize && !cppcx_enabled;
     if (is_dispose || is_finalize) {
       a_param_type_ptr  ptp = function_type_params(skip_typerefs(dps->type));
       if (ptp == NULL ||
@@ -13077,7 +13221,7 @@ implicitly declared member functions.
   decl_state->is_definition = func_info->is_definition;
   rtsp = skip_typerefs(member_type)->variant.routine.extra_info;
 #if MICROSOFT_EXTENSIONS_ALLOWED
-  if (cppcli_enabled) {
+  if (cli_or_cx_enabled) {
     if (decl_info->is_static_constructor) {
       check_assertion(is_static_member);
     } else if (decl_info->is_finalizer) {
@@ -13105,7 +13249,8 @@ implicitly declared member functions.
       check_for_reserved_dispose_pattern_members(locator, decl_state,
                                                  class_type);
     }  /* if */
-    if (is_immediate_managed_class_type(class_type) &&
+    if (!cppcx_enabled &&
+        is_immediate_managed_class_type(class_type) &&
         member_type->kind == (a_type_kind)tk_routine &&
         !rtsp->explicit_calling_convention) {
       /* For user-declared member functions of managed class types, the
@@ -13225,12 +13370,12 @@ implicitly declared member functions.
   set_source_corresp(&rtn->source_corresp, sym);
   set_class_membership(sym, &rtn->source_corresp, class_type);
 #if MICROSOFT_EXTENSIONS_ALLOWED
-  if (cppcli_enabled && decl_info->is_finalizer) {
+  if (cli_or_cx_enabled && decl_info->is_finalizer) {
     /* ECMA-372 says that the access-specifier of a finalizer is ignored and
        that the finalizer can only be called from other members of its parent
        class. */
     rtn->source_corresp.access = (an_access_specifier)as_private;
-  } else if (cppcli_enabled && decl_info->is_destructor &&
+  } else if (cli_or_cx_enabled && decl_info->is_destructor &&
              cli_class_type_kind_is(class_type, cctk_ref)) {
     /* Similarly, ECMA-372 says that the access-specifier of a destructor for
        a ref class type is ignored.  Microsoft compilers appear to treat them
@@ -13253,7 +13398,7 @@ implicitly declared member functions.
       class_type->variant.class_struct_union.has_operator_ampersand = TRUE;
     }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
-    if (cppcli_enabled && is_immediate_managed_class_type(class_type)) {
+    if (cli_or_cx_enabled && is_immediate_managed_class_type(class_type)) {
       if (locator->variant.opname == (an_opname_kind)onk_arrow_star) {
         /* Microsoft's compiler does not allow operator->* members in managed
            class types. */
@@ -13282,7 +13427,7 @@ implicitly declared member functions.
   } else if (decl_info->is_destructor) {
     set_routine_special_kind(rtn, (a_special_function_kind)sfk_destructor);
 #if MICROSOFT_EXTENSIONS_ALLOWED
-  } else if (cppcli_enabled) {
+  } else if (cli_or_cx_enabled) {
     if (decl_info->is_static_constructor) {
       /* A C++/CLI static constructor declaration. */
       set_routine_special_kind(
@@ -13337,7 +13482,7 @@ implicitly declared member functions.
     }  /* if */
 #endif /* SUN_EXTENSIONS_ALLOWED */
 #if MICROSOFT_EXTENSIONS_ALLOWED
-    if (cppcli_enabled && decl_info->is_static_constructor &&
+    if (cli_or_cx_enabled && decl_info->is_static_constructor &&
         is_unnamed_tag_symbol(symbol_for(class_type))) {
       /* The static constructor for a box type associated with an unnamed
          enum has a symbol named "<unnamed>" that has a header different from
@@ -13345,8 +13490,12 @@ implicitly declared member functions.
          constructor).  However the IL entry should not point to the name
          "<unnamed>". */
       rtn->source_corresp.name = NULL;
+    } else if (cppcx_enabled && is_unnamed_virtual_function_symbol(sym)) {
+      /* Ensure the routine name is in IL memory. */
+      rtn->source_corresp.name = copy_string_to_region(
+                          file_scope_region_number, rtn->source_corresp.name);
     }  /* if */
-  } else if (cppcli_enabled) {
+  } else if (cli_or_cx_enabled) {
     if (cli_class_type_kind_is(class_type, cctk_value)) {
       /* Issue an error for a default or copy constructor, a destructor, or an
          assignment operator. */
@@ -13379,10 +13528,9 @@ implicitly declared member functions.
          select the overridden base class member.) */
       record_selective_overriding(decl_info, overridden_function);
       if (decl_state->ms_attributes != NULL) {
-        apply_microsoft_attributes(&decl_state->ms_attributes, (char*)rtn,
-                                   (an_il_entry_kind)iek_routine, MSAT_METHOD);
+        apply_microsoft_attributes_to_routine(&decl_state->ms_attributes, rtn);
       }  /* if */
-      if (microsoft_version >= 1400 || cppcli_enabled) {
+      if (microsoft_version >= 1400 || cli_or_cx_enabled) {
         /* Record any function modifiers (they can only appear in the class-
            scope declaration). */
         if (func_info->sealed) rtn->final = rtn->sealed = TRUE;
@@ -13724,7 +13872,7 @@ implicitly declared member functions.
           !valid_static_conversion_class_type(ptp->type, class_type)) {
         /* A static conversion function for a conversion to the enclosing
            class type (instead of from the enclosing class type). */
-        check_assertion(cppcli_enabled);
+        check_assertion(cli_or_cx_enabled);
         rtn->is_reverse_conversion_function = TRUE;
       }  /* if */
 #endif /*MICROSOFT_EXTENSIONS_ALLOWED */
@@ -13785,6 +13933,12 @@ implicitly declared member functions.
           is_virtual = TRUE;
         }  /* if */
         if (pdp != NULL && pdp->is_virtual) is_virtual = TRUE;
+        if (cppcx_enabled && is_value_class_type(class_type) &&
+            is_virtual && !in_code_generated_from_metadata()) {
+          /* C++/CX value types cannot have virtual functions. */
+          pos_error(ec_cppcx_value_type_contains_virtual_function,
+                    &locator->source_position);
+        }  /* if */
       }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       if (rtn->compiler_generated && rtn->is_prototype_instantiation) {
@@ -14209,10 +14363,9 @@ decl_member_function, which handles in-class member function declarations.)
                                       dps->prefix_attributes);
       }  /* if */
       if (dps->ms_attributes != NULL && microsoft_version >= 1400) {
-        apply_microsoft_attributes(&dps->ms_attributes, (char*)rtn,
-                                   (an_il_entry_kind)iek_routine, MSAT_METHOD);
+        apply_microsoft_attributes_to_routine(&dps->ms_attributes, rtn);
       }  /* if */
-      if (cppcli_enabled && decl_info->is_static_constructor) {
+      if (cli_or_cx_enabled && decl_info->is_static_constructor) {
         /* A static constructor member template is invalid. */
         pos_error(ec_static_constructor_member_template,
                     &locator->source_position);
@@ -14496,7 +14649,10 @@ constant and entering the name in the symbol table.
   a_type_ptr          member_type = dps->type;
 
   db_enter(3, "decl_literal_field");
-  if (cli_class_type_kind_is(class_type, cctk_standard)) {
+  if (cppcx_enabled) {
+    pos_error(ec_literal_fields_disallowed_in_cppcx_mode,
+              &dps->declarator_pos);
+  } else if (cli_class_type_kind_is(class_type, cctk_standard)) {
     pos_error(ec_literal_requires_managed_class, &dps->declarator_pos);
   }  /* if */
   if (curr_token != tok_assign) {
@@ -14688,7 +14844,7 @@ remove those projections (silently).
   a_property_or_event_descr_ptr
                 new_pedp, prev_pedp;
 
-  check_assertion(cppcli_enabled);
+  check_assertion(cli_or_cx_enabled);
   new_pedp = property_or_event_descr_for_sym(property_sym);
   for (; sym != property_sym; sym = sym->next) {
     a_boolean  conflict = FALSE;
@@ -14974,7 +15130,7 @@ specific information about the member declaration, respectively.
     error(ec_incomplete_type_not_allowed);
     member_type = error_type();
 #if MICROSOFT_EXTENSIONS_ALLOWED
-  } else if (cppcli_enabled) {
+  } else if (cli_or_cx_enabled) {
     if ((is_interior_ptr_type(member_type) || is_pin_ptr_type(member_type)) &&
         !decl_state->is_property_or_event_field) {
       /* In C++/CLI, an interior_ptr or pin_ptr cannot be a class member. */
@@ -14999,7 +15155,7 @@ specific information about the member declaration, respectively.
       }  /* if */
     } else {
       /* Limitations applying to members of non-managed class types only. */
-      if (is_handle_or_tracking_ref_type(member_type)) {
+      if (cppcli_enabled && is_handle_or_tracking_ref_type(member_type)) {
         pos_error(is_handle_type(member_type) ?
                     ec_handle_member_in_standard_class :
                     ec_tracking_reference_member_in_standard_class,
@@ -15075,7 +15231,7 @@ specific information about the member declaration, respectively.
     var->declared_with_auto_type_specifier = TRUE;
   }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
-  if (cppcli_enabled) {
+  if (cli_or_cx_enabled) {
     if (decl_state->has_cli_initonly_keyword) {
       var->is_initonly = TRUE;
     } else if (decl_state->has_cli_property_keyword ||
@@ -15153,11 +15309,11 @@ specific information about the member declaration, respectively.
     decl_state->init_state.decl_parse_state = decl_state;
     decl_state->has_initializer = TRUE;
 #if MICROSOFT_EXTENSIONS_ALLOWED
-    if (is_immediate_managed_class_type(class_type)) {
-      /* In managed class types, static data members can have any initializer
-         allowed for a namespace scope variable.  Such a declaration is a
-         definition and the initializer is processed in the context of the
-         completed class. */
+    if (cppcli_enabled && is_immediate_managed_class_type(class_type)) {
+      /* In C++/CLI (but not C++/CX) managed class types, static data
+         members can have any initializer allowed for a namespace scope
+         variable.  Such a declaration is a definition and the initializer is
+         processed in the context of the completed class. */
       delay_initializer_scan = TRUE;
     }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
@@ -15376,8 +15532,15 @@ specific information about the member declaration, respectively.
       class_state->potentially_interface_like = FALSE;
     }  /* if */
     if (decl_state->ms_attributes != NULL) {
-      apply_microsoft_attributes(&decl_state->ms_attributes, (char*)var,
-                                 iek_variable, MSAT_DATA_MEMBER);
+      apply_microsoft_attributes_to_variable(&decl_state->ms_attributes, var);
+    }  /* if */
+    if (cppcx_enabled && !is_value_class_type(class_type) &&
+        class_state->property_or_event_descr == NULL &&
+        class_state->access == (an_access_specifier)as_public &&
+        class_has_public_assembly_visibility(class_type) &&
+        !is_nonpublic_nested_class(class_type)) {
+      pos_error(ec_public_data_member_in_public_non_value_type,
+                &locator->source_position);
     }  /* if */
     if (property_set != NULL) {
       check_for_overloaded_property_conflict(property_set, sym);
@@ -16875,7 +17038,7 @@ declarations.
     }  /* if */
   }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
-  if (cppcli_enabled && !err) {
+  if (cli_or_cx_enabled && !err) {
     a_boolean  in_managed_class = is_immediate_managed_class_type(class_type);
     a_boolean  nontrivial_property_or_event =
                             class_state->property_or_event_descr != NULL &&
@@ -16884,12 +17047,13 @@ declarations.
     if (nontrivial_property_or_event) {
       /* Many of these constraints don't apply to nontrivial properties and
          events. */
-    } else if (is_tracking_reference_type(field_type)) {
+    } else if (cppcli_enabled && is_tracking_reference_type(field_type)) {
       pos_error(ec_field_cannot_be_tracking_reference,
                 &decl_state->declarator_pos);
       err = TRUE;
-    } else if (in_managed_class ?
-                     is_array_type(field_type) : is_handle_type(field_type)) {
+    } else if (cppcli_enabled &&
+               (in_managed_class ? is_array_type(field_type)
+                                 : is_handle_type(field_type))) {
       /* Array types are disallowed in managed class types and handles are
          disallowed in non-managed (i.e., standard) class types. */
       pos_error(in_managed_class ?
@@ -16897,7 +17061,8 @@ declarations.
                   ec_handle_member_in_standard_class,
                 &decl_state->declarator_pos);
       err = TRUE;
-    } else if (in_managed_class && is_standard_class_type(field_type) &&
+    } else if (cppcli_enabled &&
+               in_managed_class && is_standard_class_type(field_type) &&
                !is_nonreal_template_template_param_instance(field_type)) {
       /* Managed classes cannot have fields with standard class types (beware
          of certain nonreal class types for which we cannot determine whether
@@ -17103,7 +17268,7 @@ be entered.
   field->is_captured_pack_element = decl_info->is_captured_pack_element;
   cssp = symbol_supplement_for_class(class_type);
 #if MICROSOFT_EXTENSIONS_ALLOWED
-  if (cppcli_enabled) {
+  if (cli_or_cx_enabled) {
     if (decl_state->has_cli_initonly_keyword) {
       /* A C++/CLI initonly field: The enclosing class cannot be bitwise
          copied. */
@@ -17278,8 +17443,7 @@ be entered.
 #endif /* GNU_EXTENSIONS_ALLOWED */
 #if MICROSOFT_EXTENSIONS_ALLOWED
   if (decl_state->ms_attributes != NULL) {
-    apply_microsoft_attributes(&decl_state->ms_attributes, (char*)field,
-                               iek_field, MSAT_DATA_MEMBER);
+    apply_microsoft_attributes_to_field(&decl_state->ms_attributes, field);
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   /* Add the field to the temporary list for this class/struct/union. */
@@ -17325,7 +17489,7 @@ be entered.
         if (class_type->variant.class_struct_union.is_interface) {
           pos_error(ec_interface_cannot_have_data_member,
                     &locator->source_position);
-        } else if (cppcli_enabled &&
+        } else if (cli_or_cx_enabled &&
                    is_immediate_cli_interface_type(class_type)) {
           pos_error(ec_interface_nonstatic_data_member,
                     &locator->source_position);
@@ -17336,13 +17500,22 @@ be entered.
         check_for_overloaded_property_conflict(property_set, member_sym);
       }  /* if */
     }  /* if */
-    if (cppcli_enabled && !cssp->any_disposable_data_members &&
+    /* Determine if this field would result in an implicit IDisposable
+       implementation.  Non-trivial property or event fields are not
+       considered, as an actual data member is not implicitly created for
+       them. */
+    if (cli_or_cx_enabled && !cssp->any_disposable_data_members &&
         (!field_is_property_or_event(field) ||
-         field->property_or_event_descr->is_trivial) &&
-        is_ref_class_type(member_type) &&
-        symbol_supplement_for_class(member_type)->is_disposable) {
-      /* Record that there is at least one disposable ref class member. */
-      cssp->any_disposable_data_members = TRUE;
+         field->property_or_event_descr->is_trivial)) {
+      if (is_ref_class_type(member_type) &&
+          symbol_supplement_for_class(member_type)->is_disposable) {
+        /* Record that there is at least one disposable ref class member. */
+        cssp->any_disposable_data_members = TRUE;
+      } else if (cppcx_enabled && is_handle_type(member_type)) {
+        /* In C++/CX, any member of handle type results in an implicit
+           IDisposable implementation. */
+        cssp->any_disposable_data_members = TRUE;
+      }  /* if */
     }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   }  /* if */
@@ -17705,7 +17878,7 @@ operator should be created.  No routine body is generated at this time.
     rout_type->variant.routine.return_type = void_type();
     extra_info->assoc_routine_is_dtor = TRUE;
 #if MICROSOFT_EXTENSIONS_ALLOWED
-  } else if (cppcli_enabled &&
+  } else if (cli_or_cx_enabled &&
              (decl_info->is_static_constructor ||
               decl_info->is_idisposable_dispose ||
               decl_info->is_dispose_bool ||
@@ -17746,18 +17919,20 @@ operator should be created.  No routine body is generated at this time.
       tildize_locator(&locator);
     }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
-  } else if (cppcli_enabled && decl_info->is_static_constructor) {
+  } else if (cli_or_cx_enabled && decl_info->is_static_constructor) {
     a_symbol_ptr tag_sym = symbol_for(class_type);
     make_locator_for_symbol(tag_sym, &locator);
     change_class_locator_into_constructor_locator(&locator, class_decl_pos,
                                                   /*is_static_ctor=*/TRUE);
-  } else if (cppcli_enabled && decl_info->is_idisposable_dispose) {
+  } else if (cli_or_cx_enabled && decl_info->is_idisposable_dispose) {
     clear_locator(&locator, class_decl_pos);
     (void)find_symbol("Dispose", sizeof("Dispose")-1, &locator);
-  } else if (cppcli_enabled && decl_info->is_dispose_bool) {
+  } else if (cli_or_cx_enabled && decl_info->is_dispose_bool) {
+    check_assertion(!cppcx_enabled);
     clear_locator(&locator, class_decl_pos);
     (void)find_symbol("Dispose", sizeof("Dispose")-1, &locator);
-  } else if (cppcli_enabled && decl_info->is_object_finalize) {
+  } else if (cli_or_cx_enabled && decl_info->is_object_finalize) {
+    check_assertion(!cppcx_enabled);
     clear_locator(&locator, class_decl_pos);
     (void)find_symbol("Finalize", sizeof("Finalize")-1, &locator);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
@@ -18922,7 +19097,11 @@ record that fact in *gsfd.
          class types).  Also, note that default arguments are not allowed in
          managed-class members, and therefore find_default_constructor would
          not find a constructor with explicit parameters. */
-      expect_error();
+      /* We do import default value type constructors from metadata, and this
+         is allowed in C++/CX. */
+      if (!(cppcx_enabled && in_code_generated_from_metadata())) {
+        expect_error();
+      }  /* if */
     }  /* if */
   } else if (cli_class_type_kind_is(class_type, cctk_interface)) {
     /* Interface classes never have a default constructor. */
@@ -19231,7 +19410,7 @@ is System::Object itself.
   a_type_ptr        base_class_type = NULL;
   a_base_class_ptr  bcp;
 
-  check_assertion(cppcli_enabled && is_ref_class_type(class_type));
+  check_assertion(cli_or_cx_enabled && is_ref_class_type(class_type));
   bcp = base_classes_of(class_type);
   for (; bcp != NULL; bcp = bcp->next) {
     if (bcp->direct && is_ref_class_type(bcp->type)) {
@@ -19339,14 +19518,19 @@ should be implemented.  The results are stored in the class symbol supplement.
   if (cssp->checked_for_dispose_pattern) goto done;
   cssp->checked_for_dispose_pattern = TRUE;
   if (is_cli_system_object_type(class_type)) {
+    /* The dispose pattern in C++/CX mode does not use a Finalize()
+       function. */
+    if (cppcx_enabled) goto done;
     /* This is the System::Object type, which is special since it doesn't have
        a base class.  Just record its "Finalize" member. */
     cssp->object_finalize = symbol_for(get_object_finalize_routine());
     goto done;
   }  /* if */
-  /* Look for a Finalize() function in the class.*/
-  object_finalize_routine = find_finalize_routine(class_type,
-                                                  &is_valid_object_finalize);
+  if (cppcli_enabled) {
+    /* Look for a Finalize() function in the class. */
+    object_finalize_routine = find_finalize_routine(class_type,
+                                                    &is_valid_object_finalize);
+  }  /* if */
   if (object_finalize_routine != NULL && !is_valid_object_finalize) {
     /* The Finalize() function does not override Object::Finalize(). */
     a_symbol_ptr  object_finalize_symbol = symbol_for(object_finalize_routine);
@@ -19373,6 +19557,8 @@ should be implemented.  The results are stored in the class symbol supplement.
     }  /* if */
     for (; sym != NULL; sym = is_overloaded_function ? sym->next : NULL) {
       if (dispose_bool_routine == NULL &&
+          /* Only the C++/CLI dispose pattern uses a Dispose(bool) function. */
+          cppcli_enabled &&
           is_dispose_bool_function(sym, &is_valid_dispose_bool)) {
         /* A Dispose(bool) function. */
         dispose_bool_routine = sym->variant.routine.ptr;
@@ -19382,13 +19568,18 @@ should be implemented.  The results are stored in the class symbol supplement.
         /* A Dispose() function. */
         dispose_void_routine = sym->variant.routine.ptr;
       }  /* if */
-      if (dispose_bool_routine != NULL && dispose_void_routine != NULL) {
+      if (dispose_void_routine != NULL &&
+          (cppcx_enabled || dispose_void_routine != NULL)) {
         /* No other functions are of interest. */
         break;
       }  /* if */
     }  /* for */
   }  /* if */
-  if (is_valid_dispose_bool) {
+  if (cppcx_enabled && is_idisposable_dispose) {
+    /* We found a valid Dispose() member: This is a valid C++/CX dispose
+       pattern. */
+    has_dispose_pattern_idisposable_dispose = TRUE;
+  } else if (is_valid_dispose_bool) {
     if (is_idisposable_dispose) {
       /* We found valid Dispose(bool) and Dispose() members: This is a valid
          dispose pattern. */
@@ -19405,7 +19596,15 @@ should be implemented.  The results are stored in the class symbol supplement.
   check_assertion(base_class != NULL);
   base_cssp = symbol_supplement_for_class(base_class);
   check_for_dispose_pattern(base_class);
-  if (base_cssp->dispose_bool != NULL) {
+  if (cppcx_enabled) {
+    if (dispose_void_routine == NULL &&
+        base_cssp->has_dispose_pattern_idisposable_dispose) {
+      /* This class does not have a Dispose() function.  However, a base
+         class has an IDisposable::Dispose() function, thereby satisfying the
+         requirements for a C++/CX dispose pattern implementation. */
+      has_dispose_pattern_idisposable_dispose = TRUE;
+    }  /* if */
+  } else if (base_cssp->dispose_bool != NULL) {
     /* The base class may be providing the dispose pattern implementation.
        This is only worth checking for if class_type itself doesn't do so, and
        if it either has no Dispose(bool) member or that member is a valid
@@ -19462,7 +19661,7 @@ should be implemented.  The results are stored in the class symbol supplement.
        modifier. */
     needs_new_idisposable_dispose = TRUE;
   }  /* if */
-  if (object_finalize_routine == NULL) {
+  if (cppcli_enabled && object_finalize_routine == NULL) {
     /* Find an override of Object::Finalize() in a base class that must be
        invoked by a derived class' Dispose(bool) implementation. */
     check_assertion(base_cssp->object_finalize != NULL);
@@ -19577,6 +19776,10 @@ Implement the C++/CLI dispose pattern for this class if it is needed.
       /* Determine what dispose pattern functions need to be implemented
          and what base class functions they should chain to. */
       check_for_dispose_pattern(base_class_type);
+    }  /* if */
+    /* The C++/CX dispose pattern does not require a Dispose(bool) or an
+       Object::Finalize() function. */
+    if (cppcli_enabled && is_ref_class) {
       /* Generate the Dispose(bool) function. */
       class_state->access = (an_access_specifier)as_protected;
       initialize_member_decl_info(&decl_info, pos);
@@ -19643,9 +19846,14 @@ Implement the C++/CLI dispose pattern for this class if it is needed.
     /* Generate the implementation of IDisposable::Dispose() if one was not
        already provided by a base class dispose pattern implementation. */
     if (is_value_class ||
-        !base_cssp->has_dispose_pattern_idisposable_dispose) {
+        !base_cssp->has_dispose_pattern_idisposable_dispose ||
+        /* The C++/CX dispose pattern (unlike C++/CLI) always requires an
+           IDisposable::Dispose() function. */
+        cppcx_enabled) {
       clear_func_info(&func_info);
-      func_info.sealed = TRUE;
+      /* The C++/CLI IDisposable::Dispose() function is sealed, but not the
+         corresponding C++/CX function. */
+      if (cppcli_enabled) func_info.sealed = TRUE;
       if (is_ref_class) {
         if (base_cssp->needs_new_idisposable_dispose) {
           func_info.new_member = TRUE;
@@ -19664,7 +19872,8 @@ Implement the C++/CLI dispose pattern for this class if it is needed.
                                 (a_param_type_ptr)NULL);
       check_assertion(cssp->idisposable_dispose != NULL);
       cssp->has_dispose_pattern_idisposable_dispose = TRUE;
-      cssp->needs_new_idisposable_dispose = TRUE;
+      /* The C++/CX IDisposable::Dispose() function is not sealed. */
+      if (cppcli_enabled) cssp->needs_new_idisposable_dispose = TRUE;
     } else if (base_cssp != NULL) {
       /* Record the fact that a base class dispose pattern already implements
          the IDisposable::Dispose() function. */
@@ -19967,7 +20176,7 @@ The routine body is not generated until it is known to be needed.
   declare_copy_ctor = declare_copy_ctor &&
                       !(cli_class_type_kind_is(class_type, cctk_ref) ||
                         cli_class_type_kind_is(class_type, cctk_interface));
-  declare_static_ctor = cppcli_enabled &&
+  declare_static_ctor = cli_or_cx_enabled &&
                         !cli_class_type_kind_is(class_type, cctk_standard) &&
                         !cli_class_type_kind_is(class_type, cctk_interface) &&
                         !class_type
@@ -20151,7 +20360,7 @@ The routine body is not generated until it is known to be needed.
     cssp->assignment_by_bitwise_copy_allowed = FALSE;
   }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
-  if (cppcli_enabled && is_immediate_managed_class_type(class_type)) {
+  if (cli_or_cx_enabled && is_immediate_managed_class_type(class_type)) {
     if (cli_class_type_kind_is(class_type, cctk_ref) ||
         cli_class_type_kind_is(class_type, cctk_value)) {
       /* Determine if the class implements the System::IDisposable interface.
@@ -20637,7 +20846,7 @@ type.
     /* In C++/CLI mode, if one (or both) conversion functions is a "reverse
        conversion function" (only possible with static conversion functions),
        they are never considered a "match". */
-    check_assertion(cppcli_enabled);
+    check_assertion(cli_or_cx_enabled);
     result = FALSE;
   } else
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
@@ -20663,7 +20872,7 @@ conversion function in a base class) convert to the same type.
 {
   a_boolean  result;
 
-  if (!cppcli_enabled) {
+  if (!cli_or_cx_enabled) {
     /* In ordinary (non-CLI) C++, the symbol header is determined by the
        destination type. */
     result = dsym->header == bsym->header;
@@ -21276,7 +21485,7 @@ declaration from a using-declaration.)
        language). */
   }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
-  if (cppcli_enabled && is_managed_class_type(class_type)) {
+  if (cli_or_cx_enabled && is_managed_class_type(class_type)) {
     pos_error(ec_using_or_access_declaration_in_managed_class, &using_pos);
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
@@ -21341,7 +21550,7 @@ declaration from a using-declaration.)
     } else if (declared_sym == NULL) {
       internal_error("member_using_decl: NULL symbol ptr");
 #endif /* CHECKING */
-    } else if (cppcli_enabled && is_finalizer_symbol(declared_sym)) {
+    } else if (cli_or_cx_enabled && is_finalizer_symbol(declared_sym)) {
       /* A using-declaration may not specify a finalizer. */
       pos_error(ec_no_finalizer_using_declaration, &decl_pos);
       err = TRUE;
@@ -21776,7 +21985,7 @@ In C++/CLI mode we also check for the extended forms of access specifiers:
     a_token_kind       next_tok = tok_error;
     a_source_position  pos_access;
     pos_access = pos_curr_token;
-    if (cppcli_enabled) {
+    if (cli_or_cx_enabled) {
       next_tok = next_token();
       if ((is_class_type_keyword(next_tok) || next_tok == tok_enum) &&
           (curr_token == tok_public || curr_token == tok_private)) {
@@ -21884,12 +22093,12 @@ In C++/CLI mode we also check for the extended forms of access specifiers:
         scope_stack_top().current_assembly_access = state->assembly_access;
       }  /* if */
       if (state->access != (an_access_specifier)as_public ||
-          (cppcli_enabled &&
+          (cli_or_cx_enabled &&
            state->assembly_access != (an_access_specifier)as_public)) {
         /* "protected" and "private" cannot appear in __interface classes nor
            in C++/CLI interfaces. */
         if (class_type->variant.class_struct_union.is_interface ||
-            (cppcli_enabled &&
+            (cli_or_cx_enabled &&
              cli_class_type_kind_is(class_type, cctk_interface))) {
           pos_error(ec_interface_cannot_have_private_or_protected,
                     &pos_access);
@@ -22424,7 +22633,7 @@ is found.
     }  /* if */
   } else if (decl_info->is_constructor || is_union_type(class_type)
 #if MICROSOFT_EXTENSIONS_ALLOWED
-             || (cppcli_enabled && decl_info->is_finalizer)
+             || (cli_or_cx_enabled && decl_info->is_finalizer)
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
                                                            ) {
     /* Constructors may not be virtual functions and unions may not have them.
@@ -22742,7 +22951,7 @@ consume_any_stray_microsoft_rparen.
 */
 {
   *complete_decl = FALSE;
-  if (curr_token == tok_lbracket) {
+  if (microsoft_attribute_tokens_next()) {
     /* A Microsoft attribute of the form "[ ... ]". */
     *ms_attributes = scan_microsoft_attributes(/*is_parameter=*/FALSE);
     if (curr_token == tok_semicolon) {
@@ -22757,6 +22966,11 @@ consume_any_stray_microsoft_rparen.
       cannot_bind_to_curr_construct();
       (void)get_token();
       *complete_decl = TRUE;
+      if (class_state->property_or_event_descr != NULL) {
+        /* Something like "property int P { [assembly:MSAttr]; }".  Avoid
+           spurious errors by treating this as a valid declaration. */
+        treat_declaration_as_okay_in_property_or_event(class_state);
+      }  /* if */
     }  /* if */
   }  /* if */
   class_state->ms_parenthesized_member = FALSE;
@@ -23057,14 +23271,25 @@ of a managed class (possibly a generic class).
     if (!is_immediate_managed_class_type(parent_type)) {
       pos_error(ec_delegate_requires_managed_class, &pos_curr_token);
     }  /* if */
+    /* Do not insert code here. */
+    else if (cppcx_enabled &&
+             is_cppcx_externally_visible_assembly_access(
+                                             ssep->current_assembly_access)) {
+      pos_error(ec_cppcx_public_nested_delegate, &pos_curr_token);
+    }  /* if */
     dsi_flags |= DSI_IS_MEMBER_DECLARATION;
   }  /* if */
+  /* Record that we are scanning a delegate definition. */
+  check_assertion(!ssep->scanning_cli_delegate_definition);
+  ssep->scanning_cli_delegate_definition = TRUE;
   /* Skip over the "delegate" token. */
   (void)get_token();
   decl_specifiers(dsi_flags, dps, &decl_pos_block);
   clear_func_info(func_info);
   declarator(di_flags, dps, /*member_parent_type=*/(a_type_ptr)NULL, loc,
              func_info, &decl_pos_block);
+  /* Record that we are no longer scanning a delegate definition. */
+  ssep->scanning_cli_delegate_definition = FALSE;
   if (is_template_dependent_context() &&
       !is_cli_generic_definition_context()) {
     /* Type checks are unreliable: Delay them until a real instantiation.
@@ -23114,9 +23339,12 @@ signature that matches that of the delegate definition).
   source_sequence_entries_disallowed = TRUE;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   initialize_class_def_state(class_type, &class_state);
-  /* Add System::MulticastDelegate as a base class. */
+  /* Add System::MulticastDelegate (or Platform::Delegate in C++/CX mode)
+     as a base class. */
   add_cli_system_base_class(
-            &class_state, cli_symbol_from_kind(csk_system_multicast_delegate));
+         &class_state, cli_symbol_from_kind(cppcx_enabled ?
+                                              csk_system_delegate :
+                                              csk_system_multicast_delegate));
   wrapup_base_classes(&class_state);
   class_state.access = (an_access_specifier)as_public;
   ctsp->assoc_scope =
@@ -23140,8 +23368,11 @@ signature that matches that of the delegate definition).
       mdps->type->variant.routine.extra_info->this_class = class_type;
       ensure_underlying_function_type_is_modifiable(&dps->type,
                                                     &ctsp->invocation_type);
-      ctsp->invocation_type->variant.routine.extra_info->calling_convention =
+      if (cppcli_enabled) {
+        ctsp->invocation_type->variant.routine.extra_info
+                             ->calling_convention =
                                              (a_calling_convention)cc_clrcall;
+      }  /* if */
     } else {
       /* Presumably a template parameter type or an error type. */
       mdps->type = dps->type;
@@ -23149,8 +23380,8 @@ signature that matches that of the delegate definition).
     }  /* if */
     decl_member_function(&member_loc, func_info, &class_state, &member_info,
                          /*compiler_generated=*/TRUE);
-    if (is_function_type(dps->type)) {
-      /* Add the BeginInvoke member (declaration only). */
+    if (cppcli_enabled && is_function_type(dps->type)) {
+      /* Add the BeginInvoke member (declaration only) in the C++/CLI case. */
       clear_locator(&member_loc, &dps->declarator_pos);
       (void)find_symbol("BeginInvoke", sizeof("BeginInvoke")-1, &member_loc);
       initialize_member_decl_info(&member_info, &dps->specifiers_pos);
@@ -23203,28 +23434,32 @@ signature that matches that of the delegate definition).
   decl_member_function(&member_loc, func_info, &class_state, &member_info,
                        /*compiler_generated=*/TRUE);
   /* Add static operators "+" and "-" (again, declarations only). */
-  make_opname_locator((an_opname_kind)onk_plus, &member_loc,
-                      &dps->declarator_pos);
-  initialize_member_decl_info(&member_info, &dps->specifiers_pos);
-  mdps->storage_class = mdps->declared_storage_class =
+  /* C++/CX does not support multicast delegates, so do not generate the
+     "+" and "-" operators in that case. */
+  if (cppcli_enabled) {
+    make_opname_locator((an_opname_kind)onk_plus, &member_loc,
+                        &dps->declarator_pos);
+    initialize_member_decl_info(&member_info, &dps->specifiers_pos);
+    mdps->storage_class = mdps->declared_storage_class =
                                                    (a_storage_class)sc_static;
-  mdps->declared_type = mdps->type =
+    mdps->declared_type = mdps->type =
                           make_routine_type(htype, htype, htype,
                                             /*param3_type=*/(a_type_ptr)NULL,
                                             /*param4_type=*/(a_type_ptr)NULL);
-  decl_member_function(&member_loc, func_info, &class_state, &member_info,
-                       /*compiler_generated=*/TRUE);
-  make_opname_locator((an_opname_kind)onk_minus, &member_loc,
-                      &dps->declarator_pos);
-  initialize_member_decl_info(&member_info, &dps->specifiers_pos);
-  mdps->storage_class = mdps->declared_storage_class =
+    decl_member_function(&member_loc, func_info, &class_state, &member_info,
+                         /*compiler_generated=*/TRUE);
+    make_opname_locator((an_opname_kind)onk_minus, &member_loc,
+                        &dps->declarator_pos);
+    initialize_member_decl_info(&member_info, &dps->specifiers_pos);
+    mdps->storage_class = mdps->declared_storage_class =
                                                    (a_storage_class)sc_static;
-  mdps->declared_type = mdps->type =
+    mdps->declared_type = mdps->type =
                           make_routine_type(htype, htype, htype,
                                             /*param3_type=*/(a_type_ptr)NULL,
                                             /*param4_type=*/(a_type_ptr)NULL);
-  decl_member_function(&member_loc, func_info, &class_state, &member_info,
-                       /*compiler_generated=*/TRUE);
+    decl_member_function(&member_loc, func_info, &class_state, &member_info,
+                         /*compiler_generated=*/TRUE);
+  } /* if */
   /* Wrap up the definition. */
   complete_class_definition(class_type, decl_level, &class_state);
   pop_scope();
@@ -23300,10 +23535,12 @@ Scan the definition and record it in the IL (as a special-purpose class type).
                             &loc.source_position, dps->source_sequence_entry);
   set_cli_visibility(class_type, visibility, &visibility_pos,
                      /*is_definition=*/TRUE);
+  if (cppcx_enabled) {
+    error_if_cppcx_public_global_type(class_type, &visibility_pos);
+  }  /* if */
   if (dps->ms_attributes != NULL && prev_decl == NULL) {
     /* Apply the specified attributes. */
-    apply_microsoft_attributes(&dps->ms_attributes, (char*)class_type,
-                               (an_il_entry_kind)iek_type, MSAT_STRUCT);
+    apply_microsoft_attributes_to_type(&dps->ms_attributes, class_type);
   }  /* if */
   /* Create the definition of the delegate class type. */
   create_cli_delegate_class_definition(class_type, decl_level, dps,
@@ -23323,6 +23560,9 @@ the assembly file.)
   a_decl_parse_state  dps;
 
   init_decl_parse_state(&dps);
+  if (microsoft_attribute_tokens_next()) {
+    dps.ms_attributes = scan_microsoft_attributes(/*is_parameter=*/FALSE);
+  }  /* if */
   scan_and_record_cli_delegate_definition(&dps);
 }  /* scan_cli_delegate_definition_from_assembly_import */
 
@@ -23478,10 +23718,26 @@ trivial property described by class_state->property_or_event_descr.
                                           /*param3_type=*/(a_type_ptr)NULL,
                                           /*param4_type=*/(a_type_ptr)NULL);
   generate_trivial_accessor(class_state, get_type, "get");
-  set_type = make_routine_type(void_type(), prop_type,
-                                            /*param2_type=*/(a_type_ptr)NULL,
-                                            /*param3_type=*/(a_type_ptr)NULL,
-                                            /*param4_type=*/(a_type_ptr)NULL);
+  if (cppcx_enabled &&
+      is_handle_to_nonconst_cppcx_plain_array_type(prop_type) &&
+      is_cppcx_externally_visible_assembly_access(
+                                              class_state->assembly_access)) {
+    /* The property is of type "Platform::Array<T>^".  For externally-visible
+       setters, the parameter type must be "const Platform::Array<T>^". */
+    a_type_ptr const_array_prop_type = NULL;
+    const_array_prop_type = make_handle_type(make_qualified_type(
+                                                   type_pointed_to(prop_type),
+                                                   TQ_CONST));
+    set_type = make_routine_type(void_type(), const_array_prop_type,
+                                 /*param2_type=*/(a_type_ptr)NULL,
+                                 /*param3_type=*/(a_type_ptr)NULL,
+                                 /*param4_type=*/(a_type_ptr)NULL);
+  } else {
+   set_type = make_routine_type(void_type(), prop_type,
+                                /*param2_type=*/(a_type_ptr)NULL,
+                                /*param3_type=*/(a_type_ptr)NULL,
+                                /*param4_type=*/(a_type_ptr)NULL);
+  }  /* if */
   generate_trivial_accessor(class_state, set_type, "set");
 }  /* record_trivial_property_accessors */
 
@@ -23502,12 +23758,32 @@ class_state->property_or_event_descr.
   } else {
     event_type = pdp->variant.field->type;
   }  /* if */
-  add_type = make_routine_type(void_type(), event_type,
-                                            /*param2_type=*/(a_type_ptr)NULL,
-                                            /*param3_type=*/(a_type_ptr)NULL,
-                                            /*param4_type=*/(a_type_ptr)NULL);
+  if (cppcx_enabled) {
+    a_type_ptr event_registration_token_type = cli_class_type_for(
+                             csk_windows_foundation_event_registration_token);
+    add_type = make_routine_type(event_registration_token_type,
+                                 event_type,
+                                 /*param2_type=*/(a_type_ptr)NULL,
+                                 /*param3_type=*/(a_type_ptr)NULL,
+                                 /*param4_type=*/(a_type_ptr)NULL);
+  } else {
+    add_type = make_routine_type(void_type(), event_type,
+                                 /*param2_type=*/(a_type_ptr)NULL,
+                                 /*param3_type=*/(a_type_ptr)NULL,
+                                 /*param4_type=*/(a_type_ptr)NULL);
+  }  /* if */
   generate_trivial_accessor(class_state, add_type, "add");
-  remove_type = add_type;
+  if (cppcx_enabled) {
+    a_type_ptr event_registration_token_type = cli_class_type_for(
+                             csk_windows_foundation_event_registration_token);
+    remove_type = make_routine_type(void_type(),
+                                    event_registration_token_type,
+                                    /*param2_type=*/(a_type_ptr)NULL,
+                                    /*param3_type=*/(a_type_ptr)NULL,
+                                    /*param4_type=*/(a_type_ptr)NULL);
+  } else {
+    remove_type = add_type;
+  }  /* if */
   generate_trivial_accessor(class_state, remove_type, "remove");
   /* Declare the event's "raise" accessor: It is always protected (ECMA says
      it is private, but Microsoft compilers make it protected).  Do not
@@ -23696,7 +23972,10 @@ and *class_state->pe_loc.
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   pdp->property_or_event_position = pos_curr_token;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
-  if (!is_immediate_managed_class_type(class_type)) {
+  if (cppcx_enabled && is_value_class_type(class_type) && !is_property) {
+    pos_error(ec_event_in_cppcx_value_type, &pos_curr_token);
+    use_error_type = TRUE;
+  } else if (!is_immediate_managed_class_type(class_type)) {
     pos_error(is_property ? ec_property_requires_managed_class
                           : ec_event_requires_managed_class,
               &pos_curr_token);
@@ -23820,6 +24099,11 @@ and *class_state->pe_loc.
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   dps->source_sequence_entry = add_empty_source_sequence_entry();
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+  /* Record the position of the name of the property or event. */
+  decl_info->decl_pos_block.identifier_range.start = pos_curr_token;
+  decl_info->decl_pos_block.identifier_range.end = end_pos_curr_token;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   class_state->property_or_event_descr = pdp;
   dps->is_property_or_event_field = TRUE;
   loc = locator_for_curr_id;
@@ -23958,6 +24242,17 @@ innermost class being defined.
          declared. */
       if (pedp->get_routine.ptr == NULL && pedp->set_routine.ptr == NULL) {
         pos_error(ec_missing_get_and_set_accessors, &pe_loc->source_position);
+      } else if (cppcx_enabled &&
+                 (pedp->is_default_indexed || pedp->indices != NULL) &&
+                 (((pedp->get_routine.ptr != NULL &&
+                    is_cppcx_externally_visible_symbol(
+                                         symbol_for(pedp->get_routine.ptr))) ||
+                   (pedp->set_routine.ptr != NULL &&
+                    is_cppcx_externally_visible_symbol(
+                                      symbol_for(pedp->set_routine.ptr)))))) {
+        /* Indexed properties with a public "get" or "set" accessor are
+           disallowed in C++/CX. */
+        pos_error(ec_cppcx_public_indexed_property, &pe_loc->source_position);
       }  /* if */
     } else {
       /* Check that both "add" and "remove" have been declared. */
@@ -24404,64 +24699,77 @@ vice versa.
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 
   check_assertion(is_immediate_enum_type(tp));
-  /* Create a symbol for the boxed type.  It is not added to the symbol
-     table since it would conflict with the symbol of the enum type. */
-  make_locator_for_symbol(symbol_for(tp), &loc);
-  bsym = make_symbol((a_symbol_kind)sk_class_or_struct_tag, &loc);
-  bsym->decl_scope = scope_stack[DEPTH_OF_FILE_SCOPE].number;
-  /* Create the type entry itself. */
-  btp = alloc_type((a_type_kind)tk_struct);
-  ctsp = class_type_supp(btp);
-  ctsp->cli_class_type_kind = (a_cli_class_type_kind)cctk_value;
-  ctsp->is_hide_by_sig = TRUE;
-  btp->variant.class_struct_union.final = TRUE;
-  bsym->variant.class_struct_union.type = btp;
-  set_source_corresp(&(btp->source_corresp), bsym);
-  set_name_linkage_for_type(btp);
-  add_to_types_list(btp, DEPTH_OF_FILE_SCOPE);
+  if (cppcx_enabled) {
+    /* In C++/CX mode, the boxed version of an enum is Platform::Box<T>. */
+    btp = make_cppcx_box_type(tp);
+    /* Link the enum type with the boxed type. Although it is done in the
+       C++/CLI case below, the boxed type is not linked with the enum type
+       via ctsp->corresponding_basic_type.  That association is used by
+       form_tag_reference to emit the enum type instead of the boxed type due
+       to the fact that the boxed type cannot be written explicitly in source
+       form.  We don't want that to occur in C++/CX because the boxed type
+       can be written explicitly in source form as Platform::Box<T>. */
+    integer_type_supp(tp)->boxed_type = btp;
+  } else {
+    /* Create a symbol for the boxed type.  It is not added to the symbol
+       table since it would conflict with the symbol of the enum type. */
+    make_locator_for_symbol(symbol_for(tp), &loc);
+    bsym = make_symbol((a_symbol_kind)sk_class_or_struct_tag, &loc);
+    bsym->decl_scope = scope_stack[DEPTH_OF_FILE_SCOPE].number;
+    /* Create the type entry itself. */
+    btp = alloc_type((a_type_kind)tk_struct);
+    ctsp = class_type_supp(btp);
+    ctsp->cli_class_type_kind = (a_cli_class_type_kind)cctk_value;
+    ctsp->is_hide_by_sig = TRUE;
+    btp->variant.class_struct_union.final = TRUE;
+    bsym->variant.class_struct_union.type = btp;
+    set_source_corresp(&(btp->source_corresp), bsym);
+    set_name_linkage_for_type(btp);
+    add_to_types_list(btp, DEPTH_OF_FILE_SCOPE);
 #if NEED_NAME_MANGLING
-  /* When multiple closure types appear in the same scope or context, their
-     mangled names are distinguished using a unique number ("discriminator").
-     Compute that number now if appropriate (in some contexts, such as
-     default arguments, the number will be determined elsewhere).  The notion
-     of "discriminator" here is a generalization of the one defined in the
-     IA-64 ABI. */
-  compute_name_collision_discriminator(bsym, DEPTH_OF_FILE_SCOPE);
+    /* When multiple closure types appear in the same scope or context, their
+       mangled names are distinguished using a unique number ("discriminator").
+       Compute that number now if appropriate (in some contexts, such as
+       default arguments, the number will be determined elsewhere).  The notion
+       of "discriminator" here is a generalization of the one defined in the
+       IA-64 ABI. */
+    compute_name_collision_discriminator(bsym, DEPTH_OF_FILE_SCOPE);
 #endif /* NEED_NAME_MANGLING */
-  /* Start the class definition (and associated class scope). */
-  initialize_class_def_state(btp, &class_state);
-  push_instantiation_scope_for_boxed_enum_type();
+    /* Start the class definition (and associated class scope). */
+    initialize_class_def_state(btp, &class_state);
+    push_instantiation_scope_for_boxed_enum_type();
 #if GENERATE_SOURCE_SEQUENCE_LISTS
-  btp->autonomous_primary_tag_decl = TRUE;
-  /* Don't issue source sequence entries for generated entities. */
-  saved_source_sequence_entries_disallowed =
+    btp->autonomous_primary_tag_decl = TRUE;
+    /* Don't issue source sequence entries for generated entities. */
+    saved_source_sequence_entries_disallowed =
                                             source_sequence_entries_disallowed;
-  scope_stack_top().source_sequence_entries_disallowed = TRUE;
-  source_sequence_entries_disallowed = TRUE;
+    scope_stack_top().source_sequence_entries_disallowed = TRUE;
+    source_sequence_entries_disallowed = TRUE;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
-  /* Add System::Enum as a base class. */
-  add_cli_system_base_class(
+    /* Add System::Enum as a base class. */
+    add_cli_system_base_class(
                          &class_state, cli_symbol_from_kind(csk_system_enum));
-  wrapup_base_classes(&class_state);
-  class_state.access = (an_access_specifier)as_public;
-  ctsp->assoc_scope =
+    wrapup_base_classes(&class_state);
+    class_state.access = (an_access_specifier)as_public;
+    ctsp->assoc_scope =
              push_scope((a_scope_kind)sck_class_struct_union, NO_SCOPE_NUMBER,
                         btp, (a_routine_ptr)NULL);
-  scope_stack_top().class_def_state = &class_state;
-  /* Wrap up the definition. */
-  complete_class_definition(btp, DEPTH_OF_FILE_SCOPE, &class_state);
-  pop_scope();
+    scope_stack_top().class_def_state = &class_state;
+    /* Wrap up the definition. */
+    complete_class_definition(btp, DEPTH_OF_FILE_SCOPE, &class_state);
+    pop_scope();
 #if GENERATE_SOURCE_SEQUENCE_LISTS
-  /* Restore the previous state wrt. generating source sequence entries. */
-  source_sequence_entries_disallowed =
+    /* Restore the previous state wrt. generating source sequence entries. */
+    source_sequence_entries_disallowed =
                                      saved_source_sequence_entries_disallowed;
-  scope_stack_top().source_sequence_entries_disallowed 
+    scope_stack_top().source_sequence_entries_disallowed 
                                     = saved_source_sequence_entries_disallowed;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
-  pop_instantiation_scope_for_boxed_enum_type();
-  /* Link the enum type with the boxed type and vice versa. */
-  integer_type_supp(tp)->boxed_type = btp;
-  ctsp->corresponding_basic_type = tp;
+    pop_instantiation_scope_for_boxed_enum_type();
+    /* Link the enum type with the boxed type and vice versa. */
+    integer_type_supp(tp)->boxed_type = btp;
+    ctsp->corresponding_basic_type = tp;
+  } /* if */
 }  /* make_boxed_enum_type */
 
 
@@ -24557,7 +24865,7 @@ flag if error recovery should be performed as if the specifier didn't occur.
       decl_info->is_destructor = TRUE;
       dps->type = dps->declared_type = unknown_type();
 #if MICROSOFT_EXTENSIONS_ALLOWED
-    } else if (cppcli_enabled &&
+    } else if (cli_or_cx_enabled &&
                (curr_token == tok_not ||
                 (is_generalized_identifier_start(GID_NO_OPTIONS) &&
                  locator_for_curr_id.is_finalizer_name))) {
@@ -24571,7 +24879,7 @@ flag if error recovery should be performed as if the specifier didn't occur.
       } else {
         /* "static" is not allowed on a constructor, except in C++/CLI mode,
            which has a concept of "static constructor". */
-        if (cppcli_enabled) {
+        if (cli_or_cx_enabled) {
 #if MICROSOFT_EXTENSIONS_ALLOWED
           decl_info->is_static_constructor = TRUE;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
@@ -24714,7 +25022,7 @@ flag if error recovery should be performed as if the specifier didn't occur.
     }  /* if */
     *is_function = (!*is_typedef && is_function_type(dps->type));
 #if MICROSOFT_EXTENSIONS_ALLOWED
-    if (cppcli_enabled && *is_function) {
+    if (cli_or_cx_enabled && *is_function) {
       if ((dps->do_flags & DO_IS_STATIC_CONSTRUCTOR) != 0) {
         decl_info->is_static_constructor = TRUE;
         check_assertion(dps->type->kind == (a_type_kind)tk_routine);
@@ -24761,7 +25069,7 @@ error.  Called in C++/CLI mode only.
 {
   a_boolean  okay = TRUE;
 
-  check_assertion(cppcli_enabled);
+  check_assertion(cli_or_cx_enabled);
 #if MICROSOFT_EXTENSIONS_ALLOWED
   if (!cli_class_type_kind_is(class_type, cctk_ref) &&
       !cli_class_type_kind_is(class_type, cctk_value) &&
@@ -24918,7 +25226,7 @@ passed via template_decl.
     /* Record any Microsoft attributes in *decl_state before calling
        decl_specifiers, because that call may append additional attributes. */
     decl_state->ms_attributes = ms_attributes;
-    if (cppcli_enabled) {
+    if (cli_or_cx_enabled) {
       a_property_or_event_descr  *pdp = class_state->property_or_event_descr;
       if (pdp != NULL && property_or_event_is_missing_assoc_data_member(pdp)) {
         /* A property/event accessor is presumably next.  If that accessor is
@@ -25243,7 +25551,7 @@ passed via template_decl.
             tssp->variant.function.routine->is_explicit_constructor = TRUE;
           } else if (locator.is_conversion_name &&
                      explicit_conversion_functions_enabled) {
-            if (cppcli_enabled &&
+            if (cli_or_cx_enabled &&
                 !check_cppcli_explicit_conversion(class_type, decl_state,
                                                   dso_flags)) {
               expect_error();
@@ -25337,7 +25645,7 @@ passed via template_decl.
             rout_sym->variant.routine.ptr->is_explicit_constructor = TRUE;
           } else if (locator.is_conversion_name &&
                      explicit_conversion_functions_enabled) {
-            if (cppcli_enabled &&
+            if (cli_or_cx_enabled &&
                 !check_cppcli_explicit_conversion(class_type, decl_state,
                                                   dso_flags)) {
               expect_error();
@@ -25726,8 +26034,7 @@ instance record associated with this instantiation.
   saved_routine_fixup = curr_routine_fixup;
   curr_routine_fixup = NULL;
 #if MICROSOFT_EXTENSIONS_ALLOWED
-  if (microsoft_mode &&
-      curr_token == tok_lbracket && !std_attribute_tokens_next()) {
+  if (microsoft_attribute_tokens_next()) {
     /* Skip any Microsoft attributes. */
     skip_microsoft_attribute_tokens();
   }  /* if */
@@ -26362,7 +26669,7 @@ that are not irrelevant due to actual overrides.
   a_quasi_override_descr_ptr  qodp;
   a_type_ptr                  class_type = cdsp->class_type;
 
-  check_assertion(cppcli_enabled);
+  check_assertion(cli_or_cx_enabled);
   /* Check each quasi-override in turn. */
   for (qodp = cdsp->quasi_overrides; qodp != NULL; qodp = qodp->next) {
     a_routine_ptr     base_rp = qodp->base_member->variant.routine.ptr;
@@ -26639,6 +26946,241 @@ cached for later "prototype instantiation".  Perform these instantiations now
                  class_state->members_requiring_exception_spec_instantiation);
 }  /* instantiate_delayed_exception_spec_args_if_needed */
 
+#if MICROSOFT_EXTENSIONS_ALLOWED
+
+static void check_cppcx_value_type_symbol(a_symbol_ptr sym)
+/*
+Check some constraints on the given member of a C++/CX value class.
+*/
+{
+  a_boolean                    check = TRUE;
+  a_source_correspondence_ptr  scp;
+
+  switch (sym->kind) {
+    case sk_static_data_member:
+      scp = &sym->variant.static_data_member.variable->source_corresp;
+      if (scp->access != (an_access_specifier)as_public) {
+        /* Public value types cannot have non-public data members in C++/CX
+           mode. */
+        pos_error(ec_nonpublic_data_member_in_public_cppcx_value_type,
+                  &sym->decl_position);
+      }  /* if */
+      check = FALSE;
+      break;
+    case sk_field:
+      scp = &sym->variant.variable.ptr->source_corresp;
+      if (scp->access != (an_access_specifier)as_public) {
+        /* Public value types cannot have non-public data members in C++/CX
+           mode. */
+        pos_error(ec_nonpublic_data_member_in_public_cppcx_value_type,
+                  &sym->decl_position);
+      }  /* if */
+      check = FALSE;
+      break;
+    case sk_member_function:
+      if (sym->variant.routine.ptr->compiler_generated) {
+        check = FALSE;
+      }  /* if */
+      break;
+    case sk_type:
+      if (sym->variant.type.is_injected_class_name) check = FALSE;
+      break;
+    case sk_overloaded_function:
+      {
+        a_symbol_ptr overload;
+        for (overload = sym->variant.overloaded_function.symbols;
+             overload != NULL;
+             overload = overload->next) {
+          check_cppcx_value_type_symbol(overload);
+        }  /* for */
+        check = FALSE;
+      }
+      break;
+    case sk_property_set:
+      {
+        check = FALSE;
+      }
+      break;
+    case sk_projection:
+      /* Projection symbols shouldn't exist in value type classes since
+         value type inheritance is illegal in C++/CX mode.  However, this
+         can still happen when compiling invalid code. */
+      check = FALSE;
+      break;
+    default:
+      /* source_corresp_entry_for_symbol should be non-NULL here. */
+      check_assertion(source_corresp_entry_for_symbol(sym) != NULL);
+      break;
+  }  /* switch */
+  if (check && source_corresp_entry_for_symbol(sym)->access ==
+                                             (an_access_specifier)as_public) {
+    /* A symbol that is not a static data member nor field, but is public in a
+       C++/CX value type.  This is invalid in C++/CX mode. */
+    pos_error(ec_public_nondata_member_in_public_cppcx_value_type,
+              &sym->decl_position);
+  }  /* if */
+}  /* check_cppcx_value_type_symbol */
+
+
+static void check_cppcx_value_type_symbols(a_type_ptr class_type)
+/*
+Check some constraints on the members of the given C++/CX value class.
+*/
+{
+  check_assertion(cppcx_enabled && is_value_class_type(class_type));
+  if (class_has_public_assembly_visibility(class_type) &&
+      !is_nonpublic_nested_class(class_type)) {
+    /* Base classes do not need to be checked since inheritance is
+       not allowed for value types in C++/CX mode. */
+    a_symbol_ptr  sym = symbol_supplement_for_class(class_type)->symbols;
+    for (; sym != NULL; sym = sym->next_in_scope) {
+      check_cppcx_value_type_symbol(sym);
+    }  /* for */
+  }  /* if */
+}  /* check_cppcx_value_type_symbols */
+
+
+static void inject_special_platform_string_constructor(
+                                           a_class_def_state_ptr  class_state)
+/*
+Injects the Platform::String::String(__abi_HSTRING__* h) constructor into the
+C++/CX string class.
+*/
+{
+  a_symbol_locator    loc;
+  a_member_decl_info  decl_info;
+  a_func_info_block   func_info;
+  a_type_ptr          class_type = class_state->class_type, rout_type;
+  a_type_ptr          abi_hstring_type = type_symbol_type(
+                                        cli_symbol_from_kind(csk_abi_hstring));
+  a_routine_type_supplement_ptr
+                      rtsp;
+
+  /* Initialize info structures. */
+  clear_func_info(&func_info);
+  initialize_member_decl_info(&decl_info, &null_source_position);
+  /* Make the constructor locator. */
+  make_locator_for_symbol(symbol_for(class_type), &loc);
+  change_class_locator_into_constructor_locator(
+                                     &loc,
+                                     &class_type->source_corresp.decl_position,
+                                     /*is_static_ctor=*/FALSE);
+  /* Set up the routine type and populate decl_info and func_info. */
+  rout_type = make_routine_type(void_type(),
+                                make_pointer_type(abi_hstring_type),
+                                /*param2_type=*/NULL, /*param3_type=*/NULL,
+                                /*param4_type=*/NULL);
+  rtsp = rout_type->variant.routine.extra_info;
+  rtsp->assoc_routine_is_ctor = TRUE;
+  rtsp->this_class = class_type;
+  rtsp->prototyped = TRUE;
+  decl_info.is_constructor = TRUE;
+  decl_info.decl_state.type = rout_type;
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+  func_info.declared_type = rout_type;
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+  /* Do not mark this constructor as compiler-generated: it is more trouble
+     than it's worth.  This injection should be as-if the declaration came
+     from metadata. */
+  decl_member_function(&loc, &func_info, class_state, &decl_info,
+                       /*compiler_generated=*/FALSE);
+}  /* inject_special_platform_string_constructor */
+
+
+static void inject_unnamed_virtual_function(
+                                            a_class_def_state_ptr  class_state)
+/*
+Inject an unnamed virtual function into the type class_state->class_type.
+*/
+{
+  a_symbol_locator    loc;
+  a_member_decl_info  decl_info;
+  a_func_info_block   func_info;
+  a_type_ptr          class_type = class_state->class_type, rout_type;
+  a_routine_type_supplement_ptr
+                      rtsp;
+
+  /* Initialize info structures. */
+  clear_func_info(&func_info);
+  initialize_member_decl_info(&decl_info, &null_source_position);
+  /* Make an unnamed locator for the virtual function. */
+  make_unnamed_virtual_function_locator(&loc);
+  /* Set up the routine type and populate decl_info and func_info. */
+  rout_type = make_routine_type(void_type(),
+                                /*param1_type=*/NULL, /*param2_type=*/NULL,
+                                /*param3_type=*/NULL, /*param4_type=*/NULL);
+  rtsp = rout_type->variant.routine.extra_info;
+  rtsp->this_class = class_type;
+  rtsp->prototyped = TRUE;
+  decl_info.decl_state.type = rout_type;
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+  func_info.declared_type = rout_type;
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+  /* Mark the routine as virtual. */
+  decl_info.decl_state.dso_flags |= DSO_VIRTUAL;
+  /* Declare the member function. */
+  decl_member_function(&loc, &func_info, class_state, &decl_info,
+                       /*compiler_generated=*/TRUE);
+}  /* inject_unnamed_virtual_function */
+
+
+a_symbol_ptr make_and_enter_abi_member_function_symbol(
+                                                a_symbol_locator  *loc,
+                                                a_type_ptr        class_type)
+/*
+Create and enter a member function symbol into class_type.  
+*/
+{
+  a_func_info_block              func_info;
+  a_member_decl_info             decl_info;
+  a_decl_parse_state_ptr         dps = &decl_info.decl_state;
+  a_type_ptr                     rout_type;
+  a_routine_type_supplement_ptr  rstp;
+  a_class_def_state              class_state;
+  a_symbol_ptr                   sym;
+  a_scope_ptr                    scope;
+  a_memory_region_number         saved_mem_region;
+
+  /* Ensure that all IL allocations take place at file scope. */
+  switch_to_file_scope_region(&saved_mem_region);
+  /* Initialize variables. */
+  clear_func_info(&func_info);
+  initialize_member_decl_info(&decl_info, &null_source_position);
+  initialize_class_def_state(class_type, &class_state);
+  /* Get the IL scope for the class. */
+  scope = class_type_supp(class_type)->assoc_scope;
+  /* Push enough context for a call to decl_member_function to succeed.
+     We won't be performing any lookups beyond direct class members in this
+     function (the caller has ensured that these will fail to find a symbol)
+     and we won't reference any template/generic parameters (if applicable) so
+     it is not necessary to setup the stack for lookups; however, we do need
+     the symbol table setup and the class's il_scope available to add members
+     so an sck_class_reactivation is insufficient.  This is similar to how we
+     setup context for partial classes (though in the latter case, we actually
+     should be setting up the stack for lookups, but we don't currently). */
+  (void)push_scope((a_scope_kind)sck_class_struct_union, scope->number,
+                   class_type, (a_routine_ptr)NULL);
+  /* Setup the routine type. */
+  rout_type = make_routine_type(integer_type((an_integer_kind)ik_long),
+                                /*param1_type=*/NULL, /*param2_type=*/NULL,
+                                /*param3_type=*/NULL, /*param4_type=*/NULL);
+  rstp = rout_type->variant.routine.extra_info;
+  rstp->has_ellipsis = TRUE;
+  rstp->prototyped = TRUE;
+  rstp->this_class = class_type;
+  set_routine_calling_method_flag(rout_type, &null_source_position);
+  dps->type = rout_type;
+  /* Declare the member function. */
+  decl_member_function(loc, &func_info, &class_state,
+                       &decl_info, /*compiler_generated=*/TRUE);
+  sym = dps->sym;
+  pop_scope();
+  /* Switch back to the original memory region. */
+  switch_back_to_original_region(saved_mem_region);
+  return sym;
+}  /* make_and_enter_abi_member_function_symbol */
+ 
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 static a_boolean has_nonliteral_type_subobject(a_type_ptr  class_type)
 /*
@@ -26944,6 +27486,21 @@ bits of information that were acquired while parsing.
         generate_inheriting_constructors(class_state);
       }  /* if */
     }  /* if */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    if (cppcx_enabled) {
+      if (is_cli_system_string_type(class_type)) {
+        /* In C++/CX mode, inject a String(__abi_HSTRING__*) constructor into
+           the Platform::String type. */
+        inject_special_platform_string_constructor(class_state);
+      } else if (is_cli_system_object_type(class_type)) {
+        /* In C++/CX mode, inject an unnamed virtual function into
+           Platform::Object.  This will ensure that all ref types have virtual
+           function table pointers in lieu of adding the actual low-level
+           IUnknown virtual table functions that VC adds. */
+        inject_unnamed_virtual_function(class_state);
+      }  /* if */
+    }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     if (cssp->is_class_aggregate && !class_state->POD_ruled_out) {
       /* It was intentional to wait until check_special_member_functions
          was called to set the is_POD flag -- the check for copy
@@ -27010,7 +27567,7 @@ bits of information that were acquired while parsing.
        type that is a valid base for an __interface type). */
     class_type->variant.class_struct_union.is_interface_like =
                                       class_state->potentially_interface_like;
-    if (cppcli_enabled && is_immediate_managed_class_type(class_type)) {
+    if (cli_or_cx_enabled && is_immediate_managed_class_type(class_type)) {
       check_names_reserved_by_cli_properties_and_events(class_type);
       check_for_subscript_mechanism_conflict(class_type);
       check_quasi_overrides(class_state);
@@ -27030,6 +27587,9 @@ bits of information that were acquired while parsing.
     }  /* if */
     if (class_type_supp(class_type)->decl_modifiers & DM_DLLEXPORT) {
       force_definition_of_generated_exported_members(class_type);
+    }  /* if */
+    if (cppcx_enabled && is_value_class_type(class_type)) {
+      check_cppcx_value_type_symbols(class_type);
     }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     /* Check for missing or erroneous uses of the "hiding" attribute and
@@ -27151,6 +27711,7 @@ alignment of those fields).
 a_boolean scan_class_definition(a_type_ptr          class_type,
                                 a_decl_parse_state  *dps,
                                 a_scope_depth       effective_decl_level,
+                                a_boolean           is_partial,
                                 a_boolean           is_local_class,
                                 a_boolean           delayed_nested_class_def,
                                 a_boolean           is_template_instantiation,
@@ -27164,15 +27725,18 @@ definition is to be scanned.  *dps describes the declaration that the
 definition is part of (NULL for a class template instantiation other than
 a prototype instantiation, as well as for a class definition processed by
 get_definition_of_class).  effective_decl_level indicates the name scope
-to which the class declaration belongs.  is_local_class is TRUE if the class
-definition appears inside a function body.  delayed_nested_class_def is TRUE
-if the class is a nested class whose parent class definition has already been
-completed (C++ only).  is_template_instantiation is TRUE when a template
-is being instantiated either for the purpose of producing the prototype
-instantiation or for generating a real instantiation.  It is also TRUE for
-nested classes when their definition appears outside of the class template.
-If a prototype instantiation is produced, il_template_entry is set to the
-template entry for the class template definition; otherwise it is NULL.
+to which the class declaration belongs.  is_partial indicates that this is
+just a part of a class definition (possible in C++/CX only): Such partial
+definitions are cached until all the partial class bodies are available.
+is_local_class is TRUE if the class definition appears inside a function
+body.  delayed_nested_class_def is TRUE if the class is a nested class
+whose parent class definition has already been completed (C++ only).
+is_template_instantiation is TRUE when a template is being instantiated
+either for the purpose of producing the prototype instantiation or for
+generating a real instantiation.  It is also TRUE for nested classes when
+their definition appears outside of the class template.  If a prototype
+instantiation is produced, il_template_entry is set to the template entry
+for the class template definition; otherwise it is NULL.
 is_template_specialization is TRUE for explicit specializations of template
 classes.
 */
@@ -27214,6 +27778,44 @@ classes.
   db_enter(3, "scan_class_definition");
   cssp = tag_sym->variant.class_struct_union.extra_info;
   check_assertion(!cssp->being_defined);
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  if (is_partial) {
+    /* If this is a partial declaration, cache the body.  It will be parsed
+       later when the terminating class definition is scanned. */
+    (void)cache_partial_class_body(class_type);
+    ctsp->is_partial = TRUE;
+    goto done;
+  }  /* if */
+  if (is_partial_class(class_type)) {
+    /* Parse the "effective" class base list by merging the partial class
+       base list token caches. */
+    a_token_cache             final_base_cache;
+    a_boolean                 base_found = FALSE;
+    a_partial_class_body_ptr  curr_partial_body;
+    clear_token_cache(&final_base_cache, /*reusable=*/FALSE);
+    for (curr_partial_body = ctsp->partial_class_bodies;
+         curr_partial_body != NULL;
+         curr_partial_body = curr_partial_body->next) {
+      if (curr_partial_body->base_cache != NULL) {
+        /* Copy partial base list tokens to final base cache. */
+        a_token_cache_ptr base_cache = curr_partial_body->base_cache;
+        copy_tokens_from_cache(base_cache,
+                               base_cache->first_token->token_sequence_number,
+                               base_cache->last_token->token_sequence_number,
+                               /*include_last_token=*/TRUE,
+                               &final_base_cache);
+        base_found = TRUE;
+      }  /* if */
+    }  /* for */
+    if (base_found && curr_token == tok_colon) {
+      /* If the current token is a colon and at least one partial definition
+         has a base list, replace the colon with a comma. */
+      replace_curr_token(tok_comma);
+    }  /* if */
+    /* Rescan the tokens comprising the "effective" partial class. */
+    rescan_cached_tokens(&final_base_cache);
+  }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   cssp->being_defined = TRUE;
   initialize_class_def_state(class_type, &class_state);
   class_state.is_local_class = is_local_class;
@@ -27416,16 +28018,27 @@ classes.
                                     /*extend_namespace=*/TRUE);
     }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
-    if (ctsp->assembly_scope_index != 0 && curr_token == tok_identifier) {
-      /* When loading a definition from metadata, the "sealed" and "abstract"
-         modifiers are added at the start of the definition. */
-      a_token_kind  next_tok;
-      a_boolean     is_final = FALSE, is_abstract = FALSE, is_sealed = FALSE;
-      check_for_class_modifiers(&next_tok, tok_lbrace,
-                                /*tag_name_first=*/FALSE);
-      scan_class_modifiers((a_type_kind)tk_class,
-                           &is_final, &is_abstract, &is_sealed);
-      apply_class_modifiers(class_type, is_final, is_abstract, is_sealed);
+    if (ctsp->assembly_scope_index != 0) {
+      if (microsoft_attribute_tokens_next()) {
+        /* When loading a definition from metadata, any custom attributes are
+           added at the start of the definition. */
+        an_ms_attribute_ptr  attributes = scan_microsoft_attributes(
+                                                      /*is_parameter=*/FALSE);
+        if (attributes != NULL) {
+          apply_microsoft_attributes_to_type(&attributes, class_type);
+        }  /* if */
+      }  /* if */
+      if (curr_token == tok_identifier) {
+        /* When loading a definition from metadata, the "sealed" and "abstract"
+           modifiers are added at the start of the definition. */
+        a_token_kind  next_tok;
+        a_boolean     is_final = FALSE, is_abstract = FALSE, is_sealed = FALSE;
+        check_for_class_modifiers(&next_tok, tok_lbrace,
+                                  /*tag_name_first=*/FALSE);
+        scan_class_modifiers((a_type_kind)tk_class,
+                             &is_final, &is_abstract, &is_sealed);
+        apply_class_modifiers(class_type, is_final, is_abstract, is_sealed);
+      }  /* if */
     }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if MICROSOFT_EXTENSIONS_ALLOWED
@@ -27460,7 +28073,7 @@ classes.
       }  /* if */
     }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
-    if (cppcli_enabled) add_implicit_cli_bases(&class_state);
+    if (cli_or_cx_enabled) add_implicit_cli_bases(&class_state);
     check_if_potentially_interface_like(&class_state);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     if (ctsp->base_classes != NULL) wrapup_base_classes(&class_state);
@@ -27505,18 +28118,32 @@ classes.
     /* Record the associated scope in the class type supplement. */
     ctsp->assoc_scope = scope_ptr;
 #if MICROSOFT_EXTENSIONS_ALLOWED
-    if (cppcli_enabled && is_immediate_managed_class_type(class_type)) {
-      a_base_class_ptr  bcp = base_classes_of(class_type);
-      for (; bcp != NULL; bcp = bcp->next) {
-        if (bcp->direct &&
-            is_class_struct_union_type(bcp->type) &&
-            symbol_supplement_for_class(bcp->type)
+    if (cli_or_cx_enabled) {
+      if (cli_class_type_kind_is(class_type, cctk_ref) &&
+          (is_cli_type_of_kind(class_type, csk_system_attribute) ||
+           find_base_class_of_full(
+                               class_type,
+                               cli_class_type_for(csk_system_attribute),
+                               /*instantiate_if_necessary=*/FALSE) != NULL)) {
+        /* Mark the class as a C++/CLI attribute class if it derives directly
+           or indirectly from the System::Attribute class.  We don't want to
+           instantiate class_type because we are currently in the midst of
+           scanning its definition. */
+        ctsp->is_cli_attribute = TRUE;
+      }  /* if */
+      if (is_immediate_managed_class_type(class_type)) {
+        a_base_class_ptr  bcp = base_classes_of(class_type);
+        for (; bcp != NULL; bcp = bcp->next) {
+          if (bcp->direct &&
+              is_class_struct_union_type(bcp->type) &&
+              symbol_supplement_for_class(bcp->type)
                                        ->default_indexed_properties != NULL) {
-          /* Inherit default indexed properties from direct base classes (this
-             couldn't be done until the class has an associated scope). */
-          inherit_default_indexed_properties(bcp);
-        }  /* if */
-      }  /* for */
+            /* Inherit default indexed properties from direct base classes
+               (this had to wait until the class has an associated scope). */
+            inherit_default_indexed_properties(bcp);
+          }  /* if */
+        }  /* for */
+      }  /* if */
     }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     /* Advance past the left brace. */
@@ -27541,6 +28168,31 @@ classes.
         }  /* if */
       }  /* if */
     }  /* if */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    if (is_partial_class(class_type)) {
+      /* The terminating body of a partial class is being scanned.  Parse the
+         partial bodies first by rescanning their tokens. */
+      a_token_cache             final_body_cache;
+      a_partial_class_body_ptr  curr_partial_body;
+      clear_token_cache(&final_body_cache,
+                        /*reusable=*/FALSE);
+      for (curr_partial_body = ctsp->partial_class_bodies;
+           curr_partial_body != NULL;
+           curr_partial_body = curr_partial_body->next) {
+        a_token_cache_ptr body_cache = curr_partial_body->body_cache;
+        if (body_cache->token_count != 0) {
+          copy_tokens_from_cache(body_cache,
+                                 body_cache->first_token
+                                                      ->token_sequence_number,
+                                 body_cache->last_token
+                                                      ->token_sequence_number,
+                                 /*include_last_token=*/TRUE,
+                                 &final_body_cache);
+        }  /* if */
+      }  /* for */
+      rescan_cached_tokens(&final_body_cache);
+    }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     if (curr_token == tok_rbrace) {
       /* A member list is optional in C++.  In C mode issue an error and add
          a dummy field to reduce error recovery problems down the line. */
@@ -27555,7 +28207,7 @@ classes.
       }  /* if */
     } else {
 #if MICROSOFT_EXTENSIONS_ALLOWED
-      if (cppcli_enabled) {
+      if (cli_or_cx_enabled) {
         /* C++/CLI property and event definitions can consist of multiple
            "member declarations": A "head", followed by one or more accessor
            declarations.  pe_info and pe_loc persist across those multiple
@@ -27579,7 +28231,7 @@ classes.
       }  /* if */
       scope_stack[decl_scope_level].current_access = class_state.access;
 #if MICROSOFT_EXTENSIONS_ALLOWED
-      if (cppcli_enabled && is_managed_class_type(class_type)) {
+      if (cli_or_cx_enabled && is_managed_class_type(class_type)) {
         /* The default declared assembly access matches the default declared
            access in managed types. */
         class_state.assembly_access = class_state.access;
@@ -27707,7 +28359,7 @@ classes.
           }  /* if */
           /* Check for an access adjustment declaration. */
 #if MICROSOFT_EXTENSIONS_ALLOWED
-          if (cppcli_enabled && curr_token == tok_identifier &&
+          if (cli_or_cx_enabled && curr_token == tok_identifier &&
               !identifier_starts_name_qualifier_or_template_id()) {
             /* In C++/CLI mode, a separate test is needed first to avoid
                calling is_decl_qualified_name_start() on a valid context-
@@ -27734,7 +28386,7 @@ classes.
           if (curr_token == tok_template || curr_token == tok_export ||
               (extern_template_allowed && curr_token == tok_extern &&
                next_token() == tok_template) ||
-               (cppcli_enabled &&
+               (cli_or_cx_enabled &&
                 (is_generic = is_start_of_generic_decl()) != FALSE)) {
             /* A template declaration in a class may be a member template
                declaration or a friend declaration.  Explicit instantiations
@@ -27781,7 +28433,8 @@ classes.
             goto next_declaration;
           }  /* if */
         }  /* if */
-        (void)class_member_declaration(class_type, &class_state, ms_attributes,
+        (void)class_member_declaration(class_type, &class_state,
+                                       ms_attributes,
                                        /*is_template_member=*/FALSE,
                                        (a_template_param_ptr)NULL,
                                        &skip_semicolon_check, &dummy_type,
@@ -27896,9 +28549,7 @@ next_declaration:
       add_end_of_construct_source_sequence_entry(
                                         (char *)il_template_entry,
                                         (a_byte_il_entry_kind)iek_template);
-    } else
-    /* Do not insert code here. */
-    {
+    } else {
       add_end_of_construct_source_sequence_entry(
                          (char *)class_type, (a_byte_il_entry_kind)iek_type);
     }  /* if */
@@ -28069,6 +28720,9 @@ next_declaration:
     pop_template_instantiation_scope();
   }  /* if */
   cssp->being_defined = FALSE;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+done:
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   db_exit();
   return !err;
 }  /* scan_class_definition */
@@ -28661,11 +29315,12 @@ generated by lowering if needed.)
       a_calling_convention  acc[] = { (a_calling_convention)cc_cdecl,
                                       (a_calling_convention)cc_fastcall,
                                       (a_calling_convention)cc_stdcall,
+                                      (a_calling_convention)cc_vectorcall,
                                       (a_calling_convention)cc_last,
                                       (a_calling_convention)cc_last },
                             *pcc;
       if (cppcli_enabled) {
-        acc[3] = (a_calling_convention)cc_clrcall;
+        acc[4] = (a_calling_convention)cc_clrcall;
       }  /* if */
       for (pcc = acc; *pcc != (a_calling_convention)cc_last; ++pcc) {
         generate_lambda_conversion_function(lambda, cdsp, func_info, *pcc);

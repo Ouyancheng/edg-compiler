@@ -3636,10 +3636,17 @@ ck_address constant).  Do the output in the way described by octl.
 {
   a_type_ptr        typeid_type = NULL;
   an_expr_node_ptr  typeid_expr = NULL;
+  a_boolean         is_cli_typeid = FALSE;
 
   switch (con->kind) {
     case ck_address:
-      check_assertion_str(con->variant.address.kind ==
+#if MICROSOFT_EXTENSIONS_ALLOWED
+      is_cli_typeid =
+            cli_or_cx_enabled &&
+            con->variant.address.kind == (an_address_base_kind)abk_cli_typeid;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+      check_assertion_str(is_cli_typeid ||
+                          con->variant.address.kind ==
                                              (an_address_base_kind)abk_typeid,
                           "form_typeid_reference: bad kind");
       typeid_type = con->variant.address.variant.type;
@@ -3651,7 +3658,9 @@ ck_address constant).  Do the output in the way described by octl.
     default:
       unexpected_condition();
   }  /* switch */
-  octl->output_str("typeid(", octl);
+  if (!is_cli_typeid) {
+    octl->output_str("typeid(", octl);
+  }  /* if */
   if (typeid_expr != NULL) {
     form_expression(typeid_expr, octl);
   } else if (typeid_type != NULL) {
@@ -3659,7 +3668,11 @@ ck_address constant).  Do the output in the way described by octl.
   } else {
     unexpected_condition();
   }  /* if */
-  octl->output_str(")", octl);
+  if (is_cli_typeid) {
+    octl->output_str("::typeid", octl);
+  } else {
+    octl->output_str(")", octl);
+  } /* if */
 }  /* form_typeid_reference */
 
 
@@ -3794,6 +3807,9 @@ parentheses are not needed.
       break;
     case abk_uuidof:
     case abk_typeid:
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    case abk_cli_typeid:
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       /* Address of a structure that represents the uuid or typeid information
          for a given type. */
       special_address_kind = constant->variant.address.kind;
@@ -3804,6 +3820,12 @@ parentheses are not needed.
         type = static_unknown_type();
       }  /* if */
       break;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    case abk_cli_array:
+      special_address_kind = constant->variant.address.kind;
+      type = type_pointed_to(constant->type);
+      break;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     case abk_label:
       /* Address of a label (GNU C extension). */
       { a_label_ptr label = constant->variant.address.variant.label;
@@ -3834,8 +3856,21 @@ parentheses are not needed.
     } else if (special_address_kind == (an_address_base_kind)abk_uuidof) {
       /* Microsoft __uuidof. */
       form_uuidof_reference(constant, octl);
-    } else if (special_address_kind == (an_address_base_kind)abk_typeid) {
+    } else if (special_address_kind == (an_address_base_kind)abk_typeid
+#if MICROSOFT_EXTENSIONS_ALLOWED
+               || constant->variant.address.kind == 
+                                          (an_address_base_kind)abk_cli_typeid
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+               ) {
       form_typeid_reference(constant, octl);
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    } else if (special_address_kind == (an_address_base_kind)abk_cli_array) {
+      /* A C++/CLI array constant, used only in custom attribute argument
+         expressions, is represented with an enk_gcnew expression node
+         in constant->expr.  That expression is emitted by form_constant,
+         so this code path should not be hit. */
+      unexpected_condition();
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     } else {
       unexpected_condition();
     }  /* if */
@@ -4296,8 +4331,15 @@ precedence confusion.  Do the output in the way described by octl.
     } else if (is_tracking_reference_type(con_type) &&
                !octl->gen_compilable_code) {
         octl->output_str("tracking reference to ", octl);
+    } else if (is_handle_type(con_type) && !octl->gen_compilable_code) {
+      octl->output_str("handle to ", octl);
     } else if (string_handle_case) {
       /* No "&" for implicit cast of string literal to handle. */
+    } else if (constant->variant.address.kind ==
+                                       (an_address_base_kind)abk_cli_typeid ||
+               constant->variant.address.kind ==
+                                        (an_address_base_kind)abk_cli_array) {
+      /* No "&" for C++/CLI T::typeid or array constants. */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     } else if (type_decay_used) {
       /* Using type decay to get a pointer. */
@@ -5947,6 +5989,10 @@ Do the output in the way described by octl.
       form_simple_attribute("__stdcall__", need_leading_space, octl);
       break;
     case cc_thiscall:
+      /* A Microsoft-only calling convention.  These aren't generated for
+         the GNU C compiler. */
+      break;
+    case cc_vectorcall:
       /* A Microsoft-only calling convention.  These aren't generated for
          the GNU C compiler. */
       break;

@@ -5178,6 +5178,14 @@ Do IL lowering of the indicated constant and everything under it.
           case abk_typeid:
             lower_typeid_constant(constant);
             break;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+          case abk_cli_typeid:
+            unexpected_condition_str("lower_constant: abk_cli_typeid");
+            break;
+          case abk_cli_array:
+            unexpected_condition_str("lower_constant: abk_cli_array");
+            break;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
           default:
             unexpected_condition_str(
                                   "lower_constant: bad address constant kind");

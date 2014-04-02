@@ -66,6 +66,13 @@ Return TRUE if the upcoming tokens introduce standard attributes.
    next_token() == tok_lbracket)
 
 /*
+Return TRUE if the upcoming tokens introduce Microsoft attributes.
+*/
+#define microsoft_attribute_tokens_next()                                    \
+  (microsoft_mode && curr_token == tok_lbracket &&                           \
+   !std_attribute_tokens_next())
+
+/*
 Return TRUE if the given attribute is unrecognized or an empty attribute.
 Such attributes cannot be "applied" to any entities.
 */

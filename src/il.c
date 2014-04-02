@@ -575,7 +575,7 @@ static void db_assembly_visibility_of_type(a_type_ptr  type)
 Dump the assembly visibility specifier of the given type.
 */
 {
-  if (cppcli_enabled) {
+  if (cli_or_cx_enabled) {
     switch (get_assembly_visibility_of(type)) {
       case av_none:    /* Nothing to output. */                      break;
       case av_public:  fputs("public ", f_debug);                    break;
@@ -589,8 +589,7 @@ Dump the assembly visibility specifier of the given type.
 #define db_assembly_visibility_of_type(type)  /* Nothing */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
  
-static void db_field(a_field *fp,
-                     int     depth)
+void db_field(a_field_ptr fp, int depth)
 /*
 Dump a field entry, for debug purposes.
 */
@@ -6069,11 +6068,21 @@ Return the hash value for the indicated constant.
           break;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
         case abk_typeid:
+#if MICROSOFT_EXTENSIONS_ALLOWED
+        case abk_cli_typeid:
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
           hash_value = 233;
           if (cp->variant.address.variant.type != NULL) {
             hash_value += hash_type(cp->variant.address.variant.type);
           }  /* if */
           break;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+        case abk_cli_array:
+          hash_value = 235;
+          hash_value += cp->source_corresp.decl_position.seq +
+                        cp->source_corresp.decl_position.column;
+          break;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
         case abk_label:
 	  /* Hash the name of the label. */
 	  check_assertion(has_name(cp->variant.address.variant.label));
@@ -6555,6 +6564,15 @@ definition of the CC flags in il.h for more information.
   if (cp1_type == NULL || cp2_type == NULL) {
     /* Some constant kinds have null types (e.g., ck_init_repeat). */
     same_types = (cp1_type == cp2_type);
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  } else if (
+         cli_or_cx_enabled && cp1->kind == (a_constant_repr_kind)ck_address &&
+         (cp1->variant.address.kind == (an_address_base_kind)abk_cli_array ||
+          cp2->variant.address.kind == (an_address_base_kind)abk_cli_array)) {
+    /* C++/CLI array constants, which are only valid in C++/CLI custom
+       attribute argument expressions, are not comparable. */
+    goto end_of_routine;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   } else if (!strictly_identical) {
     /* The types must be "the same", but it is sufficient that they be
        compatible (don't use the types_are_compatible or
@@ -6713,6 +6731,9 @@ definition of the CC flags in il.h for more information.
               break;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
             case abk_typeid:
+#if MICROSOFT_EXTENSIONS_ALLOWED
+            case abk_cli_typeid:
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
               eq = identical_types_full(cp1->variant.address.variant.type,
                                         cp2->variant.address.variant.type,
                                         itf_options);
@@ -7029,6 +7050,15 @@ argument because it references a non-external entity, e.g., a local variable.
            which is always treated as an external entity. */
         scp = NULL;
         break;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+      case abk_cli_typeid:
+      case abk_cli_array:
+        /* C++/CLI typeid and array constants are only valid in C++/CLI
+           custom attribute argument expressions. */
+        scp = NULL;
+        invalid = TRUE;
+        break;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       case abk_label:
         scp = &constant->variant.address.variant.label->source_corresp;
         break;
@@ -7118,8 +7148,17 @@ at the file scope (it would contain a pointer down into a function scope).
           break;
         case abk_uuidof:
         case abk_typeid:
+#if MICROSOFT_EXTENSIONS_ALLOWED
+        case abk_cli_typeid:
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
           /* The type pointed to must be in the file scope. */
           break;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+        case abk_cli_array:
+          /* C++/CLI array constants are always in the file scope. */
+          check_assertion(cp->expr != NULL && in_file_scope(cp->expr));
+          break;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
         case abk_label:
           /* Labels are never in the file scope. */
           has_nfs_ref = TRUE;
@@ -7828,22 +7867,79 @@ Microsoft extension.
 
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
-void make_typeid_constant(a_type_ptr     typeid_type,
-                          a_constant_ptr typeid_con)
+#if !MICROSOFT_EXTENSIONS_ALLOWED
+/*ARGSUSED*/ /* <-- is_cli_typeid is not used in that case. */
+#endif /* !MICROSOFT_EXTENSIONS_ALLOWED */
+a_type_ptr typeid_constant_type(a_boolean is_cli_typeid)
 /*
-Make a constant for the address of typeid(typeid_type) in *typeid_con.
 */
 {
-  a_type_ptr const_type_info = make_qualified_type(
-                                               type_of_type_info,
-                                               (a_type_qualifier_set)TQ_CONST);
+  a_type_ptr constant_type = NULL;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  if (is_cli_typeid) {
+    /* C++/CLI T::typeid.  The result type is System::Type ^. */
+    a_type_ptr system_type;
+    check_assertion(cli_or_cx_enabled);
+    system_type = type_symbol_type(cli_symbol_from_kind(csk_system_type));
+    constant_type = make_handle_type(system_type);
+  } else
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+  /* Do not insert code here. */
+  {
+    /* Standard C++ typeid: the result type is const type_info. */
+    a_type_ptr const_type_info = make_qualified_type(
+                                              type_of_type_info,
+                                              (a_type_qualifier_set)TQ_CONST);
+    constant_type = make_pointer_type(const_type_info);
+  }  /* if */
+  return constant_type;
+}  /* typeid_constant_type */
 
+void make_typeid_constant(a_type_ptr     typeid_type,
+                          a_boolean      is_cli_typeid,
+                          a_constant_ptr typeid_con)
+/*
+Set *typeid_con to a constant representing the address of typeid(typeid_type)
+(Standard C++) or a corresponding handle to a System::Type object (C++/CLI).
+*/
+{
   clear_constant(typeid_con, (a_constant_repr_kind)ck_address);
-  typeid_con->variant.address.kind = (an_address_base_kind)abk_typeid;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  if (is_cli_typeid) {
+    check_assertion(cli_or_cx_enabled);
+    typeid_con->variant.address.kind = (an_address_base_kind)abk_cli_typeid;
+  } else
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+  /* Do not insert code here. */
+  {
+    typeid_con->variant.address.kind = (an_address_base_kind)abk_typeid;
+  }
   typeid_con->variant.address.variant.type = typeid_type;
-  typeid_con->type = make_pointer_type(const_type_info);
+  typeid_con->type = typeid_constant_type(is_cli_typeid);
 }  /* make_typeid_constant */
 
+#if MICROSOFT_EXTENSIONS_ALLOWED
+
+void make_cli_array_constant(an_expr_node_ptr gcnew_expr,
+                             a_constant_ptr   array_con)
+/*
+Set *array_con to a constant representing a handle to a C++/CLI System::Array
+object created by gcnew_expr.  This is used in the context of C++/CLI custom
+attribute argument expressions.
+*/
+{
+  check_assertion(cli_or_cx_enabled &&
+                  gcnew_expr != NULL && array_con != NULL &&
+                  gcnew_expr->kind == (an_expr_node_kind)enk_gcnew &&
+                  gcnew_expr->type != NULL &&
+                  is_handle_to_cli_array_type(gcnew_expr->type));
+  clear_constant(array_con, (a_constant_repr_kind)ck_address);
+  array_con->variant.address.kind = (an_address_base_kind)abk_cli_array;
+  array_con->type = gcnew_expr->type;
+  array_con->expr = gcnew_expr;
+}  /* make_cli_array_constant */
+
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #endif /* !STANDALONE_UTILITY_PROGRAM */
 
 a_boolean is_enum_constant(a_constant_ptr con)
@@ -9260,7 +9356,7 @@ Make or find a type entry for the type of the C++/CLI nullptr keyword
 return a pointer to it.
 */
 {
-  check_assertion(cppcli_enabled);
+  check_assertion(cli_or_cx_enabled);
   if (il_managed_nullptr_type == NULL) {
     /* The type must be created. */
     il_managed_nullptr_type = alloc_type((a_type_kind)tk_nullptr);
@@ -10249,6 +10345,7 @@ and reuse an existing entry if possible.
 {
   a_type_ptr ptr;
 
+  check_assertion(cppcli_enabled);
   /* See if an interior_ptr type for the type pointed to has already been
      allocated.  If one was allocated, a pointer to it is stored in the
      based_types list for the base type, and the interior_ptr type can be
@@ -10279,6 +10376,7 @@ and reuse an existing entry if possible.
 {
   a_type_ptr ptr;
 
+  check_assertion(cppcli_enabled);
   /* See if a pin_ptr type for the type pointed to has already been
      allocated.  If one was allocated, a pointer to it is stored in the
      based_types list for the base type, and the pin_ptr type can be
@@ -10299,6 +10397,49 @@ and reuse an existing entry if possible.
   }  /* if */
   return ptr;
 }  /* make_pin_ptr_type */
+
+
+a_type_ptr make_cppcx_box_type(a_type_ptr boxed_type)
+/*
+Allocate a C++/CX Platform::Box<T> type and initialize it.  Attempt to find
+and reuse an existing entry if possible.
+*/
+{
+  a_type_ptr ptr;
+  a_type_ptr unqualified_boxed_type = make_unqualified_type(boxed_type);
+
+  /* See if a Platform::Box<T> type for the type pointed to has already been
+     allocated.  If one was allocated, a pointer to it is stored in the
+     based_types list for the base type, and the default::Box<T> type can be
+     reused. */
+  ptr = get_based_type(unqualified_boxed_type,
+                       (a_based_type_kind)btk_cppcx_box, TQ_NONE, PM_NONE,
+                       /*expl_mem_attr_implicit=*/FALSE,
+                       /*class_type=*/(a_type_ptr)NULL, UPC_BLOCK_SIZE_NONE);
+  if (ptr == NULL) {
+    /* No allocated entry, need to allocate one. */
+    a_symbol_ptr           sym;
+    a_template_arg_ptr     arg_list;
+    a_symbol_ptr           box_template_sym =
+                                          cli_symbol_from_kind(csk_cppcx_box);
+
+    /* Build the argument list. */
+    arg_list = alloc_template_arg((a_templ_arg_kind)tak_type);
+    arg_list->variant.type = unqualified_boxed_type;
+    sym = find_template_class(box_template_sym, &arg_list,
+                              /*any_prototype_allowed=*/TRUE,
+                              /*specific_prototype_allowed=*/NULL,
+                              /*instantiate_nonreal=*/FALSE,
+                              /*do_not_create=*/FALSE);
+    ptr = type_symbol_type(sym);
+    complete_type_is_needed(ptr);
+    /* Remember the existence of this C++/CX box type by putting a pointer to
+       it in the based_types list. */
+    add_based_type_list_member(unqualified_boxed_type,
+                               (a_based_type_kind)btk_cppcx_box, ptr);
+  }  /* if */
+  return ptr;
+}  /* make_cppcx_box_type */
 
 
 static a_routine_ptr idisposable_dispose_routine;
@@ -10368,7 +10509,8 @@ Issue an error if the function type is a vararg function type (because
 __clrcall doesn't permit varargs).
 */
 {
-  check_assertion(cppcli_enabled && rtp->kind == (a_type_kind)tk_routine);
+  check_assertion(cppcli_enabled);
+  check_assertion(rtp->kind == (a_type_kind)tk_routine);
   if (rtp->variant.routine.extra_info->calling_convention !=
                                            (a_calling_convention)cc_clrcall &&
       function_type_has_clrcall_component(rtp)) {
@@ -10396,7 +10538,7 @@ namespace "cli".
 {
   a_boolean  result = FALSE;
 
-  if (scp_is_namespace_member(scp) && cppcli_enabled) {
+  if (scp_is_namespace_member(scp) && cli_or_cx_enabled) {
     check_assertion(cli_symbol_from_kind(csk_cli_namespace) != NULL);
     result = scp->parent_scope == cli_symbol_from_kind(csk_cli_namespace)->
                                variant.namespace_info.ptr->variant.assoc_scope;
@@ -10422,11 +10564,11 @@ are pointer-like types).
   a_type_ptr result_type;
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
-  if (cppcli_enabled && is_interior_ptr_type(model_pointer_type)) {
+  if (cli_or_cx_enabled && is_interior_ptr_type(model_pointer_type)) {
     result_type = make_interior_ptr_type(base_type);
-  } else if (cppcli_enabled && is_pin_ptr_type(model_pointer_type)) {
+  } else if (cli_or_cx_enabled && is_pin_ptr_type(model_pointer_type)) {
     result_type = make_pin_ptr_type(base_type);
-  } else if (cppcli_enabled && is_handle_type(model_pointer_type)) {
+  } else if (cli_or_cx_enabled && is_handle_type(model_pointer_type)) {
     result_type = make_handle_type(base_type);
   } else
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
@@ -10452,7 +10594,7 @@ e.g., an rvalue reference if model_ref_type is an rvalue reference.
   if (is_rvalue_reference_type(model_ref_type)) {
     result_type = make_rvalue_reference_type(base_type);
 #if MICROSOFT_EXTENSIONS_ALLOWED
-  } else if (cppcli_enabled && is_tracking_reference_type(model_ref_type)) {
+  } else if (cli_or_cx_enabled && is_tracking_reference_type(model_ref_type)) {
     result_type = make_tracking_reference_type(base_type);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   } else {
@@ -10512,7 +10654,7 @@ qual_pos must be non-NULL.
 #endif /* NEAR_AND_FAR_ALLOWED */
   /* Do not insert code here. */
 #if MICROSOFT_EXTENSIONS_ALLOWED
-  if (cppcli_enabled &&
+  if (cli_or_cx_enabled &&
       skip_typerefs(base_ref_type)->variant.pointer.is_handle !=
                                                                tracking_ref) {
     /* Mixing tracking and non-tracking references is not allowed. */
@@ -10560,7 +10702,7 @@ qual_pos must be non-NULL.
       check_assertion(is_rvalue_reference_type(base_ref_type));
       result = make_reference_type(under_ref);
 #if MICROSOFT_EXTENSIONS_ALLOWED
-      if (cppcli_enabled && is_tracking_reference_type(base_ref_type)) {
+      if (cli_or_cx_enabled && is_tracking_reference_type(base_ref_type)) {
         result->variant.pointer.is_handle = TRUE;
       }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
@@ -12078,7 +12220,7 @@ no value is returned for that.
       /* It is probably a copy constructor. */
       is_cctor = TRUE;
 #if MICROSOFT_EXTENSIONS_ALLOWED
-      if (cppcli_enabled &&
+      if (cli_or_cx_enabled &&
           is_tracking_reference_type(ptp->type) &&
           !is_managed_class_type(class_of_which_a_member)) {
         /* A constructor that copies a native class using a tracking reference
@@ -15783,6 +15925,7 @@ options is a set of name lookup options.
                                           /*constant_context=*/TRUE,
                                           /*evaluated_context=*/TRUE,
                                           /*fold_constant_addr_exprs=*/TRUE,
+                                          /*is_cli_attr_arg_expression=*/FALSE,
                                           /*check_cast_access=*/FALSE,
                                           /*check_ambiguity=*/TRUE,
                                           is_reinterpret_cast,
@@ -16547,6 +16690,7 @@ name lookup options.
                                     /*constant_context=*/TRUE,
                                     /*evaluated_context=*/TRUE,
                                     /*fold_constant_addr_exprs=*/TRUE,
+                                    /*is_cli_attr_arg_expression=*/FALSE,
                                     /*check_cast_access=*/FALSE,
                                     /*check_ambiguity=*/TRUE,
                                     reinterpret_cast_needed,
@@ -16654,7 +16798,12 @@ name lookup options.
             if (con->variant.template_param.kind ==
                                  (a_template_param_constant_kind)tpck_typeid) {
               /* typeid(...). */
-              make_typeid_constant(new_type, constant);
+              a_boolean is_cli_typeid = FALSE;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+              is_cli_typeid = cli_or_cx_enabled &&
+                              expr->variant.typeid_info.is_cli_typeid;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+              make_typeid_constant(new_type, is_cli_typeid, constant);
             } else if (con->variant.template_param.kind ==
                                (a_template_param_constant_kind)tpck_noexcept) {
               /* noexcept(...). */
@@ -18212,7 +18361,7 @@ of "*" in the source code.  The returned node is designated an lvalue.
           || (is_reference_type(node->type) && il_lowering_underway)
 #endif /* DO_IL_LOWERING */
 #if MICROSOFT_EXTENSIONS_ALLOWED
-          || (cppcli_enabled && is_handle_type(node->type))
+          || (cli_or_cx_enabled && is_handle_type(node->type))
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
                                                            ) {
         new_type = type_pointed_to(node->type);
@@ -19289,7 +19438,7 @@ c99_float_operations:
       break;
   }  /* switch */
 #if MICROSOFT_EXTENSIONS_ALLOWED
-  if (cppcli_enabled &&
+  if (cli_or_cx_enabled &&
       node->variant.operation.requires_runtime_cast_check) {
     /* A C++/CLI safe_cast that includes a runtime check can throw an
        exception. */
@@ -20363,7 +20512,7 @@ the case if the return type was incomplete at the point of definition.
                                            (a_byte_il_entry_kind)iek_type,
                                            err_pos);
 #if MICROSOFT_EXTENSIONS_ALLOWED
-        } else if (cppcli_enabled && is_cli_interface_type(return_type)) {
+        } else if (cli_or_cx_enabled && is_cli_interface_type(return_type)) {
           /* C++/CLI interface types cannot be return types.  This is
              diagnosed elsewhere. */
           expect_error();

@@ -656,6 +656,9 @@ typedef struct a_scope_stack_entry {
 			   deferred and performed later.  This is used to
 			   defer checking of constraints of base-specifiers
 			   and generic "where" clauses. */
+  a_bit_field	scanning_cli_delegate_definition : 1;
+			/* TRUE if we are currently scanning the definition of
+			   a C++/CLI delegate type. */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   a_bit_field	inactive_symbols_may_be_visible:1;
 			/* TRUE if the scope stack to this depth contains any

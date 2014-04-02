@@ -81,6 +81,7 @@ static unsigned long
 		num_microsoft_try_supplements_allocated,
 		num_ms_attributes_allocated,
 		num_ms_attribute_args_allocated,
+		num_custom_ms_attribute_args_allocated,
 		num_property_index_types_allocated,
 		num_property_or_event_descriptions_allocated,
 		num_generic_constraints_allocated,
@@ -1251,6 +1252,26 @@ a pointer to it.
   return itsp;
 }  /* alloc_integer_type_supplement */
 
+#if MICROSOFT_EXTENSIONS_ALLOWED
+
+a_partial_class_body_ptr alloc_partial_class_body(void)
+/*
+Allocate a partial class body entry, initialize its fields, and return
+a pointer to it.
+*/
+{
+  a_partial_class_body_ptr  pcbp;
+
+  pcbp = (a_partial_class_body_ptr)alloc_il(sizeof(a_partial_class_body));
+  pcbp->next = NULL;
+  pcbp->body_cache = NULL;
+  pcbp->base_cache = NULL;
+  pcbp->start_position = null_source_position;
+  pcbp->end_position = null_source_position;
+  return pcbp;
+}  /* alloc_partial_class_body */
+
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 a_base_class_ptr alloc_base_class(void)
 /*
@@ -1522,6 +1543,19 @@ incomplete (which affects the recorded size and alignment).
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 }  /* clear_class_type_definition_fields */
 
+#if MICROSOFT_EXTENSIONS_ALLOWED
+
+void clear_ms_attribute_usage(an_ms_attribute_usage_ptr msaup)
+/*
+Initialize the given Microsoft attribute usage descriptor.
+*/
+{
+  msaup->valid_on = (an_ms_attribute_target)msat_invalid;
+  msaup->allow_multiple = FALSE;
+  msaup->inherited = TRUE;
+}  /* clear_ms_attribute_usage */
+
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 static void clear_class_type_supplement(a_class_type_supplement_ptr  ctsp)
 /*
@@ -1538,6 +1572,10 @@ Give an pointer to a class-type-supplement entry, initialize its fields.
                                          (a_cli_class_type_kind)cctk_standard;
   ctsp->is_hide_by_sig                    = FALSE;
   ctsp->is_cli_array                      = FALSE;
+  ctsp->is_cli_attribute                  = FALSE;
+  ctsp->is_cppcx_write_only_array         = FALSE;
+  ctsp->is_cppcx_box                      = FALSE;
+  ctsp->is_partial                        = FALSE;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if DO_IL_LOWERING
   ctsp->compiler_generated                = FALSE;
@@ -1554,6 +1592,9 @@ Give an pointer to a class-type-supplement entry, initialize its fields.
   ctsp->befriending_classes               = NULL;
   ctsp->assoc_template                    = NULL;
   ctsp->template_arg_list                 = NULL;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  ctsp->partial_class_bodies              = NULL;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if DO_IL_LOWERING
 #if MICROSOFT_EXTENSIONS_ALLOWED
   ctsp->uuid_variable                     = NULL;
@@ -1572,6 +1613,7 @@ Give an pointer to a class-type-supplement entry, initialize its fields.
   ctsp->base_idisposable_dispose_routine  = NULL;
   ctsp->base_object_finalize_routine      = NULL;
   ctsp->invocation_type                   = NULL;
+  clear_ms_attribute_usage(&ctsp->attribute_usage);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if PROTOTYPE_INSTANTIATIONS_IN_IL
   ctsp->proxy_of_type                     = NULL;
@@ -2506,7 +2548,7 @@ value.  Also clear related variant fields to default values.
     case sfk_idisposable_dispose:
     case sfk_dispose_bool:
     case sfk_object_finalize:
-      check_assertion(cppcli_enabled);
+      check_assertion(cli_or_cx_enabled);
       break;
     case sfk_property_get:
     case sfk_property_set:
@@ -2514,7 +2556,7 @@ value.  Also clear related variant fields to default values.
     case sfk_event_remove:
     case sfk_event_raise:
       rp->variant.property_or_event_descr = NULL;
-      check_assertion(cppcli_enabled);
+      check_assertion(cli_or_cx_enabled);
       break;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     case sfk_lambda_entry_point:
@@ -4740,7 +4782,7 @@ and return a pointer to it.
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
 
-an_ms_attribute_ptr alloc_ms_attribute(void)
+an_ms_attribute_ptr alloc_ms_attribute(an_ms_attribute_kind kind)
 /*
 Allocate a Microsoft attribute entry, set its fields to default values,
 and return a pointer to it.
@@ -4752,19 +4794,26 @@ and return a pointer to it.
 #if DEBUG
   num_ms_attributes_allocated++;
 #endif /* DEBUG */
-  msap->name = NULL;
-  msap->kind = (an_ms_attribute_kind)msak_none;
+  msap->kind = kind;
   msap->next = NULL;
   msap->next_in_block = NULL;
   clear_tagged_ptr(msap->entity);
-  msap->string = NULL;
-  msap->arg_list = NULL;
-  msap->name = NULL;
+  if (kind == (an_ms_attribute_kind)msak_custom) {
+    msap->variant.custom_info.type = NULL;
+    msap->variant.custom_info.constructor = NULL;
+    msap->variant.custom_info.args = NULL;
+    msap->variant.custom_info.named_args = NULL;
+  } else {
+    msap->variant.info.kind_descr = NULL;
+    msap->variant.info.name = NULL;
+    msap->variant.info.string = NULL;
+    msap->variant.info.arg_list = NULL;
+  }  /* if */
   msap->position = null_source_position;
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   msap->source_sequence_entry = NULL;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
-  msap->kind_descr = NULL;
+  msap->target = (an_ms_attribute_target)msat_invalid;
   return msap;
 }  /* alloc_ms_attribute */
 
@@ -4810,6 +4859,25 @@ values, and return a pointer to it.
   }  /* switch */
   return msaap;
 }  /* alloc_ms_attribute_arg */
+
+
+a_custom_ms_attribute_arg_ptr alloc_custom_ms_attribute_arg(void)
+/*
+Allocate a custom Microsoft attribute argument entry, set its fields to
+default values, and return a pointer to it.
+*/
+{
+  a_custom_ms_attribute_arg_ptr arg;
+
+  arg = alloc_cil_of_type(a_custom_ms_attribute_arg);
+#if DEBUG
+  num_custom_ms_attribute_args_allocated++;
+#endif /* DEBUG */
+  arg->next = NULL;
+  arg->field = NULL;
+  arg->expression = NULL;
+  return arg;
+}  /* alloc_custom_ms_attribute_arg */
 
 
 a_property_index_type_ptr alloc_property_index_type(void)
@@ -5186,6 +5254,9 @@ Display and return the amount of space used for various IL tables.
   db_space_used("Microsoft attribute args",
                 num_ms_attribute_args_allocated,
                 an_ms_attribute_arg);
+  db_space_used("custom Microsoft attribute args",
+                num_custom_ms_attribute_args_allocated,
+                a_custom_ms_attribute_arg);
   db_space_used("property index types", num_property_index_types_allocated,
                 a_property_index_type);
   db_space_used("property/event descrs",
@@ -5487,6 +5558,7 @@ in il_alloc_init.)
       pch_saved_var_array_elem(num_microsoft_try_supplements_allocated),
       pch_saved_var_array_elem(num_ms_attributes_allocated),
       pch_saved_var_array_elem(num_ms_attribute_args_allocated),
+      pch_saved_var_array_elem(num_custom_ms_attribute_args_allocated),
       pch_saved_var_array_elem(num_property_index_types_allocated),
       pch_saved_var_array_elem(num_property_or_event_descriptions_allocated),
       pch_saved_var_array_elem(num_generic_constraints_allocated),
@@ -5689,6 +5761,7 @@ initializations that are done for each compilation.
   num_microsoft_try_supplements_allocated= 0;
   num_ms_attributes_allocated            = 0;
   num_ms_attribute_args_allocated        = 0;
+  num_custom_ms_attribute_args_allocated = 0;
   num_property_index_types_allocated     = 0;
   num_property_or_event_descriptions_allocated
                                          = 0;

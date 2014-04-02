@@ -196,6 +196,9 @@ represented as a bit set:
 				/* TRUE if a lookup in a C++/CLI managed class
 				   should ignore members from a base interface
 				   class. */
+#define IDL_IF_EXISTS_LOOKUP 0x40000000
+				/* TRUE when looking up a name in a Microsoft
+				   __if_exists or __if_not_exists directive */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #define IDL_IS_LOOKUP_TO_CHECK_FOR_NAME_HIDING 0x40000000
 				/* TRUE if the lookup is being done to see if
@@ -352,8 +355,8 @@ extern
 a_symbol_ptr find_conversion_template_instance(
 			a_symbol_locator		*locator,
 			a_symbol_list_entry_ptr		conversion_templates,
-                        a_boolean                       match_fn_qualifiers,
-                        a_type_qualifier_set            fn_qualifiers);
+                        a_boolean                      match_fn_qualifiers,
+                        a_type_qualifier_set           fn_qualifiers);
 
 extern
 a_symbol_ptr look_up_conversion_function(a_type_ptr		parent_class,

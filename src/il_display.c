@@ -486,7 +486,7 @@ Display the indicated C++/CLI class kind with a name.
 */
 {
 
-  if (il_header.cppcli_enabled) {
+  if (il_header.cppcli_enabled || il_header.cppcx_enabled) {
     a_const_char  *s;
     disp_name(name);
     switch (cctk) {
@@ -1232,6 +1232,17 @@ display_constant_value:
           disp_ptr("type", (char *)ptr->variant.address.variant.type,
                    iek_type);
           break;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+        case abk_cli_typeid:
+          (void)printf("abk_cli_typeid\n");
+          disp_ptr("type", (char *)ptr->variant.address.variant.type,
+                   iek_type);
+          break;
+        case abk_cli_array:
+          (void)printf("abk_cli_array\n");
+          /* No variant fields. */
+          break;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
         case abk_label:
           (void)printf("abk_label\n");
           disp_ptr("label", (char *)ptr->variant.address.variant.label,
@@ -1584,6 +1595,7 @@ Display the indicated based type list.
         case btk_tracking_ref:   kind_str = "  tracking reference";      break;
         case btk_interior_ptr:   kind_str = "  interior_ptr";            break;
         case btk_pin_ptr:        kind_str = "  pin_ptr";                 break;
+        case btk_cppcx_box:      kind_str = "  cppcx_box";               break;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
         case btk_pointer:        kind_str = "  pointer";                 break;
         default:                 kind_str = "  **BAD BASED TYPE KIND**"; break;
@@ -5507,57 +5519,104 @@ static void disp_ms_attribute(an_ms_attribute_ptr ptr)
 Display the indicated Microsoft attribute entry.
 */
 {
-  an_ms_attribute_arg_ptr	arg;
-  int				arg_number = 0;
-#define ATTR_BUFFER_SIZE 80
-  char				buffer[ATTR_BUFFER_SIZE];
+  int arg_number = 0;
 
   disp_name("kind");
   switch (ptr->kind) {
     case msak_none:         (void)printf("none\n");         break;
     case msak_unrecognized: (void)printf("unrecognized\n"); break;
+    case msak_custom:       (void)printf("custom\n");       break;
     default:                (void)printf("other\n");        break;
   }  /* switch */
   disp_ptr("next", (char *)ptr->next, iek_ms_attribute);
   disp_ptr("next_in_block", (char *)ptr->next_in_block, iek_ms_attribute);
   disp_ptr("entity", (char *)ptr->entity.ptr,
            (an_il_entry_kind)ptr->entity.kind);
-  disp_string_ptr("name", ptr->name, iek_other_text, (sizeof_t)0);
-  disp_string_ptr("string", ptr->string, iek_other_text, (sizeof_t)0);
-  disp_source_position("position", &ptr->position);
-  for (arg = ptr->arg_list; arg != NULL; arg = arg->next) {
-    sprintf(buffer, "  argument %d (", arg_number++);
-    (void)strncat(buffer, arg->param_name,
-                  ATTR_BUFFER_SIZE - strlen(buffer) - 3);
-    (void)strcat(buffer, ")");
-    switch (arg->kind) {
-      case msaak_integer:
-        disp_host_large_integer(
-                     buffer, (a_host_large_integer)arg->variant.integer_value);
-        break;
-      case msaak_boolean:
-        disp_boolean(buffer, (a_boolean)arg->variant.bool_value);
-        break;
-      case msaak_string:
-        disp_ptr(buffer, (char *)arg->variant.string_constant, iek_constant);
-        break;
-      case msaak_other:
-        disp_string_ptr(buffer, arg->variant.other_string, iek_other_text,
-                       (sizeof_t)0);
-        break;
-      case msaak_uuid:
-        disp_string_ptr(buffer, arg->variant.uuid_string, iek_other_text,
-                       (sizeof_t)0);
-        break;
-      case msaak_enumeration:
-        disp_host_large_integer(buffer,
-                               (a_host_large_integer)arg->variant.enum_value);
-        break;
-      default:
-        break;
-    }  /* switch */
-  }  /* for */
+  (void)printf("target: ");
+  switch (ptr->target) {
+    case msat_none:             (void)printf("<none>\n");           break;
+    case msat_assembly:         (void)printf("assembly\n");         break;
+    case msat_module:           (void)printf("module\n");           break;
+    case msat_class:            (void)printf("class\n");            break;
+    case msat_struct:           (void)printf("struct\n");           break;
+    case msat_union:            (void)printf("union\n");            break;
+    case msat_enum:             (void)printf("enum\n");             break;
+    case msat_constructor:      (void)printf("constructor\n");      break;
+    case msat_method:           (void)printf("method\n");           break;
+    case msat_property:         (void)printf("property\n");         break;
+    case msat_field:            (void)printf("field\n");            break;
+    case msat_event:            (void)printf("event\n");            break;
+    case msat_interface:        (void)printf("interface\n");        break;
+    case msat_parameter:        (void)printf("parameter\n");        break;
+    case msat_delegate:         (void)printf("delegate\n");         break;
+    case msat_returnvalue:      (void)printf("returnvalue\n");      break;
+    case msat_genericparameter: (void)printf("genericparameter\n"); break;
+    case msat_typedef:          (void)printf("typedef\n");          break;
+    case msat_variable:         (void)printf("variable\n");         break;
+    case msat_routine:          (void)printf("routine\n");          break;
+    case msat_interfaceimpl:    (void)printf("interfaceimpl\n");    break;
+    default:                    unexpected_condition();             break;
+  }  /* switch */
+  if (ptr->kind == (an_ms_attribute_kind)msak_custom) {
+    a_custom_ms_attribute_arg_ptr named_arg;
+    disp_ptr("type", (char *)ptr->variant.custom_info.type,
+             iek_type);
+    disp_ptr("constructor", (char *)ptr->variant.custom_info.constructor,
+             iek_routine);
+    disp_ptr("args", (char *)ptr->variant.custom_info.args, iek_expr_node);
+    for (named_arg = ptr->variant.custom_info.named_args;
+         named_arg != NULL;
+         named_arg = named_arg->next) {
+      disp_long("named argument", arg_number++);
+      disp_ptr("field", (char *)named_arg->field, iek_field);
+      disp_ptr("expression", (char *)named_arg->expression, iek_expr_node);
+    }  /* for */
+  } else {
+    an_ms_attribute_arg_ptr arg;
+#define ATTR_BUFFER_SIZE 80
+    char                    buffer[ATTR_BUFFER_SIZE];
+    disp_string_ptr("name", ptr->variant.info.name, iek_other_text,
+                    (sizeof_t)0);
+    disp_string_ptr("string", ptr->variant.info.string, iek_other_text,
+                    (sizeof_t)0);
+    for (arg = ptr->variant.info.arg_list; arg != NULL; arg = arg->next) {
+      sprintf(buffer, "  argument %d (", arg_number++);
+      (void)strncat(buffer, arg->param_name,
+                    ATTR_BUFFER_SIZE - strlen(buffer) - 3);
+      (void)strcat(buffer, ")");
 #undef ATTR_BUFFER_SIZE
+      switch (arg->kind) {
+        case msaak_integer:
+          disp_host_large_integer(
+                            buffer,
+                            (a_host_large_integer)arg->variant.integer_value);
+          break;
+        case msaak_boolean:
+          disp_boolean(buffer, (a_boolean)arg->variant.bool_value);
+          break;
+        case msaak_string:
+          disp_ptr(buffer, (char *)arg->variant.string_constant,
+                   iek_constant);
+          break;
+        case msaak_other:
+          disp_string_ptr(buffer, arg->variant.other_string, iek_other_text,
+                          (sizeof_t)0);
+          break;
+        case msaak_uuid:
+          disp_string_ptr(buffer, arg->variant.uuid_string, iek_other_text,
+                          (sizeof_t)0);
+          break;
+        case msaak_enumeration:
+          disp_host_large_integer(
+                               buffer,
+                               (a_host_large_integer)arg->variant.enum_value);
+          break;
+        default:
+          break;
+      }  /* switch */
+    }  /* for */
+  }  /* if */
+  disp_source_position("position", &ptr->position);
 }  /* disp_ms_attribute */
 
 
@@ -6450,6 +6509,11 @@ Display the indicated class type supplement entry.
   }  /* if */
   if (ptr->is_cli_array) {
     disp_boolean("is_cli_array", TRUE);
+    if (ptr->is_cppcx_write_only_array) {
+      disp_boolean("is_cppcx_write_only_array", TRUE);
+    }  /* if */
+  } else if (ptr->is_cppcx_box) {
+    disp_boolean("is_cppcx_box", TRUE);
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if GNU_EXTENSIONS_ALLOWED
@@ -6960,6 +7024,7 @@ This routine is called during IL walking.
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
 #if MICROSOFT_EXTENSIONS_ALLOWED
     case iek_ms_attribute_arg:
+    case iek_custom_ms_attribute_arg:
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if RECORD_MACRO_INVOCATIONS
     case iek_macro_invocation_record_block:
@@ -7267,6 +7332,7 @@ Display the IL for the file scope in human-readable form.
 #if MICROSOFT_EXTENSIONS_ALLOWED
   disp_boolean("microsoft_mode", (a_boolean)il_header.microsoft_mode);
   disp_boolean("cppcli_enabled", (a_boolean)il_header.cppcli_enabled);
+  disp_boolean("cppcx_enabled", (a_boolean)il_header.cppcx_enabled);
   disp_unsigned_long("microsoft_version", il_header.microsoft_version);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if GNU_EXTENSIONS_ALLOWED

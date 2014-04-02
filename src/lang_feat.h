@@ -812,6 +812,32 @@ extensions are enabled.
 #endif /* DEFAULT_CPPCLI_ENABLED && !CPPCLI_ENABLING_POSSIBLE */
 
 /*
+Flag that is TRUE if C++/CX extensions (aka. C++/WinRT) can be accepted.
+(Setting the flag to TRUE enables the command-line options --cppcx and
+--no_cppcx.)  If the flag is TRUE, MICROSOFT_EXTENSIONS_ALLOWED must be
+TRUE as well.
+*/
+#ifndef CPPCX_ENABLING_POSSIBLE
+#define CPPCX_ENABLING_POSSIBLE FALSE
+#endif /* ifndef CPPCX_ENABLING_POSSIBLE */
+
+#if CPPCX_ENABLING_POSSIBLE && !MICROSOFT_EXTENSIONS_ALLOWED
+ #error -- CPPCX_ENABLING_POSSIBLE requires MICROSOFT_EXTENSIONS_ALLOWED
+#endif /* CPPCX_ENABLING_POSSIBLE && !MICROSOFT_EXTENSIONS_ALLOWED */
+
+/*
+Flag that is TRUE to enable C++/CX extensions by default when Microsoft
+extensions are enabled.
+*/
+#ifndef DEFAULT_CPPCX_ENABLED
+#define DEFAULT_CPPCX_ENABLED FALSE
+#endif /* ifndef DEFAULT_CPPCX_ENABLED */
+
+#if DEFAULT_CPPCX_ENABLED && !CPPCX_ENABLING_POSSIBLE
+ #error -- DEFAULT_CPPCX_ENABLED requires CPPCX_ENABLING_POSSIBLE
+#endif /* DEFAULT_CPPCX_ENABLED && !CPPCX_ENABLING_POSSIBLE */
+
+/*
 Flag that is TRUE if the front end is configured to write C++/CLI portable
 assemblies.  This internal testing mode can be used on Windows systems
 to write portable assembly files (which can then be used on non-Windows systems
@@ -1111,6 +1137,15 @@ EXTERN a_boolean
 		cppcli_enabled;
 			/* TRUE if C++/CLI features should be accepted. */
 
+EXTERN a_boolean
+		cppcx_enabled;
+			/* TRUE if C++/CX features should be accepted. */
+
+EXTERN a_boolean
+		cli_or_cx_enabled;
+			/* TRUE if either cppcli_enabled or cppcx_enabled is
+			   TRUE. */
+
 EXTERN a_boolean 
 		scanning_generated_code_from_metadata;
 			/* TRUE if we are scanning code generated from
@@ -1128,12 +1163,16 @@ EXTERN a_boolean
 		microsoft_bugs;
 EXTERN a_boolean
 		cppcli_enabled;
+EXTERN a_boolean
+		cppcx_enabled;
 EXTERN a_boolean 
 		scanning_generated_code_from_metadata;
 #else /* !defined(_lint) */
 #define microsoft_mode FALSE
 #define microsoft_bugs FALSE
 #define cppcli_enabled FALSE
+#define cppcx_enabled FALSE
+#define cli_or_cx_enabled FALSE
 #define scanning_generated_code_from_metadata FALSE
 #endif /* ifdef _lint */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */

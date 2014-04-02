@@ -881,6 +881,7 @@ display program) can query these entities.
   /* Also set global variables relating to Microsoft compatibility mode. */
   microsoft_mode = il_header.microsoft_mode;
   cppcli_enabled = il_header.cppcli_enabled;
+  cppcx_enabled = il_header.cppcx_enabled;
   microsoft_version = il_header.microsoft_version;
   init_microsoft_sized_int_types();
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */

@@ -66,7 +66,7 @@ static a_boolean check_for_address_of_or_reference_to_initonly_field(
 static a_boolean is_unmodifiable_initonly_field_operand(
                                        an_operand *operand,
                                        a_boolean  *p_is_static_initonly_field);
-#endif  /* MICROSOFT_EXTENSIONS_ALLOWED */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 static void mark_init_component_as_permanently_allocated(
                                                        an_init_component *icp);
 
@@ -1619,6 +1619,10 @@ as in a decltype.
      in_cctor_elision_initializer is also not copied down; nested expressions
      in an elision initializer are not subject to the optimization. */
   new_entry->is_default_arg_expression = old_entry->is_default_arg_expression;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  new_entry->is_cli_attr_arg_expression =
+                                        old_entry->is_cli_attr_arg_expression;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   new_entry->current_lambda_in_header = old_entry->current_lambda_in_header;
   new_entry->p_end_of_entities_defined_in_expression =
                            old_entry->p_end_of_entities_defined_in_expression;
@@ -1670,6 +1674,9 @@ is pushed regardless of any of the other factors.
   new_entry->potentially_unevaluated_lambda_seen = FALSE;
   new_entry->is_type_operator_arg_expression = FALSE;
   new_entry->is_default_arg_expression = FALSE;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  new_entry->is_cli_attr_arg_expression = FALSE;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   new_entry->is_template_arg_expression = FALSE;
   new_entry->is_vla_dimension_expression = FALSE;
   new_entry->in_cctor_elision_initializer = FALSE;
@@ -5172,9 +5179,11 @@ instead.
       node = make_braced_init_expr_from_arg_list_elem(
                                             operand->variant.braced_init_list);
       break;
+#if CHECKING
     default:
-      unexpected_condition_str
+      internal_error
 	("extract_node_from_operand: converting unexpected operand kind");
+#endif /* CHECKING */
   }  /* switch */
   return node;
 }  /* extract_node_from_operand */
@@ -6603,6 +6612,7 @@ the parameters from information in the expression stack.
                             curr_expr_kind_is_const(),
                             curr_expr_is_evaluated(),
                             (a_boolean)expr_stack->favor_constant_result,
+                            curr_expr_is_cli_attribute_argument(),
                             check_cast_access,
                             check_ambiguity,
                             is_reinterpret_cast,
@@ -7078,7 +7088,7 @@ updated expression, or the original expression if no change was
 needed.
 */
 {
-  if (cppcli_enabled) {
+  if (cli_or_cx_enabled) {
     a_type_ptr fund_type =
                 fundamental_type_from_system_type(f_skip_typerefs(expr->type));
     if (fund_type != NULL) {
@@ -7174,7 +7184,7 @@ all string literals, e.g., x ? "abc" : "de".
 {
   a_boolean convertible = FALSE;
 
-  if (cppcli_enabled &&
+  if (cli_or_cx_enabled &&
       operand->is_simple_string_literal &&
       literal_type_convertible_to_cli_string(operand->type) &&
       /* The is_simple_string_literal flag is set for "?" expressions like
@@ -7402,7 +7412,7 @@ indicates that the cast comes from a reinterpret_cast construct in the source.
                                  new_type, *p_node);
     (*p_node)->variant.operation.compiler_generated = is_implicit_cast;
 #if MICROSOFT_EXTENSIONS_ALLOWED
-  } else if (cppcli_enabled &&
+  } else if (cli_or_cx_enabled &&
              boxing_conversion_possible(old_type, new_type,
                                         (a_std_conv_descr *)NULL)) {
     /* Do a boxing conversion. */
@@ -7415,14 +7425,14 @@ indicates that the cast comes from a reinterpret_cast construct in the source.
                       node_operator_is(*p_node, eok_box));
       (*p_node)->variant.operation.compiler_generated = FALSE;
     }  /* if */
-  } else if (cppcli_enabled &&
+  } else if (cli_or_cx_enabled &&
              unboxing_conversion_possible(old_type, new_type,
                                           (a_std_conv_descr *)NULL)) {
     /* Do an unboxing conversion. */
     check_assertion(!is_implicit_cast && !is_reinterpret_cast);
     (*p_node) = add_unbox_to_expression(*p_node, new_type,
                                         /*make_lvalue=*/FALSE);
-  } else if (cppcli_enabled &&
+  } else if (cli_or_cx_enabled &&
              cli_string_literal_conversion_possible(old_type, new_type,
                                                     (a_std_conv_descr *)NULL)&&
              expr_is_literal_convertible_to_cli_string(*p_node)) {
@@ -7575,6 +7585,7 @@ to indicate that.
                                   /*constant_context=*/FALSE,
                                   /*evaluated_context=*/TRUE,
                                   /*fold_constant_addr_exprs=*/FALSE,
+                                  /*is_cli_attr_arg_expression=*/FALSE,
                                   check_cast_access,
                                   check_ambiguity,
                                   reinterpret_semantics,
@@ -7703,7 +7714,6 @@ is_qualified_name is TRUE if the source form used a qualified name.
 */
 {
   a_symbol_ptr unk_sym = find_unknown_function_symbol(sym, is_qualified_name);
-
   if (!is_template_id) {
     /* The symbol is a constant whose value is the "address" of the
        unknown function. */
@@ -7913,6 +7923,17 @@ user-defined conversions.
     /* Casting to an error type.  Produce an error operand. */
     conv_to_error_operand(operand);
   } else {
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    if (cli_or_cx_enabled && operand->is_simple_string_literal &&
+        cli_string_literal_conversion_possible(operand->type,
+                                               new_type,
+                                               (a_std_conv_descr *)NULL) &&
+        is_literal_convertible_to_cli_string(operand,
+                                             /*allow_complex=*/TRUE)) {
+      /* Convert a string literal to a System::String^ if necessary. */
+      convert_operand_to_handle_to_cli_string(operand);
+    }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     switch (operand->kind) {
       case ok_error:
         /* Do nothing. */
@@ -8230,7 +8251,7 @@ used only in C++ mode.
     }  /* if */
   }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
-  if (cppcli_enabled) {
+  if (cli_or_cx_enabled) {
     a_type_ptr type = operand->type;
     if (!class_object_case) type = type_pointed_to(type);
     if (is_value_class_type(type)) {
@@ -8499,14 +8520,14 @@ is an lvalue reference to const.
     (void)check_for_taking_the_address_of_a_bit_field(operand,
                                                       &operand->position);
 #if MICROSOFT_EXTENSIONS_ALLOWED
-    if (cppcli_enabled) {
+    if (cli_or_cx_enabled) {
       /* Check for binding a reference to a C++/CLI initonly field. */
       (void)check_for_address_of_or_reference_to_initonly_field(
                                                      operand,
                                                      &operand->position,
                                                      /*reference_case=*/TRUE);
     }  /* if */
-#endif  /* MICROSOFT_EXTENSIONS_ALLOWED */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   }  /* if */
   if (is_error_operand(operand)) {
     normalize_error_operand(operand);
@@ -9800,7 +9821,7 @@ C++/CLI, so return FALSE in other modes.
   a_boolean is_function = FALSE;
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
-  if (cppcli_enabled) {
+  if (cli_or_cx_enabled) {
     if (routine_from_function_operand(operand) != NULL) {
       is_function = TRUE;
     } else if (is_constant_operand(operand)) {
@@ -10999,7 +11020,7 @@ lvalue.  If there is an error, change the operand to an error operand.
       !is_const_qualified_type(type)) {
 #if MICROSOFT_EXTENSIONS_ALLOWED
     a_boolean is_static_initonly_field;
-    if (cppcli_enabled &&
+    if (cli_or_cx_enabled &&
         is_unmodifiable_initonly_field_operand(operand,
                                                &is_static_initonly_field)) {
       /* A C++/CLI initonly field can be modified only in an appropriate
@@ -11009,7 +11030,7 @@ lvalue.  If there is an error, change the operand to an error operand.
                                    : ec_modification_of_initonly_field,
                        operand);
     } else
-#endif  /* MICROSOFT_EXTENSIONS_ALLOWED */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     /* Do not insert code here. */
     {
       /* In SVR4 C compatibility mode, this routine can be called for an
@@ -11125,7 +11146,7 @@ doesn't mention that distinction.
 
   if (enum_type_is_integral) {
     result = ec_expr_not_integral;
-  } else if (cpp11_mode || cppcli_enabled) {
+  } else if (cpp11_mode || cli_or_cx_enabled) {
     /* Modes that make a distinction between scoped and unscoped enum types. */
     result = ec_expr_not_integral_or_unscoped_enum;
   } else {
@@ -11181,7 +11202,7 @@ accepted).  If there is an error change "operand" to an error operand.
     if (fixed_point_enabled) {
       if (enum_type_is_integral) {
         error_code = ec_expr_not_integral_or_fixed_point;
-      } else if (cpp11_mode || cppcli_enabled) {
+      } else if (cpp11_mode || cli_or_cx_enabled) {
         error_code = ec_expr_not_integral_or_unscoped_enum_or_fixed_point;
       } else {
         error_code = ec_expr_not_integral_or_enum_or_fixed_point;
@@ -11212,7 +11233,7 @@ distinction.
 
   if (enum_type_is_integral) {
     result = ec_expr_not_arithmetic;
-  } else if (cpp11_mode || cppcli_enabled) {
+  } else if (cpp11_mode || cli_or_cx_enabled) {
     /* Modes that make a distinction between scoped and unscoped enum types. */
     result = ec_expr_not_arithmetic_or_unscoped_enum;
   } else {
@@ -11239,7 +11260,7 @@ distinction.
 
   if (enum_type_is_integral) {
     result = ec_expr_not_scalar;
-  } else if (cpp11_mode || cppcli_enabled) {
+  } else if (cpp11_mode || cli_or_cx_enabled) {
     /* Modes that make a distinction between scoped and unscoped enum types. */
     result = ec_expr_not_arithmetic_or_unscoped_enum_or_pointer;
   } else {
@@ -11299,13 +11320,13 @@ a_boolean check_pointer_or_handle_operand(an_operand     *operand,
 /*
 Return FALSE and issue an error message if the operand is neither a pointer
 type nor a C++/CLI handle type (this check should be called only if
-cppcli_enabled is TRUE).  If there is an error, make "operand" into an
+cli_or_cx_enabled is TRUE).  If there is an error, make "operand" into an
 error operand.
 */
 {
   a_boolean okay = TRUE;
 
-  check_assertion(cppcli_enabled);
+  check_assertion(cli_or_cx_enabled);
   if (is_error_operand(operand)) {
     /* If it is an error operand, an error message has already been issued. */
     okay = FALSE;
@@ -13789,7 +13810,7 @@ or thread_local variable does not.
     /* A dllimport variable is accessed indirect through a variable
        and therefore does not have a constant address. */
     const_addr = FALSE;
-  } else if (cppcli_enabled && variable->source_corresp.is_class_member &&
+  } else if (cli_or_cx_enabled && variable->source_corresp.is_class_member &&
              is_immediate_managed_class_type(parent_class_of(variable))) {
     /* Static data members of managed classes are allocated on the
        managed heap and therefore do not have constant addresses. */
@@ -13949,7 +13970,7 @@ be returned for a C mode const variable.
   an_initializer_ptr init;
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
-  if (cppcli_enabled && var->source_corresp.is_class_member &&
+  if (cli_or_cx_enabled && var->source_corresp.is_class_member &&
       var->init_kind == (an_init_kind)initk_none &&
       is_immediate_managed_class_type(parent_class_of(var)) &&
       is_potentially_constant_valued_variable(var)) {
@@ -14425,15 +14446,15 @@ an expression.
 
 
 a_dynamic_init_ptr alloc_expr_ctor_dynamic_init(
-                                            a_routine_ptr     ctor_routine,
-                                            an_expr_node_ptr  args,
-                                            a_type_ptr        dest_type,
-                                            a_boolean         add_default_args,
-                                            a_boolean         implied_source,
-                                            a_boolean         value_init,
-                                            a_boolean         sequenced_args,
-                                            a_boolean         fold_constexpr,
-                                            a_source_position *pos)
+                                     a_routine_ptr     ctor_routine,
+                                     an_expr_node_ptr  args,
+                                     a_type_ptr        dest_type,
+                                     a_boolean         add_default_args,
+                                     a_boolean         implied_source,
+                                     a_boolean         value_init,
+                                     a_boolean         sequenced_args,
+                                     a_boolean         fold_constexpr,
+                                     a_source_position *pos)
 /*
 Allocate a dynamic initialization entry for a constructor call
 (dik_constructor), and return a pointer to it.  ctor_routine gives the
@@ -15632,7 +15653,7 @@ dependent_case:;
         } else {
           /* The selector is a class lvalue or rvalue. */
 #if MICROSOFT_EXTENSIONS_ALLOWED
-          if (cppcli_enabled && is_routine_node(function_node)) {
+          if (cli_or_cx_enabled && is_routine_node(function_node)) {
             a_routine_ptr rout = function_node->variant.routine.ptr;
             if (rout->source_corresp.is_class_member &&
                 is_value_class_type(parent_class_of(rout)) &&
@@ -16157,7 +16178,7 @@ is a static initonly member.
 {
   a_boolean is_initonly_field = FALSE;
 
-  check_assertion(cppcli_enabled);
+  check_assertion(cli_or_cx_enabled);
   if (is_an_lvalue(operand) && is_expression_operand(operand)) {
     /* Walk the expression's addressing parts to see whether this is a C++/CLI
        initonly field selection either at the top level or deeper down. */
@@ -16181,7 +16202,7 @@ a_boolean is_any_initonly_field_operand(an_operand *operand)
 Return TRUE if the operand is a C++/CLI initonly field reference.
 */
 {
-  check_assertion(cppcli_enabled);
+  check_assertion(cli_or_cx_enabled);
   return is_initonly_field_operand(operand, /*skip_valid_lvalue_uses=*/FALSE,
                                    /*p_is_static_initonly_field=*/
                                                             (a_boolean *)NULL);
@@ -16197,7 +16218,7 @@ be treated as unmodifiable due to its use occurring outside of the constructor
 context in which it is allowed to be modified.
 */
 {
-  check_assertion(cppcli_enabled);
+  check_assertion(cli_or_cx_enabled);
   return is_initonly_field_operand(operand, /*skip_valid_lvalue_uses=*/TRUE,
                                    p_is_static_initonly_field);
 }  /* is_unmodifiable_initonly_field_operand */
@@ -16216,7 +16237,7 @@ to an error operand.  Return TRUE if an error was issued.
 {
   a_boolean err = FALSE;
 
-  check_assertion(cppcli_enabled);
+  check_assertion(cli_or_cx_enabled);
   if (is_unmodifiable_initonly_field_operand(operand, (a_boolean *)NULL)) {
     expr_pos_error(reference_case ? ec_ref_bound_to_initonly_field
                                   : ec_address_of_initonly_field, err_pos);
@@ -16226,7 +16247,7 @@ to an error operand.  Return TRUE if an error was issued.
   return err;
 }  /* check_for_address_of_or_reference_to_initonly_field */
 
-#endif  /* MICROSOFT_EXTENSIONS_ALLOWED */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 a_boolean microsoft_template_arg_constant_glvalue_address(
                                                      an_expr_node_ptr expr,
@@ -16360,12 +16381,12 @@ explicit "&" operator in the source and *operator_position gives its position.
 #if MICROSOFT_EXTENSIONS_ALLOWED
     /* Check for taking the address of or binding a reference to an initonly
        field. */
-    } else if (cppcli_enabled &&
+    } else if (cli_or_cx_enabled &&
                check_for_address_of_or_reference_to_initonly_field(
                                                             operand, err_pos,
                                                             reference_case)) {
       /* Error issued by the subroutine. */
-#endif  /* MICROSOFT_EXTENSIONS_ALLOWED */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     } else {
       a_boolean  did_not_fold = TRUE;
       a_boolean  template_constant = FALSE;
@@ -18834,8 +18855,7 @@ by an "&" operator and *ampersand_position gives its position.
   expr = make_node_from_operand(operand);
   check_assertion(expr->is_lvalue || is_error_node(expr));
 #if MICROSOFT_EXTENSIONS_ALLOWED
-  if (cppcli_enabled && !will_call &&
-      !operand->allow_addr_of_managed_member) {
+  if (cppcli_enabled && !will_call && !operand->allow_addr_of_managed_member) {
     a_routine_ptr rout = routine_from_function_expr(expr);
     if (rout != NULL &&
         rout->source_corresp.is_class_member &&
@@ -19398,9 +19418,13 @@ to TRUE and *result becomes an error operand.
     a_symbol_locator     accessor_loc;
     an_operand           function_operand, selector;
     an_arg_list_elem_ptr arg_list = NULL;
+    an_operand           orig_operand;
     an_expr_node_ptr     argument_list;
     a_boolean            have_selector =
                                        (lhs->variant.event_ref.object != NULL);
+
+    /* Copy the original operand before any modifications occur. */
+    orig_operand = *lhs;
     if (symbol_is(event_sym, sk_field)) {
       pedp = event_sym->variant.field.ptr->property_or_event_descr;
     } else if (symbol_is(event_sym, sk_static_data_member)) {
@@ -19460,11 +19484,20 @@ to TRUE and *result becomes an error operand.
       } else {
         /* Create the function call. */
         an_expr_node_ptr  func_call_node;
+        a_boolean         virtual_function, bound_function;
         if (lhs->is_qualified_name) {
           /* If the left-hand operand used a qualified name to refer to the
              event, the accessor call is never virtual. */
           function_operand.virtual_function = FALSE;
         }  /* if */
+        /* Generally speaking, we want to restore the original operand details,
+           but the "virtual_function" and "bound_function" flags should reflect
+           the nature of the call. */
+        bound_function = function_operand.bound_function;
+        virtual_function = function_operand.virtual_function;
+        function_operand.virtual_function = virtual_function &&
+                                            !orig_operand.is_qualified_name;
+        function_operand.bound_function = bound_function;
         assemble_function_call(&function_operand, &selector, argument_list,
                                /*compiler_generated=*/TRUE,
                                /*arg_dep_lookup_suppressed=*/FALSE,
@@ -20196,9 +20229,9 @@ user-defined conversions.
 #if MICROSOFT_EXTENSIONS_ALLOWED
           /* C++/CLI handles are not actually convertible to bool, but
              they can be tested in boolean controlling expressions. */
-          || (cppcli_enabled && is_handle_type(operand->type))
+          || (cli_or_cx_enabled && is_handle_type(operand->type))
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-                                                              ) {
+                                                                 ) {
         okay = TRUE;
         /* Convert the expression to bool. */
         cast_operand(bool_type(), operand, /*is_implicit_cast=*/TRUE);

@@ -618,7 +618,7 @@ already been copied over.
     check_for_done_with_memory_region(file_scope_region_number);
   }  /* if */
 #if CPPCLI_ENABLING_POSSIBLE
-  if (cppcli_enabled) {
+  if (cli_or_cx_enabled) {
     ms_metadata_trans_unit_wrapup();
   }  /* if */
 #endif /* CPPCLI_ENABLING_POSSIBLE */
@@ -821,7 +821,7 @@ and after the back end (if any) is executed.
 */
 {
 #if CPPCLI_ENABLING_POSSIBLE
-  if (cppcli_enabled) ms_metadata_cleanup();
+  if (cli_or_cx_enabled) ms_metadata_cleanup();
 #endif /* CPPCLI_ENABLING_POSSIBLE */
 #if IL_SHOULD_BE_WRITTEN_TO_FILE
   /* Close the IL output file, be it a temporary or actual file. */
@@ -864,7 +864,7 @@ memory used by the compilation.
   lexical_cleanup();
   mem_manage_wrapup();
 #if CPPCLI_ENABLING_POSSIBLE
-  if (cppcli_enabled) ms_metadata_cleanup();
+  if (cli_or_cx_enabled) ms_metadata_cleanup();
 #endif /* CPPCLI_ENABLING_POSSIBLE */
 }  /* fe_cleanup */
 

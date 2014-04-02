@@ -104,7 +104,6 @@ extern void form_param_ref(an_expr_node_ptr                       expr,
                            an_il_to_str_output_control_block_ptr  octl);
 #endif /* BACK_END_IS_C_GEN_BE */
 
-
 /* If you add a field here, add it also to
    clear_il_to_str_output_control_block. */
 typedef struct an_il_to_str_output_control_block {

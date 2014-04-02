@@ -266,11 +266,10 @@ fxp_descr describes the format of the value being stored.
       *dest = *source;
 #if DEBUG
       if (db_flag_is_set("fxp_store")) {
-        int	source_offset;
-        int	dest_offset;
-        source_offset = source - (char *)(&mp->parts[0]);
-        dest_offset = dest - (char*)&value[0];
-        fprintf(f_debug, "fxp copy from %d to %d, value=%x\n",
+        long  source_offset, dest_offset;
+        source_offset = (long)(source - (char *)(&mp->parts[0]));
+        dest_offset = (long)(dest - (char*)&value[0]);
+        fprintf(f_debug, "fxp copy from %ld to %ld, value=%x\n",
                 source_offset, dest_offset, *dest);
       }  /* if */
 #endif /* DEBUG */

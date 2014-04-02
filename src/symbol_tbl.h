@@ -4496,8 +4496,14 @@ enum a_cli_symbol_kind_tag {
   csk_system_namespace,
   csk_system_collections_namespace,
   csk_system_collections_generic_namespace,
-  csk_last_namespace = csk_system_collections_generic_namespace,
+  csk_platform_details_namespace,
+  csk_platform_metadata_namespace,
+  csk_windows_namespace,
+  csk_windows_foundation_namespace,
+  csk_windows_foundation_metadata_namespace,
+  csk_windows_foundation_collections_namespace,
   csk_first_type,
+  csk_last_namespace = csk_first_type - 1,
   csk_first_integer = csk_first_type,
   csk_system_byte_sign_unspecified = csk_first_integer, /* ik_char */
   csk_system_sbyte,				/* ik_signed_char */
@@ -4532,13 +4538,28 @@ enum a_cli_symbol_kind_tag {
   csk_system_runtime_argument_handle,
   csk_system_async_callback,
   csk_system_iasync_result,
+  csk_system_attribute,
+  csk_system_attribute_targets,
+  csk_system_attribute_usage_attribute,
+  csk_system_flags_attribute,
+  csk_system_param_array_attribute,
+  csk_system_obsolete_attribute,
   csk_system_collections_ienumerable,
   csk_system_collections_generic_ienumerable,
   csk_cli_array,
   csk_interior_ptr,
   csk_pin_ptr,
-  csk_last_type = csk_pin_ptr,
-  csk_last
+  csk_size_t,					/* targ_size_t_int_kind */
+  csk_platform_details_guid,			/* const type_of_guid& */
+  csk_platform_write_only_array,
+  csk_platform_callback_context,
+  csk_cppcx_box,
+  csk_abi_hstring,
+  csk_windows_foundation_event_registration_token,
+  csk_windows_foundation_metadata_allow_multiple_attribute,
+  csk_windows_foundation_metadata_deprecated_attribute,
+  csk_last,
+  csk_last_type = csk_last - 1
 };
 
 /* Define as "a_byte" to explicitly control storage size. */
@@ -4552,78 +4573,276 @@ EXTERN a_symbol_ptr
 			   See the a_cli_symbol_kind_tag enumeration for more
 			   information. */
 
+EXTERN enum a_cli_symbol_kind_tag cli_fallback_symbols[]
 /*
-Structure representing a managed symbol that will be pre-created
-and stored in cli_symbols.
+The csk_none-terminated set of symbols to perform "dual-lookup" on
+in C++/CLI mode.
+*/
+#if VAR_INITIALIZERS
+= {
+  csk_cli_array,
+  csk_interior_ptr,
+  csk_pin_ptr,
+  csk_none
+}
+#endif /* VAR_INITIALIZERS */
+;
+
+
+EXTERN enum a_cli_symbol_kind_tag cppcx_fallback_symbols[]
+/*
+The csk_none-terminated set of symbols to perform "dual-lookup" on in
+C++/CX mode.
+*/
+#if VAR_INITIALIZERS
+= {
+  csk_system_sbyte,
+  csk_system_byte,
+  csk_system_int16,
+  csk_system_uint16,
+  csk_system_int32,
+  csk_system_uint32,
+  csk_system_int32_is_long,
+  csk_system_uint32_is_long,
+  csk_system_int64,
+  csk_system_uint64,
+  csk_system_single,
+  csk_system_double,
+  csk_system_double_is_long,
+  csk_system_char,
+  csk_cli_array,
+  csk_platform_write_only_array,
+  csk_cppcx_box,
+  csk_none
+}
+#endif /* VAR_INITIALIZERS */
+;
+
+
+enum a_cli_symbol_init_flag
+{
+  cisf_default           = 0x00,
+  cisf_optional          = 0x01,
+  cisf_cli_metadata      = 0x02,
+  cisf_platform_metadata = 0x04,
+  cisf_windows_metadata  = 0x08
+};
+
+/*
+A bit set type to describes the initialization of predeclared C++/CLI and
+C++/CX symbols.
+*/
+typedef a_byte a_cli_symbol_init_flag_set;
+
+#define CISF_DEFAULT       ((a_cli_symbol_init_flag_set)0x00)
+			/* The symbol is loaded on startup.  This implies
+			   cisf_cli_metadata | cisf_platform_metadata. */
+#define CISF_OPTIONAL      ((a_cli_symbol_init_flag_set)0x01)
+			/* The symbol is not required to be found. */
+#define CISF_CLI_METADATA  ((a_cli_symbol_init_flag_set)0x02)
+			/* For C++/CLI, the symbol is loaded on startup after
+			   mscorlib.dll is loaded. */
+#define CISF_PLATFORM_METADATA \
+                           ((a_cli_symbol_init_flag_set)0x04)
+			/* For C++/CX, the symbol is loaded on startup after
+			   Platform.winmd is loaded. */
+#define CISF_WINDOWS_METADATA \
+                           ((a_cli_symbol_init_flag_set)0x08)
+			/* For C++/CX, the symbol is loaded on startup after
+			   Windows.winmd is loaded. */
+
+/*
+Structure representing a managed symbol that will be pre-created and stored in
+cli_symbols.
 */
 typedef struct {
-  a_const_char	*name;           /* Unqualified name of the symbol. */
+  a_const_char	*name;	/* Unqualified name of the symbol. */
   enum a_cli_symbol_kind_tag
                 namespace_kind;
                         /* Enum value for the parent namespace for the symbol
                            or csk_none. */
+  a_const_char  *cppcx_name;
+                        /* Unqualified name of the symbol in C++/CX mode.
+                           NULL if the name does not differ from the C++/CLI
+                           name.*/
+  enum a_cli_symbol_kind_tag
+                cppcx_namespace_kind;
+                        /* Enum value for the parent namespace for the symbol
+                           in C++/CX mode.  csk_none if the parent
+                           namespace does not differ from the C++/CLI. */
+  a_cli_symbol_init_flag_set
+                init_flags;
+                        /* Init flags required by the symbol. */
 } a_cli_symbol_name;
 
 EXTERN a_cli_symbol_name
 		cli_symbol_names[(int)csk_last + 1]
-			/* Array of symbol names corresponding to each entry in
-			   a_cli_symbol_kind_tag, respectively.  See
+			/* Array of symbol names corresponding to each entry
+			   in a_cli_symbol_kind_tag, respectively.  See
 			   a_cli_symbol_kind_tag for more information. */
 #if VAR_INITIALIZERS
 = {
-  { NULL, csk_none },                   /* csk_none */
-  { NULL, csk_none },                   /* csk_cli_namespace */
-  { "System", csk_none },               /* csk_system_namespace */
-  { "Collections", csk_system_namespace },
-                                        /* csk_system_collections_namespace */
-  { "Generic", csk_system_collections_namespace },
-                                /* csk_system_collections_generic_namespace */
-  { NULL, csk_none },                   /* csk_system_byte_sign_unspecified */
-  { "SByte", csk_system_namespace },    /* csk_system_sbyte */
-  { "Byte", csk_system_namespace },     /* csk_system_byte */
-  { "Int16", csk_system_namespace },    /* csk_system_int16 */
-  { "UInt16", csk_system_namespace },   /* csk_system_uint16 */
-  { "Int32", csk_system_namespace },    /* csk_system_int32 */
-  { "UInt32", csk_system_namespace },   /* csk_system_uint32 */
-  { "Int32", csk_system_namespace },    /* csk_system_int32_is_long */
-  { "UInt32", csk_system_namespace },   /* csk_system_uint32_is_long */
-  { "Int64", csk_system_namespace },    /* csk_system_int64 */
-  { "UInt64", csk_system_namespace },   /* csk_system_uint64 */
-  { "Single", csk_system_namespace },   /* csk_system_single */
-  { "Double", csk_system_namespace },   /* csk_system_double */
-  { "Double", csk_system_namespace },   /* csk_system_double_is_long */
-  { "Boolean", csk_system_namespace },  /* csk_system_boolean */
-  { "Char", csk_system_namespace },     /* csk_system_char */
-  { "Void", csk_system_namespace },     /* csk_system_void */
-  { "Object", csk_system_namespace },   /* csk_system_object */
-  { "ValueType", csk_system_namespace },/* csk_system_value_type */
-  { "Enum", csk_system_namespace },     /* csk_system_enum */
-  { "Type", csk_system_namespace },     /* csk_system_type */
-  { "String", csk_system_namespace },   /* csk_system_string */
-  { "Delegate", csk_system_namespace }, /* csk_system_delegate */
-  { "MulticastDelegate", csk_system_namespace },
-                                        /* csk_system_multicast_delegate */
-  { "IDisposable", csk_system_namespace },
-                                        /* csk_system_idisposable */
-  { "Array", csk_system_namespace },    /* csk_system_array */
-  { "Nullable", csk_system_namespace }, /* csk_system_nullable */
-  { "RuntimeArgumentHandle", csk_system_namespace },
-                                      /* csk_system_runtime_argument_handle */
-  { "AsyncCallback", csk_system_namespace },
-					/* csk_system_async_callback */
-  { "IAsyncResult", csk_system_namespace },
-					/* csk_system_iasync_result */
-  { "IEnumerable", csk_system_collections_namespace },
-                                      /* csk_system_collections_ienumerable */
-  { "IEnumerable", csk_system_collections_generic_namespace },
-                              /* csk_system_collections_generic_ienumerable */
-  { NULL, csk_none },                   /* csk_cli_array */
-  { NULL, csk_none },                   /* csk_interior_ptr */
-  { NULL, csk_none },                   /* csk_pin_ptr */
-  { "last", csk_none },                 /* csk_last */
+  { NULL, csk_none, NULL, csk_none, CISF_DEFAULT },
+			/* csk_none */
+  { NULL, csk_none, "default", csk_none, CISF_DEFAULT },
+			/* csk_cli_namespace */
+  { "System", csk_none, "Platform", csk_none, CISF_DEFAULT },
+			/* csk_system_namespace */
+  { "Collections", csk_system_namespace,
+    NULL, csk_none, CISF_CLI_METADATA },
+			/* csk_system_collections_namespace */
+  { "Generic", csk_system_collections_namespace,
+    NULL, csk_none, CISF_CLI_METADATA },
+			/* csk_system_collections_generic_namespace */
+  { NULL, csk_none, "Details", csk_system_namespace, CISF_DEFAULT },
+			/* csk_platform_details_namespace */
+  { NULL, csk_none, "Metadata", csk_system_namespace, CISF_DEFAULT },
+			/* csk_platform_metadata_namespace */
+  { NULL, csk_none, "Windows", csk_none, CISF_DEFAULT },
+			/* csk_windows_namespace */
+  { NULL, csk_none, "Foundation", csk_windows_namespace, CISF_DEFAULT },
+			/* csk_windows_foundation_namespace */
+  { NULL, csk_none,
+    "Metadata", csk_windows_foundation_namespace, CISF_DEFAULT },
+			/* csk_windows_foundation_metadata_namespace */
+  { NULL, csk_none, "Collections", csk_windows_foundation_namespace,
+   (CISF_OPTIONAL | CISF_WINDOWS_METADATA) },
+			/* csk_windows_foundation_collections_namespace */
+  { NULL, csk_none, NULL, csk_none, CISF_DEFAULT },
+			/* csk_system_byte_sign_unspecified */
+  { "SByte", csk_system_namespace, "int8", csk_cli_namespace, CISF_DEFAULT },
+			/* csk_system_sbyte */
+  { "Byte", csk_system_namespace, "uint8", csk_cli_namespace, CISF_DEFAULT },
+			/* csk_system_byte */
+  { "Int16", csk_system_namespace, "int16", csk_cli_namespace, CISF_DEFAULT  },
+			/* csk_system_int16 */
+  { "UInt16", csk_system_namespace,
+    "uint16", csk_cli_namespace, CISF_DEFAULT },
+			/* csk_system_uint16 */
+  { "Int32", csk_system_namespace, "int32", csk_cli_namespace, CISF_DEFAULT },
+			/* csk_system_int32 */
+  { "UInt32", csk_system_namespace,
+    "uint32", csk_cli_namespace, CISF_DEFAULT },
+			/* csk_system_uint32 */
+  { "Int32", csk_system_namespace, "int32", csk_cli_namespace, CISF_DEFAULT },
+			/* csk_system_int32_is_long */
+  { "UInt32", csk_system_namespace,
+    "uint32", csk_cli_namespace, CISF_DEFAULT },
+			/* csk_system_uint32_is_long */
+  { "Int64", csk_system_namespace, "int64", csk_cli_namespace, CISF_DEFAULT },
+			/* csk_system_int64 */
+  { "UInt64", csk_system_namespace,
+    "uint64", csk_cli_namespace, CISF_DEFAULT },
+			/* csk_system_uint64 */
+  { "Single", csk_system_namespace,
+    "float32", csk_cli_namespace, CISF_DEFAULT },
+			/* csk_system_single */
+  { "Double", csk_system_namespace,
+    "float64", csk_cli_namespace, CISF_DEFAULT },
+			/* csk_system_double */
+  { "Double", csk_system_namespace,
+    "float64", csk_cli_namespace, CISF_DEFAULT },
+			/* csk_system_double_is_long */
+  { "Boolean", csk_system_namespace, NULL, csk_none, CISF_DEFAULT },
+			/* csk_system_boolean */
+  { "Char", csk_system_namespace, "char16", csk_cli_namespace, CISF_DEFAULT },
+			/* csk_system_char */
+  { "Void", csk_system_namespace, NULL, csk_none, CISF_CLI_METADATA },
+			/* csk_system_void */
+  { "Object", csk_system_namespace, NULL, csk_none, CISF_DEFAULT },
+			/* csk_system_object */
+  { "ValueType", csk_system_namespace, NULL, csk_none, CISF_DEFAULT },
+			/* csk_system_value_type */
+  { "Enum", csk_system_namespace, NULL, csk_none, CISF_DEFAULT },
+			/* csk_system_enum */
+  { "Type", csk_system_namespace, NULL, csk_none, CISF_DEFAULT },
+			/* csk_system_type */
+  { "String", csk_system_namespace, NULL, csk_none, CISF_DEFAULT },
+			/* csk_system_string */
+  { "Delegate", csk_system_namespace, NULL, csk_none, CISF_DEFAULT },
+			/* csk_system_delegate */
+  { "MulticastDelegate", csk_system_namespace,
+    NULL, csk_none, CISF_CLI_METADATA },
+			/* csk_system_multicast_delegate */
+  { "IDisposable", csk_system_namespace, NULL, csk_none, CISF_DEFAULT },
+			/* csk_system_idisposable */
+  { "Array", csk_system_namespace, NULL, csk_none, CISF_CLI_METADATA },
+			/* csk_system_array */
+  { "Nullable", csk_system_namespace, NULL, csk_none, CISF_CLI_METADATA },
+			/* csk_system_nullable */
+  { "RuntimeArgumentHandle", csk_system_namespace,
+    NULL, csk_none, CISF_CLI_METADATA },
+			/* csk_system_runtime_argument_handle */
+  { "AsyncCallback", csk_system_namespace,
+    NULL, csk_none, CISF_CLI_METADATA },
+			/* csk_system_async_callback */
+  { "IAsyncResult", csk_system_namespace,
+    NULL, csk_none, CISF_CLI_METADATA },
+			/* csk_system_iasync_result */
+  { "Attribute", csk_system_namespace,
+    NULL, csk_platform_metadata_namespace, CISF_DEFAULT },
+			/* csk_system_attribute */
+  { "AttributeTargets", csk_system_namespace,
+    NULL, csk_windows_foundation_metadata_namespace,
+    (CISF_CLI_METADATA | CISF_WINDOWS_METADATA) },
+			/* csk_system_attribute_targets */
+  { "AttributeUsageAttribute", csk_system_namespace,
+    NULL, csk_windows_foundation_metadata_namespace,
+    (CISF_CLI_METADATA | CISF_WINDOWS_METADATA) },
+			/* csk_system_attribute_usage_attribute */
+  { "FlagsAttribute", csk_system_namespace,
+    NULL, csk_platform_metadata_namespace, CISF_DEFAULT },
+			/* csk_system_flags_attribute */
+  { "ParamArrayAttribute", csk_system_namespace,
+    NULL, csk_none, CISF_CLI_METADATA },
+			/* csk_system_param_array_attribute */
+  { "ObsoleteAttribute", csk_system_namespace,
+    NULL, csk_none, CISF_CLI_METADATA },
+			/* csk_system_obsolete_attribute */
+  { "IEnumerable", csk_system_collections_namespace,
+    NULL, csk_none, CISF_CLI_METADATA },
+			/* csk_system_collections_ienumerable */
+  { "IEnumerable", csk_system_collections_generic_namespace,
+    NULL, csk_none, CISF_CLI_METADATA },
+			/* csk_system_collections_generic_ienumerable */
+  { NULL, csk_none, NULL, csk_none, CISF_DEFAULT },
+			/* csk_cli_array */
+  { NULL, csk_none, NULL, csk_none, CISF_DEFAULT },
+			/* csk_interior_ptr */
+  { NULL, csk_none, NULL, csk_none, CISF_DEFAULT },
+			/* csk_pin_ptr */
+  { NULL, csk_none, "SizeT", csk_system_namespace, CISF_DEFAULT },
+			/* csk_size_t */
+  { NULL, csk_none, "_GUID", csk_platform_details_namespace, CISF_DEFAULT },
+			/* csk_platform_details_guid */
+  { NULL, csk_none, NULL, csk_none, CISF_DEFAULT },
+			/* csk_platform_write_only_array */
+  { NULL, csk_none, "CallbackContext", csk_system_namespace, CISF_DEFAULT },
+			/* csk_platform_callback_context */
+  { NULL, csk_none, NULL, csk_none, CISF_DEFAULT },
+			/* csk_cppcx_box */
+  { NULL, csk_none, "HSTRING__", csk_none, CISF_WINDOWS_METADATA },
+			/* csk_abi_hstring */
+  { NULL, csk_none, "EventRegistrationToken", csk_windows_foundation_namespace,
+    CISF_WINDOWS_METADATA },
+			/* csk_windows_foundation_event_registration_token */
+  { NULL, csk_none,
+    "AllowMultipleAttribute", csk_windows_foundation_metadata_namespace,
+    CISF_WINDOWS_METADATA },
+		/* csk_windows_foundation_metadata_allow_multiple_attribute */
+  { NULL, csk_none,
+    "DeprecatedAttribute", csk_windows_foundation_metadata_namespace,
+    CISF_WINDOWS_METADATA },
+		/* csk_windows_foundation_metadata_deprecated_attribute */
+  { "last", csk_none, NULL, csk_none, CISF_DEFAULT },
+			/* csk_last */
 }
 #endif /* VAR_INITIALIZERS */
 ;
+
+#define cli_symbol_is_required(csk)                                          \
+  ((cli_symbol_names[(int)(csk)].init_flags &                                \
+                              (a_cli_symbol_init_flag_set)cisf_optional) == 0)
 
 /*
 The following macros convert an_integer_kind/a_float_kind respectively into
@@ -4645,10 +4864,18 @@ a_cli_symbol_kind_tag/an_integer_kind/a_float_kind respectively.
 #define cli_symbol_from_float_kind(fk)                                \
   (cli_symbol_from_kind(float_kind_to_cli_symbol_kind((fk))))
 
+extern a_namespace_ptr f_cli_namespace_ptr_for(a_cli_symbol_kind kind);
 extern a_type_ptr f_cli_class_type_for(a_cli_symbol_kind kind);
+extern a_symbol_ptr f_cli_symbol_from_kind_or_null(a_cli_symbol_kind kind);
+
+#define cli_namespace_ptr_for(csk)                                           \
+  (f_cli_namespace_ptr_for((a_cli_symbol_kind)(csk)))
 
 #define cli_class_type_for(csk)                                              \
   (f_cli_class_type_for((a_cli_symbol_kind)(csk)))
+
+#define cli_symbol_from_kind_or_null(csk)                                    \
+  (f_cli_symbol_from_kind_or_null((a_cli_symbol_kind)(csk)))
 
 /*
 Macros to retrieve special C++/CLI types.
@@ -4670,6 +4897,12 @@ extern void make_symbol_for_namespace_cli(void);
 extern void init_cli_symbols(void);
 extern a_boolean is_generic_cli_ienumerable_type(a_type_ptr type,
                                                  a_type_ptr elem_type);
+extern void init_cli_symbol(a_cli_symbol_kind  csk);
+
+extern void make_symbol_for_cppcx_box(void);
+extern void make_symbol_for_abi_hstring(void);
+extern void init_windows_metadata_symbols(void);
+
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 EXTERN a_type_ptr
@@ -4750,6 +4983,9 @@ extern void change_class_locator_into_constructor_locator(
                                             a_symbol_locator   *locator,
                                             a_source_position  *pos,
                                             a_boolean          is_static_ctor);
+
+extern void change_ms_attr_locator_into_alt_name_locator(
+                                                  a_symbol_locator  *locator);
 
 extern void make_opname_locator(an_opname_kind    opname,
                                 a_symbol_locator  *locator,
@@ -5374,7 +5610,7 @@ an overloaded set of properties.
 */
 #if MICROSOFT_EXTENSIONS_ALLOWED
 #define is_cppcli_property_or_event(sym)                                \
-  (cppcli_enabled &&                                                    \
+  (cli_or_cx_enabled &&                                                 \
    (symbol_is(sym, sk_property_set) ||                                  \
     (symbol_is((sym), sk_field) &&                                      \
      (sym)->variant.field.ptr->property_or_event_descr != NULL &&       \
@@ -5397,7 +5633,7 @@ refers to a fundamental type with a corresponding C++/CLI System value type
 */
 #if MICROSOFT_EXTENSIONS_ALLOWED
 #define is_cppcli_fundamental_system_type(sym)                          \
-  (cppcli_enabled &&                                                    \
+  (cli_or_cx_enabled &&                                                 \
    (system_type_from_fundamental_type(                                  \
                     skip_typerefs((sym)->variant.type.ptr)) != NULL))
 #else  /* !MICROSOFT_EXTENSIONS_ALLOWED */
@@ -5951,6 +6187,14 @@ supplement.
     ((a_template_symbol_supplement_ptr)NULL)				\
   /* } */)
 
+/* Return a routine from a sk_function_template. */
+#define routine_for_function_template_symbol(sym)                   \
+  (sym)->variant.template_info->variant.function.routine
+
+/* Return a type from a sk_function_template. */
+#define type_for_function_template_symbol(sym)                      \
+  routine_for_function_template_symbol(sym)->type
+
 /* If sym is a template template parameter, return the symbol for the template
    argument, otherwise return the original symbol. */
 #define template_argument_if_template_template_param(sym)		\
@@ -6198,12 +6442,22 @@ extern a_hash_value hash_prop_or_event_accessor_header_lookup(
 extern a_boolean compare_prop_or_event_accessor_header_lookup(
 						       a_void_ptr	entry,
 						       a_void_ptr	key);
+
+extern a_boolean is_cppcx_externally_visible_symbol(a_symbol_ptr sym);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 extern a_hash_value hash_symbol_header_lookup_entry(a_void_ptr	key);
 
 extern a_boolean compare_symbol_header_lookup_entry(a_void_ptr	entry,
                                                     a_void_ptr	key);
+
+#define is_cppcx_externally_visible_assembly_access(assembly_access)  \
+  ((assembly_access) == (an_access_specifier)as_protected ||          \
+   (assembly_access) == (an_access_specifier)as_public)
+
+extern void make_unnamed_virtual_function_locator(a_symbol_locator *loc);
+
+extern a_boolean is_unnamed_virtual_function_symbol(a_symbol_ptr sym);
 
 #endif /* ifndef SYMBOL_TBL_H */
 

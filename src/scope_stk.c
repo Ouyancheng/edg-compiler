@@ -2678,6 +2678,7 @@ the scope being pushed.
 #if MICROSOFT_EXTENSIONS_ALLOWED
   ssep->current_assembly_access  = (an_access_specifier)as_public;
   ssep->defer_constraint_checks  = FALSE;
+  ssep->scanning_cli_delegate_definition = FALSE;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   ssep->inactive_symbols_may_be_visible = FALSE;
   ssep->inside_local_class       = inside_local_class;
@@ -3367,10 +3368,13 @@ the scope being pushed.
     ssep->source_sequence_entries_disallowed =
     source_sequence_entries_disallowed = TRUE;
   } else if (kind == (a_scope_kind)sck_template_instantiation) {
-    if (scanning_generated_code_from_metadata) {
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    if (processing_vccorlib_header) {
+      /* Don't update source_sequence_entries_disallowed when scanning
+         vccorlib.h. */
+    } else if (scanning_generated_code_from_metadata) {
       /* Don't update source_sequence_entries_disallowed when scanning
          a declaration from metadata. */ 
-#if MICROSOFT_EXTENSIONS_ALLOWED
 #if TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
     } else if (ssep->in_generic_instantiation) {
       /* Don't generate source sequence entries for instantiations of C++/CLI
@@ -3388,8 +3392,10 @@ the scope being pushed.
       ssep->source_sequence_entries_disallowed = TRUE;
       source_sequence_entries_disallowed = TRUE;
 #endif /* TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
+    } else
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-    } else if (instance_sym == NULL) {
+    /* Do not insert code here. */
+    if (instance_sym == NULL) {
       /* If instance_sym is NULL we are pushing the scope for the declaration
          (but not the body) of a template function -- no source sequence
          entries would be involved. */

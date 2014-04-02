@@ -167,7 +167,11 @@ Display the source-sequence entry pointed to by ssep, for debugging purposes.
       an_ms_attribute_ptr	msap;
       msap = (an_ms_attribute_ptr)ssep->entity.ptr;
       fprintf(f_debug, " (at %lu) ", (unsigned long)msap->position.seq);
-      fprintf(f_debug, "%s", msap->string);
+      if (msap->kind == (an_ms_attribute_kind)msak_custom) {
+        db_type_name(msap->variant.custom_info.type);
+      } else {
+        fprintf(f_debug, "%s", msap->variant.info.string);
+      }  /* if */
     } else if (kind == (an_il_entry_kind)iek_cli_metadata_file) {
       a_cli_metadata_file_ptr cmfp;
       cmfp = (a_cli_metadata_file_ptr)ssep->entity.ptr;

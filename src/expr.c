@@ -74,10 +74,12 @@ static void scan_expr_full(an_operand              *result,
                            an_operand              *bound_function_selector,
                            int                      prec_level,
                            a_local_expr_options_set local_options);
-static an_arg_list_elem_ptr scan_expr_list(a_token_kind closing_token,
-                                           a_boolean    is_delegate_init,
-                                           a_boolean    empty_list_okay,
-                                           a_boolean    trailing_comma_okay);
+static an_arg_list_elem_ptr scan_expr_list(
+                                      a_token_kind closing_token,
+                                      a_boolean    is_delegate_init,
+                                      a_boolean    is_custom_ms_attr_arg_list,
+                                      a_boolean    empty_list_okay,
+                                      a_boolean    trailing_comma_okay);
 static an_arg_list_elem_ptr rescan_expr_list(an_expr_node_ptr       expr_list,
                                              a_rescan_control_block *rcblock);
 static void bound_function_in_cast(a_type_ptr        type_cast_to,
@@ -668,7 +670,7 @@ C++).  Other transformations are done in all cases.
   do_void_operand_transformations(operand,
                                   /*force_lvalue_to_rvalue=*/FALSE);
 #if MICROSOFT_EXTENSIONS_ALLOWED
-  if (cppcli_enabled &&
+  if (cli_or_cx_enabled &&
       is_cli_ref_or_interface_class_type(operand->type) &&
       is_expression_operand(operand)) {
     /* MSVC does not allow a dereference of a handle to a ref or interface
@@ -683,7 +685,7 @@ C++).  Other transformations are done in all cases.
       suppress_warning = TRUE;
     }  /* if */
   }  /* if */
-#endif  /* MICROSOFT_EXTENSIONS_ALLOWED */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   if (expr_stack->is_type_operator_arg_expression) {
     /* decltype expressions are sometimes written to check SFINAE
        conditions, so do not warn inside them. */
@@ -975,7 +977,7 @@ to be handled in the general code).
                    is_error_operand(operand);
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
-  if (cppcli_enabled && !is_overloadable) {
+  if (cli_or_cx_enabled && !is_overloadable) {
     if (operand->is_simple_string_literal &&
         literal_type_convertible_to_cli_string(operand->type)) {
       /* In C++/CLI mode, a string literal can act like a System::String
@@ -1248,7 +1250,7 @@ or a handle to such a type, rewrite it as a property reference so the
 subscripts can be applied to that.
 */
 {
-  if (cppcli_enabled) {
+  if (cli_or_cx_enabled) {
     a_type_ptr type = operand->type;
     if (has_default_indexed_property(type)) {
       /* The class has a default indexed property, so rewrite the reference. */
@@ -1320,7 +1322,7 @@ constructs, in which case offsetof_case is TRUE.
                            &closing_bracket_position);
     } else {
       /* C++/CLI eok_cli_subscript case. */
-      check_assertion(cppcli_enabled &&
+      check_assertion(cli_or_cx_enabled &&
                       node_operator_is(rcblock->expr, eok_cli_subscript));
       /* Get the first operand, and then rescan the rest of the
          operands as a list of expressions. */
@@ -1360,7 +1362,7 @@ constructs, in which case offsetof_case is TRUE.
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
   if (microsoft_mode) {
-    if (cppcli_enabled) {
+    if (cli_or_cx_enabled) {
       a_type_ptr op1_type = operand_1->type;
       cli_array_case = is_handle_to_cli_array_type(op1_type);
       if (!cli_array_case) {
@@ -1416,6 +1418,7 @@ constructs, in which case offsetof_case is TRUE.
          separate elements of the list. */
       operand_2_list = scan_expr_list(tok_rbracket,
                                       /*is_delegate_init=*/FALSE,
+                                      /*is_custom_ms_attr_arg_list=*/FALSE,
                                       /*empty_list_okay=*/FALSE,
                                       /*trailing_comma_okay=*/FALSE);
     } else
@@ -1505,7 +1508,7 @@ constructs, in which case offsetof_case is TRUE.
       } else {
         /* We have an expression list for operand 2. */
 #if MICROSOFT_EXTENSIONS_ALLOWED
-        check_assertion(cppcli_enabled);
+        check_assertion(cli_or_cx_enabled);
         template_cli_subscript_operation(operand_1, operand_2_list,
                                          result, &operator_position,
                                          operator_tok_seq_number,
@@ -1539,7 +1542,7 @@ constructs, in which case offsetof_case is TRUE.
         check_arg_list_elem_is_expression(alep);
         copy_operand(operand_of_arg_list_elem(alep), &operand_2);
       }  /* if */
-      if (cppcli_enabled &&
+      if (cli_or_cx_enabled &&
           (is_class_struct_union_type(operand_1->type) ||
            is_handle_type(operand_1->type))) {
         /* In C++/CLI, a class operand can be converted to a handle to
@@ -1558,7 +1561,7 @@ constructs, in which case offsetof_case is TRUE.
                                      (a_nondependent_call_depth)0,
                                      &closing_bracket_position,
                                      result, &processed);
-      if (processed && (offsetof_case || cppcli_enabled)) {
+      if (processed && (offsetof_case || cli_or_cx_enabled)) {
         /* An overloaded operator cannot be used with __builtin_offsetof and
            some C++/CLI cases.  Note that template-dependent cases were
            handled above and don't get here. */
@@ -1702,7 +1705,7 @@ constructs, in which case offsetof_case is TRUE.
       a_boolean     pointer_operand_is_second = FALSE;
       an_error_code err_code = ec_expr_not_pointer_to_object;
 #if MICROSOFT_EXTENSIONS_ALLOWED
-      if (cppcli_enabled) err_code = ec_expr_not_pointer_or_array_handle;
+      if (cli_or_cx_enabled) err_code = ec_expr_not_pointer_or_array_handle;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       if (subscript_is_expr_list) {
         /* If the contents of the [...] were scanned as an expression list,
@@ -1851,19 +1854,24 @@ return a pointer to the init_component.
 }  /* scan_expr_into_new_init_component */
 
 
-static an_arg_list_elem_ptr scan_expr_list(a_token_kind closing_token,
-                                           a_boolean    is_delegate_init,
-                                           a_boolean    empty_list_okay,
-                                           a_boolean    trailing_comma_okay)
+#if !MICROSOFT_EXTENSIONS_ALLOWED
+/*ARGSUSED*/ /* <-- is_custom_ms_attr_arg_list is not used in this case. */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+static an_arg_list_elem_ptr scan_expr_list(
+                                      a_token_kind closing_token,
+                                      a_boolean    is_delegate_init,
+                                      a_boolean    is_custom_ms_attr_arg_list,
+                                      a_boolean    empty_list_okay,
+                                      a_boolean    trailing_comma_okay)
 /*
-Scan a comma-separated list of expressions.  The list must be
-terminated by the token indicated by closing_token (which is not
-consumed by this routine).  If is_delegate_init is TRUE, this is
-the initializer list for a C++/CLI gcnew of a delegate type.
-If empty_list_okay is TRUE, an empty list is allowed.  If
-trailing_comma_okay is TRUE, the last expression may be followed by a
-comma (which is consumed here).  A pointer to the resulting argument
-list is returned.
+Scan a comma-separated list of expressions.  The list must be terminated by
+the token indicated by closing_token (which is not consumed by this routine).
+If is_delegate_init is TRUE, this is the initializer list for a C++/CLI gcnew
+of a delegate type.  If is_custom_ms_attr_arg_list is TRUE, this is an
+argument list for a Microsoft-style bracketed attribute.  If empty_list_okay
+is TRUE, an empty list is allowed.  If trailing_comma_okay is TRUE, the last
+expression may be followed by a comma (which is consumed here).  A pointer to
+the resulting argument list is returned.
 */
 {
   a_boolean            after_cached_expr = FALSE;
@@ -1901,6 +1909,15 @@ list is returned.
         /* Allow an extra comma at the end of the argument list. */
         if (curr_token == closing_token) break;
       }  /* if */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+      /* If we are scanning the argument list of a custom Microsoft attribute,
+         stop scanning when a named argument is encountered.  These arguments
+         will be scanned by scan_custom_ms_attribute_named_arg_list. */
+      if (is_custom_ms_attr_arg_list && curr_token == tok_identifier &&
+          next_token() == tok_assign) {
+        break;
+      }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       /* Each expression on the list is potentially a pack expansion
          ended by "...". */
       /* Note that the code here is very similar to
@@ -2210,6 +2227,7 @@ static void scan_call_arguments(
                            a_boolean                return_raw_arguments,
                            a_boolean                unknown_dependent_function,
                            a_boolean                args_will_be_discarded,
+                           a_boolean                is_custom_ms_attr_arg_list,
                            a_rescan_control_block   *rcblock,
                            a_boolean                arg_list_supplied,
                            an_arg_list_elem_ptr     supplied_arg_list,
@@ -2231,8 +2249,9 @@ e.g., because the function to be called is not known because of an error.
 The arguments are returned anyway, in case one wants to link them
 together in an argument list, but they are not checked nor converted to
 a parameter type, and unusual operand kinds are replaced by error operands.
-The current token is the "(" of the argument list if
-already_after_left_paren is FALSE, or the token following the left
+If is_custom_ms_attr_arg_list, this call if for the arguments in a Microsoft-
+style bracketed attribute.  The current token is the "(" of the argument list
+if already_after_left_paren is FALSE, or the token following the left
 parenthesis if already_after_left_paren is TRUE.  (The add_stop_token
 call has not been done in either of those cases.)  On return, the
 current token is the token following the closing ")".  If
@@ -2316,6 +2335,7 @@ to TRUE.
     /* Scan the argument list. */  
     arg_list = scan_expr_list(tok_rparen,
                               /*is_delegate_init=*/FALSE,
+                              is_custom_ms_attr_arg_list,
                               /*empty_list_okay=*/TRUE,
                               /*trailing_comma_okay=*/any_cfront_mode());
     arg_list_allocated_locally = TRUE;
@@ -2345,11 +2365,13 @@ to TRUE.
     if (arg_list_allocated_locally) free_arg_list(arg_list);
   }  /* if */
   if (scanning_source) {
-    /* Check for the closing parenthesis. */
 #if EXTRA_SOURCE_POSITIONS_IN_IL
     curr_construct_end_position = end_pos_curr_token;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
-    (void)required_token(tok_rparen, ec_exp_rparen);
+    if (!is_custom_ms_attr_arg_list) {
+      /* Check for the closing parenthesis. */
+      (void)required_token(tok_rparen, ec_exp_rparen);
+    }  /* if */
   }  /* if */
   /* Restore the previous state wrt. allowing an incomplete return type for
      the current call. */
@@ -2360,11 +2382,12 @@ to TRUE.
 
 
 void scan_dependent_parenthesized_initializer(
-                                    a_rescan_control_block   *rcblock,
-                                    a_boolean                arg_list_supplied,
-                                    an_arg_list_elem_ptr     supplied_arg_list,
-                                    an_operand               *single_operand,
-                                    a_dynamic_init_ptr       *dip)
+                          a_rescan_control_block   *rcblock,
+                          a_boolean                arg_list_supplied,
+                          an_arg_list_elem_ptr     supplied_arg_list,
+                          a_boolean                is_custom_ms_attr_arg_list,
+                          an_operand               *single_operand,
+                          a_dynamic_init_ptr       *dip)
 /*
 Scan and process a parenthesized list of expressions that is the
 initializer of an entity of a template-dependent type.  Build a
@@ -2397,6 +2420,7 @@ specified, and return *dip set to NULL.
                       &expr_arg_list, /*return_raw_arguments=*/FALSE,
                       /*unknown_dependent_function=*/TRUE,
                       /*args_will_be_discarded=*/FALSE,
+                      is_custom_ms_attr_arg_list,
                       rcblock,
                       arg_list_supplied,
                       supplied_arg_list,
@@ -2460,6 +2484,7 @@ list given by supplied_arg_list (but do not free the list).
                         /*return_raw_arguments=*/TRUE,
                         /*unknown_dependent_function=*/FALSE,
                         /*args_will_be_discarded=*/TRUE,
+                        /*is_custom_ms_attr_arg_list=*/FALSE,
                         rcblock,
                         /*arg_list_supplied=*/FALSE,
                         (an_arg_list_elem *)NULL,
@@ -2617,6 +2642,7 @@ void scan_ctor_arguments(a_symbol_ptr             constructor_sym,
                          a_type_ptr               dest_type,
                          a_boolean                fill_in_dtor,
                          a_boolean                elision_allowed,
+                         a_boolean                is_custom_ms_attr_arg_list,
                          a_rescan_control_block   *rcblock,
                          a_boolean                arg_list_supplied,
                          an_arg_list_elem_ptr     supplied_arg_list,
@@ -2732,7 +2758,7 @@ will be equal to init_list_ctor_arg_list->variant.braced.list.
   /* If the object_class_type is not specified, use the default. */
   if (object_class_type == NULL) object_class_type = class_type;
 #if MICROSOFT_EXTENSIONS_ALLOWED
-  if (cppcli_enabled && unboxing_conv != NULL &&
+  if (cli_or_cx_enabled && unboxing_conv != NULL &&
       is_value_class_type(class_type)) {
     /* The unboxing conversion is "overloaded" with whatever constructors
        there are. */
@@ -2773,6 +2799,7 @@ will be equal to init_list_ctor_arg_list->variant.braced.list.
                       &arg_expr_list, overloaded_function_case,
                       /*unknown_dependent_function=*/FALSE,
                       /*args_will_be_discarded=*/FALSE,
+                      is_custom_ms_attr_arg_list,
                       rcblock, arg_list_supplied, supplied_arg_list,
                       &arg_list,
                       (an_operand *)NULL, (a_boolean *)NULL,
@@ -3055,7 +3082,13 @@ will be equal to init_list_ctor_arg_list->variant.braced.list.
       /* Error. */
       /* dip = NULL; -- already set. */
     } else {
-      if (is_bitwise_copy) {
+      if (is_custom_ms_attr_arg_list) {
+        /* Construction of a custom Microsoft attribute. */
+        dip = alloc_expr_dynamic_init((a_dynamic_init_kind)dik_constructor);
+        dip->variant.constructor.ptr = routine; /* Possibly NULL. */
+        dip->variant.constructor.args = arg_expr_list;
+        dip->variant.constructor.value_initialization = value_init;
+      } else if (is_bitwise_copy) {
         /* Bitwise copy construction of a class. */
         dip = alloc_expr_dynamic_init((a_dynamic_init_kind)dik_expression);
         dip->variant.expression = arg_expr_list;
@@ -4818,7 +4851,7 @@ are expected to be NULL in that case.
   } else if (!C_mode() &&
              (is_class_struct_union_type(operand->type)
 #if MICROSOFT_EXTENSIONS_ALLOWED
-              || (handle_case = (cppcli_enabled && /*lint --e(820)*/
+              || (handle_case = (cli_or_cx_enabled && /*lint --e(820)*/
                                  is_overloadable_handle_type(operand->type)))
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
                                                                            )) {
@@ -4850,7 +4883,7 @@ are expected to be NULL in that case.
         bound_function_selector->selector_is_object_pointer = TRUE;
       }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
-      if (cppcli_enabled && is_delegate_type(class_type)) {
+      if (cli_or_cx_enabled && is_delegate_type(class_type)) {
         /* A C++/CLI delegate class object can be invoked.  Its Invoke
            function is called. */
         a_routine_ptr invoke_rout = delegate_invocation_function(class_type);
@@ -5114,14 +5147,15 @@ are expected to be NULL in that case.
                       (overloaded_function_case || gnu_sync_function_case),
                       unknown_dependent_function,
                       /*args_will_be_discarded=*/is_error_operand(operand),
+                      /*is_custom_ms_attr_arg_list=*/FALSE,
                       rcblock,
                       /*arg_list_supplied=*/FALSE,
                       (an_arg_list_elem *)NULL,
                       &arg_list,
                       (an_operand *)NULL, (a_boolean *)NULL,
                       &closing_paren_position);
+
   error_position = call_position;
-        
 #if GNU_EXTENSIONS_ALLOWED && GNU_BUILTIN_SYNC_FUNCTIONS_ALLOWED
   if (gnu_sync_function_case) {
     /* Check and adjust the arguments for a call of a GNU __sync_... function.
@@ -5753,7 +5787,7 @@ operand, as a way to catch loops.
      deliberate: doing so could cause infinite loops. */
   if (is_class_struct_union_type(operand->type)
 #if MICROSOFT_EXTENSIONS_ALLOWED
-      || (handle_case = (cppcli_enabled &&  /*lint --e(820)*/
+      || (handle_case = (cli_or_cx_enabled &&  /*lint --e(820)*/
                          is_overloadable_handle_type(operand->type) &&
                          is_class_with_operator_arrow_for_cli(
                                               type_pointed_to(operand->type),
@@ -6821,7 +6855,7 @@ case).
     operand_will_not_be_used_because_of_error(operand_1);
   } else {
 #if MICROSOFT_EXTENSIONS_ALLOWED
-    if (cppcli_enabled) {
+    if (cli_or_cx_enabled) {
       if (is_cli_generic_definition_argument_type(operand_1->type)) {
         /* Uses of C++/CLI generic parameters have to use the "->" form. */
         if (is_arrow_operator) {
@@ -6886,7 +6920,7 @@ case).
         /* "->" operator.  The left operand must be a pointer (or a C++/CLI
            handle). */
 #if MICROSOFT_EXTENSIONS_ALLOWED
-        if (cppcli_enabled &&
+        if (cli_or_cx_enabled &&
             is_literal_convertible_to_cli_string(operand_1,
                                                  /*allow_complex=*/TRUE)) {
           /* When the field selection operator is applied to a string literal
@@ -6905,17 +6939,22 @@ case).
              which might be a pointer type.  Also allow a nonreal class type,
              which might have an operator-> function. */
           orig_class_struct_union_type = type_of_unknown_templ_param_nontype;
-        } else if (
-#if MICROSOFT_EXTENSIONS_ALLOWED
-                   cppcli_enabled ?
-                     check_pointer_or_handle_operand(operand_1,
-                                              ec_expr_not_pointer_nor_handle) :
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-                     check_pointer_operand(operand_1, ec_expr_not_pointer)) {
-          orig_class_struct_union_type = type_pointed_to(operand_1->type);
         } else {
-          /* Not a pointer. */
-          err = TRUE;
+          a_boolean  ptr_okay = TRUE;
+          if (!cli_or_cx_enabled) {
+            ptr_okay = check_pointer_operand(operand_1, ec_expr_not_pointer);
+#if MICROSOFT_EXTENSIONS_ALLOWED
+          } else {
+            ptr_okay = check_pointer_or_handle_operand(
+                                   operand_1, ec_expr_not_pointer_nor_handle);
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+          }  /* if */
+          if (ptr_okay) {
+            orig_class_struct_union_type = type_pointed_to(operand_1->type);
+          } else {
+            /* Not a pointer. */
+            err = TRUE;
+          }  /* if */
         }  /* if */
       } else {
         /* "." operator. */
@@ -7168,7 +7207,7 @@ case).
       rep = NULL;
       force_indefinite_function = TRUE;
 #if MICROSOFT_EXTENSIONS_ALLOWED
-    } else if (cppcli_enabled && member_name_followed_by_left_paren &&
+    } else if (cli_or_cx_enabled && member_name_followed_by_left_paren &&
                hide_by_sig_lookup_applies(projection_member_sym)) {
       /* In C++/CLI mode, a symbol for which hide-by-sig lookup applies
          has to be processed through overload resolution even if it
@@ -7248,7 +7287,7 @@ case).
             if (var->property_or_event_descr != NULL) {
               /* A C++/CLI static event variable.  (Static properties are
                  handled via sk_property_set symbols.) */
-              check_assertion(cppcli_enabled &&
+              check_assertion(cli_or_cx_enabled &&
                               property_or_event_kind_is(var, pek_cli_event));
               make_event_ref_operand(member_sym, operand_1, is_arrow_operator,
                                      result);
@@ -7276,7 +7315,7 @@ case).
 #if MICROSOFT_EXTENSIONS_ALLOWED
         case sk_property_set:
           /* One or more C++/CLI properties. */
-          check_assertion(cppcli_enabled);
+          check_assertion(cli_or_cx_enabled);
           make_property_ref_operand(member_sym, operand_1, is_arrow_operator,
                                     result);
           set_operand_id_details_from_locator(result, &locator);
@@ -7617,11 +7656,21 @@ the selection, not an operator token for the call.
         (is_overloadable_type_operand(operand_1) ||
          is_overloadable_type_operand(&operand_2))) {
       /* Look for C++ operator overloading cases ("->*" only). */
+      /* In standard C++, it is safe to assume that there is no predefined
+         meaning if the operand is overloadable; however, this is not the case
+         in C++/CX mode because handle types are overloadable and they have
+         a predefined meaning in a ->* context. */
+      a_boolean  has_predef_meaning = FALSE;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+      if (cppcx_enabled && is_handle_type(operand_1->type)) {
+        has_predef_meaning = TRUE;
+      }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       check_for_operator_overloading((an_opname_kind)onk_arrow_star,
                                      /*unary_operator=*/FALSE,
                                      /*must_be_member_function=*/FALSE,
                                      /*try_conversions=*/TRUE,
-                                     /*has_predef_meaning=*/FALSE,
+                                     has_predef_meaning,
                                      operand_1, &operand_2,
                                      &operator_position,
                                      operator_tok_seq_number,
@@ -7643,8 +7692,21 @@ the selection, not an operator token for the call.
         normalize_error_operand(operand_1);
       } else {
         if (is_arrow_operator) {
-          /* "->*" operator.  The first operand must be a pointer. */
-          if (check_pointer_operand(operand_1, ec_expr_not_pointer)) {
+          /* "->*" operator.  The first operand must be a pointer (except in
+             C++/CX mode, where it could be a handle). */
+          a_boolean  operand1_type_okay;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+          if (cppcx_enabled) {
+            operand1_type_okay = check_pointer_or_handle_operand(
+                                   operand_1, ec_expr_not_pointer_nor_handle);
+          } else
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+          /* Do no insert code here. */
+          {
+            operand1_type_okay = check_pointer_operand(
+                                              operand_1, ec_expr_not_pointer);
+          }  /* if */
+          if (operand1_type_okay) {
             qual_operand_1_type = type_pointed_to(operand_1->type);
           } else {
             /* Not a pointer. */
@@ -8430,7 +8492,7 @@ case.
 #if MICROSOFT_EXTENSIONS_ALLOWED
         } else if (property_ref_case) {
           /* No further checking here. */
-        } else if (cppcli_enabled && is_scoped_enum_type(operand->type)) {
+        } else if (cli_or_cx_enabled && is_scoped_enum_type(operand->type)) {
           /* C++/CLI, unlike standard C++11, defines built-in ++ and -- for
              scoped enumeration types. */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
@@ -8709,7 +8771,7 @@ and return the result in *result (or an error indication in *rcblock).
 #if MICROSOFT_EXTENSIONS_ALLOWED
         } else if (property_ref_case) {
           /* No further checking here. */
-        } else if (cppcli_enabled && is_scoped_enum_type(operand.type)) {
+        } else if (cli_or_cx_enabled && is_scoped_enum_type(operand.type)) {
           /* C++/CLI, unlike standard C++11, defines built-in ++ and -- for
              scoped enumeration types. */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
@@ -9012,7 +9074,7 @@ error indication in *rcblock).
               expr_pos_warning(ec_taking_address_of_temporary,
                                &start_position);
 #if MICROSOFT_EXTENSIONS_ALLOWED
-            } else if (cppcli_enabled && is_ref_class_type(operand.type)) {
+            } else if (cli_or_cx_enabled && is_ref_class_type(operand.type)) {
               /* C++/CLI doesn't allow "&" to apply to an object with a ref
                  class type, on the theory that "%" ought to be used instead
                  to create a handle. */
@@ -9099,7 +9161,7 @@ result in *result (or an error indication in *rcblock).
 
   db_enter(4, "scan_handle_address_operator");
 
-  check_assertion(cppcli_enabled);
+  check_assertion(cli_or_cx_enabled);
   if (rcblock != NULL) {
     /* Redoing semantic analysis on a previously-scanned expression. */
     check_assertion(rcblock->operator_token == tok_remainder);
@@ -9451,7 +9513,7 @@ error indication in *rcblock).
 #if MICROSOFT_EXTENSIONS_ALLOWED
       /* C++/CLI allows overloading on a handle, but it also allows the
          predefined meaning of "*" on that handle. */
-      if (cppcli_enabled && is_handle_type(operand.type)) {
+      if (cli_or_cx_enabled && is_handle_type(operand.type)) {
         has_predef_meaning = TRUE;
       }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
@@ -9473,7 +9535,7 @@ error indication in *rcblock).
       do_operand_transformations(&operand, TOPT_NO_OPTIONS);
       if (
 #if MICROSOFT_EXTENSIONS_ALLOWED
-          (cppcli_enabled && is_handle_type(operand.type)) ||
+          (cli_or_cx_enabled && is_handle_type(operand.type)) ||
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
           check_pointer_operand(&operand, ec_bad_indirection_operand)) {
         a_type_ptr operand_type = type_pointed_to(operand.type);
@@ -9483,7 +9545,7 @@ error indication in *rcblock).
                                          operand_type,
                                          make_node_from_operand(&operand));
 #if MICROSOFT_EXTENSIONS_ALLOWED
-        if (cppcli_enabled) {
+        if (cli_or_cx_enabled) {
           node = unbox_after_indirection_if_required(node);
         }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
@@ -9616,7 +9678,7 @@ analysis on a previously-scanned expression, and return the result in
     /* Look for C++ operator overloading cases. */
     a_boolean has_predef_meaning = FALSE;
 #if MICROSOFT_EXTENSIONS_ALLOWED
-    if (cppcli_enabled && operator_token == tok_not &&
+    if (cli_or_cx_enabled && operator_token == tok_not &&
         is_handle_type(operand.type)) {
       has_predef_meaning = TRUE;
     }  /* if */
@@ -9668,7 +9730,7 @@ analysis on a previously-scanned expression, and return the result in
 #endif /* GNU_VECTOR_TYPES_ALLOWED */
           /* Do not insert code here. */
 #if MICROSOFT_EXTENSIONS_ALLOWED
-          if (cppcli_enabled && is_scoped_enum_type(operand.type)) {
+          if (cli_or_cx_enabled && is_scoped_enum_type(operand.type)) {
             /* In C++/CLI mode, a scoped enumeration operand is permitted.
                No promotion is involved. */
             do_promotion = FALSE;
@@ -9707,7 +9769,7 @@ analysis on a previously-scanned expression, and return the result in
 #endif /* GNU_VECTOR_TYPES_ALLOWED */
         /* Do not insert code here. */
 #if MICROSOFT_EXTENSIONS_ALLOWED
-        if (cppcli_enabled && is_scoped_enum_type(operand.type)) {
+        if (cli_or_cx_enabled && is_scoped_enum_type(operand.type)) {
           /* In C++/CLI mode, a scoped enumeration operand is permitted.
              No promotion is involved. */
           do_promotion = FALSE;
@@ -9742,7 +9804,7 @@ analysis on a previously-scanned expression, and return the result in
 #endif /* GNU_VECTOR_TYPES_ALLOWED */
           /* Do not insert code here. */
 #if MICROSOFT_EXTENSIONS_ALLOWED
-          if (cppcli_enabled && is_scoped_enum_type(operand.type)) {
+          if (cli_or_cx_enabled && is_scoped_enum_type(operand.type)) {
             /* In C++/CLI mode, a scoped enumeration operand is permitted.
                No promotion is involved. */
             do_promotion = FALSE;
@@ -10489,7 +10551,7 @@ previously-scanned sizeof expression, and return the result in *result
               is_handle_type(sizeof_type))) {
     /* In C++/CLI mode, the size of a value class type or a handle type is
        nonconstant, and applying sizeof to a ref/interface class type is
-       invalid. */
+       invalid.  (That's not the case in C++/CX mode though.) */
     a_type_ptr  tp = skip_typerefs(sizeof_type);
     if (is_immediate_class_type(tp) &&
         (cli_class_type_kind_is(tp, cctk_ref) ||
@@ -11494,6 +11556,39 @@ expression, and return the result in *result (or an error indication in
     conv_to_error_operand(result);
   }  /* if */
 }  /* scan_is_destructible */
+
+
+static void scan_is_valid_winrt_type(a_builtin_operation_kind_tag kind,
+                               a_rescan_control_block       *rcblock,
+                               an_operand                   *result)
+/*
+Scan a constant-expression of the form
+    __is_valid_winrt_type (T)
+where T denotes a type.
+*/
+{
+  a_type_ptr  result_type;
+
+  if (!type_traits_helpers_enabled) {
+    /* Type traits helpers are not accepted in some modes. */
+    if (expr_error_should_be_issued()) {
+      check_assertion(rcblock == NULL);
+      pos_st_error(ec_feature_not_allowed_in_current_mode, &pos_curr_token,
+                   builtin_operation_names[(int)kind]);
+    }  /* if */
+    result_type = boolean_result_type();
+  } else {
+    result_type = bool_type();
+  }  /* if */
+  scan_call_like_builtin_operation(rcblock, kind, result_type,
+                                   iek_type, iek_none, /*arg2_repeats=*/FALSE,
+                                   result);
+  if (!type_traits_helpers_enabled) {
+    /* Turn the operand into an error operand to avoid any surprises later
+       on. */
+    conv_to_error_operand(result);
+  }  /* if */
+}  /* scan_is_valid_winrt_type */
 
 
 static void scan_is_assignable(a_builtin_operation_kind_tag kind,
@@ -13973,6 +14068,7 @@ This is allowed in both Microsoft C and C++ modes.
                         /*return_raw_arguments=*/FALSE,
                         /*unknown_dependent_function=*/FALSE,
                         /*args_will_be_discarded=*/TRUE,
+                        /*is_custom_ms_attr_arg_list=*/FALSE,
                         (a_rescan_control_block *)NULL,
                         /*arg_list_supplied=*/FALSE,
                         (an_arg_list_elem *)NULL,
@@ -13993,9 +14089,6 @@ This is allowed in both Microsoft C and C++ modes.
 
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
-#if !MICROSOFT_EXTENSIONS_ALLOWED
-/*ARGSUSED*/ /* <-- is_cli_typeid is not used in that case. */
-#endif /* !MICROSOFT_EXTENSIONS_ALLOWED */
 static void make_typeid_operand(a_type_ptr        typeid_type,
                                 an_expr_node_ptr  typeid_expr,
                                 a_boolean         is_cli_typeid,
@@ -14016,23 +14109,21 @@ enk_typeid entry should be created.
   a_boolean        template_case = is_template_dependent_context() &&
                                 (is_template_dependent_type(typeid_type) ||
                                  is_instantiation_dependent_type(typeid_type));
+  a_type_ptr       constant_type = typeid_constant_type(is_cli_typeid);
   a_type_ptr       result_type = NULL;
-
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
   if (is_cli_typeid) {
-    /* C++/CLI T::typeid.  The result type is System::Type ^. */
-    a_type_ptr system_type = type_symbol_type(
-                                        cli_symbol_from_kind(csk_system_type));
-    result_type = make_handle_type(system_type);
-    check_assertion(!make_constant && typeid_expr == NULL);
+    /* C++/CLI T::typeid: the result type is System::Type ^. */
+    result_type = constant_type;
+    /* FIXME: template-dependent typeid */
+    check_assertion(typeid_expr == NULL);
   } else
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   /* Do not insert code here. */
   {
     /* Standard C++ typeid: the result type is const type_info. */
-    result_type = make_qualified_type(type_of_type_info,
-                                      (a_type_qualifier_set)TQ_CONST);
+    result_type = type_pointed_to(constant_type);
   }  /* if */
   if (make_constant) {
     /* Create a constant (either ck_address/abk_typeid or ck_template_param/
@@ -14040,7 +14131,7 @@ enk_typeid entry should be created.
     a_constant  typeid_con;
     if (!template_case) {
       /* Non-template-dependent case: Use a ck_address/abk_typeid constant. */
-      make_typeid_constant(typeid_type, &typeid_con);
+      make_typeid_constant(typeid_type, is_cli_typeid, &typeid_con);
     } else {
       /* Template-dependent case: Use a ck_template_param/tpck_typeid
          constant. */
@@ -14053,11 +14144,20 @@ enk_typeid entry should be created.
         typeid_con.variant.template_param.variant.templ_sizeof.expr =
                                                                   typeid_expr;
       }  /* if */
-      typeid_con.type = make_pointer_type(result_type);
+      typeid_con.type = constant_type;
     }  /* if */
-    typeid_node = alloc_node_for_constant(&typeid_con);
-    /* Put the constant under a "*" operator to get an lvalue. */
-    typeid_node = add_indirection_to_node(typeid_node);
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    if (is_cli_typeid) {
+      make_constant_operand(&typeid_con, result);
+    } else
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+    /* Do not insert code here. */
+    {
+      typeid_node = alloc_node_for_constant(&typeid_con);
+      /* Put the constant under a "*" operator to get an lvalue. */
+      typeid_node = add_indirection_to_node(typeid_node);
+      make_glvalue_expression_operand(typeid_node, result);
+    }  /* if */
   } else {
     /* Normal case: Create an enk_typeid expression. */
     typeid_node = alloc_expr_node((an_expr_node_kind)enk_typeid);
@@ -14068,8 +14168,8 @@ enk_typeid entry should be created.
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     typeid_node->type = result_type;
     typeid_node->is_lvalue = TRUE;
+    make_glvalue_expression_operand(typeid_node, result);
   }  /* if */
-  make_glvalue_expression_operand(typeid_node, result);
   set_used_in_exception_or_rtti_flag(typeid_type);
 }  /* make_typeid_operand */
 
@@ -14145,6 +14245,7 @@ indication in *rcblock).
 #if BACK_END_IS_CP_GEN_BE
   a_type_ptr        underlying_typeid_type;
 #endif /* BACK_END_IS_CP_GEN_BE */
+  a_boolean         make_constant = FALSE;
 
   db_enter(4, "scan_typeid_operator");
   if (rcblock != NULL) {
@@ -14189,12 +14290,17 @@ indication in *rcblock).
   if (microsoft_mode && curr_expr_kind_is(ek_template_arg) && !is_cli_typeid) {
     /* Microsoft allows typeid in template arguments. */
     microsoft_template_arg_case = TRUE;
+    make_constant = TRUE;
+  } else if (curr_expr_is_cli_attribute_argument() && is_cli_typeid) {
+    /* C++/CLI T::typeid expressions in attribute arguments are treated as
+       constants. */
+    make_constant = TRUE;
   }  /* if */
   /* C++11 constant expressions do not allow typeid in certain cases,
      but that's based on the type of the operand, so we delay the test. */
   if (curr_expr_kind_is_traditional_const()) {
     /* typeid is not allowed in constant expressions. */
-    if (!microsoft_template_arg_case) {
+    if (!make_constant) {
       expr_pos_error(ec_bad_constant_operator, &start_position);
       err = TRUE;
     }  /* if */
@@ -14386,6 +14492,12 @@ indication in *rcblock).
         is_pin_ptr_type(typeid_type)) {
       expr_pos_error(ec_cli_typeid_of_managed_pointer, &operand_position);
       err = TRUE;
+    } else if (curr_expr_is_cli_attribute_argument() &&
+               is_template_dependent_context() &&
+               is_or_contains_cli_generic_param(typeid_type)) {
+      expr_pos_error(ec_cli_typeid_of_generic_param_in_attribute,
+                     &operand_position);
+      err = TRUE;
     } else {
       /* Convert the fundamental type version of a type to the value class
          version. */
@@ -14412,7 +14524,7 @@ indication in *rcblock).
       typeid_type = skip_typerefs(typeid_type);
     }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
-    if (cppcli_enabled) {
+    if (cli_or_cx_enabled) {
       /* Convert the value class version of a fundamental type to the
          fundamental type. */
       typeid_type = map_cli_system_type_to_fundamental_type(typeid_type);
@@ -14427,7 +14539,7 @@ indication in *rcblock).
       /* typeid of a C++/CLI managed type is not allowed. */
       expr_pos_error(ec_typeid_of_managed_type, &operand_position);
       err = TRUE;
-    } else if (cppcli_enabled && is_managed_nullptr_type(typeid_type)) {
+    } else if (cli_or_cx_enabled && is_managed_nullptr_type(typeid_type)) {
       /* typeid of the C++/CLI managed nullptr type is not allowed. */
       expr_pos_error(ec_managed_nullptr_not_allowed, &operand_position);
       err = TRUE;
@@ -14482,11 +14594,7 @@ indication in *rcblock).
     make_error_operand(result);
   } else {
     /* Create a typeid operand. */
-    make_typeid_operand(typeid_type, expr, is_cli_typeid,
-                        /*make_constant=*/((curr_expr_kind_is_const() &&
-                                            expr == NULL) ||
-                                           microsoft_template_arg_case) &&
-                                           !is_cli_typeid,
+    make_typeid_operand(typeid_type, expr, is_cli_typeid, make_constant,
                         result);
   }  /* if */
   set_operand_position(result, &start_position, &end_position,
@@ -15086,10 +15194,14 @@ indication in *rcblock).
       /* Bad dynamic cast type. */
       err = TRUE;
       if (!is_error_type(cast_type)) {
-        expr_pos_error((handle_case || tracking_reference_case) ?
-                                                 ec_bad_cli_dynamic_cast_type :
-                                                 ec_bad_dynamic_cast_type,
-                       &type_position);
+        an_error_code  err_code = ec_bad_dynamic_cast_type;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+        if (cli_or_cx_enabled && (handle_case || tracking_reference_case)) {
+          err_code = cppcx_enabled ? ec_bad_cppcx_dynamic_cast_type
+                                   : ec_bad_cli_dynamic_cast_type;
+        }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+        expr_pos_error(err_code, &type_position);
       }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
     } else if (handle_case &&
@@ -15115,7 +15227,7 @@ indication in *rcblock).
          reference, which would require a different set of checks. */
       operand_type_okay = TRUE;
 #if MICROSOFT_EXTENSIONS_ALLOWED
-    } else if (cppcli_enabled &&
+    } else if (cli_or_cx_enabled &&
                is_prohibited_interior_ptr_conversion(operand_type,
                                                      cast_type)) {
       /* A cast from interior_ptr to a native pointer type is not allowed. */
@@ -15822,6 +15934,446 @@ See http://msdn.microsoft.com/en-us/library/ms177195.aspx.
 }  /* unbound_delegate_pm_type */
 
 
+static void scan_cppcx_delegate_initializer(
+                                 a_type_ptr             new_type,
+                                 a_source_position      *type_position,
+                                 a_rescan_control_block *rcblock,
+                                 a_source_position      *end_new_init_position,
+                                 a_dynamic_init_ptr     *dip)
+/*
+Scan the initializer for a C++/CX ref new of a delegate type.  The
+delegate constructor has one of two forms:
+
+  template <typename TObject, typename TFunction>
+  MyDelegate(TObject^ __param0,
+             TFunction __param1,
+             CallbackContext __param_context = CallbackContext::Any,
+             bool __param3 = false);
+
+  template <typename TFunctor>
+  MyDelegate(TFunctor __param0,
+             CallbackContext __param_context = CallbackContext::Any);
+
+The current token is the one after the opening parenthesis.  On return
+*dip is set to point to a dynamic initialization for the delegate,
+*end_new_init_position is set to the position of the closing parenthesis,
+and the current position is the token after that.  *dip is returned
+as NULL if there is an error.  type_position gives the source
+position of the type.
+
+If rcblock is non-NULL, redo semantic analysis on a previously-scanned
+delegate initializer, given by rcblock->argument_list.
+*/
+{
+  a_type_ptr            callback_context_type = NULL;
+  an_arg_list_elem_ptr  arg_list;
+  a_source_position     start_position;
+  a_boolean             err = FALSE;
+  a_std_conv_descr      std_conv;
+  an_operand            *operand1 = NULL;
+  an_operand            *operand2 = NULL;
+  an_operand            *operand3 = NULL;
+  an_operand            *operand4 = NULL;
+  an_operand            *operand5 = NULL;
+  an_operand            *object_operand = NULL;
+  an_operand            *function_operand = NULL;
+  a_type_ptr            function_operand_type = NULL;
+  an_operand            *callback_context_operand = NULL;
+  a_boolean             callback_context_is_template_dependent = FALSE;
+  an_operand            *weak_reference_operand = NULL;
+  a_boolean             weak_reference_is_template_dependent = FALSE;
+  a_type_ptr            class_type = NULL, needed_type = NULL;
+  a_boolean             functor_case = FALSE, template_case = FALSE;
+
+  check_assertion(cppcx_enabled && is_delegate_type(new_type));
+  callback_context_type = cli_class_type_for(csk_platform_callback_context);
+  if (rcblock != NULL) {
+    /* Redoing semantic analysis on a previously-scanned initializer. */
+    arg_list = rescan_expr_list(rcblock->argument_list, rcblock);
+    start_position = *type_position;
+  } else {
+    /* Scanning from source. */
+    add_matching_stop_token(tok_rparen);
+    start_position = pos_curr_token;
+    /* Scan the operands. */
+    arg_list = scan_expr_list(tok_rparen,
+                                  /*is_delegate_init=*/TRUE,
+                                  /*is_custom_ms_attr_arg_list=*/FALSE,
+                                  /*empty_list_okay=*/FALSE,
+                                  /*trailing_comma_okay=*/FALSE);
+  }  /* if */
+  /* The subroutine should not allow zero arguments. */
+  check_assertion(arg_list != NULL);
+  operand1 = operand_of_arg_list_elem(arg_list);
+  if (arg_list->next != NULL) {
+    operand2 = operand_of_arg_list_elem(arg_list->next);
+    if (arg_list->next->next != NULL) {
+      operand3 = operand_of_arg_list_elem(arg_list->next->next);
+      if (arg_list->next->next->next != NULL) {
+        operand4 = operand_of_arg_list_elem(arg_list->next->next->next);
+        if (arg_list->next->next->next->next != NULL) {
+          operand5 = operand_of_arg_list_elem(
+                                            arg_list->next->next->next->next);
+        }  /* if */
+        weak_reference_is_template_dependent =
+                                   is_template_dependent_type(operand4->type);
+      }  /* if */
+      /* At least three operands.  The third one should be the
+         CallbackContext. */
+      callback_context_is_template_dependent =
+                                   is_template_dependent_type(operand3->type);
+    } else {
+      /* Just two operands.  The second one should be the CallbackContext. */
+      callback_context_is_template_dependent =
+                                   is_template_dependent_type(operand2->type);
+    }  /* if */
+  }  /* if */
+  if (operand2 == NULL ||
+      (operand3 == NULL &&
+       (callback_context_is_template_dependent ||
+        identical_types(operand2->type, callback_context_type) ||
+        impl_conversion_possible(operand2->type,
+                                 is_constant_operand(operand2),
+                                 operand2->is_simple_string_literal,
+                                 operand_is_function(operand2),
+                                 &operand2->variant.constant,
+                                 callback_context_type,
+                                 /*allow_qualifier_or_eh_mismatch=*/FALSE,
+                                 /*suppress_extensions=*/FALSE,
+                                 ec_no_error,
+                                 &std_conv)))) {
+    /* One operand, presumably the function or callable class object,
+       optionally followed by a 2nd operand of CallbackContext type. */
+    function_operand = operand1;
+    callback_context_operand = operand2;
+  } else if (operand3 == NULL ||
+             ((callback_context_is_template_dependent ||
+               identical_types(operand3->type, callback_context_type) ||
+               impl_conversion_possible(
+                                     operand3->type,
+                                     is_constant_operand(operand3),
+                                     operand3->is_simple_string_literal,
+                                     operand_is_function(operand3),
+                                     &operand3->variant.constant,
+                                     callback_context_type,
+                                     /*allow_qualifier_or_eh_mismatch=*/FALSE,
+                                     /*suppress_extensions=*/FALSE,
+                                     ec_no_error,
+                                     &std_conv)) &&
+             (operand4 == NULL ||
+              (operand5 == NULL &&
+               (weak_reference_is_template_dependent ||
+                is_bool_type(operand4->type) ||
+                impl_conversion_possible(operand4->type,
+                                     is_constant_operand(operand4),
+                                     operand4->is_simple_string_literal,
+                                     operand_is_function(operand4),
+                                     &operand4->variant.constant,
+                                     bool_type(),
+                                     /*allow_qualifier_or_eh_mismatch=*/FALSE,
+                                     /*suppress_extensions=*/FALSE,
+                                     ec_no_error,
+                                     &std_conv)))))) {
+    /* Two operands, presumably object followed by function, optionally
+       followed by a 3rd operand of CallbackContext type and a 4th operand of
+       boolean type. */
+    object_operand = operand1;
+    function_operand = operand2;
+    callback_context_operand = operand3;
+    weak_reference_operand = operand4;
+  } else {
+    /* The operands didn't match one of the two forms of the constructor. */
+    expr_pos_error(ec_cppcx_bad_delegate_init_list, &start_position);
+    err = TRUE;
+  }  /* if */
+  /* Check the function operand. */
+  if (!err) {
+    if (is_a_function_designator(function_operand)) {
+      /* If the operand is a function designator, convert it to a pointer.
+         For class members, this will produce a pointer-to-member, but also
+         a diagnostic about nonstandard use (because no "&" was used). */
+      conv_function_designator_to_ptr_to_function(function_operand,
+                                                  (a_source_position *)NULL,
+                                                  /*allow_ctor=*/FALSE,
+                                                  /*will_call=*/FALSE);
+    }  /* if */
+    function_operand_type = skip_typerefs(function_operand->type);
+  }  /* if */
+  /* If no object operand was provided, see if the function operand is a class
+     object or a handle to one.  If it is, set class_type to the class
+     type. */
+  if (!err && object_operand == NULL) {
+    if (is_class_struct_union_type(function_operand_type)) {
+      functor_case = TRUE;
+      class_type = function_operand_type;
+    } else if (is_handle_type(function_operand_type)) {
+      a_type_ptr type = type_pointed_to(function_operand_type);
+      type = skip_typerefs(type);
+      if (is_immediate_managed_class_type(type)) {
+        functor_case = TRUE;
+        class_type = type;
+      } else {
+        expr_pos_error(ec_cppcx_bad_delegate_init_list, &start_position);
+        err = TRUE;
+      }  /* if */
+    }  /* if */
+  }  /* if */
+  /* See if the operand is a pointer or pointer-to-member to a function.
+     If it's a member, set class_type to the class type. */
+  if (err) {
+    /* Previous error. */
+  } else if (functor_case) {
+    /* The function operand is a class type or a handle to one. */
+  } else if (is_indefinite_function_operand(function_operand)) {
+    /* An overloaded function, either member or non-member.  Clearly a
+       function. */
+    a_symbol_ptr func_sym = function_operand->symbol;
+    if (func_sym->is_class_member) class_type = sym_parent_class(func_sym);
+  } else {
+    a_type_ptr func_type = NULL;
+    if (is_pointer_type(function_operand_type)) {
+      func_type = type_pointed_to(function_operand_type);
+    } else if (is_ptr_to_member_type(function_operand_type)) {
+      func_type = pm_member_type(function_operand_type);
+      class_type = pm_class_type(function_operand_type);
+    } else if (is_template_param_type(function_operand_type)) {
+      template_case = TRUE;
+    }  /* if */
+    if (!template_case &&
+        (func_type == NULL ||
+         !is_function_type(func_type))) {
+      /* The function operand is not a function. */
+      if (!is_error_type(function_operand_type) &&
+          (func_type == NULL || !is_error_type(func_type))) {
+        expr_pos_error(ec_bad_function_for_delegate,
+                       &function_operand->position);
+      }  /* if */
+      err = TRUE;
+    }  /* if */
+  }  /* if */
+  if (!err) {
+    /* Determine the type the function has to match. */
+    a_type_ptr dftype = delegate_invocation_type(new_type);
+    if (functor_case) {
+      needed_type = dftype;
+    } else if (class_type == NULL) {
+      /* The desired type is a pointer to function type. */
+      needed_type = make_pointer_type(dftype);
+    } else {
+      /* The desired type is a pointer to member because the function is
+         a member. */
+      if (!is_managed_class_type(class_type)) {
+        /* The function is a member of a nonmanaged class, which is not
+           allowed. */
+        expr_pos_error(ec_nonmanaged_function_for_delegate,
+                       &function_operand->position);
+        err = TRUE;
+      } else if (object_operand != NULL) {
+        /* There is an object operand, so the function can be from any
+           class. */
+        needed_type = ptr_to_member_type(dftype, class_type);
+      } else {
+        /* There's no object.  See if a static member function matches. */
+        a_boolean assume_static = FALSE;
+        needed_type = make_pointer_type(dftype);
+        if (!is_indefinite_function_operand(function_operand)) {
+          /* A single function was specified, so we know whether it is
+             static or nonstatic. */
+          assume_static = !is_ptr_to_member_type(function_operand_type);
+        } else {
+          /* An overloaded function was specified, so we have to see which
+             function in the set matches the requirements. */
+          an_arg_match_level match_level;
+          a_std_conv_descr   std_conversion;
+          a_boolean          ambiguous, unknown_dependent_function;
+          assume_static = find_addr_of_overloaded_function_match(
+                                   function_operand->symbol,
+                                   (a_boolean)function_operand->is_template_id,
+                                   function_operand->template_arg_list,
+                                   /*source_is_lvalue=*/FALSE,
+                                   needed_type,
+                                   /*is_cast=*/FALSE,
+                                   /*is_static_cast=*/FALSE,
+                                   &match_level,
+                                   &std_conversion,
+                                   /*reinterpret_semantics=*/(a_boolean *)NULL,
+                                   &unknown_dependent_function,
+                                   &ambiguous) != NULL;
+          if (unknown_dependent_function) {
+            assume_static = TRUE;
+          } /* if */
+        }  /* if */
+        if (!assume_static && !err) {
+          /* No static function matched. */
+          expr_pos_error(ec_missing_delegate_object,
+                         &function_operand->position);
+          err = TRUE;
+        }  /* if */
+      }  /* if */
+    }  /* if */
+  }  /* if */
+  if (!err) {
+    /* See whether the function operand matches the desired type, i.e.,
+       whether it has the right parameter and return types. */
+    if (template_case) {
+      prep_generic_operand(function_operand);
+    } else if (functor_case) {
+      /* FIXME: Determine if the class type supports a conversion to
+         pointer-to-function or a function call operator that matches the
+         delegate. */
+    } else if (is_indefinite_function_operand(function_operand)) {
+      /* For an overloaded function, we have to select the one that matches
+         based on the type.  We suppress the final adjustment cast so
+         we get the raw type based on the function and not adjusted
+         to any derived class in which the name was referenced. */
+      cast_overloaded_function(needed_type, function_operand,
+                               /*is_cast=*/FALSE,
+                               /*is_static_cast=*/FALSE,
+                               /*skip_final_adjustment=*/TRUE);
+      if (is_error_operand(function_operand)) {
+        err = TRUE;
+      } else if (is_ptr_to_member_type(function_operand_type)) {
+        /* Get the class type of the function selected.  Pointers to members
+           are weird in that writing &derived::f produces &base::f. */
+        class_type = pm_class_type(function_operand_type);
+      }  /* if */
+    } else {
+      /* For known functions, check that the type of the function matches
+         the delegate invocation type. */
+      if (types_are_compatible(needed_type, function_operand_type) ||
+          (is_pointer_type(needed_type) &&
+           is_pointer_type(function_operand_type) &&
+           impl_pointer_conversion(function_operand_type,
+                                   /*source_is_constant=*/FALSE,
+                                   /*source_is_string_literal=*/FALSE,
+                                   /*source_is_function=*/
+                                         operand_is_function(function_operand),
+                                   (a_constant *)NULL,
+                                   needed_type,
+                                   /*allow_qualifier_or_eh_mismatch=*/FALSE,
+                                   /*suppress_extensions=*/FALSE,
+                                   ec_no_error,
+                                   &std_conv))) {
+         /* The function matches the needed type. */
+      } else {
+        expr_pos_error(ec_mismatched_function_for_delegate,
+                       &function_operand->position);
+        err = TRUE;
+      }  /* if */
+    }  /* if */
+  }  /* if */
+  if (!err && object_operand != NULL) {
+    /* Check the validity of the object operand. */
+    if (is_template_dependent_type(object_operand->type)) template_case = TRUE;
+    if (template_case) {
+      prep_generic_operand(object_operand);
+    } else if (!is_handle_type(object_operand->type)) {
+      /* The object must be a handle to a C++/CX ref class. */
+      expr_pos_error(ec_cppcx_invalid_delegate_object,
+                     &object_operand->position);
+      err = TRUE;
+    } else if (class_type == NULL) {
+      /* No object is needed for a static function. */
+      expr_pos_error(ec_superfluous_delegate_object,
+                     &object_operand->position);
+      err = TRUE;
+    } else {
+      /* Check the object against the class type from the function. */
+      prep_initializer_operand(
+                        object_operand,
+                        make_handle_type(class_type),
+                        /*is_transparent=*/(a_boolean *)NULL,
+                        (a_conv_descr_ptr)NULL,
+                        /*is_copy_initialization=*/TRUE,
+                        CCO_DEFAULT,
+                        ec_incompatible_delegate_object);
+      if (is_error_operand(object_operand)) err = TRUE;
+    }  /* if */
+  }  /* if */
+  if (err && callback_context_operand != NULL) {
+    /* Make any required adjustments to the CallbackContext operand. */
+    if (callback_context_is_template_dependent) {
+      prep_generic_operand(callback_context_operand);
+    } else {
+      prep_initializer_operand(callback_context_operand,
+                               callback_context_type,
+                               /*is_transparent=*/(a_boolean *)NULL,
+                               (a_conv_descr_ptr)NULL,
+                               /*is_copy_initialization=*/TRUE,
+                               CCO_DEFAULT,
+                               ec_incompatible_delegate_object);
+      if (is_error_operand(callback_context_operand)) err = TRUE;
+    }  /* if */
+  }  /* if */
+  if (!err && weak_reference_operand != NULL) {
+    /* Make any required adjustments to the weak reference operand. */
+    if (weak_reference_is_template_dependent) {
+      prep_generic_operand(weak_reference_operand);
+    } else {
+      prep_initializer_operand(weak_reference_operand,
+                               bool_type(),
+                               /*is_transparent=*/(a_boolean *)NULL,
+                               (a_conv_descr_ptr)NULL,
+                               /*is_copy_initialization=*/TRUE,
+                               CCO_DEFAULT,
+                               ec_incompatible_delegate_object);
+      if (is_error_operand(weak_reference_operand)) err = TRUE;
+    }  /* if */
+  }  /* if */
+  if (err) {
+    *dip = NULL;
+    while (arg_list != NULL) {
+      operand_will_not_be_used_because_of_error(
+                                          operand_of_arg_list_elem(arg_list));
+      arg_list = arg_list->next;
+    }  /* while */
+  } else {
+    /* Build a dynamic initialization for the arguments to the ref new. */
+    /* Set the dynamic init entry to represent "constructor" initialization,
+       leaving the constructor pointer NULL. */
+    an_expr_node_ptr first_arg, function_arg;
+    function_arg = make_node_from_operand_for_expr_list(function_operand);
+    if (object_operand != NULL) {
+      first_arg = make_node_from_operand_for_expr_list(object_operand);
+      first_arg->next = function_arg;
+    } else {
+      first_arg = function_arg;
+    }  /* if */
+    if (callback_context_operand != NULL) {
+      an_expr_node_ptr callback_context_arg, weak_reference_arg;
+      callback_context_arg = make_node_from_operand_for_expr_list(
+                                                    callback_context_operand);
+      function_arg->next = callback_context_arg;
+      if (weak_reference_operand != NULL) {
+        weak_reference_arg = make_node_from_operand_for_expr_list(
+                                                      weak_reference_operand);
+        callback_context_arg->next = weak_reference_arg;
+      }  /* if */
+    }  /* if */
+    *dip = alloc_expr_ctor_dynamic_init((a_routine_ptr)NULL,
+                                        first_arg,
+                                        /*dest_type=*/NULL,
+                                        /*add_default_args=*/FALSE,
+                                        /*implied_source=*/FALSE,
+                                        /*value_init=*/FALSE,
+                                        /*sequenced_args=*/FALSE,
+                                        /*fold_constexpr=*/FALSE,
+                                        /*pos=*/NULL);
+  }  /* if */
+
+  free_arg_list(arg_list);
+  if (rcblock == NULL) {
+    /* Check for the closing parenthesis and advance past it. */
+    *end_new_init_position = pos_curr_token;
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+    curr_construct_end_position = end_pos_curr_token;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+    (void)required_token(tok_rparen, ec_exp_rparen);
+    remove_matching_stop_token(tok_rparen);
+  }  /* if */
+}  /* scan_cppcx_delegate_initializer */
+
+
 static void scan_delegate_initializer(
                                  a_type_ptr             new_type,
                                  a_source_position      *type_position,
@@ -15857,7 +16409,7 @@ delegate initializer, given by rcblock->argument_list.
   a_boolean            template_case = FALSE;
   a_source_position    start_position;
 
-  check_assertion(cppcli_enabled && is_delegate_type(new_type));
+  check_assertion(cli_or_cx_enabled && is_delegate_type(new_type));
   if (rcblock != NULL) {
     /* Redoing semantic analysis on a previously-scanned initializer. */
     operand_list = rescan_expr_list(rcblock->argument_list, rcblock);
@@ -15869,6 +16421,7 @@ delegate initializer, given by rcblock->argument_list.
     /* Scan the operands. */
     operand_list = scan_expr_list(tok_rparen,
                                   /*is_delegate_init=*/TRUE,
+                                  /*is_custom_ms_attr_arg_list=*/FALSE,
                                   /*empty_list_okay=*/FALSE,
                                   /*trailing_comma_okay=*/FALSE);
   }  /* if */
@@ -16308,6 +16861,7 @@ expression, and return the result in *result (or an error indication in
                           &dummy, /*return_raw_arguments=*/TRUE,
                           /*unknown_dependent_function=*/FALSE,
                           /*args_will_be_discarded=*/FALSE,
+                          /*is_custom_ms_attr_arg_list=*/FALSE,
                           rcblock,
                           /*arg_list_supplied=*/FALSE,
                           (an_arg_list_elem *)NULL,
@@ -16335,7 +16889,16 @@ expression, and return the result in *result (or an error indication in
       } else {
 #if MICROSOFT_EXTENSIONS_ALLOWED
         if (is_gcnew) {
-          if (rescan_gsp->is_cli_array) {
+          if (cppcx_enabled && rescan_gsp->is_cli_array &&
+              rescan_gsp->dynamic_init != NULL) {
+            /* The only kind of dynamic_init expected here during a rescan is
+               a dik_constructor.  Aggregates (i.e., an array-init) were
+               disallowed earlier. */
+            check_assertion (rescan_gsp->dynamic_init->kind ==
+                                        (a_dynamic_init_kind)dik_constructor);
+            init_dip = rescan_gsp->dynamic_init;
+            arg_expr_list = arg_list_from_dyn_init(init_dip);
+          } else if (rescan_gsp->is_cli_array) {
             check_assertion(rescan_gsp->cli_array_dimension_lengths != NULL);
             arg_expr_list = rescan_gsp->cli_array_dimension_lengths;
           } else {
@@ -16387,12 +16950,19 @@ expression, and return the result in *result (or an error indication in
       operator_token = tok_new;
     }  /* if */
   }  /* if */
+
 #if MICROSOFT_EXTENSIONS_ALLOWED
   /* We shouldn't be scanning a gcnew expression unless C++/CLI is
      enabled */
-  check_assertion(!(is_gcnew && !cppcli_enabled));
+  check_assertion(!(is_gcnew && !cli_or_cx_enabled));
+  if (is_gcnew && curr_expr_is_cli_attribute_argument()) {
+    /* "gcnew" is allowed in C++/CLI custom attribute arguments expressions
+       that create single-dimensional CLI array instances or System::String
+       instances with a single string argument.  If this is not the case,
+       error ec_cli_attribute_invalid_argument will be issued below. */
+  } else
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-
+  /* Do not insert code here. */
   if (curr_expr_kind_is_traditional_const()) {
     /* "new" nor "gcnew" allowed in constant expressions. */
     expr_pos_error(ec_bad_constant_operator, &start_position);
@@ -16459,6 +17029,7 @@ expression, and return the result in *result (or an error indication in
                               &dummy, /*return_raw_arguments=*/TRUE,
                               /*unknown_dependent_function=*/FALSE,
                               /*args_will_be_discarded=*/FALSE,
+                              /*is_custom_ms_attr_arg_list=*/FALSE,
                               (a_rescan_control_block *)NULL,
                               /*arg_list_supplied=*/FALSE,
                               (an_arg_list_elem *)NULL,
@@ -16682,14 +17253,19 @@ expression, and return the result in *result (or an error indication in
     }  /* if */
     type_err = err = TRUE;
 #if MICROSOFT_EXTENSIONS_ALLOWED
-  } else if (cppcli_enabled && is_cli_interface_type(new_type)) {
+  } else if (cli_or_cx_enabled && is_cli_interface_type(new_type)) {
     /* A C++/CLI interface class object can never be allocated. */
     expr_pos_error(ec_new_of_cli_interface_class, &type_position);
     type_err = err = TRUE;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-  } else if (is_abstract_class_type(new_type)) {
-    /* The type is an abstract class type, so an object of the type
-       cannot be allocated. */
+  } else if (is_abstract_class_type(new_type)
+             if_microsoft_extensions(
+                             && !(cppcx_enabled &&
+                                  class_type_supp(new_type)->is_cppcx_box))) {
+    /* The type is an abstract class type, so an object of the type cannot be
+       allocated.  One exception is the C++/CX Platform::Box<T> class, which
+       is defined as "abstract" to disallow stack-based instances, but
+       allocating an instance with "ref new" is allowed. */
     if (expr_error_should_be_issued()) {
       abstract_class_diagnostic(es_error, ec_abstract_class_object_not_allowed,
                                 new_type, &type_position);
@@ -16704,7 +17280,7 @@ expression, and return the result in *result (or an error indication in
     /* Valid type. */
   }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
-  if (cppcli_enabled && !err) {
+  if (cli_or_cx_enabled && !err) {
     /* We have parsed through the type (the initializer will be parsed later
        below).  This is enough to issue diagnostics related to "gcnew" or
        "new" with managed types.
@@ -16745,6 +17321,9 @@ expression, and return the result in *result (or an error indication in
           expr_pos_error(ec_new_used_on_managed_class_type, &type_position);
           type_err = err = TRUE;
         }  /* if */
+      } else if (cppcx_enabled && is_handle_type(base_new_type)) {
+        /* In C++/CX, "new" can be used to allocate handle types.  Reference
+           types result in error ec_type_must_be_object_type above. */
       } else if (is_handle_or_tracking_ref_type(base_new_type)) {
         /* "new" cannot be used to allocate handle or tracking reference
            types. */
@@ -17016,9 +17595,12 @@ expression, and return the result in *result (or an error indication in
   ctor_sym = NULL;
   if (is_class_struct_union_type(base_new_type)
 #if MICROSOFT_EXTENSIONS_ALLOWED
-      && !cli_array_new
+      /* For C++/CLI arrays, don't use the associated class constructors.
+         In C++/CX mode, we do use the constructor symbols of
+         Platform::Array, however. */
+      && (cppcx_enabled || !cli_array_new)
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-     ) {
+                                             ) {
     cssp = symbol_supplement_for_class(base_new_type);
     ctor_sym = cssp->constructor;
   }  /* if */
@@ -17163,9 +17745,8 @@ expression, and return the result in *result (or an error indication in
     if (is_class_struct_union_type(base_new_type) &&
         (cssp == NULL || !cssp->is_POD || cssp->constructor != NULL)
 #if MICROSOFT_EXTENSIONS_ALLOWED
-        && !(cppcli_enabled &&
-             is_value_class_type(base_new_type))
-#endif  /* MICROSOFT_EXTENSIONS_ALLOWED */
+        && !(cli_or_cx_enabled && is_value_class_type(base_new_type))
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
        ) {
       /* A class type (or array thereof) where the class is either not a POD
         class or is a POD class with a user-declared (defaulted or deleted)
@@ -17174,6 +17755,14 @@ expression, and return the result in *result (or an error indication in
       /* Look for a default constructor. */
       if (unqual_base_new_type->variant.class_struct_union.is_nonreal_class) {
         /* Don't look for a default constructor in a dependent type. */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+      } else if (cppcx_enabled && cli_array_new) {
+        /* The new-init is not required for the Platform::Array type so long
+           as an array-init follows.  We'll check for the array-init later.
+           There is a similar check for the C++/CLI case below, but we have to
+           perform this check earlier for C++/CX since the array type has a
+           constructor symbol. */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       } else if (ctor_sym != NULL) {
         a_boolean     def_ctor_err;
         a_routine_ptr ctor_routine;
@@ -17350,12 +17939,15 @@ expression, and return the result in *result (or an error indication in
     if (cli_array_new) {
       /* Scan the new-init for a C++/CLI array, but handle semantic checks
          later.  The expressions in the new-init for a C++/CLI array specify
-         the lengths for each dimension of the array. */
+         the lengths for each dimension of the array.  In C++/CX mode, if
+         an array-init is absent, the new-init operands will be treated as
+         constructor arguments. */
       scan_call_arguments((a_type_ptr)NULL, (a_routine_ptr)NULL,
                           /*already_after_left_paren=*/TRUE, &dummy,
                           /*return_raw_arguments=*/TRUE,
                           /*unknown_dependent_function=*/FALSE,
                           /*args_will_be_discarded=*/FALSE,
+                          /*is_custom_ms_attr_arg_list=*/FALSE,
                           rcblock,
                           /*arg_list_supplied=*/FALSE,
                           (an_arg_list_elem *)NULL,
@@ -17366,18 +17958,21 @@ expression, and return the result in *result (or an error indication in
 #if EXTRA_SOURCE_POSITIONS_IN_IL
       if (rcblock == NULL) end_position = curr_construct_end_position;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
-    } else if (cppcli_enabled &&
-               is_delegate_type(unqual_base_new_type)) {
+    } else if (cli_or_cx_enabled && is_delegate_type(unqual_base_new_type)) {
       /* The initializer for a C++/CLI delegate is scanned specially. */
       check_assertion(is_gcnew);
-      scan_delegate_initializer(new_type, &type_position, rcblock,
-                                &end_new_init_position, &dip);
+      if (cppcx_enabled) {
+        scan_cppcx_delegate_initializer(new_type, &type_position, rcblock,
+                                        &end_new_init_position, &dip);
+      } else {
+        scan_delegate_initializer(new_type, &type_position, rcblock,
+                                  &end_new_init_position, &dip);
+      }  /* if */
 #if EXTRA_SOURCE_POSITIONS_IN_IL
       if (rcblock == NULL) end_position = curr_construct_end_position;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
     } else if (empty_initializer &&
-               ((cppcli_enabled &&
-                 is_value_class_type(base_new_type)) ||
+               ((cli_or_cx_enabled && is_value_class_type(base_new_type)) ||
                 (is_gcnew &&
                  (system_type_from_fundamental_type(unqual_base_new_type)
                                                                      != NULL ||
@@ -17429,6 +18024,7 @@ expression, and return the result in *result (or an error indication in
                              turned into a bitwise move if it's doing the
                              allocation. */
                           /*elision_allowed=*/(new_routine != NULL),
+                          /*is_custom_ms_attr_arg_list=*/FALSE,
                           rcblock,
                           /*arg_list_supplied=*/FALSE,
                           (an_arg_list_elem *)NULL,
@@ -17471,6 +18067,7 @@ expression, and return the result in *result (or an error indication in
                           &dummy, /*return_raw_arguments=*/TRUE,
                           /*unknown_dependent_function=*/FALSE,
                           /*args_will_be_discarded=*/FALSE,
+                          /*is_custom_ms_attr_arg_list=*/FALSE,
                           rcblock,
                           /*arg_list_supplied=*/FALSE,
                           (an_arg_list_elem *)NULL,
@@ -17551,16 +18148,81 @@ handle_empty_parens_new_initializer:
     /* Now that the gcnew new-init has been scanned, check for an array-init
        and make a definitive decision over whether this is a C++/CLI array
        initialization node. */
-    if (rcblock == NULL ? curr_token == tok_lbrace :
-                          (rescan_gsp->is_cli_array &&
-                           rescan_gsp->dynamic_init != NULL)) {
+    if (rcblock == NULL ?
+           curr_token == tok_lbrace :
+           (rescan_gsp->is_cli_array &&
+            rescan_gsp->dynamic_init != NULL &&
+            /* In C++/CX mode, an array-init only exists if the dyanmic_init is
+               an aggregate. */
+            !(cppcx_enabled &&
+              rescan_gsp->dynamic_init->kind !=
+                           (a_dynamic_init_kind)dik_nonconstant_aggregate))) {
       cli_array_new = TRUE;
       has_array_init = TRUE;
     }  /* if */
     /* Beyond this point, cli_array_new tells us definitively whether this
        is a C++/CLI array initialization or not. */
     if (cli_array_new) {
-      if (has_new_initializer) {
+      if (cppcx_enabled && has_new_initializer && !has_array_init) {
+        /* Microsoft uses the presence of the array-init in C++/CX mode to
+           interpret the new-init.  If it is absent, the new-init is a
+           constructor invocation.  Otherwise, the new-init is processed using
+           cli::array-style new-init initialization. */
+        /* Since has_array_init is FALSE and cli_array_new is TRUE, we know
+           that the type must be a C++/CX array type (though it may not be a
+           valid one). */
+        check_assertion (is_cli_array_type(new_type));
+        if (ctor_sym != NULL) {
+          a_boolean   trivial_ctor;
+          a_boolean   unboxing_conversion;
+          a_boolean   string_ctor_skip;
+          an_operand  simple_result;
+          scan_ctor_arguments(ctor_sym,
+                              &init_position, (a_type_ptr)NULL,
+                              (a_type_ptr)NULL, /*fill_in_dtor=*/FALSE,
+                              /* To simplify the IL and defend against the
+                                 (unlikely) possibility of a copy constructor
+                                 being added to Array, disallow elision. */
+                              /*elision_allowed=*/FALSE,
+                              /*is_custom_ms_attr_arg_list=*/FALSE,
+                              rcblock,
+                              /*arg_list_supplied=*/TRUE,
+                              init_raw_args,
+                              (an_arg_list_elem *)NULL,
+                              &trivial_ctor,
+                              /*elision_done=*/(a_boolean *)NULL,
+                              &unboxing_conversion,
+                              &string_ctor_skip,
+                              &simple_result,
+                              &dip, (an_expr_node_ptr *)NULL,
+                              (a_source_position *)NULL);
+          /* The constructor invocation shouldn't involve a trivial_ctor, an
+             unboxing_conversion, or a skipped string ctor. */
+          check_assertion (!(trivial_ctor || unboxing_conversion ||
+                             string_ctor_skip));
+          init_raw_args = NULL;
+          if (dip == NULL) {
+            err = TRUE;
+          }  /* if */
+        } else if (template_case) {
+          /* Give init_raw_args to the template init scanner then. */
+          templ_init_scanned = TRUE;
+        } else {
+          /* If this is not the template_case, then there must an error in the
+             array type. */
+          expect_error();
+          /* The type is not known.  Scan the argument list and discard it. */
+          scan_error_parenthesized_initializer(rcblock,
+                                               /*arg_list_supplied=*/TRUE,
+                                               init_raw_args);
+          init_raw_args = NULL;
+          needs_initialization = FALSE;
+          dip = NULL;
+          err = TRUE;
+        }  /* if */
+        /* The constructors already handled the initialization of
+           Platform::Array's new-init.  No special processing is necessary. */
+      } else if (has_new_initializer) {
         /* If a C++/CLI array has a new initializer, perform semantic checks
            on the previously scanned new-init and convert the arguments into
            an expression list.  If a new initializer is present, the arguments
@@ -17568,14 +18230,13 @@ handle_empty_parens_new_initializer:
            a new-init does not exist, the length of each dimension will be
            inferred from the array-init later. */
         an_arg_list_elem_ptr  arg_ptr;
-        a_type_ptr            param_type =
-                                         integer_type((an_integer_kind)ik_int);
-        a_boolean             too_many_args = FALSE;
-        a_source_position     too_many_position;
-        a_boolean             rank_unknown = TRUE;
-        a_host_large_unsigned rank = 0;
-        a_host_large_unsigned count;
-
+        a_type_ptr            param_type;
+        a_boolean             too_many_args = FALSE, rank_unknown = TRUE;
+        a_source_position     diag_pos;
+        a_host_large_unsigned rank = 0, count;
+        param_type = cppcx_enabled ?
+                              integer_type((an_integer_kind)ik_unsigned_int) :
+                              integer_type((an_integer_kind)ik_int);
         if (is_cli_array_type(new_type)) {
           rank = cli_array_rank(new_type, &rank_unknown);
         }  /* if */
@@ -17604,12 +18265,12 @@ handle_empty_parens_new_initializer:
           }  /* if */
           if (!too_many_args && !rank_unknown && count > rank) {
             too_many_args = TRUE;
-            too_many_position = operand->position;
+            diag_pos = operand->position;
           }  /* if */
         }  /* for */
         if (too_many_args) {
           /* More arguments than expected. */
-          expr_pos_error(ec_too_many_array_bounds, &too_many_position);
+          expr_pos_error(ec_too_many_array_bounds, &diag_pos);
         } else if (!rank_unknown && count <= rank) {
           /* Fewer arguments than expected. */
           expr_pos_error(ec_too_few_array_bounds, &end_new_init_position);
@@ -17715,42 +18376,62 @@ handle_empty_parens_new_initializer:
   } else if (is_gcnew) {
     /* This code is not shared with the "new" case below because it is
        generating a different expr_node_kind. */
-    an_expr_node_ptr        gcnew_node;
-    a_gcnew_supplement_ptr  gsp;
-
-    /* Use an enk_gcnew node to represent the "gcnew". */
-    gcnew_node = alloc_expr_node((an_expr_node_kind)enk_gcnew);
-    gcnew_node->type = ptr_new_type;
-    gsp = gcnew_node->variant.gcnew_info;
-    gsp->type = new_type; 
-    gsp->has_new_initializer = has_new_initializer;
-    gsp->is_cli_array = cli_array_new;
-    gsp->cli_array_dimension_lengths = cli_array_new_init_args;
-    if (needs_initialization) {
-      if (dip != NULL || cli_array_new) {
-        /* Nothing to do because a_dynamic_init was allocated above. */
-      } else if (zero_initialization) {
-        dip = alloc_expr_dynamic_init((a_dynamic_init_kind)dik_zero);
+    a_boolean  rank_unknown = TRUE;
+    if (curr_expr_is_cli_attribute_argument() &&
+        (!cli_array_new ||
+         cli_array_rank(new_type, &rank_unknown) != 1 || rank_unknown ||
+         (dip != NULL && dip->kind != (a_dynamic_init_kind)dik_constant))) {
+      /* FIXME: Correctly handle when the array rank is template-dependent.
+         It should be allowed as long as it is a constant expression that is
+         not dependent on a C++/CLI generic parameter. */
+      expr_pos_error(ec_cli_attribute_invalid_argument, &start_position);
+      make_error_operand(result);
+    } else {
+      an_expr_node_ptr        gcnew_node;
+      a_gcnew_supplement_ptr  gsp;
+      /* Use an enk_gcnew node to represent the "gcnew". */
+      gcnew_node = alloc_expr_node((an_expr_node_kind)enk_gcnew);
+      gcnew_node->type = ptr_new_type;
+      gsp = gcnew_node->variant.gcnew_info;
+      gsp->type = new_type;
+      gsp->has_new_initializer = has_new_initializer;
+      gsp->is_cli_array = cli_array_new;
+      gsp->cli_array_dimension_lengths = cli_array_new_init_args;
+      if (needs_initialization) {
+        if (dip != NULL || cli_array_new) {
+          /* Nothing to do because a_dynamic_init was allocated above. */
+        } else if (zero_initialization) {
+          dip = alloc_expr_dynamic_init((a_dynamic_init_kind)dik_zero);
+        } else {
+          /* This handles cases like "gcnew int(3)" in which there is no
+             constructor to call but an initializer is provided. */
+          check_assertion(init_val_node != NULL);
+          dip = alloc_expr_dynamic_init((a_dynamic_init_kind)dik_expression);
+          dip->variant.expression = init_val_node;
+        }  /* if */
+      }  /* if */
+      if (!cppcx_enabled && dip != NULL &&
+          dip->kind == (a_dynamic_init_kind)dik_constructor) {
+        /* Any constructor invocation emanating from a gcnew expression should
+           have the type zero-initialized first.  (However, C++/CX
+           constructors do not value initialize by default.) */
+        dip->variant.constructor.value_initialization = TRUE;
+      }  /* if */
+      gcnew_node->variant.gcnew_info->dynamic_init = dip;
+      record_typed_operator_position_in_expr_rescan_info(gcnew_node,
+        &start_position,
+        &type_position,
+        new_type);
+      if (curr_expr_is_cli_attribute_argument()) {
+        /* Make an operand for the C++/CLI array constant. */
+        a_constant cli_array_constant;
+        make_cli_array_constant(gcnew_node, &cli_array_constant);
+        make_constant_operand(&cli_array_constant, result);
       } else {
-        /* This handles cases like "gcnew int(3)" in which there is no
-           constructor to call but an initializer is provided. */
-        check_assertion(init_val_node != NULL);
-        dip = alloc_expr_dynamic_init((a_dynamic_init_kind)dik_expression);
-        dip->variant.expression = init_val_node;
+        /* Make an operand for the result. */
+        make_expression_operand(gcnew_node, result);
       }  /* if */
     }  /* if */
-    if (dip != NULL && dip->kind == (a_dynamic_init_kind)dik_constructor) {
-      /* Any constructor invocation emanating from a gcnew expression should
-         have the type zero-initialized first. */
-      dip->variant.constructor.value_initialization = TRUE;
-    }  /* if */
-    gcnew_node->variant.gcnew_info->dynamic_init = dip;
-    record_typed_operator_position_in_expr_rescan_info(gcnew_node,
-                                                       &start_position,
-                                                       &type_position,
-                                                       new_type);
-    /* Make an operand for the result. */
-    make_expression_operand(gcnew_node, result);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   } else {
     an_expr_node_ptr            new_node;
@@ -18064,7 +18745,7 @@ in *rcblock).
     a_builtin_type_kind_set builtin_type_kinds;
     builtin_type_kinds = cpp11_mode ? BTK_POINTER_TO_OBJECT : BTK_POINTER;
 #if MICROSOFT_EXTENSIONS_ALLOWED
-    if (cppcli_enabled) {
+    if (cli_or_cx_enabled) {
       builtin_type_kinds |= BTK_HANDLE;
     }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
@@ -18079,7 +18760,7 @@ in *rcblock).
        handle. */
     if (!err && !template_case) {
 #if MICROSOFT_EXTENSIONS_ALLOWED
-      if (cppcli_enabled) {
+      if (cli_or_cx_enabled) {
         if (check_pointer_or_handle_operand(&operand,
                                             ec_expr_not_pointer_nor_handle)) {
           handle_type_case = is_handle_type(operand.type);
@@ -18662,6 +19343,56 @@ contains something not valid in a constant expression.
   } else if (is_template_param_type(dest_type)) {
     /* Casting to an unknown template parameter type is okay. */
     valid_in_integral_const_expr = TRUE;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  } else if (curr_expr_is_cli_attribute_argument() &&
+             is_handle_type(dest_type)) {
+    a_type_ptr  underlying_dest_type;
+    underlying_dest_type = type_pointed_to(dest_type);
+    underlying_dest_type = skip_typerefs(underlying_dest_type);
+    if (!is_error_operand(operand) &&
+        operand->is_simple_string_literal &&
+        cli_string_literal_conversion_possible(operand->type,
+                                               dest_type,
+                                               (a_std_conv_descr *)NULL) &&
+        is_literal_convertible_to_cli_string(operand,
+                                             /*allow_complex=*/TRUE)) {
+      /* Within the context of a C++/CLI attribute argument expression, casts
+         from string literals to System::String^ are okay. */
+      valid_in_const_expr = TRUE;
+    } else if (is_nullptr_type(source_type) &&
+               !(is_cli_system_object_type(underlying_dest_type) ||
+                 is_cli_system_string_type(underlying_dest_type) ||
+                 is_cli_system_type_type(underlying_dest_type) ||
+                 is_cli_array_type(underlying_dest_type))) {
+      /* Within the context of a C++/CLI attribute argument expression, values
+         of nullptr types can only be cast to handles to System::Object,
+         System::String, System::Type, or C++/CLI array types. */
+      err_severity = es_error;
+      err_code = ec_cli_attribute_invalid_argument;
+    } else if (boxing_conversion_possible(source_type, dest_type,
+                                          (a_std_conv_descr *)NULL)) {
+      if (is_valid_cli_attribute_parameter_type(source_type)) {
+        /* Within the context of a C++/CLI attribute argument expression,
+           boxing conversions from a valid attribute parameter type are
+           folded to a constant. */
+        valid_in_const_expr = TRUE;
+      } else {
+        err_severity = es_error;
+        err_code = ec_cli_attribute_invalid_argument;
+      }  /* if */
+    } else if (impl_handle_conversion(
+                                     source_type, dest_type,
+                                     /*allow_qualifier_or_eh_mismatch=*/FALSE,
+                                     (a_std_conv_descr *)NULL)) {
+      /* Within the context of a C++/CLI attribute argument expression,
+         implicit handle conversions are okay. */
+      valid_in_const_expr = TRUE;
+    } else {
+      err_severity = es_error;
+      err_code = ec_cli_attribute_invalid_argument;
+      use_type_position_in_diag = TRUE;
+    }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   } else {
     /* Cast is to an invalid type for an integral constant expression. */
     if (is_error_type(dest_type)) {
@@ -19018,7 +19749,7 @@ called only in C++ mode.
           possible = TRUE;
           determined_conversion = &conversion;
 #if MICROSOFT_EXTENSIONS_ALLOWED
-        } else if (cppcli_enabled &&
+        } else if (cli_or_cx_enabled &&
                    is_tracking_reference_type(type_cast_to) &&
                    (clear_conv_descr(&conversion),
                     unboxing_conversion_possible(operand->type,
@@ -19085,7 +19816,7 @@ called only in C++ mode.
               determined_conversion = &conversion;
             }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
-          } else if (cppcli_enabled &&
+          } else if (cli_or_cx_enabled &&
                      (cli_handle_user_defined_conversion_possible(
                                        operand,
                                        eff_type_cast_to,
@@ -19804,7 +20535,7 @@ indicates which.
              then converted to an rvalue (the usual case). */
           lvalue_cast(type_cast_to, operand, /*compiler_generated=*/FALSE);
 #if MICROSOFT_EXTENSIONS_ALLOWED
-        } else if (cppcli_enabled &&
+        } else if (cli_or_cx_enabled &&
                    process_runtime_checked_safe_cast(adj_type_cast_to,
                                                      operand,
                                                      start_position,
@@ -20088,7 +20819,7 @@ indication in *rcblock).
         cast_type_okay = TRUE;
       }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
-    } else if (cppcli_enabled &&
+    } else if (cli_or_cx_enabled &&
                (is_handle_type(cast_type) ||
                 is_tracking_reference_type(cast_type))) {
       underlying_cast_type = type_pointed_to(cast_type);
@@ -20131,7 +20862,7 @@ indication in *rcblock).
       operation_type = cast_type;
       if (reference_case) operation_type = underlying_cast_type;
 #if MICROSOFT_EXTENSIONS_ALLOWED
-      if (cppcli_enabled &&
+      if (cli_or_cx_enabled &&
           operand.is_simple_string_literal &&
           cli_string_literal_conversion_possible(operand.type, cast_type,
                                                  (a_std_conv_descr *)NULL) &&
@@ -20185,7 +20916,7 @@ indication in *rcblock).
           err = TRUE;
           expr_pos_error(ec_bad_const_cast, &operand.position);
 #if MICROSOFT_EXTENSIONS_ALLOWED
-        } else if (cppcli_enabled &&
+        } else if (cli_or_cx_enabled &&
                    is_prohibited_interior_ptr_conversion(operand_type,
                                                          cast_type)) {
           /* A cast from interior_ptr to a native pointer type is
@@ -20526,7 +21257,7 @@ if it's not valid).
                                         (char *)"static_cast");
           }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
-        } else if (cppcli_enabled &&
+        } else if (cli_or_cx_enabled &&
                    is_prohibited_interior_ptr_conversion(adj_source_type,
                                                          adj_type_cast_to)) {
           /* Also use a special message for a cast from interior_ptr to a
@@ -21954,7 +22685,7 @@ freed by this routine.
   }  /* if */
   error_position = *start_position;
 #if MICROSOFT_EXTENSIONS_ALLOWED
-  if (cppcli_enabled) {
+  if (cli_or_cx_enabled) {
     /* Convert the value class version of a fundamental type to the
        fundamental type. */
     type_cast_to = map_cli_system_type_to_fundamental_type(type_cast_to);
@@ -22053,6 +22784,7 @@ freed by this routine.
                         (a_type_ptr)NULL, type_cast_to,
                         /*fill_in_dtor=*/TRUE,
                         /*elision_allowed=*/TRUE,
+                        /*is_custom_ms_attr_arg_list=*/FALSE,
                         rcblock,
                         arg_list_supplied, supplied_arg_list,
                         (an_arg_list_elem *)NULL,
@@ -22096,10 +22828,12 @@ freed by this routine.
     /* A cast to a template parameter type (which might be a class) or a
        nonreal class in a prototype instantiation.  This is handled specially
        because it may have more than one argument or zero arguments. */
-    scan_dependent_parenthesized_initializer(rcblock,
-                                             arg_list_supplied,
-                                             supplied_arg_list,
-                                             result, &dip);
+    scan_dependent_parenthesized_initializer(
+                                         rcblock,
+                                         arg_list_supplied,
+                                         supplied_arg_list,
+                                         /*is_custom_ms_attr_arg_list=*/FALSE,
+                                         result, &dip);
     if (dip == NULL) {
       /* The argument list turned out to have a single expression,
          so treat it like a simple cast. */
@@ -22231,7 +22965,7 @@ empty_parentheses:
           }  /* if */
           rule_out_expr_kinds(ROEK_CONSTANT, result);
 #if MICROSOFT_EXTENSIONS_ALLOWED
-        } else if (cppcli_enabled &&
+        } else if (cli_or_cx_enabled &&
                    is_cli_generic_definition_argument_type(type_cast_to)) {
           /* A cast to a C++/CLI generic type, i.e., T().  Always
              non-constant. */
@@ -22648,7 +23382,7 @@ that case.
     if (is_arithmetic_or_unscoped_enum_type(operand_1->type)) {
       /* Okay. */
 #if MICROSOFT_EXTENSIONS_ALLOWED
-    } else if (cppcli_enabled && is_scoped_enum_type(operand_1->type)) {
+    } else if (cli_or_cx_enabled && is_scoped_enum_type(operand_1->type)) {
       /* Scoped enum types are okay in C++/CLI mode but not in C++11 mode. */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if GNU_VECTOR_TYPES_ALLOWED
@@ -22868,7 +23602,7 @@ that case.
         }  /* if */
         both_operands_are_arithmetic = TRUE;
 #if MICROSOFT_EXTENSIONS_ALLOWED
-      } else if (cppcli_enabled &&
+      } else if (cli_or_cx_enabled &&
                  (is_scoped_enum_type(operand_1->type) ||
                   is_scoped_enum_type(operand_2.type))) {
         /* In C++/CLI mode, scoped enumeration operands of the same time can
@@ -23479,7 +24213,7 @@ that case.
     /* Look for C++ operator overloading cases. */
     a_boolean has_predef_meaning = FALSE;
 #if MICROSOFT_EXTENSIONS_ALLOWED
-    if (cppcli_enabled &&
+    if (cli_or_cx_enabled &&
         (is_handle_type(operand_1->type) ||
          is_handle_type(operand_2.type))) {
       has_predef_meaning = TRUE;
@@ -23512,7 +24246,7 @@ that case.
     if (is_arithmetic_or_enum_type(operand_1->type)) {
       /* Okay. */
 #if MICROSOFT_EXTENSIONS_ALLOWED
-    } else if (cppcli_enabled && is_handle_type(operand_1->type)) {
+    } else if (cli_or_cx_enabled && is_handle_type(operand_1->type)) {
       operand_1_is_handle = TRUE;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     } else if (is_nullptr_type(operand_1->type)) {
@@ -23909,7 +24643,7 @@ that case.
 #endif /* GNU_VECTOR_TYPES_ALLOWED */
     /* Do not insert code here. */
 #if MICROSOFT_EXTENSIONS_ALLOWED
-    if (cppcli_enabled &&
+    if (cli_or_cx_enabled &&
         (is_scoped_enum_type(operand_1->type) ||
          is_scoped_enum_type(operand_2.type))) {
       /* In C++/CLI mode, scoped enumeration operands of the same time can
@@ -24095,7 +24829,7 @@ that case.
     /* Look for C++ operator overloading cases. */
     a_boolean has_predef_meaning = FALSE;
 #if MICROSOFT_EXTENSIONS_ALLOWED
-    if (cppcli_enabled &&
+    if (cli_or_cx_enabled &&
         (is_handle_type_not_value_generic(operand_1->type) ||
          is_handle_type_not_value_generic(operand_2.type))) {
       has_predef_meaning = TRUE;
@@ -24970,7 +25704,7 @@ that case.
         operand_2_is_nullptr = is_nullptr_type(operand_2.type);
         operand_3_is_nullptr = is_nullptr_type(operand_3.type);
 #if MICROSOFT_EXTENSIONS_ALLOWED
-        if (cppcli_enabled) {
+        if (cli_or_cx_enabled) {
           operand_2_is_handle = is_handle_type(operand_2.type);
           operand_3_is_handle = is_handle_type(operand_3.type);
         }  /* if */
@@ -25385,7 +26119,7 @@ number.
         }  /* if */
       }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
-      if (cppcli_enabled &&
+      if (cli_or_cx_enabled &&
           is_cli_ref_or_interface_class_type(operand_1->type)) {
         /* There's no default assignment for C++/CLI managed class types. */
         has_predef_meaning = FALSE;
@@ -26213,7 +26947,7 @@ Return TRUE if the indicated token is one that could start an expression.
 #if MICROSOFT_EXTENSIONS_ALLOWED
     case tok_remainder:
       /* C++/CLI unary "%" operator. */
-      is_expr_start = cppcli_enabled;
+      is_expr_start = cli_or_cx_enabled;
       break;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     case tok_lbracket:
@@ -26338,7 +27072,7 @@ in *rcblock).
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
     }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
-    if (cppcli_enabled && 
+    if (cli_or_cx_enabled && 
         !is_handle_type(operand.type) &&
         is_cli_generic_definition_argument_type(operand.type)) {
       /* Box a value-constrained generic type.  (This isn't done for
@@ -26387,7 +27121,7 @@ in *rcblock).
         }  /* if */
       }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
-    } else if (cppcli_enabled && 
+    } else if (cli_or_cx_enabled && 
                is_managed_class_type(throw_type)) {
       /* In C++/CLI, managed types can only be thrown by handle. */
       error_in_operand(ec_managed_object_not_thrown_by_handle, &operand);
@@ -26998,6 +27732,8 @@ an appropriate error code.
     *diag = ec_lambda_captures_managed_class_type;
   } else if (cppcli_enabled && (is_handle_type(var->type) ||
                                 is_tracking_reference_type(var->type))) {
+    /* Lambdas cannot capture C++/CLI handles or tracking references (but
+       C++/CX handles are okay). */
     *diag = ec_lambda_captures_handle_or_tracking_ref;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   } else if (capture_is_inside_default_arg_expression(var)) {
@@ -27638,7 +28374,7 @@ if rescan_is_template_id is TRUE, and return the result in *operand
       force_indefinite_function = TRUE;
       rep = NULL;
 #if MICROSOFT_EXTENSIONS_ALLOWED
-    } else if (cppcli_enabled && name_followed_by_left_paren &&
+    } else if (cli_or_cx_enabled && name_followed_by_left_paren &&
                hide_by_sig_lookup_applies(locator.specific_symbol)) {
       /* In C++/CLI mode, a symbol for which hide-by-sig lookup applies
          has to be processed through overload resolution even if it
@@ -28194,7 +28930,7 @@ overloaded_function:
 #if MICROSOFT_EXTENSIONS_ALLOWED
         case sk_property_set:
           /* The identifier refers to one or more C++/CLI properties. */
-          check_assertion(cppcli_enabled);
+          check_assertion(cli_or_cx_enabled);
           { /* Create a "this" operand if meaningful. */
             an_operand      *selector = NULL;
             if (this_exists_for_member_access(sym_ptr) &&
@@ -29596,6 +30332,7 @@ passed).
                         &arg_list, /*return_raw_arguments=*/FALSE,
                         /*unknown_dependent_function=*/FALSE,
                         /*args_will_be_discarded=*/FALSE,
+                        /*is_custom_ms_attr_arg_list=*/FALSE,
                         (a_rescan_control_block*)NULL,
                         /*arg_list_supplied=*/TRUE, op_list,
                         (an_arg_list_elem_ptr*)NULL,
@@ -29804,7 +30541,7 @@ see expr.h).
       goto handle_identifier;
     case tok_identifier:
 #if MICROSOFT_EXTENSIONS_ALLOWED
-      if (cppcli_enabled &&
+      if (cli_or_cx_enabled &&
           locator_for_curr_id.symbol_header == safe_cast_symbol_header) {
         /* safe_cast is a keyword in C++/CLI if it doesn't mean anything
            else here. */
@@ -29825,7 +30562,7 @@ handle_identifier:
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
           goto bad_start_of_primary;
 #if MICROSOFT_EXTENSIONS_ALLOWED
-        } else if (cppcli_enabled &&
+        } else if (cli_or_cx_enabled &&
                    locator_for_curr_id.symbol_header ==
                                                      safe_cast_symbol_header &&
                    locator_for_curr_id.is_qualified_name &&
@@ -30028,9 +30765,9 @@ handle_identifier:
       {
         a_constant nullptr_constant;
         a_type_ptr tp;
-        /* The C++/CLI nullptr keyword has the managed nullptr type;
-           otherwise (including the __nullptr C++/CLI keyword), the type is
-           std::nullptr_t. */
+        /* The C++/CLI nullptr keyword has the managed nullptr type; otherwise
+           (including the C++/CLI __nullptr keyword and the C++/CX nullptr
+           keyword), the type is std::nullptr_t. */
         if (cppcli_enabled && curr_token == tok_nullptr) {
           tp = managed_nullptr_type();
         } else {
@@ -30099,7 +30836,7 @@ handle_identifier:
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
     case tok_remainder:
-      if (!cppcli_enabled) goto bad_start_of_primary;
+      if (!cli_or_cx_enabled) goto bad_start_of_primary;
       scan_handle_address_operator((a_rescan_control_block *)NULL,
                                    &local_result);
       break;
@@ -30241,6 +30978,13 @@ handle_unary_type_trait_helper:
       /* __is_trivially_assignable construct: */
       scan_is_assignable(bok_is_trivially_assignable,
                          (a_rescan_control_block *)NULL, &local_result);
+      break;
+
+    case tok_is_valid_winrt_type:
+      /* __is_valid_winrt_type construct: */
+      scan_is_valid_winrt_type(bok_is_valid_winrt_type,
+                               (a_rescan_control_block *)NULL,
+                               &local_result);
       break;
 
 #if GNU_EXTENSIONS_ALLOWED
@@ -30426,7 +31170,7 @@ handle_trapped_left_paren:
       if (!microsoft_mode && !(gpp_mode && gnu_version < 30400)) {
         goto bad_start_of_primary;
 #if MICROSOFT_EXTENSIONS_ALLOWED
-      } else if (cppcli_enabled && elaborated_cli_typeid_next()) {
+      } else if (cli_or_cx_enabled && elaborated_cli_typeid_next()) {
         /* Microsoft compilers accept "ref class T::typeid", an extension of
            the ECMA-372 specification.  Just skip the class-key, and the
            remainder should be the normal T::typeid construct. */
@@ -30513,7 +31257,7 @@ type_start:
           }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
 #if MICROSOFT_EXTENSIONS_ALLOWED
-        } else if (cppcli_enabled && next_token() == tok_colon_colon &&
+        } else if (cli_or_cx_enabled && next_token() == tok_colon_colon &&
                    type_keyword() != NULL) {
           /* C++/CLI allows things like int::Parse("1"). */
           goto handle_identifier;
@@ -32923,7 +33667,7 @@ otherwise a diagnostic is emitted and one or both of *ne_call_expr/
                                &operand2, (a_ref_entry *)NULL);
   processed = FALSE;
 #if MICROSOFT_EXTENSIONS_ALLOWED
-  if (cppcli_enabled) has_predef_meaning = is_handle_type(operand1.type);
+  if (cli_or_cx_enabled) has_predef_meaning = is_handle_type(operand1.type);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   if (is_overloadable_first_operand_type(operand1.type)) {
     check_for_operator_overloading((an_opname_kind)onk_ne,
@@ -33314,10 +34058,13 @@ Return TRUE if the given type implements either
 System::Collections::IEnumerable or
 System::Collections::Generic::IEnumerable<T>.
 If so, also return in *p_bcp the base class for the interface implemented.
+(This function should not be called in C++/CX mode since that mode does not
+support the C++/CLI IEnumerable interfaces.)
 */
 {
   a_base_class_ptr bcp, non_generic_bcp = NULL;
 
+  check_assertion(!cppcx_enabled);
   type = skip_typerefs(type);
   check_assertion(is_immediate_class_type(type));
   if (is_generic_cli_ienumerable_type(type, (a_type *)NULL)) {
@@ -33373,7 +34120,8 @@ set it to NULL.
   a_boolean        result = FALSE;
   a_symbol_locator locator;
 
-  if (implements_ienumerable(collection_type, ienumerable_bcp)) {
+  if (!cppcx_enabled &&
+      implements_ienumerable(collection_type, ienumerable_bcp)) {
     /* The collection type implements one of the IEnumerable interfaces,
        so the CLI collection pattern can be used. */
     result = TRUE;
@@ -34133,6 +34881,190 @@ created, needed to reactivate that scope.
 }  /* check_for_each_array_pattern */
 
 
+static a_boolean create_cppcx_for_each_variable_for_function_call(
+                                       a_variable_ptr          range_var,
+                                       a_const_char            *function_name,
+                                       a_token_sequence_number tok_seq_number,
+                                       a_variable_ptr          *variable)
+/*
+This utility is used during processing of a "for each" to create a variable
+(returned in *variable) whose initializer is a call to the function specified
+by function_name.  range_var is the sole argument in the function call, and
+the function is looked up in a well-known C++/CX namespace.  tok_seq_number is
+the sequence number of the "for each" expression.  Returns TRUE (and creates
+*variable with a proper initializer) if an appropriate function was found;
+otherwise reports an error and returns FALSE (with *variable unmodified).
+Note also that this routine will return FALSE (and not issue any errors) in
+the case where the expression is template dependent.
+
+This function is largely based on check_range_based_for_default_case.
+*/
+{
+  a_symbol_locator     locator;
+  a_symbol_ptr         symbol = NULL;
+  an_operand           range_operand, result;
+  a_source_position    *pos = &range_var->source_corresp.decl_position;
+  an_expr_stack_entry  expr_stack_entry;
+  a_type_ptr           range_type = range_var->type;
+  a_boolean            passed = FALSE, found;
+
+  if (is_any_reference_type(range_type)) {
+    range_type = type_pointed_to(range_type);
+  }  /* if */
+  if (is_error_type(range_type)) {
+    /* Do nothing. */
+    found = FALSE;
+  } else {
+    a_symbol_ptr  cppcx_ns_sym;
+
+    clear_locator(&locator, &null_source_position);
+    (void)find_symbol(function_name, strlen(function_name), &locator);
+    cppcx_ns_sym = cli_symbol_from_kind_or_null(
+                                csk_windows_foundation_collections_namespace);
+    if (cppcx_ns_sym != NULL) {
+      symbol = namespace_qualified_id_lookup(
+                                     &locator,
+                                     cppcx_ns_sym->variant.namespace_info.ptr,
+                                     IDL_NO_OPTIONS);
+    }  /* if */
+    found = symbol != NULL;
+  }  /* if */
+  if (found) {
+    an_expr_node_ptr      argument_list;
+    an_operand            function_operand, dummy_bound_function_selector;
+    an_expr_node_ptr      func_call_node;
+    an_arg_list_elem_ptr  arg_list = NULL;
+
+    push_expr_stack((an_expression_kind)ek_normal, &expr_stack_entry,
+                    /*force_object_lifetime=*/FALSE,
+                    /*suppress_object_lifetime=*/FALSE);
+    make_enhanced_for_expression_operand(range_var, &range_operand);
+    arg_list = alloc_arg_list_elem_for_operand(&range_operand);
+    /* select_and_prepare_to_call_overloaded_function will free the list. */
+    /* Determine which function will be called. */
+    if (select_and_prepare_to_call_overloaded_function(
+                                  symbol,
+                                  /*is_template_id=*/FALSE,
+                                  (a_template_arg_ptr)NULL,
+                                  /*have_selector=*/FALSE,
+                                  (an_operand *)NULL,
+                                  arg_list,
+                                  /*do_arg_dep_lookup=*/FALSE,
+                                  /*use_pure_arg_dep_lookup=*/FALSE,
+                                  /*use_std_for_arg_dep_lookup=*/FALSE,
+                                  /*try_surrogate_functions=*/FALSE,
+                                  /*is_property=*/FALSE,
+                                  /*compiler_generated=*/TRUE,
+                                  ec_no_error,
+                                  ec_no_error,
+                                  ec_no_error,
+                                  (an_operand *)NULL,
+                                  pos,
+                                  tok_seq_number,
+                                  (a_source_position *)NULL,
+                                  (a_boolean *)NULL,
+                                  &function_operand,
+                                  &argument_list)) {
+      /* Generate the expression for the function call. */
+#ifdef _lint
+      /* We pass dummy_bound_function_selector rather than a null pointer
+         constant to avoid a spurious diagnostic by Gimpel lint. */
+#endif /* ifdef _lint */
+      assemble_function_call(&function_operand,
+                             &dummy_bound_function_selector,
+                             argument_list,
+                             /*compiler_generated=*/TRUE,
+                             /*arg_dep_lookup_suppressed=*/TRUE,
+                             /*is_qualified_name=*/TRUE,
+                             /*found_through_adl=*/FALSE,
+                             /*uses_operator_syntax=*/FALSE,
+                             pos, 
+                             &result,
+                             &func_call_node);
+      result.position = *pos;
+      if (func_call_node != NULL) {
+        /* Make the variable and initialize it with the result of the call
+           just made. */
+        *variable = alloc_temporary_variable(result.type,
+                                             /*force_static=*/FALSE);
+        set_variable_initializer(*variable, &result);
+        passed = TRUE;
+      }  /* if */
+    }  /* if */
+    pop_expr_stack();
+  }  /* if */
+  return passed;
+}  /* create_cppcx_for_each_variable_for_function_call */
+
+
+
+static a_boolean check_for_cppcx_collection_pattern(
+                              a_for_each_loop_ptr        felp,
+                              an_operand                 *prev_decl_iterator,
+                              a_source_position          *expr_position,
+                              a_token_sequence_number    tok_seq_number,
+                              a_scope_pointers_block_ptr pointers_block)
+/*
+Check whether the given "for each" loop description iterates over a C++/CX
+collection, and if so return TRUE and generate IL for that pattern.  Otherwise,
+return FALSE.  This is similar to the "STL pattern" (see
+check_for_each_statement below for details).
+
+*/
+{
+  a_boolean  passed = TRUE;
+  a_variable_ptr  temp_var;
+  a_variable_ptr  cend_var;
+  a_type_ptr  begin_type, end_type;
+  an_operand  dummy_operand;
+  a_source_position  pos;
+
+  if (!create_cppcx_for_each_variable_for_function_call(
+                                                    felp->collection_expr_ref,
+                                                    "end",
+                                                    tok_seq_number,
+                                                    &cend_var)) {
+    passed = FALSE;
+  }  /* if */
+  if (passed &&
+      !create_cppcx_for_each_variable_for_function_call(
+                                                    felp->collection_expr_ref,
+                                                    "begin",
+                                                    tok_seq_number,
+                                                    &temp_var)) {
+    passed = FALSE;
+  }  /* if */
+  if (passed) {
+    begin_type = temp_var->type;
+    end_type = cend_var->type;
+    if (!types_are_compatible(begin_type, end_type) ||
+        (!is_overloadable_first_operand_type(begin_type) &&
+         !is_pointer_or_handle_type(begin_type))) {
+      /* The return types of "begin" and "end" are not compatible.  Or,
+         the return type is not overloadable and it's not a pointer or
+         handle. */
+      make_enhanced_for_expression_operand(felp->collection_expr_ref,
+                                           &dummy_operand);
+      pos = felp->collection_expr_ref->source_corresp.decl_position;
+      pos_ty_error(ec_for_each_incompatible_type, &pos, dummy_operand.type);
+      passed = FALSE;
+    } else {
+      /* Fill in the appropriate IL for the STL version of the "for each"
+         statement. */
+      set_for_each_loop_kind(felp, (a_for_each_pattern_kind)sfepk_stl_pattern);
+      felp->temporary_variable = temp_var;
+      felp->variant.stl_array_pattern.end_variable = cend_var;
+      fill_in_for_each_loop_constructs(felp,
+                                       prev_decl_iterator,
+                                       expr_position,
+                                       tok_seq_number,
+                                       pointers_block);
+    }  /* if */
+  }  /* if */
+  return passed;
+}  /* check_for_cppcx_collection_pattern */
+
+
 void check_for_each_statement(a_statement_ptr            statement,
                               an_operand                 *prev_decl_iterator,
                               a_source_position          *expr_position,
@@ -34234,7 +35166,7 @@ previously created, needed to reactivate that scope.
   an_expr_stack_entry *saved_expr_stack;
   
   db_enter(3, "check_for_each_statement");
-  check_assertion(cppcli_enabled || microsoft_mode);
+  check_assertion(cli_or_cx_enabled || microsoft_mode);
   /* We should be in the for-each scope at this point. */
   check_assertion(felp->for_each_scope == scope_stack_top().il_scope);
   save_expr_stack(&saved_expr_stack);
@@ -34258,7 +35190,7 @@ previously created, needed to reactivate that scope.
                                  tok_seq_number, pointers_block);
   } else if (cppcli_enabled && is_cli_array_type(collection_type)) {
     /* Perform full semantic checks and generate IL for the CLI array
-       pattern. */
+       pattern.  (C++/CX arrays use the STL pattern.) */
     check_for_each_cli_array_pattern(felp, prev_decl_iterator,
                                      expr_position, tok_seq_number,
                                      pointers_block);
@@ -34268,7 +35200,14 @@ previously created, needed to reactivate that scope.
       check_for_each_stl_collection_pattern(felp, prev_decl_iterator,
                                             expr_position, tok_seq_number,
                                             pointers_block);
-    } else if (cppcli_enabled && 
+    } else if (cppcx_enabled && 
+               check_for_cppcx_collection_pattern(felp,
+                                                  prev_decl_iterator,
+                                                  expr_position,
+                                                  tok_seq_number,
+                                                  pointers_block)) {
+      /* check_for_cppcx_collection_pattern generates IL for this pattern. */
+    } else if (cli_or_cx_enabled && 
                is_cli_collection_pattern_candidate(collection_type,
                                                    &ienumerable_bcp)) {
       /* Perform full semantic checks and generate IL for the C++/CLI
@@ -36095,9 +37034,11 @@ expression context.  Return either *is_constant TRUE and a constant value in
         }  /* if */
       }  /* if */
       break;
+#if CHECKING
     default:
-      unexpected_condition_str(
+      internal_error(
                "scan_nonconstant_dimension_expression: bad operand kind");
+#endif /* CHECKING */
   }  /* switch */
   if (*is_constant) {
     wrap_up_constant_full_expression(constant, &result.position);
@@ -36698,7 +37639,7 @@ set accordingly.
 #if MICROSOFT_EXTENSIONS_ALLOWED
       case eok_handle_to:
       case eok_handle_to_box:
-        check_assertion(cppcli_enabled);
+        check_assertion(cli_or_cx_enabled);
         operator_token = tok_remainder;
         *unary = TRUE;
         break;
@@ -36992,7 +37933,12 @@ set accordingly.
 #if MICROSOFT_EXTENSIONS_ALLOWED
   } else if (expr->kind == (an_expr_node_kind)enk_gcnew) {
     if (expr->variant.gcnew_info->is_cli_array &&
-        expr->variant.gcnew_info->dynamic_init != NULL) {
+        expr->variant.gcnew_info->dynamic_init != NULL &&
+        /* In C++/CX mode, the dynamic_init does not necessarily imply that
+           an array-init exists. */
+        !(cppcx_enabled &&
+          expr->variant.gcnew_info->dynamic_init->kind !=
+                            (a_dynamic_init_kind)dik_nonconstant_aggregate)) {
       /* We don't support rescanning gcnew with an array-init at this time. */
       rescannable = FALSE;
     } else {
@@ -37307,6 +38253,10 @@ alternative callable from outside, see rescan_expr_with_substitution.
       case tok_is_nothrow_assignable:
         /* __is_nothrow_assignable construct: */
         scan_is_assignable(bok_is_nothrow_assignable, rcblock, result);
+        break;
+      case tok_is_valid_winrt_type:
+        /* __is_trivially_destructible construct: */
+        scan_is_valid_winrt_type(bok_is_valid_winrt_type, rcblock, result);
         break;
       case tok_is_trivially_assignable:
         /* __is_trivially_assignable construct: */
@@ -38184,6 +39134,7 @@ source position to be used in overall errors.
   scan_ctor_arguments(cssp->constructor, source_pos,
                       object_class_type, (a_type_ptr)NULL,
                       fill_in_dtor, /*elision_allowed=*/TRUE,
+                      /*is_custom_ms_attr_arg_list=*/FALSE,
                       (a_rescan_control_block *)NULL,
                       args_supplied, arg_list,
                       (an_arg_list_elem *)NULL,
@@ -38293,11 +39244,13 @@ one following the closing parenthesis.
                                   (an_expression_kind)ek_normal,
                                   /*is_full_expr=*/TRUE,
                                   is->decl_parse_state, is);
-  scan_dependent_parenthesized_initializer((a_rescan_control_block *)NULL,
-                                           /*arg_list_supplied=*/FALSE,
-                                           (an_arg_list_elem *)NULL,
-                                           (an_operand *)NULL,
-                                           &is->init_dip);
+  scan_dependent_parenthesized_initializer(
+                                         (a_rescan_control_block *)NULL,
+                                         /*arg_list_supplied=*/FALSE,
+                                         (an_arg_list_elem *)NULL,
+                                         /*is_custom_ms_attr_arg_list=*/FALSE,
+                                         (an_operand *)NULL,
+                                         &is->init_dip);
   /* If there's an object lifetime around the initialization, transfer it
      to the dynamic initialization entry. */
   wrap_up_dynamic_init_full_expression(is->init_dip);
@@ -39530,6 +40483,326 @@ have_result:
 
   return result;
 }  /* compute_is_assignable */
+
+#if MICROSOFT_EXTENSIONS_ALLOWED
+
+static a_field_ptr validate_custom_ms_attribute_named_arg(
+                                                    a_symbol_locator *locator)
+/*
+If the symbol specified by locator is a field or property that can be
+referenced by a custom Microsoft attribute named argument, returns the
+associated field.  Otherwise, issues the appropriate diagnostics and returns
+NULL.
+*/
+{
+  a_boolean    result = FALSE;
+  a_symbol_ptr fund_sym = fundamental_symbol_of(locator->specific_symbol);
+  a_symbol_ptr field_sym = NULL;
+  a_field_ptr  field = NULL;
+
+  if (symbol_is(fund_sym, sk_property_set)) {
+    /* The symbol is a C++/CLI property set.  Verify that a public, scalar
+       (i.e. non-indexed), read/write property exists in the overload set. */
+    a_symbol_ptr property_set_sym = fund_sym;
+    for (field_sym = property_set_sym->variant.property_info->properties;
+         field_sym != NULL;
+         field_sym = field_sym->next) {
+      check_assertion(symbol_is(field_sym, sk_field));
+      field = field_sym->variant.field.ptr;
+      if (field->property_or_event_descr->indices == NULL) {
+        /* The property is a scalar property. */
+        break;
+      }  /* */
+    }  /* for */
+    if (field_sym == NULL) {
+      /* The property is an indexed property. */
+      field = NULL;
+      pos_error(ec_cli_attribute_invalid_field, &locator->source_position);
+    } else if (field->property_or_event_descr->is_trivial) {
+      /* The field is a trivial property; verify that it is public. */
+      if (access_for_symbol(field_sym) != (an_access_specifier)as_public) {
+        /* The field is not public. */
+        pos_error(ec_cli_attribute_inaccessible_field,
+                  &locator->source_position);
+      } else {
+        /* A trivial property has the same access as the corresponding field
+           and is always read/write. */
+        check_assertion(!is_const_qualified_type(field->type));
+        result = TRUE;
+      }  /* if */
+    } else {
+      a_routine_ptr set_routine =
+                              field->property_or_event_descr->set_routine.ptr;
+      if (set_routine == NULL ||
+          set_routine->source_corresp.access !=
+                                             (an_access_specifier)as_public) {
+        /* The "set" routine doesn't exist or is not public. */
+        pos_error(ec_cli_attribute_inaccessible_field,
+                  &locator->source_position);
+      } else {
+        a_routine_ptr get_routine =
+                              field->property_or_event_descr->get_routine.ptr;
+        if (get_routine == NULL ||
+            get_routine->source_corresp.access !=
+                                             (an_access_specifier)as_public) {
+          /* The "get" routine doesn't exist or is not pubic. */
+          pos_error(ec_cli_attribute_inaccessible_field,
+                    &locator->source_position);
+        } else {
+          /* The property is read/write and public. */
+          field_sym = property_set_sym->variant.property_info->properties;
+          check_assertion(symbol_is(field_sym, sk_field));
+          field = field_sym->variant.field.ptr;
+          result = TRUE;
+        }  /* if */
+      }  /* if */
+    }  /* if */
+  } else if (symbol_is(fund_sym, sk_field)) {
+    field_sym = fund_sym;
+    field = field_sym->variant.field.ptr;
+    if (field_is_property_or_event(field)) {
+      /* C++/CLI properties should be handled by sk_property_set above. */
+      check_assertion(!property_or_event_kind_is(field, pek_cli_property));
+      /* The field is not a non-static data member. */
+      pos_error(ec_cli_attribute_invalid_field, &locator->source_position);
+    } else {
+      /* The field is a non-static data member. */
+      if (access_for_symbol(field_sym) != (an_access_specifier)as_public ||
+          is_const_qualified_type(field->type)) {
+        /* The field is not public or is of const-qualified type. */
+        pos_error(ec_cli_attribute_inaccessible_field,
+                  &locator->source_position);
+      } else {
+        /* The field is read/write and public. */
+        result = TRUE;
+      }  /* if */
+    }  /* if */
+  } else {
+    /* The member is not a C++/CLI property or non-static data member. */
+    pos_error(ec_cli_attribute_invalid_field, &locator->source_position);
+  }  /* if */
+  if (result) {
+    /* Verify that the field type is a valid C++/CLI attribute parameter
+       type. */
+    check_assertion(field != NULL);
+    if (!is_valid_cli_attribute_parameter_type(field->type)) {
+      pos_error(ec_cli_attribute_invalid_field, &locator->source_position);
+      result = FALSE;
+    }  /* if */
+  }  /* if */
+  return result ? field : NULL;
+}  /* validate_custom_ms_attribute_named_arg */
+
+
+static a_custom_ms_attribute_arg_ptr scan_custom_ms_attribute_named_arg(
+                                                    a_type_ptr attribute_type)
+/*
+Scan a named argument for a custom Microsoft attribute of the specified type.
+Create an argument entry that describes the argument, and return it to the
+caller.
+*/
+{
+  a_custom_ms_attribute_arg_ptr arg = NULL;
+
+  if (required_token_no_advance(tok_identifier, ec_exp_identifier)) {
+    a_symbol_ptr member_sym = NULL;
+    /* Look up this identifier in the scope of the custom attribute class. */
+    member_sym = look_up_selection_name(&locator_for_curr_id, attribute_type);
+    if (member_sym != NULL) {
+      a_field_ptr field;
+      /* Record the symbol as referenced. */
+      mark_referenced(member_sym, &locator_for_curr_id.source_position);
+      field = validate_custom_ms_attribute_named_arg(&locator_for_curr_id);
+      if (field != NULL) {
+        /* Skip past the identifier and the "=". */
+        (void)get_token();
+        if (required_token(tok_assign, ec_exp_assign)) {
+          an_operand       operand;
+          an_expr_node_ptr expression;
+          /* Scan the expression. */
+          scan_expr(&operand, PREC_LOWEST, EOPT_DISALLOW_COMMA_OPERATOR);
+          /* Convert to the required type. */
+          prep_initializer_operand(&operand, field->type, (a_boolean *)NULL,
+                                   (a_conv_descr_ptr)NULL,
+                                   /*is_copy_initialization=*/TRUE,
+                                   CCO_DEFAULT,
+                                   ec_incompatible_param);
+          expression = make_node_from_operand(&operand);
+          expression = wrap_up_full_expression(expression);
+          if (!is_error_node(expression)) {
+            /* Allocate an argument entry of the required kind. */
+            arg = alloc_custom_ms_attribute_arg();
+            arg->field = field;
+            arg->expression = expression;
+          }  /* if */
+        }  /* if */
+      } else {
+        /* The named attribute argument was invalid. */
+        flush_tokens();
+      }  /* if */
+    } else {
+      /* The identifier was not found. */
+      pos_stsy_error(ec_not_a_member, &error_position,
+                     locator_for_curr_id.symbol_header->identifier,
+                     (a_symbol_ptr)attribute_type->source_corresp.assoc_info);
+      flush_tokens();
+    }  /* if */
+  }  /* if */
+  return arg;
+}  /* scan_custom_ms_attribute_named_arg */
+
+
+static a_custom_ms_attribute_arg_ptr scan_custom_ms_attribute_named_arg_list(
+                                                    a_type_ptr attribute_type)
+/*
+Scan the comma-separated list of named arguments for a custom Microsoft
+attribute of the specified type.  Return a pointer to the list of arguments,
+or NULL if the argument list is empty.
+*/
+{
+  a_custom_ms_attribute_arg_ptr arg_list = NULL;
+  a_custom_ms_attribute_arg_ptr arg_tail = NULL;
+
+  check_assertion(attribute_type != NULL && curr_token == tok_identifier &&
+                  next_token() == tok_assign);
+  add_matching_stop_token(tok_rparen);
+  add_stop_token(tok_comma);
+  /* Scan a comma-separated list of named arguments. */
+  do {
+    a_custom_ms_attribute_arg_ptr arg;
+    arg = scan_custom_ms_attribute_named_arg(attribute_type);
+    if (arg != NULL) {
+      if (arg_list == NULL) {
+        arg_list = arg;
+      } else {
+        arg_tail->next = arg;
+      }  /* if */
+      arg_tail = arg;
+    }  /* if */
+  } while (loop_token(tok_comma));
+  remove_stop_token(tok_comma);
+  remove_matching_stop_token(tok_rparen);
+  return arg_list;
+}  /* scan_custom_ms_attribute_named_arg_list */
+
+
+a_boolean scan_custom_ms_attribute_arg_list(an_ms_attribute_ptr attr)
+/*
+Scan the comma-separated list of arguments for a custom Microsoft
+attribute.
+*/
+{
+  a_boolean         result = FALSE;
+  a_type_ptr        type;
+  a_source_position init_position = pos_curr_token;
+  a_boolean         scan_arg_list = FALSE;
+
+  check_assertion(attr->kind == (an_ms_attribute_kind)msak_custom &&
+                  attr->variant.custom_info.type != NULL);
+  type = attr->variant.custom_info.type;
+  if (curr_token == tok_lparen) {
+    scan_arg_list = TRUE;
+    (void)get_token();
+  }  /* if */
+  if (scan_arg_list || curr_token == tok_comma || curr_token == tok_rbracket) {
+    if (is_error_type(type)) {
+      expect_error();
+      flush_tokens();
+    } else {
+      a_class_symbol_supplement_ptr cssp = NULL;
+      a_symbol_ptr                  ctor_sym = NULL;
+      an_expr_stack_entry           *saved_expr_stack;
+      an_expr_stack_entry           expr_stack_entry;
+      a_memory_region_number        region_to_switch_back_to;
+      a_dynamic_init_ptr            dip;
+      save_expr_stack(&saved_expr_stack);
+      push_expr_stack((an_expression_kind)ek_init_constant,
+                      &expr_stack_entry,
+                      /*force_object_lifetime=*/FALSE,
+                      /*suppress_object_lifetime=*/FALSE);
+      transfer_expr_context_if_applicable(saved_expr_stack);
+      if (scan_arg_list) add_matching_stop_token(tok_rparen);
+      expr_stack_entry.is_cli_attr_arg_expression = TRUE;
+      switch_to_file_scope_region(&region_to_switch_back_to);
+      if (is_class_struct_union_type(type)) {
+        /* If the class is a template class, instantiate it to make its
+           constructors visible. */
+        instantiate_template_class(type);
+        cssp = symbol_supplement_for_class(type);
+        ctor_sym = cssp->constructor;
+      }  /* if */
+      if (ctor_sym != NULL) {
+        scan_ctor_arguments(ctor_sym, &init_position,
+                            (a_type_ptr)NULL, (a_type_ptr)NULL,
+                            /*fill_in_dtor=*/FALSE,
+                            /*elision_allowed=*/FALSE,
+                            /*is_custom_ms_attr_arg_list=*/TRUE,
+                            (a_rescan_control_block *)NULL,
+                            /*arg_list_supplied=*/!scan_arg_list,
+                            (an_arg_list_elem *)NULL,
+                            (an_arg_list_elem *)NULL,
+                            /*trivial_ctor=*/(a_boolean *)NULL,
+                            /*elision_done=*/(a_boolean *)NULL,
+                            /*unboxing_conv=*/(a_boolean *)NULL,
+                            /*string_ctor_skip=*/(a_boolean *)NULL,
+                            /*simple_result=*/(an_operand *)NULL,
+                            &dip,
+                            (an_expr_node_ptr *)NULL,
+                            (a_source_position *)NULL);
+        if (dip != NULL) {
+          check_assertion(dip->kind == (a_dynamic_init_kind)dik_constructor);
+          attr->variant.custom_info.constructor = dip->variant.constructor.ptr;
+          attr->variant.custom_info.args = dip->variant.constructor.args;
+          result = TRUE;
+        } else {
+          expect_error();
+          flush_tokens();
+        }  /* if */
+      } else if (is_template_dependent_type(type)) {
+        scan_dependent_parenthesized_initializer(
+                                         (a_rescan_control_block *)NULL,
+                                         /*arg_list_supplied=*/!scan_arg_list,
+                                         (an_arg_list_elem *)NULL,
+                                         /*is_custom_ms_attr_arg_list=*/TRUE,
+                                         (an_operand *)NULL, &dip);
+        if (dip != NULL) {
+          check_assertion(dip->kind == (a_dynamic_init_kind)dik_constructor);
+          attr->variant.custom_info.args = dip->variant.constructor.args;
+          result = TRUE;
+        } else {
+          unexpected_condition();
+        }  /* if */
+      } else {
+        unexpected_condition();
+      }  /* if */
+      if (result && scan_arg_list) {
+        /* Scan the optional named argument list. */
+        if (curr_token == tok_identifier && next_token() == tok_assign) {
+          attr->variant.custom_info.named_args =
+                                scan_custom_ms_attribute_named_arg_list(type);
+        }  /* if */
+        /* Look for the closing right parenthesis. */
+        (void)required_token(tok_rparen, ec_exp_rparen);
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+        curr_construct_end_position = end_pos_curr_token;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+      }  /* if */
+      if (scan_arg_list) remove_matching_stop_token(tok_rparen);
+      switch_back_to_original_region(region_to_switch_back_to);
+      pop_expr_stack();
+      restore_expr_stack(saved_expr_stack);
+    }  /* if */
+  } else {
+    /* The attribute name was not followed by an argument list, nor was it
+       followed by anything that looks like an attribute separator or the end
+       of an attribute list. */
+    syntax_error(ec_exp_comma_or_rbracket);
+    result = FALSE;
+  }  /* if */
+  return result;
+}  /* scan_custom_ms_attribute_arg_list */
+
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 
 /******************************************************************************

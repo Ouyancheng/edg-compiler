@@ -739,7 +739,7 @@ of the symbol header.
        in copy_type_with_substitution. */
     con->variant.template_param.variant.unknown_function.symbol = orig_sym;
 #if MICROSOFT_EXTENSIONS_ALLOWED
-    if (cppcli_enabled && symbol_is(orig_sym, sk_member_function)) {
+    if (cli_or_cx_enabled && symbol_is(orig_sym, sk_member_function)) {
       /* For a C++/CLI property or event accessor, save a pointer to the
          property description. */
       a_routine_ptr rp = orig_sym->variant.routine.ptr;
@@ -1946,10 +1946,12 @@ typedef struct a_lookup_state {
 			/* TRUE if the lookup is taking place in the context
 			   of the instantiation of an exception
 			   specification. */
-#if CFRONT_GLOBAL_VS_MEMBER_NAME_LOOKUP_BUG
+#if MICROSOFT_EXTENSIONS_ALLOWED || CFRONT_GLOBAL_VS_MEMBER_NAME_LOOKUP_BUG
   a_boolean	projection_symbol_found;
 			/* TRUE if a projection symbol was found, but did
-                           not meet the requirements of the lookup. */
+			   not meet the requirements of the lookup. */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED || ... */
+#if CFRONT_GLOBAL_VS_MEMBER_NAME_LOOKUP_BUG
   a_scope_depth	last_scope_used;
 			/* Last scope used to find the symbol. */
 #endif /* CFRONT_GLOBAL_VS_MEMBER_NAME_LOOKUP_BUG */
@@ -2031,8 +2033,10 @@ value.
   cleared_lookup_state.force_lookup_in_dependent_bases = FALSE;
   cleared_lookup_state.add_to_active_list            = FALSE;
   cleared_lookup_state.exception_spec                = FALSE;
-#if CFRONT_GLOBAL_VS_MEMBER_NAME_LOOKUP_BUG
+#if MICROSOFT_EXTENSIONS_ALLOWED || CFRONT_GLOBAL_VS_MEMBER_NAME_LOOKUP_BUG
   cleared_lookup_state.projection_symbol_found       = FALSE;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED || ... */
+#if CFRONT_GLOBAL_VS_MEMBER_NAME_LOOKUP_BUG
   cleared_lookup_state.last_scope_used               = NO_SCOPE_DEPTH;
 #endif /* CFRONT_GLOBAL_VS_MEMBER_NAME_LOOKUP_BUG */
   cleared_lookup_state.class_with_nonreal_base       = NULL;
@@ -2666,7 +2670,7 @@ that do normal id lookup processing.
   a_symbol_ptr	sym = NULL;
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
-  if (cppcli_enabled && lookup_state->must_be_class_or_namespace) {
+  if (cli_or_cx_enabled && lookup_state->must_be_class_or_namespace) {
     /* The Microsoft compiler will find the name of a direct interface
        even when not looking inside the interfaces. */
     a_class_type_supplement_ptr	ctsp;
@@ -2701,9 +2705,9 @@ that do normal id lookup processing.
       /* A symbol was found in a base class, but it was not returned
          (presumably because must_be_type_name was not satisfied).
          Don't continue looking. */
-#if CFRONT_GLOBAL_VS_MEMBER_NAME_LOOKUP_BUG
+#if MICROSOFT_EXTENSIONS_ALLOWED || CFRONT_GLOBAL_VS_MEMBER_NAME_LOOKUP_BUG
       lookup_state->projection_symbol_found = TRUE;
-#endif /* CFRONT_GLOBAL_VS_MEMBER_NAME_LOOKUP_BUG */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED || ... */
       lookup_state->terminate_lookup = TRUE;
     } else {
       /* A projection symbol was created (or the fundamental symbol was
@@ -3860,6 +3864,31 @@ C and C++.
       }  /* if */
     }  /* if */
 #endif /* CFRONT_GLOBAL_VS_MEMBER_NAME_LOOKUP_BUG */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    /* Perform dual-lookups on unqualified identifiers in C++/CLI mode if
+       the identifier was not found.  This allows members of the 'cli'
+       namespace to be found without qualification or a using declaration or
+       directive (e.g. array => cli::array). */
+    if (cli_or_cx_enabled && sym == NULL &&
+        !in_code_generated_from_metadata() &&
+        !lookup_state.projection_symbol_found &&
+        (options & (IDL_IF_EXISTS_LOOKUP | IDL_LINKAGE_LOOKUP)) == 0) {
+      a_symbol_header_ptr sym_hdr = locator_for_curr_id.symbol_header;
+      if (sym_hdr != NULL) {
+        enum a_cli_symbol_kind_tag *p_csk_fallback;
+        p_csk_fallback = cppcx_enabled ? cppcx_fallback_symbols
+                                       : cli_fallback_symbols;
+        for (; *p_csk_fallback != csk_none; ++p_csk_fallback) {
+          a_symbol_ptr fallback_sym = cli_symbol_from_kind(*p_csk_fallback);
+          check_assertion(fallback_sym != NULL);
+          if (fallback_sym != NULL && sym_hdr == fallback_sym->header) {
+            sym = fallback_sym;
+            break;
+          }  /* if */
+        }  /* for */
+      }  /* if */
+    }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     locator->specific_symbol = sym;
   }  /* if */
   if (sym != NULL) {
@@ -4531,7 +4560,7 @@ bypass_normal_search:
         sym = cssp->destructor;
         goto end_lookup;
 #if MICROSOFT_EXTENSIONS_ALLOWED
-      } else if (cppcli_enabled && cssp->finalizer != NULL &&
+      } else if (cli_or_cx_enabled && cssp->finalizer != NULL &&
                  locator->symbol_header == cssp->finalizer->header) {
         /* This is the finalizer. */
         sym = cssp->finalizer;
@@ -4640,6 +4669,19 @@ end_lookup:
        projection symbol. */
     reduce_projection_symbol_to_fundamental_symbol(sym);
   }  /* if */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  if (cppcx_enabled && sym == NULL &&
+      is_managed_class_type(class_type) &&
+      locator->symbol_header != NULL &&
+      locator->symbol_header->identifier != NULL &&
+      strncmp(locator->symbol_header->identifier,
+              "__abi_" , sizeof("__abi_")-1) == 0 &&
+      !direct_class_members_only) {
+    /* In C++/CX mode, fake up a symbol for __abi_* locators in C++/CX
+       types. */
+    sym = make_and_enter_abi_member_function_symbol(locator, class_type);
+  }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if DEBUG
   if (debug_level >= 4) {
     fprintf(f_debug, "class_qualified_id_lookup: id = %s, %s\n",
@@ -4875,7 +4917,7 @@ Microsoft __super keyword.
        considered.  Direct interfaces are ignored below.  This flag
        causes indirect base interfaces of base ref classes to be
        ignored. */
-    if (cppcli_enabled && treat_as_cli_class_for_lookup(class_type)) {
+    if (cli_or_cx_enabled && treat_as_cli_class_for_lookup(class_type)) {
       options |= IDL_EXCLUDE_BASE_INTERFACE_MEMBERS;
       exclude_interface_members = TRUE;
     }  /* if */

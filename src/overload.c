@@ -234,7 +234,7 @@ chosen except that it was inaccessible because of hide-by-sig lookup.
                                      inaccessible_match,
                                      ostblock);
 #if MICROSOFT_EXTENSIONS_ALLOWED
-  if (cppcli_enabled) {
+  if (cli_or_cx_enabled) {
     a_hide_by_sig_list_entry_ptr list;
     if (sym->is_class_member) {
       if (class_type_supp(sym_parent_class(sym))->is_hide_by_sig) {
@@ -279,7 +279,7 @@ chosen except that it was inaccessible because of hide-by-sig lookup.
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   sym = set_overload_set_traversal_symbol(sym, ostblock);
 #if MICROSOFT_EXTENSIONS_ALLOWED
-  if (cppcli_enabled && sym != NULL &&
+  if (cli_or_cx_enabled && sym != NULL &&
       should_skip_symbol_because_inaccessible(sym, ostblock)) {
     /* The symbol is inaccessible and should be skipped. */
     ostblock->curr_sym_viable = FALSE;
@@ -368,7 +368,7 @@ advance_in_hide_by_sig_list:
       }  /* if */
     }  /* if */
   }  /* if */
-  if (cppcli_enabled && sym != NULL &&
+  if (cli_or_cx_enabled && sym != NULL &&
       should_skip_symbol_because_inaccessible(sym, ostblock)) {
     /* The symbol is inaccessible and should be skipped. */
     ostblock->curr_sym_viable = FALSE;
@@ -391,7 +391,7 @@ no next symbol.  The symbol returned may be a projection symbol.
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
   ostblock->curr_sym_viable = FALSE;
-  if (!cppcli_enabled) {
+  if (!cli_or_cx_enabled) {
     /* The code immediately below is needed only in C++/CLI mode. */
   } else if (ostblock->returned_sym_is_inaccessible) {
     /* The symbol returned on the last iteration is inaccessible, and was
@@ -432,7 +432,7 @@ no next symbol.  The symbol returned may be a projection symbol.
   /* Advance to the next symbol. */
   sym = next_symbol_in_overload_set_internal(ostblock);
 #if MICROSOFT_EXTENSIONS_ALLOWED
-  if (cppcli_enabled && ostblock->candidate_functions != NULL) {
+  if (cli_or_cx_enabled && ostblock->candidate_functions != NULL) {
     /* Remember the candidate function set before any addition by the caller
        on this iteration. */
     ostblock->candidate_functions_on_prev_iteration =
@@ -471,7 +471,7 @@ inaccessible because of hide-by-sig lookup.
   if (slep != NULL) {
     sym = slep->symbol;
 #if MICROSOFT_EXTENSIONS_ALLOWED
-    if (cppcli_enabled) {
+    if (cli_or_cx_enabled) {
       if (sym->is_class_member) {
         if (sym_parent_class(sym)->variant.class_struct_union.extra_info
                                                             ->is_hide_by_sig) {
@@ -487,7 +487,7 @@ inaccessible because of hide-by-sig lookup.
   }  /* if */
   ostblock->current_symbol_list_entry = slep;
 #if MICROSOFT_EXTENSIONS_ALLOWED
-  if (cppcli_enabled && sym != NULL &&
+  if (cli_or_cx_enabled && sym != NULL &&
       should_skip_symbol_because_inaccessible(sym, ostblock)) {
     /* The symbol is inaccessible and should be skipped. */
     sym = next_symbol_in_overload_symbol_list(ostblock);
@@ -528,7 +528,7 @@ top:
   }  /* if */
   sym = (slep != NULL) ? slep->symbol : NULL;
 #if MICROSOFT_EXTENSIONS_ALLOWED
-  if (cppcli_enabled && sym != NULL &&
+  if (cli_or_cx_enabled && sym != NULL &&
       should_skip_symbol_because_inaccessible(sym, ostblock)) {
     /* The symbol is inaccessible and should be skipped. */
     goto top;
@@ -547,7 +547,7 @@ If so, the symbol is considered overloaded even if it doesn't look it.
 {
   a_boolean hide_by_sig_applies = FALSE;
 
-  if (cppcli_enabled) {
+  if (cli_or_cx_enabled) {
     if (use_hide_by_sig_lookup(sym, (a_hide_by_sig_list_entry_ptr *)NULL)) {
       hide_by_sig_applies = TRUE;
     }  /* if */
@@ -2011,7 +2011,7 @@ This applies to projection and namespace projection symbols.
 #if MICROSOFT_EXTENSIONS_ALLOWED
   /* In C++/CLI, a symbol for which hide-by-sig lookup applies is
      not considered ambiguous. */
-  if (is_ambiguous && cppcli_enabled &&
+  if (is_ambiguous && cli_or_cx_enabled &&
       use_hide_by_sig_lookup(symbol, (a_hide_by_sig_list_entry_ptr *)NULL)) {
     is_ambiguous = FALSE;
   }  /* if */
@@ -2165,7 +2165,7 @@ that means it is an lvalue that is or may be on the managed heap.
 {
   a_boolean is_gc_lvalue = FALSE;
 
-  if (cppcli_enabled && is_expression_operand(operand)) {
+  if (cli_or_cx_enabled && is_expression_operand(operand)) {
     if (is_gc_lvalue_expr(operand->variant.expression)) {
       is_gc_lvalue = TRUE;
     }  /* if */
@@ -2287,8 +2287,7 @@ xvalues), e.g., an lvalue reference to non-volatile const.
       can_bind = FALSE;
     }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
-  } else if (cppcli_enabled &&
-             is_tracking_reference_type(type)) {
+  } else if (cli_or_cx_enabled && is_tracking_reference_type(type)) {
     /* A tracking reference binds to lvalues. */
     can_bind = FALSE;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
@@ -2349,7 +2348,7 @@ is_potential_conv_function_source as the appropriate guard function.
   }  /* if */
   if (is_lvalue_reference_type(dest_type) &&
 #if MICROSOFT_EXTENSIONS_ALLOWED
-      (!cppcli_enabled ||
+      (!cli_or_cx_enabled ||
        is_class_struct_union_type(source_operand->type)) &&
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       !do_ms_quirk) {
@@ -2375,7 +2374,7 @@ is_potential_conv_function_source as the appropriate guard function.
     if (!is_reference_that_can_bind_to_rvalue(dest_type)) goto have_result;
   }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
-  if (cppcli_enabled &&
+  if (cli_or_cx_enabled &&
       (cli_handle_user_defined_conversion_possible(
                                        source_operand,
                                        base_dest_type,
@@ -2394,7 +2393,7 @@ is_potential_conv_function_source as the appropriate guard function.
        can be used to create an lvalue to which the reference can
        be bound. */
     if (!*ambiguous) okay = TRUE;
-  } else if (cppcli_enabled &&
+  } else if (cli_or_cx_enabled &&
              !is_class_struct_union_type(source_operand->type)) {
     okay = FALSE;
   } else
@@ -2518,7 +2517,7 @@ is_potential_conv_function_source as the appropriate guard function.
   }  /* if */
 have_result:
 #if MICROSOFT_EXTENSIONS_ALLOWED
-  if (cppcli_enabled && okay &&
+  if (cli_or_cx_enabled && okay &&
       !is_tracking_reference_type(dest_type) &&
       is_gc_lvalue_operand(source_operand)) {
     /* C++/CLI does not allow binding a normal (non-tracking) reference
@@ -2794,7 +2793,7 @@ copy-initialization).
                                    arg_originally_an_lvalue &&
                                    is_bit_field_operand(arg_operand));
 #if MICROSOFT_EXTENSIONS_ALLOWED
-    if (cppcli_enabled && param_is_reference &&
+    if (cli_or_cx_enabled && param_is_reference &&
         !is_tracking_reference_type(param_type) &&
         arg_originally_an_lvalue &&
         is_gc_lvalue_operand(arg_operand)) {
@@ -3166,7 +3165,7 @@ copy-initialization).
            is considered an exact match (the f_identical_types test rules
            out cases where the conversion goes by way of System::String^
            but then on to some other destination handle type). */
-        check_assertion(cppcli_enabled);
+        check_assertion(cli_or_cx_enabled);
         arg_summary->match_level = aml_exact;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       }  /* if */
@@ -3323,7 +3322,7 @@ copy-initialization).
                                           /*conv_accounts_for_ref=*/FALSE);
       goto have_level;
 #if MICROSOFT_EXTENSIONS_ALLOWED
-    } else if (cppcli_enabled && source_can_be_rvalue &&
+    } else if (cli_or_cx_enabled && source_can_be_rvalue &&
                (cli_handle_user_defined_conversion_possible(
                                        orig_arg_operand,
                                        param_type,
@@ -3811,7 +3810,7 @@ adjusted.
     /* Add the right kind of reference to match the ref-qualifiers of the
        function type. */
 #if MICROSOFT_EXTENSIONS_ALLOWED
-    if (cppcli_enabled && is_managed_class_type(class_type)) {
+    if (cli_or_cx_enabled && is_managed_class_type(class_type)) {
       impl_obj_param_type = make_tracking_reference_type(impl_obj_param_type);
     } else
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
@@ -4020,7 +4019,7 @@ it is always NULL.
 #endif /* ifdef pointer_types_have_same_repr */
       )
 #if MICROSOFT_EXTENSIONS_ALLOWED
-      || (cppcli_enabled &&
+      || (cli_or_cx_enabled &&
           is_handle_type_not_generic_constraint(arg_type) &&
           is_handle_type_not_generic_constraint(param_type))
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
@@ -4985,7 +4984,7 @@ the point of call.  conv_context describes the context of the conversion.
        (That's similar to the handling for constructors marked "explicit".)
        Copy constructors are allowed. */
     if (cppcli_enabled &&
-        routine->special_kind == (a_special_function_kind)sfk_constructor &&
+        special_kind_is(routine, sfk_constructor) &&
         is_managed_class_type(parent_class_of(routine)) &&
         (effects_copy_initialization ||
          ((conv_context & CCO_CAST) &&
@@ -5062,7 +5061,7 @@ the point of call.  conv_context describes the context of the conversion.
       arg_list_elem = NULL;
       break;
 #if MICROSOFT_EXTENSIONS_ALLOWED
-    } else if (cppcli_enabled && param->is_cli_param_array) {
+    } else if (cli_or_cx_enabled && param->is_cli_param_array) {
       /* A C++/CLI parameter array can match all the remaining arguments. */
       if (!is_last_elem(arg_list_elem)) {
         /* There are more arguments after the one that lines up with the
@@ -5091,7 +5090,7 @@ the point of call.  conv_context describes the context of the conversion.
        array, then we can accept this function by creating a zero-length
        parameter array. */
     if (param->is_cli_param_array) {
-      check_assertion(cppcli_enabled);
+      check_assertion(cli_or_cx_enabled);
       param_array_expanded_case = TRUE;
     } else
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
@@ -5201,7 +5200,7 @@ the point of call.  conv_context describes the context of the conversion.
         if (!suppress_param_advance && param->is_cli_param_array) {
           /* If we encounter a C++/CLI param array, do not advance past it. */
           /* A parameter array should always be the last parameter. */
-          check_assertion (cppcli_enabled && param->next == NULL);
+          check_assertion (cli_or_cx_enabled && param->next == NULL);
           suppress_param_advance = TRUE;
         }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
@@ -5229,7 +5228,7 @@ the point of call.  conv_context describes the context of the conversion.
 #if MICROSOFT_EXTENSIONS_ALLOWED
         if (param->is_cli_param_array) {
           /* C++/CLI parameter array. */
-          check_assertion(cppcli_enabled);
+          check_assertion(cli_or_cx_enabled);
           if (!processing_expanded_case) {
             /* First argument that corresponds to the parameter array
                parameter (i.e., not one of the arguments after that, in the
@@ -5675,7 +5674,7 @@ conv_context describes the context of the conversion.
       if (routine_type_is_nonstatic_member_function(routine_type)) {
         some_function_needs_selector = TRUE;
 #if MICROSOFT_EXTENSIONS_ALLOWED
-      } else if (cppcli_enabled &&
+      } else if (cli_or_cx_enabled &&
                  ostblock.hide_by_sig_list != NULL) {
         /* If the overload set is formed by C++/CLI hide-by-sig processing,
            assume it contains a nonstatic member somewhere. */
@@ -5923,7 +5922,7 @@ parameter.
 {
   a_boolean converts_from_class = TRUE;
 
-  if (cppcli_enabled) {
+  if (cli_or_cx_enabled) {
     if (rout->is_reverse_conversion_function) {
       /* A static conversion function that converts to the class type instead
          of from it. */
@@ -6048,7 +6047,8 @@ hide-by-sig lookup.
           /* C++/CLI has static conversion functions.   For those, match the
              argument against the first parameter. */
           a_param_type_ptr ptp = function_type_params(routine_type);
-          check_assertion(cppcli_enabled && ptp != NULL && ptp->next == NULL);
+          check_assertion(cli_or_cx_enabled &&
+                          ptp != NULL && ptp->next == NULL);
           determine_arg_match_level(class_object, (a_type_ptr)NULL,
                                     ptp->type, ptp,
                                     ptp->type_involves_deduced_template_param,
@@ -6187,7 +6187,7 @@ in [over.ics.rank].
      a pointer to the element type. */
   if (conv1->conv_of_string_literal_to_cli_string !=
       conv2->conv_of_string_literal_to_cli_string) {
-    check_assertion(cppcli_enabled);
+    check_assertion(cli_or_cx_enabled);
     if (conv1->conv_of_string_literal_to_cli_string) {
       cmp = 1;
     } else {
@@ -6616,7 +6616,7 @@ apply that would make one better than the other, and return
             }  /* if */
           }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
-          if (cppcli_enabled && cmp == 0 &&
+          if (cli_or_cx_enabled && cmp == 0 &&
               is_handle_type(base_param_type1) &&
               is_handle_type(base_param_type2)) {
             /* In C++/CLI, a tracking reference can be bound to a handle
@@ -7304,7 +7304,7 @@ other.  Return
                                      /*entire_type=*/FALSE,
                                      maxn);
 #if MICROSOFT_EXTENSIONS_ALLOWED
-  } else if (cppcli_enabled &&
+  } else if (cli_or_cx_enabled &&
              ((arg_num1 = creates_param_array(cfp1)) !=
               (arg_num2 = creates_param_array(cfp2)))) {
     /* A function match that requires creation of a C++/CLI parameter array
@@ -7321,11 +7321,11 @@ other.  Return
     } else {
       cmp = -1;
     }  /* if */
-  } else if (cppcli_enabled &&
+  } else if (cli_or_cx_enabled &&
              managed_conv_func_versus_constructor(cfp1, cfp2)) {
     /* A conversion function of a managed class wins over a constructor. */
     cmp = 1;
-  } else if (cppcli_enabled &&
+  } else if (cli_or_cx_enabled &&
              managed_conv_func_versus_constructor(cfp2, cfp1)) {
     /* A conversion function of a managed class wins over a constructor. */
     cmp = -1;
@@ -7500,7 +7500,7 @@ with the same signature as the builtin operator indicated by builtin_cfp.
           (!cfp->function_symbol->is_class_member
 #if MICROSOFT_EXTENSIONS_ALLOWED
            /* C++/CLI has static operator functions. */
-           || (cppcli_enabled &&
+           || (cli_or_cx_enabled &&
                !routine_type_is_nonstatic_member_function(
                                     routine_symbol_type(cfp->function_symbol)))
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
@@ -8986,7 +8986,7 @@ in_instantiation:
          functions to pointer to function type. */
       check_assertion(surrogate_function_conv_sym != NULL);
 #if MICROSOFT_EXTENSIONS_ALLOWED
-      if (cppcli_enabled && have_selector &&
+      if (cli_or_cx_enabled && have_selector &&
           is_handle_type(bound_function_selector->type)) {
         expr_pos_error(ec_bad_call_of_handle, call_position);
       } else
@@ -9921,7 +9921,7 @@ the case where the left operand is a C++/CLI handle.
           /* If C++/CLI hide-by-sig lookup applies, you can't trust the
              base class in the projection symbol.  But you have to for a
              __super reference. */
-          && (!cppcli_enabled ||
+          && (!cli_or_cx_enabled ||
               projection_member_sym->is_super_reference ||
               !hide_by_sig_lookup_applies(projection_member_sym))
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
@@ -9972,7 +9972,7 @@ the case where the left operand is a C++/CLI handle.
               member_sym = sym;
               break;
 #if MICROSOFT_EXTENSIONS_ALLOWED
-            } else if (cppcli_enabled &&
+            } else if (cli_or_cx_enabled &&
                        fund_sym == fund_member_sym) {
               /* In C++/CLI mode, a symbol can be picked off the hide-by-sig
                  list, and we won't have a projection symbol leading to it. */
@@ -9983,7 +9983,7 @@ the case where the left operand is a C++/CLI handle.
             }  /* if */
           }  /* for */
 #if MICROSOFT_EXTENSIONS_ALLOWED
-          if (cppcli_enabled && ostblock.hide_by_sig_list != NULL) {
+          if (cli_or_cx_enabled && ostblock.hide_by_sig_list != NULL) {
             /* For a C++/CLI symbol found through hide-by-sig lookup,
                cast down to the base class where the symbol was found. */
             a_hide_by_sig_list_entry_ptr list = ostblock.hide_by_sig_list;
@@ -12811,7 +12811,8 @@ binding is to an rvalue reference.
     dest_type = requested_type = bool_type();
     builtin_types_allowed = (a_builtin_type_kind_set)BTK_NONE;
     boolean_converted_case = (explicit_conversion_functions_enabled &&
-                              !(cppcli_enabled && microsoft_version < 1800));
+                              !(cli_or_cx_enabled &&
+                                microsoft_version < 1800));
   } else if (builtin_types_allowed == BTK_PTRDIFF_T) {
     /* There's only one type in the BTK_PTRDIFF_T category, so make this a
        conversion to a specific type so that templates can be used. */
@@ -12853,7 +12854,7 @@ binding is to an rvalue reference.
       }  /* if */
       need_lvalue_result = !can_bind_to_rvalue;
 #if MICROSOFT_EXTENSIONS_ALLOWED
-    } else if (cppcli_enabled &&
+    } else if (cli_or_cx_enabled &&
                is_tracking_reference_type(ref_binding_type)) {
       /* A tracking reference. */
       need_lvalue_result = TRUE;
@@ -12878,7 +12879,7 @@ not_direct_binding_case:
   } else {
     /* C++/CLI case where we specify the class containing the conversion
        functions. */
-    check_assertion(cppcli_enabled &&
+    check_assertion(cli_or_cx_enabled &&
                     is_immediate_class_type(conv_funcs_class));
   }  /* if */
   /* If the class in which we want to look for conversion functions is a
@@ -12933,7 +12934,7 @@ not_direct_binding_case:
       conversion_routine = tssp->variant.function.routine;
     }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
-    if (cppcli_enabled &&
+    if (cli_or_cx_enabled &&
         (cppcli_atypical_case ==
          conversion_function_converts_from_class(conversion_routine) ||
          (only_std_funcs &&
@@ -13256,7 +13257,7 @@ not_direct_binding_case:
            with versions 4.5 and 4.6). */
         compatible = FALSE;
 #if MICROSOFT_EXTENSIONS_ALLOWED
-      } else if (cppcli_enabled && std_conversion.boxing_conversion) {
+      } else if (cli_or_cx_enabled && std_conversion.boxing_conversion) {
         /* VC10 doesn't allow a boxing conversion after a conversion function,
            for some inscrutable reason. */
         compatible = FALSE;
@@ -13288,8 +13289,8 @@ not_direct_binding_case:
         compatible = TRUE;
         /* The result does not have to be forced to an rvalue. */
       } else if ((builtin_types_allowed & BTK_INTEGRAL) != 0 &&
-                    (cppcli_enabled ? is_enum_type(return_type) :
-                                      is_unscoped_enum_type(return_type))) {
+                    (cli_or_cx_enabled ? is_enum_type(return_type)
+                                       : is_unscoped_enum_type(return_type))) {
         /* The conversion function returns an enum type, which can be
            converted to the desired integral type. */
         compatible = TRUE;
@@ -13323,7 +13324,7 @@ not_direct_binding_case:
       /* C++/CLI has static conversion functions.   For those, match the
          argument against the first parameter. */
       a_param_type_ptr ptp = function_type_params(conv_routine_type);
-      check_assertion(cppcli_enabled && ptp != NULL && ptp->next == NULL);
+      check_assertion(cli_or_cx_enabled && ptp != NULL && ptp->next == NULL);
       determine_arg_match_level(source_operand,
                                 ((source_operand != NULL) ? (a_type_ptr)NULL :
                                                             source_type),
@@ -13334,7 +13335,7 @@ not_direct_binding_case:
                                 &this_match);
     } else if (source_operand != NULL
 #if MICROSOFT_EXTENSIONS_ALLOWED
-               && !(cppcli_enabled && is_handle_type(source_type))
+               && !(cli_or_cx_enabled && is_handle_type(source_type))
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
               ) {
       selector_match_with_this_param(source_operand,
@@ -13470,7 +13471,7 @@ type conversion.  conv_context describes the context of the conversion.
   a_boolean  builtin_case = (builtin_types_allowed != BTK_NONE);
   a_type_ptr conv_funcs_class;
 
-  if (cppcli_enabled) {
+  if (cli_or_cx_enabled) {
     check_assertion(dest_type != NULL || builtin_case);
     if (is_handle_type(source_operand->type) &&
         is_managed_class_type(type_pointed_to(source_operand->type))) {
@@ -13850,7 +13851,7 @@ point to the character after the pattern.  Otherwise, return FALSE.
         break;
       case HANDLE_TYPE_CODE:
       case HANDLE_TO_CLI_ARRAY_TYPE_CODE:
-        if (!cppcli_enabled) result = TRUE;
+        if (!cli_or_cx_enabled) result = TRUE;
         break;
       default:
         break;
@@ -13881,8 +13882,8 @@ it fits that type description or can be converted to it.
       /* C++/CLI permits operations like E::e | E::f where E is a scoped
          enum type: That relies on enum->integer conversions.  C++11, however,
          does not permit (or consider) that option at all. */
-      matches = cppcli_enabled ? is_integral_or_enum_type(type)
-                               : is_integral_or_unscoped_enum_type(type);
+      matches = cli_or_cx_enabled ? is_integral_or_enum_type(type)
+                                  : is_integral_or_unscoped_enum_type(type);
       break;
     case ENUM_TYPE_CODE:
       matches = is_enum_type(type);
@@ -13894,8 +13895,8 @@ it fits that type description or can be converted to it.
       matches = is_arithmetic_type(type);
       break;
     case PROMOTED_ARITH_TYPE_CODE:
-      matches = cppcli_enabled ? is_arithmetic_or_enum_type(type) :
-                                 is_arithmetic_or_unscoped_enum_type(type);
+      matches = cli_or_cx_enabled ? is_arithmetic_or_enum_type(type)
+                                  : is_arithmetic_or_unscoped_enum_type(type);
       break;
     case POINTER_TYPE_CODE:
       matches = is_pointer_type(type);
@@ -14135,7 +14136,7 @@ bound to a reference.
 
   if (
 #if MICROSOFT_EXTENSIONS_ALLOWED
-      (cppcli_enabled && is_handle_type(source_operand->type)) ?
+      (cli_or_cx_enabled && is_handle_type(source_operand->type)) ?
          /* Look for a static conversion function to convert from a
             handle type to the required type. */
          cli_handle_user_defined_conversion_possible(
@@ -14332,7 +14333,8 @@ the target type to be used).
            pointer type for the first operand. */
         a_type_ptr           class_type = pm_class_type(specific_type);
         a_type_qualifier_set qualifiers = TQ_NONE;
-        if (is_pointer_type(operand_type)) {
+        if (cppcx_enabled ? is_pointer_or_handle_type(operand_type)
+                             : is_pointer_type(operand_type)) {
           /* If the first operand has a pointer type, adopt the cv-qualifiers
              under the pointer type as part of the specific type.  This
              allows a first operand of, say "pointer to const X" with a
@@ -14340,8 +14342,21 @@ the target type to be used).
           a_type_ptr underlying_type = type_pointed_to(operand_type);
           qualifiers = get_type_qualifiers(underlying_type);
         }  /* if */
-        eff_specific_type = make_pointer_type(make_qualified_type(class_type,
-                                                                  qualifiers));
+#if MICROSOFT_EXTENSIONS_ALLOWED
+        if (cppcx_enabled &&
+            is_cli_ref_or_interface_class_type(class_type)) {
+          /* Use a handle for the "this" type in pointer to member type with
+             a ref or interface class as the class type. */
+          eff_specific_type = make_handle_type(
+                                             make_qualified_type(class_type,
+                                                                 qualifiers));
+        } else
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+        /* Do not insert code here. */
+        {
+          eff_specific_type = make_pointer_type(make_qualified_type(
+                                                     class_type, qualifiers));
+        }  /* if */
         /* Any cv-qualification is allowed on the type underlying the pointer.
            We're not limited to cases that add cv-qualifiers. */
         allow_any_cv_qual_on_ptr = TRUE;
@@ -14405,7 +14420,7 @@ the target type to be used).
         }  /* if */
       } else if (is_class_struct_union_type(operand_type)
 #if MICROSOFT_EXTENSIONS_ALLOWED
-                 || (cppcli_enabled && is_handle_type(operand_type) &&
+                 || (cli_or_cx_enabled && is_handle_type(operand_type) &&
                      !impl_conversion_possible(
                                       operand_type,
                                       /*source_is_constant=*/FALSE,
@@ -15099,7 +15114,7 @@ this routine does not assume that the selector address will be taken.
 
   if (operand->selector_is_object_pointer) {
     /* In C++/CLI, the selector can be a handle. */
-    check_assertion(cppcli_enabled && is_handle_type(operand_type));
+    check_assertion(cli_or_cx_enabled && is_handle_type(operand_type));
     operand_type = type_pointed_to(operand_type);
     handle_case = TRUE;
   }  /* if */
@@ -15352,7 +15367,18 @@ Adjust the operand type to match the type requirement.
            second is a pointer to member of the same class.  The
            specific_type is a pointer to member, so make the proper
            pointer type for the first operand. */
-        specific_type = make_pointer_type(pm_class_type(specific_type));
+#if MICROSOFT_EXTENSIONS_ALLOWED
+        if (cppcx_enabled &&
+            is_cli_ref_or_interface_class_type(pm_class_type(specific_type))) {
+          /* Use a handle for the "this" type in a pointer to member type with
+             a ref or interface class as the class type. */
+          specific_type = make_handle_type(pm_class_type(specific_type));
+        } else
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+        /* Do not insert code here. */
+        {
+          specific_type = make_pointer_type(pm_class_type(specific_type));
+        }  /* if */
       }  /* if */
       if (type_code == CLASS_TYPE_CODE &&
           arg_match->conversion.routine == NULL) {
@@ -15553,7 +15579,7 @@ operand when initializer lists are enabled.
     /* Check for operator overloading (but not in constant expressions). */
     eff_operand_1_type = operand_1->type;
 #if MICROSOFT_EXTENSIONS_ALLOWED
-    if (cppcli_enabled) {
+    if (cli_or_cx_enabled) {
       if (is_handle_type(eff_operand_1_type)) {
         /* In C++/CLI, if the first operand is a handle to a class we can look
            for operator functions in the class underlying the handle. */
@@ -15634,7 +15660,7 @@ operand when initializer lists are enabled.
           /* In C++/CLI, static conversion functions can convert to or from
              handles. */
           ||
-          (cppcli_enabled &&
+          (cli_or_cx_enabled &&
            (is_literal_convertible_to_cli_string(operand_1,
                                                  /*allow_complex=*/FALSE) ||
             (!unary_operator &&
@@ -15787,7 +15813,7 @@ operand when initializer lists are enabled.
             operand_1->selector_is_object_pointer =
                                               saved_selector_is_object_pointer;
 #if MICROSOFT_EXTENSIONS_ALLOWED
-            if (cppcli_enabled) {
+            if (cli_or_cx_enabled) {
               /* Try to match a C++/CLI static operator function to the
                  operands we have. */
               try_overloaded_function_match(
@@ -15821,7 +15847,7 @@ operand when initializer lists are enabled.
         /* If the second operand has a C++/CLI managed class type (or a handle
            to such a class), also look in that class for static operator
            functions. */
-        if (cppcli_enabled && !unary_operator) {
+        if (cli_or_cx_enabled && !unary_operator) {
           a_type_ptr eff_operand_2_type = operand_2->type;
           if (is_handle_type(eff_operand_2_type)) {
             eff_operand_2_type = type_pointed_to(eff_operand_2_type);
@@ -15965,7 +15991,7 @@ operand when initializer lists are enabled.
              that, but we don't yet have a sun_version option... */
           try_conversions = FALSE;
 #if MICROSOFT_EXTENSIONS_ALLOWED
-        } else if (cppcli_enabled &&
+        } else if (cli_or_cx_enabled &&
                    !unary_operator && kind == (an_opname_kind)onk_plus &&
                    (is_literal_convertible_to_cli_string(operand_1,
                                                   /*allow_complex=*/FALSE) ||
@@ -16729,7 +16755,7 @@ error.  conv_context describes the context of the conversion.
     try_as_arg_of_bitwise_cctor = FALSE;
     if (!source_is_class
 #if MICROSOFT_EXTENSIONS_ALLOWED
-        && !(cppcli_enabled && is_managed_class_type(dest_type))
+        && !(cli_or_cx_enabled && is_managed_class_type(dest_type))
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
        ) {
       /* Do not try conversion functions when the source is not a class. */
@@ -16741,14 +16767,14 @@ error.  conv_context describes the context of the conversion.
       /* Try conversion functions for copy-initialization. */
       try_conversion_functions = TRUE;
 #if MICROSOFT_EXTENSIONS_ALLOWED
-    } else if (cppcli_enabled &&
+    } else if (cli_or_cx_enabled &&
                is_managed_class_type(dest_type) &&
                (conv_context & CCO_FUNC_NOTATION_CAST)) {
       /* In C++/CLI, a functional-notation cast to a managed class type
          sees only the constructors, not the conversion functions. */
       /* However, static conversion functions are considered. */
       try_static_conversion_functions = TRUE;
-    } else if (cppcli_enabled &&
+    } else if (cli_or_cx_enabled &&
                is_managed_class_type(dest_type) &&
                (orig_is_copy_initialization ||
                 ((conv_context & CCO_CAST) &&
@@ -16835,7 +16861,7 @@ error.  conv_context describes the context of the conversion.
                                         &candidate_functions);
         }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
-      } else if (cppcli_enabled && source_type != NULL &&
+      } else if (cli_or_cx_enabled && source_type != NULL &&
                  is_handle_type(source_type)) {
         a_type_ptr conv_funcs_class =
                                  f_skip_typerefs(type_pointed_to(source_type));
@@ -16864,7 +16890,7 @@ error.  conv_context describes the context of the conversion.
       }  /* if */
     }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
-    if (cppcli_enabled &&
+    if (cli_or_cx_enabled &&
         (try_conversion_functions || try_static_conversion_functions) &&
         is_managed_class_type(dest_type) &&
         source_operand != NULL) {
@@ -17051,7 +17077,7 @@ conv_context describes the context of the conversion.  */
                                   conv_context,
                                   &candidate_functions);
 #if MICROSOFT_EXTENSIONS_ALLOWED
-    if (cppcli_enabled &&
+    if (cli_or_cx_enabled &&
         dest_type != NULL &&
         (is_managed_class_type(dest_type) ||
          is_overloadable_handle_type(dest_type))) {
@@ -17231,7 +17257,7 @@ describes the context of the conversion.
 
   db_enter(4, "cli_handle_user_defined_conversion_possible");
   *ambiguous = FALSE;
-  if (cppcli_enabled) {
+  if (cli_or_cx_enabled) {
     a_boolean  builtin_case = (builtin_types_allowed != BTK_NONE);
     a_type_ptr source_type = source_operand->type;
     clear_conv_descr(conversion);
@@ -17436,7 +17462,7 @@ that case).
          bitwise copy is available to convert to the destination type. */
       okay = TRUE;
 #if MICROSOFT_EXTENSIONS_ALLOWED
-    } else if (cppcli_enabled &&
+    } else if (cli_or_cx_enabled &&
                unboxing_conversion_possible(source_type, dest_type,
                                             (a_std_conv_descr *)NULL)) {
       /* If this is an unboxing conversion, don't return failure; let the
@@ -17464,8 +17490,7 @@ that case).
                                  ec_no_user_defined_conversion;
         }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
-      } else if (cppcli_enabled &&
-                 is_managed_class_type(dest_type)) {
+      } else if (cli_or_cx_enabled && is_managed_class_type(dest_type)) {
         /* In C++/CLI, conversion functions can go to classes instead of
            just from them, and constructors of managed classes can only
            be used by functional-notation casts, so use an error message
@@ -17501,7 +17526,7 @@ that case).
          type to the destination type. */
       okay = TRUE;
 #if MICROSOFT_EXTENSIONS_ALLOWED
-    } else if (cppcli_enabled &&
+    } else if (cli_or_cx_enabled &&
                boxing_conversion_possible(source_type, dest_type,
                                           (a_std_conv_descr *)NULL)) {
       /* If this is a boxing conversion, don't return failure; let the
@@ -17515,7 +17540,7 @@ that case).
                              ec_no_conversion_function;
     }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
-  } else if (cppcli_enabled &&
+  } else if (cli_or_cx_enabled &&
              (cli_handle_user_defined_conversion_possible(
                                        source_operand, dest_type,
                                        (a_builtin_type_kind_set)BTK_NONE,
@@ -17964,13 +17989,13 @@ is used only in C++ mode.
     /* C++/CLI allows static conversion functions.  The operand is used as
        the first argument of the call. */
     a_param_type_ptr ptp = function_type_params(routine_type);
-    check_assertion(cppcli_enabled && ptp != NULL && ptp->next == NULL);
+    check_assertion(cli_or_cx_enabled && ptp != NULL && ptp->next == NULL);
     prep_argument_operand(operand, ptp,
                           (a_conv_descr *)NULL,
                           ec_incompatible_param);
   } else {
 #if MICROSOFT_EXTENSIONS_ALLOWED
-    if (cppcli_enabled && is_handle_type(operand->type) &&
+    if (cli_or_cx_enabled && is_handle_type(operand->type) &&
         !operand->selector_is_object_pointer) {
       /* VC10 allows calling a traditional nonstatic conversion function
          to convert from a handle-to-class as if the operand is of class
@@ -20030,7 +20055,7 @@ direct binding is "possible" and not whether it is "valid".
        the source type (at any level).  This is an extension. */
     type_is_correct_or_derived = TRUE;
 #if MICROSOFT_EXTENSIONS_ALLOWED
-  } else if (cppcli_enabled &&
+  } else if (cli_or_cx_enabled &&
              is_tracking_reference_type(dest_type) &&
              is_handle_type_not_generic_constraint(unqual_source_type) &&
              is_handle_type_not_generic_constraint(unqual_dest_type) &&
@@ -20113,7 +20138,7 @@ direct binding is "possible" and not whether it is "valid".
       }  /* if */
     }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
-  } else if (cppcli_enabled &&
+  } else if (cli_or_cx_enabled &&
              is_tracking_reference_type(dest_type) &&
              direct_binding_possible &&
              !(source_operand != NULL &&
@@ -20199,7 +20224,7 @@ direct binding is "possible" and not whether it is "valid".
     direct_binding_possible = FALSE;
   }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
-  if (cppcli_enabled && direct_binding_possible) {
+  if (cli_or_cx_enabled && direct_binding_possible) {
     if (is_tracking_reference_type(dest_type)) {
       if (type_is_derived &&
           is_value_class_type(unqual_source_type)) {
@@ -20506,21 +20531,23 @@ the conversion.
     /* If the reference is to an error type, return an error operand. */
     conv_to_error_operand(source_operand);
 #if MICROSOFT_EXTENSIONS_ALLOWED
-  } else if (cppcli_enabled &&
+  } else if (cli_or_cx_enabled &&
              !(conv_context & CCO_BITWISE_ASSIGNMENT_PARAM) &&
              is_any_initonly_field_operand(source_operand)) {
     /* C++/CLI does not allow binding a reference to an initonly field.  The
        invented parameter of a bitwise assignment operator doesn't really have
        this problem. */
     error_in_operand(ec_ref_bound_to_initonly_field, source_operand);
-  } else if (cppcli_enabled &&
+  } else if (cli_or_cx_enabled &&
              !(conv_context & CCO_BITWISE_ASSIGNMENT_PARAM) &&
              !is_tracking_reference_type(dest_type) &&
              is_gc_lvalue_operand(source_operand)) {
     /* C++/CLI does not allow binding a normal (non-tracking) reference
        to a gc-lvalue.  The invented parameter of a bitwise assignment
        operator doesn't really have this problem. */
-    error_in_operand(ec_normal_ref_bound_to_gc_lvalue, source_operand);
+    error_in_operand(cppcx_enabled ?
+                         ec_normal_ref_bound_to_cppcx_lvalue :
+                         ec_normal_ref_bound_to_gc_lvalue, source_operand);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   } else if (template_case) {
     /* Some unknown types in a prototype instantiation.  Assume the binding
@@ -20810,7 +20837,7 @@ the conversion.
                      &source_operand->position);
       conv_to_error_operand(source_operand);
 #if MICROSOFT_EXTENSIONS_ALLOWED
-    } else if (cppcli_enabled && is_tracking_reference_type(dest_type) &&
+    } else if (cli_or_cx_enabled && is_tracking_reference_type(dest_type) &&
                !binding_to_rvalue_allowed && operand_was_rvalue &&
                is_constant_operand(source_operand)) {
       /* A tracking reference cannot be bound to a constant. */
@@ -20836,7 +20863,7 @@ the conversion.
                                        ec_bad_const_volatile_ref_init :
                                        ec_bad_nonconst_ref_init;
 #if MICROSOFT_EXTENSIONS_ALLOWED
-          if (cppcli_enabled && is_tracking_reference_type(dest_type)) {
+          if (cli_or_cx_enabled && is_tracking_reference_type(dest_type)) {
             err_code = ec_bad_tracking_ref_init;
           }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
@@ -21042,7 +21069,7 @@ resolution).
       make_template_param_expr_constant(expr, &con);
     }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
-  } else if (cppcli_enabled &&
+  } else if (cli_or_cx_enabled &&
              is_cli_generic_definition_argument_type(dest_type)) {
     /* A C++/CLI generic type.  Always non-constant. */
     if (generate_il) {
@@ -21620,6 +21647,7 @@ errors should be suppressed (i.e., SFINAE mode).
     } else {
       a_boolean      temp_init_used = FALSE;
       a_constant_ptr folded_con;
+
       check_assertion(is_pointer_type(param1_type));
       arg1 = add_cast_if_necessary(expr, param1_type);
       if (is_integral_type(param2_type)) {
@@ -22002,7 +22030,7 @@ will be an lvalue instead of the usual prvalue.
   braced_init = is_braced_init_component(icp);
   if (braced_init) {
 #if MICROSOFT_EXTENSIONS_ALLOWED
-    if (cppcli_enabled && is_value_class_type(dest_type) &&
+    if (cli_or_cx_enabled && is_value_class_type(dest_type) &&
         is_cli_generic_definition_argument_type(dest_type)) {
       /* A constraint type can be a value class type, but should not be treated
          as an aggregate type since its subobject structure is not known. */
@@ -22321,10 +22349,12 @@ will be an lvalue instead of the usual prvalue.
         check_assertion(generate_il);
         unbundle_init_component_list_expressions(list);
         scan_dependent_parenthesized_initializer(
-                                               (a_rescan_control_block *)NULL,
-                                               /*arg_list_supplied=*/TRUE,
-                                               list,
-                                               (an_operand *)NULL, &dip);
+                                         (a_rescan_control_block *)NULL,
+                                         /*arg_list_supplied=*/TRUE,
+                                         list,
+                                         /*is_custom_ms_attr_arg_list=*/FALSE,
+                                         (an_operand *)NULL,
+                                         &dip);
         if (is_template_param_type(dest_type) &&
             dip->kind == (a_dynamic_init_kind)dik_constructor) {
           an_expr_node_ptr args = dip->variant.constructor.args;
@@ -22470,6 +22500,7 @@ will be an lvalue instead of the usual prvalue.
                             (a_type_ptr)NULL,
                             fill_in_dtor,
                             /*elision_allowed=*/TRUE,
+                            /*is_custom_ms_attr_arg_list=*/FALSE,
                             (a_rescan_control_block *)NULL,
                             /*arg_list_supplied=*/TRUE,
                             list,
@@ -23069,7 +23100,7 @@ found to be acceptable, and *conversion describes it.
                                             /*fill_in_dtor=*/TRUE,
                                             /*elision_done=*/(a_boolean *)NULL,
                                             &dip, &temp_init_node);
-      make_glvalue_expression_operand(temp_init_node, source_operand);
+        make_glvalue_expression_operand(temp_init_node, source_operand);
     }  /* if */
     restore_operand_details(source_operand, &orig_operand);
     rule_out_expr_kinds(ROEK_CONSTANT, source_operand);
@@ -23694,9 +23725,8 @@ can convert to or from handles.
           possible = TRUE;
         }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
-      } else if (cppcli_enabled &&
-                 (is_handle_type(op1_type) ||
-                  is_handle_type(op2_type))) {
+      } else if (cli_or_cx_enabled &&
+                 (is_handle_type(op1_type) || is_handle_type(op2_type))) {
         /* In C++/CLI a static conversion function can be used to convert 
            to or from a handle. */
         if (cli_handle_user_defined_conversion_possible(
@@ -23828,7 +23858,7 @@ find_default_constructor.
     }  /* if */
   }  /* for */
 #if MICROSOFT_EXTENSIONS_ALLOWED
-  if (cppcli_enabled && ctor_sym == NULL && inaccessible_match != NULL &&
+  if (cli_or_cx_enabled && ctor_sym == NULL && inaccessible_match != NULL &&
       ostblock.any_inaccessible_function_skipped) {
     /* In C++/CLI mode, if we skipped any inaccessible function and we've
        been asked to note viable inaccessible functions, we must do

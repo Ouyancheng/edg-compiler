@@ -1570,7 +1570,10 @@ If include_last_token is TRUE, last_tsn is included in the cache.
 }  /* copy_tokens_from_cache */
 
 
-static void replace_curr_token(a_token_kind	new_token)
+#if !MICROSOFT_EXTENSIONS_ALLOWED
+static
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+void replace_curr_token(a_token_kind	new_token)
 /*
 Replace the current token with new_token.
 */
@@ -1584,6 +1587,76 @@ Replace the current token with new_token.
   }  /* if */
 }  /* replace_curr_token */
 
+#if MICROSOFT_EXTENSIONS_ALLOWED
+
+a_partial_class_body_ptr cache_partial_class_body(a_type_ptr class_type)
+/*
+The current token is the beginning of a partial class body.  Cache the partial
+body's tokens, and return a pointer to an a_partial_class_body representing
+this partial body.  When this function returns, the current token should be
+the final '}' of the partial class body (or EOF in the case of some syntax
+errors).
+
+The token caching strategy used here is derived from
+cache_template_declaration.
+*/
+{
+  a_class_type_supplement_ptr ctsp = class_type_supp(class_type);
+  a_token_cache_ptr           p_cache;
+  a_token_set_array           stop_tokens;
+  a_partial_class_body_ptr    partial_body = alloc_partial_class_body();
+  a_partial_class_body_ptr    *new_body_place;
+  a_boolean                   empty_partial_base_list = TRUE;  /* Assume. */
+
+  /* Set new_body_place to the end of the list. */
+  for (new_body_place = &ctsp->partial_class_bodies;
+       *new_body_place != NULL;
+       new_body_place = &(*new_body_place)->next) {
+    a_partial_class_body_ptr iter = *new_body_place;
+    if (iter->base_cache != NULL) {
+      /* At least one of the partial bodies has a base list. */
+      empty_partial_base_list = FALSE;
+    }  /* if */
+  }  /* for */
+  /* Add partial_body to the end of the list. */
+  *new_body_place = partial_body;
+  /* Set the start position for this partial body. */
+  partial_body->start_position = pos_curr_token;
+  if (curr_token == tok_colon) {
+    /* This partial body has a base list.  Cache the base list. */
+    a_token_cache_ptr  base_cache = alloc_token_cache();
+    clear_token_set_array(stop_tokens);
+    incr_token_set_array_element(stop_tokens, tok_lbrace);
+    incr_token_set_array_element(stop_tokens, tok_semicolon);
+    partial_body->base_cache = base_cache;
+    if (!empty_partial_base_list) {
+      /* If a base list exists on a previously cached partial class body,
+         all subsequent bodies should start with a comma, not a colon. */
+      replace_curr_token(tok_comma);
+    }  /* if */
+    cache_token_stream(base_cache, stop_tokens);
+  }  /* if */
+  /* Cache tokens comprising the partial class body (between the
+     '{' and '}'). */
+  partial_body->body_cache = alloc_token_cache();
+  p_cache = partial_body->body_cache;
+  clear_token_set_array(stop_tokens);
+  incr_token_set_array_element(stop_tokens, tok_rbrace);
+  /* Consume (and do not cache) the tok_lbrace. */
+  (void)get_token();
+  /* Cache the partial class body tokens. */
+  cache_token_stream(p_cache, stop_tokens);
+  /* If all went well, we will be on an tok_rbrace.  Otherwise,
+     tok_end_of_source. */
+  partial_body->end_position = pos_curr_token;
+  if (curr_token != tok_end_of_source) {
+    /* Consume (and do not cache) the final tok_rbrace. */
+    (void)get_token();
+  }  /* if */
+  return partial_body;
+}  /* cache_partial_class_body */
+
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 static void replace_right_shift_by_two_closing_angle_brackets(void)
 /*
@@ -1669,7 +1742,7 @@ which has not yet been cached.
 
 
 a_boolean cache_token_stream_until_matching_token(
-				a_token_cache		*cache,
+				a_token_cache		*cache,	
 				a_cts_flag_set		options)
 /*
 Given curr_token of '<', '(', '[', or '{', copy tokens into the token cache
@@ -4354,7 +4427,14 @@ list, we process the normal (non-macro-only) preincludes.
   a_const_char *file_name;
 
   if (next_preinclude_file == NULL && processing_macro_preincludes) {
-    next_preinclude_file = preinclude_file_list;
+    if (cppcx_enabled) {
+      /* Skip over the force include generated for vccorlib.h. */
+      /* FIXME (daveed): Some assertion check here to verify that we're
+         skipping the right thing? */
+      next_preinclude_file = preinclude_file_list->next;
+    } else {
+      next_preinclude_file = preinclude_file_list;
+    }  /* if */
     processing_macro_preincludes = FALSE;
   }  /* if */
   if (next_preinclude_file != NULL) {
@@ -5714,6 +5794,14 @@ at the next level down.
        execution of this include directive. */
     check_for_generation_of_pch_on_return_to_primary_file();
   }  /* if */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  if (processing_vccorlib_header) {
+    /* If we are processing vccorlib.h, interrupt the feedback loop that pushes
+       a forced include after a pop.  Preusing processing will occur before we
+       resume processing of force includes. */
+  } else
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+  /* Do not insert code here. */
   if (is_end_of_preinclude) {
     /* If this is the end of a preincluded file, see if there is another
        file to be preincluded. */
@@ -7556,7 +7644,7 @@ white_space_loop:
          during the reading of the source line and never get here.
          The strings generated for C++/CLI metadata can include carriage
          return characters. */
-      if (!cppcli_enabled || !scanning_generated_code_from_metadata) {
+      if (!cli_or_cx_enabled || !scanning_generated_code_from_metadata) {
         diagnostic_at_line_pos(strict_ansi_mode ?
                                strict_ansi_discretionary_severity : es_remark,
                                ec_stray_carriage_return,
@@ -10601,21 +10689,29 @@ is set to tok_error.
        the string literal are used as the identifier.  We issue a discretionary
        error (which will automatically be suppressed in files from system
        include directories). */
-    a_constant_ptr	cp;
-#if MICROSOFT_EXTENSIONS_ALLOWED
-    if (!cppcli_enabled || !scanning_generated_code_from_metadata) 
+    a_constant_ptr  cp;
+    if (processing_vccorlib_header) {
+      /* Do not emit this diagnostic while processing vccorlib.h. */
+    } else if (cli_or_cx_enabled && scanning_generated_code_from_metadata) {
       /* Suppress this error for generated code from metadata.  We use 
          __identifier for template specializations imported from metadata.  
          For example, ref class __identifier("Foo<int>"). */
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-    /* Do not insert code here. */
-    diagnostic(es_discretionary_error, ec_exp_cpp_keyword); /*lint !e725*/
+    } else {
+      diagnostic(es_discretionary_error, ec_exp_cpp_keyword); /*lint !e725*/
+    }  /* if */
     clear_locator(&locator, &pos_curr_token);
     cp = get_constant_for_ms_string_operand();
     if (cp != NULL) {
-      (void)find_symbol_header(cp->variant.string.value,
-                               (sizeof_t)cp->variant.string.length - 1,
-                                &locator);
+      if (processing_vccorlib_header &&
+          strcmp(cp->variant.string.value, "<Dispose>") == 0) {
+        /* The metadata reader generates __identifier("<Dispose>").  Map it
+           back to "Dispose" while processing vccorlib.h. */
+        (void)find_symbol_header("Dispose", sizeof("Dispose") - 1, &locator);
+      } else {
+        (void)find_symbol_header(cp->variant.string.value,
+                                 (sizeof_t)cp->variant.string.length - 1,
+                                  &locator);
+      }  /* if */
     } else {
       err = TRUE;
     }  /* if */
@@ -11391,8 +11487,11 @@ Some constants for the "class", "struct" and "each" keyword lengths.
 #define len_of_class (sizeof("class")-1)
 #define len_of_struct (sizeof("struct")-1)
 #define len_of_each (sizeof("each")-1)
+#define len_of_ref (sizeof("ref")-1)
+#define len_of_new (sizeof("new")-1)
 
-static a_token_kind scan_whitespace_keyword(a_token_kind first_word)
+static a_token_kind scan_whitespace_keyword(a_token_kind first_word,
+                                            a_const_char **end_of_token)
 /*
 Check to see if first_word (corresponding to the token beginning at
 start_of_curr_token) together with the next token on the current line form
@@ -11473,17 +11572,37 @@ modification will be added to restore the first token to the current line.
   end_of_word = curr_char_loc;
   while (is_id_char[(*end_of_word)-CHAR_MIN]) ++end_of_word;
   next_word_len = end_of_word - curr_char_loc;
+  if (end_of_token != NULL) *end_of_token = end_of_word;
   /* Determine if first_word and next_word together make a whitespace
      keyword. */
   if (first_word == tok_for) {
     if (next_word_len == len_of_each &&
         memcmp(curr_char_loc, "each", size_t_arg(len_of_each)) == 0) {
-      check_assertion(microsoft_mode || cppcli_enabled);
-      if (cppcli_enabled || microsoft_version >= 1400) {
+      check_assertion(microsoft_mode || cli_or_cx_enabled);
+      if (cli_or_cx_enabled || microsoft_version >= 1400) {
         /* "for each" statements (the STL and array versions) are available
            when emulating versions 1400 and later of the Microsoft compiler. */
         return_token = tok_for_each;
       }  /* if */
+    }  /* if */
+  } else if (cppcx_enabled && first_word == tok_prefix_partial) {
+    /* The first word is "partial". Determine if the whitespace keyword is
+       either "partial ref struct" or "partial ref class". */
+    if (next_word_len == len_of_ref && 
+        memcmp(curr_char_loc, "ref", size_t_arg(len_of_ref)) == 0) {
+      /* The second word is "ref", check if the second and third keyword
+         form the whitespace keyword "ref struct" or "ref class". */
+      start_of_curr_token = orig_loc;
+      curr_char_loc = end_of_word;
+      next_word = scan_whitespace_keyword(tok_prefix_ref, &end_of_word);
+      switch (next_word) {
+        case tok_ref_class:  return_token = tok_partial_ref_class;  break;
+        case tok_ref_struct: return_token = tok_partial_ref_struct; break;
+        default:             return_token = tok_identifier;         break;
+      }  /* switch */
+    } else {
+      /* The second word was not "ref"; return "partial" as an identifier. */
+      return_token = tok_identifier;
     }  /* if */
   } else {
     if (next_word_len == len_of_class && 
@@ -11493,9 +11612,12 @@ modification will be added to restore the first token to the current line.
                memcmp(curr_char_loc, "struct", size_t_arg(len_of_struct)) ==
                                                                            0) {
       next_word = tok_struct;
+    } else if (next_word_len == len_of_new && 
+               memcmp(curr_char_loc, "new", size_t_arg(len_of_new)) == 0) {
+      next_word = tok_new;
     }  /* if */
     if (first_word == tok_enum) {
-      if (cppcli_enabled || (microsoft_version >= 1700 && !cpp11_mode)) {
+      if (cli_or_cx_enabled || (microsoft_version >= 1700 && !cpp11_mode)) {
         /* "enum struct" and "enum class" are whitespace keyword tokens in
            C++/CLI and in recent Microsoft C++ compilers.  C++11, however,
            accepts a similar construct with two keywords instead. */
@@ -11505,7 +11627,7 @@ modification will be added to restore the first token to the current line.
           default:         return_token = tok_identifier;    break;
         }  /* switch */
       }  /* if */
-    } else if (cppcli_enabled) {
+    } else if (cli_or_cx_enabled) {
       switch (first_word) {
         case tok_prefix_interface:
           switch (next_word) {
@@ -11516,6 +11638,9 @@ modification will be added to restore the first token to the current line.
           break;
         case tok_prefix_ref:
           switch (next_word) {
+            case tok_new:    return_token = cppcx_enabled ? tok_ref_new
+                                                             : tok_identifier;
+                                                                    break;
             case tok_class:  return_token = tok_ref_class;          break;
             case tok_struct: return_token = tok_ref_struct;         break;
             default:         return_token = tok_identifier;         break;
@@ -11561,6 +11686,12 @@ modification will be added to restore the first token to the current line.
     }  /* if */
     len_of_curr_token = curr_char_loc - start_of_curr_token;
     end_of_curr_token = curr_char_loc - 1;
+    if (cppcx_enabled && return_token == tok_ref_new) {
+      /* In C++/CX mode, "gcnew" is not a keyword; however, "ref new"
+         and "gcnew" have identical semantics so we reuse all tok_gcnew
+         code paths. */
+      return_token = tok_gcnew;
+    }  /* if */
   } else if (curr_seq_number != start_seq_number) {
     /* We fell off the original source line looking for the second word, so
        we have to restore the first word as a line-start modification. */
@@ -11610,7 +11741,10 @@ Returns TRUE if token is the beginning of a whitespace keyword.
     case tok_prefix_ref:
     case tok_prefix_value:
       /* These can introduce a whitespace keyword only in C++/CLI. */
-      result = cppcli_enabled;
+      result = cli_or_cx_enabled;
+      break;
+    case tok_prefix_partial:
+      result = cppcx_enabled;
       break;
     default:
       result = FALSE;
@@ -11633,7 +11767,7 @@ returns TRUE.  On input symbol points to the symbol for the first token.
 
   /* If the current token could begin a whitespace keyword, scan ahead and
      determine if the next token on the line completes the keyword. */
-  if ((cppcli_enabled || (microsoft_mode && !C_mode())) &&
+  if ((cli_or_cx_enabled || (microsoft_mode && !C_mode())) &&
       !suppress_keyword_recognition) {
     /* Use of an identifier in a whitespace keyword supersedes any other
        meaning that has been declared for that identifier.  We thus ignore
@@ -11646,7 +11780,8 @@ returns TRUE.  On input symbol points to the symbol for the first token.
       if (is_potential_start_of_whitespace_keyword(current_token)) {
         /* The current token is a valid starting word for a whitespace
            keyword. */
-        current_token = scan_whitespace_keyword(current_token);
+        current_token = scan_whitespace_keyword(current_token,
+                                                /*end_of_token=*/NULL);
         if (current_token != tok_identifier &&
             current_token != (a_token_kind)symbol->variant.keyword.token) {
           /* A whitespace keyword has been found. */
@@ -11724,13 +11859,13 @@ been written to be as fast as possible.  Structure has been sacrificed
 to speed in some cases.
 */
 {
-  register a_token_kind         ctoken;
-  register char                 ch;
-  register a_symbol_ptr	        assoc_symbol;
-  a_symbol_kind		        id_kind;
-  a_boolean		        rescan, is_inert_macro = FALSE;
-  a_boolean                     is_temporarily_inert_macro = FALSE;
-  a_boolean		        continue_scan;
+  register a_token_kind ctoken;
+  register char         ch;
+  register a_symbol_ptr	assoc_symbol;
+  a_symbol_kind		id_kind;
+  a_boolean		rescan, is_inert_macro = FALSE;
+  a_boolean             is_temporarily_inert_macro = FALSE;
+  a_boolean		continue_scan;
 #if MICROSOFT_EXTENSIONS_ALLOWED 
   a_token_kind                  token_kind;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
@@ -12390,7 +12525,7 @@ id_scan:
       id_length = end_of_curr_token - start_of_curr_token + 1;
       id_ptr = start_of_curr_token;
 #if MICROSOFT_EXTENSIONS_ALLOWED
-      if (cppcli_enabled && scanning_macro_name) {
+      if (cli_or_cx_enabled && scanning_macro_name) {
         /* The Microsoft compiler in /clr mode allows defining a whitespace
            token as a macro.  Check to see if this is a whitespace token. */
         sym_hdr = find_symbol_header(id_ptr, id_length, &locator_for_curr_id);
@@ -12532,10 +12667,11 @@ id_scan:
                 /* The words that can potentially start a white-space keyword
                    are defined as keywords but if we got here they are
                    identifiers in the current context. */
-                if (cppcli_enabled &&
+                if (cli_or_cx_enabled &&
                     (ctoken == tok_prefix_interface ||
                      ctoken == tok_prefix_ref ||
-                     ctoken == tok_prefix_value)) {
+                     ctoken == tok_prefix_value ||
+                     (cppcx_enabled && ctoken == tok_prefix_partial))) {
                   ctoken = tok_identifier;
                 }  /* if */
                 if (microsoft_mode) {
@@ -13948,7 +14084,7 @@ the destructor or finalizer is part of a qualified name (e.g., "A::B::~B").
 {
   a_type_ptr    type_for_locator = NULL;
   a_boolean     is_destructor = (curr_token == tok_compl);
-  a_boolean     is_finalizer = (cppcli_enabled && curr_token == tok_not);
+  a_boolean     is_finalizer = (cli_or_cx_enabled && curr_token == tok_not);
 
   check_assertion(is_destructor || is_finalizer);
   /* Skip past the "~" or "!", check for an identifier. */
@@ -14852,7 +14988,7 @@ all arguments were explicit.
     }  /* if */
   }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
-  if (cppcli_enabled) {
+  if (cli_or_cx_enabled) {
     /* Record the starting position of the argument list in case it is needed
        for a diagnostic later on. */
     arg1_pos = pos_curr_token;
@@ -14907,7 +15043,7 @@ all arguments were explicit.
       }  /* if */
       arg_pos = pos_curr_token;
 #if MICROSOFT_EXTENSIONS_ALLOWED
-      if (cppcli_enabled && arg_number == 1) arg2_pos = arg_pos;
+      if (cli_or_cx_enabled && arg_number == 1) arg2_pos = arg_pos;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       /* If the template parameter list is empty, exit the loop.  This only
          occurs in error cases. */
@@ -14939,9 +15075,19 @@ all arguments were explicit.
             /* A generic parameter cannot be used as a template argument.
                C++/CLI arrays, pin_ptrs and interior_ptrs are not really
                templates, so allow generic parameters for them. */
-            if (template_sym != cli_symbol_from_kind(csk_cli_array) &&
-                template_sym != cli_symbol_from_kind(csk_pin_ptr) &&
-                template_sym != cli_symbol_from_kind(csk_interior_ptr)) {
+            if (cppcx_enabled) {
+              if (template_sym != cli_symbol_from_kind(
+                                             csk_platform_write_only_array) &&
+                  template_sym != cli_symbol_from_kind(csk_cli_array) &&
+                  template_sym != cli_symbol_from_kind(csk_cppcx_box)) {
+                pos_error(ec_generic_type_in_template_arg, &arg_pos);
+              } else {
+                is_invalid = FALSE;
+              }  /* if */
+            } else if (template_sym != cli_symbol_from_kind(csk_cli_array) &&
+                       template_sym != cli_symbol_from_kind(csk_pin_ptr) &&
+                       template_sym !=
+                                     cli_symbol_from_kind(csk_interior_ptr)) {
               pos_error(ec_generic_type_in_template_arg, &arg_pos);
             } else {
               is_invalid = FALSE;
@@ -15177,7 +15323,7 @@ all arguments were explicit.
     *any_errors = TRUE;
   }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
-  if (cppcli_enabled && !*any_errors) {
+  if (cli_or_cx_enabled && !*any_errors) {
     /* cli::interior_ptr, cli::pin_ptr, and cli::array are implemented via
        templates.  Check that their arguments meet the requirements of the
        language. */
@@ -15209,9 +15355,15 @@ type argument.  Return TRUE if it is valid, FALSE otherwise.
        being omitted from the list of allowed types in ECMA-372 31.2.2
        ("Type Arguments"). */
     a_type_ptr	rah_type;
-    rah_type = cli_class_type_for(csk_system_runtime_argument_handle);
-    result = !same_entities(argument_type, rah_type) &&
-                                                  !is_void_type(argument_type);
+    if (cppcx_enabled) {
+      /* C++/CX does not have a System::RuntimeArgumentHandle
+         counterpart. */
+      rah_type = NULL;
+    } else {
+      rah_type = cli_class_type_for(csk_system_runtime_argument_handle);
+    }  /* if */
+    result = !(rah_type != NULL && same_entities(argument_type, rah_type)) &&
+             !is_void_type(argument_type);
   } else if (is_template_param_type(argument_type) ||
              is_cli_generic_definition_argument_type(argument_type)) {
     /* A generic parameter is allowed.  The ECMA standard does not say
@@ -17009,28 +17161,6 @@ we are scanning a C++/CLI typeid of the form X::typeid.
   } else {
     sym = normal_fund_sym;
   }  /* if */
-#if MICROSOFT_EXTENSIONS_ALLOWED
-  if (cppcli_enabled && sym == NULL && class_type == NULL) {
-    /* If the lookup above did not find a symbol, check for a C++/CLI
-       type that acts like a template (array, interior_ptr, pin_ptr). */
-    a_symbol_header_ptr sym_hdr = locator_for_curr_id.symbol_header;
-    if (sym_hdr != NULL) {
-      check_assertion(cli_symbol_from_kind(csk_cli_array) != NULL &&
-                      cli_symbol_from_kind(csk_interior_ptr) != NULL &&
-                      cli_symbol_from_kind(csk_pin_ptr) != NULL);
-      if (sym_hdr == cli_symbol_from_kind(csk_cli_array)->header) {
-        /* Fall back to cli::array.  ECMA-372 $24.1. */
-        sym = cli_symbol_from_kind(csk_cli_array);
-      } else if (sym_hdr == cli_symbol_from_kind(csk_interior_ptr)->header) {
-        /* Fall back to cli::interior_ptr.  ECMA-372 $12.3.6. */
-        sym = cli_symbol_from_kind(csk_interior_ptr);
-      } else if (sym_hdr == cli_symbol_from_kind(csk_pin_ptr)->header) {
-        /* Fall back to cli::pin_ptr.  ECMA-372 $12.3.7. */
-        sym = cli_symbol_from_kind(csk_pin_ptr);
-      }  /* if */
-    }  /* if */
-  }  /* if */
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   if (sym != NULL && might_be_vacuous_dtor_or_finalizer) {
     /* If the lookup above returned something that is only valid as a vacuous
        destructor, set the is_vacuous destructor flag. */
@@ -17189,7 +17319,7 @@ destructor), or, in C++/CLI mode, "!" (which may introduce a finalizer).
 */
 #if MICROSOFT_EXTENSIONS_ALLOWED
 #define is_dtor_or_finalizer_token(tok)                                \
-  ((tok) == tok_compl || (cppcli_enabled && (tok) == tok_not))
+  ((tok) == tok_compl || (cli_or_cx_enabled && (tok) == tok_not))
 #else /* !MICROSOFT_EXTENSIONS_ALLOWED */
 #define is_dtor_or_finalizer_token(tok)                                \
   ((tok) == tok_compl)
@@ -17233,13 +17363,13 @@ following cases:
 	operator =
 	operator int
 	~A		When options & GID_DTOR_RECOGNIZED = TRUE
-	!A		When options & GID_DTOR_RECOGNIZED and cppcli_enabled
-			  are both TRUE
+	!A		When options & GID_DTOR_RECOGNIZED and
+                          cli_or_cx_enabled are both TRUE
 	A<int>		Template reference will be coalesced
 	NS::A<int>	Template reference will be coalesced
 	int::~int	When options & GID_VACUOUS_DTOR_RECOGNIZED = TRUE
 	int::!int	When options & GID_VACUOUS_DTOR_RECOGNIZED and
-			  cppcli_enabled are both TRUE
+			  cli_or_cx_enabled are both TRUE
 
 Returns FALSE and sets curr_token to tok_ptr_to_member for:
 
@@ -17261,8 +17391,8 @@ Returns FALSE and leaves curr_token_unchanged for:
 	::new
 	::delete
 	~name		When options & GID_DTOR_RECOGNIZED = FALSE
-	!name		When options & GID_DTOR_RECOGNIZED or cppcli_enabled
-			  is FALSE
+	!name		When options & GID_DTOR_RECOGNIZED or
+			  cli_or_cx_enabled is FALSE
 	anything else
 
 When the GID_TEMPLATE_ARGS_OPTIONAL flag is set in "options" the 
@@ -17509,7 +17639,7 @@ selection operator, in which case it points to the type of the left operand.
       }  /* if */
     }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
-  } else if (cppcli_enabled && (options & GID_IS_EXPR_CONTEXT) != 0 &&
+  } else if (cli_or_cx_enabled && (options & GID_IS_EXPR_CONTEXT) != 0 &&
              is_type_keyword(curr_token) && next_token() == tok_colon_colon) {
     /* A construct like int::Parse("1").  If the type has an associated C++/CLI
        system type, treat this as a qualifier. */
@@ -17623,7 +17753,7 @@ selection operator, in which case it points to the type of the left operand.
         /* Something like "operator B ...". */
         lookup_kind = IDL_NO_OPTIONS;
 #if MICROSOFT_EXTENSIONS_ALLOWED
-      } else if (cppcli_enabled && next_tok_2 == tok_typeid) {
+      } else if (cli_or_cx_enabled && next_tok_2 == tok_typeid) {
         /* A C++/CLI typeid reference -- something like X::typeid. */
         is_cli_typeid = TRUE;
         lookup_kind = IDL_MUST_BE_CLASS;
@@ -17866,7 +17996,7 @@ selection operator, in which case it points to the type of the left operand.
             check_assertion(is_template_param_type(qualifier_type) ||
                             is_vacuous_dtor_or_finalizer);
 #if MICROSOFT_EXTENSIONS_ALLOWED
-        } else if (cppcli_enabled && next_tok_2 == tok_typeid) {
+        } else if (cli_or_cx_enabled && next_tok_2 == tok_typeid) {
           /* A C++/CLI typeid reference. */
           qualifier_is_type = TRUE;
           if (is_type_symbol(qualifier_sym)) {
@@ -17876,7 +18006,7 @@ selection operator, in which case it points to the type of the left operand.
             invalid_qualifier_sym = TRUE;
             err = TRUE;
           }  /* if */
-        } else if (cppcli_enabled &&
+        } else if (cli_or_cx_enabled &&
                    symbol_is(qualifier_sym, sk_type) &&
                    (qualifier_sym_type =
                        system_type_from_fundamental_type(
@@ -18077,7 +18207,7 @@ selection operator, in which case it points to the type of the left operand.
             if (next_tok == tok_lt || is_template) {
               lookup_options = IDL_TENTATIVE_TEMPLATE_LOOKUP;
 #if MICROSOFT_EXTENSIONS_ALLOWED
-            } else if (cppcli_enabled && next_tok_2 == tok_typeid) {
+            } else if (cli_or_cx_enabled && next_tok_2 == tok_typeid) {
               /* A C++/CLI typeid reference -- something like X::typeid. */
               lookup_options = IDL_MUST_BE_CLASS;
               is_cli_typeid = TRUE;
@@ -18301,7 +18431,7 @@ selection operator, in which case it points to the type of the left operand.
       is_identifier = FALSE;
       is_ptr_to_member = TRUE;
 #if MICROSOFT_EXTENSIONS_ALLOWED
-    } else if (cppcli_enabled && curr_token == tok_typeid) {
+    } else if (cli_or_cx_enabled && curr_token == tok_typeid) {
       /* We have a C++/CLI typeid (i.e., A::typeid). */
       is_identifier = FALSE;
       is_cli_typeid = TRUE;
@@ -18345,7 +18475,7 @@ selection operator, in which case it points to the type of the left operand.
          finalizer names are always recognized after qualifiers.  If not
          preceded by a qualifier, then they are only recognized when
          GID_DTOR_RECOGNIZED is TRUE.  In either case, finalizer names are
-         only recognized when cppcli_enabled is TRUE. */
+         only recognized when cli_or_cx_enabled is TRUE. */
       /* If we have already discovered that we have a vacuous destructor/
          finalizer reference, then it must be a non-class destructor/
          finalizer reference (e.g., int::~int). */
@@ -18370,7 +18500,7 @@ selection operator, in which case it points to the type of the left operand.
             symbol_supplement_for_class(qualifier_type)->destructor == NULL) {
           is_vacuous_dtor_or_finalizer = TRUE;
 #if MICROSOFT_EXTENSIONS_ALLOWED
-        } else if (cppcli_enabled && curr_token == tok_not &&
+        } else if (cli_or_cx_enabled && curr_token == tok_not &&
                    symbol_supplement_for_class(qualifier_type)->finalizer
                                                                     == NULL) {
           is_vacuous_dtor_or_finalizer = TRUE;
@@ -18443,10 +18573,11 @@ selection operator, in which case it points to the type of the left operand.
     /* Check for a destructor/finalizer name.  Destructor/finalizer names are
        always recognized following a class qualifier, but otherwise are only
        recognized if the GID_DTOR_RECOGNIZED flag is set.  In either case,
-       finalizer names are only recognized when cppcli_enabled is TRUE. */
+       finalizer names are only recognized when cli_or_cx_enabled is TRUE. */
     if (is_nonclass_dtor_or_finalizer) {
       a_boolean is_destructor_name = (curr_token == tok_compl);
-      a_boolean is_finalizer_name = (cppcli_enabled && curr_token == tok_not);
+      a_boolean is_finalizer_name = (cli_or_cx_enabled &&
+                                     curr_token == tok_not);
       /* Don't do normal destructor/finalizer processing on a non-class
          vacuous destructor/finalizer.  Set the destructor/finalizer flag in
          the locator and look up the identifier or type that follows the tilde
@@ -18635,7 +18766,7 @@ selection operator, in which case it points to the type of the left operand.
           if (!in_if_exists) {
             pos_ty_error(
 #if MICROSOFT_EXTENSIONS_ALLOWED
-                         (cppcli_enabled &&
+                         (cli_or_cx_enabled &&
                           locator_for_curr_id.is_finalizer_name) ?
                          ec_finalizer_type_mismatch :
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
@@ -19133,6 +19264,11 @@ scanned is, in fact, an identifier).
     /* Normal identifier -- look it up. */
     /* Translate the general identifier options into ID lookup options. */
     idl_options = idl_options_for_lookup_mode[(int)ilm];
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    if (in_if_exists) {
+      idl_options |= IDL_IF_EXISTS_LOOKUP;
+    }  /* if */
+#endif /*MICROSOFT_EXTENSIONS_ALLOWED */
     symbol = normal_id_lookup(&locator_for_curr_id, idl_options);
   }  /* if */
   /* If this is the symbol of a class template then this must be a reference
@@ -19383,7 +19519,7 @@ error cases.
     if (curr_token != tok_rbrace) break;
   }  /* while */
 #if MICROSOFT_EXTENSIONS_ALLOWED
-  if (cppcli_enabled && curr_token == tok_rbrace &&
+  if (cli_or_cx_enabled && curr_token == tok_rbrace &&
       next_token() == tok_identifier) {
     a_token_cache aux_cache;
 
@@ -20090,6 +20226,12 @@ of characters added.
        form. */
     put_str_to_temp_text_buffer("__decltype");
 #endif /* BACK_END_IS_CP_GEN_BE */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  } else if (cppcx_enabled && token == tok_gcnew) {
+    /* In C++/CX mode, scan_whitespace_keyword recognizes tok_ref_new,
+       but returns tok_gcnew.  Map the keyword back to "ref new". */
+    put_str_to_temp_text_buffer(token_names[(int)tok_ref_new]);
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   } else {
     /* A keyword or other token whose literal name can be put out. */
     put_str_to_temp_text_buffer(token_names[(int)token]);
@@ -20497,12 +20639,12 @@ C++/CLI delegate class types.)
   }  /* if */
 #if DEBUG
   if (db_flag_is_set("dump_metadata")) {
-    fprintf(f_debug, "Class definition for %x/%08x: %.256s%s\n",
+    fprintf(f_debug, "Class definition for 0x%x/0x%08x: %.256s%s\n",
             assembly_scope_index, metadata_type_def_token,
             class_def_buffer->buffer,
             class_def_buffer->size > 256 ? "..." : "");
   } else if (db_flag_is_set("dump_full_metadata")) {
-    fprintf(f_debug, "Class definition for %x/%08x: %s\n",
+    fprintf(f_debug, "Class definition for 0x%x/0x%08x: %s\n",
             assembly_scope_index, metadata_type_def_token,
             class_def_buffer->buffer);
   }  /* if */
@@ -20554,6 +20696,7 @@ C++/CLI delegate class types.)
     (void)scan_class_definition(
                     class_type, (a_decl_parse_state*)NULL,
                     depth_innermost_namespace_scope,
+                    /*is_partial=*/FALSE,
                     /*is_local_class=*/FALSE,
                     /*delayed_nested_class_def=*/
                                     class_type->source_corresp.is_class_member,

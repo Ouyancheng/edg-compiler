@@ -774,12 +774,20 @@ the file scope, do not process it (but record an orphan in the latter case).
                           iek_type);
                 break;
               case abk_typeid:
+#if MICROSOFT_EXTENSIONS_ALLOWED
+              case abk_cli_typeid:
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
                 /* The recorded type is not limited to the kind of types that
                    are visited from the scope.  So walk the subtree in any
                    case. */
                 walk_ptr(ptr->variant.address.variant.type, a_type_ptr,
                          iek_type);
                 break;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+              case abk_cli_array:
+                /* No variant fields. */
+                break;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
               case abk_label:
                 /* Labels will be visited from the scope. */
                 remap_ptr(ptr->variant.address.variant.label, a_label_ptr,
@@ -2319,15 +2327,26 @@ do_set_proper_definition_needed_flag:
           remap_ptr(ptr->entity.ptr, a_char_ptr,
                     (an_il_entry_kind)ptr->entity.kind);
         }
-        walk_string_ptr(ptr->name, iek_other_text, 0);
-        walk_string_ptr(ptr->string, iek_other_text, 0);
-        walk_list(ptr->arg_list, an_ms_attribute_arg_ptr,
-                  iek_ms_attribute_arg);
+        if (ptr->kind == (an_ms_attribute_kind)msak_custom) {
+          remap_ptr(ptr->variant.custom_info.type, a_type_ptr, iek_type);
+          remap_ptr(ptr->variant.custom_info.constructor, a_routine_ptr,
+                    iek_routine);
+          walk_list(ptr->variant.custom_info.args, an_expr_node_ptr,
+                    iek_expr_node);
+          walk_list(ptr->variant.custom_info.named_args,
+                    a_custom_ms_attribute_arg_ptr,
+                    iek_custom_ms_attribute_arg);
+        } else {
+          conditionally_clear_fe_pointer(ptr->variant.info.kind_descr);
+          walk_string_ptr(ptr->variant.info.name, iek_other_text, 0);
+          walk_string_ptr(ptr->variant.info.string, iek_other_text, 0);
+          walk_list(ptr->variant.info.arg_list, an_ms_attribute_arg_ptr,
+                    iek_ms_attribute_arg);
+        }  /* if */
 #if GENERATE_SOURCE_SEQUENCE_LISTS && !NEEDED_FLAG_WALK && !KEEP_IN_IL_WALK
         remap_ptr(ptr->source_sequence_entry, a_source_sequence_entry_ptr,
                   iek_source_sequence_entry);
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS && ... */
-        conditionally_clear_fe_pointer(ptr->kind_descr);
       }
       break;
     case  iek_ms_attribute_arg:
@@ -2350,6 +2369,15 @@ do_set_proper_definition_needed_flag:
           default:
             break;
         }  /* switch */
+      }
+      break;
+    case  iek_custom_ms_attribute_arg:
+      { a_custom_ms_attribute_arg_ptr ptr;
+        ptr = (a_custom_ms_attribute_arg_ptr)entry_ptr;
+        remap_next_ptr(ptr->next, a_custom_ms_attribute_arg_ptr,
+                      iek_custom_ms_attribute_arg);
+        remap_ptr(ptr->field, a_field_ptr, iek_field);
+        walk_ptr(ptr->expression, an_expr_node_ptr, iek_expr_node);
       }
       break;
     case iek_property_index_type:

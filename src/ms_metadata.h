@@ -41,9 +41,14 @@ enum a_cpp_cli_import_flag_tag {
   cpp_cli_define_all_types       = 0x0008,
                         /* Imports all types in the assembly as opposed to only
                            the top-level declarations. */
-  cpp_cli_wchar_t_is_keyword     = 0x0010
+  cpp_cli_wchar_t_is_keyword     = 0x0010,
                         /* Imports wide character types as "wchar_t" instead
                            of "unsigned short". */
+  cpp_cli_ide_custom_attributes  = 0x0020,
+                        /* Imports custom attributes that pertain to the
+                           design-time experience in the IDE. */
+  cpp_cli_all_custom_attributes  = 0x0040
+                        /* Imports all custom attributes. */
 };
 
 
@@ -57,8 +62,8 @@ extern void import_all_types(an_assembly_index assembly_index,
 extern void import_class_definition(
                                  an_assembly_scope_index assembly_scope_index,
                                  a_cpp_cli_token         typedef_token,
-                                    char              *buffer,
-                                    size_t            *buffer_size);
+                                 char                    *buffer,
+                                 size_t                  *buffer_size);
 extern void ms_metadata_trans_unit_init(a_const_char *trans_unit_file_name);
 extern void ms_metadata_trans_unit_wrapup(void);
 extern void ms_metadata_cleanup(void);

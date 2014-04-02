@@ -515,6 +515,16 @@ Initialize the option information table.
   add_option_description(optk_cppcli, "clr",
                          '\0', /*value=*/TRUE, /*arg_required=*/FALSE,
                          pchek_command_line);
+#endif /* CPPCLI_ENABLING_POSSIBLE */
+#if CPPCX_ENABLING_POSSIBLE
+  add_option_description(optk_cppcx, "cppcx",
+                         '\0', /*value=*/TRUE, /*arg_required=*/FALSE,
+                         pchek_command_line);
+  add_option_description(optk_cppcx, "no_cppcx",
+                         '\0', /*value=*/FALSE, /*arg_required=*/FALSE,
+                         pchek_command_line);
+#endif /* CPPCX_ENABLING_POSSIBLE */
+#if CPPCLI_ENABLING_POSSIBLE || CPPCX_ENABLING_POSSIBLE
   add_option_description(optk_preusing, "preusing",
                          '\0', /*value=*/TRUE, /*arg_required=*/TRUE,
                          pchek_command_line);
@@ -532,7 +542,7 @@ Initialize the option information table.
   add_option_description(optk_mscorlib_file_name, "mscorlib_file_name",
                          '\0', /*value=*/TRUE, /*arg_required=*/TRUE,
                          pchek_command_line);
-#endif /* CPPCLI_ENABLING_POSSIBLE */
+#endif /* CPPCLI_ENABLING_POSSIBLE || CPPCX_ENABLING_POSSIBLE */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if NEAR_AND_FAR_ALLOWED
   add_option_description(optk_far_data_pointers, "far_data_pointers",
@@ -4841,6 +4851,11 @@ file.
 #else /* !defined(CPPCLI_PORTABLE_ASSEMBLY_PATH) */
   comment_undefined_macro_name(CPPCLI_PORTABLE_ASSEMBLY_PATH);
 #endif /* defined(CPPCLI_PORTABLE_ASSEMBLY_PATH) */
+#if defined(CPPCX_ENABLING_POSSIBLE)
+  define_numeric_valued_macro(CPPCX_ENABLING_POSSIBLE);
+#else /* !defined(CPPCX_ENABLING_POSSIBLE) */
+  comment_undefined_macro_name(CPPCX_ENABLING_POSSIBLE);
+#endif /* defined(CPPCX_ENABLING_POSSIBLE) */
 #if defined(CPP11_IL_EXTENSIONS_SUPPORTED)
   define_numeric_valued_macro(CPP11_IL_EXTENSIONS_SUPPORTED);
 #else /* !defined(CPP11_IL_EXTENSIONS_SUPPORTED) */
@@ -5035,6 +5050,11 @@ file.
 #else /* !defined(DEFAULT_CPPCLI_ENABLED) */
   comment_undefined_macro_name(DEFAULT_CPPCLI_ENABLED);
 #endif /* defined(DEFAULT_CPPCLI_ENABLED) */
+#if defined(DEFAULT_CPPCX_ENABLED)
+  define_numeric_valued_macro(DEFAULT_CPPCX_ENABLED);
+#else /* !defined(DEFAULT_CPPCX_ENABLED) */
+  comment_undefined_macro_name(DEFAULT_CPPCX_ENABLED);
+#endif /* defined(DEFAULT_CPPCX_ENABLED) */
 #if defined(DEFAULT_CPP11_DEPENDENT_NAME_PROCESSING)
   define_numeric_valued_macro(DEFAULT_CPP11_DEPENDENT_NAME_PROCESSING);
 #else /* !defined(DEFAULT_CPP11_DEPENDENT_NAME_PROCESSING) */
@@ -8613,7 +8633,10 @@ Process the arguments on the command line that invoked the compiler.
 #endif /* NEAR_AND_FAR_ALLOWED */
 enable_microsoft_mode:
         microsoft_mode = opt_value;
-        if (!option_kind_used[(int)optk_cppcli]) {
+        if (!option_kind_used[(int)optk_cppcli] &&
+            /* Make sure not to disable --cppcli mode if --cppcx has been
+               specified. */
+            !option_kind_used[(int)optk_cppcx]) {
           cppcli_enabled =
                      DEFAULT_CPPCLI_ENABLED && microsoft_mode;  /*lint !e506*/
         }  /* if */
@@ -8631,6 +8654,13 @@ enable_microsoft_mode:
 #endif /* NEAR_AND_FAR_ALLOWED */
       case optk_cppcli:
         cppcli_enabled = opt_value;
+        set_C_dialect(C_dialect_cplusplus);
+        if (opt_value && !option_kind_used[(int)optk_microsoft_mode]) {
+          goto enable_microsoft_mode;
+        }  /* if */
+        break;
+      case optk_cppcx:
+        cppcx_enabled = opt_value;
         set_C_dialect(C_dialect_cplusplus);
         if (opt_value && !option_kind_used[(int)optk_microsoft_mode]) {
           goto enable_microsoft_mode;
@@ -9524,31 +9554,57 @@ enable_microsoft_mode:
     }  /* if */
   }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
-  if (cppcli_enabled) {
-    /* C++/CLI requires Microsoft C++ mode. */
+  if (cppcli_enabled || cppcx_enabled) {
+    if (cppcli_enabled && cppcx_enabled) {
+      /* C++/CLI and C++/CX cannot both be enabled.  If one is enabled by
+         default, and the other through the command-line, the latter takes
+         precedence. */
+      if (!option_kind_used[(int)optk_cppcx]) {
+        cppcx_enabled = FALSE;
+        check_assertion(option_kind_used[(int)optk_cppcli]);
+      } else if (!option_kind_used[(int)optk_cppcli]) {
+        cppcli_enabled = FALSE;
+      } else {
+        command_line_error(ec_cl_cppcx_and_cppcli);
+      }  /* if */
+    }  /* if */
     if (!microsoft_mode) {
-      if (option_kind_used[(int)optk_cppcli] &&
+      if ((option_kind_used[(int)optk_cppcli] ||
+           option_kind_used[(int)optk_cppcx]) &&
           option_kind_used[(int)optk_microsoft_mode]) {
         /* Issue an error if Microsoft mode is explicitly turned off and
-           C++/CLI mode is explicitly turned on. */
-        command_line_error(ec_cl_cppcli_only_in_microsoft_cplusplus);
+           C++/CLI or C++/CX mode is explicitly turned on. */
+        command_line_error(cppcx_enabled ?
+                               ec_cl_cppcx_only_in_microsoft_cplusplus :
+                               ec_cl_cppcli_only_in_microsoft_cplusplus);
       }  /* if */
       cppcli_enabled = FALSE;
+      cppcx_enabled = FALSE;
     } else if (C_mode()) {
-      if (option_kind_used[(int)optk_cppcli]) {
-        /* Issue an error if C++/CLI was turned on explicitly in C mode. */
-        command_line_error(ec_cl_cppcli_only_in_microsoft_cplusplus);
+      if (option_kind_used[(int)optk_cppcli] ||
+          option_kind_used[(int)optk_cppcx]) {
+        /* Issue an error if C++/CLI or C++/CX was turned on explicitly in
+           C mode. */
+        command_line_error(cppcx_enabled ?
+                               ec_cl_cppcx_only_in_microsoft_cplusplus :
+                               ec_cl_cppcli_only_in_microsoft_cplusplus);
       }  /* if */
       cppcli_enabled = FALSE;
+      cppcx_enabled = FALSE;
     } else if (microsoft_version < 1600) {
-      /* microsoft_version must be at least 1600 for C++/CLI features. */
+      /* microsoft_version must be at least 1600 for C++/CLI and C++/CX
+         features. */
       if (option_kind_used[(int)optk_microsoft_version]) {
         /* Issue an error if microsoft_version is explicitly set to a low
            value. */
-        command_line_error(ec_cl_microsoft_version_insufficient_for_cppcli);
+        command_line_error(cppcx_enabled ?
+                             ec_cl_microsoft_version_insufficient_for_cppcx :
+                             ec_cl_microsoft_version_insufficient_for_cppcli);
       }  /* if */
       microsoft_version = 1600;
     }  /* if */
+    cli_or_cx_enabled = cppcx_enabled || cppcli_enabled;
+    if (!cppcli_enabled) use_cppcli_fill_ins = FALSE;
   }  /* if */
   if (microsoft_mode) {
     /* Turn on features implied by Microsoft mode. */
@@ -9651,23 +9707,23 @@ enable_microsoft_mode:
        enabled. */
     allow_nonconst_ref_anachronism = TRUE;
   }  /* if */
-#if DO_IL_LOWERING && CPPCLI_ENABLING_POSSIBLE
-  /* IL lowering cannot handle C++/CLI constructs, so if we are accepting
-     C++/CLI disable lowering.  (This is possible only when a special
-     "trust me" macro is set explicitly.) */
+#if DO_IL_LOWERING && (CPPCLI_ENABLING_POSSIBLE || CPPCX_ENABLING_POSSIBLE)
+  /* IL lowering cannot handle C++/CLI or C++/CX constructs, so if we are
+     accepting those extensions disable lowering.  (This is possible only when
+     a special "trust me" macro is set explicitly.) */
 #if !ALLOW_CPPCLI_WITH_LOWERING
 /* host_envir.h checks this too, so if we fail here someone has broken the
    test there. */
  #error -- IL lowering cannot be done when C++/CLI enabling is allowed.
 #endif /* !ALLOW_CPPCLI_WITH_LOWERING */
-  if (cppcli_enabled) {
+  if (cli_or_cx_enabled) {
     suppress_il_lowering = TRUE;
     suppress_back_end = TRUE;
 #if IL_SHOULD_BE_WRITTEN_TO_FILE
     suppress_il_file_write = TRUE;
 #endif /* IL_SHOULD_BE_WRITTEN_TO_FILE */
   }  /* if */
-#endif /* DO_IL_LOWERING && CPPCLI_ENABLING_POSSIBLE */
+#endif /* DO_IL_LOWERING && (CPPCLI_ENABLING_POSSIBLE || ...) */
 #if DO_IL_LOWERING && ABI_CHANGES_FOR_RTTI
 #if SUPPRESS_TYPEINFO_VARIABLES_WHEN_RTTI_DISABLED
   /* Suppress typeinfo variables when RTTI is disabled. */
@@ -10507,6 +10563,8 @@ variables declared in cmd_line.h.
   microsoft_mode = DEFAULT_MICROSOFT_MODE;
   microsoft_bugs = DEFAULT_MICROSOFT_BUGS && microsoft_mode;  /*lint !e506*/
   cppcli_enabled = DEFAULT_CPPCLI_ENABLED && microsoft_mode;  /*lint !e506*/
+  cppcx_enabled = DEFAULT_CPPCX_ENABLED &&
+                     microsoft_mode;  /*lint !e506*/
   mscorlib_file_name = NULL;
   /* using_framework_directory defaults to TRUE, but has no effect unless
      cppcli_enabled is TRUE. */
@@ -10523,6 +10581,7 @@ variables declared in cmd_line.h.
   microsoft_mode = FALSE;
   microsoft_bugs = FALSE;
   cppcli_enabled = FALSE;
+  cppcx_enabled = FALSE;
   scanning_generated_code_from_metadata = FALSE;
 #endif /* ifdef _lint */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */

@@ -3506,7 +3506,7 @@ Instantiate the C++/CLI generic delegate specified by class_type.
                                 instance_sym, &instance_sym->decl_position,
                                 (a_source_sequence_entry_ptr)NULL);
       init_decl_parse_state(&dps);
-      if (curr_token == tok_lbracket && next_token() != tok_lbracket) {
+      if (microsoft_attribute_tokens_next()) {
         dps.ms_attributes = scan_microsoft_attributes(/*is_parameter=*/FALSE);
       }  /* if */
       visibility = scan_cli_visibility_specifier_if_any(&visibility_pos);
@@ -3664,7 +3664,7 @@ be completed here.
 #if MICROSOFT_EXTENSIONS_ALLOWED
   /* If class_type is based on a C++/CLI generic, make sure the generic
      definition has been loaded from metadata, if needed. */
-  if (cppcli_enabled && template_sym != NULL &&
+  if (cli_or_cx_enabled && template_sym != NULL &&
       class_type->variant.class_struct_union.is_generic_instance &&
       !class_type->variant.class_struct_union.is_generic_definition) {
     get_definition_of_generic_if_needed(template_sym);
@@ -3986,7 +3986,7 @@ be completed here.
         if (proto_type->variant.class_struct_union.abstract) {
           class_type->variant.class_struct_union.abstract = TRUE;
         }  /* if */
-        if (cppcli_enabled) {
+        if (cli_or_cx_enabled) {
           ctsp->assembly_visibility =
                              class_type_supp(proto_type)->assembly_visibility;
           ctsp->cli_class_type_kind =
@@ -4020,6 +4020,7 @@ be completed here.
       (void)scan_class_definition(
                     class_type, (a_decl_parse_state*)NULL,
                     depth_innermost_namespace_scope,
+                    /*is_partial=*/FALSE,
                     /*is_local_class=*/FALSE,
                     /*delayed_nested_class_def=*/is_class_member,
                     /*is_template_instantiation=*/TRUE,
@@ -4643,6 +4644,7 @@ A pointer to the head of the list is returned in tcsp.
                                                    pending_class_definitions++;
   (void)scan_class_definition(prototype_type, &decl_state->decl_parse,
                               depth_innermost_namespace_scope,
+                              /*is_partial=*/FALSE,
                               /*is_local_class=*/FALSE,
                               /*delayed_nested_class_def=*/is_class_member,
                               /*is_template_instantiation=*/TRUE,
@@ -6113,7 +6115,7 @@ the same constant.
       a_type_ptr type1 = arg1->variant.type;
       a_type_ptr type2 = arg2->variant.type;
 #if MICROSOFT_EXTENSIONS_ALLOWED
-      if (cppcli_enabled && is_prototype) {
+      if (cli_or_cx_enabled && is_prototype) {
         /* If the type is a C++/CLI generic constraint, use the associated
            template parameter for the comparison. */
         if (type1 != NULL) {
@@ -6471,7 +6473,15 @@ not forming a C++/CLI array of an invalid type).
       a_host_large_integer val;
       check_assertion(con->kind == (a_constant_repr_kind)ck_integer);
       val = value_of_integer_constant(con, &ovflo);
-      if (val <= 0 || val >= 33 || ovflo) {
+      if (cppcx_enabled) {
+        if (val != 1 || ovflo) {
+          if (arg1_pos != NULL) {
+            check_assertion(arg2_pos != NULL);
+            pos_error(ec_cppcx_array_only_one_dimension_allowed, arg2_pos);
+          }  /* if */
+          is_valid = FALSE;
+        }  /* if */
+      } else if (val <= 0 || val >= 33 || ovflo) {
         if (arg1_pos != NULL) {
           check_assertion(arg2_pos != NULL);
           pos_error(ec_cli_array_invalid_number_of_dimensions, arg2_pos);
@@ -6482,6 +6492,46 @@ not forming a C++/CLI array of an invalid type).
   }  /* if */
   return is_valid;
 }  /* check_cli_array_instantiation */
+
+
+static a_boolean is_valid_cppcx_box_instantiation(
+                                         a_template_arg_ptr template_arg_list,
+                                         a_source_position  *diag_pos)
+/*
+Check the type of the template argument of a C++/CX Platform::Box<T>
+instantiation, which must be a value class or fundamental type.  Returns FALSE
+if this is an invalid Platform::Box<T> instantiation, and if diag_pos is
+non-NULL, issues an error at the given position.
+*/
+{
+  a_template_arg_ptr tap;
+  a_boolean          is_valid = TRUE;
+
+  check_assertion(template_arg_list != NULL);
+  begin_template_arg_list_traversal_simple(template_arg_list, &tap);
+  /* The argument kind was already verified in scan_template_argument_list. */
+  check_assertion(is_type_templ_arg(tap));
+  /* Check the argument: It must be an enum, value class, or fundamental
+     type. */
+  if (template_arg_is_dependent(tap)) {
+    /* This is template dependent.  We don't know the real type yet.  Do not 
+       issue any errors. */
+  } else {
+    a_type_ptr tp = skip_typerefs(tap->variant.type);
+    if (!is_value_class_or_fundamental_type(tp) &&
+        !is_immediate_enum_type(tp)) {
+      if (diag_pos != NULL) {
+        pos_error(ec_cppcx_box_invalid_type, diag_pos);
+      }  /* if */
+      is_valid = FALSE; 
+    }  /* if */
+    /* The box type should never be instantiated with a fundamental type's
+       corresponding value class type. */
+    check_assertion(!is_valid ||
+                    fundamental_type_from_system_type(tp) == NULL);
+  }  /* if */
+  return is_valid;
+}  /* is_valid_cppcx_box_instantiation */
 
 
 static a_boolean is_valid_cli_special_ptr_instantiation(
@@ -6546,17 +6596,29 @@ the position of the first argument, and, if applicable, arg2_pos is the
 position of the second argument).
 */
 {
-  a_boolean  result;
+  a_boolean  result = TRUE;
 
   if (template_sym == cli_symbol_from_kind(csk_cli_array)) {
+    /* Either cli::array or Platform::Array. */
     result = check_cli_array_instantiation(
                                        template_arg_list, arg1_pos, arg2_pos);
-  } else if (template_sym == cli_symbol_from_kind(csk_interior_ptr) ||
-             template_sym == cli_symbol_from_kind(csk_pin_ptr)) {
-    result = is_valid_cli_special_ptr_instantiation(
-                                                 template_arg_list, arg1_pos);
+
+  } else if (cppcx_enabled) {
+    /* C++/CX mode: Check for the write-only array case and the boxed type
+       case. */
+    if (template_sym == cli_symbol_from_kind(csk_platform_write_only_array)) {
+      result = check_cli_array_instantiation(
+                                       template_arg_list, arg1_pos, arg2_pos);
+    } else if (template_sym == cli_symbol_from_kind(csk_cppcx_box)) {
+      result = is_valid_cppcx_box_instantiation(template_arg_list, arg1_pos);
+    }  /* if */
   } else {
-    result = TRUE;
+    /* True C++/CLI mode: Check special pointer cases. */
+    if (template_sym == cli_symbol_from_kind(csk_interior_ptr) ||
+        template_sym == cli_symbol_from_kind(csk_pin_ptr)) {
+      result = is_valid_cli_special_ptr_instantiation(
+                                                 template_arg_list, arg1_pos);
+    }  /* if */
   }  /* if */
   return result;
 }  /* check_cli_internal_template_instantiation */
@@ -6820,7 +6882,7 @@ such classes.
      constructed types, mark the class as open constructed.  We need to
      check even if the given template is not generic because a template
      instantiated on a generic parameter is a real class type. */
-  if (cppcli_enabled) {
+  if (cli_or_cx_enabled) {
     open_constructed_arg_list = is_open_constructed_generic_arg_list(
                                                            template_arg_list);
   }  /* if */
@@ -7039,7 +7101,7 @@ such classes.
          explicit specializations for implicit specializations of templates
          that cannot be specialized. */
 #if MICROSOFT_EXTENSIONS_ALLOWED
-    } else if (cppcli_enabled &&
+    } else if (cli_or_cx_enabled &&
                (!cli_class_type_kind_is(class_type, cctk_standard) ||
                 is_member_of_namespace_cli(class_type))) {
       /* Members of namespace cli and C++/CLI managed class instances cannot
@@ -7061,6 +7123,15 @@ such classes.
   } else if (class_template_sym == cli_symbol_from_kind(csk_cli_array)) {
     /* This is a C++/CLI array type. */
     ctsp->is_cli_array = TRUE;
+  } else if (cppcx_enabled &&
+             class_template_sym == cli_symbol_from_kind(
+                                             csk_platform_write_only_array)) {
+    /* This is a C++/CX write-only array type. */
+    ctsp->is_cli_array = TRUE;
+    ctsp->is_cppcx_write_only_array = TRUE;
+  } else if (class_template_sym == cli_symbol_from_kind(csk_cppcx_box)) {
+    /* This is a C++/CX Platform::Box<T> type. */
+    ctsp->is_cppcx_box = TRUE;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   }  /* if */
 #if DEBUG
@@ -7139,7 +7210,7 @@ error type is used.
        We need to check even for templates (as opposed to C++/CLI generics)
        because an alias instantiated on a generic parameter is a real class
        type. */
-    if (cppcli_enabled) {
+    if (cli_or_cx_enabled) {
       open_constructed_arg_list = is_open_constructed_generic_arg_list(
                                                            template_arg_list);
     }  /* if */
@@ -8341,6 +8412,7 @@ do not cause a diagnostic to be issued; instead, *did_not_fold is set to TRUE.
                             /*constant_context=*/TRUE,
                             /*evaluated_context=*/TRUE,
                             /*fold_constant_addr_exprs=*/TRUE,
+                            /*is_cli_attr_arg_expression=*/FALSE,
                             /*check_cast_access=*/FALSE,
                             /*check_ambiguity=*/TRUE,
                             /*is_reinterpret_cast=*/FALSE,
@@ -9114,7 +9186,7 @@ points to the template parameter list.
   }  /* if */
   /* If the top level call passed in handles, pass the inexact deduction
      flag down to the next level. */
-  if (cppcli_enabled && (flags & MTT_ALLOW_INEXACT_DEDUCTION) != 0 &&
+  if (cli_or_cx_enabled && (flags & MTT_ALLOW_INEXACT_DEDUCTION) != 0 &&
       is_handle_type(templ_type) && is_handle_type(type)) {
     new_flags = MTT_ALLOW_INEXACT_DEDUCTION;
   }  /* if */
@@ -9899,6 +9971,21 @@ Return TRUE if the conversion was successful.
         switch_to_file_scope_region(&region_to_switch_back_to);
         new_constant = alloc_constant(constant.kind);
         copy_constant(&constant, new_constant);
+#if /*FIXME*/1
+        /* EDG has confirmed this to be a bug. Replace with the complete fix
+           from EDG when available. */
+        if (constant.kind == (a_constant_repr_kind)ck_template_param &&
+            constant.variant.template_param.kind ==
+                                  (a_template_param_constant_kind)tpck_cast) {
+          /* There's one more constant to be copied to the file-scope
+             region. */
+          a_constant_ptr from, to;
+          from = constant.variant.template_param.variant.constant;
+          to = alloc_constant(from->kind);
+          copy_constant(from, to);
+          new_constant->variant.template_param.variant.constant = to;
+        }  /* if */
+#endif /* 1 */
         tap->variant.constant = new_constant;
         switch_back_to_original_region(region_to_switch_back_to);
         result = TRUE;
@@ -10313,7 +10400,7 @@ are looked up, if needed.  The symbol of the new instance is returned.
                                   /*instantiate_nonreal=*/FALSE,
                                   /*do_not_create=*/FALSE);
 #if MICROSOFT_EXTENSIONS_ALLOWED
-    if (cppcli_enabled && new_sym != NULL &&
+    if (cli_or_cx_enabled && new_sym != NULL &&
         !check_cli_internal_template_instantiation(
                         template_sym, template_arg_list_for_symbol(new_sym),
                         (a_source_position*)NULL, (a_source_position*)NULL)) {
@@ -10374,7 +10461,7 @@ on the ck_template_param constant pointed to by the expression.
         is_any_reference_type(tp) ||
         is_abstract_class_type(tp) ||
 #if MICROSOFT_EXTENSIONS_ALLOWED
-        (cppcli_enabled &&
+        (cli_or_cx_enabled &&
          (is_managed_class_type(tp) || is_handle_type(tp))) ||
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
         is_incomplete_array_type(tp)) {
@@ -10515,7 +10602,7 @@ being looked up is known to be a type.
       if (new_sym != NULL && new_sym->ambiguous) ambiguous = TRUE;
 #if MICROSOFT_EXTENSIONS_ALLOWED
       if (new_sym != NULL && (options & CTWS_IS_CALL_CONTEXT) != 0 &&
-          cppcli_enabled) {
+          cli_or_cx_enabled) {
         /* In C++/CLI mode, an ambiguous symbol may not actually turn out
            to be an ambiguity because of hide-by-sig lookup.  If the symbol
            returned is ambiguous, see if there are symbols that should be
@@ -10989,7 +11076,7 @@ a pointer over a reference type or creating an array of references.
             *copy_error = TRUE;
             new_type = NULL;
 #if MICROSOFT_EXTENSIONS_ALLOWED
-          } else if (cppcli_enabled && is_managed_class_type(tp2)) {
+          } else if (cli_or_cx_enabled && is_managed_class_type(tp2)) {
             /* Pointer-to-member-of-managed-class types are not allowed. */
             *copy_error = TRUE;
             new_type = NULL;
@@ -12464,7 +12551,7 @@ declaration that must be checked.
            always reliably determine whether it is a constructor.  So we
            assume it might be. */
 #if MICROSOFT_EXTENSIONS_ALLOWED
-      } else if (cppcli_enabled && is_function_type(state->type) &&
+      } else if (cli_or_cx_enabled && is_function_type(state->type) &&
                  ((state->dso_flags & DSO_STATIC_CONSTRUCTOR) != 0 ||
                    (state->do_flags & DO_IS_STATIC_CONSTRUCTOR) != 0 ||
                    (state->dso_flags & DSO_FINALIZER) != 0 ||
@@ -12509,7 +12596,7 @@ adjustment).
   a_type_compat_flags_set  tc_flags = TCF_CHECKING_DEDUCTION_RESULT;
 
   diffs.incompatible_calling_conventions = NULL;
-  if (cppcli_enabled) {
+  if (cli_or_cx_enabled) {
     p_diffs = &diffs;
     tc_flags |= TCF_RECORD_DIRECT_CALLING_CONVENTION_DIFFS;
   }  /* if */
@@ -12720,7 +12807,7 @@ information.
            case).  Microsoft compilers simply ignore the "static" keyword
            here. */
 #if MICROSOFT_EXTENSIONS_ALLOWED
-        if (cppcli_enabled && 
+        if (cli_or_cx_enabled && 
             (state->do_flags & DO_IS_STATIC_CONSTRUCTOR) != 0) {
           /* This storage class specification is valid for a C++/CLI static
              constructor definition given outside of the class. */
@@ -14182,7 +14269,7 @@ and create a function instantiation entry to bind the two symbols together.
   if (is_constructor_symbol(rout_sym)) {
     sym = cssp->constructor;
 #if MICROSOFT_EXTENSIONS_ALLOWED
-  } else if (cppcli_enabled && is_static_constructor_symbol(rout_sym)) {
+  } else if (cli_or_cx_enabled && is_static_constructor_symbol(rout_sym)) {
     sym = cssp->static_constructor;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   } else if (rout_sym->variant.routine.ptr->special_kind ==
@@ -14784,7 +14871,7 @@ structure.
       sym = make_template_function(templ_sym, *new_list,
                                    /*in_class_specialization=*/FALSE);
 #if MICROSOFT_EXTENSIONS_ALLOWED
-      if (cppcli_enabled && tssp->is_generic) {
+      if (cli_or_cx_enabled && tssp->is_generic) {
         /* Make sure the generic argument list satisfies the constraints
            of the generic. */
         verify_generic_arg_list_satisfies_constraints(templ_sym, *new_list,
@@ -15069,7 +15156,7 @@ error_severity is the severity at which any diagnostics should be issued.
 #if MICROSOFT_EXTENSIONS_ALLOWED
   /* In C++/CLI mode, make sure the constraints match any previous
      declaration. */
-  if (cppcli_enabled && !any_errors &&
+  if (cli_or_cx_enabled && !any_errors &&
       (do_strict_constraint_checking || !checking_parent_params ||
        allow_missing_member_constraint) &&
       is_cli_generic_class_symbol(class_sym)) {
@@ -15552,7 +15639,7 @@ and create the template symbol supplement for the class.
       cssp->template_info = tssp;
       cssp->corresp_prototype_sym = sym;
 #if MICROSOFT_EXTENSIONS_ALLOWED
-      if (cppcli_enabled) {
+      if (cli_or_cx_enabled) {
         tssp->is_generic = parent_tssp->is_generic;
         class_type->variant.class_struct_union.is_generic_definition =
                                                                     is_generic;
@@ -15855,7 +15942,7 @@ sure it matches the primary template.
                      type_kind_name, primary_sym);
 #if MICROSOFT_EXTENSIONS_ALLOWED
     } else {
-      if (cppcli_enabled) {
+      if (cli_or_cx_enabled) {
         /* For C++/CLI classes, make sure the CLI class kind matches. */
         a_type_ptr  class_type = 
                  primary_tssp->variant.class_template.prototype_instantiation
@@ -16109,20 +16196,7 @@ initially used when processing the declaration of a partial specialization.
                               ->variant.class_struct_union.type;
       a_decl_parse_state
                   *dps = &decl_state->decl_parse;
-      if (dps->ms_attributes != NULL) {
-        /* Apply Microsoft bracketed attributes. */
-        a_boolean    is_interface =
-                          class_type->variant.class_struct_union.is_interface;
-        a_type_kind  type_kind = class_type->kind;
-        an_ms_attribute_target  attr_target =
-                      is_interface                          ? MSAT_INTERFACE :
-                      (type_kind == (a_type_kind)tk_struct) ? MSAT_STRUCT :
-                      (type_kind == (a_type_kind)tk_class)  ? MSAT_CLASS :
-                                                              MSAT_UNION;
-        apply_microsoft_attributes(&dps->ms_attributes, (char*)class_type,
-                                   (an_il_entry_kind)iek_type, attr_target);
-      }  /* if */
-      if (cppcli_enabled) {
+      if (cli_or_cx_enabled) {
         /* Record C++/CLI-specific properties in the prototype type. */
         class_type_supp(class_type)->cli_class_type_kind =
                                                decl_state->cli_class_type_kind;
@@ -16155,6 +16229,10 @@ initially used when processing the declaration of a partial specialization.
             tssp->attributes = NULL;
           }  /* if */
         }  /* if */
+      }  /* if */
+      if (dps->ms_attributes != NULL) {
+        /* Apply Microsoft bracketed attributes. */
+        apply_microsoft_attributes_to_type(&dps->ms_attributes, class_type);
       }  /* if */
     }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
@@ -16595,6 +16673,10 @@ diagnostics can be inhibited by setting diagnose to FALSE.
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
         /* These are the possible valid tokens: continue normal parsing. */
         goto done;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+      case tok_partial_ref_struct:
+      case tok_partial_ref_class:
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       case tok_const:
       case tok_volatile:
       case tok_inline:
@@ -17166,6 +17248,10 @@ delegate.
   prototype_ctsp->is_hide_by_sig = TRUE;
   prototype_type->variant.class_struct_union.is_delegate_class = TRUE;
   prototype_type->variant.class_struct_union.final = TRUE;
+  if (dps->ms_attributes != NULL) {
+    /* Apply Microsoft bracketed attributes. */
+    apply_microsoft_attributes_to_type(&dps->ms_attributes, prototype_type);
+  }  /* if */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   if (dps->source_sequence_entry != NULL) {
     /* Discard the entry for the delegate declarator since we already have
@@ -17177,6 +17263,10 @@ delegate.
   set_cli_visibility(prototype_type, decl_state->cli_visibility,
                      &decl_state->cli_visibility_pos,
                      /*is_definition=*/TRUE);
+  if (cppcx_enabled) {
+    error_if_cppcx_public_global_type(prototype_type,
+                                      &decl_state->cli_visibility_pos);
+  }  /* if */
   /* Create the definition of the delegate class type. */
   create_cli_delegate_class_definition(prototype_type,
                                        decl_state->effective_decl_level,
@@ -17392,7 +17482,7 @@ declaration of a partial specialization declared outside of its class.
     (void)get_token();
   }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
-  if (cppcli_enabled) {
+  if (cli_or_cx_enabled) {
     decl_state->cli_visibility = scan_cli_visibility_specifier_if_any(
                                               &decl_state->cli_visibility_pos);
   }  /* if */
@@ -17448,11 +17538,29 @@ declaration of a partial specialization declared outside of its class.
       unexpected_condition();
   }  /* switch */
 #if MICROSOFT_EXTENSIONS_ALLOWED
-  if (decl_state->is_generic &&
-      decl_state->cli_class_type_kind ==
+  if (cppcx_enabled && decl_state->is_generic) {
+    if (!in_code_generated_from_metadata()) {
+      if (decl_state->cli_class_type_kind ==
+                                      (a_cli_class_type_kind)cctk_interface) {
+        /* A generic C++/CX interface or delegate.  Constraints are not
+           allowed. */
+        a_generic_constraint_clause_ptr clause;
+        for (clause = decl_state->template_decl->generic_constraint_clauses;
+             clause != NULL;
+             clause = clause->next) {
+          pos_error(ec_cppcx_generic_constraints_not_allowed,
+                    &clause->type_position);
+        }  /* for */
+      } else {
+        pos_error(ec_cppcx_generic_type_not_allowed, &pos_curr_token);
+      }  /* if */
+    }  /* if */
+  } else if (decl_state->is_generic &&
+             decl_state->cli_class_type_kind ==
                                        (a_cli_class_type_kind)cctk_standard) {
     pos_error(ec_generic_class_must_be_managed, &pos_curr_token);
-  } else if (!decl_state->decl_scope_err &&
+  } else if (!cppcx_enabled &&
+             !decl_state->decl_scope_err &&
              decl_state->class_declared_in != NULL &&
              is_immediate_managed_class_type(decl_state->class_declared_in) &&
              decl_state->cli_class_type_kind ==
@@ -17483,7 +17591,7 @@ declaration of a partial specialization declared outside of its class.
   /* Next should be the class name. */
   if (!is_generalized_identifier_start(GID_TEMPLATE_ARGS_OPTIONAL |
                                        GID_USE_PROTOTYPE_NOT_NONREAL |
-				       GID_IS_CLASS_TEMPLATE_DECL)) {
+                                       GID_IS_CLASS_TEMPLATE_DECL)) {
 
     /* Not an identifier. */
     error(ec_exp_identifier);
@@ -17772,7 +17880,7 @@ friend_template_checks_done:
   }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
   if (sym != NULL && sym->kind == (a_symbol_kind)sk_class_template &&
-      cppcli_enabled &&
+      cli_or_cx_enabled &&
       (generic_arity_overload_allowed || in_code_generated_from_metadata())) {
     /* See if this is a C++/CLI generic declaration with a different
        arity from the symbol found.  If so, the symbol found will be cleared,
@@ -17961,7 +18069,7 @@ friend_template_checks_done:
             if (mismatch && severity == es_error) err = TRUE;
           }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
-          if (cppcli_enabled && !err) {
+          if (cli_or_cx_enabled && !err) {
             a_type_ptr  class_type = 
                           tssp->variant.class_template.prototype_instantiation
                               ->variant.class_struct_union.type;
@@ -18175,6 +18283,16 @@ friend_template_checks_done:
     create_prototype_type(decl_state, sym, tssp, partial_spec_nonreal_sym,
                           decl_state->is_partial_specialization);
   }  /* if */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  if (microsoft_mode) {
+    a_decl_parse_state *dps = &decl_state->decl_parse;
+    if (dps->ms_attributes != NULL) {
+      /* Apply Microsoft bracketed attributes. */
+      a_type_ptr prototype_type = prototype_instantiation_for_template(sym);
+      apply_microsoft_attributes_to_type(&dps->ms_attributes, prototype_type);
+    }  /* if */
+  }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   if (tssp->prototype_template == NULL || tssp->is_specific_definition) {
 #if MICROSOFT_EXTENSIONS_ALLOWED
     if (microsoft_mode) {
@@ -21610,7 +21728,10 @@ function declaration.
   a_symbol_ptr        sym = NULL;
   a_boolean           defaulted;
 
-  db_enter(4, "function_template_declaration");  
+  db_enter(4, "function_template_declaration");
+  if (cppcx_enabled && decl_state->is_generic) {
+    pos_error(ec_cppcx_generic_method_not_allowed, &pos_curr_token);
+  }  /* if */
   /* Set some flags in func_info as appropriate. */
   if (curr_token == tok_lbrace || curr_token == tok_try ||
       (curr_token == tok_colon &&
@@ -21720,18 +21841,21 @@ in which case the is_delegate flag of decl_state is updated.
   if (curr_token == tok_friend) (void)get_token();
 #if MICROSOFT_EXTENSIONS_ALLOWED
   if (microsoft_mode) {
-    if (curr_token == tok_lbracket && !std_attribute_tokens_next()) {
+    if (microsoft_attribute_tokens_next()) {
       /* Skip over Microsoft attributes. */
       skip_microsoft_attribute_tokens();
     }  /* if */
-    if (cppcli_enabled && is_cli_assembly_visibility_specifier(curr_token)) {
+    if (cli_or_cx_enabled &&
+        is_cli_assembly_visibility_specifier(curr_token)) {
       /* Skip any top-level visibility specifier. */
       (void)get_token();
     }  /* if */
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   skip_illegal_class_template_decl_specifiers(/*diagnose=*/FALSE);
-  if (is_class_type_keyword(curr_token)) {
+  if (is_class_type_keyword(curr_token)
+      /* Partial classes cannot be templates. */
+      if_microsoft_extensions(&& !is_partial_class_type_keyword(curr_token))) {
     a_token_kind  next_tok;
     (void)get_token();
 #if MICROSOFT_EXTENSIONS_ALLOWED || NEAR_AND_FAR_ALLOWED
@@ -21745,7 +21869,7 @@ in which case the is_delegate flag of decl_state is updated.
     if (is_generalized_identifier_start(GID_TEMPLATE_ARGS_OPTIONAL |
                                         GID_USE_PROTOTYPE_NOT_NONREAL |
                                         GID_IS_TEMPLATE_PRESCAN |
-					GID_IMPLICIT_TYPE_CONTEXT)) {
+                                        GID_IMPLICIT_TYPE_CONTEXT)) {
       if (class_modifiers_allowed()) {
         next_tok = next_token();
         if (next_tok == tok_identifier) {
@@ -21765,7 +21889,7 @@ in which case the is_delegate flag of decl_state is updated.
     result = (next_tok == tok_colon || next_tok == tok_end_of_source ||
               next_tok == tok_lbrace || next_tok == tok_removed_template_body);
 #if MICROSOFT_EXTENSIONS_ALLOWED
-  } else if (cppcli_enabled) {
+  } else if (cli_or_cx_enabled) {
     if (check_for_cli_delegate_definition()) {
       /* Check for a generic delegate definition.  We still return FALSE
          for that case, but indicate in decl_state that this is a delegate. */
@@ -21985,7 +22109,7 @@ information).  See the definition of a_tmpl_decl_state for details.
      this routine is not called for explicit instantiations, in which
      the template keyword is not followed by a parameter clause. */
   while (curr_token == tok_template ||
-         (cppcli_enabled && is_start_of_generic_decl())) {
+         (cli_or_cx_enabled && is_start_of_generic_decl())) {
     /* The template parameter lists of template template parameters do not
        have nesting depths. */
     if (!is_template_param) decl_state->nesting_depth++;
@@ -22510,8 +22634,13 @@ any non-empty template parameter lists that were scanned.
 
   db_enter(3, "template_declaration");
 #if MICROSOFT_EXTENSIONS_ALLOWED
-  if (microsoft_mode &&
-      curr_token == tok_lbracket && next_token() != tok_lbracket) {
+  if (microsoft_mode && dps->ms_attributes != NULL) {
+    /* Dispose any Microsoft attributes that appeared before the template
+       param clauses or generic constraint clauses. */
+    dispose_of_unapplied_attributes(&dps->ms_attributes,
+                                    ec_ms_attr_not_allowed);
+  }  /* if */
+  if (microsoft_attribute_tokens_next()) {
     dps->ms_attributes = scan_microsoft_attributes(/*is_parameter=*/FALSE);
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
@@ -23273,6 +23402,17 @@ that follows.
   a_boolean                     already_specialized = FALSE;
 
   db_enter(3, "full_specialization");
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  if (microsoft_mode && dps->ms_attributes != NULL) {
+    /* Dispose any Microsoft attributes that appeared before the template
+       param clause. */
+    dispose_of_unapplied_attributes(&dps->ms_attributes,
+                                    ec_ms_attr_not_allowed);
+  }  /* if */
+  if (microsoft_attribute_tokens_next()) {
+    dps->ms_attributes = scan_microsoft_attributes(/*is_parameter=*/FALSE);
+  }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   clear_decl_pos_block(&decl_pos_block);
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   decl_pos_block.extra_positions = decl_state->decl_parse.extra_positions;
@@ -23332,7 +23472,10 @@ that follows.
       }  /* if */
     }  /* if */
   }  /* if */
-  if (is_error_type(dps->type) && !is_declarator_start()) {
+  /* FIXME: The check for 'dps->type' is a workaround for EDGcpfe/10197 remove
+     it after applying the EDG fix. */
+  if (dps->type == NULL ||
+      (is_error_type(dps->type) && !is_declarator_start())) {
     /* Error of some sort. */
     set_to_error_locator(locator);
   } else if ((dso_flags & (DSO_DEFINES_SOMETHING |
@@ -24781,7 +24924,7 @@ clause, invalid forward references are avoided.
   a_generic_constraint_clause_ptr	gccp_tail = NULL;
 
   if (curr_token == tok_ellipsis &&
-      (scanning_generated_code_from_metadata ||
+      (in_code_generated_from_metadata() ||
        pending_generic_constraint_specifier_enabled)) {
     /* An ellipsis token indicates that actual constraints will be specified
        on a later declaration. */

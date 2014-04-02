@@ -117,6 +117,7 @@ extern a_boolean scan_class_definition(
                                 a_type_ptr          class_type,
                                 a_decl_parse_state  *dps,
                                 a_scope_depth       effective_decl_level,
+                                   a_boolean        is_partial,
                                 a_boolean           is_local_class,
                                 a_boolean           delayed_nested_class_def,
                                 a_boolean           is_template_instantiation,
@@ -335,6 +336,10 @@ extern void db_base_class_list(a_type_ptr tp);
 
 extern void db_all_virtual_function_override_lists(a_type_ptr  class_type);
 #endif /* DEBUG */
+
+extern a_symbol_ptr make_and_enter_abi_member_function_symbol(
+                                                a_symbol_locator  *loc,
+                                                a_type_ptr        class_type);
 
 #endif /* CLASS_DECL_H */
 

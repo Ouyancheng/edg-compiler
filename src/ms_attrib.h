@@ -22,49 +22,6 @@ ms_attrib.h -- Declarations related to ms_attrib.c (Microsoft attribute
 #if MICROSOFT_EXTENSIONS_ALLOWED
 
 /*
-Value that identifies the kind of entity to which a given attribute kind
-applies.
-*/
-#define MSAT_NONE		0x0
-			/* No target has been specified. */
-
-#define MSAT_STANDALONE		0x1
-			/* A standalone attribute (not associated with an
-			   entity). */
-#define MSAT_CLASS		0x2
-			/* Applies to a class. */
-#define MSAT_STRUCT		0x4
-			/* Applies to a struct. */
-#define MSAT_UNION		0x8
-			/* Applies to a union. */
-#define MSAT_INTERFACE		0x10
-			/* Applies to a Microsoft interface. */
-#define MSAT_METHOD		0x20
-			/* Applies to a member function. */
-#define MSAT_PARAMETER		0x40
-			/* Applies to a function parameter. */
-#define MSAT_DATA_MEMBER	0x80
-			/* Applies to a class data member. */
-#define MSAT_ROUTINE		0x100
-			/* Applies to nonmember functions. */
-#define MSAT_TYPEDEF		0x200
-			/* Applies to a typedef. */
-#define MSAT_ENUM		0x400
-			/* Applies to an enum. */
-#define MSAT_ANY_TYPE	(MSAT_CLASS | MSAT_STRUCT | MSAT_UNION | \
-                         MSAT_TYPEDEF | MSAT_ENUM)
-			/* Applies to any type. */
-#define MSAT_ANY		0x800
-			/* Can be used with any target or as a standalone
-			   attribute. */
-
-/*
-Storage size used to represent a target bit set.
-*/
-typedef unsigned short
-		an_ms_attribute_target;
-
-/*
 Entry used to represent a parameter description for a Microsoft attribute.
 */
 typedef struct an_ms_attribute_param *an_ms_attribute_param_ptr;
@@ -132,7 +89,24 @@ extern
 void apply_microsoft_attributes(an_ms_attribute_ptr	*attributes,
 				char			*entity,
 				an_il_entry_kind	kind,
-				an_ms_attribute_target	target);
+				an_ms_attribute_target	target,
+				an_ms_attribute_target	cli_target);
+
+extern
+void apply_microsoft_attributes_to_type(an_ms_attribute_ptr *attributes,
+                                        a_type_ptr          type);
+
+extern
+void apply_microsoft_attributes_to_field(an_ms_attribute_ptr *attributes,
+                                         a_field_ptr         field);
+
+extern
+void apply_microsoft_attributes_to_variable(an_ms_attribute_ptr *attributes,
+                                            a_variable_ptr      variable);
+
+extern
+void apply_microsoft_attributes_to_routine(an_ms_attribute_ptr *attributes,
+                                           a_routine_ptr       routine);
 
 extern void verify_standalone_attributes(an_ms_attribute_ptr	*attributes);
 

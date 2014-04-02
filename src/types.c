@@ -1143,6 +1143,16 @@ Return TRUE if the given type is a C++/CLI pin_ptr type.
 }  /* is_pin_ptr_type */
 
 
+a_boolean is_cli_array_type(a_type_ptr tp)
+/*
+Return TRUE if the given type is a C++/CLI array type.
+*/
+{
+  tp = skip_typerefs(tp);
+  return is_immediate_class_type(tp) && class_type_supp(tp)->is_cli_array;
+}  /* is_cli_array_type */
+
+
 a_boolean is_handle_to_cli_array_type(a_type_ptr tp)
 /*
 Return TRUE if the given type is a handle to a C++/CLI array type.
@@ -1153,13 +1163,59 @@ Return TRUE if the given type is a handle to a C++/CLI array type.
 }  /* is_handle_to_cli_array_type */
 
 
-a_boolean is_cli_array_type(a_type_ptr tp)
+a_boolean is_cppcx_write_only_array_type(a_type_ptr tp)
 /*
-Return TRUE if the given type is a C++/CLI array type.
+Return TRUE if the given type is a C++/CX write-only array type.
 */
 {
   tp = skip_typerefs(tp);
-  return is_immediate_class_type(tp) && class_type_supp(tp)->is_cli_array;
+  return is_immediate_class_type(tp) &&
+         class_type_supp(tp)->is_cppcx_write_only_array;
+}  /* is_cppcx_write_only_array_type */
+
+
+a_boolean is_handle_to_cppcx_write_only_array_type(a_type_ptr tp)
+/*
+Return TRUE if the given type is a handle to a C++/CX write-only array
+type.
+*/
+{
+  return is_handle_type(tp) &&
+         is_cppcx_write_only_array_type(type_pointed_to(tp));
+}  /* is_handle_to_cppcx_write_only_array_type */
+
+
+a_boolean is_handle_to_nonconst_cppcx_plain_array_type(a_type_ptr tp)
+/*
+Return TRUE if the given type is a handle to a non-const Platform::Array
+instance (C++/CX mode).
+*/
+{
+  a_boolean  result = FALSE;
+
+  tp = skip_typerefs(tp);
+  if (is_handle_ptr(tp)) {
+    tp = type_pointed_to(tp);
+    if (!is_const_qualified_type(tp)) {
+      tp = skip_typerefs(tp);
+      if (is_immediate_class_type(tp) &&
+          class_type_supp(tp)->is_cli_array &&
+          !class_type_supp(tp)->is_cppcx_write_only_array) {
+        result = TRUE;
+      }  /* if */
+    }  /* if */
+  }  /* if */
+  return result;
+}  /* is_handle_to_nonconst_cppcx_array_type */
+
+
+a_boolean is_cppcx_box_type(a_type_ptr tp)
+/*
+Return TRUE if the given type is a C++/CX Platform::Box<T> type.
+*/
+{
+  tp = skip_typerefs(tp);
+  return is_immediate_class_type(tp) && class_type_supp(tp)->is_cppcx_box;
 }  /* is_cli_array_type */
 
 
@@ -1235,7 +1291,7 @@ Return TRUE if the indicated type is a C++/CLI ref class or ref struct.
 {
   a_boolean is_ref_class = FALSE;
 
-  if (cppcli_enabled) {
+  if (cli_or_cx_enabled) {
     tp = skip_typerefs(tp);
     if (is_immediate_class_type(tp) && cli_class_type_kind_is(tp, cctk_ref)) {
       is_ref_class = TRUE;
@@ -1252,7 +1308,7 @@ Return TRUE if the indicated type is a C++/CLI value class or value struct.
 {
   a_boolean is_value_class = FALSE;
 
-  if (cppcli_enabled) {
+  if (cli_or_cx_enabled) {
     tp = skip_typerefs(tp);
     if (is_immediate_class_type(tp) &&
         cli_class_type_kind_is(tp, cctk_value)) {
@@ -1382,7 +1438,7 @@ pointers.  See ECMA standard 12.1.
 {
   a_boolean result = FALSE;
 
-  if (cppcli_enabled) {
+  if (cli_or_cx_enabled) {
     tp = skip_typerefs(tp);
     if (is_value_class_type(tp) ||
         is_enum(tp) ||
@@ -1403,7 +1459,7 @@ See ECMA-372 14.2.6 ("Boxing Conversions").
 {
   a_boolean result = FALSE;
 
-  if (cppcli_enabled) {
+  if (cli_or_cx_enabled) {
     if (is_cli_value_type(tp) &&
         !is_pointer_type(tp)) {
       result = TRUE;
@@ -1416,7 +1472,8 @@ See ECMA-372 14.2.6 ("Boxing Conversions").
 a_type_ptr boxed_type_for(a_type_ptr  unboxed_type)
 /*
 The given type must be a boxable type.  Return the corresponding boxed type
-(which in the case of a value class type is the type itself).
+(which in the case of a value class type is the type itself).  (Usable for
+both C++/CLI and C++/CX.)
 */
 {
   a_type_ptr  result, orig_type = unboxed_type;
@@ -1425,6 +1482,11 @@ The given type must be a boxable type.  Return the corresponding boxed type
   if (is_immediate_class_type(unboxed_type)) {
     check_assertion(cli_class_type_kind_is(unboxed_type, cctk_value));
     result = orig_type;
+    if (cppcx_enabled) {
+      /* In C++/CX mode, the boxed version of the type is
+         Platform::Box<T>. */
+      result = make_cppcx_box_type(result);
+    }  /* if */
   } else if (is_enum(unboxed_type)) {
     an_integer_type_supplement_ptr  itsp = integer_type_supp(unboxed_type);
     if (itsp->boxed_type == NULL) {
@@ -1432,7 +1494,13 @@ The given type must be a boxable type.  Return the corresponding boxed type
     }  /* if */
     result = itsp->boxed_type;
   } else {
-    result = system_type_from_fundamental_type(unboxed_type);
+    if (cppcx_enabled) {
+      /* In C++/CX mode, the boxed version of the type is
+         Platform::Box<T>. */
+      result = make_cppcx_box_type(orig_type);
+    } else {
+      result = system_type_from_fundamental_type(unboxed_type);
+    }  /* if */
   }  /* if */
   check_assertion(result != NULL);
   return result;
@@ -1446,6 +1514,7 @@ value type.
 {
   a_boolean	result = FALSE;
 
+  check_assertion(!cppcx_enabled);
   tp = skip_typerefs(tp);
   if (is_immediate_class_type(tp) && is_cli_generic_instance_type(tp)) {
     a_class_symbol_supplement_ptr	cssp = symbol_supplement_for_class(tp);
@@ -1499,7 +1568,7 @@ delegate.
 {
   a_boolean is_invocation_func = FALSE;
 
-  if (cppcli_enabled && rp->source_corresp.is_class_member) {
+  if (cli_or_cx_enabled && rp->source_corresp.is_class_member) {
     a_type_ptr parent_class = parent_class_of(rp);
     if (is_immediate_delegate_type(parent_class)) {
       if (rp == delegate_invocation_function(parent_class)) {
@@ -1523,26 +1592,70 @@ Given a delegate class type, return the associated function type.
 
 #if !STANDALONE_UTILITY_PROGRAM
 
-a_boolean is_cli_system_object_type(a_type_ptr tp)
+a_boolean f_is_cli_type_of_kind(a_type_ptr        tp,
+                                a_cli_symbol_kind csk)
 /*
-Return TRUE if the given type is the C++/CLI root type System::Object.
+Return TRUE if the given type is the C++/CLI type of the specified kind.
 */
 {
-  a_type_ptr  system_object_type = cli_system_object_type();
+  a_type_ptr system_type = cli_class_type_for(csk);
 
-  return identical_types(tp, system_object_type);
-}  /* is_cli_system_object_type */
+  return system_type != NULL && identical_types(tp, system_type);
+}  /* f_is_cli_type_of_kind */
 
 
-a_boolean is_cli_system_string_type(a_type_ptr tp)
+a_boolean is_cli_attribute_type(a_type_ptr tp)
 /*
-Return TRUE if the given type is the C++/CLI type System::String.
+Return TRUE if the given type is a C++/CLI attribute type.
 */
 {
-  a_type_ptr  system_string_type = cli_class_type_for(csk_system_string);
+  a_boolean result = FALSE;
 
-  return identical_types(tp, system_string_type);
-}  /* is_cli_system_string_type */
+  tp = skip_typerefs(tp);
+  if (cli_or_cx_enabled && is_immediate_class_type(tp) &&
+      cli_class_type_kind_is(tp, cctk_ref)) {
+    complete_class_type_is_needed(tp);
+    result = !is_incomplete_type(tp) && class_type_supp(tp)->is_cli_attribute;
+  }  /* if */
+  return result;
+}  /* is_cli_attribute_type */
+
+
+a_boolean is_valid_cli_attribute_parameter_type(a_type_ptr tp)
+/*
+Return TRUE if the given type is a valid C++/CLI attribute parameter type.
+*/
+{
+  a_boolean  result = FALSE;
+
+  tp = skip_typerefs(tp);
+  if (is_handle_type(tp)) {
+    a_boolean  rank_unknown = TRUE;
+    tp = type_pointed_to(tp);
+    tp = skip_typerefs(tp);
+    if (is_cli_system_string_type(tp) ||
+        is_cli_system_object_type(tp) ||
+        is_cli_system_type_type(tp) ||
+        (is_cli_array_type(tp) && cli_array_rank(tp, &rank_unknown) == 1 &&
+         is_valid_cli_attribute_parameter_type(cli_array_element_type(tp)))) {
+      result = TRUE;
+    }  /* if */
+  } else {
+    tp = map_cli_system_type_to_fundamental_type(tp);
+/* FIXME (daveed) Commenting out the test below because it causes regressions.
+   E.g., ms/arrays_regress_016.C */
+    if (is_integral(tp) ||
+        (is_cli_enum_type(tp)/* FIXME &&
+         integer_type_supp(tp)->assembly_visibility ==
+                                       (an_assembly_visibility)av_public*/) ||
+        (is_floating(tp) &&
+         (tp->variant.float_kind == (a_float_kind)fk_float ||
+          tp->variant.float_kind == (a_float_kind)fk_double))) {
+      result = TRUE;
+    }  /* if */
+  }  /* if */
+  return result;
+}  /* is_valid_cli_attribute_parameter_type */
 
 
 a_boolean class_is_instance_of_generic_from_metadata(a_type_ptr  class_type)
@@ -3602,7 +3715,7 @@ because any exception it can handle would be caught by type_1's handler.
         masked = TRUE;
       }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
-    } else if (cppcli_enabled &&
+    } else if (cli_or_cx_enabled &&
                is_handle_type(type_1) && is_handle_type(type_2)) {
       /* A C++/CLI handle type masks another handle type if the latter can be
          implicitly converted to the former. */
@@ -4625,17 +4738,19 @@ a_type_ptr add_right_pointer_type_to_this(a_type_ptr type,
 Add the right kind of "pointer to" to "type" so it can be used as a "this"
 pointer for a member of the class class_type, and return the pointer type.
 The kind of pointer is unusual (e.g., it can be a handle) when the class
-is a C++/CLI class.  See type_of_address_of for a variant of this function.
+is a C++/CLI or C++/CX class.  See type_of_address_of for a variant of
+this function.
 */
 {
 #if MICROSOFT_EXTENSIONS_ALLOWED
   if (cppcli_enabled && is_value_class_type(class_type)) {
     /* "this" in a C++/CLI value class is an interior_ptr (ECMA 22.3.3). */
     type = make_interior_ptr_type(type);
-  } else if (cppcli_enabled && is_managed_class_type(class_type)) {
-    /* "this" in a C++/CLI ref class is a handle (ECMA 22.3.3).  Likewise
-       for an interface class, even though you really can't get a "this"
-       pointer in those because they are abstract. */
+  } else if (cli_or_cx_enabled && is_managed_class_type(class_type) &&
+             !(cppcx_enabled && is_value_class_type(class_type))) {
+    /* "this" in a C++/CLI managed class is a handle (ECMA 22.3.3).  That is
+       also the case in C++/CX managed classes, except for C++/CX
+       value classes. */
     type = make_handle_type(type);
   } else
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
@@ -4849,7 +4964,7 @@ TCF_CONTEXTUAL_GENERIC_PARAMETERS).
        not a consideration.  The field source_corresp.assoc_info points
        into freed memory. */
 #if MICROSOFT_EXTENSIONS_ALLOWED
-  } else if (cppcli_enabled &&
+  } else if (cli_or_cx_enabled &&
              is_cli_generic_constraint(type_1) &&
              is_cli_generic_constraint(type_2)) {
     /* Check if these are constraint types that should be considered the
@@ -7789,7 +7904,7 @@ conversion in C++/CLI because it drops gc-ness of an interior_ptr.
 {
   a_boolean prohibited = FALSE;
 
-  if (cppcli_enabled &&
+  if (cli_or_cx_enabled &&
       is_interior_ptr_type(source_type) &&
       is_pointer_type(dest_type) &&
       !is_interior_ptr_type(dest_type) &&
@@ -8088,7 +8203,7 @@ operators), 3.3.15 (?: operator), and 3.3.16.1 (simple assignment).
             std_conv->warning_suggested = default_warning_code;
           }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
-        } else if (cppcli_enabled && source_is_function &&
+        } else if (cli_or_cx_enabled && source_is_function &&
                    is_function(unqual_dest_type_pointed_to) &&
                    is_function(unqual_source_type_pointed_to) &&
                    unqual_dest_type_pointed_to->variant.routine.extra_info
@@ -8325,7 +8440,7 @@ if that information is not needed.
 {
   a_boolean okay = FALSE;
 
-  if (cppcli_enabled) {
+  if (cli_or_cx_enabled) {
     if (std_conv != NULL) clear_std_conv_descr(std_conv);
     if (literal_type_convertible_to_cli_string(source_type)) {
       /* The source type is an appropriate string literal type.  See if
@@ -8579,7 +8694,7 @@ conversion.  std_conv can be NULL if that information is not needed.
   a_boolean okay = FALSE;
 
   db_enter(5, "boxing_conversion_possible");
-  if (cppcli_enabled) {
+  if (cli_or_cx_enabled) {
 #if DEBUG
     if (debug_level >= 5) {
       fprintf(f_debug, "boxing_conversion_possible: source_type = ");
@@ -8612,7 +8727,8 @@ conversion.  std_conv can be NULL if that information is not needed.
             is_qualified_type(qual_dest_type)) {
           std_conv->type_qualifiers_added = TRUE;
         }  /* if */
-      } else if (is_value_class_type(source_type) &&
+      } else if ((is_cppcx_box_type(source_type) ||
+                  is_value_class_type(source_type)) &&
                  is_class_struct_union_type(dest_type) &&
                  impl_handle_conversion(make_handle_type(source_type),
                                         make_handle_type(qual_dest_type),
@@ -8648,7 +8764,7 @@ can be NULL if that information is not needed.
   a_boolean okay = FALSE;
 
   db_enter(5, "unboxing_conversion_possible");
-  if (cppcli_enabled) {
+  if (cli_or_cx_enabled) {
 #if DEBUG
     if (debug_level >= 5) {
       fprintf(f_debug, "unboxing_conversion_possible: source_type = ");
@@ -8676,7 +8792,8 @@ can be NULL if that information is not needed.
       if (types_are_compatible(source_type, dest_type)) {
         /* An unboxing conversion is possible:  cv1 V^ --> cv2 V. */
         okay = TRUE;
-      } else if (is_value_class_type(dest_type) &&
+      } else if ((is_cppcx_box_type(dest_type) ||
+                  is_value_class_type(dest_type)) &&
                  is_class_struct_union_type(source_type) &&
                  (bcp = find_base_class_of(dest_type, source_type)) != NULL) {
         /* System::ValueType ^ --> value class type and
@@ -8808,7 +8925,7 @@ types of the operands of an operation).
     if (f_types_are_compatible(dest_type, source_type, rt_flags)) {
       correspond = TRUE;
 #if MICROSOFT_EXTENSIONS_ALLOWED
-    } else if (cppcli_enabled && source_is_function &&
+    } else if (cli_or_cx_enabled && source_is_function &&
                !allow_qualifier_or_eh_mismatch &&
                dest_type->variant.routine.extra_info
                     ->calling_convention == (a_calling_convention)cc_clrcall &&
@@ -9697,7 +9814,7 @@ exception specifications are not checked.
       }  /* if */
     }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
-    if (okay && cppcli_enabled &&
+    if (okay && cli_or_cx_enabled &&
         is_prohibited_interior_ptr_conversion(source_type, dest_type)) {
       /* Conversion from an interior_ptr to a non-interior_ptr is not
          allowed, because it loses the gc-ness of the pointer. */
@@ -9834,12 +9951,12 @@ C++ mode.  See [expr.static.cast].
         *warning_suggested = inv_impl_std_conv.warning_suggested;
         *is_mild_warning = inv_impl_std_conv.is_mild_warning;
 #if MICROSOFT_EXTENSIONS_ALLOWED
-      } else if (cppcli_enabled &&
+      } else if (cli_or_cx_enabled &&
                  unboxing_conversion_possible(source_type, dest_type,
                                               (a_std_conv_descr *)NULL)) {
         /* An unboxing conversion is allowed in C++/CLI. */
         okay = TRUE;
-      } else if (cppcli_enabled &&
+      } else if (cli_or_cx_enabled &&
                  is_handle_ptr(source_type) &&
                  is_interior_ptr_type(dest_type)) {
         a_type_ptr under_source = type_pointed_to(source_type);
@@ -10105,6 +10222,9 @@ well as C++ mode.
       if (!identical_types(source_type, dest_type)) {
         *warning_suggested = ec_reinterpret_cast_of_handle;
       }  /* if */
+    } else if (cppcx_enabled && is_pointer(source_type)) {
+      /* Conversion from a pointer to a handle type. */
+      okay = TRUE;
     } else if (is_nullptr(source_type) &&
                !is_cli_generic_definition_argument_type(dest_type)) {
       okay = TRUE;
@@ -10114,6 +10234,9 @@ well as C++ mode.
        handle). */
     if (is_interior_ptr_type(dest_type)) {
       /* Handle --> interior_ptr is allowed. */
+      okay = TRUE;
+    } else if (cppcx_enabled && is_pointer(dest_type)) {
+      /* Conversion from a handle to a pointer type. */
       okay = TRUE;
     }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
@@ -12480,7 +12603,7 @@ type for a C++/CLI generic type parameter.
 }  /* ttt_is_or_contains_cli_generic_param */
 
 
-static a_boolean is_or_contains_cli_generic_param(a_type_ptr  type_ptr)
+a_boolean is_or_contains_cli_generic_param(a_type_ptr  type_ptr)
 /*
 Return TRUE if the type pointed to by type_ptr is itself a tk_template_param
 for a C++/CLI generic type parameter or is a type tree containing such a
@@ -12618,7 +12741,7 @@ sets the value of local_type_used_as_template_type_argument when needed.
 #if MICROSOFT_EXTENSIONS_ALLOWED
   /* In C++/CLI mode, if the type is otherwise valid, check for a type
      containing a generic type parameter. */
-  if (cppcli_enabled && !result) {
+  if (cli_or_cx_enabled && !result) {
     result = *is_generic = is_or_contains_cli_generic_param(type_ptr);
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
@@ -12763,7 +12886,8 @@ C++/CLI generic parameters.
   /* Template parameter types come up only in C++ mode. */
   if (C_mode()) {
     result = FALSE;
-  } else if (!cppcli_enabled && type_ptr->is_instantiation_dependent_cached) {
+  } else if (!cli_or_cx_enabled &&
+             type_ptr->is_instantiation_dependent_cached) {
     result = type_ptr->is_instantiation_dependent;
   } else {
     a_type_tree_traversal_flag_set  ttt_flags =
@@ -12784,7 +12908,7 @@ C++/CLI generic parameters.
     check_for_instantiation_dependence = FALSE;
     result = traverse_type_tree(type_ptr, ttt_is_or_contains_template_param,
                                 ttt_flags);
-    if (!cppcli_enabled) {
+    if (!cli_or_cx_enabled) {
       type_ptr->is_instantiation_dependent = result;
       type_ptr->is_instantiation_dependent_cached = TRUE;
     }  /* if */
@@ -13466,7 +13590,7 @@ type.
   if (is_class_struct_union_type(type)) {
     is_potential_source = TRUE;
 #if MICROSOFT_EXTENSIONS_ALLOWED
-  } else if (cppcli_enabled && is_overloadable_handle_type(type)) {
+  } else if (cli_or_cx_enabled && is_overloadable_handle_type(type)) {
     is_potential_source = TRUE;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   }  /* if */
@@ -13487,7 +13611,7 @@ has some special rules for overloading on such operands).
 #if MICROSOFT_EXTENSIONS_ALLOWED
   /* C++/CLI treats a first operand that is a handle similarly to
      an operand of the class under the handle. */
-  if (cppcli_enabled && !is_overloadable &&
+  if (cli_or_cx_enabled && !is_overloadable &&
       is_overloadable_handle_type(type)) {
     is_overloadable = TRUE;
   }  /* if */
@@ -14220,7 +14344,7 @@ return the fundamental type (cv-qualified the same as the original type).
 If not, return the original type.
 */
 {
-  if (cppcli_enabled) {
+  if (cli_or_cx_enabled) {
     a_type_ptr fund_type= fundamental_type_from_system_type(skip_typerefs(tp));
     if (fund_type != NULL) {
       tp = type_plus_qualifiers_from_second_type(fund_type, tp);
@@ -14254,14 +14378,19 @@ corresponding value class type.
 
 a_boolean is_cli_enum_type(a_type_ptr tp)
 /*
-Returns TRUE if tp is a C++/CLI enum type.  Currently, there isn't a source nor
-IL distinction between C++11 scoped enums and C++/CLI enumerations; however,
+Returns TRUE if tp is a C++/CLI enum type.  Currently, there is no source or
+IL distinction between C++11 scoped enums and C++/CLI enumerations.  However,
 this function provides a layer of indirection in case this changes in the
 future.
 */
 {
   tp = skip_typerefs(tp);
-  return type_kind_is_integer(tp) && integer_type_is_scoped_enum(tp);
+  return type_kind_is_integer(tp) && integer_type_is_scoped_enum(tp) &&
+         /* In C++/CX, scoped enum types without a declared assembly
+            visibility are C++11 scoped enums. */
+         !(cppcx_enabled &&
+           integer_type_supp(tp)->declared_assembly_visibility ==
+                                             (an_assembly_visibility)av_none);
 }  /* is_cli_enum_type */
 
 
@@ -14295,6 +14424,26 @@ Returns TRUE if tp is a type for a routine with a C++/CLI parameter array.
 {
   return cli_param_array_from_routine_type(skip_typerefs(tp)) != NULL;
 }  /* is_cli_param_array_routine_type */
+
+
+void error_if_cppcx_public_global_type(a_type_ptr            tp,
+                                       a_source_position_ptr error_pos)
+/*
+Issue an error if the type is a public global C++/CX type, which is disallowed
+in C++/CX.
+*/
+{
+  if (cppcx_enabled &&
+      !is_class_or_namespace_member(tp) &&
+      ((is_immediate_managed_class_type(tp) &&
+        class_type_supp(tp)->assembly_visibility ==
+                                       (an_assembly_visibility)av_public) ||
+       (is_cli_enum_type(tp) &&
+        integer_type_supp(tp)->assembly_visibility ==
+                                        (an_assembly_visibility)av_public))) {
+    pos_error(ec_cppcx_public_global_type, error_pos);
+  }  /* if */
+}  /* error_if_cppcx_public_global_type */
 
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 

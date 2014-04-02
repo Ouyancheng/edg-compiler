@@ -759,6 +759,12 @@ typedef struct an_expr_stack_entry {
 			/* TRUE if the expression is or is inside of a
 			   C++ default argument expression in a parameter
 			   list. */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  a_byte_boolean
+		is_cli_attr_arg_expression;
+			/* TRUE if the expression is or is inside of a
+			   C++/CLI attribute argument expression. */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   a_byte_boolean
 		is_template_arg_expression;
 			/* TRUE if the expression is an argument of a C++
@@ -1076,6 +1082,19 @@ kinds are at the beginning of the list.
 */
 #define curr_expr_kind_is_const()                                     \
   ((int)(curr_expr_kind()) <= (int)ek_init_constant)
+
+/*
+Macro that returns TRUE if the current expression is or is inside of a C++/CLI
+attribute argument expression.
+*/
+#if MICROSOFT_EXTENSIONS_ALLOWED
+#define curr_expr_is_cli_attribute_argument()                         \
+  (cli_or_cx_enabled && expr_stack != NULL &&                         \
+   (a_boolean)expr_stack->is_cli_attr_arg_expression)
+#else /* !MICROSOFT_EXTENSIONS_ALLOWED */
+#define curr_expr_is_cli_attribute_argument() FALSE
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+
 
 /*
 Macro that returns TRUE if the current expression kind is one in which
@@ -1495,7 +1514,7 @@ extern a_boolean is_bit_field_whose_address_can_be_taken(a_field_ptr field);
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
 extern a_boolean is_any_initonly_field_operand(an_operand *operand);
-#endif  /* MICROSOFT_EXTENSIONS_ALLOWED */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 extern a_boolean microsoft_template_arg_constant_glvalue_address(
                                                     an_expr_node_ptr expr,

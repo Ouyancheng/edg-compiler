@@ -74,9 +74,9 @@ extern void update_dll_info_for_class(a_type_ptr         class_type,
                                       a_boolean          adjust_template_base,
                                       a_source_position  *err_pos);
 
-extern void record_uuid_for_class(a_type_ptr         class_type,
-                                  a_const_char       *uuid_string,
-                                  a_source_position  *err_pos);
+extern a_boolean record_uuid_for_class(a_type_ptr         class_type,
+                                       a_const_char       *uuid_string,
+                                       a_source_position  *err_pos);
 
 extern a_hash_value hash_unresolved_type_map_key(a_void_ptr  key_ptr);
 
@@ -171,7 +171,7 @@ Macro that is TRUE when class modifiers (denoted by context-sensitive keywords
 #define class_modifiers_allowed()                                           \
   (cpp11_mode ||                                                            \
    (!C_mode() && microsoft_mode &&                                          \
-    (microsoft_version >= 1400 || cppcli_enabled)))
+    (microsoft_version >= 1400 || cli_or_cx_enabled)))
     
 extern void check_for_class_modifiers(a_token_kind  *next_tok,
                                       a_token_kind  body_start,

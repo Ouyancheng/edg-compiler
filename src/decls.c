@@ -818,7 +818,7 @@ expression is permitted.
       curr_token == tok_friend || curr_token == tok_constexpr) {
     is_start = TRUE;
 #if MICROSOFT_EXTENSIONS_ALLOWED
-    if (cppcli_enabled && is_expr_context && is_type_keyword(curr_token) &&
+    if (cli_or_cx_enabled && is_expr_context && is_type_keyword(curr_token) &&
         next_token() == tok_colon_colon) {
       /* Something like int::something.  In C++/CLI this is an expression.
          Typically something like int::Parse("1"). */
@@ -1153,6 +1153,32 @@ DEFAULT_REF_TO_UNKNOWN_BOUND_ARRAY_ALLOWED_IN_PARAM_TYPE.
   }  /* for */
 }  /* check_ptr_or_ref_to_unknown_bound_array */
 
+#if MICROSOFT_EXTENSIONS_ALLOWED
+
+static a_boolean in_cppcx_externally_visible_parameter_scope()
+/*
+Return TRUE if the current function prototype scope is that of a delegate
+definition or a class member with external visibility.
+*/
+{
+  a_scope_stack_entry *ssep = &scope_stack_top();
+
+  check_assertion(scope_is(ssep, sck_func_prototype));
+  /* Skip the function prototype scope. */
+  --ssep;
+  /* Skip any template declaration scopes to get the the enclosing class,
+     file, or namespace scope. */
+  while (ssep->kind == (a_scope_kind)sck_template_declaration) {
+    --ssep;
+  }  /* while */
+  return ssep->scanning_cli_delegate_definition ||
+         (scope_is(ssep, sck_class_struct_union) &&
+          is_immediate_managed_class_type(ssep->assoc_type) &&
+          is_cppcx_externally_visible_assembly_access(
+                                              ssep->current_assembly_access));
+}  /* in_cppcx_externally_visible_parameter_scope */
+
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 static a_boolean is_special_rvalue_ref_generic_parameter_at_pos(
                                                     a_symbol_ptr   func_templ,
@@ -1235,12 +1261,20 @@ diagnostics.
       pos_error(ec_named_address_space_for_parameter, error_pos);
 #endif /* NAMED_ADDRESS_SPACES_ALLOWED */
 #if MICROSOFT_EXTENSIONS_ALLOWED
-    } else if (cppcli_enabled && is_pin_ptr_type(dps->type)) { 
+    } else if (cli_or_cx_enabled && is_pin_ptr_type(dps->type)) { 
       /* A pin pointer cannot be used as a parameter type. */
       pos_error(ec_pin_ptr_param_not_allowed, error_pos);
-    } else if (cppcli_enabled && is_cli_interface_type(dps->type)) { 
+    } else if (cli_or_cx_enabled && is_cli_interface_type(dps->type)) { 
       /* A C++/CLI interface cannot be used as a parameter type. */
       pos_error(ec_parameter_with_interface_type, error_pos);
+      dps->type = error_type();
+    } else if (cppcx_enabled &&
+               is_handle_to_nonconst_cppcx_plain_array_type(dps->type) &&
+               in_cppcx_externally_visible_parameter_scope()) {
+      /* If the function is a delegate definition or a class member with
+         external visibility, issue an error if the parameter is of type
+         "Platform::Array<T>^". */
+      pos_error(ec_cppcx_non_const_array_parameter, error_pos);
       dps->type = error_type();
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     } else {
@@ -1356,7 +1390,7 @@ new fields are set properly.
     /* Nothing to do. */
   } else if (locator->is_conversion_name) {
     check_assertion(class_type != NULL);
-    if (cppcli_enabled && rtsp->this_class == NULL) {
+    if (cli_or_cx_enabled && rtsp->this_class == NULL) {
       /* A C++/CLI static conversion function. */
 #if MICROSOFT_EXTENSIONS_ALLOWED
       if (rtsp->param_type_list == NULL ||
@@ -1421,7 +1455,7 @@ new fields are set properly.
       param_count++;
       tp = ptp->type;
 #if MICROSOFT_EXTENSIONS_ALLOWED
-      if (cppcli_enabled && class_type != NULL &&
+      if (cli_or_cx_enabled && class_type != NULL &&
           !is_nonstatic_member_function &&
           cli_class_type_kind_is(class_type, cctk_value)) {
         /* For special value class types (like System::Double) that correspond
@@ -1439,7 +1473,7 @@ new fields are set properly.
         tp = type_pointed_to(tp);
       }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
-      if (cppcli_enabled && is_handle_type(tp)) {
+      if (cli_or_cx_enabled && is_handle_type(tp)) {
         /* Parameters of the form T^, T^%, and T^& are also acceptable in
            C++/CLI mode. */
         tp = type_pointed_to(tp);
@@ -1448,7 +1482,7 @@ new fields are set properly.
       if (is_class_struct_union_type(tp) ||
           (operator_overloading_on_enums_enabled && is_enum_type(tp))) {
         any_class_or_enum_type_params = TRUE;
-        if (cppcli_enabled && class_type != NULL &&
+        if (cli_or_cx_enabled && class_type != NULL &&
             !is_nonstatic_member_function &&
             types_are_compatible_ignoring_qualifiers(tp, class_type)) {
           /* For static C++/CLI member operators, at least one parameter must
@@ -1572,7 +1606,7 @@ new fields are set properly.
                 opname == (an_opname_kind)onk_minus_minus)) {
       /* Extra argument on postfix operator must be of type "int".  (This
          variant is not allowed as a C++/CLI static member operator.) */
-      if (cppcli_enabled && class_type != NULL &&
+      if (cli_or_cx_enabled && class_type != NULL &&
           !is_nonstatic_member_function) {
         error_code = ec_too_many_args_for_operator;
       } else {
@@ -1638,7 +1672,7 @@ new fields are set properly.
                         ec_no_params_with_class_type,
                   &locator->source_position);
         err = TRUE;
-      } else if (cppcli_enabled && class_type != NULL &&
+      } else if (cli_or_cx_enabled && class_type != NULL &&
                  !is_nonstatic_member_function && !this_equivalent_seen) {
         pos_ty_error(ec_bad_parameter_type_for_static_member_operator,
                      &locator->source_position, class_type);
@@ -4796,7 +4830,8 @@ issue an error if a default argument is encountered at all.
   /* Loop through the single list. */
   ptp = skip_typerefs(type)->variant.routine.extra_info->param_type_list;
 #if MICROSOFT_EXTENSIONS_ALLOWED
-  if (cppcli_enabled && is_cli_param_array_routine_type(type)) {
+  if (cli_or_cx_enabled && is_cli_param_array_routine_type(type)) {
+/* FIXME: Should exclude C++/CX? */
     a_param_type_ptr  p;
     a_boolean         found_default_arg = FALSE;
     for (p = ptp; p != NULL; p = p->next) {
@@ -6714,8 +6749,7 @@ for use in generating cross-reference output describing this declaration.
     /* Microsoft attributes don't normally apply to variables, but some
        attributes that apply to "any" entity are also accepted on variable
        declarations. */
-    apply_microsoft_attributes(&dps->ms_attributes, (char*)variable_ptr,
-                               (an_il_entry_kind)iek_variable, MSAT_NONE);
+    apply_microsoft_attributes_to_variable(&dps->ms_attributes, variable_ptr);
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   if (linkage != idl_none) {
@@ -6918,7 +6952,7 @@ type entry if appropriate, otherwise using the indicated declared_type.
 */
 {
   a_type_ptr                     rout_type = routine_ptr->type;
-  a_boolean                      use_routine_type;
+  a_boolean                      use_routine_type = TRUE;
   a_routine_type_supplement_ptr  rtsp1, rtsp2;
 
   if (routine_ptr->declared_type != NULL) {
@@ -8700,7 +8734,7 @@ skip_overloading:;
         check_assertion_str(
              is_new_operator(routine_ptr->variant.opname_kind) ||
              is_delete_operator(routine_ptr->variant.opname_kind) ||
-             (cppcli_enabled &&
+             (cli_or_cx_enabled &&
               routine_ptr->variant.opname_kind == (an_opname_kind)onk_plus),
              "decl_routine: bad opname kind");
       }  /* if */
@@ -9040,8 +9074,7 @@ skip_overloading:;
   }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
   if (dps->ms_attributes != NULL && !idlb.is_block_extern_decl) {
-    apply_microsoft_attributes(&dps->ms_attributes, (char*)routine_ptr,
-                               (an_il_entry_kind)iek_routine, MSAT_ROUTINE);
+    apply_microsoft_attributes_to_routine(&dps->ms_attributes, routine_ptr);
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   if (is_function_def && qualifier_namespace_ptr(*locator) != NULL) {
@@ -9771,8 +9804,7 @@ definition of a member function of a class template.
   attach_decl_attributes(dps, func_info->is_definition);
 #if MICROSOFT_EXTENSIONS_ALLOWED
   if (dps->ms_attributes != NULL) {
-    apply_microsoft_attributes(&dps->ms_attributes, (char*)rout_ptr,
-                               (an_il_entry_kind)iek_routine, MSAT_ROUTINE);
+    apply_microsoft_attributes_to_routine(&dps->ms_attributes, rout_ptr);
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   check_defaulted_or_deleted_function(dps, func_info,
@@ -10963,8 +10995,7 @@ symbol entry, and return a pointer to it in state->sym.
 #if MICROSOFT_EXTENSIONS_ALLOWED
   if (microsoft_mode && !is_error_type(type_ptr)) {
     if (state->ms_attributes != NULL) {
-      apply_microsoft_attributes(&state->ms_attributes, (char*)tp, iek_type,
-                                 MSAT_TYPEDEF);
+      apply_microsoft_attributes_to_type(&state->ms_attributes, tp);
     }  /* if */
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
@@ -12363,7 +12394,7 @@ given type should not be used for error recovery purposes.
     pos_error(ec_rvalue_reference_catch_type, pos);
     result = TRUE;
 #if MICROSOFT_EXTENSIONS_ALLOWED
-  } else if (cppcli_enabled && 
+  } else if (cli_or_cx_enabled && 
              (is_managed_class_type(type) || 
               (is_tracking_reference_type(type) && 
                is_managed_class_type(type_pointed_to(type))))) {
@@ -13774,9 +13805,10 @@ and to tok_brace otherwise; the final token is swallowed by the caller.
       }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
       /* User code is not permitted to extend the cli namespace. */
-      if (cppcli_enabled && !scanning_generated_code_from_metadata && 
+      if (cli_or_cx_enabled && !scanning_generated_code_from_metadata && 
           ns_sym == cli_symbol_from_kind(csk_cli_namespace)) {
-        pos_error(ec_namespace_cli_cannot_be_extended,
+        pos_error(cppcx_enabled ? ec_namespace_default_cannot_be_extended
+                                   : ec_namespace_cli_cannot_be_extended,
                   &locator.source_position);
       }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
@@ -13922,7 +13954,11 @@ A using-directive entry is created and activated for the current scope.
   an_attribute_ptr	attributes = dps->prefix_attributes;
 
   db_enter(3, "using_directive");
+  /* FIXME: Workaround for EDGcpfe/10978.  To be removed when EDG's
+     patch arrives. 
   decl_start_pos = pos_curr_token;
+  */
+  decl_start_pos = dps->start_pos;
   /* A using-directive is outside the "Embedded C++" subset. */
   feature_is_not_part_of_embedded_cplusplus_subset(
                                           &pos_curr_token,
@@ -15407,7 +15443,7 @@ proceed after the call.
       /* This is the definition of a static member function.  No storage
          class specifier (not even "static") is permitted. */
 #if MICROSOFT_EXTENSIONS_ALLOWED
-      if (cppcli_enabled &&
+      if (cli_or_cx_enabled &&
           (state->do_flags & DO_IS_STATIC_CONSTRUCTOR) != 0) {
         /* C++/CLI static constructors are an exception. */
       } else
@@ -16171,7 +16207,7 @@ if one is present.
     if (is_abstract_class_type(state->type)) {
       /* Abstract class objects are prohibited. */
 #if MICROSOFT_EXTENSIONS_ALLOWED
-      if (cppcli_enabled && is_cli_interface_type(var_ptr->type)) {
+      if (cli_or_cx_enabled && is_cli_interface_type(var_ptr->type)) {
         /* Diagnose the C++/CLI interface case separately. */
         pos_error(ec_variable_with_interface_type, &locator->source_position);
       } else
@@ -16183,7 +16219,7 @@ if one is present.
                                   state->type, &locator->source_position);
       }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
-    } else if (cppcli_enabled && 
+    } else if (cppcli_enabled &&
                var_has_static_or_thread_storage_duration(var_ptr)) {
       /* Variables with static storage duration cannot have a C++/CLI type
          that may require tracking.  (An exception are static data members of
@@ -16329,7 +16365,7 @@ if one is present.
              treated as having a value. */
           mark_variable_value_set(state->sym);
 #if MICROSOFT_EXTENSIONS_ALLOWED
-        } else if (cppcli_enabled && is_handle_type(state->type)) {
+        } else if (cli_or_cx_enabled && is_handle_type(state->type)) {
           /* Handles are initialized to null by the CLI virtual machine. */
           mark_variable_value_set(state->sym);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
@@ -16476,7 +16512,7 @@ processing should proceed after the call.
   an_end_of_decl_action  end_of_decl_action = eoda_not_at_end;
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
-  if (microsoft_mode && curr_token == tok_lbracket) {
+  if (microsoft_attribute_tokens_next()) {
     /* A Microsoft attribute of the form "[ ... ]". */
     state->ms_attributes = scan_microsoft_attributes(/*is_parameter=*/FALSE);
     if (curr_token == tok_semicolon) {
@@ -16519,7 +16555,7 @@ processing should proceed after the call.
                (((extern_template_allowed && curr_token == tok_extern) ||
                  (inline_template_allowed && curr_token == tok_inline)) &&
                 next_token() == tok_template) ||
-                (cppcli_enabled &&
+                (cli_or_cx_enabled &&
                  (is_generic = is_start_of_generic_decl()) != FALSE)) {
       /* Do the processing required for a template declaration.  If this is
          a top level declaration, the subroutine should not advance past the
@@ -16611,7 +16647,7 @@ processing should proceed after the call.
       cannot_bind_to_curr_construct();
       end_of_decl_action = eoda_check_semicolon;
 #if MICROSOFT_EXTENSIONS_ALLOWED
-    } else if (cppcli_enabled &&
+    } else if (cli_or_cx_enabled &&
                is_file_or_namespace_scope(&scope_stack_top()) &&
                check_for_cli_delegate_definition()) {
       /* Scan a C++/CLI delegate definition. */

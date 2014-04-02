@@ -4180,6 +4180,12 @@ Add "dir_name" to the end of the directory name specified by "buf".
   int		length;
   a_boolean	starts_with_separator;
 
+#if __MICROSOFT_OS__
+  /* If this is a UNC path, add one now as multiple are collapsed. */
+  if (is_dir_separator(dir_name[0]) && is_dir_separator(dir_name[1])) {
+    add_char_to_text_buffer(buf, DIRECTORY_SEPARATOR);
+  }  /* if */
+#endif /* __MICROSOFT_OS__ */
   while (*ptr != '\0') {
     /* Skip past any delimiter characters. */
     starts_with_separator = is_dir_separator(*ptr);
@@ -4851,7 +4857,14 @@ is the length of the dir_name buffer.
   ICLRRuntimeInfo    *crip = NULL;
   HRESULT            hr = E_FAIL;
   DWORD              dword_dir_name_size = (DWORD)*dir_name_size;
+  static             wchar_t runtime_directory[_MAX_DIR] = {0};
 
+  /* Check the cached name first.  The name won't change while running. */
+  if (runtime_directory[0] != L'\0') {
+    wcscpy_s(dir_name, *dir_name_size, runtime_directory);
+    *dir_name_size = wcslen(dir_name);
+    goto end_of_routine;
+  }  /* if */
 #if defined(__cplusplus)
   /* Get the ICLRMetaHostPolicy interface to query for the preferred CLR
      runtime version based on the available versions that are installed or
@@ -4946,6 +4959,10 @@ is the length of the dir_name buffer.
   crip->lpVtbl->Release(crip);
   cmhpp->lpVtbl->Release(cmhpp);
 #endif /* defined(__cplusplus) */
+  /* Cache the value for next time. */
+  wcscpy_s(runtime_directory, _MAX_DIR, dir_name);
+end_of_routine:
+  return;
 }  /* get_clr_runtime_directory */
 
 
@@ -5403,7 +5420,7 @@ is done after command line processing.
   register_trans_unit_variable_with_field(module_id, module_id_ptr);
 #endif /* MODULE_ID_NEEDED */
 #if MICROSOFT_EXTENSIONS_ALLOWED
-  if (cppcli_enabled) {
+  if (cli_or_cx_enabled) {
     init_assembly_search_path();
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
