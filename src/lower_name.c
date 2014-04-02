@@ -322,11 +322,11 @@ differs (see the IA-64 ABI spec for details).
 
 #endif /* IA64_ABI */
 
-#if GNU_FUNCTION_MULTIVERSIONING
+#if USE_X86_FUNCTION_MULTIVERSIONING
 /*
 Strictly speaking, these aren't for "mangling"; they're to re-create the
 names that GNU gives to various function multiversioning symbols.  Note that
-the "." can't be used in configurations that use a C-generating back end
+a "." can't be used in configurations that use a C-generating back end.
 */
 #if BACK_END_IS_C_GEN_BE
 #define MANGLING_SEPARATOR_FOR_MV_FUNC "_"
@@ -338,7 +338,7 @@ the "." can't be used in configurations that use a C-generating back end
 #else /* !IA64_ABI */
 #define MANGLING_STRING_FOR_MV_IFUNC "_MVI_"
 #endif /* IA64_ABI */
-#endif /* GNU_FUNCTION_MULTIVERSIONING */
+#endif /* USE_X86_FUNCTION_MULTIVERSIONING */
 
 #if IA64_ABI
 

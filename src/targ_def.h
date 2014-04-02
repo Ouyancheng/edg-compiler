@@ -5024,8 +5024,10 @@ using lowering, a resolver function is created to implement the decision
 making process at run-time.  When this flag is FALSE (and
 GNU_FUNCTION_MULTIVERSIONING is TRUE), routines with a "target" attribute
 are treated as multiversion routines, but no checking of the attributes
-is performed, and an empty resolver function is created (when lowering).
-In this case, a back end must provide the appropriate resolving.
+is performed, and no resolver function can be created (when lowering).
+For this configuration to be useful, front end modifications need to be
+made (search for instances of USE_X86_FUNCTION_MULTIVERSIONING), or a
+back end must provide the appropriate resolving.
 */
 #ifndef USE_X86_FUNCTION_MULTIVERSIONING
 #define USE_X86_FUNCTION_MULTIVERSIONING GNU_FUNCTION_MULTIVERSIONING
