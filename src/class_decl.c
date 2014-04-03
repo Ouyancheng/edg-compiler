@@ -13123,18 +13123,17 @@ Otherwise, the member is left unchanged.
 
 
 static void set_member_function_name_linkage(a_symbol_ptr       sym,
-                                             a_routine_ptr      rtn,
                                              a_boolean          is_inline,
                                              a_source_position  *diag_pos)
 /*
 Record and check the name linkage for a declaration of the given member
 function (this is the name linkage of the function, not of its type).
-rtn is the routine pointer for the member function (sym->variant.routine.ptr
-except for GNU function multiversions).  is_inline is TRUE for inline member
-functions.  Any diagnostics should be issued at the given position.
+is_inline is TRUE for inline member functions.  Any diagnostics should be
+issued at the given position.
 */
 {
   a_name_linkage_kind  def_name_linkage;
+  a_routine_ptr        rtn = sym->variant.routine.ptr;
   a_type_ptr           class_type = sym->parent.class_type;
 
   /* Member functions should have the same name linkage as the class of
@@ -13507,7 +13506,7 @@ implicitly declared member functions.
   /* The routine name linkage on the function type is also required to be
      C++ no matter what the name linkage of the routine turns out to be. */
   rtsp->routine_name_linkage = (a_name_linkage_kind)nlk_cplusplus_external;
-  set_member_function_name_linkage(sym, rtn, func_info->is_inline,
+  set_member_function_name_linkage(sym, func_info->is_inline,
                                    &locator->source_position);
 #if BACK_END_IS_CP_GEN_BE
   if (func_info->is_definition &&
@@ -19291,8 +19290,7 @@ symbol for a called member function.
     sym->variant.routine.ptr = rp;
     set_source_corresp(&rp->source_corresp, sym);
     set_class_membership(sym, &rp->source_corresp, class_type);
-    set_member_function_name_linkage(sym, rp, /*is_inline=*/TRUE,
-                                     &error_position);
+    set_member_function_name_linkage(sym, /*is_inline=*/TRUE, &error_position);
     /* Add the symbol and IL entry to the appropriate lists. */
     enter_symbol_into_completed_class(sym);
     add_to_routines_list(rp, NO_SCOPE_DEPTH);
