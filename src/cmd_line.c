@@ -10582,7 +10582,7 @@ variables declared in cmd_line.h.
   microsoft_bugs = FALSE;
   cppcli_enabled = FALSE;
   cppcx_enabled = FALSE;
-  cx_or_cli_enabled = FALSE;
+  cli_or_cx_enabled = FALSE;
   scanning_generated_code_from_metadata = FALSE;
 #endif /* ifdef _lint */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
