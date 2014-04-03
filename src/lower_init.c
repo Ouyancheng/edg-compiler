@@ -17474,7 +17474,7 @@ builtin functions to determine the underlying CPU characteristics.
     int arch = mv_display_order(i);
     if (bs & (1<<arch)) {
       an_expr_node_ptr this_check;
-      if (is_mv_arch(arch)) {
+      if (is_mv_cpu_arch(arch)) {
         /* CPU architecture is already handled in preceding loop. */
       } else {
         this_check = make_call_node(builtin_cpu_supports_routine, 

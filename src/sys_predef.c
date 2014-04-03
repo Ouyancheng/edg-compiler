@@ -2941,26 +2941,6 @@ keeps it at the head of a sorted list).
 }  /* compare_target_priority */
 
 
-a_routine_ptr get_mv_default_routine(a_routine_ptr routine)
-/*
-Returns the "default" routine for the specified GNU function multiversioned
-representative routine or NULL if none exists.
-*/
-{
-  a_routine_ptr     result = NULL;
-  a_routine_list_entry_ptr targeted_versions;
-
-  check_assertion(is_multiversion_representative(routine));
-  targeted_versions =
-           gnu_routine_supp(routine)->mv_info.representative.targeted_versions;
-  if (targeted_versions->routine != NULL &&
-      is_mv_default_routine(targeted_versions->routine)) {
-    result = targeted_versions->routine;
-  }  /* if */
-  return result;
-}  /* get_mv_default_routine */
-
-
 a_routine_ptr find_mv_target_specific_routine(
                                              a_routine_ptr routine,
                                              a_routine_ptr surrounding_routine)
@@ -3033,7 +3013,7 @@ resolver routine is needed and no "default" routine is provided.
                                                                      != NULL) {
     /* This routine can be replaced by a reference to a target-specific
        version routine: no resolver is needed. */
-  } else if (get_mv_default_routine(routine) != NULL) {
+  } else if (has_mv_default_routine(routine)) {
     /* Normal case: a resolver routine is required.  Record the fact that
        a resolver is needed. */
     grsp->mv_resolver_required = TRUE;
@@ -3238,7 +3218,7 @@ str_len should be used to determine the end of the argument.
       } else {
         a_gnu_routine_supplement_ptr grsp = gnu_routine_supp(routine);
         check_assertion(grsp->is_target_specific_version);
-        if (is_mv_arch(ptr->value) &&
+        if (is_mv_cpu_arch(ptr->value) &&
             is_any_mv_arch_bit_set(
                                grsp->mv_info.targeted_version.target_bitset)) {
           /* Can't specify more than one CPU architecture. */

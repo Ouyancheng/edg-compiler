@@ -46,6 +46,7 @@ well.
 typedef enum a_mv_arch_isa {
   mv_invalid = -1,                /* An invalid entry. */
   mv_lowest_arch = 0,             /* Lowest CPU architecture entry. */
+  /* CPU architectures: */
   mv_arch_bdver1 = mv_lowest_arch,
   mv_arch_bdver2,
   mv_arch_corei7,
@@ -55,6 +56,7 @@ typedef enum a_mv_arch_isa {
   mv_highest_arch = mv_arch_atom, /* Highest CPU architecture entry. */
   mv_default_target,              /* Default entry (delineates CPU arch/ISA).*/
   mv_lowest_isa,                  /* Marks first ISA entry. */
+  /* ISA architectures: */
   mv_isa_mmx = mv_lowest_isa,
   mv_isa_sse,
   mv_isa_sse2,
@@ -69,7 +71,54 @@ typedef enum a_mv_arch_isa {
   mv_last                         /* Must be last. */
 } a_mv_arch_isa;
 
-typedef a_byte a_mv_arch_isa_kind;
+/* Type to hold an a_mv_arch_isa enumeration value. */
+typedef signed char a_mv_arch_isa_kind;
+
+/*
+Macro that returns TRUE if the specified architecture corresponds to a
+CPU architecture.
+*/
+#define is_mv_cpu_arch(t) ((t) >= mv_lowest_arch && (t) <= mv_highest_arch)
+
+/*
+Macro that returns TRUE if a CPU architecture is specified in a bitset.
+*/
+#define is_any_mv_arch_bit_set(bs)                                            \
+  (((bs) & ((1 << ((int)mv_highest_arch + 1)) - 1)) != 0)
+
+/*
+Macro that returns TRUE if the specified bitset indicates the "default"
+routine.
+*/
+#define is_default_targ_bitset(bs) ((bs) == 1 << mv_default_target)
+
+/*
+Macro that returns TRUE if the specific-target routine is the "default"
+routine.
+*/
+#define is_mv_default_routine(rp)                                             \
+ (has_gnu_routine_supp(rp) &&                                                 \
+  is_default_targ_bitset(                                                     \
+                 (rp)->gnu_extra_info->mv_info.targeted_version.target_bitset))
+
+/*
+Macro that takes a representative routine and returns TRUE in the special
+case when there is exactly one target-specific routine on the list.
+*/
+#define has_exactly_one_target_specific_routine(rp)                           \
+  (has_gnu_routine_supp(rp) &&                                                \
+   (rp)->gnu_extra_info->mv_info.representative.targeted_versions != NULL &&  \
+   (rp)->gnu_extra_info->mv_info.representative.targeted_versions->next== NULL)
+
+/*
+Macro that takes a representative routine and returns TRUE if there is
+a "default" routine on the list (which will be the first routine on the list).
+*/
+#define has_mv_default_routine(rp)                                            \
+  (has_gnu_routine_supp(rp) &&                                                \
+   (rp)->gnu_extra_info->mv_info.representative.targeted_versions != NULL &&  \
+   is_mv_default_routine((rp)->gnu_extra_info->                               \
+                            mv_info.representative.targeted_versions->routine))
 
 extern a_const_char *source_mv_isa_arch_name(int idx);
 
@@ -77,38 +126,12 @@ extern int mv_display_count(void);
 
 extern int mv_display_order(int i);
 
-/* Check if the target enumerator is a CPU architecture. */
-#define is_mv_arch(t) ((t) >= 0 && (t) <= mv_highest_arch)
-/* Mask that has a bit set for every CPU architecture. */
-#define MV_CPU_ARCH_MASK ((1 << ((int)mv_highest_arch + 1)) - 1)
-/* Check if a CPU architecture is specified in a bitset. */
-#define is_any_mv_arch_bit_set(bs) (((bs) & MV_CPU_ARCH_MASK) != 0)
-/* Check if the target bitset is the GNU multiversion "default" target. */
-#define is_default_targ_bitset(bs) ((bs) == 1 << mv_default_target)
-/* Check if the routine is the "default" routine. */
-#define is_mv_default_routine(routine) \
- (has_gnu_routine_supp(routine) && \
-  is_default_targ_bitset( \
-            (routine)->gnu_extra_info->mv_info.targeted_version.target_bitset))
-/*
-Macro that takes a representative routine and returns TRUE in the special
-case when there is exactly one target-specific routine on the list.
-*/
-#define has_exactly_one_target_specific_routine(routine) \
-  (has_gnu_routine_supp(routine) && \
-   (routine)->gnu_extra_info->mv_info.representative.targeted_versions \
-                                                                   != NULL && \
-   (routine)->gnu_extra_info->mv_info.representative.targeted_versions->next \
-                                                                      == NULL)
-
 extern void reference_to_mv_routine(a_routine_ptr      routine,
                                     a_source_position  *error_pos);
 
 extern a_routine_ptr find_mv_target_specific_routine(
                                             a_routine_ptr routine,
                                             a_routine_ptr surrounding_routine);
-
-extern a_routine_ptr get_mv_default_routine(a_routine_ptr routine);
 
 #endif /* USE_X86_FUNCTION_MULTIVERSIONING */
 
