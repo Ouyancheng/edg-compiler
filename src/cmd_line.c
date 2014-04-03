@@ -10563,8 +10563,8 @@ variables declared in cmd_line.h.
   microsoft_mode = DEFAULT_MICROSOFT_MODE;
   microsoft_bugs = DEFAULT_MICROSOFT_BUGS && microsoft_mode;  /*lint !e506*/
   cppcli_enabled = DEFAULT_CPPCLI_ENABLED && microsoft_mode;  /*lint !e506*/
-  cppcx_enabled = DEFAULT_CPPCX_ENABLED &&
-                     microsoft_mode;  /*lint !e506*/
+  cppcx_enabled = DEFAULT_CPPCX_ENABLED && microsoft_mode;  /*lint !e506*/
+  cli_or_cx_enabled = cppcli_enabled || cppcx_enabled;
   mscorlib_file_name = NULL;
   /* using_framework_directory defaults to TRUE, but has no effect unless
      cppcli_enabled is TRUE. */

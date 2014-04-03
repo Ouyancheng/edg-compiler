@@ -1187,16 +1187,6 @@ instance (C++/CX mode).
 }  /* is_handle_to_nonconst_cppcx_array_type */
 
 
-static a_boolean is_cppcx_box_type(a_type_ptr tp)
-/*
-Return TRUE if the given type is a C++/CX Platform::Box<T> type.
-*/
-{
-  tp = skip_typerefs(tp);
-  return is_immediate_class_type(tp) && class_type_supp(tp)->is_cppcx_box;
-}  /* is_cppcx_box_type */
-
-
 a_type_ptr cli_array_element_type(a_type_ptr tp)
 /*
 tp is a C++/CLI array type.  Return its element type.
@@ -1506,6 +1496,15 @@ value type.
   return result;
 }  /* is_cli_nullable_type */
 
+
+static a_boolean is_cppcx_box_type(a_type_ptr tp)
+/*
+Return TRUE if the given type is a C++/CX Platform::Box<T> type.
+*/
+{
+  tp = skip_typerefs(tp);
+  return is_immediate_class_type(tp) && class_type_supp(tp)->is_cppcx_box;
+}  /* is_cppcx_box_type */
 
 #endif /* !STANDALONE_UTILITY_PROGRAM */
 

@@ -1092,7 +1092,7 @@ attribute argument expression.
   (cli_or_cx_enabled && expr_stack != NULL &&                         \
    (a_boolean)expr_stack->is_cli_attr_arg_expression)
 #else /* !MICROSOFT_EXTENSIONS_ALLOWED */
-#define curr_expr_is_cli_attribute_argument() FALSE
+#define curr_expr_is_cli_attribute_argument() (/*lint --e(506)*/FALSE)
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 
