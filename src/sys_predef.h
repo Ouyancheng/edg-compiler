@@ -120,7 +120,7 @@ extern a_routine_ptr find_existing_mv_routine(
 extern void add_to_specific_version_list(a_routine_ptr representative_routine,
                                          a_routine_ptr target_routine);
 
-extern a_const_char *mangled_mv_identifier_for_routine(a_routine_ptr routine);
+extern a_const_char *target_specific_distinction(a_routine_ptr routine);
 #endif /* GNU_FUNCTION_MULTIVERSIONING */
 
 extern void validate_target_argument(a_const_char         *str,

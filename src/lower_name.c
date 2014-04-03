@@ -10317,8 +10317,7 @@ depending on the ABI.
       /* Add a separator before the target info. */
       add_str_to_mangled_name(MANGLING_SEPARATOR_FOR_MV_DISTINCTION, mctl);
 #endif /* !IA64_ABI */
-      add_str_to_mangled_name(mangled_mv_identifier_for_routine(routine),
-                              mctl);
+      add_str_to_mangled_name(target_specific_distinction(routine), mctl);
 #if !IA64_ABI
       /* Separate prefix from name. */
       add_str_to_mangled_name("__", mctl);

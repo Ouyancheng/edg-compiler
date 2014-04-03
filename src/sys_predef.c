@@ -2763,7 +2763,6 @@ static a_const_char *mv_arch_name[] = {
   "avx2"              /* mv_isa_avx2 */
 };
 
-#define num_mv_target_strings (sizeof(mv_arch_name)/sizeof(mv_arch_name[0]))
 
 /* FIXME: is this needed? */
 a_const_char *source_mv_isa_arch_name(int idx)
@@ -3105,24 +3104,24 @@ that are pointed to by representative.
 }  /* add_to_specific_version_list */
 
 
-a_const_char *mangled_mv_identifier_for_routine(a_routine_ptr routine)
+a_const_char *target_specific_distinction(a_routine_ptr routine)
 /*
-   FIXME
 Return a string that is used in the mangled name for routine to differentiate
 this target-specific routine from other target-specific routines.  The
 pointer that is returned is to a static buffer so the caller should copy the
 result to an allocated area.
 */
 {
-#define BUFFER_SIZE 1000
-  static char        buffer[BUFFER_SIZE]; /* FIXME: use a static buffer? */
+#define BUFFER_SIZE 256
+  static char        buffer[BUFFER_SIZE];
+  int                buff_idx = 0;
 #if USE_X86_FUNCTION_MULTIVERSIONING
   int                i;
-  int                buff_idx = 0;
   a_boolean          is_first = TRUE;
   a_mv_target_bitset bs =
              gnu_routine_supp(routine)->mv_info.targeted_version.target_bitset;
 
+  check_assertion(gnu_routine_supp(routine)->is_target_specific_version);
   /* This loop adds the CPU architecture name (if any). */
   for (i = 0; i <= mv_highest_arch; i++) {
     if (bs & (1<<i)) {
@@ -3130,10 +3129,10 @@ result to an allocated area.
       if (is_first) {
         is_first = FALSE;
       } else {
-        check_assertion(buff_idx + 1 < BUFFER_SIZE);
+        if (buff_idx + 1 >= BUFFER_SIZE) goto done;
         buffer[buff_idx++] = '_';
       }  /* if */
-      check_assertion((buff_idx + strlen(arch_name)) < BUFFER_SIZE);
+      if (buff_idx + strlen(arch_name) >= BUFFER_SIZE) goto done;
       (void)strcpy(&buffer[buff_idx], arch_name);
       buff_idx += strlen(arch_name);
       break;
@@ -3147,21 +3146,23 @@ result to an allocated area.
       if (is_first) {
         is_first = FALSE;
       } else {
-        check_assertion(buff_idx + 1 < BUFFER_SIZE);
+        if (buff_idx + 1 >= BUFFER_SIZE) goto done;
         buffer[buff_idx++] = '_';
       }  /* if */
-      check_assertion((buff_idx + strlen(arch_name)) < BUFFER_SIZE);
+      if (buff_idx + strlen(arch_name) >= BUFFER_SIZE) goto done;
       (void)strcpy(&buffer[buff_idx], arch_name);
       buff_idx += strlen(arch_name);
     }  /* if */
   }  /* for */
-  if (buff_idx <= 0) buffer[0] = '\0';
-#else /* !USE_X86_FUNCTION_MULTIVERSIONING */
-  /* FIXME: just use target string? */
+done:
+  /* Make sure string is NULL terminated (only an issue if we've run out of
+     buffer space). */
+  if (buff_idx < BUFFER_SIZE) buffer[buff_idx] = '\0';
 #endif /* USE_X86_FUNCTION_MULTIVERSIONING */
+  if (buff_idx == 0) buffer[0] = '\0';
   return buffer;
 #undef BUFFER_SIZE
-}  /* mangled_mv_identifier_for_routine */
+}  /* target_specific_distinction */
 
 
 #if !USE_X86_FUNCTION_MULTIVERSIONING
@@ -3281,7 +3282,7 @@ Do one-time initialization for data structures used in this file.
   if (sizeof(a_mv_target_bitset)*8 < mv_last) {
     internal_error("undersized a_mv_target_bitset");
   }  /* if */
-  if (num_mv_target_strings != mv_last) {
+  if ((sizeof(mv_arch_name)/sizeof(mv_arch_name[0])) != mv_last) {
     internal_error("mv_arch_name table must have mv_last elements");
   }  /* if */
   check_assertion_str((sizeof(mv_arch_name_string_table)/
