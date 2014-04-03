@@ -17459,7 +17459,7 @@ builtin functions to determine the underlying CPU characteristics.
                   builtin_cpu_is_routine != NULL);
   bs = gnu_routine_supp(routine)->mv_info.targeted_version.target_bitset;
   /* First do the CPU architecture check. */
-  for (i = mv_lowest_arch; i <= mv_highest_arch; i++) {
+  for (i = mvak_lowest_cpu; i <= mvak_highest_cpu; i++) {
     if (bs & (1<<i)) {
       /* Note: At most one CPU architecture per target bitset.  This is a
          restriction which has already been checked. */

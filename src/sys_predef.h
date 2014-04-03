@@ -41,54 +41,54 @@ Note that these entries are specific to the Intel/AMD line of processors,
 but the mechanism may be used as the basis for other types of processors as
 well.
 */
-typedef enum a_mv_arch_isa {
-  mv_invalid = -1,                /* An invalid entry. */
-  mv_lowest_arch = 0,             /* Lowest CPU architecture entry. */
+enum a_multiversion_arch_kind_tag {
+  mvak_invalid = -1,                /* An invalid entry. */
+  mvak_lowest_cpu = 0,              /* Lowest CPU architecture entry. */
   /* CPU architectures: */
-  mv_arch_bdver1 = mv_lowest_arch,
-  mv_arch_bdver2,
-  mv_arch_corei7,
-  mv_arch_amdfam10h,
-  mv_arch_core2,
-  mv_arch_atom,
-  mv_highest_arch = mv_arch_atom, /* Highest CPU architecture entry. */
-  mv_default_target,              /* Default entry (delineates CPU arch/ISA).*/
-  mv_lowest_isa,                  /* Marks first ISA entry. */
+  mvak_cpu_bdver1 = mvak_lowest_cpu,
+  mvak_cpu_bdver2,
+  mvak_cpu_corei7,
+  mvak_cpu_amdfam10h,
+  mvak_cpu_core2,
+  mvak_cpu_atom,
+  mvak_highest_cpu = mvak_cpu_atom, /* Highest CPU architecture entry. */
+  mvak_default_target,              /* Default entry.*/
+  mvak_lowest_isa,                  /* Marks first ISA entry. */
   /* ISA architectures: */
-  mv_isa_mmx = mv_lowest_isa,
-  mv_isa_sse,
-  mv_isa_sse2,
-  mv_isa_sse3,
-  mv_isa_ssse3,
-  mv_isa_sse4_1,
-  mv_isa_sse4_2,
-  mv_isa_popcnt,
-  mv_isa_avx,
-  mv_isa_avx2,
-  mv_highest_isa = mv_isa_avx2,   /* Marks last ISA entry. */
-  mv_last                         /* Must be last. */
-} a_mv_arch_isa;
+  mvak_isa_mmx = mvak_lowest_isa,
+  mvak_isa_sse,
+  mvak_isa_sse2,
+  mvak_isa_sse3,
+  mvak_isa_ssse3,
+  mvak_isa_sse4_1,
+  mvak_isa_sse4_2,
+  mvak_isa_popcnt,
+  mvak_isa_avx,
+  mvak_isa_avx2,
+  mvak_highest_isa = mvak_isa_avx2, /* Marks last ISA entry. */
+  mvak_last                         /* Must be last. */
+};
 
-/* Type to hold an a_mv_arch_isa enumeration value. */
-typedef signed char a_mv_arch_isa_kind;
+/* Type to hold an a_target_architecture enumeration value. */
+typedef signed char a_multiversion_arch_kind;
 
 /*
 Macro that returns TRUE if the specified architecture corresponds to a
 CPU architecture.
 */
-#define is_mv_cpu_arch(t) ((t) >= mv_lowest_arch && (t) <= mv_highest_arch)
+#define is_mv_cpu_arch(t) ((t) >= mvak_lowest_cpu && (t) <= mvak_highest_cpu)
 
 /*
 Macro that returns TRUE if a CPU architecture is specified in a bitset.
 */
 #define is_any_mv_arch_bit_set(bs)                                            \
-  (((bs) & ((1 << ((int)mv_highest_arch + 1)) - 1)) != 0)
+  (((bs) & ((1 << ((int)mvak_highest_cpu + 1)) - 1)) != 0)
 
 /*
 Macro that returns TRUE if the specified bitset indicates the "default"
 routine.
 */
-#define is_default_targ_bitset(bs) ((bs) == 1 << mv_default_target)
+#define is_default_targ_bitset(bs) ((bs) == 1 << mvak_default_target)
 
 /*
 Macro that returns TRUE if the specific-target routine is the "default"
@@ -118,7 +118,7 @@ a "default" routine on the list (which will be the first routine on the list).
    is_mv_default_routine((rp)->gnu_extra_info->                               \
                             mv_info.representative.targeted_versions->routine))
 
-extern a_const_char *target_name_for_builtin(a_mv_arch_isa_kind arch);
+extern a_const_char *target_name_for_builtin(a_multiversion_arch_kind arch);
 
 extern int mv_display_count(void);
 

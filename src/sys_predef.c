@@ -2717,54 +2717,55 @@ all one-to-one mappings: the names in the latter two cases are massaged as
 necessary to match GNU's behavior.
 */
 static a_const_char *target_attributes[] = {
-  "arch=bdver1",      /* mv_arch_bdver1 */
-  "arch=bdver2",      /* mv_arch_bdver2 */
-  "arch=corei7",      /* mv_arch_corei7 */
-  "arch=amdfam10",    /* mv_arch_amdfam10h */
-  "arch=core2",       /* mv_arch_core2 */
-  "arch=atom",        /* mv_arch_atom */
-  "default",          /* mv_default_target */
-  "mmx",              /* mv_isa_mmx */
-  "sse",              /* mv_isa_sse */
-  "sse2",             /* mv_isa_sse2 */
-  "sse3",             /* mv_isa_sse3 */
-  "ssse3",            /* mv_isa_ssse3 */
-  "sse4.1",           /* mv_isa_sse4_1 */
-  "sse4.2",           /* mv_isa_sse4_2 */
-  "popcnt",           /* mv_isa_popcnt */
-  "avx",              /* mv_isa_avx */
-  "avx2",             /* mv_isa_avx2 */
+  "arch=bdver1",      /* mvak_cpu_bdver1 */
+  "arch=bdver2",      /* mvak_cpu_bdver2 */
+  "arch=corei7",      /* mvak_cpu_corei7 */
+  "arch=amdfam10",    /* mvak_cpu_amdfam10h */
+  "arch=core2",       /* mvak_cpu_core2 */
+  "arch=atom",        /* mvak_cpu_atom */
+  "default",          /* mvak_default_target */
+  "mmx",              /* mvak_isa_mmx */
+  "sse",              /* mvak_isa_sse */
+  "sse2",             /* mvak_isa_sse2 */
+  "sse3",             /* mvak_isa_sse3 */
+  "ssse3",            /* mvak_isa_ssse3 */
+  "sse4.1",           /* mvak_isa_sse4_1 */
+  "sse4.2",           /* mvak_isa_sse4_2 */
+  "popcnt",           /* mvak_isa_popcnt */
+  "avx",              /* mvak_isa_avx */
+  "avx2",             /* mvak_isa_avx2 */
 };
 
-static a_mv_arch_isa_kind find_target_attribute(a_const_char *str,
-                                                size_t       str_len)
+static a_multiversion_arch_kind find_target_attribute(a_const_char *str,
+                                                      size_t       str_len)
 /*
-Return the a_mv_arch_isa_kind for the "target" attribute pointed to by str
-whose length is strlen (str may not be NULL terminated).  If no attribute
-is found, mv_invalid is returned.
+Return the a_multiversion_arch_kind for the "target" attribute pointed to by
+str whose length is strlen (str may not be NULL terminated).  If no attribute
+is found, mvak_invalid is returned.
 */
 {
-  a_mv_arch_isa_kind result = mv_invalid, arch;
+  a_multiversion_arch_kind result = (a_multiversion_arch_kind)mvak_invalid;
+  a_multiversion_arch_kind arch;
 
-  for (arch = 0; arch < (a_mv_arch_isa_kind)mv_last; arch++) {
+  for (arch = 0; arch < (a_multiversion_arch_kind)mvak_last; arch++) {
     if (strlen(target_attributes[arch]) == str_len &&
         strncmp(str, target_attributes[arch], str_len) == 0) {
       result = arch;
       break;
     }  /* if */
   }  /* for */
-  if (result == (a_mv_arch_isa_kind)mv_invalid) {
+  if (result == (a_multiversion_arch_kind)mvak_invalid) {
     /* Handle a special case here ("sse4" and "sse4.1" map to the same
        entry). */
     if (strncmp(str, "sse4", str_len) == 0) {
-      result = (a_mv_arch_isa_kind)mv_isa_sse4_1;
+      result = (a_multiversion_arch_kind)mvak_isa_sse4_1;
     }  /* if */
   }  /* if */
   return result;
 }  /* find_target_attribute */
 
 
-a_const_char *target_name_for_builtin(a_mv_arch_isa_kind arch)
+a_const_char *target_name_for_builtin(a_multiversion_arch_kind arch)
 /*
 Return a string that identifies the specified CPU or ISA architecture to
 be used as an argument for the GNU __builtin_cpu_is/__builtin_cpu_supports
@@ -2773,7 +2774,7 @@ calls.
 {
   a_const_char *result = target_attributes[arch];
 
-  if (arch == (a_mv_arch_isa_kind)mv_arch_amdfam10h) {
+  if (arch == (a_multiversion_arch_kind)mvak_cpu_amdfam10h) {
     /* Special case: "target" attribute is "amdfam10", but "amdfam10h" is
        required for the builtin calls. */
     result = "amdfam10h";
@@ -2786,7 +2787,7 @@ calls.
 }  /* target_name_for_builtin */
 
 
-a_const_char *target_distinction(a_mv_arch_isa_kind arch)
+static a_const_char *target_distinction(a_multiversion_arch_kind arch)
 /*
 Return a string that identifies the specified CPU or ISA architecture to
 be used as part of a "mangled" name.  The strings returned here match those
@@ -2797,14 +2798,15 @@ value must be copied before a second call is made.
   a_const_char *result = target_attributes[arch];
   static char  buffer[20];
 
-  if (arch == (a_mv_arch_isa_kind)mv_arch_amdfam10h) {
+  if (arch == (a_multiversion_arch_kind)mvak_cpu_amdfam10h) {
     /* Special case: "target" attribute is "amdfam10", but "arch_amdfam10h" is
        required to match GNU mangling. */
     result = "arch_amdfam10h";
   } else if (is_mv_cpu_arch(arch)) {
     /* Replace "arch=" with "arch_" in CPU architecture cases. */
-    check_assertion(strncmp(result, "arch=", 5) == 0);
-    (void)strcpy(buffer, result);
+    check_assertion(strncmp(result, "arch=", 5) == 0 &&
+                    strlen(result) + 1 < sizeof(buffer));
+    (void)strncpy(buffer, result, sizeof(buffer));
     buffer[4] = '_';
     result = buffer;
 #if BACK_END_IS_C_GEN_BE
@@ -2812,7 +2814,8 @@ value must be copied before a second call is made.
     /* For C-generating back ends, mangled names can't have periods, so replace
        those with underscores. */
     char *ptr;
-    (void)strcpy(buffer, result);
+    check_assertion(strlen(result) + 1 < sizeof(buffer));
+    (void)strncpy(buffer, result, sizeof(buffer));
     for (ptr = strchr(buffer, '.'); ptr != NULL; ptr = strchr(ptr, '.')) {
       *ptr = '_';
     }  /* if */
@@ -2823,17 +2826,18 @@ value must be copied before a second call is made.
 }  /* target_distinction */
 
 
-static a_mv_arch_isa display_order[] = {
-  mv_isa_avx,
-  mv_isa_avx2,
-  mv_isa_mmx,
-  mv_isa_popcnt,
-  mv_isa_sse,
-  mv_isa_sse2,
-  mv_isa_sse3,
-  mv_isa_sse4_1,
-  mv_isa_sse4_2,
-  mv_isa_ssse3
+/* FIXME: */
+static a_multiversion_arch_kind display_order[] = {
+  mvak_isa_avx,
+  mvak_isa_avx2,
+  mvak_isa_mmx,
+  mvak_isa_popcnt,
+  mvak_isa_sse,
+  mvak_isa_sse2,
+  mvak_isa_sse3,
+  mvak_isa_sse4_1,
+  mvak_isa_sse4_2,
+  mvak_isa_ssse3
 };
 
 int mv_display_order(int i)
@@ -2860,40 +2864,39 @@ iterate through the multiversion ISAs in an alternate order.
 }  /* mv_display_count */
 
 
-static a_mv_arch_isa highest_isa(a_mv_target_bitset bitset,
-                                 a_mv_arch_isa      *cpu_arch)
+static a_multiversion_arch_kind highest_isa(a_mv_target_bitset       bitset,
+                                            a_multiversion_arch_kind *cpu_arch)
 /*
 Return the highest (i.e., most capable) Instruction Set Architecture
 capability of the specified bitset.  If a CPU architecture is specified
 in the bitset, then map that to the corresponding ISA architecture before
 determining the highest.  Set *cpu_arch to the CPU architecture (there can
-be at most one) if one is found (and to mv_invalid otherwise).
+be at most one) if one is found (and to mvak_invalid otherwise).
 */
 {
-  a_mv_arch_isa_kind  i;
-  a_mv_arch_isa       result_isa = mv_lowest_isa;
+  a_multiversion_arch_kind  i, result_isa = mvak_lowest_isa;
 
-  *cpu_arch = mv_invalid;
+  *cpu_arch = mvak_invalid;
   /* First, check if there's a CPU architecture specified in the bitset.
      If there is, get the highest architecture supported by the arch. */
-  for (i = (a_mv_arch_isa_kind)mv_lowest_arch;
-       i <= (a_mv_arch_isa_kind)mv_highest_arch;
+  for (i = (a_multiversion_arch_kind)mvak_lowest_cpu;
+       i <= (a_multiversion_arch_kind)mvak_highest_cpu;
        i++) {
-    a_mv_arch_isa arch_isa;
+    a_multiversion_arch_kind arch_isa;
     switch (i) {
-      case mv_arch_bdver1:
-      case mv_arch_bdver2:
-        arch_isa = mv_isa_avx2;
+      case mvak_cpu_bdver1:
+      case mvak_cpu_bdver2:
+        arch_isa = mvak_isa_avx2;
         break;
-      case mv_arch_corei7:
-        arch_isa = mv_isa_popcnt;
+      case mvak_cpu_corei7:
+        arch_isa = mvak_isa_popcnt;
         break;
-      case mv_arch_amdfam10h:
-        arch_isa = mv_isa_ssse3;
+      case mvak_cpu_amdfam10h:
+        arch_isa = mvak_isa_ssse3;
         break;
-      case mv_arch_core2:
-      case mv_arch_atom:
-        arch_isa = mv_isa_ssse3;
+      case mvak_cpu_core2:
+      case mvak_cpu_atom:
+        arch_isa = mvak_isa_ssse3;
         break;
       default:
         unexpected_condition();
@@ -2905,7 +2908,7 @@ be at most one) if one is found (and to mv_invalid otherwise).
     }  /* if */
   }  /* for */
   /* Check all the ISAs specified in the bitset, and choose the highest. */
-  for (i = mv_lowest_isa; i <= mv_highest_isa; i++) {
+  for (i = mvak_lowest_isa; i <= mvak_highest_isa; i++) {
     if ((bitset & (1<<i)) && result_isa < i) {
       result_isa = i;
     }  /* if */
@@ -2923,9 +2926,9 @@ for less, equal, or greater.  "default" always compares "less than" (which
 keeps it at the head of a sorted list).
 */
 {
-  int           result;
-  a_mv_arch_isa left_isa, right_isa;
-  a_mv_arch_isa left_cpu_arch, right_cpu_arch;
+  int                      result;
+  a_multiversion_arch_kind left_isa, right_isa;
+  a_multiversion_arch_kind left_cpu_arch, right_cpu_arch;
 
   if (is_default_targ_bitset(left) && is_default_targ_bitset(right)) {
     result = 0;
@@ -2939,18 +2942,18 @@ keeps it at the head of a sorted list).
     if (left_isa < right_isa) result = 1;
     else if (left_isa > right_isa) result = -1;
     else {
-      if (left_cpu_arch != mv_invalid && right_cpu_arch != mv_invalid) {
+      if (left_cpu_arch != mvak_invalid && right_cpu_arch != mvak_invalid) {
         if (left_cpu_arch == right_cpu_arch) result = 0;
-        else if (left_cpu_arch == mv_arch_bdver1 &&
-                 right_cpu_arch == mv_arch_bdver2)
+        else if (left_cpu_arch == mvak_cpu_bdver1 &&
+                 right_cpu_arch == mvak_cpu_bdver2)
           result = 1;
-        else if (left_cpu_arch == mv_arch_bdver2 &&
-                 right_cpu_arch == mv_arch_bdver1)
+        else if (left_cpu_arch == mvak_cpu_bdver2 &&
+                 right_cpu_arch == mvak_cpu_bdver1)
           result = -1;
         else
           result = 0;
       } else if (left_cpu_arch == right_cpu_arch) result = 0;
-      else if (right_cpu_arch != mv_invalid) result = 1;
+      else if (right_cpu_arch != mvak_invalid) result = 1;
       else result = -1;
     }  /* if */
   }  /* if */
@@ -3115,14 +3118,15 @@ result to an allocated area.
 #if USE_X86_FUNCTION_MULTIVERSIONING
   int                i;
   a_boolean          is_first = TRUE;
+  a_const_char       *arch_name;
   a_mv_target_bitset bs =
              gnu_routine_supp(routine)->mv_info.targeted_version.target_bitset;
 
   check_assertion(gnu_routine_supp(routine)->is_target_specific_version);
   /* This loop adds the CPU architecture name (if any). */
-  for (i = 0; i <= mv_highest_arch; i++) {
+  for (i = 0; i <= mvak_highest_cpu; i++) {
     if (bs & (1<<i)) {
-      a_const_char *arch_name = target_distinction(i);
+      arch_name = target_distinction(i);
       if (is_first) {
         is_first = FALSE;
       } else {
@@ -3139,7 +3143,7 @@ result to an allocated area.
   for (i = 0; i < mv_display_count(); i++) {
     int arch = mv_display_order(i);
     if (bs & (1<<arch)) {
-      a_const_char * arch_name = target_distinction(arch);
+      arch_name = target_distinction(arch);
       if (is_first) {
         is_first = FALSE;
       } else {
@@ -3219,9 +3223,9 @@ str_len should be used to determine the end of the argument.
      performed to ensure that only one CPU architecture is specified and
      the mv_target_bitset for the routine is updated to reflect the
      target argument. */
-  a_mv_arch_isa_kind arch = find_target_attribute(str, str_len);
+  a_multiversion_arch_kind arch = find_target_attribute(str, str_len);
 
-  if (arch != (a_mv_arch_isa_kind)mv_invalid) {
+  if (arch != (a_multiversion_arch_kind)mvak_invalid) {
     if (C_mode()) {
       /* The presence of the argument is sufficient. */
     } else if (skip_typerefs(routine->type)->
@@ -3269,12 +3273,12 @@ Do one-time initialization for data structures used in this file.
 {
 #if USE_X86_FUNCTION_MULTIVERSIONING
   /* Perform some configuration checks. */
-  if (sizeof(a_mv_target_bitset)*8 < mv_last) {
+  if (sizeof(a_mv_target_bitset)*8 < mvak_last) {
     internal_error("undersized a_mv_target_bitset");
   }  /* if */
   check_assertion_str((sizeof(target_attributes)/
-                       sizeof(target_attributes[0])) == mv_last,
-                 "target_attributes table must have mv_last elements");
+                       sizeof(target_attributes[0])) == mvak_last,
+                 "target_attributes table must have mvak_last elements");
 #endif /* USE_X86_FUNCTION_MULTIVERSIONING */
 }  /* sys_predef_one_time_init */
 
