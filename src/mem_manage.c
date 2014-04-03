@@ -1767,6 +1767,12 @@ Display the IL entry prefix of the given IL entry.
     fprintf(f_debug, "(alloc_seq_number = %lu) ",
             (unsigned long)il_entry_prefix_of(entry).alloc_seq_number);
 #endif /* MAINTAIN_ALLOCATION_SEQUENCE_NUMBER */
+#if ORPHAN_PROCESSING_NEEDED
+    if (il_entry_prefix_of(entry).file_scope) {
+      fprintf(f_debug, "\norphan ptr = %lx ",
+              (long)fs_orphan_pointer_of(entry));
+    }  /* if */
+#endif /* ORPHAN_PROCESSING_NEEDED */
   }  /* if */
 }  /* db_prefix */
 

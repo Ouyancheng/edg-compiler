@@ -1550,9 +1550,15 @@ static void set_attribute_usage_from_attribute(
 
 static an_ms_attribute_usage_ptr attribute_usage_for_attribute_type(
                                                               a_type_ptr type)
+/*
+Return a description of the valid uses of the custom attribute represented by
+the given type.
+*/
 {
   an_ms_attribute_usage_ptr attribute_usage = NULL;
-  if (is_class_struct_type(type)) {
+
+  type = skip_typerefs(type);
+  if (is_immediate_class_type(type)) {
     attribute_usage = &class_type_supp(type)->attribute_usage;
     if (attribute_usage->valid_on == msat_invalid) {
       /* Determine the default attribute usage for the attribute type. */

@@ -326,12 +326,23 @@ Note that this may not work as expected for addresses determined after the IL
 has been read from a file, because the nodes were allocated at a different
 address before the IL was written out.
 
-Note that this variable is not re-initialized if the front end is
-called multiple times.
+Note that this variable is not re-initialized if the front end is called
+multiple times.
+
+On many modern operating systems, repeated runs of the same binary may not
+yield the same addresses.  In that cases, in a configuration with
+MAINTAIN_ALLOCATION_SEQUENCE_NUMBER set to TRUE, the technique above can be
+used instead by setting the variable trace_seq_number to the entry to be
+traced.  The sequence number of an allocated entry can be determined from
+the debugger using the db_prefix debug function.
 */
 static void *trace_alloc_ptr = NULL;
 
-static void alloc_intercept(void)
+#if MAINTAIN_ALLOCATION_SEQUENCE_NUMBER
+static unsigned long trace_seq_number = 0;
+#endif /* MAINTAIN_ALLOCATION_SEQUENCE_NUMBER */
+
+static void alloc_intercept(void *ptr)
 /*
 This routine's main purpose is to have a breakpoint set on it from a symbolic
 debugger.  The routine is called if memory is allocated at the address pointed
@@ -339,7 +350,7 @@ to by trace_alloc_ptr.
 */
 {
 #if DEBUG
-  fprintf(f_debug, "Created node at %p.\n", (void*)trace_alloc_ptr);
+  fprintf(f_debug, "Created node at %p.\n", (void*)ptr);
 #endif /* DEBUG */
 }  /* alloc_intercept */
 
@@ -350,7 +361,14 @@ Check if the given pointer ptr matches the address stored in trace_alloc_ptr.
 If so, call alloc_intercept.
 */
 {
-  if (ptr == trace_alloc_ptr) alloc_intercept();
+  if (ptr == trace_alloc_ptr
+#if MAINTAIN_ALLOCATION_SEQUENCE_NUMBER
+      || (trace_seq_number != 0 &&
+          il_entry_prefix_of(ptr).alloc_seq_number == trace_seq_number)
+#endif /* MAINTAIN_ALLOCATION_SEQUENCE_NUMBER */
+                                                                       ) {
+    alloc_intercept(ptr);
+  }  /* if */
 }  /* trace_alloc_check */
 
 #endif /* TRACE_ALLOC */
