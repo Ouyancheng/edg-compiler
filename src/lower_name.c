@@ -329,14 +329,14 @@ names that GNU gives to various function multiversioning symbols.  Note that
 a "." can't be used in configurations that use a C-generating back end.
 */
 #if BACK_END_IS_C_GEN_BE
-#define MANGLING_SEPARATOR_FOR_MV_FUNC "_"
+#define MANGLING_SEPARATOR_FOR_MV_DISTINCTION "_"
 #else /* !BACK_END_IS_C_GEN_BE */
-#define MANGLING_SEPARATOR_FOR_MV_FUNC "."
+#define MANGLING_SEPARATOR_FOR_MV_DISTINCTION "."
 #endif /* BACK_END_IS_C_GEN_BE */
 #if IA64_ABI
-#define MANGLING_STRING_FOR_MV_IFUNC "ifunc"
+#define MANGLING_STRING_FOR_MV_RESOLVER "ifunc"
 #else /* !IA64_ABI */
-#define MANGLING_STRING_FOR_MV_IFUNC "_MVI_"
+#define MANGLING_STRING_FOR_MV_RESOLVER "__MVI__"
 #endif /* IA64_ABI */
 #endif /* USE_X86_FUNCTION_MULTIVERSIONING */
 
@@ -10289,15 +10289,16 @@ static void add_mv_distinction(a_routine_ptr            routine,
 /*
 If the specified routine is part of a GNU function multiversion group,
 add an appropriate string to the current mangled name to identify it.
+This routine is called at different points in the mangling of the name
+depending on the ABI.
 */
 {
 #if USE_X86_FUNCTION_MULTIVERSIONING
-  /* FIXME: check demangling for all of these cases. */
   a_gnu_routine_supplement_ptr grsp = gnu_routine_supp(routine);
   if (grsp->is_target_specific_version) {
     /* All target-specific versions share the same unmangled name and must be
        differentiated somehow.  For compatibility reasons, we use the same
-       naming scheme as g++ (though that's not possible when using the
+       naming scheme as GNU (though that's not possible when using the
        C-generating back end because the names contain "."). */
     if (is_mv_default_routine(routine)) {
       /* No suffix is added for the "default" routine. */
@@ -10307,25 +10308,29 @@ add an appropriate string to the current mangled name to identify it.
          routine. */
     } else {
       /* Add a target-specific suffix at this point (note that the name
-         that is created here cannot be demangled). */
+         that is created here cannot be demangled -- but that matches GNU's
+         behavior). */
 #if !IA64_ABI
-      /* FIXME: check this */
-      /* Ensure name begins with "__". */
-      add_to_mangled_name('_', mctl);
+      /* Add a target-specific prefix so the demangler knows what's coming. */
+      add_str_to_mangled_name("__TGT__", mctl);
+#else /* IA64_ABI */
+      /* Add a separator before the target info. */
+      add_str_to_mangled_name(MANGLING_SEPARATOR_FOR_MV_DISTINCTION, mctl);
 #endif /* !IA64_ABI */
-      add_str_to_mangled_name(MANGLING_SEPARATOR_FOR_MV_FUNC, mctl);
       add_str_to_mangled_name(mangled_mv_identifier_for_routine(routine),
                               mctl);
 #if !IA64_ABI
       /* Separate prefix from name. */
-      add_to_mangled_name('_', mctl);
+      add_str_to_mangled_name("__", mctl);
 #endif /* !IA64_ABI */
     }  /* if */
   } else if (grsp->mv_resolver_required) {
-    /* FIXME: or only one... */
-    check_assertion(routine->is_ifunc);
-    add_str_to_mangled_name(MANGLING_SEPARATOR_FOR_MV_FUNC, mctl);
-    add_str_to_mangled_name(MANGLING_STRING_FOR_MV_IFUNC, mctl);
+    /* A resolver routine has a special mangled name as well. */
+    check_assertion(grsp->is_representative && routine->is_ifunc);
+#if IA64_ABI
+    add_str_to_mangled_name(MANGLING_SEPARATOR_FOR_MV_DISTINCTION, mctl);
+#endif /* IA64_ABI */
+    add_str_to_mangled_name(MANGLING_STRING_FOR_MV_RESOLVER, mctl);
   }  /* if */
 #endif /* USE_X86_FUNCTION_MULTIVERSIONING */
 }  /* add_mv_distinction */

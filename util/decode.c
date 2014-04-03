@@ -3868,8 +3868,44 @@ length returned the second time will be correct).
     write_id_str("ifunc variable for ", dctl);
     end_ptr = demangle_identifier(id+7, dctl);
   } else if (start_of_id_is("__RES__", id, dctl)) {
+    id += 7;
     write_id_str("resolver function for ", dctl);
+    if (start_of_id_is("__MVI__", id, dctl)) {
+      /* This can be nested (and this routine isn't recursive). */
+      write_id_str("ifunc function for ", dctl);
+      id += 7;
+    }  /* if */
+    end_ptr = demangle_identifier(id, dctl);
+  } else if (start_of_id_is("__MVI__", id, dctl)) {
+    write_id_str("ifunc function for ", dctl);
     end_ptr = demangle_identifier(id+7, dctl);
+  } else if (start_of_id_is("__TGT__", id, dctl)) {
+    /* A "target" attribute: look for closing "__". */
+    a_const_char *target_attr, *target_attr_end;
+    id += 7;
+    target_attr = id;
+    while (id < dctl->end_of_name) {
+      if (start_of_id_is("__", id, dctl)) {
+        target_attr_end = id;
+        id += 2;
+        break;
+      }  /* if */
+      id++;
+    }  /* while */
+    if (id < dctl->end_of_name) {
+      end_ptr = demangle_identifier(id, dctl);
+      /* Emit the "target" attribute.  Note that this isn't exactly in the
+         same format as the input (commas and periods have been replaced by
+         underscores), but it should convey the idea. */
+      write_id_str(" __attribute__((target(", dctl);
+      while (target_attr < target_attr_end) {
+        write_id_ch(*target_attr++, dctl);
+      }  /* if */
+      write_id_str(")))", dctl);
+    } else {
+      bad_mangled_name(dctl);
+      end_ptr = id;
+    }  /* if */
   } else if (start_of_id_is("__TWR__", id, dctl)) {
     write_id_str("thread_local wrapper for ", dctl);
     end_ptr = demangle_identifier(id+7, dctl);
