@@ -4342,6 +4342,16 @@ defined.  Detailed position information is recorded in *decl_pos_block.
            do not apply to the class type, but to the entity associated with
            the declarator. */
       } else {
+        /* Check for the presence of the "attribute" attribute and mark the
+           class accordingly.  This has to be done early because it causes the
+           implicit addition of System::Attribute as a base class if needed. */
+        an_ms_attribute_ptr  msap = dps->ms_attributes;
+        for (; msap != NULL; msap = msap->next) {
+          if (msap->is_attribute_attribute) {
+            class_type_supp(class_type)->is_cli_attribute = TRUE;
+            break;
+          }  /* if */
+        }  /* for */
         apply_microsoft_attributes_to_type(&dps->ms_attributes, class_type);
       }  /* if */
     }  /* if */

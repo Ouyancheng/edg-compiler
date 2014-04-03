@@ -4816,6 +4816,7 @@ and return a pointer to it.
   msap->next = NULL;
   msap->next_in_block = NULL;
   clear_tagged_ptr(msap->entity);
+  msap->is_attribute_attribute = FALSE;
   if (kind == (an_ms_attribute_kind)msak_custom) {
     msap->variant.custom_info.type = NULL;
     msap->variant.custom_info.constructor = NULL;

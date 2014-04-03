@@ -5532,6 +5532,9 @@ Display the indicated Microsoft attribute entry.
   disp_ptr("next_in_block", (char *)ptr->next_in_block, iek_ms_attribute);
   disp_ptr("entity", (char *)ptr->entity.ptr,
            (an_il_entry_kind)ptr->entity.kind);
+  if (ptr->is_attribute_attribute) {
+    disp_boolean("is_attribute_attribute", TRUE);
+  }  /* if */
   (void)printf("target: ");
   switch (ptr->target) {
     case msat_none:             (void)printf("<none>\n");           break;

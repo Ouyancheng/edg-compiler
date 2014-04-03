@@ -1251,12 +1251,19 @@ attribute type, returns the type; otherwise returns NULL.
 
 
 static an_ms_attribute_kind_descr_ptr look_up_attribute(
-                                            a_type_ptr *custom_attribute_type)
+                                           a_type_ptr *custom_attribute_type,
+                                           a_boolean  *is_attribute_attribute)
 /*
-Look up the identifier that names the attribute to be processed.
+Look up the identifier that names the attribute to be processed.  If this is a
+custom attribute, return in *custom_attribute_type the type describing this
+attribute.  If this is the "attribute(...)" attribute, treat it like the
+AttributeUsage custom attribute and set *is_attribute_attribute to TRUE (the
+caller needs to know because that also implicitly causes derivation from
+System::Attribute, unlike direct use if the AttributeUsage attribute).
 */
 {
   an_ms_attribute_kind_descr_ptr  attr_descr = NULL;
+  a_boolean                       orig_is_attribute_attribute = FALSE;
 
   check_assertion(custom_attribute_type != NULL);
   *custom_attribute_type = NULL;
@@ -1275,8 +1282,14 @@ Look up the identifier that names the attribute to be processed.
     a_symbol_ptr  sym;
     a_type_ptr    type = NULL, alternate_type = NULL;
     a_boolean     err = FALSE;
-    sym = coalesce_and_lookup_generalized_identifier(
+    if (curr_token_is_identifier_string("attribute")) {
+      orig_is_attribute_attribute = TRUE;
+      sym = cli_symbols[(int)csk_system_attribute_usage_attribute];
+      make_locator_for_symbol(sym, &locator_for_curr_id);
+    } else {
+      sym = coalesce_and_lookup_generalized_identifier(
                                     GID_NO_OPTIONS, ilm_tentative_type, &err);
+    }  /* if */
     type = ms_attribute_type_from_symbol(sym);
     if (!err && !locator_for_curr_id.is_template_id &&
         (sym == NULL || !is_template_param_type_symbol(sym))) {
@@ -1319,6 +1332,7 @@ Look up the identifier that names the attribute to be processed.
     /* An error was encountered; discard the rest of this attribute. */
     flush_tokens();
   }  /* if */
+  *is_attribute_attribute = orig_is_attribute_attribute;
   return attr_descr;
 }  /* look_up_attribute */
 
@@ -1363,6 +1377,10 @@ typedef unsigned int a_cli_attribute_target;
 
 
 static an_ms_attribute_target msat_from_cliat(a_cli_attribute_target cliat)
+/*
+Translate a C++/CLI attribute target bit set to a general Microsoft attribute
+target bit set.
+*/
 {
   unsigned               i;
   an_ms_attribute_target msat = msat_invalid;
@@ -1440,6 +1458,10 @@ typedef unsigned int a_cppcx_attribute_target;
 
 static an_ms_attribute_target msat_from_cppcxat(
                                              a_cppcx_attribute_target cppcxat)
+/*
+Translate a C++/CX attribute target bit set to a general Microsoft attribute
+target bit set.
+*/
 {
   unsigned               i;
   an_ms_attribute_target msat = msat_invalid;
@@ -1481,6 +1503,10 @@ static an_ms_attribute_target msat_from_cppcxat(
 static void set_attribute_usage_from_attribute(
                                     an_ms_attribute_usage_ptr attribute_usage,
                                     an_ms_attribute_ptr       msap)
+/*
+Record in attribute_usage the usage constraints of a custom attribute as
+specified with the custom AttributeUsage attribute described by msap.
+*/
 {
   a_type_ptr                    attribute_type;
   a_custom_ms_attribute_arg_ptr named_arg;
@@ -2262,6 +2288,7 @@ declaration.
   a_source_position              start_position;
   an_ms_attribute_ptr            attr = NULL;
   a_type_ptr                     custom_attribute_type;
+  a_boolean                      is_attribute_attribute = FALSE;
 
   /* Save the token sequence number of the first token of this attribute. */
   first_token = curr_token_sequence_number;
@@ -2277,7 +2304,8 @@ declaration.
        the "unrecognized" attribute will be returned.  In error cases, such as
        a missing attribute name, a NULL attribute description is returned. */
     if (attr_descr == NULL) {
-      attr_descr = look_up_attribute(&custom_attribute_type);
+      attr_descr = look_up_attribute(&custom_attribute_type,
+                                     &is_attribute_attribute);
     }  /* if */
   }  /* if */
   if (attr_descr != NULL) {
@@ -2301,6 +2329,7 @@ declaration.
            NULL to discard the attribute. */
         attr = NULL;
       }  /* if */
+      attr->is_attribute_attribute = is_attribute_attribute;
     } else {
       a_boolean arg_list_present = curr_token == tok_assign ||
                                    curr_token == tok_lparen;
@@ -2359,6 +2388,7 @@ declaration.
         if (attr != NULL) db_microsoft_attribute(attr);
       }  /* if */
   #endif /* DEBUG */
+      check_assertion(!is_attribute_attribute);
     }  /* if */
   }  /* if */
   return attr;
@@ -2821,7 +2851,7 @@ no attribute can be applied to the entity.
         msap->entity.kind = (a_byte_il_entry_kind)kind;
         msap->entity.ptr = entity;
         if (msap->kind > (an_ms_attribute_kind)msak_misc && !is_error) {
-          /* An attribute for which special processing is neededed. */
+          /* An attribute for which special processing is needed. */
           is_error = !process_microsoft_attribute(msap, entity, kind);
         }  /* if */
       }  /* if */

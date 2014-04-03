@@ -17707,6 +17707,11 @@ typedef struct an_ms_attribute {
 			/* Information about the entity to which the
 			   attribute applies.  If there is no associated
 			   entity, entity.ptr will be NULL. */
+  a_bit_field
+		is_attribute_attribute:1;
+			/* TRUE if this a C++/CLI AttributeUsage custom
+			   attribute that was written as a "attribute"
+			   attribute. */
   union {
     /* When kind != msak_custom: */
     struct {

@@ -8980,7 +8980,8 @@ static void add_implicit_cli_bases(a_class_def_state_ptr  class_state)
 /*
 The given class is being defined in C++/CLI mode and its explicit base classes
 have been scanned.  If the class type is a managed class type, add an implicit
-derivation from System::ObjectType or System::ValueType if appropriate.
+derivation from System::ObjectType, System::ValueType, or System::Attribute if
+appropriate.
 */
 {
   a_type_ptr  class_type = class_state->class_type;
@@ -8990,8 +8991,10 @@ derivation from System::ObjectType or System::ValueType if appropriate.
        derives implicitly from System::Object.  Similarly, if a value class
        does not derive explicitly from a ref class base (which can only be
        System::ValueType) it derives from System::ValueType. */
-    a_boolean         add_implicit_base = TRUE;
     a_base_class_ptr  bcp, system_object_base = NULL;
+    a_boolean         add_implicit_base = TRUE;
+    a_boolean         is_attribute =
+                                class_type_supp(class_type)->is_cli_attribute;
     for (bcp = base_classes_of(class_type); bcp != NULL; bcp = bcp->next) {
       if (is_ref_class_type(bcp->type)) {
         if (bcp->direct) {
@@ -9011,7 +9014,7 @@ derivation from System::ObjectType or System::ValueType if appropriate.
                cli_class_type_kind_is(class_type, cctk_interface)) {
       /* An interface that already derives (indirectly) from System::Object
          needs no update. */
-    } else if (system_object_base != NULL &&
+    } else if (system_object_base != NULL && !is_attribute &&
                cli_class_type_kind_is(class_type, cctk_ref)) {
       /* A ref class that already has System::Object as an indirect base but
          no other ref base classes.  This happens when base interfaces are
@@ -9038,6 +9041,7 @@ derivation from System::ObjectType or System::ValueType if appropriate.
       a_base_class_ptr              last_bcp = NULL;
       a_boolean                     may_be_first_direct_nonvirtual_base;
       a_base_class_sequence_number  direct_base_number = 0;
+      a_type_ptr                    new_base_type;
       /* Determine the last base class entry and the last direct base
          number. */
       bcp = base_classes_of(class_type);
@@ -9052,13 +9056,20 @@ derivation from System::ObjectType or System::ValueType if appropriate.
       /* System::Object is derived from virtually and so it cannot be the first
          direct nonvirtual base class.  System::ValueType derives directly from
          System::Object and hence must in fact be the first direct nonvirtual
-         base. */
-      may_be_first_direct_nonvirtual_base =
-                               cli_class_type_kind_is(class_type, cctk_value);
+         base.  Similarly with the System::Attribute class. */
+      if (is_attribute) {
+        may_be_first_direct_nonvirtual_base = TRUE;
+        new_base_type =
+                  cli_class_type_for((a_cli_symbol_kind)csk_system_attribute);
+      } else if (cli_class_type_kind_is(class_type, cctk_value)) {
+        may_be_first_direct_nonvirtual_base = TRUE;
+        new_base_type = cli_system_value_type();
+      } else {
+        may_be_first_direct_nonvirtual_base = FALSE;
+        new_base_type = cli_system_object_type();
+      }  /* if */
       add_direct_base_of_type(
-                   cli_class_type_kind_is(class_type, cctk_value) ?
-                           cli_system_value_type() : cli_system_object_type(),
-                   class_state, direct_base_number+1, &last_bcp,
+                   new_base_type, class_state, direct_base_number+1, &last_bcp,
                    &may_be_first_direct_nonvirtual_base);
     }  /* if */
   }  /* if */
