@@ -35,10 +35,8 @@ Architectures (ISAs).
 The CPU architecture enumerators come first, then "default",
 then the isa enumerators: which are ordered from least sophisticated
 to most sophisticated.
-There are 2 string tables that need to be kept in synch with this enumeration:
-         mv_arch_name_string
-         mv_arch_name
-         target_attribute_map
+When an entry is added here, the target_distinction table must also be
+updated.
 Note that these entries are specific to the Intel/AMD line of processors,
 but the mechanism may be used as the basis for other types of processors as
 well.
@@ -120,7 +118,7 @@ a "default" routine on the list (which will be the first routine on the list).
    is_mv_default_routine((rp)->gnu_extra_info->                               \
                             mv_info.representative.targeted_versions->routine))
 
-extern a_const_char *source_mv_isa_arch_name(int idx);
+extern a_const_char *target_name_for_builtin(a_mv_arch_isa_kind arch);
 
 extern int mv_display_count(void);
 

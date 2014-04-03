@@ -2706,50 +2706,23 @@ Define system-specific predefined macros and builtin #assert predicates
 #if GNU_EXTENSIONS_ALLOWED
 #if USE_X86_FUNCTION_MULTIVERSIONING
 
-typedef struct a_target_attribute_map {
-  /* Create a mapping from a valid "target" attribute to its corresponding
-     a_mv_arch_isa value. */
-  a_const_char  *attr;  /* Valid value for "target" attribute. */
-  a_mv_arch_isa_kind
-                value;  /* Corresponding value. */
-} a_target_attribute_map;
-
 /*
-Mapping of "target" attribute to a_mv_arch_isa_kind.  Note that this is
-a many-to-one mapping and that the order of entries is not important.
+Table of valid "target" attributes for GNU function multiversioning.
+This table is used in three different ways: to map a "target" attribute
+to a specific architecture (see find_target_attribute), to map an architecture
+to a string to be used by the GNU __builtin_cpu_is/__builtin_cpu_supports
+functions (see target_name_for_builtin), and to generate the target-specific
+portion of a mangled name (see target_distinction).  Note that these aren't
+all one-to-one mappings: the names in the latter two cases are massaged as
+necessary to match GNU's behavior.
 */
-static a_target_attribute_map target_attribute_map[] = {
-  { "arch=bdver1",      mv_arch_bdver1 },
-  { "arch=bdver2",      mv_arch_bdver2 },
-  { "arch=corei7",      mv_arch_corei7 },
-  { "arch=amdfam10",    mv_arch_amdfam10h },
-  { "arch=core2",       mv_arch_core2 },
-  { "arch=atom",        mv_arch_atom },
-  { "default",          mv_default_target },
-  { "mmx",              mv_isa_mmx },
-  { "sse",              mv_isa_sse },
-  { "sse2",             mv_isa_sse2 },
-  { "sse3",             mv_isa_sse3 },
-  { "ssse3",            mv_isa_ssse3 },
-  { "sse4",             mv_isa_sse4_1 },      /* Use sse4.1. */
-  { "sse4.1",           mv_isa_sse4_1 },
-  { "sse4.2",           mv_isa_sse4_2 },
-  { "popcnt",           mv_isa_popcnt },
-  { "avx",              mv_isa_avx },
-  { "avx2",             mv_isa_avx2 },
-  { NULL,               mv_last }             /* Must be last. */
-};
-
-
-/* FIXME: merge these tables. */
-/* This table is used for matching target attribute strings in the source. */
-static a_const_char *mv_arch_name[] = {
-  "bdver1",           /* mv_arch_bdver1 */
-  "bdver2",           /* mv_arch_bdver2 */
-  "corei7",           /* mv_arch_corei7 */
-  "amdfam10h",        /* mv_arch_amdfam10h */
-  "core2",            /* mv_arch_core2 */
-  "atom",             /* mv_arch_atom */
+static a_const_char *target_attributes[] = {
+  "arch=bdver1",      /* mv_arch_bdver1 */
+  "arch=bdver2",      /* mv_arch_bdver2 */
+  "arch=corei7",      /* mv_arch_corei7 */
+  "arch=amdfam10",    /* mv_arch_amdfam10h */
+  "arch=core2",       /* mv_arch_core2 */
+  "arch=atom",        /* mv_arch_atom */
   "default",          /* mv_default_target */
   "mmx",              /* mv_isa_mmx */
   "sse",              /* mv_isa_sse */
@@ -2760,21 +2733,94 @@ static a_const_char *mv_arch_name[] = {
   "sse4.2",           /* mv_isa_sse4_2 */
   "popcnt",           /* mv_isa_popcnt */
   "avx",              /* mv_isa_avx */
-  "avx2"              /* mv_isa_avx2 */
+  "avx2",             /* mv_isa_avx2 */
 };
 
-
-/* FIXME: is this needed? */
-a_const_char *source_mv_isa_arch_name(int idx)
+static a_mv_arch_isa_kind find_target_attribute(a_const_char *str,
+                                                size_t       str_len)
 /*
-Support for GNU function multiversioning.
-This function is passed an index (idx) which is in the range a_mv_arch_isa
-and it returns the string corresponding to that multiversion instruction
-set.  This is used for matching strings in the user code.
+Return the a_mv_arch_isa_kind for the "target" attribute pointed to by str
+whose length is strlen (str may not be NULL terminated).  If no attribute
+is found, mv_invalid is returned.
 */
 {
-  return mv_arch_name[idx];
-}  /* source_mv_isa_arch_name */
+  a_mv_arch_isa_kind result = mv_invalid, arch;
+
+  for (arch = 0; arch < (a_mv_arch_isa_kind)mv_last; arch++) {
+    if (strlen(target_attributes[arch]) == str_len &&
+        strncmp(str, target_attributes[arch], str_len) == 0) {
+      result = arch;
+      break;
+    }  /* if */
+  }  /* for */
+  if (result == (a_mv_arch_isa_kind)mv_invalid) {
+    /* Handle a special case here ("sse4" and "sse4.1" map to the same
+       entry). */
+    if (strncmp(str, "sse4", str_len) == 0) {
+      result = (a_mv_arch_isa_kind)mv_isa_sse4_1;
+    }  /* if */
+  }  /* if */
+  return result;
+}  /* find_target_attribute */
+
+
+a_const_char *target_name_for_builtin(a_mv_arch_isa_kind arch)
+/*
+Return a string that identifies the specified CPU or ISA architecture to
+be used as an argument for the GNU __builtin_cpu_is/__builtin_cpu_supports
+calls.
+*/
+{
+  a_const_char *result = target_attributes[arch];
+
+  if (arch == (a_mv_arch_isa_kind)mv_arch_amdfam10h) {
+    /* Special case: "target" attribute is "amdfam10", but "amdfam10h" is
+       required for the builtin calls. */
+    result = "amdfam10h";
+  } else if (is_mv_cpu_arch(arch)) {
+    /* Strip the "arch=" from CPU architecture cases. */
+    check_assertion(strncmp(result, "arch=", 5) == 0);
+    result += 5;
+  }  /* if */
+  return result;
+}  /* target_name_for_builtin */
+
+
+a_const_char *target_distinction(a_mv_arch_isa_kind arch)
+/*
+Return a string that identifies the specified CPU or ISA architecture to
+be used as part of a "mangled" name.  The strings returned here match those
+generated by GNU.  The returned value may point to a static buffer, so the
+value must be copied before a second call is made.
+*/
+{
+  a_const_char *result = target_attributes[arch];
+  static char  buffer[20];
+
+  if (arch == (a_mv_arch_isa_kind)mv_arch_amdfam10h) {
+    /* Special case: "target" attribute is "amdfam10", but "arch_amdfam10h" is
+       required to match GNU mangling. */
+    result = "arch_amdfam10h";
+  } else if (is_mv_cpu_arch(arch)) {
+    /* Replace "arch=" with "arch_" in CPU architecture cases. */
+    check_assertion(strncmp(result, "arch=", 5) == 0);
+    (void)strcpy(buffer, result);
+    buffer[4] = '_';
+    result = buffer;
+#if BACK_END_IS_C_GEN_BE
+  } else if (strchr(result, '.') != NULL) {
+    /* For C-generating back ends, mangled names can't have periods, so replace
+       those with underscores. */
+    char *ptr;
+    (void)strcpy(buffer, result);
+    for (ptr = strchr(buffer, '.'); ptr != NULL; ptr = strchr(ptr, '.')) {
+      *ptr = '_';
+    }  /* if */
+    result = buffer;
+#endif /* BACK_END_IS_C_GEN_BE */
+  }  /* if */
+  return result;
+}  /* target_distinction */
 
 
 static a_mv_arch_isa display_order[] = {
@@ -2802,6 +2848,7 @@ mv_display_order(i).
   return display_order[i];
 }  /* mv_display_order */
 
+
 int mv_display_count(void)
 /*
 Return the size of the display_order table.
@@ -2811,36 +2858,6 @@ iterate through the multiversion ISAs in an alternate order.
 {
   return sizeof(display_order)/sizeof(display_order[0]);
 }  /* mv_display_count */
-
-
-/*
-This table provides the GNU-compatible naming scheme for the multiversion
-architecture and isa.  The index values are a_mv_arch_isa.
-*/
-a_const_char *mv_arch_name_string_table[] = {
-  "arch_bdver1",     /* mv_arch_bdver1 */
-  "arch_bdver2",     /* mv_arch_bdver2 */
-  "arch_corei7",     /* mv_arch_corei7 */
-  "arch_amdfam10h",  /* mv_arch_amdfam10h */
-  "arch_core2",      /* mv_arch_core2 */
-  "arch_atom",       /* mv_arch_atom */
-  "default",         /* mv_default_target */
-  "mmx",             /* mv_isa_mmx */
-  "sse",             /* mv_isa_sse */
-  "sse2",            /* mv_isa_sse2 */
-  "sse3",            /* mv_isa_sse3 */
-  "ssse3",           /* mv_isa_ssse3 */
-#if BACK_END_IS_C_GEN_BE
-  "sse4_1",          /* mv_isa_sse4_1 */
-  "sse4_2",          /* mv_isa_sse4_2 */
-#else /* !BACK_END_IS_C_GEN_BE */
-  "sse4.1",          /* mv_isa_sse4_1 */
-  "sse4.2",          /* mv_isa_sse4_2 */
-#endif /* BACK_END_IS_C_GEN_BE */
-  "popcnt",          /* mv_isa_popcnt */
-  "avx",             /* mv_isa_avx */
-  "avx2"             /* mv_isa_avx2 */
-};
 
 
 static a_mv_arch_isa highest_isa(a_mv_target_bitset bitset,
@@ -3105,7 +3122,7 @@ result to an allocated area.
   /* This loop adds the CPU architecture name (if any). */
   for (i = 0; i <= mv_highest_arch; i++) {
     if (bs & (1<<i)) {
-      a_const_char *arch_name = mv_arch_name_string_table[i];
+      a_const_char *arch_name = target_distinction(i);
       if (is_first) {
         is_first = FALSE;
       } else {
@@ -3122,7 +3139,7 @@ result to an allocated area.
   for (i = 0; i < mv_display_count(); i++) {
     int arch = mv_display_order(i);
     if (bs & (1<<arch)) {
-      a_const_char * arch_name = mv_arch_name_string_table[arch];
+      a_const_char * arch_name = target_distinction(arch);
       if (is_first) {
         is_first = FALSE;
       } else {
@@ -3202,38 +3219,31 @@ str_len should be used to determine the end of the argument.
      performed to ensure that only one CPU architecture is specified and
      the mv_target_bitset for the routine is updated to reflect the
      target argument. */
-  a_target_attribute_map  *ptr;
-  a_boolean               found = FALSE;
+  a_mv_arch_isa_kind arch = find_target_attribute(str, str_len);
 
-  for (ptr = target_attribute_map; ptr->attr != NULL; ptr++) {
-    if (strlen(ptr->attr) == str_len &&
-        strncmp(str, ptr->attr, str_len) == 0) {
-      found = TRUE;
-      if (C_mode()) {
-        /* The presence of the argument is sufficient. */
-      } else if (skip_typerefs(routine->type)->
-            variant.routine.extra_info->routine_name_linkage ==
-                                           (a_name_linkage_kind)nlk_external) {
-        /* An extern "C" routine; silently accept the argument. */
+  if (arch != (a_mv_arch_isa_kind)mv_invalid) {
+    if (C_mode()) {
+      /* The presence of the argument is sufficient. */
+    } else if (skip_typerefs(routine->type)->
+          variant.routine.extra_info->routine_name_linkage ==
+                                         (a_name_linkage_kind)nlk_external) {
+      /* An extern "C" routine; silently accept the argument. */
+    } else {
+      a_gnu_routine_supplement_ptr grsp = gnu_routine_supp(routine);
+      check_assertion(grsp->is_target_specific_version);
+      if (is_mv_cpu_arch(arch) &&
+          is_any_mv_arch_bit_set(
+                             grsp->mv_info.targeted_version.target_bitset)) {
+        /* Can't specify more than one CPU architecture. */
+        pos_error(ec_gnu_mv_only_one_arch, &aap->position);
+        *error_issued = TRUE;
       } else {
-        a_gnu_routine_supplement_ptr grsp = gnu_routine_supp(routine);
-        check_assertion(grsp->is_target_specific_version);
-        if (is_mv_cpu_arch(ptr->value) &&
-            is_any_mv_arch_bit_set(
-                               grsp->mv_info.targeted_version.target_bitset)) {
-          /* Can't specify more than one CPU architecture. */
-          pos_error(ec_gnu_mv_only_one_arch, &aap->position);
-          *error_issued = TRUE;
-        } else {
-          /* Add this CPU/ISA architecture to the list of target-specific
-             versions that this routine supports. */
-          grsp->mv_info.targeted_version.target_bitset |= 1 << ptr->value;
-        }  /* if */
+        /* Add this CPU/ISA architecture to the list of target-specific
+           versions that this routine supports. */
+        grsp->mv_info.targeted_version.target_bitset |= 1 << arch;
       }  /* if */
-      break;
     }  /* if */
-  }  /* for */
-  if (!found) {
+  } else {
     if (C_mode()) {
       /* Since we're not doing anything special with the attributes in C mode,
          just issue a warning (the back end may know what to do with these). */
@@ -3262,12 +3272,9 @@ Do one-time initialization for data structures used in this file.
   if (sizeof(a_mv_target_bitset)*8 < mv_last) {
     internal_error("undersized a_mv_target_bitset");
   }  /* if */
-  if ((sizeof(mv_arch_name)/sizeof(mv_arch_name[0])) != mv_last) {
-    internal_error("mv_arch_name table must have mv_last elements");
-  }  /* if */
-  check_assertion_str((sizeof(mv_arch_name_string_table)/
-                       sizeof(mv_arch_name_string_table[0])) == mv_last,
-                 "mv_arch_name_string_table table must have mv_last elements");
+  check_assertion_str((sizeof(target_attributes)/
+                       sizeof(target_attributes[0])) == mv_last,
+                 "target_attributes table must have mv_last elements");
 #endif /* USE_X86_FUNCTION_MULTIVERSIONING */
 }  /* sys_predef_one_time_init */
 

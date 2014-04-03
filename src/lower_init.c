@@ -17465,7 +17465,7 @@ builtin functions to determine the underlying CPU characteristics.
          restriction which has already been checked. */
       result = make_call_node(builtin_cpu_is_routine,
                               make_expr_for_string_literal(
-                                                  source_mv_isa_arch_name(i)));
+                                                  target_name_for_builtin(i)));
       break;
     }  /* if */
   }  /* for */
@@ -17479,7 +17479,7 @@ builtin functions to determine the underlying CPU characteristics.
       } else {
         this_check = make_call_node(builtin_cpu_supports_routine, 
                                     make_expr_for_string_literal(
-                                               source_mv_isa_arch_name(arch)));
+                                               target_name_for_builtin(arch)));
         if (result == NULL) {
           result = this_check;
         } else {
