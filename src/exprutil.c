@@ -5177,13 +5177,11 @@ instead.
       break;
     case ok_braced_init_list:
       node = make_braced_init_expr_from_arg_list_elem(
-                                            operand->variant.braced_init_list);
+                                           operand->variant.braced_init_list);
       break;
-#if CHECKING
     default:
-      internal_error
-	("extract_node_from_operand: converting unexpected operand kind");
-#endif /* CHECKING */
+      unexpected_condition_str(
+	     "extract_node_from_operand: converting unexpected operand kind");
   }  /* switch */
   return node;
 }  /* extract_node_from_operand */

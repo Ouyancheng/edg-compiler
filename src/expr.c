@@ -37034,11 +37034,9 @@ expression context.  Return either *is_constant TRUE and a constant value in
         }  /* if */
       }  /* if */
       break;
-#if CHECKING
     default:
-      internal_error(
-               "scan_nonconstant_dimension_expression: bad operand kind");
-#endif /* CHECKING */
+      unexpected_condition_str(
+                   "scan_nonconstant_dimension_expression: bad operand kind");
   }  /* switch */
   if (*is_constant) {
     wrap_up_constant_full_expression(constant, &result.position);
