@@ -25,21 +25,15 @@ extern void enter_system_specific_predefined_macros_and_assertions(void);
 
 #if GNU_EXTENSIONS_ALLOWED
 #if USE_X86_FUNCTION_MULTIVERSIONING
-/* FIXME: clean this up as much as possible. */
 /*
-Support for the GNU multiversioning feature.
-This enumeration defines the allowable target machines within the
-GNU target attribute.
-The enumeration type is a mixture of CPU architectures and Instruction Set
-Architectures (ISAs).
-The CPU architecture enumerators come first, then "default",
-then the isa enumerators: which are ordered from least sophisticated
-to most sophisticated.
-When an entry is added here, the target_distinction table must also be
-updated.
-Note that these entries are specific to the Intel/AMD line of processors,
-but the mechanism may be used as the basis for other types of processors as
-well.
+This enumeration lists the valid CPU and Instruction Set Architectures (ISAs)
+for the Intel/AMD line of processors and is used for the GNU function
+multiversioning feature (as specified by the "target" attribute).  The ordering
+of the list is important: CPU architectures are first, then "default", then the
+ISA architectures (in the order specified in the GCC Function Multiversioning
+Wiki).  When an entry is added here, the target_distinction table must also be
+updated.  If an ISA entry is added here, an entry must also be added to
+isa_alphabetic_order.
 */
 enum a_multiversion_arch_kind_tag {
   mvak_invalid = -1,                /* An invalid entry. */
@@ -119,10 +113,6 @@ a "default" routine on the list (which will be the first routine on the list).
                             mv_info.representative.targeted_versions->routine))
 
 extern a_const_char *target_name_for_builtin(a_multiversion_arch_kind arch);
-
-extern int mv_display_count(void);
-
-extern int mv_display_order(int i);
 
 extern void reference_to_mv_routine(a_routine_ptr      routine,
                                     a_source_position  *error_pos);

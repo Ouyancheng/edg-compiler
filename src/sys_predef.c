@@ -2826,44 +2826,6 @@ value must be copied before a second call is made.
 }  /* target_distinction */
 
 
-/* FIXME: */
-static a_multiversion_arch_kind display_order[] = {
-  mvak_isa_avx,
-  mvak_isa_avx2,
-  mvak_isa_mmx,
-  mvak_isa_popcnt,
-  mvak_isa_sse,
-  mvak_isa_sse2,
-  mvak_isa_sse3,
-  mvak_isa_sse4_1,
-  mvak_isa_sse4_2,
-  mvak_isa_ssse3
-};
-
-int mv_display_order(int i)
-/*
-Sometimes it's useful to be able to iterate through the multiversion
-ISAs in an alternate order, for example when building the
-target specific function linkage names.  To use the alternate order,
-iterate from 0 .. mv_display_count(), and use the ISA value at
-mv_display_order(i).
-*/
-{
-  return display_order[i];
-}  /* mv_display_order */
-
-
-int mv_display_count(void)
-/*
-Return the size of the display_order table.
-This is intended to be used with mv_display_order when you want to
-iterate through the multiversion ISAs in an alternate order.
-*/
-{
-  return sizeof(display_order)/sizeof(display_order[0]);
-}  /* mv_display_count */
-
-
 static a_multiversion_arch_kind highest_isa(a_mv_target_bitset       bitset,
                                             a_multiversion_arch_kind *cpu_arch)
 /*
@@ -3104,6 +3066,24 @@ that are pointed to by representative.
 }  /* add_to_specific_version_list */
 
 
+/*
+GNU's mangled names for ISA architectures are emitted in alphabetical order
+so this table lists the ISA architectures in that order.
+*/
+static a_multiversion_arch_kind isa_alphabetic_order[] = {
+  mvak_isa_avx,
+  mvak_isa_avx2,
+  mvak_isa_mmx,
+  mvak_isa_popcnt,
+  mvak_isa_sse,
+  mvak_isa_sse2,
+  mvak_isa_sse3,
+  mvak_isa_sse4_1,
+  mvak_isa_sse4_2,
+  mvak_isa_ssse3
+};
+
+
 a_const_char *target_specific_distinction(a_routine_ptr routine)
 /*
 Return a string that is used in the mangled name for routine to differentiate
@@ -3139,9 +3119,10 @@ result to an allocated area.
       break;
     }  /* if */
   }  /* for */
-  /* This loop adds the ISA architecture name(s), if any. */
-  for (i = 0; i < mv_display_count(); i++) {
-    int arch = mv_display_order(i);
+  /* This loop adds the ISA architecture name(s), if any in alphabetical
+     order. */
+  for (i = 0; i < (mvak_highest_isa - mvak_lowest_isa + 1); i++) {
+    int arch = isa_alphabetic_order[i];
     if (bs & (1<<arch)) {
       arch_name = target_distinction(arch);
       if (is_first) {
@@ -3276,9 +3257,13 @@ Do one-time initialization for data structures used in this file.
   if (sizeof(a_mv_target_bitset)*8 < mvak_last) {
     internal_error("undersized a_mv_target_bitset");
   }  /* if */
-  check_assertion_str((sizeof(target_attributes)/
-                       sizeof(target_attributes[0])) == mvak_last,
-                 "target_attributes table must have mvak_last elements");
+  check_assertion_str((sizeof(target_attributes)/sizeof(target_attributes[0]))
+                                                                  == mvak_last,
+                      "target_attributes table must have mvak_last elements");
+  check_assertion_str((sizeof(isa_alphabetic_order)/
+                       sizeof(isa_alphabetic_order[0])) ==
+                                        mvak_highest_isa - mvak_lowest_isa + 1,
+                      "wrong number of elements in isa_alphabetic_order");
 #endif /* USE_X86_FUNCTION_MULTIVERSIONING */
 }  /* sys_predef_one_time_init */
 

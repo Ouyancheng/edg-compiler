@@ -17450,45 +17450,38 @@ specified routine.  Uses the GNU __builtin_cpu_supports and __builtin_cpu_is
 builtin functions to determine the underlying CPU characteristics.
 */
 {
-  int                i;
-  a_mv_target_bitset bs;
-  an_expr_node_ptr   result = NULL;
+  a_mv_target_bitset        bs;
+  an_expr_node_ptr          result = NULL;
+  a_multiversion_arch_kind  arch;
 
   check_assertion(gnu_routine_supp(routine)->is_target_specific_version &&
                   builtin_cpu_supports_routine != NULL &&
                   builtin_cpu_is_routine != NULL);
   bs = gnu_routine_supp(routine)->mv_info.targeted_version.target_bitset;
   /* First do the CPU architecture check. */
-  for (i = mvak_lowest_cpu; i <= mvak_highest_cpu; i++) {
-    if (bs & (1<<i)) {
-      /* Note: At most one CPU architecture per target bitset.  This is a
-         restriction which has already been checked. */
-      result = make_call_node(builtin_cpu_is_routine,
-                              make_expr_for_string_literal(
-                                                  target_name_for_builtin(i)));
-      break;
-    }  /* if */
-  }  /* for */
-  /* After architecture check, check for particular features. */
-  for (i = 0; i < mv_display_count(); i++) {
-    int arch = mv_display_order(i);
+  for (arch = (a_multiversion_arch_kind)mvak_lowest_cpu;
+       arch <= (a_multiversion_arch_kind)mvak_highest_isa;
+       arch++) {
     if (bs & (1<<arch)) {
-      an_expr_node_ptr this_check;
+      an_expr_node_ptr str_node = make_expr_for_string_literal(
+                                               target_name_for_builtin(arch));
       if (is_mv_cpu_arch(arch)) {
-        /* CPU architecture is already handled in preceding loop. */
+        /* Generate a call to match the specified CPU architecture.  Note that
+           there can be at most one CPU architecture and it'll be before any
+           ISA architectures. */
+        check_assertion(result == NULL);
+        result = make_call_node(builtin_cpu_is_routine, str_node);
       } else {
-        this_check = make_call_node(builtin_cpu_supports_routine, 
-                                    make_expr_for_string_literal(
-                                               target_name_for_builtin(arch)));
+        /* Generate a call to match the specified ISA architecture. */
+        an_expr_node_ptr this_check;
+        this_check = make_call_node(builtin_cpu_supports_routine, str_node);
         if (result == NULL) {
           result = this_check;
         } else {
-          an_expr_node_ptr and_node;
           result->next = this_check;
-          and_node = make_operator_node((an_expr_operator_kind)eok_land,
-                                        integer_type((an_integer_kind)ik_int),
-                                        result);
-          result = and_node;
+          result = make_operator_node((an_expr_operator_kind)eok_land,
+                                      integer_type((an_integer_kind)ik_int),
+                                      result);
         }  /* if */
       }  /* if */
     }  /* if */
