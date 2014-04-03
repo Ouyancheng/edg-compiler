@@ -70,19 +70,22 @@ typedef signed char a_multiversion_arch_kind;
 Macro that returns TRUE if the specified architecture corresponds to a
 CPU architecture.
 */
-#define is_mv_cpu_arch(t) ((t) >= mvak_lowest_cpu && (t) <= mvak_highest_cpu)
+#define is_mv_cpu_arch(t)                                                     \
+  ((t) >= (a_multiversion_arch_kind)mvak_lowest_cpu &&                        \
+   (t) <= (a_multiversion_arch_kind)mvak_highest_cpu)
 
 /*
 Macro that returns TRUE if a CPU architecture is specified in a bitset.
 */
 #define is_any_mv_arch_bit_set(bs)                                            \
-  (((bs) & ((1 << ((int)mvak_highest_cpu + 1)) - 1)) != 0)
+  (((bs) & ((1 << ((a_multiversion_arch_kind)mvak_highest_cpu + 1)) - 1)) != 0)
 
 /*
 Macro that returns TRUE if the specified bitset indicates the "default"
 routine.
 */
-#define is_default_targ_bitset(bs) ((bs) == 1 << mvak_default_target)
+#define is_default_targ_bitset(bs)                                            \
+  ((bs) == 1 << (a_multiversion_arch_kind)mvak_default_target)
 
 /*
 Macro that returns TRUE if the specific-target routine is the "default"

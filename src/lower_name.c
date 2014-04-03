@@ -328,12 +328,12 @@ Strictly speaking, these aren't for "mangling"; they're to re-create the
 names that GNU gives to various function multiversioning symbols.  Note that
 a "." can't be used in configurations that use a C-generating back end.
 */
+#if IA64_ABI
 #if BACK_END_IS_C_GEN_BE
 #define MANGLING_SEPARATOR_FOR_MV_DISTINCTION "_"
 #else /* !BACK_END_IS_C_GEN_BE */
 #define MANGLING_SEPARATOR_FOR_MV_DISTINCTION "."
 #endif /* BACK_END_IS_C_GEN_BE */
-#if IA64_ABI
 #define MANGLING_STRING_FOR_MV_RESOLVER "ifunc"
 #else /* !IA64_ABI */
 #define MANGLING_STRING_FOR_MV_RESOLVER "__MVI__"

@@ -2836,43 +2836,47 @@ determining the highest.  Set *cpu_arch to the CPU architecture (there can
 be at most one) if one is found (and to mvak_invalid otherwise).
 */
 {
-  a_multiversion_arch_kind  i, result_isa = mvak_lowest_isa;
+  a_multiversion_arch_kind arch;
+  a_multiversion_arch_kind result_isa =
+                                     (a_multiversion_arch_kind)mvak_lowest_isa;
 
-  *cpu_arch = mvak_invalid;
+  *cpu_arch = (a_multiversion_arch_kind)mvak_invalid;
   /* First, check if there's a CPU architecture specified in the bitset.
      If there is, get the highest architecture supported by the arch. */
-  for (i = (a_multiversion_arch_kind)mvak_lowest_cpu;
-       i <= (a_multiversion_arch_kind)mvak_highest_cpu;
-       i++) {
+  for (arch = (a_multiversion_arch_kind)mvak_lowest_cpu;
+       arch <= (a_multiversion_arch_kind)mvak_highest_cpu;
+       arch++) {
     a_multiversion_arch_kind arch_isa;
-    switch (i) {
+    switch (arch) {
       case mvak_cpu_bdver1:
       case mvak_cpu_bdver2:
-        arch_isa = mvak_isa_avx2;
+        arch_isa = (a_multiversion_arch_kind)mvak_isa_avx2;
         break;
       case mvak_cpu_corei7:
-        arch_isa = mvak_isa_popcnt;
+        arch_isa = (a_multiversion_arch_kind)mvak_isa_popcnt;
         break;
       case mvak_cpu_amdfam10h:
-        arch_isa = mvak_isa_ssse3;
+        arch_isa = (a_multiversion_arch_kind)mvak_isa_ssse3;
         break;
       case mvak_cpu_core2:
       case mvak_cpu_atom:
-        arch_isa = mvak_isa_ssse3;
+        arch_isa = (a_multiversion_arch_kind)mvak_isa_ssse3;
         break;
       default:
         unexpected_condition();
     }  /* switch */
-    if (bitset & (1<<i)) {
+    if (bitset & (1<<arch)) {
       result_isa = arch_isa;
-      *cpu_arch = i;
+      *cpu_arch = arch;
       break;
     }  /* if */
   }  /* for */
   /* Check all the ISAs specified in the bitset, and choose the highest. */
-  for (i = mvak_lowest_isa; i <= mvak_highest_isa; i++) {
-    if ((bitset & (1<<i)) && result_isa < i) {
-      result_isa = i;
+  for (arch = (a_multiversion_arch_kind)mvak_lowest_isa;
+       arch <= (a_multiversion_arch_kind)mvak_highest_isa;
+       arch++) {
+    if ((bitset & (1<<arch)) && result_isa < arch) {
+      result_isa = arch;
     }  /* if */
   }  /* for */
   return result_isa;
@@ -2904,18 +2908,21 @@ keeps it at the head of a sorted list).
     if (left_isa < right_isa) result = 1;
     else if (left_isa > right_isa) result = -1;
     else {
-      if (left_cpu_arch != mvak_invalid && right_cpu_arch != mvak_invalid) {
+      if (left_cpu_arch != (a_multiversion_arch_kind)mvak_invalid &&
+          right_cpu_arch != (a_multiversion_arch_kind)mvak_invalid) {
         if (left_cpu_arch == right_cpu_arch) result = 0;
-        else if (left_cpu_arch == mvak_cpu_bdver1 &&
-                 right_cpu_arch == mvak_cpu_bdver2)
+        else if (left_cpu_arch == (a_multiversion_arch_kind)mvak_cpu_bdver1 &&
+                 right_cpu_arch == (a_multiversion_arch_kind)mvak_cpu_bdver2)
           result = 1;
-        else if (left_cpu_arch == mvak_cpu_bdver2 &&
-                 right_cpu_arch == mvak_cpu_bdver1)
+        else if (left_cpu_arch == (a_multiversion_arch_kind)mvak_cpu_bdver2 &&
+                 right_cpu_arch == (a_multiversion_arch_kind)mvak_cpu_bdver1)
           result = -1;
         else
           result = 0;
       } else if (left_cpu_arch == right_cpu_arch) result = 0;
-      else if (right_cpu_arch != mvak_invalid) result = 1;
+      else if (right_cpu_arch != (a_multiversion_arch_kind)mvak_invalid) {
+        result = 1;
+      }  /* if */
       else result = -1;
     }  /* if */
   }  /* if */
@@ -3071,16 +3078,16 @@ GNU's mangled names for ISA architectures are emitted in alphabetical order
 so this table lists the ISA architectures in that order.
 */
 static a_multiversion_arch_kind isa_alphabetic_order[] = {
-  mvak_isa_avx,
-  mvak_isa_avx2,
-  mvak_isa_mmx,
-  mvak_isa_popcnt,
-  mvak_isa_sse,
-  mvak_isa_sse2,
-  mvak_isa_sse3,
-  mvak_isa_sse4_1,
-  mvak_isa_sse4_2,
-  mvak_isa_ssse3
+  (a_multiversion_arch_kind)mvak_isa_avx,
+  (a_multiversion_arch_kind)mvak_isa_avx2,
+  (a_multiversion_arch_kind)mvak_isa_mmx,
+  (a_multiversion_arch_kind)mvak_isa_popcnt,
+  (a_multiversion_arch_kind)mvak_isa_sse,
+  (a_multiversion_arch_kind)mvak_isa_sse2,
+  (a_multiversion_arch_kind)mvak_isa_sse3,
+  (a_multiversion_arch_kind)mvak_isa_sse4_1,
+  (a_multiversion_arch_kind)mvak_isa_sse4_2,
+  (a_multiversion_arch_kind)mvak_isa_ssse3
 };
 
 
@@ -3092,28 +3099,32 @@ pointer that is returned is to a static buffer so the caller should copy the
 result to an allocated area.
 */
 {
-#define BUFFER_SIZE 256
-  static char        buffer[BUFFER_SIZE];
+#define STATIC_BUFFER_SIZE 256
+  static char        buffer[STATIC_BUFFER_SIZE];
   int                buff_idx = 0;
 #if USE_X86_FUNCTION_MULTIVERSIONING
-  int                i;
+  size_t             i;
   a_boolean          is_first = TRUE;
   a_const_char       *arch_name;
   a_mv_target_bitset bs =
              gnu_routine_supp(routine)->mv_info.targeted_version.target_bitset;
+  a_multiversion_arch_kind
+                     arch;
 
   check_assertion(gnu_routine_supp(routine)->is_target_specific_version);
   /* This loop adds the CPU architecture name (if any). */
-  for (i = 0; i <= mvak_highest_cpu; i++) {
-    if (bs & (1<<i)) {
-      arch_name = target_distinction(i);
+  for (arch = (a_multiversion_arch_kind)mvak_lowest_cpu;
+       arch <= (a_multiversion_arch_kind)mvak_highest_cpu;
+       arch++) {
+    if (bs & (1<<arch)) {
+      arch_name = target_distinction(arch);
       if (is_first) {
         is_first = FALSE;
       } else {
-        if (buff_idx + 1 >= BUFFER_SIZE) goto done;
+        if (buff_idx + 1 >= STATIC_BUFFER_SIZE) goto done;
         buffer[buff_idx++] = '_';
       }  /* if */
-      if (buff_idx + strlen(arch_name) >= BUFFER_SIZE) goto done;
+      if (buff_idx + strlen(arch_name) >= STATIC_BUFFER_SIZE) goto done;
       (void)strcpy(&buffer[buff_idx], arch_name);
       buff_idx += strlen(arch_name);
       break;
@@ -3121,17 +3132,19 @@ result to an allocated area.
   }  /* for */
   /* This loop adds the ISA architecture name(s), if any in alphabetical
      order. */
-  for (i = 0; i < (mvak_highest_isa - mvak_lowest_isa + 1); i++) {
-    int arch = isa_alphabetic_order[i];
+  for (i = 0;
+       i < sizeof(isa_alphabetic_order)/sizeof(isa_alphabetic_order[0]);
+       i++) {
+    arch = isa_alphabetic_order[i];
     if (bs & (1<<arch)) {
       arch_name = target_distinction(arch);
       if (is_first) {
         is_first = FALSE;
       } else {
-        if (buff_idx + 1 >= BUFFER_SIZE) goto done;
+        if (buff_idx + 1 >= STATIC_BUFFER_SIZE) goto done;
         buffer[buff_idx++] = '_';
       }  /* if */
-      if (buff_idx + strlen(arch_name) >= BUFFER_SIZE) goto done;
+      if (buff_idx + strlen(arch_name) >= STATIC_BUFFER_SIZE) goto done;
       (void)strcpy(&buffer[buff_idx], arch_name);
       buff_idx += strlen(arch_name);
     }  /* if */
@@ -3139,11 +3152,11 @@ result to an allocated area.
 done:
   /* Make sure string is NULL terminated (only an issue if we've run out of
      buffer space). */
-  if (buff_idx < BUFFER_SIZE) buffer[buff_idx] = '\0';
+  if (buff_idx < STATIC_BUFFER_SIZE) buffer[buff_idx] = '\0';
 #endif /* USE_X86_FUNCTION_MULTIVERSIONING */
   if (buff_idx == 0) buffer[0] = '\0';
   return buffer;
-#undef BUFFER_SIZE
+#undef STATIC_BUFFER_SIZE
 }  /* target_specific_distinction */
 
 
@@ -3254,15 +3267,16 @@ Do one-time initialization for data structures used in this file.
 {
 #if USE_X86_FUNCTION_MULTIVERSIONING
   /* Perform some configuration checks. */
-  if (sizeof(a_mv_target_bitset)*8 < mvak_last) {
+  if (sizeof(a_mv_target_bitset)*8 < (size_t)mvak_last) { /*lint !e506*/
     internal_error("undersized a_mv_target_bitset");
   }  /* if */
   check_assertion_str((sizeof(target_attributes)/sizeof(target_attributes[0]))
-                                                                  == mvak_last,
+                                        == (a_multiversion_arch_kind)mvak_last,
                       "target_attributes table must have mvak_last elements");
   check_assertion_str((sizeof(isa_alphabetic_order)/
                        sizeof(isa_alphabetic_order[0])) ==
-                                        mvak_highest_isa - mvak_lowest_isa + 1,
+                       (size_t)((a_multiversion_arch_kind)mvak_highest_isa -
+                                (a_multiversion_arch_kind)mvak_lowest_isa + 1),
                       "wrong number of elements in isa_alphabetic_order");
 #endif /* USE_X86_FUNCTION_MULTIVERSIONING */
 }  /* sys_predef_one_time_init */
