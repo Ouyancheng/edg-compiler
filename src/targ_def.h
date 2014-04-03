@@ -4963,7 +4963,7 @@ the "target" attribute.  Detailed documentation is available here:
 http://gcc.gnu.org/wiki/FunctionMultiVersioning.
 The "target" attribute allows multiple versions of a function
 definition to be supplied, and the choice of which version
-to call is determined at run time based on characteristics
+to call is determined at load time based on characteristics
 of the machine where the program is running.  The choice is made by a
 compiler-generated (when lowering is enabled) "resolver" routine that
 selects the best routine from the target-specific versions.  The resolver
@@ -5003,8 +5003,8 @@ Would generate (when lowered), pseudo-code like this:
 
 When GNU_FUNCTION_MULTIVERSIONING is TRUE, the front end does the necessary
 processing to produce a resolver routine.  When it is FALSE, or in C mode,
-the "target" attribute is accepted and included in the IL but no additional
-processing is performed.
+the "target" attribute is accepted (with a warning) and included in the IL but
+no additional processing is performed.
 */
 #ifndef GNU_FUNCTION_MULTIVERSIONING
 #define GNU_FUNCTION_MULTIVERSIONING FALSE

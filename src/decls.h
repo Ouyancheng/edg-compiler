@@ -1436,11 +1436,6 @@ extern void decls_init(void);
 unsigned long show_decl_space_used(void);
 #endif /* DEBUG */
 
-#if GNU_FUNCTION_MULTIVERSIONING && GENERATE_SOURCE_SEQUENCE_LISTS
-extern void fix_mv_source_sequence_entry(a_source_sequence_entry_ptr ssep,
-                                         a_routine_ptr               routine);
-#endif /* GNU_FUNCTION_MULTIVERSIONING && GENERATE_SOURCE_SEQUENCE_LISTS */
-
 #endif /* DECLS_H */
 
 /******************************************************************************

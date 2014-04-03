@@ -2736,6 +2736,24 @@ static a_const_char *target_attributes[] = {
   "avx2",             /* mvak_isa_avx2 */
 };
 
+/*
+GNU's mangled names for ISA architectures are emitted in alphabetical order
+so this table lists the ISA architectures in that order.
+*/
+static a_multiversion_arch_kind isa_alphabetic_order[] = {
+  (a_multiversion_arch_kind)mvak_isa_avx,
+  (a_multiversion_arch_kind)mvak_isa_avx2,
+  (a_multiversion_arch_kind)mvak_isa_mmx,
+  (a_multiversion_arch_kind)mvak_isa_popcnt,
+  (a_multiversion_arch_kind)mvak_isa_sse,
+  (a_multiversion_arch_kind)mvak_isa_sse2,
+  (a_multiversion_arch_kind)mvak_isa_sse3,
+  (a_multiversion_arch_kind)mvak_isa_sse4_1,
+  (a_multiversion_arch_kind)mvak_isa_sse4_2,
+  (a_multiversion_arch_kind)mvak_isa_ssse3
+};
+
+
 static a_multiversion_arch_kind find_target_attribute(a_const_char *str,
                                                       size_t       str_len)
 /*
@@ -2964,8 +2982,8 @@ that function (and is NULL otherwise).
            gnu_routine_supp(routine)->mv_info.representative.targeted_versions;
          rlep != NULL;
          rlep = rlep->next) {
-      bs =
-       gnu_routine_supp(rlep->routine)->mv_info.targeted_version.target_bitset;
+      bs = gnu_routine_supp(rlep->routine)->
+                                        mv_info.targeted_version.target_bitset;
       if ((bs & surrounding_bitset) != 0) {
         result = rlep->routine;
         /* Note that it is possible for more than one target-specific version
@@ -3019,7 +3037,7 @@ resolver routine is needed and no "default" routine is provided.
 void add_to_specific_version_list(a_routine_ptr representative,
                                   a_routine_ptr target_routine)
 /*
-This function inserts target_routine into the list of target-versioned routines
+This function inserts target_routine into the list of specific-target routines
 that are pointed to by representative.
 */
 {
@@ -3071,24 +3089,6 @@ that are pointed to by representative.
   *headp = new_rlep;
 #endif /* USE_X86_FUNCTION_MULTIVERSIONING */
 }  /* add_to_specific_version_list */
-
-
-/*
-GNU's mangled names for ISA architectures are emitted in alphabetical order
-so this table lists the ISA architectures in that order.
-*/
-static a_multiversion_arch_kind isa_alphabetic_order[] = {
-  (a_multiversion_arch_kind)mvak_isa_avx,
-  (a_multiversion_arch_kind)mvak_isa_avx2,
-  (a_multiversion_arch_kind)mvak_isa_mmx,
-  (a_multiversion_arch_kind)mvak_isa_popcnt,
-  (a_multiversion_arch_kind)mvak_isa_sse,
-  (a_multiversion_arch_kind)mvak_isa_sse2,
-  (a_multiversion_arch_kind)mvak_isa_sse3,
-  (a_multiversion_arch_kind)mvak_isa_sse4_1,
-  (a_multiversion_arch_kind)mvak_isa_sse4_2,
-  (a_multiversion_arch_kind)mvak_isa_ssse3
-};
 
 
 a_const_char *target_specific_distinction(a_routine_ptr routine)

@@ -13913,7 +13913,7 @@ typedef struct a_routine {
 #if USE_X86_FUNCTION_MULTIVERSIONING
 /*
 GNU multiversion target set; this is a bitset where the bit positions
-correspond to a_mv_arch_isa enumeration values.
+correspond to a_multiversion_arch_kind_tag enumeration values.
 */
 typedef uint32_t a_mv_target_bitset;
 #endif /* USE_X86_FUNCTION_MULTIVERSIONING */
@@ -13968,21 +13968,21 @@ typedef struct a_gnu_routine_supplement {
 			/* If non-NULL, the name to be used as an assembly
 			   language level symbol for this routine. */
 #if GNU_FUNCTION_MULTIVERSIONING
-  a_bit_field	is_representative:1;
-			/* TRUE if the routine is a multiversion function and
-			   the routine is the representative for all versions.
-			   This version of the routine is in the symbol table
-			   and on the appropriate scope routine list.
-			   tv_info.list contains a list of routines (each with
-			   is_target_specific_version set to TRUE) which are
-			   architecture-specific. */
-  a_bit_field	is_target_specific_version:1;
-			/* TRUE if the routine is a multiversion function
-			   for a specific architecture (as specified by
-			   the "target" attribute).  Not entered into the
-			   symbol table or on a scope's routines list. */
+  a_bit_field   is_representative:1;
+                        /* TRUE if the routine is a multiversion function and
+                           is the representative for all versions.  This
+                           version of the routine is recorded in the symbol
+                           table.  representative.targeted_versions
+                           contains a list of routines (each with
+                           is_target_specific_version set to TRUE) which are
+                           target-specific. */
+  a_bit_field   is_target_specific_version:1;
+                        /* TRUE if the routine is a multiversion function
+                           for a target-specific architecture (as specified by
+                           the "target" attribute).  Not entered into the
+                           symbol table. */
 #if USE_X86_FUNCTION_MULTIVERSIONING
-  a_bit_field	mv_resolver_required:1;
+  a_bit_field   mv_resolver_required:1;
                         /* TRUE if it has been determined that a resolver
                            routine is necessary.  In some cases (e.g.,
                            only one target routine), a resolver routine isn't
@@ -13997,9 +13997,8 @@ typedef struct a_gnu_routine_supplement {
                 targeted_versions;
                         /* List of multiversion functions with a "target"
                            attribute.  These routines are not in the symbol
-                           table (or on a scope list) as the is_representative
-                           routine acts as the surrogate for the entire
-                           set of routines. */
+                           table; the is_representative routine acts as the
+                           surrogate for the entire set of routines. */
 #if USE_X86_FUNCTION_MULTIVERSIONING
                         /* The list is maintained in dispatch priority order
                            (with the exception that the default routine appears

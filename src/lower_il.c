@@ -9852,10 +9852,10 @@ create a resolver routine if needed.
 
 static a_routine_ptr lowered_mv_routine(a_routine_ptr routine)
 /*
-A reference of some sort is being made to routine (which is a GNU
-multiversion representative).  If the routine can be replaced by
-a target-specific version routine (i.e., no resolver is necessary), return
-that routine (otherwise return NULL).
+A reference in the IL which is being lowered is being made to routine (which is
+a GNU multiversion representative).  If the routine can be replaced by a
+target-specific version routine (i.e., no resolver is necessary), return that
+routine (otherwise return NULL).
 */
 {
   a_routine_ptr result = routine;
@@ -9863,13 +9863,12 @@ that routine (otherwise return NULL).
   a_routine_ptr surrounding_routine = NULL;
 
   check_assertion(is_multiversion_representative(routine));
-  if (innermost_function_scope != NULL) {
-    surrounding_routine = innermost_function_scope->variant.routine.ptr;
-  }  /* if */
-  result = find_mv_target_specific_routine(routine, surrounding_routine);
-  if (result == NULL) {
-    result = routine;
-  } else {
+  if (!gnu_routine_supp(routine)->mv_resolver_required) {
+    if (innermost_function_scope != NULL) {
+      surrounding_routine = innermost_function_scope->variant.routine.ptr;
+    }  /* if */
+    result = find_mv_target_specific_routine(routine, surrounding_routine);
+    check_assertion(result != NULL);
     /* Replace the reference to the representative routine with a direct
        reference to a target-specific version.  Transfer some of the relevant
        state information from the representative function to the

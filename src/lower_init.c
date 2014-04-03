@@ -17458,7 +17458,7 @@ builtin functions to determine the underlying CPU characteristics.
                   builtin_cpu_supports_routine != NULL &&
                   builtin_cpu_is_routine != NULL);
   bs = gnu_routine_supp(routine)->mv_info.targeted_version.target_bitset;
-  /* First do the CPU architecture check. */
+  /* Loop through each potential architecture (both CPU and ISA). */
   for (arch = (a_multiversion_arch_kind)mvak_lowest_cpu;
        arch <= (a_multiversion_arch_kind)mvak_highest_isa;
        arch++) {
@@ -17553,7 +17553,7 @@ The "ifunc" mechanism is used to associate the resolver routine with
 
   check_assertion(is_multiversion_representative(representative) &&
                   representative->is_ifunc);
-  /* Give the resolver a name based on the "ifunc" symbol's name, but that
+  /* Give the resolver a name based on the "ifunc" symbol's name, but one that
      won't conflict with other names.  Note that this name isn't the same
      name that g++ gives to its resolver functions, but that shouldn't
      matter. */
@@ -17575,7 +17575,7 @@ The "ifunc" mechanism is used to associate the resolver routine with
   set_block_start_insert_location(scope->assoc_block, &block_insert_location);
   /* Iterate through the list of target-specific routines, in priority order,
      building up an if-then-else statement starting with the highest priority
-     ISA and ending with the default routine.  The "default" routine (required)
+     ISA and ending with the default routine.  The default routine (required)
      is always at head of list. */
   sorted_list = gnu_routine_supp(representative)->
                                       mv_info.representative.targeted_versions;
@@ -17592,8 +17592,7 @@ The "ifunc" mechanism is used to associate the resolver routine with
   insert_location = &block_insert_location;
   for (rlep = sorted_list->next; rlep != NULL; rlep = rlep->next) {
     /* Since there may be both definitions and declarations in this list,
-       emit only one check for each unique bitset.  (Could verify that
-       matching pairs are actually re-declaration.) */
+       emit only one check for each unique bitset. */
     if (previous_bitset != gnu_routine_supp(rlep->routine)->
                                       mv_info.targeted_version.target_bitset) {
       an_expr_node_ptr if_node = make_mv_target_specific_expr(rlep->routine);

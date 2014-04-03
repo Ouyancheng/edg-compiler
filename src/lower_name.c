@@ -10297,7 +10297,7 @@ depending on the ABI.
   a_gnu_routine_supplement_ptr grsp = gnu_routine_supp(routine);
   if (grsp->is_target_specific_version) {
     /* All target-specific versions share the same unmangled name and must be
-       differentiated somehow.  For compatibility reasons, we use the same
+       differentiated somehow.  For compatibility reasons, use the same
        naming scheme as GNU (though that's not possible when using the
        C-generating back end because the names contain "."). */
     if (is_mv_default_routine(routine)) {
@@ -10307,9 +10307,9 @@ depending on the ABI.
       /* No suffix is added if there is only a single target-specific
          routine. */
     } else {
-      /* Add a target-specific suffix at this point (note that the name
-         that is created here cannot be demangled -- but that matches GNU's
-         behavior). */
+      /* Add a target-specific suffix at this point. Note that in IA-64
+         ABI configurations the name that is created here cannot be demangled
+         (but that matches GNU's behavior). */
 #if !IA64_ABI
       /* Add a target-specific prefix so the demangler knows what's coming. */
       add_str_to_mangled_name("__TGT__", mctl);

@@ -1,5 +1,45 @@
 Version 4.9
 
+4/3/14   [EDGcpfe/14759]
+GNU compatibility: Function multiversioning
+
+Support has been added for the GNU function multiversioning feature as
+documented here: http://gcc.gnu.org/wiki/FunctionMultiVersioning.  This
+features uses the "target" attribute to determine, at load time, which
+version of a function should be called, thereby allowing the user to take
+advantage of features that may be available on a particular CPU.
+
+The new configuration macro GNU_FUNCTION_MULTIVERSIONING controls this feature
+(and defaults to FALSE).  Function multiversioning is only available in
+C++ mode, though the "target" attribute is also accepted in C mode (to match
+gcc's behavior).
+
+The current GNU implementation of function multiversioning is specific to
+the Intel/AMD line of processors, and when the new macro
+USE_X86_FUNCTION_MULTIVERSIONING is TRUE, we emulate the GNU behavior.
+Customers that use other processors can set USE_X86_FUNCTION_MULTIVERSIONING
+to FALSE (though they'll need to add lowering and/or back end support
+in that case).
+
+In configurations that have lowering, a "resolver" function is generated
+to determine the most appropriate function of the group of target-specific
+functions to invoke at run time (based on the characteristics of the CPU
+where the executable is being executed).  The ifunc dispatch mechanism is then
+used to invoke the resolver function at load time (see the Changes entry for
+EDGcpfe/13424).
+
+For example (with --gnu_version 40800):
+
+  extern "C" int puts(const char *);
+  void __attribute__((target("default")))     f() { puts("default"); }
+  void __attribute__((target("mmx")))         f() { puts("mmx"); }
+  void __attribute__((target("arch=corei7"))) f() { puts("arch=corei7"); }
+  int main() {
+    f();    // Chooses one of the f()s above based on the CPU at load time.
+    return 0;
+  }
+
+
 4/2/14   [EDGcpfe/14992]
 C++-generating back end: braced constructor arguments in field initializers
 

@@ -5748,15 +5748,14 @@ called directly from decl_routine and decl_member_function and not via
 the normal attribute processing mechanism.
 
 The first time that a routine with a target attribute is encountered two
-routines are created -- an extra routine is created which will be used as the
+routines are created -- a routine is created which will be used as the
 "representative" routine, and has is_representative set to TRUE.  The other
-routine node will have is_target_specific_version set to TRUE, and its
-mv_target_bitset will reflect the specific architecture(s).  Only the
-is_representative routine is available from the symbol table; the
-specialized routines are pointed to from the representative routine.
-
-Additional symbols for target-specific versioned routines are suppressed
-so as not to appear as overloaded functions.
+routine will have is_target_specific_version set to TRUE, and its
+mv_target_bitset will reflect the specific CPU and/or ISA architecture(s) as
+specified by the attribute.  Only the is_representative routine is available
+from the symbol table; the target-specific routines are pointed to from the
+representative routine.  Symbols for target-specific versioned routines do not
+appear in the symbol table.
 
 Only invoked in C++ mode (normal attribute processing takes care of "target"
 attribute in C mode).
@@ -5783,8 +5782,8 @@ attribute in C mode).
     goto done;
   }  /* if */
   if (dps->mv_representative_routine == NULL) {
-    /* This is the first instance of a "target" version; one routine will
-       be the representative function and a second routine will be used for
+    /* This is the first instance of a "target" version; this routine will
+       be the representative function and a new routine will be allocated for
        the target-specific version. */
     representative = dps->mv_routine_ptr;
     ensure_gnu_routine_supp(representative)->is_representative = TRUE;
@@ -5800,8 +5799,8 @@ attribute in C mode).
       target_routine = dps->mv_routine_ptr;
     }  /* if */
   }  /* if */
-  /* Allocate (if necessary) and configure the target-specific version
-     routine pointer (based on the representative routine). */
+  /* Allocate (if necessary) the target-specific version.  Use the storage
+     class and linkage from the representative routine. */
   if (target_routine == NULL) {
     target_routine = make_routine(dps->type,
                                   representative->storage_class,
@@ -5844,8 +5843,7 @@ attribute in C mode).
   existing = find_existing_mv_routine(representative, target_routine);
   if (existing != NULL) {
     /* A routine has been previously declared (or defined) with the same
-       set of target attributes; give an error if there are two
-       definitions. */
+       set of target attributes; give an error if there are two definitions. */
     if (dps->is_definition && existing->defined) {
       sym_error(ec_function_redefinition, dps->sym);
       err = TRUE;
@@ -5858,7 +5856,7 @@ attribute in C mode).
       target_routine = existing;
     }  /* if */
   } else {
-    /* Hang the new target-specific routine on the list. */
+    /* Queue the new target-specific routine on the list. */
     add_to_specific_version_list(representative, target_routine);
   }  /* if */
   /* Make both versions of routines available to the caller. */

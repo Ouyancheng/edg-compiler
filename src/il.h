@@ -2538,6 +2538,14 @@ extern an_attribute_ptr f_find_attribute(a_byte_attribute_kind  kind,
 #if GNU_FUNCTION_MULTIVERSIONING
 extern an_attribute_ptr find_last_target_attribute(
                                                   an_attribute_ptr attributes);
+/*
+Utility that returns TRUE if the routine is a GNU function multiversion
+"representative" function.
+*/
+#define is_multiversion_representative(routine) \
+ (has_gnu_routine_supp(routine) && \
+  (routine)->gnu_extra_info->is_representative)
+
 #endif /* GNU_FUNCTION_MULTIVERSIONING */
 
 #define routine_does_not_return(rp)                                          \
@@ -2663,16 +2671,6 @@ literal-operator-id (operator ""suffix).
 #define ud_suffix_from_literal_operator_id(name) \
   ((name) + LENGTH_CANONICAL_LITERAL_OPERATOR_INTRO)
 
-#if GNU_FUNCTION_MULTIVERSIONING
-/*
-Utility that returns TRUE if the routine is a GNU function multiversion
-"representative" function.
-*/
-#define is_multiversion_representative(routine) \
- (has_gnu_routine_supp(routine) && \
-  (routine)->gnu_extra_info->is_representative)
-
-#endif /* GNU_FUNCTION_MULTIVERSIONING */
 #endif /* ifndef IL_H */
 
 /******************************************************************************

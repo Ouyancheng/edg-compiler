@@ -2734,11 +2734,11 @@ typedef struct a_template_symbol_supplement {
                            template.  This is needed for function
                            matching. */
 #if GNU_FUNCTION_MULTIVERSIONING
-                        /* Note that when routine->is_target_versioned is
-                           TRUE, this symbol represents the entire set of
-                           multiversioned functions; if a specific
-                           target-versioned routine is desired (or all of
-                           them), the target_version_info.tv_info list
+                        /* Note that when routine->is_representative
+                           is TRUE, this symbol represents the entire set of
+                           multiversioned functions; if a specific-
+                           target versioned routine is desired (or all of
+                           them), the representative.targeted_versions list
                            must be consulted. */
 #endif /* GNU_FUNCTION_MULTIVERSIONING */
       a_func_info_block

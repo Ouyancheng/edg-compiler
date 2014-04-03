@@ -13359,7 +13359,7 @@ implicitly declared member functions.
 #if GNU_FUNCTION_MULTIVERSIONING
   if (sym->variant.routine.ptr != NULL &&
       is_multiversion_representative(sym->variant.routine.ptr)) {
-    /* Do not modify sym entry; keep it with target version sym. */
+    /* Do not modify sym entry; keep it with the target-specific symbol. */
   } else
 #endif /* GNU_FUNCTION_MULTIVERSIONING */
   /* Do not insert code here. */
