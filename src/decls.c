@@ -1166,7 +1166,7 @@ definition or a class member with external visibility.
   check_assertion(scope_is(ssep, sck_func_prototype));
   /* Skip the function prototype scope. */
   --ssep;
-  /* Skip any template declaration scopes to get the the enclosing class,
+  /* Skip any template declaration scopes to get the enclosing class,
      file, or namespace scope. */
   while (ssep->kind == (a_scope_kind)sck_template_declaration) {
     --ssep;
