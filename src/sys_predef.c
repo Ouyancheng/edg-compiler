@@ -2949,7 +2949,6 @@ keeps it at the head of a sorted list).
   return result;
 }  /* compare_target_priority */
 
-#if DO_IL_LOWERING
 
 a_routine_ptr find_mv_target_specific_routine(
                                              a_routine_ptr routine,
@@ -2998,7 +2997,6 @@ that function (and is NULL otherwise).
   return result;
 }  /* find_mv_target_specific_routine */
 
-#endif /* DO_IL_LOWERING */
 
 void reference_to_mv_routine(a_routine_ptr      routine,
                              a_source_position  *error_pos)
