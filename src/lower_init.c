@@ -17471,10 +17471,12 @@ builtin functions to determine the underlying CPU characteristics.
            ISA architectures. */
         check_assertion(result == NULL);
         result = make_call_node(builtin_cpu_is_routine, str_node);
+        result = boolean_controlling_expr(result);
       } else {
         /* Generate a call to match the specified ISA architecture. */
         an_expr_node_ptr this_check;
         this_check = make_call_node(builtin_cpu_supports_routine, str_node);
+        this_check = boolean_controlling_expr(this_check);
         if (result == NULL) {
           result = this_check;
         } else {
@@ -17486,7 +17488,7 @@ builtin functions to determine the underlying CPU characteristics.
       }  /* if */
     }  /* if */
   }  /* for */
-  return boolean_controlling_expr(result);
+  return result;
 }  /* make_mv_target_specific_expr */
 
 
