@@ -1282,12 +1282,19 @@ System::Attribute, unlike direct use if the AttributeUsage attribute).
     a_symbol_ptr  sym;
     a_type_ptr    type = NULL, alternate_type = NULL;
     a_boolean     err = FALSE;
+    /* In C++/CLI mode the non-custom "attribute" attribute has two potential
+       effects.  First, it causes the class it is attached to inherit from
+       System::Attribute if that is not already specified as a base class.
+       Second, if it is followed by arguments, the effect is as if those
+       arguments were passed to custom attribute System::AttributeUsage.
+       In that case, we simply treat the "attribute" attribute as if it were
+       the custom attribute System::AttributeUsage (but we also set a flag so
+       we can implicitly inherit from System::Attribute if needed; that is
+       handled when processing the class definition). */
     if (cppcli_enabled && curr_token_is_identifier_string("attribute")) {
-      /* Treat the "attribute" attribute as if it were the custom attribute
-         System::AttributeUsage, except that is also causes the attributed
-         class to implicitly inherit from System::Attribute if needed (the
-         latter part is handled when processing the class definition). */
       orig_is_attribute_attribute = TRUE;
+    }  /* if */
+    if (orig_is_attribute_attribute && next_token() == tok_lparen) {
       sym = cli_symbols[(int)csk_system_attribute_usage_attribute];
       make_locator_for_symbol(sym, &locator_for_curr_id);
     } else {
@@ -1513,7 +1520,6 @@ specified with the custom AttributeUsage attribute described by msap.
 */
 {
   a_type_ptr                    attribute_type;
-  a_custom_ms_attribute_arg_ptr named_arg;
   a_boolean                     ovflo;
   a_constant_ptr                con;
 
@@ -1548,33 +1554,34 @@ specified with the custom AttributeUsage attribute described by msap.
       unexpected_condition();
     }  /* if */
   } else {
-    unexpected_condition();
+    expect_error();
   }  /* if */
   /* The C++/CX AttributeUsageAttribute does not have the "AllowMultiple" or
      "Inherited" properties.  "AllowMultiple" can be specified by applying the
      AllowMultipleAttribute to the attribute type. */
-  if (!cppcx_enabled)
-  /* Do not insert code here. */
-  for (named_arg = msap->variant.custom_info.named_args;
-       named_arg != NULL;
-       named_arg = named_arg->next) {
-    a_const_char *name = unmangled_name_of(&named_arg->field->source_corresp);
-    check_assertion(name != NULL && is_constant_node(named_arg->expression));
-    con = named_arg->expression->variant.constant;
-    if (is_bool_type(con->type) && strcmp(name, "AllowMultiple") == 0) {
-      check_assertion(int_constant_is_signed(con));
-      attribute_usage->allow_multiple =
+  if (cppcli_enabled) {
+    a_custom_ms_attribute_arg_ptr
+                             named_arg = msap->variant.custom_info.named_args;
+    for (; named_arg != NULL; named_arg = named_arg->next) {
+      a_const_char *name =
+                         unmangled_name_of(&named_arg->field->source_corresp);
+      check_assertion(name != NULL && is_constant_node(named_arg->expression));
+      con = named_arg->expression->variant.constant;
+      if (is_bool_type(con->type) && strcmp(name, "AllowMultiple") == 0) {
+        check_assertion(int_constant_is_signed(con));
+        attribute_usage->allow_multiple =
                                   value_of_integer_constant(con, &ovflo) != 0;
-      check_assertion(!ovflo);
-    } else if (is_bool_type(con->type) && strcmp(name, "Inherited") == 0) {
-      check_assertion(int_constant_is_signed(con));
-      attribute_usage->inherited =
+        check_assertion(!ovflo);
+      } else if (is_bool_type(con->type) && strcmp(name, "Inherited") == 0) {
+        check_assertion(int_constant_is_signed(con));
+        attribute_usage->inherited =
                                   value_of_integer_constant(con, &ovflo) != 0;
-      check_assertion(!ovflo);
-    } else {
-      unexpected_condition();
-    }  /* if */
-  }  /* for */
+        check_assertion(!ovflo);
+      } else {
+        unexpected_condition();
+      }  /* if */
+    }  /* for */
+  }  /* if */
 }  /* set_attribute_usage_from_attribute */
 
 
@@ -2324,6 +2331,7 @@ declaration.
     attr = alloc_ms_attribute(attr_descr->kind);
     attr->position = start_position;
     attr->target = target;
+    attr->is_attribute_attribute = is_attribute_attribute;
 #if GENERATE_SOURCE_SEQUENCE_LISTS
     /* Create a source sequence entry for the attribute.  This is not done
        for parameter attributes as they appear within a declaration. */
@@ -2335,7 +2343,6 @@ declaration.
        parameters, for error recovery purposes. */
     if (attr_descr->kind == (an_ms_attribute_kind)msak_custom) {
       attr->variant.custom_info.type = custom_attribute_type;
-      attr->is_attribute_attribute = is_attribute_attribute;
       if (!scan_custom_ms_attribute_arg_list(attr)) {
         /* An error occurred while scanning the argument list.  Set attr to
            NULL to discard the attribute. */
@@ -2401,7 +2408,6 @@ declaration.
         if (attr != NULL) db_microsoft_attribute(attr);
       }  /* if */
   #endif /* DEBUG */
-      check_assertion(!is_attribute_attribute);
     }  /* if */
   }  /* if */
   return attr;

@@ -2317,6 +2317,9 @@ to TRUE.
     /* Use the argument list supplied. */
     check_assertion(rcblock == NULL);
     arg_list = supplied_arg_list;
+    if (rcblock == NULL) {
+      arg_block.closing_paren_position = pos_curr_token;
+    }  /* if */
   } else if (rcblock != NULL) {
     /* Convert the previously-scanned rcblock->argument_list list of
        expressions into an argument list. */
