@@ -4,7 +4,7 @@
 * Edison Design Group C++/C Front End                        - | \^/ | -      *
 *                                                               \   /         *
 * Proprietary information of Edison Design Group Inc.         /  | |  \       *
-* Copyright 1988-2013 Edison Design Group Inc.                   [_]          *
+* Copyright 1988-2014 Edison Design Group Inc.                   [_]          *
 *                                                                             *
 ******************************************************************************/
 /* 
@@ -105,6 +105,6 @@ extern void decl_inits_init(void);
 * Edison Design Group C++/C Front End                        - | \^/ | -      *
 *                                                               \   /         *
 * Proprietary information of Edison Design Group Inc.         /  | |  \       *
-* Copyright 1988-2013 Edison Design Group Inc.                   [_]          *
+* Copyright 1988-2014 Edison Design Group Inc.                   [_]          *
 *                                                                             *
 ******************************************************************************/

@@ -4,7 +4,7 @@
 * Edison Design Group C++/C Front End                        - | \^/ | -      *
 *                                                               \   /         *
 * Proprietary information of Edison Design Group Inc.         /  | |  \       *
-* Copyright 1988-2013 Edison Design Group Inc.                   [_]          *
+* Copyright 1988-2014 Edison Design Group Inc.                   [_]          *
 *                                                                             *
 ******************************************************************************/
 /*
@@ -2808,6 +2808,6 @@ extern void replace_curr_token(a_token_kind  new_token);
 * Edison Design Group C++/C Front End                        - | \^/ | -      *
 *                                                               \   /         *
 * Proprietary information of Edison Design Group Inc.         /  | |  \       *
-* Copyright 1988-2013 Edison Design Group Inc.                   [_]          *
+* Copyright 1988-2014 Edison Design Group Inc.                   [_]          *
 *                                                                             *
 ******************************************************************************/

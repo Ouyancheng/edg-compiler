@@ -4,7 +4,7 @@
 * Edison Design Group C++/C Front End                        - | \^/ | -      *
 *                                                               \   /         *
 * Proprietary information of Edison Design Group Inc.         /  | |  \       *
-* Copyright 1988-2013 Edison Design Group Inc.                   [_]          *
+* Copyright 1988-2014 Edison Design Group Inc.                   [_]          *
 *                                                                             *
 ******************************************************************************/
 /*
@@ -891,6 +891,6 @@ extern a_boolean scan_custom_ms_attribute_arg_list(an_ms_attribute_ptr attr);
 * Edison Design Group C++/C Front End                        - | \^/ | -      *
 *                                                               \   /         *
 * Proprietary information of Edison Design Group Inc.         /  | |  \       *
-* Copyright 1988-2013 Edison Design Group Inc.                   [_]          *
+* Copyright 1988-2014 Edison Design Group Inc.                   [_]          *
 *                                                                             *
 ******************************************************************************/
