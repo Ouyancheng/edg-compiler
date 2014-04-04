@@ -2048,14 +2048,16 @@ arguments scanned so far, and is used to detect a duplicated argument.
 
 
 static an_ms_attribute_arg_ptr scan_ms_attribute_arg_list(
-				an_ms_attribute_kind_descr_ptr	attr_descr)
+				an_ms_attribute_kind_descr_ptr	attr_descr,
+				a_boolean			*err)
 /*
 Scan the arguments of a Microsoft attribute reference.  The current token is
 usually either the "=" that precedes a single argument or the "(" the
 precedes an argument list, but this routine is also called for attributes
 that expect a parameter list even if such a list is missing (so that a
 diagnostic can be issued here).  Return a pointer to the list of arguments,
-or NULL if the argument list is invalid.
+or NULL if the argument list is invalid.  If the argument list is invalid,
+*err is also set to TRUE.
 */
 {
   an_ms_attribute_param_ptr	param;
@@ -2064,6 +2066,7 @@ or NULL if the argument list is invalid.
   a_boolean			any_named_args = FALSE;
   a_boolean			any_errors = FALSE;
 
+  *err = FALSE;
   param = attr_descr->parameters;
   if (curr_token == tok_assign) {
     /* Some attributes accept "attr=x" style references, which has the effect
@@ -2134,6 +2137,7 @@ or NULL if the argument list is invalid.
        an error.  We don't currently know which arguments are required,
        so we don't issue an error for too few arguments. */
     if (arg_list == NULL) {
+      *err = TRUE;
       str_error(ec_exp_ms_attr_arg_list, attr_descr->name);
     }  /* if */
   }  /* if */
@@ -2302,6 +2306,9 @@ declaration.
   if (target != msat_invalid) {
     if (is_keyword_token(curr_token)) {
       /* Turn keywords back into identifiers in this context. */
+      a_const_char  *keyword_str = token_names[(int)curr_token];
+      (void)find_symbol(keyword_str, (sizeof_t)strlen(keyword_str),
+                        &locator_for_curr_id);
       replace_curr_token(tok_identifier);
     }  /* if */
     /* Look up the attribute identifier.  If the identifier is unknown,
@@ -2349,8 +2356,10 @@ declaration.
         } else {
           /* The attribute is of a known kind.  The argument list can be
              scanned with knowledge of the associated parameters. */
-          attr->variant.info.arg_list =scan_ms_attribute_arg_list(attr_descr);
-          if (attr->variant.info.arg_list == NULL) {
+          a_boolean	err;
+          attr->variant.info.arg_list =
+                                  scan_ms_attribute_arg_list(attr_descr, &err);
+          if (err) {
             /* A NULL arg_list is returned if an error occurred while scanning
                the argument list.  Set attr to NULL to discard the
                attribute. */
