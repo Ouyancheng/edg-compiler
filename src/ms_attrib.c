@@ -2328,12 +2328,12 @@ declaration.
        parameters, for error recovery purposes. */
     if (attr_descr->kind == (an_ms_attribute_kind)msak_custom) {
       attr->variant.custom_info.type = custom_attribute_type;
+      attr->is_attribute_attribute = is_attribute_attribute;
       if (!scan_custom_ms_attribute_arg_list(attr)) {
         /* An error occurred while scanning the argument list.  Set attr to
            NULL to discard the attribute. */
         attr = NULL;
       }  /* if */
-      attr->is_attribute_attribute = is_attribute_attribute;
     } else {
       a_boolean arg_list_present = curr_token == tok_assign ||
                                    curr_token == tok_lparen;
