@@ -1282,7 +1282,11 @@ System::Attribute, unlike direct use if the AttributeUsage attribute).
     a_symbol_ptr  sym;
     a_type_ptr    type = NULL, alternate_type = NULL;
     a_boolean     err = FALSE;
-    if (curr_token_is_identifier_string("attribute")) {
+    if (cppcli_enabled && curr_token_is_identifier_string("attribute")) {
+      /* Treat the "attribute" attribute as if it were the custom attribute
+         System::AttributeUsage, except that is also causes the attributed
+         class to implicitly inherit from System::Attribute if needed (the
+         latter part is handled when processing the class definition). */
       orig_is_attribute_attribute = TRUE;
       sym = cli_symbols[(int)csk_system_attribute_usage_attribute];
       make_locator_for_symbol(sym, &locator_for_curr_id);
