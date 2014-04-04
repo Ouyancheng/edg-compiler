@@ -115,7 +115,9 @@ a "default" routine on the list (which will be the first routine on the list).
    is_mv_default_routine((rp)->gnu_extra_info->                               \
                             mv_info.representative.targeted_versions->routine))
 
+#if DO_IL_LOWERING
 extern a_const_char *target_name_for_builtin(a_multiversion_arch_kind arch);
+#endif /* DO_IL_LOWERING */
 
 extern void reference_to_mv_routine(a_routine_ptr      routine,
                                     a_source_position  *error_pos);
