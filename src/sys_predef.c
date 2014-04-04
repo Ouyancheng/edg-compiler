@@ -3267,7 +3267,7 @@ void sys_predef_one_time_init(void)
 Do one-time initialization for data structures used in this file.
 */
 {
-#if USE_X86_FUNCTION_MULTIVERSIONING
+#if CHECKING && USE_X86_FUNCTION_MULTIVERSIONING
   /* Perform some configuration checks. */
   if (sizeof(a_mv_target_bitset)*8 < (size_t)mvak_last) { /*lint !e506*/
     internal_error("undersized a_mv_target_bitset");
@@ -3280,7 +3280,7 @@ Do one-time initialization for data structures used in this file.
                        (size_t)((a_multiversion_arch_kind)mvak_highest_isa -
                                 (a_multiversion_arch_kind)mvak_lowest_isa + 1),
                       "wrong number of elements in isa_alphabetic_order");
-#endif /* USE_X86_FUNCTION_MULTIVERSIONING */
+#endif /* CHECKING && USE_X86_FUNCTION_MULTIVERSIONING */
 }  /* sys_predef_one_time_init */
 
 
