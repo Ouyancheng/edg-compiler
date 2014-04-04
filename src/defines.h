@@ -1058,6 +1058,16 @@ Allow C++/CLI to be enabled if Microsoft extensions are allowed.
 #endif /* READ_CPPCLI_PORTABLE_ASSEMBLIES && !defined(...) */
 
 /*
+Enable GNU function multiversioning on systems where GNU extensions are
+enabled.
+*/
+#if defined(GNU_EXTENSIONS_ALLOWED) && GNU_EXTENSIONS_ALLOWED
+#ifndef GNU_FUNCTION_MULTIVERSIONING
+#define GNU_FUNCTION_MULTIVERSIONING 1
+#endif /* defined(GNU_FUNCTION_MULTIVERSIONING) */
+#endif /* defined(GNU_EXTENSIONS_ALLOWED) && GNU_EXTENSIONS_ALLOWED */
+
+/*
 Allow export to be enabled and enable it by default.
 */
 #ifndef EXPORT_ENABLING_POSSIBLE
