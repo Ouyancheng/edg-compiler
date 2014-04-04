@@ -2,7 +2,7 @@
 *                                                             \  ___  /       *
 * Edison Design Group C++ Runtime                               /   \         *
 *                                                            - | \^/ | -      *
-* Copyright 1992-2013 Edison Design Group, Inc.                 \   /         *
+* Copyright 1992-2014 Edison Design Group, Inc.                 \   /         *
 * All rights reserved.  Consult your license                  /  | |  \       *
 * regarding permissions and restrictions.                        [_]          *
 *                                                                             *
@@ -55,7 +55,7 @@ typedef struct an_array_alloc_eh_info *an_array_alloc_eh_info_ptr;
 *                                                             \  ___  /       *
 * Edison Design Group C++ Runtime                               /   \         *
 *                                                            - | \^/ | -      *
-* Copyright 1992-2013 Edison Design Group, Inc.                 \   /         *
+* Copyright 1992-2014 Edison Design Group, Inc.                 \   /         *
 * All rights reserved.  Consult your license                  /  | |  \       *
 * regarding permissions and restrictions.                        [_]          *
 *                                                                             *

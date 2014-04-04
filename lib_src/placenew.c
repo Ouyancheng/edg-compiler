@@ -2,7 +2,7 @@
 *                                                             \  ___  /       *
 * Edison Design Group C++ Runtime                               /   \         *
 *                                                            - | \^/ | -      *
-* Copyright 1992-2013 Edison Design Group, Inc.                 \   /         *
+* Copyright 1992-2014 Edison Design Group, Inc.                 \   /         *
 * All rights reserved.  Consult your license                  /  | |  \       *
 * regarding permissions and restrictions.                        [_]          *
 *                                                                             *
@@ -32,7 +32,7 @@ Return the value of ptr as the address of the new object.
 *                                                             \  ___  /       *
 * Edison Design Group C++ Runtime                               /   \         *
 *                                                            - | \^/ | -      *
-* Copyright 1992-2013 Edison Design Group, Inc.                 \   /         *
+* Copyright 1992-2014 Edison Design Group, Inc.                 \   /         *
 * All rights reserved.  Consult your license                  /  | |  \       *
 * regarding permissions and restrictions.                        [_]          *
 *                                                                             *
