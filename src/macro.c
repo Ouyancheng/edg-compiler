@@ -5631,7 +5631,7 @@ end_arg_expansion:;
                                       compare_feature_names);
         if (feature != NULL) {
           extension_supported = *feature->enabled;
-        } else if (C_dialect == C_dialect_cplusplus) {
+        } else if (type_traits_helpers_enabled) {
           /* The identifier is not the name of a feature, so check it
              against the list of supported C++ type-traits helpers. */
           extension_supported =

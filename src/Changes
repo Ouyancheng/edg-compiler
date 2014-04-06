@@ -1,5 +1,19 @@
 Version 4.9
 
+4/6/14   [EDGcpfe/14877]
+clang compatibility: __has_extension with type traits helper names
+
+The __has_extension macro (see the entry for EDGcpfe/14634) previously
+unconditionally returned the value 1 for type traits helper names that are
+supported by clang's C++ mode, even if the --no_type_traits_helpers
+command-line argument had been specified.  It has now been changed to
+return 0 in this case.  For example:
+
+  #if __has_extension(is_pod)
+  int i = __is_pod(int); // No longer an error with --no_type_traits_helpers
+  #endif 
+
+
 4/3/14   [EDGcpfe/14759]
 GNU compatibility: Function multiversioning
 
