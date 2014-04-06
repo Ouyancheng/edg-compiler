@@ -4083,8 +4083,11 @@ static a_const_char *clang_type_traits_helpers[] = {
   /* "is_literal", */
   "is_pod",
   "is_polymorphic",
+  "is_standard_layout",
+  "is_trivial",
   "is_trivially_assignable",
   "is_trivially_constructible",
+  "is_trivially_copyable",
   "is_union",
   "underlying_type"
 };
