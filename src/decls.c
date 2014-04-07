@@ -7868,6 +7868,7 @@ for use in generating cross-reference output describing this declaration.
     }  /* if */
 #if GNU_FUNCTION_MULTIVERSIONING
     if (linked_symbol != NULL && is_function_def &&
+        linked_symbol->kind == (a_symbol_kind)sk_routine &&
         is_multiversion_representative(linked_symbol->variant.routine.ptr)) {
       /* This is a GNU multiversion function; a "target" attribute is required
          if this is not a redefinition. */
