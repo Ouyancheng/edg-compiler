@@ -4466,15 +4466,15 @@ set correctly.
 
 void add_to_namespaces_list(a_namespace_ptr  nsp)
 /*
-Add the given namespace entry to the namespaces list for the current scope,
-which must be either the file scope or a namespace scope.
+Add the given namespace entry to the innermost namespace scope, which
+will be either the file scope or a namespace scope.
 */
 {
   a_scope_stack_entry_ptr     ssep;
   a_scope_ptr                 sp;
   a_scope_pointers_block_ptr  pointers_block;
 
-  ssep = &scope_stack[depth_scope_stack];
+  ssep = &scope_stack[depth_innermost_namespace_scope];
   sp = ensure_il_scope_exists(ssep);
   pointers_block = assoc_pointers_block_of(ssep);
   if (sp->namespaces == NULL) {
