@@ -1259,7 +1259,7 @@ custom attribute, return in *custom_attribute_type the type describing this
 attribute.  If this is the "attribute(...)" attribute, treat it like the
 AttributeUsage custom attribute and set *is_attribute_attribute to TRUE (the
 caller needs to know because that also implicitly causes derivation from
-System::Attribute, unlike direct use if the AttributeUsage attribute).
+System::Attribute, unlike direct use of the AttributeUsage attribute).
 */
 {
   an_ms_attribute_kind_descr_ptr  attr_descr = NULL;
@@ -1286,7 +1286,7 @@ System::Attribute, unlike direct use if the AttributeUsage attribute).
        effects.  First, it causes the class it is attached to inherit from
        System::Attribute if that is not already specified as a base class.
        Second, if it is followed by arguments, the effect is as if those
-       arguments were passed to custom attribute System::AttributeUsage.
+       arguments were passed to the custom attribute System::AttributeUsage.
        In that case, we simply treat the "attribute" attribute as if it were
        the custom attribute System::AttributeUsage (but we also set a flag so
        we can implicitly inherit from System::Attribute if needed; that is

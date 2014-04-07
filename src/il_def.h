@@ -17710,7 +17710,7 @@ typedef struct an_ms_attribute {
   a_bit_field
 		is_attribute_attribute:1;
 			/* TRUE if this a C++/CLI AttributeUsage custom
-			   attribute that was written as a "attribute"
+			   attribute that was written as an "attribute"
 			   attribute. */
   union {
     /* When kind != msak_custom: */
