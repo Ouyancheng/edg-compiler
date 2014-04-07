@@ -579,7 +579,7 @@ definition of the routine is needed, and not just the declaration.
        entry if there is one, however. */
     set_canonical_routine_definition_needed(rout);
   } else if (!routine_definition_needed_flag_is_set(rout)) {
-  /* Set the flag if it is not set already. */
+    /* Set the flag if it is not set already. */
     check_assertion_str(!rout->is_trivial_default_constructor ||
                         rout->is_defaulted,
                         "set_routine_definition_needed: trivial default ctor");
@@ -675,6 +675,20 @@ definition of the routine is needed, and not just the declaration.
       set_routine_definition_needed(rout->primary_ctor_or_dtor);
     }  /* if */
 #endif /* DO_IL_LOWERING && IA64_ABI */
+#if GNU_FUNCTION_MULTIVERSIONING && !DO_IL_LOWERING
+    if (is_multiversion_representative(rout)) {
+      /* If we're not lowering multiversioning functions, we can't know which
+         ones will be needed and which won't (since we have no resolver
+         function to do the job).  In that case, assume they're all needed. */
+      a_routine_list_entry_ptr rlep;
+      for (rlep = gnu_routine_supp(rout)->
+                                      mv_info.representative.targeted_versions;
+           rlep != NULL;
+           rlep = rlep->next) {
+        set_routine_definition_needed(rlep->routine);
+      }  /* for */
+    }  /* if */
+#endif /* GNU_FUNCTION_MULTIVERSIONING && !DO_IL_LOWERING */
     /* For a routine that has linkage, mark the associated canonical entry
        to have its definition kept too, since that's the one that will be
        copied to the primary IL. */
