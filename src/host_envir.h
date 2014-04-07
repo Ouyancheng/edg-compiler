@@ -1111,17 +1111,17 @@ with a C back end.
 #if PROTOTYPE_INSTANTIATIONS_IN_IL && DO_IL_LOWERING
  #error -- IL lowering cannot be done when parsed templates may be recorded
 #endif /* PROTOTYPE_INSTANTIATIONS_IN_IL && DO_IL_LOWERING */
-#ifndef ALLOW_CPPCLI_WITH_LOWERING
-#define ALLOW_CPPCLI_WITH_LOWERING FALSE
-#endif /* ALLOW_CPPCLI_WITH_LOWERING */
+#ifndef ALLOW_CPPCLI_AND_CPPCX_WITH_LOWERING
+#define ALLOW_CPPCLI_AND_CPPCX_WITH_LOWERING FALSE
+#endif /* ALLOW_CPPCLI_AND_CPPCX_WITH_LOWERING */
 #if CPPCLI_ENABLING_POSSIBLE && DO_IL_LOWERING
-#if ALLOW_CPPCLI_WITH_LOWERING
+#if ALLOW_CPPCLI_AND_CPPCX_WITH_LOWERING
 /* Okay, the user has said "trust me, I know what I'm doing."  IL lowering
-   and the back end will be suppressed whenever C++/CLI is enabled.
+   and the back end will be suppressed whenever C++/CLI or C++/CX is enabled.
    This is really intended only for testing within EDG. */
-#else /* !ALLOW_CPPCLI_WITH_LOWERING */
+#else /* !ALLOW_CPPCLI_AND_CPPCX_WITH_LOWERING */
  #error -- IL lowering cannot be done when C++/CLI enabling is allowed.
-#endif /* ALLOW_CPPCLI_WITH_LOWERING */
+#endif /* ALLOW_CPPCLI_AND_CPPCX_WITH_LOWERING */
 #endif /* CPPCLI_ENABLING_POSSIBLE && DO_IL_LOWERING */
 
 /*

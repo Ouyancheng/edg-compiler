@@ -29,11 +29,11 @@ This is the version for Windows 95/98/NT/etc.
    support multiple translation units. */
 #define COMPILE_MULTIPLE_TRANSLATION_UNITS 1
 /* Allow lowering with CPPCLI_ENABLING_POSSIBLE. */
-#ifndef ALLOW_CPPCLI_WITH_LOWERING
+#ifndef ALLOW_CPPCLI_AND_CPPCX_WITH_LOWERING
 #if CPPCLI_ENABLING_POSSIBLE
-#define ALLOW_CPPCLI_WITH_LOWERING 1
+#define ALLOW_CPPCLI_AND_CPPCX_WITH_LOWERING 1
 #endif /* CPPCLI_ENABLING_POSSIBLE */
-#endif /* ifndef ALLOW_CPPCLI_WITH_LOWERING */
+#endif /* ifndef ALLOW_CPPCLI_AND_CPPCX_WITH_LOWERING */
 #endif /* ifndef CP_GEN_BE_VERSION */
 #endif /* ifdef DEMO_VERSION */
 

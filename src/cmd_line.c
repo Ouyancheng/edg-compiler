@@ -4618,11 +4618,11 @@ file.
 #else /* !defined(ALLOW_ADDR_OF_REGISTER_IN_GENERATED_C) */
   comment_undefined_macro_name(ALLOW_ADDR_OF_REGISTER_IN_GENERATED_C);
 #endif /* defined(ALLOW_ADDR_OF_REGISTER_IN_GENERATED_C) */
-#if defined(ALLOW_CPPCLI_WITH_LOWERING)
-  define_numeric_valued_macro(ALLOW_CPPCLI_WITH_LOWERING);
-#else /* !defined(ALLOW_CPPCLI_WITH_LOWERING) */
-  comment_undefined_macro_name(ALLOW_CPPCLI_WITH_LOWERING);
-#endif /* defined(ALLOW_CPPCLI_WITH_LOWERING) */
+#if defined(ALLOW_CPPCLI_AND_CPPCX_WITH_LOWERING)
+  define_numeric_valued_macro(ALLOW_CPPCLI_AND_CPPCX_WITH_LOWERING);
+#else /* !defined(ALLOW_CPPCLI_AND_CPPCX_WITH_LOWERING) */
+  comment_undefined_macro_name(ALLOW_CPPCLI_AND_CPPCX_WITH_LOWERING);
+#endif /* defined(ALLOW_CPPCLI_AND_CPPCX_WITH_LOWERING) */
 #if defined(ALLOW_ELLIPSIS_ONLY_PARAM_IN_GENERATED_C)
   define_numeric_valued_macro(ALLOW_ELLIPSIS_ONLY_PARAM_IN_GENERATED_C);
 #else /* !defined(ALLOW_ELLIPSIS_ONLY_PARAM_IN_GENERATED_C) */
@@ -9711,11 +9711,11 @@ enable_microsoft_mode:
   /* IL lowering cannot handle C++/CLI or C++/CX constructs, so if we are
      accepting those extensions disable lowering.  (This is possible only when
      a special "trust me" macro is set explicitly.) */
-#if !ALLOW_CPPCLI_WITH_LOWERING
+#if !ALLOW_CPPCLI_AND_CPPCX_WITH_LOWERING
 /* host_envir.h checks this too, so if we fail here someone has broken the
    test there. */
  #error -- IL lowering cannot be done when C++/CLI enabling is allowed.
-#endif /* !ALLOW_CPPCLI_WITH_LOWERING */
+#endif /* !ALLOW_CPPCLI_AND_CPPCX_WITH_LOWERING */
   if (cli_or_cx_enabled) {
     suppress_il_lowering = TRUE;
     suppress_back_end = TRUE;

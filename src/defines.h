@@ -1032,19 +1032,22 @@ If EXPENSIVE_CHECKING has been requested, also enable checking pragmas.
 #endif /* ifndef EXPENSIVE_CHECKING */
 
 /*
-Allow C++/CLI to be enabled if Microsoft extensions are allowed.
+Allow C++/CLI and C++/CX to be enabled if Microsoft extensions are allowed.
 */
 #if defined(MICROSOFT_EXTENSIONS_ALLOWED) && MICROSOFT_EXTENSIONS_ALLOWED
 #ifndef CPPCLI_ENABLING_POSSIBLE
 #define CPPCLI_ENABLING_POSSIBLE 1
 #endif /* ifndef CPPCLI_ENABLING_POSSIBLE */
-#if CPPCLI_ENABLING_POSSIBLE
+#ifndef CPPCX_ENABLING_POSSIBLE
+#define CPPCX_ENABLING_POSSIBLE 1
+#endif /* ifndef CPPCX_ENABLING_POSSIBLE */
+#if CPPCLI_ENABLING_POSSIBLE || CPPCX_ENABLING_POSSIBLE
 #if !defined(CP_GEN_BE_VERSION) || !CP_GEN_BE_VERSION
 #if !defined(DEMO_VERSION) || !DEMO_VERSION
-#define ALLOW_CPPCLI_WITH_LOWERING 1
+#define ALLOW_CPPCLI_AND_CPPCX_WITH_LOWERING 1
 #endif /* !defined(DEMO_VERSION) || !DEMO_VERSION */
 #endif /* !defined(CP_GEN_BE_VERSION) || !CP_GEN_BE_VERSION */
-#endif /* CPPCLI_ENABLING_POSSIBLE */
+#endif /* CPPCLI_ENABLING_POSSIBLE || CPPCX_ENABLED_POSSIBLE */
 #if !defined(READ_CPPCLI_PORTABLE_ASSEMBLIES) && !defined(_WIN32) && \
     CPPCLI_ENABLING_POSSIBLE
 #define READ_CPPCLI_PORTABLE_ASSEMBLIES 1
