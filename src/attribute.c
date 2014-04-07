@@ -5817,6 +5817,7 @@ attribute in C mode).
   new_sym->next = NULL;
   new_sym->next_in_scope = NULL;
   new_sym->prev_in_scope = NULL;
+  new_sym->next_in_lookup_table = NULL;
   /* New symbol points to the new routine and vice versa. */
   new_sym->variant.routine.ptr = target_routine;
   set_source_corresp(&target_routine->source_corresp, new_sym);

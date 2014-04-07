@@ -9006,6 +9006,13 @@ skip_overloading:;
       (void)check_target_attr(target_ap, dps);
       /* Use the target-specific version for the remainder of the
          declaration. */
+      if (*ext_sym != NULL &&
+          (*ext_sym)->variant.extern_symbol_descr->variant.routine.ptr ==
+                                                                 routine_ptr) {
+        /* Fix the external symbol. */
+        (*ext_sym)->variant.extern_symbol_descr->variant.routine.ptr =
+                                                           dps->mv_routine_ptr;
+      }  /* if */
       routine_ptr = dps->mv_routine_ptr;
       sym = symbol_for(routine_ptr);
       dps->sym = sym;
