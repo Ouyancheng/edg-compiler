@@ -1,5 +1,13 @@
 Version 4.9
 
+4/7/14   [EDGcpfe/15020]
+Memory use when reading an alternate-format IL file
+
+When configured with ALTERNATE_IL_FILE_FORMAT set to TRUE, the front end
+had a bug that caused it to allocate too much memory for character-string
+IL entries read from an IL file.  This is now fixed.
+
+
 4/7/14   [EDGcpfe/13888]
 Internal error reading IL file with local namespace aliases
 

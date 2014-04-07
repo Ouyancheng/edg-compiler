@@ -827,18 +827,19 @@ Initialization routine for IL reading.
         /* For string entries the "entry number" is really a byte offset, and
            the "entry size" is 1.  Things like space for the prefix have
            been accounted for in the entry numbers/byte offsets assigned. */
+        entry_size = 1;
         fs_prefix_size = prefix_size = 0;
       } else {
         /* Non-string entry. */
+        entry_size = sizeof_il_entry[entry_kind];
         prefix_size = SPACE_FOR_IL_ENTRY_PREFIX;
         /* If the entry is in the file scope memory region, it is preceded
            by an orphan pointer. */
         fs_prefix_size = prefix_size + SPACE_FOR_FS_ORPHAN_POINTER;
+        do_host_alignment(entry_size);
+        do_host_alignment(prefix_size);
+        do_host_alignment(fs_prefix_size);
       }  /* if */
-      entry_size = sizeof_il_entry[entry_kind];
-      do_host_alignment(entry_size);
-      do_host_alignment(prefix_size);
-      do_host_alignment(fs_prefix_size);
       entry_length_with_prefix   [entry_kind] = entry_size + prefix_size;
       fs_entry_length_with_prefix[entry_kind] = entry_size + fs_prefix_size;
       length_of_entry_prefix     [entry_kind] = prefix_size;
