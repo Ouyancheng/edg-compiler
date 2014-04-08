@@ -593,6 +593,7 @@ check_abbreviation()
 --c++11_sfinae_ignore_access
 --c++03
 --c++cli
+--c++cx
 --c_to_obj_lib
 --c_to_obj_options
 --cfront_2.1
@@ -612,6 +613,7 @@ check_abbreviation()
 --context_limit
 --cpfe_only
 --cppcli
+--cppcx
 --create_pch
 --db
 --db_alloc_seq
@@ -721,6 +723,7 @@ check_abbreviation()
 --no_c++11_sfinae
 --no_c++11_sfinae_ignore_access
 --no_c++cli
+--no_c++cx
 --no_check_concatenations
 --no_clang
 --no_class_name_injection
@@ -728,6 +731,7 @@ check_abbreviation()
 --no_compound_literals
 --no_const_string_literals
 --no_cppcli
+--no_cppcx
 --no_defer_parse_function_templates
 --no_definition_list_file
 --no_delegating_constructors
@@ -1283,6 +1287,10 @@ process_option()
 	 --c++cli | \
 	 --no_c++cli | \
 	 --clr | \
+	 --cppcx | \
+	 --no_cppcx | \
+	 --c++cx | \
+	 --no_c++cx | \
 	 --far_data_pointers | \
 	 --near_data_pointers | \
 	 --far_code_pointers | \

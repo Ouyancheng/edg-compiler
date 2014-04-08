@@ -523,6 +523,12 @@ Initialize the option information table.
   add_option_description(optk_cppcx, "no_cppcx",
                          '\0', /*value=*/FALSE, /*arg_required=*/FALSE,
                          pchek_command_line);
+  add_option_description(optk_cppcx, "c++cx",
+                         '\0', /*value=*/TRUE, /*arg_required=*/FALSE,
+                         pchek_command_line);
+  add_option_description(optk_cppcx, "no_c++cx",
+                         '\0', /*value=*/FALSE, /*arg_required=*/FALSE,
+                         pchek_command_line);
 #endif /* CPPCX_ENABLING_POSSIBLE */
 #if CPPCLI_ENABLING_POSSIBLE || CPPCX_ENABLING_POSSIBLE
   add_option_description(optk_preusing, "preusing",
