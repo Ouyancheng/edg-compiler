@@ -5901,7 +5901,7 @@ enum a_calling_convention_tag {
   cc_fastcall,		/* __fastcall calling convention. */
   cc_stdcall,		/* __stdcall calling convention. */
   cc_thiscall,		/* __thiscall calling convention. */
-  cc_vectorcall,		/* __vectorcall calling convention. */
+  cc_vectorcall,	/* __vectorcall calling convention. */
   cc_clrcall,		/* __clrcall calling convention. */
   cc_last		/* Must be last. */
 };
