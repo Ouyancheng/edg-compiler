@@ -6369,6 +6369,11 @@ Display the indicated base class entry.
            iek_base_class);
 #endif /* IA64_ABI */
   disp_ptr("attributes", (char *)ptr->attributes, iek_attribute);
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  if (ptr->ms_attributes != NULL) {
+    disp_ptr("ms_attributes", (char *)ptr->ms_attributes, iek_ms_attribute);
+  }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   disp_ptr("type", (char *)ptr->type, iek_type);
   if (ptr->orig_type != ptr->type) {
     disp_ptr("orig_type", (char *)ptr->orig_type, iek_type);

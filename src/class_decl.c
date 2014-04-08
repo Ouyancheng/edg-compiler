@@ -7776,9 +7776,10 @@ shares virtual function info.
 
 
 #if !MICROSOFT_EXTENSIONS_ALLOWED
-/*ARGSUSED*/ /* type_ptr only used when Microsoft extensions are enabled. */
+/*ARGSUSED*/ /* type_ptr is only used when Microsoft extensions are enabled. */
 #endif /* !MICROSOFT_EXTENSIONS_ALLOWED */
 static void scan_inheritance_kind(a_type_ptr           type_ptr,
+                                  an_ms_attribute_ptr  *p_ms_attributes,
                                   a_boolean            *is_virtual,
                                   an_access_specifier  *access,
                                   a_boolean            *explicit_access)
@@ -7794,6 +7795,7 @@ diagnostics that can be emitted based on this information.
   a_boolean  access_already_specified = FALSE, skip_get_token = FALSE;
 
   *is_virtual = FALSE;
+  *p_ms_attributes = NULL;
   for (;;) {
     if (curr_token == tok_virtual) {
       if (*is_virtual) {
@@ -7837,14 +7839,13 @@ diagnostics that can be emitted based on this information.
       }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
     } else if (cppcx_enabled && microsoft_attribute_tokens_next()) {
-      /* FIXME: actually apply the attributes using msat_interfaceimpl
-         as the target; the question remains which entity these should be
-         attached to. */
-      an_ms_attribute_ptr attributes;
-      /* Scan any microsoft attributes and discard them.  This is to support
-         parsing attributes applied to base class specifiers in C++/CX mode. */
-      attributes = scan_microsoft_attributes(/*is_parameter=*/FALSE);
-      dispose_of_unapplied_attributes(&attributes, ec_no_error);
+      /* Scan Microsoft C++/CX attributes. */
+      /* Move p_ms_attributes to the last "next" pointer (if any) before
+         appending any additional attributes. */
+      while (*p_ms_attributes != NULL) {
+        p_ms_attributes = &(*p_ms_attributes)->next;
+      }  /* while */
+      *p_ms_attributes = scan_microsoft_attributes(/*is_parameter=*/FALSE);
       /* scan_microsoft_attributes reads past the final "]", so the current
          token is one past the attribute block.  Suppress getting the next
          token for this loop iteration. */
@@ -8604,8 +8605,9 @@ can only contain CLI interfaces.
        prototype instantiation. */
     if (class_state->is_template_instantiation) proto_base_number += 1;
     while (any_types) {
-      a_pack_expansion_descr_ptr	pedep;
-      an_attribute_ptr			attributes;
+      a_pack_expansion_descr_ptr  pedep;
+      an_attribute_ptr            attributes;
+      an_ms_attribute_ptr         ms_attributes = NULL;
       attributes = scan_attributes(al_base_specifier);
       if (attributes != NULL) mark_primary_decl_attributes(attributes);
       /* Set the defaults. */
@@ -8622,7 +8624,7 @@ can only contain CLI interfaces.
       new_direct_bcp = NULL;
       /* Scan a single base specification, first looking for the keywords
          virtual, public, private, and protected. */
-      scan_inheritance_kind(type_ptr, &is_virtual, &access,
+      scan_inheritance_kind(type_ptr, &ms_attributes, &is_virtual, &access,
                             &explicit_access_specifier);
 #if GENERATE_SOURCE_SEQUENCE_LISTS
 #if TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
@@ -8907,6 +8909,12 @@ can only contain CLI interfaces.
         if (attributes != NULL) {
           attach_attributes(attributes, (char*)new_direct_bcp, iek_base_class);
         }  /* if */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+        if (ms_attributes != NULL) {
+          apply_microsoft_attributes_to_base_class(&ms_attributes,
+                                                   new_direct_bcp);
+        }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
         add_new_direct_base(new_direct_bcp, class_state, access,
                             &end_of_base_classes_list,
                             &may_be_first_direct_nonvirtual_base);

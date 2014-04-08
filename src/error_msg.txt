@@ -2656,6 +2656,7 @@ ec_cppcx_invalid_delegate_object;;"invalid delegate initializer -- object must b
 ec_cppcx_non_const_array_parameter;;"C++/CX does not support 'in/out' arrays -- use \"const Platform::Array<T>^\" for 'in' and \"Platform::WriteOnlyArray<T>^\" or \"Platform::Array<T>^*\" for 'out' on public APIs"
 ec_missing_target_attribute;;"missing \"target\" attribute for %nd"
 ec_no_matching_target_attribute;;"no declared member function matches \"target\" attributes for %n"
+ec_invalid_base_for_ms_attributes;;"Microsoft attributes in this location are only permitted for interface types"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

@@ -6627,6 +6627,14 @@ typedef struct a_base_class {
   an_attribute_ptr
 		attributes;
 			/* Attributes applicable to this base class. */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  an_ms_attribute_ptr
+		ms_attributes;
+			/* Linked list of Microsoft attribute entries that
+			   apply to this base class.   (Currently, this is
+			   possible in C++/CX mode only, and in that case the
+			   "base class" is an "interface class".) */ 
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   a_type_ptr    type;
 			/* Pointer to the tk_class or tk_struct type entry
 			   representing a base class of the current derived

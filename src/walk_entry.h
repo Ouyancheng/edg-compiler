@@ -2882,6 +2882,9 @@ do_set_proper_definition_needed_flag:
                              iek_base_class);
 #endif /* IA64_ABI */
         walk_list(ptr->attributes, an_attribute_ptr, iek_attribute);
+#if MICROSOFT_EXTENSIONS_ALLOWED
+        walk_list(ptr->ms_attributes, an_ms_attribute_ptr, iek_ms_attribute);
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
         remap_ptr(ptr->type, a_type_ptr, iek_type);
         /* Use an unconditional walk for the orig_type since it can be
            a decltype which won't appear on the types list. */

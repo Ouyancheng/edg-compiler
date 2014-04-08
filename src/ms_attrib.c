@@ -2890,12 +2890,15 @@ no attribute can be applied to the entity.
      source correspondences. */
   if (scp != NULL) {
     scp->has_associated_attribute = TRUE;
-  } else {
+  } else if (kind == (an_il_entry_kind)iek_param_type) {
     a_param_type_ptr	ptp;
-    check_assertion(kind == (an_il_entry_kind)iek_param_type);
     /* Set the param type entry to point to the valid attributes. */
     ptp = (a_param_type_ptr)entity;
     ptp->ms_attributes = new_list;
+  } else if (kind == (an_il_entry_kind)iek_base_class) {
+    ((a_base_class_ptr)entity)->ms_attributes = new_list;
+  } else {
+    unexpected_condition();
   }  /* if */
   /* Clear the attribute list pointer passed by the caller. */
   *attributes = NULL;
@@ -3042,6 +3045,30 @@ attributes to a routine.
                              (an_il_entry_kind)iek_routine,
                              attr_target, cli_attr_target);
 }  /* apply_microsoft_attributes_to_routine */
+
+
+void apply_microsoft_attributes_to_base_class(an_ms_attribute_ptr *attributes,
+                                              a_base_class_ptr    bcp)
+/*
+Apply the given list of attributes (which cannot be NULL) to the given base
+class entry.  This is currently only permitted in C++/CX mode, and an error is
+issued if the base class is not an interface type.
+*/
+{
+  check_assertion(cppcx_enabled && *attributes != NULL);
+  if (!is_cli_interface_type(bcp->type)) {
+    /* This kind of attribute can only be applied to C++/CX interface types. */
+    dispose_of_unapplied_attributes(attributes,
+                                    ec_invalid_base_for_ms_attributes);
+  } else {
+    an_ms_attribute_target attr_target, cli_attr_target;
+    attr_target = msat_interfaceimpl;
+    cli_attr_target = msat_interfaceimpl;
+    apply_microsoft_attributes(attributes, (char*)bcp,
+                               (an_il_entry_kind)iek_base_class,
+                               attr_target, cli_attr_target);
+  }  /* if */
+}  /* apply_microsoft_attributes_to_base_class */
 
 
 void verify_standalone_attributes(an_ms_attribute_ptr	*attributes)

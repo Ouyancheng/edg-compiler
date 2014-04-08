@@ -108,6 +108,10 @@ extern
 void apply_microsoft_attributes_to_routine(an_ms_attribute_ptr *attributes,
                                            a_routine_ptr       routine);
 
+extern void apply_microsoft_attributes_to_base_class(
+                                              an_ms_attribute_ptr *attributes,
+                                              a_base_class_ptr    bcp);
+
 extern void verify_standalone_attributes(an_ms_attribute_ptr	*attributes);
 
 extern void dispose_of_unapplied_attributes(an_ms_attribute_ptr	*attributes,

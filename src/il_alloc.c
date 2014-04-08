@@ -1310,6 +1310,9 @@ to it.
   bcp->primary_base_class              = NULL;
 #endif /* IA64_ABI */
   bcp->attributes                      = NULL;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  bcp->ms_attributes                   = NULL;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   bcp->type                            = NULL;
   bcp->orig_type                       = NULL;
   bcp->derived_class                   = NULL;
