@@ -3226,14 +3226,14 @@ str_len should be used to determine the end of the argument.
       /* The presence of the argument is sufficient. */
     } else if (skip_typerefs(routine->type)->
           variant.routine.extra_info->routine_name_linkage ==
-                                         (a_name_linkage_kind)nlk_external) {
+                                           (a_name_linkage_kind)nlk_external) {
       /* An extern "C" routine; silently accept the argument. */
     } else {
       a_gnu_routine_supplement_ptr grsp = gnu_routine_supp(routine);
       check_assertion(grsp->is_target_specific_version);
       if (is_mv_cpu_arch(arch) &&
           is_any_mv_arch_bit_set(
-                             grsp->mv_info.targeted_version.target_bitset)) {
+                               grsp->mv_info.targeted_version.target_bitset)) {
         /* Can't specify more than one CPU architecture. */
         pos_error(ec_gnu_mv_only_one_arch, &aap->position);
         *error_issued = TRUE;

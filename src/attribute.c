@@ -5739,7 +5739,8 @@ The attribute is being applied to "routine".  If an error is issued,
 #if GNU_FUNCTION_MULTIVERSIONING
 
 a_boolean check_target_attr(an_attribute_ptr    ap,
-                            a_decl_parse_state  *dps)
+                            a_decl_parse_state  *dps,
+                            a_boolean           *found_existing)
 /*
 Check that the GNU target attribute is okay (returns TRUE if no errors are
 reported).  Also do the processing associated with the target attribute, i.e.,
@@ -5755,7 +5756,8 @@ mv_target_bitset will reflect the specific CPU and/or ISA architecture(s) as
 specified by the attribute.  Only the is_representative routine is available
 from the symbol table; the target-specific routines are pointed to from the
 representative routine.  Symbols for target-specific versioned routines do not
-appear in the symbol table.
+appear in the symbol table.  Sets *found_existing to TRUE if an existing
+target-specific routine was found (and to FALSE otherwise).
 
 Only invoked in C++ mode (normal attribute processing takes care of "target"
 attribute in C mode).
@@ -5772,6 +5774,7 @@ attribute in C mode).
   check_assertion(!C_mode() &&
                   aap->kind == (an_attribute_arg_kind)aak_raw_token &&
                   aap->variant.token[0] == '"');
+  *found_existing = FALSE;
   if (scope_stack_top().default_name_linkage ==
                                           (a_name_linkage_kind)nlk_external) {
     /* For function multiversioning purposes, a "target" attribute in an
@@ -5850,6 +5853,7 @@ attribute in C mode).
       err = TRUE;
     } else {
       /* Use the previously declared routine. */
+      *found_existing = TRUE;
       ensure_gnu_routine_supp(target_routine)->is_target_specific_version =
                                                                          FALSE;
       check_assertion(gnu_routine_supp(target_routine)->

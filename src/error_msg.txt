@@ -2654,6 +2654,8 @@ ec_cppcx_public_nested_delegate;;"a public nested delegate type is not allowed"
 ec_cppcx_bad_delegate_init_list;;"invalid delegate initializer -- expected either \"(<function-address or functor-object> [, Platform::CallbackContext])\" or \"(<object handle>, <member-address> [, Platform::CallbackContext [, bool]])\""
 ec_cppcx_invalid_delegate_object;;"invalid delegate initializer -- object must be a handle to a %[managed] class"
 ec_cppcx_non_const_array_parameter;;"C++/CX does not support 'in/out' arrays -- use \"const Platform::Array<T>^\" for 'in' and \"Platform::WriteOnlyArray<T>^\" or \"Platform::Array<T>^*\" for 'out' on public APIs"
+ec_missing_target_attribute;;"missing \"target\" attribute for %nd"
+ec_no_matching_target_attribute;;"no declared member function matches \"target\" attributes for %n"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

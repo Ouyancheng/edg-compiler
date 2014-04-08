@@ -1668,6 +1668,50 @@ member declaration (allowed in some Microsoft modes only).
     rp = sym->variant.routine.ptr;
     orig_pos = sym->decl_position;
     dps->prev_type = *old_type = routine_symbol_type(sym);
+#if GNU_FUNCTION_MULTIVERSIONING
+    if (gpp_mode && is_multiversion_representative(rp)) {
+      /* A GNU function multiversion representative function was found;
+         this definition must have a "target" attribute that matches a
+         previously declared member function. */
+      an_attribute_ptr  target_ap = NULL;
+      dps->mv_representative_routine = rp;
+      if (dps->prefix_attributes != NULL) {
+        target_ap = find_last_target_attribute(dps->prefix_attributes);
+      }  /* if */
+      if (target_ap == NULL) {
+        /* Missing "target" attributes. */
+        pos_sy_error(ec_missing_target_attribute, &locator->source_position,
+                     sym);
+      } else {
+        /* This information is passed via dps into the attribute processing
+           for GNU multiversion target attribute. */
+        a_boolean found_existing;
+        dps->mv_routine_ptr = NULL;
+        dps->sym = sym;
+        dps->mv_scope_depth = NO_SCOPE_DEPTH;
+        if (check_target_attr(target_ap, dps, &found_existing)) {
+          if (found_existing) {
+            /* The routine and symbol that had been used to this point have
+               been re-classified as either a representative routine or a
+               target-specific routine.  Use the target-specific routine for
+               the remainder of this declaration and use the representative
+               routine for overload purposes. */
+            sym = symbol_for(dps->mv_routine_ptr);
+            /* Set class membership for the target-specific symbol. */
+            set_class_membership(sym,
+                                 &dps->mv_routine_ptr->source_corresp,
+                                 class_type);
+            /* Use the target-specific version routine and symbol. */
+            rp = dps->mv_routine_ptr;
+          } else {
+            /* No declared member function has the same "target" attributes. */
+            pos_sy_error(ec_no_matching_target_attribute, &target_ap->position,
+                         sym);
+          }  /* if */
+        }  /* if */
+      }  /* if */
+    }  /* if */
+#endif /* GNU_FUNCTION_MULTIVERSIONING */
     if (rp->is_declared_constexpr != ((dps->dso_flags & DSO_CONSTEXPR) != 0)) {
       /* The previous declaration doesn't match the current one wrt. the
          "constexpr" specifier.  Issue an error. */

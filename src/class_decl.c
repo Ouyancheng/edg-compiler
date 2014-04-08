@@ -13566,9 +13566,10 @@ implicitly declared member functions.
     if (target_ap != NULL) {
       /* This information is passed via dps into the attribute processing
          for GNU multiversion target attribute. */
+      a_boolean found_existing;
       decl_state->mv_routine_ptr = rtn;
       decl_state->mv_scope_depth = scope_depth;
-      if (check_target_attr(target_ap, decl_state)) {
+      if (check_target_attr(target_ap, decl_state, &found_existing)) {
         /* The routine and symbol that had been used to this point have
            been re-classified as either a representative routine or a
            target-specific routine.  Use the target-specific routine for the

@@ -9003,7 +9003,8 @@ skip_overloading:;
       target_ap = find_last_target_attribute(dps->prefix_attributes);
     }  /* if */
     if (target_ap != NULL) {
-      (void)check_target_attr(target_ap, dps);
+      a_boolean found_existing;
+      (void)check_target_attr(target_ap, dps, &found_existing);
       /* Use the target-specific version for the remainder of the
          declaration. */
       if (*ext_sym != NULL &&
