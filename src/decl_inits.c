@@ -7636,9 +7636,11 @@ past_subobject_destructions:
     a_boolean do_check = TRUE;
     if (microsoft_mode) do_check = FALSE;
 #if DO_IL_LOWERING && IA64_ABI
-    /* The IA-64 ABI requires this check, because the deleting destructor
-       references the delete routine. */
-    do_check = TRUE;
+    if (!suppress_il_lowering) {
+      /* The IA-64 ABI requires this check, because the deleting destructor
+         references the delete routine. */
+      do_check = TRUE;
+    }  /* if */
 #endif /* DO_IL_LOWERING && IA64_ABI */
     if (do_check) {
       a_symbol_ptr  del_sym, fund_del_sym;

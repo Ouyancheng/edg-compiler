@@ -1876,6 +1876,7 @@ Process a preinclude or preinclude_macros option (determined by
 */
 {
   a_preinclude_file_ptr	pfp;
+
   pfp = alloc_preinclude_file();
   pfp->file_name = arg;
   /* Add this entry to the list of preinclude files. */
@@ -1904,6 +1905,21 @@ Process a preinclude or preinclude_macros option (determined by
     preinclude_file_tail = pfp;
   }  /* if */
 }  /* process_preinclude_option */
+
+
+static void add_vccorlib_preinclude(void)
+/*
+Add a preinclude entry for vccorlib.h at the front of the preinclude list.
+(Used in C++/CX mode.)
+*/
+{
+  a_preinclude_file_ptr	pfp = alloc_preinclude_file();
+
+  pfp->file_name = "vccorlib.h";
+  pfp->next = preinclude_file_list;
+  preinclude_file_list = pfp;
+  if (preinclude_file_tail == NULL) preinclude_file_list = pfp;
+}  /* add_vccorlib_preinclude */
 
 
 /*
@@ -9605,6 +9621,7 @@ enable_microsoft_mode:
     }  /* if */
     cli_or_cx_enabled = cppcx_enabled || cppcli_enabled;
     if (!cppcli_enabled) use_cppcli_fill_ins = FALSE;
+    if (cppcx_enabled) add_vccorlib_preinclude();
   }  /* if */
   if (microsoft_mode) {
     /* Turn on features implied by Microsoft mode. */
