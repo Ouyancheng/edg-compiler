@@ -6295,19 +6295,6 @@ one is required.
   restore_source_sequence_scan_state(&saved_state);
 }  /* gen_access_specifier_before_ms_attributes_if_needed */
 
-
-static void gen_ms_parameter_attribute_block(an_ms_attribute_ptr msap)
-/*
-Generate the list of Microsoft attributes for a parameter type.
-*/
-{
-  a_boolean first = TRUE;
-
-  for (; msap != NULL; msap = msap->next) {
-    gen_ms_attribute(msap, &first);
-  }  /* for */
-}  /* gen_ms_parameter_attribute_block */
-
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 static void gen_function_declarator_with_scope(a_type_ptr   type,
@@ -6422,7 +6409,7 @@ default arguments should be suppressed (needed for template specializations).
           a_gen_decl_options_set  gdo_flags = GDO_NO_OPTIONS;
 #if MICROSOFT_EXTENSIONS_ALLOWED
           if (param->ms_attributes != NULL) {
-            gen_ms_parameter_attribute_block(param->ms_attributes);
+            gen_ms_attribute_block(param->ms_attributes);
           }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
           if (param_var->storage_class == (a_storage_class)sc_register) {
@@ -7404,6 +7391,9 @@ Put out the list of direct base classes of the class associated with ctsp
         }  /* if */
         gen_attributes(bcp->attributes, al_base_specifier,
                        /*primary_only=*/TRUE);
+        if (bcp->ms_attributes != NULL) {
+          gen_ms_attribute_block(bcp->ms_attributes);
+        }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
         if (ctsp->cli_class_type_kind !=
                                        (a_cli_class_type_kind)cctk_standard) {
