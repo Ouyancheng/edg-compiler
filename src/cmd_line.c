@@ -1906,6 +1906,7 @@ Process a preinclude or preinclude_macros option (determined by
   }  /* if */
 }  /* process_preinclude_option */
 
+#if MICROSOFT_EXTENSIONS_ALLOWED
 
 static void add_vccorlib_preinclude(void)
 /*
@@ -1921,6 +1922,7 @@ Add a preinclude entry for vccorlib.h at the front of the preinclude list.
   if (preinclude_file_tail == NULL) preinclude_file_list = pfp;
 }  /* add_vccorlib_preinclude */
 
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 /*
 Structure used for an array of flag names that can be set using a
