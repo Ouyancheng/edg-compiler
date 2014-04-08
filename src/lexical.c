@@ -4427,13 +4427,15 @@ list, we process the normal (non-macro-only) preincludes.
   a_const_char *file_name;
 
   if (next_preinclude_file == NULL && processing_macro_preincludes) {
+    /* The macro-only preinclude list has been completed; switch to the
+       normal preincludes. */
+    next_preinclude_file = preinclude_file_list;
     if (cppcx_enabled) {
       /* Skip over the force include generated for vccorlib.h. */
-      /* FIXME (daveed): Some assertion check here to verify that we're
-         skipping the right thing? */
-      next_preinclude_file = preinclude_file_list->next;
-    } else {
-      next_preinclude_file = preinclude_file_list;
+      check_assertion(next_preinclude_file != NULL &&
+                      strcmp(next_preinclude_file->file_name,
+                             "vccorlib.h") == 0);
+      next_preinclude_file = next_preinclude_file->next;
     }  /* if */
     processing_macro_preincludes = FALSE;
   }  /* if */
