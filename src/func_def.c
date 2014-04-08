@@ -1679,7 +1679,6 @@ member declaration (allowed in some Microsoft modes only).
          this definition must have a "target" attribute that matches a
          previously declared member function. */
       an_attribute_ptr  target_ap = NULL;
-      dps->mv_representative_routine = rp;
       if (dps->prefix_attributes != NULL) {
         target_ap = find_last_target_attribute(dps->prefix_attributes);
       }  /* if */
@@ -1688,29 +1687,20 @@ member declaration (allowed in some Microsoft modes only).
         pos_sy_error(ec_missing_target_attribute, &locator->source_position,
                      sym);
       } else {
-        /* This information is passed via dps into the attribute processing
-           for GNU multiversion target attribute. */
-        a_boolean found_existing;
-        dps->mv_routine_ptr = NULL;
-        dps->sym = sym;
-        dps->mv_scope_depth = NO_SCOPE_DEPTH;
-        if (check_target_attr(target_ap, dps, &found_existing)) {
+        /* Apply the "target" attribute(s). */
+        a_boolean     found_existing;
+        a_routine_ptr target = NULL;
+        if (check_target_attr(target_ap, NO_SCOPE_DEPTH, rp, &target,
+                              &found_existing)) {
           if (found_existing) {
-            sym = symbol_for(dps->mv_routine_ptr);
+            sym = symbol_for(target);
             if (!sym->defined) {
-              /* The routine and symbol that had been used to this point have
-                 been re-classified as either a representative routine or a
-                 target-specific routine.  Use the target-specific routine for
-                 the remainder of this declaration and use the representative
-                 routine for overload purposes. */
-              /* Set class membership for the target-specific symbol. */
-              set_class_membership(sym,
-                                   &dps->mv_routine_ptr->source_corresp,
-                                   class_type);
               /* Use the target-specific version routine and symbol. */
-              rp = dps->mv_routine_ptr;
+              rp = target;
+              /* Set class membership for the target-specific symbol. */
+              set_class_membership(sym, &target->source_corresp, class_type);
             } else {
-              /* Member function already has definition. */
+              /* Member function already has a definition. */
               pos_sy_error(ec_function_redefinition, &locator->source_position,
                            sym);
             }  /* if */

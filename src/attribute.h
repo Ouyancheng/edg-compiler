@@ -265,7 +265,9 @@ extern a_boolean compare_for_asm_name_map(a_void_ptr  entry,
 
 #if GNU_FUNCTION_MULTIVERSIONING
 extern a_boolean check_target_attr(an_attribute_ptr    ap,
-                                   a_decl_parse_state  *dps,
+                                   a_scope_depth       scope_depth,
+                                   a_routine_ptr       representative,
+                                   a_routine_ptr       *target,
                                    a_boolean           *found_existing);
 #endif /* GNU_FUNCTION_MULTIVERSIONING */
 

@@ -5739,14 +5739,22 @@ The attribute is being applied to "routine".  If an error is issued,
 #if GNU_FUNCTION_MULTIVERSIONING
 
 a_boolean check_target_attr(an_attribute_ptr    ap,
-                            a_decl_parse_state  *dps,
+                            a_scope_depth       scope_depth,
+                            a_routine_ptr       representative,
+                            a_routine_ptr       *target,
                             a_boolean           *found_existing)
 /*
-Check that the GNU target attribute is okay (returns TRUE if no errors are
-reported).  Also do the processing associated with the target attribute, i.e.,
-creating a new routine and a new symbol when appropriate.  This function is
-called directly from decl_routine and decl_member_function and not via
-the normal attribute processing mechanism.
+Check that the GNU "target" attribute(s) specified by ap are okay (returns TRUE
+if no errors are reported).  Also do the processing associated with the target
+attribute, i.e., creating a new routine and a new symbol when appropriate.
+This function is called directly from decl_routine and decl_member_function and
+not via the normal attribute processing mechanism.
+
+scope_depth indicates the scope in which a new routine (if needed) should be
+created.  representative is the "representative" routine (or NULL if none has
+been identified yet).  On input, *target, if non-NULL represents the routine
+that is being defined/declared, and on exit is the target-specific routine that
+should be used henceforth (and may differ from its original value).
 
 The first time that a routine with a target attribute is encountered two
 routines are created -- a routine is created which will be used as the
@@ -5765,10 +5773,10 @@ attribute in C mode).
 {
   an_attribute_arg_ptr  aap = ap->arguments;
   a_boolean             err = FALSE;
-  a_routine_ptr         representative, target_routine = NULL;
+  a_routine_ptr         target_routine = NULL;
   a_routine_ptr         existing;
   a_symbol_locator      loc;
-  a_symbol_ptr          new_sym;
+  a_symbol_ptr          new_sym, sym;
 
   /* First token must be a string literal. */
   check_assertion(!C_mode() &&
@@ -5784,39 +5792,41 @@ attribute in C mode).
     err = TRUE;
     goto done;
   }  /* if */
-  if (dps->mv_representative_routine == NULL) {
+  if (representative == NULL) {
     /* This is the first instance of a "target" version; this routine will
        be the representative function and a new routine will be allocated for
        the target-specific version. */
-    representative = dps->mv_routine_ptr;
+    check_assertion(*target != NULL);
+    representative = *target;
     ensure_gnu_routine_supp(representative)->is_representative = TRUE;
     /* Use the "ifunc" mechanism for the representative function. */
     representative->is_ifunc = TRUE;
+    sym = symbol_for(representative);
   } else {
     /* The representative routine has already been created. */
-    representative = dps->mv_representative_routine;
     check_assertion(gnu_routine_supp(representative)->is_representative);
-    if (dps->sym->kind == (a_symbol_kind)sk_member_function) {
+    sym = symbol_for(representative);
+    if (sym->kind == (a_symbol_kind)sk_member_function) {
       /* In the member function case, the target-specific routine has already
          been created (no need to create a new one). */
-      target_routine = dps->mv_routine_ptr;
+      target_routine = *target;
     }  /* if */
   }  /* if */
   /* Allocate (if necessary) the target-specific version.  Use the storage
      class and linkage from the representative routine. */
   if (target_routine == NULL) {
-    target_routine = make_routine(dps->type,
+    target_routine = make_routine(representative->type,
                                   representative->storage_class,
-                                  dps->mv_scope_depth);
+                                  scope_depth);
     target_routine->source_corresp.name_linkage =
                                    representative->source_corresp.name_linkage;
   }  /* if */
   /* Create a new symbol for this routine.  This symbol won't be entered
      in the symbol table. */
-  make_locator_for_symbol(dps->sym,  &loc);
-  new_sym = make_symbol(dps->sym->kind, &loc);
+  make_locator_for_symbol(sym,  &loc);
+  new_sym = make_symbol(sym->kind, &loc);
   /* Copy the original symbol, then reset any pointers. */
-  *new_sym = *dps->sym;
+  *new_sym = *sym;
   new_sym->next = NULL;
   new_sym->next_in_scope = NULL;
   new_sym->prev_in_scope = NULL;
@@ -5825,7 +5835,6 @@ attribute in C mode).
   new_sym->variant.routine.ptr = target_routine;
   set_source_corresp(&target_routine->source_corresp, new_sym);
   /* Fill in information about the target-specific version routine. */
-  target_routine->defined = dps->is_definition;
   ensure_gnu_routine_supp(target_routine)->is_target_specific_version = TRUE;
   if (representative->is_inline) {
     /* Transfer the setting of "is_inline". */
@@ -5848,8 +5857,8 @@ attribute in C mode).
   if (existing != NULL) {
     /* A routine has been previously declared (or defined) with the same
        set of target attributes; give an error if there are two definitions. */
-    if (dps->is_definition && existing->defined) {
-      sym_error(ec_function_redefinition, dps->sym);
+    if (existing->defined) {
+      sym_error(ec_function_redefinition, sym);
       err = TRUE;
     } else {
       /* Use the previously declared routine. */
@@ -5864,9 +5873,7 @@ attribute in C mode).
     /* Queue the new target-specific routine on the list. */
     add_to_specific_version_list(representative, target_routine);
   }  /* if */
-  /* Make both versions of routines available to the caller. */
-  dps->mv_routine_ptr = target_routine;
-  dps->mv_representative_routine = representative;
+  *target = target_routine;
 done:
   return !err;
 #undef MAX_TARGET_PAIR_LEN

@@ -13337,7 +13337,6 @@ implicitly declared member functions.
            this declaration must have a "target" attribute (in order for
            this not to be a redeclaration error). */
         requires_gnu_target_attr = TRUE;
-        decl_state->mv_representative_routine = sym->variant.routine.ptr;
       }  else
 #endif /* GNU_FUNCTION_MULTIVERSIONING */
       /* Do not insert code here. */
@@ -13572,34 +13571,33 @@ implicitly declared member functions.
       target_ap = find_last_target_attribute(decl_state->prefix_attributes);
     }  /* if */
     if (target_ap != NULL) {
-      /* This information is passed via dps into the attribute processing
-         for GNU multiversion target attribute. */
-      a_boolean found_existing;
-      decl_state->mv_routine_ptr = rtn;
-      decl_state->mv_scope_depth = scope_depth;
-      if (check_target_attr(target_ap, decl_state, &found_existing)) {
+      /* There are "target" attributes. */
+      a_boolean     found_existing;
+      a_routine_ptr representative = NULL;
+      if (is_multiversion_representative(sym->variant.routine.ptr)) {
+        representative = sym->variant.routine.ptr;
+      }  /* if */
+      if (check_target_attr(target_ap, scope_depth, representative, &rtn,
+                            &found_existing)) {
         /* The routine and symbol that had been used to this point have
            been re-classified as either a representative routine or a
            target-specific routine.  Use the target-specific routine for the
            remainder of this declaration and use the representative routine
            for overload purposes. */
-        a_symbol_ptr new_sym = symbol_for(decl_state->mv_routine_ptr);
+        a_symbol_ptr new_sym = symbol_for(rtn);
         if (overload_sym != NULL) {
           /* Use the representative routine in the overload set. */
-          a_symbol_ptr repr_sym =
-                             symbol_for(decl_state->mv_representative_routine);
+          a_symbol_ptr repr_sym = symbol_for(gnu_routine_supp(rtn)->
+                                      mv_info.targeted_version.representative);
           check_assertion(sym ==
                             overload_sym->variant.overloaded_function.symbols);
           repr_sym->next = sym->next;
           overload_sym->variant.overloaded_function.symbols = repr_sym;
         }  /* if */
         /* Set class membership for the target-specific symbol. */
-        set_class_membership(new_sym,
-                             &decl_state->mv_routine_ptr->source_corresp,
-                             class_type);
-        /* Use the target-specific version routine and symbol. */
+        set_class_membership(new_sym, &rtn->source_corresp, class_type);
+        /* Use the target-specific version symbol. */
         decl_state->sym = sym = new_sym;
-        rtn = decl_state->mv_routine_ptr;
       }  /* if */
     }  /* if */
   }  /* if */
@@ -13986,6 +13984,7 @@ implicitly declared member functions.
     if (requires_gnu_target_attr &&
         (!has_gnu_routine_supp(rtn) ||
          !gnu_routine_supp(rtn)->is_target_specific_version)) {
+      /* No "target" attribute was found. */
       pos_sy_error(ec_function_redefinition, &locator->source_position, sym);
       set_to_error_locator(*locator);
     }  /* if */

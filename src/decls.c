@@ -150,11 +150,6 @@ be restored).
     dps->virtual_pos = null_source_position;
     dps->auto_pos = null_source_position;
     dps->constexpr_pos = null_source_position;
-#if GNU_FUNCTION_MULTIVERSIONING
-    dps->mv_representative_routine = NULL;
-    dps->mv_routine_ptr = NULL;
-    dps->mv_scope_depth = NO_SCOPE_DEPTH;
-#endif /* GNU_FUNCTION_MULTIVERSIONING */
     dps->in_class_scope = FALSE;
     dps->secondary_declarator = FALSE;
     dps->is_template_declaration = FALSE;
@@ -8968,32 +8963,6 @@ skip_overloading:;
 #if GNU_FUNCTION_MULTIVERSIONING
   if (gpp_mode) {
     an_attribute_ptr  target_ap = NULL;
-    /* This information is passed via dps into the attribute processing
-       for the GNU multiversion "target" attribute. */
-    if (redeclaration && linked_symbol != NULL) {
-      /* There is a redeclaration of some sort. */
-      a_routine_ptr prev_routine = linked_symbol->variant.routine.ptr;
-      if (!is_multiversion_representative(prev_routine)) {
-        /* This is the first time we've seen the function with a target
-           attribute.  There is a previous instance, but it didn't have a
-           target attribute.  For example:
-             void foo(); // previous instance is definition without target
-             void foo() __attribute__((target("default"))); // this instance
-           prev_routine will become the representative routine.
-         */
-        dps->mv_representative_routine = NULL;
-        dps->mv_routine_ptr = prev_routine;
-      } else {
-        /* We already have a representative routine. */
-        dps->mv_representative_routine = prev_routine;
-        dps->mv_routine_ptr = routine_ptr;
-      }  /* if */
-    } else {
-      /* No representative routine yet; routine_ptr will become one. */
-      dps->mv_representative_routine = NULL;
-      dps->mv_routine_ptr = routine_ptr;
-    }  /* if */
-    dps->mv_scope_depth = DEPTH_OF_FILE_SCOPE;
     /* GNU accepts "target" attributes in two locations in the declaration,
        but it only acts on the last one. */
     if (dps->id_attributes != NULL) {
@@ -9003,25 +8972,46 @@ skip_overloading:;
       target_ap = find_last_target_attribute(dps->prefix_attributes);
     }  /* if */
     if (target_ap != NULL) {
-      a_boolean found_existing;
-      (void)check_target_attr(target_ap, dps, &found_existing);
+      a_boolean     found_existing;
+      a_routine_ptr representative = NULL, target;
+      if (redeclaration && linked_symbol != NULL) {
+        /* There is a redeclaration of some sort. */
+        if (!is_multiversion_representative(
+                                         linked_symbol->variant.routine.ptr)) {
+          /* This is the first time we've seen the function with a target
+             attribute.  There is a previous instance, but it didn't have a
+             target attribute.  For example:
+               void foo(); // previous instance is definition without target
+               void foo() __attribute__((target("default"))); // this instance
+           */
+          target = linked_symbol->variant.routine.ptr;
+        } else {
+          /* We already have a representative routine. */
+          representative = linked_symbol->variant.routine.ptr;
+          target = routine_ptr;
+        }  /* if */
+      } else {
+        /* No representative routine yet. */
+        target = routine_ptr;
+      }  /* if */
+      (void)check_target_attr(target_ap, DEPTH_OF_FILE_SCOPE, representative,
+                              &target, &found_existing);
       /* Use the target-specific version for the remainder of the
          declaration. */
       if (*ext_sym != NULL &&
           (*ext_sym)->variant.extern_symbol_descr->variant.routine.ptr ==
                                                                  routine_ptr) {
         /* Fix the external symbol. */
-        (*ext_sym)->variant.extern_symbol_descr->variant.routine.ptr =
-                                                           dps->mv_routine_ptr;
+        (*ext_sym)->variant.extern_symbol_descr->variant.routine.ptr = target;
       }  /* if */
-      routine_ptr = dps->mv_routine_ptr;
+      routine_ptr = target;
       sym = symbol_for(routine_ptr);
       dps->sym = sym;
     }  /* if */
   }  /* if */
   if (requires_gnu_target_attr &&
-      (!has_gnu_routine_supp(dps->mv_routine_ptr) ||
-       !gnu_routine_supp(dps->mv_routine_ptr)->is_target_specific_version)) {
+      (!has_gnu_routine_supp(routine_ptr) ||
+       !gnu_routine_supp(routine_ptr)->is_target_specific_version)) {
     pos_sy_error(ec_function_redefinition, &locator->source_position, sym);
   }  /* if */
 #endif /* GNU_FUNCTION_MULTIVERSIONING */
