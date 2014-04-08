@@ -1696,18 +1696,24 @@ member declaration (allowed in some Microsoft modes only).
         dps->mv_scope_depth = NO_SCOPE_DEPTH;
         if (check_target_attr(target_ap, dps, &found_existing)) {
           if (found_existing) {
-            /* The routine and symbol that had been used to this point have
-               been re-classified as either a representative routine or a
-               target-specific routine.  Use the target-specific routine for
-               the remainder of this declaration and use the representative
-               routine for overload purposes. */
             sym = symbol_for(dps->mv_routine_ptr);
-            /* Set class membership for the target-specific symbol. */
-            set_class_membership(sym,
-                                 &dps->mv_routine_ptr->source_corresp,
-                                 class_type);
-            /* Use the target-specific version routine and symbol. */
-            rp = dps->mv_routine_ptr;
+            if (!sym->defined) {
+              /* The routine and symbol that had been used to this point have
+                 been re-classified as either a representative routine or a
+                 target-specific routine.  Use the target-specific routine for
+                 the remainder of this declaration and use the representative
+                 routine for overload purposes. */
+              /* Set class membership for the target-specific symbol. */
+              set_class_membership(sym,
+                                   &dps->mv_routine_ptr->source_corresp,
+                                   class_type);
+              /* Use the target-specific version routine and symbol. */
+              rp = dps->mv_routine_ptr;
+            } else {
+              /* Member function already has definition. */
+              pos_sy_error(ec_function_redefinition, &locator->source_position,
+                           sym);
+            }  /* if */
           } else {
             /* No declared member function has the same "target" attributes. */
             pos_sy_error(ec_no_matching_target_attribute, &target_ap->position,
