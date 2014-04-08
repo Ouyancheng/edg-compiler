@@ -7391,10 +7391,10 @@ Put out the list of direct base classes of the class associated with ctsp
         }  /* if */
         gen_attributes(bcp->attributes, al_base_specifier,
                        /*primary_only=*/TRUE);
+#if MICROSOFT_EXTENSIONS_ALLOWED
         if (bcp->ms_attributes != NULL) {
           gen_ms_attribute_block(bcp->ms_attributes);
         }  /* if */
-#if MICROSOFT_EXTENSIONS_ALLOWED
         if (ctsp->cli_class_type_kind !=
                                        (a_cli_class_type_kind)cctk_standard) {
           /* Managed classes cannot specify access for base classes, nor can
