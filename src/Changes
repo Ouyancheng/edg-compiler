@@ -11,10 +11,9 @@ IL entries read from an IL file.  This is now fixed.
 4/7/14   [EDGcpfe/13888]
 Internal error reading IL file with local namespace aliases
 
-An internal error could occur (in ptr_remap_function) on a program
-that uses multiple namespace aliases within a given function, an IL
-file is being written, and the alternate IL file format is not being
-used.  Now fixed.
+An internal error could occur (in ptr_remap_function) while reading an
+IL file that is not in the alternate IL file format if the program uses
+multiple namespace aliases within a given function.  Now fixed.
 
   namespace N { }
   int main() {
