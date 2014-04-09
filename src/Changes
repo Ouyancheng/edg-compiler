@@ -1,5 +1,17 @@
 Version 4.9
 
+4/9/14   [EDGcpfe/15026]
+GNU C++ compatibility: missing diagnostic on invalid template template argument
+
+A change made in version 4.6 could cause a class template instance to
+incorrectly be allowed as the argument for a template template parameter
+(the underlying class template was used as the argument).  Now fixed.
+
+  template <class T1, class T2> class A {};
+  template <class T1, class T2, template<class, class> class TT> class B { };
+  template <class T1, class T2> class B<T1, T2, A<int, int> > { };
+
+
 4/9/14   [EDGcpfe/10978]
 Recorded position of using directives
 

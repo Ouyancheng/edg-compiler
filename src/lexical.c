@@ -14683,7 +14683,7 @@ when scanning the default argument of the template template parameter.
       if (class_name_injection_enabled) {
         if (is_injected_template_symbol(sym)) {
           sym = class_template_for_injected_template_symbol(sym);
-        } else if (is_template_class_symbol(sym)) {
+        } else if (is_prototype_instantiation_symbol(sym)) {
           a_class_symbol_supplement_ptr	cssp;
           cssp = sym->variant.class_struct_union.extra_info;
           sym = cssp->class_template;
