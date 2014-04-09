@@ -36486,6 +36486,43 @@ type with the type of return_op.
   }  /* if */
 }  /* check_and_adjust_deduced_return_type_if_needed */
 
+#if MICROSOFT_EXTENSIONS_ALLOWED
+
+static a_boolean check_vccorlib_ctor_return_expr(a_routine_ptr  rp,
+                                                 an_operand     *return_op)
+/*
+rp is a constructor in C++/CX mode and return_op is the operand of a return
+statement in that constructor.  Return TRUE if the constructor was defined in
+the special C++/CX header vccorlib.h and the type of the expression is a
+pointer (for standard classes) or handle (for managed classes) to the parent
+class (nullptr_t is fine too).
+*/
+{
+  a_boolean   result = FALSE;
+  a_type_ptr  parent_type = parent_class_of(rp);
+
+  if (class_symbol_supp(symbol_for(parent_type))->from_vccorlib) {
+    a_type_ptr  returned_type = return_op->type;
+    if (is_nullptr_type(returned_type)) {
+      result = TRUE;
+    } else if (is_immediate_standard_class_type(parent_type)) {
+      if (is_plain_pointer_type(returned_type)) {
+        returned_type = type_pointed_to(returned_type);
+        result = identical_types(returned_type, parent_type);
+      }  /* if */
+    } else if (is_immediate_managed_class_type(parent_type)) {
+      if (is_handle_type(returned_type)) {
+        returned_type = type_pointed_to(returned_type);
+        result = identical_types(returned_type, parent_type);
+      }  /* if */
+    } else {
+      expect_error();
+    }  /* if */
+  }  /* if */
+  return result;
+}  /* check_vccorlib_ctor_return_expr */
+
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 an_expr_node_ptr scan_return_expression(a_type_ptr         required_type,
                                         an_error_code      err_code,
@@ -36652,6 +36689,13 @@ handle_deduced_return_type:
                                       &result, /*result_of_stmt_expr=*/FALSE);
       if (microsoft_mode && C_mode()) {
         /* The type is not checked in Microsoft C mode. */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+      } else if (cppcx_enabled &&
+                 special_kind_is(curr_routine, sfk_constructor) &&
+                 check_vccorlib_ctor_return_expr(curr_routine, &result)) {
+        /* Constructors declared in the special C++/CX header vccorlib.h can
+           return a pointer or handle to their class type. */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       } else if (gcc_mode) {
         /* In GNU C mode a type mismatch results in a warning only. */
         if (!is_void_type(result.type)) {

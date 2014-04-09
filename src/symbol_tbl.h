@@ -1300,6 +1300,9 @@ typedef struct a_class_symbol_supplement {
 			   Derived classes that need to implement
 			   IDisposable::Dispose() will therefore need to mark
 			   their declaration with the "new" modifier. */
+  a_bit_field	from_vccorlib:1;
+			/* TRUE if this class was defined while processing the
+			   vccorlib.h header. */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   a_bit_field	being_defined:1;
 			/* TRUE during the call of scan_class_definition for

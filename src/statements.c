@@ -5801,7 +5801,7 @@ See also 3.6.6.4.
   add_stop_token(tok_semicolon);
   /* See if there is an expression after "return". */
   expr_present = (curr_token != tok_semicolon);
-  if (rout->special_kind == (a_special_function_kind)sfk_constructor &&
+  if (special_kind_is(rout, sfk_constructor) &&
       depth_stmt_stack > 0 && 
       struct_stmt_stack[0].kind == ssk_try_block &&
       struct_stmt_stack[1].is_catch_clause) {
@@ -5831,24 +5831,10 @@ See also 3.6.6.4.
       if (cppcx_enabled && special_kind_is(rout, sfk_constructor)) {
          /* While processing vccorlib.h, constructors are allowed to return
             a pointer to their class type or a handle to their class type for
-            ref classes, though this not required. */
-        a_line_number      dummy_line;
-        a_boolean          dummy_bool;
-        a_source_file_ptr  constructor_file = source_file_for_seq(
-                                      rout->source_corresp.decl_position.seq,
-                                      &dummy_line,
-                                      &dummy_bool,
-                                      /*physical_line=*/TRUE);
-/*FIXME (daveed).  I cleaned this up a bit, but the constructor_file approach
-  is messy.  Also, setting return_type to an error type in a non-error case
-  seems suspect. */
-        if (processing_vccorlib_header ||
-            (constructor_file != NULL &&
-             strstr(constructor_file->full_name, "vccorlib.h") != NULL)) {
-          /* When processing vccorlib.h (or instantiations of types defined in
-             that file), do not emit diagnostics for the type of the return
-             expression (or its presence/absence) in a constructor. */
-          return_type = error_type();
+            ref classes, though this not required.  scan_return_expression
+            performs an additional check for this case. */
+        a_type_ptr  parent_type = parent_class_of(rout);
+        if (class_symbol_supp(symbol_for(parent_type))->from_vccorlib) {
           return_type_checked = TRUE;
         }  /* if */
       }  /* if */

@@ -3807,8 +3807,10 @@ be completed here.
       a_type_ptr                        proto_type;
     
       proto_type = type_symbol_type(cssp->corresp_prototype_sym);
-      prototype_cssp = cssp->corresp_prototype_sym->
-                                         variant.class_struct_union.extra_info;
+      prototype_cssp = class_symbol_supp(cssp->corresp_prototype_sym);
+#if MICROSOFT_EXTENSIONS_ALLOWED
+      if (prototype_cssp->from_vccorlib) cssp->from_vccorlib = TRUE;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       if (prototype_cssp->routine_fixup_list != NULL) {
         /* If a nested class is instantiated before the enclosing class has
            been completed, it may not have been fixed up yet.  Do any

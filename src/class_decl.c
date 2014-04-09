@@ -27796,41 +27796,48 @@ classes.
   cssp = tag_sym->variant.class_struct_union.extra_info;
   check_assertion(!cssp->being_defined);
 #if MICROSOFT_EXTENSIONS_ALLOWED
-  if (is_partial) {
-    /* If this is a partial declaration, cache the body.  It will be parsed
-       later when the terminating class definition is scanned. */
-    (void)cache_partial_class_body(class_type);
-    ctsp->is_partial = TRUE;
-    goto done;
-  }  /* if */
-  if (is_partial_class(class_type)) {
-    /* Parse the "effective" class base list by merging the partial class
-       base list token caches. */
-    a_token_cache             final_base_cache;
-    a_boolean                 base_found = FALSE;
-    a_partial_class_body_ptr  curr_partial_body;
-    clear_token_cache(&final_base_cache, /*reusable=*/FALSE);
-    for (curr_partial_body = ctsp->partial_class_bodies;
-         curr_partial_body != NULL;
-         curr_partial_body = curr_partial_body->next) {
-      if (curr_partial_body->base_cache != NULL) {
-        /* Copy partial base list tokens to final base cache. */
-        a_token_cache_ptr base_cache = curr_partial_body->base_cache;
-        copy_tokens_from_cache(base_cache,
+  if (cppcx_enabled) {
+    if (processing_vccorlib_header) {
+      /* Record that this class is defined in vccorlib.h. */
+      cssp->from_vccorlib = TRUE;
+    }  /* if */
+    if (is_partial) {
+      /* If this is a partial declaration, cache the body.  It will be parsed
+         later when the terminating class definition is scanned. */
+      (void)cache_partial_class_body(class_type);
+      ctsp->is_partial = TRUE;
+      goto done;
+    }  /* if */
+    if (is_partial_class(class_type)) {
+      /* Parse the "effective" class base list by merging the partial class
+         base list token caches. */
+      a_token_cache             final_base_cache;
+      a_boolean                 base_found = FALSE;
+      a_partial_class_body_ptr  curr_partial_body;
+      clear_token_cache(&final_base_cache, /*reusable=*/FALSE);
+      for (curr_partial_body = ctsp->partial_class_bodies;
+           curr_partial_body != NULL;
+           curr_partial_body = curr_partial_body->next) {
+        if (curr_partial_body->base_cache != NULL) {
+          /* Copy partial base list tokens to final base cache. */
+          a_token_cache_ptr base_cache = curr_partial_body->base_cache;
+          copy_tokens_from_cache(
+                               base_cache,
                                base_cache->first_token->token_sequence_number,
                                base_cache->last_token->token_sequence_number,
                                /*include_last_token=*/TRUE,
                                &final_base_cache);
-        base_found = TRUE;
+          base_found = TRUE;
+        }  /* if */
+      }  /* for */
+      if (base_found && curr_token == tok_colon) {
+        /* If the current token is a colon and at least one partial definition
+           has a base list, replace the colon with a comma. */
+        replace_curr_token(tok_comma);
       }  /* if */
-    }  /* for */
-    if (base_found && curr_token == tok_colon) {
-      /* If the current token is a colon and at least one partial definition
-         has a base list, replace the colon with a comma. */
-      replace_curr_token(tok_comma);
+      /* Rescan the tokens comprising the "effective" partial class. */
+      rescan_cached_tokens(&final_base_cache);
     }  /* if */
-    /* Rescan the tokens comprising the "effective" partial class. */
-    rescan_cached_tokens(&final_base_cache);
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   cssp->being_defined = TRUE;
