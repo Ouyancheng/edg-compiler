@@ -1,5 +1,19 @@
 Version 4.9
 
+4/9/14   [EDGcpfe/15035]
+GNU compatibility: missing error on __thread dynamic initialization
+
+In configurations where THREAD_LOCAL_STORAGE_SPECIFIER_ALLOWED is TRUE,
+the changes to support the C++11 thread_local keyword (see the Changes
+entry for EDGcpfe/9167,EDGcpfe/12359) had mistakenly allowed dynamic
+initialization of a variable with the __thread storage specifier without
+an error in GNU emulation modes where gnu_version >= 40800.  Those errors
+are now re-enabled.  For example (with --gnu_version 40800):
+
+  extern __thread int i;
+  __thread int *p = &i;   // now gets an error (again)
+
+
 4/9/14   [EDGcpfe/15026]
 GNU C++ compatibility: missing diagnostic on invalid template template argument
 
