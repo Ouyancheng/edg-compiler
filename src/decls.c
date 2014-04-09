@@ -13939,14 +13939,16 @@ and to tok_brace otherwise; the final token is swallowed by the caller.
 }  /* namespace_declaration */
 
 
-static void using_directive(a_decl_parse_state  *dps)
+static void using_directive(a_decl_parse_state  *dps,
+                            a_source_position   *using_pos)
 /*
 Scan a using directive.  Its syntax is:
 
   using namespace namespace-name
 
-The caller has consumed the "using" token: The current token is "namespace".
-A using-directive entry is created and activated for the current scope.
+The caller has consumed the "using" token (whose position is given by
+using_pos): The current token is "namespace".  A using-directive entry is
+created and activated for the current scope.
 */
 {
   a_source_position	decl_start_pos;
@@ -13955,11 +13957,7 @@ A using-directive entry is created and activated for the current scope.
   an_attribute_ptr	attributes = dps->prefix_attributes;
 
   db_enter(3, "using_directive");
-  /* FIXME: Workaround for EDGcpfe/10978.  To be removed when EDG's
-     patch arrives. 
-  decl_start_pos = pos_curr_token;
-  */
-  decl_start_pos = dps->start_pos;
+  decl_start_pos = *using_pos;
   /* A using-directive is outside the "Embedded C++" subset. */
   feature_is_not_part_of_embedded_cplusplus_subset(
                                           &pos_curr_token,
@@ -16608,7 +16606,8 @@ processing should proceed after the call.
       /* An alias-declaration ("using <identifier> = ... ", C++11 only), a
          using-directive (which has the form "using namespace N;"), or a
          using-declaration ("using N::x;" or "using ::x;"). */
-      a_source_position  end_of_using_pos;
+      a_source_position  using_pos, end_of_using_pos;
+      using_pos = pos_curr_token;
 #if EXTRA_SOURCE_POSITIONS_IN_IL
       end_of_using_pos = end_pos_curr_token;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
@@ -16617,7 +16616,7 @@ processing should proceed after the call.
       /* Attributes cannot precede a using-declaration or using-directive. */
       disallow_attributes(&state->prefix_attributes);
       if (curr_token == tok_namespace) {
-        using_directive(state);
+        using_directive(state, &using_pos);
         state->decl_okay_in_constexpr_body = TRUE;
       } else {
         a_token_kind  next_tok;

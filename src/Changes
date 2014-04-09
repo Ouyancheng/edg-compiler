@@ -1,5 +1,22 @@
 Version 4.9
 
+4/9/14   [EDGcpfe/10978]
+Recorded position of using directives
+
+Version 4.2 of the front introduced an unintentional change that causes the
+recorded position of a using directive to be the position of the "namespace"
+keyword instead of the "using" keyword.  For example:
+
+  namespace N {}
+  using namespace N;  // Since version 4.2, the position recorded in an
+                      // a_using_decl entry for this directive was the
+                      // position of the keyword "namespace".  Now it's
+                      // the position of the keyword "using".
+
+This is now fixed: The position of the keyword "using" is again the recorded
+position in such cases.
+
+
 4/7/14   [EDGcpfe/15020]
 Memory use when reading an alternate-format IL file
 
