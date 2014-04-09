@@ -1619,12 +1619,10 @@ Return TRUE if the given type is a valid C++/CLI attribute parameter type.
     }  /* if */
   } else {
     tp = map_cli_system_type_to_fundamental_type(tp);
-/* FIXME (daveed) Commenting out the test below because it causes regressions.
-   E.g., ms/arrays_regress_016.C */
     if (is_integral(tp) ||
-        (is_cli_enum_type(tp)/* FIXME &&
+        (is_cli_enum_type(tp) &&
          integer_type_supp(tp)->assembly_visibility ==
-                                       (an_assembly_visibility)av_public*/) ||
+                                       (an_assembly_visibility)av_public) ||
         (is_floating(tp) &&
          (tp->variant.float_kind == (a_float_kind)fk_float ||
           tp->variant.float_kind == (a_float_kind)fk_double))) {
