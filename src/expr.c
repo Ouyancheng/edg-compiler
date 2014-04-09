@@ -22534,12 +22534,12 @@ one argument, return TRUE; otherwise, return FALSE.
       /* One or more arguments.  Cache the tokens of the first argument to see
          if it is followed by additional ones. */
       /* Note that cache_one_argument doesn't work reliable with template
-         references because it doesn't ids (which would be hard to do, because
-         you have to have a cache pre-built containing the right tokens).  But
-         this routine is now used only in some corner cases in some corner
-         modes (e.g., cfront), so this answer is good enough.  (Before this
-         was relegated to use in corner modes, it was in use for years, and we
-         got no bug reports about it.) */
+         references because it doesn't coalesce ids (which would be hard to
+         do, because you have to have a cache pre-built containing the right
+         tokens).  But this routine is now used only in some corner cases in
+         some corner modes (e.g., cfront), so this answer is good enough.
+         (Before this was relegated to use in corner modes, it was in use for
+         years, and we got no bug reports about it.) */
       cache_one_argument(&cache);
       /* If we stopped on a right parenthesis, the argument list has exactly
          one argument. */
