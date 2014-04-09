@@ -10370,8 +10370,9 @@ and can be NULL only if create_if_not_found is FALSE.
     param_prp = pesep->expansion_descr->packs_referenced;
     arg_prp = pesep->instantiation_descr->pack_status;
   } else {
-    /* In cases where we can't find an argument, create one. */
-    create_if_not_found = TRUE;
+    /* In cases where we can't find an argument, create one if we have a
+       template parameter on which to base it. */
+    create_if_not_found = templ_param != NULL;
   }  /* if */
   for (; param_prp != NULL;
        param_prp = param_prp->next, arg_prp = arg_prp->next) {
