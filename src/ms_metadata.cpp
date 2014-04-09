@@ -1687,8 +1687,6 @@ a_type_wrapper_ptr a_type_wrapper::create(CorElementType element_type,
       break;
     case ELEMENT_TYPE_CHAR:
       if (wchar_t_is_keyword || is_cppcx_metadata) {
-          /* This will eventually be done in all cases, but can't yet be done
-             under /clr until bug 300457 is fixed.  (FIXME daveed) */
         type = create(twk_wchar_t);
       } else {
         type = create(twk_unsigned_short);
