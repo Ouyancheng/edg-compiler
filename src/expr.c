@@ -14119,7 +14119,6 @@ enk_typeid entry should be created.
   if (is_cli_typeid) {
     /* C++/CLI T::typeid: the result type is System::Type ^. */
     result_type = constant_type;
-    /* FIXME: template-dependent typeid */
     check_assertion(typeid_expr == NULL);
   } else
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */

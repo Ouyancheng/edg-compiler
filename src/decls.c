@@ -4825,8 +4825,7 @@ issue an error if a default argument is encountered at all.
   /* Loop through the single list. */
   ptp = skip_typerefs(type)->variant.routine.extra_info->param_type_list;
 #if MICROSOFT_EXTENSIONS_ALLOWED
-  if (cli_or_cx_enabled && is_cli_param_array_routine_type(type)) {
-/* FIXME: Should exclude C++/CX? */
+  if (cppcli_enabled && is_cli_param_array_routine_type(type)) {
     a_param_type_ptr  p;
     a_boolean         found_default_arg = FALSE;
     for (p = ptp; p != NULL; p = p->next) {
