@@ -4880,6 +4880,11 @@ file.
 #else /* !defined(CPPCX_ENABLING_POSSIBLE) */
   comment_undefined_macro_name(CPPCX_ENABLING_POSSIBLE);
 #endif /* defined(CPPCX_ENABLING_POSSIBLE) */
+#if defined(CPPCX_INCLUDE_PATH)
+  define_string_valued_macro(CPPCX_INCLUDE_PATH);
+#else /* !defined(CPPCX_INCLUDE_PATH) */
+  comment_undefined_macro_name(CPPCX_INCLUDE_PATH);
+#endif /* defined(CPPCX_INCLUDE_PATH) */
 #if defined(CPP11_IL_EXTENSIONS_SUPPORTED)
   define_numeric_valued_macro(CPP11_IL_EXTENSIONS_SUPPORTED);
 #else /* !defined(CPP11_IL_EXTENSIONS_SUPPORTED) */

@@ -5423,6 +5423,16 @@ is done after command line processing.
   if (cli_or_cx_enabled) {
     init_assembly_search_path();
   }  /* if */
+#ifdef CPPCX_INCLUDE_PATH
+  if (cppcx_enabled) {
+    /* When using C++/CX, the vccorlib.h file is preincluded, and on
+       non-Windows systems it won't be picked up in the default search path.
+       This provides a hook to add the directory where vccorlib.h can be
+       found. */
+    add_to_include_search_path(CPPCX_INCLUDE_PATH,
+                               /*system_include_dir=*/FALSE);
+  }  /* if */
+#endif /* ifdef CPPCX_INCLUDE_PATH */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #endif /* !STANDALONE_UTILITY_PROGRAM */
 }  /* host_envir_one_time_init */

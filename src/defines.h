@@ -1059,6 +1059,11 @@ Allow C++/CLI and C++/CX to be enabled if Microsoft extensions are allowed.
     !defined(CPPCLI_PORTABLE_ASSEMBLY_PATH)
 #define CPPCLI_PORTABLE_ASSEMBLY_PATH "/edg/cpfe/ms_assemblies"
 #endif /* READ_CPPCLI_PORTABLE_ASSEMBLIES && !defined(...) */
+#if defined(READ_CPPCLI_PORTABLE_ASSEMBLIES) && \
+    READ_CPPCLI_PORTABLE_ASSEMBLIES && \
+    !defined(CPPCX_INCLUDE_PATH)
+#define CPPCX_INCLUDE_PATH "/edg/cpfe/ms_includes"
+#endif /* READ_CPPCLI_PORTABLE_ASSEMBLIES && !defined(...) */
 
 /*
 Enable GNU function multiversioning on systems where GNU extensions are
