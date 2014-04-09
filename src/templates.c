@@ -9971,21 +9971,6 @@ Return TRUE if the conversion was successful.
         switch_to_file_scope_region(&region_to_switch_back_to);
         new_constant = alloc_constant(constant.kind);
         copy_constant(&constant, new_constant);
-#if /*FIXME*/1
-        /* EDG has confirmed this to be a bug. Replace with the complete fix
-           from EDG when available. */
-        if (constant.kind == (a_constant_repr_kind)ck_template_param &&
-            constant.variant.template_param.kind ==
-                                  (a_template_param_constant_kind)tpck_cast) {
-          /* There's one more constant to be copied to the file-scope
-             region. */
-          a_constant_ptr from, to;
-          from = constant.variant.template_param.variant.constant;
-          to = alloc_constant(from->kind);
-          copy_constant(from, to);
-          new_constant->variant.template_param.variant.constant = to;
-        }  /* if */
-#endif /* 1 */
         tap->variant.constant = new_constant;
         switch_back_to_original_region(region_to_switch_back_to);
         result = TRUE;
