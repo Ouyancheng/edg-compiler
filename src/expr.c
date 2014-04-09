@@ -16221,9 +16221,9 @@ delegate initializer, given by rcblock->argument_list.
     if (template_case) {
       prep_generic_operand(function_operand);
     } else if (functor_case) {
-      /* FIXME: Determine if the class type supports a conversion to
-         pointer-to-function or a function call operator that matches the
-         delegate. */
+      /* FIXME: Determine if objects of the class type can be called with the
+         delegate parameters (via a conversion to pointer-to-function or a
+         function call operator that matches the delegate). */
     } else if (is_indefinite_function_operand(function_operand)) {
       /* For an overloaded function, we have to select the one that matches
          based on the type.  We suppress the final adjustment cast so
@@ -18382,11 +18382,15 @@ handle_empty_parens_new_initializer:
     a_boolean  rank_unknown = TRUE;
     if (curr_expr_is_cli_attribute_argument() &&
         (!cli_array_new ||
-         cli_array_rank(new_type, &rank_unknown) != 1 || rank_unknown ||
+         (cli_array_rank(new_type, &rank_unknown) != 1 &&
+          (!rank_unknown ||
+           is_or_contains_cli_generic_param(
+                                 cli_array_rank_constant(new_type)->type))) ||
          (dip != NULL && dip->kind != (a_dynamic_init_kind)dik_constant))) {
-      /* FIXME: Correctly handle when the array rank is template-dependent.
-         It should be allowed as long as it is a constant expression that is
-         not dependent on a C++/CLI generic parameter. */
+      /* An array gcnew expression can appear in an attribute argument, but not
+         if its rank differs from 1.  An unknown rank that depends on a generic
+         parameter is not permitted either (but an unknown rank that depends on
+         a standard template parameter is fine). */
       expr_pos_error(ec_cli_attribute_invalid_argument, &start_position);
       make_error_operand(result);
     } else {

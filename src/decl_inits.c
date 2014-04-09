@@ -2129,13 +2129,17 @@ for use in an enk_gcnew node.  (dim_exprs itself must be non-NULL.)
   if (is_cli_array_type(atype)) {
     a_type_ptr             etype = cli_array_element_type(atype);
     a_host_large_unsigned  rank = cli_array_rank(atype, &unknown_rank);
-    a_host_large_integer   dims[33];
-    check_assertion(rank >= 1 && rank < 33);
-    set_cli_array_constant_dimensions(*dim_exprs, rank, dims);
-    aggr_init_cli_array_level(icp, etype, is, rank, dims, *dim_exprs == NULL,
-                              &aggr_con);
-    if (*dim_exprs == NULL) {
-      *dim_exprs = make_cli_array_length_nodes(rank, dims);
+    if (!unknown_rank) {
+      a_host_large_integer   dims[33];
+      check_assertion(rank >= 1 && rank < 33);
+      set_cli_array_constant_dimensions(*dim_exprs, rank, dims);
+      aggr_init_cli_array_level(icp, etype, is, rank, dims, *dim_exprs == NULL,
+                                &aggr_con);
+      if (*dim_exprs == NULL) {
+        *dim_exprs = make_cli_array_length_nodes(rank, dims);
+      }  /*if */
+    } else {
+      aggr_init_generic_element(icp, atype, is, &aggr_con);
     }  /*if */
   } else {
     /* Presumably a handle to a generic type (that could end up being a CLI

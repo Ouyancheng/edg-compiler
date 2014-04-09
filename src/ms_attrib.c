@@ -2784,6 +2784,11 @@ no attribute can be applied to the entity.
                       (msat_constructor | msat_property | msat_event)) != 0) {
       applicable_targets |= msat_method;
     }  /* if */
+    if (is_template_dependent_context()) {
+      /* The Microsoft compiler doesn't check constraints in template
+         declaration contexts. */
+      applicable_targets = msat_any;
+    }  /* if */
     if (cli_or_cx_enabled && explicit_target == msat_field &&
         (applicable_targets & (msat_property | msat_event)) != 0) {
       a_boolean is_trivial;
