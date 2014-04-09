@@ -18173,7 +18173,8 @@ handle_empty_parens_new_initializer:
         /* Since has_array_init is FALSE and cli_array_new is TRUE, we know
            that the type must be a C++/CX array type (though it may not be a
            valid one). */
-        check_assertion (is_cli_array_type(new_type));
+        check_assertion (is_cli_array_type(new_type) ||
+                         is_error_type(new_type));
         if (ctor_sym != NULL) {
           a_boolean   trivial_ctor;
           a_boolean   unboxing_conversion;
@@ -18217,6 +18218,7 @@ handle_empty_parens_new_initializer:
           scan_error_parenthesized_initializer(rcblock,
                                                /*arg_list_supplied=*/TRUE,
                                                init_raw_args);
+          free_arg_list(init_raw_args);
           init_raw_args = NULL;
           needs_initialization = FALSE;
           dip = NULL;
