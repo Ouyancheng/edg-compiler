@@ -23472,10 +23472,7 @@ that follows.
       }  /* if */
     }  /* if */
   }  /* if */
-  /* FIXME: The check for 'dps->type' is a workaround for EDGcpfe/10197 remove
-     it after applying the EDG fix. */
-  if (dps->type == NULL ||
-      (is_error_type(dps->type) && !is_declarator_start())) {
+  if (is_error_type(dps->type) && !is_declarator_start()) {
     /* Error of some sort. */
     set_to_error_locator(locator);
   } else if ((dso_flags & (DSO_DEFINES_SOMETHING |
