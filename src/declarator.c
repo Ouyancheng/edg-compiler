@@ -368,7 +368,7 @@ derived type to remove the restrict qualifier.
   a_type_qualifier_set  qualifiers;
 
   if (is_function_type(new_type_ptr)) {
-    check_assertion(is_ptr_or_ref_type(*bottom_derived_type) ||
+    check_assertion(is_any_ptr_or_ref_type(*bottom_derived_type) ||
                     is_ptr_to_member_type(*bottom_derived_type));
     /* We are about to form a derived type that is pointer-to-function-type,
        reference-to-function-type, or ptr-to-member-function.  Such pointer
@@ -557,18 +557,18 @@ decl-specifier (e.g., "array [1] of NULL").
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
 
-a_boolean f_check_cli_type_pointed_to(a_type_ptr         tp,
-                                      a_boolean          is_ref,
-                                      a_boolean          is_handle,
-                                      a_source_position  *pos)
+a_boolean f_check_cli_or_cx_type_pointed_to(a_type_ptr         tp,
+                                            a_boolean          is_ref,
+                                            a_boolean          is_handle,
+                                            a_source_position  *pos)
 /*
 A construct attempting to form a tk_pointer type with tp as the underlying
 type has been encountered.  If is_ref is TRUE, the resulting type would be a
 reference or tracking reference type.  If is_handle is TRUE, the resulting
 type would be a handle or tracking reference type.  If such a type would be
-invalid for a C++/CLI-specific reason (e.g., a handle or a managed class type
-is involved), issue a diagnostic at the given position (when it is non-NULL)
-and return FALSE.  Otherwise, return TRUE.
+invalid for a C++/CLI- or C++/CX-specific reason (e.g., a handle or a managed
+class type is involved), issue a diagnostic at the given position (when it is
+non-NULL) and return FALSE.  Otherwise, return TRUE.
 */
 {
   an_error_code  err_code = ec_no_error;
@@ -678,7 +678,7 @@ and return FALSE.  Otherwise, return TRUE.
     pos_error(err_code, pos);
   }  /* if */
   return err_code == ec_no_error;
-}  /* f_check_cli_type_pointed_to */
+}  /* f_check_cli_or_cx_type_pointed_to */
 
 
 static
@@ -1112,12 +1112,12 @@ the specifiers and declarator that formed the new type.
           new_type_ptr = mft_rout_type;
           tkind = (a_type_kind)tk_ptr_to_member;
         } else {
-          if (!check_cli_type_pointed_to(new_type_ptr, /*is_ref=*/FALSE,
-                                         is_handle, &error_position)) {
+          if (!check_cli_or_cx_type_pointed_to(new_type_ptr, /*is_ref=*/FALSE,
+                                               is_handle, &error_position)) {
             new_type_ptr = error_type();
           } else if (is_any_reference_type(new_type_ptr)) {
             /* A pointer-to-reference type is invalid (a handle-to-reference
-               would be diagnosed by check_cli_type_pointed_to). */
+               would be diagnosed by check_cli_or_cx_type_pointed_to). */
             error(ec_pointer_to_reference);
             new_type_ptr = error_type();
           }  /* if */
@@ -1138,7 +1138,7 @@ the specifiers and declarator that formed the new type.
              forming a pointer-to-member type. */
           sym_error(ec_bad_use_of_member_function_typedef, mft_sym);
           err = TRUE;
-        } else if (!check_cli_type_pointed_to(
+        } else if (!check_cli_or_cx_type_pointed_to(
                              temp_type, /*is_ref=*/TRUE,
                              is_tracking_reference_type(*bottom_derived_type),
                              &error_position)) {
@@ -4901,9 +4901,10 @@ Microsoft extended decl modifiers are also scanned, but they are ignored
               /* Type "pointer to reference to anything" is illegal. */
               error(ec_pointer_to_reference);
               err = TRUE;
-            } else if (!check_cli_type_pointed_to(temp_type, /*is_ref=*/FALSE,
-                                                  /*is_handle=*/FALSE,
-                                                  &error_position)) {
+            } else if (!check_cli_or_cx_type_pointed_to(temp_type,
+                                                        /*is_ref=*/FALSE,
+                                                        /*is_handle=*/FALSE,
+                                                        &error_position)) {
               err = TRUE;
             }  /* if */
             /* Make the pointer type. */
@@ -4943,9 +4944,10 @@ Microsoft extended decl modifiers are also scanned, but they are ignored
                forming a pointer-to-member type. */
             sym_error(ec_bad_use_of_member_function_typedef, sym);
             err = TRUE;
-          } else if (!check_cli_type_pointed_to(temp_type, /*is_ref=*/TRUE,
-                                                /*is_handle=*/FALSE,
-                                                &error_position)) {
+          } else if (!check_cli_or_cx_type_pointed_to(temp_type,
+                                                      /*is_ref=*/TRUE,
+                                                      /*is_handle=*/FALSE,
+                                                      &error_position)) {
             err = TRUE;
           } else {
             /* Make the reference type. */
@@ -4961,10 +4963,10 @@ Microsoft extended decl modifiers are also scanned, but they are ignored
           /* A handle ("^") or tracking-reference ("%") type. */
           /* Make sure this was not preceded by __based. */
           based_not_allowed_here(ptr_mods.based_var, ptr_mods.based_pos);
-          if (!check_cli_type_pointed_to(temp_type,
-                                         curr_token == tok_remainder,
-                                         /*is_handle=*/TRUE,
-                                         &pos_curr_token)) {
+          if (!check_cli_or_cx_type_pointed_to(temp_type,
+                                               curr_token == tok_remainder,
+                                               /*is_handle=*/TRUE,
+                                               &pos_curr_token)) {
             complete_type = error_type();
           } else if (curr_token == tok_excl_or) {
             /* "^" for handle. */

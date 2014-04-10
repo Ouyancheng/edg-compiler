@@ -359,19 +359,20 @@ extern void scan_noexcept_arg(an_exception_specification  *esp,
                               a_boolean                   cache_in_template);
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
-extern a_boolean f_check_cli_type_pointed_to(a_type_ptr         tp,
-                                             a_boolean          is_ref,
-                                             a_boolean          is_handle,
-                                             a_source_position  *pos);
+extern a_boolean f_check_cli_or_cx_type_pointed_to(
+                                                 a_type_ptr         tp,
+                                                 a_boolean          is_ref,
+                                                 a_boolean          is_handle,
+                                                 a_source_position  *pos);
 
 extern a_boolean check_param_array_type(a_param_type_ptr   ptp,
                                         a_source_position  *diag_pos);
 
-#define check_cli_type_pointed_to(tp, is_ref, is_handle, pos)                \
-  (!cppcli_enabled ||                                                        \
-   f_check_cli_type_pointed_to((tp), (is_ref), (is_handle), (pos)))
+#define check_cli_or_cx_type_pointed_to(tp, is_ref, is_handle, pos)          \
+  (!cli_or_cx_enabled ||                                                     \
+   f_check_cli_or_cx_type_pointed_to((tp), (is_ref), (is_handle), (pos)))
 #else /* !MICROSOFT_EXTENSIONS_ALLOWED */
-#define check_cli_type_pointed_to(tp, is_ref, is_handle, pos)  \
+#define check_cli_or_cx_type_pointed_to(tp, is_ref, is_handle, pos)  \
   /*lint --e(506)*/TRUE
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 

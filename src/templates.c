@@ -10891,9 +10891,11 @@ a pointer over a reference type or creating an array of references.
         tp = copy_type_with_substitution(tp, templ_arg_list, templ_param_list,
                                          source_pos, options, copy_error,
                                          ctws_state);
-        if (!check_cli_type_pointed_to(tp, type->variant.pointer.is_reference,
-                                       type->variant.pointer.is_handle,
-                                       (a_source_position*)NULL)) {
+        if (!check_cli_or_cx_type_pointed_to(
+                                           tp,
+                                           type->variant.pointer.is_reference,
+                                           type->variant.pointer.is_handle,
+                                           (a_source_position*)NULL)) {
           /* A C++/CLI-specific substitution failure. */
           *copy_error = TRUE;
         } else if (type->variant.pointer.is_reference) {
