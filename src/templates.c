@@ -14357,16 +14357,17 @@ and create a function instantiation entry to bind the two symbols together.
        instantiation.  If the symbol is not an overloaded function, make
        sure that it matches the rout_sym.  Note that there can be multiple
        C++/CLI property methods with a given name and that these are separate
-       entries on the list and not an overload set.
-       In the case of GNU multiversion functions, do the same thing, except
-       searching through the list of target_specific functions for the
-       matching token sequence number. */
+       entries on the list and not an overload set.  In the case of GNU
+       multiversion functions, do the same thing, except searching through the
+       list of target_specific functions for the matching token sequence
+       number. */
     for (; sym != NULL;
          sym = is_list ? sym->next : sym->next_in_lookup_table) {
 #if GNU_FUNCTION_MULTIVERSIONING
       if (sym->kind == (a_symbol_kind)sk_member_function &&
           is_multiversion_representative(sym->variant.routine.ptr)) {
-        /* In GNU multiversion case, search the target specific functions. */
+        /* If this is a GNU multiversioned function template, search the target
+           specific functions. */
         a_routine_ptr            tv_routine = sym->variant.routine.ptr;
         a_routine_list_entry_ptr rlep;
         for (rlep = gnu_routine_supp(tv_routine)->

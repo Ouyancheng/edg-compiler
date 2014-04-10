@@ -4958,18 +4958,17 @@ should be so treated.
 #endif /* ifndef FAVOR_CONSTANT_RESULT_FOR_NONSTATIC_INIT */
 
 /*
-GNU supports function multiversioning in version 4.8 and later, via
-the "target" attribute.  Detailed documentation is available here:
-http://gcc.gnu.org/wiki/FunctionMultiVersioning.
-The "target" attribute allows multiple versions of a function
-definition to be supplied, and the choice of which version
-to call is determined at load time based on characteristics
-of the machine where the program is running.  The choice is made by a
-compiler-generated (when lowering is enabled) "resolver" routine that
-selects the best routine from the target-specific versions.  The resolver
-routine is executed once at load time (because it is associated with an "ifunc"
-routine) to determine which target-specific routine to use for the particular
-CPU.  For back ends that don't support "ifunc", see LOWER_IFUNC.
+GNU supports function multiversioning in version 4.8 and later, via the
+"target" attribute.  Detailed documentation is available here:
+http://gcc.gnu.org/wiki/FunctionMultiVersioning.  The "target" attribute allows
+multiple versions of a function definition to be supplied, and the choice of
+which version to call is determined at load time based on characteristics of
+the machine where the program is running.  The choice is made by a
+compiler-generated (when lowering is enabled) "resolver" routine that selects
+the best routine from the target-specific versions.  The resolver routine is
+executed once at load time (because it is associated with an "ifunc" routine)
+to determine which target-specific routine to use for the particular CPU.
+For back ends that don't support "ifunc", see LOWER_IFUNC.
 
 For example (assuming USE_X86_FUNCTION_MULTIVERSIONING is TRUE):
 
@@ -4981,7 +4980,7 @@ For example (assuming USE_X86_FUNCTION_MULTIVERSIONING is TRUE):
     return fp() != foo();
   }
 
-Would generate (when lowered), pseudo-code like this:
+Would generate (when lowered) pseudo-code like this:
 
   int foo_default () { return 222; }  // "default" foo
   int foo_corei7 () { return 777; }   // "corei7" foo

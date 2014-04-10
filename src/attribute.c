@@ -5757,7 +5757,7 @@ that is being defined/declared, and on exit is the target-specific routine that
 should be used henceforth (and may differ from its original value).
 
 The first time that a routine with a target attribute is encountered two
-routines are created -- a routine is created which will be used as the
+routines are created -- a routine is created that will be used as the
 "representative" routine, and has is_representative set to TRUE.  The other
 routine will have is_target_specific_version set to TRUE, and its
 mv_target_bitset will reflect the specific CPU and/or ISA architecture(s) as
@@ -5768,7 +5768,7 @@ appear in the symbol table.  Sets *found_existing to TRUE if an existing
 target-specific routine was found (and to FALSE otherwise).
 
 Only invoked in C++ mode (normal attribute processing takes care of "target"
-attribute in C mode).
+attributes in C mode).
 */
 {
   an_attribute_arg_ptr  aap = ap->arguments;

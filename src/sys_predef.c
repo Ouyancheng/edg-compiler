@@ -3152,7 +3152,7 @@ result to an allocated area.
     }  /* if */
   }  /* for */
 done:
-  /* Make sure string is NULL terminated (only an issue if we've run out of
+  /* Make sure the string is NULL terminated (only an issue if we've run out of
      buffer space). */
   if (buff_idx < STATIC_BUFFER_SIZE) buffer[buff_idx] = '\0';
 #endif /* USE_X86_FUNCTION_MULTIVERSIONING */

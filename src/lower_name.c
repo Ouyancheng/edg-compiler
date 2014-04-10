@@ -10307,7 +10307,7 @@ depending on the ABI.
       /* No suffix is added if there is only a single target-specific
          routine. */
     } else {
-      /* Add a target-specific suffix at this point. Note that in IA-64
+      /* Add a target-specific suffix at this point.  Note that in IA-64
          ABI configurations the name that is created here cannot be demangled
          (but that matches GNU's behavior). */
 #if !IA64_ABI

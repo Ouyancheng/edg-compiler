@@ -8002,7 +8002,7 @@ for use in generating cross-reference output describing this declaration.
                           "decl_routine: linked symbol routine is missing");
 #if GNU_FUNCTION_MULTIVERSIONING
       if (is_multiversion_representative(routine_ptr)) {
-        /* The current routine will not be recorded in the symbol table
+        /* The current routine will not be recorded in the symbol table;
            instead, we'll hang the routine on the multiversion list. */
       } else
 #endif /* GNU_FUNCTION_MULTIVERSIONING */
@@ -8013,7 +8013,7 @@ for use in generating cross-reference output describing this declaration.
             || routine_ptr->storage_class == (a_storage_class)sc_asm
 #endif /* ASM_FUNCTION_ALLOWED */
                                                           ) {
-          /* Previous declaration was a definition.  (We check assoc_scope
+          /* The previous declaration was a definition.  (We check assoc_scope
              rather than the defined flag in the routine, because in pcc mode
              it is possible to have a nested redeclaration -- e.g.,
                int f() { int f(); ... };

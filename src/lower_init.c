@@ -17444,7 +17444,7 @@ Initialize the builtin_cpu_*_routine variables (if necessary).
 
 static an_expr_node_ptr make_mv_target_specific_expr(a_routine_ptr routine)
 /*
-Create and return a boolean expression which returns TRUE at run-time if the
+Create and return a boolean expression that returns TRUE at run-time if the
 CPU on which the code is run matches the target-specific criteria for the
 specified routine.  Uses the GNU __builtin_cpu_supports and __builtin_cpu_is
 builtin functions to determine the underlying CPU characteristics.
@@ -17578,7 +17578,7 @@ The "ifunc" mechanism is used to associate the resolver routine with
   /* Iterate through the list of target-specific routines, in priority order,
      building up an if-then-else statement starting with the highest priority
      ISA and ending with the default routine.  The default routine (required)
-     is always at head of list. */
+     is always at the head of the list. */
   sorted_list = gnu_routine_supp(representative)->
                                       mv_info.representative.targeted_versions;
   default_routine = sorted_list->routine;
@@ -17624,7 +17624,7 @@ The "ifunc" mechanism is used to associate the resolver routine with
   resolver_routine->is_weak = TRUE;
 #endif /* GNU_EXTENSIONS_ALLOWED */
 #if IA64_ABI
-  /* Place the resolver function into comdat group since more than
+  /* Place the resolver function into a comdat group since more than
      one compilation unit may contain the resolver definition. */
   put_routine_into_comdat_group(resolver_routine);
 #endif /* IA64_ABI */

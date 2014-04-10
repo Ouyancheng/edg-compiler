@@ -25669,7 +25669,7 @@ be used, but there are exceptions.
                    (gnu_routine_supp(routine)->is_representative ||
                     gnu_routine_supp(routine)->is_target_specific_version)) {
           /* Skip GNU function multiversion routines (the mangling for these
-             can depend on their use making them poor candidates for basing
+             can depend on their use, making them poor candidates for basing
              a module id on). */
 #endif /* GNU_FUNCTION_MULTIVERSIONING */
         } else {

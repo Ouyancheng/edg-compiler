@@ -9852,7 +9852,7 @@ create a resolver routine if needed.
 
 static a_routine_ptr lowered_mv_routine(a_routine_ptr routine)
 /*
-A reference in the IL which is being lowered is being made to routine (which is
+A reference in the IL that is being lowered is being made to routine (which is
 a GNU multiversion representative).  If the routine can be replaced by a
 target-specific version routine (i.e., no resolver is necessary), return that
 routine (otherwise return NULL).

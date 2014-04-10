@@ -13982,7 +13982,7 @@ typedef struct a_gnu_routine_supplement {
                            version of the routine is recorded in the symbol
                            table.  representative.targeted_versions
                            contains a list of routines (each with
-                           is_target_specific_version set to TRUE) which are
+                           is_target_specific_version set to TRUE) that are
                            target-specific. */
   a_bit_field   is_target_specific_version:1;
                         /* TRUE if the routine is a multiversion function

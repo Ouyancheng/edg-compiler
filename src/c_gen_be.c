@@ -9943,8 +9943,8 @@ declare_routine:
 #if GNU_EXTENSIONS_ALLOWED && !LOWER_IFUNC
           && !rout->is_ifunc    /* gcc doesn't allow ifunc to be weak, so
                                    suppress the weak attribute (though this
-                                   may result in multiple-definitions in some
-                                   cases). */
+                                   may result in multiple-definition errors
+                                   in some cases). */
 #endif /* GNU_EXTENSIONS_ALLOWED && !LOWER_IFUNC */
                             ) {
         /* GCC does not support COMDAT, but it does support weak, which
