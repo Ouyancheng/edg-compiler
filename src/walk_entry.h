@@ -2318,9 +2318,11 @@ do_set_proper_definition_needed_flag:
         remap_next_ptr(ptr->next, an_ms_attribute_ptr, iek_ms_attribute);
         remap_ptr(ptr->next_in_block, an_ms_attribute_ptr, iek_ms_attribute);
 #if NEEDED_FLAG_WALK
-        /* The param type entry has no needed flag, so avoid a loop in
-           that case (it points back to this attribute). */
-        if (ptr->entity.kind != (a_byte_il_entry_kind)iek_param_type)
+        /* a_param_type entries and a_base_class entries have no needed flags
+           but point back to their associated Microsoft attributes.  Don't
+           process those entries since it would cause a recursive loop. */
+        if (ptr->entity.kind != (a_byte_il_entry_kind)iek_param_type &&
+            ptr->entity.kind != (a_byte_il_entry_kind)iek_base_class)
 #endif /* NEEDED_FLAG_WALK */
         /* Do not insert code here. */
         {

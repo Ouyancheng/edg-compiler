@@ -83,7 +83,12 @@ typedef struct an_ms_attribute_kind_descr {
 
 extern void skip_microsoft_attribute_tokens(void);
 
-extern an_ms_attribute_ptr scan_microsoft_attributes(a_boolean	is_parameter);
+extern
+an_ms_attribute_ptr scan_microsoft_attributes(a_boolean	is_param_or_base);
+
+extern void scan_and_append_microsoft_attributes(
+                                       an_ms_attribute_ptr  *p_ms_attributes,
+                                       a_boolean            is_param_or_base);
 
 extern
 void apply_microsoft_attributes(an_ms_attribute_ptr	*attributes,

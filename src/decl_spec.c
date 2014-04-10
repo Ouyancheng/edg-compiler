@@ -5113,7 +5113,7 @@ is updated to reflect relevant positions of this definition.
       if (cli_or_cx_enabled && microsoft_attribute_tokens_next()) {
         /* In C++/CLI mode, attributes can be applied to individual
            enumeration values. */
-        ms_attributes = scan_microsoft_attributes(/*is_parameter=*/FALSE);
+        ms_attributes = scan_microsoft_attributes(/*is_param_or_base=*/FALSE);
       }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       enum_con_pos = pos_curr_token;
@@ -7986,25 +7986,6 @@ Set *err in case of an error.
   }  /* if */
 }  /* scan_microsoft_inline_specifiers */
 
-
-static void scan_and_append_microsoft_attributes(
-                                        an_ms_attribute_ptr  *p_ms_attributes,
-                                        a_boolean            is_parameter)
-/*
-The current token is assumed to be a square bracket that introduces
-Microsoft attributes.  Scan these attributes and append them to the
-list pointed to by *p_ms_attributes (if *p_ms_attributes is NULL,
-then the value of *p_ms_attributes will be modified).  is_parameter
-is TRUE if we're scanning a parameter declaration.
-*/
-{
-  an_ms_attribute_ptr  *last_ap = p_ms_attributes;
-  while (*last_ap != NULL) {
-    last_ap = &(*last_ap)->next;
-  }  /* while */
-  *last_ap = scan_microsoft_attributes(is_parameter);
-}  /* scan_and_append_microsoft_attributes */
-
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 static a_boolean gpp_type_name_matches_class_name(a_symbol_ptr	sym)
@@ -8562,7 +8543,7 @@ which is processed after any other specifiers have also been consumed.
   if (first_token == tok_typedef && microsoft_attribute_tokens_next()) {
     /* Microsoft attributes can follow the typedef keyword. */
     scan_and_append_microsoft_attributes(&state->ms_attributes,
-                                         /*is_parameter=*/FALSE);
+                                         /*is_param_or_base=*/FALSE);
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 done:;

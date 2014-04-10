@@ -16508,7 +16508,8 @@ processing should proceed after the call.
 #if MICROSOFT_EXTENSIONS_ALLOWED
   if (microsoft_attribute_tokens_next()) {
     /* A Microsoft attribute of the form "[ ... ]". */
-    state->ms_attributes = scan_microsoft_attributes(/*is_parameter=*/FALSE);
+    state->ms_attributes =
+                        scan_microsoft_attributes(/*is_param_or_base=*/FALSE);
     if (curr_token == tok_semicolon) {
       /* This is a standalone attribute block.  Make sure all of the specified
          attributes are standalone attributes.  This also sets ms_attributes

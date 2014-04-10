@@ -7842,15 +7842,11 @@ diagnostics that can be emitted based on this information.
 #if MICROSOFT_EXTENSIONS_ALLOWED
     } else if (cppcx_enabled && microsoft_attribute_tokens_next()) {
       /* Scan Microsoft C++/CX attributes. */
-      /* Move p_ms_attributes to the last "next" pointer (if any) before
-         appending any additional attributes. */
-      while (*p_ms_attributes != NULL) {
-        p_ms_attributes = &(*p_ms_attributes)->next;
-      }  /* while */
-      *p_ms_attributes = scan_microsoft_attributes(/*is_parameter=*/FALSE);
-      /* scan_microsoft_attributes reads past the final "]", so the current
-         token is one past the attribute block.  Suppress getting the next
-         token for this loop iteration. */
+      scan_and_append_microsoft_attributes(p_ms_attributes,
+                                           /*is_param_or_base=*/TRUE);
+      /* scan_and_append_microsoft_attributes reads past the final "]", so the
+         current token is one past the attribute block.  Suppress getting the
+         next token for this loop iteration. */
       skip_get_token = TRUE;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     } else {
@@ -22972,7 +22968,7 @@ consume_any_stray_microsoft_rparen.
   *complete_decl = FALSE;
   if (microsoft_attribute_tokens_next()) {
     /* A Microsoft attribute of the form "[ ... ]". */
-    *ms_attributes = scan_microsoft_attributes(/*is_parameter=*/FALSE);
+    *ms_attributes = scan_microsoft_attributes(/*is_param_or_base=*/FALSE);
     if (curr_token == tok_semicolon) {
       /* This is a standalone attribute block.  Make sure all of the specified
          attributes are standalone attributes.  This also sets ms_attributes
@@ -23580,7 +23576,7 @@ the assembly file.)
 
   init_decl_parse_state(&dps);
   if (microsoft_attribute_tokens_next()) {
-    dps.ms_attributes = scan_microsoft_attributes(/*is_parameter=*/FALSE);
+    dps.ms_attributes = scan_microsoft_attributes(/*is_param_or_base=*/FALSE);
   }  /* if */
   scan_and_record_cli_delegate_definition(&dps);
 }  /* scan_cli_delegate_definition_from_assembly_import */
@@ -28048,8 +28044,8 @@ classes.
       if (microsoft_attribute_tokens_next()) {
         /* When loading a definition from metadata, any custom attributes are
            added at the start of the definition. */
-        an_ms_attribute_ptr  attributes = scan_microsoft_attributes(
-                                                      /*is_parameter=*/FALSE);
+        an_ms_attribute_ptr
+            attributes = scan_microsoft_attributes(/*is_param_or_base=*/FALSE);
         if (attributes != NULL) {
           apply_microsoft_attributes_to_type(&attributes, class_type);
         }  /* if */

@@ -1270,49 +1270,48 @@ System::Attribute, unlike direct use of the AttributeUsage attribute).
   if (!is_generalized_identifier_start(GID_NO_OPTIONS)) {
     /* An identifier that names the attribute was expected. */
     pos_error(ec_exp_attribute_name, &pos_curr_token);
-  } else if (cppcx_enabled) {
-    /* FIXME: C++/CX custom attributes are not yet supported.  The primary
-       blocking issue is that attribute processing needs to be deferred until
-       the class definition is complete in order for name lookup to function
-       correctly. */
-    attr_descr = unrecognized_attribute;
-    /* Bypass the identifier. */
-    (void)get_token();
   } else {
     a_symbol_ptr  sym;
     a_type_ptr    type = NULL, alternate_type = NULL;
     a_boolean     err = FALSE;
-    /* In C++/CLI mode the non-custom "attribute" attribute has two potential
-       effects.  First, it causes the class it is attached to inherit from
-       System::Attribute if that is not already specified as a base class.
-       Second, if it is followed by arguments, the effect is as if those
-       arguments were passed to the custom attribute System::AttributeUsage.
-       In that case, we simply treat the "attribute" attribute as if it were
-       the custom attribute System::AttributeUsage (but we also set a flag so
-       we can implicitly inherit from System::Attribute if needed; that is
-       handled when processing the class definition). */
-    if (cppcli_enabled && curr_token_is_identifier_string("attribute")) {
-      orig_is_attribute_attribute = TRUE;
-    }  /* if */
-    if (orig_is_attribute_attribute && next_token() == tok_lparen) {
-      sym = cli_symbols[(int)csk_system_attribute_usage_attribute];
-      make_locator_for_symbol(sym, &locator_for_curr_id);
-    } else {
-      sym = coalesce_and_lookup_generalized_identifier(
+    if (cppcli_enabled) {
+      /* Check for custom attributes. */
+      /* FIXME: C++/CX custom attributes are not yet supported.  The primary
+         blocking issue is that attribute processing needs to be deferred until
+         the class definition is complete in order for name lookup to function
+         correctly. */
+      /* In C++/CLI mode the non-custom "attribute" attribute has two potential
+         effects.  First, it causes the class it is attached to inherit from
+         System::Attribute if that is not already specified as a base class.
+         Second, if it is followed by arguments, the effect is as if those
+         arguments were passed to the custom attribute System::AttributeUsage.
+         In that case, we simply treat the "attribute" attribute as if it were
+         the custom attribute System::AttributeUsage (but we also set a flag so
+         we can implicitly inherit from System::Attribute if needed; that is
+         handled when processing the class definition). */
+      if (curr_token_is_identifier_string("attribute")) {
+        orig_is_attribute_attribute = TRUE;
+      }  /* if */
+      if (orig_is_attribute_attribute && next_token() == tok_lparen) {
+        sym = cli_symbols[(int)csk_system_attribute_usage_attribute];
+        make_locator_for_symbol(sym, &locator_for_curr_id);
+      } else {
+        sym = coalesce_and_lookup_generalized_identifier(
                                     GID_NO_OPTIONS, ilm_tentative_type, &err);
-    }  /* if */
-    type = ms_attribute_type_from_symbol(sym);
-    if (!err && !locator_for_curr_id.is_template_id &&
-        (sym == NULL || !is_template_param_type_symbol(sym))) {
-      a_symbol_locator  orig_locator;
-      a_symbol_ptr      alternate_sym = NULL;
-      a_boolean         alt_name_err = FALSE;
-      orig_locator = locator_for_curr_id;
-      change_ms_attr_locator_into_alt_name_locator(&locator_for_curr_id);
-      alternate_sym = coalesce_and_lookup_generalized_identifier(
+      }  /* if */
+      type = ms_attribute_type_from_symbol(sym);
+      if (!err && !locator_for_curr_id.is_template_id &&
+          (sym == NULL || !is_template_param_type_symbol(sym))) {
+        a_symbol_locator  orig_locator;
+        a_symbol_ptr      alternate_sym = NULL;
+        a_boolean         alt_name_err = FALSE;
+        orig_locator = locator_for_curr_id;
+        change_ms_attr_locator_into_alt_name_locator(&locator_for_curr_id);
+        alternate_sym = coalesce_and_lookup_generalized_identifier(
                            GID_NO_OPTIONS, ilm_tentative_type, &alt_name_err);
-      locator_for_curr_id = orig_locator;
-      alternate_type = ms_attribute_type_from_symbol(alternate_sym);
+        locator_for_curr_id = orig_locator;
+        alternate_type = ms_attribute_type_from_symbol(alternate_sym);
+      }  /* if */
     }  /* if */
     if (type == NULL && alternate_type == NULL) {
       if (!locator_for_curr_id.is_qualified_name) {
@@ -2284,15 +2283,15 @@ target, if any, was found.
 
 
 #if !GENERATE_SOURCE_SEQUENCE_LISTS
-/*ARGSUSED*/ /* is_parameter is only used in some configurations. */
+/*ARGSUSED*/ /* is_param_or_base is only used in some configurations. */
 #endif /* !GENERATE_SOURCE_SEQUENCE_LISTS */
-static an_ms_attribute_ptr scan_ms_attribute(a_boolean	is_parameter)
+static an_ms_attribute_ptr scan_ms_attribute(a_boolean	is_param_or_base)
 /*
 Scan a single Microsoft attribute of an attribute block that may contain
 multiple attributes.  Return a pointer to the attribute entry that represents
 the attribute.
 
-is_parameter is TRUE if the attribute is part of a function parameter
+is_param_or_base is TRUE if the attribute is part of a function parameter
 declaration.
 */
 {
@@ -2335,7 +2334,7 @@ declaration.
 #if GENERATE_SOURCE_SEQUENCE_LISTS
     /* Create a source sequence entry for the attribute.  This is not done
        for parameter attributes as they appear within a declaration. */
-    if (!is_parameter) {
+    if (!is_param_or_base) {
       attr->source_sequence_entry = add_empty_source_sequence_entry();
     }  /* if */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
@@ -2414,7 +2413,7 @@ declaration.
 }  /* scan_ms_attribute */
 
 
-an_ms_attribute_ptr scan_microsoft_attributes(a_boolean	is_parameter)
+an_ms_attribute_ptr scan_microsoft_attributes(a_boolean	is_param_or_base)
 /*
 Scan a Microsoft attribute block.  The general syntax is:
 
@@ -2427,7 +2426,7 @@ Attributes can be standalone, in which case they are followed by a ";", or
 can apply to the declaration that follows.
 
 Each attribute block can contain multiple attributes.  A list of the attributes
-is returned.  is_parameter is TRUE if the attribute is part of a function
+is returned.  is_param_or_base is TRUE if the attribute is part of a function
 parameter declaration.
 */
 {
@@ -2450,7 +2449,7 @@ parameter declaration.
     do {
       an_ms_attribute_ptr	attr;
       /* Scan the attribute. */
-      attr = scan_ms_attribute(is_parameter);
+      attr = scan_ms_attribute(is_param_or_base);
       /* A NULL attribute may be returned in certain error cases. */
       if (attr == NULL) continue;
       /* Add it to the list of attributes for this block. */
@@ -2475,6 +2474,25 @@ parameter declaration.
   pop_stop_token_stack();
   return attr_list;
 }  /* scan_microsoft_attributes */
+
+
+void scan_and_append_microsoft_attributes(
+                                        an_ms_attribute_ptr  *p_ms_attributes,
+                                        a_boolean            is_param_or_base)
+/*
+The current token is assumed to be a square bracket that introduces Microsoft
+attributes.  Scan these attributes and append them to the list pointed to by
+*p_ms_attributes (if *p_ms_attributes is NULL, then the value of
+*p_ms_attributes will be modified).  is_parameter is TRUE if we're scanning a
+parameter declaration.
+*/
+{
+  an_ms_attribute_ptr  *last_ap = p_ms_attributes;
+  while (*last_ap != NULL) {
+    last_ap = &(*last_ap)->next;
+  }  /* while */
+  *last_ap = scan_microsoft_attributes(is_param_or_base);
+}  /* scan_and_append_microsoft_attributes */
 
 
 void skip_microsoft_attribute_tokens(void)

@@ -3507,7 +3507,8 @@ Instantiate the C++/CLI generic delegate specified by class_type.
                                 (a_source_sequence_entry_ptr)NULL);
       init_decl_parse_state(&dps);
       if (microsoft_attribute_tokens_next()) {
-        dps.ms_attributes = scan_microsoft_attributes(/*is_parameter=*/FALSE);
+        dps.ms_attributes =
+                        scan_microsoft_attributes(/*is_param_or_base=*/FALSE);
       }  /* if */
       visibility = scan_cli_visibility_specifier_if_any(&visibility_pos);
       set_cli_visibility(class_type, visibility, &visibility_pos,
@@ -22632,7 +22633,7 @@ any non-empty template parameter lists that were scanned.
                                     ec_ms_attr_not_allowed);
   }  /* if */
   if (microsoft_attribute_tokens_next()) {
-    dps->ms_attributes = scan_microsoft_attributes(/*is_parameter=*/FALSE);
+    dps->ms_attributes = scan_microsoft_attributes(/*is_param_or_base=*/FALSE);
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   /* See if it is a class template declaration.  If it is, scan the tokens
@@ -23401,7 +23402,7 @@ that follows.
                                     ec_ms_attr_not_allowed);
   }  /* if */
   if (microsoft_attribute_tokens_next()) {
-    dps->ms_attributes = scan_microsoft_attributes(/*is_parameter=*/FALSE);
+    dps->ms_attributes = scan_microsoft_attributes(/*is_param_or_base=*/FALSE);
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   clear_decl_pos_block(&decl_pos_block);
