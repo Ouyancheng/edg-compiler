@@ -1482,7 +1482,7 @@ value type.
 {
   a_boolean	result = FALSE;
 
-  check_assertion(!cppcx_enabled);
+  check_assertion_or_expect_error(!cppcx_enabled);
   tp = skip_typerefs(tp);
   if (is_immediate_class_type(tp) && is_cli_generic_instance_type(tp)) {
     a_class_symbol_supplement_ptr	cssp = symbol_supplement_for_class(tp);
