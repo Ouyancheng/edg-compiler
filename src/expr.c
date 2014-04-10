@@ -16324,11 +16324,7 @@ delegate initializer, given by rcblock->argument_list.
   }  /* if */
   if (err) {
     *dip = NULL;
-    while (arg_list != NULL) {
-      operand_will_not_be_used_because_of_error(
-                                          operand_of_arg_list_elem(arg_list));
-      arg_list = arg_list->next;
-    }  /* while */
+    arg_list_will_not_be_used_because_of_error(arg_list);
   } else {
     /* Build a dynamic initialization for the arguments to the ref new. */
     /* Set the dynamic init entry to represent "constructor" initialization,
@@ -17961,7 +17957,8 @@ expression, and return the result in *result (or an error indication in
       if (rcblock == NULL) end_position = curr_construct_end_position;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
     } else if (cli_or_cx_enabled && is_delegate_type(unqual_base_new_type)) {
-      /* The initializer for a C++/CLI delegate is scanned specially. */
+      /* The initializer for C++/CLI and C++/CX delegates is scanned
+         specially. */
       check_assertion(is_gcnew);
       if (cppcx_enabled) {
         scan_cppcx_delegate_initializer(new_type, &type_position, rcblock,
