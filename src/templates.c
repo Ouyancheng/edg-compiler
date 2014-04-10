@@ -14368,8 +14368,8 @@ and create a function instantiation entry to bind the two symbols together.
 #if GNU_FUNCTION_MULTIVERSIONING
       if (sym->kind == (a_symbol_kind)sk_member_function &&
           is_multiversion_representative(sym->variant.routine.ptr)) {
-        /* If this is a GNU multiversioned function template, search the target
-           specific functions. */
+        /* In the GNU multiversion case, search the target specific
+           functions. */
         a_routine_ptr            tv_routine = sym->variant.routine.ptr;
         a_routine_list_entry_ptr rlep;
         for (rlep = gnu_routine_supp(tv_routine)->
@@ -28026,8 +28026,8 @@ Does nothing if called in C mode.
       update_instantiation_required_flag(tip, value, options);
     }  /* if */
 #if GNU_FUNCTION_MULTIVERSIONING
-    /* In case of GNU function multiversioning, update the instantiation
-       required flag for all the target-specific functions. */
+    /* If this is a GNU multiversioned function template, update the
+       instantiation required flag for all the target-specific functions. */
     if (sym->kind == (a_symbol_kind)sk_member_function &&
         is_multiversion_representative(sym->variant.routine.ptr)) {
       a_routine_ptr tv_routine = sym->variant.routine.ptr;
