@@ -26226,7 +26226,8 @@ somewhere in the complete program eventually).
 
   tip = template_instance_for_symbol(sym);
   if (tip != NULL &&
-      !is_immediate_managed_class_type(sym_parent_class(sym))) {
+      (!sym->is_class_member || 
+       !is_immediate_managed_class_type(sym_parent_class(sym)))) {
     /* Managed class member functions and static data members are never
        instantiated. */
     check_assertion(in_instantiation_wrapup);
