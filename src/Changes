@@ -1,5 +1,22 @@
 Version 4.9
 
+4/10/14  [EDGcpfe/15037]
+Microsoft C++/CLI compatibility: override without explicit "virtual" keyword
+
+Early versions of Microsoft Visual Studio 11.0 in C++/CLI mode (i.e., with
+/clr) did not allow a member function to override a base member function unless
+the member function was explicitly declared "virtual".  Subsequent releases
+of the same product then relaxed this restriction and now so has the front end.
+This is now accepted with --microsoft_version --cppcli:
+
+  struct B {
+    virtual void f(int);
+  };
+  struct D : B {
+    void f(int) override;
+  };
+
+
 4/9/14   [EDGcpfe/15035]
 GNU compatibility: missing error on __thread dynamic initialization
 

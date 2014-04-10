@@ -6168,7 +6168,9 @@ done:
         /* An override modifier often requires that the function also be
            declared with an explicit "virtual" keyword. */
         if (func_info->override) {
-          if (microsoft_version < 1800 && !cpp11_mode) {
+          if (microsoft_version < 1700 && !cpp11_mode) {
+            /* Some later versions of MSVC++ 11.0 (i.e., 1700) accept this,
+               though earlier versions don't.  Be lenient in this case. */
             pos_error(ec_override_requires_virtual, source_pos);
           }  /* if */
         } else if (is_immediate_managed_class_type(class_type)) {
