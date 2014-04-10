@@ -18203,6 +18203,7 @@ handle_empty_parens_new_initializer:
              unboxing_conversion, or a skipped string ctor. */
           check_assertion (!(trivial_ctor || unboxing_conversion ||
                              string_ctor_skip));
+          free_arg_list(init_raw_args);
           init_raw_args = NULL;
           if (dip == NULL) {
             err = TRUE;
