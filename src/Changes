@@ -46,7 +46,7 @@ incorrectly be allowed as the argument for a template template parameter
 4/9/14   [EDGcpfe/10978]
 Recorded position of using directives
 
-Version 4.2 of the front introduced an unintentional change that causes the
+Version 4.2 of the front end introduced an unintentional change that caused the
 recorded position of a using directive to be the position of the "namespace"
 keyword instead of the "using" keyword.  For example:
 

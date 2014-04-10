@@ -13950,13 +13950,11 @@ using_pos): The current token is "namespace".  A using-directive entry is
 created and activated for the current scope.
 */
 {
-  a_source_position	decl_start_pos;
   a_symbol_ptr		sym;
   a_boolean		err = FALSE;
   an_attribute_ptr	attributes = dps->prefix_attributes;
 
   db_enter(3, "using_directive");
-  decl_start_pos = *using_pos;
   /* A using-directive is outside the "Embedded C++" subset. */
   feature_is_not_part_of_embedded_cplusplus_subset(
                                           &pos_curr_token,
@@ -14000,7 +13998,7 @@ created and activated for the current scope.
       /* Allocate a using-directive entry specifying this namespace and
          activate it. */
       make_using_directive(sym->variant.namespace_info.ptr, depth_scope_stack,
-                           &decl_start_pos, /*compiler_generated=*/FALSE,
+                           using_pos, /*compiler_generated=*/FALSE,
                            /*inline_namespace=*/FALSE, attributes);
     }  /* if */
   }  /* if */
