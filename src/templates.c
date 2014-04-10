@@ -26225,7 +26225,10 @@ somewhere in the complete program eventually).
   a_boolean			result = FALSE;
 
   tip = template_instance_for_symbol(sym);
-  if (tip != NULL) {
+  if (tip != NULL &&
+      !is_immediate_managed_class_type(sym_parent_class(sym))) {
+    /* Managed class member functions and static data members are never
+       instantiated. */
     check_assertion(in_instantiation_wrapup);
     result = entity_can_be_instantiated(tip, /*implicit_inclusion_okay=*/TRUE);
   }  /* if */
