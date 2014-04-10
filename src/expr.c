@@ -40772,6 +40772,9 @@ attribute.
       if (scan_arg_list) add_matching_stop_token(tok_rparen);
       expr_stack_entry.is_cli_attr_arg_expression = TRUE;
       switch_to_file_scope_region(&region_to_switch_back_to);
+      /* The Microsoft compiler allows (and ignores) a typename keyword before
+         an attribute argument. */
+      if (curr_token == tok_typename) (void)get_token();
       if (is_class_struct_union_type(type)) {
         /* If the class is a template class, instantiate it to make its
            constructors visible. */
