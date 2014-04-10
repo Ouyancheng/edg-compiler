@@ -14409,6 +14409,11 @@ decl_member_function, which handles in-class member function declarations.)
 #endif /* GNU_EXTENSIONS_ALLOWED */
 #if MICROSOFT_EXTENSIONS_ALLOWED
     if (tssp->is_generic) {
+      /* C++/CX doesn't permit generic methods. */
+      if (cppcx_enabled) {
+        pos_error(ec_cppcx_generic_method_not_allowed,
+                  &locator->source_position);
+      }  /* if */
       /* Generic functions can be virtual (standard member function templates
          cannot). */
       if (check_virtual_interface_member(class_state, rtn, locator)) {

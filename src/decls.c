@@ -13808,7 +13808,7 @@ and to tok_brace otherwise; the final token is swallowed by the caller.
       if (cli_or_cx_enabled && !scanning_generated_code_from_metadata && 
           ns_sym == cli_symbol_from_kind(csk_cli_namespace)) {
         pos_error(cppcx_enabled ? ec_namespace_default_cannot_be_extended
-                                   : ec_namespace_cli_cannot_be_extended,
+                                : ec_namespace_cli_cannot_be_extended,
                   &locator.source_position);
       }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
