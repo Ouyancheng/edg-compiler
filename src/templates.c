@@ -17534,13 +17534,14 @@ declaration of a partial specialization declared outside of its class.
                                       (a_cli_class_type_kind)cctk_interface) {
         /* A generic C++/CX interface or delegate.  Constraints are not
            allowed. */
-        a_generic_constraint_clause_ptr clause;
-        for (clause = decl_state->template_decl->generic_constraint_clauses;
-             clause != NULL;
-             clause = clause->next) {
-          pos_error(ec_cppcx_generic_constraints_not_allowed,
-                    &clause->type_position);
-        }  /* for */
+        if (decl_state->template_decl != NULL) {
+          a_generic_constraint_clause_ptr
+                clause = decl_state->template_decl->generic_constraint_clauses;
+          if (clause != NULL) {
+            pos_error(ec_cppcx_generic_constraints_not_allowed,
+                      &clause->type_position);
+          }  /* if */
+        }  /* if */
       } else {
         pos_error(ec_cppcx_generic_type_not_allowed, &pos_curr_token);
       }  /* if */
