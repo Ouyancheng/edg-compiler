@@ -17465,7 +17465,7 @@ expression, and return the result in *result (or an error indication in
     operator_new_symbol = NULL;
     if (gpp_mode && gnu_version >= 30400) {
       /* g++ 3.4 and above always treat a "new" operator as dependent. */
-      if (is_template_dependent_context()) {
+      if (is_prototype_instantiation_context()) {
         /* During a prototype instantiation, suppress the lookup. */
         unknown_dependent_new = TRUE;
       } else if (is_nonspecialized_instantiation_context()) {
@@ -17474,7 +17474,7 @@ expression, and return the result in *result (or an error indication in
            are usually treated as nondependent). */
         force_dependent = TRUE;
       }  /* if */
-    } else if (microsoft_mode && is_template_dependent_context()) {
+    } else if (microsoft_mode && is_prototype_instantiation_context()) {
       /* Microsoft compilers do very limited processing of templates in
          general.  If we perform prototype instantiations in Microsoft mode,
          we treat this case as dependent to reduce the amount of checking
