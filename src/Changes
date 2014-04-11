@@ -1,5 +1,17 @@
 Version 4.9
 
+4/11/14  [EDGcpfe/10197]
+Abort on invalid friend declaration written as specialization
+
+In modes in which in-class specializations are allowed (Microsoft and Sun),
+an abort could occur (in full_specialization) if a friend class declaration
+was written as an (invalid) explicit specialization.  Now fixed.
+
+  template <typename T> class C {
+    template <> friend class C;
+  };
+
+
 4/11/14  [EDGcpfe/14893]
 Handling of new-expressions in SFINAE contexts
 

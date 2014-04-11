@@ -23451,7 +23451,8 @@ that follows.
       }  /* if */
     }  /* if */
   }  /* if */
-  if (is_error_type(dps->type) && !is_declarator_start()) {
+  if (dps->type == NULL ||
+      (is_error_type(dps->type) && !is_declarator_start())) {
     /* Error of some sort. */
     set_to_error_locator(locator);
   } else if ((dso_flags & (DSO_DEFINES_SOMETHING |
