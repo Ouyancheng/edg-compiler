@@ -2624,6 +2624,15 @@ indication in *rcblock).
 #if EXTRA_SOURCE_POSITIONS_IN_IL
       curr_construct_end_position = end_position;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+    } else {
+      /* We are rescanning the initializer expression.  If there were
+         additional expressions, the rescan should fail (this parallels a
+         failure in the call to check_closing_paren_after_expr_list in the
+         non-rescan case). */
+      if (rcblock->argument_list != NULL &&
+          rcblock->argument_list->next != NULL) {
+        rcblock->error_detected = TRUE;
+      }  /* if */
     }  /* if */
     expr = make_node_from_operand_for_expr_list(&result);
   } else {
