@@ -10350,8 +10350,7 @@ that case, and this_type is used for the type.
        the function enclosing the lambda.  It needs to be captured to be
        used. */
     a_lambda_capture *lambda_capture =
-                               lambda_capture_for_variable(this_var, position,
-                                                           (a_boolean*)NULL);
+                               lambda_capture_for_variable(this_var, position);
     if (lambda_capture != NULL) {
       node = make_selection_for_captured_variable(lambda_capture,
                                                   /*is_lvalue=*/FALSE);

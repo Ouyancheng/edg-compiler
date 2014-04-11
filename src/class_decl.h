@@ -176,10 +176,9 @@ extern void check_defaulted_or_deleted_function(a_decl_parse_state  *dps,
 
 extern void add_trivial_dtor_representation(a_type_ptr  class_type);
 
-extern a_lambda_capture_ptr lambda_capture_for_variable(
-                                          a_variable_ptr         vp,
-                                          a_source_position_ptr  pos,
-                                          a_boolean              *rvalue_only);
+extern
+a_lambda_capture_ptr lambda_capture_for_variable(a_variable_ptr		vp,
+						 a_source_position_ptr	pos);
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
 #if GENERATE_SOURCE_SEQUENCE_LISTS

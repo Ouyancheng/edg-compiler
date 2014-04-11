@@ -27767,8 +27767,7 @@ static a_boolean bad_nested_function_variable_ref(
                                           a_source_position    *ref_pos,
                                           an_operand           *operand,
                                           a_ref_entry_ptr      *rep,
-                                          a_lambda_capture_ptr *lambda_capture,
-                                          a_boolean            *rvalue_only)
+                                          a_lambda_capture_ptr *lambda_capture)
 /*
 sym_ptr is a symbol for a variable being referenced in an expression.
 The reference is at source position ref_pos.  Issue an error and return
@@ -27836,7 +27835,7 @@ indicates that the symbol is an anonymous union and cannot be captured.
         var->referenced_non_locally = TRUE;
       } else if ((curr_expr_kind_is_const() ||
                   expr_stack->is_vla_dimension_expression) &&
-                 var->constant_valued) {
+                 var_constant_value(var) != NULL) {
         /* Allow references to constant-valued variables in constant
            expressions.  This is not supported by the standard
            as of May 2008, but we're opening a core issue.
@@ -27858,16 +27857,10 @@ indicates that the symbol is an anonymous union and cannot be captured.
           bad_ref = TRUE;
         } else {
           /* See if the variable has been or can be captured now. */
-          *lambda_capture = lambda_capture_for_variable(var, ref_pos,
-                                                        rvalue_only);
+          *lambda_capture = lambda_capture_for_variable(var, ref_pos);
           if (*lambda_capture == NULL) {
-            if (*rvalue_only) {
-              /* We couldn't capture the variable, but we don't need to if we
-                 use it as an rvalue only. */
-            } else {
-              bad_ref = TRUE;
-              error_issued_already = TRUE;
-            }  /* if */
+            bad_ref = TRUE;
+            error_issued_already = TRUE;
           }  /* if */
         }  /* if */
       } else if (!strict_ansi_mode &&
@@ -28426,7 +28419,6 @@ if rescan_is_template_id is TRUE, and return the result in *operand
       change_refs_to_error(rep);
       rep = NULL;
     } else {
-      a_boolean  rvalue_only;
       if (warning_on_for_init_difference) {
         /* Unless it is a qualified-name reference, if sym_ptr is visible with
            new-style for-init declaration scoping but would be hidden using
@@ -28488,8 +28480,8 @@ variable:
              Check for those. */
           if (bad_nested_function_variable_ref(sym_ptr,
                                                &locator.source_position,
-                                               result, &rep, &lambda_capture,
-                                               &rvalue_only)) {
+                                               result, &rep,
+                                               &lambda_capture)) {
             /* Error. */
           } else if (lambda_capture != NULL) {
             /* This is a local variable referenced via a lambda capture.
@@ -28527,9 +28519,6 @@ variable:
                                          &start_position,
                                          end_position_or_null(&end_position),
                                          result, rep);
-            if (rvalue_only) {
-              conv_glvalue_to_prvalue(result);
-            }   /* if */
           }  /* if */
           if (is_error_operand(result)) {
             change_refs_to_error(rep);
@@ -28616,8 +28605,7 @@ normal_function:
                                                   anon_var_sym,
                                                   &locator.source_position,
                                                   result, &rep,
-                                                  (a_lambda_capture **)NULL,
-                                                  (a_boolean*)NULL)) {
+                                                  (a_lambda_capture **)NULL)) {
               /* If we're inside a local class, we are not allowed to reference
                  non-static variables of the containing function.  If we're
                  inside a default argument expression, we're not allowed to
