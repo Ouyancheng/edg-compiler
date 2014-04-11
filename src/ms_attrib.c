@@ -2291,8 +2291,9 @@ Scan a single Microsoft attribute of an attribute block that may contain
 multiple attributes.  Return a pointer to the attribute entry that represents
 the attribute.
 
-is_param_or_base is TRUE if the attribute is part of a function parameter
-declaration.
+is_param_or_base is TRUE if the attributes appear on a function parameter or a
+base class declaration (the corresponding IL entries point back to the
+attributes).
 */
 {
   an_ms_attribute_target         target;
@@ -2426,8 +2427,9 @@ Attributes can be standalone, in which case they are followed by a ";", or
 can apply to the declaration that follows.
 
 Each attribute block can contain multiple attributes.  A list of the attributes
-is returned.  is_param_or_base is TRUE if the attribute is part of a function
-parameter declaration.
+is returned.  is_param_or_base is TRUE if the attributes appear on a function
+parameter or a base class declaration (the corresponding IL entries point back
+to the attributes).
 */
 {
   an_ms_attribute_ptr	attr_list = NULL;
@@ -2483,8 +2485,8 @@ void scan_and_append_microsoft_attributes(
 The current token is assumed to be a square bracket that introduces Microsoft
 attributes.  Scan these attributes and append them to the list pointed to by
 *p_ms_attributes (if *p_ms_attributes is NULL, then the value of
-*p_ms_attributes will be modified).  is_parameter is TRUE if we're scanning a
-parameter declaration.
+*p_ms_attributes will be modified).  is_param_or_base is TRUE if we're
+scanning a parameter declaration or a base class specifier.
 */
 {
   an_ms_attribute_ptr  *last_ap = p_ms_attributes;
