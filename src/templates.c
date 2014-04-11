@@ -17531,19 +17531,9 @@ declaration of a partial specialization declared outside of its class.
 #if MICROSOFT_EXTENSIONS_ALLOWED
   if (cppcx_enabled && decl_state->is_generic) {
     if (!in_code_generated_from_metadata()) {
-      if (decl_state->cli_class_type_kind ==
+      if (decl_state->cli_class_type_kind !=
                                       (a_cli_class_type_kind)cctk_interface) {
-        /* A generic C++/CX interface or delegate.  Constraints are not
-           allowed. */
-        if (decl_state->template_decl != NULL) {
-          a_generic_constraint_clause_ptr
-                clause = decl_state->template_decl->generic_constraint_clauses;
-          if (clause != NULL) {
-            pos_error(ec_cppcx_generic_constraints_not_allowed,
-                      &clause->type_position);
-          }  /* if */
-        }  /* if */
-      } else {
+        /* Only C++/CX generic interfaces and delegates are allowed. */
         pos_error(ec_cppcx_generic_type_not_allowed, &pos_curr_token);
       }  /* if */
     }  /* if */
@@ -24921,12 +24911,23 @@ clause, invalid forward references are avoided.
     (void)get_token();
   } else {
     /* The "where" is not a keyword, it is scanned as an identifier. */
+    a_boolean	err_issued = FALSE;
     while (curr_token == tok_identifier &&
            symbol_header_is_for_identifier_string(
                                             locator_for_curr_id.symbol_header,
                                             "where")) {
-      a_generic_constraint_clause_ptr
-                                clause = scan_one_generic_constraint_clause();
+      a_generic_constraint_clause_ptr clause;
+      if (cppcx_enabled && !in_code_generated_from_metadata()) {
+        if (!err_issued) {
+          /* C++/CX only allows generic interfaces and delegates and does
+             not allow constraints.  We don't know the entity kind yet,
+             so this error could be followed by an error that the kind of
+             generic entity being declared is not allowed. */
+          pos_error(ec_cppcx_generic_constraints_not_allowed, &pos_curr_token);
+          err_issued = TRUE;
+        }  /* if */
+      }  /* if */
+      clause = scan_one_generic_constraint_clause();
       if (clause != NULL) {
         if (gccp_list == NULL) {
           gccp_list = clause;
