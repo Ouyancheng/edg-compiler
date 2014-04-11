@@ -1015,11 +1015,21 @@ Microsoft mode features when the acceptance of that feature varies
 between versions of the Microsoft compiler. The value is specified
 using the value of the predefined macro _MSC_VER supplied by the
 version of the Microsoft compiler that is being emulated (for example,
-1100 corresponds to Visual C++ version 5.0).
+1100 corresponds to Visual C++ version 5.0).  This is used as the
+default value of the microsoft_version variable.
 */
 #ifndef DEFAULT_MICROSOFT_VERSION
 #define DEFAULT_MICROSOFT_VERSION 1600
 #endif /* ifndef DEFAULT_MICROSOFT_VERSION */
+
+/*
+Flag that provides the default value of microsoft_version variable
+(see DEFAULT_MICROSOFT_VERSION above for more information) when
+the C++/CLI or C++/CX dialect is being used.
+*/
+#ifndef DEFAULT_CPPCLI_CPPCX_VERSION
+#define DEFAULT_CPPCLI_CPPCX_VERSION 1800
+#endif /* ifndef DEFAULT_CPPCLI_CPPCX_VERSION */
 
 /*
 Flag that is TRUE if Microsoft attributes should be considered to be

@@ -5109,6 +5109,11 @@ file.
 #else /* !defined(DEFAULT_C_AND_CPP_FUNCTION_TYPES_ARE_DISTINCT) */
   comment_undefined_macro_name(DEFAULT_C_AND_CPP_FUNCTION_TYPES_ARE_DISTINCT);
 #endif /* defined(DEFAULT_C_AND_CPP_FUNCTION_TYPES_ARE_DISTINCT) */
+#if defined(DEFAULT_CPPCLI_CPPCX_VERSION)
+  define_numeric_valued_macro(DEFAULT_CPPCLI_CPPCX_VERSION);
+#else /* !defined(DEFAULT_CPPCLI_CPPCX_VERSION) */
+  comment_undefined_macro_name(DEFAULT_CPPCLI_CPPCX_VERSION);
+#endif /* defined(DEFAULT_CPPCLI_CPPCX_VERSION) */
 #if defined(DEFAULT_DEPENDENT_LOOKUP_FINDS_STATIC_FUNCTIONS)
   define_numeric_valued_macro(DEFAULT_DEPENDENT_LOOKUP_FINDS_STATIC_FUNCTIONS);
 #else /* !defined(DEFAULT_DEPENDENT_LOOKUP_FINDS_STATIC_FUNCTIONS) */
@@ -9584,6 +9589,11 @@ enable_microsoft_mode:
   }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
   if (cppcli_enabled || cppcx_enabled) {
+    if (!option_kind_used[(int)optk_microsoft_version]) {
+      /* If no Microsoft version was explicitly specified, use the default
+         version that is to be used in C++/CLI and C++/CX modes. */
+      microsoft_version = DEFAULT_CPPCLI_CPPCX_VERSION;
+    }  /* if */
     if (cppcli_enabled && cppcx_enabled) {
       /* C++/CLI and C++/CX cannot both be enabled.  If one is enabled by
          default, and the other through the command-line, the latter takes

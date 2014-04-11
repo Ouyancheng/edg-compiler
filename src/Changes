@@ -1,5 +1,14 @@
 Version 4.9
 
+4/11/14  [EDGcpfe/15042]
+Microsoft C++/CLI and C++/CX compatibility: DEFAULT_CPPCLI_CPPCX_VERSION
+
+The DEFAULT_CPPCLI_CPPCX_VERSION configuration macro has been added to
+specify the default value for microsoft_version when C++/CLI or
+C++/CX mode is being used and no version number was explicitly specified
+with the --microsoft_version command-line option.
+
+
 4/11/14  [EDGcpfe/15040]
 Abort with multibyte character following universal-character-name in string
 literal
