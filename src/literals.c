@@ -877,7 +877,16 @@ state->next_orig_line_modif is advanced to point to the next modification.
          a raw string literal; state->next_mbc_char points to the
          translated or reverted byte to return on this call. */
       targ_ch = (unsigned char)*state->next_mbc_char;
-      ++state->next_mbc_char;
+      if (state->remaining_char_count == 1) {
+        /* This is the last translated/reverted character.  Set the buffer
+           pointer to NULL in case a multibyte character follows, which
+           will set remaining_char_count to a non-zero value but needs to
+           fetch characters from the token, not the next_mbc_char
+           buffer. */
+        state->next_mbc_char = NULL;
+      } else {
+        ++state->next_mbc_char;
+      }  /* if */
     } else if (state->create_surrogate_pairs) {
       /* The previous call returned the first code unit of a surrogate
          pair.  Return the second code unit now. */

@@ -1,5 +1,18 @@
 Version 4.9
 
+4/11/14  [EDGcpfe/15040]
+Abort with multibyte character following universal-character-name in string
+literal
+
+The front end could previously abort with a failed assertion in
+conv_string_literal when a multibyte character follows a
+universal-character-name in a string literal or, in a raw string literal,
+follows a reverted construct such as a trigraph.  This is now fixed.  For
+example, with --unicode_source_kind=UTF-8:
+
+  char c1[] = "\U00010000𐀀";  // Previously aborted
+
+
 4/10/14  [EDGcpfe/15037]
 Microsoft C++/CLI compatibility: override without explicit "virtual" keyword
 
