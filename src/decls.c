@@ -8960,7 +8960,7 @@ skip_overloading:;
     if (!routine_ptr->is_inline) set_inline_flag(routine_ptr, TRUE);
   }  /* if */
 #if GNU_FUNCTION_MULTIVERSIONING
-  if (gpp_mode) {
+  if (gpp_mode && gnu_version >= 40800) {
     an_attribute_ptr  target_ap = NULL;
     /* GNU accepts "target" attributes in two locations in the declaration,
        but it only acts on the last one. */

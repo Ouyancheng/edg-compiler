@@ -272,7 +272,7 @@ static an_attr_descr known_attr_table[] = {
   { "stdcall", "", "gx", ak_stdcall },
 #endif /* GNU_X86_ATTRIBUTES_ALLOWED && !USE_X86_64 */
   { "strong", "", "gx", ak_strong },
-  { "target", "(*)", "gx", ak_target },
+  { "target", "(*)", "gx(40400-)", ak_target },
 #if THREAD_LOCAL_STORAGE_SPECIFIER_ALLOWED
   { "tls_model", "(sn)", "gx(30300-)", ak_tls_model },
 #endif /* THREAD_LOCAL_STORAGE_SPECIFIER_ALLOWED */
@@ -5789,6 +5789,11 @@ attributes in C mode).
        extern "C" block is ignored (it'll be recorded later).  No error is
        reported, but the routine returns FALSE (to prevent multiversioning
        code from being executed). */
+    err = TRUE;
+    goto done;
+  } else if (!gpp_mode || gnu_version < 40800) {
+    /* GNU version 4.4.0 and later recognize the "target" attribute, but it
+       only has its multiversion meaning in 4.8.0 and later. */
     err = TRUE;
     goto done;
   }  /* if */

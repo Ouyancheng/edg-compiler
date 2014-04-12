@@ -13560,7 +13560,7 @@ implicitly declared member functions.
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   }  /* if */
 #if GNU_FUNCTION_MULTIVERSIONING
-  if (gpp_mode) {
+  if (gpp_mode && gnu_version >= 40800) {
     /* Pre-apply the GNU multiversion target attribute, if any.  This is
        required because applying the attribute through the normal mechanism
        would be too late. */

@@ -1674,7 +1674,8 @@ member declaration (allowed in some Microsoft modes only).
     orig_pos = sym->decl_position;
     dps->prev_type = *old_type = routine_symbol_type(sym);
 #if GNU_FUNCTION_MULTIVERSIONING
-    if (gpp_mode && is_multiversion_representative(rp)) {
+    if (gpp_mode && gnu_version >= 40800 &&
+        is_multiversion_representative(rp)) {
       /* A GNU function multiversion representative function was found;
          this definition must have a "target" attribute that matches a
          previously declared member function. */
