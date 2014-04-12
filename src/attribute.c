@@ -5738,11 +5738,11 @@ The attribute is being applied to "routine".  If an error is issued,
 
 #if GNU_FUNCTION_MULTIVERSIONING
 
-a_boolean check_target_attr(an_attribute_ptr    ap,
-                            a_scope_depth       scope_depth,
-                            a_routine_ptr       representative,
-                            a_routine_ptr       *target,
-                            a_boolean           *found_existing)
+a_boolean process_multiversion_function(an_attribute_ptr ap,
+                                        a_scope_depth    scope_depth,
+                                        a_routine_ptr    representative,
+                                        a_routine_ptr    *target,
+                                        a_boolean        *found_existing)
 /*
 Check that the GNU "target" attribute(s) specified by ap are okay (returns TRUE
 if no errors are reported).  Also do the processing associated with the target
@@ -5823,7 +5823,7 @@ attributes in C mode).
   }  /* if */
   /* Create a new symbol for this routine.  This symbol won't be entered
      in the symbol table. */
-  make_locator_for_symbol(sym,  &loc);
+  make_locator_for_symbol(sym, &loc);
   new_sym = make_symbol(sym->kind, &loc);
   /* Copy the original symbol, then reset any pointers. */
   *new_sym = *sym;
@@ -5834,6 +5834,14 @@ attributes in C mode).
   /* New symbol points to the new routine and vice versa. */
   new_sym->variant.routine.ptr = target_routine;
   set_source_corresp(&target_routine->source_corresp, new_sym);
+  /* Set parent pointer appropriately. */
+  if (representative->source_corresp.is_class_member) {
+    set_class_membership(new_sym, &target_routine->source_corresp,
+                         scp_parent_class(&representative->source_corresp));
+  } else if (scp_is_namespace_member(&representative->source_corresp)) {
+    set_namespace_membership(new_sym, &target_routine->source_corresp,
+                        scp_parent_namespace(&representative->source_corresp));
+  }  /* if */
   /* Fill in information about the target-specific version routine. */
   ensure_gnu_routine_supp(target_routine)->is_target_specific_version = TRUE;
   if (representative->is_inline) {
@@ -5877,7 +5885,7 @@ attributes in C mode).
 done:
   return !err;
 #undef MAX_TARGET_PAIR_LEN
-}  /* check_target_attr */
+}  /* process_multiversion_function */
 
 #endif /* GNU_FUNCTION_MULTIVERSIONING */
 
@@ -5886,9 +5894,9 @@ static char *apply_target_attr(an_attribute_ptr  ap,
                                an_il_entry_kind  entity_kind)
 /*
 In C++ mode, most of the work for applying the "target" attributes has already
-been done in check_target_attr (because "target" is also used for function
-multiversioning).  This routine handles the cases where multiversioning isn't
-applicable.
+been done in process_multiversion_function (because "target" is also used for
+function multiversioning).  This routine handles the cases where
+multiversioning isn't applicable.
 */
 {
   an_attribute_arg_ptr  aap = ap->arguments;

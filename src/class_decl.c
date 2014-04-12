@@ -13575,8 +13575,9 @@ implicitly declared member functions.
       if (is_multiversion_representative(sym->variant.routine.ptr)) {
         representative = sym->variant.routine.ptr;
       }  /* if */
-      if (check_target_attr(target_ap, scope_depth, representative, &rtn,
-                            &found_existing)) {
+      if (process_multiversion_function(target_ap, scope_depth,
+                                        representative, &rtn,
+                                        &found_existing)) {
         /* The routine and symbol that had been used to this point have
            been re-classified as either a representative routine or a
            target-specific routine.  Use the target-specific routine for the
@@ -13592,8 +13593,6 @@ implicitly declared member functions.
           repr_sym->next = sym->next;
           overload_sym->variant.overloaded_function.symbols = repr_sym;
         }  /* if */
-        /* Set class membership for the target-specific symbol. */
-        set_class_membership(new_sym, &rtn->source_corresp, class_type);
         /* Use the target-specific version symbol. */
         decl_state->sym = sym = new_sym;
       }  /* if */

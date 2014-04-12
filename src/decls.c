@@ -8993,8 +8993,9 @@ skip_overloading:;
         /* No representative routine yet. */
         target = routine_ptr;
       }  /* if */
-      (void)check_target_attr(target_ap, DEPTH_OF_FILE_SCOPE, representative,
-                              &target, &found_existing);
+      (void)process_multiversion_function(target_ap, effective_decl_level,
+                                          representative, &target,
+                                          &found_existing);
       /* Use the target-specific version for the remainder of the
          declaration. */
       if (*ext_sym != NULL &&

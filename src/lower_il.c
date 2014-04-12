@@ -9845,7 +9845,8 @@ create a resolver routine if needed.
 #else /* !USE_X86_FUNCTION_MULTIVERSIONING */
   /* Without knowing the specifics of the target architecture, a resolver
      routine cannot be created. */
-  unexpected_condition_str("GNU function multiversion resolver required");
+  pos_diagnostic(es_catastrophe, ec_resolver_routine_required,
+                 &routine->source_corresp.decl_position);
 #endif /* USE_X86_FUNCTION_MULTIVERSIONING */
 }  /* lower_mv_routine */
 
@@ -9873,9 +9874,11 @@ routine (otherwise return NULL).
        reference to a target-specific version.  Transfer some of the relevant
        state information from the representative function to the
        target-specific version. */
-    result->called = routine->called;
-    result->address_taken = routine->address_taken;
-    result->source_corresp.referenced = routine->source_corresp.referenced;
+    if (routine->called) result->called = TRUE;
+    if (routine->address_taken) result->address_taken = TRUE;
+    if (routine->source_corresp.referenced) {
+      result->source_corresp.referenced = TRUE;
+    }  /* if */
 #if MAINTAIN_NEEDED_FLAGS
     mark_as_needed_like((char *)result, iek_routine, &routine->source_corresp,
                         /*set_class_defn_needed=*/FALSE);

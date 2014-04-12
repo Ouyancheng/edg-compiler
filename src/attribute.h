@@ -264,11 +264,12 @@ extern a_boolean compare_for_asm_name_map(a_void_ptr  entry,
 #endif /* GNU_EXTENSIONS_ALLOWED */
 
 #if GNU_FUNCTION_MULTIVERSIONING
-extern a_boolean check_target_attr(an_attribute_ptr    ap,
-                                   a_scope_depth       scope_depth,
-                                   a_routine_ptr       representative,
-                                   a_routine_ptr       *target,
-                                   a_boolean           *found_existing);
+extern a_boolean process_multiversion_function(
+                                             an_attribute_ptr ap,
+                                             a_scope_depth    scope_depth,
+                                             a_routine_ptr    representative,
+                                             a_routine_ptr    *target,
+                                             a_boolean        *found_existing);
 #endif /* GNU_FUNCTION_MULTIVERSIONING */
 
 /*

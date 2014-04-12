@@ -1690,15 +1690,13 @@ member declaration (allowed in some Microsoft modes only).
         /* Apply the "target" attribute(s). */
         a_boolean     found_existing;
         a_routine_ptr target = NULL;
-        if (check_target_attr(target_ap, NO_SCOPE_DEPTH, rp, &target,
-                              &found_existing)) {
+        if (process_multiversion_function(target_ap, NO_SCOPE_DEPTH, rp,
+                                          &target, &found_existing)) {
           if (found_existing) {
             sym = symbol_for(target);
             if (!sym->defined) {
               /* Use the target-specific version routine and symbol. */
               rp = target;
-              /* Set class membership for the target-specific symbol. */
-              set_class_membership(sym, &target->source_corresp, class_type);
             } else {
               /* Member function already has a definition. */
               pos_sy_error(ec_function_redefinition, &locator->source_position,

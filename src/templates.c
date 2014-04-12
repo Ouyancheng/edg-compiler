@@ -5358,11 +5358,14 @@ static a_type_ptr create_error_routine_type(a_routine_ptr	templ_rout,
 					    a_type_ptr		parent_class);
 
 
-static void f_instantiate_template_function(a_template_instance_ptr  tip,
-                                            a_routine_ptr rout_ptr)
+static void instantiate_template_function_full(
+                                             a_template_instance_ptr  tip,
+                                             a_routine_ptr            rout_ptr)
 
 /*
-Instantiate the body of the template function associated with tip.
+Instantiate the template function rout_ptr with tip.  rout_ptr is typically
+tip->instance_sym->variant.routine.ptr, but not in GNU function multiversion
+cases).
 */
 {
   a_symbol_ptr                      rout_sym;
@@ -5378,7 +5381,7 @@ Instantiate the body of the template function associated with tip.
 #endif /* TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 
-  db_enter(3, "f_instantiate_template_function");
+  db_enter(3, "instantiate_template_function_full");
   rout_sym = tip->instance_sym;
   template_sym = tip->template_sym;
   tssp = template_supplement_for_symbol(template_sym);
@@ -5624,7 +5627,7 @@ done:;
 #endif /* TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   db_exit();
-}  /* f_instantiate_template_function */
+}  /* instantiate_template_function_full */
 
 
 static void instantiate_template_function(a_template_instance_ptr  tip)
@@ -5649,12 +5652,12 @@ Instantiate the body of the template function associated with tip.
       r_tip = template_instance_for_symbol(r_sym);
       check_assertion(r_tip != NULL);
       rlep->routine->is_template_function = TRUE;
-      f_instantiate_template_function(r_tip, rlep->routine);
+      instantiate_template_function_full(r_tip, rlep->routine);
     }  /* for */
   } else
 #endif /* GNU_FUNCTION_MULTIVERSIONING */
   {
-    f_instantiate_template_function(tip, routine);
+    instantiate_template_function_full(tip, routine);
   }  /* if */
 }  /* instantiate_template_function */
 

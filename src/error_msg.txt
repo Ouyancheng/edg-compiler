@@ -2657,6 +2657,7 @@ ec_cppcx_non_const_array_parameter;;"C++/CX does not support 'in/out' arrays -- 
 ec_missing_target_attribute;;"missing \"target\" attribute for %nd"
 ec_no_matching_target_attribute;;"no declared member function matches \"target\" attributes for %n"
 ec_invalid_base_for_ms_attributes;;"Microsoft attributes in this location are only permitted for interface types"
+ec_resolver_routine_required;;"GNU function multiversion resolver routine required"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #
