@@ -5778,8 +5778,9 @@ attributes in C mode).
   a_symbol_locator      loc;
   a_symbol_ptr          new_sym, sym;
 
-  /* First token must be a string literal. */
-  check_assertion(!C_mode() &&
+  /* GNU version 4.4.0 and later recognize the "target" attribute, but it
+     only has its multiversion meaning in 4.8.0 and later. */
+  check_assertion(gpp_mode && gnu_version >= 40800 &&
                   aap->kind == (an_attribute_arg_kind)aak_raw_token &&
                   aap->variant.token[0] == '"');
   *found_existing = FALSE;
@@ -5789,11 +5790,6 @@ attributes in C mode).
        extern "C" block is ignored (it'll be recorded later).  No error is
        reported, but the routine returns FALSE (to prevent multiversioning
        code from being executed). */
-    err = TRUE;
-    goto done;
-  } else if (!gpp_mode || gnu_version < 40800) {
-    /* GNU version 4.4.0 and later recognize the "target" attribute, but it
-       only has its multiversion meaning in 4.8.0 and later. */
     err = TRUE;
     goto done;
   }  /* if */
