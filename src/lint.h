@@ -303,6 +303,7 @@ Included from basic_hdrs.h in every compilation.
 /*lint -esym(765,glvalue_expr_reusable_copy)*/
 /*lint -esym(759,find_mv_target_specific_routine)*/
 /*lint -esym(765,find_mv_target_specific_routine)*/
+/*lint -esym(769,ec_resolver_routine_required)*/
 #endif /* !DO_IL_LOWERING */
 #if !BACK_END_IS_CP_GEN_BE
 /*lint -esym(714,is_address_of_string_constant)*/
