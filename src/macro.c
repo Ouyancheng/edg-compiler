@@ -3823,20 +3823,30 @@ static a_boolean
 			   Used to support
 			   __has_feature(cxx_contextual_conversions). */
 
+static a_boolean
+		attribute_deprecated_with_message;
+			/* TRUE if the "deprecated" attribute can take a
+			   string argument.  Used to support
+			   __has_feature(attribute_deprecated_with_message). */
+
 /*
-The following array describes all the clang __has_feature strings and WG21
-SG10 feature-test macros.  (The clang __has_extension macro also uses this
-table, in addition to testing the supported type traits pseudo-functions.)
-It is sorted by the clang __has_feature string so it can be used with
-bsearch when the __has_feature or __has_extension macro is encountered.
-The current contents reflect the 2013-11-27 version of WG21 SG10 SD-6 and
-clang version 3.5.
+The following array describes all the clang __has_feature/__has_extension
+feature strings and WG21 SG10 feature-test macros (type trait helpers can
+also be tested by the clang macros, but those are represented by a separate
+table).  It is sorted by the clang __has_feature string so it can be used
+with bsearch when the __has_feature or __has_extension macro is
+encountered.  The current contents reflect the 2013-11-27 version of WG21
+SG10 SD-6 and clang version 3.5.
 */
 static a_feature_support feature_support_list[] = {
   { "",
     &char16_t_and_char32_t_are_keywords,
     "__cpp_unicode_characters",
     "200704" },
+  { "attribute_deprecated_with_message",
+    &attribute_deprecated_with_message,
+    NULL,
+    NULL },
   { "cxx_access_control_sfinae",
     &access_control_sfinae,
     NULL,
@@ -4056,7 +4066,12 @@ END_EXTERN_C_BLOCK
 /*
 The following table (sorted for use with bsearch) has one entry for each
 type trait helper function for which support can be tested using the clang
-__has_extension macro.  This list reflects clang version 3.5.
+__has_feature/__has_extension macros.  Although the clang documentation
+says that these can be tested only by __has_extension and not by
+__has_feature, current clang versions treat the two macros identically.
+This list is maintained separately from the list of features to facilitate
+emulation of a potential future version of clang that does implement the
+documented distinction.  This list reflects clang version 3.5.
 */
 static a_const_char *clang_type_traits_helpers[] = {
   "has_nothrow_assign",
@@ -4078,8 +4093,9 @@ static a_const_char *clang_type_traits_helpers[] = {
   "is_interface_class",
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   /* The front end supports __is_literal_type, as does clang, but the
-     __has_extension macro only allows testing for __is_literal, which is
-     supported by clang but not by the front end.  Hence we omit: */
+     __has_feature/__has_extension macros only allow testing for
+     __is_literal, which is supported by clang but not by the front end.
+     Hence we omit: */
   /* "is_literal", */
   "is_pod",
   "is_polymorphic",
@@ -4094,6 +4110,13 @@ static a_const_char *clang_type_traits_helpers[] = {
 
 #define NUM_CLANG_TYPE_TRAITS \
   (sizeof(clang_type_traits_helpers) / sizeof(a_const_char *))
+
+/*
+Size of a buffer large enough to contain any supported feature name
+(including optional leading/trailing double underscores) and a terminating
+null character.
+*/
+#define MAX_CLANG_FEATURE_NAME_LEN 64
 
 #if BSEARCH_QSORT_FUNCTION_IS_EXTERN_C
 BEGIN_EXTERN_C_BLOCK
@@ -4123,13 +4146,17 @@ __has_builtin).  The argument must be an identifier, which means that
 either expanded_arg is an identifier or its first character is an
 ATTENTION_MARKER denoting the expansion of a macro invocation, which might
 itself be the expansion of a macro invocation, etc.  If the ultimate
-expansion is a simple identifier, return a pointer to that expansion;
-otherwise, report an error at error_pos and return NULL.
+expansion is not a simple identifier, report an error at error_pos and
+return NULL.  Otherwise, return a pointer to the identifier (after
+stripping leading/trailing double-underscores, if present).  The returned
+pointer may point into a local buffer, which will be overwritten by
+subsequent calls.
 */
 {
   a_source_line_modif_ptr slmp;
   int                     char_len;
   a_const_char            *p;
+  static char             buff[MAX_CLANG_FEATURE_NAME_LEN];
 
   while (*expanded_arg == ATTENTION_MARKER) {
     go_into_insertion(slmp, expanded_arg);
@@ -4146,6 +4173,15 @@ otherwise, report an error at error_pos and return NULL.
     pos_diagnostic(es_discretionary_error, ec_feature_test_macro_req_id,
                    error_pos);
     expanded_arg = NULL;
+  }  /* if */
+  if (expanded_arg != NULL && p - expanded_arg > 4 &&
+      p - expanded_arg < MAX_CLANG_FEATURE_NAME_LEN &&
+      expanded_arg[0] == '_' && expanded_arg[1] == '_' &&
+      p[-1] == '_' && p[-2] == '_') {
+    /* Need to strip off leading and trailing "__" sequences. */
+    strcpy(buff, expanded_arg + 2);
+    buff[p - expanded_arg - 4] = '\0';
+    expanded_arg = buff;
   }  /* if */
   return expanded_arg;
 }  /* clang_feature_test_id */
@@ -5595,57 +5631,40 @@ end_arg_expansion:;
          invocation had none or too many.  A diagnostic was issued above;
          here, just make the value 0 to indicate failure. */
       strcpy(repl_text, "0");
-    } else if (macro_symbol == clang_has_feature_symbol) {
-      /* The clang __has_feature macro.  Has the value 1 if the named
-         feature is available in the current execution of the front end
-         and 0 otherwise. */
+    } else if (macro_symbol == clang_has_feature_symbol ||
+               macro_symbol == clang_has_extension_symbol) {
+      /* This is the clang __has_feature or __has_extension macro.
+         (Although the clang documentation describes differences between
+         the two, current implementations treat them identically.)  The
+         result is the value 1 if the named feature or type trait helper
+         is available in the current execution of the front end and 0
+         otherwise. */
       a_const_char *feature_name = clang_feature_test_id(map->expanded_text,
-                                                         &arg_position);
+                                                           &arg_position);
+      a_boolean    feature_supported = FALSE;
       if (feature_name != NULL) {
-        feature =
+        /* First check to see if the specified identifier is the name of a
+           feature. */
+        feature = 
          (a_feature_support *)bsearch((a_bsearch_arg_type)feature_name,
                                       (a_bsearch_arg_type)feature_support_list,
                                       size_t_arg(NUM_FEATURES),
                                       sizeof(a_feature_support),
                                       compare_feature_names);
-      } else {
-        feature = NULL;
-      }  /* if */
-      if (feature != NULL && *feature->enabled) {
-        strcpy(repl_text, "1");
-      } else {
-        strcpy(repl_text, "0");
-      }  /* if */
-    } else if (macro_symbol == clang_has_extension_symbol) {
-      /* The clang __has_extension macro.  Has the value 1 if the named
-         feature or type-traits helper is available in the current
-         execution of the front end and 0 otherwise. */
-      a_const_char *extension_name = clang_feature_test_id(map->expanded_text,
-                                                           &arg_position);
-      a_boolean    extension_supported = FALSE;
-      if (extension_name != NULL) {
-        /* First check to see if the specified identifier is the name of a
-           feature. */
-        feature = 
-         (a_feature_support *)bsearch((a_bsearch_arg_type)extension_name,
-                                      (a_bsearch_arg_type)feature_support_list,
-                                      size_t_arg(NUM_FEATURES),
-                                      sizeof(a_feature_support),
-                                      compare_feature_names);
         if (feature != NULL) {
-          extension_supported = *feature->enabled;
+          feature_supported = *feature->enabled;
         } else if (type_traits_helpers_enabled) {
           /* The identifier is not the name of a feature, so check it
-             against the list of supported C++ type-traits helpers. */
-          extension_supported =
-                        (bsearch((a_bsearch_arg_type)extension_name,
+             against the list of supported C++ type trait helpers. */
+          feature_supported =
+                        (bsearch((a_bsearch_arg_type)feature_name,
                                  (a_bsearch_arg_type)clang_type_traits_helpers,
                                  size_t_arg(NUM_CLANG_TYPE_TRAITS),
                                  sizeof(a_const_char *),
                                  compare_type_traits_helper_names) != NULL);
         }  /* if */
       }  /* if */
-      strcpy(repl_text, extension_supported ? "1" : "0");
+      strcpy(repl_text, feature_supported ? "1" : "0");
     } else if (macro_symbol == clang_has_attribute_symbol) {
       /* The clang __has_attribute macro.  Has the value 1 if the named
          attribute is available in the current execution of the front end
@@ -8676,12 +8695,16 @@ to deallocate the buffer using free_general.
 
 static void init_gnu_predefined_macros(void)
 /*
-Enter symbols for the predefined macros of GNU C and C++.
+Enter symbols for the predefined macros of GNU C and C++.  (In clang mode,
+the version macros unconditionally represent version 4.2.1, regardless of
+the actual value of gnu_version, which can vary to select language feature
+support.)
 */
 {
-  unsigned long  major_num = (unsigned long)(gnu_version/10000),
-                 minor_num = (unsigned long)((gnu_version%10000)/100),
-                 patch_num = (unsigned long)(gnu_version%100);
+  unsigned long  version = clang_mode ? 40201 : gnu_version;
+  unsigned long  major_num = (unsigned long)(version/10000),
+                 minor_num = (unsigned long)((version%10000)/100),
+                 patch_num = (unsigned long)(version%100);
 
   /* Note that GNU C/C++ permits these macros to be redefined, so we do too. */
   (void)enter_predef_macro(conv_unsigned_long_to_str(major_num),
@@ -9304,6 +9327,7 @@ command line -D options.
        macros. */
     access_control_sfinae = cpp11_mode && !cpp11_sfinae_ignore_access;
     contextual_conversions = TRUE;
+    attribute_deprecated_with_message = (gnu_version >= 40500);
 #if DEFINE_PORTABLE_FEATURE_TEST_MACROS
     /* Add definitions as described by WG21 SG10 SD-6 for the features that
        are enabled in the current execution of the front end. */
