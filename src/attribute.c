@@ -5835,6 +5835,10 @@ attributes in C mode).
   /* New symbol points to the new routine and vice versa. */
   new_sym->variant.routine.ptr = target_routine;
   set_source_corresp(&target_routine->source_corresp, new_sym);
+  /* Copy storage class and linkage. */
+  target_routine->storage_class = representative->storage_class;
+  target_routine->source_corresp.name_linkage =
+                                   representative->source_corresp.name_linkage;
   /* Set parent pointer appropriately. */
   if (representative->source_corresp.is_class_member) {
     set_class_membership(new_sym, &target_routine->source_corresp,
