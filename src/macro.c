@@ -4076,10 +4076,11 @@ The following table (sorted for use with bsearch) has one entry for each
 type trait helper function for which support can be tested using the clang
 __has_feature/__has_extension macros.  Although the clang documentation
 says that these can be tested only by __has_extension and not by
-__has_feature, current clang versions treat the two macros identically.
-This list is maintained separately from the list of features to facilitate
-emulation of a potential future version of clang that does implement the
-documented distinction.  This list reflects clang version 3.5.
+__has_feature, current clang versions treat the two macros identically in
+this regard.  This list is maintained separately from the list of features
+to facilitate emulation of a potential future version of clang that does
+implement the documented distinction.  This list reflects clang version
+3.5.
 */
 static a_const_char *clang_type_traits_helpers[] = {
   "has_nothrow_assign",
@@ -5647,12 +5648,16 @@ end_arg_expansion:;
       strcpy(repl_text, "0");
     } else if (macro_symbol == clang_has_feature_symbol ||
                macro_symbol == clang_has_extension_symbol) {
-      /* This is the clang __has_feature or __has_extension macro.
-         (Although the clang documentation describes differences between
-         the two, current implementations treat them identically.)  The
-         result is the value 1 if the named feature or type trait helper
-         is available in the current execution of the front end and 0
-         otherwise. */
+      /* This is the clang __has_feature or __has_extension macro.  The
+         result is the value 1 if the named feature or type trait helper is
+         available in the current execution of the front end and 0
+         otherwise.  (Although the clang documentation describes some
+         differences between the two, current implementations treat them
+         nearly identically; the only exception is in C++03 mode for C++11
+         features that are accepted with a warning.  For those features
+         when running in C++03 mode, clang returns 0 for __has_feature but
+         1 for __has_extension.  The front end does not make that
+         distinction, so the two macros are treated equivalently here.) */
       a_const_char *feature_name = clang_feature_test_id(map, &arg_position);
       a_boolean    feature_supported = FALSE;
       if (feature_name != NULL) {

@@ -66,10 +66,10 @@ least 40500 -- see the change for EDGcpfe/12407).  For example, with
                                                             
 In addition, the clang compiler unconditionally defines the GNU version
 macros __GNUC__, __GNUG__, __GNUC_MINOR__, and __GNUC_PATCHLEVEL__ to
-reflect version 4.2.1, and the front end has been changed accordingly.
-(This change does not affect the value of gnu_version, which should
-normally be set to a later version for maximum compatibility with the clang
-implementation.)
+reflect version 4.2.1, and the front end has been changed to do the same in
+clang mode.  (This change does not affect the value of gnu_version, which
+should normally be set to a later version for maximum compatibility with
+the clang implementation.)
 
 
 4/11/14  [EDGcpfe/14889]
