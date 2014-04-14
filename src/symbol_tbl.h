@@ -4317,6 +4317,7 @@ extern void set_namespace_projection_symbol(a_symbol_ptr     proj_sym,
 
 extern a_symbol_ptr enter_namespace_projection_symbol(
                                             a_symbol_ptr    fund_sym,
+                                            a_boolean        is_using_decl,
                                             a_symbol_locator *location,
                                             a_scope_depth   scope_depth,
                                             a_boolean       suppress_error);

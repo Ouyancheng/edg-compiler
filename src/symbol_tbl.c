@@ -4555,7 +4555,10 @@ this is not allowed, an error will be issued by the caller.
     } else {
       a_symbol_ptr fund_new_sym = fundamental_symbol_of(new_sym);
       a_symbol_ptr fund_old_sym = fundamental_symbol_of(old_sym);
+      a_boolean    new_is_using_decl;
 
+      new_is_using_decl = symbol_is(new_sym, sk_namespace_projection) &&
+                          new_sym->variant.projection.is_using_decl;
       if (strict_ansi_mode &&
           (is_template_symbol(fund_new_sym) ||
            is_template_symbol(fund_old_sym) ||
@@ -4590,6 +4593,17 @@ this is not allowed, an error will be issued by the caller.
            namespace by normal lookups. */
         err = FALSE;
         if (new_is_namespace) {
+          if (insert_sym != NULL) *insert_sym = old_sym;
+        }  /* if */
+      } else if ((gpp_mode || microsoft_mode) && new_is_using_decl &&
+                 is_tag_symbol(fund_new_sym) &&
+                 symbol_is(fund_old_sym, sk_type)) {
+        /* The new symbol is a using-declaration to a tag symbol and the
+           old symbol is a typedef.  This is allowed in g++, clang, and
+           Microsoft modes.  g++ and clang find the typedef, while
+           Microsoft finds the using-declaration. */
+        err = FALSE;
+        if (gpp_mode) {
           if (insert_sym != NULL) *insert_sym = old_sym;
         }  /* if */
       } else if (!strict_ansi_mode &&
@@ -5565,17 +5579,17 @@ scope_depth is its depth in the scope stack.
 
 
 a_symbol_ptr enter_namespace_projection_symbol(a_symbol_ptr     fund_sym,
+                                               a_boolean        is_using_decl,
                                                a_symbol_locator *location,
                                                a_scope_depth    scope_depth,
                                                a_boolean        suppress_error)
 /*
 Create a namespace projection symbol, set it to point to fund_sym,
-and enter it in the symbol table.  synthesized is TRUE if this is a
-synthesized namespace projection symbol.  This routine is like enter_symbol,
-but it is only used to create namespace projection symbols.  enter_symbol
-should not be used to create namespace projection symbols because the
-fundamental symbol pointer must be set before link_symbol_into_symbol_table
-is called.
+and enter it in the symbol table.  is_using_decl is TRUE if this represents
+a using-declaration.  This routine is like enter_symbol, but it is only
+used to create namespace projection symbols.  enter_symbol should not be
+used to create namespace projection symbols because the fundamental symbol
+pointer must be set before link_symbol_into_symbol_table is called.
 */
 {
   a_symbol_ptr	sym_ptr;
@@ -5584,6 +5598,7 @@ is called.
                                              &location->source_position,
                                              scope_depth);
   sym_ptr->is_error = location->is_error;
+  sym_ptr->variant.projection.is_using_decl = is_using_decl;
   /* Set the locator to point to the symbol entered. */
   location->specific_symbol = sym_ptr;
   location->is_qualified_name = FALSE;
@@ -8288,7 +8303,8 @@ and global namespaces.
          symbol table. */
       enter_symbol_for_namespace_std(&locator);
       using_decl_sym = enter_namespace_projection_symbol(
-                                              sym, &locator, depth_scope_stack,
+                                              sym, /*is_using_decl=*/TRUE,
+                                              &locator, depth_scope_stack,
                                               /*suppress_redecl_error=*/FALSE);
       set_namespace_membership(using_decl_sym, (a_source_correspondence*)NULL,
                                std_namespace);
@@ -8344,7 +8360,9 @@ and global namespaces.
     a_symbol_ptr     sym = symbol_for(builtin_va_list_type);
     (void)make_using_decl(sym, &null_source_position, DEPTH_OF_FILE_SCOPE);
     clear_locator(&locator, &null_source_position);
-    (void)enter_namespace_projection_symbol(sym, &locator,
+    (void)enter_namespace_projection_symbol(sym,
+                                            /*is_using_decl=*/TRUE,
+                                            &locator,
                                             DEPTH_OF_FILE_SCOPE,
                                             /*suppress_error=*/TRUE);
     va_list_global_alias_has_been_created = TRUE;

@@ -14105,7 +14105,9 @@ none).
       suppress_redecl_error = identical_types(type1, type2);
     }  /* if */
     /* No overloading. */
-    new_sym = enter_namespace_projection_symbol(fund_sym, &locator,
+    new_sym = enter_namespace_projection_symbol(fund_sym,
+                                                /*is_using_decl=*/TRUE,
+                                                &locator,
                                                 depth_scope_stack,
                                                 suppress_redecl_error);
     /* If is_list is TRUE, there will be overloading on the next

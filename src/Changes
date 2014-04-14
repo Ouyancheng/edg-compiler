@@ -1,5 +1,24 @@
 Version 4.9
 
+4/14/14  [EDGcpfe/15036]
+Microsoft, GNU C++, and Clang compatibility: using-declaration and typedef
+in the same scope
+
+The Microsoft, g++, and clang compilers all allow a typedef to be followed
+by a using-declaration of the same name in a given scope.  When the name
+is used, g++ and clang find the typedef, while Microsoft finds the
+using-declaration.  We now emulate the appropriate behavior in g++,
+clang, and Microsoft modes.
+
+  typedef int A;
+  namespace N {
+    struct A { };
+  }
+  using N::A;  // must come after the typedef
+  A t = 0.0;   // GNU finds the typedef, Microsoft finds
+               // the using-declaration (resulting in an error)
+
+
 4/13/14  [EDGcpfe/14822]
 clang compatibility: macro expansion of feature-test macro arguments
 
