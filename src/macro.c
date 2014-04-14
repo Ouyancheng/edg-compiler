@@ -3830,7 +3830,7 @@ static a_boolean
 			   __has_feature(attribute_deprecated_with_message). */
 
 static a_boolean
-		decltype_kwd_enabled;
+		decltype_keyword_enabled;
 			/* TRUE if the C++11 "decltype" keyword is enabled.
 			   This is needed to support
 			   __has_feature(cxx_decltype) because
@@ -3894,7 +3894,7 @@ static a_feature_support feature_support_list[] = {
     NULL,
     NULL },
   { "cxx_decltype",
-    &decltype_kwd_enabled,
+    &decltype_keyword_enabled,
     "__cpp_decltype",
     "200707" },
   { "cxx_decltype_auto",
@@ -3902,7 +3902,7 @@ static a_feature_support feature_support_list[] = {
     "__cpp_decltype_auto",
     "201304" },
   { "cxx_decltype_incomplete_return_types",
-    &decltype_kwd_enabled,
+    &decltype_keyword_enabled,
     NULL,
     NULL },
   { "cxx_default_function_template_args",
@@ -9344,7 +9344,7 @@ command line -D options.
     access_control_sfinae = cpp11_mode && !cpp11_sfinae_ignore_access;
     contextual_conversions = TRUE;
     attribute_deprecated_with_message = (gnu_version >= 40500);
-    decltype_kwd_enabled = decltype_enabled &&
+    decltype_keyword_enabled = decltype_enabled &&
                                               !enable_underscore_decltype_only;
 #if DEFINE_PORTABLE_FEATURE_TEST_MACROS
     /* Add definitions as described by WG21 SG10 SD-6 for the features that
