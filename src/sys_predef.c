@@ -2818,18 +2818,14 @@ value must be copied before a second call is made.
   a_const_char *result = target_attributes[arch];
   static char  buffer[20];
 
-  if (arch == (a_multiversion_arch_kind)mvak_cpu_amdfam10h) {
-    /* Special case: "target" attribute is "amdfam10", but "arch_amdfam10h" is
-       required to match GNU mangling. */
-    result = "arch_amdfam10h";
-  } else if (is_mv_cpu_arch(arch)) {
+  if (is_mv_cpu_arch(arch)) {
     /* Replace "arch=" with "arch_" in CPU architecture cases. */
     check_assertion(strncmp(result, "arch=", 5) == 0 &&
                     strlen(result) + 1 < sizeof(buffer));
     (void)strncpy(buffer, result, sizeof(buffer));
     buffer[4] = '_';
     result = buffer;
-#if BACK_END_IS_C_GEN_BE
+#if REPLACE_SPECIAL_CHARACTERS_IN_MANGLED_NAMES
   } else if (strchr(result, '.') != NULL) {
     /* For C-generating back ends, mangled names can't have periods, so replace
        those with underscores. */
@@ -2840,7 +2836,7 @@ value must be copied before a second call is made.
       *ptr = '_';
     }  /* if */
     result = buffer;
-#endif /* BACK_END_IS_C_GEN_BE */
+#endif /* REPLACE_SPECIAL_CHARACTERS_IN_MANGLED_NAMES */
   }  /* if */
   return result;
 }  /* target_distinction */

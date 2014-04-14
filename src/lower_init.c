@@ -17555,13 +17555,18 @@ The "ifunc" mechanism is used to associate the resolver routine with
 
   check_assertion(is_multiversion_representative(representative) &&
                   representative->is_ifunc);
-  /* Give the resolver a name based on the "ifunc" symbol's name, but one that
-     won't conflict with other names.  Note that this name isn't the same
-     name that g++ gives to its resolver functions, but that shouldn't
-     matter. */
+#if IA64_ABI
+  /* In the IA64-ABI, generate a GNU-compatible name (if so configured)
+     for the resolver routine (as a side-effect, also generates one for the
+     ifunc).  Note that the name that is returned is a mangled name. */
+  res_name = mangled_resolver_name(representative);
+#else /* !IA64_ABI */
+  /* Generate a unique name for the resolver routine that won't conflict
+     with anything in the user space. */
   res_name = make_prefixed_object_name("__RES__",
                                        &representative->source_corresp,
                                        (an_il_entry_kind)iek_routine);
+#endif /* IA64_ABI */
   /* Create a "void (*f)(void)" routine type for the resolver (that's the
      signature for all ifunc resolver functions). */
   resolver_routine = make_rout_entry(res_name,

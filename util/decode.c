@@ -3865,18 +3865,24 @@ length returned the second time will be correct).
     write_id_str("thread_local initialization routine for ", dctl);
     end_ptr = demangle_identifier(id+7, dctl);
   } else if (start_of_id_is("__IFV__", id, dctl)) {
-    write_id_str("ifunc variable for ", dctl);
-    end_ptr = demangle_identifier(id+7, dctl);
-  } else if (start_of_id_is("__RES__", id, dctl)) {
     id += 7;
-    write_id_str("resolver function for ", dctl);
-    if (start_of_id_is("__MVI__", id, dctl)) {
+    write_id_str("ifunc variable for ", dctl);
+    if (start_of_id_is("__IFC__", id, dctl)) {
       /* This can be nested (and this routine isn't recursive). */
       write_id_str("ifunc function for ", dctl);
       id += 7;
     }  /* if */
     end_ptr = demangle_identifier(id, dctl);
-  } else if (start_of_id_is("__MVI__", id, dctl)) {
+  } else if (start_of_id_is("__RES__", id, dctl)) {
+    id += 7;
+    write_id_str("resolver function for ", dctl);
+    if (start_of_id_is("__IFC__", id, dctl)) {
+      /* This can be nested (and this routine isn't recursive). */
+      write_id_str("ifunc function for ", dctl);
+      id += 7;
+    }  /* if */
+    end_ptr = demangle_identifier(id, dctl);
+  } else if (start_of_id_is("__IFC__", id, dctl)) {
     write_id_str("ifunc function for ", dctl);
     end_ptr = demangle_identifier(id+7, dctl);
   } else if (start_of_id_is("__TGT__", id, dctl)) {
