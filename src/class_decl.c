@@ -28206,7 +28206,7 @@ classes.
            curr_partial_body != NULL;
            curr_partial_body = curr_partial_body->next) {
         a_token_cache_ptr body_cache = curr_partial_body->body_cache;
-        if (body_cache->token_count != 0) {
+        if (body_cache->first_token != NULL) {
           copy_tokens_from_cache(body_cache,
                                  body_cache->first_token
                                                       ->token_sequence_number,
