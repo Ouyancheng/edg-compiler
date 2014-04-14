@@ -1147,9 +1147,9 @@ static int attr_family_seen[(int)ak_last];
 			   attributes. */
 
 
-an_attr_name_map_entry_ptr *lookup_attribute_name(
-                                                a_const_char        *name,
-                                                an_attribute_family family)
+static an_attr_name_map_entry_ptr *lookup_attribute_name(
+                                                    a_const_char        *name,
+                                                    an_attribute_family family)
 /*
 Look up name in the attr_name_map hash table (which is initialized if this
 is its first use).  If family is af_gnu, the optional leading and trailing
