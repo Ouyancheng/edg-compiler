@@ -1866,7 +1866,7 @@ protected:
       buffer << return_type()->get_string(expand_unresolved_types);
     }  /* if */
 #if 0
-    /* FIXME: Calling conventions are not currently emitted. */
+    /* Calling conventions are not currently emitted. */
     switch (calling_convention_) {
       case IMAGE_CEE_CS_CALLCONV_C:
         buffer << L" __cdecl ";
@@ -2774,8 +2774,6 @@ public:
   {
     bool is_platform_winmd = false;
     if (cppcx_enabled && assembly_index() == 1) {
-      /* FIXME: This should use start_of_file_name and compare_file_names to
-         compare normalized names. */
       auto last_backslash_index = assembly_path_.rfind(L'\\');
       auto compare_index = (last_backslash_index == wstring::npos) ?
                                                  0 : last_backslash_index + 1;
@@ -5371,13 +5369,14 @@ bool a_custom_attribute_list::process_attribute(
         /* Skip the custom attribute if the class is inaccessible. */
         result = false;
       } else {
-        /* FIXME: Skip the custom attribute if the constructor is
+        /* We should skip the custom attribute if the constructor is
            inaccessible.  This will require doing something similar to
            an_import_scope::get_overridden_name to map an mdtMemberRef
            to an mdtMethodDef.  Because the standard attributes have public
-           constructors, this is only necessary in the
-           cpp_cli_all_custom_attributes case, which is not used by default,
-           so implementing this behavior is not of critical importance. */
+           constructors, this is only necessary in when the flag
+           cpp_cli_all_custom_attributes is used, which is not currently the
+           case (therefore, implementing this behavior is not an immediate
+           priority). */
       }  /* if */
     }  /* if */
   }  /* if */
@@ -6024,12 +6023,11 @@ overrides.
                                                    &count_method_impls);
           CHECK_API_RESULT(hr, EnumMethodImpls);
           for (ULONG i = 0; i < count_method_impls; ++i) {
-            /* FIXME: The MethodImpl table in the metadata is permitted to use
-               an mdtMemberRef token to refer to the method in this class that
-               is a named override.  This is currently not supported.  Adding
-               such support would require doing something similar to
-               get_overridden_name to map an mdtMemberRef to an
-               mdtMethodDef. */
+            /* The MethodImpl table in the metadata is permitted to use an
+               mdtMemberRef token to refer to a named-override method in this
+               class.  This is currently not supported.  Adding such support
+               would require doing something similar to get_overridden_name to
+               map an mdtMemberRef to an mdtMethodDef. */
             check_assertion(TypeFromToken(method_bodies[i]) == mdtMethodDef);
             auto method_definition = import_scope_.get_method_definition(
                                                             method_bodies[i]);
@@ -6572,11 +6570,10 @@ omitted.
         /* Emit any custom attributes for the type. */
         if (!is_nested && !define_all_types &&
             kind == a_type_definition::tdk_enum_class) {
-          /* FIXME: Importing custom attributes on namespace-scoped enum types
-             causes declaration ordering problems.  This can be resolved if we
-             add support for importing enums as forward-declarations and
-             importing their definition on-demand, as is done for other
-             types. */
+          /* Importing custom attributes on namespace-scoped enum types would
+             currently cause declaration ordering problems.  This can be
+             solved if we first import enums as forward declarations and
+             import their definitions on-demand, as is done for other types. */
         } else {
           type_definition.write_custom_attributes(buffer, typedef_token);
         }  /* if */
@@ -6997,7 +6994,7 @@ an override specifier.
              member function and a virtual property or event accessor method to
              have the same name, arity, and number of parameters.  This call to
              get_overridden_name would potentially return the wrong method name
-             in that highly unlikely situation. FIXME */
+             in that highly unlikely situation. */
           overridden_name = import_scope.get_overridden_name(
                                                       *method_list[0],
                                                       method_list[0]->token(),
@@ -7403,9 +7400,9 @@ Decode a type signature that is modified with a custom type modifier.
     type->add_qualifier_flags(a_type_wrapper::qf_volatile);
   }  /* if */
   if ((modifier_flags & tmf_is_cxx_reference) != 0) {
-    /* FIXME: This modifier was formerly used to encode reference types when
+    /* This modifier was formerly used to encode reference types when
        compiling with Microsoft's Managed Extensions for C++ (now superseded
-       by C++/CLI).  Importing such metadata is not yet supported. */
+       by C++/CLI).  Importing such metadata is not supported. */
   }  /* if */
   if ((modifier_flags & tmf_is_explicitly_dereferenced) != 0) {
     /* An interior_ptr is encoded as an explicitly dereferenced tracking
@@ -8142,7 +8139,6 @@ Returns the source code for the value.
     a_const_type_wrapper_ptr underlying_type;
     auto                     indirection = cast_type->as_indirection();
     if (indirection != nullptr) {
-      // FIXME daveed unexpected_condition();
       underlying_type = indirection->underlying_type();
     } else {
       underlying_type = cast_type;
@@ -8387,8 +8383,6 @@ public:
   assembly_path.  Returns 0 if the assembly has not been imported.
   */
   {
-    /* FIXME: This should use compare_file_names to compare normalized
-       names. */
     auto begin = assemblies_.begin();
     auto end = assemblies_.end();
     auto result = find_if(begin, end,
@@ -8758,10 +8752,10 @@ a_const_class_type_wrapper_ptr an_import_scope::type_from_typeref(
                                             type_name);
     CHECK_API_RESULT(hr, GetTypeRefProps);
     if (IsNilToken(resolution_scope)) {
-      /* FIXME: Exported types are not yet supported.  In this case,
-         there shall be a row in the ExportedType table for this Type.
-         Its Implementation field shall contain a File token or an
-         AssemblyRef token that says where the type is defined.  */
+      /* Exported types are not yet supported.  In this case, there shall be a
+         row in the ExportedType table for this Type.  Its Implementation
+         field shall contain a File token or an AssemblyRef token that says
+         where the type is defined.  */
     } else {
       switch (TypeFromToken(resolution_scope)) {
         case mdtTypeRef:
