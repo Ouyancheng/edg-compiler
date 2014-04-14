@@ -1023,7 +1023,7 @@ default value of the microsoft_version variable.
 #endif /* ifndef DEFAULT_MICROSOFT_VERSION */
 
 /*
-Flag that provides the default value of microsoft_version variable
+Flag that provides the default value of the microsoft_version variable
 (see DEFAULT_MICROSOFT_VERSION above for more information) when
 the C++/CLI or C++/CX dialect is being used.
 */
