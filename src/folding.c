@@ -7391,30 +7391,6 @@ are known not to throw exceptions, or if it is an array of such a class type.
   return result;
 }  /* has_nothrow_move_assign */
 
-#if /*FIXME*/0
-static void fold_is_cppcx_type(an_expr_node_ptr   expr,
-                               a_constant_ptr     constant,
-                               a_boolean          maintain_expression,
-                               a_source_position  *pos,
-                               a_boolean          complete_class_property)
-/*
-*/
-{
-  en_expr_node_ptr  arg = expr->variant.builtin_operation.operands;
-  a_boolean result = TRUE;
-
-  if (is_template_dependent_type(type)) {
-    clear_constant(constant, (a_constant_repr_kind)ck_template_param);
-    set_template_param_constant_kind(
-                   constant, (a_template_param_constant_kind)tpck_expression);
-    constant->variant.template_param.variant.expr = expr;
-  } else {
-    a_boolean  result = TRUE;
-
-
-  }  /* if */
-}
-#endif /* 0 */
 
 static void fold_unary_type_trait_helper(
                                     an_expr_node_ptr   expr,
@@ -7564,7 +7540,8 @@ constant will be set as well.
           result = is_immediate_enum_type(type);
           break;
         case bok_is_valid_winrt_type:
-          /* FIXME (daveed): Is this really always TRUE? */
+          /* The result of __is_valid_winrt_type is somewhat complex.  For now,
+             we always produce TRUE. */
           result = TRUE;
           break;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
@@ -7800,7 +7777,8 @@ constant will be set as well.
         result = cli_class_type_kind_is(type, cctk_value);
         break;
       case bok_is_valid_winrt_type:
-        /* FIXME (daveed): Is this really always TRUE? */
+          /* The result of __is_valid_winrt_type is somewhat complex.  For now,
+             we always produce TRUE. */
         result = TRUE;
         break;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
