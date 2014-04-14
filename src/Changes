@@ -1,5 +1,18 @@
 Version 4.9
 
+4/13/14  [EDGcpfe/14822]
+clang compatibility: macro expansion of feature-test macro arguments
+
+Beginning with version 3.3, clang does not macro-expand the arguments of
+the feature-test macros (__has_feature, etc.).  The front end previously
+performed that macro expansion unconditionally; now it only does so with
+clang_version < 30300.  For example:
+
+  #define IS_POD is_pod
+  int i = __has_extension(IS_POD);  // 1 for clang_version < 30300,
+                                    // 0 for clang_version >= 30300
+
+
 4/13/14  [EDGcpfe/14847]
 clang compatibility: version and mode dependencies in __has_attribute
 

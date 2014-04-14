@@ -4145,15 +4145,16 @@ with the type traits helper name to which helper_ptr points.
 END_EXTERN_C_BLOCK
 #endif /* BSEARCH_QSORT_FUNCTION_IS_EXTERN_C */
 
-static a_const_char *clang_feature_test_id(a_const_char      *expanded_arg,
+static a_const_char *clang_feature_test_id(a_macro_arg_ptr   macro_arg,
                                            a_source_position *error_pos)
 /*
-expanded_arg is a pointer to the expanded text of the argument of a clang
-feature-test macro (__has_feature, __has_extension, __has_attribute, or
-__has_builtin).  The argument must be an identifier, which means that
-either expanded_arg is an identifier or its first character is an
-ATTENTION_MARKER denoting the expansion of a macro invocation, which might
-itself be the expansion of a macro invocation, etc.  If the ultimate
+macro_arg is the argument of a clang feature-test macro (__has_feature,
+__has_extension, __has_attribute, or __has_builtin); whether the raw_text
+or expanded_text is used depends on the value of clang_version.  The
+argument must be an identifier, which means that either the text is an
+identifier or (if the expanded text is being used) its first character is
+an ATTENTION_MARKER denoting the expansion of a macro invocation, which
+might itself be the expansion of a macro invocation, etc.  If the ultimate
 expansion is not a simple identifier, report an error at error_pos and
 return NULL.  Otherwise, return a pointer to the identifier (after
 stripping leading/trailing double-underscores, if present).  The returned
@@ -4163,35 +4164,40 @@ subsequent calls.
 {
   a_source_line_modif_ptr slmp;
   int                     char_len;
+  a_const_char            *id;
   a_const_char            *p;
   static char             buff[MAX_CLANG_FEATURE_NAME_LEN];
 
-  while (*expanded_arg == ATTENTION_MARKER) {
-    go_into_insertion(slmp, expanded_arg);
+  if (clang_version < 30300) {
+    /* Versions before 3.3 macro-expand the argument. */
+    id = macro_arg->expanded_text;
+  } else {
+    /* Versions 3.3 and later do not macro-expand the argument. */
+    id = macro_arg->raw_text;
+  }  /* if */
+  while (*id == ATTENTION_MARKER) {
+    go_into_insertion(slmp, id);
   }  /* while */
   /* Check to ensure that the expanded string is an identifier. */
-  for (p = expanded_arg; *p != 0; p += char_len) {
-    if (!is_identifier_char(p, &char_len, p == expanded_arg)) {
+  for (p = id; *p != 0; p += char_len) {
+    if (!is_identifier_char(p, &char_len, p == id)) {
       break;
     }  /* if */
   }  /* for */
   if (p[0] != LE_ESCAPE || p[1] != LE_END_OF_INSERTION) {
-    /* The expanded argument contains something other than a simple
-       identifier. */
+    /* The argument contains something other than a simple identifier. */
     pos_diagnostic(es_discretionary_error, ec_feature_test_macro_req_id,
                    error_pos);
-    expanded_arg = NULL;
+    id = NULL;
   }  /* if */
-  if (expanded_arg != NULL && p - expanded_arg > 4 &&
-      p - expanded_arg < MAX_CLANG_FEATURE_NAME_LEN &&
-      expanded_arg[0] == '_' && expanded_arg[1] == '_' &&
-      p[-1] == '_' && p[-2] == '_') {
+  if (id != NULL && p - id > 4 && p - id < MAX_CLANG_FEATURE_NAME_LEN &&
+      id[0] == '_' && id[1] == '_' && p[-1] == '_' && p[-2] == '_') {
     /* Need to strip off leading and trailing "__" sequences. */
-    strcpy(buff, expanded_arg + 2);
-    buff[p - expanded_arg - 4] = '\0';
-    expanded_arg = buff;
+    strcpy(buff, id + 2);
+    buff[p - id - 4] = '\0';
+    id = buff;
   }  /* if */
-  return expanded_arg;
+  return id;
 }  /* clang_feature_test_id */
 
 
@@ -5647,8 +5653,7 @@ end_arg_expansion:;
          result is the value 1 if the named feature or type trait helper
          is available in the current execution of the front end and 0
          otherwise. */
-      a_const_char *feature_name = clang_feature_test_id(map->expanded_text,
-                                                           &arg_position);
+      a_const_char *feature_name = clang_feature_test_id(map, &arg_position);
       a_boolean    feature_supported = FALSE;
       if (feature_name != NULL) {
         /* First check to see if the specified identifier is the name of a
@@ -5677,8 +5682,7 @@ end_arg_expansion:;
       /* The clang __has_attribute macro.  Has the value 1 if the named
          attribute is available in the current execution of the front end
          and 0 otherwise. */
-      a_const_char *attribute_name = clang_feature_test_id(map->expanded_text,
-                                                           &arg_position);
+      a_const_char *attribute_name = clang_feature_test_id(map, &arg_position);
       if (attribute_name != NULL &&
           gnu_attribute_is_supported(attribute_name)) {
         strcpy(repl_text, "1");
@@ -5690,8 +5694,7 @@ end_arg_expansion:;
          builtin function is available in the current execution of the
          front end and 0 otherwise. */
 #if GNU_EXTENSIONS_ALLOWED
-      a_const_char *builtin_name = clang_feature_test_id(map->expanded_text,
-                                                         &arg_position);
+      a_const_char *builtin_name = clang_feature_test_id(map, &arg_position);
       if (builtin_name != NULL &&
           gnu_builtin_func_by_name(builtin_name) != NULL) {
         strcpy(repl_text, "1");
@@ -5701,7 +5704,7 @@ end_arg_expansion:;
 #else /* !GNU_EXTENSIONS_ALLOWED */
       /* There are no GNU builtin functions.  Just check the argument for
          correctness and give the value 0. */
-      (void)clang_feature_test_id(map->expanded_text, &arg_position);
+      (void)clang_feature_test_id(map, &arg_position);
       strcpy(repl_text, "0");
 #endif /* GNU_EXTENSIONS_ALLOWED */
     } else {
