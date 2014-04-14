@@ -7822,7 +7822,10 @@ current execution of the front end, FALSE otherwise.
       dummy_attr->family = (a_byte_attribute_family)af_gnu;
     }  /* if */
     dummy_attr->name = name;
+    /* Scan through the attributes with this name to see if one meets the
+       criteria of the current emulation mode and version. */
     for (ep = *p_ep; !supported && ep != NULL; ep = ep->next) {
+      /* Get the condition string for the current attribute. */
       a_const_char *cond = ep->descr->cond;
       if (*cond == '1') {
         /* Skip a leading "1" (which indicates that the attribute should
