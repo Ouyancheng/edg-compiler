@@ -1102,6 +1102,7 @@ extern int fileno(FILE *);
 /*lint -esym(769,ec_cppcx_invalid_delegate_object)*/
 /*lint -esym(769,ec_cppcx_non_const_array_parameter)*/
 /*lint -esym(769,ec_invalid_base_for_ms_attributes)*/
+/*lint -esym(769,ec_enum_in_managed_class_missing_definition)*/
 /*lint -esym(759,free_attachments_to_operand)*/
 /*lint -esym(765,free_attachments_to_operand)*/
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
