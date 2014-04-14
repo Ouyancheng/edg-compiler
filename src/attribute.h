@@ -281,6 +281,8 @@ extern an_attr_name_map_entry_ptr *lookup_attribute_name(
                                                    a_const_char        *name,
                                                    an_attribute_family family);
 
+extern a_boolean gnu_attribute_is_supported(a_const_char *name);
+
 extern void attribute_one_time_init(void);
 
 extern void attribute_trans_unit_init(void);

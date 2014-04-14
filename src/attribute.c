@@ -7799,6 +7799,43 @@ Copy any GNU type properties (set by attributes) in type dst to type src.
 
 #endif /* GNU_EXTENSIONS_ALLOWED */
 
+/*
+A dummy attribute used solely for the processing of gnu_attribute_is_supported.
+*/
+static an_attribute_ptr dummy_attr;
+
+a_boolean gnu_attribute_is_supported(a_const_char *name)
+/*
+Return TRUE if name is the name of a GNU attribute that is enabled in the
+current execution of the front end, FALSE otherwise.
+*/
+{
+  an_attr_name_map_entry_ptr ep;
+  an_attr_name_map_entry_ptr *p_ep = lookup_attribute_name(name, af_gnu);
+  a_boolean                  supported = FALSE;
+
+  if (p_ep != NULL) {
+    check_assertion(*p_ep != NULL);
+    if (dummy_attr == NULL) {
+      /* Allocate a dummy attribute for cond_matches_gnu_attr_mode. */
+      dummy_attr = alloc_attribute();
+      dummy_attr->family = (a_byte_attribute_family)af_gnu;
+    }  /* if */
+    dummy_attr->name = name;
+    for (ep = *p_ep; !supported && ep != NULL; ep = ep->next) {
+      a_const_char *cond = ep->descr->cond;
+      if (*cond == '1') {
+        /* Skip a leading "1" (which indicates that the attribute should
+           appear at most once in a group). */
+        ++cond;
+      }  /* if */
+      supported = cond_matches_gnu_attr_mode(cond, dummy_attr);
+    }  /* for */
+  }  /* if */
+  return supported;
+}  /* gnu_attribute_is_supported */
+
+
 void attribute_one_time_init(void)
 /*
 Do one-time initialization of variables related to the processing of
@@ -7889,6 +7926,7 @@ be initialized for each compilation.
   memzero((char*)attr_family_seen, sizeof(attr_family_seen));
   attr_name_map = NULL;
   attr_corresp_checking_map = NULL;
+  dummy_attr = NULL;
 }  /* attribute_init */
 
 #if GNU_EXTENSIONS_ALLOWED || REDEFINE_EXTNAME_PRAGMA_ENABLED

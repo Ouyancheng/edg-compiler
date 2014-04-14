@@ -1,5 +1,18 @@
 Version 4.9
 
+4/13/14  [EDGcpfe/14847]
+clang compatibility: version and mode dependencies in __has_attribute
+
+The front end previously gave the clang __has_attribute macro the value 1
+if the named attribute is supported by either gcc or g++ mode, ignoring
+which mode is in effect and the current value of gnu_version.  This has now
+been changed so that the result of __has_attribute is 1 only if the
+attribute is supported with the current mode and gnu_version.  For example:
+
+  int i = __has_attribute(flatten);  // Previous unconditionally 1, now
+                                     // 0 for gnu_version < 40000.
+
+
 4/13/14  [EDGcpfe/14871]
 clang compatibility: __has_feature(cxx_decltype) in non-C++11 mode
 

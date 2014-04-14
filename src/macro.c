@@ -5680,7 +5680,7 @@ end_arg_expansion:;
       a_const_char *attribute_name = clang_feature_test_id(map->expanded_text,
                                                            &arg_position);
       if (attribute_name != NULL &&
-          lookup_attribute_name(attribute_name, af_gnu) != NULL) {
+          gnu_attribute_is_supported(attribute_name)) {
         strcpy(repl_text, "1");
       } else {
         strcpy(repl_text, "0");
