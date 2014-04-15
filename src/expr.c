@@ -12144,7 +12144,7 @@ __builtin_complex construct.
       /* __builtin_complex is applied to two constant values: Produce a
          constant result. */
       a_constant  result_con;
-      set_constant_kind(&result_con, (a_constant_repr_kind)ck_complex);
+      clear_constant(&result_con, (a_constant_repr_kind)ck_complex);
       result_con.type = result_type;
       result_con.variant.complex_value->real = node1->variant.constant
                                                     ->variant.float_value;
