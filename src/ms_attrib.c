@@ -1200,12 +1200,6 @@ cache containing all of the tokens of the attribute block.
   expand_macros = TRUE;
   do_string_literal_concatenation = TRUE;
   fetch_pp_tokens = FALSE;
-  /* FIXME: Keyword recognition cannot be suppressed while scanning
-     C++/CLI custom attributes.  However, this still needs to be done when
-     scanning the arguments for non-custom attributes.
-  suppress_keyword_recognition = TRUE;
-     FIXME (daveed): Perhaps fixed now.
-  */
   in_microsoft_attribute = TRUE;
   clear_token_cache(&attribute_cache, /*reusable=*/TRUE);
   /* Cache the current token and advance past it. */
