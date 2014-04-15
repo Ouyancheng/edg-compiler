@@ -6310,10 +6310,11 @@ template.  dsi_flags is the set of input flags passed to decl_specifiers.
       error_if_cppcx_public_global_type(enum_type, &cli_visibility_pos);
     }  /* if */
   } else {
-    if (cli_or_cx_enabled && class_of_which_a_member != NULL &&
+    if (cli_or_cx_enabled && is_scoped_enum &&
+        class_of_which_a_member != NULL &&
         is_managed_class_type(class_of_which_a_member)) {
-      /* Enum types in managed classes cannot be "forward-declared" (not even
-         using C++11-style opaque-enum declaration syntax). */
+      /* Scoped enum types in managed classes cannot be "forward-declared"
+         (not even using C++11-style opaque-enum declaration syntax). */
       pos_error(ec_enum_in_managed_class_missing_definition, &pos_curr_token);
     }  /* if */
   }  /* if */
