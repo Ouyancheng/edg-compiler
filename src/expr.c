@@ -11867,6 +11867,7 @@ __builtin_shuffle construct.
     /* Normal, non-rescan, processing. */
     /* Pass over the __builtin_shuffle token. */
     check_assertion(curr_token == tok_builtin_shuffle);
+    start_pos = pos_curr_token;
     (void)get_token();
     /* Check for and pass over the left parenthesis. */
     (void)required_token(tok_lparen, ec_exp_lparen);
