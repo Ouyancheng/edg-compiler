@@ -11571,8 +11571,8 @@ expression, and return the result in *result (or an error indication in
 
 
 static void scan_is_valid_winrt_type(a_builtin_operation_kind_tag kind,
-                               a_rescan_control_block       *rcblock,
-                               an_operand                   *result)
+                                     a_rescan_control_block       *rcblock,
+                                     an_operand                   *result)
 /*
 Scan a constant-expression of the form
     __is_valid_winrt_type (T)
@@ -38315,7 +38315,7 @@ alternative callable from outside, see rescan_expr_with_substitution.
         scan_is_assignable(bok_is_nothrow_assignable, rcblock, result);
         break;
       case tok_is_valid_winrt_type:
-        /* __is_trivially_destructible construct: */
+        /* __is_valid_winrt_type construct: */
         scan_is_valid_winrt_type(bok_is_valid_winrt_type, rcblock, result);
         break;
       case tok_is_trivially_assignable:

@@ -121,7 +121,7 @@ extern a_boolean scan_class_definition(
                                 a_type_ptr          class_type,
                                 a_decl_parse_state  *dps,
                                 a_scope_depth       effective_decl_level,
-                                   a_boolean        is_partial,
+                                a_boolean           is_partial,
                                 a_boolean           is_local_class,
                                 a_boolean           delayed_nested_class_def,
                                 a_boolean           is_template_instantiation,

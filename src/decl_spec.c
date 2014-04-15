@@ -4610,7 +4610,7 @@ typerefs are dropped from *p_base_type.
        class type.  (This cannot be tested while loading the System::...
        metadata.) */
     pos_error(cppcx_enabled ? ec_cppcx_enum_base_has_no_platform_counterpart
-                               : ec_cli_enum_base_has_no_system_counterpart,
+                            : ec_cli_enum_base_has_no_system_counterpart,
               pos_type);
   } else {
     valid = TRUE;
