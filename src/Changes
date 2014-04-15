@@ -1,5 +1,42 @@
 Version 4.9
 
+4/15/14  [EDGcpfe/14790]
+Preliminary support for C++/CX
+
+The front end now includes support for C++/CX, a set of extensions designed
+by Microsoft to support the "Windows Runtime" (or WinRT) platform.  When the
+new configuration macro CPPCX_ENABLING_POSSIBLE is TRUE, the extensions can be
+enabled through the --cppcx command-line option or by setting the configuration
+macro DEFAULT_CPPCX_ENABLED to TRUE.
+
+As with C++/CLI, IL lowering is not available in C++/CX mode, and hence the
+C-generating back end cannot be used when those features are enabled.
+
+The changes required to implement this additional dialect are significant.
+They're considered "preliminary" in that a number of refinements are planned
+in the near future, but the resulting changes are not expected to dramatically
+affect the IL representation.
+
+
+4/15/14  [EDGcpfe/14790]
+C++/CLI: Custom Attributes
+
+C++/CLI allows Microsoft-style bracketed attributes to be introduced through
+classes deriving from System::Attribute.  This is now supported by the front
+end.  For example:
+
+  using namespace System;
+  [System::AttributeUsage(AttributeTargets::Class, AllowMultiple=true)]
+  public ref class MyAttr : public Attribute {
+    // A new, custom attribute.
+    MyAttr(String^) {}
+  };
+  [MyAttr("Message")] ref struct RS {};
+
+Various other improvements to the emulation of Microsoft-style bracketed
+attributes have been made as well.
+
+
 4/14/14  [EDGcpfe/15036]
 Microsoft, GNU C++, and Clang compatibility: using-declaration and typedef
 in the same scope
