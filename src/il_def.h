@@ -7183,8 +7183,7 @@ typedef struct a_vcall_offset_entry {
 Entry describing a single C++/CX partial class body.
 */
 typedef struct a_partial_class_body  *a_partial_class_body_ptr;
-typedef struct a_partial_class_body
-{
+typedef struct a_partial_class_body {
   a_partial_class_body_ptr
 		next;
 			/* Pointer to the next partial body in this linked
@@ -7269,8 +7268,7 @@ Values that identify a target for a Microsoft attribute.
 
 /* Entry describing additional information for custom Microsoft attributes. */
 typedef struct an_ms_attribute_usage *an_ms_attribute_usage_ptr;
-typedef struct an_ms_attribute_usage
-{
+typedef struct an_ms_attribute_usage {
   an_ms_attribute_target
 		valid_on;
 			/* Identifies the kinds of entities to which the
