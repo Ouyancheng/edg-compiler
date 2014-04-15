@@ -27,7 +27,7 @@ end.  For example:
 
   using namespace System;
   [System::AttributeUsage(AttributeTargets::Class, AllowMultiple=true)]
-  public ref class MyAttr : public Attribute {
+  public ref struct MyAttr : public Attribute {
     // A new, custom attribute.
     MyAttr(String^) {}
   };
