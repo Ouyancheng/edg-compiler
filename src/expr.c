@@ -16229,9 +16229,11 @@ delegate initializer, given by rcblock->argument_list.
     if (template_case) {
       prep_generic_operand(function_operand);
     } else if (functor_case) {
-      /* FIXME: Determine if objects of the class type can be called with the
-         delegate parameters (via a conversion to pointer-to-function or a
-         function call operator that matches the delegate). */
+      /* We currently assume that the given functor is compatible with the
+         delegate (i.e., that the delegate parameters can be forwarded to the
+         functor, either through a matching function call operator, or via a
+         conversion to a pointer-to-function).  This really should be checked
+         for explicitly, however. */
     } else if (is_indefinite_function_operand(function_operand)) {
       /* For an overloaded function, we have to select the one that matches
          based on the type.  We suppress the final adjustment cast so
