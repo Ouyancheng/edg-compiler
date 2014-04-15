@@ -1276,7 +1276,7 @@ System::Attribute, unlike direct use of the AttributeUsage attribute).
     a_boolean     err = FALSE;
     if (cppcli_enabled) {
       /* Check for custom attributes. */
-      /* FIXME: C++/CX custom attributes are not yet supported.  The primary
+      /* C++/CX custom attributes are not yet supported.  The primary
          blocking issue is that attribute processing needs to be deferred until
          the class definition is complete in order for name lookup to function
          correctly. */
@@ -1609,10 +1609,10 @@ the given type.
         attribute_usage->allow_multiple = FALSE;
         attribute_usage->inherited = TRUE;
       } else {
-        /* FIXME: Attribute processing needs to be deferred until the class
+        /* We do not yet defer attribute processing until the class
            definition is complete in order to be able to inherit the
            attribute usage from the base class. */
-#if /*FIXME*/0
+#if 0
         check_assertion(is_cli_attribute_type(type));
         a_base_class_ptr  bcp = base_classes_of(type);
         for (; bcp != NULL; bcp = bcp->next) {
@@ -2587,7 +2587,7 @@ otherwise, issue any appropriate diagnostics and return FALSE.
                       is_immediate_class_type((a_type_ptr)entity));
       is_attribute_usage_attribute = TRUE;
 #if 0
-      /* FIXME: Attribute processing needs to be deferred until the class
+      /* We do not yet defer attribute processing until the class
          definition is complete in order to be able to issue this error. */
       if (!is_cli_attribute_type((a_type_ptr)entity)) {
         pos_ty_error(ec_cli_invalid_use_of_attribute_usage_attribute,
@@ -2607,7 +2607,7 @@ ec_cli_invalid_use_of_attribute_usage_attribute;;
       check_assertion(kind == iek_type &&
                       is_immediate_class_type((a_type_ptr)entity));
 #if 0
-      /* FIXME: Attribute processing needs to be deferred until the class
+      /* We do not yet defer attribute processing until the class
          definition is complete in order to be able to issue this error. */
       if (!is_cli_attribute_type((a_type_ptr)entity)) {
         pos_ty_error(ec_cli_invalid_use_of_attribute_usage_attribute,
@@ -2629,9 +2629,10 @@ ec_cli_invalid_use_of_attribute_usage_attribute;;
       /* The attribute usage is unknown because it is a template-dependent
          or error type; assume allow_multiple is TRUE. */
     } else if (!attribute_usage->allow_multiple) {
-      /* FIXME: Issue an error if an attribute of the same type and target was
-         previously applied to this entity.  Definitions must contain a
-         superset of the attributes applied to an earlier declaration. */
+      /* We do not yet issue an error if an attribute of the same type and
+         target was previously applied to this entity.  Definitions must
+         contain a superset of the attributes applied to an earlier
+         declaration. */
     }  /* if */
   }  /* if */
   if (result) {
@@ -2644,11 +2645,11 @@ ec_cli_invalid_use_of_attribute_usage_attribute;;
       }  /* if */
     } else if (is_cli_type_of_kind(attribute_type,
                                    csk_system_obsolete_attribute)) {
-      /* FIXME: Record the use of the System::ObsoleteAttribute in the entity
-         and issue a warning if that entity is used. */
+      /* We should record the use of the System::ObsoleteAttribute in the
+         entity and issue a warning if that entity is used. */
     } else if (is_cli_type_of_kind(attribute_type,
                                    csk_system_flags_attribute)) {
-      /* FIXME: Record the use of the System::FlagsAttribute in the enum
+      /* We should record the use of the System::FlagsAttribute in the enum
          type. */
     } else if (is_allow_multiple_attribute) {
       an_ms_attribute_usage_ptr attribute_usage;
@@ -2660,7 +2661,7 @@ ec_cli_invalid_use_of_attribute_usage_attribute;;
                is_cli_type_of_kind(
                       attribute_type,
                       csk_windows_foundation_metadata_deprecated_attribute)) {
-      /* FIXME: Record the use of the DeprecatedAttribute in the entity
+      /* We should record the use of the DeprecatedAttribute in the entity
          and issue a warning if that entity is used. */
     }  /* if */
   }  /* if */
