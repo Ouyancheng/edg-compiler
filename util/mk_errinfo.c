@@ -601,12 +601,22 @@ static void me_create_doc_fillin(a_const_char **ptr_to_ptr)
 
   /* Scan the characters that make up the fill-in specifier. */
   fis_ptr = fill_in_specifier;
-  /* Always copy the first character, then any alphanumeric characters or
-     label fill-in characters that follow. */
-  *fis_ptr++ = *ptr++;
-  while (isalnum((unsigned char)*ptr) || *ptr == '[' || *ptr == ']') {
+  if (*ptr == '[') {
+    /* A label fill-in; copy through to the closing bracket (nesting is
+       not allowed. */
     *fis_ptr++ = *ptr++;
-  }  /* while */
+    while (*ptr != '\0' && *ptr != ']') {
+      *fis_ptr++ = *ptr++;
+    }  /* while */
+    if (*ptr != '\0') *fis_ptr++ = *ptr++;
+  } else {
+  /* Always copy the first character, then any alphanumeric characters
+     that follow. */
+    *fis_ptr++ = *ptr++;
+    while (isalnum((unsigned char)*ptr)) {
+      *fis_ptr++ = *ptr++;
+    }  /* while */
+  }  /* if */
   *fis_ptr = '\0';
   /* Check for a fill-in override.  This is specified in the source
      using notation like
