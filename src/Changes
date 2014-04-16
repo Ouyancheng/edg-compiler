@@ -17,6 +17,12 @@ They're considered "preliminary" in that a number of refinements are planned
 in the near future, but the resulting changes are not expected to dramatically
 affect the IL representation.
 
+Support for C++/CX relies on the same ms_metadata.cpp file as support for
+C++/CLI (to import .winmd files, in the case of C++/CX).  Compiling this file
+now requires Visual C++ 2012 (aka. Visual C++ 11.0) which reports a version
+number 17.00; previously, Visual C++ 2010 was sufficient for compiling that
+file (version number 16.00).
+
 
 4/15/14  [EDGcpfe/14790]
 C++/CLI: Custom Attributes
