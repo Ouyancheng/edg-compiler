@@ -9,13 +9,14 @@ Building the EDG C++ front end for a Windows Environment
     options for step 3 below.
 
   - If you want to support C++/CLI (see PLM section 2.3.3), define
-    CPPCLI_ENABLING_POSSIBLE to TRUE.  (As described in the PLM,
-    building for C++/CLI support requires the alink.h file, which is
+    CPPCLI_ENABLING_POSSIBLE to TRUE.  Similarly, if you want to support
+    C++/CX, define CPPCX_ENABLING_POSSIBLE to TRUE. (As described in the
+    PLM, building for C++/CLI support requires the alink.h file, which is
     not part of the front end release but can be downloaded at
     http://code.msdn.microsoft.com/alink.)
 
   - If you want to link with the runtime library routines found in the
-    lib_src diretory in the release, you must define
+    lib_src directory in the release, you must define
     MICROSOFT_MODE_TYPE_INFO_IN_NAMESPACE_STD to TRUE.  Conversely, if
     you wish to use the Microsoft-supplied <typeinfo> header, you must
     define that configuration option to FALSE.
@@ -44,6 +45,13 @@ Building the EDG C++ front end for a Windows Environment
        If you are including C++/CLI support, use the command
 
        cl -EHsc -Feedgcpfe.exe *.c *.cpp mscoree.lib oleaut32.lib user32.lib
+
+- For configurations that enable C++/CLI and/or C++/CX, a C++ source file
+  ms_metadata.cpp must be compiled and linked into the front end (this
+  source file also resides in the src directory of the release).  Compiling
+  this file requires Visual C++ 2012 or later.  Unfortunately, the free
+  "Express" version of the Microsoft compiler is insufficient because it
+  does not include the ATLMFC library.
 
 
 
