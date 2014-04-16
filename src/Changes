@@ -306,7 +306,7 @@ GNU compatibility: Function multiversioning
 
 Support has been added for the GNU function multiversioning feature as
 documented here: http://gcc.gnu.org/wiki/FunctionMultiVersioning.  This
-features uses the "target" attribute to determine, at load time, which
+feature uses the "target" attribute to determine, at load time, which
 version of a function should be called, thereby allowing the user to take
 advantage of features that may be available on a particular CPU.
 
