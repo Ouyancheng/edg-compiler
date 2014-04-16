@@ -4844,8 +4844,8 @@ in a temporary buffer.
 }  /* conv_wide_to_utf8 */
 
 
-void get_clr_runtime_directory(wchar_t  *dir_name, 
-                               sizeof_t *dir_name_size)
+static void get_clr_runtime_directory(wchar_t  *dir_name, 
+                                      sizeof_t *dir_name_size)
 /*
 Gets the installation directory of the common language runtime (CLR).
 

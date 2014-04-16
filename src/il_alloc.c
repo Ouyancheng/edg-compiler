@@ -1282,10 +1282,10 @@ a pointer to it.
 
   pcbp = (a_partial_class_body_ptr)alloc_il(sizeof(a_partial_class_body));
   pcbp->next = NULL;
-  pcbp->body_cache = NULL;
-  pcbp->base_cache = NULL;
   pcbp->start_position = null_source_position;
   pcbp->end_position = null_source_position;
+  pcbp->body_cache = NULL;
+  pcbp->base_cache = NULL;
   return pcbp;
 }  /* alloc_partial_class_body */
 

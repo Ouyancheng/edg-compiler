@@ -7872,6 +7872,9 @@ Microsoft extension.
 #endif /* !MICROSOFT_EXTENSIONS_ALLOWED */
 a_type_ptr typeid_constant_type(a_boolean is_cli_typeid)
 /*
+Return the type for a "typeid constant"; i.e., a constant representing the
+address of a standard C++ typeid(x) expression, or, if is_cli_typeid is TRUE,
+a handle to a T::typeid expression.
 */
 {
   a_type_ptr constant_type = NULL;
@@ -7895,12 +7898,14 @@ a_type_ptr typeid_constant_type(a_boolean is_cli_typeid)
   return constant_type;
 }  /* typeid_constant_type */
 
+
 void make_typeid_constant(a_type_ptr     typeid_type,
                           a_boolean      is_cli_typeid,
                           a_constant_ptr typeid_con)
 /*
 Set *typeid_con to a constant representing the address of typeid(typeid_type)
-(Standard C++) or a corresponding handle to a System::Type object (C++/CLI).
+(Standard C++) or, if is_cli_typeid is TRUE, a handle to a System::Type object
+(in C++/CLI mode).
 */
 {
   clear_constant(typeid_con, (a_constant_repr_kind)ck_address);

@@ -7965,7 +7965,6 @@ constant is set as well.
       case bok_is_trivially_assignable:
         fold_is_assignable(expr, constant, maintain_expression);
         break;
-
       default:
         unexpected_condition();
     }  /* switch */
