@@ -21,7 +21,9 @@ Support for C++/CX relies on the same ms_metadata.cpp file as support for
 C++/CLI (to import .winmd files, in the case of C++/CX).  Compiling this file
 now requires Visual C++ 2012 (aka. Visual C++ 11.0) which reports a version
 number 17.00; previously, Visual C++ 2010 was sufficient for compiling that
-file (version number 16.00).
+file (version number 16.00).  Note that the free "Express" version of Visual
+C++ is not sufficient for this purpose because it does not include the
+required ATLMFC library.
 
 
 4/15/14  [EDGcpfe/14790]
