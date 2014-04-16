@@ -200,7 +200,7 @@ represented as a bit set:
 				/* TRUE when looking up a name in a Microsoft
 				   __if_exists or __if_not_exists directive */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-#define IDL_IS_LOOKUP_TO_CHECK_FOR_NAME_HIDING 0x40000000
+#define IDL_IS_LOOKUP_TO_CHECK_FOR_NAME_HIDING 0x80000000
 				/* TRUE if the lookup is being done to see if
 				   the current declaration hides a name.
 				   This differs from IDL_HIDDEN_NAME_LOOKUP,
