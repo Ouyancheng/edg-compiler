@@ -4862,7 +4862,6 @@ is the length of the dir_name buffer.
   /* Check the cached name first.  The name won't change while running. */
   if (runtime_directory[0] != L'\0') {
     wcscpy_s(dir_name, *dir_name_size, runtime_directory);
-    *dir_name_size = wcslen(dir_name);
     goto end_of_routine;
   }  /* if */
 #if defined(__cplusplus)
