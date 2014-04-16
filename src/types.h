@@ -1,4 +1,3 @@
-
 /******************************************************************************
 *                                                             \  ___  /       *
 *                                                               /   \         *
@@ -860,11 +859,11 @@ Bit flags for calls of f_types_are_compatible et al.
 			   can be a base class of the first.  This is used
 			   to allow a base/derived mismatch in template
 			   function matching. */
-#define TCF_IGNORE_NESTING_DEPTH 0x20000
+#define TCF_IGNORE_NESTING_DEPTH 0x10000
 			/* TRUE if the nesting depths of template parameters
 			   should be ignored for purposes of this
 			   comparison. */
-#define TCF_CHECK_DEDUCED_PLACEHOLDER_MATCH 0x40000
+#define TCF_CHECK_DEDUCED_PLACEHOLDER_MATCH 0x20000
 			/* TRUE if an undeduced "auto"/"decltype(auto)"
 			   placeholder should be considered compatible with
 			   a tk_typeref entry indicating a deduced type for

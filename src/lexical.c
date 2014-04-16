@@ -11641,7 +11641,7 @@ modification will be added to restore the first token to the current line.
         case tok_prefix_ref:
           switch (next_word) {
             case tok_new:    return_token = cppcx_enabled ? tok_ref_new
-                                                             : tok_identifier;
+                                                          : tok_identifier;
                                                                     break;
             case tok_class:  return_token = tok_ref_class;          break;
             case tok_struct: return_token = tok_ref_struct;         break;

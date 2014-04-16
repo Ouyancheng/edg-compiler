@@ -347,16 +347,15 @@ Macro that calls f_orig_nested_type_if_nonreal_nested_type only if tp
 is a template parameter type.
 */
 #define orig_nested_type_if_nonreal_nested_type(tp)			\
-  ((tp)->kind == (a_type_kind)tk_template_param			\
+  ((tp)->kind == (a_type_kind)tk_template_param			        \
     ? f_orig_nested_type_if_nonreal_nested_type(tp)			\
     : (tp))
 
-extern
-a_symbol_ptr find_conversion_template_instance(
-			a_symbol_locator		*locator,
-			a_symbol_list_entry_ptr		conversion_templates,
-                        a_boolean                      match_fn_qualifiers,
-                        a_type_qualifier_set           fn_qualifiers);
+extern a_symbol_ptr find_conversion_template_instance(
+                                a_symbol_locator         *locator,
+                                a_symbol_list_entry_ptr  conversion_templates,
+                                a_boolean                match_fn_qualifiers,
+                                a_type_qualifier_set     fn_qualifiers);
 
 extern
 a_symbol_ptr look_up_conversion_function(a_type_ptr		parent_class,

@@ -3014,6 +3014,9 @@ after_entry_from_class:
                                iek_routine_list_entry);
           walk_list_not_needed(ptr->friend_classes, a_class_list_entry_ptr,
                                iek_class_list_entry);
+#if MICROSOFT_EXTENSIONS_ALLOWED
+          conditionally_clear_fe_pointer(ptr->partial_class_bodies);
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if NEW_CAN_BE_FOLDED_INTO_CTOR
           remap_ptr(ptr->assoc_operator_new_routine, a_routine_ptr,
                     iek_routine);
