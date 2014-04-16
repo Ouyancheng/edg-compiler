@@ -3545,7 +3545,7 @@ and return a pointer to it.
 
 a_boolean is_cppcx_externally_visible_symbol(a_symbol_ptr sym)
 /*
-Returns TRUE if this symbol is considered externally visible (i.e. it will be
+Returns TRUE if this symbol is considered externally visible (i.e., it will be
 emitted into metadata) in C++/CX mode.
 */
 {
@@ -3553,7 +3553,7 @@ emitted into metadata) in C++/CX mode.
   
   check_assertion(cppcx_enabled);
   if (sym->is_class_member && is_managed_class_type(sym->parent.class_type)) {
-    /* Any member inside a C++/CX type with declared a assembly access of
+    /* Any member inside a C++/CX type with a declared assembly access of
       "public" or "protected" is considered externally visible. */
     an_access_specifier  assembly_access;
     assembly_access = source_corresp_entry_for_symbol(sym)->assembly_access;
@@ -7746,8 +7746,8 @@ Declare and define the C++/CLI type "cli::pin_ptr".
 static void make_symbols_for_cppcx_arrays(void)
 /*
 Declare (but do not define) the C++/CX templates Platform::WriteOnlyArray
-and Platform::Array (the definition is come from the vccorlib.h header).  This
-routine should only be called in C++/CX mode.
+and Platform::Array (the definition will come from the vccorlib.h header).
+This routine should only be called in C++/CX mode.
 
 Predeclaring these template is convenient for at least two reasons:
     1) We need to set is_cli_array to TRUE.
@@ -7806,10 +7806,9 @@ void make_symbol_for_cppcx_box(void)
 Declare and define the C++/CX type "Platform::Box".
 */
 {
-  /* Declare Platform::Box<T> without defining it to ensure
-     cli_symbols[csk_cppcx_box] is set before the
-     prototype instantiation of Platform::Box is done when we encounter
-     the definition in vccorlib.h. */
+  /* Declare Platform::Box<T> without defining it to ensure that
+     cli_symbols[csk_cppcx_box] is set before the prototype instantiation of
+     Platform::Box is done when we encounter the definition in vccorlib.h. */
   cli_symbols[(int)csk_cppcx_box] = make_cli_internal_template(
     "Box",
       "namespace Platform {"
@@ -8936,7 +8935,7 @@ typedef struct an_ms_attr_alt_name_entry {
 
 
 /*
-List of symbol header entries that are used to lookup Microsoft attributes
+List of symbol header entries that are used to look up Microsoft attributes
 with an alternate name that includes an "Attribute" suffix.
 */
 static an_ms_attr_alt_name_entry_ptr

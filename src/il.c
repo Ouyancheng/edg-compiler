@@ -7880,7 +7880,7 @@ a handle to a T::typeid expression.
   a_type_ptr constant_type = NULL;
 #if MICROSOFT_EXTENSIONS_ALLOWED
   if (is_cli_typeid) {
-    /* C++/CLI T::typeid.  The result type is System::Type ^. */
+    /* C++/CLI T::typeid.  The result type is System::Type^. */
     a_type_ptr system_type;
     check_assertion(cli_or_cx_enabled);
     system_type = type_symbol_type(cli_symbol_from_kind(csk_system_type));
@@ -10422,7 +10422,7 @@ and reuse an existing entry if possible.
                        /*expl_mem_attr_implicit=*/FALSE,
                        /*class_type=*/(a_type_ptr)NULL, UPC_BLOCK_SIZE_NONE);
   if (ptr == NULL) {
-    /* No allocated entry, need to allocate one. */
+    /* No existing entry: Create a new one. */
     a_symbol_ptr           sym;
     a_template_arg_ptr     arg_list;
     a_symbol_ptr           box_template_sym =

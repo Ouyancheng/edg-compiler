@@ -4624,7 +4624,7 @@ C++/CX mode.
 
 
 /*
-A bit set type to describes the initialization of predeclared C++/CLI and
+A bit set type to describe the initialization of predeclared C++/CLI and
 C++/CX symbols.
 */
 typedef a_byte a_cli_symbol_init_flag_set;
@@ -4664,7 +4664,7 @@ typedef struct {
                 cppcx_namespace_kind;
                         /* Enum value for the parent namespace for the symbol
                            in C++/CX mode.  csk_none if the parent
-                           namespace does not differ from the C++/CLI. */
+                           namespace does not differ from that of C++/CLI. */
   a_cli_symbol_init_flag_set
                 init_flags;
                         /* Init flags required by the symbol. */

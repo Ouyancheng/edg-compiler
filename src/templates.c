@@ -22617,7 +22617,7 @@ any non-empty template parameter lists that were scanned.
   db_enter(3, "template_declaration");
 #if MICROSOFT_EXTENSIONS_ALLOWED
   if (microsoft_mode && dps->ms_attributes != NULL) {
-    /* Dispose any Microsoft attributes that appeared before the template
+    /* Dispose of any Microsoft attributes that appeared before the template
        param clauses or generic constraint clauses. */
     dispose_of_unapplied_attributes(&dps->ms_attributes,
                                     ec_ms_attr_not_allowed);
@@ -23386,7 +23386,7 @@ that follows.
   db_enter(3, "full_specialization");
 #if MICROSOFT_EXTENSIONS_ALLOWED
   if (microsoft_mode && dps->ms_attributes != NULL) {
-    /* Dispose any Microsoft attributes that appeared before the template
+    /* Dispose of any Microsoft attributes that appeared before the template
        param clause. */
     dispose_of_unapplied_attributes(&dps->ms_attributes,
                                     ec_ms_attr_not_allowed);

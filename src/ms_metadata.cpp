@@ -58,7 +58,7 @@ using namespace std;
 
 
 /*
-Some versions on MSVC have std::make_unique, but others don't.  To enable
+Some versions of MSVC have std::make_unique, but others don't.  To enable
 compilation with slightly older versions, we use our own "make_unique_ptr"
 instead.  This version does not require variadic template support.
 */

@@ -1661,10 +1661,10 @@ static void process_vccorlib_header()
 Push vccorlib.h onto the input stack and parse the file.  vccorlib.h is a
 unique preinclude file that is processed in the middle of preusing processing.
 vccorlib.h is processed through the normal preinclude mechanism to avoid code
-duplication.  However, care must be taken to preserve the preinclude state
-potential additional preincluded headers (e.g. just because preinclude
-processing is suddenly suspended here, the preinclude state should not look
-as if we are at the end of the preinclude list, etc.).
+duplication.  However, care must be taken to preserve the preinclude state to
+allow for potential additional preincluded headers (e.g., just because
+preinclude processing is suddenly suspended here, the preinclude state should
+not look as if we are at the end of the preinclude list, etc.).
 */
 {
 #if GENERATE_SOURCE_SEQUENCE_LISTS
@@ -1684,9 +1684,9 @@ as if we are at the end of the preinclude list, etc.).
      vccorlib.h is on top of the input stack. */
   check_assertion(strcmp(start_of_file_name(curr_ise->full_name),
                          "vccorlib.h") == 0);
-  /* The preincluded vccorlib.h should always be treated as a system header
-     (even if for some reason it is not really included from a directory
-     marked as a "system" include directory. */
+  /* The preincluded vccorlib.h should always be treated as a system header,
+     even if for some reason it is not really included from a directory marked
+     as a "system" include directory. */
   curr_ise->from_system_include_dir = TRUE;
   check_assertion(curr_ise->assoc_actual_il_file != NULL);
   curr_ise->assoc_actual_il_file->from_system_include_dir = TRUE;

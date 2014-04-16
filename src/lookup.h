@@ -198,7 +198,7 @@ represented as a bit set:
 				   class. */
 #define IDL_IF_EXISTS_LOOKUP 0x40000000
 				/* TRUE when looking up a name in a Microsoft
-				   __if_exists or __if_not_exists directive */
+				   __if_exists or __if_not_exists directive. */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #define IDL_IS_LOOKUP_TO_CHECK_FOR_NAME_HIDING 0x80000000
 				/* TRUE if the lookup is being done to see if

@@ -1275,14 +1275,15 @@ System::Attribute, unlike direct use of the AttributeUsage attribute).
          the class definition is complete in order for name lookup to function
          correctly. */
       /* In C++/CLI mode the non-custom "attribute" attribute has two potential
-         effects.  First, it causes the class it is attached to inherit from
-         System::Attribute if that is not already specified as a base class.
-         Second, if it is followed by arguments, the effect is as if those
-         arguments were passed to the custom attribute System::AttributeUsage.
-         In that case, we simply treat the "attribute" attribute as if it were
-         the custom attribute System::AttributeUsage (but we also set a flag so
-         we can implicitly inherit from System::Attribute if needed; that is
-         handled when processing the class definition). */
+         effects.  First, it causes the class to which it is attached to
+         derive from System::Attribute if that is not already specified as a
+         base class.  Second, if it is followed by arguments, the effect is as
+         if those arguments were passed to the custom attribute
+         System::AttributeUsage.  In that case, we simply treat the "attribute"
+         attribute as if it were the custom attribute System::AttributeUsage
+         (but we also set a flag so we can implicitly inherit from
+         System::Attribute if needed; that is handled when processing the class
+         definition). */
       if (curr_token_is_identifier_string("attribute")) {
         orig_is_attribute_attribute = TRUE;
       }  /* if */

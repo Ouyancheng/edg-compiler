@@ -16232,7 +16232,7 @@ delegate initializer, given by rcblock->argument_list.
     } else if (functor_case) {
       /* We currently assume that the given functor is compatible with the
          delegate (i.e., that the delegate parameters can be forwarded to the
-         functor, either through a matching function call operator, or via a
+         functor, either through a matching function call operator or via a
          conversion to a pointer-to-function).  This really should be checked
          for explicitly, however. */
     } else if (is_indefinite_function_operand(function_operand)) {
@@ -35015,7 +35015,6 @@ This function is largely based on check_range_based_for_default_case.
 }  /* create_cppcx_for_each_variable_for_function_call */
 
 
-
 static a_boolean check_for_cppcx_collection_pattern(
                               a_for_each_loop_ptr        felp,
                               an_operand                 *prev_decl_iterator,
@@ -35028,6 +35027,12 @@ collection, and if so return TRUE and generate IL for that pattern.  Otherwise,
 return FALSE.  This is similar to the "STL pattern" (see
 check_for_each_statement below for details).
 
+prev_decl_iterator is an operand for the previously-declared variable for the
+iterator when one is indicated in the for-each loop entry.  *expr_position is
+the source position for the collection expression.  tok_seq_number is the
+sequence number of the first token of the collection expression.
+pointers_block is the pointers block for the iterator scope previously created
+(needed to reactivate that scope).
 */
 {
   a_boolean  passed = TRUE;
@@ -40605,7 +40610,7 @@ NULL.
         if (get_routine == NULL ||
             get_routine->source_corresp.access !=
                                              (an_access_specifier)as_public) {
-          /* The "get" routine doesn't exist or is not pubic. */
+          /* The "get" routine doesn't exist or is not public. */
           pos_error(ec_cli_attribute_inaccessible_field,
                     &locator->source_position);
         } else {

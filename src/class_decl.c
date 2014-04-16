@@ -7909,7 +7909,7 @@ given by base_type.  Issue a diagnostic if not.
                (/* C++/CX does not have a System::MulticastDelegate
                     counterpart. */
                 !cppcx_enabled &&
-               f_same_entities(
+                f_same_entities(
                          base_type,
                          cli_class_type_for(csk_system_multicast_delegate))) ||
                /* A ref class type cannot derive from the C++/CX
@@ -7921,10 +7921,10 @@ given by base_type.  Issue a diagnostic if not.
                   Platform::ValueType. */
                (!processing_vccorlib_header &&
                 (class_type_supp(base_type)->is_cppcx_box ||
-                 (!class_type_supp(type)->is_cppcx_box && (
-               f_same_entities(base_type,
-                               cli_class_type_for(csk_system_enum)) ||
-               f_same_entities(base_type, cli_system_value_type()))))))) {
+                 (!class_type_supp(type)->is_cppcx_box &&
+                  (f_same_entities(base_type,
+                                   cli_class_type_for(csk_system_enum)) ||
+                   f_same_entities(base_type, cli_system_value_type()))))))) {
             pos_ty_error(ec_invalid_specific_ref_class_base, &error_position,
                          base_type);
             break;
@@ -9062,7 +9062,7 @@ appropriate.
       /* System::Object is derived from virtually and so it cannot be the first
          direct nonvirtual base class.  System::ValueType derives directly from
          System::Object and hence must in fact be the first direct nonvirtual
-         base.  Similarly with the System::Attribute class. */
+         base.  The same is true for the System::Attribute class. */
       if (is_attribute) {
         may_be_first_direct_nonvirtual_base = TRUE;
         new_base_type =
@@ -23289,10 +23289,8 @@ of a managed class (possibly a generic class).
     a_type_ptr  parent_type = ssep->assoc_type;
     if (!is_immediate_managed_class_type(parent_type)) {
       pos_error(ec_delegate_requires_managed_class, &pos_curr_token);
-    }  /* if */
-    /* Do not insert code here. */
-    else if (cppcx_enabled &&
-             is_cppcx_externally_visible_assembly_access(
+    } else if (cppcx_enabled &&
+               is_cppcx_externally_visible_assembly_access(
                                              ssep->current_assembly_access)) {
       pos_error(ec_cppcx_public_nested_delegate, &pos_curr_token);
     }  /* if */
@@ -24703,9 +24701,9 @@ the enclosing type of the constrained generic.  For example:
 
 void make_boxed_enum_type(a_type_ptr  tp)
 /*
-Create a C++/CLI class type representing the boxed version of the given
-enumeration type.  Update the given type to point to its boxed version and
-vice versa.
+Create a C++/CLI or C++/CX class type representing the boxed version of the
+given enumeration type.  Update the given type to point to its boxed version
+and, in C++/CLI mode, vice versa.
 */
 {
   a_type_ptr                   btp;
@@ -24721,11 +24719,11 @@ vice versa.
   if (cppcx_enabled) {
     /* In C++/CX mode, the boxed version of an enum is Platform::Box<T>. */
     btp = make_cppcx_box_type(tp);
-    /* Link the enum type with the boxed type. Although it is done in the
+    /* Link the enum type with the boxed type.  Although it is done in the
        C++/CLI case below, the boxed type is not linked with the enum type
        via ctsp->corresponding_basic_type.  That association is used by
-       form_tag_reference to emit the enum type instead of the boxed type due
-       to the fact that the boxed type cannot be written explicitly in source
+       form_tag_reference to emit the enum type instead of the boxed type
+       because the C++/CLI boxed type cannot be written explicitly in source
        form.  We don't want that to occur in C++/CX because the boxed type
        can be written explicitly in source form as Platform::Box<T>. */
     integer_type_supp(tp)->boxed_type = btp;
@@ -27027,7 +27025,6 @@ Check some constraints on the given member of a C++/CX value class.
       check = FALSE;
       break;
     default:
-      /* source_corresp_entry_for_symbol should be non-NULL here. */
       check_assertion(source_corresp_entry_for_symbol(sym) != NULL);
       break;
   }  /* switch */
@@ -27147,7 +27144,9 @@ a_symbol_ptr make_and_enter_abi_member_function_symbol(
                                                 a_symbol_locator  *loc,
                                                 a_type_ptr        class_type)
 /*
-Create and enter a member function symbol into class_type.  
+Create and enter a member function symbol whose name is described by *loc
+into class_type.  (This is a special "__abi_..." member with no parameters
+that returns type long.)
 */
 {
   a_func_info_block              func_info;
@@ -27172,14 +27171,14 @@ Create and enter a member function symbol into class_type.
      We won't be performing any lookups beyond direct class members in this
      function (the caller has ensured that these will fail to find a symbol)
      and we won't reference any template/generic parameters (if applicable) so
-     it is not necessary to setup the stack for lookups; however, we do need
-     the symbol table setup and the class's il_scope available to add members
+     it is not necessary to set up the stack for lookups; however, we do need
+     the symbol table set up and the class's il_scope available to add members
      so an sck_class_reactivation is insufficient.  This is similar to how we
-     setup context for partial classes (though in the latter case, we actually
+     set up context for partial classes (though in the latter case, we actually
      should be setting up the stack for lookups, but we don't currently). */
   (void)push_scope((a_scope_kind)sck_class_struct_union, scope->number,
                    class_type, (a_routine_ptr)NULL);
-  /* Setup the routine type. */
+  /* Set up the routine type. */
   rout_type = make_routine_type(integer_type((an_integer_kind)ik_long),
                                 /*param1_type=*/NULL, /*param2_type=*/NULL,
                                 /*param3_type=*/NULL, /*param4_type=*/NULL);

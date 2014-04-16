@@ -330,7 +330,7 @@ Note that this variable is not re-initialized if the front end is called
 multiple times.
 
 On many modern operating systems, repeated runs of the same binary may not
-yield the same addresses.  In that cases, in a configuration with
+yield the same addresses.  In that case, in a configuration with
 MAINTAIN_ALLOCATION_SEQUENCE_NUMBER set to TRUE, the technique above can be
 used instead by setting the variable trace_seq_number to the entry to be
 traced.  The sequence number of an allocated entry can be determined from
