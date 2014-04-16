@@ -4993,7 +4993,7 @@ Would generate (when lowered) pseudo-code like this:
   int foo.ifunc() __attribute__((ifunc("foo.resolver"));
   int main () {
     int (*fp)() = foo.ifunc;       // &foo lowered to &foo.ifunc
-                                   // dynamic loader invoke foo.resolver
+                                   // Dynamic loader invokes foo.resolver
                                    // to select which specific foo.
                                    // foo.ifunc is invoked once during
                                    // startup.
