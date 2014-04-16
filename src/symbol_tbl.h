@@ -19,7 +19,7 @@ symbol_tbl.h - Declarations related to symbol table processing.
 
 /* Type used for the options set for the name lookup routines.  This
    is declared here to prevent recursion problems. */
-typedef int an_id_lookup_options_set;
+typedef unsigned int an_id_lookup_options_set;
 
 /* Declare pointer types up front to minimize mutual recursion problems. */
 typedef struct a_symbol        *a_symbol_ptr;
