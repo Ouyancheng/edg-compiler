@@ -14127,7 +14127,7 @@ enk_typeid entry should be created.
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
   if (is_cli_typeid) {
-    /* C++/CLI T::typeid: the result type is System::Type ^. */
+    /* C++/CLI T::typeid: the result type is System::Type^. */
     result_type = constant_type;
     check_assertion(typeid_expr == NULL);
   } else
@@ -25984,7 +25984,7 @@ that case.
        operands are string literals to be eligible for the deprecated
        conversion to "char *".  This allows things like
          char *p = x ? "abc" : "def";
-       This is also needed for C++/CLI conversions to System::String ^.
+       This is also needed for C++/CLI conversions to System::String^.
     */
     result->is_simple_string_literal = (operand_2.is_simple_string_literal ||
                                         operand_3.is_simple_string_literal);
@@ -27385,7 +27385,7 @@ expression, and return the result in *result (or an error indication in
        string literal to be eligible for the deprecated conversion to
        "char *".  This allows things like
          char *p = (x, "abc");
-       This is also needed for C++/CLI conversions to System::String ^.
+       This is also needed for C++/CLI conversions to System::String^.
     */
     result->is_simple_string_literal = operand_2.is_simple_string_literal;
   }  /* if */

@@ -7107,7 +7107,7 @@ static a_boolean expr_is_literal_convertible_to_cli_string(
 /*
 Return TRUE if the given expression is a string literal, or an expression
 made up of "?" and "," operations whose leaf value nodes are all string
-literals, that is convertible to a C++/CLI System::String ^.
+literals, that is convertible to a C++/CLI System::String^.
 */
 {
   a_boolean is_string_lit = FALSE;

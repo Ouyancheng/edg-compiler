@@ -6200,7 +6200,7 @@ in [over.ics.rank].
     /* One has a C++/CLI array covariance conversion and the other does
        not.  The one with the array covariance conversion is better than
        the other one (which would have to be something like
-         array<D ^> ^ ==> System::Array ^
+         array<D^>^ ==> System::Array^
        ).  See ECMA-372 14.2.1. */
     if (conv1->cli_array_covariance_conversion) {
       cmp = 1;

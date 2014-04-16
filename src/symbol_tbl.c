@@ -7746,7 +7746,7 @@ Declare and define the C++/CLI type "cli::pin_ptr".
 static void make_symbols_for_cppcx_arrays(void)
 /*
 Declare (but do not define) the C++/CX templates Platform::WriteOnlyArray
-and Platform::Array (the definition will come from the vccorlib.h header).
+and Platform::Array (the definitions will come from the vccorlib.h header).
 This routine should only be called in C++/CX mode.
 
 Predeclaring these template is convenient for at least two reasons:

@@ -8771,8 +8771,8 @@ can be NULL if that information is not needed.
                   is_value_class_type(dest_type)) &&
                  is_class_struct_union_type(source_type) &&
                  (bcp = find_base_class_of(dest_type, source_type)) != NULL) {
-        /* System::ValueType ^ --> value class type and
-           System::Object ^    --> value class type are also allowed,
+        /* System::ValueType^ --> value class type and
+           System::Object^    --> value class type are also allowed,
            and conversions from interfaces that the value class type
            implements. */
         okay = TRUE;

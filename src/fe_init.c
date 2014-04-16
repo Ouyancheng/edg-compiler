@@ -868,7 +868,7 @@ Install the keywords in the symbol table.
       /* "partial" can be the first word of a whitespace keyword. */
       enter_keyword((a_token_kind)tok_prefix_partial, "partial");
     } else {
-      /* "gcnew" is only available in true C++/CLI mode; not C++/CX mode. */
+      /* "gcnew" is only available in true C++/CLI mode, not C++/CX mode. */
       enter_keyword((a_token_kind)tok_gcnew, "gcnew");
     }  /* if */
     { a_symbol_locator locator;
