@@ -1072,7 +1072,7 @@ public:
   static a_type_wrapper_ptr create(a_kind kind)
   {
     return make_shared<a_type_wrapper>(kind);
-  }
+  }  /* create */
 
   static a_type_wrapper_ptr create(CorElementType element_type,
                                    bool           wchar_t_is_keyword = true);
@@ -1107,7 +1107,7 @@ public:
         break;
     }  /* switch */
     return type;
-  }  /* make_shared */
+  }  /* create */
 
   virtual ~a_type_wrapper()
   {
@@ -9254,7 +9254,6 @@ an_assembly_name::an_assembly_name(
                           DWORD                  flags)
 {
   HRESULT hr;
-  DWORD   characters_in_strong_name = 0;
 
   /* Create an IAssemblyName object. */
   hr = metadata_reader->create_assembly_name_object(&name_interface_,

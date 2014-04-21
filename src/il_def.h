@@ -4061,7 +4061,6 @@ typedef struct a_constant {
   union {
     /* When kind == ck_error, no variant fields. */
 #if MICROSOFT_EXTENSIONS_ALLOWED
-    /* When kind == abk_cli_array, no variant fields. */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if UPC_EXTENSIONS_ALLOWED
     /* Likewise when kind == ck_upc_mythread. */
@@ -4144,6 +4143,7 @@ typedef struct a_constant {
                 kind;
       union {
         /* The entity whose address is the base for this address constant. */
+        /* When kind == abk_cli_array, no variant fields. */
         /* When kind == abk_routine: */
         a_routine_ptr
                 routine;
