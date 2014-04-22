@@ -415,6 +415,7 @@ void transfer_arg_operand_for_template_arg(a_template_arg_ptr tap,
 
 extern a_template_arg_ptr
 copy_template_arg_list_with_substitution_rebuilding_arg_operands(
+			a_symbol_ptr		template_sym,
 			a_template_arg_ptr	arg_list_to_copy,
 			a_template_param_ptr	param_list_for_copy,
 			a_template_arg_ptr	templ_arg_list,

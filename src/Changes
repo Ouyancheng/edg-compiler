@@ -1,5 +1,31 @@
 Version 4.10
 
+4/22/14  [EDGcpfe/15015]
+Deduction failure when expanding a pack into a template argument list with
+default template arguments
+
+Deduction could fail when a pack is expanded into the template argument
+list of a template with default template arguments.  Now fixed.
+
+  template <class T0 = int, class T1 = int> struct C {
+    C() {}
+  };
+  template <typename R> struct A {
+    template <typename ... Args> void f(C<Args...> args) { }
+  };
+  template <typename T, typename ... Args> struct B {
+    void f() {
+      A<T> a;
+      a.f(args);  // Spurious "no instance ... matches the argument list"
+    }
+    C<Args ...> args;
+  };
+  int main() {
+    B<char> b;
+    b.f();
+  }
+
+
 4/22/14  [EDGcpfe/14958]
 Source range for enk_condition nodes
 

@@ -16849,6 +16849,7 @@ name lookup options.
           /* Do substitution on the template argument list. */
           arg_list =
               copy_template_arg_list_with_substitution_rebuilding_arg_operands(
+                                             (a_symbol_ptr)NULL,
                                              arg_list,
                                              (a_template_param_ptr)NULL,
                                              template_arg_list,

@@ -6390,6 +6390,7 @@ be called from outside of the expression processing routines.
 
 a_template_arg_ptr
 copy_template_arg_list_with_substitution_rebuilding_arg_operands(
+                        a_symbol_ptr            template_sym,
 			a_template_arg_ptr	arg_list_to_copy,
 			a_template_param_ptr	param_list_for_copy,
 			a_template_arg_ptr	templ_arg_list,
@@ -6410,7 +6411,8 @@ routines.
   a_template_arg_ptr new_tap;
 
   options |= CTWS_COPY_ARG_OPERAND_INFO;
-  new_tap = copy_template_arg_list_with_substitution(arg_list_to_copy,
+  new_tap = copy_template_arg_list_with_substitution(template_sym,
+                                                     arg_list_to_copy,
                                                      param_list_for_copy,
                                                      templ_arg_list,
                                                      templ_param_list,
@@ -6447,6 +6449,7 @@ to the given locator.
   }  /* if */
   locator->template_arg_list =
               copy_template_arg_list_with_substitution_rebuilding_arg_operands(
+                                             sym,
                                              rescan_orig_templ_arg_list,
                                              rescan_orig_templ_param_list,
                                              rcblock->template_arg_list,

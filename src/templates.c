@@ -10138,6 +10138,7 @@ parameters.
 
 
 a_template_arg_ptr copy_template_arg_list_with_substitution(
+			a_symbol_ptr		template_sym,
 			a_template_arg_ptr	arg_list_to_copy,
 			a_template_param_ptr	param_list_for_copy,
 			a_template_arg_ptr	templ_arg_list,
@@ -10152,7 +10153,9 @@ Copy the template argument list arg_list_to_copy, and return a pointer
 to the copy.  In the process of copying, replace any template parameters
 with the corresponding values from the template argument list templ_arg_list.
 templ_param_list is the template parameter list for which templ_arg_list
-is an argument list.
+is an argument list.  template_sym is the template with which the parameter
+list and new argument list are associated, and can be NULL if a real
+template is not available.
 
 param_list_for_copy gives the corresponding template parameter list,
 or is NULL if the parameter list is not known (e.g., for a nonreal
@@ -10171,6 +10174,7 @@ associated parameter.
   a_template_arg_ptr	tap;
   a_template_arg_ptr	new_list;
   a_template_arg_ptr	new_tap;
+  a_template_arg_ptr	next_tap;
   a_template_arg_ptr	prev_new_tap;
   a_template_param_ptr	tpp;
   a_boolean		have_params = (param_list_for_copy != NULL);
@@ -10186,9 +10190,10 @@ associated parameter.
   /* Note that this routine does not use the template argument list
      traversal routines. */
   for (tap = arg_list_to_copy, tpp = param_list_for_copy;
-       ; tap = tap->next) {
+       ; tap = next_tap) {
     a_pack_expansion_stack_entry_ptr	pesep = NULL;
     a_boolean				any_more = TRUE;
+    next_tap = tap == NULL ? NULL : tap->next;
     /* Exit the loop if we hit a start of pack expansion with no following
        arguments and we are already processing a pack. */
     if ((options & CTWS_PRESERVE_DEDUCED_PACKS) == 0 && added_placeholder &&
@@ -10206,6 +10211,16 @@ associated parameter.
       /* Check if an error occurred (such as mismatched parameter pack
          lengths). */
       if (err) *copy_error = TRUE;
+    }  /* if */
+    if (!any_more && have_params && tpp != NULL && tpp->has_default_arg &&
+        template_sym != NULL) {
+      /* This is an empty pack expansion for a template parameter with a
+         default argument.  Get the default argument value. */
+      a_templ_arg_kind		arg_kind;
+      arg_kind = templ_arg_kind_for_symbol_kind(tpp->param_symbol->kind);
+      tap = alloc_template_arg(arg_kind);
+      get_template_arg_value_from_default(template_sym, tap, tpp);
+      any_more = TRUE;
     }  /* if */
     while (any_more) {
       if (have_params && tpp != NULL && tpp->is_pack && !added_placeholder &&
@@ -10372,6 +10387,7 @@ are looked up, if needed.  The symbol of the new instance is returned.
   }  /* if */
   /* Make a copy of the template argument list, doing substitution. */
   new_list = copy_template_arg_list_with_substitution(
+                                           template_sym,
                                            tap, tpp, templ_arg_list,
                                            templ_param_list, 
                                            source_pos, options,
