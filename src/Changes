@@ -1,5 +1,19 @@
 Version 4.10
 
+4/22/14  [EDGcpfe/14958]
+Source range for enk_condition nodes
+
+In configurations with EXTRA_SOURCE_POSITIONS_IN_IL, the expr_range field
+of an_expr_node was left as null_source_range for enk_condition nodes.
+This has now been fixed.  For example:
+
+  bool f();
+  void g() {
+    if (bool b = f())  // enk_condition_node now has source range information
+      ;
+  }
+
+
 4/15/14  [EDGcpfe/14790]
 Preliminary support for C++/CX
 

@@ -3432,6 +3432,16 @@ A pointer to the expression node is returned.
   /* Copy the type of the variable expression into the condition node (since
      all expression nodes need to have a type). */
   node->type = value_expr->type;
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+  /* Record the source range for the condition declaration. */
+  node->expr_range.start = cfdp->source_pos;
+  if (vp->initializer_range.end.seq != 0) {
+    node->expr_range.end = vp->initializer_range.end;
+  } else {
+    node->expr_range.end =
+                vp->source_corresp.decl_pos_info->variant.declarator_range.end;
+  }  /* if */
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   db_exit();
   /* Return the condition node. */
   return node;
