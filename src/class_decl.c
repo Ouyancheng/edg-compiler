@@ -1721,21 +1721,26 @@ lambda does not allow implicit captures.
 }  /* add_lambda_capture */
 
 
-a_lambda_capture_ptr lambda_capture_for_variable(a_variable_ptr         vp,
-                                                 a_source_position_ptr  pos)
+a_lambda_capture_ptr lambda_capture_for_variable(
+                                          a_variable_ptr         vp,
+                                          a_source_position_ptr  pos,
+                                          a_boolean              *rvalue_only)
 /*
-vp is a local variable that is being used in a lambda.  Find or create a lambda
-capture entry for it and return a pointer to it.  pos is the source position
-of the variable reference.  If there is no existing capture entry, an
+vp is a local variable that is being used in a lambda.  Find or create a
+lambda capture entry for it and return a pointer to it.  pos is the source
+position of the variable reference.  If there is no existing capture entry, an
 implicit capture will be created if the lambda allows it and if the variable
-is appropriate to be captured.  If no capture can be found or created,
-issue an error and return NULL.
+is appropriate to be captured.  If no capture can be found or created, issue
+an error and return NULL if rvalue_only is NULL or if vp is not constant-
+valued (and set *rvalue_only to FALSE).  If rvalue_only is non-NULL and no
+capture can be found or created, return NULL and set *rvalue_only to TRUE.
 */
 {
   a_lambda_ptr          lambda = get_current_lambda();
   a_lambda_capture_ptr  lcp;
 
   check_assertion(lambda != NULL);
+  if (rvalue_only != NULL) *rvalue_only = FALSE;
   /* Find any existing lambda capture for this variable. */
   lcp = find_lambda_capture(lambda, vp);
   if (lcp == NULL) {
@@ -1745,8 +1750,14 @@ issue an error and return NULL.
     if (!check_var_for_lambda_capture(vp, /*implicit=*/TRUE, &err_code)) {
       /* The variable is not valid.  err_code explains why. */
     } else if (!lambda->has_capture_default) {
-      /* No capture default, so implicit captures are not allowed. */
-      err_code = ec_not_captured_local_var_in_lambda;
+      /* No capture default, so implicit captures are not allowed.  However,
+         if the variable is constant-valued, the use of the constant value
+         does not require capture. */
+      if (vp->constant_valued && rvalue_only != NULL) {
+        *rvalue_only = TRUE;
+      } else {
+        err_code = ec_not_captured_local_var_in_lambda;
+      }  /* if */
     } else {
       /* The variable is valid.  Add a new capture entry for it. */
       a_boolean no_impl_capture;

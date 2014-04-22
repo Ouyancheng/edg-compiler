@@ -176,6 +176,21 @@ should normally be set to a later version for maximum compatibility with
 the clang implementation.)
 
 
+4/11/14  [EDGcpfe/14889]
+Using constant-valued variables in lambda expressions
+
+Previously, the front end issued an error when a lambda expression used the
+value of a constant-valued variable declared in a function outside that
+lambda expression.  For example:
+
+  int g() {
+    int const N = 3;
+    return []{ return N; }();  // Previously an error; now okay.
+  }
+
+Such cases are now accepted (in modes that accept lambda expressions).
+
+
 4/11/14  [EDGcpfe/10197]
 Abort on invalid friend declaration written as specialization
 
