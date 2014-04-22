@@ -10189,6 +10189,7 @@ associated parameter.
   prev_new_tap = new_list = NULL;
   /* Note that this routine does not use the template argument list
      traversal routines. */
+  /*lint --e{850} tap modified in loop */
   for (tap = arg_list_to_copy, tpp = param_list_for_copy;
        ; tap = next_tap) {
     a_pack_expansion_stack_entry_ptr	pesep = NULL;
