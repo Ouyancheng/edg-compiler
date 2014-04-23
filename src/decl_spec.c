@@ -6024,6 +6024,9 @@ template.  dsi_flags is the set of input flags passed to decl_specifiers.
       /* An error occurred. */
     } else if (is_definition) {
       mark_defined(tag_sym, &locator.source_position);
+      /* If this declaration is associated with a declaration statement, update
+         the associated stmk_decl statement. */
+      record_entity_in_decl_stmt_if_needed(tag_sym);
       if (!C_mode() && inside_class_definition) {
         /* enum_type is a class member and is being defined having been
            forward-declared. */
@@ -6046,6 +6049,9 @@ template.  dsi_flags is the set of input flags passed to decl_specifiers.
                (!strict_ansi_mode || is_opaque_enum_decl)) {
       /* A useless redeclaration of an enum tag. */
       mark_declared(tag_sym, &locator.source_position);
+      /* If this declaration is associated with a declaration statement, update
+         the associated stmk_decl statement. */
+      record_entity_in_decl_stmt_if_needed(tag_sym);
     } else {
       mark_referenced(tag_sym, &locator.source_position);
       *declares_something = FALSE;
@@ -6131,9 +6137,6 @@ template.  dsi_flags is the set of input flags passed to decl_specifiers.
        generalization of the one defined in the IA-64 ABI. */
     compute_name_collision_discriminator(tag_sym, effective_decl_level);
 #endif /* NEED_NAME_MANGLING */
-    /* If this declaration is associated with a declaration statement, update
-       the associated stmk_decl statement. */
-    record_entity_in_decl_stmt_if_needed(tag_sym);
     if (!C_mode()) {
       if (class_of_which_a_member != NULL) {
         /* Add a pointer to the parent class in the symbol and the type. */
@@ -6218,6 +6221,9 @@ template.  dsi_flags is the set of input flags passed to decl_specifiers.
       } else {
         mark_declared(tag_sym, &locator.source_position);
       }  /* if */
+      /* If this declaration is associated with a declaration statement, update
+         the associated stmk_decl statement. */
+      record_entity_in_decl_stmt_if_needed(tag_sym);
 #if GENERATE_SOURCE_SEQUENCE_LISTS
       update_sse_for_first_tag_declaration(enum_type, &locator,
                                            is_definition,
