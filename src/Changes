@@ -1,5 +1,18 @@
 Version 4.10
 
+4/23/14  [EDGcpfe/14950]
+C++-generating back end: assertion failure with enum redeclaration
+
+In configurations using the C++-generating back end, an abort could occur
+(an assertion failure in gen_declaration_statement) if an enumeration is
+redeclared in the same scope.  This is now fixed.  For example:
+
+  void f() {
+    enum E : char { e0 };
+    enum E : char;   // Previously caused an abort
+  }
+
+
 4/23/14  [EDGcpfe/14889]
 Using constant-valued variables in lambda expressions
 
