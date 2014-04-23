@@ -787,6 +787,7 @@ static unsigned long
 		num_token_caches_allocated,
 		num_lookups_in_source_line_modif_hash_table;
 
+#if CPPCLI_ENABLING_POSSIBLE
 
 static void db_dump_metadata(a_text_buffer_ptr buffer,
                              int               limit)
@@ -812,6 +813,8 @@ is non-zero.  Ensures that a '\n' is always the last character written.
     fputc('\n', f_debug);
   }  /* if */
 }  /* db_dump_metadata */
+
+#endif /* CPPCLI_ENABLING_POSSIBLE */
 
 #endif /* DEBUG */
 
