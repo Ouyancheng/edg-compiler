@@ -10632,6 +10632,7 @@ variables declared in cmd_line.h.
   disable_access_checking_in_microsoft_enum_bases =
                       DEFAULT_DISABLE_ACCESS_CHECKING_IN_MICROSOFT_ENUM_BASES;
   pending_generic_constraint_specifier_enabled = FALSE;
+  force_ms_type_info_not_in_namespace_std = FALSE;
 #if WRITE_CPPCLI_PORTABLE_ASSEMBLIES
   generate_portable_assemblies = FALSE;
 #endif /* WRITE_CPPCLI_PORTABLE_ASSEMBLIES */
@@ -10686,7 +10687,6 @@ variables declared in cmd_line.h.
   gnu_bases_operators_enabled = FALSE;
   preserve_lvalues_with_same_type_casts = FALSE;
   std_override_modifiers_enabled = FALSE;
-  force_ms_type_info_not_in_namespace_std = FALSE;
 }  /* cmd_line_static_var_init */
 
 
