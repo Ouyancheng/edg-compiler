@@ -6411,10 +6411,10 @@ for use in generating cross-reference output describing this declaration.
       linked_symbol = fundamental_symbol_of(linked_symbol);
     }  /* if */
     if (linked_symbol->kind == (a_symbol_kind)sk_variable) {
+      a_variable_ptr  orig_var = linked_symbol->variant.variable.ptr;
       if (C_mode() || (microsoft_mode && (srk_flags & SRK_TENTATIVE_DEF))) {
         if (linked_symbol->defined &&
-            linked_symbol->variant.variable.ptr->init_kind !=
-                                               (an_init_kind)initk_none) {
+            orig_var->init_kind != (an_init_kind)initk_none) {
           /* The variable was initialized on a prior declaration, so this
              cannot be a definition or a tentative definition.  (The error
              will be reported by the caller if there is an initializer on
@@ -6423,6 +6423,24 @@ for use in generating cross-reference output describing this declaration.
           check_assertion(srk_flags & SRK_DECLARATION);
           is_variable_def = FALSE;
         }  /* if */
+      } else if (microsoft_mode && is_variable_def && linked_symbol->defined &&
+                 decl_scope_level == depth_innermost_namespace_scope &&
+                 dps->has_initializer &&
+                 dps->declared_storage_class == (a_storage_class)sc_extern &&
+                 !type_has_nontrivial_destructor(dps->type) &&
+                 orig_var->init_kind == (an_init_kind)initk_none) {
+        /* This non-local variable was already defined, but without an
+           initializer.  In Microsoft mode, such a definition can be followed
+           by another definition that includes an initializer and the "extern"
+           storage class specifier.  Turn the previous definition into an
+           ordinary declaration. */
+        pos_sy_warning(ec_already_defined, &locator->source_position,
+                       linked_symbol);
+        orig_var->storage_class = (a_storage_class)sc_extern;
+        linked_symbol->defined = FALSE;
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+        eliminate_variable_definition_source_sequence_entry(orig_var);
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
       }  /* if */
       if (linked_symbol->defined && is_variable_def && !C_mode()) {
         /* Variable has already been defined.  Issue an error here and
@@ -16034,6 +16052,7 @@ if one is present.
     warning(ec_old_fashioned_initializer);
 #endif /* C_ANACHRONISMS_ALLOWED */
   }  /* if */
+  if (has_initializer) state->has_initializer = TRUE;
   if (state->param_id != NULL) {
     a_param_id_ptr  param_id = state->param_id;
     state->sym = param_id->symbol;

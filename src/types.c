@@ -3102,6 +3102,28 @@ provided in types.h.
 }  /* f_type_has_default_constructor */
 
 
+a_boolean type_has_nontrivial_destructor(a_type_ptr  tp)
+/*
+Return TRUE if the given type is a class type with a nontrivial destructor,
+or an array thereof.
+*/
+{
+  a_boolean                      has_nontrivial_dtor = FALSE;
+  a_class_symbol_supplement_ptr  cssp;
+
+  if (is_array_type(tp)) {
+    tp = underlying_array_element_type(tp);
+  }  /* if */
+  tp = skip_typerefs(tp);
+  if (is_immediate_class_type(tp)) {
+    /* It's a class type or an array of class type. */
+    complete_class_type_is_needed(tp);
+    cssp = symbol_supplement_for_class(tp);
+    if (has_nontrivial_destructor(cssp)) has_nontrivial_dtor = TRUE;
+  }  /* if */
+  return has_nontrivial_dtor;
+}  /* type_has_nontrivial_destructor */
+
 #if MICROSOFT_EXTENSIONS_ALLOWED
 
 a_boolean cli_type_has_public_default_constructor(a_type_ptr	tp)

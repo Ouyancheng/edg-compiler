@@ -1,5 +1,21 @@
 Version 4.10
 
+4/23/14  [EDGcpfe/15048]
+Microsoft compatibility: Duplicate definition of variables
+
+In Microsoft modes, the front end now accepts two definitions for a non-local
+variable if the first definition does not include an initializer and the
+second definition includes an initializer and the "extern" storage class
+specifier.  For example:
+
+  int x;
+  extern int x = 3;  // Now accepted in Microsoft modes.
+
+In such cases, the first definition is retroactively treated as a declaration.
+Variables that require nontrivial destruction are not considered for this
+treatment.
+
+
 4/23/14  [EDGcpfe/11251]
 Microsoft compatibility: allow ambiguous base class in member access
 

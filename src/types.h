@@ -556,6 +556,7 @@ default constructor or a nontrivial implicitly declared default constructor.
   f_type_has_default_constructor(tp, /*user_declared_only=*/FALSE,   \
                                  /*nontrivial_only=*/TRUE)
 
+extern a_boolean type_has_nontrivial_destructor(a_type_ptr  tp);
 
 extern a_boolean is_on_any_derivation_of(a_base_class_ptr  bcp,
                                          a_base_class_ptr  ref_bcp);
