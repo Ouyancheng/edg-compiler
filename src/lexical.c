@@ -790,7 +790,7 @@ static unsigned long
 #if CPPCLI_ENABLING_POSSIBLE
 
 static void db_dump_metadata(a_text_buffer_ptr buffer,
-                             int               limit)
+                             sizeof_t          limit)
 /*
 Utility to display a buffer containing metadata (for which the '\r' character
 is used in place of newline characters).  Limit the output to "limit"
@@ -798,8 +798,8 @@ characters (plus an ellipsis if the buffer size exceeds "limit") if "limit"
 is non-zero.  Ensures that a '\n' is always the last character written.
 */
 {
-  int  i;
-  char ch = 0;
+  size_t  i;
+  char    ch = 0;
 
   if (limit == 0) limit = buffer->size;
   for (i = 0; i < limit; i++) {
