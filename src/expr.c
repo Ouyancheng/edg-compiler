@@ -7186,6 +7186,7 @@ case).
         check_assertion(bcp != NULL);
         base_class_cast_operand(operand_1, bcp, (a_type_ptr)NULL,
                                 /*check_cast_access=*/TRUE,
+                                /*allow_ambiguity*/FALSE,
                                 /*is_implicit_cast=*/TRUE,
                                 /*implicit_in_naming=*/FALSE,
                                 /*is_object_pointer=*/TRUE);
@@ -7835,6 +7836,7 @@ the selection, not an operator token for the call.
         if (bcp != NULL) {
           base_class_cast_operand(operand_1, bcp, (a_type_ptr)NULL,
                                   /*check_cast_access=*/TRUE,
+                                  /*allow_ambiguity*/FALSE,
                                   /*is_implicit_cast=*/TRUE,
                                   /*implicit_in_naming=*/FALSE,
                                   /*is_object_pointer=*/TRUE);
@@ -34356,6 +34358,7 @@ created, needed to reactivate that scope.
     base_class_cast_operand(&bound_function_selector,
                             ienumerable_bcp, (a_type_ptr)NULL,
                             /*check_cast_access=*/TRUE,
+                            /*allow_ambiguity*/FALSE,
                             /*is_implicit_cast=*/TRUE,
                             /*implicit_in_naming=*/FALSE,
                             /*is_object_pointer=*/TRUE);

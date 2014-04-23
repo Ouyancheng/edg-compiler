@@ -16817,6 +16817,7 @@ need to be modified if changes are made here.
       add_base_class_casts(bcp, type_pointed_to(overridden_return_type),
                            /*check_cast_access=*/FALSE,
                            /*check_ambiguity=*/FALSE,
+                           /*allow_ambiguity=*/FALSE,
                            /*is_implicit_cast=*/TRUE,
                            /*implicit_in_naming=*/FALSE,
                            &expr,

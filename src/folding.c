@@ -1024,6 +1024,7 @@ folded to another error constant.
       a_boolean local_error_detected;
       add_base_class_casts(bcp, qualifiers_model, /*check_cast_access=*/FALSE,
                            /*check_ambiguity=*/FALSE,
+                           /*allow_ambiguity=*/FALSE,
                            is_implicit_cast, /*implicit_in_naming=*/FALSE,
                            &expr, err_pos, &local_error_detected);
       check_assertion(!local_error_detected);

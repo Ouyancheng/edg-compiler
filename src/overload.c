@@ -9900,10 +9900,13 @@ the case where the left operand is a C++/CLI handle.
         if (bcp == NULL) {
           check_assertion(total_errors != 0);
         } else {
-          /* Cast the left operand to the proper type. */
+          /* Cast the left operand to the proper type.  In Microsoft bugs
+             mode, an ambiguity is ignored (with a warning).  See
+             add_base_class_casts for more information. */
           base_class_cast_operand(operand_1, bcp, (a_type_ptr)NULL,
                                   /*check_cast_access=*/
                                                 !access_control_error_reported,
+                                  /*allow_ambiguity*/microsoft_bugs,
                                   /*is_implicit_cast=*/TRUE,
                                   /*implicit_in_naming=*/FALSE,
                                   /*is_object_pointer=*/TRUE);
@@ -9933,6 +9936,7 @@ the case where the left operand is a C++/CLI handle.
            symbol created for a Microsoft __super lookup. */
         base_class_cast_operand(operand_1, bcp, (a_type_ptr)NULL,
                                 /*check_cast_access=*/FALSE,
+                                /*allow_ambiguity=*/FALSE,
                                 /*is_implicit_cast=*/TRUE,
                                 /*implicit_in_naming=*/
                                     if_microsoft_extensions_else(
@@ -9992,6 +9996,7 @@ the case where the left operand is a C++/CLI handle.
                                     list->base_class,
                                     (a_type_ptr)NULL,
                                     /*check_cast_access=*/FALSE,
+                                    /*allow_ambiguity=*/FALSE,
                                     /*is_implicit_cast=*/TRUE,
                                     /*implicit_in_naming=*/TRUE,
                                     /*is_object_pointer=*/TRUE);
@@ -10016,6 +10021,7 @@ the case where the left operand is a C++/CLI handle.
              symbol created for a Microsoft __super lookup. */
           base_class_cast_operand(operand_1, bcp, (a_type_ptr)NULL,
                                   /*check_cast_access=*/FALSE,
+                                  /*allow_ambiguity=*/FALSE,
                                   /*is_implicit_cast=*/TRUE,
                                   /*implicit_in_naming=*/
                                     if_microsoft_extensions_else(
@@ -15139,6 +15145,7 @@ this routine does not assume that the selector address will be taken.
          if necessary. */
       base_class_cast_operand(operand, bcp, qual_this_class_type,
                               /*check_cast_access=*/FALSE,
+                              /*allow_ambiguity=*/FALSE,
                               /*is_implicit_cast=*/TRUE,
                               /*implicit_in_naming=*/FALSE,
                               /*is_object_pointer=*/TRUE);
@@ -15177,6 +15184,7 @@ the operand type to access the same class object with a new type.
        if necessary. */
     base_class_cast_operand(operand, bcp, dest_type,
                             /*check_cast_access=*/TRUE,
+                            /*allow_ambiguity=*/FALSE,
                             /*is_implicit_cast=*/TRUE,
                             /*implicit_in_naming=*/FALSE,
                             /*is_object_pointer=*/TRUE);

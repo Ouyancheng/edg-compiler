@@ -1,5 +1,36 @@
 Version 4.10
 
+4/23/14  [EDGcpfe/11251]
+Microsoft compatibility: allow ambiguous base class in member access
+
+The Microsoft compiler allows a member access expression that refers
+to a member of an ambiguous base class.  The first base class found is
+used, unless one of them is direct, in which case the direct base is used.
+We now emulate this behavior (with a warning) in Microsoft bugs mode.
+
+  #include <stdio.h>
+  struct A {
+    int i;
+    A(int x) { i = x; }
+    inline int g() { return i; }
+  };
+  struct B1 :  A {
+    B1() : A(2) { }
+  };
+  struct B2 :  A {
+    B2() : A(1) { }
+  };
+  struct C :  B1,  B2 {
+    void f() {
+      printf("%s\n", A::g() == 2 ? "pass" : "fail");
+    }
+  };
+  int main() {
+    C x;
+    x.f();
+  }
+ 
+
 4/23/14  [EDGcpfe/14950]
 C++-generating back end: assertion failure with enum redeclaration
 

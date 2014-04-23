@@ -6630,6 +6630,7 @@ void add_base_class_casts(a_base_class_ptr  bcp,
                           a_type_ptr        qualifiers_model,
                           a_boolean         check_cast_access,
                           a_boolean         check_ambiguity,
+                          a_boolean         allow_ambiguity,
                           a_boolean         is_implicit_cast,
                           a_boolean         implicit_in_naming,
                           an_expr_node_ptr  *p_node,
@@ -6642,12 +6643,13 @@ and qualifiers_model indicates the qualifiers to be placed on that class
 type.  *p_node can be a prvalue pointer to class, or a class lvalue,
 xvalue, or rvalue.  In C++/CLI mode, it can also be a handle to a class.
 qualifiers_model is a potentially cv-qualified class type.  Access
-control is done on the cast if check_cast_access is TRUE.  Checking
-for an ambiguous base class is done if check_ambiguity is TRUE.
-is_implicit_cast is TRUE if the cast is implicit.  implicit_in_naming
-is TRUE for casts that are generated implicitly in referencing a
-member of a class (roughly, in getting from the name used in the
-source -- the projection symbol -- to the member actually used in the
+control is done on the cast if check_cast_access is TRUE.  Checking for an
+ambiguous base class is done if check_ambiguity is TRUE.  allow_ambiguity
+controls whether the diagnostic that is issued for an ambiguity is a warning
+or an error.  is_implicit_cast is TRUE if the cast is implicit.
+implicit_in_naming is TRUE for casts that are generated implicitly in
+referencing a member of a class (roughly, in getting from the name used in
+the source -- the projection symbol -- to the member actually used in the
 IL).  *err_pos indicates a source position to be used for errors.  If
 error_detected is non-NULL, return *error_detected set to TRUE if
 there was an error, and do not issue any diagnostics (including
@@ -6668,7 +6670,11 @@ appropriately and error_detected can be NULL.
   if (!base_class_cast_access_checking_should_be_done()) {
     check_cast_access = FALSE;
   }  /* if */
-  if (bcp->ambiguous && check_ambiguity) {
+  /* When allow_ambiguity is TRUE, only issue a warning for ambiguous
+     cases.  bcp is expected to point to the base class to be used.
+     This is used in Microsoft bugs mode where ambiguous base classes
+     are allowed in some cases. */
+  if (bcp->ambiguous && check_ambiguity && !allow_ambiguity) {
     /* The cast is ambiguous. */
     if (error_detected != NULL) {
       *error_detected = TRUE;
@@ -6677,6 +6683,13 @@ appropriately and error_detected can be NULL.
     }  /* if */
     *p_node = error_node();
   } else {
+    /* An ambiguous base class is allowed (with a warning) in some cases
+       in Microsoft bugs mode.  The actual base class used is normally
+       the first one found, but in some cases (see find_base_class_of_full)
+       a direct base class is preferred. */
+    if (bcp->ambiguous && check_ambiguity && allow_ambiguity) {
+      pos_ty_warning(ec_ambiguous_base_class, err_pos, bcp->type);
+    }  /* if */
     /* Loop through the classes between the derived class and the
        base class.  Check accessibility at each step and generate the
        necessary casts. */
@@ -7375,6 +7388,7 @@ indicates that the cast comes from a reinterpret_cast construct in the source.
          the base class is inaccessible. */
       add_base_class_casts(bcp, new_type_pointed_to,
                            check_cast_access, check_ambiguity,
+                           /*allow_ambiguity=*/FALSE,
                            is_implicit_cast,
                            /*implicit_in_naming=*/FALSE,
                            p_node, err_pos, (a_boolean *)NULL);
@@ -8205,6 +8219,7 @@ void base_class_cast_operand(an_operand       *operand,
                              a_base_class_ptr bcp,
                              a_type_ptr       qualifiers_model,
                              a_boolean        check_cast_access,
+                             a_boolean        allow_ambiguity,
                              a_boolean        is_implicit_cast,
                              a_boolean        implicit_in_naming,
                              a_boolean        is_object_pointer)
@@ -8218,7 +8233,8 @@ are the model for the cv-qualifiers of the result (i.e., the result's
 type is the base class from bcp with the cv-qualifiers from
 qualifiers_model).  If qualifiers_model is NULL, the result will have
 the same cv-qualifiers as the original operand.  Do access control
-checking on the cast if check_cast_access is TRUE.  The cast is
+checking on the cast if check_cast_access is TRUE.  Allow an
+ambiguous reference if allow_ambiguity is TRUE.  The cast is
 implicit if is_implicit_cast is TRUE.  implicit_in_naming is TRUE for
 casts that are generated implicitly in referencing a member of a class
 (roughly, in getting from the name used in the source -- the
@@ -8317,6 +8333,7 @@ used only in C++ mode.
         node = make_node_from_operand(operand);
         add_base_class_casts(bcp, qualifiers_model,
                              check_cast_access, /*check_ambiguity=*/TRUE,
+                             allow_ambiguity,
                              is_implicit_cast,
                              implicit_in_naming,
                              &node, &orig_operand.position,
@@ -8372,6 +8389,7 @@ like a cast.
            necessary. */
         base_class_cast_operand(operand, bcp, dest_type,
                                 /*check_cast_access=*/TRUE,
+                                /*allow_ambiguity*/FALSE,
                                 /*is_implicit_cast=*/TRUE,
                                 /*implicit_in_naming=*/FALSE,
                                 /*is_object_pointer=*/FALSE);
@@ -8562,6 +8580,7 @@ is an lvalue reference to const.
            necessary. */
         base_class_cast_operand(operand, bcp, underlying_type,
                                 check_cast_access,
+                                /*allow_ambiguity*/FALSE,
                                 is_implicit_cast,
                                 /*implicit_in_naming=*/FALSE,
                                 /*is_object_pointer=*/FALSE);
