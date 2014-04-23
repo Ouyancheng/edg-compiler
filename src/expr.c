@@ -37296,6 +37296,7 @@ memory region).  If param_type is NULL, the parameter type is not known.
   a_memory_region_number region_to_switch_back_to;
   a_decl_sequence_number inst_seq_on_entry =
                                            class_instantiation_sequence_number;
+  a_boolean              relaxed_ms_case = FALSE;
 
   db_enter(3, "scan_template_argument_constant_expression");
   check_assertion(constant != NULL && in_file_scope(constant));
@@ -37311,10 +37312,14 @@ memory region).  If param_type is NULL, the parameter type is not known.
   if (class_instantiation_sequence_number != inst_seq_on_entry) {
     result.caused_template_instantiation = TRUE;
   }  /* if */
+  if (microsoft_mode && param_type != NULL &&
+      scope_stack_top().in_prototype_instantiation &&
+      !is_constant_operand(&result)) {
+    relaxed_ms_case = TRUE;
+  }  /* if */
   /* Convert to the required type if necessary.  Do not use user-defined
      conversions. */
-  if (param_type != NULL &&
-      !(microsoft_mode && scope_stack_top().in_prototype_instantiation)) {
+  if (param_type != NULL && !relaxed_ms_case) {
     prep_nontype_template_argument_initializer(&result, param_type, constant);
   } else {
     /* No destination type (or a Microsoft-mode dependent context).  Make a
@@ -37329,9 +37334,7 @@ memory region).  If param_type is NULL, the parameter type is not known.
     }  /* if */
     extract_constant_from_operand_with_fs_fixup(&result, constant);
   }  /* if */
-  check_assertion(constant->expr == NULL ||
-                  (microsoft_mode &&
-                   scope_stack_top().in_prototype_instantiation) ||
+  check_assertion(constant->expr == NULL || relaxed_ms_case ||
                   curr_expr_kind_is_one_in_which_const_exprs_are_recorded());
   wrap_up_constant_full_expression(constant, &result.position);
   pop_expr_stack();
