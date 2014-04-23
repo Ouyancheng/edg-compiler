@@ -9489,9 +9489,11 @@ error indication in *rcblock).
                          &operator_position, &operator_tok_seq_number,
                          (a_source_position *)NULL);
   } else {
-    /* Normal, non-rescan, processing. */
+    /* Normal, non-rescan, processing: Scan the operator and the operand. */
     operator_position = pos_curr_token;
     operator_tok_seq_number = curr_token_sequence_number;
+    (void)get_token();
+    scan_expr(&operand, PREC_PREFIX, EOPT_NO_OPTIONS);
   }  /* if */
   if (curr_expr_kind_is_traditional_const()) {
     if (curr_expr_kind_is(ek_pp)) {
@@ -9503,15 +9505,20 @@ error indication in *rcblock).
       expr_pos_error(ec_bad_integral_operator, &operator_position);
       err = TRUE;
     } else if (curr_expr_kind_is(ek_template_arg)) {
-      /* Address indirection not allowed in a template argument expression. */
-      expr_pos_error(ec_bad_templ_arg_expr_operator, &operator_position);
-      err = TRUE;
+      /* Address indirection not allowed in a template argument expression,
+         except that Microsoft compilers do permit it sometimes on dependent
+         constants (the indirection may be folded away at instantiation
+         time). */
+      if (microsoft_mode && is_constant_operand(&operand) &&
+          operand.variant.constant.kind ==
+                                    (a_constant_repr_kind)ck_template_param) {
+        prep_generic_operand_full(&operand, /*lvalue_expected=*/FALSE,
+                                  /*rvalue_expected=*/TRUE);
+      } else {
+        expr_pos_error(ec_bad_templ_arg_expr_operator, &operator_position);
+        err = TRUE;
+      }  /* if */
     }  /* if */
-  }  /* if */
-  if (rcblock == NULL) {
-    /* Scan the operand. */
-    (void)get_token();
-    scan_expr(&operand, PREC_PREFIX, EOPT_NO_OPTIONS);
   }  /* if */
   if (err) {
     /* Operator is not allowed in this kind of expression. */
@@ -37303,11 +37310,13 @@ memory region).  If param_type is NULL, the parameter type is not known.
   }  /* if */
   /* Convert to the required type if necessary.  Do not use user-defined
      conversions. */
-  if (param_type != NULL) {
+  if (param_type != NULL &&
+      !(microsoft_mode && scope_stack_top().in_prototype_instantiation)) {
     prep_nontype_template_argument_initializer(&result, param_type, constant);
   } else {
-    /* No destination type.  Make a constant from the operand.  This comes
-       up for errors and for nonreal templates in prototype instantiations. */
+    /* No destination type (or a Microsoft-mode dependent context).  Make a
+       constant from the operand.  This comes up for errors and for nonreal
+       templates in prototype instantiations. */
     if (is_template_dependent_context()) {
       prep_generic_nontype_template_argument(&result);
     } else {
@@ -37318,6 +37327,8 @@ memory region).  If param_type is NULL, the parameter type is not known.
     extract_constant_from_operand_with_fs_fixup(&result, constant);
   }  /* if */
   check_assertion(constant->expr == NULL ||
+                  (microsoft_mode &&
+                   scope_stack_top().in_prototype_instantiation) ||
                   curr_expr_kind_is_one_in_which_const_exprs_are_recorded());
   wrap_up_constant_full_expression(constant, &result.position);
   pop_expr_stack();
