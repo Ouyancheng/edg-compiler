@@ -1,5 +1,20 @@
 Version 4.10
 
+4/23/14  [EDGcpfe/14889]
+Using constant-valued variables in lambda expressions
+
+Previously, the front end issued an error when a lambda expression used the
+value of a constant-valued variable declared in a function outside that
+lambda expression if the variable is not captured.  For example:
+
+  int g() {
+    int const N = 3;
+    return []{ return N; }();  // Previously an error; now okay.
+  }
+
+Such cases are now accepted (in modes that accept lambda expressions).
+
+
 4/22/14  [EDGcpfe/15015]
 Deduction failure when expanding a pack into a template argument list with
 default template arguments
@@ -176,21 +191,6 @@ reflect version 4.2.1, and the front end has been changed to do the same in
 clang mode.  (This change does not affect the value of gnu_version, which
 should normally be set to a later version for maximum compatibility with
 the clang implementation.)
-
-
-4/11/14  [EDGcpfe/14889]
-Using constant-valued variables in lambda expressions
-
-Previously, the front end issued an error when a lambda expression used the
-value of a constant-valued variable declared in a function outside that
-lambda expression.  For example:
-
-  int g() {
-    int const N = 3;
-    return []{ return N; }();  // Previously an error; now okay.
-  }
-
-Such cases are now accepted (in modes that accept lambda expressions).
 
 
 4/11/14  [EDGcpfe/10197]
