@@ -787,6 +787,32 @@ static unsigned long
 		num_token_caches_allocated,
 		num_lookups_in_source_line_modif_hash_table;
 
+
+static void db_dump_metadata(a_text_buffer_ptr buffer,
+                             int               limit)
+/*
+Utility to display a buffer containing metadata (for which the '\r' character
+is used in place of newline characters).  Limit the output to "limit"
+characters (plus an ellipsis if the buffer size exceeds "limit") if "limit"
+is non-zero.  Ensures that a '\n' is always the last character written.
+*/
+{
+  int  i;
+  char ch = 0;
+
+  if (limit == 0) limit = buffer->size;
+  for (i = 0; i < limit; i++) {
+    ch = buffer->buffer[i];
+    if (ch == '\r') ch = '\n';
+    fputc(ch, f_debug);
+  }  /* for */
+  if (limit < buffer->size) {
+    fprintf(f_debug, "...\n");
+  } else if (ch != '\n') {
+    fputc('\n', f_debug);
+  }  /* if */
+}  /* db_dump_metadata */
+
 #endif /* DEBUG */
 
 
@@ -20640,15 +20666,11 @@ C++/CLI delegate class types.)
     class_def_buffer->size = size;
   }  /* if */
 #if DEBUG
-  if (db_flag_is_set("dump_metadata")) {
-    fprintf(f_debug, "Class definition for 0x%x/0x%08x: %.256s%s\n",
-            assembly_scope_index, metadata_type_def_token,
-            class_def_buffer->buffer,
-            class_def_buffer->size > 256 ? "..." : "");
-  } else if (db_flag_is_set("dump_full_metadata")) {
-    fprintf(f_debug, "Class definition for 0x%x/0x%08x: %s\n",
-            assembly_scope_index, metadata_type_def_token,
-            class_def_buffer->buffer);
+  if (db_flag_is_set("dump_metadata") || db_flag_is_set("dump_full_metadata")){
+    fprintf(f_debug, "Class definition for 0x%x/0x%08x: ",
+            assembly_scope_index, metadata_type_def_token);
+    db_dump_metadata(class_def_buffer, db_flag_is_set("dump_metadata") ? 256 :
+                                                                         0);
   }  /* if */
 #endif /* DEBUG */
 #else /* !CPPCLI_ENABLING_POSSIBLE */
@@ -20775,11 +20797,9 @@ the caller should copy the contents as needed.
   /* Terminate the buffer. */
   add_char_to_text_buffer(buffer, '\0');
 #if DEBUG
-  if (db_flag_is_set("dump_metadata")) {
-    fprintf(f_debug, "Import types from %x: %.256s%s\n",
-            idx, buffer->buffer, buffer->size > 256 ? "..." : "");
-  } else if (db_flag_is_set("dump_full_metadata")) {
-    fprintf(f_debug, "Import types from %x: %s\n", idx, buffer->buffer);
+  if (db_flag_is_set("dump_metadata") || db_flag_is_set("dump_full_metadata")){
+    fprintf(f_debug, "Import types from %x: ", idx);
+    db_dump_metadata(buffer, db_flag_is_set("dump_metadata") ? 256 : 0);
   }  /* if */
 #endif /* DEBUG */
   return buffer->buffer;
