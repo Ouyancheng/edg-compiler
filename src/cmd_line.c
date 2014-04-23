@@ -120,6 +120,14 @@ static a_boolean
 			/* TRUE if old-style preprocessing should be
 			   used in ANSI C or C++ mode. */
 
+#if MICROSOFT_EXTENSIONS_ALLOWED
+static a_boolean
+                force_ms_type_info_not_in_namespace_std;
+                        /* Used as the target of a --set_flag command-line
+                           option to force type_info_in_namespace_std to a
+                           value of FALSE. */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+
 
 static void add_config_dependent_option_description(
 				an_option_kind		kind,
@@ -1977,6 +1985,8 @@ static a_flag_name
     &generic_arity_overload_allowed },
   { "no_ms_nonreal_base_classes",
     &no_ms_nonreal_base_classes },
+  { "force_ms_type_info_not_in_namespace_std",
+    &force_ms_type_info_not_in_namespace_std },
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   { NULL, NULL }  /* must be last */
 };
@@ -2061,7 +2071,11 @@ by a command line option.
     }  /* if */
   } else {
     /* Microsoft C++ mode. */
-    type_info_in_namespace_std = MICROSOFT_MODE_TYPE_INFO_IN_NAMESPACE_STD;
+    if (force_ms_type_info_not_in_namespace_std) {
+      type_info_in_namespace_std = FALSE;
+    } else {
+      type_info_in_namespace_std = MICROSOFT_MODE_TYPE_INFO_IN_NAMESPACE_STD;
+    }  /* if */
     if (!type_info_in_namespace_std) {
       /* We will presumably want to pick ::type_info from the Microsoft
          headers.  In that case, we cannot expect an EDG-specific pragma. */
@@ -10672,6 +10686,7 @@ variables declared in cmd_line.h.
   gnu_bases_operators_enabled = FALSE;
   preserve_lvalues_with_same_type_casts = FALSE;
   std_override_modifiers_enabled = FALSE;
+  force_ms_type_info_not_in_namespace_std = FALSE;
 }  /* cmd_line_static_var_init */
 
 
