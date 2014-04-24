@@ -11752,7 +11752,7 @@ an lvalue or rvalue expression.
   an_expr_node_ptr      op1 = expr->variant.operation.operands;
   an_expr_node_ptr      op2 = op1->next;
   an_expr_node_ptr      temp1, temp2, rel_node;
-  an_expr_operator_kind op = eok_error;
+  an_expr_operator_kind op = (an_expr_operator_kind)eok_error;
   a_boolean             op1_has_side_effects, op2_has_side_effects;
 
   /* Rewrite
