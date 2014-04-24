@@ -787,7 +787,7 @@ static unsigned long
 		num_token_caches_allocated,
 		num_lookups_in_source_line_modif_hash_table;
 
-#if CPPCLI_ENABLING_POSSIBLE
+#if MICROSOFT_EXTENSIONS_ALLOWED
 
 static void db_dump_metadata(a_text_buffer_ptr buffer,
                              sizeof_t          limit)
@@ -814,7 +814,7 @@ is non-zero.  Ensures that a '\n' is always the last character written.
   }  /* if */
 }  /* db_dump_metadata */
 
-#endif /* CPPCLI_ENABLING_POSSIBLE */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 #endif /* DEBUG */
 
