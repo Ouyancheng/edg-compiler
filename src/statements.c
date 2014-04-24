@@ -6434,7 +6434,7 @@ Each has the form
 */
 {
   a_statement_ptr               sp;
-  a_statement_kind              kind = stmk_last;
+  a_statement_kind              kind = (a_statement_kind)stmk_last;
 
   switch (curr_token) {
     case tok_upc_notify:

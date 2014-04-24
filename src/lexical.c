@@ -9556,7 +9556,7 @@ kind or tok_error.  The token can be a normal or wide character constant.
 */
 {
   a_token_kind      ctoken = tok_char_constant;
-  a_character_kind  character_kind = ck_last;
+  a_character_kind  character_kind = (a_character_kind)ck_last;
   unsigned long     num_chars = 0;
   an_error_code     err_code = ec_no_error;
   a_const_char      *err_pos;

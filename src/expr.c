@@ -9671,7 +9671,7 @@ analysis on a previously-scanned expression, and return the result in
 {
   a_token_kind          operator_token;
   an_operand            operand;
-  an_expr_operator_kind op = eok_error;
+  an_expr_operator_kind op = (an_expr_operator_kind)eok_error;
   a_source_position     operator_position;
   a_token_sequence_number
                         operator_tok_seq_number;

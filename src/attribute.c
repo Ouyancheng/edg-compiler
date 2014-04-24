@@ -5159,7 +5159,7 @@ pos.
 {
   an_integer_kind  ikind;
   a_float_kind     fkind;
-  a_type_kind      type_kind = tk_unknown;
+  a_type_kind      type_kind = (a_type_kind)tk_unknown;
   a_targ_size_t    size = 0;
 
   switch (mode) {

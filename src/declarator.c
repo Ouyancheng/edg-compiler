@@ -4136,7 +4136,7 @@ convention scanned on this call.
 {
   set_err_pos_to_curr_token();
   do {
-    a_calling_convention new_call_conv = cc_default;
+    a_calling_convention new_call_conv = (a_calling_convention)cc_default;
     switch (curr_token) {
       case tok_cdecl:
         new_call_conv = (a_calling_convention)cc_cdecl;

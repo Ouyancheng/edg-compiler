@@ -15936,7 +15936,9 @@ nonstandard anonymous unions is_nonstd is TRUE.
   a_type_ptr                     class_type;
   a_class_symbol_supplement_ptr  cssp, parent_cssp = NULL;
   a_class_type_supplement_ptr    ctsp;
-  an_access_specifier            access, assoc_object_access = as_inaccessible;
+  an_access_specifier            access;
+  an_access_specifier            assoc_object_access =
+                                          (an_access_specifier)as_inaccessible;
   a_boolean                      access_error_already_issued = FALSE;
   a_boolean                      member_function_error_already_issued = FALSE;
   a_boolean                      is_overloaded;

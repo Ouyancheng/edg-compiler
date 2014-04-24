@@ -1282,7 +1282,7 @@ the actual number of converted characters may be less than num_chars.  */
   a_boolean               centity_is_signed = FALSE;
   int                     centity_bits = 0;
   int                     encoding_length;
-  a_character_kind        character_kind = ck_last;
+  a_character_kind        character_kind = (a_character_kind)ck_last;
   a_char_conversion_state conv_state;
 
   /* Determine the constant type as follows:

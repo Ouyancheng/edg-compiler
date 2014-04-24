@@ -7050,7 +7050,7 @@ decl_specifiers.  complex_attr indicates the kind of complex type involved
 _Sat was specified.
 */
 {
-  an_integer_kind  ikind = ik_none;
+  an_integer_kind  ikind = (an_integer_kind)ik_none;
   a_float_kind     fkind;
   a_boolean        bad_combination = FALSE;
 

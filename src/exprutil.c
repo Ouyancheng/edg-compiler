@@ -11833,7 +11833,7 @@ Return a binary expression operator based on the token and type.  If the
 type is an error type, return eok_error.
 */
 {
-  an_expr_operator_kind op = eok_error;
+  an_expr_operator_kind op = (an_expr_operator_kind)eok_error;
   a_type_kind           type_kind = skip_typerefs(type)->kind;
 
   switch (token) {
@@ -11965,7 +11965,7 @@ Return the operator (eok_...) that corresponds to the indicated operator kind.
 The operation is a unary operation if unary_operator is TRUE.
 */
 {
-  an_expr_operator_kind op = eok_error;
+  an_expr_operator_kind op = (an_expr_operator_kind)eok_error;
 
   if (unary_operator) {
     /* Unary operations. */

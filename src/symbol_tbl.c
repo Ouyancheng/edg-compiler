@@ -6878,7 +6878,7 @@ create the instance symbols for template aliases.
 */
 {
   a_symbol_ptr 				sym;
-  a_symbol_kind 			kind = sk_last;
+  a_symbol_kind 			kind = (a_symbol_kind)sk_last;
   a_class_symbol_supplement_ptr		cssp;
   a_boolean				is_alias_template;
   a_template_symbol_supplement_ptr	tssp;

@@ -9123,7 +9123,7 @@ and has the opposite signedness.  For example, ik_unsigned_long as
 input produces ik_long as output.
 */
 {
-  an_integer_kind nkind = ik_none;
+  an_integer_kind nkind = (an_integer_kind)ik_none;
 
   switch (ikind) {
     case ik_char:
@@ -13639,7 +13639,7 @@ Determine the "operation type kind" for the given binary operator kind applied
 to operands of the given type.
 */
 {
-  a_type_kind  result = tk_unknown, kind1, kind2;
+  a_type_kind  result = (a_type_kind)tk_unknown, kind1, kind2;
 
   op1_type = skip_typerefs(op1_type);
   op2_type = skip_typerefs(op2_type);
@@ -13741,7 +13741,7 @@ Many operations don't specifically apply to a particular type kind; for those
 tk_unknown is returned.
 */
 {
-  a_type_kind      result = tk_unknown, expr_kind, operand_kind;
+  a_type_kind      result = (a_type_kind)tk_unknown, expr_kind, operand_kind;
   an_expr_node_ptr op1;
 
   check_assertion(expr->kind == (an_expr_node_kind)enk_operation);

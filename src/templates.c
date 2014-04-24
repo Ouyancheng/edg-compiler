@@ -17440,7 +17440,7 @@ declaration of a partial specialization declared outside of its class.
   a_symbol_ptr                      sym = NULL;
   a_template_symbol_supplement_ptr  tssp = NULL;
   a_token_cache                     local_token_cache;
-  a_type_kind                       type_kind = tk_unknown;
+  a_type_kind                       type_kind = (a_type_kind)tk_unknown;
   a_token_set_array                 stop_tokens;
   a_source_position                 friend_pos;
   a_boolean			    friend_token_seen = FALSE;
