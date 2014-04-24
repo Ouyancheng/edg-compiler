@@ -9600,6 +9600,12 @@ command line -D options.
                                              /*cannot_be_redefined=*/TRUE,
                                              /*ref_suppresses_pch_file=*/FALSE,
                                              /*function_like=*/TRUE);
+    /* The argument to __has_include and __has_include_next is special -- a
+       header file name -- and must be scanned differently from ordinary
+       macro arguments.  In order to suppress the normal macro argument
+       processing, these macros are defined as object-like, not
+       function-like, and the argument is scanned and processed directly by
+       scan_has_include. */
     clang_has_include_next_symbol = enter_predef_macro(
                                             (char *)NULL, "__has_include_next",
                                             /*cannot_be_redefined=*/TRUE,
