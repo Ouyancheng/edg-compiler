@@ -1554,7 +1554,7 @@ the string.
   sizeof_t                      constant_size;
   a_targ_size_t                 num_elems;
   unsigned int                  char_size = 0;
-  a_character_kind              character_kind = ck_last;
+  a_character_kind              character_kind = (a_character_kind)ck_last;
   a_char_conversion_state       conv_state;
   a_boolean                     raw_string_end_in_trigraph = FALSE;
   a_string_or_char_literal_kind prefix_kind =
