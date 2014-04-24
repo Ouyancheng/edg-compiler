@@ -801,7 +801,7 @@ is non-zero.  Ensures that a '\n' is always the last character written.
   size_t  i;
   char    ch = 0;
 
-  if (limit == 0) limit = buffer->size;
+  if (limit == 0 || limit > buffer->size) limit = buffer->size;
   for (i = 0; i < limit; i++) {
     ch = buffer->buffer[i];
     if (ch == '\r') ch = '\n';
