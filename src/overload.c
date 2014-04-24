@@ -9906,7 +9906,7 @@ the case where the left operand is a C++/CLI handle.
           base_class_cast_operand(operand_1, bcp, (a_type_ptr)NULL,
                                   /*check_cast_access=*/
                                                 !access_control_error_reported,
-                                  /*allow_ambiguity*/microsoft_bugs,
+                                  /*allow_ambiguity=*/microsoft_bugs,
                                   /*is_implicit_cast=*/TRUE,
                                   /*implicit_in_naming=*/FALSE,
                                   /*is_object_pointer=*/TRUE);

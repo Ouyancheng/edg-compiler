@@ -8389,7 +8389,7 @@ like a cast.
            necessary. */
         base_class_cast_operand(operand, bcp, dest_type,
                                 /*check_cast_access=*/TRUE,
-                                /*allow_ambiguity*/FALSE,
+                                /*allow_ambiguity=*/FALSE,
                                 /*is_implicit_cast=*/TRUE,
                                 /*implicit_in_naming=*/FALSE,
                                 /*is_object_pointer=*/FALSE);
@@ -8580,7 +8580,7 @@ is an lvalue reference to const.
            necessary. */
         base_class_cast_operand(operand, bcp, underlying_type,
                                 check_cast_access,
-                                /*allow_ambiguity*/FALSE,
+                                /*allow_ambiguity=*/FALSE,
                                 is_implicit_cast,
                                 /*implicit_in_naming=*/FALSE,
                                 /*is_object_pointer=*/FALSE);
