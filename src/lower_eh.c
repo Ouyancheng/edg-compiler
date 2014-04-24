@@ -1013,7 +1013,7 @@ allocated in the file scope memory region.
   a_constant_ptr   aggr_con, sub_aggr_con;
   a_variable_ptr   typeinfo_var, bc_var;
   a_boolean        ovflo;
-  a_constant_ptr   typeinfo_con, offset_con, flags_con;
+  a_constant_ptr   typeinfo_con, offset_con, flags_con = NULL;
   a_base_class_flags_set
                    flags_value;
   a_targ_size_t    offset;

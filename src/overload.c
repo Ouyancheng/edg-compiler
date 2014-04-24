@@ -13665,7 +13665,7 @@ with LVALUE_FIRST_OPERAND_TYPE_CODE if the operator requires an lvalue
 as its first operand.
 */
 {
-  a_const_char *operand_type_pattern;
+  a_const_char *operand_type_pattern = NULL;
 
   if (unary_operator) {
     switch (kind) {
@@ -23443,7 +23443,7 @@ aggregate constant.
 {
   a_constant_ptr      aggr_con;
   a_constant_ptr      designator_con;
-  a_constant_ptr      member_con;
+  a_constant_ptr      member_con = NULL;
   a_dynamic_init_ptr  field_init;
   a_dynamic_init_ptr  aggr_init;
   an_expr_node_ptr    init_expr;

@@ -2880,7 +2880,7 @@ list recorded for that entity.  (For entities with a source correspondence scp,
 this is &scp.attributes.)
 */
 {
-  an_attribute_ptr  *p_attributes;
+  an_attribute_ptr  *p_attributes = NULL;
 
   switch (entity_kind) {
     case iek_field:
@@ -2943,7 +2943,7 @@ static void db_attribute(an_attribute_ptr  ap)
 Output the given attribute to f_debug.
 */
 {
-  a_const_char *str;
+  a_const_char *str = NULL;
 
   if (ap == NULL) {
     (void)fprintf(f_debug, "null attribute pointer\n");
@@ -5159,7 +5159,7 @@ pos.
 {
   an_integer_kind  ikind;
   a_float_kind     fkind;
-  a_type_kind      type_kind;
+  a_type_kind      type_kind = tk_unknown;
   a_targ_size_t    size = 0;
 
   switch (mode) {
@@ -7385,7 +7385,7 @@ equal.
 */
 {
   a_symbol_ptr  sym = (a_symbol_ptr)entry;
-  a_const_char  *str;
+  a_const_char  *str = NULL;
 
   switch (sym->kind) {
     case sk_variable:

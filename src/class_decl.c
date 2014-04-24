@@ -10843,7 +10843,7 @@ lookup is successful, return a pointer to the symbol; otherwise, return NULL.
 If there is more than one matching function, set *ambiguous to TRUE.
 */
 {
-  a_symbol_ptr          sym;
+  a_symbol_ptr          sym = NULL;
   a_boolean             class_bitwise_copy, is_move = FALSE;
   a_type_qualifier_set  qualifiers = TQ_NONE;
 
@@ -15936,11 +15936,11 @@ nonstandard anonymous unions is_nonstd is TRUE.
   a_type_ptr                     class_type;
   a_class_symbol_supplement_ptr  cssp, parent_cssp = NULL;
   a_class_type_supplement_ptr    ctsp;
-  an_access_specifier            access, assoc_object_access;
+  an_access_specifier            access, assoc_object_access = as_inaccessible;
   a_boolean                      access_error_already_issued = FALSE;
   a_boolean                      member_function_error_already_issued = FALSE;
   a_boolean                      is_overloaded;
-  a_type_ptr                     assoc_object_type, tp;
+  a_type_ptr                     assoc_object_type = NULL, tp;
   a_boolean                      reuse_symbol = TRUE;
   a_field_ptr                    au_field;
   a_symbol_ptr                   new_apo_sym_list = NULL;
@@ -22251,7 +22251,7 @@ Check that this is a valid type and if so make member_type a friend.
       } else if (!(state->dso_flags & DSO_ELABORATED_TYPE_SPECIFIER)) {
         member_type = skip_typerefs(member_type);
         if (!extended_friends_enabled) {
-          a_const_char *class_key_string;
+          a_const_char *class_key_string = NULL;
           switch (member_type->kind) {
             case tk_class:   class_key_string = "class";   break;
             case tk_struct:  class_key_string = "struct";  break;
@@ -26473,7 +26473,7 @@ not inherited) property or event named X.
                                   IDL_DIRECT_CLASS_MEMBERS_ONLY);
   if (sym != NULL) {
     a_property_or_event_descr_ptr  pdp = NULL;
-    a_boolean                      true_conflict;
+    a_boolean                      true_conflict = FALSE;
     if (symbol_is(sym, sk_property_set)) {
       /* A potentially overloaded property: The check can be performed against
          any member of the set. */

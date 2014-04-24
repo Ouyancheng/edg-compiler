@@ -1796,7 +1796,7 @@ be TRUE if curr_token is tok_lt.  When coalesce_ids is FALSE and cache is
 not NULL, any fetched tokens will be added to cache.
 */
 {
-  a_token_kind  closing_token;
+  a_token_kind  closing_token = tok_error;
   int           paren_count = 0, bracket_count = 0, brace_count = 0;
   a_boolean	done = FALSE;
   a_boolean	err = FALSE;
@@ -4355,8 +4355,8 @@ Display the include guard information associated with the current input
 stack entry, for debugging purposes.
 */
 {
-  a_const_char *idemp_name;
-  a_const_char *idemp_text;
+  a_const_char *idemp_name = NULL;
+  a_const_char *idemp_text = NULL;
   db_enter(5, "db_include_guard_info");
   switch (curr_ise->ifg_state) {
     case IFG_STATE_START:
@@ -8112,7 +8112,7 @@ the kind of token.
 #endif /* FIXED_POINT_ALLOWED */
                  k_float} kind;
   register a_token_kind 
-                ctoken;
+                ctoken = tok_error;
   a_boolean     err = FALSE;
   a_const_char  *err_pos;
   an_error_code err_code;
@@ -9556,7 +9556,7 @@ kind or tok_error.  The token can be a normal or wide character constant.
 */
 {
   a_token_kind      ctoken = tok_char_constant;
-  a_character_kind  character_kind;
+  a_character_kind  character_kind = ck_last;
   unsigned long     num_chars = 0;
   an_error_code     err_code = ec_no_error;
   a_const_char      *err_pos;
@@ -10065,7 +10065,7 @@ non-NULL, also append the characters in the comment, through but not including
 */
 {
   a_source_line_modif_ptr  slmp;
-  a_const_char             *curr_char, *next_char;
+  a_const_char             *curr_char, *next_char = NULL;
   sizeof_t                 len;
   char                     ch;
   a_boolean                ends_with_newline = FALSE;
@@ -11890,7 +11890,7 @@ been written to be as fast as possible.  Structure has been sacrificed
 to speed in some cases.
 */
 {
-  register a_token_kind ctoken;
+  register a_token_kind ctoken = tok_error;
   register char         ch;
   register a_symbol_ptr	assoc_symbol;
   a_symbol_kind		id_kind;
@@ -13408,7 +13408,7 @@ If limit_flush is TRUE the number of lines flushed is limited to avoid
 skipping too far in error cases.
 */
 {
-  a_token_kind      closing_token;
+  a_token_kind      closing_token = tok_error;
   a_token_kind	    prev_token = tok_error;
   a_source_position start_pos;
   unsigned long     paren_count   = 0,
@@ -20840,7 +20840,7 @@ Display the contents of a token cache.
               (unsigned long)ctp->token_sequence_number);
       if (ctp->extra_info_kind != (a_token_extra_info_kind)teik_none &&
           ctp->extra_info_kind != (a_token_extra_info_kind)teik_identifier) {
-        a_const_char *s;
+        a_const_char *s = NULL;
         switch (ctp->extra_info_kind) {
           case teik_identifier:     s = "identifier"; break; /* not used */
           case teik_constant:       s = "constant"; break;

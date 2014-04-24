@@ -5114,7 +5114,7 @@ Return a character type entry (tk_integer) corresponding to the given
 character kind.
 */
 {
-  a_type_ptr  result;
+  a_type_ptr  result = NULL;
 
   switch (kind) {
     case chk_char:
@@ -5853,7 +5853,7 @@ Return a hash value for the indicated type.  This is used in some cases
 to refine the hash value developed in hash_constant.
 */
 {
-  a_hash_value       hash_value;
+  a_hash_value       hash_value = 0;
 
   /* Only pointers to class types are particularly important here. */
   /* Note that the address of the type or its subtypes should not be
@@ -5973,7 +5973,7 @@ a_hash_value hash_constant(a_constant *cp)
 Return the hash value for the indicated constant.
 */
 {
-  a_hash_value    hash_value;
+  a_hash_value    hash_value = 0;
   a_targ_size_t   length;
   a_boolean       ovflo;
   a_const_char    *p;
@@ -9123,7 +9123,7 @@ and has the opposite signedness.  For example, ik_unsigned_long as
 input produces ik_long as output.
 */
 {
-  an_integer_kind nkind;
+  an_integer_kind nkind = ik_none;
 
   switch (ikind) {
     case ik_char:
@@ -10812,7 +10812,7 @@ are not already present.
   a_type_qualifier_set  qualifiers_to_add;
 #if NAMED_ADDRESS_SPACES_ALLOWED
   a_named_address_space_id
-                         nas_base, nas_to_add;
+                         nas_base, nas_to_add = 0;
   a_boolean              nas_change_needed = FALSE;
 #endif /* NAMED_ADDRESS_SPACES_ALLOWED */
 
@@ -13639,7 +13639,7 @@ Determine the "operation type kind" for the given binary operator kind applied
 to operands of the given type.
 */
 {
-  a_type_kind  result, kind1, kind2;
+  a_type_kind  result = tk_unknown, kind1, kind2;
 
   op1_type = skip_typerefs(op1_type);
   op2_type = skip_typerefs(op2_type);
@@ -13741,7 +13741,7 @@ Many operations don't specifically apply to a particular type kind; for those
 tk_unknown is returned.
 */
 {
-  a_type_kind      result, expr_kind, operand_kind;
+  a_type_kind      result = tk_unknown, expr_kind, operand_kind;
   an_expr_node_ptr op1;
 
   check_assertion(expr->kind == (an_expr_node_kind)enk_operation);
@@ -21537,7 +21537,7 @@ have two such pointers, the object lifetime kind is also passed in to help
 determine which address to return.
 */
 {
-  an_object_lifetime_ptr *lifetime_addr;
+  an_object_lifetime_ptr *lifetime_addr = NULL;
 
   switch (entity_kind) {
     case iek_scope:
@@ -24596,7 +24596,7 @@ with the given source position.
 */
 {
   a_symbol_ptr  sym = symbol_for(predeclared_type);
-  a_namespace_ptr  nsp;
+  a_namespace_ptr  nsp = NULL;
 
   switch (scope_stack[scope_depth].kind) {
     case sck_file:

@@ -7762,7 +7762,7 @@ for the same virtual function table variable; see note below.
   a_constant_ptr              start_of_vtbl = NULL, end_of_vtbl = NULL;
   a_boolean                   main_vtbl = FALSE;
 #endif /* IA64_ABI */
-  a_targ_ptrdiff_t            delta;
+  a_targ_ptrdiff_t            delta = 0;
 #if ABI_CHANGES_FOR_RTTI
   a_type_info_kind            kind = tik_last;
 #endif /* ABI_CHANGES_FOR_RTTI */
@@ -11752,7 +11752,7 @@ an lvalue or rvalue expression.
   an_expr_node_ptr      op1 = expr->variant.operation.operands;
   an_expr_node_ptr      op2 = op1->next;
   an_expr_node_ptr      temp1, temp2, rel_node;
-  an_expr_operator_kind op;
+  an_expr_operator_kind op = eok_error;
   a_boolean             op1_has_side_effects, op2_has_side_effects;
 
   /* Rewrite
@@ -14760,7 +14760,7 @@ each case.
        just to find out its type (and discards expression trees that don't
        match), but the type is difficult to determine (because of potential
        modifiers) and this case doesn't occur frequently. */
-    an_expr_node_ptr      new_expr;
+    an_expr_node_ptr      new_expr = NULL;
     an_init_pos_descr_ptr ipdp;
     check_assertion(aggregate_this_stack != NULL);
     for (ipdp = aggregate_this_stack; ipdp != NULL; ipdp = ipdp->next) {

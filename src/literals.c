@@ -1276,13 +1276,13 @@ the actual number of converted characters may be less than num_chars.  */
   an_integer_value        number, ch_int_val;
   a_const_char            *temp_ptr;
   a_boolean               err, too_many_chars = FALSE, bad_character = FALSE;
-  a_type_ptr              con_type;
+  a_type_ptr              con_type = NULL;
   unsigned int            char_size;
   unsigned long           centity_mask;
-  a_boolean               centity_is_signed;
-  int                     centity_bits;
+  a_boolean               centity_is_signed = FALSE;
+  int                     centity_bits = 0;
   int                     encoding_length;
-  a_character_kind        character_kind;
+  a_character_kind        character_kind = ck_last;
   a_char_conversion_state conv_state;
 
   /* Determine the constant type as follows:
@@ -1553,8 +1553,8 @@ the string.
   char                          *str_start;
   sizeof_t                      constant_size;
   a_targ_size_t                 num_elems;
-  unsigned int                  char_size;
-  a_character_kind              character_kind;
+  unsigned int                  char_size = 0;
+  a_character_kind              character_kind = ck_last;
   a_char_conversion_state       conv_state;
   a_boolean                     raw_string_end_in_trigraph = FALSE;
   a_string_or_char_literal_kind prefix_kind =

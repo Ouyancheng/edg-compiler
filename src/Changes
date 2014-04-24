@@ -1,5 +1,15 @@
 Version 4.10
 
+4/23/14  [EDGcpfe/15100]
+Warnings when building the front end with gcc
+
+Building the front end using gcc with certain compilation options (notably
+"-O2 -funroll-loops -Wall") resulted in compiler warnings.  These warnings
+have now been eliminated.  This change is similar to that of EDGcpfe/14794
+but affects code added since then and conditionally-compiled code in
+additional configurations.
+
+
 4/23/14  [EDGcpfe/15048]
 Microsoft compatibility: Duplicate definition of variables
 

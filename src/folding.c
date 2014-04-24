@@ -834,7 +834,7 @@ This is NULL if the pointer is an integer cast to a pointer type.  Otherwise,
 it points to the variable, routine, or constant entry.
 */
 {
-  char *object;
+  char *object = NULL;
 
   if (constant->kind == (a_constant_repr_kind)ck_integer) {
     /* No base object. */
@@ -3382,7 +3382,7 @@ operator "op", and return a 0 or 1 integer in "result".
 */
 {
   int	cmp;
-  int	result_value;
+  int	result_value = 0;
 
   /* Develop a strcmp-like relation value in cmp:
        constant_1 > constant_2   1
@@ -3758,7 +3758,7 @@ relational operator "op", and return a 0 or 1 integer in "result".
 */
 {
   int          cmp;
-  int          result_value;
+  int          result_value = 0;
   a_boolean    unordered;
   a_float_kind float_kind =
                            skip_typerefs(constant_1->type)->variant.float_kind;
@@ -3940,7 +3940,7 @@ relational operator "op", and return a 0 or 1 integer in "result".
 */
 {
   int cmp;
-  int result_value;
+  int result_value = 0;
 
   /* Develop a strcmp-like relation value in cmp:
        constant_1 > constant_2   1
@@ -4887,7 +4887,7 @@ set if the operation cannot be folded.
 */
 {
   a_constant offset_1, offset_2;
-  int        result_value;
+  int        result_value = 0;
   int        cmp;
 
   *did_not_fold = FALSE;
@@ -8200,7 +8200,7 @@ Otherwise, return FALSE.
   if (is_constant_node(arg) &&
       arg->variant.constant->kind == (a_constant_repr_kind)ck_float) {
     a_constant_ptr         cp = arg->variant.constant;
-    a_host_large_unsigned  result;
+    a_host_large_unsigned  result = 0;
     switch (rp->variant.builtin_function_kind) {
       case bfk_isnan:
       case bfk_isnanf:

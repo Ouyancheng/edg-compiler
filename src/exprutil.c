@@ -498,7 +498,7 @@ recorded right away and no entry is created; NULL is returned.
 */
 {
   a_ref_entry_ptr rep;
-  a_boolean       ref_kind_can_be_affected_by_context;
+  a_boolean       ref_kind_can_be_affected_by_context = FALSE;
   a_boolean       evaluated = curr_expr_is_potentially_evaluated();
   a_symbol_ptr    fund_sym = fundamental_symbol_of(sym_ptr);
 
@@ -1061,7 +1061,7 @@ a_source_position *init_component_pos(an_init_component_ptr icp)
 Return the position of the given init component.
 */
 {
-  a_source_position  *result;
+  a_source_position  *result = NULL;
 
   switch (icp->kind) {
     case ick_braced:
@@ -3390,7 +3390,7 @@ is invariant).  treat_as_potential_prvalue should always be FALSE when
 called during lowering (as value category is known at that time).
 */
 {
-  an_expr_node_ptr expr_copy;
+  an_expr_node_ptr expr_copy = NULL;
 
   *temp_init_used = FALSE;
   expr = skip_parens(expr);
@@ -5071,7 +5071,7 @@ information, including information on the template parameter
 substitutions to be done.
 */
 {
-  an_init_component_ptr copy_icp;
+  an_init_component_ptr copy_icp = NULL;
 
   if (is_expression_component(icp)) {
     /* Rescan a single expression. */
@@ -5159,7 +5159,7 @@ to restore_operand_details.  Otherwise, use make_node_from_operand
 instead.
 */
 {
-  an_expr_node_ptr node;
+  an_expr_node_ptr node = NULL;
 
   switch (operand->kind) {
     case ok_error:
@@ -11833,7 +11833,7 @@ Return a binary expression operator based on the token and type.  If the
 type is an error type, return eok_error.
 */
 {
-  an_expr_operator_kind op;
+  an_expr_operator_kind op = eok_error;
   a_type_kind           type_kind = skip_typerefs(type)->kind;
 
   switch (token) {
@@ -11965,7 +11965,7 @@ Return the operator (eok_...) that corresponds to the indicated operator kind.
 The operation is a unary operation if unary_operator is TRUE.
 */
 {
-  an_expr_operator_kind op;
+  an_expr_operator_kind op = eok_error;
 
   if (unary_operator) {
     /* Unary operations. */
@@ -16608,7 +16608,7 @@ is an rvalue reference.
                                            (a_source_position *)NULL);
   } else {
     /* Binding a reference to a class prvalue. */
-    an_expr_node_ptr expr;
+    an_expr_node_ptr expr = NULL;
     an_operand       orig_operand;
     check_assertion(is_an_rvalue(operand) &&
                     (is_class_struct_union_type(operand->type) ||
@@ -19431,7 +19431,7 @@ to TRUE and *result becomes an error operand.
     err = TRUE;
   } else {
     a_property_or_event_descr_ptr
-                         pedp;
+                         pedp = NULL;
     a_symbol_ptr         event_sym = lhs->symbol, accessor_sym = NULL;
     a_symbol_locator     accessor_loc;
     an_operand           function_operand, selector;
@@ -19561,7 +19561,7 @@ such accessor).  For non-static events, set *bound_function_selector to the
 selector expression used to designate the event.
 */
 {
-  a_property_or_event_descr_ptr  pedp;
+  a_property_or_event_descr_ptr  pedp = NULL;
   a_symbol_ptr                   event_sym = operand->symbol;
 
   check_assertion(is_event_ref_operand(operand));

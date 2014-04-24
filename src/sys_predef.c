@@ -2862,7 +2862,7 @@ be at most one) if one is found (and to mvak_invalid otherwise).
   for (arch = (a_multiversion_arch_kind)mvak_lowest_cpu;
        arch <= (a_multiversion_arch_kind)mvak_highest_cpu;
        arch++) {
-    a_multiversion_arch_kind arch_isa;
+    a_multiversion_arch_kind arch_isa = mvak_invalid;
     switch (arch) {
       case mvak_cpu_bdver1:
       case mvak_cpu_bdver2:

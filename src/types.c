@@ -9194,7 +9194,7 @@ floating point type, or the number of non-fractional bits in a fixed point
 type.
 */
 {
-  a_targ_size_t num_bits;
+  a_targ_size_t num_bits = 0;
 
   if (is_floating_type(type)) {
     /* Includes complex types, if enabled; in that case, the result will be
@@ -11064,7 +11064,7 @@ default argument expressions should be made unique to each type (e.g., by
 calling disentangle_default_args).
 */
 {
-  a_type_ptr comp_type, comp_elem;
+  a_type_ptr comp_type = NULL, comp_elem;
   a_type_ptr base_type_1, base_type_2;
   a_type_ptr member_type_1, member_type_2;
 

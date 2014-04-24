@@ -817,7 +817,7 @@ an error is found, issue the diagnostic and return TRUE.
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     } else {
       /* It's a branch into a protected block from outside. */
-      an_error_code err_code;
+      an_error_code err_code = ec_no_error;
       if (cfdp->variant.block.is_catch_block) {
         err_code = ec_branch_into_handler;
       } else if (cfdp->variant.block.is_try_block) {
@@ -1548,7 +1548,7 @@ should be set to TRUE.
   a_boolean                     is_list = (sp->next != NULL);
   a_struct_stmt_stack_entry_ptr sssep;
   a_statement_ptr               ssp;
-  a_statement_ptr               *head_ptr;
+  a_statement_ptr               *head_ptr = NULL;
   a_boolean                     statement_list_allowed;
   a_statement_ptr               extra_block;
   a_statement_ptr               temp_stmt;
@@ -6434,7 +6434,7 @@ Each has the form
 */
 {
   a_statement_ptr               sp;
-  a_statement_kind              kind;
+  a_statement_kind              kind = stmk_last;
 
   switch (curr_token) {
     case tok_upc_notify:

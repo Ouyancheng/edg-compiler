@@ -1842,7 +1842,7 @@ consistent with that of the previous declaration.
   an_exception_specification_ptr  new_esp, old_esp;
   an_error_code                   error_code;
   a_routine_ptr                   rp = NULL;
-  a_type_ptr                      prev_type;
+  a_type_ptr                      prev_type = NULL;
 
   db_enter(4, "check_exception_specification");
   /* Retrieve the routine type of the previous declaration: */
@@ -4650,7 +4650,7 @@ notably, most __declspec attributes -- are applied through the general
 attribute application mechanism.)
 */
 {
-  a_variable_ptr   variable;
+  a_variable_ptr   variable = NULL;
   a_decl_modifier  flags;
 
   if (dps->sym->kind == (a_symbol_kind)sk_variable) {

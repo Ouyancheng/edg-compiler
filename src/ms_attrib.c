@@ -1513,13 +1513,11 @@ Record in attribute_usage the usage constraints of a custom attribute as
 specified with the custom AttributeUsage attribute described by msap.
 */
 {
-  a_type_ptr                    attribute_type;
   a_boolean                     ovflo;
   a_constant_ptr                con;
 
   check_assertion(msap->kind == (an_ms_attribute_kind)msak_custom);
-  attribute_type = msap->variant.custom_info.type;
-  check_assertion(is_cli_type_of_kind(attribute_type,
+  check_assertion(is_cli_type_of_kind(msap->variant.custom_info.type,
                                       csk_system_attribute_usage_attribute));
   if (msap->variant.custom_info.args != NULL &&
       msap->variant.custom_info.args->next == NULL &&
@@ -2171,7 +2169,7 @@ target, if any, was found.
   an_ms_attribute_target  target = msat_none;
 
   if (next_token() == tok_colon) {
-    a_const_char *invalid_target_identifier;
+    a_const_char *invalid_target_identifier = NULL;
     if (curr_token == tok_identifier) {
       a_symbol_header_ptr  sym_hdr = locator_for_curr_id.symbol_header;
       switch (sym_hdr->identifier[0]) {
@@ -2807,7 +2805,7 @@ no attribute can be applied to the entity.
     }  /* if */
     if (cli_or_cx_enabled && explicit_target == msat_field &&
         (applicable_targets & (msat_property | msat_event)) != 0) {
-      a_boolean is_trivial;
+      a_boolean is_trivial = FALSE;
       if (kind == (an_il_entry_kind)iek_field) {
         a_field_ptr field = (a_field_ptr)entity;
         is_trivial = field->property_or_event_descr->is_trivial;
@@ -2832,7 +2830,7 @@ no attribute can be applied to the entity.
       pos_error(ec_invalid_attribute_target_for_ms_attr, &msap->position);
     }  /* if */
     if (!is_error) {
-      a_type_ptr             attribute_type;
+      a_type_ptr             attribute_type = NULL;
       an_ms_attribute_target valid_targets;
       if (msap->kind == (an_ms_attribute_kind)msak_custom) {
         an_ms_attribute_usage_ptr attribute_usage;
@@ -3105,7 +3103,7 @@ attributes are added to the appropriate IL list.
   for (msap = *attributes; msap != NULL; msap = next_msap) {
     an_ms_attribute_target explicit_target = msap->target;
     an_ms_attribute_target valid_targets;
-    a_type_ptr             attribute_type;
+    a_type_ptr             attribute_type = NULL;
     a_boolean              is_error = FALSE;
     next_msap = msap->next;
     if ((explicit_target & standalone_ms_attribute_targets()) == 0) {

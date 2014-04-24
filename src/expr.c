@@ -3793,7 +3793,7 @@ to implement the GNU function __builtin_classify_type.)  Different versions
 of gcc and g++ return slightly different values for some expression types.
 */
 {
-  a_type_class_kind  tck;
+  a_type_class_kind  tck = tck_none;
 
   type = skip_typerefs(type);
   switch (type->kind) {
@@ -6495,7 +6495,7 @@ a left parenthesis in the source.
   a_symbol_ptr                  sym;
   a_boolean                     is_qualified = FALSE;
   a_boolean                     is_template_id = FALSE;
-  a_template_arg_ptr            expl_templ_arg_list;
+  a_template_arg_ptr            expl_templ_arg_list = NULL;
   an_expr_operator_kind         op;
   a_boolean                     need_member_sym_check = TRUE;
   a_source_position             *qualified_member_position = NULL;
@@ -9671,7 +9671,7 @@ analysis on a previously-scanned expression, and return the result in
 {
   a_token_kind          operator_token;
   an_operand            operand;
-  an_expr_operator_kind op;
+  an_expr_operator_kind op = eok_error;
   a_source_position     operator_position;
   a_token_sequence_number
                         operator_tok_seq_number;
@@ -10982,15 +10982,18 @@ of rescan information.
     /* Get rescan information recorded for this expression by going by way
        of an operand. */
     an_operand       operand;
-    an_expr_node_ptr result;
     make_expression_operand(node, &operand);
     set_operand_position(&operand, start_position, end_position,
                          &null_source_position);
-    result = make_node_from_operand(&operand);
 #if CHECKING
-    /* We should get the same expression back when we extract it, because
-       we haven't really done anything. */
-    check_assertion(result == node);
+    { an_expr_node_ptr result;
+      result = make_node_from_operand(&operand);
+      /* We should get the same expression back when we extract it, because
+	 we haven't really done anything. */
+      check_assertion(result == node);
+    }
+#else /* !CHECKING */
+    (void)make_node_from_operand(&operand);
 #endif /* CHECKING */
   }  /* if */
 }  /* record_position_in_expr_for_rescan */
@@ -11192,7 +11195,7 @@ arbitrary expression.  If rcblock is non-NULL, redo semantic analysis
 on a previously-scanned argument given by rcblock->argument_list.
 */
 {
-  an_expr_node_ptr  result;
+  an_expr_node_ptr  result = NULL;
   a_source_position start_position;
 
   if (rcblock != NULL) {
@@ -11674,7 +11677,7 @@ indication in *rcblock).
 */
 {
   a_type_ptr                    result_type;
-  a_builtin_operation_kind_tag  bok;
+  a_builtin_operation_kind_tag  bok = bok_last;
 
   if (rcblock != NULL) {
     an_expr_node_ptr expr = rcblock->expr;
@@ -13433,7 +13436,7 @@ arguments.
   a_source_position   end_position;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   a_type_ptr          arg_type;
-  int                 func_arg_number;
+  int                 func_arg_number = 0;
   a_boolean           err = FALSE;
   an_expr_stack_entry expr_stack_entry;
 
@@ -24620,7 +24623,7 @@ that case.
                          (a_source_position *)NULL);
   } else {
     /* Normal, non-rescan, processing. */
-    int prec_level;
+    int prec_level = 0;
     operator_token = curr_token;
     operator_position = pos_curr_token;
     operator_tok_seq_number = curr_token_sequence_number;
@@ -29459,7 +29462,7 @@ keyword identified by curr_token (e.g., __FUNCTION__, __PRETTY_FUNCTION__).
 If do_concat is TRUE, do concatenation of any subsequent string literals.
 */
 {
-  a_const_char  *name_str;
+  a_const_char  *name_str = NULL;
   a_targ_size_t length;
 
   if (innermost_function_scope == NULL) {
@@ -35212,7 +35215,7 @@ previously created, needed to reactivate that scope.
   a_for_each_loop_ptr felp = statement->variant.for_each_loop.extra_info;
   a_variable_ptr      collection_var = felp->collection_expr_ref;
   a_type_ptr          orig_collection_type, collection_type;
-  a_base_class_ptr    ienumerable_bcp;
+  a_base_class_ptr    ienumerable_bcp = NULL;
   a_boolean           dependent_case = FALSE;
   an_expr_stack_entry *saved_expr_stack;
   
@@ -39598,7 +39601,7 @@ the __uuidof keyword.
   if (is_error_operand(&result)) {
     uuid_str = NULL;
   } else {
-    a_type_ptr uuidof_type;
+    a_type_ptr uuidof_type = NULL;
     a_constant con;
     check_assertion(is_an_lvalue(&result) &&
                     is_expression_operand(&result));

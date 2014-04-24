@@ -855,7 +855,7 @@ Output a string that describes the tag kind for the indicated type, i.e.,
 "class" or "enum".  Do the output in the way described by octl.
 */
 {
-  a_const_char *str;
+  a_const_char *str = NULL;
 
   switch (kind) {
     case tk_enum:   str = "enum";   break;
@@ -1283,7 +1283,7 @@ Return a string that describes the tag kind for the indicated CLI class type.
 The caller should have already determined that type is a CLI class type.
 */
 {
-  a_const_char                 *result;
+  a_const_char                 *result = NULL;
   a_class_type_supplement_ptr  ctsp = class_type_supp(type);
 
   switch (type->kind) {
@@ -3737,7 +3737,7 @@ operations generated bind very tightly to the identifier, so
 parentheses are not needed.
 */
 {
-  a_type_ptr              type, orig_type;
+  a_type_ptr              type = NULL, orig_type;
   a_constant_ptr          con = NULL;
   a_source_correspondence *entity_scp = NULL;
   an_il_entry_kind        entity_kind = iek_none;
@@ -5225,7 +5225,7 @@ precedence confusion.  Do the output in the way described by octl.
                  !is_normal_character_kind(constant->character_kind)) {
         /* A wide character literal (wchar_t, char16_t, or char32_t). */
         a_boolean    ovflo;
-        a_const_char *prefix;
+        a_const_char *prefix = NULL;
         switch (constant->character_kind) {
           case chk_wchar_t:   prefix = "L'";     break;
           case chk_char16_t:  prefix = "u'";     break;
@@ -5262,7 +5262,7 @@ precedence confusion.  Do the output in the way described by octl.
       { a_targ_size_t a;
         char          ch;
         unsigned long wc;
-        a_const_char  *str = constant->variant.string.value, *prefix;
+        a_const_char  *str = constant->variant.string.value, *prefix = NULL;
         a_targ_size_t len = constant->variant.string.length;
         int           out_len = 0;
         a_character_kind  character_kind = constant->character_kind;

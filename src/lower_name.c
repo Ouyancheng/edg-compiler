@@ -5169,7 +5169,7 @@ in_dependent_expr is TRUE if this expression is part of a template-dependent
 expression. 
 */
 {
-  an_expr_node_ptr selector, selection, operand;
+  an_expr_node_ptr selector = NULL, selection = NULL, operand;
   a_boolean        use_unresolved_name_mangling = TRUE;
 #if !IA64_ABI && ABI_COMPATIBILITY_VERSION < 404
   a_constant       dummy_constant;
@@ -5316,7 +5316,8 @@ some type of call operation.  In the IA-64 ABI, in_dependent_expr is TRUE if
 this expression is part of a template-dependent expression.
 */
 {
-  an_expr_node_ptr  call_operand, arguments, child, member = NULL;
+  an_expr_node_ptr  call_operand = NULL, arguments = NULL, child;
+  an_expr_node_ptr  member = NULL;
   a_routine_ptr     rp;
 
   check_assertion(is_operation_node(expr));
@@ -9657,7 +9658,7 @@ number of operands is given by num_operands; in some configurations unary and
 binary versions of operators are mangled differently.
 */
 {
-  a_const_char *name;
+  a_const_char *name = NULL;
 
   switch (kind) {
     case onk_new:               /* "new" */
@@ -10167,7 +10168,7 @@ ud_suffix is a non-NULL string that specifies the suffix for the user-defined
 literal operator.
 */
 {
-  a_const_char *name;
+  a_const_char *name = NULL;
 #if !IA64_ABI
   a_boolean    add_leading_underscores = FALSE;
 #endif /* !IA64_ABI */
@@ -11236,7 +11237,7 @@ names for instantiation flag variables in some template instantiation modes.
 Can be used in C mode (though that's not typical).
 */
 {
-  a_const_char              *mangled_name;
+  a_const_char              *mangled_name = NULL;
   char                      *prefixed_name;
   sizeof_t                  mangled_name_length, info_name_length;
   sizeof_t                  prefix_length, alloc_length;

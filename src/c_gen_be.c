@@ -1799,7 +1799,7 @@ Print the storage class and a space.  If there is no printable storage class,
 omit the space.
 */
 {
-  a_const_char *str;
+  a_const_char *str = NULL;
 
   switch (storage_class) {
     case sc_extern:
@@ -1884,7 +1884,7 @@ Return a string that describes the tag kind for the indicated type, i.e.,
 "class" or "enum".
 */
 {
-  a_const_char *str;
+  a_const_char *str = NULL;
 
   switch (kind) {
     case tk_enum:   str = "enum";   break;
@@ -5270,7 +5270,7 @@ there's some possibility of precedence confusion and need_parens is TRUE.
   an_expr_operator_kind          op;
   an_expr_node_ptr               call_argument;
   a_boolean                      is_unary;
-  a_const_char                   *opstr;
+  a_const_char                   *opstr = NULL;
   an_expr_node_ptr               operand_1, operand_2, operand_3;
   a_type_ptr                     expr_type;
   a_boolean                      pointer_comparison = FALSE;
@@ -7093,7 +7093,7 @@ block with state information for the processing.
 {
   a_gen_init_pos_descr ipd, *ipdp = &ipd;
   a_constant_ptr       elem_con;
-  a_type_ptr           elem_type;
+  a_type_ptr           elem_type = NULL;
   a_targ_size_t        element_count = 0;
   a_boolean            need_close_brace = FALSE;
   a_boolean            is_aggregate;
@@ -10633,7 +10633,7 @@ name.
 {
   char *C_output_file_name;
 #if IA64_ABI
-  char orig_char;
+  char orig_char = ' ';
 #endif /* IA64_ABI */
 
   if (C_output_file_name_buffer == NULL) {

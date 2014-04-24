@@ -5886,7 +5886,7 @@ where "arg" is either an error number or an error tag.
 {
   a_pragma_kind_description_ptr	pkdp = ppp->descr_ptr;
   a_pragma_kind			kind = pkdp->kind;
-  an_error_severity		severity;
+  an_error_severity		severity = es_none;
   a_boolean			error_in_pragma = FALSE;
 
   /* Convert the pragma kind into an error severity. */

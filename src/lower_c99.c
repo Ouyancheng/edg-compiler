@@ -1215,7 +1215,7 @@ Return one of the three given strings depending on the given floating-point
 precision.
 */
 {
-  a_const_char *result;
+  a_const_char *result = NULL;
 
   switch (fkind) {
     case fk_float:
@@ -1575,11 +1575,11 @@ is used for the increment/decrement).
   an_expr_node_ptr      op2_node = NULL;
   an_expr_node_ptr      con_node;
   a_variable_ptr        temp_var = NULL;
-  a_boolean             is_post_op, temp_init_used;
+  a_boolean             is_post_op = FALSE, temp_init_used;
   a_type_ptr            return_type = skip_typerefs(expr->type);
   a_const_char          *rout_name;
-  a_const_char          **routine_names;
-  a_routine_ptr         *routines;
+  a_const_char          **routine_names = NULL;
+  a_routine_ptr         *routines = NULL;
   a_float_kind          fkind;
   a_constant            con;
 
@@ -1793,7 +1793,8 @@ negating one part in the "-" case.
 {
   a_variable_ptr   temp_var = make_lowered_temporary(expr->type);
   an_expr_node_ptr real_part_lvalue, imag_part_lvalue;
-  an_expr_node_ptr operand_1, operand_2, assign_1, assign_2, comma_node;
+  an_expr_node_ptr operand_1, operand_2, assign_1 = NULL, assign_2 = NULL;
+  an_expr_node_ptr comma_node;
 
   /* We will assign the proper values to the components in the temporary,
      then use the temporary as the result. */
@@ -1903,7 +1904,7 @@ Lower the given complex projection expression ("__real z" or "__imag z").
 Preserve the lvalueness of the expression.
 */
 {
-  an_expr_node_ptr  arg = expr->variant.operation.operands, result;
+  an_expr_node_ptr  arg = expr->variant.operation.operands, result = NULL;
   a_boolean         is_rvalue = !expr->is_lvalue;
 
   switch (expr->variant.operation.kind) {
@@ -1933,8 +1934,8 @@ Transform the given complex cast expression into a function call
   an_expr_node_ptr  src = expr->variant.operation.operands, cast_call;
   a_type_ptr        src_type = skip_typerefs(src->type);
   a_type_ptr        dst_type = skip_typerefs(expr->type);
-  a_routine_ptr     *routine;
-  a_const_char      *routine_name;
+  a_routine_ptr     *routine = NULL;
+  a_const_char      *routine_name = NULL;
 
   if (is_void_type(dst_type)) {
     /* A cast to void.  Nothing needs to be done. */
@@ -2288,7 +2289,7 @@ type description.  See the documentation above for the bit values.
 */
 {
 #define FXTYPE_SIZE 5
-  int fxtype;
+  int fxtype = 0;
 
   if (descr.precision == (a_fixed_point_precision)fpp_short) {
     fxtype = 0;
@@ -2326,7 +2327,7 @@ Return the fxtype value for the given (fixed-point or integral)
 type.  See the documentation above for the bit values.
 */
 {
-  int fxtype;
+  int fxtype = 0;
 
   if (is_integral_or_enum_type(type)) {
     fxtype = integral_fxtype_value(is_signed_integral_type(type));
@@ -2672,8 +2673,8 @@ Lower a fixed-point operation expression.
   an_expr_node_ptr      op1 = expr->variant.operation.operands;
   an_expr_node_ptr      op2 = op1->next;
   an_expr_node_ptr      fxmask_expr, new_expr;
-  a_const_char          *routine_name;
-  a_routine_ptr         *routine;
+  a_const_char          *routine_name = NULL;
+  a_routine_ptr         *routine = NULL;
   unsigned long         fxmask;
   int                   shift_amount = 0;
   a_boolean             need_result_fxtype = FALSE;
@@ -2823,13 +2824,14 @@ Lower the indicated fixed-point increment or decrement operation.
 {
   an_expr_operator_kind op = expr->variant.operation.kind;
   an_expr_node_ptr      op1 = expr->variant.operation.operands;
-  an_expr_node_ptr      op1_for_argument, op1_for_assign, op_node, op2_node;
+  an_expr_node_ptr      op1_for_argument, op1_for_assign, op_node;
+  an_expr_node_ptr      op2_node = NULL;
   an_expr_node_ptr      fxmask_expr;
   a_variable_ptr        temp_var = NULL;
-  a_boolean             is_post_op, temp_init_used;
+  a_boolean             is_post_op = FALSE, temp_init_used;
   a_type_ptr            result_type = prvalue_type(op1->type);
-  a_const_char          *routine_name;
-  a_routine_ptr         *routine;
+  a_const_char          *routine_name = NULL;
+  a_routine_ptr         *routine = NULL;
   unsigned long         fxmask;
   int                   shift_amount = 0;
 

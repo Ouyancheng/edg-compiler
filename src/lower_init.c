@@ -1542,7 +1542,8 @@ in the case where an array is being initialized by a repeated constant
 initialization (when ipdp->array_element_sequence is TRUE).
 */
 {
-  an_expr_node_ptr      init_val_node, assign_node, num_elem_node = NULL;
+  an_expr_node_ptr      init_val_node = NULL, assign_node;
+  an_expr_node_ptr      num_elem_node = NULL;
   a_statement_ptr       assign_stmt;
   an_expr_operator_kind op;
   a_boolean             array_assignment = FALSE, needs_cast = FALSE;
@@ -1757,7 +1758,7 @@ for an array initialization in GNU C++ mode).
 {
   an_init_pos_descr    source_ipd;
   an_init_pos_modifier source_ipm;
-  an_expr_node_ptr     source_node;
+  an_expr_node_ptr     source_node = NULL;
 
   check_assertion(source_desc != NULL);
   if (source_desc->ctor_init != NULL) {
@@ -3212,7 +3213,7 @@ IA-64 ABI, the routines called are different.
                                        void_star_type(), arg_expr_list);
   }  /* if */
 #else /* IA64_ABI */
-  an_expr_node_ptr assign_node, arg_entity_node = entity_node;
+  an_expr_node_ptr assign_node = NULL, arg_entity_node = entity_node;
 #if IA64_ABI_USE_VARIANT_ARRAY_COOKIES
   an_expr_node_ptr assign_elem_size_node;
 #endif /* IA64_ABI_USE_VARIANT_ARRAY_COOKIES */
@@ -7478,7 +7479,7 @@ of the array.
   a_scope_ptr                   scope;
   an_insert_location            insert_location;
   a_generated_routine_context   context;
-  a_variable_ptr                model_var, entity_var, count_var = NULL;
+  a_variable_ptr                model_var = NULL, entity_var, count_var = NULL;
   a_statement_ptr               loop_stmt = NULL, copy_stmt;
   an_expr_node_ptr              entity_expr, ctor_entity_expr = NULL;
   an_expr_node_ptr              copy_expr;
@@ -17051,9 +17052,9 @@ class or enum type.  type is NULL to request the uuid variable for a null
 GUID.
 */
 {
-  a_variable_ptr              *p_uuid_var;
+  a_variable_ptr              *p_uuid_var = NULL;
   a_variable_ptr              uuid_var;
-  a_const_char                *uuid_string;
+  a_const_char                *uuid_string = NULL;
 
   if (type != NULL) {
     if (is_immediate_class_type(type)) {

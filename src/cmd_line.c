@@ -1820,7 +1820,7 @@ processing routine to update the severity.
   char			*local_arg;
   int			number_of_arguments = 0;
   int			i;
-  an_error_severity	severity;
+  an_error_severity	severity = es_none;
   char			*ptr;
 
   /* Make a local copy of the option string.  Remove any blanks and replace

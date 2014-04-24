@@ -122,7 +122,7 @@ should only be called if cross-reference information is being generated
 (i.e., f_xref_info != NULL).
 */
 {
-  char              code;
+  char              code = ' ';
   a_const_char      *file_name, *full_name;
   a_line_number     line_number;
   a_boolean         at_end_of_source;

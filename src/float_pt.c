@@ -1280,9 +1280,9 @@ If the number of mantissa bits exceeds the precision of the result
 type, set inexact to TRUE.  If the exponent is out of range, set err to TRUE.
 */
 {
-  int	min_exp;
-  int	max_exp;
-  int	mant_dig;
+  int	min_exp = 0;
+  int	max_exp = 0;
+  int	mant_dig = 0;
   int	bits;
 
 #if !USE_LONG_DOUBLE_FOR_HOST_FP_VALUE
@@ -1754,7 +1754,7 @@ because the exponent was out of range).
 */
 {
   a_boolean	any_digits;
-  int		mant_dig;
+  int		mant_dig = 0;
 
   *err = FALSE;
 #if !USE_LONG_DOUBLE_FOR_HOST_FP_VALUE

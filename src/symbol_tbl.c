@@ -6421,7 +6421,7 @@ Return the type of a function, whether a simple function or a function
 template.
 */
 {
-  a_type_ptr rout_type;
+  a_type_ptr rout_type = NULL;
 
   reduce_projection_symbol_to_fundamental_symbol(sym);
   if (is_simple_function_symbol(sym)) {
@@ -6878,7 +6878,7 @@ create the instance symbols for template aliases.
 */
 {
   a_symbol_ptr 				sym;
-  a_symbol_kind 			kind;
+  a_symbol_kind 			kind = sk_last;
   a_class_symbol_supplement_ptr		cssp;
   a_boolean				is_alias_template;
   a_template_symbol_supplement_ptr	tssp;
@@ -15019,7 +15019,7 @@ since these pragmas are automatically recorded in the IL, the tokens
 "enable_ldscope" or "disable_ldscope" will already have been consumed.
 */
 {
-  a_boolean	keywords_visible;
+  a_boolean	keywords_visible = FALSE;
   a_pragma_kind	kind = ppp->descr_ptr->kind;
 
   switch (kind) {

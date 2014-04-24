@@ -1170,7 +1170,7 @@ in multiple translation units so that correspondence pointers between them
 need to be determined.
 */
 {
-  a_boolean        result;
+  a_boolean        result = FALSE;
 
   switch (sym->kind) {
     case sk_class_or_struct_tag:
@@ -2506,7 +2506,7 @@ static a_boolean equivalent_properties_or_events(
 Return whether the given properties/events (or NULL pointers) are equivalent.
 */
 {
-  a_boolean  result;
+  a_boolean  result = FALSE;
 
   if (pdp1 == NULL && pdp2 == NULL) {
     result = TRUE;
@@ -6640,7 +6640,7 @@ secondary translation unit, this may entail searching for a corresponding
 entry.
 */
 {
-  char  *result;
+  char  *result = NULL;
 
   if (in_secondary_trans_unit(entity)) {
     switch (kind) {

@@ -15937,7 +15937,7 @@ sure it matches the primary template.
     if ((type_kind == (a_type_kind)tk_union) !=
           (primary_tssp->variant.class_template.type_kind ==
                                                   (a_type_kind)tk_union)) {
-      a_const_char *type_kind_name;
+      a_const_char *type_kind_name = NULL;
       switch (type_kind) {
         case tk_struct: type_kind_name = "struct"; break;
         case tk_class:  type_kind_name = "class";  break;
@@ -17440,7 +17440,7 @@ declaration of a partial specialization declared outside of its class.
   a_symbol_ptr                      sym = NULL;
   a_template_symbol_supplement_ptr  tssp = NULL;
   a_token_cache                     local_token_cache;
-  a_type_kind                       type_kind;
+  a_type_kind                       type_kind = tk_unknown;
   a_token_set_array                 stop_tokens;
   a_source_position                 friend_pos;
   a_boolean			    friend_token_seen = FALSE;
@@ -27476,7 +27476,7 @@ Return the mangled name of the variable, routine, or template specified
 by "sym".
 */
 {
-  a_const_char *name;
+  a_const_char *name = NULL;
 
   if (sym->kind == (a_symbol_kind)sk_static_data_member) {
     a_variable_ptr	variable;

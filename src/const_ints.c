@@ -1943,8 +1943,8 @@ Determine and return the size and alignment of the target integer type
 of the indicated kind.
 */
 {
-  a_targ_size_t    size;
-  a_targ_alignment alignment;
+  a_targ_size_t    size = 0;
+  a_targ_alignment alignment = 0;
 
   switch (ikind) {
     case ik_char:
