@@ -2393,8 +2393,7 @@ specializations.
            instantiation of the function appears inside a function body,
            but that will never be the right place to which to anchor the
            definition.) */
-        f_move_src_seq_list(ssep, ssep, depth_scope_stack,
-                            insert_point, scope_depth);
+        move_src_seq_entry(ssep, depth_scope_stack, insert_point, scope_depth);
       }  /* if */
     }  /* if */
   }  /* if */
@@ -2805,8 +2804,8 @@ nested class.
             ssep = rp->source_corresp.source_sequence_entry;
             check_assertion(scope_depth != NO_SCOPE_DEPTH);
             if (insert_point != NULL || scope_depth != depth_scope_stack) {
-              f_move_src_seq_list(ssep, ssep, depth_scope_stack,
-                                  insert_point, scope_depth);
+              move_src_seq_entry(ssep, depth_scope_stack, insert_point,
+                                 scope_depth);
             }  /* if */
             /* Assure that instantiations triggered within the body of the
                relocated function are recorded in the source-sequence list
@@ -9166,7 +9165,8 @@ implicitly as part of the dispose pattern implementation.
 
       /* Unlink the source sequence entry for the current class and
          replace it in the list with the new entry, if there is one. */
-      move_src_seq_entry(ssep, (a_source_sequence_entry_ptr)NULL);
+      move_src_seq_entry(ssep, depth_scope_stack,
+                         (a_source_sequence_entry_ptr)NULL, depth_scope_stack);
 #if DEBUG
       if (debug_level >= 4 ||
           db_flag_is_set("dump_ss_full") ||
@@ -27878,9 +27878,20 @@ classes.
   /* Set the instantiation insert point to assure that instantiations are
      inserted immediately before the source sequence entry for the class
      definition itself.  Save the depth so the insert point can be restored. */
-  scope_stack[depth_scope_stack].ss_list_instantiation_insert_point =
+  scope_stack_top().ss_list_instantiation_insert_point =
                            class_type->source_corresp.source_sequence_entry;
   class_scope_depth = depth_scope_stack;
+  if (!class_type->source_corresp.is_local_to_function &&
+      !class_type->variant.class_struct_union.is_nonreal_class) {
+    /* Add an entry indicating that the source sequence entries for this class
+       are recorded at this scope level and record that level in the class
+       symbol supplement. */
+    a_type_list_entry_ptr  tlep = alloc_type_list_entry();
+    tlep->type = class_type;
+    tlep->next = scope_stack_top().classes_in_ss_list;
+    scope_stack_top().classes_in_ss_list = tlep;
+    cssp->ss_list_depth = depth_scope_stack;
+  }  /* if */
 #endif /* TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   is_in_class_specialization = tag_sym->is_class_member &&

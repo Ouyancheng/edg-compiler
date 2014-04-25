@@ -107,19 +107,14 @@ extern void add_source_sequence_entry_for_partial_instantiation(
                                             an_il_entry_kind   kind,
                                             a_type_ptr         declared_type);
 
-extern void f_move_src_seq_list(a_source_sequence_entry_ptr  head,
-                                a_source_sequence_entry_ptr  tail,
-                                a_scope_depth                source_depth,
-                                a_source_sequence_entry_ptr  insert_point,
-                                a_scope_depth                target_depth);
+extern void move_src_seq_entry(a_source_sequence_entry_ptr  ssep,
+                               a_scope_depth                source_depth,
+                               a_source_sequence_entry_ptr  insert_point,
+                               a_scope_depth                target_depth);
 
-#define move_src_seq_list(head, tail, insert_point)			\
-  f_move_src_seq_list((head), (tail), depth_scope_stack,		\
-                      (insert_point), depth_scope_stack)		\
+extern void update_classes_in_ss_list(a_scope_stack_entry_ptr  src_ssep,
+                                      a_scope_stack_entry_ptr  dst_ssep);
 
-#define move_src_seq_entry(ssep, insert_point)				\
-  move_src_seq_list((ssep), (ssep), (insert_point))
-  
 extern void insert_instantiation_src_seq_list(
                                     a_scope_stack_entry_ptr  scope_stack_ptr);
 

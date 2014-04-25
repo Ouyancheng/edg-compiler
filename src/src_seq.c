@@ -1362,6 +1362,36 @@ class specified, remove it.
 
 #endif /* CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
 
+a_scope_depth scope_depth_for_class_ss_list(a_type_ptr  class_type)
+/*
+If class_type is a "real" non-local class, return the depth of the scope stack
+entry that points to the source sequence entries list containing the entries
+for the definition of this class.  If it is a local class or non-real, return
+NO_SCOPE_DEPTH.
+*/
+{
+  a_scope_depth                  scope_depth = NO_SCOPE_DEPTH;
+
+  if (!class_type->source_corresp.is_local_to_function &&
+      !class_type->variant.class_struct_union.is_nonreal_class) {
+    scope_depth = symbol_supplement_for_class(class_type)->ss_list_depth;
+#if EXPENSIVE_CHECKING
+    /* Verify that the source sequence entry for class_type really is on the
+       list at the inferred scope depth. */
+    { a_source_sequence_entry_ptr  ssep;
+      for (ssep = scope_stack[scope_depth].source_sequence_list;
+           ssep != NULL;
+           ssep = ssep->next) {
+        if (ss_entry_ptr(ssep, a_type_ptr) == class_type) break;
+      }  /* for */
+      check_assertion(ssep != NULL);
+    }
+#endif /* EXPENSIVE_CHECKING */
+  }  /* if */
+  return scope_depth;
+}  /* scope_depth_for_class_ss_list */
+
+
 static a_scope_depth active_scope_depth_of_namespace(a_namespace_ptr  nsp)
 /*
 If the namespace scope indicated by nsp is no longer on the scope stack,
@@ -1397,64 +1427,6 @@ for a template instantiation).
   }  /* while */
   return scope_depth;
 }  /* active_scope_depth_of_namespace */
-
-
-a_scope_depth scope_depth_for_class_ss_list(a_type_ptr  class_type)
-/*
-If class_type is a "real" non-local class, return the depth of the innermost
-currently active namespace scope in which it is nested, or else the depth of
-the file scope.  If it is a local class or non-real, return NO_SCOPE_DEPTH.
-*/
-{
-  a_namespace_ptr                nsp;
-  a_scope_depth                  scope_depth = NO_SCOPE_DEPTH;
-  a_class_symbol_supplement_ptr  cssp;
-#if EXPENSIVE_CHECKING
-  a_type_ptr                     orig_class_type = class_type;
-#endif /* EXPENSIVE_CHECKING */
-
-  cssp = symbol_supplement_for_class(class_type);
-  if (!class_type->source_corresp.is_local_to_function &&
-      !class_type->variant.class_struct_union.is_nonreal_class) {
-    if (class_type->variant.class_struct_union.is_template_class &&
-        !class_type->variant.class_struct_union.is_specialized) {
-      /* The class is a template instantiation.  That means its scope is
-         the namespace in which it is referenced (and not, as one might
-         expect, the scope in which its definition appears) -- see
-         find_instantiation_insert_scope. */
-      nsp = cssp->referencing_namespace;
-    } else {
-      /* If this is a nested class, find the top-most class. */
-      while (class_type->source_corresp.is_class_member) {
-        class_type = parent_class_of(class_type);
-      }  /* while */
-      /* Use the namespace of the top-most class. */
-      nsp = parent_namespace_or_null(class_type);
-    }  /* if */
-    /* If a namespace was identified, be sure it's still on the stack.  If
-       not (i.e., if its scope was popped), the associated source sequence
-       entries will have migrated to a containing namespace scope or out to
-       the file scope.  Find the innermost currently active namespace. */
-    if (nsp == NULL) {
-      scope_depth = DEPTH_OF_FILE_SCOPE;
-    } else {
-      scope_depth = active_scope_depth_of_namespace(nsp);
-    }  /* if */
-#if EXPENSIVE_CHECKING
-    /* Verify that the source sequence entry for class_type really is on the
-       list at the inferred scope depth. */
-    { a_source_sequence_entry_ptr  ssep;
-      for (ssep = scope_stack[scope_depth].source_sequence_list;
-           ssep != NULL;
-           ssep = ssep->next) {
-        if (ss_entry_ptr(ssep, a_type_ptr) == orig_class_type) break;
-      }  /* for */
-      check_assertion(ssep != NULL);
-    }
-#endif /* EXPENSIVE_CHECKING */
-  }  /* if */
-  return scope_depth;
-}  /* scope_depth_for_class_ss_list */
 
 
 static a_scope_depth find_innermost_namespace_scope_depth(
@@ -1788,26 +1760,64 @@ innermost such class.
 }  /* find_instantiation_insert_scope */
 
 
-void f_move_src_seq_list(a_source_sequence_entry_ptr  head,
-                         a_source_sequence_entry_ptr  tail,
-                         a_scope_depth                source_depth,
-                         a_source_sequence_entry_ptr  insert_point,
-                         a_scope_depth                target_depth)
+void move_src_seq_entry(a_source_sequence_entry_ptr  ssep,
+                        a_scope_depth                source_depth,
+                        a_source_sequence_entry_ptr  insert_point,
+                        a_scope_depth                target_depth)
 /*
-Unlink a linked list of source sequence entries, starting with head and
-ending with tail, from the source sequence list of the scope stack entry
-at source_depth, and then insert them into the source sequence list of the
-scope stack entry at target_depth at a point immediately preceding the entry
-pointed to by insert point; if insert_point is null, add them to to the end
-of the list.
+Unlink the source sequence entry *ssep from the source sequence list of the
+scope stack entry at source_depth, and then insert it into the source sequence
+list of the scope stack entry at target_depth at a point immediately preceding
+the entry pointed to by insert point; if insert_point is NULL, append it to
+the end of the list.  Currently, ssep cannot be an entry for a type if
+source_depth differs from target_depth.
 */
 {
   check_assertion(source_depth != NO_SCOPE_DEPTH &&
                   target_depth != NO_SCOPE_DEPTH);
-  (void)unlink_src_seq_entries(head, tail, &scope_stack[source_depth]);
-  insert_src_seq_list(head, tail, target_depth, insert_point);
-}  /* f_move_src_seq_list */
+  /* If ssep were to be an entry for a class type and source_depth differs
+     from target_depth, we'd have to also move the corresponding entry on
+     scope_stack[source_depth].classes_in_ss_list.  That would be a fairly
+     expensive operation, but fortunately we currently only move entries for
+     types within the same list. */
+  check_assertion(source_depth == target_depth ||
+                  ss_entry_kind(ssep) != (an_il_entry_kind)iek_type);
+  (void)unlink_src_seq_entry(ssep, &scope_stack[source_depth]);
+  insert_src_seq_list(ssep, ssep, target_depth, insert_point);
+}  /* move_src_seq_entry */
 
+
+void update_classes_in_ss_list(a_scope_stack_entry_ptr  src_ssep,
+                               a_scope_stack_entry_ptr  dst_ssep)
+/*
+The source sequence entry list associated with src_ssep is being merged into
+the list associated with dst_ssep.  If the former list contains any class
+types, update their associated ss_list_depth to reflect the depth of the
+dst_ssep entry, and move the list of classes that was associated with
+src_ssep to dst_ssep.
+*/
+{
+  if (src_ssep->classes_in_ss_list != NULL) {
+    a_scope_depth          dst_depth = dst_ssep-scope_stack;
+    a_type_list_entry_ptr  next_tlep = src_ssep->classes_in_ss_list, last_tlep;
+    do {
+      last_tlep = next_tlep;
+      next_tlep = next_tlep->next;
+      class_symbol_supp(symbol_for(last_tlep->type))->ss_list_depth =
+                                                                    dst_depth;
+    } while (next_tlep != NULL);
+    if (dst_depth == 0) {
+      /* We've reached the file scope entry: The list of class types is
+         no longer needed. */
+      free_list_of_type_list_entries(src_ssep->classes_in_ss_list);
+    } else {
+      last_tlep->next = dst_ssep->classes_in_ss_list;
+      dst_ssep->classes_in_ss_list = src_ssep->classes_in_ss_list;
+    }  /* if */
+    src_ssep->classes_in_ss_list = NULL;
+  }  /* if */
+}  /* update_classes_in_ss_list */  
+                               
 
 void insert_instantiation_src_seq_list(a_scope_stack_entry_ptr scope_stack_ptr)
 /*
@@ -1828,7 +1838,7 @@ insert it at the appropriate place in another scope.
   tail = scope_stack_ptr->end_of_source_sequence_list;
   scope_stack_ptr->source_sequence_list = NULL;
   scope_stack_ptr->end_of_source_sequence_list = NULL;
-  /* Find the list to insert in into. */
+  /* Find the list to insert into. */
   scp = source_corresp_entry_for_symbol(scope_stack_ptr->instance_sym);
   ssep = scp->source_sequence_entry;
   depth = find_instantiation_insert_scope(scope_stack_ptr, ssep);
@@ -1864,6 +1874,7 @@ insert it at the appropriate place in another scope.
     }  /* if */
   }  /* if */
   insert_src_seq_list(head, tail, depth, insert_before);
+  update_classes_in_ss_list(scope_stack_ptr, &scope_stack[depth]);
 }  /* insert_instantiation_src_seq_list */
 
 

@@ -1137,6 +1137,17 @@ a_type_list_entry_ptr
 			   pointer in the file scope entry when push_scope is
 			   called and to which that pointer is restored by
 			   pop_scope.  Not used for any other scope kinds. */
+  a_type_list_entry_ptr
+		classes_in_ss_list;
+			/* List of classes whose source sequence entries are
+			   recorded in the list headed by source_sequence_list.
+			   This list is not maintained for the file scope
+			   (because it's not needed there), and is merged along
+			   with source_sequence_list when the scope is popped.
+			   The purpose of this list is to update the field
+			   ss_list_depth in the class symbol supplements of
+			   classes recorded in source_sequence_list when the
+			   scope stack entries are popped. */
 #endif /* TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
   a_source_sequence_entry_ptr
 		source_sequence_list,

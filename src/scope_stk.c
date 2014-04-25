@@ -2792,6 +2792,7 @@ the scope being pushed.
 #if TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
   ssep->src_seq_entries_from_prototype_instantiation = FALSE;
   ssep->ss_list_instantiation_insert_point = NULL;
+  ssep->classes_in_ss_list = NULL;
 #endif /* TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
   ssep->source_sequence_list     = NULL;
   ssep->end_of_source_sequence_list = NULL;
@@ -7831,6 +7832,8 @@ new top-of-stack entry with information from the entry that has been popped.
     source_sequence_entries_disallowed =
                                  new_ssep->source_sequence_entries_disallowed;
     if (ssep->source_sequence_list != NULL) {
+      /* Merge the source sequence list from the previous top stack entry into
+         the new one. */
       if (new_ssep->end_of_source_sequence_list == NULL) {
         new_ssep->source_sequence_list = ssep->source_sequence_list;
       } else {
@@ -7842,6 +7845,10 @@ new top-of-stack entry with information from the entry that has been popped.
       new_ssep->end_of_source_sequence_list =
                                          ssep->end_of_source_sequence_list;
 #if TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
+      /* Update the ss_list_depth field of classes recorded in the previous
+         top-level classes_in_ss_list, and move the latter list to the new
+         top-level scope stack entry. */
+      update_classes_in_ss_list(ssep, new_ssep);
       /* Source sequence entries for real instantiations must be inserted
          at a location determined by ss_list_instantiation_insert_point.
          The entries produced for a prototype instantiation, however, should

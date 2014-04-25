@@ -1,5 +1,27 @@
 Version 4.10
 
+4/25/14  [EDGcpfe/15011]
+Abort on instantiation of friend function of class template
+
+In configurations with TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS set to
+TRUE, the front end sometimes aborted with an internal error in
+scope_depth_for_class_ss_list (src_seq.c) when managing the source sequence
+entries for a friend function of a class template.  For the problem to
+manifest itself, the class template and the friend function had to be
+instantiated in two different namespace "extents" for a namespace not
+enclosing the class template.  For example:
+
+  template <class T> struct A {
+    friend void f(A) {int i; }
+  };
+  namespace N { A<int> a; }  // Namespace N doesn't enclose struct A.
+  namespace N {
+    void g() { f(a); }       // Previously triggered an abort.
+  }
+
+This problem is now fixed.
+
+
 4/23/14  [EDGcpfe/15100]
 Warnings when building the front end with gcc
 

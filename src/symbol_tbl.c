@@ -3764,7 +3764,12 @@ state.
 #if CENTERLINE_CHECKING
         cssp->avoid_codecenter_warnings = FALSE;
 #endif /* CENTERLINE_CHECKING */
-       clear_scope_pointers_block(&cssp->pointers_block);
+        clear_scope_pointers_block(&cssp->pointers_block);
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+#if TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
+        cssp->ss_list_depth = NO_SCOPE_DEPTH;
+#endif /* TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
       }
       break;
     case sk_variable:

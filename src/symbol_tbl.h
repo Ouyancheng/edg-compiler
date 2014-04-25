@@ -1353,6 +1353,14 @@ typedef struct a_class_symbol_supplement {
 			   symbols declared in the class and pointers to
 			   the last entries in linked lists of IL entries
 			   entered in the associated IL scope. */
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+#if TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
+  a_scope_depth	ss_list_depth;
+			/* The scope stack depth that contains the source
+			   sequence list on which the source sequence entry
+			   for this class is recorded. */
+#endif /* TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 } a_class_symbol_supplement;
 
 
