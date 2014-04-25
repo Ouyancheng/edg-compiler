@@ -1,5 +1,14 @@
 Version 4.10
 
+4/25/14  [EDGcpfe/15091]
+C++/CX attributes on base class specifiers
+
+Previously the front end recorded C++/CX attributes applied to base class
+specifiers on the Microsoft attributes list of the parent scope entry.  This
+is no longer done since the attributes are directly accessible from the
+corresponding base class entries themselves.
+
+
 4/25/14  [EDGcpfe/15115]
 Declarations with decltype-qualified names
 

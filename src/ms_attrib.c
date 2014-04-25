@@ -2893,13 +2893,16 @@ no attribute can be applied to the entity.
           is_error = !process_microsoft_attribute(msap, entity, kind);
         }  /* if */
       }  /* if */
-      /* Except for parameter entries, add the attribute to the scope list. */
-      if (kind != (an_il_entry_kind)iek_param_type) {
+      /* Except for parameter and base class entries, add the attribute to the
+         scope list. */
+      if (kind != (an_il_entry_kind)iek_param_type &&
+          kind != (an_il_entry_kind)iek_base_class) {
         add_to_ms_attributes_list(msap, decl_scope_level);
       }  /* if */
     }  /* if */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
-    if (kind != (an_il_entry_kind)iek_param_type) {
+    if (kind != (an_il_entry_kind)iek_param_type &&
+        kind != (an_il_entry_kind)iek_base_class) {
       /* Either complete the source sequence entry or discard it. */
       finalize_ms_attribute_source_sequence_entry(msap, is_error);
     }  /* if */
