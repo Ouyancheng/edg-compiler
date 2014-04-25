@@ -1267,6 +1267,15 @@ caution when modifying this routine.
               tag_err = TRUE;
             }  /* if */
           }  /* if */
+          if (!tag_err && tag_kind != (a_symbol_kind)sk_enum_tag &&
+              locator_for_curr_id.is_decltype_qualified) {
+            /* Something like "struct decltype(x)::Nested {...}:" is not
+               permitted by the standard. */
+            pos_diagnostic((strict_ansi_mode || clang_mode) ? es_error
+                                                            : es_warning,
+                           ec_decltype_qualified_declared_name,
+                           &locator_for_curr_id.source_position);
+          }  /* if */
         }  /* if */
       }  /* if */
     } else if (curr_token == tok_identifier &&

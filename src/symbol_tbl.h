@@ -249,6 +249,9 @@ typedef struct a_symbol_locator {
 			/* TRUE if a qualified name began with the Microsoft
 			   __super keyword.  This is TRUE even if there
 			   are other qualifiers after __super. */
+  a_bit_field	is_decltype_qualified:1;
+			/* TRUE if a qualified name began with a decltype
+			   specifier. */
 #if MICROSOFT_EXTENSIONS_ALLOWED
   a_bit_field	is_property_or_event_accessor:1;
 			/* TRUE if the identifier is a Microsoft property

@@ -5483,6 +5483,14 @@ declared entity is known to not be a function.
             warning(ec_friend_qualification_ignored);
           }  /* if */
         }  /* if */
+        if (locator_for_curr_id.is_decltype_qualified) {
+          /* Something like "int decltype(x)::y z;" is not permitted by the
+             standard. */
+          pos_diagnostic((strict_ansi_mode || clang_mode) ? es_error
+                                                          : es_warning,
+                         ec_decltype_qualified_declared_name,
+                         &locator_for_curr_id.source_position);
+        }  /* if */
       } else {
         /* This must be a namespace-qualified name.  This is used when a
            namespace member is redeclared (defined) outside its namespace.

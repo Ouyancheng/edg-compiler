@@ -17501,6 +17501,7 @@ selection operator, in which case it points to the type of the left operand.
   a_boolean			is_super_qualified = FALSE;
   a_boolean			is_conversion_type = FALSE;
   a_boolean			qualifier_is_decltype = FALSE;
+  a_boolean			is_decltype_qualified = FALSE;
   a_type_ptr			decltype_type = NULL;
   a_boolean			qualified_conversion_operator = FALSE;
   a_boolean			separator_warning_issued = FALSE;
@@ -17644,6 +17645,7 @@ selection operator, in which case it points to the type of the left operand.
       }  /* if */
       qualifier_is_type = TRUE;
       qualifier_is_decltype = TRUE;
+      is_decltype_qualified = TRUE;
       /* Get the symbol for the qualifier.  A type that can be used as
          a qualifier should have a symbol.  A NULL symbol will result in
          an error below. */
@@ -18886,6 +18888,7 @@ wrapup:
     locator_for_curr_id.is_nonclass_destructor = is_nonclass_dtor_or_finalizer;
     locator_for_curr_id.qualifier_is_super = qualifier_is_super;
     locator_for_curr_id.is_super_qualified = is_super_qualified;
+    locator_for_curr_id.is_decltype_qualified = is_decltype_qualified;
     locator_for_curr_id.name_qualifier = name_qualifier;
     /* Since we're returning a pseudo-token, set pos_curr_token. */
     pos_curr_token = start_position;

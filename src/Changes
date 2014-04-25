@@ -1,5 +1,18 @@
 Version 4.10
 
+4/25/14  [EDGcpfe/15115]
+Declarations with decltype-qualified names
+
+The C++11 standard prohibits the use of decltype-qualified names for many
+(but not all) declarative contexts.  The front end previously did not diagnose
+such uses; now it issues an error in strict mode and in clang modes, and a
+warning otherwise.  For example:
+
+  struct S { void f(); struct N; } s;
+  void decltype(s)::f() {}   // Now an error in strict C++11 mode.
+  struct decltype(s)::N {};  // Now an error in strict C++11 mode.
+
+
 4/25/14  [EDGcpfe/15101]
 Spurious error on template parameter used as a mem-initializer-id
 

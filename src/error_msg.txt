@@ -2659,6 +2659,7 @@ ec_no_matching_target_attribute;;"no declared member function matches \"target\"
 ec_invalid_base_for_ms_attributes;;"Microsoft attributes in this location are only permitted for interface types"
 ec_resolver_routine_required;;"GNU function multiversion resolver routine required"
 ec_enum_in_managed_class_missing_definition;;"an enum type declared in a managed class must include a definition"
+ec_decltype_qualified_declared_name;;"a decltype-qualified name is nonstandard in this declaration context"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #
