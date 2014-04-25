@@ -5655,15 +5655,12 @@ underlying element type and the array type itself is returned through
       bcp = found_bcp;
     }  /* if */
     if (bcp == NULL) {
-      if ((member_or_base_sym != NULL &&
-           !member_or_base_sym->is_template_param &&
-           template_param_init) ||
+      if (template_param_init ||
           (class_type->variant.class_struct_union.is_nonreal_class &&
-           symbol_supplement_for_class(class_type)->
+           class_symbol_supp(symbol_for(class_type))->
                                                   any_nonreal_base_classes)) {
         /* There are some cases where we cannot match up a base:
-             - A dependent reference to a base, but not a template parameter
-               itself (presumably, a dependent qualified name).
+             - A dependent reference to a base.
              - A reference to a class type that might be a dependent base or a
                virtual base class thereof in some instantiation.
            For these cases, we make up a nonvirtual base class node.  We also

@@ -1,5 +1,21 @@
 Version 4.10
 
+4/25/14  [EDGcpfe/15101]
+Spurious error on template parameter used as a mem-initializer-id
+
+The front end previously issued a spurious error on a template parameter used
+as a mem-initializer-id if the parameter did not also appear in the base class
+specifiers list.  (The error only occurred in many C++ modes, including strict
+modes and C++11 modes.)  For example:
+
+  struct B {};
+  template<typename T> struct D: B {
+    D(): T() {}  // Previously triggered a spurious error in strict mode.
+  };
+
+This is now fixed.
+
+
 4/25/14  [EDGcpfe/15011]
 Abort on instantiation of friend function of class template
 
