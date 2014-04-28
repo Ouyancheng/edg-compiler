@@ -50,9 +50,10 @@ typedef unsigned int a_cpp_cli_import_flag_set;
 EXTERN a_cpp_cli_import_flag_set
                 default_cpp_cli_import_flags
 #if VAR_INITIALIZERS
-			= cpp_cli_declspec_assembly_info
+			= (a_cpp_cli_import_flag_set)
+			                       cpp_cli_declspec_assembly_info
 #endif /* VAR_INITIALIZERS */
-			                                 ;
+			                                                     ;
                         /* Flags used to control the behavior of metadata
                            import. */
 
