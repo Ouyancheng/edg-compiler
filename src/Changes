@@ -3,7 +3,7 @@ Version 4.10
 4/28/14  [EDGcpfe/15106]
 Spurious "**BAD ENTRY KIND**" in IL display program
 
-As a result of the changes introduced in EDGcpfe/14931, a spurious
+As a result of the changes introduced by EDGcpfe/14931, a spurious
 "**BAD ENTRY KIND**" message had been emitted by the IL display program for
 gnu-routine-supplements.  This is now fixed.
 
