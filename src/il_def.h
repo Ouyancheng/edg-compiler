@@ -18777,6 +18777,8 @@ EXTERN a_const_char *builtin_operation_names[(int)bok_last+1]
   "__builtin_shuffle",
   "__builtin_complex",
   "__is_valid_winrt_type",
+  "__is_win_class",
+  "__is_win_interface",
   "last"
 }
 #endif /* VAR_INITIALIZERS */
