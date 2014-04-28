@@ -15817,7 +15817,7 @@ are handled in symbol_tbl_init.)
   cleared_locator.is_unknown_template_reference   = FALSE;
   cleared_locator.qualifier_is_super              = FALSE;
   cleared_locator.is_super_qualified              = FALSE;
-  cleared_locator.is_decltype_qualified              = FALSE;
+  cleared_locator.is_decltype_qualified           = FALSE;
   cleared_locator.specific_symbol                 = NULL;
   cleared_locator.parent.class_type               = NULL;
 #if MICROSOFT_EXTENSIONS_ALLOWED
