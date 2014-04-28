@@ -601,6 +601,8 @@ EXTERN an_opname_kind opname_kind_for_token[(int)tok_last+1]
    (an_opname_kind)onk_none,          /* tok_is_sealed */
    (an_opname_kind)onk_none,          /* tok_is_simple_value_class */
    (an_opname_kind)onk_none,          /* tok_is_value_class */
+   (an_opname_kind)onk_none,          /* tok_is_win_class */
+   (an_opname_kind)onk_none,          /* tok_is_win_interface */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED*/
    (an_opname_kind)onk_none,          /* tok_nullptr */
 #if MICROSOFT_EXTENSIONS_ALLOWED

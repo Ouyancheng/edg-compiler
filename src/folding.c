@@ -7540,6 +7540,10 @@ constant will be set as well.
                             is_immediate_enum_type(type)));
           result = is_immediate_enum_type(type);
           break;
+        case bok_is_win_class:
+        case bok_is_win_interface:
+          result = FALSE;
+          break;
         case bok_is_valid_winrt_type:
           /* The result of __is_valid_winrt_type is somewhat complex.  For now,
              we always produce TRUE. */
@@ -7777,6 +7781,12 @@ constant will be set as well.
       case bok_is_value_class:
         result = cli_class_type_kind_is(type, cctk_value);
         break;
+      case bok_is_win_class:
+        result = cppcx_enabled && cli_class_type_kind_is(type, cctk_ref);
+        break;
+      case bok_is_win_interface:
+        result = cppcx_enabled && cli_class_type_kind_is(type, cctk_interface);
+        break;
       case bok_is_valid_winrt_type:
           /* The result of __is_valid_winrt_type is somewhat complex.  For now,
              we always produce TRUE. */
@@ -7940,6 +7950,8 @@ constant is set as well.
       case bok_is_ref_array:
       case bok_is_ref_class:
       case bok_is_value_class:
+      case bok_is_win_class:
+      case bok_is_win_interface:
       case bok_is_valid_winrt_type:
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
         /* Various type trait helpers that take a single argument. */

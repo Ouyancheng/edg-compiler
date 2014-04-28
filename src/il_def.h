@@ -1247,6 +1247,8 @@ typedef enum /*a_token_kind*/ {
   tok_is_sealed,
   tok_is_simple_value_class,
   tok_is_value_class,
+  tok_is_win_class,
+  tok_is_win_interface,
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   tok_nullptr,
 #if MICROSOFT_EXTENSIONS_ALLOWED
@@ -1415,6 +1417,8 @@ EXTERN a_const_char
    "__is_sealed",
    "__is_simple_value_class",
    "__is_value_class",
+   "__is_win_class",
+   "__is_win_interface",
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
    "nullptr",
 #if MICROSOFT_EXTENSIONS_ALLOWED
@@ -14888,6 +14892,8 @@ typedef enum a_builtin_operation_kind_tag {
 			   operands of identical type. */
   bok_is_valid_winrt_type,
 			/* __is_valid_winrt_type.  One type operand. */
+  bok_is_win_class,	/* __is_win_class.  One type operand. */
+  bok_is_win_interface,	/* __is_win_interface.  One type operand. */
   bok_last              /* Marks the end of the list. */
 } a_builtin_operation_kind_tag;
 /* Define as "a_byte" to explicitly control storage size. */

@@ -11729,6 +11729,8 @@ indication in *rcblock).
       case tok_is_simple_value_class:   bok = bok_is_simple_value_class;
                                         break;
       case tok_is_value_class:          bok = bok_is_value_class; break;
+      case tok_is_win_class:            bok = bok_is_win_class; break;
+      case tok_is_win_interface:        bok = bok_is_win_interface; break;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       case tok_is_final:                bok = bok_is_final; break;
       default:
@@ -26949,6 +26951,8 @@ Return TRUE if the indicated token is one that could start an expression.
     case tok_is_sealed:
     case tok_is_simple_value_class:
     case tok_is_value_class:
+    case tok_is_win_class:
+    case tok_is_win_interface:
     case tok_gcnew:
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     case tok_dynamic_cast:
@@ -30966,6 +30970,8 @@ handle_identifier:
     case tok_is_sealed:
     case tok_is_simple_value_class:
     case tok_is_value_class:
+    case tok_is_win_class:
+    case tok_is_win_interface:
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     case tok_is_final:
       /* Various single-type unary traits helpers. */

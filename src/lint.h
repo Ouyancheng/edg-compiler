@@ -668,6 +668,8 @@ extern int fileno(FILE *);
 /*lint -esym(769,a_builtin_operation_kind_tag::bok_is_sealed)*/
 /*lint -esym(769,a_builtin_operation_kind_tag::bok_is_simple_value_class)*/
 /*lint -esym(769,a_builtin_operation_kind_tag::bok_is_value_class)*/
+/*lint -esym(769,a_builtin_operation_kind_tag::bok_is_win_class)*/
+/*lint -esym(769,a_builtin_operation_kind_tag::bok_is_win_interface)*/
 /*lint -esym(759,curr_token_is_identifier_string)*/
 /*lint -esym(765,curr_token_is_identifier_string)*/
 /*lint -esym(759,is_assignment_operator_for_copy)*/

@@ -561,6 +561,8 @@ modes.
     enter_keyword((a_token_kind)tok_is_simple_value_class,
                   "__is_simple_value_class");
     enter_keyword((a_token_kind)tok_is_value_class, "__is_value_class");
+    enter_keyword((a_token_kind)tok_is_win_class, "__is_win_class");
+    enter_keyword((a_token_kind)tok_is_win_interface, "__is_win_interface");
     enter_keyword((a_token_kind)tok_is_valid_winrt_type,
                   "__is_valid_winrt_type");
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
