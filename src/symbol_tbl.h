@@ -2256,6 +2256,10 @@ typedef struct a_template_instance {
 			   This is used in diagnostic output to indicate the
 			   position of the first reference that caused an
 			   instantiation of the entity. */
+  a_param_id_ptr
+		param_id_list;
+			/* List of entries describing parameter symbols.
+			   NULL if there were none. */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   a_type_ptr	declared_type;
 			/* When instance_sym points to an sk_routine or
@@ -2269,10 +2273,6 @@ typedef struct a_template_instance {
 			   sequence entry is generated to record the declared
 			   type.)  NULL when default arg fixup is not
 			   appropriate. */
-  a_param_id_ptr
-		param_id_list;
-			/* List of entries describing parameter symbols.
-			   NULL if there were none. */
 #if NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
   a_source_sequence_entry_ptr
 		partial_instantiation;

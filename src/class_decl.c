@@ -25553,11 +25553,14 @@ passed via template_decl.
         /* Set the declared type immediately, before the func_info block is
            discarded. */
         instance->declared_type = func_info.declared_type;
-        /* Also save the parameter-id list to later reconstruct the declared
-           types of parameters for the associated parameter variables. */
-        instance->param_id_list = func_info.param_id_list;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+        /* Save the prototype scope symbols and parameter ID list in the
+           instance pointer.  The param_id_list is needed during
+           instantiation if a noexcept or similar construct references a
+           parameter name.  It is also used to reconstruct the declared types
+           of the parameters in some configurations. */
         instance->prototype_scope_symbols = func_info.prototype_scope_symbols;
+        instance->param_id_list = func_info.param_id_list;
         func_info.keep_param_id_list = TRUE;
         discard_end_of_parse_actions(decl_state);
         goto next_declaration;
@@ -25644,13 +25647,14 @@ passed via template_decl.
                                                    &func_info);
               }  /* if */
               tip->declared_type = declared_type;
-              /* Save the param_id_list so we can accurately represent the
-                 actual declared type of the parameters later on. */
-              tip->param_id_list = func_info.param_id_list;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
-              /* Save the prototype scope symbols.  These are needed for the
-                 instantiation of exception specifications. */
+              /* Save the prototype scope symbols and parameter ID list in the
+                 instance pointer.  The param_id_list is needed during
+                 instantiation if a noexcept or similar construct references a
+                 parameter name.  It is also used to reconstruct the declared
+                 types of the parameters in some configurations. */
               tip->prototype_scope_symbols = func_info.prototype_scope_symbols;
+              tip->param_id_list = func_info.param_id_list;
               func_info.keep_param_id_list = TRUE;
               if (tip->template_sym != NULL &&
                   symbol_is(tip->template_sym, sk_member_function) &&

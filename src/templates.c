@@ -11896,6 +11896,7 @@ accordingly.
       if (tip->prototype_scope_symbols != NULL) {
         reactivate_prototype_scope_symbols(tip->prototype_scope_symbols);
       }  /* if */
+      scope_stack_top().param_id_list = tip->param_id_list;
       /* Rescan the exception specification argument from the cache. */
       rescan_reusable_cache(&es_cache->tokens);
       begin_deferral_of_access_checks();
@@ -13400,15 +13401,17 @@ in_class_specialization is TRUE for a Microsoft mode in-class specialization.
 				/*is_specialization=*/FALSE, &locator,
                                 &func_info, templ_rout, tip, &decl_pos_block);
       rout_type = state.type;
-      /* Save the prototype scope symbols in the instance pointer. */
+      /* Save the prototype scope symbols and parameter ID list in the
+         instance pointer.  The param_id_list is needed during
+         instantiation if a noexcept or similar construct references a
+         parameter name.  It is also used to reconstruct the declared types
+         of the parameters in some configurations. */
       tip->prototype_scope_symbols = func_info.prototype_scope_symbols;
+      tip->param_id_list = func_info.param_id_list;
 #if GENERATE_SOURCE_SEQUENCE_LISTS
       /* Set the declared type immediately, before the func_info block is
          discarded. */
       tip->declared_type = form_declared_type(rout_type, &func_info);
-      /* Also save the parameter-id list to later reconstruct the declared
-         types of parameters for the associated parameter variables. */
-      tip->param_id_list = func_info.param_id_list;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
       /* Clear the func_info field to prevent deallocation: */
       func_info.param_id_list = NULL;

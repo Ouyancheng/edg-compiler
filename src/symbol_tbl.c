@@ -14579,11 +14579,11 @@ Allocate a new function instantiation entry and return a pointer to it.
                                    = FALSE;
   tip->explicit_instantiation_pos  = null_source_position;
   tip->pos_of_first_reference      = null_source_position;
+  tip->param_id_list               = NULL;
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   tip->declared_type               = NULL;
   tip->declared_type_for_default_arg_fixup
                                    = NULL;
-  tip->param_id_list               = NULL;
 #if NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
   tip->partial_instantiation       = NULL;
 #endif /* NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */

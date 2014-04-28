@@ -1,5 +1,27 @@
 Version 4.10
 
+4/28/14  [EDGcpfe/15096,EDGcpfe/15116]
+Spurious error on reference to parameter pack in noexcept of function template
+
+A spurious "pack ... does not have the same number of elements" diagnostic
+could be issued on a noexcept specification of a function template when
+the noexcept uses a function parameter pack expansion.  Now fixed.
+
+  struct A {
+    template <class... U> A(U...) {}
+  };
+  template <class T> T f(T t) { return t; }
+  struct B {
+    template <class ...U> A g(U... u) noexcept(noexcept(A(f<U>(u)...))) {
+      return A(f<U>(u)...);
+    }
+  };
+  int main() {
+    B b;
+    auto a = b.g("abc");
+  }
+
+
 4/28/14  [EDGcpfe/15106]
 Spurious "**BAD ENTRY KIND**" in IL display program
 
