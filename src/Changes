@@ -1,5 +1,23 @@
 Version 4.10
 
+4/28/14  [EDGcpfe/14865,EDGcpfe/15079,EDGcpfe/15095]
+Spurious error on pack expansion in member alias template
+
+A spurious error could be issued if a member alias template was instantiated
+by another member of the class during the prototype instantiation of
+the class.  Now fixed.  This problem caused an error to be issued when
+compiling the gcc 4.9 bits/alloc_traits.h header.
+
+  template<typename T> struct A {
+    template<typename... S> struct B {
+      typedef int type;
+    };
+    template<typename... S> using C = typename B<S... >::type;
+    // Instantiation of C<S...> resulted in error
+    template<typename... S> C<S...> f(S...) { }
+  };
+
+
 4/28/14  [EDGcpfe/14739]
 Duplicate definition of default_cpp_cli_import_flags
 

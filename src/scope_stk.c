@@ -10953,6 +10953,7 @@ to expand the pack in a real instantiation.
 */
 {
   a_template_decl_info_ptr	tdip;
+  a_scope_stack_entry_ptr	ssep;
 
 #if DEBUG
   if (db_flag_is_set("packs")) {
@@ -10963,7 +10964,11 @@ to expand the pack in a real instantiation.
 #endif /* DEBUG */
   /* Get the template declaration information entry associated with the
      current context. */
-  tdip = get_specified_template_decl_info(/*innermost=*/FALSE);
+  ssep = get_outermost_template_dependent_context();
+  tdip = ssep->template_decl_info;
+  /* Set the last_pack_expansion_used field so that this pack expansion can
+     be found by get_pack_expansion_for_curr_context. */
+  ssep->last_pack_expansion_used = pedp;
   /* Insert the new entry to preserve a list sorted by starting token
      sequence number. */
   {
