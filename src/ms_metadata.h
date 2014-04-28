@@ -13,12 +13,6 @@
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
 
-typedef unsigned int a_cpp_cli_import_flag_set;
-
-EXTERN_C a_cpp_cli_import_flag_set
-                default_cpp_cli_import_flags;
-                        /* Flags used to control the behavior of metadata
-                           import. */
 /*
 C++/CLI metadata import flags.
 */
@@ -51,6 +45,16 @@ enum a_cpp_cli_import_flag_tag {
                         /* Imports all custom attributes. */
 };
 
+typedef unsigned int a_cpp_cli_import_flag_set;
+
+EXTERN a_cpp_cli_import_flag_set
+                default_cpp_cli_import_flags
+#if VAR_INITIALIZERS
+			= cpp_cli_declspec_assembly_info
+#endif /* VAR_INITIALIZERS */
+			                                 ;
+                        /* Flags used to control the behavior of metadata
+                           import. */
 
 extern an_assembly_index import_metadata_file(
                                 a_const_char              *assembly_full_name,

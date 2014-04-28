@@ -9671,10 +9671,6 @@ Cleanup.  Free all memory and release the interfaces.
 }  /* ms_metadata_cleanup */
 
 
-EXTERN_C_IN_CPP_FILE
-a_cpp_cli_import_flag_set
-                default_cpp_cli_import_flags = cpp_cli_declspec_assembly_info;
-
 #endif /* CPPCLI_ENABLING_POSSIBLE */
 
 /******************************************************************************
