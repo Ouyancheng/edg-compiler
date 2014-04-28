@@ -15,7 +15,7 @@
 
 typedef unsigned int a_cpp_cli_import_flag_set;
 
-EXTERN a_cpp_cli_import_flag_set
+EXTERN_C a_cpp_cli_import_flag_set
                 default_cpp_cli_import_flags;
                         /* Flags used to control the behavior of metadata
                            import. */
@@ -28,7 +28,7 @@ enum a_cpp_cli_import_flag_tag {
   cpp_cli_as_friend_assembly     = 0x0001,
                         /* Treats the imported assembly as a friend
                            assembly. */
-  cpp_cli_declspec_assemby_info  = 0x0002,
+  cpp_cli_declspec_assembly_info  = 0x0002,
                         /* Adds a __declspec(assembly_info(...)) specifier to
                            every imported type indicating its metadata token.
                            This is used to uniquely identify the type in the

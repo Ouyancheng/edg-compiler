@@ -6586,7 +6586,7 @@ omitted.
       buffer << a_type_definition::string_from_kind(kind) << ' ';
       /* Emit the assembly_info declspec. */
       if (!class_body_only &&
-          (import_flags & cpp_cli_declspec_assemby_info) != 0) {
+          (import_flags & cpp_cli_declspec_assembly_info) != 0) {
         buffer << "__declspec(assembly_info(0x";
         buffer << setw(8) << setfill('0') << hex << assembly_scope_index();
         buffer << ", 0x" << setw(8) << setfill('0') << hex << typedef_token;
@@ -9673,7 +9673,7 @@ Cleanup.  Free all memory and release the interfaces.
 
 EXTERN_C_IN_CPP_FILE
 a_cpp_cli_import_flag_set
-                default_cpp_cli_import_flags = cpp_cli_declspec_assemby_info;
+                default_cpp_cli_import_flags = cpp_cli_declspec_assembly_info;
 
 #endif /* CPPCLI_ENABLING_POSSIBLE */
 
