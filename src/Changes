@@ -1,5 +1,13 @@
 Version 4.10
 
+4/28/14  [EDGcpfe/15106]
+Spurious "**BAD ENTRY KIND**" in IL display program
+
+As a result of the changes introduced in EDGcpfe/14931, a spurious
+"**BAD ENTRY KIND**" message had been emitted by the IL display program for
+gnu-routine-supplements.  This is now fixed.
+
+
 4/25/14  [EDGcpfe/15091]
 C++/CX attributes on base class specifiers
 

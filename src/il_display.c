@@ -7039,6 +7039,9 @@ This routine is called during IL walking.
 #endif /* RECORD_MACRO_INVOCATIONS */
     case iek_il_entity_list_entry:
     case iek_integer_type_supplement:
+#if GNU_EXTENSIONS_ALLOWED || REDEFINE_EXTNAME_PRAGMA_ENABLED
+    case iek_gnu_routine_supplement:
+#endif /* GNU_EXTENSIONS_ALLOWED || REDEFINE_EXTNAME_PRAGMA_ENABLED */
       break;
     default:
       (void)printf("\n");
