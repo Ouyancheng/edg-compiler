@@ -585,7 +585,7 @@ separate sublists.
 }  /* fixup_function_scope_source_sequence_list */
 
 
-static a_source_sequence_entry_ptr f_unlink_src_seq_entries(
+static a_source_sequence_entry_ptr unlink_src_seq_entries(
                                 a_source_sequence_entry_ptr  head,
                                 a_source_sequence_entry_ptr  tail,
                                 a_source_sequence_entry_ptr  *list_ptr,
@@ -599,7 +599,7 @@ from the list of which it's a sublist, returning a pointer to head and
 updating list_ptr and end_of_list_ptr if appropriate.
 */
 {
-  db_enter(4, "f_unlink_src_seq_entries");
+  db_enter(4, "unlink_src_seq_entries");
   if (head->prev == NULL) {
     /* head is also the start of the containing list. */
     check_assertion(list_ptr != NULL && *list_ptr == head);
@@ -619,7 +619,7 @@ updating list_ptr and end_of_list_ptr if appropriate.
   head->prev = NULL;
   db_exit();
   return head;
-}  /* f_unlink_src_seq_entries */
+}  /* unlink_src_seq_entries */
 
 
 #if CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
@@ -688,8 +688,8 @@ templ_entry is NULL.
       }  /* if */
       tail_to_move = ssep;
       ssep = tail_to_move->next;
-      (void)f_unlink_src_seq_entries(head_to_move, tail_to_move, &start_ssep,
-                                     /*end_of_list_ptr=*/NULL);
+      (void)unlink_src_seq_entries(head_to_move, tail_to_move, &start_ssep,
+                                   /*end_of_list_ptr=*/NULL);
       if (moved_list == NULL) {
         moved_list = head_to_move;
         end_moved_list = head_to_move;
@@ -716,37 +716,24 @@ done:;
 }  /* move_sses_out_of_class_if_otherwise_invalid */
 
 #endif /* CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
-#if TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
-
-/* Macro to call unlink_src_seq_entries.  head and tail are source sequence
-   entry pointers that specify a sublist of a list of source sequence
-   entries, and scope_stk_ptr points to the scope stack entry to which the
-   list belongs.  (If the list does not belong to the scope stack, call
-   f_unlink_src_seq_entries directly.) */
-#define unlink_src_seq_entries(head, tail, scope_stack_ptr)		\
-  f_unlink_src_seq_entries((head), (tail),			      	\
-                           &(scope_stack_ptr)->source_sequence_list,	\
-                           &(scope_stack_ptr)->end_of_source_sequence_list)
-
-#endif /* TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
 
 /* Macro to call unlink_src_seq_entries when there is only one entry to
    unlink (not a list).  scope_stack_ptr points to the scope stack entry
    to which the list belongs.  (If the list does not belong to the scope
-   stack, call f_unlink_src_seq_entries directly.) */
+   stack, call unlink_src_seq_entries directly.) */
 #define unlink_src_seq_entry(ssep, scope_stack_ptr)			\
-  f_unlink_src_seq_entries((ssep), (ssep),				\
-                           &(scope_stack_ptr)->source_sequence_list,	\
-                           &(scope_stack_ptr)->end_of_source_sequence_list)
+  unlink_src_seq_entries((ssep), (ssep),				\
+                         &(scope_stack_ptr)->source_sequence_list,	\
+                         &(scope_stack_ptr)->end_of_source_sequence_list)
 
 
 /* Macro to call unlink_src_seq_entries when there is only one entry to
    unlink (not a list).  il_scope points to the scope entry to which the
    list belongs. */
-#define unlink_il_scope_src_seq_entry(ssep, il_scope)                   \
-  f_unlink_src_seq_entries((ssep), (ssep),                              \
-                           &(il_scope)->source_sequence_list,           \
-                           (a_source_sequence_entry_ptr *)NULL);
+#define unlink_il_scope_src_seq_entry(ssep, il_scope)                 \
+  unlink_src_seq_entries((ssep), (ssep),                              \
+                         &(il_scope)->source_sequence_list,           \
+                         (a_source_sequence_entry_ptr *)NULL);
 
 void add_source_sequence_entry_to_list(a_source_sequence_entry_ptr  new_ssep)
 /*
@@ -1045,7 +1032,7 @@ sequence list.
         scope_stack[depth_scope_stack].in_prototype_instantiation &&
         kind == (a_byte_il_entry_kind)iek_type) {
       a_type_ptr                        tp = (a_type_ptr)ptr;
-      a_source_sequence_entry_ptr       ss_list;
+      a_source_sequence_entry_ptr       ss_list, ss_start, ss_end;
       a_template_symbol_supplement_ptr  tssp;
       a_scope_stack_entry_ptr           scope_stack_ptr;
 
@@ -1066,14 +1053,13 @@ sequence list.
              the current scope's list.  ssep should be the last entry in that
              list. */
           scope_stack_ptr = &scope_stack[depth_scope_stack];
-          check_assertion(ssep->next == NULL &&
-                          ssep == scope_stack_ptr->
-                                           end_of_source_sequence_list);
+          ss_start = scope_stack_ptr->source_sequence_list;
+          ss_end = scope_stack_ptr->end_source_sequence_list;
+          check_assertion(ssep->next == NULL && ssep == ss_end);
           /* Attach the list to the template symbol supplement for the
              class template. */
-          ss_list->next = unlink_src_seq_entries(scope_stack_ptr->
-                                                        source_sequence_list,
-                                                 ssep, scope_stack_ptr);
+          ss_list->next = unlink_src_seq_entries(
+                                            ss_start, ssep, ss_start, ss_end);
           ss_list->next->prev = ss_list;
           tssp->variant.class_template.source_sequence_list = ss_list;
 #if DEBUG
