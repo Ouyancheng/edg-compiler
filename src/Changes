@@ -1,21 +1,5 @@
 Version 4.10
 
-4/29/14  [EDGcpfe/14949]
-Assertion failure in mangled_encoding_for_function_type
-
-In configurations that use lowering and have the configuration macro
-RECORD_BACKING_EXPRS_WITH_IL_LOWERING set to FALSE, it was possible for a
-typeid expression that referred to a pointer to a function type to cause
-an assertion failure in mangled_encoding_for_function_type.  This is now
-fixed.  For example:
-
-  #include <typeinfo>
-  typedef void (F)();
-  void f(const std::type_info *x) {
-    f(&typeid(F*));
-  }
-
-
 4/28/14  [EDGcpfe/14865,EDGcpfe/15079,EDGcpfe/15095]
 Spurious error on pack expansion in member alias template
 
