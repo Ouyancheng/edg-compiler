@@ -4557,6 +4557,28 @@ this is not allowed, an error will be issued by the caller.
                        &new_sym->decl_position,
                        new_sym->header->identifier);
       }  /* if */
+#if GNU_EXTENSIONS_ALLOWED
+    } else if (gpp_mode && gnu_version < 40600 &&
+               is_type_symbol(old_sym) && is_type_symbol(new_sym) &&
+               is_pointer_type(type_symbol_type(old_sym)) &&
+               is_pointer_type(type_symbol_type(new_sym)) &&
+               is_function_type(type_pointed_to(type_symbol_type(old_sym))) &&
+               is_function_type(type_pointed_to(type_symbol_type(new_sym))) &&
+               seq_is_in_system_header(new_sym->decl_position.seq)) {
+      /* In earlier versions of g++, it appears that some redeclarations
+         involving pointers to functions with different parameter types
+         were silently allowed (but only in system headers).  This code
+         is a little lenient in that it will issue a warning rather than
+         an error in more cases than older versions of g++ (g++ issues a
+         redeclaration error for some mismatched parameter types, but not
+         all). */
+      err = FALSE;
+      if (!suppress_error) {
+        pos_st_warning(ec_bad_type_name_redeclaration,
+                       &new_sym->decl_position,
+                       new_sym->header->identifier);
+      }  /* if */
+#endif /* GNU_EXTENSIONS_ALLOWED */
     } else {
       a_symbol_ptr fund_new_sym = fundamental_symbol_of(new_sym);
       a_symbol_ptr fund_old_sym = fundamental_symbol_of(old_sym);
@@ -5090,7 +5112,7 @@ symbol must be added to the inactive list.
                               sym_ptr->header->identifier);
           }  /* if */
         }  /* if */
-        /* See if this name a redeclaration of a template parameter name.
+        /* See if this name is a redeclaration of a template parameter name.
            Redeclarations are permitted in Microsoft mode.  Injected class
            names are ignored because the test will have already been done
            on the declaration of the class in the enclosing scope. */
