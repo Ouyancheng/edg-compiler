@@ -1032,7 +1032,7 @@ sequence list.
         scope_stack[depth_scope_stack].in_prototype_instantiation &&
         kind == (a_byte_il_entry_kind)iek_type) {
       a_type_ptr                        tp = (a_type_ptr)ptr;
-      a_source_sequence_entry_ptr       ss_list, ss_start, ss_end;
+      a_source_sequence_entry_ptr       ss_list;
       a_template_symbol_supplement_ptr  tssp;
       a_scope_stack_entry_ptr           scope_stack_ptr;
 
@@ -1053,13 +1053,16 @@ sequence list.
              the current scope's list.  ssep should be the last entry in that
              list. */
           scope_stack_ptr = &scope_stack[depth_scope_stack];
-          ss_start = scope_stack_ptr->source_sequence_list;
-          ss_end = scope_stack_ptr->end_source_sequence_list;
-          check_assertion(ssep->next == NULL && ssep == ss_end);
+          check_assertion(
+                        ssep->next == NULL &&
+                        ssep == scope_stack_ptr->end_of_source_sequence_list);
           /* Attach the list to the template symbol supplement for the
              class template. */
           ss_list->next = unlink_src_seq_entries(
-                                            ss_start, ssep, ss_start, ss_end);
+                                scope_stack_ptr->source_sequence_list,
+                                ssep,
+                                &scope_stack_ptr->source_sequence_list,
+                                &scope_stack_ptr->end_of_source_sequence_list);
           ss_list->next->prev = ss_list;
           tssp->variant.class_template.source_sequence_list = ss_list;
 #if DEBUG
