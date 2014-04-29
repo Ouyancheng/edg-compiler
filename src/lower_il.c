@@ -20548,26 +20548,10 @@ not reachable from the normal file-scope IL tree.
   an_il_entry_kind                 kind;
   char                             *entry_ptr;
 
-  /* First lower the list of orphaned types and variables from function
-     and block scopes. */
-  for (solhp = il_header.scope_orphaned_list_headers;
-       solhp != NULL;
-       solhp = solhp->next) {
-    lower_type_list(solhp->orphaned_types);
-    lower_variable_list(solhp->orphaned_variables);
-#if LOWER_VARIABLE_LENGTH_ARRAYS
-    if (vla_enabled) {
-        lower_vla_variable_types(solhp->orphaned_variables);
-    }  /* if */
-#endif /* LOWER_VARIABLE_LENGTH_ARRAYS */
-    /* Since orphaned namespace entries are always namespace aliases, the
-       following call is not currently necessary (because lowering a namespace
-       alias is currently a no-op).  We leave the call to avoid future
-       surprises, however. */
-    lower_namespace_list(solhp->orphaned_namespaces);
-    /* The source sequence sublist list need not be visited. */
-  }  /* if */
-  /* Now visit all the orphaned entries recorded by the more general scheme. */
+  /* Visit all the orphaned entries recorded by the more general orphan
+     scheme.  Do these before lowering orphaned types below in case there's
+     an orphaned typeid constant that refers to a function type (the function
+     type can't have been lowered yet). */
   /* Look at each IL entry kind (e.g., types, constants). */
   for (kind = (an_il_entry_kind)0;
        (int)kind < (int)iek_last;
@@ -20593,6 +20577,25 @@ not reachable from the normal file-scope IL tree.
       }  /* switch */
     }  /* for */
 next_kind:;
+  }  /* for */
+  /* Now lower the list of orphaned types and variables from function
+     and block scopes. */
+  for (solhp = il_header.scope_orphaned_list_headers;
+       solhp != NULL;
+       solhp = solhp->next) {
+    lower_type_list(solhp->orphaned_types);
+    lower_variable_list(solhp->orphaned_variables);
+#if LOWER_VARIABLE_LENGTH_ARRAYS
+    if (vla_enabled) {
+        lower_vla_variable_types(solhp->orphaned_variables);
+    }  /* if */
+#endif /* LOWER_VARIABLE_LENGTH_ARRAYS */
+    /* Since orphaned namespace entries are always namespace aliases, the
+       following call is not currently necessary (because lowering a namespace
+       alias is currently a no-op).  We leave the call to avoid future
+       surprises, however. */
+    lower_namespace_list(solhp->orphaned_namespaces);
+    /* The source sequence sublist list need not be visited. */
   }  /* for */
 }  /* lower_orphaned_entries */
 
