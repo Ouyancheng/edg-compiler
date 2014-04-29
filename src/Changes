@@ -66,7 +66,7 @@ Duplicate definition of default_cpp_cli_import_flags
 
 When compiling the front end using a C++ compiler, some configurations resulted
 in the global variable default_cpp_cli_import_flags having two definitions (one
-in ms_metadata.cpp and one in fe_init.c).  That, in turn resulted in a linker
+in ms_metadata.cpp and one in fe_init.c).  That, in turn, resulted in a linker
 error while building the front end.  That problem is now fixed.
 
 
