@@ -20566,7 +20566,7 @@ not reachable from the normal file-scope IL tree.
        surprises, however. */
     lower_namespace_list(solhp->orphaned_namespaces);
     /* The source sequence sublist list need not be visited. */
-  }  /* if */
+  }  /* for */
   /* Now visit all the orphaned entries recorded by the more general scheme. */
   /* Look at each IL entry kind (e.g., types, constants). */
   for (kind = (an_il_entry_kind)0;
@@ -20941,16 +20941,16 @@ C++ to C, so that a C back end can handle it without change.
       /* Create any needed typeinfo variables.  This must be done after
          virtual function table definition but before most lowering. */
       generate_typeinfo_vars();
-    }  /* if */
-    /* Lower the scope and its subscopes in the same memory region. */
-    lower_scope(scope);
-    if (lowering_file_scope) {
       /* Lower any orphaned types and other entries from the function and
          block scopes.  They are allocated in the file scope memory region but
          are not linked into the file scope memory region IL tree, so they have
-         to be found through a separate list. */
+         to be found through a separate list.  Lower these before types are
+         lowered so that any orphaned typeid constants are lowered before
+         the types they refer to. */
       lower_orphaned_entries();
     }  /* if */
+    /* Lower the scope and its subscopes in the same memory region. */
+    lower_scope(scope);
     /* Promote class members out of the classes. */
     do_scope_class_member_promotion(scope);
     /* Re-write scoped enums to non-scoped enums. */
