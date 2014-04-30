@@ -1,5 +1,17 @@
 Version 4.10
 
+4/30/14  [EDGcpfe/15122]
+Missing error on C++/CX public scoped enum in global scope
+
+The front end previously failed to diagnose a public scoped enum type
+defined in global scope.  For example:
+
+  public enum class E { e };  // Previously accepted, but this is not
+                              // valid C++/CX.
+
+This is now fixed: An error is issued.
+
+
 4/29/14  [EDGcpfe/12740,EDGcpfe/14294]
 GNU compatibility: typedef redeclaration in system header files
 

@@ -6322,7 +6322,7 @@ template.  dsi_flags is the set of input flags passed to decl_specifiers.
   }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
   if (is_definition) {
-    if (cppcli_enabled) {
+    if (cppcx_enabled) {
       error_if_cppcx_public_global_type(enum_type, &cli_visibility_pos);
     }  /* if */
   } else {
