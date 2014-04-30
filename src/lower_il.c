@@ -5245,6 +5245,17 @@ constants in other scopes.
   if (crossing_into_file_scope(constant)) {
     /* Don't follow a pointer from the function scope into the file scope;
        record it as a potential orphan instead. */
+    if (constant->kind == (a_constant_repr_kind)ck_address &&
+        constant->variant.address.kind == (an_address_base_kind)abk_typeid) {
+      /* The lowering of a typeid constant involves creating a typeinfo
+         variable for the specific type, which in turn requires a mangled
+         name for the type, which requires that the type be unlowered.  In
+         some configurations, for some (notably function) types, lowering of
+         an orphaned typeid constant can occur after the type has been lowered,
+         causing an assertion failure during mangling.  Generate the
+         typeinfo variable now to avoid this issue. */
+      (void)make_typeinfo_var(constant->variant.address.variant.type);
+    }  /* if */
     possibly_add_orphaned_file_scope_il_entry((char *)constant, iek_constant);
   } else {
     lower_constant(constant);
@@ -20941,16 +20952,16 @@ C++ to C, so that a C back end can handle it without change.
       /* Create any needed typeinfo variables.  This must be done after
          virtual function table definition but before most lowering. */
       generate_typeinfo_vars();
-      /* Lower any orphaned types and other entries from the function and
-         block scopes.  They are allocated in the file scope memory region but
-         are not linked into the file scope memory region IL tree, so they have
-         to be found through a separate list.  Lower these before types are
-         lowered so that any orphaned typeid constants are lowered before
-         the types they refer to. */
-      lower_orphaned_entries();
     }  /* if */
     /* Lower the scope and its subscopes in the same memory region. */
     lower_scope(scope);
+    if (lowering_file_scope) {
+      /* Lower any orphaned types and other entries from the function and
+         block scopes.  They are allocated in the file scope memory region but
+         are not linked into the file scope memory region IL tree, so they have
+         to be found through a separate list. */
+      lower_orphaned_entries();
+    }  /* if */
     /* Promote class members out of the classes. */
     do_scope_class_member_promotion(scope);
     /* Re-write scoped enums to non-scoped enums. */
