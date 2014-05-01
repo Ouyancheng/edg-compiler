@@ -17384,10 +17384,12 @@ static an_expr_node_ptr make_expr_for_string_literal(a_const_char *string)
 /*
 Construct and return an expression node for the string literal.  The string
 is copied into the file scope IL region (though the constant and expression
-nodes are allocated in the current IL region).
+nodes are allocated in the current IL region).  The returned expression has
+a (decayed) pointer type.
 */
 {
   a_constant_ptr   con;
+  a_constant       addr_con;
   char             *str;
   sizeof_t         target_str_len;
 
@@ -17402,7 +17404,14 @@ nodes are allocated in the current IL region).
   con->variant.string.length = (a_targ_size_t)target_str_len;
   con->variant.string.value = str;
   con->character_kind = (a_character_kind)chk_char;
-  return alloc_node_for_constant(con);
+  /* Perform array to pointer decay. */
+  set_constant_address_constant(con, &addr_con);
+  implicit_cast(&addr_con,
+                type_after_array_to_pointer_transformation(con->type));
+  /* Lower the string, if applicable. */
+  il_lowering_flag_of(con) = FALSE;
+  lower_constant(con);
+  return alloc_node_for_constant(&addr_con);
 }  /* make_expr_for_string_literal */
 
 
@@ -17509,6 +17518,8 @@ address of the routine into the variable.  A cast is added if necessary.
   /* Build a pointer-to-function constant. */
   set_routine_address_constant(routine, function_constant,
                                /*set_address_taken_flag=*/TRUE);
+  /* Mark the routine as referenced. */
+  routine->source_corresp.referenced = TRUE;
   /* Make an expression for the constant. */
   comp_expr = alloc_node_for_constant(function_constant);
   /* Add a cast to the type of the variable. */

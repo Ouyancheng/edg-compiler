@@ -5932,7 +5932,11 @@ process_assignment:
 #if CHECKING
             /* Check for unwidened arguments to old-style functions. */
             if (param != NULL) {
-              /* This argument is prototyped, so do not check it. */
+              /* Check for a missing array to pointer decay. */
+              if (is_array_type(call_argument->type) &&
+                  is_pointer_type(param->type)) {
+                internal_error("dump_expr: missing array to pointer decay");
+              }  /* if */
               param = param->next;
 #if GNU_EXTENSIONS_ALLOWED
             } else if (is_routine_node(operand_1) &&
