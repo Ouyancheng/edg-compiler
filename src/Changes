@@ -1,7 +1,7 @@
 Version 4.10
 
 4/30/14  [EDGcpfe/15122]
-Missing error on C++/CX public scoped enum in global scope
+Microsoft compatibility: C++/CX public scoped enum in global scope
 
 The front end previously failed to diagnose a public scoped enum type
 defined in global scope.  For example:
