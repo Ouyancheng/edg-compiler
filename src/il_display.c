@@ -2898,6 +2898,12 @@ Display the indicated field.
     disp_unsigned_long("offset_bit_remainder",
                        (unsigned long)ptr->offset_bit_remainder);
     disp_unsigned_long("bit_size", (unsigned long)ptr->bit_size);
+#if RECORD_BIT_FIELD_CONTAINER_OFFSETS_IN_IL
+    if (ptr->offset_in_container != 0) {
+      disp_unsigned_long("offset_in_container",
+                         (unsigned long)ptr->offset_in_container);
+    }  /* if */
+#endif /* RECORD_BIT_FIELD_CONTAINER_OFFSETS_IN_IL */
     disp_ptr("bit_size_constant", (char *)ptr->bit_size_constant,
              iek_constant);
     if (ptr->declared_bit_size != ptr->bit_size) {

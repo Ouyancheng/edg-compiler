@@ -9905,6 +9905,13 @@ typedef unsigned char an_offset_bit_remainder;
 			   offset) in the offset of a bit field.  The value
 			   will be >= 0 and < targ_char_bit. */
 
+#if RECORD_BIT_FIELD_CONTAINER_OFFSETS_IN_IL
+typedef unsigned char a_bit_field_container_offset;
+			/* To represent the byte offset of a bit field in its
+			   container when targ_microsoft_bit_field_allocation 
+			   is TRUE. */
+#endif /* RECORD_BIT_FIELD_CONTAINER_OFFSETS_IN_IL */
+
 typedef struct a_field {
   /* Description of a field (member of a class, struct, or union), including
      unnamed bit fields. */
@@ -9940,6 +9947,14 @@ typedef struct a_field {
 			/* Size of this field (in bits).  Only non-zero for
 			   bit-fields; for the others, the size is gotten from
 			   the type. */
+#if RECORD_BIT_FIELD_CONTAINER_OFFSETS_IN_IL
+  a_bit_field_container_offset
+		offset_in_container;
+			/* When targ_microsoft_bit_field_allocation is TRUE and
+			   this is a bit field, the number of whole bytes that
+			   the bit field is offset from its container's origin.
+			   Otherwise zero. */
+#endif /* RECORD_BIT_FIELD_CONTAINER_OFFSETS_IN_IL */
 #if USER_CONTROL_OF_STRUCT_PACKING
   a_targ_alignment
   		alignment;

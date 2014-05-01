@@ -2430,6 +2430,9 @@ to it.
   fp->offset               = 0;
   fp->offset_bit_remainder = 0;
   fp->bit_size             = 0;
+#if RECORD_BIT_FIELD_CONTAINER_OFFSETS_IN_IL
+  fp->offset_in_container  = 0;
+#endif /* RECORD_BIT_FIELD_CONTAINER_OFFSETS_IN_IL */
 #if USER_CONTROL_OF_STRUCT_PACKING
   fp->alignment            = 0;
 #if GNU_EXTENSIONS_ALLOWED

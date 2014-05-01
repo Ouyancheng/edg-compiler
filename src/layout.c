@@ -2570,6 +2570,19 @@ there's no overflow TRUE is returned.
           if (class_type->kind == (a_type_kind)tk_union) {
             /* Pad out the rest of the current container. */
             pad_ms_bit_field_container(lob);
+#if RECORD_BIT_FIELD_CONTAINER_OFFSETS_IN_IL
+          } else {
+            /* Record the offset (in bytes) within the container.  This
+               simplifies code generation for certain back ends. */
+            an_unnormalized_bit_offset
+                     container_bit_size, container_bit_offset;
+            container_bit_size = skip_typerefs(lob->curr_container_type)->size
+                               * targ_char_bit;
+            container_bit_offset = container_bit_size - field->bit_size
+                                 - lob->curr_container_avail_bits;
+            field->offset_in_container = (a_bit_field_container_offset)
+                                       (container_bit_offset / targ_char_bit);
+#endif /* RECORD_BIT_FIELD_CONTAINER_OFFSETS_IN_IL */
           }  /* if */
         }  /* if */
       } else {

@@ -1,5 +1,24 @@
 Version 4.10
 
+5/1/14   [EDGcpfe/14925]
+Offsets of bit fields in their containers
+
+When targ_microsoft_bit_field_allocation (set to the value of the configuration
+macro TARG_MICROSOFT_BIT_FIELD_ALLOCATION) is TRUE, bit fields are allocated
+strictly within "container fields" (see the entry of 3/31/95).  When that is
+the case, the byte offset of a field within its container is now recorded if
+the configuration macro RECORD_BIT_FIELD_CONTAINER_OFFSETS_IN_IL is TRUE.
+For example:
+
+  struct S {
+    long x: 4;  /* offset_in_container == 0 */
+    long y: 8;  /* offset_in_container == 0 */
+    long z: 8;  /* offset_in_container == 1 */
+  };
+
+This offset is recorded in the field "offset_in_container" of a_field entries.
+
+
 5/1/14   [EDGcpfe/15107]
 Miscellaneous issues with GNU function multiversioning
 
