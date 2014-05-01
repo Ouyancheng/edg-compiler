@@ -16179,6 +16179,7 @@ of the front end.
   unnamed_field_symbol_header = NULL;
   size_t_type = NULL;
   ptr_to_const_char_type = NULL;
+  dummy_undefined_symbol = NULL;
 #if DEBUG
   num_symbols_allocated                         = 0;
   num_symbol_headers_allocated                  = 0;

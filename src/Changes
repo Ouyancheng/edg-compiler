@@ -1,5 +1,16 @@
 Version 4.10
 
+5/1/14   [EDGcpfe/15124]
+Memory corruption during compilation of multiple source files
+
+The dummy_undefined_symbol static variable was not being properly initialized
+between the compilation of source files which could lead to the use of an
+invalid pointer, causing undefined behavior during compilation.  This
+could occur in configurations where COMPILE_MULTIPLE_SOURCE_FILES is true
+and at least two of the source files contained range-based "for" loops
+that required calls to begin/end functions.  Now fixed.
+
+
 4/30/14  [EDGcpfe/15122]
 Microsoft compatibility: C++/CX public scoped enum in global scope
 
