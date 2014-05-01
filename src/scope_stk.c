@@ -5797,6 +5797,20 @@ curr_routine points to the routine entry; otherwise, it is NULL.
         if (!rout_ptr->is_inline) {
           rout_ptr->source_corresp.referenced = TRUE;
           sym->referenced = TRUE;
+#if GNU_FUNCTION_MULTIVERSIONING
+          if (is_multiversion_representative(rout_ptr)) {
+            /* Propagate the referenced flag setting to the target-specific
+               versions. */
+            a_routine_list_entry_ptr rlep;
+            for (rlep = gnu_routine_supp(rout_ptr)->
+                                      mv_info.representative.targeted_versions;
+                 rlep != NULL;
+                 rlep = rlep->next) {
+              rlep->routine->source_corresp.referenced = TRUE;
+              symbol_for(rlep->routine)->referenced = TRUE;
+            }  /* for */
+          }  /* if */
+#endif /* GNU_FUNCTION_MULTIVERSIONING */
         }  /* if */
       } else if (rout_ptr->source_corresp.referenced) {
         /* Referenced function.  We check the IL referenced flag because
