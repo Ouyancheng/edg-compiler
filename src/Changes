@@ -1,5 +1,15 @@
 Version 4.10
 
+5/2/14   [EDGcpfe/15126]
+Abort in check_correspondences with deferred prototype instantiations
+
+When simultaneously compiling multiple translation units, the front end
+sometimes aborted in check_correspondences when verifying corresponding
+prototype instantiations of function templates.  This occurred in some
+complex cases when the full instantiation of prototype instantiations is
+deferred (as it commonly is in GNU C++ modes).  This is now fixed.
+
+
 5/1/14   [EDGcpfe/14925]
 Offsets of bit fields in their containers
 

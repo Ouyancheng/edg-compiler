@@ -430,6 +430,8 @@ importance):
        Does the entity have a determined exception specification?
                                                      (routines only)
    (d) Is the entity a template specialization?
+       If it is a prototype instantiation, is the associated template
+       defined?
    (e) Is the entity defined?
    (f) Is the entity a non-weak definition or (for a type) complete?
 The entity with the highest ranking in a correspondence set should be the
@@ -466,15 +468,12 @@ The given entity should have a source correspondence.
       break;
     case iek_routine:
       /* Note: assoc_sym_defined not used because when unneeded routines are
-         removed the "defined" flag in the symbol is not cleared.  If this
-         is a prototype instantiation, follow the template instead. */
+         removed the "defined" flag in the symbol is not cleared. */
       { a_routine_ptr  routine = (a_routine_ptr)entity;
         if (!has_indeterminate_exception_spec(routine)) {
           rank += 4;
         }  /* if */
-        if (routine->assoc_scope != NULL_region_number ||
-            (routine->is_prototype_instantiation &&
-             assoc_sym_defined(routine->assoc_template))) {
+        if (routine->assoc_scope != NULL_region_number) {
           rank += 16;
 #if GNU_EXTENSIONS_ALLOWED
           if (!routine->is_weak) {
@@ -491,7 +490,12 @@ The given entity should have a source correspondence.
           }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
         }  /* if */
-        if (routine->is_specialized) {
+        if (routine->is_specialized ||
+            (routine->is_prototype_instantiation &&
+             assoc_sym_defined(routine->assoc_template))) {
+          /* For "real" instances, prefer explicit specializations.  For
+             prototype instantiations, prefer those associated with a
+             template that includes a definition. */
           rank += 8;
         }  /* if */
       }
@@ -3014,6 +3018,19 @@ is in fact valid.
         }  /* if */
       }  /* if */
     }  /* if */
+#if GNU_EXTENSIONS_ALLOWED || REDEFINE_EXTNAME_PRAGMA_ENABLED
+    if (match && (has_gnu_routine_supp(routine) ||
+                  has_gnu_routine_supp(corresp_routine))) {
+      /* At least one of the routines has a GNU routine supplement.  Make sure
+         they're both allocated and that they correspond. */
+      if (!has_gnu_routine_supp(routine)) {
+        (void)ensure_gnu_routine_supp(routine);
+      }  /* if */
+      if (!has_gnu_routine_supp(corresp_routine)) {
+        (void)ensure_gnu_routine_supp(corresp_routine);
+      }  /* if */
+    }  /* if */
+#endif /* GNU_EXTENSIONS_ALLOWED || REDEFINE_EXTNAME_PRAGMA_ENABLED */
     if (match && !trans_unit_test_mode && !routine->is_inline &&
         (!routine->is_prototype_instantiation ||
          routine->assoc_template->is_exported) &&
