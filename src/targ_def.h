@@ -1473,6 +1473,22 @@ match the target machine behavior on integer operations in C.
 			   targ_microsoft_bit_field_allocation. */
 #endif /* ifndef TARG_MICROSOFT_BIT_FIELD_ALLOCATION */
 
+/*
+Flag that is TRUE if, when targ_microsoft_bit_field_allocation is TRUE, the
+byte offset of a bit field within its container should be recorded in the
+bit field's a_field entry.
+*/
+#ifndef RECORD_BIT_FIELD_CONTAINER_OFFSETS_IN_IL
+#if TARG_MICROSOFT_BIT_FIELD_ALLOCATION
+#define RECORD_BIT_FIELD_CONTAINER_OFFSETS_IN_IL TRUE
+#else /* !TARG_MICROSOFT_BIT_FIELD_ALLOCATION */
+#define RECORD_BIT_FIELD_CONTAINER_OFFSETS_IN_IL FALSE
+#endif /* TARG_MICROSOFT_BIT_FIELD_ALLOCATION */
+#endif /* ifndef RECORD_BIT_FIELD_CONTAINER_OFFSETS_IN_IL */
+
+
+
+
 /* Container size to be used for bit-fields.  If > 0, indicates the
    size in bytes of one of the integral types.  0 means "use the smallest
    integral type into which the field will fit".  < 0 means "use the
