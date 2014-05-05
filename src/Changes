@@ -68,7 +68,7 @@ This is now fixed: An error is issued.
 4/29/14  [EDGcpfe/12740,EDGcpfe/14294]
 GNU compatibility: typedef redeclaration in system header files
 
-Versions of g++ earlier than 4.6.0 appear to allow a typedef redeclaration
+Versions of GNU earlier than 4.6.0 appear to allow a typedef redeclaration
 when both typedefs refer to pointer to function types and there is a
 discrepancy in the parameter types of the underlying function types.
 Such discrepancies are only ignored in system header files.  A change
