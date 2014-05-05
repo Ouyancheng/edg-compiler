@@ -7270,7 +7270,7 @@ it will be pointed to by the aliased IL entry.
          therefore ensure its allocation now. */
       a_routine_ptr  rp = alias->variant.routine.ptr;
       if (!has_gnu_routine_supp(rp)) {
-        alloc_gnu_supplement_for_routine(alias->variant.routine.ptr);
+        (void)alloc_gnu_supplement_for_routine(alias->variant.routine.ptr);
       }  /* if */
     }  /* if */
   }  /* if */
