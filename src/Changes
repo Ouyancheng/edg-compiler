@@ -1,5 +1,15 @@
 Version 4.10
 
+5/5/14   [EDGcpfe/15125]
+Matching attributes to built-in declarations in other translation units
+
+When simultaneously compiling multiple translation units, the front end by
+default issues an error when a declaration in one translation unit has an
+attribute that is not present on the matching declaration of another
+translation unit.  Now that diagnostic is inhibited if the entity with the
+missing attribute is a compiler-declared entity (e.g., "operator delete").
+
+
 5/5/14   [EDGcpfe/15129]
 Abort in remap_secondary_pointer_for_rewrite with GNU alias attribute
 

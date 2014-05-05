@@ -2432,7 +2432,9 @@ entry.
       } else if (ap2 == NULL) {
         /* An attribute (ap1) of the first entity doesn't have a counterpart
            in entity2. */
-        if (match_mode == ACF_STRICT_MATCH) {
+        if (match_mode == ACF_STRICT_MATCH && !pos2->seq == 0) {
+          /* Strict matching is requested.  (However, when matching built-in
+             declarations just retain the source attribute.) */
           pos_st_start_error(ec_missing_attribute_in_other_translation_unit,
                              &ap1->position, ap1->name);
           add_diag_info_with_pos_insert(ec_corresp_decl_at, pos2);
