@@ -30196,6 +30196,7 @@ One-time initialization for class_decl.c static variables.
       pch_saved_var_array_elem(avail_class_fixup),
       pch_saved_var_array_elem(avail_derivation_steps),
       pch_saved_var_array_elem(avail_override_registry_entries),
+      pch_saved_var_array_elem(avail_override_exception_check_entries),
       pch_saved_var_array_elem(avail_initializer_fixup),
 #if MICROSOFT_EXTENSIONS_ALLOWED
       pch_saved_var_array_elem(avail_quasi_override_descrs),
