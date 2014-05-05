@@ -7262,6 +7262,17 @@ it will be pointed to by the aliased IL entry.
        attributes.  This is recorded early so that we can tell whether an
        entity is an alias before the alias is resolved. */
     alias->is_alias = TRUE;
+    if (is_simple_function_symbol(alias)) {
+      /* When then fixup entry is resolved, the GNU routine supplement entry
+         will have to be updated.  Ordinarily, the supplement is allocated
+         lazily, but fixup resolution is a very late process that possibly
+         occurs after cross-translation-unit correspondence processing.  We
+         therefore ensure its allocation now. */
+      a_routine_ptr  rp = alias->variant.routine.ptr;
+      if (!has_gnu_routine_supp(rp)) {
+        alloc_gnu_supplement_for_routine(alias->variant.routine.ptr);
+      }  /* if */
+    }  /* if */
   }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
 }  /* add_alias_fixup */
