@@ -6194,11 +6194,12 @@ done:
         }  /* if */
       }  /* if */
     }  /* if */
-  } else if ((func_info->sealed || func_info->abstract) && real_override) {
+  } else if ((func_info->sealed || func_info->abstract) &&
+              !dps->override_okay) {
     pos_error(ec_function_modifier_requires_virtual_function, source_pos);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-  } else if (rout->final && real_override) {
-    pos_error(ec_function_modifier_requires_virtual_function, source_pos);
+  } else if (rout->final && !dps->override_okay) {
+    pos_error(ec_final_modifier_requires_virtual_function, source_pos);
     rout->final = FALSE;
   }  /* if */
   if (rout->is_virtual) {

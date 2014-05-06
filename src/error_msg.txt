@@ -1500,7 +1500,7 @@ ec_sealed_base_class;;"a sealed class type cannot be used as a base class"
 ec_duplicate_class_modifier;;"duplicate class modifier"
 ec_function_modifiers_abstract_and_sealed;;"a member function cannot have both the \"abstract\" and \"sealed\" modifiers"
 ec_pure_specifier_on_sealed_member;;"a sealed member cannot be pure virtual"
-ec_function_modifier_requires_virtual_function;;"nonvirtual function cannot be declared with \"abstract\", \"sealed\", or \"final\" modifier"
+ec_function_modifier_requires_virtual_function;;"nonvirtual function cannot be declared with \"abstract\" or \"sealed\" modifier"
 ec_override_member_does_not_override;;"member function declared with \"override\" does not override a base class member"
 ec_override_of_sealed_function;;"cannot override sealed %nd"
 ec_type_is_declared_abstract;;"%nd was declared with the class modifier \"abstract\""
@@ -2660,6 +2660,7 @@ ec_invalid_base_for_ms_attributes;;"Microsoft attributes in this location are on
 ec_resolver_routine_required;;"GNU function multiversion resolver routine required"
 ec_enum_in_managed_class_missing_definition;;"an enum type declared in a managed class must include a definition"
 ec_decltype_qualified_declared_name;;"a decltype-qualified name is nonstandard in this declaration context"
+ec_final_modifier_requires_virtual_function;;"nonvirtual function cannot be declared with \"final\" modifier"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #
