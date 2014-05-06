@@ -6194,10 +6194,10 @@ done:
         }  /* if */
       }  /* if */
     }  /* if */
-  } else if (func_info->sealed || func_info->abstract) {
+  } else if ((func_info->sealed || func_info->abstract) && real_override) {
     pos_error(ec_function_modifier_requires_virtual_function, source_pos);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-  } else if (rout->final) {
+  } else if (rout->final && real_override) {
     pos_error(ec_function_modifier_requires_virtual_function, source_pos);
     rout->final = FALSE;
   }  /* if */

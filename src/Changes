@@ -1,5 +1,22 @@
 Version 4.10
 
+5/6/14   [EDGcpfe/14542]
+Spurious error on use of "final", "sealed", or "abstract" specifier
+
+A spurious error had been issued in cases where a virtual function declaration
+has a "final" specifier, but the overridden virtual function is in a
+nonreal base class.  A similar situation arose with the "sealed" and
+"abstract" modifiers when C++/CLI were used.  Now fixed.  For example
+(with --c++11):
+
+  struct B {
+    virtual void f();
+  };
+  template <class T> struct D : T {
+    void f() final;
+  };
+
+
 5/5/14   [EDGcpfe/15125]
 Matching attributes to built-in declarations in other translation units
 
