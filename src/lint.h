@@ -1107,6 +1107,7 @@ extern int fileno(FILE *);
 /*lint -esym(769,ec_enum_in_managed_class_missing_definition)*/
 /*lint -esym(759,free_attachments_to_operand)*/
 /*lint -esym(765,free_attachments_to_operand)*/
+/*lint -esym(769,ec_function_modifier_requires_virtual_function)*/
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if !MINIMAL_INLINING
 /*lint -esym(769,ec_too_large_to_inline)*/
