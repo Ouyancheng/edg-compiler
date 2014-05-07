@@ -56,7 +56,7 @@ sometimes aborted in remap_secondary_pointer_for_rewrite (in trans_copy.c,
 with message "missing primary IL correspondence") when dealing with a routine
 entry for a function whose GNU alias attribute (or, similarly, a weakref or
 ifunc attribute) is resolved late in the compilation process.  This is a
-regression introduced by the Changes for EDGcpfe/14931.  It is now fixed.
+regression introduced by the changes for EDGcpfe/14931.  It is now fixed.
 
 
 5/2/14   [EDGcpfe/15126]

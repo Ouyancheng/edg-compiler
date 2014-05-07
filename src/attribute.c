@@ -7263,7 +7263,7 @@ it will be pointed to by the aliased IL entry.
        entity is an alias before the alias is resolved. */
     alias->is_alias = TRUE;
     if (is_simple_function_symbol(alias)) {
-      /* When then fixup entry is resolved, the GNU routine supplement entry
+      /* When the fixup entry is resolved, the GNU routine supplement entry
          will have to be updated.  Ordinarily, the supplement is allocated
          lazily, but fixup resolution is a very late process that possibly
          occurs after cross-translation-unit correspondence processing.  We
