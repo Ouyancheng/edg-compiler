@@ -1,5 +1,30 @@
 Version 4.10
 
+5/6/14   [EDGcpfe/14991]
+C++-generating back end: Linkage specification
+
+When the new configuration macro GENERATE_LINKAGE_SPEC_BLOCKS is TRUE, the
+front end now records entries in the source sequence entries list to represent
+braced linkage specifications.  The C++-generating back end uses these entries
+to improve the code it generates.  For example, given:
+
+  extern "C" {
+  #pragma MyPragma
+    void f() {};
+  }
+
+the C++-generating back end now produces essentially the same code if the macro
+GENERATE_LINKAGE_SPEC_BLOCKS is TRUE, whereas without that setting it produces
+
+  #pragma MyPragma
+  extern "C" { void f() {} }
+
+Setting the new macro to TRUE requires that GENERATE_SOURCE_SEQUENCE_LISTS is
+TRUE also, and that CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS and
+NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS both be FALSE.  (If
+those conditions are met, the macro is TRUE by default.)
+
+
 5/6/14   [EDGcpfe/14542]
 Spurious error on use of "final", "sealed", or "abstract" specifier
 
