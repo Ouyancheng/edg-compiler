@@ -6964,6 +6964,19 @@ Display the indicated static assertion entry.
   disp_source_position("position", &sap->position);
 }  /* disp_static_assertion */
 
+#if GENERATE_LINKAGE_SPEC_BLOCKS
+
+static void disp_linkage_spec_block(a_linkage_spec_block_ptr lsbp)
+/*
+Display the indicated entry.
+*/
+{
+  disp_ptr("name_strict", (char*)lsbp->name_string, iek_constant);
+  disp_name_linkage("name_linkage", (a_name_linkage_kind)lsbp->name_linkage);
+  disp_source_position("position", &lsbp->position);
+}  /* disp_linkage_spec_block */
+
+#endif /* GENERATE_LINKAGE_SPEC_BLOCKS */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 #if SCOPE_ORPHANED_LIST_PROCESSING_NEEDED
 
@@ -7232,6 +7245,11 @@ This routine is called during IL walking.
         case iek_static_assertion:
           disp_static_assertion((a_static_assertion_ptr)entry_ptr);
           break;
+#if GENERATE_LINKAGE_SPEC_BLOCKS
+        case iek_linkage_spec_block:
+          disp_linkage_spec_block((a_linkage_spec_block_ptr)entry_ptr);
+          break;
+#endif /* GENERATE_LINKAGE_SPEC_BLOCKS */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 #if SCOPE_ORPHANED_LIST_PROCESSING_NEEDED
         case iek_scope_orphaned_list_header:

@@ -701,6 +701,10 @@ typedef enum /*an_il_entry_kind*/ {
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   iek_static_assertion,
 			/* a_static_assertion */
+#if GENERATE_LINKAGE_SPEC_BLOCKS
+  iek_linkage_spec_block,
+			/* a_linkage_spec_block */
+#endif /* GENERATE_LINKAGE_SPEC_BLOCKS */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   iek_local_scope_ref,	/* a_local_scope_ref */
   iek_il_entity_list_entry,
@@ -864,6 +868,9 @@ EXTERN a_const_char *il_entry_kind_names[(int)iek_last + 1]
 /* iek_local_expr_node_ref */		"local-expr-node-ref",
 #if GENERATE_SOURCE_SEQUENCE_LISTS
 /* iek_static_assertion */		"static-assertion",
+#if GENERATE_LINKAGE_SPEC_BLOCKS
+/* iek_linkage_spec_block */		"linkage-spec-block",
+#endif /* GENERATE_LINKAGE_SPEC_BLOCKS */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 /* iek_local_scope_ref */		"local-scope-ref",
 /* iek_il_entity_list_entry */		"il-entity-list-entry",
@@ -1952,6 +1959,28 @@ typedef struct a_static_assertion {
 			   construct. */
 } a_static_assertion;
 
+#if GENERATE_LINKAGE_SPEC_BLOCKS
+
+/*
+Data structure describing a braced linkage specifier.  Only pointed to from
+source sequence entries.
+*/
+typedef struct a_linkage_spec_block *a_linkage_spec_block_ptr;
+typedef struct a_linkage_spec_block {
+  a_constant_ptr
+		name_string;
+			/* A constant representing the string-literal in the
+			   construct. */
+  a_bit_field /* a_name_linkage_kind */
+		name_linkage:NUM_BITS_FOR_NAME_LINKAGE;
+			/* The name linkage associated with this construct. */
+  a_source_position
+		position;
+			/* The source position of the start of the
+			   construct. */
+} a_linkage_spec_block;
+
+#endif /* GENERATE_LINKAGE_SPEC_BLOCKS */
 #if GENERATE_MICROSOFT_IF_EXISTS_ENTRIES
 
 /*
@@ -18931,6 +18960,9 @@ EXTERN sizeof_t	sizeof_il_entry[(int)iek_last+1]
   sizeof(a_local_expr_node_ref),
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   sizeof(a_static_assertion),
+#if GENERATE_LINKAGE_SPEC_BLOCKS
+  sizeof(a_linkage_spec_block),
+#endif /* GENERATE_LINKAGE_SPEC_BLOCKS */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   sizeof(a_local_scope_ref),
   sizeof(an_il_entity_list_entry),

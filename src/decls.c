@@ -12291,6 +12291,9 @@ specifier is restored.  dps describes the linkage-specification declaration.
   a_name_linkage_kind  kind;
   a_boolean            err = FALSE;
   a_source_range       linkage_spec_range;
+#if GENERATE_SOURCE_SEQUENCE_LISTS && GENERATE_LINKAGE_SPEC_BLOCKS
+  a_constant           string_constant;
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS && GENERATE_LINKAGE_SPEC_BLOCKS */
 
   db_enter(3, "linkage_specification");
   if (decl_scope_level != depth_innermost_namespace_scope) {
@@ -12301,6 +12304,9 @@ specifier is restored.  dps describes the linkage-specification declaration.
   /* Advance to the string literal. */
   (void)get_token();
   check_assertion(curr_token == tok_string_literal);
+#if GENERATE_SOURCE_SEQUENCE_LISTS && GENERATE_LINKAGE_SPEC_BLOCKS
+  string_constant = const_for_curr_token;
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS && GENERATE_LINKAGE_SPEC_BLOCKS */
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   linkage_spec_range.end = end_pos_curr_token;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
@@ -12323,6 +12329,16 @@ specifier is restored.  dps describes the linkage-specification declaration.
      repeatedly.  If no brace follows, call declaration just once to pick
      up the rest of the current declaration. */
   if (curr_token == tok_lbrace) {
+#if GENERATE_SOURCE_SEQUENCE_LISTS && GENERATE_LINKAGE_SPEC_BLOCKS
+    /* Add a source sequence entry to indicate the start of the block (with a
+       matching end-of-construct entry to follow below). */
+    a_linkage_spec_block_ptr  lsbp = alloc_linkage_spec_block();
+    lsbp->name_string = alloc_unshared_constant(&string_constant);
+    lsbp->name_linkage = kind;
+    lsbp->position = linkage_spec_range.start;
+    add_to_source_sequence_list((char*)lsbp,
+                                (an_il_entry_kind)iek_linkage_spec_block);  
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS && GENERATE_LINKAGE_SPEC_BLOCKS */
     /* Issue diagnostics on pragmas that are trying to bind to the
        extern "C" (or whatever) construct. */
     cannot_bind_to_curr_construct();
@@ -12358,6 +12374,12 @@ specifier is restored.  dps describes the linkage-specification declaration.
       (void)get_token();
       next_token_is_top_level_decl_start = FALSE;
     }  /* if */
+#if GENERATE_SOURCE_SEQUENCE_LISTS && GENERATE_LINKAGE_SPEC_BLOCKS
+    /* Add a source sequence entry marking the end of the namespace
+       definition. */
+    add_end_of_construct_source_sequence_entry(
+                  (char *)lsbp, (a_byte_il_entry_kind)iek_linkage_spec_block);
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS && GENERATE_LINKAGE_SPEC_BLOCKS */
   } else {
     if (curr_token == tok_end_of_source) {
       /* Missing declaration. */

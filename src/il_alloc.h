@@ -255,6 +255,10 @@ extern an_instantiation_directive_ptr alloc_instantiation_directive(void);
 
 extern a_static_assertion_ptr alloc_static_assertion(void);
 
+#if GENERATE_LINKAGE_SPEC_BLOCKS
+extern a_linkage_spec_block_ptr alloc_linkage_spec_block(void);
+#endif /* GENERATE_LINKAGE_SPEC_BLOCKS */
+
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 
 #if RECORD_HIDDEN_NAMES_IN_IL

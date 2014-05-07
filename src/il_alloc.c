@@ -115,6 +115,9 @@ static unsigned long
 		num_src_seq_end_of_constructs_allocated,
 		num_src_seq_sublists_allocated,
 		num_instantiation_directives_allocated,
+#if GENERATE_LINKAGE_SPEC_BLOCKS
+		num_linkage_spec_blocks,
+#endif /* GENERATE_LINKAGE_SPEC_BLOCKS */
 		num_static_assertions;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 #if ORPHAN_PROCESSING_NEEDED
@@ -4454,6 +4457,29 @@ pointer to it.
   return entry;
 }  /* alloc_static_assertion */
 
+#if GENERATE_LINKAGE_SPEC_BLOCKS
+
+a_linkage_spec_block_ptr alloc_linkage_spec_block(void)
+/*
+Allocate and initializer an entry representing a linkage specification block,
+and return a pointer to it.
+*/
+{
+  a_linkage_spec_block_ptr  entry;
+
+  db_enter(5, "alloc_linkage_spec_block");
+  entry = alloc_cil_of_type(a_linkage_spec_block);
+#if DEBUG
+  num_linkage_spec_blocks++;
+#endif /* DEBUG */
+  entry->name_string = NULL;
+  entry->name_linkage = (a_name_linkage_kind)nlk_none;
+  entry->position = null_source_position;
+  db_exit();
+  return entry;
+}  /* alloc_linkage_spec_block */
+
+#endif /* GENERATE_LINKAGE_SPEC_BLOCKS */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 #if RECORD_HIDDEN_NAMES_IN_IL
 
@@ -5330,6 +5356,10 @@ Display and return the amount of space used for various IL tables.
                 num_instantiation_directives_allocated,
                 an_instantiation_directive);
   db_space_used("static-assertion", num_static_assertions, a_static_assertion);
+#if GENERATE_LINKAGE_SPEC_BLOCKS
+  db_space_used("linkage-spec-blocks", num_linkage_spec_blocks,
+                a_linkage_spec_block);
+#endif /* GENERATE_LINKAGE_SPEC_BLOCKS */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 #if RECORD_HIDDEN_NAMES_IN_IL
   db_space_used("hidden names", num_hidden_names_allocated, a_hidden_name);
@@ -5632,6 +5662,9 @@ in il_alloc_init.)
       pch_saved_var_array_elem(num_src_seq_sublists_allocated),
       pch_saved_var_array_elem(num_instantiation_directives_allocated),
       pch_saved_var_array_elem(num_static_assertions),
+#if GENERATE_LINKAGE_SPEC_BLOCKS
+      pch_saved_var_array_elem(num_linkage_spec_blocks),
+#endif /* GENERATE_LINKAGE_SPEC_BLOCKS */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
       pch_saved_var_array_elem(num_trans_unit_copy_address_pointers_allocated),
 #if ORPHAN_PROCESSING_NEEDED
@@ -5822,6 +5855,9 @@ initializations that are done for each compilation.
   num_src_seq_sublists_allocated         = 0;
   num_instantiation_directives_allocated = 0;
   num_static_assertions                  = 0;
+#if GENERATE_LINKAGE_SPEC_BLOCKS
+  num_linkage_spec_blocks                = 0;
+#endif /* GENERATE_LINKAGE_SPEC_BLOCKS */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   num_trans_unit_copy_address_pointers_allocated = 0;
 #if ORPHAN_PROCESSING_NEEDED

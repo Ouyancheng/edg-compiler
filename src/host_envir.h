@@ -1364,6 +1364,34 @@ would be less common.
 #endif /* TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
 
 /*
+Flag that indicates whether linkage specifier blocks like
+	extern "C" { ... }
+should be represented explicitly in the source sequence entries list.
+*/
+#ifndef GENERATE_LINKAGE_SPEC_BLOCKS
+#if GENERATE_SOURCE_SEQUENCE_LISTS && \
+    !TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
+#define GENERATE_LINKAGE_SPEC_BLOCKS TRUE
+#else /* !(GENERATE_SOURCE_SEQUENCE_LISTS && ...) */
+#define GENERATE_LINKAGE_SPEC_BLOCKS FALSE
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+#endif /* ifndef GENERATE_LINKAGE_SPEC_BLOCKS */
+
+/*
+Ensure that GENERATE_LINKAGE_SPEC_BLOCKS is FALSE is no source sequence entries
+are generated or if template instantiations are recorded in source sequence
+entry lists.
+*/
+#if GENERATE_LINKAGE_SPEC_BLOCKS
+#if !GENERATE_SOURCE_SEQUENCE_LISTS || \
+    TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
+ #error -- GENERATE_LINKAGE_SPEC_BLOCKS requires that \
+           GENERATE_SOURCE_SEQUENCE_LISTS be TRUE and that \
+           TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS be FALSE
+#endif /* !GENERATE_SOURCE_SEQUENCE_LISTS || ... */
+#endif /* GENERATE_LINKAGE_SPEC_BLOCKS */
+
+/*
 The Microsoft __if_exists entry is only needed when Microsoft extensions
 are enabled, source sequence entries are being generated, and prototype
 instantiations are included in the IL

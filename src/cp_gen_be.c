@@ -289,6 +289,7 @@ typedef struct a_name_context {
 			   be set to TRUE if the target compiler searches
 			   dependent bases during unqualified lookup.) */
 } a_name_context;
+
 static a_name_context_ptr
 		curr_name_context;
 			/* Current name context stack. */
@@ -346,6 +347,7 @@ typedef struct an_accessible_typedef {
 		next;	/* The next typedef in the list. */
   a_type_ptr	type;	/* The accessible typedef. */
 } an_accessible_typedef;
+
 static an_accessible_typedef_ptr
 		accessible_typedefs;
 			/* Root of the list of accessible typedefs. */
@@ -428,6 +430,15 @@ be restored.
 static a_boolean
 		need_pragma_pack_restore;
 #endif /* USER_CONTROL_OF_STRUCT_PACKING */
+
+#if GENERATE_LINKAGE_SPEC_BLOCKS
+/*
+A variable that reflects the current default name linkage ("C++" by default
+in C++ mode, and modified when extern "..." { ... } blocks are emitted).
+*/
+static a_name_linkage_kind
+		curr_default_name_linkage;
+#endif /* GENERATE_LINKAGE_SPEC_BLOCKS */
 
 /*
 If e is an enk_constant node and the constant has an associated expression
@@ -8231,8 +8242,11 @@ this one is such a continuation.
         if (!C_mode() &&
             type->variant.typeref.surrounding_name_linkage_state == 
                                            (a_name_linkage_kind)nlk_external &&
-          !(type->source_corresp.is_class_member ||
-            type->source_corresp.is_local_to_function)) {
+#if GENERATE_LINKAGE_SPEC_BLOCKS
+            curr_default_name_linkage != (a_name_linkage_kind)nlk_external &&
+#endif /* GENERATE_LINKAGE_SPEC_BLOCKS */
+            !(type->source_corresp.is_class_member ||
+              type->source_corresp.is_local_to_function)) {
           /* The typedef definition is surrounded by an extern "C" block. */
           if (!suppress_specifiers) {
             /* Don't repeat extern "C" for every declarator. */
@@ -8310,6 +8324,9 @@ this one is such a continuation.
       if (!C_mode() &&
           class_type_supp(type)->surrounding_name_linkage_state == 
                                            (a_name_linkage_kind)nlk_external &&
+#if GENERATE_LINKAGE_SPEC_BLOCKS
+          curr_default_name_linkage != (a_name_linkage_kind)nlk_external &&
+#endif /* GENERATE_LINKAGE_SPEC_BLOCKS */
           (!type->source_corresp.is_class_member ||
            type->variant.class_struct_union.
                                      nested_class_defined_outside_of_parent) &&
@@ -13916,6 +13933,41 @@ Generate code for a static_assert declaration.  The general form is:
   write_tok_str(");");
 }  /* gen_static_assertion */
 
+#if GENERATE_LINKAGE_SPEC_BLOCKS
+
+static void gen_linkage_spec_block(void)
+/*
+Generate a braced linkage specifier block like
+	extern "C" {
+	  ...
+	}
+*/
+{
+  a_linkage_spec_block_ptr  lsbp = ss_entry_ptr(curr_source_sequence_entry,
+                                                a_linkage_spec_block_ptr);
+  a_name_linkage_kind       saved_default_name_linkage;
+
+  set_output_position(&lsbp->position);
+  write_tok_str("extern ");
+  gen_constant(lsbp->name_string, /*need_parens=*/FALSE);
+  write_tok_str(" {");
+  /* Skip over the source sequence entry representing the braced linkage
+     specifier. */
+  adv_curr_source_sequence_entry();
+  saved_default_name_linkage = curr_default_name_linkage;
+  curr_default_name_linkage = lsbp->name_linkage;
+  /* Generate all embedded declarations. */
+  while (ss_entry_kind(curr_source_sequence_entry) !=
+                                                iek_src_seq_end_of_construct) {
+    gen_declaration(/*for_init=*/FALSE);
+  }  /* while */
+  write_tok_str(" }");
+  /* Skip over the end-of-construct entry. */
+  adv_curr_source_sequence_entry();
+  curr_default_name_linkage = saved_default_name_linkage;
+}  /* gen_linkage_spec_block */
+
+#endif /* GENERATE_LINKAGE_SPEC_BLOCKS */
 #if GENERATE_MICROSOFT_IF_EXISTS_ENTRIES
 
 static void gen_ms_if_exists(void)
@@ -15569,6 +15621,22 @@ initialization is in a condition declaration if is_condition is TRUE.
 }  /* gen_variable_initializer */
 
 
+static void gen_linkage_specifier(a_name_linkage_kind  nlk)
+/*
+Render a linkage specifier corresponding to the given name linkage kind.
+E.g., if nlk equal nlk_cplusplus_external, render
+     extern "C++"
+*/
+{
+  a_const_char  *nls = name_linkage_kind_names[(int)nlk];
+
+  ensure_enough_room_on_line(strlen(nls)+10);
+  write_tok_str("extern \"");
+  write_tok_str(nls);
+  write_tok_str("\" ");
+}  /* gen_linkage_specifier */
+
+
 static void gen_variable_decl(a_boolean is_condition,
                               a_boolean is_iterator,
                               a_boolean for_init,
@@ -15589,7 +15657,7 @@ this one is such a continuation.
   a_variable_ptr               var;
   a_src_seq_secondary_decl_ptr sec_decl;
   a_boolean                    is_definition = FALSE;
-  a_boolean                    render_extern_c = FALSE;
+  a_name_linkage_kind          explicit_nlk = (a_name_linkage_kind)nlk_none;
   a_boolean                    render_braced_extern_c = FALSE;
   a_boolean                    consider_initialization;
   a_boolean                    embedded_constructs;
@@ -15731,14 +15799,21 @@ this one is such a continuation.
 #if MICROSOFT_EXTENSIONS_ALLOWED
   if (var->is_initonly) write_tok_str("initonly ");
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-  /* Check for `extern "C"'.  This applies even on a definition. */
+  /* Check for linkage specifiers.  This applies even on a definition. */
+#if GENERATE_LINKAGE_SPEC_BLOCKS
+  if (curr_default_name_linkage != var->source_corresp.name_linkage) {
+    /* The current default name linkage kind is different from the one on
+       the variable.  So a non-braced linkage specifier is needed. */
+    explicit_nlk = var->source_corresp.name_linkage;
+  }  /* if */
+#else /* !GENERATE_LINKAGE_SPEC_BLOCKS */
   if (il_header.source_language == sl_Cplusplus &&
       var->source_corresp.name_linkage == (a_name_linkage_kind)nlk_external &&
       /* Inside a function, this is not allowed, and can only have come from
          an extern "C" { ... } wrapped around the function. */
       innermost_function_scope == NULL) {
     check_assertion(!is_condition);
-    render_extern_c = TRUE;
+    explicit_nlk = (a_name_linkage_kind)nlk_external;
     /* For a definition, use the form
          extern "C" { int i; }
        because simply
@@ -15768,9 +15843,10 @@ this one is such a continuation.
       }  /* if */
     }  /* if */
   }  /* if */ 
+#endif /* GENERATE_LINKAGE_SPEC_BLOCKS */
   if (!suppress_specifiers) {
-    if (render_extern_c) {
-      write_tok_str("extern \"C\" ");
+    if (explicit_nlk != (a_name_linkage_kind)nlk_none) {
+      gen_linkage_specifier(explicit_nlk);
       if (render_braced_extern_c) {
         write_tok_str("{ ");
       }  /* if */
@@ -15778,13 +15854,14 @@ this one is such a continuation.
     /* Attributes should appear after extern "..." but before storage class
        specifiers. */
     gen_attributes(attributes, al_prefix, is_definition);
-    if (render_extern_c) {
+    if (explicit_nlk != (a_name_linkage_kind)nlk_none) {
       if (render_braced_extern_c) {
         /* We still need the storage class, for cases like
              extern "C" const int x = 1; 
            which has to produce
              extern "C" { extern const int x = 1; } 
         */
+        check_assertion(explicit_nlk == (a_name_linkage_kind)nlk_external);
         gen_storage_class(storage_class);
       }  /* if */
     } else if ((is_condition || is_iterator) &&
@@ -16782,7 +16859,16 @@ handle_as_definition:
       need_to_unset_typedefs = TRUE;
     }  /* if */
   }  /* if */
-  /* Check for `extern "C"'.  This applies even on a definition. */
+  /* Check for linkage specifiers.  This applies even on a definition. */
+#if GENERATE_LINKAGE_SPEC_BLOCKS
+  if (curr_default_name_linkage != rout->source_corresp.name_linkage) {
+    /* The current default name linkage kind is different from the one on
+       the routine.  So a non-braced linkage specifier is needed. */
+    if (!decl_within_class && !decl_within_function) {
+      gen_linkage_specifier((int)rout->source_corresp.name_linkage);
+    }  /* if */
+  }  /* if */
+#else /* !GENERATE_LINKAGE_SPEC_BLOCKS */
   if (!C_mode() &&
       /* Check whether the function is extern "C". */
       (rout->source_corresp.name_linkage ==
@@ -16829,6 +16915,7 @@ handle_as_definition:
       brace_form_linkage_spec = TRUE;
     }  /* if */
   }  /* if */
+#endif /* GENERATE_LINKAGE_SPEC_BLOCKS */
   if (!suppress_specifiers) {
     if (need_extern_C) {
       write_tok_str("extern \"C\" ");
@@ -17255,6 +17342,11 @@ parameter declarations).
       case iek_static_assertion:
         gen_static_assertion();
         break;
+#if GENERATE_LINKAGE_SPEC_BLOCKS
+      case iek_linkage_spec_block:
+        gen_linkage_spec_block();
+        break;
+#endif /* GENERATE_LINKAGE_SPEC_BLOCKS */
 #if GENERATE_MICROSOFT_IF_EXISTS_ENTRIES
       case iek_ms_if_exists:
         gen_ms_if_exists();
@@ -17483,6 +17575,11 @@ Initialize for the C++/C-generating back end.
   curr_pack_alignment = 0;
   need_pragma_pack_restore = FALSE;
 #endif /* USER_CONTROL_OF_STRUCT_PACKING */
+#if GENERATE_LINKAGE_SPEC_BLOCKS
+  curr_default_name_linkage = C_mode() ?
+                                  (a_name_linkage_kind)nlk_external :
+                                  (a_name_linkage_kind)nlk_cplusplus_external;
+#endif /* GENERATE_LINKAGE_SPEC_BLOCKS */
 }  /* init_cp_gen_be */
 
 

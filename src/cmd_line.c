@@ -6021,6 +6021,11 @@ file.
 #else /* !defined(GENERATE_EH_TABLES) */
   comment_undefined_macro_name(GENERATE_EH_TABLES);
 #endif /* defined(GENERATE_EH_TABLES) */
+#if defined(GENERATE_LINKAGE_SPEC_BLOCKS)
+  define_numeric_valued_macro(GENERATE_LINKAGE_SPEC_BLOCKS);
+#else /* !defined(GENERATE_LINKAGE_SPEC_BLOCKS) */
+  comment_undefined_macro_name(GENERATE_LINKAGE_SPEC_BLOCKS);
+#endif /* defined(GENERATE_LINKAGE_SPEC_BLOCKS) */
 #if defined(GENERATE_MICROSOFT_IF_EXISTS_ENTRIES)
   define_numeric_valued_macro(GENERATE_MICROSOFT_IF_EXISTS_ENTRIES);
 #else /* !defined(GENERATE_MICROSOFT_IF_EXISTS_ENTRIES) */
