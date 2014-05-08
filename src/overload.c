@@ -20038,11 +20038,14 @@ direct binding is "possible" and not whether it is "valid".
     /* Assume a match for unknown template parameter types. */
     type_is_correct_or_derived = TRUE;
     template_case = TRUE;
-  } else if (is_class_struct_union_type(unqual_dest_type) &&
-             is_class_struct_union_type(unqual_source_type) &&
-             find_base_class_of(unqual_source_type,
-                                unqual_dest_type) != NULL) {
-    /* The initializer has a derived type. */
+  } else if (is_immediate_class_type(unqual_dest_type) &&
+             is_immediate_class_type(unqual_source_type) &&
+             (find_base_class_of(unqual_source_type,
+                                 unqual_dest_type) != NULL ||
+              (is_cast && find_base_class_of(unqual_dest_type,
+                                             unqual_source_type) != NULL))) {
+    /* The initializer has a derived type, or, in the case of a cast, a base
+       class type. */
     type_is_correct_or_derived = TRUE;
 #if MICROSOFT_EXTENSIONS_ALLOWED
     type_is_derived = TRUE;

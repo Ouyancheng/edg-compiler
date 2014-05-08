@@ -1,5 +1,23 @@
 Version 4.10
 
+5/8/14   [EDGcpfe/15049]
+Erroneous handling of some base-to-derived conversions
+
+The front end previously erroneously interpreted the explicit conversion of an
+lvalue of a base class type to a reference to a derived class type if the base
+class also contained a conversion function to a reference to the derived class.
+In some cases, this resulted in spurious errors.  For example:
+
+  struct B { operator D() const = delete; };
+  struct D: B {};
+  void g(B const &b) {
+    static_cast<D const&>(b);  // Previously used the conversion function,
+  }                            // thereby triggering a spurious error.
+
+This is now fixed: The user-defined conversion conversions are not considered
+if a base-to-derived conversion is available.
+
+
 5/8/14   [EDGcpfe/15147]
 GNU compatibility: "target" declaration followed by definition
 
