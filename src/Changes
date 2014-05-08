@@ -34,7 +34,7 @@ nonreal base class.  A similar situation arose when the C++/CLI "sealed" and
 "abstract" modifiers were used.  Now fixed.  For example (with --c++11):
 
   template <class T> struct D : T {
-    void f() final;   // Overrides T::f() which may be virtual.
+    void f() final;   // Overrides T::f()
   };
 
 
