@@ -1,5 +1,17 @@
 Version 4.10
 
+5/8/14   [EDGcpfe/15147]
+GNU compatibility: "target" declaration followed by definition
+
+In the case were the "target" attribute is used on a function declaration
+but the function is subsequently defined without the "target" attribute, a
+spurious error had been issued (only in C++ mode when gnu_version >= 40800).
+Now fixed.  For example (with --gnu_version 40800):
+
+  void f() __attribute__((__target__("sse4.2")));
+  void f() {}
+
+
 5/6/14   [EDGcpfe/14991]
 C++-generating back end: Linkage specification (IL CHANGE)
 
