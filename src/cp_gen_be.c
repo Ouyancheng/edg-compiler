@@ -15621,20 +15621,24 @@ initialization is in a condition declaration if is_condition is TRUE.
 }  /* gen_variable_initializer */
 
 
-static void gen_linkage_specifier(a_name_linkage_kind  nlk)
+static void gen_linkage_specification_if_needed(a_name_linkage_kind  nlk)
 /*
 Render a linkage specifier corresponding to the given name linkage kind.
 E.g., if nlk equal nlk_cplusplus_external, render
      extern "C++"
 */
 {
-  a_const_char  *nls = name_linkage_kind_names[(int)nlk];
 
-  ensure_enough_room_on_line(strlen(nls)+10);
-  write_tok_str("extern \"");
-  write_tok_str(nls);
-  write_tok_str("\" ");
-}  /* gen_linkage_specifier */
+  if (nlk != curr_default_name_linkage &&
+      nlk != (a_name_linkage_kind)nlk_none &&
+      nlk != (a_name_linkage_kind)nlk_internal) {
+    a_const_char  *nls = name_linkage_kind_names[(int)nlk];
+    ensure_enough_room_on_line(strlen(nls)+10);
+    write_tok_str("extern \"");
+    write_tok_str(nls);
+    write_tok_str("\" ");
+  }  /* if */
+}  /* gen_linkage_specification_if_needed */
 
 
 static void gen_variable_decl(a_boolean is_condition,
@@ -15846,7 +15850,7 @@ this one is such a continuation.
 #endif /* GENERATE_LINKAGE_SPEC_BLOCKS */
   if (!suppress_specifiers) {
     if (explicit_nlk != (a_name_linkage_kind)nlk_none) {
-      gen_linkage_specifier(explicit_nlk);
+      gen_linkage_specification_if_needed(explicit_nlk);
       if (render_braced_extern_c) {
         write_tok_str("{ ");
       }  /* if */
@@ -16865,7 +16869,7 @@ handle_as_definition:
     /* The current default name linkage kind is different from the one on
        the routine.  So a non-braced linkage specifier is needed. */
     if (!decl_within_class && !decl_within_function) {
-      gen_linkage_specifier((int)rout->source_corresp.name_linkage);
+      gen_linkage_specification_if_needed(rout->source_corresp.name_linkage);
     }  /* if */
   }  /* if */
 #else /* !GENERATE_LINKAGE_SPEC_BLOCKS */
