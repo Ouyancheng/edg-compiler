@@ -6974,6 +6974,7 @@ Display the indicated entry.
   disp_ptr("name_strict", (char*)lsbp->name_string, iek_constant);
   disp_name_linkage("name_linkage", (a_name_linkage_kind)lsbp->name_linkage);
   disp_source_position("position", &lsbp->position);
+  disp_source_position("end_position", &lsbp->end_position);
 }  /* disp_linkage_spec_block */
 
 #endif /* GENERATE_LINKAGE_SPEC_BLOCKS */

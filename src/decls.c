@@ -12359,6 +12359,13 @@ specifier is restored.  dps describes the linkage-specification declaration.
        precompiled header processing on the state maintained in the scope
        stack entry. */
     pop_name_linkage();
+#if GENERATE_SOURCE_SEQUENCE_LISTS && GENERATE_LINKAGE_SPEC_BLOCKS
+    /* Add a source sequence entry marking the end of the namespace
+       definition. */
+    add_end_of_construct_source_sequence_entry(
+                  (char *)lsbp, (a_byte_il_entry_kind)iek_linkage_spec_block);
+    lsbp->end_position = pos_curr_token;
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS && GENERATE_LINKAGE_SPEC_BLOCKS */
     /* Check for the final right brace of the linkage specification block,
        but don't advance past it -- that is handled in translation_unit. */
     remove_stop_token(tok_rbrace);
@@ -12374,12 +12381,6 @@ specifier is restored.  dps describes the linkage-specification declaration.
       (void)get_token();
       next_token_is_top_level_decl_start = FALSE;
     }  /* if */
-#if GENERATE_SOURCE_SEQUENCE_LISTS && GENERATE_LINKAGE_SPEC_BLOCKS
-    /* Add a source sequence entry marking the end of the namespace
-       definition. */
-    add_end_of_construct_source_sequence_entry(
-                  (char *)lsbp, (a_byte_il_entry_kind)iek_linkage_spec_block);
-#endif /* GENERATE_SOURCE_SEQUENCE_LISTS && GENERATE_LINKAGE_SPEC_BLOCKS */
   } else {
     if (curr_token == tok_end_of_source) {
       /* Missing declaration. */

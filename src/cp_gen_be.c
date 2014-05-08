@@ -13961,7 +13961,8 @@ Generate a braced linkage specifier block like
                                                 iek_src_seq_end_of_construct) {
     gen_declaration(/*for_init=*/FALSE);
   }  /* while */
-  write_tok_str(" }");
+  set_output_position(&lsbp->end_position);
+  write_tok_str("}");
   /* Skip over the end-of-construct entry. */
   adv_curr_source_sequence_entry();
   curr_default_name_linkage = saved_default_name_linkage;
@@ -15624,7 +15625,7 @@ initialization is in a condition declaration if is_condition is TRUE.
 static void gen_linkage_specification_if_needed(a_name_linkage_kind  nlk)
 /*
 Render a linkage specifier corresponding to the given name linkage kind.
-E.g., if nlk equal nlk_cplusplus_external, render
+E.g., if nlk is nlk_cplusplus_external, render
      extern "C++"
 */
 {
@@ -15807,7 +15808,7 @@ this one is such a continuation.
 #if GENERATE_LINKAGE_SPEC_BLOCKS
   if (curr_default_name_linkage != var->source_corresp.name_linkage) {
     /* The current default name linkage kind is different from the one on
-       the variable.  So a non-braced linkage specifier is needed. */
+       the variable, so a non-braced linkage specifier is needed. */
     explicit_nlk = var->source_corresp.name_linkage;
   }  /* if */
 #else /* !GENERATE_LINKAGE_SPEC_BLOCKS */
@@ -16867,7 +16868,7 @@ handle_as_definition:
 #if GENERATE_LINKAGE_SPEC_BLOCKS
   if (curr_default_name_linkage != rout->source_corresp.name_linkage) {
     /* The current default name linkage kind is different from the one on
-       the routine.  So a non-braced linkage specifier is needed. */
+       the routine, so a non-braced linkage specifier is needed. */
     if (!decl_within_class && !decl_within_function) {
       gen_linkage_specification_if_needed(rout->source_corresp.name_linkage);
     }  /* if */

@@ -1,7 +1,7 @@
 Version 4.10
 
 5/6/14   [EDGcpfe/14991]
-C++-generating back end: Linkage specification
+C++-generating back end: Linkage specification (IL CHANGE)
 
 When the new configuration macro GENERATE_LINKAGE_SPEC_BLOCKS is TRUE, the
 front end now records entries in the source sequence entries list to represent
@@ -19,10 +19,11 @@ GENERATE_LINKAGE_SPEC_BLOCKS is TRUE, whereas without that setting it produces
   #pragma MyPragma
   extern "C" { void f() {} }
 
-Setting the new macro to TRUE requires that GENERATE_SOURCE_SEQUENCE_LISTS is
+Setting the new macro to TRUE requires that GENERATE_SOURCE_SEQUENCE_LISTS be
 TRUE also, and that CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS and
 NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS both be FALSE.  (If
-those conditions are met, the macro is TRUE by default.)
+those conditions are met, the macro is TRUE by default.  That is an IL CHANGE
+that can be undone by setting the macro to FALSE explicitly.)
 
 
 5/6/14   [EDGcpfe/14542]

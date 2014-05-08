@@ -3346,7 +3346,7 @@ after_entry_from_class:
            IL.  Secondary declarations, end of construct entries, instantiation
            directives, static assertions, and linkage specification blocks get
            walked because they are in effect supplements to the source sequence
-           entry rather than free- standing IL entries; they aren't pointed to
+           entry rather than freestanding IL entries; they aren't pointed to
            from elsewhere in the IL tree. */
         if (kind == iek_type ||
             kind == iek_src_seq_secondary_decl ||

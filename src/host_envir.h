@@ -1364,7 +1364,7 @@ would be less common.
 #endif /* TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
 
 /*
-Flag that indicates whether linkage specifier blocks like
+Flag that indicates whether linkage specification blocks like
 	extern "C" { ... }
 should be represented explicitly in the source sequence entries list.
 */
@@ -1378,7 +1378,7 @@ should be represented explicitly in the source sequence entries list.
 #endif /* ifndef GENERATE_LINKAGE_SPEC_BLOCKS */
 
 /*
-Ensure that GENERATE_LINKAGE_SPEC_BLOCKS is FALSE is no source sequence entries
+Ensure that GENERATE_LINKAGE_SPEC_BLOCKS is FALSE if no source sequence entries
 are generated or if template instantiations are recorded in source sequence
 entry lists.
 */

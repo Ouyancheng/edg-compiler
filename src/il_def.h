@@ -1978,6 +1978,10 @@ typedef struct a_linkage_spec_block {
 		position;
 			/* The source position of the start of the
 			   construct. */
+  a_source_position
+		end_position;
+			/* The source position of the end of the construct
+			   (i.e., the position of the closing brace). */
 } a_linkage_spec_block;
 
 #endif /* GENERATE_LINKAGE_SPEC_BLOCKS */

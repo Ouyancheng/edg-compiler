@@ -4461,7 +4461,7 @@ pointer to it.
 
 a_linkage_spec_block_ptr alloc_linkage_spec_block(void)
 /*
-Allocate and initializer an entry representing a linkage specification block,
+Allocate and initialize an entry representing a linkage specification block
 and return a pointer to it.
 */
 {
@@ -4475,6 +4475,7 @@ and return a pointer to it.
   entry->name_string = NULL;
   entry->name_linkage = (a_name_linkage_kind)nlk_none;
   entry->position = null_source_position;
+  entry->end_position = null_source_position;
   db_exit();
   return entry;
 }  /* alloc_linkage_spec_block */
