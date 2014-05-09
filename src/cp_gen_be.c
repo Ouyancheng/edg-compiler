@@ -17417,6 +17417,11 @@ Process all the file scope entities, and everything under those.
   a_boolean any_decl = FALSE;
 
   push_name_context(il_header.primary_scope);
+#if GENERATE_LINKAGE_SPEC_BLOCKS
+  curr_default_name_linkage = C_mode() ?
+                                  (a_name_linkage_kind)nlk_external :
+                                  (a_name_linkage_kind)nlk_cplusplus_external;
+#endif /* GENERATE_LINKAGE_SPEC_BLOCKS */
   /* Use the source sequence list to visit all the right entries in the
      right order. */
   curr_source_sequence_entry = il_header.primary_scope->source_sequence_list;
@@ -17580,11 +17585,6 @@ Initialize for the C++/C-generating back end.
   curr_pack_alignment = 0;
   need_pragma_pack_restore = FALSE;
 #endif /* USER_CONTROL_OF_STRUCT_PACKING */
-#if GENERATE_LINKAGE_SPEC_BLOCKS
-  curr_default_name_linkage = C_mode() ?
-                                  (a_name_linkage_kind)nlk_external :
-                                  (a_name_linkage_kind)nlk_cplusplus_external;
-#endif /* GENERATE_LINKAGE_SPEC_BLOCKS */
 }  /* init_cp_gen_be */
 
 
