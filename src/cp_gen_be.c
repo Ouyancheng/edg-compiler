@@ -15806,7 +15806,9 @@ this one is such a continuation.
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   /* Check for linkage specifiers.  This applies even on a definition. */
 #if GENERATE_LINKAGE_SPEC_BLOCKS
-  if (curr_default_name_linkage != var->source_corresp.name_linkage) {
+  if (curr_default_name_linkage != var->source_corresp.name_linkage &&
+      var->source_corresp.name_linkage != (a_name_linkage_kind)nlk_none &&
+      var->source_corresp.name_linkage != (a_name_linkage_kind)nlk_internal) {
     /* The current default name linkage kind is different from the one on
        the variable, so a non-braced linkage specifier is needed. */
     explicit_nlk = var->source_corresp.name_linkage;
@@ -16866,12 +16868,12 @@ handle_as_definition:
   }  /* if */
   /* Check for linkage specifiers.  This applies even on a definition. */
 #if GENERATE_LINKAGE_SPEC_BLOCKS
-  if (curr_default_name_linkage != rout->source_corresp.name_linkage) {
-    /* The current default name linkage kind is different from the one on
-       the routine, so a non-braced linkage specifier is needed. */
-    if (!decl_within_class && !decl_within_function) {
-      gen_linkage_specification_if_needed(rout->source_corresp.name_linkage);
-    }  /* if */
+  if (!decl_within_class && !decl_within_function && !friend_decl) {
+    /* If the current default name linkage kind is different from the one on
+       the routine, a non-braced linkage specification may be needed.  (This
+       cannot be done for local declarations or declarations in class
+       definitions.) */
+    gen_linkage_specification_if_needed(rout->source_corresp.name_linkage);
   }  /* if */
 #else /* !GENERATE_LINKAGE_SPEC_BLOCKS */
   if (!C_mode() &&
