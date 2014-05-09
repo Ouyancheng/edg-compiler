@@ -1835,15 +1835,15 @@ initialization).  *is describes the initialization as a whole.
       }  /* if */
     }  /* if */
     /* Determine the element count in the destination type if known. */
-    if (has_any_unknown_specified_bound(atype)) {
-      /* An array with a specified bound that cannot be evaluated (e.g., a
-         template-dependent bound). */
-      no_bound = TRUE;
-    } else if (atype->variant.array.variant.number_of_elements == 0 &&
-               !atype->variant.array.bound_is_zero) {
+    if (atype->variant.array.variant.number_of_elements == 0 &&
+        !atype->variant.array.bound_is_zero) {
       /* An array whose number of elements is not a priori bound. */
       no_bound = TRUE;
       incomplete_array = TRUE;
+    } else if (has_any_unknown_specified_bound(atype)) {
+      /* An array with a specified bound that cannot be evaluated (e.g., a
+         template-dependent bound). */
+      no_bound = TRUE;
     } else if (is_template_param_type(etype)) {
       /* For something like "T x[2] = { 1, 2, 3, 4 };" we cannot tell how the
          initializer elements should be allocated to the array elements, since

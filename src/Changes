@@ -1,5 +1,21 @@
 Version 4.10
 
+5/9/14   [EDGcpfe/15141]
+Spurious error on initializer for unspecified-bound array in template
+
+The front end previous issues a spurious error ("an empty initializer is
+invalid for an array with unspecified bound") when an multi-dimensional array
+variable defined with an aggregate initializer in a function template has both
+an unspecified bound and a template-dependent bound.  (The error only occurred
+if the function template underwent prototype instantiation.)  For example:
+
+  template<int N> void g() {
+    double x[][N] = { 1, 2, 3 };  // Previously triggered an error during
+  }                               // prototype instantiation.
+
+This is now fixed.
+
+
 5/8/14   [EDGcpfe/15135]
 C++-generating back end: Duplicate rendering of Microsoft attribute targets
 
