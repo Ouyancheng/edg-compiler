@@ -1,5 +1,22 @@
 Version 4.10
 
+5/9/14   [EDGcpfe/15137]
+Binding an rvalue reference to a converted lvalue during overload resolution
+
+The ability to bind an rvalue reference to a converted lvalue in overload
+resolution contexts (see the entry for EDGcpfe/13672,EDGcpfe/14769) is now
+disabled in all Microsoft mode.  Previously, it was only disabled in Microsoft
+modes with microsoft_version < 1700.  For example:
+
+  extern "C" int printf(char const*, ...);
+  void f(double const&) { printf("lvalue\n"); }
+  void f(double&&) { printf("rvalue\n"); }
+  int main() {
+    int i = 42;
+    f(i);  // Now prints "lvalue" in all Microsoft modes; previously printed
+  }        // "rvalue" when microsoft_version == 1800.
+
+
 5/9/14   [EDGcpfe/15141]
 Spurious error on initializer for unspecified-bound array in template
 

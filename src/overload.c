@@ -3394,8 +3394,7 @@ have_level:;
       /* An rvalue reference can only be bound to an rvalue or a function
          lvalue. */
       if (arg_originally_an_lvalue &&
-          (!arg_converted_to_rvalue ||
-           current_mode_requires_early_rvalue_ref_lvalue_test())) {
+          (!arg_converted_to_rvalue || microsoft_mode)) {
         if (is_function_type(param_type) &&
             rvalue_ref_can_be_bound_to_function_lvalue()) {
           /* Okay to bind to a function lvalue. */
