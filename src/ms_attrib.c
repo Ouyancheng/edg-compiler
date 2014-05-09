@@ -2299,10 +2299,12 @@ attributes).
   a_boolean                      is_attribute_attribute = FALSE;
 
   /* Save the token sequence number of the first token of this attribute. */
-  first_token = curr_token_sequence_number;
   start_position = pos_curr_token;
   /* Look for an optional attribute target before the attribute name. */
   target = scan_ms_attribute_target();
+  /* We are going to cache the attribute proper later on: Remember the first
+     token's sequence number. */
+  first_token = curr_token_sequence_number;
   if (target != msat_invalid) {
     if (is_keyword_token(curr_token)) {
       /* Turn keywords back into identifiers in this context. */

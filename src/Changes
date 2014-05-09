@@ -1,5 +1,23 @@
 Version 4.10
 
+5/8/14   [EDGcpfe/15135]
+Duplicate rendering of Microsoft attribute targets in C++-generating back end
+
+Version 4.9 of the front end added various improvements to the processing of
+Microsoft bracketed attributes.  One of those improvements was to recognize
+"target specifiers" in such attributes (originally, the target specifiers were
+mostly ignored; see the entry of 1/19/10 for EDGcpfe/8363 et al.).  However,
+the C++-generating back end incorrectly rendered the attribute targets twice:
+Once from the structured IL representation, and once from the string recorded
+in an_ms_attribute entries.  For example:
+
+  [returnvalue:SA_Post(MustCheck=SA_Yes)] int f([SA_Pre(Null=SA_No)] int *x);
+    // Previously rendered as "[returnvalue: returnvalue:SA_Post...".
+
+This is now fixed.  The fix includes a small IL change: The string
+representation of attributes no longer includes the target specifier.
+
+
 5/8/14   [EDGcpfe/15049]
 Erroneous handling of some base-to-derived conversions
 

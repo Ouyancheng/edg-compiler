@@ -17787,9 +17787,11 @@ typedef struct an_ms_attribute {
 		*string;
 			/* A textual representation of the attribute.  This is
 			   a null-terminated string.  Note that this represents
-			   a single attribute and not an attribute block
-			   (see next_in_block), so the string does not contain
-			   the opening or closing brackets. */
+			   a single attribute and not an attribute block (see
+			   next_in_block), so the string does not contain the
+			   opening or closing brackets.  If the attribute
+			   includes a target (e.g., "[struct: ... ]"), that
+			   target is not included in the string either.  */
       an_ms_attribute_arg_ptr
 		arg_list;
 			/* The arguments, if any, specified for this
