@@ -15630,7 +15630,10 @@ E.g., if nlk is nlk_cplusplus_external, render
 */
 {
 
-  if (nlk != curr_default_name_linkage &&
+  if (
+#if GENERATE_LINKAGE_SPEC_BLOCKS
+      nlk != curr_default_name_linkage &&
+#endif /* GENERATE_LINKAGE_SPEC_BLOCKS */
       nlk != (a_name_linkage_kind)nlk_none &&
       nlk != (a_name_linkage_kind)nlk_internal) {
     a_const_char  *nls = name_linkage_kind_names[(int)nlk];
