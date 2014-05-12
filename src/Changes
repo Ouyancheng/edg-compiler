@@ -72,7 +72,7 @@ if a base-to-derived conversion is available.
 5/8/14   [EDGcpfe/15147]
 GNU compatibility: "target" declaration followed by definition
 
-In the case were the "target" attribute is used on a function declaration
+In the case where the "target" attribute is used on a function declaration
 but the function is subsequently defined without the "target" attribute, a
 spurious error had been issued (only in C++ mode when gnu_version >= 40800).
 Now fixed.  For example (with --gnu_version 40800):
