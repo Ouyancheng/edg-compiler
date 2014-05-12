@@ -111,9 +111,10 @@ that can be undone by setting the macro to FALSE explicitly.)
 Spurious error on use of "final", "sealed", or "abstract" specifier
 
 A spurious error had been issued in cases where a virtual function declaration
-has a "final" specifier but the overridden virtual function is in a
-nonreal base class.  A similar situation arose when the C++/CLI "sealed" and
-"abstract" modifiers were used.  Now fixed.  For example (with --c++11):
+has a "final" specifier and the class has a dependent base class that could
+declare the overridden function.  A similar situation arose when the C++/CLI
+"sealed" and "abstract" modifiers were used.  Now fixed.  For example (with
+--c++11):
 
   template <class T> struct D : T {
     void f() final;   // Overrides T::f()
