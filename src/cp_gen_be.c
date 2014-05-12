@@ -15622,13 +15622,17 @@ initialization is in a condition declaration if is_condition is TRUE.
 }  /* gen_variable_initializer */
 
 
-static void gen_linkage_specification_if_needed(a_name_linkage_kind  nlk)
+static a_boolean gen_linkage_specification_if_needed(a_name_linkage_kind  nlk)
 /*
-Render a linkage specifier corresponding to the given name linkage kind.
-E.g., if nlk is nlk_cplusplus_external, render
+Render a linkage specifier corresponding to the given name linkage kind if
+appropriate (i.e., the given name linkage can be explicitly specified and it
+is not the current default name linkage).  E.g., if we are inside an extern "C"
+block and nlk is nlk_cplusplus_external render
      extern "C++"
+Return TRUE if a linkage specification was indeed rendered.
 */
 {
+  a_boolean  rendered = FALSE;
 
   if (
 #if GENERATE_LINKAGE_SPEC_BLOCKS
@@ -15641,7 +15645,9 @@ E.g., if nlk is nlk_cplusplus_external, render
     write_tok_str("extern \"");
     write_tok_str(nls);
     write_tok_str("\" ");
+    rendered = TRUE;
   }  /* if */
+  return rendered;
 }  /* gen_linkage_specification_if_needed */
 
 
@@ -15856,7 +15862,7 @@ this one is such a continuation.
 #endif /* GENERATE_LINKAGE_SPEC_BLOCKS */
   if (!suppress_specifiers) {
     if (explicit_nlk != (a_name_linkage_kind)nlk_none) {
-      gen_linkage_specification_if_needed(explicit_nlk);
+      (void)gen_linkage_specification_if_needed(explicit_nlk);
       if (render_braced_extern_c) {
         write_tok_str("{ ");
       }  /* if */
@@ -16876,7 +16882,14 @@ handle_as_definition:
        the routine, a non-braced linkage specification may be needed.  (This
        cannot be done for local declarations or declarations in class
        definitions.) */
-    gen_linkage_specification_if_needed(rout->source_corresp.name_linkage);
+    a_name_linkage_kind  nlk = rout->source_corresp.name_linkage;
+    if (gen_linkage_specification_if_needed(nlk)) {
+      if (rout->storage_class == (a_storage_class)sc_extern) {
+        /* Suppress the storage class if it's "extern", because that's implied
+           by the linkage specification that was rendered. */
+        storage_class = (a_storage_class)sc_unspecified;
+      }  /* if */
+    }  /* if */
   }  /* if */
 #else /* !GENERATE_LINKAGE_SPEC_BLOCKS */
   if (!C_mode() &&
