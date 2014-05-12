@@ -5,7 +5,7 @@ Binding an rvalue reference to a converted lvalue during overload resolution
 
 The ability to bind an rvalue reference to a converted lvalue in overload
 resolution contexts (see the entry for EDGcpfe/13672,EDGcpfe/14769) is now
-disabled in all Microsoft mode.  Previously, it was only disabled in Microsoft
+disabled in all Microsoft modes.  Previously, it was only disabled in Microsoft
 modes with microsoft_version < 1700.  For example:
 
   extern "C" int printf(char const*, ...);
