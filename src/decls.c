@@ -7884,18 +7884,19 @@ for use in generating cross-reference output describing this declaration.
         is_multiversion_representative(linked_symbol->variant.routine.ptr)) {
       /* This is a GNU multiversion function; a "target" attribute is
          required if this is not a redefinition. */
-      a_routine_list_entry_ptr rlep;
-      for (rlep = gnu_routine_supp(linked_symbol->variant.routine.ptr)->
+      a_routine_list_entry_ptr rlep =
+        gnu_routine_supp(linked_symbol->variant.routine.ptr)->
                                       mv_info.representative.targeted_versions;
-           rlep != NULL;
-           rlep = rlep->next) {
-        if (routine_has_been_defined(rlep->routine)) {
-          /* At least one target-specific routine has been defined, so this
-             declaration requires a "target" attribute. */
-          requires_gnu_target_attr = TRUE;
-          break;
-        }  /* if */
-      }  /* for */
+      check_assertion(rlep != NULL);
+      if (rlep->next != NULL) {
+        /* At least two target-specific routines have been declared; GNU
+           requires that a subsequent definition have a "target" attribute
+           in this case. */
+        requires_gnu_target_attr = TRUE;
+      } else if (routine_has_been_defined(rlep->routine)) {
+        /* One target-specific routine has already been defined. */
+        requires_gnu_target_attr = TRUE;
+      }  /* if */
     }  /* if */
 #endif /* GNU_FUNCTION_MULTIVERSIONING */
   }  /* if */
