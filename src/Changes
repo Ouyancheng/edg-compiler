@@ -1,5 +1,27 @@
 Version 4.10
 
+5/13/14  [EDGcpfe/15160]
+GNU C++ compatibility: internal error instantiating default argument during
+prototype instantiation
+
+In g++ mode, a default argument can be specified on an out-of-class definition
+of a member function of a class template.  If such a default argument was
+instantiated as part of overload resolution in a prototype instantiation,
+an internal error could occur (in push_template_instantiation_scope).  Now
+fixed.
+
+  template<class T> struct A {
+    static void f() { A<T> x; x.g(); }
+    void g(int x);
+  };
+
+  template<class T> void A<T>::g(int x = 0) { }
+
+  int main() {
+    A<int>::f();
+  }
+
+
 5/13/14  [EDGcpfe/15151]
 GNU C++ compatibility: using-directives vs. names from dependent base classes
 

@@ -12187,12 +12187,18 @@ instantiated.
   /* Now that we've found the corresponding parameter of the template,
      instantiate that default argument value. */
   if (daefp != NULL) {
-    a_boolean         trans_unit_pushed;
+    a_boolean			trans_unit_pushed;
+    a_push_scope_options_set	ps_options = PS_NO_OPTIONS;
 #if EXTRA_SOURCE_POSITIONS_IN_IL
     a_source_position saved_curr_construct_end_position;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
     /* Switch to the translation unit containing the template, if needed. */
     trans_unit_pushed = push_translation_unit_if_needed(template_sym);
+    if (rout_ptr->is_prototype_instantiation) {
+      /* The routine being called is a prototype instantiation.  This
+         can occur for a nondependent call in a prototype instantiation. */
+      ps_options = PS_NONREAL_INSTANTIATION;
+    }  /* if */
     /* Push the template instantiation scope for the context in which the
        default argument is to be evaluated. */
     (void)push_template_instantiation_scope(daefp->cache.decl_info,
@@ -12200,8 +12206,8 @@ instantiated.
                                             tip->instance_sym,
                                             tip->template_sym,
                                             rout_ptr->template_arg_list,
-                                           /*push_lex_state=*/TRUE,
-				           PS_NO_OPTIONS);
+                                            /*push_lex_state=*/TRUE,
+                                            ps_options);
     /* The function prototype scope should be reactivated and its symbols
        reentered because parameter names hide names from enclosing scopes
        and, moreover, may not be used in default argument expressions
