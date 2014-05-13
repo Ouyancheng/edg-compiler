@@ -1,5 +1,34 @@
 Version 4.10
 
+5/13/14  [EDGcpfe/15151]
+GNU C++ compatibility: using-directives vs. names from dependent base classes
+
+g++ sometimes finds names in dependent base classes in cases where they
+should not be visible.  A change made in version 4.4 (see entry for
+EDGcpfe/12040) changed our behavior to find such names in fewer cases.
+That change caused the front end to fail to find certain names from
+dependent base classes in cases where g++ still did.  g++ prefers a name
+from a dependent base class to a name found via a using-directive.  We now
+emulate the g++ behavior for such cases.
+
+  namespace N {
+    template <class T> void f(T);  // #1
+  }
+  template <class T, class T2> struct A : T {
+    int g(T2 t2) {
+      return f(t2);  // Now calls #2 when T is B
+    }
+  };
+  struct B {
+    int f(int) { return 0; }  // #2
+  };
+  using namespace N;
+  int main() {
+    A<B, int> ab;
+    ab.g(1);
+  }
+
+
 5/13/14  [EDGcpfe/15150]
 Segfault when lowering typeid
 

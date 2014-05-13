@@ -3737,7 +3737,14 @@ C and C++.
       lookup_state.force_lookup_in_dependent_bases = FALSE;
       fund_sym = sym == NULL ? NULL : fundamental_symbol_of(sym);
       fund_new_sym = new_sym == NULL ? NULL : fundamental_symbol_of(new_sym);
-      if (sym == NULL ||
+      if (sym != NULL && new_sym != NULL &&
+          symbol_is(sym, sk_namespace_projection) &&
+          sym->synthesized_namespace_projection) {
+        /* If the original symbol is a synthesized namespace projection
+           symbol (i.e., from a using-directive lookup) prefer the new
+           symbol. */
+        sym = new_sym;
+      } else if (sym == NULL ||
           (gnu_version < 40100 && is_function_symbol(fund_sym))) {
         sym = new_sym;
       } else if (gnu_version < 40600 && fund_sym != NULL &&
