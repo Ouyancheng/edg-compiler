@@ -2151,6 +2151,9 @@ pointers-to-members).
   /* No need to create the variable if it exists already. */
   typeinfo_var = type->typeinfo_var;
   if (typeinfo_var == NULL) {
+    typeinfo_var_type = make_qualified_type(
+                                          make_appropriate_typeinfo_type(type),
+                                          TQ_CONST);
     /* The variable must be created. */
     if (is_immediate_class_type(type)) {
       /* Class type.  We delay the process of defining the typeinfo
@@ -2223,7 +2226,8 @@ pointers-to-members).
          function types), and it's important to generate only one variable
          in those cases. */
       typeinfo_var = find_existing_variable_named(mangled_name);
-      if (typeinfo_var != NULL) {
+      if (typeinfo_var != NULL &&
+          identical_types(typeinfo_var->type, typeinfo_var_type)) {
         /* Remember the variable in the type.  Note that it's okay to
            have two types pointing to a single typeinfo variable in this
            case, because the variable is never defined. */
@@ -2232,9 +2236,6 @@ pointers-to-members).
       }  /* if */
 #endif /* ABI_CHANGES_FOR_RTTI && !IA64_ABI */
     }  /* if */
-    typeinfo_var_type = make_qualified_type(
-                                          make_appropriate_typeinfo_type(type),
-                                          TQ_CONST);
     typeinfo_var = make_lowered_variable(mangled_name,
                                          /*already_il_name=*/TRUE,
                                          typeinfo_var_type,
