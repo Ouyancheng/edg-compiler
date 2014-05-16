@@ -4489,9 +4489,10 @@ Display and return the amount of space used for preprocessing structures.
 */
 {
   unsigned long grand_total = 0;
-#if MICROSOFT_EXTENSIONS_ALLOWED || UPC_EXTENSIONS_ALLOWED
+#if MICROSOFT_EXTENSIONS_ALLOWED || UPC_EXTENSIONS_ALLOWED || \
+    GNU_EXTENSIONS_ALLOWED
   unsigned long num, size, total;
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED || UPC_EXTENSIONS_ALLOWED */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED || UPC_EXTENSIONS_ALLOWED || ... */
 
   db_space_used_header("Preprocessing table use:");
 
