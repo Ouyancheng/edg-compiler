@@ -410,16 +410,16 @@ is TRUE, include type information for function parameters.
         (void)add_string_to_text_buffer(db_name_str_buffer,
                                         " [mv:representative]");
       } else if (gnu_routine_supp(rout)->is_target_specific_version) {
-        (void)add_string_to_text_buffer(db_name_str_buffer, " [mv:");
-        (void)add_string_to_text_buffer(db_name_str_buffer,
+        a_const_char *target_str =
 #if STANDALONE_UTILITY_PROGRAM
-                                        "target-specific"
+                                    "target-specific";
 #else /* !STANDALONE_UTILITY_PROGRAM */
-                                        is_mv_default_routine(rout) ?
-                                              "default" :
-                                              target_specific_distinction(rout)
+                                    is_mv_default_routine(rout) ?
+                                            "default" :
+                                            target_specific_distinction(rout);
 #endif /* STANDALONE_UTILITY_PROGRAM */
-                                                        );
+        (void)add_string_to_text_buffer(db_name_str_buffer, " [mv:");
+        (void)add_string_to_text_buffer(db_name_str_buffer, target_str);
         (void)add_string_to_text_buffer(db_name_str_buffer, "]");
       }  /* if */
     }  /* if */
