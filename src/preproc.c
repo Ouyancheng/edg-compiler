@@ -3224,7 +3224,7 @@ A list of strings, optionally enclosed by parentheses is specified.
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
           /* The attribute processing expects to find quotes around the string,
              so add those here. */
-          str_length = const_for_curr_token.variant.string.length;
+          str_length = (sizeof_t)const_for_curr_token.variant.string.length;
           quoted_string = alloc_text_of_string_literal(str_length + 2);
           quoted_string[0] = '"';
           (void)strcpy(&quoted_string[1],
