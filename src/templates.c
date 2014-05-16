@@ -3716,6 +3716,14 @@ be completed here.
     a_source_position           saved_curr_construct_end_position;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
     a_symbol_ptr		prototype_instantiation_sym;
+#if GNU_EXTENSIONS_ALLOWED
+    a_gcc_pragma_options_entry_ptr save_gcc_pragma_options_stack;
+    /* If any "GCC pragma" options are in effect, disable them (the pragmas
+       that were in effect during the prototype instantiation are used rather
+       than the pragmas that are in effect during the real instantiation). */
+    save_gcc_pragma_options_stack = gcc_pragma_options_stack;
+    gcc_pragma_options_stack = NULL;
+#endif /* GNU_EXTENSIONS_ALLOWED */
     saved_pos_curr_token = pos_curr_token;
     saved_error_position = error_position;
 #if EXTRA_SOURCE_POSITIONS_IN_IL
@@ -4114,6 +4122,9 @@ be completed here.
 #if EXTRA_SOURCE_POSITIONS_IN_IL
     curr_construct_end_position = saved_curr_construct_end_position;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+#if GNU_EXTENSIONS_ALLOWED
+    gcc_pragma_options_stack = save_gcc_pragma_options_stack;
+#endif /* GNU_EXTENSIONS_ALLOWED */
   }  /* if */
   db_exit();
 }  /* f_instantiate_template_class */

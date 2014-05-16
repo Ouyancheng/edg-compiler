@@ -13571,6 +13571,13 @@ implicitly declared member functions.
     decl_state->ms_attributes = NULL;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   }  /* if */
+#if GNU_EXTENSIONS_ALLOWED
+  if (gcc_pragma_options_stack != NULL && !compiler_generated) {
+    /* Attach a synthesized "target" attribute from a "#pragma GCC target"
+       if applicable. */
+    attach_target_pragma_attribute(&decl_state->prefix_attributes);
+  }  /* if */
+#endif /* GNU_EXTENSIONS_ALLOWED */
 #if GNU_FUNCTION_MULTIVERSIONING
   if (gpp_mode && gnu_version >= 40800) {
     /* Pre-apply the GNU multiversion target attribute, if any.  This is

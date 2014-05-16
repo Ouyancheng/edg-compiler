@@ -1673,6 +1673,13 @@ member declaration (allowed in some Microsoft modes only).
     rp = sym->variant.routine.ptr;
     orig_pos = sym->decl_position;
     dps->prev_type = *old_type = routine_symbol_type(sym);
+#if GNU_EXTENSIONS_ALLOWED
+    if (gcc_pragma_options_stack != NULL) {
+      /* Attach a synthesized "target" attribute from a "#pragma GCC target"
+         if applicable. */
+      attach_target_pragma_attribute(&dps->prefix_attributes);
+    }  /* if */
+#endif /* GNU_EXTENSIONS_ALLOWED */
 #if GNU_FUNCTION_MULTIVERSIONING
     if (gpp_mode && gnu_version >= 40800 &&
         is_multiversion_representative(rp)) {

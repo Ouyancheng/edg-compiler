@@ -3259,8 +3259,7 @@ copy that is returned.
   an_attribute_ptr  result = NULL, *p_attr = &result, ap;
 
   for (ap = attributes; ap != NULL; ap = ap->next) {
-    *p_attr = alloc_attribute();
-    **p_attr = *ap;
+    copy_attribute(ap, *p_attr);
     p_attr = &(*p_attr)->next;
   }  /* for */
   return result;
@@ -3423,8 +3422,7 @@ an error.
       push_instantiation_scope_for_rescan(template_sym);
       rescan_pushed = TRUE;
     }  /* if */
-    *p_attr = alloc_attribute();
-    **p_attr = *ap;
+    copy_attribute(ap, *p_attr);
     if ((*p_attr)->arguments != NULL) {
       an_attribute_arg_ptr  *p_aap = &(*p_attr)->arguments, aap = *p_aap;
       do {
@@ -3553,8 +3551,7 @@ their syntactic location recorded as al_implicit.
     }  /* switch */ /*lint !e764*/  /* Lint complains about there not being
                                        an actual switch case. */
     if (do_copy) {
-      *p_attr = alloc_attribute();
-      **p_attr = *ap;
+      copy_attribute(ap, *p_attr);
       (*p_attr)->next = NULL;
       (*p_attr)->syntactic_location = (a_byte_attribute_location)al_implicit;
       p_attr = &(*p_attr)->next;

@@ -158,6 +158,16 @@ of that list.  Otherwise, return ap itself.
   (/*lint --e(506)*/ ((ap) == NULL || *(ap) == NULL) ?                       \
                                          (ap) : f_last_attribute_link(ap))
 
+/*
+Utility to copy an attribute.  Both "from" and "to" have type an_attribute_ptr.
+Note that this is a "shallow" copy (i.e., any attribute arguments will be
+shared between the original attribute and the copy that is returned).  See
+also copy_of_attributes_list and copy_of_attributes_with_substitution.
+*/
+#define copy_attribute(from, to)                                             \
+  { (to) = alloc_attribute();                                                \
+    *(to) = *(from); }
+
 extern an_attribute_ptr copy_of_attributes_list(an_attribute_ptr  attributes);
 
 extern an_attribute_ptr copy_of_attributes_with_substitution(

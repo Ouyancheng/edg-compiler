@@ -650,6 +650,10 @@ extern int fileno(FILE *);
 /*lint -esym(769,ec_ifunc_cant_be_alias)*/
 /*lint -esym(769,ec_ifunc_cant_be_weak)*/
 /*lint -esym(769,ec_call_requires_string_literal)*/
+/*lint -esym(769,ec_target_string_must_be_narrow)*/
+/*lint -esym(769,ec_target_unmatched_parens)*/
+/*lint -esym(769,ec_gcc_pragma_nothing_to_pop)*/
+/*lint -esym(769,ec_pragma_inside_function)*/
 #endif /* !GNU_EXTENSIONS_ALLOWED */
 /*lint -esym(759,is_wide_string_constant)*/
 /*lint -esym(765,is_wide_string_constant)*/

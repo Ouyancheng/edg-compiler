@@ -3102,27 +3102,279 @@ Handle
 }  /* process_gnu_system_header_pragma */
 
 
+/* An entry on the GCC pragma options stack. */
+typedef struct a_gcc_pragma_options_entry {
+  a_gcc_pragma_options_entry_ptr
+              next;     /* Next entry on the stack.  NULL for the entry at
+                           the bottom of the stack. */
+  an_attribute_ptr
+                target_pragma_attribute;
+                        /* Synthesized attribute from "GCC target" pragma.
+                           When this entry is at the top of the stack, a
+                           copy of this attribute is attached to every
+                           function declaration. */
+} a_gcc_pragma_options_entry;
+
+#if DEBUG
+/*
+Counts of entries allocated, to track total use of memory.
+*/
+static unsigned long
+		num_gcc_pragma_options_stack_entries_allocated;
+#endif /* DEBUG */
+
+static a_gcc_pragma_options_entry_ptr
+		avail_gcc_pragma_options_stack_entries;
+			/* List of stack entries freed and available
+			   for reuse. */
+
+
+static a_gcc_pragma_options_entry_ptr alloc_gcc_pragma_options_entry()
+/*
+Allocate and return a GCC pragma options entry.
+*/
+{
+  a_gcc_pragma_options_entry_ptr  gpoep;
+
+  if (avail_gcc_pragma_options_stack_entries != NULL) {
+    gpoep = avail_gcc_pragma_options_stack_entries;
+    avail_gcc_pragma_options_stack_entries = gpoep->next;
+  } else {
+#if DEBUG
+    ++num_gcc_pragma_options_stack_entries_allocated;
+#endif /* DEBUG */
+    gpoep = alloc_fe_of_type(a_gcc_pragma_options_entry);
+    gpoep->target_pragma_attribute = NULL;
+  }  /* if */
+  return gpoep;
+}  /* alloc_gcc_pragma_options_entry */
+
+
+void attach_target_pragma_attribute(an_attribute_ptr *list)
+/*
+Attach a copy of the "target" attribute on the top of the GCC options stack
+(if there is one) to the end of the specified list of attributes.  This has
+the effect of adding an af_internal attribute to (almost) every function
+definition for which a pragma "GCC target" is in effect.
+*/
+{
+  check_assertion(gcc_pragma_options_stack != NULL);
+  if (gcc_pragma_options_stack->target_pragma_attribute != NULL) {
+    an_attribute_ptr  ap;
+    check_assertion(gcc_pragma_options_stack->target_pragma_attribute->next ==
+                                                                         NULL);
+    copy_attribute(gcc_pragma_options_stack->target_pragma_attribute, ap);
+    *last_attribute_link(list) = ap;
+  }  /* if */
+}  /* attach_target_pragma_attribute */
+
+
+static void process_gnu_target_pragma(a_pending_pragma_ptr  ppp)
+/*
+Handle
+   #pragma GCC target options
+
+A list of strings, optionally enclosed by parentheses is specified.
+*/
+{
+  a_boolean             nested = FALSE, err = FALSE;
+  an_attribute_ptr      ap = NULL;
+  an_attribute_arg_ptr  last_aap = NULL;
+
+  ppp->variant.gcc.kind = (a_gcc_pragma_kind)gcc_pk_target;
+  /* Skip the "target" identifier. */
+  (void)get_token();
+  if (innermost_function_scope != NULL) {
+    pos_error(ec_pragma_inside_function, &pos_curr_token);
+    err = TRUE;
+  } else {
+    while (curr_token != tok_end_of_source) {
+      if (curr_token == tok_lparen) {
+        if (nested) {
+          /* Nested sets of parentheses aren't allowed. */
+          pos_error(ec_exp_string_literal, &pos_curr_token);
+          err = TRUE;
+          break;
+        } else {
+          nested = TRUE;
+        }  /* if */
+      } else if (curr_token == tok_rparen) {
+        if (!nested) {
+          /* No preceding left parenthesis. */
+          pos_error(ec_target_unmatched_parens, &pos_curr_token);
+          err = TRUE;
+          break;
+        }  /* if */
+        nested = FALSE;
+      } else if (curr_token == tok_string_literal) {
+        if (is_normal_character_kind(const_for_curr_token.character_kind)) {
+          /* Create an attribute from the information in the pragma.  This
+             attribute will then be applied to each function definition until
+             a "GCC pop_options" or "GCC reset_options" pragma is
+             encountered. */
+          a_targ_size_t         str_length;
+          char                  *quoted_string;
+          an_attribute_arg_ptr  aap = alloc_attribute_arg();
+          check_assertion(const_for_curr_token.kind ==
+                                              (a_constant_repr_kind)ck_string);
+          aap->kind = (an_attribute_arg_kind)aak_raw_token;
+          aap->position = pos_curr_token;
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+          aap->end_position = end_pos_curr_token;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+          /* The attribute processing expects to find quotes around the string,
+             so add those here. */
+          str_length = const_for_curr_token.variant.string.length;
+          quoted_string = alloc_text_of_string_literal(str_length + 2);
+          quoted_string[0] = '"';
+          (void)strcpy(&quoted_string[1],
+                       const_for_curr_token.variant.string.value);
+          quoted_string[str_length] = '"';
+          quoted_string[str_length+1] = '\0';
+          aap->variant.token = quoted_string;
+          if (ap == NULL) {
+            if (gcc_pragma_options_stack != NULL &&
+                gcc_pragma_options_stack->target_pragma_attribute != NULL) {
+              /* Re-use the existing attribute. */
+              ap = gcc_pragma_options_stack->target_pragma_attribute;
+            } else {
+              ap = alloc_attribute();
+            }  /* if */
+            ap->kind = (a_byte_attribute_kind)ak_target;
+            ap->arguments = aap;
+          } else {
+            check_assertion(last_aap != NULL && last_aap->next == NULL);
+            last_aap->next = aap;
+          }  /* if */
+          last_aap = aap;
+        } else {
+          /* Only narrow string literals are accepted. */
+          pos_error(ec_target_string_must_be_narrow, &pos_curr_token);
+          err = TRUE;
+          break;
+        }  /* if */
+      } else if (curr_token == tok_comma) {
+        if (ap == NULL) {
+          /* Can't have a comma before the first item of a list. */
+          pos_error(ec_exp_string_literal, &pos_curr_token);
+          err = TRUE;
+          break;
+        }  /* if */
+      } else {
+        /* Something unexpected. */
+        pos_error(ec_exp_string_literal, &pos_curr_token);
+        err = TRUE;
+        break;
+      }  /* if */
+      (void)get_token();
+    }  /* if */
+  }  /* if */
+  if (!err) {
+    if (nested) {
+      /* No closing right parenthesis. */
+      err = TRUE;
+      pos_error(ec_target_unmatched_parens, &pos_curr_token);
+    } else if (ap == NULL) {
+      /* Never saw a string. */
+      err = TRUE;
+      pos_error(ec_exp_string_literal, &pos_curr_token);
+    } else {
+      /* "Activate" this pragma. */
+      if (gcc_pragma_options_stack == NULL) {
+        /* If there isn't a current stack entry, create one. */
+        gcc_pragma_options_stack = alloc_gcc_pragma_options_entry();
+      }  /* if */
+      gcc_pragma_options_stack->target_pragma_attribute = ap;
+    }  /* if */
+  }  /* if */
+  check_assertion(err || curr_token == tok_end_of_source);
+}  /* process_gnu_target_pragma */
+
+
+static void process_gnu_options_pragma(a_pending_pragma_ptr ppp,
+                                       a_gcc_pragma_kind    kind)
+/*
+Handle
+   #pragma GCC push_options
+   #pragma GCC pop_options
+   #pragma GCC reset_options
+
+kind indicates which of the above is being processed.
+*/
+{
+  a_gcc_pragma_options_entry_ptr  gpoep;
+
+  ppp->variant.gcc.kind = gcc_pk_target;
+  switch (kind) {
+    case gcc_pk_push_options:
+      /* Push a new stack entry. */
+      gpoep = alloc_gcc_pragma_options_entry();
+      gpoep->next = gcc_pragma_options_stack;
+      gcc_pragma_options_stack = gpoep;
+      break;
+    case gcc_pk_pop_options:
+      /* Pop the current stack entry (if there is one). */
+      gpoep = gcc_pragma_options_stack;
+      if (gpoep == NULL) {
+        pos_warning(ec_gcc_pragma_nothing_to_pop, &pos_curr_token);
+      } else {
+        gcc_pragma_options_stack = gpoep->next;
+        gpoep->next = avail_gcc_pragma_options_stack_entries;
+        avail_gcc_pragma_options_stack_entries = gpoep;
+      }  /* if */
+      break;
+    case gcc_pk_reset_options:
+      /* Move all entries to avail_gcc_pragma_options_stack_entries. */
+      for (gpoep = gcc_pragma_options_stack;
+           gpoep != NULL && gpoep->next != NULL;
+           gpoep = gpoep->next) {}
+      if (gpoep != NULL) {
+        gpoep->next = avail_gcc_pragma_options_stack_entries;
+      }  /* if */
+      avail_gcc_pragma_options_stack_entries = gcc_pragma_options_stack;
+      gcc_pragma_options_stack = NULL;
+      break;
+    default:
+      unexpected_condition();
+  }  /* switch */
+  /* Skip the identifier. */
+  (void)get_token();
+  if (curr_token != tok_end_of_source) {
+    warning(ec_extra_text_in_pp_directive);
+  }  /* if */
+}  /* process_gnu_options_pragma */
+
+
 void gcc_pragma(a_pending_pragma_ptr  ppp)
 /*
 Process a "#pragma GCC ..." construct.
 */
 {
   a_boolean     recognized = FALSE;
-  a_boolean     ignore_in_back_end = FALSE;
+  a_boolean     ignore_in_back_end = TRUE;
   a_pragma_ptr  il_pragma_entry;
 
   begin_rescan_of_pragma_tokens(ppp);
   if (curr_token == tok_identifier) {
     a_const_char *str = locator_for_curr_id.symbol_header->identifier;
+    recognized = TRUE;
     if (strcmp(str, "system_header") == 0) {
-      recognized = TRUE;
-      ignore_in_back_end = TRUE;
       process_gnu_system_header_pragma(ppp);
 #if GNU_VISIBILITY_ATTRIBUTE_ALLOWED
     } else if (strcmp(str, "visibility") == 0) {
-      recognized = TRUE;
+      ignore_in_back_end = FALSE;
       process_gnu_visibility_pragma(ppp);
 #endif /* GNU_VISIBILITY_ATTRIBUTE_ALLOWED */
+    } else if (strcmp(str, "target") == 0) {
+      process_gnu_target_pragma(ppp);
+    } else if (gnu_version >= 40400 && strcmp(str, "push_options") == 0) {
+      process_gnu_options_pragma(ppp, (a_gcc_pragma_kind)gcc_pk_push_options);
+    } else if (gnu_version >= 40400 && strcmp(str, "pop_options") == 0) {
+      process_gnu_options_pragma(ppp, (a_gcc_pragma_kind)gcc_pk_pop_options);
+    } else if (gnu_version >= 40400 && strcmp(str, "reset_options") == 0) {
+      process_gnu_options_pragma(ppp, (a_gcc_pragma_kind)gcc_pk_reset_options);
+    } else {
+      recognized = FALSE;
     }  /* if */
   }  /* if */
   if (!recognized) {
@@ -4257,6 +4509,12 @@ Display and return the amount of space used for preprocessing structures.
   db_space_used("include alias entries", num_include_aliases_allocated,
                 an_include_alias);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+#if GNU_EXTENSIONS_ALLOWED
+  db_space_used_lost("GCC pragma stack entries",
+                     avail_gcc_pragma_options_stack_entries,
+                     num_gcc_pragma_options_stack_entries_allocated,
+                     a_gcc_pragma_options_entry);
+#endif /* GNU_EXTENSIONS_ALLOWED */
 
   db_space_used_total();
 
@@ -4287,6 +4545,12 @@ One-time initialization for preproc.c and preproc.h variables.
       pch_saved_var_array_elem(num_forScope_stack_entries_allocated),
 #endif /* if DEBUG */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+#if GNU_EXTENSIONS_ALLOWED
+      pch_saved_var_array_elem(avail_gcc_pragma_options_stack_entries),
+#if DEBUG
+      pch_saved_var_array_elem(num_gcc_pragma_options_stack_entries_allocated),
+#endif /* DEBUG */
+#endif /* GNU_EXTENSIONS_ALLOWED */
       pch_saved_var_array_terminating_elem()
     };
     register_pch_saved_variables(saved_vars);
@@ -4304,6 +4568,9 @@ One-time initialization for preproc.c and preproc.h variables.
   processing_vccorlib_header = FALSE;
   register_trans_unit_variable(forScope_stack);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+#if GNU_EXTENSIONS_ALLOWED
+  register_trans_unit_variable(gcc_pragma_options_stack);
+#endif /* GNU_EXTENSIONS_ALLOWED */
 }  /* preproc_one_time_init */
 
 
@@ -4346,6 +4613,9 @@ every translation unit.
   in_microsoft_implementation_key_mapping_region = FALSE;
   curr_assembly_index = 0;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+#if GNU_EXTENSIONS_ALLOWED
+  gcc_pragma_options_stack = NULL;
+#endif /* GNU_EXTENSIONS_ALLOWED */
 }  /* preproc_trans_unit_init */
 
 
@@ -4371,6 +4641,12 @@ init_predefined_macros.)
   num_include_aliases_allocated = 0;
 #endif /* DEBUG */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+#if GNU_EXTENSIONS_ALLOWED
+  avail_gcc_pragma_options_stack_entries = NULL;
+#if DEBUG
+  num_gcc_pragma_options_stack_entries_allocated = 0;
+#endif /* DEBUG */
+#endif /* GNU_EXTENSIONS_ALLOWED */
 }  /* preproc_init */
 
 

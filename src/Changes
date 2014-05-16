@@ -1,5 +1,39 @@
 Version 4.10
 
+5/16/14  [EDGcpfe/15080,EDGcpfe/15143]
+GNU compatibility: "#pragma GCC target"
+
+Support has been added for the "target", "push_options", "pop_options", and
+"reset_options" strings for "#pragma GCC".  See
+http://gcc.gnu.org/onlinedocs/gcc/Function-Specific-Option-Pragmas.html for
+more details.  An internal ak_target attribute is attached to each function
+declaration that is affected by the "#pragma GCC target".  These new options
+are accepted when gnu_version >= 40400; when gnu_version >= 40800, the "target"
+attribute is used to implement the multiversioning feature (see the Changes
+entry for EDGcpfe/14759).  For example (with --gnu_version 40800):
+
+  extern "C" int puts(const char *);
+  #pragma GCC push_options
+  #pragma GCC target("default")
+  void f() { puts("default"); }
+  #pragma GCC pop_options
+
+  #pragma GCC push_options
+  #pragma GCC target("mmx")
+  void f() { puts("mmx"); }
+  #pragma GCC pop_options
+
+  #pragma GCC push_options
+  #pragma GCC target("arch=corei7")
+  void f() { puts("arch=corei7"); }
+  #pragma GCC pop_options
+
+  int main() {
+    f();    // Chooses one of the f()s above based on the CPU at load time.
+    return 0;
+  }
+
+
 5/16/14  [EDGcpfe/15166]
 GNU C++ compatibility: multiversion special functions
 

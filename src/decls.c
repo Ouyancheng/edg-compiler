@@ -8989,6 +8989,13 @@ skip_overloading:;
     /* constexpr implies inline. */
     if (!routine_ptr->is_inline) set_inline_flag(routine_ptr, TRUE);
   }  /* if */
+#if GNU_EXTENSIONS_ALLOWED
+  if (gcc_pragma_options_stack != NULL && !func_info->is_main_function) {
+    /* Attach a synthesized "target" attribute from a "#pragma GCC target"
+       if applicable. */
+    attach_target_pragma_attribute(&dps->prefix_attributes);
+  }  /* if */
+#endif /* GNU_EXTENSIONS_ALLOWED */
 #if GNU_FUNCTION_MULTIVERSIONING
   if (gpp_mode && gnu_version >= 40800) {
     an_attribute_ptr  target_ap = NULL;

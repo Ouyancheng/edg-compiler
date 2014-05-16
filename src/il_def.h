@@ -5374,6 +5374,10 @@ enum a_gcc_pragma_kind_tag {
   gcc_pk_visibility_push,	/* #pragma GCC push(...) */
   gcc_pk_visibility_pop,	/* #pragma GCC pop */
 #endif /* GNU_VISIBILITY_ATTRIBUTE_ALLOWED */
+  gcc_pk_target,                /* #pragma GCC target(...) */
+  gcc_pk_push_options,          /* #pragma GCC push_options */
+  gcc_pk_pop_options,           /* #pragma GCC pop_options */
+  gcc_pk_reset_options,         /* #pragma GCC reset_options */
   gcc_pk_last	/*lint -esym(769,a_gcc_pragma_kind_tag::gcc_pk_last)*/
 };
 

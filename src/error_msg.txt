@@ -2662,6 +2662,10 @@ ec_enum_in_managed_class_missing_definition;;"an enum type declared in a managed
 ec_decltype_qualified_declared_name;;"a decltype-qualified name is nonstandard in this declaration context"
 ec_final_modifier_requires_virtual_function;;"nonvirtual function cannot be declared with \"final\" modifier"
 ec_target_on_special_function;;"\"target\" attribute on special function is not supported"
+ec_target_string_must_be_narrow;;"must be a narrow string literal"
+ec_target_unmatched_parens;;"unmatched parentheses"
+ec_gcc_pragma_nothing_to_pop;;"no corresponding \"push_options\""
+ec_pragma_inside_function;;"this pragma is not allowed inside a function"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #
