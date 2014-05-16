@@ -1,5 +1,24 @@
 Version 4.10
 
+5/16/14  [EDGcpfe/15166]
+GNU C++ compatibility: multiversion special functions
+
+The Changes for GNU function multiversioning neglected to include special
+functions.  That has now been fixed.  The following example (with --gnu_version
+40800) had failed an assertion (in scan_function_body) and now compiles without
+issue:
+
+  extern "C" int printf(const char *,...);
+  struct A {
+    __attribute__((target("sse3")))     A() { printf("A() sse3\n");     }
+    __attribute__((target("sse3")))    ~A() { printf("~A() sse3\n");    }
+    __attribute__((target("default")))  A() { printf("A() default\n");  }
+    __attribute__((target("default"))) ~A() { printf("~A() default\n"); }
+  };
+  A a;
+  int main() {}
+
+
 5/13/14  [EDGcpfe/15160]
 GNU C++ compatibility: internal error instantiating default argument during
 prototype instantiation

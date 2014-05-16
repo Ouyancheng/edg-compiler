@@ -12610,20 +12610,19 @@ If a specific override was specified using a qualified member declarator
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 static void update_class_for_special_member(a_class_def_state   *class_state,
+                                            a_symbol_ptr        sym,
                                             a_member_decl_info  *decl_info,
                                             a_symbol_ptr        overload_sym)
 /*
 Update the class structures associated with class_state to reflect the fact
-that a special member function (e.g., a constructor) described by decl_info
-is being declared in the associated class.  If the special member is part of
-an overload set, overload_sym points to the symbol representing that set;
-otherwise, it is NULL.
+that a special member function (e.g., a constructor) described by sym and
+decl_info is being declared in the associated class.  If the special member is
+part of an overload set, overload_sym points to the symbol representing that
+set; otherwise, it is NULL.
 */
 {
   a_type_ptr                 class_type = class_state->class_type;
   a_class_symbol_supplement  *cssp = symbol_supplement_for_class(class_type);
-  a_decl_parse_state         *dps = &decl_info->decl_state;
-  a_symbol_ptr               sym = dps->sym;
   a_routine_ptr              rtn = sym->variant.routine.ptr;
 
   switch (rtn->special_kind) {
@@ -13233,6 +13232,7 @@ implicitly declared member functions.
   a_boolean                     is_static_member;
 #if GNU_FUNCTION_MULTIVERSIONING
   a_boolean                     requires_gnu_target_attr = FALSE;
+  a_symbol_ptr                  repr_sym;
 #endif /* GNU_FUNCTION_MULTIVERSIONING */
 
   db_enter(3, "decl_member_function");
@@ -13596,10 +13596,10 @@ implicitly declared member functions.
            remainder of this declaration and use the representative routine
            for overload purposes. */
         a_symbol_ptr new_sym = symbol_for(rtn);
+        repr_sym = symbol_for(gnu_routine_supp(rtn)->
+                                      mv_info.targeted_version.representative);
         if (overload_sym != NULL) {
           /* Use the representative routine in the overload set. */
-          a_symbol_ptr repr_sym = symbol_for(gnu_routine_supp(rtn)->
-                                      mv_info.targeted_version.representative);
           check_assertion(sym ==
                             overload_sym->variant.overloaded_function.symbols);
           repr_sym->next = sym->next;
@@ -13979,7 +13979,20 @@ implicitly declared member functions.
       }  /* if */
     }  /* if */
     if (!special_kind_is(rtn, sfk_none)) {
-      update_class_for_special_member(class_state, decl_info, overload_sym);
+      a_symbol_ptr  special_sym = sym;
+#if GNU_FUNCTION_MULTIVERSIONING
+      if (has_gnu_routine_supp(rtn) &&
+          gnu_routine_supp(rtn)->is_target_specific_version) {
+        /* Use the representative routine rather than a target-specific
+           routine for the special members of a class. */
+        special_sym = repr_sym;
+        /* Also ensure that the representative routine is marked if
+           necessary. */
+        mark_special_move_parameters(repr_sym->variant.routine.ptr);
+      }  /* if */
+#endif /* GNU_FUNCTION_MULTIVERSIONING */
+      update_class_for_special_member(class_state, special_sym, decl_info,
+                                      overload_sym);
       mark_special_move_parameters(rtn);
     }  /* if */
 #if BACK_END_IS_CP_GEN_BE

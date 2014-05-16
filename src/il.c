@@ -52,6 +52,9 @@ il.c -- Construction of intermediate language trees.
 #include "lower_name.h"
 #endif /* MODULE_ID_NEEDED */
 #include "trans_copy.h"
+#if GNU_FUNCTION_MULTIVERSIONING
+#include "sys_predef.h"
+#endif /* GNU_FUNCTION_MULTIVERSIONING */
 
 
 /*
@@ -401,6 +404,26 @@ is TRUE, include type information for function parameters.
         unexpected_condition_str("bad ctor_dtor_kind");
     }  /* switch */
 #endif /* DO_IL_LOWERING && IA64_ABI */
+#if GNU_FUNCTION_MULTIVERSIONING
+    if (has_gnu_routine_supp(rout)) {
+      if (gnu_routine_supp(rout)->is_representative) {
+        (void)add_string_to_text_buffer(db_name_str_buffer,
+                                        " [mv:representative]");
+      } else if (gnu_routine_supp(rout)->is_target_specific_version) {
+        (void)add_string_to_text_buffer(db_name_str_buffer, " [mv:");
+        (void)add_string_to_text_buffer(db_name_str_buffer,
+#if STANDALONE_UTILITY_PROGRAM
+                                        "target-specific"
+#else /* !STANDALONE_UTILITY_PROGRAM */
+                                        is_mv_default_routine(rout) ?
+                                              "default" :
+                                              target_specific_distinction(rout)
+#endif /* STANDALONE_UTILITY_PROGRAM */
+                                                        );
+        (void)add_string_to_text_buffer(db_name_str_buffer, "]");
+      }  /* if */
+    }  /* if */
+#endif /* GNU_FUNCTION_MULTIVERSIONING */
   }  /* if */
   add_char_to_text_buffer(db_name_str_buffer, '\0');
   return db_name_str_buffer->buffer;
@@ -20596,6 +20619,12 @@ routine as actually referenced.
     if (routine_type_is_nonstatic_member_function(routine->type)) {
       parent_class_of(routine)->source_corresp.referenced = TRUE;
     }  /* if */
+#if USE_X86_FUNCTION_MULTIVERSIONING
+    if (gpp_mode && is_multiversion_representative(routine)) {
+      /* Record a reference to a GNU function multiversion member function. */
+      reference_to_mv_routine(routine, (a_source_position*)NULL);
+    }  /* if */
+#endif /* USE_X86_FUNCTION_MULTIVERSIONING */
   }  /* if */
   /* If the routine is compiler-generated and its definition has not
      yet been put out, force the definition now. */

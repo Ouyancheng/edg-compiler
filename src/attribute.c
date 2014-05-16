@@ -5839,6 +5839,7 @@ attributes in C mode).
   target_routine->storage_class = representative->storage_class;
   target_routine->source_corresp.name_linkage =
                                    representative->source_corresp.name_linkage;
+  target_routine->special_kind = representative->special_kind;
   /* Set parent pointer appropriately. */
   if (representative->source_corresp.is_class_member) {
     set_class_membership(new_sym, &target_routine->source_corresp,
