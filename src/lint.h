@@ -1155,6 +1155,7 @@ extern int fileno(FILE *);
 /*lint -esym(769,ec_missing_target_attribute)*/
 /*lint -esym(769,ec_no_matching_target_attribute)*/
 /*lint -esym(769,ec_resolver_routine_required)*/
+/*lint -esym(769,ec_target_on_special_function)*/
 #endif /* !GNU_FUNCTION_MULTIVERSIONING */
 #if USE_X86_FUNCTION_MULTIVERSIONING
 /*lint -esym(769,ec_resolver_routine_required)*/

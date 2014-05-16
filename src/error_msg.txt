@@ -2661,6 +2661,7 @@ ec_resolver_routine_required;;"GNU function multiversion resolver routine requir
 ec_enum_in_managed_class_missing_definition;;"an enum type declared in a managed class must include a definition"
 ec_decltype_qualified_declared_name;;"a decltype-qualified name is nonstandard in this declaration context"
 ec_final_modifier_requires_virtual_function;;"nonvirtual function cannot be declared with \"final\" modifier"
+ec_target_on_special_function;;"\"target\" attribute on special function is not supported"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

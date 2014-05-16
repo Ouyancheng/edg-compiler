@@ -13989,6 +13989,14 @@ implicitly declared member functions.
         /* Also ensure that the representative routine is marked if
            necessary. */
         mark_special_move_parameters(repr_sym->variant.routine.ptr);
+        if (!special_kind_is(rtn, sfk_constructor) &&
+            !special_kind_is(rtn, sfk_destructor) &&
+            !compiler_generated) {
+          /* The semantics of this aren't clear at this point, so give a
+             discretionary error. */
+          pos_diagnostic(es_discretionary_error, ec_target_on_special_function,
+                         &locator->source_position);
+        }  /* if */
       }  /* if */
 #endif /* GNU_FUNCTION_MULTIVERSIONING */
       update_class_for_special_member(class_state, special_sym, decl_info,
