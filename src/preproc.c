@@ -3212,7 +3212,7 @@ A list of strings, optionally enclosed by parentheses is specified.
              attribute will then be applied to each function definition until
              a "GCC pop_options" or "GCC reset_options" pragma is
              encountered. */
-          a_targ_size_t         str_length;
+          sizeof_t              str_length;
           char                  *quoted_string;
           an_attribute_arg_ptr  aap = alloc_attribute_arg();
           check_assertion(const_for_curr_token.kind ==
@@ -3304,7 +3304,7 @@ kind indicates which of the above is being processed.
 {
   a_gcc_pragma_options_entry_ptr  gpoep;
 
-  ppp->variant.gcc.kind = gcc_pk_target;
+  ppp->variant.gcc.kind = (a_gcc_pragma_kind)gcc_pk_target;
   switch (kind) {
     case gcc_pk_push_options:
       /* Push a new stack entry. */
