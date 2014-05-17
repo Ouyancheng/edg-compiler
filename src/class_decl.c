@@ -13232,7 +13232,7 @@ implicitly declared member functions.
   a_boolean                     is_static_member;
 #if GNU_FUNCTION_MULTIVERSIONING
   a_boolean                     requires_gnu_target_attr = FALSE;
-  a_symbol_ptr                  repr_sym;
+  a_symbol_ptr                  repr_sym = NULL;
 #endif /* GNU_FUNCTION_MULTIVERSIONING */
 
   db_enter(3, "decl_member_function");
