@@ -404,7 +404,7 @@ is TRUE, include type information for function parameters.
         unexpected_condition_str("bad ctor_dtor_kind");
     }  /* switch */
 #endif /* DO_IL_LOWERING && IA64_ABI */
-#if GNU_FUNCTION_MULTIVERSIONING
+#if USE_X86_FUNCTION_MULTIVERSIONING
     if (has_gnu_routine_supp(rout)) {
       if (gnu_routine_supp(rout)->is_representative) {
         (void)add_string_to_text_buffer(db_name_str_buffer,
@@ -423,7 +423,7 @@ is TRUE, include type information for function parameters.
         (void)add_string_to_text_buffer(db_name_str_buffer, "]");
       }  /* if */
     }  /* if */
-#endif /* GNU_FUNCTION_MULTIVERSIONING */
+#endif /* USE_X86_FUNCTION_MULTIVERSIONING */
   }  /* if */
   add_char_to_text_buffer(db_name_str_buffer, '\0');
   return db_name_str_buffer->buffer;
