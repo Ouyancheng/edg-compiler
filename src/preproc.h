@@ -275,8 +275,8 @@ EXTERN an_assembly_index
 #if GNU_EXTENSIONS_ALLOWED
 typedef struct a_gcc_pragma_options_entry *a_gcc_pragma_options_entry_ptr;
 EXTERN a_gcc_pragma_options_entry_ptr
-		gcc_pragma_options_stack;
-			/* Pointer to the top of the GCC pragma options
+                gcc_pragma_options_stack;
+                        /* Pointer to the top of the GCC pragma options
                            stack.  If NULL, there's no stack entry (which
                            implies that the "current" stack entry has default
                            values). */

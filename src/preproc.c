@@ -3174,7 +3174,7 @@ static void process_gnu_target_pragma(a_pending_pragma_ptr  ppp)
 Handle
    #pragma GCC target options
 
-A list of strings, optionally enclosed by parentheses is specified.
+where "options" is a list of optionally-parenthesized strings.
 */
 {
   a_boolean             nested = FALSE, err = FALSE;
