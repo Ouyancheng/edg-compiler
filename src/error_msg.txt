@@ -2666,6 +2666,7 @@ ec_target_string_must_be_narrow;;"must be a narrow string literal"
 ec_target_unmatched_parens;;"unmatched parentheses"
 ec_gcc_pragma_nothing_to_pop;;"no corresponding \"push_options\""
 ec_pragma_inside_function;;"this pragma is not allowed inside a function"
+ec_inline_new_or_delete_operator;;"declaring a new or delete operator \"inline\" is nonstandard"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

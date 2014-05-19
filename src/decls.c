@@ -1680,17 +1680,19 @@ new fields are set properly.
 }  /* check_operator_function_params */
 
 
-static void report_bad_new_or_delete(a_symbol_locator  *locator,
-                                     a_storage_class   storage_class)
+static void report_bad_new_or_delete(a_symbol_locator    *locator,
+                                     a_decl_parse_state  *dps)
 /*
 Issue a diagnostic when attempting to declare an operator new or delete
 function that is a namespace member or that has internal linkage (i.e.,
-storage_class == sc_static).  If an error (as opposed to e.g. a warning)
-is issued mark *locator as an error locator.
+dps->storage_class == sc_static).  Also diagnose attempts to declare an
+inline allocation or deallocation function.  If an error (as opposed to
+e.g. a warning) is issued mark *locator as an error locator.
 */
 {
   an_error_code      error_code = ec_no_error;
   an_error_severity  severity = es_none;
+  a_storage_class    storage_class = dps->storage_class;
 
   if (locator->is_operator_name && !locator->is_class_member &&
       (is_new_operator(locator->variant.opname) ||
@@ -1714,6 +1716,11 @@ is issued mark *locator as an error locator.
     } else if (storage_class == (a_storage_class)sc_static) {
       severity = strict_ansi_mode ? strict_ansi_error_severity : es_warning;
       error_code = ec_no_internal_linkage_for_new_or_delete;
+    }  /* if */
+    if (dps->dso_flags & DSO_INLINE) {
+      pos_diagnostic(strict_ansi_mode ? strict_ansi_error_severity
+                                      : es_warning,
+                     ec_inline_new_or_delete_operator, &dps->inline_pos);
     }  /* if */
     if (error_code != ec_no_error) {
       diagnostic(severity, error_code);
@@ -7801,7 +7808,7 @@ for use in generating cross-reference output describing this declaration.
        argument list. */
     check_operator_function_params(type_ptr, /*class_type=*/(a_type_ptr)NULL,
                                    locator);
-    report_bad_new_or_delete(locator, storage_class);
+    report_bad_new_or_delete(locator, dps);
   } else {
     /* C mode. */
     if (strict_ansi_mode) {
@@ -9577,7 +9584,7 @@ definition of a member function of a class template.
         }  /* if */
         /* If it's a new or delete operator, be sure the scope is not a
            namespace scope. */
-        report_bad_new_or_delete(locator, storage_class);
+        report_bad_new_or_delete(locator, dps);
       }  /* if */
       check_default_args(type_ptr);
       if (homonym_symbol != NULL &&

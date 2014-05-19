@@ -1,5 +1,16 @@
 Version 4.10
 
+5/19/14  [EDGcpfe/15167]
+Declaring operator new/delete "inline"
+
+The C++ standard does not permit a non-member operator new or operator delete
+to be declared "inline".  The front end now diagnoses such cases (the standard
+doesn't actually require one): An error in strict mode, a warning otherwise.
+For example:
+
+  inline void operator delete(void*) {}  // Now elicits a warning or error.
+
+
 5/19/14  [EDGcpfe/15157,EDGcpfe/15173]
 GNU C11 compatibility: Selector decay for _Generic constructs
 
