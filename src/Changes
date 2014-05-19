@@ -1,5 +1,21 @@
 Version 4.10
 
+5/19/14  [EDGcpfe/15157,EDGcpfe/15173]
+GNU C11 compatibility: Selector decay for _Generic constructs
+
+The C11 standard does not specify that array-to-pointer or function-to-pointer
+type decay transformations are applied to the selector expression of a _Generic
+construct.  However, GCC does appear to perform those transformations, and the
+front end now does the same in GNU C11 mode.  For example:
+
+  int main() {
+    double x[2];
+    return _Generic(x, double*: 0, double[2]: 1);
+  }
+
+This example now returns 0 in GNU C11 mode, and 1 in other C11 modes.
+
+
 5/19/14  [EDGcpfe/15172]
 Possible memory corruption converting non-type template arguments
 
