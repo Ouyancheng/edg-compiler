@@ -15816,6 +15816,8 @@ this one is such a continuation.
   /* Check for linkage specifiers.  This applies even on a definition. */
 #if GENERATE_LINKAGE_SPEC_BLOCKS
   if (curr_default_name_linkage != var->source_corresp.name_linkage &&
+      !var->source_corresp.is_class_member &&
+      innermost_function_scope == NULL &&
       var->source_corresp.name_linkage != (a_name_linkage_kind)nlk_none &&
       var->source_corresp.name_linkage != (a_name_linkage_kind)nlk_internal) {
     /* The current default name linkage kind is different from the one on
