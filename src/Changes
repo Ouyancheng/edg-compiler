@@ -45,7 +45,7 @@ entry for EDGcpfe/14759).  For example (with --gnu_version 40800):
 5/16/14  [EDGcpfe/15166]
 GNU C++ compatibility: multiversion special functions
 
-The Changes for GNU function multiversioning neglected to include special
+The changes for GNU function multiversioning neglected to include special
 functions.  That has now been fixed.  The following example (with --gnu_version
 40800) had failed an assertion (in scan_function_body) and now compiles without
 issue:
