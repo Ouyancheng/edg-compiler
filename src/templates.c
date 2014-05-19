@@ -9985,7 +9985,9 @@ Return TRUE if the conversion was successful.
            copy the updated constant there. */
         a_memory_region_number region_to_switch_back_to;
         switch_to_file_scope_region(&region_to_switch_back_to);
-        tap->variant.constant = copy_unshared_constant(&constant);
+        tap->variant.constant = 
+                        copy_constant_full(&constant, (a_constant *)NULL,
+                                           CE_SRC_CONSTANT_IS_NOT_ALLOC_IN_IL);
         switch_back_to_original_region(region_to_switch_back_to);
         result = TRUE;
       }  /* if */

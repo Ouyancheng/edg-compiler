@@ -1,5 +1,13 @@
 Version 4.10
 
+5/19/14  [EDGcpfe/15172]
+Possible memory corruption converting non-type template arguments
+
+In some configurations, a memory scribble within the stack could occur in
+conv_nontype_arg_to_required_type (templates.c), with unpredictable results.
+This is now fixed.
+
+
 5/16/14  [EDGcpfe/15080,EDGcpfe/15143]
 GNU compatibility: "#pragma GCC target"
 
