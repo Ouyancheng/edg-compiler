@@ -661,6 +661,17 @@ file.
 static a_hash_table_ptr
 		include_file_history_hash_table;
 
+#if UNIQUE_FILE_IDENTIFIER_AVAILABLE
+/*
+Hash table of information about include files that have been processed
+with a key that is a unique file identifier (e.g., an inode number on
+Unix-like systems).  Used to suppress subsequent inclusions of the same
+file.
+*/
+static a_hash_table_ptr
+		unique_file_id_hash_table;
+#endif /* UNIQUE_FILE_IDENTIFIER_AVAILABLE */
+
 /*
 Hash table of information about include file searches files that have
 been performed.  Used to optimize subsequent searches for the same file.
@@ -4143,6 +4154,9 @@ a pointer.
   ifhp->ifndef_guard = FALSE;
   ifhp->use_canonical_name = FALSE;
   ifhp->controlling_macro_name = NULL;
+#if UNIQUE_FILE_IDENTIFIER_AVAILABLE
+  clear_unique_file_id(&ifhp->unique_id);
+#endif /* UNIQUE_FILE_IDENTIFIER_AVAILABLE */
   return ifhp;
 }  /* alloc_include_file_history */
 
@@ -4175,8 +4189,8 @@ a_boolean compare_include_file_history(a_void_ptr	entry,
                                        a_void_ptr	key)
 /*
 Compare an entry in the include file history hash table with an entry to be
-found.  "entry" is of type an_include_file_history_ptr.  "key" is char *.
-Return TRUE if the key matches the entry.
+found.  "entry" and "key" are of type an_include_file_history_ptr.  Return
+TRUE if the key matches the entry.
 */
 {
   an_include_file_history_ptr	ifhp;
@@ -4197,6 +4211,40 @@ Return TRUE if the key matches the entry.
   return result;
 }  /* compare_include_file_history */
 
+#if UNIQUE_FILE_IDENTIFIER_AVAILABLE
+
+a_hash_value hash_unique_file_id_for_table(a_void_ptr	key)
+/*
+Produce a hash value for the unique file identifier in an include file
+history entry.  The key is a pointer to an include file history entry.
+*/
+{
+  an_include_file_history_ptr	ifhp = (an_include_file_history_ptr)key;
+  a_hash_value			value = 0;
+  value = hash_unique_file_id(&ifhp->unique_id);  
+  return value;
+}  /* hash_unique_file_id_for_table */
+
+
+a_boolean compare_unique_file_id(a_void_ptr	entry,
+                                 a_void_ptr	key)
+/*
+Compare an entry in the unique file identifier hash table with an entry to be
+found.  "entry" and "key" are of type an_include_file_history_ptr.  Return
+TRUE if the key matches the entry.
+*/
+{
+  an_include_file_history_ptr	ifhp;
+  an_include_file_history_ptr	key_ifhp;
+  a_boolean			result;
+
+  ifhp = (an_include_file_history_ptr)entry;
+  key_ifhp = (an_include_file_history_ptr)key;
+  result = same_unique_file_ids(&ifhp->unique_id, &key_ifhp->unique_id);
+  return result;
+}  /* compare_unique_file_id */
+
+#endif /* UNIQUE_FILE_IDENTIFIER_AVAILABLE */
 
 a_boolean find_include_history(a_const_char                *full_name,
 	    		       an_include_file_history_ptr *ifhp_ptr,
@@ -4211,6 +4259,9 @@ of the file name.  Return TRUE if an existing entry was returned.
 */
 {
   an_include_file_history_ptr	*ifhp_in_table;
+#if UNIQUE_FILE_IDENTIFIER_AVAILABLE
+  an_include_file_history_ptr	*ifhp_in_unique_id_table;
+#endif /* UNIQUE_FILE_IDENTIFIER_AVAILABLE */
   an_include_file_history_ptr	ifhp;
   an_include_file_history	key_ifh;
   a_boolean			found = FALSE;
@@ -4222,6 +4273,18 @@ of the file name.  Return TRUE if an existing entry was returned.
 					include_file_history_hash_table,
 					(a_void_ptr)&key_ifh, create);
   ifhp = ifhp_in_table == NULL ? NULL : *ifhp_in_table;
+#if UNIQUE_FILE_IDENTIFIER_AVAILABLE
+  /* If the an entry for the file was not found above, do another search
+     using the file system's unique identifier (e.g., the inode number
+     on Unix-like systems) to search for a previous include. */
+  if (ifhp == NULL) {
+    get_unique_id_for_file(full_name, &key_ifh.unique_id);
+    ifhp_in_unique_id_table = (an_include_file_history_ptr*)hash_find(
+					unique_file_id_hash_table,
+					(a_void_ptr)&key_ifh, create);
+    ifhp = ifhp_in_unique_id_table == NULL ? NULL : *ifhp_in_unique_id_table;
+  }  /* if */
+#endif /* UNIQUE_FILE_IDENTIFIER_AVAILABLE */
   if (ifhp != NULL) {
     /* An entry was found -- this file has been included before. */
     found = TRUE;
@@ -4231,6 +4294,11 @@ of the file name.  Return TRUE if an existing entry was returned.
     ifhp = alloc_include_file_history();
     ifhp->full_name = copy_string_to_region(FRONT_END_REGION_NUMBER,
                                             full_name);
+#if UNIQUE_FILE_IDENTIFIER_AVAILABLE
+    ifhp->unique_id = key_ifh.unique_id;
+    /* Update the data pointer in the unique identifier hash table. */
+    *ifhp_in_unique_id_table = ifhp;
+#endif /* UNIQUE_FILE_IDENTIFIER_AVAILABLE */
     /* Update the data pointer in the hash table. */
     *ifhp_in_table = ifhp;
   }  /* if */
@@ -21390,6 +21458,13 @@ Initialize variables that are specific to a given translation unit.
                                 (a_hash_table_size)1024,
                                 fn_for_function(hash_include_file_history),
                                 fn_for_function(compare_include_file_history));
+#if UNIQUE_FILE_IDENTIFIER_AVAILABLE
+  unique_file_id_hash_table = alloc_hash_table(
+                                FRONT_END_REGION_NUMBER,
+                                (a_hash_table_size)1024,
+                                fn_for_function(hash_unique_file_id_for_table),
+                                fn_for_function(compare_unique_file_id));
+#endif /* UNIQUE_FILE_IDENTIFIER_AVAILABLE */
   trigraph_diagnostic_issued = FALSE;
   trigraph_column = 0;
   curr_stop_token_stack_entry = NULL;

@@ -1042,6 +1042,13 @@ one.
 #endif /* ifdef __GNUC__ */
 #endif /* defined(__sun) && defined(__i386__) */
 
+/*
+Type of the value returned by hash functions.
+*/
+typedef uint32_t
+		a_hash_value;
+
+
 #endif /* ifndef BASICS_H */
 
 /******************************************************************************

@@ -9905,7 +9905,12 @@ enable_microsoft_mode:
   if (gnu_mode && gnu_version >= 30300) {
     /* In GNU mode, if a -I option specifies a name specified by a
        --sys_include, the -I is ignored. */
-    remove_duplicate_system_includes(&include_path_boundary);
+    remove_duplicate_include_dirs(&include_path_boundary,
+                                  /*sys_includes_only=*/TRUE);
+    /* If an include directory is specified more than once, ignore the
+       subsequent ones. */
+    remove_duplicate_include_dirs(&include_path_boundary,
+                                  /*sys_includes_only=*/FALSE);
   }  /* if */
   /* If there was a -I- option, the system include search path starts at
      the indicated point.  Otherwise, the system include search path is

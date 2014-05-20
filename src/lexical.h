@@ -679,6 +679,15 @@ typedef struct an_include_file_history {
   a_const_char  *controlling_macro_name;
 			/* The name of the macro used to guard the include
 			   file against multiple inclusions. */
+#if UNIQUE_FILE_IDENTIFIER_AVAILABLE
+  a_unique_file_id
+		unique_id;
+			/* Host-dependent information that uniquely
+			   identifies a file.  This is used when two different
+			   names can refer to the same file (i.e., as a
+			   result of symbolic or hard links to the file or
+			   directories containing the file). */
+#endif /* UNIQUE_FILE_IDENTIFIER_AVAILABLE */
 } an_include_file_history;
 
 
@@ -2792,6 +2801,13 @@ extern a_boolean compare_include_file_history(a_void_ptr	entry,
 extern a_hash_value hash_include_search_result(a_void_ptr	key);
 extern a_boolean compare_include_search_result(a_void_ptr	entry,
                                                a_void_ptr	key);
+
+#if UNIQUE_FILE_IDENTIFIER_AVAILABLE
+extern a_hash_value hash_unique_file_id_for_table(a_void_ptr	key);
+
+extern a_boolean compare_unique_file_id(a_void_ptr	entry,
+                                        a_void_ptr	key);
+#endif /* UNIQUE_FILE_IDENTIFIER_AVAILABLE */
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
 extern a_partial_class_body_ptr cache_partial_class_body(

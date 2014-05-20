@@ -528,12 +528,6 @@ EXTERN a_const_char *name_linkage_kind_names[(int)nlk_last+1]
 ;
 
 /*
-Type of the value returned by hash functions.
-*/
-typedef uint32_t
-		a_hash_value;
-
-/*
 List of all IL entry kinds:
 */
 /* If you change this, also change il_entry_kind_names and sizeof_il_entry

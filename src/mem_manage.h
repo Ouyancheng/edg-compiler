@@ -409,6 +409,10 @@ enum a_function_number_tag {
   fn_compare_include_search_result,
   fn_hash_include_file_history,
   fn_compare_include_file_history,
+#if UNIQUE_FILE_IDENTIFIER_AVAILABLE
+  fn_hash_unique_file_id_for_table,
+  fn_compare_unique_file_id,
+#endif /* UNIQUE_FILE_IDENTIFIER_AVAILABLE */
 #if MICROSOFT_EXTENSIONS_ALLOWED
   fn_hash_include_alias,
   fn_compare_include_alias,

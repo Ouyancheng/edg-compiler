@@ -1,5 +1,46 @@
 Version 4.10
 
+5/20/14  [EDGcpfe/14054]
+Inode-like information now used in include suppression
+
+The front end now uses unique file identifiers (e.g., inode numbers
+on Unix-like systems) to determine if two differently named files
+actually refer to the same underlying file.  This information is used
+to suppress the redundant processing of include files.  The example
+below now prints the #warning message only once.  The new configuration
+macro UNIQUE_FILE_IDENTIFIER_AVAILABLE must be TRUE for this feature to
+be enabled.  The new macro defaults to TRUE on Windows and on systems
+that support the stat() library routine.
+
+  file: t1.c:
+  #include "h1.h"
+  #include "h2.h"
+
+  file: h1.h:
+  #pragma once
+  #warning "in h1.h"
+
+  file: h2.h:
+  <link to h1.h>
+
+
+5/20/14  [EDGcpfe/14297]
+GNU C++ compatibility: linked directories considered the same
+
+GNU compilers treat two include directories as being the same directory if
+one is a link (symbolic or hard) to the other.  This can affect the
+processing of #include_next directives.  The front end now uses inode
+information (if available) to determine if two directories with different
+names are actually the same directory.  In addition, redundant include
+directories are now always removed from the include search path.  Formerly,
+only a normal include directory was removed if a system include of the
+same directory was also specified (see entry for EDGcpfe/9948).  This
+feature requires that UNIQUE_FILE_IDENTIFIER_AVAILABLE be TRUE (see entry
+above for more information), but is not supported on Windows because
+the unique file identifier mechanism on Windows does not work for
+directories.
+
+
 5/19/14  [EDGcpfe/15167]
 Declaring operator new/delete "inline"
 

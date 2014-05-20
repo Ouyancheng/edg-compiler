@@ -175,6 +175,10 @@ EXTERN a_function_pointer function_pointers[(int)fn_last+1]
   (a_function_pointer)compare_include_search_result,
   (a_function_pointer)hash_include_file_history,
   (a_function_pointer)compare_include_file_history,
+#if UNIQUE_FILE_IDENTIFIER_AVAILABLE
+  (a_function_pointer)hash_unique_file_id_for_table,
+  (a_function_pointer)compare_unique_file_id,
+#endif /* UNIQUE_FILE_IDENTIFIER_AVAILABLE */
 #if MICROSOFT_EXTENSIONS_ALLOWED
   (a_function_pointer)hash_include_alias,
   (a_function_pointer)compare_include_alias,

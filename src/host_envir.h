@@ -2961,8 +2961,9 @@ extern void pop_primary_include_search_dir(a_const_char	*dir_name,
 
 extern void add_to_template_search_path(a_const_char	*dir_name);
 #if !STANDALONE_UTILITY_PROGRAM
-extern void remove_duplicate_system_includes(
-                            a_directory_name_entry_ptr *include_path_boundary);
+extern void remove_duplicate_include_dirs(
+			a_directory_name_entry_ptr	*include_path_boundary,
+			a_boolean			sys_includes_only);
 #endif /* !STANDALONE_UTILITY_PROGRAM */
 
 EXTERN a_boolean
@@ -3343,6 +3344,80 @@ extern int compare_file_chars_case_insensitive(a_const_char *file1,
 #define compare_file_chars(s1, s2) strcmp((s1), (s2))
 #endif /* __MICROSOFT_OS__ */
 
+#if EDG_WIN32
+/* Define a typedef that represents the same type as DWORD on Windows. */
+typedef uint32_t an_ms_dword;
+#endif /* EDG_WIN32 */
+
+/*
+Determine if the operating system provides a mechanism to uniquely identify
+a file even in the presence of symbolic and/or hard links (e.g. inode
+information on Unix-like systems).  If such a mechanism is available,
+define a structure that can store the identifying information.
+*/
+#ifndef UNIQUE_FILE_IDENTIFIER_AVAILABLE
+#if EDG_WIN32
+/*
+On Windows, the unique file ID information contains fields copied from the
+_BY_HANDLE_FILE_INFORMATION structure.  The fields have the same name
+as the fields from which they are copied.
+*/
+typedef struct a_unique_file_id {
+  an_ms_dword	dwVolumeSerialNumber;
+			/* Identifier for the volume containing the file. */
+  an_ms_dword	nFileIndexHigh;
+			/* High-order part of the unique identifier within
+			   a given volume. */
+  an_ms_dword	nFileIndexLow;
+			/* Low-order part of the unique identifier within
+			   a given volume. */
+} a_unique_file_id;
+#define UNIQUE_FILE_IDENTIFIER_AVAILABLE TRUE
+#else /* !EDG_WIN32 */
+/*
+If we are not on Windows, assume we are on a Unix-like system that supports
+the stat system call if the S_ISDIR or S_IFDIR macro is defined.
+*/
+#if defined(S_ISDIR) || defined(S_IFDIR)
+#define UNIQUE_FILE_IDENTIFIER_AVAILABLE TRUE
+#define STAT_AVAILABLE TRUE
+/*
+On systems with the stat structure, the unique file ID information contains
+fields copied from that structure.  The fields have the same name as the
+fields from which they are copied.
+*/
+typedef struct a_unique_file_id {
+  dev_t		st_dev;
+			/* Identifier for the device containing the file. */
+  ino_t		st_ino;
+			/* Unique identifier (inode) within the device. */
+} a_unique_file_id;
+#else /* !(defined(S_ISDIR) || defined(S_IFDIR)) */
+/*
+Not Windows or a system with the stat structure.
+*/
+#define UNIQUE_FILE_IDENTIFIER_AVAILABLE FALSE
+#define STAT_AVAILABLE FALSE
+#endif /* defined(S_ISDIR) || defined(S_IFDIR) */
+#endif /* EDG_WIN32 */
+#endif /* ifndef UNIQUE_FILE_IDENTIFIER_AVAILABLE */
+
+#if UNIQUE_FILE_IDENTIFIER_AVAILABLE
+typedef struct a_unique_file_id *a_unique_file_id_ptr;
+
+extern void clear_unique_file_id(a_unique_file_id_ptr	ufip);
+
+extern
+void get_unique_id_for_file(a_const_char		*file_name,
+			    a_unique_file_id_ptr	unique_id);
+
+extern
+a_boolean same_unique_file_ids(a_unique_file_id_ptr	id1,
+			       a_unique_file_id_ptr	id2);
+
+extern a_hash_value hash_unique_file_id(a_unique_file_id_ptr	id);
+#endif /* UNIQUE_FILE_IDENTIFIER_AVAILABLE */
+
 /*
 Wrapper macro that calls f_compare_file_names with a default value for
 the ignore_delimiters and is_partial_file_name parameters.
@@ -3433,7 +3508,6 @@ extern "C".  This flag must not be TRUE when compiling in C mode.
 extern void open_mapped_input_file(a_const_char *file_name);
 extern void close_mapped_input_file(void);
 extern char *conv_wide_to_utf8(wchar_t *wide_str);
-typedef unsigned long an_ms_dword;
 #if !STANDALONE_UTILITY_PROGRAM
 extern a_const_char *com_error_to_str(void);
 extern a_const_char *win32_error_to_str(an_ms_dword error_code);

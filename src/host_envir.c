@@ -504,15 +504,18 @@ The space is allocated in general (not IL or FE) memory.
 
 #if !STANDALONE_UTILITY_PROGRAM
 
-void remove_duplicate_system_includes(
-                             a_directory_name_entry_ptr *include_path_boundary)
+void remove_duplicate_include_dirs(
+			a_directory_name_entry_ptr	*include_path_boundary,
+			a_boolean			sys_includes_only)
+				
 /*
-Go through the search path and remove any non-system include directories
-that are also specified as system include directories.  If -I- was
-specified on the command line, the pointer to which include_path_boundary
-points will be non-NULL and will point to the directory immediately
-preceding the -I- option; this pointer will be updated appropriately if
-that directory is removed because of duplication.
+Go through the search path and remove any duplicated include directories.
+If sys_includes_only is TRUE, only entries that duplicate system include
+directories are removed.  If -I- was specified on the command line, the
+pointer to which include_path_boundary points will be non-NULL and will
+point to the directory immediately preceding the -I- option; this pointer
+will be updated appropriately if that directory is removed because of
+duplication.
 */
 {
   a_directory_name_entry_ptr	dnep1;
@@ -522,11 +525,12 @@ that directory is removed because of duplication.
   for (dnep1 = incl_search_path; dnep1 != NULL; dnep1 = next_dnep1) {
     next_dnep1 = dnep1->next;
     /* Only process non-system include entries. */
-    if (!dnep1->system_include_dir) {
+    if (!sys_includes_only || !dnep1->system_include_dir) {
       a_directory_name_entry_ptr	dnep2;
       for (dnep2 = incl_search_path; dnep2 != NULL; dnep2 = dnep2->next) {
         /* Look for a system include directory with the same name. */
-        if (dnep2->system_include_dir &&
+        if (dnep1 != dnep2 &&
+            (!sys_includes_only || dnep2->system_include_dir) &&
             compare_dir_names(dnep1->dir_name, dnep2->dir_name,
                              /*is_partial_file_name=*/FALSE) == 0) {
           /* Remove the non-system entry from the list. */
@@ -547,8 +551,12 @@ that directory is removed because of duplication.
                     dnep1->dir_name);
           }  /* if */
 #endif /* DEBUG */
-          pos_st_warning(ec_incl_dir_both_sys_and_nonsys,
-                         &null_source_position, dnep1->dir_name);
+          if (sys_includes_only) {
+            /* Issue a warning if a directory was specified as both
+               a system and non-system include. */
+            pos_st_warning(ec_incl_dir_both_sys_and_nonsys,
+                           &null_source_position, dnep1->dir_name);
+          }  /* if */
           free_directory_name_entry(dnep1);
           break;
         }  /* if */
@@ -559,7 +567,7 @@ that directory is removed because of duplication.
     }  /* if */
     prev_dnep1 = dnep1;
   }  /* for */
-}  /* remove_duplicate_system_includes */
+}  /* remove_duplicate_include_dirs */
 
 #endif /* !STANDALONE_UTILITY_PROGRAM */
 
@@ -2915,6 +2923,127 @@ Set module_id to the string and return it.
 
 #endif /* MODULE_ID_NEEDED */
 
+#if UNIQUE_FILE_IDENTIFIER_AVAILABLE
+
+void clear_unique_file_id(a_unique_file_id_ptr	ufip)
+/*
+Clear the fields in ufip, which is a structure used to uniquely identify
+a file in a file system.  The cleared values must match the value that
+are expected to represent a file for which unique identifier information
+is not available in same_unique_file_ids.
+*/
+{
+#if EDG_WIN32
+  ufip->dwVolumeSerialNumber = 0;
+  ufip->nFileIndexHigh = 0;
+  ufip->nFileIndexLow = 0;
+#else /* !EDG_WIN32 */
+#if STAT_AVAILABLE
+  ufip->st_dev = 0;
+  ufip->st_ino = 0;
+#else /* !STAT_AVAILABLE */
+ #error An implementation of clear_unique_file_id must be supplied.
+#endif /* STAT_AVAILABLE */
+#endif /* EDG_WIN32 */
+}  /* clear_unique_file_id */
+
+
+void get_unique_id_for_file(a_const_char		*file_name,
+			    a_unique_file_id_ptr	unique_id)
+/*
+Get the unique file identifier for file_name and store it in *unique_id.
+If an error occurs attempting to get this information, *unique_id is
+left unchanged.
+*/
+{
+#if EDG_WIN32
+  BY_HANDLE_FILE_INFORMATION	file_info;
+  HANDLE			f_file;
+
+  /* Open the file so that we can get the file information. */
+  f_file = CreateFile(file_name, GENERIC_READ,
+                      FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
+                      (LPSECURITY_ATTRIBUTES)NULL,
+                      OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL,
+                      (HANDLE)NULL);
+  /* If the file cannot be opened, or the call below to get the file
+     information fails, leave the unique_id set to its default values. */
+  if (f_file != NULL) {
+    if (GetFileInformationByHandle(f_file, &file_info)) {
+      unique_id->dwVolumeSerialNumber = file_info.dwVolumeSerialNumber;
+      unique_id->nFileIndexLow = file_info.nFileIndexLow;
+      unique_id->nFileIndexHigh = file_info.nFileIndexHigh;
+    }  /* if */
+    (void)CloseHandle(f_file);
+  }  /* if */
+#else /* !EDG_WIN32 */
+#if STAT_AVAILABLE
+  struct stat   buf;
+
+  if (stat(file_name, &buf) == 0) {
+    unique_id->st_dev = buf.st_dev;
+    unique_id->st_ino = buf.st_ino;
+  }  /* if */
+#else /* !STAT_AVAILABLE */
+ #error An implementation of get_unique_id_for_file must be supplied.
+#endif /* STAT_AVAILABLE */
+#endif /* EDG_WIN32 */
+}  /* get_unique_id_for_file */
+
+
+a_boolean same_unique_file_ids(a_unique_file_id_ptr	id1,
+			       a_unique_file_id_ptr	id2)
+/*
+Compare the unique file identifiers pointed to by id1 and id2.   Return
+TRUE if they are the same, or FALSE if they are different.  If either
+of the identifiers have their default value (meaning a unique identifier
+could not be determined), return FALSE.
+*/
+{
+  a_boolean	result = FALSE;
+
+#if EDG_WIN32
+  result = id1->dwVolumeSerialNumber == id2->dwVolumeSerialNumber &&
+           id1->nFileIndexLow == id2->nFileIndexLow &&
+           id1->nFileIndexHigh == id2->nFileIndexHigh &&
+           (id1->dwVolumeSerialNumber != 0 ||
+            id1->nFileIndexLow != 0 ||
+            id1->nFileIndexHigh != 0);
+#else /* !EDG_WIN32 */
+#if STAT_AVAILABLE
+  result = id1->st_dev == id2->st_dev &&
+           id1->st_ino == id2->st_ino &&
+           (id1->st_dev != 0 ||
+            id1->st_ino != 0);
+#else /* !STAT_AVAILABLE */
+ #error An implementation of same_unique_file_ids must be supplied.
+#endif /* STAT_AVAILABLE */
+#endif /* EDG_WIN32 */
+  return result;
+}  /* same_unique_file_ids */
+
+
+a_hash_value hash_unique_file_id(a_unique_file_id_ptr	id)
+/*
+Produce a hash value for the unique file identifier "id".
+*/
+{
+  a_hash_value	value = 0;
+
+#if EDG_WIN32
+  value = id->dwVolumeSerialNumber + id->nFileIndexLow + id->nFileIndexHigh;
+#else /* !EDG_WIN32 */
+#if STAT_AVAILABLE
+  value = id->st_dev + id->st_ino;
+#else /* !STAT_AVAILABLE */
+ #error An implementation of hash_unique_file_id must be supplied.
+#endif /* STAT_AVAILABLE */
+#endif /* EDG_WIN32 */
+  return value;
+}  /* hash_unique_file_id */
+
+#endif /* UNIQUE_FILE_IDENTIFIER_AVAILABLE */
+
 #if USE_MMAP_FOR_MEMORY_REGIONS
 
 #if EDG_WIN32
@@ -4319,6 +4448,18 @@ to the current directory.
   dir1 = normalize_dir_name(dir1, dir_buffer1, is_partial_file_name);
   dir2 = normalize_dir_name(dir2, dir_buffer2, is_partial_file_name);
   result = compare_file_chars(dir1, dir2);
+#if UNIQUE_FILE_IDENTIFIER_AVAILABLE
+  if (result != 0 && !is_partial_file_name) {
+    /* If unique file identifiers are available, and we know that we are
+       dealing with entire directory names, compare the unique file
+       identifiers for the directories. */
+    a_unique_file_id	id1;
+    a_unique_file_id	id2;
+    get_unique_id_for_file(dir1, &id1);
+    get_unique_id_for_file(dir2, &id2);
+    result = same_unique_file_ids(&id1, &id2) ? 0 : 1;
+  }  /* if */
+#endif /* UNIQUE_FILE_IDENTIFIER_AVAILABLE */
   return result;
 }  /* compare_dir_names */
 
