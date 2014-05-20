@@ -7941,6 +7941,11 @@ file.
 #else /* !defined(UNICODE_SOURCE_SUPPORTED) */
   comment_undefined_macro_name(UNICODE_SOURCE_SUPPORTED);
 #endif /* defined(UNICODE_SOURCE_SUPPORTED) */
+#if defined(UNIQUE_FILE_IDENTIFIER_AVAILABLE)
+  define_numeric_valued_macro(UNIQUE_FILE_IDENTIFIER_AVAILABLE);
+#else /* !defined(UNIQUE_FILE_IDENTIFIER_AVAILABLE) */
+  comment_undefined_macro_name(UNIQUE_FILE_IDENTIFIER_AVAILABLE);
+#endif /* defined(UNIQUE_FILE_IDENTIFIER_AVAILABLE) */
 #if defined(UPC_EXTENSIONS_ALLOWED)
   define_numeric_valued_macro(UPC_EXTENSIONS_ALLOWED);
 #else /* !defined(UPC_EXTENSIONS_ALLOWED) */

@@ -3031,10 +3031,12 @@ Produce a hash value for the unique file identifier "id".
   a_hash_value	value = 0;
 
 #if EDG_WIN32
-  value = id->dwVolumeSerialNumber + id->nFileIndexLow + id->nFileIndexHigh;
+  value = (a_hash_value)id->dwVolumeSerialNumber +
+          (a_hash_value)id->nFileIndexLow +
+          (a_hash_value)id->nFileIndexHigh;
 #else /* !EDG_WIN32 */
 #if STAT_AVAILABLE
-  value = id->st_dev + id->st_ino;
+  value = (a_hash_value)id->st_dev + (a_hash_value)id->st_ino;
 #else /* !STAT_AVAILABLE */
  #error An implementation of hash_unique_file_id must be supplied.
 #endif /* STAT_AVAILABLE */
