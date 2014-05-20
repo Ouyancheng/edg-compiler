@@ -5,7 +5,7 @@ Declaring operator new/delete "inline"
 
 The C++ standard does not permit a non-member operator new or operator delete
 to be declared "inline".  The front end now diagnoses such cases (the standard
-doesn't actually require one): An error in strict mode, a warning otherwise.
+doesn't actually require one): an error in strict mode, a warning otherwise.
 For example:
 
   inline void operator delete(void*) {}  // Now elicits a warning or error.

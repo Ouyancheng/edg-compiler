@@ -1686,8 +1686,9 @@ static void report_bad_new_or_delete(a_symbol_locator    *locator,
 Issue a diagnostic when attempting to declare an operator new or delete
 function that is a namespace member or that has internal linkage (i.e.,
 dps->storage_class == sc_static).  Also diagnose attempts to declare an
-inline allocation or deallocation function.  If an error (as opposed to
-e.g. a warning) is issued mark *locator as an error locator.
+inline allocation or deallocation function.  If an actual error is issued
+mark *locator as an error locator (this is not done if only a warning is
+issued).
 */
 {
   an_error_code      error_code = ec_no_error;
