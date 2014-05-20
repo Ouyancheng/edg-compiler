@@ -6986,6 +6986,11 @@ file.
   comment_undefined_macro_name(
                     STATEMENTS_INSERTED_FOR_INLINING_HAVE_INVOCATION_POSITION);
 #endif /* defined(STATEMENTS_INSERTED_FOR_INLINING_HAVE_INVOCATION_POSITION) */
+#if defined(STAT_AVAILABLE)
+  define_numeric_valued_macro(STAT_AVAILABLE);
+#else /* !defined(STAT_AVAILABLE) */
+  comment_undefined_macro_name(STAT_AVAILABLE);
+#endif /* defined(STAT_AVAILABLE) */
 #if defined(STAT_FIRST_PARAM_IS_CONST)
   define_numeric_valued_macro(STAT_FIRST_PARAM_IS_CONST);
 #else /* !defined(STAT_FIRST_PARAM_IS_CONST) */

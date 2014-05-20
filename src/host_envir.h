@@ -3350,6 +3350,22 @@ typedef uint32_t an_ms_dword;
 #endif /* EDG_WIN32 */
 
 /*
+Macro that is TRUE if the stat() library function can be used to get
+inode information.
+*/
+#ifndef STAT_AVAILABLE
+/*
+If we are not on Windows, assume we are on a Unix-like system that supports
+the stat system call if the S_ISDIR or S_IFDIR macro is defined.
+*/
+#if !EDG_WIN32
+#if defined(S_ISDIR) || defined(S_IFDIR)
+#define STAT_AVAILABLE TRUE
+#endif /* defined(S_ISDIR) || defined(S_IFDIR) */
+#endif /* !EDG_WIN32 */
+#endif /* STAT_AVAILABLE */
+
+/*
 Determine if the operating system provides a mechanism to uniquely identify
 a file even in the presence of symbolic and/or hard links (e.g. inode
 information on Unix-like systems).  If such a mechanism is available,
@@ -3374,13 +3390,8 @@ typedef struct a_unique_file_id {
 } a_unique_file_id;
 #define UNIQUE_FILE_IDENTIFIER_AVAILABLE TRUE
 #else /* !EDG_WIN32 */
-/*
-If we are not on Windows, assume we are on a Unix-like system that supports
-the stat system call if the S_ISDIR or S_IFDIR macro is defined.
-*/
-#if defined(S_ISDIR) || defined(S_IFDIR)
+#if STAT_AVAILABLE
 #define UNIQUE_FILE_IDENTIFIER_AVAILABLE TRUE
-#define STAT_AVAILABLE TRUE
 /*
 On systems with the stat structure, the unique file ID information contains
 fields copied from that structure.  The fields have the same name as the
@@ -3392,13 +3403,13 @@ typedef struct a_unique_file_id {
   ino_t		st_ino;
 			/* Unique identifier (inode) within the device. */
 } a_unique_file_id;
-#else /* !(defined(S_ISDIR) || defined(S_IFDIR)) */
+#else /* !STAT_AVAILABLE */
 /*
 Not Windows or a system with the stat structure.
 */
 #define UNIQUE_FILE_IDENTIFIER_AVAILABLE FALSE
 #define STAT_AVAILABLE FALSE
-#endif /* defined(S_ISDIR) || defined(S_IFDIR) */
+#endif /* STAT_AVAILABLE */
 #endif /* EDG_WIN32 */
 #endif /* ifndef UNIQUE_FILE_IDENTIFIER_AVAILABLE */
 
