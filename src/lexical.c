@@ -17982,12 +17982,21 @@ selection operator, in which case it points to the type of the left operand.
          template reference if the symbol points to a class template
          or if the next token is a "<" (which could be a function template
          reference or an error case). */
+      an_identifier_options_set	template_options = options;
       /* Save the original qualifier_sym.  This may be needed later to
          know the name used in the qualifier if the symbol is a template
          template parameter. */
       qualifier_template_sym = qualifier_sym;
-      qualifier_sym = coalesce_template_id(qualifier_sym, next_tok, options,
-                                           &err);
+      if (gpp_mode && follows_template && qualifier_sym != NULL &&
+          symbol_is(qualifier_sym, sk_class_template) &&
+          qualifier_sym->variant.template_info->is_nonreal_member) {
+        /* g++ and clang allow constructs such as "a.template x()", where
+           "a" is a nonreal type.  Allow a missing template argument list
+           for such cases. */
+        template_options |= GID_TEMPLATE_ARGS_OPTIONAL;
+      }  /* if */
+      qualifier_sym = coalesce_template_id(qualifier_sym, next_tok,
+                                           template_options, &err);
       specific_sym = locator_for_curr_id.specific_symbol;
     }  /* if */
     /* See if the identifier is followed by "::".  Note that nex_tok is not

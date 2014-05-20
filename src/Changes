@@ -1,5 +1,17 @@
 Version 4.10
 
+5/20/14  [EDGcpfe/15142]
+GNU and clang C++ compatibility: invalid use of template keyword
+
+g++ and clang allow the template keyword in contexts in which it is not
+permitted, such as the example below where x is not followed by a template
+argument list.  This is now accepted in g++ and clang modes.
+
+  template <class T> void f(T t) {
+    t.template x();
+  }
+
+
 5/20/14  [EDGcpfe/14054]
 Inode-like information now used in include suppression
 
