@@ -1680,6 +1680,31 @@ new fields are set properly.
 }  /* check_operator_function_params */
 
 
+a_boolean is_single_param_operator_new_or_delete(a_symbol_locator *locator,
+                                                 a_type_ptr       type)
+/*
+Return TRUE if the locator is for an operator new or delete and the type
+indicates that it is the default version (i.e., if it has exactly one
+parameter, which elsewhere is confirmed to have type size_t (new) or void*
+(delete).
+*/
+{
+  a_boolean         match = FALSE;
+  a_param_type_ptr  ptp;
+
+  if (locator->is_operator_name &&
+      (is_new_operator(locator->variant.opname) ||
+       is_delete_operator(locator->variant.opname))) {
+    check_assertion(is_function_type(type));
+    ptp = (skip_typerefs(type))->variant.routine.extra_info->param_type_list;
+    if (ptp != NULL && ptp->next == NULL) {
+      match = TRUE;
+    }  /* if */
+  }  /* if */
+  return match;
+}  /* is_single_param_operator_new_or_delete */
+
+
 static void report_bad_new_or_delete(a_symbol_locator    *locator,
                                      a_decl_parse_state  *dps)
 /*
@@ -1718,7 +1743,12 @@ issued).
       severity = strict_ansi_mode ? strict_ansi_error_severity : es_warning;
       error_code = ec_no_internal_linkage_for_new_or_delete;
     }  /* if */
-    if (dps->dso_flags & DSO_INLINE) {
+    if ((dps->dso_flags & DSO_INLINE) && is_function_type(dps->type) &&
+        !dps->is_template_declaration &&
+        is_single_param_operator_new_or_delete(locator, dps->type)) {
+      /* The predefined operators new and delete cannot be declared "inline"
+         (the standard does not require a diagnostic for this; hence, it's
+         just a warning in default mode). */
       pos_diagnostic(strict_ansi_mode ? strict_ansi_error_severity
                                       : es_warning,
                      ec_inline_new_or_delete_operator, &dps->inline_pos);
@@ -2241,31 +2271,6 @@ declaration of this symbol.
   db_exit();
   return(sym);
 }  /* enter_local_symbol */
-
-
-a_boolean is_single_param_operator_new_or_delete(a_symbol_locator *locator,
-                                                 a_type_ptr       type)
-/*
-Return TRUE if the locator is for an operator new or delete and the type
-indicates that it is the default version (i.e., if it has exactly one
-parameter, which elsewhere is confirmed to have type size_t (new) or void*
-(delete).
-*/
-{
-  a_boolean         match = FALSE;
-  a_param_type_ptr  ptp;
-
-  if (locator->is_operator_name &&
-      (is_new_operator(locator->variant.opname) ||
-       is_delete_operator(locator->variant.opname))) {
-    check_assertion(is_function_type(type));
-    ptp = (skip_typerefs(type))->variant.routine.extra_info->param_type_list;
-    if (ptp != NULL && ptp->next == NULL) {
-      match = TRUE;
-    }  /* if */
-  }  /* if */
-  return match;
-}  /* is_single_param_operator_new_or_delete */
 
 
 typedef struct an_id_linkage_block {
