@@ -3330,8 +3330,8 @@ kind indicates which of the above is being processed.
            gpoep = gpoep->next) {}
       if (gpoep != NULL) {
         gpoep->next = avail_gcc_pragma_options_stack_entries;
+        avail_gcc_pragma_options_stack_entries = gcc_pragma_options_stack;
       }  /* if */
-      avail_gcc_pragma_options_stack_entries = gcc_pragma_options_stack;
       gcc_pragma_options_stack = NULL;
       break;
     default:
