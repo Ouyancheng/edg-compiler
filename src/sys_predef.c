@@ -3116,15 +3116,11 @@ result to an allocated area.
        arch++) {
     if (bs & (1<<arch)) {
       arch_name = target_distinction(arch);
-      if (is_first) {
-        is_first = FALSE;
-      } else {
-        if (buff_idx + 1 >= STATIC_BUFFER_SIZE) goto done;
-        buffer[buff_idx++] = '_';
-      }  /* if */
-      if (buff_idx + strlen(arch_name) >= STATIC_BUFFER_SIZE) goto done;
-      (void)strcpy(&buffer[buff_idx], arch_name);
-      buff_idx += strlen(arch_name);
+      is_first = FALSE;
+      check_assertion(buff_idx == 0);
+      if (strlen(arch_name) >= STATIC_BUFFER_SIZE) goto done;
+      (void)strcpy(&buffer[0], arch_name);
+      buff_idx = strlen(arch_name);
       break;
     }  /* if */
   }  /* for */
