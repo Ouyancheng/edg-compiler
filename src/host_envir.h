@@ -3367,7 +3367,7 @@ the stat system call if the S_ISDIR or S_IFDIR macro is defined.
 
 /*
 Determine if the operating system provides a mechanism to uniquely identify
-a file even in the presence of symbolic and/or hard links (e.g. inode
+a file even in the presence of symbolic and/or hard links (e.g., inode
 information on Unix-like systems).  If such a mechanism is available,
 define a structure that can store the identifying information.
 */

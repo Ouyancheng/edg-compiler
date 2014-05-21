@@ -4274,7 +4274,7 @@ of the file name.  Return TRUE if an existing entry was returned.
 					(a_void_ptr)&key_ifh, create);
   ifhp = ifhp_in_table == NULL ? NULL : *ifhp_in_table;
 #if UNIQUE_FILE_IDENTIFIER_AVAILABLE
-  /* If the an entry for the file was not found above, do another search
+  /* If an entry for the file was not found above, do another search
      using the file system's unique identifier (e.g., the inode number
      on Unix-like systems) to search for a previous include. */
   if (ifhp == NULL) {
