@@ -194,6 +194,7 @@ be restored).
     dps->decl_okay_in_constexpr_body = FALSE;
     dps->is_inheriting_ctor = FALSE;
     dps->is_explicit_override = FALSE;
+    dps->is_init_capture = FALSE;
     dps->prefix_attributes = NULL;
     dps->specifier_attributes = NULL;
     dps->tag_attributes = NULL;
@@ -219,6 +220,7 @@ be restored).
 #if EXTRA_SOURCE_POSITIONS_IN_IL
     dps->extra_positions = NULL;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+    dps->next = NULL;
   } else {
     /* Set field values specifically for a secondary declarator. */
     dps->secondary_declarator = TRUE;
@@ -269,6 +271,49 @@ be restored).
   dps->source_sequence_entry = NULL;
   dps->alignment = 0;
 }  /* clear_decl_parse_state_fields */
+
+
+static a_decl_parse_state_ptr
+		avail_decl_parse_states;
+			/* Pointer to state entries available for reuse. */
+
+#if DEBUG
+static unsigned long
+		num_decl_parse_states_allocated = 0;
+#endif /* DEBUG */
+
+
+a_decl_parse_state_ptr alloc_decl_parse_state(void)
+/*
+Allocate a declaration parse state in front end memory, initialize it, and
+return a pointer to it.
+*/
+{
+  a_decl_parse_state_ptr  dps = alloc_fe_of_type(a_decl_parse_state);
+
+  if (avail_decl_parse_states != NULL) {
+    dps = avail_decl_parse_states;
+    avail_decl_parse_states = avail_decl_parse_states->next;
+  } else {
+    dps = alloc_fe_of_type(a_decl_parse_state);
+#if DEBUG
+    ++num_decl_parse_states_allocated;
+#endif /* DEBUG */
+  }  /* if */
+  init_decl_parse_state(dps);
+  return dps;
+}  /* alloc_decl_parse_state */
+
+
+void free_decl_parse_state(a_decl_parse_state_ptr  dps)
+/*
+Return the given declaration parse state entry to the list of available such
+entries.
+*/
+{
+  dps->next = avail_decl_parse_states;
+  avail_decl_parse_states = dps;
+}  /* free_decl_parse_state */
 
 
 static a_decl_parse_callback_ptr
@@ -17770,6 +17815,7 @@ Do one-time initialization of static variables defined in this file.
     static a_pch_saved_variable saved_vars[] = {
       pch_saved_var_array_elem(avail_decl_parse_callbacks),
 #if DEBUG
+      pch_saved_var_array_elem(num_decl_parse_states_allocated),
       pch_saved_var_array_elem(num_decl_parse_callbacks_allocated),
 #endif /* DEBUG */
       pch_saved_var_array_terminating_elem()
@@ -17786,6 +17832,7 @@ initialization for each compilation.
 */
 {
 #if DEBUG
+  num_decl_parse_states_allocated = 0;
   num_decl_parse_callbacks_allocated = 0;
 #endif /* DEBUG */
   avail_decl_parse_callbacks = NULL;
@@ -17803,6 +17850,10 @@ entities.
   unsigned long num, size, total;
 
   db_space_used_header("Declaration parsing:");
+  db_space_used_lost("decl-parse states",
+                     avail_decl_parse_states,
+                     num_decl_parse_states_allocated,
+                     a_decl_parse_state);
   db_space_used_lost("decl-parse callbacks",
                      avail_decl_parse_callbacks,
                      num_decl_parse_callbacks_allocated,

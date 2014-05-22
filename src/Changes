@@ -1,5 +1,29 @@
 Version 4.10
 
+5/22/14  [EDGcpfe/14026,EDGcpfe/14145,EDGcpfe/14384]
+C++14, GNU C++ compatibility: Generalized lambda capture (IL CHANGE)
+
+In C++14 mode, the front end now allows a lambda to capture any initializer
+(in addition to the C++11 feature of simply capturing local variables).  For
+example:
+
+  extern "C" int printf(char const*, ...);
+  int main() {
+    auto x = [x = 42]{ return x+1; };
+    printf("%d\n", x());  // Prints "43\n".
+  }
+
+This kind of capture is known as an "init-capture", and causes the addition of
+a corresponding nonstatic data member in the closure type associated with the
+lambda.
+
+In GNU modes that allow lambda expressions, init-captures are enabled even in
+non-C++14 modes.
+
+The efficient representation of init-captures required moving some existing
+fields of a_lambda_capture to variant sections; this is an IL CHANGE.
+
+
 5/20/14  [EDGcpfe/15142]
 GNU and clang C++ compatibility: invalid use of template keyword
 

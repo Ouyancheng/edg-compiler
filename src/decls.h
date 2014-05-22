@@ -881,6 +881,10 @@ typedef struct a_decl_parse_state {
   a_bit_field	is_explicit_override:1;
 			/* TRUE if this is the declaration of an explicit
 			   overrider (Microsoft mode only). */
+  a_bit_field	is_init_capture:1;
+			/* TRUE if this is a state entry created to track a
+			   C++14-style "init capture" (for a lambda
+			   expression). */
   an_init_state
 		init_state;
 			/* Information about the initializer (if any)
@@ -1032,6 +1036,11 @@ typedef struct a_decl_parse_state {
 			/* A list of positions for various elements of a
 			   declaration that aren't recorded directly in the
 			   corresponding IL entry. */
+  a_decl_parse_state_ptr
+		next;
+			/* For dynamically allocated state entries that have
+			   been freed, the next entry of the available entries
+			   list. */
 } a_decl_parse_state;
 
 
@@ -1049,6 +1058,10 @@ argument.
   (ps)->start_pos = pos_curr_token;                                          \
   (ps)->init_state.decl_parse_state = (ps);                                  \
 }
+
+extern a_decl_parse_state_ptr alloc_decl_parse_state(void);
+
+extern void free_decl_parse_state(a_decl_parse_state_ptr  dps);
 
 /*
 Macro to record in a parsing state that a type error was encountered.

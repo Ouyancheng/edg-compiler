@@ -403,13 +403,14 @@ swallowed); otherwise, it's "="-form or "{...}" form.
   an_init_component_ptr icp;
   a_type_ptr            undeduced_type, deduced_auto_type;
   a_boolean             still_dependent;
-  a_boolean             is_full_expr = !dps->is_new_expr_type;
+  a_boolean             is_full_expr = !dps->is_new_expr_type &&
+                                       !dps->is_init_capture;
 
   check_assertion(dps->auto_type_specifier_seen && dps->auto_type != NULL);
   /* Usually an initializer is a full expression and we must push an entry
      on the expression stack.  However, the initializer for a new-expression
-     is not a full expression and a stack entry will already have been
-     pushed in that case. */
+     or a lambda-capture is not a full expression and a stack entry will
+     already have been pushed in that case. */
   if (is_full_expr) {
     if (dps->in_class_scope) {
       /* In-class initializers are only valid for static const data members of
@@ -501,10 +502,12 @@ swallowed); otherwise, it's "="-form or "{...}" form.
   }  /* if */
   if (dps->sym != NULL) {
     /* Update the type in the IL entry. */
-    if (dps->sym->kind == (a_symbol_kind)sk_variable) {
+    if (symbol_is(dps->sym, sk_variable)) {
       dps->sym->variant.variable.ptr->type = dps->type;
-    } else if (dps->sym->kind == (a_symbol_kind)sk_static_data_member) {
+    } else if (symbol_is(dps->sym, sk_static_data_member)) {
       dps->sym->variant.static_data_member.variable->type = dps->type;
+    } else if (dps->is_init_capture) {
+      /* No IL entry has been created yet: Nothing to do. */
     } else {
       unexpected_condition();
     }  /* if */
@@ -27501,70 +27504,73 @@ Return TRUE if we are currently in the header (not the body) of a lambda.
 }  /* in_lambda_header */
 
 
-a_scope_depth scope_depth_for_local_variable_capture(
-                                                a_variable_ptr var,
-                                                a_scope_depth  starting_depth,
-                                                a_lambda_ptr   *lambda)
+static a_scope_depth get_innermost_closure_scope_depth(void)
 /*
-var is a local variable that is being captured in the body of the
-current lambda, either explicitly because of its appearance in the
-capture list, or implicitly because of a reference within a lambda
-that allows implicit captures.  The caller has already checked that
-var is not a local variable inside the current lambda (which would be
-referenced directly and does not need to be captured).  Find the scope
-depth of the scope in which the variable is captured, and return it.
-If the reference is not valid, because the variable is declared in a
-scope from which it can't be captured, return NO_SCOPE_DEPTH.  On an
-initial call, starting_depth should be NO_SCOPE_DEPTH.
+Return the scope depth of the innermost closure class being defined.  The
+caller is responsible for ensuring there is such a closure class.
+*/
+{
+  a_scope_depth sd = depth_scope_stack;
 
-With "lambda" non-NULL, this function can be called in a loop to find
-and return each of the lambdas between the current context and the
-scope where the variable appears.  The initial call with
-starting_depth passed as NO_SCOPE_DEPTH will return *lambda pointing
-to the innermost current lambda, and the return value will be the
-depth at which the capture occurs (the scope that immediately
-encloses that lambda).  The depth returned should be passed as
-starting_depth for the next call, which will then find the next
-lambda and capture depth.  The loop terminates when *lambda is
-returned NULL; the returned depth in that case is the scope depth 
-of the variable, or NULL if the variable was not found.
+  for (;;) {
+    check_assertion(sd > DEPTH_OF_FILE_SCOPE);
+    if (scope_is(&scope_stack[sd], sck_class_struct_union) &&
+        class_type_supp(scope_stack[sd].assoc_type)->is_lambda_closure_class) {
+      break;
+    }  /* if */
+    sd = scope_stack[sd].previous_scope;
+  }  /* for */
+  return sd;
+}  /* get_innermost_closure_scope_depth */
 
-Note that lambdas of which we are in the header are ignored; a
-reference in the header of a lambda is made in the surrounding
-context, and does not provoke a capture of the variable, so that
-lambda is never returned as a capture spot.  Among other things,
-that means that an initial call with starting_depth passed as
-NO_SCOPE_DEPTH could return *lambda NULL if we're currently in
-the header of a lambda.
+
+a_scope_depth scope_depth_for_capture(a_variable_ptr var,
+                                      a_scope_depth  starting_depth,
+                                      a_lambda_ptr   *lambda)
+/*
+A local variable or an init-capture field is being captured by the current
+lambda, either explicitly because of its appearance in the capture list, or
+implicitly because of a reference within a lambda that allows implicit
+captures.  In the variable case, var describes that variable (which may be
+a "this" parameter) and the caller has already checked that it is not a local
+variable inside the current lambda (which would be referenced directly and
+does not need to be captured).  Find the scope depth of the scope in which the
+variable or field is captured, and return it.  Return NO_SCOPE_DEPTH if the
+reference is not valid because it is for a variable declared in a scope from
+which it can't be captured.
+
+With "lambda" non-NULL, this function can be called in a loop to find and
+return each of the lambdas between the current context and the scope where the
+variable appears.  The initial call with starting_depth passed as
+NO_SCOPE_DEPTH will return *lambda pointing to the innermost current lambda,
+and the return value will be the depth at which the capture occurs (the scope
+that immediately encloses that lambda).  The depth returned should be passed
+as starting_depth for the next call, which will then find the next lambda and
+capture depth.  The loop terminates when *lambda is returned NULL; the
+returned depth in that case is the scope depth of the captured entity.
+
+Note that lambdas of which we are in the header are ignored; a reference in
+the header of a lambda is made in the surrounding context, and does not
+provoke a capture of the variable or field, so that lambda is never returned
+as a capture spot.  Among other things, that means that an initial call with
+starting_depth passed as NO_SCOPE_DEPTH could return *lambda NULL if we're
+currently in the header of a lambda.
 */
 {
   a_scope_depth sd = starting_depth;
 
   if (lambda != NULL) *lambda = NULL;
   if (sd == NO_SCOPE_DEPTH) {
-    /* Initial call.  Start at the current top of stack. */
-    sd = depth_scope_stack;
-    /* Find the innermost lambda, the current one, on the scope stack. */
-    /* If we're inside a lambda header, we're already at the right place,
-       because the closure class will not have been pushed yet. */
+    /* Initial call. */
+    /* Find the scope enclosing the innermost lambda on the scope stack.  If
+       we're inside a lambda header, we're already at the right place, because
+       the closure class will not have been pushed yet. */
     if (!in_lambda_header()) {
-      /* Go up through scopes looking for the entry for the innermost
-         lambda.  Among other things, this skips function prototype scopes
-         that might be present because of block externs.  (We don't get
-         here if we're inside a lambda header, so those prototype scopes
-         aren't skipped here; they're skipped below.) */
-      for (; ; sd = scope_stack[sd].previous_scope) {
-        check_assertion(sd > DEPTH_OF_FILE_SCOPE);
-        if (scope_stack[sd].kind == (a_scope_kind)sck_class_struct_union) {
-          a_type_ptr class_type = scope_stack[sd].assoc_type;
-          /* Keep going if we're in a local class of the lambda. */
-          if (class_type_supp(class_type)->is_lambda_closure_class) break;
-        }  /* if */
-      }  /* for */
+      sd = get_innermost_closure_scope_depth();
       if (lambda != NULL) {
         /* Report the innermost lambda and capture depth to the caller. */
         check_assertion(sd+1 <= depth_scope_stack &&
-                        scope_stack[sd+1].kind == (a_scope_kind)sck_function &&
+                        scope_is(&scope_stack[sd+1], sck_function) &&
                         scope_stack[sd+1].lambda != NULL);
         *lambda = scope_stack[sd+1].lambda;
         /* The next call should pick up at the scope immediately enclosing the
@@ -27573,6 +27579,8 @@ the header of a lambda.
         goto done;
       }  /* if */
       sd--;
+    } else {
+      sd = depth_scope_stack;
     }  /* if */
     /* sd is now the scope depth immediately surrounding the innermost
        lambda. */
@@ -27580,13 +27588,14 @@ the header of a lambda.
 look_for_var:
   /* Skip any function prototype scopes from lambda headers or
      block externs. */
-  for (;
-       scope_stack[sd].kind == (a_scope_kind)sck_func_prototype;
-       sd--) {}
-  /* Look at the block and function scopes immediately enclosing the
-     lambda class to see if the variable is declared there. */
+  for (; scope_is(&scope_stack[sd], sck_func_prototype); sd--) {
+  }  /* for */
+  /* Look at the block and function scopes immediately enclosing the lambda
+     class to see if the variable is declared there.  If we're looking for an
+     init-capture just skip local scopes. */
   for (; is_local_scope_kind(scope_stack[sd].kind); sd--) {
-    if (scope_stack[sd].il_scope == var->source_corresp.parent_scope) {
+    if (var != NULL &&
+        scope_stack[sd].il_scope == var->source_corresp.parent_scope) {
       /* The variable is in an appropriate scope and can be captured. */
       goto done;
     }  /* if */
@@ -27594,14 +27603,14 @@ look_for_var:
   /* We didn't find the variable in the immediately enclosing function.
      If we've bumped into an intermediate lambda, handle that and if
      appropriate keep looking. */
-  if (scope_stack[sd].kind == (a_scope_kind)sck_class_struct_union) {
+  if (scope_is(&scope_stack[sd], sck_class_struct_union)) {
     a_type_ptr class_type = scope_stack[sd].assoc_type;
     if (class_type_supp(class_type)->is_lambda_closure_class) {
       /* This is an intermediate lambda. */
       if (lambda != NULL) {
         /* Report the intermediate lambda to the caller. */
         check_assertion(sd+1 <= depth_scope_stack &&
-                        scope_stack[sd+1].kind == (a_scope_kind)sck_function &&
+                        scope_is(&scope_stack[sd+1], sck_function) &&
                         scope_stack[sd+1].lambda != NULL);
         *lambda = scope_stack[sd+1].lambda;
         /* The next call should pick up at the scope immediately enclosing the
@@ -27617,9 +27626,9 @@ look_for_var:
   }  /* if */
   /* We've failed to find the variable, so this reference is invalid. */
   sd = NO_SCOPE_DEPTH;
-done:;
+done:
   return sd;
-}  /* scope_depth_for_local_variable_capture */
+}  /* scope_depth_for_capture */
 
 
 static a_boolean var_declared_in_func_enclosing_curr_lambda(a_variable_ptr var)
@@ -27631,7 +27640,7 @@ conditions for being able to capture the variable.
 {
   a_boolean result = FALSE;
 
-  if (scope_depth_for_local_variable_capture(
+  if (scope_depth_for_capture(
                 var, NO_SCOPE_DEPTH, (a_lambda_ptr *)NULL) != NO_SCOPE_DEPTH) {
     result = TRUE;
   }  /* if */
@@ -27727,7 +27736,7 @@ aren't allowed to capture variables from the surrounding function.)
        an implicit capture will occur, checking each to see if it is
        immediately within a default argument expression. */
     for (;;) {
-      sd = scope_depth_for_local_variable_capture(var, sd, &lambda);
+      sd = scope_depth_for_capture(var, sd, &lambda);
       if (lambda == NULL) break;
       if (symbol_for(lambda->closure_class)->variant.class_struct_union.
                 extra_info->lambda_immediately_inside_default_arg_expression) {
@@ -28203,6 +28212,7 @@ if rescan_is_template_id is TRUE, and return the result in *operand
   a_token_kind       ntoken = tok_error;
   a_ref_entry_ptr    rep;
   an_operand         this_pointer_operand;
+  a_boolean          this_operand_set = FALSE;
   a_type_ptr         qual_class_type;
   a_boolean          err = FALSE, is_ptr_to_member_context;
   a_boolean          force_indefinite_function = FALSE;
@@ -28615,6 +28625,36 @@ normal_function:
              member (field) is the same as "this->field".  Or, a field
              could be a member of an unnamed union at file scope or in
              a block. */
+          if (sym_ptr->variant.field.ptr->is_init_capture) {
+            /* We found an init-capture.  Therefore, we must be in a lambda
+               body. */
+            a_lambda_capture_ptr lcp;
+            a_variable_ptr       this_var;
+            /* Create a "this" operand explicitly (the ordinary path ignores
+               closure types). */
+            this_var = this_variable_for_lambda_closure();
+            make_expression_operand(var_rvalue_expr(this_var),
+                                    &this_pointer_operand);
+            this_operand_set = TRUE;
+            /* If one or more intermediate lambdas captured that init-capture
+               switch to the field corresponding to the innermost capture.  In
+               the case of implicit captures, that field may have to be created
+               first. */
+            lcp = lambda_capture_for_init_capture(sym_ptr->variant.field.ptr,
+                                                  &locator.source_position);
+            if (lcp == NULL) {
+              /* The init-capture could not be captured.  An error has already
+                 been issued. */
+              expect_error();
+              make_error_operand(result);
+              change_refs_to_error(rep);
+              rep = NULL;
+              break;
+            } else {
+              sym_ptr = symbol_for(lcp->closure_field);
+              locator.specific_symbol = sym_ptr;
+            }  /* if */
+          }  /* if */
           /* See whether nonstandard folding of a constant field selection
              is allowed. */
           nonstd_field_folding_case = FALSE;
@@ -28704,6 +28744,7 @@ normal_function:
                 expr_stack->objectless_nonstatic_data_ref_pos =
                                                        locator.source_position;
                 is_objectless_nonstatic_data_mem_ref = TRUE;
+                this_operand_set = TRUE;
                 if (sun_mode || cpp11_mode ||
                     (microsoft_mode && microsoft_version >= 1600 &&
                      rcblock == NULL) ||
@@ -28721,10 +28762,10 @@ normal_function:
                                       ec_member_ref_requires_object,
                                       &locator.source_position);
                 }  /* if */
-                goto do_selection;
               }  /* if */
               /* Make an operand for the "this" pointer. */
-              if (make_this_pointer_operand(sym_ptr,
+              if (this_operand_set ||
+                  make_this_pointer_operand(sym_ptr,
                                             projection_sym_ptr,
                                             &locator.source_position,
                                             (a_boolean)locator.
@@ -28733,7 +28774,6 @@ normal_function:
                 /* Do the field selection relative to the "this" pointer. */
                 /* Extract the possibly qualified version of the class type
                    pointed to. */
-do_selection:
                 qual_class_type = type_pointed_to(this_pointer_operand.type);
                 do_field_selection_operation(&this_pointer_operand,
                                              qual_class_type,
@@ -29937,6 +29977,7 @@ fields of the closure object.  Return a pointer to the dynamic init entry.
   a_lambda_capture_ptr lcp;
   a_dynamic_init_ptr   aggr_dip;
   a_constant_ptr       aggr_con;
+  a_boolean            nonconstant = FALSE;
 
   /* The overall initializer is a dynamic aggregate initializer usually,
      but we don't allocate the ck_aggregate until we hit the first capture
@@ -29944,8 +29985,6 @@ fields of the closure object.  Return a pointer to the dynamic init entry.
   aggr_con = NULL;
   /* Loop through each capture on the lambda's list. */
   for (lcp = lambda->capture_list; lcp != NULL; lcp = lcp->next) {
-    a_variable_ptr     var = lcp->variable;
-    a_symbol_ptr       var_sym = symbol_for(var);
     a_type_ptr         dest_type = lcp->closure_field->type;
     a_type_ptr         base_dest_type;
     a_ref_entry_ptr    rep = NULL;
@@ -29958,133 +29997,161 @@ fields of the closure object.  Return a pointer to the dynamic init entry.
     a_boolean          err = FALSE;
     a_boolean          array_case = FALSE;
     a_source_position  *capture_pos = &lcp->position;
-    /* Watch out for "this", which has no associated symbol. */
-    if (var_sym != NULL) rep = ref_entry(var_sym, capture_pos);
-    if (lcp->source_closure_field == NULL) {
-      /* Normal case. */
-      make_lvalue_variable_operand(var,
-                                   capture_pos,
-                                   &null_source_position,
-                                   &operand,
-                                   rep);
+    if (lcp->is_init_capture) {
+      /* A C++14-style init-capture. */
+      an_init_state  is;
+      clear_init_state(&is);
+      is.no_diagnostics = TRUE;
+      init_con = aggr_init_constant_from_field_initializer(
+                               lcp->closure_field, lcp->captured.initializer,
+                               lambda->closure_class, &is, capture_pos);
+      if (is.has_dynamic_init_component) {
+        nonconstant = TRUE;
+        if (exceptions_enabled &&
+            init_con->variant.dynamic_init->destructor != NULL) {
+          /* Make sure that an exception during a later capture cleans up this
+             one. */
+          record_partial_aggregate_cleanup_destruction(
+                                               init_con->variant.dynamic_init,
+                                               curr_expr_is_evaluated());
+        }  /* if */
+      }  /* if */
+      check_assertion_or_expect_error(!is.init_error);
     } else {
-      /* The variable is reachable because it has been captured by an
-         intervening enclosing lambda, so the copy is from the corresponding
-         field of that lambda's closure class. */
-      a_field_ptr      source_field = lcp->source_closure_field;
-      an_expr_node_ptr this_expr = this_param_value_expr();
-      an_expr_node_ptr field_sel;
-      if (is_any_reference_type(source_field->type)) {
-        field_sel = field_rvalue_selection_expr(this_expr, source_field);
-        field_sel = add_ref_indirection_to_node(field_sel);
+      /* A simple capture. */
+      a_variable_ptr  var = lcp->captured.variable;
+      a_field_ptr     source_field = lcp->capture_info.source_closure_field;
+      if (var != NULL) {
+        /* Watch out for "this", which has no associated symbol. */
+        a_symbol_ptr  var_sym = symbol_for(var);
+        if (var_sym != NULL) rep = ref_entry(var_sym, capture_pos);
+      }  /* if */
+      if (source_field == NULL) {
+        /* Normal case. */
+        make_lvalue_variable_operand(var,
+                                     capture_pos,
+                                     &null_source_position,
+                                     &operand,
+                                     rep);
       } else {
-        field_sel = field_lvalue_selection_expr(this_expr, source_field);
+        /* The variable is reachable because it has been captured by an
+           intervening enclosing lambda, so the copy is from the corresponding
+           field of that lambda's closure class. */
+        an_expr_node_ptr this_expr = this_param_value_expr();
+        an_expr_node_ptr field_sel;
+        if (is_any_reference_type(source_field->type)) {
+          field_sel = field_rvalue_selection_expr(this_expr, source_field);
+          field_sel = add_ref_indirection_to_node(field_sel);
+        } else {
+          field_sel = field_lvalue_selection_expr(this_expr, source_field);
+        }  /* if */
+        make_glvalue_expression_operand(field_sel, &operand);
+        /* Now that we've gotten what we need from the variable pointer, clear
+           it because it's a memory-region issue. */
+        lcp->captured.variable = NULL;
       }  /* if */
-      make_glvalue_expression_operand(field_sel, &operand);
-      /* Now that we've gotten what we need from the variable pointer, clear
-         it because it's a memory-region issue. */
-      lcp->variable = NULL;
-    }  /* if */
-    /* See whether the copy is of a class type or array of class type. */
-    base_dest_type = dest_type;
-    if (is_array_type(dest_type)) {
-      base_dest_type = underlying_array_element_type(dest_type);
-      array_case = TRUE;
-    }  /* if */
-    if (is_class_struct_union_type(base_dest_type)) {
-      /* Find the proper copy constructor for copying a class object or an
-         element of an array of class objects. */
-      a_type_ptr dest_class_type = skip_typerefs(base_dest_type);
-      cctor_routine = expr_select_copy_constructor(
-                                dest_class_type,
-                                get_type_qualifiers(operand.type),
-                                /*source_is_rvalue=*/FALSE,
-                                capture_pos,
-                                &do_bitwise_copy,
-                                /*record_ref=*/TRUE);
-      if (cctor_routine == NULL && !do_bitwise_copy) {
-        /* An error was detected and diagnosed. */
-        err = TRUE;
-      } else if (exceptions_enabled) {
-        /* Exceptions are enabled, so see if a destructor is needed
-           to destroy previous captured copies if a throw is done part-way
-           through the captures.  Note that this can apply even if the
-           initialization is done by a bitwise copy. */
-        dtor_routine = expr_select_destructor(dest_class_type,
-                                              dest_class_type,
-                                              capture_pos,
-                                              /*honor_virtual=*/FALSE);
+      /* See whether the copy is of a class type or array of class type. */
+      base_dest_type = dest_type;
+      if (is_array_type(dest_type)) {
+        base_dest_type = underlying_array_element_type(dest_type);
+        array_case = TRUE;
       }  /* if */
-    } else if (array_case) {
-      /* For a non-class array, do a bitwise copy. */
-      do_bitwise_copy = TRUE;
-    }  /* if */
-    /* Build the dynamic initialization entry. */
-    if (err) {
-      /* Some previous error. */
-      dip = alloc_expr_dynamic_init((a_dynamic_init_kind)dik_none);
-      array_case = FALSE;
-    } else if (do_bitwise_copy) {
-      /* The copy is a bitwise copy.  Use a dik_bitwise_copy dynamic init
-         entry.  The source is implied. */
-      dip = alloc_expr_dynamic_init((a_dynamic_init_kind)dik_bitwise_copy);
-      /* For arrays, the bitwise copy can handle the whole array so no
-         ck_init_repeat is needed. */
-      array_case = FALSE;
-    } else if (cctor_routine != NULL) {
-      /* The copy uses a copy constructor.  Use a dik_constructor dynamic
-         init entry with an implied source. */
-      dip = alloc_expr_ctor_dynamic_init(cctor_routine,
-                                         (an_expr_node_ptr)NULL,
-                                         dest_type,
-                                         /*add_default_args=*/TRUE,
-                                         /*implied_source=*/TRUE,
-                                         /*value_init=*/FALSE,
-                                         /*sequenced_args=*/FALSE,
-                                         /*fold_constexpr=*/TRUE,
-                                         capture_pos);
-    } else {
-      /* Other cases, including when dest_type is a reference (which happens
-         when the capture is by reference). */
-      check_assertion(!array_case);
-      prep_initializer_operand(&operand,
-                               dest_type,
-                               (a_boolean *)NULL,
-                               (a_conv_descr_ptr)NULL,
-                               /*is_copy_initialization=*/TRUE,
-                               CCO_DEFAULT,
-                               ec_captured_var_type_not_copyable);
-      dip = alloc_expr_dynamic_init((a_dynamic_init_kind)dik_expression);
-      dip->variant.expression = make_node_from_operand(&operand);
-    }  /* if */
-    if (dtor_routine != NULL) {
-      /* Indicate a destructor to be called for cleanup if an exception is
-         thrown part-way through the captures. */
-      dip->destructor = dtor_routine;
-      record_partial_aggregate_cleanup_destruction(dip,
-                                                   curr_expr_is_evaluated());
-    }  /* if */
-    if (array_case) {
-      /* To repeat the initialization for each element of an array,
-         add ck_init_repeat/ck_dynamic_init. */
-      dip = add_array_nonconstant_aggregate_init_computing_size(
+      if (is_class_struct_union_type(base_dest_type)) {
+        /* Find the proper copy constructor for copying a class object or an
+           element of an array of class objects. */
+        a_type_ptr dest_class_type = skip_typerefs(base_dest_type);
+        cctor_routine = expr_select_copy_constructor(
+                                  dest_class_type,
+                                  get_type_qualifiers(operand.type),
+                                  /*source_is_rvalue=*/FALSE,
+                                  capture_pos,
+                                  &do_bitwise_copy,
+                                  /*record_ref=*/TRUE);
+        if (cctor_routine == NULL && !do_bitwise_copy) {
+          /* An error was detected and diagnosed. */
+          err = TRUE;
+        } else if (exceptions_enabled) {
+          /* Exceptions are enabled, so see if a destructor is needed
+             to destroy previous captured copies if a throw is done part-way
+             through the captures.  Note that this can apply even if the
+             initialization is done by a bitwise copy. */
+          dtor_routine = expr_select_destructor(dest_class_type,
+                                                dest_class_type,
+                                                capture_pos,
+                                                /*honor_virtual=*/FALSE);
+        }  /* if */
+      } else if (array_case) {
+        /* For a non-class array, do a bitwise copy. */
+        do_bitwise_copy = TRUE;
+      }  /* if */
+      /* Build the dynamic initialization entry. */
+      if (err) {
+        /* Some previous error. */
+        dip = alloc_expr_dynamic_init((a_dynamic_init_kind)dik_none);
+        array_case = FALSE;
+      } else if (do_bitwise_copy) {
+        /* The copy is a bitwise copy.  Use a dik_bitwise_copy dynamic init
+           entry.  The source is implied. */
+        dip = alloc_expr_dynamic_init((a_dynamic_init_kind)dik_bitwise_copy);
+        /* For arrays, the bitwise copy can handle the whole array so no
+           ck_init_repeat is needed. */
+        array_case = FALSE;
+      } else if (cctor_routine != NULL) {
+        /* The copy uses a copy constructor.  Use a dik_constructor dynamic
+           init entry with an implied source. */
+        dip = alloc_expr_ctor_dynamic_init(cctor_routine,
+                                           (an_expr_node_ptr)NULL,
+                                           dest_type,
+                                           /*add_default_args=*/TRUE,
+                                           /*implied_source=*/TRUE,
+                                           /*value_init=*/FALSE,
+                                           /*sequenced_args=*/FALSE,
+                                           /*fold_constexpr=*/TRUE,
+                                           capture_pos);
+      } else {
+        /* Other cases, including when dest_type is a reference (which happens
+           when the capture is by reference). */
+        check_assertion(!array_case);
+        prep_initializer_operand(&operand,
+                                 dest_type,
+                                 (a_boolean *)NULL,
+                                 (a_conv_descr_ptr)NULL,
+                                 /*is_copy_initialization=*/TRUE,
+                                 CCO_DEFAULT,
+                                 ec_captured_var_type_not_copyable);
+        dip = alloc_expr_dynamic_init((a_dynamic_init_kind)dik_expression);
+        dip->variant.expression = make_node_from_operand(&operand);
+      }  /* if */
+      if (dtor_routine != NULL) {
+        /* Indicate a destructor to be called for cleanup if an exception is
+           thrown part-way through the captures. */
+        dip->destructor = dtor_routine;
+        record_partial_aggregate_cleanup_destruction(dip,
+                                                     curr_expr_is_evaluated());
+      }  /* if */
+      if (array_case) {
+        /* To repeat the initialization for each element of an array,
+           add ck_init_repeat/ck_dynamic_init. */
+        dip = add_array_nonconstant_aggregate_init_computing_size(
                                                  dip,
                                                  dest_type,
                                                  (a_routine_ptr)NULL);
                                                      /* sic: dtor set above. */
+      }  /* if */
+      /* Wrap the dynamic init in a ck_dynamic_init constant that will go into
+         the aggregate. */
+      init_con = alloc_constant((a_constant_repr_kind)ck_dynamic_init);
+      init_con->type = dest_type;
+      init_con->variant.dynamic_init = dip;
+      nonconstant = TRUE;
     }  /* if */
-    /* Wrap the dynamic init in a ck_dynamic_init constant that will go into
-       the aggregate. */
-    init_con = alloc_constant((a_constant_repr_kind)ck_dynamic_init);
-    init_con->type = dest_type;
-    init_con->variant.dynamic_init = dip;
     /* Add the initialization to the aggregate being built up.  Allocate the
-       aggregate if this is the first capture. */
-    if (aggr_con == NULL) {
-      aggr_con = alloc_constant((a_constant_repr_kind)ck_aggregate);
-      aggr_con->type = lambda->closure_class;
-    }  /* if */
-    add_constant_to_aggregate(init_con, aggr_con);
+        aggregate if this is the first capture. */
+     if (aggr_con == NULL) {
+       aggr_con = alloc_constant((a_constant_repr_kind)ck_aggregate);
+       aggr_con->type = lambda->closure_class;
+     }  /* if */
+     add_constant_to_aggregate(init_con, aggr_con);
   }  /* for */
   /* Make a dynamic initializer for the aggregate.  If no initialization
      is needed, make a dik_none dynamic init. */
@@ -30092,7 +30159,9 @@ fields of the closure object.  Return a pointer to the dynamic init entry.
     aggr_dip = alloc_expr_dynamic_init((a_dynamic_init_kind)dik_none);
   } else {
     aggr_dip = alloc_expr_dynamic_init(
-                               (a_dynamic_init_kind)dik_nonconstant_aggregate);
+                         nonconstant ?
+                              (a_dynamic_init_kind)dik_nonconstant_aggregate :
+                              (a_dynamic_init_kind)dik_constant);
     set_dynamic_init_constant(aggr_dip, aggr_con);
   }  /* if */
   /* Add a destruction for the closure object if appropriate (i.e., if any
@@ -30115,6 +30184,7 @@ Scan a C++ lambda expression, e.g., something like
 */
 {
   a_lambda_ptr        lambda;
+  a_lambda_capture    *lcp;
   a_source_position   start_pos;
   a_boolean           err = FALSE;
   an_expr_stack_entry expr_stack_entry;
@@ -30165,6 +30235,17 @@ Scan a C++ lambda expression, e.g., something like
   pop_expr_stack();
   set_operand_position(result, &start_pos, &curr_construct_end_position,
                        &start_pos);
+  if (lambda != NULL) {
+    /* Free the declaration parse states associated with init-captures.
+       Also, make the associated fields invisible. */
+    for (lcp = lambda->capture_list; lcp != NULL; lcp = lcp->next) {
+      if (lcp->is_init_capture) {
+        free_decl_parse_state(lcp->capture_info.init_capture_dps);
+        lcp->capture_info.init_capture_dps = NULL;
+        symbol_for(lcp->closure_field)->is_invisible = TRUE;
+      }  /* if */
+    }  /* if */
+  }  /* if */
 }  /* scan_lambda_expression */
 
 

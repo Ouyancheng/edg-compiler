@@ -3524,8 +3524,15 @@ after_entry_from_class:
     case iek_lambda_capture:
       { a_lambda_capture_ptr  ptr = (a_lambda_capture_ptr)entry_ptr;
         remap_next_ptr(ptr->next, a_lambda_capture_ptr, iek_lambda_capture);
-        remap_ptr(ptr->variable, a_variable_ptr, iek_variable);
-        remap_ptr(ptr->source_closure_field, a_field_ptr, iek_field);
+        if (ptr->is_init_capture) {
+          walk_ptr(ptr->captured.initializer, a_dynamic_init_ptr,
+                   iek_dynamic_init);
+          conditionally_clear_fe_pointer(ptr->capture_info.init_capture_dps);
+        } else {
+          remap_ptr(ptr->captured.variable, a_variable_ptr, iek_variable);
+          remap_ptr(ptr->capture_info.source_closure_field, a_field_ptr,
+                    iek_field);
+        }  /* if */
         remap_ptr(ptr->closure_field, a_field_ptr, iek_field);
       }
       break;

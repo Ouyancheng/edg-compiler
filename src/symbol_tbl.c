@@ -3929,7 +3929,7 @@ hdr_ptr == NULL indicates that an error symbol should be constructed.
   sym_ptr->header = hdr_ptr;
   /* Set the declaration source position. */
   sym_ptr->decl_position = *position;
-}  /* alloc_symbol */
+}  /* init_symbol */
 
 
 a_symbol_ptr alloc_symbol(a_symbol_kind       kind,

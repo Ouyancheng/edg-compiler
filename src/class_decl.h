@@ -181,6 +181,10 @@ extern a_lambda_capture_ptr lambda_capture_for_variable(
                                           a_source_position_ptr  pos,
                                           a_boolean              *rvalue_only);
 
+extern a_lambda_capture_ptr lambda_capture_for_init_capture(
+                                                   a_field_ptr            fp,
+                                                   a_source_position_ptr  pos);
+
 #if MICROSOFT_EXTENSIONS_ALLOWED
 #if GENERATE_SOURCE_SEQUENCE_LISTS
 #if TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS

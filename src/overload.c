@@ -10272,7 +10272,7 @@ or ambiguity.)
 }  /* this_exists_for_member_access */
 
 
-static a_variable_ptr this_variable_for_lambda_closure(void)
+a_variable_ptr this_variable_for_lambda_closure(void)
 /*
 We're currently inside a lambda body.  Return a pointer to the "this" variable
 for the lambda closure class, which is used among other things to access the
@@ -10426,6 +10426,13 @@ wondering if it's available.
     expr_pos_error(ec_expr_not_constant, member_pos);
     make_error_operand(result);
     okay = FALSE;
+  } else if (symbol_is(member_sym, sk_field) &&
+             member_sym->variant.field.ptr->is_init_capture) {
+    an_expr_node_ptr  lambda_this;
+    this_var = this_variable_for_lambda_closure();
+    lambda_this = var_rvalue_expr(this_var);
+    make_expression_operand(lambda_this, result);
+    okay = TRUE;
   } else {
     /* See if a "this" pointer exists and can be used. */
     if (!variable_this_exists(&this_var, &this_type)) {

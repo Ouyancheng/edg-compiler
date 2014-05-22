@@ -1186,28 +1186,33 @@ given position, unless is->no_diagnostics is TRUE.
 }  /* default_nontrivial_init_constant_for_aggr_member */
 
 
-static a_constant_ptr aggr_init_constant_from_field_initializer(
+a_constant_ptr aggr_init_constant_from_field_initializer(
                                                  a_field_ptr        fp,
+                                                 a_dynamic_init     *dip,
                                                  a_type_ptr         aggr_type,
                                                  an_init_state      *is,
                                                  a_source_position  *diag_pos)
 /*
-The given field (member of the given aggregate class type) has a field
-initializer.  Return a constant corresponding to that initializer for
-insertion in an aggregate initialization described by *is.  Issue any
-diagnostics at the given position.
+The given field (member of the given class type) has an associated initializer
+given described by *dip.  (The initializer is either fp->initializer in the
+case of a C++11-style field initializer, or it is the initializer associated
+with a C++14-style init-capture.)  Return a constant corresponding to that
+initializer for insertion in an aggregate initialization described by *is.
+Issue any diagnostics at the given position.
 */
 {
-  a_dynamic_init_ptr  dip;
   a_constant_ptr      elem_con = NULL;
   a_constant          folded_value;
 
-  check_assertion(fp->has_initializer);
-  scan_field_initializer_if_needed(fp, aggr_type);
-  dip = fp->initializer;
+  if (fp->has_initializer) {
+    scan_field_initializer_if_needed(fp, aggr_type);
+  } else {
+    check_assertion(fp->is_init_capture);
+  }  /* if */
   if (dip == NULL) {
     /* This can happen when a field initializer depends on a generated
        default constructor that depends itself on the field initializer. */
+    check_assertion(fp->has_initializer);
     is->init_error = TRUE;
     if (!is->no_diagnostics) {
       pos_ty_error(
@@ -1223,8 +1228,8 @@ diagnostics at the given position.
     check_assertion(is->init_error && is->check_validity_only);
   } else if (fold_constexpr_dynamic_init(dip, fp->type, diag_pos,
                                          &folded_value)) {
-    /* Append a copy of the constant. */
     if (!is->check_validity_only) {
+      /* Return a copy of the constant. */
       elem_con = alloc_unshared_constant(&folded_value);
     }  /* if */
   } else {
@@ -1294,7 +1299,8 @@ is->no_diagnostics is TRUE.
       /* A field with an initializer was found.  Make an initializer element
          from the field initializer. */
       a_constant_ptr  con;
-      con = aggr_init_constant_from_field_initializer(fp, tp, is, diag_pos);
+      con = aggr_init_constant_from_field_initializer(
+                                       fp, fp->initializer, tp, is, diag_pos);
       if (!is->check_validity_only) {
         if (fp != first_field) {
           /* Add a designator to indicate the field to initialize. */
@@ -2275,7 +2281,7 @@ position for which diagnostics should be issued.
       a_constant_ptr  init_con = NULL;
       if (fp->has_initializer) {
         init_con = aggr_init_constant_from_field_initializer(
-                                                 fp, aggr_type, is, diag_pos);
+                                fp, fp->initializer, aggr_type, is, diag_pos);
       } else {
         if (ftp->kind == (a_type_kind)tk_array) {
           atp = ftp;
@@ -4606,7 +4612,9 @@ field declaration and dtype is the type of the field.
 void field_initializer(a_decl_parse_state  *dps)
 /*
 Scan an initializer for the field described by dps->sym and record it in the
-IL entry for that field.
+IL entry for that field.  (This is for normal C++11-style field initializers;
+not for initializers that result from C++14-style init-captures in lambda
+expressions.  For the latter, see init_capture_initializer below.)
 */
 {
   an_init_state      *is = &dps->init_state;
@@ -4743,6 +4751,68 @@ IL entry for that field.
     update_class_for_last_parsed_field_initializer(class_type);
   }  /* if */
 }  /* field_initializer */
+
+
+void init_capture_initializer(a_lambda_capture    *lcp,
+                              a_decl_parse_state  *dps)
+/*
+Process the initializer for the given C++14-style init-capture (*lcp) whose
+associated initialization (and field declaration) is described by *dps.  That
+initializer will have been prescanned.  Although the initializer is also for a
+field (of a closure type), it is different from a C++11 field initializer in
+that it not treated as a full expression (or a braced list of full expressions)
+and not pointed to by the field (because it may be stored in function-scope
+memory).
+*/
+{
+  an_init_state          *is = &dps->init_state;
+  a_boolean              braced_form;
+  an_init_component_ptr  icp_tree;
+
+  check_assertion(dps->is_init_capture && symbol_is(dps->sym, sk_field) &&
+                  anything_cached(&dps->prescanned_initializer_cache) &&
+                  scope_is(&scope_stack_top(), sck_class_struct_union));
+  icp_tree = fetch_init_component_from_initializer_cache(
+                                          &dps->prescanned_initializer_cache);
+  braced_form = is_braced_init_component(icp_tree);
+  is->force_dynamic_init = TRUE;
+  if (is_error_component(icp_tree)) {
+    /* An error occurred earlier: We'll produce an error constant below. */
+  } else if (!dps->has_direct_initializer) {
+    /* A capture of the form "x = ..." or "&x = ...". */
+    convert_initializer(icp_tree, dps->type, /*is_var_init=*/FALSE,
+                        /*fill_in_dtor=*/TRUE, is);
+  } else if (dps->initializer_is_expr_list) {
+    /* Parenthesized initialization.  Since this is a auto-deduced
+       initialization, it's just a single component to convert. */
+    is->direct_init = TRUE;
+    if (may_be_string_type(dps->type) &&
+        try_string_literal_init(icp_tree, &dps->type, is, &is->init_con)) {
+      /* String initialization. */
+    } else {
+      /* Ordinary initialization. */
+      convert_initializer(icp_tree, dps->type, /*is_var_init=*/FALSE,
+                          /*fill_in_dtor=*/TRUE, is);
+    }  /* if */
+
+  } else {
+    /* Init-capture with a braced initializer. */
+    if (strict_ansi_mode) {
+      is->error_on_narrowing = TRUE;
+    } else {
+      is->warning_on_narrowing = TRUE;
+    }  /* if */
+    braced_initializer(dps->type, icp_tree, is, dps,
+                       /*return_icp=*/(an_init_component**)NULL,
+                       &dps->start_pos);
+  }  /* if */
+  if (is->init_dip == NULL) {
+    is->init_dip = make_error_constant_dynamic_init();
+    expect_error();
+  }  /* if */
+  lcp->captured.initializer = is->init_dip;
+  free_init_component_list(icp_tree);
+}  /* init_capture_initializer */
 
 
 void repeat_nonconstant_init(a_dynamic_init_ptr  ctor_dip,

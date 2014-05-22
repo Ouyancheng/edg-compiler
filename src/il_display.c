@@ -2946,6 +2946,10 @@ Display the indicated field.
   }  /* if */
   if (ptr->is_mutable) disp_boolean("is_mutable", TRUE);
   if (ptr->compiler_generated) disp_boolean("compiler_generated", TRUE);
+  if (ptr->is_init_capture) disp_boolean("is_init_capture", TRUE);
+  if (ptr->is_captured_init_capture) {
+    disp_boolean("is_captured_init_capture", TRUE);
+  }  /* if */
   if (ptr->is_captured_this) disp_boolean("is_captured_this", TRUE);
   if (ptr->is_captured_pack_element) {
     disp_boolean("is_captured_pack_element", TRUE);
@@ -5263,9 +5267,15 @@ Display the indicated lambda capture.
 */
 {
   disp_ptr("next", (char*)ptr->next, iek_lambda_capture);
-  disp_ptr("variable", (char*)ptr->variable, iek_variable);
-  disp_ptr("source_closure_field", (char*)ptr->source_closure_field,
-                                   iek_field);
+  if (!ptr->is_init_capture) {
+    disp_ptr("captured.variable", (char*)ptr->captured.variable, iek_variable);
+    disp_ptr("source_closure_field",
+             (char*)ptr->capture_info.source_closure_field, iek_field);
+  } else {
+    disp_boolean("is_init_capture", TRUE);
+    disp_ptr("captured.initializer", (char*)ptr->captured.initializer,
+             iek_dynamic_init);
+  }  /* if */
   disp_ptr("closure_field", (char*)ptr->closure_field, iek_field);
   if (ptr->capture_by_reference) {
     disp_boolean("capture_by_reference", TRUE);
@@ -5275,6 +5285,12 @@ Display the indicated lambda capture.
   }  /* if */
   if (ptr->is_pack_expansion) {
     disp_boolean("is_pack_expansion", TRUE);
+  }  /* if */
+  if (ptr->direct_init) {
+    disp_boolean("direct_init", TRUE);
+  }  /* if */
+  if (ptr->parenthesized_init) {
+    disp_boolean("parenthesized_init", TRUE);
   }  /* if */
   disp_source_position("position", &ptr->position);
 #if EXTRA_SOURCE_POSITIONS_IN_IL

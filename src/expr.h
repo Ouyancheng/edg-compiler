@@ -752,10 +752,9 @@ extern an_expr_node_ptr make_assignment_expr(
 
 extern a_boolean in_lambda_body(void);
 
-extern a_scope_depth scope_depth_for_local_variable_capture(
-                                                a_variable_ptr var,
-                                                a_scope_depth  starting_depth,
-                                                a_lambda_ptr   *lambda);
+extern a_scope_depth scope_depth_for_capture(a_variable_ptr var,
+                                             a_scope_depth  starting_depth,
+                                             a_lambda_ptr   *lambda);
 
 extern a_boolean check_var_for_lambda_capture(a_variable_ptr  var,
                                               a_boolean       implicit,

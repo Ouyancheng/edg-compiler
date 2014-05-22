@@ -3009,6 +3009,7 @@ default mode (e.g., exception handling).
       decltype_auto_enabled = TRUE;
     }  /* if */
     deduced_return_types_enabled = TRUE;
+    init_capture_enabled = TRUE;
   }  /* if */
 }  /* check_and_set_cpp11_mode_options */
 
@@ -4202,6 +4203,13 @@ exclude the GNU C++ mode already.  Hence those are not checked again here.)
         inheriting_constructors_enabled = TRUE;
       }  /* if */
       std_attributes_enabled = TRUE;
+    }  /* if */
+  }  /* if */
+  if (!cpp14_mode) {
+    if (lambdas_enabled) {
+      /* GCC versions that support lambdas also support generalized lambda
+         captures. */
+      init_capture_enabled = TRUE;
     }  /* if */
   }  /* if */
   ptr_to_unknown_bound_array_allowed_in_param_type = TRUE;
@@ -10429,6 +10437,7 @@ variables declared in cmd_line.h.
   enum_qualifiers_enabled = FALSE;
   opaque_enum_decls_enabled = FALSE;
   lambdas_enabled = DEFAULT_LAMBDAS_ENABLED;
+  init_capture_enabled = FALSE;
   rvalue_references_enabled = DEFAULT_RVALUE_REFERENCES_ENABLED;
   ref_qualifiers_enabled = rvalue_references_enabled;
   rvalue_ctor_is_copy_ctor = TRUE;

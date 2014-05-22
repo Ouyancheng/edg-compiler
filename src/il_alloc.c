@@ -2450,6 +2450,8 @@ to it.
   fp->is_anonymous_parent_object = FALSE;
   fp->is_mutable           = FALSE;
   fp->compiler_generated   = FALSE;
+  fp->is_init_capture      = FALSE;
+  fp->is_captured_init_capture = FALSE;
   fp->is_captured_this     = FALSE;
   fp->is_captured_pack_element = FALSE;
 #if MICROSOFT_EXTENSIONS_ALLOWED
@@ -5096,12 +5098,15 @@ in the current memory region.
                                            alloc_cil(sizeof(a_lambda_capture));
 
   entry->next = NULL;
-  entry->variable = NULL;
-  entry->source_closure_field = NULL;
+  entry->captured.variable = NULL;
+  entry->capture_info.source_closure_field = NULL;
   entry->closure_field = NULL;
+  entry->is_init_capture = FALSE;
   entry->capture_by_reference = FALSE;
   entry->is_implicit = FALSE;
   entry->is_pack_expansion = FALSE;
+  entry->direct_init = FALSE;
+  entry->parenthesized_init = FALSE;
   entry->position = null_source_position;
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   entry->end_position = null_source_position;

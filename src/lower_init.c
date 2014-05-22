@@ -1781,11 +1781,15 @@ for an array initialization in GNU C++ mode).
       check_assertion(result_is_lvalue && source_node->is_lvalue);
     }  /* if */
   } else if (source_desc->capture != NULL) {
-    a_boolean needs_indirection = FALSE;
-    a_boolean source_node_result_is_lvalue = result_is_lvalue;
-    check_assertion(!source_desc->runtime_throw);
-    if (source_desc->capture->source_closure_field == NULL) {
-      a_variable_ptr  var = source_desc->capture->variable;
+    a_boolean   needs_indirection = FALSE;
+    a_boolean   source_node_result_is_lvalue = result_is_lvalue;
+    a_field_ptr src_field;
+    check_assertion(!source_desc->runtime_throw &&
+                    !source_desc->capture->is_init_capture);
+    src_field = source_desc->capture->capture_info.source_closure_field; 
+    if (src_field == NULL) {
+      a_variable_ptr  var = source_desc->capture->captured.variable;
+      check_assertion(!source_desc->capture->is_init_capture);
       /* The implied source is a local variable from a lambda capture. */
       if (is_reference_type(var->type) ||
           (var->is_parameter &&
@@ -1807,8 +1811,8 @@ for an array initialization in GNU C++ mode).
                  innermost_function_scope->variant.routine.this_param_variable,
                  &source_ipd);
       add_init_pos_modifier(&source_ipm, &source_ipd);
-      source_ipm.curr_field = source_desc->capture->source_closure_field;
-      source_ipm.type = source_desc->capture->source_closure_field->type;
+      source_ipm.curr_field = src_field;
+      source_ipm.type = src_field->type;
       if (is_reference_type(source_ipm.type)) {
         /* In the reference case, we need to add an additional indirection
            on top of the source description, but we don't have an appropriate
@@ -3791,7 +3795,8 @@ a parameter in expr (if one exists) with a corresponding parameter.
       for (orig_ptr = tblock->orig_params, new_ptr = tblock->new_params;
            orig_ptr != NULL && new_ptr != NULL;
            orig_ptr = orig_ptr->next, new_ptr = new_ptr->next) {
-        if (ptr->variable == orig_ptr) {
+        check_assertion(!ptr->is_init_capture);
+        if (ptr->captured.variable == orig_ptr) {
           check_assertion(identical_types(orig_ptr->type, new_ptr->type) &&
                     orig_ptr->is_parameter &&
                     new_ptr->is_parameter &&
@@ -3803,7 +3808,7 @@ a parameter in expr (if one exists) with a corresponding parameter.
                      new_ptr->assoc_param_type == NULL ||
                      orig_ptr->assoc_param_type->passed_via_copy_constructor ==
                       new_ptr->assoc_param_type->passed_via_copy_constructor));
-          ptr->variable = new_ptr;
+          ptr->captured.variable = new_ptr;
           break;
         }  /* if */
         /* Skip the VTT parameter that follows the "this" parameter in
@@ -9132,98 +9137,131 @@ do_assignment:;
       }  /* if */
       break;
     case dik_nonconstant_aggregate:
-      /* Initialization with a nonconstant aggregate constant.  This is usually
-         a whole-variable initialization, but can be used in a ctor-initializer
-         or lambda capture to iterate over an array initialization, etc. */
-      if (!C_mode()) {
-        latest_initialization_on_entry = eff_context->latest_initialization;
-      }  /* if */
-      keep_constant = FALSE;
-      if (dip->is_partially_initialized) {
-        /* For cases where the initialization only partially covers the
-           entity being initialized, initialize the remaining portion
-           of the entity if necessary. */
-        stretch_partial_initialization_if_necessary(dip, ipdp,
-                                                    have_complete_object,
-                                                    eff_insert_location);
-      }  /* if */
-      lower_dynamic_init_aggregate_constant(dip->variant.constant, ipdp,
-                                            /*dtor_case=*/FALSE, source_desc,
-                                            others_follow_in_aggr,
-                                            eff_insert_location,
+      { /* Initialization with a nonconstant aggregate constant.  This is
+           usually a whole-variable initialization, but can be used in a
+           ctor-initializer or lambda capture to iterate over an array
+           initialization, etc. */
+        an_expr_node_ptr     init_node;
+        an_insert_location   constant_initialization, dynamic_initialization;
+        if (!C_mode()) {
+          latest_initialization_on_entry = eff_context->latest_initialization;
+        }  /* if */
+        keep_constant = FALSE;
+        /* Lowering of the initialization may end up with two pieces: the
+           dynamic initialization and the constant initialization.  If that's
+           the case, the constant initialization must occur first; capture
+           each initialization piece separately. */
+        set_expr_creation_insert_location(&dynamic_initialization);
+        set_expr_creation_insert_location(&constant_initialization);
+        if (dip->is_partially_initialized) {
+          /* For cases where the initialization only partially covers the
+             entity being initialized, initialize the remaining portion
+             of the entity if necessary. */
+          stretch_partial_initialization_if_necessary(dip, ipdp,
+                                                      have_complete_object,
+                                                      &dynamic_initialization);
+        }  /* if */
+        lower_dynamic_init_aggregate_constant(dip->variant.constant, ipdp,
+                                              /*dtor_case=*/FALSE, source_desc,
+                                              others_follow_in_aggr,
+                                              &dynamic_initialization,
 #if GNU_VECTOR_TYPES_ALLOWED
-                                            &contains_vector_dynamic_init,
+                                              &contains_vector_dynamic_init,
 #else /* !GNU_VECTOR_TYPES_ALLOWED */
-                                            (a_boolean *)NULL,
+                                              (a_boolean *)NULL,
 #endif /* GNU_VECTOR_TYPES_ALLOWED */
-                                            &keep_constant,
-                                            options);
-      if (keep_constant) {
-        /* There is a constant part of the initialization to be kept. */
-        if (variable == NULL) {
-          /* There is no variable, so we are down inside an aggregate
-             initialization.  Pass this constant back to the caller. */
-          check_assertion(constant_to_keep != NULL);
-          *constant_to_keep = dip->variant.constant;
-        } else {
-          /* Keep a (now-)constant aggregate value as the static initial value
-             of the variable.  The nonconstant parts have been put out as
-             code and replaced with placeholder constants. */
+                                              &keep_constant,
+                                              options);
+        if (keep_constant) {
+          /* There is a constant part of the initialization to be kept. */
+          if (variable == NULL) {
+            /* There is no variable, so we are down inside an aggregate
+               initialization.  Pass this constant back to the caller. */
+            check_assertion(constant_to_keep != NULL);
+            *constant_to_keep = dip->variant.constant;
+          } else {
+            /* Keep a (now-)constant aggregate value as the static initial
+               value of the variable.  The nonconstant parts have been put out
+               as code and replaced with placeholder constants. */
 #if GNU_VECTOR_TYPES_ALLOWED
-          /* The constant may still have non-constant pieces (because vector
-             elements can't be individually assigned to).  This "constant"
-             will still be used as a static initial value. */
+            /* The constant may still have non-constant pieces (because vector
+               elements can't be individually assigned to).  This "constant"
+               will still be used as a static initial value. */
 #endif /* GNU_VECTOR_TYPES_ALLOWED */
-          simple_constant_init = TRUE;
-          simple_constant = dip->variant.constant;
-          if (variable->promoted_local_static &&
-              constant_must_remain_in_function_scope(simple_constant)) {
-            /* The constant must remain in the function scope and can't be
-               used to initialize the promoted static variable (now in the
-               file scope).  Rewrite the initialization as executable code. */
-            lower_constant_init_of_promoted_static(variable, simple_constant);
-            simple_constant_init = FALSE;
-          } else if (local_static_that_requires_dynamic_init) {
-            /* A static variable of an extern inline function initialized
-               to a constant.  The constant is the constant part of the
-               nonconstant aggregate.  Insert an assignment to set the variable
-               to the constant, preceding any generated initialization code.
-               This is done because we want the variable to be a tentative
-               definition, which means it must be uninitialized. */
-            a_variable_ptr         temp_var;
-            an_expr_node_ptr       init_val_node;
-            a_memory_region_number region_to_switch_back_to;
-            set_block_start_insert_location(block_stmt, &insert_location2);
-            entity_node = make_init_entity_node(ipdp,
-                                                /*result_is_lvalue=*/TRUE,
-                                                /*using_as_dest=*/TRUE);
-            check_assertion(simple_constant->kind ==
-                            (a_constant_repr_kind)ck_aggregate &&
-                            !in_file_scope(simple_constant) &&
+            simple_constant_init = TRUE;
+            simple_constant = dip->variant.constant;
+            if (variable->promoted_local_static &&
+                constant_must_remain_in_function_scope(simple_constant)) {
+              /* The constant must remain in the function scope and can't be
+                 used to initialize the promoted static variable (now in the
+                 file scope).  Rewrite the initialization as executable
+                 code. */
+              lower_constant_init_of_promoted_static(variable,
+                                                     simple_constant);
+              simple_constant_init = FALSE;
+            } else if (local_static_that_requires_dynamic_init ||
+                       simple_constant_init_opt_ruled_out) {
+              /* A constant part of the nonconstant aggregate remains.  Insert
+                 an assignment to set the variable to the constant. */
+              a_variable_ptr         temp_var;
+              an_expr_node_ptr       init_val_node;
+              a_memory_region_number region_to_switch_back_to;
+              an_insert_location_ptr simple_constant_insert_location;
+              if (local_static_that_requires_dynamic_init) {
+                /* A static variable of an extern inline function initialized
+                   to a constant.  This is done because we want the variable to
+                   be a tentative definition, which means it must be
+                   uninitialized. */
+                set_block_start_insert_location(block_stmt, &insert_location2);
+                simple_constant_insert_location = &insert_location2;
+              } else {
+                /* Capture the constant initialization separately. */
+                simple_constant_insert_location = &constant_initialization;
+              }  /* if */
+              entity_node = make_init_entity_node(ipdp,
+                                                  /*result_is_lvalue=*/TRUE,
+                                                  /*using_as_dest=*/TRUE);
+              check_assertion(simple_constant->kind ==
+                              (a_constant_repr_kind)ck_aggregate &&
+                              !in_file_scope(simple_constant) &&
                      !constant_must_remain_in_function_scope(simple_constant));
-            /* Create a local static temporary and statically initialize it to
-               the constant (but the constant must be copied to the file
-               scope first). */
-            temp_var = make_unnamed_local_static_variable(variable->type,
-                                                   /*in_function_scope=*/TRUE);
-            temp_var->init_kind = (an_init_kind)initk_static;
-            switch_to_file_scope_region(&region_to_switch_back_to);
-            temp_var->initializer.constant =
+              /* Create a local static temporary and statically initialize it
+                 to the constant (but the constant must be copied to the file
+                 scope first). */
+              temp_var = make_unnamed_local_static_variable(
+                                 make_qualified_type(variable->type, TQ_CONST),
+                                 /*in_function_scope=*/TRUE);
+              temp_var->init_kind = (an_init_kind)initk_static;
+              switch_to_file_scope_region(&region_to_switch_back_to);
+              temp_var->initializer.constant =
                            copy_constant_full(simple_constant,
                                               (a_constant_ptr)NULL,
                                               CE_REPLACE_STRINGS_BY_VARIABLES);
-            switch_back_to_original_region(region_to_switch_back_to);
-            init_val_node = var_lvalue_expr(temp_var);
-            (void)insert_assignment_statement(entity_node,
+              switch_back_to_original_region(region_to_switch_back_to);
+              init_val_node = var_lvalue_expr(temp_var);
+              (void)insert_assignment_statement(entity_node,
                                             (an_expr_operator_kind)eok_bassign,
-                                              init_val_node,
-                                              &insert_location2);
-            variable->init_kind = (an_init_kind)initk_none;
-            variable->initializer.constant = NULL;
-            simple_constant_init = FALSE;
+                                            init_val_node,
+                                            simple_constant_insert_location);
+              variable->init_kind = (an_init_kind)initk_none;
+              variable->initializer.constant = NULL;
+              simple_constant_init = FALSE;
+            }  /* if */
           }  /* if */
         }  /* if */
-      }  /* if */
+        if (constant_initialization.variant.expr != NULL) {
+          /* If there was a constant initialization, make sure it's performed
+             before the dynamic initialization. */
+          init_node = make_comma_node(constant_initialization.variant.expr,
+                                      dynamic_initialization.variant.expr);
+        } else {
+          init_node = dynamic_initialization.variant.expr;
+        }  /* if */
+        if (init_node != NULL) {
+          /* Insert the lowered initialization code in the proper location. */
+          (void)insert_expr_statement(init_node, eff_insert_location);
+        }  /* if */
+      }
       break;
     case dik_bitwise_copy:
       /* Bitwise copy of a value. */
@@ -17232,12 +17270,19 @@ with the value of their corresponding captured variables.
      in the capture list.  During the initialization,
      advance_to_next_lambda_capture_if_necessary is called to advance the
      source of the implied copy to the next local variable in the capture
-     list. */
+     list.  This is not needed if all the captures are init-captures that
+     are folded to constants (so that initializing the closure object amounts
+     to constant aggregate initialization). */
   clear_implied_copy_source(&source_desc);
-  source_desc.capture = capture;
+  if (dip->kind == (a_dynamic_init_kind)dik_nonconstant_aggregate) {
+    source_desc.capture = capture;
+  } else {
+    check_assertion(dip->kind == (a_dynamic_init_kind)dik_constant);
+  }  /* if */
   /* The front end has created an aggregate dynamic init to initialize all
      fields of the lambda closure object with values from the corresponding
      local variables. */
+  dip->variable = closure_var;
   lower_dynamic_init(dip, &ipd,
                      &source_desc,
                      (a_variable_ptr)NULL,

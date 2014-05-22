@@ -10022,6 +10022,13 @@ typedef struct a_field {
 			/* TRUE for fields that are created by the compiler
 			   and have not been declared in the source,
 			   e.g., the virtual function table pointer. */
+  a_bit_field	is_init_capture:1;
+			/* TRUE if this is a field of a closure type that was
+			   generated for a C++14-style init-capture. */
+  a_bit_field	is_captured_init_capture:1;
+			/* TRUE if this is a field of a closure type that was
+			   generated for the capture in a nested lambda of an
+			   init-capture in an enclosing lambda. */
   a_bit_field	is_captured_this:1;
 			/* TRUE if this is a field of a closure type that was
 			   generated to capture a "this" parameter. */
@@ -17901,16 +17908,29 @@ typedef struct a_lambda {
 /*
 Entry used to represent a local variable, reference, or this parameter
 that is part of the capture list (either explicitly or implicitly) of a lambda.
+This kind of entry is also used to represent C++14-style "init-capture"; i.e.,
+a field with an associated initializer for a closure type.
 */
 typedef struct a_lambda_capture {
   a_lambda_capture_ptr
 		next;	/* Pointer to the next entry on the capture list, or
 			   NULL for the last entry. */
-  a_variable_ptr
+  union {
+    /* When is_init_capture is FALSE. */
+    a_variable_ptr
 		variable;
 			/* Pointer to the variable entry for the local variable
-			   or "this" pointer to be captured. */
-  a_field_ptr	source_closure_field;
+			   or "this" pointer to be captured.  NULL for
+			   variables captured indirectly through an enclosing
+			   lambda's capture. */
+    /* When is_init_capture is TRUE. */
+    a_dynamic_init_ptr
+		initializer;
+			/* The initializer specified on the init-capture. */
+  } captured;
+  union {
+    /* When is_init_capture is FALSE: */
+    a_field_ptr	source_closure_field;
 			/* If the variable being captured is reachable only
 			   because it's captured by an intervening lambda,
 			   this gives the field of the closure class that
@@ -17918,26 +17938,49 @@ typedef struct a_lambda_capture {
 			   When this field is non-NULL, the "variable" field
 			   will be NULL (except for a short period of time
 			   within the front end). */
+    /* When is_init_capture is TRUE: */
+    struct a_decl_parse_state
+    		*init_capture_dps;
+			/* Opaque pointer to a structure tracking the
+			   declaration of the closure field corresponding to an
+			   init-capture.  Only valid within the front end. */
+  } capture_info;
   a_field_ptr	closure_field;
 			/* Pointer to the nonstatic data member of the closure
 			   class that is used to access the captured variable
 			   within the lambda.  This is NULL until the variable
 			   is actually used within the lambda. */
-  a_byte_boolean
-		capture_by_reference;
+  a_bit_field
+		is_init_capture:1;
+			/* TRUE if this entry represents a C++14-style
+			   init-capture (which isn't really a capture at all).
+			   If this is TRUE, is_implicit and is_pack_expansion
+			   must be FALSE, and variable and source_closure_field
+			   must both be NULL. */
+  a_bit_field
+		capture_by_reference:1;
 			/* TRUE if this entity is being captured by reference,
 			   FALSE if by value.  This flag may be set based on
 			   the capture default or if the default is explicitly
 			   overridden for this capture. */
-  a_byte_boolean
-		is_implicit;
+  a_bit_field
+		is_implicit:1;
 			/* TRUE if this entity was implicitly added to the
 			   capture list, FALSE if it was explicitly named
 			   in the capture list. */
-  a_byte_boolean
-		is_pack_expansion;
+  a_bit_field
+		is_pack_expansion:1;
 			/* TRUE if this capture is a variadic template
 			   pack expansion, i.e., it's followed by "...". */
+  a_bit_field
+		direct_init:1;
+			/* TRUE if init-capture is TRUE and the initializer
+			   was a direct braced or parenthesized initializer in
+			   the source. */
+  a_bit_field
+		parenthesized_init:1;
+			/* TRUE if init-capture is TRUE and the initializer
+			   was a parenthesized initializer in the source. */
   a_source_position
 		position;
 			/* The source position of the name of the captured

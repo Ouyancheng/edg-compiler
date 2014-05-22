@@ -7233,6 +7233,31 @@ property or event designated by desc.
 
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
+static void gen_field_initializer(a_field_ptr  field)
+/*
+*/
+{
+  a_boolean need_closing_brace = FALSE;
+
+  if (!field->has_direct_braced_initializer) {
+    write_tok_str(" = ");
+  } else if (!(field->initializer->is_braced_initializer &&
+               field->initializer->kind ==
+                                       (a_dynamic_init_kind)dik_constructor)) {
+    /* gen_dynamic_init will supply the braces for a braced constructor
+       call. */
+    write_tok_ch('{');
+    need_closing_brace = TRUE;
+  }  /* if */
+  gen_dynamic_init(field->initializer, field->type, (an_expr_node_ptr)NULL,
+                   /*avoid_top_level_comma=*/TRUE,
+                   /*obj_expr_of_mfunc_operator=*/FALSE);
+  if (need_closing_brace) {
+    write_tok_ch('}');
+  }  /* if */
+}  /* gen_field_initializer */
+
+
 static void gen_field_decl(a_boolean suppress_specifiers,
                            a_boolean *another_decl_in_comma_list)
 /*
@@ -7305,23 +7330,7 @@ declaration following this one is such a continuation.
                  /*primary_only=*/FALSE);
   if (field->has_initializer && field->initializer != NULL) {
     /* The field was defined with an initializer (a C++11 feature). */
-    a_boolean need_closing_brace = FALSE;
-    if (!field->has_direct_braced_initializer) {
-      write_tok_str(" = ");
-    } else if (!(field->initializer->is_braced_initializer &&
-                 field->initializer->kind ==
-                                       (a_dynamic_init_kind)dik_constructor)) {
-      /* gen_dynamic_init will supply the braces for a braced constructor
-         call. */
-      write_tok_ch('{');
-      need_closing_brace = TRUE;
-    }  /* if */
-    gen_dynamic_init(field->initializer, field->type, (an_expr_node_ptr)NULL,
-                     /*avoid_top_level_comma=*/TRUE,
-                     /*obj_expr_of_mfunc_operator=*/FALSE);
-    if (need_closing_brace) {
-      write_tok_ch('}');
-    }  /* if */
+    gen_field_initializer(field);
   }  /* if */
   /* See if there are comma-separated declarations attached to this one. */
   *another_decl_in_comma_list = another_declaration_in_comma_list_follows(
@@ -11290,20 +11299,36 @@ Render the list of lambda captures, including the delimiting brackets.
     if (!lcp->is_implicit) {
       if (comma_needed) write_tok_str(", ");
       if (lcp->capture_by_reference) write_tok_str("&");
-      if (lcp->source_closure_field != NULL) {
+      if (lcp->is_init_capture) {
+        /* A C++14-style init-capture.  Use the field to render the name and
+           initializer. */
+        a_field_ptr  fp = lcp->closure_field;
+        gen_bare_name(&fp->source_corresp, (an_il_entry_kind)iek_field);
+        write_tok_str(!lcp->direct_init       ? " = " :
+                      lcp->parenthesized_init ? "(" :
+                                                "{");
+        gen_dynamic_init(lcp->captured.initializer, fp->type,
+                         (an_expr_node_ptr)NULL,
+                         /*avoid_top_level_comma=*/TRUE,
+                         /*obj_expr_of_mfunc_operator=*/FALSE);
+        write_tok_str(!lcp->direct_init       ? "" :
+                      lcp->parenthesized_init ? ")" :
+                                                "}");
+      } else if (lcp->capture_info.source_closure_field != NULL) {
         /* The entity captured is already captured up one level, so the
            reference is by way of a field of the parent lambda's closure
            class. */
-        if (has_name(lcp->source_closure_field)) {
-          gen_bare_name(&lcp->source_closure_field->source_corresp,
+        if (has_name(lcp->capture_info.source_closure_field)) {
+          gen_bare_name(&lcp->capture_info.source_closure_field
+                            ->source_corresp,
                         (an_il_entry_kind)iek_field);
         } else {
           write_tok_str("this");
         }  /* if */
-      } else if (lcp->variable->is_this_parameter) {
+      } else if (lcp->captured.variable->is_this_parameter) {
         write_tok_str("this");
       } else {
-        gen_bare_name(&lcp->variable->source_corresp,
+        gen_bare_name(&lcp->captured.variable->source_corresp,
                       (an_il_entry_kind)iek_variable);
       }  /* if */
       if (lcp->is_pack_expansion) {
