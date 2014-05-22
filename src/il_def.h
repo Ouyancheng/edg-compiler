@@ -10025,10 +10025,6 @@ typedef struct a_field {
   a_bit_field	is_init_capture:1;
 			/* TRUE if this is a field of a closure type that was
 			   generated for a C++14-style init-capture. */
-  a_bit_field	is_captured_init_capture:1;
-			/* TRUE if this is a field of a closure type that was
-			   generated for the capture in a nested lambda of an
-			   init-capture in an enclosing lambda. */
   a_bit_field	is_captured_this:1;
 			/* TRUE if this is a field of a closure type that was
 			   generated to capture a "this" parameter. */

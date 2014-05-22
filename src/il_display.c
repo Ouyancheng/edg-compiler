@@ -2947,9 +2947,6 @@ Display the indicated field.
   if (ptr->is_mutable) disp_boolean("is_mutable", TRUE);
   if (ptr->compiler_generated) disp_boolean("compiler_generated", TRUE);
   if (ptr->is_init_capture) disp_boolean("is_init_capture", TRUE);
-  if (ptr->is_captured_init_capture) {
-    disp_boolean("is_captured_init_capture", TRUE);
-  }  /* if */
   if (ptr->is_captured_this) disp_boolean("is_captured_this", TRUE);
   if (ptr->is_captured_pack_element) {
     disp_boolean("is_captured_pack_element", TRUE);
