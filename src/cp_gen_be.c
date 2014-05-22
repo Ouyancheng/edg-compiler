@@ -8646,10 +8646,16 @@ the expression reflects an implicit member access ("this->y"), so the
         /* This situation occurs for access to non-static data members
            in unevaluated contexts, such as "sizeof(X::y)", which appears
            in the IL as "sizeof(((X*)0)->y)" with a compiler-generated
-           eok_points_to_field.  We need to generate the qualifier here. */
+           eok_points_to_field.  We may need to generate the qualifier here
+           (but not if the parent class is unnamed; for example, if it is a
+           closure class). */
+        a_type_ptr  parent_class;
         check_assertion(field_expr->kind == (an_expr_node_kind)enk_field);
-        gen_class_qualifier(parent_class_of(field_expr->variant.field),
-                            GN_BOUND_MEMBER, (a_boolean *)NULL);
+        parent_class = parent_class_of(field_expr->variant.field);
+        if (has_name_before_mangling(parent_class)) {
+          gen_class_qualifier(parent_class, GN_BOUND_MEMBER,
+                              (a_boolean *)NULL);
+        }  /* if */
       }  /* if */
     } else {
       /* Normal member selection. */
