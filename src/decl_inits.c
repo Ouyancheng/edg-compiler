@@ -4766,7 +4766,6 @@ memory).
 */
 {
   an_init_state          *is = &dps->init_state;
-  a_boolean              braced_form;
   an_init_component_ptr  icp_tree;
 
   check_assertion(dps->is_init_capture && symbol_is(dps->sym, sk_field) &&
@@ -4774,7 +4773,6 @@ memory).
                   scope_is(&scope_stack_top(), sck_class_struct_union));
   icp_tree = fetch_init_component_from_initializer_cache(
                                           &dps->prescanned_initializer_cache);
-  braced_form = is_braced_init_component(icp_tree);
   is->force_dynamic_init = TRUE;
   if (is_error_component(icp_tree)) {
     /* An error occurred earlier: We'll produce an error constant below. */

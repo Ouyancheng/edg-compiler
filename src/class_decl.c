@@ -29007,7 +29007,7 @@ state block.
   /* Record the identifier. */
   check_assertion(curr_token == tok_identifier);
   dps->start_pos = *capture_pos;
-  dps->sym = alloc_symbol(sk_field, sym_hdr, &pos_curr_token);
+  dps->sym = alloc_symbol((a_symbol_kind)sk_field, sym_hdr, &pos_curr_token);
   (void)get_token();
   /* Prescan the initializer that follows as if this were an "auto" variable
      declaration. */
