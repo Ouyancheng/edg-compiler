@@ -1095,109 +1095,92 @@ to indicate that an error occurred).  Diagnostics should be issued at the
 given position, unless is->no_diagnostics is TRUE.
 */
 {
-  a_constant_ptr  result = NULL;
+  a_constant_ptr      result = NULL;
+  a_dynamic_init_ptr  dip = NULL;
+  a_routine_ptr       ctor_rp, dtor_rp = NULL;
+  a_boolean           err = FALSE, *p_err = NULL;
 
-  if (gpp_mode && gnu_version >= 40700) {
-    /* GCC appears to handle this just like an empty braced initializer, which
-       is not standard (e.g., it makes an initializer_list constructor an
-       acceptable candidate for default construction).  For example:
-          #include <initializer_list>
-          struct S { S(std::initializer_list<int>); };
-          S x[1] = {};  // Accepted by GCC 4.7.0 (and later versions).
-    */
-    an_init_component_ptr  icp, orig_icp;
-    icp = alloc_init_component((an_init_component_kind)ick_braced);
-    icp->variant.braced.start_pos = *diag_pos;
-    icp->variant.braced.end_pos = *diag_pos;
-    orig_icp = icp;
-    aggr_init_element(&icp, tp, is, diag_pos, &result);
-    free_init_component_list(orig_icp);
-  } else {
-    a_dynamic_init_ptr  dip = NULL;
-    a_routine_ptr       ctor_rp, dtor_rp = NULL;
-    a_boolean           err = FALSE, *p_err = NULL;
-    /* Get the default constructor. */
-    if (is->no_diagnostics) p_err = &err;
-    /* No access checking is done during tentative matching for overload
-       resolution (indicated by is->check_validity_only). */
-    ctor_rp = select_default_constructor_full(
+  /* Get the default constructor. */
+  if (is->no_diagnostics) p_err = &err;
+  /* No access checking is done during tentative matching for overload
+     resolution (indicated by is->check_validity_only). */
+  ctor_rp = select_default_constructor_full(
                                     tp, diag_pos, tp,
                                     /*declarative_context=*/FALSE,
                                     /*evaluated=*/TRUE,
                                     /*check_access=*/!is->check_validity_only,
                                     p_err, (a_boolean *)NULL);
-    if (err) is->init_error = TRUE;
-    /* Determine if a constructor call will be involved. */
-    if (exceptions_enabled && !is->initializer_must_be_constant) {
-      a_class_symbol_supplement_ptr  cssp = symbol_supplement_for_class(tp);
-      if (has_nontrivial_destructor(cssp)) {
-        dtor_rp = get_init_destructor(tp, is, diag_pos);
-      }  /* if */
+  if (err) is->init_error = TRUE;
+  /* Determine if a constructor call will be involved. */
+  if (exceptions_enabled && !is->initializer_must_be_constant) {
+    a_class_symbol_supplement_ptr  cssp = symbol_supplement_for_class(tp);
+    if (has_nontrivial_destructor(cssp)) {
+      dtor_rp = get_init_destructor(tp, is, diag_pos);
     }  /* if */
-    if (ctor_rp == NULL || is->init_error) {
-      /* Trivial default constructor or error. */
-      if (!is->check_validity_only) {
-        dip = alloc_dynamic_init((a_dynamic_init_kind)dik_zero);
-      }  /* if */
-      is->has_dynamic_init_component = TRUE;
-    } else  {
-      if (!is->check_validity_only) {
-        /* For a non-trivial constructor, create a dik_constructor dynamic init
-           entry or, if a constant result is needed, a constant representing
-           the folded constructor call. */
-        dip = alloc_ctor_dynamic_init(ctor_rp, /*implied_source=*/FALSE);
-        dip->variant.constructor.value_initialization = TRUE;
-        if (is->initializer_must_be_constant) {
-          result = get_default_constructed_constant(dip, tp, diag_pos);
-        } else {
-          a_constant  class_con;
-          if (ctor_rp->is_constexpr &&
-              fold_constexpr_ctor(dip, /*record_backing_expr=*/TRUE, diag_pos,
-                                  &class_con)) {
-            if (class_con.is_partially_initialized) {
-              is->partial_initializer = TRUE;
+  }  /* if */
+  if (ctor_rp == NULL || is->init_error) {
+    /* Trivial default constructor or error. */
+    if (!is->check_validity_only) {
+      dip = alloc_dynamic_init((a_dynamic_init_kind)dik_zero);
+    }  /* if */
+    is->has_dynamic_init_component = TRUE;
+  } else  {
+    if (!is->check_validity_only) {
+      /* For a non-trivial constructor, create a dik_constructor dynamic init
+         entry or, if a constant result is needed, a constant representing
+         the folded constructor call. */
+      dip = alloc_ctor_dynamic_init(ctor_rp, /*implied_source=*/FALSE);
+      dip->variant.constructor.value_initialization = TRUE;
+      if (is->initializer_must_be_constant) {
+        result = get_default_constructed_constant(dip, tp, diag_pos);
+      } else {
+        a_constant  class_con;
+        if (ctor_rp->is_constexpr &&
+            fold_constexpr_ctor(dip, /*record_backing_expr=*/TRUE, diag_pos,
+                                &class_con)) {
+          if (class_con.is_partially_initialized) {
+            is->partial_initializer = TRUE;
+          }  /* if */
+          result = alloc_unshared_constant(&class_con);
+          if (dtor_rp != NULL) {
+            /* Despite construction being folded into a constant, a nontrivial
+               (and non-constexpr) destructor will still need to be called.
+               Proceed with a dik_constant entry to which the destructor call
+               can be added below. */
+            dip = alloc_dynamic_init((a_dynamic_init_kind)dik_constant);
+            dip->variant.constant = result;
+            if (result->is_partially_initialized) {
+              dip->is_partially_initialized = TRUE;
             }  /* if */
-            result = alloc_unshared_constant(&class_con);
-            if (dtor_rp != NULL) {
-              /* Despite construction being folded into a constant, a
-                 nontrivial (and non-constexpr) destructor will still need to
-                 be called.  Proceed with a dik_constant entry to which the
-                 destructor call can be added below. */
-              dip = alloc_dynamic_init((a_dynamic_init_kind)dik_constant);
-              dip->variant.constant = result;
-              if (result->is_partially_initialized) {
-                dip->is_partially_initialized = TRUE;
-              }  /* if */
-              result = NULL;
-            }  /* if */
+            result = NULL;
           }  /* if */
         }  /* if */
       }  /* if */
-      if (!ctor_rp->is_constexpr) {
-        is->constant_expr_ruled_out = TRUE;
-      }  /* if */
-      /* If the default constructor is generated and some component of the
-         class requires zeroing, initialization is not really done because the
-         value-initialization rules require that the zeroing occurs. */
-      if (ctor_rp->compiler_generated &&
-          tp->variant.class_struct_union.has_zero_init_component) {
-        is->partial_initializer = TRUE;
-      }  /* if */
     }  /* if */
-    /* If appropriate, add a destructor pointer to the dynamic init entry.
-       This is for the case in which an exception is thrown by the
-       constructor before the entire array has been initialized. */
-    if (dtor_rp != NULL && !is->check_validity_only) {
-      dip->destructor = dtor_rp;
-      record_partial_aggregate_cleanup_destruction(dip, is->evaluated);
+    if (!ctor_rp->is_constexpr) {
+      is->constant_expr_ruled_out = TRUE;
     }  /* if */
-    /* Now create the constant entry (if needed). */
-    if (!is->check_validity_only && result == NULL) {
-      result = alloc_constant((a_constant_repr_kind)ck_dynamic_init);
-      result->variant.dynamic_init = dip;
-      result->type = tp;
-      is->has_dynamic_init_component = TRUE;
+    /* If the default constructor is generated and some component of the class
+       requires zeroing, initialization is not really done because the
+       value-initialization rules require that the zeroing occurs. */
+    if (ctor_rp->compiler_generated &&
+        tp->variant.class_struct_union.has_zero_init_component) {
+      is->partial_initializer = TRUE;
     }  /* if */
+  }  /* if */
+  /* If appropriate, add a destructor pointer to the dynamic init entry.
+     This is for the case in which an exception is thrown by the
+     constructor before the entire array has been initialized. */
+  if (dtor_rp != NULL && !is->check_validity_only) {
+    dip->destructor = dtor_rp;
+    record_partial_aggregate_cleanup_destruction(dip, is->evaluated);
+  }  /* if */
+  /* Now create the constant entry (if needed). */
+  if (!is->check_validity_only && result == NULL) {
+    result = alloc_constant((a_constant_repr_kind)ck_dynamic_init);
+    result->variant.dynamic_init = dip;
+    result->type = tp;
+    is->has_dynamic_init_component = TRUE;
   }  /* if */
   return result;
 }  /* default_nontrivial_init_constant_for_aggr_member */
