@@ -19515,8 +19515,8 @@ deleted, disable bitwise copying.
     a_boolean      cli_class = is_immediate_managed_class_type(class_type);
     for (; rp != NULL; rp = rp->next) {
       if (rp->compiler_generated || rp->is_defaulted || rp->is_deleted) {
-        a_type_qualifier_set  tqs;
-        a_boolean             is_move;
+        a_type_qualifier_set  tqs = TQ_NONE;
+        a_boolean             is_move = FALSE;
         if (rp->special_kind == (a_special_function_kind)sfk_constructor &&
             is_copy_constructor(rp, (a_type*)NULL, &tqs,
                                 /*include_move_ctors=*/TRUE,
