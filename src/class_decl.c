@@ -29118,7 +29118,7 @@ caller has already moved past the '[', and this routine leaves the trailing
   if (curr_token != tok_rbracket) {
     do {
       a_pack_expansion_stack_entry_ptr pesep;
-      a_boolean                        any_more;
+      a_boolean                        any_more, check_duplicate = TRUE;
       any_more = begin_potential_pack_expansion_context(&pesep);
       /* This inner loop repeats if there is a variadic template pack
          expansion. */
@@ -29209,11 +29209,13 @@ caller has already moved past the '[', and this routine leaves the trailing
                          ec_capture_mode_matches_default, &pos_capture);
         }  /* if */
         if (var != NULL || field != NULL) {
-          /* See if this capture name already appeared in the list.  (We
-             cannot use find_lambda_capture for this since it treats variable
-             captures and init-capture captures separately.)  Otherwise,
-             create the lambda capture entry for this entity. */
-          if (!diagnose_duplicate_capture(lambda, sym_hdr, &capture_pos)) {
+          /* See if this capture name already appeared in the list (unless
+             we're dealing with the second or later element of a pack
+             expansion).  (We cannot use find_lambda_capture for this since it
+             treats variable captures and init-capture captures separately.)
+             Otherwise, create the lambda capture entry for this entity. */
+          if (!check_duplicate ||
+              !diagnose_duplicate_capture(lambda, sym_hdr, &capture_pos)) {
             /* Create the lambda capture entry for this entity. */
             lcp = add_lambda_capture(lambda, var, field, /*is_implicit=*/FALSE,
                                      by_ref, &capture_pos, &no_impl_capture);
@@ -29239,6 +29241,7 @@ capture_processed:
           lcp->is_pack_expansion = TRUE;
         }  /* if */
         any_more = advance_to_next_pack_element(pesep);
+        check_duplicate = FALSE;
       }  /* while */
     } while (loop_token(tok_comma));
   }  /* while */
