@@ -1,5 +1,27 @@
 Version 4.10
 
+5/23/14  [EDGcpfe/14728]
+Lookup failure with using-directives and hidden name processing
+
+Name lookup could produce an incorrect result when using-directives
+are being used and hidden name processing is enabled.  Now fixed.
+Although this example looks quite routine, the circumstances that
+give rise to this problem appear to be uncommon as the problem was
+introduced in version 3.7 and has only recently been encountered.
+
+  namespace N {
+    namespace {
+      struct A { };
+    }
+    void f() {
+      struct B: A { };
+    }
+    void g() {
+      struct C: A { };  // "A" not found
+    }
+  }
+
+
 5/23/14  [EDGcpfe/15180]
 Microsoft compatibility: using-declaration, struct, and typedef with same name
 

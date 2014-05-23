@@ -784,13 +784,16 @@ class, too, and thus must be flagged as requiring qualification.
        (unless the scope belongs to a secondary translation unit; it's an
        error to try to put hidden names into such scopes). */
     a_scope_depth init_depth = depth_scope_stack;
+    a_scope_depth saved_previous_scope;
     push_class_and_template_reactivation_scope_full(
                               base_class, /*reactivate_template_params=*/FALSE,
                               /*extend_namespace=*/FALSE,
                               /*force_new_entry_for_namespace=*/TRUE);
     /* Skip scopes that were previously pushed for hidden name processing. */
+    saved_previous_scope = scope_stack[init_depth+1].previous_scope;
     scope_stack[init_depth+1].previous_scope = DEPTH_OF_FILE_SCOPE;
     check_name_hiding_for_scope(base_scope);
+    scope_stack[init_depth+1].previous_scope = saved_previous_scope;
     pop_class_reactivation_scope();
   }  /* if */
   for (base_hnp = (base_scope != NULL) ? base_scope->hidden_names : NULL;
@@ -1133,10 +1136,13 @@ C++-generating back end.
         /* The class was nested, so there are further scopes to search.
            Skip over the scopes already pushed for hidden name processing so
            we don't find the same symbol again. */
+        a_scope_depth saved_previous_scope;
+        saved_previous_scope = scope_stack[init_depth+1].previous_scope;
         scope_stack[init_depth+1].previous_scope = DEPTH_OF_FILE_SCOPE;
         clear_specific_symbol(locator);
         old_sym_ptr = normal_id_lookup(&locator, IDL_HIDDEN_NAME_LOOKUP |
                                                  IDL_SKIP_CURR_SCOPE);
+        scope_stack[init_depth+1].previous_scope = saved_previous_scope;
         if (pushed_class_scope) {
           pop_class_reactivation_scope();
         } else {
