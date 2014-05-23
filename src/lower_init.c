@@ -17277,7 +17277,8 @@ with the value of their corresponding captured variables.
   if (dip->kind == (a_dynamic_init_kind)dik_nonconstant_aggregate) {
     source_desc.capture = capture;
   } else {
-    check_assertion(dip->kind == (a_dynamic_init_kind)dik_constant);
+    check_assertion(dip->kind == (a_dynamic_init_kind)dik_constant ||
+                    dip->kind == (a_dynamic_init_kind)dik_none);
   }  /* if */
   /* The front end has created an aggregate dynamic init to initialize all
      fields of the lambda closure object with values from the corresponding
