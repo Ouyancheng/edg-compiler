@@ -1,5 +1,22 @@
 Version 4.10
 
+5/23/14  [EDGcpfe/15180]
+Microsoft compatibility: using-declaration, struct, and typedef with same name
+
+An internal error could occur (in inactive_scope_lookup) in Microsoft mode
+if a scope contains a tag name (i.e., struct, class, or enum), a typedef,
+and a using-declaration to a tag name.  Now fixed.  The example below
+illustrates the issue in some, but not all, configurations.
+
+  struct A { int x; };
+  typedef struct A A;
+  namespace N1 { using ::A; }
+  using N1::A;
+  int main() {
+    A a;
+  }
+
+
 5/22/14  [EDGcpfe/14026,EDGcpfe/14145,EDGcpfe/14384]
 C++14, GNU C++ compatibility: Generalized lambda capture (IL CHANGE)
 

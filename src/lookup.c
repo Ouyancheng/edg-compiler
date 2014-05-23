@@ -318,6 +318,12 @@ IDL_PROJ_SYMBOL_ALLOWED is specified in options.
             tag_symbol = NULL;
             break;
           }  /* if */
+          if (tag_symbol != NULL &&
+              symbol_is(tag_symbol, sk_namespace_projection)) {
+            /* If a using-declaration to a tag symbol is followed by
+               an actual tag symbol, ignore the first one. */
+            tag_symbol = NULL;
+          }  /* if */
           /* If a tag symbol is followed by a projection to a different tag,
              use the first symbol. */
           check_assertion_or_expect_error(tag_symbol == NULL ||
@@ -2541,6 +2547,12 @@ that do normal id lookup processing.
               if (!lookup_state->must_be_tag) {
                 /* A normal lookup. */
                 if (is_tag_symbol(fund_sym)) {
+                  if (tag_symbol != NULL &&
+                      symbol_is(tag_symbol, sk_namespace_projection)) {
+                    /* If a using-declaration to a tag symbol is followed by
+                       an actual tag symbol, ignore the first one. */
+                    tag_symbol = NULL;
+                  }  /* if */
                   /* If a tag symbol is followed by a projection to a
                      different tag, use the first symbol. */
                   check_assertion_or_expect_error(
@@ -2562,6 +2574,12 @@ that do normal id lookup processing.
               } else {
                 /* A tag lookup. */
                 if (sym->kind == (a_symbol_kind)sk_type) {
+                  if (type_tag_symbol != NULL &&
+                      symbol_is(type_tag_symbol, sk_namespace_projection)) {
+                    /* If a using-declaration to a tag symbol is followed by
+                       an actual tag symbol, ignore the first one. */
+                    type_tag_symbol = NULL;
+                  }  /* if */
                   /* If a tag symbol is followed by a projection to a
                      different tag, use the first symbol. */
                   check_assertion_or_expect_error(
@@ -4473,6 +4491,12 @@ symbol pointer is returned.  This routine is used in both C and C++ mode.
             if (!must_be_tag) {
               /* A normal lookup. */
               if (is_tag_symbol(fund_sym)) {
+                if (tag_symbol != NULL &&
+                    symbol_is(tag_symbol, sk_namespace_projection)) {
+                  /* If a using-declaration to a tag symbol is followed by
+                     an actual tag symbol, ignore the first one. */
+                  tag_symbol = NULL;
+                }  /* if */
                 /* If a tag symbol is followed by a projection to a
                    different tag, use the first symbol. */
                 check_assertion_or_expect_error(
@@ -4491,6 +4515,12 @@ symbol pointer is returned.  This routine is used in both C and C++ mode.
             } else {
               /* A tag lookup. */
               if (sym->kind == (a_symbol_kind)sk_type) {
+                if (type_tag_symbol != NULL &&
+                    symbol_is(type_tag_symbol, sk_namespace_projection)) {
+                  /* If a using-declaration to a tag symbol is followed by
+                     an actual tag symbol, ignore the first one. */
+                  type_tag_symbol = NULL;
+                }  /* if */
                 /* If a tag symbol is followed by a projection to a
                    different tag, use the first symbol. */
                 check_assertion_or_expect_error(
