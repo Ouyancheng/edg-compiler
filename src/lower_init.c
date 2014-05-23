@@ -8694,8 +8694,8 @@ C99 mode for the same reason.
     /* For local static variables, add a first-time flag and a test,
        but not if the initialization will be turned into a constant
        initialization. */
+    insert_location2 = *insert_location;
     if (lsvip != NULL && !do_simple_constant_init_opt) {
-      insert_location2 = *insert_location;
       add_first_time_test(variable, &insert_location2, insert_location,
                           &block_stmt, &local_static_guard_var);
     }  /* if */
@@ -9188,17 +9188,20 @@ do_assignment:;
                file scope).  Rewrite the initialization as executable code. */
             lower_constant_init_of_promoted_static(variable, simple_constant);
             simple_constant_init = FALSE;
-          } else if (local_static_that_requires_dynamic_init) {
-            /* A static variable of an extern inline function initialized
-               to a constant.  The constant is the constant part of the
-               nonconstant aggregate.  Insert an assignment to set the variable
-               to the constant, preceding any generated initialization code.
-               This is done because we want the variable to be a tentative
-               definition, which means it must be uninitialized. */
+          } else if (local_static_that_requires_dynamic_init ||
+                     simple_constant_init_opt_ruled_out) {
+            /* The constant must remain in the function scope and can't be
+               used to initialize the promoted static variable (now in the
+               file scope).  Rewrite the initialization as executable
+               code.  Note that this initialization must occur prior to
+               any code that has already been added to do dynamic
+               initialization. */
             a_variable_ptr         temp_var;
             an_expr_node_ptr       init_val_node;
             a_memory_region_number region_to_switch_back_to;
-            set_block_start_insert_location(block_stmt, &insert_location2);
+            if (local_static_that_requires_dynamic_init) {
+              set_block_start_insert_location(block_stmt, &insert_location2);
+            }  /* if */
             entity_node = make_init_entity_node(ipdp,
                                                 /*result_is_lvalue=*/TRUE,
                                                 /*using_as_dest=*/TRUE);
@@ -9209,8 +9212,9 @@ do_assignment:;
             /* Create a local static temporary and statically initialize it to
                the constant (but the constant must be copied to the file
                scope first). */
-            temp_var = make_unnamed_local_static_variable(variable->type,
-                                                   /*in_function_scope=*/TRUE);
+            temp_var = make_unnamed_local_static_variable(
+                                 make_qualified_type(variable->type, TQ_CONST),
+                                 /*in_function_scope=*/TRUE);
             temp_var->init_kind = (an_init_kind)initk_static;
             switch_to_file_scope_region(&region_to_switch_back_to);
             temp_var->initializer.constant =
