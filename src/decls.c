@@ -307,7 +307,7 @@ return a pointer to it.
 
 void free_decl_parse_state(a_decl_parse_state_ptr  dps)
 /*
-Return the given declaration parse state entry to the list of available such
+Return the given declaration parse state entry to the list of available
 entries.
 */
 {

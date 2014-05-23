@@ -3946,7 +3946,7 @@ static a_feature_support feature_support_list[] = {
     NULL,
     NULL },
   { "cxx_init_capture",
-    NULL,
+    &init_capture_enabled,
     "__cpp_init_captures",
     "201304" },
   { "cxx_inline_namespaces",

@@ -28976,12 +28976,12 @@ static void scan_init_capture(a_lambda_ptr           lambda,
                               a_boolean              is_ref,
                               a_source_position_ptr  capture_pos)
 /*
-Scan an C++14-style init-capture for the given lambda.  If is_ref is TRUE, an
+Scan a C++14-style init-capture for the given lambda.  If is_ref is TRUE, an
 ampersand has already been scanned for this capture.  For example, in
       [i = 0](int p) mutable { i += p; return i; }
 "i = 0" is the init-capture.  It eventually will translate to a field in the
 closure class that will be initialized as indicated.  However, since the
-closure class in being defined yet, the initializer is prescanned and the
+closure class is not being defined yet, the initializer is prescanned and the
 result of that prescan is recorded in a dynamically allocated declaration parse
 state block.
 
@@ -29158,7 +29158,7 @@ caller has already moved past the '[', and this routine leaves the trailing
           (void)get_token();
           sym_hdr = NULL;
         } else if (curr_token == tok_identifier) {
-          /* Check if this is a simple variable capture, or a C++14-style
+          /* Check if this is a simple variable capture or a C++14-style
              init-capture. */
           a_token_kind  next_tok = tok_last;
           if (init_capture_enabled) next_tok = next_token();

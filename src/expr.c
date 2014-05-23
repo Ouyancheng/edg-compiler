@@ -507,7 +507,7 @@ swallowed); otherwise, it's "="-form or "{...}" form.
     } else if (symbol_is(dps->sym, sk_static_data_member)) {
       dps->sym->variant.static_data_member.variable->type = dps->type;
     } else if (dps->is_init_capture) {
-      /* No IL entry has been created yet: Nothing to do. */
+      /* No IL entry has been created yet: nothing to do. */
     } else {
       unexpected_condition();
     }  /* if */
@@ -28636,7 +28636,7 @@ normal_function:
             make_expression_operand(var_rvalue_expr(this_var),
                                     &this_pointer_operand);
             this_operand_set = TRUE;
-            /* If one or more intermediate lambdas captured that init-capture
+            /* If one or more intermediate lambdas captured that init-capture,
                switch to the field corresponding to the innermost capture.  In
                the case of implicit captures, that field may have to be created
                first. */

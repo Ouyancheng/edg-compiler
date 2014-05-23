@@ -17904,8 +17904,8 @@ typedef struct a_lambda {
 /*
 Entry used to represent a local variable, reference, or this parameter
 that is part of the capture list (either explicitly or implicitly) of a lambda.
-This kind of entry is also used to represent C++14-style "init-capture"; i.e.,
-a field with an associated initializer for a closure type.
+This kind of entry is also used to represent a C++14-style "init-capture";
+i.e., a field with an associated initializer for a closure type.
 */
 typedef struct a_lambda_capture {
   a_lambda_capture_ptr

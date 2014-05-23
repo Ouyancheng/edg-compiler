@@ -1194,9 +1194,9 @@ a_constant_ptr aggr_init_constant_from_field_initializer(
                                                  a_source_position  *diag_pos)
 /*
 The given field (member of the given class type) has an associated initializer
-given described by *dip.  (The initializer is either fp->initializer in the
-case of a C++11-style field initializer, or it is the initializer associated
-with a C++14-style init-capture.)  Return a constant corresponding to that
+described by *dip.  (The initializer is either fp->initializer in the case of
+a C++11-style field initializer, or it is the initializer associated with a
+C++14-style init-capture.)  Return a constant corresponding to that
 initializer for insertion in an aggregate initialization described by *is.
 Issue any diagnostics at the given position.
 */
@@ -4612,7 +4612,7 @@ field declaration and dtype is the type of the field.
 void field_initializer(a_decl_parse_state  *dps)
 /*
 Scan an initializer for the field described by dps->sym and record it in the
-IL entry for that field.  (This is for normal C++11-style field initializers;
+IL entry for that field.  (This is for normal C++11-style field initializers,
 not for initializers that result from C++14-style init-captures in lambda
 expressions.  For the latter, see init_capture_initializer below.)
 */
@@ -4781,7 +4781,7 @@ memory).
     convert_initializer(icp_tree, dps->type, /*is_var_init=*/FALSE,
                         /*fill_in_dtor=*/TRUE, is);
   } else if (dps->initializer_is_expr_list) {
-    /* Parenthesized initialization.  Since this is a auto-deduced
+    /* Parenthesized initialization.  Since this is an auto-deduced
        initialization, it's just a single component to convert. */
     is->direct_init = TRUE;
     if (may_be_string_type(dps->type) &&
