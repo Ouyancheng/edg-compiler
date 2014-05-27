@@ -1,5 +1,31 @@
 Version 4.10
 
+5/27/14  [EDGcpfe/14004,EDGcpfe/14869]
+GNU C++11 compatibility: Default initialization in aggregate initializers
+
+In GNU C++11 mode with gnu_version >= 40700, default-initializing class type
+elements of an aggregate for which no explicit initializers remain is now
+equivalent to initializing those elements with "{}" (i.e., an initializer
+consisting of empty braces).  This is notably different from standard behavior
+in that an initializer-list constructor is considered for such initialization.
+For example:
+
+  #include <initializer_list>
+  struct S {
+    S(std::initializer_list<int>);
+  };
+  S x[1] = {};  // An error in normal C++11 mode because no default
+                // constructor is available for constructing x[0].
+                // Now accepted in some GNU C++11 modes (the list constructor
+                // is used for the initialization of x[0]).
+
+Note that this required some changes in lowering that back ends doing their
+own lowering may have to emulate: Specifically, previously any arguments for
+a constructor selected for default-initialization of an array were default
+arguments; now, they may be arguments representing a generated empty
+initializer-list.
+
+
 5/23/14  [EDGcpfe/14728]
 Lookup failure with using-directives and hidden name processing
 

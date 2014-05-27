@@ -5011,7 +5011,7 @@ must NOT already be lowered (see comment in default_version_of_routine).
 */
 {
   a_routine_ptr    ctor_routine, dtor_routine;
-  an_expr_node_ptr call_node, num_elem_node;
+  an_expr_node_ptr call_node, num_elem_node, default_args;
   a_boolean        zero_storage;
 
 #if CHECKING
@@ -5026,8 +5026,27 @@ must NOT already be lowered (see comment in default_version_of_routine).
                                        (a_ctor_or_dtor_kind)cdk_complete,
                                        /*define_now=*/FALSE);
 #endif /* IA64_ABI */
-  ctor_routine = default_version_of_routine(ctor_routine,
-                                            dip->variant.constructor.args);
+  /* Generally speaking, any arguments that are passed to a constructor
+     when initializing an array are default arguments. */
+  default_args = dip->variant.constructor.args;
+  if (ctor_routine->is_initializer_list_ctor) {
+    /* In some g++ cases, the arguments specified to initialize an
+       array are not default arguments; find the beginning of any default
+       arguments (if any). */
+    a_param_type_ptr  ptp;
+    check_assertion(gpp_mode);
+    for (ptp = unlowered_param_type_list_for_routine(ctor_routine);
+         ptp != NULL;
+         ptp = ptp->next) {
+      if (ptp->has_default_arg) {
+        /* We've found the beginning of a default argument list. */
+        break;
+      }  /* if */
+      check_assertion(default_args != NULL);
+      default_args = default_args->next;
+    }  /* for */
+  }  /* if */
+  ctor_routine = default_version_of_routine(ctor_routine, default_args);
   dtor_routine = dip->destructor;
 #if IA64_ABI
   if (dtor_routine != NULL) {
