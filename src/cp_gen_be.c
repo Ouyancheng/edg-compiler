@@ -1175,6 +1175,20 @@ considered.
 }  /* class_is_in_name_context_stack */
 
 
+static a_boolean any_class_in_name_context_stack(void)
+/*
+Return TRUE if the name context stack contains an entry for a class.
+*/
+{
+  a_name_context_ptr ncp;
+
+  for (ncp = curr_name_context; ncp != NULL; ncp = ncp->next) {
+    if (ncp->class_type != NULL) break;
+  }  /* for */
+  return ncp != NULL;
+}  /* any_class_in_name_context_stack */
+
+
 static a_boolean in_prototype_instantiation_context(void)
 /*
 Return TRUE if the current context is within the prototype instantiation of
@@ -13194,6 +13208,35 @@ If str is NULL, do nothing.  Otherwise call write_tok_str(str).
 }  /* write_tok_str_if_nonnull */
 
 
+static a_boolean gen_linkage_specification_if_needed(a_name_linkage_kind  nlk)
+/*
+Render a linkage specifier corresponding to the given name linkage kind if
+appropriate (i.e., the given name linkage can be explicitly specified and it
+is not the current default name linkage).  E.g., if we are inside an extern "C"
+block and nlk is nlk_cplusplus_external render
+     extern "C++"
+Return TRUE if a linkage specification was indeed rendered.
+*/
+{
+  a_boolean  rendered = FALSE;
+
+  if (
+#if GENERATE_LINKAGE_SPEC_BLOCKS
+      nlk != curr_default_name_linkage &&
+#endif /* GENERATE_LINKAGE_SPEC_BLOCKS */
+      nlk != (a_name_linkage_kind)nlk_none &&
+      nlk != (a_name_linkage_kind)nlk_internal) {
+    a_const_char  *nls = name_linkage_kind_names[(int)nlk];
+    ensure_enough_room_on_line(strlen(nls)+10);
+    write_tok_str("extern \"");
+    write_tok_str(nls);
+    write_tok_str("\" ");
+    rendered = TRUE;
+  }  /* if */
+  return rendered;
+}  /* gen_linkage_specification_if_needed */
+
+
 static void gen_template_header(a_template_decl_ptr tdp,
                                 a_type_ptr          parent_class,
                                 a_boolean           is_cppcli_generic)
@@ -13514,8 +13557,13 @@ is the one associated with the template.
     write_tok_str("; ");
     adv_curr_source_sequence_entry();
   } else {
-      /* If all prototype instantiations are recorded in the IL, the templates
-     will be generated from those. */
+    /* Generate a linkage-specification if needed. */
+    if (!any_class_in_name_context_stack()) {
+      (void)gen_linkage_specification_if_needed(
+                                 (a_name_linkage_kind)nlk_cplusplus_external);
+    }  /* if */
+    /* If all prototype instantiations are recorded in the IL, the templates
+       will be generated from those. */
     from_proto =
               template_should_be_generated_from_prototype_instantiation(
                                                               tp,
@@ -15653,35 +15701,6 @@ initialization is in a condition declaration if is_condition is TRUE.
 }  /* gen_variable_initializer */
 
 
-static a_boolean gen_linkage_specification_if_needed(a_name_linkage_kind  nlk)
-/*
-Render a linkage specifier corresponding to the given name linkage kind if
-appropriate (i.e., the given name linkage can be explicitly specified and it
-is not the current default name linkage).  E.g., if we are inside an extern "C"
-block and nlk is nlk_cplusplus_external render
-     extern "C++"
-Return TRUE if a linkage specification was indeed rendered.
-*/
-{
-  a_boolean  rendered = FALSE;
-
-  if (
-#if GENERATE_LINKAGE_SPEC_BLOCKS
-      nlk != curr_default_name_linkage &&
-#endif /* GENERATE_LINKAGE_SPEC_BLOCKS */
-      nlk != (a_name_linkage_kind)nlk_none &&
-      nlk != (a_name_linkage_kind)nlk_internal) {
-    a_const_char  *nls = name_linkage_kind_names[(int)nlk];
-    ensure_enough_room_on_line(strlen(nls)+10);
-    write_tok_str("extern \"");
-    write_tok_str(nls);
-    write_tok_str("\" ");
-    rendered = TRUE;
-  }  /* if */
-  return rendered;
-}  /* gen_linkage_specification_if_needed */
-
-
 static void gen_variable_decl(a_boolean is_condition,
                               a_boolean is_iterator,
                               a_boolean for_init,
@@ -15894,7 +15913,8 @@ this one is such a continuation.
   }  /* if */ 
 #endif /* GENERATE_LINKAGE_SPEC_BLOCKS */
   if (!suppress_specifiers) {
-    if (explicit_nlk != (a_name_linkage_kind)nlk_none) {
+    if (explicit_nlk != (a_name_linkage_kind)nlk_none &&
+        template_decl != NULL) {
       (void)gen_linkage_specification_if_needed(explicit_nlk);
       if (render_braced_extern_c) {
         write_tok_str("{ ");
@@ -16910,14 +16930,15 @@ handle_as_definition:
   }  /* if */
   /* Check for linkage specifiers.  This applies even on a definition. */
 #if GENERATE_LINKAGE_SPEC_BLOCKS
-  if (!decl_within_class && !decl_within_function && !friend_decl) {
+  if (!decl_within_class && !decl_within_function && !friend_decl &&
+      template_decl == NULL) {
     /* If the current default name linkage kind is different from the one on
        the routine, a non-braced linkage specification may be needed.  (This
        cannot be done for local declarations or declarations in class
        definitions.) */
     a_name_linkage_kind  nlk = rout->source_corresp.name_linkage;
     if (gen_linkage_specification_if_needed(nlk)) {
-      if (rout->storage_class == (a_storage_class)sc_extern) {
+      if (storage_class == (a_storage_class)sc_extern) {
         /* Suppress the storage class if it's "extern", because that's implied
            by the linkage specification that was rendered. */
         storage_class = (a_storage_class)sc_unspecified;
