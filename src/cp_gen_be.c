@@ -13557,11 +13557,13 @@ is the one associated with the template.
     write_tok_str("; ");
     adv_curr_source_sequence_entry();
   } else {
+#if GENERATE_LINKAGE_SPEC_BLOCKS
     /* Generate a linkage-specification if needed. */
     if (!any_class_in_name_context_stack()) {
       (void)gen_linkage_specification_if_needed(
                                  (a_name_linkage_kind)nlk_cplusplus_external);
     }  /* if */
+#endif /* GENERATE_LINKAGE_SPEC_BLOCKS */
     /* If all prototype instantiations are recorded in the IL, the templates
        will be generated from those. */
     from_proto =
