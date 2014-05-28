@@ -2956,12 +2956,12 @@ If an error occurs attempting to get this information, *unique_id is
 left unchanged.
 */
 {
-  /* Make sure the unique ID has been initialized. */
-  clear_unique_file_id(unique_id);
 #if EDG_WIN32
   BY_HANDLE_FILE_INFORMATION	file_info;
   HANDLE			f_file;
 
+  /* Make sure the unique ID has been initialized. */
+  clear_unique_file_id(unique_id);
   /* Open the file so that we can get the file information. */
   f_file = CreateFile(file_name, GENERIC_READ,
                       FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
@@ -2982,6 +2982,8 @@ left unchanged.
 #if STAT_AVAILABLE
   struct stat   buf;
 
+  /* Make sure the unique ID has been initialized. */
+  clear_unique_file_id(unique_id);
   if (stat(file_name, &buf) == 0) {
     unique_id->st_dev = buf.st_dev;
     unique_id->st_ino = buf.st_ino;
