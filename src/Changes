@@ -21,7 +21,7 @@ unit.  Now fixed.
 5/27/14  [EDGcpfe/15183]
 Spurious Microsoft-mode warning on lambda capturing a parameter pack
 
-In Microsoft mode that enable both lambdas and variadic templates (e.g., when
+In Microsoft modes that enable both lambdas and variadic templates (e.g., when
 microsoft_version >= 1800), the front end issued a spurious warning about an
 anonymous union member being hidden by a lambda member when a lambda captures
 a parameter pack.  For example:
