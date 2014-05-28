@@ -2956,6 +2956,8 @@ If an error occurs attempting to get this information, *unique_id is
 left unchanged.
 */
 {
+  /* Make sure the unique ID has been initialized. */
+  clear_unique_file_id(unique_id);
 #if EDG_WIN32
   BY_HANDLE_FILE_INFORMATION	file_info;
   HANDLE			f_file;

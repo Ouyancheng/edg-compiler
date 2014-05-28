@@ -4283,6 +4283,11 @@ of the file name.  Return TRUE if an existing entry was returned.
 					unique_file_id_hash_table,
 					(a_void_ptr)&key_ifh, create);
     ifhp = ifhp_in_unique_id_table == NULL ? NULL : *ifhp_in_unique_id_table;
+    /* It should not be possible for the first lookup to fail and the second
+       succeed when create is TRUE. */
+    check_assertion(!create ||
+                    ((ifhp_in_table == NULL) ==
+                                           (ifhp_in_unique_id_table == NULL)));
   }  /* if */
 #endif /* UNIQUE_FILE_IDENTIFIER_AVAILABLE */
   if (ifhp != NULL) {
