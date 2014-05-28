@@ -2821,8 +2821,8 @@ value must be copied before a second call is made.
   if (is_mv_cpu_arch(arch)) {
     /* Replace "arch=" with "arch_" in CPU architecture cases. */
     check_assertion(strncmp(result, "arch=", 5) == 0 &&
-                    strlen(result) + 1 < sizeof(buffer));
-    (void)strncpy(buffer, result, sizeof(buffer));
+                    strlen(result) < sizeof(buffer));
+    (void)strcpy(buffer, result);
     buffer[4] = '_';
     result = buffer;
 #if REPLACE_SPECIAL_CHARACTERS_IN_MANGLED_NAMES
