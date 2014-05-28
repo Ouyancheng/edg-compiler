@@ -15914,7 +15914,10 @@ this one is such a continuation.
 #endif /* GENERATE_LINKAGE_SPEC_BLOCKS */
   if (!suppress_specifiers) {
     if (explicit_nlk != (a_name_linkage_kind)nlk_none &&
-        template_decl != NULL) {
+        template_decl == NULL) {
+      /* A linkage specification may be required.  Don't render one for a
+         template declaration since it would be in the wrong location
+         (gen_template already rendered one if needed). */
       (void)gen_linkage_specification_if_needed(explicit_nlk);
       if (render_braced_extern_c) {
         write_tok_str("{ ");
