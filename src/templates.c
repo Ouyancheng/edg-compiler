@@ -27847,7 +27847,8 @@ unless the SIR_CLEAR_VALUE flag is set in "options".
   /* Master instances are created immediately in the primary translation unit,
      but in secondary translation units they are only established after
      correspondence checking has been done. */
-  use_master_instance = is_primary_translation_unit || in_instantiation_wrapup;
+  use_master_instance = is_primary_translation_unit ||
+                        in_instantiation_wrapup || rout_is_constexpr;
   if (use_master_instance) {
     if (tip->master_instance == NULL) {
       /* This instance does not yet point to master instance.  Find

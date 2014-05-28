@@ -1,5 +1,23 @@
 Version 4.10
 
+5/28/14  [EDGcpfe/14850]
+Constexpr functions not instantiated in secondary translation units
+
+Functions that are constexpr must be instantiated when they are referenced
+in order to produce a constant expression.  Such instantiations were not
+being done in secondary translation units, resulting in spurious errors
+when an example like the one below is compiled as a secondary translation
+unit.  Now fixed.
+
+  template<typename T> struct A {
+    template<typename T2> static constexpr bool f(T2*) { return true; }
+    template<typename> static constexpr bool f(...) { return false; }
+  };
+  struct B {
+    static const bool b = A<int>::f<int>(nullptr);
+  };
+
+
 5/27/14  [EDGcpfe/15183]
 Spurious Microsoft-mode warning on lambda capturing a parameter pack
 
