@@ -5026,13 +5026,13 @@ must NOT already be lowered (see comment in default_version_of_routine).
                                        (a_ctor_or_dtor_kind)cdk_complete,
                                        /*define_now=*/FALSE);
 #endif /* IA64_ABI */
-  /* Generally speaking, any arguments that are passed to a constructor
-     when initializing an array are default arguments. */
+  /* In C++03, any arguments that are passed to a constructor when initializing
+     an array are default arguments.  In C++11, the argument may instead be
+     generated arguments describing an empty initializer list (if an aggregate
+     initializer provides no initializers for an array member). */
   default_args = dip->variant.constructor.args;
   if (ctor_routine->is_initializer_list_ctor) {
-    /* In some g++ cases, the arguments specified to initialize an
-       array are not default arguments; find the beginning of any default
-       arguments (if any). */
+    /* Find the beginning of any default arguments (if any). */
     a_param_type_ptr  ptp;
     check_assertion(gpp_mode);
     for (ptp = unlowered_param_type_list_for_routine(ctor_routine);

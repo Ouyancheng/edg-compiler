@@ -1097,14 +1097,19 @@ given position, unless is->no_diagnostics is TRUE.
 {
   a_constant_ptr  result = NULL;
 
-  if (gpp_mode && gnu_version >= 40700) {
-    /* GCC appears to handle this just like an empty braced initializer, which
-       is not standard (e.g., it makes an initializer_list constructor an
-       acceptable candidate for default construction).  For example:
+  if (list_init_enabled &&
+      !(clang_mode && clang_version < 30500) &&
+      !(gpp_mode && !clang_version && gnu_version < 40700) &&
+      !(microsoft_mode && !cpp11_mode)) {
+    /* C++11 changed the rules from requiring a value-initialization (i.e.,
+       the C++03 requirement of picking the default constructor) to saying
+       that the initialization is "as if" initializing with an empty
+       initializer list.  For example:
           #include <initializer_list>
           struct S { S(std::initializer_list<int>); };
-          S x[1] = {};  // Accepted by GCC 4.7.0 (and later versions).
-    */
+          S x[1] = {};  // Valid in C++11.
+       Some C++11 compilers (e.g., clang 3.4) do not implement this yet and
+       give an error on this example because S has no default constructor. */
     an_init_component_ptr  icp, orig_icp;
     icp = alloc_init_component((an_init_component_kind)ick_braced);
     icp->variant.braced.start_pos = *diag_pos;
