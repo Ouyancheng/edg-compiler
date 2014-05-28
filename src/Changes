@@ -1,5 +1,23 @@
 Version 4.10
 
+5/27/14  [EDGcpfe/15183]
+Spurious Microsoft-mode warning on lambda capturing a parameter pack
+
+In Microsoft mode that enable both lambdas and variadic templates (e.g., when
+microsoft_version >= 1800), the front end issued a spurious warning about an
+anonymous union member being hidden by a lambda member when a lambda captures
+a parameter pack.  For example:
+
+  template<typename ... T> inline int g(T ... p) {
+    return [p ... ]{ return 42; }();  // Previously triggered a spurious
+  }                                   // warning.
+  int main() {
+    return g(1, 2) != 42;
+  }
+
+This is now fixed.
+
+
 5/27/14  [EDGcpfe/14004,EDGcpfe/14869]
 GNU C++11 compatibility: Default initialization in aggregate initializers
 

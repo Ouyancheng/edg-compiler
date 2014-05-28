@@ -4437,12 +4437,15 @@ this is not allowed, an error will be issued by the caller.
     }  /* if */
 #if GNU_EXTENSIONS_ALLOWED
   } else if (old_sym->kind == (a_symbol_kind)sk_field &&
-             new_sym->kind == (a_symbol_kind)sk_field) {
+             new_sym->kind == (a_symbol_kind)sk_field &&
+             !old_sym->variant.field.ptr->is_captured_pack_element) {
     /* Some modes ignore conflicts between fields if one of those fields comes
        from an anonymous union.  The first declaration prevails in such cases.
        We cannot use the insert_sym mechanism for this because these symbols
        are normally found on the inactive list (where ordering is ignored).
        Therefore, we set the is_invisible flag on the new symbol. */
+    /* (Avoid this branch for closure fields with duplicate names that result
+       from capturing pack elements.) */
     if (gcc_mode || (microsoft_bugs && !C_mode())) {
       if (old_sym->variant.field.anonymous_parent_object != NULL ||
           suppress_error) {
