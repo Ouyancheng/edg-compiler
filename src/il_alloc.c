@@ -5097,6 +5097,7 @@ in the current memory region.
                                            alloc_cil(sizeof(a_lambda_capture));
 
   entry->next = NULL;
+  entry->captured.initializer = NULL;
   entry->captured.variable = NULL;
   entry->capture_info.source_closure_field = NULL;
   entry->closure_field = NULL;

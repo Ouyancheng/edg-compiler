@@ -17813,6 +17813,7 @@ Do one-time initialization of static variables defined in this file.
                                 /*secondary_declarator=*/FALSE);
   if (precompiled_header_processing_required) {
     static a_pch_saved_variable saved_vars[] = {
+      pch_saved_var_array_elem(avail_decl_parse_states),
       pch_saved_var_array_elem(avail_decl_parse_callbacks),
 #if DEBUG
       pch_saved_var_array_elem(num_decl_parse_states_allocated),
@@ -17835,6 +17836,7 @@ initialization for each compilation.
   num_decl_parse_states_allocated = 0;
   num_decl_parse_callbacks_allocated = 0;
 #endif /* DEBUG */
+  avail_decl_parse_states = NULL;
   avail_decl_parse_callbacks = NULL;
 }  /* decls_init */
 
