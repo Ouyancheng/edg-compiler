@@ -3102,7 +3102,7 @@ result to an allocated area.
   int                buff_idx = 0;
 #if USE_X86_FUNCTION_MULTIVERSIONING
   size_t             i;
-  a_boolean          is_first = TRUE;
+  a_boolean          is_first = TRUE, too_long;
   a_const_char       *arch_name;
   a_mv_target_bitset bs =
              gnu_routine_supp(routine)->mv_info.targeted_version.target_bitset;
@@ -3135,10 +3135,14 @@ result to an allocated area.
       if (is_first) {
         is_first = FALSE;
       } else {
-        if (buff_idx + 1 >= STATIC_BUFFER_SIZE) goto done;
+        too_long = buff_idx + 1 >= STATIC_BUFFER_SIZE;
+        check_assertion(!too_long);
+        if (too_long) goto done;
         buffer[buff_idx++] = '_';
       }  /* if */
-      if (buff_idx + strlen(arch_name) >= STATIC_BUFFER_SIZE) goto done;
+      too_long = buff_idx + strlen(arch_name) >= STATIC_BUFFER_SIZE;
+      check_assertion(!too_long);
+      if (too_long) goto done;
       (void)strcpy(&buffer[buff_idx], arch_name);
       buff_idx += strlen(arch_name);
     }  /* if */
