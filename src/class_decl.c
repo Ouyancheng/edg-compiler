@@ -29056,6 +29056,7 @@ state block.
   if (err) {
     flush_initializer_cache(&dps->prescanned_initializer_cache);
     free_decl_parse_state(dps);
+    lcp->capture_info.init_capture_dps = NULL;
   }  /* if */
 }  /* scan_init_capture */
 
