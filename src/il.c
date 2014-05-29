@@ -12757,7 +12757,14 @@ options for the copy.  cblock is a control block for the copy.
        put on a destruction list in the current context. */
     new_dip->lifetime = NULL;
     new_dip->next_in_destruction_list = NULL;
-    if (!(options & CE_COPY_NOT_EVALUATED)) {
+    if (options & CE_COPY_NOT_EVALUATED) {
+      /* Since the copied expression is not evaluated, not object lifetime
+         entry is required. */
+    } else if (scope_stack_top().in_template_arg_list) {
+      /* Destructors cannot be called as a result of template argument
+         expression evaluation (which is a compile-time evaluation). */
+      expect_error();
+    } else {
       an_object_lifetime_kind kind = dip->lifetime->kind;
       a_boolean               static_lifetime =
                                           is_static_object_lifetime_kind(kind);
