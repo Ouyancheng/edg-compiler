@@ -5547,9 +5547,11 @@ mangling for the constant, is provided; otherwise, the list of expressions
       for (cp = con->variant.aggregate.first_constant;
            cp != NULL;
            cp = cp->next) {
-        /* Repeated constants and designators are ignored during mangling. */
+        /* Repeated constants and designators are ignored during mangling, as
+           are implicit aggregate element initializers. */
         if (cp->kind != (a_constant_repr_kind)ck_init_repeat &&
-            cp->kind != (a_constant_repr_kind)ck_designator) {
+            cp->kind != (a_constant_repr_kind)ck_designator &&
+            !cp->implicit_aggr_element) {
           if (cp->kind == (a_constant_repr_kind)ck_dynamic_init &&
               cp->variant.dynamic_init != NULL &&
               cp->variant.dynamic_init->kind ==
@@ -5579,11 +5581,13 @@ mangling for the constant, is provided; otherwise, the list of expressions
       for (cp = con->variant.aggregate.first_constant;
            cp != NULL;
            cp = cp->next) {
-        mangled_encoding_for_constant(cp,
-                                      /*old_form=*/FALSE,
-                                      /*in_dependent_expr=*/TRUE,
-                                      /*suppress_address_of=*/FALSE,
-                                      mctl);
+        if (!cp->implicit_aggr_element) {
+          mangled_encoding_for_constant(cp,
+                                        /*old_form=*/FALSE,
+                                        /*in_dependent_expr=*/TRUE,
+                                        /*suppress_address_of=*/FALSE,
+                                        mctl);
+        }  /* if */
       }  /* for */
     } else {
       /* Just one constant. */
