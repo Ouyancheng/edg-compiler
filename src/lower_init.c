@@ -5659,8 +5659,6 @@ expression).
       repeated_con = con_ptr->variant.init_repeat.constant;
       /* Repeat the constant the right number of times. */
       if (repeated_con->kind != (a_constant_repr_kind)ck_dynamic_init) {
-        check_assertion(designators_allowed ||
-                        repeated_con->is_result_of_constexpr_call);
 #if DO_C99_IL_LOWERING
         if (c99_mode || gcc_mode) {
           lower_c99_constant(repeated_con);
