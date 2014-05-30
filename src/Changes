@@ -9,7 +9,7 @@ represented by __func__ can differ from one instantiation to the next), but
 previously the front end did not treat the expression __func__ as a template-
 dependent expression.  That in turn could result in spurious errors due to
 incorrect lookup results for certain function and operator calls that have
-__func__ as an argument.  For example:
+__func__ as an argument (in C++11 mode).  For example:
 
   struct Log {
     template<typename T> Log& operator<<(T const&);
