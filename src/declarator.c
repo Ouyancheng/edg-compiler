@@ -6445,6 +6445,7 @@ etc.).
       *output_flags |= DO_CFRONT_MEMBER_FUNCTION_TYPEDEF;
       /* Force function_declarator to add an implicit-this-param pointer
          to the routine type. */
+      check_assertion(locator != NULL);
       member_parent_type = qualifier_class_type(*locator);
       check_assertion(member_parent_type != NULL);
     } else if (member_parent_type == NULL && locator != NULL) {
@@ -6535,6 +6536,7 @@ etc.).
       parenthesized_initializer_allowed = FALSE;
     } else {
       /* Real (non-abstract) declarator. */
+      check_assertion(locator != NULL);
 #if GENERATE_SOURCE_SEQUENCE_LISTS
 #if DEBUG
       if (!source_sequence_entries_disallowed &&
