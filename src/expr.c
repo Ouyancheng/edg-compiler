@@ -32740,6 +32740,7 @@ parse) and get_continued_elem (for resuming a suspended parse).
       }  /* if */
       if (is_continuation_elem(elem_icp)) {
         /* Add restoration state and suspend parsing for now. */
+        check_assertion(p_continuation != NULL);
         if (continuation == NULL) {
           continuation = alloc_braced_list_continuation();
         }  /* if */
