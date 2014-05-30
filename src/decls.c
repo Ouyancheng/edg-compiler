@@ -1800,7 +1800,8 @@ issued).
       (is_new_operator(locator->variant.opname) ||
        is_delete_operator(locator->variant.opname))) {
     /* A new or delete operator that is not a class member. */
-    an_attribute_ptr  ap = NULL;
+    a_boolean          declared_inline = (dps->dso_flags & DSO_INLINE) != 0;
+    a_source_position  *inline_diag_pos = &dps->inline_pos;
     if (depth_innermost_namespace_scope != DEPTH_OF_FILE_SCOPE &&
         (!locator->is_qualified_name ||
          !locator->is_file_scope_qualified_name)) {
@@ -1820,9 +1821,16 @@ issued).
       severity = strict_ansi_mode ? strict_ansi_error_severity : es_warning;
       error_code = ec_no_internal_linkage_for_new_or_delete;
     }  /* if */
-    if (((dps->dso_flags & DSO_INLINE) ||
-         (ap = find_decl_attribute(ak_always_inline, dps)) != NULL) &&
-        is_function_type(dps->type) &&
+#if GNU_EXTENSIONS_ALLOWED
+    if (gpp_mode && !declared_inline) {
+      an_attribute_ptr  ap = find_decl_attribute(ak_always_inline, dps);
+      if (ap != NULL) {
+        declared_inline = TRUE;
+        inline_diag_pos = &ap->position;
+      }  /* if */
+    }  /* if */
+#endif /* GNU_EXTENSIONS_ALLOWED */
+    if (declared_inline && is_function_type(dps->type) &&
         !dps->is_template_declaration &&
         is_single_param_operator_new_or_delete(locator, dps->type,
                                                /*include_nothrow=*/TRUE)) {
@@ -1830,11 +1838,9 @@ issued).
          (the standard does not require a diagnostic for this; hence, it's
          just a warning in default mode).  The GNU attribute "always_inline"
          is handled like the "inline" keyword in this context. */
-      a_source_position  *diag_pos = &dps->inline_pos;
-      if (ap != NULL) diag_pos = &ap->position;
       pos_diagnostic(strict_ansi_mode ? strict_ansi_error_severity
                                       : es_warning,
-                     ec_inline_new_or_delete_operator, diag_pos);
+                     ec_inline_new_or_delete_operator, inline_diag_pos);
     }  /* if */
     if (error_code != ec_no_error) {
       diagnostic(severity, error_code);
