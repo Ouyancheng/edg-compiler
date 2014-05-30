@@ -29700,10 +29700,16 @@ which of the various keywords was used.
     switch_to_file_scope_region(&region_to_switch_back_to);
     name_string = alloc_unshared_constant(&const_for_curr_token);
     switch_back_to_original_region(region_to_switch_back_to);
-    /* The C99 __func__ has a type of const array of char.  All the cases
-       in other modes that are not treated as string literals and therefore
-       get here seem also to be const. */
-    var_type = make_qualified_type(name_string->type, TQ_CONST);
+    if (is_prototype_instantiation_context()) {
+      /* Ensure that __func__ in a template context is treated as a template-
+         dependent (i.e., type-dependent) expression. */
+      var_type = type_of_unknown_templ_param_nontype;
+    } else {
+      /* The C99 __func__ has a type of const array of char.  All the cases
+         in other modes that are not treated as string literals and therefore
+         get here seem also to be const. */
+      var_type = make_qualified_type(name_string->type, TQ_CONST);
+    }  /* if */
     name_var = make_variable(var_type, (a_storage_class)sc_static,
                              depth_innermost_function_scope);
 #if BACK_END_IS_CP_GEN_BE
