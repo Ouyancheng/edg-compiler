@@ -1174,6 +1174,7 @@ considered.
   return class_in_stack;
 }  /* class_is_in_name_context_stack */
 
+#if GENERATE_LINKAGE_SPEC_BLOCKS
 
 static a_boolean any_class_in_name_context_stack(void)
 /*
@@ -1188,6 +1189,7 @@ Return TRUE if the name context stack contains an entry for a class.
   return ncp != NULL;
 }  /* any_class_in_name_context_stack */
 
+#endif /* GENERATE_LINKAGE_SPEC_BLOCKS */
 
 static a_boolean in_prototype_instantiation_context(void)
 /*
