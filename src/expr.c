@@ -6636,6 +6636,7 @@ a left parenthesis in the source.
               if (is_class_struct_union_type(class_struct_union_type) &&
                   !is_incomplete_type(class_struct_union_type) &&
                   symbol_for(member_con) != NULL) {
+                check_assertion(qualified_member_position != NULL);
                 clear_locator(locator, qualified_member_position);
                 locator->symbol_header = symbol_for(member_con)->header;
                 sym = look_up_selection_name(locator, class_struct_union_type);
