@@ -1079,6 +1079,13 @@ extern void run_end_of_parse_actions(a_decl_parse_state  *dps,
 
 extern void discard_end_of_parse_actions(a_decl_parse_state  *dps);
 
+
+extern an_attribute_ptr f_find_decl_attribute(a_byte_attribute_kind  kind,
+                                              a_decl_parse_state     *dps);
+
+#define find_decl_attribute(kind, dps)                                       \
+  (f_find_decl_attribute((a_byte_attribute_kind)(kind), (dps)))
+
 extern void attach_parse_state_to_attributes(a_decl_parse_state  *dps);
 
 extern void detach_parse_state_from_attributes(a_decl_parse_state  *dps);
@@ -1190,8 +1197,9 @@ extern a_type_ptr type_keyword(void);
 extern void adjust_parameter_type(a_type_ptr           *type_ptr);
 
 extern a_boolean is_single_param_operator_new_or_delete(
-                                                   a_symbol_locator *locator,
-                                                   a_type_ptr       type);
+                                             a_symbol_locator *locator,
+                                             a_type_ptr       type,
+                                             a_boolean        include_nothrow);
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
 extern a_boolean valid_static_conversion_class_type(a_type_ptr  tp,

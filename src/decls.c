@@ -420,6 +420,22 @@ Discard the end-of-parse callbacks registered for the declaration described by
 }  /* discard_end_of_parse_actions */
 
 
+an_attribute_ptr f_find_decl_attribute(a_byte_attribute_kind  kind,
+                                       a_decl_parse_state     *dps)
+/*
+If the lists dps->prefix_attributes or dps->id_attributes include an attribute
+entry of the given kind, return one of those entries.
+*/
+{
+  an_attribute_ptr  ap = find_attribute(kind, dps->prefix_attributes);
+
+  if (ap == NULL) {
+    ap = find_attribute(kind, dps->id_attributes);
+  }  /* if */
+  return ap;
+}  /* f_find_decl_attribute */
+
+
 static void disallow_attributes(an_attribute_ptr  *p_attributes)
 /*
 If *p_attributes is non-NULL, issue an error message indicating that
@@ -1725,13 +1741,16 @@ new fields are set properly.
 }  /* check_operator_function_params */
 
 
-a_boolean is_single_param_operator_new_or_delete(a_symbol_locator *locator,
-                                                 a_type_ptr       type)
+a_boolean is_single_param_operator_new_or_delete(
+                                             a_symbol_locator *locator,
+                                             a_type_ptr       type,
+                                             a_boolean        include_nothrow)
 /*
 Return TRUE if the locator is for an operator new or delete and the type
 indicates that it is the default version (i.e., if it has exactly one
 parameter, which elsewhere is confirmed to have type size_t (new) or void*
-(delete).
+(delete).  If include_nothrow is TRUE, return TRUE also for a two-parameter
+operator new or delete whose second parameter has type std::nothrow_t const&.
 */
 {
   a_boolean         match = FALSE;
@@ -1742,8 +1761,20 @@ parameter, which elsewhere is confirmed to have type size_t (new) or void*
        is_delete_operator(locator->variant.opname))) {
     check_assertion(is_function_type(type));
     ptp = (skip_typerefs(type))->variant.routine.extra_info->param_type_list;
-    if (ptp != NULL && ptp->next == NULL) {
-      match = TRUE;
+    if (ptp != NULL) {
+      if (ptp->next == NULL) {
+        match = TRUE;
+      } else if (include_nothrow && ptp->next->next == NULL) {
+        /* Check whether the second parameter has type
+           std::nothrow_t const&. */
+        a_type_ptr  tp = ptp->next->type;
+        if (is_lvalue_reference_type(tp)) {
+          tp = type_pointed_to(tp);
+          if (is_std_nothrow_type(tp) && get_type_qualifiers(tp) == TQ_CONST) {
+            match = TRUE;
+          }  /* if */
+        }  /* if */
+      }  /* if */
     }  /* if */
   }  /* if */
   return match;
@@ -1769,6 +1800,7 @@ issued).
       (is_new_operator(locator->variant.opname) ||
        is_delete_operator(locator->variant.opname))) {
     /* A new or delete operator that is not a class member. */
+    an_attribute_ptr  ap = NULL;
     if (depth_innermost_namespace_scope != DEPTH_OF_FILE_SCOPE &&
         (!locator->is_qualified_name ||
          !locator->is_file_scope_qualified_name)) {
@@ -1788,15 +1820,21 @@ issued).
       severity = strict_ansi_mode ? strict_ansi_error_severity : es_warning;
       error_code = ec_no_internal_linkage_for_new_or_delete;
     }  /* if */
-    if ((dps->dso_flags & DSO_INLINE) && is_function_type(dps->type) &&
+    if (((dps->dso_flags & DSO_INLINE) ||
+         (ap = find_decl_attribute(ak_always_inline, dps)) != NULL) &&
+        is_function_type(dps->type) &&
         !dps->is_template_declaration &&
-        is_single_param_operator_new_or_delete(locator, dps->type)) {
+        is_single_param_operator_new_or_delete(locator, dps->type,
+                                               /*include_nothrow=*/TRUE)) {
       /* The predefined operators new and delete cannot be declared "inline"
          (the standard does not require a diagnostic for this; hence, it's
-         just a warning in default mode). */
+         just a warning in default mode).  The GNU attribute "always_inline"
+         is handled like the "inline" keyword in this context. */
+      a_source_position  *diag_pos = &dps->inline_pos;
+      if (ap != NULL) diag_pos = &ap->position;
       pos_diagnostic(strict_ansi_mode ? strict_ansi_error_severity
                                       : es_warning,
-                     ec_inline_new_or_delete_operator, &dps->inline_pos);
+                     ec_inline_new_or_delete_operator, diag_pos);
     }  /* if */
     if (error_code != ec_no_error) {
       diagnostic(severity, error_code);
@@ -7418,10 +7456,8 @@ use of).
                  gnu_routine_supp(rp)->asm_name == NULL) &&
                dps->asm_name == NULL &&
                /* Exclude routines with "alias" or "weakref" attributes. */
-               find_attribute(ak_alias, dps->prefix_attributes) == NULL &&
-               find_attribute(ak_alias, dps->id_attributes) == NULL &&
-               find_attribute(ak_weakref, dps->prefix_attributes) == NULL &&
-               find_attribute(ak_weakref, dps->id_attributes) == NULL) {
+               find_decl_attribute(ak_alias, dps) == NULL &&
+               find_decl_attribute(ak_weakref, dps) == NULL) {
       a_const_char *name = NULL;
       if (strcmp(rp->source_corresp.name, "strlen") == 0) {
         name = "__builtin_strlen";
@@ -7475,10 +7511,7 @@ TRUE if that is the case.  The current declaration is described by *dps and
        attribute. */
     check_assertion(idlbp->func_info != NULL);
     if (gnu_version >= 40300 && idlbp->func_info->is_inline &&
-        (dps->prefix_attributes == NULL ||
-         find_attribute(ak_gnu_inline, dps->prefix_attributes) == NULL) &&
-        (dps->id_attributes == NULL ||
-         find_attribute(ak_gnu_inline, dps->id_attributes) == NULL)) {
+        find_decl_attribute(ak_gnu_inline, dps) == NULL) {
       ap = find_attribute(ak_gnu_inline,
                           linked_symbol->variant.routine.ptr
                                        ->source_corresp.attributes);
@@ -7490,8 +7523,7 @@ TRUE if that is the case.  The current declaration is described by *dps and
              idlbp->func_info->is_inline) {
     /* An inline function with attributes.  Check if "gnu_inline" is among
        those attributes. */
-    ap = find_attribute(ak_gnu_inline, dps->prefix_attributes);
-    if (ap == NULL) ap = find_attribute(ak_gnu_inline, dps->id_attributes);
+    ap = find_decl_attribute(ak_gnu_inline, dps);
     if (ap != NULL) {
       if (redeclaration && linked_symbol->kind == (a_symbol_kind)sk_routine &&
           linked_symbol->variant.routine.ptr->is_inline) {
@@ -9507,7 +9539,8 @@ definition of a member function of a class template.
       }  /* if */
     }  /* if */
   } else if (!is_error_locator(*locator)) {
-    if (is_single_param_operator_new_or_delete(locator, type_ptr)) {
+    if (is_single_param_operator_new_or_delete(locator, type_ptr,
+                                               /*include_nothrow=*/FALSE)) {
       /* Overloading should not be allowed on the single-argument version of
          operator new(size_t) or operator delete(void *).  Though it is not
          expressly prohibited, it can be inferred from the fact that new and
@@ -15128,11 +15161,7 @@ declaration modifiers recorded in *dps.
       (var_ptr->decl_modifiers & DM_SELECTANY)) {
     /* In Microsoft versions prior to 1300, the "selectany" decl-modifier
        cannot appear with dynamic initialization nor with no initialization. */
-    an_attribute_ptr  ap = find_attribute(ak_selectany,
-                                          dps->prefix_attributes);
-    if (ap == NULL) {
-      ap = find_attribute(ak_selectany, dps->specifier_attributes);
-    }  /* if */
+    an_attribute_ptr  ap = find_decl_attribute(ak_selectany, dps);
     if (ap != NULL &&
         (var_ptr->init_kind == (an_init_kind)initk_dynamic ||
          var_ptr->init_kind == (an_init_kind)initk_none)) {
@@ -15920,8 +15949,7 @@ if prior declarations specified an alignment attribute.
   }  /* if */
   if (dps->alignment != 0) {
     /* At least one standard attribute was specified. */
-    an_attribute_ptr  ap = find_attribute(ak_align, dps->prefix_attributes);
-    if (ap == NULL) ap = find_attribute(ak_align, dps->id_attributes);
+    an_attribute_ptr  ap = find_decl_attribute(ak_align, dps);
     check_assertion(ap != NULL || vp == NULL);
     /* Check that the specified alignment is consistent with any previously
        specified alignments for the declared variable, and, if so, record that

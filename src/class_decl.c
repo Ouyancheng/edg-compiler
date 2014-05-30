@@ -6230,8 +6230,7 @@ done:
          member functions must have the "override" attribute.  Destructors
          and compiler-generated functions are exempted from this
          requirement. */
-      if (find_attribute(ak_override, dps->prefix_attributes) == NULL &&
-          find_attribute(ak_override, dps->id_attributes) == NULL) {
+      if (find_decl_attribute(ak_override, dps) == NULL) {
         pos_error(ec_missing_override_attr_in_base_check_class,
                   &dps->declarator_pos);
       }  /* if */
@@ -14287,7 +14286,8 @@ decl_member_function, which handles in-class member function declarations.)
       /* User-defined literal operators cannot be class members. */
       pos_error(ec_udl_cannot_be_class_member, &locator->source_position);
       set_to_error_locator(*locator);
-    } else if (is_single_param_operator_new_or_delete(locator, member_type)) {
+    } else if (is_single_param_operator_new_or_delete(
+                           locator, member_type, /*include_nothrow=*/FALSE)) {
       /* Overloading should not be allowed on the single-argument version
          of operator new(size_t) or delete(void *). */
       pos_error(is_new_operator(locator->variant.opname) ?
