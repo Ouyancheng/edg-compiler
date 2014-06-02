@@ -5099,6 +5099,7 @@ in the current memory region.
   entry->next = NULL;
   entry->captured.initializer = NULL;
   entry->captured.variable = NULL;
+  entry->capture_info.init_capture_dps = NULL;
   entry->capture_info.source_closure_field = NULL;
   entry->closure_field = NULL;
   entry->is_init_capture = FALSE;
