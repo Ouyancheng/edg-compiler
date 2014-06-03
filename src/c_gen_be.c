@@ -5445,11 +5445,11 @@ there's some possibility of precedence confusion and need_parens is TRUE.
 #if GNU_COMPLEX_EXTENSIONS_ALLOWED
         case eok_real_part:
           is_unary = TRUE;
-          opstr = "__real";
+          opstr = "__real ";
           break;
         case eok_imag_part:
           is_unary = TRUE;
-          opstr = "__imag";
+          opstr = "__imag ";
           break;
 #endif /* GNU_COMPLEX_EXTENSIONS_ALLOWED */
         case eok_post_incr:
@@ -7102,6 +7102,9 @@ block with state information for the processing.
   a_boolean            need_close_brace = FALSE;
   a_boolean            is_aggregate;
   a_boolean            suppress_brace_for_base_class_subobject = FALSE;
+#if C99_IL_EXTENSIONS_SUPPORTED && !LOWER_COMPLEX
+  a_constant           complex_constant;
+#endif /* C99_IL_EXTENSIONS_SUPPORTED && !LOWER_COMPLEX */
 
   type = skip_typerefs(type);
 #if !C_GEN_BE_GENERATES_ANSI_C
@@ -7125,6 +7128,24 @@ block with state information for the processing.
     is_aggregate = FALSE;
   }  /* if */
 #endif /* GNU_VECTOR_TYPES_ALLOWED */
+#if C99_IL_EXTENSIONS_SUPPORTED && !LOWER_COMPLEX
+  if (is_aggregate && is_complex_type(type)) {
+    /* An un-lowered complex constant in the form of an aggregate; copy
+       the real and imaginary parts of the aggregate constant to a complex
+       constant and use that in place of the aggregate. */
+    check_assertion(constant->variant.aggregate.first_constant != NULL &&
+                    (constant->variant.aggregate.first_constant->next ==
+                     constant->variant.aggregate.last_constant));
+    clear_constant(&complex_constant, (a_constant_repr_kind)ck_complex);
+    complex_constant.type = constant->type;
+    complex_constant.variant.complex_value->real =
+               constant->variant.aggregate.first_constant->variant.float_value;
+    complex_constant.variant.complex_value->imag =
+                constant->variant.aggregate.last_constant->variant.float_value;
+    constant = &complex_constant;
+    is_aggregate = FALSE;
+  }  /* if */
+#endif /* C99_IL_EXTENSIONS_SUPPORTED && !LOWER_COMPLEX */
   if (!is_aggregate) {
     /* Non-aggregate case (includes string literals). */
     if (*gen_assignments) {

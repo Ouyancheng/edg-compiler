@@ -1,5 +1,20 @@
 Version 4.10
 
+6/3/14   [EDGcpfe/15203]
+GNU: Aggregate initialization of complex types with LOWER_COMPLEX set to FALSE
+
+In configurations that support lowering, but not lowering of complex types
+(i.e., LOWER_COMPLEX is FALSE), the use of aggregate initialization for
+objects with complex types had caused assertion failures at various locations
+in lowering (and also in the C-generating back end in some configurations).
+This example, with --gnu_version 40700 --c++11, had resulted in an assertion
+failure (lower_dynamic_init_aggregate_constant: bad aggr kind) and is now
+fixed:
+
+  double x = 1.0;
+  __complex double y = { x, 0.0 };
+
+
 5/30/14  [EDGcpfe/15190]
 __func__ in templates
 

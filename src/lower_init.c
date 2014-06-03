@@ -932,6 +932,9 @@ default values.
 #if GNU_VECTOR_TYPES_ALLOWED
   ipmp->is_vector_element  = FALSE;
 #endif /* GNU_VECTOR_TYPES_ALLOWED */
+#if C99_IL_EXTENSIONS_SUPPORTED && !LOWER_COMPLEX
+  ipmp->is_complex = FALSE;
+#endif /* C99_IL_EXTENSIONS_SUPPORTED && !LOWER_COMPLEX */
 }  /* clear_init_pos_modifier */
 
 
@@ -1339,6 +1342,19 @@ is a variable-length array.
       /* Add a base class selection. */
       entity_node = make_base_class_lvalue(entity_node, modifiers->curr_base,
                                            /*complete_object=*/FALSE);
+#if C99_IL_EXTENSIONS_SUPPORTED && !LOWER_COMPLEX
+    } else if (modifiers->is_complex) {
+      /* Create an lvalue entity node that represents either the "real" or
+         "imaginary" portion of the specified complex number. */
+#if !GNU_COMPLEX_EXTENSIONS_ALLOWED
+ #error -- GNU_COMPLEX_EXTENSIONS_ALLOWED must be TRUE
+#endif /* !GNU_COMPLEX_EXTENSIONS_ALLOWED */
+      check_assertion(modifiers->curr_elem < 2);
+      entity_node = make_lvalue_operator_node((an_expr_operator_kind)
+                     modifiers->curr_elem == 0 ? eok_real_part : eok_imag_part,
+                     modifiers->type,
+                     entity_node);
+#endif /* C99_IL_EXTENSIONS_SUPPORTED && !LOWER_COMPLEX */
     } else {
       /* Add an array element selection. */
       check_assertion(is_array_type(entity_node->type));
@@ -5551,7 +5567,8 @@ expression).
        initialization that needs to be rewritten as executable code).
        Use the lowered complex type (a struct with an array of two elements
        of the appropriate type) and also change the aggregate constant to
-       match the lowered form. */
+       match the lowered form.  The case where complex object are not lowered
+       is handled below. */
     check_assertion(is_complex_type(aggr_const->type));
     aggr_type = lowered_complex_type(aggr_type->variant.float_kind);
     lower_c99_complex_aggregate_constant(aggr_const);
@@ -5587,6 +5604,15 @@ expression).
     ipmp->is_vector_element = TRUE;
     array_or_vector = TRUE;
 #endif /* GNU_VECTOR_TYPES_ALLOWED */
+#if C99_IL_EXTENSIONS_SUPPORTED && !LOWER_COMPLEX
+  } else if (is_complex_type(aggr_type)) {
+    /* A complex constant which is not lowered.  Use curr_elem to select
+       first the "real" part (0), then the "imaginary" part (1). */
+    ipmp->is_complex = TRUE;
+    ipmp->curr_elem = 0;
+    ipmp->type = float_type(aggr_type->variant.float_kind);
+    array_or_vector = TRUE;
+#endif /* C99_IL_EXTENSIONS_SUPPORTED && !LOWER_COMPLEX */
   } else {
     check_assertion_str(is_immediate_class_type(aggr_type),
                        "lower_dynamic_init_aggregate_constant: bad aggr kind");
@@ -5611,6 +5637,9 @@ expression).
        con_ptr != NULL;
        prev_con = con_ptr, con_ptr = next_con) {
     a_boolean others_follow;
+#if C99_IL_EXTENSIONS_SUPPORTED && !LOWER_COMPLEX
+    check_assertion(!ipmp->is_complex || ipmp->curr_elem < 2);
+#endif /* C99_IL_EXTENSIONS_SUPPORTED && !LOWER_COMPLEX */
     if (con_ptr->kind == (a_constant_repr_kind)ck_designator) {
       /* A designator appears (e.g., in a C99 nonconstant aggregate
          initialization).  Update the current position. */

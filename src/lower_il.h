@@ -161,6 +161,15 @@ typedef struct an_init_pos_modifier {
 			   so any initialization cannot be rewritten as
 			   an assignment. */
 #endif /* GNU_VECTOR_TYPES_ALLOWED */
+#if C99_IL_EXTENSIONS_SUPPORTED && !LOWER_COMPLEX
+  a_byte_boolean
+                is_complex;
+                        /* TRUE if the entity is the real or imaginary part of
+                           an un-lowered complex constant.  When TRUE,
+                           curr_elem == 0 represents the "real" part of the
+                           complex number and curr_elem == 1 represents the
+                           "imaginary" part of the complex number. */
+#endif /* C99_IL_EXTENSIONS_SUPPORTED && !LOWER_COMPLEX */
 } an_init_pos_modifier;
 
 EXTERN an_init_pos_modifier_ptr
