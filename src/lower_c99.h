@@ -137,13 +137,13 @@ void lower_c99_xne(an_expr_node_ptr  expr);
 
 void lower_c99_xincr_decr(an_expr_node_ptr expr);
 
-#if GNU_EXTENSIONS_ALLOWED
+#if C99_IL_EXTENSIONS_SUPPORTED
 
 void lower_xconj(an_expr_node_ptr  expr);
 
 void lower_complex_projection(an_expr_node_ptr  expr);
 
-#endif /* GNU_EXTENSIONS_ALLOWED */
+#endif /* C99_IL_EXTENSIONS_SUPPORTED */
 
 extern void lower_c99_complex_aggregate_constant(a_constant_ptr constant);
 
