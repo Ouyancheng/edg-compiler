@@ -2715,7 +2715,9 @@ that do normal id lookup processing.
                             lookup_state->tentative_type_lookup,
                             lookup_state->tentative_template_lookup,
                             lookup_state->hidden_name_lookup ||
-                            lookup_state->do_not_create_proj_sym,
+                            lookup_state->do_not_create_proj_sym ||
+                            ssep->assoc_type->variant.class_struct_union.
+                                                              is_nonreal_class,
                             lookup_state->add_to_active_list,
                             lookup_state->insert_sym, &sym,
                             /*can_create_nonreal=*/FALSE)) {
@@ -4644,7 +4646,9 @@ bypass_normal_search:
                             /*tentative_type_lookup=*/FALSE,
                             /*tentative_template_lookup=*/FALSE,
                             (options & IDL_HIDDEN_NAME_LOOKUP) != 0 ||
-                            (options & IDL_DO_NOT_CREATE_PROJ_SYM) != 0,
+                            (options & IDL_DO_NOT_CREATE_PROJ_SYM) != 0 ||
+                            class_type->variant.class_struct_union.
+                                              is_nonreal_class,
                             add_to_active_list, insert_sym, &sym,
                             /*can_create_nonreal=*/FALSE);
         if (use_nonreal_in_curr_class && sym != NULL &&

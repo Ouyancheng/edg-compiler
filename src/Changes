@@ -1,5 +1,25 @@
 Version 4.10
 
+6/3/14   [EDGcpfe/15207]
+Internal error when projection symbols are created in prototype instantiations
+
+An internal error could occur (in make_projection_symbol) when attempting
+to create a projection symbol in a prototype instantiation.  Projection
+symbols are now created in fewer cases in prototype instantiations.
+
+  template <class T> void g(T x = []()->int {
+    struct A {
+      using T::f;
+    };
+    struct C : A {
+      void g(T t) {
+        f(t);
+      }
+    };
+  }
+  );
+
+
 6/3/14   [EDGcpfe/15210]
 Remove configuration macro GNU_COMPLEX_EXTENSIONS_ALLOWED
 
