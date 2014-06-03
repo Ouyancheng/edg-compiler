@@ -13961,6 +13961,60 @@ Lower the given __builtin_offsetof node.
 }  /* lower_builtin_offsetof */
 
 #endif /* GNU_EXTENSIONS_ALLOWED */
+#if C99_IL_EXTENSIONS_SUPPORTED
+
+static void lower_builtin_complex(an_expr_node_ptr  expr)
+/*
+Lower the given __builtin_complex node.
+*/
+{
+  an_expr_node_ptr  real_node, imag_node, node, real_arg, imag_arg;
+  a_variable_ptr    temp;
+  a_type_ptr        underlying_type;
+
+  /* Create a complex temporary whose real and imaginary parts are given
+     by the arguments to __builtin_complex.  Replace the expression with
+     a reference to the temporary, i.e.:
+
+       (real(temp) = real_expr, imag(temp) = imag_expr, temp)
+
+     Note that the eok_real_part/eok_imag_part operations that are introduced
+     here are further lowered (along with the arguments they operate on) and
+     will produce different IL depending on the setting of LOWER_COMPLEX. */
+#if !GNU_COMPLEX_EXTENSIONS_ALLOWED
+ #error -- GNU_COMPLEX_EXTENSIONS_ALLOWED must be TRUE
+#endif /* !GNU_COMPLEX_EXTENSIONS_ALLOWED */
+  check_assertion(is_complex_type(expr->type) && !expr->is_lvalue);
+  underlying_type = float_type(expr->type->variant.float_kind);
+  /* Get the real and imaginary arguments from the original expression. */
+  real_arg = expr->variant.builtin_operation.operands;
+  imag_arg = real_arg->next;
+  real_arg->next = NULL;
+  /* Create a temporary. */
+  temp = make_lowered_temporary(expr->type);
+  /* Assign the real part to the temporary (and lower the assignment). */
+  real_node = make_lvalue_operator_node((an_expr_operator_kind)eok_real_part,
+                                        underlying_type,
+                                        var_lvalue_expr(temp));
+  real_node = make_assignment_expr(real_node,
+                                   (an_expr_operator_kind)eok_assign,
+                                   real_arg);
+  lower_any_expr(real_node);
+  /* Assign the imaginary part to the temporary (and lower the assignment). */
+  imag_node = make_lvalue_operator_node((an_expr_operator_kind)eok_imag_part,
+                                        underlying_type,
+                                        var_lvalue_expr(temp));
+  imag_node = make_assignment_expr(imag_node,
+                                   (an_expr_operator_kind)eok_assign,
+                                   imag_arg);
+  lower_any_expr(imag_node);
+  /* Replace the original expression with those created above. */
+  node = make_comma_node(real_node, imag_node);
+  node = make_comma_node(node, var_rvalue_expr(temp));
+  overwrite_node(expr, node);
+}  /* lower_builtin_complex */
+
+#endif /* C99_IL_EXTENSIONS_SUPPORTED */
 
 void lower_builtin_operation(an_expr_node_ptr expr)
 /*
@@ -13983,6 +14037,11 @@ bok_offsetof, which can include nonconstant subscripts.
                       /*assume_expr_is_non_null_mask=*/0);
       break;
 #endif /* GNU_VECTOR_TYPES_ALLOWED */
+#if C99_IL_EXTENSIONS_SUPPORTED
+    case bok_builtin_complex:
+      lower_builtin_complex(expr);
+      break;
+#endif /* C99_IL_EXTENSIONS_SUPPORTED */
     default:
       unexpected_condition();
   }  /* switch */ /*lint !e764 */
