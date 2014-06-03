@@ -384,7 +384,7 @@ The code is kept considerably more compact by using the following macros.
   enter_gnu_builtin_func2(edg_concat(name,f), floating, floating, floating); \
   enter_gnu_builtin_func2(edg_concat(name,l), long_double, long_double,      \
                           long_double)
-#if GNU_COMPLEX_EXTENSIONS_ALLOWED
+#if C99_IL_EXTENSIONS_SUPPORTED
 #if LOWER_COMPLEX && BACK_END_IS_C_GEN_BE
 /* The complex types passed as arguments and returned by these functions
    will be lowered to C structs.  If these functions are used, they must be
@@ -449,11 +449,11 @@ The code is kept considerably more compact by using the following macros.
   enter_gnu_builtin_func2(edg_concat(name,l), complex_long_double,           \
                           complex_long_double, complex_long_double)
 #endif /* LOWER_COMPLEX && BACK_END_IS_C_GEN_BE */
-#else /* !GNU_COMPLEX_EXTENSIONS_ALLOWED */
+#else /* !C99_IL_EXTENSIONS_SUPPORTED */
 #define enter_gnu_builtin_complex_to_real_funcs(name) /* Nothing */
 #define enter_gnu_builtin_complex_math_funcs1(name) /* Nothing */
 #define enter_gnu_builtin_complex_math_funcs2(name) /* Nothing */
-#endif /* GNU_COMPLEX_EXTENSIONS_ALLOWED */
+#endif /* C99_IL_EXTENSIONS_SUPPORTED */
 #if LONG_LONG_ALLOWED
 #define enter_gnu_builtin_bit_count_funcs(name)                              \
   enter_gnu_builtin_func1(name, int, unsigned);                              \
@@ -1785,11 +1785,11 @@ Enter the standard predeclared functions for GCC.
   a_type_ptr  floating_type;
   a_type_ptr  double_type;
   a_type_ptr  long_double_type;
-#if GNU_COMPLEX_EXTENSIONS_ALLOWED
+#if C99_IL_EXTENSIONS_SUPPORTED
   a_type_ptr  complex_float_type;
   a_type_ptr  complex_double_type;
   a_type_ptr  complex_long_double_type;
-#endif /* GNU_COMPLEX_EXTENSIONS_ALLOWED */
+#endif /* C99_IL_EXTENSIONS_SUPPORTED */
   a_type_ptr  char_star_type;
   a_type_ptr  const_char_star_type;
   a_type_ptr  int_star_type;
@@ -1838,11 +1838,11 @@ Enter the standard predeclared functions for GCC.
   floating_type = float_type((a_float_kind)fk_float);
   double_type = float_type((a_float_kind)fk_double);
   long_double_type = float_type((a_float_kind)fk_long_double);
-#if GNU_COMPLEX_EXTENSIONS_ALLOWED
+#if C99_IL_EXTENSIONS_SUPPORTED
   complex_float_type = complex_type((a_float_kind)fk_float);
   complex_double_type = complex_type((a_float_kind)fk_double);
   complex_long_double_type = complex_type((a_float_kind)fk_long_double);
-#endif /* GNU_COMPLEX_EXTENSIONS_ALLOWED */
+#endif /* C99_IL_EXTENSIONS_SUPPORTED */
   char_star_type = make_pointer_type(char_type);
   const_char_star_type = 
                   make_pointer_type(make_qualified_type(char_type, TQ_CONST));

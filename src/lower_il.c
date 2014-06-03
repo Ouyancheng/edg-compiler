@@ -13981,9 +13981,6 @@ Lower the given __builtin_complex node.
      Note that the eok_real_part/eok_imag_part operations that are introduced
      here are further lowered (along with the arguments they operate on) and
      will produce different IL depending on the setting of LOWER_COMPLEX. */
-#if !GNU_COMPLEX_EXTENSIONS_ALLOWED
- #error -- GNU_COMPLEX_EXTENSIONS_ALLOWED must be TRUE
-#endif /* !GNU_COMPLEX_EXTENSIONS_ALLOWED */
   check_assertion(is_complex_type(expr->type) && !expr->is_lvalue);
   underlying_type = float_type(expr->type->variant.float_kind);
   /* Get the real and imaginary arguments from the original expression. */
@@ -15326,7 +15323,7 @@ cast.  See lower_expr for typical invocation.
               lower_c99_xne(expr);
             }  /*if */
             break;
-#if GNU_COMPLEX_EXTENSIONS_ALLOWED
+#if C99_IL_EXTENSIONS_SUPPORTED
           case eok_xconj:
             lower_xconj(expr);
             break;
@@ -15334,7 +15331,7 @@ cast.  See lower_expr for typical invocation.
           case eok_imag_part:
             lower_complex_projection(expr);
             break;
-#endif /* GNU_COMPLEX_EXTENSIONS_ALLOWED */
+#endif /* C99_IL_EXTENSIONS_SUPPORTED */
 #endif /* LOWER_COMPLEX */
           case eok_assign:
             lower_assignment_operator(expr);

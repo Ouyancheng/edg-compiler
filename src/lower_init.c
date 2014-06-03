@@ -1346,9 +1346,6 @@ is a variable-length array.
     } else if (modifiers->is_complex) {
       /* Create an lvalue entity node that represents either the "real" or
          "imaginary" portion of the specified complex number. */
-#if !GNU_COMPLEX_EXTENSIONS_ALLOWED
- #error -- GNU_COMPLEX_EXTENSIONS_ALLOWED must be TRUE
-#endif /* !GNU_COMPLEX_EXTENSIONS_ALLOWED */
       check_assertion(modifiers->curr_elem < 2);
       entity_node = make_lvalue_operator_node((an_expr_operator_kind)
                      modifiers->curr_elem == 0 ? eok_real_part : eok_imag_part,

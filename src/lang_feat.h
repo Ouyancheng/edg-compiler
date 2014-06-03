@@ -673,23 +673,6 @@ recognized (and recorded in the IL).
 #endif /* !GNU_EXTENSIONS_ALLOWED && GNU_VISIBILITY_ATTRIBUTE_ALLOWED */
 
 /*
-Flag that is TRUE if GNU complex extensions should be allowed (this requires
-additional support in a back end or, if LOWER_COMPLEX is TRUE, in the run-time
-support library.
-*/
-#ifndef GNU_COMPLEX_EXTENSIONS_ALLOWED
-#if GNU_EXTENSIONS_ALLOWED
-#define GNU_COMPLEX_EXTENSIONS_ALLOWED TRUE
-#else /* !GNU_EXTENSIONS_ALLOWED */
-#define GNU_COMPLEX_EXTENSIONS_ALLOWED FALSE
-#endif /* GNU_EXTENSIONS_ALLOWED */
-#endif /* GNU_COMPLEX_EXTENSIONS_ALLOWED */
-
-#if !GNU_EXTENSIONS_ALLOWED && GNU_COMPLEX_EXTENSIONS_ALLOWED
- #error -- GNU_COMPLEX_EXTENSIONS_ALLOWED requires GNU_EXTENSIONS_ALLOWED
-#endif /* !GNU_EXTENSIONS_ALLOWED && GNU_COMPLEX_EXTENSIONS_ALLOWED */
-
-/*
 Flag that is TRUE if built-in GNU __sync_... functions should be accepted in
 GNU modes.
 */

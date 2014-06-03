@@ -13851,11 +13851,11 @@ tk_unknown is returned.
     case eok_not:
       result = operand_kind;
       break;
-#if GNU_COMPLEX_EXTENSIONS_ALLOWED
+#if C99_IL_EXTENSIONS_SUPPORTED
     case eok_xconj:
     case eok_real_part:
     case eok_imag_part:
-#endif /* GNU_COMPLEX_EXTENSIONS_ALLOWED */
+#endif /* C99_IL_EXTENSIONS_SUPPORTED */
     case eok_post_incr:
     case eok_post_decr:
     case eok_pre_incr:
@@ -19081,10 +19081,10 @@ already indicates the load.
           case eok_lvalue_adjust:
           case eok_ref_dynamic_cast:
           case eok_va_arg:
-#if GNU_COMPLEX_EXTENSIONS_ALLOWED
+#if C99_IL_EXTENSIONS_SUPPORTED
           case eok_real_part:
           case eok_imag_part:
-#endif /* GNU_COMPLEX_EXTENSIONS_ALLOWED */
+#endif /* C99_IL_EXTENSIONS_SUPPORTED */
             rvalueable = TRUE;
             break;
           case eok_lvalue_cast:  /* Not rvalueable; when converted to an
@@ -19278,7 +19278,7 @@ process_ptr_to_member_selection:
               does_fetch = TRUE;
               fetched_type = node->type;
               break;
-#if GNU_COMPLEX_EXTENSIONS_ALLOWED
+#if C99_IL_EXTENSIONS_SUPPORTED
             case eok_real_part:
             case eok_imag_part:
               /* These fetch something if the operand is a glvalue. */
@@ -19287,7 +19287,7 @@ process_ptr_to_member_selection:
               fetched_type = type_plus_qualifiers_from_second_type(node->type,
                                                                    op1->type);
               break;
-#endif /* GNU_COMPLEX_EXTENSIONS_ALLOWED */
+#endif /* C99_IL_EXTENSIONS_SUPPORTED */
             case eok_lvalue_cast:  /* Not rvalueable; when converted to an
                                       rvalue it gets rewritten as a normal
                                       cast. */
@@ -24784,11 +24784,11 @@ static a_byte lvalue_rvalue_test[(int)eok_last+1] = {
   /* eok_unary_plus: */			LVRV_OPND1_IS_PRVALUE,
   /* eok_complement: */			LVRV_OPND1_IS_PRVALUE,
   /* eok_not: */			LVRV_OPND1_IS_PRVALUE,
-#if GNU_COMPLEX_EXTENSIONS_ALLOWED
+#if C99_IL_EXTENSIONS_SUPPORTED
   /* eok_xconj: */			LVRV_OPND1_IS_PRVALUE,
   /* eok_real_part: */			LVRV_NO_REQUIREMENTS,
   /* eok_imag_part: */			LVRV_NO_REQUIREMENTS,
-#endif /* GNU_COMPLEX_EXTENSIONS_ALLOWED */
+#endif /* C99_IL_EXTENSIONS_SUPPORTED */
   /* eok_post_incr: */			LVRV_OPND1_IS_GLVALUE,
   /* eok_post_decr: */			LVRV_OPND1_IS_GLVALUE,
   /* eok_pre_incr: */			LVRV_OPND1_IS_GLVALUE,

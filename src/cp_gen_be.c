@@ -629,11 +629,11 @@ static a_byte generated_precedence[(int)eok_last+1] = {
   PREC_PREFIX,		/* eok_unary_plus */
   PREC_PREFIX,		/* eok_complement */
   PREC_PREFIX,		/* eok_not */
-#if GNU_COMPLEX_EXTENSIONS_ALLOWED
+#if C99_IL_EXTENSIONS_SUPPORTED
   PREC_PREFIX,		/* eok_xconj */
   PREC_POSTFIX,		/* eok_real_part */
   PREC_POSTFIX,		/* eok_imag_part */
-#endif /* GNU_COMPLEX_EXTENSIONS_ALLOWED */
+#endif /* C99_IL_EXTENSIONS_SUPPORTED */
   PREC_POSTFIX,		/* eok_post_incr */
   PREC_POSTFIX,		/* eok_post_decr */
   PREC_PREFIX,		/* eok_pre_incr */

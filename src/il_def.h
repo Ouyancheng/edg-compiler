@@ -13491,7 +13491,7 @@ typedef struct a_routine {
 			   gnu_extra_info->aliased_routine).
 			   (E.g., a "strlen" declaration may be implicitly
 			   treated as an alias for "__builtin_strlen".) */
-#if GNU_COMPLEX_EXTENSIONS_ALLOWED && LOWER_COMPLEX && BACK_END_IS_C_GEN_BE
+#if C99_IL_EXTENSIONS_SUPPORTED && LOWER_COMPLEX && BACK_END_IS_C_GEN_BE
   a_bit_field	builtin_using_complex_type:1;
 			/* TRUE if this routine is a builtin function, at
 			   least one of whose parameters or return type is
@@ -13499,7 +13499,7 @@ typedef struct a_routine {
 			   end to emit declarations for builtin functions
 			   involving types that are lowered and thus
 			   incompatible with the actual builtin function. */
-#endif /* GNU_COMPLEX_EXTENSIONS_ALLOWED && ... */
+#endif /* C99_IL_EXTENSIONS_SUPPORTED && ... */
 #endif /* GNU_EXTENSIONS_ALLOWED */
 #if AUTOMATIC_TEMPLATE_INSTANTIATION
   a_bit_field	can_be_instantiated:1;
@@ -14580,7 +14580,7 @@ enum an_expr_operator_kind_tag {
   eok_not,              /* Logical complement ("!" operator).  Operand is
                            standardized to integer/boolean in some
                            configurations. */
-#if GNU_COMPLEX_EXTENSIONS_ALLOWED
+#if C99_IL_EXTENSIONS_SUPPORTED
   eok_xconj,            /* Complex conjugation ("~") operator. */
   eok_real_part,        /* Produce the real part of a complex number.  The
 			   operand is an lvalue or rvalue of complex type.
@@ -14588,7 +14588,7 @@ enum an_expr_operator_kind_tag {
   eok_imag_part,        /* Produce the imaginary part of a complex number.  The
 			   operand is an lvalue or rvalue of complex type.
 			   (This is the GNU "__imag" operator.) */
-#endif /* GNU_COMPLEX_EXTENSIONS_ALLOWED */
+#endif /* C99_IL_EXTENSIONS_SUPPORTED */
   eok_post_incr,        /* Post increment. */
   eok_post_decr,        /* Post decrement. */
   eok_pre_incr,         /* Pre increment. */
@@ -18771,9 +18771,9 @@ EXTERN a_const_char *db_operator_names[(int)eok_last+1]
    "noexcept",
    "()",
    "-", "+", "~", "!",
-#if GNU_COMPLEX_EXTENSIONS_ALLOWED
+#if C99_IL_EXTENSIONS_SUPPORTED
    "x~", "__real", "__imag",
-#endif /* GNU_COMPLEX_EXTENSIONS_ALLOWED */
+#endif /* C99_IL_EXTENSIONS_SUPPORTED */
    "post ++", "post --", "pre ++", "pre --",
    "+", "-", "*", "/", "%",
 #if C99_IL_EXTENSIONS_SUPPORTED

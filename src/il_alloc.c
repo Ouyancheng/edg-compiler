@@ -2696,9 +2696,9 @@ to it.  The entry is allocated in the file scope memory region.
   rp->always_inline               = FALSE;
   rp->gnu_c89_inline              = FALSE;
   rp->implicit_alias              = FALSE;
-#if GNU_COMPLEX_EXTENSIONS_ALLOWED && LOWER_COMPLEX && BACK_END_IS_C_GEN_BE
+#if C99_IL_EXTENSIONS_SUPPORTED && LOWER_COMPLEX && BACK_END_IS_C_GEN_BE
   rp->builtin_using_complex_type  = FALSE;
-#endif /* GNU_COMPLEX_EXTENSIONS_ALLOWED && ... */
+#endif /* C99_IL_EXTENSIONS_SUPPORTED && ... */
 #endif /* GNU_EXTENSIONS_ALLOWED */
 #if AUTOMATIC_TEMPLATE_INSTANTIATION
   rp->can_be_instantiated         = FALSE;

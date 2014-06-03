@@ -2669,7 +2669,7 @@ Do the "!" (not) operation on all types of scalars.
 #endif /* DEBUG */
 }  /* do_not */
 
-#if GNU_COMPLEX_EXTENSIONS_ALLOWED
+#if C99_IL_EXTENSIONS_SUPPORTED
 
 static void do_xconj(a_constant        *constant,
                      a_constant        *result,
@@ -2719,7 +2719,7 @@ Extract the real or imaginary part of a complex constant.
   }  /* if */
 }  /* do_complex_projection */
 
-#endif /* GNU_COMPLEX_EXTENSIONS_ALLOWED */
+#endif /* C99_IL_EXTENSIONS_SUPPORTED */
 
 /*
 Return TRUE if the indicated constant is an address constant cast to
@@ -2842,7 +2842,7 @@ for any diagnostics issued.
         case eok_not:
           do_not(constant, result, did_not_fold);
           break;
-#if GNU_COMPLEX_EXTENSIONS_ALLOWED
+#if C99_IL_EXTENSIONS_SUPPORTED
         case eok_xconj:
           do_xconj(constant, result, &err_code, &err_severity,
                    &depends_on_fp_mode);
@@ -2851,7 +2851,7 @@ for any diagnostics issued.
         case eok_imag_part:
           do_complex_projection(op, constant, result);
           break;
-#endif /* GNU_COMPLEX_EXTENSIONS_ALLOWED */
+#endif /* C99_IL_EXTENSIONS_SUPPORTED */
         default:
           unexpected_condition_str("unary_operation: bad unary operator");
       }  /* switch */
@@ -9838,11 +9838,11 @@ pm_field_selection:
             case eok_unary_plus:
             case eok_complement:
             case eok_not:
-#if GNU_COMPLEX_EXTENSIONS_ALLOWED
+#if C99_IL_EXTENSIONS_SUPPORTED
             case eok_xconj:
             case eok_real_part:
             case eok_imag_part:
-#endif /* GNU_COMPLEX_EXTENSIONS_ALLOWED */
+#endif /* C99_IL_EXTENSIONS_SUPPORTED */
               /* Foldable unary operators. */
               unary_operation(op, &op1_constant, expr->type,
                               result_con,

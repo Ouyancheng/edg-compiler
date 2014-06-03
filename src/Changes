@@ -1,5 +1,15 @@
 Version 4.10
 
+6/3/14   [EDGcpfe/15210]
+Remove configuration macro GNU_COMPLEX_EXTENSIONS_ALLOWED
+
+The configuration macro GNU_COMPLEX_EXTENSIONS_ALLOWED has been replaced
+by C99_IL_EXTENSIONS_SUPPORTED.  As a result, some back ends may now see the
+eok_xconj, eok_real_part, and eok_imag_part operations.  This is a slight IL
+CHANGE (in configurations where GNU_COMPLEX_EXTENSIONS_ALLOWED is FALSE but
+C99_IL_EXTENSIONS_SUPPORTED is TRUE).
+
+
 6/3/14   [EDGcpfe/15202]
 Lowering of __builtin_complex
 

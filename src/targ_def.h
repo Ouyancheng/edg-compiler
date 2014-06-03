@@ -303,10 +303,6 @@ will be used; see below).
 #define C99_IL_EXTENSIONS_SUPPORTED TRUE
 #endif /* ifndef C99_IL_EXTENSIONS_SUPPORTED */
 
-#if !C99_IL_EXTENSIONS_SUPPORTED && GNU_COMPLEX_EXTENSIONS_ALLOWED
- #error -- GNU_COMPLEX_EXTENSIONS_ALLOWED requires C99_IL_EXTENSIONS_SUPPORTED
-#endif /* !C99_IL_EXTENSIONS_SUPPORTED && GNU_COMPLEX_EXTENSIONS_ALLOWED */
-
 /*
 Flag that is TRUE if compound literals, which look vaguely like a cast
 whose source expression is a brace-enclosed initializer (e.g.,

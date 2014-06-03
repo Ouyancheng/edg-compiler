@@ -6074,11 +6074,6 @@ file.
 #else /* !defined(GNU_BUILTIN_SYNC_FUNCTIONS_ALLOWED) */
   comment_undefined_macro_name(GNU_BUILTIN_SYNC_FUNCTIONS_ALLOWED);
 #endif /* defined(GNU_BUILTIN_SYNC_FUNCTIONS_ALLOWED) */
-#if defined(GNU_COMPLEX_EXTENSIONS_ALLOWED)
-  define_numeric_valued_macro(GNU_COMPLEX_EXTENSIONS_ALLOWED);
-#else /* !defined(GNU_COMPLEX_EXTENSIONS_ALLOWED) */
-  comment_undefined_macro_name(GNU_COMPLEX_EXTENSIONS_ALLOWED);
-#endif /* defined(GNU_COMPLEX_EXTENSIONS_ALLOWED) */
 #if defined(GNU_EXTENSIONS_ALLOWED)
   define_numeric_valued_macro(GNU_EXTENSIONS_ALLOWED);
 #else /* !defined(GNU_EXTENSIONS_ALLOWED) */

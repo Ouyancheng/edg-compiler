@@ -5435,14 +5435,14 @@ there's some possibility of precedence confusion and need_parens is TRUE.
         case eok_lvalue_adjust:
           dump_lvalue_cast(expr, /*suppress_indirection=*/FALSE);
           goto done_with_unary_operation;
-#if GNU_COMPLEX_EXTENSIONS_ALLOWED
+#if C99_IL_EXTENSIONS_SUPPORTED
         case eok_xconj:
-#endif /* GNU_COMPLEX_EXTENSIONS_ALLOWED */
+#endif /* C99_IL_EXTENSIONS_SUPPORTED */
         case eok_complement:
           is_unary = TRUE;
           opstr = "~";
           break;
-#if GNU_COMPLEX_EXTENSIONS_ALLOWED
+#if C99_IL_EXTENSIONS_SUPPORTED
         case eok_real_part:
           is_unary = TRUE;
           opstr = "__real ";
@@ -5451,7 +5451,7 @@ there's some possibility of precedence confusion and need_parens is TRUE.
           is_unary = TRUE;
           opstr = "__imag ";
           break;
-#endif /* GNU_COMPLEX_EXTENSIONS_ALLOWED */
+#endif /* C99_IL_EXTENSIONS_SUPPORTED */
         case eok_post_incr:
           /* Post-increment operator. */
 #if !C_GEN_BE_GENERATES_ANSI_C
@@ -9838,14 +9838,14 @@ if this routine has a body (dump nothing if it has no body).
   } else if (rout->special_kind == (a_special_function_kind)sfk_none &&
              rout->variant.builtin_function_kind != 
                                          (a_builtin_function_kind)bfk_none
-#if GNU_COMPLEX_EXTENSIONS_ALLOWED && LOWER_COMPLEX
+#if C99_IL_EXTENSIONS_SUPPORTED && LOWER_COMPLEX
              /* When complex types are lowered, builtin functions using
                 complex types are incompatible with the lowered types and
                 thus must be declared as ordinary functions if they are
                 used. */
              && !(entity_needed_in_generated_code(rout) &&
                   rout->builtin_using_complex_type)
-#endif /* GNU_COMPLEX_EXTENSIONS_ALLOWED && LOWER_COMPLEX */
+#endif /* C99_IL_EXTENSIONS_SUPPORTED && LOWER_COMPLEX */
              ) {
     /* GNU builtin functions should otherwise not be declared or defined. */
 #endif /* GNU_EXTENSIONS_ALLOWED */

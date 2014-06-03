@@ -155,10 +155,10 @@ lower_name.c -- Do name mangling for IL lowering.
 #define MANGLING_STRING_FOR_OPERATOR_DOT "dt"
 #define MANGLING_STRING_FOR_AUTO "Da"
 #define MANGLING_STRING_FOR_OPERATOR_NOEXCEPT "nx"
-#if GNU_COMPLEX_EXTENSIONS_ALLOWED
+#if C99_IL_EXTENSIONS_SUPPORTED
 #define MANGLING_STRING_FOR_OPERATOR_REAL_PART "v18__real__"
 #define MANGLING_STRING_FOR_OPERATOR_IMAG_PART "v18__imag__"
-#endif /* GNU_COMPLEX_EXTENSIONS_ALLOWED */
+#endif /* C99_IL_EXTENSIONS_SUPPORTED */
 #if MICROSOFT_EXTENSIONS_ALLOWED
 /*
 Note that these C++/CLI extensions use the IA-64 ABI order-sensitive
@@ -293,10 +293,10 @@ differs (see the IA-64 ABI spec for details).
 #define MANGLING_STRING_FOR_OPERATOR_DOT "dt"
 #define MANGLING_STRING_FOR_AUTO "u"
 #define MANGLING_STRING_FOR_OPERATOR_NOEXCEPT "nx"
-#if GNU_COMPLEX_EXTENSIONS_ALLOWED
+#if C99_IL_EXTENSIONS_SUPPORTED
 #define MANGLING_STRING_FOR_OPERATOR_REAL_PART "rl"
 #define MANGLING_STRING_FOR_OPERATOR_IMAG_PART "im"
-#endif /* GNU_COMPLEX_EXTENSIONS_ALLOWED */
+#endif /* C99_IL_EXTENSIONS_SUPPORTED */
 #if ABI_COMPATIBILITY_VERSION >= 402
 #define MANGLING_STRING_FOR_OPERATOR_UNARY_PLUS "ps"
 #define MANGLING_STRING_FOR_OPERATOR_NEGATE "ng"
@@ -9938,9 +9938,9 @@ returned string to an appropriate buffer before this routine is invoked again.
       }  /* if */
       *is_cast = TRUE;
       break;
-#if GNU_COMPLEX_EXTENSIONS_ALLOWED
+#if C99_IL_EXTENSIONS_SUPPORTED
     case eok_xconj:
-#endif /* GNU_COMPLEX_EXTENSIONS_ALLOWED */
+#endif /* C99_IL_EXTENSIONS_SUPPORTED */
     case eok_complement:
       opkind = (an_opname_kind)onk_compl;
       num_operands = 1;
@@ -10088,14 +10088,14 @@ returned string to an appropriate buffer before this routine is invoked again.
     case eok_dot_pm_func_ptr:
       name = MANGLING_STRING_FOR_OPERATOR_DOT_STAR;
       break;
-#if GNU_COMPLEX_EXTENSIONS_ALLOWED
+#if C99_IL_EXTENSIONS_SUPPORTED
     case eok_real_part:
       name = MANGLING_STRING_FOR_OPERATOR_REAL_PART;
       break;
     case eok_imag_part:
       name = MANGLING_STRING_FOR_OPERATOR_IMAG_PART;
       break;
-#endif /* GNU_COMPLEX_EXTENSIONS_ALLOWED */
+#endif /* C99_IL_EXTENSIONS_SUPPORTED */
 #endif /* ABI_COMPATIBILITY_VERSION >= 402 */
 #if MICROSOFT_EXTENSIONS_ALLOWED
     case eok_handle_to:

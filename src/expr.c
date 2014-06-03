@@ -9810,11 +9810,11 @@ analysis on a previously-scanned expression, and return the result in
         }  /* if */
         break;
       case tok_compl:
-#if GNU_COMPLEX_EXTENSIONS_ALLOWED
+#if C99_IL_EXTENSIONS_SUPPORTED
         if (gnu_mode && is_complex_type(operand.type)) {
           op = (an_expr_operator_kind)eok_xconj;
         } else
-#endif /* GNU_COMPLEX_EXTENSIONS_ALLOWED */
+#endif /* C99_IL_EXTENSIONS_SUPPORTED */
         /* Do not insert code here. */
         {
           op = (an_expr_operator_kind)eok_complement;
@@ -21904,7 +21904,7 @@ scanned, return the selector in *bound_function_selector.
   }  /* if */
 }  /* scan_cast_expression */
 
-#if GNU_COMPLEX_EXTENSIONS_ALLOWED
+#if C99_IL_EXTENSIONS_SUPPORTED
 
 static void scan_complex_projection(a_rescan_control_block *rcblock,
                                     an_operand             *result)
@@ -22016,7 +22016,7 @@ in *rcblock).
                                           (a_source_position *)NULL);
 }  /* scan_complex_projection */
 
-#endif /* GNU_COMPLEX_EXTENSIONS_ALLOWED */
+#endif /* C99_IL_EXTENSIONS_SUPPORTED */
 #if GNU_EXTENSIONS_ALLOWED
 
 static void scan_gnu_statement_expression(an_operand        *result,
@@ -31141,13 +31141,13 @@ handle_unary_type_trait_helper:
       break;
 #endif /* GNU_EXTENSIONS_ALLOWED */
 
-#if GNU_COMPLEX_EXTENSIONS_ALLOWED
+#if C99_IL_EXTENSIONS_SUPPORTED
     case tok_gnu_real:
     case tok_gnu_imag:
       /* GNU complex projection operators: __real and __imag. */
       scan_complex_projection((a_rescan_control_block *)NULL, &local_result);
       break;
-#endif /* GNU_COMPLEX_EXTENSIONS_ALLOWED */
+#endif /* C99_IL_EXTENSIONS_SUPPORTED */
 
     case tok_c11_generic:
       /* C11 _Generic expression. */
@@ -37870,9 +37870,9 @@ set accordingly.
         *unary = TRUE;
         break;
       case eok_complement:
-#if GNU_COMPLEX_EXTENSIONS_ALLOWED
+#if C99_IL_EXTENSIONS_SUPPORTED
       case eok_xconj:
-#endif /* GNU_COMPLEX_EXTENSIONS_ALLOWED */
+#endif /* C99_IL_EXTENSIONS_SUPPORTED */
         operator_token = tok_compl;
         *unary = TRUE;
         break;
@@ -37918,7 +37918,7 @@ set accordingly.
         operator_token = tok_dynamic_cast;
         *unary = TRUE;
         break;
-#if GNU_COMPLEX_EXTENSIONS_ALLOWED
+#if C99_IL_EXTENSIONS_SUPPORTED
       case eok_real_part:
         operator_token = tok_gnu_real;
         *unary = TRUE;
@@ -37927,7 +37927,7 @@ set accordingly.
         operator_token = tok_gnu_imag;
         *unary = TRUE;
         break;
-#endif /* GNU_COMPLEX_EXTENSIONS_ALLOWED */
+#endif /* C99_IL_EXTENSIONS_SUPPORTED */
       case eok_add:
       case eok_padd:
 #if C99_IL_EXTENSIONS_SUPPORTED
@@ -38465,13 +38465,13 @@ alternative callable from outside, see rescan_expr_with_substitution.
         /* __is_trivially_assignable construct: */
         scan_is_assignable(bok_is_trivially_assignable, rcblock, result);
         break;
-#if GNU_COMPLEX_EXTENSIONS_ALLOWED
+#if C99_IL_EXTENSIONS_SUPPORTED
       case tok_gnu_real:
       case tok_gnu_imag:
         /* GNU complex projection operators __real and __imag. */
         scan_complex_projection(rcblock, result);
         break;
-#endif /* GNU_COMPLEX_EXTENSIONS_ALLOWED */
+#endif /* C99_IL_EXTENSIONS_SUPPORTED */
 #if GNU_VECTOR_TYPES_ALLOWED
       case tok_builtin_shuffle:
         scan_builtin_shuffle(rcblock, result);

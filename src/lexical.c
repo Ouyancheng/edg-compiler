@@ -8198,9 +8198,9 @@ the kind of token.
   a_boolean     l_before_u_suffix = FALSE;
   a_boolean     fixed_point_ruled_out = FALSE;
 #endif /* FIXED_POINT_ALLOWED */
-#if GNU_COMPLEX_EXTENSIONS_ALLOWED
+#if C99_IL_EXTENSIONS_SUPPORTED
   a_boolean     imaginary_literal = FALSE;
-#endif /* GNU_COMPLEX_EXTENSIONS_ALLOWED */
+#endif /* C99_IL_EXTENSIONS_SUPPORTED */
   a_const_char  *first_non_id_char = NULL;
   a_boolean     potential_ud_suffix = FALSE;
   a_source_position
@@ -8262,7 +8262,7 @@ the kind of token.
         error_at_line_pos(ec_bad_binary_digit, start_of_curr_token);
         err = TRUE;
       }  /* if */
-#if GNU_COMPLEX_EXTENSIONS_ALLOWED
+#if C99_IL_EXTENSIONS_SUPPORTED
     } else if (gnu_mode &&
                (ch == 'i' || ch == 'I' || ch == 'j' || ch == 'J')) {
       /* A GNU imaginary literal 0 (e.g., "0i").  We do not generally support
@@ -8274,7 +8274,7 @@ the kind of token.
                                ec_complex_integral_type, curr_char_loc);
       }  /* if */
       goto end_float_accum;
-#endif /* GNU_COMPLEX_EXTENSIONS_ALLOWED */
+#endif /* C99_IL_EXTENSIONS_SUPPORTED */
     } else {
       /* Octal or floating point.  Accumulate digits.  Digits 8 and 9
          are valid in floating point, but in octal they are only valid in
@@ -8305,7 +8305,7 @@ the kind of token.
     /* A ".", "e", or "E" now indicates a floating-point constant. */
     if ((ch = *curr_char_loc) == '.') goto float_accum_1;
     if (ch == 'e' || ch == 'E')       goto float_accum_2;
-#if GNU_COMPLEX_EXTENSIONS_ALLOWED
+#if C99_IL_EXTENSIONS_SUPPORTED
     if (gnu_mode && (ch == 'i' || ch == 'I' || ch == 'j' || ch == 'J') &&
         !is_id_char[*(curr_char_loc+1)-CHAR_MIN]) {
       /* A GNU imaginary literal of integral type (e.g., "12i").  We do not
@@ -8318,7 +8318,7 @@ the kind of token.
       }  /* if */
       goto end_float_accum;
     }  /* if */
-#endif /* GNU_COMPLEX_EXTENSIONS_ALLOWED */
+#endif /* C99_IL_EXTENSIONS_SUPPORTED */
     /* Definitely a decimal integer. */
     kind = k_decimal;
   }  /* if */
@@ -8431,7 +8431,7 @@ end_float_accum:
   /* Check for a final suffix of "f" or "l", in upper or lower case.  In GNU
      configurations, also accept the "i" or "j" suffix that denotes an
      imaginary value (it can appear before or after the "f" or "l" suffix). */
-#if GNU_COMPLEX_EXTENSIONS_ALLOWED
+#if C99_IL_EXTENSIONS_SUPPORTED
   if (gnu_mode &&
       ((ch = *curr_char_loc) == 'i' || ch == 'I' || ch == 'j' || ch == 'J')) {
     imaginary_literal = TRUE;
@@ -8440,7 +8440,7 @@ end_float_accum:
     fixed_point_ruled_out = TRUE;
 #endif /* FIXED_POINT_ALLOWED */
   }  /* if */
-#endif /* GNU_COMPLEX_EXTENSIONS_ALLOWED */
+#endif /* C99_IL_EXTENSIONS_SUPPORTED */
   if ((ch = *curr_char_loc) == 'f' || ch == 'F' || ch == 'l' || ch == 'L') {
     curr_char_loc++;
 #if FIXED_POINT_ALLOWED
@@ -8451,7 +8451,7 @@ end_float_accum:
     }  /* if */
 #endif /* FIXED_POINT_ALLOWED */
   }  /* if */
-#if GNU_COMPLEX_EXTENSIONS_ALLOWED
+#if C99_IL_EXTENSIONS_SUPPORTED
   if (gnu_mode && !imaginary_literal &&
       ((ch = *curr_char_loc) == 'i' || ch == 'I' || ch == 'j' || ch == 'J')) {
     imaginary_literal = TRUE;
@@ -8460,7 +8460,7 @@ end_float_accum:
     fixed_point_ruled_out = TRUE;
 #endif /* FIXED_POINT_ALLOWED */
   }  /* if */
-#endif /* GNU_COMPLEX_EXTENSIONS_ALLOWED */
+#endif /* C99_IL_EXTENSIONS_SUPPORTED */
 
 fixed_point_suffix:
 #if FIXED_POINT_ALLOWED

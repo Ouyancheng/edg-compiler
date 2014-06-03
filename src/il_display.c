@@ -3433,11 +3433,11 @@ Display the indicated routine.
   if (ptr->implicit_alias) {
     disp_boolean("implicit_alias", TRUE);
   }  /* if */
-#if GNU_COMPLEX_EXTENSIONS_ALLOWED && LOWER_COMPLEX && BACK_END_IS_C_GEN_BE
+#if C99_IL_EXTENSIONS_SUPPORTED && LOWER_COMPLEX && BACK_END_IS_C_GEN_BE
   if (ptr->builtin_using_complex_type) {
     disp_boolean("builtin_using_complex_type", TRUE);
   }  /* if */
-#endif /* GNU_COMPLEX_EXTENSIONS_ALLOWED && ... */
+#endif /* C99_IL_EXTENSIONS_SUPPORTED && ... */
 #endif /* GNU_EXTENSIONS_ALLOWED */
 #if AUTOMATIC_TEMPLATE_INSTANTIATION
   if (ptr->can_be_instantiated) {
@@ -3799,11 +3799,11 @@ Display the name of an expression operator.
     case eok_unary_plus:        s = "eok_unary_plus";             break;
     case eok_complement:        s = "eok_complement";             break;
     case eok_not:               s = "eok_not";                    break;
-#if GNU_COMPLEX_EXTENSIONS_ALLOWED
+#if C99_IL_EXTENSIONS_SUPPORTED
     case eok_xconj:             s = "eok_xconj";                  break;
     case eok_real_part:         s = "eok_real_part";              break;
     case eok_imag_part:         s = "eok_imag_part";              break;
-#endif /* GNU_COMPLEX_EXTENSIONS_ALLOWED */
+#endif /* C99_IL_EXTENSIONS_SUPPORTED */
     case eok_post_incr:         s = "eok_post_incr";              break;
     case eok_post_decr:         s = "eok_post_decr";              break;
     case eok_pre_incr:          s = "eok_pre_incr";               break;

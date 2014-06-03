@@ -682,9 +682,9 @@ Install the keywords in the symbol table.
   }  /* if */
   if (gnu_mode) {
     /* In GNU C/C99/C++ modes, the availability of complex type operations is
-       controlled by the configuration macro GNU_COMPLEX_EXTENSIONS_ALLOWED.
+       controlled by the configuration macro C99_IL_EXTENSIONS_SUPPORTED.
        The _Imaginary types are not allowed in those modes. */
-#if GNU_COMPLEX_EXTENSIONS_ALLOWED
+#if C99_IL_EXTENSIONS_SUPPORTED
     enter_keyword((a_token_kind)tok_c99_complex, "_Complex");
     /* GNU compilers also accept __complex and __complex__ to denote
        complex types.  In addition, they provide operators to extract
@@ -694,7 +694,7 @@ Install the keywords in the symbol table.
     enter_gnu_keyword((a_token_kind)tok_gnu_imag, "__imag");
     /* EDG-specific token representing the imaginary number "i" (i*i == -1). */
     enter_keyword((a_token_kind)tok_imaginary_unit, "__I__");
-#endif /* GNU_COMPLEX_EXTENSIONS_ALLOWED */
+#endif /* C99_IL_EXTENSIONS_SUPPORTED */
 #if C99_IL_EXTENSIONS_SUPPORTED
   } else if (c99_mode) {
     /* Non-GNU C99 modes support both _Complex and _Imaginary types, provided

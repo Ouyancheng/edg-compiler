@@ -17182,7 +17182,7 @@ from being re-introduced once lowering has eliminated it).
                             node->type, /*is_lvalue=*/TRUE, op1);
         }  /* if */
         break;
-#if GNU_COMPLEX_EXTENSIONS_ALLOWED
+#if C99_IL_EXTENSIONS_SUPPORTED
       case eok_imag_part:
       case eok_real_part:
         /* GNU __imag and __real. */
@@ -17194,7 +17194,7 @@ from being re-introduced once lowering has eliminated it).
                                                               op1->type);
         }  /* if */
         break;
-#endif /* GNU_COMPLEX_EXTENSIONS_ALLOWED */
+#endif /* C99_IL_EXTENSIONS_SUPPORTED */
       default:
         if (is_compound_assignment_operator(op)) {
           /* A compound assignment operator like "+=".  We can just turn on
