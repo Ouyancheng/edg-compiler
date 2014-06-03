@@ -519,53 +519,58 @@ duplication.
 */
 {
   a_directory_name_entry_ptr	dnep1;
-  a_directory_name_entry_ptr	prev_dnep1 = NULL;
-  a_directory_name_entry_ptr	next_dnep1;
 
-  for (dnep1 = incl_search_path; dnep1 != NULL; dnep1 = next_dnep1) {
-    next_dnep1 = dnep1->next;
-    /* Only process non-system include entries. */
-    if (!sys_includes_only || !dnep1->system_include_dir) {
+  for (dnep1 = incl_search_path; dnep1 != NULL; dnep1 = dnep1->next) {
+    /* If this is a system include, or if we are processing all includes,
+       look for duplicates of this entry. */
+    if (!sys_includes_only || dnep1->system_include_dir) {
       a_directory_name_entry_ptr	dnep2;
-      for (dnep2 = incl_search_path; dnep2 != NULL; dnep2 = dnep2->next) {
-        /* Look for a system include directory with the same name. */
+      a_directory_name_entry_ptr	prev_dnep2 = NULL;
+      a_directory_name_entry_ptr	next_dnep2 = NULL;
+      dnep2 = sys_includes_only ? incl_search_path : dnep1->next;
+      for (; dnep2 != NULL; dnep2 = next_dnep2) {
+        next_dnep2 = dnep2->next;
+        /* Look for another include directory with the same name. */
         if (dnep1 != dnep2 &&
-            (!sys_includes_only || dnep2->system_include_dir) &&
+            (!sys_includes_only || !dnep2->system_include_dir) &&
             compare_dir_names(dnep1->dir_name, dnep2->dir_name,
                              /*is_partial_file_name=*/FALSE) == 0) {
-          /* Remove the non-system entry from the list. */
-          if (prev_dnep1 != NULL) {
-            prev_dnep1->next = dnep1->next;
-          } else {
-            incl_search_path = dnep1->next;
+          /* Remove the secondary entry from the list.  For system includes,
+             this could be a prior entry. */
+          if (prev_dnep2 != NULL) {
+            prev_dnep2->next = dnep2->next;
           }  /* if */
-          if (*include_path_boundary == dnep1) {
+          if (incl_search_path == dnep2) {
+            incl_search_path = dnep2->next;
+          }  /* if */
+          if (dnep1->next == dnep2) {
+            dnep1->next = dnep2->next;
+          }  /* if */
+          if (*include_path_boundary == dnep2) {
             /* We removed the directory immediately preceding -I-: change
                the boundary marker either to the one before that or, if the
                removed directory was the head of the list, to NULL. */
-            *include_path_boundary = prev_dnep1;
+            *include_path_boundary = dnep2->next;
           }  /* if */
 #if DEBUG
           if (db_flag_is_set("incl_search_path")) {
-            fprintf(f_debug, "Removing %s, which duplicates a system incl\n",
-                    dnep1->dir_name);
+            fprintf(f_debug, "Removing %s, which duplicates a %s incl\n",
+                    dnep2->dir_name, sys_includes_only ? "system" : "regular");
+            db_incl_search_path();
           }  /* if */
 #endif /* DEBUG */
           if (sys_includes_only) {
             /* Issue a warning if a directory was specified as both
                a system and non-system include. */
             pos_st_warning(ec_incl_dir_both_sys_and_nonsys,
-                           &null_source_position, dnep1->dir_name);
+                           &null_source_position, dnep2->dir_name);
           }  /* if */
-          free_directory_name_entry(dnep1);
-          break;
+          free_directory_name_entry(dnep2);
+          continue;
         }  /* if */
+        prev_dnep2 = dnep2;
       }  /* for */
-      /* If we broke out of the loop above, skip to the next entry in
-         the outer loop without updating prev_dnep1 below. */
-      if (dnep2 != NULL) continue;
     }  /* if */
-    prev_dnep1 = dnep1;
   }  /* for */
 }  /* remove_duplicate_include_dirs */
 
