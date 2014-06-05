@@ -5564,7 +5564,7 @@ expression).
        initialization that needs to be rewritten as executable code).
        Use the lowered complex type (a struct with an array of two elements
        of the appropriate type) and also change the aggregate constant to
-       match the lowered form.  The case where complex object are not lowered
+       match the lowered form.  The case where complex objects are not lowered
        is handled below. */
     check_assertion(is_complex_type(aggr_const->type));
     aggr_type = lowered_complex_type(aggr_type->variant.float_kind);
@@ -5603,7 +5603,7 @@ expression).
 #endif /* GNU_VECTOR_TYPES_ALLOWED */
 #if C99_IL_EXTENSIONS_SUPPORTED && !LOWER_COMPLEX
   } else if (is_complex_type(aggr_type)) {
-    /* A complex constant which is not lowered.  Use curr_elem to select
+    /* A complex constant that is not lowered.  Use curr_elem to select
        first the "real" part (0), then the "imaginary" part (1). */
     ipmp->is_complex = TRUE;
     ipmp->curr_elem = 0;
