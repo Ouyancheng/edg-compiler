@@ -1,5 +1,24 @@
 Version 4.10
 
+6/5/14   [EDGcpfe/15212]
+Internal error when using guiding declarations
+
+A feature added in version 4.9 introduced an internal error that could
+occur (in remove_unneeded_instantiations) when using guiding declarations
+(--guiding_decls).  The underlying defect could also cause function
+instantiations done only to determine a routine's return type to not
+be removed from the IL.  Now fixed.
+
+  // Internal error when compiled with --guiding_decls
+  inline int f(int a) {
+    return a;
+  }
+  template <class T> int f(T arg) { return 0; }
+  int main() {
+    f(0.0);
+  }
+
+
 6/3/14   [EDGcpfe/15207]
 Internal error when projection symbols are created in prototype instantiations
 

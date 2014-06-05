@@ -12972,7 +12972,8 @@ instantiations from the IL.
 #else /* !(GENERATE_SOURCE_SEQUENCE_LISTS && NONCLASS_TEMPLATE_INST...) */
   a_template_instance_ptr	tip;
 
-  for (tip = instantiations_required; tip != NULL; tip = tip->next) {
+  for (tip = instantiations_required; tip != NULL;
+       tip = tip->next_in_instantiation_list) {
     a_symbol_ptr		instance_sym;
     a_master_instance_ptr	mip;
 
