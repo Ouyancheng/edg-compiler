@@ -3085,7 +3085,8 @@ an error if a default argument expression is encountered.
           parent_ssep = &scope_stack[depth_scope_stack-1];
           parent_scope_kind = parent_ssep->kind;
           if (default_arg_allowed_on_curr_param) {
-            if (parent_scope_kind == (a_scope_kind)sck_class_struct_union) {
+            if (parent_scope_kind == (a_scope_kind)sck_class_struct_union &&
+                !type_is_lambda_closure(parent_ssep->assoc_type)) {
               /* A member function of a class (normal or template) inside
                  a class declaration.  The is_top_level_declarator test is
                  used to ignore default arguments in things like

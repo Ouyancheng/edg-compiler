@@ -27497,8 +27497,14 @@ Return TRUE if we are currently in the header (not the body) of a lambda.
 {
   a_boolean in_header = FALSE;
 
-  if (expr_stack != NULL &&
-      expr_stack->current_lambda_in_header != NULL) {
+  if (scope_is(&scope_stack_top(), sck_func_prototype) &&
+      scope_is(&scope_stack_top()-1, sck_class_struct_union) &&
+      type_is_lambda_closure((&scope_stack_top()-1)->assoc_type)) {
+    /* We're in a lambda declarator. */
+    in_header = TRUE;
+  } else if (expr_stack != NULL &&
+             expr_stack->current_lambda_in_header != NULL) {
+    /* We're in a capture list. */
     in_header = TRUE;
   }  /* if */
   return in_header;
@@ -27907,20 +27913,21 @@ indicates that the symbol is an anonymous union and cannot be captured.
             }  /* if */
           }  /* if */
         }  /* if */
-      } else if (!strict_ansi_mode &&
+      } else if ((!strict_ansi_mode || in_lambda_header()) &&
                  !expr_stack->potentially_evaluated &&
                  (!expr_stack->is_type_operator_arg_expression ||
                   depth_innermost_function_scope == NO_SCOPE_DEPTH) &&
                   !is_vla_type(var->type)) {
-        /* As an extension, allow references to nonstatic variables
-           inside sizeof expressions.  (Except VLA variables, since
-           sizeof applied to such variables involves a run-time
-           computation.)  We also allow decltype/typeof constructs if
-           they appear directly in the class definition itself and
-           not in a member function definition of the class (the latter
-           would require a reference between two different function
-           scope memory regions). */
-        expr_pos_warning(ec_ref_to_nested_function_var, ref_pos);
+        /* Allow references from lambda headers to nonstatic variables inside
+           sizeof (and similar) expressions.  (Except VLA variables, since
+           sizeof applied to such variables involves a run-time computation.)
+           As an extension, allow this more generally in nonstrict modes,
+           (except for decltype/typeof constructs they appear in a member
+           function definition of the class since that would require a
+           reference between two different function scope memory regions). */
+        if (!in_lambda_header()) {
+          expr_pos_warning(ec_ref_to_nested_function_var, ref_pos);
+        }  /* if */
       } else {
         bad_ref = TRUE;
       }  /* if */

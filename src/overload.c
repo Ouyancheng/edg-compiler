@@ -10081,12 +10081,30 @@ position of the reference); we may simply be testing that an
 implicit "this" is available, e.g., during overload resolution.
 */
 {
-  a_boolean      this_exists = FALSE;
-  a_variable_ptr local_this_var = NULL;
-  a_type_ptr     local_this_type = NULL;
+  a_boolean               this_exists = FALSE;
+  a_variable_ptr          local_this_var = NULL;
+  a_type_ptr              local_this_type = NULL;
+  a_scope_stack_entry_ptr ssep = &scope_stack_top();
+  a_scope_ptr             enclosing_rout_scope = NULL;
 
-  if (innermost_function_scope != NULL) {
-    a_routine_ptr curr_rout = current_routine_entry();
+  /* If we are in a lambda declarator, step out of it since the closure's
+     "this" isn't available (and a captured "this" isn't either since it's
+     only available in the lambda body). */
+  while (scope_is(ssep, sck_func_prototype) &&
+         scope_is(ssep-1, sck_class_struct_union) &&
+         type_is_lambda_closure((ssep-1)->assoc_type)) {
+    ssep -= 2;
+  }  /* if */
+  /* We cannot use innermost_function_scope because it may be NULL due to
+     intervening closure classes.  Compute an enclosing_rout_scope instead. */
+  if (scope_is(ssep, sck_function)) {
+    enclosing_rout_scope = ssep->il_scope;
+  } else if (ssep->depth_innermost_function_scope != NO_SCOPE_DEPTH) {
+    enclosing_rout_scope =
+                   scope_stack[ssep->depth_innermost_function_scope].il_scope;
+  }  /* if */
+  if (enclosing_rout_scope != NULL) {
+    a_routine_ptr curr_rout = enclosing_rout_scope->variant.routine.ptr;
     if (curr_rout->is_lambda_body && allow_lambda_this) {
       /* We're inside the body of a lambda.  "this" exists only if it's
          captured from the surrounding context.  The lambda body is the
@@ -10116,29 +10134,29 @@ implicit "this" is available, e.g., during overload resolution.
     } else {
       /* Normal case, not inside a lambda (but inside a function body). */
       local_this_var =
-                 innermost_function_scope->variant.routine.this_param_variable;
+                    enclosing_rout_scope->variant.routine.this_param_variable;
       this_exists = (local_this_var != NULL);
     }  /* if */
   } else if ((this_in_trailing_return_types_enabled &&
-              scope_stack_top().kind == (a_scope_kind)sck_func_prototype) ||
-             scope_stack_top().in_field_initializer) {
+              scope_is(ssep, sck_func_prototype)) ||
+             ssep->in_field_initializer) {
     /* In C++11, "this" can be referenced in a late-specified return type,
        and "this" can be referenced inside a non-static-data-member-initializer
        (NSDMI).  In both those cases, there's no "this" variable yet. */
-    a_scope_stack_entry_ptr ssep;
     /* Loop through all the function prototype scopes, because there may be
        nested function declarators, and the "this" from the enclosing
        member function declarator should be visible in the nested
        declarators.  Also class scopes for NSDMIs. */
-    for (ssep = &scope_stack_top();
+    for (;
          ssep != NULL &&
-           (ssep->kind == (a_scope_kind)sck_func_prototype ||
-            ssep->in_field_initializer);
+           (scope_is(ssep, sck_func_prototype) || ssep->in_field_initializer);
          ssep = previous_scope_of(ssep)) {
-      if (ssep->kind == (a_scope_kind)sck_class_struct_union ||
-          ssep->kind == (a_scope_kind)sck_class_reactivation) {
+      if ((scope_is(ssep, sck_class_struct_union) ||
+           scope_is(ssep, sck_class_reactivation)) &&
+          !type_is_lambda_closure(ssep->assoc_type)) {
         /* We're inside a C++11 non-static-data-member-initializer (NSDMI),
-           so "this" is available. */
+           so "this" is available.  (There may also be closure classes on the
+           scope stack but those should not result in an available "this".) */
         this_exists = TRUE;
         local_this_type = ssep->assoc_type;
         check_assertion(local_this_type != NULL &&
@@ -10146,7 +10164,7 @@ implicit "this" is available, e.g., during overload resolution.
         local_this_type = add_right_pointer_type_to_this(local_this_type,
                                                          local_this_type);
         break;
-      } else if (ssep->kind == (a_scope_kind)sck_func_prototype &&
+      } else if (scope_is(ssep, sck_func_prototype) &&
                  ssep->outside_parameter_list) {
         /* "this" is visible after the closing parenthesis of certain
            function declarators. */
@@ -10204,8 +10222,7 @@ implicit "this" is available, e.g., during overload resolution.
                  temporarily as the this_class in order to generate the
                  presumed "this" type. */
               a_scope_stack_entry_ptr ssepr = ssep-1;
-              check_assertion(ssepr->kind ==
-                                         (a_scope_kind)sck_class_reactivation);
+              check_assertion(scope_is(ssepr, sck_class_reactivation));
               rout_type->variant.routine.extra_info->this_class =
                                                              ssepr->assoc_type;
               local_this_type = f_implicit_this_param_type_of(rout_type);

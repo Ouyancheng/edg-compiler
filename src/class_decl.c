@@ -29815,12 +29815,11 @@ For example:
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   (void)required_token(tok_rbracket, ec_exp_rbracket);
   remove_stop_token(tok_rbracket);
+  /* Now push the scope stack entry for the closure class. */
+  push_closure_class(lambda, &class_state);
   /* Parse the "declarator" part of the lambda (the parameter list, etc.). */
   scan_optional_lambda_declarator(lambda, &func_info, &decl_info);
   record_end_of_lambda_header(lambda);
-  /* Now that the lambda declarator has been scanned, push the scope stack
-     entry for the closure class. */
-  push_closure_class(lambda, &class_state);
   /* Declare the call operator for the closure class. */
   decl_call_operator_for_lambda(lambda, &class_state, &decl_info, &func_info);
 #if NEED_NAME_MANGLING
