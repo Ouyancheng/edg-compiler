@@ -547,10 +547,10 @@ duplication.
             dnep1->next = dnep2->next;
           }  /* if */
           if (*include_path_boundary == dnep2) {
-            /* We removed the directory immediately preceding -I-: change
+            /* We removed the directory immediately following -I-: change
                the boundary marker either to the one before that or, if the
                removed directory was the head of the list, to NULL. */
-            *include_path_boundary = dnep2->next;
+            *include_path_boundary = prev_dnep2;
           }  /* if */
 #if DEBUG
           if (db_flag_is_set("incl_search_path")) {
