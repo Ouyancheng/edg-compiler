@@ -15120,6 +15120,9 @@ all arguments were explicit.
        "A<X, args...>" will be accepted when args is an empty pack. */
     if ((param_ptr == NULL || orig_param_ptr == NULL) && any_args) {
       too_many_args = TRUE;
+      if (curr_token == tok_gt && arg_list != NULL) {
+        error(ec_expected_template_arg);
+      }  /* if */
       break;
     }  /* if */
     while (any_args) {

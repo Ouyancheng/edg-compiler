@@ -1,5 +1,15 @@
 Version 4.10
 
+6/8/14   [EDGcpfe/15117]
+Missing error on trailing comma in template argument list
+
+A change made in version 4.5 caused an error to no longer be issued for
+a trailing comma in a template argument list.  Now fixed.
+
+  template <class T> class A { };
+  A<int,> a;
+
+
 6/5/14   [EDGcpfe/15212]
 Internal error when using guiding declarations
 
