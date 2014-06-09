@@ -25312,7 +25312,6 @@ class type.  Check that dps->type is a valid type for such a declaration.
                 allowed. */
 #endif /* !GENERATE_SOURCE_SEQUENCE_LISTS || !MICROSOFT_EXTENSIONS_ALLOWED */
 static a_symbol_ptr class_member_declaration(
-                      a_type_ptr               class_type,
                       a_class_def_state_ptr    class_state,
                       an_ms_attribute_ptr      ms_attributes,
                       a_boolean                is_member_template,
@@ -25323,19 +25322,19 @@ static a_symbol_ptr class_member_declaration(
                       a_template_ptr           il_template_entry,
                       a_decl_pos_block_ptr     decl_pos_block_ptr)
 /*
-Scan a member declaration appearing inside a class definition.  class_type
-is the type of the class.  class_state points to a block of information
-tracking general information about the class.  ms_attributes points to a
-list of Microsoft attributes that have already been parsed for this
-declaration (if any). *skip_semicolon_check is returned TRUE if the caller
-should suppress the check for a semicolon following the member declaration.
-templ_param_list is non-NULL for function template declarations.
+Scan a member declaration appearing inside a class definition.  class_state
+points to a block of information tracking general information about the class.
+ms_attributes points to a list of Microsoft attributes that have already been
+parsed for this declaration (if any). *skip_semicolon_check is returned TRUE
+if the caller should suppress the check for a semicolon following the member
+declaration.  templ_param_list is non-NULL for function template declarations.
 decl_pos_block_ptr is non-NULL when then extra source position information
 collected during this declaration needs to be returned to the caller.
 If prototype instantiations are recorded in the IL, the template header is
 passed via template_decl.
 */
 {
+  a_type_ptr           class_type = class_state->class_type;
   a_boolean            missing_declarator = FALSE;
   a_decl_flag_set      dsi_flags;
   a_decl_flag_set      dso_flags = DSO_NO_OUTPUT_FLAGS;
@@ -26165,8 +26164,7 @@ is the template parameter list for the function template.
   scope_level = class_type_supp(class_type)->assoc_scope->depth_in_scope_stack;
   check_assertion(scope_level != NO_SCOPE_DEPTH);
   class_state_ptr = scope_stack[scope_level].class_def_state;
-  sym = class_member_declaration(class_type, class_state_ptr,
-                                 dps->ms_attributes,
+  sym = class_member_declaration(class_state_ptr, dps->ms_attributes,
                                  /*is_member_template=*/TRUE,
                                  templ_param_list, &skip_semicolon_check,
                                  &dummy_type, (a_template_instance_ptr)NULL,
@@ -26219,8 +26217,7 @@ instance record associated with this instantiation.
     skip_microsoft_attribute_tokens();
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-  (void)class_member_declaration(class_type, &class_state,
-                                 (an_ms_attribute_ptr)NULL,
+  (void)class_member_declaration(&class_state, (an_ms_attribute_ptr)NULL,
                                  /*is_member_template=*/FALSE,
                                  (a_template_param_ptr)NULL,
                                  &skip_semicolon_check,
@@ -28632,8 +28629,7 @@ classes.
             goto next_declaration;
           }  /* if */
         }  /* if */
-        (void)class_member_declaration(class_type, &class_state,
-                                       ms_attributes,
+        (void)class_member_declaration(&class_state, ms_attributes,
                                        /*is_template_member=*/FALSE,
                                        (a_template_param_ptr)NULL,
                                        &skip_semicolon_check, &dummy_type,
