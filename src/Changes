@@ -7,8 +7,8 @@ The changes for EDGcpfe/12450 introduced a regression causing the front end to
 emit a spurious error when calling a function with a transparent union
 parameter whose matching field is const-qualified.  For example:
 
-  union U { int const i; } __attribute((transparent_union));
-  void g(U u) {}
+  typedef union U { int const i; } TU __attribute((transparent_union));
+  void g(TU u) {}
   int main() {
     g(1);  // Previously triggered a spurious error.
   }
