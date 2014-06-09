@@ -23432,7 +23432,7 @@ the requirement is returned.  Otherwise, NULL is returned.
     a_type_ptr dest_type = f->type;
     /* Try every field type in turn.  Note that a more-or-less exact type
        match is required, not a conversion, except for pointers. */
-    if (types_are_compatible(source_type, dest_type) ||
+    if (types_are_compatible_ignoring_qualifiers(source_type, dest_type) ||
         (is_pointer_type(dest_type) &&
          impl_pointer_conversion(source_type,
                                  is_constant_operand(source_operand),

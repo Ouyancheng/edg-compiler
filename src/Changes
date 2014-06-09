@@ -1,5 +1,21 @@
 Version 4.10
 
+6/9/14   [EDGcpfe/15213]
+Spurious error on use of GNU transparent union with const field
+
+The changes for EDGcpfe/12450 introduced a regression causing the front end to
+emit a spurious error when calling a function with a transparent union
+parameter whose matching field is const-qualified.  For example:
+
+  union U { int const i; } __attribute((transparent_union));
+  void g(U u) {}
+  int main() {
+    g(1);  // Previously triggered a spurious error.
+  }
+
+This is now fixed.
+
+
 6/8/14   [EDGcpfe/15117]
 Missing error on trailing comma in template argument list
 
