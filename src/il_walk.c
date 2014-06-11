@@ -2762,8 +2762,10 @@ it's the initializer for an aggregate.
       if (tblock->process_template_parameter_constants_and_expressions) {
         switch (constant->variant.template_param.kind) {
           case tpck_expression:
-            traverse_expr(constant->variant.template_param.variant.expr,
-                          tblock);
+            if (constant->variant.template_param.variant.expr != NULL) {
+              traverse_expr(constant->variant.template_param.variant.expr,
+                            tblock);
+            }  /* if */
             break;
           case tpck_sizeof:
           case tpck_alignof:

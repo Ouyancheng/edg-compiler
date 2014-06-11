@@ -4364,6 +4364,17 @@ typedef struct a_constant {
       a_byte_boolean
 		is_pack;
 			/* TRUE if this is a template parameter pack. */
+#if PROTOTYPE_INSTANTIATIONS_IN_IL
+      a_byte_boolean
+		local_expr_ref;
+			/* TRUE if the expression normally associated with
+			   variant.expr or variant.templ_sizeof.expr below
+			   is stored in a function scope memory region
+			   while this constant is stored in the file scope
+			   memory memory region.  In that case, expr will
+			   be NULL and the expression can be found using
+			   find_local_expr_node instead. */
+#endif /* PROTOTYPE_INSTANTIATIONS_IN_IL */
       union {
 	/* When template param constant kind == tpck_param: */
         a_template_param_coordinate
@@ -4372,13 +4383,14 @@ typedef struct a_constant {
 			   depth of the parameter. */
 	/* When template param constant kind == tpck_expression: */
 	an_expr_node_ptr
-		expr;
-			/* Expression node representing a constant value in
+		expr;	/* Expression node representing a constant value in
 			   terms of an expression involving one or more
 			   ck_template_param constants -- e.g., if "I" is
 			   a template param constant (of kind tpck_param),
 			   "I+1" is also a template param constant (of kind
-			   tpck_expression). */
+			   tpck_expression).  Will be NULL if local_expr_ref
+			   is TRUE, in which case the expression can be
+			   retrieved using find_local_expr_node. */
         /* When template param constant kind == tpck_member, no variant
            fields. */
         /* When template param constant kind == tpck_unknown_function: */
@@ -4439,16 +4451,6 @@ typedef struct a_constant {
 		is_std_alignof:1;
 			/* TRUE if this represents the standard C++11 alignof
 			   operation. */
-#if PROTOTYPE_INSTANTIATIONS_IN_IL
-          a_bit_field
-		local_expr_ref:1;
-			/* TRUE if the sizeof etc. was applied to an
-			   expression stored in a function scope memory
-			   region while this constant is stored in the file
-			   scope memory memory region.  In that case, expr
-			   will be NULL and the expression can be found using
-			   find_local_expr_node instead. */
-#endif /* PROTOTYPE_INSTANTIATIONS_IN_IL */
         } templ_sizeof;
         /* When template param constant kind == tpck_template_ref: */
         struct {
@@ -15183,10 +15185,8 @@ enum a_local_expr_node_ref_kind_tag {
   lerk_none,		/* Used for initialization only. */
   lerk_typeof,		/* An expression used as an argument for a typeof
 			   construct. */
-#if PROTOTYPE_INSTANTIATIONS_IN_IL
   lerk_generic_sizeof,	/* A template-dependent expression used as an argument
 			   for a sizeof, alignof, or uuidof construct. */
-#endif /* PROTOTYPE_INSTANTIATIONS_IN_IL */
   lerk_array_bound,	/* The expression for an array bound, which, despite
 			   being constant, refers to a local variable.  This
 			   can occur for initialized const variables and for
@@ -15195,9 +15195,10 @@ enum a_local_expr_node_ref_kind_tag {
   lerk_dep_array_bound,	/* Like lerk_array_bound, but for the expressions
 			   under a dependent constant giving the bound, rather
 			   than the "expr" field of the constant. */
-  lerk_decltype
-			/* An expression used as an argument for a decltype
+  lerk_decltype,	/* An expression used as an argument for a decltype
 			   construct. */
+  lerk_tpl_param_expr	/* The expression in a
+			   ck_template_param/tpck_expression constant. */
 };
 
 typedef a_byte a_local_expr_node_ref_kind;

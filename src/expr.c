@@ -9515,11 +9515,12 @@ error indication in *rcblock).
          except that Microsoft compilers do permit it sometimes on dependent
          constants (the indirection may be folded away at instantiation
          time). */
-      if (microsoft_mode && is_constant_operand(&operand) &&
-          operand.variant.constant.kind ==
-                                    (a_constant_repr_kind)ck_template_param) {
-        prep_generic_operand_full(&operand, /*lvalue_expected=*/FALSE,
-                                  /*rvalue_expected=*/TRUE);
+      if (microsoft_mode && is_constant_operand(&operand)) {
+        if (operand.variant.constant.kind ==
+                                     (a_constant_repr_kind)ck_template_param) {
+          prep_generic_operand_full(&operand, /*lvalue_expected=*/FALSE,
+                                    /*rvalue_expected=*/TRUE);
+        }  /* if */
       } else {
         expr_pos_error(ec_bad_templ_arg_expr_operator, &operator_position);
         err = TRUE;

@@ -11622,8 +11622,8 @@ which case that particular parameter must be present.
          template parameters cannot be deduced from expressions. */
       if (!deduced_contexts_only &&
           expr_tree_contains_template_param_constant(
-                                      cp->variant.template_param.variant.expr,
-                                      specific_template_param_constant)) {
+                                           expr_node_from_tpck_expression(cp),
+                                           specific_template_param_constant)) {
         found = TRUE;
       }  /* if */
     } else if (eq_constants(cp, specific_template_param_constant)) {

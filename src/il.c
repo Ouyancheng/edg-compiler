@@ -4691,22 +4691,29 @@ fix them.
           kind == (a_template_param_constant_kind)tpck_alignof ||
           kind == (a_template_param_constant_kind)tpck_uuidof ||
           kind == (a_template_param_constant_kind)tpck_typeid ||
-          kind == (a_template_param_constant_kind)tpck_noexcept) {
+          kind == (a_template_param_constant_kind)tpck_noexcept ||
+          kind == (a_template_param_constant_kind)tpck_expression) {
         /* If a constant in the file scope memory region has an attached
            expression in a function scope memory region, break the link to the
            expression.  In configurations that record prototype instantiations
            in the IL, an entry of type a_local_expr_node_ref is recorded so
            that the expression can be recovered using the function
            find_local_expr_node. */
-        an_expr_node_ptr expr =
-                         cp->variant.template_param.variant.templ_sizeof.expr;
-        if (expr != NULL && !in_file_scope(expr)) {
+        an_expr_node_ptr           *expr;
+        a_local_expr_node_ref_kind ref_kind;
+        if (kind == (a_template_param_constant_kind)tpck_expression) {
+          expr = &cp->variant.template_param.variant.expr;
+          ref_kind = (a_local_expr_node_ref_kind)lerk_tpl_param_expr;
+        } else {
+          expr = &cp->variant.template_param.variant.templ_sizeof.expr;
+          ref_kind = (a_local_expr_node_ref_kind)lerk_generic_sizeof;
+        }  /* if */
+        if (*expr != NULL && !in_file_scope(*expr)) {
 #if PROTOTYPE_INSTANTIATIONS_IN_IL
-          make_local_expr_node_ref(
-            expr, (a_local_expr_node_ref_kind)lerk_generic_sizeof, (char*)cp,
-            innermost_function_scope);
+          make_local_expr_node_ref(*expr, ref_kind, (char*)cp,
+                                   innermost_function_scope);
 #endif /* PROTOTYPE_INSTANTIATIONS_IN_IL */
-          cp->variant.template_param.variant.templ_sizeof.expr = NULL;
+          *expr = NULL;
         }  /* if */
       }  /* if */
 #if DO_IL_LOWERING && ASSIGN_STRING_LITERAL_SEQUENCE_NUMBERS
@@ -5616,14 +5623,32 @@ copy_constant_full should be called to start a copy.
         /* No subtree to copy. */
         break;
       case tpck_expression:
-        /* Note that this copy ignores any memory region issues.  See
-           tpck_sizeof et al. below for cases where memory region issues are
-           handled properly.  To handle this properly, we'd need to do a
-           local-expr-ref fixup on a tpck_expression (which we hope to get
-           to some day -- unless memory regions are removed first). */
-        new_constant->variant.template_param.variant.expr =
-            i_copy_expr_tree(old_constant->variant.template_param.variant.expr,
-                             options, cblock);
+        { an_expr_node_ptr old_expr, new_expr;
+#if PROTOTYPE_INSTANTIATIONS_IN_IL
+          new_constant->variant.template_param.local_expr_ref = FALSE;
+#endif /* PROTOTYPE_INSTANTIATIONS_IN_IL */
+          old_expr = expr_node_from_tpck_expression(old_constant);
+          if (old_expr != NULL) {
+            /* Make a copy of the expression tree. */
+            if (!force_copy &&
+                !in_file_scope(old_expr) &&
+                curr_il_region_number == file_scope_region_number) {
+              /* There's a memory region problem. */
+#if PROTOTYPE_INSTANTIATIONS_IN_IL
+              /* In PROTOTYPE_INSTANTIATIONS_IN_IL versions, keep the old
+                 expression and fix_memory_region_problems_in_copied_constant
+                 will call make_local_expr_node_ref. */
+              new_expr = old_expr;
+#else /* !PROTOTYPE_INSTANTIATIONS_IN_IL */
+              new_expr = NULL;
+#endif /* PROTOTYPE_INSTANTIATIONS_IN_IL */
+            } else {
+              /* Make a copy of the expression tree. */
+              new_expr = i_copy_expr_tree(old_expr, options, cblock);
+            }  /* if */
+            new_constant->variant.template_param.variant.expr = new_expr;
+          }  /* if */
+        }
         break;
       case tpck_cast:
       case tpck_address:
@@ -5640,8 +5665,7 @@ copy_constant_full should be called to start a copy.
       case tpck_noexcept:
         { an_expr_node_ptr old_expr, new_expr;
 #if PROTOTYPE_INSTANTIATIONS_IN_IL
-          new_constant->variant.template_param.variant.templ_sizeof.
-                                                        local_expr_ref = FALSE;
+          new_constant->variant.template_param.local_expr_ref = FALSE;
 #endif /* PROTOTYPE_INSTANTIATIONS_IN_IL */
           old_expr = old_constant->variant.template_param.variant.
                                                              templ_sizeof.expr;
@@ -5667,7 +5691,7 @@ copy_constant_full should be called to start a copy.
             new_constant->variant.template_param.variant.templ_sizeof.expr =
                                                                       new_expr;
           }  /* if */
-        }  /* if */
+        }
         break;
       case tpck_template_ref:
         new_constant->variant.template_param.variant.template_ref.con =
@@ -6852,10 +6876,9 @@ definition of the CC flags in il.h for more information.
                       cp2->variant.template_param.variant.coordinates.depth)));
               break;
             case tpck_expression:
-              eq = compare_expressions(
-                                    cp1->variant.template_param.variant.expr,
-                                    cp2->variant.template_param.variant.expr,
-                                    options);
+              eq = compare_expressions(expr_node_from_tpck_expression(cp1),
+                                       expr_node_from_tpck_expression(cp2),
+                                       options);
               break;
             case tpck_member:
               eq = equiv_template_constant_identity(
@@ -7223,7 +7246,8 @@ at the file scope (it would contain a pointer down into a function scope).
         case tpck_destructor:
           break;
         case tpck_expression:
-          has_nfs_ref= !in_file_scope(cp->variant.template_param.variant.expr);
+          has_nfs_ref = cp->variant.template_param.variant.expr != NULL &&
+                       !in_file_scope(cp->variant.template_param.variant.expr);
           break;
         case tpck_cast:
         case tpck_address:
@@ -11214,9 +11238,8 @@ The expression can then be recovered using find_local_expr_node.
     case lerk_generic_sizeof:
       new_ref->referrer.kind = (a_byte_il_entry_kind)iek_constant;
       check_assertion(!((a_constant_ptr)referrer)
-         ->variant.template_param.variant.templ_sizeof.local_expr_ref);
-      ((a_constant_ptr)referrer)
-         ->variant.template_param.variant.templ_sizeof.local_expr_ref = TRUE;
+                                      ->variant.template_param.local_expr_ref);
+      ((a_constant_ptr)referrer)->variant.template_param.local_expr_ref = TRUE;
       break;
 #endif /* PROTOTYPE_INSTANTIATIONS_IN_IL */
     case lerk_array_bound:
@@ -11236,6 +11259,14 @@ The expression can then be recovered using find_local_expr_node.
     case lerk_decltype:
       new_ref->referrer.kind = (a_byte_il_entry_kind)iek_type;
       break;
+#if PROTOTYPE_INSTANTIATIONS_IN_IL
+    case lerk_tpl_param_expr:
+      new_ref->referrer.kind = (a_byte_il_entry_kind)iek_constant;
+      check_assertion(!((a_constant_ptr)referrer)
+                                      ->variant.template_param.local_expr_ref);
+      ((a_constant_ptr)referrer)->variant.template_param.local_expr_ref = TRUE;
+      break;
+#endif /* PROTOTYPE_INSTANTIATIONS_IN_IL */
     default:
       unexpected_condition();
   }  /* switch */
@@ -11269,6 +11300,33 @@ expression being searched for.)
   }  /* if */
   return result;
 }  /* find_local_expr_node */
+
+
+an_expr_node_ptr expr_node_from_tpck_expression(a_constant_ptr cp)
+/*
+Return the expression associated with cp, which must be a
+ck_template_param/tpck_expression constant.
+*/
+{
+  an_expr_node_ptr expr;
+
+  check_assertion(cp->kind == (a_constant_repr_kind)ck_template_param &&
+                  cp->variant.template_param.kind ==
+                              (a_template_param_constant_kind)tpck_expression);
+#if PROTOTYPE_INSTANTIATIONS_IN_IL
+  if (cp->variant.template_param.local_expr_ref) {
+    /* This constant is in file scope memory but the associated expression
+       is in function scope memory.  Use the local expression node mechanism
+       to find it. */
+    expr = find_local_expr_node(
+                              (char *)cp,
+                              (a_local_expr_node_ref_kind)lerk_tpl_param_expr);
+  } else
+#endif /* PROTOTYPE_INSTANTIATIONS_IN_IL */
+  /* Do not insert code here. */
+  expr = cp->variant.template_param.variant.expr;
+  return expr;
+}  /* expr_node_from_tpck_expression */
 
 #if !STANDALONE_UTILITY_PROGRAM
 
@@ -11437,7 +11495,7 @@ a_local_expr_node_ref.
                                (a_template_param_constant_kind)tpck_noexcept));
   result = con->variant.template_param.variant.templ_sizeof.expr;
   if (result == NULL && innermost_function_scope != NULL &&
-      con->variant.template_param.variant.templ_sizeof.local_expr_ref) {
+      con->variant.template_param.local_expr_ref) {
     /* The argument of the sizeof/alignof/uuidof/typeid construct is an
        expression, whose representation is stored in a function scope memory
        region.  Since we are currently inside a function, look if the
@@ -13106,10 +13164,25 @@ constant; otherwise, return NULL.
   if (init_kind == (an_init_kind)initk_static) {
     /* The variable has a constant initial value. */
     con_val = init->constant;
-  } else if (init_kind == (an_init_kind)initk_dynamic &&
-             init->dynamic->kind == (a_dynamic_init_kind)dik_constant) {
-    /* The variable is dynamically initialized to a constant. */
-    con_val = init->dynamic->variant.constant;
+  } else if (init_kind == (an_init_kind)initk_dynamic) {
+    if (init->dynamic->kind == (a_dynamic_init_kind)dik_constant) {
+      /* The variable is dynamically initialized to a constant. */
+      con_val = init->dynamic->variant.constant;
+#if !STANDALONE_UTILITY_PROGRAM
+    } else if (init->dynamic->kind == (a_dynamic_init_kind)dik_expression &&
+               is_template_dependent_context()) {
+      /* Check for a dependent expression that might be a constant in an
+         instantiation. */
+      an_expr_node_ptr expr = init->dynamic->variant.expression;
+      if (expr_is_instantiation_dependent(expr)) {
+        /* Create a template parameter constant for the expression. */
+        a_constant con;
+        make_template_param_expr_constant(expr, &con);
+        con_val = copy_constant_full(&con, (a_constant *)NULL,
+                                     CE_SRC_CONSTANT_IS_NOT_ALLOC_IN_IL);
+      }  /* if */
+#endif /* !STANDALONE_UTILITY_PROGRAM */
+    }  /* if */
   }  /* if */
   return con_val;
 }  /* initializer_constant */
@@ -16311,7 +16384,7 @@ original constant.
   if (constant->kind == (a_constant_repr_kind)ck_template_param) {
     if (constant->variant.template_param.kind ==
                              (a_template_param_constant_kind)tpck_expression) {
-      an_expr_node_ptr	expr = constant->variant.template_param.variant.expr;
+      an_expr_node_ptr	expr = expr_node_from_tpck_expression(constant);
       if (expr->kind == (an_expr_node_kind)enk_operation &&
           expr->variant.operation.kind == (an_expr_operator_kind)eok_cast &&
           expr->variant.operation.compiler_generated) {
@@ -16905,7 +16978,7 @@ name lookup options.
         /* The template param represents an expression that involves
            template parameters.  Substitute the values of the template
            arguments and fold any constant operations that result. */
-        { an_expr_node_ptr expr = con->variant.template_param.variant.expr;
+        { an_expr_node_ptr expr = expr_node_from_tpck_expression(con);
           an_expr_node_ptr expr_copy = copy_template_param_expr(
                                                          expr,
                                                          template_arg_list,
@@ -16995,7 +17068,7 @@ lookup options.
        expression for the argument, which may have been scanned without
        knowledge of how it would be used and might have to be adjusted
        now. */
-    an_expr_node_ptr expr = con->variant.template_param.variant.expr;
+    an_expr_node_ptr expr = expr_node_from_tpck_expression(con);
     an_expr_node_ptr expr_copy;
     if (is_any_reference_type(template_param_type)) {
       /* The template parameter type is a reference.  Copy the expression
@@ -18886,7 +18959,7 @@ initialization doing nothing should be suppressed.
                                                           templ_sizeof.type) &&
             (con->variant.template_param.variant.templ_sizeof.expr == NULL
 #if PROTOTYPE_INSTANTIATIONS_IN_IL
-             &&!con->variant.template_param.variant.templ_sizeof.local_expr_ref
+             && !con->variant.template_param.local_expr_ref
 #endif /*PROTOTYPE_INSTANTIATIONS_IN_IL */
                                                                            )) {
           /* However, sizeof a VLA type evaluates the bound expression.  Only

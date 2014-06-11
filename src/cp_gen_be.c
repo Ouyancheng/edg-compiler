@@ -452,8 +452,9 @@ return that expression; otherwise return e.
   (is_constant_node(e) &&                                                    \
    (e)->variant.constant->kind == (a_constant_repr_kind)ck_template_param && \
    (e)->variant.constant->variant.template_param.kind ==                     \
-                          (a_template_param_constant_kind)tpck_expression) ? \
-            (e)->variant.constant->variant.template_param.variant.expr : (e)
+                         (a_template_param_constant_kind)tpck_expression) ?  \
+                    expr_node_from_tpck_expression((e)->variant.constant) : (e)
+
 
 
 /* Needed because of forward references: */
@@ -6961,6 +6962,7 @@ is the one associated with the definition of the enum.
           explicit_enum_expr = TRUE;
         }  /* if */
       } else {
+        an_expr_node_ptr con_expr;
         /* This constant involves a template parameter. */
         check_assertion(enum_con->kind ==
                                       (a_constant_repr_kind)ck_template_param);
@@ -6972,11 +6974,9 @@ is the one associated with the definition of the enum.
               enum_con->variant.template_param.variant.constant->
                                                  variant.template_param.kind ==
                              (a_template_param_constant_kind)tpck_expression &&
-              is_operation_node(enum_con->variant.template_param.
-                      variant.constant->variant.template_param.variant.expr) &&
-              enum_con->variant.template_param.variant.constant->
-                                          variant.template_param.variant.expr->
-                                      variant.operation.compiler_generated))) {
+              is_operation_node((con_expr = expr_node_from_tpck_expression(
+                        enum_con->variant.template_param.variant.constant))) &&
+              con_expr->variant.operation.compiler_generated))) {
           /* Either the constant is the initial implicit zero or it is a
              compiler-generated expression, which only occurs if it is the
              incremented value of the preceding constant; no explicit

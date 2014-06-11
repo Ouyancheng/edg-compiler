@@ -3716,7 +3716,7 @@ cast in some modes.  orig_operand_expr can be NULL.
       if (con->kind == (a_constant_repr_kind)ck_template_param) {
         if (con->variant.template_param.kind ==
                              (a_template_param_constant_kind)tpck_expression) {
-          next_expr = con->variant.template_param.variant.expr;
+          next_expr = expr_node_from_tpck_expression(con);
         } else if (con->variant.template_param.kind ==
                              (a_template_param_constant_kind)tpck_cast &&
                    !con->explicit_cast_applied) {
@@ -3727,7 +3727,7 @@ cast in some modes.  orig_operand_expr can be NULL.
           if (cast_op_con->kind == (a_constant_repr_kind)ck_template_param &&
               cast_op_con->variant.template_param.kind ==
                              (a_template_param_constant_kind)tpck_expression) {
-            next_expr = cast_op_con->variant.template_param.variant.expr;
+            next_expr = expr_node_from_tpck_expression(cast_op_con);
           }  /* if */
         }  /* if */
       }  /* if */
@@ -4154,7 +4154,7 @@ that has it.
       if (con->kind == (a_constant_repr_kind)ck_template_param) {
         if (con->variant.template_param.kind ==
                              (a_template_param_constant_kind)tpck_expression) {
-          next_expr = con->variant.template_param.variant.expr;
+          next_expr = expr_node_from_tpck_expression(con);
         } else if (con->variant.template_param.kind ==
                              (a_template_param_constant_kind)tpck_cast &&
                    !con->explicit_cast_applied) {
@@ -4165,7 +4165,7 @@ that has it.
           if (cast_op_con->kind == (a_constant_repr_kind)ck_template_param &&
               cast_op_con->variant.template_param.kind ==
                              (a_template_param_constant_kind)tpck_expression) {
-            next_expr = cast_op_con->variant.template_param.variant.expr;
+            next_expr = expr_node_from_tpck_expression(cast_op_con);
           }  /* if */
         }  /* if */
       }  /* if */
@@ -6284,6 +6284,19 @@ current token will be used as the operand position.
     clear_operand((an_operand_kind)ok_constant, operand);
     copy_constant(constant, &operand->variant.constant);
     operand->type = constant->type;
+#if PROTOTYPE_INSTANTIATIONS_IN_IL
+    if (is_template_param_expression_constant_operand(operand) &&
+        constant->variant.template_param.local_expr_ref) {
+      /* This constant has an associated local expression node reference.
+         Since finding it depends on having the original constant as a
+         referrer, we have to reference the expression directly in the
+         constant in the operand and then create a new reference when the
+         operand constant is copied. */
+      operand->variant.constant.variant.template_param.variant.expr =
+                                      expr_node_from_tpck_expression(constant);
+      operand->variant.constant.variant.template_param.local_expr_ref = FALSE;
+    }  /* if */
+#endif /* PROTOTYPE_INSTANTIATIONS_IN_IL */
   }  /* if */
   /* A string literal is an lvalue; other constants are prvalues. */
   if (constant->kind == (a_constant_repr_kind)ck_string) {
@@ -10705,7 +10718,7 @@ we rewrite it as an lvalue.
       } else if (con->kind == (a_constant_repr_kind)ck_template_param &&
                  con->variant.template_param.kind ==
                              (a_template_param_constant_kind)tpck_expression) {
-        expr = con->variant.template_param.variant.expr;
+        expr = expr_node_from_tpck_expression(con);
       }  /* if */
     } else if (is_expression_operand(operand)) {
       expr = operand->variant.expression;
@@ -12474,7 +12487,7 @@ outside of a template-dependent context.
         /* A tpck_expression constant is uncertain if the expression is
            uncertain. */
         uncertain = expr_has_uncertain_value_category(
-                                     con->variant.template_param.variant.expr);
+                                          expr_node_from_tpck_expression(con));
       }  /* if */
     }  /* if */
   }  /* if */
@@ -17854,6 +17867,12 @@ it might produce an error).
         /* Below, we'll record the expression for the constant, so make the
            prvalue version of the expression. */
         node = expr_to_record_for_variable(variable, /*is_lvalue=*/FALSE);
+        if (con_expr_value->kind == (a_constant_repr_kind)ck_template_param) {
+          /* This is a dependent reference to a variable.  Set up to create
+             a tpck_expression constant for it below. */
+          template_constant = TRUE;
+          con_expr_value = NULL;
+        }  /* if */
       }  /* if */
     }  /* if */
   } else if (is_operation_node(node)) {
@@ -17955,16 +17974,27 @@ it might produce an error).
             node->is_lvalue = node->is_xvalue = FALSE;
             node->type = prvalue_node_type;
             processed = TRUE;
-          } else if (allow_folding != NULL && gnu_mode &&
-                     is_constant_node(op1)) {
-            /* The GNU compilers accept an expression like *&(S){{0}} as
-               a constant. */
-            a_constant_ptr cp = op1->variant.constant;
-            a_variable_ptr var;
-            if (con_is_exact_addr_of_variable(cp, &var,
-                                              /*array_decay_allowed=*/TRUE)) {
-              if (var->is_compound_literal) {
-                if ((con_expr_value = var_constant_value(var)) != NULL) {
+          } else if (allow_folding != NULL && is_constant_node(op1)) {
+            if (op1->variant.constant->kind ==
+                                     (a_constant_repr_kind)ck_template_param) {
+              /* A dependent expression.  Treat it as a prvalue template
+                 constant. */
+              template_constant = TRUE;
+              node->is_lvalue = FALSE;
+              node->is_xvalue = FALSE;
+              node->type = prvalue_node_type;
+              processed = TRUE;
+            } else if (gnu_mode || microsoft_mode) {
+              /* The GNU compilers accept an expression like *&(S){{0}} as
+                 a constant.  The Microsoft compiler accepts a unary *
+                 applied to an address constant designating a variable with
+                 a constant value. */
+              a_constant_ptr cp = op1->variant.constant;
+              a_variable_ptr var;
+              if (con_is_exact_addr_of_variable(cp, &var,
+                                               /*array_decay_allowed=*/TRUE) &&
+                  (con_expr_value = var_constant_value(var)) != NULL) {
+                if (microsoft_mode || (gnu_mode && var->is_compound_literal)) {
                   /* Use the constant as the value of the expression. */
                   node->is_lvalue = node->is_xvalue = FALSE;
                   node->type = prvalue_node_type;

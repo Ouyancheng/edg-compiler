@@ -5523,12 +5523,10 @@ precedence confusion.  Do the output in the way described by octl.
         case tpck_expression:
           if (octl->output_expression != NULL) {
             /* Do not add parentheses gratuitously. */
-            octl->output_expression(
-                                 constant->variant.template_param.variant.expr,
-                                 !need_parens);
+            octl->output_expression(expr_node_from_tpck_expression(constant),
+                                    !need_parens);
           } else {
-            form_expression(constant->variant.template_param.variant.expr,
-                            octl);
+            form_expression(expr_node_from_tpck_expression(constant), octl);
           }  /* if */
           break;
         case tpck_cast:

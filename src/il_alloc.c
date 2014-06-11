@@ -691,6 +691,9 @@ ck_template_param constant.
   cp->variant.template_param.kind = kind;
   cp->variant.template_param.is_qualified_name = FALSE;
   cp->variant.template_param.is_pack = FALSE;
+#if PROTOTYPE_INSTANTIATIONS_IN_IL
+  cp->variant.template_param.local_expr_ref = FALSE;
+#endif /* PROTOTYPE_INSTANTIATIONS_IN_IL */
   switch (kind) {
     case tpck_param:
       cp->variant.template_param.variant.coordinates.position = 0;
@@ -726,9 +729,6 @@ ck_template_param constant.
       cp->variant.template_param.variant.templ_sizeof.type = NULL;
       cp->variant.template_param.variant.templ_sizeof.expr = NULL;
       cp->variant.template_param.variant.templ_sizeof.is_std_alignof = FALSE;
-#if PROTOTYPE_INSTANTIATIONS_IN_IL
-      cp->variant.template_param.variant.templ_sizeof.local_expr_ref = FALSE;
-#endif /* PROTOTYPE_INSTANTIATIONS_IN_IL */
       break;
     case tpck_template_ref:
       cp->variant.template_param.variant.template_ref.con = NULL;

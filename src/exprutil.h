@@ -632,7 +632,7 @@ it never creates one.
    is_constant_operand(operand) && (operand)->variant.constant.expr != NULL ? \
      (operand)->variant.constant.expr :                                       \
    is_template_param_expression_constant_operand(operand) ?                   \
-     (operand)->variant.constant.variant.template_param.variant.expr :        \
+     expr_node_from_tpck_expression(&(operand)->variant.constant) :           \
      NULL)
 
 

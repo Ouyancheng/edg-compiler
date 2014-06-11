@@ -921,6 +921,11 @@ Display a ck_template_param constant.
       break;
     case tpck_expression:
       (void)printf("tpck_expression\n");
+#if PROTOTYPE_INSTANTIATIONS_IN_IL
+      if (ptr->variant.template_param.local_expr_ref) {
+        disp_boolean("local_expr_ref", TRUE);
+      }  /* if */
+#endif /* PROTOTYPE_INSTANTIATIONS_IN_IL */
       disp_ptr("expr", (char *)ptr->variant.template_param.variant.expr,
                iek_expr_node);
       break;
@@ -994,6 +999,11 @@ Display a ck_template_param constant.
     case tpck_noexcept:
       (void)printf("tpck_noexcept\n");
 do_sizeof_cases:
+#if PROTOTYPE_INSTANTIATIONS_IN_IL
+      if (ptr->variant.template_param.local_expr_ref) {
+        disp_boolean("local_expr_ref", TRUE);
+      }  /* if */
+#endif /* PROTOTYPE_INSTANTIATIONS_IN_IL */
       disp_ptr("type",
                (char *)ptr->variant.template_param.variant.templ_sizeof.type,
                iek_type);
@@ -1003,11 +1013,6 @@ do_sizeof_cases:
       if (ptr->variant.template_param.variant.templ_sizeof.is_std_alignof) {
         disp_boolean("is_std_alignof", TRUE);
       }  /* if */
-#if PROTOTYPE_INSTANTIATIONS_IN_IL
-      if (ptr->variant.template_param.variant.templ_sizeof.local_expr_ref) {
-        disp_boolean("local_expr_ref", TRUE);
-      }  /* if */
-#endif /* PROTOTYPE_INSTANTIATIONS_IN_IL */
       break;
     case tpck_template_ref:
       (void)printf("tpck_template_ref\n");

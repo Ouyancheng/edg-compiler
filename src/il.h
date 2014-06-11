@@ -1071,6 +1071,8 @@ extern void make_local_expr_node_ref(
 extern an_expr_node_ptr find_local_expr_node(char  *referrer,
                                              a_local_expr_node_ref_kind  kind);
 
+extern an_expr_node_ptr expr_node_from_tpck_expression(a_constant_ptr cp);
+
 extern void make_local_scope_ref(a_scope_ptr            scope,
                                  char                   *referrer,
                                  an_il_entry_kind       referrer_kind,
