@@ -15188,6 +15188,8 @@ enum a_local_expr_node_ref_kind_tag {
 #if PROTOTYPE_INSTANTIATIONS_IN_IL
   lerk_generic_sizeof,	/* A template-dependent expression used as an argument
 			   for a sizeof, alignof, or uuidof construct. */
+  lerk_tpl_param_expr,	/* The expression in a
+			   ck_template_param/tpck_expression constant. */
 #endif /* PROTOTYPE_INSTANTIATIONS_IN_IL */
   lerk_array_bound,	/* The expression for an array bound, which, despite
 			   being constant, refers to a local variable.  This
@@ -15197,10 +15199,8 @@ enum a_local_expr_node_ref_kind_tag {
   lerk_dep_array_bound,	/* Like lerk_array_bound, but for the expressions
 			   under a dependent constant giving the bound, rather
 			   than the "expr" field of the constant. */
-  lerk_decltype,	/* An expression used as an argument for a decltype
+  lerk_decltype		/* An expression used as an argument for a decltype
 			   construct. */
-  lerk_tpl_param_expr	/* The expression in a
-			   ck_template_param/tpck_expression constant. */
 };
 
 typedef a_byte a_local_expr_node_ref_kind;
