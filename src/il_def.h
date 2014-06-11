@@ -4371,7 +4371,7 @@ typedef struct a_constant {
 			   variant.expr or variant.templ_sizeof.expr below
 			   is stored in a function scope memory region
 			   while this constant is stored in the file scope
-			   memory memory region.  In that case, expr will
+			   memory region.  In that case, the pointer will
 			   be NULL and the expression can be found using
 			   find_local_expr_node instead. */
 #endif /* PROTOTYPE_INSTANTIATIONS_IN_IL */
