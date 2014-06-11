@@ -4700,20 +4700,18 @@ fix them.
            that the expression can be recovered using the function
            find_local_expr_node. */
         an_expr_node_ptr *expr;
-        a_boolean        sizeof_case;
         if (kind == (a_template_param_constant_kind)tpck_expression) {
           expr = &cp->variant.template_param.variant.expr;
-          sizeof_case = FALSE;
         } else {
           expr = &cp->variant.template_param.variant.templ_sizeof.expr;
-          sizeof_case = TRUE;
         }  /* if */
         if (*expr != NULL && !in_file_scope(*expr)) {
 #if PROTOTYPE_INSTANTIATIONS_IN_IL
           make_local_expr_node_ref(
                  *expr,
-                 sizeof_case ? (a_local_expr_node_ref_kind)lerk_generic_sizeof
-                             : (a_local_expr_node_ref_kind)lerk_tpl_param_expr,
+                 (kind == (a_template_param_constant_kind)tpck_expression)
+                             ? (a_local_expr_node_ref_kind)lerk_tpl_param_expr
+                             : (a_local_expr_node_ref_kind)lerk_generic_sizeof,
                  (char*)cp, innermost_function_scope);
 #endif /* PROTOTYPE_INSTANTIATIONS_IN_IL */
           *expr = NULL;
