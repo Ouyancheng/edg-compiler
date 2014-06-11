@@ -17867,9 +17867,10 @@ it might produce an error).
         /* Below, we'll record the expression for the constant, so make the
            prvalue version of the expression. */
         node = expr_to_record_for_variable(variable, /*is_lvalue=*/FALSE);
-        if (con_expr_value->kind == (a_constant_repr_kind)ck_template_param) {
+        if (con_expr_value->kind == (a_constant_repr_kind)ck_template_param &&
+            node != NULL) {
           /* This is a dependent reference to a variable.  Set up to create
-             a tpck_expression constant for it below. */
+             a tpck_expression constant for the expression below. */
           template_constant = TRUE;
           con_expr_value = NULL;
         }  /* if */
