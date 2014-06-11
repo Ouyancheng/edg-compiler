@@ -3009,6 +3009,7 @@ default mode (e.g., exception handling).
       decltype_auto_enabled = TRUE;
     }  /* if */
     deduced_return_types_enabled = TRUE;
+    generic_lambdas_enabled = TRUE;
     init_capture_enabled = TRUE;
   }  /* if */
 }  /* check_and_set_cpp11_mode_options */
@@ -10428,6 +10429,7 @@ variables declared in cmd_line.h.
   enum_qualifiers_enabled = FALSE;
   opaque_enum_decls_enabled = FALSE;
   lambdas_enabled = DEFAULT_LAMBDAS_ENABLED;
+  generic_lambdas_enabled = FALSE;
   init_capture_enabled = FALSE;
   rvalue_references_enabled = DEFAULT_RVALUE_REFERENCES_ENABLED;
   ref_qualifiers_enabled = rvalue_references_enabled;

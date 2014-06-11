@@ -5226,6 +5226,10 @@ typedef struct a_param_type {
 			   a variadic template for those parameters that are
 			   associated with a parameter pack of the original
 			   variadic template. */
+  a_bit_field	is_auto_param:1;
+			/* TRUE if the parameter is declared with an "auto"
+			   type specifier (i.e., a parameter of a generic
+			   lambda). */
   a_bit_field	qualifiers:NUM_BITS_FOR_TYPE_QUALIFIER_SET;
 			/* Top-level type qualifiers that have been removed
 			   from the parameter type; always TQ_NONE except in
@@ -17864,7 +17868,15 @@ typedef struct a_lambda {
 			   member function of closure_class.  This can be
 			   used to access information about the lambda,
 			   such as the parameter list, the function body,
-			   and their associated source positions. */
+			   and their associated source positions.  For a
+			   generic lambda, this points to the prototype
+			   instantiation of the call operator. */
+  a_bit_field
+		is_generic:1;
+			/* TRUE if this is a C++14-style generic lambda (i.e.,
+			   a lambda with at least one "auto" parameter; as a
+			   consequence, has_parameter_decl must be TRUE if this
+			   flag is TRUE). */
   a_bit_field
 		is_mutable:1;
 			/* TRUE if the mutable keyword was specified. */

@@ -988,6 +988,7 @@ in the file scope memory region.
   ptp->type_involves_template_param = FALSE;
   ptp->is_parameter_pack = FALSE;
   ptp->is_pack_element = FALSE;
+  ptp->is_auto_param = FALSE;
   ptp->qualifiers = TQ_NONE;
 #if GNU_EXTENSIONS_ALLOWED
   ptp->is_transparent = FALSE;
@@ -5072,6 +5073,7 @@ entry is allocated in the current memory region.
   entry->capture_list = NULL;
   entry->closure_class = NULL;
   entry->lambda_routine = NULL;
+  entry->is_generic = FALSE;
   entry->is_mutable = FALSE;
   entry->has_capture_default = FALSE;
   entry->default_is_by_reference = FALSE;

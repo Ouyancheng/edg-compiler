@@ -195,6 +195,7 @@ be restored).
     dps->is_inheriting_ctor = FALSE;
     dps->is_explicit_override = FALSE;
     dps->is_init_capture = FALSE;
+    dps->is_lambda = FALSE;
     dps->prefix_attributes = NULL;
     dps->specifier_attributes = NULL;
     dps->tag_attributes = NULL;
@@ -418,6 +419,64 @@ Discard the end-of-parse callbacks registered for the declaration described by
     }  /* for */
   }  /* if */
 }  /* discard_end_of_parse_actions */
+
+
+static an_auto_param_descr_ptr
+		avail_auto_param_descriptions;
+			/* Pointer to "auto" parameter description entries
+			   available for reuse. */
+
+#if DEBUG
+static unsigned long
+		num_auto_param_descriptions_allocated = 0;
+#endif /* DEBUG */
+
+
+void record_auto_param_descr(a_decl_parse_state_ptr  dps)
+/*
+Allocate an entry to describe an "auto" type specifier encountered while
+prescanning a function declarator (for a C++14 generic lambda) and add it to
+the front of the list pointed to by dps->auto_params.  The "auto" specifier
+must be the current token.
+*/
+{
+  an_auto_param_descr_ptr  entry;
+
+  check_assertion(curr_token == tok_auto);
+  if (avail_auto_param_descriptions != NULL) {
+    entry = avail_auto_param_descriptions;
+    avail_auto_param_descriptions = avail_auto_param_descriptions->next;
+  } else {
+    entry = alloc_fe_of_type(an_auto_param_descr);
+#if DEBUG
+    ++num_auto_param_descriptions_allocated;
+#endif /* DEBUG */
+  }  /* if */
+  entry->next = dps->auto_params;
+  entry->template_type_parameter = NULL;
+  entry->auto_tsn = curr_token_sequence_number;
+  entry->param_num = 0;
+  entry->is_parameter_pack = FALSE;
+  entry->start_pos = pos_curr_token;
+  entry->end_pos = end_pos_curr_token;
+  dps->auto_params = entry;
+}  /* record_auto_param_descr */
+
+
+void free_auto_param_descriptions(a_decl_parse_state  *dps)
+/*
+Return the "an_auto_param_descr" entries pointed to by dps to the list of
+available entries.
+*/
+{
+  if (dps->auto_params != NULL) {
+    an_auto_param_descr_ptr  last = dps->auto_params;
+    while (last->next != NULL) last = last->next;
+    last->next = avail_auto_param_descriptions;
+    avail_auto_param_descriptions = dps->auto_params;
+    dps->auto_params = NULL;
+  }  /* if */
+}  /* free_auto_param_descriptions */
 
 
 an_attribute_ptr f_find_decl_attribute(a_byte_attribute_kind  kind,
@@ -17195,13 +17254,14 @@ which are diagnosed elsewhere).
        be helpful. */
     expect_error();
   } else if (!dps->range_based_for &&
+             !(dps->assoc_func_decl_state != NULL && dps->auto_type_allowed) &&
              (!dps->has_initializer || !dps->auto_type_allowed)) {
     /* "auto"/"decltype(auto)" was seen, but we never saw an initializer or
        else the specifier is not allowed at all in this context. */
     err = TRUE;
     if (!dps->auto_type_allowed) {
-      /* A context where an "auto" type is simply not allowed.  (E.g., a
-         parameter declaration.) */
+      /* A context where an "auto" type is simply not allowed.  (E.g., an
+         exception handler parameter.) */
       pos_error(dps->decltype_auto_specifier_seen ?
                   ec_decltype_auto_not_allowed_here : ec_auto_not_allowed_here,
                 &dps->auto_pos);
@@ -17849,9 +17909,11 @@ Do one-time initialization of static variables defined in this file.
     static a_pch_saved_variable saved_vars[] = {
       pch_saved_var_array_elem(avail_decl_parse_states),
       pch_saved_var_array_elem(avail_decl_parse_callbacks),
+      pch_saved_var_array_elem(avail_auto_param_descriptions),
 #if DEBUG
       pch_saved_var_array_elem(num_decl_parse_states_allocated),
       pch_saved_var_array_elem(num_decl_parse_callbacks_allocated),
+      pch_saved_var_array_elem(num_auto_param_descriptions_allocated),
 #endif /* DEBUG */
       pch_saved_var_array_terminating_elem()
     };
@@ -17869,9 +17931,11 @@ initialization for each compilation.
 #if DEBUG
   num_decl_parse_states_allocated = 0;
   num_decl_parse_callbacks_allocated = 0;
+  num_auto_param_descriptions_allocated = 0;
 #endif /* DEBUG */
   avail_decl_parse_states = NULL;
   avail_decl_parse_callbacks = NULL;
+  avail_auto_param_descriptions = NULL;
 }  /* decls_init */
 
 #if DEBUG
@@ -17894,6 +17958,10 @@ entities.
                      avail_decl_parse_callbacks,
                      num_decl_parse_callbacks_allocated,
                      a_decl_parse_callback);
+  db_space_used_lost("auto param descriptions",
+                     avail_auto_param_descriptions,
+                     num_auto_param_descriptions_allocated,
+                     an_auto_param_descr);
   return grand_total;
 }  /* show_decl_space_used */
 

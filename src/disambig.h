@@ -53,6 +53,9 @@ typedef uint16_t a_disambig_flag_set;
 			   "enum E : X ...".  In an enum definition, what
 			   follows will be "{ ...".  Something like
 			   "X(expression)" is a bit field declaration. */
+#define DFS_RECORD_AUTO_PARAMS		0x200
+			/* For a lambda declarator parameter, record the
+			   presence of an "auto" type. */
 
 extern a_boolean is_decl_not_expr(a_disambig_flag_set flags);
 
@@ -70,6 +73,7 @@ extern a_boolean static_member_next(void);
 extern a_boolean elaborated_cli_typeid_next(void);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED || NEAR_AND_FAR_ALLOWED */
 
+extern void prescan_lambda_parameter_clause(struct a_decl_parse_state *dps);
 #endif /* DISAMBIG_H */
 
 /******************************************************************************

@@ -100,10 +100,7 @@ void prescan_member_function_default_arg_expr(a_param_type_ptr  ptp,
 					      unsigned long	param_number);
 
 extern a_symbol_ptr class_member_template_declaration(
-                                     a_type_ptr            class_type,
-                                     a_template_param_ptr  templ_param_list,
-                                     a_template_ptr        il_template_entry,
-                                     a_decl_pos_block_ptr  decl_pos_block_ptr);
+                                      struct a_tmpl_decl_state  *templ_state);
 
 extern a_type_ptr rescan_member_template_declaration(
                                            a_type_ptr               class_type,

@@ -381,8 +381,7 @@ void report_incomplete_function_return_type(a_type_ptr         return_type,
                                             a_source_position  *pos,
                                             a_routine_ptr      rp);
 
-extern void scan_lambda_declarator(a_lambda_ptr        lambda,
-                                   a_decl_parse_state  *dps,
+extern void scan_lambda_declarator(a_decl_parse_state  *dps,
                                    a_func_info_block   *func_info,
                                    a_decl_pos_block    *decl_pos_block);
 

@@ -509,6 +509,7 @@ Initialize a template declaration state block.
   tdsp->has_variadic_template_params = FALSE;
   tdsp->is_generic = FALSE;
   tdsp->is_delegate = FALSE;
+  tdsp->is_lambda = FALSE;
   tdsp->generic_constraints_pending = FALSE;
   tdsp->friend_depth_known = FALSE;
   tdsp->export_position = null_source_position;
@@ -13492,8 +13493,9 @@ in_class_specialization is TRUE for a Microsoft mode in-class specialization.
                                                    : templ_rout->storage_class;
     set_routine_special_kind(rp, templ_rout->special_kind);
     rp->variant = templ_rout->variant;
-    rp->is_deleted = templ_rout->is_deleted;
+    rp->is_lambda_body = templ_rout->is_lambda_body;
     rp->is_defaulted = templ_rout->is_defaulted;
+    rp->is_deleted = templ_rout->is_deleted;
     rp->has_deducible_return_type = templ_rout->has_deducible_return_type;
     if (templ_rout->is_declared_constexpr) {
       rp->is_declared_constexpr = TRUE;
@@ -13518,7 +13520,8 @@ in_class_specialization is TRUE for a Microsoft mode in-class specialization.
          possible for inheriting constructor templates) because of reactivated
          scopes: Just copy the flag from the prototype instantiation. */
       rp->source_corresp.is_local_to_function = TRUE;
-      check_assertion_or_expect_error(rp->is_inheriting_ctor);
+      check_assertion_or_expect_error(rp->is_inheriting_ctor ||
+                                      rp->is_lambda_body);
     }  /* if */
     set_membership_in_source_corresp(&rp->source_corresp, sym);
     rp->source_corresp.name_linkage = templ_rout->source_corresp.name_linkage;
@@ -19017,17 +19020,17 @@ created for it along the way.
 */
 {
 #if GENERATE_SOURCE_SEQUENCE_LISTS
-    /* Prevent the generation of a source sequence entry for the attached
-       IL entry */
-    a_boolean  saved_sses_disallowed = source_sequence_entries_disallowed;
+  /* Prevent the generation of a source sequence entry for the attached
+     IL entry */
+  a_boolean  saved_sses_disallowed = source_sequence_entries_disallowed;
 
-    source_sequence_entries_disallowed = TRUE;
+  source_sequence_entries_disallowed = TRUE;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   mark_defined(sym, &sym->decl_position);
 #if GENERATE_SOURCE_SEQUENCE_LISTS
-    /* Restore the previous state wrt. the generation of source sequence
-       entries. */
-    source_sequence_entries_disallowed = saved_sses_disallowed;
+  /* Restore the previous state wrt. the generation of source sequence
+     entries. */
+  source_sequence_entries_disallowed = saved_sses_disallowed;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 }  /* record_template_param_symbol */
 
@@ -19099,18 +19102,86 @@ Scan the default argument of the type template parameter specified by tpp.
 }  /* scan_type_template_param_default_arg */
 
 
+#if !EXTRA_SOURCE_POSITIONS_IN_IL
+/*ARGSUSED*/  /* decl_pos_block is not used in some configurations. */
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+static a_template_param_ptr decl_type_template_param(
+                                   a_template_param_list_pos  param_pos,
+                                   a_symbol_locator           *loc,
+                                   a_boolean                  is_pack,
+                                   a_tmpl_decl_state          *decl_state,
+                                   a_decl_pos_block           *decl_pos_block)
+/*
+Create the IL and front end structure to represent a template type parameter
+(or a type parameter pack).  param_pos is the position of the parameter in a
+template parameter list.  For example, for the parameter T in
+	template<class T, class, class ... U> ...
+param_pos is 1.
+
+If the parameter is named, loc is the corresponding symbol locator; otherwise,
+loc is NULL.  is_pack is TRUE if the parameter is really a parameter pack.
+decl_state track the declaration of the template overall, and decl_pos_block
+provides additional position information.
+*/
+{
+  a_symbol_ptr		sym;
+  a_type_ptr		template_param_type;
+  a_template_param_ptr	template_param;
+
+  /* Create an sk_type symbol for the parameter. */
+  sym = create_template_param_symbol((a_symbol_kind)sk_type, loc, loc == NULL,
+                                     /*enter_sym=*/TRUE);
+  /* Allocate a template-param type.  This type is for front-end use
+     only and will not appear in the IL passed on to the back end.  It
+     is therefore not added to any scope types list. */
+  template_param_type = alloc_type((a_type_kind)tk_template_param);
+  template_param_type->variant.template_param.extra_info->
+                                coordinates.depth = decl_state->nesting_depth;
+  template_param_type->variant.template_param.extra_info->
+                                coordinates.position = param_pos;
+  template_param_type->variant.template_param.is_pack = is_pack;
+  template_param_type->variant.template_param.is_generic_param =
+                                                       decl_state->is_generic;
+  set_type_size(template_param_type);
+  set_source_corresp(&template_param_type->source_corresp, sym);
+  if (parent_scope_should_be_set_for_template_param()) {
+    /* In some modes, the parent scope is set for template parameters. */
+    set_parent_scope(&template_param_type->source_corresp, iek_type,
+                     scope_stack_top().il_scope);
+    add_to_types_list(template_param_type, depth_scope_stack);
+  }  /* if */
+  if (loc == NULL) {
+    /* Reset the name in the source correspondence entry.  An unnamed type is
+       represented by NULL, not "<unnamed>" as indicated by the symbol
+       header. */
+    clear_source_corresp_name(&template_param_type->source_corresp);
+  }  /* if */
+  /* The type symbol for the template parameter points for now to the
+     template-param type -- "for now", since it will be replaced with
+     an actual type during instantiation of the class or function. */
+  sym->variant.type.ptr = template_param_type;
+  record_template_param_symbol(sym);
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+  /* Record the position information from decl_pos_block. */
+  update_decl_pos_info(&template_param_type->source_corresp, decl_pos_block);
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+  /* Allocate a template parameter and set its fields based on sym. */
+  template_param = alloc_template_param(sym);
+  if (is_pack) template_param_is_variadic(sym, template_param, decl_state);
+  return template_param;
+}  /* decl_type_template_param */
+
+
 static a_template_param_ptr scan_type_template_param(
-		a_tmpl_decl_state_ptr decl_state,
+		a_tmpl_decl_state_ptr		decl_state,
 		a_template_param_list_pos	template_param_list_pos)
 /*
 Scan the declaration of a type template parameter.  Return the template
 parameter entry for the parameter.
 */
 {
-  a_boolean		is_named;
-  a_symbol_ptr		sym;
-  a_type_ptr		template_param_type;
   a_template_param_ptr	template_param;
+  a_boolean		is_named;
   a_boolean		is_pack = FALSE;
   a_decl_pos_block	decl_pos_block;
 
@@ -19148,49 +19219,14 @@ parameter entry for the parameter.
     decl_pos_block.identifier_range.end = end_pos_curr_token;
   }  /* if */
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
-  /* Create an sk_type symbol for the parameter. */
-  sym = create_template_param_symbol((a_symbol_kind)sk_type,
-                                     &locator_for_curr_id, !is_named,
-                                     /*enter_sym=*/TRUE);
+  template_param = decl_type_template_param(template_param_list_pos,
+                                            is_named ? &locator_for_curr_id
+                                                     : (a_symbol_locator*)NULL,
+                                            is_pack,
+                                            decl_state,
+                                            &decl_pos_block);
   /* Bypass the identifier. */
   if (is_named) (void)get_token();
-  /* Allocate a template-param type.  This type is for front-end use
-     only and will not appear in the IL passed on to the back end.  It
-     is therefore not added to any scope types list. */
-  template_param_type = alloc_type((a_type_kind)tk_template_param);
-  template_param_type->variant.template_param.extra_info->
-                            coordinates.depth = decl_state->nesting_depth;
-  template_param_type->variant.template_param.extra_info->
-                           coordinates.position = template_param_list_pos;
-  template_param_type->variant.template_param.is_pack = is_pack;
-  template_param_type->variant.template_param.is_generic_param =
-                                                        decl_state->is_generic;
-  set_type_size(template_param_type);
-  set_source_corresp(&template_param_type->source_corresp, sym);
-  if (parent_scope_should_be_set_for_template_param()) {
-    /* In some modes, the parent scope is set for template parameters. */
-    set_parent_scope(&template_param_type->source_corresp, iek_type,
-                     scope_stack[decl_scope_level].il_scope);
-    add_to_types_list(template_param_type, depth_scope_stack);
-  }  /* if */
-  if (!is_named) {
-    /* Reset the name in the source correspondence entry.  An unnamed
-       type is represented by NULL, not "<unnamed>" as indicated by the
-       symbol header. */
-    clear_source_corresp_name(&template_param_type->source_corresp);
-  }  /* if */
-  /* The type symbol for the template parameter points for now to the
-     template-param type -- "for now", since it will be replaced with
-     an actual type during instantiation of the class or function. */
-  sym->variant.type.ptr = template_param_type;
-  record_template_param_symbol(sym);
-#if EXTRA_SOURCE_POSITIONS_IN_IL
-  /* Record the position information from decl_pos_block. */
-  update_decl_pos_info(&template_param_type->source_corresp, &decl_pos_block);
-#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
-  /* Allocate a template parameter and set its fields based on sym. */
-  template_param = alloc_template_param(sym);
-  if (is_pack) template_param_is_variadic(sym, template_param, decl_state);
   if (curr_token == tok_assign) {
     a_token_cache  def_arg_cache;
     a_boolean      ignore_default = FALSE;
@@ -19251,7 +19287,7 @@ parameter entry for the parameter.
   }  /* if */
   /* Mark the symbol as visible now that the default (if any) has been
      scanned. */
-  sym->is_invisible = FALSE;
+  template_param->param_symbol->is_invisible = FALSE;
   return template_param;
 }  /* scan_type_template_param */
 
@@ -21571,7 +21607,7 @@ caller.
   }  /* if */
   /* Make sure that the template parameter list is compatible with
      any previous declaration (i.e., the declaration of the class
-     if this is a member function. */
+     if this is a member function). */
   if (!err && sym->is_class_member &&
       !in_prototype_instantiation_or_cli_generic(decl_state) &&
       (decl_state->class_declared_in == NULL ||
@@ -22078,7 +22114,7 @@ static void create_template_decl(a_tmpl_decl_state_ptr	decl_state,
 /*
 Allocate a template decl entry and fill in its fields.  template_pos is
 the position of the "template" keyword in the declaration, and can be
-null_source_position for a synthesized template declaration (i.e., for
+null_source_position for a synthesized template declaration (e.g., for
 a generated declaration for an inheriting constructor template).
 */
 {
@@ -22721,11 +22757,7 @@ any non-empty template parameter lists that were scanned.
         set_is_generic_function_param(decl_state);
       }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-      sym = class_member_template_declaration(decl_state->class_declared_in,
-                                              decl_state->
-                                                     decl_info->parameters,
-                                              decl_state->il_template_entry,
-                                              &decl_state->decl_pos_block);
+      sym = class_member_template_declaration(decl_state);
       complete_function_template_decl(decl_state, sym,
                                       (a_func_info_block *)NULL, &tssp,
                                       &decl_state->decl_pos_block.decl_pos);
@@ -25444,8 +25476,7 @@ keyword.  is_generic is TRUE if this is a C++/CLI generic declaration.
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   /* Record the location of the end of the template parameter list (and
      generic constraints in C++/CLI mode). */
-  decl_state.last_token_sequence_number_of_params =
-                                                    curr_token_sequence_number;
+  decl_state.last_token_sequence_number_of_params = curr_token_sequence_number;
   /* Terminate the scanning of the fetched tokens. */
   end_caching_fetched_tokens();
   /* Get the tokens of the template parameter clauses. */
@@ -25566,6 +25597,91 @@ keyword.  is_generic is TRUE if this is a C++/CLI generic declaration.
   wrapup_templ_decl_state(&decl_state);
   curr_default_args = saved_curr_default_args;
 }  /* template_or_specialization_declaration */
+
+
+void set_up_generic_lambda_declarator_scan(a_decl_parse_state  *dps,
+                                           a_tmpl_decl_state   *templ_state)
+/*
+*dps describes the declarator of a lambda that has been found (through a
+pre-scan) to be a C++14 generic lambda.  Set up IL and front end structures to
+scan the lambda declarator and declare a corresponding member template for the
+lambda's call operator.  In particular, push a template declaration scope and
+declare template parameters corresponding to the prescanned "auto" parameters
+described by dps->auto_params.
+*/
+{
+  a_template_decl_info_ptr     template_decl_info = NULL;
+  a_template_param_ptr         template_param, end_template_param_list = NULL;
+  an_auto_param_descr_ptr      apdp = dps->auto_params;
+  a_template_param_list_pos    param_pos = 1;
+
+  check_assertion(apdp != NULL);
+  init_tmpl_decl_state_for_generated_member_template(templ_state);
+  templ_state->is_lambda = TRUE;
+  templ_state->starting_token_sequence_number = curr_token_sequence_number;
+  templ_state->in_prototype_instantiation =
+                    scope_stack_top().in_prototype_instantiation;
+  templ_state->in_generic_definition = scope_stack_top().in_generic_definition;
+  templ_state->enclosing_scope = scope_stack_top().il_scope;
+  /* Determine the nesting depth to be used for the member template. */
+  nesting_depth_of_template(templ_state);
+  /* Create the template parameters. */
+  templ_state->nesting_depth += 1;
+  templ_state->number_of_template_param_clauses += 1;
+  template_decl_info = templ_state->decl_info;
+  template_decl_info->enclosing_scope = templ_state->enclosing_scope;
+  /* Record the default name linkage at the point of declaration. */
+  template_decl_info->name_linkage = scope_stack_top().default_name_linkage;
+  push_template_declaration_scope(template_decl_info,
+                                  /*is_template_param_rescan=*/FALSE);
+  templ_state->number_of_template_decl_scopes += 1;
+  /* Save a pointer to the template declaration information in the scope stack
+     entry. */
+  scope_stack_top().tmpl_decl_state = templ_state;
+  for (; apdp != NULL; apdp = apdp->next, ++param_pos) {
+    a_decl_pos_block  decl_pos_block;
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+    decl_pos_block.identifier_range.start = apdp->start_pos;
+    decl_pos_block.identifier_range.end = apdp->end_pos;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+    template_param = decl_type_template_param(param_pos,
+                                              (a_symbol_locator*)NULL,
+                                              apdp->is_parameter_pack,
+                                              templ_state, &decl_pos_block);
+    template_param->param_symbol->token_sequence_number = apdp->auto_tsn;
+    apdp->template_type_parameter = template_param;
+    /* Append the template parameter entry to the list pointed to by
+       templ_state->decl_info. */
+    if (end_template_param_list == NULL) {
+      templ_state->decl_info->parameters = template_param;
+    } else {
+      end_template_param_list->next = template_param;
+    }  /* if */
+    end_template_param_list = template_param;
+  }  /* if */
+  template_decl_info->declaration_scope = scope_stack_top().number;
+  if (prototype_instantiations_in_il) {
+    create_template_decl(templ_state, &null_source_position);
+  }  /* if */
+  /* Cache the declarator part of the lambda. */
+  cache_template_declaration(templ_state);
+  if (prototype_instantiations_in_il) {
+    complete_template_decl(template_decl_info->template_decl,
+                           template_decl_info->parameters);
+  }  /* if */
+}  /* set_up_generic_lambda_declarator_scan */
+
+
+void wrap_up_generic_lambda_scan(a_tmpl_decl_state   *templ_state)
+/*
+*templ_state describes the declaration of a generic member function template
+for a lambda call operator.  Perform final actions needed for that declaration
+(such as freeing token caches that are no longer needed).
+*/
+{
+
+  wrapup_templ_decl_state(templ_state);
+}  /* wrap_up_generic_lambda_declarator_scan */
 
 
 static a_can_instantiate_entry_ptr alloc_can_instantiate_entry(void)
@@ -31566,12 +31682,13 @@ creating a compiler-generated template.
 }  /* copy_template_param_list */
 
 
-void init_tmpl_decl_state_for_inheriting_ctor_template(
+void init_tmpl_decl_state_for_generated_member_template(
                                                  a_tmpl_decl_state_ptr  state)
 /*
 Create a new template declaration state for declaring a compiler-generated
-inheriting constructor template.  This includes the allocation and
-initialization of an object of type a_template_decl_info pointed to by state.
+member template (e.g., an inheriting constructor template).  This includes the
+allocation and initialization of an object of type a_template_decl_info
+pointed to by state.
 */
 {
   a_scope_stack_entry_ptr   ssep = &scope_stack_top();
@@ -31589,14 +31706,14 @@ initialization of an object of type a_template_decl_info pointed to by state.
   state->decl_info = templ_decl_info;
   templ_decl_info->enclosing_scope = state->enclosing_scope;
   templ_decl_info->name_linkage = ssep->default_name_linkage;
-}  /* init_tmpl_decl_state_for_inheriting_ctor_template */
+}  /* init_tmpl_decl_state_for_generated_member_template */
 
 
-void complete_inheriting_ctor_template(a_tmpl_decl_state_ptr  decl_state,
+void complete_generated_member_template(a_tmpl_decl_state_ptr  decl_state,
                                        a_func_info_block      *func_info,
                                        a_symbol_ptr           sym)
 /*
-Complete the data structures representing an inheriting constructor template
+Complete the data structures representing a generated member template
 (including the associated IL a_template entry).  sym and func_info represent
 the function template, and decl_state tracks its declaration.
 */
@@ -31613,7 +31730,7 @@ the function template, and decl_state tracks its declaration.
     decl_state->il_template_entry->template_decl = decl_state->template_decl;
   }  /* if */
   complete_il_template_entry(decl_state, sym);
-}  /* complete_inheriting_ctor_template */
+}  /* complete_generated_member_template */
 
 #if DEBUG
 unsigned long db_show_template_space_used(unsigned long grand_total)

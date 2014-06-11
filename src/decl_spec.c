@@ -8648,6 +8648,60 @@ if an error is issued.
 }  /* process_auto_specifier */
 
 
+static a_boolean process_generic_lambda_param_type(a_decl_parse_state  *dps)
+/*
+*dps describes the declaration of a parameter and the current token is "auto".
+If an implicit template type parameter created for this "auto" can be found
+(currently this is only possible with generic lambdas) return TRUE and set
+dps->specifiers_type to the corresponding type.  Otherwise, return FALSE.
+*/
+{
+  a_boolean                result = FALSE;
+  a_decl_parse_state       *func_dps = dps->assoc_func_decl_state;
+  an_auto_param_descr      *auto_param_descr;
+  a_scope_stack_entry_ptr  ssep = &scope_stack_top();
+
+  check_assertion(func_dps != NULL && curr_token == tok_auto &&
+                  scope_is(ssep, sck_func_prototype));
+  if (func_dps->is_lambda) {
+    auto_param_descr = func_dps->auto_params;
+    if (auto_param_descr != NULL) {
+      /* We're scanning the parameter of a lambda and a prescan previously
+         determined it was a generic lambda.  This is essentially a template
+         template declaration context. */
+      /* Find the prescanned "auto" parameter description corresponding to this
+         parameter. */
+      while (auto_param_descr != NULL &&
+             auto_param_descr->auto_tsn != curr_token_sequence_number) {
+        auto_param_descr = auto_param_descr->next;
+      }  /* while */
+      if (auto_param_descr != NULL) {
+        a_template_param_ptr  tpp = auto_param_descr->template_type_parameter;
+        if (auto_param_descr->is_parameter_pack) {
+          record_potential_pack_reference(tpp->param_symbol, &pos_curr_token);
+        }  /* if */
+        dps->specifiers_type = tpp->variant.type;
+        result = TRUE;
+      } else {
+        expect_error();
+      }  /* if */
+    } else if (scope_is(ssep-1, sck_template_instantiation)) {
+      a_template_param_ptr  tpp = (ssep-1)->template_decl_info->parameters;
+      /* Find the template parameter corresponding to the current token. */
+      for (; tpp != NULL; tpp = tpp->next) {
+        a_symbol_ptr  sym = tpp->param_symbol;
+        check_assertion(sym != NULL && symbol_is(sym, sk_type));
+        if (sym->token_sequence_number == curr_token_sequence_number) break;
+      }  /* for */
+      check_assertion(tpp != NULL);
+      dps->specifiers_type = tpp->param_symbol->variant.type.ptr;
+      result = TRUE;
+    }  /* if */
+  }  /* if */
+  return result;
+}  /* process_generic_lambda_param_type */
+
+
 static void scan_specifier_attributes(a_decl_flag_set     flags,
                                       a_decl_parse_state  *dps,
                                       a_boolean           *std_attr_seen)
@@ -9061,6 +9115,15 @@ corresponding change in prescan_decl_specifiers (in disambig.c).
         if (state->auto_type_specifier_seen) {
           error(auto_type_allowed ? ec_bad_combination_of_type_specifiers :
                                     ec_mult_storage_classes);
+        } else if (is_parameter && auto_type_allowed &&
+                   process_generic_lambda_param_type(state)) {
+          /* "auto" as a parameter type specifier in what is presumably a
+             (generic) lambda parameter.  state->specifiers_type points to the
+             corresponding type entry. */
+          state->auto_pos = pos_curr_token;
+          state->auto_type_specifier_seen = TRUE;
+          basic_type = bt_typedef;
+          decl_specifiers_seen |= DS_TYPE;
         } else {
           state->auto_pos = pos_curr_token;
           state->auto_type_specifier_seen = TRUE;
@@ -10756,7 +10819,7 @@ no_get_token:
   }  /* for */
 #undef record_qualifiers_pos
 exit_loop:
-  if (state->auto_type_specifier_seen &&
+  if (state->auto_type_specifier_seen && !is_parameter &&
       auto_storage_class_specifier_enabled && auto_type_specifier_enabled) {
     /* The "auto" token was seen among the specifiers, but we could not decide
        if it is a storage class specifier or a type specifier until now. */

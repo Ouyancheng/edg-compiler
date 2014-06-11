@@ -526,6 +526,37 @@ Type of callback functions to call at end of declaration processing.
 typedef void a_decl_parse_callback_function(a_decl_parse_state_ptr);
 
 /*
+Structure to describe an "auto" type specifier encountered while prescanning a
+C++14 lambda (which therefore must be a generic lambda).
+*/
+typedef struct an_auto_param_descr *an_auto_param_descr_ptr;
+typedef struct an_auto_param_descr {
+  an_auto_param_descr_ptr
+		next;
+			/* Pointer to the next entry on a list. */
+  a_template_param_ptr
+		template_type_parameter;
+			/* The template type parameter associated with this
+			   instance of "auto". */
+  a_token_sequence_number
+		auto_tsn;
+			/* The token sequence number of the "auto" token or
+			   0 if the token hasn't been scanned yet. */
+  uint32_t	param_num;
+			/* The parameter number for which "auto" was seen as a
+			   type specifier. */
+  a_bit_field	is_parameter_pack:1;
+			/* TRUE if the parameter declarator included an
+			   ellipsis indicating a parameter pack. */
+  a_source_position
+		start_pos, end_pos;
+			/* The start and end position of the "auto" token. */
+} an_auto_param_descr;
+
+extern void record_auto_param_descr(a_decl_parse_state_ptr  dps);
+
+
+/*
 A structure describing an action to be taken during declaration parsing.
 Actions can be chained (currently, the actions happen at the end of
 declaration processing).
@@ -885,6 +916,9 @@ typedef struct a_decl_parse_state {
 			/* TRUE if this is a state entry created to track a
 			   C++14-style "init capture" (for a lambda
 			   expression). */
+  a_bit_field	is_lambda:1;
+			/* TRUE if this is a state entry created to track a
+			   lambda declaration. */
   an_init_state
 		init_state;
 			/* Information about the initializer (if any)
@@ -1036,6 +1070,12 @@ typedef struct a_decl_parse_state {
 			/* A list of positions for various elements of a
 			   declaration that aren't recorded directly in the
 			   corresponding IL entry. */
+  an_auto_param_descr_ptr
+		auto_params;
+			/* A list of entries describing "auto" type specifiers
+			   "auto" type specifiers encountered while prescanning
+			   a function declarator (for a C++14 generic lambda).
+			   */
   a_decl_parse_state_ptr
 		next;
 			/* For dynamically allocated state entries that have

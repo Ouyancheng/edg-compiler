@@ -1385,6 +1385,9 @@ Display a_param_type entry.
   if (ptr->is_pack_element) {
     disp_boolean("is_pack_element", TRUE);
   }  /* if */
+  if (ptr->is_auto_param) {
+    disp_boolean("is_auto_param", TRUE);
+  }  /* if */
   disp_uint32("param_num", ptr->param_num);
   if (ptr->default_arg_expr != NULL) {
     disp_ptr("default_arg_expr", (char *)ptr->default_arg_expr, iek_expr_node);
@@ -5240,6 +5243,9 @@ Display the indicated lambda entry.
   disp_ptr("capture_list", (char*)ptr->capture_list, iek_lambda_capture);
   disp_ptr("closure_class", (char*)ptr->closure_class, iek_type);
   disp_ptr("lambda_routine", (char*)ptr->lambda_routine, iek_routine);
+  if (ptr->is_generic) {
+    disp_boolean("is_generic", TRUE);
+  }  /* if */
   if (ptr->is_mutable) {
     disp_boolean("is_mutable", TRUE);
   }  /* if */

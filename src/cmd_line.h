@@ -1087,6 +1087,10 @@ EXTERN a_boolean
 			/* TRUE if C++11 lambdas should be accepted in C++. */
 
 EXTERN a_boolean
+		generic_lambdas_enabled;
+			/* TRUE if C++14 generic lambdas should be accepted. */
+
+EXTERN a_boolean
 		init_capture_enabled;
 			/* TRUE if C++14-style init-capture should be accepted
 			   in lambda expressions. */

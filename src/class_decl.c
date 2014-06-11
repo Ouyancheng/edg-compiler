@@ -14190,58 +14190,6 @@ implicitly declared member functions.
 }  /* decl_member_function */
 
 
-static void decl_call_operator_for_lambda(a_lambda_ptr        lambda,
-                                          a_class_def_state   *class_state,
-                                          a_member_decl_info  *decl_info,
-                                          a_func_info_block   *func_info)
-/*
-Create operator()(...) for the given lambda (except in some error cases).
-*decl_info and *func_info describe various properties about the construct that
-was parsed.  *class_state describes the synthesized "closure class" associated
-with the lambda.
-The heavy lifting for this routine is performed by decl_member_function.
-*/
-{
-  a_decl_parse_state  *dps = &decl_info->decl_state;
-
-  if (!is_error_type(dps->type)) {
-    a_symbol_locator    loc;
-    a_routine_ptr       rp;
-#if GENERATE_SOURCE_SEQUENCE_LISTS
-    a_boolean           prev_source_sequence_entries_disallowed
-                                         = source_sequence_entries_disallowed;
-#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
-    check_assertion(is_function_type(dps->type));
-    func_info->is_inline = TRUE;
-    func_info->is_definition = TRUE;
-    make_opname_locator((an_opname_kind)onk_function_call, &loc,
-                        &decl_info->decl_state.declarator_pos);
-#if GENERATE_SOURCE_SEQUENCE_LISTS
-    source_sequence_entries_disallowed = TRUE;
-#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
-    decl_member_function(&loc, func_info, class_state, decl_info,
-                         /*compiler_generated=*/FALSE);
-    /* Ordinarily, the "symbols" field of a class symbol supplement isn't
-       updated until the class definition is completed.  However, the mangling
-       rules for lambdas are such that this is sometimes needed earlier for
-       closure types.  So we set it now (since it's the symbol for the
-       implied call operator that is needed). */
-    symbol_supplement_for_class(class_state->class_type)->symbols =
-          assoc_pointers_block_of(&scope_stack[depth_scope_stack])->symbols;
-#if GENERATE_SOURCE_SEQUENCE_LISTS
-    source_sequence_entries_disallowed =
-                                      prev_source_sequence_entries_disallowed;
-#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
-    rp = decl_info->decl_state.sym->variant.routine.ptr;
-    lambda->lambda_routine = rp;
-    rp->is_lambda_body = TRUE;
-    rp->type->variant.routine.extra_info->assoc_routine = rp;
-    rp->is_prototype_instantiation =
-                     scope_stack[depth_scope_stack].in_prototype_instantiation;
-  }  /* if */
-}  /* decl_call_operator_for_lambda */
-
-
 #if !GENERATE_SOURCE_SEQUENCE_LISTS
 /*ARGSUSED*/ /* il_template_entry is not used in all configurations. */
 #endif /* !GENERATE_SOURCE_SEQUENCE_LISTS */
@@ -14370,8 +14318,8 @@ decl_member_function, which handles in-class member function declarations.)
      contains a template parameter. */
   set_parameter_list_template_param_flags(member_type);
   /* Create the new symbol and enter it into the symbol table. */
-  effective_decl_level = class_type->variant.class_struct_union.extra_info->
-                                           assoc_scope->depth_in_scope_stack;
+  effective_decl_level = class_type_supp(class_type)->assoc_scope
+                                                    ->depth_in_scope_stack;
   check_assertion(effective_decl_level != NO_SCOPE_DEPTH);
   if (sym == NULL) {
     sym = enter_local_symbol((a_symbol_kind)sk_function_template, locator,
@@ -14606,6 +14554,89 @@ decl_member_function, which handles in-class member function declarations.)
   }  /* if */
   db_exit();
 }  /* decl_member_function_template */
+
+
+static void decl_call_operator_for_lambda(a_lambda_ptr        lambda,
+                                          a_class_def_state   *class_state,
+                                          a_member_decl_info  *decl_info,
+                                          a_func_info_block   *func_info,
+                                          a_tmpl_decl_state   *templ_state)
+/*
+Create operator()(...) for the given lambda (except in some error cases).
+*decl_info and *func_info describe various properties about the construct that
+was parsed.  *class_state describes the synthesized "closure class" associated
+with the lambda.  If the lambda is generic, *templ_state describes the
+declaration of the associated member template.
+
+The heavy lifting for this routine is performed by decl_member_function and
+decl_member_function_template.
+*/
+{
+  a_decl_parse_state  *dps = &decl_info->decl_state;
+
+  if (!is_error_type(dps->type)) {
+    a_symbol_locator    loc;
+    a_routine_ptr       rp;
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+    a_boolean           prev_source_sequence_entries_disallowed
+                                         = source_sequence_entries_disallowed;
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+    check_assertion(is_function_type(dps->type));
+    func_info->is_inline = TRUE;
+    func_info->is_definition = TRUE;
+    make_opname_locator((an_opname_kind)onk_function_call, &loc,
+                        &dps->declarator_pos);
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+    source_sequence_entries_disallowed = TRUE;
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+    if (lambda->is_generic) {
+      /* For the generic lambda case, the call operator is a member function
+         template: Generate it by calling decl_member_function_template. */
+      a_template_ptr        il_template_entry = templ_state->il_template_entry;
+      a_template_param_ptr  templ_param_list =
+                                            templ_state->decl_info->parameters;
+      a_template_symbol_supplement_ptr
+                            tssp;
+      a_token_kind          final_token = tok_rbrace;
+      templ_state->final_token_ptr = &final_token;
+      decl_member_function_template(&loc, templ_param_list, il_template_entry,
+                                    func_info, class_state, decl_info);
+      check_assertion(dps->sym != NULL &&
+                      symbol_is(dps->sym, sk_function_template));
+      tssp = dps->sym->variant.template_info;
+      check_assertion(tssp != NULL);
+      complete_generated_member_template(templ_state, (a_func_info_block*)NULL,
+                                         dps->sym);
+      rp = tssp->variant.function.routine;
+    } else {
+      /* The ordinary (i.e., non-generic case): Call decl_member_function. */
+      decl_member_function(&loc, func_info, class_state, decl_info,
+                           /*compiler_generated=*/FALSE);
+      rp = dps->sym->variant.routine.ptr;
+      rp->is_prototype_instantiation =
+                     scope_stack[depth_scope_stack].in_prototype_instantiation;
+    }  /* if */
+    /* Ordinarily, the "symbols" field of a class symbol supplement isn't
+       updated until the class definition is completed.  However, the mangling
+       rules for lambdas are such that this is sometimes needed earlier for
+       closure types.  So we set it now (since it's the symbol for the
+       implied call operator that is needed). */
+    symbol_supplement_for_class(class_state->class_type)->symbols =
+          assoc_pointers_block_of(&scope_stack[depth_scope_stack])->symbols;
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+    source_sequence_entries_disallowed =
+                                      prev_source_sequence_entries_disallowed;
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+    lambda->lambda_routine = rp;
+    rp->is_lambda_body = TRUE;
+    rp->type->variant.routine.extra_info->assoc_routine = rp;
+  }  /* if */
+  if (lambda->is_generic) {
+    /* A generic lambda: Pop the template declaration scope. */
+    check_assertion(scope_is(&scope_stack_top(), sck_template_declaration));
+    pop_scope();
+  }  /* if */
+}  /* decl_call_operator_for_lambda */
 
 
 static void scan_pure_specifier(a_symbol_ptr            rout_sym,
@@ -20722,7 +20753,7 @@ templates from that base template.
       make_locator_for_symbol(symbol_for(cdsp->class_type), &loc);
       change_class_locator_into_constructor_locator(&loc, &udp->position,
                                                     /*is_static_ctor=*/FALSE);
-      init_tmpl_decl_state_for_inheriting_ctor_template(&templ_decl_state);
+      init_tmpl_decl_state_for_generated_member_template(&templ_decl_state);
       templ_decl_state.final_token_ptr = &final_token;
       templ_decl_state.is_variadic = btssp->is_variadic;
       templ_decl_state.has_variadic_template_params =
@@ -20759,8 +20790,8 @@ templates from that base template.
         new_rp->compiler_generated = TRUE;
         new_tssp->variant.function.decl_cache.decl_info =
                                                    templ_decl_state.decl_info;
-        complete_inheriting_ctor_template(&templ_decl_state, &func_info,
-                                          decl_info.decl_state.sym);
+        complete_generated_member_template(&templ_decl_state, &func_info,
+                                           decl_info.decl_state.sym);
       }  /* if */
       pop_scope();
       done_with_func_info(func_info);
@@ -24903,7 +24934,7 @@ and, in C++/CLI mode, vice versa.
     set_name_linkage_for_type(btp);
     add_to_types_list(btp, DEPTH_OF_FILE_SCOPE);
 #if NEED_NAME_MANGLING
-    /* When multiple closure types appear in the same scope or context, their
+    /* When multiple unnamed types appear in the same scope or context, their
        mangled names are distinguished using a unique number ("discriminator").
        Compute that number now if appropriate (in some contexts, such as
        default arguments, the number will be determined elsewhere).  The notion
@@ -25035,9 +25066,13 @@ flag if error recovery should be performed as if the specifier didn't occur.
     decl_info->is_finalizer = FALSE;
     dps->dso_flags &= ~(DSO_STATIC_CONSTRUCTOR | DSO_FINALIZER);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-    if (curr_token == tok_compl ||
-        (is_generalized_identifier_start(GID_NO_OPTIONS) &&
-         locator_for_curr_id.is_destructor_name)) {
+    if (dps->is_lambda) {
+      /* The rescanning of a generic lambda call operator.  We shouldn't find
+         a secondary declarator in that case. */
+      expect_error();
+    } else if (curr_token == tok_compl ||
+               (is_generalized_identifier_start(GID_NO_OPTIONS) &&
+                locator_for_curr_id.is_destructor_name)) {
       decl_info->is_destructor = TRUE;
       dps->type = dps->declared_type = unknown_type();
 #if MICROSOFT_EXTENSIONS_ALLOWED
@@ -25078,6 +25113,11 @@ flag if error recovery should be performed as if the specifier didn't occur.
   if (decl_info->is_unnamed_field || decl_info->is_anonymous_union) {
     set_to_error_locator(*locator);
     check_pending_qualifiers_used(dps);
+  } else if (dps->is_lambda) {
+    /* A generic lambda declarator rescan. */
+    check_assertion(is_member_template_rescan);
+    scan_lambda_declarator(dps, func_info, &decl_info->decl_pos_block);
+    *is_function = dps->type->kind == (a_type_kind)tk_routine;
   } else if (no_decl_specifiers && !decl_info->is_constructor &&
              !decl_info->is_destructor &&
 #if MICROSOFT_EXTENSIONS_ALLOWED
@@ -25346,7 +25386,7 @@ passed via template_decl.
   a_boolean            mutable_specified;
   a_symbol_ptr         rout_sym;
   a_member_decl_info   decl_info;
-  a_decl_parse_state   *decl_state = &decl_info.decl_state;
+  a_decl_parse_state   *dps = &decl_info.decl_state;
   a_boolean            is_member_template_rescan;
   a_type_qualifier_set saved_qualifiers;
   a_source_position    saved_qualifiers_pos;
@@ -25358,91 +25398,107 @@ passed via template_decl.
   initialize_member_decl_info(&decl_info, &pos_curr_token);
   is_member_template_rescan = (scope_stack[depth_scope_stack].kind ==
                                  (a_scope_kind)sck_template_instantiation);
-  decl_state->is_template_rescan = is_member_template_rescan;
-  /* Scan prefix attributes. */
-  decl_state->prefix_attributes = scan_attributes(al_prefix);
-  /* Set the flags to control the calls to decl_specifiers. */
-  dsi_flags = DSI_TYPE_SPECIFIER_ALLOWED |
-              DSI_CHECK_FOR_DANGLING_TYPE_SPECIFIER |
-              DSI_IS_MEMBER_DECLARATION;
+  dps->is_template_rescan = is_member_template_rescan;
+  dps->is_lambda = type_is_lambda_closure(class_type);
+  if (!dps->is_lambda) {
+    /* Normal case: Scan attributes and declaration specifiers. */
+    /* First, scan prefix attributes. */
+    dps->prefix_attributes = scan_attributes(al_prefix);
+    /* Set the flags to control the calls to decl_specifiers. */
+    dsi_flags = DSI_TYPE_SPECIFIER_ALLOWED |
+                DSI_CHECK_FOR_DANGLING_TYPE_SPECIFIER |
+                DSI_IS_MEMBER_DECLARATION;
 #if ASM_FUNCTION_ALLOWED
-  dsi_flags |= DSI_ASM_ALLOWED;
+    dsi_flags |= DSI_ASM_ALLOWED;
 #endif /* ASM_FUNCTION_ALLOWED */
-  if (C_dialect == C_dialect_cplusplus) {
-    dsi_flags |= (DSI_STORAGE_CLASS_SPECIFIER_ALLOWED | DSI_INLINE_ALLOWED |
-                  DSI_EMPTY_DECL_SPECIFIERS_ALLOWED |
-                  DSI_VACUOUS_TAG_DECL_ALLOWED);
-    if (is_member_template) {
-      dsi_flags |= DSI_IS_TEMPLATE_DECLARATION;
-      decl_info.is_member_template = TRUE;
+    if (C_dialect == C_dialect_cplusplus) {
+      dsi_flags |= (DSI_STORAGE_CLASS_SPECIFIER_ALLOWED | DSI_INLINE_ALLOWED |
+                    DSI_EMPTY_DECL_SPECIFIERS_ALLOWED |
+                    DSI_VACUOUS_TAG_DECL_ALLOWED);
+      if (is_member_template) {
+        dsi_flags |= DSI_IS_TEMPLATE_DECLARATION;
+        decl_info.is_member_template = TRUE;
 #if MICROSOFT_EXTENSIONS_ALLOWED
-      if (scope_is(&scope_stack_top(), sck_template_declaration) &&
-          scope_stack_top().tmpl_decl_state->is_generic) {
-        decl_state->is_generic_declaration = TRUE;
-      }  /* if */
+        if (scope_is(&scope_stack_top(), sck_template_declaration) &&
+            scope_stack_top().tmpl_decl_state->is_generic) {
+          dps->is_generic_declaration = TRUE;
+        }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+      }  /* if */
     }  /* if */
-  }  /* if */
-  /* Allow specifier attributes. */
-  if (std_attributes_enabled)  dsi_flags |= DSI_STD_ATTRIBUTES_ALLOWED;
-  if (gnu_attributes_enabled) dsi_flags |= DSI_GNU_ATTRIBUTES_ALLOWED;
+    /* Allow specifier attributes. */
+    if (std_attributes_enabled)  dsi_flags |= DSI_STD_ATTRIBUTES_ALLOWED;
+    if (gnu_attributes_enabled) dsi_flags |= DSI_GNU_ATTRIBUTES_ALLOWED;
 #if GNU_EXTENSIONS_ALLOWED
-  if (gnu_mode) {
-    dsi_flags |= DSI_EMPTY_DECL_SPECIFIERS_ALLOWED;
-    if (curr_token == tok_extension) {
-      dsi_flags |= DSI_MARKED_AS_GNU_EXTENSION;
-      decl_state->marked_as_gnu_extension = TRUE;
-      (void)get_token();
+    if (gnu_mode) {
+      dsi_flags |= DSI_EMPTY_DECL_SPECIFIERS_ALLOWED;
+      if (curr_token == tok_extension) {
+        dsi_flags |= DSI_MARKED_AS_GNU_EXTENSION;
+        dps->marked_as_gnu_extension = TRUE;
+        (void)get_token();
+      }  /* if */
     }  /* if */
-  }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
 #if MICROSOFT_EXTENSIONS_ALLOWED
-  if (microsoft_mode) {
-    /* Record any Microsoft attributes in *decl_state before calling
-       decl_specifiers, because that call may append additional attributes. */
-    decl_state->ms_attributes = ms_attributes;
-    if (cli_or_cx_enabled) {
-      a_property_or_event_descr  *pdp = class_state->property_or_event_descr;
-      if (pdp != NULL && property_or_event_is_missing_assoc_data_member(pdp)) {
-        /* A property/event accessor is presumably next.  If that accessor is
-           declared static, the property/event should also be static (except
-           for some error situations such as a property declared with "virtual"
-           having a "static" accessor). */
-        if (!pdp->is_virtual && !pdp->is_default_indexed &&
-            static_member_next()) {
-          pdp->is_static = TRUE;
+    if (microsoft_mode) {
+      /* Record any Microsoft attributes in *dps before calling
+         decl_specifiers, because that call may append additional
+         attributes. */
+      dps->ms_attributes = ms_attributes;
+      if (cli_or_cx_enabled) {
+        a_property_or_event_descr  *pdp = class_state->property_or_event_descr;
+        if (pdp != NULL &&
+            property_or_event_is_missing_assoc_data_member(pdp)) {
+          /* A property/event accessor is presumably next.  If that accessor is
+             declared static, the property/event should also be static (except
+             for some error situations such as a property declared with
+             "virtual" having a "static" accessor). */
+          if (!pdp->is_virtual && !pdp->is_default_indexed &&
+              static_member_next()) {
+            pdp->is_static = TRUE;
+          }  /* if */
+          /* It is now safe to declare the field or static data member
+             associated with the property/event since we now know whether it
+             is static or not. */
+          decl_property_or_event_member(class_state, pdp);
         }  /* if */
-        /* It is now safe to declare the field or static data member associated
-           with the property/event since we now know whether it is static or
-           not. */
-        decl_property_or_event_member(class_state, pdp);
-      }  /* if */
-      /* Look ahead to see if the current declaration is for a field or
-         property using a C++/CLI context-sensitive keyword "property",
-         "event", "initonly", or "literal". */
-      if (check_for_cli_field_modifier(decl_state)) {
-        if (decl_state->has_cli_property_keyword ||
-            decl_state->has_cli_event_keyword) {
-          scan_cli_property_or_event_head(class_state, &decl_info);
-          *skip_semicolon_check = TRUE;
+        /* Look ahead to see if the current declaration is for a field or
+           property using a C++/CLI context-sensitive keyword "property",
+           "event", "initonly", or "literal". */
+        if (check_for_cli_field_modifier(dps)) {
+          if (dps->has_cli_property_keyword ||
+              dps->has_cli_event_keyword) {
+            scan_cli_property_or_event_head(class_state, &decl_info);
+            *skip_semicolon_check = TRUE;
+            goto next_declaration;
+          } else {
+            /* "literal" and "initonly" are consumed by the call to
+               decl_specifiers below. */
+          }  /* if */
+        } else if (check_for_cli_delegate_definition()) {
+          scan_and_record_cli_delegate_definition(dps);
+          cannot_bind_to_curr_construct();
           goto next_declaration;
-        } else {
-          /* "literal" and "initonly" are consumed by the call to
-             decl_specifiers below. */
         }  /* if */
-      } else if (check_for_cli_delegate_definition()) {
-        scan_and_record_cli_delegate_definition(decl_state);
-        cannot_bind_to_curr_construct();
-        goto next_declaration;
       }  /* if */
     }  /* if */
-  }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-  /* First scan the declaration specifiers.  In C++ the specifiers may be
-     omitted, e.g., for a function member with implicit type. */
-  add_stop_token(tok_colon);
-  decl_specifiers(dsi_flags, decl_state, &decl_info.decl_pos_block);
-  dso_flags = decl_state->dso_flags;
+    /* Scan the declaration specifiers.  In C++ the specifiers may be omitted,
+       e.g., for a function member with implicit type. */
+    add_stop_token(tok_colon);
+    decl_specifiers(dsi_flags, dps, &decl_info.decl_pos_block);
+    dso_flags = dps->dso_flags;
+    remove_stop_token(tok_colon);
+  } else {
+    /* A lambda operator: There are no attributes or explicit specifiers. */
+    check_assertion(curr_token == tok_lparen);
+    dps->specifiers_type = make_auto_type(&pos_curr_token,
+                                          /*is_decltype_auto=*/FALSE);
+    dps->type = dps->specifiers_type;
+    dps->start_pos = dps->specifiers_pos = pos_curr_token;
+    dps->in_class_scope = TRUE;
+    dps->declarator_start_pos = dps->declarator_pos = pos_curr_token;
+  }  /* if */
   no_decl_specifiers = (dso_flags & DSO_NO_DECL_SPECIFIERS) != 0;
   type_explicitly_specified =
                            (dso_flags & DSO_HAS_EXPLICIT_TYPE_SPECIFIER) != 0;
@@ -25461,8 +25517,7 @@ passed via template_decl.
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   mutable_specified = (dso_flags & DSO_MUTABLE) != 0;
   is_typedef =
-            decl_state->declared_storage_class == (a_storage_class)sc_typedef;
-  remove_stop_token(tok_colon);
+            dps->declared_storage_class == (a_storage_class)sc_typedef;
 #if MICROSOFT_EXTENSIONS_ALLOWED
   if (microsoft_mode) {
     consume_any_stray_microsoft_rparen();
@@ -25470,7 +25525,7 @@ passed via template_decl.
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if MICROSOFT_EXTENSIONS_ALLOWED || SUN_EXTENSIONS_ALLOWED
   if (microsoft_mode || sun_mode) {
-    if (decl_state->specifiers_type == NULL && type_explicitly_specified) {
+    if (dps->specifiers_type == NULL && type_explicitly_specified) {
       /* A friend declaration of the form "friend class X;" where "X" is a
          class template. */
       check_assertion(friend_specified && curr_token == tok_semicolon);
@@ -25479,7 +25534,7 @@ passed via template_decl.
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED || SUN_EXTENSIONS_ALLOWED */
 #if MICROSOFT_EXTENSIONS_ALLOWED
-  if (microsoft_mode && decl_state->ms_attributes != NULL) {
+  if (microsoft_mode && dps->ms_attributes != NULL) {
     if ((microsoft_version < 1400 &&
          (is_member_template || is_member_template_rescan)) ||
         class_type->source_corresp.is_local_to_function) {
@@ -25489,20 +25544,19 @@ passed via template_decl.
          diagnostic.*/
       an_error_code  ec = is_member_template_rescan ? ec_no_error
                                                     : ec_ms_attr_not_allowed;
-      dispose_of_unapplied_attributes(&decl_state->ms_attributes, ec);
+      dispose_of_unapplied_attributes(&dps->ms_attributes, ec);
     }  /* if */
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   if (!C_mode() && (dso_flags & DSO_DEFINES_SOMETHING) &&
-      !is_error_type(decl_state->type)) {
+      !is_error_type(dps->type)) {
     /* Should be a class, struct, union, or enum definition. */
-    a_type_ptr    tp = skip_typerefs(decl_state->type);
-    a_symbol_ptr  sym = (a_symbol_ptr)(tp->source_corresp.assoc_info);
-
+    a_type_ptr    tp = skip_typerefs(dps->type);
+    a_symbol_ptr  sym = symbol_for(tp);
     if (is_member_template) {
       if (curr_token == tok_semicolon && !is_typedef) {
         /* Issue an error later, based on the symbol. */
-        decl_info.decl_state.sym = sym;
+        dps->sym = sym;
       }  /* if */
 #if CHECKING
     } else if (!sym->is_error) {
@@ -25541,16 +25595,16 @@ passed via template_decl.
          GNU modes.  (In GNU modes prior to 3.4, the qualifiers are accepted
          and they apply to the implied field.) */
       if ((microsoft_mode || gnu_mode) &&
-          decl_state->type->kind == (a_type_kind)tk_typeref &&
-          !typeref_is_typedef(decl_state->type)) {
+          dps->type->kind == (a_type_kind)tk_typeref &&
+          !typeref_is_typedef(dps->type)) {
         if (gnu_mode && gnu_version < 30400) {
           pos_warning(ec_nonstandard_anonymous_union_qualifier,
-                      &decl_state->start_pos);
+                      &dps->start_pos);
         } else {
-          decl_state->type = skip_typerefs(decl_state->type);
-          decl_state->specifiers_type = decl_state->type;
+          dps->type = skip_typerefs(dps->type);
+          dps->specifiers_type = dps->type;
           pos_warning(ec_anonymous_union_qualifier_ignored,
-                      &decl_state->start_pos);
+                      &dps->start_pos);
         }  /* if */
       }  /* if */
     } else {
@@ -25564,11 +25618,11 @@ passed via template_decl.
     }  /* if */
   }  /* if */
   /* Save some state that must be restored for each declarator. */
-  saved_qualifiers = decl_state->qualifiers;
-  saved_qualifiers_pos = decl_state->qualifiers_pos;
+  saved_qualifiers = dps->qualifiers;
+  saved_qualifiers_pos = dps->qualifiers_pos;
   /* Save the effective specifiers type (which may be different from
-     decl_state->specifiers_type; e.g., for constructors). */
-  specifiers_type = decl_state->type;
+     dps->specifiers_type; e.g., for constructors). */
+  specifiers_type = dps->type;
   /* A declarator list should be present.  Scan it. */
   do {
     a_func_info_block                 func_info;
@@ -25602,7 +25656,7 @@ passed via template_decl.
       function_def_present = func_info.is_definition;
       if (mutable_specified) {
         /* "mutable" is only allowed on nonstatic data member decls. */
-        pos_error(ec_mutable_not_allowed, &decl_state->start_pos);
+        pos_error(ec_mutable_not_allowed, &dps->start_pos);
       }  /* if */
       if (!type_explicitly_specified) {
         /* No type specifier. */
@@ -25611,15 +25665,17 @@ passed via template_decl.
             decl_info.is_static_constructor || decl_info.is_finalizer ||
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
             locator.is_conversion_name ||
+            dps->is_lambda ||
             (locator.is_error && looks_like_ctor_or_dtor(&locator))) {
           /* Type specifier is not expected (nor permitted) on constructors,
              destructors, and conversion functions.  Similarly, they are not
-             permitted on C++/CLI static constructors and finalizers. */
+             permitted on C++/CLI static constructors and finalizers.  They're
+             not present on lambdas. */
         } else {
           /* Type specifier is missing.  The type defaults to int, but issue
              a diagnostic. */
           report_missing_type_specifier(&declarator_start_pos,
-                                        decl_state->type,
+                                        dps->type,
                                         /*is_function=*/TRUE,
                                         func_info.is_definition,
                                         /*is_main_function=*/FALSE,
@@ -25631,22 +25687,22 @@ passed via template_decl.
          was scanned because definitions and declarations are treated
          differently.) */
       report_exception_spec_errors(&func_info);
-      if (same_entities(decl_state->type, specifiers_type)) {
+      if (same_entities(dps->type, specifiers_type)) {
         /* When scanning the declarator does not change the type, we know
            this member is a function based on the specifier type alone.
            This is only possible with a typedef name that represents a
            function type. */
         func_info.function_type_from_typedef = TRUE;
 #if GENERATE_SOURCE_SEQUENCE_LISTS
-        func_info.declarator_ssep = decl_state->source_sequence_entry;
+        func_info.declarator_ssep = dps->source_sequence_entry;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
         /* Such typedef function types are shared and so are unsuited to be
            the type of a defined function. */
-        check_typedef_function_type(&decl_state->type,
+        check_typedef_function_type(&dps->type,
                                     &locator.source_position,
                                     func_info.is_definition, class_type,
                                     (!friend_specified &&
-                                     decl_state->storage_class !=
+                                     dps->storage_class !=
                                           (a_storage_class)sc_static));
       }  /* if */
       if (dso_flags & DSO_VIRTUAL && !locator.is_error) {
@@ -25658,13 +25714,13 @@ passed via template_decl.
              decl_info.is_finalizer ||
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
              decl_info.is_destructor) &&
-            decl_state->storage_class == (a_storage_class)sc_static) {
+            dps->storage_class == (a_storage_class)sc_static) {
           /* Constructors, destructors, and finalizers may not be declared
              "static" (except in C++/CLI mode, but "static constructors" do
              not have the is_constructor flag set to TRUE).  C++/CLI
              finalizers cannot be static either. */
-          pos_error(ec_static_not_allowed, &decl_state->start_pos);
-          decl_state->storage_class = (a_storage_class)sc_unspecified;
+          pos_error(ec_static_not_allowed, &dps->start_pos);
+          dps->storage_class = (a_storage_class)sc_unspecified;
         }  /* if */
         if ((decl_info.is_constructor && !func_info.is_defaulted &&
              !func_info.is_deleted) ||
@@ -25692,7 +25748,7 @@ passed via template_decl.
         rout_sym = decl_friend_function(&locator, class_state, &func_info,
                                         &decl_info);
       } else if (is_member_template_rescan) {
-        *member_template_instance_type = decl_state->type;
+        *member_template_instance_type = dps->type;
         remove_stop_token(tok_comma);
 #if GENERATE_SOURCE_SEQUENCE_LISTS
         /* Set the declared type immediately, before the func_info block is
@@ -25707,7 +25763,7 @@ passed via template_decl.
         instance->prototype_scope_symbols = func_info.prototype_scope_symbols;
         instance->param_id_list = func_info.param_id_list;
         func_info.keep_param_id_list = TRUE;
-        discard_end_of_parse_actions(decl_state);
+        discard_end_of_parse_actions(dps);
         goto next_declaration;
       } else if (is_member_template) {
         /* An "= 0" is not valid for a member template, but in some modes
@@ -25730,7 +25786,7 @@ passed via template_decl.
           } else if (locator.is_conversion_name &&
                      explicit_conversion_functions_enabled) {
             if (cli_or_cx_enabled &&
-                !check_cppcli_explicit_conversion(class_type, decl_state,
+                !check_cppcli_explicit_conversion(class_type, dps,
                                                   dso_flags)) {
               expect_error();
             } else {
@@ -25788,7 +25844,7 @@ passed via template_decl.
               a_type_ptr  declared_type = func_info.declared_type;
               tip->declared_type_for_default_arg_fixup = declared_type;
               if (declared_type == NULL) {
-                declared_type = form_declared_type(decl_state->type,
+                declared_type = form_declared_type(dps->type,
                                                    &func_info);
               }  /* if */
               tip->declared_type = declared_type;
@@ -25825,7 +25881,7 @@ passed via template_decl.
           } else if (locator.is_conversion_name &&
                      explicit_conversion_functions_enabled) {
             if (cli_or_cx_enabled &&
-                !check_cppcli_explicit_conversion(class_type, decl_state,
+                !check_cppcli_explicit_conversion(class_type, dps,
                                                   dso_flags)) {
               expect_error();
             } else {
@@ -25918,19 +25974,19 @@ passed via template_decl.
       }  /* if */
     } else if (is_member_template) {
       /* Invalid declaration of a member template. */
-      pos_error(ec_bad_member_template_decl, &decl_state->start_pos);
+      pos_error(ec_bad_member_template_decl, &dps->start_pos);
       remove_stop_token(tok_comma);
       discard_curr_construct_pragmas();
       break;
     } else if (dso_flags & (DSO_FRIEND | DSO_VIRTUAL | DSO_INLINE)) {
       if (dso_flags & DSO_FRIEND) {
-        pos_error(ec_bad_friend_decl, &decl_state->start_pos);
+        pos_error(ec_bad_friend_decl, &dps->start_pos);
       }  /* if */
       if (dso_flags & DSO_VIRTUAL) {
-        pos_error(ec_virtual_not_allowed, &decl_state->start_pos);
+        pos_error(ec_virtual_not_allowed, &dps->start_pos);
       }  /* if */
       if (dso_flags & DSO_INLINE) {
-        pos_error(ec_inline_and_nonfunction, &decl_state->start_pos);
+        pos_error(ec_inline_and_nonfunction, &dps->start_pos);
       }  /* if */
       remove_stop_token(tok_comma);
       discard_curr_construct_pragmas();
@@ -25945,10 +26001,10 @@ passed via template_decl.
       discard_curr_construct_pragmas();
     } else if (is_typedef) {
       check_assertion(C_dialect == C_dialect_cplusplus);
-      if (decl_state->do_flags & DO_CFRONT_MEMBER_FUNCTION_TYPEDEF) {
+      if (dps->do_flags & DO_CFRONT_MEMBER_FUNCTION_TYPEDEF) {
         /* This looked like a cfront-style member function typedef.  Be sure
            the type was a function type. */
-        if (is_function_type(decl_state->type)) {
+        if (is_function_type(dps->type)) {
           /* Issue a warning on the extension. */
           pos_warning(ec_ptr_to_member_typedef, &locator.source_position);
         } else {
@@ -25961,14 +26017,14 @@ passed via template_decl.
       if (!type_explicitly_specified) {
         /* Omitted type specifier. */
         report_missing_type_specifier(&declarator_start_pos,
-                                      decl_state->type,
+                                      dps->type,
                                       /*is_function=*/FALSE,
                                       /*is_function_def=*/FALSE,
                                       /*is_main_function=*/FALSE,
                                       !no_decl_specifiers);
       }  /* if */
       /* Typedef declaration. */
-      decl_typedef(&locator, decl_state, class_type,
+      decl_typedef(&locator, dps, class_type,
                    &decl_info.decl_pos_block);
       /* Note: access will have been set in decl_typedef. */
       if (curr_routine_fixup != NULL &&
@@ -25976,7 +26032,7 @@ passed via template_decl.
         /* Update the symbol pointer in the fixup entry -- it's needed when
            the default args are scanned (once the entire class has been
            scanned). */
-        curr_routine_fixup->symbol = decl_info.decl_state.sym;
+        curr_routine_fixup->symbol = dps->sym;
       }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
       if (microsoft_mode) {
@@ -25997,11 +26053,11 @@ passed via template_decl.
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     } else if (!field_initializers_enabled &&
                curr_token == tok_assign && !C_mode() &&
-               ((is_scalar_type(decl_state->type) && !mutable_specified &&
-                 (get_type_qualifiers(decl_state->type) == TQ_CONST)) ||
-                is_template_param_type(decl_state->type)) &&
-               decl_state->storage_class == (a_storage_class)sc_unspecified &&
-               !decl_state->has_cli_literal_keyword) {
+               ((is_scalar_type(dps->type) && !mutable_specified &&
+                 (get_type_qualifiers(dps->type) == TQ_CONST)) ||
+                is_template_param_type(dps->type)) &&
+               dps->storage_class == (a_storage_class)sc_unspecified &&
+               !dps->has_cli_literal_keyword) {
       /* Provide support for the nonstandard declaration of a member constant
          of scalar type -- e.g., "const int I = 2;". */
       if (in_expression_context()) {
@@ -26011,24 +26067,24 @@ passed via template_decl.
       }  /* if */
     } else if (!is_member_template_rescan) {
       /* A static or nonstatic data member. */
-      if (mutable_specified && is_const_qualified_type(decl_state->type)) {
+      if (mutable_specified && is_const_qualified_type(dps->type)) {
         /* "mutable" and top-level "const" are not allowed together. */
-        pos_error(ec_mutable_not_allowed, &decl_state->start_pos);
+        pos_error(ec_mutable_not_allowed, &dps->start_pos);
       }  /* if */
       if (!type_explicitly_specified) {
         report_missing_type_specifier(&declarator_start_pos,
-                                      decl_state->type,
+                                      dps->type,
                                       /*is_function=*/FALSE,
                                       /*is_function_def=*/FALSE,
                                       /*is_main_function=*/FALSE,
                                       !no_decl_specifiers);
 #if MICROSOFT_EXTENSIONS_ALLOWED
-      } else if (decl_state->has_cli_initonly_keyword) {
-        check_initonly_member_type(decl_state, class_type);
+      } else if (dps->has_cli_initonly_keyword) {
+        check_initonly_member_type(dps, class_type);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       }  /* if */
       if (!(missing_declarator || decl_info.is_unnamed_field) &&
-          !(decl_state->do_flags & DO_REAL_DECLARATOR_SCANNED) &&
+          !(dps->do_flags & DO_REAL_DECLARATOR_SCANNED) &&
           is_error_locator(locator)) {
         /* Some problem occurred while parsing the declarator.  To avoid
            strange error recovery problems, we do not add a member to the
@@ -26038,14 +26094,14 @@ passed via template_decl.
            a declarator-parsing error.) */
         check_assertion(total_errors != 0);
 #if MICROSOFT_EXTENSIONS_ALLOWED
-      } else if (decl_state->has_cli_literal_keyword) {
+      } else if (dps->has_cli_literal_keyword) {
         /* C++/CLI literal field */
-        if (decl_state->storage_class == (a_storage_class)sc_static) {
-          pos_error(ec_static_literal_field, &decl_state->storage_class_pos);
+        if (dps->storage_class == (a_storage_class)sc_static) {
+          pos_error(ec_static_literal_field, &dps->storage_class_pos);
         }  /* if */
         decl_literal_field(&locator, class_state, &decl_info);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-      } else if (decl_state->storage_class == (a_storage_class)sc_static) {
+      } else if (dps->storage_class == (a_storage_class)sc_static) {
         /* Static data member. */
         decl_static_data_member(&locator, class_state, &decl_info);
       } else {
@@ -26065,28 +26121,28 @@ passed via template_decl.
       expect_error();
     }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
-    if (decl_state->ms_attributes != NULL) {
-      dispose_of_unapplied_attributes(&decl_state->ms_attributes,
+    if (dps->ms_attributes != NULL) {
+      dispose_of_unapplied_attributes(&dps->ms_attributes,
                                       ec_ms_attr_not_allowed);
     }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
     if (!decl_info.is_first_in_declarator_list) {
-      mark_decl_after_first_in_comma_list(decl_state);
+      mark_decl_after_first_in_comma_list(dps);
     }  /* if */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
     remove_stop_token(tok_comma);
     decl_info.is_first_in_declarator_list = FALSE;
     if (curr_token == tok_comma) {
       /* Another declarator is presumably coming next. */
-      check_use_of_auto_type(decl_state);
+      check_use_of_auto_type(dps);
       /* Before parsing the next declaration, run any end-of-parse actions
          needed for the previous declarator. */
-      run_end_of_parse_actions(decl_state, /*more_declarators=*/TRUE);
-      /* Reset certain decl_state fields. */
-      start_secondary_declarator(decl_state);
-      decl_state->qualifiers = saved_qualifiers;
-      decl_state->qualifiers_pos = saved_qualifiers_pos;
+      run_end_of_parse_actions(dps, /*more_declarators=*/TRUE);
+      /* Reset certain fields in the declaration parse state. */
+      start_secondary_declarator(dps);
+      dps->qualifiers = saved_qualifiers;
+      dps->qualifiers_pos = saved_qualifiers_pos;
     }  /* if */
     /* Loop for additional declarators. */
     if (gpp_mode && gnu_version >= 30400 && curr_token == tok_comma &&
@@ -26113,18 +26169,18 @@ next_declaration:;
                  locator.is_conversion_name))) {
       /* Okay. */
     } else {
-      pos_error(ec_explicit_not_allowed, &decl_state->start_pos);
+      pos_error(ec_explicit_not_allowed, &dps->start_pos);
     }  /* if */
   }  /* if */
-  check_use_of_auto_type(decl_state);
-  run_end_of_parse_actions(decl_state, /*more_declarators=*/FALSE);
+  check_use_of_auto_type(dps);
+  run_end_of_parse_actions(dps, /*more_declarators=*/FALSE);
 #if MICROSOFT_EXTENSIONS_ALLOWED
   if (microsoft_mode) {
     /* Restore the default name linkage if a linkage specification appeared
        among the decl-specifiers. */
     if (dso_flags & DSO_LINKAGE_SPEC_DECL) pop_name_linkage();
-    if (decl_state->ms_attributes != NULL) {
-      dispose_of_unapplied_attributes(&decl_state->ms_attributes,
+    if (dps->ms_attributes != NULL) {
+      dispose_of_unapplied_attributes(&dps->ms_attributes,
                                       ec_ms_attr_not_allowed);
     }  /* if */
   }  /* if */
@@ -26135,28 +26191,28 @@ next_declaration:;
     *decl_pos_block_ptr = decl_info.decl_pos_block;
   }  /* if */
   db_exit();
-  return decl_info.decl_state.sym;
+  return dps->sym;
 }  /* class_member_declaration */
 
 
 a_symbol_ptr class_member_template_declaration(
-                                     a_type_ptr            class_type,
-                                     a_template_param_ptr  templ_param_list,
-                                     a_template_ptr        il_template_entry,
-                                     a_decl_pos_block_ptr  decl_pos_block_ptr)
+                                       struct a_tmpl_decl_state  *templ_state)
 /*
 Scan a template function declaration that appears inside a class (or class
-template) definition.  class_type is the parent type, which may be a nonreal
-class (prototype instantiation of a class template).  templ_param_list
-is the template parameter list for the function template.
+template) definition.  templ_state describes the state of processing the
+template so far.
 */
 {
-  a_class_def_state       *class_state_ptr;
-  a_boolean               skip_semicolon_check;
-  a_scope_depth           scope_level;
-  a_symbol_ptr            sym;
-  a_type_ptr              dummy_type;
-  a_decl_parse_state_ptr  dps = &scope_stack_top().tmpl_decl_state->decl_parse;
+  a_type_ptr            class_type = templ_state->class_declared_in;
+  a_template_param_ptr  templ_param_list = templ_state->decl_info->parameters;
+  a_template_ptr        il_template_entry = templ_state->il_template_entry;
+  a_decl_pos_block_ptr  decl_pos_block_ptr = &templ_state->decl_pos_block;
+  a_class_def_state     *class_state_ptr;
+  a_boolean             skip_semicolon_check;
+  a_scope_depth         scope_level;
+  a_symbol_ptr          sym;
+  a_type_ptr            dummy_type;
+  a_decl_parse_state    *dps = &templ_state->decl_parse;
 
   db_enter(3, "class_member_template_declaration");
   /* Get the class definition state, which is pointed to from the scope-stack
@@ -29291,12 +29347,17 @@ initialize class_def_state.
 
 static void scan_optional_lambda_declarator(a_lambda_ptr        lambda,
                                             a_func_info_block   *func_info,
-                                            a_member_decl_info  *decl_info)
+                                            a_member_decl_info  *decl_info,
+                                            a_tmpl_decl_state   *templ_state)
 /*
 For the given lambda, parse the (optional) declarator-like construct, which
 consists of a parameter list and, optionally, a mutable specifier, an exception
 specification, and/or a return type specification.  Return properties of the
 implied call operator in *func_info and *decl_info (both are initialized here).
+
+This function also determines if this is a generic lambda.  If it is,
+*templ_state is initialized with the relevant state information and a
+corresponding template declaration scope is pushed.
 */
 {
   a_decl_parse_state  *dps = &decl_info->decl_state;
@@ -29306,15 +29367,30 @@ implied call operator in *func_info and *decl_info (both are initialized here).
   func_info->lambda = lambda;
   initialize_member_decl_info(decl_info, &pos_curr_token);
   decl_info->is_first_in_declarator_list = TRUE;
-  dps->type = dps->specifiers_type = void_type();
+  dps->specifiers_type = make_auto_type(&pos_curr_token,
+                                        /*is_decltype_auto=*/FALSE);
+  dps->type = dps->specifiers_type;
   dps->start_pos = dps->specifiers_pos = pos_curr_token;
   dps->in_class_scope = TRUE;
   dps->declarator_start_pos = dps->declarator_pos = pos_curr_token;
+  dps->is_lambda = TRUE;
   if (curr_token == tok_lparen) {
     /* A parameter list presumably follows. */
     add_stop_token(tok_lbrace);
-    scan_lambda_declarator(lambda, dps, func_info, decl_pos_block);
+    if (generic_lambdas_enabled) {
+      /* Prescan the parameter list to look for one or more "auto" parameters
+         that would make this a generic lambda. */
+      prescan_lambda_parameter_clause(dps);
+      if (dps->auto_params != NULL) {
+        /* At least one "auto" parameter was seen: Set up a member function
+           template context. */
+        lambda->is_generic = TRUE;
+        set_up_generic_lambda_declarator_scan(dps, templ_state);
+      }  /* if */
+    }  /* if */
+    scan_lambda_declarator(dps, func_info, decl_pos_block);
     lambda->has_parameter_decl = TRUE;
+    lambda->explicit_return_type = dps->has_trailing_return_type;
     remove_stop_token(tok_lbrace);
   } else {
     /* The parameter list was omitted: Treat this as if the declarator-like
@@ -29512,11 +29588,11 @@ NULL in such cases.
 #endif /* DO_IL_LOWERING */
       /* Do not insert code here. */
       {
-        /* Lowering of the lambda body function is deferred because the closure
-           class was not complete when the function was scanned.  Now that the
-           closure class is complete, do the lowering of the lambda body (if
-           needed).  In some cases involving prototype instantiations the
-           lambda body may have already been discarded. */
+        /* Lowering of the lambda body function was deferred because the
+           closure class was not complete when the function was scanned.  Now
+           that the closure class is complete, do the lowering of the lambda
+           body (if needed).  In some cases involving prototype instantiations
+           the lambda body may have already been discarded. */
         finish_function_processing_for_memory_region(
                    lambda->lambda_routine->assoc_scope, /*only_inline=*/FALSE);
       }  /* if */
@@ -29787,6 +29863,7 @@ For example:
   a_class_def_state    class_state;
   a_func_info_block    func_info;
   a_member_decl_info   decl_info;
+  a_tmpl_decl_state    templ_state;
   a_boolean            bad_scope;
 
   /* Start a new stop token context. */
@@ -29814,10 +29891,12 @@ For example:
   /* Now push the scope stack entry for the closure class. */
   push_closure_class(lambda, &class_state);
   /* Parse the "declarator" part of the lambda (the parameter list, etc.). */
-  scan_optional_lambda_declarator(lambda, &func_info, &decl_info);
+  scan_optional_lambda_declarator(lambda, &func_info, &decl_info,
+                                  &templ_state);
   record_end_of_lambda_header(lambda);
   /* Declare the call operator for the closure class. */
-  decl_call_operator_for_lambda(lambda, &class_state, &decl_info, &func_info);
+  decl_call_operator_for_lambda(lambda, &class_state, &decl_info, &func_info,
+                                &templ_state);
 #if NEED_NAME_MANGLING
   /* When multiple closure types appear in the same scope or context, their
      mangled names are distinguished using a unique number ("discriminator").
@@ -29829,17 +29908,33 @@ For example:
 #endif /* NEED_NAME_MANGLING */
   /* Fill in the capture fields information for the explicit captures. */
   decl_lambda_capture_fields(lambda);
-  scan_lambda_body(lambda, &func_info);
-  generate_lambda_conversion_functions_if_needed(lambda, &class_state,
-                                                 &func_info);
+  if (lambda->is_generic) {
+    /* For generic lambdas, perform a prototype instantiation of the lambda
+       body (if appropriate). */
+    a_symbol_ptr  sym = decl_info.decl_state.sym;
+    if (prototype_instantiation_should_be_done_for_function(sym) &&
+        !defer_function_prototype_instantiations) {
+      function_prototype_instantiation(sym);
+      (void)required_token(tok_rbrace, ec_exp_rbrace);
+    }  /* if */
+    wrap_up_generic_lambda_scan(&templ_state);
+  } else {
+    /* Ordinary (non-generic) lambda: Scan the lambda body and, if needed,
+       generate a lambda conversion function. */
+    scan_lambda_body(lambda, &func_info);
+    generate_lambda_conversion_functions_if_needed(lambda, &class_state,
+                                                   &func_info);
+  }  /* if */
   generate_default_constructor(&class_state, /*is_deleted=*/TRUE);
   generate_copy_assignment_operator(&class_state, /*is_deleted=*/TRUE,
                                     TQ_CONST);
   /* Record the capture list and complete the closure class. */
   complete_class_definition(closure_class, decl_level, &class_state);
   pop_scope();
-  define_lambda_conversion_functions_if_needed(lambda);
-  finish_lambda_routine_processing(&lambda);
+  if (!lambda->is_generic) {
+    define_lambda_conversion_functions_if_needed(lambda);
+    finish_lambda_routine_processing(&lambda);
+  }  /* if */
   /* Restore the previous default declaration scope. */
   decl_scope_level = saved_decl_scope_level;
   /* Restore the previous stop token context. */

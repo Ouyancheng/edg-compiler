@@ -111,7 +111,7 @@ typedef struct a_tmpl_decl_state {
 			   parameter packs.  Also TRUE in GNU mode when
 			   GNU variadic operators, such as __bases, are
 			   enabled. */
-  a_bit_field	has_variadic_template_params;
+  a_boolean	has_variadic_template_params;
 			/* TRUE if this is an actual variadic template and
 			   not simply treated as variadic in GNU mode (see
 			   is_variadic above. */
@@ -119,6 +119,9 @@ typedef struct a_tmpl_decl_state {
 			/* TRUE if this a C++/CLI generic declaration. */
   a_boolean	is_delegate;
 			/* TRUE if this is a C++/CLI delegate. */
+  a_boolean	is_lambda;
+			/* TRUE if this is a lambda (i.e., a C++14-style
+			   generic lambda). */
   a_boolean	generic_constraints_pending;
 			/* TRUE if this is a generic generated from metadata
 			   declared with an indication that constraints will
@@ -772,6 +775,14 @@ extern void template_directive_or_declaration(
 			a_template_decl_options_set	options,
 			a_source_position_ptr		directive_start_pos);
 
+#if !STANDALONE_UTILITY_PROGRAM
+extern
+void set_up_generic_lambda_declarator_scan(a_decl_parse_state  *dps,
+                                           a_tmpl_decl_state   *templ_state);
+#endif /* !STANDALONE_UTILITY_PROGRAM */
+
+extern void wrap_up_generic_lambda_scan(a_tmpl_decl_state   *templ_state);
+
 extern void update_friend_info_for_specialization(a_type_ptr	class_type);
 
 extern void add_befriending_class_to_class_template
@@ -1065,10 +1076,10 @@ extern a_boolean is_instance_of_class_template(
 extern a_template_param_ptr copy_template_param_list(
                                                    a_template_param_ptr  tpl);
 
-extern void init_tmpl_decl_state_for_inheriting_ctor_template(
+extern void init_tmpl_decl_state_for_generated_member_template(
                                                 a_tmpl_decl_state_ptr  state);
 
-extern void complete_inheriting_ctor_template(
+extern void complete_generated_member_template(
                                             a_tmpl_decl_state_ptr  decl_state,
                                             a_func_info_block      *func_info,
                                             a_symbol_ptr           sym);

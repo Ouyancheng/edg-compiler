@@ -2114,7 +2114,6 @@ this is a helper function.
   a_ref_qualifier_kind            ref_qualifiers =
                                              (a_ref_qualifier_kind)rqk_default;
   a_boolean                       qualifier_err = FALSE;
-  a_boolean                       is_lambda_decl = (func_info->lambda != NULL);
   a_boolean                       cv_qualifier_with_no_this_class_okay = FALSE;
   an_exception_specification_ptr  esp;
   an_attribute_ptr                attributes = NULL;
@@ -2133,7 +2132,7 @@ this is a helper function.
        later.) */
     cv_qualifier_with_no_this_class_okay = TRUE;
   }  /* if */
-  if (is_lambda_decl) {
+  if (state->is_lambda) {
     /* Lambdas don't allow a cv-qualifier here, but they are "const" by
        default.  "mutable", however, is allowed here, and means the lambda is
        non-const. */
@@ -2345,7 +2344,7 @@ this is a helper function.
      trailing return type follows. */
   attributes = scan_attributes(al_post_func);
   if (curr_token == tok_arrow &&
-      (trailing_return_types_enabled || is_lambda_decl)) {
+      (trailing_return_types_enabled || state->is_lambda)) {
     /* A trailing return type. */
     scan_trailing_return_type(state, func_info, rout_type);
   } else {
@@ -2616,7 +2615,7 @@ an error if a default argument expression is encountered.
        "int f(int, char *)". */
     a_pack_expansion_stack_entry_ptr  pesep = NULL;
     a_boolean                         any_variadic_params = FALSE;
-    unsigned long                     param_number = 0;
+    uint32_t                          param_number = 0;
     if (any_params && !disallow_default_args) {
       /* In C++ mode a default argument may be declared with the parameter
          unless the function is a user-defined overloaded operator (except
@@ -2700,6 +2699,8 @@ an error if a default argument expression is encountered.
         init_decl_parse_state(&param_state);
         param_state.is_pack_element = is_pack_element;
         param_state.assoc_func_decl_state = state;
+        param_state.auto_type_allowed = generic_lambdas_enabled &&
+                                        state->is_lambda;
         param_state.trailing_return_type_allowed =
                                                 trailing_return_types_enabled;
         param_state.pack_ellipsis_allowed = is_variadic_template_context();
@@ -2953,6 +2954,10 @@ an error if a default argument expression is encountered.
               scope_is(&scope_stack_top()-1, sck_template_instantiation)) {
             default_arg_allowed_on_curr_param = FALSE;
           }  /* if */
+        }  /* if */
+        if (generic_lambdas_enabled && state->is_lambda &&
+            param_state.auto_type_specifier_seen) {
+          ptp->is_auto_param = TRUE;
         }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
         if (param_state.ms_attributes != NULL) {
@@ -3561,8 +3566,7 @@ an error if a default argument expression is encountered.
 }  /* function_declarator */
 
 
-void scan_lambda_declarator(a_lambda_ptr        lambda,
-                            a_decl_parse_state  *dps,
+void scan_lambda_declarator(a_decl_parse_state  *dps,
                             a_func_info_block   *func_info,
                             a_decl_pos_block    *decl_pos_block)
 /*
@@ -3572,18 +3576,31 @@ and/or a lambda return type.  The caller must ensure that the current token is
 the left parenthesis introducing the declarator-like construct.
 */
 {
-  a_type_ptr         func_type = void_type();
-  a_decl_flag_set    di_flags = DI_NONSTATIC_MEMBER;
-  a_symbol_locator   loc;
-  a_boolean          disallow_default_args = !gpp_mode;
+  a_type_ptr               func_type = void_type(), closure_class;
+  a_decl_flag_set          di_flags = DI_NONSTATIC_MEMBER;
+  a_symbol_locator         loc;
+  a_boolean                disallow_default_args = !gpp_mode;
+  a_scope_stack_entry_ptr  ssep = &scope_stack_top();
 
   check_assertion(curr_token == tok_lparen);
+  make_opname_locator((an_opname_kind)onk_function_call, &loc,
+                      &pos_curr_token);
   add_stop_token(tok_rparen);
   (void)get_token();
-  make_opname_locator((an_opname_kind)onk_function_call, &loc,
-                      &lambda->start_position);
+  if (scope_is(ssep, sck_class_struct_union)) {
+    closure_class = ssep->assoc_type;
+  } else if ((scope_is(ssep, sck_template_declaration) &&
+              scope_is(ssep-1, sck_class_struct_union)) ||
+             (scope_is(ssep, sck_template_instantiation) &&
+              scope_is(ssep-1, sck_class_reactivation))) {
+    /* A generic lambda (first scan, or instantiation). */
+    closure_class = (ssep-1)->assoc_type;
+  } else {
+    expect_error();
+    closure_class = error_type();
+  }  /* if */
   function_declarator(dps, di_flags, &func_type, func_info, &loc,
-                      lambda->closure_class,
+                      closure_class,
                       /*is_nonstatic_member=*/TRUE, /*is_constructor=*/FALSE, 
                       /*is_static_constructor=*/FALSE, /*is_destructor=*/FALSE,
                       /*is_finalizer=*/FALSE, disallow_default_args,
@@ -3594,7 +3611,6 @@ the left parenthesis introducing the declarator-like construct.
   remove_stop_token(tok_rparen);
   /* Record whether an explicit return type was specified. */
   if (dps->has_trailing_return_type) {
-    lambda->explicit_return_type = TRUE;
     if (!is_error_type(func_type)) {
       /* function_declarator doesn't itself "connect" the function type to its
          return type because of the possibility of complex nested-declarator
