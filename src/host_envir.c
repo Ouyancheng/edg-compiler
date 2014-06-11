@@ -511,7 +511,9 @@ void remove_duplicate_include_dirs(
 /*
 Go through the search path and remove any duplicated include directories.
 If sys_includes_only is TRUE, only entries that duplicate system include
-directories are removed.  If -I- was specified on the command line, the
+directories are removed.  This routine is no longer called with
+sys_includes_only FALSE, but the feature has been retained in case it
+is needed in the future.  If -I- was specified on the command line, the
 pointer to which include_path_boundary points will be non-NULL and will
 point to the directory immediately preceding the -I- option; this pointer
 will be updated appropriately if that directory is removed because of
