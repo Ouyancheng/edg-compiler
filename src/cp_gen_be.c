@@ -456,7 +456,6 @@ return that expression; otherwise return e.
                     expr_node_from_tpck_expression((e)->variant.constant) : (e)
 
 
-
 /* Needed because of forward references: */
 static a_boolean is_default_dynamic_init(a_dynamic_init_ptr dip);
 static void gen_name(a_source_correspondence *scp,
