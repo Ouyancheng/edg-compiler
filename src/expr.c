@@ -4794,9 +4794,8 @@ are expected to be NULL in that case.
   /* Argument-dependent lookup will be done if the function name is a
      simple name followed by a left parenthesis (not, for example,
      a name enclosed in parentheses as in "(f)(x)"). */
-  if (!C_mode() && arg_dependent_lookup_enabled) {
+  if (!C_mode() && arg_dependent_lookup_enabled && !operand->bound_function) {
     if (operand->is_name_followed_by_left_paren &&
-        !operand->bound_function &&
         !operand->is_qualified_name) {
       do_arg_dep_lookup = TRUE;
       if (gpp_mode && gnu_version < 40400 && operand->is_template_id) {
@@ -4804,21 +4803,35 @@ are expected to be NULL in that case.
            template argument list is specified.  Fixed in 4.4. */
         do_arg_dep_lookup = FALSE;
       }  /* if */
-    } else if (is_undefined_symbol_operand(operand) ||
-               is_indefinite_function_operand(operand)) {
-      /* For the cases that are simple names, record that argument dependent
-         lookup was suppressed.  Note that non-overloaded functions 
-         come here as overloaded functions when argument-dependent lookup
-         is enabled.  The flag here only indicates suppression because
-         of the lack of an immediately following left parenthesis. */
-      if (!operand->is_name_followed_by_left_paren) {
-        /* Argument-dependent lookup does not apply to member functions,
-           so don't record it as "suppressed" for them. */
-        if (!operand->symbol->is_class_member) {
-          arg_dep_lookup_suppressed = TRUE;
+    } else {
+      a_boolean     routine_operand = is_undefined_symbol_operand(operand) ||
+                                      is_indefinite_function_operand(operand);
+      a_symbol_ptr  rout_sym;
+      if (routine_operand) {
+        rout_sym = operand->symbol;
+      } else if (is_expression_operand(operand)) {
+        /* Check for a resolved function. */
+        an_expr_node_ptr  expr = skip_parens(operand->variant.expression);
+        if (is_routine_node(expr)) {
+          routine_operand = TRUE;
+          rout_sym = symbol_for(expr->variant.routine.ptr);
         }  /* if */
-      } else if (operand->is_qualified_name) {
-        adl_suppressed_by_qualification = TRUE;
+      }  /* if */
+      if (routine_operand) {
+        /* For the cases that are simple names, record that argument dependent
+           lookup was suppressed.  Note that non-overloaded functions 
+           come here as overloaded functions when argument-dependent lookup
+           is enabled.  The flag here only indicates suppression because
+           of the lack of an immediately following left parenthesis. */
+        if (!operand->is_name_followed_by_left_paren) {
+          /* Argument-dependent lookup does not apply to member functions,
+             so don't record it as "suppressed" for them. */
+          if (!rout_sym->is_class_member) {
+            arg_dep_lookup_suppressed = TRUE;
+          }  /* if */
+        } else if (operand->is_qualified_name) {
+          adl_suppressed_by_qualification = TRUE;
+        }  /* if */
       }  /* if */
     }  /* if */
   }  /* if */

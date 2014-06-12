@@ -1,5 +1,31 @@
 Version 4.10
 
+6/12/14  [EDGcpfe/15112]
+Significant parentheses around function call target dropped in C++-generating
+back end
+
+When a function name in a function call is parenthesized, the function name is
+not subject to argument-dependent lookup (ADL).  The IL for function calls
+includes a flag arg_dependent_lookup_suppressed_on_call to reflect such
+situations, but it was not always set correctly, causing the C++-generating
+back end to erroneously drop parentheses.  For example:
+
+  int f(void*) { return 1; }
+  namespace N {
+    struct S {} s;
+    int f(S*) { return 2; }
+  }
+  int main() {
+    return (f)(&N::s) != 1;  // Selects the first f above.
+  }
+
+Without the parentheses in the call to f, argument-dependent lookup would kick
+in and the better match N::f would be selected.  With the parentheses, only the
+first f is found.
+
+This is now fixed: The C++-generating back end now preserves the parentheses.
+
+
 6/12/14  [EDGcpfe/15043]
 C++-generating back end: unnecessary name qualification with inline namespace
 
