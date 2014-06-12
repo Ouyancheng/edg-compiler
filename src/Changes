@@ -126,6 +126,11 @@ fixed:
   double x = 1.0;
   __complex double y = { x, 0.0 };
 
+Note that in a case where a complex number is initialized with an aggregate
+(like above), the back end should be prepared to handle a ck_aggregate with two
+floating-point elements even in cases where LOWER_COMPLEX is FALSE.  This is a
+slight IL CHANGE.
+
 
 5/30/14  [EDGcpfe/15190]
 __func__ in templates
