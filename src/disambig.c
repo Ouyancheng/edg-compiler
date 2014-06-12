@@ -118,6 +118,7 @@ cache of the tokens fetched for disambiguation should be created.
   if (cache_tokens) {
     begin_caching_fetched_tokens(/*include_curr_token=*/TRUE);
   }  /* if */
+  dsp->decl_parse_state = NULL;
   /* Indicate that we are in a prescan context. */
   begin_prescan_context(suppress_packs, &dsp->variadic_prototype_instantiation,
                         &dsp->pack_expansion_stack_entry,
