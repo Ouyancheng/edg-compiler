@@ -271,6 +271,7 @@ be restored).
   dps->prescanned_initializer_levels_down = 0;
   dps->source_sequence_entry = NULL;
   dps->alignment = 0;
+  dps->auto_params = NULL;
 }  /* clear_decl_parse_state_fields */
 
 
