@@ -555,6 +555,7 @@ typedef struct an_auto_param_descr {
 
 extern void record_auto_param_descr(a_decl_parse_state_ptr  dps);
 
+extern void free_auto_param_descriptions(a_decl_parse_state_ptr  dps);
 
 /*
 A structure describing an action to be taken during declaration parsing.

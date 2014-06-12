@@ -779,9 +779,9 @@ extern void template_directive_or_declaration(
 extern
 void set_up_generic_lambda_declarator_scan(a_decl_parse_state  *dps,
                                            a_tmpl_decl_state   *templ_state);
-#endif /* !STANDALONE_UTILITY_PROGRAM */
 
 extern void wrap_up_generic_lambda_scan(a_tmpl_decl_state   *templ_state);
+#endif /* !STANDALONE_UTILITY_PROGRAM */
 
 extern void update_friend_info_for_specialization(a_type_ptr	class_type);
 

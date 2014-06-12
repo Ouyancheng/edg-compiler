@@ -458,12 +458,14 @@ must be the current token.
   entry->param_num = 0;
   entry->is_parameter_pack = FALSE;
   entry->start_pos = pos_curr_token;
+#if EXTRA_SOURCE_POSITIONS_IN_IL
   entry->end_pos = end_pos_curr_token;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   dps->auto_params = entry;
 }  /* record_auto_param_descr */
 
 
-void free_auto_param_descriptions(a_decl_parse_state  *dps)
+void free_auto_param_descriptions(a_decl_parse_state_ptr  dps)
 /*
 Return the "an_auto_param_descr" entries pointed to by dps to the list of
 available entries.

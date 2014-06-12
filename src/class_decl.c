@@ -31,8 +31,8 @@ class_decl.c -- Scanning of class declarations.
 #if MAINTAIN_NEEDED_FLAGS
 #include "il_walk.h"
 #endif /* MAINTAIN_NEEDED_FLAGS */
-#if MICROSOFT_EXTENSIONS_ALLOWED
 #include "disambig.h"
+#if MICROSOFT_EXTENSIONS_ALLOWED
 #include "ms_attrib.h"
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
@@ -29918,6 +29918,7 @@ For example:
       (void)required_token(tok_rbrace, ec_exp_rbrace);
     }  /* if */
     wrap_up_generic_lambda_scan(&templ_state);
+    free_auto_param_descriptions(&decl_info.decl_state);
   } else {
     /* Ordinary (non-generic) lambda: Scan the lambda body and, if needed,
        generate a lambda conversion function. */
