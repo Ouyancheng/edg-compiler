@@ -1115,10 +1115,23 @@ Return TRUE if the indicated scope is currently on the name context stack.
   a_boolean          scope_in_stack = FALSE;
   a_name_context_ptr ncp;
 
-  for (ncp = curr_name_context; ncp != NULL; ncp = ncp->next) {
+  for (ncp = curr_name_context; ncp != NULL && !scope_in_stack;
+       ncp = ncp->next) {
     if (ncp->assoc_scope == scope) {
       scope_in_stack = TRUE;
-      break;
+    } else if (scope->kind == (a_scope_kind)sck_namespace &&
+               scope->variant.assoc_namespace->is_inline) {
+      /* An inline namespace is considered to be on the stack if its
+         innermost containing non-inline namespace is. */
+      a_namespace_ptr parent_namespace =
+                      parent_namespace_or_null(scope->variant.assoc_namespace);
+      while (parent_namespace != NULL && parent_namespace->is_inline) {
+        parent_namespace = parent_namespace_or_null(parent_namespace);
+      }  /* while */
+      if (parent_namespace != NULL && ncp->assoc_scope ==
+                                       parent_namespace->variant.assoc_scope) {
+        scope_in_stack = TRUE;
+      }  /* if */
     }  /* if */
   }  /* for */
   return scope_in_stack;

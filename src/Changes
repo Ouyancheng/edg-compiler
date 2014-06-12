@@ -1,5 +1,23 @@
 Version 4.10
 
+6/12/14  [EDGcpfe/15043]
+C++-generating back end: unnecessary name qualification with inline namespace
+
+The C++-generating back end previously used a qualified name when putting
+out the name of a member of an inline namespace when the name appears in
+the context of the inline namespace's parent namespace.  This is now fixed,
+and an unqualified name is used.  For example:
+
+  namespace N {
+    inline namespace {
+      template<typename T> int f(T) {
+        return 0;
+      }
+    }
+    template int f(int);  // previously generated as N::f
+  }
+
+
 6/10/14  [EDGcpfe/15084,EDGcpfe/15145,EDGcpfe/15220]
 Spurious constant expression errors in non-type template arguments
 
