@@ -549,8 +549,13 @@ typedef struct an_auto_param_descr {
 			/* TRUE if the parameter declarator included an
 			   ellipsis indicating a parameter pack. */
   a_source_position
-		start_pos, end_pos;
-			/* The start and end position of the "auto" token. */
+		start_pos;
+			/* The start position of the "auto" token. */
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+  a_source_position
+		end_pos;
+			/* The end position of the "auto" token. */
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
 } an_auto_param_descr;
 
 extern void record_auto_param_descr(a_decl_parse_state_ptr  dps);
