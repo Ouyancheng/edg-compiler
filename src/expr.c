@@ -4811,10 +4811,10 @@ are expected to be NULL in that case.
         rout_sym = operand->symbol;
       } else if (is_expression_operand(operand)) {
         /* Check for a resolved function. */
-        an_expr_node_ptr  expr = skip_parens(operand->variant.expression);
-        if (is_routine_node(expr)) {
+        an_expr_node_ptr  targ_expr = skip_parens(operand->variant.expression);
+        if (is_routine_node(targ_expr)) {
           routine_operand = TRUE;
-          rout_sym = symbol_for(expr->variant.routine.ptr);
+          rout_sym = symbol_for(targ_expr->variant.routine.ptr);
         }  /* if */
       }  /* if */
       if (routine_operand) {
