@@ -6501,6 +6501,42 @@ entity.
 
 #endif /* GNU_VISIBILITY_ATTRIBUTE_ALLOWED */
 
+static void check_unused_result_attr(an_attribute_ptr  ap,
+                                     a_type_ptr        func_type)
+/*
+Apply the GNU "warn_unused_result" attribute specified by ap on the
+specified function type.
+*/
+{
+  check_assertion(ap != NULL && func_type != NULL &&
+                  func_type->variant.routine.return_type != NULL);
+  if (is_void_type(func_type->variant.routine.return_type)) {
+    pos_warning(ec_warn_unused_result_with_void_return, &ap->position);
+    make_attr_unrecognized(ap);
+  } else {
+    func_type->variant.routine.extra_info->result_should_be_used = TRUE;
+  }  /* if */
+}  /* check_unused_result_attr */
+
+
+static void deferred_check_unused_result_attr(a_decl_parse_state_ptr  dps)
+/*
+A check for the "warn_unused_result" attribute has been deferred and can
+now be completed.
+*/
+{
+  an_attribute_ptr  ap;
+  a_type_ptr        func_type;
+
+  check_assertion(dps->sym != NULL &&
+                  is_function_or_template_symbol(dps->sym));
+  func_type = underlying_function_type(dps->sym);
+  ap = find_attribute(ak_warn_unused_result,
+                      func_type->source_corresp.attributes);
+  check_unused_result_attr(ap, func_type);
+}  /* deferred_check_unused_result_attr */
+
+
 static char* apply_warn_unused_result_attr(an_attribute_ptr  ap,
                                            char              *entity,
                                            an_il_entry_kind  entity_kind)
@@ -6512,11 +6548,17 @@ that entity.
   a_type_ptr  func_type = get_func_type_for_attr(ap, &entity, entity_kind);
 
   if (func_type != NULL) {
-    if (is_void_type(func_type->variant.routine.return_type)) {
-      pos_warning(ec_warn_unused_result_with_void_return, &ap->position);
-      make_attr_unrecognized(ap);
+    if (func_type->variant.routine.return_type == NULL) {
+      /* If the attribute has been parenthesized, the return type of the
+         function hasn't been parsed yet; record an end-of-parse
+         action to apply this attribute. */
+      a_decl_parse_state  *dps = (a_decl_parse_state*)ap->assoc_info;
+      check_assertion(dps != NULL);
+      add_end_of_parse_action(deferred_check_unused_result_attr, dps,
+                              /*secondary_decls=*/FALSE);
     } else {
-      func_type->variant.routine.extra_info->result_should_be_used = TRUE;
+      /* The attribute can be handled now. */
+      check_unused_result_attr(ap, func_type);
     }  /* if */
   }  /* if */
   return entity;
