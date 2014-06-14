@@ -6549,9 +6549,9 @@ that entity.
 
   if (func_type != NULL) {
     if (func_type->variant.routine.return_type == NULL) {
-      /* If the attribute has been parenthesized, the return type of the
-         function hasn't been parsed yet; record an end-of-parse
-         action to apply this attribute. */
+      /* If the attribute is in a parenthesized declarator, the return type of
+         the function hasn't been parsed yet; record an end-of-parse action to
+         apply this attribute. */
       a_decl_parse_state  *dps = (a_decl_parse_state*)ap->assoc_info;
       check_assertion(dps != NULL);
       add_end_of_parse_action(deferred_check_unused_result_attr, dps,
