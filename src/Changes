@@ -1,5 +1,19 @@
 Version 4.10
 
+6/23/14  [EDGcpfe/15230]
+Division by zero on explicit type alignment in some configurations
+
+In configurations for which both macros GNU_EXTENSIONS_ALLOWED and
+MICROSOFT_EXTENSIONS_ALLOWED are set to FALSE, the front end sometimes
+aborted with a division by zero on a class type with an explicit alignment
+specifier.  For example:
+
+  struct alignas(16) S {};  // Previously aborted in C++11 mode in some
+                            // configurations.
+
+This is now fixed.
+
+
 6/13/14  [EDGcpfe/15228]
 GNU compatibility: Segfault in apply_warn_unused_result_attr
 

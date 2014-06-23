@@ -4832,14 +4832,12 @@ for handling virtual bases and functions.
   }  /* if */
 #endif /* DEBUG */
 #if USER_CONTROL_OF_STRUCT_PACKING
-#if GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED
   if (class_type->alignment_set_explicitly) {
     /* Save the desired alignment and compute the alignment normally.
        Later, we will adjust the computed alignment, if necessary. */
     alignment = class_type->alignment;
     class_type->alignment = 1;
   }  /* if */
-#endif /* GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED */
 #endif /* USER_CONTROL_OF_STRUCT_PACKING */
   clear_layout_block(&lob, class_type);
   compute_empty_class_bit(class_type);
