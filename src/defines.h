@@ -555,7 +555,9 @@ Flags to be set for any version that uses the C++ generating back end.
 #endif /* ifndef MACOSX_TEST_VERSION */
 
 #if MACOSX_TEST_VERSION
+#if !defined(MICROSOFT_EXTENSIONS_ALLOWED)
 #define MICROSOFT_EXTENSIONS_ALLOWED 1
+#endif /* !defined(MICROSOFT_EXTENSIONS_ALLOWED) */
 #define DEFAULT_MICROSOFT_MODE 0
 #define ALLOW_HOST_FP_TOO_SMALL_FOR_LARGEST_FIXED_POINT_TYPE 1
 #ifndef COMPILE_MULTIPLE_TRANSLATION_UNITS
