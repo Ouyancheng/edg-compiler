@@ -15738,6 +15738,7 @@ this one is such a continuation.
   a_src_seq_secondary_decl_ptr sec_decl;
   a_boolean                    is_definition = FALSE;
   a_name_linkage_kind          explicit_nlk = (a_name_linkage_kind)nlk_none;
+  a_name_linkage_kind          var_nlk;
   a_boolean                    render_braced_extern_c = FALSE;
   a_boolean                    consider_initialization;
   a_boolean                    embedded_constructs;
@@ -15880,19 +15881,20 @@ this one is such a continuation.
   if (var->is_initonly) write_tok_str("initonly ");
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   /* Check for linkage specifiers.  This applies even on a definition. */
+  var_nlk = var->source_corresp.name_linkage;
 #if GENERATE_LINKAGE_SPEC_BLOCKS
-  if (curr_default_name_linkage != var->source_corresp.name_linkage &&
+  if (curr_default_name_linkage != var_nlk &&
       !var->source_corresp.is_class_member &&
       innermost_function_scope == NULL &&
-      var->source_corresp.name_linkage != (a_name_linkage_kind)nlk_none &&
-      var->source_corresp.name_linkage != (a_name_linkage_kind)nlk_internal) {
+      var_nlk != (a_name_linkage_kind)nlk_none &&
+      var_nlk != (a_name_linkage_kind)nlk_internal) {
     /* The current default name linkage kind is different from the one on
        the variable, so a non-braced linkage specifier is needed. */
-    explicit_nlk = var->source_corresp.name_linkage;
+    explicit_nlk = var_nlk;
   }  /* if */
 #else /* !GENERATE_LINKAGE_SPEC_BLOCKS */
   if (il_header.source_language == sl_Cplusplus &&
-      var->source_corresp.name_linkage == (a_name_linkage_kind)nlk_external &&
+      var_nlk == (a_name_linkage_kind)nlk_external &&
       /* Inside a function, this is not allowed, and can only have come from
          an extern "C" { ... } wrapped around the function. */
       innermost_function_scope == NULL) {
@@ -15928,6 +15930,19 @@ this one is such a continuation.
     }  /* if */
   }  /* if */ 
 #endif /* GENERATE_LINKAGE_SPEC_BLOCKS */
+  if ((explicit_nlk == (a_name_linkage_kind)nlk_none ||
+       render_braced_extern_c) &&
+      var_nlk != (a_name_linkage_kind)nlk_none &&
+      var_nlk != (a_name_linkage_kind)nlk_internal &&
+      var->storage_class == (a_storage_class)sc_unspecified &&
+      is_const_qualified_type(var_type)) {
+    /* Something like
+         extern "C" int const N = 32;
+       requires an explicit "extern" after the rewrite:
+         extern "C" { extern int const N = 32; }
+       since it would otherwise implicitly have internal linkage. */
+    storage_class = (a_storage_class)sc_extern;
+  }  /* if */
   if (!suppress_specifiers) {
     if (explicit_nlk != (a_name_linkage_kind)nlk_none &&
         template_decl == NULL) {
