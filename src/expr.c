@@ -29723,8 +29723,18 @@ which of the various keywords was used.
     switch_back_to_original_region(region_to_switch_back_to);
     if (is_prototype_instantiation_context()) {
       /* Ensure that __func__ in a template context is treated as a template-
-         dependent (i.e., type-dependent) expression. */
+         dependent (i.e., type-dependent) expression.  To achieve this, the
+         string literal is cast to type_of_unknown_templ_param_nontype. */
+      a_constant_ptr  dep_con;
       var_type = type_of_unknown_templ_param_nontype;
+      switch_to_file_scope_region(&region_to_switch_back_to);
+      dep_con = alloc_constant((a_constant_repr_kind)ck_template_param);
+      switch_back_to_original_region(region_to_switch_back_to);
+      set_template_param_constant_kind(
+                          dep_con, (a_template_param_constant_kind)tpck_cast);
+      dep_con->type = type_of_unknown_templ_param_nontype;
+      dep_con->variant.template_param.variant.constant = name_string;
+      name_string = dep_con;
     } else {
       /* The C99 __func__ has a type of const array of char.  All the cases
          in other modes that are not treated as string literals and therefore
