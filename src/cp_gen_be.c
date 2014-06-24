@@ -15917,14 +15917,6 @@ this one is such a continuation.
           /* Ensure a non-defining declaration does not become a definition as
              a consequence of the rewrite. */
           storage_class = (a_storage_class)sc_extern;
-        } else if (var->storage_class == (a_storage_class)sc_unspecified &&
-                   is_const_qualified_type(var_type)) {
-          /* Something like
-               extern "C" int const N = 32;
-             requires an explicit "extern" after the rewrite:
-               extern "C" { extern int const N = 32; }
-             since it would otherwise implicitly have internal linkage. */
-          storage_class = (a_storage_class)sc_extern;
         }  /* if */
       }  /* if */
     }  /* if */
@@ -15932,16 +15924,29 @@ this one is such a continuation.
 #endif /* GENERATE_LINKAGE_SPEC_BLOCKS */
   if ((explicit_nlk == (a_name_linkage_kind)nlk_none ||
        render_braced_extern_c) &&
+      !var->source_corresp.is_class_member &&
       var_nlk != (a_name_linkage_kind)nlk_none &&
       var_nlk != (a_name_linkage_kind)nlk_internal &&
-      var->storage_class == (a_storage_class)sc_unspecified &&
+      storage_class == (a_storage_class)sc_unspecified &&
       is_const_qualified_type(var_type)) {
     /* Something like
          extern "C" int const N = 32;
-       requires an explicit "extern" after the rewrite:
+       requires an explicit "extern" if it is rewritten as
          extern "C" { extern int const N = 32; }
-       since it would otherwise implicitly have internal linkage. */
-    storage_class = (a_storage_class)sc_extern;
+       since it would otherwise implicitly have internal linkage.  Similarly,
+       we may not render a name linkage specifier if the surrounding specifier
+       is equivalent.  I.e.,
+         extern "C" { extern "C" int const N = 32; }
+       may be rendered as
+         extern "C" { extern int const N = 32; }
+       */
+    an_init_kind       init_kind;
+    an_initializer_ptr initializer;
+    get_variable_initializer(var, curr_name_context->assoc_scope,
+                             &init_kind, &initializer);
+    if (var_has_explicit_initializer(var, init_kind, initializer)) {
+      storage_class = (a_storage_class)sc_extern;
+    }  /* if */
   }  /* if */
   if (!suppress_specifiers) {
     if (explicit_nlk != (a_name_linkage_kind)nlk_none &&
