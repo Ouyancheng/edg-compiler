@@ -8751,7 +8751,7 @@ support.)
                                /*cannot_be_redefined=*/FALSE,
                                /*ref_suppresses_pch_file=*/FALSE);
     } else {
-      check_assertion(gnu_c89_inlining);
+      check_assertion(gpp_mode || gnu_c89_inlining);
       (void)enter_predef_macro("1", "__GNUC_GNU_INLINE__",
                                /*cannot_be_redefined=*/FALSE,
                                /*ref_suppresses_pch_file=*/FALSE);
