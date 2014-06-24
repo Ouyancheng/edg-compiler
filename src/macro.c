@@ -8740,13 +8740,13 @@ support.)
                                /*cannot_be_redefined=*/FALSE,
                                /*ref_suppresses_pch_file=*/FALSE);
     }  /* if */
-  } else {
-    /* GNU C mode. */
+  }  /* if */
+  if (gnu_version >= 40103) {
     /* GCC 4.1.3 and later define a macro to indicate whether the GNU C89 or
-       standard C99 rules are in effect for "inline". */
-    if (gnu_version < 40103) {
-      /* No macro to define. */
-    } else if (std_c99_inlining) {
+       standard C99 rules are in effect for "inline".  GNU C++ 4.1.3+ also
+       defines one of these macros, although their meaning is not clear in
+       that case: The standard case appears to correspond to C++11 mode. */
+    if (gcc_mode ? std_c99_inlining : cpp11_mode) {
       (void)enter_predef_macro("1", "__GNUC_STDC_INLINE__",
                                /*cannot_be_redefined=*/FALSE,
                                /*ref_suppresses_pch_file=*/FALSE);

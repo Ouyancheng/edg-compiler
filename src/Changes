@@ -1,5 +1,15 @@
 Version 4.10
 
+6/24/14  [EDGcpfe/15208]
+GNU C++ compatibility: __GNUC_STDC_INLINE__ and __GNUC_GNU_INLINE__
+
+In GNU C mode, one of the macros __GNUC_STDC_INLINE__ and __GNUC_GNU_INLINE__
+is defined depending on whether standard C99 "inline" behavior is in effect or
+not (see the entry of 9/29/09 for EDGcpfe/8555).  Now, one of these macros is
+also defined in GNU C++ mode (when gnu_version >= 40103): __GNUC_STDC_INLINE__
+is defined in GNU C++11 mode, and __GNUC_GNU_INLINE__ is defined in other
+C++ modes.
+
 6/23/14  [EDGcpfe/15230]
 Division by zero on explicit type alignment in some configurations
 
