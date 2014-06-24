@@ -21968,7 +21968,7 @@ will be an lvalue instead of the usual prvalue.
   a_boolean            issue_errors = TRUE;
   a_boolean            generate_il = TRUE;
   a_boolean            *p_error_detected;
-  a_boolean            error_detected;
+  a_boolean            error_detected = FALSE;
   a_boolean            arg_match_err = FALSE;
   a_boolean            partial_initializer = FALSE;
   an_arg_match_summary internal_arg_match;
@@ -22431,7 +22431,11 @@ will be an lvalue instead of the usual prvalue.
         arg_match_err = TRUE;
       } else {
         a_routine_ptr ctor_called;
-        p_error_detected = (arg_match != NULL) ? &error_detected : NULL;
+        if ((is != NULL && is->no_diagnostics) || arg_match != NULL) {
+          p_error_detected = &error_detected;
+        } else {
+          p_error_detected = NULL;
+        }  /* if */
         value_initialization(dest_type,
                              &icp->variant.braced.start_pos,
                              &ctor_called,
@@ -22439,22 +22443,20 @@ will be an lvalue instead of the usual prvalue.
                              &partial_initializer,
                              p_error_detected);
         if (is != NULL) is->partial_initializer = partial_initializer;
-        if (arg_match != NULL) {
-          if (error_detected) {
-            arg_match_err = TRUE;
+        if (error_detected) {
+          arg_match_err = TRUE;
+        } else if (arg_match != NULL) {
+          if (initializer_list_case) {
+            /* A std::initializer_list initialized from an empty
+               list is an exact match. */
+            arg_match->match_level = aml_exact;
+            arg_match->conversion.std.conv_to_std_initializer_list = TRUE;
           } else {
-            if (initializer_list_case) {
-              /* A std::initializer_list initialized from an empty
-                 list is an exact match. */
-              arg_match->match_level = aml_exact;
-              arg_match->conversion.std.conv_to_std_initializer_list = TRUE;
-            } else {
-              /* [over.ics.list]p3 says initializing a non-aggregate class
-                 from a braced-init-list, calling a constructor, is a
-                 user-defined conversion sequence. */
-              arg_match->match_level = aml_user_conversion;
-              arg_match->conversion.routine = ctor_called;
-            }  /* if */
+            /* [over.ics.list]p3 says initializing a non-aggregate class
+               from a braced-init-list, calling a constructor, is a
+               user-defined conversion sequence. */
+            arg_match->match_level = aml_user_conversion;
+            arg_match->conversion.routine = ctor_called;
           }  /* if */
         }  /* if */
       }  /* if */
