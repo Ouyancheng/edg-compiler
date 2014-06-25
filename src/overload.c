@@ -22695,7 +22695,11 @@ will be an lvalue instead of the usual prvalue.
       braced_init = FALSE;
     } else if (list == NULL) {
       /* An empty list ("{}") -- do value initialization. */
-      p_error_detected = (arg_match != NULL) ? &error_detected : NULL;
+      if ((is != NULL && is->no_diagnostics) || arg_match != NULL) {
+        p_error_detected = &error_detected;
+      } else {
+        p_error_detected = NULL;
+      }  /* if */
       value_initialization(dest_type, &icp->variant.braced.start_pos,
                            (a_routine **)NULL, &is_constant, &dip, &constant,
                            is, p_error_detected);
