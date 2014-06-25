@@ -21028,40 +21028,47 @@ void value_initialization(a_type_ptr            dest_type,
                           a_boolean             *is_constant,
                           a_dynamic_init_ptr    *p_dip,
                           a_constant_ptr        *p_constant,
-                          a_boolean             *partially_initialized,
+                          an_init_state         *is,
                           a_boolean             *error_detected)
 /*
-Create IL to perform a value-initialization (C++ standard [dcl.init])
-of an entity of type dest_type.  Value-initialization comes up
-with an initializer of "{}" or "()".  The result is returned as either
-a constant (*is_constant is set to TRUE, and *p_constant is set to a
-pointer to the unshared allocated constant) or a dynamic init entry
-(*is_constant is set to FALSE, and *p_dip is set to a pointer to the
-allocated dynamic init entry).  The dynamic init, if any, is not
-marked as a cast; the caller must do that if that's necessary.
-If ctor_called is non-NULL and a default constructor is called to
-perform the value initialization, a pointer to it is returned in
-*ctor_called.  Some cases can cause errors, which are reported at the
-source position given by pos.  *partially_initialized is returned TRUE
-if a constant result only partially initializes the entity.
-If error_detected is non-NULL, the result *p_dip and *p_constant are
-not constructed, no diagnostics are issued, and *error_detected is
-returned TRUE if there are any errors (that's used for overload
-resolution).
+Perform semantic analysis and, if appropriate, create IL for the value-
+initialization (C++ standard [dcl.init]) of an entity of type dest_type.
+Value-initialization comes up with an initializer of "{}" or "()".  The result,
+if any, is returned as either a constant (*is_constant is set to TRUE, and
+*p_constant is set to a pointer to the unshared allocated constant) or a
+dynamic init entry (*is_constant is set to FALSE, and *p_dip is set to a
+pointer to the allocated dynamic init entry).  The dynamic init, if any, is not
+marked as a cast; the caller must do that if that's necessary.  If ctor_called
+is non-NULL and a default constructor is called to perform the value-
+initialization, a pointer to it is returned in *ctor_called.  Some cases can
+cause errors, which are reported at the source position given by pos.
+If *is is non-NULL, is->partial_initializer is returned TRUE if a constant
+result only partially initializes the entity.
+
+If error_detected is non-NULL, no diagnostics are issued (for a non-NULL is,
+is->no_diagnostics must be TRUE also in that case), and *error_detected is
+returned TRUE if there are any errors (that's used, e.g., for overload
+resolution).  Furthermore, if (for a non-NULL is) is->check_validity_only is
+TRUE, the result *p_dip and *p_constant are not constructed.
 */
 {
   a_type_ptr         orig_dest_type = dest_type;
   a_type_ptr         unqual_dest_type;
   a_boolean          array_case = FALSE;
-  a_boolean          err = FALSE;
-  a_boolean          generate_il = (error_detected == NULL);
-  a_boolean          issue_errors = (error_detected == NULL);
+  a_boolean          err = FALSE, generate_il, issue_errors;
   an_expr_node_ptr   expr;
   a_constant         con;
   a_dynamic_init_ptr dip = NULL;
 
+  if (is != NULL) {
+    generate_il = !is->check_validity_only;
+    issue_errors = !is->no_diagnostics;
+    check_assertion(issue_errors == (error_detected == NULL));
+  } else {
+    issue_errors = (error_detected == NULL);
+    generate_il = issue_errors;
+  }  /* if */
   if (ctor_called != NULL) *ctor_called = NULL;
-  *partially_initialized = FALSE;
   if (is_array_type(dest_type)) {
     /* For an array type, strip off all the array levels and generate
        the initialization for the underlying element type. */
@@ -21177,8 +21184,8 @@ resolution).
           /* The constructor is declared constexpr and the construction has
              been folded to a constant. */
           copy_constant(folded_con, &con);
-          if (dip->is_partially_initialized) {
-            *partially_initialized = TRUE;
+          if (is != NULL && dip->is_partially_initialized) {
+            is->partial_initializer = TRUE;
           }  /* if */
           dip = NULL;
         }  /* if */
@@ -21970,7 +21977,6 @@ will be an lvalue instead of the usual prvalue.
   a_boolean            *p_error_detected;
   a_boolean            error_detected = FALSE;
   a_boolean            arg_match_err = FALSE;
-  a_boolean            partial_initializer = FALSE;
   an_arg_match_summary internal_arg_match;
   a_boolean            aggregate_case = FALSE;
   a_boolean            error_on_narrowing;
@@ -22343,7 +22349,6 @@ will be an lvalue instead of the usual prvalue.
                               aggr_arg_match, fill_in_dtor);
         constant = eff_is->init_con;
         dip = eff_is->init_dip;
-        partial_initializer = eff_is->partial_initializer;
         if (eff_is->constant_expr_ruled_out) {
           expr_stack->constant_expr_ruled_out = TRUE;
         }  /* if */
@@ -22436,13 +22441,9 @@ will be an lvalue instead of the usual prvalue.
         } else {
           p_error_detected = NULL;
         }  /* if */
-        value_initialization(dest_type,
-                             &icp->variant.braced.start_pos,
-                             &ctor_called,
-                             &is_constant, &dip, &constant,
-                             &partial_initializer,
+        value_initialization(dest_type, &icp->variant.braced.start_pos,
+                             &ctor_called, &is_constant, &dip, &constant, is,
                              p_error_detected);
-        if (is != NULL) is->partial_initializer = partial_initializer;
         if (error_detected) {
           arg_match_err = TRUE;
         } else if (arg_match != NULL) {
@@ -22695,13 +22696,9 @@ will be an lvalue instead of the usual prvalue.
     } else if (list == NULL) {
       /* An empty list ("{}") -- do value initialization. */
       p_error_detected = (arg_match != NULL) ? &error_detected : NULL;
-      value_initialization(dest_type,
-                           &icp->variant.braced.start_pos,
-                           (a_routine **)NULL,
-                           &is_constant, &dip, &constant,
-                           &partial_initializer,
-                           p_error_detected);
-      if (is != NULL) is->partial_initializer = partial_initializer;
+      value_initialization(dest_type, &icp->variant.braced.start_pos,
+                           (a_routine **)NULL, &is_constant, &dip, &constant,
+                           is, p_error_detected);
       if (arg_match != NULL) {
         if (error_detected) {
           arg_match_err = TRUE;
@@ -22835,7 +22832,6 @@ will be an lvalue instead of the usual prvalue.
         /* Create a dynamic init. */
         dip = alloc_expr_dynamic_init((a_dynamic_init_kind)dik_constant);
         set_dynamic_init_constant(dip, constant);
-        dip->is_partially_initialized = partial_initializer;
       }  /* if */
       constant = NULL;
     }  /* if */

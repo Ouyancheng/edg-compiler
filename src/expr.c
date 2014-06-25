@@ -39295,7 +39295,6 @@ position.
 */
 {
   a_boolean            is_constant;
-  a_boolean            partially_initialized;
   an_expr_stack_entry  *saved_expr_stack;
   an_expr_stack_entry  expr_stack_entry;
 
@@ -39304,9 +39303,7 @@ position.
                                   /*is_full_expr=*/TRUE,
                                   (a_decl_parse_state*)NULL, is);
   value_initialization(type, diag_pos, (a_routine**)NULL, &is_constant,
-                       &is->init_dip, &is->init_con,
-                       &partially_initialized, (a_boolean*)NULL);
-  is->partial_initializer = partially_initialized;
+                       &is->init_dip, &is->init_con, is, (a_boolean*)NULL);
   if (is->init_dip != NULL) {
     wrap_up_dynamic_init_full_expression(is->init_dip);
   }  /* if */
