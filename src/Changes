@@ -1,5 +1,24 @@
 Version 4.10
 
+6/25/14  [EDGcpfe/14941]
+Spurious error on instantiation of noexcept of member function template
+
+A spurious "does not make use of any argument packs" could be issued
+on a pack expansion that uses a template parameter pack of the enclosing
+class in a noexcept specifier of a member function template.  Now fixed.
+
+  template <bool B1, bool ... Bargs> struct A {
+    static const bool value = B1;
+  };
+  template <class ... T> struct B {
+    static const bool value = true;
+  };
+  template <typename ... T> struct C {
+    template <class S> void f() noexcept(A<B<T&>::value ...>::value) {}
+  };
+  C<int> c;
+
+
 6/24/14  [EDGcpfe/15208]
 GNU C++ compatibility: __GNUC_STDC_INLINE__ and __GNUC_GNU_INLINE__
 

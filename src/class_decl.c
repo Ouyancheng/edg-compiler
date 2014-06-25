@@ -14361,6 +14361,8 @@ decl_member_function, which handles in-class member function declarations.)
      of exception specifications. */
   prototype_sym->variant.routine.instance_ptr->prototype_scope_symbols =
                                             func_info->prototype_scope_symbols;
+  prototype_sym->variant.routine.instance_ptr->param_id_list =
+                                tssp->variant.function.func_info.param_id_list;
   func_info->keep_param_id_list = TRUE;
   if (dps->type->kind == (a_type_kind)tk_routine) {
     /* If necessary, register the prototype routine to have its exception

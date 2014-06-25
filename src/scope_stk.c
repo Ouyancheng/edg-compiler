@@ -10750,11 +10750,12 @@ suppression is on the stack.
     pesep = pack_expansion_stack;
     pedp = pesep->expansion_descr;
     any_args = TRUE;
-  } else if ((is_real_instantiation_context() ||
+  } else if ((pedp = get_pack_expansion_for_curr_context()),
+             (is_real_instantiation_context() ||
               !is_prototype_instantiation_context()) &&
-             (pedp = get_pack_expansion_for_curr_context()) != NULL &&
+             (pedp != NULL &&
               (pedp->uses_only_enclosing_packs ||
-               !is_prototype_instantiation_context())) {
+               !is_prototype_instantiation_context()))) {
     /* This is a real instantiation.  See if there is a corresponding
        parameter pack from the template definition.  In a prototype
        instantiation context we want to treat this as a real instantiation
@@ -10789,9 +10790,8 @@ suppression is on the stack.
   } else if (is_prototype_instantiation_context()) {
     any_args = TRUE;
     pesep = push_pack_expansion_stack();
-    if (pedp != NULL && is_real_instantiation_context()) {
-      /* This is a template declaration in a real instantiation.  If pedp
-         was set above, reset any enclosing packs to their dependent
+    if (pedp != NULL) {
+      /* If pedp was set above, reset any enclosing packs to their dependent
          values.  This can come up in examples like
            template <typename... T> struct C {
              template <typename... U> static A<B<T, U>...> f(U&& ... args);
