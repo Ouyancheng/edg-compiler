@@ -1,5 +1,13 @@
 Version 4.10
 
+6/26/14  [EDGcpfe/15259]
+Clang compatibility: inline namespaces enabled in C++03 mode
+
+Inline namespaces are now enabled in clang C++03 mode when clang_version
+is >= 30000.
+
+  inline namespace N {}
+
 6/25/14  [EDGcpfe/14941]
 Spurious error on instantiation of noexcept of member function template
 
