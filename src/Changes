@@ -1,5 +1,20 @@
 Version 4.10
 
+6/26/14  [EDGcpfe/15256]
+Spurious error on dependent constructor initializer
+
+The front end sometimes issued a spurious error on a dependent constructor
+initializer during the prototype instantiation of a constructor template.
+For example:
+
+  template<typename> struct B {};
+  struct D: B<void> {
+    template<typename T> D(T): B<T>() {}  // Previously triggered a spurious
+  };                                      // error.  Now okay.
+
+This is now fixed.
+
+
 6/26/14  [EDGcpfe/15259]
 Clang compatibility: inline namespaces enabled in C++03 mode
 

@@ -5489,8 +5489,7 @@ underlying element type and the array type itself is returned through
       } else if (is_type_symbol(member_or_base_sym)) {
         /* This is presumably a mem-initializer for a base. */
         a_type_ptr  type = type_symbol_type(member_or_base_sym);
-        type = skip_typerefs(type);
-        template_param_init = (type->kind == (a_type_kind)tk_template_param);
+        template_param_init = is_template_param_or_nonreal_class_type(type);
       }  /* if */
     }  /* if */
     if ((!class_name_injection_enabled || microsoft_mode) &&
