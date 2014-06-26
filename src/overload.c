@@ -5541,10 +5541,11 @@ accept_function:
   goto end_of_routine;
 reject_function:
   /* The function is not suitable. */
-  /* Free any argument match summary entries built for it. */
+  /* Free any argument match summary entries built for it.  Note that
+     template_arg_list is not freed because it could be pointed to
+     by a routine on the substituted types list (see find_substituted_type
+     in templates.c). */
   free_arg_match_summary_list(arg_match_list);
-  /* Free any template argument list built for it. */
-  free_template_arg_list(local_template_arg_list);
 end_of_routine:;
 }  /* determine_function_viability */
 
@@ -13422,7 +13423,9 @@ accept_function:
                                                  result_is_an_xvalue);
     goto next_function;
 reject_function:
-    /* Function was rejected.  Free anything allocated for it. */
+    /* The function was rejected.  Note that template_arg_list is not freed
+       because it could be pointed to by a routine on the substituted
+       types list (see find_substituted_type in templates.c). */
     free_template_arg_list(template_arg_list);
 next_function:;
   }  /* for */
@@ -23988,6 +23991,7 @@ source_is_rvalue.
   a_routine_type_supplement_ptr   rtsp;
   a_type_ptr                      routine_type, arg_type, param_type;
   a_param_type_ptr                ptp;
+  a_boolean	                  free_templ_arg_list = TRUE;
 #if CHECKING
   a_boolean                       assign_case = FALSE;
 #endif /* CHECKING */
@@ -24022,6 +24026,11 @@ source_is_rvalue.
       /* Deduction failed. */
       goto reject_function;
     }  /* if */
+    /* If we reject the function after this point, don't free the template
+       argument list because it could be pointed to by a routine type
+       on the substituted types list (see find_substituted_type in
+       templates.c). */
+    free_templ_arg_list = FALSE;
     routine_type = wrapup_function_template_argument_deduction(
                                            template_arg_list, sym,
                                            (a_template_param_ptr)NULL,
@@ -24093,7 +24102,14 @@ source_is_rvalue.
     arg_match->match_level = aml_none;
     *uncallable = TRUE;
   }  /* if */
+  goto done;
 reject_function:;
+  if (*template_arg_list != NULL && free_templ_arg_list) {
+    free_template_arg_list(*template_arg_list);
+    *template_arg_list = NULL;
+  }  /* if */
+done:
+  return;
 }  /* determine_copy_param_match */
 
 
@@ -24246,10 +24262,11 @@ do access checking on the copy constructor.
       goto next_function;
 reject_function:
       /* The function is not viable. */
-      /* Free any argument match summary entry built for it. */
+      /* Free any argument match summary entry built for it.  Note that
+         template_arg_list is not freed because it could be pointed to
+         by a routine on the substituted types list (see find_substituted_type
+         in templates.c). */
       free_arg_match_summary_list(arg_match);
-      /* Free any template argument list built for it. */
-      free_template_arg_list(template_arg_list);
 next_function:;
       /* Keep looping to try all the functions in the overload set. */
     }  /* for */
@@ -24472,11 +24489,12 @@ traversal_start:
       goto next_function;
 reject_function:
       /* The function is not viable. */
-      /* Free any argument match summary entries built for it. */
+      /* Free any argument match summary entries built for it.  Note that
+         template_arg_list is not freed because it could be pointed to
+         by a routine on the substituted types list (see find_substituted_type
+         in templates.c). */
       selector_match->next = arg_match;
       free_arg_match_summary_list(selector_match);
-      /* Free any template argument list built for it. */
-      free_template_arg_list(template_arg_list);
 next_function:;
       /* Keep looping to try all the functions in the overload set. */
     }  /* for */
