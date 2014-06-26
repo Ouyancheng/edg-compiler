@@ -2756,6 +2756,7 @@ will be equal to init_list_ctor_arg_list->variant.braced.list.
   a_boolean           literal_case = FALSE;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   a_boolean           init_list_ctor_case = FALSE;
+  a_boolean           saved_allow_call_with_incomplete_return_type;
 
   db_enter(4, "scan_ctor_arguments");
 
@@ -2764,6 +2765,12 @@ will be equal to init_list_ctor_arg_list->variant.braced.list.
                    is_braced_init_component(init_list_ctor_arg_list) &&
                    init_list_ctor_arg_list->variant.braced.list ==
                                                            supplied_arg_list));
+  /* Allowing a call with incomplete return type doesn't propagate to calls
+    in the arguments of the current call. */
+  saved_allow_call_with_incomplete_return_type =
+                           expr_stack->allow_call_with_incomplete_return_type;
+  expr_stack->allow_call_with_incomplete_return_type = FALSE;
+  /* Initialize returned flags: */
   if (trivial_ctor != NULL) *trivial_ctor = FALSE;
   if (elision_done != NULL) *elision_done = FALSE;
   if (unboxing_conv != NULL) *unboxing_conv = FALSE;
@@ -3192,6 +3199,10 @@ end_of_routine:
   if (arg_list != NULL && arg_list != supplied_arg_list) {
     free_arg_list(arg_list);
   }  /* if */
+  /* Restore the previous state wrt. allowing an incomplete return type for
+     the current call. */
+  expr_stack->allow_call_with_incomplete_return_type = 
+                                 saved_allow_call_with_incomplete_return_type;
   db_exit();
 }  /* scan_ctor_arguments */
 

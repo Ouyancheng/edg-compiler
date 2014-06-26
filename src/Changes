@@ -1,5 +1,13 @@
 Version 4.10
 
+6/26/14  [EDGcpfe/15236]
+Abort in scan_ctor_arguments for decltype
+
+The changes for EDGcpfe/14756 introduced a bug causing the front end to abort
+with an internal error in scan_ctor_arguments for certain complex cases.  This
+regression is now fixed.
+
+
 6/26/14  [EDGcpfe/15256]
 Spurious error on dependent constructor initializer
 
