@@ -4579,13 +4579,14 @@ returned set to TRUE.
   if (vp != NULL && vp->is_constexpr) {
     a_type_ptr  tp = skip_typerefs(vp->type);
     check_assertion_or_expect_error(
-                                 initializer_constant(vp) != NULL ||
-                                 is_template_dependent_type(tp) ||
-                                 (is_immediate_class_type(tp) &&
-                                  !class_symbol_supp(symbol_for(tp))
+                               initializer_constant(vp) != NULL ||
+                               is_template_dependent_type(tp) ||
+                               scope_stack_top().in_prototype_instantiation ||
+                               (is_immediate_class_type(tp) &&
+                                !class_symbol_supp(symbol_for(tp))
                                        ->has_nontrivial_default_constructor &&
-                                  !tp->variant.class_struct_union
-                                              .has_zero_init_component));
+                                !tp->variant.class_struct_union
+                                            .has_zero_init_component));
   }  /* if */
 #endif /* CHECKING */
 #if DEBUG
