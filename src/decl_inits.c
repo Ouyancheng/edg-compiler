@@ -5488,9 +5488,11 @@ underlying element type and the array type itself is returned through
           member_or_base_sym = NULL;
         }  /* if */
       } else if (is_type_symbol(member_or_base_sym)) {
-        /* This is presumably a mem-initializer for a base. */
+        /* This is presumably a mem-initializer for a base.  Identify the
+           template-dependent case (but exclude delegated constructors). */
         a_type_ptr  type = type_symbol_type(member_or_base_sym);
-        template_param_init = is_template_param_or_nonreal_class_type(type);
+        template_param_init = is_template_param_or_nonreal_class_type(type) &&
+                              !identical_types(class_type, type);
       }  /* if */
     }  /* if */
     if ((!class_name_injection_enabled || microsoft_mode) &&
