@@ -13426,7 +13426,6 @@ reject_function:
     /* The function was rejected.  Note that template_arg_list is not freed
        because it could be pointed to by a routine on the substituted
        types list (see find_substituted_type in templates.c). */
-    free_template_arg_list(template_arg_list);
 next_function:;
   }  /* for */
 end_of_function:
@@ -23991,7 +23990,7 @@ source_is_rvalue.
   a_routine_type_supplement_ptr   rtsp;
   a_type_ptr                      routine_type, arg_type, param_type;
   a_param_type_ptr                ptp;
-  a_boolean	                  free_templ_arg_list = TRUE;
+  a_boolean                       free_templ_arg_list = TRUE;
 #if CHECKING
   a_boolean                       assign_case = FALSE;
 #endif /* CHECKING */
