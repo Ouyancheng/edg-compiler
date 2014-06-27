@@ -27497,6 +27497,13 @@ flag is set in the class symbol supplement of the given type.
          constexpr constructor will be found), but we can treat them like
          aggregates in this context. */
       cssp->known_to_be_a_literal_type = TRUE;
+    } else if (!constexpr_enabled) {
+      /* The C++11 notion of a literal type doesn't really make sense without
+         constexpr, but some (Microsoft) modes support the __is_literal_type
+         predicate without supporting constexpr.  The criteria above could
+         conceivably apply without considering constexpr, but if we get here
+         we'll treat the class type as a non-literal type. */
+      cssp->known_not_to_be_a_literal_type = TRUE;
     } else {
       /* Check if the type has a constexpr constructor or constructor template
          that isn't a move/copy constructor.  The standard also requires that
