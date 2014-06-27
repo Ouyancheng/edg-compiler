@@ -505,6 +505,11 @@ typedef struct a_pack_expansion_stack_entry {
 			   non-initial pack elements.  This is not used
 			   (has the value NO_CACHED_TOKEN_HANDLE) when
 			   is_rescan is TRUE. */
+  a_template_arg_ptr
+		template_arg_list;
+			/* In rescan contexts, a copy of the supplied
+			   template argument list is made.  This points to
+			   that copy of the list.  NULL otherwise. */
   a_byte_boolean
 		is_rescan;
 			/* TRUE when the expansion is being done in an

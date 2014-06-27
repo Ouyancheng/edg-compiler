@@ -9542,6 +9542,7 @@ to it.
   pesep->expansion_descr = NULL;
   pesep->instantiation_descr = NULL;
   pesep->first_token_handle = NO_CACHED_TOKEN_HANDLE;
+  pesep->template_arg_list = NULL;
   pesep->is_rescan = FALSE;
   pesep->is_deduction = FALSE;
   pesep->is_suppression = FALSE;
@@ -9581,6 +9582,9 @@ Pop the current entry off of the pack expansion stack.
   /* If there is an instantiation entry, free it now. */
   if (pesep->instantiation_descr != NULL) {
     free_pack_instantiation_descr(pesep->instantiation_descr);
+  }  /* if */
+  if (pesep->template_arg_list != NULL) {
+    free_template_arg_list(pesep->template_arg_list);
   }  /* if */
   /* If this pack reference involved resetting the enclosing pack parameters,
      restore those values now. */
@@ -10867,10 +10871,18 @@ set to TRUE, FALSE otherwise.
 
   *err = FALSE;
   if (pedp != NULL) {
+    /* Make a copy of the template argument list.  In some cases the caller
+       can free the list before the rescan is complete. */
+    templ_arg_list = copy_template_arg_list(templ_arg_list);
     pesep = push_pack_instantiation(pedp, templ_param_list, templ_arg_list,
                                     /*is_rescan=*/TRUE,
                                     /*is_deduction=*/FALSE, ctws_state,
                                     err);
+    if (pesep != NULL) {
+      pesep->template_arg_list = templ_arg_list;
+    } else {
+      free_template_arg_list(templ_arg_list);
+    }  /* if */
   }  /* if */
   *p_pesep = pesep;
   return pesep != NULL || pedp == NULL;
