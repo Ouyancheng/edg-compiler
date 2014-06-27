@@ -2766,7 +2766,7 @@ will be equal to init_list_ctor_arg_list->variant.braced.list.
                    init_list_ctor_arg_list->variant.braced.list ==
                                                            supplied_arg_list));
   /* Allowing a call with incomplete return type doesn't propagate to calls
-    in the arguments of the current call. */
+     in the arguments of the current call. */
   saved_allow_call_with_incomplete_return_type =
                            expr_stack->allow_call_with_incomplete_return_type;
   expr_stack->allow_call_with_incomplete_return_type = FALSE;
