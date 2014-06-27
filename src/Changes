@@ -65,8 +65,8 @@ This is now fixed.
 6/26/14  [EDGcpfe/15223]
 Reference to freed template argument list
 
-A template argument list that is pointed to by a routine entry could, in
-some (rare) circumstances, be freed, resulting in a dangling pointer.
+A template argument list that is pointed to by a pack rescan entry could,
+in some (rare) circumstances, be freed, resulting in a dangling pointer.
 This could conceivably result in a variety of incorrect behavior, but
 has been observed in some cases to result in an internal error in
 update_template_param_symbol.  Now fixed.
