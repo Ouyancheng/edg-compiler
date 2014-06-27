@@ -1,5 +1,34 @@
 Version 4.10
 
+6/27/14  [EDGcpfe/15246]
+Spurious error with default constructor with default arguments in GNU mode
+
+The changes for EDGcpfe/14637 (see entry of 11/13/13) caused the front end
+to sometimes not recognize a default constructor as such when it is a member
+of a class template and it has parameters with default arguments.  This
+problem, which only occurred in some  GNU C++ modes with gnu_version >= 40700
+and the --no_parse_templates option, could lead to spurious errors.  For
+example:
+
+  template<class T> struct S {
+    S(T x = 0) {
+      S<T> s;  // Previously triggered a spurious error.  Now okay.
+    }
+  };
+  S<int> s;
+
+This is now fixed.
+
+Note that the error occurs during the prototype instantiation of S<T>::S even
+though --no_parse_templates is an explicit request not to perform prototype
+instantiations for nonclass templates.  That is because the affected GNU modes
+must perform prototype instantiation to correctly handle a potential __bases
+or __direct_bases operator that might occur during such an instantiation.  To
+avoid this surprising effect, the front end now disables support for __bases
+and __direct_bases if the --no_parse_templates is specified on the command
+line.
+
+
 6/27/14  [EDGcpfe/15218]
 Abort on __is_literal_type in Microsoft C++ mode
 

@@ -4150,10 +4150,16 @@ exclude the GNU C++ mode already.  Hence those are not checked again here.)
     /* g++ 4.5 and later accept constexpr in C++11 mode. */
     constexpr_enabled =  TRUE;
   }  /* if */
-  if (gnu_version >= 40700 && variadic_templates_enabled) {
+  if (gnu_version >= 40700 && variadic_templates_enabled &&
+      !(option_kind_used[(int)optk_parse_nonclass_templates] &&
+        !nonclass_prototype_instantiations)) {
     /* g++ 4.7 and later support __bases and __direct_bases.  This uses the
        variadic mechanism, so don't enable them if variadic templates have
-       been disabled. */
+       been disabled.  Also, this feature causes all templates to be treated
+       as potentially variadic, and therefore requires that their prototype
+       instantiations be done.  We therefore don't enable the feature if a
+       command-line option explicitly requests not to perform nonclass
+       prototype instantiations. */
     gnu_bases_operators_enabled = TRUE;
   }  /* if */
 #if FUNCTION_PROTOTYPE_INSTANTIATION_DEFERRAL_ALLOWED

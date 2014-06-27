@@ -12217,7 +12217,7 @@ than a constructor reference.
     is_def_ctor = TRUE;
   } else if (ptp->has_default_arg) {
     is_def_ctor = TRUE;
-    if (!is_declarative_context) {
+    if (!is_declarative_context && !rout->is_prototype_instantiation) {
       /* If is_declarative_context is TRUE, the check for a default argument
          on the first parameter is more relaxed, but when it is FALSE, only
          return TRUE if the default argument expression has already been
@@ -18046,7 +18046,8 @@ evaluated is TRUE if the expression is evaluated.
   } else {
 #if CHECKING
     if (ptp->default_arg_expr == NULL &&
-        !ptp->has_unevaluated_template_default) {
+        !ptp->has_unevaluated_template_default &&
+        !rout->is_prototype_instantiation) {
       internal_error("copy_default_arg_expr_list: param has no default arg");
     }  /* if */
 #endif /* CHECKING */
