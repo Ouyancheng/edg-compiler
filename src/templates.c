@@ -8503,10 +8503,12 @@ list of a template function.  Returns TRUE if a match is found.
          just the constant for "c" remaining so it can be deduced below, and
          convert the constant to the required type (in this case, convert 89
          to long).  This kind of conversion is only accepted for integral
-         types. */
+         types.  Don't attempt the conversion if the source is a template
+         parameter constant, which can occur during partial ordering. */
       a_constant	temp_constant;
       a_constant_ptr	new_constant;
       if (is_integral_type(new_templ_constant->type) &&
+          constant->kind !=(a_constant_repr_kind)ck_template_param &&
           convert_constant_for_deduction(constant, &temp_constant,
                                          new_templ_constant->type)) {
         /* The conversion was successful.  Use the new constant and the
