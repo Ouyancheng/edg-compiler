@@ -39181,6 +39181,21 @@ As indicated, this is initialization with the "=" semantics
                                    ec_bad_initializer_type,
                                    /*elision_done=*/(a_boolean *)NULL,
                                    &dps->init_state.init_dip);
+  if (constexpr_enabled && dps->init_state.init_dip != NULL &&
+      dps->init_state.initializer_must_be_constant) {
+    a_constant  folded_value;
+    if (fold_constexpr_dynamic_init(dps->init_state.init_dip, dps->type,
+                                    &result.position, &folded_value)) {
+      a_dynamic_init_ptr  dip = dps->init_state.init_dip;
+      an_expr_node_ptr    expr = NULL;
+      if (dip->kind == (a_dynamic_init_kind)dik_expression) {
+        expr = dip->variant.expression;
+      }  /* if */
+      set_dynamic_init_kind(dip, (a_dynamic_init_kind)dik_constant);
+      set_dynamic_init_constant(dip, alloc_unshared_constant(&folded_value));
+      dip->variant.constant->expr = expr;
+    }  /* if */     
+  }  /* if */
   wrap_up_init_state_initialization(&dps->init_state, &result.position);
   pop_expr_stack_for_initializer(saved_expr_stack,
                                  /*is_full_expr=*/TRUE,

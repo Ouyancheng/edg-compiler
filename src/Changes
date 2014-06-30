@@ -1,5 +1,20 @@
 Version 4.10
 
+6/30/14  [EDGcpfe/15250]
+Abort on failure to fold conversion in initializer for constexpr variable
+
+In C++11 mode, the front end sometimes failed to fold the conversion of a
+constant derived class object to a base class in constexpr initialization
+context.  This could lead to an abort in decl_inits.c (in "initializer").
+For example:
+
+  struct B { int x = 42; };
+  struct D: B {};
+  constexpr B b = B(D());  // Previously aborted in C++11 mode.
+
+This is now fixed.
+
+
 6/30/14  [EDGcpfe/15241]
 Pack expansion missing in some generic braced initializers
 

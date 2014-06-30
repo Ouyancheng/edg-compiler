@@ -9824,6 +9824,30 @@ pm_field_selection:
           result_con->type = expr->type;
         }  /* if */
         break;
+      case eok_base_class_cast:
+        /* A cast of a prvalue to one of its base class subobjects.  We can
+           fold that if the operand is a ck_aggregate constant. */
+        if (fold_expr(op1, ceblock, &op1_constant)) {
+          a_constant_ptr base_con;
+          check_assertion(op1_constant.kind ==
+                                           (a_constant_repr_kind)ck_aggregate);
+          /* Scan through the base class subaggregates looking for one that
+             matches the type to which the operand is being cast.  Because
+             eok_base_class_cast operations only traverse a single level,
+             we only need to look at the top-level subaggregates. */
+          for (base_con = op1_constant.variant.aggregate.first_constant;
+               !folded && base_con != NULL &&
+                      base_con->constant_for_base_class_from_constexpr_folding;
+               base_con = base_con->next) {
+            if (identical_types_ignoring_qualifiers(base_con->type,
+                                                                 expr->type)) {
+              /* This is the desired base class subobject. */
+              folded = TRUE;
+              copy_constant_for_constexpr_evaluation(base_con, result_con);
+              implicit_cast(result_con, expr->type);
+            }  /* if */
+          }  /* for */
+        }  /* if */
       default:
         /* "Normal" operators.  For these, the operands have to be constant
             for folding to be possible. */
