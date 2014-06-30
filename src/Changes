@@ -1,5 +1,21 @@
 Version 4.10
 
+6/30/14  [EDGcpfe/15265]
+Inadvertent pre-lowering of aggregate constants in C mode
+
+The changes for EDGcpfe/8523 introduced the notion of pre-lowering an aggregate
+constant, but that processing is not required in C mode and, in some cases,
+had generated a lowered structure with zero size (despite having a non-NULL
+field list).  For example (with --gcc):
+
+  typedef struct {
+    int m;
+  } A;
+  int f(int i) {
+    return ((A) { i }).m;
+  }
+
+
 6/30/14  [EDGcpfe/15250]
 Abort on failure to fold conversion in initializer for constexpr variable
 

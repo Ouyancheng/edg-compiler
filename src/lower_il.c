@@ -5036,13 +5036,13 @@ front end reflect the canonical layout and don't account for empty base classes
 that have been removed, layout re-ordering, or the insertion of pointers to
 virtual tables.  This routine pre-lowers the specified constant and any
 aggregate constants it contains.  Pre-lowering is only needed once (and skipped
-if the constant has already been pre-lowered).
+if the constant has already been pre-lowered or in C mode).
 */
 {
   an_expr_or_stmt_traversal_block tblock;
 
   check_assertion(constant->kind == (a_constant_repr_kind)ck_aggregate);
-  if (!constant->has_been_prelowered) {
+  if (!C_mode() && !constant->has_been_prelowered) {
     clear_expr_or_stmt_traversal_block(&tblock);
     tblock.process_constant = prelower_class_in_aggregate;
     traverse_constant(constant, &tblock);
