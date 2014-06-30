@@ -9848,6 +9848,7 @@ pm_field_selection:
             }  /* if */
           }  /* for */
         }  /* if */
+        break;
       default:
         /* "Normal" operators.  For these, the operands have to be constant
             for folding to be possible. */
