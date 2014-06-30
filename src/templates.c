@@ -8508,7 +8508,7 @@ list of a template function.  Returns TRUE if a match is found.
       a_constant	temp_constant;
       a_constant_ptr	new_constant;
       if (is_integral_type(new_templ_constant->type) &&
-          constant->kind !=(a_constant_repr_kind)ck_template_param &&
+          constant->kind != (a_constant_repr_kind)ck_template_param &&
           convert_constant_for_deduction(constant, &temp_constant,
                                          new_templ_constant->type)) {
         /* The conversion was successful.  Use the new constant and the
