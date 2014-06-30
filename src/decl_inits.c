@@ -831,6 +831,8 @@ through *init_con (unless is->check_validity_only is TRUE).  Update the state
 of the whole initialization (*is) as appropriate.
 */
 {
+  a_boolean  pack_expansion = is_pack_expansion_component(icp);
+
   check_assertion(is_template_param_or_nonreal_class_type(gtype) ||
                   (gpp_mode && is_prototype_instantiation_context()) ||
                   is_error_type(gtype));
@@ -877,6 +879,9 @@ of the whole initialization (*is) as appropriate.
     }  /* if */
   } else {
     unexpected_condition();
+  }  /* if */
+  if (!is->check_validity_only && *init_con != NULL) {
+    (*init_con)->is_pack_expansion = pack_expansion;
   }  /* if */
 }  /* aggr_init_generic_element */
 
