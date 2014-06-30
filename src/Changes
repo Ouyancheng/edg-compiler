@@ -36,7 +36,7 @@ Spurious error with default constructor with default arguments in GNU mode
 The changes for EDGcpfe/14637 (see entry of 11/13/13) caused the front end
 to sometimes not recognize a default constructor as such when it is a member
 of a class template and it has parameters with default arguments.  This
-problem, which only occurred in some  GNU C++ modes with gnu_version >= 40700
+problem, which only occurred in some GNU C++ modes with gnu_version >= 40700
 and the --no_parse_templates option, could lead to spurious errors.  For
 example:
 
