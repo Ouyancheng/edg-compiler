@@ -1,5 +1,21 @@
 Version 4.10
 
+6/27/14  [EDGcpfe/15088]
+Microsoft compatibility: internal error during partial ordering
+
+An internal error could occur (in convert_constant_for_deduction) in
+Microsoft C++11 mode during partial ordering or partial specialization
+processing involving nontype template parameters.  Now fixed.
+
+  template <class T1, class T2, int N> void f(T1, T2 (&a)[N]); // #1
+  template <class T1, class T2, int N> void f(T1*, T2 (&a)[N]); // #2
+  int main() {
+    int i;
+    int arr[5];
+    f(&i, arr); // calls #2
+  }
+
+
 6/27/14  [EDGcpfe/15246]
 Spurious error with default constructor with default arguments in GNU mode
 
