@@ -164,6 +164,7 @@ is >= 30000.
 
   inline namespace N {}
 
+
 6/25/14  [EDGcpfe/14941]
 Spurious error on instantiation of noexcept of member function template
 
