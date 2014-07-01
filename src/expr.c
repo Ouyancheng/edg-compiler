@@ -39184,9 +39184,10 @@ As indicated, this is initialization with the "=" semantics
   if (constexpr_enabled && dps->init_state.init_dip != NULL &&
       dps->init_state.initializer_must_be_constant) {
     a_constant  folded_value;
-    if (fold_constexpr_dynamic_init(dps->init_state.init_dip, dps->type,
-                                    &result.position, &folded_value)) {
-      a_dynamic_init_ptr  dip = dps->init_state.init_dip;
+    a_dynamic_init_ptr  dip = dps->init_state.init_dip;
+    if (dip != NULL && dip->kind != (a_dynamic_init_kind)dik_constant &&
+        fold_constexpr_dynamic_init(dip, dps->type, &result.position,
+                                    &folded_value)) {
       an_expr_node_ptr    expr = NULL;
       if (dip->kind == (a_dynamic_init_kind)dik_expression) {
         expr = dip->variant.expression;
