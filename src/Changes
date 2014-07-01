@@ -45,6 +45,7 @@ appeared in a braced initializer for a template-dependent type.  For example:
 This could, e.g., lead to incorrect rendering in the C++-generating back end
 (in the example above, one of the ellipses went missing).  This is now fixed.
 
+
 6/27/14  [EDGcpfe/15088]
 Microsoft compatibility: internal error during partial ordering
 
