@@ -20,7 +20,7 @@ field list).  For example (with --gcc):
 Abort on failure to fold conversion in initializer for constexpr variable
 
 In C++11 mode, the front end sometimes failed to fold the conversion of a
-constant derived class object to a base class in constexpr initialization
+constant derived class object to a base class in a constexpr initialization
 context.  This could lead to an abort in decl_inits.c (in "initializer").
 For example:
 
