@@ -4283,11 +4283,13 @@ of the file name.  Return TRUE if an existing entry was returned.
 					unique_file_id_hash_table,
 					(a_void_ptr)&key_ifh, create);
     ifhp = ifhp_in_unique_id_table == NULL ? NULL : *ifhp_in_unique_id_table;
-    /* It should not be possible for the first lookup to fail and the second
-       succeed when create is TRUE. */
-    check_assertion(!create ||
-                    ((ifhp_in_table == NULL) ==
-                                           (ifhp_in_unique_id_table == NULL)));
+    if (create && ifhp != NULL) {
+      /* The entry was found in the unique ID table but not in the file name
+         hash table.  Because "create" is TRUE, a slot in the file name
+         hash table was created.  We need to fill that in now because it
+         won't be filled in below (because this lookup succeeded). */
+      *ifhp_in_table = ifhp;
+    }  /* if */
   }  /* if */
 #endif /* UNIQUE_FILE_IDENTIFIER_AVAILABLE */
   if (ifhp != NULL) {
