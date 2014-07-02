@@ -9981,12 +9981,17 @@ pm_field_selection:
                   op1_constant.type = expr->type;
                 }  /* if */
               } else {
+                a_boolean  evaluated = TRUE, constant_context = FALSE;
+                if (expr_stack != NULL) {
+                  evaluated = curr_expr_is_evaluated();
+                  constant_context = curr_expr_kind_is(ek_integral_constant) ||
+                                     curr_expr_kind_is(ek_template_arg);
+                }  /* if */
                 type_change_constant_full(
                                     &op1_constant, expr->type,
                                     expr->variant.operation.compiler_generated,
-                                    (curr_expr_kind_is(ek_integral_constant) ||
-                                     curr_expr_kind_is(ek_template_arg)),
-                                    curr_expr_is_evaluated(),
+                                    constant_context,
+                                    evaluated,
                                     /*fold_constant_addr_exprs=*/TRUE,
                                     /*is_cli_attr_arg_expression=*/FALSE,
                                     expr->variant.operation.compiler_generated,
