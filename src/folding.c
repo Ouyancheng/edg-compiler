@@ -9981,11 +9981,21 @@ pm_field_selection:
                   op1_constant.type = expr->type;
                 }  /* if */
               } else {
-                type_change_constant(&op1_constant, expr->type,
+                type_change_constant_full(
+                                    &op1_constant, expr->type,
                                     expr->variant.operation.compiler_generated,
-                                     /*maintain_expression=*/FALSE,
-                                     &did_not_fold,
-                                     &pos);
+                                    (curr_expr_kind_is(ek_integral_constant) ||
+                                     curr_expr_kind_is(ek_template_arg)),
+                                    curr_expr_is_evaluated(),
+                                    /*fold_constant_addr_exprs=*/TRUE,
+                                    /*is_cli_attr_arg_expression=*/FALSE,
+                                    expr->variant.operation.compiler_generated,
+                                    /*check_ambiguity=*/TRUE,
+                                    /*is_reinterpret_cast=*/FALSE,
+                                    /*maintain_expression=*/FALSE,
+                                    &did_not_fold,
+                                    /*error_detected=*/(an_error_code *)NULL,
+                                    &pos);
                 if (!did_not_fold) {
                   folded = TRUE;
                   copy_constant(&op1_constant, result_con);
