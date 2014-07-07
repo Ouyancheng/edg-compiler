@@ -1,5 +1,14 @@
 Version 4.10
 
+7/7/14   [EDGcpfe/15272]
+Assertion failure in equiv_template_arg_lists with secondary translation units
+
+When simultaneously compiling multiple translation units, the front end
+sometimes aborted with an assertion failure in equiv_template_arg_lists
+("equiv_template_arg_lists: unequal arg list lengths") when dealing with
+complex cases involving variadic template argument lists.  This is now fixed.
+
+
 6/30/14  [EDGcpfe/15265]
 Inadvertent pre-lowering of aggregate constants in C mode
 

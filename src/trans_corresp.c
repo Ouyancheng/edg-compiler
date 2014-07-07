@@ -4014,13 +4014,17 @@ is in fact valid.
         a_type_ptr  proto = proto_sym->variant.class_struct_union.type,
                     corresp_proto = corresp_proto_sym
                                              ->variant.class_struct_union.type;
+        an_equiv_templ_arg_options_set
+                    eta_options = ETA_NO_OPTIONS;
+        if (tssp->is_variadic || corresp_tssp->is_variadic) {
+          eta_options |= ETA_IS_VARIADIC;
+        }  /* if */
         /* For partial specializations we must also verify the template
            arguments (attached to the prototype instantiations). */
         if (!equiv_template_arg_lists(
-             proto->variant.class_struct_union.extra_info->template_arg_list,
-             corresp_proto->
-                    variant.class_struct_union.extra_info->template_arg_list,
-             ETA_NO_OPTIONS)) {
+                            class_type_supp(proto)->template_arg_list,
+                            class_type_supp(corresp_proto)->template_arg_list,
+                            eta_options)) {
           match = FALSE;
           process_bad_trans_unit_corresp(iek_template, templ, corresp_templ);
         } else if (templ->is_friend_template && proto_sym->defined) {
@@ -5355,10 +5359,14 @@ supplement for an instantiation that matches inst.
     }  /* if */
     if (tssp->variant.class_template.is_alias_template) {
       /* An alias template: Just check that the template arguments match. */
+      an_equiv_templ_arg_options_set  eta_options = ETA_NO_OPTIONS;
+      if (tssp->is_variadic) {
+        eta_options |= ETA_IS_VARIADIC;
+      }  /* if */
       if (equiv_template_arg_lists(
                   type->variant.typeref.extra_info->template_arg_list,
                   corresp_type->variant.typeref.extra_info->template_arg_list,
-                  ETA_NO_OPTIONS)) {
+                  eta_options)) {
         result = sym_entry;
         break;
       }  /* if */
