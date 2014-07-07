@@ -16,7 +16,7 @@ field list).  For example (with --gcc):
   }
 
 
-6/30/14  [EDGcpfe/15250]
+6/30/14  [EDGcpfe/15250,EDGcpfe/13864]
 Abort on failure to fold conversion in initializer for constexpr variable
 
 In C++11 mode, the front end sometimes failed to fold the conversion of a
