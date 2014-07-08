@@ -1,5 +1,27 @@
 Version 4.10
 
+7/7/14   [EDGcpfe/15276]
+GNU C++ compatibility: destructor call using non-dependent base class name
+
+A change in version 4.9 resulted in a spurious error in g++ mode on a
+destructor call where the object had a dependent type, but the destructor
+name was a non-dependent name that referred to a base class of the object
+type in an actual instantiation.  Now fixed.
+
+  namespace N {
+    template <class T> struct A { ~A(); };
+  }
+  template <class T> struct B : N::A<int> {
+    void f(B* p) {
+      p->N::A<int>::~A();
+    }
+  };
+  int main() {
+    B<int> b;
+    b.f(&b);
+  }
+
+
 7/7/14   [EDGcpfe/15272]
 Assertion failure in equiv_template_arg_lists with secondary translation units
 

@@ -14432,7 +14432,8 @@ the destructor or finalizer is part of a qualified name (e.g., "A::B::~B").
         tp = NULL;
         clear_specific_symbol(locator_for_curr_id);
         if (qualifier_type != NULL &&
-            is_template_dependent_type(qualifier_type)) {
+            (((gpp_mode && !clang_mode) || microsoft_mode) ||
+             is_template_dependent_type(qualifier_type))) {
           /* When processing something like X<n>::~X<n>, we can't rely on
              lookup to find an injected class name, so we go through the base
              class list. */
