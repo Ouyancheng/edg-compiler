@@ -9382,12 +9382,15 @@ current token on entry.
 
 
 an_expr_node_ptr scan_asm_operand_expression(a_boolean output,
-                                             a_boolean input)
+                                             a_boolean input,
+                                             a_boolean is_memory_operand)
 /*
 Scan and return the expression associated with an asm operand.  This is similar
 to scan_integer_expression with slightly different checks.  output is TRUE for
 output operands; input is TRUE for input operands.  If both input and output
 are TRUE, the operand is first read from and then written to.
+is_memory_operand is TRUE when the operand refers to memory (i.e., an
+address), in which case a conversion is not used.
 */
 {
   an_expr_node_ptr    expression;
@@ -9405,7 +9408,8 @@ are TRUE, the operand is first read from and then written to.
   /* Scan the expression. */
   scan_expr(&result, PREC_LOWEST, EOPT_NO_OPTIONS);
   /* Convert from a class type to an integer if necessary. */
-  if (!C_mode() && is_class_struct_union_type(result.type)) {
+  if (!C_mode() && !is_memory_operand &&
+      is_class_struct_union_type(result.type)) {
     try_to_convert_class_operand_to_builtin_type(&result, 
                                                  (a_type_ptr)NULL,
                                                  BTK_INTEGRAL |

@@ -529,7 +529,8 @@ void process_simple_assignment(an_operand_ptr          operand_1,
 
 #if GNU_EXTENSIONS_ALLOWED
 an_expr_node_ptr scan_asm_operand_expression(a_boolean output,
-                                             a_boolean input);
+                                             a_boolean input,
+                                             a_boolean is_memory_operand);
 extern a_symbol_ptr gnu_builtin_func_by_name(a_const_char *name);
 
 #endif /* GNU_EXTENSIONS_ALLOWED */

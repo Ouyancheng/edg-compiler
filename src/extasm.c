@@ -922,16 +922,31 @@ state information for get_token_with_colon_separation.
     /* Advance past string literal. */
     (void)get_token_with_colon_separation(seen_tok_colon_colon);
     if (curr_token == tok_lparen) {
-      a_boolean  input = !output;
+      a_boolean  input = !output, is_memory_operand = FALSE;
       (void)get_token_with_colon_separation(seen_tok_colon_colon);
-      if (output && constraint_string != NULL) {
-        /* A '+' in the constraint string of an output operand indicates a
-           read-modify-write instruction; i.e., the operand is first an input
-           operand and then an output operand. */
-        input = (strchr(constraint_string, '+') != NULL);
+      if (constraint_string != NULL) {
+        /* Take a peek at the constraint string to determine how to
+           scan the operand expression (the constraint string is examined
+           in more detail by process_asm_operand below). */
+        a_const_char *cp;
+        if (output) {
+          /* A '+' in the constraint string of an output operand indicates a
+             read-modify-write instruction; i.e., the operand is first an input
+             operand and then an output operand. */
+          input = (strchr(constraint_string, '+') != NULL);
+        }  /* if */
+        for (cp = constraint_string; *cp != '\0'; cp++) {
+          /* The constraints below indicate some form of a memory operand
+             (meaning that the operand should not be converted). */
+          if (*cp == 'm' || *cp == 'o' || *cp == 'v' ||
+              *cp == '>' || *cp == '<') {
+            is_memory_operand = TRUE;
+            break;
+          }  /* if */
+        }  /* for */
       }  /* if */
       add_stop_token(tok_rparen);
-      expr = scan_asm_operand_expression(output, input);
+      expr = scan_asm_operand_expression(output, input, is_memory_operand);
       if (curr_token == tok_rparen) {
         (void)get_token_with_colon_separation(seen_tok_colon_colon);
       } else {

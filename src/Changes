@@ -1,5 +1,27 @@
 Version 4.10
 
+7/8/14   [EDGcpfe/15273]
+GNU compatibility: suppress conversion on asm memory operands
+
+Generally speaking, the constraint string for a GNU asm operand is left for the
+back end to process, but an exception has been made in the case of the "m",
+"o", "v", "<", and ">" constraints which indicate that the operand is a memory
+operand (see https://gcc.gnu.org/onlinedocs/gcc/Simple-Constraints.html).
+Previously, when the operand referred to an object with class type, a
+conversion operation was applied, but that is now suppressed on memory
+operands.  The following example had given an ambiguity error due to
+the conversion operation, but the conversion operation is now suppressed
+(with --g++):
+
+  struct A {
+    operator int();
+    operator unsigned int();
+  };
+  void f(A const& op, int x) {
+    asm("cmpl %[left],%[right]\n" :: [left] "o" (op), [right] "a" (x));
+  }
+
+
 7/7/14   [EDGcpfe/15276]
 GNU C++ compatibility: destructor call using non-dependent base class name
 
