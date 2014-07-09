@@ -15939,7 +15939,7 @@ this one is such a continuation.
          extern "C" { extern "C" int const N = 32; }
        may be rendered as
          extern "C" { extern int const N = 32; }
-       Sun C++ compilers have a bug that cause them to diagnose "extern"
+       Sun C++ compilers have a bug that causes them to diagnose "extern"
        appearing on a qualified redeclaration.  For example, something like
          namespace N { extern const int i; };
          extern const int N::i = 42;
