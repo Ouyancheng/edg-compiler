@@ -24,7 +24,7 @@ GNU compatibility: suppress conversion on asm memory operands
 
 Generally speaking, the constraint string for a GNU asm operand is left for the
 back end to process, but an exception has been made in the case of the "m",
-"o", "v", "<", and ">" constraints which indicate that the operand is a memory
+"o", "v", "<", and ">" constraints, which indicate that the operand is a memory
 operand (see https://gcc.gnu.org/onlinedocs/gcc/Simple-Constraints.html).
 Previously, when the operand referred to an object with class type, a
 conversion operation was applied, but that is now suppressed on memory
