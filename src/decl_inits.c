@@ -1826,7 +1826,8 @@ initialization).  *is describes the initialization as a whole.
     a_targ_size_t  ecount = 0, idx = 0, icount = 0;
     a_type_ptr     etype = atype->variant.array.element_type;
     a_boolean      no_bound = FALSE, braced = is_braced_init_component(icp),
-                   zero_sized_element = FALSE, incomplete_array = FALSE;
+                   zero_sized_element = FALSE, incomplete_array = FALSE,
+                   exploded_string_literal = FALSE;
     a_boolean      saved_pack_expansion_handled = FALSE;
     if (is->check_validity_only) {
       *init_con = NULL;
@@ -1921,27 +1922,56 @@ initialization).  *is describes the initialization as a whole.
         break;
       } else if (no_bound || idx < ecount) {
         a_constant_ptr  elem_con;
-        if (!is->non_top_level_aggregate &&
-            is->arg_match != NULL &&
-            ((is_aggregate_type(etype) && braced) || is_error_type(etype))) {
-          /* We're evaluating a match for overload resolution (is->arg_match is
-             non-NULL) and this is the top-level braced initializer for an
-             array.  If the initialization for this element looks like an
-             aggregate initialization, record it like a "user-defined
-             conversion match".  Also do this for elements of error types since
-             the match level might not be set elsewhere in such cases. */
-          record_aggr_init_match(is->arg_match);
-        }  /* if */
-        aggr_init_element(&icp, etype, is, diag_pos, &elem_con);
-        if (!is->check_validity_only) {
-          add_constant_to_aggregate(elem_con, *init_con);
-        }  /* if */
-        ++idx;
-        if (idx > icount) icount = idx;
-        if (is->pack_expansion_handled) {
-          /* If a pack expansion was seen, don't try to track element
-             counts. */
-          no_bound = TRUE;
+        if (microsoft_mode && braced && may_be_string_type(atype) &&
+            is_string_literal_component(icp, &elem_con) &&
+            f_identical_types(etype, array_element_type(elem_con->type),
+                              ITF_IGNORE_TOP_LEVEL_QUALIFIERS)) {
+          /* Microsoft compiler accept cases like the following:
+               char const str[] = { 48, "123" };
+             We have run into the string literal of such a case: Explode it
+             into character constants and add them to the aggregate
+             constant. */
+          a_constant_ptr  con_list, char_con;
+          explode_string_initializer(elem_con);
+          con_list = elem_con->variant.aggregate.first_constant;
+          while (con_list != NULL && (no_bound || idx < ecount)) {
+            char_con = con_list;
+            con_list = con_list->next;
+            char_con->next = NULL;
+            add_constant_to_aggregate(char_con, *init_con);
+            ++idx;
+          }  /* while */
+          icp = icp->next;
+          if (idx > icount) icount = idx;
+          /* Don't consider additional initializers after the string
+             literal. */
+          exploded_string_literal = TRUE;
+          break;
+        } else {
+          /* The normal case. */
+          if (!is->non_top_level_aggregate &&
+              is->arg_match != NULL &&
+              ((is_aggregate_type(etype) && braced) || is_error_type(etype))) {
+            /* We're evaluating a match for overload resolution (is->arg_match
+               is non-NULL) and this is the top-level braced initializer for
+               an array.  If the initialization for this element looks like an
+               aggregate initialization, record it like a "user-defined
+               conversion match".  Also do this for elements of error types
+               since the match level might not be set elsewhere in such
+               cases. */
+            record_aggr_init_match(is->arg_match);
+          }  /* if */
+          aggr_init_element(&icp, etype, is, diag_pos, &elem_con);
+          if (!is->check_validity_only) {
+            add_constant_to_aggregate(elem_con, *init_con);
+          }  /* if */
+          ++idx;
+          if (is->pack_expansion_handled) {
+            /* If a pack expansion was seen, don't try to track element
+               counts. */
+            no_bound = TRUE;
+          }  /* if */
+          if (idx > icount) icount = idx;
         }  /* if */
       } else {
         /* No more elements to initialize. */
@@ -1993,7 +2023,8 @@ initialization).  *is describes the initialization as a whole.
       /* The caller should move on to the component that follows the braced
          list (if any). */
       *p_icp = next_elem(*p_icp);
-      if (icp != NULL && (!no_bound || zero_sized_element)) {
+      if (icp != NULL &&
+          (!no_bound || zero_sized_element || exploded_string_literal)) {
         /* Initializers remain at this level, but no elements. */
         an_error_severity  sev = gcc_mode ? es_warning : es_error;
         if (is->no_diagnostics) {
