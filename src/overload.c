@@ -22805,6 +22805,14 @@ will be an lvalue instead of the usual prvalue.
       force_operand_to_constant_if_possible(&operand);
     }  /* if */
   }  /* if */
+  if (dip != NULL && dip->kind == (a_dynamic_init_kind)dik_constant) {
+    /* Initializer processing produced a dynamic initializer that was folded
+       to a constant.  Retrieve the constant.  (This is more than just an
+       optimization because in some cases it can turn a dynamic initialization
+       into a static initialization.) */
+    constant = dip->variant.constant;
+    dip = NULL;
+  }  /* if */
   if (generate_il &&
       dip_to_mark == NULL &&
       dip == NULL &&

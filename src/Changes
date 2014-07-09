@@ -1,5 +1,24 @@
 Version 4.10
 
+7/9/14   [EDGcpfe/15278]
+Aggregate initialization involving a constexpr element constructor call
+
+In some cases, an aggregate initializer containing an element initializer that
+is a call of a constexpr constructor producing a constant result was mistakenly
+treated as not being a constant initializer, which in turn could lead to the
+initialization not being treated as a static initialization when it should have
+been.  For example:
+
+  struct Int {
+    int i;
+    constexpr Int(int i): i(i) {}
+  };
+  struct Aggr { Int i; } v = { -1 };  // Previously treated as a dynamic
+                                      // initialization.
+
+This is now fixed.
+
+
 7/8/14   [EDGcpfe/15273]
 GNU compatibility: suppress conversion on asm memory operands
 
