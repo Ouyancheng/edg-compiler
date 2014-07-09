@@ -15939,12 +15939,18 @@ this one is such a continuation.
          extern "C" { extern "C" int const N = 32; }
        may be rendered as
          extern "C" { extern int const N = 32; }
-       */
+       Sun C++ compilers have a bug that cause them to diagnose "extern"
+       appearing on a qualified redeclaration.  For example, something like
+         namespace N { extern const int i; };
+         extern const int N::i = 42;
+       triggers an error on Sun compilers.  We therefore don't force the
+       "extern" if a declaration was already put out. */
     an_init_kind       init_kind;
     an_initializer_ptr initializer;
     get_variable_initializer(var, curr_name_context->assoc_scope,
                              &init_kind, &initializer);
-    if (var_has_explicit_initializer(var, init_kind, initializer)) {
+    if (var_has_explicit_initializer(var, init_kind, initializer) &&
+        !(sun_is_generated_code_target && var->declaration_has_been_put_out)) {
       storage_class = (a_storage_class)sc_extern;
     }  /* if */
   }  /* if */
@@ -16112,6 +16118,7 @@ this one is such a continuation.
        specialization. */
     adjust_current_namespace(orig_scope, common_scope);
   }  /* if */
+  var->declaration_has_been_put_out = TRUE;
 }  /* gen_variable_decl */
 
 
