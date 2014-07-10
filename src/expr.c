@@ -19818,9 +19818,30 @@ called only in C++ mode.
                                            (a_candidate_function_ptr *)NULL) ||
                     ambiguous)) {
           /* A conversion can be done that will allow the reference to be
-             bound directly to the result of the conversion function. */
-          possible = TRUE;
-          determined_conversion = &conversion;
+             bound directly to the result of the conversion function.  If this
+             is a static_cast form, the ambiguous case is considered "possible"
+             and an error will be issued later.  This standard is less clear
+             about the C-style and function-style casts, however.  A possible
+             reading (favored by the Clang and Microsoft compilers) is that
+             reinterpret_cast meaning has to be tried instead, but that can be
+             surprising.  For example:
+                struct X {};
+                struct Y {
+                  operator X const&() ;
+                  operator X&() ;
+                };
+                void g(Y y) {
+                  (X const&)y;
+                }
+             Here the user-defined conversion to X const& is (perhaps
+             surprisingly) ambiguous.  Clang and Microsoft therefore just
+             "reinterpret" y as an X lvalue (immutable), which is unlikely to
+             be the programmer's intention. */
+          if (!ambiguous || source_form == csf_static_cast ||
+              !(clang_mode || microsoft_mode)) {
+            possible = TRUE;
+            determined_conversion = &conversion;
+          }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
         } else if (cli_or_cx_enabled &&
                    is_tracking_reference_type(type_cast_to) &&

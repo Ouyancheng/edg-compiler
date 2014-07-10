@@ -1,5 +1,33 @@
 Version 4.10
 
+7/9/14   [EDGcpfe/15281]
+Microsoft and Clang compatibility: Ambiguous user-defined conversions
+
+Consider the following case:
+
+  struct X {};
+  struct Y {
+    operator X const&() ;
+    operator X&() ;
+  };
+  void g(Y y) {
+    (X const&)y;
+  }
+
+Somewhat surprisingly, the standard considers the conversion of y to X const&
+via a user-defined conversion ambiguous.  This means that an expression like
+"static_cast<X const&>(y)" must produce an ambiguity error.  However, for a
+C-style cast (as in the example) or a functional-style conversion, a strict
+reading of the standard requires the conversion to be treated as a
+reinterpret_cast instead (without invoking any of the conversion functions).
+The Microsoft and Clang compilers adhere to that reading and we now implement
+that also in the corresponding front end modes.  However, in other modes we
+continue to issue an ambiguity error since the strict interpretation is
+arguably dangerous.  (The issue has been brought to the attention of the
+standardization committee, and we will adjust the front end's behavior after
+the rules for this type of situation have been clarified.)
+
+
 7/9/14   [EDGcpfe/14985]
 Microsoft compatibility: String literals in array of character initializers
 
