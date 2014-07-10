@@ -403,7 +403,12 @@ typedef struct an_init_state {
 			   TRUE, this flag is set to TRUE for any error. */
   a_bit_field	has_dynamic_init_component:1;
 			/* TRUE if this declaration has a braced initializer
-			   and an initializer component is nonconstant. */
+			   and an initializer component is nonconstant.  In
+			   almost all cases, this implies the presence of a
+			   ck_dynamic_init element, but it can also be the
+			   result of a special ck_init_repeat entry with "zero"
+			   repeat count used to represent a run-time repeat
+			   count in something like "new T[n]{}". */
   a_bit_field	any_uninitialized_const_or_ref_member:1;
 			/* TRUE if this declaration has a braced initializer
 			   that fails to initialize a const or reference

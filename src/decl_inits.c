@@ -1580,6 +1580,11 @@ the position at which diagnostics should be issued.
              which somewhat matches the "incomplete array type" recorded in the
              new/delete supplement. */
           count = 0;
+          /* Since the count in this case is really a run-time value, ensure
+             that the aggregate constant as a whole won't be treated as a pure
+             constant (i.e., a dik_nonconstant_aggregate entry should be
+             produced instead of a dik_constant entry). */
+          is->has_dynamic_init_component = TRUE;
         }  /* if */
         /* Add a ck_init_repeat constant.  The case of a run-time count is
            represented using a "zero" ck_init_repeat.  A count of "one" is
