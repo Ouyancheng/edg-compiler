@@ -19820,7 +19820,7 @@ called only in C++ mode.
           /* A conversion can be done that will allow the reference to be
              bound directly to the result of the conversion function.  If this
              is a static_cast form, the ambiguous case is considered "possible"
-             and an error will be issued later.  This standard is less clear
+             and an error will be issued later.  The standard is less clear
              about the C-style and function-style casts, however.  A possible
              reading (favored by the Clang and Microsoft compilers) is that
              reinterpret_cast meaning has to be tried instead, but that can be
