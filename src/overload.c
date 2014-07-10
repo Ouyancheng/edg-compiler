@@ -22805,11 +22805,13 @@ will be an lvalue instead of the usual prvalue.
       force_operand_to_constant_if_possible(&operand);
     }  /* if */
   }  /* if */
-  if (dip != NULL && dip->kind == (a_dynamic_init_kind)dik_constant) {
+  if (dip != NULL && dip->kind == (a_dynamic_init_kind)dik_constant &&
+      !is_array_type(dip->variant.constant->type)) {
     /* Initializer processing produced a dynamic initializer that was folded
        to a constant.  Retrieve the constant.  (This is more than just an
        optimization because in some cases it can turn a dynamic initialization
-       into a static initialization.) */
+       into a static initialization.)  Don't do this for constants of array
+       type since those cannot be assigned. */
     constant = dip->variant.constant;
     dip = NULL;
   }  /* if */
