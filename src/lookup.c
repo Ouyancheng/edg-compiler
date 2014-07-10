@@ -3729,8 +3729,7 @@ C and C++.
                                depth_of_initial_lookup_scope, NO_SCOPE_DEPTH);
     }  /* if */
     if (gpp_dependent_name_lookup &&
-        lookup_state.any_ignored_dependent_bases &&
-        !is_template_dependent_context()) {
+        lookup_state.any_ignored_dependent_bases) {
       /* In g++ mode, names from dependent base classes are sometimes
          ignored and sometimes not.  A second lookup is done to determine if
          a different result would have been found if dependent bases were
@@ -3755,6 +3754,16 @@ C and C++.
       lookup_state.force_lookup_in_dependent_bases = FALSE;
       fund_sym = sym == NULL ? NULL : fundamental_symbol_of(sym);
       fund_new_sym = new_sym == NULL ? NULL : fundamental_symbol_of(new_sym);
+      if (fund_new_sym != NULL && fund_new_sym->is_class_member) {
+      	a_type_ptr	parent_class = fund_new_sym->parent.class_type;
+	if (parent_class->variant.class_struct_union.is_nonreal_class) {
+          /* If the second lookup found a member of a nonreal class, ignore
+             it.  The special g++ processing should only be done when the
+             lookup finds a member of a real base class. */
+	  new_sym = NULL;
+	  fund_new_sym = NULL;
+	}  /* if */
+      }  /* if */
       if (sym != NULL && new_sym != NULL &&
           sym->synthesized_namespace_projection) {
         /* If the original symbol is a synthesized namespace projection

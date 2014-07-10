@@ -1,5 +1,24 @@
 Version 4.10
 
+7/10/14  [EDGcpfe/15290]
+GNU C++ compatibility: lookup in dependent base class
+
+A change made in version 4.5 (see EDGcpfe/12738 on 3/9/12) could cause a
+name from a dependent base class not to be found in cases where g++ does
+find the name.  Now fixed.
+
+  struct B { int i; };
+  template <typename T> struct A : T {
+    template <typename U> int f(U) { return 1; }
+  };
+  // Identifier "i" not found during the prototype instantiation of A<B>::f
+  template <> template <typename T> inline int A<B>::f(T) { return i; }
+  int main() {
+     A<B> a;
+     a.f(1);
+  }
+
+
 7/10/14  [EDGcpfe/15119]
 Internal error on type declared in sizeof expression
 
