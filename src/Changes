@@ -76,9 +76,9 @@ is now treated as
   char str[] = { 48, 49, 50, 51, 0 };
 
 in Microsoft mode (assuming an ASCII-like character encoding).  A string
-literal in such a case can not be followed by another initializer:
+literal in such a case cannot be followed by another initializer:
 
-  char str[] = { 48, "123", 52 };  // Error, too many initializers values.
+  char str[] = { 48, "123", 52 };  // Error, too many initializer values.
 
 
 7/9/14   [EDGcpfe/15278]

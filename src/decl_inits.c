@@ -1931,7 +1931,7 @@ initialization).  *is describes the initialization as a whole.
             is_string_literal_component(icp, &elem_con) &&
             f_identical_types(etype, array_element_type(elem_con->type),
                               ITF_IGNORE_TOP_LEVEL_QUALIFIERS)) {
-          /* Microsoft compiler accept cases like the following:
+          /* Microsoft compilers accept cases like the following:
                char const str[] = { 48, "123" };
              We have run into the string literal of such a case: Explode it
              into character constants and add them to the aggregate
