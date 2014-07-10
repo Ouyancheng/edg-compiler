@@ -1,5 +1,19 @@
 Version 4.10
 
+7/10/14  [EDGcpfe/15119]
+Internal error on type declared in sizeof expression
+
+When GENERATE_SOURCE_SEQUENCE_LISTS and IL_SHOULD_BE_WRITTEN_TO_FILE are both
+TRUE, the front end sometimes aborted with an internal error in
+read_memory_region ("IL entry write-read difference") if a type was declared
+in a sizeof expression.  For example:
+
+  enum class E { e = sizeof((struct S*)0) };
+    // Sometimes triggered an error in some configurations.
+
+This is now fixed.
+
+
 7/9/14   [EDGcpfe/15281]
 Microsoft and Clang compatibility: Ambiguous user-defined conversions
 
