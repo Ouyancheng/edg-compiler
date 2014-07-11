@@ -5470,6 +5470,12 @@ precedence confusion.  Do the output in the way described by octl.
       octl->output_str("{", octl);
       { a_constant_ptr sub_con = constant->variant.aggregate.first_constant;
         for (; sub_con != NULL; sub_con = sub_con->next) {
+          if (sub_con->implicit_aggr_element &&
+              !octl->c_generating_back_end) {
+            /* Don't render implicit elements unless the C-generating back end
+               has to compile them. */
+            continue;
+          }  /* if */
           form_constant(sub_con, /*need_parens=*/FALSE, octl);
           if (sub_con->next != NULL &&
               sub_con->kind != (a_constant_repr_kind)ck_designator) {

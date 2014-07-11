@@ -22806,6 +22806,7 @@ will be an lvalue instead of the usual prvalue.
     }  /* if */
   }  /* if */
   if (dip != NULL && dip->kind == (a_dynamic_init_kind)dik_constant &&
+      !(is != NULL && is->force_dynamic_init) &&
       !is_array_type(dip->variant.constant->type)) {
     /* Initializer processing produced a dynamic initializer that was folded
        to a constant.  Retrieve the constant.  (This is more than just an
