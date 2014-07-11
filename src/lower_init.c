@@ -5045,14 +5045,14 @@ must NOT already be lowered (see comment in default_version_of_routine).
      initializer provides no initializers for an array member). */
   default_args = dip->variant.constructor.args;
   if (ctor_routine->is_initializer_list_ctor) {
-    /* Find the beginning of any default arguments (if any). */
+    /* Find the first default argument (if any). */
     a_param_type_ptr  ptp;
     check_assertion(gpp_mode);
     for (ptp = unlowered_param_type_list_for_routine(ctor_routine);
          ptp != NULL;
          ptp = ptp->next) {
       if (ptp->has_default_arg) {
-        /* We've found the beginning of a default argument list. */
+        /* We've found the first default argument. */
         break;
       }  /* if */
       check_assertion(default_args != NULL);

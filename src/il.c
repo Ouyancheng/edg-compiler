@@ -12817,7 +12817,7 @@ options for the copy.  cblock is a control block for the copy.
     new_dip->lifetime = NULL;
     new_dip->next_in_destruction_list = NULL;
     if (options & CE_COPY_NOT_EVALUATED) {
-      /* Since the copied expression is not evaluated, not object lifetime
+      /* Since the copied expression is not evaluated, no object lifetime
          entry is required. */
     } else if (scope_stack_top().in_template_arg_list) {
       /* Destructors cannot be called as a result of template argument
