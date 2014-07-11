@@ -1012,6 +1012,12 @@ Install the keywords in the symbol table.
       enter_keyword((a_token_kind)tok_char16_t, "char16_t");
       enter_keyword((a_token_kind)tok_char32_t, "char32_t");
     }  /* if */
+    if (clang_mode) {
+      /* Clang defines __char16_t/__char32_t as aliases for char16_t/char32_t
+         respectively (in all C++ modes, not just C++11 mode). */
+      enter_keyword((a_token_kind)tok_char16_t, "__char16_t");
+      enter_keyword((a_token_kind)tok_char32_t, "__char32_t");
+    }  /* if */
     if (bool_is_keyword) {
       /* Enter C++ keywords used for the bool type.  This is only
          done when bool_is_keyword is TRUE.  When bool_is_keyword is FALSE,

@@ -2933,6 +2933,23 @@ generate code for a GNU compiler (gcc or g++).
 #endif /* ifndef GCC_IS_GENERATED_CODE_TARGET */
 
 /*
+Switch that is TRUE if the C-generating or C++-generating back end should
+generate code for the clang compiler.
+*/
+#ifndef CLANG_IS_GENERATED_CODE_TARGET
+#if BACK_END_IS_C_GEN_BE || BACK_END_IS_CP_GEN_BE
+#if defined(__clang__) && BACK_END_IS_C_GEN_BE
+#define CLANG_IS_GENERATED_CODE_TARGET TRUE
+#else /* !defined(__clang__) && BACK_END_IS_C_GEN_BE */
+#define CLANG_IS_GENERATED_CODE_TARGET FALSE
+#endif /* !defined(__clang__) && BACK_END_IS_C_GEN_BE */
+#else  /* !(BACK_END_IS_C_GEN_BE || BACK_END_IS_CP_GEN_BE) */
+/* Not using the C or C++ generating back end. */
+#define CLANG_IS_GENERATED_CODE_TARGET FALSE
+#endif /* BACK_END_IS_C_GEN_BE || BACK_END_IS_CP_GEN_BE */
+#endif /* ifndef CLANG_IS_GENERATED_CODE_TARGET */
+
+/*
 Flag that is TRUE if the GNU "ifunc" dispatch mechanism is to be lowered.
 The "ifunc" attribute maps to the STT_GNU_IFUNC symbol type in the ELF
 standard and is not available on many architectures.  The STT_GNU_IFUNC allows

@@ -330,10 +330,12 @@ to match the source dialect (including the version of the dialect).
 #if CP_GEN_BE_TARGET_MATCHES_SOURCE_DIALECT
   check_assertion_str(!gcc_is_generated_code_target &&
                       !microsoft_dialect_is_generated_code_target &&
-                      !sun_is_generated_code_target,
+                      !sun_is_generated_code_target &&
+                      !clang_is_generated_code_target,
                       "Target dialect already set.");
 #if CHECKING
   {
+    /* Note that clang mode is a dialect of GNU mode. */
     int n_dialects =
        (gnu_mode != 0) +
        (microsoft_mode != 0) + /*lint !e514*/
@@ -342,13 +344,17 @@ to match the source dialect (including the version of the dialect).
   }
 #endif /* CHECKING */
   if (gnu_mode) {
-    gcc_is_generated_code_target = TRUE;
+    if (clang_mode) {
+      clang_is_generated_code_target = TRUE;
+    } else {
+      gcc_is_generated_code_target = TRUE;
 #if GCC_BUILTIN_VARARGS
-    gcc_builtin_varargs_in_generated_code = TRUE;
+      gcc_builtin_varargs_in_generated_code = TRUE;
 #else /* !GCC_BUILTIN_VARARGS */
-    gcc_builtin_varargs_in_generated_code = FALSE;
+      gcc_builtin_varargs_in_generated_code = FALSE;
 #endif /* GCC_BUILTIN_VARARGS */
-    gnu_target_version_number = gnu_version;
+      gnu_target_version_number = gnu_version;
+    }  /* if */
   } else if (microsoft_mode) {
     microsoft_dialect_is_generated_code_target = TRUE;
     msvc_target_version_number = microsoft_version;
@@ -542,6 +548,7 @@ This is done before command line processing.
   instantiate_extern_inline = INSTANTIATE_EXTERN_INLINE;
 #if BACK_END_IS_C_GEN_BE || BACK_END_IS_CP_GEN_BE
   sun_is_generated_code_target = SUN_IS_GENERATED_CODE_TARGET;
+  clang_is_generated_code_target = CLANG_IS_GENERATED_CODE_TARGET;
   gcc_is_generated_code_target = GCC_IS_GENERATED_CODE_TARGET;
 #if GCC_IS_GENERATED_CODE_TARGET || \
     (BACK_END_IS_CP_GEN_BE && CP_GEN_BE_TARGET_MATCHES_SOURCE_DIALECT)

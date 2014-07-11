@@ -1,5 +1,17 @@
 Version 4.10
 
+7/11/14  [EDGcpfe/15257]
+Clang compatibility: __char16_t/__char32_t keywords
+
+The clang compiler defines __char16_t and __char32_t keywords in all C++
+modes; and now so does the front end (in clang emulation mode).  The
+__char16_t and __char32_t keywords have the same meaning as the
+char16_t and char32_t keywords respectively.  For example (with --clang):
+
+  typedef __char16_t char16_t;
+  typedef __char32_t char32_t;
+
+
 7/10/14  [EDGcpfe/15290]
 GNU C++ compatibility: lookup in dependent base class
 

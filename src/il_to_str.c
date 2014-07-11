@@ -1713,12 +1713,24 @@ by octl.
                  !octl->c_generating_back_end) {
         /* Output a char16_t type as "char16_t", except in the C generating
            back end, where it is output as its underlying type. */
-        octl->output_str("char16_t", octl);
+        if (clang_is_generated_code_target && octl->gen_compilable_code) {
+          /* Use __char16_t when targeting clang; it is available in all
+             C++ modes. */
+          octl->output_str("__char16_t", octl);
+        } else {
+          octl->output_str("char16_t", octl);
+        }  /* if */
       } else if (type->variant.integer.char32_t_type &&
                  !octl->c_generating_back_end) {
         /* Output a char32_t type as "char32_t", except in the C generating
            back end, where it is output as its underlying type. */
-        octl->output_str("char32_t", octl);
+        if (clang_is_generated_code_target && octl->gen_compilable_code) {
+          /* Use __char32_t when targeting clang; it is available in all
+             C++ modes. */
+          octl->output_str("__char32_t", octl);
+        } else {
+          octl->output_str("char32_t", octl);
+        }  /* if */
       } else if (type->variant.integer.bool_type &&
                  (!octl->c_generating_back_end || octl->render_c99_bool)) {
         /* Output a bool type as "bool", except in the C generating

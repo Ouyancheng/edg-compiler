@@ -878,6 +878,11 @@ EXTERN a_boolean
 			   primitives predefined by GNU compilers. */
 
 EXTERN a_boolean
+		clang_is_generated_code_target;
+			/* TRUE if code is being generated for the clang
+			   (C or C++) compiler. */
+
+EXTERN a_boolean
 		msvc_is_generated_code_target;
 			/* TRUE if code is being generated for the Microsoft
 			   MSVC++ compiler. */

@@ -4958,6 +4958,11 @@ file.
 #else /* !defined(C_GEN_BE_GENERATES_ANSI_C) */
   comment_undefined_macro_name(C_GEN_BE_GENERATES_ANSI_C);
 #endif /* defined(C_GEN_BE_GENERATES_ANSI_C) */
+#if defined(CLANG_IS_GENERATED_CODE_TARGET)
+  define_numeric_valued_macro(CLANG_IS_GENERATED_CODE_TARGET);
+#else /* !defined(CLANG_IS_GENERATED_CODE_TARGET) */
+  comment_undefined_macro_name(CLANG_IS_GENERATED_CODE_TARGET);
+#endif /* defined(CLANG_IS_GENERATED_CODE_TARGET) */
 #if defined(DEBUG)
   define_numeric_valued_macro(DEBUG);
 #else /* !defined(DEBUG) */

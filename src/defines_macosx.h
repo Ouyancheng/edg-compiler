@@ -84,7 +84,7 @@ This version is for the Apple MacOS X operating system.
 #define TARG_JMP_BUF_ELEMENT_INT_KIND ((an_integer_kind)ik_int)
 #ifndef ACCEPT_UNRECOGNIZED_GNU_ASM_OPERANDS
 #define ACCEPT_UNRECOGNIZED_GNU_ASM_OPERANDS 1
-#endif
+#endif /* ACCEPT_UNRECOGNIZED_GNU_ASM_OPERANDS */
 #define GUARD_MACRO_FOR_VA_LIST "_VA_LIST"
 
 
@@ -109,9 +109,9 @@ This version is for the Apple MacOS X operating system.
 #endif /* ifndef IA64_ABI */
 #define DEFAULT_EMULATE_GNU_ABI_BUGS 0
 #ifndef CP_GEN_BE_VERSION
-#ifndef GCC_IS_GENERATED_CODE_TARGET
-#define GCC_IS_GENERATED_CODE_TARGET 1
-#endif /* ifndef GCC_IS_GENERATED_CODE_TARGET */
+#ifndef CLANG_IS_GENERATED_CODE_TARGET
+#define CLANG_IS_GENERATED_CODE_TARGET 1
+#endif /* ifndef CLANG_IS_GENERATED_CODE_TARGET */
 #endif /* ifndef CP_GEN_BE_VERSION */
 #define TARG_EXTERNAL_NAMES_GET_UNDERSCORE_ADDED 1
 #define TARG_BIT_FIELD_CONTAINER_SIZE (-1)
