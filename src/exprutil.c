@@ -17888,15 +17888,18 @@ it might produce an error).
                                                        /*copy_for_reuse=*/TRUE,
                                                        &variable);
       if (con_expr_value != NULL) {
-        /* Below, we'll record the expression for the constant, so make the
-           prvalue version of the expression. */
-        node = expr_to_record_for_variable(variable, /*is_lvalue=*/FALSE);
-        if (con_expr_value->kind == (a_constant_repr_kind)ck_template_param &&
-            node != NULL) {
+        if (con_expr_value->kind == (a_constant_repr_kind)ck_template_param) {
           /* This is a dependent reference to a variable.  Set up to create
              a tpck_expression constant for the expression below. */
           template_constant = TRUE;
           con_expr_value = NULL;
+          node->is_lvalue = FALSE;
+          node->is_xvalue = FALSE;
+          node->type = prvalue_node_type;
+        } else {
+          /* Below, we'll record the expression for the constant, so make
+             the prvalue version of the expression. */
+          node = expr_to_record_for_variable(variable, /*is_lvalue=*/FALSE);
         }  /* if */
       }  /* if */
     }  /* if */

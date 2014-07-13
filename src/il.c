@@ -4712,7 +4712,7 @@ fix them.
                  (kind == (a_template_param_constant_kind)tpck_expression)
                              ? (a_local_expr_node_ref_kind)lerk_tpl_param_expr
                              : (a_local_expr_node_ref_kind)lerk_generic_sizeof,
-                 (char*)cp, innermost_function_scope);
+                 (char*)cp, get_innermost_function_scope());
 #endif /* PROTOTYPE_INSTANTIATIONS_IN_IL */
           *expr = NULL;
         }  /* if */
@@ -11213,7 +11213,8 @@ The expression can then be recovered using find_local_expr_node.
   a_memory_region_number     memory_region, region_to_switch_back_to;
   a_local_expr_node_ref_ptr  new_ref;
 
-  check_assertion(!in_file_scope(expr) && in_file_scope(referrer));
+  check_assertion(!in_file_scope(expr) && in_file_scope(referrer) &&
+                  func_scope != NULL);
   check_assertion(func_scope->kind == (a_scope_kind)sck_function);
   memory_region = func_scope->variant.routine.ptr->assoc_scope;
   if (memory_region != curr_il_region_number) {
@@ -13175,7 +13176,8 @@ constant; otherwise, return NULL.
       /* Check for a dependent expression that might be a constant in an
          instantiation. */
       an_expr_node_ptr expr = init->dynamic->variant.expression;
-      if (expr_is_instantiation_dependent(expr)) {
+      if (expr_is_instantiation_dependent(expr) &&
+          !has_statement_expression(expr)) {
         /* Create a template parameter constant for the expression. */
         a_constant con;
         make_template_param_expr_constant(expr, &con);
