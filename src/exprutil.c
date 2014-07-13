@@ -17893,9 +17893,20 @@ it might produce an error).
              a tpck_expression constant for the expression below. */
           template_constant = TRUE;
           con_expr_value = NULL;
-          node->is_lvalue = FALSE;
-          node->is_xvalue = FALSE;
-          node->type = prvalue_node_type;
+          if (in_file_scope(node) && !in_file_scope(variable)) {
+            /* Need to allocate a node in the appropriate region so that
+               a local expr node reference will be used in the constant. */
+            a_memory_region_number region_to_switch_back_to;
+            switch_to_scope_region(depth_innermost_function_scope,
+                                   &region_to_switch_back_to);
+            node = var_rvalue_expr(variable);
+            switch_back_to_original_region(region_to_switch_back_to);
+          } else {
+            /* Just make the original node an rvalue. */
+            node->is_lvalue = FALSE;
+            node->is_xvalue = FALSE;
+            node->type = prvalue_node_type;
+          }  /* if */
         } else {
           /* Below, we'll record the expression for the constant, so make
              the prvalue version of the expression. */
