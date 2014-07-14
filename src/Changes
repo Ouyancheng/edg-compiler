@@ -4,12 +4,11 @@ Version 4.10
 Microsoft compatibility: Truncation of enum constant values
 
 In Microsoft modes, the front end now allows the specified constant value of an
-enumerator to be outside the representable range of the enumerator type (int).
-For example:
+enumerator to be outside the representable range of the enumerator's underlying
+type.  For example:
 
-  enum { e = static_cast<unsigned long>(-1) };  // Now accepted in Microsoft
-                                                // mode.
-
+  enum { e = static_cast<unsigned long long>(-1) };
+                                           // Now accepted in Microsoft mode.  
 A warning is issued in such cases (and the value is truncated).
 
 
