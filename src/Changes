@@ -1,5 +1,18 @@
 Version 4.10
 
+7/14/14  [EDGcpfe/14945]
+Microsoft compatibility: Implicit enum base type
+
+When declaring an enum type twice with just one of the declarations having an
+explicit "base" type, Microsoft compilers appear to assume that the declaration
+without an explicit base type has an implicit "int" base (even for non-scoped
+enum types).  This front end now emulates this behavior.  For example:
+
+  enum E: int;
+  enum E {};  // Usually an error because of the missing explicit base type,
+              // but now accepted in Microsoft C++ mode.
+
+
 7/11/14  [EDGcpfe/15257]
 Clang compatibility: __char16_t/__char32_t keywords
 

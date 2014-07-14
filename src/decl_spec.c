@@ -5992,12 +5992,14 @@ template.  dsi_flags is the set of input flags passed to decl_specifiers.
       if (!enum_type->incomplete && (is_definition || is_opaque_enum_decl)) {
         a_type_ptr  old_base_type = integer_type_supp(enum_type)->base_type;
         a_type_ptr  new_base_type = explicit_base;
-        /* For scoped enums without an explicit base type use "int". */
-        if (is_scoped_enum && old_base_type == NULL) {
-          old_base_type = integer_type((an_integer_kind)ik_int);
-        }  /* if */
-        if (is_scoped_enum && new_base_type == NULL) {
+        /* For scoped enums without an explicit base type use "int".
+           (Microsoft compilers seem to also assume "int" for non-scoped
+           enums.) */
+        if ((is_scoped_enum || microsoft_mode) && new_base_type == NULL) {
           new_base_type = integer_type((an_integer_kind)ik_int);
+        }  /* if */
+        if ((is_scoped_enum || microsoft_mode) && old_base_type == NULL) {
+          old_base_type = integer_type((an_integer_kind)ik_int);
         }  /* if */
         if ((old_base_type != NULL || new_base_type != NULL) &&
             (old_base_type == NULL || new_base_type == NULL ||
