@@ -5206,9 +5206,13 @@ is updated to reflect relevant positions of this definition.
               conversion_allowed = strict_ansi_error_severity != es_error;
             }  /* if */
             if (conversion_allowed &&
-                f_skip_typerefs(constant.type)->size <= targ_sizeof_int) {
+                (f_skip_typerefs(constant.type)->size <= targ_sizeof_int ||
+                 microsoft_mode)) {
               /* In non-strict mode, allow unsigned constants that can be
-                 coerced into an int. */
+                 coerced into an int.  (Microsoft compilers appear to even
+                 permit cases like:
+                    enum { e = static_cast<unsigned long>(-1) };
+                 with unsigned long a larger type than int. */
               a_boolean  did_not_fold = FALSE;
               type_change_constant(&constant,
                                    integer_type((an_integer_kind)ik_int),
