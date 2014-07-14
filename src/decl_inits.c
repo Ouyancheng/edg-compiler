@@ -6987,11 +6987,13 @@ initialized.  These are addressed in the course of the processing.
          pack expansion. */
       while (any_more) {
         a_pack_expansion_descr_ptr pedep;
+        a_source_position          end_init_pos;
         cip = scan_mem_initializer(ctor_rout, class_type, &cib);
         if (cip != NULL && cip->kind == (a_constructor_init_kind)cik_field) {
           has_field_init = TRUE;
           has_explicit_field_init = TRUE;
         }  /* if */
+        end_init_pos = pos_curr_token;
         pedep = end_potential_pack_expansion_context(cib.pesep,
                                                      /*is_declarator=*/FALSE);
         if (pedep != NULL && cip != NULL) {
@@ -7000,6 +7002,13 @@ initialized.  These are addressed in the course of the processing.
              instantiation, so we mark the constructor init as a pack
              expansion. */
           cip->is_pack_expansion = TRUE;
+          if (cip->kind == (a_constructor_init_kind)cik_field) {
+            /* Such pack expansions are not permitted for data member
+               initializers. */
+            pos_diagnostic(es_discretionary_error,
+                           ec_pack_expansion_for_field_mem_init,
+                           &end_init_pos);
+          }  /* if */
         }  /* if */
         any_more = advance_to_next_pack_element(cib.pesep);
       }  /* while */

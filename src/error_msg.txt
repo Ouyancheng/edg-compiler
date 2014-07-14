@@ -2667,6 +2667,7 @@ ec_target_unmatched_parens;;"unmatched parentheses"
 ec_gcc_pragma_nothing_to_pop;;"no corresponding \"push_options\""
 ec_pragma_inside_function;;"this pragma is not allowed inside a function"
 ec_inline_new_or_delete_operator;;"declaring a new or delete operator \"inline\" is nonstandard"
+ec_pack_expansion_for_field_mem_init;;"a mem-initializer for a data member cannot be a pack expansion"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

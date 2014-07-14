@@ -1,5 +1,19 @@
 Version 4.10
 
+7/14/14  [EDGcpfe/13100]
+Missing diagnostic for invalid pack expansion
+
+The front end previously permitted a mem-initializer for a data member to be a
+pack expansion even though the C++ standard does not permit this.  For example:
+
+  template<typename ...T> struct S {
+    S(T ...p): m(p)... {}  // Previously accepted; now a discretionary error.
+    int m;
+  };
+
+This is now fixed: A discretionary error is emitted.
+
+
 7/14/14  [EDGcpfe/15284]
 Microsoft compatibility: Truncation of enum constant values
 
