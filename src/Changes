@@ -1,5 +1,11 @@
 Version 4.10
 
+7/14/14  [EDGcpfe/15260]
+Clang compatibility: __is_literal
+
+In Clang mode, __is_literal is now equivalent to __is_literal_type.
+
+
 7/14/14  [EDGcpfe/14945]
 Microsoft compatibility: Implicit enum base type
 

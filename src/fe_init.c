@@ -601,6 +601,9 @@ modes.
   enter_keyword((a_token_kind)tok_is_trivially_copyable,
                 "__is_trivially_copyable");
   enter_keyword((a_token_kind)tok_is_literal_type, "__is_literal_type");
+  if (clang_mode) {
+    enter_keyword((a_token_kind)tok_is_literal_type, "__is_literal");
+  }  /* if */
   enter_keyword((a_token_kind)tok_has_trivial_move_constructor,
                 "__has_trivial_move_constructor");
   enter_keyword((a_token_kind)tok_has_trivial_move_assign,
