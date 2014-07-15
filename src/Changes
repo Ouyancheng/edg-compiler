@@ -1,5 +1,27 @@
 Version 4.10
 
+7/15/14  [EDGcpfe/15263]
+Spurious error on generation of inheriting constructor using protected member
+
+In C++11 mode, the front end incorrectly handled the generation of an
+inheriting constructor whose generation requires a call to a protected base
+class constructor.  This resulted in spurious access errors.  For example:
+
+  struct B {
+  protected:
+    B(int);
+  };
+  struct D: B {
+    using B::B;
+    friend void g();
+  };
+  void g() {
+    D d(2);  // Triggers the generation of D::D(int).  Previously resulted in
+  }          // an error about B::B(int) not being accessible.  Now okay.
+
+This is now fixed.
+
+
 7/15/14  [EDGcpfe/15291]
 GNU C++ compatibility: internal error on VLA in default template argument
 

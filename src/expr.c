@@ -39490,7 +39490,8 @@ inherits.
     pop_expr_stack();
     p_alep = p_next_elem(*p_alep);
   }  /* for */
-  scan_class_parenthesized_initializer(class_type, class_type, &udp->position,
+  scan_class_parenthesized_initializer(class_type, parent_class_of(ctor),
+                                       &udp->position,
                                        /*fill_in_dtor=*/exceptions_enabled,
                                        /*args_supplied=*/TRUE, arg_list, &is);
   result = is.init_dip;
