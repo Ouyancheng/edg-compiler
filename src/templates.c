@@ -1710,6 +1710,7 @@ static void substitute_template_argument(
 			a_source_position	*source_pos,
 			a_ctws_options_set	options,
 			a_boolean		orig_is_nonreal_template,
+			a_boolean		is_generic,
 			a_boolean		*copy_error,
 			a_ctws_state_ptr	ctws_state);
 
@@ -1765,6 +1766,7 @@ symbol supplement.
                                      &template_sym->decl_position,
                                      CTWS_NO_OPTIONS,
                                      /*orig_is_nonreal_template=*/FALSE,
+                                     /*is_generic=*/FALSE,
                                      &copy_error, &ctws_state);
         if (copy_error || template_arg_is_dependent(tap)) {
           /* If the copy failed, or resulted in an argument that is still
@@ -10010,12 +10012,14 @@ static void substitute_template_argument(
 			a_source_position	*source_pos,
 			a_ctws_options_set	options,
 			a_boolean		orig_is_nonreal_template,
+			a_boolean		templ_is_generic,
 			a_boolean		*copy_error,
 			a_ctws_state_ptr	ctws_state)
 /*
 Perform substitution on the template argument specified by templ_arg.
 templ_param is the parameter associated with templ_arg and may be NULL if
-the parameter list is not known.
+the parameter list is not known.  templ_is_generic is TRUE if this is a
+generic argument list for a C++/CLI generic.
 
 See copy_template_arg_list_with_substitution for a description of the other
 parameters.
@@ -10038,12 +10042,23 @@ parameters.
   if (*copy_error) {
     /* Don't process this argument further if an error occurred. */
   } else if (is_type_templ_arg(tap)) {
+    a_boolean		is_unnamed, is_local, is_vla, is_generic;
     tap->variant.type =
                copy_type_with_substitution(tap->variant.type,
                                            templ_arg_list, templ_param_list,
 					   source_pos, options, copy_error,
                                            ctws_state);
     tap->is_pack = type_is_pack(tap->variant.type);
+    /* Make sure the resulting type is a valid template argument. */
+    if (!*copy_error &&
+         is_invalid_template_arg_type(tap->variant.type,
+                                      &is_unnamed, &is_local, &is_vla,
+                                      &is_generic)) {
+      if (is_unnamed || is_local || is_vla ||
+          (is_generic && !templ_is_generic)) {
+        *copy_error = TRUE;
+      }  /* if */
+    }  /* if */
   } else if (is_nontype_templ_arg(tap)) {
     /* Perform the substitution on the type of the constant. */
     a_type_ptr	const_type;
@@ -10197,7 +10212,13 @@ associated parameter.
   a_boolean		added_placeholder = FALSE;
   a_boolean		copy_arg_operands = FALSE;
   a_template_arg_ptr	pack_tap = NULL;
+  a_boolean		is_generic = FALSE;
 
+  if (template_sym != NULL) {
+    a_template_symbol_supplement_ptr tssp;
+    tssp = template_supplement_for_symbol(template_sym);
+    if (tssp != NULL) is_generic = tssp->is_generic;
+  }  /* if */
   if (options & CTWS_COPY_ARG_OPERAND_INFO) {
     copy_arg_operands = TRUE;
     options &= ~CTWS_COPY_ARG_OPERAND_INFO;
@@ -10300,6 +10321,7 @@ associated parameter.
                                      templ_arg_list, templ_param_list,
                                      source_pos,
                                      options, orig_is_nonreal_template,
+                                     is_generic,
                                      copy_error, ctws_state);
         if (copy_arg_operands && !*copy_error) {
           transfer_arg_operand_for_template_arg(new_tap, tap);

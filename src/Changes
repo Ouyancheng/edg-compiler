@@ -1,5 +1,23 @@
 Version 4.10
 
+7/15/14  [EDGcpfe/15291]
+GNU C++ compatibility: internal error on VLA in default template argument
+
+An internal error could occur (in mangled_encoding_for_type_full) if a
+VLA type was used as a template argument in a default template argument.
+Now fixed.
+
+  template <typename T> struct A {
+    typedef bool type;
+  };
+  template <typename T, typename A<T>::type U = false> void g(const T &t) { }
+  void g(...) { }
+  void f(int x) {
+    char arr[x];
+    g(arr);
+  }
+
+
 7/15/14  [EDGcpfe/15296]
 __cpp_aggregate_nsdmi and cxx_aggregate_nsdmi
 
