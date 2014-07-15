@@ -6523,7 +6523,23 @@ for the function prototype scope context described by fpsep.
   check_assertion(fpsep != NULL &&
                   expr->kind == (an_expr_node_kind)enk_param_ref &&
                   expr->variant.param_ref.param_num != 0);
-  if (!fpsep->outside_parameter_list) levels_up -= 1;
+  if (levels_up == 0) {
+    /* We're outside the parameter list containing the parameter of interest,
+       but we may be inside a parameter list of a function declarator appearing
+       in a type-id.  For example:
+         template<class T> struct S {};
+         auto f(int p) -> S<void (decltype(p))>;
+       Here, levels_up is 0, but fpsep represents the function declarator in
+       template argument for S<...>.  Skip any such prototypes. */
+    while (!fpsep->outside_parameter_list) {
+      fpsep = fpsep->next;
+    }  /* if */
+  } else if (!fpsep->outside_parameter_list) {
+    /* levels_up includes the function prototype enclosing the parameter of
+       interest.  Since we only want to skip to that level, decrease the count
+       by one. */
+    levels_up -= 1;
+  }  /* if */
   for (k = 0; k<levels_up; ++k) {
     fpsep = fpsep->next;
     check_assertion(fpsep != NULL);
