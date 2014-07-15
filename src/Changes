@@ -49,7 +49,7 @@ enum types).  This front end now emulates this behavior.  For example:
 Clang compatibility: __char16_t/__char32_t keywords
 
 The clang compiler defines __char16_t and __char32_t keywords in all C++
-modes; and now so does the front end (in clang emulation mode).  The
+modes, and now so does the front end (in clang emulation mode).  The
 __char16_t and __char32_t keywords have the same meaning as the
 char16_t and char32_t keywords respectively.  For example (with --clang):
 
