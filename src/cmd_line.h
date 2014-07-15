@@ -1172,6 +1172,12 @@ EXTERN a_boolean
 			   accepted. */
 
 EXTERN a_boolean
+		aggregate_classes_can_have_field_initializers;
+			/* When TRUE, an aggregate class type can have a field
+			   initializer (this is a C++14 feature; in C++11, a
+			   field initializer make a class a non-aggregate). */
+
+EXTERN a_boolean
 		alias_declarations_enabled;
 			/* TRUE if C++11 alias-declarations and alias templates
 			   are allowed. */

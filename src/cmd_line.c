@@ -3011,6 +3011,9 @@ default mode (e.g., exception handling).
     deduced_return_types_enabled = TRUE;
     generic_lambdas_enabled = TRUE;
     init_capture_enabled = TRUE;
+    if (field_initializers_enabled) {
+      aggregate_classes_can_have_field_initializers = TRUE;
+    }  /* if */
   }  /* if */
 }  /* check_and_set_cpp11_mode_options */
 
@@ -10457,6 +10460,7 @@ variables declared in cmd_line.h.
   this_in_trailing_return_types_enabled = FALSE;
   list_init_enabled = FALSE;
   field_initializers_enabled = FALSE;
+  aggregate_classes_can_have_field_initializers = FALSE;
   alias_declarations_enabled = FALSE;
   variadic_templates_enabled = FALSE;
   inline_namespaces_enabled = FALSE;

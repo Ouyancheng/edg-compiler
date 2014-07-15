@@ -3860,7 +3860,7 @@ static a_feature_support feature_support_list[] = {
     NULL,
     NULL },
   { "cxx_aggregate_nsdmi",
-    NULL,
+    &aggregate_classes_can_have_field_initializers,
     "__cpp_aggregate_nsdmi",
     "201304" },
   { "cxx_alias_templates",

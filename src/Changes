@@ -1,5 +1,17 @@
 Version 4.10
 
+7/15/14  [EDGcpfe/15296]
+__cpp_aggregate_nsdmi and cxx_aggregate_nsdmi
+
+When support was added for the C++14 feature permitting aggregate class types
+to have nonstatic data member initializers (see the entry for EDGcpfe/14146),
+the setting of the corresponding feature-test macro (__cpp_aggregate_nsdmi)
+was not updated to reflect that support.
+
+This is now fixed.  The result of __has_feature(cxx_aggregate_nsdmi) in Clang
+mode has also been updated.
+
+
 7/14/14  [EDGcpfe/13100]
 Missing diagnostic for invalid pack expansion
 

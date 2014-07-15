@@ -16311,7 +16311,7 @@ nonstandard anonymous unions is_nonstd is TRUE.
                          sym, class_type, &new_apo_sym_list, assoc_object_sym,
                          assoc_object_access, reuse_symbol, is_nonstd);
         if (sym->variant.field.ptr->has_initializer && class_type != NULL &&
-            !cpp14_mode) {
+            !aggregate_classes_can_have_field_initializers) {
           /* Class types with data members that have field initializers aren't
              aggregate types in C++11 (but they are in C++14).  We take the
              view here that promoted fields also make the parent class a
@@ -18048,7 +18048,7 @@ information about the member declaration, respectively.
       /* Field initializers make the class a non-POD and, prior to C++14, a
          non-aggregate.  Also, it makes the default constructor nontrivial. */
       class_state->POD_ruled_out = TRUE;
-      if (!cpp14_mode) {
+      if (!aggregate_classes_can_have_field_initializers) {
         class_state->class_aggregate_ruled_out = TRUE;
       }  /* if */
       class_state->default_ctor_is_nontrivial = TRUE;
