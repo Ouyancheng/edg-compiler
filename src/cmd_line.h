@@ -1091,6 +1091,12 @@ EXTERN a_boolean
 			/* TRUE if C++14 generic lambdas should be accepted. */
 
 EXTERN a_boolean
+		generic_lambdas_can_implicitly_capture;
+			/* TRUE if C++14 generic lambdas can implicitly capture
+			   local variables (as specified by the standard). */
+
+
+EXTERN a_boolean
 		init_capture_enabled;
 			/* TRUE if C++14-style init-capture should be accepted
 			   in lambda expressions. */

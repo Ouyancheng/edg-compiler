@@ -2264,6 +2264,14 @@ by a command line option.
       static_assert_enabled = TRUE;
       if (!option_kind_used[(int)optk_lambdas]) {
         lambdas_enabled = TRUE;
+        if (microsoft_version >= 1900) {
+          generic_lambdas_enabled = TRUE;
+          if (!cpp14_mode) {
+            /* Current versions of the Microsoft compiler do not permit
+               implicit capture by generic lambdas. */
+            generic_lambdas_can_implicitly_capture = FALSE;
+          }  /* if */
+        }  /* if */
       }  /* if */
       if (!option_kind_used[(int)optk_rvalue_references]) {
         rvalue_references_enabled = TRUE;
@@ -3010,6 +3018,7 @@ default mode (e.g., exception handling).
     }  /* if */
     deduced_return_types_enabled = TRUE;
     generic_lambdas_enabled = TRUE;
+    generic_lambdas_can_implicitly_capture = TRUE;
     init_capture_enabled = TRUE;
     if (field_initializers_enabled) {
       aggregate_classes_can_have_field_initializers = TRUE;
@@ -10447,6 +10456,7 @@ variables declared in cmd_line.h.
   opaque_enum_decls_enabled = FALSE;
   lambdas_enabled = DEFAULT_LAMBDAS_ENABLED;
   generic_lambdas_enabled = FALSE;
+  generic_lambdas_can_implicitly_capture = FALSE;
   init_capture_enabled = FALSE;
   rvalue_references_enabled = DEFAULT_RVALUE_REFERENCES_ENABLED;
   ref_qualifiers_enabled = rvalue_references_enabled;

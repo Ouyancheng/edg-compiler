@@ -29394,6 +29394,12 @@ corresponding template declaration scope is pushed.
         /* At least one "auto" parameter was seen: Set up a member function
            template context. */
         lambda->is_generic = TRUE;
+        if (!generic_lambdas_can_implicitly_capture &&
+            lambda->has_capture_default) {
+          /* In some modes, generic lambdas may not implicitly capture local
+             variables. */
+          pos_error(ec_generic_lambda_cannot_capture, &lambda->start_position);
+        }  /* if */
         set_up_generic_lambda_declarator_scan(dps, templ_state);
       }  /* if */
     }  /* if */
