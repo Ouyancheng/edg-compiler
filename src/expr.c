@@ -30095,13 +30095,14 @@ fields of the closure object.  Return a pointer to the dynamic init entry.
       /* A simple capture. */
       a_variable_ptr  var = lcp->captured.variable;
       a_field_ptr     source_field = lcp->capture_info.source_closure_field;
-      a_symbol_ptr    var_sym;
-      check_assertion(var != NULL);
-      var_sym = symbol_for(var);
-      /* Watch out for "this", which has no associated symbol. */
-      if (var_sym != NULL) rep = ref_entry(var_sym, capture_pos);
+      if (var != NULL) {
+        /* Watch out for "this", which has no associated symbol. */
+        a_symbol_ptr  var_sym = symbol_for(var);
+        if (var_sym != NULL) rep = ref_entry(var_sym, capture_pos);
+      }  /* if */
       if (source_field == NULL) {
         /* Normal case. */
+        check_assertion(var != NULL);
         make_lvalue_variable_operand(var,
                                      capture_pos,
                                      &null_source_position,
