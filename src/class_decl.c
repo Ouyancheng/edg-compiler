@@ -29919,13 +29919,12 @@ For example:
   decl_lambda_capture_fields(lambda);
   if (lambda->is_generic) {
     /* For generic lambdas, perform a prototype instantiation of the lambda
-       body (if appropriate). */
+       body. */
     a_symbol_ptr  sym = decl_info.decl_state.sym;
-    if (prototype_instantiation_should_be_done_for_function(sym) &&
-        !defer_function_prototype_instantiations) {
-      function_prototype_instantiation(sym);
-      (void)required_token(tok_rbrace, ec_exp_rbrace);
-    }  /* if */
+    function_prototype_instantiation(sym);
+    /* The terminating right brace is not cached when the template body is
+       cached. */
+    (void)required_token(tok_rbrace, ec_exp_rbrace);
     wrap_up_generic_lambda_scan(&templ_state);
     free_auto_param_descriptions(&decl_info.decl_state);
   } else {

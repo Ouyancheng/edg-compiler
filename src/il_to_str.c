@@ -1921,6 +1921,10 @@ by octl.
           } else {
             octl->output_str("auto", octl);
           }  /* if */
+        } else if (type->variant.template_param.is_auto_param) {
+          /* A template type parameter declared for an "auto" parameter in a
+             C++14-style generic lambda. */
+          octl->output_str("auto", octl);
         } else {
           a_source_correspondence_ptr scp = &type->source_corresp;
           an_il_entry_kind            scp_kind = iek_type;

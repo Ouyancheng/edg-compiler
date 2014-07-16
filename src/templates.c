@@ -25673,6 +25673,7 @@ described by dps->auto_params.
                                               apdp->is_parameter_pack,
                                               templ_state, &decl_pos_block);
     template_param->param_symbol->token_sequence_number = apdp->auto_tsn;
+    template_param->variant.type->variant.template_param.is_auto_param = TRUE;
     apdp->template_type_parameter = template_param;
     /* Append the template parameter entry to the list pointed to by
        templ_state->decl_info. */

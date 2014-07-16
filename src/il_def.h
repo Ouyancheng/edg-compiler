@@ -9166,6 +9166,10 @@ typedef struct a_type {
 			/* TRUE if this is a generic type parameter for a
 			   C++/CLI generic function. */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+      a_bit_field
+		is_auto_param:1;
+			/* TRUE if this is a template parameter introduced by
+			   a C++14 "auto" lambda parameter. */
       a_template_param_type_supplement_ptr
 		extra_info;
 			/* Pointer to a supplement containing additional

@@ -2350,6 +2350,9 @@ Display the indicated type entry.
         disp_boolean("is_generic_function_param", TRUE);
       }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+      if (ptr->variant.template_param.is_auto_param) {
+        disp_boolean("is_auto_param", TRUE);
+      }  /* if */
       disp_template_param_type_supplement(
                                        ptr->variant.template_param.extra_info);
       break;
