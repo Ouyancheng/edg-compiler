@@ -1,5 +1,16 @@
 Version 4.10
 
+7/15/14  [EDGcpfe/15269]
+Unbounded loop in merge_name_reference_lists
+
+When simultaneously compiling multiple translation units in GNU C++ mode, the
+front end sometimes ended up in a unbounded loop in merge_name_reference_lists
+(in trans_copy.c).  This behavior was caused by two routine entries (one of
+which is "extern __inline__"; see the Changes entry of 6/18/02) sharing the
+same list of a_name_reference entries; this is an invalid IL situation.  This
+problem is now fixed.
+
+
 7/15/14  [EDGcpfe/15186]
 Abort in C++-generating back end on function declarator in trailing return type
 

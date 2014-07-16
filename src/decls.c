@@ -8250,6 +8250,7 @@ for use in generating cross-reference output describing this declaration.
 #if EXTRA_SOURCE_POSITIONS_IN_IL
         new_rp->source_corresp.decl_pos_info = NULL;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+        new_rp->source_corresp.name_references = NULL;
         new_rp->defined = FALSE;
         new_rp->assoc_scope = NULL_region_number;
         ensure_gnu_routine_supp(new_rp)->inline_partner = routine_ptr;
