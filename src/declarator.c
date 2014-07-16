@@ -2350,7 +2350,7 @@ this is a helper function.
   } else {
     state->return_type_pos = state->specifiers_pos;
   }  /* if */
-  if (parent_type != NULL && is_nonstatic_member) {
+  if (state->is_inclass_member_function_decl && is_nonstatic_member) {
     scan_member_function_modifiers(locator, state, func_info);
   }  /* if */
   if (attributes != NULL) {
