@@ -4871,6 +4871,7 @@ a_cli_symbol_kind_tag/an_integer_kind/a_float_kind respectively.
 
 extern a_type_ptr f_cli_class_type_for(a_cli_symbol_kind kind);
 extern a_symbol_ptr f_cli_symbol_from_kind_or_null(a_cli_symbol_kind kind);
+extern a_boolean is_cli_cx_pseudo_template(a_symbol_ptr	template_sym);
 
 #define cli_class_type_for(csk)                                              \
   (f_cli_class_type_for((a_cli_symbol_kind)(csk)))

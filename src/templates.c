@@ -10214,11 +10214,17 @@ associated parameter.
   a_template_arg_ptr	pack_tap = NULL;
   a_boolean		is_generic = FALSE;
 
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  /* Determine whether a generic type is acceptable as a substituted template
+     argument. */
   if (template_sym != NULL) {
     a_template_symbol_supplement_ptr tssp;
     tssp = template_supplement_for_symbol(template_sym);
-    if (tssp != NULL) is_generic = tssp->is_generic;
+    if (tssp != NULL) {
+      is_generic = tssp->is_generic || is_cli_cx_pseudo_template(template_sym);
+    }  /* if */
   }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   if (options & CTWS_COPY_ARG_OPERAND_INFO) {
     copy_arg_operands = TRUE;
     options &= ~CTWS_COPY_ARG_OPERAND_INFO;

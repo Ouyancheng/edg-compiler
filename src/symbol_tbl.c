@@ -7961,6 +7961,32 @@ cli_float_kinds arrays therefore list only the preferred basic types.
 }  /* init_cli_symbols_corresponding_to_fundamental_types */
 
 
+a_boolean is_cli_cx_pseudo_template(a_symbol_ptr	template_sym)
+/*
+Return true if template_sym represents a C++/CLI or C++/CX facility (such as
+arrays, pin_ptrs, etc.) that is implemented as a template but is not
+really a template in the language.
+*/
+{
+  a_boolean	result = FALSE;
+
+  if (cppcx_enabled) {
+    if (template_sym == cli_symbol_from_kind(csk_platform_write_only_array) ||
+        template_sym == cli_symbol_from_kind(csk_cli_array) ||
+        template_sym == cli_symbol_from_kind(csk_cppcx_box)) {
+      result = TRUE;
+    }  /* if */
+  } else if (cli_or_cx_enabled) {
+    if (template_sym == cli_symbol_from_kind(csk_cli_array) ||
+        template_sym == cli_symbol_from_kind(csk_pin_ptr) ||
+        template_sym == cli_symbol_from_kind(csk_interior_ptr)) {
+      result = TRUE;
+    }  /* if */
+  }  /* if */
+  return result;
+}  /* is_cli_cx_psuedo_template */
+
+
 a_symbol_ptr f_cli_symbol_from_kind_or_null(a_cli_symbol_kind kind)
 /*
 Return the symbol associated with kind, and if it is not initialized, attempt

@@ -15185,20 +15185,8 @@ all arguments were explicit.
             /* A generic parameter cannot be used as a template argument.
                C++/CLI arrays, pin_ptrs and interior_ptrs are not really
                templates, so allow generic parameters for them. */
-            if (cppcx_enabled) {
-              if (template_sym != cli_symbol_from_kind(
-                                             csk_platform_write_only_array) &&
-                  template_sym != cli_symbol_from_kind(csk_cli_array) &&
-                  template_sym != cli_symbol_from_kind(csk_cppcx_box)) {
+            if (!is_cli_cx_pseudo_template(template_sym)) {
                 pos_error(ec_generic_type_in_template_arg, &arg_pos);
-              } else {
-                is_invalid = FALSE;
-              }  /* if */
-            } else if (template_sym != cli_symbol_from_kind(csk_cli_array) &&
-                       template_sym != cli_symbol_from_kind(csk_pin_ptr) &&
-                       template_sym !=
-                                     cli_symbol_from_kind(csk_interior_ptr)) {
-              pos_error(ec_generic_type_in_template_arg, &arg_pos);
             } else {
               is_invalid = FALSE;
             }  /* if */
