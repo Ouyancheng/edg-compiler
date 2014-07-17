@@ -6534,7 +6534,7 @@ for the function prototype scope context described by fpsep.
          template<class T> struct S {};
          auto f(int p) -> S<void (decltype(p))>;
        Here, levels_up is 0, but fpsep represents the function declarator in
-       template argument for S<...>.  Skip any such prototypes. */
+       the template argument for S<...>.  Skip any such prototypes. */
     while (!fpsep->outside_parameter_list) {
       fpsep = fpsep->next;
     }  /* if */
