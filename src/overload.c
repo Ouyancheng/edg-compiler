@@ -12903,15 +12903,14 @@ not_direct_binding_case:
     /* need_lvalue_result is used as passed in by the caller. */
   }  /* if */
   if (conv_funcs_class == NULL) {
-    check_assertion_str(is_class_struct_union_type(source_type),
-                       "try_conversion_function_match_full: source not class");
     conv_funcs_class = skip_typerefs(source_type);
   } else {
     /* C++/CLI case where we specify the class containing the conversion
        functions. */
-    check_assertion(cli_or_cx_enabled &&
-                    is_immediate_class_type(conv_funcs_class));
+    check_assertion(cli_or_cx_enabled);
   }  /* if */
+  check_assertion_str(is_immediate_class_type(conv_funcs_class),
+                     "try_conversion_function_match_full: source not class");
   /* If the class in which we want to look for conversion functions is a
      template class, instantiate it to make its conversion functions
      visible. */
@@ -13015,6 +13014,9 @@ not_direct_binding_case:
       if (is_abstract_class_type(eff_dest_type)) goto reject_function;
       /* Do type deduction on the return type. */
       return_type = return_type_of(conv_routine_type);
+      if (class_type_supp(conv_funcs_class)->is_lambda_closure_class) {
+// FIXME: Nothing, do in substitute_template_arguments instead?
+      }  /* if */
       if (is_reference_binding && !need_lvalue_result &&
           is_class_struct_union_type(eff_dest_type) &&
           !is_any_reference_type(il_return_type_of(conv_routine_type))) {

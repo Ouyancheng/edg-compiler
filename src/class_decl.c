@@ -20732,7 +20732,7 @@ templates from that base template.
       a_token_kind        final_token = tok_semicolon;
 #if GENERATE_SOURCE_SEQUENCE_LISTS
       /* Don't issue source sequence entries for generated entities. */
-      a_boolean             saved_source_sequence_entries_disallowed;
+      a_boolean           saved_source_sequence_entries_disallowed;
       saved_source_sequence_entries_disallowed =
                                             source_sequence_entries_disallowed;
       scope_stack_top().source_sequence_entries_disallowed = TRUE;
@@ -29658,6 +29658,71 @@ where we don't attempt ABI emulation).
 }  /* make_lambda_static_call_locator */
 
 
+static void decl_generated_lambda_member(a_lambda_ptr            lambda,
+                                         a_class_def_state       *cdsp,
+                                         a_member_decl_info_ptr  decl_info,
+                                         a_symbol_locator        *locator,
+                                         a_func_info_block       *func_info)
+/*
+Declare a generated lambda member function or member function template (i.e.,
+a conversion function or conversion function template, or the corresponding
+"alternative entry point" member).  lambda describes the corresponding lambda
+expression, cdsp the associated closure type that is being defined, and
+decl_info/locator/func_info the member to be declared.
+*/
+{
+  if (!lambda->is_generic) {
+    decl_member_function(locator, func_info, cdsp, decl_info,
+                         /*compiler_generated=*/TRUE);
+  } else {
+    /* For a generic lambda, the conversion operator is a member template. */
+    a_tmpl_decl_state     templ_decl_state;
+    a_token_kind          final_token = tok_semicolon;
+    a_template_param_ptr  call_op_tpl, new_tpl;
+    a_template_symbol_supplement_ptr
+                          call_op_tssp, new_tssp;
+    a_symbol_ptr          templ_sym;
+    call_op_tssp = symbol_for(lambda->lambda_routine->assoc_template)
+                                                      ->variant.template_info;
+    init_tmpl_decl_state_for_generated_member_template(&templ_decl_state);
+    templ_decl_state.final_token_ptr = &final_token;
+    templ_decl_state.is_variadic = call_op_tssp->is_variadic;
+    templ_decl_state.has_variadic_template_params =
+                                   call_op_tssp->has_variadic_template_params;
+    push_template_declaration_scope(
+                                  templ_decl_state.decl_info,
+                                  /*is_template_template_param_rescan*/FALSE);
+    call_op_tpl = call_op_tssp->variant.function.decl_cache.decl_info
+                              ->parameters;
+    new_tpl = copy_template_param_list(call_op_tpl);
+    templ_decl_state.decl_info->parameters = new_tpl;
+    templ_decl_state.decl_info->pack_expansions =
+         call_op_tssp->variant.function.decl_cache.decl_info->pack_expansions;
+    templ_decl_state.number_of_template_decl_scopes += 1;
+    /* Save a pointer to the template declaration information in the scope
+       stack entry. */
+    scope_stack_top().tmpl_decl_state = &templ_decl_state;
+    decl_member_function_template(locator, new_tpl,
+                                  templ_decl_state.il_template_entry,
+                                  func_info, cdsp, decl_info);
+    templ_sym = decl_info->decl_state.sym;
+    if (symbol_is(templ_sym, sk_function_template)) {
+      a_routine_ptr  new_rp;
+      new_tssp = templ_sym->variant.template_info;
+      set_il_template_entry(&templ_decl_state, templ_sym, new_tssp);
+      new_rp = new_tssp->variant.function.routine;
+      new_rp->compiler_generated = TRUE;
+      new_tssp->variant.function.decl_cache.decl_info =
+                                                   templ_decl_state.decl_info;
+      complete_generated_member_template(&templ_decl_state, func_info,
+                                         templ_sym);
+    }  /* if */
+    pop_scope();
+  }  /* if */
+
+}  /* decl_generated_lambda_member */
+
+
 static void generate_lambda_conversion_function(
                                              a_lambda_ptr          lambda,
                                              a_class_def_state     *cdsp,
@@ -29682,6 +29747,17 @@ generated for several calling conventions).
   a_symbol_locator    member_loc;
   a_symbol_ptr        sym;
   a_func_info_block   local_func_info;
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+  a_boolean           saved_source_sequence_entries_disallowed;
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+  /* Don't issue source sequence entries for generated entities. */
+  saved_source_sequence_entries_disallowed =
+                                            source_sequence_entries_disallowed;
+  scope_stack_top().source_sequence_entries_disallowed = TRUE;
+  source_sequence_entries_disallowed = TRUE;
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 
   /* Create a call type without an implicit "this" parameter. */
   call_type = copy_routine_type_with_param_types(skip_typerefs(call_op->type),
@@ -29692,6 +29768,7 @@ generated for several calling conventions).
 #if MICROSOFT_EXTENSIONS_ALLOWED || GNU_X86_ATTRIBUTES_ALLOWED
   call_type->variant.routine.extra_info->calling_convention = call_conv;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED || GNU_X86_ATTRIBUTES_ALLOWED */
+
   /* Generate a declaration for the conversion function. */
   ptr_type = make_pointer_type(call_type);
   make_type_conversion_locator(ptr_type, &member_loc, pos);
@@ -29706,8 +29783,10 @@ generated for several calling conventions).
   decl_info.decl_state.declared_type = conv_type;
   clear_func_info(&local_func_info);
   local_func_info.is_inline = TRUE;
-  decl_member_function(&member_loc, &local_func_info, cdsp, &decl_info,
-                       /*compiler_generated=*/TRUE);
+  decl_generated_lambda_member(lambda, cdsp, &decl_info, &member_loc,
+                               &local_func_info);
+  done_with_func_info(local_func_info);
+
   /* Generate the alternative entry point.  This is a static member function
      (i.e., no "this" parameter). */
   make_lambda_static_call_locator(&member_loc, call_conv, pos);
@@ -29717,8 +29796,8 @@ generated for several calling conventions).
   local_func_info = *func_info;
   local_func_info.is_inline = FALSE;
   local_func_info.is_definition = FALSE;
-  decl_member_function(&member_loc, &local_func_info, cdsp, &decl_info,
-                       /*compiler_generated=*/TRUE);
+  decl_generated_lambda_member(lambda, cdsp, &decl_info, &member_loc,
+                               &local_func_info);
   sym = decl_info.decl_state.sym;
   /* The alternative entry point for the lambda should be an implementation
      detail not visible to user code, but with GCC it is possible to refer to
@@ -29728,7 +29807,24 @@ generated for several calling conventions).
     set_routine_special_kind(sym->variant.routine.ptr,
                              (a_special_function_kind)sfk_lambda_entry_point);
     sym->variant.routine.ptr->variant.lambda_call_operator = call_op;
+  } else if (symbol_is(sym, sk_function_template)) {
+    a_routine_ptr  proto_rp = sym->variant.template_info
+                                 ->variant.function.routine;
+    set_routine_special_kind(proto_rp,
+                             (a_special_function_kind)sfk_lambda_entry_point);
+    proto_rp->variant.lambda_call_operator = call_op;
   }  /* if */
+  /* Do not call done_with_func_info on local_func_info since the latter was
+     initialized with *func_info, and its associated param-ids are needed
+     elsewhere. */
+
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+  /* Restore the previous state wrt. generating source sequence entries. */
+  source_sequence_entries_disallowed =
+                                     saved_source_sequence_entries_disallowed;
+  scope_stack_top().source_sequence_entries_disallowed 
+                                    = saved_source_sequence_entries_disallowed;
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 }  /* generate_lambda_conversion_function */
 
 
@@ -29937,9 +30033,9 @@ For example:
     /* Ordinary (non-generic) lambda: Scan the lambda body and, if needed,
        generate a lambda conversion function. */
     scan_lambda_body(lambda, &func_info);
-    generate_lambda_conversion_functions_if_needed(lambda, &class_state,
-                                                   &func_info);
   }  /* if */
+  generate_lambda_conversion_functions_if_needed(lambda, &class_state,
+                                                 &func_info);
   generate_default_constructor(&class_state, /*is_deleted=*/TRUE);
   generate_copy_assignment_operator(&class_state, /*is_deleted=*/TRUE,
                                     TQ_CONST);

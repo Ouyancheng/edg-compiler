@@ -11701,6 +11701,67 @@ supplement associated with the function template being used.
 }  /* find_substituted_type */
 
 
+static void complete_closure_conversion_template_type_deduction(
+				           a_symbol_ptr        templ_sym,
+				           a_template_arg_ptr  templ_arg_list,
+				           a_type_ptr          conv_func_type)
+/*
+templ_sym is a conversion function template of a generic lambda, and
+conv_func_type is the deduced type for that conversion function so far.
+However, that deduced type may still contain an "auto" type that hasn't been
+deduced yet.  For example:
+
+	auto lambda = [](auto a) { return a+1; };
+	int (*pf)(int) = lambda;
+
+The ordinary deduction process will deduce a conversion function type as
+follows: function() returning pointer to function(int) returning "auto-type".
+
+For cases like that, this function instantiates the lambda call operator (if
+needed) and adjusts conv_func_type accordingly (i.e., eliminating the
+"auto-type").
+*/
+{
+  a_type_ptr     closure_class = sym_parent_class(templ_sym);
+  a_routine_ptr  proto_call_rp = lambda_body_for_closure(closure_class);
+
+  if (proto_call_rp->has_deducible_return_type) {
+    /* The prototype instance has a deducible return type.  Instantiate the
+       associated template if needed. */
+    a_symbol_ptr   call_op_template_sym =
+                                    symbol_for(proto_call_rp->assoc_template);
+    a_symbol_ptr   instance_sym;
+    a_routine_ptr  instance_rp;
+    /* Copy the template argument list for the new instantiation (the copied
+       list will be freed by find_template_function if a matching instance
+       already exists). */
+    templ_arg_list = copy_template_arg_list(templ_arg_list);
+    instance_sym = find_template_function(call_op_template_sym,
+                                          &templ_arg_list,
+                                          /*explicit_arg_list_present=*/FALSE,
+                                          &error_position);
+    instance_rp = instance_sym->variant.routine.ptr;
+    if (instance_rp->has_deducible_return_type) {
+      a_type_ptr  dest_func_type;
+      finalize_deduced_return_type(instance_rp, &error_position);
+      if (instance_rp->type->kind == (a_type_kind)tk_routine) {
+        check_assertion(conv_func_type->kind == (a_type_kind)tk_routine);
+        dest_func_type = conv_func_type->variant.routine.return_type;
+        check_assertion(dest_func_type->kind == (a_type_kind)tk_pointer);
+        dest_func_type = type_pointed_to(dest_func_type);
+        check_assertion(dest_func_type->kind == (a_type_kind)tk_routine);
+        dest_func_type->variant.routine.return_type = 
+                               instance_rp->type->variant.routine.return_type;
+      } else {
+        expect_error();
+      }  /* if */
+    } else {
+      expect_error();
+    }  /* if */
+  }  /* if */
+}  /* complete_closure_conversion_template_type_deduction */
+
+
 a_type_ptr substitute_template_arguments(
 				a_symbol_ptr		templ_sym,
 				a_template_arg_ptr	templ_arg_list,
@@ -11798,6 +11859,16 @@ during wrapup processing by compare_function_templates.
                                                &copy_error, &ctws_state);
       }  /* if */
       if (copy_error) templ_rout_type = NULL;
+      if (generic_lambdas_enabled && templ_rout_type != NULL &&
+          special_kind_is(tssp->variant.function.routine, sfk_conversion) &&
+          class_type_supp(sym_parent_class(templ_sym))
+                                                  ->is_lambda_closure_class) {
+        /* We are deducing a conversion function template for a generic lambda.
+           This may require an additional step to complete deduction. */
+        complete_closure_conversion_template_type_deduction(templ_sym,
+                                                            templ_arg_list,
+                                                            templ_rout_type);
+      }  /* if */
       if (templ_rout_type != NULL) {
         /* Reset the flags in the param type entry to reflect whether the
            parameter contains any template parameters. */
@@ -13419,18 +13490,41 @@ in_class_specialization is TRUE for a Microsoft mode in-class specialization.
       /* Skip past the tok_end_of_source. */
       (void)get_token();
     } else if (parent_class != NULL) {
-      if (templ_rout->is_inheriting_ctor) {
-        a_template_param_ptr  tpl;
-        a_boolean             copy_error = FALSE;
-        a_ctws_state          ctws_state;
-        init_ctws_state(&ctws_state);
-        tpl = tssp->variant.function.decl_cache.decl_info->parameters;
-        rout_type = copy_type_with_substitution(templ_rout->type,
-                                                templ_arg_list, tpl,
-                                                &templ_sym->decl_position,
-                                                CTWS_NO_OPTIONS, &copy_error,
-                                                &ctws_state);
+      if (templ_rout->compiler_generated &&
+          (templ_rout->is_inheriting_ctor ||
+           (special_kind_is(templ_rout, sfk_conversion) &&
+           class_type_supp(parent_class)->is_lambda_closure_class) ||
+           special_kind_is(templ_rout, sfk_lambda_entry_point))) {
+        /* For generated member templates (inheriting constructors, conversion
+           templates of generic lambdas), we cannot obtain the type of the
+           function by rescanning the template tokens (since there are no
+           tokens).  Instead, we just substitute the generic type. */
+        rout_type = find_substituted_type(tssp, templ_arg_list);
+        if (rout_type == NULL) {
+          a_template_param_ptr  tpl;
+          a_boolean             copy_error = FALSE;
+          a_ctws_state          ctws_state;
+          init_ctws_state(&ctws_state);
+          tpl = tssp->variant.function.decl_cache.decl_info->parameters;
+          rout_type = copy_type_with_substitution(templ_rout->type,
+                                                  templ_arg_list, tpl,
+                                                  &templ_sym->decl_position,
+                                                  CTWS_NO_OPTIONS, &copy_error,
+                                                  &ctws_state);
+          if (special_kind_is(templ_rout, sfk_conversion) &&
+              class_type_supp(parent_class)->is_lambda_closure_class) {
+            /* Substitution is not always sufficient for the conversion
+               function template of a generic lambda: If a deduced return
+               type is involved, that has to be determined from the call
+               operator. */
+            complete_closure_conversion_template_type_deduction(templ_sym,
+                                                                templ_arg_list,
+                                                                rout_type);
+          }  /* if */
+        }  /* if */
       } else {
+        /* Obtain the type of the instance by rescanning the declaration
+           tokens. */
         rout_type = scan_member_declaration(parent_class, templ_rout, tip);
 #if DECL_MODIFIERS_IN_USE
         /* Note that locator_position is not updated in this case. */
@@ -13547,10 +13641,11 @@ in_class_specialization is TRUE for a Microsoft mode in-class specialization.
     set_source_corresp(&rp->source_corresp, sym);
     if (templ_rout->source_corresp.is_local_to_function) {
       /* set_source_corresp cannot identify local templates (currently only
-         possible for inheriting constructor templates) because of reactivated
-         scopes: Just copy the flag from the prototype instantiation. */
+         possible for inheriting constructor templates and member templates
+         of certain closure types) because of reactivated scopes: Just copy
+         the flag from the prototype instantiation. */
       rp->source_corresp.is_local_to_function = TRUE;
-      check_assertion_or_expect_error(rp->is_inheriting_ctor ||
+      check_assertion_or_expect_error(rp->compiler_generated ||
                                       rp->is_lambda_body);
     }  /* if */
     set_membership_in_source_corresp(&rp->source_corresp, sym);
@@ -13653,8 +13748,8 @@ in_class_specialization is TRUE for a Microsoft mode in-class specialization.
 #if GENERATE_SOURCE_SEQUENCE_LISTS
 #if NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
   if (rp->compiler_generated) {
-    /* For generated function templates (inheriting constructor templates, in
-       particular) no source sequence entries are generated. */
+    /* For generated function templates (e.g., inheriting constructor
+       templates) no source sequence entries are generated. */
   } else if (parent_class != NULL &&
              parent_class
                     ->variant.class_struct_union.is_prototype_instantiation) {

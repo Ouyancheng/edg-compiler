@@ -11451,10 +11451,27 @@ type, or NULL if the lambda body routine does not exist yet.
   a_scope_ptr   scope = class_type_supp(type)->assoc_scope;
 
   if (scope != NULL) {
-    for (rp = scope->routines;
-         rp != NULL; rp = rp->next) {
-      if (rp->is_lambda_body) break;
-    }  /* for */
+    if (scope->templates == NULL) {
+      /* A normal (i.e., non-generic) lambda.  Look among the routine entries
+         in the class scope. */
+      for (rp = scope->routines; rp != NULL; rp = rp->next) {
+        if (rp->is_lambda_body) break;
+      }  /* for */
+    } else {
+      /* A generic lambda: Look among the template entries in the class
+         scope. */
+      a_template_ptr  tp = scope->templates;
+      for (; tp != NULL; tp = tp->next) {
+        if (tp->kind == (a_template_kind)templk_function) {
+          a_routine_ptr  proto_rp = symbol_for(tp)->variant.template_info
+                                                  ->variant.function.routine;
+          if (proto_rp->is_lambda_body) {
+            rp = proto_rp;
+            break;
+          }  /* if */
+        }  /* if */
+      }  /* for */
+    }  /* if */
   }  /* if */
   return rp;
 }  /* lambda_body_for_closure */
