@@ -11280,19 +11280,29 @@ The expression can then be recovered using find_local_expr_node.
 an_expr_node_ptr find_local_expr_node(char                        *referrer,
                                       a_local_expr_node_ref_kind  kind)
 /*
-referrer is an entry in the file scope memory region that implicitly refers to
-an expression in a function scope memory region.  If innermost_function_scope
-is non-NULL and if it is the function containing that expression, return a
-pointer to that expression.  Otherwise, return NULL.  (The expression pointer
-is determined by searching a list of a_local_expr_node_ref entries.  kind
-represents the kind of entry that is expected to hold a pointer to the
-expression being searched for.)
+referrer is an entry in the file scope memory region that implicitly refers
+to an expression in a function scope memory region.  If the innermost
+function scope is non-NULL and if it is the function containing that
+expression, return a pointer to that expression.  Otherwise, return NULL.
+(The expression pointer is determined by searching a list of
+a_local_expr_node_ref entries.  kind represents the kind of entry that is
+expected to hold a pointer to the expression being searched for.)
 */
 {
   an_expr_node_ptr  result = NULL;
+  a_scope_ptr       target_scope = innermost_function_scope;
 
-  if (innermost_function_scope != NULL) {
-    a_local_expr_node_ref_ptr  ref = innermost_function_scope->expr_node_refs;
+#if !STANDALONE_UTILITY_PROGRAM
+  if (target_scope == NULL) {
+    /* innermost_function_scope will be NULL when the current scope is a
+       local class.  However, the innermost function scope can be retrieved
+       in such cases using get_innermost_function_scope() (which scans the
+       scope stack and thus can only be used in the front end). */
+    target_scope = get_innermost_function_scope();
+  }  /* if */
+#endif /* !STANDALONE_UTILITY_PROGRAM */
+  if (target_scope != NULL) {
+    a_local_expr_node_ref_ptr  ref = target_scope->expr_node_refs;
     for (; ref != NULL; ref = ref->next) {
       if (ref->referrer.ptr == referrer && ref->kind == kind) {
         result = ref->expr;
