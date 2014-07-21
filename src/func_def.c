@@ -2069,7 +2069,6 @@ instantiated.
     static_entry_pt->type->variant.routine.return_type =
                                   call_op->type->variant.routine.return_type;
     static_entry_pt->variant.lambda_call_operator = call_op;
-    static_entry_pt->type->variant.routine.extra =
   }  /* if */
   return static_entry_pt;
 }  /* get_lambda_static_entry_point */
