@@ -1,5 +1,27 @@
 Version 4.10
 
+7/21/14  [EDGcpfe/15305]
+Remove unnecessary zeroing when lowering partially initialized aggregates
+
+The initialization of an entity to a partially initialized aggregate constant
+is often lowered to an assignment (typically to the value of a static
+temporary).  Previously, the original stmk_init had been lowered to an
+initk_zero to ensure that all fields in the aggregate were properly
+initialized, but that superfluous step has been removed (since the added
+assignment applies to all fields of the aggregate).  For example (with --gcc):
+
+  typedef union {
+    struct {
+      char a;
+      char b;
+    };
+    short s;
+  } u;
+  short f() {
+    return ((u) { { a:1 } }).s;  // Had generated a memset call.
+  }
+
+
 7/16/14  [EDGcpfe/15299]
 Function modifiers accepted in invalid syntactic locations
 

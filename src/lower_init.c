@@ -1577,7 +1577,7 @@ initialization (when ipdp->array_element_sequence is TRUE).
       if (dip != NULL) con = dip->variant.constant;
       if (con->kind == (a_constant_repr_kind)ck_string &&
           !con->implicit_cast) {
-        /* An character array initialized by a string literal, e.g., in
+        /* A character array initialized by a string literal, e.g., in
            a ctor-initializer.  Create an lvalue string constant. */
         init_val_node = alloc_node_for_constant(con);
         init_val_node->is_lvalue = TRUE;
@@ -8620,6 +8620,7 @@ C99 mode for the same reason.
   a_boolean          local_static_that_requires_dynamic_init = FALSE;
   a_dynamic_init_ptr latest_initialization_on_entry = NULL;
   a_boolean          have_complete_object = TRUE;
+  a_boolean          entity_is_wholly_initialized = FALSE;
   a_routine_ptr      ctor_routine;
 #if GNU_VECTOR_TYPES_ALLOWED
   a_boolean          contains_vector_dynamic_init = FALSE;
@@ -9069,6 +9070,9 @@ do_assignment:;
                           (source_desc != NULL &&
                            source_desc->capture != NULL),
                           ipdp);
+      /* The assignment above wholly initializes the entity (even if the
+         source of the assignment is only partially initialized). */
+      entity_is_wholly_initialized = TRUE;
       break;
     case dik_call_returning_class_via_cctor:
       /* Initialize the entry by calling a routine that returns its result
@@ -9462,7 +9466,7 @@ do_assignment:;
            (variable->decl_modifiers & DM_DLLIMPORT) == 0 &&
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
            !local_static_that_requires_dynamic_init) ||
-          dip->is_partially_initialized) {
+          (dip->is_partially_initialized && !entity_is_wholly_initialized)) {
         variable->init_kind = (an_init_kind)initk_zero;
 #if IA64_ABI
         /* Check for the need to generate code to zero pointers to data
