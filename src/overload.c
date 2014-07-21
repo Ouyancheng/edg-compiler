@@ -13014,9 +13014,6 @@ not_direct_binding_case:
       if (is_abstract_class_type(eff_dest_type)) goto reject_function;
       /* Do type deduction on the return type. */
       return_type = return_type_of(conv_routine_type);
-      if (class_type_supp(conv_funcs_class)->is_lambda_closure_class) {
-// FIXME: Nothing, do in substitute_template_arguments instead?
-      }  /* if */
       if (is_reference_binding && !need_lvalue_result &&
           is_class_struct_union_type(eff_dest_type) &&
           !is_any_reference_type(il_return_type_of(conv_routine_type))) {
