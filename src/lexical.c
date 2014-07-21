@@ -13102,6 +13102,7 @@ concatenate_adjacent_string_literals:
   if (fetch_pp_tokens ||
       (in_preprocessing_directive && !caching_pragma_tokens) ||
       !do_string_literal_concatenation) {
+    a_const_char *after_string = curr_char_loc;
     /* String literal concatenation should not be done in the current mode. */
     if (fetch_pp_tokens && ctoken == tok_string_literal &&
         user_defined_literals_enabled && check_for_ud_suffix()) {
@@ -13112,8 +13113,28 @@ concatenate_adjacent_string_literals:
          This will produce a tok_ud_literal token, but in this mode there
          is no need to set locator_for_curr_id and
          ud_lit_op_sym_for_curr_token. */
-      ctoken = tok_ud_literal;
-      end_of_curr_token = curr_char_loc - 1;
+      a_boolean create_ud_literal = TRUE;
+      if (macro_preempts_udl_suffix) {
+        /* Check to see if the putative literal suffix should be considered
+           a macro instead. */
+        sizeof_t suffix_len = (sizeof_t)(curr_char_loc - after_string);
+        a_const_char * canonical_id = make_canonical_identifier(after_string,
+                                                                &suffix_len);
+        if (id_is_macro_name(canonical_id, suffix_len)) {
+          create_ud_literal = FALSE;
+        }  /* if */
+      }  /* if */
+      if (create_ud_literal) {
+        /* Turn the current token into a user-defined literal and adjust
+           the end of token pointer. */
+        ctoken = tok_ud_literal;
+        end_of_curr_token = curr_char_loc - 1;
+      } else {
+        /* Leave the token as a string and restore the current character
+           pointer to what it was before check_for_ud_suffix() changed
+           it. */
+        curr_char_loc = after_string;
+      }  /* if */
     }  /* if */
     goto end_of_token_scan_b;
   }  /* if */
