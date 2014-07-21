@@ -1711,24 +1711,32 @@ by octl.
         }  /* if */
       } else if (type->variant.integer.char16_t_type &&
                  !octl->c_generating_back_end) {
+#if BACK_END_IS_C_GEN_BE || BACK_END_IS_CP_GEN_BE
         /* Output a char16_t type as "char16_t", except in the C generating
            back end, where it is output as its underlying type. */
         if (clang_is_generated_code_target && octl->gen_compilable_code) {
           /* Use __char16_t when targeting clang; it is available in all
              C++ modes. */
           octl->output_str("__char16_t", octl);
-        } else {
+        } else
+#endif /* BACK_END_IS_C_GEN_BE || BACK_END_IS_CP_GEN_BE */
+        /* Do not insert code here. */
+        {
           octl->output_str("char16_t", octl);
         }  /* if */
       } else if (type->variant.integer.char32_t_type &&
                  !octl->c_generating_back_end) {
+#if BACK_END_IS_C_GEN_BE || BACK_END_IS_CP_GEN_BE
         /* Output a char32_t type as "char32_t", except in the C generating
            back end, where it is output as its underlying type. */
         if (clang_is_generated_code_target && octl->gen_compilable_code) {
           /* Use __char32_t when targeting clang; it is available in all
              C++ modes. */
           octl->output_str("__char32_t", octl);
-        } else {
+        } else
+#endif /* BACK_END_IS_C_GEN_BE || BACK_END_IS_CP_GEN_BE */
+        /* Do not insert code here. */
+        {
           octl->output_str("char32_t", octl);
         }  /* if */
       } else if (type->variant.integer.bool_type &&
