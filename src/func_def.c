@@ -2015,7 +2015,9 @@ instantiated.
 {
   a_routine_ptr  static_entry_pt;
 
-  if (!conv_op->is_template_function) {
+  if (conv_op->assoc_template == NULL ||
+      conv_op->assoc_template->kind ==
+                                    (a_template_kind)templk_member_function) {
     /* For ordinary (i.e., non-generic) lambdas, the alternate (static) entry
        point for the call operator is the routine entry following the entry
        for the conversion function on the closure type's routines list. */
