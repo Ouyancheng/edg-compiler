@@ -1,5 +1,23 @@
 Version 4.10
 
+7/21/14  [EDGcpfe/15295]
+Incorrect preprocessing output with macro_preempts_udl_suffix
+
+As described in the entry for EDGcpfe/14857, when the global variable
+macro_preempts_udl_suffix is TRUE (as it is by default in g++ mode), an
+apparent user-defined string literal will be lexed as an ordinary string
+literal followed by an identifier if that identifier has been defined as a
+macro name.  The preprocessing output produced by the front end (with the
+-E command-line option, for example) failed to show that macro's expansion,
+however.  This has now been fixed.  For example, with --gnu_version=40802
+--user_defined_literals -E:
+
+  #define A "xyz"
+  #define B "abc"A
+  char *s = B;  // Previously displayed as: char *s = "abc"A;
+                // Now displayed as:        char *s = "abc" "xyz";
+
+
 7/21/14  [EDGcpfe/15305]
 Remove unnecessary zeroing when lowering partially initialized aggregates
 
