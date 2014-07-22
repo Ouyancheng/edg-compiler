@@ -13118,8 +13118,8 @@ concatenate_adjacent_string_literals:
         /* Check to see if the putative literal suffix should be considered
            a macro instead. */
         sizeof_t suffix_len = (sizeof_t)(curr_char_loc - after_string);
-        a_const_char * canonical_id = make_canonical_identifier(after_string,
-                                                                &suffix_len);
+        a_const_char *canonical_id = make_canonical_identifier(after_string,
+                                                               &suffix_len);
         if (id_is_macro_name(canonical_id, suffix_len)) {
           create_ud_literal = FALSE;
         }  /* if */
