@@ -9686,7 +9686,7 @@ the position to insert the necessary code.
   a_constant          zero_constant, elem_size_constant, max_elements_constant;
   a_boolean           err;
   a_variable_ptr      temp;
-  a_type_ptr          num_elements_type = (*num_elem_node)->type;
+  a_type_ptr          num_elements_type= skip_typerefs((*num_elem_node)->type);
 
   check_assertion(exceptions_enabled);
   /* Create a temporary for the number of elements in the array (because
@@ -9744,8 +9744,19 @@ the position to insert the necessary code.
                                        max_elem_node->type,
                                        max_elem_node);
   }  /* if */
-  /* Make "num_elements > max_elements". */
+  /* Make "num_elements > max_elements".  max_elements has size_t type, and
+     num_elements has some unspecified integral type (which may be signed
+     or unsigned, and also may be larger than size_t).  Apply appropriate
+     casting to handle those cases (note that the case where num_elements
+     contains a negative value is handled below). */
   temp_node = var_rvalue_expr(temp);
+  if (num_elements_type->size <= max_elem_node->type->size) {
+    /* Use size_t as the type for comparison purposes. */
+    temp_node = add_cast_if_necessary(temp_node, max_elem_node->type);
+  } else {
+    /* Use the larger type for comparison purposes. */
+    max_elem_node = add_cast_if_necessary(max_elem_node, num_elements_type);
+  }  /* if */
   temp_node->next = max_elem_node;
   test_node = make_operator_node((an_expr_operator_kind)eok_gt,
                                integer_type((an_integer_kind)ik_int),
