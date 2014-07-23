@@ -10816,6 +10816,7 @@ symbol entry, and return a pointer to it in state->sym.
           clear_specific_symbol(*locator);
         } else if (sym->kind == (a_symbol_kind)sk_type) {
           a_symbol_reference_kind  ref_kind = SRK_DECLARATION;
+          a_type_ptr               declared_type = type_ptr;
 #if MICROSOFT_EXTENSIONS_ALLOWED
           if (microsoft_mode && sym == predeclared_size_t_symbol &&
               !sym->defined) {
@@ -10860,10 +10861,18 @@ symbol entry, and return a pointer to it in state->sym.
               sssd_flags |= SSSD_MARKED_AS_GNU_EXTENSION;
             }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
-            (void)update_src_seq_secondary_decl(
-                                          (char *)sym->variant.type.ptr,
-                                          type_ptr, (a_name_reference_ptr)NULL,
-                                          sssd_flags, decl_pos_block);
+            /* When we applied attributes, we may have created a typeref entry
+               to apply attributes to later on, but that entry isn't needed for
+               a redeclaration. */
+            if (declared_type->kind == (a_type_kind)tk_typeref &&
+                declared_type->variant.typeref.for_type_attributes &&
+                declared_type->source_corresp.attributes == NULL) {
+              declared_type = declared_type->variant.typeref.type;
+            }  /* if */
+            (void)update_src_seq_secondary_decl((char *)sym->variant.type.ptr,
+                                                declared_type,
+                                                (a_name_reference_ptr)NULL,
+                                                sssd_flags, decl_pos_block);
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
           } else {
 #if EXTRA_SOURCE_POSITIONS_IN_IL
@@ -11074,6 +11083,7 @@ symbol entry, and return a pointer to it in state->sym.
     if (type_ptr->kind == (a_type_kind)tk_typeref &&
         type_ptr->variant.typeref.for_type_attributes &&
         type_ptr->source_corresp.attributes == NULL) {
+      type_ptr->variant.typeref.for_type_attributes = FALSE;
       tp = type_ptr;
       type_ptr = tp->variant.typeref.type;
     } else {

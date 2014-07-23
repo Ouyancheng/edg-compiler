@@ -1,5 +1,20 @@
 Version 4.10
 
+7/22/14  [EDGcpfe/15081]
+Abort in C++-generating back end on redefinition of typedef with attributes
+
+In GNU C++ mode the C++-generating back end sometimes abort in il_to_str.c
+(function output_type_attributes) when attempting to render a typedef
+redefinition that includes type attributes.  For example:
+
+  typedef float AF __attribute__ ((__may_alias__));
+  typedef float AF __attribute__ ((__may_alias__));
+    // The front end previously abort while rendering the second typedef.
+
+This problem (which was caused by incorrect IL for the declared type recorded
+in a secondary source sequence entry) is now fixed.
+
+
 7/22/14  [EDGcpfe/15317]
 Mis-matched types used in lowered run-time test for array new
 
