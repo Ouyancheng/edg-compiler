@@ -907,6 +907,7 @@ get_another:
        because it appeared in a raw string literal. */
     an_orig_line_modif_ptr olmp = state->next_orig_line_modif;
     state->next_orig_line_modif = olmp->next;
+    olmp->in_raw_string_literal = TRUE;
     switch (olmp->kind) {
       case olm_trigraph:
         /* Reconstruct the original trigraph.  The first '?' will be

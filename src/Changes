@@ -1,5 +1,23 @@
 Version 4.10
 
+7/23/14  [EDGcpfe/15288]
+Incorrect preprocessor output for raw string literals
+
+Preprocessor output (e.g., the output of the -E command-line option)
+incorrectly failed to revert changes made when translating the physical
+form of a source line into its internal representation (for embedded
+newlines, line splices, and trigraphs) when they occur inside a raw string
+literal.  (The IL, however, did have the correct value of such raw string
+literals.) This is now fixed.  For example:
+
+  // The following initializer was previously displayed in preprocessor
+  // output as R"<>(a\nb\ncd#)<>":
+  const char * g = R"<>(a
+  b
+  c\
+  d??=)<>";
+
+
 7/22/14  [EDGcpfe/15081]
 Abort in C++-generating back end on redefinition of typedef with attributes
 

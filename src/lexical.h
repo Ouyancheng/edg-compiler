@@ -1228,6 +1228,10 @@ typedef struct an_orig_line_modif {
   an_orig_line_modif_kind
 		kind;
 			/* Kind of modification: trigraph or line splice. */
+  a_byte_boolean
+		in_raw_string_literal;
+			/* TRUE if this modification occurs within a raw
+			   string literal, FALSE otherwise. */
   union {
     /* When kind == olm_null, no variant fields. */
     /* When kind == olm_trigraph: */

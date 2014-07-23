@@ -2619,9 +2619,10 @@ original source line because of trigraphs and line splices.
 #endif /* DEBUG */
   }  /* if */
   /* Set the fixed fields. */
-  olmp->next     = NULL;
-  olmp->line_loc = line_loc;
-  olmp->kind     = kind;
+  olmp->next                  = NULL;
+  olmp->line_loc              = line_loc;
+  olmp->kind                  = kind;
+  olmp->in_raw_string_literal = FALSE;
   /* Set the variant fields. */
   switch (kind) {
     case olm_trigraph:
@@ -3330,6 +3331,8 @@ is TRUE.
            char                    prev_ch;
            char                    prev_prev_ch;
            a_boolean               token_start;
+           an_orig_line_modif_ptr  next_raw_string_modif;
+
 #if UNICODE_SOURCE_SUPPORTED
   /* Determine whether the Unicode encoding of the current file matches the
      default, which is the format used for the preprocessing output.
@@ -3385,12 +3388,17 @@ is TRUE.
         gen_pp_line_info(' ', /*next_line=*/FALSE);
       }  /* if */
     }  /* if */
-    /* Put out the previous line itself.  The text in curr_source_line
-       has trigraphs and line splices processed, but is not correct for
+    /* Put out the previous line itself.  The text in curr_source_line has
+       trigraphs and line splices processed, but is not correct for
        preprocessing output if there are in it any comments to be deleted
-       or macros to be expanded.  For those cases, the preprocessed line
-       must be constructed by using the information in
-       source_line_modif_list. */
+       or macros to be expanded or if any of the trigraphs or line splices
+       occurred inside raw string literals.  For those cases, the
+       preprocessed line must be constructed by using the information in
+       source_line_modif_list and orig_line_modif_list. */
+    for (next_raw_string_modif = orig_line_modif_list;
+         next_raw_string_modif != NULL &&
+                                 !next_raw_string_modif->in_raw_string_literal;
+         next_raw_string_modif = next_raw_string_modif->next) {}
     if (source_line_modif_list == NULL &&
 #if UNICODE_SOURCE_SUPPORTED
         !encoding_change_needed &&
@@ -3400,7 +3408,8 @@ is TRUE.
         (!null_chars_allowed_in_source ||
          orig_line_modif_list == NULL ||
          /* coverity[returned_null] */  /* coverity[dereference] */
-         strchr(curr_source_line, LE_ESCAPE)[1] == LE_NEWLINE)) {
+         (strchr(curr_source_line, LE_ESCAPE)[1] == LE_NEWLINE &&
+          next_raw_string_modif == NULL))) {
       /* For the common case, output the line quickly. */
       /* We count on the fact that an LE_ESCAPE sequence will end the
          string. */
@@ -3438,7 +3447,45 @@ is TRUE.
         /* Fetch the next character, stepping into and out of macro
            expansions. */
         ch = *loc_in_line;
-        if (ch == ATTENTION_MARKER) {
+        if (next_raw_string_modif != NULL &&
+            next_raw_string_modif->line_loc == loc_in_line) {
+          /* The current character(s) in the source line were changed from
+             their representation in the original physical line, but they
+             occur inside a raw string literal and thus must be restored to
+             their original form. */
+          switch (next_raw_string_modif->kind) {
+            case olm_trigraph:
+              /* A trigraph was changed to its corresponding single
+                 character. */
+              fprintf(f_pp_output, "?" "?%c",
+                      next_raw_string_modif->variant.trigraph_orig_char);
+              ++loc_in_line;
+              break;
+            case olm_line_splice:
+              /* A backslash followed by a newline was deleted. */
+              fprintf(f_pp_output, "\\\n");
+              break;
+            case olm_multiline_string_splice:
+              /* A newline was changed into the "\n" escape. */
+              putc('\n', f_pp_output);
+              loc_in_line += 2;
+              break;
+            case olm_null:
+              /* A null character was changed into the LE_NULL lexical
+                 escape. */
+              putc('\0', f_pp_output);
+              loc_in_line += LE_ESCAPE_LEN;
+              break;
+            default:
+              unexpected_condition();
+          }  /* switch */
+          /* Advance to the next modification that occurs inside a raw
+             string literal, if any. */
+          for (next_raw_string_modif = next_raw_string_modif->next;
+               next_raw_string_modif != NULL &&
+                                 !next_raw_string_modif->in_raw_string_literal;
+               next_raw_string_modif = next_raw_string_modif->next) {}
+        } else if (ch == ATTENTION_MARKER) {
           /* Attention marker.  Find the associated source line modification
              and process it. */
           walk_into_insertion(slmp, ins_slmp, loc_in_line);
@@ -10018,6 +10065,18 @@ kind or tok_error.  The token can be a normal or wide string literal.
         error_at_line_pos(err_code, err_pos);
       }  /* if */
     }  /* if */
+  } else if (start_of_raw_string_delimiter != NULL &&
+             orig_line_modif_list != NULL) {
+    /* Mark any original line modifications occurring within a raw string
+       literal. */
+    an_orig_line_modif_ptr olmp;
+    for (olmp = orig_line_modif_list;
+         olmp != NULL && olmp->line_loc < curr_char_loc;
+         olmp = olmp->next) {
+      if (olmp->line_loc >= start_of_raw_string_delimiter) {
+        olmp->in_raw_string_literal = TRUE;
+      }  /* if */
+    }  /* for */
   }  /* if */
   registered_pointers = save_registered_pointers;
   return ctoken;
