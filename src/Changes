@@ -16,11 +16,11 @@ in a secondary source sequence entry) is now fixed.
 
 
 7/22/14  [EDGcpfe/15317]
-Mis-matched types used in lowered run-time test for array new
+Mismatched types used in lowered run-time test for array new
 
 In cases where lowering inserts a run-time check to verify the size of
 an array new operation (see the Changes entry for EDGcpfe/13489), the
-inserted check may have had mis-matched types as operands to an eok_gt
+inserted check may have had mismatched types as operands to an eok_gt
 operation, which might cause problems for some back ends.  For example
 (with --c++11):
 
