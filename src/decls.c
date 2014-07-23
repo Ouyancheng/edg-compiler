@@ -10816,7 +10816,6 @@ symbol entry, and return a pointer to it in state->sym.
           clear_specific_symbol(*locator);
         } else if (sym->kind == (a_symbol_kind)sk_type) {
           a_symbol_reference_kind  ref_kind = SRK_DECLARATION;
-          a_type_ptr               declared_type = type_ptr;
 #if MICROSOFT_EXTENSIONS_ALLOWED
           if (microsoft_mode && sym == predeclared_size_t_symbol &&
               !sym->defined) {
@@ -10856,6 +10855,7 @@ symbol entry, and return a pointer to it in state->sym.
           if (!(ref_kind & SRK_DEFINITION)) {  /*lint !e774*/
 #if GENERATE_SOURCE_SEQUENCE_LISTS
             an_sssd_flag_set  sssd_flags = SSSD_NO_FLAGS;
+            a_type_ptr        declared_type = type_ptr;
 #if GNU_EXTENSIONS_ALLOWED
             if (state->marked_as_gnu_extension) {
               sssd_flags |= SSSD_MARKED_AS_GNU_EXTENSION;
