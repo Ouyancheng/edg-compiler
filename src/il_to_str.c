@@ -40,7 +40,7 @@ il_to_str.c -- Produce an external string-form representation for various
    be used for certain features. */
 #if BACK_END_IS_C_GEN_BE || BACK_END_IS_CP_GEN_BE
 #define use_gnu_form() (octl->gen_compilable_code ? \
-                                gcc_is_generated_code_target : \
+                                gcc_or_clang_is_generated_code_target : \
                                 gnu_mode)
 #else /* !(BACK_END_IS_C_GEN_BE || BACK_END_IS_CP_GEN_BE) */
 #define use_gnu_form() gnu_mode
@@ -4619,8 +4619,9 @@ generated (in configurations that support that).
       /* MSVC++ gives an error on (x/0.0), so use a comma operator to
          fool it. */
       (void)sprintf(buf, "(%s%s/(0,0.0%s))", dividend, suffix, suffix);
-    } else if (gcc_is_generated_code_target &&
-               gnu_targ_version >= 30300) /*lint !e845*/ {
+    } else if (clang_is_generated_code_target ||
+               (gcc_is_generated_code_target &&
+                gnu_targ_version >= 30300)) /*lint !e845*/ {
       /* Use the builtin function. */
       if (not_a_number) {
         (void)sprintf(buf, "(__builtin_nan%s(\"\"))", gnu_builtin_suffix);
@@ -5426,7 +5427,8 @@ precedence confusion.  Do the output in the way described by octl.
                           con_type->variant.float_kind,
                           octl);
 #if BACK_END_IS_C_GEN_BE || BACK_END_IS_CP_GEN_BE
-      if (!octl->gen_compilable_code || gcc_is_generated_code_target) {
+      if (!octl->gen_compilable_code ||
+          gcc_or_clang_is_generated_code_target) {
         /* GNU compilers can parse complex constants like 1.0+2.0i.  That
            form is also used in contexts that aren't actual code. */
         octl->output_str("i", octl);
@@ -5676,7 +5678,7 @@ do_sizeof_cases:
         a_field_ptr field = constant->variant.designator.field;
 #if BACK_END_IS_CP_GEN_BE
         if (il_header.source_language == sl_Cplusplus &&
-            gcc_is_generated_code_target) {
+            gcc_or_clang_is_generated_code_target) {
           /* g++ does not accept the C99 syntax for designated initializers
              but does accept a nonstandard variant:
                  struct S s = { m: 0 }; */
@@ -6071,7 +6073,7 @@ to determine if a leading space is still needed).  Do the output in the way
 described by octl.
 */
 {
-  if (!octl->gen_compilable_code || gcc_is_generated_code_target) {
+  if (!octl->gen_compilable_code || gcc_or_clang_is_generated_code_target) {
     /* First emit the attributes that when appearing on a typedef would be
        recorded in the typedef entry itself (as opposed to the underlying
        type). */
@@ -6133,7 +6135,7 @@ TRUE (this allows the caller to determine if a leading space is still needed).
 Do the output in the way described by octl.
 */
 {
-  if (!octl->gen_compilable_code || gcc_is_generated_code_target) {
+  if (!octl->gen_compilable_code || gcc_or_clang_is_generated_code_target) {
     form_recorded_gnu_attribute(ak_alloc_size, var->source_corresp.attributes,
                                 &need_leading_space, octl);
 #if USER_CONTROL_OF_STRUCT_PACKING
@@ -6234,7 +6236,7 @@ TRUE (this allows the caller to determine if a leading space is still needed).
 Do the output in the way described by octl.
 */
 {
-  if (!octl->gen_compilable_code || gcc_is_generated_code_target) {
+  if (!octl->gen_compilable_code || gcc_or_clang_is_generated_code_target) {
     form_recorded_gnu_attribute(ak_alloc_size,
                                 field->source_corresp.attributes,
                                 &need_leading_space, octl);
@@ -6277,7 +6279,7 @@ TRUE (this allows the caller to determine if a leading space is still needed).
 Do the output in the way described by octl.
 */
 {
-  if (!octl->gen_compilable_code || gcc_is_generated_code_target) {
+  if (!octl->gen_compilable_code || gcc_or_clang_is_generated_code_target) {
     an_attribute_ptr  attributes = rout->source_corresp.attributes;
     if (attributes != NULL) {
       /* Check for attributes that are recorded only as attribute entries
@@ -6370,16 +6372,26 @@ Do the output in the way described by octl.
     if (rout->always_inline) {
       form_simple_attribute("__always_inline__", &need_leading_space, octl);
     }  /* if */
-#if GCC_IS_GENERATED_CODE_TARGET
     /* The "gnu_inline" attribute isn't recognized by older GNU compilers, but
        on those compilers the associated semantics are enabled by default. */
-    if (rout->gnu_c89_inline && gnu_target_version_number >= 40200) {
+    if (rout->gnu_c89_inline &&
+        (clang_is_generated_code_target ||
+         (gcc_is_generated_code_target
+#if GCC_IS_GENERATED_CODE_TARGET
+          && gnu_target_version_number >= 40200
+#endif /* GCC_IS_GENERATED_CODE_TARGET */
+                                               ))) {
       form_simple_attribute("__gnu_inline__", &need_leading_space, octl);
     }  /* if */
-    if (rout->never_throws && gnu_target_version_number >= 30300) {
+    if (rout->never_throws &&
+        (clang_is_generated_code_target ||
+         (gcc_is_generated_code_target
+#if GCC_IS_GENERATED_CODE_TARGET
+          && gnu_target_version_number >= 30300
+#endif /* GCC_IS_GENERATED_CODE_TARGET */
+                                               ))) {
       form_simple_attribute("__nothrow__", &need_leading_space, octl);
     }  /* if */
-#endif /* GCC_IS_GENERATED_CODE_TARGET */
     if (rout->type->kind == (a_type_kind)tk_routine) {
       /* If this routine is declared using ordinary function declarator
          syntax (i.e., not using a typedef), generate the associated
@@ -6420,7 +6432,7 @@ need_leading_space is TRUE, return TRUE (this allows the caller to
 determine if a leading space is still needed).
 */
 {
-  if (!octl->gen_compilable_code || gcc_is_generated_code_target) {
+  if (!octl->gen_compilable_code || gcc_or_clang_is_generated_code_target) {
     if (label->has_gnu_unused_attribute) {
       form_simple_attribute("__unused__", &need_leading_space, octl);
     }  /* if */
@@ -6440,7 +6452,7 @@ asm_name is allowed to be NULL.
 {
   a_const_char *c;
 
-  if (gcc_is_generated_code_target && asm_name != NULL) {
+  if (gcc_or_clang_is_generated_code_target && asm_name != NULL) {
     octl->output_str(" __asm__(", octl);
     output_partial_token_str("\"", octl);
     for (c = asm_name; *c != '\0'; c++) {
@@ -6458,7 +6470,7 @@ void form_var_reg_name(a_named_register                       reg,
 Output an asm register name for a variable in the way described by octl.
 */
 {
-  if (gcc_is_generated_code_target) {
+  if (gcc_or_clang_is_generated_code_target) {
     octl->output_str(" __asm__(", octl);
     output_partial_token_str("\"", octl);
     octl->output_str(named_register_names[(int)reg], octl);

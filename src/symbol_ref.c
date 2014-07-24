@@ -580,7 +580,7 @@ flags cleared.  Note that this happens even if no hiding had occurred.
       /* In Microsoft mode, injected class names are only accessible as
          qualified names. */
 #if BACK_END_IS_CP_GEN_BE
-    } else if (gcc_is_generated_code_target && 
+    } else if (gcc_or_clang_is_generated_code_target && 
                is_injected_template_symbol(sym_ptr)) {
        /* When generating code for g++, the injected class name cannot be used 
           as a template, so don't cancel the hiding. */
@@ -916,7 +916,7 @@ hidden name checking on its own members, too.
       check_defeatable_base_inaccessibility(class_type, bcp);
     }  /* if */
 #if BACK_END_IS_CP_GEN_BE
-    if (gcc_is_generated_code_target &&
+    if (gcc_or_clang_is_generated_code_target &&
         bcp->type->source_corresp.is_class_member &&
         find_base_class_of(class_type,
                            parent_class_of(bcp->type)) != NULL) {

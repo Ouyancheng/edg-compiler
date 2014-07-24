@@ -344,15 +344,16 @@ to match the source dialect (including the version of the dialect).
   }
 #endif /* CHECKING */
   if (gnu_mode) {
+    gcc_or_clang_is_generated_code_target = TRUE;
+#if GCC_BUILTIN_VARARGS
+    gcc_builtin_varargs_in_generated_code = TRUE;
+#else /* !GCC_BUILTIN_VARARGS */
+    gcc_builtin_varargs_in_generated_code = FALSE;
+#endif /* GCC_BUILTIN_VARARGS */
     if (clang_mode) {
       clang_is_generated_code_target = TRUE;
     } else {
       gcc_is_generated_code_target = TRUE;
-#if GCC_BUILTIN_VARARGS
-      gcc_builtin_varargs_in_generated_code = TRUE;
-#else /* !GCC_BUILTIN_VARARGS */
-      gcc_builtin_varargs_in_generated_code = FALSE;
-#endif /* GCC_BUILTIN_VARARGS */
       gnu_target_version_number = gnu_version;
     }  /* if */
   } else if (microsoft_mode) {
@@ -550,6 +551,8 @@ This is done before command line processing.
   sun_is_generated_code_target = SUN_IS_GENERATED_CODE_TARGET;
   clang_is_generated_code_target = CLANG_IS_GENERATED_CODE_TARGET;
   gcc_is_generated_code_target = GCC_IS_GENERATED_CODE_TARGET;
+  gcc_or_clang_is_generated_code_target = gcc_is_generated_code_target ||
+                                          clang_is_generated_code_target;
 #if GCC_IS_GENERATED_CODE_TARGET || \
     (BACK_END_IS_CP_GEN_BE && CP_GEN_BE_TARGET_MATCHES_SOURCE_DIALECT)
   gnu_target_version_number = GNU_TARGET_VERSION_NUMBER;

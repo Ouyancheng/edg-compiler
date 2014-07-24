@@ -860,7 +860,8 @@ EXTERN unsigned long
 EXTERN a_boolean
 		gcc_is_generated_code_target;
 			/* TRUE if code is being generated for the GNU C or
-			   C++ compiler. */
+			   C++ compiler.  See also
+			   gcc_or_clang_is_generated_code_target. */
 
 #if GCC_IS_GENERATED_CODE_TARGET || \
     (BACK_END_IS_CP_GEN_BE && CP_GEN_BE_TARGET_MATCHES_SOURCE_DIALECT)
@@ -880,7 +881,13 @@ EXTERN a_boolean
 EXTERN a_boolean
 		clang_is_generated_code_target;
 			/* TRUE if code is being generated for the clang
-			   (C or C++) compiler. */
+			   (C or C++) compiler.  See also
+			   gcc_or_clang_is_generated_code_target. */
+
+EXTERN a_boolean
+		gcc_or_clang_is_generated_code_target;
+			/* TRUE if code is being generated for either the
+			   GNU or clang (C or C++) compiler. */
 
 EXTERN a_boolean
 		msvc_is_generated_code_target;

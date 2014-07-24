@@ -20363,7 +20363,7 @@ of characters added.
     char *restrict_kw = "restrict";
 #if BACK_END_IS_C_GEN_BE || BACK_END_IS_CP_GEN_BE
     /* When targeting a gcc/g++ compiler, put out "__restrict__" since
-       "restrict" may not be accepted. */
+       "restrict" may not be accepted.  Clang accepts "restrict". */
     if (gcc_is_generated_code_target) restrict_kw = "__restrict__";
 #endif /* BACK_END_IS_C_GEN_BE || BACK_END_IS_CP_GEN_BE */
     put_str_to_temp_text_buffer(restrict_kw);
@@ -20395,22 +20395,24 @@ of characters added.
              token == tok_pretty_function_name) {
     /* In the Microsoft dialect, __PRETTY_FUNCTION__ is __FUNCSIG__. */
     put_str_to_temp_text_buffer("__FUNCSIG__");
-  } else if (gcc_is_generated_code_target && token == tok_ext_alignof) {
-    /* g++ expects the lower-case variant of the keyword spelling. */
+  } else if (gcc_or_clang_is_generated_code_target &&
+             token == tok_ext_alignof) {
+    /* g++/clang expect the lower-case variant of the keyword spelling. */
     put_str_to_temp_text_buffer("__alignof__");
-  } else if (gcc_is_generated_code_target && token == tok_c99_complex) {
+  } else if (gcc_or_clang_is_generated_code_target &&
+             token == tok_c99_complex) {
     /* In GNU mode, the __complex__ type is handled as the C99 _Complex
        type.  Map the keyword back to GNU form. */
     put_str_to_temp_text_buffer("__complex__");
-  } else if (gcc_is_generated_code_target && token == tok_intaddr) {
+  } else if (gcc_or_clang_is_generated_code_target && token == tok_intaddr) {
     /* The g++ builtin function __offsetof is identical to the EDG-specific
        __INTADDR__. */
-    put_str_to_temp_text_buffer("__offsetof");
+    put_str_to_temp_text_buffer("__builtin_offsetof");
   } else if ((microsoft_dialect_is_generated_code_target ||
               sun_is_generated_code_target) &&
              token == tok_ext_alignof) {
     put_str_to_temp_text_buffer("__alignof");
-  } else if (gcc_is_generated_code_target && token == tok_decltype) {
+  } else if (gcc_or_clang_is_generated_code_target && token == tok_decltype) {
     /* Current versions of g++ only accept the decltype keyword with
        -std=c++0x, but they accept __decltype in both modes.  Use the safer
        form. */

@@ -764,7 +764,7 @@ Write a #line directive for the indicated line number and file.
   end_output_line_if_begun();
   curr_output_line = line_number;
   curr_output_pos_known = TRUE;
-  if (gen_old_style_line_dirs || gcc_is_generated_code_target) {
+  if (gen_old_style_line_dirs || gcc_or_clang_is_generated_code_target) {
     /* Generate old-style directives, i.e., the kind output by the Reiser
        cpp and by the GNU preprocessor. */
     (void)fprintf(f_C_output, "# %lu", (unsigned long)curr_output_line);
@@ -784,7 +784,7 @@ Write a #line directive for the indicated line number and file.
     (void)write_file_name(curr_output_file->file_name, f_C_output,
                           process_escapes, /*escape_nonprintable_chars=*/TRUE);
     (void)putc('"', f_C_output);
-    if (gcc_is_generated_code_target &&
+    if (gcc_or_clang_is_generated_code_target &&
         new_output_file->from_system_include_dir) {
       /* When generating code to be compiled by gcc, include the system header
          flag on the line directive if the source is from a system include. */
@@ -1921,7 +1921,7 @@ or enum.  This is always a reference/declaration, never a definition.
 #endif /* C_GEN_BE_GENERATES_ANSI_C */
   /* Do not insert code here. */
 #if USE_X86_64
-  if (gcc_is_generated_code_target && is_immediate_class_type(type) &&
+  if (gcc_or_clang_is_generated_code_target && is_immediate_class_type(type) &&
       class_type_supp(type)->is_va_list_tag) {
     /* The predefined struct __va_list_tag is necessarily distinct from,
        and hence not compatible with, the type used internally by gcc as
@@ -2156,7 +2156,8 @@ is non-NULL, in which case that is the function scope.
               if (param->name != NULL && !is_C_reserved_word(param->name)) {
                 name = param->name;
               }  /* if */
-              if (gcc_is_generated_code_target && c99_mode && name == NULL) {
+              if (gcc_or_clang_is_generated_code_target &&
+                  c99_mode && name == NULL) {
                 /* gcc has difficulty with [*] VLA parameter types when the
                    parameter is unnamed, so generate a temporary name in C99
                    mode.  (We don't have an easy way to test whether the
@@ -3513,7 +3514,7 @@ final semicolon if output_final_semi is TRUE.
     a_targ_alignment  pack_alignment = get_pack_alignment(type);
     if (pack_alignment != 0
 #if GNU_EXTENSIONS_ALLOWED
-        && !(gcc_is_generated_code_target && pack_alignment == 1 &&
+        && !(gcc_or_clang_is_generated_code_target && pack_alignment == 1 &&
              type->variant.class_struct_union.is_packed)
 #endif /* GNU_EXTENSIONS_ALLOWED */
                                                         ) {
@@ -3638,7 +3639,8 @@ final semicolon if output_final_semi is TRUE.
       } else if (padding == 1 ||
                  (
 #if GNU_EXTENSIONS_ALLOWED
-                  !(il_header.gcc_mode && gcc_is_generated_code_target) &&
+                  !(il_header.gcc_mode &&
+                    gcc_or_clang_is_generated_code_target) &&
 #endif /* GNU_EXTENSIONS_ALLOWED */
                   next_initializable_field(
                        type->variant.class_struct_union.field_list) == NULL)) {
@@ -3820,7 +3822,7 @@ pass), dump typedefs, and structs/unions as definitions (if they are defined).
       }  /* if */
 #endif /* MAINTAIN_NEEDED_FLAGS */
 #if GNU_EXTENSIONS_ALLOWED && GCC_BUILTIN_VARARGS && USE_X86_64
-      if (gcc_is_generated_code_target &&
+      if (gcc_or_clang_is_generated_code_target &&
           class_type_supp(type)->is_va_list_tag) {
         /* The predeclared struct __va_list_tag is necessarily distinct
            from, and hence not compatible with, the type used internally by
@@ -5976,15 +5978,18 @@ process_assignment:
         case eok_va_start:
           /* <stdarg.h> va_start macro, treated as a builtin operator. */
           disable_line_wrapping();
-#if GCC_IS_GENERATED_CODE_TARGET
           if (gcc_builtin_varargs_in_generated_code) {
             /* Use the intrinsic GNU C/C++ "__builtin_va_start". */
-            write_tok_str((char *)(gnu_target_version_number < 30300 ?
-                           "__builtin_stdarg_start(" : "__builtin_va_start("));
-          } else
+#if GCC_IS_GENERATED_CODE_TARGET
+            if (gnu_target_version_number < 30300) {
+              write_tok_str((char *)"__builtin_stdarg_start(");
+            } else
 #endif /* GCC_IS_GENERATED_CODE_TARGET */
-          /* Do not insert code here. */
-          {
+            /* Do not insert code here. */
+            {
+              write_tok_str((char *)"__builtin_va_start(");
+            }  /* if */
+          } else {
             write_tok_str("va_start(");
           }  /* if */
           dump_expr_with_parens(operand_1);
@@ -6160,7 +6165,7 @@ done_with_operation:
     case enk_alignof:
       if (msvc_is_generated_code_target || sun_is_generated_code_target) {
         write_tok_str("__alignof(");
-      } else if (gcc_is_generated_code_target) {
+      } else if (gcc_or_clang_is_generated_code_target) {
         write_tok_str("__alignof__(");
       } else {
         write_tok_str("__ALIGNOF__(");
@@ -7306,7 +7311,7 @@ block with state information for the processing.
            start_initializer_constant call above we will get {}, which is
            appropriate.  Note that the test here must match one in
            dump_struct_union_definition. */
-        if (!(il_header.gcc_mode && gcc_is_generated_code_target))
+        if (!(il_header.gcc_mode && gcc_or_clang_is_generated_code_target))
 #endif /* GNU_EXTENSIONS_ALLOWED */
         /* Do not insert code here. */
         {
@@ -7837,7 +7842,7 @@ parameters.
          with the "register" keyword.  (When not targeting GNU, don't put out
          the keyword since that would result in invalid code in nonlocal
          scopes.) */
-      if (gcc_is_generated_code_target &&
+      if (gcc_or_clang_is_generated_code_target &&
           var_is_gnu_named_register(variable)) {
         storage_class = (a_storage_class)sc_register;
       }  /* if */
@@ -7864,7 +7869,7 @@ parameters.
         check_assertion_str(variable->storage_class ==
                                                (a_storage_class)sc_unspecified,
                             "dump_variable_decl: var without defn in comdat");
-        if (gcc_is_generated_code_target) {
+        if (gcc_or_clang_is_generated_code_target) {
           /* GCC does not support COMDAT, but it does support weak, which
              provides a sufficient approximation. */
           write_tok_str(" __attribute__((__weak__))");
@@ -7876,7 +7881,7 @@ parameters.
         write_space();
         end_comment();
         write_space();
-        if (gcc_is_generated_code_target &&
+        if (gcc_or_clang_is_generated_code_target &&
             dump_vars_without_initializers && 
             (init_kind == (an_init_kind)initk_none ||
              init_kind == (an_init_kind)initk_zero)) {
@@ -8218,7 +8223,8 @@ Generate C for an asm statement or declaration.
   /* Do not insert code here; this is the "else" of an "if". */
   {
     /* GNU C does not treat "asm" as a keyword in some (e.g., C99) modes. */
-    write_tok_str((char *)(gcc_is_generated_code_target ? "__asm__" : "asm"));
+    write_tok_str((char *)(gcc_or_clang_is_generated_code_target ? "__asm__" :
+                                                                   "asm"));
 #if GNU_EXTENSIONS_ALLOWED
     if (aep->is_volatile && (aep->operands != NULL || aep->clobbers != NULL ||
                              aep->gnu_asm_form)) {
@@ -9762,7 +9768,7 @@ if this routine has a body (dump nothing if it has no body).
        in C++ when INSTANTIATE_EXTERN_INLINE is enabled, and in C99
        for "inline definitions".  Don't put out the body. */
     has_defn = FALSE;
-    if (gcc_is_generated_code_target) {
+    if (gcc_or_clang_is_generated_code_target) {
       /* gcc has a way of indicating a function whose definition is
          provided only for the purpose of inlining -- "extern inline".
          Put out the definition in that case. */
@@ -9804,7 +9810,7 @@ if this routine has a body (dump nothing if it has no body).
          for this translation unit (or slice within the translation unit).
          If the back end supports it, create an alias, otherwise emit a routine
          to invoke __tls_init explicitly. */
-      if (gcc_is_generated_code_target &&
+      if (gcc_or_clang_is_generated_code_target &&
           rout->storage_class == (a_storage_class)sc_unspecified) {
         set_output_position(&rout->source_corresp.decl_position);
         /* Defined in this translation unit; emit an alias indication. */
@@ -9929,7 +9935,7 @@ declare_routine:
     if (is_definition &&
         skip_typerefs(rout->type)->variant.routine.extra_info->this_class !=
                                                                         NULL &&
-        gcc_is_generated_code_target) {
+        gcc_or_clang_is_generated_code_target) {
       /* On some architectures, gcc does not enforce any alignment
          requirements on the address of functions.  This conflicts with the
          use of the low-order bit of pointers-to-members to indicate
@@ -9964,7 +9970,7 @@ declare_routine:
       check_assertion_str(rout->storage_class ==
                                                (a_storage_class)sc_unspecified,
                           "dump_routine_decl: rout without defn in comdat");
-      if (gcc_is_generated_code_target
+      if (gcc_or_clang_is_generated_code_target
 #if GNU_EXTENSIONS_ALLOWED && !LOWER_IFUNC
           && !rout->is_ifunc    /* gcc doesn't allow ifunc to be weak, so
                                    suppress the weak attribute (though this
@@ -10009,7 +10015,7 @@ declare_routine:
       }  /* if */
     }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-    if (gcc_is_generated_code_target && rout->is_inline) {
+    if (gcc_or_clang_is_generated_code_target && rout->is_inline) {
       /* gcc will be used to compile this generated code, so we know how to
          indicate an inline function. */
       /* gcc ignores __inline__ on functions with ellipses, so don't
@@ -10048,7 +10054,8 @@ declare_routine:
 #endif /* GNU_EXTENSIONS_ALLOWED */
 #if !SEPARATE_ROUTINES_FOR_FILE_SCOPE_DYNAMIC_INITS
 #if !USE_INIT_SECTION_IN_GENERATED_C
-      if (gcc_is_generated_code_target && routine_is_init_routine(rout)) {
+      if (gcc_or_clang_is_generated_code_target &&
+          routine_is_init_routine(rout)) {
         /* gcc has a special way of indicating that a routine should be
            called at program startup.  If this is an initialization routine,
            arrange for it to be called. */
@@ -10275,7 +10282,8 @@ by IL lowering.
 #if !USE_INIT_SECTION_IN_GENERATED_C
     /* gcc has a special way of indicating that a routine should be
        called at program startup. */
-    if (gcc_is_generated_code_target && !file_scope_init_routine_called) {
+    if (gcc_or_clang_is_generated_code_target &&
+        !file_scope_init_routine_called) {
       write_tok_str(" __attribute__((__constructor__))");
       file_scope_init_routine_called = TRUE;
     }  /* if */
@@ -10311,7 +10319,8 @@ by IL lowering.
       file_scope_init_routine_called = TRUE;
     }  /* if */
 #if !USE_INIT_SECTION_IN_GENERATED_C
-    if (!gcc_is_generated_code_target && !file_scope_init_routine_called) {
+    if (!gcc_or_clang_is_generated_code_target &&
+        !file_scope_init_routine_called) {
       /* No place (such as "main") was found to call the file-scope
          initialization routine generated by the C-generating back end.
          Find some way to get it called at startup. */
@@ -10451,7 +10460,7 @@ C compiler).
            inside the body of the initialization routine. */
         generate_init_section_call(name);
 #else /* !USE_INIT_SECTION_IN_GENERATED_C */
-        if (gcc_is_generated_code_target) {
+        if (gcc_or_clang_is_generated_code_target) {
           /* gcc has a special way of indicating that a routine should be
              called at program startup.  Generate a declaration with the
              proper attributes. */

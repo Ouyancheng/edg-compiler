@@ -317,7 +317,7 @@ Return TRUE if the target compiler searches dependent base classes when
 doing unqualified name lookup.
 */
 #define target_compiler_searches_dep_bases() \
-  (gcc_is_generated_code_target || msvc_is_generated_code_target)
+  (gcc_or_clang_is_generated_code_target || msvc_is_generated_code_target)
 
 /*
 Return TRUE if the current name context is a class.
@@ -2230,7 +2230,7 @@ Write a #line directive for the indicated line number and file.
   end_output_line_if_begun();
   curr_output_line = line_number;
   curr_output_pos_known = TRUE;
-  if (gen_old_style_line_dirs || gcc_is_generated_code_target) {
+  if (gen_old_style_line_dirs || gcc_or_clang_is_generated_code_target) {
     /* Generate old-style directives, i.e., the kind output by the Reiser
        cpp and by the GNU preprocessor. */
     (void)fprintf(f_C_output, "# %lu", (unsigned long)curr_output_line);
@@ -2250,7 +2250,7 @@ Write a #line directive for the indicated line number and file.
     (void)write_file_name(curr_output_file->file_name, f_C_output,
                           process_escapes, /*escape_nonprintable_chars=*/TRUE);
     (void)putc('"', f_C_output);
-    if (gcc_is_generated_code_target &&
+    if (gcc_or_clang_is_generated_code_target &&
         new_output_file->from_system_include_dir) {
       /* When generating code to be compiled by g++, include the system header
          flag on the line directive if the source is from a system include. */
@@ -2731,7 +2731,7 @@ a name.  Never generate a qualified name.
     if (entry_kind == iek_routine &&
         ((a_routine_ptr)scp)->special_kind ==
                                    (a_special_function_kind)sfk_udl_operator &&
-        gcc_is_generated_code_target) {
+        gcc_or_clang_is_generated_code_target) {
       /* The canonical form of literal-operator-id has no space between the
          "" and the ud-suffix, to prevent something like ""if, which is
          well-formed, from becoming "" if, which is ill-formed.  However,
@@ -2990,7 +2990,7 @@ entity is a template class, add the template arguments.
   gen_bare_name(scp, entry_kind);
   if (il_header.source_language == sl_Cplusplus) {
     if (entry_kind == (an_il_entry_kind)iek_constant &&
-        gcc_is_generated_code_target) {
+        gcc_or_clang_is_generated_code_target) {
       a_constant_ptr cp = (a_constant_ptr)scp;
       a_const_char   *name = unmangled_name_of(scp);
       if (cp->kind == (a_constant_repr_kind)ck_template_param &&
@@ -3811,7 +3811,7 @@ GN_PARENS_IF_GLOBAL_QUALIFIER is not set.
       }  /* if */
       if (used_qualified_name || curr_name_context->field_selection_context) {
         if ((class_type->variant.class_struct_union.is_nonreal_class ||
-             (gcc_is_generated_code_target &&
+             (gcc_or_clang_is_generated_code_target &&
               in_prototype_instantiation_context())) &&
             !is_partial_spec_prototype_inst &&
             !(options & (GN_DECLARATION | GN_SUPPRESS_TEMPLATE_KEYWORD)) &&
@@ -3911,7 +3911,7 @@ unqualified_part:
   }  /* if */
   /* Finally, emit the unqualified part of the name, with or without
      template arguments. */
-  if (gcc_is_generated_code_target && (options & GN_QUALIFIER) &&
+  if (gcc_or_clang_is_generated_code_target && (options & GN_QUALIFIER) &&
       entry_kind == iek_namespace &&
       ((a_namespace_ptr)scp)->shadowed_by_class) {
     /* Some versions of g++ report spurious errors if a class name is
@@ -4164,7 +4164,7 @@ successfully emitted.
       if (entry_kind == iek_routine) {
         /* Do routine names specially because we have an indication of
            whether to include template arguments. */
-        if (gcc_is_generated_code_target && scp->is_class_member &&
+        if (gcc_or_clang_is_generated_code_target && scp->is_class_member &&
             nrp->is_template_id && nrp->from_prototype_instantiation) {
           /* In some circumstances, g++ requires the "template" keyword in
              references to template-ids that are not actually dependent and
@@ -4257,7 +4257,7 @@ qualified is TRUE, force the generation of a qualified name.
            has a bug requiring that a qualified name be used when the
            address of a static member function is used as a non-type
            template argument in the definition of a class template. */
-        (gcc_is_generated_code_target &&
+        (gcc_or_clang_is_generated_code_target &&
          octl.processing_nontype_template_argument &&
          parent_class != NULL &&
          parent_class->
@@ -5561,7 +5561,7 @@ such cases.
   char                          *kwd;
 
   if (is_decltype) {
-    if (gcc_is_generated_code_target) {
+    if (gcc_or_clang_is_generated_code_target) {
       /* Current versions of g++ only accept the decltype keyword with
          -std=c++0x; however, they accept __decltype in either mode, so use
          the safer spelling. */
@@ -5791,7 +5791,7 @@ Routine to be called by the il_to_str routines to output a name.
       options |= GN_FORCE_QUALIFIED_NAME;
       octl.force_qualified_name = FALSE;
     }  /* if */
-    if (gcc_is_generated_code_target && kind == iek_routine &&
+    if (gcc_or_clang_is_generated_code_target && kind == iek_routine &&
         octl.processing_nontype_template_argument &&
         scp->is_class_member &&
         scp_parent_class(scp)->
@@ -7493,7 +7493,7 @@ pragma, construct a #pragma pack with the type's alignment.
        emitted, we don't issue the pragma.) */
     if (pack_alignment != curr_pack_alignment
 #if GNU_EXTENSIONS_ALLOWED
-        && !(gcc_is_generated_code_target && pack_alignment == 1 &&
+        && !(gcc_or_clang_is_generated_code_target && pack_alignment == 1 &&
              type->variant.class_struct_union.is_packed)
 #endif /* GNU_EXTENSIONS_ALLOWED */
                                                         ) {
@@ -9028,7 +9028,9 @@ indicated by opstr.
   if (curr_name_context == new_name_context) {
     pop_name_context();
   }  /* if */
-  if (gcc_is_generated_code_target && con != NULL && operand_1_type != NULL &&
+  if (gcc_or_clang_is_generated_code_target &&
+      con != NULL &&
+      operand_1_type != NULL &&
       con->kind == (a_constant_repr_kind)ck_template_param &&
       con->variant.template_param.kind ==
                             (a_template_param_constant_kind)tpck_destructor &&
@@ -10033,7 +10035,7 @@ function reference.
           pop_name_context();
         }  /* if */
       }  /* if */
-      if (gcc_is_generated_code_target &&
+      if (gcc_or_clang_is_generated_code_target &&
           in_prototype_instantiation_context() &&
           name_has_template_arguments(&rout->source_corresp, iek_routine,
                                       (a_template_arg_ptr *)NULL,
@@ -11274,7 +11276,7 @@ Most cases fit a simple pattern, but some require special handling.
           <operation-name> ( <operand1>, <operand2>, ... )
     */
     a_const_char *name;
-    if (gcc_is_generated_code_target &&
+    if (gcc_or_clang_is_generated_code_target &&
         expr->variant.builtin_operation.kind ==
                                        (a_builtin_operation_kind)bok_intaddr) {
       /* The GNU __offsetof__ builtin function has the same effect as our
@@ -12478,7 +12480,7 @@ done_with_operation_after_parens:
     case enk_alignof:
       if (msvc_is_generated_code_target || sun_is_generated_code_target) {
         write_tok_str("__alignof");
-      } else if (gcc_is_generated_code_target) {
+      } else if (gcc_or_clang_is_generated_code_target) {
         write_tok_str("__alignof__");
       } else if (expr->variant.sizeof_info.is_std_alignof) {
         write_tok_str("alignof");
@@ -13691,7 +13693,7 @@ Generate code for a namespace definition or namespace alias declaration.
     }
     pop_name_context();
     write_tok_ch('}');
-    if (gcc_is_generated_code_target && saved_shadowed_by_class) {
+    if (gcc_or_clang_is_generated_code_target && saved_shadowed_by_class) {
       /* Some versions of g++ issue spurious errors when a namespace
          qualifier is used and a class name is visible in the same scope.
          Put out a namespace alias using a unique name that can be used
@@ -14815,7 +14817,8 @@ one that yields the value) of a statement expression.
         an_asm_entry_ptr asm_entry = statement->variant.asm_entry;
         /* GNU C does not treat "asm" as a keyword in some (e.g., C99)
            modes. */
-        write_tok_str((char *)(gcc_is_generated_code_target ? "__asm__" :
+        write_tok_str((char *)(gcc_or_clang_is_generated_code_target ?
+                                                              "__asm__" :
                                                               "asm"));
 #if GNU_EXTENSIONS_ALLOWED
         if (asm_entry->has_volatile_keyword) {
@@ -15910,7 +15913,7 @@ this one is such a continuation.
        So we must produce
          extern "C" { extern struct S { int i; } x; }
        instead. */
-    if (is_definition || gcc_is_generated_code_target) {
+    if (is_definition || gcc_or_clang_is_generated_code_target) {
       render_braced_extern_c = TRUE;
       if (storage_class == (a_storage_class)sc_unspecified) {
         if (!is_definition) {
@@ -16914,7 +16917,7 @@ handle_as_definition:
                                        /*is_in_class_specialization=*/FALSE,
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
                                        rout->template_arg_list);
-    if (gcc_is_generated_code_target && is_namespace_member(rout)) {
+    if (gcc_or_clang_is_generated_code_target && is_namespace_member(rout)) {
       /* Some versions of g++ have a bug that causes spurious errors in
          some obscure cases if an explicit specialization of a
          namespace-scope function template is declared without explicit
@@ -17103,7 +17106,7 @@ handle_as_definition:
         !(decl_within_class &&
           (is_definition || rout->is_defaulted || rout->is_deleted ||
            definition_from_string != NULL))) {
-      if (gcc_is_generated_code_target) {
+      if (gcc_or_clang_is_generated_code_target) {
 #if GNU_EXTENSIONS_ALLOWED
         if (rout->gnu_c89_inline) {
           /* The GNU compilers complain if a function is declared as inline
@@ -17331,7 +17334,7 @@ one associated with the asm.
   /* Deal with different dialects' spelling of the asm keyword. */
   if (msvc_is_generated_code_target) {
     asm_keyword = "__asm";
-  } else if (gcc_is_generated_code_target) {
+  } else if (gcc_or_clang_is_generated_code_target) {
     asm_keyword = "__asm__";
   } else {
     asm_keyword = "asm";

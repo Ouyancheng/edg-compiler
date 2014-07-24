@@ -3036,7 +3036,7 @@ calls to the (pseudo-)function.  This is the initial value of the global
 variable always_fold_calls_to_builtin_constant_p.
 */
 #ifndef DEFAULT_ALWAYS_FOLD_CALLS_TO_BUILTIN_CONSTANT_P
-#if GCC_IS_GENERATED_CODE_TARGET && \
+#if (GCC_IS_GENERATED_CODE_TARGET || CLANG_IS_GENERATED_CODE_TARGET) && \
     (BACK_END_IS_C_GEN_BE || BACK_END_IS_CP_GEN_BE)
 #define DEFAULT_ALWAYS_FOLD_CALLS_TO_BUILTIN_CONSTANT_P FALSE
 #else /* !(GCC_IS_GENERATED_CODE_TARGET && ...) */
@@ -3087,14 +3087,15 @@ gnu_target_version_number.
 /*
 Switch that is TRUE if the C-generating or C++-generating back end should
 generate code that uses vararg primitives that are predefined by some GNU
-compilers (e.g., __builtin_va_list).
+and Clang compilers (e.g., __builtin_va_list).
 */
 #ifndef GCC_BUILTIN_VARARGS_IN_GENERATED_CODE
-#if GCC_IS_GENERATED_CODE_TARGET && GCC_BUILTIN_VARARGS
+#if (GCC_IS_GENERATED_CODE_TARGET || CLANG_IS_GENERATED_CODE_TARGET) && \
+    GCC_BUILTIN_VARARGS
 #define GCC_BUILTIN_VARARGS_IN_GENERATED_CODE TRUE
-#else /* !(GCC_IS_GENERATED_CODE_TARGET && GCC_BUILTIN_VARARGS) */
+#else /* !(GCC_IS_GENERATED_CODE_TARGET || CLANG_IS_GENERATED_CODE_TARGET)...*/
 #define GCC_BUILTIN_VARARGS_IN_GENERATED_CODE FALSE
-#endif /* GCC_IS_GENERATED_CODE_TARGET && GCC_BUILTIN_VARARGS */
+#endif /* (GCC_IS_GENERATED_CODE_TARGET || CLANG_IS_GENERATED_CODE_TARGET)...*/
 #endif /* ifndef GCC_BUILTIN_VARARGS_IN_GENERATED_CODE */
 
 /*
@@ -3223,7 +3224,7 @@ MSVC_IS_GENERATED_CODE_TARGET is ignored in non-Microsoft modes.)
 #if BACK_END_IS_C_GEN_BE || BACK_END_IS_CP_GEN_BE
 /*
 The C-generating and C++-generating back ends should never have to generate
-code for more than one specific target dialect (Microsoft, GNU, or Sun).
+code for more than one specific target dialect (Microsoft, GNU, Sun, or Clang).
 */
 #if MICROSOFT_DIALECT_IS_GENERATED_CODE_TARGET
 #ifndef SPECIFIC_TARGET_DIALECT_SET
@@ -3249,9 +3250,17 @@ code for more than one specific target dialect (Microsoft, GNU, or Sun).
 #endif /* ifndef SPECIFIC_TARGET_DIALECT_SET */
 #endif /* SUN_IS_GENERATED_CODE_TARGET */
 
+#if CLANG_IS_GENERATED_CODE_TARGET
+#ifndef SPECIFIC_TARGET_DIALECT_SET
+#define SPECIFIC_TARGET_DIALECT_SET TRUE
+#else /* !defined(SPECIFIC_TARGET_DIALECT_SET) */
+#define MULTIPLE_TARGET_DIALECTS_SET TRUE
+#endif /* ifndef SPECIFIC_TARGET_DIALECT_SET */
+#endif /* CLANG_IS_GENERATED_CODE_TARGET */
+
 #ifdef MULTIPLE_TARGET_DIALECTS_SET
  #error -- Multiple target dialects selected (GCC_IS_GENERATED_CODE_TARGET, \
-           SUN_IS_GENERATED_CODE_TARGET, or                                 \
+           SUN_IS_GENERATED_CODE_TARGET, CLANG_IS_GENERATED_CODE_TARGET, or \
            MICROSOFT_DIALECT_IS_GENERATED_CODE_TARGET)
 #endif /* ifdef MULTIPLE_TARGET_DIALECTS_SET */
 #endif /* BACK_END_IS_C_GEN_BE || BACK_END_IS_CP_GEN_BE */
@@ -3392,14 +3401,16 @@ struct should be generated (and padding and initialization modified
 accordingly).  (On 32-bit architectures it uses the calling sequence for a
 one-byte struct, so the natural representation presents no problems in this
 regard.)  This is the initial value of the use_empty_struct_in_generated_c
-global variable.
+global variable.  Clang appears to use an alternate calling sequence for
+empty structs in both 32-bit and 64-bit architectures.
 */
 #ifndef USE_EMPTY_STRUCT_IN_GENERATED_C
-#if GCC_IS_GENERATED_CODE_TARGET && TARG_SIZEOF_POINTER == 8
+#if (GCC_IS_GENERATED_CODE_TARGET && TARG_SIZEOF_POINTER == 8) || \
+     CLANG_IS_GENERATED_CODE_TARGET
 #define USE_EMPTY_STRUCT_IN_GENERATED_C TRUE
-#else /* !(GCC_IS_GENERATED_CODE_TARGET && TARG_SIZEOF_POINTER == 8) */
+#else /* !(GCC_IS_GENERATED_CODE_TARGET && TARG_SIZEOF_POINTER == 8) || ... */
 #define USE_EMPTY_STRUCT_IN_GENERATED_C FALSE
-#endif /* GCC_IS_GENERATED_CODE_TARGET && TARG_SIZEOF_POINTER == 8 */
+#endif /* GCC_IS_GENERATED_CODE_TARGET && TARG_SIZEOF_POINTER == 8 || ... */
 #endif /* USE_EMPTY_STRUCT_IN_GENERATED_C */
 #endif /* BACK_END_IS_C_GEN_BE */
 

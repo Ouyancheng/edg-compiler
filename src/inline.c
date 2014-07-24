@@ -450,7 +450,7 @@ finish_variable_remapping_for_inlining.
            is_ptr_to_member_function_constant_expr(arg))) {
         a_type_ptr arg_type = skip_typerefs(arg->type);
 #if BACK_END_IS_C_GEN_BE
-        if (gcc_is_generated_code_target &&
+        if (gcc_or_clang_is_generated_code_target &&
             is_cast_operation_node(arg) &&
             is_pointer_type(arg_type) &&
             is_pointer_type(arg->variant.operation.operands->type) &&
