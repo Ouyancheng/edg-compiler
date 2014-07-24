@@ -11700,6 +11700,26 @@ a local class).
   return result;
 }  /* get_innermost_function_scope */
 
+
+a_scope_depth get_depth_innermost_function_scope(void)
+/*
+Return the depth of the innermost function scope (or NO_SCOPE_DEPTH if
+there is none).  Typically the same as depth_innermost_function_scope, but
+can be different (e.g., when the current scope is a local class).
+*/
+{
+  a_scope_depth depth = depth_innermost_function_scope;
+
+  if (depth == NO_SCOPE_DEPTH && inside_local_class) {
+    /* Scan back through the scope stack for the nearest function scope. */
+    for (depth = depth_scope_stack;
+         depth != NO_SCOPE_DEPTH &&
+                         scope_stack[depth].kind != (a_scope_kind)sck_function;
+         depth = scope_stack[depth].previous_scope) {}
+  }  /* if */
+  return depth;
+}  /* get_depth_innermost_function_scope */
+
 #if DEBUG
 
 unsigned long db_show_scope_stack_space_used(unsigned long grand_total)

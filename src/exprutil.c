@@ -17897,8 +17897,10 @@ it might produce an error).
             /* Need to allocate a node in the appropriate region so that
                a local expr node reference will be used in the constant. */
             a_memory_region_number region_to_switch_back_to;
-            switch_to_scope_region(depth_innermost_function_scope,
-                                   &region_to_switch_back_to);
+            a_scope_depth          func_depth =
+                                          get_depth_innermost_function_scope();
+            check_assertion(func_depth > NO_SCOPE_DEPTH);
+            switch_to_scope_region(func_depth, &region_to_switch_back_to);
             node = var_rvalue_expr(variable);
             switch_back_to_original_region(region_to_switch_back_to);
           } else {

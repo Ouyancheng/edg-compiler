@@ -2230,6 +2230,8 @@ extern a_boolean should_delay_lowering_on_function(
 
 extern a_scope_ptr get_innermost_function_scope(void);
 
+extern a_scope_depth get_depth_innermost_function_scope(void);
+
 /*
 Return TRUE if we are in a pack expansion context that is not a suppression.
 */
