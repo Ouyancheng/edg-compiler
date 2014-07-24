@@ -21891,6 +21891,25 @@ set, e.g., value FALSE clears the flags.
 }  /* force_narrowing_check_on_arg_list_members */
 
 
+static a_constant_ptr unshared_constant_from_operand(an_operand  *operand)
+/*
+Extract the constant value from the operand *operand and return it in a new
+allocated unshared entry.  Copy position information from the operand into the
+allocated constant.
+*/
+{
+  a_constant  con, *result;
+
+  extract_constant_from_operand(operand, &con);
+  result = alloc_unshared_constant(&con);
+  result->source_corresp.decl_position = operand->position;
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+  result->end_position = operand->end_position;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+  return result;
+}  /* unshared_constant_from_operand */
+
+
 void prep_list_initializer(an_init_component_ptr icp,
                            a_type_ptr            dest_type,
                            a_boolean             is_direct_init,
@@ -22788,10 +22807,8 @@ will be an lvalue instead of the usual prvalue.
     } else if (constant != NULL) {
       /* Already constant. */
     } else {
-      a_constant con;
       force_operand_to_constant_if_possible(&operand);
-      extract_constant_from_operand(&operand, &con);
-      constant = alloc_unshared_constant(&con);
+      constant = unshared_constant_from_operand(&operand);
     }  /* if */
     /* Disallow certain constants that don't actually have a constant
        value, e.g., UPC THREADS. */
@@ -22917,7 +22934,7 @@ will be an lvalue instead of the usual prvalue.
     } else if (dip == NULL && constant_ok && is_constant_operand(&operand)) {
       /* We already have a constant operand that can be easily turned into
          an allocated constant. */
-      is->init_con = alloc_unshared_constant(&operand.variant.constant);
+      is->init_con = unshared_constant_from_operand(&operand);
     } else if (dip == NULL && constant_ok && is_error_operand(&operand) &&
                curr_expr_kind_is_const()) {
       is->init_con = alloc_error_constant();
@@ -22944,8 +22961,8 @@ will be an lvalue instead of the usual prvalue.
           } else if (is_constant_operand(&operand)) {
             dip = alloc_expr_dynamic_init((a_dynamic_init_kind)dik_constant);
             set_dynamic_init_constant(
-                           dip,
-                           alloc_unshared_constant(&operand.variant.constant));
+                                     dip,
+                                     unshared_constant_from_operand(&operand));
           } else {
             dip = alloc_expr_dynamic_init((a_dynamic_init_kind)dik_expression);
             dip->variant.expression = make_node_from_operand(&operand);

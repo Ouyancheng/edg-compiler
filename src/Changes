@@ -1,5 +1,18 @@
 Version 4.10
 
+7/24/14  [EDGcpfe/15310]
+Position information for aggregate initializer constants
+
+The front end now records the positions of aggregate initializer constants in
+more cases.  For example:
+
+  double z[] = { 2 };
+
+In this case, the a_constant entry representing "2" now records the position
+of that literal.  Note that prior to the changes for EDGcpfe/14588, that
+position information could be retrieved from the backing expression.
+
+
 7/24/14  [EDGcpfe/15133]
 Internal error in C++-generating back end on some local declarations
 
