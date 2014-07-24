@@ -1564,7 +1564,7 @@ should be set to TRUE.
     internal_error("add_statement_list: struct_stmt_stack is empty");
   }  /* if */
 #endif /* CHECKING */
-  sssep = &struct_stmt_stack[depth_stmt_stack];
+  sssep = &struct_stmt_stack_top();
   statement_list_allowed = FALSE;
   if (sssep->extra_block != NULL) {
     /* An extra block statement has already been added under the primary
@@ -1877,12 +1877,40 @@ body of a constexpr function or constructor.
 */
 {
   a_decl_parse_state             dps;
+  a_statement_ptr                sp;
   a_struct_stmt_stack_entry_ptr  sssep = &struct_stmt_stack_top();
 
-  sssep->curr_decl_statement = add_statement((a_statement_kind)stmk_decl);
+  sp = add_statement((a_statement_kind)stmk_decl);
+  sssep->record_declared_entities = TRUE;
 #if GENERATE_SOURCE_SEQUENCE_LISTS
-  add_to_source_sequence_list((char*)sssep->curr_decl_statement,
-                              (an_il_entry_kind)iek_statement);
+  if (!source_sequence_entries_disallowed) {
+    a_boolean                    early_sses_present = FALSE;
+    a_source_sequence_entry_ptr  move_to_point;
+    /* Identify if any source sequence entries have been added during
+       declaration vs. expression disambiguation. */
+    if (C_mode()) {
+      /* Nothing to do. */
+    } else if (sssep->last_sse_before_expr_decl_disambiguation != NULL) {
+      if (sssep->last_sse_before_expr_decl_disambiguation->next != NULL) {
+        early_sses_present = TRUE;
+        move_to_point = sssep->last_sse_before_expr_decl_disambiguation->next;
+      }  /* if */
+    } else {
+      if (scope_stack_top().source_sequence_list != NULL) {
+        early_sses_present = TRUE;
+        move_to_point = scope_stack_top().source_sequence_list;
+      }  /* if */
+    }  /* if */
+    f_update_source_sequence_list((char*)sp, (an_il_entry_kind)iek_statement,
+                                  (a_source_sequence_entry_ptr)NULL);
+    if (early_sses_present) {
+      /* One or more source sequence entries were added as a side effect of
+         disambiguation before we added the entry for the statement above.
+         Move the entry for the statement to before those added entries. */
+      move_src_seq_entry(sp->source_sequence_entry, depth_scope_stack,
+                         move_to_point, depth_scope_stack);
+    }  /* if */
+  }  /* if */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   init_decl_parse_state(&dps);
   dps.marked_as_gnu_extension = marked_as_gnu_extension;
@@ -1892,7 +1920,7 @@ body of a constexpr function or constructor.
   }  /* if */
   /* Re-load sssep since the call to scan_nonmember_declaration may have
      caused the statement stack to be reallocated. */
-  sssep = &struct_stmt_stack[depth_stmt_stack];
+  sssep = &struct_stmt_stack_top();
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   if (sssep->for_init) {
     /* Add a source sequence entry marking the end of the for-init
@@ -1902,12 +1930,62 @@ body of a constexpr function or constructor.
        between "for (int i = 0; int j = 3; --j);" and
        "for (int i = 0, j = 3; ; --j);". */
     add_end_of_construct_source_sequence_entry(
-                                       (char *)sssep->curr_decl_statement,
-                                       (a_byte_il_entry_kind)iek_statement);
+                              (char*)sp, (a_byte_il_entry_kind)iek_statement);
   }  /* if */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
-  sssep->curr_decl_statement = NULL;
+  if (sssep->declared_entities != NULL) {
+    sp->variant.decl.entities = sssep->declared_entities;
+    sssep->declared_entities = NULL;
+  }  /* if */
+  sssep->record_declared_entities = FALSE;
 }  /* decl_statement */
+
+
+static void start_potential_decl_statement(void)
+/*
+A declaration vs. expression disambiguation is next and that may produce
+IL for declared entities.  E.g.:
+
+    template<typename> struct X {};
+    int main() {
+      X<struct E> x;
+    }
+
+The declaration of "struct E" in the argument list of X will trigger the
+creation of its associated source sequence entry, but the entry for the
+declaration statement for x is not yet on the list.  This routine records the
+needed information to be able to move the forthcoming source sequence entry
+for the statement to before the entries created during disambiguation.
+Similarly, this routine also enables the recording of an_il_entity_list
+entries for any declared entities.
+
+*/
+{
+  check_assertion(!C_mode());
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+  /* Record the current last entry in this scope so that any entries created
+     as part of disambiguation can be identified and moved later on. */
+  struct_stmt_stack_top().last_sse_before_expr_decl_disambiguation =
+                                scope_stack_top().end_of_source_sequence_list;
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+  /* Start recording declared entities. */
+  struct_stmt_stack_top().record_declared_entities = TRUE;
+}  /* start_potential_decl_statement */
+
+
+static void end_potential_decl_statement(void)
+/*
+Undo any leftover state changes that resulted from calling
+start_potential_decl_statement and reclaim associated unused memory.
+*/
+{
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+  struct_stmt_stack_top().last_sse_before_expr_decl_disambiguation = NULL;
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+  struct_stmt_stack_top().record_declared_entities = FALSE;
+  free_il_entity_list_entries(struct_stmt_stack_top().declared_entities);
+  struct_stmt_stack_top().declared_entities = NULL;
+}  /* end_potential_decl_statement */
 
 
 static void for_range_declaration(a_symbol_ptr *range_based_for_iterator)
@@ -1944,7 +2022,8 @@ function or block scopes are recorded (in particular, entities declared in
 function prototype scope are not recorded).
 */
 {
-  if (depth_stmt_stack >= 0 && sym != NULL) {
+  if (depth_stmt_stack >= 0 && sym != NULL &&
+      struct_stmt_stack_top().record_declared_entities) {
     a_scope_depth  decl_level = depth_scope_stack;
     /* Determine in which scope the symbol was declared.  Usually, this is the
        scope currently on top of the scope stack. */
@@ -1955,23 +2034,19 @@ function prototype scope are not recorded).
     if (decl_level >= 0 &&
         (scope_stack[decl_level].kind == (a_scope_kind)sck_function ||
          scope_stack[decl_level].kind == (a_scope_kind)sck_block)) {
-      a_memory_region_number     region_to_switch_back_to;
-      a_struct_stmt_stack_entry_ptr
-                                 sssep = &struct_stmt_stack[depth_stmt_stack];
-      if (sssep->curr_decl_statement != NULL) {
-        an_il_entity_list_entry_ptr  *p = &sssep->curr_decl_statement
-                                                ->variant.decl.entities;
-        an_il_entry_kind             entity_kind;
-        /* Skip to the end of the list to append a new entry. */
-        while (*p != NULL) p = &(*p)->next;
-        /* Ensure the entry is allocated in the same memory region as the
-           stmk_decl statement. */
-        switch_to_scope_region(decl_level, &region_to_switch_back_to);
-        *p = alloc_il_entity_list_entry();
-        switch_back_to_original_region(region_to_switch_back_to);
-        (*p)->entity.ptr = il_entry_for_symbol(sym, &entity_kind);
-        (*p)->entity.kind = (a_byte_il_entry_kind)entity_kind;
-      }  /* if */
+      a_memory_region_number         region_to_switch_back_to;
+      a_struct_stmt_stack_entry_ptr  sssep = &struct_stmt_stack_top();
+      an_il_entity_list_entry_ptr    *p = &sssep->declared_entities;
+      an_il_entry_kind               entity_kind;
+      /* Skip to the end of the list to append a new entry. */
+      while (*p != NULL) p = &(*p)->next;
+      /* Ensure the entry is allocated in the same memory region as the
+         stmk_decl statement. */
+      switch_to_scope_region(decl_level, &region_to_switch_back_to);
+      *p = alloc_il_entity_list_entry();
+      switch_back_to_original_region(region_to_switch_back_to);
+      (*p)->entity.ptr = il_entry_for_symbol(sym, &entity_kind);
+      (*p)->entity.kind = (a_byte_il_entry_kind)entity_kind;
     }  /* if */
   }  /* if */
 }  /* record_entity_in_decl_stmt_if_needed */
@@ -2705,13 +2780,16 @@ statement is the top block of a GNU statement expression ({ ... }).
   sssep->last_switch_case_on_sorted_list = NULL;
   sssep->extra_block          = NULL;
   sssep->last_dep_statement   = NULL;
-  sssep->curr_decl_statement  = NULL;
   sssep->break_label          = NULL;
   sssep->break_statements     = NULL;
   sssep->continue_label       = NULL;
   sssep->continue_statements  = NULL;
   sssep->switch_selector_type = NULL;
-  sssep->curr_block_object_lifetime  = olp;
+  sssep->curr_block_object_lifetime = olp;
+  sssep->declared_entities    = NULL;
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+  sssep->last_sse_before_expr_decl_disambiguation = NULL;
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   sssep->depth_of_assoc_scope        = NO_SCOPE_DEPTH;
 #if MICROSOFT_EXTENSIONS_ALLOWED
   if (depth_stmt_stack == 0) {
@@ -4437,6 +4515,9 @@ can be NULL.
   /* Let add_statement know this is a for_init so that the statement is
      attached in the right place. */
   sssep->for_init = TRUE;
+  if (!C_mode()) {
+    start_potential_decl_statement();
+  }  /* if */
   if ((!C_mode() && is_decl_not_expr(DFS_REAL_DECLARATOR_ALLOWED)) ||
       ((c99_mode ||
         (C_mode() && microsoft_mode && microsoft_version >= 1800)) &&
@@ -4463,6 +4544,9 @@ can be NULL.
     if (curr_token != tok_semicolon) expression_statement(
                                            /*marked_as_gnu_extension=*/FALSE);
     (void)required_token(tok_semicolon, ec_exp_semicolon);
+  }  /* if */
+  if (!C_mode()) {
+    end_potential_decl_statement();
   }  /* if */
   /* Restore the for_init flag to its default value. */
   sssep = &struct_stmt_stack[depth_stmt_stack];
@@ -6535,10 +6619,8 @@ rescan_statement:
     struct_stmt_stack_top().p_start_pos = &start_pos;
   }  /* if */
   if (std_attribute_tokens_next() || curr_token == tok_alignas) {
-    a_struct_stmt_stack_entry_ptr
-                   sssep = &struct_stmt_stack[depth_stmt_stack];
     /* Scan leading standard attributes. */
-    sssep->prefix_attributes = scan_attributes(al_prefix);
+    struct_stmt_stack_top().prefix_attributes = scan_attributes(al_prefix);
   }  /* if */
   get_another_statement = FALSE;
   /* Move cached #pragma declarations (if any) to the current scope stack
@@ -6741,6 +6823,9 @@ expr_statement:
         marked_as_gnu_extension = TRUE;
         (void)get_token();
       }  /* if */
+      if (!C_mode()) {
+        start_potential_decl_statement();
+      }  /* if */
       if (!C_mode() &&
 #if MICROSOFT_EXTENSIONS_ALLOWED
           /* In C++/CLI, a construct like int:: begins an expression. */
@@ -6795,6 +6880,9 @@ expr_statement:
         expression_statement(marked_as_gnu_extension);
         (void)required_token(tok_semicolon, ec_exp_semicolon);
         remove_stop_token(tok_semicolon);
+      }  /* if */
+      if (!C_mode()) {
+        end_potential_decl_statement();
       }  /* if */
       break;
   }  /* switch */

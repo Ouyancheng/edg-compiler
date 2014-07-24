@@ -317,6 +317,9 @@ typedef struct a_struct_stmt_stack_entry {
 			   case label for a switch statement that is still on
 			   the statement stack (used to avoid spurious
 			   reachability warnings). */
+  a_bit_field	record_declared_entities:1;
+			/* TRUE while declared entities should be recorded in
+			   the declared_entities list. */
   a_statement_ptr
 		statement;
 			/* The associated IL statement.  Indirectly,
@@ -354,10 +357,6 @@ typedef struct a_struct_stmt_stack_entry {
 			   the structured statement (or under extra_block,
 			   if that is non-NULL).  NULL if there are
 			   no dependent statements. */
-  a_statement_ptr
-		curr_decl_statement;
-			/* While parsing a declaration statement, this points
-                           to the associated stmk_decl entry. */
   a_label_ptr	break_label;
 			/* Label to be branched to for a break out of this
 			   statement.  NULL until needed. */
@@ -396,6 +395,26 @@ typedef struct a_struct_stmt_stack_entry {
 			   the new one.  Also set on entries with
 			   kind == ssk_switch, to track the lifetime in
 			   the top block. */
+  an_il_entity_list_entry_ptr
+		declared_entities;
+			/* A list of tagged pointers to the entities declared
+			   by the current statement (if it is a declaration
+			   statement).  May briefly be non-NULL for an
+			   expression statement too (until disambiguation has
+			   determined that it is in fact an expression
+			   statement). */
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+  a_source_sequence_entry_ptr
+		last_sse_before_expr_decl_disambiguation;
+			/* When disambiguating between a declaration and an
+			   expression, source sequence entries may be created
+			   (e.g., for a template argument like X<struct S>
+			   where S is declared for the first time).  Any such
+			   entries will be moved to after the entry for the
+			   statement (which will be created after
+			   disambiguation has determined the statement
+			   kind). */
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   a_scope_depth depth_of_assoc_scope;
 			/* If kind == ssk_compound and a scope stack entry
 			   was pushed in conjunction with this structured

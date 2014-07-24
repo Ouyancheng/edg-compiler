@@ -5120,6 +5120,12 @@ in the current memory region.
 }  /* alloc_lambda_capture */
 
 
+
+static an_il_entity_list_entry_ptr
+		avail_il_entity_list_entries;
+			/* List of freed IL entity list entries that are
+			   available for reuse. */
+
 an_il_entity_list_entry_ptr alloc_il_entity_list_entry(void)
 /*
 Allocate an entry for a list of arbitrary IL entries, and return a pointer to
@@ -5128,15 +5134,37 @@ it.  The entry is allocated in the current memory region.
 {
   an_il_entity_list_entry_ptr  entry;
 
-  entry = (an_il_entity_list_entry_ptr)
+  if (avail_il_entity_list_entries == NULL) {
+    entry = (an_il_entity_list_entry_ptr)
                                   alloc_cil(sizeof(an_il_entity_list_entry));
+#if DEBUG
+    ++num_il_entity_list_entries_allocated;
+#endif /* DEBUG */
+  } else {
+    entry = avail_il_entity_list_entries;
+    avail_il_entity_list_entries = avail_il_entity_list_entries->next;
+  }  /* if */
   entry->next = NULL;
   clear_tagged_ptr(entry->entity);
-#if DEBUG
-  ++num_il_entity_list_entries_allocated;
-#endif /* DEBUG */
   return entry;
 }  /* alloc_il_entity_list_entry */
+
+
+void free_il_entity_list_entries(an_il_entity_list_entry_ptr  list)
+/*
+Free the given list of IL entity list entries, which must have been allocated
+by calling alloc_il_entity_list_entry.
+*/
+{
+  if (list != NULL) {
+    an_il_entity_list_entry_ptr  end_list = list;
+    while (end_list->next != NULL) {
+      end_list = end_list->next;
+    }  /* if */
+    end_list->next = avail_il_entity_list_entries;
+    avail_il_entity_list_entries = list;
+  }  /* if */
+}  /* free_il_entity_list_entries */
 
 
 an_attribute_ptr alloc_attribute(void)

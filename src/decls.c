@@ -5989,7 +5989,7 @@ to TRUE if we are in Microsoft mode and in a for-init block.
 #if MICROSOFT_EXTENSIONS_ALLOWED
   if (!C_mode() &&
       struct_stmt_stack != NULL && depth_stmt_stack >= 0 &&
-      struct_stmt_stack[depth_stmt_stack].for_init) {
+      struct_stmt_stack_top().for_init) {
     *in_for_init = TRUE;
     if (microsoft_version >= 1300 &&
         (use_nonstandard_for_init_scope ||
@@ -12693,8 +12693,7 @@ a normal try.
     init_decl_parse_state(&state);
 #if MICROSOFT_EXTENSIONS_ALLOWED
     if (struct_stmt_stack != NULL) {
-      struct_stmt_stack[depth_stmt_stack].in_handler_parameter_declaration
-                                                                       = TRUE;
+      struct_stmt_stack_top().in_handler_parameter_declaration = TRUE;
     }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     decl_pos = pos_curr_token;
@@ -12944,8 +12943,7 @@ a normal try.
     (void)required_token(tok_rparen, ec_exp_rparen);
 #if MICROSOFT_EXTENSIONS_ALLOWED
     if (struct_stmt_stack != NULL) {
-      struct_stmt_stack[depth_stmt_stack].in_handler_parameter_declaration
-                                                                      = FALSE;
+      struct_stmt_stack_top().in_handler_parameter_declaration = FALSE;
     }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   }  /* if */
@@ -17399,7 +17397,9 @@ parameters are scanned by scan_a_template_parameter_declaration.
   a_boolean                    first_declarator = TRUE;
   a_boolean                    access_checks_deferred = FALSE;
   a_token_kind                 final_token = tok_semicolon;
+#if EXTRA_SOURCE_POSITIONS_IN_IL
   a_statement_ptr              decl_stmt = NULL;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   a_decl_pos_block             decl_pos_block;
   a_type_qualifier_set         saved_qualifiers;
   a_source_position            saved_qualifiers_pos;
@@ -17416,11 +17416,22 @@ parameters are scanned by scan_a_template_parameter_declaration.
     (void)get_token();
     dps->marked_as_gnu_extension = TRUE;
   }  /* if */
-  if (depth_stmt_stack >= 0) {
-    decl_stmt = struct_stmt_stack[depth_stmt_stack].curr_decl_statement;
-    if (decl_stmt != NULL) {
-      dps->p_postfix_entities = &decl_stmt->variant.decl.entities;
-    }  /* if */
+  if (depth_stmt_stack >= 0 &&
+      struct_stmt_stack_top().record_declared_entities) {
+    /* This is the declaration in a declaration statement. */
+    /* Set up a pointer to entities declared from this point on. */
+    an_il_entity_list_entry_ptr
+                              *p = &struct_stmt_stack_top().declared_entities;
+    /* Skip to the end of the list. */
+    while (*p != NULL) p = &(*p)->next;
+    dps->p_postfix_entities = p;
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+    /* Keep a pointer to the statement so that its end position can be updated
+       below. */
+    decl_stmt = struct_stmt_stack_top().last_dep_statement;
+    check_assertion(decl_stmt != NULL &&
+                    decl_stmt->kind == (a_statement_kind)stmk_decl);
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   }  /* if */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
 #if TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS

@@ -1313,6 +1313,33 @@ entry.  Set its declared type to the indicated type.
   return sssdp;
 }  /* make_source_sequence_secondary_decl */
 
+
+void move_src_seq_entry(a_source_sequence_entry_ptr  ssep,
+                        a_scope_depth                source_depth,
+                        a_source_sequence_entry_ptr  insert_point,
+                        a_scope_depth                target_depth)
+/*
+Unlink the source sequence entry *ssep from the source sequence list of the
+scope stack entry at source_depth, and then insert it into the source sequence
+list of the scope stack entry at target_depth at a point immediately preceding
+the entry pointed to by insert point; if insert_point is NULL, append it to
+the end of the list.  Currently, ssep cannot be an entry for a type if
+source_depth differs from target_depth.
+*/
+{
+  check_assertion(source_depth != NO_SCOPE_DEPTH &&
+                  target_depth != NO_SCOPE_DEPTH);
+  /* If ssep were to be an entry for a class type and source_depth differs
+     from target_depth, we'd have to also move the corresponding entry on
+     scope_stack[source_depth].classes_in_ss_list.  That would be a fairly
+     expensive operation, but fortunately we currently only move entries for
+     types within the same list. */
+  check_assertion(source_depth == target_depth ||
+                  ss_entry_kind(ssep) != (an_il_entry_kind)iek_type);
+  (void)unlink_src_seq_entry(ssep, &scope_stack[source_depth]);
+  insert_src_seq_list(ssep, ssep, target_depth, insert_point);
+}  /* move_src_seq_entry */
+
 #if TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
 #if CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
 
@@ -1747,33 +1774,6 @@ innermost such class.
   db_exit();
   return insert_scope_depth;
 }  /* find_instantiation_insert_scope */
-
-
-void move_src_seq_entry(a_source_sequence_entry_ptr  ssep,
-                        a_scope_depth                source_depth,
-                        a_source_sequence_entry_ptr  insert_point,
-                        a_scope_depth                target_depth)
-/*
-Unlink the source sequence entry *ssep from the source sequence list of the
-scope stack entry at source_depth, and then insert it into the source sequence
-list of the scope stack entry at target_depth at a point immediately preceding
-the entry pointed to by insert point; if insert_point is NULL, append it to
-the end of the list.  Currently, ssep cannot be an entry for a type if
-source_depth differs from target_depth.
-*/
-{
-  check_assertion(source_depth != NO_SCOPE_DEPTH &&
-                  target_depth != NO_SCOPE_DEPTH);
-  /* If ssep were to be an entry for a class type and source_depth differs
-     from target_depth, we'd have to also move the corresponding entry on
-     scope_stack[source_depth].classes_in_ss_list.  That would be a fairly
-     expensive operation, but fortunately we currently only move entries for
-     types within the same list. */
-  check_assertion(source_depth == target_depth ||
-                  ss_entry_kind(ssep) != (an_il_entry_kind)iek_type);
-  (void)unlink_src_seq_entry(ssep, &scope_stack[source_depth]);
-  insert_src_seq_list(ssep, ssep, target_depth, insert_point);
-}  /* move_src_seq_entry */
 
 
 void update_classes_in_ss_list(a_scope_stack_entry_ptr  src_ssep,

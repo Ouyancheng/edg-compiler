@@ -96,6 +96,11 @@ extern a_src_seq_secondary_decl_ptr make_source_sequence_secondary_decl(
                                             an_il_entry_kind   kind,
                                             a_type_ptr         declared_type);
 
+extern void move_src_seq_entry(a_source_sequence_entry_ptr  ssep,
+                               a_scope_depth                source_depth,
+                               a_source_sequence_entry_ptr  insert_point,
+                               a_scope_depth                target_depth);
+
 #if TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
 
 extern void reset_ss_list_instantiation_insert_point(void);
@@ -106,11 +111,6 @@ extern void add_source_sequence_entry_for_partial_instantiation(
                                             char               *ptr,
                                             an_il_entry_kind   kind,
                                             a_type_ptr         declared_type);
-
-extern void move_src_seq_entry(a_source_sequence_entry_ptr  ssep,
-                               a_scope_depth                source_depth,
-                               a_source_sequence_entry_ptr  insert_point,
-                               a_scope_depth                target_depth);
 
 extern void update_classes_in_ss_list(a_scope_stack_entry_ptr  src_ssep,
                                       a_scope_stack_entry_ptr  dst_ssep);
