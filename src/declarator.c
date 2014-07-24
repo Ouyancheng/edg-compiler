@@ -2380,7 +2380,11 @@ function and update the corresponding flags in *dps.
       /* If an instantiation scope (for a function declaration) sits on top of
          a class reactivation scope, we are presumably rescanning a function
          member declared inside a class. */
-      (instance && scope_is(ssep, sck_class_reactivation))) {
+      (instance && scope_is(ssep, sck_class_reactivation)) ||
+      /* In Microsoft mode, a selective overrider will have added a class
+         reactivation scope. */
+      (microsoft_mode && scope_is(ssep, sck_class_reactivation) &&
+       scope_is(ssep-1, sck_class_struct_union))) {
     dps->is_inclass_member_function_decl = (dps->dso_flags & DSO_FRIEND) == 0;
   } else if (scope_is(ssep, sck_class_reactivation)) {
     /* In some error cases the flag here is set to TRUE even though there
