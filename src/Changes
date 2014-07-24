@@ -236,6 +236,11 @@ char16_t and char32_t keywords respectively.  For example (with --clang):
   typedef __char16_t char16_t;
   typedef __char32_t char32_t;
 
+Also introduced during this change is the ability to specifically target
+a clang back-end (C or C++) compiler by using the new
+CLANG_IS_GENERATED_CODE_TARGET configuration macro.  For the most part, 
+this is similar to using GCC_IS_GENERATED_CODE_TARGET.
+
 
 7/10/14  [EDGcpfe/15290]
 GNU C++ compatibility: lookup in dependent base class
