@@ -1983,7 +1983,6 @@ start_potential_decl_statement and reclaim associated unused memory.
   struct_stmt_stack_top().last_sse_before_expr_decl_disambiguation = NULL;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   struct_stmt_stack_top().record_declared_entities = FALSE;
-  free_il_entity_list_entries(struct_stmt_stack_top().declared_entities);
   struct_stmt_stack_top().declared_entities = NULL;
 }  /* end_potential_decl_statement */
 

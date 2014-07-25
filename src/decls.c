@@ -17417,7 +17417,9 @@ parameters are scanned by scan_a_template_parameter_declaration.
     dps->marked_as_gnu_extension = TRUE;
   }  /* if */
   if (depth_stmt_stack >= 0 &&
-      struct_stmt_stack_top().record_declared_entities) {
+      struct_stmt_stack_top().record_declared_entities &&
+      (scope_is(&scope_stack_top(), sck_function) ||
+       scope_is(&scope_stack_top(), sck_block))) {
     /* This is the declaration in a declaration statement. */
     /* Set up a pointer to entities declared from this point on. */
     an_il_entity_list_entry_ptr
