@@ -1,5 +1,18 @@
 Version 4.10
 
+7/25/14  [EDGcpfe/15326]
+GNU compatibility: size of an enum specified by the "mode" attribute
+
+A GNU "mode" attribute applied to an enumeration type had failed to impart
+the correct underlying type to the enumeration.  The following example
+(with --gcc) had triggered a spurious error in configurations where
+TARG_ENUM_TYPES_CAN_BE_SMALLER_THAN_INT is TRUE:
+
+  typedef int I __attribute__((mode(word)));
+  enum E { e1 } __attribute__((mode(word)));
+  int a[sizeof(enum E) == sizeof(I) ? 1 : -1];
+
+
 7/24/14  [EDGcpfe/15310]
 Position information for aggregate initializer constants
 
