@@ -1,5 +1,22 @@
 Version 4.10
 
+7/25/14  [EDGcpfe/15315]
+Spurious error on sizeof... in a local class or lambda expression
+
+The front end previously diagnosed sizeof... applied to a function parameter
+pack from a function enclosing a local class or lambda expression.  For
+example:
+
+  template<typename... T> void f(T ...p) {
+    struct A {
+      int x[sizeof...(p)];
+    };
+  }
+
+The error was due to an incorrect interpretation of the standard; it is no
+longer issued for cases like these.
+
+
 7/25/14  [EDGcpfe/15326]
 GNU compatibility: size of an enum specified by the "mode" attribute
 

@@ -10072,12 +10072,6 @@ indication in *rcblock).
               err = TRUE;
             } else {
               record_potential_pack_reference(sym, &pos_curr_token);
-              if (sym->kind == (a_symbol_kind)sk_variable &&
-                  !var_declared_in_current_routine(
-                                                  sym->variant.variable.ptr)) {
-                expr_pos_error(ec_ref_to_nested_function_var, &pos_curr_token);
-                err = TRUE;
-              }  /* if */
             }  /* if */
           }  /* if */
         }  /* if */
