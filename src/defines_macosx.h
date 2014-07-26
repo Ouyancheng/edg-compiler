@@ -109,6 +109,9 @@ This version is for the Apple MacOS X operating system.
 #endif /* ifndef IA64_ABI */
 #define DEFAULT_EMULATE_GNU_ABI_BUGS 0
 #ifndef CP_GEN_BE_VERSION
+#ifndef GCC_IS_GENERATED_CODE_TARGET
+#define GCC_IS_GENERATED_CODE_TARGET 0
+#endif /* ifndef GCC_IS_GENERATED_CODE_TARGET */
 #ifndef CLANG_IS_GENERATED_CODE_TARGET
 #define CLANG_IS_GENERATED_CODE_TARGET 1
 #endif /* ifndef CLANG_IS_GENERATED_CODE_TARGET */
