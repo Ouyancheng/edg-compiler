@@ -3464,10 +3464,12 @@ is TRUE.
             case olm_line_splice:
               /* A backslash followed by a newline was deleted. */
               fprintf(f_pp_output, "\\\n");
+              ++next_seq_in_pp_output;
               break;
             case olm_multiline_string_splice:
               /* A newline was changed into the "\n" escape. */
               putc('\n', f_pp_output);
+              ++next_seq_in_pp_output;
               loc_in_line += 2;
               break;
             case olm_null:
@@ -3485,6 +3487,8 @@ is TRUE.
                next_raw_string_modif != NULL &&
                                  !next_raw_string_modif->in_raw_string_literal;
                next_raw_string_modif = next_raw_string_modif->next) {}
+          /* Suppress inter-token spaces within raw string literals. */
+          prev_ch = '\n';
         } else if (ch == ATTENTION_MARKER) {
           /* Attention marker.  Find the associated source line modification
              and process it. */
