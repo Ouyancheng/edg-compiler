@@ -18027,8 +18027,7 @@ evaluated is TRUE if the expression is evaluated.
       options = CE_COPY_NOT_EVALUATED;
     }  /* if */
     expr = copy_expr_tree(expr, options);
-    if (gpp_mode && gnu_version >= 30400 && gnu_version < 40000 &&
-        !identical_types(expr->type, ptp->type)) {
+    if (gpp_mode && gnu_version >= 30400 && gnu_version < 40000) {
       /* g++ 3.4 leaves the final conversion to be done at the point of use
          for member functions and friends. */
       expr = prep_default_arg_expr(expr, ptp, evaluated);
