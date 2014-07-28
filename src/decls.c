@@ -17423,7 +17423,7 @@ parameters are scanned by scan_a_template_parameter_declaration.
     /* This is the declaration in a declaration statement. */
     /* Set up a pointer to entities declared from this point on. */
     an_il_entity_list_entry_ptr
-                              *p = &struct_stmt_stack_top().declared_entities;
+                             *p = struct_stmt_stack_top().p_declared_entities;
     /* Skip to the end of the list. */
     while (*p != NULL) p = &(*p)->next;
     dps->p_postfix_entities = p;

@@ -1879,9 +1879,16 @@ body of a constexpr function or constructor.
   a_decl_parse_state             dps;
   a_statement_ptr                sp;
   a_struct_stmt_stack_entry_ptr  sssep = &struct_stmt_stack_top();
+  an_il_entity_list_entry_ptr    entity_list;
 
   sp = add_statement((a_statement_kind)stmk_decl);
-  sssep->record_declared_entities = TRUE;
+  if (!sssep->record_declared_entities) {
+    /* The caller didn't set up a list to record declared entities.  Do it
+       now. */
+    sssep->record_declared_entities = TRUE;
+    entity_list = NULL;
+    sssep->p_declared_entities = &entity_list;
+  }  /* if */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   if (!source_sequence_entries_disallowed) {
     a_boolean                    early_sses_present = FALSE;
@@ -1933,15 +1940,16 @@ body of a constexpr function or constructor.
                               (char*)sp, (a_byte_il_entry_kind)iek_statement);
   }  /* if */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
-  if (sssep->declared_entities != NULL) {
-    sp->variant.decl.entities = sssep->declared_entities;
-    sssep->declared_entities = NULL;
+  if (*sssep->p_declared_entities != NULL) {
+    sp->variant.decl.entities = *sssep->p_declared_entities;
+    sssep->p_declared_entities = NULL;
   }  /* if */
   sssep->record_declared_entities = FALSE;
 }  /* decl_statement */
 
 
-static void start_potential_decl_statement(void)
+static void start_potential_decl_statement(
+                                  an_il_entity_list_entry_ptr  *p_entity_list)
 /*
 A declaration vs. expression disambiguation is next and that may produce
 IL for declared entities.  E.g.:
@@ -1954,11 +1962,16 @@ IL for declared entities.  E.g.:
 The declaration of "struct E" in the argument list of X will trigger the
 creation of its associated source sequence entry, but the entry for the
 declaration statement for x is not yet on the list.  This routine records the
-needed information to be able to move the forthcoming source sequence entry
-for the statement to before the entries created during disambiguation.
-Similarly, this routine also enables the recording of an_il_entity_list
-entries for any declared entities.
+needed information to be able to move the forthcoming source sequence entry for
+the statement to before the entries created during disambiguation.
 
+Similarly, this routine also enables the recording of an_il_entity_list entries
+for any declared entities.  The list will be pointed to by *p_entity_list.
+*p_entity_list must be allocated in the caller's stack frame so it lasts until
+the end of the statement's processing.  In particular, it cannot be placed in
+the statement stack itself because it may also be referred to by other
+structures (e.g., a_decl_parse_state) and the statement stack could move during
+declaration processing.
 */
 {
   check_assertion(!C_mode());
@@ -1970,6 +1983,8 @@ entries for any declared entities.
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   /* Start recording declared entities. */
   struct_stmt_stack_top().record_declared_entities = TRUE;
+  struct_stmt_stack_top().p_declared_entities = p_entity_list;
+  *p_entity_list = NULL;
 }  /* start_potential_decl_statement */
 
 
@@ -1983,7 +1998,7 @@ start_potential_decl_statement and reclaim associated unused memory.
   struct_stmt_stack_top().last_sse_before_expr_decl_disambiguation = NULL;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   struct_stmt_stack_top().record_declared_entities = FALSE;
-  struct_stmt_stack_top().declared_entities = NULL;
+  struct_stmt_stack_top().p_declared_entities = NULL;
 }  /* end_potential_decl_statement */
 
 
@@ -2035,7 +2050,7 @@ function prototype scope are not recorded).
          scope_stack[decl_level].kind == (a_scope_kind)sck_block)) {
       a_memory_region_number         region_to_switch_back_to;
       a_struct_stmt_stack_entry_ptr  sssep = &struct_stmt_stack_top();
-      an_il_entity_list_entry_ptr    *p = &sssep->declared_entities;
+      an_il_entity_list_entry_ptr    *p = sssep->p_declared_entities;
       an_il_entry_kind               entity_kind;
       /* Skip to the end of the list to append a new entry. */
       while (*p != NULL) p = &(*p)->next;
@@ -2785,7 +2800,7 @@ statement is the top block of a GNU statement expression ({ ... }).
   sssep->continue_statements  = NULL;
   sssep->switch_selector_type = NULL;
   sssep->curr_block_object_lifetime = olp;
-  sssep->declared_entities    = NULL;
+  sssep->p_declared_entities  = NULL;
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   sssep->last_sse_before_expr_decl_disambiguation = NULL;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
@@ -4509,13 +4524,14 @@ can be NULL.
 */
 {
   a_struct_stmt_stack_entry_ptr  sssep = &struct_stmt_stack_top();
+  an_il_entity_list_entry_ptr    entity_list;
 
   db_enter(3, "for_init_statement");
   /* Let add_statement know this is a for_init so that the statement is
      attached in the right place. */
   sssep->for_init = TRUE;
   if (!C_mode()) {
-    start_potential_decl_statement();
+    start_potential_decl_statement(&entity_list);
   }  /* if */
   if ((!C_mode() && is_decl_not_expr(DFS_REAL_DECLARATOR_ALLOWED)) ||
       ((c99_mode ||
@@ -6606,6 +6622,8 @@ this statement was preceded by the GNU keyword __extension__.
   a_boolean          get_another_statement;
   a_boolean          can_appear_in_constexpr_body = FALSE;
   a_source_position  start_pos;
+  an_il_entity_list_entry_ptr
+                     entity_list;
 
   db_enter(3, "statement");
 
@@ -6823,7 +6841,7 @@ expr_statement:
         (void)get_token();
       }  /* if */
       if (!C_mode()) {
-        start_potential_decl_statement();
+        start_potential_decl_statement(&entity_list);
       }  /* if */
       if (!C_mode() &&
 #if MICROSOFT_EXTENSIONS_ALLOWED

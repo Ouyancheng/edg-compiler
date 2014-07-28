@@ -396,13 +396,21 @@ typedef struct a_struct_stmt_stack_entry {
 			   kind == ssk_switch, to track the lifetime in
 			   the top block. */
   an_il_entity_list_entry_ptr
-		declared_entities;
-			/* A list of tagged pointers to the entities declared
-			   by the current statement (if it is a declaration
-			   statement).  May briefly be non-NULL for an
-			   expression statement too (until disambiguation has
-			   determined that it is in fact an expression
-			   statement). */
+		*p_declared_entities;
+			/* If non-NULL, we are recording entities declared by
+			   the current statement (normally, a declaration
+			   statement, although we might record an entity
+			   declared in an expression statement while performing
+			   expression vs. declaration disambiguation).
+			   *p_declared_entities points to the list of recorded
+			   entities (or NULL if there are none).  Note that
+			   this field cannot directly point the list of
+			   recorded entities, because a pointer to the head of
+			   the list may be maintained elsewhere (see the field
+			   p_postfix_entities in a_decl_parse_state) and the
+			   statement stack may be reallocated elsewhere during
+			   declaration processing (e.g., during a template
+			   instantiation). */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   a_source_sequence_entry_ptr
 		last_sse_before_expr_decl_disambiguation;
