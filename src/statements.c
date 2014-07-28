@@ -2787,6 +2787,7 @@ statement is the top block of a GNU statement expression ({ ... }).
                                = FALSE;
   sssep->contains_user_label   = FALSE;
   sssep->contains_active_switch_case = FALSE;
+  sssep->record_declared_entities = FALSE;
   sssep->statement             = sp;
   sssep->prefix_attributes     = NULL;
   sssep->switch_max_case_value = NULL;
