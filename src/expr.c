@@ -36294,12 +36294,12 @@ TRUE if the function being declared is a class member or friend.
 }  /* scan_default_arg_expr */
 
 
-an_expr_node_ptr convert_default_arg_expr(an_expr_node_ptr expr,
-                                          a_param_type_ptr ptp,
-                                          a_boolean        evaluated)
+an_expr_node_ptr prep_default_arg_expr(an_expr_node_ptr expr,
+                                       a_param_type_ptr ptp,
+                                       a_boolean        evaluated)
 /*
-For a g++ quirk, convert an expression for a default argument to the
-required parameter type.
+For a g++ quirk, convert an expression for a default argument to the required
+parameter type (this is ordinarily done when the expression is scanned).
 */
 {
   an_expr_stack_entry expr_stack_entry;
@@ -36328,7 +36328,7 @@ required parameter type.
   expr = make_node_from_operand(&operand);
   pop_expr_stack();
   return expr;
-}  /* convert_default_arg_expr */
+}  /* prep_default_arg_expr */
 
 
 static void fix_up_dynamic_init_dtors(void)

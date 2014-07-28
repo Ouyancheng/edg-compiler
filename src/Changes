@@ -1,5 +1,22 @@
 Version 4.10
 
+7/28/14  [EDGcpfe/15331]
+Invalid IL generated when using a default argument in GNU C++ 3.4.x mode
+
+The changes for EDGcpfe/10809 and EDGcpfe/13359 (see entry of 11/14/12) had a
+bug that caused invalid IL to be generated in GNU C++ 3.4.x mode if a default
+argument of a member or friend function declaration requires a destructor call
+but no conversion to the parameter type.  For example:
+
+  struct X { ~X(); };
+  struct S {
+    S(X p = X());
+  };
+  S x;  // Previously triggered the creation of invalid IL.  Now okay.
+
+This is now fixed.
+
+
 7/25/14  [EDGcpfe/15315]
 Spurious error on sizeof... in a local class or lambda expression
 

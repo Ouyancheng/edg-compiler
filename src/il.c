@@ -18031,7 +18031,7 @@ evaluated is TRUE if the expression is evaluated.
         !identical_types(expr->type, ptp->type)) {
       /* g++ 3.4 leaves the final conversion to be done at the point of use
          for member functions and friends. */
-      expr = convert_default_arg_expr(expr, ptp, evaluated);
+      expr = prep_default_arg_expr(expr, ptp, evaluated);
     }  /* if */
   }  /* if */
   expr->generated_default_arg = TRUE;
