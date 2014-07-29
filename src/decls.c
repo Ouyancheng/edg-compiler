@@ -9963,6 +9963,7 @@ definition of a member function of a class template.
     }  /* if */
   } else {
     redeclaration = TRUE;
+    decl_state->other_decl_pos = sym->decl_position;
     if (rout_ptr->is_declared_constexpr !=
                                     ((dps->dso_flags & DSO_CONSTEXPR) != 0)) {
       /* The previous declaration doesn't match the current one wrt. the

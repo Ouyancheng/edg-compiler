@@ -2669,6 +2669,8 @@ ec_pragma_inside_function;;"this pragma is not allowed inside a function"
 ec_inline_new_or_delete_operator;;"declaring a new or delete operator \"inline\" is nonstandard"
 ec_pack_expansion_for_field_mem_init;;"a mem-initializer for a data member cannot be a pack expansion"
 ec_generic_lambda_cannot_capture;;"generic lambda expressions cannot have capture defaults in this mode"
+ec_friend_with_def_arg_must_be_definition;;"a default template argument in a friend declaration may only be specified in a definition"
+ec_friend_with_def_arg_must_be_only_decl;;"a friend template declaration with a default template argument must be the only declaration (first declared %p)"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

@@ -135,6 +135,11 @@ typedef struct a_tmpl_decl_state {
 		export_position;
 			/* If export_present is TRUE, the position of the
 			   export keyword. */
+  a_source_position
+		other_decl_pos;
+			/* For a redeclaration of a function template, this
+			   is the declaration position of the symbol
+			   that was found. */
   a_token_sequence_number
 		starting_token_sequence_number;
 			/* The token sequence number of the first token of

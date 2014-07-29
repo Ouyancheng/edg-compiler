@@ -1,5 +1,22 @@
 Version 4.10
 
+7/29/14  [EDGcpfe/15114]
+Missing diagnostic on invalid default argument in friend template declaration
+
+The C++11 standard requires that a friend function template declaration
+that specifies a default template argument be a definition and be the only
+declaration of the template in the program.  We now diagnose violations
+of these rules.
+
+  template <class U> int g();
+  template<class T>
+  class A {
+    template<class U=int> friend T f();  // not definition
+    template<class U=int> friend T g(){}  // not only declaration
+  };
+  A<int> a;
+
+
 7/28/14  [EDGcpfe/15331]
 Invalid IL generated when using a default argument in GNU C++ 3.4.x mode
 

@@ -513,6 +513,7 @@ Initialize a template declaration state block.
   tdsp->generic_constraints_pending = FALSE;
   tdsp->friend_depth_known = FALSE;
   tdsp->export_position = null_source_position;
+  tdsp->other_decl_pos = null_source_position;
   tdsp->starting_token_sequence_number = NO_TOKEN_SEQUENCE_NUMBER;
   tdsp->last_token_sequence_number_of_params = NO_TOKEN_SEQUENCE_NUMBER;
   tdsp->access = (an_access_specifier)as_public;
@@ -21190,17 +21191,21 @@ template symbol supplement for this template should be returned to the caller.
 }  /* template_static_data_member_declaration */
 
 
-static void check_function_template_param_usage
-                         (a_symbol_ptr                     sym,
-			  a_type_ptr                       type,
-			  a_template_param_ptr             template_param_list)
+static void check_function_template_param_usage(
+			a_tmpl_decl_state_ptr	decl_state,
+			a_symbol_ptr		sym,
+			a_type_ptr		type,
+			a_template_param_ptr	template_param_list,
+			a_boolean		first_decl,
+			a_source_position	*decl_pos)
 /*
 Perform certain error tests on a function template parameter list.
 When not using distinct template name mangling, all of the template
 parameters must be used as part of the signature of the functions that
-will be generated from this template.  Function templates are not
-permitted to have default template argument values.  This test is also
-done here.
+will be generated from this template.  Only certain function template
+declaration are permitted to have default template argument values.
+These tests are also done here.  first_decl is TRUE if this is the
+first declaration of the template.
 */
 {
   a_template_param_ptr  tpp;
@@ -21209,9 +21214,13 @@ done here.
   a_boolean		is_constructor;
   an_error_severity	severity;
   a_boolean		pack_seen = FALSE;
+  a_boolean		any_defaults = FALSE;
+  a_template_symbol_supplement_ptr
+			tssp;
 
   is_conversion_operator = is_conversion_function_symbol(sym);
   is_constructor = is_constructor_symbol(sym);
+  tssp = template_supplement_for_symbol(sym);
   if (distinct_template_signatures) {
     /* When distinct template signatures are used there is no requirement
        for template parameters to be used in the function signature.  We
@@ -21238,11 +21247,24 @@ done here.
   for (tpp = template_param_list; tpp != NULL; tpp = tpp->next) {
     a_symbol_ptr param_sym = tpp->param_symbol;
     a_boolean	 param_used;
-    if (!function_template_default_args_allowed && tpp->has_default_arg) {
-      pos_diagnostic(microsoft_mode && microsoft_version <= 1200 ? es_warning
-                                                                 : es_error,
-                     ec_default_template_arg_not_allowed,
-                     &param_sym->decl_position);
+    if (tpp->has_default_arg) {
+      if (!function_template_default_args_allowed) {
+        pos_diagnostic(microsoft_mode && microsoft_version <= 1200 ? es_warning
+                                                                   : es_error,
+                       ec_default_template_arg_not_allowed,
+                       &param_sym->decl_position);
+      } else {
+        any_defaults = TRUE;
+        if (decl_state->is_template_friend) {
+          if (!decl_state->defines_something) {
+            pos_diagnostic(es_discretionary_error,
+                           ec_friend_with_def_arg_must_be_definition,
+                           &param_sym->decl_position);
+          } else {
+            tssp->variant.function.must_have_only_one_decl = TRUE;
+          }  /* if */
+        }  /* if */
+      }  /* if */
     }  /* if */
     if (function_template_default_args_allowed && tpp->has_default_arg) {
       /* If the template has a default argument, consider the parameter
@@ -21284,8 +21306,6 @@ done here.
       pack_seen = TRUE;
     }  /* if */
     if (!param_used) {
-      a_template_symbol_supplement_ptr	tssp;
-      tssp = template_supplement_for_symbol(sym);
       tssp->variant.function.template_param_not_in_function_type = TRUE;
       if (severity != es_none && !tpp->is_pack) {
         pos_sy2_diagnostic(severity, ec_not_used_in_template_function_params,
@@ -21293,6 +21313,20 @@ done here.
       }  /* if */
     } /* if */
   } /* for */
+  if (!first_decl) {
+    if (tssp->variant.function.must_have_only_one_decl) {
+      /* The source position check is done to suppress errors when both
+         declarations have the same source position because they were
+         declared in instantiations of the same template. */
+      if (decl_state->class_declared_in == NULL ||
+          cmp_source_positions(*decl_pos, decl_state->other_decl_pos) != 0) {
+        pos2_diagnostic(es_discretionary_error,
+                        ec_friend_with_def_arg_must_be_only_decl,
+                        decl_pos, &decl_state->other_decl_pos);
+        tssp->variant.function.must_have_only_one_decl = FALSE;
+      }  /* if */
+    }  /* if */
+  }  /* if */
 }  /* check_function_template_param_usage */
 
 
@@ -21640,7 +21674,8 @@ caller.
   a_template_symbol_supplement_ptr tssp = NULL;
   a_template_param_ptr             template_param_list =
                                            decl_state->decl_info->parameters;
-  a_routine_ptr			   rout_ptr = NULL;
+  a_routine_ptr                    rout_ptr = NULL;
+  a_boolean                        first_decl = FALSE;
 
   if (!err && !is_function_or_template_symbol(sym)) {
     /* The symbol is something other than a function symbol.  Issue
@@ -21658,6 +21693,7 @@ caller.
     a_template_instance_ptr	tip;
     tssp = template_supplement_for_symbol(sym);
     check_assertion(tssp != NULL);
+    first_decl = tssp->cache.decl_info == NULL;
     rout_ptr = tssp->variant.function.routine;
     rout_sym = symbol_for(rout_ptr);
     check_assertion(rout_sym != NULL);
@@ -21890,7 +21926,9 @@ caller.
        template parameters were used in a way that effects the function
        signature, and other tests. */
     a_type_ptr  type = tssp->variant.function.routine->type;
-    check_function_template_param_usage(sym, type, template_param_list);
+    check_function_template_param_usage(decl_state, sym, type,
+                                        template_param_list, first_decl,
+                                        decl_pos);
   }  /* if */
   *p_tssp = tssp;
 }  /* complete_function_template_decl */

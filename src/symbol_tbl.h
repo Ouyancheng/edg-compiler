@@ -2853,6 +2853,11 @@ typedef struct a_template_symbol_supplement {
 			   the routine has no exception specification, once
 			   the check to see if a prototype instantiation is
 			   needed or not has been done. */
+      a_bit_field
+		must_have_only_one_decl:1;
+			/* TRUE if there can be only one declaration of
+			   this function template.  This is the case for
+			   a friend template with a default argument. */
       bitfield_to_avoid_codecenter_warnings()
     } function;
     /* When symbol kind = sk_static_data_member: */
