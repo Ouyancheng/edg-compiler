@@ -14516,11 +14516,14 @@ the destructor or finalizer is part of a qualified name (e.g., "A::B::~B").
         tp = NULL;
         clear_specific_symbol(locator_for_curr_id);
         if (qualifier_type != NULL &&
-            (((gpp_mode && !clang_mode) || microsoft_mode) ||
+            ((((gpp_mode && !clang_mode) || microsoft_mode) &&
+             (is_template_dependent_type(field_sel_type) ||
+             is_real_instantiation_context())) ||
              is_template_dependent_type(qualifier_type))) {
           /* When processing something like X<n>::~X<n>, we can't rely on
              lookup to find an injected class name, so we go through the base
-             class list. */
+             class list.  g++ and Microsoft accept a base class destructor in
+             templates but not in non-template contexts. */
           base_sym = dtor_matches_base_class(field_sel_type);
         }  /* if */
         if (base_sym != NULL) tp = type_symbol_type(base_sym);
