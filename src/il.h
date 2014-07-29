@@ -1244,7 +1244,9 @@ Macro that is TRUE if move constructors and move assign operators can be
 defined with "= default;".
 */
 #define move_operations_can_be_defaulted()                                  \
-  (generate_move_operations || (gpp_mode && gnu_version >= 40500))
+  (generate_move_operations ||                                              \
+   (gpp_mode &&                                                             \
+    (clang_mode ? clang_version >= 30000 : gnu_version >= 40500)))
 
 /*
 Macro that is TRUE for functions with an indeterminate exception specification.

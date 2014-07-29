@@ -1,5 +1,22 @@
 Version 4.10
 
+7/29/14  [EDGcpfe/15258]
+Clang compatibility: C++11 features accepted in non-C++11 mode
+
+Some C++11 features are enabled in non-C++11 GNU C++ mode (see the entry of
+9/9/13 for EDGcpfe/14245 et al.).  Since the front end treats Clang mode as a
+special GNU C++ mode, it potentially also accepted the same set of features in
+non-C++11 Clang mode, but since Clang mode is usually enabled with a fairly
+small value default value for gnu_version, the extensions were often not
+observable in Clang mode.
+
+Now the front end more closely follows the actual Clang compilers in this
+regard (in Clang mode).  Specifically, the following C++11 features are
+enabled in non-C++11 Clang mode: deleted and defaulted functions, nonstatic
+data member initializers, and rvalue references.  For all these, the first
+use is warned about and clang_version must be at least 30000.
+
+
 7/29/14  [EDGcpfe/15114]
 Missing diagnostic on invalid default argument in friend template declaration
 

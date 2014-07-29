@@ -3829,6 +3829,7 @@ static void check_and_set_gnu_mode_options(void)
 Set the options common to both GNU C and C++ modes, making sure that no other
 options conflict with them.  (The processing of some modes, like ANSI,
 exclude the GNU modes already.  Hence those are not checked again here.)
+This function is also called in clang mode.
 */
 {
 #if TIE_DEFAULT_GNU_ABI_VERSION_TO_GNU_VERSION
@@ -3953,6 +3954,7 @@ static void check_and_set_gcc_mode_options(void)
 Set the options needed to emulate GNU C compilers, and check that no other
 modes conflict with this one.  (The processing of some modes, like ANSI,
 exclude the GNU C mode already.  Hence those are not checked again here.)
+This function is also called in clang mode.
 */
 {
   check_and_set_gnu_mode_options();
@@ -3993,6 +3995,7 @@ static void check_and_set_gpp_mode_options(void)
 Set the options needed to emulate GNU C++ compilers, and check that no other
 modes conflict with this one.  (The processing of some modes, like ANSI,
 exclude the GNU C++ mode already.  Hence those are not checked again here.)
+This function is also called in clang mode.
 */
 {
   check_and_set_gnu_mode_options();
@@ -4196,28 +4199,34 @@ exclude the GNU C++ mode already.  Hence those are not checked again here.)
   }  /* if */
   if (!cpp11_mode) {
     /* Some C++11 extensions are enabled by default in some non-C++11 GNU C++
-       modes.  A warning is issued on the first use (if any). */
-    if (gnu_version >= 40400) {
+       and clang C++ modes.  A warning is issued on the first use (if any). */
+    if (clang_mode ? clang_version >= 30000 : gnu_version >= 40400) {
       deleted_functions_enabled = TRUE;
       defaulted_special_members_enabled = TRUE;
     }  /* if */
-    if (!option_kind_used[(int)optk_lambdas] && gnu_version >= 40500) {
+    if (!option_kind_used[(int)optk_lambdas] && gnu_version >= 40500
+        && !clang_mode) {
       lambdas_enabled = TRUE;
     }  /* if */
-    if (gnu_version >= 40700) {
+    if (gnu_version >= 40700 && !clang_mode) {
       if (!option_kind_used[(int)optk_delegating_constructors]) {
         delegating_constructors_enabled = TRUE;
       }  /* if */
+    }  /* if */
+    if (clang_mode ? clang_version >= 30000 : gnu_version >= 40700) {
       field_initializers_enabled = TRUE;
       std_override_modifiers_enabled = TRUE;
     }  /* if */
-    if (gnu_version >= 40800) {
+    if (clang_mode ? clang_version >= 30000 : gnu_version >= 40800) {
       if (!option_kind_used[(int)optk_rvalue_references]) {
         /* GCC doesn't enable rvalue references by default, but it does enable
-           inheriting constructors, which in theory requires rvalue
-           references.  We pair both features. */
+           inheriting constructors, which in theory requires rvalue references.
+           We pair both features.  Clang does enable rvalue references by
+           default. */
         rvalue_references_enabled = TRUE;
       }  /* if */
+    }  /* if */
+    if (gnu_version >= 40800 && !clang_mode) {
       if (rvalue_references_enabled) {
         inheriting_constructors_enabled = TRUE;
       }  /* if */
