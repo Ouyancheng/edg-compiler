@@ -18165,11 +18165,7 @@ selection operator, in which case it points to the type of the left operand.
           /* Get the namespace from the symbol entry. */
           qualifier_namespace = namespace_symbol_namespace(qualifier_sym);
           qualifier_is_type = FALSE;
-        } else if (is_enum_symbol(qualifier_sym) && enum_qualifiers_enabled &&
-                   !(microsoft_mode && microsoft_version < 1400 &&
-                     !cpp11_mode &&
-                     !skip_typerefs(type_symbol_type(qualifier_sym))->
-                                             source_corresp.is_class_member)) {
+        } else if (is_valid_enum_qualifier_symbol(qualifier_sym)) {
           /* Enum qualifiers are accepted in some modes.  Earlier Microsoft
              compilers only accept them with member enum types. */
           qualifier_type = type_symbol_type(qualifier_sym);

@@ -5670,6 +5670,17 @@ only be used in C++ mode.
     is_enum_symbol(sym)))
 
 /*
+Return TRUE if sym represents an enum name that can be a valid name qualifier.
+Ordinarily, this is the case for all enum types when enum_qualifiers_enabled
+is TRUE.  However, when emulating earlier Microsoft compilers, enum types that
+are not class members are excluded.
+*/
+#define is_valid_enum_qualifier_symbol(sym)                           \
+  (enum_qualifiers_enabled && is_enum_symbol(sym) &&                  \
+   !(microsoft_mode && microsoft_version < 1400 && !cpp11_mode &&     \
+     !skip_typerefs(type_symbol_type(sym))->source_corresp.is_class_member))
+
+/*
 Return TRUE if sym represents an entity that can be used as the qualifier
 in a qualified name.  symbol_may_precede_qualifier is TRUE if the name
 should be found by lookup; this macro is then used to determine if the
@@ -5682,7 +5693,7 @@ symbol found by the lookup is semantically valid.
    ((sym)->kind == (a_symbol_kind)sk_type &&                          \
     (is_template_param_type((sym)->variant.type.ptr) ||		      \
      is_cppcli_fundamental_system_type(sym))) ||		      \
-   (enum_qualifiers_enabled && is_enum_symbol(sym)))
+   is_valid_enum_qualifier_symbol(sym))
   
 
 /* Return TRUE if a symbol is a class symbol, a class template symbol,

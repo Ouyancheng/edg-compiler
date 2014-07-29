@@ -1,5 +1,24 @@
 Version 4.10
 
+7/29/14  [EDGcpfe/15327]
+Microsoft compatibility: Enum types used as qualifiers
+
+The changes to add support for C++11-style scoped enumeration types (see the
+entry of 10/31/08 for EDGcpfe/8528 and EDGcpfe/8747) accidentally broke the
+ability to use an enumeration type in certain vacuous destructor invocations
+in Microsoft C++ modes for which microsoft_version < 1400.  For example:
+
+  enum E { e };
+  template<typename T> void g(T p) {
+    p.T::~T();
+  }
+  int main() {
+    g(e);  // Triggered a parsing error in the instantiation of g<E>.
+  }
+
+This is now fixed.
+
+
 7/29/14  [EDGcpfe/15258]
 Clang compatibility: C++11 features accepted in non-C++11 mode
 
