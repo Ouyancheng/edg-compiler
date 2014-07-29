@@ -21214,7 +21214,6 @@ first declaration of the template.
   a_boolean		is_constructor;
   an_error_severity	severity;
   a_boolean		pack_seen = FALSE;
-  a_boolean		any_defaults = FALSE;
   a_template_symbol_supplement_ptr
 			tssp;
 
@@ -21254,7 +21253,6 @@ first declaration of the template.
                        ec_default_template_arg_not_allowed,
                        &param_sym->decl_position);
       } else {
-        any_defaults = TRUE;
         if (decl_state->is_template_friend) {
           if (!decl_state->defines_something) {
             pos_diagnostic(es_discretionary_error,
