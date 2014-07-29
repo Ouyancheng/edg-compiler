@@ -2921,11 +2921,11 @@ generate code for a GNU compiler (gcc or g++).
 
 #ifndef GCC_IS_GENERATED_CODE_TARGET
 #if BACK_END_IS_C_GEN_BE || BACK_END_IS_CP_GEN_BE
-#if defined(__GNUC__) && !defined(__clang__) && BACK_END_IS_C_GEN_BE
+#if defined(__GNUC__) && !defined(__clang__)
 #define GCC_IS_GENERATED_CODE_TARGET TRUE
-#else /* !(defined(__GNUC__) && !defined(__clang__) && BACK_END_IS_C_GEN_BE) */
+#else /* !(defined(__GNUC__) && !defined(__clang__)) */
 #define GCC_IS_GENERATED_CODE_TARGET FALSE
-#endif /* defined(__GNUC__) && !defined(__clang__) && BACK_END_IS_C_GEN_BE */
+#endif /* defined(__GNUC__) && !defined(__clang__) */
 #else  /* !(BACK_END_IS_C_GEN_BE || BACK_END_IS_CP_GEN_BE) */
 /* Not using the C or C++ generating back end. */
 #define GCC_IS_GENERATED_CODE_TARGET FALSE
@@ -2938,11 +2938,11 @@ generate code for the clang compiler.
 */
 #ifndef CLANG_IS_GENERATED_CODE_TARGET
 #if BACK_END_IS_C_GEN_BE || BACK_END_IS_CP_GEN_BE
-#if defined(__clang__) && BACK_END_IS_C_GEN_BE
+#if defined(__clang__)
 #define CLANG_IS_GENERATED_CODE_TARGET TRUE
-#else /* !defined(__clang__) && BACK_END_IS_C_GEN_BE */
+#else /* !defined(__clang__) */
 #define CLANG_IS_GENERATED_CODE_TARGET FALSE
-#endif /* !defined(__clang__) && BACK_END_IS_C_GEN_BE */
+#endif /* defined(__clang__) */
 #else  /* !(BACK_END_IS_C_GEN_BE || BACK_END_IS_CP_GEN_BE) */
 /* Not using the C or C++ generating back end. */
 #define CLANG_IS_GENERATED_CODE_TARGET FALSE
