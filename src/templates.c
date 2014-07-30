@@ -21203,7 +21203,7 @@ Perform certain error tests on a function template parameter list.
 When not using distinct template name mangling, all of the template
 parameters must be used as part of the signature of the functions that
 will be generated from this template.  Only certain function template
-declaration are permitted to have default template argument values.
+declarations are permitted to have default template argument values.
 These tests are also done here.  first_decl is TRUE if this is the
 first declaration of the template.
 */
