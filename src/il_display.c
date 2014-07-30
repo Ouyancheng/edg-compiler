@@ -4109,6 +4109,9 @@ Display the indicated expression node.
     disp_boolean("keep_as_cast_for_cp_gen_be", TRUE);
   }  /* if */
 #endif /* BACK_END_IS_CP_GEN_BE */
+  if (ptr->is_parenthesized) {
+    disp_boolean("is_parenthesized", TRUE);
+  }  /* if */
   disp_name("kind");
   switch (ptr->kind) {
     case enk_error:

@@ -22505,6 +22505,7 @@ Also scans GNU statement expressions:
                            &start_position);
     } else {
       /* This is an expression in parentheses. */
+      a_boolean                is_expression = FALSE, is_constant = FALSE;
       a_boolean                need_expr = FALSE;
       a_boolean                need_expr_for_constant = FALSE;
       an_expr_node_ptr         expr = NULL;
@@ -22531,6 +22532,11 @@ Also scans GNU statement expressions:
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
       (void)required_token(tok_rparen, ec_exp_rparen);
       remove_matching_stop_token(tok_rparen);
+      if (is_constant_operand(result)) {
+        is_constant = TRUE;
+      } else if (is_expression_operand(result)) {
+        is_expression = TRUE;
+      }  /* if */
       if (!parens_in_il) {
         /* eok_parens nodes are not being recorded. */
       } else if (result->bound_function) {
@@ -22539,14 +22545,14 @@ Also scans GNU statement expressions:
              (p->f)();
            result is just the "f" part here.  Putting parentheses around it
            would give "(f)", which doesn't match the source. */
-      } else if (is_constant_operand(result)) {
+      } else if (is_constant) {
         /* For a constant operand, make an expression including the parens
            only if we're recording backing expressions. */
         if (curr_expr_kind_is_one_in_which_const_exprs_are_recorded()) {
           need_expr = TRUE;
           need_expr_for_constant = TRUE;
         }  /* if */
-      } else if (is_expression_operand(result)) {
+      } else if (is_expression) {
         /* For expression, add the parens. */
         need_expr = TRUE;
       } else {
@@ -22590,6 +22596,14 @@ Also scans GNU statement expressions:
          was recorded for the "i" subexpression in such cases. */
       result->is_id_expression = FALSE;
       result->is_parenthesized = TRUE;
+      /* Record the fact that the expression is parenthesized in the node
+         (if there is any). */
+      if (is_expression) {
+        result->variant.expression->is_parenthesized = TRUE;
+      } else if (is_constant && result->variant.constant.expr != NULL) {
+        /* If the constant has a backing expression, set the flag there. */
+        result->variant.constant.expr->is_parenthesized = TRUE;
+      }  /* if */
     }  /* if */
   }  /* if */
 

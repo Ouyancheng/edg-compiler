@@ -3309,6 +3309,7 @@ its kind to the indicated kind.
 #if BACK_END_IS_CP_GEN_BE
   node->keep_as_cast_for_cp_gen_be = FALSE;
 #endif /* BACK_END_IS_CP_GEN_BE */
+  node->is_parenthesized = FALSE;
 #if CENTERLINE_CHECKING
   node->avoid_codecenter_warnings = 0;
 #endif /* CENTERLINE_CHECKING */

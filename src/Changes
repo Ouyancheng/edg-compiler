@@ -1,5 +1,16 @@
 Version 4.10
 
+7/29/14  [EDGcpfe/15242]
+Parenthesized expressions
+
+Expression nodes now include a new flag is_parenthesized that is set to TRUE
+if the node results from a nonconstant expression that is parenthesized in the
+source.  For a constant expression, the flag is recorded in the backing
+expression if one is available.  This flag is recorded even when performing IL
+lowering (unlike the eok_parens representation; see the entry for
+EDGcpfe/9108).
+
+
 7/29/14  [EDGcpfe/15327]
 Microsoft compatibility: Enum types used as qualifiers
 
