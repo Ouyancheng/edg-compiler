@@ -22553,7 +22553,7 @@ Also scans GNU statement expressions:
           need_expr_for_constant = TRUE;
         }  /* if */
       } else if (is_expression) {
-        /* For expression, add the parens. */
+        /* For an expression, add the eok_parens node. */
         need_expr = TRUE;
       } else {
         /* For other cases, like indefinite functions, we can't create an

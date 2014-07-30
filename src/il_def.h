@@ -15384,7 +15384,7 @@ typedef struct an_expr_node {
 #endif /* BACK_END_IS_CP_GEN_BE */
   a_bit_field	is_parenthesized:1;
 			/* TRUE if the expression was parenthesized in the
-			   source code.  If the case of a parenthesized bound
+			   source code.  In the case of a parenthesized bound
 			   function (e.g., "(p->f)()") it is the node 
 			   representing the function ("f" in the example) that
 			   has this flag set, not the selector expression. */
