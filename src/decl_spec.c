@@ -2876,7 +2876,7 @@ attributes are attached as part of the template instantiation process.
        invalid combinations. */
     for (ap = attributes; ap != NULL; ap = ap->next) {
       ap->on_primary_declaration = is_definition;
-      if (ap->family == (a_byte_attribute_family)af_std) {
+      if (is_standard_attribute(ap)) {
         /* Standard attributes cannot appear in this syntactic location if no
            class/enum definition follows. */
         if (!is_definition && !is_forward_decl) {
@@ -3047,7 +3047,7 @@ issue an error and reclassify those attributes as ak_unrecognized.
   a_boolean  diagnostic_issued = FALSE;
 
   for (; ap != NULL; ap = ap->next) {
-    if (ap->family == (a_byte_attribute_family)af_std) {
+    if (is_standard_attribute(ap)) {
       if (!diagnostic_issued) {
         pos_error(ec_attribute_on_explicit_instantiation,
                   &ap->group->position);
@@ -8738,7 +8738,7 @@ FALSE otherwise.
       a_boolean  drop_attribute = FALSE;
       if (disallow_gnu && (*p_ap)->family == (a_byte_attribute_family)af_gnu) {
         drop_attribute = TRUE;
-      } else if ((*p_ap)->family == (a_byte_attribute_family)af_std) {
+      } else if (is_standard_attribute(*p_ap)) {
         if (disallow_std) {
           drop_attribute = TRUE;
         } else {
@@ -8841,7 +8841,7 @@ dps->specifier_attributes list.
           !is_unapplicable_attr(*p_ap)) {
         /* Move the attribute to the prefix attributes list. */
         an_attribute_ptr  ap = *p_ap;
-        if (ap->family == (a_byte_attribute_family)af_std) {
+        if (is_standard_attribute(ap)) {
           report_bad_attribute_target(gpp_mode ? es_warning : es_error, ap);
         }  /* if */
         *p_ap = ap->next;
@@ -8863,7 +8863,7 @@ dps->specifier_attributes list.
           !is_unapplicable_attr(*p_ap)) {
         /* Move the attribute to the specifier attributes list. */
         an_attribute_ptr  ap = *p_ap;
-        if (ap->family == (a_byte_attribute_family)af_std) {
+        if (is_standard_attribute(ap)) {
           report_bad_attribute_target(es_error, ap);
         }  /* if */
         *p_ap = ap->next;

@@ -5434,6 +5434,7 @@ Display the indicated attribute entry.
     case af_std:                 family_name = "std";               break;
     case af_gnu:                 family_name = "gnu";               break;
     case af_ms_declspec:         family_name = "ms_declspec";       break;
+    case af_alignas:             family_name = "alignas";       break;
     default:                     family_name = "** BAD FAMILY **";  break;
   }  /* switch */
   disp_name("family");

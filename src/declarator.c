@@ -135,8 +135,7 @@ standard-attribute syntax).
     an_attribute_ptr  ap = attributes;
     for (; ap != NULL; ap = ap->next) {
       if (ap->family == (a_byte_attribute_family)af_ms_declspec ||
-          (ap->family == (a_byte_attribute_family)af_std &&
-           syn_loc == al_specifier)) {
+          (is_standard_attribute(ap) && syn_loc == al_specifier)) {
         if (!error_issued) {
           pos_error(ec_invalid_attribute_location, &ap->position);
           error_issued = TRUE;

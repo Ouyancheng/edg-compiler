@@ -525,7 +525,7 @@ entity.  Issue diagnostics as appropriate.
     /* Look for a standard attribute: It would elicit an error (whereas GNU
        attributes only trigger a warning). */
     for (; ap != NULL; ap = ap->next) {
-      if (ap->family == (a_byte_attribute_family)af_std &&
+      if (is_standard_attribute(ap) &&
           ap->kind != (a_byte_attribute_kind)ak_empty_attr &&
           !gpp_mode) {
         sev = es_error;
@@ -625,13 +625,13 @@ set to TRUE before they are attached.
          friend declaration is also a definition. */
       an_attribute_ptr  ap, err_ap = NULL;
       for (ap = dps->prefix_attributes; ap != NULL; ap = ap->next) {
-        if (ap->family == (a_byte_attribute_family)af_std) {
+        if (is_standard_attribute(ap)) {
           if (err_ap == NULL) err_ap = ap;
           make_attr_unrecognized(ap);
         }  /* if */
       }  /* if */
       for (ap = dps->id_attributes; ap != NULL; ap = ap->next) {
-        if (ap->family == (a_byte_attribute_family)af_std) {
+        if (is_standard_attribute(ap)) {
           if (err_ap == NULL) err_ap = ap;
           make_attr_unrecognized(ap);
         }  /* if */
@@ -16067,7 +16067,7 @@ if prior declarations specified an alignment attribute.
        alignment was the result of an attribute, issue an error. */
     an_attribute_ptr  ap = find_attribute(ak_align,
                                           vp->source_corresp.attributes);
-    if (ap != NULL && ap->family == (a_byte_attribute_family)af_std) {
+    if (ap != NULL && is_standard_attribute(ap)) {
       pos2_diagnostic(es_error, ec_variable_align_attr_not_on_definition,
                       &ap->position, &dps->declarator_pos);
     }  /* if */

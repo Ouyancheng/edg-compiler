@@ -2959,6 +2959,9 @@ Output the given attribute to f_debug.
     case af_ms_declspec:
       str = "__declspec(";
       break;
+    case af_alignas:
+      str = "";
+      break;
     default:
       unexpected_condition();
   }  /* switch */
@@ -3008,6 +3011,9 @@ Output the given attribute to f_debug.
       break;
     case af_ms_declspec:
       str = ")";
+      break;
+    case af_alignas:
+      str = "";
       break;
     default:
       unexpected_condition();

@@ -76,6 +76,13 @@ Return TRUE if the upcoming tokens introduce Microsoft attributes.
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 /*
+Return TRUE if the given attribute is of the form [[...]] or alignas(...).
+*/
+#define is_standard_attribute(ap)                                            \
+  ((ap)->family == (a_byte_attribute_family)af_std ||                        \
+   (ap)->family == (a_byte_attribute_family)af_alignas)
+
+/*
 Return TRUE if the given attribute is unrecognized or an empty attribute.
 Such attributes cannot be "applied" to any entities.
 */
