@@ -1,5 +1,18 @@
 Version 4.10
 
+7/30/14  [EDGcpfe/15304]
+Missing diagnostic on alignas(...) in invalid context
+
+The front end previously failed to diagnose attempts to use the alignas
+specifier in certain contexts not permitted by the C++11 standard.
+For example:
+
+  char alignas(4) buf[100];  // Now an error.  (The attribute should precede
+                             // "char" or immediate follow "buf".)
+
+That is now fixed: A diagnostic is now emitted for such cases.
+
+
 7/29/14  [EDGcpfe/15242]
 Parenthesized expressions
 
