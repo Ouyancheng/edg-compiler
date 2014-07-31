@@ -5,7 +5,7 @@ Incorrect handling of SFINAE case with partial template argument list
 
 Consider the following C++11 case:
 
-  template<typename X, typename Y> int f(X);
+  template<typename X, typename Y> X f(Y);
   template<typename T> auto g(T t) -> decltype(f<double>(t));  // (1)
   int main() {
     g(4);  // Previously triggered a spurious error.
