@@ -1,14 +1,19 @@
 Version 4.10
 
 7/30/14  [EDGcpfe/15304]
-Missing diagnostic on alignas(...) in invalid context
+Missing diagnostics on alignas(...) and _Alignas(...) in invalid contexts
 
 The front end previously failed to diagnose attempts to use the alignas
-specifier in certain contexts not permitted by the C++11 standard.
-For example:
+specifier in certain contexts not permitted by the C++11 and C11 standards.
+For example, in C++11 mode:
 
-  char alignas(4) buf[100];  // Now an error.  (The attribute should precede
+  char alignas(4) buf[100];  // Now an error.  (alignas(4) should precede
                              // "char" or immediate follow "buf".)
+
+C11 has different constraints; for example:
+
+  char c _Alignas(4);  // Now an error.  (_Alignas(4) should precede "c" or
+                       // "char".)
 
 That is now fixed: A diagnostic is now emitted for such cases.
 

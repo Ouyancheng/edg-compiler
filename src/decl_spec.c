@@ -8738,7 +8738,9 @@ FALSE otherwise.
       a_boolean  drop_attribute = FALSE;
       if (disallow_gnu && (*p_ap)->family == (a_byte_attribute_family)af_gnu) {
         drop_attribute = TRUE;
-      } else if (is_standard_attribute(*p_ap)) {
+      } else if (is_standard_attribute(*p_ap) &&
+                 !(c11_mode &&
+                   ap->family == (a_byte_attribute_family)af_alignas)) {
         if (disallow_std) {
           drop_attribute = TRUE;
         } else {
@@ -8841,7 +8843,8 @@ dps->specifier_attributes list.
           !is_unapplicable_attr(*p_ap)) {
         /* Move the attribute to the prefix attributes list. */
         an_attribute_ptr  ap = *p_ap;
-        if (is_standard_attribute(ap)) {
+        if (is_standard_attribute(ap) &&
+            !(c11_mode && ap->family == (a_byte_attribute_family)af_alignas)) {
           report_bad_attribute_target(gpp_mode ? es_warning : es_error, ap);
         }  /* if */
         *p_ap = ap->next;

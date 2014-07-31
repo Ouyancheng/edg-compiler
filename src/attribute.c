@@ -3709,12 +3709,19 @@ return that entity.
 {
 #if USER_CONTROL_OF_STRUCT_PACKING
   a_const_char *constr;
-  a_boolean    std_specifier =
-                             ap->family == (a_byte_attribute_family)af_std ||
-                             ap->family == (a_byte_attribute_family)af_alignas;
+  a_boolean    std_specifier = is_standard_attribute(ap);
 
   if (std_specifier) {
     constr = "c|e|v:-r!|d:-b!";
+    if (c11_mode && ap->family == (a_byte_attribute_family)af_alignas) {
+      /* C11 allows _Alignas in syntactic locations different from C++11's
+         alignas. */
+      if (ap->syntactic_location != (a_byte_attribute_location)al_prefix &&
+          ap->syntactic_location != (a_byte_attribute_location)al_specifier) {
+        pos_diagnostic(es_discretionary_error, ec_attribute_not_allowed,
+                       &ap->position);
+      }  /* if */
+    }  /* if */
   } else if (ap->family == (a_byte_attribute_family)af_gnu) {
     /* GCC allows types and bit fields to have a user-specified alignment. */
     if (gnu_version >= 40300) {
