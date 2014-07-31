@@ -2671,6 +2671,7 @@ ec_pack_expansion_for_field_mem_init;;"a mem-initializer for a data member canno
 ec_generic_lambda_cannot_capture;;"generic lambda expressions cannot have capture defaults in this mode"
 ec_friend_with_def_arg_must_be_definition;;"a default template argument in a friend declaration may only be specified in a definition"
 ec_friend_with_def_arg_must_be_only_decl;;"a friend template declaration with a default template argument must be the only declaration (first declared %p)"
+ec_non_autonomous_opaque_enum_decl;;"an opaque enum declaration cannot be part of another declaration"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

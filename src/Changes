@@ -1,5 +1,21 @@
 Version 4.10
 
+7/31/14  [EDGcpfe/15334]
+Abort on opaque enum declaration that is part of another declaration
+
+In Microsoft and Clang modes, an opaque enum declaration can be part of
+another declaration (see the entry for EDGcpfe/14944).  However, when
+GENERATE_SOURCE_SEQUENCE_LISTS is TRUE, the front end aborted with an internal
+error in attach_tag_attributes (decl_spec.c) if such a "non-autonomous"
+opaque enum declaration followed a definition.  For example:
+
+  enum X : int {x};
+  typedef enum X : int X;  // Previously aborted in some Clang and
+                           // Microsoft modes.
+
+This is now fixed.
+
+
 7/31/14  [EDGcpfe/15309]
 Incorrect handling of SFINAE case with partial template argument list
 

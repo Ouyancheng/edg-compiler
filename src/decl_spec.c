@@ -5905,10 +5905,7 @@ template.  dsi_flags is the set of input flags passed to decl_specifiers.
   }  /* if */
   if (opaque_enum_decls_enabled &&
       (is_scoped_enum || explicit_base_kind != (an_integer_kind)ik_none) &&
-      (curr_token == tok_semicolon ||
-       curr_token == tok_removed_template_body ||
-       ((microsoft_mode || clang_mode) && curr_token != tok_lbrace &&
-         explicit_base_kind != (an_integer_kind)ik_none))) {
+      curr_token != tok_lbrace) {
     /* An opaque enum declaration.  This is an enum declaration that fixes the
        size of the type (i.e., it is "complete") without defining the
        associated enumeration constants.  The standard requires this to be
@@ -5918,6 +5915,11 @@ template.  dsi_flags is the set of input flags passed to decl_specifiers.
        Microsoft and clang, however, allow code like
          enum E: int x;
        (i.e., non-autonomous opaque enum declarations). */
+    if (curr_token != tok_semicolon &&
+        curr_token != tok_removed_template_body &&
+        !(microsoft_mode || clang_mode)) {
+      pos_error(ec_non_autonomous_opaque_enum_decl, &tag_position);
+    }  /* if */
     is_opaque_enum_decl = TRUE;
     is_definition = FALSE;
   }  /* if */
@@ -6059,10 +6061,10 @@ template.  dsi_flags is the set of input flags passed to decl_specifiers.
           enum_type->source_corresp.access = access;
         }  /* if */
       }  /* if */
-    } else if ((curr_token == tok_semicolon ||
-                curr_token == tok_removed_template_body) &&
-               (!strict_ansi_mode || is_opaque_enum_decl)) {
-      /* A useless redeclaration of an enum tag. */
+    } else if (is_opaque_enum_decl ||
+               (!strict_ansi_mode && curr_token == tok_semicolon)) {
+      /* An opaque enum declaration or a (nonstandard and useless)
+         redeclaration of an enum tag. */
       mark_declared(tag_sym, &locator.source_position);
       /* If this declaration is associated with a declaration statement, update
          the associated stmk_decl statement. */
