@@ -1,5 +1,25 @@
 Version 4.10
 
+7/31/14  [EDGcpfe/15309]
+Incorrect handling of SFINAE case with partial template argument list
+
+Consider the following C++11 case:
+
+  template<typename X, typename Y> int f(X);
+  template<typename T> auto g(T t) -> decltype(f<double>(t));  // (1)
+  int main() {
+    g(4);  // Previously triggered a spurious error.
+  }
+
+When matching the call "g(4)" to template (1), the front end deduces T to be
+int (the type of "4") and then verifies for SFINAE purposes that substituting
+that T in the return type is valid.  Previously, that substitution failed for
+names like f<double> where the template argument list doesn't cover all the
+template parameters (because the additional parameters can be deduced).  In
+the example above, that results in a spurious error claiming there is no match
+for the call "g(4)".  That problem is now fixed.
+
+
 7/30/14  [EDGcpfe/15304]
 Missing diagnostics on alignas(...) and _Alignas(...) in invalid contexts
 

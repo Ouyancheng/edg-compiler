@@ -1717,6 +1717,12 @@ typedef int a_ctws_options_set;
 			   from rescan contexts and the entity being
 			   substituted is a nontype template argument
 			   expression. */
+#define CTWS_PARTIAL_ARG_LIST_OKAY	0x100
+			/* TRUE when substituting of a template argument list
+			   (via copy_template_arg_list_with_substitution)
+			   should permit a list that doesn't cover all the
+			   corresponding template parameters (because
+			   additional arguments will be deduced later). */
 
 /*
 Structure used to represent a set of function parameters that resulted from

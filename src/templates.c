@@ -10353,7 +10353,8 @@ end_of_loop:
     if (*copy_error) break;
   }  /* for */
   /* If there are too many parameters, the copy should fail. */
-  if (have_params && tpp != NULL && (!tpp->is_pack || tpp->next != NULL)) {
+  if (have_params && tpp != NULL && (!tpp->is_pack || tpp->next != NULL) &&
+      !(options & CTWS_PARTIAL_ARG_LIST_OKAY)) {
     *copy_error = TRUE;
   }  /* if */
   if (!*copy_error && pack_tap != NULL &&

@@ -6437,7 +6437,7 @@ routines.
 {
   a_template_arg_ptr new_tap;
 
-  options |= CTWS_COPY_ARG_OPERAND_INFO;
+  options |= (CTWS_COPY_ARG_OPERAND_INFO | CTWS_PARTIAL_ARG_LIST_OKAY);
   new_tap = copy_template_arg_list_with_substitution(template_sym,
                                                      arg_list_to_copy,
                                                      param_list_for_copy,
