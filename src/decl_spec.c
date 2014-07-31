@@ -4753,11 +4753,7 @@ base specifier.
       enum_type->variant.integer.int_kind = explicit_base_kind;
     }  /* if */
   }  /* if */
-  if (explicit_base_kind == (an_integer_kind)ik_none &&
-      enum_type->variant.integer.int_kind != (an_integer_kind)ik_int) {
-    /* Don't set int_kind if it has already been set (e.g.,
-       "enum E { e1 } __attribute__((mode(word)))"). */
-  } else if (explicit_base_kind != (an_integer_kind)ik_none) {
+  if (explicit_base_kind != (an_integer_kind)ik_none) {
     /* The underlying type is already determined: Nothing to be done. */
   } else if (enum_types_can_be_smaller_than_int 
 #if GNU_EXTENSIONS_ALLOWED
