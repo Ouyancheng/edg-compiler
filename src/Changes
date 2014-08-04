@@ -237,18 +237,19 @@ This problem (which was caused by incorrect IL for the declared type recorded
 in a secondary source sequence entry) is now fixed.
 
 
-7/22/14  [EDGcpfe/15317]
+7/22/14  [EDGcpfe/15317,EDGcpfe/15341]
 Mismatched types used in lowered run-time test for array new
 
 In cases where lowering inserts a run-time check to verify the size of
 an array new operation (see the Changes entry for EDGcpfe/13489), the
-inserted check may have had mismatched types as operands to an eok_gt
-operation, which might cause problems for some back ends.  For example
+inserted checks may have had mismatched types as operands to some
+operations, which might cause problems for some back ends.  For example
 (with --c++11):
 
   long p = 1;
   void f(void) {
-    new int[p];  // Had generated a comparison between size_t and long types.
+    new int[p];
+    new int[p] = {1};
   }
 
 

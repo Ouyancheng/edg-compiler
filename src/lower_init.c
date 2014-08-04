@@ -9683,6 +9683,7 @@ the position to insert the necessary code.
   an_insert_location  then_insert_location;
   an_expr_node_ptr    lt_node, test_node, call_node, temp_node;
   an_expr_node_ptr    prefix_size_node = NULL, max_elem_node;
+  an_expr_node_ptr    num_array_elem_node;
   a_constant          zero_constant, elem_size_constant, max_elements_constant;
   a_boolean           err;
   a_variable_ptr      temp;
@@ -9772,10 +9773,19 @@ the position to insert the necessary code.
                     is_array_type(dip->variant.constant->type));
     /* Add "|| num_elements < num_initializers" to the test above. */
     temp_node = var_rvalue_expr(temp);
-    temp_node->next = node_for_host_large_integer(
+    num_array_elem_node = node_for_host_large_integer(
                          (a_host_large_integer)
                                num_array_elements(dip->variant.constant->type),
                          targ_ptrdiff_t_int_kind);
+    if (num_elements_type->size <= num_array_elem_node->type->size) {
+      /* Use ptrdiff_t as the type for comparison purposes. */
+      temp_node = add_cast_if_necessary(temp_node, num_array_elem_node->type);
+    } else {
+      /* Use the larger type for comparison purposes. */
+      num_array_elem_node = add_cast_if_necessary(num_array_elem_node,
+                                                  num_elements_type);
+    }  /* if */
+    temp_node->next = num_array_elem_node;
     lt_node = make_operator_node((an_expr_operator_kind)eok_lt,
                                  integer_type((an_integer_kind)ik_int),
                                  temp_node);
