@@ -1,6 +1,6 @@
 Version 4.10
 
-8/3/14   [EDGcpfe/15337]
+8/4/14   [EDGcpfe/15337]
 Aggregate initializers and designators into C anonymous unions
 
 Some C modes (e.g., GNU C mode) permit both initializer designators and
