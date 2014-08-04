@@ -1,5 +1,27 @@
 Version 4.10
 
+8/3/14   [EDGcpfe/15337]
+Aggregate initializers and designators into C anonymous unions
+
+Some C modes (e.g., GNU C mode) permit both initializer designators and
+nonstandard anonymous unions.  The front end previously handled designators
+into nested anonymous unions incorrectly, which could result in spurious
+warnings and incorrect results.  For example:
+
+  struct S {
+    union {
+      int a;
+      float b;
+    };
+    int c;
+  } s = { .a = 1, 2 };
+
+In C modes that accept this (e.g., GNU C mode with gnu_version >= 40600), the
+front end previously issued a spurious warning about "2" being an excess
+initializer, and produced IL that failed to initialize s.c (which should be
+initialized to 2 in this example).  That is now fixed.
+
+
 7/31/14  [EDGcpfe/15334]
 Abort on opaque enum declaration that is part of another declaration
 

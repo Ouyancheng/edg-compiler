@@ -2553,74 +2553,6 @@ position is available).
 }  /* aggr_init_field */
 
 
-static void make_designators_for_nested_anonymous_union(
-                                                a_symbol_ptr    field_sym,
-                                                a_type_ptr      *p_class_type,
-                                                a_constant_ptr  *p_aggr_con)
-/*
-field_sym represents a field in an anonymous union: That field was named with
-a designator appearing in an initializer *p_aggr_con whose type *p_class_type
-is not the anonymous union itself.  For example:
-
-  struct S { int i; struct { union { int d; }; }; } s = { .d = 3 };
-
-Here struct S is passed for *p_class_type.
-Create anonymous designators representing the "navigation" to the given field.
-In the example, let __S denote the anonymous struct and __U denote the
-anonymous union, then the original *p_aggr_con is modified as follows:
-
-  <original *p_aggr_con, ck_aggregate>
-    <ck_designator for anonymous field of type __S>
-    <ck_aggregate for anonymous field of type __S>
-      <ck_designator for anonymous field of type __U>
-      <ck_aggregate for anonymous field of type __U; new *p_aggr_con>
-
-The aggregate constant representing the innermost anonymous union is returned
-through *p_aggr_con (and its type through *p_class_type).
-*/
-{
-  a_type_ptr      orig_class_type = skip_typerefs(*p_class_type);
-  a_constant_ptr  orig_aggr_con = *p_aggr_con, des_con = NULL, au_con;
-
-  /* Move up the anonymous union parent object chain and create a designator
-     constant and corresponding aggregate constant for each one. */
-  while (field_sym->variant.field.anonymous_parent_object != NULL) {
-    a_field_ptr     field = field_sym->variant.field.ptr;
-    a_type_ptr      anon_parent = parent_class_of(field);
-    if (same_entities(anon_parent, orig_class_type)) break;
-    au_con = alloc_constant((a_constant_repr_kind)ck_aggregate);
-    au_con->type = anon_parent;
-    if (des_con == NULL) {
-      /* We just created the bottom-most aggregate: Record it as the new
-         aggregate in which to place the named designator. */
-      *p_aggr_con = au_con;
-    } else {
-      /* We created a designator->anonymous-union-constant pair in a previous
-         iteration.  Append it to the parent anonymous union. */
-      add_constant_to_aggregate(des_con, au_con);
-      if (anon_parent->kind != (a_type_kind)tk_union) {
-        au_con->is_partially_initialized = TRUE;
-      }  /* if */
-      add_constant_to_aggregate(des_con->next, au_con);
-    }  /* if */
-    /* Create the designator for the next level out. */
-    des_con = alloc_constant((a_constant_repr_kind)ck_designator);
-    des_con->variant.designator.field =
-          field_sym->variant.field.anonymous_parent_object->variant.field.ptr;
-    des_con->next = au_con;
-    field_sym = field_sym->variant.field.anonymous_parent_object;
-  }  /* while */
-  /* This routine is only called for fields in anonymous unions that are not
-     the original class type.  So we must have iterated at least once. */
-  check_assertion(des_con != NULL);
-  add_constant_to_aggregate(des_con, orig_aggr_con);
-  if (orig_class_type->kind != (a_type_kind)tk_union) {
-    orig_aggr_con->is_partially_initialized = TRUE;
-  }  /* if */
-  add_constant_to_aggregate(des_con->next, orig_aggr_con);
-}  /* make_designators_for_nested_anonymous_union */
-
-
 static void aggr_init_field_designator(an_init_component_ptr  *p_icp,
                                        a_type_ptr             class_type,
                                        an_init_state          *is,
@@ -2637,7 +2569,7 @@ none).  diag_pos is the position at which to issue diagnostics if no more
 specific position is available.
 */
 {
-  a_boolean              okay;
+  a_boolean              okay, skip_designator = TRUE;
   an_init_component_ptr  icp = *p_icp;
   a_type_ptr             class_to_look_in = class_type;
   a_symbol_locator       loc;
@@ -2700,8 +2632,22 @@ specific position is available.
             pos_error(ec_indirect_anon_union_designator,
                       init_component_pos(icp));
           } else {
-            make_designators_for_nested_anonymous_union(sym, &class_type,
-                                                        &aggr_con);
+            /* Treat the designator as a "chained designator" of the form
+               .i1 ... .iN.x where ".x" is the written designator and .iK are
+               the anonymous parent objects.  At this level, find the ".iK"
+               that is directly in class_type and use that as the designated
+               field. */
+            for (;;) {
+              sym = sym->variant.field.anonymous_parent_object;
+              check_assertion(sym != NULL);
+              if (same_entities(sym_parent_class(sym), class_type)) {
+                break;
+              }  /* if */
+            }  /* for */
+            *field = sym->variant.field.ptr;
+            /* Prevent the initializer component representing ".x" from being
+               skipped (so that lower levels will find it again). */
+            skip_designator = FALSE;
           }  /* if */
         }  /* if */
       }  /* if */
@@ -2716,7 +2662,9 @@ specific position is available.
        there is a sequence of consecutive designators.) */
     pos_error(ec_designator_for_non_POD, init_component_pos(icp));
   }  /* if */
-  icp = next_elem(icp);
+  if (skip_designator) {
+    icp = next_elem(icp);
+  }  /* if */
   if (okay) {
     /* Designators complicate the determination of whether an aggregate
        initializer completely covers the target entity.  Assume partial
@@ -2737,7 +2685,10 @@ specific position is available.
     if (icp != NULL) {
       /* Process the component following this designator.  If it is another
          designator (i.e., a "chained" designator), special care must be taken
-         to go down a level in the aggregate structure. */
+         to go down a level in the aggregate structure.  Note that the case of
+         a designator into a nested anonymous union (skip_designator == FALSE),
+         will be treated like a "chained" designator where the initial
+         designator in an implicit reference to the anonymous subobject. */
       if (is_designator_component(icp)) {
         /* A chained designator follows (e.g., ".x.y =" or ".x[n] ="). */
         a_constant_ptr  next_con;
