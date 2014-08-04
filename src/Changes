@@ -1,5 +1,30 @@
 Version 4.10
 
+8/4/14   [EDGcpfe/15339]
+Spurious SFINAE failure on access of member of a deduced reference parameter
+
+Consider the following C++11 case:
+
+  struct S { void f(); };
+  template<typename> struct X {};
+  template<typename T> auto g(T &&p)->X<decltype(p.f())>;  // (1)
+  void h(S s) {
+    g(s);  // Previously triggered a spurious error.
+  }
+
+When matching the call "g(s)" to template (1), the front end deduces T to be
+S& (because an lvalue is passed to the "T&&" parameter), and with the C++11
+rules for collapsing references, this results in the type of p also being S&.
+The front end then mistakenly looked up "f" in "p.f()" as if it was denoted by
+"T::f", which fails because T is a reference type and not a class type.  That
+failure disqualified g<S&> as a candidate (a SFINAE) failure, and triggered a
+spurious error about no instance of g matching the call "g(s)".  This is now
+fixed: "f" in "p.f()" is looked up in the type of "p" (which is just "S" during
+the deduction process).
+
+
+When instantiating a function declaration for the purpose of determining its
+
 8/4/14   [EDGcpfe/15337]
 Aggregate initializers and designators into C anonymous unions
 

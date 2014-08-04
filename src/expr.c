@@ -6654,9 +6654,10 @@ a left parenthesis in the source.
                  class. */
               parent_type = parent_cssp->template_param_for_proxy_class;
             }  /* if */
-            /* For a member of an unknown class, look up the member name
-               in the actual class of the first operand. */
-            if (parent_type == type_of_unknown_templ_param_nontype) {
+            /* For an unqualified name or a member of an unknown class, look
+               up the member name in the actual class of the first operand. */
+            if (!is_qualified ||
+                parent_type == type_of_unknown_templ_param_nontype) {
               if (is_class_struct_union_type(class_struct_union_type) &&
                   !is_incomplete_type(class_struct_union_type) &&
                   symbol_for(member_con) != NULL) {
