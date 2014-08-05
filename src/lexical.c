@@ -411,6 +411,12 @@ static int	depth_input_stack;
 			/* Depth of the input stack, minus 1.
 			   input_stack[depth_input_stack] is the active
 			   entry.  -1 if the stack is completely empty. */
+static an_input_stack_entry_ptr
+		base_ise;
+			/* The topmost entry in the input stack that
+			   reflects an actual file, as opposed to a cloned
+			   entry for tracking the tree structure of #line
+			   directives. */
 static FILE
 		*curr_input_stream;
 			/* The currently active source input stream. */
@@ -5484,7 +5490,10 @@ used to find this file.
                    (sizeof_t)(size_input_stack*sizeof(an_input_stack_entry)),
                    (sizeof_t)(new_size*sizeof(an_input_stack_entry)));
     size_input_stack = new_size;
-    if (depth_input_stack >= 0) curr_ise = &input_stack[depth_input_stack];
+    if (depth_input_stack >= 0) {
+      curr_ise = &input_stack[depth_input_stack];
+      base_ise = curr_ise;
+    }  /* if */
   }  /* if */
   /* If the maximum number of files has already been opened, close the
      top-most file in the input stack after remembering its current
@@ -5507,6 +5516,7 @@ used to find this file.
   }  /* if */
   /* Push the new input stack entry. */
   curr_ise = &input_stack[++depth_input_stack];
+  base_ise = curr_ise;
   curr_ise->file        = new_input_file;
   curr_ise->line_number = 0;
   curr_ise->position    = 0;
@@ -5791,6 +5801,7 @@ at the next level down.
      This happens at the end of the primary source file. */
   if (--depth_input_stack < 0) {
     curr_ise = NULL;
+    base_ise = NULL;
     curr_input_stream = NULL;
 #if UNICODE_SOURCE_SUPPORTED
     curr_file_unicode_source_kind = usk_none;
@@ -5809,6 +5820,7 @@ at the next level down.
     an_input_stack_entry_ptr  prev_ise = curr_ise;
 #endif /* INSTANTIATION_BY_IMPLICIT_INCLUSION */
     curr_ise = &input_stack[depth_input_stack];
+    base_ise = curr_ise;
     if (curr_ise->file == NULL) {
       an_open_file_result	open_result;
 #if DEBUG
@@ -6782,13 +6794,14 @@ literals in C++11.
     /* Not end of file, read the line. */
     curr_ise->line_number++;
     /* Check if this line being read is that next needed for the file index
-       table.  Remember that the first character has already been read into
-       ch. */
-    if (++(curr_ise->actual_line) == curr_ise->next_index_point) {
-      curr_ise->next_index_point = update_file_index(
-                                        curr_ise->assoc_actual_il_file,
-                                        curr_ise->actual_line,
-                                        ftell(curr_ise->file) - 1);
+       table (for the actual source file, excluding any entries that were
+       cloned to track the tree structure of #line directives).  Remember
+       that the first character has already been read into ch. */
+    if (++(base_ise->actual_line) == base_ise->next_index_point) {
+      base_ise->next_index_point = update_file_index(
+                                        base_ise->assoc_actual_il_file,
+                                        base_ise->actual_line,
+                                        ftell(base_ise->file) - 1);
     }  /* if */
     /* Read characters until the newline indicating end of line. */
     /* Every attempt is made to make this FAST, since every character of
@@ -21539,6 +21552,7 @@ done to determine whether a precompiled header may be used.
   depth_input_stack = -1;
   curr_token = tok_error;
   curr_ise = NULL;
+  base_ise = NULL;
 #if UNICODE_SOURCE_SUPPORTED
   curr_file_unicode_source_kind = usk_none;
   clear_getc_source_state(&curr_file_getc_source_state, usk_none);
@@ -21730,6 +21744,7 @@ the point at which the compilation was terminated.
   /* Make sure we don't go through the loop above if this routine is called
      again before input_stack has been reset. */
   depth_input_stack = -1;
+  base_ise = NULL;
 }  /* lexical_cleanup */
 
 #endif /* MAKE_FRONT_END_CALLABLE */

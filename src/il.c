@@ -3717,9 +3717,11 @@ examine_children:
                            child_file->first_seq_number + 1;
     } else {
       /* #line directive.  Note that typically when #line directives
-         appear there are no #includes, so the loop here does nothing. */
+         appear there are no #includes, so the loop here does nothing, and
+         we skip over any grandchild files that represent #line
+         directives. */
       for (grandchild_file = child_file->first_child_file;
-           grandchild_file != NULL;
+           grandchild_file != NULL && grandchild_file->full_name != NULL;
            grandchild_file = grandchild_file->next) {
         lines_in_children += grandchild_file->last_seq_number -
                              grandchild_file->first_seq_number + 1;
