@@ -5700,6 +5700,13 @@ at the next level down.
     db_include_guard_info();
   }  /* if */
 #endif /* DEBUG */
+  /* First, discard any entries that were cloned for the purpose of
+     tracking #line directives; the processing below applies to the actual
+     source file. */
+  while (curr_ise->cloned_for_line_directive) {
+    record_end_of_source_file(curr_ise->assoc_il_file, seq_number_last_read);
+    pop_cloned_input_stack_entry();
+  }  /* while */
   /* This is where we do a final check to see if subsequent inclusions of
      the file can potentially be suppressed. If we are in the "accept" or
      "once" state, then this file satisfies the criteria, otherwise it

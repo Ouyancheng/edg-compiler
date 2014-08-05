@@ -1979,7 +1979,7 @@ and may have extra operands at the end).
      this entry is not for a file, but instead represents the remapping
      caused by the #line. */
   /* Note that full_name stays pointing to the actual input file name. */
-  if (strcmp(curr_ise->file_name, temp_file) == 0) {
+  if (cpp_output_form && strcmp(curr_ise->file_name, temp_file) == 0) {
     /* This is just positioning within the same file, no need to pop and
        push. */
     suppress_pop = TRUE;
