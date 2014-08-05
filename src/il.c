@@ -25092,6 +25092,10 @@ have the is_lvalue/is_xvalue flags set incorrectly; return TRUE otherwise.
         flags ^= LVRV_OPND2_IS_GLVALUE;
         flags |= LVRV_OPND2_IS_PRVALUE;
       }  /* if */
+      if (gnu_mode && node_operator_is(node, eok_va_start)) {
+        /* In GNU mode, the second operand of __builtin_va_start is ignored. */
+        flags ^= LVRV_OPND2_IS_GLVALUE;
+      }  /* if */
     }  /* if */
     if (flags & LVRV_OPND1_IS_PRVALUE) {
       /* The first operand is supposed to be a prvalue. */
