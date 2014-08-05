@@ -20604,6 +20604,35 @@ Return TRUE if con contains an error constant, error node, or error type
   return result;
 }  /* constant_contains_error */
 
+#if IA64_ABI
+
+static a_boolean generated_copy_constructor_is_trivial(
+                                          a_class_symbol_supplement_ptr  cssp)
+/*
+Return TRUE if the class associated with cssp has a trivial generated copy
+constructor.
+*/
+{
+  a_boolean     result = FALSE;
+  a_symbol_ptr  sym = cssp->constructor;
+
+  if (symbol_is(sym, sk_overloaded_function)) {
+    sym = sym->variant.overloaded_function.symbols;
+    for (; sym != NULL; sym = sym->next) {
+      if (symbol_is(sym, sk_member_function) &&
+          sym->variant.routine.ptr->is_trivial_copy_function) {
+        result = TRUE;
+        break;
+      }  /* if */
+    }  /* if */
+  } else if (symbol_is(sym, sk_routine) &&
+    sym->variant.routine.ptr->is_trivial_copy_function) {
+    result = TRUE;
+  }  /* if */
+  return result;
+}  /* generated_copy_constructor_is_trivial */
+
+#endif /* IA64_ABI */
 
 void set_routine_calling_method_flag(a_type_ptr         routine_type,
                                      a_source_position  *err_pos)
@@ -20656,7 +20685,12 @@ the case if the return type was incomplete at the point of definition.
              diagnosed elsewhere. */
           expect_error();
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-        } else if (!cssp->construction_by_bitwise_copy_allowed
+        } else if (!(cssp->construction_by_bitwise_copy_allowed
+#if IA64_ABI
+                     || (emulate_gnu_abi_bugs && gnu_abi_version < 40600 &&
+                         generated_copy_constructor_is_trivial(cssp))
+#endif /* IA64_ABI */
+                                                                     )
 #if IA64_ABI
 #if ABI_COMPATIBILITY_VERSION >= 408
                    || has_nontrivial_destructor(cssp)

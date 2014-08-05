@@ -1,5 +1,26 @@
 Version 4.10
 
+8/5/14   [EDGcpfe/15336]
+GNU ABI compatibility: Returning classes with trivial copy constructor and
+nontrivial move constructor
+
+Ordinarily, returning a class type with a nontrivial move constructor is
+implemented by passing a hidden pointer parameter to the result's storage
+(the same is true for a class type with a nontrivial copy constructor).
+However, when emulate_gnu_abi_bugs is TRUE and gnu_abi_version < 40600, the
+front end now no longer applies this rule if the class type has a trivial
+copy constructor.  For example:
+
+  struct S {
+    S();
+    S(S&&);  // Nontrivial move constructor (but a trivial generated copy
+  };         // constructor).
+  S f() { return S(); }  // Now implemented without a hidden pointer
+                         // parameter in some configurations.
+
+This appears to match the behavior of corresponding versions of GCC.
+
+
 8/4/14   [EDGcpfe/15187]
 Reconstructing file tree structure from #line directives
 
