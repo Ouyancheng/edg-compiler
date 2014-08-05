@@ -5543,6 +5543,7 @@ used to find this file.
 #if ACCEPT_GNU_CARRIAGE_RETURN_LINE_TERMINATOR
   curr_ise->prev_line_terminator_was_carriage_return = FALSE;
 #endif /* ACCEPT_GNU_CARRIAGE_RETURN_LINE_TERMINATOR */
+  curr_ise->cloned_for_line_directive = FALSE;
 #if CENTERLINE_CHECKING
   curr_ise->avoid_codecenter_warnings = 0;
 #endif /* CENTERLINE_CHECKING */
@@ -5653,6 +5654,34 @@ used to find this file.
 #endif /* DEBUG */
   db_exit();
 }  /* push_input_stack */
+
+
+void push_cloned_input_stack_entry(void)
+/*
+Create a new entry at the top of the input stack with the same content as
+the previous top of stack entry.  This is used for tracking the tree
+structure of #line directives, where the actual input file does not change.
+*/
+{
+  /* Check for the need to expand the input stack. */
+  if (depth_input_stack + 1 == size_input_stack) {
+    /* Expand the input stack by reallocating it. */
+    int new_size = size_input_stack + INPUT_STACK_INCREMENTAL_ALLOCATION;
+    input_stack = (an_input_stack_entry_ptr)realloc_buffer(
+                   (char *)input_stack,
+                   (sizeof_t)(size_input_stack * sizeof(an_input_stack_entry)),
+                   (sizeof_t)(new_size * sizeof(an_input_stack_entry)));
+    size_input_stack = new_size;
+    if (depth_input_stack >= 0) {
+      curr_ise = &input_stack[depth_input_stack];
+    }  /* if */
+  }  /* if */
+  /* Push the new entry, copy the contents of the previous top of stack,
+     and identify the new entry as having been cloned. */
+  curr_ise = &input_stack[++depth_input_stack];
+  *curr_ise = input_stack[depth_input_stack - 1];
+  curr_ise->cloned_for_line_directive = TRUE;
+}  /* push_cloned_input_stack_entry */
 
 
 void pop_input_stack(void)
@@ -5972,6 +6001,18 @@ at the next level down.
 #endif /* DEBUG */
   db_exit();
 }  /* pop_input_stack */
+
+
+void pop_cloned_input_stack_entry(void)
+/*
+Pop the top element from the input stack, which must have been added by
+push_cloned_input_stack_entry.  Such entries are used for tracking the
+tree structure of #line directives.
+*/
+{
+  check_assertion(curr_ise != NULL && curr_ise->cloned_for_line_directive);
+  curr_ise = &input_stack[--depth_input_stack];
+}  /* pop_cloned_input_stack_entry */
 
 
 static void expand_curr_source_line(void)

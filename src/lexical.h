@@ -826,6 +826,10 @@ typedef struct an_input_stack_entry {
 			   newline being treated as the end of an empty
 			   line. */
 #endif /* ACCEPT_GNU_CARRIAGE_RETURN_LINE_TERMINATOR */
+  a_bit_field	cloned_for_line_directive:1;
+			/* TRUE if this entry was created to track #line
+			   directives by cloning the previous top of the
+			   input stack. */
   bitfield_to_avoid_codecenter_warnings()
   a_byte        ifg_state;
 			/* Include file guard state information used to
@@ -2509,7 +2513,11 @@ extern void push_input_stack(
                         a_directory_name_entry_ptr  dir_entry,
 			an_include_file_history_ptr ifhp);
 
+extern void push_cloned_input_stack_entry(void);
+
 extern void pop_input_stack(void);
+
+extern void pop_cloned_input_stack_entry(void);
 
 extern void ensure_min_curr_source_line_length(sizeof_t  min_len);
 
