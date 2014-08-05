@@ -3432,7 +3432,7 @@ been scanned: builtin_func represents the reference to the builtin function
 #endif /* BUILTIN_VA_START_TAKES_ADDRESS_OF_VARIABLE */
         node1->next = node2;
       }  /* if */
-    } else {
+    } else if (!err) {
       if (gnu_mode && builtin_func != NULL && is_constant_operand(&operand)) {
         node1->next = make_node_from_operand(&operand);
         pos_warning(ec_bad_va_start, &operand.position);
