@@ -6674,13 +6674,13 @@ a left parenthesis in the source.
                 locator->symbol_header = symbol_for(member_con)->header;
                 sym = look_up_selection_name(locator, class_struct_union_type);
                 if (sym != NULL) {
-                  if (sym->kind == (a_symbol_kind)sk_class_template) {
+                  if (symbol_is(sym, sk_class_template)) {
                     if (!is_template_ref) {
                       /* This is a class template, but there's no explicit
                          template argument list.  Pretend we found nothing. */
                       sym = NULL;
                     }  /* if */
-                  } else if (sym->kind ==(a_symbol_kind)sk_function_template) {
+                  } else if (symbol_is_or_contains_function_template(sym)) {
                     /* Function templates are okay with or without an explicit
                        template argument list. */
                     if (is_template_ref) {

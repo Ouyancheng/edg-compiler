@@ -5980,9 +5980,9 @@ results in better error recovery.
     !symbol_is(sym, sk_overloaded_function) &&				\
     !symbol_is(sym, sk_class_template) &&				\
     !symbol_is(sym, sk_function_template) &&				\
-    !symbol_is(sym, sk_type) &&					\
+    !symbol_is(sym, sk_type) &&						\
     !symbol_is(sym, sk_undefined)) &&					\
-   (!symbol_is((sym), sk_constant) ||					\
+   (!symbol_is(sym, sk_constant) ||					\
     ((sym)->variant.constant->kind !=					\
                           (a_constant_repr_kind)ck_template_param ||	\
      (sym)->variant.constant->variant.template_param.kind !=		\
@@ -5994,6 +5994,13 @@ results in better error recovery.
   (is_class_template_or_injected_template_symbol(sym) ||		\
    (sym)->kind == (a_symbol_kind)sk_function_template ||		\
    ((sym)->kind == (a_symbol_kind)sk_overloaded_function &&		\
+    overload_set_contains_template(sym)))
+
+/* Return TRUE if a symbol is a function template symbol or an overload set
+   containing a function template symbol */
+#define symbol_is_or_contains_function_template(sym)                    \
+  (symbol_is(sym, sk_function_template) ||                              \
+   (symbol_is(sym, sk_overloaded_function) &&                           \
     overload_set_contains_template(sym)))
 
 /* Return TRUE if a symbol is a function symbol. */
