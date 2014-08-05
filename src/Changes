@@ -1,5 +1,14 @@
 Version 4.10
 
+8/5/14   [EDGcpfe/15285]
+Missing diagnostic on use of an opaque enum declaration in a type name
+
+A declaration like
+  using T = enum class E: int;
+is not valid in C++11.  This is now diagnosed (with an error in strict mode,
+and a warning otherwise).
+
+
 8/5/14   [EDGcpfe/15336]
 GNU ABI compatibility: Returning classes with trivial copy constructor and
 nontrivial move constructor

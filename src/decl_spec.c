@@ -5921,6 +5921,11 @@ template.  dsi_flags is the set of input flags passed to decl_specifiers.
         curr_token != tok_removed_template_body &&
         !(microsoft_mode || clang_mode)) {
       pos_error(ec_non_autonomous_opaque_enum_decl, &tag_position);
+    } else if (dps->is_type_name) {
+      /* The C++11 standard does not permit an opaque enum declaration in a
+         type-id, but most compilers appear to currently accept this. */
+      pos_diagnostic(strict_ansi_discretionary_severity,
+                     ec_nonstd_opaque_enum_decl_in_type_id, &tag_position);
     }  /* if */
     is_opaque_enum_decl = TRUE;
     is_definition = FALSE;
