@@ -6521,6 +6521,7 @@ a left parenthesis in the source.
   an_expr_rescan_info_entry     rescan_info;
   a_symbol_ptr                  sym;
   a_boolean                     is_qualified = FALSE;
+  a_boolean                     is_conversion_func = FALSE;
   a_boolean                     is_template_id = FALSE;
   a_template_arg_ptr            expl_templ_arg_list = NULL;
   an_expr_operator_kind         op;
@@ -6647,6 +6648,10 @@ a left parenthesis in the source.
               if (member_con->variant.template_param.is_qualified_name) {
                 is_qualified = TRUE;
               }  /* if */
+              if (member_con->variant.template_param
+                           .variant.unknown_function.conversion_type != NULL) {
+                is_conversion_func = TRUE;
+              }  /* if */
             }  /* if */
             if (parent_cssp->template_param_for_proxy_class != NULL) {
               /* The parent type is a proxy class for a template parameter.
@@ -6655,9 +6660,12 @@ a left parenthesis in the source.
               parent_type = parent_cssp->template_param_for_proxy_class;
             }  /* if */
             /* For an unqualified name or a member of an unknown class, look
-               up the member name in the actual class of the first operand. */
-            if (!is_qualified ||
-                parent_type == type_of_unknown_templ_param_nontype) {
+               up the member name in the actual class of the first operand.
+               (Conversion functions, however, are not found through
+               lookup.) */
+            if ((!is_qualified ||
+                 parent_type == type_of_unknown_templ_param_nontype) &&
+                !is_conversion_func) {
               if (is_class_struct_union_type(class_struct_union_type) &&
                   !is_incomplete_type(class_struct_union_type) &&
                   symbol_for(member_con) != NULL) {
