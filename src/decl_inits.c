@@ -2688,7 +2688,7 @@ specific position is available.
          to go down a level in the aggregate structure.  Note that the case of
          a designator into a nested anonymous union (skip_designator == FALSE),
          will be treated like a "chained" designator where the initial
-         designator in an implicit reference to the anonymous subobject. */
+         designator is an implicit reference to the anonymous subobject. */
       if (is_designator_component(icp)) {
         /* A chained designator follows (e.g., ".x.y =" or ".x[n] ="). */
         a_constant_ptr  next_con;
