@@ -6,15 +6,16 @@ Reconstructing file tree structure from #line directives
 When the front end preprocesses a source file, the tree structure of the
 header files named in #include directives is reflected in the
 first_child_file, last_child_file, and next fields of the resulting
-a_source_file IL entries.  This nesting information can also be inferred in
-preprocessor output from the #line directives produced by the GNU
-preprocessor, which have additional fields following the file name that
-reflect entry into and exit from header files.  The front end previously
-ignored these fields when compiling a file that had already been
-preprocessed, producing a flat list of a_source_file IL entries.  It has
-now been changed, however, to use the additional fields, and the tree
-structure of the files in the IL is now the same, regardless of whether the
-source was already preprocessed or contains #include directives.
+a_source_file IL entries.  This nesting information can also be inferred
+from the #line directives in output produced by the GNU preprocessor, which
+have additional fields following the file name that reflect entry into and
+exit from header files.  The front end previously ignored these fields when
+compiling a file that had already been preprocessed, producing a flat list
+of a_source_file IL entries for the files named in #line directives.  It
+has been changed, however, to use the additional fields when they are
+present, and for such files the tree structure of the source file entries
+in the IL is now the same as if the front end had processed the original
+#include directives.
 
 
 8/4/14   [EDGcpfe/15339]
