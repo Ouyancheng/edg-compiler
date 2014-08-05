@@ -130,7 +130,7 @@ specifier in certain contexts not permitted by the C++11 and C11 standards.
 For example, in C++11 mode:
 
   char alignas(4) buf[100];  // Now an error.  (alignas(4) should precede
-                             // "char" or immediate follow "buf".)
+                             // "char" or immediately follow "buf".)
 
 C11 has different constraints; for example:
 
