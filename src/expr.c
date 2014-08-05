@@ -6675,6 +6675,12 @@ a left parenthesis in the source.
                   } else if (sym->kind ==(a_symbol_kind)sk_function_template) {
                     /* Function templates are okay with or without an explicit
                        template argument list. */
+                    if (is_template_ref) {
+                      /* Something like "p.template f<T>()". */
+                      is_template_id = TRUE;
+                      expl_templ_arg_list = con->variant.template_param
+                                                .variant.template_ref.arg_list;
+                    }  /* if */
                   } else if (is_template_ref) {
                     /* A non-template with an explicit template argument
                        list.  Pretend we found nothing. */
