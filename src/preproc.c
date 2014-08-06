@@ -2009,8 +2009,16 @@ and may have extra operands at the end).
         done_popping = TRUE;
       }  /* if */
     } while (!done_popping);
-    record_resumption_of_source_file(curr_ise->assoc_il_file,
-                                     seq_number_last_read + 1, temp_line);
+    if (cpp_output_form && strcmp(curr_ise->file_name, temp_file) == 0) {
+      /* We found the file to which this directive applies, so record the
+         fact that the succeeding text belongs to it. */
+      record_resumption_of_source_file(curr_ise->assoc_il_file,
+                                       seq_number_last_read + 1, temp_line);
+    } else {
+      /* We're not continuing an existing file, so push a new file for the
+         succeeding text. */
+      suppress_push = FALSE;
+    }  /* if */
   }  /* if */
   if (suppress_push) {
     /* Just overwrite the file name. */
