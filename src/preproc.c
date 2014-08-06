@@ -1981,9 +1981,11 @@ and may have extra operands at the end).
   /* Note that full_name stays pointing to the actual input file name. */
   if (cpp_output_form && strcmp(curr_ise->file_name, temp_file) == 0) {
     /* This is just positioning within the same file, no need to pop and
-       push. */
+       push; just indicate the start of a new range of line numbers. */
     suppress_pop = TRUE;
     suppress_push = TRUE;
+    record_resumption_of_source_file(curr_ise->assoc_il_file,
+                                     seq_number_last_read + 1, temp_line);
   }  /* if */
   curr_ise->line_number = temp_line - 1;  /* Number will be incremented. */
   /* If we are leaving an already-active #line file, record the end of its
