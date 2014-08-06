@@ -1,6 +1,19 @@
 Version 4.10
 
-8/5/14   [EDGcpfe/15293]
+8/6/14   [EDGcpfe/15338]
+Microsoft C++ compatibility: Generated special member functions
+
+In Microsoft C++ mode with microsoft_version >= 1900 move constructors and move
+assignment operators may now be implicitly declared or defined with "= default"
+(as per the rules for standard C++11).  Furthermore, in such modes the prior
+Microsoft-mode-specific behavior of not at all declaring an implicit special
+member function if generating its definition would result in an error (see the
+entry of 5/11/07) is now replaced by standard C++11 behavior as well (usually,
+the generated special member is a deleted member in those cases).  Finally, the
+the generation of move assignment operators and move constructors in C++/CLI
+and C++/CX managed types is now disabled.
+
+
 GNU compatibility: Allow a constant as the second operand of __builtin_va_start
 
 In GNU modes, the second operand of __builtin_va_start is now permitted to be
