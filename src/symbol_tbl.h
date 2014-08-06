@@ -5989,7 +5989,7 @@ results in better error recovery.
                     (a_template_param_constant_kind)tpck_member)))
 
 /* Return TRUE if a symbol is a class or function template symbol or an
-   overload set containing a function template symbol */
+   overload set containing a function template symbol. */
 #define symbol_is_or_contains_template(sym)				\
   (is_class_template_or_injected_template_symbol(sym) ||		\
    (sym)->kind == (a_symbol_kind)sk_function_template ||		\
@@ -5997,7 +5997,7 @@ results in better error recovery.
     overload_set_contains_template(sym)))
 
 /* Return TRUE if a symbol is a function template symbol or an overload set
-   containing a function template symbol */
+   containing a function template symbol. */
 #define symbol_is_or_contains_function_template(sym)                    \
   (symbol_is(sym, sk_function_template) ||                              \
    (symbol_is(sym, sk_overloaded_function) &&                           \
