@@ -884,6 +884,11 @@ EXTERN a_boolean
 			   (C or C++) compiler.  See also
 			   gcc_or_clang_is_generated_code_target. */
 
+EXTERN unsigned long
+		clang_target_version_number;
+			/* The version number of the clang compiler being
+			   targeted (e.g., 30300 for clang C/C++ 3.3). */
+
 EXTERN a_boolean
 		gcc_or_clang_is_generated_code_target;
 			/* TRUE if code is being generated for either the

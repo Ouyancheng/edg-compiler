@@ -4984,6 +4984,11 @@ file.
 #else /* !defined(CLANG_IS_GENERATED_CODE_TARGET) */
   comment_undefined_macro_name(CLANG_IS_GENERATED_CODE_TARGET);
 #endif /* defined(CLANG_IS_GENERATED_CODE_TARGET) */
+#if defined(CLANG_TARGET_VERSION_NUMBER)
+  define_numeric_valued_macro(CLANG_TARGET_VERSION_NUMBER);
+#else /* !defined(CLANG_TARGET_VERSION_NUMBER) */
+  comment_undefined_macro_name(CLANG_TARGET_VERSION_NUMBER);
+#endif /* defined(CLANG_TARGET_VERSION_NUMBER) */
 #if defined(DEBUG)
   define_numeric_valued_macro(DEBUG);
 #else /* !defined(DEBUG) */

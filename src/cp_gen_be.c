@@ -5968,11 +5968,15 @@ parameter.
       write_tok_ch('0');
     } else {
       a_boolean need_parens;
-#if GCC_IS_GENERATED_CODE_TARGET || CP_GEN_BE_TARGET_MATCHES_SOURCE_DIALECT
-      if (gcc_is_generated_code_target && gnu_target_version_number >= 30400 &&
-          gnu_target_version_number < 40400) {
-        /* g++ versions before 4.4 issue spurious errors on a member function
-           declaration like
+#if GCC_IS_GENERATED_CODE_TARGET || CLANG_IS_GENERATED_CODE_TARGET || \
+    CP_GEN_BE_TARGET_MATCHES_SOURCE_DIALECT
+      if ((gcc_is_generated_code_target &&
+           gnu_target_version_number >= 30400 &&
+           gnu_target_version_number < 40400) ||
+          (clang_is_generated_code_target &&
+           clang_target_version_number < 30400)) {
+        /* g++ versions before 4.4 and clang versions before 3.4 issue
+           spurious errors on a member function declaration like
 
              void f(S<int,int> = S<int,int>());
 

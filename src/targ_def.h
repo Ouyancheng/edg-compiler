@@ -3085,6 +3085,30 @@ gnu_target_version_number.
 #endif /* GNU_TARGET_VERSION_NUMBER */
 
 /*
+Macro representing the version of clang C or C++ for which the C- and C++-
+generating back ends should produce code.  For version x.y.z of a clang
+compiler, the macro should equal x*10000+y*100+z.  If this file is
+compiled using a clang compiler (or a clang-like compiler), then the macro
+defaults to the version of that compiler; otherwise, no default is
+provided.  This macro is the default value of the global variable
+clang_target_version_number.
+*/
+#ifndef CLANG_TARGET_VERSION_NUMBER
+#if CLANG_IS_GENERATED_CODE_TARGET
+#if defined(__clang_major__) && defined(__clang_minor__) && \
+    defined(__clang_patchlevel__)
+#define CLANG_TARGET_VERSION_NUMBER ((__clang_major__)*10000 +            \
+                                     (__clang_minor__)*100 +              \
+                                     (__clang_patchlevel__))
+#else /* !(defined(__clang_major__) && defined(__clang_minor__) && ...) */
+/* A target version number is needed, but none could be determined from the
+   host compiler: use the "latest" version. */
+#define CLANG_TARGET_VERSION_NUMBER 99999
+#endif /* defined(__clang_major__) && defined(__clang_minor__) && ... */
+#endif /* CLANG_IS_GENERATED_CODE_TARGET */
+#endif /* CLANG_TARGET_VERSION_NUMBER */
+
+/*
 Switch that is TRUE if the C-generating or C++-generating back end should
 generate code that uses vararg primitives that are predefined by some GNU
 and Clang compilers (e.g., __builtin_va_list).

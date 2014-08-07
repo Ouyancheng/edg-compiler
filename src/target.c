@@ -352,6 +352,7 @@ to match the source dialect (including the version of the dialect).
 #endif /* GCC_BUILTIN_VARARGS */
     if (clang_mode) {
       clang_is_generated_code_target = TRUE;
+      clang_target_version_number = clang_version;
     } else {
       gcc_is_generated_code_target = TRUE;
       gnu_target_version_number = gnu_version;
@@ -557,6 +558,9 @@ This is done before command line processing.
     (BACK_END_IS_CP_GEN_BE && CP_GEN_BE_TARGET_MATCHES_SOURCE_DIALECT)
   gnu_target_version_number = GNU_TARGET_VERSION_NUMBER;
 #endif /* GCC_IS_GENERATED_CODE_TARGET || ... */
+#if CLANG_IS_GENERATED_CODE_TARGET
+  clang_target_version_number = CLANG_TARGET_VERSION_NUMBER;
+#endif /* CLANG_IS_GENERATED_CODE_TARGET */
 #ifdef SUN_TARGET_VERSION_NUMBER
   sun_target_version_number = SUN_TARGET_VERSION_NUMBER;
 #endif /* ifdef SUN_TARGET_VERSION_NUMBER */
