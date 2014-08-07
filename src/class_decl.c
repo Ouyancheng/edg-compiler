@@ -18762,8 +18762,7 @@ of dllexported class types).
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
-  if (microsoft_mode &&
-      microsoft_version >= 1400 && microsoft_version < 1900 &&
+  if (microsoft_mode && microsoft_version >= 1400 &&
       (is_default_constructor(rp, /*is_declarative_context=*/TRUE) ?
              cpp11_mode : !generate_move_operations)) {
     sym->variant.routine.ptr->definition_cannot_be_generated = TRUE;
@@ -19183,10 +19182,9 @@ static void check_suppressed_default_ctor(
                                a_generated_special_function_descr  *gsfd)
 /*
 Check whether the generated default constructor for class_type should be
-suppressed.  In Microsoft mode, this may mean (if microsoft_version < 1900)
-that it shouldn't be declared at all.  In C++11 mode (and in Microsoft mode
-with microsoft_version >= 1900), it means that the generated default
-constructor should be deleted.
+suppressed.  In Microsoft mode, this means that it shouldn't be declared at
+all.  In C++11 mode, it means that the generated default constructor should be
+deleted.
 */
 {
   if (cpp11_mode || microsoft_mode) {
@@ -19289,8 +19287,7 @@ record that fact in *gsfd.
     /* A defaulted constructor may implicitly be deleted, which also means it
        isn't trivial. */
     check_suppressed_default_ctor(class_type, gsfd);
-    if ((cpp11_mode || (microsoft_mode && microsoft_version >= 1900)) &&
-        gsfd->suppress_default_ctor) {
+    if (cpp11_mode && gsfd->suppress_default_ctor) {
       default_ctor->variant.routine.ptr->is_deleted = TRUE;
       class_state->default_ctor_is_nontrivial = TRUE;
     }  /* if */
@@ -19353,8 +19350,7 @@ record that fact in *gsfd.
     } else {
       /* A default constructor needs to be generated. */
       check_suppressed_default_ctor(class_type, gsfd);
-      if ((cpp11_mode || (microsoft_mode && microsoft_version >= 1900)) &&
-          gsfd->suppress_default_ctor) {
+      if (cpp11_mode && gsfd->suppress_default_ctor) {
         class_state->default_ctor_is_nontrivial = TRUE;
       }  /* if */
       result = TRUE;
@@ -20240,6 +20236,7 @@ The routine body is not generated until it is known to be needed.
   a_boolean                     declare_default_ctor, declare_dtor;
   a_boolean                     no_bit_copy;
 #if MICROSOFT_EXTENSIONS_ALLOWED
+  a_source_position             *pos;
   a_boolean                     declare_static_ctor;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   a_generated_special_function_descr
@@ -20248,6 +20245,9 @@ The routine body is not generated until it is known to be needed.
   db_enter(3, "check_special_member_functions");
   cssp = symbol_supplement_for_class(class_type);
   ctsp = class_type_supp(class_type);
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  pos = &class_type->source_corresp.decl_position;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   init_generated_special_function_descr(&gsfd);
   if (unrestricted_unions_enabled) {
     /* Variant members with special member functions suppress the corresponding
@@ -20384,13 +20384,9 @@ The routine body is not generated until it is known to be needed.
   declare_copy_asgn_op = declare_copy_asgn_op &&
                          !(cli_class_type_kind_is(class_type, cctk_ref) ||
                            cli_class_type_kind_is(class_type, cctk_interface));
-  declare_move_asgn_op = generate_move_operations &&
-                         cli_class_type_kind_is(class_type, cctk_standard);
   declare_copy_ctor = declare_copy_ctor &&
                       !(cli_class_type_kind_is(class_type, cctk_ref) ||
                         cli_class_type_kind_is(class_type, cctk_interface));
-  declare_move_ctor = declare_move_ctor &&
-                      cli_class_type_kind_is(class_type, cctk_standard);
   declare_static_ctor = cli_or_cx_enabled &&
                         !cli_class_type_kind_is(class_type, cctk_standard) &&
                         !cli_class_type_kind_is(class_type, cctk_interface) &&
@@ -20402,8 +20398,7 @@ The routine body is not generated until it is known to be needed.
                   class_state->member_destruction_required ||
                   class_state->base_destruction_required) &&
                  cssp->destructor == NULL;
-  if ((generate_move_operations ||
-       (microsoft_mode && microsoft_version < 1900)) &&
+  if ((generate_move_operations || microsoft_mode) &&
       !is_template_dependent_context() &&
 #if MICROSOFT_EXTENSIONS_ALLOWED
       !class_type->variant.class_struct_union.is_generic_constraint &&
@@ -20413,11 +20408,10 @@ The routine body is not generated until it is known to be needed.
     /* In standard C++11 mode (a mode where generate_move_operations is TRUE),
        some special members are either not declared (move constructors) or
        declared as deleted (copy constructors, destructors) if generating their
-       definitions would produce errors.  Early Microsoft compilers similarly
-       do not generate special members that don't have a valid definition.
-       Note that suppression may have to be checked even if no special member
-       is declared so that "= default" definitions can be suppressed if
-       needed. */
+       definitions would produce errors.  Microsoft compilers similarly do not
+       generate special members that don't have a valid definition.  Note that
+       suppression may have to be checked even if no special member is declared
+       so that "= default" definitions can be suppressed if needed. */
     if (microsoft_mode && microsoft_version < 1400 &&
         !generate_move_operations) {
       gsfd.warn_about_suppressed_copy_ctor = declare_copy_ctor;
@@ -20432,8 +20426,7 @@ The routine body is not generated until it is known to be needed.
     check_defaulted_member_types(class_type, &gsfd);
   }  /* if */
   if (declare_default_ctor) {
-    if ((microsoft_mode && microsoft_version < 1900) &&
-       !cpp11_mode && gsfd.suppress_default_ctor) {
+    if (microsoft_mode && !cpp11_mode && gsfd.suppress_default_ctor) {
       /* Mark this class as having a suppressed default constructor and do not
          add its declaration. */
       class_type->variant.class_struct_union
@@ -20460,8 +20453,7 @@ The routine body is not generated until it is known to be needed.
        constructor if none was declared explicitly. */
     a_member_decl_info  decl_info;
     a_func_info_block   func_info;
-    initialize_member_decl_info(&decl_info,
-                                &class_type->source_corresp.decl_position);
+    initialize_member_decl_info(&decl_info, pos);
     decl_info.decl_state.storage_class = (a_storage_class)sc_static;
     decl_info.is_static_constructor = TRUE;
     clear_func_info(&func_info);
@@ -20477,6 +20469,7 @@ The routine body is not generated until it is known to be needed.
         !generate_move_operations && gsfd.suppress_copy_ctor) {
       /* Mark this class as having a suppressed copy constructor and do not
          add its declaration. */
+      check_assertion(microsoft_mode);
       class_type->variant.class_struct_union.copy_ctor_decl_suppressed = TRUE;
     } else if (gpp_mode && gnu_version >= 40600 && gnu_version < 40700 &&
                cssp->has_user_declared_move_constructor) {

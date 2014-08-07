@@ -2251,12 +2251,12 @@ by a command line option.
       if (!option_kind_used[(int)optk_rvalue_ctor_is_copy_ctor]) {
         /* Microsoft MSVC++10 generates an implicit traditional copy
            constructor even when a move constructor was explicitly declared. */
-        rvalue_ctor_is_copy_ctor = microsoft_version >= 1900;
+        rvalue_ctor_is_copy_ctor = FALSE;
       }  /* if */
       if (!option_kind_used[(int)optk_gen_move_operations]) {
-        /* Early Microsoft compilers do not generate move constructors or
+        /* Microsoft compilers currently do not generate move constructors or
            move assign operations. */
-        generate_move_operations = microsoft_version >= 1900;
+        generate_move_operations = FALSE;
       }  /* if */
       trailing_return_types_enabled = TRUE;
 #if CPP11_IL_EXTENSIONS_SUPPORTED
