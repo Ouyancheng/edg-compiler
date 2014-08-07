@@ -306,6 +306,9 @@ Included from basic_hdrs.h in every compilation.
 /*lint -esym(769,ec_resolver_routine_required)*/
 #endif /* !DO_IL_LOWERING */
 #if !BACK_END_IS_CP_GEN_BE
+/*lint -esym(714,clang_target_version_number)*/
+/*lint -esym(759,clang_target_version_number)*/
+/*lint -esym(765,clang_target_version_number)*/
 /*lint -esym(714,is_address_of_string_constant)*/
 /*lint -esym(759,is_address_of_string_constant)*/
 /*lint -esym(765,is_address_of_string_constant)*/
