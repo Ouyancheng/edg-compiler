@@ -14,6 +14,7 @@ the generation of move assignment operators and move constructors in C++/CLI
 and C++/CX managed types is now disabled.
 
 
+8/5/14   [EDGcpfe/15293]
 GNU compatibility: Allow a constant as the second operand of __builtin_va_start
 
 In GNU modes, the second operand of __builtin_va_start is now permitted to be
