@@ -1,5 +1,20 @@
 Version 4.10
 
+8/8/14   [EDGcpfe/15350]
+GNU compatibility: "packed" attribute on enum
+
+It appears that a "packed" attribute on an enum definition is ignored
+by GNU versions earlier than 4.0.0.  The front end now emulates that
+behavior.  The following example has an exit code of 1 when --gnu_version 30400
+is used and an exit code of 4 (on most machines) when --gnu_version 40000
+is specified:
+
+  enum e { } __attribute__((packed));
+  int main() {
+    return sizeof(e);
+  }
+
+
 8/6/14   [EDGcpfe/15338]
 Microsoft C++ compatibility: Generated special member functions
 

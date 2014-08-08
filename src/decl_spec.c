@@ -4757,7 +4757,8 @@ base specifier.
     /* The underlying type is already determined: Nothing to be done. */
   } else if (enum_types_can_be_smaller_than_int 
 #if GNU_EXTENSIONS_ALLOWED
-             || enum_type->variant.integer.packed || il_header.short_enums
+             || (enum_type->variant.integer.packed && gnu_version >= 40000)
+             || il_header.short_enums
 #endif /* GNU_EXTENSIONS_ALLOWED */
                                                                          ) {
     if (!min_max_set || in_range_for_integer_kind(min_value, max_value,
