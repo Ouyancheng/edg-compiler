@@ -20959,6 +20959,21 @@ Copy a statement entry from "from" to "to".
        back-pointer from the scope to point to the copy. */
     a_scope_ptr scope = to->variant.block.extra_info->assoc_scope;
     if (scope != NULL) scope->assoc_block = to;
+  } else if (to->kind == (a_statement_kind)stmk_switch) {
+    /* If the statement is a switch statement, make sure all of the case
+       statements are modified to point to the new switch statement. */
+    a_switch_case_entry_ptr case_entry;
+    for (case_entry = to->variant.switch_stmt.extra_info->cases;
+         case_entry != NULL;
+         case_entry = case_entry->next) {
+      check_assertion(case_entry->stmt->variant.switch_case.switch_statement ==
+                                                                    from);
+      case_entry->stmt->variant.switch_case.switch_statement = to;
+    }  /* for */
+  } else if (to->kind == (a_statement_kind)stmk_switch_case) {
+    /* Modify the pointer in a switch case statement to point to the copy. */
+    check_assertion(to->variant.switch_case.extra_info->stmt == from);
+    to->variant.switch_case.extra_info->stmt = to;
   }  /* if */
 }  /* copy_statement */
 

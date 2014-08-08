@@ -8525,6 +8525,12 @@ Generate the code for a "case ... :" or "default:" label in a switch statement.
 {
   a_switch_case_entry_ptr  scep = stmt->variant.switch_case.extra_info;
 
+  check_assertion_str(scep->stmt != NULL &&
+                      scep->stmt->variant.switch_case.switch_statement
+                                                                     != NULL &&
+                      scep->stmt->variant.switch_case.switch_statement->kind
+                                              == (a_statement_kind)stmk_switch,
+                   "dump_switch_case: case statement doesn't point to switch");
   if (scep->case_value == NULL) {
     /* The default case. */
     write_tok_str("default:");

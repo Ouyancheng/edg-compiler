@@ -1,5 +1,24 @@
 Version 4.10
 
+8/8/14   [EDGcpfe/15351]
+Lowering of switch and case statements
+
+When a switch statement contains an initialization, lowering may change
+the switch statement into a block statement (to contain the initialization)
+and put the new switch statement in the block.  Since all case/default
+statements have a pointer to the switch statement that contains them,
+this re-writing had caused the case/default statements to erroneously
+point to a block statement.  Similarly, lowering some case statements
+had also lead to incorrect IL.  Now fixed.  For example:
+
+  int f() {
+    switch (int i=20) {
+      case 0:  return 0;
+      default: return 1;
+    }
+  }
+
+
 8/8/14   [EDGcpfe/15350]
 GNU compatibility: "packed" attribute on enum
 
