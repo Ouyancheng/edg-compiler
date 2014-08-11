@@ -2673,6 +2673,7 @@ ec_friend_with_def_arg_must_be_definition;;"a default template argument in a fri
 ec_friend_with_def_arg_must_be_only_decl;;"a friend template declaration with a default template argument must be the only declaration (first declared %p)"
 ec_non_autonomous_opaque_enum_decl;;"an opaque enum declaration cannot be part of another declaration"
 ec_nonstd_opaque_enum_decl_in_type_id;;"an opaque enum declaration is nonstandard in this context"
+ec_extended_friends_is_cpp11;;"extended friend syntax is a C++11 feature"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

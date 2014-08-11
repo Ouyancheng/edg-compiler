@@ -1,5 +1,23 @@
 Version 4.10
 
+8/11/14  [EDGcpfe/15261]
+C++-generating back end: dependent friend declarations
+
+The code produced by the C++-generating back end for a friend declaration
+naming a dependent nested type incorrectly used the "class" keyword instead
+of the "typename" keyword.  This is now fixed.  For example:
+
+  template<typename T> struct S {
+    friend typename T::C;  // Previously generated as "class T::C"
+  };
+
+In addition, the front end rejected use of this and other forms of extended
+friend syntax (see the entry of 5/10/06) in non-C++11 g++ and clang modes,
+even though g++ has accepted these forms by default since version 4.7, as
+does clang.  The front end now also accepts them (with a warning on first
+use) in the corresponding non-C++11 modes.
+
+
 8/8/14   [EDGcpfe/15351]
 Lowering of switch and case statements
 

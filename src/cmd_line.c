@@ -4232,6 +4232,11 @@ This function is also called in clang mode.
       }  /* if */
       std_attributes_enabled = TRUE;
     }  /* if */
+    if (gnu_version >= 40700 || clang_mode) {
+      /* GCC versions since 4.7, as well as clang, accept the extended
+         friend syntax in non-C++11 mode. */
+      extended_friends_enabled = TRUE;
+    }  /* if */
   }  /* if */
   if (!cpp14_mode) {
     if (lambdas_enabled) {

@@ -5446,13 +5446,21 @@ al_tag_name attributes (if any).
       /* This is a dependent type.  See if it's a template parameter. */
       a_type_ptr proxy_type = class_type_supp(type)->proxy_of_type;
       if (proxy_type != NULL &&
-          proxy_type->kind == (a_type_kind)tk_template_param &&
-          proxy_type->variant.template_param.kind ==
+          proxy_type->kind == (a_type_kind)tk_template_param) {
+        if (proxy_type->variant.template_param.kind ==
                                       (a_template_param_type_kind)tptk_param) {
-        /* This is a proxy class for a template parameter.  Use the C++11
-           feature of referring to a template parameter in a friend
-           declaration with no class keyword. */
-        tag_kind_str = "";
+          /* This is a proxy class for a template parameter.  Use the C++11
+             feature of referring to a template parameter in a friend
+             declaration with no class keyword. */
+          tag_kind_str = "";
+        } else if (proxy_type->variant.template_param.kind ==
+                                     (a_template_param_type_kind)tptk_member &&
+                   parent_class_of(proxy_type)->
+                                      variant.class_struct_union.proxy_class) {
+          /* This is a proxy class for a member of a dependent type.  Use
+             the "typename" keyword. */
+          tag_kind_str = "typename";
+        }  /* if */
       }  /* if */
     }  /* if */
 #endif /* PROTOTYPE_INSTANTIATIONS_IN_IL */

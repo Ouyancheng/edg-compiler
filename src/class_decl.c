@@ -22491,6 +22491,11 @@ done_with_sse_for_nonstandard_friend:;
         decl_friend_class(class_type, member_type,
                           /*for_friend_template=*/FALSE);
       }  /* if */
+      if (!(state->dso_flags & DSO_ELABORATED_TYPE_SPECIFIER) ||
+          (state->dso_flags & DSO_TYPENAME)) {
+        report_gnu_cpp11_extension_if_needed(&state->start_pos,
+                                             ec_extended_friends_is_cpp11);
+      }        
     }  /* if */
   } else {
     /* Invalid friend declaration. */
