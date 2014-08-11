@@ -19409,10 +19409,28 @@ was done.
   orig_operand = *source_operand;
   if (elision_done != NULL) *elision_done = FALSE;
   *dip = NULL;
-  /* Microsoft VC++ treats copy-initialization as direct-initialization
-     in some cases.  All the cases that come through here are treated
-     that way. */
-  if (microsoft_bugs) is_copy_initialization = FALSE;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  if (microsoft_bugs && microsoft_version < 1900) {
+    /* Microsoft VC++ treats copy-initialization as direct-initialization in
+       some cases.  All the cases that come through here are treated that way.
+       It also appears that, at least in some cases, elision is decided early
+       on.  In particular, if the generation of the copy constructor was
+       suppressed (a Microsoft-only feature/bug), copy-initialization from a
+       temporary still succeeds even if there is no other way to perform the
+       copy.  Finally, starting with version 19.00 (tested with an early "CTP2"
+       preview version), it appears Microsoft compilers are now much closer to
+       standard behavior. */
+    an_expr_node_ptr  temp_init_node;
+    a_type_ptr        utp = skip_typerefs(dest_type);
+    if (utp->variant.class_struct_union.copy_ctor_decl_suppressed &&
+        identical_types(source_operand->type, utp) &&
+        is_temp_init_usable_in_optimization(source_operand, !fill_in_dtor,
+                                            &temp_init_node, dip)) {
+      goto conversion_done;
+    }  /* if */
+    is_copy_initialization = FALSE;
+  }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   if ((conv_context & CCO_MOVE_OPTIMIZATION_ALLOWED) &&
       rvalue_references_enabled &&
       operand_is_lvalue_for_variable(source_operand, &var)) {
@@ -19521,6 +19539,7 @@ conversion_determined:
       }  /* if */
     }  /* if */
   }  /* if */
+conversion_done:
   /* Restore the original source position, etc. */
   restore_operand_details(source_operand, &orig_operand);
 }  /* prep_elision_initializer_operand */
