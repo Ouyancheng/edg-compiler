@@ -4263,7 +4263,7 @@ information about the parameters.
   a_scope_kind	kind = scope == NULL ? (a_scope_kind)sck_none : scope->kind;
   /* If a class was specified, the scope will be the file scope, but we
      want to ignore that and reactivate the class scope below. */
-  if (definition_class != NULL) kind = sck_class_struct_union;
+  if (definition_class != NULL) kind = (a_scope_kind)sck_class_struct_union;
   switch (kind) {
     case sck_block:
       reactivate_local_context(decl_info, scope,
