@@ -4260,7 +4260,7 @@ Push the parent scope of "scope".  See push_instantiation_context for
 information about the parameters.
 */
 {
-  a_scope_kind	kind = scope == NULL ? sck_none : scope->kind;
+  a_scope_kind	kind = scope == NULL ? (a_scope_kind)sck_none : scope->kind;
   /* If a class was specified, the scope will be the file scope, but we
      want to ignore that and reactivate the class scope below. */
   if (definition_class != NULL) kind = sck_class_struct_union;
