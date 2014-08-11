@@ -4264,6 +4264,13 @@ information about the parameters.
   /* If a class was specified, the scope will be the file scope, but we
      want to ignore that and reactivate the class scope below. */
   if (definition_class != NULL) kind = (a_scope_kind)sck_class_struct_union;
+  if (is_local_scope_kind(kind) && (options & PS_IS_GENERIC_LAMBDA) == 0) {
+    /* We are pushing a local scope for something that is not a generic
+       lambda.  This should only occur in error cases.  Don't actually
+       push the scope. */
+    kind = (a_scope_kind)sck_none;
+    expect_error();
+  }  /* if */
   switch (kind) {
     case sck_block:
       reactivate_local_context(decl_info, scope,
@@ -4907,6 +4914,7 @@ class to be defined.
                        (options & PS_NONREAL_INSTANTIATION) != 0);
     }  /* if */
     reference_nsp = referencing_namespace_for_instance(instance_sym);
+    if (is_lambda_body) options |= PS_IS_GENERIC_LAMBDA;
     push_instantiation_context(decl_info, enclosing_tdip,
                                parent_nsp, parent_class,
                                reference_nsp, &common_depth, &definition_depth,

@@ -108,6 +108,9 @@ typedef int a_push_scope_options_set;
 			/* TRUE when an alias template is instantiated in
 			   a template declaration scope with dependent template
 			   arguments. */
+#define PS_IS_GENERIC_LAMBDA		0x200000
+			/* TRUE for an instantiation of a generic lambda or
+			   a context scope pushed for a generic lambda. */
 #define SIZE_FUNCTION_SHAREABLE_CONSTANTS_TABLE 31
 			/* Size of the shareable constants hash table for
 			   a function. */
