@@ -890,8 +890,10 @@ typedef struct a_scope_stack_entry {
 #endif /* USER_CONTROL_OF_STRUCT_PACKING */
   a_bit_field	is_reactivation:1;
 			/* File scopes can be pushed, popped, and then
-			   pushed again later.  This is TRUE when a file
-			   scope has been re-pushed. */
+			   pushed again later.  When generic lambda are used
+			   this is also true of function and other local
+			   scopes.  This is TRUE when a scope has been
+			   re-pushed. */
 #if DO_IL_LOWERING && ASSIGN_STRING_LITERAL_SEQUENCE_NUMBERS
   a_bit_field	assign_string_literal_sequence_numbers:1;
 			/* TRUE if this is a function scope for which
@@ -1229,6 +1231,10 @@ a_type_list_entry_ptr
 			   is the declaration sequence number to be used
 			   in g++ mode during the lookup of names in an
 			   exception specification. */
+  a_decl_sequence_number
+		decl_seq_for_lookup;
+			/* If this is not NO_DECL_SEQUENCE_NUMBER, this value
+			   is used for normal lookups. */
   a_pending_pragma_ptr
 		pending_pragmas;
 			/* A list of pragmas that have been cached by
@@ -1957,6 +1963,8 @@ extern void set_template_decl_info_for_class_definition(
 				a_template_decl_info_ptr	tdip,
 				a_type_ptr			class_type);
 
+extern void function_contains_generic_lambda(void);
+
 extern a_boolean push_template_instantiation_scope(
                             a_template_decl_info_ptr	decl_info,
                             a_type_ptr			assoc_type,
@@ -2083,6 +2091,7 @@ void wrapup_scope(a_scope_ptr			scope_ptr,
                   a_scope_kind			kind,
                   a_scope_pointers_block_ptr	pointers_block,
                   a_boolean 	                is_namespace_wrapup,
+                  a_boolean 	                is_local_reactivation,
 		  a_push_scope_options_set	options);
 
 extern a_type_ptr get_curr_variadic_param_type(an_expr_node_ptr	expr);

@@ -2518,18 +2518,30 @@ that do normal id lookup processing.
         a_symbol_ptr			namespace_symbol = NULL;
         a_scope_pointers_block_ptr	spbp;
         a_boolean			use_lookup_table;
+        a_boolean			use_scope_list = FALSE;
         spbp = assoc_pointers_block_of(ssep);
         use_lookup_table = spbp->lookup_table != NULL;
+        if (ssep->is_reactivation && is_local_scope_kind(ssep->kind)) {
+          use_scope_list = TRUE;
+        }  /* if */
         /* If the scope has a lookup table, use it.  Otherwise, use the
            inactive list. */
         if (use_lookup_table) {
           sym = find_symbol_list_in_table(spbp, locator->symbol_header);
+        } else if (use_scope_list) {
+          check_assertion(ssep->il_scope != NULL);
+          sym = ssep->il_scope->symbols;
         } else {
           sym = inactive_symbol_list_from_locator(*locator);
         }  /* if */
         for (; sym != NULL;
-             sym = use_lookup_table ? sym->next_in_lookup_table :sym->next) {
-          if (sym->decl_scope == ssep->number) {
+             sym = use_lookup_table ? sym->next_in_lookup_table
+                                    : 
+                     use_scope_list ? sym->next_in_scope : sym->next) {
+          /* The symbol header test is really only needed when the scope list
+             is being used. */
+          if (sym->decl_scope == ssep->number &&
+              sym->header == locator->symbol_header) {
             a_symbol_ptr	fund_sym = fundamental_symbol_of(sym);
             if (is_acceptable_symbol(sym, fund_sym, *lookup_state,
                                      /*invisible_okay=*/FALSE)) {
@@ -3119,7 +3131,12 @@ that do normal id lookup processing.
                        !lookup_state->suppress_decl_seq_check &&
                        ((gpp_mode && lookup_state->exception_spec) ||
                         (ssep->kind != (a_scope_kind)sck_class_reactivation &&
-                         ssep->kind != (a_scope_kind)sck_class_struct_union));;
+                         ssep->kind != (a_scope_kind)sck_class_struct_union));
+    if (ssep->decl_seq_for_lookup != NO_DECL_SEQUENCE_NUMBER) {
+      /* If an explicit declaration sequence number was specified in the scope
+         stack entry, use that for lookup in this scope. */
+      lookup_state->decl_seq = ssep->decl_seq_for_lookup;
+    }  /* if */
     if (kind == (a_scope_kind)sck_namespace_extension ||
         kind == (a_scope_kind)sck_namespace_reactivation) {
       /* If a namespace extension or reactivation scope is pushed while the
@@ -3169,6 +3186,10 @@ that do normal id lookup processing.
     } else if (kind == (a_scope_kind)sck_class_struct_union &&
                lookup_state->skip_class_scopes) {
       /* This is a class scope and we are skipping class scopes. */
+    } else if (ssep->is_reactivation && is_local_scope_kind(kind)) {
+      /* A reactivated local scope.  The scope's symbol list is used
+         by inactive_scope_lookup for this case. */
+      sym = inactive_scope_lookup(kind, ssep, locator, lookup_state);
     } else {
       /* Not a class reactivation or a template instantiation,
          i.e., normal scope.  Search through any symbols on the front

@@ -1445,6 +1445,10 @@ memory or with an IL file.
        it out.  In particular, if IL lowering has not been done yet,
        do not write out the body. */
     keep_memory = TRUE;
+  } else if (scope->do_not_free_memory_region) {
+    /* The memory region might be needed later (e.g., for a generic
+       lambda instantiation).  Do not free it. */
+    keep_memory = TRUE;
 #endif /* !STANDALONE_UTILITY_PROGRAM */
   } else if (rout != NULL &&
              keep_function_body_for_possible_inlining(rout)) {

@@ -2789,6 +2789,7 @@ to it.  The entry is allocated in the file scope memory region.
 #endif /* GNU_INIT_PRIORITY_ATTRIBUTE_ALLOWED */
   rp->has_deducible_return_type   = FALSE;
   rp->has_deduced_return_type     = FALSE;
+  rp->contains_generic_lambda     = FALSE;
 #if CENTERLINE_CHECKING
   rp->avoid_codecenter_warnings = 0;
 #endif /* CENTERLINE_CHECKING */
@@ -4219,6 +4220,7 @@ points to the associated routine if the kind is sck_function.
   sp->parent = NULL;
   sp->number = number;
   sp->function_body_processing_finished = FALSE;
+  sp->do_not_free_memory_region = FALSE;
 #if SCOPE_ORPHANED_LIST_PROCESSING_NEEDED
   sp->scope_orphaned_list_header_generated = FALSE;
 #endif /* SCOPE_ORPHANED_LIST_PROCESSING_NEEDED */
@@ -4244,6 +4246,7 @@ points to the associated routine if the kind is sck_function.
   sp->scope_refs                  = NULL;
   sp->pragmas                     = NULL;
   sp->depth_in_scope_stack        = NO_SCOPE_DEPTH;
+  sp->symbols                     = NULL;
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   sp->source_sequence_list        = NULL;
   sp->src_seq_sublist_list        = NULL;

@@ -2558,12 +2558,17 @@ the scope being pushed.
       ssep->il_memory_region = curr_il_region_number;
       break;
     case sck_function:
-      /* Start a new memory region for a function scope.
-         This ensures that the intermediate language is divided into 
-         manageable pieces.  This call also allocates the top-level
-         scope entry for the region. */
-      new_il_scope = TRUE;
-      sp = new_il_region(kind, ssep->number, assoc_routine);
+      if ((options & PS_IS_REACTIVATION) == 0) {
+        /* If this is not a reactivation of the function scope, start a new
+           memory region for a function scope.  This ensures that the
+           intermediate language is divided into manageable pieces.  This
+           call also allocates the top-level scope entry for the region. */
+        new_il_scope = TRUE;
+        sp = new_il_region(kind, ssep->number, assoc_routine);
+      } else {
+        curr_il_region_number = assoc_routine->assoc_scope;
+        sp = il_header.region_scope_entry[curr_il_region_number];
+      }  /* if */
       sp->depth_in_scope_stack = depth_scope_stack;
       ssep->il_memory_region = curr_il_region_number;
       break;
@@ -2821,6 +2826,7 @@ the scope being pushed.
   ssep->template_decl_info       = template_decl_info;
   ssep->last_label_decl_seq      = 0;
   ssep->exception_spec_decl_seq  = NO_DECL_SEQUENCE_NUMBER;
+  ssep->decl_seq_for_lookup      = NO_DECL_SEQUENCE_NUMBER;
   ssep->pending_pragmas          = NULL;
   ssep->curr_construct_pragmas	 = NULL;
   ssep->next_scope_that_affects_access_control =
@@ -3586,6 +3592,9 @@ scope stack entry.
 {
   a_symbol_ptr	sym;
 
+  /* Note that PS_IS_REACTIVATION is not used here because the symbols
+     are reentered so that it looks like a normal (non-reactivated)
+     block scope. */
   (void)push_scope_full((a_scope_kind)sck_block,
                         scope == NULL ? NO_SCOPE_NUMBER : scope->number,
                         (a_type_ptr)NULL, (a_routine_ptr)NULL,
@@ -3938,11 +3947,12 @@ be NULL if we don't yet know which instance we are dealing with.
 
 
 static
-void get_parent_information_for_template(a_scope_ptr	 sp,
-                                         a_symbol_ptr    template_sym,
-                                         a_symbol_ptr    instance_sym,
- 				         a_namespace_ptr *p_nsp,
-					 a_type_ptr	 *p_tp)
+void get_parent_information_for_template(
+					a_scope_ptr	sp,
+					a_symbol_ptr	template_sym,
+					a_symbol_ptr	instance_sym,
+					a_namespace_ptr	*p_nsp,
+					a_type_ptr	*p_tp)
 /*
 Determine the namespace and class scopes that must be reactivated in
 order for a given instantiation to be done.  sp points to the enclosing
@@ -3952,35 +3962,35 @@ and may be NULL.  *nsp and *tp are returned by this routine, and point
 to the namespace and class that must be reactivated.
 */
 {
-  a_type_ptr		parent_type;
-  a_namespace_ptr	parent_namespace;
+  a_type_ptr		parent_type = NULL;
+  a_namespace_ptr	parent_namespace = NULL;
 
   /* Determine the parent type and namespace based on the enclosing scope
      of the template. */
   if (sp == NULL) {
     /* This will be the case when the template is a template template
        parameter and we are rescanning a dependent template parameter. */
-    parent_type = NULL;
-    parent_namespace = NULL;
-  } else if (sp->kind == (a_scope_kind)sck_class_struct_union) {
-    /* The scope is a class scope.  Get the class type and loop
-       through any enclosing classes to find the parent namespace. */
-    a_type_ptr	tp;
-    parent_type = sp->variant.assoc_type;
-    for (tp = parent_type; tp->source_corresp.is_class_member;) {
-      tp = parent_class_of(tp);
-    }  /* for */
-    parent_namespace = parent_namespace_or_null(tp);
-  } else if (sp->kind == (a_scope_kind)sck_file) {
-    /* File scope.  Both the class and namespace pointer should be NULL. */
-    parent_type = NULL;
-    parent_namespace = NULL;
   } else {
-    /* A namespace scope.  Get the namespace pointer and set the class
-       type to NULL. */
-    check_assertion(sp->kind == (a_scope_kind)sck_namespace);
-    parent_type = NULL;
-    parent_namespace = sp->variant.assoc_namespace;
+    /* Go through the parent scopes to find the nearest enclosing
+       class scope (if any) and namespace scope (if any). */
+    while (sp != NULL && !scope_is(sp, sck_file)) {
+      if (scope_is(sp, sck_class_struct_union)) {
+        a_type_ptr	tp = sp->variant.assoc_type;
+        /* Record the first enclosing class type found. */
+        if (parent_type == NULL) {
+          parent_type = tp;
+        }  /* if */
+        sp = get_parent_scope_of(tp);
+      } else if (scope_is(sp, sck_namespace)) {
+        a_namespace_ptr	nsp = sp->variant.assoc_namespace;
+        if (parent_namespace == NULL) {
+          parent_namespace =  nsp;
+        }  /* if */
+        sp = get_parent_scope_of(nsp);
+      } else {
+        sp = sp->parent;
+      }  /* if */
+    }  /* while */
   }  /* if */
   if (instance_sym == NULL &&
       (template_sym == NULL ||
@@ -4053,8 +4063,19 @@ flags passed to the push scope routines.
 }  /* push_single_class_reactivation_scope */
 
 
+/* Forward declaration. */
+static void reactivate_parent_context(
+			a_template_decl_info_ptr	decl_info,
+			a_scope_ptr			scope,
+			a_type_ptr			definition_class,
+			a_symbol_ptr			instance_sym,
+			a_type_ptr			assoc_type,
+			a_routine_ptr			assoc_routine,
+			a_push_scope_options_set	options);
+
+
 static
-void reactivate_class_and_instantiation_scopes(
+void reactivate_class_context(
                       a_template_decl_info_ptr	decl_info,
                       a_type_ptr		parent_class,
                       a_symbol_ptr		instance_sym,
@@ -4062,15 +4083,9 @@ void reactivate_class_and_instantiation_scopes(
 		      a_routine_ptr		assoc_routine,
 		      a_push_scope_options_set	options) 
 /*
-Reactivate the class specified by parent_class and any classes that enclose
-parent class.  If any of the classes are template classes, push
-instantiation scopes for those classes too.  parent_class is the class
-that must be reactivated.  decl_info is the template declaration
-information for the template being instantiated.  instance_sym is the
-symbol to be used (if not NULL) as the instance symbol for the outermost
-instantiation scope that is pushed.   Likewise, assoc_type and assoc_routine
-are non-NULL when they should be used for the outermost instantiation scope.
-"options" is the set of option flags passed to the push scope routines.
+Reactivate the class specified by parent_class.  If the class is a template,
+also push the instantiation scope.    See push_instantiation_context for
+information about the parameters.
 */
 {
   a_type_ptr                        class_type;
@@ -4087,7 +4102,7 @@ are non-NULL when they should be used for the outermost instantiation scope.
   class_type = skip_typerefs(parent_class);
   class_sym = (a_symbol_ptr)class_type->source_corresp.assoc_info;
   check_assertion_str2(class_sym != NULL,
-                       "reactivate_class_and_instantiation_scopes:",
+                       "reactivate_class_context:",
                        "class type has NULL assoc_info");
   is_template = (options & PS_NEW_INSTANTIATION_CONTEXT) == 0 &&
                       is_template_class_and_not_specific_def_symbol(class_sym);
@@ -4138,12 +4153,21 @@ are non-NULL when they should be used for the outermost instantiation scope.
   if (class_sym->is_class_member) {
     /* If this is not the outermost class, reactivate any enclosing
        classes. */
-    reactivate_class_and_instantiation_scopes(enclosing_tdip,
-                                              sym_parent_class(class_sym),
-                                              enclosing_instance_sym,
-                                              enclosing_assoc_type,
-                                              enclosing_assoc_routine,
-					      options);
+    reactivate_class_context(enclosing_tdip,
+                             sym_parent_class(class_sym),
+                             enclosing_instance_sym,
+                             enclosing_assoc_type,
+                             enclosing_assoc_routine,
+                             options);
+  } else {
+    a_scope_ptr	parent_scope;
+    parent_scope = get_parent_scope_of(class_type);
+    if (parent_scope != NULL) {
+      reactivate_parent_context(enclosing_tdip, parent_scope,
+                                (a_type_ptr)NULL,
+                                instance_sym, assoc_type, assoc_routine,
+                                options);
+    }  /* if */
   }  /* if */
   if (is_template) {
     /* Push a template instantiation scope associated with the
@@ -4172,7 +4196,115 @@ are non-NULL when they should be used for the outermost instantiation scope.
   }  /* if */
   /* Reactivate the enclosing class scope. */
   push_single_class_reactivation_scope(class_type, PS_NO_OPTIONS);
-}  /* reactivate_class_and_instantiation_scopes */
+}  /* reactivate_class_context */
+
+
+static
+void reactivate_local_context(
+			a_template_decl_info_ptr	decl_info,
+			a_scope_ptr			scope,
+			a_symbol_ptr			instance_sym,
+			a_type_ptr			assoc_type,
+			a_routine_ptr			assoc_routine,
+			a_push_scope_options_set	options) 
+/*
+Reactivate the local scope specified by scope.  See push_instantiation_context
+for information about the parameters.
+*/
+{
+  a_routine_ptr	rp;
+  a_scope_ptr	parent = NULL;
+
+  /* If the parent scope is not a file or namespace scope, reactivate it
+     first. */
+  rp = scope_is(scope, sck_function) ? assoc_routine : NULL;
+  if (rp != NULL) {
+    parent = get_parent_scope_of(rp);
+  } else {
+    parent = scope->parent;
+  }  /* if */
+  if (scope_is(parent, sck_file) && !scope_is(parent, sck_namespace)) {
+    /* Nothing to to do. */
+  } else if (scope_is(parent, sck_class_struct_union)) {
+    /* For a class scope, get the class type to be reactivated. */
+    reactivate_parent_context(decl_info, parent, parent->variant.assoc_type,
+                              instance_sym, assoc_type, assoc_routine,
+                              options);
+  } else {
+    /* Otherwise, reactivate the parent scope. */
+    reactivate_parent_context(decl_info, parent, (a_type_ptr)NULL,
+                              instance_sym, assoc_type, assoc_routine,
+                              options);
+  }  /* if */
+  (void)push_scope_full(scope->kind, scope->number, (a_type_ptr)NULL,
+                        rp, (a_namespace_ptr)NULL,
+                        (a_symbol_ptr)NULL, (a_symbol_ptr)NULL,
+                        (a_template_arg_ptr)NULL,
+                        (a_template_decl_info_ptr)NULL,
+                        (an_object_lifetime_ptr)NULL,
+                        (a_scope_ptr)NULL, (a_scope_pointers_block_ptr)NULL,
+                        PS_IS_REACTIVATION);
+}  /* reactivate_local_context */
+
+
+static void reactivate_parent_context(
+			a_template_decl_info_ptr	decl_info,
+			a_scope_ptr			scope,
+			a_type_ptr			definition_class,
+			a_symbol_ptr			instance_sym,
+			a_type_ptr			assoc_type,
+			a_routine_ptr			assoc_routine,
+			a_push_scope_options_set	options)
+/*
+Push the parent scope of "scope".  See push_instantiation_context for
+information about the parameters.
+*/
+{
+  a_scope_kind	kind = scope == NULL ? sck_none : scope->kind;
+  /* If a class was specified, the scope will be the file scope, but we
+     want to ignore that and reactivate the class scope below. */
+  if (definition_class != NULL) kind = sck_class_struct_union;
+  switch (kind) {
+    case sck_block:
+      reactivate_local_context(decl_info, scope,
+                               instance_sym, (a_type_ptr)NULL,
+                               (a_routine_ptr)NULL,
+                               options);
+      break;
+    case sck_function:
+      reactivate_local_context(decl_info, scope,
+                               instance_sym, (a_type_ptr)NULL,
+                               scope->variant.routine.ptr,
+                               options);
+      break;
+    case sck_class_struct_union:
+      reactivate_class_context(decl_info, definition_class,
+                               instance_sym, assoc_type, assoc_routine,
+                               options);
+      break;
+    default:
+      break;
+  }  /* switch */
+}  /* reactivate_parent_context */
+
+
+static void reactivate_instantiation_context(
+			a_template_decl_info_ptr	decl_info,
+			a_scope_ptr			scope,
+			a_type_ptr			definition_class,
+			a_symbol_ptr			instance_sym,
+			a_type_ptr			assoc_type,
+			a_routine_ptr			assoc_routine,
+			a_push_scope_options_set	options) 
+/*
+Reactivate the set of scopes starting at "scope" and working outward
+until a namespace scope is found.  See push_instantiation_context for
+information about the parameters.
+*/
+{
+  reactivate_parent_context(decl_info, scope, definition_class,
+                           instance_sym, assoc_type, assoc_routine, options);
+}  /* reactivate_instantiation_context */
 
 
 void make_class_definition_context_visible(void)
@@ -4195,6 +4327,7 @@ considered.
 
 static void push_instantiation_context(
 		a_template_decl_info_ptr	decl_info,
+		a_template_decl_info_ptr	enclosing_decl_info,
 		a_namespace_ptr			definition_nsp,
 		a_type_ptr			definition_class,
 		a_namespace_ptr			reference_nsp,
@@ -4202,9 +4335,11 @@ static void push_instantiation_context(
 		a_scope_depth			*p_definition_depth,
 		a_scope_depth			*p_context_depth,
                 a_scope_depth			*p_after_definition_depth,
+		a_scope_ptr			context_scope,
                 a_symbol_ptr			instance_sym,
                 a_type_ptr			assoc_type,
 		a_routine_ptr			assoc_routine,
+		a_boolean			is_lambda_body,
 		a_push_scope_options_set	options)
 /*
 Pushes the scopes necessary to create the appropriate context for a
@@ -4222,6 +4357,12 @@ particular instantiation.  This process includes
 - pushing instantiation scopes associated with the class reactivations if the
   class being reactivated is a class template
 
+- pushing any block scopes needed to restore the context for a generic
+  lambda
+
+decl_info is the template declaration information for the template being
+instantiated.  enclosing_decl_info is the template declaration information
+for the enclosing template, if any, or NULL if there is none.
 definition_nsp is the template definition namespace to be extended.
 definition_class is the template definition class to be reactivated.
 reference_nsp is the referencing namespace to be reactivated.
@@ -4239,7 +4380,9 @@ member instantiations when the outermost instantiation scope is actually
 the instantiation scope for the member, not the class that is being
 reactivated.  Likewise, assoc_type and assoc_routine are non-NULL when
 they should be used for the outermost instantiation scope.  "options" is
-the set of option flags passed into the push scope routines.
+the set of option flags passed into the push scope routines.  is_lambda_body
+is TRUE if this is the instantiation of a generic lambda.  context_scope
+is used for generic lambdas and is the scope containing the lambda.
 */
 {
   a_scope_depth		common_depth;
@@ -4335,14 +4478,16 @@ the set of option flags passed into the push scope routines.
      definition depth.  Save the depth of the scope that will need to
      be fixed up later. */
   *p_after_definition_depth = depth_scope_stack + 1;
-  if (definition_class != NULL) {
-    /* This template was declared within a class, or classes (either a normal
-       class and/or a template class).  Push class reactivation scopes for the
-       enclosing classes.  For any enclosing classes that are template classes,
-       push an instantiation scope for the class as well. */
-    reactivate_class_and_instantiation_scopes(decl_info, definition_class,
-                                              instance_sym, assoc_type,
-                                              assoc_routine, options);
+  reactivate_instantiation_context(enclosing_decl_info, context_scope,
+                                   definition_class,
+                                   instance_sym, assoc_type,
+                                   assoc_routine, options);
+  if (is_lambda_body &&
+      context_scope->depth_in_scope_stack != NO_SCOPE_DEPTH) {
+    /* Limit the lookup to symbols visible at the point of declaration of
+       the lambda. */
+    scope_stack[context_scope->depth_in_scope_stack].
+                                     decl_seq_for_lookup = decl_info->decl_seq;
   }  /* if */
   /* Return the calculated scope depths to the caller. */
   *p_common_depth = common_depth;
@@ -4358,6 +4503,7 @@ static void fixup_instantiation_scopes(
 			a_scope_depth			definition_depth,
 			a_scope_depth			context_depth,
 			a_scope_depth			after_definition_depth,
+			a_scope_ptr			lambda_scope,
 			a_push_scope_options_set	options)
 /*
 Fix up the entries on the scope stack.  At this point the scope stack
@@ -4382,6 +4528,9 @@ The following fixups need to be performed:
   instantiation scope
 - the previous_scope of the outermost definition context scope and the
   referencing context scope must be set to point to the common scope
+
+If the template is a generic lambda, lambda_scope is the scope containing
+the lambda.  NULL otherwise.
 */
 {
   a_scope_depth			primary_instantiation_depth = NO_SCOPE_DEPTH;
@@ -4435,10 +4584,15 @@ The following fixups need to be performed:
   if (primary_instantiation_depth != NO_SCOPE_DEPTH) {
     a_scope_stack_entry_ptr	primary_ssep;
     primary_ssep = &scope_stack[primary_instantiation_depth];
-    /* Mark the initial instantiation scope as nonnested. */
-    primary_ssep->nested_instantiation = FALSE;
-    primary_ssep->instantiation_context_depth = context_depth;
-    primary_ssep->instantiation_common_depth = common_depth;
+    if (lambda_scope == NULL ||
+        lambda_scope->depth_in_scope_stack == NO_SCOPE_DEPTH) {
+      /* Mark the initial instantiation scope as nonnested.  This is not done
+         for generic lambdas where the enclosing scope is on the scope
+         stack. */
+      primary_ssep->nested_instantiation = FALSE;
+      primary_ssep->instantiation_context_depth = context_depth;
+      primary_ssep->instantiation_common_depth = common_depth;
+    }  /* if */
   }  /* if */
   /* The previous_scope of the initial definition context scope will have
      already been set properly. */
@@ -4640,7 +4794,12 @@ class to be defined.
   a_symbol_ptr			enclosing_instance_sym;
   a_type_ptr			enclosing_assoc_type;
   a_routine_ptr			enclosing_assoc_routine;
-  a_boolean			nested_in_prototype_instantiation = FALSE;
+  a_boolean			use_existing_context = FALSE;
+  a_boolean			is_lambda_body = FALSE;
+  a_boolean			is_real_lambda_instantiation = FALSE;
+  a_scope_ptr			lambda_scope = NULL;
+  a_scope_ptr			context_scope = NULL;
+  a_type_ptr			lambda_class = NULL;
 
   /* Clear the flag that indicates that we are in a local class so that any
      scopes pushed by this routine will not be indicated as being within
@@ -4687,23 +4846,58 @@ class to be defined.
     enclosing_assoc_type = assoc_type;
     enclosing_assoc_routine = assoc_routine;
   }  /* if */
+  if (template_sym != NULL && symbol_is(template_sym, sk_function_template)) {
+    /* Determine if this is a generic lambda instantiation. */
+    a_template_symbol_supplement_ptr	tssp;
+    tssp = template_sym->variant.template_info;
+    is_lambda_body = tssp->variant.function.routine->is_lambda_body;
+  }  /* if */
+  if (is_lambda_body) {
+    /* For a generic lambda, get the scope in which the lambda was declared.
+       If that scope is still on the stack, we can use that for the
+       instantiation context. */
+    lambda_class = template_sym->parent.class_type;
+    lambda_scope = get_parent_scope_of(lambda_class);
+    context_scope = lambda_scope;
+  } else {
+    context_scope = decl_info->enclosing_scope;
+  }  /* if */
   /* Determine whether this instantiation is a prototype instantiation of
      something within another prototype instantiation.  This affects the
      way that the scope stack is manipulated.  A prototype instantiation
      is not allowed in a generic definition, but that case is included here
      for error recovery purposes. */
   if (template_sym != NULL &&
-      scope_stack[depth_scope_stack].in_prototype_instantiation &&
       ((options & PS_PROTOTYPE_INSTANTIATION) != 0 ||
        (options & PS_GENERIC_DEFINITION) != 0 ||
        (options & PS_NONREAL_INSTANTIATION) != 0)) {
-    nested_in_prototype_instantiation = is_nested_in_prototype_instantiation(
-                                                                 template_sym);
+    if (scope_stack[depth_scope_stack].in_prototype_instantiation) {
+      use_existing_context =
+                            is_nested_in_prototype_instantiation(template_sym);
+    } else if (is_lambda_body) {
+      /* Treat a generic lambda prototype instantiation as nested in a
+         prototype instantiation because we want to use the existing
+         surrounding context. */
+      use_existing_context = TRUE;
+    }  /* if */
+  } else if (is_lambda_body) {
+    /* A real instantiation of a generic lambda.  If we are still in the
+       function in which the lambda was defined, use the existing context. */
+    if (lambda_scope->depth_in_scope_stack == orig_depth) {
+      use_existing_context = TRUE;
+    }  /* if */
+    if (lambda_scope->depth_in_scope_stack != NO_SCOPE_DEPTH) {
+      /* Limit the lookup to symbols visible at the point of declaration of
+         the lambda. */
+      scope_stack[lambda_scope->depth_in_scope_stack].
+                                     decl_seq_for_lookup = decl_info->decl_seq;
+    }  /* if */
+    is_real_lambda_instantiation = TRUE;
   }  /* if */
-  if (!nested_in_prototype_instantiation) {
+  if (!use_existing_context) {
     /* If the template was defined in a namespace, reactivate the namespace
        scope before pushing the instantiation scope. */
-    get_parent_information_for_template(decl_info->enclosing_scope,
+    get_parent_information_for_template(context_scope,
                                         template_sym, instance_sym,
                                         &parent_nsp, &parent_class);
     if (parent_class != NULL) {
@@ -4713,17 +4907,25 @@ class to be defined.
                        (options & PS_NONREAL_INSTANTIATION) != 0);
     }  /* if */
     reference_nsp = referencing_namespace_for_instance(instance_sym);
-    push_instantiation_context(enclosing_tdip, parent_nsp, parent_class,
+    push_instantiation_context(decl_info, enclosing_tdip,
+                               parent_nsp, parent_class,
                                reference_nsp, &common_depth, &definition_depth,
                                &context_depth, &after_definition_depth,
+                               context_scope,
                                enclosing_instance_sym, enclosing_assoc_type,
-                               enclosing_assoc_routine, options);
+                               enclosing_assoc_routine, is_lambda_body,
+                               options);
     /* At this point, definition_depth points to the parent scope
        of the template being instantiated.  Save this value before it
        is potentially modified below. */
     new_innermost_namespace_scope = definition_depth;
   }  /* if */
   if (is_template) {
+    if (is_real_lambda_instantiation) {
+      /* For a generic lambda, push the closure class. */
+      push_class_reactivation_scope(lambda_class,
+                                    /*entend_namespace=*/FALSE);
+    }  /* if */
     (void)push_scope_full((a_scope_kind)sck_template_instantiation,
                           decl_info->declaration_scope, assoc_type,
                           assoc_routine, (a_namespace_ptr)NULL, instance_sym,
@@ -4732,13 +4934,13 @@ class to be defined.
                           (a_scope_ptr)NULL, (a_scope_pointers_block_ptr)NULL,
                           options);
   }  /* if */
-  if (!nested_in_prototype_instantiation) {
+  if (!use_existing_context) {
     a_scope_stack_entry_ptr	ssep;
     /* Update the scope stack entries that have been pushed so that the
        special instantiation context lookups can be done correctly. */
     fixup_instantiation_scopes(decl_info, orig_depth, common_depth,
                                definition_depth, context_depth,
-                               after_definition_depth, options);
+                               after_definition_depth, lambda_scope, options);
     /* Update the depth of the innermost instantiation scope so that it points
        to the namespace that is the parent of the template being
        instantiated. */
@@ -4797,7 +4999,7 @@ class to be defined.
   if (debug_level >= 4 || db_flag_is_set("instantiation_scope")) {
     fprintf(f_debug, "Pushed instantiation scope for: ");
     db_symbol(instance_sym, "", 0);
-    if (!nested_in_prototype_instantiation) {
+    if (!use_existing_context) {
       fprintf(f_debug, "context_depth=%d, common_depth=%d\n", context_depth,
               common_depth);
     }  /* if */
@@ -6485,6 +6687,7 @@ void wrapup_scope(a_scope_ptr			scope_ptr,
                   a_scope_kind			kind,
                   a_scope_pointers_block_ptr	pointers_block,
                   a_boolean 	                is_namespace_wrapup,
+                  a_boolean 	                is_local_reactivation,
 		  a_push_scope_options_set	options)
 
 /*
@@ -6497,7 +6700,8 @@ of the translation unit.
 scope_ptr points to the IL scope entry associated with this scope,
 and may be NULL.  is_namespace_wrapup is TRUE if this call is
 used to do the final namespace processing at the end of the translation
-unit.  options is a set of option flags that specify additional information
+unit.  is_local_reactivation is TRUE for a reactivated local scope.
+options is a set of option flags that specify additional information
 about the scope being popped.
 */
 {
@@ -6529,6 +6733,12 @@ about the scope being popped.
      invalidate the pointers_block pointer.  Clear pointers_block to make
      sure it is not used later. */
   symbol_list = pointers_block->symbols;
+  if (scope_ptr != NULL && is_local_scope_kind(kind) &&
+      !is_local_reactivation) {
+    /* When a local scope is popped, save the list of symbols from the
+       scope. */
+    scope_ptr->symbols = symbol_list;
+  }  /* if */
   synth_namespace_projection_symbols =
                             pointers_block->synth_namespace_projection_symbols;
   pointers_block = NULL;
@@ -6791,8 +7001,11 @@ pointed to by scope_ptr.
       a_scope_pointers_block_ptr  pointers_block;
       a_scope_ptr                 assoc_scope = nsp->variant.assoc_scope;
       pointers_block = &symbol_supplement_for_namespace(nsp)->pointers_block;
+      /* The value of the is_reactivation parameter is not significant
+         for namespace scopes. */
       wrapup_scope(assoc_scope, assoc_scope->kind,
                    pointers_block, /*is_namespace_wrapup=*/TRUE,
+                   /*is_reactivation=*/FALSE,
                    PS_NO_OPTIONS);
       /* Process any namespaces defined within this one. */
       wrapup_namespace_scopes(assoc_scope);
@@ -7212,6 +7425,11 @@ discarded right after they have been generated.
     /* This is a prototype instantiation, and we're not keeping prototype
        instantiations in the IL. */
     discard = TRUE;
+  } else if (routine->contains_generic_lambda ||
+             (routine->is_lambda_body && routine->is_template_function)) {
+    /* Routines that are or contain generic lambdas may need to have their
+       scopes reactivated for instantiations. */
+    discard = FALSE;
   } else if (is_nontemplate_routine_from_exported_trans_unit(routine)) {
     /* This is a non-template or a specialization in a secondary translation
        unit that is being compiled only for its exported templates.
@@ -7717,6 +7935,12 @@ be lowered as soon as a module id becomes available (and TRUE is returned).
        Lowering cannot proceed until all needed field initializers have been
        parsed. */
     delay_lowering = TRUE;
+  } else if (routine->contains_generic_lambda) {
+    /* Routines that contain a generic lambda need to have lowering delayed
+       so that the parent scope information is still available if
+       instantiations of the generic lambda are done after the enclosing
+       function scope has been popped. */
+    delay_lowering = TRUE;
   } else if (at_initial_scope_pop && routine->is_lambda_body) {
     /* Lambda bodies are scanned while the parent closure class is still
        on the scope stack.  The lowering of the lambda body must be delayed
@@ -7909,6 +8133,54 @@ traverse its block and condition scopes and set their parent pointers.
     scope = scope->next;
   }  /* while */
 }  /* set_block_scope_parents */
+
+
+static void keep_enclosing_function_memory_region(void)
+/*
+If the current scope is in a function memory region, set a flag in the
+associated scope entry indicating the memory should not be freed.
+*/
+{
+  a_memory_region_number	region_number;
+
+  region_number = scope_stack_top().il_memory_region;
+  if (region_number != file_scope_region_number) {
+    a_scope_ptr	scope;
+    scope = il_header.region_scope_entry[region_number];
+    check_assertion(scope != NULL);
+    check_assertion(scope->kind == (a_scope_kind)sck_function);
+    scope->do_not_free_memory_region = TRUE;
+  }  /* if */
+}  /* keep_enclosing_function_memory_region */
+
+
+void function_contains_generic_lambda(void)
+/*
+Mark the routines associated with any enclosing function scopes as
+containing a generic lambda.
+*/
+{
+  a_scope_stack_entry_ptr	ssep;
+
+  if (depth_innermost_function_scope != NO_SCOPE_DEPTH ||
+      inside_local_class) {
+    /* Indicate that the enclosing memory region cannot be freed
+       because a generic lambda could be instantiated after the
+       function is no longer on the scope stack. */
+    keep_enclosing_function_memory_region();
+    for (ssep = &scope_stack_top(); ssep != NULL;
+         ssep = previous_scope_of(ssep)) {
+      if (scope_is(ssep, sck_function)) {
+        check_assertion(ssep->assoc_routine != NULL);
+        /* Skip further processing if the contains_generic_lambda flag
+           has already been set. */
+        if (ssep->assoc_routine->contains_generic_lambda) break;
+        ssep->assoc_routine->contains_generic_lambda = TRUE;
+      }  /* if */
+    }  /* for */
+  }  /* if */
+}  /* function_contains_generic_lambda */
+
 
 #if EXPENSIVE_CHECKING
 
@@ -8106,7 +8378,9 @@ being popped.
        inactive list if necessary.  For the file scope, this is only done
        the first time that it is popped. */
     wrapup_scope(ssep->il_scope, kind, pointers_block,
-                 /*is_namespace_wrapup=*/FALSE, options);
+                 /*is_namespace_wrapup=*/FALSE,
+                 is_local_scope_kind(ssep->kind) && ssep->is_reactivation,
+                 options);
     /* wrapup_scope may have temporarily reactivated some scopes, which in
        turn may have triggered a reallocation of the scope stack. */
     ssep = &scope_stack[depth_scope_stack];

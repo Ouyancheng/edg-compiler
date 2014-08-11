@@ -3586,6 +3586,9 @@ Display the indicated routine.
   if (ptr->has_deduced_return_type) {
     disp_boolean("has_deduced_return_type", TRUE);
   }  /* if */
+  if (ptr->contains_generic_lambda) {
+    disp_boolean("contains_generic_lambda", TRUE);
+  }  /* if */
 #if MAINTAIN_NEEDED_FLAGS
   disp_boolean("definition_needed", (a_boolean)ptr->definition_needed);
   /* Note: the keep_definition_in_il flag is not displayed, since it is
@@ -5991,6 +5994,9 @@ do_assoc_type:
     default:
       (void)printf("**BAD SCOPE KIND**\n");
   }  /* switch */
+  if (ptr->do_not_free_memory_region) {
+    disp_boolean("do_not_free_memory_region", TRUE);
+  }  /* if */
   disp_ptr("assoc_block", (char *)ptr->assoc_block, iek_statement);
   disp_ptr("lifetime", (char *)ptr->lifetime, iek_object_lifetime);
   disp_ptr("constants", (char *)ptr->constants, iek_constant);

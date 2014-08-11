@@ -29408,6 +29408,7 @@ corresponding template declaration scope is pushed.
           pos_error(ec_generic_lambda_cannot_capture, &lambda->start_position);
         }  /* if */
         set_up_generic_lambda_declarator_scan(dps, templ_state);
+        function_contains_generic_lambda();
       }  /* if */
     }  /* if */
     scan_lambda_declarator(dps, func_info, decl_pos_block);

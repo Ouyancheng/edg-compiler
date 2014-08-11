@@ -13836,6 +13836,9 @@ typedef struct a_routine {
   a_bit_field	has_deduced_return_type:1;
 			/* TRUE if has_deducible_return_type is TRUE and the
 			   actual return type has been deduced. */
+  a_bit_field	contains_generic_lambda:1;
+			/* TRUE if the routine contains a generic lambda
+			   (directly or in another lambda or local class). */
   bitfield_to_avoid_codecenter_warnings()
 #if DECL_MODIFIERS_IN_USE
   a_decl_modifier
@@ -18179,6 +18182,10 @@ typedef struct a_scope {
 			   TRUE once the function body processing is
 			   finished.  That includes IL lowering if
 			   appropriate.  FALSE otherwise. */
+  a_bit_field	do_not_free_memory_region:1;
+			/* For sck_function scopes, TRUE if some construct
+			   refers to the memory region of this routine, so
+			   the memory region cannot be freed. */
 #if SCOPE_ORPHANED_LIST_PROCESSING_NEEDED
   a_byte_boolean
 		scope_orphaned_list_header_generated;
@@ -18432,6 +18439,12 @@ typedef struct a_scope {
 			   namespace and namespace extension scopes).
 			   Reactivating a class or namespace scope does
 			   not affect this value. */
+  struct a_symbol
+		*symbols;
+			/* Used during front end processing.  Points to the
+			   list of symbols declared in the scope.  This is
+			   used for name lookup purposes when local scopes
+			   are reactivated for generic lambda instantiation. */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   a_source_sequence_entry_ptr
 		source_sequence_list;

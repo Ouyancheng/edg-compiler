@@ -25792,8 +25792,14 @@ described by dps->auto_params.
   templ_state->number_of_template_param_clauses += 1;
   template_decl_info = templ_state->decl_info;
   template_decl_info->enclosing_scope = templ_state->enclosing_scope;
+  if (depth_innermost_instantiation_scope != NO_SCOPE_DEPTH) {
+    a_scope_stack_entry_ptr	ssep =
+                             &scope_stack[depth_innermost_instantiation_scope];
+    template_decl_info->enclosing_template_decl = ssep->template_decl_info;
+  }  /* if */
   /* Record the default name linkage at the point of declaration. */
   template_decl_info->name_linkage = scope_stack_top().default_name_linkage;
+  template_decl_info->decl_seq = ++decl_seq_counter;
   push_template_declaration_scope(template_decl_info,
                                   /*is_template_param_rescan=*/FALSE);
   templ_state->number_of_template_decl_scopes += 1;
