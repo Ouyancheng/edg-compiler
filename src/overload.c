@@ -19539,7 +19539,9 @@ conversion_determined:
       }  /* if */
     }  /* if */
   }  /* if */
+#if MICROSOFT_EXTENSIONS_ALLOWED
 conversion_done:
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   /* Restore the original source position, etc. */
   restore_operand_details(source_operand, &orig_operand);
 }  /* prep_elision_initializer_operand */
