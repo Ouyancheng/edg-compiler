@@ -4162,7 +4162,8 @@ information about the parameters.
   } else {
     a_scope_ptr	parent_scope;
     parent_scope = get_parent_scope_of(class_type);
-    if (parent_scope != NULL) {
+    if (parent_scope != NULL &&
+        is_local_scope_kind(parent_scope->kind)) {
       reactivate_parent_context(enclosing_tdip, parent_scope,
                                 (a_type_ptr)NULL,
                                 instance_sym, assoc_type, assoc_routine,
