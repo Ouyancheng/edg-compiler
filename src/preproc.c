@@ -2021,8 +2021,10 @@ and may have extra operands at the end).
     }  /* if */
   }  /* if */
   if (suppress_push) {
-    /* Just overwrite the file name. */
+    /* Just overwrite the file name and system-include status. */
     curr_ise->file_name = temp_file;
+    curr_ise->from_system_include_dir = from_system_include;
+    curr_ise->assoc_il_file->from_system_include_dir = from_system_include;
   } else {
     /* The new entry is entered under the current file entry, whether that
        entry is for the primary source file, an include file, or a #line
