@@ -63,7 +63,7 @@ and put the new switch statement in the block.  Since all case/default
 statements have a pointer to the switch statement that contains them,
 this re-writing had caused the case/default statements to erroneously
 point to a block statement.  Similarly, lowering some case statements
-had also lead to incorrect IL.  Now fixed.  For example:
+had also led to incorrect IL.  Now fixed.  For example:
 
   int f() {
     switch (int i=20) {
