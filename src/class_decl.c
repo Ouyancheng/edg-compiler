@@ -20473,7 +20473,7 @@ The routine body is not generated until it is known to be needed.
     generate_move_constructor(class_state);
   }  /* if */
   if (declare_copy_ctor) {
-    if (microsoft_mode && microsoft_version < 1900 &&
+    if (microsoft_mode && microsoft_version < 1400 &&
         !generate_move_operations && gsfd.suppress_copy_ctor) {
       /* Mark this class as having a suppressed copy constructor and do not
          add its declaration. */
@@ -20489,7 +20489,7 @@ The routine body is not generated until it is known to be needed.
     }  /* if */
   }  /* if */
   if (declare_dtor) {
-    if (microsoft_mode && microsoft_version < 1900 &&
+    if (microsoft_mode && microsoft_version < 1400 &&
         !generate_move_operations && gsfd.suppress_dtor) {
       /* Mark the class as having a suppressed destructor and do not add
          the declaration. */
@@ -20519,7 +20519,7 @@ The routine body is not generated until it is known to be needed.
   if (declare_copy_asgn_op) {
     /* An implicit assignment operator is generated if the class does not
        contain a user-declared copy assignment operator. */
-    if (microsoft_mode && microsoft_version < 1900 &&
+    if (microsoft_mode && microsoft_version < 1400 &&
         !generate_move_operations && gsfd.suppress_copy_assign) {
       /* Mark this class as having a suppressed copy assignment operator and
          do not add its declaration. */

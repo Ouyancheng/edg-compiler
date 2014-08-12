@@ -5733,29 +5733,38 @@ retry2:
                 "try_overloaded_function_match: considering ", 4);
     }  /* if */
 #endif /* DEBUG */
+    function_symbol = fundamental_symbol_of(proj_function_symbol);
     if (ignore_templates) {
-      a_symbol_ptr fund_sym = fundamental_symbol_of(proj_function_symbol);
-      if (fund_sym->kind == (a_symbol_kind)sk_function_template) {
+      if (symbol_is(function_symbol, sk_function_template)) {
         /* This is a template and we're skipping templates. */
-        goto bottom_of_loop;
+        continue;
       }  /* if */
     }  /* if */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    if (microsoft_mode &&
+        microsoft_version >= 1400 && microsoft_version < 1900 &&
+        is_simple_function_symbol(function_symbol) &&
+        function_symbol->variant.routine.ptr->definition_cannot_be_generated) {
+      /* In some Microsoft modes, special members whose definition cannot be
+         generated are ignored in overload resolution contexts. */
+      continue;
+    }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     if (in_init_list_ctor_pass) {
       /* In the initial pass to match initializer-list constructors, skip
          other kinds of constructors.  In the second pass we analyze all
          constructors. */
-      function_symbol = fundamental_symbol_of(proj_function_symbol);
       if (is_simple_function_symbol(function_symbol)) {
         if (!function_symbol->variant.routine.ptr->is_initializer_list_ctor) {
-          goto bottom_of_loop;
+          continue;
         }  /* if */
-      } else if (function_symbol->kind == (a_symbol_kind)sk_function_template){
+      } else if (symbol_is(function_symbol, sk_function_template)) {
         if (!function_symbol->variant.template_info->variant.function.routine
                                                   ->is_initializer_list_ctor) {
-          goto bottom_of_loop;
+          continue;
         }  /* if */
       } else {
-        goto bottom_of_loop;
+        continue;
       }  /* if */
       /* Try matching this initializer-list constructor using the braced-init-
          list as a single argument. */
@@ -5766,7 +5775,6 @@ retry2:
       /* [over.best.ics]p4 says that no user-defined conversions are allowed
          on the single member of an initializer list on the first argument
          of (roughly) a copy or move constructor. */
-      function_symbol = fundamental_symbol_of(proj_function_symbol);
       if (is_special_function_symbol(function_symbol, sfk_constructor)) {
         a_type_ptr routine_type =
                              function_or_template_symbol_type(function_symbol);
@@ -5823,7 +5831,6 @@ retry2:
     } else {
       any_not_discarded_because_post_decl = TRUE;
     }  /* if */
-bottom_of_loop:;
   }  /* for */
   if (in_init_list_ctor_pass &&
       *candidate_functions == saved_candidate_functions) {
@@ -19422,7 +19429,10 @@ was done.
        standard behavior. */
     an_expr_node_ptr  temp_init_node;
     a_type_ptr        utp = skip_typerefs(dest_type);
-    if (utp->variant.class_struct_union.copy_ctor_decl_suppressed &&
+    a_class_symbol_supplement_ptr
+                      cssp = class_symbol_supp(symbol_for(utp));
+    if (!cssp->has_user_provided_copy_constructor &&
+        cssp->has_copy_constructor_for_const_object &&
         identical_types(source_operand->type, utp) &&
         is_temp_init_usable_in_optimization(source_operand, !fill_in_dtor,
                                             &temp_init_node, dip)) {

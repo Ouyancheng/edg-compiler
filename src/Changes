@@ -6,25 +6,31 @@ Microsoft compatibility: Suppressed special members
 In Microsoft C++ modes, the front end sometimes suppresses the implicit
 declaration of a special member if the associated definition would trigger an
 error (see the entry of 5/11/07).  However, the changes for EDGcpfe/13365
-limited this behavior to Microsoft C++ modes with microsoft_version < 1400.
-Now, the behavior holds for microsoft_version < 1900.  For example:
+limited this behavior to Microsoft C++ modes with microsoft_version < 1400,
+because the implicit special members are visible in some contexts (e.g., with
+using-declarations).  Now, when microsoft_version is in the 1400-1899 range,
+implicit special members that would trigger an error if they were to be defined
+are still declared but they are ignored for overload resolution purposes.  For
+example:
 
   struct S {
     S();
     template <typename T> S& operator=(const T&) {
       return *this;
     }
-    int &ir;    // A reference member would cause an error defining implicit
-                // operator=.
+    int &ir;    // A reference member would cause an error when defining
+                // implicit operator=.
   };
   S s;
   void f() {
     s = S();    // Previously an error with --microsoft_version=1400.
-  }             // Now okay unless microsoft_version >= 1900.
+  }             // Now okay because the generated operator= is ignored
+                // (unless microsoft_version >= 1900).
 
 An additional change was made to elide copy construction early if a copy
-constructor is suppressed in this way.  That ensures that cases like the
-following:
+constructor is generated (again, when microsoft_version < 1900).  That ensures
+that cases like the following are accepted even though the copy constructor is
+not considered.
 
   class B { B(B const&) {} };  // Private copy constructor.
   struct D : B {  // Copy constructor suppressed in Microsoft C++ mode
