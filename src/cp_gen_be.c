@@ -5456,9 +5456,16 @@ al_tag_name attributes (if any).
         } else if (proxy_type->variant.template_param.kind ==
                                      (a_template_param_type_kind)tptk_member &&
                    parent_class_of(proxy_type)->
-                                      variant.class_struct_union.proxy_class) {
+                                      variant.class_struct_union.proxy_class &&
+                   (
+#if GCC_IS_GENERATED_CODE_TARGET || CP_GEN_BE_TARGET_MATCHES_SOURCE_DIALECT
+                    (gcc_is_generated_code_target &&
+                     gnu_target_version_number >= 40700) ||
+#endif /* GCC_IS_GENERATED_CODE_TARGET || ... */
+                    clang_is_generated_code_target)) {
           /* This is a proxy class for a member of a dependent type.  Use
-             the "typename" keyword. */
+             the "typename" keyword if the target compiler will accept
+             it. */
           tag_kind_str = "typename";
         }  /* if */
       }  /* if */
