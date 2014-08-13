@@ -27654,16 +27654,20 @@ currently in the header of a lambda.
       sd = get_innermost_closure_scope_depth();
       if (lambda != NULL) {
         /* Report the innermost lambda and capture depth to the caller. */
-        check_assertion(sd+1 <= depth_scope_stack &&
-                        scope_is(&scope_stack[sd+1], sck_function) &&
-                        scope_stack[sd+1].lambda != NULL);
-        *lambda = scope_stack[sd+1].lambda;
+        a_scope_depth  body_depth = sd+1; 
+        if (scope_is(&scope_stack[body_depth], sck_template_instantiation)) {
+          ++body_depth;
+        }  /* if */
+        check_assertion(body_depth <= depth_scope_stack &&
+                        scope_is(&scope_stack[body_depth], sck_function) &&
+                        scope_stack[body_depth].lambda != NULL);
+        *lambda = scope_stack[body_depth].lambda;
         /* The next call should pick up at the scope immediately enclosing the
            lambda. */
-        sd--;
+        --sd;
         goto done;
       }  /* if */
-      sd--;
+      --sd;
     } else {
       sd = depth_scope_stack;
     }  /* if */
@@ -27673,12 +27677,12 @@ currently in the header of a lambda.
 look_for_var:
   /* Skip any function prototype scopes from lambda headers or
      block externs. */
-  for (; scope_is(&scope_stack[sd], sck_func_prototype); sd--) {
+  for (; scope_is(&scope_stack[sd], sck_func_prototype); --sd) {
   }  /* for */
   /* Look at the block and function scopes immediately enclosing the lambda
      class to see if the variable is declared there.  If we're looking for an
      init-capture just skip local scopes. */
-  for (; is_local_scope_kind(scope_stack[sd].kind); sd--) {
+  for (; is_local_scope_kind(scope_stack[sd].kind); --sd) {
     if (var != NULL &&
         scope_stack[sd].il_scope == var->source_corresp.parent_scope) {
       /* The variable is in an appropriate scope and can be captured. */
@@ -27694,17 +27698,21 @@ look_for_var:
       /* This is an intermediate lambda. */
       if (lambda != NULL) {
         /* Report the intermediate lambda to the caller. */
-        check_assertion(sd+1 <= depth_scope_stack &&
-                        scope_is(&scope_stack[sd+1], sck_function) &&
-                        scope_stack[sd+1].lambda != NULL);
-        *lambda = scope_stack[sd+1].lambda;
+        a_scope_depth  body_depth = sd+1; 
+        if (scope_is(&scope_stack[body_depth], sck_template_instantiation)) {
+          ++body_depth;
+        }  /* if */
+        check_assertion(body_depth <= depth_scope_stack &&
+                        scope_is(&scope_stack[body_depth], sck_function) &&
+                        scope_stack[body_depth].lambda != NULL);
+        *lambda = scope_stack[body_depth].lambda;
         /* The next call should pick up at the scope immediately enclosing the
            intermediate lambda. */
-        sd--;
+        --sd;
         goto done;
       } else {
         /* Keep looking for the variable in the surrounding context. */
-        sd--;
+        --sd;
         goto look_for_var;
       }  /* if */
     }  /* if */

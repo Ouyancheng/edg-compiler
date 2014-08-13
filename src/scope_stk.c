@@ -4810,11 +4810,14 @@ class to be defined.
   a_type_ptr			lambda_class = NULL;
 
   /* Clear the flag that indicates that we are in a local class so that any
-     scopes pushed by this routine will not be indicated as being within
-     a local class.  This will be restored to the correct state when the
-     last scope pushed by this routine is popped.  The same is done for
-     the flag that indicates whether we are within a function scope. */
-  inside_local_class = FALSE;
+     scopes pushed by this routine will not be indicated as being within a
+     local class, unless we're instantiating a member template of a local
+     class.  This will be restored to the correct state when the last scope
+     pushed by this routine is popped.  The same is done for the flag that
+     indicates whether we are within a function scope. */
+  inside_local_class =
+          template_sym != NULL && template_sym->is_class_member &&
+          sym_parent_class(template_sym)->source_corresp.is_local_to_function;
   depth_innermost_function_scope = NO_SCOPE_DEPTH;
   innermost_function_scope = NULL;
   saved_innermost_scope_that_affects_access =
@@ -4832,9 +4835,7 @@ class to be defined.
      defined within a template.  If this routine will push an instantiation
      scope, get a pointer to the enclosing template declaration information
      to be passed to the routine that pushes the context scopes. */
-  is_template = template_sym == NULL ||
-                (template_sym->kind == (a_symbol_kind)sk_class_template ||
-                 template_sym->kind == (a_symbol_kind)sk_function_template);
+  is_template = template_sym == NULL || is_template_symbol(template_sym);
   if (is_template) {
     /* Get a pointer to the enclosing template declaration information.  If
        this pointer is NULL, the template declaration information from the
@@ -4864,7 +4865,7 @@ class to be defined.
     /* For a generic lambda, get the scope in which the lambda was declared.
        If that scope is still on the stack, we can use that for the
        instantiation context. */
-    lambda_class = template_sym->parent.class_type;
+    lambda_class = sym_parent_class(template_sym);
     lambda_scope = get_parent_scope_of(lambda_class);
     context_scope = lambda_scope;
   } else {
