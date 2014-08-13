@@ -2661,7 +2661,6 @@ set).
 #if GNU_EXTENSIONS_ALLOWED
   } else if (rp->never_inline && gnu_mode) {
     warning(ec_inline_gnu_noinline_conflict);
-    check_assertion(!rp->definition_for_inlining_only);
 #endif /* GNU_EXTENSIONS_ALLOWED */
   }  /* if */
   rp->is_inline = flag;

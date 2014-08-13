@@ -1,5 +1,18 @@
 Version 4.10
 
+8/13/14  [EDGcpfe/15356]
+Abort on re-declaration of inline function with the GNU noinline attribute
+
+In some cases, redeclaring an inline function with the GNU noinline attribute
+resulted in an internal error (in set_inline_flag, in il.c).  For example, in
+GNU C99 mode:
+
+  inline void f() __attribute__((noinline));
+  inline void f() {}  // Previously triggered an internal error in some modes.
+
+This is now fixed.
+
+
 8/13/14  [EDGcpfe/15349]
 Representation of pointer difference (IL CHANGE)
 
