@@ -4267,10 +4267,9 @@ information about the parameters.
   if (definition_class != NULL) kind = (a_scope_kind)sck_class_struct_union;
   if (is_local_scope_kind(kind) && (options & PS_IS_GENERIC_LAMBDA) == 0) {
     /* We are pushing a local scope for something that is not a generic
-       lambda.  This should only occur in error cases.  Don't actually
-       push the scope. */
+       lambda.  Don't actually push the scope.  This can happen in cases
+       such as an inheriting constructor in a local class. */
     kind = (a_scope_kind)sck_none;
-    expect_error();
   }  /* if */
   switch (kind) {
     case sck_block:
