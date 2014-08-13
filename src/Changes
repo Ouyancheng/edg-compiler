@@ -1,5 +1,19 @@
 Version 4.10
 
+8/13/14  [EDGcpfe/15349]
+Representation of pointer difference (IL CHANGE)
+
+Previously, in a pointer difference involving pointer types with different
+type qualifiers, one of the operands was implicitly cast to the type of the
+other operand.  This is no longer done.  For example:
+
+  long pdiff(char *p, char const *q) {
+    return p-q;  // Previously, the second operand was implicitly converted
+  }              // to char*.  This is no longer done.
+
+This is a slight IL CHANGE.
+
+
 8/11/14  [EDGcpfe/15352]
 Microsoft compatibility: Suppressed special members
 

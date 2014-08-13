@@ -23621,7 +23621,9 @@ that case.
         } else if (microsoft_mode &&
                    is_void_type(type_pointed_to(operand_2.type))) {
           /* Microsoft (both C and C++, as of 7.1) allows "void *" as the
-             second (but not the first) operand. */
+             second (but not the first) operand.  Issue a warning if
+             appropriate and cast the second operand to the type of the
+             first. */
           if (expr_diagnostic_should_be_issued(es_warning,
                                                ec_nonstandard_ptr_minus_ptr)) {
             pos_ty2_diagnostic(es_warning,
@@ -23629,7 +23631,7 @@ that case.
                                &operator_position,
                                operand_1->type, operand_2.type);
           }  /* if */
-          operation_type = operand_1->type;
+          cast_operand(operand_1->type, &operand_2, /*is_implicit_cast=*/TRUE);
         } else if (!check_object_pointer_operand(
                                   &operand_2, ec_expr_not_pointer_to_object)) {
           /* The second operand is not a pointer to an object type. */
@@ -23756,7 +23758,7 @@ that case.
       /* Note that integral promotions are NOT done on the integer in
          "pointer + integer" and "pointer - integer".  This is as
          the standard wants it. */
-      if (both_operands_are_arithmetic || pointer_difference) {
+      if (both_operands_are_arithmetic) {
         if (operation_type != NULL) {
           change_binary_operand_types(operation_type, operand_1, &operand_2,
                                       op);
