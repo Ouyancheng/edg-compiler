@@ -3258,19 +3258,29 @@ to a temporary, and return a pointer to the temporary.
   an_expr_node_ptr expr_copy, temp_node;
   a_variable_ptr   temp;
   a_type_ptr       temp_type;
+#if CHECKING
+  a_type_ptr       base_temp_type;
+#endif /* CHECKING */
 
   check_assertion(!expr->is_lvalue);
   temp_type = expr->type;
 #if CHECKING
-  /* Values of class types that have copy constructors can't be copied this
-     way.  If such things did come up, they would probably come up
-     as enk_temp_init nodes, and one could change to the address of the
-     class temporary and store that in the temporary here. */
-  if (is_class_struct_union_type(temp_type) &&
+  /* Values of class types that have nontrivial copy or move constructors can't
+     be copied this way.  If such things did come up, they would probably come
+     up as enk_temp_init nodes, and one could change to the address of the
+     class temporary and store that in the temporary here.  Some versions of
+     GCC, however, have a bug in this area for classes that have a trivial copy
+     constructor but a nontrivial move constructor (with the IA-64 ABI; see
+     set_routine_calling_method_flag). */
+  base_temp_type = skip_typerefs(temp_type);
+  if (is_immediate_class_type(base_temp_type) &&
+#if IA64_ABI
+      !(gpp_mode && emulate_gnu_abi_bugs && gnu_abi_version < 40600) &&
+#endif /* IA64_ABI */
       /* Watch out for types created by IL lowering. */
-      skip_typerefs(temp_type)->source_corresp.assoc_info != NULL) {
-    if (!symbol_supplement_for_class(temp_type)->
-                                        construction_by_bitwise_copy_allowed) {
+      symbol_for(base_temp_type) != NULL) {
+    if (!class_symbol_supp(symbol_for(base_temp_type))->
+                                       construction_by_bitwise_copy_allowed) {
       internal_error("assign_expr_to_temp: temp of class type with cctor");
     }  /* if */
   }  /* if */
