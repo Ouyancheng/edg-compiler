@@ -23449,7 +23449,7 @@ that case.
   a_boolean             operand_1_is_pointer;
   a_boolean             pointer_operand_is_second = FALSE;
   a_boolean             both_operands_are_arithmetic = FALSE;
-  a_boolean		pointer_difference           = FALSE;
+  a_boolean		pointer_difference = FALSE, nonstd_ptr_diff = FALSE;
   a_boolean             err = FALSE, processed = FALSE;
   a_type_ptr            result_type;
   a_type_ptr            operation_type;
@@ -23594,6 +23594,7 @@ that case.
           /* Traditionally (ARM C++), certain differences in the types pointed
              to have been accepted. */
           nonstd_case = TRUE;
+          nonstd_ptr_diff = TRUE;
         } else {
           err = TRUE;
         }  /* if */
@@ -23631,7 +23632,8 @@ that case.
                                &operator_position,
                                operand_1->type, operand_2.type);
           }  /* if */
-          cast_operand(operand_1->type, &operand_2, /*is_implicit_cast=*/TRUE);
+          operation_type = operand_1->type;
+          nonstd_ptr_diff = TRUE;
         } else if (!check_object_pointer_operand(
                                   &operand_2, ec_expr_not_pointer_to_object)) {
           /* The second operand is not a pointer to an object type. */
@@ -23756,9 +23758,14 @@ that case.
       }  /* if */
       /* Promote the operands if necessary. */
       /* Note that integral promotions are NOT done on the integer in
-         "pointer + integer" and "pointer - integer".  This is as
-         the standard wants it. */
-      if (both_operands_are_arithmetic) {
+         "pointer + integer" and "pointer - integer", nor are the operands of
+         a standard pointer difference (where type qualifiers can differ) cast
+         to a common type.  This is as the standard wants it.  (However, for a
+         nonstandard pointer difference, we do implicitly convert the operands
+         to a common operation type.  For example if class D derives from class
+         B, the nonstandard difference between a B* and a D* first converts the
+         D* pointer to B*.) */
+      if (both_operands_are_arithmetic || nonstd_ptr_diff) {
         if (operation_type != NULL) {
           change_binary_operand_types(operation_type, operand_1, &operand_2,
                                       op);
