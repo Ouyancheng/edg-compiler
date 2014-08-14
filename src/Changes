@@ -1,5 +1,19 @@
 Version 4.10
 
+8/14/14  [EDGcpfe/15357]
+Microsoft compatibility: Implicit noexcept specifiers
+
+In Microsoft modes that enable the C++11 "noexcept" feature, the front end now
+follows the standard rules for the default exception specification of
+destructors and deallocation functions (see the entries for EDGcpfe/10617 and
+EDGcpfe/13566).  Previously, the default behavior in Microsoft mode was as if
+the command-line option --no_implicit_noexcept was specified.  For example:
+
+  struct S { S() noexcept {} } *p;
+  static_assert(noexcept(delete p), "Unexpected");
+    // Now passes in Microsoft modes that enable the noexcept feature.
+
+
 8/14/14  [EDGcpfe/15346]
 Case label constants in GNU mode
 

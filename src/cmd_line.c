@@ -2350,10 +2350,9 @@ by a command line option.
 #endif /* DO_IL_LOWERING */
   ms_declspec_attributes_enabled = TRUE;
   if (!option_kind_used[(int)optk_implicit_noexcept]) {
-    /* Microsoft compilers do not yet (as of Visual C++ 2010) implement
-       noexcept.  We therefore keep the traditional relaxed semantics for
-       destructors and operator delete. */
-    implicit_noexcept_enabled = FALSE;
+    /* Microsoft compilers that implement noexcept, also treat destructors and
+       operator delete as implicitly noexcept. */
+    implicit_noexcept_enabled = noexcept_enabled;
   }  /* if */
   /* Microsoft compilers by default treat same-type casts as no-ops, thereby
      preserving lvalueness of the operand.  (Recent versions of the compiler
