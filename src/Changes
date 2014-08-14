@@ -1,5 +1,12 @@
 Version 4.10
 
+8/14/14  [EDGcpfe/15359]
+Microsoft compatibility: noexcept
+
+The C++11 feature "noexcept" is now enabled in Microsoft modes with
+microsoft_version >= 1900.
+
+
 8/14/14  [EDGcpfe/15357]
 Microsoft compatibility: Implicit noexcept specifiers
 

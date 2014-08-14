@@ -2316,6 +2316,9 @@ by a command line option.
       field_initializers_enabled = TRUE;
       alias_declarations_enabled = TRUE;
     }  /* if */
+    if (microsoft_version >= 1900) {
+      noexcept_enabled = TRUE;
+    }  /* if */
   }  /* if */
   /* In C++ mode, the Microsoft compiler sometimes finds typedefs when
      looking up names in elaborated type specifiers.  This flag causes
