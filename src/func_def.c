@@ -2815,7 +2815,8 @@ operator routine or do bitwise assignment.
   /* Make the return statement.  A pointer to the variable assigned to is
      the return value. */
   sp = sp->next = alloc_statement((a_statement_kind)stmk_return);
-  sp->expr = this_param_value_expr();
+  sp->expr = add_reference_to_to_node(
+                  add_indirection_to_node(this_param_value_expr()));
   /* We now have a list of one or more statements hanging off the local
      variable head_of_statement_list.  The start of the list is pointed to
      by the next field.  Create a block statement and attach the list to
