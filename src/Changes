@@ -1,5 +1,24 @@
 Version 4.10
 
+8/13/14  [EDGcpfe/15346]
+Case label constants in GNU mode
+
+In GNU modes that don't enable the C++11 constexpr feature (including GNU C
+mode), the front end accidentally accepted certain non-integer constants for
+case label constants.  This regression was introduced by the changes for the
+constexpr feature.  For example:
+
+  int g(int p) {
+    switch (p) {
+      case (double)0: return 1;  // Previously accepted in some GNU modes.
+      case 1.0: return 2;        // Ditto.
+      default: return 3;
+    }
+  }
+
+This is now fixed (an error is issued for such labels).
+
+
 8/13/14  [EDGcpfe/15356]
 Abort on re-declaration of inline function with the GNU noinline attribute
 

@@ -39701,7 +39701,7 @@ selector type.
          integral constant expressions. */
       scan_extended_integral_constant_expression(/*allow_comma=*/FALSE,
                                                  /*is_expr_list=*/FALSE,
-                                                 /*will_cast=*/TRUE,
+                                                 /*will_cast=*/FALSE,
                                                  /*top_level=*/FALSE,
                                                  PREC_LOWEST,
                                                  &operand,
