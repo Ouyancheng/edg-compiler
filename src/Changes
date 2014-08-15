@@ -1,5 +1,14 @@
 Version 4.10
 
+8/15/14  [EDGcpfe/14107]
+C++14: binary literals
+
+The front end now accepts binary literals, as described in C++ Committee
+paper N3472, in C++14 mode.  For example, with --c++14:
+
+  int i = 0b1110;  // Equivalent to 0xe or 016
+
+
 8/14/14  [EDGcpfe/15358]
 Return statement of generated assignment operators
 

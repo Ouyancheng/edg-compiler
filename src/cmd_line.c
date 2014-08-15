@@ -3025,6 +3025,7 @@ default mode (e.g., exception handling).
     if (field_initializers_enabled) {
       aggregate_classes_can_have_field_initializers = TRUE;
     }  /* if */
+    binary_literals_allowed = TRUE;
   }  /* if */
 }  /* check_and_set_cpp11_mode_options */
 
