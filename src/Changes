@@ -12,7 +12,7 @@ paper N3472, in C++14 mode.  For example, with --c++14:
 8/14/14  [EDGcpfe/15358]
 Return statement of generated assignment operators
 
-The return type of an compiler-generated assignment operator for a class type
+The return type of a compiler-generated assignment operator for a class type
 X is "reference to X" (i.e., X&), but the IL representing the returned
 expression for the assignment operator simply returned an enk_variable node
 for "this" with type "pointer to X" (i.e., X*).  This situation was an
