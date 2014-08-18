@@ -3385,6 +3385,20 @@ lowering (as value category is known at that time).
 }  /* make_expr_reusable_copy */
 
 
+static a_boolean is_bit_field_extract_node(an_expr_node_ptr node)
+/*
+Return TRUE if the given expression node is a bit-field extraction.
+*/
+{
+  a_boolean is_bit_field_extract =
+       (is_operation_node(node) &&
+        (node_operator_is((node), eok_dot_field) ||
+         node_operator_is((node), eok_points_to_field)) &&
+        (node)->variant.operation.operands->next->variant.field->is_bit_field);
+  return is_bit_field_extract;
+}  /* is_bit_field_extract_node */
+
+
 an_expr_node_ptr glvalue_expr_reusable_copy(
                        an_expr_node_ptr             expr,
                        a_boolean                    vars_can_change,
@@ -7516,20 +7530,6 @@ indicates that the cast comes from a reinterpret_cast construct in the source.
 }  /* add_cast_to_node */
 
 
-a_boolean is_bit_field_extract_node(an_expr_node_ptr node)
-/*
-Return TRUE if the given expression node is a bit-field extraction.
-*/
-{
-  a_boolean is_bit_field_extract =
-       (is_operation_node(node) &&
-        (node_operator_is((node), eok_dot_field) ||
-         node_operator_is((node), eok_points_to_field)) &&
-        (node)->variant.operation.operands->next->variant.field->is_bit_field);
-  return is_bit_field_extract;
-}  /* is_bit_field_extract_node */
-
-
 void cast_node(an_expr_node_ptr  *p_node,
                a_type_ptr        new_type,
                a_boolean         check_cast_access,
@@ -8922,6 +8922,7 @@ loop_done:
   return result;
 }  /* requires_bit_field_promotion */
 
+#if DO_IL_LOWERING
 
 a_type_ptr node_type_after_integral_promotion(an_expr_node_ptr node)
 /*
@@ -8940,6 +8941,7 @@ same as the original type.  The expression is an rvalue.
   return promoted_type;
 }  /* node_type_after_integral_promotion */
 
+#endif /* DO_IL_LOWERING */
 
 a_type_ptr operand_type_after_integral_promotion(an_operand *operand)
 /*

@@ -2643,8 +2643,6 @@ void add_derived_class_casts(a_type_ptr        new_type_pointed_to,
                              a_source_position *err_pos,
                              a_boolean         *error_detected);
 
-extern a_boolean is_bit_field_extract_node(an_expr_node_ptr node);
-
 extern void cast_node(an_expr_node_ptr  *p_node,
 		      a_type_ptr        type,
                       a_boolean         check_cast_access,
@@ -2655,7 +2653,9 @@ extern void cast_node(an_expr_node_ptr  *p_node,
                       a_boolean         within_expr_processing,
                       a_source_position *err_pos);
 
+#if DO_IL_LOWERING
 extern a_type_ptr node_type_after_integral_promotion(an_expr_node_ptr node);
+#endif /* DO_IL_LOWERING */
 
 extern a_type_ptr operand_type_after_integral_promotion(an_operand  *operand);
 
