@@ -2326,26 +2326,6 @@ still pointer to member and therefore doesn't look promotable.
 }  /* integral_promote_pm_node */
 
 
-static a_type_ptr node_type_after_integral_promotion(an_expr_node_ptr node)
-/*
-Determine the type that would result from applying the integral promotions
-to the indicated expression.  Return the promoted type, which may be the
-same as the original type.  The expression is an rvalue.
-*/
-{
-  a_type_ptr promoted_type;
-
-  /* Check for bit-field accesses, which require special handling.
-     The special processing is not done in pcc mode. */
-  if (C_dialect != C_dialect_pcc && is_bit_field_extract_node(node)) {
-    promoted_type = type_after_bit_field_integral_promotion(node);
-  } else {
-    promoted_type = type_after_integral_promotion(node->type);
-  }  /* if */
-  return promoted_type;
-}  /* node_type_after_integral_promotion */
-
-
 static an_expr_node_ptr make_operands_for_ne_0(an_expr_node_ptr expr)
 /*
 The given operand must be compared against zero (or null).  Apply integral

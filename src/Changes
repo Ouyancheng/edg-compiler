@@ -1,5 +1,26 @@
 Version 4.10
 
+8/18/14  [EDGcpfe/15308]
+Promoted type for operations on bit fields
+
+By default the front end now treats certain operations applied to bit fields
+as bit fields for the purpose of determining the promoted type of that
+operation.  For example, consider
+
+  struct S { unsigned bf: 7; } *p;
+
+p->bf promotes to type int (except in PCC and Microsoft modes) because all its
+values can be represented by (signed) int.  Previously, however, expressions
+like (0, p->bf), ++p->bf, and p->bf = 3, promoted to unsigned int (the type
+used to declare the bit field).  Now these expressions promote to int also.
+
+The C and C++ standards are not very clear in describing the required behavior
+in cases like these, but we now believe this change matches the intent of the
+standards.  If needed, the prior behavior can be restored by setting the global
+variable bit_field_promotion_applies_to_some_operations to FALSE (as is done in
+GNU modes with gnu_version < 40000).
+
+
 8/15/14  [EDGcpfe/14107]
 C++14: binary literals
 

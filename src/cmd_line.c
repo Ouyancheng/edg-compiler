@@ -2364,6 +2364,9 @@ by a command line option.
   if (!option_kind_used[(int)optk_preserve_lvalues_with_same_type_casts]) {
     preserve_lvalues_with_same_type_casts = TRUE;
   }  /* if */
+  /* MSVC doesn't treat bit fields in any special way wrt. promotion, much
+     less operations applied to bit fields. */
+  bit_field_promotion_applies_to_some_operations = FALSE;
 }  /* set_microsoft_mode_flags */
 
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
@@ -2611,6 +2614,9 @@ process.
   if (C_dialect == C_dialect_pcc) {
     /* Alternative tokens are not recognized in PCC mode. */
     alternative_tokens_allowed = FALSE;
+    /* PCC mode doesn't treat bit fields in any special way wrt. promotion,
+       much less operations applied to bit fields. */
+    bit_field_promotion_applies_to_some_operations = FALSE;
   }  /* if */
   special_subscript_cost = FALSE;  /* Not really needed. */
   use_nonstandard_for_init_scope = TRUE;  /* Not really needed. */
@@ -3949,6 +3955,11 @@ This function is also called in clang mode.
     clang_mode = DEFAULT_CLANG_COMPATIBILITY;
   }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
+  if (gnu_version < 40000) {
+    /* GCC versions prior to 4.0 don't treat any operations applied to bit
+       fields in any special way wrt. promotion. */
+    bit_field_promotion_applies_to_some_operations = FALSE;
+  }  /* if */
 }  /* check_and_set_gnu_mode_options */
 
 
@@ -10334,6 +10345,7 @@ variables declared in cmd_line.h.
   virtual_function_table_definition = vfd_normal;
   suppress_used_before_set_warnings = FALSE;
   addr_of_bit_field_allowed = ADDR_OF_BIT_FIELD_ALLOWED;
+  bit_field_promotion_applies_to_some_operations = TRUE;
   exceptions_enabled = DEFAULT_EXCEPTIONS_ENABLED;
   noexcept_enabled = FALSE;
   implicit_noexcept_enabled = FALSE;

@@ -470,6 +470,20 @@ EXTERN a_boolean
 			   some integral type). */
 
 EXTERN a_boolean
+		bit_field_promotion_applies_to_some_operations;
+			/* TRUE if some operations applied to bit fields
+			   preserve the special bit field promotion rules.
+			   For example, if int is a 32-bit type and p->bf is
+			   an access to a 7-bit unsigned int bit field, then
+			   (0, p->bf) promotes to int if this flag is TRUE
+			   (because the values of a 7-bit bit field are all
+			   representable by a 32-bit int).  The various C and
+			   C++ standards are not very clear in this respect,
+			   but we interpret that the intent in all cases is
+			   that the behavior be as if this variable is TRUE
+			   (and hence this is TRUE by default). */
+
+EXTERN a_boolean
 		exceptions_enabled;
 			/* TRUE if a C++ source program should be compiled
 			   with support for exception handling.  If it is

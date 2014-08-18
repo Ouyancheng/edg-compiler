@@ -8726,6 +8726,7 @@ in C.  Note this is "lvalue", not "glvalue".
 }  /* is_a_cplusplus_lvalue */
 
 
+static
 a_type_ptr type_after_bit_field_integral_promotion(an_expr_node_ptr node)
 /*
 node is a bit-field selection operation (glvalue or prvalue).  Determine the
@@ -8828,6 +8829,118 @@ end_of_routine:
 }  /* type_after_bit_field_integral_promotion */
 
 
+static a_boolean requires_bit_field_promotion(an_expr_node_ptr  node,
+                                              a_type_ptr        *p_type)
+/*
+A bit-field expression is a direct access to a bit field, or such an access
+under operations that maintain the bit-field nature of the access.  The exact
+meaning of this is unfortunately a little unclear in both the C and C++
+standards.  Still, if p->bf is a direct access to a bit field that is smaller
+than an int, the usual interpretation is that expressions like ++p->bf,
+(x, p->bf), and p->bf = 1 are still bit-field expressions and that if the
+accessed bit field is smaller than an int, the promoted type of the expression
+is int (even if the bit field itself has, e.g., unsigned int type).
+
+This function returns TRUE if the given node is a bit-field expression (except
+in modes where bit-field expressions have no special treatment), and in that
+case it sets *p_type to the bit-field's promoted type.
+*/
+{
+  a_boolean    result = TRUE;
+  a_field_ptr  fp = NULL;
+
+  if (microsoft_mode || C_dialect == C_dialect_pcc) {
+    /* pcc and MSVC don't treat bit fields in a special way. */
+    result = FALSE;
+    goto loop_done;
+  } else if (!bit_field_promotion_applies_to_some_operations) {
+    /* Just check the case of a direct access to a bit field. */
+    if (is_bit_field_extract_node(node)) {
+      *p_type = type_after_bit_field_integral_promotion(node);
+    } else {
+      result = FALSE;
+    }  /* if */
+    goto loop_done;
+  }  /* if */
+  for (;;) {
+    if (!is_operation_node(node)) {
+      result = FALSE;
+      goto loop_done;
+    } else {
+      switch (node->variant.operation.kind) {
+        case eok_dot_field:
+        case eok_points_to_field:
+          fp = node->variant.operation.operands->next->variant.field;
+          if (fp->is_bit_field) {
+            /* The given expression was a bit-field expression.  Determine its
+               promoted type. */
+            *p_type = type_after_bit_field_integral_promotion(node);
+          } else {
+            result = FALSE;
+          }  /* if */
+          goto loop_done;
+        case eok_parens:
+        case eok_assign:
+        case eok_add_assign:
+        case eok_subtract_assign:
+        case eok_multiply_assign:
+        case eok_divide_assign:
+        case eok_remainder_assign:
+        case eok_shiftl_assign:
+        case eok_shiftr_assign:
+        case eok_and_assign:
+        case eok_or_assign:
+        case eok_xor_assign:
+        case eok_padd_assign:
+        case eok_psubtract_assign:
+          /* Operations that preserve the bit-field nature of their first
+             operand. */
+          node = node->variant.operation.operands;
+          break;
+        case eok_pre_incr:
+        case eok_pre_decr:
+          if (clang_mode) {
+            /* Clang doesn't promote the prefix increment/decrement
+               operations. */
+            result = FALSE;
+            goto loop_done;
+          }  /* if */
+          node = node->variant.operation.operands;
+          break;
+        case eok_comma:
+          /* The comma operator preserves the bit-field nature of its second
+             operand. */
+          node = node->variant.operation.operands->next;
+          break;
+        default:
+          result = FALSE;
+          goto loop_done;
+      }  /* switch */
+    }  /* if */
+  }  /* for */
+loop_done:
+  return result;
+}  /* requires_bit_field_promotion */
+
+
+a_type_ptr node_type_after_integral_promotion(an_expr_node_ptr node)
+/*
+Determine the type that would result from applying the integral promotions
+to the indicated expression.  Return the promoted type, which may be the
+same as the original type.  The expression is an rvalue.
+*/
+{
+  a_type_ptr promoted_type;
+
+  /* Check for bit-field accesses, which require special handling.
+     The special processing is not done in pcc and Microsoft modes. */
+  if (!requires_bit_field_promotion(node, &promoted_type)) {
+    promoted_type = type_after_integral_promotion(node->type);
+  }  /* if */
+  return promoted_type;
+}  /* node_type_after_integral_promotion */
+
+
 a_type_ptr operand_type_after_integral_promotion(an_operand *operand)
 /*
 Determine the type that would result from applying the integral promotions
@@ -8840,15 +8953,10 @@ if the type is not integral).
 {
   a_type_ptr promoted_type = NULL;
 
-  /* Check for bit-field accesses, which require special handling.
-     The special processing is not done in pcc mode. */
-  if (C_dialect != C_dialect_pcc && is_expression_operand(operand)) {
-    an_expr_node_ptr node = skip_parens(operand->variant.expression);
-    if (is_bit_field_extract_node(node)) {
-      promoted_type = type_after_bit_field_integral_promotion(node);
-    }  /* if */
-  }  /* if */
-  if (promoted_type == NULL) {
+  /* Check for bit-field accesses, which may require special handling. */
+  if (!(is_expression_operand(operand) &&
+        requires_bit_field_promotion(operand->variant.expression,
+                                     &promoted_type))) {
     /* Non-bit-field cases.  Determine the promoted type on the basis of
        the operand type. */
     promoted_type = operand->type;

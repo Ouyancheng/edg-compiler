@@ -2353,8 +2353,6 @@ extern void adjust_class_prvalue_type(an_operand *operand,
 
 extern a_boolean is_a_cplusplus_lvalue(an_operand *operand);
 
-extern a_type_ptr type_after_bit_field_integral_promotion(
-                                                       an_expr_node_ptr node);
 extern void record_suppressed_error(void);
 
 extern a_boolean expr_diagnostic_should_be_issued(an_error_severity sev,
@@ -2657,7 +2655,9 @@ extern void cast_node(an_expr_node_ptr  *p_node,
                       a_boolean         within_expr_processing,
                       a_source_position *err_pos);
 
-extern a_type_ptr operand_type_after_integral_promotion(an_operand *operand);
+extern a_type_ptr node_type_after_integral_promotion(an_expr_node_ptr node);
+
+extern a_type_ptr operand_type_after_integral_promotion(an_operand  *operand);
 
 #if UPC_EXTENSIONS_ALLOWED
 extern void make_upc_thread_operand(an_operand            *operand,
