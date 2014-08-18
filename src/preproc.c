@@ -1987,7 +1987,6 @@ and may have extra operands at the end).
     record_resumption_of_source_file(curr_ise->assoc_il_file,
                                      seq_number_last_read + 1, temp_line);
   }  /* if */
-  curr_ise->line_number = temp_line - 1;  /* Number will be incremented. */
   /* If we are leaving an already-active #line file, record the end of its
      range. */
   if (curr_ise->assoc_il_file != curr_ise->assoc_actual_il_file &&
@@ -2021,8 +2020,10 @@ and may have extra operands at the end).
     }  /* if */
   }  /* if */
   if (suppress_push) {
-    /* Just overwrite the file name and system-include status. */
+    /* Just overwrite the file name, line number, and system-include
+       status. */
     curr_ise->file_name = temp_file;
+    curr_ise->line_number = temp_line - 1;  /* Number will be incremented. */
     curr_ise->from_system_include_dir = from_system_include;
     curr_ise->assoc_il_file->from_system_include_dir = from_system_include;
   } else {
@@ -2036,8 +2037,6 @@ and may have extra operands at the end).
     if (push_clone) {
       /* Track the tree structure implied by the #line directives. */
       push_cloned_input_stack_entry();
-      curr_ise->file_name = temp_file;
-      curr_ise->line_number = temp_line - 1;  /* Number will be incremented. */
       parent_sfp = curr_ise->assoc_il_file;
     } else {
       /* Just record the transition to a new file; the "parent" will be
@@ -2045,6 +2044,7 @@ and may have extra operands at the end).
       parent_sfp = curr_ise->assoc_actual_il_file;
     }  /* if */
     curr_ise->file_name = temp_file;
+    curr_ise->line_number = temp_line - 1;  /* Number will be incremented. */
     record_start_of_source_file(parent_sfp,
                                 (a_seq_number)seq_number_last_read+1,
                                 temp_line,
