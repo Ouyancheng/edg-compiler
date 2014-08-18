@@ -2600,7 +2600,7 @@ private:
                            attributes. */
   mdToken       token_;
                         /* The token associated with the custom attributes. */
-  vector<const a_custom_attribute>
+  vector<a_custom_attribute>
                 custom_attributes_;
                         /* The list of custom attributes. */
   a_standard_attribute_flag_set
@@ -4312,7 +4312,7 @@ private:
 
 public:
   typedef pair<wstring, a_constant_value> an_enumerator;
-  typedef vector<const an_enumerator> an_enumerator_list;
+  typedef vector<an_enumerator> an_enumerator_list;
   typedef const an_enumerator_list &a_const_enumerator_list_ref;
   a_const_enumerator_list_ref get_enumerators() const;
   const a_constant_value *get_enumerator(const wstring &name) const
