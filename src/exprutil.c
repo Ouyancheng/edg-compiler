@@ -8907,6 +8907,17 @@ case it sets *p_type to the bit-field's promoted type.
           }  /* if */
           node = node->variant.operation.operands;
           break;
+        case eok_post_decr:
+        case eok_post_incr:
+          if ((!C_mode() && !gpp_mode) || clang_mode) {
+            /* C++ doesn't make a postfix increment/decrement a bit field even
+               if the operand is one, but GCC does.  (Clang doesn't in any
+               mode.) */
+            result = FALSE;
+            goto loop_done;
+          }  /* if */
+          node = node->variant.operation.operands;
+          break;
         case eok_comma:
           /* The comma operator preserves the bit-field nature of its second
              operand. */
