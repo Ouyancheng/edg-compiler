@@ -4774,7 +4774,7 @@ issue a diagnostic if such a reduction is invalid or ignored.
         }  /* if */
       }  /* for */
       /* If ap is NULL, the reduction might be the result of a pragma. */
-      if (ap != NULL && is_standard_attribute(ap)) {
+      if (ap != NULL && is_std_attribute(ap)) {
         pos_error(ec_invalid_alignment_reducing_attr, &ap->position);
         alignment = lob->alignment;
       } else if (gnu_mode || sun_mode ||

@@ -78,7 +78,7 @@ Return TRUE if the upcoming tokens introduce Microsoft attributes.
 /*
 Return TRUE if the given attribute is of the form [[...]] or alignas(...).
 */
-#define is_standard_attribute(ap)                                            \
+#define is_std_attribute(ap)                                                 \
   ((ap)->family == (a_byte_attribute_family)af_std ||                        \
    (ap)->family == (a_byte_attribute_family)af_alignas)
 

@@ -3709,7 +3709,7 @@ return that entity.
 {
 #if USER_CONTROL_OF_STRUCT_PACKING
   a_const_char *constr;
-  a_boolean    std_specifier = is_standard_attribute(ap);
+  a_boolean    std_specifier = is_std_attribute(ap);
 
   if (std_specifier) {
     constr = "c|e|v:-r!|d:-b!";
