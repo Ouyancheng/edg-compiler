@@ -1811,6 +1811,15 @@ for an array initialization in GNU C++ mode).
         /* Variable is a reference or a parameter passed via copy constructor,
            add an indirection. */
         set_var_indirect_init_pos_descr(var, &source_ipd);
+#if DO_RETURN_VALUE_OPTIMIZATION_IN_LOWERING
+      } else if (var_is_return_value_variable(var)) {
+        /* The variable is the return value optimization variable for the
+           current function, so rewrite it as an indirection through the
+           implicit parameter through which the return address is passed by
+           the caller. */
+        set_var_indirect_init_pos_descr(return_value_pointer_variable,
+                                        &source_ipd);
+#endif /* DO_RETURN_VALUE_OPTIMIZATION_IN_LOWERING */
       } else {
         set_var_init_pos_descr(var, &source_ipd);
       }  /* if */

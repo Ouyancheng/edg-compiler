@@ -1,5 +1,32 @@
 Version 4.10
 
+8/19/14  [EDGcpfe/15368]
+Incorrect lowering for certain lambda captures
+
+In configurations where DO_RETURN_VALUE_OPTIMIZATION_IN_LOWERING is TRUE
+and the front end has determined that a routine is a candidate for the
+optimization, incorrect code had been generated in the case where the
+returned value was used as the source for a lambda capture (when the
+variable is captured by value).  Now fixed.  In the following example the
+value captured for "a" in the lambda was not properly initialized (--c++11):
+
+  int x = 0;
+  struct A {
+    int m;
+    A(int _m) : m(_m) {}
+    A(const A &x) : m(x.m) {}
+  };
+  A f() {
+    A a(99);
+    [a]() -> void { x = a.m; }();
+    return a;
+  }
+  int main() {
+    f();
+    return x != 99;   // Had returned non-zero.
+  }
+
+
 8/18/14  [EDGcpfe/15308]
 Promoted type for operations on bit fields
 
