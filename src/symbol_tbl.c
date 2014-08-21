@@ -15089,8 +15089,6 @@ since these pragmas are automatically recorded in the IL, the tokens
 
 #endif /* SUN_EXTENSIONS_ALLOWED */
 
-#if MICROSOFT_EXTENSIONS_ALLOWED
-
 static a_saved_macro_state_ptr alloc_saved_macro_state(void)
 /*
 Allocate a new saved macro state entry and return a pointer to it.
@@ -15123,16 +15121,16 @@ Add "smsp" to the list of saved macro state entries available for reuse.
 {
   smsp->next = avail_saved_macro_states;
   avail_saved_macro_states = smsp;
-}  /* free_saved_macro_state_ptr */
+}  /* free_saved_macro_state */
 
 
 static a_symbol_header_ptr symbol_header_for_macro_push_or_pop(
 					a_pending_pragma_ptr	ppp,
 					a_source_position	*name_pos)
 /*
-This routine scans the tokens of a Microsoft push_macro or pop_macro
-pragma, looks up the symbol header for the identifier and returns
-it.  If an error occurs while scanning the pragma, NULL is returned.
+This routine scans the tokens of a push_macro or pop_macro pragma,
+looks up the symbol header for the identifier and returns it.
+If an error occurs while scanning the pragma, NULL is returned.
 
 The form of such a pragma is:
 
@@ -15227,8 +15225,7 @@ mode.
 
 void push_macro_pragma(a_pending_pragma_ptr	ppp)
 /*
-The pragma processing function called when a Microsoft push_macro pragma
-is encountered.
+The pragma processing function called when a push_macro pragma is encountered.
 
 The form of such a pragma is:
 
@@ -15271,8 +15268,7 @@ preprocessing only.
 
 void pop_macro_pragma(a_pending_pragma_ptr	ppp)
 /*
-The pragma processing function called when a Microsoft pop_macro pragma
-is encountered.
+The pragma processing function called when a pop_macro pragma is encountered.
 
 The form of such a pragma is:
 
@@ -15321,7 +15317,6 @@ preprocessing only.
   }  /* if */
 }  /* pop_macro_pragma */
 
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 
 static

@@ -5510,9 +5510,9 @@ enum a_pragma_kind_tag {
   pk_if_exists,		/* Used in the implementation of the Microsoft
 			   __if_exists feature. */
 #endif /* GENERATE_MICROSOFT_IF_EXISTS_ENTRIES */
-#if MICROSOFT_EXTENSIONS_ALLOWED
   pk_push_macro,
   pk_pop_macro,
+#if MICROSOFT_EXTENSIONS_ALLOWED
   pk_start_map_region,
   pk_stop_map_region,
 #if NATIVE_MULTIBYTE_CHARS_SUPPORTED_WITH_UNICODE
@@ -5613,9 +5613,9 @@ EXTERN a_const_char *pragma_ids[(int)pk_last + 1]
 #if GENERATE_MICROSOFT_IF_EXISTS_ENTRIES
 /* pk_if_exists */		"__if_exists",
 #endif /* GENERATE_MICROSOFT_IF_EXISTS_ENTRIES */
-#if MICROSOFT_EXTENSIONS_ALLOWED
 /* pk_push_macro */		"push_macro",
 /* pk_pop_macro */		"pop_macro",
+#if MICROSOFT_EXTENSIONS_ALLOWED
 /* pk_start_map_region */	"start_map_region",
 /* pk_stop_map_region */	"stop_map_region",
 #if NATIVE_MULTIBYTE_CHARS_SUPPORTED_WITH_UNICODE

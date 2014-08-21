@@ -2761,14 +2761,12 @@ Scan and process a #pragma directive.
         do_not_put_curr_line_in_pp_output = FALSE;
         pass_pp_directive_to_output = TRUE;
         once_pragma((a_pending_pragma_ptr)NULL);
-#if MICROSOFT_EXTENSIONS_ALLOWED
       } else if (pkdp->kind == (a_pragma_kind)pk_push_macro) {
         push_macro_pragma((a_pending_pragma_ptr)NULL);
         pass_to_output = FALSE;
       } else if (pkdp->kind == (a_pragma_kind)pk_pop_macro) {
         pop_macro_pragma((a_pending_pragma_ptr)NULL);
         pass_to_output = FALSE;
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       }  /* if */
     }  /* if */
 #if GNU_EXTENSIONS_ALLOWED
@@ -2792,7 +2790,6 @@ Scan and process a #pragma directive.
   } else {
     /* Compiling.  Record the pragma for later processing, or for
        processing now in the case of immediate pragmas. */
-#if MICROSOFT_EXTENSIONS_ALLOWED
     if (pkdp != NULL &&
         (pkdp->kind == (a_pragma_kind)pk_push_macro ||
          pkdp->kind == (a_pragma_kind)pk_pop_macro)) {
@@ -2800,7 +2797,6 @@ Scan and process a #pragma directive.
          there are no macro definitions or invocations. */
       pass_to_output = FALSE;
     }  /* if */
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     if (pass_to_output) {
       /* Make sure that the first line of the pragma is output in case
          the line ends inside a comment. */

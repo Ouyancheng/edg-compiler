@@ -3939,9 +3939,9 @@ in the current IL memory region.
     case pk_db_name:
       break;
 #endif /* DEBUG */
-#if MICROSOFT_EXTENSIONS_ALLOWED
     case pk_push_macro:
     case pk_pop_macro:
+#if MICROSOFT_EXTENSIONS_ALLOWED
 #if NATIVE_MULTIBYTE_CHARS_SUPPORTED_WITH_UNICODE
     case pk_setlocale:
 #endif /* NATIVE_MULTIBYTE_CHARS_SUPPORTED_WITH_UNICODE */

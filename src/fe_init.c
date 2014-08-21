@@ -227,9 +227,9 @@ EXTERN a_function_pointer function_pointers[(int)fn_last+1]
 #if GENERATE_MICROSOFT_IF_EXISTS_ENTRIES
   (a_function_pointer)if_exists_pragma,
 #endif /* GENERATE_MICROSOFT_IF_EXISTS_ENTRIES */
-#if MICROSOFT_EXTENSIONS_ALLOWED
   (a_function_pointer)push_macro_pragma,
   (a_function_pointer)pop_macro_pragma,
+#if MICROSOFT_EXTENSIONS_ALLOWED
   (a_function_pointer)microsoft_start_map_region_pragma,
   (a_function_pointer)microsoft_stop_map_region_pragma,
 #if NATIVE_MULTIBYTE_CHARS_SUPPORTED_WITH_UNICODE

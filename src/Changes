@@ -1,5 +1,13 @@
 Version 4.10
 
+8/21/14  [EDGcpfe/15374]
+GNU and clang compatibility: push_macro and pop_macro
+
+The push_macro and pop_macro pragmas, previously only enabled in Microsoft
+mode, are now enabled in GNU mode (when gnu_version >= 40403) and clang
+mode.
+
+
 8/19/14  [EDGcpfe/15368]
 Incorrect lowering for certain lambda captures
 
