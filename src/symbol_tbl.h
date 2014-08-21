@@ -590,12 +590,10 @@ typedef struct a_macro_def {
 #endif /* FULLY_RESOLVED_MACRO_POSITIONS */
 } a_macro_def;
 
-#if MICROSOFT_EXTENSIONS_ALLOWED
-
 /*
 Entry used to save and restore macro definition information for use
-by the Microsoft push_macro and pop_macro pragmas.  A stack of such
-entries is pointed to by the symbol header.
+by the push_macro and pop_macro pragmas.  A stack of such entries is
+pointed to by the symbol header.
 */
 typedef struct a_saved_macro_state *a_saved_macro_state_ptr;
 typedef struct a_saved_macro_state {
@@ -621,8 +619,6 @@ typedef struct a_saved_macro_state {
 extern void push_macro_pragma(a_pending_pragma_ptr	ppp);
 
 extern void pop_macro_pragma(a_pending_pragma_ptr	ppp);
-
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 /*
 The repl_text string for a macro definition is a sequence of sections,

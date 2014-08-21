@@ -461,9 +461,9 @@ enum a_function_number_tag {
 #if GENERATE_MICROSOFT_IF_EXISTS_ENTRIES
   fn_if_exists_pragma,
 #endif /* GENERATE_MICROSOFT_IF_EXISTS_ENTRIES */
-#if MICROSOFT_EXTENSIONS_ALLOWED
   fn_push_macro_pragma,
   fn_pop_macro_pragma,
+#if MICROSOFT_EXTENSIONS_ALLOWED
   fn_microsoft_start_map_region_pragma,
   fn_microsoft_stop_map_region_pragma,
 #if NATIVE_MULTIBYTE_CHARS_SUPPORTED_WITH_UNICODE

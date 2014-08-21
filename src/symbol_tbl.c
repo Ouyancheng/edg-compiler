@@ -218,12 +218,12 @@ static a_template_decl_info_ptr
 			/* List of template declaration info entries freed and
 			   available for reuse. */
 
-#if MICROSOFT_EXTENSIONS_ALLOWED
-
 static a_saved_macro_state_ptr
 		avail_saved_macro_states;
 			/* List of saved macro state entries freed and
 			   available for reuse. */
+
+#if MICROSOFT_EXTENSIONS_ALLOWED
 
 static a_hide_by_sig_list_entry_ptr
 		avail_hide_by_sig_list_entries;
