@@ -15548,8 +15548,9 @@ all arguments were explicit.
       /* The next parameter doesn't have a default value.  Issue an error
          if no default arguments have been encountered.  If we have already
          seen a default argument, an error will have been issued on the
-         template declaration. */
-      if (!any_default_args) {
+         template declaration, except in Microsoft mode where the error
+         is downgraded to a warning. */
+      if (!any_default_args || microsoft_mode) {
         sym_error(ec_too_few_template_args, template_sym);
         /* Suppress any subsequent errors. */
         any_default_args = TRUE;

@@ -15564,12 +15564,15 @@ Return TRUE if the given template parameter is a template parameter pack.
 
 static void check_template_param_default_args_and_packs(
 			a_template_param_ptr	param_list,
+			a_boolean		is_class_template,
 			a_boolean		is_partial_specialization)
 
 /*
 Make sure that any default arguments are at the end of the parameter list
 and that if there is a parameter pack it is at the end of the parameter
-list.
+list.  is_class_template is TRUE if this is a class template declaration.
+is_partial_specialization is TRUE if this is a partial specialization of
+a class template.
 */
 {
   a_template_param_ptr	tpp;
@@ -15598,8 +15601,10 @@ list.
                   &tpp->param_symbol->decl_position);
       }  /* if */
     } else if (any_defaults && !has_default) {
-      pos_error(ec_default_arg_not_at_end,
-                &last_tpp_with_default->param_symbol->decl_position);
+      an_error_severity	severity = es_error;
+      if (microsoft_mode) severity = es_warning;
+      pos_diagnostic(severity, ec_default_arg_not_at_end,
+                     &last_tpp_with_default->param_symbol->decl_position);
     }  /* if */
     tpp = tpp->next;
   }  /* while */
@@ -18268,7 +18273,8 @@ friend_template_checks_done:
      have been merged to do the test.  Also check that a parameter pack,
      if present, is at the end of the list. */
   check_template_param_default_args_and_packs(
-                          templ_params, decl_state->is_partial_specialization);
+                          templ_params, /*is_class_template=*/TRUE,
+                          decl_state->is_partial_specialization);
   if (sym == NULL) {
     /* Enter the symbol at the scope indicated by effective_decl_level. */
     a_scope_stack_entry_ptr	ssep =
@@ -19786,6 +19792,7 @@ depends on a another template parameter.
      of the template template parameter. */
   check_template_param_default_args_and_packs(
                                     local_decl_state.decl_info->parameters,
+                                    /*is_class_template=*/FALSE,
                                     /*is_partial_specialization=*/FALSE);
   if (is_pack) {
     template_param_is_variadic(sym, template_param, parent_decl_state);
@@ -22702,6 +22709,7 @@ alias
      list. */
   check_template_param_default_args_and_packs(
                                           decl_state->decl_info->parameters,
+                                          /*is_class_template=*/FALSE,
                                           /*is_partial_specialization=*/FALSE);
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   if (prototype_instantiations_in_il) {

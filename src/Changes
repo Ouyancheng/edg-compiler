@@ -1,5 +1,16 @@
 Version 4.10
 
+8/21/14  [EDGcpfe/15372]
+Microsoft compatibility: allow non-final template default argument
+
+The Microsoft compiler allows a template to have a default template
+argument followed by a template parameter without a default argument.
+An error is issued on an attempt to make use of the default argument.
+We now emulate that behavior in Microsoft mode.
+
+  template <class T = int, class T2> struct A {};
+
+
 8/21/14  [EDGcpfe/15374]
 GNU and clang compatibility: push_macro and pop_macro
 
