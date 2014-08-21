@@ -26,9 +26,7 @@ symbol_tbl.c - Symbol table management routines.
 #endif /* ifdef PCH_PRAGMA_GUARD */
 
 /* Additional header files. */
-#if MICROSOFT_EXTENSIONS_ALLOWED
 #include "literals.h"
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 /* macro.h is needed for enter_predef_macro and clear_macro_def. */
 #include "macro.h"
 #if MICROSOFT_EXTENSIONS_ALLOWED
