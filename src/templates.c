@@ -15602,7 +15602,7 @@ a class template.
       }  /* if */
     } else if (any_defaults && !has_default) {
       an_error_severity	severity = es_error;
-      if (microsoft_mode) severity = es_warning;
+      if (microsoft_mode && is_class_template) severity = es_warning;
       pos_diagnostic(severity, ec_default_arg_not_at_end,
                      &last_tpp_with_default->param_symbol->decl_position);
     }  /* if */
