@@ -3889,12 +3889,12 @@ typedef struct a_symbol_header {
 			   identifies the particular operator kind.  For
 			   other kinds of symbols, this is onk_none. */
   } variant;
-#if MICROSOFT_EXTENSIONS_ALLOWED
   a_saved_macro_state_ptr
 		saved_macro_stack;
 			/* A stack of entries used to save and restore macro
-			   state information.  Used by the Microsoft
-			   push_macro and pop_macro pragmas. */
+			   state information.  Used by the push_macro and
+			   pop_macro pragmas. */
+#if MICROSOFT_EXTENSIONS_ALLOWED
   a_bit_field	microsoft_identifier_used:1;
 			/* TRUE if the identifier was named using a Microsoft
 			   __identifier operator.  This flag is set if any

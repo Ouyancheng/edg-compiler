@@ -29,10 +29,8 @@ symbol_tbl.c - Symbol table management routines.
 #if MICROSOFT_EXTENSIONS_ALLOWED
 #include "literals.h"
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-#if defined(GUARD_MACRO_FOR_VA_LIST) || MICROSOFT_EXTENSIONS_ALLOWED
 /* macro.h is needed for enter_predef_macro and clear_macro_def. */
 #include "macro.h"
-#endif /* defined(GUARD_MACRO_FOR_VA_LIST) || MICROSOFT_EXTENSIONS_ALLOWED */
 #if MICROSOFT_EXTENSIONS_ALLOWED
 #include "ms_attrib.h"
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
@@ -138,8 +136,8 @@ static unsigned long
 		num_hash_tables_allocated,
 		num_hash_table_entries_allocated,
 		total_hash_table_size,
-#if MICROSOFT_EXTENSIONS_ALLOWED
 		num_saved_macro_states_allocated,
+#if MICROSOFT_EXTENSIONS_ALLOWED
 		num_hide_by_sig_list_entries_allocated,
 		num_property_set_symbol_supplements_allocated,
 		num_prop_or_event_accessor_header_lookups_allocated,
@@ -15701,9 +15699,9 @@ for space tracking purposes.
                 a_hash_table_entry);
   db_space_used_other("hash table size", total_hash_table_size, "");
   grand_total += total_hash_table_size;
-#if MICROSOFT_EXTENSIONS_ALLOWED
   db_space_used("saved macro state", num_saved_macro_states_allocated,
                 a_saved_macro_state);
+#if MICROSOFT_EXTENSIONS_ALLOWED
   db_space_used("hide-by-sig list entries",
                 num_hide_by_sig_list_entries_allocated,
                 a_hide_by_sig_list_entry);
@@ -16049,8 +16047,8 @@ are handled in symbol_tbl_init.)
       pch_saved_var_array_elem(num_exception_spec_error_descrs_allocated),
       pch_saved_var_array_elem(num_used_symbol_buckets),
       pch_saved_var_array_elem(symbol_name_string_space),
-#if MICROSOFT_EXTENSIONS_ALLOWED
       pch_saved_var_array_elem(num_saved_macro_states_allocated),
+#if MICROSOFT_EXTENSIONS_ALLOWED
       pch_saved_var_array_elem(num_hide_by_sig_list_entries_allocated),
       pch_saved_var_array_elem(num_property_set_symbol_supplements_allocated),
       pch_saved_var_array_elem(
@@ -16247,8 +16245,8 @@ of the front end.
   num_hash_table_entries_allocated              = 0;
   total_hash_table_size                         = 0;
   num_exception_spec_error_descrs_allocated     = 0;
-#if MICROSOFT_EXTENSIONS_ALLOWED
   num_saved_macro_states_allocated              = 0;
+#if MICROSOFT_EXTENSIONS_ALLOWED
   num_hide_by_sig_list_entries_allocated        = 0;
   num_property_set_symbol_supplements_allocated = 0;
   num_prop_or_event_accessor_header_lookups_allocated

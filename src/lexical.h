@@ -2380,10 +2380,6 @@ extern a_boolean check_context_sensitive_keyword(a_token_kind  tok_kind,
 
 extern a_string_or_char_literal_kind scan_encoding_prefix(a_const_char *loc);
 
-#if MICROSOFT_EXTENSIONS_ALLOWED
-extern a_boolean is_valid_GUID_string(a_const_char  *str,
-                                      a_targ_size_t length);
-
 extern a_boolean accum_quoted_string(
                   unsigned long                 *num_chars,
                   a_boolean                     is_header_name,
@@ -2391,6 +2387,10 @@ extern a_boolean accum_quoted_string(
                   char                          quoting_char,
                   a_const_char                  *start_of_raw_string_delimiter,
                   int                           raw_string_delimiter_len);
+
+#if MICROSOFT_EXTENSIONS_ALLOWED
+extern a_boolean is_valid_GUID_string(a_const_char  *str,
+                                      a_targ_size_t length);
 
 #if NATIVE_MULTIBYTE_CHARS_SUPPORTED_WITH_UNICODE
 extern void setlocale_pragma(a_pending_pragma_ptr	ppp);

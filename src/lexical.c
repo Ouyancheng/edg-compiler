@@ -9421,9 +9421,6 @@ null characters in the closing delimiter.
 #if !MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED
 /*ARGSUSED*/  /* <-- is_wide is not used in that case.*/
 #endif /* !MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED */
-#if !MICROSOFT_EXTENSIONS_ALLOWED
-static
-#endif /* !MICROSOFT_EXTENSIONS_ALLOWED */
 a_boolean accum_quoted_string(
                   unsigned long                 *num_chars,
                   a_boolean                     is_header_name,
