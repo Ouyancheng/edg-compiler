@@ -5056,7 +5056,6 @@ must NOT already be lowered (see comment in default_version_of_routine).
   if (ctor_routine->is_initializer_list_ctor) {
     /* Find the first default argument (if any). */
     a_param_type_ptr  ptp;
-    check_assertion(gpp_mode);
     for (ptp = unlowered_param_type_list_for_routine(ctor_routine);
          ptp != NULL;
          ptp = ptp->next) {
