@@ -4595,7 +4595,19 @@ modified; if not, only the new parameters are modified.
   a_type_ptr       pass_through_param_type;
   a_param_type_ptr src_param_type, param_type;
 
-  for (src_param_type = unlowered_param_type_list_for_routine(routine); 
+  src_param_type = unlowered_param_type_list_for_routine(routine);
+  if (!do_default_args && routine->is_initializer_list_ctor) {
+    /* In C++03, any arguments that are passed to a constructor when
+       initializing an array are default arguments.  In C++11, the argument
+       may instead be generated arguments describing an empty initializer list
+       (if an aggregate initializer provides no initializers for an array
+       member).  Treat such arguments as default arguments (i.e., they
+       have an (initializer list) value and as such are removed from the
+       parameter list of the temporary routine being created by the caller). */
+    check_assertion(src_param_type != NULL);
+    src_param_type = src_param_type->next;
+  }  /* if */
+  for (;
        src_param_type != NULL && 
          (do_default_args || !src_param_type->has_default_arg);
        src_param_type = src_param_type->next) {
@@ -5033,7 +5045,7 @@ must NOT already be lowered (see comment in default_version_of_routine).
 */
 {
   a_routine_ptr    ctor_routine, dtor_routine;
-  an_expr_node_ptr call_node, num_elem_node, default_args;
+  an_expr_node_ptr call_node, num_elem_node;
   a_boolean        zero_storage;
 
 #if CHECKING
@@ -5051,23 +5063,10 @@ must NOT already be lowered (see comment in default_version_of_routine).
   /* In C++03, any arguments that are passed to a constructor when initializing
      an array are default arguments.  In C++11, the argument may instead be
      generated arguments describing an empty initializer list (if an aggregate
-     initializer provides no initializers for an array member). */
-  default_args = dip->variant.constructor.args;
-  if (ctor_routine->is_initializer_list_ctor) {
-    /* Find the first default argument (if any). */
-    a_param_type_ptr  ptp;
-    for (ptp = unlowered_param_type_list_for_routine(ctor_routine);
-         ptp != NULL;
-         ptp = ptp->next) {
-      if (ptp->has_default_arg) {
-        /* We've found the first default argument. */
-        break;
-      }  /* if */
-      check_assertion(default_args != NULL);
-      default_args = default_args->next;
-    }  /* for */
-  }  /* if */
-  ctor_routine = default_version_of_routine(ctor_routine, default_args);
+     initializer provides no initializers for an array member).  Those are
+     treated as default arguments during lowering. */
+  ctor_routine = default_version_of_routine(ctor_routine,
+                                            dip->variant.constructor.args);
   dtor_routine = dip->destructor;
 #if IA64_ABI
   if (dtor_routine != NULL) {
