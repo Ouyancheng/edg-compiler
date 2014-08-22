@@ -25961,7 +25961,13 @@ passed via template_decl.
                  be used (e.g., because an address is needed for a vtbl).
                  (For a non-virtual function we issue the error when it is
                  referenced.) */
-              sym_error(ec_local_class_function_def_missing, rout_sym);
+              if (strict_ansi_mode) {
+                sym_error(ec_local_class_function_def_missing, rout_sym);
+              } else {
+                /* Issue a warning (since g++ and clang allow this if
+                   the local class is unused). */
+                sym_warning(ec_local_class_function_def_missing, rout_sym);
+              }  /* if */
             } else if (class_state->corresp_prototype_tag_sym == NULL) {
               /* An undefined virtual member function in an unnamed class (or
                  in a named class that is nested in an unnamed class) cannot

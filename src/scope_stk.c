@@ -5437,9 +5437,14 @@ body.  Only called in C++ mode.
                 /* Diagnostic has already been put out in
                    class_member_declaration (virtual functions are considered
                    referenced immediately). */
-              } else {
+              } else if (strict_ansi_mode) {
                 pos_sy_error(ec_local_class_function_def_missing,
                              &sym->decl_position, sym);
+              } else {
+                /* Issue a warning in non-strict mode (other compilers
+                   allow an unused local class to go un-diagnosed). */
+                pos_sy_warning(ec_local_class_function_def_missing,
+                               &sym->decl_position, sym);
               }  /* if */
             } else if (rp->source_corresp.referenced &&
 #if MICROSOFT_EXTENSIONS_ALLOWED
