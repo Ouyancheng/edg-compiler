@@ -4135,11 +4135,12 @@ qualification.
                                                    /*in_function_scope=*/TRUE);
       /* To initialize a local static variable to an aggregate we use
          a local-static-variable-init entry (to avoid memory region
-         problems). */
+         problems).  Note also that the constant is copied here (to avoid
+         some issues where the constant is in a different function scope). */
       (void)make_local_static_variable_init(assoc_var, 
                                             innermost_function_scope,
                                             (an_init_kind)initk_static,
-                                            constant,
+                                            copy_unshared_constant(constant),
                                             (a_dynamic_init_ptr)NULL);
     }  /* if */
     /* Save the pointer in the constant so the variable can be reused. */
