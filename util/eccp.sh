@@ -635,6 +635,7 @@ check_abbreviation()
 --diag_remark
 --diag_suppress
 --diag_warning
+--digit_separators
 --dump_configuration
 --display_error_number
 --distinct_template_signatures
@@ -739,6 +740,7 @@ check_abbreviation()
 --no_dep_name
 --no_deprecated_string_conv
 --no_designators
+--no_digit_separators
 --no_display_error_number
 --no_distinct_template_signatures
 --no_embedded_c
@@ -1489,6 +1491,8 @@ process_option()
          --no_preserve_lvalues_with_same_type_casts | \
          --nonstd_anonymous_unions | \
          --no_nonstd_anonymous_unions | \
+         --digit_separators | \
+         --no_digit_separators | \
          --force_vtbl)
       feoptions=$feoptions" $curr_arg"
 #     Options that require additional processing
