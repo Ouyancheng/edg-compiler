@@ -1451,6 +1451,12 @@ Initialize the option information table.
                          "no_nonstd_anonymous_unions", '\0',
                          /*value=*/FALSE, /*arg_required=*/FALSE,
                          pchek_command_line);
+  add_option_description(optk_digit_separators, "digit_separators", '\0',
+                         /*value=*/TRUE, /*arg_required=*/FALSE,
+                         pchek_command_line);
+  add_option_description(optk_digit_separators, "no_digit_separators",
+                         '\0', /*value=*/FALSE, /*arg_required=*/FALSE,
+                         pchek_command_line);
 }  /* initialize_option_descriptions */
 
 
@@ -3032,6 +3038,9 @@ default mode (e.g., exception handling).
       aggregate_classes_can_have_field_initializers = TRUE;
     }  /* if */
     binary_literals_allowed = TRUE;
+    if (!option_kind_used[(int)optk_digit_separators]) {
+      digit_separators_enabled = TRUE;
+    }  /* if */
   }  /* if */
 }  /* check_and_set_cpp11_mode_options */
 
@@ -9520,6 +9529,9 @@ enable_microsoft_mode:
       case optk_nonstd_anonymous_unions:
         allow_nonstandard_anonymous_unions = opt_value;
         break;
+      case optk_digit_separators:
+        digit_separators_enabled = opt_value;
+        break;
       default:
         /* It should not be possible to get here. */
         unexpected_condition();
@@ -10355,6 +10367,7 @@ variables declared in cmd_line.h.
   user_defined_literals_enabled = FALSE;
   macro_preempts_udl_suffix = FALSE;
   raw_string_literals_enabled = FALSE;
+  digit_separators_enabled = FALSE;
   rtti_enabled = 
 #if RTTI_ENABLING_POSSIBLE
                  DEFAULT_RTTI_ENABLED;

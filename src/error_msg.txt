@@ -2674,6 +2674,8 @@ ec_friend_with_def_arg_must_be_only_decl;;"a friend template declaration with a 
 ec_non_autonomous_opaque_enum_decl;;"an opaque enum declaration cannot be part of another declaration"
 ec_nonstd_opaque_enum_decl_in_type_id;;"an opaque enum declaration is nonstandard in this context"
 ec_extended_friends_is_cpp11;;"extended friend syntax is a C++11 feature"
+ec_digit_separators_not_enabled;;"digit separators not enabled, apostrophe begins a character literal"
+ec_bad_digit_separator_pos;;"digit separator cannot appear here"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

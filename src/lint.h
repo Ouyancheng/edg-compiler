@@ -1152,6 +1152,7 @@ extern int fileno(FILE *);
 /*lint -esym(552,user_defined_literals_enabled)*/
 /*lint -esym(552,macro_preempts_udl_suffix)*/
 /*lint -esym(552,raw_string_literals_enabled)*/
+/*line -esym(552,digit_separators_enabled)*/
 /*lint -esym(755,ud_suffix_from_literal_operator_id)*/
 #if !THREAD_LOCAL_STORAGE_SPECIFIER_ALLOWED
 /*lint -esym(755,var_has_static_storage_duration)*/

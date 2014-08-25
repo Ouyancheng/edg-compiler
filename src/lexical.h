@@ -1605,6 +1605,13 @@ EXTERN a_boolean
 			   directives where it is known that source text is
 			   being scanned. */
 
+EXTERN a_boolean
+		number_contains_digit_separator;
+			/* Set to TRUE by scan_number if the current token
+			   has embedded digit separators (apostrophes) and
+			   FALSE otherwise.  Valid only until the next call
+			   to get_token. */
+
 #if ASM_SUPPORT_NEEDED
 
 EXTERN a_boolean

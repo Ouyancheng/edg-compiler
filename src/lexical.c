@@ -8319,6 +8319,32 @@ the kind of token.
   a_boolean     potential_ud_suffix = FALSE;
   a_source_position
                 start_pos;
+  a_boolean     first_digit_seen = FALSE;
+
+/*
+Macro to skip over an optional C++14 digit separator (apostrophe).  Reports
+a warning if an apostrophe is seen when digit separators are not enabled
+(to explain the inevitable syntax error that will follow) and an error if a
+digit separator appears immediately following a prefix or radix point (as
+indicated by the value of first_digit_seen).  N is either 0 or 1,
+indicating whether the character to be tested is at curr_char_loc or the
+following position.
+*/
+#define skip_digit_separator(N)                                             \
+  if (*(curr_char_loc + (N)) == '\'') {                                     \
+    if (!digit_separators_enabled) {                                        \
+      warning_at_line_pos(ec_digit_separators_not_enabled,                  \
+                          curr_char_loc + (N));                             \
+    } else {                                                                \
+      number_contains_digit_separator = TRUE;                               \
+      if (!first_digit_seen) {                                              \
+        error_at_line_pos(ec_bad_digit_separator_pos, curr_char_loc + (N)); \
+        err = TRUE;                                                         \
+      }  /* if */                                                           \
+      /* Skip over the apostrophe. */                                       \
+      ++curr_char_loc;                                                      \
+    }  /* if*/                                                              \
+  }  /* if */
 
   macro_line_loc_to_source_pos(curr_char_loc, start_pos);
   /* Hexadecimal floating point constants are normally controlled by the
@@ -8332,6 +8358,7 @@ the kind of token.
      [lex.icon]) and floating constants (2.14.4 [lex.fcon]), rather than
      according to the pp-number syntax (2.10 [lex.ppnumber]).  */
   kind = k_decimal;
+  number_contains_digit_separator = FALSE;
   if (*curr_char_loc == '0') {
     /* First digit is a zero.  This is probably an octal constant (like
        0777) or a hex constant (like 0xfff), but it could also be a
@@ -8342,8 +8369,11 @@ the kind of token.
       kind = k_hex;
       /* The hex constant stops on a non-hex digit. */
       curr_char_loc++;
+      skip_digit_separator(1);
       while (isxdigit((unsigned char)*(++curr_char_loc))) {
         any_hex_digits = TRUE;
+        first_digit_seen = TRUE;
+        skip_digit_separator(1);
       }  /* while */
       /* Check for floating point. */
       if (local_allow_hex_fp_constants || fixed_point_enabled) {
@@ -8360,6 +8390,10 @@ the kind of token.
         } else {
           warning_at_line_pos(ec_bad_hex_digit, start_of_curr_token);
         }  /* if */
+      } else if (*(curr_char_loc - 1) == '\'' && !fetch_pp_tokens) {
+        /* A digit separator is not allowed following the last digit. */
+        error_at_line_pos(ec_bad_digit_separator_pos, curr_char_loc - 1);
+        err = TRUE;
       }  /* if */
     } else if (binary_literals_allowed && (ch == 'b' || ch == 'B')) {
       /* A binary literal. */
@@ -8368,12 +8402,19 @@ the kind of token.
       curr_char_loc++;
       /* Scan any digits.  If a digit is not "0" or "1", an error will
          be issued later. */
+      skip_digit_separator(1);
       while (isdigit((unsigned char)*(++curr_char_loc))) {
         any_digits = TRUE;
+        first_digit_seen = TRUE;
+        skip_digit_separator(1);
       }  /* while */
       if (!any_digits && !fetch_pp_tokens) {
         /* No digits were found after the "0b" or "0B". */
         error_at_line_pos(ec_bad_binary_digit, start_of_curr_token);
+        err = TRUE;
+      } else if (*(curr_char_loc - 1) == '\'' && !fetch_pp_tokens) {
+        /* A digit separator is not allowed following the last digit. */
+        error_at_line_pos(ec_bad_digit_separator_pos, curr_char_loc - 1);
         err = TRUE;
       }  /* if */
 #if C99_IL_EXTENSIONS_SUPPORTED
@@ -8394,7 +8435,15 @@ the kind of token.
          are valid in floating point, but in octal they are only valid in
          pcc mode.  That is checked later.  For now, the "8" and "9"
          are accumulated. */
-      do {} while (isdigit((unsigned char)*(++curr_char_loc)));
+      first_digit_seen = TRUE;
+      do {
+        skip_digit_separator(1);
+      } while (isdigit((unsigned char)*(++curr_char_loc)));
+      if (*(curr_char_loc - 1) == '\'' && !fetch_pp_tokens) {
+        /* A digit separator is not allowed following the last digit. */
+        error_at_line_pos(ec_bad_digit_separator_pos, curr_char_loc - 1);
+        err = TRUE;
+      }  /* if */
       /* Check for floating point. */
       if ((ch = *curr_char_loc) == '.') goto float_accum_1;
       if (ch == 'e' || ch == 'E')       goto float_accum_2;
@@ -8415,7 +8464,15 @@ the kind of token.
   } else {
     /* Number not starting with "0" or ".".  Could be a decimal integer or
        a floating-point number.  Accumulate the initial digit sequence. */
-    do {} while (isdigit((unsigned char)*(++curr_char_loc)));
+    first_digit_seen = TRUE;
+    do {
+      skip_digit_separator(1);
+    } while (isdigit((unsigned char)*(++curr_char_loc)));
+    if (*(curr_char_loc - 1) == '\'' && !fetch_pp_tokens) {
+      /* A digit separator is not allowed following the last digit. */
+      error_at_line_pos(ec_bad_digit_separator_pos, curr_char_loc - 1);
+      err = TRUE;
+    }  /* if */
     /* A ".", "e", or "E" now indicates a floating-point constant. */
     if ((ch = *curr_char_loc) == '.') goto float_accum_1;
     if (ch == 'e' || ch == 'E')       goto float_accum_2;
@@ -8487,17 +8544,28 @@ float_accum_1:
   /* At the decimal point in a floating constant.  Take whatever digits
      follow it.  The kind variable indicates the kind of digits that
      are being used (hex or decimal). */
+  first_digit_seen = FALSE;
   if (kind == k_hex) {
+    skip_digit_separator(1);
     while (isxdigit((unsigned char)*(++curr_char_loc))) {
       any_hex_digits = TRUE;
+      first_digit_seen = TRUE;
+      skip_digit_separator(1);
     }  /* while */
     if (!any_hex_digits && !fetch_pp_tokens) {
       /* No hex digits were specified.  Something like "0x.". */
       error_at_line_pos(ec_bad_float_constant, curr_char_loc);
       any_hex_digits = TRUE;
+    } else if (*(curr_char_loc - 1) == '\'' && !fetch_pp_tokens) {
+      /* A digit separator is not allowed following the last digit. */
+      error_at_line_pos(ec_bad_digit_separator_pos, curr_char_loc - 1);
+      err = TRUE;
     }  /* if */
   } else {
-    do {} while (isdigit((unsigned char)*(++curr_char_loc)));
+    do {
+      skip_digit_separator(1);
+      first_digit_seen = TRUE;
+    } while (isdigit((unsigned char)*(++curr_char_loc)));
   }  /* if */
   /* Check for the presence of an exponent. */
   if (kind == k_hex) {
@@ -8528,6 +8596,8 @@ float_accum_2:
     error_at_line_pos(ec_bad_float_constant, curr_char_loc);
   }  /* if */
   if ((ch = *(curr_char_loc+1)) == '+' || ch == '-') curr_char_loc++;
+  first_digit_seen = FALSE;
+  skip_digit_separator(1);
   if (!isdigit((unsigned char)*(curr_char_loc+1)) && !fetch_pp_tokens) {
     /* No digits of the exponent are present. pcc treats this as an exponent
        of zero. */
@@ -8538,7 +8608,15 @@ float_accum_2:
       warning_at_line_pos(ec_bad_float_constant, curr_char_loc+1);
     }  /* if */
   }  /* if */
-  do {} while (isdigit((unsigned char)*(++curr_char_loc)));
+  do {
+    skip_digit_separator(1);
+    first_digit_seen = TRUE;
+  } while (isdigit((unsigned char)*(++curr_char_loc)));
+  if (*(curr_char_loc - 1) == '\'' && !fetch_pp_tokens) {
+    /* A digit separator is not allowed following the last digit. */
+    error_at_line_pos(ec_bad_digit_separator_pos, curr_char_loc - 1);
+    err = TRUE;
+  }  /* if */
 end_float_accum:
   is_hex_fp_value = kind == k_hex;
   kind = k_float;
@@ -8698,7 +8776,16 @@ fixed_point_suffix:
     int       char_bytes;
     a_boolean part_of_pp_num;
     char      prev_ch = *(curr_char_loc - 1);
+    first_digit_seen = TRUE;
     do {
+      if (digit_separators_enabled) {
+        /* We must not invoke skip_digit_separator here when
+           digit_separators_enabled is FALSE because an apostrophe will
+           have terminated the number with a warning, leaving curr_char_loc
+           pointing to the apostrophe, and we do not want to repeat the
+           warning. */
+        skip_digit_separator(0);
+      }  /* if */
       ch = *curr_char_loc;
       part_of_pp_num = FALSE;
       if (is_identifier_char(curr_char_loc, &char_bytes,
@@ -8879,6 +8966,7 @@ fixed_point_suffix:
   }  /* if */
 #endif /* DEBUG */
   return (ctoken);
+#undef skip_digit_separator
 }  /* scan_number */
 
 

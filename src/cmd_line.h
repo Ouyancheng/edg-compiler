@@ -308,6 +308,7 @@ typedef enum /*an_option_kind*/ {
   optk_nonstd_anonymous_unions,
   optk_cpp14_mode,
   optk_c11_mode,
+  optk_digit_separators,
   optk_last		/* Must be last. */
 } an_option_kind;
 

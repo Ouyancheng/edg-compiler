@@ -27,22 +27,54 @@ literals.c -- Literal constant conversion to and from internal form.
 #include "preproc.h"
 
 
+static a_text_buffer_ptr
+		token_buffer;
+			/* A text buffer used to hold the spelling of a
+			   token after removal of digit separators. */
+
+static a_const_char *remove_digit_separators(a_const_char *first_char,
+                                             a_const_char *last_char)
+/*
+Make a copy of the characters from first_char to last_char, inclusive, but
+excluding any apostrophe (C++14 digit separator) characters, and return a
+pointer to the first character of the resulting null-terminated string.
+*/
+{
+  a_const_char *p;
+
+  if (token_buffer == NULL) {
+    /* Allocate a buffer for the copy. */
+    token_buffer = alloc_text_buffer(64);
+  }  /* if */
+  reset_text_buffer(token_buffer);
+  for (p = first_char; p <= last_char; ++p) {
+    if (*p != '\'') {
+      add_char_to_text_buffer(token_buffer, *p);
+    }  /* if */
+  }  /* if */
+  add_char_to_text_buffer(token_buffer, '\0');
+  return token_buffer->buffer;
+}  /* remove_digit_separators */
+
+
 void conv_integer_literal(int           radix,
                           an_error_code *err_code,
                           a_const_char  **err_pos)
 /*
 Convert an integer of base indicated by radix (2, 8, 10, or 16) from
-external form to internal form.  start_of_curr_token and
-end_of_curr_token point to the two ends of the external form.  The
-internal form is placed in const_for_curr_token.  If there is no error,
-*err_code is set to ec_no_error (which is 0); otherwise, *err_code is
-set to an appropriate error code and *err_pos is set to the character
-position of the error.  A zero-length number is converted as zero.
-Other than the zero-length pathology, the input number is guaranteed
-to be syntactically correct (except for digits 8 and 9 in octal 
-constants or digits above 1 for binary constants).  The number may have
-a "u" or "l" suffix, or both. (Or a "ll" or "ull" suffix, if long long
-is allowed.) (Or a suffix like "i32", if Microsoft extensions are enabled.)
+external form to internal form.  start_of_curr_token and end_of_curr_token
+point to the two ends of the external form.  The internal form is placed in
+const_for_curr_token.  If there is no error, *err_code is set to
+ec_no_error (which is 0); otherwise, *err_code is set to an appropriate
+error code and *err_pos is set to the character position of the error.  A
+zero-length number is converted as zero.  Other than the zero-length
+pathology, the input number is guaranteed to be syntactically correct
+(except for digits 8 and 9 in octal constants or digits above 1 for binary
+constants).  The number may have a "u" or "l" suffix, or both. (Or a "ll"
+or "ull" suffix, if long long is allowed.) (Or a suffix like "i32", if
+Microsoft extensions are enabled.)  Apostrophes (C++14 digit separators)
+within the token are unconditionally ignored, since they will only be part
+of the token if digit separators are enabled.
 */
 {
   an_integer_value number, ten, digit, mask;
@@ -165,65 +197,81 @@ is allowed.) (Or a suffix like "i32", if Microsoft extensions are enabled.)
     set_unsigned_integer_value(&number, (a_host_large_unsigned)intdigit);
     for (temp_ptr = start_of_curr_token+1;
          temp_ptr <= real_end_pos; temp_ptr++) {
-      intdigit = *temp_ptr - '0';
-      /* Multiply previous value by 10, checking for overflow. */
-      multiply_integer_values(&number, &ten, /*is_signed=*/FALSE, &err);
-      if (err) ovflo = TRUE;
-      /* Add in digit, checking for overflow. */
-      set_unsigned_integer_value(&digit, (a_host_large_unsigned)intdigit);
-      add_integer_values(&number, &digit, /*is_signed=*/FALSE, &err);
-      if (err) ovflo = TRUE;
+      if (*temp_ptr == '\'') {
+        /* Digit separator -- ignore. */
+      } else {
+        intdigit = *temp_ptr - '0';
+        /* Multiply previous value by 10, checking for overflow. */
+        multiply_integer_values(&number, &ten, /*is_signed=*/FALSE, &err);
+        if (err) ovflo = TRUE;
+        /* Add in digit, checking for overflow. */
+        set_unsigned_integer_value(&digit, (a_host_large_unsigned)intdigit);
+        add_integer_values(&number, &digit, /*is_signed=*/FALSE, &err);
+        if (err) ovflo = TRUE;
+      }  /* if */
     }  /* for */
   } else if (radix == 8) {
     /* Octal.*/
     set_unsigned_integer_value(&number, (a_host_large_unsigned)0);
     for (temp_ptr = start_of_curr_token+1;
          temp_ptr <= real_end_pos; temp_ptr++) {
-      intdigit = *temp_ptr - '0';
-      if (C_dialect != C_dialect_pcc && (intdigit >= 8)) {
-        /* Digits 8 and 9 are allowed by K&R/pcc, but not by ANSI. */
-        *err_pos = temp_ptr;
-        *err_code = ec_bad_octal_digit;
-        goto wrapup;
+      if (*temp_ptr == '\'') {
+        /* Digit separator -- ignore. */
+      } else {
+        intdigit = *temp_ptr - '0';
+        if (C_dialect != C_dialect_pcc && (intdigit >= 8)) {
+          /* Digits 8 and 9 are allowed by K&R/pcc, but not by ANSI. */
+          *err_pos = temp_ptr;
+          *err_code = ec_bad_octal_digit;
+          goto wrapup;
+        }  /* if */
+        /* Multiply previous value by 8, checking for overflow. */
+        shift_left_integer_value(&number, 3, &err);
+        if (err) ovflo = TRUE;
+        /* Or in digit. */
+        set_unsigned_integer_value(&digit, (a_host_large_unsigned)intdigit);
+        or_integer_values(&number, &digit);
       }  /* if */
-      /* Multiply previous value by 8, checking for overflow. */
-      shift_left_integer_value(&number, 3, &err);
-      if (err) ovflo = TRUE;
-      /* Or in digit. */
-      set_unsigned_integer_value(&digit, (a_host_large_unsigned)intdigit);
-      or_integer_values(&number, &digit);
     }  /* for */
   } else if (radix == 2) {
     /* Binary.*/
     set_unsigned_integer_value(&number, (a_host_large_unsigned)0);
     for (temp_ptr = start_of_curr_token+2;
          temp_ptr <= real_end_pos; temp_ptr++) {
-      intdigit = *temp_ptr - '0';
-      if (intdigit >= 2) {
-        /* Digits over 1 are not allowed. */
-        *err_pos = temp_ptr;
-        *err_code = ec_bad_binary_digit;
-        goto wrapup;
+      if (*temp_ptr == '\'') {
+        /* Digit separator -- ignore. */
+      } else {
+        intdigit = *temp_ptr - '0';
+        if (intdigit >= 2) {
+          /* Digits over 1 are not allowed. */
+          *err_pos = temp_ptr;
+          *err_code = ec_bad_binary_digit;
+          goto wrapup;
+        }  /* if */
+        /* Multiply previous value by 2, checking for overflow. */
+        shift_left_integer_value(&number, 1, &err);
+        if (err) ovflo = TRUE;
+        /* Or in digit. */
+        set_unsigned_integer_value(&digit, (a_host_large_unsigned)intdigit);
+        or_integer_values(&number, &digit);
       }  /* if */
-      /* Multiply previous value by 2, checking for overflow. */
-      shift_left_integer_value(&number, 1, &err);
-      if (err) ovflo = TRUE;
-      /* Or in digit. */
-      set_unsigned_integer_value(&digit, (a_host_large_unsigned)intdigit);
-      or_integer_values(&number, &digit);
     }  /* for */
   } else {
     /* radix == 16 (hexadecimal). */
     set_unsigned_integer_value(&number, (a_host_large_unsigned)0);
     for (temp_ptr = start_of_curr_token+2;
          temp_ptr <= real_end_pos; temp_ptr++) {
-      intdigit = hexvalue(*temp_ptr);
-      /* Multiply previous value by 16, checking for overflow. */
-      shift_left_integer_value(&number, 4, &err);
-      if (err) ovflo = TRUE;
-      /* Or in digit. */
-      set_unsigned_integer_value(&digit, (a_host_large_unsigned)intdigit);
-      or_integer_values(&number, &digit);
+      if (*temp_ptr == '\'') {
+        /* Digit separator -- ignore. */
+      } else {
+        intdigit = hexvalue(*temp_ptr);
+        /* Multiply previous value by 16, checking for overflow. */
+        shift_left_integer_value(&number, 4, &err);
+        if (err) ovflo = TRUE;
+        /* Or in digit. */
+        set_unsigned_integer_value(&digit, (a_host_large_unsigned)intdigit);
+        or_integer_values(&number, &digit);
+      }  /* if */
     }  /* for */
   }  /* if */
   /* Determine the type based on the value and the suffixes.  See standard,
@@ -530,6 +578,7 @@ This function is modeled after conv_float_literal (see below).
   char         old_next_char;
   a_boolean    err;
   a_boolean    inexact = FALSE;
+  a_const_char *token_no_separators;
 
   *err_code = ec_no_error;
   /* Check the suffixes. */
@@ -559,19 +608,28 @@ This function is modeled after conv_float_literal (see below).
     }  /* if */
     --actual_end;
   }  /* for */
-  /* Place a null after the number to guarantee stopping at the right
-     point.  */
-  old_next_char = *(actual_end+1);
-  *(char *)(actual_end+1) = '\0';
+  if (number_contains_digit_separator) {
+    /* We must remove the separators before converting. */
+    token_no_separators = remove_digit_separators(start_of_curr_token,
+                                                  actual_end);
+  } else {
+  /* Use the token spelling directly.  Place a null after the number to
+     guarantee stopping at the right point.  */
+    token_no_separators = start_of_curr_token;
+    old_next_char = *(actual_end+1);
+    *(char *)(actual_end+1) = '\0';
+  }  /* if */
   /* Do the conversion. */
   if (is_hexadecimal) {
-    fxp_hex_string_to_fixed_point(&fxp_descr, start_of_curr_token, &value,
+    fxp_hex_string_to_fixed_point(&fxp_descr, token_no_separators, &value,
                                   &err, &inexact);
   } else {
-    fxp_string_to_fixed_point(&fxp_descr, start_of_curr_token, &value, &err);
+    fxp_string_to_fixed_point(&fxp_descr, token_no_separators, &value, &err);
   }  /* if */
-  /* Restore the character that was replaced by a null. */
-  *(char *)(actual_end+1) = old_next_char;
+  if (!number_contains_digit_separator) {
+    /* Restore the character that was replaced by a null. */
+    *(char *)(actual_end+1) = old_next_char;
+  }  /* if */
   if (err) {
     *err_code = ec_bad_fixed_point_value;
     *err_pos = start_of_curr_token;
@@ -616,9 +674,11 @@ the character position of the error.
   an_internal_float_value
                number;
   a_const_char *actual_end = end_of_curr_token;
+  a_const_char *last_conversion_char;
   char         old_next_char, old_next2_char;
   a_boolean    err;
   a_boolean    inexact = FALSE;
+  a_const_char *token_no_separators;
 #if GNU_EXTENSIONS_ALLOWED || C99_IL_EXTENSIONS_SUPPORTED
   a_boolean    is_imaginary_literal = FALSE;
 #endif /* GNU_EXTENSIONS_ALLOWED || C99_IL_EXTENSIONS_SUPPORTED */
@@ -680,15 +740,24 @@ the character position of the error.
     /* Missing exponent digits (pcc case); add 0 exponent. */
     *(char *)(actual_end+1) = '0';
     *(char *)(actual_end+2) = '\0';
+    last_conversion_char = actual_end + 1;
   } else {
     *(char *)(actual_end+1) = '\0';
+    last_conversion_char = actual_end;
+  }  /* if */
+  if (number_contains_digit_separator) {
+    /* We must remove the separators before converting. */
+    token_no_separators = remove_digit_separators(start_of_curr_token,
+                                                  last_conversion_char);
+  } else {
+  /* Use the token spelling directly. */
+    token_no_separators = start_of_curr_token;
   }  /* if */
   /* Do the conversion. */
   if (is_hexadecimal) {
-    fp_hex_string_to_float(kind, start_of_curr_token, &number, &err,
-                           &inexact);
+    fp_hex_string_to_float(kind, token_no_separators, &number, &err, &inexact);
   } else {
-    fp_string_to_float(kind, start_of_curr_token, &number, &err);
+    fp_string_to_float(kind, token_no_separators, &number, &err);
   }  /* if */
   *(char *)(actual_end+1) = old_next_char;
   *(char *)(actual_end+2) = old_next2_char;

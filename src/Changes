@@ -1,5 +1,16 @@
 Version 4.10
 
+8/25/14  [EDGcpfe/14686]
+C++14: apostrophe as digit separator
+
+The front end now accepts in --c++14 mode the apostrophe character as a
+digit separator in numeric literals, as described in C++ Committee document
+N3781.  The feature is also controlled by the --[no_]digit_separators
+command-line option.  For example,
+
+  long l = 2'147'483'647;  // Equivalent to 2147483647
+
+
 8/22/14  [EDGcpfe/15379]
 Downgrade diagnostic on virtual function declared but not defined in a
 local class
