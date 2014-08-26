@@ -15,7 +15,7 @@ command-line option.  For example,
 Downgrade diagnostic on virtual function declared but not defined in a
 local class
 
-According to the standard, a non-pure virtual function is "odr-used", and
+According to the C++ standard, a non-pure virtual function is "odr-used", and
 as such, an error had been issued when a virtual function in a local class
 had been declared but not defined (because a reference to the function
 will be in the vtable, causing an error at link time).  In cases where
