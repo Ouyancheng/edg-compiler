@@ -575,7 +575,7 @@ This function is modeled after conv_float_literal (see below).
   a_fixed_point_value
                value;
   a_const_char *actual_end = end_of_curr_token;
-  char         old_next_char;
+  char         old_next_char = '\0';
   a_boolean    err;
   a_boolean    inexact = FALSE;
   a_const_char *token_no_separators;
