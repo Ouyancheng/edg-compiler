@@ -70,7 +70,7 @@ error code and *err_pos is set to the character position of the error.  A
 zero-length number is converted as zero.  Other than the zero-length
 pathology, the input number is guaranteed to be syntactically correct
 (except for digits 8 and 9 in octal constants or digits above 1 for binary
-constants).  The number may have a "u" or "l" suffix, or both. (Or a "ll"
+constants).  The number may have a "u" or "l" suffix, or both. (Or an "ll"
 or "ull" suffix, if long long is allowed.) (Or a suffix like "i32", if
 Microsoft extensions are enabled.)  Apostrophes (C++14 digit separators)
 within the token are unconditionally ignored, since they will only be part
