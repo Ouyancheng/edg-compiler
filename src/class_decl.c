@@ -13353,6 +13353,7 @@ implicitly declared member functions.
   db_enter(3, "decl_member_function");
   is_static_member = decl_state->storage_class == (a_storage_class)sc_static;
   if (!is_static_member && (decl_state->dso_flags & DSO_CONSTEXPR) != 0) {
+#if MICROSOFT_EXTENSIONS_ALLOWED
     if (microsoft_mode &&
         (!cpp11_mode ||
          (decl_info->is_constructor &&
@@ -13367,7 +13368,10 @@ implicitly declared member functions.
         pos_warning(ec_constexpr_ignored_on_microsoft_nonstatic_member,
                     &decl_state->constexpr_pos);
       }  /* if */
-    } else if (!decl_info->is_constructor) {
+    } else
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+    /* Do not insert code here. */
+    if (!decl_info->is_constructor) {
       adjust_constexpr_member_type_if_needed(decl_state);
     }  /* if */
   }  /* if */
