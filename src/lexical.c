@@ -17498,7 +17498,7 @@ we are scanning a C++/CLI typeid of the form X::typeid.
        destructor, set the is_vacuous destructor flag. */
     a_boolean	only_valid_as_vacuous_dtor = FALSE;
     if (is_enum_symbol(sym)) {
-      only_valid_as_vacuous_dtor = !enum_qualifiers_enabled;
+      only_valid_as_vacuous_dtor = !is_valid_enum_qualifier_symbol(sym);
     } else if (sym->kind == (a_symbol_kind)sk_type && !is_class_symbol(sym) &&
                !is_template_param_type_symbol(sym)) {
       only_valid_as_vacuous_dtor = TRUE;
