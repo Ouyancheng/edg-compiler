@@ -9794,7 +9794,7 @@ p_tp may equal &rp->type.
 {
   /* Implicit exception specifications are generated only if
      implicit_noexcept_enabled is TRUE. */
-  if (implicit_noexcept_enabled) {
+  if (exceptions_enabled && implicit_noexcept_enabled) {
     a_type_ptr  tp = *p_tp, old_tp;
     if (tp->kind == (a_type_kind)tk_routine) {
       a_routine_type_supplement_ptr  rtsp = tp->variant.routine.extra_info,
@@ -13186,23 +13186,22 @@ ensures this routine will issue an error on this example.
 
 static void adjust_constexpr_member_type_if_needed(a_decl_parse_state  *dps)
 /*
-dps describes a nonstatic member function declaration that is not a constructor
-declaration.  If the declaration is for a constexpr member function and
-dps->type does not represent a const-qualified member function type, replace
-dps->type by a copy of the routine type with added const qualification.
+dps describes a nonstatic member function declaration declared "constexpr" that
+is not a constructor declaration.  If dps->type does not represent a
+const-qualified member function type, replace dps->type by a copy of the
+routine type with added const qualification.
 */
 {
-  if ((dps->dso_flags & DSO_CONSTEXPR) != 0) {
-    a_type_ptr  rtp = skip_typerefs(dps->type);
-    if (rtp->kind == (a_type_kind)tk_routine) {
-      a_routine_type_supplement_ptr  rtsp = rtp->variant.routine.extra_info;
-      if (routine_type_is_nonstatic_member_function(rtp) &&
-          (rtsp->qualifiers & TQ_CONST) == 0) {
-        dps->type = copy_routine_type_with_param_types(
+  a_type_ptr  rtp = skip_typerefs(dps->type);
+
+  if (rtp->kind == (a_type_kind)tk_routine) {
+    a_routine_type_supplement_ptr  rtsp = rtp->variant.routine.extra_info;
+    if (routine_type_is_nonstatic_member_function(rtp) &&
+        (rtsp->qualifiers & TQ_CONST) == 0) {
+      dps->type = copy_routine_type_with_param_types(
                                             rtp, /*copy_default_args=*/FALSE);
-        rtsp = dps->type->variant.routine.extra_info;
-        rtsp->qualifiers |= (a_type_qualifier_set)TQ_CONST;
-      }  /* if */
+      rtsp = dps->type->variant.routine.extra_info;
+      rtsp->qualifiers |= (a_type_qualifier_set)TQ_CONST;
     }  /* if */
   }  /* if */
 }  /* adjust_constexpr_member_type_if_needed */
@@ -13353,8 +13352,24 @@ implicitly declared member functions.
 
   db_enter(3, "decl_member_function");
   is_static_member = decl_state->storage_class == (a_storage_class)sc_static;
-  if (!decl_info->is_constructor && !is_static_member) {
-    adjust_constexpr_member_type_if_needed(decl_state);
+  if (!is_static_member && (decl_state->dso_flags & DSO_CONSTEXPR) != 0) {
+    if (microsoft_mode &&
+        (!cpp11_mode ||
+         (decl_info->is_constructor &&
+          (decl_state->decl_modifiers.flags & DM_DLLIMPORT)))) {
+      /* Microsoft compilers that accept "constexpr" (currently, version 19.00)
+         ignore it on nonstatic member function declarations.  We only emulate
+         this if C++11 mode was not enabled.  Even so, we currently do ignore
+         it on dllimport constructors because a constexpr dllimport constructor
+         may be difficult to implement for a back end (because a virtual
+         function table entry may need to be folded). */
+      if (decl_state->constexpr_pos.seq != 0) {
+        pos_warning(ec_constexpr_ignored_on_microsoft_nonstatic_member,
+                    &decl_state->constexpr_pos);
+      }  /* if */
+    } else if (!decl_info->is_constructor) {
+      adjust_constexpr_member_type_if_needed(decl_state);
+    }  /* if */
   }  /* if */
   if (locator->is_udl_operator_name) {
     /* User-defined literal operators cannot be class members. */
@@ -19038,9 +19053,14 @@ issue an error if it is not actually constexpr.
       /* A generated default constructor is implicitly "constexpr" if (a) the
          parent class has no virtual bases, (b) every field has a constant
          field initializer, and (c) every direct base class has an unambiguous
-         constexpr default constructor. */
+         constexpr default constructor.  In Microsoft mode, the generated
+         default constructor of a dllimport class is not "constexpr" either. */
       if (fields_initialized_for_constexpr_constructor(class_type) &&
-          bases_initialized_for_constexpr_constructor(class_type)) {
+          bases_initialized_for_constexpr_constructor(class_type)
+#if MICROSOFT_EXTENSIONS_ALLOWED
+          && !(class_type_supp(class_type)->decl_modifiers & DM_DLLIMPORT)
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+                                                                          ) {
         is_constexpr = TRUE;
       }  /* if */
     }  /* if */

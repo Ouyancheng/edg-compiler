@@ -2676,6 +2676,7 @@ ec_nonstd_opaque_enum_decl_in_type_id;;"an opaque enum declaration is nonstandar
 ec_extended_friends_is_cpp11;;"extended friend syntax is a C++11 feature"
 ec_digit_separators_not_enabled;;"digit separators not enabled, apostrophe begins a character literal"
 ec_bad_digit_separator_pos;;"digit separator cannot appear here"
+ec_constexpr_ignored_on_microsoft_nonstatic_member;;"\"constexpr\" is ignored here in Microsoft mode"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

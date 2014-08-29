@@ -2324,6 +2324,7 @@ by a command line option.
     }  /* if */
     if (microsoft_version >= 1900) {
       noexcept_enabled = TRUE;
+      constexpr_enabled = TRUE;
     }  /* if */
   }  /* if */
   /* In C++ mode, the Microsoft compiler sometimes finds typedefs when
