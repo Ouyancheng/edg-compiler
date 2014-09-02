@@ -19087,8 +19087,13 @@ block and namespace sub-scopes).
 
   /* Lower any scoped enum types in this scope. */
   for (type = scope->types; type != NULL; type = type->next) {
-    if (is_enum_type(type) &&
-        integer_type_is_scoped_enum(f_skip_typerefs(type))) {
+    a_type_ptr  stripped_type = skip_typerefs(type);
+    /* Only lower scoped enums that are defined in this scope (except
+       when processing the file scope). */
+    if (is_enum_type(stripped_type) &&
+        integer_type_is_scoped_enum(stripped_type) &&
+        (stripped_type->source_corresp.parent_scope == scope ||
+         scope->kind == (a_scope_kind)sck_file)) {
       lower_scoped_enum_type(type);
     }  /* if */
   }  /* for */
@@ -20390,6 +20395,9 @@ Do IL lowering of the indicated scope and everything under it.
       add_required_wrapper_routines(routine);
     }  /* if */
 #endif /* ABI_CHANGES_FOR_COVARIANT_VIRTUAL_FUNC_RETURN */
+  } else {
+    /* Re-write any scoped enums to non-scoped enums. */
+    do_lowering_of_scoped_enums(scope);
   }  /* if */
   lower_constant_list(scope->constants);
   if (lowering_file_scope) {

@@ -1,5 +1,22 @@
 Version 4.10
 
+9/2/14   [EDGcpfe/15395]
+Lowering of scoped enumeration types
+
+In configurations that support lowering but have the configuration macro
+PROMOTE_LOCAL_ENTITIES_TO_FILE_SCOPE set to FALSE, the use of a typedef to
+refer to a scoped enumeration type had caused the premature lowering of the
+scoped enumeration type, potentially causing undesired behavior.  In the case
+below, with --c++11, the static assertion had triggered:
+
+  enum class E : char {};
+  void foo() {
+    typedef E X;
+  }
+  E e;
+  char f(bool);
+  int f(...);
+  static_assert(sizeof(f(e)) == sizeof(int), "should not be convertible");
 
 
 9/2/14   [EDGcpfe/15389]
