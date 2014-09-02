@@ -5126,7 +5126,8 @@ Similarly, check for virtual functions that are hidden rather than overridden.
 dependent on the use of the C++11 attributes "base_check" and "hiding".)
 */
 {
-  a_symbol_ptr  tag_sym = symbol_for(class_state->class_type);
+  a_type_ptr    class_type = class_state->class_type;
+  a_symbol_ptr  tag_sym = symbol_for(class_type);
   a_boolean     strict_checking =
                    tag_sym->variant.class_struct_union.extra_info->base_check;
   an_override_registry_entry_ptr
@@ -5134,15 +5135,15 @@ dependent on the use of the C++11 attributes "base_check" and "hiding".)
 
   /* Loop through the registry of overrides. */
   for (; orep != NULL; orep = next_orep) {
+    if (class_type->variant.class_struct_union.is_nonreal_class) {
+      /* Don't issue diagnostics for nonreal classes. */
 #if MICROSOFT_EXTENSIONS_ALLOWED
-    if (class_type_supp(class_state->class_type)->is_hide_by_sig) {
+    } else if (class_type_supp(class_type)->is_hide_by_sig) {
       /* In managed class types, lookup is based on "signature": The
          traditional hiding-instead-of-overriding problems are not an issue
          in that context. */
-    } else
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-    /* Do not insert code here. */
-    if (orep->override_count < orep->virtual_function_count) {
+    } else if (orep->override_count < orep->virtual_function_count) {
       if (orep->override_count > 0) {
         /* Issue a diagnostic on partial override of an overloaded
            virtual function. */
@@ -6236,7 +6237,11 @@ done:
       }  /* if */
     }  /* if */
   }  /* if */
-  if (func_info->override && !dps->override_okay) {
+  /* Check the "override" and "new" modifiers if necessary. */
+  if (class_type->variant.class_struct_union.is_nonreal_class) {
+    /* Do not perform the checks for nonreal classes since they may involve
+       dependent bases that would make the check unreliable. */
+  } else if (func_info->override && !dps->override_okay) {
     /* The "override" function modifier was specified on a member function 
        that doesn't override.  This is usually an error, except in some
        Microsoft-mode cases. */
