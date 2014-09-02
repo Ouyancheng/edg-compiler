@@ -13867,6 +13867,13 @@ cases and won't be seen in this routine.
         pointer_dereference_expr_mask = 0x1;
       }  /* if */
       break;
+    case eok_address_of:
+      /* If the result of an "address of" operation is assumed to be
+         non-NULL, then its operand is also. */
+      if (assume_expr_is_non_null) {
+        pointer_dereference_expr_mask = 0x1;
+      }  /* if */
+      break;
 #if CHECKING
     case eok_ref_indirect:
     case eok_call:

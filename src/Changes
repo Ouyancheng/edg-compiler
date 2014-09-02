@@ -1,5 +1,28 @@
 Version 4.10
 
+9/2/14   [EDGcpfe/15396]
+Restored optimization for lvalue related class cast
+
+As a result of the expression changes that were made in version 4.0, the
+optimization of suppressing the NULL-preservation check for some lvalue
+related class casts during lowering had inadvertently been removed.  A change
+has been made that will restore the previous behavior on cases like this
+(where an eok_operation had been introduced during the cast):
+
+  struct A {
+    virtual void v();
+  };
+  struct B {
+    int x;
+    void g();
+  };
+  struct D : A, B {};
+  D& f();
+  void h() {
+    f().g();    // No longer has an eok_question operation.
+  }
+
+
 8/29/14  [EDGcpfe/15237]
 Microsoft compatibility: constexpr
 
