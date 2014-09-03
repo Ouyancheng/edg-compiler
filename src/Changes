@@ -57,7 +57,7 @@ As a result of the expression changes that were made in version 4.0, the
 optimization of suppressing the NULL-preservation check for some lvalue
 related class casts during lowering had inadvertently been removed.  A change
 has been made that will restore the previous behavior on cases like this
-(where an eok_operation had been introduced during the cast):
+(where an eok_question had been introduced during the cast):
 
   struct A {
     virtual void v();
