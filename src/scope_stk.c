@@ -7910,6 +7910,43 @@ hasn't been fully processed yet.
 }  /* ctor_needs_unprocessed_field_initializer */
 
 
+static a_boolean in_unparented_lambda_appearing_in_def_arg(void)
+/*
+Return TRUE if we're inside a lambda that appears in the default argument of a
+function that has not yet been recorded as that lambda's parent.
+*/
+{
+  a_boolean      result = FALSE;
+  a_scope_depth  d = depth_scope_stack;
+
+  for (;;) {
+    switch (scope_stack[d].kind) {
+      case sck_class_struct_union:
+        { a_type_ptr  class_type = scope_stack[d].assoc_type;
+          if (class_symbol_supp(symbol_for(class_type))
+                         ->lambda_immediately_inside_default_arg_expression &&
+              class_type_supp(class_type)->lambda_parent.routine == NULL) {
+            result = TRUE;
+            goto done;
+          } else if (!class_type->source_corresp.is_local_to_function) {
+            goto done;
+          }  /* if */
+        }
+        break;
+      case sck_file:
+      case sck_namespace:
+      case sck_namespace_extension:
+        goto done;
+      default:
+        break;
+    }  /* switch */
+    d = scope_stack[d].previous_scope;
+  }  /* for */
+done:
+  return result;
+}  /* in_unparented_lambda_appearing_in_def_arg */
+
+
 a_boolean should_delay_lowering_on_function(a_routine_ptr routine,
                                             a_boolean     at_initial_scope_pop)
 /*
@@ -7959,6 +7996,19 @@ be lowered as soon as a module id becomes available (and TRUE is returned).
     /* Lambda bodies are scanned while the parent closure class is still
        on the scope stack.  The lowering of the lambda body must be delayed
        until the closure class has been completed. */
+    delay_lowering = TRUE;
+  } else if (routine->source_corresp.is_local_to_function &&
+             in_unparented_lambda_appearing_in_def_arg()) {
+    /* A routine defined inside a lambda appearing in a default argument of a
+       function has a mangled name that depends on that function.  However, for
+       namespace-scope functions, the function with the default argument is
+       declared after the default argument is parsed (i.e., when the lambda is
+       parsed).  So we must delay lowering of the lambda routine until the
+       namespace-scope function has been declared.  For example:
+         void g(int x = [] { struct A { A() {} void f() {} }; return 1; }()) {}
+       Here the member function A::f will have its definition popped from the
+       scope stack before function g(int) is declared.  A::f should therefore
+       not be lowered right away. */
     delay_lowering = TRUE;
 #if NEED_NAME_MANGLING
   } else if (must_wait_for_discriminator(routine)) {
