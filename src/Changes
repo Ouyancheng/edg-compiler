@@ -77,7 +77,7 @@ has been made that will restore the previous behavior on cases like this
 Microsoft compatibility: constexpr
 
 In Microsoft mode with microsoft_version >= 1900 the front end now accepts
-the C++11 constexpr feature. However, a keyword "constexpr" specified on a
+the C++11 constexpr feature.  However, a keyword "constexpr" specified on a
 nonstatic member function is ignored with a warning in such modes.  That
 limitation is lifted if C++11 mode is enabled (e.g., with the command-line
 option --c++11), except on "dllimport" constructors (where constant-folding
