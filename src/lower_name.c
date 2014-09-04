@@ -6469,15 +6469,17 @@ in a default argument of a function.
 /*
 Returns TRUE if the specified type is a lambda that is defined in a
 default argument and the mangling produced should reflect that.  Lambdas
-that are defined in default arguments in declarations at function scope,
+that are defined in default arguments in declarations at function scope (but
+not those defined in a default argument of a local class member function),
 are mangled as though the lambda is defined in the local scope (this avoids
 a potential conflict with lambdas defined in default arguments in other
 functions with the same signature).
 */
 
 #define mangle_as_lambda_in_default_argument(type)                      \
-  (type_is_lambda_in_default_argument((type)) &&                        \
-   !(type)->source_corresp.is_local_to_function)
+  (type_is_lambda_in_default_argument(type) &&                          \
+   (!(type)->source_corresp.is_local_to_function ||                     \
+    (type)->source_corresp.is_class_member))
 
 static a_const_char
 		*placeholder_name = "";

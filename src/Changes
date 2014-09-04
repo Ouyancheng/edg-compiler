@@ -1,5 +1,25 @@
 Version 4.10
 
+9/4/14   [EDGcpfe/13497,EDGcpfe/15400]
+Mangled name collision for lambdas in default arguments of local class members
+
+The front end previously incorrectly handled the mangling of lambdas appearing
+in default arguments of a member function of a local class.  This error could
+result in duplicate mangled names.  For example:
+
+  int main() {
+    struct A {
+      int x;
+      A(int i = []{return 1;}(),
+        int j = []{return 1;}()) : x(i-j) {}
+    };  // The two closure types were previously mangled the same way.
+    return A().x;
+  }
+
+This is now fixed.  (Since it only affects local types, this changes does not
+raise an ABI incompatibility.)
+
+
 9/4/14   [EDGcpfe/15402]
 Microsoft compatibility: Explicit enum with bool "base" type
 
