@@ -10137,8 +10137,7 @@ implicit "this" is available, e.g., during overload resolution.
           check_assertion(local_this_var != NULL);
           this_exists = TRUE;
         }  /* if */
-      } else if (class_type_supp(closure_class)
-                                             ->defined_in_field_initializer) {
+      } else if (scope_stack_top().in_field_initializer) {
         /* The lambda occurred in a field initializer, which is a context that
            permits references to "this" (but there is no associated variable
            yet). */
