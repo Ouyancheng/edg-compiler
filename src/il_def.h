@@ -17986,6 +17986,22 @@ typedef struct a_lambda_capture {
 			   must be FALSE, and variable and source_closure_field
 			   must both be NULL. */
   a_bit_field
+		is_param_ref_capture:1;
+			/* TRUE if this represents the capture of a "this"
+			   pointer in a context that doesn't have an associated
+			   "this" variable (specifically, a field initializer).
+			   For example:
+			     template<typename T> struct Func {
+			       template<typename F> Func(F);
+			     };
+			     struct S {
+			       int i;
+			       Func<int()> f = [=]{ return i; };
+			     };
+			   Here, the initializer for f has no "this" variable;
+			   instead, references to "this" are represented by an
+			   enk_param_ref node. */
+  a_bit_field
 		capture_by_reference:1;
 			/* TRUE if this entity is being captured by reference,
 			   FALSE if by value.  This flag may be set based on

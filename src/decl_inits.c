@@ -4624,6 +4624,21 @@ field declaration and dtype is the type of the field.
 }  /* expr_init_field */
 
 
+static a_field_ptr
+		field_for_curr_field_initializer;
+			/* The field handled by the last unterminated call to
+			   field_initializer (below).  NULL if there is no
+			   such call (or, in some error cases, if the call is
+			   not for an actual field). */
+
+#if NEED_NAME_MANGLING
+static a_discriminator
+		last_discriminator_for_curr_field_initializer;
+			/* The value of the last discriminator handed out to
+			   distinguish the mangled name of unnamed entities
+			   (closures) appearing in a field initializer. */ 
+#endif /* NEED_NAME_MANGLING */
+
 void field_initializer(a_decl_parse_state  *dps)
 /*
 Scan an initializer for the field described by dps->sym and record it in the
@@ -4633,7 +4648,7 @@ expressions.  For the latter, see init_capture_initializer below.)
 */
 {
   an_init_state      *is = &dps->init_state;
-  a_field_ptr        field;
+  a_field_ptr        field, prev_field = field_for_curr_field_initializer;
   a_type_ptr         dtype, class_type;
   a_source_position  init_pos;
   a_boolean          saved_in_field_initializer = 
@@ -4643,6 +4658,10 @@ expressions.  For the latter, see init_capture_initializer below.)
   a_class_symbol_supplement_ptr
                      parent_cssp;
   a_boolean          saved_scanning_field_initializer = FALSE;
+#if NEED_NAME_MANGLING
+  a_discriminator    last_discriminator_for_prev_field_initializer =
+                                last_discriminator_for_curr_field_initializer;
+#endif /* NEED_NAME_MANGLING */
 
   check_assertion(scope_is(&scope_stack_top(), sck_class_struct_union) ||
                   scope_is(&scope_stack_top(), sck_class_reactivation));
@@ -4652,6 +4671,9 @@ expressions.  For the latter, see init_capture_initializer below.)
      meaningful.)  Also temporarily set the current object lifetime to file
      scope life time. */
   scope_stack_top().in_field_initializer = TRUE;
+#if NEED_NAME_MANGLING
+  last_discriminator_for_curr_field_initializer = 0;
+#endif /* NEED_NAME_MANGLING */
   /* Record that a field initializer is being scanned for this class.  This
      is needed to break an ordering issue when determining whether a class is
      literal.  (The literalness may depend on whether all field initializers
@@ -4665,6 +4687,7 @@ expressions.  For the latter, see init_capture_initializer below.)
   is->force_dynamic_init = TRUE;
   if (symbol_is(dps->sym, sk_field)) {
     field = dps->sym->variant.field.ptr;
+    field_for_curr_field_initializer = field;
     dtype = field->type;
   } else {
     field = NULL;
@@ -4744,28 +4767,44 @@ expressions.  For the latter, see init_capture_initializer below.)
     expect_error();
     if (field != NULL) field->has_initializer = FALSE;
   }  /* if */
-#if NEED_NAME_MANGLING
-  /* If the initializer defines closure types (i.e., contains lambda
-     expressions), assign unique numbers ("discriminators") to each one; these
-     numbers will be used by name mangling.  Also record the data member as a
-     "parent entity" for such closure types (this is also used in the mangled
-     encoding). */
-  if (field != NULL) {
-    compute_data_member_name_collision_discriminators(dps->sym);
-    set_parent_entity_for_closure_types(
-                             field->entities_defined_in_initializer, dps->sym,
-                             /*subject_to_trans_unit_corresp=*/TRUE);
-  }  /* if */
-#endif /* NEED_NAME_MANGLING */
   curr_object_lifetime = saved_curr_object_lifetime;
   scope_stack_top().in_field_initializer = saved_in_field_initializer;
   parent_cssp->scanning_field_initializer = saved_scanning_field_initializer;
+  field_for_curr_field_initializer = prev_field;
+#if NEED_NAME_MANGLING
+  last_discriminator_for_curr_field_initializer =
+                                last_discriminator_for_prev_field_initializer;
+#endif /* NEED_NAME_MANGLING */
   if (--parent_cssp->num_unparsed_field_initializers == 0) {
     /* This was the last unparsed field initializer.  Some actions and
        properties may have been delayed until now. */
     update_class_for_last_parsed_field_initializer(class_type);
   }  /* if */
 }  /* field_initializer */
+
+
+a_field_ptr curr_initializer_field(void)
+/*
+Return the field handled by the last unterminated call to field_initializer (or
+NULL if there is no such call or an error caused the call not to be for an
+actual field).
+*/
+{
+  return field_for_curr_field_initializer;
+}  /* curr_initializer_field */
+
+
+#if NEED_NAME_MANGLING
+a_discriminator get_discriminator_for_field_initializer(void)
+/*
+Increment last_discriminator_for_curr_field_initializer and return the
+resulting value, which is a discriminator value to be used for a closure
+defined in a field initializer.
+*/
+{
+  return ++last_discriminator_for_curr_field_initializer;
+}  /* get_discriminator_for_field_initializer */
+#endif /* NEED_NAME_MANGLING */
 
 
 void init_capture_initializer(a_lambda_capture    *lcp,
@@ -8075,6 +8114,10 @@ handled in decl_inits_init.)
   /* Register variables (and arrays) that have distinct copies for distinct
      compilation units. */
   register_trans_unit_variable(ctor_delegation_map);
+  register_trans_unit_variable(field_for_curr_field_initializer);
+#if NEED_NAME_MANGLING
+  register_trans_unit_variable(last_discriminator_for_curr_field_initializer);
+#endif /* NEED_NAME_MANGLING */
 }  /* decl_inits_one_time_init */
 
 
@@ -8086,6 +8129,10 @@ translation unit.
 */
 {
   ctor_delegation_map = NULL;
+  field_for_curr_field_initializer = NULL;
+#if NEED_NAME_MANGLING
+  last_discriminator_for_curr_field_initializer = 0;
+#endif /* NEED_NAME_MANGLING */
 }  /* decl_inits_trans_unit_init */
 
 

@@ -1,5 +1,19 @@
 Version 4.10
 
+9/4/14   [EDGcpfe/15384,EDGcpfe/15386]
+Capturing "this" in nonstatic data member initializers
+
+Previously, the front end did not permit the capturing of the "this" pointer
+by lambda expressions appearing in nonstatic data member initializers.  That
+limitation is now lifted.  For example, in C++14 mode:
+
+  struct S {
+    int a;
+    struct N { int b; } n = { [=]{ return a; }() };
+      // The initializer for n implicitly captures this.  Now accepted.
+  } s = { 42 };  // s is initialized to { 42, { 42 } }.
+
+
 9/2/14   [EDGcpfe/12793,EDGcpfe/14368,EDGcpfe/15248]
 Abort on lambda in default argument
 

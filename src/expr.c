@@ -30136,6 +30136,19 @@ fields of the closure object.  Return a pointer to the dynamic init entry.
         }  /* if */
       }  /* if */
       check_assertion_or_expect_error(!is.init_error);
+    } else if (lcp->is_param_ref_capture) {
+      /* A capture of "this" where "this" can only be represented by an
+         enk_param_ref node (specifically, in a field initializer). */
+      a_dynamic_init_ptr  dip;
+      a_type_ptr          this_type = lcp->closure_field->type;
+      dip = alloc_dynamic_init((a_dynamic_init_kind)dik_expression);
+      dip->variant.expression =
+                            alloc_expr_node((an_expr_node_kind)enk_param_ref);
+      dip->variant.expression->type = this_type;
+      init_con = alloc_constant((a_constant_repr_kind)ck_dynamic_init);
+      init_con->type = this_type;
+      init_con->variant.dynamic_init = dip;
+      nonconstant = TRUE;
     } else {
       /* A simple capture. */
       a_variable_ptr  var = lcp->captured.variable;

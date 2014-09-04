@@ -1449,14 +1449,22 @@ or field (i.e., init-capture), return a pointer it.  Otherwise, return NULL.
         break;
       }  /* if */
     }  /* for */
-  } else {
+  } else if (fp != NULL) {
     a_symbol_header_ptr  sym_hdr;
-    check_assertion(fp != NULL && fp->is_init_capture);
+    check_assertion(fp->is_init_capture);
     /* Since fp is visible in the current context, we can just look for a
        capture with an associated field of the same name as fp. */
     sym_hdr = symbol_for(fp)->header;
     for (lcp = lambda->capture_list; lcp != NULL; lcp = lcp->next) {
       if (symbol_for(lcp->closure_field)->header == sym_hdr) {
+        break;
+      }  /* if */
+    }  /* if */
+  } else {
+    /* A "this" capture in a context that has no "this" variable (e.g., a
+       field initializer). */
+    for (lcp = lambda->capture_list; lcp != NULL; lcp = lcp->next) {
+      if (lcp->is_param_ref_capture) {
         break;
       }  /* if */
     }  /* if */
@@ -1525,7 +1533,6 @@ capture described by lcp.  Return the field entry.
       if (vp->is_this_parameter) {
         /* "this" variables do not have associated symbols. */
         is_this = TRUE;
-        decl_info.is_unnamed_field = TRUE;
       } else {
         a_symbol_ptr var_sym = symbol_for(vp);
         if (var_sym != NULL) {
@@ -1541,11 +1548,20 @@ capture described by lcp.  Return the field entry.
       }  /* if */
       orig_field_type = field_type = vp->type;
     } else {
-      /* Presumably a direct or indirect capture of an init-capture. */
+      /* No variable to capture.  Either this is a direct or indirect capture
+         of an init-capture, or the capture of "this" in a context that has
+         no actual "this" variable (i.e., a field initializer). */
       a_field_ptr  parent_field = lcp->capture_info.source_closure_field;
-      check_assertion(parent_field != NULL);
-      make_locator_for_symbol(symbol_for(parent_field), &locator);
-      field_type = parent_field->type;
+      if (parent_field != NULL) {
+        /* A capture of an init-capture. */
+        make_locator_for_symbol(symbol_for(parent_field), &locator);
+        field_type = parent_field->type;
+      } else {
+        /* A capture of "this" in a context with no "this" variable. */
+        a_variable_ptr  this_var;
+        is_this = variable_this_exists(&this_var, &field_type);
+        check_assertion(is_this && this_var == NULL);
+      }  /* if */
       orig_field_type = field_type;
     }  /* if */
     /* If the variable is a reference, drop the reference. */
@@ -1598,7 +1614,10 @@ capture described by lcp.  Return the field entry.
     }  /* if */
   }  /* if */
   decl_info.decl_state.type = field_type;
-  decl_info.is_captured_this = is_this;
+  if (is_this) {
+    decl_info.is_captured_this = TRUE;
+    decl_info.is_unnamed_field = TRUE;
+  }  /* if */
   /* The field must be private. */
   class_state->access = (an_access_specifier)as_private;
   fp = decl_nonstatic_data_member(&locator, class_state, &decl_info,
@@ -1685,7 +1704,7 @@ being done.
   a_memory_region_number region_to_switch_back_to = curr_il_region_number;
   a_field_ptr            source_field = NULL;
 
-  check_assertion((vp != NULL) != (fp != NULL));
+  check_assertion(!((vp != NULL) && (fp != NULL)));
   /* See if there is a lambda around the current one, which must capture the
      variable or field so that we can capture it at this level. */
   { a_lambda_ptr         enclosing_lambda;
@@ -1735,6 +1754,9 @@ being done.
      be cleared soon after it's been used to generate the capture copy code. */
   lcp->captured.variable = vp;
   lcp->capture_info.source_closure_field = source_field;
+  if (vp == NULL && fp == NULL) {
+    lcp->is_param_ref_capture = TRUE;
+  }  /* if */
   lcp->capture_by_reference = by_reference;
   lcp->is_implicit = is_implicit;
   lcp->position = *pos;
@@ -1797,14 +1819,16 @@ a_lambda_capture_ptr lambda_capture_for_variable(
                                           a_source_position_ptr  pos,
                                           a_boolean              *rvalue_only)
 /*
-vp is a local variable that is being used in a lambda.  Find or create a
-lambda capture entry for it and return a pointer to it.  pos is the source
-position of the variable reference.  If there is no existing capture entry, an
-implicit capture will be created if the lambda allows it and if the variable
-is appropriate to be captured.  If no capture can be found or created, issue
-an error and return NULL if rvalue_only is NULL or if vp is not constant-
-valued (and set *rvalue_only to FALSE).  If rvalue_only is non-NULL and no
-capture can be found or created, return NULL and set *rvalue_only to TRUE.
+vp is a local variable that is being used in a lambda or it is NULL to indicate
+that "this" is being captured in a context with no "this" variable.  Find or
+create a corresponding lambda capture entry and return a pointer to that.  pos
+is the source position of the variable reference.  If there is no existing
+capture entry, an implicit capture will be created if the lambda allows it and
+if the variable is appropriate to be captured.  If no capture can be found or
+created, issue an error and return NULL if rvalue_only is NULL or if vp is not
+constant-valued (and set *rvalue_only to FALSE).  If rvalue_only is non-NULL
+and no capture can be found or created, return NULL and set *rvalue_only to
+TRUE.
 */
 {
   a_lambda_ptr          lambda = get_current_lambda();
@@ -1818,19 +1842,21 @@ capture can be found or created, return NULL and set *rvalue_only to TRUE.
     /* No existing capture.  See if one can be created. */
     an_error_code err_code = ec_no_error;
     a_boolean     by_ref = lambda->default_is_by_reference;
-    if (!check_var_for_lambda_capture(vp, /*implicit=*/TRUE, &err_code)) {
+    if (vp != NULL &&
+        !check_var_for_lambda_capture(vp, /*implicit=*/TRUE, &err_code)) {
       /* The variable is not valid.  err_code explains why. */
     } else if (!lambda->has_capture_default) {
       /* No capture default, so implicit captures are not allowed.  However,
          if the variable is constant-valued, the use of the constant value
          does not require capture. */
-      if (vp->constant_valued && rvalue_only != NULL) {
+      if (vp != NULL && vp->constant_valued && rvalue_only != NULL) {
         *rvalue_only = TRUE;
       } else {
         err_code = ec_not_captured_local_var_in_lambda;
       }  /* if */
     } else {
-      /* The variable is valid.  Add a new capture entry for it. */
+      /* The variable (or reference to "this") is valid.  Add a new capture
+         entry for it. */
       a_boolean no_impl_capture;
       lcp = add_lambda_capture(lambda, vp, (a_field_ptr)NULL,
                                /*is_implicit=*/TRUE, by_ref, pos,
@@ -1909,15 +1935,26 @@ the fields implied by the lambda's capture list).
   a_type_ptr                     type;
   a_symbol_ptr                   sym;
   a_class_symbol_supplement_ptr  cssp;
+  a_class_type_supplement_ptr    ctsp;
   a_boolean                      is_prototype_instantiation = FALSE;
 
   /* Create an unnamed symbol for the lambda class. */
   sym = make_unnamed_tag_symbol((a_symbol_kind)sk_class_or_struct_tag,
                                 decl_position);
+  cssp = class_symbol_supp(sym);
   /* Create the type for the lambda class. */
   type = alloc_type((a_type_kind)tk_class);
   type->variant.class_struct_union.originally_unnamed = TRUE;
-  class_type_supp(type)->is_lambda_closure_class = TRUE;
+  ctsp = class_type_supp(type);
+  ctsp->is_lambda_closure_class = TRUE;
+  if (scope_stack_top().in_field_initializer) {
+    ctsp->defined_in_field_initializer = TRUE;
+#if NEED_NAME_MANGLING
+    ctsp->lambda_parent.field = curr_initializer_field();
+    cssp->discriminator = get_discriminator_for_field_initializer();
+#endif /* NEED_NAME_MANGLING */
+    cssp->lambda_subject_to_trans_unit_corresp = TRUE;
+  }  /* if */
   set_source_corresp(&(type->source_corresp), sym);
   sym->variant.class_struct_union.type = type;
   if (is_template_dependent_context()) {
@@ -1939,7 +1976,6 @@ the fields implied by the lambda's capture list).
   } else {
     set_parent_scope_for_type(type, decl_level);
   }  /* if */
-  cssp = sym->variant.class_struct_union.extra_info;
   /* Assume for now that bitwise copy is allowed for this class.  This will
      be cleared later if this is not the case. */
   cssp->construction_by_bitwise_copy_allowed = TRUE;
@@ -29238,7 +29274,7 @@ caller has already moved past the '[', and this routine leaves the trailing
         a_variable_ptr             var = NULL;
         a_field_ptr                field = NULL;
         a_symbol_header_ptr        sym_hdr;
-        a_boolean                  by_ref = FALSE;
+        a_boolean                  by_ref = FALSE, is_this = FALSE;
         a_boolean                  no_impl_capture = FALSE;
         pos_capture = pos_curr_token;
         if (curr_token == tok_ampersand) {
@@ -29263,6 +29299,8 @@ caller has already moved past the '[', and this routine leaves the trailing
             /* "&this" is not allowed in a capture list. */
             pos_error(ec_cannot_capture_this_by_reference, &pos_capture);
             var = NULL;
+          } else {
+            is_this = TRUE;
           }  /* if */
           (void)get_token();
           sym_hdr = NULL;
@@ -29317,7 +29355,7 @@ caller has already moved past the '[', and this routine leaves the trailing
           pos_diagnostic(es_discretionary_error,
                          ec_capture_mode_matches_default, &pos_capture);
         }  /* if */
-        if (var != NULL || field != NULL) {
+        if (var != NULL || field != NULL || is_this) {
           /* See if this capture name already appeared in the list (unless
              we're dealing with the second or later element of a pack
              expansion).  (We cannot use find_lambda_capture for this since it

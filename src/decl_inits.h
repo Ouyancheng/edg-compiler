@@ -69,6 +69,12 @@ extern a_constant_ptr aggr_init_constant_from_field_initializer(
 
 extern void field_initializer(a_decl_parse_state  *dps);
 
+extern a_field_ptr curr_initializer_field(void);
+
+#if NEED_NAME_MANGLING
+extern a_discriminator get_discriminator_for_field_initializer(void);
+#endif /* NEED_NAME_MANGLING */
+
 extern void init_capture_initializer(a_lambda_capture  *lcp,
                                      a_decl_parse_state  *dps);
 

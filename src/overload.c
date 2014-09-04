@@ -10137,6 +10137,16 @@ implicit "this" is available, e.g., during overload resolution.
           check_assertion(local_this_var != NULL);
           this_exists = TRUE;
         }  /* if */
+      } else if (class_type_supp(closure_class)
+                                             ->defined_in_field_initializer) {
+        /* The lambda occurred in a field initializer, which is a context that
+           permits references to "this" (but there is no associated variable
+           yet). */
+        this_exists = TRUE;
+        check_assertion(closure_class->source_corresp.is_class_member);
+        local_this_type = parent_class_of(closure_class);
+        local_this_type = add_right_pointer_type_to_this(local_this_type,
+                                                         local_this_type);
       }  /* if */
     } else {
       /* Normal case, not inside a lambda (but inside a function body). */
@@ -10357,7 +10367,23 @@ that case, and this_type is used for the type.
 {
   an_expr_node_ptr node;
 
-  if (this_var == NULL) {
+  if (in_lambda_body()) {
+    /* We're inside a lambda body, so the "this" must be the one from
+       the function enclosing the lambda.  It needs to be captured to be
+       used. */
+    a_lambda_capture *lambda_capture =
+                               lambda_capture_for_variable(this_var, position,
+                                                           (a_boolean*)NULL);
+    if (lambda_capture != NULL) {
+      node = make_selection_for_captured_variable(lambda_capture,
+                                                  /*is_lvalue=*/FALSE);
+      make_expression_operand(node, result);
+    } else {
+      /* "this" cannot be captured. */
+      expr_pos_error(ec_not_captured_this_in_lambda, position);
+      make_error_operand(result);
+    }  /* if */
+  } else if (this_var == NULL) {
     /* "this" in a prototype instantiation, e.g., in a decltype in a
        late-specified return type, or "this" in a nonstatic data member
        initializer.  There is no variable yet, so use an enk_param_ref
@@ -10373,22 +10399,6 @@ that case, and this_type is used for the type.
                                     /*allow_lambda_this=*/FALSE,
                                     position)) {
       unexpected_condition();
-    }  /* if */
-  } else if (in_lambda_body()) {
-    /* We're inside a lambda body, so the "this" must be the one from
-       the function enclosing the lambda.  It needs to be captured to be
-       used. */
-    a_lambda_capture *lambda_capture =
-                               lambda_capture_for_variable(this_var, position,
-                                                           (a_boolean*)NULL);
-    if (lambda_capture != NULL) {
-      node = make_selection_for_captured_variable(lambda_capture,
-                                                  /*is_lvalue=*/FALSE);
-      make_expression_operand(node, result);
-    } else {
-      /* "this" cannot be captured. */
-      expr_pos_error(ec_not_captured_this_in_lambda, position);
-      make_error_operand(result);
     }  /* if */
   } else {
     /* Normal case, not in a lambda body. */

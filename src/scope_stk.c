@@ -694,10 +694,9 @@ unnamed type ends up being an "anonymous union".
     a_class_symbol_supplement_ptr
                             cssp = sym->variant.class_struct_union.extra_info;
     if (entities_are_recorded_for_current_expression()) {
-      /* The discriminator is determined later (in
+      /* The discriminator is determined elsewhere (e.g., in
          compute_default_arg_name_collision_discriminators or
          compute_data_member_name_collision_discriminators). */
-      check_assertion(cssp->discriminator == 0);
     } else {
       cssp->discriminator = ++ssep->last_closure_type_number;
     } 
@@ -828,8 +827,6 @@ initializer, sym represents that data member (otherwise, it is NULL).
           /* Nothing more to be done. */
         } else if (symbol_is(sym, sk_static_data_member)) {
           ctsp->defined_in_static_data_member_initializer = TRUE;
-        } else if (symbol_is(sym, sk_field)) {
-          ctsp->defined_in_field_initializer = TRUE;
         }  /* if */
       }  /* if */
     } else {
@@ -856,17 +853,14 @@ void compute_data_member_name_collision_discriminators(a_symbol_ptr  sym)
 If the given data member defines entities that require discriminators for name
 mangling purposes, assign those discriminators now.  (Currently, this only
 applies to closure types and only static data member initializers are
-possible.)
+possible.  Closure types in nonstatic data member are numbered early in
+make_closure_class.)
 */
 {
   if (symbol_is(sym, sk_static_data_member)) {
     a_variable_ptr  sdm_var = sym->variant.static_data_member.variable;
     assign_discriminators_to_entities_list(
                                sdm_var->entities_defined_in_initializer, sym);
-  } else if (symbol_is(sym, sk_field)) {
-    a_field_ptr  field = sym->variant.field.ptr;
-    assign_discriminators_to_entities_list(
-                                 field->entities_defined_in_initializer, sym);
   } else {
     unexpected_condition();
   }  /* if */
@@ -897,8 +891,6 @@ in the symbol supplement for the closure type to indicate this).
         if (symbol_is(parent_sym, sk_static_data_member)) {
           ctsp->lambda_parent.variable =
                               parent_sym->variant.static_data_member.variable;
-        } else if (symbol_is(parent_sym, sk_field)) {
-          ctsp->lambda_parent.field = parent_sym->variant.field.ptr;
         } else {
           check_assertion(is_simple_function_symbol(parent_sym));
           ctsp->lambda_parent.routine = parent_sym->variant.routine.ptr;

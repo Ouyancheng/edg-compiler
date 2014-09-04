@@ -5111,6 +5111,7 @@ in the current memory region.
   entry->capture_info.source_closure_field = NULL;
   entry->closure_field = NULL;
   entry->is_init_capture = FALSE;
+  entry->is_param_ref_capture = FALSE;
   entry->capture_by_reference = FALSE;
   entry->is_implicit = FALSE;
   entry->is_pack_expansion = FALSE;

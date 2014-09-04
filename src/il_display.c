@@ -5294,6 +5294,9 @@ Display the indicated lambda capture.
              iek_dynamic_init);
   }  /* if */
   disp_ptr("closure_field", (char*)ptr->closure_field, iek_field);
+  if (ptr->is_param_ref_capture) {
+    disp_boolean("is_param_ref_capture", TRUE);
+  }  /* if */
   if (ptr->capture_by_reference) {
     disp_boolean("capture_by_reference", TRUE);
   }  /* if */
