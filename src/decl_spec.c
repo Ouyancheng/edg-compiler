@@ -4687,11 +4687,12 @@ and *p_base_type is left unchanged.
           base_type = NULL;
         }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-      } else if (!cli_or_cx_enabled && !is_integral_type(base_type)) {
+      } else if (!is_integral_type(base_type)) {
         pos_error(ec_enum_base_type_must_be_integral, pos_type);
         base_type = NULL;
-      } else if (microsoft_mode && !cpp11_mode && is_bool_type(base_type)) {
-        /* Microsoft compilers do not accept bool as the integral type
+      } else if (microsoft_mode && microsoft_version < 1800 && !cpp11_mode &&
+                 is_bool_type(base_type)) {
+        /* Early Microsoft compilers did not accept bool as the integral type
            underlying an enum type (in non-C++/CLI mode). */
         pos_error(ec_bool_type_not_allowed, pos_type);
         base_type = NULL;

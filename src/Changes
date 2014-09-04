@@ -1,5 +1,13 @@
 Version 4.10
 
+9/4/14   [EDGcpfe/15402]
+Microsoft compatibility: Explicit enum with bool "base" type
+
+In Microsoft mode, the front end previously did not permit bool as an explicit
+underlying type for an enum type (see the entry of 9/27/10 for EDGcpfe/10112).
+That restriction is now lifted when microsoft_version >= 1800.
+
+
 9/4/14   [EDGcpfe/15384,EDGcpfe/15386]
 Capturing "this" in nonstatic data member initializers
 
