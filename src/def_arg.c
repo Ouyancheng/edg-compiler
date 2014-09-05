@@ -298,20 +298,16 @@ which the default argument is associated.
 {
   a_param_type_ptr  ptp;
   a_boolean         err = FALSE;
+#if MICROSOFT_EXTENSIONS_ALLOWED
   a_boolean         discard_default_arg = FALSE;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
   db_enter(3, "delayed_scan_of_default_arg_expr");
   if (param_type_entry->default_arg_expr != NULL &&
       !is_error_node(param_type_entry->default_arg_expr)) {
     pos_error(ec_default_arg_already_defined, &pos_curr_token);
   }  /* if */
-  if (!is_simple_function_symbol(rout_sym)) {
-    /* In severe error cases, rout_sym may not actually refer to a function. */
-    err = TRUE;
-    discard_default_arg = TRUE;
-    rout_sym = NULL;
-    expect_error();
-  } else if (check_for_errors) {
+  if (check_for_errors) {
 #if MICROSOFT_EXTENSIONS_ALLOWED
     /* Verify that this is not a function with a C++/CLI param array. */
     if (cppcli_enabled && is_cli_param_array_routine_symbol(rout_sym)) {
@@ -343,9 +339,11 @@ which the default argument is associated.
                         /*is_member_or_friend=*/TRUE);
 #if NEED_NAME_MANGLING
   set_parent_entity_for_closure_types(
-                 param_type_entry->entities_defined_in_default_arg, rout_sym,
-                 param_type_entry->default_arg_appeared_in_class_definition);
+          param_type_entry->entities_defined_in_default_arg,
+          is_simple_function_symbol(rout_sym) ? rout_sym : (a_symbol_ptr)NULL,
+          param_type_entry->default_arg_appeared_in_class_definition);
 #endif /* NEED_NAME_MANGLING */
+#if MICROSOFT_EXTENSIONS_ALLOWED
   if (discard_default_arg) {
     /* Treat the parameter as not having a default argument for error recovery
        purposes. */
@@ -354,6 +352,7 @@ which the default argument is associated.
     param_type_entry->default_arg_appeared_in_class_definition = FALSE;
     param_type_entry->default_arg_expr = NULL;
   }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   /* In the normal case the current token should be end_of_source,
      which was inserted to mark the end of the cached token
      stream. */
