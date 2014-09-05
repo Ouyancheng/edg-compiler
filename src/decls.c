@@ -5247,7 +5247,7 @@ a copy of the previous type).
              Nothing needs to be done. */
           check_assertion_str2(C_mode(), "reconcile_routine_types:",
                                          "shared param types unexpected");
-        } else {
+        } else if (comp_rtsp->param_type_list != NULL) {
           /* Copy the param type entries from the composite type onto the
              param type entries for the routine type.  This is done in case
              new param type entries were created.  The original ones must be
@@ -8183,6 +8183,7 @@ for use in generating cross-reference output describing this declaration.
     if (linked_symbol->kind == (a_symbol_kind)sk_routine) {
       /* Linked symbol and new symbol are both routines.  The new declaration
          must be compatible with the old. */
+      a_boolean  replace_routine = FALSE;
       sym = linked_symbol;
       routine_ptr = linked_symbol->variant.routine.ptr;
       dps->prev_type = routine_ptr->type;
@@ -8200,7 +8201,7 @@ for use in generating cross-reference output describing this declaration.
 #if ASM_FUNCTION_ALLOWED
             || routine_ptr->storage_class == (a_storage_class)sc_asm
 #endif /* ASM_FUNCTION_ALLOWED */
-                                                          ) {
+                                                                    ) {
           /* The previous declaration was a definition.  (We check assoc_scope
              rather than the defined flag in the routine, because in pcc mode
              it is possible to have a nested redeclaration -- e.g.,
@@ -8233,43 +8234,10 @@ for use in generating cross-reference output describing this declaration.
            (gcc_mode && 
             (!func_info->is_inline ||
              dps->declared_storage_class != (a_storage_class)sc_extern)))) {
-        /* In GNU mode a function can be defined "for inlining purposes only"
-           ("extern __inline" in GNU C mode, or "__attribute((gnu_inline))" in
-            GNU C++ mode).  Such a definition is superseded by the current
-           declaration if the current declaration does not imply the "for
-           inlining purposes only" semantics.
-           To emulate this, we create a new routine entry (the old one remains
-           in the IL tree to satisfy any existing references to it). */
-        a_routine_ptr  new_rp = make_routine(type_ptr, storage_class,
-                                             decl_scope_level);
-        *new_rp = *routine_ptr;
-        new_rp->next = NULL;
-        new_rp->gnu_extra_info = NULL;
-        new_rp->type = type_ptr;
-        new_rp->source_corresp.decl_position = locator->source_position;
-#if EXTRA_SOURCE_POSITIONS_IN_IL
-        new_rp->source_corresp.decl_pos_info = NULL;
-#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
-        new_rp->source_corresp.name_references = NULL;
-        new_rp->defined = FALSE;
-        new_rp->assoc_scope = NULL_region_number;
-        ensure_gnu_routine_supp(new_rp)->inline_partner = routine_ptr;
-        ensure_gnu_routine_supp(routine_ptr)->inline_partner = new_rp;
-        routine_ptr = new_rp;
-        routine_ptr->gnu_c89_inline = FALSE;
-        old_decl_has_body = FALSE;
-        set_inline_flag(routine_ptr, FALSE);
-        sym->defined = FALSE;
-        sym->variant.routine.ptr = routine_ptr;
-#if GENERATE_SOURCE_SEQUENCE_LISTS
-        /* A new source sequence entry is needed for the new declaration, and
-           the declared type will be reset as well. */
-        routine_ptr->declared_type = NULL;
-        routine_ptr->source_corresp.source_sequence_entry = NULL;
-#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+        replace_routine = TRUE;
       }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
-      if (is_function_def && old_decl_has_body) {
+      if (is_function_def && old_decl_has_body && !replace_routine) {
         /* Previous routine already has a body, and new one does (or will)
            too. */
         pos_sy_error(ec_already_defined, &locator->source_position, sym);
@@ -8380,9 +8348,29 @@ for use in generating cross-reference output describing this declaration.
                                           &func_info->throw_position,
                                           /*is_redecl=*/TRUE);
           }  /* if */
-          reconcile_routine_types(routine_ptr, type_ptr,
-                                  /*preserve_rout_type=*/old_decl_has_body,
-                                  /*preserve_type_ptr=*/is_function_def, dps);
+          if (replace_routine && is_function_def &&
+              !skip_typerefs(type_ptr)->variant.routine.extra_info
+                                      ->prototyped &&
+              !skip_typerefs(routine_ptr->type)->variant.routine.extra_info
+                                      ->prototyped) {
+            /* Don't attempt to reconcile the types of unprototyped function
+               definitions when we are going to discard the earlier one.  (GCC
+               accepts very different types in such cases, and reconciling the
+               types could result in the composite type not matching the
+               param-id list). */
+            /* Record the new type in the routine type: It will be copied over
+               to the new routine entry, and the original type will be restored
+               after that. */
+            routine_ptr->type = type_ptr;
+          } else {
+            reconcile_routine_types(
+                                  routine_ptr, type_ptr,
+                                  /*preserve_rout_type=*/(old_decl_has_body &&
+                                                          !replace_routine),
+                                  /*preserve_type_ptr=*/(is_function_def ||
+                                                         replace_routine),
+                                  dps);
+          }  /* if */
           if (gpp_mode && params != NULL && !old_decl_has_body &&
               !is_function_def &&
               routine_ptr->type->kind == (a_type_kind)tk_routine &&
@@ -8413,6 +8401,46 @@ for use in generating cross-reference output describing this declaration.
                                                : &dps->constexpr_pos,
                      linked_symbol);
       }  /* if */
+#if GNU_EXTENSIONS_ALLOWED
+      if (replace_routine) {
+        /* In GNU mode a function can be defined "for inlining purposes only"
+           ("extern __inline" in GNU C mode, or "__attribute((gnu_inline))" in
+            GNU C++ mode).  Such a definition is superseded by the current
+           declaration if the current declaration does not imply the "for
+           inlining purposes only" semantics.
+           To emulate this, we create a new routine entry (the old one remains
+           in the IL tree to satisfy any existing references to it). */
+        a_routine_ptr  new_rp = make_routine(type_ptr, storage_class,
+                                             decl_scope_level);
+        *new_rp = *routine_ptr;
+        /* Restore the original type for the original routine entry (it may
+           have been changed by the call to reconcile_routine_types). */
+        routine_ptr->type = *old_type;
+        new_rp->next = NULL;
+        new_rp->gnu_extra_info = NULL;
+        new_rp->source_corresp.decl_position = locator->source_position;
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+        new_rp->source_corresp.decl_pos_info = NULL;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+        new_rp->source_corresp.name_references = NULL;
+        new_rp->defined = FALSE;
+        new_rp->assoc_scope = NULL_region_number;
+        ensure_gnu_routine_supp(new_rp)->inline_partner = routine_ptr;
+        ensure_gnu_routine_supp(routine_ptr)->inline_partner = new_rp;
+        routine_ptr = new_rp;
+        routine_ptr->gnu_c89_inline = FALSE;
+        old_decl_has_body = FALSE;
+        set_inline_flag(routine_ptr, FALSE);
+        sym->defined = FALSE;
+        sym->variant.routine.ptr = routine_ptr;
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+        /* A new source sequence entry is needed for the new declaration, and
+           the declared type will be reset as well. */
+        routine_ptr->declared_type = NULL;
+        routine_ptr->source_corresp.source_sequence_entry = NULL;
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+      }  /* if */
+#endif /* GNU_EXTENSIONS_ALLOWED */
     } else {
       /* The linked symbol must be a variable. */
       pos_sy_error(ec_not_compatible_with_previous_decl,

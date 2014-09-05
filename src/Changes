@@ -1,5 +1,27 @@
 Version 4.10
 
+9/5/14   [EDGcpfe/15388]
+GNU compatibility: Compatibility of  extern __inline definition replacement
+
+GNU C and C++ allow a function definition to be provided "for inlining only"
+and also a later declaration or definition for non-inline use.  Previously,
+the front end did not check the compatibility of the declarations involved,
+and as a result did not apply type composition rules.  Now it does unless both
+declarations are unprototyped.  For example:
+
+  extern __inline__ int f(double n) { return n; }
+  int f();  // Unprototyped declaration; now the composite type "int (double)"
+            // is retained.
+  int g(int n) { return f(n); }
+
+The second declaration of f introduces a separate routine entry.  Previously,
+the type for that second entry was unprototyped (since the second declaration
+is unprototyped).  Now, the ordinary type composition rules are applied: The
+second routine entry the also has a prototyped type with a parameter of type
+"double".  That in turn ensures that n is converted to "double" in the call
+"f(n)".
+
+
 9/4/14   [EDGcpfe/13497,EDGcpfe/15400]
 Mangled name collision for lambdas in default arguments of local class members
 
