@@ -877,7 +877,8 @@ each of the non-nested closure types in the given list of entities.  If
 subject_to_trans_unit_corresp is TRUE, the lambda expressions defining the
 closure types may appear in multiple translation units and each such lambda
 expression then defines the same closure type (this routine records a flag
-in the symbol supplement for the closure type to indicate this).
+in the symbol supplement for the closure type to indicate this).  (parent_sym
+may be NULL in error cases.)
 */
 {
   for (; elp != NULL; elp = elp->next) {
@@ -888,7 +889,13 @@ in the symbol supplement for the closure type to indicate this).
       check_assertion(is_immediate_class_type(tp));
       ctsp = class_type_supp(tp);
       if (ctsp->is_lambda_closure_class) {
-        if (symbol_is(parent_sym, sk_static_data_member)) {
+        if (parent_sym == NULL) {
+          /* An error case (e.g., a lambda in a default argument of what turned
+             out not to be a function declaration). */
+          ctsp->defined_in_static_data_member_initializer = FALSE;
+          ctsp->defined_in_field_initializer = FALSE;
+          expect_error();
+        } else if (symbol_is(parent_sym, sk_static_data_member)) {
           ctsp->lambda_parent.variable =
                               parent_sym->variant.static_data_member.variable;
         } else {
