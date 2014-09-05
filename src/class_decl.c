@@ -1746,8 +1746,12 @@ being done.
   }
   /* Switch to the memory region of the scope in which the capture will
      occur.  (For implicit captures, we're currently in the memory region of
-     the point of the reference that necessitated the capture.) */
-  switch_il_region(scope_stack[depth].il_memory_region);
+     the point of the reference that necessitated the capture.)  If the capture
+     is in a class reactivation scope (i.e., for a lambda in a field
+     initializer), use file scope memory. */
+  switch_il_region(scope_is(&scope_stack[depth], sck_class_reactivation) ?
+                                         file_scope_region_number :
+                                         scope_stack[depth].il_memory_region);
   lcp = alloc_capture_for_lambda(lambda);
   /* Note that lcp->captured.variable is set even when source_field is
      non-NULL.  That's for the convenience of the front end.  The field will
