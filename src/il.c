@@ -13199,14 +13199,32 @@ constant; otherwise, return NULL.
       /* The variable is dynamically initialized to a constant. */
       con_val = init->dynamic->variant.constant;
 #if !STANDALONE_UTILITY_PROGRAM
-    } else if (init->dynamic->kind == (a_dynamic_init_kind)dik_expression &&
-               is_template_dependent_context()) {
-      /* Check for a dependent expression that might be a constant in an
+    } else if (is_template_dependent_context()) {
+      /* Check for a dependent initialization that might be constant in an
          instantiation. */
-      an_expr_node_ptr expr = init->dynamic->variant.expression;
-      if (expr_is_instantiation_dependent(expr) &&
-          !has_statement_expression(expr)) {
-        /* Create a template parameter constant for the expression. */
+      an_expr_node_ptr expr = NULL;
+      if (init->dynamic->kind == (a_dynamic_init_kind)dik_expression) {
+        /* Check for a dependent expression that might be a constant in an
+           instantiation. */
+        expr = init->dynamic->variant.expression;
+        if (expr_is_instantiation_dependent(expr) &&
+            !has_statement_expression(expr)) {
+          /* Use the expression as a template parameter constant. */
+        } else {
+          /* Not a potential constant expression. */
+          expr = NULL;
+        }  /* if */
+      } else if (init->dynamic->kind == (a_dynamic_init_kind)dik_constructor &&
+                 is_template_param_or_nonreal_class_type(var->type)) {
+        /* A constructor call to a dependent type.  Create an enk_temp_init
+           node referring to this dynamic initializer and use that as the
+           expression for a template parameter constant. */
+        expr = alloc_temp_init_node(skip_typerefs(var->type), init->dynamic,
+                                    /*is_lvalue=*/FALSE,
+                                    /*is_explicit_cast=*/TRUE);
+      }  /* if */
+      if (expr != NULL) {
+        /* Make a constant that refers to the dependent expression. */
         a_constant con;
         make_template_param_expr_constant(expr, &con);
         con_val = copy_constant_full(&con, (a_constant *)NULL,

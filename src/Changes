@@ -1,5 +1,26 @@
 Version 4.10
 
+9/8/14   [EDGcpfe/15378]
+Spurious "not constant" error with dependent constructor call
+
+In a template definition, a dependent constructor call initializing a
+variable that later appears in a context requiring a constant expression
+previously resulted in an error.  This is now fixed.  For example (with
+--c++11):
+
+  template<class T, T N> struct S {
+    static constexpr T x = N;
+  };
+
+  template<typename T> int func() {
+    const T v(16);
+    S<T, v + 1> s;  // Previously diagnosed as an error because the dependent
+                    // constructor call initializing "v" made it not a
+                    // constant expression
+    return s.x;
+  }
+
+
 9/8/14   [EDGcpfe/15367]
 C++14: Value category of pointer-to-member selections
 

@@ -14927,7 +14927,7 @@ If the dynamic initialization attached to the indicated enk_temp_init
 requires a later destruction, put it into the current object lifetime.
 */
 {
-  if (curr_expr_is_potentially_evaluated()) {
+  if (expr_stack != NULL && curr_expr_is_potentially_evaluated()) {
     a_dynamic_init_ptr dip = temp_init_node->variant.init.dynamic_init;
     set_temp_dynamic_init_lifetime(dip);
     /* If the lifetime happens to turn out to be static (e.g., when
