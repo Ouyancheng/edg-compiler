@@ -1,5 +1,13 @@
 Version 4.10
 
+9/8/14   [EDGcpfe/15385]
+Microsoft C++ compatibility: Unrestricted unions
+
+In Microsoft C++ modes with microsoft_version >= 1900, the front end now
+implements the C++11 rules for union members (i.e., "unrestricted unions").
+See also the entry of 1/17/13 for EDGcpfe/9165.
+
+
 9/8/14   [EDGcpfe/15378]
 Spurious "not constant" error with dependent constructor call
 
