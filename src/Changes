@@ -21,23 +21,6 @@ previously resulted in an error.  This is now fixed.  For example (with
   }
 
 
-9/8/14   [EDGcpfe/15367]
-C++14: Value category of pointer-to-member selections
-
-The C++14 standard made a significant change to the value category of an
-expression of the form obj.*pm (or ptr->*pm): When applied with a pointer to
-data member as the second operand and a prvalue as the first operand, the
-result is an xvalue (in C++11 it is an rvalue).  The front end now implements
-that rule (except that in GNU or Clang C++14 modes, the C++11 rule is retained
-for compatibility with the GCC and Clang compilers).  For example, with:
-
-  struct X {};
-  struct S { X m; } s;
-  X S::* pmd = &S::m;
-
-"A().*pmd" is now an xvalue in C++14 mode.
-
-
 9/5/14   [EDGcpfe/15388]
 GNU compatibility: Compatibility of  extern __inline definition replacement
 

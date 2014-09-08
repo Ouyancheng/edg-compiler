@@ -19190,7 +19190,6 @@ already indicates the load.
                If the first operand is a prvalue, there's no place we can
                load from; the prvalue has already been "loaded". */
             rvalueable = (is_glvalue_node(node->variant.operation.operands) ||
-                          node->is_xvalue ||
                           is_error_node(node->variant.operation.operands));
             break;
           case eok_points_to_field:

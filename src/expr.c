@@ -7621,7 +7621,6 @@ the selection, not an operator token for the call.
                     operator_tok_seq_number;
   a_base_class_ptr  bcp;
   an_expr_node_ptr  select_node, object_node, pm_node;
-  a_boolean         ptr_to_data_member_case = FALSE;
   a_boolean         result_is_a_glvalue = FALSE;
   a_boolean         result_is_an_xvalue = FALSE;
 
@@ -7853,67 +7852,32 @@ the selection, not an operator token for the call.
               }  /* if */
             }  /* if */
           }  /* if */
-        } else {
-          ptr_to_data_member_case = TRUE;
         }  /* if */
       }  /* if */
       if (err) {
         /* Some error. */
         make_error_operand(result);
       } else {
-        /* The operands are compatible.  Determine the value category of the
-           result.  C++03 had this to say:
-             "The result of a .* expression is an lvalue only if its first
-              operand is an lvalue and its second operand is a pointer to
-              data member. The result of an ->* expression is an lvalue only
-              if its second operand is a pointer to data member."
-           C++11 changed that significantly:
-             "The result of a .* expression whose second operand is a pointer
-              to a data member is of the same value category (3.10) as its
-              first operand. The result of a .* expression whose second
-              operand is a pointer to a member function is a prvalue."
-           And C++14 revised it again (via the resolution to Core issue 616):
-             "The result of a .* expression whose second operand is a pointer
-              to a data member is an lvalue if the first operand is an lvalue
-              and an xvalue otherwise. The result of a .* expression whose
-              second operand is a pointer to a member function is a prvalue."
-           (In C++11 and C++14, "E1->*E2" is by definition "(*(E1)).*E2".) */
-        if (cpp14_mode && !(clang_mode || gpp_mode)) {
-          if (ptr_to_data_member_case) {
-            result_is_a_glvalue = TRUE;
-            result_is_an_xvalue = !is_arrow_operator &&
-                                  !is_an_lvalue(operand_1);
-          }  /* if */
-        } else if (cpp11_mode) {
-          if (ptr_to_data_member_case) {
-            if (is_arrow_operator || is_an_lvalue(operand_1)) {
-              result_is_a_glvalue = TRUE;
-            } else if (is_an_xvalue(operand_1)) {
-              result_is_a_glvalue = TRUE;
-              result_is_an_xvalue = TRUE;
-            }  /* if */
-          }  /* if */
+        /* The operands are compatible. */
+        if (is_arrow_operator ||
+            (is_an_lvalue(operand_1) || is_error_operand(operand_1))) {
+          /* The result is an lvalue if the operator is "->*" or if the
+             first operand is an lvalue (or might be, if an error). */
+          result_is_a_glvalue = TRUE;
+        } else if (any_cfront_mode() || microsoft_mode) {
+          /* ARM rules: the result is always an lvalue and that doesn't
+             depend on the value category of the left operand. */
+          /* Also the case for MSVC.  Still true in VC11, VC12 CTP. */
+          result_is_a_glvalue = TRUE;
+          /* Force the "->*" form to get an lvalue result. */
+          conv_selector_to_object_pointer(operand_1, &is_arrow_operator);
+        } else if (is_an_xvalue(operand_1)) {
+          /* xvalue.*pm produces an xvalue result. */
+          result_is_a_glvalue = TRUE;
+          result_is_an_xvalue = TRUE;
         } else {
-          if (is_arrow_operator ||
-              (is_an_lvalue(operand_1) || is_error_operand(operand_1))) {
-            /* The result is an lvalue if the operator is "->*" or if the
-               first operand is an lvalue (or might be, if an error). */
-            result_is_a_glvalue = TRUE;
-          } else if (any_cfront_mode() || microsoft_mode) {
-            /* ARM rules: the result is always an lvalue and that doesn't
-               depend on the value category of the left operand. */
-            /* Also the case for MSVC.  Still true in VC11, VC12 CTP. */
-            result_is_a_glvalue = TRUE;
-            /* Force the "->*" form to get an lvalue result. */
-            conv_selector_to_object_pointer(operand_1, &is_arrow_operator);
-          } else if (is_an_xvalue(operand_1)) {
-            /* xvalue.*pm produces an xvalue result. */
-            result_is_a_glvalue = TRUE;
-            result_is_an_xvalue = TRUE;
-          } else {
-            /* prvalue.*pm, result is a prvalue. */
-            result_is_a_glvalue = FALSE;
-          }  /* if */
+          /* prvalue.*pm, result is a prvalue. */
+          result_is_a_glvalue = FALSE;
         }  /* if */
         /* Cast the left operand to a base class if necessary.  This does the
            ambiguity and accessibility checking. */
