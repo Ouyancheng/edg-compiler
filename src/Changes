@@ -49,7 +49,7 @@ previously resulted in an error.  This is now fixed.  For example (with
 
 
 9/5/14   [EDGcpfe/15388]
-GNU compatibility: Compatibility of  extern __inline definition replacement
+GNU compatibility: Compatibility of extern __inline definition replacement
 
 GNU C and C++ allow a function definition to be provided "for inlining only"
 and also a later declaration or definition for non-inline use.  Previously,

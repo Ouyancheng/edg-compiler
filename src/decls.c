@@ -8405,11 +8405,11 @@ for use in generating cross-reference output describing this declaration.
       if (replace_routine) {
         /* In GNU mode a function can be defined "for inlining purposes only"
            ("extern __inline" in GNU C mode, or "__attribute((gnu_inline))" in
-            GNU C++ mode).  Such a definition is superseded by the current
+           GNU C++ mode).  Such a definition is superseded by the current
            declaration if the current declaration does not imply the "for
-           inlining purposes only" semantics.
-           To emulate this, we create a new routine entry (the old one remains
-           in the IL tree to satisfy any existing references to it). */
+           inlining purposes only" semantics.  To emulate this, we create
+           a new routine entry (the old one remains in the IL tree to satisfy
+           any existing references to it). */
         a_routine_ptr  new_rp = make_routine(type_ptr, storage_class,
                                              decl_scope_level);
         *new_rp = *routine_ptr;
