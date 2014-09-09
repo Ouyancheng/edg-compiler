@@ -41,10 +41,9 @@ previously resulted in an error.  This is now fixed.  For example (with
   };
 
   template<typename T> int func() {
-    const T v(16);
-    S<T, v + 1> s;  // Previously diagnosed as an error because the dependent
-                    // constructor call initializing "v" made it not a
-                    // constant expression
+    const T v(16);  // Initialization by dependent constructor call
+    S<T, v + 1> s;  // Use of "v" was previously incorrectly diagnosed as
+                    // not a constant, now accepted
     return s.x;
   }
 
