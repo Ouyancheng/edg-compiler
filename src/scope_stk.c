@@ -853,7 +853,7 @@ void compute_data_member_name_collision_discriminators(a_symbol_ptr  sym)
 If the given data member defines entities that require discriminators for name
 mangling purposes, assign those discriminators now.  (Currently, this only
 applies to closure types and only static data member initializers are
-possible.  Closure types in nonstatic data member are numbered early in
+possible.  Closure types in nonstatic data members are numbered early in
 make_closure_class.)
 */
 {
