@@ -1249,6 +1249,9 @@ needed (e.g., it has been written out to the IL file).
   }  /* for */
   mem_region_table[region_number] = NULL;
   il_header.region_scope_entry[region_number] = NULL;
+#if DEBUG
+  allocated_in_region[region_number] = 0;
+#endif /* DEBUG */
   db_exit();
 }  /* free_memory_region */
 
