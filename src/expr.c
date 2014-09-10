@@ -5673,6 +5673,23 @@ accepts the case where the first operand is a C++/CLI handle.
         }  /* if */
         qualifiers = TQ_NONE;
       }  /* if */
+    } else if ((gpp_mode || clang_mode || microsoft_mode) &&
+               is_prototype_instantiation_context()) {
+      /* GCC and Clang don't consider the type of a member of the current
+         instantiation when checking the semantics of a template in its generic
+         form (as we do in our prototype instantiations).  For example:
+           template<class T> struct S {
+             int const m;
+             S();
+             void f() { m = 0; }  // Error, but not diagnosed by Clang or GCC.
+           };
+         To emulate this, we discard the type information that is available in
+         such cases.  In Microsoft mode, prototype instantiations of function
+         definitions are not usually performed (because Microsoft does not
+         parse templates in their generic form), but if they are enabled
+         anyway, we also drop the type information to accept more code. */
+      result_type = type_of_unknown_templ_param_nontype;
+      class_struct_union_type = type_of_unknown_templ_param_nontype;
     } else {
       /* The result type is set to the type of the field with the union of the
          qualifiers of the field and the qualifiers of the class, struct,
@@ -28667,6 +28684,14 @@ variable:
                                          &start_position,
                                          end_position_or_null(&end_position),
                                          result, rep);
+            if (((gpp_mode && !clang_mode) || microsoft_mode) &&
+                is_prototype_instantiation_context()) {
+              /* Disable type checking of the variable in GNU and Microsoft
+                 modes if we are in a prototype instantiation.  (E.g., this
+                 inhibits the diagnosis of an assignment to a const variable
+                 until a real instantiation occurs.) */
+              result->type = type_of_unknown_templ_param_nontype;
+            }  /* if */
             if (rvalue_only) {
               /* We determined that this variable can only be used as an
                  rvalue (because it's a constant-valued variable that cannot

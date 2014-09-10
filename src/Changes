@@ -10,24 +10,26 @@ for subsequent source files, but the usage count for such regions was not
 reset.  This is now fixed.
 
 
-9/9/14   [EDGcpfe/15398]
-Assignment to const-qualified types in prototype instantiations
+9/9/14   [EDGcpfe/15398,EDGcpfe/15401]
+Checking of expressions in prototype instantiations
 
-In GNU, Clang, and Microsoft modes, the front end no longer issues an error
-when attempting to assign to an lvalue with a known "const" type during a
-prototype instantiation.  (However, any real instantiation of the associated
-template will result in an error.)  For example:
+In GNU, Clang, and Microsoft modes, the front end now relaxes some type-based
+checks in expressions during prototype instantiations.  For example:
+For example:
 
   template<class T> struct S {
     int *const p;
-    void f() { p = 0; }  // No longer an error in some C++ modes.
-  };
+    void f() { p = 0; }  // No longer an error during prototype instantiation
+  };                     // in some C++ modes.
 
-(In the case of Clang mode, this is a little more lenient than the Clang
-compiler itself: Clang accepts the code above, but does not accept it if the
-assignment is to a variable not declared in a dependent scope.  Also, this
-change is less likely significant in Microsoft mode since by default no
-prototype instantiation of function definitions is performed in that mode.)
+Here, the reference to the field p is considered to have an "unknown type"
+during the prototype instantiation of S<T>::f in GNU, Clang, and Microsoft
+modes that perform prototype instantiations.  A diagnostic will be issued if
+S<T>::f is instantiated for a nondependent type.  References to variables are
+treated similarly in GNU and Microsoft modes (but not Clang mode).  (Note
+that prototype instantiations commonly deferred in GNU and Clang modes, or
+not performed at all in Microsoft modes.  When that is the case, the effect
+of this change is almost invisible.)
 
 
 9/8/14   [EDGcpfe/15385]
