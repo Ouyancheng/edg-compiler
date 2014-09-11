@@ -11191,7 +11191,12 @@ lvalue.  If there is an error, change the operand to an error operand.
   complete_type_is_needed(type);
   is_lvalue_with_complete_type = (is_an_lvalue(operand) &&
                                   !is_incomplete_type(type));
-  if (is_lvalue_with_complete_type && !is_const_qualified_type(type)) {
+  /* In GNU, Clang, and Microsoft mode, constness is not checked if we are in
+     a prototype instantiation.*/
+  if (is_lvalue_with_complete_type &&
+      (!is_const_qualified_type(type) ||
+       ((gpp_mode || clang_mode || microsoft_mode) &&
+        is_prototype_instantiation_context()))) {
 #if MICROSOFT_EXTENSIONS_ALLOWED
     a_boolean is_static_initonly_field;
     if (cli_or_cx_enabled &&
@@ -12675,23 +12680,7 @@ an operand in a template-dependent operation, when it is known that the
 operand will definitely be used as an rvalue.
 */
 {
-  a_boolean  force_to_rvalue = TRUE;
-
-  if (gpp_mode || microsoft_mode) {
-    /* Forcing an operand to an rvalue can trigger errors that GCC wouldn't
-       issue while parsing a template.  Since Microsoft doesn't parse templates
-       at all (in their generic form), we also disable the conversion in
-       Microsoft modes. */
-    force_to_rvalue = FALSE;
-  }  /* if */
-  do_generic_operand_transformations(operand, force_to_rvalue);
-  if (!force_to_rvalue && curr_expr_kind_is_const() &&
-      !is_constant_operand(operand) &&
-      !is_error_operand(operand)) {
-    /* The caller may be expecting a constant result: Wrap the operand in a
-       tpck_expression constant. */
-    make_template_param_expr_constant_operand(operand);
-  }  /* if */
+  do_generic_operand_transformations(operand, /*force_to_rvalue=*/TRUE);
 }  /* do_rvalue_generic_operand_transformations */
 
 
