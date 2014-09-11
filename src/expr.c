@@ -28690,7 +28690,9 @@ variable:
                  modes if we are in a prototype instantiation.  (E.g., this
                  inhibits the diagnosis of an assignment to a const variable
                  until a real instantiation occurs.) */
+              check_assertion(is_expression_operand(result));
               result->type = type_of_unknown_templ_param_nontype;
+              result->variant.expression->type = result->type;
             }  /* if */
             if (rvalue_only) {
               /* We determined that this variable can only be used as an
