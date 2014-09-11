@@ -552,10 +552,17 @@ The two given types must be closure types.  Return FALSE if their respective
 function call operators have the same parameter types; TRUE otherwise.
 */
 {
-  a_type_ptr  rtp1 = lambda_body_for_closure(ctp1)->type;
-  a_type_ptr  rtp2 = lambda_body_for_closure(ctp2)->type;
+  a_boolean      result;
+  a_routine_ptr  rp1 = lambda_body_for_closure(ctp1);
+  a_routine_ptr  rp2 = lambda_body_for_closure(ctp2);
 
-  return !param_types_are_compatible(rtp1, rtp2, TCF_NO_FLAGS);
+  if (rp1 == NULL || rp2 == NULL) {
+    expect_error();
+    result = TRUE;
+  } else {
+    result = !param_types_are_compatible(rp1->type, rp2->type, TCF_NO_FLAGS);
+  }  /* if */
+  return result;
 }  /* distinct_lambda_signatures */
 
 
