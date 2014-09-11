@@ -2024,7 +2024,7 @@ lambda declarator.
   a_boolean                      err = FALSE;
 
   check_assertion(curr_token == tok_arrow);
-  if (func_info->lambda != NULL) {
+  if (dps->is_lambda) {
     /* No special syntax checks are needed. */
   } else if (!dps->auto_type_specifier_seen ||
              dps->decltype_auto_specifier_seen) {
@@ -2137,10 +2137,17 @@ this is a helper function.
        non-const. */
     this_class = parent_type;
     if (curr_token == tok_mutable) {
-      func_info->lambda->is_mutable = TRUE;
+      if (func_info->lambda != NULL) {
+        func_info->lambda->is_mutable = TRUE;
 #if EXTRA_SOURCE_POSITIONS_IN_IL
-      func_info->lambda->mutable_position = pos_curr_token;
+        func_info->lambda->mutable_position = pos_curr_token;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+      } else {
+        /* func_info->lambda may be NULL during real instantiations of generic
+           lambdas. */
+        check_assertion(scope_is(&scope_stack_top()-1,
+                                 sck_template_instantiation));
+      }  /* if */
       (void)get_token();
     } else {
       qualifiers = TQ_CONST;
