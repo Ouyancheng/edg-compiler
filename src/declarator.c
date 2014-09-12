@@ -2015,7 +2015,7 @@ and the current token is a "->".  Scan a trailing return type and update
 *rout_type and *dps accordingly (*dps describes the current declaration).
 Diagnostics are issued if the function declarator does not in fact allow for a
 trailing return type (e.g., because the type specifier was not "auto").  This
-routine is also called of the trailing return type of a lambda declarator.
+routine is also called for the trailing return type of a lambda declarator.
 */
 {
   a_decl_parse_state             trt_dps;
