@@ -8721,9 +8721,12 @@ dps->specifiers_type to the corresponding type.  Otherwise, return FALSE.
         check_assertion(sym != NULL && symbol_is(sym, sk_type));
         if (sym->token_sequence_number == curr_token_sequence_number) break;
       }  /* for */
-      check_assertion(tpp != NULL);
-      dps->specifiers_type = tpp->param_symbol->variant.type.ptr;
-      result = TRUE;
+      if (tpp != NULL) {
+        dps->specifiers_type = tpp->param_symbol->variant.type.ptr;
+        result = TRUE;
+      } else {
+        expect_error();
+      }  /* if */
     }  /* if */
   }  /* if */
   return result;
