@@ -2008,16 +2008,14 @@ a trailing return type.
 
 
 static void scan_trailing_return_type(a_decl_parse_state  *dps,
-                                      a_func_info_block   *func_info,
                                       a_type_ptr          rout_type)
 /*
 A function declarator has just been parsed (resulting in the entry rout_type)
 and the current token is a "->".  Scan a trailing return type and update
-*rout_type and *dps accordingly (*dps and *func_info describe the current
-declaration).  Diagnostics are issued if the function declarator does not in
-fact allow for a trailing return type (e.g., because the type specifier was
-not "auto").  This routine is also called of the trailing return type of a
-lambda declarator.
+*rout_type and *dps accordingly (*dps describes the current declaration).
+Diagnostics are issued if the function declarator does not in fact allow for a
+trailing return type (e.g., because the type specifier was not "auto").  This
+routine is also called of the trailing return type of a lambda declarator.
 */
 {
   a_decl_parse_state             trt_dps;
