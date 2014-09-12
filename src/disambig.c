@@ -1071,6 +1071,10 @@ part of a declarator is found, may_be_decl is set to FALSE.
          "^" or "%"). */
       get_token_and_coalesce_if_identifier(flags);
       pointer_operator_seen = TRUE;
+      if (std_attribute_tokens_next()) {
+        /* C++11 permits attributes after the pointer/reference operator. */
+        prescan_std_attribute(flags);
+      }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
     } else if (curr_token == tok_based) {
       /* Microsoft __based modifier. */
@@ -1357,7 +1361,7 @@ evidence to the contrary.
   db_enter(3, "prescan_declaration");
   /* Do not pass DFS_RECORD_AUTO_PARAMS through to all disambiguation routines,
      only to prescan_decl_specifiers. */
-  record_auto_params &= ~DFS_RECORD_AUTO_PARAMS;
+  flags &= ~DFS_RECORD_AUTO_PARAMS;
   if (curr_token == tok_extension) {
     /* Skip over a leading GNU __extension__ keyword. */
     (void)get_token();
