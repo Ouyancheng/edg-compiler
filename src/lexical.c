@@ -19357,7 +19357,8 @@ See also coalesce_and_lookup_generalized_identifier.
           }  /* if */
         } else {
           if (!qualifier_is_super &&
-              ((qualifier_is_type && qualifier_type == NULL) ||
+              ((qualifier_is_type && (qualifier_type == NULL ||
+                                      is_error_type(qualifier_type))) ||
                (!qualifier_is_type && qualifier_namespace == NULL))) {
 	    okay = FALSE;
           } else if (!qualifier_is_super &&
