@@ -2350,7 +2350,7 @@ this is a helper function.
   if (curr_token == tok_arrow &&
       (trailing_return_types_enabled || state->is_lambda)) {
     /* A trailing return type. */
-    scan_trailing_return_type(state, func_info, rout_type);
+    scan_trailing_return_type(state, rout_type);
   } else {
     state->return_type_pos = state->specifiers_pos;
   }  /* if */
