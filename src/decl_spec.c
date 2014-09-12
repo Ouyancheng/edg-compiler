@@ -8696,7 +8696,7 @@ dps->specifiers_type to the corresponding type.  Otherwise, return FALSE.
     if (auto_param_descr != NULL) {
       /* We're scanning the parameter of a lambda and a prescan previously
          determined it was a generic lambda.  This is essentially a template
-         template declaration context. */
+         declaration context. */
       /* Find the prescanned "auto" parameter description corresponding to this
          parameter. */
       while (auto_param_descr != NULL &&

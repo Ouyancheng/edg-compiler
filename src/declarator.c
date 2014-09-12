@@ -1991,7 +1991,7 @@ a trailing return type.
     }  /* if */
   }  /* if */
   if (err) {
-    *state->auto_type = *error_type();
+    if (state->auto_type != NULL) *state->auto_type = *error_type();
     state->auto_type = NULL;
     state->auto_type_specifier_seen = FALSE;
   } else if (state->secondary_declarator) {
