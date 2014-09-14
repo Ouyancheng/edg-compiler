@@ -31901,7 +31901,12 @@ the function template, and decl_state tracks its declaration.
 */
 {
   a_template_symbol_supplement_ptr  tssp;
+  a_def_arg_expr_fixup_ptr          saved_curr_default_args;
 
+  /* Don't consider any current default arguments to be associated with the
+     generated member template. */
+  saved_curr_default_args = curr_default_args;
+  curr_default_args = NULL;
   complete_function_template_decl(decl_state, sym, func_info, &tssp,
                                   &sym->decl_position);
   if (prototype_instantiations_in_il) {
@@ -31912,6 +31917,7 @@ the function template, and decl_state tracks its declaration.
     decl_state->il_template_entry->template_decl = decl_state->template_decl;
   }  /* if */
   complete_il_template_entry(decl_state, sym);
+  curr_default_args = saved_curr_default_args;
 }  /* complete_generated_member_template */
 
 #if DEBUG
