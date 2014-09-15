@@ -30160,12 +30160,16 @@ fields of the closure object.  Return a pointer to the dynamic init entry.
       }  /* if */
       if (source_field == NULL) {
         /* Normal case. */
-        check_assertion(var != NULL);
-        make_lvalue_variable_operand(var,
-                                     capture_pos,
-                                     &null_source_position,
-                                     &operand,
-                                     rep);
+        if (var != NULL) {
+          make_lvalue_variable_operand(var,
+                                       capture_pos,
+                                       &null_source_position,
+                                       &operand,
+                                       rep);
+        } else {
+          expect_error();
+          make_error_operand(&operand);
+        }  /* if */
       } else {
         /* The variable is reachable because it has been captured by an
            intervening enclosing lambda, so the copy is from the corresponding

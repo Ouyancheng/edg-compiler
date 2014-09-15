@@ -1556,11 +1556,15 @@ capture described by lcp.  Return the field entry.
         /* A capture of an init-capture. */
         make_locator_for_symbol(symbol_for(parent_field), &locator);
         field_type = parent_field->type;
-      } else {
+      } else if (lcp->is_param_ref_capture) {
         /* A capture of "this" in a context with no "this" variable. */
         a_variable_ptr  this_var;
         is_this = variable_this_exists(&this_var, &field_type);
         check_assertion(is_this && this_var == NULL);
+      } else {
+        expect_error();
+        set_to_error_locator(locator);
+        field_type = error_type();
       }  /* if */
       orig_field_type = field_type;
     }  /* if */
@@ -1758,7 +1762,7 @@ being done.
      be cleared soon after it's been used to generate the capture copy code. */
   lcp->captured.variable = vp;
   lcp->capture_info.source_closure_field = source_field;
-  if (vp == NULL && fp == NULL) {
+  if (vp == NULL && fp == NULL && !*no_impl_capture) {
     lcp->is_param_ref_capture = TRUE;
   }  /* if */
   lcp->capture_by_reference = by_reference;
