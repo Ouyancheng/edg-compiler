@@ -1456,7 +1456,10 @@ or field (i.e., init-capture), return a pointer it.  Otherwise, return NULL.
        capture with an associated field of the same name as fp. */
     sym_hdr = symbol_for(fp)->header;
     for (lcp = lambda->capture_list; lcp != NULL; lcp = lcp->next) {
-      if (symbol_for(lcp->closure_field)->header == sym_hdr) {
+      a_symbol_ptr  field_sym = symbol_for(lcp->closure_field);
+      if (field_sym == NULL) {
+        expect_error();
+      } else if (field_sym->header == sym_hdr) {
         break;
       }  /* if */
     }  /* if */
