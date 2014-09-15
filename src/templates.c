@@ -11940,6 +11940,7 @@ accordingly.
   a_template_symbol_supplement_ptr  tssp = NULL;
   an_exception_specification_ptr    esp = NULL;
   a_symbol_ptr                      template_sym = NULL;
+  a_boolean	                    is_member_of_class_template = FALSE;
   
   check_assertion(is_simple_function_symbol(sym));
   rp = sym->variant.routine.ptr;
@@ -11992,16 +11993,25 @@ accordingly.
                                               rp->template_arg_list,
                                               /*push_lex_state=*/TRUE,
 	                                      ps_options);
+      if (sym->is_class_member) {
+        /* Determine if this function was declared in a class template. */
+        a_symbol_ptr	parent_sym = symbol_for(sym->parent.class_type);
+        if (is_template_class_and_not_specific_def_symbol(parent_sym)) {
+          is_member_of_class_template = TRUE;
+        }  /* if */
+      }  /* if */
       /* Recreate a function prototype scope equivalent to the original. */
       (void)push_scope((a_scope_kind)sck_func_prototype, NO_SCOPE_NUMBER,
                        rp->type, (a_routine_ptr)NULL);
       /* exception_spec_decl_seq is used in g++ mode to limit visibility
          of names used in exception specification to those previously
-         declared in a class.  The exception_specification flag is normally
-         set by the scopes pushed above, but in prototype instantiations
-         of class members this is sometimes not the case. */
-      scope_stack_top().exception_specification = TRUE;
-      scope_stack_top().exception_spec_decl_seq = sym->decl_seq - 1;
+         declared in a class template.  The exception_specification flag
+         is normally set by the scopes pushed above, but in prototype
+         instantiations of class members this is sometimes not the case. */
+      if (is_member_of_class_template || rp->is_prototype_instantiation) {
+        scope_stack_top().exception_specification = TRUE;
+        scope_stack_top().exception_spec_decl_seq = sym->decl_seq - 1;
+      }  /* if */
       init_decl_parse_state(&dps);
       dps.sym = sym;
       dps.type = rp->type;
