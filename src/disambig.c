@@ -416,7 +416,7 @@ attribute list.  It simply requires that the brackets be properly nested
     (void)get_token();
     /* Look for the closing bracket of the attribute. */
     for (;;) {
-      get_token();
+      (void)get_token();
       if (curr_token == tok_rbracket) {
         /* A right bracket.  Break out if this is a zero-level bracket. */
         if (bracket_count == 0) break;
