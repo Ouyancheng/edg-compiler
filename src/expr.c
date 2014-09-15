@@ -28671,7 +28671,11 @@ variable:
               /* We determined that this variable can only be used as an
                  rvalue (because it's a constant-valued variable that cannot
                  be captured in a lambda). */
-              conv_glvalue_to_prvalue(result);
+              if (is_array_type(result->type)) {
+                conv_array_operand_to_pointer_operand(result);
+              } else {
+                conv_glvalue_to_prvalue(result);
+              }  /* if */
             }   /* if */
           }  /* if */
           if (is_error_operand(result)) {
