@@ -11380,7 +11380,8 @@ Render the list of lambda captures, including the delimiting brackets.
         } else {
           write_tok_str("this");
         }  /* if */
-      } else if (lcp->captured.variable->is_this_parameter) {
+      } else if (lcp->is_param_ref_capture ||
+                 lcp->captured.variable->is_this_parameter) {
         write_tok_str("this");
       } else {
         gen_bare_name(&lcp->captured.variable->source_corresp,
