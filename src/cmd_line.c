@@ -3862,6 +3862,11 @@ exclude the GNU modes already.  Hence those are not checked again here.)
 This function is also called in clang mode.
 */
 {
+  if (clang_mode && !option_kind_used[(int)optk_gnu_version] &&
+      gnu_version < 40800) {
+    /* The feature set of clang mode corresponds best to gcc 4.8. */
+    gnu_version = 40800;
+  }  /* if */
 #if TIE_DEFAULT_GNU_ABI_VERSION_TO_GNU_VERSION
   /* This is a configuration that emulates recent GNU C/C++ ABIs and the
      specific ABI version should match the version of the GNU dialect being
