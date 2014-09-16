@@ -29102,8 +29102,9 @@ issue an error at the given position and return TRUE.  Otherwise, return FALSE.
       if (lcp->capture_info.init_capture_dps->sym->header == sym_hdr) {
         break;
       }  /* if */
-    } else if (lcp->captured.variable != NULL) {
-      if (lcp->captured.variable->is_this_parameter) {
+    } else if (lcp->is_param_ref_capture || lcp->captured.variable != NULL) {
+      if (lcp->is_param_ref_capture ||
+          lcp->captured.variable->is_this_parameter) {
         if (sym_hdr == NULL) {
           break;
         }  /* if */
