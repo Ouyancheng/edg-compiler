@@ -11940,7 +11940,7 @@ accordingly.
   a_template_symbol_supplement_ptr  tssp = NULL;
   an_exception_specification_ptr    esp = NULL;
   a_symbol_ptr                      template_sym = NULL;
-  a_boolean	                    is_member_of_class_template = FALSE;
+  a_boolean                         is_member_of_class_template = FALSE;
   
   check_assertion(is_simple_function_symbol(sym));
   rp = sym->variant.routine.ptr;

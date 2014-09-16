@@ -6,11 +6,11 @@ GNU C++ compatibility: noexcept specifier on template member of normal class
 In g++ mode, nonstandard lookup rules are used when scanning the argument
 of a noexcept operator of a function template (only names visible prior
 to the declaration in a class are considered).  This processing was applied
-to all classes, but should have only be applied to members of class templates.
-A quirk in the way in which this feature was emulated caused template
-parameters to not be visible for member function templates of non-template
-classes when deferral of function prototype instantiations was enabled.  Now
-fixed.
+to all classes, but should have only been applied to members of class
+templates.  A quirk in the way in which this feature was emulated caused
+template parameters to not be visible for member function templates of
+non-template classes when deferral of function prototype instantiations
+was enabled.  Now fixed.
 
   template <bool b> struct A {};
   template <typename T> T&& f();
