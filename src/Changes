@@ -37,7 +37,8 @@ end has now been changed to set gnu_version to 40800 when clang mode is in
 effect and --gnu_version is not specified on the command line.  For example,
 with --clang --c++11:
 
-  int operator "" _a(const char *);  // Previously rejected, now accepted
+  int operator "" _a(const char *);  // Previously rejected (assuming default
+                                     // gnu_version < 40700), now accepted
 
 
 9/11/14  [EDGcpfe/15416]
