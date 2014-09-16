@@ -1213,6 +1213,26 @@ given position, unless is->no_diagnostics is TRUE.
 }  /* default_nontrivial_init_constant_for_aggr_member */
 
 
+static a_boolean is_static_init_constant(a_constant_ptr  con)
+/*
+Return TRUE if the given constant can be used for static initialization.  Most
+constants fall into this category, but with constexpr support, an address
+constant can refer to the address of a local variable, which cannot be used for
+static initialization.
+*/
+{
+  a_boolean  result = TRUE;
+
+  if (con->kind == (a_constant_repr_kind)ck_address &&
+      con->variant.address.kind == (an_address_base_kind)abk_variable &&
+      con->variant.address.variant.variable
+         ->source_corresp.is_local_to_function) {
+    result = FALSE;
+  }  /* if */
+  return result;
+}  /* is_static_init_constant */
+
+
 a_constant_ptr aggr_init_constant_from_field_initializer(
                                                  a_field_ptr        fp,
                                                  a_dynamic_init     *dip,
@@ -1254,7 +1274,8 @@ Issue any diagnostics at the given position.
     /* This can happen in error cases: Don't attempt operations on *dip. */
     check_assertion(is->init_error && is->check_validity_only);
   } else if (fold_constexpr_dynamic_init(dip, fp->type, diag_pos,
-                                         &folded_value)) {
+                                         &folded_value) &&
+             is_static_init_constant(&folded_value)) {
     if (!is->check_validity_only) {
       /* Return a copy of the constant. */
       elem_con = alloc_unshared_constant(&folded_value);
