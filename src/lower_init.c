@@ -5693,7 +5693,7 @@ expression).
       /* Repeat the constant the right number of times. */
       if (repeated_con->kind != (a_constant_repr_kind)ck_dynamic_init) {
 #if DO_C99_IL_LOWERING
-        if (c99_mode || gcc_mode) {
+        if (c99_mode || gcc_mode || (C_mode() && microsoft_mode)) {
           lower_c99_constant(repeated_con);
         } else
 #endif /* DO_C99_IL_LOWERING */
@@ -5794,7 +5794,7 @@ expression).
       /* Normal constant. */
       if (C_mode()) {
 #if DO_C99_IL_LOWERING
-        if (c99_mode || gcc_mode) {
+        if (c99_mode || gcc_mode || microsoft_mode) {
           /* When lowering C99 code, use the C99 lowering routines. */
           lower_c99_constant(con_ptr);
         }  /* if */
@@ -8960,7 +8960,7 @@ C99 mode for the same reason.
       /* Assign a constant to the entity to be initialized. */
       if (C_mode()) {
 #if DO_C99_IL_LOWERING
-        if (c99_mode || gcc_mode) {
+        if (c99_mode || gcc_mode || microsoft_mode) {
           /* When lowering C99 code, use the C99 lowering routines. */
           lower_c99_constant(dip->variant.constant);
         }  /* if */
