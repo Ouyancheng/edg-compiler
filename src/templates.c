@@ -28074,7 +28074,7 @@ available, issue an error at the given position.
       force_instantiation_to_deduce_return_type(rp);
     }  /* if */
     if (!rp->has_deduced_return_type) {
-      check_assertion(!routine_has_been_defined(rp) &&
+      check_assertion(!rp->defined &&
                       rp->type->kind == (a_type_kind)tk_routine);
       pos_sy_error(ec_use_of_undefined_function_with_deduced_return_type,
                    diag_pos, symbol_for(rp));

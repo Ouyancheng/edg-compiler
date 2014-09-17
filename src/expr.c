@@ -36898,19 +36898,27 @@ required_type will be void if the expression should have void type
     /* Normal case: Scan the expression. */
     scan_expr(&result, PREC_LOWEST, EOPT_NO_OPTIONS);
     if (deduced_return_type) {
-      /* Set the lambda return type from the expression type. */
+      /* Set the return type from the expression type. */
 handle_deduced_return_type:
-      check_and_adjust_deduced_return_type_if_needed(curr_routine, &result,
-                                                     &required_type);
-      if (routine_type->variant.routine.extra_info->value_returned_by_cctor) {
-        /* The routine is now known to return its value via copy
-           constructor. */
-        return_by_cctor_case = TRUE;
+      if (!curr_routine->has_deducible_return_type) {
+        /* An error caused the flag to be cleared (e.g., because the routine
+           was called recursively in the return expression). */
+        expect_error();
+        required_type = error_type();
       } else {
-        /* It turns out we didn't need to treat this as a cctor elision
-           context, so make sure we add destructors to any dynamic
-           initialization entries where they were partially suppressed. */
-        fix_up_dynamic_init_dtors();
+        check_and_adjust_deduced_return_type_if_needed(curr_routine, &result,
+                                                       &required_type);
+        if (routine_type->variant.routine.extra_info
+                        ->value_returned_by_cctor) {
+          /* The routine is now known to return its value via copy
+             constructor. */
+          return_by_cctor_case = TRUE;
+        } else {
+          /* It turns out we didn't need to treat this as a cctor elision
+             context, so make sure we add destructors to any dynamic
+             initialization entries where they were partially suppressed. */
+          fix_up_dynamic_init_dtors();
+        }  /* if */
       }  /* if */
     }  /* if */
   }  /* if */
