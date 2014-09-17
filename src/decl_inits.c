@@ -1223,11 +1223,18 @@ static initialization.
 {
   a_boolean  result = TRUE;
 
-  if (con->kind == (a_constant_repr_kind)ck_address &&
-      con->variant.address.kind == (an_address_base_kind)abk_variable &&
-      con->variant.address.variant.variable
-         ->source_corresp.is_local_to_function) {
-    result = FALSE;
+  if (con->kind == (a_constant_repr_kind)ck_address) {
+    if (con->variant.address.kind == (an_address_base_kind)abk_variable &&
+        con->variant.address.variant.variable
+                                      ->source_corresp.is_local_to_function) {
+      result = FALSE;
+    } else if (con->variant.address.kind ==
+                                        (an_address_base_kind)abk_temporary &&
+               !in_file_scope(con->variant.address.variant.constant)) {
+      /* An abk_temporary entry for a constant allocated in function scope
+         memory is equivalent to the address of a local static variable. */
+      result = FALSE;
+    }  /* if */
   }  /* if */
   return result;
 }  /* is_static_init_constant */
