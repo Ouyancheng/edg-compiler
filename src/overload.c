@@ -12256,7 +12256,7 @@ specific function being called.
       }  /* if */
     } else {
       check_assertion(is_expression_component(alep));
-      if (alep->check_narrowing) {
+      if (alep->check_narrowing && param != NULL) {
         a_boolean  treat_as_warning,
                    error_on_narrowing = !(gpp_mode || microsoft_mode);
 retry_narrowing_diagnostic:
