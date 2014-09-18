@@ -14979,9 +14979,15 @@ represents an explicit cast.
      scope, or a template declaration scope, no IL scope will be created;
      that's okay, since the expression will be copied in a context that
      will have an IL scope.) */
-  if (ssep->kind != (a_scope_kind)sck_func_prototype &&
-      ssep->kind != (a_scope_kind)sck_template_declaration &&
-      ssep->kind != (a_scope_kind)sck_template_instantiation) {
+  /* Class reactivation scopes can show up here with severe errors.  Skip to
+     the logically enclosing context if that's the case. */
+  while (scope_is(ssep, sck_class_reactivation)) {
+    expect_error();
+    ssep = &scope_stack[ssep->previous_scope];
+  }  /* if */
+  if (!scope_is(ssep, sck_func_prototype) &&
+      !scope_is(ssep, sck_template_declaration) &&
+      !scope_is(ssep, sck_template_instantiation)) {
     (void)ensure_il_scope_exists(ssep);
   }  /* if */
   /* Put the dynamic initialization on a destruction list if appropriate. */
