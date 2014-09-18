@@ -1556,8 +1556,12 @@ capture described by lcp.  Return the field entry.
          no actual "this" variable (i.e., a field initializer). */
       a_field_ptr  parent_field = lcp->capture_info.source_closure_field;
       if (parent_field != NULL) {
-        /* A capture of an init-capture. */
-        make_locator_for_symbol(symbol_for(parent_field), &locator);
+        /* A capture of an init-capture or param-ref capture. */
+        if (parent_field->is_captured_this) {
+          is_this = TRUE;
+        } else {
+          make_locator_for_symbol(symbol_for(parent_field), &locator);
+        }  /* if */
         field_type = parent_field->type;
       } else if (lcp->is_param_ref_capture) {
         /* A capture of "this" in a context with no "this" variable. */
@@ -1765,7 +1769,7 @@ being done.
      be cleared soon after it's been used to generate the capture copy code. */
   lcp->captured.variable = vp;
   lcp->capture_info.source_closure_field = source_field;
-  if (vp == NULL && fp == NULL && !*no_impl_capture) {
+  if (vp == NULL && fp == NULL && !*no_impl_capture && source_field == NULL) {
     lcp->is_param_ref_capture = TRUE;
   }  /* if */
   lcp->capture_by_reference = by_reference;
