@@ -30113,7 +30113,11 @@ For example:
      default arguments, the number will be determined elsewhere).  The notion
      of "discriminator" here is a generalization of the one defined in the
      IA-64 ABI. */
-  compute_name_collision_discriminator(symbol_for(closure_class), decl_level);
+  { a_symbol_ptr  class_sym = symbol_for(closure_class);
+    if (class_symbol_supp(class_sym)->discriminator == 0) {
+      compute_name_collision_discriminator(class_sym, decl_level);
+    }  /* if */
+  }
 #endif /* NEED_NAME_MANGLING */
   /* Fill in the capture fields information for the explicit captures. */
   decl_lambda_capture_fields(lambda);
