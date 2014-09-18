@@ -1,5 +1,30 @@
 Version 4.10
 
+9/18/14  [EDGcpfe/15455]
+Internal error converting dependent expression to pointer type
+
+The front end could previously issue an internal error in
+conv_pointer_to_whatever when a function template contains a cast of a
+dependent expression to a pointer type.  This is now fixed.  For example,
+with --g++ --c++11:
+
+  struct S {
+    const int& operator[](int) const;
+  };
+
+  void f(const int*);
+
+  template <typename T> void g(const T& t) {
+    const int& ir = t[0];
+    f(reinterpret_cast<const int*>(&ir));  // Previously aborted
+  }
+
+  void h() {
+    S s;
+    g(s);
+  }
+
+
 9/17/14  [EDGcpfe/15450]
 Lowering of fixed point in Microsoft C mode
 

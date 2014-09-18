@@ -1166,11 +1166,12 @@ type.
   if (suppress_complex_diags) p_err_code = err_code;
 #if CHECKING
   if (old_constant->kind != (a_constant_repr_kind)ck_address &&
-      old_constant->kind != (a_constant_repr_kind)ck_integer) {
-    internal_error("conv_pointer_to_whatever: not ck_address or ck_integer");
+      old_constant->kind != (a_constant_repr_kind)ck_integer &&
+      old_constant->kind != (a_constant_repr_kind)ck_template_param) {
+    internal_error("conv_pointer_to_whatever: invalid constant kind");
   }  /* if */
 #endif /* CHECKING */
-  /* Change of pointer type for an address constant. */
+  /* Change of pointer type for an address or template parameter constant. */
   /* Change of pointer type for an integer cast to a pointer type. */
   /* Change of an address constant previously cast to integer to another
      type. */
