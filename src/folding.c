@@ -6318,7 +6318,10 @@ stack and return TRUE.  Otherwise, return FALSE.
          parent_class = parent_class_or_null(parent_class)) {
       for (init_con = curr_init_aggr_con; !result && init_con != NULL;
            init_con = init_con->next) {
-        if (init_con->constant->type == parent_class) {
+        if (init_con->constant == NULL) {
+          /* This should only happen in error situations. */
+          expect_error();
+        } else if (init_con->constant->type == parent_class) {
           /* We've found an aggregate containing the field in the member
              access expression.  Create an address constant in *con that
              points to that aggregate and return TRUE. */
@@ -11101,8 +11104,11 @@ otherwise, return FALSE.
          value-initialized, either explicitly or because of a short
          initializer.  Make a zero constant of the requisite type and use
          that. */
-      check_assertion(eff_obj_con->partial_aggr_value ||
-                      empty_anonymous_union_initializer);
+      if (!eff_obj_con->partial_aggr_value &&
+          !empty_anonymous_union_initializer) {
+        /* This must have been the result of an error upstream. */
+        expect_error();
+      }  /* if */
       folded = make_value_initialized_constant(field->type, result_con);
       implicit_constant = TRUE;
     } else {
