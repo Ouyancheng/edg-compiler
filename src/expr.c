@@ -27608,7 +27608,8 @@ caller is responsible for ensuring there is such a closure class.
 
   for (;;) {
     check_assertion(sd > DEPTH_OF_FILE_SCOPE);
-    if (scope_is(&scope_stack[sd], sck_class_struct_union) &&
+    if ((scope_is(&scope_stack[sd], sck_class_struct_union) ||
+         scope_is(&scope_stack[sd], sck_class_reactivation)) &&
         class_type_supp(scope_stack[sd].assoc_type)->is_lambda_closure_class) {
       break;
     }  /* if */
