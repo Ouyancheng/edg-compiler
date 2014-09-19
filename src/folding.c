@@ -11104,11 +11104,13 @@ otherwise, return FALSE.
          value-initialized, either explicitly or because of a short
          initializer.  Make a zero constant of the requisite type and use
          that. */
+#if CHECKING
       if (!eff_obj_con->partial_aggr_value &&
           !empty_anonymous_union_initializer) {
         /* This must have been the result of an error upstream. */
         expect_error();
       }  /* if */
+#endif /* CHECKING */
       folded = make_value_initialized_constant(field->type, result_con);
       implicit_constant = TRUE;
     } else {
