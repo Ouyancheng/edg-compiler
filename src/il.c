@@ -11971,11 +11971,13 @@ entries.
 }  /* routine_type_without_param_type_qualifiers */
 
 
-a_type_ptr routine_type_without_this_class(a_type_ptr	orig_type)
+a_type_ptr routine_type_without_this_class(a_type_ptr  orig_type,
+                                           a_boolean   copy_default_args)
 /*
 "type" is a routine type.  If the type has a this_class, make a copy of the
-type and clear the this_class information.  Return either the new type or
-the original type.
+type and clear the this_class information.  If a copy is made, copy the
+default argument information also if copy_default_args is TRUE.  Return either
+the new type or the original type.
 */
 {
   a_type_ptr	type = orig_type;
@@ -11984,7 +11986,7 @@ the original type.
   if (orig_type->variant.routine.extra_info->this_class != NULL) {
     a_routine_type_supplement_ptr	rtsp;
     type = alloc_type((a_type_kind)tk_routine);
-    copy_type_full(orig_type, type, /*copy_default_args=*/TRUE);
+    copy_type_full(orig_type, type, copy_default_args);
     rtsp = type->variant.routine.extra_info;
     rtsp->this_class = NULL;
     /* Note that the qualifiers from the original type are retained. */

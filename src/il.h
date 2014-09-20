@@ -1176,7 +1176,9 @@ extern void copy_routine_type_default_args(a_type_ptr  from_type,
 
 extern a_type_ptr routine_type_without_default_args(a_type_ptr orig_type);
 
-extern a_type_ptr routine_type_without_this_class(a_type_ptr	orig_type);
+extern
+a_type_ptr routine_type_without_this_class(a_type_ptr  orig_type,
+                                           a_boolean   copy_default_args);
 
 extern
 void ensure_underlying_function_type_is_modifiable(a_type_ptr  *p_type,

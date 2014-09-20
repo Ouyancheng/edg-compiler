@@ -9055,10 +9055,22 @@ error indication in *rcblock).
     /* Normal case, not the &... extension. */
     if (rcblock == NULL) {
       /* Scan the operand. */
-      scan_expr(&operand, PREC_PREFIX,
-                (local_options |
-                 EOPT_OPERAND_OF_ADDRESS_OF |
-                 EOPT_PTR_TO_MEMBER_CONTEXT));
+      an_operand  bound_function_selector, *p_bf_selector = NULL;
+      a_local_expr_options_set  options = local_options |
+                                          EOPT_OPERAND_OF_ADDRESS_OF |
+                                          EOPT_PTR_TO_MEMBER_CONTEXT;
+      if (microsoft_mode && curr_expr_kind_is(ek_sizeof) &&
+          !expr_stack->is_type_operator_arg_expression) {
+        options |= EOPT_ALLOW_BOUND_FUNCTION;
+        p_bf_selector = &bound_function_selector;
+      }  /* if */
+      scan_expr_full(&operand, p_bf_selector, PREC_PREFIX, options);
+      if (operand.bound_function) {
+        combine_unneeded_selector_with_operand(
+                           &bound_function_selector,
+                           bound_function_selector.selector_is_object_pointer,
+                           &operand);
+      }  /* if */
     }  /* if */
 
     if (err) {
@@ -31883,11 +31895,8 @@ end_expr:
     if (local_options & EOPT_ALLOW_BOUND_FUNCTION) {
       /* Bound function allowed.  Return the operand for the object to
          which the function is bound in *bound_function_selector. */
-#if CHECKING
-      if (bound_function_selector == NULL) {
-        internal_error("scan_expr_full: bound_function_selector == NULL");
-      }  /* if */
-#endif /* CHECKING */
+      check_assertion_str(bound_function_selector != NULL,
+                          "scan_expr_full: bound_function_selector == NULL");
       copy_operand(&local_bound_function_selector, bound_function_selector);
       selector_ref_entry_list = bound_function_selector->ref_entries_list;
     } else if (conv_bound_function_to_static_selection(

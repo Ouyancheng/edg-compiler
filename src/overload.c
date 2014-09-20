@@ -9717,6 +9717,9 @@ is an unneeded selector for that reference.  Save it by attaching it to
 *operand (it must be evaluated, even though its type only -- and not its
 value -- is used to select the member referenced).  is_arrow_operator is
 TRUE if the operator is "->", FALSE if it is ".".
+
+In Microsoft mode, operand may also represent a nonstatic member function (for
+an expression like "&(p->f)" appearing in an unevaluated context).
 */
 {
   an_operand            orig_operand;
@@ -9784,6 +9787,17 @@ TRUE if the operator is "->", FALSE if it is ".".
   }  /* if */
   if (need_expr) {
     /* Make an expression for a static selection. */
+    a_type_ptr  expr_type = orig_expr->type;
+    if (is_function_type(expr_type) &&
+        routine_type_is_nonstatic_member_function(expr_type)) {
+      /* In Microsoft mode, something like p->f, where f is a nonstatic member
+         function, is permitted in non-evaluated contexts.   The result has
+         the type of the corresponding static member function, however (i.e.,
+         the implied "this" parameter is dropped). */
+      check_assertion(microsoft_mode && curr_expr_kind_is(ek_sizeof));
+      expr_type = routine_type_without_this_class(skip_typerefs(expr_type),
+                                                  /*copy_default_args=*/TRUE);
+    }  /* if */
     selector_expr->next = orig_expr;
     /* Determine the operator to use. */
     if (is_arrow_operator) {
@@ -9810,6 +9824,7 @@ TRUE if the operator is "->", FALSE if it is ".".
       restore_operand_details_incl_ref(operand, &orig_operand);
     }  /* if */
   }  /* if */
+  operand->bound_function = FALSE;
   rule_out_expr_kinds(ROEK_CONSTANT, operand);
 }  /* combine_unneeded_selector_with_operand */
 

@@ -14750,7 +14750,10 @@ enum an_expr_operator_kind_tag {
 			   enk_variable identifying a static data member,
 			   an enk_routine identifying a static member
 			   function, or an enk_constant identifying a member
-			   constant (e.g., an enumerator). */
+			   constant (e.g., an enumerator).  In Microsoft modes,
+			   the second operand may also be a nonstatic member
+			   function (to represent, e.g., "sizeof(&p->f)", which
+			   is accepted in those modes). */
   eok_points_to_static,	/* Selection of a static member of a class, source
 			   form p->y.  The first operand is an rvalue
 			   pointer to class or C++/CLI handle to class, which
@@ -14758,7 +14761,10 @@ enum an_expr_operator_kind_tag {
 			   is an enk_variable identifying a static data member,
 			   an enk_routine identifying a static member function,
 			   or an enk_constant identifying a member constant
-			   (e.g., an enumerator). */
+			   (e.g., an enumerator).  In Microsoft modes, the
+			   second operand may also be a nonstatic member
+			   function (to represent, e.g., "sizeof(&p->f)", which
+			   is accepted in those modes).  */
   eok_virtual_function_ptr,
 			/* Produce a normal function pointer for a C++ virtual
 			   member function.  This is (only) used to implement

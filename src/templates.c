@@ -9604,7 +9604,8 @@ points to the template parameter list.
               /* If the member type is itself a function type but the template
                  type is not a function type, the this_class information
                  should be ignored for deduction purposes. */
-              tp = routine_type_without_this_class(tp);
+              tp = routine_type_without_this_class(
+                                              tp, /*copy_default_args=*/TRUE);
             }  /* if */
             new_flags |= MTT_REVERSE_BASE_DERIVED_THIS_TEST;
             match = matches_template_type(tp, ttp, templ_arg_list,
