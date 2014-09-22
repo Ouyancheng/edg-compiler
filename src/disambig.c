@@ -1027,8 +1027,12 @@ part of a function declarator is found, may_be_decl is set to FALSE.
       }  /* if */
     }  /* if */
   }  /* if */
-  if (trailing_return_types_enabled && curr_token == tok_arrow) {
-    /* Cache the trailing return type. */
+  if (trailing_return_types_enabled && curr_token == tok_arrow &&
+      !record_auto_params) {
+    /* Cache the trailing return type.  This is not needed when the prescan is
+       to identify "auto" parameters (and could trigger errors if the trailing
+       return type refers back to parameters, which haven't been declared
+       yet). */
     (void)get_token();
     prescan_trailing_return_type(state);
   }  /* if */
