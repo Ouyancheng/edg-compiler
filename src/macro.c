@@ -332,7 +332,7 @@ typedef struct a_macro_arg {
 			   Dynamically allocated, expanded as needed.
 			   Contains various escapes (e.g., end-of-token) in
 			   addition to the raw text of the tokens. */
-#define ARG_EXPANDED_TEXT_INITIAL_ALLOCATION 400
+#define ARG_EXPANDED_TEXT_INITIAL_ALLOCATION 800
 			/* Initial allocation size for expanded_text.  The
 			   initial allocation should be such that almost all
 			   cases can be accepted (so that the realloc is
