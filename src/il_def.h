@@ -14752,7 +14752,7 @@ enum an_expr_operator_kind_tag {
 			   function, or an enk_constant identifying a member
 			   constant (e.g., an enumerator).  In Microsoft mode,
 			   the second operand may also be a nonstatic member
-			   function (to represent, e.g., "sizeof(x.f)", which
+			   function (to represent, e.g., "sizeof(&x.f)", which
 			   is accepted in Microsoft mode). */
   eok_points_to_static,	/* Selection of a static member of a class, source
 			   form p->y.  The first operand is an rvalue
