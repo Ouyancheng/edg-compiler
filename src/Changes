@@ -17,9 +17,9 @@ Microsoft compatibility: Bound functions in unevaluated contexts
 
 A "bound function" is an expression of the form "obj.f" or "ptr->f" where f is
 a nonstatic member function.  Ordinarily, such an expression can only be used
-to call the indicated member function.  Now, however, the front end also allows
-taking the address of such an expression inside a sizeof operand: "&(p->f)" is
-treated as a pointer-to-function in such cases.  For example:
+to call the indicated member function.  Now, in Microsoft mode, the front end
+also allows taking the address of such an expression inside a sizeof operand:
+"&(p->f)" is treated as a pointer-to-function in such cases.  For example:
 
   struct S { int f(); };
   unsigned s = sizeof(&((S*)0)->f);  // Now accepted in Microsoft mode.
