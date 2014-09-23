@@ -5839,7 +5839,9 @@ expression).
       /* Class or struct -- go on to next field (nonstatic data member). */
       ipmp->curr_field = next_initializable_field(ipmp->curr_field->next);
     }  /* if */
-    if (!array_or_vector) {
+    if (is_immediate_class_type(aggr_type) &&
+        aggr_type->variant.class_struct_union.extra_info->
+                                                     is_lambda_closure_class) {
       /* If we're initializing fields of a lambda closure object,
          advance the source of an implied copy to the next variable in
          the capture list. */
