@@ -5595,7 +5595,7 @@ the outermost class was defined in an unnamed namespace.
                !rp->compiler_generated &&
                !rp->is_virtual &&
                !rp->is_defaulted &&
-               // FIXME !rp->is_prototype_instantiation &&
+               !rp->is_prototype_instantiation &&
                /* Don't warn about members that might be declared
                   to avoid compiler generated declarations. */
                !((special_kind_is(rp, sfk_constructor) ||
