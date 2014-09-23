@@ -15447,8 +15447,7 @@ all arguments were explicit.
         scan_template_argument_constant_expression(constant_type, constant);
         /* Make sure the constant does not use a local or nonexternal
            variable, etc. */
-        if (nontype_templ_arg_constant_references_non_external_entity(
-                                                                   constant)) {
+        if (nontype_templ_arg_constant_involves_invalid_linkage(constant)) {
           pos_error(ec_nonexternal_entity_in_template_arg, &arg_pos);
           set_error_constant(constant);
         }  /* if */

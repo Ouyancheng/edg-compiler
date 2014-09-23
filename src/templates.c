@@ -14988,7 +14988,7 @@ structure.
          which is nonlocal.  Strip them off, if there are any. */
       tap->variant.type = strip_local_and_nonreal_typedefs(tap->variant.type);
     } else if (is_nontype_templ_arg(tap)) {
-      if (nontype_templ_arg_constant_references_non_external_entity(
+      if (nontype_templ_arg_constant_involves_invalid_linkage(
                                                       tap->variant.constant)) {
         pos_error(ec_nonexternal_entity_in_template_arg, source_pos);
         set_error_constant(tap->variant.constant);
@@ -19468,7 +19468,7 @@ Scan the default argument of the nontype template parameter specified by tpp.
   } else {
     /* Make sure the constant does not use a local or nonexternal
        variable, etc. */
-    if (nontype_templ_arg_constant_references_non_external_entity(
+    if (nontype_templ_arg_constant_involves_invalid_linkage(
                                                        default_arg_constant)) {
       error(ec_nonexternal_entity_in_template_arg);
       set_error_constant(default_arg_constant);
@@ -20099,8 +20099,7 @@ the resulting constant is stored in the pointer pointed to by "constant".
         delayed_scan_of_template_default_arg_expr(constant_type, *constant);
         /* Make sure the constant does not use a local or nonexternal
            variable, etc. */
-        if (nontype_templ_arg_constant_references_non_external_entity(
-                                                                  *constant)) {
+        if (nontype_templ_arg_constant_involves_invalid_linkage(*constant)) {
           pos_error(ec_nonexternal_entity_in_template_arg, &arg_pos);
           set_error_constant(*constant);
         }  /* if */

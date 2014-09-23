@@ -7063,7 +7063,7 @@ contains it among its operands (in a position that can be deduced from).
 }  /* expr_tree_contains_template_param_constant */
 
 
-a_boolean nontype_templ_arg_constant_references_non_external_entity(
+a_boolean nontype_templ_arg_constant_involves_invalid_linkage(
                                                        a_constant_ptr constant)
 /*
 Return TRUE if the indicated constant is not valid as a nontype template
@@ -7079,6 +7079,13 @@ argument because it references a non-external entity, e.g., a local variable.
     switch (constant->variant.address.kind) {
       case abk_routine:
         scp = &constant->variant.address.variant.routine->source_corresp;
+        if (microsoft_mode) {
+          /* Microsoft compilers do not appear to check the linkage of a
+             routine whose address is used as a template argument (e.g., the
+             address of a static member function of a local class is
+             accepted). */
+          scp = NULL;
+        }  /* if */
         break;
       case abk_variable:
         scp = &constant->variant.address.variant.variable->source_corresp;
@@ -7112,7 +7119,7 @@ argument because it references a non-external entity, e.g., a local variable.
         break;
       default:
         unexpected_condition_str2(
-                  "nontype_templ_arg_constant_references_non_external_entity:",
+                  "nontype_templ_arg_constant_involves_invalid_linkage:",
                   "bad address kind");
     }  /* switch */
     if (scp == NULL) {
@@ -7131,11 +7138,12 @@ argument because it references a non-external entity, e.g., a local variable.
     } else {
       /* Not a class member. */
       invalid = (scp->name_linkage == (a_name_linkage_kind)nlk_none ||
-                 scp->name_linkage == (a_name_linkage_kind)nlk_internal);
+                 (!local_types_as_template_args_enabled &&
+                  scp->name_linkage == (a_name_linkage_kind)nlk_internal));
     }  /* if */
   }  /* if */
   return invalid;
-}  /* nontype_templ_arg_constant_references_non_external_entity */
+}  /* nontype_templ_arg_constant_involves_invalid_linkage */
 
 
 a_boolean has_non_file_scope_ref(a_constant *cp)
