@@ -5595,13 +5595,12 @@ the outermost class was defined in an unnamed namespace.
                !rp->compiler_generated &&
                !rp->is_virtual &&
                !rp->is_defaulted &&
+               // FIXME !rp->is_prototype_instantiation &&
                /* Don't warn about members that might be declared
                   to avoid compiler generated declarations. */
-               !((rp->special_kind ==
-                                    (a_special_function_kind)sfk_constructor ||
-                  rp->special_kind ==
-                                     (a_special_function_kind)sfk_destructor ||
-                  (rp->special_kind == (a_special_function_kind)sfk_operator &&
+               !((special_kind_is(rp, sfk_constructor) ||
+                  special_kind_is(rp, sfk_destructor) ||
+                  (special_kind_is(rp, sfk_operator) &&
                    rp->variant.opname_kind == (an_opname_kind)onk_assign)) &&
                  !routine_defined(rp))) {
       report_unreferenced(rout_sym, ec_declared_but_not_referenced,
