@@ -3817,7 +3817,7 @@ a parameter in expr (if one exists) with a corresponding parameter.
       for (orig_ptr = tblock->orig_params, new_ptr = tblock->new_params;
            orig_ptr != NULL && new_ptr != NULL;
            orig_ptr = orig_ptr->next, new_ptr = new_ptr->next) {
-        if (ptr->is_init_capture && ptr->captured.variable == orig_ptr) {
+        if (!ptr->is_init_capture && ptr->captured.variable == orig_ptr) {
           check_assertion(identical_types(orig_ptr->type, new_ptr->type) &&
                     orig_ptr->is_parameter &&
                     new_ptr->is_parameter &&
