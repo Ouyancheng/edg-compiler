@@ -1,5 +1,16 @@
 Version 4.10
 
+9/24/14  [EDGcpfe/15483]
+Abort in copy_routine_type_default_args in complex cases
+
+When recording the declared types of function declarations (i.e., when the
+configuration macro GENERATE_SOURCE_SEQUENCE_LISTS is TRUE), the front end
+could sometimes abort with an internal error in copy_routine_type_default_args
+while updating the IL for the default arguments of a member function.
+Currently, this has only been reproduced with large, complex test cases, but
+the issue has been fixed.
+
+
 9/23/14  [EDGcpfe/15467]
 Spurious warning on member function template from unnamed namespace
 
