@@ -1,5 +1,23 @@
 Version 4.10
 
+9/24/14  [EDGcpfe/15332]
+C++-generating back end: assertion failure with explicit specialization of
+member of inline namespace in containing namespace
+
+After the change for EDGcpfe/15043, the C++-generating back end could abort
+with an assertion failure in adjust_current_namespace when putting out the
+declaration of an explicit specialization or explicit instantiation if the
+template is a member of an inline namespace nested within the current scope.
+This is now fixed.  For example:
+
+  namespace N {
+    inline namespace {
+      template<typename T> void f(T);
+    }
+    template<> void f(int);  // Previously aborted
+  }
+
+
 9/24/14  [EDGcpfe/15483]
 Abort in copy_routine_type_default_args in complex cases
 

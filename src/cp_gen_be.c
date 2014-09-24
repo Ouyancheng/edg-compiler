@@ -7926,6 +7926,7 @@ declarator.
 */
 {
   a_scope_ptr desired_scope;
+  a_scope_ptr sp;
 
   *common_scope = NULL;
   *orig_scope = NULL;
@@ -7973,6 +7974,18 @@ declarator.
       /* File scope. */
       desired_scope = il_header.primary_scope;
     }  /* if */
+    for (sp = desired_scope;
+         sp != NULL && sp->kind == (a_scope_kind)sck_namespace &&
+                                        sp->variant.assoc_namespace->is_inline;
+         sp = sp->parent) {
+      if (sp->parent == curr_name_context->assoc_scope) {
+        /* Only inline namespaces separate the current scope from the scope
+           of the specialization, so no adjustment is needed -- the
+           specialization can be named in the current scope. */
+        desired_scope = curr_name_context->assoc_scope;
+        break;
+      }  /* if */
+    }  /* for */
     if (desired_scope != curr_name_context->assoc_scope) {
       /* We need to adjust the current namespace. */
       *orig_scope = curr_name_context->assoc_scope;
