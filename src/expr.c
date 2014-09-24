@@ -20373,7 +20373,7 @@ The cast is compiler-generated if compiler_generated is TRUE.
 */
 {
   check_assertion(is_an_lvalue(operand) || is_error_operand(operand));
-  if (!identical_types(operand->type, new_type)) {
+  if (!compiler_generated || !identical_types(operand->type, new_type)) {
     lvalue_cast(new_type, operand, compiler_generated);
   }  /* if */
 }  /* microsoft_lvalue_cv_qual_adjustment */

@@ -1,5 +1,23 @@
 Version 4.10
 
+9/24/14  [EDGcpfe/15485]
+Representation of same-type casts
+
+In some modes (Microsoft mode in particular) casting an lvalue to its own type
+preserves the lvalue (see the entry of 11/1/13 for EDGcpfe/14628).  The IL
+representation of such situations frequently just omits the cast altogether.
+For example:
+
+  void g(int&) {}
+  void h(int p) {
+    g((int)p);  // Accepted in Microsoft C++ mode, but the IL previously did
+  }             // not reflect the presence of the cast.  Now it does.
+
+Now, such casts are represented using an eok_lvalue_cast node.  (This affects,
+e.g., the C++-generating back end: It now renders the original cast, whereas
+it didn't before.)
+
+
 9/24/14  [EDGcpfe/15332]
 C++-generating back end: assertion failure with explicit specialization of
 member of inline namespace in containing namespace
