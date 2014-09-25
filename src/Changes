@@ -5,7 +5,7 @@ Representation of same-type casts
 
 In some modes (Microsoft mode in particular) casting an lvalue to its own type
 preserves the lvalue (see the entry of 11/1/13 for EDGcpfe/14628).  The IL
-representation of such situations frequently just omits the cast altogether.
+representation of such situations frequently just omitted the cast altogether.
 For example:
 
   void g(int&) {}
