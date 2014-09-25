@@ -24177,6 +24177,9 @@ that follows.
           pos_error(ec_inline_and_nonfunction, &dps->specifiers_pos);
         }  /* if */
         attach_decl_attributes(dps, dps->is_definition);
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+        wrapup_sse_for_simple_decl(dps);
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
         /* Deal with initializer. */
         if (dps->is_definition) {
           a_boolean  incomplete_type_error_reported = FALSE;
@@ -24406,6 +24409,9 @@ that follows.
           }  /* if */
 #endif /* GNU_VISIBILITY_ATTRIBUTE_ALLOWED */
         }  /* if */
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+        wrapup_sse_for_simple_decl(dps);
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 #if DECL_MODIFIERS_IN_USE
         { /* update_routine_decl_modifiers expects the position recorded in
              the symbol not to be updated yet (to reference previous
