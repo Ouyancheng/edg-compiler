@@ -11904,7 +11904,16 @@ gen_expr that might end up generating this expr as a temporary.
         case eok_lvalue_cast:
           if (!expr->variant.operation.compiler_generated ||
               expr->keep_as_cast_for_cp_gen_be) {
-            gen_cast(expr->type);
+            if (!msvc_is_generated_code_target &&
+                !expr->keep_as_cast_for_cp_gen_be &&
+                standalone_identical_types(expr->type, operand_1->type)) {
+              /* Casting an expression to its own type doesn't turn an lvalue
+                 into an rvalue in Microsoft modes, but it typically does in
+                 other modes.  So in other modes, we don't render the cast in
+                 such cases. */
+            } else {
+              gen_cast(expr->type);
+            }  /* if */
           }  /* if */
           gen_expr(operand_1, /*need_parens=*/TRUE,
                    obj_expr_of_mfunc_operator);

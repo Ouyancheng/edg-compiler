@@ -20221,6 +20221,11 @@ that identifies an object or a prvalue that is a pointer to an object.
        is_class_struct_union_type(expr->type))) {
     /* The expression passed in is a glvalue for an object (or a class
        prvalue object). */
+    while (is_operation_node(expr) &&
+           node_operator_is(expr, eok_lvalue_cast)) {
+      /* Skip lvalue cast nodes. */
+      expr = expr->variant.operation.operands;
+    }  /* while */
     if (is_variable_node(expr)) {
       a_variable_ptr var = expr->variant.variable;
       if (!var_has_static_or_thread_storage_duration(var)) {
