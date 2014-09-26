@@ -5,8 +5,9 @@ Attributes and explicit specializations
 
 The front end previously failed to record attributes for non-defining explicit
 specializations of function templates in the secondary source sequence entry
-for that specialization.  This caused the C++-generating back end to fail to
-render those attributes.  For example, in Microsoft mode:
+for that specialization (in configurations with GENERATE_SOURCE_SEQUENCE_LISTS
+set to TRUE).  This caused the C++-generating back end to fail to render those
+attributes.  For example, in Microsoft mode:
 
   template<typename T> void f() {}
   template<> __declspec(dllimport) void f<int>();
@@ -15,6 +16,7 @@ render those attributes.  For example, in Microsoft mode:
 
 (A similar problem existed for static data members and member functions of
 class templates.)  This is now fixed.
+
 
 9/24/14  [EDGcpfe/15485]
 Representation of same-type casts
