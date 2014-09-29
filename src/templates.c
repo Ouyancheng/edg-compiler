@@ -23875,6 +23875,20 @@ that follows.
         sym = fund_sym;
       }  /* if */
       if (is_function_type(dps->type) && is_function_or_template_symbol(sym)) {
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+#if NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
+        /* The call to find_matching_template_instance below can cause a
+           partial instantiation, which, in turn, would trigger the creation
+           of a source sequence entry in this configuration.  However, that is
+           superfluous in this case since we already have a source sequence
+           entry for the partial specialization (and any additional one might
+           need additional IL such as that needed to represent attributes). */
+        if (!saved_sses_disallowed) {
+          scope_stack_top().source_sequence_entries_disallowed = TRUE;
+          source_sequence_entries_disallowed = TRUE;
+        }  /* if */
+#endif /* NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
         sym = find_matching_template_instance(
                         sym, dps, locator.template_arg_list,
                         (a_boolean)locator.is_template_id,
@@ -23882,6 +23896,14 @@ that follows.
                         /*prefer_template=*/TRUE,
                         decl_state->nesting_depth + decl_state->friend_depth,
 			es_error);
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+#if NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
+        if (!saved_sses_disallowed) {
+          scope_stack_top().source_sequence_entries_disallowed = FALSE;
+          source_sequence_entries_disallowed = FALSE;
+        }  /* if */
+#endif /* NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
         if (sym == NULL) {
           /* No match was found and an error was issued. */
         } else if (microsoft_bugs && microsoft_version <= 1300) {
