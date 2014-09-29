@@ -6432,6 +6432,22 @@ mode; *optional will be set as usual.
          emit the vtable. */
       defined_here = TRUE;
       *force_static = FALSE;
+#if IA64_ABI && ABI_COMPATIBILITY_VERSION >= 410
+    } else if (class_type->variant.class_struct_union.is_template_class) {
+      /* The IA-64 ABI specifies that vtables for class templates should
+         be emitted in any translation unit where they are instantiated. */
+      if (class_type->variant.class_struct_union.do_not_instantiate) {
+        /* An explicit request not to instantiate; suppress vtables. */
+        defined_here = FALSE;
+      } else {
+        /* According to the ABI, the vtable should be emitted in this object,
+           but mark it optional (which has the effect of suppressing it when
+           it is not referenced -- see the check at the end of this
+           function). */
+        defined_here = TRUE;
+        vtable_is_optional = TRUE;
+      }  /* if */
+#endif /* IA64_ABI && ABI_COMPATIBILITY_VERSION >= 410 */
     } else {
       /* The class is defined. */
       /* If the decider function of the class is defined in this compilation,

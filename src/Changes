@@ -1,5 +1,31 @@
 Version 4.10
 
+9/29/14  [EDGcpfe/15442,EDGcpfe/15475]
+Emitting virtual function tables for class templates in IA-64 ABI configs
+
+The decision to emit a virtual function table for a class template had
+previously been based on the existence of a definition for the class's "key"
+function (matching the behavior for non-template classes).  The ABI specifies
+that a virtual function table should be emitted in any objects in which
+the class template is instantiated, so a change has been made to make it so
+In practice, g++ and clang (and now EDG) suppress virtual function tables for
+class templates when they are not referenced in the translation unit.  This
+change should more closely align EDG's behavior with that of g++ and clang
+(though the change affects all modes, not just GNU and clang emulation modes).
+The Cfront behavior is not changed.  The previous behavior can be restored by
+setting ABI_COMPATIBILITY_VERSION to a value less than 410.  For example:
+
+  template <class T> struct A {
+    virtual void f();
+  };
+  template <> void A<void*>::f() { }   // Now: no vtable emitted.
+
+  template <class T> struct B {
+    virtual void f();
+  };
+  B<char> b;    // Now: vtable emitted (had been undefined).
+
+
 9/25/14  [EDGcpfe/15394]
 Attributes and explicit specializations
 
