@@ -23901,6 +23901,9 @@ that follows.
           a_source_sequence_entry_ptr  ssep;
           ssep = last_matching_source_sequence_entry((char*)rp);
           if (ssep != NULL) {
+            if (rp->source_corresp.source_sequence_entry == ssep) {
+              rp->source_corresp.source_sequence_entry = NULL;
+            }  /* if */
             remove_from_src_seq_list(ssep);
           }  /* if */
         }  /* if */
