@@ -23284,7 +23284,8 @@ a_symbol_ptr find_matching_template_instance(
 		a_boolean			in_class_specialization,
 		a_boolean			prefer_template,
 		a_template_nesting_depth	nesting_depth,
-		an_error_severity		severity_if_not_found)
+		an_error_severity		severity_if_not_found,
+                a_boolean                       *is_new_template_instance)
 /*
 sym is some kind of function symbol.  *dps describes the declaration of a
 function template instance.  explicit_arg_list is an explicitly specified
@@ -23297,6 +23298,8 @@ declaration and a matching template must match this depth, or
 NO_NESTING_DEPTH if the depth should not be checked.  severity_if_not_found
 is the severity of the diagnostic to be issued if no matching instance is
 found.  Return the symbol for the instance, or NULL if no instance is found.
+If this call created a matching instance set *is_new_template_instance to TRUE;
+otherwise, set it to FALSE.
 */
 {
   a_type_ptr			type = dps->type;
@@ -23308,6 +23311,7 @@ found.  Return the symbol for the instance, or NULL if no instance is found.
   a_symbol_ptr			member_sym = NULL;
 
   orig_sym = sym;
+  *is_new_template_instance = FALSE;
   if (sym->is_class_member && !explicit_arg_list_present) {
     /* A member function symbol, find the member function that matches
        the specified type.  This is used to find a normal member function
@@ -23378,12 +23382,11 @@ found.  Return the symbol for the instance, or NULL if no instance is found.
         sym_error(ec_ambiguous_overloaded_function, orig_sym);
         new_sym = NULL;
       } else {
-        a_boolean  is_new_template_instance;
         new_sym = matching_template_function(sym, type, explicit_arg_list,
 					     explicit_arg_list_present,
                                              /*is_decl_context=*/TRUE,
 					     in_class_specialization,
-                                             &is_new_template_instance);
+                                             is_new_template_instance);
       }  /* if */
     }  /* for */
   }  /* if */
@@ -23875,32 +23878,31 @@ that follows.
         sym = fund_sym;
       }  /* if */
       if (is_function_type(dps->type) && is_function_or_template_symbol(sym)) {
-#if GENERATE_SOURCE_SEQUENCE_LISTS
-#if NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
-        /* The call to find_matching_template_instance below can cause a
-           partial instantiation, which, in turn, would trigger the creation
-           of a source sequence entry in this configuration.  However, that is
-           superfluous in this case since we already have a source sequence
-           entry for the partial specialization (and any additional one might
-           need additional IL such as that needed to represent attributes). */
-        if (!saved_sses_disallowed) {
-          scope_stack_top().source_sequence_entries_disallowed = TRUE;
-          source_sequence_entries_disallowed = TRUE;
-        }  /* if */
-#endif /* NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
-#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+        a_boolean  is_new_template_instance;
         sym = find_matching_template_instance(
                         sym, dps, locator.template_arg_list,
                         (a_boolean)locator.is_template_id,
 		        /*in_class_specialization=*/decl_state->is_member_decl,
                         /*prefer_template=*/TRUE,
                         decl_state->nesting_depth + decl_state->friend_depth,
-			es_error);
+			es_error, &is_new_template_instance);
 #if GENERATE_SOURCE_SEQUENCE_LISTS
 #if NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
-        if (!saved_sses_disallowed) {
-          scope_stack_top().source_sequence_entries_disallowed = FALSE;
-          source_sequence_entries_disallowed = FALSE;
+        /* The call to find_matching_template_instance above can cause a
+           partial instantiation, which, in turn, triggers the creation of a
+           source sequence entry in this configuration.  However, that is
+           superfluous in this case since we already have a source sequence
+           entry for the partial specialization (and any additional one might
+           need additional IL such as that needed to represent attributes).
+           Remove the superfluous source sequence entry if it was created. */
+        if (!saved_sses_disallowed && is_new_template_instance &&
+            is_simple_function_symbol(sym)) {
+          a_routine_ptr                rp = sym->variant.routine.ptr;
+          a_source_sequence_entry_ptr  ssep;
+          ssep = last_matching_source_sequence_entry((char*)rp);
+          if (ssep != NULL) {
+            remove_from_src_seq_list(ssep);
+          }  /* if */
         }  /* if */
 #endif /* NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
@@ -30795,13 +30797,15 @@ instantiation.
          declaration or a template instance.  Normally, a failure to find
          a match is an error, but in Microsoft bugs mode such a failure is
          accepted with a warning or a remark. */
+      a_boolean  is_new_template_instance;
       new_sym = find_matching_template_instance(
                                    sym, &state, locator.template_arg_list,
                                    (a_boolean)locator.is_template_id,
                                    /*in_class_specialization=*/FALSE,
                                    /*prefer_template=*/TRUE,
                                    NO_NESTING_DEPTH,
-                                   severity_if_not_found);
+                                   severity_if_not_found,
+                                   &is_new_template_instance);
       if (new_sym != NULL) {
         state.sym = new_sym;
 #if MICROSOFT_EXTENSIONS_ALLOWED

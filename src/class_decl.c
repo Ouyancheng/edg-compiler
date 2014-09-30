@@ -10344,6 +10344,7 @@ possibility.
       }
     } else {
       /* The friend function is a class member. */
+      a_boolean  is_new_template_instance;
       if (sym_parent_class(sym) == class_type) {
         /* It's a member function of the very class that is according it
            friendship.  Issue a diagnostic. */
@@ -10361,7 +10362,7 @@ possibility.
                                /*prefer_template=*/!gpp_mode &&
                                                    !microsoft_mode,
                                NO_NESTING_DEPTH,
-                               es_error);
+                               es_error, &is_new_template_instance);
       if (sym == NULL) {
         /* This is a member function, but one with a type that doesn't
            match a previously declared member.  A diagnostic will have been
