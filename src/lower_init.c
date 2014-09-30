@@ -9005,7 +9005,7 @@ C99 mode for the same reason.
       source_node = dip->variant.expression;
       if (C_mode()) {
 #if DO_C99_IL_LOWERING
-        if (c99_mode || gcc_mode) {
+        if (c99_mode || gcc_mode || microsoft_mode) {
           /* When lowering C99 code, use the C99 lowering routines. */
           if (options & LDIO_FULL_EXPR) {
             lower_c99_full_expr(source_node);
