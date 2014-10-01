@@ -23285,7 +23285,7 @@ a_symbol_ptr find_matching_template_instance(
 		a_boolean			prefer_template,
 		a_template_nesting_depth	nesting_depth,
 		an_error_severity		severity_if_not_found,
-                a_boolean                       *is_new_template_instance)
+		a_boolean                       *is_new_template_instance)
 /*
 sym is some kind of function symbol.  *dps describes the declaration of a
 function template instance.  explicit_arg_list is an explicitly specified
@@ -23383,9 +23383,9 @@ otherwise, set it to FALSE.
         new_sym = NULL;
       } else {
         new_sym = matching_template_function(sym, type, explicit_arg_list,
-					     explicit_arg_list_present,
+                                             explicit_arg_list_present,
                                              /*is_decl_context=*/TRUE,
-					     in_class_specialization,
+                                             in_class_specialization,
                                              is_new_template_instance);
       }  /* if */
     }  /* for */
@@ -23882,10 +23882,10 @@ that follows.
         sym = find_matching_template_instance(
                         sym, dps, locator.template_arg_list,
                         (a_boolean)locator.is_template_id,
-		        /*in_class_specialization=*/decl_state->is_member_decl,
+                        /*in_class_specialization=*/decl_state->is_member_decl,
                         /*prefer_template=*/TRUE,
                         decl_state->nesting_depth + decl_state->friend_depth,
-			es_error, &is_new_template_instance);
+                        es_error, &is_new_template_instance);
 #if GENERATE_SOURCE_SEQUENCE_LISTS
 #if NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
         /* The call to find_matching_template_instance above can cause a
