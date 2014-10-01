@@ -50,8 +50,8 @@ for non-C99 dialects and even for plain C89).
 
   if (suppress_il_lowering || total_errors != 0) {
     result = FALSE;
-  } else if (c99_mode || gcc_mode || compound_literals_allowed ||
-             vla_enabled || designators_allowed || 
+  } else if (c99_mode || gcc_mode || microsoft_mode ||
+             compound_literals_allowed || vla_enabled || designators_allowed ||
              lowering_normalizes_boolean_controlling_expressions) {
     result = TRUE;
 #if FIXED_POINT_ALLOWED
