@@ -23896,9 +23896,9 @@ that follows.
            need additional IL such as that needed to represent attributes).
            Remove the superfluous source sequence entry if it was created. */
         if (!saved_sses_disallowed && is_new_template_instance &&
-            is_simple_function_symbol(sym)) {
-          a_routine_ptr                rp = sym->variant.routine.ptr;
+            sym != NULL && is_simple_function_symbol(sym)) {
           a_source_sequence_entry_ptr  ssep;
+          rp = sym->variant.routine.ptr;
           ssep = last_matching_source_sequence_entry((char*)rp);
           if (ssep != NULL) {
             if (rp->source_corresp.source_sequence_entry == ssep) {
