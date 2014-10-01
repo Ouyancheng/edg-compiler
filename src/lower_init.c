@@ -17280,28 +17280,16 @@ with the value of their corresponding captured variables.
   an_insert_location     insert_location;
   an_implied_copy_source source_desc;
   a_dynamic_init_ptr     dip;
+  a_boolean              is_reusable_temp;
 
   check_assertion(expr->kind == (an_expr_node_kind)enk_lambda &&
                   identical_types(expr->variant.lambda.ptr->closure_class,
                                   expr->type));
   capture = expr->variant.lambda.ptr->capture_list;
   dip = expr->variant.lambda.initialization;
-  if (dip->has_temporary_lifetime && !dip->static_temp) {
-    if (long_lifetime_temps) {
-      /* Make a temporary that lasts longer than the full expression. */
-      closure_var = make_lowered_temporary(expr->type);
-    } else {
-      /* Simple case; a temporary that lasts until the end of the full
-         expression will do. */
-      closure_var = make_local_temporary(expr->type);
-    }  /* if */
-  } else {
-    /* Create a static temporary for the closure object. */
-    closure_var = make_temporary_in_scope(expr->type,
-                                          (a_scope_ptr)NULL,
-                                          (a_boolean)dip->static_temp,
-                                          /*promote_if_necessary=*/TRUE);
-  }  /* if */
+  /* Create a suitable temporary variable for this initialization. */
+  closure_var = make_temporary_for_dynamic_init(expr->type, dip,
+                                                &is_reusable_temp);
   /* Change the enk_lambda node to an enk_variable node that refers to
      the closure variable.  The type and lvalueness of the node are unchanged.
      Lambda-specific field values of expr cannot be accessed after the
