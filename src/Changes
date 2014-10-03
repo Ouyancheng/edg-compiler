@@ -1,5 +1,16 @@
 Version 4.10
 
+10/3/14  [EDGcpfe/15075]
+Value of __cplusplus in C++14 modes
+
+The newly-approved Standard for C++14 specifies the value of the
+__cplusplus predefined macro as 201402L.  The front end has now been
+changed to follow suit when --c++14 mode is specified, except that in
+Microsoft and GNU modes it adopts the value set by those compilers: MSVC
+continues to use 199711L, while g++ beginning with version 4.9 uses 201300L
+when -std=c++14 is specified.
+
+
 9/29/14  [EDGcpfe/15442,EDGcpfe/15475]
 Emitting virtual function tables for class templates in IA-64 ABI configs
 
