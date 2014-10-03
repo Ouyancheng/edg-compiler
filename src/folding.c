@@ -7473,9 +7473,9 @@ constant will be set as well.
             /* MSVC returns FALSE for all of these (which is, at least in
                some cases, weird, but there you have it). */
             result = FALSE;
-          } else if (is_function_type(type)) {
-            /* Function types aren't variable types or object types.  So these
-               predicates always produce FALSE for function types. */
+          } else if (is_function_type(type) || is_void_type(type)) {
+            /* Function types and "void" aren't variable types or object types.
+               So these predicates always produce FALSE for those cases. */
             result = FALSE;
           } else {
             result = TRUE;
@@ -7510,9 +7510,9 @@ constant will be set as well.
             /* MSVC always returns FALSE for nonclass types. */
             result = FALSE;
           } else if (is_reference_type(type) || is_function_type(type) ||
-                     is_const) {
-            /* References, const objects, and functions cannot be assigned
-               to. */
+                     is_void_type(type) || is_const) {
+            /* References, const objects, functions, and void expressions
+               cannot be assigned to. */
             result = FALSE;
           } else {
             result = TRUE;

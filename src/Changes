@@ -1,5 +1,17 @@
 Version 4.10
 
+10/3/14  [EDGcpfe/15515]
+Type traits applicable to "object types" and void types
+
+In some cases, the front end erroneously treated "void" as a valid object type
+for some type traits helpers.  For example, __has_trivial_copy(void) usually
+produced a true value when it really should be a false value.  The affected
+type traits helpers are __has_copy, __has_nothrow_copy, __has_trivial_copy,
+__has_trivial_destructor, __has_trivial_move_constructor, __has_assign,
+__has_trivial_assign, __has_nothrow_assign, __has_trivial_move_assign, and
+__has_nothrow_move_assign.  This is now fixed.
+
+
 10/3/14  [EDGcpfe/13615]
 GNU C++11 compatibility: Explicit conversion functions
 
