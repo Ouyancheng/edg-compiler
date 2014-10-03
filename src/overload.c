@@ -13309,12 +13309,12 @@ not_direct_binding_case:
       if (compatible &&
           conversion_routine->is_explicit_conversion_function &&
           std_conversion.nontrivial_conversion &&
-          !gpp_mode) {
+          !(gpp_mode && gnu_version < 40700)) {
         /* A conversion using an explicit conversion function must be to the
            exact type required, modulo cv-qualifier differences.  It can't
            be used, e.g., to go to "int" after which there's a conversion to
-           "float".  g++ doesn't seem to enforce that restriction (tested
-           with versions 4.5 and 4.6). */
+           "float".  Early g++ versions of "explicit conversion functions"
+           didn't enforce that restriction. */
         compatible = FALSE;
 #if MICROSOFT_EXTENSIONS_ALLOWED
       } else if (cli_or_cx_enabled && std_conversion.boxing_conversion) {

@@ -1,5 +1,30 @@
 Version 4.10
 
+10/3/14  [EDGcpfe/13615]
+GNU C++11 compatibility: Explicit conversion functions
+
+Consider the following C++11 case:
+
+  struct S {
+    operator int();
+    explicit operator long();
+  } s;
+  bool b(s);  // Previously an error in all GNU C++11 mode; now accepted
+              // when gnu_version >= 40700.
+
+Explicit conversion operators usually apply for direct-initialization contexts
+like the initialization of the variable b in this example.  However, that is
+only the case if the type converted to by the explicit conversion operator is
+exactly (modulo type qualifiers like "const") the required destination type.
+The latter condition is not satisfied in the example above (where the explicit
+conversion operator converts to "long", but the required destination type is
+"bool"), and so there is no conversion ambiguity in standard C++11: Only
+"operator int()" applies.  However, in GNU C++11 modes, the front end did not
+that special condition to match a bug in early versions of GCC.  GCC 4.7 fixed
+that bug and the front end therefore now restricts its emulation to modes with
+gnu_version < 40700.
+
+
 10/3/14  [EDGcpfe/15075]
 Value of __cplusplus in C++14 modes
 
