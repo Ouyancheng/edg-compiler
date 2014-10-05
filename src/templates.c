@@ -2415,12 +2415,12 @@ entire_type is FALSE.
        reference (i.e, not an rvalue reference) or if they are the
        same kind of reference, the one that is more qualified. */
     if (!(microsoft_mode && microsoft_version < 1800) &&
-        !gpp_mode && !sun_mode &&
+        !(gpp_mode && gnu_version < 40900) && !sun_mode &&
         (type_1_is_reference && type_2_is_reference) &&
         (type_1_is_lvalue_reference != type_2_is_lvalue_reference)) {
       /* An lvalue reference is more specialized than an rvalue reference.
-         This rule (from core issue 1164) is not yet implemented by the GCC
-         compiler.  Early Microsoft compilers didn't implement it either. */
+         This rule (from core issue 1164) is not supported by earlier versions
+         of g++ and Microsoft compilers. */
       if (type_1_is_lvalue_reference) {
         *match2 = FALSE;
       } else {

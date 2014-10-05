@@ -1,5 +1,18 @@
 Version 4.10
 
+10/5/14  [EDGcpfe/11270]
+GNU C++ compatibility: partial ordering of lvalue vs. rvalue references
+
+The change introduced by core issue 1164 (see EDGcpfe/11270 on 1/14/11)
+is supported beginning with g++ version 4.9.  We now use the rules as
+specified by 1164 in g++ mode when gnu_version >= 40900.
+
+  template<typename T> int f(T&);
+  template<typename T> int f(T&&);
+  int i;
+  int j = f(i);  // formerly ambiguous, now calls f(T&)
+
+
 10/3/14  [EDGcpfe/15515]
 Type traits applicable to "object types" and void types
 
