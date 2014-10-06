@@ -22196,13 +22196,17 @@ already been consumed.
       if (last_stmt->expr != NULL) {
         expr_type = last_stmt->expr->type;
       } else {
-        a_routine_ptr  ctor;
         dip = last_stmt->variant.stmt_expr_result.dynamic_init;
-        check_assertion(dip != NULL &&
-                        dip->kind == (a_dynamic_init_kind)dik_constructor);
-        ctor = dip->variant.constructor.ptr;
-        check_assertion(ctor != NULL);
-        expr_type = parent_class_of(ctor);
+        check_assertion(dip != NULL);
+        if (dip->kind == (a_dynamic_init_kind)dik_constructor) {
+          a_routine_ptr  ctor = dip->variant.constructor.ptr;
+          check_assertion(ctor != NULL);
+          expr_type = parent_class_of(ctor);
+        } else {
+          check_assertion(dip->kind == (a_dynamic_init_kind)
+                                          dik_call_returning_class_via_cctor);
+          expr_type = dip->variant.expression->type;
+        }  /* if */
       }  /* if */
       if (is_void_type(expr_type)) {
         set_expr_result_not_used(last_stmt->expr);

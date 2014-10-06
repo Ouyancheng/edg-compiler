@@ -16806,10 +16806,11 @@ typedef struct a_statement {
       a_dynamic_init_ptr
 		dynamic_init;
 			/* For a GNU statement expression that produces a value
-			   by calling a copy constructor (C++ only), this
-			   points to a dynamic initialization entry that
-			   initializes the result value.  NULL otherwise.  When
-			   this is non-NULL, expr is NULL and vice versa. */
+			   by calling a copy constructor, this points to a
+			   dynamic initialization entry that initializes the
+			   result value (dik_call_returning_class_via_cctor or
+			   dik_constructor).  NULL otherwise.  When this is
+			   non-NULL (C++ only), expr is NULL and vice versa. */
     } stmt_expr_result;
 #endif /* GNU_EXTENSIONS_ALLOWED */
   } variant;
