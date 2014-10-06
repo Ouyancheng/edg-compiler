@@ -9084,9 +9084,13 @@ do_assignment:;
       break;
     case dik_call_returning_class_via_cctor:
       // FIXME: This isn't right, but use it for now.
+#if GNU_EXTENSIONS_ALLOWED
       if (dip->variant.expression->kind == (an_expr_node_kind)enk_statement) {
         lower_gnu_statement_expression(dip->variant.expression);
-      } else {
+      } else
+#endif /* GNU_EXTENSIONS_ALLOWED */
+      /* Do not insert code here. */
+      {
         /* Initialize the entry by calling a routine that returns its result
            via a copy constructor. */
         /* The address of the temporary being initialized is added as an

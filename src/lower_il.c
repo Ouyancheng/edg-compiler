@@ -14975,16 +14975,16 @@ expression).  This routine is used in lowering both C and C++.
          */
       a_scope_ptr         scope = block->variant.block.extra_info->assoc_scope;
       an_insert_location  insert_location;
-      an_expr_node_ptr    expr;
+      an_expr_node_ptr    result_expr;
       check_assertion(scope != NULL);
       /* Turn result_stmt into an stmk_expr assignment statement. */
       result_var = make_temporary_in_scope(result_stmt->expr->type, scope,
                                            /*force_static=*/FALSE,
                                            /*promote_if_necessary=*/FALSE);
-      expr = make_var_assignment_expr(result_var, result_stmt->expr);
-      set_expr_result_not_used(expr);
+      result_expr = make_var_assignment_expr(result_var, result_stmt->expr);
+      set_expr_result_not_used(result_expr);
       set_statement_kind(result_stmt, (a_statement_kind)stmk_expr);
-      result_stmt->expr = expr;
+      result_stmt->expr = result_expr;
       /* Allocate a stmk_stmt_expr_result statement for the temporary and
          make it the last statement in the block. */
       result_stmt = alloc_statement((a_statement_kind)stmk_stmt_expr_result);
@@ -18588,15 +18588,15 @@ Do IL lowering of the indicated statement and everything under it.
         /* This statement is the last in a GNU statement expression, and it
            returns a value. */
         if (stmt_expr != NULL) {
-          // FIXME: pass statement pointer or not?
+          /* FIXME: pass statement pointer or not? */
           lower_full_expr(stmt_expr, (a_statement_ptr)NULL);
           check_assertion(statement->variant.stmt_expr_result.dynamic_init ==
                                                                          NULL);
         } else {
-          // FIXME: not sure what to do.
-          // FIXME: what about variably modified types?
+          /* FIXME: not sure what to do. */
+          /* FIXME: what about variably modified types? */
           an_init_pos_descr  ipd;
-          an_insert_location insert_location;
+          an_insert_location insert_location1;
           a_variable_ptr     var;
           an_expr_node_ptr   expr;
           a_boolean          keep_dynamic_init;
@@ -18605,13 +18605,13 @@ Do IL lowering of the indicated statement and everything under it.
           check_assertion(dip != NULL &&
                           dip->variable == NULL &&
                           !dip->static_temp);
-          // FIXME: This isn't right, but use it for now:
+          /* FIXME: This isn't right, but use it for now: */
           dip->variable = var = make_lowered_temporary(
               dip->variant.constructor.ptr->source_corresp.parent_scope->
                                                            variant.assoc_type);
           expr = var_rvalue_expr(var);
           /* Set the insert point preceding the variable use. */
-          set_expr_insert_location(expr, &insert_location);
+          set_expr_insert_location(expr, &insert_location1);
           set_var_init_pos_descr(var, &ipd);
           lower_dynamic_init(dip,
                              &ipd,
@@ -18619,7 +18619,7 @@ Do IL lowering of the indicated statement and everything under it.
                              (a_variable_ptr)NULL,
                              LDIO_NONE,
                              /*others_follow_in_aggr=*/FALSE,
-                             &insert_location,
+                             &insert_location1,
                              &keep_dynamic_init,
                              (a_constant **)NULL);
           check_assertion(!keep_dynamic_init);

@@ -658,6 +658,7 @@ extern int fileno(FILE *);
 /*lint -esym(769,ec_gcc_pragma_nothing_to_pop)*/
 /*lint -esym(769,ec_pragma_inside_function)*/
 /*lint -esym(769,ec_extended_friends_is_cpp11)*/
+/*lint -esym(769,ec_nontrivial_statement_expr_result_type)*/
 #endif /* !GNU_EXTENSIONS_ALLOWED */
 /*lint -esym(759,is_wide_string_constant)*/
 /*lint -esym(765,is_wide_string_constant)*/

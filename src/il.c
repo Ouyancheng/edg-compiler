@@ -2379,7 +2379,9 @@ Dump a statement kind, for debug purposes.
     case stmk_upc_fence:        s = "upc_fence";         break;
     case stmk_upc_forall:       s = "upc_forall";        break;
 #endif /* UPC_EXTENSIONS_ALLOWED */
+#if GNU_EXTENSIONS_ALLOWED
     case stmk_stmt_expr_result: s = "stmt-expr-result";  break;
+#endif /* GNU_EXTENSIONS_ALLOWED */
     default:                    s = "<bad stmt kind>";   break;
   }  /* switch */
   fputs(s, f_debug);
