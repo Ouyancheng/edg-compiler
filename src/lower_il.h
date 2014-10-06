@@ -612,6 +612,20 @@ EXTERN a_variable_ptr
 			   at which the result will be stored; NULL
 			   otherwise. */
 
+#if GNU_EXTENSIONS_ALLOWED
+EXTERN a_variable_ptr
+                gse_return_value_pointer_variable;
+                        /* FIXME: */
+			/* While processing a routine that returns its
+			   value via a copy constructor, this points to
+			   the parameter variable for the implicit parameter
+			   through which the caller sends the address
+			   at which the result will be stored; NULL
+			   otherwise. */
+EXTERN an_init_pos_descr_ptr
+                gse_init_position; /* FIXME */
+#endif /* GNU_EXTENSIONS_ALLOWED */
+
 #if DO_RETURN_VALUE_OPTIMIZATION_IN_LOWERING
 /*
 Return TRUE if the indicated variable is the return value optimization

@@ -9086,7 +9086,15 @@ do_assignment:;
       /* FIXME: This isn't right, but use it for now. */
 #if GNU_EXTENSIONS_ALLOWED
       if (dip->variant.expression->kind == (an_expr_node_kind)enk_statement) {
+        a_variable_ptr  save_gse_return_value_pointer_variable =
+                                             gse_return_value_pointer_variable;
+        an_init_pos_descr_ptr save_gse_init_position = gse_init_position;
+        gse_return_value_pointer_variable = dip->variable;
+        gse_init_position = ipdp;
         lower_gnu_statement_expression(dip->variant.expression);
+        gse_return_value_pointer_variable =
+                                        save_gse_return_value_pointer_variable;
+        gse_init_position = save_gse_init_position;
       } else
 #endif /* GNU_EXTENSIONS_ALLOWED */
       /* Do not insert code here. */

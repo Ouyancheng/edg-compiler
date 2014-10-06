@@ -18595,9 +18595,8 @@ Do IL lowering of the indicated statement and everything under it.
         } else {
           /* FIXME: not sure what to do. */
           /* FIXME: what about variably modified types? */
-          an_init_pos_descr  ipd;
+          an_init_pos_descr  ipd, *eff_ipdp;
           an_insert_location insert_location1;
-          a_variable_ptr     var;
           an_expr_node_ptr   expr;
           a_boolean          keep_dynamic_init;
           a_dynamic_init_ptr dip =
@@ -18605,16 +18604,19 @@ Do IL lowering of the indicated statement and everything under it.
           check_assertion(dip != NULL &&
                           dip->variable == NULL &&
                           !dip->static_temp);
-          /* FIXME: This isn't right, but use it for now: */
-          dip->variable = var = make_lowered_temporary(
-              dip->variant.constructor.ptr->source_corresp.parent_scope->
-                                                           variant.assoc_type);
-          expr = var_rvalue_expr(var);
-          /* Set the insert point preceding the variable use. */
-          set_expr_insert_location(expr, &insert_location1);
-          set_var_init_pos_descr(var, &ipd);
+          if (gse_return_value_pointer_variable == NULL) {
+            eff_ipdp = gse_init_position;
+            set_expr_creation_insert_location(&insert_location1);
+          } else {
+            dip->variable = gse_return_value_pointer_variable;
+            expr = var_rvalue_expr(dip->variable);
+            /* Set the insert point preceding the variable use. */
+            set_expr_insert_location(expr, &insert_location1);
+            set_var_init_pos_descr(dip->variable, &ipd);
+            eff_ipdp = &ipd;
+          }  /* if */
           lower_dynamic_init(dip,
-                             &ipd,
+                             eff_ipdp,
                              (an_implied_copy_source *)NULL,
                              (a_variable_ptr)NULL,
                              LDIO_NONE,
@@ -18623,8 +18625,12 @@ Do IL lowering of the indicated statement and everything under it.
                              &keep_dynamic_init,
                              (a_constant **)NULL);
           check_assertion(!keep_dynamic_init);
-          statement->expr = expr;
           statement->variant.dynamic_init = NULL;
+          if (gse_return_value_pointer_variable == NULL) {
+            statement->expr = insert_location1.variant.expr;
+          } else {
+            statement->expr = expr;
+          }  /* if */
         }  /* if */
         break;
 #endif /* GNU_EXTENSIONS_ALLOWED */
@@ -21446,6 +21452,10 @@ for each translation unit.
   lowering_file_scope = FALSE;
   curr_context = NULL;
   return_value_pointer_variable = NULL;
+#if GNU_EXTENSIONS_ALLOWED
+  gse_return_value_pointer_variable = NULL;
+  gse_init_position = NULL;
+#endif /* GNU_EXTENSIONS_ALLOWED */
   pure_virtual_called_routine = NULL;
   deleted_virtual_called_routine = NULL;
   vptp_type = NULL;
