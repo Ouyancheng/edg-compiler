@@ -365,6 +365,10 @@ extern int fileno(FILE *);
 /*lint -esym(759,constant_prvalue_pointer_full)*/
 /*lint -esym(765,constant_prvalue_pointer_full)*/
 /*lint -esym(552,clang_version)*/
+/*lint -esym(759,type_returned_by_cctor)*/
+/*lint -esym(765,type_returned_by_cctor)*/
+/*lint -esym(759,lower_c99_statement)*/
+/*lint -esym(765,lower_c99_statement)*/
 #if TARG_DUAL_ALIGNMENTS_FOR_BUILTIN_TYPES
 /*lint -esym(759,field_alignment_for)*/
 /*lint -esym(765,field_alignment_for)*/
@@ -648,7 +652,6 @@ extern int fileno(FILE *);
 /*lint -esym(769,ec_deleted_functions_is_cpp11)*/
 /*lint -esym(769,ec_defaulted_functions_is_cpp11)*/
 /*lint -esym(769,ec_cl_clang_mode_only_in_cplusplus)*/
-/*lint -esym(769,ec_nontrivial_statement_expr_result_type)*/
 /*lint -esym(769,ec_incompatible_ifunc_resolver_type)*/
 /*lint -esym(769,ec_ifunc_cant_be_alias)*/
 /*lint -esym(769,ec_ifunc_cant_be_weak)*/
@@ -658,7 +661,7 @@ extern int fileno(FILE *);
 /*lint -esym(769,ec_gcc_pragma_nothing_to_pop)*/
 /*lint -esym(769,ec_pragma_inside_function)*/
 /*lint -esym(769,ec_extended_friends_is_cpp11)*/
-/*lint -esym(769,ec_nontrivial_statement_expr_result_type)*/
+/*lint -esym(769,ec_bad_gnu_stmt_return)*/
 #endif /* !GNU_EXTENSIONS_ALLOWED */
 /*lint -esym(759,is_wide_string_constant)*/
 /*lint -esym(765,is_wide_string_constant)*/

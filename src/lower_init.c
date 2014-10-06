@@ -9083,7 +9083,7 @@ do_assignment:;
       entity_is_wholly_initialized = TRUE;
       break;
     case dik_call_returning_class_via_cctor:
-      // FIXME: This isn't right, but use it for now.
+      /* FIXME: This isn't right, but use it for now. */
 #if GNU_EXTENSIONS_ALLOWED
       if (dip->variant.expression->kind == (an_expr_node_kind)enk_statement) {
         lower_gnu_statement_expression(dip->variant.expression);
