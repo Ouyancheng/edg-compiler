@@ -2497,8 +2497,8 @@ Dump a statement, for debug purposes.
           a_dynamic_init_ptr  dip = sp->variant.stmt_expr_result.dynamic_init;
           db_dynamic_initializer(dip, /*level=*/0);
         }  /* if */
-#endif /* GNU_EXTENSIONS_ALLOWED */
         break;
+#endif /* GNU_EXTENSIONS_ALLOWED */
       default:;
     }  /* switch */
     fprintf(f_debug, ", at %lu",
