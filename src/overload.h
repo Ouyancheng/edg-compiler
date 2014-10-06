@@ -261,6 +261,10 @@ typedef int a_conv_context_set;
 #define CCO_ARG_VIA_COPY_CTOR ((a_conv_context_set)0x10000)
 			/* Used when passing an argument operand via copy
 			   constructor. */
+#define CCO_STMT_EXPR_RESULT ((a_conv_context_set)0x20000)
+			/* Used when calling prep_elision_initializer_operand
+			   for the result expression of a GNU statement
+			   expression. */
 
 /*
 Data structure used by set_up_overload_set_traversal et al. to control the

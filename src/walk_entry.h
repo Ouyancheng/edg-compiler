@@ -2085,6 +2085,12 @@ do_set_proper_definition_needed_flag:
                         iek_variable);
             }  /* if */
             break;
+#if GNU_EXTENSIONS_ALLOWED
+          case stmk_stmt_expr_result:
+            walk_ptr(ptr->variant.stmt_expr_result.dynamic_init,
+                     a_dynamic_init_ptr, iek_dynamic_init);
+            break;
+#endif /* GNU_EXTENSIONS_ALLOWED */
           default:
             unexpected_condition_str(
                                  "walk_entry_and_subtree: bad statement kind");

@@ -513,6 +513,10 @@ static void promote_static_variable_out_of_function(
 static a_routine_ptr lowered_mv_routine(a_routine_ptr routine);
 #endif /* GNU_FUNCTION_MULTIVERSIONING */
 
+#if GNU_EXTENSIONS_ALLOWED
+static void change_block_into_statement_expression(a_statement_ptr block);
+#endif /* GNU_EXTENSIONS_ALLOWED */
+
 
 static void clear_insert_location(an_insert_location      *insert_location,
                                   an_insert_location_kind kind)
@@ -14901,10 +14905,10 @@ had its dynamic initialization performed before its first use in the thread.
 #endif /* USE_LAZY_INITIALIZATION_FOR_THREAD_LOCAL_VARIABLES */
 #if GNU_EXTENSIONS_ALLOWED
 
-static void lower_gnu_statement_expression(an_expr_node_ptr  expr)
+void lower_gnu_statement_expression(an_expr_node_ptr  expr)
 /*
 Lower the given enk_statement expression node (which represents a GNU statement
-expression).
+expression).  This routine is used in lowering both C and C++.
 */
 {
 #if MINIMAL_INLINING
@@ -14916,7 +14920,8 @@ expression).
 
   check_assertion(block->kind == (a_statement_kind)stmk_block);
   last = last_statement_in_block(block);
-  if (last != NULL && last->is_statement_expression_result) {
+  if (last != NULL && last->kind == (a_statement_kind)stmk_stmt_expr_result) {
+    /* The GNU statement returns a value. */
     result_stmt = last;
   }  /* if */
 #if MINIMAL_INLINING
@@ -14927,44 +14932,65 @@ expression).
      block statement). */
   inlining_enabled = FALSE;
 #endif /* MINIMAL_INLINING */
-  lower_block_statement(block,
-                        /*is_block_of_function_try=*/FALSE,
-                        /*is_block_of_stmt_expr=*/TRUE,
-                        (a_destructor_wrapper_info_block_ptr)NULL,
-                        (a_statement_ptr *)NULL);
+  if (C_mode()) {
+    a_context context, *saved_curr_context;
+    /* Create a new context, unrelated to any previous contexts, in
+       which the statement expression should be lowered. */
+    save_and_push_context(&context, (a_scope_ptr)NULL,
+                          (an_object_lifetime_ptr)NULL,
+                          &saved_curr_context);
+    lower_c99_statement(block);
+    restore_saved_context(saved_curr_context);
+  } else {
+    lower_block_statement(block,
+                          /*is_block_of_function_try=*/FALSE,
+                          /*is_block_of_stmt_expr=*/TRUE,
+                          (a_destructor_wrapper_info_block_ptr)NULL,
+                          (a_statement_ptr *)NULL);
+  }  /* if */
 #if MINIMAL_INLINING
   inlining_enabled = saved_inlining_enabled;
 #endif /* MINIMAL_INLINING */
   if (result_stmt != NULL) {
     if (result_stmt->kind == (a_statement_kind)stmk_block) {
       /* Lowering changed the result statement into a block.  Change it into a
-         statement expression so it will produce a value. */
+         statement expression so it can produce a value. */
       change_block_into_statement_expression(result_stmt);
+      check_assertion(result_stmt->kind == (a_statement_kind)stmk_expr);
+    } else {
+      check_assertion(result_stmt->kind ==
+                                     (a_statement_kind)stmk_stmt_expr_result &&
+                      result_stmt->variant.stmt_expr_result.dynamic_init ==
+                                                                         NULL);
     }  /* if */
     if (result_stmt->next != NULL) {
-      /* Statements have been added by lowering after the result statement.
-         Since the C-generating back end will render the statement expression
-         as a (lowered) statement expression, it is necessary for the result
-         statement to be the last.  So transform:
-              <result-stmt>; <additional-stmts>
+      /* Statements have been added by lowering after the stmk_stmt_expr_result
+         statement (that indicates the statement expression's result).
+         The back end expects that the last statement in the statement
+         expression returns the result (i.e., is a stmk_stmt_expr_result).
+         Transform:
+            stmk_stmt_expr_result(<result-expr>); <additional-stmts>
          into
-              tmp = <result-expr>; <additional-stmts>; tmp */
+            tmp = <result-expr>; <additional-stmts>; stmk_stmt_expr_result(tmp)
+         */
       a_scope_ptr         scope = block->variant.block.extra_info->assoc_scope;
       an_insert_location  insert_location;
+      an_expr_node_ptr    expr;
       check_assertion(scope != NULL);
-      check_assertion(result_stmt->kind == (a_statement_kind)stmk_expr);
+      /* Turn result_stmt into an stmk_expr assignment statement. */
       result_var = make_temporary_in_scope(result_stmt->expr->type, scope,
                                            /*force_static=*/FALSE,
                                            /*promote_if_necessary=*/FALSE);
-      result_stmt->expr =
-                      make_var_assignment_expr(result_var, result_stmt->expr);
-      result_stmt->expr->result_is_not_used = TRUE;
-      result_stmt->is_statement_expression_result = FALSE;
+      expr = make_var_assignment_expr(result_var, result_stmt->expr);
+      set_expr_result_not_used(expr);
+      set_statement_kind(result_stmt, (a_statement_kind)stmk_expr);
+      result_stmt->expr = expr;
+      /* Allocate a stmk_stmt_expr_result statement for the temporary and
+         make it the last statement in the block. */
+      result_stmt = alloc_statement((a_statement_kind)stmk_stmt_expr_result);
+      result_stmt->expr = var_rvalue_expr(result_var);
       last = last_statement_in_block(block);
       set_insert_location(last, &insert_location);
-      result_stmt = alloc_statement((a_statement_kind)stmk_expr);
-      result_stmt->expr = var_rvalue_expr(result_var);
-      result_stmt->is_statement_expression_result = TRUE;
       insert_statement(result_stmt, &insert_location);
     }  /* if */
   }  /* if */
@@ -16674,12 +16700,28 @@ Do lowering on the constants pointed to by the given switch case entry.
 
 #if GNU_EXTENSIONS_ALLOWED
 
-void change_block_into_statement_expression(a_statement_ptr block)
+static void change_block_into_statement_expression(a_statement_ptr block)
 /*
 Change the specified block into a GNU statement expression.  This
 is used when the last statement of an existing GNU statement expression
 has been changed into a block during lowering.  Changing the block
 into a statement expression allows the statement to retain a value.
+Only used in cases where a GNU statement expression returns a value
+(and hence needs a stmk_stmt_expr_result statement as the last statement
+in the block).
+
+For a GNU statement expression that had looked like (before lowering):
+
+  ({... stmk_stmt_expr_result(expr); )}
+
+where "expr" has been changed into a stmk_block:
+
+  ({... stmk_stmt_expr_result( {s1; s2; ... sX;} ); )}
+
+this routine transforms the block into a stmk_expr/enk_statement and makes
+sure the last expression in the statement expression returns a value:
+
+  ({... stmk_stmt_expr_result( ({s1; s2; ... stmk_stmt_expr_result(sX);}) ); )}
 */
 {
   a_statement_ptr  last_statement;
@@ -16692,14 +16734,18 @@ into a statement expression allows the statement to retain a value.
     if (last_statement->kind == (a_statement_kind)stmk_block) {
       /* Recursively change this block into a statement expression. */
       change_block_into_statement_expression(last_statement);
-      /* Statement will be an stmk_expr on return. */
+      /* Statement will be an stmk_expr/enk_statement on return. */
       check_assertion(last_statement->kind == (a_statement_kind)stmk_expr);
-      last_statement->expr->result_is_not_used = FALSE;
-      expr_type = last_statement->expr->type;
     } else if (last_statement->kind == (a_statement_kind)stmk_expr) {
-      last_statement->expr->result_is_not_used = FALSE;
-      expr_type = last_statement->expr->type;
+      /* Change the stmk_expr into a stmk_stmt_expr_result (with the same
+         underlying expression). */
+      an_expr_node_ptr expr = last_statement->expr;
+      set_statement_kind(last_statement,
+                         (a_statement_kind)stmk_stmt_expr_result);
+      last_statement->expr = expr;
     }  /* if */
+    last_statement->expr->result_is_not_used = FALSE;
+    expr_type = last_statement->expr->type;
   }  /* if */
   /* Make a copy of the original block. */
   block_copy = alloc_statement(block->kind);
@@ -16711,6 +16757,7 @@ into a statement expression allows the statement to retain a value.
   block->expr = alloc_expr_node((an_expr_node_kind)enk_statement);
   block->expr->type = expr_type;
   block->expr->variant.statement = block_copy;
+  set_expr_result_not_used(block->expr);
 }  /* change_block_into_statement_expression */
 
 #endif /* GNU_EXTENSIONS_ALLOWED */
@@ -18536,6 +18583,49 @@ Do IL lowering of the indicated statement and everything under it.
            pointer to prevent inlining from replacing this statement (though
            there should never be a top-level call operation). */
         lower_full_expr(stmt_expr, (a_statement_ptr)NULL);
+        break;
+      case stmk_stmt_expr_result:
+        /* This statement is the last in a GNU statement expression, and it
+           returns a value. */
+        if (stmt_expr != NULL) {
+          // FIXME: pass statement pointer or not?
+          lower_full_expr(stmt_expr, (a_statement_ptr)NULL);
+          check_assertion(statement->variant.stmt_expr_result.dynamic_init ==
+                                                                         NULL);
+        } else {
+          // FIXME: not sure what to do.
+          // FIXME: what about variably modified types?
+          an_init_pos_descr  ipd;
+          an_insert_location insert_location;
+          a_variable_ptr     var;
+          an_expr_node_ptr   expr;
+          a_boolean          keep_dynamic_init;
+          a_dynamic_init_ptr dip =
+                              statement->variant.stmt_expr_result.dynamic_init;
+          check_assertion(dip != NULL &&
+                          dip->variable == NULL &&
+                          !dip->static_temp);
+          // FIXME: This isn't right, but use it for now:
+          dip->variable = var = make_lowered_temporary(
+              dip->variant.constructor.ptr->source_corresp.parent_scope->
+                                                           variant.assoc_type);
+          expr = var_rvalue_expr(var);
+          /* Set the insert point preceding the variable use. */
+          set_expr_insert_location(expr, &insert_location);
+          set_var_init_pos_descr(var, &ipd);
+          lower_dynamic_init(dip,
+                             &ipd,
+                             (an_implied_copy_source *)NULL,
+                             (a_variable_ptr)NULL,
+                             LDIO_NONE,
+                             /*others_follow_in_aggr=*/FALSE,
+                             &insert_location,
+                             &keep_dynamic_init,
+                             (a_constant **)NULL);
+          check_assertion(!keep_dynamic_init);
+          statement->expr = expr;
+          statement->variant.dynamic_init = NULL;
+        }  /* if */
         break;
 #endif /* GNU_EXTENSIONS_ALLOWED */
       default:

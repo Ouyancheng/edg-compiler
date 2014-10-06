@@ -4449,10 +4449,11 @@ Scan an expression statement.  If marked_as_gnu_extension is TRUE,
 the statement was preceded by the GNU C __extension__ keyword.
 */
 {
-  a_statement_ptr  sp;
-  an_expr_node_ptr expr;
-  a_boolean        is_statement_expr =
+  a_statement_ptr     sp;
+  an_expr_node_ptr    expr;
+  a_boolean           is_statement_expr =
                                     struct_stmt_stack_top().is_statement_expr;
+  a_dynamic_init_ptr  dip;
 
   sp = add_statement((a_statement_kind)stmk_expr);
   stmt_update_source_sequence_list(sp);
@@ -4462,11 +4463,33 @@ the statement was preceded by the GNU C __extension__ keyword.
   /* Scan the expression. */
   expr = scan_void_expression(/*repeated_in_loop=*/FALSE,
                               marked_as_gnu_extension,
-                              is_statement_expr);
-  sp->expr = expr;
-  /* If the expression is a throw expression or the call of a function that
-     is known not to return, the code following is unreachable. */
-  check_reachability_following_expression(expr);
+                              is_statement_expr,
+                              &dip);
+#if GNU_EXTENSIONS_ALLOWED
+  if (dip != NULL) {
+    /* The result of a GNU statement expression that requires nontrivial
+       initialization or destruction semantics. */
+    check_assertion(is_statement_expr && expr == NULL);
+    set_statement_kind(sp, (a_statement_kind)stmk_stmt_expr_result);
+    sp->variant.stmt_expr_result.dynamic_init = dip;
+  } else if (is_statement_expr &&
+             (curr_token == tok_rbrace || next_token() == tok_rbrace)) {
+    /* The result of a GNU statement expression: Turn the statement into an
+       stmk_stmt_expr_result entry for easy identification. */
+    set_statement_kind(sp, (a_statement_kind)stmk_stmt_expr_result);
+  }  /* if */
+#else /* !GNU_EXTENSIONS_ALLOWED */
+  check_assertion(!is_statement_expr && dip == NULL);
+#endif /* GNU_EXTENSIONS_ALLOWED */
+  if (expr != NULL) {
+    sp->expr = expr;
+    /* If the expression is a throw expression or the call of a function that
+       is known not to return, the code following is unreachable. */
+    check_reachability_following_expression(expr);
+  } else {
+    /* If expr is NULL, this is the last statement in the enclosing statement
+       expression and reachability analysis is not needed at this point. */
+  }  /* if */
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   if (curr_token == tok_semicolon) {
     curr_construct_end_position = end_pos_curr_token;
@@ -4732,7 +4755,8 @@ The affinity can be an expression or the keyword "continue".
       sp->variant.for_loop.extra_info->increment =
                         scan_void_expression(/*repeated_in_loop=*/TRUE,
                                              /*marked_as_gnu_extension=*/FALSE,
-                                             /*is_statement_expr=*/FALSE);
+                                             /*is_statement_expr=*/FALSE,
+                                             (a_dynamic_init_ptr*)NULL);
       /* Restore the global variable. */
       suppress_used_before_set_warnings = saved_flag;
       curr_reachability = saved_reachability;

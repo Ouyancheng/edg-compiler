@@ -3232,7 +3232,9 @@ enum a_dynamic_init_kind_tag {
   dik_call_returning_class_via_cctor,
 			/* Initial value of a simple object is established by
 			   a call of a routine that returns a class object
-			   via a copy constructor.  C++ only. */
+			   via a copy constructor.  C++ only.  Also used for
+			   GNU C++ statement expressions that "return" such
+			   class objects. */
   dik_constructor,	/* Initial value of a simple object is established by
 			   a constructor call.  C++ only. */
   dik_nonconstant_aggregate,
@@ -15970,6 +15972,12 @@ enum a_statement_kind_tag {
   stmk_assigned_goto,	/* Assigned GOTO. */
 #endif /* GNU_EXTENSIONS_ALLOWED */
   stmk_empty,		/* Empty ("null") statement. (";" in C/C++) */
+#if GNU_EXTENSIONS_ALLOWED
+  stmk_stmt_expr_result,
+			/* A statement in a GNU statement expression producing
+			   the result value of that expression.  Always the
+			   last statement of its block. */
+#endif /* GNU_EXTENSIONS_ALLOWED */
   stmk_last		/*lint -esym(769,a_statement_kind_tag::stmk_last)*/
 };
 /* Define as "a_byte" to explicitly control storage size. */
@@ -16559,10 +16567,6 @@ typedef struct a_statement {
                            no bearing as to whether the constructor or
                            destructor has an actual effect (it's present
                            in all constructors or destructors). */
-  a_bit_field  is_statement_expression_result:1;
-			/* TRUE if this statement is an expression statement
-			   producing a non-void result for a GNU statement
-			   expression. */
   bitfield_to_avoid_codecenter_warnings()
   an_expr_node_ptr
                 expr;
@@ -16796,6 +16800,18 @@ typedef struct a_statement {
                            is allocated at this point. */
       } variant;
     } vla;
+#if GNU_EXTENSIONS_ALLOWED
+    /* When kind == stmk_stmt_expr_result: */
+    struct {
+      a_dynamic_init_ptr
+		dynamic_init;
+			/* For a GNU statement expression that produces a value
+			   by calling a copy constructor (C++ only), this
+			   points to a dynamic initialization entry that
+			   initializes the result value.  NULL otherwise.  When
+			   this is non-NULL, expr is NULL and vice versa. */
+    } stmt_expr_result;
+#endif /* GNU_EXTENSIONS_ALLOWED */
   } variant;
 } a_statement;
 

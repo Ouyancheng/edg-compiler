@@ -3686,6 +3686,18 @@ as specified in the control block.
       /* Used for GNU "goto *expr;". */
       traverse_expr(statement->expr, tblock);
       break;
+    case stmk_stmt_expr_result:
+      /* The final expression statement in a GNU statement expression
+         (if any). */
+      if (statement->variant.stmt_expr_result.dynamic_init != NULL) {
+        traverse_dynamic_init(statement->variant.stmt_expr_result.dynamic_init,
+                              tblock);
+      } else if (statement->expr != NULL) {
+        traverse_expr(statement->expr, tblock);
+      } else {
+        unexpected_condition();
+      }  /* if */
+      break;
 #endif /* GNU_EXTENSIONS_ALLOWED */
     case stmk_empty:
       break;

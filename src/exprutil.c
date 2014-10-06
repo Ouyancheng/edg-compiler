@@ -10915,8 +10915,8 @@ returning a class by value).
         revertible = TRUE;
       } else if (dip->kind ==
                      (a_dynamic_init_kind)dik_call_returning_class_via_cctor) {
-        /* A function call returning a class rvalue can be turned back
-           into an lvalue. */
+        /* A function call (or statement expression) returning a class rvalue
+           can be turned back into an lvalue. */
         revertible = TRUE;
       } else if (dip->kind == (a_dynamic_init_kind)dik_zero) {
         /* A trivial constructor call with value-initialization. */

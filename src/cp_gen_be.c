@@ -14921,6 +14921,25 @@ one that yields the value) of a statement expression.
       write_tok_str("upc_fence;");
       break;
 #endif /* UPC_EXTENSIONS_ALLOWED */
+#if GNU_EXTENSIONS_ALLOWED
+    case stmk_stmt_expr_result:
+      if (statement->expr != NULL) {
+        gen_full_expression(statement->expr);
+      } else {
+        a_dynamic_init_ptr
+                       dip = statement->variant.stmt_expr_result.dynamic_init;
+        a_routine_ptr  ctor;
+        check_assertion(dip != NULL &&
+                        dip->kind == (a_dynamic_init_kind)dik_constructor);
+        ctor = dip->variant.constructor.ptr;
+        check_assertion(ctor != NULL);
+        gen_dynamic_init(dip, parent_class_of(ctor), (an_expr_node_ptr)NULL,
+                         /*avoid_top_level_comma=*/FALSE,
+                         /*obj_expr_of_mfunc_operator=*/FALSE);
+      }  /* if */
+      write_tok_ch(';');
+      break;
+#endif /* GNU_EXTENSIONS_ALLOWED */
     default:
       unexpected_condition_str("gen_statement_full: bad statement kind");
   }  /* switch */

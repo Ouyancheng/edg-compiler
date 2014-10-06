@@ -4775,9 +4775,6 @@ Display the indicated statement.
   if (ptr->is_lowering_boilerplate) {
     disp_boolean("is_lowering_boilerplate", TRUE);
   }  /* if */
-  if (ptr->is_statement_expression_result) {
-    disp_boolean("is_statement_expression_result", TRUE);
-  }  /* if */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   if (ptr->source_sequence_entry != NULL) {
     disp_ptr("source_sequence_entry", (char *)ptr->source_sequence_entry,
@@ -4973,6 +4970,16 @@ do_label:
     case stmk_assigned_goto:
       (void)printf("stmk_assigned_goto\n");
       disp_ptr("expr", (char *)ptr->expr, iek_expr_node);
+      break;
+    case stmk_stmt_expr_result:
+      (void)printf("stmk_stmt_expr_result\n");
+      if (ptr->variant.stmt_expr_result.dynamic_init != NULL) {
+        disp_ptr("dynamic_init",
+                 (char *)ptr->variant.stmt_expr_result.dynamic_init,
+                 iek_dynamic_init);
+      } else {
+        disp_ptr("expr", (char *)ptr->expr, iek_expr_node);
+      }  /* if */
       break;
 #endif /* GNU_EXTENSIONS_ALLOWED */
     default:

@@ -9083,12 +9083,17 @@ do_assignment:;
       entity_is_wholly_initialized = TRUE;
       break;
     case dik_call_returning_class_via_cctor:
-      /* Initialize the entry by calling a routine that returns its result
-         via a copy constructor. */
-      /* The address of the temporary being initialized is added as an
-         implicit argument of the call. */
-      lower_call(dip->variant.expression, ipdp, (a_statement_ptr)NULL,
-                 (a_boolean *)NULL);
+      // FIXME: This isn't right, but use it for now.
+      if (dip->variant.expression->kind == (an_expr_node_kind)enk_statement) {
+        lower_gnu_statement_expression(dip->variant.expression);
+      } else {
+        /* Initialize the entry by calling a routine that returns its result
+           via a copy constructor. */
+        /* The address of the temporary being initialized is added as an
+           implicit argument of the call. */
+        lower_call(dip->variant.expression, ipdp, (a_statement_ptr)NULL,
+                   (a_boolean *)NULL);
+      }  /* if */
       (void)insert_expr_statement_set_pos(dip->variant.expression,
                                           eff_insert_location);
 #if IA64_ABI

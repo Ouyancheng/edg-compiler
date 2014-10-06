@@ -3761,6 +3761,11 @@ fields to default values.
       sp->variant.vla.is_typedef_decl  = FALSE;
       sp->variant.vla.variant.variable = NULL;
       break;
+#if GNU_EXTENSIONS_ALLOWED
+    case stmk_stmt_expr_result:
+      sp->variant.stmt_expr_result.dynamic_init = NULL;
+      break;
+#endif /* GNU_EXTENSIONS_ALLOWED */
     default:
       unexpected_condition_str("set_statement_kind: bad kind");
   }  /* switch */
@@ -3790,7 +3795,6 @@ to it.  The statement kind is set as indicated.
   sp->has_associated_pragma   = FALSE;
   sp->is_initialization_guard = FALSE;
   sp->is_lowering_boilerplate = FALSE;
-  sp->is_statement_expression_result = FALSE;
 #if CENTERLINE_CHECKING
   sp->avoid_codecenter_warnings = 0;
 #endif /* CENTERLINE_CHECKING */

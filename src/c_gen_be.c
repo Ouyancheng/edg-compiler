@@ -8744,9 +8744,7 @@ Generate C for a statement.
       break;
     case stmk_expr:
 #if CHECKING
-      if (!statement->is_statement_expression_result) {
-        check_result_not_used_flag(statement->expr);
-      }  /* if */
+      check_result_not_used_flag(statement->expr);
 #endif /* CHECKING */
       /* See if we need to "inline" a call to a master routine. */
       if (!replace_call_to_master_routine(statement->expr)) {
@@ -8862,6 +8860,13 @@ Generate C for a statement.
     case stmk_assigned_goto:
       write_tok_str("goto *");
       dump_expr_with_parens(statement->expr);
+      write_tok_ch(';');
+      break;
+    case stmk_stmt_expr_result:
+      check_assertion(statement->next == NULL &&
+                      statement->variant.stmt_expr_result.dynamic_init ==
+                                                                         NULL);
+      dump_expression(statement->expr);
       write_tok_ch(';');
       break;
 #endif /* GNU_EXTENSIONS_ALLOWED */

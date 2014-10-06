@@ -57,7 +57,18 @@ Display the source-sequence entry pointed to by ssep, for debugging purposes.
       } else {
         db_statement_kind((a_statement_kind)sp->kind);
       }  /* if */
-      if (sp->kind == (a_statement_kind)stmk_expr) db_expr_summary(sp->expr);
+      if (sp->kind == (a_statement_kind)stmk_expr) {
+        db_expr_summary(sp->expr);
+#if GNU_EXTENSIONS_ALLOWED
+      } else if (sp->kind == (a_statement_kind)stmk_stmt_expr_result) {
+        if (sp->expr != NULL) {
+          db_expr_summary(sp->expr);
+        } else {
+          a_dynamic_init_ptr dip = sp->variant.stmt_expr_result.dynamic_init;
+          db_dynamic_initializer(dip, /*level=*/0);
+        }  /* if */
+#endif /* GNU_EXTENSIONS_ALLOWED */
+      }  /* if */
     } else if (kind == (an_il_entry_kind)iek_pragma) {
       a_pragma_ptr  pp = (a_pragma_ptr)ssep->entity.ptr;
       fprintf(f_debug, " (at %lu): %s", (unsigned long)pp->position.seq,

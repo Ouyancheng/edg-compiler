@@ -67,7 +67,6 @@ for non-C99 dialects and even for plain C89).
 
 /* Forward declarations (needed because of mutual recursion situations). */
 static void lower_c99_constant_list(a_constant_ptr constant_list);
-static void lower_c99_statement(a_statement_ptr statement);
 #if LOWER_FIXED_POINT
 static void lower_c99_fixed_point_constant(a_constant_ptr constant);
 static void lower_c99_fixed_point_operation(an_expr_node_ptr expr);
@@ -3833,45 +3832,7 @@ second parameter.
 #if GNU_EXTENSIONS_ALLOWED
     case enk_statement:
       /* GNU C statement expression, ({...}). */
-      {
-#if MINIMAL_INLINING
-        a_boolean saved_inlining_enabled;
-#endif /* MINIMAL_INLINING */
-        a_statement_ptr  block = expr->variant.statement;
-        a_statement_ptr  last;
-        a_boolean        original_statement_was_expr = FALSE;
-        a_context        context, *saved_curr_context;
-        check_assertion(block->kind == (a_statement_kind)stmk_block);
-        last = last_statement_in_block(block);
-        if (last != NULL && last->kind == (a_statement_kind)stmk_expr) {
-          original_statement_was_expr = TRUE;
-        }  /* if */
-        /* Create a new context, unrelated to any previous contexts, in
-           which the statement expression should be lowered. */
-        save_and_push_context(&context, (a_scope_ptr)NULL,
-                              (an_object_lifetime_ptr)NULL,
-                              &saved_curr_context);
-#if MINIMAL_INLINING
-        saved_inlining_enabled = inlining_enabled;
-        /* Turn off inlining, because the last statement creates a
-           value that gets returned, and it needs to be an expression
-           statement to get returned (inlining would turn it into a
-           block statement). */
-        inlining_enabled = FALSE;
-#endif /* MINIMAL_INLINING */
-        lower_c99_statement(block);
-#if MINIMAL_INLINING
-        inlining_enabled = saved_inlining_enabled;
-#endif /* MINIMAL_INLINING */
-        restore_saved_context(saved_curr_context);
-        last = last_statement_in_block(block);
-        if (original_statement_was_expr && 
-            last != NULL && last->kind == (a_statement_kind)stmk_block) {
-          /* Lowering changed the last statement into a block.  Change it
-             into a statement expression so it will produce a value. */
-          change_block_into_statement_expression(last);
-        }  /* if */
-      }
+      lower_gnu_statement_expression(expr);
       break;
 #endif /* GNU_EXTENSIONS_ALLOWED */
     case enk_reuse_value:
@@ -4125,7 +4086,7 @@ Do C99 lowering on the indicated statement list.
 }  /* lower_c99_statement_list */
 
 
-static void lower_c99_statement(a_statement_ptr statement)
+void lower_c99_statement(a_statement_ptr statement)
 /*
 Do C99 lowering on the indicated statement.
 */
@@ -4188,6 +4149,14 @@ Do C99 lowering on the indicated statement.
       case stmk_asm:
         lower_asm_statement(statement);
         break;
+#if GNU_EXTENSIONS_ALLOWED
+      case stmk_stmt_expr_result:
+        /* In non-C++ mode, this cannot involve a "return-by-constructor-call"
+           and so we just fall through to the ordinary expression case. */
+        check_assertion(statement->variant.stmt_expr_result.dynamic_init ==
+                                                                         NULL);
+        /*FALLTHROUGH*/
+#endif /* GNU_EXTENSIONS_ALLOWED */
       case stmk_expr:
         /* Expression statement.  Pass in the statement to allow better
            inlining. */

@@ -18992,6 +18992,7 @@ static void determine_dynamic_init_for_class_init(
                                    a_conv_descr       *conversion,
                                    a_conv_descr       *ctor_arg_conversion,
                                    a_boolean          fill_in_dtor,
+                                   a_boolean          check_elided_cctor,
                                    a_boolean          *elision_done,
                                    a_dynamic_init_ptr *p_dip,
                                    an_expr_node_ptr   *p_temp_init_node)
@@ -19019,8 +19020,9 @@ result directly in the entity to be initialized.  If that can be
 done, we have in effect optimized out a call of a copy constructor
 (i.e., we have elided it).  The language requires that we still check
 to see that the copy constructor we would have used exists and is
-callable.  If elision_done is non-NULL, *elision_done is set to
-indicate whether or not elision was done.
+callable, but that check is not done if check_elided_cctor is FALSE or
+if the current mode disables that check.  If elision_done is non-NULL,
+*elision_done is set to indicate whether or not elision was done.
 
 This routine is used in both C and C++ mode, although the fancier cases
 happen only in C++ mode.
@@ -19176,7 +19178,7 @@ happen only in C++ mode.
       }  /* if */
     }  /* if */
   }  /* if */
-  if (elision_applies) {
+  if (elision_applies && check_elided_cctor) {
     /* Copy constructor elision is being done.  Check access to the elided
        copy constructor. */
     handle_elided_copy_constructor(elision_source_type,
@@ -19435,6 +19437,7 @@ was done.
   an_operand     orig_operand;
   a_boolean      is_copy_initialization = TRUE;
   a_boolean      orig_is_copy_initialization = is_copy_initialization;
+  a_boolean      check_elided_cctor = TRUE;
   a_variable_ptr var;
 
   orig_operand = *source_operand;
@@ -19550,10 +19553,22 @@ after_check:;
 conversion_determined:
     /* The conversion is possible.  Determine the routine and argument
        list to return to the caller. */
+    if (conv_context & CCO_STMT_EXPR_RESULT) {
+      /* An elided copy constructor to return a value in a GNU statement
+         expression is not checked inside the GNU statement expression.
+         However, if the result value is used (and elided on the other side),
+         it will be checked there.  For example, assuming S has a deleted
+         copy constructor:
+           ({ S(); });        // No diagnostic
+           S s = ({ S(); });  // Diagnostic "on the outside".
+      */
+      check_elided_cctor = FALSE;
+    }  /* if */
     determine_dynamic_init_for_class_init(source_operand, dest_type,
                                           &conversion, &ctor_arg_conversion,
-                                          fill_in_dtor, elision_done,
-                                          dip, (an_expr_node_ptr *)NULL);
+                                          fill_in_dtor, check_elided_cctor,
+                                          elision_done, dip,
+                                          (an_expr_node_ptr *)NULL);
     if ((*dip) != NULL &&
         (*dip)->is_creation_of_initializer_list_object &&
         (conv_context & CCO_INITIALIZING_VARIABLE)) {
@@ -23217,6 +23232,7 @@ found to be acceptable, and *conversion describes it.
       determine_dynamic_init_for_class_init(source_operand, param_type,
                                             conversion, (a_conv_descr *)NULL,
                                             /*fill_in_dtor=*/TRUE,
+                                            /*check_elided_cctor=*/TRUE,
                                             /*elision_done=*/(a_boolean *)NULL,
                                             &dip, &temp_init_node);
         make_glvalue_expression_operand(temp_init_node, source_operand);

@@ -1318,6 +1318,10 @@ extern a_variable_ptr make_ifunc_resolver_var(a_routine_ptr rp);
 extern void lower_ifunc_expr(an_expr_node_ptr expr);
 #endif /* LOWER_IFUNC */
 
+#if GNU_EXTENSIONS_ALLOWED
+extern void lower_gnu_statement_expression(an_expr_node_ptr expr);
+#endif /* GNU_EXTENSIONS_ALLOWED */
+
 /*
 Macro that returns TRUE if the type specified by tp contains a function type
 with a parameter type that is passed via a copy constructor.  Such parameter

@@ -22176,9 +22176,10 @@ already been consumed.
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   }  /* if */
   if (!err) {
-    a_statement_ptr  stmt, last_stmt;
-    a_type_ptr       expr_type;
-    an_expr_node_ptr expr;
+    a_statement_ptr     stmt, last_stmt;
+    a_type_ptr          expr_type;
+    an_expr_node_ptr    expr;
+    a_dynamic_init_ptr  dip = NULL;
     check_assertion(sp->kind == (a_statement_kind)stmk_block);
     /* The value of the expression is the value of the last statement
        in the block if it's an expression statement.  Otherwise, the
@@ -22190,27 +22191,23 @@ already been consumed.
       /* Remember the last statement. */
       last_stmt = stmt;
     }  /* for */
-    if (last_stmt != NULL && last_stmt->kind == (a_statement_kind)stmk_expr) {
-      expr_type = last_stmt->expr->type;
+    if (last_stmt != NULL &&
+        last_stmt->kind == (a_statement_kind)stmk_stmt_expr_result) {
+      if (last_stmt->expr != NULL) {
+        expr_type = last_stmt->expr->type;
+      } else {
+        a_routine_ptr  ctor;
+        dip = last_stmt->variant.stmt_expr_result.dynamic_init;
+        check_assertion(dip != NULL &&
+                        dip->kind == (a_dynamic_init_kind)dik_constructor);
+        ctor = dip->variant.constructor.ptr;
+        check_assertion(ctor != NULL);
+        expr_type = parent_class_of(ctor);
+      }  /* if */
       if (is_void_type(expr_type)) {
         set_expr_result_not_used(last_stmt->expr);
       } else {
-        last_stmt->is_statement_expression_result = TRUE;
-        if (!C_mode() && is_class_struct_union_type(expr_type)) {
-          /* We don't currently handle result types whose copy construction or
-             destruction semantics are nontrivial. */
-          a_class_symbol_supplement_ptr
-                                cssp = symbol_supplement_for_class(expr_type);
-          if (!cssp->has_trivial_destructor ||
-              !cssp->construction_by_bitwise_copy_allowed) {
-            if (expr_error_should_be_issued()) {
-              pos_ty_error(ec_nontrivial_statement_expr_result_type,
-                           &pos_curr_token, expr_type);
-            }  /* if */
-            make_error_operand(result);
-            err = TRUE;
-          }  /* if */
-        } else if (is_variably_modified_type(expr_type)) {
+        if (is_variably_modified_type(expr_type)) {
           /* Do not allow a statement expression to have a variably-modified
              type.  (It's an unlikely case that would cause undue difficulties
              during IL lowering.) */
@@ -22226,6 +22223,23 @@ already been consumed.
       expr = alloc_expr_node((an_expr_node_kind)enk_statement);
       expr->variant.statement = sp;
       expr->type = expr_type;
+      if (dip != NULL) {
+        /* The statement expression produces a value with nontrivial
+           initialization semantics, which is handled much like a call
+           returning such a value.  Create a "caller-side" temporary to
+           hold the result. */
+        an_expr_node_ptr  temp_init;
+        temp_init = create_expr_temporary(expr_type,
+                                          /*is_lvalue=*/FALSE,
+                                          /*is_explicit_cast=*/FALSE,
+                                          /*suppress_abstract_test=*/TRUE,
+                                          (a_dynamic_init_kind)
+                                            dik_call_returning_class_via_cctor,
+                                          &left_brace_position,
+                                          &dip);
+        dip->variant.expression = expr;
+        expr = temp_init;
+      }  /* if */
       make_expression_operand(expr, result);
       current_routine_entry()->contains_statement_expression = TRUE;
       report_gnu_extension_if_needed(&left_brace_position,
@@ -32081,58 +32095,108 @@ expressions).
 }  /* scan_integer_expression */
 
 
-an_expr_node_ptr scan_void_expression(a_boolean repeated_in_loop,
-                                      a_boolean marked_as_gnu_extension,
-                                      a_boolean is_statement_expr)
+an_expr_node_ptr scan_void_expression(
+                                  a_boolean           repeated_in_loop,
+                                  a_boolean           marked_as_gnu_extension,
+                                  a_boolean           is_statement_expr,
+                                  a_dynamic_init_ptr  *dip)
 /*
-Scan a "void expression," i.e., one whose value is discarded.  This is
-used for expression statements, the increment expression of a "for", etc.
-repeated_in_loop is TRUE for an expression repeated in a loop (e.g.,
-the increment of a "for").  This routine is not used for constant
-or not-evaluated expressions.  This routine should only be used to
-scan full expressions (except for the GNU statement expression case).
-If marked_as_gnu_extension is TRUE, the upcoming expression was
-preceded by the GNU __extension__ keyword.  is_statement_expr is
-TRUE if this expression is being scanned as a statement inside a
-GNU statement expression.  Issue a warning for an expression that has
-no side effects unless this expression is the last in a statement
-expression.
+Scan a "void expression," i.e., one whose value is discarded.  This is used
+for expression statements and for the increment expression of a "for".  It is
+also used for a final expression statement in a GNU "statement expression",
+even though the expression value (if any) isn't discarded in that case.
+
+repeated_in_loop is TRUE for an expression repeated in a loop (i.e., the
+increment of a "for").  This routine is not used for constant or not-evaluated
+expressions.  This routine should only be used to scan full expressions (except
+for the GNU statement expression case).  If marked_as_gnu_extension is TRUE,
+the upcoming expression was preceded by the GNU __extension__ keyword.
+is_statement_expr is TRUE if this expression is being scanned as a statement
+inside a GNU statement expression.  Issue a warning for an expression that has
+no side effects unless this expression is the last in a statement expression.
+If the scanned expression is the final expression of the statement expression
+and its value must be transferred through copy construction, NULL is returned
+and *dip is set to an entry representing that transfer.  (If is_statement_expr
+is FALSE, dip can be NULL.)
 */
 {
   an_expr_node_ptr    expression;
   an_operand          result;
   an_expr_stack_entry *saved_expr_stack;
   an_expr_stack_entry expr_stack_entry;
-  a_boolean           result_used = FALSE;
+  a_boolean           result_of_stmt_expr = FALSE;
 
   db_enter(3, "scan_void_expression");
 
+  if (dip != NULL) *dip = NULL;
   save_expr_stack(&saved_expr_stack);
   push_expr_stack((an_expression_kind)ek_normal, &expr_stack_entry,
                   /*force_object_lifetime=*/repeated_in_loop,
                   /*suppress_object_lifetime=*/FALSE);
   transfer_expr_context_if_applicable(saved_expr_stack);
+  /* If we are in a GNU statement expression, this may be the last statement
+     thereof.  If so, it wouldn't really be a "void" expression because its
+     value is the value of the GNU statement expression.  For now, mark the
+     expression stack for the possibility that we may have to elide copy-
+     construction in that case. */
+  if (is_statement_expr) {
+    expr_stack->in_cctor_elision_initializer = TRUE;
+  }  /* if */
   /* Scan the expression. */
   scan_expr(&result, PREC_LOWEST,
             marked_as_gnu_extension ? EOPT_MARKED_AS_GNU_EXTENSION
                                     : EOPT_NO_OPTIONS);
+#if GNU_EXTENSIONS_ALLOWED
   if (is_statement_expr &&
       ((curr_token == tok_semicolon && next_token() == tok_rbrace) ||
        /* Also handle the case where the semicolon was omitted. */
        curr_token == tok_rbrace)) {
     /* This is the last statement in a GNU statement expression.
        As such, it is the value of the expression. */
-    result_used = TRUE;
+    result_of_stmt_expr = TRUE;
   }  /* if */
-  if (!result_used) {
+#else /* !GNU_EXTENSIONS_ALLOWED */
+  check_assertion(!is_statement_expr);
+#endif /* GNU_EXTENSIONS_ALLOWED */
+  if (!result_of_stmt_expr) {
     process_void_operand(&result);
+#if GNU_EXTENSIONS_ALLOWED
   } else {
-    do_void_operand_transformations(&result, /*force_lvalue_to_rvalue=*/TRUE);
+    a_boolean  incomplete;
+    if (type_returned_by_cctor(result.type, &incomplete)) {
+      a_conv_context_set  conv_context = (CCO_INITIALIZING_RETURN_VALUE |
+                                          CCO_MOVE_OPTIMIZATION_ALLOWED |
+                                          CCO_STMT_EXPR_RESULT);
+      /* Build a dynamic initialization entry for the return statement. */
+      prep_elision_initializer_operand(&result, result.type,
+                                       /*fill_in_dtor=*/FALSE,
+                                       conv_context, ec_bad_gnu_stmt_return,
+                                       /*elision_done=*/(a_boolean *)NULL,
+                                       dip);
+      wrap_up_dynamic_init_full_expression(*dip);
+    } else {
+      do_void_operand_transformations(&result,
+                                      /*force_lvalue_to_rvalue=*/TRUE);
+    }  /* if */
+#endif /* GNU_EXTENSIONS_ALLOWED */
   }  /* if */
-  expression = make_node_from_void_expression_operand(&result, result_used);
-  expression = wrap_up_full_expression(expression);
+  if (dip == NULL || *dip == NULL) {
+    expression = make_node_from_void_expression_operand(&result,
+                                                        result_of_stmt_expr);
+    expression = wrap_up_full_expression(expression);
+  } else {
+    expression = NULL;
+  }  /* if */
+#if GNU_EXTENSIONS_ALLOWED
+  if (is_statement_expr) {
+    /* Fix up destructor references in the overall expression.  (This
+       compensates for setting expr_stack->in_cctor_elision_initializer
+       above.) */
+    fix_up_dynamic_init_dtors();
+  }  /* if */
+#endif /* GNU_EXTENSIONS_ALLOWED */
   /* Indicate that the value of the node is not used. */
-  if (!result_used) set_expr_result_not_used(expression);
+  if (!result_of_stmt_expr) set_expr_result_not_used(expression);
   pop_expr_stack();
   restore_expr_stack(saved_expr_stack);
 #if EXTRA_SOURCE_POSITIONS_IN_IL
@@ -32141,7 +32205,11 @@ expression.
 
 #if DEBUG
   if (debug_level >= 3) {
-    db_expression(expression);
+    if (dip != NULL && *dip != NULL) {
+      db_dynamic_initializer(*dip, /*level=*/0);
+    } else if (expression != NULL) {
+      db_expression(expression);
+    }  /* if */
   }  /* if */
 #endif /* DEBUG */
   db_exit();

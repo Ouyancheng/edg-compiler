@@ -1156,6 +1156,9 @@ extern a_boolean expr_contains_error(an_expr_node_ptr expr);
 
 extern a_boolean constant_contains_error(a_constant_ptr con);
 
+extern a_boolean type_returned_by_cctor(a_type_ptr  return_type,
+                                        a_boolean   *p_incomplete);
+
 extern void set_routine_calling_method_flag(a_type_ptr         routine_type,
                                             a_source_position  *err_pos);
 
@@ -1616,10 +1619,6 @@ extern void copy_statement(a_statement *from,
 
 extern void change_statement_into_block(a_statement_ptr statement,
                                         a_statement_ptr *orig_statement);
-
-#if GNU_EXTENSIONS_ALLOWED
-extern void change_block_into_statement_expression(a_statement_ptr block);
-#endif /* GNU_EXTENSIONS_ALLOWED */
 
 extern void set_expr_result_not_used(an_expr_node_ptr node);
 

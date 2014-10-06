@@ -2341,45 +2341,46 @@ Dump a statement kind, for debug purposes.
   a_const_char *s;
 
   switch (kind) {
-    case stmk_empty:           s = "empty";             break;
-    case stmk_expr:            s = "expr";              break;
-    case stmk_if:              s = "if";                break;
-    case stmk_while:           s = "while";             break;
-    case stmk_goto:            s = "goto";              break;
-    case stmk_label:           s = "label";             break;
-    case stmk_return:          s = "return";            break;
-    case stmk_block:           s = "block";             break;
-    case stmk_end_test_while:  s = "end-test-while";    break;
-    case stmk_for:             s = "for";               break;
-    case stmk_range_based_for: s = "range-based-for";   break;
+    case stmk_empty:            s = "empty";             break;
+    case stmk_expr:             s = "expr";              break;
+    case stmk_if:               s = "if";                break;
+    case stmk_while:            s = "while";             break;
+    case stmk_goto:             s = "goto";              break;
+    case stmk_label:            s = "label";             break;
+    case stmk_return:           s = "return";            break;
+    case stmk_block:            s = "block";             break;
+    case stmk_end_test_while:   s = "end-test-while";    break;
+    case stmk_for:              s = "for";               break;
+    case stmk_range_based_for:  s = "range-based-for";   break;
 #if MICROSOFT_EXTENSIONS_ALLOWED
-    case stmk_for_each:        s = "for each";          break;
+    case stmk_for_each:         s = "for each";          break;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-    case stmk_switch_case:     s = "switch-case";       break;
-    case stmk_switch:          s = "switch";            break;
-    case stmk_init:            s = "init";              break;
-    case stmk_asm:             s = "asm";               break;
+    case stmk_switch_case:      s = "switch-case";       break;
+    case stmk_switch:           s = "switch";            break;
+    case stmk_init:             s = "init";              break;
+    case stmk_asm:              s = "asm";               break;
 #if ASM_FUNCTION_ALLOWED
-    case stmk_asm_func_body:   s = "asm-func-body";     break;
+    case stmk_asm_func_body:    s = "asm-func-body";     break;
 #endif /* ASM_FUNCTION_ALLOWED */
-    case stmk_try_block:       s = "try-block";         break;
+    case stmk_try_block:        s = "try-block";         break;
 #if MICROSOFT_EXTENSIONS_ALLOWED
-    case stmk_microsoft_try:   s = "microsoft-try";     break;
+    case stmk_microsoft_try:    s = "microsoft-try";     break;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-    case stmk_decl:            s = "decl";              break;
-    case stmk_set_vla_size:    s = "set-vla-size";      break;
-    case stmk_vla_decl:        s = "vla-decl";          break;
+    case stmk_decl:             s = "decl";              break;
+    case stmk_set_vla_size:     s = "set-vla-size";      break;
+    case stmk_vla_decl:         s = "vla-decl";          break;
 #if GNU_EXTENSIONS_ALLOWED
-    case stmk_assigned_goto:   s = "assigned goto";     break;
+    case stmk_assigned_goto:    s = "assigned goto";     break;
 #endif /* GNU_EXTENSIONS_ALLOWED */
 #if UPC_EXTENSIONS_ALLOWED
-    case stmk_upc_notify:      s = "upc_notify";	break;
-    case stmk_upc_wait:        s = "upc_wait";		break;
-    case stmk_upc_barrier:     s = "upc_barrier";	break;
-    case stmk_upc_fence:       s = "upc_fence";		break;
-    case stmk_upc_forall:      s = "upc_forall";	break;
+    case stmk_upc_notify:       s = "upc_notify";        break;
+    case stmk_upc_wait:         s = "upc_wait";	         break;
+    case stmk_upc_barrier:      s = "upc_barrier";       break;
+    case stmk_upc_fence:        s = "upc_fence";         break;
+    case stmk_upc_forall:       s = "upc_forall";        break;
 #endif /* UPC_EXTENSIONS_ALLOWED */
-    default:                   s = "<bad stmt kind>";   break;
+    case stmk_stmt_expr_result: s = "stmt-expr-result";  break;
+    default:                    s = "<bad stmt kind>";   break;
   }  /* switch */
   fputs(s, f_debug);
 }  /* db_statement_kind */
@@ -2485,6 +2486,16 @@ Dump a statement, for debug purposes.
 #endif /* GNU_EXTENSIONS_ALLOWED */
           }  /* if */
         }
+        break;
+#if GNU_EXTENSIONS_ALLOWED
+      case stmk_stmt_expr_result:
+        if (sp->expr != NULL) {
+          db_expr_summary(sp->expr);
+        } else {
+          a_dynamic_init_ptr  dip = sp->variant.stmt_expr_result.dynamic_init;
+          db_dynamic_initializer(dip, /*level=*/0);
+        }  /* if */
+#endif /* GNU_EXTENSIONS_ALLOWED */
         break;
       default:;
     }  /* switch */
@@ -20669,6 +20680,58 @@ constructor.
 
 #endif /* IA64_ABI */
 
+a_boolean type_returned_by_cctor(a_type_ptr  return_type,
+                                 a_boolean   *p_incomplete)
+/*
+Return TRUE if the given return type requires the caller to provide a temporary
+in which the callee constructs the result.  Otherwise, return FALSE and if the
+type is incomplete but not template-dependent, set *p_incomplete to TRUE so
+that the caller may record a fixup entry to revisit the transfer method later.
+(This routine is also used for the "return" type of GNU statement expressions.)
+*/
+{
+  a_boolean  result = FALSE, incomplete = FALSE;
+
+  return_type = skip_typerefs(return_type);
+  if (is_immediate_class_type(return_type)) {
+    a_class_symbol_supplement_ptr cssp;
+    cssp = class_symbol_supp(symbol_for(return_type));
+    if (return_type->variant.class_struct_union.is_nonreal_class) {
+      /* For a nonreal class, we can't answer the question, so leave the
+         flag FALSE. */
+    } else if (return_type->incomplete) {
+      incomplete = TRUE;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    } else if (cli_or_cx_enabled && is_cli_interface_type(return_type)) {
+      /* C++/CLI interface types cannot be return types.  This is
+         diagnosed elsewhere. */
+      expect_error();
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+    } else if (!(cssp->construction_by_bitwise_copy_allowed
+#if IA64_ABI
+                 || (emulate_gnu_abi_bugs && gnu_abi_version < 40600 &&
+                     generated_copy_constructor_is_trivial(cssp))
+#endif /* IA64_ABI */
+                                                                 )
+#if IA64_ABI
+#if ABI_COMPATIBILITY_VERSION >= 408
+               || has_nontrivial_destructor(cssp)
+#else /* ABI_COMPATIBILITY_VERSION < 408 */
+               /* This test had failed to take into account defaulted
+                  destructors and is replaced by the test above, but
+                  remains here for backward compatibility. */
+               || cssp->destructor != NULL
+#endif /* ABI_COMPATIBILITY_VERSION >= 408 */
+#endif /* IA64_ABI */
+                                          ) {
+      result = TRUE;
+    }  /* if */
+  }  /* if */
+  *p_incomplete = incomplete;
+  return result;
+}  /* type_returned_by_cctor */
+
+
 void set_routine_calling_method_flag(a_type_ptr         routine_type,
                                      a_source_position  *err_pos)
 /*
@@ -20696,14 +20759,31 @@ the case if the return type was incomplete at the point of definition.
     } else {
       /* If the function returns a class object that has a "real" copy
          constructor, make the caller provide a temporary for the result. */
+      a_boolean  incomplete;
       return_type = skip_typerefs(routine_type->variant.routine.return_type);
-      if (is_immediate_class_type(return_type)) {
-        a_class_symbol_supplement_ptr cssp;
-        cssp = symbol_supplement_for_class(return_type);
-        if (return_type->variant.class_struct_union.is_nonreal_class) {
-          /* For a nonreal class, we can't answer the question, so leave the
-             flag FALSE. */
-        } else if (is_incomplete_type(return_type)) {
+      if (type_returned_by_cctor(return_type, &incomplete)) {
+        rtsp->value_returned_by_cctor = TRUE;
+        /* If the return type is an abstract class, issue an error.  Note
+           that construction_by_bitwise_copy_allowed will never be TRUE
+           for abstract classes.  Also note that this logic assumes that
+           value_returned_by_cctor will never be set elsewhere. */
+        if (return_type->variant.class_struct_union.abstract) {
+          if (err_pos->seq == 0 || gpp_mode) {
+            /* A null error position indicates a routine type for which
+               there is no corresponding source position -- e.g., a type
+               is being copied for some reason.  Issue no diagnostic in
+               such cases. */
+            /* GNU C++ compilers only check for abstract class return types
+               on function definitions.  We don't know at this point whether
+               we're dealing with a definition.  So a separate test will be
+               performed when parsing the definition. */
+          } else {
+            abstract_class_diagnostic(
+                               es_error, ec_function_returning_abstract_class,
+                               return_type, err_pos);
+          }  /* if */
+        }  /* if */
+      } else if (incomplete) {
           /* The return type is an incomplete class so we can't tell whether
              special handling will be required for the return.  Enter the
              routine type on a fixup list and check again when the return
@@ -20714,51 +20794,6 @@ the case if the return type was incomplete at the point of definition.
                                            (char *)routine_type,
                                            (a_byte_il_entry_kind)iek_type,
                                            err_pos);
-#if MICROSOFT_EXTENSIONS_ALLOWED
-        } else if (cli_or_cx_enabled && is_cli_interface_type(return_type)) {
-          /* C++/CLI interface types cannot be return types.  This is
-             diagnosed elsewhere. */
-          expect_error();
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-        } else if (!(cssp->construction_by_bitwise_copy_allowed
-#if IA64_ABI
-                     || (emulate_gnu_abi_bugs && gnu_abi_version < 40600 &&
-                         generated_copy_constructor_is_trivial(cssp))
-#endif /* IA64_ABI */
-                                                                     )
-#if IA64_ABI
-#if ABI_COMPATIBILITY_VERSION >= 408
-                   || has_nontrivial_destructor(cssp)
-#else /* ABI_COMPATIBILITY_VERSION < 408 */
-                   /* This test had failed to take into account defaulted
-                      destructors and is replaced by the test above, but
-                      remains here for backward compatibility. */
-                   || cssp->destructor != NULL
-#endif /* ABI_COMPATIBILITY_VERSION >= 408 */
-#endif /* IA64_ABI */
-                                              ) {
-          rtsp->value_returned_by_cctor = TRUE;
-          /* If the return type is an abstract class, issue an error.  Note
-             that construction_by_bitwise_copy_allowed will never be TRUE
-             for abstract classes.  Also note that this logic assumes that
-             value_returned_by_cctor will never be set elsewhere. */
-          if (return_type->variant.class_struct_union.abstract) {
-            if (err_pos->seq == 0 || gpp_mode) {
-              /* A null error position indicates a routine type for which
-                 there is no corresponding source position -- e.g., a type
-                 is being copied for some reason.  Issue no diagnostic in
-                 such cases. */
-              /* GNU C++ compilers only check for abstract class return types
-                 on function definitions.  We don't know at this point whether
-                 we're dealing with a definition.  So a separate test will be
-                 performed when parsing the definition. */
-            } else {
-              abstract_class_diagnostic(
-                               es_error, ec_function_returning_abstract_class,
-                               return_type, err_pos);
-            }  /* if */
-          }  /* if */
-        }  /* if */
       }  /* if */
     }  /* if */
   }  /* if */
