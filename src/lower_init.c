@@ -8338,6 +8338,9 @@ in goto and label statements and re-computing new common object lifetimes.
        dip = dip_next) {
     dip_next = dip->next_in_destruction_list;
     if (dip->destructor != NULL &&
+#if VLA_DEALLOCATION_REQUIRED
+        !is_dynamic_init_for_vla(dip) &&
+#endif /* VLA_DEALLOCATION_REQUIRED */
         dip->destructor->special_kind ==
                                      (a_special_function_kind)sfk_destructor &&
         call_to_ctor_or_dtor_has_no_effect(dip->destructor,

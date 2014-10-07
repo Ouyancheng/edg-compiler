@@ -1,5 +1,23 @@
 Version 4.10
 
+10/7/14  [EDGcpfe/15521]
+Removal of unneeded destructors with LOWER_VARIABLE_LENGTH_ARRAYS
+
+As a result of the changes dated 11/19/11, in configurations where both
+LOWERING_REMOVES_UNNEEDED_CONSTRUCTIONS_AND_DESTRUCTIONS and
+LOWER_VARIABLE_LENGTH_ARRAYS are TRUE, lowering had incorrectly removed
+destructions for objects with VLA types, resulting in an assertion failure
+("add_dyn_init_cleanup: missing destructible entity descr") in some cases.
+Such destructions are no longer removed.  For example (with --g++):
+
+  struct S {
+    ~S() {}
+  };
+  void f(int s) {
+    S a[s];
+  }
+
+
 10/5/14  [EDGcpfe/11270]
 GNU C++ compatibility: partial ordering of lvalue vs. rvalue references
 
