@@ -18597,7 +18597,7 @@ Do IL lowering of the indicated statement and everything under it.
           /* FIXME: what about variably modified types? */
           an_init_pos_descr  ipd, *eff_ipdp;
           an_insert_location insert_location1;
-          an_expr_node_ptr   expr;
+          an_expr_node_ptr   expr = NULL;
           a_boolean          keep_dynamic_init;
           a_dynamic_init_ptr dip =
                               statement->variant.stmt_expr_result.dynamic_init;
@@ -18626,7 +18626,7 @@ Do IL lowering of the indicated statement and everything under it.
                              (a_constant **)NULL);
           check_assertion(!keep_dynamic_init);
           statement->variant.dynamic_init = NULL;
-          if (gse_return_value_pointer_variable == NULL) {
+          if (expr == NULL) {
             statement->expr = insert_location1.variant.expr;
           } else {
             statement->expr = expr;
