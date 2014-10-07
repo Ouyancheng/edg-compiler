@@ -3229,7 +3229,7 @@ enum a_dynamic_init_kind_tag {
   dik_constant,		/* Initial value of a simple object is a constant. */
   dik_expression,	/* Initial value of a simple object is an
 			   expression. */
-  dik_call_returning_class_via_cctor,
+  dik_class_result_via_ctor,
 			/* Initial value of a simple object is established by
 			   a call of a routine that returns a class object
 			   via a constructor, or by the evaluation of a GNU
