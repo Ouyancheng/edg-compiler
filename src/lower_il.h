@@ -615,15 +615,21 @@ EXTERN a_variable_ptr
 #if GNU_EXTENSIONS_ALLOWED
 EXTERN a_variable_ptr
                 gse_return_value_pointer_variable;
-                        /* FIXME: */
-			/* While processing a routine that returns its
-			   value via a copy constructor, this points to
-			   the parameter variable for the implicit parameter
-			   through which the caller sends the address
-			   at which the result will be stored; NULL
-			   otherwise. */
+                        /* Somewhat similar to return_value_pointer_variable
+                           above, is set to point to the variable that is
+                           being initialized via copy construction from the
+                           result of a GNU statement expression. For example:
+                               A a = ({ f(); A(); });
+                           NULL when not lowering a GNU statement expression
+                           and in cases where the initialization doesn't
+                           explicitly specify a variable (see below). */
 EXTERN an_init_pos_descr_ptr
-                gse_init_position; /* FIXME */
+                gse_init_position;
+                        /* Specifies the entity that is being initialized
+                           (when it isn't a variable -- see above) by a
+                           GNU statement expression.  For example:
+                              S *p = new S(({ S(); }));
+                           NULL otherwise. */
 #endif /* GNU_EXTENSIONS_ALLOWED */
 
 #if DO_RETURN_VALUE_OPTIMIZATION_IN_LOWERING

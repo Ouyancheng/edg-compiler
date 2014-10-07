@@ -18588,13 +18588,13 @@ Do IL lowering of the indicated statement and everything under it.
         /* This statement is the last in a GNU statement expression, and it
            returns a value. */
         if (stmt_expr != NULL) {
-          /* FIXME: pass statement pointer or not? */
-          lower_full_expr(stmt_expr, (a_statement_ptr)NULL);
+          /* Lower the expression. */
           check_assertion(statement->variant.stmt_expr_result.dynamic_init ==
                                                                          NULL);
+          lower_full_expr(stmt_expr, statement);
         } else {
-          /* FIXME: not sure what to do. */
-          /* FIXME: what about variably modified types? */
+          /* Lower the dynamic initialization.  Determine the target of
+             the initialization from information previously saved. */
           an_init_pos_descr  ipd, *eff_ipdp;
           an_insert_location insert_location1;
           an_expr_node_ptr   expr = NULL;
@@ -18605,12 +18605,21 @@ Do IL lowering of the indicated statement and everything under it.
                           dip->variable == NULL &&
                           !dip->static_temp);
           if (gse_return_value_pointer_variable == NULL) {
+            /* A case where there's no variable being initialized, e.g.,
+                 S *p = new S(({ S(); }));
+               In this case, an initialization position description has been
+               saved that represents the entity being initialized; use that
+               and set the insertion point to a new expression. */
+            check_assertion(gse_init_position != NULL);
             eff_ipdp = gse_init_position;
             set_expr_creation_insert_location(&insert_location1);
           } else {
+            /* A variable is being initialized, e.g.,
+                 A a = ({ A(); });
+               Create an expression for the variable and then point the
+               insertion point to precede the expression. */
             dip->variable = gse_return_value_pointer_variable;
             expr = var_rvalue_expr(dip->variable);
-            /* Set the insert point preceding the variable use. */
             set_expr_insert_location(expr, &insert_location1);
             set_var_init_pos_descr(dip->variable, &ipd);
             eff_ipdp = &ipd;
@@ -18625,6 +18634,8 @@ Do IL lowering of the indicated statement and everything under it.
                              &keep_dynamic_init,
                              (a_constant **)NULL);
           check_assertion(!keep_dynamic_init);
+          /* Replace the dynamic initialization with the appropriate
+             lowered expression. */
           statement->variant.dynamic_init = NULL;
           if (expr == NULL) {
             statement->expr = insert_location1.variant.expr;

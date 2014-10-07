@@ -9083,9 +9083,15 @@ do_assignment:;
       entity_is_wholly_initialized = TRUE;
       break;
     case dik_call_returning_class_via_cctor:
-      /* FIXME: This isn't right, but use it for now. */
+      /* Initialize the entry by either calling a routine that returns its
+         result via a copy constructor or invoking a GNU statement expression
+         whose final statement "returns" the result via a copy constructor. */
 #if GNU_EXTENSIONS_ALLOWED
       if (dip->variant.expression->kind == (an_expr_node_kind)enk_statement) {
+        /* The final statement of the GNU statement expression will initialize
+           the entity being initialized here; save the information here to use
+           when the stmk_stmt_expr_result statement for the GNU statement
+           expression is lowered. */
         a_variable_ptr  save_gse_return_value_pointer_variable =
                                              gse_return_value_pointer_variable;
         an_init_pos_descr_ptr save_gse_init_position = gse_init_position;
@@ -9099,8 +9105,6 @@ do_assignment:;
 #endif /* GNU_EXTENSIONS_ALLOWED */
       /* Do not insert code here. */
       {
-        /* Initialize the entry by calling a routine that returns its result
-           via a copy constructor. */
         /* The address of the temporary being initialized is added as an
            implicit argument of the call. */
         lower_call(dip->variant.expression, ipdp, (a_statement_ptr)NULL,
