@@ -6265,10 +6265,9 @@ Display the indicated dynamic_init structure.
       (void)printf("dik_expression\n");
       disp_ptr("expression", (char *)ptr->variant.expression, iek_expr_node);
       break;
-    case dik_call_returning_class_via_cctor:
-      (void)printf("dik_call_returning_class_via_cctor\n");
-      disp_ptr("call_returning_class_via_cctor",
-               (char *)ptr->variant.expression, iek_expr_node);
+    case dik_class_result_via_ctor:
+      (void)printf("dik_class_result_via_ctor\n");
+      disp_ptr("expression", (char *)ptr->variant.expression, iek_expr_node);
       break;
     case dik_constructor:
       (void)printf("dik_constructor\n");

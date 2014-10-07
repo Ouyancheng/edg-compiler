@@ -9187,8 +9187,7 @@ removed and FALSE otherwise.
     }  /* if */
     if (dip->is_reused_value &&
         (dip->kind == (a_dynamic_init_kind)dik_expression ||
-         dip->kind ==
-                    (a_dynamic_init_kind)dik_call_returning_class_via_cctor)) {
+         dip->kind == (a_dynamic_init_kind)dik_class_result_via_ctor)) {
       /* The temporary expression might include an lvalue cast sequence. */
       node = dip->variant.expression;
     }  /* if*/
@@ -9435,8 +9434,7 @@ get to the expression that will appear, and return that.
       if (!is_generated_dynamic_init(dip)) {
         /* Not implicit, e.g., an explicit cast. */
       } else if (dip->kind == (a_dynamic_init_kind)dik_expression ||
-                 dip->kind ==
-                     (a_dynamic_init_kind)dik_call_returning_class_via_cctor) {
+                 dip->kind == (a_dynamic_init_kind)dik_class_result_via_ctor) {
         node = dip->variant.expression;
         node_changed = TRUE;
       } else if (dip->kind == (a_dynamic_init_kind)dik_constructor) {
@@ -12614,7 +12612,7 @@ sizeof_cases:
       } else if ((dip = expr->variant.init.dynamic_init)->is_reused_value &&
                  (dip->kind == (a_dynamic_init_kind)dik_expression ||
                   dip->kind ==
-                    (a_dynamic_init_kind)dik_call_returning_class_via_cctor)) {
+                            (a_dynamic_init_kind)dik_class_result_via_ctor)) {
         /* A reused-value temporary initialization, which will be elided in
            the output.  Just put out the underlying value. */
         gen_expr(dip->variant.expression, /*need_parens=*/TRUE,
@@ -14929,8 +14927,7 @@ one that yields the value) of a statement expression.
         a_dynamic_init_ptr
                        dip = statement->variant.stmt_expr_result.dynamic_init;
         check_assertion(dip != NULL);
-        if (dip->kind == (a_dynamic_init_kind)
-                                          dik_call_returning_class_via_cctor) {
+        if (dip->kind == (a_dynamic_init_kind)dik_class_result_via_ctor) {
           gen_full_expression(dip->variant.expression);
         } else {
           a_routine_ptr  ctor;
@@ -15263,7 +15260,7 @@ output_functional_notation_cast:
 output_functional_notation_cast_arguments:
       /* Clear the explicit cast flag so the dynamic init is just the
          operand and not a cast using the operand.  That avoids recursion
-         loops for dik_call_returning_class_via_cctor initializations. */
+         loops for dik_class_result_via_ctor initializations. */
       dip->is_explicit_cast = FALSE;
       gen_paren_or_brace_dynamic_init(dip, init_entity_type,
                                       /*paren_form=*/!braced_init,
@@ -15376,7 +15373,7 @@ output_functional_notation_cast_arguments:
       check_assertion(expr != NULL);
       /*FALLTHROUGH*/
     case dik_expression:
-    case dik_call_returning_class_via_cctor:
+    case dik_class_result_via_ctor:
       /* Expression. */
       /* Process any tags declared within the expression (e.g., in casts). */
       skip_embedded_declarations();
@@ -15573,7 +15570,7 @@ and the output of the type name.
       }  /* if */
       break;
     case dik_expression:
-    case dik_call_returning_class_via_cctor:
+    case dik_class_result_via_ctor:
       /* Expression. */
       if (is_var_init && paren_form &&
           expr_may_look_like_type(dip->variant.expression)) {

@@ -12703,8 +12703,8 @@ detached from the IL tree; otherwise it is set to FALSE.
       set_node_operator(expr, (an_expr_operator_kind)eok_comma,
                         call_expr->next->type, /*is_lvalue=*/FALSE, call_expr);
     } else {
-      /* This only happens under a dik_call_returning_class_via_cctor
-         dynamic initialization entry. */
+      /* This only happens under a dik_class_result_via_ctor dynamic
+         initialization entry. */
       temp_node = make_address_of_init_entity_node(ipdp,
                                                    /*using_as_dest=*/FALSE);
       temp_node = add_cast_if_necessary(temp_node,

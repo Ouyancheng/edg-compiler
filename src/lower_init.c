@@ -8884,7 +8884,7 @@ C99 mode for the same reason.
        copied already if they're inside a higher-level initialization
        that has already been copied. */
     if (dip->kind == (a_dynamic_init_kind)dik_expression ||
-        dip->kind == (a_dynamic_init_kind)dik_call_returning_class_via_cctor) {
+        dip->kind == (a_dynamic_init_kind)dik_class_result_via_ctor) {
       an_expr_node_ptr expr = dip->variant.expression;
       if (in_file_scope(expr)) {
         dip->variant.expression = copy_expr_to_function_memory_region(expr);
@@ -9085,10 +9085,10 @@ do_assignment:;
          source of the assignment is only partially initialized). */
       entity_is_wholly_initialized = TRUE;
       break;
-    case dik_call_returning_class_via_cctor:
+    case dik_class_result_via_ctor:
       /* Initialize the entry by either calling a routine that returns its
-         result via a copy constructor or invoking a GNU statement expression
-         whose final statement "returns" the result via a copy constructor. */
+         result via a constructor or invoking a GNU statement expression whose
+         final statement "returns" the result via a constructor. */
 #if GNU_EXTENSIONS_ALLOWED
       if (dip->variant.expression->kind == (an_expr_node_kind)enk_statement) {
         /* The final statement of the GNU statement expression will initialize
@@ -11731,8 +11731,8 @@ Generate code for a stmk_init (dynamic initialization) statement.
       break;
     case dik_expression:
       break;
-    case dik_call_returning_class_via_cctor:
-      /* Initialization from class returned via copy constructor. */
+    case dik_class_result_via_ctor:
+      /* Initialization from class returned via constructor. */
       non_C_case = TRUE;
       break;
     case dik_constructor:

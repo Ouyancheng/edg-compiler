@@ -4651,7 +4651,7 @@ object or a prvalue that is a pointer (or C++/CLI handle) to an object.
                       pointer_con_complete_object_type(init->variant.constant);
           } else if (init->kind == (a_dynamic_init_kind)dik_expression ||
                      init->kind == 
-                     (a_dynamic_init_kind)dik_call_returning_class_via_cctor) {
+                              (a_dynamic_init_kind)dik_class_result_via_ctor) {
             traverse_expr(init->variant.expression, tblock);
           }  /* if */
           suppress_subtree_walk = TRUE;

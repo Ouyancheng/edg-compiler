@@ -4765,7 +4765,7 @@ top_of_routine:
       args = NULL;
       break;
     case dik_expression:
-    case dik_call_returning_class_via_cctor:
+    case dik_class_result_via_ctor:
       /* The single expression is the argument. */
       args = dip->variant.expression;
       break;
@@ -10913,8 +10913,7 @@ returning a class by value).
         /* This is probably a base-class cast on top of another
            temp-init. */
         revertible = TRUE;
-      } else if (dip->kind ==
-                     (a_dynamic_init_kind)dik_call_returning_class_via_cctor) {
+      } else if (dip->kind == (a_dynamic_init_kind)dik_class_result_via_ctor) {
         /* A function call (or statement expression) returning a class rvalue
            can be turned back into an lvalue. */
         revertible = TRUE;
@@ -15592,7 +15591,7 @@ error cases.
                                            /*is_explicit_cast=*/FALSE,
                                            /*suppress_abstract_test=*/TRUE,
                                            (a_dynamic_init_kind)
-                                            dik_call_returning_class_via_cctor,
+                                                    dik_class_result_via_ctor,
                                            err_pos,
                                            &dip);
     dip->variant.expression = call_node;

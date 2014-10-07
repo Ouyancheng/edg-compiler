@@ -2768,7 +2768,7 @@ do_set_proper_definition_needed_flag:
             walk_ptr(ptr->variant.constant, a_constant_ptr, iek_constant);
             break;
           case dik_expression:
-          case dik_call_returning_class_via_cctor:
+          case dik_class_result_via_ctor:
             walk_ptr(ptr->variant.expression, an_expr_node_ptr, iek_expr_node);
             break;
           case dik_constructor:

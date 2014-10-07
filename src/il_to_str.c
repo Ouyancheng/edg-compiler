@@ -4678,8 +4678,8 @@ for debug output).
     case dik_nonconstant_aggregate:
       form_constant(dip->variant.constant, /*need_parens=*/TRUE, octl);
       break;
-    case dik_call_returning_class_via_cctor:
-      octl->output_str("call returning class: ", octl);
+    case dik_class_result_via_ctor:
+      octl->output_str("class result via ctor: ", octl);
       /*FALLTHROUGH*/
     case dik_expression:
       form_expression(dip->variant.expression, octl);

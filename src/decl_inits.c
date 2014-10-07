@@ -3741,7 +3741,7 @@ position is available.
     } else if (is->init_dip != NULL) {
       if (is->init_dip->kind == (a_dynamic_init_kind)dik_expression ||
           is->init_dip->kind ==
-                     (a_dynamic_init_kind)dik_call_returning_class_via_cctor) {
+                              (a_dynamic_init_kind)dik_class_result_via_ctor) {
         is->init_dip->variant.expression->is_pack_expansion = TRUE;
       } else if (is->init_dip->kind == (a_dynamic_init_kind)dik_constant ||
                  is->init_dip->kind ==
@@ -6654,7 +6654,7 @@ constructor, the scanned type is stored for later use.
             check_assertion_or_expect_error(ctor->is_prototype_instantiation);
           }  /* if */
         } else if (dip->kind ==
-                    (a_dynamic_init_kind)dik_call_returning_class_via_cctor) {
+                             (a_dynamic_init_kind)dik_class_result_via_ctor) {
           /* This is fairly unusual.  For example:
                  extern struct X x;
                  struct X {

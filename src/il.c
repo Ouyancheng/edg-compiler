@@ -2139,17 +2139,15 @@ Dump a string identifying a dynamic-init kind, for debug purposes.
   char *s;
 
   switch (kind) {
-    case dik_none:          s = "dik_none";			      break;
-    case dik_zero:          s = "dik_zero";       		      break;
-    case dik_constant:      s = "dik_constant";   		      break;
-    case dik_expression:    s = "dik_expression"; 		      break;
-    case dik_call_returning_class_via_cctor:
-                            s = "dik_call_returning_class_via_cctor"; break;
-    case dik_constructor:   s = "dik_constructor";                    break;
-    case dik_nonconstant_aggregate:
-                            s = "dik_nonconstant_aggregate";          break;
-    case dik_bitwise_copy:  s = "dik_bitwise_copy";                   break;
-    default:                s = "**BAD DYNAMIC INIT KIND";
+    case dik_none:                  s = "dik_none";                   break;
+    case dik_zero:                  s = "dik_zero";                   break;
+    case dik_constant:              s = "dik_constant";               break;
+    case dik_expression:            s = "dik_expression";             break;
+    case dik_class_result_via_ctor: s = "dik_class_result_via_ctor";  break;
+    case dik_constructor:           s = "dik_constructor";            break;
+    case dik_nonconstant_aggregate: s = "dik_nonconstant_aggregate";  break;
+    case dik_bitwise_copy:          s = "dik_bitwise_copy";           break;
+    default:                        s = "**BAD DYNAMIC INIT KIND";
   }  /* switch */
   fputs(s, f_debug);
 }  /* db_dynamic_init_kind */
@@ -2261,8 +2259,8 @@ Dump a dynamic initializer entry for debug purposes.
       fputs("expression:\n", f_debug);
       db_expr_node(dip->variant.expression, level);
       goto destructor_on_next_line;
-    case dik_call_returning_class_via_cctor:
-      fputs("call returning class via cctor:\n", f_debug);
+    case dik_class_result_via_ctor:
+      fputs("result class via ctor:\n", f_debug);
       db_expr_node(dip->variant.expression, level);
       goto destructor_on_next_line;
     case dik_nonconstant_aggregate:
@@ -6277,7 +6275,7 @@ are done.
                                options);
         break;
       case dik_expression:
-      case dik_call_returning_class_via_cctor:
+      case dik_class_result_via_ctor:
         eq = compare_expressions(dip1->variant.expression,
                                  dip2->variant.expression,
                                  options);
@@ -7302,7 +7300,7 @@ at the file scope (it would contain a pointer down into a function scope).
             has_nfs_ref = has_non_file_scope_ref(dip->variant.constant);
             break;
           case dik_expression:
-          case dik_call_returning_class_via_cctor:
+          case dik_class_result_via_ctor:
             has_nfs_ref = !in_file_scope(dip->variant.expression);
             break;
           case dik_constructor:
@@ -12825,7 +12823,7 @@ options for the copy.  cblock is a control block for the copy.
     case dik_zero:
       break;
     case dik_expression:
-    case dik_call_returning_class_via_cctor:
+    case dik_class_result_via_ctor:
       new_dip->variant.expression = i_copy_expr_tree(dip->variant.expression,
                                                      options, cblock);
       break;
@@ -24265,8 +24263,7 @@ and destruction lists.  Also remove any nested object lifetimes.
     /* Remove any lifetimes on aggregate member initializers. */
     remove_constant_initializer_dynamic_initializations(dip->variant.constant);
   } else if (dip->kind == (a_dynamic_init_kind)dik_expression ||
-             dip->kind ==
-                     (a_dynamic_init_kind)dik_call_returning_class_via_cctor) {
+             dip->kind == (a_dynamic_init_kind)dik_class_result_via_ctor) {
     /* Scan the sub-expression in case there's an initialization of a
        temporary whose lifetime was extended to the lifetime of the
        surrounding context. */

@@ -12328,7 +12328,7 @@ func_call_expr.)  Issue diagnostics if needed.
                        return_type, /*is_lvalue=*/FALSE,
                        /*is_explicit_cast=*/FALSE,
                        /*suppress_abstract_test=*/TRUE,
-                       (a_dynamic_init_kind)dik_call_returning_class_via_cctor,
+                       (a_dynamic_init_kind)dik_class_result_via_ctor,
                        diag_pos, &dip);
             dip->variant.expression = call_node;
           }  /* if */
@@ -22204,7 +22204,7 @@ already been consumed.
           expr_type = parent_class_of(ctor);
         } else {
           check_assertion(dip->kind == (a_dynamic_init_kind)
-                                          dik_call_returning_class_via_cctor);
+                                                   dik_class_result_via_ctor);
           expr_type = dip->variant.expression->type;
         }  /* if */
       }  /* if */
@@ -22238,7 +22238,7 @@ already been consumed.
                                           /*is_explicit_cast=*/FALSE,
                                           /*suppress_abstract_test=*/TRUE,
                                           (a_dynamic_init_kind)
-                                            dik_call_returning_class_via_cctor,
+                                                    dik_class_result_via_ctor,
                                           &left_brace_position,
                                           &dip);
         dip->variant.expression = expr;

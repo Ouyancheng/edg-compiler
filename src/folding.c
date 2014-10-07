@@ -9080,7 +9080,7 @@ evaluation.
     case dik_zero:
       folded = make_value_initialized_constant(dest_type, result_con);
       break;
-    case dik_call_returning_class_via_cctor:
+    case dik_class_result_via_ctor:
     case dik_bitwise_copy:
     default:
       /* These cases don't fold. */

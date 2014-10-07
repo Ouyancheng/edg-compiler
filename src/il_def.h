@@ -3232,9 +3232,13 @@ enum a_dynamic_init_kind_tag {
   dik_call_returning_class_via_cctor,
 			/* Initial value of a simple object is established by
 			   a call of a routine that returns a class object
-			   via a copy constructor.  C++ only.  Also used for
-			   GNU C++ statement expressions that "return" such
-			   class objects. */
+			   via a constructor, or by the evaluation of a GNU
+			   statement expression that results in a class object
+			   produced via a constructor. */
+  dik_call_returning_class_via_cctor = dik_class_result_via_ctor,
+/*lint -esym(769,a_dynamic_init_kind_tag::dik_call_returning_class_via_cctor)*/
+			/* Synonym for dik_class_result_via_ctor (for backward
+			   compatibility purposes). */
   dik_constructor,	/* Initial value of a simple object is established by
 			   a constructor call.  C++ only. */
   dik_nonconstant_aggregate,
@@ -3492,13 +3496,13 @@ typedef struct a_dynamic_init {
                            entries on its linked list are ck_dynamic_init
                            constants. */
     /* When kind == dik_expression or
-       kind == dik_call_returning_class_via_cctor: */
+       kind == dik_class_result_via_ctor: */
     an_expr_node_ptr
 		expression;
 			/* The expression that gives the initial value
-			   (dik_expression), or the call that returns the
-			   initial value via a copy constructor
-			   (dik_call_returning_class_via_cctor).  See the
+			   (dik_expression), or the call or GNU statement
+			   expression that returns the initial value via a
+			   constructor (dik_class_result_via_ctor).  See the
 			   note on is_optimized_class_rvalue_question_mark
 			   regarding one special case of dik_expression. */
     /* When kind == dik_constructor: */
@@ -16808,9 +16812,9 @@ typedef struct a_statement {
 			/* For a GNU statement expression that produces a value
 			   by calling a copy constructor, this points to a
 			   dynamic initialization entry that initializes the
-			   result value (dik_call_returning_class_via_cctor or
-			   dik_constructor).  NULL otherwise.  When this is
-			   non-NULL (C++ only), expr is NULL and vice versa. */
+			   result value (dik_class_result_via_ctor or
+			   dik_constructor).  NULL otherwise.  This is non-NULL
+			   (C++ only) when expr is NULL, and vice versa. */
     } stmt_expr_result;
 #endif /* GNU_EXTENSIONS_ALLOWED */
   } variant;

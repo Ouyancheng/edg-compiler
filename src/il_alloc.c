@@ -2078,7 +2078,7 @@ the associated variant fields to default values.
       dip->variant.constant = NULL;
       break;
     case dik_expression:
-    case dik_call_returning_class_via_cctor:
+    case dik_class_result_via_ctor:
       dip->variant.expression = NULL;
       break;
     case dik_constructor:

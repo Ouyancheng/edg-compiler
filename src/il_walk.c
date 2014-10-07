@@ -2845,7 +2845,7 @@ routines as specified in the control block.
       }  /* if */
       break;
     case dik_expression:
-    case dik_call_returning_class_via_cctor:
+    case dik_class_result_via_ctor:
       traverse_expr(dip->variant.expression, tblock);
       break;
     case dik_constructor:
