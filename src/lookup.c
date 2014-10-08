@@ -2624,7 +2624,6 @@ that do normal id lookup processing.
              kind == (a_scope_kind)sck_namespace_reactivation ||
              kind == (a_scope_kind)sck_file) &&
             ssep->using_directives_that_apply_here != NULL &&
-            !lookup_state->is_linkage_lookup &&
             (!lookup_state->is_friend_lookup ||
              friend_class_decl_can_find_using_dir)) {
           sym = do_using_directive_lookup(ssep, sym, locator, lookup_state);

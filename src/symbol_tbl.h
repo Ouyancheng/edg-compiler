@@ -4342,6 +4342,10 @@ extern
 a_boolean is_symbol_from_inline_namespace_of_scope(a_symbol_ptr	sym,
 						   a_scope_ptr	scope);
 
+extern a_boolean is_symbol_from_inline_namespace_of_parent(
+					a_symbol_ptr	ns_sym,
+					a_symbol_ptr	sym);
+
 extern a_boolean is_symbol_from_inline_namespace(a_symbol_ptr	sym);
 
 extern a_symbol_ptr enter_synthesized_projection_symbol(

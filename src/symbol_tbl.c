@@ -5742,6 +5742,33 @@ Return TRUE if the parent namespace of sym is an inline namespace of scope.
 }  /* is_symbol_from_inline_namespace_of_scope */
 
 
+a_boolean is_symbol_from_inline_namespace_of_parent(
+					a_symbol_ptr	ns_sym,
+					a_symbol_ptr	sym)
+/*
+Return TRUE if the sym is a member of an inline namespace of the parent
+namespace of sym.
+*/
+{
+  a_boolean		result = FALSE;
+  
+  if (symbol_is(sym, sk_namespace_projection)) {
+    a_symbol_ptr	fund_sym = fundamental_symbol_of(sym);
+    a_namespace_ptr	parent_nsp = ns_sym->parent.namespace_ptr;
+    a_scope_ptr		parent_scope;
+    if (parent_nsp != NULL) {
+      parent_scope = parent_nsp->variant.assoc_scope;
+    } else {
+      parent_scope = scope_stack[DEPTH_OF_FILE_SCOPE].il_scope;
+    }  /* if */
+    if (is_symbol_from_inline_namespace_of_scope(fund_sym, parent_scope)) {
+      result = TRUE;
+    }  /* if */
+  }  /* if */
+  return result;
+}  /* is_symbol_from_inline_namespace_of_parent */
+
+
 a_boolean is_symbol_from_inline_namespace(a_symbol_ptr	sym)
 /*
 Determine whether sym is from a namespace that has been made visible by
@@ -5816,9 +5843,10 @@ the options being used for the lookup.
   a_scope_pointers_block_ptr	pointers_block;
   a_boolean			can_be_reused;
   a_scope_depth			scope_depth;
-
+  a_scope_stack_entry_ptr	ssep;
 
   scope_depth = scope_depth_for_synth_namespace_symbol();
+  ssep = scope_stack_entry_for(scope_depth);
   sym_ptr = make_namespace_projection_symbol(fund_sym,
                                              &location->source_position,
                                              scope_depth);
@@ -5836,7 +5864,7 @@ the options being used for the lookup.
   if (qualified_lookup) {
     pointers_block = pointers_block_for_namespace(qualifier_namespace);
   } else {
-    pointers_block = assoc_pointers_block_of(&scope_stack[scope_depth]);
+    pointers_block = assoc_pointers_block_of(ssep);
   }  /* if */
   sym_ptr->next_in_scope = pointers_block->synth_namespace_projection_symbols;
   if (pointers_block->synth_namespace_projection_symbols != NULL) {
@@ -5858,6 +5886,12 @@ the options being used for the lookup.
   if (qualified_lookup && qualifier_namespace != NULL) {
     set_namespace_membership(sym_ptr, (a_source_correspondence*)NULL,
                              qualifier_namespace);
+  } else if (scope_is(ssep, sck_namespace) ||
+             scope_is(ssep, sck_namespace_extension)) {
+    /* For an unqualified lookup, if the symbol is being created in a namespace
+       scope, set the namespace parent information. */
+    set_namespace_membership(sym_ptr, (a_source_correspondence*)NULL,
+                             ssep->assoc_namespace);
   }  /* if */
   if (qualified_lookup) {
     /* Set the decl_scope of the symbol to the scope number associated

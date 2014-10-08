@@ -1,5 +1,21 @@
 Version 4.10
 
+10/8//14 [EDGcpfe/15353,EDGcpfe/15508]
+Error on specialization of inline namespace member
+
+A spurious error was issued if an instance of a template from an inline
+namespace was specialized in the scope containing the inline namespace.
+Now fixed.
+
+  namespace std {
+    inline namespace M {
+      template < class T> void swap (T, T);
+    }
+    template <class T> void swap ();
+    template <> void swap (int, int);
+  }
+
+
 10/07/14 [EDGcpfe/14178,EDGcpfe/14813,EDGcpfe/15078,EDGcpfe/15134,
           EDGcpfe/15144,EDGcpfe/15301]
 GNU statement expressions with class type results (IL CHANGE)

@@ -23309,9 +23309,11 @@ otherwise, set it to FALSE.
   a_boolean			any_templates = FALSE;
   a_partial_order_candidate_ptr	candidates_list = NULL;
   a_symbol_ptr			member_sym = NULL;
+  a_boolean			from_using_dir;
 
   orig_sym = sym;
   *is_new_template_instance = FALSE;
+  from_using_dir = sym->synthesized_namespace_projection;
   if (sym->is_class_member && !explicit_arg_list_present) {
     /* A member function symbol, find the member function that matches
        the specified type.  This is used to find a normal member function
@@ -23341,6 +23343,12 @@ otherwise, set it to FALSE.
          that matches the type we are looking for. */
       a_symbol_ptr	fund_sym = fundamental_symbol_of(sym);
       if (fund_sym->kind != (a_symbol_kind)sk_function_template) continue;
+      if (from_using_dir &&
+          !is_symbol_from_inline_namespace_of_parent(orig_sym, sym)) {
+        /* Only consider names from using-directives if the symbol is from
+           an inline namespace. */
+        continue;
+      }  /* if */
       if (!any_templates && nesting_depth != NO_NESTING_DEPTH) {
         /* When we encounter the first template, if a nesting depth was
            supplied, make sure this matches the supplied depth.  A
@@ -23791,6 +23799,7 @@ that follows.
   } else {
     /* Assume the template specialization applies to the declarator, which
        should follow. */
+    a_boolean	is_instance = FALSE;
 #if GENERATE_SOURCE_SEQUENCE_LISTS
     /* We may have to temporarily disable source sequence entries. */
     a_boolean  saved_sses_disallowed = source_sequence_entries_disallowed;
@@ -23865,7 +23874,6 @@ that follows.
         a_namespace_ptr	parent_namespace = qualifier_namespace_ptr(locator);
         a_symbol_ptr	fund_sym = fundamental_symbol_of(sym);
         if (sym->synthesized_namespace_projection &&
-            locator.is_qualified_name &&
             (sym->kind == (a_symbol_kind)sk_overloaded_function ||
               is_symbol_from_inline_namespace_of_scope(
                            fund_sym, parent_namespace->variant.assoc_scope))) {
@@ -23939,6 +23947,7 @@ that follows.
           sym = NULL;
         } else {
           /* Okay. */
+          is_instance = TRUE;
         }  /* if */
       } else if (sym->kind == (a_symbol_kind)sk_static_data_member &&
                  sym->variant.static_data_member.instance_ptr != NULL) {
@@ -24011,6 +24020,22 @@ that follows.
                             &locator.source_position, sym);
         }  /* if */
         if (err) sym = NULL;
+      }  /* if */
+      if (is_instance && sym != NULL &&
+          sym->synthesized_namespace_projection) {
+        /* Specifying a name made visible by a using-declaration or
+           using-directive is not allowed unless it is an inline namespace
+           member. */
+        a_namespace_ptr	parent_namespace = qualifier_namespace_ptr(locator);
+        a_symbol_ptr	fund_sym = fundamental_symbol_of(sym);
+        if (is_symbol_from_inline_namespace_of_scope(
+                           fund_sym, parent_namespace->variant.assoc_scope)) {
+          /* This is a symbol made visible by an inline namespace. */
+        } else {
+          /* Issue an error that the namespace has no direct member of the
+             specified name. */
+          namespace_has_no_actual_member_error(&locator);
+        }  /* if */
       }  /* if */
     }  /* if */
     vp = NULL;
