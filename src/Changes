@@ -28,15 +28,6 @@ certain class types, but also to GSEs returning such types (the synonym
 "dik_call_returning_class_via_cctor" is maintained for backward compatibility).
 
 
-1/20/14  [EDGcpfe/7317,EDGcpfe/9032,EDGcpfe/9156,EDGcpfe/9684,EDGcpfe/10566,
-          EDGcpfe/13920,EDGcpfe/13930]
-
-Version
-A remaining limitation is that the result of a GNU statement expression cannot
-be of a class type requiring nontrivial copy construction or nontrivial
-destruction.  Such cases are now more consistently diagnosed; previously, they
-
-
 10/7/14  [EDGcpfe/15521]
 Removal of unneeded destructors with LOWER_VARIABLE_LENGTH_ARRAYS
 

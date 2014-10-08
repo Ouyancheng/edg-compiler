@@ -14921,7 +14921,7 @@ expression).  This routine is used in lowering both C and C++.
   check_assertion(block->kind == (a_statement_kind)stmk_block);
   last = last_statement_in_block(block);
   if (last != NULL && last->kind == (a_statement_kind)stmk_stmt_expr_result) {
-    /* The GNU statement returns a value. */
+    /* The GNU statement expression produces a value. */
     result_stmt = last;
   }  /* if */
 #if MINIMAL_INLINING

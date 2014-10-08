@@ -12325,11 +12325,11 @@ func_call_expr.)  Issue diagnostics if needed.
             a_dynamic_init_ptr  dip;
             an_expr_node_ptr    call_node = copy_node(expr);
             *expr = *create_expr_temporary(
-                       return_type, /*is_lvalue=*/FALSE,
-                       /*is_explicit_cast=*/FALSE,
-                       /*suppress_abstract_test=*/TRUE,
-                       (a_dynamic_init_kind)dik_class_result_via_ctor,
-                       diag_pos, &dip);
+                               return_type, /*is_lvalue=*/FALSE,
+                               /*is_explicit_cast=*/FALSE,
+                               /*suppress_abstract_test=*/TRUE,
+                               (a_dynamic_init_kind)dik_class_result_via_ctor,
+                               diag_pos, &dip);
             dip->variant.expression = call_node;
           }  /* if */
         }  /* if */

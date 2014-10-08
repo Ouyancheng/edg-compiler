@@ -616,7 +616,7 @@ EXTERN a_variable_ptr
 EXTERN a_variable_ptr
                 gse_return_value_pointer_variable;
                         /* Somewhat similar to return_value_pointer_variable
-                           above, is set to point to the variable that is
+                           above, this is set to point to the variable that is
                            being initialized via copy construction from the
                            result of a GNU statement expression. For example:
                                A a = ({ f(); A(); });
