@@ -1,5 +1,21 @@
 Version 4.10
 
+10/9/14  [EDGcpfe/15541]
+Abort on typeref during cross-referencing output
+
+When outputting cross-reference entries, the front end sometimes aborted with
+an internal error in record_symbol_reference_full when dealing with a deduced
+return type used as a template argument type.  For example:
+
+  auto f() { return 42; }
+  template<class T> void g(T) {}
+  int main() {
+    g(f());  // Previously triggered an internal error in some cases.
+  }          // Now okay.
+
+This is now fixed.
+
+
 10/8//14 [EDGcpfe/15353,EDGcpfe/15508]
 Error on specialization of inline namespace member
 

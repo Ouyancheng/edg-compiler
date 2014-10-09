@@ -2134,12 +2134,13 @@ IL entry in place of whatever is pointed to by the symbol.
           /* We are in the midst of a template instantiation. */
           for(;;) {
             if (tp->kind == (a_type_kind)tk_typeref) {
-              if (typeref_is_qualified(tp) ||
-                  typeref_is_type_operator(tp)) {
+              if (symbol_for(tp) == NULL) {
+                /* Not a "named typeref" (e.g., a type qualifier or a decltype
+                   placeholder): Look at the underlying type. */
                 tp = tp->variant.typeref.type;
               } else {
-                sym_for_xref = (a_symbol_ptr)tp->source_corresp.assoc_info;
-                check_assertion(sym_for_xref != NULL);
+                /* A named typeref: Use that for cross-referencing purposes. */
+                sym_for_xref = symbol_for(tp);
                 kind_for_xref |= SRK_IMPLICIT_TEMPLATE_ARG;
                 break;
               }  /* if */
