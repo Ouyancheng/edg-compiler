@@ -2298,7 +2298,7 @@ by a command line option.
     }  /* if */
     if (microsoft_version >= 1700 || cppcli_enabled) {
       range_based_for_enabled = TRUE;
-      if (microsoft_version >= 2000) {
+      if (microsoft_version >= 1900) {
         terse_range_based_for_enabled = TRUE;
       }  /* if */
     }  /* if */
