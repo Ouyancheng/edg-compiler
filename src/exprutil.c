@@ -18170,6 +18170,9 @@ it might produce an error).
                   node->is_lvalue = node->is_xvalue = FALSE;
                   node->type = prvalue_node_type;
                   processed = TRUE;
+                } else {
+                  /* The expression cannot be folded. */
+                  con_expr_value = NULL;
                 }  /* if */
               }  /* if */
             }  /* if */
