@@ -15447,6 +15447,8 @@ is non-NULL only if this is called for a function declaration.
 {
   if (!(state->do_flags & (DO_IS_CONSTRUCTOR | DO_IS_DESTRUCTOR |
                            DO_IS_FINALIZER)) &&
+      !locator->is_conversion_name &&
+      !state->range_based_for &&
 #if GNU_EXTENSIONS_ALLOWED
       /* "typedef foo = 3;" is an old GNU C extension, not a use of implicit
          int (this extension is not present in the GNU C++ compiler, nor in
@@ -15454,7 +15456,7 @@ is non-NULL only if this is called for a function declaration.
       !(gcc_mode && gnu_version < 30100 && curr_token == tok_assign && 
         state->storage_class == (a_storage_class)sc_typedef) &&
 #endif /* GNU_EXTENSIONS_ALLOWED */
-      !locator->is_error && !locator->is_conversion_name) {
+      !locator->is_error) {
     a_boolean  is_main_func = (func_info != NULL &&
                                func_info->is_main_function);
     report_missing_type_specifier(&state->declarator_start_pos, state->type,
@@ -16946,10 +16948,13 @@ processing should proceed after the call.
     }  /* if */
   } else if (!is_decl_start(IDS_REAL_DECLARATOR_ALLOWED)) {
     /* Consider potential error cases. */
-    if (state->function_definition_allowed && is_declarator_start()) {
+    if ((state->function_definition_allowed || state->range_based_for) &&
+        is_declarator_start()) {
       /* At file or namespace scope, a declarator with no decl-specifiers,
-         apparently.  In C mode this could be a legal function definition.
-         In C++ mode a diagnostic will be issued (usually just a warning). */
+         apparently.  In some C++ modes, this could be the start of a
+         "range-based" for declaration (e.g., the x in "for (x: v) ...").
+         In C mode this could be a legal function definition.  Otherwise,
+         in C++ mode a diagnostic will be issued (usually just a warning). */
     } else {
       /* Look for some cases that are obviously not the start of a declaration,
          and give a more specific "Expected a declaration" message. */
@@ -17373,6 +17378,41 @@ which are diagnosed elsewhere).
 }  /* check_use_of_auto_type */
 
 
+static a_boolean is_terse_range_based_for_declaration(void)
+/*
+The current token is the token following "for (" in a range-based for
+statement; .  Return TRUE if the expected declaration that follows has the
+"terse" form omitting decl-specifiers.  I.e., return TRUE if it has the form
+	<identifier> <opt-attributes> :
+*/
+{
+  a_boolean  result = FALSE;
+
+  if (curr_token == tok_identifier) {
+    a_token_cache            cache;
+    a_token_sequence_number  start_tsn = curr_token_sequence_number;
+    begin_caching_fetched_tokens(/*include_curr_token=*/TRUE);
+    (void)get_token();
+    if (curr_token == tok_lbracket) {
+      /* Skip attributes. */
+      flush_until_matching_token_full(/*limit_flush=*/FALSE);
+      (void)get_token();
+    }  /* if */
+    result = curr_token == tok_colon;
+    end_caching_fetched_tokens();
+    clear_token_cache(&cache, /*reusable=*/FALSE);
+    /* Get the tokens that were fetched by this routine from the cache
+       that has been accumulated and rescan them. */
+    copy_tokens_from_cache(curr_lexical_state_cache(), start_tsn,
+                           last_token_sequence_number_of_token,
+                           /*include_last_token=*/TRUE, &cache);
+    f_rescan_cached_tokens(
+               &cache, /*discard_curr_token=*/curr_token != tok_end_of_source);
+  }  /* if */
+  return result;
+}  /* is_terse_range_based_for_declaration */
+
+
 void scan_nonmember_declaration(a_decl_parse_state  *dps,
                                 a_source_range      *linkage_spec_range_ptr)
 /*
@@ -17526,12 +17566,28 @@ parameters are scanned by scan_a_template_parameter_declaration.
   }  /* switch */
   add_stop_token(tok_semicolon);
   dps->need_semicolon_remove_stop_token = TRUE;
-  /* Set the flags for calling decl_specifiers. */
-  dsi_flags = get_decl_specifiers_flags(dps);
-  /* Scan the initial declaration specifiers (including storage class,
-     type specifiers, and type qualifiers).  For a function definition,
-     the specifiers can be omitted entirely. */
-  decl_specifiers(dsi_flags, dps, &decl_pos_block);
+  if (dps->range_based_for && terse_range_based_for_enabled &&
+      curr_token == tok_identifier &&
+      is_terse_range_based_for_declaration()) {
+    /* A C++17-style "terse" range-based for declaration.  I.e., something
+       like the "x: v" in "for (x: v) { f(x); }". */
+    if (dps->prefix_attributes != NULL) {
+      pos_error(ec_attribute_not_allowed, &dps->prefix_attributes->position);
+    }  /* if */
+    dps->auto_type = make_auto_type(&pos_curr_token,
+                                    /*is_decltype_auto=*/FALSE);
+    dps->specifiers_type = make_rvalue_reference_type(dps->auto_type);
+    dps->type = dps->specifiers_type;
+    dps->declared_type = dps->type;
+    dps->auto_type_specifier_seen = TRUE;
+  } else {
+    /* Set the flags for calling decl_specifiers. */
+    dsi_flags = get_decl_specifiers_flags(dps);
+    /* Scan the initial declaration specifiers (including storage class,
+       type specifiers, and type qualifiers).  For a function definition,
+       the specifiers can be omitted entirely. */
+    decl_specifiers(dsi_flags, dps, &decl_pos_block);
+  }  /* if */
   switch (prep_for_declarator(dps, &di_flags)) {
     case eoda_not_at_end:        break;
     case eoda_skip_final_token:  goto advance_past_final_token;

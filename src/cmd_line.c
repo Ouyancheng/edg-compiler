@@ -2298,6 +2298,9 @@ by a command line option.
     }  /* if */
     if (microsoft_version >= 1700 || cppcli_enabled) {
       range_based_for_enabled = TRUE;
+      if (microsoft_version >= 2000) {
+        terse_range_based_for_enabled = TRUE;
+      }  /* if */
     }  /* if */
     /* The Microsoft headers put va_list in the global namespace but create
        a using-declaration in namespace std.  Do the same thing unless
@@ -10793,6 +10796,7 @@ variables declared in cmd_line.h.
   packing_applies_to_base_classes =
                      TARG_USER_CONTROL_OF_STRUCT_PACKING_AFFECTS_BASE_CLASSES;
   range_based_for_enabled = DEFAULT_RANGE_BASED_FOR_ENABLED;
+  terse_range_based_for_enabled = FALSE;
   carriage_return_is_line_terminator = FALSE;
   warning_on_lossy_conversion = DEFAULT_WARNING_ON_LOSSY_CONVERSION;
   gcc_const_variables_allowed = DEFAULT_GCC_CONST_VARIABLES_ALLOWED;
