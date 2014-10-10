@@ -5745,7 +5745,7 @@ Return TRUE if the parent namespace of sym is an inline namespace of scope.
 a_boolean is_symbol_from_inline_namespace_of_parent(a_symbol_ptr	ns_sym,
 						    a_symbol_ptr	sym)
 /*
-Return TRUE if the sym is a member of an inline namespace of the parent
+Return TRUE if sym is a member of an inline namespace of the parent
 namespace of ns_sym or is an immediate member of that namespace.  If sym
 is not a namespace projection symbol, also return TRUE.
 */
