@@ -10872,8 +10872,21 @@ we rewrite it as an lvalue.
   if (expr != NULL) {
     /* Attempt to rewrite the underlying expression "expr". */
     an_expr_node_ptr rewritten_expr;
-    rewritten_expr = conv_nonreal_member_constant_expr_to_lvalue(expr,
-                                                                 &is_function);
+    if (!expr->is_lvalue) {
+      rewritten_expr =
+               conv_nonreal_member_constant_expr_to_lvalue(expr, &is_function);
+    } else {
+      /* In some modes (Microsoft mode in particular), nonreal prvalue operands
+         may have an underlying lvalue expression.  For example:
+             template<typename T> struct A {};
+             template<typename T, A<typename T::N> const &R> struct B {
+               typedef B<T, R> thistype;
+             };
+             template<class T, A<typename T::N> const &R> struct D: B<T, R> {};
+         Here, during a nonreal instantiation of B<T, R>, the bound R in the
+         typedef has an underlying lvalue expression (eok_ref_indirect). */
+      rewritten_expr = expr;
+    }  /* if */
     if (rewritten_expr != NULL) {
       /* A nonreal member constant was found and rewritten. */
       an_operand orig_operand;
