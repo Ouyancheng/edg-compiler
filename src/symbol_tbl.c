@@ -5742,26 +5742,30 @@ Return TRUE if the parent namespace of sym is an inline namespace of scope.
 }  /* is_symbol_from_inline_namespace_of_scope */
 
 
-a_boolean is_symbol_from_inline_namespace_of_parent(
-					a_symbol_ptr	ns_sym,
-					a_symbol_ptr	sym)
+a_boolean is_symbol_from_inline_namespace_of_parent(a_symbol_ptr	ns_sym,
+						    a_symbol_ptr	sym)
 /*
 Return TRUE if the sym is a member of an inline namespace of the parent
-namespace of sym.
+namespace of ns_sym or is an immediate member of that namespace.  If sym
+is not a namespace projection symbol, also return TRUE.
 */
 {
-  a_boolean		result = FALSE;
+  a_boolean		result = TRUE;
   
   if (symbol_is(sym, sk_namespace_projection)) {
     a_symbol_ptr	fund_sym = fundamental_symbol_of(sym);
     a_namespace_ptr	parent_nsp = ns_sym->parent.namespace_ptr;
     a_scope_ptr		parent_scope;
+    result = FALSE;
     if (parent_nsp != NULL) {
       parent_scope = parent_nsp->variant.assoc_scope;
     } else {
       parent_scope = scope_stack[DEPTH_OF_FILE_SCOPE].il_scope;
     }  /* if */
-    if (is_symbol_from_inline_namespace_of_scope(fund_sym, parent_scope)) {
+    if (fund_sym->decl_scope == ns_sym->decl_scope) {
+      result = TRUE;
+    } else if (is_symbol_from_inline_namespace_of_scope(fund_sym,
+                                                        parent_scope)) {
       result = TRUE;
     }  /* if */
   }  /* if */
