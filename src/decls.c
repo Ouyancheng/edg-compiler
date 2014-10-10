@@ -17566,6 +17566,8 @@ parameters are scanned by scan_a_template_parameter_declaration.
   }  /* switch */
   add_stop_token(tok_semicolon);
   dps->need_semicolon_remove_stop_token = TRUE;
+  /* Set the flags for calling decl_specifiers. */
+  dsi_flags = get_decl_specifiers_flags(dps);
   if (dps->range_based_for && terse_range_based_for_enabled &&
       curr_token == tok_identifier &&
       is_terse_range_based_for_declaration()) {
@@ -17581,8 +17583,6 @@ parameters are scanned by scan_a_template_parameter_declaration.
     dps->declared_type = dps->type;
     dps->auto_type_specifier_seen = TRUE;
   } else {
-    /* Set the flags for calling decl_specifiers. */
-    dsi_flags = get_decl_specifiers_flags(dps);
     /* Scan the initial declaration specifiers (including storage class,
        type specifiers, and type qualifiers).  For a function definition,
        the specifiers can be omitted entirely. */
