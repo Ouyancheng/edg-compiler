@@ -34,7 +34,7 @@ return type used as a template argument type.  For example:
 This is now fixed.
 
 
-10/8//14 [EDGcpfe/15353,EDGcpfe/15508]
+10/8/14  [EDGcpfe/15353,EDGcpfe/15508]
 Error on specialization of inline namespace member
 
 A spurious error was issued if an instance of a template from an inline
