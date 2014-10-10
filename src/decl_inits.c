@@ -4849,10 +4849,17 @@ memory).
 {
   an_init_state          *is = &dps->init_state;
   an_init_component_ptr  icp_tree;
+  an_object_lifetime_ptr
+                         saved_curr_object_lifetime = curr_object_lifetime;
 
   check_assertion(dps->is_init_capture && symbol_is(dps->sym, sk_field) &&
                   anything_cached(&dps->prescanned_initializer_cache) &&
                   scope_is(&scope_stack_top(), sck_class_struct_union));
+  /* The current scope is a class scope, and, consequently, the current object
+     lifetime is the global "static" lifetime.  However, the parent lifetime
+     for the initializer should be that of the expression in which the lambda
+     appeared.  Temporarily restore that lifetime. */
+  curr_object_lifetime = scope_stack_top().saved_curr_object_lifetime;
   icp_tree = fetch_init_component_from_initializer_cache(
                                           &dps->prescanned_initializer_cache);
   is->force_dynamic_init = TRUE;
@@ -4892,6 +4899,7 @@ memory).
   }  /* if */
   lcp->captured.initializer = is->init_dip;
   free_init_component_list(icp_tree);
+  curr_object_lifetime = saved_curr_object_lifetime;
 }  /* init_capture_initializer */
 
 
