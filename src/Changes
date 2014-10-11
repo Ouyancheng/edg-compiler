@@ -1,5 +1,21 @@
 Version 4.10
 
+10/11/14 [EDGcpfe/15547]
+Incorrect prototype instantiation routine entry in template entry
+
+The a_template entry for a member template of an instantiation of a class
+template contained an incorrect routine pointer.  It pointed to the
+routine entry from the prototype instantiation of the class instead of
+the routine entry from the real instantiation (i.e., in the example below,
+the a_template entry for A<int>::f pointed to the routine entry for A<T>::f
+instead of A<int>::f).  Now fixed.
+
+  template <class T> class A {
+    template<class X> X f() {return 0;}
+  };
+  A<int> a;
+
+
 10/9/14  [EDGcpfe/15538]
 Microsoft compatibility: Terse form of range-based "for" statement
 

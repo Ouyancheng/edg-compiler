@@ -20764,7 +20764,6 @@ set, and its source sequence entry, if any, has been put out.)
             proto_tssp = template_supplement_for_symbol(proto_sym);
             rout = tssp->variant.function.routine;
             check_assertion(proto_tssp != NULL);
-            rout = proto_tssp->variant.function.routine;
             if (proto_tssp != tssp) {
               /* This is an instance of a member template of a class template.
                  Record a pointer to the template entry from the prototype
