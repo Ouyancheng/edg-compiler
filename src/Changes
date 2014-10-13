@@ -1,5 +1,25 @@
 Version 4.10
 
+10/13/14 [EDGcpfe/15545]
+Spurious error on destructor call in prototype instantiation
+
+Version 4.9 introduced a bug causing the front end to issue a spurious
+ambiguity error on an explicit destructor invocation in a member template if
+the destructor being named is for a dependent base class.  For example:
+
+  template<class T, class X = T> struct B { ~B(); };
+  template<class T> struct D: B<T> {
+    void f() {
+      B<T>::~B();  // Spurious error in version 4.9 during the prototype
+    }              // instantiation of D<T>::f.
+  };
+
+
+
+This regression -- introduced by the changes for EDGcpfe/14127 (see the entry
+of 11/19/13) -- is now fixed.
+
+
 10/11/14 [EDGcpfe/15547]
 Incorrect prototype instantiation routine entry in template entry
 

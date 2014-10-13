@@ -14675,7 +14675,7 @@ the destructor or finalizer is part of a qualified name (e.g., "A::B::~B").
         if (base_sym != NULL) tp = type_symbol_type(base_sym);
         if (base_sym != NULL) type_sym = base_sym;
         /* Use the normal symbol if the base name lookup failed. */
-        if (normal_sym != NULL && !same_entities(normal_tp, tp)) {
+        if (normal_tp != NULL && !same_entities(normal_tp, tp)) {
           if (type_sym != NULL) {
             ambiguous = TRUE;
             if (ambiguous_sym == NULL) ambiguous_sym = normal_sym;
