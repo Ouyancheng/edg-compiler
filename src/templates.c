@@ -30884,9 +30884,11 @@ instantiation.
                           (kind != (a_pragma_kind)pk_do_not_instantiate),
                           (a_boolean)new_sym->variant.routine.ptr->is_inline);
 #if MICROSOFT_EXTENSIONS_ALLOWED || GNU_X86_ATTRIBUTES_ALLOWED
-        if (symbol_is(sym, sk_function_template) ||
-            (symbol_is(sym, sk_member_function) &&
-             sym->variant.routine.instance_ptr != NULL)) {
+        if (state.type->variant.routine.extra_info->calling_convention !=
+                                           (a_calling_convention)cc_default &&
+            (symbol_is(sym, sk_function_template) ||
+             (symbol_is(sym, sk_member_function) &&
+              sym->variant.routine.instance_ptr != NULL))) {
           /* find_matching_template_instance ignores calling conventions, but
              an explicit instantiation (unlike an explicit specialization)
              must match the calling convention of its template.  (Note:
