@@ -17381,7 +17381,7 @@ which are diagnosed elsewhere).
 static a_boolean is_terse_range_based_for_declaration(void)
 /*
 The current token is the token following "for (" in a range-based for
-statement; .  Return TRUE if the expected declaration that follows has the
+statement.  Return TRUE if the expected declaration that follows has the
 "terse" form omitting decl-specifiers.  I.e., return TRUE if it has the form
 	<identifier> <opt-attributes> :
 */
