@@ -1,5 +1,20 @@
 Version 4.10
 
+10/13/14 [EDGcpfe/15501]
+Spurious "unused" warnings on captured variables
+
+The front end previously failed to mark a variable captured by a lambda as
+"used".  This could result in spurious warnings.  For example:
+
+  struct S { int x; };
+  int f() {
+    S s = { 10 };  // Previously triggered a "set but never used" warning.
+    return [=]{ return s.x; }();
+  }
+
+This is now fixed.
+
+
 10/13/14 [EDGcpfe/15545]
 Spurious error on destructor call in prototype instantiation
 

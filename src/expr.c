@@ -30192,7 +30192,11 @@ fields of the closure object.  Return a pointer to the dynamic init entry.
       if (var != NULL) {
         /* Watch out for "this", which has no associated symbol. */
         a_symbol_ptr  var_sym = symbol_for(var);
-        if (var_sym != NULL) rep = ref_entry(var_sym, capture_pos);
+        if (var_sym != NULL) {
+          rep = ref_entry(var_sym, capture_pos);
+          rep->kind |= lcp->capture_by_reference ? SRK_ADDRESS_TAKEN
+                                                 : SRK_USE;
+        }  /* if */
       }  /* if */
       if (source_field == NULL) {
         /* Normal case. */
