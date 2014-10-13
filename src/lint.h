@@ -98,6 +98,7 @@ Included from basic_hdrs.h in every compilation.
 /*lint -esym(714,db_hide_by_sig_list)*/
 /*lint -esym(714,db_init_component)*/
 /*lint -esym(714,db_operand_ref_entries)*/
+/*lint -esym(714,db_statements)*/
 /*lint -esym(759,db_operand_ref_entries)*/
 /*lint -esym(765,db_operand_ref_entries)*/
 /*lint -esym(714,free_template_decl_info)*/
