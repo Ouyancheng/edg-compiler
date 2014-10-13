@@ -14953,11 +14953,21 @@ expression).  This routine is used in lowering both C and C++.
 #endif /* MINIMAL_INLINING */
   if (result_stmt != NULL) {
     if (result_stmt->kind == (a_statement_kind)stmk_block) {
-      /* Lowering changed the result statement into a block.  Change it into a
-         statement expression so it can produce a value. */
-      change_block_into_statement_expression(result_stmt);
-      check_assertion(result_stmt->kind == (a_statement_kind)stmk_expr);
+      /* Lowering changed the result statement into a block. */
+      last = last_statement_in_block(result_stmt);
+      if (last->kind == (a_statement_kind)stmk_stmt_expr_result) {
+        /* The block needs to return a value, so change it into a statement
+           expression. */
+        change_block_into_statement_expression(result_stmt);
+        check_assertion(result_stmt->kind == (a_statement_kind)stmk_expr);
+      } else {
+        /* The block doesn't return a value; indicate that the node no longer
+           returns a value. */
+        set_expr_result_not_used(expr);
+      }  /* if */
     } else {
+      /* If it's not a block, it should be the original statement (and
+         any dynamic initialization should have been lowered). */
       check_assertion(result_stmt->kind ==
                                      (a_statement_kind)stmk_stmt_expr_result &&
                       result_stmt->variant.stmt_expr_result.dynamic_init ==
@@ -14982,6 +14992,7 @@ expression).  This routine is used in lowering both C and C++.
                                            /*force_static=*/FALSE,
                                            /*promote_if_necessary=*/FALSE);
       result_expr = make_var_assignment_expr(result_var, result_stmt->expr);
+      result_stmt->expr->result_is_not_used = FALSE;
       set_expr_result_not_used(result_expr);
       set_statement_kind(result_stmt, (a_statement_kind)stmk_expr);
       result_stmt->expr = result_expr;
@@ -16744,6 +16755,7 @@ sure the last expression in the statement expression returns a value:
                          (a_statement_kind)stmk_stmt_expr_result);
       last_statement->expr = expr;
     }  /* if */
+    check_assertion(last_statement->expr != NULL);
     last_statement->expr->result_is_not_used = FALSE;
     expr_type = last_statement->expr->type;
   }  /* if */
@@ -16769,7 +16781,10 @@ void turn_statement_into_block(a_statement_ptr        statement,
 Turn a statement into a block containing a copy of the statement, and
 set *insert_location so that statements can be inserted at the beginning
 of the block (i.e., in front of the original statement).  *orig_statement
-is set to point to the original statement in its new location.
+is set to point to the original statement in its new location.  Note that
+changing a stmk_stmt_expr_result statement into a block (typically only done
+during lowering) requires special handling (because that statement is the only
+statement that returns a value).  See change_block_into_statement_expression.
 */
 {
   change_statement_into_block(statement, orig_statement);
@@ -18604,23 +18619,33 @@ Do IL lowering of the indicated statement and everything under it.
           check_assertion(dip != NULL &&
                           dip->variable == NULL &&
                           !dip->static_temp);
+          /* Lowering of the dynamic initialization requires a "statement"
+             insertion point; turn the statement into a block to get an
+             appropriate insertion point.  Note that this block will later be
+             turned into a statement expression itself so it can return
+             a value (assuming a value is still returned after lowering). */
+          turn_statement_into_block_transferring_pragma(statement,
+                                                        &insert_location1,
+                                                        &statement,
+                                                        curr_context->scope);
           if (gse_return_value_pointer_variable == NULL) {
             /* A case where there's no variable being initialized, e.g.,
                  S *p = new S(({ S(); }));
                In this case, an initialization position description has been
-               saved that represents the entity being initialized; use that
-               and set the insertion point to a new expression. */
+               saved that represents the entity being initialized. */
             check_assertion(gse_init_position != NULL);
             eff_ipdp = gse_init_position;
-            set_expr_creation_insert_location(&insert_location1);
+            /* No need to keep this statement (the lowered initialization will
+               be inserted prior to the statement). */
+            turn_statement_into_noop(statement);
           } else {
             /* A variable is being initialized, e.g.,
                  A a = ({ A(); });
-               Create an expression for the variable and then point the
-               insertion point to precede the expression. */
+               Create an expression for the variable. */
             dip->variable = gse_return_value_pointer_variable;
             expr = var_rvalue_expr(dip->variable);
-            set_expr_insert_location(expr, &insert_location1);
+            statement->expr = expr;
+            statement->variant.stmt_expr_result.dynamic_init = NULL;
             set_var_init_pos_descr(dip->variable, &ipd);
             eff_ipdp = &ipd;
           }  /* if */
@@ -18634,14 +18659,6 @@ Do IL lowering of the indicated statement and everything under it.
                              &keep_dynamic_init,
                              (a_constant **)NULL);
           check_assertion(!keep_dynamic_init);
-          /* Replace the dynamic initialization with the appropriate
-             lowered expression. */
-          statement->variant.dynamic_init = NULL;
-          if (expr == NULL) {
-            statement->expr = insert_location1.variant.expr;
-          } else {
-            statement->expr = expr;
-          }  /* if */
         }  /* if */
         break;
 #endif /* GNU_EXTENSIONS_ALLOWED */

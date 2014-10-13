@@ -2411,6 +2411,8 @@ extern void db_statement_list(a_statement_ptr  sp,
                               a_const_char     *str,
                               int              how_deep);
 
+extern void db_statements(a_statement_ptr statement);
+
 extern void db_scope(a_scope_ptr sp);
 
 extern void db_scope_type_list(a_scope_ptr scope,

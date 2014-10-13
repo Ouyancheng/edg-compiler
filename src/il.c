@@ -2436,6 +2436,11 @@ dumping other structures to which the node belongs.
         fprintf(f_debug, " (vla deallocation)");
         break;
 #endif /* VLA_DEALLOCATIONS_IN_IL */
+#if GNU_EXTENSIONS_ALLOWED
+      case enk_statement:
+        fprintf(f_debug, " (gnu statement expr)");
+        break;
+#endif /* GNU_EXTENSIONS_ALLOWED */
       default:;
     }  /* switch */
   }  /* if */
@@ -2493,6 +2498,7 @@ Dump a statement, for debug purposes.
           db_expr_summary(sp->expr);
         } else {
           a_dynamic_init_ptr  dip = sp->variant.stmt_expr_result.dynamic_init;
+          fputs(" ", f_debug);
           db_dynamic_initializer(dip, /*level=*/0);
         }  /* if */
         break;
@@ -2641,6 +2647,15 @@ the dump (this one counts as the first).
     }  /* for */
   }  /* if */
 }  /* db_statement_list */
+
+
+void db_statements(a_statement_ptr statement)
+/*
+Dump statements recursively (to a pre-set limit).
+*/
+{
+  db_statement_list(statement, 0, "", 10);
+}  /* db_statements */
 
 #endif /* DEBUG */
 
@@ -21052,7 +21067,10 @@ void change_statement_into_block(a_statement_ptr statement,
 Turn a statement into a block by allocating a new statement, copying
 the statement to it, and changing the original statement into a block
 containing the copied statement.  *orig_statement is set to point to the
-original statement in its new location.
+original statement in its new location.  Note that changing a
+stmk_stmt_expr_result statement into a block (typically only done during
+lowering) requires special handling (because that statement is the only
+statement that returns a value).  See change_block_into_statement_expression.
 */
 {
   a_statement_ptr stmt_copy;
