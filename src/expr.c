@@ -22203,7 +22203,8 @@ already been consumed.
           check_assertion(ctor != NULL);
           expr_type = parent_class_of(ctor);
         } else {
-          check_assertion(dip->kind == (a_dynamic_init_kind)
+          check_assertion(dip->kind == (a_dynamic_init_kind)dik_expression ||
+                          dip->kind == (a_dynamic_init_kind)
                                                    dik_class_result_via_ctor);
           expr_type = dip->variant.expression->type;
         }  /* if */

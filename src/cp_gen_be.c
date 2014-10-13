@@ -14927,7 +14927,8 @@ one that yields the value) of a statement expression.
         a_dynamic_init_ptr
                        dip = statement->variant.stmt_expr_result.dynamic_init;
         check_assertion(dip != NULL);
-        if (dip->kind == (a_dynamic_init_kind)dik_class_result_via_ctor) {
+        if (dip->kind == (a_dynamic_init_kind)dik_expression ||
+            dip->kind == (a_dynamic_init_kind)dik_class_result_via_ctor) {
           gen_full_expression(dip->variant.expression);
         } else {
           a_routine_ptr  ctor;
