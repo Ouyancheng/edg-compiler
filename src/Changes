@@ -30,7 +30,9 @@ This is now fixed.  (Contradictory calling conventions are still diagnosed.)
 Spurious "unused" warnings on captured variables
 
 The front end previously failed to mark a variable captured by a lambda as
-"used".  This could result in spurious warnings.  For example:
+"used".  This could result in spurious warnings about the captured variable
+having been set but not used.  It also meant that no warning was issued for
+variables captured before they are initialized.  For example:
 
   struct S { int x; };
   int f() {
