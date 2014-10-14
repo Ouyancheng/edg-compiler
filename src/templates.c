@@ -6056,6 +6056,7 @@ the same constant.
   a_template_arg_ptr	arg1 = list1, arg2 = list2;
 #if CHECKING
   a_boolean		is_nonreal_member;
+  a_boolean		is_variadic;
 #endif /* CHECKING */
   a_boolean		error_matches_anything;
   a_boolean		ignore_qualifiers;
@@ -6068,6 +6069,7 @@ the same constant.
   db_enter(4, "equiv_template_arg_lists");
 #if CHECKING
   is_nonreal_member = (options & ETA_IS_NONREAL_MEMBER) != 0;
+  is_variadic = (options & ETA_IS_VARIADIC) != 0,
 #endif /* CHECKING */
   error_matches_anything = (options & ETA_ERROR_MATCHES_ANYTHING) != 0;
   ignore_qualifiers = (options & ETA_MS_IGNORE_QUALIFIERS) != 0;
@@ -6089,12 +6091,14 @@ the same constant.
   equiv = TRUE;
   /* Loop through both lists in step, comparing arguments. */
   while (arg1 != NULL && arg2 != NULL) {
+    /* A pack expansion can occur in a nonreal argument list of a
+       non-variadic template.  Treat this as a variadic case. */
+    if (arg1->is_pack || arg2->is_pack) is_variadic = TRUE;
     /* For a given non-variadic class, argument lists should always have
        the same sequence of type, constant, and template arguments. */
     if (arg1->kind != arg2->kind) {
       equiv = FALSE;
-      check_assertion_str(is_nonreal_member ||
-                          (options & ETA_IS_VARIADIC) != 0,
+      check_assertion_str(is_nonreal_member || is_variadic,
                           "equiv_template_arg_lists: arg inconsistency");
       break;
     } else if (arg1->is_pack != arg2->is_pack) {
@@ -6205,9 +6209,9 @@ the same constant.
     arg2 = arg2->next;
     /* For a given function argument lists should always be exactly the same
        length. */
-    check_assertion_str((options & ETA_IS_VARIADIC) != 0 ||
-                        is_nonreal_member || (arg1 == NULL) == (arg2 == NULL),
-                        "equiv_template_arg_lists: unequal arg list lengths");
+    check_assertion_or_expect_error_str(
+          is_variadic || is_nonreal_member || (arg1 == NULL) == (arg2 == NULL),
+          "equiv_template_arg_lists: unequal arg list lengths");
   }  /* while */
   if (equiv) {
     /* Make sure we are at the end of both argument lists.  This might not
@@ -10258,10 +10262,13 @@ associated parameter.
          lengths). */
       if (err) *copy_error = TRUE;
     }  /* if */
-    if (!any_more && have_params && tpp != NULL && tpp->has_default_arg &&
+    if ((!any_more || tap == NULL) &&
+        have_params && tpp != NULL && tpp->has_default_arg &&
         template_sym != NULL) {
       /* This is an empty pack expansion for a template parameter with a
-         default argument.  Get the default argument value. */
+         default argument, or a missing template argument (which can occur
+         following a use of a pack as an argument to a non-pack).  Get the
+         default argument value. */
       a_templ_arg_kind		arg_kind;
       arg_kind = templ_arg_kind_for_symbol_kind(tpp->param_symbol->kind);
       tap = alloc_template_arg(arg_kind);

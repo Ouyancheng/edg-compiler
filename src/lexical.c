@@ -15264,6 +15264,7 @@ all arguments were explicit.
   long                             arg_number;
   a_boolean			   in_pack = FALSE;
   a_boolean			   any_default_args = FALSE;
+  a_template_arg_ptr		   first_pack = NULL;
   a_boolean                        saved_in_template_arg_list =
                                        scope_stack_top().in_template_arg_list;
   a_boolean                        too_many_args = FALSE;
@@ -15491,6 +15492,7 @@ all arguments were explicit.
         /* Don't advance to the next parameter if this is a pack. */
         orig_param_ptr = orig_param_ptr->next;
       }  /* if */
+      if (any_packs_referenced() && first_pack == NULL) first_pack = arg_ptr;
       ++arg_number;
       arg_ptr->pack_expansion_descr =
          end_potential_pack_expansion_context(pesep, /*is_declarator=*/FALSE);
@@ -15531,9 +15533,11 @@ all arguments were explicit.
       if (arg_list == NULL) arg_list = arg_ptr;
       if (last_arg != NULL) last_arg->next = arg_ptr;
       last_arg = arg_ptr;
-    } else if (orig_param_ptr->has_default_arg) {
+    } else if (orig_param_ptr->has_default_arg && first_pack == NULL) {
       /* The template has parameters with default values.  Fill in the
-         remainder of the argument list with the defaults. */
+         remainder of the argument list with the defaults.  Don't add
+         default arguments at this point if one of the arguments was
+         a pack expansion. */
       if (!any_default_args) {
         *first_defaulted_arg = arg_number;
         any_default_args = TRUE;
@@ -15631,6 +15635,9 @@ all arguments were explicit.
       if (arg_list == NULL) arg_list = arg_ptr;
       if (last_arg != NULL) last_arg->next = arg_ptr;
       last_arg = arg_ptr;
+    } else if (first_pack != NULL) {
+      /* There were too few arguments, but the list contained a pack
+         expansion.  Treat this as okay for now. */
     } else {
       /* The next parameter doesn't have a default value.  Issue an error
          if no default arguments have been encountered.  If we have already

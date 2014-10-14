@@ -1,5 +1,20 @@
 Version 4.10
 
+10/14/14 [EDGcpfe/14851,EDGcpfe/15277,EDGcpfe/15392,EDGcpfe/15429,
+          EDGcpfe/15476]
+Incorrect behavior when pack used as argument to non-variadic template
+
+The front end failed to properly handle cases where a parameter pack was
+used as a template argument to a non-variadic template.  Now fixed.
+
+  template <class T1, class T2> class A {};
+  template <typename... Args> void f(A<Args...>& args);
+  int main() {
+    A<int,int> t;
+    f(t);
+  }
+
+
 10/14/14 [EDGcpfe/15552]
 GNU compatibility: Attribute vector_size constraints
 
