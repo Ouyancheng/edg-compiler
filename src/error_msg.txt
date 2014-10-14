@@ -1731,7 +1731,7 @@ REMOVED;ec_enum_declspec_in_c_mode;;"__declspec attributes are not allowed on en
 ec_array_size_one_assumed;;"array %n assumed to have one element"
 ec_vector_size_attribute_requires_integral_floating_or_enum_type;;"vector_size attribute requires an arithmetic or enum type"
 ec_vector_size_too_large;;"vector size is too large"
-ec_vector_size_must_be_power_of_two;;"vector size must be a power of two"
+ec_vector_size_must_be_power_of_two;;"the number of elements in a vector must be a power of two"
 ec_vector_size_must_be_multiple_of_element_size;;"vector size must be a multiple of the element size"
 ec_mixed_vector_scalar_operation;;"mixed vector-scalar operation not allowed"
 ec_vectors_must_have_same_size;;"operation requires two vectors of the same size"

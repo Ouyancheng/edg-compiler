@@ -6246,6 +6246,7 @@ error type.
       size = 1;
     }  /* if */
   } else {
+    a_host_large_unsigned  elem_size = skip_typerefs(elem_type)->size;
     check_assertion(size_con->kind == (a_constant_repr_kind)ck_integer);
     size = value_of_integer_constant(size_con, &ovflo);
     if (ovflo ||
@@ -6255,15 +6256,19 @@ error type.
          exceed the maximum representable alignment. */
       pos_error(ec_vector_size_too_large, &ap->position);
       err = TRUE;
-    } else if (size <= 0 || (size & (size-1)) != 0) {
+    } else if (size <= 0) {
       pos_error(ec_vector_size_must_be_power_of_two, &ap->position);
       err = TRUE;
-    } else if (!err &&
-               ((a_host_large_unsigned)size %
-                                       skip_typerefs(elem_type)->size) != 0) {
+    } else if (!err && ((a_host_large_unsigned)size % elem_size) != 0) {
       pos_error(ec_vector_size_must_be_multiple_of_element_size,
                 &ap->position);
       err = TRUE;
+    } else {
+      a_host_large_unsigned  n_elems = (a_host_large_unsigned)size / elem_size;
+      if ((n_elems & (n_elems-1)) != 0) {
+        pos_error(ec_vector_size_must_be_power_of_two, &ap->position);
+        err = TRUE;
+      }  /* if */
     }  /* if */
   }  /* if */
   if (err) {

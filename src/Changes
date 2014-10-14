@@ -1,5 +1,17 @@
 Version 4.10
 
+10/14/14 [EDGcpfe/15552]
+GNU compatibility: Attribute vector_size constraints
+
+The front end previously required that the argument to the GNU vector_size
+attribute be a power of two.  Now, it requires that the numbers of elements
+in the vector be a power of two.  For example:
+
+  long double __attribute__((vector_size(2*sizeof(long double)))) vec;
+    // Previously an error in configurations where sizeof(long double)
+    // is not a power of two.  Now always accepted.
+
+
 10/13/14 [EDGcpfe/15500]
 Spurious error for missing calling convention on explicit instantiation
 
