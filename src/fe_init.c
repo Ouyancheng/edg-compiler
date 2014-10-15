@@ -719,29 +719,31 @@ Install the keywords in the symbol table.
     enter_keyword((a_token_kind)tok_builtin_complex, "__builtin_complex");
   }  /* if */
 #endif /* C99_IL_EXTENSIONS_SUPPORTED */
-  if (C_mode() && static_assert_enabled) {
-    /* Enter the C version of "static_assert", except in non-C11 Microsoft
-       modes. */
-    if (!(microsoft_mode && !c11_mode)) {
-      enter_keyword((a_token_kind)tok_static_assert, "_Static_assert");
-    }  /* if */
-    /* In some Microsoft modes, the C++ version is also enabled in C mode. */
-    if (microsoft_mode && microsoft_version >= 1600) {
-      enter_keyword((a_token_kind)tok_static_assert, "static_assert");
-    }  /* if */
-  }  /* if */
   if (c11_mode) {
     /* Enable keywords required in C11 mode. */
     enter_keyword((a_token_kind)tok_c11_generic, "_Generic");
     enter_keyword((a_token_kind)tok_noreturn, "_Noreturn");
+  }  /* if */
+  if (C_mode()) {
+    if (std_thread_local_storage_specifier_enabled) {
+      enter_keyword((a_token_kind)tok_c11_thread_local, "_Thread_local");
+    }  /* if */
     if (alignas_enabled) {
       enter_keyword((a_token_kind)tok_alignas, "_Alignas");
     }  /* if */
     if (alignof_enabled) {
       enter_keyword((a_token_kind)tok_alignof, "_Alignof");
     }  /* if */
-    if (std_thread_local_storage_specifier_enabled) {
-      enter_keyword((a_token_kind)tok_c11_thread_local, "_Thread_local");
+    if (static_assert_enabled) {
+      /* Enter the C version of "static_assert", except in non-C11 Microsoft
+         modes. */
+      if (!(microsoft_mode && !c11_mode)) {
+        enter_keyword((a_token_kind)tok_static_assert, "_Static_assert");
+      }  /* if */
+      /* In some Microsoft modes, the C++ version is also enabled in C mode. */
+      if (microsoft_mode && microsoft_version >= 1600) {
+        enter_keyword((a_token_kind)tok_static_assert, "static_assert");
+      }  /* if */
     }  /* if */
   }  /* if */
 #if TARG_HAS_IEEE_FLOATING_POINT

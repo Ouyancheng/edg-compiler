@@ -2277,6 +2277,7 @@ by a command line option.
                implicit capture by generic lambdas. */
             generic_lambdas_can_implicitly_capture = FALSE;
           }  /* if */
+          init_capture_enabled = TRUE;
         }  /* if */
       }  /* if */
       if (!option_kind_used[(int)optk_rvalue_references]) {
@@ -2326,9 +2327,23 @@ by a command line option.
       alias_declarations_enabled = TRUE;
     }  /* if */
     if (microsoft_version >= 1900) {
-      noexcept_enabled = TRUE;
+      if (exceptions_enabled) {
+        noexcept_enabled = TRUE;
+        if (!option_kind_used[(int)optk_implicit_noexcept]) {
+          implicit_noexcept_enabled = TRUE;
+        }  /* if */
+      }  /* if */
       constexpr_enabled = TRUE;
       unrestricted_unions_enabled = TRUE;
+      inheriting_constructors_enabled = TRUE;
+      ref_qualifiers_enabled = rvalue_references_enabled;
+      alignof_enabled = TRUE;
+      alignas_enabled = TRUE;
+      inline_namespaces_enabled = TRUE;
+      if (!option_kind_used[(int)optk_user_defined_literals]) {
+        user_defined_literals_enabled = TRUE;
+      }  /* if */
+      deduced_return_types_enabled = TRUE;
     } else {
       /* Disable unrestricted unions because they involve making some special
          member functions "deleted", whereas Microsoft compilers prior to 1900

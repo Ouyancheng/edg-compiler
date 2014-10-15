@@ -1,5 +1,15 @@
 Version 4.10
 
+10/14/14 [EDGcpfe/15489]
+Microsoft compatibility: Additional C++11 and C++14 features
+
+In Microsoft C++ mode with microsoft_version >= 1900, the front end now accepts
+the following C++11 and C++14 features: generalized lambda capture, generic
+lambdas, the implicit noexcept rules, inheriting constructors, ref-qualifiers
+on member functions, alignof/alignas, inline namespaces, user-defined literals,
+and deduced return types.
+
+
 10/14/14 [EDGcpfe/14851,EDGcpfe/15277,EDGcpfe/15392,EDGcpfe/15429,
           EDGcpfe/15476]
 Incorrect behavior when pack used as argument to non-variadic template
