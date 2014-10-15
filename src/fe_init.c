@@ -728,6 +728,7 @@ Install the keywords in the symbol table.
     /* Enable the C11 _Generic keyword (accepted by default in some GNU C
        modes). */
     enter_keyword((a_token_kind)tok_c11_generic, "_Generic");
+  }  /* if */
   if (C_mode()) {
     if (std_thread_local_storage_specifier_enabled) {
       enter_keyword((a_token_kind)tok_c11_thread_local, "_Thread_local");
