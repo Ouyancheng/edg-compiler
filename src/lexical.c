@@ -15492,7 +15492,10 @@ all arguments were explicit.
         /* Don't advance to the next parameter if this is a pack. */
         orig_param_ptr = orig_param_ptr->next;
       }  /* if */
-      if (any_packs_referenced() && first_pack == NULL) first_pack = arg_ptr;
+      if (is_template_dependent_context() &&
+          any_packs_referenced() && first_pack == NULL) {
+        first_pack = arg_ptr;
+      }  /* if */
       ++arg_number;
       arg_ptr->pack_expansion_descr =
          end_potential_pack_expansion_context(pesep, /*is_declarator=*/FALSE);
