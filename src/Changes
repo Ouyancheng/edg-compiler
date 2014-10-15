@@ -1,5 +1,14 @@
 Version 4.10
 
+10/15/14 [EDGcpfe/15559]
+GNU vector subscripting and value categories
+
+The changes enabling subscripting a GNU vector (see entry of 11/13/13 for
+EDGcpfe/14580) failed to convert the subscript to an rvalue (or prvalue, in
+C++11 terms).  This could manifest itself as an abort in the C++-generating
+back end (in check_operation_node_consistency).  This is now fixed.
+
+
 10/14/14 [EDGcpfe/15491,EDGcpfe/15494,EDGcpfe/15495,EDGcpfe/15496]
 GNU C compatibility: C11 features accepted in non-C11 C modes
 

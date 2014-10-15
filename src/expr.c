@@ -1592,6 +1592,9 @@ constructs, in which case offsetof_case is TRUE.
       /* GNU vector types can be subscripted using the "x[n]" notation. */
       a_type_ptr        el_type;
       an_expr_node_ptr  subsc_node;
+      do_operand_transformations(operand_1,
+                                 TOPT_SUPPRESS_LVALUE_TO_RVALUE_CONVERSION);
+      do_operand_transformations(&operand_2, TOPT_NO_OPTIONS);
       an_expr_node_ptr  op1_node = make_node_from_operand(operand_1);
       op1_node->next = make_node_from_operand(&operand_2);
       el_type = skip_typerefs(op1_node->type)->variant.vector.element_type;
