@@ -11336,7 +11336,12 @@ Render a C11 _Generic construct.
   expr = expr->next;
   while (expr != NULL){
     check_assertion(expr->kind == (an_expr_node_kind)enk_type_operand);
-    gen_expression(expr);
+    if (expr->variant.type_operand.type == NULL) {
+      /* The "default" case is represented by a null type operand. */
+      write_tok_str("default");
+    } else {
+      gen_expression(expr);
+    }  /* if */
     write_tok_str(": ");
     expr = expr->next;
     check_assertion(expr != NULL);

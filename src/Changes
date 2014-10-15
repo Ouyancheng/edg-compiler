@@ -1,5 +1,12 @@
 Version 4.10
 
+10/14/14 [EDGcpfe/15556]
+C++-generating back end aborts on C11 _Generic constructs
+
+The C++-generating back end previously aborted when attempting to render the
+"default:" case of a C11 _Generic construct.  This is now fixed.
+
+
 10/14/14 [EDGcpfe/15489]
 Microsoft compatibility: Additional C++11 and C++14 features
 
