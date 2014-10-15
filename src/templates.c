@@ -6090,7 +6090,23 @@ the same constant.
   /* Assume they are equivalent, until we find evidence to the contrary. */
   equiv = TRUE;
   /* Loop through both lists in step, comparing arguments. */
-  while (arg1 != NULL && arg2 != NULL) {
+  for (;;) {
+    /* Remove any pack expansion placeholders. */
+    while (arg1 != NULL &&
+           is_start_of_pack_expansion_templ_arg(arg1)) {
+      arg1 = arg1->next;
+#if CHECKING
+      is_variadic = TRUE;
+#endif /* CHECKING */
+    }  /* while */
+    while (arg2 != NULL &&
+           is_start_of_pack_expansion_templ_arg(arg2)) {
+      arg2 = arg2->next;
+#if CHECKING
+      is_variadic = TRUE;
+#endif /* CHECKING */
+    }  /* while */
+    if (arg1 == NULL || arg2 == NULL) break;
 #if CHECKING
     /* A pack expansion can occur in a nonreal argument list of a
        non-variadic template.  Treat this as a variadic case. */
@@ -6203,18 +6219,17 @@ the same constant.
       }  /* if */
       if (!equiv) break;
     } else {
-      /* A start of pack expansion placeholder. */
-      check_assertion(is_start_of_pack_expansion_templ_arg(arg1));
+      unexpected_condition();
     }  /* if */
     /* Advance to the next arguments in step. */
     arg1 = arg1->next;
     arg2 = arg2->next;
-    /* For a given function argument lists should always be exactly the same
-       length. */
-    check_assertion_or_expect_error_str(
+  }  /* for */
+  /* For a given function argument lists should always be exactly the same
+     length. */
+  check_assertion_or_expect_error_str(
           is_variadic || is_nonreal_member || (arg1 == NULL) == (arg2 == NULL),
           "equiv_template_arg_lists: unequal arg list lengths");
-  }  /* while */
   if (equiv) {
     /* Make sure we are at the end of both argument lists.  This might not
        be the case for nonreal members. */
