@@ -6091,9 +6091,11 @@ the same constant.
   equiv = TRUE;
   /* Loop through both lists in step, comparing arguments. */
   while (arg1 != NULL && arg2 != NULL) {
+#if CHECKING
     /* A pack expansion can occur in a nonreal argument list of a
        non-variadic template.  Treat this as a variadic case. */
     if (arg1->is_pack || arg2->is_pack) is_variadic = TRUE;
+#endif /* CHECKING */
     /* For a given non-variadic class, argument lists should always have
        the same sequence of type, constant, and template arguments. */
     if (arg1->kind != arg2->kind) {
