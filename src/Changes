@@ -26,8 +26,8 @@ on member functions, alignof/alignas, inline namespaces, user-defined literals,
 and deduced return types.
 
 
-10/14/14 [EDGcpfe/14851,EDGcpfe/15277,EDGcpfe/15392,EDGcpfe/15429,
-          EDGcpfe/15476]
+10/14/14 [EDGcpfe/14261,EDGcpfe/14851,EDGcpfe/15277,EDGcpfe/15392,
+          EDGcpfe/15429,EDGcpfe/15476]
 Incorrect behavior when pack used as argument to non-variadic template
 
 The front end failed to properly handle cases where a parameter pack was
