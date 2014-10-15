@@ -719,11 +719,15 @@ Install the keywords in the symbol table.
     enter_keyword((a_token_kind)tok_builtin_complex, "__builtin_complex");
   }  /* if */
 #endif /* C99_IL_EXTENSIONS_SUPPORTED */
-  if (c11_mode) {
-    /* Enable keywords required in C11 mode. */
-    enter_keyword((a_token_kind)tok_c11_generic, "_Generic");
+  if (c11_mode || (gcc_mode && gnu_version >= 40700)) {
+    /* Enable the C11 _Noreturn keyword (accepted by default in some GNU C
+       modes). */
     enter_keyword((a_token_kind)tok_noreturn, "_Noreturn");
   }  /* if */
+  if (c11_mode || (gcc_mode && gnu_version >= 40900)) {
+    /* Enable the C11 _Generic keyword (accepted by default in some GNU C
+       modes). */
+    enter_keyword((a_token_kind)tok_c11_generic, "_Generic");
   if (C_mode()) {
     if (std_thread_local_storage_specifier_enabled) {
       enter_keyword((a_token_kind)tok_c11_thread_local, "_Thread_local");

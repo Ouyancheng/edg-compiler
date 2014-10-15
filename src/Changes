@@ -1,5 +1,14 @@
 Version 4.10
 
+10/14/14 [EDGcpfe/15491,EDGcpfe/15494,EDGcpfe/15495,EDGcpfe/15496]
+GNU C compatibility: C11 features accepted in non-C11 C modes
+
+In GNU C mode with gnu_version >= 40700, the front end now accepts the
+following C11 features even when C11 mode is not enabled: _Noreturn, _Alignof,
+and _Alignas.  Similarly, when gnu_version >= 40900, the _Generic construct is
+also allowed in non-C11 GNU C modes.
+
+
 10/14/14 [EDGcpfe/15556]
 C++-generating back end aborts on C11 _Generic constructs
 
