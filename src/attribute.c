@@ -6259,6 +6259,8 @@ error type.
     } else if (size <= 0) {
       pos_error(ec_vector_size_must_be_power_of_two, &ap->position);
       err = TRUE;
+    } else if (elem_size == 0) {
+      expect_error();
     } else if (!err && ((a_host_large_unsigned)size % elem_size) != 0) {
       pos_error(ec_vector_size_must_be_multiple_of_element_size,
                 &ap->position);
