@@ -3478,6 +3478,9 @@ static a_type_list_entry_ptr
 			   appeared in the source code). */
 
 
+#if !MICROSOFT_EXTENSIONS_ALLOWED
+/*ARGSUSED*/ /* class_type is not used in some configurations. */
+#endif /* !MICROSOFT_EXTENSIONS_ALLOWED */
 static void wrap_up_class_definition(a_type_ptr  class_type)
 /*
 Perform any tasks that must be done after the definition of the given class as
