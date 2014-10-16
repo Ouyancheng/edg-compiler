@@ -7751,10 +7751,13 @@ for wide character literals).
     result = FALSE;
     tp = char_type;
     while (tp->kind == (a_type_kind)tk_typeref) {
-      if (typeref_is_typedef(tp) &&
-          strcmp(unmangled_name_of(&tp->source_corresp), "wchar_t") == 0) {
-        result = TRUE;
-        break;
+      if (typeref_is_typedef(tp)) {
+        a_const_char  *name = unmangled_name_of(&tp->source_corresp);
+        check_assertion(name != NULL);
+        if (strcmp(name, "wchar_t") == 0) {
+          result = TRUE;
+          break;
+        }  /* if */
       }  /* if */
       tp = tp->variant.typeref.type;
     }  /* while */
