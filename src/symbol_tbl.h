@@ -1307,6 +1307,11 @@ typedef struct a_class_symbol_supplement {
 			/* TRUE during the call of scan_class_definition for
 			   this class.  This is used to detect certain problems
 			   in code generated from metadata. */
+  a_bit_field	may_need_fixups:1;
+			/* Similar to being_defined, but remains TRUE until
+			   fixup processing is complete.  This also indicates
+			   that the class is tracked on a list of class that
+			   may need fixups. */
   a_bit_field	variant_member_with_nontrivial_default_ctor:1;
 			/* TRUE if this class has a variant member with a
 			   nontrivial default constructor.  (In that case,

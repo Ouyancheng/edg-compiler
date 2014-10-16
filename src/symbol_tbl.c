@@ -3671,6 +3671,7 @@ state.
         cssp->from_vccorlib = FALSE;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
         cssp->being_defined = FALSE;
+        cssp->may_need_fixups = FALSE;
         cssp->variant_member_with_nontrivial_default_ctor = FALSE;
         cssp->variant_member_with_nontrivial_copy_ctor = FALSE;
         cssp->variant_member_with_nontrivial_dtor = FALSE;

@@ -3359,9 +3359,8 @@ of a constant-expression.
 
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
-static void check_trans_unit_for_fixup(
-				a_class_fixup_ptr	cfp,
-				a_boolean		*trans_unit_pushed)
+static void check_trans_unit_for_class(a_type_ptr  class_type,
+				       a_boolean   *trans_unit_pushed)
 /*
 This routine is called when going through the class fixup lists to
 ensure that the correct translation unit is on the top of the stack.
@@ -3370,11 +3369,9 @@ new translation unit.  It is set to TRUE if this call pushes a new
 translation unit.
 */
 {
-  a_symbol_ptr			sym;
-  a_translation_unit_ptr	tup_needed;
+  a_symbol_ptr            sym = symbol_for(class_type);
+  a_translation_unit_ptr  tup_needed = trans_unit_for_symbol(sym);
 
-  sym = (a_symbol_ptr)cfp->class_type->source_corresp.assoc_info;
-  tup_needed = trans_unit_for_symbol(sym);
   if (tup_needed != curr_translation_unit) {
     /* The current translation unit is not the right one.  If we previously
        pushed a translation unit, pop it now. */
@@ -3389,7 +3386,7 @@ translation unit.
       *trans_unit_pushed = TRUE;
     }  /* if */
   }  /* if */
-}  /* check_trans_unit_for_fixup */
+}  /* check_trans_unit_for_class */
 
 
 static void form_exception_specification_for_generated_function(
@@ -3446,6 +3443,54 @@ Also, if the member is virtual, force its definition to be generated.
   }  /* for */
 }  /* complete_defaulted_member_decl */
 
+#if MICROSOFT_EXTENSIONS_ALLOWED
+
+static void force_definition_of_generated_exported_members(
+                                                        a_type_ptr  class_type)
+/*
+The given class type was defined with __declspec(dllexport): Its generated
+special members therefore must be defined, so an out-of-line copy can be
+created.
+*/
+{
+  a_scope_ptr    scope = class_type_supp(class_type)->assoc_scope;
+  a_routine_ptr  rp = scope->routines;
+
+  for (; rp != NULL; rp = rp->next) {
+    if (rp->compiler_generated && !rp->definition_cannot_be_generated &&
+        (special_kind_is(rp, sfk_constructor) ||
+         special_kind_is(rp, sfk_destructor) ||
+         (special_kind_is(rp, sfk_operator) &&
+          rp->variant.opname_kind == (an_opname_kind)onk_assign))) {
+      check_assertion((rp->decl_modifiers & DM_DLLEXPORT) != 0 &&
+                      rp->need_out_of_line_copy);
+      force_definition_of_compiler_generated_routine(rp);
+    }  /* if */
+  }  /* for */
+}  /* force_definition_of_generated_exported_members */
+
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+
+static a_type_list_entry_ptr
+		classes_that_may_need_fixups;
+			/* A list of classes that potentially have associated
+			   fixups (i.e., classes whose definition has just
+			   appeared in the source code). */
+
+
+static void wrap_up_class_definition(a_type_ptr  class_type)
+/*
+Perform any tasks that must be done after the definition of the given class as
+a whole (i.e., including fixups for default arguments, etc.).
+*/
+{
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  if (class_type_supp(class_type)->decl_modifiers & DM_DLLEXPORT) {
+    force_definition_of_generated_exported_members(class_type);
+  }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+} /* wrap_up_class_definition */
+
 
 static void process_deferred_class_fixups(a_boolean	for_instantiation)
 /*
@@ -3483,7 +3528,7 @@ after a class instantiation.
     defer_instantiations++;
     for (cfp = fixup_list; cfp != NULL; cfp = cfp->next) {
       /* Make sure we are in the right translation unit. */
-      check_trans_unit_for_fixup(cfp, &trans_unit_pushed);
+      check_trans_unit_for_class(cfp->class_type, &trans_unit_pushed);
       default_argument_fixup_for_class(cfp->class_type,
                                        cfp->is_template_instantiation,
                                        /*template_second_pass=*/FALSE);
@@ -3493,7 +3538,7 @@ after a class instantiation.
          instantiations of template default arguments. */
       for (cfp = fixup_list; cfp != NULL; cfp = cfp->next) {
         /* Make sure we are in the right translation unit. */
-        check_trans_unit_for_fixup(cfp, &trans_unit_pushed);
+        check_trans_unit_for_class(cfp->class_type, &trans_unit_pushed);
         default_argument_fixup_for_class(cfp->class_type,
                                          cfp->is_template_instantiation,
                                          /*template_second_pass=*/TRUE);
@@ -3509,14 +3554,14 @@ after a class instantiation.
       if (field_initializers_enabled || cli_or_cx_enabled) {
         for (cfp = fixup_list; cfp != NULL; cfp = cfp->next) {
           /* Make sure we are in the right translation unit. */
-          check_trans_unit_for_fixup(cfp, &trans_unit_pushed);
+          check_trans_unit_for_class(cfp->class_type, &trans_unit_pushed);
           inclass_initializer_fixup_for_class(cfp->class_type,
                                               cfp->is_template_instantiation);
         }  /* for */
       }  /* if */
       for (cfp = fixup_list; cfp != NULL; cfp = cfp->next) {
         /* Make sure we are in the right translation unit. */
-        check_trans_unit_for_fixup(cfp, &trans_unit_pushed);
+        check_trans_unit_for_class(cfp->class_type, &trans_unit_pushed);
         if (!cfp->class_type->variant.class_struct_union.is_nonreal_class) {
           complete_defaulted_member_decl(cfp->class_type);
         }  /* if */
@@ -3530,8 +3575,17 @@ after a class instantiation.
       }  /* for */
     }  /* if */
     /* If we pushed a translation unit above, pop it now. */
-    if (trans_unit_pushed) pop_translation_unit_stack();
   }  /* if */
+  if (classes_that_may_need_fixups != NULL) {
+    a_type_list_entry_ptr  tlep = classes_that_may_need_fixups;
+    classes_that_may_need_fixups = NULL;
+    for (; tlep != NULL; tlep = tlep->next) {
+      check_trans_unit_for_class(tlep->type, &trans_unit_pushed);
+      wrap_up_class_definition(tlep->type);
+    }  /* for */
+    free_list_of_type_list_entries(classes_that_may_need_fixups);
+  }  /* if */
+  if (trans_unit_pushed) pop_translation_unit_stack();
   db_exit();
 }  /* process_deferred_class_fixups */
 
@@ -27232,33 +27286,6 @@ Microsoft mode, additional checking is needed.)
   }  /* if */
 }  /* wrapup_nothrow_assign_and_copy_flags */
 
-#if MICROSOFT_EXTENSIONS_ALLOWED
-
-static void force_definition_of_generated_exported_members(
-                                                        a_type_ptr  class_type)
-/*
-The given class type was defined with __declspec(dllexport): Its generated
-special members therefore must be defined, so an out-of-line copy can be
-created.
-*/
-{
-  a_scope_ptr    scope = class_type_supp(class_type)->assoc_scope;
-  a_routine_ptr  rp = scope->routines;
-
-  for (; rp != NULL; rp = rp->next) {
-    if (rp->compiler_generated && !rp->definition_cannot_be_generated &&
-        (special_kind_is(rp, sfk_constructor) ||
-         special_kind_is(rp, sfk_destructor) ||
-         (special_kind_is(rp, sfk_operator) &&
-          rp->variant.opname_kind == (an_opname_kind)onk_assign))) {
-      check_assertion((rp->decl_modifiers & DM_DLLEXPORT) != 0 &&
-                      rp->need_out_of_line_copy);
-      force_definition_of_compiler_generated_routine(rp);
-    }  /* if */
-  }  /* for */
-}  /* force_definition_of_generated_exported_members */
-
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 static void instantiate_delayed_exception_spec_args_if_needed(
                                               a_class_def_state  *class_state)
@@ -27712,7 +27739,10 @@ static void complete_class_definition(a_type_ptr         class_type,
 We have seen the complete definition of class_type belonging to scope level
 effective_decl_level.  Perform various postprocessing steps such as computing
 the layout and synthesizing special members (C++).  *class_state holds some
-bits of information that were acquired while parsing.
+bits of information that were acquired while parsing.  Note that fixup
+processing (e.g., for default arguments of member functions) has not been done
+at this point yet.  For tasks that must occur after that processing, see
+wrap_up_class_definition.
 */
 {
   a_source_position              saved_error_position;
@@ -27927,9 +27957,6 @@ bits of information that were acquired while parsing.
       }  /* if */
       check_names_reserved_by_cli_operators(class_type);
     }  /* if */
-    if (class_type_supp(class_type)->decl_modifiers & DM_DLLEXPORT) {
-      force_definition_of_generated_exported_members(class_type);
-    }  /* if */
     if (cppcx_enabled && is_value_class_type(class_type)) {
       check_cppcx_value_type_symbols(class_type);
     }  /* if */
@@ -27946,6 +27973,9 @@ bits of information that were acquired while parsing.
        the overrider's exception specification was not known at the point of
        declaration. */
     process_override_exception_check_entries(class_state);
+    if (!cssp->may_need_fixups) {
+      wrap_up_class_definition(class_type);
+    }  /* if */
   }  /* if */
   error_position = saved_error_position;
 }  /* complete_class_definition */
@@ -28116,9 +28146,19 @@ classes.
   a_member_decl_info              pe_info;
   a_symbol_locator                pe_loc;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+  a_type_list_entry_ptr           new_type_list_entry;
 
   db_enter(3, "scan_class_definition");
   cssp = tag_sym->variant.class_struct_union.extra_info;
+  /* Place the class on a list tracking classes with source definitions so we
+     know that the class and its members is potentially subject to fixups.
+     This is useful to ensure some actions are taken after any such fixups
+     (rather than during complete_class_definition). */
+  cssp->may_need_fixups = TRUE;
+  new_type_list_entry = alloc_type_list_entry();
+  new_type_list_entry->type = class_type;
+  new_type_list_entry->next = classes_that_may_need_fixups;
+  classes_that_may_need_fixups = new_type_list_entry;
   check_assertion(!cssp->being_defined);
 #if MICROSOFT_EXTENSIONS_ALLOWED
   if (cppcx_enabled) {
@@ -28913,12 +28953,12 @@ next_declaration:
                          (char *)class_type, (a_byte_il_entry_kind)iek_type);
     }  /* if */
 #if TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
-  /* Clear the modified the ss-list instantiation insert point for the scope
-     to which the class being defined belongs.  This has to be done before
-     the call to pop_template_instantiation_scope -- otherwise, the
-     insert point is wrong for the class body.  Note also that, at this
-     point, the depth of the innermost namespace scope will not be on the top
-     of the stack if an extra instantiation scope was pushed. */
+    /* Clear the modified the ss-list instantiation insert point for the scope
+       to which the class being defined belongs.  This has to be done before
+       the call to pop_template_instantiation_scope -- otherwise, the
+       insert point is wrong for the class body.  Note also that, at this
+       point, the depth of the innermost namespace scope will not be on the top
+       of the stack if an extra instantiation scope was pushed. */
     scope_stack[class_scope_depth].ss_list_instantiation_insert_point = NULL;
 #endif /* TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
@@ -30848,6 +30888,7 @@ One-time initialization for class_decl.c static variables.
   register_trans_unit_variable(deferred_friend_fixup_list);
   register_trans_unit_variable(deferred_friend_fixup_list_tail);
   register_trans_unit_variable(use_deferred_friend_fixup_list);
+  register_trans_unit_variable(classes_that_may_need_fixups);
 }  /* class_decl_one_time_init */
 
 
@@ -30867,6 +30908,7 @@ translation unit.
                                     microsoft_mode;
   deferred_friend_fixup_list = NULL;
   deferred_friend_fixup_list_tail = NULL;
+  classes_that_may_need_fixups = NULL;
 }  /* class_decl_trans_unit_init */
 
 
