@@ -1,5 +1,42 @@
 Version 4.10
 
+10/16/14 [EDGcpfe/15562]
+Diagnostics on elided copy constructor invocations
+
+C++ allows uses of copy constructors to be elided under some circumstances
+(for example, when copying a temporary to another temporary).  However, the
+front end usually still issues a diagnostic if a copy constructor use that is
+elided would have triggered an error if it had not been elided (e.g., because
+it is a deleted constructor).  To ensure that these diagnostics are emitted,
+the front end therefore usually still generates the definition of the elided
+copy constructor in such cases.  Now it no longer does so in GNU and Clang
+modes, however.  For example:
+
+  struct X {
+    X(X const&) = delete;
+    X(X&& in);
+ };
+ struct Y {
+   const X x;
+   template<class T> Y(T&&);
+ };
+ Y&& yval();
+ void g() {
+   Y y = yval();  // Now accepted in Clang and GNU C++11 modes (previously,
+ }                // an error while generating the definition of the
+                  // copy constructor of Y).
+
+On the flip side, elided uses of deleted copy constructors and destructors
+are now diagnosed as an error instead of a warning in GNU and Clang modes.
+For example:
+
+  template<typename T> struct A { ~A() = delete; };
+  A<char> g();
+  A<char> f() {
+    return g();  // Elided copy would have required access to the destructor.
+  }              // Previously a warning in Clang and GNU modes; now an error.
+
+
 10/15/14 [EDGcpfe/15503]
 Microsoft compatibility: Exported generated members and default arguments
 
