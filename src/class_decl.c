@@ -28154,7 +28154,7 @@ classes.
   db_enter(3, "scan_class_definition");
   cssp = tag_sym->variant.class_struct_union.extra_info;
   /* Place the class on a list tracking classes with source definitions so we
-     know that the class and its members is potentially subject to fixups.
+     know that the class and its members are potentially subject to fixups.
      This is useful to ensure some actions are taken after any such fixups
      (rather than during complete_class_definition). */
   cssp->may_need_fixups = TRUE;
@@ -28956,12 +28956,12 @@ next_declaration:
                          (char *)class_type, (a_byte_il_entry_kind)iek_type);
     }  /* if */
 #if TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
-    /* Clear the modified the ss-list instantiation insert point for the scope
-       to which the class being defined belongs.  This has to be done before
-       the call to pop_template_instantiation_scope -- otherwise, the
-       insert point is wrong for the class body.  Note also that, at this
-       point, the depth of the innermost namespace scope will not be on the top
-       of the stack if an extra instantiation scope was pushed. */
+    /* Clear the modified ss-list instantiation insert point for the scope to
+       which the class being defined belongs.  This has to be done before the
+       call to pop_template_instantiation_scope -- otherwise, the insert point
+       is wrong for the class body.  Note also that, at this point, the depth
+       of the innermost namespace scope will not be on the top of the stack if
+       an extra instantiation scope was pushed. */
     scope_stack[class_scope_depth].ss_list_instantiation_insert_point = NULL;
 #endif /* TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */

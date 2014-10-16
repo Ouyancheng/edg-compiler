@@ -16,9 +16,9 @@ For example:
     } p1;
   };
  
-Previously, the generating the definition of S::S() produces an error
-indicating that N has no default constructor because the default arguments
-of N's constructor were not recognized.  This is now fixed.
+Previously, generating the definition of S::S() produced an error indicating
+that N has no default constructor because the default arguments of N's
+constructor were not recognized.  This is now fixed.
 
 
 10/15/14 [EDGcpfe/15559]
