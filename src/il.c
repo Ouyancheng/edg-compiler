@@ -5854,8 +5854,10 @@ Return a hash value for the indicated template argument list.
 {
   a_hash_value hash_value = 0;
   uint32_t     pos = 1;
+  uint32_t     next_pos;
 
-  for (; tap != NULL; tap = tap->next, pos++) {
+  for (; tap != NULL; tap = tap->next, pos = next_pos) {
+    next_pos = pos + 1;
     switch (tap->kind) {
       case tak_type:
         hash_value += hash_type(tap->variant.type) + 37;
@@ -5870,6 +5872,8 @@ Return a hash value for the indicated template argument list.
         hash_value += hash_name(&tap->variant.templ.ptr->source_corresp);
         break;
       case tak_start_of_pack_expansion:
+        /* Ignore placeholders for position counting. */
+        next_pos = pos;
         break;
       default: unexpected_condition(); break;
     }  /* switch */
