@@ -7722,6 +7722,49 @@ appropriate.
 }  /* check_udl_operator_template */
 
 
+static a_boolean is_valid_udl_char_parameter_type(a_type_ptr  char_type)
+/*
+Return TRUE if char_type is a valid unqualified type underlying the pointer
+type parameter of a user-defined literal operator for user-defined string
+literals.  Usually, the type must be one of: char, unsigned char, signed char,
+wchar_t, char16_t, or char32_t.  However, in some Microsoft mode, a typedef
+name wchar_t may be acceptable too (if its underlying type is the integer type
+for wide character literals).
+*/
+{
+  a_type_ptr  tp = skip_typerefs(char_type);
+  a_boolean   result;
+
+  if (tp->kind != (a_type_kind)tk_integer) {
+    result = FALSE;
+  } else if (is_plain_char_type(tp) ||
+             tp->variant.integer.wchar_t_type ||
+             tp->variant.integer.char16_t_type ||
+             tp->variant.integer.char32_t_type) {
+    result = TRUE;
+  } else if (!wchar_t_is_keyword && microsoft_mode &&
+             tp->variant.integer.int_kind == targ_wchar_t_int_kind) {
+     /* Microsoft compilers accept a "wchar_t" parameter in modes where wchar_t
+        is not actually a built-in type, provided the type is expressed via a
+        typedef named "wchar_t" (that typedef can appear in any scope, and can
+        appear under another typedef). */
+    result = FALSE;
+    tp = char_type;
+    while (tp->kind == (a_type_kind)tk_typeref) {
+      if (typeref_is_typedef(tp) &&
+          strcmp(unmangled_name_of(&tp->source_corresp), "wchar_t") == 0) {
+        result = TRUE;
+        break;
+      }  /* if */
+      tp = tp->variant.typeref.type;
+    }  /* while */
+  } else {
+    result = FALSE;
+  }  /* if */
+  return result;
+}  /* is_valid_udl_char_parameter_type */
+
+
 static void check_udl_operator_type(a_symbol_locator  *loc,
                                     a_routine_ptr     rp)
 /*
@@ -7769,17 +7812,10 @@ needed.
       pos_ty_error(ec_invalid_second_parameter_type_for_literal_operator,
                    &loc->source_position, skip_typerefs(ptp->next->type));
       param_err = TRUE;
-    } else {
-      tp = skip_typerefs(tp);
-      if (tp->kind != (a_type_kind)tk_integer ||
-          (!is_plain_char_type(tp) &&
-           !tp->variant.integer.wchar_t_type &&
-           !tp->variant.integer.char16_t_type &&
-           !tp->variant.integer.char32_t_type)) {
-        pos_ty_error(ec_invalid_pointer_parameter_for_literal_operator,
-                     &loc->source_position, skip_typerefs(ptp->type));
-        param_err = TRUE;
-      }  /* if */
+    } else if (!is_valid_udl_char_parameter_type(tp)) {
+      pos_ty_error(ec_invalid_pointer_parameter_for_literal_operator,
+                   &loc->source_position, skip_typerefs(ptp->type));
+      param_err = TRUE;
     }  /* if */
   } else if (ptp->next != NULL) {
     pos_error(ec_too_many_parameters_for_literal_operator,

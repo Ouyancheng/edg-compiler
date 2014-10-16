@@ -1,5 +1,24 @@
 Version 4.10
 
+10/16/14 [EDGcpfe/15477]
+Microsoft compatibility: User-defined literals when wchar_t is not built-in
+
+In Microsoft C++ modes that accept user-defined literals but don't have a
+built-in type wchar_t, the front end now accepts user-defined literal operators
+for wide string literals: Such an operator must have as its first parameter
+type "X const*" where X is a typedef named wchar_t for the wide character
+integer type, or a typedef thereof.  For example:
+
+  typedef unsigned short wchar_t;  // Assume unsigned short is the wide
+                                   // character type.
+  int operator""_x(wchar const *str, size_t len) {  // Now valid in some
+    return 42;                                      // Microsoft modes.
+  }
+
+(Note that a similar extension does not currently exist for user-defined
+wide-character literals.)
+
+
 10/16/14 [EDGcpfe/15562]
 Diagnostics on elided copy constructor invocations
 
