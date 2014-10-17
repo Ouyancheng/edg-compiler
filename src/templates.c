@@ -6069,7 +6069,7 @@ the same constant.
   db_enter(4, "equiv_template_arg_lists");
 #if CHECKING
   is_nonreal_member = (options & ETA_IS_NONREAL_MEMBER) != 0;
-  is_variadic = (options & ETA_IS_VARIADIC) != 0,
+  is_variadic = (options & ETA_IS_VARIADIC) != 0;
 #endif /* CHECKING */
   error_matches_anything = (options & ETA_ERROR_MATCHES_ANYTHING) != 0;
   ignore_qualifiers = (options & ETA_MS_IGNORE_QUALIFIERS) != 0;
