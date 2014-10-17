@@ -1,5 +1,19 @@
 Version 4.10
 
+
+10/17/14 [EDGcpfe/15549]
+Microsoft compatibility: __is_empty and union types
+
+The type traits help __is_empty usually returns a false value when its operand
+is a union type (see the entry of 11/12/13 for EDGcpfe/14651).  However, that
+was not the case in Microsoft C++ mode.  Now, when microsoft_version >= 1800
+the same is true in Microsoft modes.
+
+  union U {};
+  static_assert(!__is_empty(U), "Nonstandard");
+    // Now accepted when microsoft_version >= 1800.
+
+
 10/17/14 [EDGcpfe/15564]
 Warning for macro_preempts_udl_suffix
 
