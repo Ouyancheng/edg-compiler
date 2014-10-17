@@ -11286,6 +11286,7 @@ tok_ud_literal; otherwise, return tok_string_literal.
   /* Loop as long as the next token is a string literal. */
   for (;;) {
     a_string_or_char_literal_kind next_encoding = SCLK_ORDINARY_LITERAL;
+    a_boolean                     saw_macro_instead_of_udl_suffix = FALSE;
     if (user_defined_literals_enabled) {
       /* Check for a ud-suffix. */
       a_const_char *id_start = curr_char_loc;
@@ -11301,6 +11302,7 @@ tok_ud_literal; otherwise, return tok_string_literal.
              space, e.g., "%"PRId64"\n".  If so requested, do not treat
              such a macro as a literal suffix but as a separate token. */
           curr_char_loc = id_start;
+          saw_macro_instead_of_udl_suffix = TRUE;
         } else if (ud_lit_suffix_buffer->size == 0) {
           /* This is the first one -- copy the identifier. */
           (void)add_to_text_buffer(ud_lit_suffix_buffer, canonical_id,
@@ -11365,7 +11367,12 @@ tok_ud_literal; otherwise, return tok_string_literal.
       }  /* if */
     }  /* if */
     /* End the loop if the new token is not a string literal. */
-    if (curr_token != tok_string_literal) break;
+    if (curr_token != tok_string_literal) {
+      if (curr_token == tok_identifier && saw_macro_instead_of_udl_suffix) {
+        warning_at_line_pos(ec_macro_not_udl_suffix, start_of_curr_token);
+      }  /* if */
+      break;
+    }  /* if */
     if (start_of_curr_token != NULL) {
       lit_kind = scan_encoding_prefix(start_of_curr_token);
       next_encoding = literal_encoding_prefix(lit_kind);

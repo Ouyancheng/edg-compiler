@@ -1,5 +1,25 @@
 Version 4.10
 
+10/17/14 [EDGcpfe/15564]
+Warning for macro_preempts_udl_suffix
+
+As described in the entry for EDGcpfe/14857, when the global variable
+macro_preempts_udl_suffix is TRUE (as it is by default in g++ mode), an
+apparent user-defined string literal will be lexed as an ordinary string
+literal followed by an identifier if that identifier has been defined as a
+macro name.  The front end will now issue a warning if the first token of
+that macro's expansion is an identifier, on the theory that such a case
+might be an attempt to specify a user-defined literal suffix via a macro
+expansion, to make it easier for the user to understand the syntax error
+that follows.  Macros for which the first token is not an identifier do not
+elicit the warning, as other kinds of tokens might result in correct
+syntax.  For example, with --gnu_version=40800 --c++11:
+
+  int operator "" _A(const char *);
+  #define _B _A
+  int i = "abc"_B;  // Now warns that _B is a macro, not a literal suffix
+
+
 10/16/14 [EDGcpfe/15477]
 Microsoft compatibility: User-defined literals when wchar_t is not built-in
 

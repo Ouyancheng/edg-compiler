@@ -2678,6 +2678,7 @@ ec_digit_separators_not_enabled;;"digit separators not enabled, apostrophe begin
 ec_bad_digit_separator_pos;;"digit separator cannot appear here"
 ec_constexpr_ignored_on_microsoft_nonstatic_member;;"\"constexpr\" is ignored here in Microsoft mode"
 ec_bad_gnu_stmt_return;;"invalid expression for statement expression result"
+ec_macro_not_udl_suffix;;"identifier is a macro and not a literal suffix"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #
