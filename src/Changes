@@ -90,16 +90,6 @@ modes, however.  For example:
  }                // an error while generating the definition of the
                   // copy constructor of Y).
 
-On the flip side, elided uses of deleted copy constructors and destructors
-are now diagnosed as an error instead of a warning in GNU and Clang modes.
-For example:
-
-  template<typename T> struct A { ~A() = delete; };
-  A<char> g();
-  A<char> f() {
-    return g();  // Elided copy would have required access to the destructor.
-  }              // Previously a warning in Clang and GNU modes; now an error.
-
 
 10/15/14 [EDGcpfe/15503]
 Microsoft compatibility: Exported generated members and default arguments

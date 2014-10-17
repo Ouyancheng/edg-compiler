@@ -2045,12 +2045,7 @@ copy constructor.
   rout = rout_sym->variant.routine.ptr;
   if (rout->is_deleted) {
     an_error_severity sev = es_error;
-    if (elided_ref && !clang_mode && !(gpp_mode && cpp11_mode)) {
-      /* Clang and GCC diagnose elided references to deleted copy constructors
-         as errors (as suggested by the standard).  However, GCC does not do
-         so in non-C++11 mode (where deleted functions are an extension). */
-      sev = strict_ansi_discretionary_severity;
-    }  /* if */
+    if (elided_ref) sev = strict_ansi_discretionary_severity;
     if (rout->special_kind == (a_special_function_kind)sfk_constructor &&
         is_default_constructor(rout, /*is_declarative_context=*/FALSE)) {
       /* Use a specific message for a default constructor.  This is clearer
