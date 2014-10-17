@@ -1,5 +1,16 @@
 Version 4.10
 
+10/17/14 [EDGcpfe/15563]
+Spurious errors on deduced void return types in templates
+
+The front end did not correctly handle "auto" return types in templates that
+were deduced to a "void" type.  For example:
+
+  template <typename T> auto f() {}  // Always deduces a "void" return type.
+  void g() { f<int>(); }             // Triggered a spurious error; now okay.
+
+This is now fixed.
+
 
 10/17/14 [EDGcpfe/15549]
 Microsoft compatibility: __is_empty and union types

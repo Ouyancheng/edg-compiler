@@ -36767,33 +36767,36 @@ Deduce the deducible return type of rp as if
 had been encountered.  (This is the case, for example, when a function with a
 deducible return type has no return statement.)  If keep_placeholder is TRUE,
 place a tk_typeref on top of the deduced type indicating that it is the result
-of a placeholder deduction.  Issue diagnostics at the given position.
+of a placeholder deduction.  Issue diagnostics at the given position.  This
+function has no effect for prototype instantiations (i.e., their return types
+are left unaffected).
 */
 {
-  a_type_ptr  declared_return_type, deduced_return_type;
-
-  check_assertion(depth_innermost_function_scope != NO_SCOPE_DEPTH &&
-                  rp->type->kind == (a_type_kind)tk_routine &&
-                  rp->has_deducible_return_type);
-  if (rp->has_deduced_return_type) {
-    declared_return_type = 
+  if (!rp->is_prototype_instantiation) {
+    a_type_ptr  declared_return_type, deduced_return_type;
+    check_assertion(depth_innermost_function_scope != NO_SCOPE_DEPTH &&
+                    rp->type->kind == (a_type_kind)tk_routine &&
+                    rp->has_deducible_return_type);
+    if (rp->has_deduced_return_type) {
+      declared_return_type = 
                  scope_stack[depth_innermost_function_scope].orig_return_type;
-  } else {
-    declared_return_type = rp->type->variant.routine.return_type;
+    } else {
+      declared_return_type = rp->type->variant.routine.return_type;
+    }  /* if */
+    if (is_auto_type(skip_typerefs(declared_return_type))) {
+      deduced_return_type = void_type();
+    } else {
+      pos_error(ec_cannot_deduce_auto_type, diag_pos);
+      deduced_return_type = error_type();
+    }  /* if */
+    if (keep_placeholder) {
+      a_type_ptr  type = alloc_type((a_type_kind)tk_typeref);
+      type->variant.typeref.type = deduced_return_type;
+      type->variant.typeref.is_deduced_auto = TRUE;
+      deduced_return_type = type;
+    }  /* if */
+    set_deduced_return_type(deduced_return_type, diag_pos);
   }  /* if */
-  if (is_auto_type(skip_typerefs(declared_return_type))) {
-    deduced_return_type = void_type();
-  } else {
-    pos_error(ec_cannot_deduce_auto_type, diag_pos);
-    deduced_return_type = error_type();
-  }  /* if */
-  if (keep_placeholder) {
-    a_type_ptr  type = alloc_type((a_type_kind)tk_typeref);
-    type->variant.typeref.type = deduced_return_type;
-    type->variant.typeref.is_deduced_auto = TRUE;
-    deduced_return_type = type;
-  }  /* if */
-  set_deduced_return_type(deduced_return_type, diag_pos);
 }  /* deduce_return_type_from_void_operand */
 
 
