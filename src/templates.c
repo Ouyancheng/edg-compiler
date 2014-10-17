@@ -16835,10 +16835,14 @@ of which it is a member.
     /* The symbol is something like X::Y, but the locator has a parent
        class or namespace of Z.  This can occur if X::Y is an inherited
        member or one made visible by a using-directive. */
-
-      pos_stsy_error(ec_not_an_actual_member, &locator->source_position,
-                     locator->symbol_header->identifier, parent_sym);
-  } else {
+      if (microsoft_mode || (gpp_mode && !clang_mode)) {
+        /* MSVC and GCC accept this (but not Clang). */
+      } else {
+        pos_stsy_error(ec_not_an_actual_member, &locator->source_position,
+                       locator->symbol_header->identifier, parent_sym);
+      }  /* if */
+  }  /* if */
+  if (!result) {
     /* Check for the definition of a nonreal member. */
     a_template_symbol_supplement_ptr	tssp;
     tssp = template_supplement_for_symbol(sym);
