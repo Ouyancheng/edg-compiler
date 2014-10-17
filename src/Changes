@@ -10,7 +10,7 @@ For example:
   namespace N { template<typename> struct X {}; }
   namespace M { using N::X; }
   template<typename> struct Y;
-  namespace L {
+  namespace N {
     template<typename T> struct M::X<Y<T>>;  // Previously an error.  Now a
   }                                          // warning in GNU/Microsoft mode.
 
