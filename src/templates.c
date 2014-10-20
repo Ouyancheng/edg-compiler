@@ -16841,8 +16841,7 @@ of which it is a member.
         pos_stsy_error(ec_not_an_actual_member, &locator->source_position,
                        locator->symbol_header->identifier, parent_sym);
       }  /* if */
-  }  /* if */
-  if (!result) {
+  } else {
     /* Check for the definition of a nonreal member. */
     a_template_symbol_supplement_ptr	tssp;
     tssp = template_supplement_for_symbol(sym);
