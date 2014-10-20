@@ -151,13 +151,15 @@ Enter some predefined macros for a MacOS X (Apple) system.
 {
   (void)enter_predef_macro("1", "__APPLE__", /*cannot_be_redefined=*/FALSE,
                            /*ref_suppresses_pch_file=*/FALSE);
+  (void)enter_predef_macro("1", "__MACH__", /*cannot_be_redefined=*/FALSE,
+                           /*ref_suppresses_pch_file=*/FALSE);
+#if defined(__BIG_ENDIAN__)
   (void)enter_predef_macro("1", "_BIG_ENDIAN", /*cannot_be_redefined=*/FALSE,
                            /*ref_suppresses_pch_file=*/FALSE);
   (void)enter_predef_macro("1", "__BIG_ENDIAN__",
                            /*cannot_be_redefined=*/FALSE,
                            /*ref_suppresses_pch_file=*/FALSE);
-  (void)enter_predef_macro("1", "__MACH__", /*cannot_be_redefined=*/FALSE,
-                           /*ref_suppresses_pch_file=*/FALSE);
+#endif /* defined(__BIG_ENDIAN__) */
 #if defined(__ppc__)
   (void)enter_predef_macro("1", "__ppc__", /*cannot_be_redefined=*/FALSE,
                            /*ref_suppresses_pch_file=*/FALSE);

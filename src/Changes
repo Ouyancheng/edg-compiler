@@ -1,5 +1,16 @@
 Version 4.10
 
+10/20/14 [EDGcpfe/15568]
+Predefined macros on MacOS X systems
+
+On MacOS X systems, the front end predefines some macros (see the entry of
+3/16/05).  Previously, that unconditionally included defining the macros
+__BIG_ENDIAN__ and _BIG_ENDIAN, even those are not true on current versions
+of MacOS X.  This is now fixed: Those macros are now only predefined if the
+host compiler defined __BIG_ENDIAN__.  (For cross compilation, sys_predef.c
+can be customized as needed.)
+
+
 10/17/14 [EDGcpfe/15565]
 Microsoft and GNU compatibility: Partial specialization via a using-declaration
 
