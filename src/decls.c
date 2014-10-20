@@ -7727,9 +7727,9 @@ static a_boolean is_valid_udl_char_parameter_type(a_type_ptr  char_type)
 Return TRUE if char_type is a valid unqualified type underlying the pointer
 type parameter of a user-defined literal operator for user-defined string
 literals.  Usually, the type must be one of: char, unsigned char, signed char,
-wchar_t, char16_t, or char32_t.  However, in some Microsoft mode, a typedef
-name wchar_t may be acceptable too (if its underlying type is the integer type
-for wide character literals).
+wchar_t, char16_t, or char32_t.  However, in some Microsoft modes, a typedef
+named wchar_t may be acceptable too (if its underlying type is the integer
+type for wide character literals).
 */
 {
   a_type_ptr  tp = skip_typerefs(char_type);
