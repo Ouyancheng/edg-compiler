@@ -44,11 +44,13 @@ Microsoft compatibility: __is_empty and union types
 The type traits helper __is_empty usually returns a false value when its
 operand is a union type (see the entry of 11/12/13 for EDGcpfe/14651).
 However, that was not the case in Microsoft C++ mode.  Now, when
-microsoft_version >= 1800 the same is true in Microsoft modes.
+microsoft_version >= 1900 the same is true in Microsoft modes (more precisely,
+if microsoft_version == 1900, the new behavior is in effect when
+microsoft_build_number > 22129).  For example:
 
   union U {};
   static_assert(!__is_empty(U), "Nonstandard");
-    // Now accepted when microsoft_version >= 1800.
+    // Now accepted when microsoft_version >= 1900.
 
 
 10/17/14 [EDGcpfe/15564]

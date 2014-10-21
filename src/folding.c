@@ -7691,8 +7691,16 @@ constant will be set as well.
                               && cli_class_type_kind_is(type, cctk_standard));
         break;
       case bok_is_empty:
-        result = ((microsoft_mode && microsoft_version < 1800) ||
-                 !is_union_type(type)) && is_empty_class_type(type);
+        /* The standard "std::is_empty" trait is always false for union types.
+           However, Microsoft didn't implement that part of the standard until
+           the final "19.00" release (early "preview" releases stuck to the
+           earlier behavior). */
+        result = ((microsoft_mode &&
+                   (microsoft_version < 1900 ||
+                    (microsoft_version == 1900 &&
+                     microsoft_build_number <= 22129))) ||
+                  !is_union_type(type)) &&
+                 is_empty_class_type(type);
         break;
       case bok_is_enum:
         result = FALSE;
