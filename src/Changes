@@ -1,5 +1,12 @@
 Version 4.10
 
+10/21/14 [EDGcpfe/15573]
+C11 _Static_assert and struct/union definitions
+
+The front end now accepts the C11 _Static_assert construct (see entry of 1/3/14
+for EDGcpfe/12649) inside struct or union definitions.
+
+
 10/20/14 [EDGcpfe/15568]
 Predefined macros on MacOS X systems
 

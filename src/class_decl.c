@@ -28706,6 +28706,10 @@ classes.
           (void)get_token();
           treat_declaration_as_okay_in_property_or_event(&class_state);
           goto next_declaration;
+        } else if (curr_token == tok_static_assert) {
+          /* A static_assert declaration. */
+          static_assert_declaration(/*leave_semicolon=*/FALSE);
+          goto next_declaration;
         }  /* if */
 #if !ASM_FUNCTION_ALLOWED
         /* Check for an (illegal) asm declaration. */
@@ -28751,13 +28755,9 @@ classes.
             (void)required_token(tok_semicolon, ec_exp_semicolon);
             goto next_declaration;
           }  /* if */
-          /* Check for a using declaration, alias declaration, or
-             static_assert declaration. */
+          /* Check for a using declaration or an alias declaration. */
           if (curr_token == tok_using) {
             member_using_or_alias_declaration(&class_state);
-            goto next_declaration;
-          } else if (curr_token == tok_static_assert) {
-            static_assert_declaration(/*leave_semicolon=*/FALSE);
             goto next_declaration;
           }  /* if */
           /* Check for an access adjustment declaration. */
