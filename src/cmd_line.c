@@ -2344,6 +2344,9 @@ by a command line option.
         user_defined_literals_enabled = TRUE;
       }  /* if */
       deduced_return_types_enabled = TRUE;
+      if (auto_type_specifier_enabled) {
+        decltype_auto_enabled = TRUE;
+      }  /* if */
     } else {
       /* Disable unrestricted unions because they involve making some special
          member functions "deleted", whereas Microsoft compilers prior to 1900

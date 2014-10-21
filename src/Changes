@@ -172,7 +172,7 @@ In Microsoft C++ mode with microsoft_version >= 1900, the front end now accepts
 the following C++11 and C++14 features: generalized lambda capture, generic
 lambdas, the implicit noexcept rules, inheriting constructors, ref-qualifiers
 on member functions, alignof/alignas, inline namespaces, user-defined literals,
-and deduced return types.
+deduced return types, and decltype(auto).
 
 
 10/14/14 [EDGcpfe/14261,EDGcpfe/14851,EDGcpfe/15277,EDGcpfe/15392,
