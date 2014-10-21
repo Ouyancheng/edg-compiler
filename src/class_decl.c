@@ -29608,19 +29608,9 @@ whether this is a lambda.  Return TRUE if it is.
   } else {
     /* The token is an identifier. */
     a_token_kind  next_tok;
-    /* Cache the identifier. */
-    cache_curr_token(&cache);
-    (void)get_token();
-    if (variadic_templates_enabled && curr_token == tok_ellipsis) {
-      /* Allow the identifier to be followed by ... when variadic templates
-         are enabled. */
-      cache_curr_token(&cache);
-      (void)get_token();
-    }  /* if */
     /* Skip past a comma-separated list of identifiers. */
-    while (curr_token == tok_comma) {
-      cache_curr_token(&cache);
-      (void)get_token();
+    for (;;) {
+      /* Cache the identifier, if any. */
       if (curr_token != tok_identifier && curr_token != tok_this) break;
       cache_curr_token(&cache);
       (void)get_token();
@@ -29630,7 +29620,29 @@ whether this is a lambda.  Return TRUE if it is.
         cache_curr_token(&cache);
         (void)get_token();
       }  /* if */
-    }  /* while */
+      if (init_capture_enabled &&
+          (curr_token == tok_assign || curr_token == tok_lparen ||
+           curr_token == tok_lbrace)) {
+        /* A C++14-style "init-capture": Cache everything up until a comma or
+           a left bracket. */
+        a_token_set_array  stop_token_array;
+        clear_token_set_array(stop_token_array);
+        incr_token_set_array_element(stop_token_array, tok_comma);
+        incr_token_set_array_element(stop_token_array, tok_rbracket);
+        /* Also stop on a right brace or semicolon to keep from caching too far
+           in error cases. */
+        incr_token_set_array_element(stop_token_array, tok_rbrace);
+        incr_token_set_array_element(stop_token_array, tok_semicolon);
+        cache_token_stream_full(&cache, stop_token_array, CTS_COALESCE_IDS);
+      }  /* if */
+      if (curr_token != tok_comma) {
+        break;
+      } else {
+        /* Cache the comma and loop for the next (presumed) capture. */
+        cache_curr_token(&cache);
+        (void)get_token();
+      }  /* if */
+    }  /* for */
     /* Note that next_token() is not called until we've looked at the current
        token.  This is done to avoid caching an unquoted uuid. */
     if ((curr_token == tok_assign || curr_token == tok_ampersand) &&
