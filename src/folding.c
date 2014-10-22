@@ -6952,6 +6952,7 @@ constant will be set as well.
   } else {
     a_boolean  result;
     if (microsoft_mode) {
+      a_boolean  force_array_to_reference = FALSE;
       if (microsoft_version < 1800) {
         a_boolean   is_rvalue_ref1 = is_rvalue_reference_type(type1), 
                     is_rvalue_ref2 = is_rvalue_reference_type(type2);
@@ -6970,12 +6971,19 @@ constant will be set as well.
           type2 = type_pointed_to(type2);
         }  /* if */
       }  /* if */
-      if (is_function_type(type1) || is_array_type(type1)) {
+      if (microsoft_version < 1900 || (microsoft_version == 1900 &&
+                                       microsoft_build_number <= 22129)) {
+        /* Prior to a recent build of MSVC "19.00", Microsoft implicitly added
+           an "lvalue reference" layer on top of array types. */
+        force_array_to_reference = TRUE;
+      }  /* if*/
+      if (is_function_type(type1) ||
+          (force_array_to_reference && is_array_type(type1))) {
         /* Microsoft appears to treat conversions from functions and arrays as
            conversions from lvalue references to those types. */
         type1 = make_reference_type(type1);
       }  /* if */
-      if (is_array_type(type2)) {
+      if (force_array_to_reference && is_array_type(type2)) {
         /* Microsoft appears to treat a conversion to an array type as a
            conversion to an lvalue reference to that array type. */
         type2 = make_reference_type(type2);

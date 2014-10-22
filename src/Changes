@@ -1,5 +1,22 @@
 Version 4.10
 
+10/22/14 [EDGcpfe/15548]
+Microsoft compatibility: __convertible_to and array types
+
+When evaluating the type traits helper __is_convertible_to(T1, T2) in Microsoft
+mode, the front end replace an array type T1 or T2 by the reference type T1&
+or T2&, respectively.  This caused the following example to be accepted:
+
+  typedef int A[3];
+  static_assert(__is_convertible_to(A, A), "Standard");
+
+Now, when microsoft_version >= 1900, the extra "reference type layer" is no
+longer added to the specified type and the case above produces an error as
+expected from the standard "is_convertible_to" trait (if microsoft_version
+equals 1900, the standard behavior is in effect when microsoft_build_number >
+22129).
+
+
 10/22/14 [EDGcpfe/15576]
 Switch statements controlled by an enum bit field
 
