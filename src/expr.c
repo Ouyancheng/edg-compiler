@@ -39836,29 +39836,15 @@ selector type.
     end_position = operand.end_position;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
     /* Convert the expression to the switch type. */
-    if (gpp_mode &&
-        is_unscoped_enum_type(operand.type) &&
-        is_unscoped_enum_type(switch_type) &&
-        !identical_types_ignoring_qualifiers(operand.type, switch_type)) {
-      /* g++ allows mixed enum types in a switch/case. */
-      if (expr_diagnostic_should_be_issued(es_warning,
-                                           ec_unconvertible_con_expr)) {
-        pos_ty2_warning(ec_unconvertible_con_expr, &operand.position,
-                        operand.type, switch_type);
-      }  /* if */
-      cast_operand(switch_type, &operand, /*is_implicit_cast=*/TRUE);
-      extract_constant_from_operand(&operand, &constant);
-    } else {
-      process_converted_constant_expression(&operand,
-                                            is_error_type(switch_type) ?
+    process_converted_constant_expression(&operand,
+                                          is_error_type(switch_type) ?
                                               NULL :
                                               switch_type,
-                                            (a_builtin_type_kind_set)
+                                          (a_builtin_type_kind_set)
                                                      (BTK_INTEGRAL | BTK_ENUM),
-                                            /*is_array_bound=*/FALSE,
-                                            /*is_enum=*/FALSE,
-                                            &constant);
-    }  /* if */
+                                          /*is_array_bound=*/FALSE,
+                                          /*is_enum=*/FALSE,
+                                          &constant);
   }  /* if */
   wrap_up_constant_full_expression(&constant, &label_position);
   if (is_error_constant(&constant)) {

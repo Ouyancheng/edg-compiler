@@ -8753,6 +8753,7 @@ desired.
   if (!is_glvalue_node(node)) type = prvalue_type(type);
   promoted_type = skip_typerefs(type);
   if (is_template_param_type(promoted_type) ||
+      is_scoped_enum_type(promoted_type) ||
       is_error_type(promoted_type)) {
     goto end_of_routine;
   }  /* if */
@@ -8822,7 +8823,12 @@ desired.
       /* Bit-fields larger than unsigned int keep the original type. */
     }  /* if */
   }  /* if */
-  if (ikind != orig_ikind) promoted_type = integer_type(ikind);
+  if (ikind != orig_ikind || is_immediate_enum_type(promoted_type)) {
+    /* If the integer kind changed, update the promoted type to the promoted
+       kind.  Even if it didn't change, return the underlying type in the case
+       of an enum type (unscoped; scoped enum types don't get here). */
+    promoted_type = integer_type(ikind);
+  }  /* if */
   db_exit();
 end_of_routine:
   return promoted_type;
