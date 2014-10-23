@@ -956,6 +956,7 @@ Return TRUE if the given type is a C++11 rvalue reference type.
   return is_reference_ptr(tp) && tp->variant.pointer.is_rvalue_reference;
 }  /* is_rvalue_reference_type */
 
+#if !STANDALONE_UTILITY_PROGRAM
 
 a_boolean is_reference_that_can_bind_to_rvalue(a_type_ptr type)
 /*
@@ -1000,6 +1001,7 @@ xvalues), e.g., an lvalue reference to non-volatile const.
   return can_bind;
 }  /* is_reference_that_can_bind_to_rvalue */
 
+#endif /* !STANDALONE_UTILITY_PROGRAM */
 
 a_boolean types_are_references_of_the_same_kind(a_type_ptr  tp1, 
                                                 a_type_ptr  tp2)
