@@ -33,10 +33,10 @@ constructor template of Y and the case is accepted.
 
 
 10/22/14 [EDGcpfe/15548]
-Microsoft compatibility: __convertible_to and array types
+Microsoft compatibility: __is_convertible_to and array types
 
 When evaluating the type traits helper __is_convertible_to(T1, T2) in Microsoft
-mode, the front end replace an array type T1 or T2 by the reference type T1&
+mode, the front end replaced an array type T1 or T2 by the reference type T1&
 or T2&, respectively.  This caused the following example to be accepted:
 
   typedef int A[3];
