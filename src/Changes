@@ -65,7 +65,7 @@ switch statements controlled by a bit field of enumeration type.  For example:
   }
 
 This is now fixed.  Note that this case was already accepted with a warning in
-GNU C++ mode; that warning is not longer issued.
+GNU C++ mode; that warning is no longer issued.
 
 
 10/21/14 [EDGcpfe/15573]
