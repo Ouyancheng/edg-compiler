@@ -957,6 +957,50 @@ Return TRUE if the given type is a C++11 rvalue reference type.
 }  /* is_rvalue_reference_type */
 
 
+a_boolean is_reference_that_can_bind_to_rvalue(a_type_ptr type)
+/*
+Return TRUE if type is a reference type that can bind to rvalues (including
+xvalues), e.g., an lvalue reference to non-volatile const.
+*/
+{
+  a_boolean can_bind = FALSE;
+
+  if (is_lvalue_reference_type(type)) {
+    a_type_ptr under_type = type_pointed_to(type);
+    if (is_const_qualified_type(under_type)) {
+      can_bind = TRUE;
+      if (is_volatile_qualified_type(under_type)) {
+        if (microsoft_bugs && microsoft_version < 1600) {
+          /* Before VC10, Microsoft did not include the "volatile" part. */
+        } else if (microsoft_bugs && microsoft_version < 1700 &&
+                   !is_class_struct_union_type(under_type)) {
+          /* VC10 allowed const volatile refs to bind to non-class types. */
+        } else if (any_cfront_mode()) {
+          /* Cfront never considered volatile. */
+        } else {
+          can_bind = FALSE;
+        }  /* if */
+      }  /* if */
+    }  /* if */
+  } else if (is_rvalue_reference_type(type)) {
+    /* Rvalue references generally bind to rvalues, but rvalue references
+       to functions bind to lvalues. */
+    a_type_ptr under_type = type_pointed_to(type);
+    can_bind = TRUE;
+    if (is_function_type(under_type) &&
+        rvalue_ref_can_be_bound_to_function_lvalue()) {
+      can_bind = FALSE;
+    }  /* if */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  } else if (cli_or_cx_enabled && is_tracking_reference_type(type)) {
+    /* A tracking reference binds to lvalues. */
+    can_bind = FALSE;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+  }  /* if */
+  return can_bind;
+}  /* is_reference_that_can_bind_to_rvalue */
+
+
 a_boolean types_are_references_of_the_same_kind(a_type_ptr  tp1, 
                                                 a_type_ptr  tp2)
 /*

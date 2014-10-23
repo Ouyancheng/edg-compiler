@@ -2679,6 +2679,10 @@ ec_bad_digit_separator_pos;;"digit separator cannot appear here"
 ec_constexpr_ignored_on_microsoft_nonstatic_member;;"\"constexpr\" is ignored here in Microsoft mode"
 ec_bad_gnu_stmt_return;;"invalid expression for statement expression result"
 ec_macro_not_udl_suffix;;"identifier is a macro and not a literal suffix"
+ec_cannot_call_named_member_on_lvalue;;"%nd cannot be called on an lvalue"
+ec_cannot_call_named_member_on_rvalue;;"%nd cannot be called on an rvalue"
+ec_cannot_call_member_on_lvalue;;"member function cannot be called on an lvalue"
+ec_cannot_call_member_on_rvalue;;"member function cannot be called on an rvalue"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

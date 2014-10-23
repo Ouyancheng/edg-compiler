@@ -4706,6 +4706,61 @@ done:
 #endif /* GNU_BUILTIN_SYNC_FUNCTIONS_ALLOWED */
 #endif /* GNU_EXTENSIONS_ALLOWED */
 
+static void report_this_param_mismatch(
+                               a_routine_ptr         routine,
+                               a_type_ptr            this_param_type,
+                               an_operand            *bound_function_selector,
+                               an_arg_match_summary  *this_match)
+/*
+A selector (bound_function_selector) doesn't match a call to a member function
+(routine if the member is named; NULL if it is not named) because of a mismatch
+in type qualifiers or value category.  Issue an error describing the mismatch.
+this_param_type is the type of the hidden *this parameter (a reference; not a
+pointer), and *this_match describes the result of the failed match.
+*/
+{
+  if (expr_error_should_be_issued()) {
+    if (this_match->ref_qualifier == (a_ref_qualifier_kind)rqk_rvalue &&
+        is_an_lvalue(bound_function_selector)) {
+      /* An lvalue with an rvalue ref-qualifier. */
+      if (routine != NULL) {
+        pos_sy_error(ec_cannot_call_named_member_on_lvalue,
+                     &bound_function_selector->position, symbol_for(routine));
+      } else {
+        pos_error(ec_cannot_call_member_on_lvalue,
+                  &bound_function_selector->position);
+      }  /* if */
+    } else if (this_match->ref_qualifier == (a_ref_qualifier_kind)rqk_lvalue &&
+               is_an_rvalue(bound_function_selector) &&
+               !is_reference_that_can_bind_to_rvalue(this_param_type)) {
+      /* An rvalue with an lvalue ref-qualifier and a non-const member
+         function. */
+      if (routine != NULL) {
+        pos_sy_error(ec_cannot_call_named_member_on_rvalue,
+                     &bound_function_selector->position, symbol_for(routine));
+      } else {
+        pos_error(ec_cannot_call_member_on_rvalue,
+                  &bound_function_selector->position);
+      }  /* if */
+    } else {
+      /* Not a value category mismatch.  It must therefore be a qualifier
+         mismatch (e.g., calling a non-const member on a const value). */
+      if (routine != NULL) {
+        /* The member function called is known. */
+        pos_sy_start_error(ec_unqual_named_function_with_qual_object,
+                           &bound_function_selector->position,
+                           symbol_for(routine));
+      } else {
+        pos_start_error(ec_unqual_function_with_qual_object,
+                        &bound_function_selector->position);
+      }  /* if */
+      display_object_type(bound_function_selector->type);
+      end_error();
+    }  /* if */
+  }  /* if */
+}  /* report_this_param_mismatch */
+
+
 static void scan_function_call(an_operand             *operand,
                                an_operand             *bound_function_selector,
                                a_rescan_control_block *rcblock,
@@ -4744,7 +4799,6 @@ are expected to be NULL in that case.
   a_token_sequence_number
                     opening_paren_tok_seq_number;
   a_boolean         unknown_dependent_function = FALSE;
-  a_symbol_ptr      member_func_sym = NULL;
   a_boolean         handle_case = FALSE;
 #if MICROSOFT_EXTENSIONS_ALLOWED
   a_boolean         implicit_delegate_invocation = FALSE;
@@ -4975,7 +5029,7 @@ are expected to be NULL in that case.
     if (is_sym_for_member_operand(operand) &&
         is_a_function_designator(operand) &&
         !operand->bound_function) {
-      member_func_sym = operand->symbol;
+      a_symbol_ptr  member_func_sym = operand->symbol;
       if (make_this_pointer_operand(member_func_sym,
                                     member_func_sym,
                                     &call_position,
@@ -5316,22 +5370,12 @@ are expected to be NULL in that case.
         */
         expr_pos_warning(ec_unqual_function_with_qual_object,
                          &bound_function_selector->position);
-      } else {
-        /* Some mismatch (more qualifiers on selector than on "this" parameter
-           type). */
-        if (expr_error_should_be_issued()) {
-          if (member_func_sym != NULL) {
-            /* The member function called is known. */
-            pos_sy_start_error(ec_unqual_named_function_with_qual_object,
-                               &bound_function_selector->position,
-                               member_func_sym);
-          } else {
-            pos_start_error(ec_unqual_function_with_qual_object,
-                            &bound_function_selector->position);
-          }  /* if */
-          display_object_type(bound_function_selector->type);
-          end_error();
-        }  /* if */
+      } else if (expr_error_should_be_issued()) {
+        /* Some mismatch (either a value category mismatch, or more qualifiers
+           on the selector than on the "this" parameter type). */
+        report_this_param_mismatch(routine, this_param_type,
+                                   bound_function_selector,
+                                   &this_match_summary);
         conv_to_error_operand(bound_function_selector);
       }  /* if */
     }  /* if */

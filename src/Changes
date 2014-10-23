@@ -1,5 +1,28 @@
 Version 4.10
 
+10/23/14 [EDGcpfe/15582]
+Microsoft compatibility: Ref-qualifiers
+
+Consider:
+
+  struct S { void f() &; };
+  void g() {
+    S().f();
+  }
+
+The "&" ref-qualifier (see entry of 4/23/13 for EDGcpfe/13936) indicates that
+the member function S::f can only be called on lvalues.  However, in Microsoft
+mode, this was previously not enforced because Microsoft compilers -- which
+until recently did not support C++11-style ref-qualifiers at all -- do permit
+rvalues to be bound to lvalue references to non-const types.  Now, however,
+Microsoft compilers have added support for ref-qualifiers and in that context
+they do adhere to the standard constraints.  The front end now matches that
+behavior.
+
+As part of this change, diagnostics for such mismatches have been improved in
+general (not just in Microsoft mode).
+
+
 10/23/14 [EDGcpfe/15586]
 __has_trivial_copy and __has_trivial_assign
 

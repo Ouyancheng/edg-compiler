@@ -2252,50 +2252,6 @@ pointer transformation should be done.
 }  /* function_transformation_needed_on_reference_init */
 
 
-static a_boolean is_reference_that_can_bind_to_rvalue(a_type_ptr type)
-/*
-Return TRUE if type is a reference type that can bind to rvalues (including
-xvalues), e.g., an lvalue reference to non-volatile const.
-*/
-{
-  a_boolean can_bind = FALSE;
-
-  if (is_lvalue_reference_type(type)) {
-    a_type_ptr under_type = type_pointed_to(type);
-    if (is_const_qualified_type(under_type)) {
-      can_bind = TRUE;
-      if (is_volatile_qualified_type(under_type)) {
-        if (microsoft_bugs && microsoft_version < 1600) {
-          /* Before VC10, Microsoft did not include the "volatile" part. */
-        } else if (microsoft_bugs && microsoft_version < 1700 &&
-                   !is_class_struct_union_type(under_type)) {
-          /* VC10 allowed const volatile refs to bind to non-class types. */
-        } else if (any_cfront_mode()) {
-          /* Cfront never considered volatile. */
-        } else {
-          can_bind = FALSE;
-        }  /* if */
-      }  /* if */
-    }  /* if */
-  } else if (is_rvalue_reference_type(type)) {
-    /* Rvalue references generally bind to rvalues, but rvalue references
-       to functions bind to lvalues. */
-    a_type_ptr under_type = type_pointed_to(type);
-    can_bind = TRUE;
-    if (is_function_type(under_type) &&
-        rvalue_ref_can_be_bound_to_function_lvalue()) {
-      can_bind = FALSE;
-    }  /* if */
-#if MICROSOFT_EXTENSIONS_ALLOWED
-  } else if (cli_or_cx_enabled && is_tracking_reference_type(type)) {
-    /* A tracking reference binds to lvalues. */
-    can_bind = FALSE;
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-  }  /* if */
-  return can_bind;
-}  /* is_reference_that_can_bind_to_rvalue */
-
-
 a_boolean conversion_for_direct_reference_binding_possible(
                                       an_operand               *source_operand,
                                       a_type_ptr               dest_type,
@@ -3655,55 +3611,59 @@ kind of mismatch here.
        does not matter, so drop the selector operand so we lose information
        about that. */
     selector = NULL;
-  }  /* if */
-  if (selector != NULL) {
-    selector_object_is_lvalue = is_an_lvalue(selector);
-  }  /* if */
-  if (selector_object_is_lvalue &&
-      is_rvalue_reference_type(param_type)) {
-    /* An rvalue reference cannot bind to an lvalue, so this selector
-       cannot match. */
-    clear_arg_match_summary(match_summary);
-    match_summary->match_level = aml_none;
   } else {
-    determine_arg_match_level(selector,
-                              selector == NULL ? selector_type : NULL,
-                              param_type,
-                              (a_param_type_ptr)NULL,
-                              /*param_type_is_deduced=*/FALSE,
-                              /*try_user_conversions=*/FALSE,
-                              /*allow_expl_conv_funcs=*/FALSE,
-                              match_summary);
-    if (match_summary->match_level == aml_none &&
-        allow_nonconst_call_anachronism &&
-        is_any_reference_type(param_type)) {
-      /* No match.  Try the anachronism of calling a function that
-         does not require a const "this" with a const selector.  See also
-         set_up_for_conversion_function_call. */
-      a_type_ptr under_param_type = type_pointed_to(param_type);
-      if (!is_const_qualified_type(under_param_type)) {
-        a_type_qualifier_set quals = get_type_qualifiers(selector_type);
-        if (quals & TQ_CONST) {
-          quals &= ~TQ_CONST;
-          selector_type = make_unqualified_type(selector_type);
-          selector_type = make_qualified_type(selector_type, quals);
-          selector = NULL;
-          determine_arg_match_level((an_operand *)NULL, selector_type,
-                                    param_type,
-                                    (a_param_type_ptr)NULL,
-                                    /*param_type_is_deduced=*/FALSE,
-                                    /*try_user_conversions=*/FALSE,
-                                    /*allow_expl_conv_funcs=*/FALSE,
-                                    match_summary);
-          if (match_summary->match_level != aml_none) {
-            /* Anachronism -- calling non-const function with const object. */
-            match_summary->const_anachronism = TRUE;
-            match_summary->tiebreaker_anachronism_used = TRUE;
-          }  /* if */
+    if (selector != NULL) {
+      selector_object_is_lvalue = is_an_lvalue(selector);
+    }  /* if */
+    if (selector_object_is_lvalue ?
+                          is_rvalue_reference_type(param_type) :
+                          !is_reference_that_can_bind_to_rvalue(param_type)) {
+      /* Either an lvalue trying to bind to an rvalue reference, or an rvalue
+         trying to bind to an lvalue reference that cannot bind to an rvalue.
+         Either way, this cannot be a match. */
+      clear_arg_match_summary(match_summary);
+      match_summary->match_level = aml_none;
+      goto done;
+    }  /* if */
+  } /* if */
+  determine_arg_match_level(selector,
+                            selector == NULL ? selector_type : NULL,
+                            param_type,
+                            (a_param_type_ptr)NULL,
+                            /*param_type_is_deduced=*/FALSE,
+                            /*try_user_conversions=*/FALSE,
+                            /*allow_expl_conv_funcs=*/FALSE,
+                            match_summary);
+  if (match_summary->match_level == aml_none &&
+      allow_nonconst_call_anachronism &&
+      is_any_reference_type(param_type)) {
+    /* No match.  Try the anachronism of calling a function that
+       does not require a const "this" with a const selector.  See also
+       set_up_for_conversion_function_call. */
+    a_type_ptr under_param_type = type_pointed_to(param_type);
+    if (!is_const_qualified_type(under_param_type)) {
+      a_type_qualifier_set quals = get_type_qualifiers(selector_type);
+      if (quals & TQ_CONST) {
+        quals &= ~TQ_CONST;
+        selector_type = make_unqualified_type(selector_type);
+        selector_type = make_qualified_type(selector_type, quals);
+        selector = NULL;
+        determine_arg_match_level((an_operand *)NULL, selector_type,
+                                  param_type,
+                                  (a_param_type_ptr)NULL,
+                                  /*param_type_is_deduced=*/FALSE,
+                                  /*try_user_conversions=*/FALSE,
+                                  /*allow_expl_conv_funcs=*/FALSE,
+                                  match_summary);
+        if (match_summary->match_level != aml_none) {
+          /* Anachronism -- calling non-const function with const object. */
+          match_summary->const_anachronism = TRUE;
+          match_summary->tiebreaker_anachronism_used = TRUE;
         }  /* if */
       }  /* if */
     }  /* if */
   }  /* if */
+done:
   match_summary->is_match_for_this_param = TRUE;
   match_summary->ref_qualifier = rtsp->ref_qualifiers;
 }  /* determine_selector_match_level */
