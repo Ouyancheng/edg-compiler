@@ -27559,7 +27559,10 @@ not a literal type.
   a_base_class_ptr  bcp;
 
   for (bcp = base_classes_of(class_type); bcp != NULL; bcp = bcp->next) {
-    if (bcp->direct &&
+    /* Check if the base classes include a nonliteral class type.  Exclude
+       nonreal bases, and also incomplete bases (which are possible in
+       Microsoft-mode nonreal instantiations). */
+    if (bcp->direct && !bcp->type->incomplete &&
         !bcp->type->variant.class_struct_union.is_nonreal_class &&
         !is_literal_type(bcp->type)) {
       result = TRUE;

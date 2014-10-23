@@ -1,5 +1,22 @@
 Version 4.10
 
+10/23/14 [EDGcpfe/15517]
+Abort in is_literal_type with Microsoft-mode base class of a class template
+
+The front end sometimes abort in is_literal_type (types.c) when it performed
+a "nonreal instantiation" of a class with an incomplete, nondependent base
+class (which are accepted during nonreal instantiations).  For example:
+
+  struct S1;
+  template<typename> struct S2;
+  template <typename, typename U> struct S3: S2<U> {};
+  template <typename T> struct S4: S3<T, S1> {};
+
+This triggered an abort during the nonreal instantiation of S3<T, S1> (nonreal
+because T is a template parameter) because its base S2<S1> is incomplete.
+This problem is now fixed.
+
+
 10/22/14 [EDGcpfe/15562]
 Generated copy/move constructors and const fields
 
