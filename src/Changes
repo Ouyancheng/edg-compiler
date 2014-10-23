@@ -1,5 +1,23 @@
 Version 4.10
 
+10/23/14 [EDGcpfe/15586]
+__has_trivial_copy and __has_trivial_assign
+
+Previously, the front end produced a true value for __has_trivial_copy(T) only
+if both the copy and the move constructors of a class type T were trivial.
+Now, a true value is produced also for classes whose copy constructors are all
+trivial but whose move constructors (if any) are nontrivial.  Similarly,
+__has_trivial_assign no longer depends on the triviality of the move assignment
+operator.  For example:
+
+  struct S {
+    S& operator=(S const&) = default;  // Trivial copy assignment.
+    S& operator=(S&&);                 // Nontrivial move assignment.
+  };
+  static_assert(__has_trivial_assign(S), "Old behavior");
+      // This assertion now succeeds.
+
+
 10/23/14 [EDGcpfe/15517]
 Abort in is_literal_type with Microsoft-mode base class of a class template
 

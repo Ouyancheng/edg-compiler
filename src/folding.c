@@ -7405,6 +7405,71 @@ are known not to throw exceptions, or if it is an array of such a class type.
 }  /* has_nothrow_move_assign */
 
 
+static a_boolean all_copy_assignment_operators_trivial(
+                                          a_class_symbol_supplement_ptr  cssp)
+/*
+Return TRUE if all the copy (not move!) assignment operators of the class
+associated with cssp are trivial.
+*/
+{
+  a_boolean     result = TRUE, is_list = FALSE;
+  a_symbol_ptr  sym = cssp->assignment_operator;
+
+  /* Assume the result is TRUE, and look for a copy assignment operator that
+     would make it FALSE. */
+  if (symbol_is(sym, sk_overloaded_function)) {
+    is_list = TRUE;
+    sym = sym->variant.overloaded_function.symbols;
+  }  /* if */
+  for (; sym != NULL; sym = is_list ? sym->next : NULL) {
+    if (symbol_is(sym, sk_member_function)) {
+      a_type_qualifier_set  tqs;
+      a_boolean             is_move;
+      a_routine_ptr         rp = sym->variant.routine.ptr;
+      if (routine_is_copy_or_move_assign_operator(rp, &tqs, &is_move) &&
+          !is_move && !rp->is_trivial_copy_function) {
+        result = FALSE;
+        break;
+      }  /* if */
+    }  /* if */
+  }  /* for */
+  return result;
+}  /* all_copy_assignment_operators_trivial */
+
+
+static a_boolean all_copy_constructors_trivial(
+                                          a_class_symbol_supplement_ptr  cssp)
+/*
+Return TRUE if all the copy (not move!) constructors of the class associated
+with cssp are trivial.
+*/
+{
+  a_boolean     result = TRUE, is_list = FALSE;
+  a_symbol_ptr  sym = cssp->constructor;
+
+  /* Assume the result is TRUE, and look for a copy constructor that would
+     make it FALSE. */
+  if (symbol_is(sym, sk_overloaded_function)) {
+    is_list = TRUE;
+    sym = sym->variant.overloaded_function.symbols;
+  }  /* if */
+  for (; sym != NULL; sym = is_list ? sym->next : NULL) {
+    if (symbol_is(sym, sk_member_function)) {
+      a_type_qualifier_set  tqs;
+      a_routine_ptr         rp = sym->variant.routine.ptr;
+      if (is_copy_constructor(rp, parent_class_of(rp), &tqs,
+                              /*include_move_ctors=*/FALSE,
+                              /*is_declarative_context=*/TRUE) &&
+          !rp->is_trivial_copy_function) {
+        result = FALSE;
+        break;
+      }  /* if */
+    }  /* if */
+  }  /* for */
+  return result;
+}  /* all_copy_constructors_trivial */
+
+
 static void fold_unary_type_trait_helper(
                                     an_expr_node_ptr   expr,
                                     a_constant_ptr     constant,
@@ -7659,7 +7724,9 @@ constant will be set as well.
         break;
       case bok_has_trivial_assign:
         check_assertion(cssp != NULL);  /* For Coverity. */
-        result = !is_const && cssp->assignment_by_bitwise_copy_allowed;
+        result = !is_const &&
+                 (cssp->assignment_by_bitwise_copy_allowed ||
+                  all_copy_assignment_operators_trivial(cssp));
         break;
       case bok_has_trivial_constructor:
         check_assertion(cssp != NULL);  /* For Coverity. */
@@ -7667,7 +7734,8 @@ constant will be set as well.
         break;
       case bok_has_trivial_copy:
         check_assertion(cssp != NULL);  /* For Coverity. */
-        result = cssp->construction_by_bitwise_copy_allowed;
+        result = cssp->construction_by_bitwise_copy_allowed ||
+                 all_copy_constructors_trivial(cssp);
         break;
       case bok_has_trivial_destructor:
         check_assertion(cssp != NULL);  /* For Coverity. */
