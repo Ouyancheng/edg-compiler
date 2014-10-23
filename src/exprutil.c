@@ -17731,20 +17731,6 @@ Return TRUE if the given operand is an xvalue, as defined in C++11.
 }  /* is_an_xvalue */
 
 
-a_boolean rvalue_ref_can_be_bound_to_function_lvalue(void)
-/*
-Return TRUE if in the current dialect an rvalue reference can be bound
-to a function lvalue.  (The C++11 standard allows that, but some earlier
-implementations of rvalue references did not.)
-*/
-{
-  a_boolean can_be_bound = TRUE;
-
-  if (microsoft_mode && microsoft_version < 1800) can_be_bound = FALSE;
-  return can_be_bound;
-}  /* rvalue_ref_can_be_bound_to_function_lvalue */
-
-
 a_boolean rvalue_ref_can_be_bound_to(an_operand *operand)
 /*
 Return TRUE if the value category of operand is such that an rvalue reference

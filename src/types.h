@@ -119,6 +119,7 @@ extern a_boolean is_lvalue_reference_type(a_type_ptr tp);
 extern a_boolean is_any_lvalue_reference_type(a_type_ptr tp);
 extern a_boolean is_rvalue_reference_type(a_type_ptr tp);
 #if !STANDALONE_UTILITY_PROGRAM
+extern a_boolean rvalue_ref_can_be_bound_to_function_lvalue(void);
 extern a_boolean is_reference_that_can_bind_to_rvalue(a_type_ptr type);
 #endif /* !STANDALONE_UTILITY_PROGRAM */
 extern a_boolean types_are_references_of_the_same_kind(a_type_ptr tp1, 

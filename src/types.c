@@ -958,6 +958,20 @@ Return TRUE if the given type is a C++11 rvalue reference type.
 
 #if !STANDALONE_UTILITY_PROGRAM
 
+a_boolean rvalue_ref_can_be_bound_to_function_lvalue(void)
+/*
+Return TRUE if in the current dialect an rvalue reference can be bound
+to a function lvalue.  (The C++11 standard allows that, but some earlier
+implementations of rvalue references did not.)
+*/
+{
+  a_boolean can_be_bound = TRUE;
+
+  if (microsoft_mode && microsoft_version < 1800) can_be_bound = FALSE;
+  return can_be_bound;
+}  /* rvalue_ref_can_be_bound_to_function_lvalue */
+
+
 a_boolean is_reference_that_can_bind_to_rvalue(a_type_ptr type)
 /*
 Return TRUE if type is a reference type that can bind to rvalues (including
