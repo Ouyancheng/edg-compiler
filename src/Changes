@@ -1,5 +1,37 @@
 Version 4.10
 
+10/22/14 [EDGcpfe/15562]
+Generated copy/move constructors and const fields
+
+The front end previously ignored const qualifiers on fields when determining
+whether to generate a viable (i.e., non-deleted) copy or move constructor.
+This sometimes triggered spurious errors.  Consider the following example:
+
+  struct X {
+    X(X const&) = delete;
+    X(X&& in);
+ };
+ struct Y {
+   const X x;
+   template<class T> Y(T&&);
+ };
+ Y&& yval();
+ void g() {
+   Y y = yval();  // Previously triggered an error.
+ }
+
+Previously, the front end generated a move constructor for Y even though its
+field x is not copyable due to its const type (X's move constructor doesn't
+accept a const argument, and its copy constructor is deleted).  The
+initialization of y in function g() then caused the generation of the body of
+Y's move constructor, which led to an error attempting to select the deleted
+copy constructor of X.
+
+This is now fixed: The move constructor is no longer generated since field x
+cannot be moved (or copied).  The initialization of y then simply picks the
+constructor template of Y and the case is accepted. 
+
+
 10/22/14 [EDGcpfe/15548]
 Microsoft compatibility: __convertible_to and array types
 
@@ -133,33 +165,6 @@ integer type, or a typedef thereof.  For example:
 
 (Note that a similar extension does not currently exist for user-defined
 wide-character literals.)
-
-
-10/16/14 [EDGcpfe/15562]
-Diagnostics on elided copy constructor invocations
-
-C++ allows uses of copy constructors to be elided under some circumstances
-(for example, when copying a temporary to another temporary).  However, the
-front end usually still issues a diagnostic if a copy constructor use that is
-elided would have triggered an error if it had not been elided (e.g., because
-it is a deleted constructor).  To ensure that these diagnostics are emitted,
-the front end therefore usually still generates the definition of the elided
-copy constructor in such cases.  Now it no longer does so in GNU and Clang
-modes, however.  For example:
-
-  struct X {
-    X(X const&) = delete;
-    X(X&& in);
- };
- struct Y {
-   const X x;
-   template<class T> Y(T&&);
- };
- Y&& yval();
- void g() {
-   Y y = yval();  // Now accepted in Clang and GNU C++11 modes (previously,
- }                // an error while generating the definition of the
-                  // copy constructor of Y).
 
 
 10/15/14 [EDGcpfe/15503]

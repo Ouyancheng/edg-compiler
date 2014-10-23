@@ -20859,13 +20859,9 @@ routine as actually referenced.
     }  /* if */
 #endif /* USE_X86_FUNCTION_MULTIVERSIONING */
   }  /* if */
-  if (!elided_reference || !(gpp_mode || clang_mode)) {
-    /* If the routine is compiler-generated and its definition has not yet
-       been put out, force the definition now.  This is not really needed if
-       the reference to the function is elided, except that it might trigger
-       diagnostics that are potentially desirable in strict mode. */
-    force_definition_of_compiler_generated_routine(routine);
-  }  /* if */
+  /* If the routine is compiler-generated and its definition has not
+     yet been put out, force the definition now. */
+  force_definition_of_compiler_generated_routine(routine);
   /* In some modes, friend functions defined in class templates are
      only analyzed if they are used.  A non-NULL routine_fixup pointer
      indicates that the definition has not yet been processed.  This special

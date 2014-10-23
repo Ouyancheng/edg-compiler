@@ -18662,7 +18662,7 @@ that of a mutable field.
                          class_type, type);
     }  /* if */
   } else {
-    src_qual = gsfd->copy_ctor_qualifiers;
+    src_qual = gsfd->copy_ctor_qualifiers | subobj_qual;
     /* Mutable subobjects of a const object are not const. */
     if (is_mutable) src_qual &= ~(a_type_qualifier_set)TQ_CONST;
     rout_sym = find_copy_constructor(type, src_qual,
@@ -18689,7 +18689,8 @@ that of a mutable field.
        checking is needed for this case.  If move constructors aren't generated
        at all, nothing is needed either. */
   } else {
-    rout_sym = find_copy_constructor(type, TQ_NONE, /*source_is_rvalue=*/TRUE,
+    rout_sym = find_copy_constructor(type, subobj_qual,
+                                     /*source_is_rvalue=*/TRUE,
                                      &type->source_corresp.decl_position,
                                      &ambiguous, (a_symbol**)NULL,
                                      &bitwise_copy);
