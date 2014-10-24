@@ -7445,6 +7445,7 @@ expression can be either an lvalue or rvalue and lvalueness is preserved.
       if (entity_size != class_type->size) {
         /* A class with tail padding.  Rewrite the copy as a memcpy call. */
         an_expr_node_ptr call_node;
+        check_assertion(entity_size != 0);
         op1->next = NULL;
         op1 = add_address_of_to_node(op1);
         op1 = add_cast(op1, void_star_type());

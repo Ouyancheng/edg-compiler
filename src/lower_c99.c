@@ -4122,6 +4122,9 @@ Do C99 lowering on the indicated statement.
         case stmk_while:
         case stmk_end_test_while:
         case stmk_for:
+#if GNU_EXTENSIONS_ALLOWED
+        case stmk_stmt_expr_result:
+#endif /* GNU_EXTENSIONS_ALLOWED */
           /* These cases are handled below in some special way. */
           break;
         default:
