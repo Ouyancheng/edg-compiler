@@ -156,7 +156,7 @@ is FALSE an error will be issued if the option is used.
 {
   int				option_description_number;
   an_option_description_ptr	odp;
-#if CHECKING
+#if EXPENSIVE_CHECKING
   {
     int	n;
     /* Make sure the option keyword and/or letter are not already in use. */
@@ -170,7 +170,7 @@ is FALSE an error will be issued if the option is used.
       }  /* if */
     }  /* for */
   }
-#endif /* CHECKING */
+#endif /* EXPENSIVE_CHECKING */
   /* alloc_general is called (rather than alloc_fe) because the general
      mem_manage.c routines are not yet initialized. */
   option_description_number = option_descriptions_used++;
