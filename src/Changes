@@ -45,9 +45,9 @@ operator.  For example:
 10/23/14 [EDGcpfe/15517]
 Abort in is_literal_type with Microsoft-mode base class of a class template
 
-The front end sometimes abort in is_literal_type (types.c) when it performed
+The front end sometimes aborted in is_literal_type (types.c) when it performed
 a "nonreal instantiation" of a class with an incomplete, nondependent base
-class (which are accepted during nonreal instantiations).  For example:
+class (which is accepted during nonreal instantiations).  For example:
 
   struct S1;
   template<typename> struct S2;
