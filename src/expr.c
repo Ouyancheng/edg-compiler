@@ -4713,10 +4713,11 @@ static void report_this_param_mismatch(
                                an_arg_match_summary  *this_match)
 /*
 A selector (bound_function_selector) doesn't match a call to a member function
-(routine if the member is named; NULL if it is not named) because of a mismatch
-in type qualifiers or value category.  Issue an error describing the mismatch.
-this_param_type is the type of the hidden *this parameter (a reference; not a
-pointer), and *this_match describes the result of the failed match.
+(routine designates the member if it is named but is otherwise NULL) because
+of a mismatch in type qualifiers or value category.  Issue an error describing
+the mismatch.  this_param_type is the type of the hidden *this parameter (a
+reference; not a pointer), and *this_match describes the result of the failed
+match.
 */
 {
   if (expr_error_should_be_issued()) {

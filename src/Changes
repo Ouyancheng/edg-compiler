@@ -17,7 +17,8 @@ until recently did not support C++11-style ref-qualifiers at all -- do permit
 rvalues to be bound to lvalue references to non-const types.  Now, however,
 Microsoft compilers have added support for ref-qualifiers and in that context
 they do adhere to the standard constraints.  The front end now matches that
-behavior.
+behavior (ref-qualifiers are enabled by default in Microsoft mode when
+microsoft_version >= 1900).
 
 As part of this change, diagnostics for such mismatches have been improved in
 general (not just in Microsoft mode).
