@@ -13193,7 +13193,9 @@ check_start_of_pp_directive:
       /* Pick up multibyte characters and things like European accented
          letters as the start of an identifier. */
       if (is_identifier_char(curr_char_loc, (int *)NULL,
-                             /*is_identifier_start=*/TRUE)) goto id_scan;
+                             /*is_identifier_start=*/TRUE)) {
+        goto id_scan;
+      }  /* if */
       /* FALLTHROUGH */
     bad_token:
       /* Something else, an error. */
