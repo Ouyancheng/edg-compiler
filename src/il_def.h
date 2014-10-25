@@ -9207,16 +9207,16 @@ enum a_storage_class_tag {
      the keyword "static" is also used to indicate static members of
      classes.  That kind of "static" is reflected in things other than
      the storage class, e.g., the this_class field for routines. */
-  sc_extern,            /* External.  This implies a reference to something
-                           defined in another compilation unit. */
-  sc_static,            /* Static. */
-  sc_auto,              /* Local, stack-based.  Includes parameters. */
   sc_unspecified,       /* No explicit storage class was given.  This implies
                            an external definition.  Note that an unspecified
                            storage class in the source program will be
                            mapped to something else (extern or auto) when
                            that is possible, and the sc_unspecified value
                            only remains for external definitions. */
+  sc_extern,            /* External.  This implies a reference to something
+                           defined in another compilation unit. */
+  sc_static,            /* Static. */
+  sc_auto,              /* Local, stack-based.  Includes parameters. */
   sc_typedef,           /* Not ever used in variables or functions, but
                            in this enumeration for convenience when scanning
                            declarations. */
