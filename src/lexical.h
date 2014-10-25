@@ -2184,7 +2184,7 @@ extern a_boolean f_is_identifier_char(a_const_char *ptr,
                                       a_boolean    is_identifier_start);
 
 #define is_identifier_char(ptr, len, is_start)                               \
-  (!char_ends_id[*ptr-CHAR_MIN] && f_is_identifier_char(ptr, len, is_start))
+  (!char_ends_id[*(ptr)-CHAR_MIN] && f_is_identifier_char(ptr, len, is_start))
 
 #if CPPCLI_ENABLING_POSSIBLE && EDG_WIN32
 extern an_error_code is_valid_UCN_identifier_char(
