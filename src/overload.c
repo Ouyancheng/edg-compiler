@@ -11736,10 +11736,18 @@ next parameter.
     /* Check the argument for compatibility against the parameter,
        casting it if necessary.  Also convert from glvalue to prvalue
        when appropriate. */
-    operand = &local_operand;
-    prep_argument(arg_list_elem, ptp,
-                  (a_conv_descr_ptr)NULL, ec_incompatible_param,
-                  operand);
+    if (is_expression_component(arg_list_elem)) {
+      /* Don't call prep_argument for the common case of an expression
+         argument since it will unnecessarily copy the operand. */
+      operand = operand_of_arg_list_elem(arg_list_elem);
+      prep_argument_operand(operand, ptp, (a_conv_descr_ptr)NULL,
+                            ec_incompatible_param);
+    } else {
+      operand = &local_operand;
+      prep_argument(arg_list_elem, ptp,
+                    (a_conv_descr_ptr)NULL, ec_incompatible_param,
+                    operand);
+    }  /* if */
     operand_set = TRUE;
 #if GNU_EXTENSIONS_ALLOWED
     if (ptp->nonnull && op_is_null_pointer_value(operand)) {
