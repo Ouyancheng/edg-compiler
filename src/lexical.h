@@ -1791,6 +1791,11 @@ EXTERN a_boolean
 			   converted to a single-byte Unicode code point. */
 #endif /* UNICODE_SOURCE_SUPPORTED */
 EXTERN a_boolean
+		char_ends_id[CHAR_MAX-CHAR_MIN+1];
+			/* A table to quickly identify characters that end
+			   an identifier (to avoid a relatively expensive
+			   call to f_is_identifier_char. */
+EXTERN a_boolean
 		is_raw_string_delimiter_char[CHAR_MAX-CHAR_MIN+1];
 			/* For each character, whether or not it can appear
 			   in the d-char-sequence of a raw string
@@ -2174,9 +2179,13 @@ EXTERN a_byte	pp_lexical_category[CHAR_MAX-CHAR_MIN+1];
 a_boolean read_logical_source_line(a_boolean do_pop_on_end_of_file,
                                    a_boolean extend_current_line);
 /* Check character as identifier character. */
-extern a_boolean is_identifier_char(a_const_char *ptr,
-                                    int          *len,
-                                    a_boolean    is_identifier_start);
+extern a_boolean f_is_identifier_char(a_const_char *ptr,
+                                      int          *len,
+                                      a_boolean    is_identifier_start);
+
+#define is_identifier_char(ptr, len, is_start)                               \
+  (!char_ends_id[*ptr-CHAR_MIN] && f_is_identifier_char(ptr, len, is_start))
+
 #if CPPCLI_ENABLING_POSSIBLE && EDG_WIN32
 extern an_error_code is_valid_UCN_identifier_char(
                                            unsigned long uchar,

@@ -6826,9 +6826,16 @@ literals in C++11.
          have trouble optimizing this otherwise. */
       register char *local_loc_in_line = loc_in_line;
       register int local_ch = ch;
-      do {
-        /* Check for question marks.  Presence of 2 in a row suggests there
-           may be a trigraph in the line. */
+      for (;;) {
+       /* Check for question marks and LE_ESCAPE (i.e., null) characters.
+          The presence of two question marks in a row suggests there may be a
+          trigraph in the line. */
+#if !defined(DO_NOT_ASSUME_QUESTION_IS_LARGER_THAN_END_OF_LINE)
+        if (local_ch > '?') {
+          /* Common case: For speed. */
+        } else
+#endif /* !defined(DO_NOT_ASSUME_QUESTION_IS_LARGER_THAN_END_OF_LINE) */
+        /* Do not insert code here. */
         if (local_ch == '?') {
           /* One "?", check previous character to see if it is also a "?". */
           if (local_loc_in_line != curr_source_line &&
@@ -6842,6 +6849,14 @@ literals in C++11.
             loc_in_line = local_loc_in_line;
             goto possible_trigraph;
           }  /* if */
+        } else if (local_ch == '\n' ||
+                   is_carriage_return_line_terminator(local_ch)) {
+          /* This is never true the first time through the loop (because those
+             are special cases handled above).  So this test could be put at
+             the bottom of the inner loop.  However, placing it here avoids
+             many cases where local_ch > '?', leading to a net win in
+             performance. */
+          break;
         } else if (local_ch == LE_ESCAPE) {
           /* The zero character is reserved for internal use. */
           ch = local_ch;
@@ -6867,9 +6882,7 @@ literals in C++11.
           loc_in_line = local_loc_in_line;
           goto partial_final_line;
         }  /* if */
-        /* Check for newline, which ends loop. */
-      } while (local_ch != '\n' &&
-               !is_carriage_return_line_terminator(local_ch));
+      }  /* for */
       ch = local_ch;
 #if ACCEPT_GNU_CARRIAGE_RETURN_LINE_TERMINATOR
       if (ch == '\r') {
@@ -7346,9 +7359,9 @@ entry_for_extend_current_line:
 }  /* read_logical_source_line */
 
 
-a_boolean is_identifier_char(a_const_char *ptr,
-                             int          *len,
-                             a_boolean    is_identifier_start)
+a_boolean f_is_identifier_char(a_const_char *ptr,
+                               int          *len,
+                               a_boolean    is_identifier_start)
 /*
 ptr points to a character, possibly multibyte, or to a universal character
 name.  Return TRUE if that character or UCN is valid as a character in an
@@ -7486,7 +7499,7 @@ is_id_known:;
   }  /* if */
   if (len != NULL) *len = llen;
   return is_id;
-}  /* is_identifier_char */
+}  /* f_is_identifier_char */
   
 
 a_boolean is_nonstandard_character(char ch)
@@ -7703,11 +7716,11 @@ source text (end of token, start of expansion, end of expansion).
   kind_skipped = 0;  /* No white space skipped so far. */
 white_space_loop:
   /* Examine the current character to see if it is white space.  Throw away
-     spaces and horizontal tabs quickly, since they are always white space
-     and there are lots of them (so we want that to be fast). */
-  if ((ch = *curr_char_loc) == ' ' || ch == '\t') {
+     spaces quickly, since they are always white space and there are lots of
+     them (so we want that to be fast). */
+  if ((ch = *curr_char_loc) == ' ') {
     kind_skipped |= WHITE_SPACE_OTHER;
-    do {} while ((ch = *(++curr_char_loc)) == ' ' || ch == '\t');
+    do {} while ((ch = *(++curr_char_loc)) == ' ');
   }  /* if */
   switch (ch) {
     case LE_ESCAPE:
@@ -7846,6 +7859,7 @@ white_space_loop:
       }  /* if */
       goto white_space_loop;
     case '\f':  /* Form feed. */
+    case '\t':  /* Horizontal tab. */
     case VERTICAL_TAB_CHARACTER:
       /* These are white space if not in a preprocessing directive.  Inside
          a preprocessing directive, it is implementation-defined whether
@@ -12267,13 +12281,13 @@ restart:
   last_token_sequence_number_of_token = curr_token_sequence_number;
   curr_cached_token_handle = NO_CACHED_TOKEN_HANDLE;
 rescan_token:
-  /* Skip over any initial white space blanks and horizontal tabs.
-     These are very common, so they're handled inline here.  The
-     other potential white space characters (newline, vertical tab,
-     form feed, and "/" and "*" indicating the start of a comment) are
-     processed out of the main "switch" statement. */
-  if ((ch = *curr_char_loc) == ' ' || ch == '\t') {
-    do {} while ((ch = *(++curr_char_loc)) == ' ' || ch == '\t');
+  /* Skip over any initial white space blanks.  These are very common, so
+     they're handled inline here.  The other potential white space characters
+     (newline, horizontal and vertical tab, form feed, and "/" and "*"
+     indicating the start of a comment) are processed out of the main "switch"
+     statement. */
+  if ((ch = *curr_char_loc) == ' ') {
+    do {} while ((ch = *(++curr_char_loc)) == ' ');
   }  /* if */
 start_of_token_scan:  /* Restart here after scanning white space. */
   /* Remember the start character position of the token. */
@@ -12373,6 +12387,8 @@ return_end_of_source_token:
         unexpected_condition_str("get_token: bad lexical escape");
       }  /* if */
       break;
+    case ' ':
+    case '\t':
     case '\f':
     case VERTICAL_TAB_CHARACTER:
 #if IGNORE_CARRIAGE_RETURN_IN_SOURCE
@@ -12806,14 +12822,32 @@ id_scan:
 #endif /* MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED */
         continue_scan = FALSE;
         /* Accumulate characters of the identifier after the first. */
+#if 1
+        /* This code is particularly performance sensitive.  Most compilers
+           fail to unroll this loop even at high optimization levels, so it
+           pays to unroll the loop manually.  (The simple loop may be
+           preferable when an optimizer if profile-guided.) */
+        for (;;) {
+          if (is_id_char[(ch = curr_char_loc[0])-CHAR_MIN]) {
+            if (is_id_char[(ch = curr_char_loc[1])-CHAR_MIN]) {
+              curr_char_loc += 2;
+            } else {
+              curr_char_loc += 1;
+            }  /* if */
+          } else {
+            break;
+          }  /* if */
+        }  /* for */
+#else /* !1 */
         while (is_id_char[(ch = *(curr_char_loc))-CHAR_MIN]) {
           curr_char_loc++;
         }  /* while */
+#endif /* 1 */
         /* We have just scanned a sequence of "normal" identifier characters.
            Check whether we are now at a universal character name.  If so,
            scan the universal character and check for additional "normal"
            identifier characters. */
-        if (*curr_char_loc == '\\') {
+        if ((ch = *curr_char_loc) == '\\') {
           ch = *(curr_char_loc + 1);
           if ((ch == 'u' || ch == 'U') &&
               universal_character_names_allowed) {
@@ -21526,6 +21560,20 @@ are handled in lexical_init.)
     }  /* if */
   }  /* for */
 #endif /* UNICODE_SOURCE_SUPPORTED */
+  for (c = CHAR_MIN; c <= CHAR_MAX; c++) {
+    switch (c) {
+      case '[': case ']': case '(': case ')': case '{': case '}':
+      case ',': case '~': case ':': case ';': case '?': case '-':
+      case '+': case '*': case '/': case '&': case '%': case '<':
+      case '>': case '=': case '|': case '^': case '.': case '$':
+      case '"': case '\'': case ' ': case '#':
+        char_ends_id[c-CHAR_MIN] = TRUE;
+        break;
+      default:
+        char_ends_id[c-CHAR_MIN] = FALSE;
+        break;
+    }  /* switch */
+  }  /* for */
   /* Also initialize pp_lexical_category, used to determine whether or
      not extra token-separating blanks are required between tokens resulting
      from macro expansion.  See gen_pp_output_for_curr_line. */
@@ -21823,6 +21871,12 @@ of the front end.
       last_end = p->end;
     }  /* for */
   }
+#if !defined(DO_NOT_ASSUME_QUESTION_IS_LARGER_THAN_END_OF_LINE)
+  /* The source input routines assume that '?' > '\n' and '\r' to improve
+     performance.  Although that's true in practice, the assumption is not
+     made if DO_NOT_ASSUME_QUESTION_IS_LARGER_THAN_END_OF_LINE is defined. */
+  check_assertion('?' > '\n' && '?' > '\r');
+#endif /* !defined(DO_NOT_ASSUME_QUESTION_IS_LARGER_THAN_END_OF_LINE) */
 #endif /* CHECKING */
 }  /* lexical_init */
 
