@@ -9235,7 +9235,7 @@ Table of storage class names, for debug purposes.
 EXTERN a_const_char *db_storage_class_names[(int)sc_last + 1]
 #if VAR_INITIALIZERS
 = { "unspecified", "extern", "static", "auto", "typedef", "register", "asm",
-   " last" /* used to check that initialization is right. */
+    "last" /* used to check that initialization is right. */
 }
 #endif /* VAR_INITIALIZERS */
 ;
