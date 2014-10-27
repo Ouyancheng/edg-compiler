@@ -6091,6 +6091,9 @@ Display the indicated namespace entry.
   if (ptr->named_in_strong_using) {
     disp_boolean("named_in_strong_using", TRUE);
   }  /* if */
+  if (ptr->is_std) {
+    disp_boolean("is_std", TRUE);
+  }  /* if */
 #if BACK_END_IS_CP_GEN_BE
   if (ptr->shadowed_by_class) {
     disp_boolean("shadowed_by_class", TRUE);

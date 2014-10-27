@@ -3039,20 +3039,18 @@ typedef struct a_namespace {
 			   proxy class if one has been created.  NULL
 			   otherwise. */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-  a_byte_boolean
-		is_namespace_alias;
+  a_bit_field	is_namespace_alias:1;
 			/* TRUE when the name is a namespace alias. */
-  a_byte_boolean
-		is_inline;
+  a_bit_field	is_inline:1;
 			/* TRUE if the namespace was declared as an inline
 			   namespace. */
-  a_byte_boolean
-		named_in_strong_using;
+  a_bit_field	named_in_strong_using:1;
 			/* TRUE if the namespace was named in a g++ strong
 			   using directive. */
+  a_bit_field	is_std:1;
+			/* TRUE if this is namespace std. */
 #if BACK_END_IS_CP_GEN_BE
-  a_byte_boolean
-		shadowed_by_class;
+  a_bit_field	shadowed_by_class:1;
 			/* TRUE if this namespace is hidden in some scope
 			   by a class.  This allows cp_gen_be to put out
 			   a namespace alias that can be used in qualifiers

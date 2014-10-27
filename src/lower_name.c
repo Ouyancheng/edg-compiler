@@ -1190,8 +1190,7 @@ of which type is an instance.  Return NULL otherwise.
 
 /* Returns TRUE if ns is the "std" namespace. */
 #define is_namespace_std(ns) \
-  (symbol_for_namespace_std != NULL && \
-   f_same_entities((ns), symbol_for_namespace_std->variant.namespace_info.ptr))
+  ((ns)->is_std)
 
 /* Returns TRUE if scp is the source correspondence for an entity that is a
    member of the "std" namespace. */
@@ -1469,9 +1468,13 @@ whether a substitution is available; do not put it out.
   switch (kind) {
     case iek_type:
       {
-        a_type_ptr type = (a_type_ptr)entity;
+        a_type_ptr      type = (a_type_ptr)entity;
+        type = skip_typedefs_not_dependent_decltypes(type);
+        entity = (char*)type;
         /* Compare to ::std::string. */
-        if (is_Ss_substitution(type)) {
+        if (!is_in_namespace_std(type)) {
+          /* For speed. */
+        } else if (is_Ss_substitution(type)) {
           str = "Ss";
           result = TRUE;
           break;
@@ -1491,13 +1494,17 @@ whether a substitution is available; do not put it out.
       }
       break;
     case iek_template:
-      if (is_Sa_substitution((a_template_ptr)entity)) {
-        str = "Sa";
-        result = TRUE;
-      } else if (is_Sb_substitution((a_template_ptr)entity)) {
-        str = "Sb";
-        result = TRUE;
-      }  /* if */
+      { a_template_ptr  templ = (a_template_ptr)entity;
+        if (!is_source_corresp_in_namespace_std(&templ->source_corresp)) {
+          /* For speed. */
+        } else if (is_Sa_substitution((a_template_ptr)entity)) {
+          str = "Sa";
+          result = TRUE;
+        } else if (is_Sb_substitution((a_template_ptr)entity)) {
+          str = "Sb";
+          result = TRUE;
+        }  /* if */
+      }
       break;
     case iek_namespace:
       if (is_namespace_std((a_namespace_ptr)entity)) {

@@ -7560,6 +7560,7 @@ Predeclare namespace "std".  Don't put its symbol into the symbol table yet.
 */
 {
   make_symbol_for_predeclared_namespace("std", &symbol_for_namespace_std);
+  symbol_for_namespace_std->variant.namespace_info.ptr->is_std = TRUE;
 }  /* make_symbol_for_namespace_std */
 
 #if IA64_ABI

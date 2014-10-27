@@ -5616,8 +5616,30 @@ for more information.
 check_typerefs:
   if (type_1->kind == (a_type_kind)tk_typeref ||
       type_2->kind == (a_type_kind)tk_typeref) {
-    if (!(flags & ITF_IGNORE_TOP_LEVEL_QUALIFIERS) &&
-        !type_qualifiers_match(type_1, type_2)) {
+    a_type_qualifier_set  tqs1 = TQ_NONE, tqs2 = TQ_NONE;
+    a_boolean             type_op = FALSE;
+    a_type_ptr            tp1 = type_1, tp2 = type_2;
+    while (tp1->kind == (a_type_kind)tk_typeref) {
+      if (!has_name(tp1)) {
+        if (typeref_is_type_operator(tp1)) {
+          type_op = TRUE;
+        } else {
+          tqs1 |= tp1->variant.typeref.qualifiers;
+        }  /* if */
+      }  /* if */
+      tp1 = tp1->variant.typeref.type;
+    } /* while */
+    while (tp2->kind == (a_type_kind)tk_typeref) {
+      if (!has_name(tp2)) {
+        if (typeref_is_type_operator(tp2)) {
+          type_op = TRUE;
+        } else {
+          tqs2 |= tp2->variant.typeref.qualifiers;
+        }  /* if */
+      }  /* if */
+      tp2 = tp2->variant.typeref.type;
+    } /* while */
+    if (!(flags & ITF_IGNORE_TOP_LEVEL_QUALIFIERS) && tqs1 != tqs2) {
       /* The type qualifiers do not match, so the types are not identical. */
       /* identical = FALSE;  -- Already set. */
       goto done;
@@ -5638,26 +5660,30 @@ check_typerefs:
          under another tk_typeref entry in such cases. */
       identical = TRUE;
       goto done;
-    } else if ((flags & ITF_CHECKING_DEDUCTION_RESULT) &&
-        adjust_comparison_types_for_decltype(&type_1, &type_2)) {
-      /* When checking a deduction result, we have to allow some slight
-         differences around a typeref for a decltype.  The decltype might
-         have been applied to an lvalue in one case and an rvalue in the
-         other, and therefore have an extra "reference to" on it.
-         Go back and check the cv-qualifiers again after the adjustment. */
-      goto check_typerefs;
-    } else if ((flags & ITF_EXACT_DECLTYPE_EXPR_MATCH_REQUIRED) &&
-               distinct_dependent_decltypes(type_1, type_2, flags)) {
-      /* type_1 and type_2 are built from decltype (or typeof) constructs
-         with distinct template-dependent arguments, and we've been asked
-         to check for decltype expression differences. */
-      goto done;
+    } else if (type_op) {
+      /* At least one of the type involves a type operator like decltype or
+         typeof. */
+      if ((flags & ITF_CHECKING_DEDUCTION_RESULT) &&
+               adjust_comparison_types_for_decltype(&type_1, &type_2)) {
+        /* When checking a deduction result, we have to allow some slight
+           differences around a typeref for a decltype.  The decltype might
+           have been applied to an lvalue in one case and an rvalue in the
+           other, and therefore have an extra "reference to" on it.
+           Go back and check the cv-qualifiers again after the adjustment. */
+        goto check_typerefs;
+      } else if ((flags & ITF_EXACT_DECLTYPE_EXPR_MATCH_REQUIRED) &&
+                 distinct_dependent_decltypes(type_1, type_2, flags)) {
+        /* type_1 and type_2 are built from decltype (or typeof) constructs
+           with distinct template-dependent arguments, and we've been asked
+           to check for decltype expression differences. */
+        goto done;
+      }  /* if */
     }  /* if */
+    /* Now that type qualifiers are no longer an issue, strip them and other
+       typerefs off the types. */
+    type_1 = tp1;
+    type_2 = tp2;
   }  /* if */
-  /* Now that type qualifiers are no longer an issue, strip them and other
-     typerefs off the types. */
-  type_1 = skip_typerefs(type_1);
-  type_2 = skip_typerefs(type_2);
   if (type_1 == type_2) {
     /* If the types are now the same, they are identical. */
     identical = TRUE;
