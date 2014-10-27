@@ -9377,10 +9377,10 @@ command line -D options.
        "build number". */
     { char  macro_val[100], *ptr = macro_val;
       ptr += unsigned_to_string_buf((a_host_large_unsigned)microsoft_version,
-                                    macro_val);
+                                    ptr);
       check_assertion((ptr-macro_val) < 10);
       (void)unsigned_to_string_buf(
-                    (a_host_large_unsigned)microsoft_build_number, macro_val);
+                    (a_host_large_unsigned)microsoft_build_number, ptr);
       (void)enter_predef_macro(macro_val, "_MSC_FULL_VER",
                                /*cannot_be_redefined=*/FALSE,
                                /*ref_suppresses_pch_file=*/FALSE);
