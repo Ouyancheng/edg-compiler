@@ -9011,7 +9011,7 @@ file name.
     if (!process_predefined_macro_entry(line, &error_code)) {
       /* The predefined macro line was invalid. */
       char buf[50];
-      (void)unsigned_to_string_buf(line_number, buf);
+      (void)unsigned_to_string_buf((a_host_large_unsigned)line_number, buf);
       pos_str2_catastrophe(ec_bad_predef_macro_line, buf,
 			   error_text(error_code), &null_source_position);
     }  /* if */
@@ -9375,9 +9375,11 @@ command line -D options.
     /* Define _MSC_FULL_VER, which is similar to _MSC_VER but appends the
        "build number". */
     { char  macro_val[100], *ptr = macro_val;
-      ptr += unsigned_to_string_buf(microsoft_version, macro_val);
+      ptr += unsigned_to_string_buf((a_host_large_unsigned)microsoft_version,
+                                    macro_val);
       check_assertion((ptr-macro_val) < 10);
-      (void)unsigned_to_string_buf(microsoft_build_number, macro_val);
+      (void)unsigned_to_string_buf(
+                    (a_host_large_unsigned)microsoft_build_number, macro_val);
       (void)enter_predef_macro(macro_val, "_MSC_FULL_VER",
                                /*cannot_be_redefined=*/FALSE,
                                /*ref_suppresses_pch_file=*/FALSE);

@@ -1073,7 +1073,7 @@ encoding.
 */
 {
   char     buffer[50];
-  sizeof_t len = unsigned_to_string_buf(value, buffer);
+  sizeof_t len = unsigned_to_string_buf((a_host_large_unsigned)value, buffer);
 
   mctl->length += len;
   (void)add_to_text_buffer(mangling_text_buffer, buffer, len);
@@ -1094,7 +1094,7 @@ encoding.  A negative value is prefixed by "n".
 */
 {
   char     buffer[50];
-  sizeof_t len = unsigned_to_string_buf(value, buffer);
+  sizeof_t len = unsigned_to_string_buf((a_host_large_unsigned)value, buffer);
 
   /* Handle negative numbers by replacing '-' with 'n'. */
   if (buffer[0] == '-') buffer[0] = 'n';
