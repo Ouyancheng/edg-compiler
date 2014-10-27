@@ -1094,7 +1094,7 @@ encoding.  A negative value is prefixed by "n".
 */
 {
   char     buffer[50];
-  sizeof_t len = unsigned_to_string_buf((a_host_large_unsigned)value, buffer);
+  sizeof_t len = signed_to_string_buf((a_host_large_signed)value, buffer);
 
   /* Handle negative numbers by replacing '-' with 'n'. */
   if (buffer[0] == '-') buffer[0] = 'n';
