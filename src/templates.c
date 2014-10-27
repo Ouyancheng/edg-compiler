@@ -27724,8 +27724,7 @@ information file.
 {
   char	str_line_number[50];
 
-  (void)unsigned_to_string_buf((a_host_large_unsigned)line_number,
-                               str_line_number);
+  (void)unsigned_to_string_buf((unsigned)line_number, str_line_number);
   pos_str2_catastrophe(ec_bad_export_info_file, eifp->file_name,
                        str_line_number,
                        &null_source_position);

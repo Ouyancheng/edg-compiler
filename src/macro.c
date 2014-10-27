@@ -4754,7 +4754,8 @@ end_scan_for_macro_modifs:;
         /* The Microsoft/GNU __COUNTER__ macro.  This returns a different
            integer value each time it is used, starting with zero. */
         /* We assume we don't need to call ensure_arg_raw_text_space. */
-        (void)unsigned_to_string_buf(counter_macro_number, repl_text);;
+        (void)unsigned_to_string_buf(
+                      (a_host_large_unsigned)counter_macro_number, repl_text);
         counter_macro_number += 1;
       } else if (macro_symbol == timestamp_macro_symbol) {
         /* The Microsoft/GNU __TIMESTAMP__ macro.  This returns the
@@ -9413,11 +9414,11 @@ command line -D options.
                                /*ref_suppresses_pch_file=*/FALSE);
     }  /* if */
     /* Enter a macro for the maximum size of an integral value. */
-    { unsigned long int_max_size;
+    { long int_max_size;
 #if LONG_LONG_ALLOWED
-      int_max_size = (unsigned long)targ_sizeof_long_long;
+      int_max_size = (long)targ_sizeof_long_long;
 #else /* !LONG_LONG_ALLOWED */
-      int_max_size = targ_sizeof_long;
+      int_max_size = (long)targ_sizeof_long;
 #endif /* LONG_LONG_ALLOWED */
       enter_predef_num_macro(int_max_size * CHAR_BIT, "_INTEGRAL_MAX_BITS");
     }
