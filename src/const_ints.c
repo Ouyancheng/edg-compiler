@@ -1625,7 +1625,7 @@ buffer.  If an arithmetic value is negative, it is preceded by a "-".
     result[0] = '0';
     result[1] = 'x';
   } else {
-    (void)signed_to_string_buf(*(a_host_large_integer)p_value, buffer);
+    (void)signed_to_string_buf((a_host_large_integer)*p_value, buffer);
   }  /* if */
 #else /* !INTEGER_VALUE_REPR_IS_A_HOST_INTEGER */
   char        *ptr;
