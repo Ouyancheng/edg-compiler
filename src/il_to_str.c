@@ -173,7 +173,7 @@ Output a signed number as indicated by octl.
 {
   char buffer[50];
 
-  (void)sprintf(buffer, PRINTF_FORMAT_FOR_HOST_LARGE_INTEGER, num);
+  (void)signed_to_string_buf(num, buffer);
   octl->output_str(buffer, octl);
 }  /* form_num */
 
@@ -186,7 +186,7 @@ Output an unsigned number as indicated by octl.
 {
   char buffer[50];
 
-  (void)sprintf(buffer, PRINTF_FORMAT_FOR_HOST_LARGE_UNSIGNED, num);
+  (void)unsigned_to_string_buf(num, buffer);
   octl->output_str(buffer, octl);
 }  /* form_unsigned_num */
 

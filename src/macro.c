@@ -4754,7 +4754,8 @@ end_scan_for_macro_modifs:;
         /* The Microsoft/GNU __COUNTER__ macro.  This returns a different
            integer value each time it is used, starting with zero. */
         /* We assume we don't need to call ensure_arg_raw_text_space. */
-        (void)sprintf(repl_text, "%lu", counter_macro_number++);
+        (void)unsigned_to_string_buf(counter_macro_number, repl_text);;
+        counter_macro_number += 1;
       } else if (macro_symbol == timestamp_macro_symbol) {
         /* The Microsoft/GNU __TIMESTAMP__ macro.  This returns the
            modification time of the current input file. */
@@ -8233,6 +8234,33 @@ macros.  See enter_predef_macro_full for a description of the parameters.
 }  /* enter_predef_macro */
 
 
+a_symbol_ptr f_enter_predef_num_macro(
+                                   a_host_large_integer  num,
+                                   a_const_char          *macro_name,
+                                   a_boolean             cannot_be_redefined)
+/*
+Predefine a macro with the given name to the decimal representation of num.
+cannot_be_redefine is TRUE if this is a predefined macro that cannot be
+redefined.
+*/
+{
+  char  macro_value[50];
+
+  (void)signed_to_string_buf(num, macro_value);
+  return enter_predef_macro_full(macro_value, macro_name, cannot_be_redefined,
+                                 /*ref_suppresses_pch_file=*/FALSE,
+                                 /*function_like=*/FALSE);
+}  /* f_enter_predef_num_macro */
+
+#define enter_predef_num_macro_noredef(num, name)                            \
+  ((void)f_enter_predef_num_macro((a_host_large_integer)(num), (name),       \
+                                  /*cannot_be_redefined=*/TRUE))
+
+#define enter_predef_num_macro(num, name)                                    \
+  ((void)f_enter_predef_num_macro((a_host_large_integer)(num), (name),       \
+                                  /*cannot_be_redefined=*/FALSE))
+
+
 a_boolean is_valid_identifier(a_const_char     *id_start,
                               sizeof_t         id_len,
                               a_symbol_ptr     *assoc_symbol,
@@ -8356,11 +8384,8 @@ from the front end to the runtime.
                            /*cannot_be_redefined=*/TRUE,
                            /*ref_suppresses_pch_file=*/FALSE);
   /* Define the number of elements in the setjmp buffer. */
-  (void)enter_predef_macro(conv_unsigned_long_to_str
-                                   ((unsigned long)targ_jmp_buf_num_elements),
-			   "__EDG_JMP_BUF_NUM_ELEMENTS",
-                           /*cannot_be_redefined=*/TRUE,
-                           /*ref_suppresses_pch_file=*/FALSE);
+  enter_predef_num_macro_noredef(targ_jmp_buf_num_elements,
+                                 "__EDG_JMP_BUF_NUM_ELEMENTS");
 #endif /* DO_FULL_PORTABLE_EH_LOWERING */
   /* Define the type of the offset field in the Cfront virtual function
      table. */
@@ -8393,25 +8418,16 @@ from the front end to the runtime.
                            /*cannot_be_redefined=*/TRUE,
                            /*ref_suppresses_pch_file=*/FALSE);
   /* Define the value used as the null region number value in the EH tables. */
-  (void)enter_predef_macro(conv_unsigned_long_to_str
-                                        ((unsigned long)null_eh_region_number),
-			   "__EDG_NULL_EH_REGION_NUMBER",
-                           /*cannot_be_redefined=*/TRUE,
-                           /*ref_suppresses_pch_file=*/FALSE);
+  enter_predef_num_macro_noredef(null_eh_region_number,
+			         "__EDG_NULL_EH_REGION_NUMBER");
 #endif /* GENERATE_EH_TABLES */
-  (void)enter_predef_macro(conv_unsigned_long_to_str
-                                ((unsigned long)(VLA_ALLOWED &&
-                                 LOWER_VARIABLE_LENGTH_ARRAYS)), /*lint !e506*/
-			   "__EDG_LOWER_VARIABLE_LENGTH_ARRAYS",
-                           /*cannot_be_redefined=*/TRUE,
-                           /*ref_suppresses_pch_file=*/FALSE);
+  enter_predef_num_macro_noredef((VLA_ALLOWED && LOWER_VARIABLE_LENGTH_ARRAYS),
+                                   /*lint !e506*/
+			         "__EDG_LOWER_VARIABLE_LENGTH_ARRAYS");
 #if IA64_ABI
   /* Are we using the variant form of array cookies for the IA-64 ABI? */
-  (void)enter_predef_macro(conv_unsigned_long_to_str(
-                            (unsigned long)IA64_ABI_USE_VARIANT_ARRAY_COOKIES),
-			   "__EDG_IA64_ABI_USE_VARIANT_ARRAY_COOKIES",
-                           /*cannot_be_redefined=*/TRUE,
-                           /*ref_suppresses_pch_file=*/FALSE);
+  enter_predef_num_macro_noredef(IA64_ABI_USE_VARIANT_ARRAY_COOKIES,
+			         "__EDG_IA64_ABI_USE_VARIANT_ARRAY_COOKIES");
 #endif /* IA64_ABI */
 #if !IA64_ABI
   /* What type should we use for number_of_elements arguments in cfront ABI? */
@@ -8423,43 +8439,22 @@ from the front end to the runtime.
 #endif /* !IA64_ABI */
 #endif /* DO_IL_LOWERING */
   /* Define the ABI compatibility version being used. */
-  (void)enter_predef_macro(conv_unsigned_long_to_str
-                                   ((unsigned long)ABI_COMPATIBILITY_VERSION),
-			   "__EDG_ABI_COMPATIBILITY_VERSION",
-                           /*cannot_be_redefined=*/TRUE,
-                           /*ref_suppresses_pch_file=*/FALSE);
+  enter_predef_num_macro_noredef(ABI_COMPATIBILITY_VERSION,
+			         "__EDG_ABI_COMPATIBILITY_VERSION");
   /* Are the ABI changes for RTTI implemented? */
-  (void)enter_predef_macro(conv_unsigned_long_to_str
-                                         ((unsigned long)ABI_CHANGES_FOR_RTTI),
-			   "__EDG_ABI_CHANGES_FOR_RTTI",
-                           /*cannot_be_redefined=*/TRUE,
-                           /*ref_suppresses_pch_file=*/FALSE);
+  enter_predef_num_macro_noredef(ABI_CHANGES_FOR_RTTI,
+			         "__EDG_ABI_CHANGES_FOR_RTTI");
   /* Are the ABI changes for array new and delete implemented? */
-  (void)enter_predef_macro(conv_unsigned_long_to_str
-                         ((unsigned long)ABI_CHANGES_FOR_ARRAY_NEW_AND_DELETE),
-			   "__EDG_ABI_CHANGES_FOR_ARRAY_NEW_AND_DELETE",
-                           /*cannot_be_redefined=*/TRUE,
-                           /*ref_suppresses_pch_file=*/FALSE);
+  enter_predef_num_macro_noredef(ABI_CHANGES_FOR_ARRAY_NEW_AND_DELETE,
+			         "__EDG_ABI_CHANGES_FOR_ARRAY_NEW_AND_DELETE");
   /* Are the ABI changes for placement delete implemented? */
-  (void)enter_predef_macro(conv_unsigned_long_to_str
-                         ((unsigned long)ABI_CHANGES_FOR_PLACEMENT_DELETE),
-			   "__EDG_ABI_CHANGES_FOR_PLACEMENT_DELETE",
-                           /*cannot_be_redefined=*/TRUE,
-                           /*ref_suppresses_pch_file=*/FALSE);
+  enter_predef_num_macro_noredef(ABI_CHANGES_FOR_PLACEMENT_DELETE,
+			         "__EDG_ABI_CHANGES_FOR_PLACEMENT_DELETE");
   /* Pass the library dialect flags to the runtime (__BSD__, __SYSV__, and
      __ANSIC__). */
-  (void)enter_predef_macro(conv_unsigned_long_to_str((unsigned long)__BSD__),
-			   "__EDG_BSD",
-                           /*cannot_be_redefined=*/TRUE,
-                           /*ref_suppresses_pch_file=*/FALSE);
-  (void)enter_predef_macro(conv_unsigned_long_to_str((unsigned long)__SYSV__),
-			   "__EDG_SYSV",
-                           /*cannot_be_redefined=*/TRUE,
-                           /*ref_suppresses_pch_file=*/FALSE);
-  (void)enter_predef_macro(conv_unsigned_long_to_str((unsigned long)__ANSIC__),
-			   "__EDG_ANSIC",
-                           /*cannot_be_redefined=*/TRUE,
-                           /*ref_suppresses_pch_file=*/FALSE);
+  enter_predef_num_macro_noredef(__BSD__, "__EDG_BSD");
+  enter_predef_num_macro_noredef(__SYSV__, "__EDG_SYSV");
+  enter_predef_num_macro_noredef(__ANSIC__, "__EDG_ANSIC");
 #if CPP11_IL_EXTENSIONS_SUPPORTED
   /* Front end can support C++11 mode (so runtime must also). */
   (void)enter_predef_macro("1", "__EDG_CPP11_IL_EXTENSIONS_SUPPORTED",
@@ -8595,11 +8590,7 @@ Enter symbols for the predefined macros in C99 and later revisions.
 {
   /* Predefine the C99 __STDC_HOSTED__ macro based on the STDC_HOSTED
      configuration flag. */
-  (void)enter_predef_macro(conv_unsigned_long_to_str(
-                                                   (unsigned long)STDC_HOSTED),
-                           "__STDC_HOSTED__",
-                           /*cannot_be_redefined=*/TRUE,
-                           /*ref_suppresses_pch_file=*/FALSE);
+  enter_predef_num_macro_noredef(STDC_HOSTED, "__STDC_HOSTED__");
 #if STDC_IEC_559
   (void)enter_predef_macro("1", "__STDC_IEC_559__",
                            /*cannot_be_redefined=*/TRUE,
@@ -8611,11 +8602,7 @@ Enter symbols for the predefined macros in C99 and later revisions.
                            /*ref_suppresses_pch_file=*/FALSE);
 #endif /* STDC_IEC_559_COMPLEX */
 #if STDC_ISO_10646
-  (void)enter_predef_macro(conv_unsigned_long_to_str(
-                                          (unsigned long)STDC_ISO_10646_VALUE),
-                           "__STDC_ISO_10646__",
-                           /*cannot_be_redefined=*/TRUE,
-                           /*ref_suppresses_pch_file=*/FALSE);
+  enter_predef_num_macro_noredef(STDC_ISO_10646_VALUE, "__STDC_ISO_10646__");
 #endif /* STDC_ISO_10646 */
 #if STDC_MB_MIGHT_NEQ_WC
   (void)enter_predef_macro("1", "__STDC_MB_MIGHT_NEQ_WC__",
@@ -8723,17 +8710,11 @@ support.)
                  patch_num = (unsigned long)(version%100);
 
   /* Note that GNU C/C++ permits these macros to be redefined, so we do too. */
-  (void)enter_predef_macro(conv_unsigned_long_to_str(major_num),
-                           "__GNUC__",
-                           /*cannot_be_redefined=*/FALSE,
-                           /*ref_suppresses_pch_file=*/FALSE);
+  enter_predef_num_macro(major_num, "__GNUC__");
   if (gpp_mode) {
     /* In GNU C++ mode (but not in GNU C mode), __GNUG__ is identical to
        __GNUC__. */
-    (void)enter_predef_macro(conv_unsigned_long_to_str(major_num),
-                             "__GNUG__",
-                             /*cannot_be_redefined=*/FALSE,
-                             /*ref_suppresses_pch_file=*/FALSE);
+    enter_predef_num_macro(major_num, "__GNUG__");
     if (rtti_enabled && gnu_version >= 40300) {
       /* g++ introduced the __GXX_RTTI macro in version 4.3.0. */
       (void)enter_predef_macro("1", "__GXX_RTTI",
@@ -8757,14 +8738,8 @@ support.)
                                /*ref_suppresses_pch_file=*/FALSE);
     }  /* if */
   }  /* if */
-  (void)enter_predef_macro(conv_unsigned_long_to_str(minor_num),
-                           "__GNUC_MINOR__",
-                           /*cannot_be_redefined=*/FALSE,
-                           /*ref_suppresses_pch_file=*/FALSE);
-  (void)enter_predef_macro(conv_unsigned_long_to_str(patch_num),
-                           "__GNUC_PATCHLEVEL__",
-                           /*cannot_be_redefined=*/FALSE,
-                           /*ref_suppresses_pch_file=*/FALSE);
+  enter_predef_num_macro(minor_num, "__GNUC_MINOR__");
+  enter_predef_num_macro(patch_num, "__GNUC_PATCHLEVEL__");
   (void)enter_predef_macro(expanded_gnu_version_string(), "__VERSION__",
                            /*cannot_be_redefined=*/TRUE,
                            /*ref_suppresses_pch_file=*/FALSE);
@@ -9035,8 +9010,9 @@ file name.
     line_number++;
     if (!process_predefined_macro_entry(line, &error_code)) {
       /* The predefined macro line was invalid. */
-      pos_str2_catastrophe(ec_bad_predef_macro_line,
-                           conv_unsigned_long_to_str(line_number),
+      char buf[50];
+      (void)unsigned_to_string_buf(line_number, buf);
+      pos_str2_catastrophe(ec_bad_predef_macro_line, buf,
 			   error_text(error_code), &null_source_position);
     }  /* if */
   }  /* while */
@@ -9199,11 +9175,7 @@ command line -D options.
     if (cpp11_mode) {
       /* Predefine the __STDC_HOSTED__ macro based on the STDC_HOSTED
          configuration flag. */
-      (void)enter_predef_macro(conv_unsigned_long_to_str(
-                                                   (unsigned long)STDC_HOSTED),
-                               "__STDC_HOSTED__",
-                               /*cannot_be_redefined=*/TRUE,
-                               /*ref_suppresses_pch_file=*/FALSE);
+      enter_predef_num_macro_noredef(STDC_HOSTED, "__STDC_HOSTED__");
     }  /* if */
     if (report_embedded_cplusplus_noncompliance) {
       /* Define a macro indicating this is an Embedded C++ application. */
@@ -9399,23 +9371,16 @@ command line -D options.
   if (microsoft_mode) {
     /* Define the _MSC_VER variable that indicates the version of the
        Microsoft compiler that is being emulated. */
-    (void)enter_predef_macro(conv_unsigned_long_to_str(
-                                            (unsigned long)microsoft_version),
-                             "_MSC_VER",
-                             /*cannot_be_redefined=*/FALSE,
-                             /*ref_suppresses_pch_file=*/FALSE);
+    enter_predef_num_macro_noredef(microsoft_version, "_MSC_VER");
     /* Define _MSC_FULL_VER, which is similar to _MSC_VER but appends the
        "build number". */
-    { char  macro_val[100];
-      if (sprintf(macro_val, "%lu%lu",
-                  microsoft_version, microsoft_build_number) <
-                                                      (int)sizeof(macro_val)) {
-        (void)enter_predef_macro(macro_val, "_MSC_FULL_VER",
-                                 /*cannot_be_redefined=*/FALSE,
-                                 /*ref_suppresses_pch_file=*/FALSE);
-      } else {
-        unexpected_condition();
-      }  /* if */
+    { char  macro_val[100], *ptr = macro_val;
+      ptr += unsigned_to_string_buf(microsoft_version, macro_val);
+      check_assertion((ptr-macro_val) < 10);
+      (void)unsigned_to_string_buf(microsoft_build_number, macro_val);
+      (void)enter_predef_macro(macro_val, "_MSC_FULL_VER",
+                               /*cannot_be_redefined=*/FALSE,
+                               /*ref_suppresses_pch_file=*/FALSE);
     }
     /* Define _MSC_EXTENSIONS. */
     (void)enter_predef_macro("1", "_MSC_EXTENSIONS",
@@ -9452,18 +9417,10 @@ command line -D options.
 #else /* !LONG_LONG_ALLOWED */
       int_max_size = targ_sizeof_long;
 #endif /* LONG_LONG_ALLOWED */
-      (void)enter_predef_macro(
-                            conv_unsigned_long_to_str(int_max_size * CHAR_BIT),
-                            "_INTEGRAL_MAX_BITS",
-                            /*cannot_be_redefined=*/FALSE,
-                            /*ref_suppresses_pch_file=*/FALSE);
+      enter_predef_num_macro(int_max_size * CHAR_BIT, "_INTEGRAL_MAX_BITS");
     }
 #ifdef _M_IX86
-    (void)enter_predef_macro(conv_unsigned_long_to_str(
-                                                      (unsigned long)_M_IX86),
-                             "_M_IX86",
-                             /*cannot_be_redefined=*/FALSE,
-                             /*ref_suppresses_pch_file=*/FALSE);
+    enter_predef_num_macro(_M_IX86, "_M_IX86");
 #endif /* ifdef _M_IX86 */
   } else
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
@@ -9516,11 +9473,7 @@ command line -D options.
                            /*ref_suppresses_pch_file=*/FALSE);
   /* Enter a predefined macro that can be used to determine the version of
      the EDG front end being used. */
-  (void)enter_predef_macro(conv_unsigned_long_to_str
-                                     ((unsigned long)VERSION_NUMBER_FOR_MACRO),
-                           "__EDG_VERSION__",
-                           /*cannot_be_redefined=*/TRUE,
-                           /*ref_suppresses_pch_file=*/FALSE);
+  enter_predef_num_macro_noredef(VERSION_NUMBER_FOR_MACRO, "__EDG_VERSION__");
   /* Enter a predefined macro for the type of size_t on this target. */
   (void)enter_predef_macro(int_kind_name(targ_size_t_int_kind),
                            "__EDG_SIZE_TYPE__",

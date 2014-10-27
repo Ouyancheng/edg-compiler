@@ -748,6 +748,8 @@ End the current output line if it has been started.
 { if (curr_output_column != 0) end_output_line(); }
 
 
+static void write_tok_str(a_const_char *str);
+
 static void write_line_directive(a_line_number     line_number,
                                  a_source_file_ptr new_output_file)
 /*
@@ -759,6 +761,7 @@ Write a #line directive for the indicated line number and file.
      standalone version. */
   a_boolean gen_old_style_line_dirs = FALSE;
 #endif /* STANDALONE_UTILITY_PROGRAM */
+  char      buf[100] = "#line ";
 
   /* End the previous line if there is one. */
   end_output_line_if_begun();
@@ -767,10 +770,12 @@ Write a #line directive for the indicated line number and file.
   if (gen_old_style_line_dirs || gcc_or_clang_is_generated_code_target) {
     /* Generate old-style directives, i.e., the kind output by the Reiser
        cpp and by the GNU preprocessor. */
-    (void)fprintf(f_C_output, "# %lu", (unsigned long)curr_output_line);
+    buf[1] = ' ';
+    (void)unsigned_to_string_buf((unsigned long)curr_output_line, buf+2);
   } else {
-    (void)fprintf(f_C_output, "#line %lu", (unsigned long)curr_output_line);
+    (void)unsigned_to_string_buf((unsigned long)curr_output_line, buf+6);
   }  /* if */
+  write_tok_str(buf);
   if (new_output_file != curr_output_file) {
     /* The file name is put out only if it changed. */
     a_boolean process_escapes = C_GEN_BE_GENERATES_ANSI_C;
@@ -1113,7 +1118,7 @@ to be a complete token.
   }  /* if */
   /* General case: */
   { char buffer[50];
-    (void)sprintf(buffer, PRINTF_FORMAT_FOR_HOST_LARGE_UNSIGNED, num);
+    (void)unsigned_to_string_buf(num, buffer);
     m_write_tok_str(buffer);
   }
   goto done;
@@ -1345,9 +1350,9 @@ Write a temporary name generated from the given IL pointer as a separate
 token.
 */
 {
-  char buffer[50];
+  char buffer[50] = "__T";
 
-  (void)sprintf(buffer, "__T%lu", unique_id_for_il_pointer(ptr));
+  (void)unsigned_to_string_buf(unique_id_for_il_pointer(ptr), buffer+3);
   m_write_tok_str(buffer);
 }  /* dump_temp_name */
 

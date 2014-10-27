@@ -1599,7 +1599,7 @@ buffer.  If an arithmetic value is negative, it is preceded by a "-".
 */
 {
   static char buffer[50];
-  char        *result = buffer;
+  char        *result = buffer, *ptr;
   int         num_hex_digits_in_repr = ((int)size * targ_char_bit) / 4;
   int         num_hex_digits_printed = 0;
 
@@ -1625,9 +1625,7 @@ buffer.  If an arithmetic value is negative, it is preceded by a "-".
     result[0] = '0';
     result[1] = 'x';
   } else {
-    (void)sprintf(buffer, is_signed ? PRINTF_FORMAT_FOR_SIGNED_INTEGER_VALUE
-                                    : PRINTF_FORMAT_FOR_UNSIGNED_INTEGER_VALUE,
-                  *p_value);
+    (void)signed_to_string_buf(*p_value, buffer);
   }  /* if */
 #else /* !INTEGER_VALUE_REPR_IS_A_HOST_INTEGER */
   int         i;
@@ -1656,7 +1654,8 @@ buffer.  If an arithmetic value is negative, it is preceded by a "-".
     if (!nonzero_part_seen) {
       /* All the parts were zero, so there's no need for a hexadecimal
          literal; a simple "0" will do. */
-      (void)sprintf(buffer, "0");
+      result[0] = '0';
+      result[1] = '\0';
     } else {
       /* Make sure the resulting string isn't longer than what is
          required to represent the type of the integer. */
@@ -1677,8 +1676,7 @@ buffer.  If an arithmetic value is negative, it is preceded by a "-".
     an_integer_value	value;
     an_integer_value	remainder;
     an_integer_value	iv_max_power_of_10;
-    a_const_char	*sign_string = "";
-    a_boolean		err;
+    a_boolean		negative = FALSE, err;
     /* Compute the maximum power of 10 that can be represented in a long.
        Compute the number of digits in the maximum power of 10.
        We will use sprintf to output groups of digits of this size. */
@@ -1695,7 +1693,7 @@ buffer.  If an arithmetic value is negative, it is preceded by a "-".
     /* If the number is negative, save the sign and convert the number
        to be positive. */
     if (sign_of(value) && is_signed) {
-      sign_string = "-";
+      negative = TRUE;
       negate_integer_value(&value, &err);
     }  /* if */
     /* Divide the number into pieces that are in the range of 0 to
@@ -1725,15 +1723,27 @@ buffer.  If an arithmetic value is negative, it is preceded by a "-".
         parts[i] = (long)tmp_result;
       }  /* if */
     }  /* for */
-    /* Print the first part. The first part includes the sign and is
+    /* Stringize the first part. The first part includes the sign and is
        not padded with zeros. */
-    sprintf(buffer, "%s%ld", sign_string, parts[i]);
+    ptr = buffer;
+    if (negative) {
+      *ptr++ = '-';
+    }  /* if */
+    ptr += unsigned_to_string_buf((a_host_large_unsigned)parts[i], ptr);
     for (++i ; i < (int)INT_VALUE_PARTS_PER_INTEGER_VALUE; ++i) {
-      /* Print subsequent parts.  These do not include the sign and
-         are padded on the right with zeros. */
-      sprintf(&buffer[strlen(buffer)], "%0*ld", digits_in_max_power_of_10,
-              parts[i]);
+      /* Stringize subsequent parts.  These do not include the sign and
+         are padded on the left with zeros.  (Since these are fixed-length
+         parts, we can generate them right-to-left.) */
+      a_host_large_unsigned  p = (a_host_large_unsigned)parts[i];
+      int                    k;
+      for (k = digits_in_max_power_of_10; k != 0;) {
+        --k;
+        ptr[k] = '0'+p%10;
+        p = p/10;
+      }  /* for */
+      ptr = ptr+digits_in_max_power_of_10;
     }  /* for */
+    *ptr = '\0';
   }  /* if */
 #endif /* INTEGER_VALUE_REPR_IS_A_HOST_INTEGER */
   return result;
@@ -1892,17 +1902,33 @@ so no checking is done.
 
 #endif /* !INTEGER_VALUE_REPR_IS_A_HOST_INTEGER || FIXED_POINT_ALLOWED */
 
-char *conv_unsigned_long_to_str(unsigned long val)
+int f_unsigned_to_string_buf(a_host_large_unsigned val,
+                             char                  *buf)
 /*
-Convert an integer to a character string.  Return a pointer to the
-buffer containing the string.  The buffer is static storage that will
-be overwritten by subsequent calls.
+Represent val as a sequence of decimal digits followed by a null character
+starting at buf[0].  Return the number of digits output (not including the
+final null character).
 */
 {
-  static char buffer[50];
-  sprintf(buffer, "%lu", val);
-  return buffer;
-}  /* conv_unsigned_long_to_str */
+  int h, k, l = 0;
+
+  /* Produce the digits starting with the least significant. */
+  do {
+    buf[l] = '0' + val%10;
+    l += 1;
+    val /= 10;
+  } while (val != 0);
+  buf[l] = '\0';
+  /* Reverse the sequence. */
+  h = l/2;
+  l -= 1;
+  for (k = 0; k < h; ++k) {
+    char t = buf[k];
+    buf[k] = buf[l-k];
+    buf[l-k] = t;
+  }  /* if */
+  return l+1;
+}  /* f_unsigned_to_string_buf */
 
 
 #if DEBUG

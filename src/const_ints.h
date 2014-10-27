@@ -258,7 +258,20 @@ extern an_integer_kind int_kind_for_size_and_alignment(
                                                 a_targ_alignment alignment,
                                                 a_boolean        is_signed);
 
-extern char *conv_unsigned_long_to_str(unsigned long val);
+extern int f_unsigned_to_string_buf(a_host_large_unsigned val,
+                                    char                  *buf);
+
+#define unsigned_to_string_buf(val, buf)                                     \
+  ((val < 10) ? ((buf)[0] = '0'+(val), (buf)[1] = '\0', 1)                   \
+              : f_unsigned_to_string_buf(val, buf))
+
+#define signed_to_string_buf(val, buf)                                       \
+  ((val < 0) ? ((buf)[0] = '-',                                              \
+                1+unsigned_to_string_buf((a_host_large_unsigned)-(val),      \
+                                         (buf)+1))                           \
+             : unsigned_to_string_buf((a_host_large_unsigned)(val), buf))
+  
+
 
 #if MICROSOFT_EXTENSIONS_ALLOWED || GNU_EXTENSIONS_ALLOWED || IA64_ABI
 extern an_integer_kind int_kind_for_bit_size(unsigned int  number_of_bits,

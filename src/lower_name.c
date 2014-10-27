@@ -1072,10 +1072,13 @@ simple output -- just the digits of the value, with no additional
 encoding.
 */
 {
-  char buffer[50];
+  char     buffer[50];
+  sizeof_t len = unsigned_to_string_buf(value, buffer);
 
-  (void)sprintf(buffer, "%lu", value);
-  add_str_to_mangled_name(buffer, mctl);
+  mctl->length += len;
+  (void)add_to_text_buffer(mangling_text_buffer, buffer, len);
+  check_assertion(mctl->length + mctl->num_leftover_spaces ==
+                                                   mangling_text_buffer->size);
 }  /* add_number_to_mangled_name */
 
 #if IA64_ABI
@@ -1090,12 +1093,15 @@ simple output -- just the digits of the value, with no additional
 encoding.  A negative value is prefixed by "n".
 */
 {
-  char buffer[50];
+  char     buffer[50];
+  sizeof_t len = unsigned_to_string_buf(value, buffer);
 
-  (void)sprintf(buffer, "%ld", (long)value);
   /* Handle negative numbers by replacing '-' with 'n'. */
   if (buffer[0] == '-') buffer[0] = 'n';
-  add_str_to_mangled_name(buffer, mctl);
+  mctl->length += len;
+  (void)add_to_text_buffer(mangling_text_buffer, buffer, len);
+  check_assertion(mctl->length + mctl->num_leftover_spaces ==
+                                                   mangling_text_buffer->size);
 }  /* add_signed_number_to_mangled_name */
 
 #endif /* DO_IL_LOWERING */

@@ -27722,9 +27722,9 @@ Call an error routine to issue a diagnostic about an invalid export
 information file.
 */
 {
-  char	*str_line_number;
+  char	str_line_number[50];
 
-  str_line_number = conv_unsigned_long_to_str((unsigned long)line_number);
+  (void)unsigned_to_string_buf(line_number, str_line_number);
   pos_str2_catastrophe(ec_bad_export_info_file, eifp->file_name,
                        str_line_number,
                        &null_source_position);
