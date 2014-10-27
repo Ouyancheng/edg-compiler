@@ -9420,7 +9420,8 @@ command line -D options.
 #else /* !LONG_LONG_ALLOWED */
       int_max_size = (long)targ_sizeof_long;
 #endif /* LONG_LONG_ALLOWED */
-      enter_predef_num_macro(int_max_size * CHAR_BIT, "_INTEGRAL_MAX_BITS");
+      enter_predef_num_macro(/*lint !e647*/int_max_size * CHAR_BIT,
+                             "_INTEGRAL_MAX_BITS");
     }
 #ifdef _M_IX86
     enter_predef_num_macro(_M_IX86, "_M_IX86");
