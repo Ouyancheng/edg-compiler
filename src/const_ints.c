@@ -1599,7 +1599,7 @@ buffer.  If an arithmetic value is negative, it is preceded by a "-".
 */
 {
   static char buffer[50];
-  char        *result = buffer, *ptr;
+  char        *result = buffer;
   int         num_hex_digits_in_repr = ((int)size * targ_char_bit) / 4;
   int         num_hex_digits_printed = 0;
 
@@ -1625,9 +1625,10 @@ buffer.  If an arithmetic value is negative, it is preceded by a "-".
     result[0] = '0';
     result[1] = 'x';
   } else {
-    (void)signed_to_string_buf(*p_value, buffer);
+    (void)signed_to_string_buf(*(a_host_large_integer)p_value, buffer);
   }  /* if */
 #else /* !INTEGER_VALUE_REPR_IS_A_HOST_INTEGER */
+  char        *ptr;
   int         i;
 
   if (non_arithmetic) {

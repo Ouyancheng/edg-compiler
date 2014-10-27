@@ -771,9 +771,11 @@ Write a #line directive for the indicated line number and file.
     /* Generate old-style directives, i.e., the kind output by the Reiser
        cpp and by the GNU preprocessor. */
     buf[1] = ' ';
-    (void)unsigned_to_string_buf((unsigned long)curr_output_line, buf+2);
+    (void)unsigned_to_string_buf((a_host_large_unsigned)curr_output_line,
+                                 buf+2);
   } else {
-    (void)unsigned_to_string_buf((unsigned long)curr_output_line, buf+6);
+    (void)unsigned_to_string_buf((a_host_large_unsigned)curr_output_line,
+                                 buf+6);
   }  /* if */
   write_tok_str(buf);
   if (new_output_file != curr_output_file) {
@@ -1350,9 +1352,11 @@ Write a temporary name generated from the given IL pointer as a separate
 token.
 */
 {
-  char buffer[50] = "__T";
+  char                   buffer[50] = "__T";
+  a_host_large_unsigned  id;
 
-  (void)unsigned_to_string_buf(unique_id_for_il_pointer(ptr), buffer+3);
+  id = (a_host_large_unsigned)unique_id_for_il_pointer(ptr);
+  (void)unsigned_to_string_buf(id, buffer+3);
   m_write_tok_str(buffer);
 }  /* dump_temp_name */
 

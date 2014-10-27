@@ -2548,7 +2548,7 @@ to be a complete token.
   }  /* if */
   /* General case: */
   { char buffer[50];
-    unsigned_to_string_buf(num, buffer);
+    (void)unsigned_to_string_buf(num, buffer);
     m_write_tok_str_no_pending_check(buffer);
   }
   goto done;
@@ -2606,9 +2606,11 @@ static void gen_temp_name(char *ptr)
 Write a temporary name generated from the given IL pointer.
 */
 {
-  char buffer[50] = "__T";
+  char                   buffer[50] = "__T";
+  a_host_large_unsigned  id;
 
-  (void)unsigned_to_string_buf(unique_id_for_il_pointer(ptr), buffer+3);
+  id = (a_host_large_unsigned)unique_id_for_il_pointer(ptr);
+  (void)unsigned_to_string_buf(id, buffer+3);
   m_write_tok_str(buffer);
 }  /* gen_temp_name */
 

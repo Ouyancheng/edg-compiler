@@ -8234,7 +8234,7 @@ macros.  See enter_predef_macro_full for a description of the parameters.
 }  /* enter_predef_macro */
 
 
-a_symbol_ptr f_enter_predef_num_macro(
+static a_symbol_ptr f_enter_predef_num_macro(
                                    a_host_large_integer  num,
                                    a_const_char          *macro_name,
                                    a_boolean             cannot_be_redefined)
