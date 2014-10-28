@@ -9372,7 +9372,7 @@ command line -D options.
   if (microsoft_mode) {
     /* Define the _MSC_VER variable that indicates the version of the
        Microsoft compiler that is being emulated. */
-    enter_predef_num_macro_noredef(microsoft_version, "_MSC_VER");
+    enter_predef_num_macro(microsoft_version, "_MSC_VER");
     /* Define _MSC_FULL_VER, which is similar to _MSC_VER but appends the
        "build number". */
     { char  macro_val[100], *ptr = macro_val;
