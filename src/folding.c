@@ -7412,11 +7412,9 @@ Return TRUE if all the copy (not move!) assignment operators of the class
 associated with cssp are trivial.
 */
 {
-  a_boolean     result = TRUE, is_list = FALSE;
+  a_boolean     result = FALSE, is_list = FALSE;
   a_symbol_ptr  sym = cssp->assignment_operator;
 
-  /* Assume the result is TRUE, and look for a copy assignment operator that
-     would make it FALSE. */
   if (symbol_is(sym, sk_overloaded_function)) {
     is_list = TRUE;
     sym = sym->variant.overloaded_function.symbols;
@@ -7427,9 +7425,16 @@ associated with cssp are trivial.
       a_boolean             is_move;
       a_routine_ptr         rp = sym->variant.routine.ptr;
       if (routine_is_copy_or_move_assign_operator(rp, &tqs, &is_move) &&
-          !is_move && !rp->is_trivial_copy_function) {
-        result = FALSE;
-        break;
+          !is_move) {
+        if (!rp->is_trivial_copy_function) {
+          result = FALSE;
+          break;
+        } else {
+          /* We found a trivial copy assignment operator.  Assume therefore
+             that the result is TRUE, and turn it back to FALSE if we find a
+             nontrivial operator. */
+          result = TRUE;
+        }  /* if */
       }  /* if */
     }  /* if */
   }  /* for */
@@ -7444,11 +7449,9 @@ Return TRUE if all the copy (not move!) constructors of the class associated
 with cssp are trivial.
 */
 {
-  a_boolean     result = TRUE, is_list = FALSE;
+  a_boolean     result = FALSE, is_list = FALSE;
   a_symbol_ptr  sym = cssp->constructor;
 
-  /* Assume the result is TRUE, and look for a copy constructor that would
-     make it FALSE. */
   if (symbol_is(sym, sk_overloaded_function)) {
     is_list = TRUE;
     sym = sym->variant.overloaded_function.symbols;
@@ -7459,10 +7462,16 @@ with cssp are trivial.
       a_routine_ptr         rp = sym->variant.routine.ptr;
       if (is_copy_constructor(rp, parent_class_of(rp), &tqs,
                               /*include_move_ctors=*/FALSE,
-                              /*is_declarative_context=*/TRUE) &&
-          !rp->is_trivial_copy_function) {
-        result = FALSE;
-        break;
+                              /*is_declarative_context=*/TRUE)) {
+        if (!rp->is_trivial_copy_function) {
+          result = FALSE;
+          break;
+        } else {
+          /* We found a trivial copy constructor.  Assume therefore that the
+             result is TRUE, and turn it back to FALSE if we find a nontrivial
+             copy constructor. */
+          result = TRUE;
+        }  /* if */
       }  /* if */
     }  /* if */
   }  /* for */

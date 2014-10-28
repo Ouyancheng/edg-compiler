@@ -19711,11 +19711,17 @@ deleted, disable bitwise copying.
                semantics.) */
             rp->is_trivial_copy_function = FALSE;
             cssp->makes_copy_construction_nontrivial = TRUE;
-          } else if (!rp->is_deleted) {
+          } else {
             rp->is_trivial_copy_function =
                                     !cssp->makes_copy_construction_nontrivial;
-          } else {
-            class_state->rule_out_bitwise_copy_for_deleted_ctor = TRUE;
+            if (rp->is_deleted) {
+              class_state->rule_out_bitwise_copy_for_deleted_ctor = TRUE;
+              if (gpp_mode && gnu_version < 40700) {
+                /* Early drafts of C++11 made deleted function nontrivial, and
+                   GCC versions from that era implemented that rule. */
+                rp->is_trivial_copy_function = FALSE;
+              }  /* if */
+            }  /* if */
           }  /* if */
         } else if (rp->special_kind == (a_special_function_kind)sfk_operator &&
                    rp->variant.opname_kind == (an_opname_kind)onk_assign &&
@@ -19735,11 +19741,17 @@ deleted, disable bitwise copying.
                semantics.) */
             rp->is_trivial_copy_function = FALSE;
             cssp->makes_copy_assignment_nontrivial = TRUE;
-          } else if (!rp->is_deleted) {
+          } else {
             rp->is_trivial_copy_function =
                                       !cssp->makes_copy_assignment_nontrivial;
-          } else {
-            class_state->rule_out_bitwise_assign_for_deleted_operator = TRUE;
+            if (rp->is_deleted) {
+              class_state->rule_out_bitwise_assign_for_deleted_operator = TRUE;
+              if (gpp_mode && gnu_version < 40700) {
+                /* Early drafts of C++11 made deleted function nontrivial, and
+                   GCC versions from that era implemented that rule. */
+                rp->is_trivial_copy_function = FALSE;
+              }  /* if */
+            }  /* if */
           }  /* if */
         }  /* if */
       }  /* if */
@@ -20689,19 +20701,19 @@ The routine body is not generated until it is known to be needed.
      nontrivial.  A class is trivially copyable if it has a trivial destructor,
      and it is bitwise copyable/assignable, except perhaps for deleted copy
      functions. */
-  if (cssp->has_user_provided_copy_constructor ||
-      cssp->has_user_provided_move_constructor) {
+  if (cssp->has_user_provided_copy_constructor) {
     cssp->makes_copy_construction_nontrivial = TRUE;
   }  /* if */
   if (cssp->makes_copy_construction_nontrivial ||
+      cssp->has_user_provided_move_constructor ||
       class_state->rule_out_bitwise_copy_for_volatile_class_field) {
     cssp->construction_by_bitwise_copy_allowed = FALSE;
   }  /* if */
-  if (user_provided_copy_assignment_op ||
-      cssp->has_user_provided_move_assign_operator) {
+  if (user_provided_copy_assignment_op) {
     cssp->makes_copy_assignment_nontrivial = TRUE;
   }  /* if */
   if (cssp->makes_copy_assignment_nontrivial ||
+      cssp->has_user_provided_move_assign_operator ||
       class_state->rule_out_bitwise_assign_for_volatile_class_field) {
     cssp->assignment_by_bitwise_copy_allowed = FALSE;
   }  /* if */
