@@ -6827,6 +6827,11 @@ file.
   comment_undefined_macro_name(
                           NO_VLA_DIMENSION_TEMPORARIES_IN_FUNCTION_PROTOTYPES);
 #endif /* defined(NO_VLA_DIMENSION_TEMPORARIES_IN_FUNCTION_PROTOTYPES) */
+#if defined(NULL_POINTER_IS_ZERO)
+  define_numeric_valued_macro(NULL_POINTER_IS_ZERO);
+#else /* !defined(NULL_POINTER_IS_ZERO) */
+  comment_undefined_macro_name(NULL_POINTER_IS_ZERO);
+#endif /* defined(NULL_POINTER_IS_ZERO) */
 #if defined(NUM_BITS_FOR_CHARACTER_KIND)
   define_numeric_valued_macro(NUM_BITS_FOR_CHARACTER_KIND);
 #else /* !defined(NUM_BITS_FOR_CHARACTER_KIND) */

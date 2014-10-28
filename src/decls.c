@@ -87,6 +87,7 @@ specifier.
   (curr_token == tok_inline   || curr_token == tok_virtual ||        \
    curr_token == tok_explicit || curr_token == tok_noreturn)
 
+#if !NULL_POINTER_IS_ZERO
 
 static void clear_init_state_fields(an_init_state  *is)
 /*
@@ -125,6 +126,7 @@ Clear the fields of *is.
   is->pending_elements = FALSE;
 }  /* clear_init_state_fields */
 
+#endif /* !NULL_POINTER_IS_ZERO */
 
 static
 void clear_decl_parse_state_fields(a_decl_parse_state  *dps,
@@ -18053,9 +18055,11 @@ void decls_one_time_init(void)
 Do one-time initialization of static variables defined in this file.
 */
 {
+#if !NULL_POINTER_IS_ZERO
   clear_init_state_fields(&null_init_state);
   clear_decl_parse_state_fields(&null_decl_parse_state,
                                 /*secondary_declarator=*/FALSE);
+#endif /* !NULL_POINTER_IS_ZERO */
   if (precompiled_header_processing_required) {
     static a_pch_saved_variable saved_vars[] = {
       pch_saved_var_array_elem(avail_decl_parse_states),

@@ -154,7 +154,16 @@ therefore likely of limited scope.
 #ifndef FREE_MEMORY_REGIONS_EARLY
 #define FREE_MEMORY_REGIONS_EARLY FALSE
 #endif /* ifndef FREE_MEMORY_REGIONS_EARLY */
-				   
+  
+/*
+Flag that is TRUE if zeroing the bytes of a pointer object produces a null
+pointer.  (This is generally true, but not guaranteed by the C or C++
+standards.)
+*/
+#ifndef NULL_POINTER_IS_ZERO
+#define NULL_POINTER_IS_ZERO TRUE
+#endif /* ifdef NULL_POINTER_IS_ZERO */
+
 /*
 The number of include files that may be opened at any given time.
 After include nesting gets this deep, the same file will be re-opened

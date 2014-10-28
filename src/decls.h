@@ -494,17 +494,6 @@ typedef struct an_init_state {
 } an_init_state;
 
 
-EXTERN an_init_state
-		null_init_state;
-			/* Null "init state".  Used for initialization by the
-			   clear_init_state macro. */
-
-/*
-Macro to initialize the "init state" pointed to by the argument.
-*/
-#define clear_init_state(is) (*(is) = null_init_state)
-
-
 /*
 Structure used to hold a list of pre-scanned expressions or braced-init-lists
 so they can be retrieved and scanned later.  Used, for example, for the
@@ -1095,6 +1084,33 @@ typedef struct a_decl_parse_state {
 } a_decl_parse_state;
 
 
+#if NULL_POINTER_IS_ZERO
+
+/*
+Macro to initialize the "declaration parsing state" pointed to by the
+argument.
+*/
+#define init_decl_parse_state(ps) {                                          \
+  memzero((char*)(ps), sizeof(a_decl_parse_state));                          \
+  (ps)->start_pos = pos_curr_token;                                          \
+  (ps)->init_state.decl_parse_state = (ps);                                  \
+  if (!(gpp_mode && gnu_version < 40800)) {                                  \
+    (ps)->init_state.elided_braces_allowed = TRUE;                           \
+  }  /* if */                                                                \
+}
+
+/*
+Macro to initialize the "init state" pointed to by the argument.
+*/
+#define clear_init_state(is) {                                               \
+  memzero((char*)(is), sizeof(an_init_state));                               \
+  if (!(gpp_mode && gnu_version < 40800)) {                                  \
+    (is)->elided_braces_allowed = TRUE;                                      \
+  }  /* if */                                                                \
+}
+
+#else /* !NULL_POINTER_IS_ZERO */
+
 EXTERN a_decl_parse_state
 		null_decl_parse_state;
 			/* Null "parse state".  Used for initialization by the
@@ -1109,6 +1125,20 @@ argument.
   (ps)->start_pos = pos_curr_token;                                          \
   (ps)->init_state.decl_parse_state = (ps);                                  \
 }
+
+
+EXTERN an_init_state
+		null_init_state;
+			/* Null "init state".  Used for initialization by the
+			   clear_init_state macro. */
+
+/*
+Macro to initialize the "init state" pointed to by the argument.
+*/
+#define clear_init_state(is) (*(is) = null_init_state)
+
+
+#endif /* NULL_POINTER_IS_ZERO */
 
 extern a_decl_parse_state_ptr alloc_decl_parse_state(void);
 
