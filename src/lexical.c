@@ -6830,11 +6830,11 @@ literals in C++11.
        /* Check for question marks and LE_ESCAPE (i.e., null) characters.
           The presence of two question marks in a row suggests there may be a
           trigraph in the line. */
-#if !defined(DO_NOT_ASSUME_QUESTION_IS_LARGER_THAN_END_OF_LINE)
+#if !DO_NOT_ASSUME_QUESTION_IS_LARGER_THAN_END_OF_LINE
         if (local_ch > '?') {
           /* Common case: For speed. */
         } else
-#endif /* !defined(DO_NOT_ASSUME_QUESTION_IS_LARGER_THAN_END_OF_LINE) */
+#endif /* !DO_NOT_ASSUME_QUESTION_IS_LARGER_THAN_END_OF_LINE */
         /* Do not insert code here. */
         if (local_ch == '?') {
           /* One "?", check previous character to see if it is also a "?". */
@@ -21873,12 +21873,12 @@ of the front end.
       last_end = p->end;
     }  /* for */
   }
-#if !defined(DO_NOT_ASSUME_QUESTION_IS_LARGER_THAN_END_OF_LINE)
+#if !DO_NOT_ASSUME_QUESTION_IS_LARGER_THAN_END_OF_LINE
   /* The source input routines assume that '?' > '\n' and '\r' to improve
      performance.  Although that's true in practice, the assumption is not
-     made if DO_NOT_ASSUME_QUESTION_IS_LARGER_THAN_END_OF_LINE is defined. */
+     made if DO_NOT_ASSUME_QUESTION_IS_LARGER_THAN_END_OF_LINE is TRUE. */
   check_assertion('?' > '\n' && '?' > '\r');
-#endif /* !defined(DO_NOT_ASSUME_QUESTION_IS_LARGER_THAN_END_OF_LINE) */
+#endif /* !DO_NOT_ASSUME_QUESTION_IS_LARGER_THAN_END_OF_LINE */
 #endif /* CHECKING */
 }  /* lexical_init */
 

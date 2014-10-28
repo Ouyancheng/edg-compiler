@@ -5936,6 +5936,13 @@ file.
 #else /* !defined(DO_IL_LOWERING) */
   comment_undefined_macro_name(DO_IL_LOWERING);
 #endif /* defined(DO_IL_LOWERING) */
+#if defined(DO_NOT_ASSUME_QUESTION_IS_LARGER_THAN_END_OF_LINE)
+  define_numeric_valued_macro(
+                           DO_NOT_ASSUME_QUESTION_IS_LARGER_THAN_END_OF_LINE);
+#else /* !defined(DO_NOT_ASSUME_QUESTION_IS_LARGER_THAN_END_OF_LINE) */
+  comment_undefined_macro_name(
+                           DO_NOT_ASSUME_QUESTION_IS_LARGER_THAN_END_OF_LINE);
+#endif /* defined(DO_NOT_ASSUME_QUESTION_IS_LARGER_THAN_END_OF_LINE) */
 #if defined(DO_RETURN_VALUE_OPTIMIZATION_IN_LOWERING)
   define_numeric_valued_macro(DO_RETURN_VALUE_OPTIMIZATION_IN_LOWERING);
 #else /* !defined(DO_RETURN_VALUE_OPTIMIZATION_IN_LOWERING) */

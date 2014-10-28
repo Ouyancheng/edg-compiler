@@ -2104,6 +2104,16 @@ those warnings are not addressed.
 
 
 /*
+Flag that is TRUE if the code point for a question mark is a smaller value
+than that of end of line markers ('\n' and '\r').  Assuming the opposite
+(which valid for all common character encodings) enables a valuable
+optimization in the performance of read_logical_source_line.
+*/
+#ifndef DO_NOT_ASSUME_QUESTION_IS_LARGER_THAN_END_OF_LINE
+#define DO_NOT_ASSUME_QUESTION_IS_LARGER_THAN_END_OF_LINE FALSE
+#endif /* DO_NOT_ASSUME_QUESTION_IS_LARGER_THAN_END_OF_LINE */
+
+/*
 Flag that is TRUE if UTF-8 and UTF-16 encodings of Unicode should be
 accepted in source code.  Note that if you set this the representation for
 identifiers and file names becomes UTF-8, which may require back end or
