@@ -6135,7 +6135,7 @@ Set *err to TRUE if there is an error.
       gid_flags |= GID_DTOR_MUST_BE_NONCLASS;
     }  /* if */
   }  /* if */
-  if (f_is_generalized_identifier_start(gid_flags, type_1)) {
+  if (is_generalized_identifier_start_full(gid_flags, type_1)) {
     a_symbol_ptr member_sym = NULL;
     a_boolean    local_err;
     /* See if the name following the operator is a C++ qualified name, as

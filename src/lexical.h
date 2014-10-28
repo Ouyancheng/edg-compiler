@@ -2414,19 +2414,28 @@ extern void setlocale_pragma(a_pending_pragma_ptr	ppp);
 #endif /* !MICROSOFT_EXTENSIONS_ALLOWED */
 
 /* Macro that tests whether f_is_generalized_identifier_start needs
-   to be called.  We don't need to call it if we have an identifier that
-   has already been coalesced.  There are other cases that could be
-   eliminated such as tok_ptr_to_member (which returns FALSE) and current
-   tokens that are not things that could start an identifier.  These have
-   smaller payoffs so are not currently included. */
-#define is_generalized_identifier_start(options)			\
-  /* if */ ((curr_token == tok_identifier &&				\
-            locator_for_curr_id.has_been_coalesced) /* { */ ?		\
-    TRUE								\
+   to be called.  We don't need to call it in C mode, or if we have an
+   identifier that has already been coalesced.  There are other cases that
+   could be eliminated such as tok_ptr_to_member (which returns FALSE) and
+   current tokens that are not things that could start an identifier.  These
+   have smaller payoffs so are not currently included. */
+#define is_generalized_identifier_start_full(options, type)		\
+  /* if */ ((C_dialect != C_dialect_cplusplus) /* { */ ?		\
+    curr_token == tok_identifier					\
   /* } else { */ :							\
-    f_is_generalized_identifier_start(options, (a_type_ptr)NULL))	\
+    /* if */ (curr_token == tok_identifier &&				\
+              locator_for_curr_id.has_been_coalesced) /* { */ ?		\
+      TRUE								\
+    /* } else { */ :							\
+      f_is_generalized_identifier_start(options, (type)))		\
   /* } */								\
 
+/*
+Interface to is_generalized_identifier_start_full that provides a default
+NULL type pointer.
+*/
+#define is_generalized_identifier_start(options)			\
+  (is_generalized_identifier_start_full((options), (a_type_ptr)NULL))
 
 /* Return TRUE if the current token is the start of a C++ qualified
    name (including a simple identifier).  This version of the macro is
