@@ -6287,8 +6287,9 @@ Fills in some things from expression context.
     init_state->traditional_const_expr_required =
                                         curr_expr_kind_is_traditional_const();
   }  /* if */
-  init_state->evaluated = curr_expr_is_evaluated();
-  init_state->potentially_evaluated = curr_expr_is_potentially_evaluated();
+  init_state->not_evaluated = !curr_expr_is_evaluated();
+  init_state->not_potentially_evaluated =
+                                       !curr_expr_is_potentially_evaluated();
 }  /* expr_clear_init_state */
 
 

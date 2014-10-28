@@ -207,7 +207,7 @@ constant and expr_kind is not already a constant expression kind.
     if ((int)expr_kind > (int)ek_init_constant) {
       expr_kind = (an_expression_kind)ek_init_constant;
     }  /* if */
-  } else if (is != NULL && !is->evaluated) {
+  } else if (is != NULL && is->not_evaluated) {
     expr_kind = (an_expression_kind)ek_sizeof;
   }  /* if */
   push_expr_stack(expr_kind, expr_stack_entry,
@@ -227,12 +227,12 @@ constant and expr_kind is not already a constant expression kind.
     /* Transfer some additional flags from the init state. */
     expr_stack_entry->traditional_const_expr_required =
                                           is->traditional_const_expr_required;
-    if (is->potentially_evaluated) {
+    if (!is->not_potentially_evaluated) {
       expr_stack_entry->potentially_evaluated = TRUE;
     } else {
       /* If an initializer is not potentially evaluated, it is certainly not
          evaluated at all. */
-      check_assertion(!is->evaluated);
+      check_assertion(is->not_evaluated);
     }  /* if */
   }  /* if */
   if (dps != NULL && dps->sym != NULL) {

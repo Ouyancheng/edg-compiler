@@ -430,8 +430,8 @@ typedef struct an_init_state {
   a_bit_field	non_top_level_aggregate:1;
 			/* TRUE while processing the components of an
 			   aggregate that is not at the top level. */
-  a_bit_field	elided_braces_allowed:1;
-			/* TRUE if an aggregate initializer can omit braces.
+  a_bit_field	elided_braces_disallowed:1;
+			/* FALSE if an aggregate initializer can omit braces.
 			   In the original C++11 specification braces could be
 			   omitted only in initializations of the form
 			     T x = { ... };
@@ -450,14 +450,14 @@ typedef struct an_init_state {
 			/* TRUE if in this context, an initializer for a top-
 			   level array can determine the dimension of that
 			   array (e.g., as in "T x[] = { y, z };"). */
-  a_bit_field	evaluated:1;
-			/* TRUE if the initializer is evaluated, e.g.,
-			   FALSE in the operand of a sizeof and also FALSE in
+  a_bit_field	not_evaluated:1;
+			/* FALSE if the initializer is evaluated, e.g.,
+			   TRUE in the operand of a sizeof and also FALSE in
 			   a dead operand of a short-circuiting operation. */
-  a_bit_field	potentially_evaluated:1;
-			/* TRUE if the initializer is potentially evaluated.
-			   For example, FALSE if the initializer appears in the
-			   operand of a sizeof, but TRUE if it appear in a
+  a_bit_field	not_potentially_evaluated:1;
+			/* FALSE if the initializer is potentially evaluated.
+			   For example, TRUE if the initializer appears in the
+			   operand of a sizeof, but FALSE if it appear in a
 			   branch of an eok_question operation known not to be
 			   evaluated. */
   a_bit_field	traditional_const_expr_required:1;
@@ -1094,8 +1094,8 @@ argument.
   memzero((char*)(ps), sizeof(a_decl_parse_state));                          \
   (ps)->start_pos = pos_curr_token;                                          \
   (ps)->init_state.decl_parse_state = (ps);                                  \
-  if (!(gpp_mode && gnu_version < 40800)) {                                  \
-    (ps)->init_state.elided_braces_allowed = TRUE;                           \
+  if (gpp_mode && gnu_version < 40800) {                                     \
+    (ps)->init_state.elided_braces_disallowed = TRUE;                        \
   }  /* if */                                                                \
 }
 
@@ -1104,8 +1104,8 @@ Macro to initialize the "init state" pointed to by the argument.
 */
 #define clear_init_state(is) {                                               \
   memzero((char*)(is), sizeof(an_init_state));                               \
-  if (!(gpp_mode && gnu_version < 40800)) {                                  \
-    (is)->elided_braces_allowed = TRUE;                                      \
+  if (gpp_mode && gnu_version < 40800) {                                     \
+    (is)->elided_braces_disallowed = TRUE;                                   \
   }  /* if */                                                                \
 }
 

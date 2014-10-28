@@ -807,7 +807,7 @@ remove_any_extraneous_braces:
     is->has_dynamic_init_component = TRUE;
     if (exceptions_enabled && dip->destructor != NULL) {
       record_partial_aggregate_cleanup_destruction(dip,
-                                                   elem_is.evaluated);
+                                                   !elem_is.not_evaluated);
     }  /* if */
   }  /* if */
   if (braced) {
@@ -965,7 +965,7 @@ diagnostics.
          effect only within the braces. */
       saved_pack_expansion_handled = is->pack_expansion_handled;
     } else {
-      if (!is->elided_braces_allowed) {
+      if (is->elided_braces_disallowed) {
         /* Braces were elided at this level, but this is not a context that
            permits such elision.  (We don't issue an error if another error
            has already been issued for this initialization.) */
@@ -1199,7 +1199,7 @@ given position, unless is->no_diagnostics is TRUE.
        constructor before the entire array has been initialized. */
     if (dtor_rp != NULL && !is->check_validity_only) {
       dip->destructor = dtor_rp;
-      record_partial_aggregate_cleanup_destruction(dip, is->evaluated);
+      record_partial_aggregate_cleanup_destruction(dip, !is->not_evaluated);
     }  /* if */
     /* Now create the constant entry (if needed). */
     if (!is->check_validity_only && result == NULL) {
@@ -1891,7 +1891,7 @@ initialization).  *is describes the initialization as a whole.
          effect only within the braces. */
       saved_pack_expansion_handled = is->pack_expansion_handled;
     } else {
-      if (!is->elided_braces_allowed) {
+      if (is->elided_braces_disallowed) {
         /* Braces were elided at this level, but this is not a context that
            permits such elision.  (We don't issue an error if another error
            has already been issued for this initialization.) */
@@ -2202,7 +2202,7 @@ initializer, and set *dim_exprs to a list of dimension expressions suitable
 for use in an enk_gcnew node.  (dim_exprs itself must be non-NULL.)
 */
 {
-  a_boolean       unknown_rank = FALSE, saved_elided_braces_allowed;
+  a_boolean       unknown_rank = FALSE, saved_elided_braces_disallowed;
   a_type_ptr      atype;
   a_constant_ptr  aggr_con;
 
@@ -2218,8 +2218,8 @@ for use in an enk_gcnew node.  (dim_exprs itself must be non-NULL.)
   }  /* if */
   /* Microsoft allows brace elision for initializers of CLI arrays with
      aggregate element types in all contexts. */
-  saved_elided_braces_allowed = is->elided_braces_allowed;
-  is->elided_braces_allowed = TRUE;
+  saved_elided_braces_disallowed = is->elided_braces_disallowed;
+  is->elided_braces_disallowed = FALSE;
   /* If the array type is known, work through each level of the array,
      and deduce the dimension lengths if needed.  Otherwise, just scan a
      generic initializer. */
@@ -2246,7 +2246,7 @@ for use in an enk_gcnew node.  (dim_exprs itself must be non-NULL.)
     aggr_init_generic_element(icp, atype, is, &aggr_con);
   }  /* if */
   /* Restore the state wrt. brace elision. */
-  is->elided_braces_allowed = saved_elided_braces_allowed;
+  is->elided_braces_disallowed = saved_elided_braces_disallowed;
   /* Wrap the aggregate constant in the appropriate kind of dynamic init
      entry. */
   *result = alloc_dynamic_init((a_dynamic_init_kind)
@@ -2838,7 +2838,7 @@ issued if no more specific position is available.
           check_assertion(total_errors != 0);
         }  /* if */
       }  /* if */
-    } else if (!is->elided_braces_allowed) {
+    } else if (is->elided_braces_disallowed) {
       /* Braces were elided at this level, but this is not a context that
          permits such elision.  (We don't issue an error if another error has
          already been issued for this initialization.) */
@@ -3610,7 +3610,7 @@ is part of.  diag_pos is the position to be used by default for diagnostics
   } else {
     /* Traditional aggregate initialization of the form "T x = { ... }".
        Brace elision is allowed in all modes. */
-    dps->init_state.elided_braces_allowed = TRUE;
+    dps->init_state.elided_braces_disallowed = FALSE;
   }  /* if */
   if (list_init_enabled) {
     /* C++11 requires a diagnostic on narrowing in this case, but since it
@@ -3790,7 +3790,7 @@ to use for diagnostics by default.
   check_assertion(dps != NULL && dps->sym != NULL);
   vp = var_for_symbol(dps->sym);
   check_assertion(vp != NULL);
-  is->elided_braces_allowed = TRUE;
+  is->elided_braces_disallowed = FALSE;
   is_string_var = may_be_string_type(dps->type);
   if (!is_string_var && !C_mode()) {
     /* In C++, the only valid case here is string initialization.  We cannot
@@ -3947,7 +3947,7 @@ substituted.
      initializer entry is created. */
   dps->init_state.force_dynamic_init = TRUE;
   dps->init_state.init_error = is_error_type(dps->type);
-  dps->init_state.elided_braces_allowed = TRUE;
+  dps->init_state.elided_braces_disallowed = FALSE;
   dps->init_state.initializer_can_dimension_array = TRUE;
   if (C_mode() && (dps->init_state.static_lifetime_init ||
                    !allow_nonconstant_auto_aggr_init_in_c_mode)) {

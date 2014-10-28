@@ -114,12 +114,12 @@ Clear the fields of *is.
   is->pack_expansion_handled = FALSE;
   is->chained_designator_okay = FALSE;
   is->non_top_level_aggregate = FALSE;
-  is->elided_braces_allowed = !(gpp_mode && gnu_version < 40800);
+  is->elided_braces_disallowed = (gpp_mode && gnu_version < 40800);
   is->elements_are_full_expressions = FALSE;
   is->variable_size_array = FALSE;
   is->initializer_can_dimension_array = FALSE;
-  is->evaluated = TRUE;
-  is->potentially_evaluated = TRUE;
+  is->not_evaluated = FALSE;
+  is->not_potentially_evaluated = FALSE;
   is->traditional_const_expr_required = FALSE;
   is->constant_expr_ruled_out = FALSE;
   is->resumable = FALSE;
