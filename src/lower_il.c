@@ -2657,7 +2657,13 @@ specified by node.  The class object is not known to be a complete object
       if (!is_class_struct_union_type(field->type)) break;
       vptr_class_type = field->type;
     }  /* for */
-    check_assertion(field->type == pointer_to_vtbl_type());
+#if CHECKING
+    { a_type_ptr  ptvt = pointer_to_vtbl_type();
+      if (field->type != ptvt) {
+        unexpected_condition();
+      }  /* if */
+    }
+#endif /* CHECKING */
   }
 #endif /* IA64_ABI */
   return node;

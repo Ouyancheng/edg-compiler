@@ -1086,6 +1086,12 @@ typedef struct a_decl_parse_state {
 
 #if NULL_POINTER_IS_ZERO
 
+#if UPC_EXTENSIONS_ALLOWED
+#define clear_upc_block_size(p)  ((p) = UPC_BLOCK_SIZE_NONE)
+#else /* !UPC_EXTENSIONS_ALLOWED */
+#define clear_upc_block_size(p)  /* Nothing */
+#endif /* UPC_EXTENSIONS_ALLOWED */
+
 /*
 Macro to initialize the "declaration parsing state" pointed to by the
 argument.
@@ -1097,6 +1103,7 @@ argument.
   if (gpp_mode && gnu_version < 40800) {                                     \
     (ps)->init_state.elided_braces_disallowed = TRUE;                        \
   }  /* if */                                                                \
+  clear_upc_block_size((ps)->upc_block_size);                                \
 }
 
 /*

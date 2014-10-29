@@ -9768,6 +9768,24 @@ Make or find a type entry for a void type, and return a pointer to it.
   return il_void_type;
 }  /* void_type */
 
+#if DEBUG
+
+void db_based_types(a_type_ptr  tp)
+/*
+Print the "based types" associated with the given type to the debug output.
+*/
+{
+  a_based_type_list_member_ptr  btlmp;
+
+  for (btlmp = tp->based_types; btlmp != NULL; btlmp = btlmp->next) {
+    fprintf(f_debug, "Based type (kind = %d) ", btlmp->kind);
+    db_type(btlmp->based_type);
+    fprintf(f_debug, "\n");
+  }  /* for */
+}  /* db_based_types */
+
+#endif /* DEBUG */
+
 
 void do_based_type_fixup(void)
 /*
