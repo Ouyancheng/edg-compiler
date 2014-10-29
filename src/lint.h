@@ -399,6 +399,8 @@ extern int fileno(FILE *);
 /*lint -esym(714, db_scheduled_routine_moves)*/
 /*lint -esym(765, db_attribute_list)*/
 /*lint -esym(714, db_attribute_list)*/
+/*lint -esym(765, db_based_types)*/
+/*lint -esym(714, db_based_types)*/
 #endif /* DEBUG */
 #if !UPC_EXTENSIONS_ALLOWED
 /*lint -esym(769,ec_unrecognized_upc_pragma)*/

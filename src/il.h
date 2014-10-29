@@ -2352,6 +2352,8 @@ extern void db_template_name(a_template_ptr  tp);
 
 extern void db_type_name(a_type_ptr  tp);
 
+extern void db_based_types(a_type_ptr  tp);
+
 extern void db_name_full(a_source_correspondence *sc,
                          an_il_entry_kind        kind);
 
