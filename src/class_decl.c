@@ -6448,7 +6448,9 @@ done:
       cssp->construction_by_bitwise_copy_allowed = FALSE;
       cssp->assignment_by_bitwise_copy_allowed = FALSE;
       cssp->makes_copy_construction_nontrivial = TRUE;
+      cssp->makes_move_construction_nontrivial = TRUE;
       cssp->makes_copy_assignment_nontrivial = TRUE;
+      cssp->makes_move_assignment_nontrivial = TRUE;
       /* Classes with virtual functions require nontrivial default
          constructors. */
       class_state->default_ctor_is_nontrivial = TRUE;
@@ -8524,7 +8526,9 @@ to FALSE before returning).
     cssp->construction_by_bitwise_copy_allowed = FALSE;
     cssp->assignment_by_bitwise_copy_allowed = FALSE;
     cssp->makes_copy_construction_nontrivial = TRUE;
+    cssp->makes_move_construction_nontrivial = TRUE;
     cssp->makes_copy_assignment_nontrivial = TRUE;
+    cssp->makes_move_assignment_nontrivial = TRUE;
   } else if (!bcp_type->variant.class_struct_union.is_nonreal_class &&
              !is_value_class) {
     if (!bcp_cssp->construction_by_bitwise_copy_allowed) {
@@ -8533,11 +8537,17 @@ to FALSE before returning).
     if (bcp_cssp->makes_copy_construction_nontrivial) {
       cssp->makes_copy_construction_nontrivial = TRUE;
     }  /* if */
+    if (bcp_cssp->makes_move_construction_nontrivial) {
+      cssp->makes_move_construction_nontrivial = TRUE;
+    }  /* if */
     if (!bcp_cssp->assignment_by_bitwise_copy_allowed) {
       cssp->assignment_by_bitwise_copy_allowed = FALSE;
     }  /* if */
     if (bcp_cssp->makes_copy_assignment_nontrivial) {
       cssp->makes_copy_assignment_nontrivial = TRUE;
+    }  /* if */
+    if (bcp_cssp->makes_move_assignment_nontrivial) {
+      cssp->makes_move_assignment_nontrivial = TRUE;
     }  /* if */
   }  /* if */
   if (bcp_cssp->any_nonstatic_data_members) {
@@ -16007,7 +16017,8 @@ for the union type (class_type).
         /* A union member's (underlying) type cannot be a class with a
            nontrivial constructor or destructor. */
         severity = es_error;
-      } else if (cssp->makes_copy_assignment_nontrivial &&
+      } else if ((cssp->makes_copy_assignment_nontrivial ||
+                  cssp->makes_move_assignment_nontrivial)&&
                  class_has_nontrivial_copy_assignment(tp)) {
         /* Memberwise assignment of the union would require calling a
            nontrivial assignment operator, but that involves knowing which
@@ -16378,7 +16389,9 @@ nonstandard anonymous unions is_nonstd is TRUE.
       cssp->assignment_by_bitwise_copy_allowed = TRUE;
       cssp->construction_by_bitwise_copy_allowed = TRUE;
       cssp->makes_copy_construction_nontrivial = FALSE;
+      cssp->makes_move_construction_nontrivial = FALSE;
       cssp->makes_copy_assignment_nontrivial = FALSE;
+      cssp->makes_move_assignment_nontrivial = FALSE;
     }  /* if */
   }  /* if */
   /* Go through each of the symbols on the list. */
@@ -17816,6 +17829,7 @@ be entered.
          type members. */
       cssp->assignment_by_bitwise_copy_allowed = FALSE;
       cssp->makes_copy_assignment_nontrivial = TRUE;
+      cssp->makes_move_assignment_nontrivial = TRUE;
     }  /* if */
     /* Record that there is at least one nonstatic data member in the class. */
     cssp->any_nonstatic_data_members = TRUE;
@@ -17889,6 +17903,7 @@ be entered.
            qualified members. */
         cssp->assignment_by_bitwise_copy_allowed = FALSE;
         cssp->makes_copy_assignment_nontrivial = TRUE;
+        cssp->makes_move_assignment_nontrivial = TRUE;
       }  /* if */
     }  /* if */
   }
@@ -17962,6 +17977,9 @@ be entered.
           if (member_cssp->makes_copy_construction_nontrivial) {
             cssp->makes_copy_construction_nontrivial = TRUE;
           }  /* if */
+          if (member_cssp->makes_move_construction_nontrivial) {
+            cssp->makes_move_construction_nontrivial = TRUE;
+          }  /* if */
           if (!cssp->assignment_by_bitwise_copy_allowed) {
             /* Bitwise copy assignment has already been ruled out. */
           } else if (!member_cssp->assignment_by_bitwise_copy_allowed) {
@@ -17978,6 +17996,9 @@ be entered.
           }  /* if */
           if (member_cssp->makes_copy_assignment_nontrivial) {
             cssp->makes_copy_assignment_nontrivial = TRUE;
+          }  /* if */
+          if (member_cssp->makes_move_assignment_nontrivial) {
+            cssp->makes_move_assignment_nontrivial = TRUE;
           }  /* if */
         }  /* if */
         /* If the member type has mutable members, set the flag in the parent
@@ -18554,10 +18575,11 @@ special member whose definition cannot be generated.
 
 
 static void check_base_or_mbr_class_type_for_suppression(
-                               a_type_ptr                          class_type,
-                               a_generated_special_function_descr  *gsfd,
-                               a_type_ptr                          type,
-                               a_boolean                           is_mutable)
+                            a_type_ptr                          class_type,
+                            a_generated_special_function_descr  *gsfd,
+                            a_type_ptr                          type,
+                            a_boolean                           is_mutable,
+                            a_boolean                           variant_field)
 /*
 This is a helper routine for check_suppressed_special_functions.  It checks a
 base class or the class type ("type") of a member of class_type to see if any
@@ -18567,7 +18589,8 @@ destructor for the specified class_type.  type may be const/volatile qualified
 but if the corresponding subobject is an array, type is the underlying class
 type (possibly qualified).  *gsfd is updated accordingly and warnings or
 remarks may be issued in some cases.  is_mutable is TRUE if the given type is
-that of a mutable field.
+that of a mutable field.  variant_field is TRUE if given type is that of a
+variant field (i.e., a member of a union or anonymous union).
 */
 {
   a_class_symbol_supplement_ptr  cssp;
@@ -18615,7 +18638,8 @@ that of a mutable field.
                                       /*source_is_rvalue=*/FALSE, subobj_qual, 
                                       &type->source_corresp.decl_position,
                                       &ambiguous, &bitwise_copy);
-    if (ambiguous || is_unusable_member_sym(rout_sym)) {
+    if (ambiguous || is_unusable_member_sym(rout_sym) ||
+        (variant_field && unrestricted_unions_enabled && !bitwise_copy)) {
       /* A base or member with an ambiguous or inaccessible copy assignment
          operator prevents this copy assignment operator from being
          generated. */
@@ -18641,11 +18665,19 @@ that of a mutable field.
                              &ambiguous, &bitwise_copy);
     if (ambiguous ||
         (rout_sym == NULL && !trivially_copyable) ||
-        is_unusable_member_sym(rout_sym)) {
+        is_unusable_member_sym(rout_sym) ||
+        (variant_field && unrestricted_unions_enabled && !bitwise_copy)) {
       /* A base or member with an ambiguous or inaccessible move assignment
          operator prevents this move assignment operator from being
          generated. */
       gsfd->suppress_move_assign = TRUE;
+    } else if (rout_sym != NULL) {
+      rout_sym = fundamental_symbol_of(rout_sym);
+      if (symbol_is(rout_sym, sk_member_function) &&
+          !rout_sym->variant.routine.ptr->is_trivial_copy_function) {
+        class_symbol_supp(symbol_for(class_type))
+                                    ->makes_move_assignment_nontrivial = TRUE;
+      }  /* if */
     }  /* if */
   }  /* if */
   /* Check the copy constructor. */
@@ -18670,7 +18702,8 @@ that of a mutable field.
                                      &type->source_corresp.decl_position,
                                      &ambiguous, (a_symbol**)NULL,
                                      &bitwise_copy);
-    if (ambiguous || is_unusable_member_sym(rout_sym)) {
+    if (ambiguous || is_unusable_member_sym(rout_sym) ||
+        (variant_field && unrestricted_unions_enabled && !bitwise_copy)) {
       /* A base or member with an ambiguous or inaccessible copy constructor
          prevents this one from being generated. */
       gsfd->suppress_copy_ctor = TRUE;
@@ -18696,10 +18729,18 @@ that of a mutable field.
                                      &bitwise_copy);
     if (ambiguous ||
         (!bitwise_copy && rout_sym == NULL) ||
-        is_unusable_member_sym(rout_sym)) {
+        is_unusable_member_sym(rout_sym) ||
+        (variant_field && unrestricted_unions_enabled && !bitwise_copy)) {
       /* A base or member that cannot be moved (or copied) prevents the move
          constructor from being generated. */
       gsfd->suppress_move_ctor = TRUE;
+    } else if (rout_sym != NULL) {
+      rout_sym = fundamental_symbol_of(rout_sym);
+      if (symbol_is(rout_sym, sk_member_function) &&
+          !rout_sym->variant.routine.ptr->is_trivial_copy_function) {
+        class_symbol_supp(symbol_for(class_type))
+                                  ->makes_move_construction_nontrivial = TRUE;
+      }  /* if */
     }  /* if */
   }  /* if */
   /* Now check the destructor. */
@@ -18709,8 +18750,8 @@ that of a mutable field.
        check this subobject destructor because it may cause the suppression
        of the copy and/or move constructors.  If those are already suppressed,
        no additional checking is needed. */
-  } else {
-    if (cssp->destructor != NULL && is_unusable_member_sym(cssp->destructor)) {
+  } else if (cssp->destructor != NULL) {
+    if (is_unusable_member_sym(cssp->destructor)) {
       /* An inaccessible base or member destructor prevents this one from
          being generated. */
       if (gsfd->warn_about_suppressed_dtor && !gsfd->suppress_dtor) {
@@ -18729,6 +18770,11 @@ that of a mutable field.
       gsfd->suppress_default_ctor = TRUE;
       gsfd->suppress_copy_ctor = TRUE;
       gsfd->suppress_move_ctor = TRUE;
+    } else if (variant_field && unrestricted_unions_enabled &&
+               has_nontrivial_destructor(cssp)) {
+      /* A variant field with a nontrivial destructor suppresses the generation
+         of a destructor. */
+      gsfd->suppress_dtor = TRUE;
     }  /* if */
   }  /* if */
 }  /* check_base_or_mbr_class_type_for_suppression */
@@ -18764,10 +18810,12 @@ warnings or remarks may be issued.
            functions. */
         !field_is_property_or_event(sym->variant.field.ptr)) {
       a_field_ptr  fp = sym->variant.field.ptr;
+      a_type_ptr   utp;
       tp = fp->type;
       if (is_array_type(tp)) {
         tp = underlying_array_element_type(tp);
       }  /* if */
+      utp = skip_typerefs(tp);
       /* Check for properties not specific to class type subobjects that
          prevent implicit definitions of special member functions. */
       if (gsfd->suppress_copy_assign && gsfd->suppress_move_assign) {
@@ -18784,7 +18832,7 @@ warnings or remarks may be issued.
                               &class_type->source_corresp.decl_position,
                               sym, class_type);
         }  /* if */
-      } else if (is_any_reference_type(tp)) {
+      } else if (is_any_reference_type(utp)) {
         /* A nonstatic data member with reference type prevents the copy
            assignment operator from being generated. */
         gsfd->suppress_copy_assign = TRUE;
@@ -18795,17 +18843,21 @@ warnings or remarks may be issued.
                               &class_type->source_corresp.decl_position,
                               sym, class_type);
         }  /* if */
-        if (is_rvalue_reference_type(tp)) {
+        if (is_rvalue_reference_type(utp)) {
           /* An rvalue reference field also suppresses the copy constructor. */
           gsfd->suppress_copy_ctor = TRUE;
         }  /* if */
       }  /* if */
-      if (is_class_struct_union_type(tp)) {
+      if (is_immediate_class_type(utp)) {
         /* Check to see if the special member functions of the member's class
            type would prevent the corresponding functions from being
            generated. */
+        a_boolean  variant_field;
+        variant_field = class_type->kind == (a_type_kind)tk_union ||
+                        sym->variant.field.anonymous_parent_object != NULL;
         check_base_or_mbr_class_type_for_suppression(class_type, gsfd, tp,
-                                                     fp->is_mutable);
+                                                     fp->is_mutable,
+                                                     variant_field);
       }  /* if */
     }  /* if */
   }  /* for */
@@ -18816,7 +18868,8 @@ warnings or remarks may be issued.
          prevent the corresponding derived class functions from being
          generated. */
       check_base_or_mbr_class_type_for_suppression(class_type, gsfd, bcp->type,
-                                                   /*is_mutable=*/FALSE);
+                                                   /*is_mutable=*/FALSE,
+                                                   /*variant_field=*/FALSE);
     }  /* if */
   }  /* for */
 }  /* check_suppressed_special_functions */
@@ -19332,7 +19385,7 @@ constructor should be deleted.
     a_symbol_ptr      sym;
     a_base_class_ptr  bcp;
     a_class_symbol_supplement_ptr
-                      cssp = symbol_supplement_for_class(class_type);
+                      mcssp, cssp = symbol_supplement_for_class(class_type);
     /* First, scan through all the nonstatic data members, using the symbol
        list rather than the field list to be sure that only user-defined
        fields are checked and to be sure that anonymous union fields are
@@ -19340,7 +19393,7 @@ constructor should be deleted.
     for (sym = cssp->symbols; sym != NULL; sym = sym->next_in_scope) {
       if (symbol_is(sym, sk_field)) {
         a_field_ptr  field = sym->variant.field.ptr;
-        a_type_ptr   tp = field->type;
+        a_type_ptr   tp = field->type, utp;
         a_boolean    const_member_okay = FALSE;
         if (field->has_initializer) {
           /* Fields with a C++11-style in-class initializer are initialized
@@ -19359,10 +19412,12 @@ constructor should be deleted.
         if (is_array_type(tp)) {
           tp = underlying_array_element_type(tp);
         }  /* if */
-        if (is_class_struct_union_type(tp)) {
-          /* Check that tp can be default-initialized. */
+        utp = skip_typerefs(tp);
+        if (is_immediate_class_type(utp)) {
+          /* Check that the member can be default-initialized. */
           a_boolean  error_detected, err;
-          (void)select_default_constructor_full(tp, &pos_curr_token, tp,
+          mcssp = class_symbol_supp(symbol_for(utp));
+          (void)select_default_constructor_full(utp, &pos_curr_token, utp,
                                                 /*declarative_context=*/TRUE,
                                                 /*evaluated=*/TRUE,
                                                 /*check_access=*/TRUE,
@@ -19370,16 +19425,15 @@ constructor should be deleted.
           if (error_detected) {
             gsfd->suppress_default_ctor = TRUE;
             break;
-          } else if (symbol_supplement_for_class(tp)
-                                     ->has_user_provided_default_constructor) {
+          } else if (mcssp->has_user_provided_default_constructor) {
             const_member_okay = TRUE;
           }  /* if */
-        }  /* if */
-        if (!const_member_okay && is_const_qualified_type(tp)) {
-          /* Default initialization of const members is only allowed if a
-             user-provided default constructor is available. */
-          gsfd->suppress_default_ctor = TRUE;
-          break;
+          if (!const_member_okay && is_const_qualified_type(tp)) {
+            /* Default initialization of const members is only allowed if a
+               user-provided default constructor is available. */
+            gsfd->suppress_default_ctor = TRUE;
+            break;
+          }  /* if */
         }  /* if */
       }  /* if */
     }  /* for */
@@ -19683,7 +19737,9 @@ deleted, disable bitwise copying.
      flags do not yet reflect the presence of user-provided copy constructors
      or user-provided copy assignment operators. */
   if (!cssp->makes_copy_construction_nontrivial ||
-      !cssp->makes_copy_assignment_nontrivial) {
+      !cssp->makes_move_construction_nontrivial ||
+      !cssp->makes_copy_assignment_nontrivial ||
+      !cssp->makes_move_assignment_nontrivial) {
     /* Trivial copying is possible: Traverse the member to find defaulted or
        compiler-generated copy/move constructors and copy/move assignment
        operators. */
@@ -19713,11 +19769,12 @@ deleted, disable bitwise copying.
             cssp->makes_copy_construction_nontrivial = TRUE;
           } else {
             rp->is_trivial_copy_function =
-                                    !cssp->makes_copy_construction_nontrivial;
+                          is_move ? !cssp->makes_move_construction_nontrivial
+                                  : !cssp->makes_copy_construction_nontrivial;
             if (rp->is_deleted) {
               class_state->rule_out_bitwise_copy_for_deleted_ctor = TRUE;
               if (gpp_mode && gnu_version < 40700) {
-                /* Early drafts of C++11 made deleted function nontrivial, and
+                /* Early drafts of C++11 made deleted functions nontrivial, and
                    GCC versions from that era implemented that rule. */
                 rp->is_trivial_copy_function = FALSE;
               }  /* if */
@@ -19743,7 +19800,8 @@ deleted, disable bitwise copying.
             cssp->makes_copy_assignment_nontrivial = TRUE;
           } else {
             rp->is_trivial_copy_function =
-                                      !cssp->makes_copy_assignment_nontrivial;
+                            is_move ? !cssp->makes_move_assignment_nontrivial
+                                    : !cssp->makes_copy_assignment_nontrivial;
             if (rp->is_deleted) {
               class_state->rule_out_bitwise_assign_for_deleted_operator = TRUE;
               if (gpp_mode && gnu_version < 40700) {
@@ -20704,6 +20762,9 @@ The routine body is not generated until it is known to be needed.
   if (cssp->has_user_provided_copy_constructor) {
     cssp->makes_copy_construction_nontrivial = TRUE;
   }  /* if */
+  if (cssp->has_user_provided_move_constructor) {
+    cssp->makes_move_construction_nontrivial = TRUE;
+  }  /* if */
   if (cssp->makes_copy_construction_nontrivial ||
       cssp->has_user_provided_move_constructor ||
       class_state->rule_out_bitwise_copy_for_volatile_class_field) {
@@ -20711,6 +20772,9 @@ The routine body is not generated until it is known to be needed.
   }  /* if */
   if (user_provided_copy_assignment_op) {
     cssp->makes_copy_assignment_nontrivial = TRUE;
+  }  /* if */
+  if (cssp->has_user_provided_move_assign_operator) {
+    cssp->makes_move_assignment_nontrivial = TRUE;
   }  /* if */
   if (cssp->makes_copy_assignment_nontrivial ||
       cssp->has_user_provided_move_assign_operator ||

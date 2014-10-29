@@ -988,6 +988,7 @@ do_variable:
         }  /* if */
         if (rp->is_constexpr) put_string("constexpr");
         if (rp->is_inline) put_string("inline");
+        if (rp->is_deleted) put_string("=delete");
         if (rp->definition_for_inlining_only) {
           put_string("def. for inlining only");
         } else if (rp->suppress_inline_body) {
@@ -3723,7 +3724,9 @@ state.
         cssp->assignment_by_bitwise_copy_allowed = FALSE;
         cssp->construction_by_bitwise_copy_allowed = FALSE;
         cssp->makes_copy_construction_nontrivial = FALSE;
+        cssp->makes_move_construction_nontrivial = FALSE;
         cssp->makes_copy_assignment_nontrivial = FALSE;
+        cssp->makes_move_assignment_nontrivial = FALSE;
         cssp->has_auto_conversion_function = FALSE;
         cssp->target_of_conversion_function = FALSE;
         cssp->any_ref_member = FALSE;

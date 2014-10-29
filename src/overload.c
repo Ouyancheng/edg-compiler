@@ -16325,6 +16325,7 @@ no_applicable_operator_function:
             /* Check for the builtin operator=. */
             if (kind == (an_opname_kind)onk_assign &&
                 function_symbol->kind == (a_symbol_kind)sk_member_function &&
+                !function_symbol->variant.routine.ptr->is_deleted &&
                 function_symbol->variant.routine.ptr->
                                                     is_trivial_copy_function) {
               /* This function is the default bitwise copy assignment
@@ -18075,7 +18076,7 @@ is used only in C++ mode.
   a_type_ptr ctor_class = parent_class_of(ctor_routine);
 
   *class_bitwise_copy = FALSE;
-  if (ctor_routine->is_trivial_copy_function &&
+  if (ctor_routine->is_trivial_copy_function && !ctor_routine->is_deleted &&
       ((ctor_arg_conversion != NULL && conv_usable(ctor_arg_conversion)) ||
        (is_class_struct_union_type(operand->type) &&
         is_same_class_or_base_class_thereof(operand->type, ctor_class)))) {

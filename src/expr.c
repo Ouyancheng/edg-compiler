@@ -40454,6 +40454,21 @@ do access checking on the assignment operator.
                                                  &undecidable_because_of_error,
                                                  (a_symbol **)NULL,
                                                  bitwise_assign);
+  if (source_is_rvalue && assign_sym != NULL) {
+    /* select_overloaded_assignment_operator may return an operator(X&) even
+       even source_is_rvalue is TRUE.  That makes for better diagnostics in
+       some contexts, but we don't want to produce an unviable symbol in this
+       case. */
+    a_symbol_ptr  fund_sym = fundamental_symbol_of(assign_sym);
+    if (symbol_is(fund_sym, sk_member_function)) {
+      a_type_ptr  rtp = fund_sym->variant.routine.ptr->type,
+                  param_tp = function_type_params(skip_typerefs(rtp))->type;
+      if (is_reference_type(param_tp) &&
+          !is_reference_that_can_bind_to_rvalue(param_tp)) {
+        assign_sym = NULL;
+      }  /* if */
+    }  /* if */
+  }  /* if */
   pop_expr_stack();
   restore_expr_stack(saved_expr_stack);
   return assign_sym;

@@ -677,9 +677,10 @@ Dump a member function (a routine entry), for debug purposes.
   db_name_full(&rp->source_corresp, iek_routine);
   fputs("\" (", f_debug);
   db_name_linkage((a_name_linkage_kind)rp->source_corresp.name_linkage);
-  fprintf(f_debug, " linkage)%s%s, sc_%s,\n    type = ",
+  fprintf(f_debug, " linkage)%s%s%s, sc_%s,\n    type = ",
                    (rp->is_constexpr) ? ", constexpr" : "",
                    (rp->is_inline) ? ", inline" : "",
+                   (rp->is_deleted) ? ", =delete" : "",
                    db_storage_class_names[(int)rp->storage_class]);
   db_abbreviated_type(rp->type);
 }  /* db_member_function */
