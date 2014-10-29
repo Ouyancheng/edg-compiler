@@ -16018,7 +16018,7 @@ for the union type (class_type).
            nontrivial constructor or destructor. */
         severity = es_error;
       } else if ((cssp->makes_copy_assignment_nontrivial ||
-                  cssp->makes_move_assignment_nontrivial)&&
+                  cssp->makes_move_assignment_nontrivial) &&
                  class_has_nontrivial_copy_assignment(tp)) {
         /* Memberwise assignment of the union would require calling a
            nontrivial assignment operator, but that involves knowing which
@@ -18589,7 +18589,7 @@ destructor for the specified class_type.  type may be const/volatile qualified
 but if the corresponding subobject is an array, type is the underlying class
 type (possibly qualified).  *gsfd is updated accordingly and warnings or
 remarks may be issued in some cases.  is_mutable is TRUE if the given type is
-that of a mutable field.  variant_field is TRUE if given type is that of a
+that of a mutable field.  variant_field is TRUE if the given type is that of a
 variant field (i.e., a member of a union or anonymous union).
 */
 {
@@ -19805,7 +19805,7 @@ deleted, disable bitwise copying.
             if (rp->is_deleted) {
               class_state->rule_out_bitwise_assign_for_deleted_operator = TRUE;
               if (gpp_mode && gnu_version < 40700) {
-                /* Early drafts of C++11 made deleted function nontrivial, and
+                /* Early drafts of C++11 made deleted functions nontrivial, and
                    GCC versions from that era implemented that rule. */
                 rp->is_trivial_copy_function = FALSE;
               }  /* if */

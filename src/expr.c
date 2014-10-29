@@ -40455,8 +40455,8 @@ do access checking on the assignment operator.
                                                  (a_symbol **)NULL,
                                                  bitwise_assign);
   if (source_is_rvalue && assign_sym != NULL) {
-    /* select_overloaded_assignment_operator may return an operator(X&) even
-       even source_is_rvalue is TRUE.  That makes for better diagnostics in
+    /* select_overloaded_assignment_operator may return an operator=(X&) even
+       if source_is_rvalue is TRUE.  That makes for better diagnostics in
        some contexts, but we don't want to produce an unviable symbol in this
        case. */
     a_symbol_ptr  fund_sym = fundamental_symbol_of(assign_sym);
