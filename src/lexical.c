@@ -12822,7 +12822,7 @@ id_scan:
 #endif /* MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED */
         continue_scan = FALSE;
         /* Accumulate characters of the identifier after the first. */
-#if 1
+#if EXPLICITLY_UNROLL_CRITICAL_LOOPS
         /* This code is particularly performance sensitive.  Most compilers
            fail to unroll this loop even at high optimization levels, so it
            pays to unroll the loop manually.  (The simple loop may be
@@ -12838,11 +12838,11 @@ id_scan:
             break;
           }  /* if */
         }  /* for */
-#else /* !1 */
+#else /* !EXPLICITLY_UNROLL_CRITICAL_LOOPS */
         while (is_id_char[(ch = *(curr_char_loc))-CHAR_MIN]) {
           curr_char_loc++;
         }  /* while */
-#endif /* 1 */
+#endif /* EXPLICITLY_UNROLL_CRITICAL_LOOPS */
         /* We have just scanned a sequence of "normal" identifier characters.
            Check whether we are now at a universal character name.  If so,
            scan the universal character and check for additional "normal"

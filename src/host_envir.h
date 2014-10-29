@@ -165,6 +165,16 @@ standards.)
 #endif /* ifdef NULL_POINTER_IS_ZERO */
 
 /*
+Flag that is TRUE to enable some manually unrolled loops in the front end.
+These are loops that are important to the overall performance of the front end,
+and that are not unrolled by mainstream optimizers at somewhat high
+optimization settings.
+*/
+#ifndef EXPLICITLY_UNROLL_CRITICAL_LOOPS
+#define EXPLICITLY_UNROLL_CRITICAL_LOOPS TRUE
+#endif /* EXPLICITLY_UNROLL_CRITICAL_LOOPS  */
+
+/*
 The number of include files that may be opened at any given time.
 After include nesting gets this deep, the same file will be re-opened
 for all other include files.  The primary source file is not included

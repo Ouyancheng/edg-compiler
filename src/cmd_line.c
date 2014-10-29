@@ -6035,6 +6035,11 @@ file.
 #else /* !defined(EXPENSIVE_CHECKING) */
   comment_undefined_macro_name(EXPENSIVE_CHECKING);
 #endif /* defined(EXPENSIVE_CHECKING) */
+#if defined(EXPLICITLY_UNROLL_CRITICAL_LOOPS)
+  define_numeric_valued_macro(EXPLICITLY_UNROLL_CRITICAL_LOOPS);
+#else /* !defined(EXPLICITLY_UNROLL_CRITICAL_LOOPS) */
+  comment_undefined_macro_name(EXPLICITLY_UNROLL_CRITICAL_LOOPS);
+#endif /* defined(EXPLICITLY_UNROLL_CRITICAL_LOOPS) */
 #if defined(EXPORTED_TEMPLATE_FILE_SUFFIX)
   define_string_valued_macro(EXPORTED_TEMPLATE_FILE_SUFFIX);
 #else /* !defined(EXPORTED_TEMPLATE_FILE_SUFFIX) */
