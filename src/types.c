@@ -5389,7 +5389,7 @@ through the symbol table:  Establish that correspondence now if appropriate.
 }  /* f_change_to_canonical_types */
 
 #define change_to_canonical_types(type_1, type_2, seek_corresp)          \
-  (in_front_end && secondary_translation_unit_seen() &&                  \
+  (secondary_translation_unit_seen() && in_front_end &&                  \
    f_change_to_canonical_types(type_1, type_2, seek_corresp))
 
 
@@ -5602,8 +5602,6 @@ for more information.
   a_boolean                     ignore_ms_calling_convention = FALSE;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED || GNU_X86_ATTRIBUTES_ALLOWED */
 
-  db_enter(5, "f_identical_types");
-
   /* First, check if the types are the same.  This repeats the test in the
      identical_types macro, but it needs to be done here, too, since this
      function is called directly when the flags must be specified. */
@@ -5700,14 +5698,18 @@ check_typerefs:
     a_boolean  il_identical = (flags & ITF_IL_IDENTICAL) != 0;
     a_boolean  unknown_this_class_type =
                                  (flags & ITF_UNKNOWN_THIS_CLASS_TYPE) != 0;
-    /* Reset the unknown implicit this type flag so that it won't be passed
-       to recursive calls of this routine. */
-    flags &= ~ITF_UNKNOWN_THIS_CLASS_TYPE;
-    /* ITF_IGNORE_TOP_LEVEL_QUALIFIERS should only be passed to recursive calls
-       for arrays (and only in C++ mode). */
-    if (type_1->kind != (a_type_kind)tk_array || C_mode()) {
-      flags &= ~ITF_IGNORE_TOP_LEVEL_QUALIFIERS;
-    }  /* ITF_IGNORE_TOP_LEVEL_QUALIFIERS */
+    if (unknown_this_class) {
+      /* Reset the unknown implicit this type flag so that it won't be passed
+         to recursive calls of this routine. */
+      flags &= ~ITF_UNKNOWN_THIS_CLASS_TYPE;
+    }  /* if */
+    if (flags & ITF_IGNORE_TOP_LEVEL_QUALIFIERS) {
+      /* ITF_IGNORE_TOP_LEVEL_QUALIFIERS should only be passed to recursive
+         calls for arrays (and only in C++ mode). */
+      if (type_1->kind != (a_type_kind)tk_array || C_mode()) {
+        flags &= ~ITF_IGNORE_TOP_LEVEL_QUALIFIERS;
+      }  /* if */
+    }  /* if */
     /* ITF_IGNORE_CALLING_CONVENTION should not be passed down. */
     if (flags & ITF_IGNORE_MS_CALLING_CONVENTION) {
 #if MICROSOFT_EXTENSIONS_ALLOWED || GNU_X86_ATTRIBUTES_ALLOWED
@@ -5836,11 +5838,27 @@ check_typerefs:
                correspondence of their inner structure must be checked. */
             identical = seek_type_corresp(type_1, type_2);
           }  /* if */
-        } else if (equiv_class_types(
+        } else {
+          a_boolean  parametered;
+          parametered = type_1->variant.class_struct_union.is_nonreal_class &&
+                        type_2->variant.class_struct_union.is_nonreal_class;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+          if (cli_or_cx_enabled) {
+            if ((is_cli_generic_constraint(type_1) &&
+                 is_cli_generic_constraint(type_2)) ||
+                (is_cli_open_constructed_instance(type_1) &&
+                 is_cli_open_constructed_instance(type_2))) {
+              parametered = TRUE;
+            }  /* if */
+          }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+          if (parametered &&  /* For speed. */
+              equiv_class_types(
                         type_1, type_2, /*error_matches_anything=*/FALSE,
                         (flags & ITF_EXACT_TEMPLATE_PARAM_TYPE_REQUIRED) != 0,
                         (flags & ITF_CONTEXTUAL_GENERIC_PARAMETERS) != 0)) {
-          identical = TRUE;
+            identical = TRUE;
+          }  /* if */
         }  /* if */
         break;
       case tk_routine:
@@ -5940,6 +5958,14 @@ check_typerefs:
             /* Routines differ in setting of do_not_return flag. */
             identical = FALSE;
           }  /* if */
+#if GNU_EXTENSIONS_ALLOWED
+          if (gnu_mode && identical &&
+              type_1->alignment != type_2->alignment) {
+            /* The types have different alignment attributes, so the types are
+               different. */
+            identical = FALSE;
+          }  /* if */
+#endif /* GNU_EXTENSIONS_ALLOWED */
         }
         break;
       case tk_ptr_to_member:
@@ -6069,7 +6095,8 @@ check_typerefs:
         if (f_identical_types(type_1->variant.vector.element_type,
                               type_2->variant.vector.element_type,
                               flags) &&
-            type_1->size == type_2->size) {
+            type_1->size == type_2->size &&
+            type_1->alignment == type_2->alignment) {
           identical = TRUE;
         }  /* if */
         break;
@@ -6083,22 +6110,9 @@ check_typerefs:
       default:
         unexpected_condition_str("f_identical_types: bad type");
     }  /* switch */
-#if GNU_EXTENSIONS_ALLOWED
-    if (gnu_mode && identical &&
-        !same_alignment_attributes(type_1, type_2)) {
-      /* The types have different attributes, so the types are different. */
-      identical = FALSE;
-    }  /* if */
-#endif /* GNU_EXTENSIONS_ALLOWED */
   }  /* if */
 done:
-#if DEBUG
-  if (debug_level >= 5) {
-    fprintf(f_debug, "f_identical_types: %s\n", identical ? "TRUE" : "FALSE");
-  }  /* if */
-#endif /* DEBUG */
-  db_exit();
-  return(identical);
+  return identical;
 }  /* f_identical_types */
 
 

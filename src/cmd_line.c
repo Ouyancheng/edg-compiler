@@ -4487,9 +4487,9 @@ development of this front end, and is inconsistent and strange.
                       option_kind_used[(int)optk_clang_version];
     if (enable_gnu_mode) {
       if (C_dialect == C_dialect_cplusplus) {
-        gpp_mode = TRUE;
+        gpp_mode = gnu_mode = TRUE;
       } else {
-        gcc_mode = TRUE;
+        gcc_mode = gnu_mode = TRUE;
       }  /* if */
     }  /* if */
   }  /* if */
@@ -9241,7 +9241,7 @@ enable_microsoft_mode:
            --[no_]gcc is short for --c --[no_]gcc.  See --svr4, --c99 and
            --sun for similar behavior.  The clang dialect will be selected
            if DEFAULT_CLANG_COMPATIBILITY is TRUE. */
-        gcc_mode = opt_value;
+        gcc_mode = gnu_mode = opt_value;
         set_C_dialect(C_dialect_ANSI);
         break;
       case optk_gpp_mode:
@@ -9250,7 +9250,7 @@ enable_microsoft_mode:
            --[no_]g++ is short for --c++ --[no_]g++.  See --sun, --c99 and
            --svr4 for similar behavior.  The clang dialect will be selected
            if DEFAULT_CLANG_COMPATIBILITY is TRUE. */
-        gpp_mode = opt_value;
+        gpp_mode = gnu_mode = opt_value;
         set_C_dialect(C_dialect_cplusplus);
         break;
       case optk_clang_mode:
@@ -9266,6 +9266,7 @@ enable_microsoft_mode:
            then --gcc is implied if --c is specified, and --g++ is implied
            otherwise. */
         gnu_version = scan_opt_arg_number(opt_arg);
+        gnu_mode = TRUE;
         if (gnu_version < MIN_GNU_VERSION || gnu_version > 999999) {
           str_command_line_error(ec_cl_invalid_gnu_version, opt_arg);
         }  /* if */
@@ -10768,6 +10769,7 @@ variables declared in cmd_line.h.
 #if GNU_EXTENSIONS_ALLOWED || defined(_lint)
   gcc_mode = FALSE;
   gpp_mode = FALSE;
+  gnu_mode = FALSE;
   clang_mode = FALSE;
 #endif /* GNU_EXTENSIONS_ALLOWED || defined(_lint) */
   gnu_version = DEFAULT_GNU_VERSION;

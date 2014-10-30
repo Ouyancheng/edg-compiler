@@ -1078,24 +1078,23 @@ EXTERN a_boolean
                 gpp_mode;
                         /* Accept C++ language features supported by GNU C++
                            compilers. */
+
+EXTERN a_boolean
+		gnu_mode;
+			/* TRUE when either gcc_mode or gpp_mode is TRUE. */
 EXTERN a_boolean
 		clang_mode;
 			/* Accept language_features supported by GNU and
 			   clang compilers. */
 #else /* !(GNU_EXTENSIONS_ALLOWED || defined(_lint)) */
-/* Make gcc_mode, gpp_mode, and clang_mode constant-expressions so some
-   code can be optimized away.  Since lint would warn about such code, we
+/* Make gcc_mode, gpp_mode, gnu_mode, and clang_mode constant-expressions so
+   some code can be optimized away.  Since lint would warn about such code, we
    do not do this when processed by lint. */
 #define gcc_mode FALSE
 #define gpp_mode FALSE
+#define gnu_mode FALSE
 #define clang_mode FALSE
 #endif /* GNU_EXTENSIONS_ALLOWED || defined(_lint) */
-
-/*
-Convenience macro that evaluates to TRUE when either GNU C or GNU C++ mode
-(or the clang dialect thereof) is enabled.
-*/
-#define gnu_mode (gcc_mode || gpp_mode)
 
 EXTERN unsigned long
 		gnu_version;

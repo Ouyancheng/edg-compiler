@@ -889,6 +889,7 @@ display program) can query these entities.
 #if GNU_EXTENSIONS_ALLOWED
   gcc_mode = il_header.gcc_mode;
   gpp_mode = il_header.gpp_mode;
+  gnu_mode = gcc_mode || gpp_mode;
   gnu_version = il_header.gnu_version;
 #endif /* GNU_EXTENSIONS_ALLOWED */
 }  /* init_flags_and_types */
