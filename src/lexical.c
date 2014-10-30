@@ -7643,18 +7643,18 @@ Create an entry in the logical_char_info array for ptr.
 Increment curr_char_loc by a total of len bytes.  For each bytes
 except the first, create an entry in the logical character info table.
 */
-#define incr_curr_char_loc_for_multibyte_char(len)			\
+#define incr_char_loc_for_multibyte_char(p_ch, len)			\
 {									\
-  if (len > 1 && within_curr_source_line(curr_char_loc)) {		\
+  if (len > 1 && within_curr_source_line(p_ch)) {			\
     int icclfmc_idx;							\
-    curr_char_loc++;							\
-    for (icclfmc_idx = 1; icclfmc_idx < (len); icclfmc_idx++) {		\
-      add_logical_char_info_entry(curr_char_loc++);			\
+    (p_ch) += 1;							\
+    for (icclfmc_idx = 1; icclfmc_idx < (len); icclfmc_idx += 1) {	\
+      add_logical_char_info_entry((p_ch)++);				\
     }  /* for */							\
   } else {								\
-    curr_char_loc += (len);						\
+    (p_ch) += (len);							\
   }  /* if */								\
-}  /* incr_curr_char_loc_for_multibyte_char */
+}  /* incr_char_loc_for_multibyte_char */
 
 #endif /* MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED */
 
@@ -8135,12 +8135,56 @@ normal_comment:
            those cases do not terminate preprocessing directives. */
         /* Again, a speed note:  All text inside comments goes through this
            loop, so it should be very fast. */
-        while ((ch = *curr_char_loc) != '*' || *(curr_char_loc+1) != '/') {
-          if (ch == LE_ESCAPE) {
-            ch = curr_char_loc[1];
+        for (;;) {
+          a_const_char  *p_ch = curr_char_loc;
+          char          ch;
+#if MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED
+          a_boolean     mbc_enabled = multibyte_chars_in_source_enabled;
+#endif /* MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED */
+          while ((ch = *p_ch) != '*' && ch != LE_ESCAPE) {
+            /* Advance to the next character position. */
+#if MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED
+            if (mbc_enabled) {
+              /* Advance to the next character, dealing with multibyte
+                 characters. */
+              int mbc_len = lex_mbc_length_simple(p_ch);
+              /* Increment curr_char_loc by mbc_len and create any logical
+                 character index entries. */
+              incr_char_loc_for_multibyte_char(p_ch, mbc_len);
+            } else
+#endif /* MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED */
+            /* Do not insert code here -- this is the "else" of an "if". */
+            {
+              /* Advance to the next character without worrying about
+                 multibyte characters. */
+              p_ch += 1;
+            }  /* if */
+          }  /* while */
+          if (ch == '*') {
+            /* Check for possible nested comment, issue a warning.  This
+               helps catch unclosed comments. */
+            if (p_ch[-1] == '/') {
+              if (!building_pch_prefix) {
+                /* Only issue this warning during the real compilation, not
+                   during the PCH prefix scan. */
+                warning_at_line_pos(ec_nested_comment, p_ch-1);
+              }  /* if */
+            }  /* if */
+            ch = p_ch[1];
+            if (ch == '/') {
+              /* End of comment. */
+              curr_char_loc = p_ch+2;
+              break;
+            } else {
+              /* Skip the '*' and loop again. */
+              curr_char_loc = p_ch+1;
+            }  /* if */
+          } else {
+            /* ch == LE_ESCAPE */
+            ch = p_ch[1];
             if (ch == LE_NULL) {
               /* Null (zero) character in comment.  Ignored. */
-              curr_char_loc += LE_ESCAPE_LEN;
+              curr_char_loc = p_ch + LE_ESCAPE_LEN;
               continue;
             }  /* if */
             /* End of a line of the comment. */
@@ -8155,11 +8199,10 @@ normal_comment:
               /* Copy the comment text if it's part of an asm function
                  body. */
               if (ch == LE_NEWLINE) {
-                curr_char_loc += LE_ESCAPE_LEN;
+                p_ch += LE_ESCAPE_LEN;
                 ch = LE_END_OF_LINE;
               }  /* if */
-              copy_from_source_to_asm_func_buffer(comment_start_loc,
-                                                  curr_char_loc);
+              copy_from_source_to_asm_func_buffer(comment_start_loc, p_ch);
             }  /* if */
 #endif /* INCLUDE_COMMENTS_IN_ASM_FUNC_BODY */
             /* We are supposed to delete the characters of the source line
@@ -8186,9 +8229,9 @@ normal_comment:
                  well so that multi-line directives will become one-line
                  directives. */
               if (in_preprocessing_directive && ch == LE_NEWLINE) {
-                delete_to = curr_char_loc+LE_ESCAPE_LEN;
+                delete_to = p_ch+LE_ESCAPE_LEN;
               } else {
-                delete_to = curr_char_loc;
+                delete_to = p_ch;
               }  /* if */
               add_deletion_source_line_modif(
                                       delete_from, delete_to-delete_from,
@@ -8202,6 +8245,7 @@ normal_comment:
                attempt to read another line.  Do not warn about a backslash
                followed by whitespace on the line we are leaving. */
             pending_nonsplice_backslash = FALSE;
+            curr_char_loc = p_ch;
             if (curr_cmd_line_or_predef_macro_def != NULL ||
                 read_logical_source_line(/*do_pop_on_end_of_file=*/FALSE,
                                          /*extend_current_line=*/FALSE)) {
@@ -8222,40 +8266,8 @@ normal_comment:
             /* Initialize for scanning multibyte characters in the comment. */
             mbc_scan_init_if_multibyte_chars_in_source_enabled();
 #endif /* MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED */
-          } else {
-            /* Not an escape, i.e., a normal character. */
-            /* Check for possible nested comment, issue a warning.  This
-               helps catch unclosed comments. */
-            if (ch == '/' && *(curr_char_loc+1) == '*') {
-              if (!building_pch_prefix) {
-                /* Only issue this warning during the real compilation, not
-                   during the PCH prefix scan. */
-                warning_at_line_pos(ec_nested_comment, curr_char_loc);
-              }  /* if */
-            }  /* if */
-            /* Advance to the next character position. */
-#if MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED
-            if (multibyte_chars_in_source_enabled) {
-              /* Advance to the next character, dealing with multibyte
-                 characters. */
-              int mbc_len;
-              mbc_len = lex_mbc_length_simple(curr_char_loc);
-              /* Increment curr_char_loc by mbc_len and create any logical
-                 character index entries. */
-              incr_curr_char_loc_for_multibyte_char(mbc_len);
-            } else
-#endif /* MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED */
-            /* Do not insert code here -- this is the "else" of an "if". */
-            {
-              /* Advance to the next character without worrying about
-                 multibyte characters. */
-              curr_char_loc++;
-            }  /* if */
-          }  /* if */
-        }  /* while */
-        /* End of comment.  Take the "*" and "/", go back to throw away more
-           white space. */
-        curr_char_loc += 2;
+          }   /* if */
+        }  /* for */
         if (need_to_delete_comment() && delete_source_from_loc == NULL) {
 #if INCLUDE_COMMENTS_IN_ASM_FUNC_BODY
           /* Before deleting the comment, see if it's part of an asm function
@@ -9737,7 +9749,7 @@ caller is responsible for issuing error messages.
 #endif /* !EDG_WIN32 */
         /* Increment curr_char_loc by numch and create any logical
            character index entries. */
-        incr_curr_char_loc_for_multibyte_char(numch);
+        incr_char_loc_for_multibyte_char(curr_char_loc, numch);
         if (err) {
           /* conv_string_literal will replace an erroneous multibyte
              character with a single character. */
@@ -12870,7 +12882,7 @@ id_scan:
           id_contains_ucn_or_multibyte_char = TRUE;
           /* Increment curr_char_loc by numch and create any logical
              character index entries. */
-          incr_curr_char_loc_for_multibyte_char(numch);
+          incr_char_loc_for_multibyte_char(curr_char_loc, numch);
 #endif /* MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED */
         }  /* if */
       } while (continue_scan);
@@ -13213,7 +13225,7 @@ check_start_of_pp_directive:
         if (!err) {
           /* Increment curr_char_loc by numch and create any logical
              character index entries. */
-          incr_curr_char_loc_for_multibyte_char(numch);
+          incr_char_loc_for_multibyte_char(curr_char_loc, numch);
           goto save_end_position;
         }  /* if */
       }
