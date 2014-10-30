@@ -5698,7 +5698,7 @@ check_typerefs:
     a_boolean  il_identical = (flags & ITF_IL_IDENTICAL) != 0;
     a_boolean  unknown_this_class_type =
                                  (flags & ITF_UNKNOWN_THIS_CLASS_TYPE) != 0;
-    if (unknown_this_class) {
+    if (unknown_this_class_type) {
       /* Reset the unknown implicit this type flag so that it won't be passed
          to recursive calls of this routine. */
       flags &= ~ITF_UNKNOWN_THIS_CLASS_TYPE;
