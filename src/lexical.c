@@ -8137,7 +8137,6 @@ normal_comment:
            loop, so it should be very fast. */
         for (;;) {
           a_const_char  *p_ch = curr_char_loc;
-          char          ch;
 #if MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED
           a_boolean     mbc_enabled = multibyte_chars_in_source_enabled;
 #endif /* MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED */
