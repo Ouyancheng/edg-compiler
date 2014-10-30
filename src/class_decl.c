@@ -18596,15 +18596,12 @@ variant field (i.e., a member of a union or anonymous union).
   a_class_symbol_supplement_ptr  cssp;
   a_symbol_ptr                   rout_sym;
   a_boolean                      ambiguous;
-  a_boolean                      bitwise_copy, trivially_copyable;
+  a_boolean                      bitwise_copy;
   a_type_qualifier_set           subobj_qual, src_qual;
 
   subobj_qual = get_type_qualifiers(type);
   type = skip_typerefs(type);
   cssp = symbol_supplement_for_class(type);
-  trivially_copyable = cssp->assignment_by_bitwise_copy_allowed &&
-                       cssp->construction_by_bitwise_copy_allowed &&
-                       cssp->has_trivial_destructor;
   if (any_qualifier_in_set_missing(TQ_CONST, subobj_qual)) {
     /* A volatile subobject cannot be copied by its trivial copy functions
        because they have a "X const&" parameter. */
@@ -18639,8 +18636,8 @@ variant field (i.e., a member of a union or anonymous union).
                                       &type->source_corresp.decl_position,
                                       &ambiguous, &bitwise_copy);
     if (ambiguous ||
-        (rout_sym == NULL && !trivially_copyable) ||
-        is_unusable_member_sym(rout_sym) ||
+        (rout_sym == NULL ? !bitwise_copy
+                          : is_unusable_member_sym(rout_sym)) ||
         (variant_field && unrestricted_unions_enabled && !bitwise_copy)) {
       /* A base or member with an ambiguous or inaccessible copy assignment
          operator prevents this copy assignment operator from being
@@ -18666,8 +18663,8 @@ variant field (i.e., a member of a union or anonymous union).
                              subobj_qual, &type->source_corresp.decl_position,
                              &ambiguous, &bitwise_copy);
     if (ambiguous ||
-        (rout_sym == NULL && !trivially_copyable) ||
-        is_unusable_member_sym(rout_sym) ||
+        (rout_sym == NULL ? !bitwise_copy
+                          : is_unusable_member_sym(rout_sym)) ||
         (variant_field && unrestricted_unions_enabled && !bitwise_copy)) {
       /* A base or member with an ambiguous or inaccessible move assignment
          operator prevents this move assignment operator from being
@@ -18705,8 +18702,8 @@ variant field (i.e., a member of a union or anonymous union).
                                      &ambiguous, (a_symbol**)NULL,
                                      &bitwise_copy);
     if (ambiguous ||
-        (rout_sym == NULL && !trivially_copyable) ||
-        is_unusable_member_sym(rout_sym) ||
+        (rout_sym == NULL ? !bitwise_copy
+                          : is_unusable_member_sym(rout_sym)) ||
         (variant_field && unrestricted_unions_enabled && !bitwise_copy)) {
       /* A base or member with an ambiguous or inaccessible copy constructor
          prevents this one from being generated. */
@@ -18732,8 +18729,8 @@ variant field (i.e., a member of a union or anonymous union).
                                      &ambiguous, (a_symbol**)NULL,
                                      &bitwise_copy);
     if (ambiguous ||
-        (!bitwise_copy && rout_sym == NULL) ||
-        is_unusable_member_sym(rout_sym) ||
+        (rout_sym == NULL ? !bitwise_copy
+                          : is_unusable_member_sym(rout_sym)) ||
         (variant_field && unrestricted_unions_enabled && !bitwise_copy)) {
       /* A base or member that cannot be moved (or copied) prevents the move
          constructor from being generated. */
