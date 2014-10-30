@@ -18638,7 +18638,9 @@ variant field (i.e., a member of a union or anonymous union).
                                       /*source_is_rvalue=*/FALSE, subobj_qual, 
                                       &type->source_corresp.decl_position,
                                       &ambiguous, &bitwise_copy);
-    if (ambiguous || is_unusable_member_sym(rout_sym) ||
+    if (ambiguous ||
+        (rout_sym == NULL && !trivially_copyable) ||
+        is_unusable_member_sym(rout_sym) ||
         (variant_field && unrestricted_unions_enabled && !bitwise_copy)) {
       /* A base or member with an ambiguous or inaccessible copy assignment
          operator prevents this copy assignment operator from being
@@ -18702,7 +18704,9 @@ variant field (i.e., a member of a union or anonymous union).
                                      &type->source_corresp.decl_position,
                                      &ambiguous, (a_symbol**)NULL,
                                      &bitwise_copy);
-    if (ambiguous || is_unusable_member_sym(rout_sym) ||
+    if (ambiguous ||
+        (rout_sym == NULL && !trivially_copyable) ||
+        is_unusable_member_sym(rout_sym) ||
         (variant_field && unrestricted_unions_enabled && !bitwise_copy)) {
       /* A base or member with an ambiguous or inaccessible copy constructor
          prevents this one from being generated. */
@@ -19428,12 +19432,12 @@ constructor should be deleted.
           } else if (mcssp->has_user_provided_default_constructor) {
             const_member_okay = TRUE;
           }  /* if */
-          if (!const_member_okay && is_const_qualified_type(tp)) {
-            /* Default initialization of const members is only allowed if a
-               user-provided default constructor is available. */
-            gsfd->suppress_default_ctor = TRUE;
-            break;
-          }  /* if */
+        }  /* if */
+        if (!const_member_okay && is_const_qualified_type(tp)) {
+          /* Default initialization of const members is only allowed if a
+             user-provided default constructor is available. */
+          gsfd->suppress_default_ctor = TRUE;
+          break;
         }  /* if */
       }  /* if */
     }  /* for */
