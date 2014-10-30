@@ -8143,10 +8143,11 @@ normal_comment:
           while ((ch = *p_ch) != '*' && ch != LE_ESCAPE) {
             /* Advance to the next character position. */
 #if MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED
-            if (mbc_enabled) {
+            if (mbc_enabled && char_may_begin_multibyte_sequence(ch)) {
               /* Advance to the next character, dealing with multibyte
                  characters. */
-              int mbc_len = lex_mbc_length_simple(p_ch);
+              int mbc_len = f_mbc_length(p_ch, (a_boolean *)NULL,
+                                         /*is_native=*/FALSE);
               /* Increment curr_char_loc by mbc_len and create any logical
                  character index entries. */
               incr_char_loc_for_multibyte_char(p_ch, mbc_len);
