@@ -20617,9 +20617,9 @@ The routine body is not generated until it is known to be needed.
       !is_template_dependent_context() &&
 #if MICROSOFT_EXTENSIONS_ALLOWED
       !class_type->variant.class_struct_union.is_generic_constraint &&
+      !is_immediate_managed_class_type(class_type) &&
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-      (!is_immediate_managed_class_type(class_type) ||
-       declare_copy_asgn_op || declare_copy_ctor || declare_dtor)) {
+      (declare_copy_asgn_op || declare_copy_ctor || declare_dtor)) {
     /* In standard C++11 mode (a mode where generate_move_operations is TRUE),
        some special members are either not declared (move constructors) or
        declared as deleted (copy constructors, destructors) if generating their
