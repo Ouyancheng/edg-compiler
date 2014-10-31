@@ -19988,8 +19988,8 @@ to represent the template parameters.
   remove_stop_token(tok_lbrace);
   remove_stop_token(tok_semicolon);
   if (template_param_list_pos > USHRT_MAX) {
-    pos_catastrophe(ec_templ_param_list_too_long,
-                    &decl_state->decl_parse.start_pos);
+    pos_st_catastrophe(ec_templ_param_list_too_long,
+                       &decl_state->decl_parse.start_pos, (char*)NULL);
   } else {
     decl_state->decl_info->n_params = template_param_list_pos;
 #if MICROSOFT_EXTENSIONS_ALLOWED
