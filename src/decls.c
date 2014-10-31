@@ -2527,10 +2527,12 @@ typedef struct an_id_linkage_block {
 		from_inline_namespace;
 			/* TRUE if the symbol found is a projection symbol
 			   for a symbol made visible by an inline namespace. */
-  a_template_param_ptr
-		templ_param_list;
+  a_template_decl_info_ptr
+		templ_info;
 			/* When is_function_template is TRUE, a pointer to
-			   the associated template parameter list. */
+			   the associated template declaration information.
+			   (Particularly, information about the parameter
+			   list.) */
   an_id_linkage_kind
 		linkage;
 			/* The linkage (none, internal, external) computed
@@ -2544,9 +2546,16 @@ typedef struct an_id_linkage_block {
 			   declaration was explicitly specified. */
 } an_id_linkage_block;
 
+#if NULL_POINTER_IS_ZERO
+
+#define clear_id_linkage_block(idlbp)                                        \
+  (memzero((char*)(idlbp), sizeof(an_id_linkage_block)))
+
+#else /* !NULL_POINTER_IS_ZERO */
 
 static void clear_id_linkage_block(an_id_linkage_block *idlbp)
 /*
+Clear the fields of the given id linkage block.
 */
 {
   idlbp->locator = NULL;
@@ -2569,12 +2578,13 @@ static void clear_id_linkage_block(an_id_linkage_block *idlbp)
   idlbp->direct_linkage_specifier = FALSE;
   idlbp->namespace_reactivated = FALSE;
   idlbp->from_inline_namespace = FALSE;
-  idlbp->templ_param_list = NULL;
+  idlbp->templ_info = NULL;
   idlbp->linkage = idl_none;
   idlbp->name_linkage = (a_name_linkage_kind)nlk_none;
   idlbp->name_linkage_is_explicit = FALSE;
 }  /* clear_id_linkage_block */
 
+#endif /* NULL_POINTER_IS_ZERO */
 #if MICROSOFT_EXTENSIONS_ALLOWED
 
 static a_boolean for_init_declaration_uses_standard_scope(
@@ -3127,6 +3137,12 @@ when the declaration is a friend declaration within a class.
     if (!C_mode() && is_function && kind != (a_symbol_kind)sk_variable) {
       /* C++ function or function template -- type compatibility check is
          required. */
+      a_template_param_ptr  params = NULL;
+      unsigned short        n_params = 0;
+      if (idlbp->is_function_template) {
+        params = idlbp->templ_info->parameters;
+        n_params = idlbp->templ_info->n_params;
+      }  /* if */
       if (decls_at_same_scope) {
         /* *overload_symbol is set for cases in which the current symbol
            may be added to an overload list.  Note that overloading across
@@ -3172,15 +3188,14 @@ when the declaration is a friend declaration within a class.
              namespaces are made visible by synthesized namespace projection
              symbols.  Those are allowed. */
         } else if (symbol_is(fund_other_decl, sk_function_template)) {
-          a_template_symbol_supplement_ptr  tssp;
-          tssp = fund_other_decl->variant.template_info;
           if (idlbp->is_function_template) {
-            a_template_param_ptr	other_templ_param_list;
+            a_template_symbol_supplement_ptr  tssp;
+            a_template_decl_info_ptr          tdip;
+            tssp = fund_other_decl->variant.template_info;
+            tdip = tssp->variant.function.decl_cache.decl_info;
             rp = tssp->variant.function.routine;
-            other_templ_param_list =
-                      tssp->variant.function.decl_cache.decl_info->parameters;
-            if (equiv_template_param_lists(other_templ_param_list,
-                                           idlbp->templ_param_list,
+            if (n_params == tdip->n_params &&
+                equiv_template_param_lists(tdip->parameters, params,
                                            /*issue_errors=*/FALSE,
 	                                   ETP_NO_OPTIONS,
                                            (a_source_position*)NULL,
@@ -9536,7 +9551,7 @@ definition of a member function of a class template.
     storage_class = (a_storage_class)sc_extern;
   }  /* if */
   clear_id_linkage_block(&idlb);
-  idlb.templ_param_list = templ_decl_info->parameters;
+  idlb.templ_info = templ_decl_info;
   idlb.storage_class = storage_class;
   idlb.func_info = func_info;
   idlb.is_function_template = TRUE;
@@ -9595,7 +9610,7 @@ definition of a member function of a class template.
       /* Look for a member function symbol of this type in the symbol table.
          It is an error if it is  not already there. */
       a_symbol_ptr  other_match;
-      sym = member_function_redecl_sym(sym, dps, idlb.templ_param_list,
+      sym = member_function_redecl_sym(sym, dps, templ_decl_info->parameters,
                                        &other_match);
       if (sym != NULL) {
         if (other_match != NULL) {
@@ -9811,7 +9826,8 @@ definition of a member function of a class template.
       check_default_args(type_ptr);
       if (homonym_symbol != NULL &&
           !overload_distinguishable(homonym_symbol, type_ptr,
-                                    idlb.templ_param_list, &error_code)) {
+                                    templ_decl_info->parameters,
+                                    &error_code)) {
         /* The previous declaration and the current one are not "overload
            distinguishable" for a reason given by the error code returned. */
         pos_error(error_code, &locator->source_position);
@@ -10009,7 +10025,7 @@ definition of a member function of a class template.
     /* Allocate the symbol for the prototype instantiation of the
        function template. */
     prototype_sym = make_function_template_prototype_symbol(
-                                         sym, rout_ptr, idlb.templ_param_list);
+                                  sym, rout_ptr, templ_decl_info->parameters);
     set_source_corresp(&rout_ptr->source_corresp, prototype_sym);
     set_membership_in_source_corresp(&(rout_ptr->source_corresp),
 				     prototype_sym);
@@ -10169,7 +10185,7 @@ definition of a member function of a class template.
         /* Determine whether rout_sym is a specialization of the function
            template represented by sym. */
         record_predeclared_template_function(sym, rout_sym,
-                                             idlb.templ_param_list,
+                                             templ_decl_info->parameters,
                                              il_template_entry);
       }  /* if */
     }  /* for */
@@ -10233,7 +10249,7 @@ definition of a member function of a class template.
           a_template_arg_ptr  templ_arg_list;
           a_symbol_ptr        dummy;
           if (is_match_for_function_template(sym, tp, &templ_arg_list, &dummy,
-                                             idlb.templ_param_list,
+                                             templ_decl_info->parameters,
                                              (a_template_arg_ptr)NULL,
                                              /*is_decl_context=*/TRUE)) {
             sym_error(ec_template_instance_already_used, rout_sym);

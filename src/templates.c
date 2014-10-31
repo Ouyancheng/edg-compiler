@@ -19987,11 +19987,17 @@ to represent the template parameters.
   remove_stop_token(tok_gt);
   remove_stop_token(tok_lbrace);
   remove_stop_token(tok_semicolon);
+  if (template_param_list_pos > USHRT_MAX) {
+    pos_catastrophe(ec_templ_param_list_too_long,
+                    &decl_state->decl_parse.start_pos);
+  } else {
+    decl_state->decl_info->n_params = template_param_list_pos;
 #if MICROSOFT_EXTENSIONS_ALLOWED
-  if (decl_state->is_generic) {
-    decl_state->num_parameters = template_param_list_pos;
-  }  /* if */
+    if (decl_state->is_generic) {
+      decl_state->num_parameters = template_param_list_pos;
+    }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+  }
   db_exit();
 }  /* scan_template_param_list */
 

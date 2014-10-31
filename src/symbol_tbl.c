@@ -3098,6 +3098,7 @@ fields, and return a pointer to it.  Reuse a freed entry if possible.
   tdip->enclosing_template_decl = NULL;
   tdip->template_decl = NULL;
   tdip->name_linkage = (a_name_linkage_kind)nlk_none;
+  tdip->n_params = 0;
   tdip->decl_seq = NO_DECL_SEQUENCE_NUMBER;
   tdip->nondependent_calls = NULL;
   tdip->last_entry_added = NULL;

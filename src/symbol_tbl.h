@@ -1777,6 +1777,9 @@ typedef struct a_template_decl_info {
 			/* The default name linkage at the point of the
 			   declaration.  This is "reactivated" as the default
 			   when a template is instantiated. */
+  unsigned short
+		n_params;
+			/* The number of entries in the parameters list. */
   a_decl_sequence_number
 		decl_seq;
 			/* The declaration sequence number at the point of

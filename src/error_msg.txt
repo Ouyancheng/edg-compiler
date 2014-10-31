@@ -2683,6 +2683,7 @@ ec_cannot_call_named_member_on_lvalue;;"%nd cannot be called on an lvalue"
 ec_cannot_call_named_member_on_rvalue;;"%nd cannot be called on an rvalue"
 ec_cannot_call_member_on_lvalue;;"member function cannot be called on an lvalue"
 ec_cannot_call_member_on_rvalue;;"member function cannot be called on an rvalue"
+ec_templ_param_list_too_long;;"the template parameter list is too long"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #
