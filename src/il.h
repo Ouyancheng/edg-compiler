@@ -1199,11 +1199,25 @@ extern a_boolean class_type_can_be_named_in_namespace_scope(a_type_ptr  type);
 #endif /* TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 
-extern void begin_template_arg_list_traversal_simple(
+extern void skip_start_of_pack_placeholders_simple(a_template_arg_ptr *p_tap);
+
+extern void f_begin_template_arg_list_traversal_simple(
                                              a_template_arg_ptr templ_arg_list,
                                              a_template_arg_ptr *tap);
 
-extern void advance_to_next_template_arg_simple(a_template_arg_ptr *tap);
+extern void f_advance_to_next_template_arg_simple(a_template_arg_ptr *tap);
+
+#define begin_template_arg_list_traversal_simple(arg_list, p_tap)            \
+  (((*p_tap) = arg_list),                                                    \
+   (arg_list != NULL &&                                                      \
+    is_start_of_pack_expansion_templ_arg(arg_list)) ?                        \
+        skip_start_of_pack_placeholders_simple(p_tap) : (void)0)
+
+#define advance_to_next_template_arg_simple(p_tap)                           \
+  (((*p_tap) = (*p_tap)->next),                                              \
+   (*p_tap != NULL &&                                                        \
+    is_start_of_pack_expansion_templ_arg(*p_tap)) ?                          \
+        skip_start_of_pack_placeholders_simple(p_tap) : (void)0)
 
 extern a_template_arg_ptr copy_template_arg_list(a_template_arg_ptr orig_list);
 
