@@ -1527,33 +1527,35 @@ whether a substitution is available; do not put it out.
       if (sp->kind == kind) {
         switch (kind) {
           case iek_type:
-            if (is_pack_expansion == sp->variant.type_sub.is_pack_expansion &&
-                identical_types_full((a_type_ptr)entity,
-                                     sp->variant.type_sub.type,
-                                     ITF_EXACT_DECLTYPE_EXPR_MATCH_REQUIRED
+            { an_itf_flag_set  opts = ITF_EXACT_DECLTYPE_EXPR_MATCH_REQUIRED;
 #if ABI_COMPATIBILITY_VERSION >= 406
-                                     | ITF_EXACT_TEMPLATE_PARAM_TYPE_REQUIRED
+              opts |= ITF_EXACT_TEMPLATE_PARAM_TYPE_REQUIRED;
 #endif /* ABI_COMPATIBILITY_VERSION >= 406 */
 #if ABI_COMPATIBILITY_VERSION >= 405 && GNU_EXTENSIONS_ALLOWED
-                                     | ITF_EXACT_DOES_NOT_RETURN_MATCH_REQUIRED
+              opts |= ITF_EXACT_DOES_NOT_RETURN_MATCH_REQUIRED;
 #endif /* ABI_COMPATIBILITY_VERSION >= 405 && GNU_EXTENSIONS_ALLOWED */
-                                                                           )) {
+              if (is_pack_expansion ==
+                                 sp->variant.type_sub.is_pack_expansion &&
+                  identical_types_full((a_type_ptr)entity,
+                                       sp->variant.type_sub.type,
+                                       opts)) {
 #if ABI_COMPATIBILITY_VERSION >= 405 && GNU_EXTENSIONS_ALLOWED
-              if (gpp_mode &&
-                  identical_types_differ_in_typeof((a_type_ptr)entity,
+                if (gpp_mode &&
+                    identical_types_differ_in_typeof((a_type_ptr)entity,
                                                    sp->variant.type_sub.type)){
-                /* One type is a dependent typeof typeref and the other type
-                   isn't; these get separate substitutions (the mangling for
-                   __typeof is non-standard).  decltype and __underlying_type
-                   don't have this problem because the underlying type isn't
-                   part of the mangling. */
-              } else
+                  /* One type is a dependent typeof typeref and the other type
+                     isn't; these get separate substitutions (the mangling for
+                     __typeof is non-standard).  decltype and __underlying_type
+                     don't have this problem because the underlying type isn't
+                     part of the mangling. */
+                } else
 #endif /* ABI_COMPATIBILITY_VERSION >= 405 && GNU_EXTENSIONS_ALLOWED */
-              /* Do not add code here. */
-              {
-                result = TRUE;
+                /* Do not add code here. */
+                {
+                  result = TRUE;
+                }  /* if */
               }  /* if */
-            }  /* if */
+            }
             break;
           case iek_namespace:
             if (same_entities((a_namespace_ptr)entity,
