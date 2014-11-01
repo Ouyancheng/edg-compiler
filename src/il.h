@@ -1201,12 +1201,6 @@ extern a_boolean class_type_can_be_named_in_namespace_scope(a_type_ptr  type);
 
 extern void skip_start_of_pack_placeholders_simple(a_template_arg_ptr *p_tap);
 
-extern void f_begin_template_arg_list_traversal_simple(
-                                             a_template_arg_ptr templ_arg_list,
-                                             a_template_arg_ptr *tap);
-
-extern void f_advance_to_next_template_arg_simple(a_template_arg_ptr *tap);
-
 #define begin_template_arg_list_traversal_simple(arg_list, p_tap)            \
   (((*p_tap) = arg_list),                                                    \
    (arg_list != NULL &&                                                      \
