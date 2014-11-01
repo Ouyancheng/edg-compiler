@@ -25,7 +25,7 @@ general (not just in Microsoft mode).
 
 
 10/23/14 [EDGcpfe/15586]
-__has_trivial_copy and __has_trivial_assign
+__has_trivial_copy, __has_trivial_assign, and generated special members
 
 Previously, the front end produced a true value for __has_trivial_copy(T) only
 if both the copy and the move constructors of a class type T were trivial.
@@ -40,6 +40,20 @@ operator.  For example:
   };
   static_assert(__has_trivial_assign(S), "Old behavior");
       // This assertion now succeeds.
+
+As part of this change, some corrections were also made in the criteria
+deciding whether to generate certain special members.  For example:
+
+  struct A {
+    A();
+    A(A const&);
+  };
+  struct B { A a; };
+  B& (B::*pmf)(B&&) = &B::operator=; // Previously an error; now okay.
+
+Previously, no move operations were generated for B because A has no move
+constructor.  Now, move operations are generated, and they call the
+corresponding copy operations of A.
 
 
 10/23/14 [EDGcpfe/15517]
