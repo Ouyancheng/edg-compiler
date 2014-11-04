@@ -712,7 +712,7 @@ corresponding tk_template_param entry.
       type = class_symbol_supp(symbol_for(type))
                                              ->template_param_for_proxy_class;
       if (type != NULL) entity = (char *)type;
-    } else if (type->kind == tk_typeref) {
+    } else if (type->kind == (a_type_kind)tk_typeref) {
 #if ABI_COMPATIBILITY_VERSION >= 402
       if (emulate_gnu_abi_bugs &&
           type->variant.typeref.is_decltype &&
@@ -1491,7 +1491,8 @@ whether a substitution is available; do not put it out.
       {
         utype = skip_typerefs(type);
         type_kind = utype->kind;
-        if (!(type_kind == tk_struct || type_kind == tk_class) ||
+        if (!(type_kind == (a_type_kind)tk_struct ||
+              type_kind == (a_type_kind)tk_class) ||
             !is_in_namespace_std(type)) {
           /* For speed. */
         } else if (is_Ss_substitution(type)) {

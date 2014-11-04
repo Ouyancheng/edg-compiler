@@ -5587,7 +5587,9 @@ in il_alloc_init.)
 #endif /* GNU_EXTENSIONS_ALLOWED && GENERATE_SOURCE_SEQUENCE_LISTS */
   def_source_corresp.is_deprecated = FALSE;
   def_source_corresp.externalized = FALSE;
+#if IA64_ABI
   def_source_corresp.on_mangling_substitution_list = FALSE;
+#endif /* IA64_ABI */
 #if RECORD_SCOPE_DEPTH_IN_IL
   def_source_corresp.scope_depth = NO_SCOPE_DEPTH;
 #endif /* RECORD_SCOPE_DEPTH_IN_IL */
