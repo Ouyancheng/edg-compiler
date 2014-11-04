@@ -198,6 +198,7 @@ be restored).
     dps->is_explicit_override = FALSE;
     dps->is_init_capture = FALSE;
     dps->is_lambda = FALSE;
+    dps->is_alias = FALSE;
     dps->prefix_attributes = NULL;
     dps->specifier_attributes = NULL;
     dps->tag_attributes = NULL;
@@ -14800,6 +14801,7 @@ semicolon.
   }  /* if */
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   dps->auto_type_allowed = FALSE;
+  dps->is_alias = TRUE;
   if (required_token(tok_assign, ec_exp_assign)) {
     a_type_ptr  parent_type = NULL;
     if (dps->in_class_scope) {

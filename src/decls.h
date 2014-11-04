@@ -919,6 +919,8 @@ typedef struct a_decl_parse_state {
   a_bit_field	is_lambda:1;
 			/* TRUE if this is a state entry created to track a
 			   lambda declaration. */
+  a_bit_field	is_alias:1;
+			/* TRUE if this is an alias declaration. */
   an_init_state
 		init_state;
 			/* Information about the initializer (if any)

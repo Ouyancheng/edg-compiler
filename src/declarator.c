@@ -2120,13 +2120,13 @@ this is a helper function.
      for member function declarations outside a class definition when
      a function qualifier is present.  If there is a function qualifier,
      it is applied to the type pointed to by the this param type. */
-  if (is_typedef_decl || state->is_template_type_argument) {
-    /* Typedefs for function types can have a cv-qualifier even though there
-       is no "parent class" in those cases.  The same is true for type-ids
-       denoting function type arguments for template type parameters.  (This
-       is only possible when the declarator type is a function type; if, e.g.,
-       a pointer-to-function type is being formed, a diagnostic will be issued
-       later.) */
+  if (is_typedef_decl || state->is_template_type_argument || state->is_alias) {
+    /* Typedefs and alias declarations for function types can have a
+       cv-qualifier even though there is no "parent class" in those cases.  The
+       same is true for type-ids denoting function type arguments for template
+       type parameters.  (This is only possible when the declarator type is a
+       function type; if, e.g., a pointer-to-function type is being formed, a
+       diagnostic will be issued later.) */
     cv_qualifier_with_no_this_class_okay = TRUE;
   }  /* if */
   if (state->is_lambda) {
