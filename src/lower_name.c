@@ -325,6 +325,11 @@ differs (see the IA-64 ABI spec for details).
 
 #if IA64_ABI
 
+typedef unsigned long 
+		a_substitution_index;
+			/* The type of a numerical substitution index.	The
+			   first index is index zero. */
+
 /*
 Data structure used to represent entities in mangled names for which
 substitution can be done in the IA-64 ABI name mangling scheme.
@@ -338,46 +343,36 @@ typedef struct a_substitution {
 		next;
 			/* The next (more recent) available substitution 
 			   candidate. */
+  char		*entity;
+			/* The entity to which this substitution applies. */
   an_il_entry_kind
 		kind;
 			/* The kind of object represented by this 
 			   substitution candidate. */
-  union {
-    /* When kind == iek_type: */
-    struct {
-      a_type_ptr
-		type;   /* The type to which this substitution applies. */
-      a_boolean is_pack_expansion;
+  a_substitution_index
+		index;
+			/* The index of substitution to use during mangling. */
+  a_bit_field
+		clear_il_entry_flag_at_end:1;
+			/* This entry caused the setting of the
+			   on_mangling_substitution_list flag int the
+			   entry.  The flag must therefore be cleared
+			   when this entry is returned to the available
+			   list. */
+  a_bit_field is_pack_expansion:1;
 			/* TRUE if this substitution represents a pack
 			   expansion for the indicated type.  A type can be
 			   on the substitution list twice (once with this
 			   flag TRUE, and once FALSE). */
-    } type_sub;
-    /* When kind == iek_namespace */
-    a_namespace_ptr
-		namespace_ptr;
-			/* The namespace to which this substitution applies. */
-    /* When kind == iek_template */
-    a_template_ptr
-		template_ptr;
-			/* The template to which this substitution applies. */
-    /* When kind == iek_variable */
-    a_variable_ptr
-		variable_ptr;
-			/* The variable to which this substitution applies. */
-    /* When kind == iek_field */
-    a_field_ptr
-		field_ptr;
-			/* The field to which this substitution applies. */
-  } variant;
 } a_substitution;
 
-typedef unsigned long 
-		a_substitution_index;
-			/* The type of a numerical substitution index.	The
-			   first index is index zero. */
+#define SUBSTITUTION_CACHE_SIZE 0x100
+static a_substitution_ptr substitution_cache[SUBSTITUTION_CACHE_SIZE];
 
-#endif /* !IA64_ABI */
+#define subst_hash(ptr)                                                      \
+   (((uintptr_t)ptr >> 8) % SUBSTITUTION_CACHE_SIZE)
+
+#endif /* IA64_ABI */
 
 /*
 Control block for mangling.
@@ -700,37 +695,44 @@ Set the fields of the indicated mangling control block to default values.
 
 #if IA64_ABI
 
-static char *change_proxy_class_to_template_param(char             *entity,
-                                                  an_il_entry_kind kind)
+static char *canonical_substitution_entity(char             *entity,
+                                           an_il_entry_kind kind)
 /*
-If entity, of type kind, is a proxy class for a template parameter,
-return the template parameter type as the entity.  Otherwise return
-entity unchanged.
+The given entity (of the given kind) is being processed for mangling
+substitution.  Return a "canonical" entry to be used for this process.
+For example, a proxy class for a template parameter is replaced by the
+corresponding tk_template_param entry.
 */
 {
   if (kind == iek_type) {
     a_type_ptr type = (a_type_ptr)entity;
-    if (is_immediate_class_type(type) &&
-        type->source_corresp.assoc_info != NULL) {
+    if (type->kind == (a_type_kind)tk_class && symbol_for(type) != NULL) {
       /* If this class is a proxy class for a template parameter,
          use the template parameter as the entity. */
-      type = symbol_supplement_for_class(type)->template_param_for_proxy_class;
+      type = class_symbol_supp(symbol_for(type))
+                                             ->template_param_for_proxy_class;
       if (type != NULL) entity = (char *)type;
+    } else if (type->kind == tk_typeref) {
 #if ABI_COMPATIBILITY_VERSION >= 402
-    } else if (emulate_gnu_abi_bugs &&
-               type->kind == (a_type_kind)tk_typeref &&
-               type->variant.typeref.is_decltype &&
-               type->variant.typeref.is_dependent_type_operator &&
-               !gnu_requires_decltype_mangling(type)) {
-      /* This is a dependent decltype and typically gets its own substitution,
-         but if we're emulating GNU and GNU doesn't believe the decltype
-         is dependent, then strip the decltype for substitution purposes. */
-      entity = (char *)type->variant.typeref.type;
+      if (emulate_gnu_abi_bugs &&
+          type->variant.typeref.is_decltype &&
+          type->variant.typeref.is_dependent_type_operator &&
+          !gnu_requires_decltype_mangling(type)) {
+        /* This is a dependent decltype and typically gets its own
+           substitution, but if we're emulating GNU and GNU doesn't believe
+           the decltype is dependent, then strip the decltype for substitution
+           purposes. */
+        entity = (char *)type->variant.typeref.type;
+      } else
 #endif /* ABI_COMPATIBILITY_VERSION >= 402 */
+      /* Do not insert code here. */
+      {
+        entity = (char*)skip_typedefs_not_dependent_decltypes(type);
+      }  /* if */
     }  /* if */
   }  /* if */
   return entity;
-}  /* change_proxy_class_to_template_param */
+}  /* canonical_substitution_entity */
 
 
 /* Pointer to a list of available (freed) substitutions. */
@@ -752,7 +754,7 @@ are mangled, a type entry can be on the substitution list two times, once
 with is_pack_expansion set to FALSE and once with it set to TRUE.
 */
 {
-  a_substitution_ptr sp;
+  a_substitution_ptr sp, last_sp;
 
   check_assertion(!is_pack_expansion || kind == iek_type);
 #if EXPENSIVE_CHECKING && ABI_COMPATIBILITY_VERSION >= 405
@@ -767,41 +769,36 @@ with is_pack_expansion set to FALSE and once with it set to TRUE.
   }  /* if */
 #endif /* EXPENSIVE_CHECKING && ABI_COMPATIBILITY_VERSION >= 405 */
   if (mctl->suppress_substitutions == 0) {
-    /* If the entity is a proxy class for a template parameter, use the
-       template parameter. */
-    entity = change_proxy_class_to_template_param(entity, kind);
+    /* Record a canonical representative for the substituted entity (e.g., use
+       the corresponding tk_template_param entry for a proxy class of a
+       template parameter). */
+    entity = canonical_substitution_entity(entity, kind);
     if (avail_substitutions != NULL) {
       sp = avail_substitutions;
       avail_substitutions = sp->next;
     } else {
       sp = (a_substitution_ptr)alloc_general(sizeof(a_substitution));
     }  /* if */
+    substitution_cache[subst_hash(entity)] = sp;
     sp->kind = kind;
-    switch (kind) {
-      case iek_type:
-        sp->variant.type_sub.type = (a_type_ptr)entity;
-        sp->variant.type_sub.is_pack_expansion = is_pack_expansion;
-        break;
-      case iek_namespace:
-        sp->variant.namespace_ptr = (a_namespace_ptr)entity;
-        break;
-      case iek_template:
-        sp->variant.template_ptr = (a_template_ptr)entity;
-        break;
-      case iek_variable:
-        sp->variant.variable_ptr = (a_variable_ptr)entity;
-        break;
-      case iek_field:
-        sp->variant.field_ptr = (a_field_ptr)entity;
-        break;
-      default:
-        unexpected_condition();
-    }  /* switch */
+    sp->entity = entity;
+    if (((a_source_correspondence*)entity)->on_mangling_substitution_list) {
+      /* This entity is already on a mangling substitution list: The new
+         substitution entry should not clear the IL entry flag. */
+      sp->clear_il_entry_flag_at_end = FALSE;
+    } else {
+      ((a_source_correspondence*)entity)->on_mangling_substitution_list = TRUE;
+      sp->clear_il_entry_flag_at_end = TRUE;
+    }  /* if */
+    sp->is_pack_expansion = is_pack_expansion;
     sp->next = NULL;
-    if (mctl->last_substitution != NULL) {
-      mctl->last_substitution->next = sp;
+    last_sp = mctl->last_substitution;
+    if (last_sp != NULL) {
+      sp->index = last_sp->index+1;
+      last_sp->next = sp;
       mctl->last_substitution = sp;
     } else {
+      sp->index = 0;
       mctl->first_substitution = mctl->last_substitution = sp;
     }  /* if */
   }  /* if */
@@ -880,18 +877,14 @@ Must be paired with a corresponding call to end_mangling_full
 }  /* start_mangling */
 
 
-static void add_to_mangled_name(char                         ch,
-                                a_mangling_control_block_ptr mctl)
 /*
 Add the indicated character to the mangled name.
 */
-{
-  /* Count characters. */
-  mctl->length++;
-  add_char_to_text_buffer(mangling_text_buffer, ch);
-  check_assertion(mctl->length + mctl->num_leftover_spaces ==
-                                                   mangling_text_buffer->size);
-}  /* add_to_mangled_name */
+#define add_to_mangled_name(ch, mctl)                                        \
+{                                                                            \
+  (mctl)->length += 1;                                                       \
+  add_char_to_text_buffer(mangling_text_buffer, (ch));                       \
+}
 
 
 static void add_str_to_mangled_name(a_const_char                 *str,
@@ -1036,6 +1029,15 @@ above, NULL is also returned in this case).
 #if IA64_ABI
   /* Free the substitutions created during this mangling. */
   if (mctl->first_substitution != NULL) {
+    /* Clear any flags indicating that entries are on the list. */
+    a_substitution_ptr  sp = mctl->first_substitution;
+    for (; sp != NULL; sp = sp->next) {
+      substitution_cache[subst_hash(sp->entity)] = NULL;
+      if (sp->clear_il_entry_flag_at_end) {
+        ((a_source_correspondence*)sp->entity)
+                                      ->on_mangling_substitution_list = FALSE;
+      }  /* if */
+    }  /* for */
     mctl->last_substitution->next = avail_substitutions;
     avail_substitutions = mctl->first_substitution;
   }  /* if */
@@ -1106,6 +1108,8 @@ encoding.  A negative value is prefixed by "n".
 
 #endif /* DO_IL_LOWERING */
 
+static char base_36_digits[37] = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+
 static void add_base_36_number_to_mangled_name(a_substitution_index      value,
 					       a_mangling_control_block  *mctl)
 /*
@@ -1113,8 +1117,6 @@ Adds a base-36 representation (using digits and upper case letters) of
 value to the mangled name.
 */
 {
-  static char          base_36_digits[37] =
-                                        "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ";
   a_substitution_index power = 1;
 
   /* Figure out the smallest power of 36 that will contain value. */
@@ -1140,23 +1142,22 @@ value to the mangled name.
 }  /* add_base_36_number_to_mangled_name */
 
 
-static void add_substitution_index_to_mangled_name(
-                                        a_substitution_index      idx,
-                                        a_mangling_control_block  *mctl)
 /*
 Add a representation of the substitution with the given index to the mangled
-name.
+name.  The substitution number is written in the mangling as a -1-indexed
+value in base 36.  For the first substitution, the number is omitted
+altogether.
 */
-{
-  add_to_mangled_name('S', mctl);
-  /* The substitution number is written in the mangling as a -1-indexed value
-     in base 36.  For the first substitution, the number is omitted
-     altogether. */
-  if (idx > 0) {
-    add_base_36_number_to_mangled_name(idx - 1, mctl);
-  }  /* if */
-  add_to_mangled_name('_', mctl);
-}  /* add_substitution_index_to_mangled_name */
+#define add_substitution_index_to_mangled_name(idx, mctl)                    \
+{                                                                            \
+  add_to_mangled_name('S', (mctl));                                          \
+  if ((idx) > 36) {                                                          \
+    add_base_36_number_to_mangled_name((idx)-1, (mctl));                     \
+  } else if ((idx) > 0) {                                                    \
+    add_to_mangled_name(base_36_digits[(idx)-1], (mctl));                    \
+  }  /* if */                                                                \
+  add_to_mangled_name('_', (mctl));                                          \
+}
 
 
 static a_template_ptr class_template_of(a_type_ptr type)
@@ -1454,27 +1455,47 @@ whether a substitution is available; do not put it out.
 */
 {
   a_substitution_ptr   sp;
-  a_substitution_index idx;
-  a_boolean            result = FALSE;
+  a_boolean            result = FALSE, secondary_tu;
   a_const_char         *str = NULL;
+  a_type_kind          type_kind;
+  a_type_ptr           type, utype;
 
   /* Nothing to do if substitution processing is temporarily suspended. */
   if (mctl->suppress_substitutions != 0) goto end_of_routine;
-  /* If the entity is a proxy class for a template parameter, use the
-     template parameter. */
-  entity = change_proxy_class_to_template_param(entity, kind);
+  entity = canonical_substitution_entity(entity, kind);
+  if (kind == iek_type) {
+    type = (a_type_ptr)entity;
+  }  /* if */
+  if (((a_source_correspondence*)entity)->on_mangling_substitution_list) {
+    sp = substitution_cache[subst_hash(entity)];
+    if (sp != NULL &&
+        sp->entity == entity && sp->is_pack_expansion == is_pack_expansion) {
+      result = TRUE;
+      /* We found a direct substitution for this entity in the cache. */
+      if (!test) add_substitution_index_to_mangled_name(sp->index, mctl);
+      goto end_of_routine;
+    }  /* if */
+    for (sp = mctl->first_substitution; sp != NULL; sp = sp->next) {
+      if (sp->entity == entity && sp->is_pack_expansion == is_pack_expansion) {
+        result = TRUE;
+        /* We found a direct substitution for this entity. */
+        if (!test) add_substitution_index_to_mangled_name(sp->index, mctl);
+        goto end_of_routine;
+      }  /* if */
+    }  /* for */
+  }  /* if */
   /* See if the entity is one of the special entities for which an
      abbreviation exists. */
   switch (kind) {
     case iek_type:
       {
-        a_type_ptr      type = (a_type_ptr)entity;
-        type = skip_typedefs_not_dependent_decltypes(type);
-        entity = (char*)type;
-        /* Compare to ::std::string. */
-        if (!is_in_namespace_std(type)) {
+        utype = skip_typerefs(type);
+        type_kind = utype->kind;
+        if (!(type_kind == tk_struct || type_kind == tk_class) ||
+            !is_in_namespace_std(type)) {
           /* For speed. */
         } else if (is_Ss_substitution(type)) {
+          /* ::std::string. */
           str = "Ss";
           result = TRUE;
           break;
@@ -1515,79 +1536,74 @@ whether a substitution is available; do not put it out.
     default:
       break;
   }  /* switch */
+  secondary_tu = secondary_translation_unit_seen();
   if (result) {
     /* There is a special substitution that applies. */
     if (!test) add_str_to_mangled_name(str, mctl);
-  } else {
+  } else if (secondary_tu || kind == iek_type) {
     /* Otherwise, see if there is an existing substitution for something
        that appears earlier in the mangled name. */
-    for (sp = mctl->first_substitution, idx = 0; 
-         sp != NULL; 
-         sp = sp->next, idx++) {
+    for (sp = mctl->first_substitution; sp != NULL; sp = sp->next) {
       if (sp->kind == kind) {
-        switch (kind) {
-          case iek_type:
-            { an_itf_flag_set  opts = ITF_EXACT_DECLTYPE_EXPR_MATCH_REQUIRED;
+        if (kind == iek_type) {
+          an_itf_flag_set  opts = ITF_EXACT_DECLTYPE_EXPR_MATCH_REQUIRED;
+          a_type_ptr       stype = (a_type_ptr)sp->entity;
+          a_type_ptr       ustype = skip_typerefs(stype);
+          if (ustype->kind != type_kind) {
+            continue;
+          } else if (!secondary_tu) {
+            if ((type_kind == (a_type_kind)tk_struct ||
+                 type_kind == (a_type_kind)tk_class) &&
+                utype != ustype) {
+              a_const_char  *n1, *n2;
+              if (!utype->variant.class_struct_union.is_nonreal_class ||
+                  !ustype->variant.class_struct_union.is_nonreal_class) {
+                continue;
+              }  /* if */
+              n1 = unmangled_name_of(&utype->source_corresp);
+              n2 = unmangled_name_of(&ustype->source_corresp);
+              if (n1 != NULL && n2 != NULL && strcmp(n1, n2)!= 0) {
+                continue;
+              }  /* if */
+            }  /* if */
+          }  /* if */
 #if ABI_COMPATIBILITY_VERSION >= 406
-              opts |= ITF_EXACT_TEMPLATE_PARAM_TYPE_REQUIRED;
+          opts |= ITF_EXACT_TEMPLATE_PARAM_TYPE_REQUIRED;
 #endif /* ABI_COMPATIBILITY_VERSION >= 406 */
 #if ABI_COMPATIBILITY_VERSION >= 405 && GNU_EXTENSIONS_ALLOWED
-              opts |= ITF_EXACT_DOES_NOT_RETURN_MATCH_REQUIRED;
+          opts |= ITF_EXACT_DOES_NOT_RETURN_MATCH_REQUIRED;
 #endif /* ABI_COMPATIBILITY_VERSION >= 405 && GNU_EXTENSIONS_ALLOWED */
-              if (is_pack_expansion ==
-                                 sp->variant.type_sub.is_pack_expansion &&
-                  identical_types_full((a_type_ptr)entity,
-                                       sp->variant.type_sub.type,
-                                       opts)) {
+          if (is_pack_expansion == sp->is_pack_expansion &&
+              identical_types_full((a_type_ptr)entity, stype, opts)) {
 #if ABI_COMPATIBILITY_VERSION >= 405 && GNU_EXTENSIONS_ALLOWED
-                if (gpp_mode &&
-                    identical_types_differ_in_typeof((a_type_ptr)entity,
-                                                   sp->variant.type_sub.type)){
-                  /* One type is a dependent typeof typeref and the other type
-                     isn't; these get separate substitutions (the mangling for
-                     __typeof is non-standard).  decltype and __underlying_type
-                     don't have this problem because the underlying type isn't
-                     part of the mangling. */
-                } else
+            if (gpp_mode &&
+                identical_types_differ_in_typeof((a_type_ptr)entity, stype)){
+              /* One type is a dependent typeof typeref and the other type
+                 isn't; these get separate substitutions (the mangling for
+                 __typeof is non-standard).  decltype and __underlying_type
+                 don't have this problem because the underlying type isn't
+                 part of the mangling. */
+            } else
 #endif /* ABI_COMPATIBILITY_VERSION >= 405 && GNU_EXTENSIONS_ALLOWED */
-                /* Do not add code here. */
-                {
-                  result = TRUE;
-                }  /* if */
-              }  /* if */
-            }
-            break;
-          case iek_namespace:
-            if (same_entities((a_namespace_ptr)entity,
-                              sp->variant.namespace_ptr)) {
+            /* Do not add code here. */
+            {
               result = TRUE;
             }  /* if */
-            break;
-          case iek_template:
-            if (same_entities((a_template_ptr)entity,
-                              sp->variant.template_ptr)) {
-              result = TRUE;
-            }  /* if */
-            break;
-          case iek_variable:
-            if (same_entities((a_variable_ptr)entity,
-                              sp->variant.variable_ptr)) {
-              result = TRUE;
-            }  /* if */
-            break;
-          case iek_field:
-            if (same_entities((a_field_ptr)entity,
-                              sp->variant.field_ptr)) {
-              result = TRUE;
-            }  /* if */
-            break;
-          default:
-            unexpected_condition();
-        }  /* switch */
+          }  /* if */
+        } else if (entity == sp->entity) {
+          result = TRUE;
+        } else if (secondary_tu) {
+          a_trans_unit_corresp_ptr  tcp1, tcp2;
+          tcp1 = trans_unit_corresp_of_unknown_entry(entity);
+          tcp2 = trans_unit_corresp_of_unknown_entry(sp->entity);
+          if (tcp1 == tcp2 && tcp1 != NULL) {
+            result = TRUE;
+          }  /* if */
+        }  /* if */
       }  /* if */
       if (result) {
         /* We found a substitution for this entity. */
-        if (!test) add_substitution_index_to_mangled_name(idx, mctl);
+        if (!test) add_substitution_index_to_mangled_name(sp->index, mctl);
         break;
       }  /* if */
     }  /* for */

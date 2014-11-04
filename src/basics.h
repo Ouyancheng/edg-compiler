@@ -366,6 +366,17 @@ typedef EDG_INT32_T int32_t;
 #endif /* ifndef EDG_UINT32_T */
 typedef EDG_UINT32_T uint32_t;
 
+#ifndef EDG_UINTPTR_T
+#if __MSC__
+/* On Microsoft's platform, a long is not always large enough to hold the bits
+   of a pointer.  So we use a 64-bit type to be sure. */
+#define EDG_UINTPTR_T __uint64
+#else /* !__MSC__ */
+#define EDG_UINTPTR_T unsigned long
+#endif /* __MSC__ */
+#endif /* ifndef EDG_UINTPTR_T */
+typedef EDG_UINTPTR_T uintptr_t;
+
 #endif /* SUPPRESS_DEFINITION_OF_STDINT_TYPES */
 #endif /* !USE_INT_TYPES_HEADER */
 #endif /* !USE_STDINT_HEADER */

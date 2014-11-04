@@ -2888,6 +2888,11 @@ typedef struct a_source_correspondence {
 			   originally static and has been made external, e.g.,
 			   so that it can be referenced from multiple
 			   instantiation slices. */
+#if IA64_ABI
+  a_bit_field	on_mangling_substitution_list:1;
+			/* TRUE if this is an entity that's currently on a
+			   list of available mangling substitutions. */
+#endif /* IA64_ABI */
 #if RECORD_SCOPE_DEPTH_IN_IL
   a_scope_depth	scope_depth;
 			/* Scope nesting depth of this entity. */
