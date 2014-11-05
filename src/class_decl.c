@@ -27272,7 +27272,7 @@ from TRUE to FALSE.
 }  /* wrapup_standard_layout_flag */
 
 
-static void wrapup_nothrow_assign_and_copy_flags(a_type_ptr  class_type)
+static void wrapup_special_exception_specs(a_type_ptr  class_type)
 /*
 Update the has_nothrow_assign and has_nothrow_copy flags in the symbol
 supplement of the given type to reflect the presence of, respectively,
@@ -27282,90 +27282,95 @@ trait pseudo-functions __has_nothrow_assign and __has_nothrow_copy, but in
 Microsoft mode, additional checking is needed.) 
 */
 {
-  a_class_symbol_supplement_ptr
-                cssp = symbol_supplement_for_class(class_type);
-  a_symbol_ptr  sym;
-  a_boolean     is_list;
+  a_routine_ptr  rp =  class_type_supp(class_type)->assoc_scope->routines;
+  a_boolean      found_copy_ctor = FALSE, found_throwing_copy_ctor = FALSE;
+  a_boolean      found_copy_assign = FALSE, found_throwing_copy_assign = FALSE;
 
   /* Look through the list of constructors for copy constructors: If any one
      might throw, set the has_nothrow_copy flag to FALSE.  If there are no
      user-declared copy constructors, leave the flag value unchanged (on entry
      it reflects whether a generated copy constructor might throw). */
-  sym = cssp->constructor;
-  if (sym == NULL) {
-    /* No (copy) constructor is declared in this class.  Leave the
-       has_nothrow_copy flag as concluded from bases and members. */
-  } else {
-    a_boolean  found_copy_ctor = FALSE;
-    if (sym->kind == (a_symbol_kind)sk_overloaded_function) {
-      is_list = TRUE;
-      sym = sym->variant.overloaded_function.symbols;
-    } else {
-      is_list = FALSE;
+  for (; rp != NULL; rp = rp->next) {
+    a_type_ptr  rtp;
+    if (!(special_kind_is(rp, sfk_constructor) ||
+          special_kind_is(rp, sfk_destructor) ||
+          (special_kind_is(rp, sfk_operator) &&
+           rp->variant.opname_kind == (an_opname_kind)onk_assign)) ||
+        rp->compiler_generated) {
+      /* Only user-declared special members are of interest here. */
+      continue;
     }  /* if */
-    for (; sym != NULL; sym = is_list ? sym->next : NULL) {
-      if (sym->kind == (a_symbol_kind)sk_member_function) {
-        a_routine_ptr  rp = sym->variant.routine.ptr;
-        a_type_ptr     rtp = skip_typerefs(rp->type);
-        if (!rp->compiler_generated &&
-            is_copy_constructor_type(rtp, class_type,
-                                     (a_type_qualifier_set *)NULL,
-                                     /*include_move_ctors=*/FALSE,
-                                     /*is_declarative_context=*/TRUE)) {
-          found_copy_ctor = TRUE;
-          if (is_non_throwing_routine(rp)) {
-            /* This copy constructor is known not to throw exceptions:
-               Continue checking other constructors (if any). */
-          } else {
-            /* A throwing copy constructor. */
-            break;
-          }  /*if */
+    rtp = skip_typerefs(rp->type);
+    if (rp->is_defaulted && !rp->is_deleted && exceptions_enabled) {
+      /* If a special member is defaulted inside the parent class, it
+         implicitly gets the exception specification that the corresponding
+         implicitly generated member would have had.  If an explicit
+         exception specification is provided, it must be equivalent to the
+         implicitly generated one. */
+      a_routine_type_supplement_ptr   rtsp = rtp->variant.routine.extra_info;
+      /* Save any declared exception specification for later comparison to
+         the generated specification. */
+      an_exception_specification_ptr  declared_exception_spec
+                                              = rtsp->exception_specification;
+      rtsp->exception_specification = NULL;
+      form_exception_specification_for_generated_function(
+                                                      rp, (a_symbol_ptr)NULL);
+      if (declared_exception_spec != NULL) {
+        /* If an exception specification was specified at all, it must be
+           equivalent to the generated one. */
+        if (exception_spec_is_less_restrictive(
+                    declared_exception_spec, rtsp->exception_specification) ||
+            exception_spec_is_less_restrictive(
+                    rtsp->exception_specification, declared_exception_spec)) {
+          pos_error(ec_invalid_explicit_exception_specification,
+                    &rp->source_corresp.decl_position);
+        } else {
+          /* Record the declared form. */
+          rtsp->exception_specification = declared_exception_spec;
         }  /* if */
       }  /* if */
-    }  /* for */
-    if (found_copy_ctor) {
-      cssp->has_nothrow_copy = (sym == NULL);
     }  /* if */
-  }  /* if */
-  /* Apply a similar process for assignment operators. */
-  sym = cssp->assignment_operator;
-  if (sym == NULL) {
-    /* No (copy) assignment operator is declared in this class.  Leave the
-       has_nothrow_assign flag as concluded from bases and members. */
-  } else {
-    a_boolean  found_copy_assign = FALSE;
-    if (sym->kind == (a_symbol_kind)sk_overloaded_function) {
-      is_list = TRUE;
-      sym = sym->variant.overloaded_function.symbols;
-    } else {
-      is_list = FALSE;
-    }  /* if */
-    /* Look for a throwing copy assignment operator. */
-    for (; sym != NULL; sym = is_list ? sym->next : NULL) {
-      if (sym->kind == (a_symbol_kind)sk_member_function) {
-        a_type_qualifier_set  qualifiers;
-        a_boolean             ref_param, is_base_class_match;
-        a_routine_ptr         rp = sym->variant.routine.ptr;
-        if (!rp->compiler_generated &&
-            is_assignment_operator_for_copy(
-                                  sym, /*move_assign_okay=*/FALSE, &ref_param,
-                                  &qualifiers, &is_base_class_match)) {
-          found_copy_assign = TRUE;
-          if (is_non_throwing_routine(rp)) {
-            /* This copy assignment operator is known not to throw exceptions:
-               Continue checking other operators (if any). */
-          } else {
-            /* A throwing copy assignment operator. */
-            break;
-          }  /*if */
-        }  /* if */
+    if (special_kind_is(rp, sfk_constructor)) {
+      if (!found_throwing_copy_ctor &&
+          is_copy_constructor_type(rtp, class_type,
+                                   (a_type_qualifier_set *)NULL,
+                                   /*include_move_ctors=*/FALSE,
+                                   /*is_declarative_context=*/TRUE)) {
+        found_copy_ctor = TRUE;
+        if (is_non_throwing_routine(rp)) {
+          /* This copy constructor is known not to throw exceptions:
+             Continue checking other constructors (if any). */
+        } else {
+          /* A throwing copy constructor. */
+          found_throwing_copy_ctor = TRUE;
+        }  /*if */
       }  /* if */
-    }  /* for */
-    if (found_copy_assign) {
-      cssp->has_nothrow_assign = (sym == NULL);
+    } else if (special_kind_is(rp, sfk_operator)) {
+      a_type_qualifier_set  qualifiers;
+      a_boolean             ref_param, is_base_class_match;
+      if (!found_throwing_copy_assign &&
+          function_type_params(rtp) != NULL &&
+          is_assignment_operator_for_copy(
+                             symbol_for(rp), /*move_assign_okay=*/FALSE,
+                             &ref_param, &qualifiers, &is_base_class_match)) {
+        found_copy_assign = TRUE;
+        if (is_non_throwing_routine(rp)) {
+          /* This copy assignment operator is known not to throw exceptions:
+             Continue checking other operators (if any). */
+        } else {
+          /* A throwing copy assignment operator. */
+          found_throwing_copy_assign = TRUE;
+        }  /*if */
+      }  /* if */
     }  /* if */
+  }  /* for */
+  if (!found_throwing_copy_ctor && found_copy_ctor) {
+    class_symbol_supp(symbol_for(class_type))->has_nothrow_copy = TRUE;
   }  /* if */
-}  /* wrapup_nothrow_assign_and_copy_flags */
+  if (!found_throwing_copy_assign && found_copy_assign) {
+    class_symbol_supp(symbol_for(class_type))->has_nothrow_assign = TRUE;
+  }  /* if */
+}  /* wrapup_special_exception_specs */
 
 
 static void instantiate_delayed_exception_spec_args_if_needed(
@@ -28050,9 +28055,10 @@ wrap_up_class_definition.
     check_base_member_hiding(class_state);
     /* Add final checks for the "standard_layout" flag. */
     wrapup_standard_layout_flag(class_type);
-    /* Add final checks for the "has_nothrow_copy" and "has_nothrow_assign"
-       flags. */
-    wrapup_nothrow_assign_and_copy_flags(class_type);
+    /* Wrap up the determination of exception specifications of special
+       members (including final checks for the "has_nothrow_copy" and
+       "has_nothrow_assign" flags). */
+    wrapup_special_exception_specs(class_type);
     /* Check the exception specification relationship for override pairs where
        the overrider's exception specification was not known at the point of
        declaration. */
