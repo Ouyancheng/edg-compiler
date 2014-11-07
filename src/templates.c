@@ -22474,7 +22474,7 @@ information).  See the definition of a_tmpl_decl_state for details.
 
 
 static void alias_prototype_instantiation(
-o			a_tmpl_decl_state_ptr	decl_state,
+			a_tmpl_decl_state_ptr	decl_state,
 			a_symbol_ptr		template_sym)
 /*
 This routine is called to do the prototype instantiation of the template
