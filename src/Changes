@@ -1,22 +1,5 @@
 Version 4.10
 
-11/4/14  [EDGcpfe/15632]
-Spurious warning on overridden defaulted destructor in Microsoft mode
-
-In Microsoft C++ mode, the front end produced a spurious warning about
-mismatching exception specifications when a defaulted virtual function
-overrides a matching default constructor in a base class.  For example:
-
-  struct B {
-    virtual ~B() = default;
-  };
-  struct D: public B {
-    virtual ~D() = default;  // Previously triggered a spurious
-  };                         // warning.
-
-This is now fixed.
-
-
 11/4/14  [EDGcpfe/14286,EDGcpfe/14868,EDGcpfe/15621]
 Spurious diagnostics on qualifiers in alias declarations
 
