@@ -22473,9 +22473,9 @@ information).  See the definition of a_tmpl_decl_state for details.
 }  /* scan_template_param_clauses */
 
 
-#if GENERATE_SOURCE_SEQUENCE_LISTS
+#if !GENERATE_SOURCE_SEQUENCE_LISTS
 /*ARGSUSED*/ /* <-- decl_state is not used in that case. */
-#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+#endif /* !GENERATE_SOURCE_SEQUENCE_LISTS */
 static void alias_prototype_instantiation(
 			a_tmpl_decl_state_ptr	decl_state,
 			a_symbol_ptr		template_sym)
