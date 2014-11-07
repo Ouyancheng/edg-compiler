@@ -331,6 +331,12 @@ extern void pos2_sy_diagnostic(an_error_severity  error_severity,
                                a_source_position  *error_pos,
                                a_source_position  *other_pos,
                                struct a_symbol    *symbol);
+extern void pos_sy_ty2_diagnostic(an_error_severity  error_severity,
+                                  an_error_code      error_code,
+                                  a_source_position  *error_pos,
+                                  struct a_symbol    *symbol,
+                                  struct a_type      *type1,
+                                  struct a_type      *type2);
 extern void pos_sy2_diagnostic(an_error_severity  error_severity,
                                an_error_code      error_code,
                                a_source_position  *error_pos,

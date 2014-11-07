@@ -4823,6 +4823,25 @@ indicated position, a second position is also provided.
 
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
+void pos_sy_ty2_diagnostic(an_error_severity  error_severity,
+                           an_error_code      error_code,
+                           a_source_position  *error_pos,
+                           a_symbol_ptr       symbol,
+                           a_type_ptr         type1,
+                           a_type_ptr         type2)
+/*
+Report the indicated diagnostic (with the indicated symbol and types) at the
+indicated position.
+*/
+{
+  init_error_params();
+  error_msg_syms[1] = symbol;
+  error_msg_types[1] = type1;
+  error_msg_types[2] = type2;
+  diag_message(error_code, error_pos, error_severity, dck_standalone);
+}  /* pos_sy_ty2_diagnostic */
+
+
 void pos_sy2_diagnostic(an_error_severity  error_severity,
                         an_error_code      error_code,
                         a_source_position  *error_pos,

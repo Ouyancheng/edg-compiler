@@ -131,6 +131,9 @@ typedef struct a_tmpl_decl_state {
 			   declaration whose nesting depth has been
 			   determined via global qualification or by looking
 			   up the template. */
+  a_boolean	is_alias_redecl;
+			/* TRUE if this is a redeclaration of an alias
+			   template. */
   a_source_position
 		export_position;
 			/* If export_present is TRUE, the position of the
@@ -223,6 +226,9 @@ typedef struct a_tmpl_decl_state {
 		decl_pos_block;
 			/* Source range information for the template
 			   declaration. */
+  a_symbol_ptr	new_alias_symbol;
+			/* When is_alias_redecl is TRUE, this points to the
+			   symbol created for the redeclaration. */
   a_symbol_ptr	prototype_scope_symbols;
 			/* For a function template declaration, points to the
 			   list of prototype scope symbols from the

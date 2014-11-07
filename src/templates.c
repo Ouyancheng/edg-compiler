@@ -512,6 +512,7 @@ Initialize a template declaration state block.
   tdsp->is_lambda = FALSE;
   tdsp->generic_constraints_pending = FALSE;
   tdsp->friend_depth_known = FALSE;
+  tdsp->is_alias_redecl = FALSE;
   tdsp->export_position = null_source_position;
   tdsp->other_decl_pos = null_source_position;
   tdsp->starting_token_sequence_number = NO_TOKEN_SEQUENCE_NUMBER;
@@ -533,6 +534,7 @@ Initialize a template declaration state block.
   tdsp->pragmas_bound_to_template = NULL;
   tdsp->il_template_entry = NULL;
   clear_decl_pos_block(&tdsp->decl_pos_block);
+  tdsp->new_alias_symbol = NULL;
   tdsp->prototype_scope_symbols = NULL;
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   tdsp->definition_range = null_source_range;
@@ -22472,6 +22474,7 @@ information).  See the definition of a_tmpl_decl_state for details.
 
 
 static void alias_prototype_instantiation(
+o			a_tmpl_decl_state_ptr	decl_state,
 			a_symbol_ptr		template_sym)
 /*
 This routine is called to do the prototype instantiation of the template
@@ -22541,7 +22544,48 @@ can be diagnosed at template definition time.
   }  /* if */
   /* Mark the prototype instantiation type as being complete. */
   tssp->variant.class_template.prototype_instantiation_complete = TRUE;
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+  if (prototype_instantiations_in_il && decl_state->is_alias_redecl &&
+      !source_sequence_entries_disallowed) {
+    /* Turn the source sequence entry for the a_template entry into a
+       secondary source sequence entry. */
+    a_src_seq_secondary_decl_ptr sssdp = secondary_src_seq_for_template(
+                                               decl_state->il_template_entry);
+    sssdp->autonomous_tag_decl = TRUE;
+    sssdp->declared_type = tp;
+    sssdp->is_alias = TRUE;
+  }  /* if */
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 }  /* alias_prototype_instantiation */
+
+
+static void check_alias_template_redecl(a_tmpl_decl_state_ptr	decl_state,
+					a_symbol_ptr		orig_sym)
+/*
+decl_state->new_alias_symbol is a redeclaration of the alias template
+specified by orig_sym.  Make sure the new type is the same as the
+old type.  If they are not, issue an error.
+*/
+{
+  a_type_ptr	orig_type;
+  a_type_ptr	new_type;
+  a_template_symbol_supplement_ptr	orig_tssp;
+  a_template_symbol_supplement_ptr	new_tssp;
+
+  orig_tssp = orig_sym->variant.template_info;
+  new_tssp = decl_state->new_alias_symbol->variant.template_info;
+  orig_type = orig_tssp->variant.class_template.prototype_instantiation->
+                                                              variant.type.ptr;
+  orig_type = orig_type->variant.typeref.type;
+  new_type = new_tssp->variant.class_template.prototype_instantiation->
+                                                              variant.type.ptr;
+  new_type = new_type->variant.typeref.type;
+  if (!identical_types(orig_type, new_type)) {
+    pos_sy_ty2_diagnostic(es_error, ec_bad_alias_templ_redecl,
+                          &decl_state->new_alias_symbol->decl_position,
+                          orig_sym, new_type, orig_type);
+  }  /* if */
+}  /* check_alias_template_redecl */
 
 
 static a_symbol_ptr alias_template_declaration(
@@ -22583,6 +22627,9 @@ alias
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   a_boolean				keep_token_cache = TRUE;
   a_boolean				internal_alias;
+  a_boolean				is_redecl = FALSE;
+  a_symbol_ptr				orig_decl_sym;
+  a_template_symbol_supplement_ptr	orig_decl_tssp;
   a_token_sequence_number		tsn_for_alias =
                                                     curr_token_sequence_number;
 
@@ -22591,8 +22638,6 @@ alias
   decl_state->decl_pos_block.specifiers_range.start = pos_curr_token;
   decl_state->decl_pos_block.specifiers_range.end = end_pos_curr_token;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
-  /* All alias declarations are considered definitions. */
-  decl_state->defines_something = TRUE;
   /* Skip past the "using" (or "__internal_alias_decl" when processing
      the internal declaration of C++/CLI's cli::interior_ptr). */
   check_assertion(curr_token == tok_using ||
@@ -22623,6 +22668,16 @@ alias
       /* An error will have already been issued on a template declaration in an
          invalid scope. */
       set_to_named_error_locator(locator);
+    } else {
+      /* Look up the symbol in the current scope.  To do this we must
+         temporarily change the decl. scope level to the effective
+         level for this declaration because decl_scope_level currently
+         points to the template declaration scope. */
+      a_scope_depth	saved_decl_scope_level;
+      saved_decl_scope_level = decl_scope_level;
+      decl_scope_level = decl_state->orig_decl_level;
+      sym = curr_scope_id_lookup(&locator, IDL_NO_OPTIONS);
+      decl_scope_level = saved_decl_scope_level;
     }  /* if */
 #if EXTRA_SOURCE_POSITIONS_IN_IL
     decl_state->decl_pos_block.identifier_range.start = pos_curr_token;
@@ -22666,16 +22721,48 @@ alias
   }  /* if */
   /* Enter the symbol at the scope indicated by effective_decl_level. */
   ssep = &scope_stack[decl_state->effective_decl_level];
+  if (sym != NULL) {
+    /* If we found a previous symbol, make sure it is for an alias template.
+       If not, ignore it and an error will be issued when a new symbol is
+       entered below.  If this is a redeclaration, a symbol for the
+       redeclaration is created below. */
+    a_boolean	bad_sym = FALSE;
+    if (!symbol_is(sym, sk_class_template)) {
+      bad_sym = TRUE;
+    } else {
+      tssp = sym->variant.template_info;
+      if (!tssp->variant.class_template.is_alias_template) bad_sym = TRUE;
+    }  /* if */
+    if (!bad_sym) {
+      is_redecl = TRUE;
+      decl_state->is_alias_redecl = TRUE;
+      orig_decl_sym = sym;
+      sym = NULL;
+    }  /* if */
+  }  /* if */
   /* Create the symbol for the alias.  A class template symbols is used. */
-  sym = enter_symbol((a_symbol_kind)sk_class_template, &locator,
-                     decl_state->effective_decl_level,
-                     /*suppress_error=*/FALSE);
+  if (!is_redecl) {
+    sym = enter_symbol((a_symbol_kind)sk_class_template, &locator,
+                       decl_state->effective_decl_level,
+                       /*suppress_error=*/FALSE);
+    orig_decl_sym = sym;
+    /* Initial alias declarations are considered definitions. */
+    decl_state->defines_something = TRUE;
+  } else {
+    /* For a redeclaration, a dummy symbol is created so that we can
+       continue the normal processing and then compare the new alias
+       prototype instantiation with the old one. */
+    sym = make_symbol((a_symbol_kind)sk_class_template, &locator);
+    sym->decl_scope = orig_decl_sym->decl_scope;
+    decl_state->new_alias_symbol = sym;
+  }  /* if */
   tssp = sym->variant.template_info;
   tssp->variant.class_template.is_alias_template = TRUE;
   tssp->attributes = attributes;
   tssp->is_variadic = decl_state->is_variadic;
   tssp->has_variadic_template_params =
                                       decl_state->has_variadic_template_params;
+  orig_decl_tssp = orig_decl_sym->variant.template_info;
   if (ssep->kind == (a_scope_kind)sck_namespace ||
       ssep->kind == (a_scope_kind)sck_namespace_extension) {
     set_namespace_membership(sym, (a_source_correspondence *)NULL,
@@ -22685,7 +22772,7 @@ alias
                          decl_state->class_declared_in);
     tssp->variant.class_template.access = decl_state->access; 
   }  /* if */
-  if (sym->is_class_member) {
+  if (sym->is_class_member && !is_redecl) {
     /* This is a member class template declaration.  See if the enclosing
        class was also generated from a template.  If so, find the
        corresponding class template symbol from the prototype instantiation. */
@@ -22737,7 +22824,7 @@ alias
     } /* if */
   } /* if */
   /* Save the IL template entry pointer for this symbol. */
-  set_il_template_entry(decl_state, sym, tssp);
+  set_il_template_entry(decl_state, orig_decl_sym, orig_decl_tssp);
   /* Save the information needed to create an instantiation based
      on the definition of the template.  First, save the initializer
      expression. */
@@ -22751,7 +22838,21 @@ alias
     source_sequence_entries_disallowed = TRUE;
   }  /* if */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
-  mark_defined(sym, &locator.source_position);
+  if (!is_redecl) {
+    mark_defined(orig_decl_sym, &locator.source_position);
+  } else {
+    mark_declared(orig_decl_sym, &locator.source_position);
+  }  /* if */
+  if (decl_state->is_alias_redecl) {
+    (void)reconcile_template_param_lists(
+                                      decl_state->decl_info->parameters,
+                                      decl_state, orig_decl_sym,
+                                      &sym->decl_position,
+                                      /*default_allowed=*/TRUE,
+                                      /*checking_parent_params=*/FALSE,
+                                      /*allow_missing_member_constraint=*/TRUE,
+                                      es_error);
+  }  /* if */
   /* Check the default arguments and/or template packs of the parameter
      list. */
   check_template_param_default_args_and_packs(
@@ -22774,7 +22875,9 @@ alias
                                               variant.type.ptr->source_corresp,
                        &decl_state->decl_pos_block);
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
-  return sym;
+  /* If this is a redeclaration, the original symbol is returned, not the
+     one for the new declaration. */
+  return orig_decl_sym;
 }  /* alias_template_declaration */
 
 
@@ -23191,7 +23294,17 @@ any non-empty template parameter lists that were scanned.
       /* We only do a prototype instantiation for the primary template. */
       if (tssp->prototype_template == NULL) {
         /* Do the prototype instantiation evaluation of the alias type. */
-        alias_prototype_instantiation(sym);
+        if (!decl_state->is_alias_redecl) {
+          alias_prototype_instantiation(decl_state, sym);
+        } else {
+          /* For an alias redeclaration, do a prototype instantiation of the
+             new declaration so that the types can be compared. */
+          alias_prototype_instantiation(decl_state,
+                                        decl_state->new_alias_symbol);
+          /* If this is a redeclaration of an alias template, make sure the
+             prototype instantiations match. */
+          check_alias_template_redecl(decl_state, sym);
+        }  /* if */
       } else {
         a_template_symbol_supplement_ptr	proto_tssp;
         a_symbol_ptr				proto_sym;

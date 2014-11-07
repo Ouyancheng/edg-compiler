@@ -1,5 +1,17 @@
 Version 4.10
 
+11/7/14  [EDGcpfe/14935]
+Allow redeclaration of alias template (core issue 1896)
+
+Some compilers (g++, clang) allow redeclaration of alias templates.
+The proposed resolution of core issue 1896 is that such redeclarations
+should be permitted.  We now allow the redeclaration of an alias template.
+
+  template <class T> struct A{};
+  template <class T> using B = A<T>;
+  template <class U> using B = A<U>;
+
+
 11/4/14  [EDGcpfe/14286,EDGcpfe/14868,EDGcpfe/15621]
 Spurious diagnostics on qualifiers in alias declarations
 
