@@ -17340,7 +17340,7 @@ delegate.
     set_to_named_error_locator(locator);
   } else {
     /* Look up the symbol in the current scope.  To do this we must
-       temporarily change the decl. scope level to the effective
+       temporarily change the decl_scope_level to the effective
        level for this declaration because decl_scope_level currently
        points to the template declaration scope. */
     a_scope_depth	saved_decl_scope_level;
@@ -17883,7 +17883,7 @@ declaration of a partial specialization declared outside of its class.
       }  /* if */
     } else {
       /* Look up the symbol in the current scope.  To do this we must
-         temporarily change the decl. scope level to the effective
+         temporarily change the decl_scope_level to the effective
          level for this declaration because decl_scope_level currently
          points to the template declaration scope. */
       a_scope_depth	saved_decl_scope_level = decl_scope_level;
