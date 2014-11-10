@@ -18602,9 +18602,11 @@ variant field (i.e., a member of a union or anonymous union).
   subobj_qual = get_type_qualifiers(type);
   type = skip_typerefs(type);
   cssp = symbol_supplement_for_class(type);
-  if (any_qualifier_in_set_missing(TQ_CONST, subobj_qual)) {
+  if (any_qualifier_in_set_missing(TQ_CONST, subobj_qual) &&
+      !(microsoft_mode && microsoft_version < 1900)) {
     /* A volatile subobject cannot be copied by its trivial copy functions
-       because they have a "X const&" parameter. */
+       because they have a "X const&" parameter.  (Microsoft compilers don't
+       do this until version 19.00.) */
     if (cssp->assignment_by_bitwise_copy_allowed) {
       gsfd->suppress_copy_assign = TRUE;
     }  /* if */
