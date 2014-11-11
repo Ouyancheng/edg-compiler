@@ -18798,10 +18798,10 @@ cases.
          copy constructor be generated even though it is not called, so
          force that now. */
       if (!microsoft_mode) {
+        a_boolean  instantiate = !expr_stack->is_default_arg_expression &&
+                                 expr_stack->potentially_evaluated;
         mark_routine_referenced_full(cctor_sym->variant.routine.ptr,
-                                     /*instantiate=*/
-                                       !expr_stack->is_default_arg_expression,
-                                    /*elided_reference=*/TRUE);
+                                     instantiate, /*elided_reference=*/TRUE);
       }  /* if */
       check_use_of_deleted_function(cctor_sym, /*elided_ref=*/TRUE, err_pos);
     }  /* if */

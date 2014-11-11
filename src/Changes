@@ -1,5 +1,36 @@
 Version 4.10
 
+11/10/14 [EDGcpfe/15654]
+Spurious instantiation of elided constructor in unevaluated context
+
+The front end previously instantiated elided constructors even when they were
+only called in unevaluated contexts.  This could lead to spurious errors.
+For example:
+
+  struct X {
+    X(X const&) = delete;
+    X(X&&);
+  };
+  template<typename T> struct Y {
+    T x;
+    template<typename U> Y(Y<U>&& y): x(y.x) {}
+  };
+  Y<X>&& yval();
+  void g(Y<X const>);
+  typedef decltype(g(yval())) V;
+
+Here, the result of yval() is conceptually converted to Y<X const> with one
+instance of the Y constructor template, and that converted value is then
+copied with another instance.  However, the second invocation is elided.
+Both invocations are in an unevaluated context (because they are part of the
+decltype operand), but the elided call still triggered an instantiation,
+which then triggered an error because the constructor template of Y<X const>
+ends up referring to the deleted copy constructor of X.
+
+This is now fixed: The elided constructor is no longer instantiated, and no
+diagnostic is issued.
+
+
 11/7/14  [EDGcpfe/14935]
 Allow redeclaration of alias template (core issue 1896)
 
@@ -106,7 +137,7 @@ This sometimes triggered spurious errors.  Consider the following example:
 
   struct X {
     X(X const&) = delete;
-    X(X&& in);
+    X(X&&);
  };
  struct Y {
    const X x;
