@@ -20846,7 +20846,6 @@ routine as actually referenced.
   if (routine->routine_fixup != NULL) {
     add_to_deferred_friend_function_fixup_list(routine->routine_fixup);
   }  /* if */
-  if (elided_reference && strict_ansi_mode) instantiate = TRUE;
   if (scope_stack[depth_scope_stack].in_prototype_instantiation) {
     /* Do not instantiate things referenced from prototype instantiations. */
     instantiate = FALSE;
