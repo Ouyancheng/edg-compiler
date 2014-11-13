@@ -1068,9 +1068,7 @@ typedef enum /*a_token_kind*/ {
   tok_charize,
   tok_if_exists,
   tok_if_not_exists,
-#if GENERATE_MICROSOFT_IF_EXISTS_ENTRIES
   tok_end_of_if_exists,		/* Generated token used by front end. */
-#endif /* GENERATE_MICROSOFT_IF_EXISTS_ENTRIES */
   tok_super,
   tok_noop,
   tok_interface,
@@ -1327,9 +1325,7 @@ EXTERN a_const_char
    "__unaligned", "__try", "__finally", "__leave", "__except",
    "__int8", "__int16", "__int32", "__int64", "__based",
    "__uuidof", "__assume", "#@", "__if_exists", "__if_not_exists",
-#if GENERATE_MICROSOFT_IF_EXISTS_ENTRIES
    "end of __if_exists",
-#endif /* GENERATE_MICROSOFT_IF_EXISTS_ENTRIES */
    "__super",
    "__noop", "__interface",
    "__ptr32", "__ptr64", "__sptr", "__uptr", "__w64",

@@ -2790,6 +2790,8 @@ the scope being pushed.
                                  = NULL;
   ssep->types_using_pending_constraints
                                  = NULL;
+  ssep->pending_dependent_if_exists
+                                 = 0;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   ssep->last_parameter           = NULL;
   ssep->last_nonstatic_variable  = NULL;

@@ -1103,6 +1103,18 @@ a_type_list_entry_ptr
 			   rechecked at the end of the declaration to make
 			   sure the constraints are no longer pending at
 			   that point. */
+  uint32_t	pending_dependent_if_exists;
+			/* The number of enclosing dependent __if_exists
+			   or __if_not_exists in the current scope.  This
+			   does not count any that may be active in
+			   enclosing scopes.  Because these directives are
+			   not requires to nest properly within scopes,
+			   it is possible for a start to have no matching
+			   end in the same scope, or a end to have no matching
+			   start.  In the former case, the count can be
+			   non-zero when the scope is popped.  In the latter
+			   case, an attempt to have the value drop below zero
+			   will be ignored. */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   /* The following pointers are the end pointers for the lists begun
      in the current IL scope entry.  They are needed only while the scope

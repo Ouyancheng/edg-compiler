@@ -10760,16 +10760,14 @@ directive.
   incr_token_set_array_element(stop_tokens, tok_rbrace);
   clear_token_cache(cache, /*reusable=*/FALSE);
   cache_token_stream(cache, stop_tokens);
-#if GENERATE_MICROSOFT_IF_EXISTS_ENTRIES
   /* Add a special token to the end of the cache to mark the end of the
      tokens that come from the __if_exists. */
-  if (is_dependent && generate_microsoft_if_exists_entries()) {
+  if (is_dependent) {
     a_token_kind	saved_curr_token = curr_token;
     curr_token = tok_end_of_if_exists;
     cache_curr_token(cache);
     curr_token = saved_curr_token;
   }  /* if */
-#endif /* GENERATE_MICROSOFT_IF_EXISTS_ENTRIES */
 }  /* cache_if_exists_tokens */
 
 
@@ -10833,6 +10831,11 @@ the cache.
     discard_token_cache(&cache);
     /* Bypass the closing brace. */
     if (curr_token != tok_end_of_source) (void)get_token();
+  }  /* if */
+  if (is_template_dependent_context() && is_dependent) {
+    /* Record the number of dependent __if_exists (see the comments in
+       for the field in a_scope_stack entry for more details). */
+    scope_stack[decl_scope_level].pending_dependent_if_exists++;
   }  /* if */
   /* Add the saved curr_token_pragmas list to the current list.  It will
      usually be empty, but this is done just in case a new entry was added. */
@@ -10930,14 +10933,17 @@ blocks.  Issue an error if any are found.
   }  /* if */
 }  /* check_for_unclosed_if_exists_blocks */
 
+#endif /* GENERATE_MICROSOFT_IF_EXISTS_ENTRIES */
 
 static void process_end_of_if_exists(void)
 /*
 This routine is called by the lexical routines when a special "end of
-__if_exists" token is encountered.  Generate a source sequence entry
-to mark the end of the __if_exists.
+__if_exists" token is encountered.  When GENERATE_MICROSOFT_IF_EXISTS_ENTRIES
+if TRUE, generate a source sequence entry to mark the end of the __if_exists.
+In any case, see if pending_if_exists needs to be decremented.
 */
 {
+#if GENERATE_MICROSOFT_IF_EXISTS_ENTRIES
   an_ms_if_exists_ptr		msiep;
   an_ms_if_exists_ptr		opening_msiep;
 
@@ -10958,9 +10964,17 @@ to mark the end of the __if_exists.
      was created for this __if_exists. */
   (void)add_curr_token_pseudo_pragma((a_pragma_kind)pk_if_exists,
                                      &pos_curr_token);
-}  /* process_end_of_if_exists */
-
 #endif /* GENERATE_MICROSOFT_IF_EXISTS_ENTRIES */
+  if (is_template_dependent_context()) {
+    /* Decrement the number of pending __if_exists entries.  Don't do so if
+       that would result in the number being negative.  This can happen
+       because __if_exists constructs are not required to nest properly
+       relative to scopes. */
+    if (scope_stack[decl_scope_level].pending_dependent_if_exists > 0) {
+      scope_stack[decl_scope_level].pending_dependent_if_exists--;
+    }  /* if */
+  }  /* if */
+}  /* process_end_of_if_exists */
 
 
 static a_constant_ptr get_constant_for_ms_string_operand(void)
@@ -12234,9 +12248,7 @@ to speed in some cases.
       process_curr_token_pragmas();
       recalc_any_initial_get_token_tests_needed();
     }  /* if */
-#if GENERATE_MICROSOFT_IF_EXISTS_ENTRIES
 restart:
-#endif /* GENERATE_MICROSOFT_IF_EXISTS_ENTRIES */
     /* If there are cached tokens to be rescanned, first check the
        cached_token_rescan_list and take the first token on the list if
        it is non-NULL, otherwise check the reusable cache stack. */
@@ -12244,14 +12256,12 @@ restart:
        list. */
     if (cached_token_rescan_list != NULL) {
       ctoken = get_token_from_cached_token_rescan_list();
-#if GENERATE_MICROSOFT_IF_EXISTS_ENTRIES
       /* Mark the point at which the end of the __if_exists tokens was
          encountered. */
       if (ctoken == tok_end_of_if_exists) {
         process_end_of_if_exists();
         goto restart;
       }  /* if */
-#endif /* GENERATE_MICROSOFT_IF_EXISTS_ENTRIES */
       gotten_from_cache = TRUE;
     } else if (reusable_cache_stack != NULL) {
       /* If there are tokens to be rescanned from the reusable cache stack

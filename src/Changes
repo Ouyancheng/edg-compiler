@@ -1,5 +1,20 @@
 Version 4.10
 
+11/13/14 [EDGcpfe/13636,EDGcpfe/13648,EDGcpfe/13628]
+Microsoft compatibility: redeclarations in __if_exists blocks
+
+The front issued an error if a class contained more than one declaration of
+a given entity inside dependent __if_exists or _if_not_exists blocks.  Now
+the redeclaration error is suppressed (except for member functions, which
+are still treated as invalid overloads) during the prototype instantiation
+of class and when the name in the __if_exists is dependent.
+
+  template <class T> struct A {
+    __if_exists(T::A) { static const bool i = true; }
+    __if_not_exists(T::A) { static const bool i = false; }
+  };
+
+
 11/10/14 [EDGcpfe/15654]
 Spurious instantiation of elided constructor in unevaluated context
 

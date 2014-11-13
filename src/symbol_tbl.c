@@ -4412,7 +4412,19 @@ this is not allowed, an error will be issued by the caller.
 */
 {
   a_boolean  err = TRUE;
+  a_boolean  ignore_error = FALSE;
 
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  if (microsoft_mode && is_template_dependent_context()) {
+    /* A redeclaration error is suppressed if the code is inside a dependent
+       __if_exists.  We still go through the processing below because
+      the insert_sym may be set. */
+    if (scope_stack[decl_scope_level].pending_dependent_if_exists > 0) {
+      suppress_error = TRUE;
+      ignore_error = TRUE;
+    }  /* if */
+  }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   if (old_sym->kind == (a_symbol_kind)sk_undefined) {
     /* The old symbol was created for an undefined symbol that
        was referenced.  A new symbol can always coexist with
@@ -4718,7 +4730,7 @@ this is not allowed, an error will be issued by the caller.
       }  /* if */
     }  /* if */
   }  /* if */
-  return !err;
+  return !err || ignore_error;
 }  /* symbols_may_coexist_in_curr_scope */
 
 
