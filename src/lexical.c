@@ -15081,6 +15081,8 @@ when scanning the default argument of the template template parameter.
        disambiguate a "<" following an identifier. */
     options |= GID_CLASS_TEMPLATE_REQUIRED;
   }  /* if */
+  /* Microsoft allows a stray "typename" in this location. */
+  if (microsoft_mode && curr_token == tok_typename) (void)get_token();
   if (is_generalized_identifier_start(options)) {
     sym = coalesce_and_lookup_generalized_identifier(options, ilm_normal,
                                                      &err);
@@ -15163,14 +15165,17 @@ when scanning the default argument of the template template parameter.
 }  /* scan_template_template_argument */
 
 
-static a_template_arg_ptr scan_unknown_template_arg_list(a_boolean is_nonreal)
+static a_template_arg_ptr scan_unknown_template_arg_list(
+				an_identifier_options_set	options,
+				a_boolean			is_nonreal)
 /*
 Scan a template argument list associated with an unknown template
 parameter list.  This is done when scanning the template arguments
 for an explicitly specified function template argument list, when
 the specific template whose arguments are being scanned may not be
-known yet.  is_nonreal is FALSE to indicate that an explicit function
-template argument list is being scanned.
+known yet.  "options" is a set of options flags to be used.  is_nonreal
+is FALSE to indicate that an explicit function template argument list
+is being scanned.
 
 When is_nonreal is TRUE, the argument list being scanned is associated with
 a template that is a member of a proxy or nonreal class.  This occurs as a 
@@ -16216,6 +16221,21 @@ a routine to lookup the appropriate instance (or generate one if needed).
       }  /* if */
     }  /* if */
   }  /* if */
+  if (microsoft_mode && next_tok == tok_lt &&
+      (options & GID_CLASS_TEMPLATE_REQUIRED) != 0 &&
+      template_sym->variant.template_info->is_nonreal_member) {
+    /* The Microsoft compiler allows something like "T::U<>" to be used
+       as a template template argument.  If we have a nonreal template
+       followed by "<>", just return the template. */
+    a_token_kind	next_tok_2;
+    (void)next_two_tokens(tok_lt, &next_tok_2);
+    if (next_tok == tok_lt && next_tok_2 == tok_gt) {
+      (void)get_token();
+      (void)get_token();
+      new_sym = template_sym;
+      goto normal_exit;
+    }  /* if */
+  }  /* if */
   if (template_sym != NULL && is_injected_template_symbol(template_sym)) {
     /* The symbol is the injected name of a class template.  In a template
        class this points to the current instance of the class.  When
@@ -16272,7 +16292,7 @@ a routine to lookup the appropriate instance (or generate one if needed).
        have been supplied.  This kind of scan is also done when there
        is no template symbol, which happens if an undefined symbol is
        followed by a template argument list. */
-    arg_list = scan_unknown_template_arg_list(/*is_nonreal=*/TRUE);
+    arg_list = scan_unknown_template_arg_list(options, /*is_nonreal=*/TRUE);
   }  /* if */
   arg_list_processed = TRUE;
   /* We should now be at the closing angle bracket.  Note that we don't
@@ -16580,7 +16600,8 @@ is the one actually associated with this reference.
        scanned. */
     scope_stack[depth_scope_stack].pending_templ_arg_lists++;
     /* Scan the template argument list. */
-    arg_list = scan_unknown_template_arg_list(/*is_nonreal=*/FALSE);
+    arg_list = scan_unknown_template_arg_list(GID_NO_OPTIONS,
+                                              /*is_nonreal=*/FALSE);
     /* We should now be at the closing angle bracket.  Note that we don't
        scan the token after the closing angle because we update the current
        token below to represent the original identifier with the newly

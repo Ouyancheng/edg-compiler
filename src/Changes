@@ -1,5 +1,21 @@
 Version 4.10
 
+11/13/15 [EDGcpfe/14271]
+Microsoft compatibility: accept incorrectly formed template template argument
+
+The Microsoft compiler allows syntactically invalid template template
+arguments.  Specifically, a template template argument that refers to
+a nonreal template (a member of an unknown dependent type) the name can
+be prefixed by "typename" (which is not allowed for a template template
+argument), and can also be followed by an empty template argument list
+(i.e., "<>").  We now accept this usage in Microsoft mode.
+
+  template <template <class> class T> struct B {};
+  template <class T> struct A {
+    B<typename T::X<> > bi;
+  };
+
+
 11/13/14 [EDGcpfe/13636,EDGcpfe/13648,EDGcpfe/13628]
 Microsoft compatibility: redeclarations in __if_exists blocks
 
