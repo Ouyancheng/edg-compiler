@@ -237,19 +237,37 @@ compilation.
       a_routine_ptr dtor_rout = cssp->destructor->variant.routine.ptr;
       if (dtor_rout->compiler_generated && dtor_rout->is_virtual &&
           !routine_has_been_defined(dtor_rout)) {
-        /* Force generation of a compiler-generated virtual destructor.
-           This is done only at the top level because virtual destructors
-           in base classes would be overridden and therefore would not be
-           pointed to from the virtual function table in the derived class. */
-        a_routine_ptr decider = vtbl_decider_function_for_class(
+        /* Force generation of a compiler-generated virtual destructor if
+           needed.  This is done only at the top level because virtual
+           destructors in base classes would be overridden and therefore would
+           not be pointed to from the virtual function table in the derived
+           class. */
+        a_boolean  generate = FALSE;
+#if IA64_ABI && ABI_COMPATIBILITY_VERSION >= 410
+        if (class_type->variant.class_struct_union.is_template_class &&
+            !class_type->variant.class_struct_union.is_specialized) {
+          /* For instantiated classes, we cannot rely on a definition of a
+             "decider" function since it would itself require instantiation.
+             So generate the destructor unconditionally. */
+          generate = TRUE;
+        } else
+#endif /* IA64_ABI && ABI_COMPATIBILITY_VERSION >= 410 */
+        /* Do not insert code here. */
+        {
+          /* Not an instantiated class: Check the decider function (if any). */
+          a_routine_ptr decider = vtbl_decider_function_for_class(
                                                             class_type,
                                                             (a_boolean *)NULL);
-        if (decider != NULL && !routine_has_been_defined(decider)) {
-          /* The vtable is not being put out in this compilation, so don't
-             force the definition of the destructor here.  If the decider
-             function gets defined later, we'll get back to this code and
-             decide at that point to put out the destructor definition. */
-        } else {
+          if (decider != NULL && !routine_has_been_defined(decider)) {
+            /* The vtable is not being put out in this compilation, so don't
+               force the definition of the destructor here.  If the decider
+               function gets defined later, we'll get back to this code and
+               decide at that point to put out the destructor definition. */
+          } else {
+            generate = TRUE;
+          }  /* if */
+        }  /* if */
+        if (generate) {
           define_special_member_function(dtor_rout);
         }  /* if */
       }  /* if */

@@ -644,8 +644,9 @@ objects in which the class template is instantiated; a change has been made
 to mark the virtual function tables as being defined in the translation
 unit.  Although not specifically mentioned in the IA-64 ABI, in practice, g++
 and clang (and EDG) suppress definitions of virtual function tables when the
-virtual function tables are not not referenced in the translation unit.  This
-change should more closely align EDG's behavior with that of g++ and clang
+virtual function tables are not not referenced in the translation unit.
+A similar change has been made when deciding when to emit virtual destructors.
+This change should more closely align EDG's behavior with that of g++ and clang
 (though the change affects all modes, not just GNU and clang emulation modes).
 The Cfront behavior is not changed.  The previous behavior can be restored by
 setting ABI_COMPATIBILITY_VERSION to a value less than 410.  For example:

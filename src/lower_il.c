@@ -6443,9 +6443,11 @@ mode; *optional will be set as usual.
       defined_here = TRUE;
       *force_static = FALSE;
 #if IA64_ABI && ABI_COMPATIBILITY_VERSION >= 410
-    } else if (class_type->variant.class_struct_union.is_template_class) {
+    } else if (class_type->variant.class_struct_union.is_template_class &&
+               !class_type->variant.class_struct_union.is_specialized) {
       /* The IA-64 ABI specifies that vtables for class templates should
-         be emitted in any translation unit where they are instantiated. */
+         be emitted in any translation unit where they are instantiated
+         (unless they are specialized). */
       if (class_type->variant.class_struct_union.do_not_instantiate) {
         /* An explicit request not to instantiate; suppress vtables. */
         defined_here = FALSE;
