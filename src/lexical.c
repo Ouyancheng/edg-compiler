@@ -15165,17 +15165,14 @@ when scanning the default argument of the template template parameter.
 }  /* scan_template_template_argument */
 
 
-static a_template_arg_ptr scan_unknown_template_arg_list(
-				an_identifier_options_set	options,
-				a_boolean			is_nonreal)
+static a_template_arg_ptr scan_unknown_template_arg_list(a_boolean is_nonreal)
 /*
 Scan a template argument list associated with an unknown template
 parameter list.  This is done when scanning the template arguments
 for an explicitly specified function template argument list, when
 the specific template whose arguments are being scanned may not be
-known yet.  "options" is a set of options flags to be used.  is_nonreal
-is FALSE to indicate that an explicit function template argument list
-is being scanned.
+known yet.  is_nonreal is FALSE to indicate that an explicit function
+template argument list is being scanned.
 
 When is_nonreal is TRUE, the argument list being scanned is associated with
 a template that is a member of a proxy or nonreal class.  This occurs as a 
@@ -16292,7 +16289,7 @@ a routine to lookup the appropriate instance (or generate one if needed).
        have been supplied.  This kind of scan is also done when there
        is no template symbol, which happens if an undefined symbol is
        followed by a template argument list. */
-    arg_list = scan_unknown_template_arg_list(options, /*is_nonreal=*/TRUE);
+    arg_list = scan_unknown_template_arg_list(/*is_nonreal=*/TRUE);
   }  /* if */
   arg_list_processed = TRUE;
   /* We should now be at the closing angle bracket.  Note that we don't
@@ -16600,8 +16597,7 @@ is the one actually associated with this reference.
        scanned. */
     scope_stack[depth_scope_stack].pending_templ_arg_lists++;
     /* Scan the template argument list. */
-    arg_list = scan_unknown_template_arg_list(GID_NO_OPTIONS,
-                                              /*is_nonreal=*/FALSE);
+    arg_list = scan_unknown_template_arg_list(/*is_nonreal=*/FALSE);
     /* We should now be at the closing angle bracket.  Note that we don't
        scan the token after the closing angle because we update the current
        token below to represent the original identifier with the newly
