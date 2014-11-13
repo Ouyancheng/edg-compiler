@@ -12248,7 +12248,9 @@ to speed in some cases.
       process_curr_token_pragmas();
       recalc_any_initial_get_token_tests_needed();
     }  /* if */
+#if MICROSOFT_EXTENSIONS_ALLOWED
 restart:
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     /* If there are cached tokens to be rescanned, first check the
        cached_token_rescan_list and take the first token on the list if
        it is non-NULL, otherwise check the reusable cache stack. */
@@ -12256,12 +12258,14 @@ restart:
        list. */
     if (cached_token_rescan_list != NULL) {
       ctoken = get_token_from_cached_token_rescan_list();
+#if MICROSOFT_EXTENSIONS_ALLOWED
       /* Mark the point at which the end of the __if_exists tokens was
          encountered. */
       if (ctoken == tok_end_of_if_exists) {
         process_end_of_if_exists();
         goto restart;
       }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       gotten_from_cache = TRUE;
     } else if (reusable_cache_stack != NULL) {
       /* If there are tokens to be rescanned from the reusable cache stack
