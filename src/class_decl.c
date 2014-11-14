@@ -310,9 +310,16 @@ found in unexpected locations.  (It is also used for error recovery purposes.)
      an invalid scope.  If so, treat this as an invalid scope for a class. */
   if (ssep->kind == (a_scope_kind)sck_function &&
       ssep->assoc_routine->is_lambda_body) {
-    a_class_symbol_supplement_ptr	cssp;
-    a_type_ptr				lambda_type = (ssep-1)->assoc_type;
-    cssp = symbol_supplement_for_class(lambda_type);
+    a_scope_stack_entry  *closure_ssep = ssep-1;
+    a_class_symbol_supplement_ptr
+                         cssp;
+    a_type_ptr           lambda_type;
+    if (scope_is(closure_ssep, sck_template_instantiation)) {
+      /* A generic lambda. */
+      closure_ssep -= 1;
+    }  /* if */
+    lambda_type = closure_ssep->assoc_type;
+    cssp = class_symbol_supp(symbol_for(lambda_type));
     result = cssp->lambda_in_invalid_scope;
   }  /* if */
   if (result) {
