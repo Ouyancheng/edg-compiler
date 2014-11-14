@@ -21965,25 +21965,31 @@ it points.
 void push_or_repush_object_lifetime(an_il_entry_kind         entity_kind,
                                     char                     *entity_ptr,
                                     an_object_lifetime_ptr   olp,
-                                    an_object_lifetime_kind  kind)
+                                    an_object_lifetime_kind  kind,
+                                    a_boolean                is_reactivation)
 /*
-Create a new object lifetime entry of the specified kind and push it onto the
-object lifetime stack, or if olp is non-NULL re-push a previously-created
-object lifetime onto the stack.  If entity_ptr is non-NULL, bind the
-object lifetime to the IL entity with which it is associated.  (When
-entity_ptr is NULL, the binding takes place later, when we are sure the
+Push a new object lifetime entry (of the given kind) on the object lifetime
+stack, either the given entry (olp) or a newly allocated one.  is_reactivation
+is TRUE if the call is for the reactivation of a local scope.  If entity_ptr
+is non-NULL, bind the object lifetime to the IL entity with which it
+is associated unless olp is non-NULL and is_reactivation is TRUE (in that
+case the binding was done when the reactivated scope was first created).
+(When entity_ptr is NULL, the binding takes place later, when we are sure the
 entry is needed.)
 */
 {
   an_object_lifetime_ptr parent;
+  a_boolean              no_bind;
 
   db_enter(3, "push_or_repush_object_lifetime");
   check_assertion_str(kind != (an_object_lifetime_kind)olk_function_static,
             "push_or_repush_object_lifetime: olk_function_static not allowed");
   if (olp == NULL) {
     olp = alloc_object_lifetime(kind);
+    no_bind = FALSE;
   } else {
     kind = olp->kind;
+    no_bind = is_reactivation;
   }  /* if */
   if (kind == (an_object_lifetime_kind)olk_global_static) {
     /* No parent pointer. */
@@ -22036,9 +22042,14 @@ entry is needed.)
       olp->parent_destruction_sublist = parent->destructions;
     }  /* if */
   }  /* if */
-  /* Bind the object lifetime and the entity with which it is associated. */
   if (entity_ptr != NULL) {
-    bind_object_lifetime(olp, entity_kind, entity_ptr);
+    if (!no_bind) {
+      /* Bind the object lifetime and the entity with which it is
+         associated. */
+      bind_object_lifetime(olp, entity_kind, entity_ptr);
+    } else {
+      check_assertion(entity_kind == (an_il_entry_kind)iek_scope);
+    }  /* if */
 #if DEBUG
   } else if (db_flag_is_set("dump_lifetimes")) {
     if (kind != (an_object_lifetime_kind)olk_expr_temporary ||
@@ -22069,7 +22080,8 @@ entry is needed.)
 */
 {
   push_or_repush_object_lifetime(entity_kind, entity_ptr,
-                                 (an_object_lifetime_ptr)NULL, kind);
+                                 (an_object_lifetime_ptr)NULL, kind,
+                                 /*is_reactivation=*/FALSE);
 }  /* push_object_lifetime */
 
 

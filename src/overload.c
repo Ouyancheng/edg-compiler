@@ -21869,7 +21869,8 @@ object lifetime context.
               (void)pop_object_lifetime();
               push_or_repush_object_lifetime(iek_none, (char *)NULL,
                                              wrap_lifetime,
-                                             wrap_lifetime->kind);
+                                             wrap_lifetime->kind,
+                                             /*is_reactivation=*/FALSE);
               pese->lifetime = wrap_lifetime;
             } else {
               /* The current object lifetime is an expression temporary

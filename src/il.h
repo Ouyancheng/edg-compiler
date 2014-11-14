@@ -2038,7 +2038,8 @@ extern
 void push_or_repush_object_lifetime(an_il_entry_kind         entity_kind,
                                     char                     *entity_ptr,
                                     an_object_lifetime_ptr   olp,
-                                    an_object_lifetime_kind  kind);
+                                    an_object_lifetime_kind  kind,
+                                    a_boolean                is_reactivation);
 
 extern void push_object_lifetime(an_il_entry_kind         entity_kind,
                                  char                     *entity_ptr,

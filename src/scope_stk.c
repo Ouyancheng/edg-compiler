@@ -3502,8 +3502,12 @@ the scope being pushed.
     } else if (is_local_scope_kind(kind)) {
       /* This is the sort of scope for which a new block object lifetime is
          pushed. */
-      push_object_lifetime((an_il_entry_kind)iek_scope, (char *)sp,
-                           (an_object_lifetime_kind)(olk_block));
+      an_object_lifetime_ptr  prev_olp = NULL;
+      if (sp != NULL) prev_olp = sp->lifetime;
+      push_or_repush_object_lifetime((an_il_entry_kind)iek_scope, (char *)sp,
+                                     prev_olp,
+                                     (an_object_lifetime_kind)(olk_block),
+                                     ssep->is_reactivation);
       ssep->curr_scope_object_lifetime = curr_object_lifetime;
     }  /* if */
   }  /* if */
