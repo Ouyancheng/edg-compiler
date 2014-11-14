@@ -1605,8 +1605,9 @@ Give an pointer to a class-type-supplement entry, initialize its fields.
 #if DO_IL_LOWERING
   ctsp->compiler_generated                = FALSE;
 #endif /* DO_IL_LOWERING */
-  ctsp->is_lambda_closure_class           = FALSE;
   ctsp->is_initializer_list               = FALSE;
+  ctsp->is_lambda_closure_class           = FALSE;
+  ctsp->is_generic_lambda_closure_class   = FALSE;
   ctsp->has_initializer_list_ctor         = FALSE;
   ctsp->has_anonymous_union_member        = FALSE;
 #if NEED_NAME_MANGLING

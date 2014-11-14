@@ -6607,6 +6607,9 @@ Display the indicated class type supplement entry.
   if (ptr->is_lambda_closure_class) {
     disp_boolean("is_lambda_closure_class", TRUE);
   }  /* if */
+  if (ptr->is_generic_lambda_closure_class) {
+    disp_boolean("is_generic_lambda_closure_class", TRUE);
+  }  /* if */
   if (ptr->is_initializer_list) {
     disp_boolean("is_initializer_list", TRUE);
   }  /* if */

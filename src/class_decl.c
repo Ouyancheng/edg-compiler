@@ -29629,6 +29629,8 @@ corresponding template declaration scope is pushed.
         /* At least one "auto" parameter was seen: Set up a member function
            template context. */
         lambda->is_generic = TRUE;
+        class_type_supp(scope_stack_top().assoc_type)
+                                     ->is_generic_lambda_closure_class = TRUE;
         if (!generic_lambdas_can_implicitly_capture &&
             lambda->has_capture_default) {
           /* In some modes, generic lambdas may not implicitly capture local

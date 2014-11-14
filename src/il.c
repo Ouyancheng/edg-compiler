@@ -11509,20 +11509,27 @@ type, or NULL if the lambda body routine does not exist yet.
   a_scope_ptr   scope = class_type_supp(type)->assoc_scope;
 
   if (scope != NULL) {
-    if (scope->templates == NULL) {
+    if (!class_type_supp(type)->is_generic_lambda_closure_class) {
       /* A normal (i.e., non-generic) lambda.  Look among the routine entries
          in the class scope. */
       for (rp = scope->routines; rp != NULL; rp = rp->next) {
         if (rp->is_lambda_body) break;
       }  /* for */
     } else {
-      /* A generic lambda: Look among the template entries in the class
-         scope. */
-      a_template_ptr  tp = scope->templates;
-      for (; tp != NULL; tp = tp->next) {
-        if (tp->kind == (a_template_kind)templk_function) {
-          a_routine_ptr  proto_rp = symbol_for(tp)->variant.template_info
-                                                  ->variant.function.routine;
+      /* A generic lambda: Look among the template entries in the class scope.
+         Use the symbol list since scope->templates doesn't always include
+         member templates if prototype_instantiations_in_il is FALSE. */
+      a_symbol_ptr  sym = class_symbol_supp(symbol_for(type))->symbols;
+      if (sym == NULL && scope->depth_in_scope_stack != NO_SCOPE_DEPTH) {
+        /* If the class is still being defined, the symbols list may not have
+           been updated yet, but it is available in the pointers block
+           associated with the class. */
+        sym = class_symbol_supp(symbol_for(type))->pointers_block.symbols;
+      }  /* if */
+      for (; sym != NULL; sym = sym->next) {
+        if (symbol_is(sym, sk_function_template)) {
+          a_routine_ptr  proto_rp = sym->variant.template_info
+                                       ->variant.function.routine;
           if (proto_rp->is_lambda_body) {
             rp = proto_rp;
             break;
