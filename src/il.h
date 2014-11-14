@@ -1774,6 +1774,9 @@ typedef struct a_ctws_state {
 			   substitution. */
   int32_t	routine_type_levels;
 			/* The level of nesting of routine types. */
+  int32_t	parent_levels;
+			/* The number of times we have started copying a
+			   parent type. */
   a_boolean
 		preserve_deduced_packs;
 			/* TRUE if a deduced parameter pack should be

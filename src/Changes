@@ -1,5 +1,31 @@
 Version 4.10
 
+11/14/15 [EDGcpfe/15700]
+Deduction/substitution problem with nested dependent qualified type
+
+If a dependent qualified name (LHS::E in the example below) appeared as a
+nested construct within another dependent qualified name (T:: template C2<...)
+the lookup of E in LHS incorrectly ignored members that were not types.
+Now fixed.
+
+  template<typename T, typename S, int N> struct A {};
+  template<typename T> struct B { enum { E = 17 }; };
+  struct C {
+    typedef int type;
+    template<int LHS = 17, int RHS = 17> struct C2 { typedef C type; };
+  };
+  template<typename S, int N> struct D : A<C, S, N> {};
+  template<typename T, typename LHS, int N>
+    A<typename T::template C2<LHS::E, 30> ::type, B<C>, N>
+     operator<( A<T, LHS, N> &lhs,  typename T::type rhs);
+  struct E : D< B<C>, 4> {
+    template<typename RHS> E(const A<C, RHS, 4> &rhs) {}
+  };
+  E f(E &x) {
+    return (x < 0) ;
+  }
+
+
 11/13/15 [EDGcpfe/14271]
 Microsoft compatibility: accept incorrectly formed template template argument
 

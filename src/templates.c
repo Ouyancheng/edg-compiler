@@ -572,6 +572,7 @@ Initialize a template argument substitution state block.
   csp->variadic_param_info = NULL;
   csp->variadic_param_info_tail = NULL;
   csp->routine_type_levels = -1;
+  csp->parent_levels = 0;
   csp->preserve_deduced_packs = FALSE;
 }  /* init_ctws_state */
 
@@ -10739,6 +10740,9 @@ is_type is TRUE if the child entity is known to be a type.
   a_class_symbol_supplement_ptr	parent_cssp;
 
   check_assertion(parent_type != NULL);
+  if (ctws_state->parent_levels == 0) options &= (~CTWS_IS_PARENT);
+  /* Track the number of parents we are processing. */
+  ctws_state->parent_levels++;
   /* Nested type case -- e.g., A<T>::B, where B names a nested class or
      enumeration.  The substitution is performed on the class-of-which-member
      rather than on the nested type itself.  Note that the algorithm deals
@@ -10777,7 +10781,8 @@ is_type is TRUE if the child entity is known to be a type.
     new_sym = look_up_member_in_substituted_parent(
                              sym, parent_type, templ_arg_list,
                              templ_param_list, source_pos, is_type,
-                             options, copy_error, ctws_state);
+                             options, copy_error,
+                             ctws_state);
     if (new_sym != NULL) fund_sym = fundamental_symbol_of(new_sym);
     if (fund_sym != NULL) {
       a_boolean	do_template_class_subst = FALSE;
@@ -10826,6 +10831,8 @@ is_type is TRUE if the child entity is known to be a type.
     }  /* if */
   }  /* if */
 done:
+  /* Decrement the number of parents we are processing. */
+  ctws_state->parent_levels--;
   return new_sym;
 }  /* copy_parent_type_with_substitution */
 
