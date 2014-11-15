@@ -10781,8 +10781,7 @@ is_type is TRUE if the child entity is known to be a type.
     new_sym = look_up_member_in_substituted_parent(
                              sym, parent_type, templ_arg_list,
                              templ_param_list, source_pos, is_type,
-                             options, copy_error,
-                             ctws_state);
+                             options, copy_error, ctws_state);
     if (new_sym != NULL) fund_sym = fundamental_symbol_of(new_sym);
     if (fund_sym != NULL) {
       a_boolean	do_template_class_subst = FALSE;

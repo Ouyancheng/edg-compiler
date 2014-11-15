@@ -4,7 +4,7 @@ Version 4.10
 Deduction/substitution problem with nested dependent qualified type
 
 If a dependent qualified name (LHS::E in the example below) appeared as a
-nested construct within another dependent qualified name (T:: template C2<...)
+nested construct within another dependent qualified name (T::template C2<...)
 the lookup of E in LHS incorrectly ignored members that were not types.
 Now fixed.
 
@@ -16,8 +16,8 @@ Now fixed.
   };
   template<typename S, int N> struct D : A<C, S, N> {};
   template<typename T, typename LHS, int N>
-    A<typename T::template C2<LHS::E, 30> ::type, B<C>, N>
-     operator<( A<T, LHS, N> &lhs,  typename T::type rhs);
+    A<typename T::template C2<LHS::E, 30>::type, B<C>, N>
+     operator<( A<T, LHS, N> &lhs, typename T::type rhs);
   struct E : D< B<C>, 4> {
     template<typename RHS> E(const A<C, RHS, 4> &rhs) {}
   };
