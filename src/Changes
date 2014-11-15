@@ -42,7 +42,7 @@ argument), and can also be followed by an empty template argument list
   };
 
 
-11/13/14 [EDGcpfe/13636,EDGcpfe/13648,EDGcpfe/13628]
+11/13/14 [EDGcpfe/13646,EDGcpfe/13648,EDGcpfe/13628]
 Microsoft compatibility: redeclarations in __if_exists blocks
 
 The front issued an error if a class contained more than one declaration of

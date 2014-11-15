@@ -10833,8 +10833,8 @@ the cache.
     if (curr_token != tok_end_of_source) (void)get_token();
   }  /* if */
   if (is_template_dependent_context() && is_dependent) {
-    /* Record the number of dependent __if_exists (see the comments in
-       for the field in a_scope_stack entry for more details). */
+    /* Record the number of dependent __if_exists (see the comments
+       for the field in a_scope_stack_entry for more details). */
     scope_stack[decl_scope_level].pending_dependent_if_exists++;
   }  /* if */
   /* Add the saved curr_token_pragmas list to the current list.  It will
@@ -10939,7 +10939,7 @@ static void process_end_of_if_exists(void)
 /*
 This routine is called by the lexical routines when a special "end of
 __if_exists" token is encountered.  When GENERATE_MICROSOFT_IF_EXISTS_ENTRIES
-if TRUE, generate a source sequence entry to mark the end of the __if_exists.
+is TRUE, generate a source sequence entry to mark the end of the __if_exists.
 In any case, see if pending_if_exists needs to be decremented.
 */
 {

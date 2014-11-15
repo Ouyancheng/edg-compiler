@@ -1108,9 +1108,9 @@ a_type_list_entry_ptr
 			   or __if_not_exists in the current scope.  This
 			   does not count any that may be active in
 			   enclosing scopes.  Because these directives are
-			   not requires to nest properly within scopes,
+			   not required to nest properly within scopes,
 			   it is possible for a start to have no matching
-			   end in the same scope, or a end to have no matching
+			   end in the same scope, or an end to have no matching
 			   start.  In the former case, the count can be
 			   non-zero when the scope is popped.  In the latter
 			   case, an attempt to have the value drop below zero
