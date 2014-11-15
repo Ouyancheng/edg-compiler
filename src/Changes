@@ -30,7 +30,7 @@ Now fixed.
 Microsoft compatibility: accept incorrectly formed template template argument
 
 The Microsoft compiler allows syntactically invalid template template
-arguments.  Specifically, a template template argument that refers to
+arguments.  Specifically, in a template template argument that refers to
 a nonreal template (a member of an unknown dependent type) the name can
 be prefixed by "typename" (which is not allowed for a template template
 argument), and can also be followed by an empty template argument list
