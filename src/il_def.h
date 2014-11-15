@@ -7532,7 +7532,7 @@ typedef struct a_class_type_supplement {
 			   the representation of a lambda. */
   a_bit_field	is_generic_lambda_closure_class:1;
 			/* TRUE if the class is the closure class generated as
-			   the representation of a lambda. */
+			   the representation of a generic lambda. */
   a_bit_field	is_initializer_list:1;
 			/* TRUE if the class is an instance of the C++11
 			   template std::initializer_list. */
