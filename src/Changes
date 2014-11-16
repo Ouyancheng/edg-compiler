@@ -47,7 +47,7 @@ Microsoft compatibility: redeclarations in __if_exists blocks
 
 The front issued an error if a class declared in a template context
 contained more than one declaration of a given entity inside dependent
-__if_exists or _if_not_exists blocks.  Now the redeclaration error is
+__if_exists or __if_not_exists blocks.  Now the redeclaration error is
 suppressed (except for member functions, which are still treated as
 invalid overloads) during the prototype instantiation of the class and
 when the name in the __if_exists is dependent.
