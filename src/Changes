@@ -48444,7 +48444,7 @@ Version 3.9, March 23, 2007
 
 3/22/07  IL version number changed to 3.9
 
-3/20/07  Microsoft compatibility: abort on _if_exists following __pragma
+3/20/07  Microsoft compatibility: abort on __if_exists following __pragma
 
 An abort could occur (in scan_template_argument_list) if a class template
 contains a Microsoft __pragma operator followed by an __if_exists that
