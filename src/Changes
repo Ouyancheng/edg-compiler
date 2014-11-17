@@ -1,5 +1,19 @@
 Version 4.10
 
+11/17/14 [EDGcpfe/13789]
+Microsoft compatibility: accept invalid default template argument
+
+The Microsoft compiler allows an a template to be referenced with too few
+template arguments when it is used in a default template argument (provided
+the default argument is never used).  We now allow this in Microsoft mode.
+
+  template <typename T1, typename T2> class A {};
+  template <typename T1, typename T2 = A<T1> > class B {};
+  int main() {
+    B<int, int> b;
+  }
+
+
 11/17/14 [EDGcpfe/15561]
 Performance enhancements
 
