@@ -1,5 +1,16 @@
 Version 4.10
 
+11/17/14 [EDGcpfe/15561]
+Performance enhancements
+
+A number of relatively minor changes were made to improve the overall speed of
+the front end.  This includes some tuning of the lexing process (including
+skipping whitespace), the mangling process (especially, the handling of IA-64
+substitutions), the rendering of integers in the C- and C++-generating back
+ends, and a few other optimizations that made a measurable difference on some
+"real-world" source code.
+
+
 11/17/14 [EDGcpfe/15605]
 Failure to match variadic template template parameter
 
