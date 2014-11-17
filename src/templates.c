@@ -6228,6 +6228,22 @@ the same constant.
     arg1 = arg1->next;
     arg2 = arg2->next;
   }  /* for */
+#if CHECKING
+  /* If the lists are of different length, look for variadic arguments after
+     we have reached the end of one of the lists. */
+  if (!is_variadic && arg1 != NULL) {
+    a_template_arg_ptr	tap = arg1;
+    for (; tap != NULL; tap = tap->next) {
+      if (tap->is_pack) is_variadic = TRUE;
+    }  /* if */
+  }  /* if */
+  if (!is_variadic && arg2 != NULL) {
+    a_template_arg_ptr	tap = arg1;
+    for (; tap != NULL; tap = tap->next) {
+      if (tap->is_pack) is_variadic = TRUE;
+    }  /* if */
+  }  /* if */
+#endif /* CHECKING */
   /* For a given function argument lists should always be exactly the same
      length. */
   check_assertion_or_expect_error_str(
@@ -8135,8 +8151,8 @@ another template parameter.
           arg_template = template_supplement_for_template(
                                              specified_tap->variant.templ.ptr);
           if (tentatively_matching_template_param_lists(
-                           arg_template->cache.decl_info->parameters,
                            tpp->variant.templ->cache.decl_info->parameters,
+                           arg_template->cache.decl_info->parameters,
                            (a_boolean)tpp->variant.templ->
                              variant.class_template.involves_template_param)) {
             tap->variant.templ = specified_tap->variant.templ;

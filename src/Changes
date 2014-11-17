@@ -1,5 +1,19 @@
 Version 4.10
 
+11/17/14 [EDGcpfe/15605]
+Failure to match variadic template template parameter
+
+A class template should sometimes match a template template parameter with
+a variadic template parameter list.  The front end failed to do this in
+some cases.  Now fixed.
+
+  template<typename T, typename... U> struct A { };
+  template<template<typename...> class T, typename... U> void f(void);
+  int main() {
+    f<A, int>();  // Formerly "no instance ... matches"
+  }
+
+
 11/14/15 [EDGcpfe/15700]
 Deduction/substitution problem with nested dependent qualified type
 
