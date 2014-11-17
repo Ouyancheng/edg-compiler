@@ -8549,10 +8549,12 @@ being popped.
       if (kind == (a_scope_kind)sck_function) {
         check_assertion(il_scope != NULL); /* For Coverity. */
         if (!il_scope->variant.routine.ptr->compiler_generated &&
-            !il_scope->variant.routine.ptr->is_defaulted) {
+            !il_scope->variant.routine.ptr->is_defaulted &&
+            !ssep->is_reactivation) {
           /* Flow control wrapup for statement processing is done here because
              part of what needs to be done is dependent on popping the object
-             lifetime of the function scope. */
+             lifetime of the function scope.  (We don't do this for generated
+             function bodies, nor for reactivated function scopes.) */
           wrapup_control_flow_processing(il_scope);
         }  /* if */
         /* Functions are always processed in the context of the file scope
