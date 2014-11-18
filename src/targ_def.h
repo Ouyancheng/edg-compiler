@@ -3460,6 +3460,14 @@ only if customer code modifies the IL statement tree.
 #define ADD_BRACES_TO_AVOID_DANGLING_ELSE_IN_GENERATED_C FALSE
 #endif /* ifndef ADD_BRACES_TO_AVOID_DANGLING_ELSE_IN_GENERATED_C */
 
+#ifdef USE_PRAGMA_IDENT_IN_GENERATED_CODE
+/* Up until version 4.10, USE_PRAGMA_IDENT_IN_GENERATED_CODE could be used to
+   determine how #ident and #pragma ident directives would be emitted in
+   C- and C++-generating back ends.  They are now emitted using the same
+   format that appears in the source. */
+ #error -- the USE_PRAGMA_IDENT_IN_GENERATED_CODE macro has been eliminated
+#endif /* ifdef USE_PRAGMA_IDENT_IN_GENERATED_CODE */
+
 /*
 Flag that is TRUE if, when the C-generating back end (c_gen_be) or
 C++/C-generating back end (cp_gen_be) is run, the "restrict" keyword should
