@@ -351,11 +351,11 @@ typedef struct a_substitution {
 			   substitution candidate. */
   a_substitution_index
 		index;
-			/* The index of substitution to use during mangling. */
+			/* The substitution index to use during mangling. */
   a_bit_field
 		clear_il_entry_flag_at_end:1;
 			/* This entry caused the setting of the
-			   on_mangling_substitution_list flag int the
+			   on_mangling_substitution_list flag in the
 			   entry.  The flag must therefore be cleared
 			   when this entry is returned to the available
 			   list. */

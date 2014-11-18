@@ -5659,7 +5659,7 @@ check_typerefs:
       identical = TRUE;
       goto done;
     } else if (type_op) {
-      /* At least one of the type involves a type operator like decltype or
+      /* At least one of the types involves a type operator like decltype or
          typeof. */
       if ((flags & ITF_CHECKING_DEDUCTION_RESULT) &&
                adjust_comparison_types_for_decltype(&type_1, &type_2)) {

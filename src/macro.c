@@ -8241,7 +8241,7 @@ static a_symbol_ptr f_enter_predef_num_macro(
                                    a_boolean             cannot_be_redefined)
 /*
 Predefine a macro with the given name to the decimal representation of num.
-cannot_be_redefine is TRUE if this is a predefined macro that cannot be
+cannot_be_redefined is TRUE if this is a predefined macro that cannot be
 redefined.
 */
 {

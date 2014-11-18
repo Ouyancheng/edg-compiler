@@ -1792,7 +1792,7 @@ EXTERN a_boolean
 		char_ends_id[CHAR_MAX-CHAR_MIN+1];
 			/* A table to quickly identify characters that end
 			   an identifier (to avoid a relatively expensive
-			   call to f_is_identifier_char. */
+			   call to f_is_identifier_char). */
 EXTERN a_boolean
 		is_raw_string_delimiter_char[CHAR_MAX-CHAR_MIN+1];
 			/* For each character, whether or not it can appear

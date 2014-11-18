@@ -12852,7 +12852,7 @@ id_scan:
         /* This code is particularly performance sensitive.  Most compilers
            fail to unroll this loop even at high optimization levels, so it
            pays to unroll the loop manually.  (The simple loop may be
-           preferable when an optimizer if profile-guided.) */
+           preferable when an optimizer is profile-guided.) */
         for (;;) {
           if (is_id_char[(ch = curr_char_loc[0])-CHAR_MIN]) {
             if (is_id_char[(ch = curr_char_loc[1])-CHAR_MIN]) {
