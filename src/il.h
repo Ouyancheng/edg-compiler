@@ -1068,6 +1068,11 @@ extern void make_local_expr_node_ref(
                                  char                        *referrer,
                                  a_scope_ptr                 func_scope);
 
+extern an_expr_node_ptr find_local_expr_node_in_scope(
+                                     char                        *referrer,
+                                     a_local_expr_node_ref_kind  kind,
+                                     a_scope_ptr                 target_scope);
+
 extern an_expr_node_ptr find_local_expr_node(char  *referrer,
                                              a_local_expr_node_ref_kind  kind);
 

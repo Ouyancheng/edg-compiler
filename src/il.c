@@ -11335,6 +11335,35 @@ The expression can then be recovered using find_local_expr_node.
 
 #endif /* !STANDALONE_UTILITY_PROGRAM */
 
+an_expr_node_ptr find_local_expr_node_in_scope(
+                                      char                        *referrer,
+                                      a_local_expr_node_ref_kind  kind,
+                                      a_scope_ptr                 target_scope)
+/*
+referrer is an entry in the file scope memory region that implicitly refers
+to an expression in target_scope's memory region.  If target_scope is
+non-NULL and if it is the function containing that expression, return a pointer
+to that expression.  Otherwise, return NULL.  (The expression pointer is
+determined by searching a list of a_local_expr_node_ref entries.  kind
+represents the kind of entry that is expected to hold a pointer to the
+expression being searched for.)  See find_local_expr_node for typical use.
+*/
+{
+  an_expr_node_ptr  result = NULL;
+
+  if (target_scope != NULL) {
+    a_local_expr_node_ref_ptr  ref = target_scope->expr_node_refs;
+    for (; ref != NULL; ref = ref->next) {
+      if (ref->referrer.ptr == referrer && ref->kind == kind) {
+        result = ref->expr;
+        break;
+      }  /* if */
+    }  /* for */
+  }  /* if */
+  return result;
+}  /* find_local_expr_node_in_scope */
+
+
 an_expr_node_ptr find_local_expr_node(char                        *referrer,
                                       a_local_expr_node_ref_kind  kind)
 /*
@@ -11347,7 +11376,6 @@ a_local_expr_node_ref entries.  kind represents the kind of entry that is
 expected to hold a pointer to the expression being searched for.)
 */
 {
-  an_expr_node_ptr  result = NULL;
   a_scope_ptr       target_scope = innermost_function_scope;
 
 #if !STANDALONE_UTILITY_PROGRAM
@@ -11359,16 +11387,7 @@ expected to hold a pointer to the expression being searched for.)
     target_scope = get_innermost_function_scope();
   }  /* if */
 #endif /* !STANDALONE_UTILITY_PROGRAM */
-  if (target_scope != NULL) {
-    a_local_expr_node_ref_ptr  ref = target_scope->expr_node_refs;
-    for (; ref != NULL; ref = ref->next) {
-      if (ref->referrer.ptr == referrer && ref->kind == kind) {
-        result = ref->expr;
-        break;
-      }  /* if */
-    }  /* for */
-  }  /* if */
-  return result;
+  return find_local_expr_node_in_scope(referrer, kind, target_scope);
 }  /* find_local_expr_node */
 
 

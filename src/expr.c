@@ -12714,6 +12714,8 @@ name.  We do not advance to the token after the decltype in this case.
       make_local_expr_node_ref(
               expr, (a_local_expr_node_ref_kind)lerk_decltype, (char*)tp,
               scope_stack[expr_scope_depth].il_scope);
+      tp->source_corresp.enclosing_routine =
+                                   scope_stack[expr_scope_depth].assoc_routine;
     }  /* if */
     result = tp;
   }  /* if */
