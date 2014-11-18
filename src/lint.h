@@ -1179,7 +1179,7 @@ extern int fileno(FILE *);
 /*lint -esym(769,ec_resolver_routine_required)*/
 #endif /* USE_X86_FUNCTION_MULTIVERSIONING */
 #if IDENT_DIRECTIVE_AND_PRAGMA
-/*lint -esym(769,pk_ident)*/
+/*lint -esym(769,a_pragma_kind_tag::pk_ident)*/
 #endif /* IDENT_DIRECTIVE_AND_PRAGMA */
 
 #endif /* ifndef LINT_H */
