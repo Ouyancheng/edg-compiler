@@ -297,6 +297,8 @@ extern void process_macro_preincludes(void);
 
 #if IDENT_DIRECTIVE_AND_PRAGMA
 extern void ident_pragma(a_pending_pragma_ptr ppp);
+
+extern void ident_directive(a_pending_pragma_ptr ppp);
 #endif /* IDENT_DIRECTIVE_AND_PRAGMA */
 
 extern a_pragma_kind_description_ptr look_up_pragma_id(

@@ -8156,11 +8156,6 @@ file.
 #else /* !defined(USE_POINTER_TO_CONST_CHAR) */
   comment_undefined_macro_name(USE_POINTER_TO_CONST_CHAR);
 #endif /* defined(USE_POINTER_TO_CONST_CHAR) */
-#if defined(USE_PRAGMA_IDENT_IN_GENERATED_CODE)
-  define_numeric_valued_macro(USE_PRAGMA_IDENT_IN_GENERATED_CODE);
-#else /* !defined(USE_PRAGMA_IDENT_IN_GENERATED_CODE) */
-  comment_undefined_macro_name(USE_PRAGMA_IDENT_IN_GENERATED_CODE);
-#endif /* defined(USE_PRAGMA_IDENT_IN_GENERATED_CODE) */
 #if defined(USE_TEMPLATE_INFO_FILE)
   define_numeric_valued_macro(USE_TEMPLATE_INFO_FILE);
 #else /* !defined(USE_TEMPLATE_INFO_FILE) */

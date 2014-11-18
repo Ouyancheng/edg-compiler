@@ -198,6 +198,7 @@ EXTERN a_function_pointer function_pointers[(int)fn_last+1]
 #endif /* USER_CONTROL_OF_STRUCT_PACKING */
 #if IDENT_DIRECTIVE_AND_PRAGMA
   (a_function_pointer)ident_pragma,
+  (a_function_pointer)ident_directive,
 #endif /* IDENT_DIRECTIVE_AND_PRAGMA */
   (a_function_pointer)once_pragma,
   (a_function_pointer)hdrstop_or_no_pch_pragma,

@@ -2815,11 +2815,13 @@ Scan and process a #pragma directive.
   }  /* if */
 }  /* proc_pragma */
 
-
 #if IDENT_DIRECTIVE_AND_PRAGMA
+
 static void proc_ident(a_source_position  *directive_pos)
 /*
-Scan and process a #ident directive.
+Scan and process a #ident directive.  Use the pragma processing mechanism
+to process it as though it were a pragma (but use the pk_ident_directive
+kind to distinguish it from a #pragma ident).
 */
 {
   if (generate_pp_output) {
@@ -2829,20 +2831,22 @@ Scan and process a #ident directive.
   } else {
     /* #ident "xxx" is treated as another spelling of #pragma ident "xxx",
        so put out a pending-pragma entry for it. */
-    enter_pending_pragma(pragma_description_for_pragma_kind[(int)pk_ident],
+    enter_pending_pragma(pragma_description_for_pragma_kind[
+                                                      (int)pk_ident_directive],
                          directive_pos, &pos_curr_token,
                          /*is_microsoft_pragma_operator=*/FALSE);
   }  /* if */
 }  /* proc_ident */
 
 
-void ident_pragma(a_pending_pragma_ptr ppp)
+void ident_directive(a_pending_pragma_ptr ppp)
 /*
-Process a cached #pragma ident directive.  The syntax is:
+Process a cached #ident directive.  The syntax is:
 
-  #pragma ident <string>
+  #ident <string>
 
-where <string> is a quoted character string (not wide chars).
+where <string> is a quoted character string (not wide chars).  A warning
+is issued if anything follows the string.
 */
 {
   a_boolean               err = FALSE;
@@ -2880,9 +2884,24 @@ where <string> is a quoted character string (not wide chars).
       ppp->il_pragma_entry->variant.ident_string = cp;
     }  /* if */
   }  /* if */
-}  /* ident_pragma */
-#endif /* IDENT_DIRECTIVE_AND_PRAGMA */
+}  /* ident_directive */
 
+
+void ident_pragma(a_pending_pragma_ptr ppp)
+/*
+Process a #pragma ident directive.  The syntax is:
+
+  #pragma ident tokens
+
+where tokens can be any number and type of token, so a string
+(ppp->pragma_text) is used to capture all of the arguments.  No validation
+is performed in the front end.
+*/
+{
+  create_il_entry_for_pragma(ppp, (a_symbol_ptr)NULL, (a_statement_ptr)NULL);
+}  /* ident_pragma */
+
+#endif /* IDENT_DIRECTIVE_AND_PRAGMA */
 
 static void process_stdc_pragma(a_pending_pragma_ptr	ppp)
 /*

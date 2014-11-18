@@ -432,6 +432,7 @@ enum a_function_number_tag {
 #endif /* USER_CONTROL_OF_STRUCT_PACKING */
 #if IDENT_DIRECTIVE_AND_PRAGMA
   fn_ident_pragma,
+  fn_ident_directive,
 #endif /* IDENT_DIRECTIVE_AND_PRAGMA */
   fn_once_pragma,
   fn_hdrstop_or_no_pch_pragma,

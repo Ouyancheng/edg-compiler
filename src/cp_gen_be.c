@@ -13178,24 +13178,16 @@ is the one associated with the pragma.
         gen_upc_pragma(pp);
 #endif /* UPC_EXTENSIONS_ALLOWED */
 #if IDENT_DIRECTIVE_AND_PRAGMA
-      /* Check for #pragma ident (= #ident). */
-      } else if (pp->kind == (a_pragma_kind)pk_ident) {
-#if USE_PRAGMA_IDENT_IN_GENERATED_CODE
-        gen_pragma_start(pp);
-        write_str("ident ");
-#else /* !USE_PRAGMA_IDENT_IN_GENERATED_CODE */
+      /* Check for #ident (#pragma ident is handled by the normal #pragma
+         processing code). */
+      } else if (pp->kind == (a_pragma_kind)pk_ident_directive) {
         begin_pp_directive("");
         write_str("#ident ");
-#endif /* USE_PRAGMA_IDENT_IN_GENERATED_CODE */
         /* Don't escape tab characters. */
         octl.gen_raw_tab_in_literals = TRUE;
         gen_constant(pp->variant.ident_string, /*need_parens=*/FALSE);
         octl.gen_raw_tab_in_literals = FALSE;
-#if USE_PRAGMA_IDENT_IN_GENERATED_CODE
-        gen_pragma_end(pp);
-#else /* !USE_PRAGMA_IDENT_IN_GENERATED_CODE */
         end_pp_directive();
-#endif /* USE_PRAGMA_IDENT_IN_GENERATED_CODE */
 #endif /* IDENT_DIRECTIVE_AND_PRAGMA */
 #if MICROSOFT_EXTENSIONS_ALLOWED
       } else if (pp->kind == (a_pragma_kind)pk_comment) {

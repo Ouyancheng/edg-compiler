@@ -1,5 +1,32 @@
 Version 4.10
 
+11/17/14 [EDGcpfe/15633]
+IL representation for #ident and #pragma ident (IL CHANGE)
+
+Previously (in configurations where IDENT_DIRECTIVE_AND_PRAGMA is TRUE),
+the #ident and #pragma ident preprocessing directives were both handled by
+the same pragma processing code and were both mapped to pk_ident pragmas.
+Unfortunately, it appears that the processing for these (and the IL that
+needs to be generated) are different; #ident takes a single string argument
+(and gives a warning if anything follows that), and #pragma ident can have
+arguments of unspecified number and type.  Accordingly, two separate
+pragma kinds are now used: #ident maps to pk_ident_directive and #pragma ident
+maps to pk_ident_pragma.  For backward compatibility, pk_ident is defined
+to pk_ident_directive, which will allow back ends to process #ident directives
+as before, but #pragma ident directives will generate new pk_ident_pragma
+IL entries.  This is an IL CHANGE.  For example:
+
+  #pragma ident "string" extra
+    // Generates pk_ident_pragma with "ident \"string\" extra" in pragma_text.
+  #ident "string" extra
+    // Generates pk_ident_directive with "string" constant in ident_string and
+    // issues a warning on "extra".
+
+Also, the configuration macro USE_PRAGMA_IDENT_IN_GENERATED_CODE has been
+removed; as a result, #ident is always represented as #ident and #pragma ident
+as #pragma ident in generated C and C++ code.
+
+
 11/17/14 [EDGcpfe/13789]
 Microsoft compatibility: accept invalid default template argument
 

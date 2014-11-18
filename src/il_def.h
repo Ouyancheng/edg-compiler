@@ -5451,8 +5451,13 @@ enum a_pragma_kind_tag {
 			   unions. */
 #endif /* USER_CONTROL_OF_STRUCT_PACKING */
 #if IDENT_DIRECTIVE_AND_PRAGMA
-  pk_ident,		/* Specifies a source identification string (like
-			   #ident); passed on to the back end. */
+  pk_ident_pragma,	/* Used for #pragma ident; all tokens are collected
+			   in a single string which is passed to the back end
+			   (in pragma_text). */
+  pk_ident_directive,	/* Used for #ident; specifies a single string which
+			   is passed on to the back end (in ident_string). */
+  pk_ident = pk_ident_directive,
+			/* For compatibility with older versions. */
 #endif /* IDENT_DIRECTIVE_AND_PRAGMA */
 #if PRAGMA_WEAK_ALLOWED
   pk_weak,		/* Specifies "weak binding" for C_mode() name.  The
@@ -5569,7 +5574,8 @@ EXTERN a_const_char *pragma_ids[(int)pk_last + 1]
 /* pk_pack */			"pack",
 #endif /* USER_CONTROL_OF_STRUCT_PACKING */
 #if IDENT_DIRECTIVE_AND_PRAGMA
-/* pk_ident */			"ident",
+/* pk_ident_pragma */		"ident",  /* Used for #pragma ident. */
+/* pk_ident_directive */	"",       /* Used for #ident. */
 #endif /* IDENT_DIRECTIVE_AND_PRAGMA */
 #if PRAGMA_WEAK_ALLOWED
 /* pk_weak */			"weak",
@@ -5735,6 +5741,10 @@ typedef struct a_pragma {
   union {
     /* When kind == pk_none or refers to a "front-end-only" pragma, no variant
        fields. */
+#if IDENT_DIRECTIVE_AND_PRAGMA
+    /* When kind == pk_ident_pragma there is no variant and the string
+       (including the "ident " prefix) is in pragma_text. */
+#endif /* IDENT_DIRECTIVE_AND_PRAGMA */
     /* When kind == pk_stdc: */
     struct {
       a_stdc_pragma_kind
@@ -5763,10 +5773,10 @@ typedef struct a_pragma {
     } upc;
 #endif /* UPC_EXTENSIONS_ALLOWED */
 #if IDENT_DIRECTIVE_AND_PRAGMA
-    /* When kind == pk_ident: */
+    /* When kind == pk_ident_directive: */
     a_constant_ptr
 		ident_string;
-			/* The string for the ident. */
+			/* The string for the #ident. */
 #endif /* IDENT_DIRECTIVE_AND_PRAGMA */
 #if USER_CONTROL_OF_STRUCT_PACKING && BACK_END_IS_CP_GEN_BE
     /* When kind == pk_pack: */

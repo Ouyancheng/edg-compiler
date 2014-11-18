@@ -3896,7 +3896,9 @@ in the current IL memory region.
   pp->pragma_text           = NULL;
   switch (kind) {
 #if IDENT_DIRECTIVE_AND_PRAGMA
-    case pk_ident:
+    case pk_ident_pragma:
+      break;
+    case pk_ident_directive:
       pp->variant.ident_string = NULL;
       break;
 #endif /* IDENT_DIRECTIVE_AND_PRAGMA */

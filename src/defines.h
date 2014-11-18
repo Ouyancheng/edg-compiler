@@ -500,7 +500,6 @@ Flags to be set for any version that uses the C++ generating back end.
 #define MAKE_ALL_FUNCTIONS_UNPROTOTYPED 0
 #define TARG_EXTERNAL_NAMES_GET_UNDERSCORE_ADDED 0
 #define TARG_ZERO_WIDTH_BIT_FIELD_AFFECTS_STRUCT_ALIGNMENT 0
-#define USE_PRAGMA_IDENT_IN_GENERATED_CODE 1
 #define STDC_ZERO_IN_NONSTRICT_MODE 1
 #define GUARD_MACRO_FOR_VA_LIST "_VA_LIST"
 /* Use 1 for mmap PCH, 0 for non-mmap PCH. */

@@ -5012,7 +5012,7 @@ Display the indicated pragma entry.
   disp_name("kind");
   disp_pragma_kind_name(ptr->kind);
 #if IDENT_DIRECTIVE_AND_PRAGMA
-  if (ptr->kind == (a_pragma_kind)pk_ident) {
+  if (ptr->kind == (a_pragma_kind)pk_ident_directive) {
     disp_constant(ptr->variant.ident_string);
   }  /* if */
 #endif /* IDENT_DIRECTIVE_AND_PRAGMA */

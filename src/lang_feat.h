@@ -1275,9 +1275,13 @@ mode.  Used to set global variable end_of_line_comments_allowed.
 #endif /* END_OF_LINE_COMMENTS_ALLOWED_IN_C_MODE */
 
 /*
-Flag that is TRUE if "#pragma ident" and "#ident" are recognized.
-Both are implemented by recording the string in a pragma entry and passing
-it to the back end.
+Flag that is TRUE if "#pragma ident" and "#ident" are recognized.  Both are
+implemented using the pragma recording mechanism, though internally they are
+represented by two different pragma kinds: pk_ident_directive for #ident and
+pk_ident_pragma for #pragma ident.  For #ident, a single string argument is
+expected and recorded in the IL.  In the #pragma ident case, all tokens after
+the #pragma are recorded in a single text string and passed unchecked to the
+back end for processing.
 */
 #ifndef IDENT_DIRECTIVE_AND_PRAGMA
 #define IDENT_DIRECTIVE_AND_PRAGMA TRUE

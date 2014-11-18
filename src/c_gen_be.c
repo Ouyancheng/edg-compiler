@@ -2518,13 +2518,10 @@ Dump a single #pragma from the IL entry.
       /* UPC pragmas are emitted based on IL information. */
 #endif /* UPC_EXTENSIONS_ALLOWED */
 #if IDENT_DIRECTIVE_AND_PRAGMA
-    /* Check for #pragma ident (= #ident). */
-    } else if (pp->kind == (a_pragma_kind)pk_ident) {
-#if USE_PRAGMA_IDENT_IN_GENERATED_CODE
-      write_str("#pragma ident ");
-#else /* !USE_PRAGMA_IDENT_IN_GENERATED_CODE */
+    /* Check for #ident (#pragma ident is handled by the normal #pragma
+       processing code). */
+    } else if (pp->kind == (a_pragma_kind)pk_ident_directive) {
       write_str("#ident ");
-#endif /* USE_PRAGMA_IDENT_IN_GENERATED_CODE */
       /* Don't escape tab characters. */
       octl.gen_raw_tab_in_literals = TRUE;
       dump_constant(pp->variant.ident_string);

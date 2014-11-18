@@ -422,7 +422,8 @@ possible.
     case pk_pack:
 #endif /* USER_CONTROL_OF_STRUCT_PACKING */
 #if IDENT_DIRECTIVE_AND_PRAGMA
-    case pk_ident:
+    case pk_ident_pragma:
+    case pk_ident_directive:
 #endif /* IDENT_DIRECTIVE_AND_PRAGMA */
 #if PRAGMA_WEAK_ALLOWED
     case pk_weak:
@@ -1774,9 +1775,25 @@ Initialize the pragma description table.
                  es_error);
 #endif /* USER_CONTROL_OF_STRUCT_PACKING */
 #if IDENT_DIRECTIVE_AND_PRAGMA
+  /* For "#pragma ident": */
   (void)add_next_token_pragma_kind_description
-		((a_pragma_kind)pk_ident,
+		((a_pragma_kind)pk_ident_pragma,
                  fn_for_function(ident_pragma),
+		 /*is_pseudo_pragma=*/FALSE,
+                 /*global=*/TRUE,
+                 /*automatically_include_in_il=*/FALSE,
+                 /*record_pragma_text=*/TRUE,
+                 /*expand_macros=*/TRUE,
+                 /*processing_C_code=*/FALSE,
+                 /*fetch_pp_tokens=*/TRUE,
+		 /*ignore_in_back_end=*/FALSE,
+		 /*il_info_is_complete=*/FALSE,
+		 /*read_string_as_header_name=*/FALSE,
+                 es_error);
+  /* For "#ident": */
+  (void)add_next_token_pragma_kind_description
+		((a_pragma_kind)pk_ident_directive,
+                 fn_for_function(ident_directive),
 		 /*is_pseudo_pragma=*/FALSE,
                  /*global=*/TRUE,
                  /*automatically_include_in_il=*/FALSE,
