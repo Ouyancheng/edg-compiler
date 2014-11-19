@@ -1,5 +1,16 @@
 Version 4.10
 
+11/19/14 [EDGcpfe/11175,EDGcpfe/15715]
+Delete expressions with pointers to void
+
+The front end now diagnoses delete expressions with operands of a pointer-to-
+void type (an error in strict C++11 mode, a warning otherwise).  For example:
+
+  void g(void *p) {
+    delete p;  // Now elicits a warning or error.
+  }
+
+
 11/19/14 [EDGcpfe/15711]
 GNU C compatibility: Default C11 mode when gnu_version >= 50000
 

@@ -18919,9 +18919,13 @@ in *rcblock).
       } else
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       /* Do not insert code here. */
-      { if (!check_pointer_operand(&operand, ec_expr_not_pointer)) {
-          err = TRUE;
-        }  /* if */
+      if (!check_pointer_operand(&operand, ec_expr_not_object_pointer)) {
+        err = TRUE;
+      } else if (!is_pointer_to_object_type(operand.type)) {
+        pos_diagnostic((cpp11_mode && strict_ansi_mode) ? es_error
+                                                        : es_warning,
+                       ec_expr_not_object_pointer, &operand.position);
+        if (cpp11_mode && strict_ansi_mode) err = TRUE;
       }  /* if */
     }  /* if */
   } else if (is_error_operand(&operand)) {
