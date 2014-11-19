@@ -1457,6 +1457,7 @@ typedef struct a_source_range {
 			/* Ending source position of a range of text. */
 } a_source_range;
 
+#if EXTRA_SOURCE_POSITIONS_IN_IL || !NULL_POINTER_IS_ZERO
 
 EXTERN a_source_range
 		null_source_range
@@ -1480,6 +1481,7 @@ EXTERN a_source_range
                                                                               ;
 			/* NULL source range, for initialization. */
 
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL || !NULL_POINTER_IS_ZERO */
 
 
 enum an_element_position_kind_tag {
