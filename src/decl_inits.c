@@ -1283,11 +1283,20 @@ Issue any diagnostics at the given position.
   } else if (fold_constexpr_dynamic_init(dip, fp->type, diag_pos,
                                          &folded_value) &&
              is_static_init_constant(&folded_value)) {
+    /* A constant initializer. */
     if (!is->check_validity_only) {
       /* Return a copy of the constant. */
       elem_con = alloc_unshared_constant(&folded_value);
     }  /* if */
   } else {
+    /* A non-constant initializer. */
+    if (is->initializer_must_be_constant) {
+      if (!is->no_diagnostics) {
+        pos_sy_error(ec_field_initializer_is_not_constant, diag_pos,
+                     symbol_for(fp));
+      }  /* if */
+      is->init_error = TRUE;
+    }  /* if */
     if (!is->check_validity_only) {
       /* Copy the initializer and place the copy under a ck_dynamic_init
          constant. */

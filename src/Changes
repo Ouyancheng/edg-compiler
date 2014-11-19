@@ -1,5 +1,23 @@
 Version 4.10
 
+11/19/14 [EDGcpfe/15673]
+Missing diagnostic and abort on nonconstant initializer for constexpr variable
+
+In C++14 mode, a constexpr aggregate variable whose initializer requires the
+implicit use of a nonconstant field initializer went undiagnosed, resulting in
+an internal error later on.  For example:
+
+  constexpr int f(int x) { return x; }
+  int main() {
+    constexpr struct S {
+      int x = f(x = 37);
+    } s = {};  // The initializer for s is not constant.  Previously, this
+  }            // triggered an internal error in C++14 mode; now a normal
+               // error.
+
+This is now fixed.
+
+
 11/19/14 [EDGcpfe/15710]
 Microsoft compatibility: Additional C++11 and C++14 features
 
