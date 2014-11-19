@@ -2753,6 +2753,13 @@ setting is used, and to set various unmentioned settings as needed.
 #else /* !DEFAULT_C99_MODE */
     std_version = 199000;
 #endif /* DEFAULT_C99_MODE */
+    /* GCC 5.0 defaults to C11 mode in its C mode (but not to C++11 mode in
+       its C++ mode). */
+    if (gcc_mode && gnu_version >= 50000 &&
+        !option_kind_used[optk_c89_mode] &&
+        !option_kind_used[optk_c99_mode]) {
+      std_version = 201112;
+    }  /* if */
   }  /* if */
   if (option_kind_used[(int)optk_cplusplus_anachronisms]) {
     command_line_error(ec_cl_anachronism_option_only_in_cplusplus);

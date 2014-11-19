@@ -1,5 +1,12 @@
 Version 4.10
 
+11/19/14 [EDGcpfe/15711]
+GNU C compatibility: Default C11 mode when gnu_version >= 50000
+
+The front end now enables C11 mode extensions by default in GNU C modes with
+gnu_version >= 50000.
+
+
 11/19/14 [EDGcpfe/15673]
 Missing diagnostic and abort on nonconstant initializer for constexpr variable
 
