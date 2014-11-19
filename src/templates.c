@@ -26059,6 +26059,7 @@ described by dps->auto_params.
   scope_stack_top().tmpl_decl_state = templ_state;
   for (; apdp != NULL; apdp = apdp->next, ++param_pos) {
     a_decl_pos_block  decl_pos_block;
+    clear_decl_pos_block(&decl_pos_block);
 #if EXTRA_SOURCE_POSITIONS_IN_IL
     decl_pos_block.identifier_range.start = apdp->start_pos;
     decl_pos_block.identifier_range.end = apdp->end_pos;
